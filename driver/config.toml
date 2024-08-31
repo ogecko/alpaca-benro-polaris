@@ -1,4 +1,4 @@
-title = "Alpact Benro Polaris Driver (Telescope)"
+title = "Alpaca Benro Polaris Driver (Telescope)"
 
 [network]
 alpaca_ip_address = ''                     # IP Address to expose this Alpaca Service on. Loopback='127.0.0.1', Any Address=''
