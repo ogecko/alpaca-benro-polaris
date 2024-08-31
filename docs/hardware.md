@@ -24,4 +24,77 @@ The NinaAir connects to the camera via USB-C, so it can control the lens AF as w
 After one night of failed images with a dewed up lens, I also have a [NEEWER USB Lens Heater](https://www.amazon.com/Telescope-Temperature-Regulator-Condensation-Astrophotography/dp/B0C6Q4YFFC) which I power from a separate power bank, as it can be power hungry, although less critical. If I had more equipment to power, like a cooled astronomy camera or a laptop in the outback, I'd consider upgrading to a [Jackery Portable Power Station 500](https://www.amazon.com.au/Jackery-Portable-Explorer-Generator-Adventure/dp/B08744R27F).
 
 
+## Setting up the NinaAir platform
+The folllowing steps are a high level summary of the required setup for the NinaAir platform. It is not comprehensive and only provided as a guide to how you may wish to setup your mini-PC.
 
+### Local Account
+Use a local account with administrative privellages to set everything up. Using a Microsoft Account may have implications on the need for internet connectivity. 
+
+To create a local account:
+1. In the Settings app select Accounts > Other users 
+2. Under Add other user, select Add account
+4. Select the option Add a user without a Microsoft account
+5. Select Add a user without a Microsoft account
+6. Complete the user details
+7. Under Account Options, select Change account type
+8. Select Account Type `Administrator` then click `OK`
+
+### Power saver functions
+Make sure that your power saver functions are set so that your computer will not go to sleep/hibernate mode and disable your screensaver.
+You need to set the Power Management to High Power.
+
+### Remote Desktop Server
+Enable Remote Desktop Server to allow access from your laptop.
+Open Settings > System > Remote Desktop > Enable, Set Password
+Disable the Require Devices to use Network Level authentication
+
+### Hosting a Mobile Hotspot (OPTIONAL)
+This step is totally optional and only needed if you want to use the NinaAir at a remote location where there is no Wifi connection. Windows 11 allows you to setup your own WiFi hotspot hosted on the NinaAir. This allows you to connect directly to the NinaAir's Wifi and operate it via Remote Desktop.
+
+#### Install Loopback Driver (OPTIONAL)
+In order to create a hotspot, Windows 11 needs to create a tether to an existing network connection. When in the outback you may not have internet connectivity so wel link the hotspot to a Loopback driver
+
+1. Open Device Manager. This can be done by right clicking on the start menu and clicking Device Manager.
+2. Select the computer name at the top of the list
+3. In the Action menu, select "Add legacy hardware"
+4. Click the "Next" button
+5. Select "Install the hardware that I manually select from a list"
+6. Select "Network Adapters"
+7. Click the "Next" button
+8. On the left side, select "Microsoft" Note: It may take a moment for these lists to appear and populate, depending on the speed of your mini-PC
+9. On the right side, select "Microsoft KM-TEST Loopback Adapter"
+10. Click the "Next" button
+11. Click the "Next" button
+Open the Control Panel This can be done by opening the start menu and searching for "Control Panel"
+12. Click "Network and Internet"
+13. Click "Network and Sharing Center"
+14. Click " Change adapter settings" on the left
+15. Rename the KM-TEST loopback adapter to "Loopback"
+16. The right click and select "Rename" may not work. If not, you can select the device, press the F2 key, then type the new name
+17. Restart the mini-PC
+
+#### Create a Scheduled Task to start mobile hotspot on boot (OPTIONAL)
+Because you will want this to run headless and won't have a way to start it manually, this needs to start automatically at boot time. 
+
+1. Run Task Scheduler
+2. Create a new Task called StartMobileHotspot
+3. Change general to run when user is logged on or not
+4. Change trigger to "At system Startup"
+5. Change action to "Start a program" linking to alpaca-benro-polaris-driver\platforms\win\StartMobileHotspot.cmd
+6. Change conditions to uncheck only start if on AC power
+
+### Development Setup (OPTIONAL)
+The follow steps are totaly optional and only required if you want to use VS Code to help make changes to the driver.
+No support is  provided for changed drivers.
+
+#### Setting up OpenSSH Server on Win11 (for Remote VS Code)
+Using Powershell as Administrator run the following commands
+```
+Add-WindowsCapability -Online -Name OpenSSH.Server
+Start-Service sshd
+Set-Service -Name sshd -StartupType 'Automatic'
+Get-Service sshd
+New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+```
+#### Download git for Windows
+Download git for use with VS Code from https://git-scm.com/download/win
