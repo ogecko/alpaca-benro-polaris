@@ -21,11 +21,55 @@
 * Florian Fortin - Nina user, Travel
 
 
+# Main Todo List of Pending Items to Complete
+## Development Pending
+* MoveAxis
+* SyncCordinates
+* Park
+* Documentation
+## QA Pending
+* Eliminate need to keep Mobile app running
+* Stellarium resource issue
+## Testing Pendinig
+* Alpha and Beta testing
+* Apple ecosystem testing
+* RaspberryPi ecosystem testing
+* Completion of Conformance testing
+* Compatibility testing
+
+## Backlog
+Hand controller web app
+Config web app
+Videos for progress updates and usage
+
+## Complleted
+* Asynchronous asgi app
+* ASCOM Discovery
+* ASCOM 53 Properties
+* ASCOM 25 Methods
+* Polaris Connection logic improved
+* Slew to Alt/Az sync and async
+* Slew to RA/Dec sync and async
+* Slew +10' RA for 3 pnt alignment
+* Nina Plate solving
+* Nina Autofocus
+* Nina Centering
+* Nina HocusFocus star detection
+* Nina Long/Lat sync
+* Stellarium Telescope connect
+* Stellarium Slew to RA/Dec
+* Stellarium Positioin readout
+* AutoLearning Slew correction
+* Sidereal Tracking fix
+* Improved Tracking settle correction
+* Polaris msg decoding robusness
+* Protection of  command overwrite
+* Multi client connection support
+
 
 # Kickstarter Communications Plans
 ## 1. Capturing Images
 No raw images shown in BP App
-Hard to recognise where its pointing
 Removing SD card and copying
 
 BackyardEOS (no mount control)

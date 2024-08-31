@@ -85,9 +85,6 @@ class Config:
     aiming_adjustment_az: float = get_toml('device', 'aiming_adjustment_az')
     aiming_adjustment_alt: float = get_toml('device', 'aiming_adjustment_alt')
     aim_max_error_correction: float = get_toml('device', 'aim_max_error_correction')
-    can_reverse: bool = get_toml('device', 'can_reverse')
-    step_size: float = get_toml('device', 'step_size')
-    steps_per_sec: int = get_toml('device', 'steps_per_sec')
     # ---------------
     # Logging Section
     # ---------------
