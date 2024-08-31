@@ -24,9 +24,6 @@ aiming_adjustment_time = 20                 # The time (in seconds) in the futur
 aiming_adjustment_az = -0.030075066300057074  # The initial az aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment
 aiming_adjustment_alt = 0.01954749326739602   # The initial alt aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment
 aim_max_error_correction = 0.5              # The maximum angle (decimal degrees) that the driver will correct for when aiming at alzaz 
-can_reverse = true
-step_size = 1.0
-steps_per_sec = 6
 
 [logging]
 log_level = 'INFO'
