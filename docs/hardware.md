@@ -46,19 +46,19 @@ To create a local account:
 8. Select Account Type `Administrator` then click `OK`
 
 ### Power saver functions
-Make sure that your power saver functions are set so that your computer will not go to sleep/hibernate mode and disable your screensaver.
+Make sure that your power saver functions are set so that your computer will not go to sleep/hibernate mode. Also its useful to disable your screensaver.
 You need to set the Power Management to High Power.
 
 ### Remote Desktop Server
 Enable Remote Desktop Server to allow access from your laptop.
-Open Settings > System > Remote Desktop > Enable, Set Password
+Open Settings > System > Remote Desktop > Enable, Set Password.
 Disable the Require Devices to use Network Level authentication
 
 ### Hosting a Mobile Hotspot (OPTIONAL)
 This step is totally optional and only needed if you want to use the NinaAir at a remote location where there is no Wifi connection. Windows 11 allows you to setup your own WiFi hotspot hosted on the NinaAir. This allows you to connect directly to the NinaAir's Wifi and operate it via Remote Desktop.
 
 #### Install Loopback Driver (OPTIONAL)
-In order to create a hotspot, Windows 11 needs to create a tether to an existing network connection. When in the outback you may not have internet connectivity so wel link the hotspot to a Loopback driver
+In order to create a hotspot, Windows 11 needs to create a tether to an existing network connection. When in the outback you may not have internet connectivity so we'll link the hotspot to a Loopback driver
 
 1. Open Device Manager. This can be done by right clicking on the start menu and clicking Device Manager.
 2. Select the computer name at the top of the list
@@ -86,7 +86,10 @@ Because you will want this to run headless and won't have a way to start it manu
 2. Create a new Task called StartMobileHotspot
 3. Change general to run when user is logged on or not
 4. Change trigger to "At system Startup"
-5. Change action to "Start a program" linking to alpaca-benro-polaris-driver\platforms\win\StartMobileHotspot.cmd
+5. Change action to "Start a program" linking to 
+
+   `alpaca-benro-polaris\platforms\win\StartMobileHotspot.cmd`
+
 6. Change conditions to uncheck only start if on AC power
 
 ### Development Setup (OPTIONAL)
