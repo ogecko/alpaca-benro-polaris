@@ -16,7 +16,7 @@ This enables a whole suite of advanved features for the Benro Polaris.
 ![Overview](docs/images/abp-enables.png)
 
 # Overview
-## [Hardware Guide](./hardware.md)
-## [Installation Guide](./installation.md)
-## [Using Stellarim](./stellarium.md)
-## [Using Nina](./nina.md)
+## [Hardware Guide](./docs/hardware.md)
+## [Installation Guide](./docs/installation.md)
+## [Using Stellarim](./docs/stellarium.md)
+## [Using Nina](./docs/nina.md)
