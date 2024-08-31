@@ -1,0 +1,36 @@
+title = "Alpaca Benro Polaris Driver (Telescope)"
+
+[network]
+alpaca_ip_address = ''                     # IP Address to expose this Alpaca Service on. Loopback='127.0.0.1', Any Address=''
+alpaca_port = 5555                          # Port to expose Alpaca Service on
+polaris_ip_address = '192.168.0.1'          # IP Address of the Benro Polaris on the wifi connection
+polaris_port = 9090                         # Port the Benro Polaris is listening on
+polaris_wifi_interface = 'Wi-Fi USB'        # Wifi Network interface name used to connect to Benro Polaris. Use 'netsh wlan show interfaces' to find options.
+polaris_wifi_profile = 'polaris_3b3906'     # Wifi Network profile used to connect to Benro Polaris. Use 'netsh wlan show profiles' to find options.
+
+[server]
+location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az
+site_latitude = -33.8598874                 # The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
+site_longitude = 151.2021771                # The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
+site_elevation = 39                         # The elevation above mean sea level (meters) of the site at which the telescope is located.
+focal_length = 800                          # The telescope's focal length, in miliimeters.
+focal_ratio = 11                            # The telescope's focal ratio ie focal_length / aperture_diameter.
+verbose_driver_exceptions = true
+
+[device]
+tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete
+aiming_adjustment_enabled = true            # Whether to make minor ajusttments to improve aiming
+aiming_adjustment_time = 20                 # The time (in seconds) in the future to convert from ra/dec to az/alt, to cater for sidereal tracking settle time
+aiming_adjustment_az = -0.030075066300057074  # The initial az aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment
+aiming_adjustment_alt = 0.01954749326739602   # The initial alt aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment
+aim_max_error_correction = 0.5              # The maximum angle (decimal degrees) that the driver will correct for when aiming at alzaz 
+
+[logging]
+log_level = 'INFO'
+log_to_stdout = true
+log_polaris = true
+log_polaris_protocol = false
+supress_polaris_518_msgs = true
+supress_alpaca_polling_msgs = false
+max_size_mb = 5
+num_keep_logs = 5

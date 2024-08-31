@@ -1,0 +1,10 @@
+[Unit]
+Description=Alpaca Benro Polaris communications
+After=network-online.target
+[Service]
+Type=simple
+Restart=always
+WorkingDirectory=/home/<username>/alpaca-benro-polaris/driver
+ExecStart=/usr/bin/python3 /home/<username>/alpaca-benro-polaris/driver/main.py
+[Install]
+WantedBy=network-online.target

@@ -1,10 +1,16 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarim](./stellarium.md) | [Using Nina](./nina.md)
 
 # Recommended Hardware Platform
-## Using Just a Laptop with Stellarium
+## Using a Laptop with Stellarium
 You can install the Alpaca Benro Polaris Driver on any platform that supports Python and Wifi. A good place to start is simply installing it on your laptop or desktop that is in wifi range of your Benro Polaris.  You'll need to install the ASCOM Platform, Python, and Stellarium. This will allow you to use Stellarium to find Deep Sky objects, command the Benro Polaris to Skew to them, and watch its position update in real time.
 
-## A Mini-PC to control all your astronomy equipment
+## Using a Raspberry Pi for the driver
+As another option you can install the Alpaca Benro Polaris Driver on a Raspberry Pi. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
+
+## Using Docker to host the driver
+You can create a Docker image with the Alpaca Benro Polaris Driver. See the [Docker Setup Guide](./docker.md) for more information.
+
+## A Mini-PC to control all your astronomy equipment (Recommended)
 To leverage more of the capabilities from the Alpaca Benro Polaris Driver, I'd recommend installing it on a mini-PC you can mount or hang from your tripod. This way you can create your equivalent of a [ZWO ASIAIR plus](https://www.zwoastro.com/product/asiair-plus/) that can control all your astronomy equipment. Lets call it a `NinaAir` instead of an ASIAir!
 
 ![Hardware Architecture](images/abp-hardware.png)
