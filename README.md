@@ -11,11 +11,11 @@ Thats what this project is all about. The intention is to open up the Benro Pola
 
 The Alpaca Benro Polaris (`ABP`) will provide a standard [ASCOM](https://ascom-standards.org/) driver that supports the  [ITelescopeV3 interface](https://ascom-standards.org/Help/Developer/html/T_ASCOM_DeviceInterface_ITelescopeV3.htm) for the Benro Polaris tripod head. This standard interface is supported by applications like [Stellarium](https://stellarium.org/en/) (a free open source planetarium application) and [Nina](https://nighttime-imaging.eu/) (Nighttime Imaging 'N' Astronomy - An astrophotography imaging suite). 
 
-This enables a whole suite of advanved features for the Benro Polaris.
+The priorities of this open-source project aim to reflect the feedback from the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755). This group provided great feedback and encouragement for this project, with over 120 supporting it in just 2 days. I've summarised the feedback comments below with features getting the most requests listed as high-priority. The open-source project will aim to meet ALL these requests. There are still some challenges to the 3-point alignment; although we have some ideas!
 
-![Overview](docs/images/abp-enables.png)
+![Overview](docs/images/abp-priorities.png)
 
-# Overview
+# Documentation Overview
 The Alpaca Benro Polaris has documentation to help you prepare your hardware, install software and use the features in Stellarium and Nina. Since the ABP is an ASCOM stanndard driver there are many other applications that can make use of it. Let us know what you've found useful.
 
 ## [Hardware Guide](./docs/hardware.md)
@@ -33,3 +33,28 @@ The University of Western Australia has [A Guide To Using Stellarium](https://ni
 The [Using Nina Guide](./docs/nina.md) is not a comprehensive users guide. It is aimed to orient you in what features can leverage the Alpaca Benro Polaris. 
 
 Refer to the thorough [Nina online documentation](https://nighttime-imaging.eu/docs/master/site/) or [Nina PDF Manual](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf) for more info.
+
+# Recognition
+I'd like to thank the following people who helped make this projject a reality:
+
+## Technical Expertise
+* Vladimir Vyskocil - for his intial work on analysing the protocol and demonstrating comms,  which helped inspire this project.
+* Robert B. Denny - for his work in writing a template for Alpaca drivers everywhere.
+* Steven Byrnes - and the SeeStar_alp driver developers for sharing their great work.
+* Peterr Simpson - for leading the ASCOM architecture and developing the conformance test suite.
+* ASCOM Initiative Members - for their tireless standards work to improve astronomy  device  compatibility. 
+
+## Kickstarter Game Changer Backers
+* To be completed
+
+## Kickstarter Thats Awesome Backers
+* To be completed
+
+## User Group Feedback
+* Everyone who posted feedback on the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755)
+  
+
+# Caution - Use at own Risk
+Please be aware that this is not official Benro Software. If you decide to use it - you are doing so at your own risk.
+
+There is a chance of voiding the warranty or damaging your Benro Polaris hardware. There is a chance that you may use the driver/hardware in a way, unintended by its design. The driver is not official Benro software. They may not support you. Due to the extensive testing, the risk of hardware damage is very low.
