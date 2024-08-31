@@ -1,4 +1,4 @@
-[Home](../readme.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarim](./stellarium.md) | [Using Nina](./nina.md)
+[Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarim](./stellarium.md) | [Using Nina](./nina.md)
 
 # Recommended Hardware Platform
 ## Using Just a Laptop with Stellarium
