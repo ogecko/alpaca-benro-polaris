@@ -16,13 +16,13 @@ This enables a whole suite of advanved features for the Benro Polaris.
 ![Overview](docs/images/abp-enables.png)
 
 # Overview
-The Alpaca Benro Polaris has documentation to help you prepare your hardware, install software and use the features in Stellarium and Nina. Since the ABP is an ASCOM stanndard driver there are many other applications that can make use of it. Let us know what you've found usefull.
+The Alpaca Benro Polaris has documentation to help you prepare your hardware, install software and use the features in Stellarium and Nina. Since the ABP is an ASCOM stanndard driver there are many other applications that can make use of it. Let us know what you've found useful.
 
 ## [Hardware Guide](./docs/hardware.md)
 The [Hardware Guide(s)](./docs/hardware.md) provide an overview of the recommended equipment/hardware to be used with Alpaca Benro Polaris. The guides describe how to prepare and setup a Mini PC, Rapsberry Pi or Docker platforms.
 
 ## [Installation Guide](./docs/installation.md)
-The [Installation Guide](./docs/installation.md) provides instructions on how to install the Alpaca Benro Polaris Driver, Stellarium and Nina.
+The [Installation Guide](./docs/installation.md) provides instructions on how to install the Alpaca Benro Polaris Driver, ASCOM Platform, Stellarium and Nina.
 
 ## [Using Stellarim](./docs/stellarium.md)
 The [Using Stellarim Guide](./docs/stellarium.md) on Stellarium is not a comprehensive users guide. It is aimed to orient you in what features can leverage the Alpaca Benro Polaris. 

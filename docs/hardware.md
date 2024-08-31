@@ -5,7 +5,7 @@
 You can install the Alpaca Benro Polaris Driver on any platform that supports Python and Wifi. A good place to start is simply installing it on your laptop or desktop that is in wifi range of your Benro Polaris.  You'll need to install the ASCOM Platform, Python, and Stellarium. This will allow you to use Stellarium to find Deep Sky objects, command the Benro Polaris to Skew to them, and watch its position update in real time.
 
 ## Using a Raspberry Pi for the driver
-As another option you can install the Alpaca Benro Polaris Driver on a Raspberry Pi. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
+As another option you can install the Alpaca Benro Polaris Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
 
 ## Using Docker to host the driver
 You can create a Docker image with the Alpaca Benro Polaris Driver. See the [Docker Setup Guide](./docker.md) for more information.
