@@ -42,7 +42,7 @@ Hand controller web app
 Config web app
 Videos for progress updates and usage
 
-## Complleted
+## Completed
 * Asynchronous asgi app
 * ASCOM Discovery
 * ASCOM 53 Properties
@@ -65,54 +65,3 @@ Videos for progress updates and usage
 * Polaris msg decoding robusness
 * Protection of  command overwrite
 * Multi client connection support
-
-
-# Kickstarter Communications Plans
-## 1. Capturing Images
-No raw images shown in BP App
-Removing SD card and copying
-
-BackyardEOS (no mount control)
-APT - Astro Photography Tool (paid, ASCOM support)
-SGPro - Sequence Generator Pro (paid, ASCOM Support)
-Nina - Nighttime Imaging 'N' Astronomy (free, ASCOM support)
-
-Nina UI Main Menu, Imaging, Sections, Info and Tools, Drag Windows
-Live View
-Exposure View
-Automatically Stretches image
-Sequencing Lights/Darks/Flats/Biases, 
-Options Equip Filter Wheel
-Image Naming, Target, Type, Exposure etc
-Image Copying
-Meta Data
-
-Try it out now. Install guide.
-
-## 2. Star Detection and Autofocus
-Nina Module
-Plugins Hocus Focus Plug-in, Install it
-Plugins LensAF, install it
-Half Flux Radius (HFR) vs Contrast Detection
-Takes an image, Detects stars and rejects bad ones, calc HFR
-Aberation inspector Newtownian.
-
-
-## 3. Goto Co-ordinates, Aiming accuracy and Tracking
-
-## 4. Plate Solving, Aiming validity, Drift and Centering
-Where am I pointing?
-
-## 5. Three Point Alignment and Tracking
-Longer exposures, Longer focal lengths
-
-## 6. Driver Startup and Connecting
-
-## 7. Equipment
-
-## 8. Putting it all together
-
-
-
-
-
