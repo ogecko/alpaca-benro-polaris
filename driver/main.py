@@ -63,10 +63,11 @@ async def main():
     # Create a separate thread for ASCOM Discovery
     _DSC = DiscoveryResponder(Config.alpaca_ip_address, Config.alpaca_port)
 
-    # Run all tasks in parallel and wait for all tasks to finish
-    async with asyncio.TaskGroup() as tg:
-        tg.create_task(app.alpaca_httpd(logger))
-        tg.create_task(telescope.polaris.client(logger, tg))
+    tasks = [
+            app.alpaca_httpd(logger),
+            telescope.polaris.client(logger)
+    ]
+    await asyncio.gather(*tasks)
 
     logger.info(f'==SHUTDOWN== Time stamps are UTC.')
 
