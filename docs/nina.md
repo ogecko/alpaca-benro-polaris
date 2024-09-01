@@ -2,9 +2,9 @@
 
 # Using Nina with Benro Polaris
 ## 1. Capturing Images
-The Benro Polaris App does a great job controling your camera to take sequences of images for panoramas, time-lapse, and astro-photography. It exposes many of the camera features and makes them easy to setup and use. Unfortunately it doesn't stretch and process images, show RAW files, or make it easy to customise file names or copy them off for stacking.
+The Benro Polaris App does a great job controlling your camera to take sequences of images for panoramas, time-lapse, and astrophotography. It exposes many camera features and makes them easy to setup and use. Unfortunately, it doesn't stretch or process images, show RAW files, or make it easy to customize file names or copy them off for stacking.
 
-If you want to go beyond the native app, there are a range of software options that provide more tailored control of your camera for Astrophotography. Some include:
+If you want to go beyond the native app, several software options provide more tailored control of your camera, especially for astrophotography. Some include:
 
 * [BackyardEOS](https://www.otelescope.com/store/category/2-backyardeos/) (no mount control)
 * [APT](https://www.astrophotography.app/) - Astro Photography Tool (paid, ASCOM support)
@@ -41,7 +41,7 @@ All of these image capture features are independent of the Alpaca Benro Polaris 
 ## 2. Selecting Targets
 While Ninas Sky Atlas is good for when you dont have an internet connection, other options you may want to consider include:
 * [Stellarium](https://stellarium.org/en/) - Has a hidden feature `F10` Astro Calcs > `WUT` Whats up Tonight.
-* [Telescopius](https://telescopious.com/) - A website with Astronomy Tools and Target a great catalog.
+* [Telescopius](https://telescopious.com/) - A website with Astronomy Tools and a great catalog.
 * [The Sky Live](https://theskylive.com/whatsvisible) - A website that lists potential targets live.
 
 Other sites that I've found helpful include:
