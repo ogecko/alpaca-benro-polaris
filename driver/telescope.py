@@ -1068,7 +1068,7 @@ class moveaxis:
                             InvalidValueException(f'Rate {ratestr} not a valid number.'))
             return
         if (rate != 0 and abs(rate) < polaris.axisrates[0]['Minimum']) or abs(rate) > polaris.axisrates[0]['Maximum']:
-            resp.text = await PropertyResponse(None,req, InvalidValueException(f'rate {ratestr} must be between {polaris.axisrates[0]['Minimum']} and {polaris.axisrates[0]['Maximum']}.'))
+            resp.text = await PropertyResponse(None,req, InvalidValueException(f"rate {ratestr} must be between {polaris.axisrates[0]['Minimum']} and {polaris.axisrates[0]['Maximum']}."))
             return
         if polaris.gotoing and rate != 0:
             resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot move while goto co-ordinates'))

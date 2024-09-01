@@ -76,7 +76,6 @@ import datetime
 import re
 import asyncio
 import ephem
-from asyncio import TaskGroup
 from threading import Lock
 from logging import Logger
 from config import Config
@@ -246,7 +245,7 @@ class Polaris:
 # OSError [error 22][WinError 121] The semaphore timeout period has expired
 
     # open connection and serve as polaris client
-    async def client(self, logger: Logger, tg: TaskGroup): 
+    async def client(self, logger: Logger):
         # Assumes that wifi network is already connected and routed to Polaris device
         # netsh wlan connect name="polaris_3b3906" interface="Wi-Fi USB"
         while True:
