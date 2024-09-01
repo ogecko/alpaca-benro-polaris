@@ -11,15 +11,15 @@
 * Confirm you will not share any pre-release code or docs with others.
 
 ## Beta Testers
-* Vladimir Vyskocil - for the MacOS testing and support for example, and Raspberry Pi maybe.  ZWO ASI 585 MC
-* Charles Thomas - Glad to be a beta tester.
-* John Harrison - Happy to beta test,, Pentax K1 - Nikon Z6 - android
+* Vladimir Vyskocil - for the MacOS testing and support for example, and Raspberry Pi maybe.  ZWO ASI 585 MC 
+* Charles Thomas - Glad to be a beta tester. (Messenger DM 1/9)
+* John Harrison - Happy to beta test,, Pentax K1 - Nikon Z6 - android (Confirmed added to Github)
 * Vasilis Triantafyllou - Count me in! Could also help with beta testing
  
 ## Potential Followup
 * Ian Morgan - Pentax
-* Pratik Patel - SW Development
-* Florian Fortin - Nina user, Travel
+* Pratik Patel - SW Development (Messenger DM 1/9)
+* Florian Fortin - Nina user, Travel (Messenger DM 1/9)
 
 
 # Main Todo List of Pending Items to Complete
