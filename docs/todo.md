@@ -4,7 +4,8 @@
 * Document the environment you use to test - equipment, software, versions.
 * Try to perform real world use case tests as well as load and performance tests.
 * Keep a record of what tests you perform and the results
-* Report any issues noticed, try to reproduce and document steps to reproduce, isolate what is causing the issue, diagnose yourself if you can.
+* Report any issues noticed as issues in Github
+* Try to reproduce and document steps to reproduce, isolate what is causing the issue, diagnose yourself if you can.
 * Test the documentation where possible, if its missing help author or improve them.
 * Confirm you will send a final summary of Beta testing feedback to me by 17 Sep, so we have time to address any issues.
 * Confirm you will not share any pre-release code or docs with others.
