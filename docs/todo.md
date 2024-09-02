@@ -32,10 +32,11 @@
 * MoveAxis
 * SyncCordinates
 * Park
+* AbortSlew
 * Documentation
 ## QA Pending
 * Eliminate need to keep Mobile app running
-* Stellarium resource issue
+* Stellarium resource issue or Nina occasionally asks for Connection close uneccesarily.
 ## Testing Pendinig
 * Alpha and Beta testing
 * Apple ecosystem testing
@@ -48,7 +49,16 @@ Hand controller web app
 Config web app
 Videos for progress updates and usage
 
-## Completed
+## Completed during campaign
+* Benro outreach
+* Beta Release completed, testing underway
+* Github project created (not public yet)
+* MacOS compatility changes
+* RaspberryPi and Docker platform porting
+* Documentation - installation, hardware, nina (capturing)
+* Training Video(s) - Nina Capturing
+
+## Completed pre-launch
 * Asynchronous asgi app
 * ASCOM Discovery
 * ASCOM 53 Properties
