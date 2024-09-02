@@ -57,6 +57,7 @@ Videos for progress updates and usage
 * RaspberryPi and Docker platform porting
 * Documentation - installation, hardware, nina (capturing)
 * Training Video(s) - Nina Capturing
+* Created aa Security Policy for the project
 
 ## Completed pre-launch
 * Asynchronous asgi app

@@ -52,12 +52,12 @@ You need to set the Power Management to High Power.
 ### Remote Desktop Server
 Enable Remote Desktop Server to allow access from your laptop.
 Open Settings > System > Remote Desktop > Enable, Set Password.
-Disable the Require Devices to use Network Level authentication
+Disable the Require Devices to use Network Level authentication.
 
 ### Hosting a Mobile Hotspot (OPTIONAL)
 This step is totally optional and only needed if you want to use the NinaAir at a remote location where there is no Wifi connection. Windows 11 allows you to setup your own WiFi hotspot hosted on the NinaAir. This allows you to connect directly to the NinaAir's Wifi and operate it via Remote Desktop.
 
-#### Install Loopback Driver (OPTIONAL)
+#### Hotspot: Install Loopback Driver (OPTIONAL)
 In order to create a hotspot, Windows 11 needs to create a tether to an existing network connection. When in the outback you may not have internet connectivity so we'll link the hotspot to a Loopback driver
 
 1. Open Device Manager. This can be done by right clicking on the start menu and clicking Device Manager.
@@ -79,7 +79,7 @@ Open the Control Panel This can be done by opening the start menu and searching 
 16. The right click and select "Rename" may not work. If not, you can select the device, press the F2 key, then type the new name
 17. Restart the mini-PC
 
-#### Create a Scheduled Task to start mobile hotspot on boot (OPTIONAL)
+#### Hotspot: Create a Scheduled Task to start mobile hotspot on boot (OPTIONAL)
 Because you will want this to run headless and won't have a way to start it manually, this needs to start automatically at boot time. 
 
 1. Run Task Scheduler
@@ -91,6 +91,9 @@ Because you will want this to run headless and won't have a way to start it manu
    `alpaca-benro-polaris\platforms\win\StartMobileHotspot.cmd`
 
 6. Change conditions to uncheck only start if on AC power
+
+#### Hotspot: Fixing Remote Desktop 0x904 error (OPTIONAL)
+You may encounter an 0x904 error when using Remote Desktop to connect to NinaAir via its hotspot. If you encounter this issue, you can try downloading Remote Desktop from the Windows Store. This has successfuly resolved the 0x904 issue on some machines.
 
 ### Development Setup (OPTIONAL)
 The follow steps are totaly optional and only required if you want to use VS Code to help make changes to the driver.
