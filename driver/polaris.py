@@ -541,6 +541,7 @@ class Polaris:
                 # Polaris is in astro mode but alignment not complete
                 raise AstroAlignmentError()
             self.logger.info("Polaris communication init... done")
+            self.logger.info(f'Site lat = {self._sitelatitude}, lng = {self._sitelongitude}. Change in config.toml or use Nina to sync.')
             self._lock.acquire()
             self._connected = True
             self._task_errorstr = ''

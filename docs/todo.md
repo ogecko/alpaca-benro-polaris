@@ -20,6 +20,7 @@
 * Craig Bobchin (PCCGG) - I am willing to help beta test. I have a Pentax K-1 as my main camera.
 * Steve Everitt (PCCGG) - I also shoot with Pentax cameras and am happy to assist with any beta testing. I live in Lanzarote so get a lot more opportunity than most.
 * @madhatterbakery-artisanmad7631 (Youtube) - So if you need a Beta tester for Mac, please feel free to give me a shout. Mac (using Codeweaver's Crossover) 
+* Richard Healey (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. (Messenger DM 2/9)
   
 ## Potential Followup
 * Ian Morgan - Pentax
