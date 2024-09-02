@@ -65,4 +65,4 @@ Please be aware that this is not official Benro Software. If you decide to use i
 
 There is a chance of voiding the warranty or damaging your Benro Polaris hardware. There is a chance that you may use the driver/hardware in a way, unintended by its design. The driver is not official Benro software. They may not support you. Due to the extensive testing, the risk of hardware damage is very low.
 
-Also note that the ASCOM Alpaca standard is not secure. It is open by design. Simply stated, Alpaca and network security are separate things. Only used within an isolated protected viirtual or local network.
+Also note that the ASCOM Alpaca standard is not secure. It is open by design. Simply stated, Alpaca and network security are separate things. Only use within an isolated protected virtual or local network.
