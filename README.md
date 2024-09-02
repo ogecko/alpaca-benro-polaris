@@ -58,8 +58,11 @@ I'd like to thank the following people who helped make this project a reality:
 * Everyone who posted feedback on the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755).
 * All the words of encouragement kept this project going  - eg. Just wow!, So much of this yes, Love it, This is a cool project, Plate-solving would be awesome, Yes yes please, I'm all in, Absolute game changer, Great, Please make this work, Very exciting, Wow Wonderful, 100%, Super enthusiastic about this, This is absolutely wicked, Sounds Great, Awesome initiative, Amazing work, Most certainly very worthwhile, Bring it on !!, Keeping a bllodshot eye on this thread!
   
+And finaly, just a brief notet about risks....
 
-# Caution - Use at own Risk
+## Caution - Use at own Risk
 Please be aware that this is not official Benro Software. If you decide to use it - you are doing so at your own risk.
 
 There is a chance of voiding the warranty or damaging your Benro Polaris hardware. There is a chance that you may use the driver/hardware in a way, unintended by its design. The driver is not official Benro software. They may not support you. Due to the extensive testing, the risk of hardware damage is very low.
+
+Also note that the ASCOM Alpaca standard is not secure. It is open by design. Simply stated, Alpaca and network security are separate things. Only used within an isolated protected viirtual or local network.
