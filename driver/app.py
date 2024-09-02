@@ -102,6 +102,9 @@ async def alpaca_httpd(logger):
     logger.info(f'==STARTUP== Serving ASCOM on {Config.alpaca_ip_address}:{Config.alpaca_port}. Time stamps are UTC.')
 
     # Serve the application
-    await alpaca_server.serve()
+    try:
+        await alpaca_server.serve()
+    except KeyboardInterrupt:
+        raise ValueError('Keyboard interrupt.')
 
 

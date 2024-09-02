@@ -266,16 +266,22 @@ class Polaris:
                 continue
 
             except OSError as e:
-                if e.winerror == 121:
-                    self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App, then check Wifi connection.'
-                    logger.error(self._task_errorstr)
-                    await asyncio.sleep(5)
-                    continue
-                if e.winerror == 1225:
-                    self._task_errorstr = f'==STARTUP== Network connection to Polaris was refused. Connect with Polaris App, then check Wifi connection.'
-                    logger.error(self._task_errorstr)
-                    await asyncio.sleep(5)
-                    continue
+                if hasattr(e, 'winerror'):
+                    if e.winerror == 121:
+                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App, then check Wifi connection.'
+                        logger.error(self._task_errorstr)
+                        await asyncio.sleep(5)
+                        continue
+                    if e.winerror == 1225:
+                        self._task_errorstr = f'==STARTUP== Network connection to Polaris was refused. Connect with Polaris App, then check Wifi connection.'
+                        logger.error(self._task_errorstr)
+                        await asyncio.sleep(5)
+                        continue
+                elif e.errno == 51:
+                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App, then check Wifi connection.'
+                        logger.error(self._task_errorstr)
+                        await asyncio.sleep(5)
+                        continue
                 else:
                     raise e
 

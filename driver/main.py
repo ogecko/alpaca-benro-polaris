@@ -76,5 +76,12 @@ async def main():
 
 # ==================================================================
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except ValueError as value:
+        print(f"{value}\nQuit.")
+    except Exception as error:
+        print(f"Error {error}, quit.")
+    except KeyboardInterrupt:
+        print("Keyboard interrupt.")
 # ==================================================================
