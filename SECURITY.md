@@ -2,11 +2,11 @@
 
 ## End User Policy
 
-To ASCOM Alpaca standard is not secure. It is open by design. Simply stated, Alpaca and network security are separate things. Only use within an isolated protected virtual or local network.
+The ASCOM Alpaca standard is not secure. It is open by design. Simply stated, Alpaca and network security are separate things. Only use within an isolated protected virtual or local network.
 
 ## Development Policy
 
-The open ASCOM Alpaca design is no excuse for the software security vulnerabilities or bad design. Anyone working on the Alpaca Benro Polaris project needs awareness of modern secure design practices. All enhancements, fixes, and changes need to be made securely.
+The open ASCOM Alpaca design is no excuse for software security vulnerabilities or bad design. Anyone working on the Alpaca Benro Polaris project needs awareness of modern secure design practices. All enhancements, fixes, and changes need to be made securely.
 
 ## Reporting a Vulnerability
 
