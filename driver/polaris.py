@@ -1091,20 +1091,66 @@ class Polaris:
         level = abs(rate) 
         await self.send_msg(f"1&{cmd}&3&key:{key};state:{state};level:{level};#")
 
-# ./arpspoof.exe 192.168.0.2
+    def convert_ascom2polaris_rate(axis: int, ascomrate: float):
+        # Map between ASCOM floatinig to Polaris rates for Slow and Fast Move
+        # __ASCOM RATE__:_POLARIS RATE__|_CMD__________________________________
+        # 0.000         : 0             | Stop all
+        # 0.001 to 1.000: 1             | Slow move commands '532', '533', '534'
+        # 1.001 to 2.000: 2             |   "
+        # 2.001 to 3.000: 3             |   "
+        # 3.001 to 4.000: 4             |   "
+        # 4.001 to 5.000: 1 to 200      | Fast move commands '513', '514', '521'
+        # 5.001 to 6.000: 201 to 600    |   "
+        # 6.001 to 7.000: 601 to 1200   |   "
+        # 7.001 to 8.000: 1201 to 2000  |   "
+        
+        # Number of outputs in each group for rates 5, 6, 7, 8 - MUST TOTAL 2000
+        group5 = 200                    
+        group6 = 400
+        group7 = 600
+        group8 = 800
 
-# LHS Fast Top Left  = f"1&514&3&speed:2000;#" f"1&513&3&speed:-2000;#"
-# LHS Fast Top Right = f"1&514&3&speed:2000;#" f"1&513&3&speed:2000;#"
-# LHS Fast Bottom Left = f"1&514&3&speed:-2000;#" f"1&513&3&speed:-2000;#"
-# LHS Fast Bottom Right = f"1&514&3&speed:-2000;#" f"1&513&3&speed:2000;#"
-# LHS Slow Top Left  = f"1&514&3&speed:200;#" f"1&513&3&speed:-200;#"
-# LHS Slow Top Right = f"1&514&3&speed:200;#" f"1&513&3&speed:200;#"
-# LHS Slow Bottom Left = f"1&514&3&speed:-200;#" f"1&513&3&speed:-200;#"
-# LHS Slow Bottom Right = f"1&514&3&speed:-200;#" f"1&513&3&speed:200;#"
+        sign = -1 if ascomrate < 0 else 1
+        key = 0 if ascomrate > 0 else 1
+        x = abs(ascomrate)
+
+        if x==0:
+            rate = 0
+        elif x <= 1.0:
+            rate = 1
+        elif x <= 2.0:
+            rate = 2
+        elif x <= 3.0:
+            rate = 3
+        elif x <= 4.0:
+            rate = 4
+        elif x <= 5.0:
+            rate = int(1 + (x - 4.0) * (group5 - 1))                              # (1 + (x - 5.0) * 199)
+        elif x <= 6.0:
+            rate = int(group5 + 1 + (x - 5.0) * (group6 - 1))                     # (201 + (x - 6.0) * 399)
+        elif x <= 7.0:
+            rate = int(group5 + group6 + 1 + (x - 6.0) * (group7 - 1))            # (601 + (x - 7.0) * 599)
+        elif x <= 8.0:
+            rate = int(group5 + group6 + group7 + 1 + (x - 7.0) * (group8 - 1))   # (1201 + (x - 8.0) * 799)
+        else:
+            rate = None
+        
+        # calc the cmd based on axis and whether slow or fast (use +/-2000)
+        if x <= 4.0:
+            cmd = '532' if axis==0 else '533' if axis==1 else '534'
+            cmdtype = 1   # slow commands
+        elif x<=8.0 and rate:
+            key = None
+            rate = sign * rate
+            cmd = '513' if axis==0 else '514' if axis==1 else '521'
+            cmdtype = 2   # fast commands
+        else:
+            cmd = None
+            cmdtype = None
+
+        return cmd, cmdtype, key, rate           
+
 # LHS Double Tap = f"1&523&3&axis:1;#" f"1&523&3&axis:2;#"
-
-# RHS Fast Right = f"1&521&3&speed:2000;#"
-# RHS Fast Left = f"1&521&3&speed:-2000;#"
 # RHS Double Tap = f"1&523&3&axis:3;#"
 
 # Realign with Rigil Kentaurus f"519@ret:1;track:0;#518@w:-0.0545174;x:-0.9174206;y:0.1566324;z:-0.3617094;w:-0.3617094;x:-0.9174206;y:0.1566323;z:0.0545174;compass:288.2599487;alt:-47.0869865;#518@w:-0.0545175;x:-0.9174200;y:0.1566319;z:-0.3617111;w:-0.3617111;x:-0.9174200;y:0.1566319;z:0.0545175;compass:288.2599182;alt:-47.0867844;#518@w:-0.0545171;x:-0.9174206;y:0.1566316;z:-0.3617100;w:-0.3617100;x:-0.9174206;y:0.1566315;z:0.0545171;compass:288.2598572;alt:-47.0869370;#518@w:-0.0545176;x:-0.9174200;y:0.1566319;z:-0.3617115;w:-0.3617115;x:-0.9174200;y:0.1566319;z:0.0545176;compass:288.2599182;alt:-47.0867500;#518@w:-0.0628244;x:-0.9168891;y:0.1599009;z:-0.3602772;w:-0.3602772;x:-0.9168891;y:0.1599008;z:0.0628244;compass:289.7843018;alt:-47.0969810;#518@w:-0.0628249;x:-0.9168892;y:0.1599023;z:-0.3602764;w:-0.3602764;x:-0.9168891;y:0.1599023;z:0.0628250;compass:289.7844849;alt:-47.0970840;#518@w:-0.0627151;x:-0.9170070;y:0.1597574;z:-0.3600599;w:-0.3600599;x:-0.9170069;y:0.1597574;z:0.0627151;compass:289.7633057;alt:-47.1256409;#518@w:0.0611517;x:0.9191911;y:-0.1567659;z:0.3560515;w:0.3560515;x:0.9191911;y:-0.1567659;z:-0.0611518;compass:289.4240112;alt:-47.6442299;#518@w:0.0593493;x:0.9208599;y:-0.1539250;z:0.3532738;w:0.3532738;x:0.9208598;y:-0.1539250;z:-0.0593493;compass:289.0260010;alt:-48.0176392;#518@w:0.0573002;x:0.9226959;y:-0.1505630;z:0.3502569;w:0.3502569;x:0.9226958;y:-0.1505629;z:-0.0573002;compass:288.5586548;alt:-48.4237633;#
