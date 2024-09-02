@@ -1104,7 +1104,7 @@ class Polaris:
         # 6.001 to 7.000: 601 to 1200   |   "
         # 7.001 to 8.000: 1201 to 2000  |   "
         
-        # Number of outputs in each group for rates 5, 6, 7, 8 - MUST TOTAL 2000
+        # Number of units in each group for rates 5, 6, 7, 8 - MUST TOTAL 2000
         group5 = 200                    
         group6 = 400
         group7 = 600
@@ -1125,13 +1125,13 @@ class Polaris:
         elif x <= 4.0:
             rate = 4
         elif x <= 5.0:
-            rate = int(1 + (x - 4.0) * (group5 - 1))                              # (1 + (x - 5.0) * 199)
+            rate = int(1 + (x - 4.0) * (group5 - 1))                              # (1 + (x - 4.0) * 199)
         elif x <= 6.0:
-            rate = int(group5 + 1 + (x - 5.0) * (group6 - 1))                     # (201 + (x - 6.0) * 399)
+            rate = int(group5 + 1 + (x - 5.0) * (group6 - 1))                     # (201 + (x - 5.0) * 399)
         elif x <= 7.0:
-            rate = int(group5 + group6 + 1 + (x - 6.0) * (group7 - 1))            # (601 + (x - 7.0) * 599)
+            rate = int(group5 + group6 + 1 + (x - 6.0) * (group7 - 1))            # (601 + (x - 6.0) * 599)
         elif x <= 8.0:
-            rate = int(group5 + group6 + group7 + 1 + (x - 7.0) * (group8 - 1))   # (1201 + (x - 8.0) * 799)
+            rate = int(group5 + group6 + group7 + 1 + (x - 7.0) * (group8 - 1))   # (1201 + (x - 7.0) * 799)
         else:
             rate = None
         
@@ -1139,14 +1139,14 @@ class Polaris:
         if x <= 4.0:
             cmd = '532' if axis==0 else '533' if axis==1 else '534'
             cmdtype = 1   # slow commands
-        elif x<=8.0 and rate:
+        elif x<=8.0:
             key = None
             rate = sign * rate
             cmd = '513' if axis==0 else '514' if axis==1 else '521'
             cmdtype = 2   # fast commands
         else:
             cmd = None
-            cmdtype = None
+            cmdtype = 3   # extension for +15' RA
 
         return cmd, cmdtype, key, rate           
 
