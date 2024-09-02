@@ -62,8 +62,6 @@ class Config:
     # ---------------
     alpaca_ip_address: str = get_toml('network', 'alpaca_ip_address')
     alpaca_port: int = get_toml('network', 'alpaca_port')
-    polaris_wifi_interface: str = get_toml('network', 'polaris_wifi_interface')
-    polaris_wifi_profile: str = get_toml('network', 'polaris_wifi_profile')
     polaris_ip_address: str = get_toml('network', 'polaris_ip_address')
     polaris_port: int = get_toml('network', 'polaris_port')
     # --------------

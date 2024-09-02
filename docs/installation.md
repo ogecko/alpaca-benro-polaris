@@ -41,7 +41,11 @@ Before you do, though, you'll need to do the following:
 9. Using the USB Wifi adapter, connect your mini-PC to the polaris-###### hotspot.
 10. Choose `Connect Automatically` and click `Connect`.
 11. Wait for connection. It should show `No internet, open` 
-12. Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
+
+
+One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as defaultt or tweaked. 
+
+Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
 
 The Alpaca Benro Polaris Driver window should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
