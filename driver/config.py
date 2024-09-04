@@ -64,6 +64,7 @@ class Config:
     alpaca_port: int = get_toml('network', 'alpaca_port')
     polaris_ip_address: str = get_toml('network', 'polaris_ip_address')
     polaris_port: int = get_toml('network', 'polaris_port')
+    stellarium_port: int = get_toml('network', 'stellarium_port')
     # --------------
     # Server Section
     # --------------
