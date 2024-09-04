@@ -5,6 +5,7 @@ alpaca_ip_address = ''                     # IP Address to expose this Alpaca Se
 alpaca_port = 5555                          # Port to expose Alpaca Service on
 polaris_ip_address = '192.168.0.1'          # IP Address of the Benro Polaris on the wifi connection
 polaris_port = 9090                         # Port the Benro Polaris is listening on
+stellarium_port = 0                         # Stellarium telescope control protocol port, 0 to disable
 
 [server]
 location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az
