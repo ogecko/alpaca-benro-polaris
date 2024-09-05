@@ -43,7 +43,7 @@ Before you do, though, you'll need to do the following:
 11. Wait for connection. It should show `No internet, open` 
 
 
-One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as defaultt or tweaked. 
+One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
 
 Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
 
