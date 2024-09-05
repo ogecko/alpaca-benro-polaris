@@ -12,7 +12,7 @@ From a technical perspective, I would appreciate it if the Benro Design team cou
 
 Finally, we would welcome a representative from Benro to join the Design team on GitHub. We welcome any design review, feedback, or contributions to ensure the driver controls the  Benro Polaris as intended.
 
-Based on the enthusiasm from the Kickstart project and Facebook group, this project can grow Benro Polaris sales and user engagement. 
+Based on the enthusiasm from the Kickstart project and Facebook group, this project can grow Benro Polaris sales and user engagement.    
 
 Thank you for your time and support.
 
