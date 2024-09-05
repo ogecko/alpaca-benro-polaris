@@ -230,8 +230,8 @@ class Polaris:
         #
         # Telescope method constants
         #
-        self._axisrates = [{ "Maximum":20, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
-        self._axisslewing = [ 0, 0, 0 ]                  # Records the move rate of the primary, seconday and tertiary axis
+        self._axisrates = [{ "Maximum":11, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
+        self._axis_slow_slewing = [ 0, 0, 0 ]                  # Records the move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
 
 
@@ -527,6 +527,11 @@ class Polaris:
 
         return ret_dict
 
+    async def send_cmd_reset_axis(self, axis:int):
+        await self.send_msg(f"1&523&3&axis:{axis};#")
+
+    async def send_cmd_park(self):
+        await self.send_cmd_reset_axis(1)
 
     async def get_current_mode(self):
         if Config.log_polaris:
@@ -624,16 +629,6 @@ class Polaris:
         res =  self._atpark
         self._lock.release()
         return res
-
-    def park(self):
-        self._lock.acquire()
-        self._atpark = True
-        self._lock.release()
-
-    def unpark(self):
-        self._lock.acquire()
-        self._atpark = False
-        self._lock.release()
 
     @property
     def slewing(self) -> bool:
@@ -1062,36 +1057,7 @@ class Polaris:
         else:
             await self.send_cmd_goto_altaz(altitude, azimuth, istracking=True)
 
-    async def move_axis(self, axis:int, rate:float):
-        # if rate is greater than 5 than assume RA/Dec move in degrees
-        if abs(rate) > 5:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE RA/Dec Axis {axis}, Rate {rate}")
-            self._lock.acquire()
-            ra = self._rightascension + ((rate*24/360) if axis==0 else 0)
-            dec = self._declination + (rate if axis==1 else 0)
-            self._lock.release()
-            await self.SlewToCoordinates(ra, dec, isasync=True)
-
-        # otherwise assume its a fine tune Alt/Az move
-        else:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis}, Rate {rate}")
-            self._lock.acquire()
-            floor_rate = math.floor(rate)
-            self._axisslewing[axis] = floor_rate
-            self._slewing = any(self._axisslewing)
-            self._lock.release()
-            await self.send_move_cmd(axis, floor_rate)
-
-    async def send_move_cmd(self, axis: int, rate: int):
-        cmd = '532' if axis==0 else '533' if axis==1 else '534'
-        key = 0 if rate > 0 else 1
-        state = 0 if rate == 0 else 1
-        level = abs(rate) 
-        await self.send_msg(f"1&{cmd}&3&key:{key};state:{state};level:{level};#")
-
-    def convert_ascom2polaris_rate(axis: int, ascomrate: float):
+    def convert_ascom2polaris_rate(self, axis: int, ascomrate: float):
         # Map between ASCOM floatinig to Polaris rates for Slow and Fast Move
         # __ASCOM RATE__:_POLARIS RATE__|_CMD__________________________________
         # 0.000         : 0             | Stop all
@@ -1144,11 +1110,96 @@ class Polaris:
             rate = sign * rate
             cmd = '513' if axis==0 else '514' if axis==1 else '521'
             cmdtype = 2   # fast commands
+        elif x<=9.0:
+            cmd = None
+            cmdtype = 3   # 3 point alignment - move 15 degrees from current axis 0=RA, 1=Dec, 
+        elif x<=10.0:
+            cmd = None
+            cmdtype = 4   # 3 point alignment - start BP alignment from current pos
+        elif x<=11.0:
+            cmd = None
+            cmdtype = 5   # 3 point alignment - move (X-10)*10 deg from current eg 10.51 = 5.1'
+            rate = (ascomrate - 10.0) * 10.0
+        elif x<=12.0:
+            cmd = None
+            cmdtype = 6   # 3 point alignment - Finish BP alignment
         else:
             cmd = None
-            cmdtype = 3   # extension for +15' RA
-
+            cmdtype = None
+            rate = 0
+            key=0
+            
         return cmd, cmdtype, key, rate           
+
+    async def send_repeat_msg(self,key,msg,delay):
+        self._lock.acquire()
+        # self._repeat_messages[key][msg] = delay
+        self._lock.release()
+
+
+    async def move_axis(self, axis:int, ascomrate:float):
+        cmd, cmdtype, key, rate = self.convert_ascom2polaris_rate(axis, ascomrate)
+
+        # f cmdtype=1 then slow Alt/Az move and stop slow or fast
+        if cmdtype==1:
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: MOVE Slow Az/Alt/Rot Axis {axis}, Rate {rate}")
+            self._lock.acquire()
+            self._axis_slow_slewing[axis] = rate
+            self._slewing = any(self._axis_slow_slewing)
+            self._lock.release()
+            state = 0 if rate == 0 else 1
+            await self.send_repeat_msg("fastmoves","",0)        # clear all fast move repeat msgs
+            await self.send_msg(f"1&{cmd}&3&key:{key};state:{state};level:{rate};#")
+
+        # if cmdtype=1 then fast Alt/Az move
+        elif cmdtype==2:
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: MOVE Fast Az/Alt/Rot Axis {axis}, Rate {rate}")
+            msg=f"1&{cmd}&3&speed:{rate};#"
+            await self.send_repeat_msg("fastmoves", msg, 0.05)  # send this message every 0.05s
+
+        # if cmdtype=3 then assume RA/Dec move 15 degrees
+        elif cmdtype==3:
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: 3 Point Alignment: A. MOVE RA/Dec Axis {axis}, 15 degrees")
+            self._lock.acquire()
+            ra = self._rightascension + ((15.0*24/360) if axis==0 else 0)
+            dec = self._declination + (15.0 if axis==1 else 0)
+            self._lock.release()
+            await self.SlewToCoordinates(ra, dec, isasync=True)
+
+        # if cmdtype=4 then start alignment process
+        elif cmdtype==4:
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: 3 Point Alignment: B. Start Start Alignment")
+            self._lock.acquire()
+            ra = self._rightascension 
+            dec = self._declination
+            self._lock.release()
+            await self.SlewToCoordinates(ra, dec, isasync=True)
+
+        # if cmdtype=5 then end alignment processmove (X-10)*10 deg from current eg 10.51 = 5.1'
+        elif cmdtype==5:
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: 3 Point Alignment: B. Start Start Alignment")
+            self._lock.acquire()
+            ra = self._rightascension 
+            dec = self._declination
+            self._lock.release()
+            await self.SlewToCoordinates(ra, dec, isasync=True)
+
+    async def park(self):
+        self._lock.acquire()
+        self._atpark = True
+        self._lock.release()
+        await self.send_cmd_park()
+
+    async def unpark(self):
+        self._lock.acquire()
+        self._atpark = False
+        self._lock.release()
+
 
 # LHS Double Tap = f"1&523&3&axis:1;#" f"1&523&3&axis:2;#"
 # RHS Double Tap = f"1&523&3&axis:3;#"

@@ -1091,7 +1091,7 @@ class park:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         try:
-            polaris.park()
+            await polaris.park()
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
@@ -1438,7 +1438,7 @@ class unpark:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         try:
-            polaris.unpark()
+            await polaris.unpark()
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
