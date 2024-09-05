@@ -42,19 +42,16 @@
 # SOFTWARE.
 # -----------------------------------------------------------------------------
 # TODO:
+# * Determine if BP Alignment process can be integrated into Nina 3 pnt alignment
+# * Develop Sync functionality
+# DONE:
 # * retry connecting to polaris if not currently
 # * provide proper error messages when ASMCOM connect put (no wifi connect, no ip network, no Astro mode, no Alignment)
 # * cater for comms error (lose comms, lose wifi, change mode)
 # * error check before using self._writer or self._reader
 # * Improve exception handling
 # * Add retries for when comms fails to Polaris
-# * Use Wireshark to determine 
-# *   cmds for move N S W E and Rotate
-# *   cmd for Park NSWE and Park Rotate
 # * Determine tracking on settle time 16s
-# * Determine nina ASCOM commands for platesolve slew, center and rotate
-# * Determine nina ASCOM commands for platesolve co-rdinates sync
-# DONE:
 # * Current Polaris pointing position shown in Stellarium
 # * Slew to target from Stellarium (Telescope Control)
 # * Slew to target from Nina (Sky Atlas, Framing, Manual Focus Target)
