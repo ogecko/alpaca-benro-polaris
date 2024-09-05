@@ -1,3 +1,4 @@
+### 5-Sep-2024, Dev Update 02 
 # Beta Testing is Underway, Development Continues, Benro Involvement
 We are making excellent progress on the Alpaca Benro Polaris Project. This technical update will discuss our Beta testing process (and how you can join to get early access), what's been happening in development, an update on Benro engagement, and finally, funding.
 
