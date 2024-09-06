@@ -39,14 +39,21 @@ I'd like to thank the following people who helped make this project a reality:
 
 ## Technical Expertise
 * Vladimir Vyskocil - for his work on the protocol and demonstrating comms, helping inspire this project.
+* Stefan Berg - for creating and maintaining N.i.n.a. 
 * Robert B. Denny - for his work in writing a template for Alpaca drivers everywhere.
 * Steven Byrnes - and the SeeStar_alp driver developers for sharing their great work.
 * Peter Simpson - for leading the ASCOM architecture and developing the conformance test suite.
 * ASCOM Initiative Members - for their tireless standards work to improve astronomy  device  compatibility. 
 
 ## Beta Testers
-* Vladimir Vyskocil - MacOS
-* John Harrison - Pentax K1 - Nikon Z6 - Android.
+* Vladimir Vyskocil 
+* 5x5Stuido
+* Bakermanz
+* Chris-F2024
+* Humayun Qureshi
+* Spiderx01
+* Ladislav
+  
 
 ## Kickstarter Game Changer Backers
 * To be completed
