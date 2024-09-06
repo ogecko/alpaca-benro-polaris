@@ -6,6 +6,9 @@
 ## Software Installation
 
 ### Installing Alpaca Benro Polaris and its pre-requisites
+#### To install on MAC
+Please refer to the separate [MAC installation guidelines](./installation_macos.md).
+
 #### To Install on Windows 11
 The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed before it can run.
 
