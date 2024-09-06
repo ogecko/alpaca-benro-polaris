@@ -20,6 +20,7 @@ from logging import Logger
 from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request_field, to_bool
 from exceptions import *        # Nothing but exception classes
 from polaris import Polaris
+import asyncio
 
 logger: Logger = None
 
@@ -1091,7 +1092,7 @@ class park:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         try:
-            polaris.park()
+            await polaris.park()
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
@@ -1438,7 +1439,7 @@ class unpark:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         try:
-            polaris.unpark()
+            await polaris.unpark()
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,

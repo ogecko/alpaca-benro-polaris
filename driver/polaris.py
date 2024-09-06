@@ -42,19 +42,16 @@
 # SOFTWARE.
 # -----------------------------------------------------------------------------
 # TODO:
+# * Implement ASCOM sync
+# DONE:
+# * Move Slow and Move Fast
+# * Park/Unpark (reset axis)
 # * retry connecting to polaris if not currently
 # * provide proper error messages when ASMCOM connect put (no wifi connect, no ip network, no Astro mode, no Alignment)
 # * cater for comms error (lose comms, lose wifi, change mode)
 # * error check before using self._writer or self._reader
 # * Improve exception handling
 # * Add retries for when comms fails to Polaris
-# * Use Wireshark to determine 
-# *   cmds for move N S W E and Rotate
-# *   cmd for Park NSWE and Park Rotate
-# * Determine tracking on settle time 16s
-# * Determine nina ASCOM commands for platesolve slew, center and rotate
-# * Determine nina ASCOM commands for platesolve co-rdinates sync
-# DONE:
 # * Current Polaris pointing position shown in Stellarium
 # * Slew to target from Stellarium (Telescope Control)
 # * Slew to target from Nina (Sky Atlas, Framing, Manual Focus Target)
@@ -145,6 +142,7 @@ class Polaris:
         }
         self._current_mode = -1                     # Current Mode of the Polaris Device (8 = Astro, 1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=HolyG 10=Video, )
         self._polaris_msg_re = re.compile(r'^(\d\d\d)@([^#]*)#')
+        self._msg_to_send_every_50ms = None         # Fast Move message to send every 50ms
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
@@ -230,8 +228,8 @@ class Polaris:
         #
         # Telescope method constants
         #
-        self._axisrates = [{ "Maximum":20, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
-        self._axisslewing = [ 0, 0, 0 ]                  # Records the move rate of the primary, seconday and tertiary axis
+        self._axisrates = [{ "Maximum":8, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
+        self._axis_slow_slewing = [ 0, 0, 0 ]                  # Records the move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
 
 
@@ -240,14 +238,14 @@ class Polaris:
     # POLARIS COMMUNICATIONS METHODS 
     ########################################
 
-# Exceptions
-# ConnectionAbortedError [WinError 1236] The network connection was aborted by the local system
-# OSError [error 22][WinError 121] The semaphore timeout period has expired
+    # Exceptions
+    # ConnectionAbortedError [WinError 1236] The network connection was aborted by the local system
+    # OSError [error 22][WinError 121] The semaphore timeout period has expired
 
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
-        # Assumes that wifi network is already connected and routed to Polaris device
-        # netsh wlan connect name="polaris_3b3906" interface="Wi-Fi USB"
+        # background_keepalive = asyncio.create_task(self.send_keepalive_every_5s())
+        background_fastmove = asyncio.create_task(self.send_message_every_50ms())
         while True:
             try:
                 self._task_exception = None
@@ -255,8 +253,8 @@ class Polaris:
                 self._reader = client_reader
                 self._writer = client_writer
                 logger.info(f'==STARTUP== Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}. ')
-                task = asyncio.create_task(self.polaris_init())
-                task.add_done_callback(self.task_done)
+                init_task = asyncio.create_task(self.polaris_init())
+                init_task.add_done_callback(self.task_done)
                 await self.read_msgs()
 
             except ConnectionAbortedError as e:
@@ -304,28 +302,46 @@ class Polaris:
     async def send_msg(self, msg):
         if Config.log_polaris_protocol:
             self.logger.info(f'->> Polaris: send_msg: {msg}')
-        self._writer.write(msg.encode())
-        await self._writer.drain()
+        if self._writer:
+            self._writer.write(msg.encode())
+            await self._writer.drain()
+
+    async def send_keepalive_every_5s(self):
+        while True:
+            msg = "h#"
+            if Config.log_polaris_protocol:
+                self.logger.info(f'->> Polaris: send_keepalive: {msg}')
+            await self.send_msg(msg)
+            await asyncio.sleep(5)
+
+    async def send_message_every_50ms(self):
+        while True:
+            msg = self._msg_to_send_every_50ms
+            if (msg):
+               await self.send_msg(msg)
+            await asyncio.sleep(0.05)
 
     async def read_msgs(self):
         buffer = ""
         while True:
-            data = await self._reader.read(256)
-
+            data = None
+            if self._reader:
+                data = await self._reader.read(256)
             # raise any subtask exceptions so polaris.client can pick them up
             if  self._task_exception:
                 raise self._task_exception       
-
-            if not data:
-                break
-            buffer += data.decode()
-            parse_result = self.parse_msg(buffer)
-            if parse_result:
-                buffer = parse_result[0]
-                cmd = parse_result[1]
-                if Config.log_polaris_protocol and not(cmd == "518" and Config.supress_polaris_518_msgs):
-                    self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{parse_result[2]}#')
-                self.polaris_parse_cmd(cmd, parse_result[2])
+            if data:
+                buffer += data.decode()
+                parse_result = self.parse_msg(buffer)
+                if parse_result:
+                    buffer = parse_result[0]
+                    cmd = parse_result[1]
+                    if Config.log_polaris_protocol and not(cmd == "518" and Config.supress_polaris_518_msgs):
+                        self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{parse_result[2]}#')
+                    self.polaris_parse_cmd(cmd, parse_result[2])
+            else:
+                # dont overload the platform trying to read data from polaris too quickly
+                await asyncio.sleep(0.1)
 
     def parse_msg(self, msg):
         m = self._polaris_msg_re.match(msg)
@@ -425,7 +441,7 @@ class Polaris:
         # return result of unrecognised msg
         else:
             if Config.log_polaris and not Config.log_polaris_protocol:
-                self.logger.info(f"<<- Polaris: response to command received {cmd} {args}")
+                self.logger.info(f"<<- Polaris: response to command received: {cmd} {args}")
 
 
     def aim_altaz_log_result(self):
@@ -527,6 +543,14 @@ class Polaris:
 
         return ret_dict
 
+    async def send_cmd_reset_axis(self, axis:int):
+        if axis==1 or axis==2 or axis==3:
+            await self.send_msg(f"1&523&3&axis:{axis};#")
+
+    async def send_cmd_park(self):
+        await self.send_cmd_reset_axis(1)
+        await self.send_cmd_reset_axis(2)
+        await self.send_cmd_reset_axis(3)
 
     async def get_current_mode(self):
         if Config.log_polaris:
@@ -624,16 +648,6 @@ class Polaris:
         res =  self._atpark
         self._lock.release()
         return res
-
-    def park(self):
-        self._lock.acquire()
-        self._atpark = True
-        self._lock.release()
-
-    def unpark(self):
-        self._lock.acquire()
-        self._atpark = False
-        self._lock.release()
 
     @property
     def slewing(self) -> bool:
@@ -1062,36 +1076,7 @@ class Polaris:
         else:
             await self.send_cmd_goto_altaz(altitude, azimuth, istracking=True)
 
-    async def move_axis(self, axis:int, rate:float):
-        # if rate is greater than 5 than assume RA/Dec move in degrees
-        if abs(rate) > 5:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE RA/Dec Axis {axis}, Rate {rate}")
-            self._lock.acquire()
-            ra = self._rightascension + ((rate*24/360) if axis==0 else 0)
-            dec = self._declination + (rate if axis==1 else 0)
-            self._lock.release()
-            await self.SlewToCoordinates(ra, dec, isasync=True)
-
-        # otherwise assume its a fine tune Alt/Az move
-        else:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis}, Rate {rate}")
-            self._lock.acquire()
-            floor_rate = math.floor(rate)
-            self._axisslewing[axis] = floor_rate
-            self._slewing = any(self._axisslewing)
-            self._lock.release()
-            await self.send_move_cmd(axis, floor_rate)
-
-    async def send_move_cmd(self, axis: int, rate: int):
-        cmd = '532' if axis==0 else '533' if axis==1 else '534'
-        key = 0 if rate > 0 else 1
-        state = 0 if rate == 0 else 1
-        level = abs(rate) 
-        await self.send_msg(f"1&{cmd}&3&key:{key};state:{state};level:{level};#")
-
-    def convert_ascom2polaris_rate(axis: int, ascomrate: float):
+    def convert_ascom2polaris_rate(self, axis: int, ascomrate: float):
         # Map between ASCOM floatinig to Polaris rates for Slow and Fast Move
         # __ASCOM RATE__:_POLARIS RATE__|_CMD__________________________________
         # 0.000         : 0             | Stop all
@@ -1099,16 +1084,16 @@ class Polaris:
         # 1.001 to 2.000: 2             |   "
         # 2.001 to 3.000: 3             |   "
         # 3.001 to 4.000: 4             |   "
-        # 4.001 to 5.000: 1 to 200      | Fast move commands '513', '514', '521'
-        # 5.001 to 6.000: 201 to 600    |   "
-        # 6.001 to 7.000: 601 to 1200   |   "
-        # 7.001 to 8.000: 1201 to 2000  |   "
+        # 4.001 to 5.000: 1 to 500      | Fast move commands '513', '514', '521'
+        # 5.001 to 6.000: 501 to 1000    |   "
+        # 6.001 to 7.000: 1001 to 1500   |   "
+        # 7.001 to 8.000: 1501 to 2000  |   "
         
         # Number of units in each group for rates 5, 6, 7, 8 - MUST TOTAL 2000
-        group5 = 200                    
-        group6 = 400
-        group7 = 600
-        group8 = 800
+        group5 = 500                    
+        group6 = 500
+        group7 = 500
+        group8 = 500
 
         sign = -1 if ascomrate < 0 else 1
         key = 0 if ascomrate > 0 else 1
@@ -1125,13 +1110,13 @@ class Polaris:
         elif x <= 4.0:
             rate = 4
         elif x <= 5.0:
-            rate = int(1 + (x - 4.0) * (group5 - 1))                              # (1 + (x - 4.0) * 199)
+            rate = int(1 + (x - 4.0) * (group5 - 1))                              # (1 + (x - 4.0) * 499)
         elif x <= 6.0:
-            rate = int(group5 + 1 + (x - 5.0) * (group6 - 1))                     # (201 + (x - 5.0) * 399)
+            rate = int(group5 + 1 + (x - 5.0) * (group6 - 1))                     # (501 + (x - 5.0) * 499)
         elif x <= 7.0:
-            rate = int(group5 + group6 + 1 + (x - 6.0) * (group7 - 1))            # (601 + (x - 6.0) * 599)
+            rate = int(group5 + group6 + 1 + (x - 6.0) * (group7 - 1))            # (1001 + (x - 6.0) * 499)
         elif x <= 8.0:
-            rate = int(group5 + group6 + group7 + 1 + (x - 7.0) * (group8 - 1))   # (1201 + (x - 7.0) * 799)
+            rate = int(group5 + group6 + group7 + 1 + (x - 7.0) * (group8 - 1))   # (1501 + (x - 7.0) * 499)
         else:
             rate = None
         
@@ -1144,14 +1129,95 @@ class Polaris:
             rate = sign * rate
             cmd = '513' if axis==0 else '514' if axis==1 else '521'
             cmdtype = 2   # fast commands
+        
+        # special extended commands should be moved to ASCOM extensions
+        elif x<=9.0:
+            cmd = None
+            cmdtype = 3   # 3 point alignment - move 15 degrees from current axis 0=RA, 1=Dec, 
+        elif x<=10.0:
+            cmd = None
+            cmdtype = 4   # 3 point alignment - start BP alignment from current pos
+        elif x<=11.0:
+            cmd = None
+            cmdtype = 5   # 3 point alignment - move (X-10)*10 deg from current eg 10.51 = 5.1'
+            rate = (ascomrate - 10.0) * 10.0
+        elif x<=12.0:
+            cmd = None
+            cmdtype = 6   # 3 point alignment - Finish BP alignment
         else:
             cmd = None
-            cmdtype = 3   # extension for +15' RA
-
+            cmdtype = None
+            rate = 0
+            key=0
+            
         return cmd, cmdtype, key, rate           
 
-# LHS Double Tap = f"1&523&3&axis:1;#" f"1&523&3&axis:2;#"
-# RHS Double Tap = f"1&523&3&axis:3;#"
 
-# Realign with Rigil Kentaurus f"519@ret:1;track:0;#518@w:-0.0545174;x:-0.9174206;y:0.1566324;z:-0.3617094;w:-0.3617094;x:-0.9174206;y:0.1566323;z:0.0545174;compass:288.2599487;alt:-47.0869865;#518@w:-0.0545175;x:-0.9174200;y:0.1566319;z:-0.3617111;w:-0.3617111;x:-0.9174200;y:0.1566319;z:0.0545175;compass:288.2599182;alt:-47.0867844;#518@w:-0.0545171;x:-0.9174206;y:0.1566316;z:-0.3617100;w:-0.3617100;x:-0.9174206;y:0.1566315;z:0.0545171;compass:288.2598572;alt:-47.0869370;#518@w:-0.0545176;x:-0.9174200;y:0.1566319;z:-0.3617115;w:-0.3617115;x:-0.9174200;y:0.1566319;z:0.0545176;compass:288.2599182;alt:-47.0867500;#518@w:-0.0628244;x:-0.9168891;y:0.1599009;z:-0.3602772;w:-0.3602772;x:-0.9168891;y:0.1599008;z:0.0628244;compass:289.7843018;alt:-47.0969810;#518@w:-0.0628249;x:-0.9168892;y:0.1599023;z:-0.3602764;w:-0.3602764;x:-0.9168891;y:0.1599023;z:0.0628250;compass:289.7844849;alt:-47.0970840;#518@w:-0.0627151;x:-0.9170070;y:0.1597574;z:-0.3600599;w:-0.3600599;x:-0.9170069;y:0.1597574;z:0.0627151;compass:289.7633057;alt:-47.1256409;#518@w:0.0611517;x:0.9191911;y:-0.1567659;z:0.3560515;w:0.3560515;x:0.9191911;y:-0.1567659;z:-0.0611518;compass:289.4240112;alt:-47.6442299;#518@w:0.0593493;x:0.9208599;y:-0.1539250;z:0.3532738;w:0.3532738;x:0.9208598;y:-0.1539250;z:-0.0593493;compass:289.0260010;alt:-48.0176392;#518@w:0.0573002;x:0.9226959;y:-0.1505630;z:0.3502569;w:0.3502569;x:0.9226958;y:-0.1505629;z:-0.0573002;compass:288.5586548;alt:-48.4237633;#
-# Confirm = f"1&530&3&step:2;yaw:151.342;pitch:54.93;lat:-33.655266;num:1;lng:151.12234;#
+    async def move_axis(self, axis:int, ascomrate:float):
+        cmd, cmdtype, key, rate = self.convert_ascom2polaris_rate(axis, ascomrate)
+
+        # f cmdtype=1 then slow Alt/Az move and stop slow or fast
+        if cmdtype==1:
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: MOVE Slow Az/Alt/Rot Axis {axis}, Rate {rate}")
+            self._lock.acquire()
+            self._axis_slow_slewing[axis] = rate
+            self._slewing = any(self._axis_slow_slewing)
+            self._lock.release()
+            if self._msg_to_send_every_50ms and rate == 0:
+                self._msg_to_send_every_50ms = None                 # stop fast move msgs
+                if Config.log_polaris_protocol:
+                    self.logger.info(f'->> Polaris: stop_fastmove_repeating')
+            state = 0 if rate == 0 else 1
+            await self.send_msg(f"1&{cmd}&3&key:{key};state:{state};level:{rate};#")
+
+        # if cmdtype=1 then fast Alt/Az move
+        elif cmdtype==2:
+            msg=f"1&{cmd}&3&speed:{rate};#"
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: MOVE Fast Az/Alt/Rot Axis {axis}, Rate {rate}")
+            if Config.log_polaris_protocol:
+                self.logger.info(f'->> Polaris: send_fastmove_repeating: {msg}')
+            self._lock.acquire()
+            self._msg_to_send_every_50ms = msg
+            self._lock.release()
+
+        # if cmdtype=3 then assume RA/Dec move 15 degrees
+        elif cmdtype==3:
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: 3 Point Alignment: A. MOVE RA/Dec Axis {axis}, 15 degrees")
+            self._lock.acquire()
+            ra = self._rightascension + ((15.0*24/360) if axis==0 else 0)
+            dec = self._declination + (15.0 if axis==1 else 0)
+            self._lock.release()
+            await self.SlewToCoordinates(ra, dec, isasync=True)
+
+        # if cmdtype=4 then start alignment process
+        elif cmdtype==4:
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: 3 Point Alignment: B. Start Start Alignment")
+            self._lock.acquire()
+            ra = self._rightascension 
+            dec = self._declination
+            self._lock.release()
+
+        # if cmdtype=5 then end alignment processmove (X-10)*10 deg from current eg 10.51 = 5.1'
+        elif cmdtype==5:
+            if Config.log_polaris:
+                self.logger.info(f"->> Polaris: 3 Point Alignment: B. Start Start Alignment")
+            self._lock.acquire()
+            ra = self._rightascension 
+            dec = self._declination
+            self._lock.release()
+
+    async def park(self):
+        self._lock.acquire()
+        self._atpark = True
+        self._lock.release()
+        await self.send_cmd_park()
+
+    async def unpark(self):
+        self._lock.acquire()
+        self._atpark = False
+        self._lock.release()
+
