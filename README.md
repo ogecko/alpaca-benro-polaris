@@ -32,7 +32,9 @@ The University of Western Australia has [A Guide To Using Stellarium](https://ni
 ## [Using Nina](./docs/nina.md)
 The [Using Nina Guide](./docs/nina.md) is not a comprehensive users guide. It aims to orient you in what features can leverage the Alpaca Benro Polaris. 
 
-Refer to the thorough [Nina online documentation](https://nighttime-imaging.eu/docs/master/site/) or [Nina PDF Manual](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf) for more info.
+Refer to the thorough [Nina online documentation](https://nighttime-imaging.eu/docs/master/site/) or [Nina PDF Manual](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf) for the standard documentation. You can find some very informative, long form videos on Nina at the following youtube channels.
+* [Cuiv, The Lazy Geek Youtube Channel](https://www.youtube.com/@CuivTheLazyGeek)
+* [Patriot Astro Youtube channel](https://www.youtube.com/@PatriotAstro)
 
 # Recognition
 I'd like to thank the following people who helped make this project a reality:
@@ -64,7 +66,11 @@ I'd like to thank the following people who helped make this project a reality:
 ## User Group Feedback
 * Everyone who posted feedback on the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755).
 * All the words of encouragement kept this project going  - eg. Just wow!, So much of this yes, Love it, This is a cool project, Would be awesome, Yes yes please, I'm all in, Absolute game changer, Great, Please make this work, Very exciting, Wow Wonderful, 100% Super enthusiastic about this, This is absolutely wicked, Sounds Great, Awesome initiative, Amazing work, Most certainly very worthwhile, Bring it on !!, Keeping a bllodshot eye on this thread!
-  
+
+## Organisations
+* Benro - for creatting and distributing such great products, including the Benro Polaris.
+* Napkin AI - for making it so easy to crete all the diagrams.
+
 And finaly, just a brief note about risks....
 
 ## Caution - Use at own Risk
