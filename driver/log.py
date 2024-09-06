@@ -40,6 +40,7 @@ import logging
 import logging.handlers
 import time
 from config import Config
+import os
 
 global logger
 #logger: logging.Logger = None  # Master copy (root) of the logger
@@ -72,15 +73,17 @@ def init_logging():
     formatter.converter = time.gmtime           # UTC time
     logger.handlers[0].setFormatter(formatter)  # This is the stdout handler, level set above
     # Add a logfile handler, same formatter and level
-    # handler = logging.handlers.RotatingFileHandler('./alpyca.log',
-    #                                                mode='w',
-    #                                                delay=True,     # Prevent creation of empty logs
-    #                                                maxBytes=Config.max_size_mb * 1000000,
-    #                                                backupCount=Config.num_keep_logs)
-    #handler.setLevel(Config.log_level)
-    #handler.setFormatter(formatter)
-    #handler.doRollover()                                            # Always start with fresh log
-    #logger.addHandler(handler)
+    if Config.log_to_file:
+        logfile = os.path.join(os.getcwd()+os.sep, 'alpaca.log')
+        handler = logging.handlers.RotatingFileHandler(logfile,
+                                                        mode='w',
+                                                        delay=True,     # Prevent creation of empty logs
+                                                        maxBytes=Config.max_size_mb * 1000000,
+                                                        backupCount=Config.num_keep_logs)
+        handler.setLevel(Config.log_level)
+        handler.setFormatter(formatter)
+        handler.doRollover()                                            # Always start with fresh log
+        logger.addHandler(handler)
     if not Config.log_to_stdout:
         """
             This allows control of logging to stdout by simply

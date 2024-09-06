@@ -25,10 +25,11 @@ aim_max_error_correction = 0.5              # The maximum angle (decimal degrees
 
 [logging]
 log_level = 'INFO'
+log_to_file = false
 log_to_stdout = true
 log_polaris = true
 log_polaris_protocol = false
 supress_polaris_518_msgs = true
-supress_alpaca_polling_msgs = false
+supress_alpaca_polling_msgs = true
 max_size_mb = 5
 num_keep_logs = 5
