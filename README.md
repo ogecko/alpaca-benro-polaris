@@ -68,8 +68,8 @@ I'd like to thank the following people who helped make this project a reality:
 * All the words of encouragement kept this project going  - eg. Just wow!, So much of this yes, Love it, This is a cool project, Would be awesome, Yes yes please, I'm all in, Absolute game changer, Great, Please make this work, Very exciting, Wow Wonderful, 100% Super enthusiastic about this, This is absolutely wicked, Sounds Great, Awesome initiative, Amazing work, Most certainly very worthwhile, Bring it on !!, Keeping a bllodshot eye on this thread!
 
 ## Organisations
-* Benro - for creatting and distributing such great products, including the Benro Polaris.
-* Napkin AI - for making it so easy to crete all the diagrams.
+* Benro - for creating and distributing such great products, including the Benro Polaris.
+* Napkin AI - for making it so easy to create all the diagrams.
 
 And finaly, just a brief note about risks....
 
