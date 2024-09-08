@@ -142,7 +142,11 @@ class Polaris:
         }
         self._current_mode = -1                     # Current Mode of the Polaris Device (8 = Astro, 1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=HolyG 10=Video, )
         self._polaris_msg_re = re.compile(r'^(\d\d\d)@([^#]*)#')
-        self._msg_to_send_every_50ms = None         # Fast Move message to send every 50ms
+        self._every_50ms_msg_to_send = None         # Fast Move message to send every 50ms
+        self._every_50ms_counter = 0                # Fast Move counter, incrementing every 50ms up to 1s
+        self._every_50ms_last_timestamp = None      # Fast Move counter, last 1s timestamp
+        self._every_50ms_last_alt = None            # Fast Move counter, last 1s polaris altitude
+        self._every_50ms_last_az = None             # Fast Move counter, last 1s polaris azimuth
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
@@ -178,11 +182,17 @@ class Polaris:
         self._azimuth: float = 0.0                  # The Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
         self._declination: float = 0.0              # The declination (degrees) of the telescope's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property. Reading the property will raise an error if the value is unavailable.
         self._rightascension: float = 0.0           # The right ascension (hours) of the telescope's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property
+        self._p_altitude: float = 0.0               # The Altitude of the Polaris
+        self._p_azimuth: float = 0.0                # The Azimuth of the Polaris
+        self._p_declination: float = 0.0            # The declination (degrees) of the Polaris
+        self._p_rightascension: float = 0.0         # The right ascension (hours) of the Polaris
         self._siderealtime: float = 0.0             # The local apparent sidereal time from the telescope's internal clock (hours, sidereal)
         self._aim_altitude: float = 0.0             # The Altitude of the last goto command
         self._aim_azimuth: float = 0.0              # The Azimuth of the last goto command
         self._adj_altitude: float = Config.aiming_adjustment_alt    # The Altitude adjustment to correct the aim based on past goto results
         self._adj_azimuth: float = Config.aiming_adjustment_az      # The Azimuth adjustment to correct the aim based on past goto results
+        self._adj_rightascension: float = 0         # The Rightascension adjustment difference between polaris and ascom
+        self._adj_declination: float = 0            # The Declination adjustment difference between polaris and ascom
         #
         # Telescope device rates
         #
@@ -221,15 +231,15 @@ class Polaris:
         self._canslewasync: bool = True             # True if this telescope is capable of programmed asynchronous slewing to equatorial coordinates.
         self._canslewaltaz: bool = True             # True if this telescope is capable of programmed slewing (synchronous or asynchronous) to local horizontal coordinates
         self._canslewaltazasync: bool = True        # True if this telescope is capable of programmed asynchronous slewing to local horizontal coordinates
-        self._cansync: bool = False                 # True if this telescope is capable of programmed synching to equatorial coordinates.
-        self._cansyncaltaz: bool = False             # True if this telescope is capable of programmed synching to local horizontal coordinates
+        self._cansync: bool = True                  # True if this telescope is capable of programmed synching to equatorial coordinates.
+        self._cansyncaltaz: bool = False            # True if this telescope is capable of programmed synching to local horizontal coordinates
         self._canunpark: bool = True                # True if this telescope is capable of programmed unparking (Unpark() method).
         self._doesrefraction: bool = False          # True if the telescope or driver applies atmospheric refraction to coordinates.
         #
         # Telescope method constants
         #
-        self._axisrates = [{ "Maximum":8, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
-        self._axis_slow_slewing = [ 0, 0, 0 ]                  # Records the move rate of the primary, seconday and tertiary axis
+        self._axisrates = [{ "Maximum":9, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
+        self._axis_slow_slewing = [ 0, 0, 0 ]            # Records the move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
 
 
@@ -244,8 +254,8 @@ class Polaris:
 
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
-        # background_keepalive = asyncio.create_task(self.send_keepalive_every_5s())
-        background_fastmove = asyncio.create_task(self.send_message_every_50ms())
+        # background_keepalive = asyncio.create_task(self._every_5s_send_keepalive())
+        background_fastmove = asyncio.create_task(self.every_50ms_send_message())
         while True:
             try:
                 self._task_exception = None
@@ -299,6 +309,41 @@ class Polaris:
     def task_done(self, task):
         self._task_exception = task.exception()
 
+    def radec2altaz(self, ra, dec, inthefuture=0):
+        target = ephem.FixedBody()
+        target._ra = hr2rad(ra)
+        target._dec = deg2rad(dec)
+        target._epoch = ephem.J2000
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        self._observer.date = now + datetime.timedelta(seconds=inthefuture)
+        target.compute(self._observer)
+        alt = rad2deg(target.alt)
+        az = rad2deg(target.az)
+        return alt,az
+
+    def altaz2radec(self, alt, az):
+        self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        ra_rad, dec_rad = self._observer.radec_of(deg2rad(az), deg2rad(alt))
+        ra = rad2hr(ra_rad)  
+        dec = rad2deg(dec_rad)
+        return ra, dec
+
+    def radec_polaris2ascom(self, p_ra, p_dec):
+        a_ra = p_ra + self._adj_rightascension
+        a_dec = p_dec + self._adj_declination
+        return a_ra, a_dec
+
+    def radec_ascom2polaris(self, a_ra, a_dec):
+        p_ra = a_ra - self._adj_rightascension
+        p_dec = a_dec - self._adj_declination
+        return p_ra, p_dec
+
+    def radec_sync_ascom(self, a_ra, a_dec):
+        bad_ra, bad_dec = self.radec_polaris2ascom(self._p_rightascension, self._p_declination)
+        self._adj_rightascension = a_ra - bad_ra
+        self._adj_declination = a_dec - bad_dec
+        return
+
     async def send_msg(self, msg):
         if Config.log_polaris_protocol:
             self.logger.info(f'->> Polaris: send_msg: {msg}')
@@ -306,7 +351,7 @@ class Polaris:
             self._writer.write(msg.encode())
             await self._writer.drain()
 
-    async def send_keepalive_every_5s(self):
+    async def _every_5s_send_keepalive(self):
         while True:
             msg = "h#"
             if Config.log_polaris_protocol:
@@ -314,12 +359,45 @@ class Polaris:
             await self.send_msg(msg)
             await asyncio.sleep(5)
 
-    async def send_message_every_50ms(self):
+    async def every_50ms_send_message(self):
         while True:
-            msg = self._msg_to_send_every_50ms
+            self.every_50ms_counter_check()
+            msg = self._every_50ms_msg_to_send
             if (msg):
-               await self.send_msg(msg)
+                await self.send_msg(msg)
             await asyncio.sleep(0.05)
+
+    def every_50ms_counter_check(self):
+        self._every_50ms_counter += 1
+        # log degrees traveled per second (only do this every 5s)
+        if self._every_50ms_counter >= 100:
+            # reset counter and store timestamps
+            self._every_50ms_counter = 0
+            curr_timestamp = datetime.datetime.now()
+            last_timestamp = self._every_50ms_last_timestamp
+            # if we have a last recording
+            if Config.log_polaris_speed and last_timestamp:
+                d_alt = self._p_altitude - self._every_50ms_last_p_altitude
+                d_az = self._p_azimuth - self._every_50ms_last_p_azimuth
+                delta_degrees = math.sqrt(d_alt*d_alt + d_az*d_az)
+                delta_seconds = (curr_timestamp - last_timestamp).total_seconds()
+                if delta_seconds>0:
+                    delta_dms = dec2dms(delta_degrees/delta_seconds)
+                    self.logger.info(f"<<- Polaris: Avg Move Speed (Degrees:arcmin:arcsec.nn/s) - {delta_dms}/s")
+            # Store values for next run
+            self._every_50ms_last_timestamp = curr_timestamp
+            self._every_50ms_last_p_altitude = self._p_altitude
+            self._every_50ms_last_p_azimuth = self._p_azimuth
+
+    def every_50ms_msg_to_set(self, msg):
+        self._lock.acquire()
+        self._every_50ms_msg_to_send = msg
+        self._lock.release()
+    
+    def every_50ms_msg_to_clear(self):
+        self._lock.acquire()
+        self._every_50ms_msg_to_send = None
+        self._lock.release()
 
     async def read_msgs(self):
         buffer = ""
@@ -376,12 +454,17 @@ class Polaris:
         elif cmd == "518":
             arg_dict = self.polaris_parse_args(args)
             self._lock.acquire()
-            self._azimuth = float(arg_dict['compass'])
-            self._altitude = -float(arg_dict['alt'])
-            self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
-            ra, dec = self._observer.radec_of(deg2rad(self._azimuth), deg2rad(self._altitude))
-            self._rightascension = rad2hr(ra)  
-            self._declination = rad2deg(dec)
+            self._p_azimuth = float(arg_dict['compass'])
+            self._p_altitude = -float(arg_dict['alt'])
+            p_ra, p_dec = self.altaz2radec(self._p_altitude, self._p_azimuth)
+            self._p_rightascension = p_ra 
+            self._p_declination = p_dec
+            a_ra, a_dec = self.radec_polaris2ascom(p_ra, p_dec)
+            self._rightascension = a_ra 
+            self._declination = a_dec
+            a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+            self._altitude = a_alt
+            self._azimuth = a_az
             self._lock.release()
             if Config.log_polaris and not Config.supress_polaris_518_msgs:
                 self.logger.info(f"<<- Polaris: POSITION status changed: {cmd} {arg_dict}")
@@ -456,7 +539,7 @@ class Polaris:
         adj_alt = self._adj_altitude
         adj_az = self._adj_azimuth
         self._lock.release()
-        self.logger.info(f"->> Polaris: GOTO error az={err_alt} alt={err_az}, adjustment az={adj_alt} alt={adj_az}")
+        self.logger.info(f"->> Polaris: GOTO delta Alt: {err_alt:.5f} Az: {err_az:.5f} | AltAzOffset ({adj_alt:.3f}, {adj_az:.3f})")
 
     def aim_altaz_log_and_correct(self, alt: float, az:float):
         # log the original aiming co-ordinates and grab the last error ajustments
@@ -482,6 +565,7 @@ class Polaris:
         await self.send_msg(f"1&{cmd}&3&state:{state};speed:0;#")
         await self._response_queues[cmd].get() 
 
+    # Assumes polaris altaz
     async def send_cmd_goto_altaz(self, alt, az, istracking = True):
         self._lock.acquire()
         currently_slewing = self._slewing
@@ -501,10 +585,12 @@ class Polaris:
 
         # log the command
         if Config.log_polaris:
-            self.logger.info(f"->> Polaris: GOTO Az.:{az:.5f} Alt.:{alt:.5f}")
+            self.logger.info(f"->> Polaris: GOTO Polaris Alt: {alt:.8f}, Az: {az:.8f} ")
 
         # log the aiming alt/az and correct it based on previous aiming results
         calt, caz = self.aim_altaz_log_and_correct(alt, az)
+        # calt = alt
+        # caz = 360 - az if az>180 else -az
 
         # if we are currently sidereal tracking then turn off tracking
         if currently_tracking:
@@ -1041,59 +1127,59 @@ class Polaris:
         self._lock.release()
         return res
 
+    
+    
+
 
     ####################################################################
     # Methods
     ####################################################################
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
+        a_ra = rightascension
+        a_dec = declination
         self._lock.acquire()
-        self._targetrightascension = rightascension
-        self._targetdeclination = declination
-        self._rightascension = rightascension
-        self._declination = declination
-        target = ephem.FixedBody()
-        target._ra = hr2rad(rightascension)
-        target._dec = deg2rad(declination)
-        target._epoch = ephem.J2000
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        self._targetrightascension = a_ra
+        self._targetdeclination = a_dec
+        self._lock.release()
+        p_ra, p_dec = self.radec_ascom2polaris(a_ra, a_dec)
+        o_ra = self._adj_rightascension
+        o_dec = self._adj_declination
         # want to work out its Alt/Az of where it will be in the future, as it takes at least this time to settle.
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
-        self._observer.date = now + datetime.timedelta(seconds=inthefuture)
-        target.compute(self._observer)
-        self._lock.release()
-        self.logger.info(f"->> Polaris: GOTO UT RA: {target.ra} Dec: {target.dec} -> Az.: {target.az} Alt.: {target.alt}")
-        alt = rad2deg(target.alt)
-        az = rad2deg(target.az)
-        await self.SlewToAltAz(alt, az, isasync)
+        p_alt, p_az = self.radec2altaz(p_ra, p_dec, inthefuture)
+        self.logger.info(f"->> Polaris: GOTO ASCOM RA: {a_ra:.8f} Dec: {a_dec:.8f}")
+        self.logger.info(f"->> Polaris: GOTO Polaris RA: {p_ra:.8f} Dec: {p_dec:.8f} | RADecOffset ({o_ra:.3f}, {o_dec:.3f})")
+        if isasync:
+            asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
+        else:
+            await self.send_cmd_goto_altaz(p_alt, p_az, istracking=True)
 
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
-        self._lock.acquire()
-        self._altitude = altitude
-        self._azimuth = azimuth
-        self._lock.release()
-        if isasync:
-            asyncio.create_task(self.send_cmd_goto_altaz(altitude, azimuth, istracking=True))
-        else:
-            await self.send_cmd_goto_altaz(altitude, azimuth, istracking=True)
+        a_alt = altitude
+        a_az = azimuth
+        a_ra, a_dec = self.altaz2radec(a_alt, a_az)
+        self.logger.info(f"->> Polaris: GOTO ASCOM Alt: {a_alt:.8f} Az: {a_az:.8f}")
+        await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
     def convert_ascom2polaris_rate(self, axis: int, ascomrate: float):
         # Map between ASCOM floatinig to Polaris rates for Slow and Fast Move
-        # __ASCOM RATE__:_POLARIS RATE__|_CMD__________________________________
-        # 0.000         : 0             | Stop all
-        # 0.001 to 1.000: 1             | Slow move commands '532', '533', '534'
-        # 1.001 to 2.000: 2             |   "
-        # 2.001 to 3.000: 3             |   "
-        # 3.001 to 4.000: 4             |   "
-        # 4.001 to 5.000: 1 to 500      | Fast move commands '513', '514', '521'
-        # 5.001 to 6.000: 501 to 1000    |   "
-        # 6.001 to 7.000: 1001 to 1500   |   "
-        # 7.001 to 8.000: 1501 to 2000  |   "
+        # __ASCOM RATE__:_POLARIS RATE__|__Aprox Speed__|_CMD__________________________________
+        # 0.000         : 0             |               | Stop all
+        # 0.001 to 1.000: 1             | 21.5 arcsec/s  | Slow move commands '532', '533', '534'
+        # 1.001 to 2.000: 2             |  1.1 arcmin/s  |   "
+        # 2.001 to 3.000: 3             |  2.8 arcmin/s  |   "
+        # 3.001 to 4.000: 4             |  5.3 arcmin/s  |   "
+        # 4.001 to 5.000: 5             | 12.5 arcmin/s  |   "
+        # 5.001 to 6.000: 1 to 500      | 32.5 arcmin/s  | Fast move commands '513', '514', '521'
+        # 6.001 to 7.000: 501 to 1000   |  1.5 degree/s  |   "
+        # 7.001 to 8.000: 1001 to 1500  |  3.0 degree/s  |   "
+        # 8.001 to 9.000: 1501 to 2000  |  5.2 degree/s  |   "
         
-        # Number of units in each group for rates 5, 6, 7, 8 - MUST TOTAL 2000
-        group5 = 500                    
+        # Number of units in each group for rates 6, 7, 8, 9 - MUST TOTAL 2000
         group6 = 500
         group7 = 500
         group8 = 500
+        group9 = 500
 
         sign = -1 if ascomrate < 0 else 1
         key = 0 if ascomrate > 0 else 1
@@ -1110,38 +1196,40 @@ class Polaris:
         elif x <= 4.0:
             rate = 4
         elif x <= 5.0:
-            rate = int(1 + (x - 4.0) * (group5 - 1))                              # (1 + (x - 4.0) * 499)
+            rate = 5
         elif x <= 6.0:
-            rate = int(group5 + 1 + (x - 5.0) * (group6 - 1))                     # (501 + (x - 5.0) * 499)
+            rate = int(1 + (x - 5.0) * (group6 - 1))                              # (1 + (x - 4.0) * 499)
         elif x <= 7.0:
-            rate = int(group5 + group6 + 1 + (x - 6.0) * (group7 - 1))            # (1001 + (x - 6.0) * 499)
+            rate = int(group6 + 1 + (x - 6.0) * (group7 - 1))                     # (501 + (x - 5.0) * 499)
         elif x <= 8.0:
-            rate = int(group5 + group6 + group7 + 1 + (x - 7.0) * (group8 - 1))   # (1501 + (x - 7.0) * 499)
+            rate = int(group6 + group7 + 1 + (x - 7.0) * (group8 - 1))            # (1001 + (x - 6.0) * 499)
+        elif x <= 9.0:
+            rate = int(group6 + group7 + group8 + 1 + (x - 8.0) * (group9 - 1))   # (1501 + (x - 7.0) * 499)
         else:
             rate = None
         
         # calc the cmd based on axis and whether slow or fast (use +/-2000)
-        if x <= 4.0:
+        if x <= 5.0:
             cmd = '532' if axis==0 else '533' if axis==1 else '534'
             cmdtype = 1   # slow commands
-        elif x<=8.0:
+        elif x<=9.0:
             key = None
             rate = sign * rate
             cmd = '513' if axis==0 else '514' if axis==1 else '521'
             cmdtype = 2   # fast commands
         
         # special extended commands should be moved to ASCOM extensions
-        elif x<=9.0:
-            cmd = None
-            cmdtype = 3   # 3 point alignment - move 15 degrees from current axis 0=RA, 1=Dec, 
         elif x<=10.0:
             cmd = None
-            cmdtype = 4   # 3 point alignment - start BP alignment from current pos
+            cmdtype = 3   # 3 point alignment - move 15 degrees from current axis 0=RA, 1=Dec, 
         elif x<=11.0:
             cmd = None
-            cmdtype = 5   # 3 point alignment - move (X-10)*10 deg from current eg 10.51 = 5.1'
-            rate = (ascomrate - 10.0) * 10.0
+            cmdtype = 4   # 3 point alignment - start BP alignment from current pos
         elif x<=12.0:
+            cmd = None
+            cmdtype = 5   # 3 point alignment - move (X-11)*10 deg from current eg 11.51 = 5.1'
+            rate = (ascomrate - 11.0) * 10.0
+        elif x<=13.0:
             cmd = None
             cmdtype = 6   # 3 point alignment - Finish BP alignment
         else:
@@ -1164,8 +1252,8 @@ class Polaris:
             self._axis_slow_slewing[axis] = rate
             self._slewing = any(self._axis_slow_slewing)
             self._lock.release()
-            if self._msg_to_send_every_50ms and rate == 0:
-                self._msg_to_send_every_50ms = None                 # stop fast move msgs
+            if self._every_50ms_msg_to_send and rate == 0:
+                self.every_50ms_msg_to_clear()                  # stop fast move msgs
                 if Config.log_polaris_protocol:
                     self.logger.info(f'->> Polaris: stop_fastmove_repeating')
             state = 0 if rate == 0 else 1
@@ -1178,9 +1266,7 @@ class Polaris:
                 self.logger.info(f"->> Polaris: MOVE Fast Az/Alt/Rot Axis {axis}, Rate {rate}")
             if Config.log_polaris_protocol:
                 self.logger.info(f'->> Polaris: send_fastmove_repeating: {msg}')
-            self._lock.acquire()
-            self._msg_to_send_every_50ms = msg
-            self._lock.release()
+            self.every_50ms_msg_to_set(msg)                     # start fast move msgs
 
         # if cmdtype=3 then assume RA/Dec move 15 degrees
         elif cmdtype==3:
@@ -1213,6 +1299,10 @@ class Polaris:
     async def park(self):
         self._lock.acquire()
         self._atpark = True
+        self._adj_declination = 0
+        self._adj_rightascension = 0
+        self._adj_altitude = 0
+        self._adj_azimuth = 0
         self._lock.release()
         await self.send_cmd_park()
 

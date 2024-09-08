@@ -91,6 +91,7 @@ class Config:
     log_to_stdout: str = get_toml('logging', 'log_to_stdout')
     log_polaris: bool = get_toml('logging', 'log_polaris')
     log_polaris_protocol: bool = get_toml('logging', 'log_polaris_protocol')
+    log_polaris_speed: bool = get_toml('logging', 'log_polaris_speed')
     supress_polaris_518_msgs: bool = get_toml('logging', 'supress_polaris_518_msgs')
     supress_alpaca_polling_msgs: bool = get_toml('logging', 'supress_alpaca_polling_msgs')
     max_size_mb: int = get_toml('logging', 'max_size_mb')

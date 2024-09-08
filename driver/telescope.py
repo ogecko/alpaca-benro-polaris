@@ -1383,8 +1383,6 @@ class synctoaltaz:
 class synctocoordinates:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
-        return
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
@@ -1392,22 +1390,22 @@ class synctocoordinates:
         try:
             rightascension = int(rightascensionstr)
         except:
-            resp.text = await MethodResponse(req,
-                            InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
+            resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
-        ### RANGE CHECK AS NEEDED ###       # Raise Alpaca InvalidValueException with details!
+        if rightascension < 0 or rightascension > 24:
+            resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} must be between 0 and 24.'))
+            return
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
         try:
             declination = int(declinationstr)
         except:
-            resp.text = await MethodResponse(req,
-                            InvalidValueException(f'Declination {declinationstr} not a valid number.'))
+            resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
-        ### RANGE CHECK AS NEEDED ###       # Raise Alpaca InvalidValueException with details!
+        if declination < -90 or declination > +90:
+            resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} must be between -90 and +90.'))
+            return
         try:
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
+            polaris.radec_sync_ascom(rightascension, declination)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
@@ -1417,15 +1415,11 @@ class synctocoordinates:
 class synctotarget:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
-        return
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         try:
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
+            polaris.radec_sync_ascom(polaris.targetrightascension, polaris.targetdeclination)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
