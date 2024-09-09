@@ -1388,7 +1388,7 @@ class synctocoordinates:
             return
         rightascensionstr = await get_request_field('RightAscension', req)      # Raises 400 bad request if missing
         try:
-            rightascension = int(rightascensionstr)
+            rightascension = float(rightascensionstr)
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
@@ -1397,7 +1397,7 @@ class synctocoordinates:
             return
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
         try:
-            declination = int(declinationstr)
+            declination = float(declinationstr)
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
