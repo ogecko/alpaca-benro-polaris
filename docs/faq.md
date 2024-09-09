@@ -5,7 +5,9 @@
 Yes. As an Alt/Az Mount and no guiding you will be limited to relatively short exposures. But with a good camera, an 800mm lens, ABP, Nina and Siril you can take some great photos of Deep Sky objects.
 
 ### What is the longest Focal Length that Benro Polaris can track with?
-I've succeeded with 800mm and exposures of up to 15 seconds. I created an hour-long stacked exposure with a powerful desktop and around 200 images. The keeper rate was high.
+I've succeeded with 800mm and exposures of up to 15 seconds. I created an hour-long stacked exposure with a powerful desktop and around 240 images. The keeper rate was high. 
+
+Valdimir has taken images at 1750mm equivalent focal length, using a ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender. Exposures of 15s up to around 100 images stacked. Great results.
 
 # Alpaca and Nina Capability Questions
 ### Can Nina generate a file with the coordinates associated with each image?
