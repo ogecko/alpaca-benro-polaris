@@ -51,7 +51,7 @@ Other sites that I've found helpful include:
 * [White Screen Online](https://www.whitescreen.online/) - For taking FLAT images
 
 ## 3. Star Detection and Autofocus
-One key part in mastering astrophotography is ensuring your optics are optimally focused. Modern cameras have fast, super accurate, and intelligent automated focusing systems. They yeild amazing results but less so for astrophotography. Many of the astrophotography apps fill this gap with their own autofocusing systems. They either drive the focuser of a telescope with a motor and belt or drive your camera's lensAF to take pin sharp images of the night sky.
+Mastering astrophotography requires ensuring that your camera lens is optimally focused. While modern cameras have fast, accurate, and intelligent focusing systems, they may not produce the best results for astrophotography. To address this, many astrophotography applications, like Nina, have their own autofocusing modules. These modules drive a telescope's focuser or your camera's lens-focusing system to capture sharp night sky images.
 
 While Nina has its own star detection and autofocus module, I'd recommend installing `Hocus Focus`, a third party star detection plug-in included in the Nina package. You can change Nina's Options > `Imaging` subtab, to use `Hocus Focus` over its own module. If you have a Canon camera, you should also install the Canon LensAF plug-in as well. 
 
