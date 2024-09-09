@@ -36,6 +36,12 @@ Refer to the thorough [Nina online documentation](https://nighttime-imaging.eu/d
 * [Cuiv, The Lazy Geek Youtube Channel](https://www.youtube.com/@CuivTheLazyGeek)
 * [Patriot Astro Youtube channel](https://www.youtube.com/@PatriotAstro)
 
+## [Troubleshooting and FAQ](./docs/troubleshooting.md)
+We have included a comprehensive [Troubleshooting Guide](./docs/troubleshooting.md) to help you diagnose and fix any issues you may encounter using the driver.
+
+A list of [Frequently Asked Questions](./docs/faq.md) is included to help clarify capabilities and purpose of the Alpaca Benro Polaris Driver.
+
+
 # Recognition
 I'd like to thank the following people who helped make this project a reality:
 
