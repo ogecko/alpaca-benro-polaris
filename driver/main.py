@@ -42,6 +42,7 @@ import log
 from config import Config
 from discovery import DiscoveryResponder
 import telescope
+import stellarium
 import app
 
 # ===========
@@ -63,6 +64,9 @@ async def main():
     # Create a separate thread for ASCOM Discovery
     _DSC = DiscoveryResponder(Config.alpaca_ip_address, Config.alpaca_port)
 
+    if Config.stellarium_port > 0:
+        await stellarium.stellarium_telescope(logger, Config.stellarium_port)
+    
     tasks = [
             app.alpaca_httpd(logger),
             telescope.polaris.client(logger)
