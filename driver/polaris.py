@@ -285,6 +285,12 @@ class Polaris:
                         logger.error(self._task_errorstr)
                         await asyncio.sleep(5)
                         continue
+                    if e.winerror == 1236:
+                        self._task_errorstr = f'==ERROR== Network connection to Polaris lost. Use Polaris App to reconnect.'
+                        logger.error(self._task_errorstr)
+                        await asyncio.sleep(5)
+                        continue
+
                 elif e.errno == 51:
                         self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App, then check Wifi connection.'
                         logger.error(self._task_errorstr)
@@ -405,9 +411,11 @@ class Polaris:
             data = None
             if self._reader:
                 data = await self._reader.read(256)
+                    
             # raise any subtask exceptions so polaris.client can pick them up
             if  self._task_exception:
-                raise self._task_exception       
+                raise self._task_exception
+                   
             if data:
                 buffer += data.decode()
                 parse_result = self.parse_msg(buffer)
