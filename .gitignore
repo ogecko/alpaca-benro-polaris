@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Alpaca Logs
+*.log
+*.log.*
+
 # Distribution / packaging
 .Python
 build/

@@ -1,11 +1,12 @@
 title = "Alpaca Benro Polaris Driver (Telescope)"
 
 [network]
-alpaca_ip_address = ''                     # IP Address to expose this Alpaca Service on. Loopback='127.0.0.1', Any Address=''
+alpaca_ip_address = ''                      # IP Address to expose this Alpaca Service on. Loopback='127.0.0.1', Any Address=''
 alpaca_port = 5555                          # Port to expose Alpaca Service on
 polaris_ip_address = '192.168.0.1'          # IP Address of the Benro Polaris on the wifi connection
 polaris_port = 9090                         # Port the Benro Polaris is listening on
-stellarium_port = 0                         # Stellarium telescope control protocol port, 0 to disable
+stellarium_telescope_ip_address = ''        # IP Address to expose this Stellarium Telescope service on. 
+stellarium_telescope_port = 10001           # Stellarium Telescope control protocol port, 0 to disable
 
 [server]
 location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az
@@ -26,7 +27,7 @@ aim_max_error_correction = 0.5              # The maximum angle (decimal degrees
 
 [logging]
 log_level = 'INFO'
-log_to_file = false
+log_to_file = true
 log_to_stdout = true
 log_polaris = true
 log_polaris_protocol = false                # log polaris protocol messages sent and received

@@ -61,8 +61,9 @@ async def stellarium_handler(logger, reader, writer):
         if telescope.polaris.connected:
             await telescope.polaris.SlewToCoordinates(rightascension, declination, isasync=True)
 
-async def stellarium_telescope(logger, polaris_telescope_port):    
-    logger.info(f"Stellarium telescope server port={polaris_telescope_port}")
+async def stellarium_telescope(logger, telescope_ip_address, telescope_port):    
+    logger.info(f"==STARTUP== Serving Stellarium Telescope on {telescope_ip_address}:{telescope_port}")
 
-    stellarium_server = await asyncio.start_server(lambda reader, writer: stellarium_handler(logger, reader, writer), 'localhost', polaris_telescope_port)
+    stellarium_server = await asyncio.start_server(lambda reader, writer: stellarium_handler(logger, reader, writer), 
+                                                   telescope_ip_address, telescope_port)
 
