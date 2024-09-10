@@ -57,6 +57,34 @@ async def stellarium_handler(logger, reader, writer):
         if not data:
             break
         logger.info(f"<<- Stellarium: {':'.join(('0'+hex(x)[2:])[-2:] for x in data)}")
+
+# This module needs to cater for Stellarium PLUS App connections
+# Upon initial connection Stellarium PLUS interrogates the port with 3 different protocols
+# to try and determine what type of telescope is connected. 
+# Current code doesnt respond correctly and assumes only one protocol and misreads the time/RA/DEC as 0,0,0
+#
+# Attempt 1 - SynScan Protocol (https://inter-static.skywatcher.com/downloads/synscanserialcommunicationprotocol_version33.pdf)
+# 2024-09-10T04:37:52.204 INFO <<- Stellarium: 4b:61            ("K", 'a') SkyWatcher Echo command used to check commms
+# 2024-09-10T04:37:52.204 INFO <<- Stellarium: t=0 ra=0.0 dec=0.0
+# 2024-09-10T04:37:52.215 INFO ->> Polaris: GOTO ASCOM RA: 0.00000000 Dec: 0.00000000
+# Attempt 2
+# 2024-09-10T04:37:55.709 INFO <<- Stellarium: 23:23            ("#", "#")
+# 2024-09-10T04:37:55.709 INFO <<- Stellarium: t=0 ra=0.0 dec=0.0
+# 2024-09-10T04:37:55.716 INFO ->> Polaris: GOTO ASCOM RA: 0.00000000 Dec: 0.00000000
+# Attempt 3
+# 2024-09-10T04:37:59.214 INFO <<- Stellarium: 23:06            ("#", 0x06)
+# 2024-09-10T04:37:59.214 INFO <<- Stellarium: t=0 ra=0.0 dec=0.0
+# 2024-09-10T04:37:59.218 INFO ->> Polaris: GOTO ASCOM RA: 0.00000000 Dec: 0.00000000
+# Hangs up
+
+# Stellarium Desktop App protocol (byes 0-3=cmd 4-11=t, 12-15=RA, 16-19=Dec)
+# 2024-09-10T05:25:07.502 INFO <<- Stellarium: 14:00:00:00:  9e:eb:c0:18:bd:21:06:00:  07:77:b8:84:  9f:1c:21:d3
+# 2024-09-10T05:25:07.502 INFO <<- Stellarium: t=1725945908095902 ra=12.442553082481027 dec=-63.09936144389212
+# 2024-09-10T05:25:07.505 INFO ->> Polaris: GOTO ASCOM RA: 12.44255308 Dec: -63.09936144
+
+
+
+
         (rightascension, declination) = decode_stellarium_packet(logger, data)
         if telescope.polaris.connected:
             await telescope.polaris.SlewToCoordinates(rightascension, declination, isasync=True)
