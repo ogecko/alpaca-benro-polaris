@@ -3,8 +3,20 @@
 # -----------------------------------------------------------------------------
 # stellarium.py - Stellarium telescope control protocol
 #
-# This module allows to use Stellarium (https://stellarium.org/) to control the
-# Benro Polaris
+# This module allows the following applications to use Benro Polaris
+# 1. Stellarium (https://stellarium.org/) 
+#   Using the Binary Protocol. Useful if you run on MacOS and cant use ASCOM.
+#   Limited Support: GOTO only.
+#
+# 2. Stellarium PLUS (https://stellarium-labs.com/stellarium-mobile-plus/)
+#   Using the SynScan Protocol. Useful for Android and Apple mobile devices.
+#   Limited Support: GOTO, Move, Sync, Get Precise RA/Dec, Get Tracking State
+#                    Sync Location, Sync Time (read only)
+# 
+# 3. Other SynScan applications. Possible but untested. 
+#   If Benro adds the ability to perform Slow Moves, while sidereal tracking
+#   is enabled, without the backlash dance, this could potentially  
+#   be used for guiding.
 #
 # Python Compatibility: Requires Python 3.7 or later
 #
@@ -39,7 +51,11 @@ from shr import DeviceMetadata
 from datetime import datetime
 import time
 
-####### Stellarium
+##########################################
+####### Stellarium/SynScan Support #######
+##########################################
+
+#____________Unit Conversions_____________
 
 # Convert Datetime to “QRSTUVWX#" where Q hr, R min, S sec, T Month, U day, V year, W GMT offset, X DST
 def datetime2QRSTUVWX(dt):
@@ -54,9 +70,70 @@ def datetime2QRSTUVWX(dt):
     if offset < 0:
         offset = 256 + offset
     result = bytearray([hour,minute,second,month,day,year,offset,is_dst,0x23])
-    return result
+    result_ascii = f"{hour:02}:{minute:02}:{second:02} {month:02}-{day:02}-20{year:02} TZ:{offset} DST:{is_dst}"
+    return result, result_ascii
 
-def radec2SynScan24bit(ra_hours, dec_degrees):
+def HQRSTUVWX2datetime(data):
+    hour = data[1]
+    minute = data[2]
+    second = data[3]
+    month = data[4]
+    day = data[5]
+    year = data[6] % 100                    # Get last two digits of the year
+    is_dst = data[8]
+    offset = data[7]                # Offset in hours from GMT
+    if offset >= 256:
+        offset = -(offset - 256)
+    result_ascii = f"{hour:02}:{minute:02}:{second:02} {month:02}-{day:02}-20{year:02} TZ:{offset} DST:{is_dst}"
+    return result_ascii
+
+def WABCDEGFGH2latlon(data):
+    # Extract values from byte array
+    A = data[1]
+    B = data[2]
+    C = data[3]
+    D = data[4]
+    E = data[5]
+    F = data[6]
+    G = data[7]
+    H = data[8]
+    # Convert latitude to decimal degrees
+    lat_degrees = A + B / 60.0 + C / 3600.0
+    if D == 1:  # South
+        lat_degrees = -lat_degrees
+    # Convert longitude to decimal degrees
+    lon_degrees = E + F / 60.0 + G / 3600.0
+    if H == 1:  # West
+        lon_degrees = -lon_degrees
+    return lat_degrees, lon_degrees
+
+def latlon2ABCDEGFGH(latitude, longitude):
+    # Determine the hemisphere for latitude
+    if latitude < 0:
+        D = 1  # South
+        latitude = -latitude
+    else:
+        D = 0  # North
+    # Determine the hemisphere for longitude
+    if longitude < 0:
+        H = 1  # West
+        longitude = -longitude
+    else:
+        H = 0  # East
+    # Convert latitude to degrees, minutes, and seconds
+    A = int(latitude)
+    B = int((latitude - A) * 60)
+    C = int(((latitude - A) * 60 - B) * 60)
+    # Convert longitude to degrees, minutes, and seconds
+    E = int(longitude)
+    F = int((longitude - E) * 60)
+    G = int(((longitude - E) * 60 - F) * 60)
+    # Create the byte array
+    byte_array = bytearray([A, B, C, D, E, F, G, H, 0x23])
+    return byte_array
+
+
+def radec_to_SynScan24bit(ra_hours, dec_degrees):
     # Convert RA from hours to fraction of a revolution
     ra_fraction = ra_hours / 24.0
     # Convert DEC from degrees to fraction of a revolution
@@ -71,30 +148,47 @@ def radec2SynScan24bit(ra_hours, dec_degrees):
     byte_array = f"{ra_hex_str}00,{dec_hex_str}00#".encode('ascii')
     return byte_array
 
+def synScan24bit_to_radec(byte_array):
+    # Decode the byte array to a string
+    hex_string = byte_array[1:].decode('ascii')
+    # Extract the RA and DEC hexadecimal values
+    ra_hex_str = hex_string[:6]
+    dec_hex_str = hex_string[9:15]
+    # Convert the hexadecimal values to integers
+    ra_hex = int(ra_hex_str, 16)
+    dec_hex = int(dec_hex_str, 16)
+    # Convert the integers to fractions of a revolution
+    ra_fraction = ra_hex / 16777216.0
+    dec_fraction = dec_hex / 16777216.0
+    # Convert the fractions to RA in hours and DEC in degrees
+    ra_hours = ra_fraction * 24.0
+    dec_degrees = dec_fraction * 360.0 if dec_fraction < 0.5 else (dec_fraction * 360.0) - 360.0
+    return ra_hours, dec_degrees
+
+def bytes2radect(data):
+    t = int.from_bytes(data[4:11], byteorder='little')
+    ra = int.from_bytes(data[12:16], byteorder='little')
+    dec = int.from_bytes(data[16:20], byteorder='little', signed=True)
+    ra = (24*ra)/0x100000000
+    dec = (90*dec)/0x40000000
+    return (ra, dec, t)
+
+def bytes2hexascii(data):
+    s_hex = ' '.join(('0'+hex(x)[2:])[-2:] for x in data)
+    s_ascii = ''.join(chr(x) if 32 <= x <= 126 else '.' for x in data)
+    return f"{s_hex}: {s_ascii}"
+
+#____________Low Level Comms_____________
+
 async def stellarium_send_msg(logger, writer, msg, ispolled=False):
     if Config.log_stellarium_protocol and not(ispolled and Config.supress_stellarium_polling_msgs):
-        logger.info(f"->> Stellarium: send_msg {msg}")
+        logger.info(f"->> Stellarium: send_msg: {bytes2hexascii(msg)}")
     writer.write(msg)
     await writer.drain()
 
+#____________Stellarium/SynScan Protocol_____________
 
-def decode_stellarium_packet(logger, s):
-    t = int.from_bytes(s[4:11], byteorder='little')
-    ra = int.from_bytes(s[12:16], byteorder='little')
-    dec = int.from_bytes(s[16:20], byteorder='little', signed=True)
-    ra = (24*ra)/0x100000000
-    dec = (90*dec)/0x40000000
-    logger.info(f"<<- Stellarium: t={t} ra={ra} dec={dec}")
-    return (ra, dec)
-
-async def stellarium_handler(logger, reader, writer):
-    while True:
-        data = await reader.read(256)
-        if not data:
-            break
-        if Config.log_stellarium_protocol:
-            logger.info(f"<<- Stellarium: recv_msg {':'.join(('0'+hex(x)[2:])[-2:] for x in data)}")
-
+async def process_protocol(logger, data, writer):
 # This module needs to cater for Stellarium PLUS App connections
 # Upon initial connection Stellarium PLUS interrogates the port with 3 different protocols
 # to try and determine what type of telescope is connected. 
@@ -119,87 +213,131 @@ async def stellarium_handler(logger, reader, writer):
 # 2024-09-10T05:25:07.502 INFO <<- Stellarium: t=1725945908095902 ra=12.442553082481027 dec=-63.09936144389212
 # 2024-09-10T05:25:07.505 INFO ->> Polaris: GOTO ASCOM RA: 12.44255308 Dec: -63.09936144
 
-        # SynSCAN Echo Command 'K',x | Reply x, "#"
-        if data[0]==0x4b:               
-            logger.info(f"<<- Stellarium: ECHO Command 'E{chr(data[1])}'")
-            msg = bytearray([data[1],ord('#')])
-            await stellarium_send_msg(logger, writer, msg)
+    # hex/ascii dump of message recieved
+    if Config.log_stellarium_protocol:
+        if not(Config.supress_stellarium_polling_msgs and (data[0]==0x4c or data[0]==0x65)):
+            logger.info(f"<<- Stellarium: recv_msg: {bytes2hexascii(data)}")
 
-        # SynSCAN Get Slewing state 'L' | Reply “0" or "1"
-        elif data[0]==0x4c: 
-            if not Config.supress_stellarium_polling_msgs:              
-                logger.info(f"<<- Stellarium: Get SLEWING state 'L'")
-            msg = b'1' if telescope.polaris.slewing else b'0'
-            await stellarium_send_msg(logger, writer, msg, ispolled=True)
-    
-        # SynSCAN Cancel GOTO 'M' | Reply “#"
-        elif data[0]==0x4d:               
-            logger.info(f"<<- Stellarium: Cancel GOTO 'M'")
-            msg = b'#'
-            await stellarium_send_msg(logger, writer, msg)
-    
-        # SynSCAN Fixed Rate Move Azm Command 'P':02:10:25:Rate:00:00:00
-        elif data[0]==0x50 and data[1]==0x02:
-            if data[2]==0x10 and data[3]==0x24:
-                logger.info(f"<<- Stellarium: Move Azm +ve 'P': Rate {data[4]}")
-            if data[2]==0x10 and data[3]==0x25:
-                logger.info(f"<<- Stellarium: Move Azm -ve 'P': Rate {data[4]}")
-            if data[2]==0x11 and data[3]==0x24:
-                logger.info(f"<<- Stellarium: Move Alt +ve 'P': Rate {data[4]}")
-            if data[2]==0x11 and data[3]==0x25:
-                logger.info(f"<<- Stellarium: Move Alt -ve 'P': Rate {data[4]}")
-            msg = b'#'
-            await stellarium_send_msg(logger, writer, msg)
 
-        # SynSCAN Get Version Command 'V' | Reply 6 decimals in ascii,"#"
-        elif data[0]==0x56:               
-            logger.info(f"<<- Stellarium: Get VERSION Command 'V'")
-            msg = bytearray(ord(c) for c in DeviceMetadata.Version)
-            await stellarium_send_msg(logger, writer, msg)
+    # SynSCAN Echo Command 'K',x | Reply x, "#"
+    if data[0]==0x4b:               
+        msg = bytearray([data[1],ord('#')])
+        telescope.polaris.radec_sync_reset()
+        logger.info(f"<<- Stellarium: SynScan ECHO Command 'K{chr(data[1])}' | Reset Sync RA/Dec Offset to 0")
+        await stellarium_send_msg(logger, writer, msg)
 
-        # SynSCAN Get precise RA/DEC 'e' | Reply “34AB0500,12CE0500#” 
-        elif data[0]==0x65:               
-            if not Config.supress_stellarium_polling_msgs:              
-                logger.info(f"<<- Stellarium: Get RA/DEC Command 'e'")
-            msg = radec2SynScan24bit(telescope.polaris.rightascension, telescope.polaris.declination)
-            await stellarium_send_msg(logger, writer, msg, ispolled=True)
-    
-        # SynSCAN GOTO 'r34AB0500,12CE0500', | Reply “#"
-        elif data[0]==0x72:               
-            logger.info(f"<<- Stellarium: GOTO rXXXXXXXX,XXXXXXXX")
-            msg = b'#'
-            await stellarium_send_msg(logger, writer, msg)
+    # SynSCAN Get Slewing state 'L' | Reply “0" or "1"
+    elif data[0]==0x4c: 
+        if not Config.supress_stellarium_polling_msgs:              
+            logger.info(f"<<- Stellarium: SynScan Get SLEWING state 'L' | {telescope.polaris.slewing}")
+        msg = b'1' if telescope.polaris.slewing else b'0'
+        await stellarium_send_msg(logger, writer, msg, ispolled=True)
 
-        # SynSCAN Get TIME 'h', | Reply “QRSTUVWX#" where Q hr, R min, S sec, T Month, U day, V year, W GMT offset, X DST
-        elif data[0]==0x68:               
-            logger.info(f"<<- Stellarium: Get TIME h")
-            msg = datetime2QRSTUVWX(datetime.now())
-            await stellarium_send_msg(logger, writer, msg)
+    # SynSCAN Cancel GOTO 'M' | Reply “#"
+    elif data[0]==0x4d:               
+        logger.info(f"<<- Stellarium: SynScan Cancel GOTO 'M'")
+        msg = b'#'
+        await stellarium_send_msg(logger, writer, msg)
 
-        # SynSCAN Set TIME 'HQRSTUVWX', | Reply “#" where Q hr, R min, S sec, T Month, U day, V year, W GMT offset, X DST
-        elif data[0]==0x48:               
-            logger.info(f"<<- Stellarium: Set TIME H: {data}")
-            # Mot Implemented
-            msg = b'#'
-            await stellarium_send_msg(logger, writer, msg)
+    # SynSCAN Fixed Rate Move Azm Command 'P':02:10:25:Rate:00:00:00
+    elif data[0]==0x50 and data[1]==0x02:
+        rate = data[4]
+        if data[2]==0x10 and data[3]==0x24:
+            logger.info(f"<<- Stellarium: SynScan Move Azm +ve 'P': Rate {rate}")
+            await telescope.polaris.move_axis(0, rate)
+        if data[2]==0x10 and data[3]==0x25:
+            logger.info(f"<<- Stellarium: SynScan Move Azm -ve 'P': Rate {rate}")
+            await telescope.polaris.move_axis(0, -rate)
+        if data[2]==0x11 and data[3]==0x24:
+            logger.info(f"<<- Stellarium: SynScan Move Alt +ve 'P': Rate {rate}")
+            await telescope.polaris.move_axis(1, rate)
+        if data[2]==0x11 and data[3]==0x25:
+            logger.info(f"<<- Stellarium: SynScan Move Alt -ve 'P': Rate {rate}")
+            await telescope.polaris.move_axis(1, -rate)
+        msg = b'#'
+        await stellarium_send_msg(logger, writer, msg)
 
-        # SynSCAN Get LOCATION 'w', | Reply “ABCDEFGH#" where 
-        elif data[0]==0x77:               
-            logger.info(f"<<- Stellarium: Get LOCATION w")
-            msg = b'#'
-            await stellarium_send_msg(logger, writer, msg)
+    # SynSCAN Get Version Command 'V' | Reply 6 decimals in ascii,"#"
+    elif data[0]==0x56:
+        version = DeviceMetadata.Version               
+        logger.info(f"<<- Stellarium: SynScan Get VERSION Command 'V' | {version}")
+        msg = bytearray(ord(c) for c in version)
+        await stellarium_send_msg(logger, writer, msg)
 
-        # SynSCAN Set LOCATION 'WABCDEFGH', | Reply “#" where 
-        elif data[0]==0x57:               
-            logger.info(f"<<- Stellarium: Set LOCATION W")
-            msg = b'#'
-            await stellarium_send_msg(logger, writer, msg)
+    # SynSCAN Get precise RA/DEC 'e' | Reply “34AB0500,12CE0500#” 
+    elif data[0]==0x65:               
+        if not Config.supress_stellarium_polling_msgs:              
+            logger.info(f"<<- Stellarium: SynScan Get RA/DEC Command 'e'")
+        msg = radec_to_SynScan24bit(telescope.polaris.rightascension, telescope.polaris.declination)
+        await stellarium_send_msg(logger, writer, msg, ispolled=True)
 
-        # Stellarium Binary Goto Command 
-        elif data[0]==0x14:               
-            (rightascension, declination) = decode_stellarium_packet(logger, data)
-            if telescope.polaris.connected:
-                await telescope.polaris.SlewToCoordinates(rightascension, declination, isasync=True)
+    # SynSCAN GOTO 'r34AB0500,12CE0500', | Reply “#"
+    elif data[0]==0x72:               
+        ra, dec = synScan24bit_to_radec(data)
+        logger.info(f"<<- Stellarium: SynScan GOTO Ra: {ra}, Dec: {dec}")
+        if telescope.polaris.connected:
+            await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
+        msg = b'#'
+        await stellarium_send_msg(logger, writer, msg)
+
+    # SynSCAN SYNC 's34AB0500,12CE0500', | Reply “#"
+    elif data[0]==0x73:               
+        ra, dec = synScan24bit_to_radec(data)
+        logger.info(f"<<- Stellarium: SynScan SYNC Ra: {ra}, Dec: {dec}")
+        if telescope.polaris.connected:
+            telescope.polaris.radec_sync_ascom(ra, dec)
+        msg = b'#'
+        await stellarium_send_msg(logger, writer, msg)
+
+    # SynSCAN Get TIME 'h', | Reply “QRSTUVWX#" where Q hr, R min, S sec, T Month, U day, V year, W GMT offset, X DST
+    elif data[0]==0x68:               
+        msg, msg_ascii = datetime2QRSTUVWX(datetime.now())
+        logger.info(f"<<- Stellarium: SynScan Get TIME h | {msg_ascii}")
+        await stellarium_send_msg(logger, writer, msg)
+
+    # SynSCAN Set TIME 'HQRSTUVWX', | Reply “#" where Q hr, R min, S sec, T Month, U day, V year, W GMT offset, X DST
+    elif data[0]==0x48:
+        msg_ascii = HQRSTUVWX2datetime(data)               
+        logger.info(f"<<- Stellarium: SynScan Set TIME H | {msg_ascii}")
+        # Mot Implemented
+        msg = b'#'
+        await stellarium_send_msg(logger, writer, msg)
+
+    # SynSCAN Get LOCATION 'w', | Reply “ABCDEFGH#" where 
+    elif data[0]==0x77:
+        lat = telescope.polaris.sitelatitude
+        lon = telescope.polaris.sitelongitude          
+        logger.info(f"<<- Stellarium: SynScan Get LOCATION w | Lat: {lat:0.9}, Lng: {lon:0.9}")
+        msg = latlon2ABCDEGFGH(lat, lon)
+        await stellarium_send_msg(logger, writer, msg)
+
+    # SynSCAN Set LOCATION 'WABCDEFGH', | Reply “#" where 
+    elif data[0]==0x57:               
+        lat, lon = WABCDEGFGH2latlon(data)
+        telescope.polaris.sitelatitude = lat
+        telescope.polaris.sitelongitude = lon         
+        logger.info(f"<<- Stellarium: SynScan Set LOCATION W | Lat: {lat:0.9}, Lng: {lon:0.9}")
+        msg = b'#'
+        await stellarium_send_msg(logger, writer, msg)
+
+    # Stellarium Desktop Binary Goto Command 
+    elif data[0]==0x14:               
+        (ra, dec, t) = bytes2radect(data)
+        logger.info(f"<<- Stellarium: Binary GOTO command ra={ra} dec={dec} t={t}")
+        if telescope.polaris.connected:
+            await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
+
+    else:
+        logger.error(f"<<- Stellarium: Unknown Command: {bytes2hexascii(data)}")
+
+
+
+async def stellarium_handler(logger, reader, writer):
+    while True:
+        data = await reader.read(256)
+        if not data:
+            break
+        await process_protocol(logger, data, writer)
 
     
 async def stellarium_telescope(logger, telescope_ip_address, telescope_port):    
