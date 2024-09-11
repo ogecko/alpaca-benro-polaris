@@ -344,6 +344,11 @@ class Polaris:
         p_dec = a_dec - self._adj_declination
         return p_ra, p_dec
 
+    def radec_sync_reset(self):
+        self._adj_rightascension = 0
+        self._adj_declination = 0
+        return
+
     def radec_sync_ascom(self, a_ra, a_dec):
         bad_ra, bad_dec = self.radec_polaris2ascom(self._p_rightascension, self._p_declination)
         self._adj_rightascension = a_ra - bad_ra
