@@ -1,6 +1,7 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarim](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Benro Polaris Capability Questions
+
 ### Can the Benro Polaris really be used for Deep Sky Photography?
 Yes. As an Alt/Az Mount and no guiding you will be limited to relatively short exposures. But with a good camera, an 800mm lens, ABP, Nina and Siril you can take some great photos of Deep Sky objects.
 

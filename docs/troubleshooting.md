@@ -1,6 +1,13 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarim](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Troubleshooting
+### Cannot start the Benro Polaris
+There is a known issue with the recommended Benro Polaris device startup procedure. "Power On. In the off state, double press and hold the [Power Button], and release it after hearing “beep beep beep” three times to turn on the device. ".  Its worse than an old lawnmower at starting. If your device doesnt start, try the following:
+1. Remove Power cable - Dont have the Benro Polaris charging, while trying to start.
+2. Send to Park - use a Long Press to send the Benro Polaris to the parked position and ensure Power LED is off.
+3. Short Press - Every second or so (but no faster), until Power LED is illuminated.
+4. Long Press - As soon as its illuminated, do a long press, releasing after "beep, beep beep".
+   
 ### Cannot connect Mini-PC/ABP to Polaris Wifi
 * Check that the Benro Polaris App is connected and running. When the App closes the Benro Polaris will drop its WiFi hotspot. Unforuntately you need to keep the app running, within range of the Benro Polaris, to keep the Polaris WiFi up, so that ABP can connect.
 * Check which Wifi adapter is being used. There is a known issue with the Mele Quieter 4C not being able to connect to the Polaris Wifi. Use the [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/)
