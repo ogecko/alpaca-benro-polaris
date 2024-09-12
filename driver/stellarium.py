@@ -231,7 +231,7 @@ async def process_protocol(logger, data, writer):
     elif data[0]==0x4c: 
         if not Config.supress_stellarium_polling_msgs:              
             logger.info(f"<<- Stellarium: SynScan Get SLEWING state 'L' | {telescope.polaris.slewing}")
-        msg = b'1' if telescope.polaris.slewing else b'0'
+        msg = b'1#' if telescope.polaris.slewing else b'0#'
         await stellarium_send_msg(logger, writer, msg, ispolled=True)
 
     # SynSCAN Cancel GOTO 'M' | Reply “#"
