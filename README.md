@@ -24,8 +24,8 @@ The [Hardware Guide(s)](./docs/hardware.md) provide an overview of the recommend
 ## [Installation Guide](./docs/installation.md)
 The [Installation Guide](./docs/installation.md) provides instructions on installing the Alpaca Benro Polaris Driver, ASCOM Platform, Stellarium, and Nina.
 
-## [Using Stellarim](./docs/stellarium.md)
-The [Using Stellarim Guide](./docs/stellarium.md) on Stellarium is not a comprehensive users guide. It is aimed to orient you in what features can leverage the Alpaca Benro Polaris. 
+## [Using Stellarium](./docs/stellarium.md)
+The [Using Stellarium Guide](./docs/stellarium.md) on Stellarium is not a comprehensive users guide. It is aimed to orient you in what features can leverage the Alpaca Benro Polaris. 
 
 The University of Western Australia has [A Guide To Using Stellarium](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf)
 
