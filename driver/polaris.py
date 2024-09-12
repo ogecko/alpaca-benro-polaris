@@ -77,37 +77,7 @@ from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError
-
-def dec2dms(dd):
-   is_positive = dd >= 0
-   dd = abs(dd)
-   minutes,seconds = divmod(dd*3600,60)
-   degrees,minutes = divmod(minutes,60)
-   degrees = degrees if is_positive else -degrees
-   return f"{int(degrees)}:{int(minutes)}:{seconds:.2f}"
-
-def dms2dec(dms):
-    (degree, minute, second, frac_seconds) = re.split(r'[^0-9-]', dms, maxsplit=4)
-    return int(degree) + float(minute) / 60 + float(second) / 3600 + float(frac_seconds) / 360000
-
-def rad2hr(rad):
-    return rad*24/2/math.pi
-
-def hr2rad(hr):
-    return hr*2*math.pi/24
-
-def rad2deg(rad):
-    return rad*360/2/math.pi
-
-def deg2rad(deg):
-    return deg*2*math.pi/360
-
-def empty_queue(q: asyncio.Queue):
-  while not q.empty():
-    try:
-        q.get_nowait()
-    except asyncio.QueueEmpty:
-        break
+from shr import dec2dms, deg2rad, rad2hr, rad2deg, hr2rad, empty_queue
 
 class Polaris:
     """Simulated telescope device that communicates with Polaris Device
@@ -351,6 +321,7 @@ class Polaris:
         return
 
     def radec_sync_ascom(self, a_ra, a_dec):
+        self.logger.info(f"->> Polaris: SYNC ASCOM RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)}")
         bad_ra, bad_dec = self.radec_polaris2ascom(self._p_rightascension, self._p_declination)
         self._adj_rightascension = a_ra - bad_ra
         self._adj_declination = a_dec - bad_dec
@@ -563,7 +534,7 @@ class Polaris:
         adj_alt = self._adj_altitude
         adj_az = self._adj_azimuth
         self._lock.release()
-        self.logger.info(f"->> Polaris: GOTO Error Alt: {err_alt*3600:.5f} Az: {err_az*3600:.5f} | AltAzOffset ({adj_alt:.3f} {adj_az:.3f})")
+        self.logger.info(f"->> Polaris: GOTO Arc-sec Error Alt {err_alt*3600:.3f} Az {err_az*3600:.3f} | AimOffset (Alt {dec2dms(adj_alt)} Az {dec2dms(adj_az)})")
 
     def aim_altaz_log_and_correct(self, alt: float, az:float):
         # log the original aiming co-ordinates and grab the last error ajustments
@@ -609,7 +580,7 @@ class Polaris:
 
         # log the command
         if Config.log_polaris:
-            self.logger.info(f"->> Polaris: GOTO Polaris Alt: {alt:.8f} Az: {az:.8f} ")
+            self.logger.info(f"->> Polaris: GOTO Polaris Alt {dec2dms(alt)} Az {dec2dms(az)} ")
 
         # log the aiming alt/az and correct it based on previous aiming results
         calt, caz = self.aim_altaz_log_and_correct(alt, az)
@@ -1171,8 +1142,8 @@ class Polaris:
         # want to work out its Alt/Az of where it will be in the future, as it takes at least this time to settle.
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
         p_alt, p_az = self.radec2altaz(p_ra, p_dec, inthefuture)
-        self.logger.info(f"->> Polaris: GOTO ASCOM RA: {a_ra:.8f} Dec: {a_dec:.8f}")
-        self.logger.info(f"->> Polaris: GOTO Polaris RA: {p_ra:.8f} Dec: {p_dec:.8f} | RADecOffset ({o_ra:.3f} {o_dec:.3f})")
+        self.logger.info(f"->> Polaris: GOTO ASCOM RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)}")
+        self.logger.info(f"->> Polaris: GOTO Polaris RA {dec2dms(p_ra)} Dec: {dec2dms(p_dec)} | SyncOffset (RA {dec2dms(o_ra)} Dec {dec2dms(o_dec)})")
         if isasync:
             asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
         else:
@@ -1182,7 +1153,7 @@ class Polaris:
         a_alt = altitude
         a_az = azimuth
         a_ra, a_dec = self.altaz2radec(a_alt, a_az)
-        self.logger.info(f"->> Polaris: GOTO ASCOM Alt: {a_alt:.8f} Az: {a_az:.8f}")
+        self.logger.info(f"->> Polaris: GOTO ASCOM Alt: {dec2dms(a_alt)} Az: {dec2dms(a_az)}")
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
     def convert_ascom2polaris_rate(self, axis: int, ascomrate: float):

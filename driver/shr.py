@@ -62,6 +62,8 @@ from threading import Lock
 from exceptions import Success
 import json
 import re
+import math
+import asyncio
 from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
 from config import Config
@@ -271,3 +273,39 @@ def getNextTransId() -> int:
         global _stid
         _stid += 1
     return _stid
+
+
+# -------------------------------
+# Number conversion functions
+# -------------------------------
+
+def dec2dms(dd):
+   is_positive = dd >= 0
+   dd = abs(dd)
+   minutes,seconds = divmod(dd*3600,60)
+   degrees,minutes = divmod(minutes,60)
+   degrees = degrees if is_positive else -degrees
+   return f"{int(degrees)}:{int(minutes)}:{seconds:.2f}"
+
+def dms2dec(dms):
+    (degree, minute, second, frac_seconds) = re.split(r'[^0-9-]', dms, maxsplit=4)
+    return int(degree) + float(minute) / 60 + float(second) / 3600 + float(frac_seconds) / 360000
+
+def rad2hr(rad):
+    return rad*24/2/math.pi
+
+def hr2rad(hr):
+    return hr*2*math.pi/24
+
+def rad2deg(rad):
+    return rad*360/2/math.pi
+
+def deg2rad(deg):
+    return deg*2*math.pi/360
+
+def empty_queue(q: asyncio.Queue):
+  while not q.empty():
+    try:
+        q.get_nowait()
+    except asyncio.QueueEmpty:
+        break

@@ -46,10 +46,11 @@
 
 import asyncio
 import telescope
+import time
 from config import Config
 from shr import DeviceMetadata
 from datetime import datetime
-import time
+from shr import dec2dms
 
 ##########################################
 ####### Stellarium/SynScan Support #######
@@ -223,7 +224,7 @@ async def process_protocol(logger, data, writer):
     if data[0]==0x4b:               
         msg = bytearray([data[1],ord('#')])
         telescope.polaris.radec_sync_reset()
-        logger.info(f"<<- Stellarium: SynScan ECHO Command 'K{chr(data[1])}' | Reset Sync RA/Dec Offset to 0")
+        logger.info(f"<<- Stellarium: SynScan ECHO Command 'K{chr(data[1])}' | Reset SyncOffset to (RA 0 Dec 0)")
         await stellarium_send_msg(logger, writer, msg)
 
     # SynSCAN Get Slewing state 'L' | Reply “0" or "1"
@@ -274,7 +275,7 @@ async def process_protocol(logger, data, writer):
     # SynSCAN GOTO 'r34AB0500,12CE0500', | Reply “#"
     elif data[0]==0x72:               
         ra, dec = synScan24bit_to_radec(data)
-        logger.info(f"<<- Stellarium: SynScan GOTO Ra: {ra} Dec: {dec}")
+        logger.info(f"<<- Stellarium: SynScan GOTO Ra: {dec2dms(ra)} Dec: {dec2dms(dec)}")
         if telescope.polaris.connected:
             await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
         msg = b'#'
