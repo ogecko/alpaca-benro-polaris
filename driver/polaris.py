@@ -1283,8 +1283,11 @@ class Polaris:
             state = 0 if rate == 0 else 1
             await self.send_msg(f"1&{cmd}&3&key:{key};state:{state};level:{rate};#")
 
-        # if cmdtype=1 then fast Alt/Az move
+        # if cmdtype=2 then fast Alt/Az move
         elif cmdtype==2:
+            self._lock.acquire()
+            self._slewing = True
+            self._lock.release()
             msg=f"1&{cmd}&3&speed:{rate};#"
             if Config.log_polaris:
                 self.logger.info(f"->> Polaris: MOVE Fast Az/Alt/Rot Axis {axis} Rate {rate}")
