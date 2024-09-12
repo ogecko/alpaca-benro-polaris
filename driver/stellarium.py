@@ -227,11 +227,25 @@ async def process_protocol(logger, data, writer):
         logger.info(f"<<- Stellarium: SynScan ECHO Command 'K{chr(data[1])}' | Reset SyncOffset to (RA 0 Dec 0)")
         await stellarium_send_msg(logger, writer, msg)
 
-    # SynSCAN Get Slewing state 'L' | Reply “0" or "1"
+    # SynSCAN Get Slewing state 'L' | Reply “0#" or "1#"
     elif data[0]==0x4c: 
         if not Config.supress_stellarium_polling_msgs:              
             logger.info(f"<<- Stellarium: SynScan Get SLEWING state 'L' | {telescope.polaris.slewing}")
-        msg = b'1#' if telescope.polaris.slewing else b'0#'
+        msg = b'1#' if telescope.polaris.gotoing else b'0#'
+        await stellarium_send_msg(logger, writer, msg, ispolled=True)
+
+    # SynSCAN Get Tracking state 't' | Reply 0 = Tracking off, 1 = Alt/Az tracking, 2 = Equatorial tracking, 3 = PEC mode (Sidereal + PEC)
+    elif data[0]==0x74: 
+        if not Config.supress_stellarium_polling_msgs:              
+            logger.info(f"<<- Stellarium: SynScan Get TRACKING state 't' | {telescope.polaris.tracking}")
+        msg = bytearray([2,ord('#')]) if telescope.polaris.tracking else bytearray([0,ord('#')])
+        await stellarium_send_msg(logger, writer, msg, ispolled=True)
+
+    # SynSCAN Is Alignment Complete 'J' | Reply 1 = Aligned
+    elif data[0]==0x4a: 
+        if not Config.supress_stellarium_polling_msgs:              
+            logger.info(f"<<- Stellarium: SynScan Is Alignment Complete 'J'")
+        msg = bytearray([1, ord('#')]) 
         await stellarium_send_msg(logger, writer, msg, ispolled=True)
 
     # SynSCAN Cancel GOTO 'M' | Reply “#"
