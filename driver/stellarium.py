@@ -274,7 +274,7 @@ async def process_protocol(logger, data, writer):
     # SynSCAN GOTO 'r34AB0500,12CE0500', | Reply “#"
     elif data[0]==0x72:               
         ra, dec = synScan24bit_to_radec(data)
-        logger.info(f"<<- Stellarium: SynScan GOTO Ra: {ra}, Dec: {dec}")
+        logger.info(f"<<- Stellarium: SynScan GOTO Ra: {ra} Dec: {dec}")
         if telescope.polaris.connected:
             await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
         msg = b'#'
@@ -283,7 +283,7 @@ async def process_protocol(logger, data, writer):
     # SynSCAN SYNC 's34AB0500,12CE0500', | Reply “#"
     elif data[0]==0x73:               
         ra, dec = synScan24bit_to_radec(data)
-        logger.info(f"<<- Stellarium: SynScan SYNC Ra: {ra}, Dec: {dec}")
+        logger.info(f"<<- Stellarium: SynScan SYNC Ra: {ra} Dec: {dec}")
         if telescope.polaris.connected:
             telescope.polaris.radec_sync_ascom(ra, dec)
         msg = b'#'
@@ -307,7 +307,7 @@ async def process_protocol(logger, data, writer):
     elif data[0]==0x77:
         lat = telescope.polaris.sitelatitude
         lon = telescope.polaris.sitelongitude          
-        logger.info(f"<<- Stellarium: SynScan Get LOCATION w | Lat: {lat:0.9}, Lng: {lon:0.9}")
+        logger.info(f"<<- Stellarium: SynScan Get LOCATION w | Lat: {lat:0.9} Lon: {lon:0.9}")
         msg = latlon2ABCDEGFGH(lat, lon)
         await stellarium_send_msg(logger, writer, msg)
 
@@ -316,14 +316,14 @@ async def process_protocol(logger, data, writer):
         lat, lon = WABCDEGFGH2latlon(data)
         telescope.polaris.sitelatitude = lat
         telescope.polaris.sitelongitude = lon         
-        logger.info(f"<<- Stellarium: SynScan Set LOCATION W | Lat: {lat:0.9}, Lng: {lon:0.9}")
+        logger.info(f"<<- Stellarium: SynScan Set LOCATION W | Lat: {lat:0.9} Lon: {lon:0.9}")
         msg = b'#'
         await stellarium_send_msg(logger, writer, msg)
 
     # Stellarium Desktop Binary Goto Command 
     elif data[0]==0x14:               
         (ra, dec, t) = bytes2radect(data)
-        logger.info(f"<<- Stellarium: Binary GOTO command ra={ra} dec={dec} t={t}")
+        logger.info(f"<<- Stellarium: Binary GOTO command Ra={ra} Dec={dec} t={t}")
         if telescope.polaris.connected:
             await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
 

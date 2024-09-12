@@ -147,6 +147,7 @@ class Polaris:
         self._every_50ms_last_timestamp = None      # Fast Move counter, last 1s timestamp
         self._every_50ms_last_alt = None            # Fast Move counter, last 1s polaris altitude
         self._every_50ms_last_az = None             # Fast Move counter, last 1s polaris azimuth
+        self._data1_header_timestamp = None       # Timestamp that EXTRACT header was logged. ie start of EXTRACT.
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
@@ -480,8 +481,18 @@ class Polaris:
             self._azimuth = a_az
             self._lock.release()
             if Config.log_polaris and not Config.supress_polaris_518_msgs:
-                self.logger.info(f"<<- Polaris: POSITION status changed: {cmd} {arg_dict}")
-
+                a_slew = self._slewing
+                a_goto = self._gotoing
+                a_track = self.tracking
+                t_ra = self._targetrightascension if self._targetrightascension else a_ra       # Target Right Ascention (hours)
+                t_dec = self._targetdeclination if self._targetdeclination else a_dec           # Target Declination (degrees)
+                e_ra = (t_ra - a_ra)*3600*360/24                                                # Error Right Ascention (arc seconds)
+                e_dec = (t_dec - a_dec)*3600                                                    # Error Declination (arc seconds)
+                if not self._data1_header_timestamp:
+                    self.logger.info(f",'DATA1',Time,Tracking,Slewing,Gotoing,TargetRA,TargetDEC,AscomRA,AscomDEC,AscomAz,AscomAlt,ErrorRA,ErrorDec")
+                    self._data1_header_timestamp = datetime.datetime.now()
+                time = (datetime.datetime.now() - self._data1_header_timestamp).total_seconds()
+                self.logger.info(f",'DATA1',{time:.3f},{a_track},{a_slew},{a_goto},{t_ra:.7f},{t_dec:.7f},{a_ra:.7f},{a_dec:.7f},{a_az:.7f},{a_alt:.7f},{e_ra:.3f},{e_dec:.3f}")
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
         elif cmd == "519":
             arg_dict = self.polaris_parse_args(args)
@@ -552,7 +563,7 @@ class Polaris:
         adj_alt = self._adj_altitude
         adj_az = self._adj_azimuth
         self._lock.release()
-        self.logger.info(f"->> Polaris: GOTO delta Alt: {err_alt:.5f} Az: {err_az:.5f} | AltAzOffset ({adj_alt:.3f}, {adj_az:.3f})")
+        self.logger.info(f"->> Polaris: GOTO Error Alt: {err_alt*3600:.5f} Az: {err_az*3600:.5f} | AltAzOffset ({adj_alt:.3f} {adj_az:.3f})")
 
     def aim_altaz_log_and_correct(self, alt: float, az:float):
         # log the original aiming co-ordinates and grab the last error ajustments
@@ -598,7 +609,7 @@ class Polaris:
 
         # log the command
         if Config.log_polaris:
-            self.logger.info(f"->> Polaris: GOTO Polaris Alt: {alt:.8f}, Az: {az:.8f} ")
+            self.logger.info(f"->> Polaris: GOTO Polaris Alt: {alt:.8f} Az: {az:.8f} ")
 
         # log the aiming alt/az and correct it based on previous aiming results
         calt, caz = self.aim_altaz_log_and_correct(alt, az)
@@ -670,7 +681,7 @@ class Polaris:
                 # Polaris is in astro mode but alignment not complete
                 raise AstroAlignmentError()
             self.logger.info("Polaris communication init... done")
-            self.logger.info(f'Site lat = {self._sitelatitude}, lng = {self._sitelongitude}. Change in config.toml or use Nina to sync.')
+            self.logger.info(f'Site lat = {self._sitelatitude} lon = {self._sitelongitude}. Change in config.toml or use Nina to sync.')
             self._lock.acquire()
             self._connected = True
             self._task_errorstr = ''
@@ -704,7 +715,7 @@ class Polaris:
         numclients = sum(v for v in self._connections.values() if v)
         self._lock.release()
         if Config.log_polaris:
-            self.logger.info(f'[connection request] Client {client} Connected: {connect}, Total Connected Clients: {numclients}')
+            self.logger.info(f'[connection request] Client {client} Connected: {connect} Total Connected Clients: {numclients}')
 
         # check is any exceptions with polaris.client() and polaris_init() last run
         if  self._task_errorstr:
@@ -1161,7 +1172,7 @@ class Polaris:
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
         p_alt, p_az = self.radec2altaz(p_ra, p_dec, inthefuture)
         self.logger.info(f"->> Polaris: GOTO ASCOM RA: {a_ra:.8f} Dec: {a_dec:.8f}")
-        self.logger.info(f"->> Polaris: GOTO Polaris RA: {p_ra:.8f} Dec: {p_dec:.8f} | RADecOffset ({o_ra:.3f}, {o_dec:.3f})")
+        self.logger.info(f"->> Polaris: GOTO Polaris RA: {p_ra:.8f} Dec: {p_dec:.8f} | RADecOffset ({o_ra:.3f} {o_dec:.3f})")
         if isasync:
             asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
         else:
@@ -1260,7 +1271,7 @@ class Polaris:
         # f cmdtype=1 then slow Alt/Az move and stop slow or fast
         if cmdtype==1:
             if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE Slow Az/Alt/Rot Axis {axis}, Rate {rate}")
+                self.logger.info(f"->> Polaris: MOVE Slow Az/Alt/Rot Axis {axis} Rate {rate}")
             self._lock.acquire()
             self._axis_slow_slewing[axis] = rate
             self._slewing = any(self._axis_slow_slewing)
@@ -1276,7 +1287,7 @@ class Polaris:
         elif cmdtype==2:
             msg=f"1&{cmd}&3&speed:{rate};#"
             if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE Fast Az/Alt/Rot Axis {axis}, Rate {rate}")
+                self.logger.info(f"->> Polaris: MOVE Fast Az/Alt/Rot Axis {axis} Rate {rate}")
             if Config.log_polaris_protocol:
                 self.logger.info(f'->> Polaris: send_fastmove_repeating: {msg}')
             self.every_50ms_msg_to_set(msg)                     # start fast move msgs
@@ -1284,7 +1295,7 @@ class Polaris:
         # if cmdtype=3 then assume RA/Dec move 15 degrees
         elif cmdtype==3:
             if Config.log_polaris:
-                self.logger.info(f"->> Polaris: 3 Point Alignment: A. MOVE RA/Dec Axis {axis}, 15 degrees")
+                self.logger.info(f"->> Polaris: 3 Point Alignment: A. MOVE RA/Dec Axis {axis} 15 degrees")
             self._lock.acquire()
             ra = self._rightascension + ((15.0*24/360) if axis==0 else 0)
             dec = self._declination + (15.0 if axis==1 else 0)
