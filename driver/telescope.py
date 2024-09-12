@@ -1386,6 +1386,9 @@ class synctocoordinates:
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
+        if polaris.atpark:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot sync to coordinates while parked.'))
+            return
         rightascensionstr = await get_request_field('RightAscension', req)      # Raises 400 bad request if missing
         try:
             rightascension = float(rightascensionstr)
@@ -1417,6 +1420,9 @@ class synctotarget:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        if polaris.atpark:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot sync to target while parked'))
             return
         try:
             polaris.radec_sync_ascom(polaris.targetrightascension, polaris.targetdeclination)
