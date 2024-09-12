@@ -323,8 +323,17 @@ class Polaris:
     def radec_sync_ascom(self, a_ra, a_dec):
         self.logger.info(f"->> Polaris: SYNC ASCOM RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)}")
         bad_ra, bad_dec = self.radec_polaris2ascom(self._p_rightascension, self._p_declination)
-        self._adj_rightascension = a_ra - bad_ra
-        self._adj_declination = a_dec - bad_dec
+        offset_ra = a_ra - bad_ra
+        offset_dec = a_dec - bad_dec
+        self._adj_rightascension = offset_ra
+        self._adj_declination = offset_dec
+        self._rightascension = a_ra 
+        self._declination = a_dec
+        self._targetrightascension = a_ra
+        self._targetdeclination = a_dec
+        a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+        self._altitude = a_alt
+        self._azimuth = a_az
         return
 
     async def send_msg(self, msg):
