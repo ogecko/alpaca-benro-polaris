@@ -2,7 +2,7 @@
 # Beta Testing is Underway, Development Continues, Benro Involvement
 We are making excellent progress on the Alpaca Benro Polaris Project. This technical update will discuss our Beta testing process (and how you can join to get early access), what's been happening in development, an update on Benro engagement, and finally, funding.
 
-![Timekine](../images/abp-kickstarter-02.png)
+![Timeline](../images/abp-kickstarter-02.png)
 
 ## Beta Testing
 The GitHub repository has been created and is our main point of collaboration across the team. While in Beta, it has restricted access, but it will soon become public.
