@@ -24,3 +24,5 @@ The driver needs to be installed on a device that (a) supports Python and (b) ca
 ### Can i use Nina on my Mobile Device?
 Nina is a Windows application that best runs on a desktop, laptop, or mini PC. It can be operated remotely using Remote Desktop. There are Remote Desktop apps for both Android and Apple Mobile platforms. So, it will be possible to use Nina from a phone, but the user experience is not ideal.
 
+## Do I still need to plug my camera into the Benro Polaris?
+If you are using Nina or CCDceil for imaging, you dont really need to plug your camera into the Ben Polaris Tripod Head any more. You only need to connect the camera via USB into the NinaAir. Nina can then help with focusing, platesolving, taking image sequences etc.
