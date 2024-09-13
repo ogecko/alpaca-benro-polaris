@@ -1,7 +1,7 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarim](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 # Beta Test Results Summary
 
-# jdm5001
+# jdm5001 (DM)
 ## Test Environment
 * Location: Sydney, Australia | NSW National Park 
 * Optics: Canon R5, RF135mm, RF800mm,, NEEWER USB Lens Heater
@@ -21,20 +21,40 @@ TBD
 
 # Vladimir Vyskocil
 ## Test Environment
-* Location: 
-* Optics: 
-* Mount: 
-* ABP Driver + Nina Platform (hardware): 
-* ABP Driver + Nina Platform (software): 
+* Location: France
+* Optics: Canon R6 Mk II connected via USB3
+* Optics: ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
+* Mount: Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11, Android App v3.0.27
+* ABP Driver + CCDceil (hardware): Laptop is a 14 inch MacBook Pro with Apple M1 Pro CPU, 32Go RAM, MacOS Sonoma 14.6.1
+* ABP Driver + Nina Platform (hardware): ASUS Vivobook Pro 16X OLED K6604JV
+13th Gen Intel® Core™ i9-13980HX 2.2Ghz 24 cores, 32 Go RAM, NVidia RTX 4060 Laptop GPU
+* ABP Driver + Nina Platform (software): Windows 11 Family, Python 3.12.6, ASCOM Platform needed.
 * Siril + Stellarium Platform: 
   
 ## Test coverage
 MacOS testing and support, Raspberry Pi maybe. ZWO ASI 585 MC camera.
+Tried with success (in the living room) : Nina with a Canon R6 mk II connected using USB3 and Stellarium.
 
 ## Test Results
 TBD
 
-# 5x5Stuido
+# Spiderx01 (WS)
+## Test Environment
+* Location: US
+* Optics: Meade LX 200 
+* Mount: Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11, IOS App v1.4.4
+* ABP Driver (hardware): Surface PC (unsuccessful)
+* ABP Driver + Nina Platform (hardware): Minis Forum UM350 Mini-PC, Netgear usb wifi adapter, (unsucessful)
+* ABP Driver + Nina Platform (software): 
+* Safari Platform:  iPhone and iPad, Safari 7
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
+
+# 5x5Stuido (JH)
 ## Test Environment
 * Location: 
 * Optics: 
@@ -49,7 +69,23 @@ Pentax K1 - Nikon Z6 - android
 ## Test Results
 TBD
 
-# bakermanz
+# bakermanz (RBA)
+## Test Environment
+* Location: 
+* Optics: Nikon Z8
+* Mount: 
+* ABP Driver: Mac (Apple M1 Silicon chipset) 
+* ABP Driver: older Mac (Intel chipset), I’ve installed Windows 10 Home (OS build 19045.2965)  which can be used from the initial boot up - enabling the Mac to effectively operate like a Windows PC (unsuccessful - two continual 360 degree rotations of the Benro Polaris)
+* ABP Driver + Nina Platform (software): Mac (Apple M1 Silicon chipset) using the Codeweavers Crossover (WINE application) (unsuccessful as each program can only be run in isolation)
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
+
+# Ladislav (LS)
 ## Test Environment
 * Location: 
 * Optics: 
