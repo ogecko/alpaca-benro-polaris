@@ -38,7 +38,8 @@ There is a known issue with the recommended Benro Polaris device startup procedu
 * Check that you have not dropped connection to the Mini-PCs WiFi hotspot.
  
 ### Cannot connect Nina to ABP
-* Check which driver you select. Use the ASCOM Alpaca drivers over the ASCOM drivers. If you have ABP broadcasing on all interfaces (default) you may have 4 versions of it available. Don't use @160.254.253.159. You can limit what IP it uses by setting the field `alpaca_ip_address` in `driver/config.toml` to something like.
+* Check which driver you select. Use the ASCOM Alpaca drivers over the ASCOM drivers. If you have ABP broadcasing on all interfaces (default) you may have 4 versions of it available. Don't use @160.254.253.159. 
+* You can limit what IP Address the driver exposes the Alpaca Service on, by setting the field `alpaca_ip_address` in `driver/config.toml`. To limit the Alpaca Service only to applications that are running on the Mini-PC (ie no remote applications), set it the following.
 ```
 alpaca_ip_address = '127.0.0.1' 
 ```
