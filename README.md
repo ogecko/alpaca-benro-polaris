@@ -3,6 +3,10 @@
 # Introduction
 ![Overview](docs/images/abp-overview.png)
 
+
+Are you interested in trying your hand at amateur astrophotography? Invest in a [Benro Polaris with its Astro Kit](https://www.benro-polaris.com/) , and this project will transform it from a great Tripod Head to a full-featured, open Telescope Mount. This project makes the Benro Polaris compatible with advanced astrophotography applications like [Stellarium](https://stellarium.org/en/), [Nina](https://nighttime-imaging.eu/), and more.
+
+# Project Purpose
 The [Benro Polaris](https://www.benro-polaris.com/) tripod head is a great product. It's manufactured to a high standard, comes in a compact and sturdy design, and its mobile App has many easy-to-use features. Although its not cheap, it is cheaper than a modern telescope mount like the [ZWO AM3 Harmonic Equatorial Mount](https://www.zwoastro.com/product/zwo-am3-harmonic-equatorial-mount/). The Polaris can also be used for other photography projects beyond astro-photography.
 
 That said, the mobile App and firmware updates appear to have slowed down. Many of the promised features from the original [Kickstarter](https://www.kickstarter.com/projects/benropolaris/polaris-smart-electric-tripod-head) project haven't materialised. We are still waiting for 3 Point Alignment, a larger catalogue of deep sky objects, linking with planetarium software, improved sequencing of image capture, plate solving and framing. The product has more potential if only we could enable it.
