@@ -22,6 +22,7 @@ The APB Driver supports both the Alpaca ASCOM and SynScan protocols. This opens 
 * Stellarium Mobile (IOS, Android) - free, no telescope control
 * Sky Safari 7 Basic - free, no telescope control
 * Skyportal - Celestron’s free version of Skysafari
+* SynScan App and SynScan Pro App - Not currently supported
 
 ## 1. Using Stellarium Mobile PLUS
 Stellarium Mobile PLUS is ideal for use on a tablet or mobile phone, either Android or IOS. It includes more features than the free Stellarium Web and the free Stellarium Mobile offerings.
@@ -49,7 +50,7 @@ As the telescope sweeps across the sky you will see a reticule marking its path.
 If you lose site of where the mount is pointing in Stellarium simply click this second icon and the view will imediately pan to your reticle.
 
 ### Move Axis Commands
-The third icon on the Telescope Popup allows you to move the primary and secondary axis of the Benro Polaris. 
+The third icon on the Telescope Popup allows you to move the primary and secondary axis of the Benro Polaris. The Driver supports move commands on the third (Astro) axis of the Benro Polaris, but we have not found any applications that support the third axis at this stage.
 
 Speeds 1 to 5 match the slow Move Axis speeds of the Polaris. Speeds 6 to 9 map to a variable faster speed ranging from 1 to 2000 units. The table below gives you an approximate speed for each value.
 
@@ -150,10 +151,12 @@ On Windows, you can help improve the aim of the Benro Polaris by Syncing with a 
 4. The Reticle should imediately shift to your selected target
 5. All RA/Dec coordinates sent and received from Polaris will now be offset by this amount.
 
-To reset the RA/Dec Offset, restard the driver. For more understanding of how this works refer to Section 3 below.
+To reset the RA/Dec Offset, restart the driver. For more understanding of how this works refer to Section 3 below.
 
 
 ## 3. Improving Aiming Accuracy
+
+### Understanding RA to Alt/Az - Location/Time Offset
 
 ### Understanding AI Learning - Alt/Az Offset
 
