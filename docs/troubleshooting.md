@@ -39,6 +39,7 @@ There is a known issue with the recommended Benro Polaris device startup procedu
 
 ### Cannot connect StellariumPLUS to ABP
 * Check IP connectivity. You need to run StellariumPLUS on a mobile device that can communicate with the ABP driver. We do not recommend running StellariumPLUS on the same device as the Benro Polaris App. Unfortunately the Benro Polaris App takes over the phones WiFi and forces it to talk only the the BP. When in use it doesnt allow connectivity to your home network or Mini-PC hotspot. We suggest using Stellarium Plus on a separate iPad.
+* Check StellariumPLUS Alignment Flag. StellariumPLUS will show your telescope as Not Aligned whenever the ABP driver cannot communicate with the Benro Polaris.
 
 ### Cannot connect Nina to ABP
 * Check which driver you select. Use the ASCOM Alpaca drivers over the ASCOM drivers. If you have ABP broadcasing on all interfaces (default) you may have 4 versions of it available. Don't use @160.254.253.159. 
