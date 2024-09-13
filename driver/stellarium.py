@@ -245,7 +245,7 @@ async def process_protocol(logger, data, writer):
     elif data[0]==0x4a: 
         if not Config.supress_stellarium_polling_msgs:              
             logger.info(f"<<- Stellarium: SynScan Is Alignment Complete 'J'")
-        msg = bytearray([1, ord('#')]) 
+        msg = bytearray([1, ord('#')]) if telescope.polaris.connected else bytearray([0, ord('#')])
         await stellarium_send_msg(logger, writer, msg, ispolled=True)
 
     # SynSCAN Cancel GOTO 'M' | Reply “#"
