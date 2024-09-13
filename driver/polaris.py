@@ -138,7 +138,7 @@ class Polaris:
         # Telescope device completion flags
         #
         self._connections = {}                      # Dictionary of client's connection status True/False
-        self._connected: bool = True                # Polaris connection status. True if any client is connected. False when all clients have left.
+        self._connected: bool = False               # Polaris connection status. True if any client is connected. False when all clients have left.
         self._tracking: bool = False                # The state of the telescope's sidereal tracking drive.
         self._sideofpier: int = -1                  # Indicates the pointing state of the mount. Unknown = -1
         self._athome: bool = False                  # True if the telescope is stopped in the Home position. Set only following a FindHome() operation, and reset with any slew operation. This property must be False if the telescope does not support homing.
@@ -229,6 +229,7 @@ class Polaris:
         background_fastmove = asyncio.create_task(self.every_50ms_send_message())
         while True:
             try:
+                self._connected = False             # set to true when "Polaris communication init... done"
                 self._task_exception = None
                 client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
                 self._reader = client_reader

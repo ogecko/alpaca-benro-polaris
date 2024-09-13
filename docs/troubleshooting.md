@@ -36,7 +36,10 @@ There is a known issue with the recommended Benro Polaris device startup procedu
 * Check IP connectivity. From a command prompt, use `ping <hostname>` to ensure you have IP connectivity and DNS lookup to your Mini-PC. You may find using the Mini-PC's `IP4-address` in Remote Desktop rather than `<hostname>` may make it easier to connect.
 * Check the Mini-PC Hotspot is connected first. You can unplug the TPlink to force the Nina hotspot to use the embedded Wifi of the Mele. Once you have connected to the mini-pc via Remote Desktop, re-plug in the TPLink.
 * Check that you have not dropped connection to the Mini-PCs WiFi hotspot.
- 
+
+### Cannot connect StellariumPLUS to ABP
+* Check IP connectivity. You need to run StellariumPLUS on a mobile device that can communicate with the ABP driver. We do not recommend running StellariumPLUS on the same device as the Benro Polaris App. Unfortunately the Benro Polaris App takes over the phones WiFi and forces it to talk only the the BP. When in use it doesnt allow connectivity to your home network or Mini-PC hotspot. We suggest using Stellarium Plus on a separate iPad.
+
 ### Cannot connect Nina to ABP
 * Check which driver you select. Use the ASCOM Alpaca drivers over the ASCOM drivers. If you have ABP broadcasing on all interfaces (default) you may have 4 versions of it available. Don't use @160.254.253.159. 
 * You can limit what IP Address the driver exposes the Alpaca Service on, by setting the field `alpaca_ip_address` in `driver/config.toml`. To limit the Alpaca Service only to applications that are running on the Mini-PC (ie no remote applications), set it the following.
