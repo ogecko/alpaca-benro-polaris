@@ -56,13 +56,7 @@ The Alpaca Benro Polaris Driver window should look like this.
 Now you can start exploring ASCOM applications like Stellarium and Nina, or even write your own REST-based application.
 
 ### Troubleshooting
-If you don't see the `communications init... done` message then you may want to check the following items.
-1. Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
-2. Confirm the Benro Polaris is in Astro Mode.
-3. Confirm the Benro Polaris Compass and Star Alignment steps are complete.
-4. Confirm the mini-PC has a connection with the polaris-XXXXX hotspot.
-5. Confirm the Benro Polaris App is still running (we hope to remove this requirement).
-6. Confirm your Cammera hasn't gone to power save mode.
+If you don't see the `communications init... done` message then you may want to check the [Troubleshooting Guide](./troubleshooting.md) for steps to diagnose and fix any issues.
 
 ### Installing the ASCOM Platform (OPTIONAL)
 ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. This `Alpaca Benro Polaris Driver (ABP) commplies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 

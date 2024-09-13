@@ -1,16 +1,31 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarim](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Troubleshooting
-### Cannot start the Benro Polaris
+### Cannot start the Benro Polaris.
 There is a known issue with the recommended Benro Polaris device startup procedure. "Power On. In the off state, double press and hold the [Power Button], and release it after hearing “beep beep beep” three times to turn on the device. ".  Its worse than an old lawnmower at starting. If your device doesnt start, try the following:
 1. Remove Power cable - Dont have the Benro Polaris charging, while trying to start.
 2. Send to Park - use a Long Press to send the Benro Polaris to the parked position and ensure Power LED is off.
 3. Short Press - Every second or so (but no faster), until Power LED is illuminated.
 4. Long Press - As soon as its illuminated, do a long press, releasing after "beep, beep beep".
    
-### Cannot connect Mini-PC/ABP to Polaris Wifi
-* Check that the Benro Polaris App is connected and running. When the App closes the Benro Polaris will drop its WiFi hotspot. Unforuntately you need to keep the app running, within range of the Benro Polaris, to keep the Polaris WiFi up, so that ABP can connect.
+### Cannot see "`communications init... done`" in the log.
+* Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
+* Confirm the Benro Polaris is in Astro Mode.
+* Confirm the Benro Polaris Compass and Star Alignment steps are complete.
+* Confirm the Benro Polaris App is still running (we hope to remove this requirement).
+* Confirm your Cammera hasn't gone to power save mode.
+* Confirm the mini-PC has connected with the polaris-XXXXX hotspot. It should look like the following:
+<img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
+
+  
+### Cannot see any log message except two `INFO ==STARTUP==` lines
 * Check which Wifi adapter is being used. There is a known issue with the Mele Quieter 4C not being able to connect to the Polaris Wifi. Use the [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/)
+* Check your IP Configuration using a Command Prompt to run `ipconfig.exe`. Ensure your Mini-PC has a valid IP Address from the Benro Polaris DHCP server. It should look like the following:
+<img style="display: block; margin: auto;"  src="images/abp-troubleshoot-wifi2.png"> 
+
+
+### Connection from Mini-PC to Polaris Wifi drops out
+* Check that the Benro Polaris App is connected and running. When the App closes the Benro Polaris will drop its WiFi hotspot. Unforuntately you need to keep the app running, within range of the Benro Polaris, to keep the Polaris WiFi up, so that ABP can connect.
 * Check for RF interference. eg. Turn off your microwave in the kitchen.
 * Check for RF signal strength. Move your remote desktop machine closer to the mini-pc. 
 * Check resouce usage on mini-PC. Ensure it has plenty of free ram and CPU.
