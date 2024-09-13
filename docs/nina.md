@@ -45,10 +45,11 @@ While Ninas Sky Atlas is good for when you dont have an internet connection, oth
 * [Telescopius](https://telescopious.com/) - A website with Astronomy Tools and a great catalog.
 * [The Sky Live](https://theskylive.com/whatsvisible) - A website that lists potential targets live.
 
-Other sites that I've found helpful include:
+Other sites and tools that I've found helpful include:
 * [Clear Outside](https://clearoutside.com/forecast) - Planning the best night to shoot.
 * [Light Polution Map](https://www.lightpollutionmap.info) - Planning where to shoot from.
 * [White Screen Online](https://www.whitescreen.online/) - For taking FLAT images
+* [PhotoPills Mobile App](https://www.photopills.com/) - Planning any photography shoot.
 
 ## 3. Star Detection and Autofocus
 Mastering astrophotography requires ensuring that your camera lens is optimally focused. While modern cameras have fast, accurate, and intelligent focusing systems, they may not produce the best results for astrophotography. To address this, many astrophotography applications, like Nina, have their own autofocusing modules. These modules drive a telescope's focuser or your camera's lens-focusing system to capture sharp night sky images.
