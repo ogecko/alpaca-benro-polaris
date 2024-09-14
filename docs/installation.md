@@ -100,36 +100,6 @@ tested with ABP.
 6. If you are copying Oculars settings, duplicate the following file:
    `C:\Users\XXXXX\AppData\Roaming\Stellarium\modules\Oculars\ocular.ini`
 
-#### To add Benro Polaris Telescope Control
-1.  Select the `Plug-ins` tab on the Configuration Dialog menu bar.
-2.  Scroll down the list of plugins and find the `Telescope Control plugin`.
-3.  Check `Load at startup` on the Telescope Control Dialog.
-4.  Close Stellarium and Restart Stellarium from the Desktop.
-5.  Press `Ctrl+0` to open the Slew Telescope Dialog
-6.  Click the `Configure Telescopes` button at the bottom of this dialog.
-7.  Click on the `Add Telescope` button (3rd one at the bottom of the Telescope Control Configure dialog).
-8.  Choose Telescope controlled by `ASCOM` and enter `Benro Polaris` into the Name field.
-9.  Leave the Coordinate System as `J2000 (default)`, 
-10. Check `Start/Connect on Startup`.
-11. Scroll down to the ASCOM Settings.
-12. Click `Choose ASCOM Telescope`
-13. Click the `Alpaca` tab on the ASCOM Telescope Chooser dialog box.
-14. Click `Enable Discovery` from the Alpaca tab
-15. Click `Discover Now` from the Alpaca tab
-16. For a local AAPB, Choose `Benro Polaris` from the drop down-menu, then click `OK`.
-17. For a remote AAPB, Click `Create Alpaca Driver (Admin)` from the drop-down.
-    a. Click `Yes` for  User Account Control.
-    b. Enter the name `Benro Polaris`, then click `OK`.
-    c. Click `Properties` on the ASCOM Telescope Chooser dialog box.
-    d. Change the Remote Device Host Name/IP address (`127.0.0.1` for Loopback)
-    e. Change the Alpaca Port to `5555`.
-    f. Click `OK`.
-18.  Click `OK` on ASCOM Telescope chooser dialog.
-19.  Click `OK` on Add a New Telescope dialog.
-20.  Click `Connect` and close the Telescopes dialog.
-21.  You have now added the Benro Polaris telescope and connected it.
-
-
 ## Installing Nina (OPTIONAL)
 Nina is an open-source free software application covering image capture, autofocus, plate-solving, centering, star detection, guiding, and a lot more. Much of this now works with the Benro Polaris (well not guiding yet). The open-source nature makes it a bit more complicated to install and setup, but it's worth the effort - and it's free.
 
