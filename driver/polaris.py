@@ -688,7 +688,7 @@ class Polaris:
             raise AstroModeError()
 
     async def moveaxis_ramp_speed_test(self):
-        rates = 100
+        rates = 10
         samples = 5
         duration = Config.log_perf_speed_interval * (samples + 1)
         self.logger.info(f"== TEST == Ramp MoveAxis Test | {rates} rates | {samples} samples per rate | {duration}s per rate | {duration*rates/60} min total")
@@ -698,6 +698,7 @@ class Polaris:
             await self.move_axis(0, rate)
             await asyncio.sleep(duration)
         # complete the test
+        self.logger.info(f"== TEST == Ramp MoveAxis Test | COMPLETE")
         await self.move_axis(0, 0)
 
 
