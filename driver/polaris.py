@@ -1212,10 +1212,11 @@ class Polaris:
         # 8.001 to 9.000: 1501 to 2000  |  5.2 degree/s  |   "
         
         # Number of units in each group for rates 6, 7, 8, 9 - MUST TOTAL 2000
-        group6 = 500
-        group7 = 500
-        group8 = 500
-        group9 = 500
+        offset5 = 360   # any value below 360 on scale 1-2000 is slower than slow rate 5
+        group6 = 410
+        group7 = 410
+        group8 = 410
+        group9 = 410
 
         sign = -1 if ascomrate < 0 else 1
         key = 0 if ascomrate > 0 else 1
@@ -1234,13 +1235,13 @@ class Polaris:
         elif x <= 5.0:
             rate = 5
         elif x <= 6.0:
-            rate = int(1 + (x - 5.0) * (group6 - 1))                              # (1 + (x - 4.0) * 499)
+            rate = int(offset5 + 1 + (x - 5.0) * (group6 - 1))                              # (1 + (x - 4.0) * 499)
         elif x <= 7.0:
-            rate = int(group6 + 1 + (x - 6.0) * (group7 - 1))                     # (501 + (x - 5.0) * 499)
+            rate = int(offset5 + group6 + 1 + (x - 6.0) * (group7 - 1))                     # (501 + (x - 5.0) * 499)
         elif x <= 8.0:
-            rate = int(group6 + group7 + 1 + (x - 7.0) * (group8 - 1))            # (1001 + (x - 6.0) * 499)
+            rate = int(offset5 + group6 + group7 + 1 + (x - 7.0) * (group8 - 1))            # (1001 + (x - 6.0) * 499)
         elif x <= 9.0:
-            rate = int(group6 + group7 + group8 + 1 + (x - 8.0) * (group9 - 1))   # (1501 + (x - 7.0) * 499)
+            rate = int(offset5 + group6 + group7 + group8 + 1 + (x - 8.0) * (group9 - 1))   # (1501 + (x - 7.0) * 499)
         else:
             rate = None
         
