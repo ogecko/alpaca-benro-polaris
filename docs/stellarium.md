@@ -164,7 +164,7 @@ This section is optional and only provided to give you insight into the design a
 ### Understanding RA to Alt/Az - Location/Time Offset
 The Benro Polaris is primarily an Altitude/Azimuth mount as opposed to an Equatorial mount. Although the third axis does help with sidereal tracking, the primary axis is Azimuth, and the secondary axis is Altitude.
 
-The Driver must convert RA/Dec coordinates to Alt/Az when it commands Polaris. To do this accurately, you must have the correct time and location. It retrieves the time from the system clock, and the initial location is retrieved from config.toml, with the option to sync it from Stellarium or Nina later.
+The Driver must convert RA/Dec coordinates to Alt/Az when it commands Polaris. To do this accurately, it must have your correct time and location. It retrieves the time from the system clock, and the initial location is retrieved from config.toml, with the option to sync it from Stellarium or Nina later.
 
 ```
 config.toml
