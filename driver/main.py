@@ -57,7 +57,18 @@ async def main():
     discovery.logger = logger
     telescope.logger = logger
     shr.logger = logger
-    
+
+
+    # Output performance data log headers if enabled
+    if Config.log_performance_data == 1:
+        logger.info(f",Dataset,Time,Tracking,Slewing,Gotoing,TargetRA,TargetDEC,AscomRA,AscomDEC,AscomAz,AscomAlt,ErrorRA,ErrorDec")
+        logger.info(f",'DATA1',{0:.3f},{False},{False},{False},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
+
+    elif Config.log_performance_data == 2:
+        logger.info(f",Dataset,Time,Interval,Constant,RateAz,SpeedAz,RateAlt,SpeedAlt,SpeedRA,SpeedDec,SpeedTotal")
+        logger.info(f",'DATA2',{0:.3f},{0:.2f},False,{0:.2f},{0:.7f},{0:.2f},{0:.7f},{0:.7f},{0:.7f},'00:00:00.000'")
+
+
     # Initialize the ASCOM devices
     telescope.start_polaris(logger)
 
@@ -91,4 +102,9 @@ if __name__ == '__main__':
         print(f"Error {error}, quit.")
     except KeyboardInterrupt:
         print("Keyboard interrupt.")
+       
+
+
+
+
 # ==================================================================

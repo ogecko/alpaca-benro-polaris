@@ -73,11 +73,12 @@ def init_logging():
     formatter.converter = time.gmtime           # UTC time
     logger.handlers[0].setFormatter(formatter)  # This is the stdout handler, level set above
     # Add a logfile handler, same formatter and level
-    if Config.log_to_file:
-        logfile = os.path.join(os.getcwd()+os.sep, 'alpaca.log')
-        handler = logging.handlers.RotatingFileHandler(logfile,
+    if Config.log_to_file or Config.log_performance_data:
+        logfile = 'alpaca.log' if not Config.log_performance_data else 'alpaca.csv'
+        logpath = os.path.join(os.getcwd()+os.sep, logfile)
+        handler = logging.handlers.RotatingFileHandler(logpath,
                                                         mode='w',
-                                                        delay=True,     # Prevent creation of empty logs
+                                                        delay=False,     # True to Prevent creation of empty logs
                                                         maxBytes=Config.max_size_mb * 1000000,
                                                         backupCount=Config.num_keep_logs)
         handler.setLevel(Config.log_level)

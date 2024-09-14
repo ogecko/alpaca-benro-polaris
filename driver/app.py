@@ -99,7 +99,7 @@ async def alpaca_httpd(logger):
     # Create a http server
     alpaca_config = uvicorn.Config(falc_app, host=Config.alpaca_ip_address, port=Config.alpaca_port, log_level="error")
     alpaca_server = uvicorn.Server(alpaca_config)
-    logger.info(f'==STARTUP== Serving ASCOM on {Config.alpaca_ip_address}:{Config.alpaca_port}. Time stamps are UTC.')
+    logger.info(f'==STARTUP== Serving ASCOM Alpaca on {Config.alpaca_ip_address}:{Config.alpaca_port}. Time stamps are UTC.')
 
     # Serve the application
     try:

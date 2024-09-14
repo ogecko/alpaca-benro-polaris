@@ -6,9 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
-# Alpaca Logs
+# Alpaca Logs and Performance data
 *.log
 *.log.*
+alpaca.csv
+alpaca.csv.*
 
 # Distribution / packaging
 .Python

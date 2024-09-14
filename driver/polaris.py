@@ -117,7 +117,7 @@ class Polaris:
         self._every_50ms_last_timestamp = None      # Fast Move counter, last 1s timestamp
         self._every_50ms_last_alt = None            # Fast Move counter, last 1s polaris altitude
         self._every_50ms_last_az = None             # Fast Move counter, last 1s polaris azimuth
-        self._data1_header_timestamp = None       # Timestamp that EXTRACT header was logged. ie start of EXTRACT.
+        self._performance_data_start_timestamp = None # Timestamp for Performance Data logging.
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
@@ -210,7 +210,8 @@ class Polaris:
         # Telescope method constants
         #
         self._axisrates = [{ "Maximum":9, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
-        self._axis_slow_slewing = [ 0, 0, 0 ]            # Records the move rate of the primary, seconday and tertiary axis
+        self._axis_Polaris_slewing_rates = [ 0, 0, 0 ]   # Records the Polaris move rate of the primary, seconday and tertiary axis
+        self._axis_ASCOM_slewing_rates = [ 0, 0, 0 ]     # Records the ASCOM move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
 
 
@@ -248,12 +249,12 @@ class Polaris:
             except OSError as e:
                 if hasattr(e, 'winerror'):
                     if e.winerror == 121:
-                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App, then check Wifi connection.'
+                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App. Check Wifi connection.'
                         logger.error(self._task_errorstr)
                         await asyncio.sleep(5)
                         continue
                     if e.winerror == 1225:
-                        self._task_errorstr = f'==STARTUP== Network connection to Polaris was refused. Connect with Polaris App, then check Wifi connection.'
+                        self._task_errorstr = f'==STARTUP== Network connection to Polaris was refused. Connect with Polaris App. Check Wifi connection.'
                         logger.error(self._task_errorstr)
                         await asyncio.sleep(5)
                         continue
@@ -264,7 +265,7 @@ class Polaris:
                         continue
 
                 elif e.errno == 51:
-                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App, then check Wifi connection.'
+                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App. Check Wifi connection.'
                         logger.error(self._task_errorstr)
                         await asyncio.sleep(5)
                         continue
@@ -362,25 +363,38 @@ class Polaris:
 
     def every_50ms_counter_check(self):
         self._every_50ms_counter += 1
-        # log degrees traveled per second (only do this every 5s)
-        if self._every_50ms_counter >= 100:
+        # At every log_perf_speed_interval take a measurement
+        if self._every_50ms_counter >= Config.log_perf_speed_interval * 1000 / 50:
             # reset counter and store timestamps
             self._every_50ms_counter = 0
-            curr_timestamp = datetime.datetime.now()
-            last_timestamp = self._every_50ms_last_timestamp
-            # if we have a last recording
-            if Config.log_polaris_speed and last_timestamp:
-                d_alt = self._p_altitude - self._every_50ms_last_p_altitude
-                d_az = self._p_azimuth - self._every_50ms_last_p_azimuth
-                delta_degrees = math.sqrt(d_alt*d_alt + d_az*d_az)
-                delta_seconds = (curr_timestamp - last_timestamp).total_seconds()
-                if delta_seconds>0:
-                    delta_dms = dec2dms(delta_degrees/delta_seconds)
-                    self.logger.info(f"<<- Polaris: Avg Move Speed (Degrees:arcmin:arcsec.nn/s) - {delta_dms}/s")
-            # Store values for next run
-            self._every_50ms_last_timestamp = curr_timestamp
-            self._every_50ms_last_p_altitude = self._p_altitude
-            self._every_50ms_last_p_azimuth = self._p_azimuth
+            # if we want to log performance data around speed travelled
+            if (Config.log_performance_data == 2):
+                curr_timestamp = datetime.datetime.now()
+                last_timestamp = self._every_50ms_last_timestamp
+                if not self._performance_data_start_timestamp:
+                    self._performance_data_start_timestamp = curr_timestamp
+                time = (curr_timestamp - self._performance_data_start_timestamp).total_seconds()
+                # if we have a last recording
+                if last_timestamp:
+                    r_curr = self._axis_ASCOM_slewing_rates
+                    r_last = self._every_50ms_last_a_rates
+                    r_constant = (r_curr[0] == r_last[0] and r_curr[1] == r_last[1] and r_curr[2] == r_last[2])
+                    d_ra = (self._p_rightascension - self._every_50ms_last_p_rightascension + 12) % 24 - 12
+                    d_dec = (self._p_declination - self._every_50ms_last_p_declination + 180) % 360 - 180
+                    d_alt = (self._p_altitude - self._every_50ms_last_p_altitude + 180) % 360 - 180
+                    d_az = (self._p_azimuth - self._every_50ms_last_p_azimuth + 180) % 360 - 180
+                    d_total = math.sqrt(d_alt*d_alt + d_az*d_az)
+                    d_sec = (curr_timestamp - last_timestamp).total_seconds()
+                    if d_sec>0:
+                        self.logger.info(f",'DATA2',{time:.3f},{d_sec:.2f},{r_constant},{r_curr[0]:.2f},{d_az/d_sec:.7f},{r_curr[1]:.2f},{d_alt/d_sec:.7f},{d_ra/d_sec:.7f},{d_dec/d_sec:.7f},'{dec2dms(d_total/d_sec)}'")
+
+                # Store values for next run
+                self._every_50ms_last_timestamp = curr_timestamp
+                self._every_50ms_last_p_rightascension = self._p_rightascension
+                self._every_50ms_last_p_declination = self._p_declination
+                self._every_50ms_last_p_altitude = self._p_altitude
+                self._every_50ms_last_p_azimuth = self._p_azimuth
+                self._every_50ms_last_a_rates = self._axis_ASCOM_slewing_rates.copy()
 
     def every_50ms_msg_to_set(self, msg):
         self._lock.acquire()
@@ -461,7 +475,7 @@ class Polaris:
             self._altitude = a_alt
             self._azimuth = a_az
             self._lock.release()
-            if Config.log_polaris and not Config.supress_polaris_518_msgs:
+            if Config.log_performance_data == 1:
                 a_slew = self._slewing
                 a_goto = self._gotoing
                 a_track = self.tracking
@@ -469,11 +483,11 @@ class Polaris:
                 t_dec = self._targetdeclination if self._targetdeclination else a_dec           # Target Declination (degrees)
                 e_ra = (t_ra - a_ra)*3600*360/24                                                # Error Right Ascention (arc seconds)
                 e_dec = (t_dec - a_dec)*3600                                                    # Error Declination (arc seconds)
-                if not self._data1_header_timestamp:
-                    self.logger.info(f",'DATA1',Time,Tracking,Slewing,Gotoing,TargetRA,TargetDEC,AscomRA,AscomDEC,AscomAz,AscomAlt,ErrorRA,ErrorDec")
-                    self._data1_header_timestamp = datetime.datetime.now()
-                time = (datetime.datetime.now() - self._data1_header_timestamp).total_seconds()
+                if not self._performance_data_start_timestamp:
+                    self._performance_data_start_timestamp = datetime.datetime.now()
+                time = (datetime.datetime.now() - self._performance_data_start_timestamp).total_seconds()
                 self.logger.info(f",'DATA1',{time:.3f},{a_track},{a_slew},{a_goto},{t_ra:.7f},{t_dec:.7f},{a_ra:.7f},{a_dec:.7f},{a_az:.7f},{a_alt:.7f},{e_ra:.3f},{e_dec:.3f}")
+
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
         elif cmd == "519":
             arg_dict = self.polaris_parse_args(args)
@@ -667,9 +681,25 @@ class Polaris:
             self._connected = True
             self._task_errorstr = ''
             self._lock.release()
+            if Config.log_performance_data == 2 and Config.log_perf_speed_ramp_test:
+                asyncio.create_task(self.moveaxis_ramp_speed_test())
         else:
             # Polaris is not in astro mode
             raise AstroModeError()
+
+    async def moveaxis_ramp_speed_test(self):
+        rates = 100
+        samples = 5
+        duration = Config.log_perf_speed_interval * (samples + 1)
+        self.logger.info(f"== TEST == Ramp MoveAxis Test | {rates} rates | {samples} samples per rate | {duration}s per rate | {duration*rates/60} min total")
+        for i in range(0, rates, 1):
+            rate = 10/rates * i
+            self.logger.info(f"== TEST == Ramp MoveAxis Test | {rate:.2f} rate | {duration}s duration")
+            await self.move_axis(0, rate)
+            await asyncio.sleep(duration)
+        # complete the test
+        await self.move_axis(0, 0)
+
 
     #
     # Telescope device states
@@ -1254,8 +1284,9 @@ class Polaris:
             if Config.log_polaris:
                 self.logger.info(f"->> Polaris: MOVE Slow Az/Alt/Rot Axis {axis} Rate {rate}")
             self._lock.acquire()
-            self._axis_slow_slewing[axis] = rate
-            self._slewing = any(self._axis_slow_slewing)
+            self._axis_ASCOM_slewing_rates[axis] = ascomrate
+            self._axis_Polaris_slewing_rates[axis] = rate
+            self._slewing = any(self._axis_Polaris_slewing_rates)
             self._lock.release()
             if self._every_50ms_msg_to_send and rate == 0:
                 self.every_50ms_msg_to_clear()                  # stop fast move msgs
@@ -1267,7 +1298,9 @@ class Polaris:
         # if cmdtype=2 then fast Alt/Az move
         elif cmdtype==2:
             self._lock.acquire()
-            self._slewing = True
+            self._axis_ASCOM_slewing_rates[axis] = ascomrate
+            self._axis_Polaris_slewing_rates[axis] = rate
+            self._slewing = any(self._axis_Polaris_slewing_rates)
             self._lock.release()
             msg=f"1&{cmd}&3&speed:{rate};#"
             if Config.log_polaris:
