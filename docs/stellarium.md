@@ -54,6 +54,8 @@ The third icon on the Telescope Popup allows you to move the primary and seconda
 
 Speeds 1 to 5 match the slow Move Axis speeds of the Polaris. Speeds 6 to 9 map to a variable faster speed ranging from 1 to 2000 units. The table below gives you an approximate speed for each value.
 
+<img align="right" width="400" height="350" src="images/abp-rotation.png"> 
+
 | Rate | Rotational Speed |
 | ---- | ---------------- |
 |   1  | 21.5 arcsec/s    |
@@ -61,10 +63,11 @@ Speeds 1 to 5 match the slow Move Axis speeds of the Polaris. Speeds 6 to 9 map 
 |   3  | 2.8 arcmin/s     |
 |   4  | 5.3 arcmin/s     |
 |   5  | 12.5 arcmin/s    |
-|   6  | 32.5 arcmin/s    |
-|   7  | 1.5 degree/s     |
-|   8  | 3.0 degree/s     |
-|   9  | 5.2 degree/s     |
+|   6  | 1.0 degree/s     |
+|   7  | 2.0 arcdeg/s     |
+|   8  | 3.6 degree/s     |
+|   9  | 5.5 degree/s     |
+|      |                  |
 
 Note that Move Axis in Nina allows you to enter fractional speeds. Due to Benro Polaris, these only have effect from 5.1 to 9.0 (i.e., for the Benro Polaris Fast Move commands).
 
