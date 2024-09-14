@@ -207,7 +207,7 @@ Telescope synchronization, or ‘syncing,’ aligns your telescope with the nigh
 
 After identifying the actual center of view (from visual observation or plate-solving), you will notice that both Stellarium and Polaris may have it wrong. Syncing will help correct anything upstream of the Driver.
 
-As soon as you select the actual object at the center of view and press Sync, you will notice Stellarium immediately correct itself and position the reticule over the target you have synced with. Nothing is sent to Polaris, as the sync is purely within the Driver.
+As soon as you select the actual object at the center of view and press Sync, you will notice Stellarium immediately corrects itself and positions the reticule over the target you have synced with. Nothing is sent to Polaris, as the sync is purely within the Driver.
 
 The Driver remembers an RA/Dec offset to add to all coordinates sent to Polaris. It subtracts this offset every time Polaris tells the Driver where it thinks it is pointing. You will see this offset in the logs when the Driver converts from ASCOM RA/Dec coordinates to Polaris RA/Dec coordinates.
 
