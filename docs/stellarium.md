@@ -4,6 +4,8 @@
 ## Telescope Control Compatibility
 The APB Driver supports both the Alpaca ASCOM and SynScan protocols. This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
 
+![imaging](images/abp-compatibility.png)
+
 ### Supported and Tested
 
 * Stellariium Mobile PLUS (IOS, Android) - paid, telescope control via SynScan protocol.
@@ -229,7 +231,7 @@ The process is as follows:
 * Goto slew is marked as complete.
 * The Driver calculates the Alt/Az error in Arc Seconds, (4) refining the AimOffset's Alt/Az values to improve Aiming Accuracy.
     
-![imaging](images/abp-gotolog.png)
+![GOTO Log](images/abp-gotolog.png)
 
 
 ### Understanding Plate Solving
