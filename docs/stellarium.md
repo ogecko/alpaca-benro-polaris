@@ -185,10 +185,8 @@ aiming_adjustment_time = 20    # Aiming time (in seconds) in the future.
 ### Understanding AI Learning - Alt/Az Offset
 We also noticed that whenever the Benro Polaris is commanded to slew to an Alt/Az coordinate, the final position it tells us it has arrived at after sidereal tracking is re-enabled can be consistently off.
 
-The Driver compares the final Alt/Az with the aimed Alt/Az for every GOTO command. It uses an Adaptive Integrative algorithm (hence the AI) to determine an Alt/Az offset to correct for any consistent error it notices. You can see this in the log after each GOTO command is complete.
-```
-Refer to Log file
-```
+The Driver compares the final Alt/Az with the aimed Alt/Az for every GOTO command. It uses an Adaptive Integrative algorithm (hence the AI) to determine an Alt/Az offset to correct for any consistent error it notices. 
+You can see this in the log after each GOTO command is complete. See below.
 
 If you notice that the Alt/Az offset is consistently the same, you can set the initial Alt/Az offset to prevent the Driver from relearning on every startup. Copy the offset from the log to the settings in config.toml. The driver does not refine the Alt/Az offset if the error is too large. This can also be set in config.toml.
 
@@ -214,6 +212,25 @@ As soon as you select the actual object at the center of view and press Sync, yo
 The Driver remembers an RA/Dec offset to add to all coordinates sent to Polaris. It subtracts this offset every time Polaris tells the Driver where it thinks it is pointing. You will see this offset in the logs when the Driver converts from ASCOM RA/Dec coordinates to Polaris RA/Dec coordinates.
 
 This should not be confused with polar alignment, which is aligning your telescope's understanding of where the celestial polar axis is oriented relative to the Benro Polaris. Polar alignment is vital for sidereal tracking and minimizing the movement of stars during longer exposures.
+
+### Combing all three Offsets
+The following screen capture shows the log file of a successful GOTO command from Stellarium. The aiming ajustments are appled at (1) The SyncOffset RA/Dec, (2) The AimOffset Alt/Az, and (3) The AimOffset for Time offset and (4) Refining the AimOffset AltAz. 
+
+The process is as follows:
+
+* Stellarium requests a SynScan GOTO RA/Dec command.
+* The Driver turns this into an ASCOM GOTO RA/Dec command.
+* The Driver calculates Polaris GOTO RA/Dec command, (1) adding any RA/Dec SyncOffset. 
+* The Driver calculates the Polaris Alt/Az co-ordinates, incorporating (2) the AimOffset time (where it will be 20s in the future) and (3) the AimOffset Alt/Az correction. The Driver issues the Goto Alt/Az Command to Polaris.
+* Tracking is turned off
+* Goto Slew startsd.
+* Goto Slew ends.
+* Tracking is turned on and backlash removed.
+* Goto slew is marked as complete.
+* The Driver calculates the Alt/Az error in Arc Seconds, (4) refining the AimOffset's Alt/Az values to improve Aiming Accuracy.
+    
+![imaging](images/abp-gotolog.png)
+
 
 ### Understanding Plate Solving
 And finally plate solving is a game changer. I guarantee you will have a smile on your face the first time Nina successfully plate solves and automatically moves the Benro Polaris to point at what you asked it to point at in the first place. With spot on accuracy and validity.
