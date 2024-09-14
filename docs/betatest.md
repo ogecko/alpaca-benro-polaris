@@ -71,16 +71,21 @@ TBD
 
 # bakermanz (RBA)
 ## Test Environment
-* Location: 
-* Optics: Nikon Z8
-* Mount: 
-* ABP Driver: Mac (Apple M1 Silicon chipset) 
-* ABP Driver: older Mac (Intel chipset), I’ve installed Windows 10 Home (OS build 19045.2965)  which can be used from the initial boot up - enabling the Mac to effectively operate like a Windows PC (unsuccessful - two continual 360 degree rotations of the Benro Polaris)
-* ABP Driver + Nina Platform (software): Mac (Apple M1 Silicon chipset) using the Codeweavers Crossover (WINE application) (unsuccessful as each program can only be run in isolation)
-* Siril + Stellarium Platform: 
+* Location: Auckland, New Zealand
+* Optics: Nikon Z8 (z14-24mm F2.8)
+* Mount: Benro Polaris
+* ABP Driver: Mac (Apple M1 Silicon chipset)
+* ABP Driver: older Mac (Intel chipset), I’ve installed Windows 10 Home (OS
+build 19045.2965) which can be used from the initial boot up - enabling the
+Mac to effectively operate like a Windows PC (unsuccessful - two continual
+360 degree rotations of the Benro Polaris)
+* ABP Driver + Nina Platform (software): Mac (Apple M1 Silicon chipset) using the Codeweavers Crossover (WINE application) (unsuccessful as each
+program can only be run in isolation)
+* Siril + Stellarium Platform:
   
 ## Test coverage
 Pentax K1 - Nikon Z6 - android
+Intending to use MacOS version of ABP on Apple M1 SiliconMacBook Pro and SynScan with Stellarium etc
 
 ## Test Results
 TBD
