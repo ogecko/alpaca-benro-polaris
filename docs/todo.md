@@ -1,57 +1,53 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
-# Beta Testing
-## Beta Testing Guidelines
-* Document the test environment, focus areas annd results in [docs/betatest.md](./betatest.md).
-* Try to perform real world use case tests as well as load and performance tests.
-* Keep a record of what tests you perform and the results
-* Report any issues noticed as issues in Github
-* Try to reproduce and document steps to reproduce, isolate what is causing the issue, diagnose yourself if you can.
-* Test the documentation where possible, if its missing help author or improve them.
-* Confirm you will send a final summary of Beta testing feedback to me by 17 Sep, so we have time to address any issues.
-* Confirm you will not share any pre-release code or docs with others.
-
-## Confirmed Beta Testers
-* Vladimir Vyskocil (PCCGG) - for the MacOS testing and support for example, and Raspberry Pi maybe.  ZWO ASI 585 MC 
-* John Harrison (PCCGG) - Happy to beta test,, Pentax K1 - Nikon Z6 - android (Confirmed added to Github)
-
-## Potential Beta Testers
-* Charles Thomas (PCCGG) - Glad to be a beta tester. (Messenger DM 1/9)
-* Vasilis Triantafyllou (PCCGG) - Count me in! Could also help with beta testing (Messenger DM 2/9)
-* Craig Bobchin (PCCGG) - I am willing to help beta test. I have a Pentax K-1 as my main camera.
-* Steve Everitt (PCCGG) - I also shoot with Pentax cameras and am happy to assist with any beta testing. I live in Lanzarote so get a lot more opportunity than most.
-* @madhatterbakery-artisanmad7631 (Youtube) - So if you need a Beta tester for Mac, please feel free to give me a shout. Mac (using Codeweaver's Crossover) 
-* Richard Healey (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. (Messenger DM 2/9)
-  
-## Potential Followup
-* Ian Morgan - Pentax
-* Pratik Patel - SW Development (Messenger DM 1/9)
-* Florian Fortin - Nina user, Travel (Messenger DM 1/9)
-
-
 # Main Todo List of Pending Items to Complete
 ## Development Pending
-* MoveAxis
-* SyncCordinates
-* Park
+* Nina 3 Point Alignment integration with BP
+* Stronger Stellarium Synscan communications error handling
 * AbortSlew
-* Documentation
-## QA Pending
-* Eliminate need to keep Mobile app running
+  
+* ## QA Pending
+* Eliminate need to keep Mobile app running, Keepalive 525 and 518 Exploration
+* Resolve Williams comms issue
+* Resolve why Platsolve doesnt auto Sync on Nina
 * Stellarium resource issue or Nina occasionally asks for Connection close uneccesarily.
-## Testing Pendinig
-* Alpha and Beta testing
-* Apple ecosystem testing
+* Extend Troubleshooting Guide with any Beta Test feedback
+
+## Testing Pending
+* Testing using StellariumPLUS on same device as BP App
+* Testing on Raspbery Pi
+* Testing on Docker
+* Testing of Sky Safari
+* Closed Beta testing
+* Open Beta testing
 * RaspberryPi ecosystem testing
-* Completion of Conformance testing
 * Compatibility testing
 
 ## Backlog
-Hand controller web app
-Config web app
-Videos for progress updates and usage
+* Hand controller web app
+* Config web app
+* Videos for progress updates and usage
 
 ## Completed during campaign
+* Nina Overview Video
+* Nina Autofocus Video
+* Stellarium Video
+* Apple ecosystem testing
+* Alpha Testing
+* Move Fast and Slow commands
+* Park and UnPark commands (uses the Benro Polaris axis reset feature)
+* Goto Alt/Az, RA/Dec, and Target command
+* A learning algorithm was built into the driver to improve Benro Polaris GOTO accuracy.
+* Vladimir and I confirmed plate-solving works, and now we know where it's pointing!
+* Sync commands (allows you to correct BP offset on visual or plate solve confirmation of actual pointing position)
+* A subset of SynScan protocol to support Stellarium PLUS mobile users.
+* A binary protocol to support Stellarium MacOS users.
+* A Periodic Error report to quantify your Benro Polaris tracking accuracy.
+* Performance Data logging 1 - RA/Dec Error, 2 - Move Axis Turn Rate
+* MacOS, RaspberryPi, and Docker platform support (some yet untested)
+* Improved BP connection robustness and recovery.
+* Addressed some issues from Beta Test.
+* Documentation, including troubleshooting and FAQ sections.
 * Benro outreach
 * Beta Release completed, testing underway
 * Github project created (not public yet)
