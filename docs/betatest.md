@@ -142,13 +142,12 @@ TBD
 
 # Ladislav (LS)
 ## Test Environment
-* Location: 
-* Optics: 
-* Mount: 
-* ABP Driver + Nina Platform (hardware): 
-* ABP Driver + Nina Platform (software): 
-* Siril + Stellarium Platform: 
-  
+* Location: Wellington, New Zealand
+* Optics: Sony a7RV + 24mm f1.4
+* Mount: Benro Polaris
+* ABP Driver: Mac (Apple M3 Pro Silicon)
+* ABP Driver + Nina Platform (Software): Mac Apple M3 Pro Silicon + parallels - Win 11 Home
+
 ## Test coverage
 Pentax K1 - Nikon Z6 - android
 
@@ -161,13 +160,11 @@ TBD
 
 # Saltyminty (MW)
 ## Test Environment
-* Location: 
-* Optics: 
-* Mount: 
-* ABP Driver + Nina Platform (hardware): 
-* ABP Driver + Nina Platform (software): 
-* Siril + Stellarium Platform: 
-  
+* Location: US
+* Optics: Canon R, 16mm 2.8, 24-240mm f4-6.3
+* Mount: Benro Polaris
+* ABP Driver: Mac (M1), CCdciel (still working on it haha)
+
 ## Test coverage
 Pentax K1 - Nikon Z6 - android
 
