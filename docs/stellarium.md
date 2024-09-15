@@ -8,9 +8,9 @@ The APB Driver supports both the Alpaca ASCOM and SynScan protocols. This opens 
 
 ### Supported and Tested
 
-* Stellariium Mobile PLUS (IOS, Android) - paid, telescope control via SynScan protocol.
-* Stellarium Desktop (Win) - free, telescope control via ASCOM Alpaca
-* Stellarium Desktop (MacOS, Linux) - free, telescope control via a binary protocol
+* [Stellariium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) (IOS, Android) - paid, telescope control via SynScan protocol.
+* [Stellarium Desktop](https://stellarium.org/) (Win) - free, telescope control via ASCOM Alpaca
+* [Stellarium Desktop](https://stellarium.org/) (MacOS, Linux) - free, telescope control via a binary protocol
 * Nina (Win) - free, telescope control via Alpaca
 * CCDciel (MacOS) - free, telescope control via Alpaca
 
