@@ -2,14 +2,14 @@
 
 # Using Stellarium with Benro Polaris
 ## Telescope Control Compatibility
-The APB Driver supports both the Alpaca ASCOM and SynScan protocols. This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
+The Alpaca Benro Polaris Driver supports both the Alpaca ASCOM and SynScan protocols. This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
 
 ![imaging](images/abp-compatibility.png)
 
 ### Supported and Tested
 
 * [Stellariium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) (IOS, Android) - paid, telescope control via SynScan protocol.
-* [Stellarium Desktop](https://stellarium.org/) (Win) - free, telescope control via ASCOM Alpaca
+* [Stellarium Desktop](https://stellarium.org/) (Win) - free, telescope control via Alpaca ASCOM
 * [Stellarium Desktop](https://stellarium.org/) (MacOS, Linux) - free, telescope control via a binary protocol
 * [Nina](https://nighttime-imaging.eu/) (Win) - free, telescope control via Alpaca
 * [CCDciel](https://www.ap-i.net/ccdciel/en/start) (MacOS) - free, telescope control via Alpaca
