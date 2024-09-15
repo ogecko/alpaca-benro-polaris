@@ -11,20 +11,20 @@ The APB Driver supports both the Alpaca ASCOM and SynScan protocols. This opens 
 * [Stellariium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) (IOS, Android) - paid, telescope control via SynScan protocol.
 * [Stellarium Desktop](https://stellarium.org/) (Win) - free, telescope control via ASCOM Alpaca
 * [Stellarium Desktop](https://stellarium.org/) (MacOS, Linux) - free, telescope control via a binary protocol
-* Nina (Win) - free, telescope control via Alpaca
-* CCDciel (MacOS) - free, telescope control via Alpaca
+* [Nina](https://nighttime-imaging.eu/) (Win) - free, telescope control via Alpaca
+* [CCDciel](https://www.ap-i.net/ccdciel/en/start) (MacOS) - free, telescope control via Alpaca
 
 ### Potentially Supported (untested)
 
-* Sky Safari 7 Plus and Pro - paid, telescope control via Alpaca 
+* [Sky Safari 7 Plus and Pro](https://skysafariastronomy.com/) - paid, telescope control via Alpaca 
 
 ### Not supported
 
-* Stellariium Web - free, no telescope control
+* [Stellariium Web](https://stellarium-web.org/) - free, no telescope control
 * Stellarium Mobile (IOS, Android) - free, no telescope control
 * Sky Safari 7 Basic - free, no telescope control
-* Skyportal - Celestron’s free version of Skysafari
-* SynScan App and SynScan Pro App - Not currently supported
+* [Skyportal](https://www.celestron.com/pages/skyportal-mobile-app) - Celestron’s free version of Skysafari
+* [SynScan App and SynScan Pro App](https://skywatcher.com/download/software/) - Not currently supported
 
 ## 1. Using Stellarium Mobile PLUS
 Stellarium Mobile PLUS is ideal for use on a tablet or mobile phone, either Android or IOS. It includes more features than the free Stellarium Web and the free Stellarium Mobile offerings.
