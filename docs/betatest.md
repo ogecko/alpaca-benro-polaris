@@ -20,7 +20,7 @@
 * Ladislav (Ladi S) (PCCGG) - I am happy to help with Beta testing on Mac OS.
 * saltyminty (Mingyang W) (PCCGG) -  I was wondering if I could join the alpaca beta testing? 
 * hqureshi79 (Humayun Q) (Kickstarter)- would love to join beta testing.
-* Chris-F2024 - 
+* Chris-F2024 - (via VV) - Win Laptop, Nina
    
 ## Potential Beta Testers
 * Charles Thomas (PCCGG) - Glad to be a beta tester. (Messenger DM 1/9)
