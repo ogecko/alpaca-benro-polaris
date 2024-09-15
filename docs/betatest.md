@@ -1,5 +1,40 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
+# Beta Testing
+## Beta Testing Guidelines
+* Document the test environment, focus areas annd results in [docs/betatest.md](./betatest.md).
+* Try to perform real world use case tests as well as load and performance tests.
+* Keep a record of what tests you perform and the results
+* Report any issues noticed as issues in Github
+* Try to reproduce and document steps to reproduce, isolate what is causing the issue, diagnose yourself if you can.
+* Test the documentation where possible, if its missing help author or improve them.
+* Confirm you will send a final summary of Beta testing feedback to me by 17 Sep, so we have time to address any issues.
+* Confirm you will not share any pre-release code or docs with others.
+
+## Confirmed Beta Testers
+* David Morrison (PCCGG) - Dark site testing of mini-PC, Canon R5, Stellarium, ConformU, Nina
+* Vladimir Vyskocil (PCCGG) - for the MacOS testing and support for example, and Raspberry Pi maybe.  ZWO ASI 585 MC 
+* Spiderx01 (William S) (PCCG) - SurfacePC, Mini-PC
+* 5x5Stuido (John H) (PCCGG) - Happy to beta test,, Pentax K1 - Nikon Z6 - android (Confirmed added to Github)
+* bakermanz (RBA) (PCCGG) - So if you need a Beta tester for Mac, please feel free to give me a shout. Mac (using Codeweaver's Crossover) 
+* Ladislav (Ladi S) (PCCGG) - I am happy to help with Beta testing on Mac OS.
+* saltyminty (Mingyang W) (PCCGG) -  I was wondering if I could join the alpaca beta testing? 
+* hqureshi79 (Humayun Q) (Kickstarter)- would love to join beta testing.
+* Chris-F2024 - 
+   
+## Potential Beta Testers
+* Charles Thomas (PCCGG) - Glad to be a beta tester. (Messenger DM 1/9)
+* Vasilis Triantafyllou (PCCGG) - Count me in! Could also help with beta testing (Messenger DM 2/9)
+* Craig Bobchin (PCCGG) - I am willing to help beta test. I have a Pentax K-1 as my main camera.
+* Steve Everitt (PCCGG) - I also shoot with Pentax cameras and am happy to assist with any beta testing. I live in Lanzarote so get a lot more opportunity than most.
+* Richard Healey (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. (Messenger DM 2/9)
+* @PdTCH (Youtube)  - will sing up for the kickstarter and let u know for betatesting
+  
+## Potential Followup
+* Ian Morgan - Pentax
+* Pratik Patel - SW Development (Messenger DM 1/9)
+* Florian Fortin - Nina user, Travel (Messenger DM 1/9)
+
 # Beta Test Results Summary
 
 # jdm5001 (DM)
@@ -20,6 +55,9 @@
 ## Test Results
 TBD
 
+
+
+
 # Vladimir Vyskocil
 ## Test Environment
 * Location: France
@@ -39,6 +77,9 @@ Tried with success (in the living room) : Nina with a Canon R6 mk II connected u
 ## Test Results
 TBD
 
+
+
+
 # Spiderx01 (WS)
 ## Test Environment
 * Location: US
@@ -55,6 +96,9 @@ Pentax K1 - Nikon Z6 - android
 ## Test Results
 TBD
 
+
+
+
 # 5x5Stuido (JH)
 ## Test Environment
 * Location: 
@@ -69,6 +113,8 @@ Pentax K1 - Nikon Z6 - android
 
 ## Test Results
 TBD
+
+
 
 # bakermanz (RBA)
 ## Test Environment
@@ -91,6 +137,9 @@ Intending to use MacOS version of ABP on Apple M1 SiliconMacBook Pro and SynScan
 ## Test Results
 TBD
 
+
+
+
 # Ladislav (LS)
 ## Test Environment
 * Location: 
@@ -105,3 +154,82 @@ Pentax K1 - Nikon Z6 - android
 
 ## Test Results
 TBD
+
+
+
+
+
+# Saltyminty (MW)
+## Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
+
+
+
+
+
+
+# Chris-F2024
+## Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
+
+
+
+
+
+
+# hqureshi79 (HQ)
+## Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
+
+
+---------------------
+
+# 
+## Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
+
+
