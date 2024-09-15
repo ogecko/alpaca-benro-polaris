@@ -216,7 +216,7 @@ The Driver remembers an RA/Dec offset to add to all coordinates sent to Polaris.
 This should not be confused with polar alignment, which is aligning your telescope's understanding of where the celestial polar axis is oriented relative to the Benro Polaris. Polar alignment is vital for sidereal tracking and minimizing the movement of stars during longer exposures.
 
 ### Combing all three Offsets
-The following screen capture shows the log file of a successful GOTO command from Stellarium. The aiming ajustments are appled at (1) The SyncOffset RA/Dec, (2) The AimOffset Alt/Az, and (3) The AimOffset for Time offset and (4) Refining the AimOffset AltAz. 
+The following screen capture shows the log file of a successful GOTO command from Stellarium. The aiming ajustments are appled at (1) The SyncOffset RA/Dec, (2) The AimOffset for Time offset, (3) The AimOffset Alt/Az, and (4) Refining the AimOffset AltAz. 
 
 The process is as follows:
 

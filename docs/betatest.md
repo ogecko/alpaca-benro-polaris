@@ -11,7 +11,7 @@
 * Confirm you will send a final summary of Beta testing feedback to me by 17 Sep, so we have time to address any issues.
 * Confirm you will not share any pre-release code or docs with others.
 
-## Confirmed Beta Testers
+## Confirmed Beta Testers, Registered on GitHub
 * David Morrison (PCCGG) - Dark site testing of mini-PC, Canon R5, Stellarium, ConformU, Nina
 * Vladimir Vyskocil (PCCGG) - for the MacOS testing and support for example, and Raspberry Pi maybe.  ZWO ASI 585 MC 
 * Spiderx01 (William S) (PCCG) - SurfacePC, Mini-PC
@@ -28,7 +28,7 @@
 * Craig Bobchin (PCCGG) - I am willing to help beta test. I have a Pentax K-1 as my main camera.
 * Steve Everitt (PCCGG) - I also shoot with Pentax cameras and am happy to assist with any beta testing. I live in Lanzarote so get a lot more opportunity than most.
 * Richard Healey (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. (Messenger DM 2/9)
-* @PdTCH (Youtube)  - will sing up for the kickstarter and let u know for betatesting
+* @PdTCH (Youtube)  - will sing up for the kickstarter and let u know for betatesting (Messaged on YT 15/9)
   
 ## Potential Followup
 * Ian Morgan - Pentax
