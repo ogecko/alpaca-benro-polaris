@@ -19,5 +19,16 @@ Based on the enthusiasm from the Kickstart project and Facebook group, this proj
 Thank you for your time and support.
 
 Best Regards
-
 David Morrison
+
+## Followup correspondance (16-Sep-2024)
+To support@benro.com,
+This is a follow-up to my request for support on the Alpaca Benro Polaris Project. 
+
+The project has continued to gain support across the user community and has transitioned into a beta testing phase. It is feature-complete, and the remaining work focuses on QA, performance, and stability. The project will be released as open-source in less than two weeks. 
+
+Please let me know if you have a technical representative to review the work before its release. Also, let me know if you have any requirements or changes you would like to make to the project before it becomes public.
+
+Best Regards
+David Morrison
+
