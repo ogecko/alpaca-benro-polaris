@@ -22,13 +22,13 @@
 * hqureshi79 (Humayun Q) (Kickstarter)- would love to join beta testing.
 * Chris-F2024 - (via VV) - Win Laptop, Nina
 * Cosimo (CS) (PCCGG) -  I'd like to beta test alpaca. 
+* RjhNZ (RH) (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. 
    
 ## Potential Beta Testers
 * Charles Thomas (PCCGG) - Glad to be a beta tester. (Messenger DM 1/9)
 * Vasilis Triantafyllou (PCCGG) - Count me in! Could also help with beta testing (Messenger DM 2/9)
 * Craig Bobchin (PCCGG) - I am willing to help beta test. I have a Pentax K-1 as my main camera.
 * Steve Everitt (PCCGG) - I also shoot with Pentax cameras and am happy to assist with any beta testing. I live in Lanzarote so get a lot more opportunity than most.
-* Richard Healey (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. (Messenger DM 2/9)
 * @PdTCH (Youtube)  - will sing up for the kickstarter and let u know for betatesting (Messaged on YT 15/9)
   
 ## Potential Followup
