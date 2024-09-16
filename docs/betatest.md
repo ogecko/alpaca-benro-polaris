@@ -8,7 +8,7 @@
 * Report any issues noticed as issues in Github
 * Try to reproduce and document steps to reproduce, isolate what is causing the issue, diagnose yourself if you can.
 * Test the documentation where possible, if its missing help author or improve them.
-* Confirm you will send a final summary of Beta testing feedback to me by 17 Sep, so we have time to address any issues.
+* Confirm you will send a final summary of Beta testing feedback to me by 25 Sep, so we have time to address any issues.
 * Confirm you will not share any pre-release code or docs with others.
 
 ## Confirmed Beta Testers, Registered on GitHub
