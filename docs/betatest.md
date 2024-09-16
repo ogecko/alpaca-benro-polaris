@@ -21,6 +21,7 @@
 * saltyminty (Mingyang W) (PCCGG) -  I was wondering if I could join the alpaca beta testing? 
 * hqureshi79 (Humayun Q) (Kickstarter)- would love to join beta testing.
 * Chris-F2024 - (via VV) - Win Laptop, Nina
+* Cosimo (CS) (PCCGG) -  I'd like to beta test alpaca. 
    
 ## Potential Beta Testers
 * Charles Thomas (PCCGG) - Glad to be a beta tester. (Messenger DM 1/9)
@@ -103,7 +104,7 @@ TBD
 ## Test Environment
 * Location: 
 * Optics: 
-* Mount: 
+* Mount: Benro Polaris fried.
 * ABP Driver + Nina Platform (hardware): 
 * ABP Driver + Nina Platform (software): 
 * Siril + Stellarium Platform: 
