@@ -23,7 +23,8 @@
 * Chris-F2024 - (via VV) - Win Laptop, Nina
 * Cosimo (CS) (PCCGG) -  I'd like to beta test alpaca. 
 * RjhNZ (RH) (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. 
-   
+* Matt17463 (MM) -  I'd love to help with your Benro driver project. 
+  
 ## Potential Beta Testers
 * Charles Thomas (PCCGG) - Glad to be a beta tester. (Messenger DM 1/9)
 * Vasilis Triantafyllou (PCCGG) - Count me in! Could also help with beta testing (Messenger DM 2/9)
@@ -213,6 +214,25 @@ Pentax K1 - Nikon Z6 - android
 
 ## Test Results
 TBD
+
+
+
+
+# Matt17463 (MM)
+## Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
+
 
 
 ---------------------
