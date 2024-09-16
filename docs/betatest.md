@@ -70,7 +70,9 @@ TBD
 13th Gen Intel® Core™ i9-13980HX 2.2Ghz 24 cores, 32 Go RAM, NVidia RTX 4060 Laptop GPU
 * ABP Driver + Nina Platform (software): Windows 11 Family, Python 3.12.6, ASCOM Platform needed.
 * Siril + Stellarium Platform: 
-  
+* CCDciel : [INDIstarter](https://github.com/pchev/indistarter) for the INDI ZWO camera driver, as there are no Alcapa driver for that camera, [SkyChart](https://github.com/pchev/skychart) which is used in CCDciel for the goto and [ASTAP](http://www.hnsky.org/astap.htm) for the plate solving in CCDciel
+
+
 ## Test coverage
 MacOS testing and support, Raspberry Pi maybe. ZWO ASI 585 MC camera.
 Tried with success (in the living room) : Nina with a Canon R6 mk II connected using USB3 and Stellarium.
