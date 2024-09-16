@@ -59,4 +59,5 @@ alpaca_ip_address = '127.0.0.1'
 * Check for that you are close to focus before starting a Nina Focus run.
 
 ### Cannot plate solve with Nina and ASTAP?
-* Check to make sure you telescope focal length is set correctly in equipment options, including any reducer. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values.
+* Check you are in Focus
+* Check to make sure you telescope focal length is set correctly in equipment options, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values.
