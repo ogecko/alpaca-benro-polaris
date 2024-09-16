@@ -1,21 +1,25 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Recommended Hardware Platform
-## Using a Laptop with Stellarium
-You can install the Alpaca Benro Polaris Driver on any platform that supports Python and Wifi. A good place to start is simply installing it on your laptop or desktop that is in wifi range of your Benro Polaris.  You'll need to install the ASCOM Platform, Python, and Stellarium. This will allow you to use Stellarium to find Deep Sky objects, command the Benro Polaris to Skew to them, and watch its position update in real time.
+## Using a Laptop with Stellarium Desktop
+You can install the Alpaca Benro Polaris Driver on any platform that supports Python and Wifi. Installing it on your laptop or desktop in your Benro Polaris wifi range is an excellent place to start. You'll need to install the ASCOM Platform, Python, and Stellarium. This will allow you to use Stellarium to find Deep Sky objects, command the Benro Polaris to Skew to them, and watch its position update in real-time.
+
+![Hardware Architecture](images/abp-hardware1.png)
 
 ## Using a Raspberry Pi for the driver
-As another option you can install the Alpaca Benro Polaris Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
+You can install the Alpaca Benro Polaris Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
+
+![Hardware Architecture](images/abp-hardware2.png)
 
 ## Using Docker to host the driver
 You can create a Docker image with the Alpaca Benro Polaris Driver. See the [Docker Setup Guide](./docker.md) for more information.
 
 ## A Mini-PC to control all your astronomy equipment (Recommended)
-To leverage more of the capabilities from the Alpaca Benro Polaris Driver, I'd recommend installing it on a mini-PC you can mount or hang from your tripod. This way you can create your equivalent of a [ZWO ASIAIR plus](https://www.zwoastro.com/product/asiair-plus/) that can control all your astronomy equipment. Lets call it a `NinaAir` instead of an ASIAir!
+To leverage more of the capabilities of the Alpaca Benro Polaris Driver, I'd recommend installing it on a mini-PC you can mount or hang from your tripod. This way, you can create an equivalent of a  [ZWO ASIAIR plus](https://www.zwoastro.com/product/asiair-plus/) that can control all your astronomy equipment. Let's call it a `NinaAir` instead of an ASIAir!
 
-![Hardware Architecture](images/abp-hardware.png)
+![Hardware Architecture](images/abp-hardware3.png)
 
-The mini-PC should be small, fan-less, fast and power efficient. This way you can mount the mini-PC on your tripod, it wont cause any vibrations, it can store and process your images, and it can run for a whole night on a battery. The mini-PC I'd recommend is the [MeLE Mini PC Quieter 4C](https://www.amazon.com/MeLE-Mini-Quieter-4C-Astrophotography/dp/B0CP3YL6J7) (only around US$200 from Amazon on sale). See Cuiv's review of the [Quieter 4C Mini-PC](https://www.youtube.com/watch?app=desktop&v=j8lcDyw1toQ). 
+The mini-PC should be small, fan-less, fast, and power efficient. This way, you can mount the mini-PC on your tripod, it won't cause any vibrations, it can store and process your images, and it can run for a whole night on a battery. I'd recommend the [MeLE Mini PC Quieter 4C](https://www.amazon.com/MeLE-Mini-Quieter-4C-Astrophotography/dp/B0CP3YL6J7) (only around US$200 from Amazon on sale). See Cuiv's review of the [Quieter 4C Mini-PC](https://www.youtube.com/watch?app=desktop&v=j8lcDyw1toQ). 
 
 
 Unfortunately its built in Wifi doesnt support connecting with the Benro Polaris Wifi, so you'll also need something like [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) (only US$17 from Amazon). While the NinaAir will be setup to be able to run without internet connectivity, having the extra Wifi Adapter will allow you to connect to both the Benro Polaris and the Internet at once.
