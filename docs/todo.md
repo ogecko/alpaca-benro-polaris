@@ -34,6 +34,7 @@
 * Hand controller web app
 * Config web app
 * Videos for progress updates and usage
+* Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
 * Stronger Stellarium Synscan communications error handling

@@ -61,3 +61,4 @@ alpaca_ip_address = '127.0.0.1'
 ### Cannot plate solve with Nina and ASTAP?
 * Check you are in Focus
 * Check to make sure you telescope focal length is set correctly in equipment options, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values.
+* Check if you are using any filters. Using a narrow band filter on the camera, like the L-Ultimate Optolong HaOIII filter, can make plate solving more challenging for ASTAP.
