@@ -201,12 +201,12 @@ TBD
 
 # hqureshi79 (HQ)
 ## Test Environment
-* Location: 
-* Optics: 
-* Mount: 
-* ABP Driver + Nina Platform (hardware): 
-* ABP Driver + Nina Platform (software): 
-* Siril + Stellarium Platform: 
+Location: ACT, Australia
+Optics: Canon R10, (R5 Mark II on the way), Takahashi FS-60CB
+Mount: Benro Polaris Astro
+ABP Driver + Nina Platform (hardware):
+ABP Driver + Nina Platform (software):
+Siril + Stellarium Platform:
   
 ## Test coverage
 Pentax K1 - Nikon Z6 - android
