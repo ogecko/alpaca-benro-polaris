@@ -1,10 +1,16 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Main Todo List of Pending Items to Complete
+
+## Requests for Benro to assist (in order of priority)
+* Protocol required to keep wifi alive
+* Protocol required on BT to establish wifi
+* Changes to allow minor MoveAxis while sidereal tracking enabled, without backlash - for guiding
+* Changes to allow integration of 3 point alignment
+* Incorporation of Driver into BP firmware
+
 ## Development Pending
 * Nina 3 Point Alignment integration with BP
-* Stronger Stellarium Synscan communications error handling
-* Cleanup and recreate background tasks on comms re-estab.
 * AbortSlew
   
 * ## QA Pending
@@ -30,6 +36,8 @@
 * Videos for progress updates and usage
 
 ## Completed during campaign
+* Stronger Stellarium Synscan communications error handling
+* Properly handle exceptions in background tasks on comms re-estab.
 * Nina Overview Video
 * Nina Autofocus Video
 * Stellarium Telescope Control Video
