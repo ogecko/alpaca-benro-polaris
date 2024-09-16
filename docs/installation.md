@@ -43,7 +43,10 @@ Before you do, though, you'll need to do the following:
 8. Turn on the mini-pc and connect it to your camera via USB.
 9. Using the USB Wifi adapter, connect your mini-PC to the polaris-###### hotspot.
 10. Choose `Connect Automatically` and click `Connect`.
-11. Wait for connection. It should show `No internet, open` 
+11. Wait for connection. It should show: `No internet, open` 
+    
+<img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
+
 
 
 One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
