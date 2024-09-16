@@ -32,3 +32,17 @@ Please let me know if you have a technical representative to review the work bef
 Best Regards
 David Morrison
 
+## Auto Reply (16-Sep-2024)
+网站支持
+10:47 PM (2 minutes ago)
+
+Dear Sir/Madam,
+
+Thanks for contacting us! 
+
+Our team will leave the office for Chinese Mid-Autumn Festival from 15th September to 17th September, and we will get back on 18th September. No worries, we will answer the email as soon as we come back. Thanks for your understanding! 
+
+Wish you have a nice day!
+
+Best regards,
+The Benro Team
