@@ -266,6 +266,11 @@ class Polaris:
                         logger.error(self._task_errorstr)
                         await asyncio.sleep(5)
                         continue
+                    if e.winerror == 10054:
+                        self._task_errorstr = f'==ERROR== Network connection to Polaris reset. Use Polaris App to reconnect.'
+                        logger.error(self._task_errorstr)
+                        await asyncio.sleep(5)
+                        continue
 
                 elif e.errno == 51:
                         self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App. Check Wifi connection.'
@@ -353,7 +358,7 @@ class Polaris:
     async def _every_5s_send_keepalive(self):
         while True:
             try: 
-                msg = "1&518&3&-1#"
+                msg = "1&518&3&0#"
                 if Config.log_polaris_protocol:
                     self.logger.info(f'->> Polaris: send_keepalive: {msg}')
                 await self.send_msg(msg)
