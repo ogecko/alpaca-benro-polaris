@@ -26,6 +26,10 @@ The Alpaca Benro Polaris Driver supports both the Alpaca ASCOM and SynScan proto
 * [Skyportal](https://www.celestron.com/pages/skyportal-mobile-app) - Celestron’s free version of Skysafari
 * [SynScan App and SynScan Pro App](https://skywatcher.com/download/software/) - Not currently supported
 
+## Stellarium - Video Demonstration
+You can view a demonstration of parts of this documentation in the following YouTube Video.
+[![Telescope Control and Aiming](https://img.youtube.com/vi/Cra0FBuDxlY/0.jpg)](https://www.youtube.com/watch?v=Cra0FBuDxlY)
+
 ## 1. Using Stellarium Mobile PLUS
 Stellarium Mobile PLUS is ideal for use on a tablet or mobile phone, either Android or IOS. It includes more features than the free Stellarium Web and the free Stellarium Mobile offerings.
 

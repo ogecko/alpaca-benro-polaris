@@ -4,6 +4,7 @@
 ## Development Pending
 * Nina 3 Point Alignment integration with BP
 * Stronger Stellarium Synscan communications error handling
+* Cleanup and recreate background tasks on comms re-estab.
 * AbortSlew
   
 * ## QA Pending
@@ -31,7 +32,7 @@
 ## Completed during campaign
 * Nina Overview Video
 * Nina Autofocus Video
-* Stellarium Video
+* Stellarium Telescope Control Video
 * Apple ecosystem testing
 * Alpha Testing
 * Move Fast and Slow commands

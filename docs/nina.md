@@ -1,6 +1,11 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Using Nina with Benro Polaris
+
+## Capturing Images -  Video Demonstration
+You can view a demonstration of parts of this documentation in the following YouTube Video.
+[![Capturing Images](https://img.youtube.com/vi/HCJNchWL2Yg/0.jpg)](https://www.youtube.com/watch?v=HCJNchWL2Yg)
+
 ## 1. Capturing Images
 The Benro Polaris App does a great job controlling your camera to take sequences of images for panoramas, time-lapse, and astrophotography. It exposes many camera features and makes them easy to setup and use. Unfortunately, it doesn't stretch or process images, show RAW files, or make it easy to customize file names or copy them off for stacking.
 
@@ -50,6 +55,10 @@ Other sites and tools that I've found helpful include:
 * [Light Polution Map](https://www.lightpollutionmap.info) - Planning where to shoot from.
 * [White Screen Online](https://www.whitescreen.online/) - For taking FLAT images
 * [PhotoPills Mobile App](https://www.photopills.com/) - Planning any photography shoot.
+
+## Autofocus - Video Demonstration
+You can view a demonstration of parts of this documentation in the following YouTube Video.
+[![Autofocus](https://img.youtube.com/vi/di5nyA_pTJk/0.jpg)](https://www.youtube.com/watch?v=di5nyA_pTJk)
 
 ## 3. Star Detection and Autofocus
 Mastering astrophotography requires ensuring that your camera lens is optimally focused. While modern cameras have fast, accurate, and intelligent focusing systems, they may not produce the best results for astrophotography. To address this, many astrophotography applications, like Nina, have their own autofocusing modules. These modules drive a telescope's focuser or your camera's lens-focusing system to capture sharp night sky images.
