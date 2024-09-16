@@ -227,7 +227,10 @@ class Polaris:
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
         # background_keepalive = asyncio.create_task(self._every_5s_send_keepalive())
+        # background_keepalive.add_done_callback(self.task_done)
         background_fastmove = asyncio.create_task(self.every_50ms_send_message())
+        background_fastmove.add_done_callback(self.task_done)
+
         while True:
             try:
                 self._connected = False             # set to true when "Polaris communication init... done"
@@ -286,7 +289,10 @@ class Polaris:
                 continue
 
     def task_done(self, task):
-        self._task_exception = task.exception()
+        # task.exception raises an exception if the task was cancelled, so only grab it if not cancelled.
+        if not task.cancelled():
+            # task.exception returns None if no exception
+            self._task_exception = task.exception()
 
     def radec2altaz(self, ra, dec, inthefuture=0):
         target = ephem.FixedBody()
@@ -346,19 +352,27 @@ class Polaris:
 
     async def _every_5s_send_keepalive(self):
         while True:
-            msg = "h#"
-            if Config.log_polaris_protocol:
-                self.logger.info(f'->> Polaris: send_keepalive: {msg}')
-            await self.send_msg(msg)
-            await asyncio.sleep(5)
+            try: 
+                msg = "1&518&3&-1#"
+                if Config.log_polaris_protocol:
+                    self.logger.info(f'->> Polaris: send_keepalive: {msg}')
+                await self.send_msg(msg)
+                await asyncio.sleep(5)
+            except Exception as e:
+                self._task_exception = e
+                break
 
     async def every_50ms_send_message(self):
         while True:
-            self.every_50ms_counter_check()
-            msg = self._every_50ms_msg_to_send
-            if (msg):
-                await self.send_msg(msg)
-            await asyncio.sleep(0.05)
+            try: 
+                self.every_50ms_counter_check()
+                msg = self._every_50ms_msg_to_send
+                if (msg):
+                    await self.send_msg(msg)
+                await asyncio.sleep(0.05)
+            except Exception as e:
+                self._task_exception = e
+                break
 
     def every_50ms_counter_check(self):
         self._every_50ms_counter += 1

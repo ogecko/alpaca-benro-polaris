@@ -236,7 +236,8 @@ class NotConnectedException:
         self.number = 0x407
         self.message = message
         cname = self.__class__.__name__
-        logger.error(f'{cname}: {message}')
+# dont log this as its too frequent if Connection is lost and apps keep polling Aplaca
+#        logger.error(f'{cname}: {message}')
 
     @property
     def Number(self) -> int:
