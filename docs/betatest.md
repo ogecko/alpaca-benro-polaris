@@ -14,16 +14,17 @@
 ## Confirmed Beta Testers, Registered on GitHub
 * David Morrison (PCCGG) - Dark site testing of mini-PC, Canon R5, Stellarium, ConformU, Nina
 * Vladimir Vyskocil (PCCGG) - for the MacOS testing and support for example, and Raspberry Pi maybe.  ZWO ASI 585 MC 
-* Spiderx01 (William S) (PCCG) - SurfacePC, Mini-PC
-* 5x5Stuido (John H) (PCCGG) - Happy to beta test,, Pentax K1 - Nikon Z6 - android (Confirmed added to Github)
+* Spiderx01 (William Siers) (PCCG) - SurfacePC, Mini-PC
+* 5x5Stuido (John Harrison) (PCCGG) - Happy to beta test,, Pentax K1 - Nikon Z6 - android (Confirmed added to Github)
 * bakermanz (RBA) (PCCGG) - So if you need a Beta tester for Mac, please feel free to give me a shout. Mac (using Codeweaver's Crossover) 
-* Ladislav (Ladi S) (PCCGG) - I am happy to help with Beta testing on Mac OS.
-* saltyminty (Mingyang W) (PCCGG) -  I was wondering if I could join the alpaca beta testing? 
-* hqureshi79 (Humayun Q) (Kickstarter)- would love to join beta testing.
+* Ladislav (Ladi Slav) (PCCGG) - I am happy to help with Beta testing on Mac OS.
+* saltyminty (Mingyang Wang) (PCCGG) -  I was wondering if I could join the alpaca beta testing? 
+* hqureshi79 (Humayun Qureshi) (Kickstarter)- would love to join beta testing.
 * Chris-F2024 - (via VV) - Win Laptop, Nina
-* Cosimo (CS) (PCCGG) -  I'd like to beta test alpaca. 
-* RjhNZ (RH) (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. 
-* Matt17463 (MM) -  I'd love to help with your Benro driver project. 
+* Cosimo (Cosimo Streppone) (PCCGG) -  I'd like to beta test alpaca. 
+* RjhNZ (Richard Healey) (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. 
+* Matt17463 (Matthew McDaniel) -  I'd love to help with your Benro driver project. 
+* Cynical Sarge (Andrew Sargent) - I would like to participate in the Beta testing of the Polaris driver.
   
 ## Potential Beta Testers
 * Charles Thomas (PCCGG) - Glad to be a beta tester. (Messenger DM 1/9)
@@ -233,6 +234,21 @@ Pentax K1 - Nikon Z6 - android
 ## Test Results
 TBD
 
+
+# Cynical Sarge (Andrew Sargent) (PCCGG)
+## Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
 
 
 ---------------------
