@@ -235,21 +235,20 @@ Pentax K1 - Nikon Z6 - android
 TBD
 
 
-# Cynical Sarge (Andrew Sargent) (PCCGG)
+
+
+
+# CynicalSarge (Andrew Sargent) (PCCGG)
 ## Test Environment
-* Location: 
-* Optics: 
-* Mount: 
-* ABP Driver + Nina Platform (hardware): 
-* ABP Driver + Nina Platform (software): 
-* Siril + Stellarium Platform: 
-  
-## Test coverage
-Pentax K1 - Nikon Z6 - android
+* Location: Melbourne, Australia
+* Optics: Canon 6D MkII, Canon EF 50mm f1.8, Canon 800D, Sigma DC 17-50mm f2.8, Tamron 16-300mm f3.5-6.3
+* Mount: Benro Polaris
+* ABP Driver + Nina Platform (hardware): Microsoft Surface Laptop 2
+* ABP Driver + Nina Platform (software): Windows 11
+* Siril + Stellarium Platform: Microsoft Surface Laptop 2, Windows 11
 
 ## Test Results
 TBD
-
 
 ---------------------
 
