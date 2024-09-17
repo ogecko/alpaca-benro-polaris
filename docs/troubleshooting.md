@@ -7,6 +7,8 @@ There is a known issue with the recommended Benro Polaris device startup procedu
 2. Send to Park - use a Long Press to send the Benro Polaris to the parked position and ensure Power LED is off.
 3. Short Press - Every second or so (but no faster), until Power LED is illuminated.
 4. Long Press - As soon as its illuminated, do a long press, releasing after "beep, beep beep".
+
+Another word of caution. Do not travel with the Astro USB cable or Camera USB Cable plugged into the Benro Polaris. There is a chance that movement within your bag may damage the cable. This can even lead to damage of the Benro Polaris and costly repairs.
    
 ### Cannot see "`communications init... done`" in the log.
 * Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
