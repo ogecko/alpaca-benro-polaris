@@ -97,7 +97,7 @@ alpaca_ip_address = '127.0.0.1'
 
 ### N2 - Cannot obtain a good autofocus run with Nina?
 * Check your Lens Stabilisation is off. This interfers with sidereal tracking.
-* Check you Lens AutoFocus is off. This intereres with image capture.
+* Check you Lens AutoFocus is off on the Lens and Camera Body. If left on this may cause the camera focusing system to hunt interering with the image capture process.
 * Check for Lens Cap not removed. Not kidding.
 * Check for clouds.
 * Check for haze or smoke.
