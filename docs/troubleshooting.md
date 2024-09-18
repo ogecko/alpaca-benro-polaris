@@ -67,7 +67,7 @@ The PuTTY application should show a window with the raw communications from the 
 ![PuTTY Setup](images/abp-putty2.png)
 
 ### C5 - No Telnet/PuTTY communications with Polaris Wifi
-If you cannot see the raw communications scrolling in PuTTY then there is a problem connunicating with your device independant of Alpaca Benro Polaris.
+If you cannot see the raw communications scrolling in PuTTY from Troubleshooting Step C4, then there is a problem connunicating with your device independant of Alpaca Benro Polaris.
 * Check you are not running AntiVirus Software that may block open Wifi Connections
 * Check you do not have an IT or Windows policy blocking open Wifi Connections.
 * Check for IP connectivity to the Polaris by using a Command Window to ping the Benro Polaris.
