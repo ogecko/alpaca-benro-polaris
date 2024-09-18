@@ -73,6 +73,7 @@ class Config:
     site_latitude: float = get_toml('server', 'site_latitude')
     site_longitude: float = get_toml('server', 'site_longitude')
     site_elevation: float = get_toml('server', 'site_elevation')
+    site_pressure: float = get_toml('server', 'site_pressure')
     focal_length: float = get_toml('server', 'focal_length')
     focal_ratio: float = get_toml('server', 'focal_ratio')
     verbose_driver_exceptions: bool = get_toml('server', 'verbose_driver_exceptions')

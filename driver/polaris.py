@@ -129,7 +129,7 @@ class Polaris:
         self._sitelongitude: float = float(Config.site_longitude)   # The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
         self._siteelevation: float = float(Config.site_elevation)   # The elevation above mean sea level (meters) of the site at which the telescope is located
         self._observer = ephem.Observer()                           # Observer object for the telescopes site
-        self._observer.pressure = 0                                 # no refraction correction.
+        self._observer.pressure = Config.site_pressure              # site pressure used for refraction calculations close to horizon
         self._observer.epoch = ephem.J2000                          # a moment in time used as a reference point for RA/Dec
         self._observer.lat = deg2rad(self._sitelatitude)            # dms version on lat
         self._observer.long = deg2rad(self._sitelongitude)          # dms version of long
@@ -205,7 +205,7 @@ class Polaris:
         self._cansync: bool = True                  # True if this telescope is capable of programmed synching to equatorial coordinates.
         self._cansyncaltaz: bool = False            # True if this telescope is capable of programmed synching to local horizontal coordinates
         self._canunpark: bool = True                # True if this telescope is capable of programmed unparking (Unpark() method).
-        self._doesrefraction: bool = False          # True if the telescope or driver applies atmospheric refraction to coordinates.
+        self._doesrefraction: bool = True           # True if the telescope or driver applies atmospheric refraction to coordinates.
         #
         # Telescope method constants
         #
@@ -1163,6 +1163,7 @@ class Polaris:
     def doesrefraction (self, doesrefraction: float):
         self._lock.acquire()
         self._doesrefraction = doesrefraction
+        self._observer.pressure = Config.site_pressure if doesrefraction else 0
         self._lock.release()
     #
     # Telescope method constants

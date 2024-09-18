@@ -13,6 +13,7 @@ location = 'Sydney Observatory, Australia'  # Anything you want here. The site_l
 site_latitude = -33.8598874                 # The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
 site_longitude = 151.2021771                # The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
 site_elevation = 39                         # The elevation above mean sea level (meters) of the site at which the telescope is located.
+site_pressure = 1010                        # atmospheric pressure in milli Bars. Used to calculate atmospheric refraction. Default is standard atmosphere model used in aviation. A Value of 0 turns it off.
 focal_length = 800                          # The telescope's focal length, in miliimeters.
 focal_ratio = 11                            # The telescope's focal ratio ie focal_length / aperture_diameter.
 verbose_driver_exceptions = true            # Provide more detailed description of any Exceptions encountered in the driver.

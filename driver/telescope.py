@@ -510,12 +510,9 @@ class doesrefraction:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         doesrefractionstr = await get_request_field('DoesRefraction', req)      # Raises 400 bad request if missing
-        polaris.doesrefraction = to_bool(doesrefractionstr)                       # Same here
 
         try:
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
+            polaris.doesrefraction = to_bool(doesrefractionstr)                       # Same here
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
