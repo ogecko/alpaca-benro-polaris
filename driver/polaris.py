@@ -131,8 +131,8 @@ class Polaris:
         self._observer = ephem.Observer()                           # Observer object for the telescopes site
         self._observer.pressure = 0                                 # no refraction correction.
         self._observer.epoch = ephem.J2000                          # a moment in time used as a reference point for RA/Dec
-        self._observer.lat = dec2dms(self._sitelatitude)            # dms version on lat
-        self._observer.long = dec2dms(self._sitelongitude)          # dms version of long
+        self._observer.lat = deg2rad(self._sitelatitude)            # dms version on lat
+        self._observer.long = deg2rad(self._sitelongitude)          # dms version of long
         self._observer.elevation = self._siteelevation              # site elevation
         #
         # Telescope device completion flags
@@ -980,7 +980,7 @@ class Polaris:
     def sitelatitude (self, sitelatitude: float):
         self._lock.acquire()
         self._sitelatitude = sitelatitude
-        self._observer.lat = dec2dms(sitelatitude) 
+        self._observer.lat = deg2rad(sitelatitude) 
         self._lock.release()
 
     @property
@@ -993,7 +993,7 @@ class Polaris:
     def sitelongitude (self, sitelongitude: float):
         self._lock.acquire()
         self._sitelongitude = sitelongitude
-        self._observer.long = dec2dms(sitelongitude) 
+        self._observer.long = deg2rad(sitelongitude) 
         self._lock.release()
     
     @property
