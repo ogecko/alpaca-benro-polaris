@@ -11,6 +11,9 @@ I've succeeded with 800mm and exposures of up to 15 seconds. I created an hour-l
 Vladimir has taken images at 1750mm equivalent focal length, using a ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender. Exposures of 15s up to around 100 images stacked. Great results.
 
 # Alpaca and Nina Capability Questions
+### There is only one USB on the Camera how can I connect Nina and BP App?
+The Camera USB must be connected to either the BP App or an astrophotography imaging App like Nina, whichever you choose. Once I have set up the mount, Nina is quite capable of performing all my imaging functions and more, including autofocus, plate solving, framing, and image sequencing. However, nothing stops you from disconnecting the Camera from Nina and returning to the BP App.
+
 ### Can Nina generate a file with the coordinates associated with each image?
 Nina includes a plug-in called Session Manager that can record this and so much more into a set of csv files
 
