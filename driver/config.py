@@ -38,6 +38,7 @@
 #               var here. MIT license and module header. No mcast.
 #
 import sys
+import os
 import toml
 import logging
 
@@ -48,7 +49,12 @@ import logging
 # here, it will also choke Sphinx. This cost me a day.
 #
 _dict = {}
-_dict = toml.load(f'{sys.path[0]}/config.toml')    # Errors here are fatal.
+
+if os.environ.get("RESOURCEPATH", "") == "":
+    _dict = toml.load(f'{sys.path[0]}/config.toml')    # Errors here are fatal.
+else:
+    _dict = toml.load(f'{os.environ["RESOURCEPATH"]}/config.toml') # When running in an app generated with p2app or py2exe
+    
 def get_toml(sect: str, item: str):
     if not _dict is {}:
         return _dict[sect][item]
