@@ -49,8 +49,9 @@ On Win11:
 * Double click on the file you downloaded to install PuTTY.
 * Perform the normal BP App setup (a) Search for Device (b) Connect to polaris_xxxxxx (c) Select Atro Mode (d) Align Compass (e) Align Star (f) Confirm.
 * Connect the Device running ABP to the Polaris Wifi Hotspot.
-![PuTTY Setup](images/abp-putty1.png)
+<img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
 * Run the PuTTY app.
+![PuTTY Setup](images/abp-putty1.png)
 * Enter `192.168.0.1` into the HostName (or IP address) field.
 * Enter `9090` into the Port field.
 * Select Connection Type `Other` and drop down `Telnet`.
