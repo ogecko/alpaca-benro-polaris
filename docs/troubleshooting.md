@@ -11,7 +11,7 @@ There is a known issue with the recommended Benro Polaris device startup procedu
 Another word of caution. Do not travel with the Astro USB cable or Camera USB Cable plugged into the Benro Polaris. There is a chance that movement within your bag may damage the cable. This can even lead to damage of the Benro Polaris and costly repairs.
 
 ### B2 - Cannot connect BP App to the Benro Polaris Device
-Sometimes the BP App cannot search and connect to the BP over Bluetooth or Wifi. The Searching for device might list your device in white but it never turns green or connects and shows a green check-mark.
+Sometimes the BP App cannot search and connect to the BP over Bluetooth or Wifi. The Searching for device might list your device in white but it never turns green or connects or shows a green check-mark.
 * Fully exit close the BP App on your phone.
 * Reset all Bluetooth and Wifi communications on your phone. Easiest way to do this is to toggle `Airplane/Flight Mode`  on and off. 
 * Restart the BP App and it should find and connect to your BP.
