@@ -60,9 +60,10 @@ On Win11:
 * Enter `9090` into the Port field.
 * Select Connection Type `Other` and drop down `Telnet`.
 * Click `Open`
-* Select `Yes` when asked by User Account Control, Do you want to allow this app to make changes to your device? 
+* Select `Yes` when asked by User Account Control, Do you want to allow this app to make changes to your device? This opens the firewall to allow PuTTY to communicate with BP.
 
 The PuTTY application should show a window with the raw communications from the Benro Polaris. If your connection is working it should like the following.
+
 ![PuTTY Setup](images/abp-putty2.png)
 
 ### C5 - No Telnet/PuTTY communications with Polaris Wifi
