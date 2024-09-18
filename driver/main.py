@@ -44,6 +44,7 @@ from discovery import DiscoveryResponder
 import telescope
 import stellarium
 import app
+import ui
 import argparse
 
 # ===========
@@ -90,6 +91,7 @@ async def main():
                                               Config.stellarium_telescope_port)
     
     tasks = [
+            ui.ui_task(),
             app.alpaca_httpd(logger),
             telescope.polaris.client(logger)
     ]
