@@ -39,10 +39,11 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLay
 
 app_close_event = None
 
-class MainWindow(QWidget):    
-    def __init__(self, logger):
+class MainWindow(QWidget):
+    def __init__(self, logger, app_close_event):
         super().__init__()
         self.logger = logger
+        self.app_close_event = app_close_event
         self.setLayout(QVBoxLayout())
         self.lbl_status = QLabel("ABP is running...", self)
         self.layout().addWidget(self.lbl_status)
@@ -62,24 +63,25 @@ class MainWindow(QWidget):
         if reply == QMessageBox.Yes:
             self.logger.info("==CLOSING== Quit button pressed")
             # doesn't work properly because other asyncio tasks are not terminated
-            #app_close_event.set()
+            #self.app_close_event.set()
         else:
             pass
 
-
-async def ui_task(logger):
-    global app_close_event
-    
-    app = QApplication(sys.argv)
-    event_loop = QEventLoop(app)
-    asyncio.set_event_loop(event_loop)
-    app_close_event = asyncio.Event()
-    app.aboutToQuit.connect(app_close_event.set)
-
-    main_window = MainWindow(logger)
-    main_window.show()
+class UI:
+    def __init__(self, logger):
+        super().__init__()
+        self.logger = logger
+        self.app = QApplication(sys.argv)
+        self.event_loop = QEventLoop(self.app)
+        asyncio.set_event_loop(self.event_loop)
+        self.app_close_event = asyncio.Event()
+        self.app.aboutToQuit.connect(self.app_close_event.set)
         
-    while app_close_event.is_set() == False:
-        await asyncio.sleep(0.05)
-        app.processEvents()
+    async def run_event_loop(self):
+        self.main_window = MainWindow(self.logger, self.app_close_event)
+        self.main_window.show()
+        while self.app_close_event.is_set() == False:
+            await asyncio.sleep(0.05)
+            self.app.processEvents()
+
 

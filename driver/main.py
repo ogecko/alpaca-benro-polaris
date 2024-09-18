@@ -44,22 +44,13 @@ from discovery import DiscoveryResponder
 import telescope
 import stellarium
 import app
-import ui
+from ui import UI
 import argparse
 
 # ===========
 # APP STARTUP
 # ===========
-async def main():
-
-    logger = log.init_logging()
-    # Share this logger throughout
-    log.logger = logger
-    exceptions.logger = logger
-    discovery.logger = logger
-    telescope.logger = logger
-    shr.logger = logger
-
+async def main(logger, ui):
 
     # Output performance data log headers if enabled
     if Config.log_performance_data == 1:        # Aim data
@@ -99,7 +90,7 @@ async def main():
                                               Config.stellarium_telescope_port)
     
     tasks = [
-            ui.ui_task(logger),
+            ui.run_event_loop(),
             app.alpaca_httpd(logger),
             telescope.polaris.client(logger)
     ]
@@ -112,6 +103,14 @@ async def main():
 
 # ==================================================================
 if __name__ == '__main__':
+    
+    logger = log.init_logging()
+    # Share this logger throughout
+    log.logger = logger
+    exceptions.logger = logger
+    discovery.logger = logger
+    telescope.logger = logger
+    shr.logger = logger
 
     parser = argparse.ArgumentParser(description="Alpaca Benro Polaris Driver.")
 
@@ -134,8 +133,9 @@ if __name__ == '__main__':
     if args.logdir:
         Config.log_dir = args.logdir
 
+    ui = UI(logger)
     try:
-        asyncio.run(main())
+        asyncio.run(main(logger, ui))
     except ValueError as value:
         print(f"{value}\nQuit.")
     except Exception as error:
