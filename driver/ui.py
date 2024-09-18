@@ -37,8 +37,6 @@ import asyncio
 from qasync import QEventLoop, QApplication, asyncSlot, asyncClose
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QMessageBox
 
-app_close_event = None
-
 class MainWindow(QWidget):
     def __init__(self, logger, app_close_event):
         super().__init__()
@@ -62,8 +60,7 @@ class MainWindow(QWidget):
 
         if reply == QMessageBox.Yes:
             self.logger.info("==CLOSING== Quit button pressed")
-            # doesn't work properly because other asyncio tasks are not terminated
-            #self.app_close_event.set()
+            self.app_close_event.set()
         else:
             pass
 
@@ -76,12 +73,10 @@ class UI:
         asyncio.set_event_loop(self.event_loop)
         self.app_close_event = asyncio.Event()
         self.app.aboutToQuit.connect(self.app_close_event.set)
-        
-    async def run_event_loop(self):
         self.main_window = MainWindow(self.logger, self.app_close_event)
         self.main_window.show()
+        
+    async def run_event_loop(self):
         while self.app_close_event.is_set() == False:
             await asyncio.sleep(0.05)
             self.app.processEvents()
-
-
