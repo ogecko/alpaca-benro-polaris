@@ -44,6 +44,7 @@ from discovery import DiscoveryResponder
 import telescope
 import stellarium
 import app
+import argparse
 
 # ===========
 # APP STARTUP
@@ -94,6 +95,28 @@ async def main():
 
 # ==================================================================
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description="Alpaca Benro Polaris Driver.")
+
+    # Add the arguments
+    parser.add_argument('--lat', type=float, help='Site Latitude in decimal degrees')
+    parser.add_argument('--lon', type=float, help='Site Longitude in decimal degrees')
+    parser.add_argument('--elev', type=float, help='Site Elevation from sea level in meters')
+    parser.add_argument('--logdir', type=str, help='Directory to store log file(s)')
+
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Store any of the optional the arguments
+    if args.lat:
+        Config.site_latitude = args.lat
+    if args.lon:
+        Config.site_longitude = args.lon
+    if args.elev:
+        Config.site_elevation = args.elev
+    if args.logdir:
+        Config.log_dir = args.logdir
+
     try:
         asyncio.run(main())
     except ValueError as value:

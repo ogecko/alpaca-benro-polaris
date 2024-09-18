@@ -23,9 +23,15 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
     C:\Users\Astro> cd alpaca-benro-polaris-main
     C:\Users\Astro\alpaca-benro-polaris-main> pip install -r platforms/win/requirements.txt
     ```
-4. Optionally, you can copy the file `platforms\win\Alpaca Benro Polaris Driver.lnk` to your desktop, right-click to modify properties, and change the fields `Target`, `Start In`, and `Icon` to point to the location you expanded the zip file.
-![Winidows Shortcut](images/abp-shortcut.png)
-   
+4. Optionally, you can copy the file `platforms\win\Alpaca Benro Polaris Driver.lnk` to your desktop, right-click to modify properties, and change the fields `Target`, and `Icon` to point to the location you expanded the zip file. Note the `Target` has two XXXX paths you need to modify.
+    ```
+    Target: C:\XXXX\driver\main.py --logdir C:\XXXX\driver
+    Icon: C:\XXXX\docs\images\abp-icon.ico
+    ```
+
+    ![Winidows Shortcut](images/abp-shortcut.png)
+
+
 ### Running the Alpaca Benro Polaris Driver
 Start the Alpaca Benro Polaris driver using the shortcut or the following command.
 ```

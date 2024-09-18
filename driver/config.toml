@@ -26,6 +26,7 @@ aiming_adjustment_alt = 0.0195474932        # The initial alt aiming adjustment 
 aim_max_error_correction = 0.5              # The maximum angle (decimal degrees) that the driver will correct for when aiming at alzaz .
 
 [logging]
+log_dir = ''                                # Directory to store logs, '' is current working dir
 log_level = 'INFO'                          # Default log level, show info and above messages.
 log_to_file = true                          # log output to file alpaca.log, copying old logs to alpaca.1, ... alpaca.5
 log_to_stdout = true                        # log output to stdout.

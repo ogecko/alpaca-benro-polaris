@@ -88,6 +88,7 @@ class Config:
     # ---------------
     # Logging Section
     # ---------------
+    log_dir: str = get_toml('logging', 'log_dir')
     log_level: int = logging.getLevelName(get_toml('logging', 'log_level'))  # Not documented but works (!!!!)
     log_to_file: str = get_toml('logging', 'log_to_file')
     log_to_stdout: str = get_toml('logging', 'log_to_stdout')

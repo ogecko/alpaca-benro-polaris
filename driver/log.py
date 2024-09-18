@@ -74,8 +74,9 @@ def init_logging():
     logger.handlers[0].setFormatter(formatter)  # This is the stdout handler, level set above
     # Add a logfile handler, same formatter and level
     if Config.log_to_file or Config.log_performance_data:
-        logfile = 'alpaca.log' if not Config.log_performance_data else 'alpaca.csv'
-        logpath = os.path.join(os.getcwd()+os.sep, logfile)
+        logfile = 'alpaca.log' if (not Config.log_performance_data) else 'alpaca.csv'
+        logdir = Config.log_dir if Config.log_dir else '.'
+        logpath = os.path.join(logdir, logfile)
         handler = logging.handlers.RotatingFileHandler(logpath,
                                                         mode='w',
                                                         delay=False,     # True to Prevent creation of empty logs
