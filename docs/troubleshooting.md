@@ -71,6 +71,7 @@ If you cannot see the raw communications scrolling in PuTTY from Troubleshooting
 * Check the Signal Strength of the Polaris WiFi hotspot at your ABP device. You may need to move the device running ABP closer to the Benro Polaris.
 * Check you are not running AntiVirus Software that may block open Wifi Connections
 * Check you do not have an IT or Windows policy blocking open Wifi Connections.
+* Check you do not have a Virtual Private Network (VPN) enabled.
 * Check for IP connectivity to the Polaris by using a Command Window to ping the Benro Polaris.
 ```
 C:\Users\Astro> ping 192.168.0.1
