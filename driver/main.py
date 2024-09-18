@@ -99,7 +99,7 @@ async def main():
                                               Config.stellarium_telescope_port)
     
     tasks = [
-            ui.ui_task(),
+            ui.ui_task(logger),
             app.alpaca_httpd(logger),
             telescope.polaris.client(logger)
     ]

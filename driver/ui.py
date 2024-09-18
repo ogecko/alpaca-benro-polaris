@@ -40,9 +40,9 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLay
 app_close_event = None
 
 class MainWindow(QWidget):    
-    def __init__(self):
+    def __init__(self, logger):
         super().__init__()
-        
+        self.logger = logger
         self.setLayout(QVBoxLayout())
         self.lbl_status = QLabel("ABP is running...", self)
         self.layout().addWidget(self.lbl_status)
@@ -60,13 +60,14 @@ class MainWindow(QWidget):
         reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to quit?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
-            print("Quit...")
-            app_close_event.set()
+            self.logger.info("==CLOSING== Quit button pressed")
+            # doesn't work properly because other asyncio tasks are not terminated
+            #app_close_event.set()
         else:
             pass
 
 
-async def ui_task():
+async def ui_task(logger):
     global app_close_event
     
     app = QApplication(sys.argv)
@@ -75,7 +76,7 @@ async def ui_task():
     app_close_event = asyncio.Event()
     app.aboutToQuit.connect(app_close_event.set)
 
-    main_window = MainWindow()
+    main_window = MainWindow(logger)
     main_window.show()
         
     while app_close_event.is_set() == False:
