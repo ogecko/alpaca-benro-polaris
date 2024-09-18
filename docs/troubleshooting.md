@@ -62,7 +62,7 @@ On Win11:
 * Click `Open`
 * Select `Yes` when asked by User Account Control, Do you want to allow this app to make changes to your device? This opens the firewall to allow PuTTY to communicate with BP.
 
-The PuTTY application should show a window with the raw communications from the Benro Polaris. If your connection is working it should like the following.
+The PuTTY application should show a window with the raw communications from the Benro Polaris. If your connection is working it should look like the following, constantly scrolling.
 
 ![PuTTY Setup](images/abp-putty2.png)
 
