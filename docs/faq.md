@@ -19,7 +19,7 @@ I'm sorry, but auto-guiding is unlikely. Drift of long sequences can be fixed wi
 
 # Alpaca Usage Questions
 ### Is Alpaca a physical device?
-The Alpaca Driver will be an open source software release. The software needs to be installed and setup on a Mini-PC, Laptop, Desktop, Raspberry Pi , SurfacePC, or other device that can join the BP's Wifi Hotspot.
+The Alpaca Driver will be an open source software release. The software needs to be installed and setup on a Mini-PC, Laptop, Desktop, Raspberry Pi , SurfacePC, or other device that can join the BP's Wifi Hotspot. Refer to the [Hardware Guide](./hardware.md) for more information on the ways you can run the Driver.
 
 ### Does the driver need to be uploaded to the Polaris? 
 The Driver needs to run on a platform that supports Python and has Wifi connectivity to the Benro Polaris. Currently no change is needed to the Benro Polaris, its firmware or its app.
