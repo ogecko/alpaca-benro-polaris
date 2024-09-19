@@ -95,6 +95,10 @@ C:\Users\Astro>
 ```
 alpaca_ip_address = '127.0.0.1' 
 ```
+* Check Mini-PC state. Reconnect a monitor and Keyboard to the Mini-PC and check that it is up and running. Windows Updates can be delivered every month that may effect the state of the device.
+* Check IP connectivity. From a command prompt, use `ping <hostname>` to ensure you have IP connectivity and DNS lookup to your Mini-PC. You may find using the Mini-PC's `IP4-address` in Remote Desktop rather than `<hostname>` may make it easier to connect.
+* Check the Mini-PC Hotspot is connected first. You can unplug the TPlink to force the Nina hotspot to use the embedded Wifi of the Mele. Once you have connected to the mini-pc via Remote Desktop, re-plug in the TPLink.
+* Check that you have not dropped connection to the Mini-PCs WiFi hotspot.
 
 ### N2 - Cannot obtain a good autofocus run with Nina?
 * Check your Lens Stabilisation is off. This interfers with sidereal tracking.
@@ -109,10 +113,7 @@ alpaca_ip_address = '127.0.0.1'
 * Check you are in Focus
 * Check to make sure you telescope focal length is set correctly in equipment options, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values.
 * Check if you are using any filters. Using a narrow band filter on the camera, like the L-Ultimate Optolong HaOIII filter, can make plate solving more challenging for ASTAP.### R1 - Cannot connect Remote Desktop to Mini-PC
-* Check Mini-PC state. Reconnect a monitor and Keyboard to the Mini-PC and check that it is up and running. Windows Updates can be delivered every month that may effect the state of the device.
-* Check IP connectivity. From a command prompt, use `ping <hostname>` to ensure you have IP connectivity and DNS lookup to your Mini-PC. You may find using the Mini-PC's `IP4-address` in Remote Desktop rather than `<hostname>` may make it easier to connect.
-* Check the Mini-PC Hotspot is connected first. You can unplug the TPlink to force the Nina hotspot to use the embedded Wifi of the Mele. Once you have connected to the mini-pc via Remote Desktop, re-plug in the TPLink.
-* Check that you have not dropped connection to the Mini-PCs WiFi hotspot.
+* Check you have downloaded the relevant STAR databases. For 200mm lens and less you may need to download the [Wide field STAR database G05](https://www.hnsky.org/astap.htm)
 
 ### S1 - Cannot connect StellariumPLUS to ABP
 * Check IP connectivity. You need to run StellariumPLUS on a mobile device that can communicate with the ABP driver. We do not recommend running StellariumPLUS on the same device as the Benro Polaris App. Unfortunately the Benro Polaris App takes over the phones WiFi and forces it to talk only the the BP. When in use it doesnt allow connectivity to your home network or Mini-PC hotspot. We suggest using Stellarium Plus on a separate iPad.
