@@ -6,13 +6,20 @@
 Yes. As an Alt/Az Mount and no guiding you will be limited to relatively short exposures. But with a good camera, an 800mm lens, ABP, Nina and Siril you can take some great photos of Deep Sky objects.
 
 ### What is the longest Focal Length that Benro Polaris can track with?
-I've succeeded with 800mm and exposures of up to 15 seconds. I created an hour-long stacked exposure with a powerful desktop and around 240 images. The keeper rate was high. 
+I've succeeded with 800mm and exposures of up to 15 seconds. I created an hour-long stacked exposure with a powerful desktop and around 240 images. The keeper rate was high. Vladimir has taken images at 1750mm equivalent focal length, using a ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender. Exposures of 15s up to around 100 images stacked. Great results.
 
-Vladimir has taken images at 1750mm equivalent focal length, using a ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender. Exposures of 15s up to around 100 images stacked. Great results.
+# Nina Capability Questions
+### There is only one USB on my Camera how can I connect both Nina and BP App?
+The Camera USB must be connected to either the BP App or an astrophotography imaging App like Nina, whichever you choose. Once you have set up the mount, Nina is quite capable of performing all imaging functions and more, including autofocus, plate solving, framing, and image sequencing. However, nothing stops you from disconnecting the Camera from Nina and returning to the BP App.
 
-# Alpaca and Nina Capability Questions
-### There is only one USB on the Camera how can I connect Nina and BP App?
-The Camera USB must be connected to either the BP App or an astrophotography imaging App like Nina, whichever you choose. Once I have set up the mount, Nina is quite capable of performing all my imaging functions and more, including autofocus, plate solving, framing, and image sequencing. However, nothing stops you from disconnecting the Camera from Nina and returning to the BP App.
+### Do I still need to plug my camera into the Benro Polaris?
+If you are using Nina or CCDceil for imaging, you dont really need to plug your camera into the Ben Polaris Tripod Head any more. You only need to connect the camera via USB into the NinaAir. Nina can then help with focusing, platesolving, taking image sequences etc.
+
+### Can Nina access the Cameras SD Card?
+Nina doesn't access the Camera SD Card. It communicates with the camera via the physical USB cable using either a native or ASCOM camera driver. Nina supports Canon and Nikon cameras natively and Sony and other cameras via the ASCOM Camera driver. We've had one Beta tester have success with the ASCOM camera driver on a Sony A7Riv, but we have yet to have someone test it on Pentax or other cameras.
+
+### Can i use Nina on my Mobile Device?
+Nina is a Windows application that best runs on a desktop, laptop, or mini PC. It can be operated remotely using Remote Desktop. There are Remote Desktop apps for both Android and Apple Mobile platforms. So, it will be possible to use Nina from a phone, but the user experience is not ideal.
 
 ### Can Nina generate a file with the coordinates associated with each image?
 Nina includes a plug-in called Session Manager that can record this and so much more into a set of csv files
@@ -30,14 +37,9 @@ The Driver needs to run on a platform that supports Python and has Wifi connecti
 ### Can I use the Driver on my Mobile Device?
 The driver needs to be installed on a device that (a) supports Python and (b) can connect to the Benro Polaris wifi Network. Initially, we are exploring a Laptop, mini-PC, Raspberry Pi, and MacOS. We will provide guidelines on what we have successfully tested and how to set them up.
 
-### Can i use Nina on my Mobile Device?
-Nina is a Windows application that best runs on a desktop, laptop, or mini PC. It can be operated remotely using Remote Desktop. There are Remote Desktop apps for both Android and Apple Mobile platforms. So, it will be possible to use Nina from a phone, but the user experience is not ideal.
-
-### Do I still need to plug my camera into the Benro Polaris?
-If you are using Nina or CCDceil for imaging, you dont really need to plug your camera into the Ben Polaris Tripod Head any more. You only need to connect the camera via USB into the NinaAir. Nina can then help with focusing, platesolving, taking image sequences etc.
-
 # Stellarium Usage Questions
 ### Will Stellarium work via Wifi or is a cable necessary?
 Stellarium does not need USB connectivity. It can be run on a mini-PC, an iPhone, an Android Phone, an iPad, a Laptop, a Desktop, or a mini-PC. However, it will need network or Wi-Fi connectivity to the Driver.
 
+### Will Stellarium work on the same phone as BP App?
 One caveat is that the BP Mobile App needs to remain running to keep the BP Wi-Fi up. This means that it uses your phone's Wi-Fi connection to connect to the BP Wi-Fi. I have not been able to run Stellarium (connected to ABP) on the same phone as the BP App. This is an annoyance, but I find having Stellarium on a larger iPad much easier to use.
