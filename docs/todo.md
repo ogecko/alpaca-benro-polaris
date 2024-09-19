@@ -12,13 +12,13 @@
 ## Development Pending
 * Nina 3 Point Alignment integration with BP
 * AbortSlew
+* Install/Setup Videos for Win and MacOS
   
 * ## QA Pending
 * Eliminate need to keep Mobile app running, Keepalive 525 and 518 Exploration
-* Resolve Williams comms issue
-* Resolve why Platsolve doesnt auto Sync on Nina
-* Stellarium resource issue or Nina occasionally asks for Connection close uneccesarily.
-* Extend Troubleshooting Guide with any Beta Test feedback
+* Stellarium resource issue, hangs. Need to test wifi drops while Stellarium connected
+* Nina occasionally reports Connection close uneccesarily to ABP.
+* Extend Troubleshooting Guide with any Beta Test feedback.
 
 ## Testing Pending
 * Testing using StellariumPLUS on same device as BP App
@@ -37,6 +37,8 @@
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* Resolve why Platsolve doesnt auto Sync on Nina - Fixed
+* Resolve Williams comms issue - resolved with cleanup of PC
 * Stronger Stellarium Synscan communications error handling
 * Properly handle exceptions in background tasks on comms re-estab.
 * Nina Overview Video
