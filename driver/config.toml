@@ -39,9 +39,9 @@ log_perf_speed_ramp_test = false            # Use to do a ramp test on MoveAxis 
 log_polaris = true                          # log polaris messages and activity.
 log_polaris_protocol = false                # log polaris protocol messages sent and received.
 log_stellarium_protocol = false             # log stellarium synscan and binary protocol messages sent and received.
-supress_polaris_518_msgs = true             # supress logging the frequent polling messages from Polaris.
-supress_alpaca_polling_msgs = true          # supress logging the frequent polling messages from Nina.
-supress_stellarium_polling_msgs = true      # supress logging the frequent polling messages from Stellarium.
+supress_polaris_518_msgs = true             # supress logging the frequent polling messages from Polaris beno protocol.
+supress_alpaca_polling_msgs = true          # supress logging the frequent polling messages from Nina Alpaca protocol.
+supress_stellarium_polling_msgs = true      # supress logging the frequent polling messages from Stellarium SynScan protocol.
 
 max_size_mb = 5                             # maximum log file size.
 num_keep_logs = 5                           # maximum number of log files to rotate through.
