@@ -93,6 +93,7 @@ TBD
 * ABP Driver (hardware): Surface PC (unsuccessful)
 * ABP Driver + Nina Platform (hardware): Minis Forum UM350 Mini-PC, Netgear usb wifi adapter, (unsucessful)
 * ABP Driver + Nina Platform (software): 
+* Stellarium Platform (software): Stellarium v24.2
 * Safari Platform:  iPhone and iPad, Safari 7
   
 ## Test coverage
@@ -249,6 +250,24 @@ TBD
 
 ## Test Results
 TBD
+
+
+# RjhNZ (Richard Healey)
+## Test Environment
+* Location: NW
+* Optics: Sony A7Riv, Pentax K1, K3, K5 and K7. 
+* Mount: Benro Polaris
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+Firewall issue on first use
+Challenges getting Sony working with ASCOM Camera driver
+
 
 ---------------------
 
