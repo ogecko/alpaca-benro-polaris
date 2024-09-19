@@ -2,6 +2,10 @@
 
 # Mac Setup Guide
 
+## MacOS Installation Video Demonstration
+You can view a demonstration of parts of this documentation in the following YouTube Video.
+[![Install and Setup on MacOS](https://img.youtube.com/vi/ZT91dpLObP8/0.jpg)](https://www.youtube.com/watch?v=ZT91dpLObP8)
+
 ## Overview
 For the first release of the Alpaca Benro Polaris driver would be provided as a bundle of Python scripts and will need the usage of the command line with the help of the Terminal application.
 
