@@ -112,31 +112,31 @@ Stellarium Desktop on MacOS and Linux does not support native Alpaca or ASCOM. W
 Unfortunately, Stellarium Desktop does not include native Alpaca support. You must install the ASCOM Platform if you haven't already done so. After the ASCOM platform has been installed, you can add an ASCOM Telescope by using the following procedure:
 1.  Select the `Plug-ins` tab on the Configuration Dialog menu bar.
 2.  Scroll down the list of plugins and find the `Telescope Control plugin`.
-3.  Check `Load at startup` on the Telescope Control Dialog.
+3.  Optionally, if you want to always use the ABP telescope, check `Load at startup` on the Telescope Control Dialog. To browse Stellarium without Polaris, leave it unchecked, and just connect on demand from the Ctrl+0 dialog.
 4.  Close Stellarium and Restart Stellarium from the Desktop.
-5.  Press `Ctrl+0` to open the Slew Telescope Dialog
-6.  Click the `Configure Telescopes` button at the bottom of this dialog.
-7.  Click on the `Add Telescope` button (3rd one at the bottom of the Telescope Control Configure dialog).
-8.  Choose Telescope controlled by `ASCOM` and enter `Benro Polaris` into the Name field.
-9.  Leave the Coordinate System as `J2000 (default)`, 
-10. Check `Start/Connect on Startup`.
-11. Scroll down to the ASCOM Settings.
-12. Click `Choose ASCOM Telescope`
-13. Click the `Alpaca` tab on the ASCOM Telescope Chooser dialog box.
-14. Click `Enable Discovery` from the Alpaca tab
-15. Click `Discover Now` from the Alpaca tab
-16. For a local AAPB, Choose `Benro Polaris` from the drop down-menu, then click `OK`.
-17. For a remote AAPB, Click `Create Alpaca Driver (Admin)` from the drop-down.
+6.  Press `Ctrl+0` to open the Slew Telescope Dialog
+7.  Click the `Configure Telescopes` button at the bottom of this dialog.
+8.  Click on the `Add Telescope` button (3rd one at the bottom of the Telescope Control Configure dialog).
+9.  Choose Telescope controlled by `ASCOM` and enter `Benro Polaris` into the Name field.
+10. Leave the Coordinate System as `J2000 (default)`, 
+11. Check `Start/Connect on Startup`.
+12. Scroll down to the ASCOM Settings.
+13. Click `Choose ASCOM Telescope`
+14. Click the `Alpaca` tab on the ASCOM Telescope Chooser dialog box.
+15. Click `Enable Discovery` from the Alpaca tab
+16. Click `Discover Now` from the Alpaca tab
+17. For a local AAPB, Choose `Benro Polaris` from the drop down-menu, then click `OK`.
+18. For a remote AAPB, Click `Create Alpaca Driver (Admin)` from the drop-down.
     a. Click `Yes` for  User Account Control.
     b. Enter the name `Benro Polaris`, then click `OK`.
     c. Click `Properties` on the ASCOM Telescope Chooser dialog box.
     d. Change the Remote Device Host Name/IP address (`127.0.0.1` for Loopback)
     e. Change the Alpaca Port to `5555`.
     f. Click `OK`.
-18.  Click `OK` on ASCOM Telescope chooser dialog.
-19.  Click `OK` on Add a New Telescope dialog.
-20.  Click `Connect` and close the Telescopes dialog.
-21.  You have now added the Benro Polaris telescope and connected it.
+19.  Click `OK` on ASCOM Telescope chooser dialog.
+20.  Click `OK` on Add a New Telescope dialog.
+21.  Click `Connect` and close the Telescopes dialog.
+22.  You have now added the Benro Polaris telescope and connected it.
 
 ### Goto Co-ordinates
 On Windows, commanding the Benro Polaris to move is as simple as Selecting the Target Object and pressing `Ctrl+1`.
