@@ -48,6 +48,8 @@ class MainWindow(QWidget):
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.on_btn_clicked)
         self.layout().addWidget(self.quit_button)
+        self.setGeometry(100, 100, 300, 200)
+        self.setWindowTitle("Alpaca Benro Polaris")
      
     @asyncClose   
     async def closeEvent(self, event):
@@ -56,7 +58,7 @@ class MainWindow(QWidget):
     @asyncSlot()
     async def on_btn_clicked(self):
         global app_close_event
-        reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to quit?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(self, 'Close Alpaca Benro Polaris', 'Are you sure you want to quit?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
             self.logger.info("==CLOSING== Quit button pressed")
