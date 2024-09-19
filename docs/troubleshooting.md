@@ -119,3 +119,12 @@ alpaca_ip_address = '127.0.0.1'
 * Check IP connectivity. You need to run StellariumPLUS on a mobile device that can communicate with the ABP driver. We do not recommend running StellariumPLUS on the same device as the Benro Polaris App. Unfortunately the Benro Polaris App takes over the phones WiFi and forces it to talk only the the BP. When in use it doesnt allow connectivity to your home network or Mini-PC hotspot. We suggest using Stellarium Plus on a separate iPad.
 * Check StellariumPLUS Alignment Flag. StellariumPLUS will show your telescope as Not Aligned whenever the ABP driver cannot communicate with the Benro Polaris.
 
+### S2 - Stellarium Desktop freezes with Remote Desktop
+* Check fps settings. Stellarium's default is a crazy 10000 fps. We suggest reducing the default settings in the following file `C:\Users\Nina\AppData\Roaming\Stellarium\config.ini`, where Nina is replaced with your User name.
+    ```
+    [video]
+    ...
+    maximum_fps                               = 10
+    minimum_fps                               = 10
+    ...
+    ``` 
