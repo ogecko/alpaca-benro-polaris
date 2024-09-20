@@ -279,6 +279,13 @@ class Polaris:
                         logger.error(self._task_errorstr)
                         await asyncio.sleep(5)
                         continue
+                # errno = 60: Operation timed out
+                # errno = 64: Host is down
+                elif e.errno == 60 or e.errno == 64:
+                        self._task_errorstr = f'==ERROR== Network connection to Polaris lost. Use Polaris App to reconnect.'
+                        logger.error(self._task_errorstr)
+                        await asyncio.sleep(5)
+                        continue
                 else:
                     raise e
 
