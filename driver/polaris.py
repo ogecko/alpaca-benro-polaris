@@ -301,88 +301,6 @@ class Polaris:
             # task.exception returns None if no exception
             self._task_exception = task.exception()
 
-    def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.J2000):
-        target = ephem.FixedBody()
-        target._ra = hr2rad(ra)
-        target._dec = deg2rad(dec)
-        target._epoch = epoch
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
-        self._observer.date = now + datetime.timedelta(seconds=inthefuture)
-        target.compute(self._observer)
-        alt = rad2deg(target.alt)
-        az = rad2deg(target.az)
-        return alt,az
-
-    def altaz2radec(self, alt, az):
-        self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
-        ra_rad, dec_rad = self._observer.radec_of(deg2rad(az), deg2rad(alt))
-        ra = rad2hr(ra_rad)  
-        dec = rad2deg(dec_rad)
-        return ra, dec
-
-    def radec_sync_reset(self):
-        self._adj_sync_rightascension = 0
-        self._adj_sync_declination = 0
-        self._adj_sync_altitude = 0
-        self._adj_sync_azimuth = 0
-        return
-
-    def altaz_polaris2ascom(self, p_alt, p_az):
-        a_alt = p_alt + self._adj_sync_altitude
-        a_az = p_az + self._adj_sync_azimuth
-        return a_alt, a_az
-
-    def altaz_ascom2polaris(self, a_alt, a_az):
-        p_alt = a_alt - self._adj_sync_altitude
-        p_az = a_az - self._adj_sync_azimuth
-        return p_alt, p_az
-
-    def radec_polaris2ascom(self, p_ra, p_dec):
-        a_ra = p_ra + self._adj_sync_rightascension
-        a_dec = p_dec + self._adj_sync_declination
-        return a_ra, a_dec
-
-    def radec_ascom2polaris(self, a_ra, a_dec):
-        p_ra = a_ra - self._adj_sync_rightascension
-        p_dec = a_dec - self._adj_sync_declination
-        return p_ra, p_dec
-
-
-    def radec_ascom_sync(self, a_ra, a_dec):
-        a_alt, a_az = self.radec2altaz(a_ra, a_dec)
-        self.logger.info(f"->> Polaris: SYNC ASCOM   RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)} good")
-
-        if Config.sync_pointing_model==1:
-            # Use RA/Dec Sync Pointing model
-            p_ra = self._p_rightascension
-            p_dec = self._p_declination
-            offset_ra = a_ra - p_ra
-            offset_dec = a_dec - p_dec
-            self._adj_sync_rightascension = offset_ra
-            self._adj_sync_declination = offset_dec
-            self.logger.info(f"->> Polaris: SYNC POLARIS RA {dec2dms(p_ra)} Dec {dec2dms(p_dec)} bad")
-            self.logger.info(f"->> Polaris: SYNC Offset  RA {dec2dms(offset_ra)} Dec {dec2dms(offset_dec)}")
-        else:
-            # Use Alt/Az Sync Pointing model
-            p_alt = self._p_altitude
-            p_az = self._p_azimuth
-            offset_alt = a_alt - p_alt
-            offset_az = a_az - p_az
-            self._adj_sync_altitude = offset_alt
-            self._adj_sync_azimuth = offset_az
-            self.logger.info(f"->> Polaris: SYNC ASCOM   Alt {dec2dms(a_alt)} Az {dec2dms(a_az)} good")
-            self.logger.info(f"->> Polaris: SYNC POLARIS Alt {dec2dms(p_alt)} Az {dec2dms(p_az)} bad")
-            self.logger.info(f"->> Polaris: SYNC Offset  Alt {dec2dms(offset_alt)} Az {dec2dms(offset_az)}")
-
-        self._rightascension = a_ra 
-        self._declination = a_dec
-        self._targetrightascension = a_ra
-        self._targetdeclination = a_dec
-        self._altitude = a_alt
-        self._azimuth = a_az
-
-        return
-
     async def send_msg(self, msg):
         if Config.log_polaris_protocol:
             self.logger.info(f'->> Polaris: send_msg: {msg}')
@@ -458,6 +376,92 @@ class Polaris:
         self._lock.acquire()
         self._every_50ms_msg_to_send = None
         self._lock.release()
+
+    def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.J2000):
+        target = ephem.FixedBody()
+        target._ra = hr2rad(ra)
+        target._dec = deg2rad(dec)
+        target._epoch = epoch
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        self._observer.date = now + datetime.timedelta(seconds=inthefuture)
+        target.compute(self._observer)
+        alt = rad2deg(target.alt)
+        az = rad2deg(target.az)
+        return alt,az
+
+    def altaz2radec(self, alt, az):
+        self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        ra_rad, dec_rad = self._observer.radec_of(deg2rad(az), deg2rad(alt))
+        ra = rad2hr(ra_rad)  
+        dec = rad2deg(dec_rad)
+        return ra, dec
+
+    def radec_sync_reset(self):
+        self._adj_sync_rightascension = 0
+        self._adj_sync_declination = 0
+        self._adj_sync_altitude = 0
+        self._adj_sync_azimuth = 0
+        return
+
+    def altaz_polaris2ascom(self, p_alt, p_az):
+        a_alt = p_alt + self._adj_sync_altitude
+        a_az = p_az + self._adj_sync_azimuth
+        return a_alt, a_az
+
+    def altaz_ascom2polaris(self, a_alt, a_az):
+        p_alt = a_alt - self._adj_sync_altitude
+        p_az = a_az - self._adj_sync_azimuth
+        return p_alt, p_az
+
+    def radec_polaris2ascom(self, p_ra, p_dec):
+        a_ra = p_ra + self._adj_sync_rightascension
+        a_dec = p_dec + self._adj_sync_declination
+        return a_ra, a_dec
+
+    def radec_ascom2polaris(self, a_ra, a_dec):
+        p_ra = a_ra - self._adj_sync_rightascension
+        p_dec = a_dec - self._adj_sync_declination
+        return p_ra, p_dec
+
+
+    async def radec_ascom_sync(self, a_ra, a_dec):
+        a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+        self.logger.info(f"->> Polaris: SYNC ASCOM   RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)} good")
+
+        if Config.sync_pointing_model==1:
+            # Use RA/Dec Sync Pointing model
+            p_ra = self._p_rightascension
+            p_dec = self._p_declination
+            offset_ra = a_ra - p_ra
+            offset_dec = a_dec - p_dec
+            self._adj_sync_rightascension = offset_ra
+            self._adj_sync_declination = offset_dec
+            self.logger.info(f"->> Polaris: SYNC POLARIS RA {dec2dms(p_ra)} Dec {dec2dms(p_dec)} bad")
+            self.logger.info(f"->> Polaris: SYNC Offset  RA {dec2dms(offset_ra)} Dec {dec2dms(offset_dec)}")
+        else:
+            # Use Alt/Az Sync Pointing model
+            p_alt = self._p_altitude
+            p_az = self._p_azimuth
+            offset_alt = a_alt - p_alt
+            offset_az = a_az - p_az
+            self._adj_sync_altitude = offset_alt
+            self._adj_sync_azimuth = offset_az
+            self.logger.info(f"->> Polaris: SYNC ASCOM   Alt {dec2dms(a_alt)} Az {dec2dms(a_az)} good")
+            self.logger.info(f"->> Polaris: SYNC POLARIS Alt {dec2dms(p_alt)} Az {dec2dms(p_az)} bad")
+            self.logger.info(f"->> Polaris: SYNC Offset  Alt {dec2dms(offset_alt)} Az {dec2dms(offset_az)}")
+
+        self._rightascension = a_ra 
+        self._declination = a_dec
+        self._targetrightascension = a_ra
+        self._targetdeclination = a_dec
+        self._altitude = a_alt
+        self._azimuth = a_az
+
+        if Config.sync_pointing_model==0 and Config.sync_compass_alignment:
+            self.logger.info(f"->> Polaris: SYNC Compass Align Az {dec2dms(a_az)}")
+            await self.send_cmd_compass_alignment(a_az)
+
+        return
 
     async def read_msgs(self):
         buffer = ""
@@ -717,6 +721,17 @@ class Polaris:
     async def send_cmd_reset_axis(self, axis:int):
         if axis==1 or axis==2 or axis==3:
             await self.send_msg(f"1&523&3&axis:{axis};#")
+
+    async def send_cmd_compass_alignment(self, angle:float = None):
+        if not angle:
+            a_az = self._azimuth
+            compass = round(a_az - 180) % 360
+        else:
+            compass = round(angle - 180) % 360
+        lat = self._sitelatitude
+        lon = self._sitelongitude
+        self._adj_sync_azimuth = 0
+        await self.send_msg(f"1&527&3&compass:{compass};lat:{lat};lng:{lon};#")
 
     async def send_cmd_park(self):
         await self.send_cmd_reset_axis(1)
