@@ -1405,7 +1405,7 @@ class synctocoordinates:
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} must be between -90 and +90.'))
             return
         try:
-            polaris.radec_sync_ascom(rightascension, declination)
+            polaris.radec_ascom_sync(rightascension, declination)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
@@ -1422,7 +1422,7 @@ class synctotarget:
             resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot sync to target while parked'))
             return
         try:
-            polaris.radec_sync_ascom(polaris.targetrightascension, polaris.targetdeclination)
+            polaris.radec_ascom_sync(polaris.targetrightascension, polaris.targetdeclination)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,

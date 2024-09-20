@@ -301,7 +301,7 @@ async def process_protocol(logger, data, writer):
         ra, dec = synScan24bit_to_radec(data)
         logger.info(f"<<- Stellarium: SynScan SYNC Ra: {ra} Dec: {dec}")
         if telescope.polaris.connected:
-            telescope.polaris.radec_sync_ascom(ra, dec)
+            telescope.polaris.radec_ascom_sync(ra, dec)
         msg = b'#'
         await stellarium_send_msg(logger, writer, msg)
 
