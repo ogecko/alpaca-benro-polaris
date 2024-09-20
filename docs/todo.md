@@ -14,7 +14,7 @@
 * Retake Install videos, with pip 
 * AbortSlew
   
-* ## QA Pending
+## QA Pending
 * Fix Synscan protocol processing as it appears not to use J2000 epoch
 * Eliminate need to keep Mobile app running, Keepalive 525 and 518 Exploration
 * Stellarium resource issue, hangs. Need to test wifi drops while Stellarium connected
