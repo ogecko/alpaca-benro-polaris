@@ -162,8 +162,10 @@ class Polaris:
         self._aim_azimuth: float = 0.0              # The Azimuth of the last goto command
         self._adj_altitude: float = Config.aiming_adjustment_alt    # The Altitude adjustment to correct the aim based on past goto results
         self._adj_azimuth: float = Config.aiming_adjustment_az      # The Azimuth adjustment to correct the aim based on past goto results
-        self._adj_rightascension: float = 0         # The Rightascension adjustment difference between polaris and ascom
-        self._adj_declination: float = 0            # The Declination adjustment difference between polaris and ascom
+        self._adj_sync_rightascension: float = 0    # The Rightascension adjustment difference between polaris and ascom
+        self._adj_sync_declination: float = 0       # The Declination adjustment difference between polaris and ascom
+        self._adj_sync_altitude: float = 0          # The Altitude adjustment difference between polaris and ascom
+        self._adj_sync_azimuth: float = 0           # The Azimuth adjustment difference between polaris and ascom
         #
         # Telescope device rates
         #
@@ -299,11 +301,11 @@ class Polaris:
             # task.exception returns None if no exception
             self._task_exception = task.exception()
 
-    def radec2altaz(self, ra, dec, inthefuture=0):
+    def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.J2000):
         target = ephem.FixedBody()
         target._ra = hr2rad(ra)
         target._dec = deg2rad(dec)
-        target._epoch = ephem.J2000
+        target._epoch = epoch
         now = datetime.datetime.now(tz=datetime.timezone.utc)
         self._observer.date = now + datetime.timedelta(seconds=inthefuture)
         target.compute(self._observer)
@@ -318,34 +320,67 @@ class Polaris:
         dec = rad2deg(dec_rad)
         return ra, dec
 
+    def radec_sync_reset(self):
+        self._adj_sync_rightascension = 0
+        self._adj_sync_declination = 0
+        self._adj_sync_altitude = 0
+        self._adj_sync_azimuth = 0
+        return
+
+    def altaz_polaris2ascom(self, p_alt, p_az):
+        a_alt = p_alt + self._adj_sync_altitude
+        a_az = p_az + self._adj_sync_azimuth
+        return a_alt, a_az
+
+    def altaz_ascom2polaris(self, a_alt, a_az):
+        p_alt = a_alt - self._adj_sync_altitude
+        p_az = a_az - self._adj_sync_azimuth
+        return p_alt, p_az
+
     def radec_polaris2ascom(self, p_ra, p_dec):
-        a_ra = p_ra + self._adj_rightascension
-        a_dec = p_dec + self._adj_declination
+        a_ra = p_ra + self._adj_sync_rightascension
+        a_dec = p_dec + self._adj_sync_declination
         return a_ra, a_dec
 
     def radec_ascom2polaris(self, a_ra, a_dec):
-        p_ra = a_ra - self._adj_rightascension
-        p_dec = a_dec - self._adj_declination
+        p_ra = a_ra - self._adj_sync_rightascension
+        p_dec = a_dec - self._adj_sync_declination
         return p_ra, p_dec
 
-    def radec_sync_reset(self):
-        self._adj_rightascension = 0
-        self._adj_declination = 0
-        return
 
-    def radec_sync_ascom(self, a_ra, a_dec):
-        self.logger.info(f"->> Polaris: SYNC ASCOM RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)}")
-        offset_ra = a_ra - self._p_rightascension
-        offset_dec = a_dec - self._p_declination
-        self._adj_rightascension = offset_ra
-        self._adj_declination = offset_dec
+    def radec_ascom_sync(self, a_ra, a_dec):
+        a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+        self.logger.info(f"->> Polaris: SYNC ASCOM   RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)} good")
+
+        if Config.sync_pointing_model==1:
+            # Use RA/Dec Sync Pointing model
+            p_ra = self._p_rightascension
+            p_dec = self._p_declination
+            offset_ra = a_ra - p_ra
+            offset_dec = a_dec - p_dec
+            self._adj_sync_rightascension = offset_ra
+            self._adj_sync_declination = offset_dec
+            self.logger.info(f"->> Polaris: SYNC POLARIS RA {dec2dms(p_ra)} Dec {dec2dms(p_dec)} bad")
+            self.logger.info(f"->> Polaris: SYNC Offset  RA {dec2dms(offset_ra)} Dec {dec2dms(offset_dec)}")
+        else:
+            # Use Alt/Az Sync Pointing model
+            p_alt = self._p_altitude
+            p_az = self._p_azimuth
+            offset_alt = a_alt - p_alt
+            offset_az = a_az - p_az
+            self._adj_sync_altitude = offset_alt
+            self._adj_sync_azimuth = offset_az
+            self.logger.info(f"->> Polaris: SYNC ASCOM   Alt {dec2dms(a_alt)} Az {dec2dms(a_az)} good")
+            self.logger.info(f"->> Polaris: SYNC POLARIS Alt {dec2dms(p_alt)} Az {dec2dms(p_az)} bad")
+            self.logger.info(f"->> Polaris: SYNC Offset  Alt {dec2dms(offset_alt)} Az {dec2dms(offset_az)}")
+
         self._rightascension = a_ra 
         self._declination = a_dec
         self._targetrightascension = a_ra
         self._targetdeclination = a_dec
-        a_alt, a_az = self.radec2altaz(a_ra, a_dec)
         self._altitude = a_alt
         self._azimuth = a_az
+
         return
 
     async def send_msg(self, msg):
@@ -480,19 +515,32 @@ class Polaris:
         # return result of POSITION request {} 
         elif cmd == "518":
             arg_dict = self.polaris_parse_args(args)
+            p_az = float(arg_dict['compass'])
+            p_alt = -float(arg_dict['alt'])
             self._lock.acquire()
-            self._p_azimuth = float(arg_dict['compass'])
-            self._p_altitude = -float(arg_dict['alt'])
-            p_ra, p_dec = self.altaz2radec(self._p_altitude, self._p_azimuth)
+            self._p_altitude = p_alt
+            self._p_azimuth = p_az
+            p_ra, p_dec = self.altaz2radec(p_alt, p_az)
             self._p_rightascension = p_ra 
             self._p_declination = p_dec
-            a_ra, a_dec = self.radec_polaris2ascom(p_ra, p_dec)
-            self._rightascension = a_ra 
-            self._declination = a_dec
-            a_alt, a_az = self.radec2altaz(a_ra, a_dec)
-            self._altitude = a_alt
-            self._azimuth = a_az
             self._lock.release()
+            if Config.sync_pointing_model==1:
+                # Use RA/Dec Sync Pointing model
+                a_ra, a_dec = self.radec_polaris2ascom(p_ra, p_dec)
+                self._rightascension = a_ra 
+                self._declination = a_dec
+                a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+                self._altitude = a_alt
+                self._azimuth = a_az
+            else:
+                # Use Alt/Az Sync Pointing model
+                a_alt, a_az = self.altaz_polaris2ascom(p_alt, p_az)
+                self._altitude = a_alt
+                self._azimuth = a_az
+                a_ra, a_dec= self.altaz2radec(a_alt, a_az)
+                self._rightascension = a_ra 
+                self._declination = a_dec
+
             if Config.log_performance_data == 1:
                 a_slew = self._slewing
                 a_goto = self._gotoing
@@ -622,7 +670,7 @@ class Polaris:
 
         # log the command
         if Config.log_polaris:
-            self.logger.info(f"->> Polaris: GOTO Polaris Alt {dec2dms(alt)} Az {dec2dms(az)} ")
+            self.logger.info(f"->> Polaris: GOTO Execute Alt {dec2dms(alt)} Az {dec2dms(az)} ")
 
         # log the aiming alt/az and correct it based on previous aiming results
         calt, caz = self.aim_altaz_log_and_correct(alt, az)
@@ -693,8 +741,11 @@ class Polaris:
             if 'track' in ret_dict and int(ret_dict['track']) == 3:
                 # Polaris is in astro mode but alignment not complete
                 raise AstroAlignmentError()
+            s_lat = self._sitelatitude
+            s_lon = self._sitelongitude
             self.logger.info("Polaris communication init... done")
-            self.logger.info(f'Site lat = {self._sitelatitude} lon = {self._sitelongitude}. Change in config.toml or use Nina to sync.')
+            self.logger.info(f'Site lat = {s_lat} ({dec2dms(s_lat)}) | lon = {s_lon} ({dec2dms(s_lon)}).')
+            self.logger.info(f'Change site_latitude and site_longitude in config.toml or use Nina/StellariumPLUS to sync.')
             self._lock.acquire()
             self._connected = True
             self._task_errorstr = ''
@@ -1196,14 +1247,24 @@ class Polaris:
         self._targetrightascension = a_ra
         self._targetdeclination = a_dec
         self._lock.release()
-        p_ra, p_dec = self.radec_ascom2polaris(a_ra, a_dec)
-        o_ra = self._adj_rightascension
-        o_dec = self._adj_declination
-        # want to work out its Alt/Az of where it will be in the future, as it takes at least this time to settle.
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
-        p_alt, p_az = self.radec2altaz(p_ra, p_dec, inthefuture)
-        self.logger.info(f"->> Polaris: GOTO ASCOM RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)}")
-        self.logger.info(f"->> Polaris: GOTO Polaris RA {dec2dms(p_ra)} Dec: {dec2dms(p_dec)} | SyncOffset (RA {dec2dms(o_ra)} Dec {dec2dms(o_dec)})")
+        if Config.sync_pointing_model==1:
+            # Use RA/Dec Sync Pointing model
+            p_ra, p_dec = self.radec_ascom2polaris(a_ra, a_dec)
+            o_ra = self._adj_sync_rightascension
+            o_dec = self._adj_sync_declination
+            p_alt, p_az = self.radec2altaz(p_ra, p_dec, inthefuture)
+            self.logger.info(f"->> Polaris: GOTO ASCOM   RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)}")
+            self.logger.info(f"->> Polaris: GOTO POLARIS RA {dec2dms(p_ra)} Dec: {dec2dms(p_dec)} | SyncOffset (RA {dec2dms(o_ra)} Dec {dec2dms(o_dec)})")
+        else:
+            # Use Alt/Az Sync Pointing model
+            a_alt, a_az = self.radec2altaz(a_ra, a_dec, inthefuture)
+            p_alt, p_az = self.altaz_ascom2polaris(a_alt, a_az)
+            o_alt = self._adj_sync_altitude
+            o_az = self._adj_sync_azimuth
+            self.logger.info(f"->> Polaris: GOTO ASCOM   RA {dec2dms(a_ra)} Dec {dec2dms(a_dec)}")
+            self.logger.info(f"->> Polaris: GOTO ASCOM   Alt {dec2dms(a_alt)} Az {dec2dms(a_az)}")
+            self.logger.info(f"->> Polaris: GOTO POLARIS Alt {dec2dms(p_alt)} Az {dec2dms(p_az)} | SyncOffset (Alt {dec2dms(o_alt)} Az {dec2dms(o_az)})")
         if isasync:
             asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
         else:
@@ -1213,7 +1274,7 @@ class Polaris:
         a_alt = altitude
         a_az = azimuth
         a_ra, a_dec = self.altaz2radec(a_alt, a_az)
-        self.logger.info(f"->> Polaris: GOTO ASCOM Alt: {dec2dms(a_alt)} Az: {dec2dms(a_az)}")
+        self.logger.info(f"->> Polaris: GOTO ASCOM   Alt: {dec2dms(a_alt)} Az: {dec2dms(a_az)}")
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
     def convert_ascom2polaris_rate(self, axis: int, ascomrate: float):
@@ -1361,8 +1422,8 @@ class Polaris:
     async def park(self):
         self._lock.acquire()
         self._atpark = True
-        self._adj_declination = 0
-        self._adj_rightascension = 0
+        self._adj_sync_declination = 0
+        self._adj_sync_rightascension = 0
         self._adj_altitude = 0
         self._adj_azimuth = 0
         self._lock.release()
