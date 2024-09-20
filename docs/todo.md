@@ -10,9 +10,9 @@
 * Incorporation of Driver into BP firmware
 
 ## Development Pending
-* Nina 3 Point Alignment integration with BP
+* Nina 3 Point Alignment - Change Sync to Alt/Az, Keep record of syncs, Option to realign Compass, realign Pointing.
+* Retake Install videos, with pip 
 * AbortSlew
-* Install/Setup Videos for Win and MacOS
   
 * ## QA Pending
 * Eliminate need to keep Mobile app running, Keepalive 525 and 518 Exploration
@@ -44,6 +44,7 @@
 * Nina Overview Video
 * Nina Autofocus Video
 * Stellarium Telescope Control Video
+* Installation Videos MacOS and Win11 v2
 * Apple ecosystem testing
 * Alpha Testing
 * Move Fast and Slow commands
