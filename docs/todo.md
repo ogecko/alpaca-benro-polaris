@@ -10,7 +10,7 @@
 * Incorporation of Driver into BP firmware
 
 ## Development Pending
-* Nina 3 Point Alignment - Keep record of syncs, Option to realign Compass, realign Pointing.
+* Nina 3 Point Alignment - Keep record of syncs, realign Pointing.
 * Retake Install videos, with pip 
 * AbortSlew
   
@@ -38,6 +38,7 @@
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* Change Sync to optionally calibrate compass
 * Change Sync to include two point models 0 = Alt/Az Offset, 1 = RA/Dec Offset
 * Resolve why Platsolve doesnt auto Sync on Nina - Fixed
 * Resolve Williams comms issue - resolved with cleanup of PC
