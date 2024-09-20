@@ -10,11 +10,12 @@
 * Incorporation of Driver into BP firmware
 
 ## Development Pending
-* Nina 3 Point Alignment - Change Sync to Alt/Az, Keep record of syncs, Option to realign Compass, realign Pointing.
+* Nina 3 Point Alignment - Keep record of syncs, Option to realign Compass, realign Pointing.
 * Retake Install videos, with pip 
 * AbortSlew
   
 * ## QA Pending
+* Fix Synscan protocol processing as it appears not to use J2000 epoch
 * Eliminate need to keep Mobile app running, Keepalive 525 and 518 Exploration
 * Stellarium resource issue, hangs. Need to test wifi drops while Stellarium connected
 * Nina occasionally reports Connection close uneccesarily to ABP.
@@ -37,14 +38,15 @@
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* Change Sync to include two point models 0 = Alt/Az Offset, 1 = RA/Dec Offset
 * Resolve why Platsolve doesnt auto Sync on Nina - Fixed
 * Resolve Williams comms issue - resolved with cleanup of PC
 * Stronger Stellarium Synscan communications error handling
 * Properly handle exceptions in background tasks on comms re-estab.
-* Nina Overview Video
-* Nina Autofocus Video
-* Stellarium Telescope Control Video
 * Installation Videos MacOS and Win11 v2
+* Stellarium Telescope Control Video
+* Nina Autofocus Video
+* Nina Overview Video
 * Apple ecosystem testing
 * Alpha Testing
 * Move Fast and Slow commands
