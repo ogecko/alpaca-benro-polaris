@@ -2,4 +2,6 @@ falcon==4.0.2
 uvicorn==0.33.0
 toml==0.10.2
 ephem==4.1.6
+pyqt5==5.15.11
+qasync==0.27.1
 pyquaternion==0.9.9
