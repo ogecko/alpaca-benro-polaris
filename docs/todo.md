@@ -2,34 +2,30 @@
 
 # Main Todo List of Pending Items to Complete
 
-## Requests for Benro to assist (in order of priority)
-* Protocol required to keep wifi alive
-* Protocol required on BT to establish wifi
-* Changes to allow minor MoveAxis while sidereal tracking enabled, without backlash - for guiding
-* Changes to allow integration of 3 point alignment
-* Incorporation of Driver into BP firmware
-
 ## Development Pending
 * Nina 3 Point Alignment - Keep record of syncs, realign Pointing.
-* Retake Install videos, with pip 
 * AbortSlew
   
 ## QA Pending
 * Fix Synscan protocol processing as it appears not to use J2000 epoch
 * Eliminate need to keep Mobile app running, Keepalive 525 and 518 Exploration
 * Stellarium resource issue, hangs. Need to test wifi drops while Stellarium connected
-* Nina occasionally reports Connection close uneccesarily to ABP.
 * Extend Troubleshooting Guide with any Beta Test feedback.
-
+* Explore BP log file on its SD Card
+  
 ## Testing Pending
-* Testing using StellariumPLUS on same device as BP App
 * Testing on Raspbery Pi
 * Testing on Docker
 * Testing of Sky Safari
 * Closed Beta testing
 * Open Beta testing
-* RaspberryPi ecosystem testing
-* Compatibility testing
+
+## Requests for Benro to assist (in order of priority)
+* Protocol required to keep wifi alive
+* Protocol required on BT to establish wifi
+* Changes to allow minor MoveAxis while sidereal tracking enabled, without backlash - for guiding
+* Changes to allow integration of 3 point alignment
+* Incorporation of Driver into BP firmware
 
 ## Backlog
 * Hand controller web app
@@ -38,6 +34,7 @@
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* Nina occasionally reports Connection close uneccesarily to ABP.
 * Change Sync to optionally calibrate compass
 * Change Sync to include two point models 0 = Alt/Az Offset, 1 = RA/Dec Offset
 * Resolve why Platsolve doesnt auto Sync on Nina - Fixed
