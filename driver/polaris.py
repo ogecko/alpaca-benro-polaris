@@ -228,8 +228,8 @@ class Polaris:
 
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
-        # background_keepalive = asyncio.create_task(self._every_5s_send_keepalive())
-        # background_keepalive.add_done_callback(self.task_done)
+        background_keepalive = asyncio.create_task(self._every_15s_send_keepalive())
+        background_keepalive.add_done_callback(self.task_done)
         background_fastmove = asyncio.create_task(self.every_50ms_send_message())
         background_fastmove.add_done_callback(self.task_done)
 
@@ -315,14 +315,14 @@ class Polaris:
             self._writer.write(msg.encode())
             await self._writer.drain()
 
-    async def _every_5s_send_keepalive(self):
+    async def _every_15s_send_keepalive(self):
         while True:
             try: 
-                msg = "1&518&3&0#"
+                msg = "1&284&2&-1#"
                 if Config.log_polaris_protocol:
                     self.logger.info(f'->> Polaris: send_keepalive: {msg}')
                 await self.send_msg(msg)
-                await asyncio.sleep(5)
+                await asyncio.sleep(15)
             except Exception as e:
                 self._task_exception = e
                 break
@@ -487,7 +487,7 @@ class Polaris:
                 if parse_result:
                     buffer = parse_result[0]
                     cmd = parse_result[1]
-                    if Config.log_polaris_protocol and not((cmd == "518" or cmd == "525") and Config.supress_polaris_frequent_msgs):
+                    if Config.log_polaris_protocol and not((cmd == "518" or cmd == "284" or cmd == "525") and Config.supress_polaris_frequent_msgs):
                         self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{parse_result[2]}#')
                     self.polaris_parse_cmd(cmd, parse_result[2])
             else:
@@ -518,7 +518,7 @@ class Polaris:
             self._current_mode = int(arg_dict['mode'])
             self._tracking = bool(arg_dict['track'] == '1') if 'track' in arg_dict else False
             self._lock.release()
-            if Config.log_polaris:
+            if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
                 self.logger.info(f"<<- Polaris: MODE status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
                 self._response_queues[cmd].put_nowait(arg_dict)
@@ -750,9 +750,9 @@ class Polaris:
         await self.send_cmd_reset_axis(2)
         await self.send_cmd_reset_axis(3)
 
-    async def get_current_mode(self):
+    async def send_cmd_query_current_mode(self):
         if Config.log_polaris:
-            self.logger.info(f"->> Polaris: MODE status info request")
+            self.logger.info(f"->> Polaris: MODE query status info request")
         cmd = '284'
         msg = f"1&{cmd}&2&-1#"
         empty_queue(self._response_queues[cmd])
@@ -760,10 +760,17 @@ class Polaris:
         ret_dict = await self._response_queues[cmd].get()
         return ret_dict
 
+    async def send_cmd_808(self):
+        if Config.log_polaris:
+            self.logger.info(f"->> Polaris: 808 Connection request")
+        msg = f"1&808&2&type:0;#"
+        await self.send_msg(msg)
+
 
     async def polaris_init(self):
         self.logger.info("Polaris communication init...")
-        ret_dict = await self.get_current_mode()
+        ret_dict = await self.send_cmd_query_current_mode()
+        await self.send_cmd_808()
         if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
             if 'track' in ret_dict and int(ret_dict['track']) == 3:
                 # Polaris is in astro mode but alignment not complete
