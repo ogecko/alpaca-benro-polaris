@@ -3,11 +3,14 @@
 # Main Todo List of Pending Items to Complete
 
 ## Development Pending
-* Nina 3 Point Alignment - Keep record of syncs, realign Pointing.
-* AbortSlew
+* 3+ Point Alignment - Better understand protocol, Keep record of plate-solve syncs, calc compass and pointing alignment.
+* AbortSlew - Review BP Log and implement
+* Change Final Release Version Number
+* Change README.md with Kickstarter backers
   
 ## QA Pending
-* Fix Synscan protocol processing as it appears not to use J2000 epoch
+* Fix Gymball/AHRS position update lag (appears after extended use, restart fixes)
+* Fix Synscan protocol processing as it appears not to use J2000 epoch (effects StellariumPLUS GOTO Accuracy)
 * Extend Troubleshooting Guide with any Beta Test feedback.
   
 ## Testing Pending
