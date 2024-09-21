@@ -41,7 +41,7 @@ log_perf_speed_ramp_test = false            # Use to do a ramp test on MoveAxis 
 log_polaris = true                          # log polaris messages and activity.
 log_polaris_protocol = false                # log polaris protocol messages sent and received.
 log_stellarium_protocol = false             # log stellarium synscan and binary protocol messages sent and received.
-supress_polaris_518_msgs = true             # supress logging the frequent polling messages from Polaris beno protocol.
+supress_polaris_frequent_msgs = true        # supress logging the frequent messages from Polaris beno protocol (518 position and 525 Tempa509ca36...).
 supress_alpaca_polling_msgs = true          # supress logging the frequent polling messages from Nina Alpaca protocol.
 supress_stellarium_polling_msgs = true      # supress logging the frequent polling messages from Stellarium SynScan protocol.
 

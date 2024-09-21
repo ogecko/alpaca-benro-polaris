@@ -487,7 +487,7 @@ class Polaris:
                 if parse_result:
                     buffer = parse_result[0]
                     cmd = parse_result[1]
-                    if Config.log_polaris_protocol and not(cmd == "518" and Config.supress_polaris_518_msgs):
+                    if Config.log_polaris_protocol and not((cmd == "518" or cmd == "525") and Config.supress_polaris_frequent_msgs):
                         self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{parse_result[2]}#')
                     self.polaris_parse_cmd(cmd, parse_result[2])
             else:
@@ -569,6 +569,11 @@ class Polaris:
         elif cmd == "519":
             arg_dict = self.polaris_parse_args(args)
             self._response_queues[cmd].put_nowait(arg_dict)
+
+        # return result of UNKNOWN command SP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361d0000265a ;]
+        elif cmd == "525":
+            if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
+                self.logger.info(f"<<- Polaris: 525 status changed: {cmd} {args}")
 
         # return result of TRACK change request {'ret': 'X'} where X=0 (NoTracking), X=1 (Tracking)
         elif cmd == "531":

@@ -101,7 +101,7 @@ class Config:
     log_perf_speed_ramp_test: bool = get_toml('logging', 'log_perf_speed_ramp_test')
     log_polaris_protocol: bool = get_toml('logging', 'log_polaris_protocol')
     log_stellarium_protocol: bool = get_toml('logging', 'log_stellarium_protocol')
-    supress_polaris_518_msgs: bool = get_toml('logging', 'supress_polaris_518_msgs')
+    supress_polaris_frequent_msgs: bool = get_toml('logging', 'supress_polaris_frequent_msgs')
     supress_alpaca_polling_msgs: bool = get_toml('logging', 'supress_alpaca_polling_msgs')
     supress_stellarium_polling_msgs: bool = get_toml('logging', 'supress_stellarium_polling_msgs')
     max_size_mb: int = get_toml('logging', 'max_size_mb')
