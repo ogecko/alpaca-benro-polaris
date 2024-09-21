@@ -42,4 +42,4 @@ I'm sorry, but auto-guiding is unlikely. Drift of long sequences can be fixed wi
 Stellarium does not need USB connectivity. It can be run on a mini-PC, an iPhone, an Android Phone, an iPad, a Laptop, a Desktop, or a mini-PC. However, it will need network or Wi-Fi connectivity to the Driver.
 
 ### S2 Will Stellarium work on the same phone as BP App?
-One caveat is that the BP Mobile App needs to remain running to keep the BP Wi-Fi up. This means that it uses your phone's Wi-Fi connection to connect to the BP Wi-Fi. I have not been able to run Stellarium (connected to ABP) on the same phone as the BP App. This is an annoyance, but I find having Stellarium on a larger iPad much easier to use.
+Yes. We originally required the BP App to remain running in the background. This is no longer the case. You can close the BP App once you have the Polaris WiFi established and the Driver connected. With the BP app closed you can save on Battery usage and reconnect to the internet to use Stellarium Plus.

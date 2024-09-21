@@ -59,14 +59,14 @@ Before you do, though, you'll need to do the following:
 
 
 
-One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
+IMPORTANT: One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
 
 Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
 
 The Alpaca Benro Polaris Driver window should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
 
-Now you can start exploring ASCOM applications like Stellarium and Nina, or even write your own REST-based application.
+Once the driver is running, you can close the Benro Polaris App. Now you can start exploring ASCOM applications like Stellarium and Nina, or even write your own REST-based application.
 
 ### Troubleshooting
 If you don't see the `communications init... done` message then you may want to check the [Troubleshooting Guide](./troubleshooting.md) for steps to diagnose and fix any issues.

@@ -54,14 +54,14 @@ Before you do, though, you'll need to do the following:
 9. Connect your Mac to the polaris-###### hotspot using WIFI (this will disconnect you from the previous WIFI and you'll loose the Internet connection)
 11. Wait for connection.
 
-One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
+IMPORTANT: One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
 
 Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
 
 The Alpaca Benro Polaris Driver window should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
 
-Now you can start exploring Alpaca applications like CCDciel, or even write your own REST-based application.
+Once the driver is running, you can close the Benro Polaris App. Now you can start exploring Alpaca applications like CCDciel, or even write your own REST-based application.
 
 ### Stellarium
 If you want to use the Stellarium application on Mac and its Remote Telescope control protocol you'll have to edit the  `driver/config.toml` file, set the `stellarium_port` to a value other than `0`, for example `10001`, restart the ABP driver script and configure the telescope link in Stellarium.

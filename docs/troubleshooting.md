@@ -35,7 +35,7 @@ Sometimes the BP App cannot search and connect to the BP over Bluetooth or Wifi.
 
 
 ### C3 - Connection from Mini-PC to Polaris Wifi drops out
-* Check that the Benro Polaris App is connected and running. When the App closes the Benro Polaris will drop its WiFi hotspot. Unforuntately you need to keep the app running, within range of the Benro Polaris, to keep the Polaris WiFi up, so that ABP can connect.
+* We originally required the BP App to remain running in the background. This is no longer the case. You can close the BP App once you have the Polaris WiFi established and the Driver connected. With the BP app closed you can save on Battery usage. The Driver will keep the Polaris Wifi up and continue to allow operation.
 * Check for RF interference. eg. Turn off your microwave in the kitchen.
 * Check for RF signal strength. Move your remote desktop machine closer to the mini-pc. 
 * Check resouce usage on mini-PC. Ensure it has plenty of free ram and CPU.
@@ -47,7 +47,7 @@ On Win11:
 * Use the following link to [Download PuTTY](https://www.putty.org/) (a telnet client) to your device running the Driver.
 * Select the 64-bit x86 version for the Windows installer.
 * Double click on the file you downloaded to install PuTTY.
-* Perform the normal BP App setup (a) Search for Device (b) Connect to polaris_xxxxxx (c) Select Atro Mode (d) Align Compass (e) Align Star (f) Confirm.
+* Perf the normal BP App setup (a) Search for Device (b) Connect to polaris_xxxxxx (c) Select Atro Mode (d) Align Compass (e) Align Star (f) Confirm.
 * Connect the Device running ABP to the Polaris Wifi Hotspot.
 
 <img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
