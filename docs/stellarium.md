@@ -100,7 +100,7 @@ Stellarium Desktop on MacOS and Linux does not support native Alpaca or ASCOM. W
 2.  Scroll down the list of plugins and find the `Telescope Control plugin`.
 3.  Check `Load at startup` on the Telescope Control Dialog.
 4.  Close Stellarium and Restart Stellarium from the Desktop.
-5.  Press `Ctrl+0` to open the Slew Telescope Dialog
+5.  Press `Ctrl+0` (Windows) or `Command+0` (MacOS) to open the Slew Telescope Dialog
 6.  Click the `Configure Telescopes` button at the bottom of this dialog.
 7.  Click on the `Add Telescope` button (3rd one at the bottom of the Telescope Control Configure dialog).
 8.  Choose Telescope controlled by `External software or a remote computer` and enter `Benro Polaris` into the Name field.
@@ -112,9 +112,9 @@ Stellarium Desktop on MacOS and Linux does not support native Alpaca or ASCOM. W
 Unfortunately, Stellarium Desktop does not include native Alpaca support. You must install the ASCOM Platform if you haven't already done so. After the ASCOM platform has been installed, you can add an ASCOM Telescope by using the following procedure:
 1.  Select the `Plug-ins` tab on the Configuration Dialog menu bar.
 2.  Scroll down the list of plugins and find the `Telescope Control plugin`.
-3.  Optionally, if you want to always use the ABP telescope, check `Load at startup` on the Telescope Control Dialog. To browse Stellarium without Polaris, leave it unchecked, and just connect on demand from the Ctrl+0 dialog.
+3.  Optionally, if you want to always use the ABP telescope, check `Load at startup` on the Telescope Control Dialog. To browse Stellarium without Polaris, leave it unchecked, and just connect on demand from the `Ctrl+0` (Windows) or `Command+0` (MacOS) dialog.
 4.  Close Stellarium and Restart Stellarium from the Desktop.
-6.  Press `Ctrl+0` to open the Slew Telescope Dialog
+6.  Press `Ctrl+0` (Windows) or `Command+0` (MacOS) to open the Slew Telescope Dialog
 7.  Click the `Configure Telescopes` button at the bottom of this dialog.
 8.  Click on the `Add Telescope` button (3rd one at the bottom of the Telescope Control Configure dialog).
 9.  Choose Telescope controlled by `ASCOM` and enter `Benro Polaris` into the Name field.
@@ -139,9 +139,9 @@ Unfortunately, Stellarium Desktop does not include native Alpaca support. You mu
 22.  You have now added the Benro Polaris telescope and connected it.
 
 ### Goto Co-ordinates
-On Windows, commanding the Benro Polaris to move is as simple as Selecting the Target Object and pressing `Ctrl+1`.
+Commanding the Benro Polaris to move is as simple as Selecting the Target Object and pressing `Ctrl+1` (Windows) or `Command+1` (MacOS).
 
-You can also bring up the `Slew Telescope To` dialog by pressing `Ctrl+0`. This dialog allows:
+You can also bring up the `Slew Telescope To` dialog by pressing `Ctrl+0` (Windows) or `Command+0` (MacOS). This dialog allows:
 * Manually enter the co-ordinates
 * Select the Current Object
 * Select the Center of the Screen
@@ -157,7 +157,7 @@ If you lose sight of where the mount is pointing in Stellarium, simply press `SP
 On Windows, you can help improve the aim of the Benro Polaris by Syncing with a known object in the sky. 
 1. Using the Benro Polaris App, aim the telescope with the known object in the center of the eyepiece or image
 2. Find the know object in Stellarium Desktop and select it.
-3. Press `Ctrl+0` to bring up the `Slew Telescope To` dialog and click `Sync`.
+3. Press `Ctrl+0` (Windows) or `Command+0` (MacOS) to bring up the `Slew Telescope To` dialog and click `Sync`.
 4. The Reticle should imediately shift to your selected target
 5. This amount will now offset all RA/Dec coordinates sent and received from Polaris.
 
