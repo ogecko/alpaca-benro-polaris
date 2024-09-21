@@ -741,6 +741,8 @@ class Polaris:
         await self.send_msg(f"1&527&3&compass:{compass};lat:{lat};lng:{lon};#")
 
     async def send_cmd_park(self):
+        if Config.log_polaris:
+            self.logger.info(f"->> Polaris: PARK all 3 axis")
         await self.send_cmd_reset_axis(1)
         await self.send_cmd_reset_axis(2)
         await self.send_cmd_reset_axis(3)
