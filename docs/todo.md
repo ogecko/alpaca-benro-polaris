@@ -8,10 +8,7 @@
   
 ## QA Pending
 * Fix Synscan protocol processing as it appears not to use J2000 epoch
-* Eliminate need to keep Mobile app running, Keepalive 525 and 518 Exploration
-* Stellarium resource issue, hangs. Need to test wifi drops while Stellarium connected
 * Extend Troubleshooting Guide with any Beta Test feedback.
-* Explore BP log file on its SD Card
   
 ## Testing Pending
 * Testing on Raspbery Pi
@@ -34,6 +31,9 @@
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* Eliminate need to keep Mobile app running
+* Stellarium resource issue - likely fps issue check stellarium config.ini
+* Explore BP log file on its SD Card
 * Nina occasionally reports Connection close uneccesarily to ABP.
 * Change Sync to optionally calibrate compass
 * Change Sync to include two point models 0 = Alt/Az Offset, 1 = RA/Dec Offset
