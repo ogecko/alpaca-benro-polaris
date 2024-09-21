@@ -38,7 +38,7 @@ On MacOS the minimal tested version is `3.9.6`
 Start the Alpaca Benro Polaris driver with the following command from within the installation directory:
 
 ```
-python3 driver\main.py
+python3 driver/main.py
 ```
 
 Before you do, though, you'll need to do the following:
