@@ -730,11 +730,9 @@ class Polaris:
             await self.send_msg(f"1&523&3&axis:{axis};#")
 
     async def send_cmd_compass_alignment(self, angle:float = None):
-        if not angle:
-            a_az = self._azimuth
-            compass = round(a_az - 180) % 360
-        else:
-            compass = round(angle - 180) % 360
+        # use angle provided or assume synced ASCOM azimuth
+        a_az = angle if angle else self._azimuth
+        compass = (a_az - 180.0) % 360
         lat = self._sitelatitude
         lon = self._sitelongitude
         self._adj_sync_azimuth = 0
