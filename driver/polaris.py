@@ -766,11 +766,17 @@ class Polaris:
         msg = f"1&808&2&type:0;#"
         await self.send_msg(msg)
 
+    async def send_cmd_520(self):
+        if Config.log_polaris:
+            self.logger.info(f"->> Polaris: 520 Position Updates request")
+        msg = f"1&520&2&state:1;#"
+        await self.send_msg(msg)
 
     async def polaris_init(self):
         self.logger.info("Polaris communication init...")
         ret_dict = await self.send_cmd_query_current_mode()
         await self.send_cmd_808()
+        await self.send_cmd_520()
         if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
             if 'track' in ret_dict and int(ret_dict['track']) == 3:
                 # Polaris is in astro mode but alignment not complete
