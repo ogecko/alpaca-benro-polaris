@@ -125,12 +125,12 @@ Unfortunately, Stellarium Desktop does not include native Alpaca support. You mu
 14. Click the `Alpaca` tab on the ASCOM Telescope Chooser dialog box.
 15. Click `Enable Discovery` from the Alpaca tab
 16. Click `Discover Now` from the Alpaca tab
-17. For a local AAPB, Choose `Benro Polaris` from the drop down-menu, then click `OK`.
-18. For a remote AAPB, Click `Create Alpaca Driver (Admin)` from the drop-down.
+17. For a local APB, Choose `Benro Polaris` from the drop down-menu, then click `OK`.
+18. For a remote APB, Click `Create Alpaca Driver (Admin)` from the drop-down.
     a. Click `Yes` for  User Account Control.
     b. Enter the name `Benro Polaris`, then click `OK`.
     c. Click `Properties` on the ASCOM Telescope Chooser dialog box.
-    d. Change the Remote Device Host Name/IP address (`127.0.0.1` for Loopback)
+    d. Change the Remote Device Host Name/IP address (`127.0.0.1` when running ABP on same machine as Stellarium, otherwise enter the IP address of the machine running ABP (dont use `192.168.0.x`).
     e. Change the Alpaca Port to `5555`.
     f. Click `OK`.
 19.  Click `OK` on ASCOM Telescope chooser dialog.
