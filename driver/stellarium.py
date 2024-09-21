@@ -350,12 +350,15 @@ async def process_protocol(logger, data, writer):
 
 async def stellarium_handler(logger, reader, writer):
     while True:
-        data = await reader.read(256)
-        if not data:
+        try: 
+            data = await reader.read(256)
+            if not data:
+                break
+            await process_protocol(logger, data, writer)
+        except Exception as e:
+            logger.error(f"==ERROR== Network connection to Stellarium lost. {e}")
             break
-        await process_protocol(logger, data, writer)
 
-    
 async def stellarium_telescope(logger, telescope_ip_address, telescope_port):    
     logger.info(f"==STARTUP== Serving Stellarium Telescope on {telescope_ip_address}:{telescope_port}")
 
