@@ -19,6 +19,10 @@ To leverage more of the capabilities of the Alpaca Benro Polaris Driver, I'd rec
 
 ![Hardware Architecture](images/abp-hardware3.png)
 
+You can control everything from an iPad or Phone connected to your Home Wifi or NinaAir Hotspot. The iPad or Phone would be running (a) StellariumPLUS connecting to the Driver, and (b) a Mobile Remote Desktop App connecting to the Mini-PC to control Nina.
+
+Alternatively you could use a Desktop or Laptop to do the same thing. The Desktop or Laptop would be running (a) Stellarium Desktop connecting to the Driver, and (b) Remote Desktop connecting to the Mini-PC to control Nina.
+
 The mini-PC should be small, fan-less, fast, and power efficient. This way, you can mount the mini-PC on your tripod, it won't cause any vibrations, it can store and process your images, and it can run for a whole night on a battery. I'd recommend the [MeLE Mini PC Quieter 4C](https://www.amazon.com/MeLE-Mini-Quieter-4C-Astrophotography/dp/B0CP3YL6J7) (only around US$200 from Amazon on sale). See Cuiv's review of the [Quieter 4C Mini-PC](https://www.youtube.com/watch?app=desktop&v=j8lcDyw1toQ). 
 
 
