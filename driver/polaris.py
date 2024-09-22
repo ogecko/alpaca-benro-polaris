@@ -494,11 +494,13 @@ class Polaris:
                 await asyncio.sleep(0.05)
 
     # Parse a buffer returning a matched (cmd, args, remainingbuffer) or a cleared remaining buffer (False, False, "")
-    def parse_msg(self, msg):
-        m = self._polaris_msg_re.match(msg)
+    def parse_msg(self, buffer):
+        m = self._polaris_msg_re.match(buffer)
         if m:
-            return (m.group(1), m.group(2), msg[len(m.group(0)):])
+            return (m.group(1), m.group(2), buffer[len(m.group(0)):])
         else:
+            if Config.log_polaris:
+                self.logger.info(f"<<- Polaris: Unmatched msg: {buffer}")
             return (False, False, "")
 
     def polaris_parse_args(self, args_str):

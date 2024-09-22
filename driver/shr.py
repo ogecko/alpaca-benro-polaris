@@ -279,6 +279,10 @@ def getNextTransId() -> int:
 # -------------------------------
 # Number conversion functions
 # -------------------------------
+def bytes2hexascii(data):
+    s_hex = ' '.join(('0'+hex(x)[2:])[-2:] for x in data)
+    s_ascii = ''.join(chr(x) if 32 <= x <= 126 else '.' for x in data)
+    return f"{s_hex}: {s_ascii}"
 
 def dec2dms(dd):
    is_positive = dd >= 0

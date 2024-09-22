@@ -50,7 +50,7 @@ import time
 from config import Config
 from shr import DeviceMetadata
 from datetime import datetime
-from shr import dec2dms,rad2deg,rad2hr,hr2rad,deg2rad
+from shr import dec2dms,rad2deg,rad2hr,hr2rad,deg2rad,bytes2hexascii
 import ephem
 import math
 
@@ -178,11 +178,6 @@ def bytes2radect(data):
     ra = (24*ra)/0x100000000
     dec = (90*dec)/0x40000000
     return (ra, dec, t)
-
-def bytes2hexascii(data):
-    s_hex = ' '.join(('0'+hex(x)[2:])[-2:] for x in data)
-    s_ascii = ''.join(chr(x) if 32 <= x <= 126 else '.' for x in data)
-    return f"{s_hex}: {s_ascii}"
 
 #____________Low Level Comms_____________
 
