@@ -16,7 +16,7 @@
 * Vladimir Vyskocil (PCCGG) - for the MacOS testing and support for example, and Raspberry Pi maybe.  ZWO ASI 585 MC 
 * Spiderx01 (William Siers) (PCCG) - SurfacePC, Mini-PC
 * 5x5Stuido (John Harrison) (PCCGG) - Happy to beta test,, Pentax K1 - Nikon Z6 - android (Confirmed added to Github)
-* bakermanz (RBA) (PCCGG) - So if you need a Beta tester for Mac, please feel free to give me a shout. Mac (using Codeweaver's Crossover) 
+* bakermanz (Mark) (PCCGG) - So if you need a Beta tester for Mac, please feel free to give me a shout. Mac (using Codeweaver's Crossover) 
 * Ladislav (Ladi Slav) (PCCGG) - I am happy to help with Beta testing on Mac OS.
 * saltyminty (Mingyang Wang) (PCCGG) -  I was wondering if I could join the alpaca beta testing? 
 * hqureshi79 (Humayun Qureshi) (Kickstarter)- would love to join beta testing.
@@ -122,19 +122,16 @@ TBD
 
 
 
-# bakermanz (RBA)
+# bakermanz (Mark)
 ## Test Environment
 * Location: Auckland, New Zealand
 * Optics: Nikon Z8 (z14-24mm F2.8)
 * Mount: Benro Polaris
 * ABP Driver: Mac (Apple M1 Silicon chipset)
-* ABP Driver: older Mac (Intel chipset), I’ve installed Windows 10 Home (OS
-build 19045.2965) which can be used from the initial boot up - enabling the
-Mac to effectively operate like a Windows PC (unsuccessful - two continual
-360 degree rotations of the Benro Polaris)
+* ABP Driver: older Mac (Intel chipset), I’ve installed Windows 10 Home (OS build 19045.2965) which can be used from the initial boot up - enabling the Mac to effectively operate like a Windows PC (unsuccessful)
 * ABP Driver + Nina Platform (software): Mac (Apple M1 Silicon chipset) using the Codeweavers Crossover (WINE application) (unsuccessful as each
 program can only be run in isolation)
-* Siril + Stellarium Platform:
+* StellariumPLUS Platform: iPhone 15 Pro Max (IOS v17.6.1)
   
 ## Test coverage
 Pentax K1 - Nikon Z6 - android
