@@ -103,9 +103,13 @@ I want to thank all the 96 [Kickstarter Project Backers](https://www.kickstarter
 * Everyone who posted feedback on the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755).
 * All the words of encouragement kept this project going  - eg. Just wow!, So much of this yes, Love it, This is a cool project, Would be awesome, Yes yes please, I'm all in, Absolute game changer, Great, Please make this work, Very exciting, Wow Wonderful, 100% Super enthusiastic about this, This is absolutely wicked, Sounds Great, Awesome initiative, Amazing work, Most certainly very worthwhile, Bring it on !!, Keeping a bllodshot eye on this thread!
 
-## Organisations
+## Organisations and Services
 * Benro - for creating and distributing such great products, including the Benro Polaris.
 * Napkin AI - for making it so easy to create all the diagrams.
+* Copilot AI - for attempting to help with coding.
+* GitHub - for hosting git and providing many vanilla dev support tools.
+* Kickstarter - for helping so many creatives.
+* Grammarly - for reviewing and editing the documentation.
 
 And finaly, just a brief note about risks....
 
