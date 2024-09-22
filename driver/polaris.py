@@ -460,42 +460,46 @@ class Polaris:
         self._altitude = a_alt
         self._azimuth = a_az
 
-        if Config.sync_pointing_model==0 and Config.sync_compass_alignment:
-            self.logger.info(f"->> Polaris: SYNC Compass Align Az {dec2dms(a_az)}")
-            await self.send_cmd_compass_alignment(a_az)
+        if Config.sync_pointing_model==0 and Config.sync_3star_alignment:
+            self.logger.info(f"->> Polaris: SYNC Star Align   RA  {dec2dms(a_ra)} Dec {dec2dms(a_dec)}")
+            self.logger.info(f"->> Polaris: SYNC Star Align   Alt {dec2dms(a_alt)} Az  {dec2dms(a_az)}")
+            self.logger.info(f"->> Polaris: SYNC Curr Align   Alt {dec2dms(p_alt)} Az  {dec2dms(p_az)}")
+            # await self.send_cmd_compass_alignment(a_az)
+            await self.send_cmd_star_alignment(a_alt, a_az)
 
         return
 
     async def read_msgs(self):
         buffer = ""
         while True:
-            data = None
+            # read protocol from Polaris, adding it to the buffer
             if self._reader:
                 data = await self._reader.read(1024)
-                    
+                if data:
+                    buffer += data.decode()
+
             # raise any subtask exceptions so polaris.client can pick them up
             if  self._task_exception:
                 raise self._task_exception
                    
-            if data:
-                buffer += data.decode()
-                parse_result = self.parse_msg(buffer)
-                if parse_result:
-                    buffer = parse_result[0]
-                    cmd = parse_result[1]
+            # parse all the messages in the buffer
+            while buffer:
+                cmd, args, buffer = self.parse_msg(buffer)
+                if cmd:
                     if Config.log_polaris_protocol and not((cmd == "518" or cmd == "284" or cmd == "525") and Config.supress_polaris_frequent_msgs):
-                        self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{parse_result[2]}#')
-                    self.polaris_parse_cmd(cmd, parse_result[2])
+                        self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
+                    self.polaris_parse_cmd(cmd, args)
             else:
                 # dont overload the platform trying to read data from polaris too quickly
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.05)
 
+    # Parse a buffer returning a matched (cmd, args, remainingbuffer) or a cleared remaining buffer (False, False, "")
     def parse_msg(self, msg):
         m = self._polaris_msg_re.match(msg)
         if m:
-            return (msg[len(m.group(0)):],m.group(1), m.group(2))
+            return (m.group(1), m.group(2), msg[len(m.group(0)):])
         else:
-            return False
+            return (False, False, "")
 
     def polaris_parse_args(self, args_str):
         # chop the last ";" and split
@@ -565,7 +569,8 @@ class Polaris:
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
         elif cmd == "519":
             arg_dict = self.polaris_parse_args(args)
-            self._response_queues[cmd].put_nowait(arg_dict)
+            if cmd in self._response_queues:
+                self._response_queues[cmd].put_nowait(arg_dict)
 
         # return result of UNKNOWN command SP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361d0000265a ;]
         elif cmd == "525":
@@ -676,8 +681,8 @@ class Polaris:
         await self.send_msg(f"1&{cmd}&3&state:{state};speed:0;#")
         await self._response_queues[cmd].get() 
 
-    # Abort Sloew
-    #eg state:0;yaw:0.0;pitch:0.0;lat:-33.655422;track:0;speed:0;lng:151.12244;
+    # Abort Slew
+    # eg state:0;yaw:0.0;pitch:0.0;lat:-33.655422;track:0;speed:0;lng:151.12244;
     async def send_cmd_goto_abort(self):
         self._lock.acquire()
         self._slewing = False
@@ -770,6 +775,19 @@ class Polaris:
         lon = self._sitelongitude
         self._adj_sync_azimuth = 0
         await self.send_msg(f"1&527&3&compass:{compass};lat:{lat};lng:{lon};#")
+
+    async def send_cmd_star_alignment(self, a_alt:float, a_az:float):
+        lat = self._sitelatitude
+        lon = self._sitelongitude
+        await self.send_cmd_change_tracking_state(False)
+        await self.send_msg(f"1&530&3&step:1;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
+        await asyncio.sleep(2)
+        await self.send_msg(f"1&530&3&step:2;yaw:{a_az};pitch:{a_alt};lat:{lat};num:1;lng:{lon};#")
+        await asyncio.sleep(0.2)
+        await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
+        self._adj_sync_azimuth = 0
+        self._adj_sync_altitude = 0
+
 
     async def send_cmd_park(self):
         if Config.log_polaris:

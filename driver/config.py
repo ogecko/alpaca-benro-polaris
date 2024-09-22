@@ -87,7 +87,7 @@ class Config:
     aiming_adjustment_alt: float = get_toml('device', 'aiming_adjustment_alt')
     aim_max_error_correction: float = get_toml('device', 'aim_max_error_correction')
     sync_pointing_model: int = get_toml('device', 'sync_pointing_model')
-    sync_compass_alignment: int = get_toml('device', 'sync_compass_alignment')
+    sync_3star_alignment: int = get_toml('device', 'sync_3star_alignment')
     # ---------------
     # Logging Section
     # ---------------

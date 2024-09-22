@@ -6,7 +6,6 @@
 * 3+ Point Alignment - Better understand protocol, Keep record of plate-solve syncs, calc compass and pointing alignment.
   
 ## QA Pending
-* Fix Gymball/AHRS position update lag (appears after extended use, restart fixes)
 * Extend Troubleshooting Guide with any Beta Test feedback.
   
 ## Testing Pending
@@ -17,7 +16,6 @@
 * Open Beta testing
 
 ## Requests for Benro to assist (in order of priority)
-* Protocol required to keep wifi alive
 * Protocol required on BT to establish wifi
 * Changes to allow minor MoveAxis while sidereal tracking enabled, without backlash - for guiding
 * Changes to allow integration of 3 point alignment
@@ -30,6 +28,7 @@
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* Fix position lag after extended use of Stellarium (due to remaining buffer messages growing and not being processed)
 * Fix Synscan protocol processing as it appears not to use J2000 epoch (effects StellariumPLUS GOTO Accuracy)
 * AbortSlew - Review BP Log and implement
 * Change Final Release Version Number
