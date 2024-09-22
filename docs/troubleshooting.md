@@ -15,7 +15,16 @@ Sometimes the BP App cannot search and connect to the BP over Bluetooth or Wifi.
 * Fully exit close the BP App on your phone.
 * Reset all Bluetooth and Wifi communications on your phone. Easiest way to do this is to toggle `Airplane/Flight Mode`  on and off. 
 * Restart the BP App and it should find and connect to your BP.
-   
+
+### B3 - Polaris has poor quality Sidereal Tracking
+As an Alt/Az mount, the leveling of the Benro Polaris Tripod Head is a critical factor in the accuracy of your star tracking. To adjust the Polaris so it is as level as possible：
+* Double-tap both virtual joysticks on the BP app to center the Polaris axes.
+* Place a circular spirit level on top of the Astro Kit's quick-release plate and adjust the tripod to achieve a level of ±0.3 degrees or better.
+* A [HACCURY Luminous 1° Round level bubble](https://www.aliexpress.com/item/4000457838875.html) can help you achieve accurate leveling. 
+* A [Sunwayfoto DYH-68B Leveling Base](https://www.amazon.com/Sunwayfoto-DYH-68B-Profile-Leveling-Butterfly/dp/B09ZT3HVMN/) and [LEOFOTO
+QS-50K 50mm Quick Link Set](https://www.amazon.com/Leofoto-QS-50K-Plates-Tripod-Release/dp/B0981C36RX) can ease the leveling process AND as act as a standoff to provide extra clearance for the Benro Polaris knobs!
+  
+
 ### C1 - Cannot see "`communications init... done`" in the log.
 * Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
 * Confirm the Benro Polaris is in Astro Mode.

@@ -45,8 +45,8 @@ C:\Users\Nina\Documents\alpaca-benro-polaris-main> python driver\main.py
 Before you do, though, you'll need to do the following:
 1. Setup your Benro Polaris tripod head, camera, mini-pc, and power.
 2. Remove your lens cap (I often forget this step!).
-3. Level the Benro Polaris as accurately as possible (important). 
-4. Turn on the Benro Polaris (how many times doesn't it turn on?).
+3. Level the Benro Polaris as accurately as possible (important. See [Troubleshooting B3](./troubleshooting.md)). 
+4. Turn on the Benro Polaris (how many times doesn't it turn on? See [Troubleshooting B1](./troubleshooting.md)).
 5. Using the Benro Polaris App, connect and change to `Astro Mode`.
 6. Start the `Calibrate Compass` and tap `Confirm`.
 7. Select a star to align with, tap `Goto`, wait, then tap `Confirm`. 
