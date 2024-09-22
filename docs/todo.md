@@ -7,7 +7,6 @@
   
 ## QA Pending
 * Fix Gymball/AHRS position update lag (appears after extended use, restart fixes)
-* Fix Synscan protocol processing as it appears not to use J2000 epoch (effects StellariumPLUS GOTO Accuracy)
 * Extend Troubleshooting Guide with any Beta Test feedback.
   
 ## Testing Pending
@@ -31,6 +30,7 @@
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* Fix Synscan protocol processing as it appears not to use J2000 epoch (effects StellariumPLUS GOTO Accuracy)
 * AbortSlew - Review BP Log and implement
 * Change Final Release Version Number
 * Change README.md with Kickstarter backers
