@@ -781,7 +781,8 @@ class Polaris:
     async def send_cmd_star_alignment(self, a_alt:float, a_az:float):
         lat = self._sitelatitude
         lon = self._sitelongitude
-        await self.send_cmd_change_tracking_state(False)
+        if self._tracking:
+            await self.send_cmd_change_tracking_state(False)
         await self.send_msg(f"1&530&3&step:1;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
         await asyncio.sleep(2)
         await self.send_msg(f"1&530&3&step:2;yaw:{a_az};pitch:{a_alt};lat:{lat};num:1;lng:{lon};#")
@@ -790,8 +791,9 @@ class Polaris:
         self._adj_sync_azimuth = 0
         self._adj_sync_altitude = 0
 
-
     async def send_cmd_park(self):
+        if self._tracking:
+            await self.send_cmd_change_tracking_state(False)
         if Config.log_polaris:
             self.logger.info(f"->> Polaris: PARK all 3 axis")
         await self.send_cmd_reset_axis(1)
