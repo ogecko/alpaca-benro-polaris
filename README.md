@@ -9,7 +9,7 @@ Are you interested in trying your hand at amateur astrophotography? Invest in a 
 # Project Purpose
 The [Benro Polaris](https://www.benro-polaris.com/) tripod head is a great product. It's manufactured to a high standard, comes in a compact and sturdy design, and its mobile App has many easy-to-use features. Although its not cheap, it is cheaper than a modern telescope mount like the [ZWO AM3 Harmonic Equatorial Mount](https://www.zwoastro.com/product/zwo-am3-harmonic-equatorial-mount/). The Polaris can also be used for other photography projects beyond astro-photography.
 
-That said, the mobile App and firmware updates appear to have slowed down. Many of the promised features from the original [Kickstarter](https://www.kickstarter.com/projects/benropolaris/polaris-smart-electric-tripod-head) project haven't materialised. We are still waiting for 3 Point Alignment, a larger catalogue of deep sky objects, linking with planetarium software, improved sequencing of image capture, plate solving and framing. The product has more potential if only we could enable it.
+That said, the mobile App and firmware updates appear to have slowed down. Many of the promised features from the original [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f)  haven't materialised. We are still waiting for 3 Point Alignment, a larger catalogue of deep sky objects, linking with planetarium software, improved sequencing of image capture, plate solving and framing. The product has more potential if only we could enable it.
 
 That is what this project is all about. The intention is to open up the Benro Polaris with an HTTP-based [REST API](https://www.ibm.com/topics/rest-apis) that will allow other applications to leverage this great platform. 
 
@@ -58,7 +58,8 @@ I'd like to thank the following people who helped make this project a reality:
 * ASCOM Initiative Members - for their tireless standards work to improve astronomy  device  compatibility. 
 
 ## Beta Testers
-The Beta Testers helped improve the documentation and final quality of the software with their perserverence and feedback. I greatly appreciate their encouragement and testing they performed.
+The Beta Testers' perseverance and feedback helped improve the documentation and final quality of the software. I greatly appreciate their encouragement and the testing they performed.
+
 * Vladimir Vyskocil 
 * Spiderx01 (William Siers) 
 * 5x5Stuido (John Harrison) 
@@ -68,12 +69,12 @@ The Beta Testers helped improve the documentation and final quality of the softw
 * hqureshi79 (Humayun Qureshi) 
 * Chris-F2024 
 * Cosimo (Cosimo Streppone) 
-* RjhNZ (Richard Healey) (PCCGG) 
+* RjhNZ (Richard Healey)
 * Matt17463 (Matthew McDaniel)
 * Cynical Sarge (Andrew Sargent)
 
 ## Kickstarter Backers
-I'd like to thank all the 96 Kickstarter Project Backers. I'd especially like to recognise all the backers who pledged Game Changing and Thats Awesome amounts. PS. Let me know if you want to be anonymous.
+I want to thank all the 96 [Kickstarter Project Backers](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver/community?ref=9a035f), especially those who pledged Game-Changing and That's Awesome amounts. I will keep the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f) open to continue funding ongoing support and making enhancements to this project. PS. Let me know if you want to be anonymous.
 
 |  GAME CHANGER | Thats Awesome | Thats Awesome | Thats Awesome |
 |:---:|:---:|:---:|:---:|
