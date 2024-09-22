@@ -4,7 +4,6 @@
 
 ## Development Pending
 * 3+ Point Alignment - Better understand protocol, Keep record of plate-solve syncs, calc compass and pointing alignment.
-* AbortSlew - Review BP Log and implement
   
 ## QA Pending
 * Fix Gymball/AHRS position update lag (appears after extended use, restart fixes)
@@ -32,6 +31,7 @@
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* AbortSlew - Review BP Log and implement
 * Change Final Release Version Number
 * Change README.md with Kickstarter backers
 * Eliminate need to keep Mobile app running

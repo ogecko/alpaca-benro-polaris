@@ -121,7 +121,6 @@ class Polaris:
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
-
         #
         # Polaris site/device location variables
         #
@@ -523,8 +522,9 @@ class Polaris:
             if cmd in self._response_queues:
                 self._response_queues[cmd].put_nowait(arg_dict)
 
-        # return result of POSITION request {} 
+        # return result of POSITION update from AHRS {} 
         elif cmd == "518":
+            dt_now = datetime.datetime.now()
             arg_dict = self.polaris_parse_args(args)
             p_az = float(arg_dict['compass'])
             p_alt = -float(arg_dict['alt'])
@@ -561,8 +561,8 @@ class Polaris:
                 e_ra = (t_ra - a_ra)*3600*360/24                                                # Error Right Ascention (arc seconds)
                 e_dec = (t_dec - a_dec)*3600                                                    # Error Declination (arc seconds)
                 if not self._performance_data_start_timestamp:
-                    self._performance_data_start_timestamp = datetime.datetime.now()
-                time = (datetime.datetime.now() - self._performance_data_start_timestamp).total_seconds()
+                    self._performance_data_start_timestamp = dt_now
+                time = (dt_now - self._performance_data_start_timestamp).total_seconds()
                 self.logger.info(f",'DATA1',{time:.3f},{a_track},{a_slew},{a_goto},{t_ra:.7f},{t_dec:.7f},{a_ra:.7f},{a_dec:.7f},{a_az:.7f},{a_alt:.7f},{e_ra:.3f},{e_dec:.3f}")
 
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
@@ -622,6 +622,19 @@ class Polaris:
             if Config.log_polaris:
                 self.logger.info(f"<<- Polaris: WIFI status changed: {cmd} {arg_dict}")
 
+        # return result of Connection request result {'ret': '0'}
+        elif cmd == "808":
+            arg_dict = self.polaris_parse_args(args)
+            if Config.log_polaris and Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: Connection request result: {cmd} {arg_dict}")
+
+        # return result of Position Updaten request result {'ret': '1'}
+        elif cmd == "520":
+            arg_dict = self.polaris_parse_args(args)
+            if Config.log_polaris and Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: Position Update request result: {cmd} {arg_dict}")
+
+
         # return result of unrecognised msg
         else:
             if Config.log_polaris and not Config.log_polaris_protocol:
@@ -665,6 +678,23 @@ class Polaris:
         empty_queue(self._response_queues[cmd])
         await self.send_msg(f"1&{cmd}&3&state:{state};speed:0;#")
         await self._response_queues[cmd].get() 
+
+    # Abort Sloew
+    #eg state:0;yaw:0.0;pitch:0.0;lat:-33.655422;track:0;speed:0;lng:151.12244;
+    async def send_cmd_goto_abort(self):
+        self._lock.acquire()
+        self._slewing = False
+        self._gotoing = False
+        self._lock.release()
+        # log the command
+        if Config.log_polaris:
+            self.logger.info(f"->> Polaris: GOTO ABORT")
+        arg_dict = {'ret': '-1', 'track': '-1'}
+        cmd = '519'
+        msg = f"1&{cmd}&3&state:0;yaw:0.0;pitch:0.0;lat:{self._sitelatitude:.5f};track:0;speed:0;lng:{self._sitelongitude:.5f};#"
+        await self.send_msg(msg)
+        self._response_queues[cmd].put_nowait(arg_dict)
+        self._response_queues[cmd].put_nowait(arg_dict)
 
     # Assumes polaris altaz
     async def send_cmd_goto_altaz(self, alt, az, istracking = True):
@@ -725,8 +755,9 @@ class Polaris:
         if Config.log_polaris:
             self.logger.info(f"<<- Polaris: GOTO slew complete")
 
-        # log the result of the goto
-        self.aim_altaz_log_result()
+        # log the result of the goto if it was NOT aborted
+        if not (ret_dict["ret"] == '-1'):
+            self.aim_altaz_log_result()
 
         return ret_dict
 
@@ -761,13 +792,13 @@ class Polaris:
         return ret_dict
 
     async def send_cmd_808(self):
-        if Config.log_polaris:
+        if Config.log_polaris and Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 808 Connection request")
         msg = f"1&808&2&type:0;#"
         await self.send_msg(msg)
 
     async def send_cmd_520(self):
-        if Config.log_polaris:
+        if Config.log_polaris and Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 520 Position Updates request")
         msg = f"1&520&2&state:1;#"
         await self.send_msg(msg)
@@ -785,7 +816,7 @@ class Polaris:
             s_lon = self._sitelongitude
             self.logger.info("Polaris communication init... done")
             self.logger.info(f'Site lat = {s_lat} ({dec2dms(s_lat)}) | lon = {s_lon} ({dec2dms(s_lon)}).')
-            self.logger.info(f'Change site_latitude and site_longitude in config.toml or use Nina/StellariumPLUS to sync.')
+            self.logger.warn(f'Change site_latitude and site_longitude in config.toml or use Nina/StellariumPLUS to sync.')
             self._lock.acquire()
             self._connected = True
             self._task_errorstr = ''
