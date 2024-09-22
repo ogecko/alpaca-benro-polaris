@@ -172,12 +172,27 @@ def synScan24bit_to_radec(byte_array):
     return rad2hr(radec.ra), rad2deg(radec.dec)
 
 def bytes2radect(data):
-    t = int.from_bytes(data[4:11], byteorder='little')
+    t = int.from_bytes(data[4:12], byteorder='little')
     ra = int.from_bytes(data[12:16], byteorder='little')
     dec = int.from_bytes(data[16:20], byteorder='little', signed=True)
     ra = (24*ra)/0x100000000
     dec = (90*dec)/0x40000000
     return (ra, dec, t)
+    
+def radec2bytes(ra, dec):
+    data = bytearray(26)
+    # Message lenght
+    data[0] = 26
+    # Current time
+    t = int(datetime.now().timestamp())
+    data[4:12] = t.to_bytes(8, 'little')
+    # Converted RA
+    ra = int(ra * 0x100000000 / 24)
+    data[12:16] = ra.to_bytes(4, 'little')
+    # Converted DEC
+    dec = int(dec * 0x40000000 / 90 )
+    data[16:20] = dec.to_bytes(4, 'little', signed=True)
+    return data
 
 #____________Low Level Comms_____________
 
@@ -225,6 +240,7 @@ async def process_protocol(logger, data, writer):
         msg = bytearray([data[1],ord('#')])
         telescope.polaris.radec_sync_reset()
         logger.info(f"<<- Stellarium: SynScan ECHO Command 'K{chr(data[1])}' | Reset SyncOffset to (RA 0 Dec 0)")
+        telescope.polaris.stellarium_binary_protocol = False
         await stellarium_send_msg(logger, writer, msg)
 
     # SynSCAN Get Slewing state 'L' | Reply “0#" or "1#"
@@ -372,6 +388,7 @@ async def process_protocol(logger, data, writer):
             logger.error(f"<<- Stellarium: Binary GOTO Dec invalid {bytes2hexascii(data)}")
         else:
             logger.info(f"<<- Stellarium: Binary GOTO command Ra={ra} Dec={dec} t={t}")
+            telescope.polaris.stellarium_binary_protocol = True
             if telescope.polaris.connected:
                 await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
 
