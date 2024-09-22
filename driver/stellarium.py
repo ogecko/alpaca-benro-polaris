@@ -281,7 +281,7 @@ async def process_protocol(logger, data, writer):
 
     # SynSCAN Get precise RA/DEC 'e' | Reply “34AB0500,12CE0500#” 
     elif data[0]==0x65:               
-        await asyncio.sleep(0.2)            # dont let Stellarium PLUS get too carried away
+        await asyncio.sleep(0.1)            # dont let Stellarium PLUS get too carried away
         if not Config.supress_stellarium_polling_msgs:              
             logger.info(f"<<- Stellarium: SynScan Get RA/DEC Command 'e'")
         msg = radec_to_SynScan24bit(telescope.polaris.rightascension, telescope.polaris.declination)

@@ -317,10 +317,7 @@ class Polaris:
     async def _every_15s_send_keepalive(self):
         while True:
             try: 
-                msg = "1&284&2&-1#"
-                if Config.log_polaris_protocol:
-                    self.logger.info(f'->> Polaris: send_keepalive: {msg}')
-                await self.send_msg(msg)
+                await self.send_cmd_query_current_mode_async()
                 await asyncio.sleep(15)
             except Exception as e:
                 self._task_exception = e
@@ -474,7 +471,7 @@ class Polaris:
         while True:
             data = None
             if self._reader:
-                data = await self._reader.read(256)
+                data = await self._reader.read(1024)
                     
             # raise any subtask exceptions so polaris.client can pick them up
             if  self._task_exception:
@@ -491,7 +488,7 @@ class Polaris:
                     self.polaris_parse_cmd(cmd, parse_result[2])
             else:
                 # dont overload the platform trying to read data from polaris too quickly
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.01)
 
     def parse_msg(self, msg):
         m = self._polaris_msg_re.match(msg)
@@ -791,23 +788,65 @@ class Polaris:
         ret_dict = await self._response_queues[cmd].get()
         return ret_dict
 
+    async def send_cmd_query_current_mode_async(self):
+        if Config.log_polaris and Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 284 Query Mode request")
+        msg = f"1&284&2&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_799(self):
+        if Config.log_polaris and Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 799 request")
+        msg = f"1&799&2&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_296(self):
+        if Config.log_polaris and Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 296 request")
+        msg = f"1&296&2&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_303(self):
+        if Config.log_polaris and Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 303 request")
+        msg = f"1&303&2&-1#"
+        await self.send_msg(msg)
+
     async def send_cmd_808(self):
         if Config.log_polaris and Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 808 Connection request")
         msg = f"1&808&2&type:0;#"
         await self.send_msg(msg)
 
-    async def send_cmd_520(self):
+    async def send_cmd_520_position_updates(self, state:bool=True):
+        state = "1" if state else "0"
         if Config.log_polaris and Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 520 Position Updates request")
-        msg = f"1&520&2&state:1;#"
+        msg = f"1&520&2&state:{state};#"
         await self.send_msg(msg)
+
+    async def send_cmd_524(self):
+        if Config.log_polaris and Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 524 request")
+        msg = f"1&524&3&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_305(self):
+        if Config.log_polaris and Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 305 request")
+        msg = f"1&305&2&step:2;#"
+        await self.send_msg(msg)
+
+    async def send_cmd_780(self):
+        if Config.log_polaris and Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 780 request")
+        msg = f"1&780&2&-1#"
+        await self.send_msg(msg)
+
 
     async def polaris_init(self):
         self.logger.info("Polaris communication init...")
         ret_dict = await self.send_cmd_query_current_mode()
-        await self.send_cmd_808()
-        await self.send_cmd_520()
         if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
             if 'track' in ret_dict and int(ret_dict['track']) == 3:
                 # Polaris is in astro mode but alignment not complete
@@ -817,6 +856,14 @@ class Polaris:
             self.logger.info("Polaris communication init... done")
             self.logger.info(f'Site lat = {s_lat} ({dec2dms(s_lat)}) | lon = {s_lon} ({dec2dms(s_lon)}).')
             self.logger.warn(f'Change site_latitude and site_longitude in config.toml or use Nina/StellariumPLUS to sync.')
+            # await self.send_cmd_799()
+            # await self.send_cmd_296()
+            # await self.send_cmd_303()
+            await self.send_cmd_808()
+            await self.send_cmd_520_position_updates(True)
+            # await self.send_cmd_524()
+            # await self.send_cmd_305()
+            # await self.send_cmd_780()
             self._lock.acquire()
             self._connected = True
             self._task_errorstr = ''
