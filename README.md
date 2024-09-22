@@ -59,19 +59,41 @@ I'd like to thank the following people who helped make this project a reality:
 
 ## Beta Testers
 * Vladimir Vyskocil 
-* 5x5Stuido
-* Bakermanz
-* Chris-F2024
-* Humayun Qureshi
-* Spiderx01
-* Ladislav
-  
+* Spiderx01 (William Siers) 
+* 5x5Stuido (John Harrison) 
+* bakermanz (Mark) 
+* Ladislav (Ladi Slav) 
+* saltyminty (Mingyang Wang) 
+* hqureshi79 (Humayun Qureshi) 
+* Chris-F2024 
+* Cosimo (Cosimo Streppone) 
+* RjhNZ (Richard Healey) (PCCGG) 
+* Matt17463 (Matthew McDaniel)
+* Cynical Sarge (Andrew Sargent)
 
-## Kickstarter Game Changer Backers
-* To be completed
+## Kickstarter Backers
+I'd like to thank all the 96 Kickstarter Project Backers. I'd especially like to recognise all the backers who pledged Game Changing and Thats Awesome amounts. PS. Let me know if you want to be anonymous.
 
-## Kickstarter That's Awesome Backers
-* To be completed
+|  GAME CHANGER | Thats Awesome | Thats Awesome | Thats Awesome |
+|:---:|:---:|:---:|:---:|
+| **Mack Cameron** | Adrian Squirrell | Cameron Palmer | Mangoe |
+| **Mark Bahu** | Alan Smallbone | Carlo Mascellani | Mark Penberthy |
+| **Peter** | Alessio Zanotti | Charles T. Simet | Max Izod |
+| **Richard Swaim** | Alex Murdoch | Dan Suskin | Michael C |
+| **Simone Chiari** | Alvin Christie | David Powell | Mike Drinkwater |
+| **William Siers** | Amy Kemp | David Proudfoot | Mike Goel |
+|  | Andreas Bichler | Donald Dunbar | Moshe Salama |
+|  | Andrew Roberts | Ed | Nagendra Narayan |
+|  | Baha Baydar | Fernando Villaverde Gaviña | Patryk Lesiecki |
+|  | Bikram Ghosh | Humayun Qureshi | Paul Moulton |
+|  | Bill Lazar | Ian Morgan | Paul Olsavsky |
+|  | Brad Anderson | Ilya Chernikov | Paul Rickwood |
+|  |  | John | Peps Choufme |
+|  |  | James White | Pudeldestodes |
+|  |  | Jonathan Shribman | Richard Healey |
+
+
+
 
 ## User Group Feedback
 * Everyone who posted feedback on the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755).
