@@ -50,7 +50,9 @@ import time
 from config import Config
 from shr import DeviceMetadata
 from datetime import datetime
-from shr import dec2dms
+from shr import dec2dms,rad2deg,rad2hr,hr2rad,deg2rad
+import ephem
+import math
 
 ##########################################
 ####### Stellarium/SynScan Support #######
@@ -135,10 +137,12 @@ def latlon2ABCDEGFGH(latitude, longitude):
 
 
 def radec_to_SynScan24bit(ra_hours, dec_degrees):
+    j2000_coord = ephem.Equatorial(hr2rad(ra_hours), deg2rad(dec_degrees), epoch=ephem.J2000)
+    radec = ephem.Equatorial(j2000_coord, epoch=ephem.now())
     # Convert RA from hours to fraction of a revolution
-    ra_fraction = ra_hours / 24.0
+    ra_fraction = radec.ra / math.pi / 2
     # Convert DEC from degrees to fraction of a revolution
-    dec_fraction = dec_degrees / 360.0 if dec_degrees>=0 else (dec_degrees + 360.0) / 360.0
+    dec_fraction = radec.dec / math.pi / 2 if radec.dec>=0 else (radec.dec + 2*math.pi) / math.pi / 2
     # Convert fractions to 24-bit hexadecimal values
     ra_hex = int(ra_fraction * 16777216)
     dec_hex = int(dec_fraction * 16777216)
@@ -161,10 +165,11 @@ def synScan24bit_to_radec(byte_array):
     # Convert the integers to fractions of a revolution
     ra_fraction = ra_hex / 16777216.0
     dec_fraction = dec_hex / 16777216.0
-    # Convert the fractions to RA in hours and DEC in degrees
-    ra_hours = ra_fraction * 24.0
-    dec_degrees = dec_fraction * 360.0 if dec_fraction < 0.5 else (dec_fraction * 360.0) - 360.0
-    return ra_hours, dec_degrees
+    # Convert the fractions J2000 ra dec
+    now_coord = ephem.Equatorial(ra_fraction*math.pi*2, dec_fraction*math.pi*2, epoch=ephem.now())
+    radec = ephem.Equatorial(now_coord, epoch=ephem.J2000)
+
+    return rad2hr(radec.ra), rad2deg(radec.dec)
 
 def bytes2radect(data):
     t = int.from_bytes(data[4:11], byteorder='little')
