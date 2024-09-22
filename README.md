@@ -50,7 +50,7 @@ A list of [Frequently Asked Questions](./docs/faq.md) is included to help clarif
 I'd like to thank the following people who helped make this project a reality:
 
 ## Technical Expertise
-* Vladimir Vyskocil - for his work on the protocol and demonstrating comms, helping inspire this project.
+* Vladimir Vyskocil - for his significant contribution to the project, work on the protocol, exploring an initial prototype, being a sounding board, and inspiration for this project.
 * Stefan Berg - for creating and maintaining N.i.n.a. 
 * Robert B. Denny - for his work in writing a template for Alpaca drivers everywhere.
 * Steven Byrnes - and the SeeStar_alp driver developers for sharing their great work.
@@ -58,6 +58,7 @@ I'd like to thank the following people who helped make this project a reality:
 * ASCOM Initiative Members - for their tireless standards work to improve astronomy  device  compatibility. 
 
 ## Beta Testers
+The Beta Testers helped improve the documentation and final quality of the software with their perserverence and feedback. I greatly appreciate their encouragement and testing they performed.
 * Vladimir Vyskocil 
 * Spiderx01 (William Siers) 
 * 5x5Stuido (John Harrison) 
