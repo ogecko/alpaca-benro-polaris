@@ -274,7 +274,7 @@ async def process_protocol(logger, data, writer):
 
     # SynSCAN Get Version Command 'V' | Reply 6 decimals in ascii,"#"
     elif data[0]==0x56:
-        version = DeviceMetadata.Version               
+        version = DeviceMetadata.VersionSynScan               
         logger.info(f"<<- Stellarium: SynScan Get VERSION Command 'V' | {version}")
         msg = bytearray(ord(c) for c in version)
         await stellarium_send_msg(logger, writer, msg)

@@ -80,7 +80,8 @@ _bad_title = 'Bad Alpaca Request'
 # Static metadata not subject to configuration changes
 class DeviceMetadata:
     """ Metadata describing the Alpaca Device/Server """
-    Version = '000003'                              # Must be 6 digits for SynScan protocol
+    Version = '1.0.0'              # Alpaca Version Number (based on https://semver.org/)
+    VersionSynScan = '010000'      # Must be 6 digits for SynScan protocol
     Description = 'Alpaca Sample Telescope '
     Manufacturer = 'ASCOM Initiative'
 
