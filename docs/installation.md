@@ -53,13 +53,14 @@ Before you do, though, you'll need to do the following:
 8. Turn on the mini-pc and connect it to your camera via USB.
 9. Using the USB Wifi adapter, connect your mini-PC to the polaris-###### hotspot.
 10. Choose `Connect Automatically` and click `Connect`.
-11. Wait for connection. It should show: `No internet, open` 
+11. Wait for connection. It should show: `No internet, open`. 
     
 <img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
 
+12. If it isnt already, we recommend changing the Polaris Hotspot connection on the Mini-PC to Public Network. From Win11 Network & Internet Settings, click Polaris Wifi Properties, then choose Public Network.
+![Public Network](images/abp-troubleshoot-wifi3.png)
 
-
-IMPORTANT: One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
+13. IMPORTANT: One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
 
 Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
 
