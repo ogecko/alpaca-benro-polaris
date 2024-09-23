@@ -74,9 +74,9 @@ If you don't see the `communications init... done` message then you may want to 
 
 ### Updating the Driver
 To update the Alpaca Benro Polaris Driver to the latest version:
-1. Download the latest [Alpaca Benro Polaris zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/main.zip) from this Github repository.
+1. Download the latest [Alpaca Benro Polaris zip file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/main.zip) from this Github repository.
 2. Stop the driver by selecting its Window and pressing Ctrl+C.
-3. Extract the files, overwriting the old files
+3. Extract the files, overwriting the old files.
 4. Restart the Driver.
 5. If you can complete steps 2-4 within a minute, you won't need to use the BP App to re-establish the Polaris Wifi.
    
