@@ -361,3 +361,6 @@ class AstroModeError(Exception):
 
 class AstroAlignmentError(Exception):
     pass
+
+class WatchdogError(Exception):
+    pass

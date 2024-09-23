@@ -76,7 +76,7 @@ import ephem
 from threading import Lock
 from logging import Logger
 from config import Config
-from exceptions import AstroModeError, AstroAlignmentError
+from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import dec2dms, deg2rad, rad2hr, rad2deg, hr2rad, empty_queue
 
 class Polaris:
@@ -118,6 +118,7 @@ class Polaris:
         self._every_50ms_last_alt = None            # Fast Move counter, last 1s polaris altitude
         self._every_50ms_last_az = None             # Fast Move counter, last 1s polaris azimuth
         self._performance_data_start_timestamp = None # Timestamp for Performance Data logging.
+        self._last_518_timestamp = None             # Timestamp for last 518 Position Update message from Polaris.
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
@@ -227,7 +228,9 @@ class Polaris:
 
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
-        background_keepalive = asyncio.create_task(self._every_15s_send_keepalive())
+        background_watchdog = asyncio.create_task(self._every_2s_watchdog_check())
+        background_watchdog.add_done_callback(self.task_done)
+        background_keepalive = asyncio.create_task(self._every_15s_send_polaris_keepalive())
         background_keepalive.add_done_callback(self.task_done)
         background_fastmove = asyncio.create_task(self.every_50ms_send_message())
         background_fastmove.add_done_callback(self.task_done)
@@ -301,6 +304,12 @@ class Polaris:
                 await asyncio.sleep(15)
                 continue
 
+            except WatchdogError as e:
+                self._task_errorstr = f'==STARTUP== Polaris not communicating. Resetting connection.'
+                logger.error(self._task_errorstr)
+                await asyncio.sleep(2)
+                continue
+
     def task_done(self, task):
         # task.exception raises an exception if the task was cancelled, so only grab it if not cancelled.
         if not task.cancelled():
@@ -314,11 +323,39 @@ class Polaris:
             self._writer.write(msg.encode())
             await self._writer.drain()
 
-    async def _every_15s_send_keepalive(self):
+    async def _every_2s_watchdog_check(self):
         while True:
             try: 
-                await self.send_cmd_query_current_mode_async()
+                # calculate age of last 518 message
+                curr_timestamp = datetime.datetime.now()
+                if not self._last_518_timestamp:
+                    self._last_518_timestamp = curr_timestamp
+                age_of_518 = (curr_timestamp - self._last_518_timestamp).total_seconds()
+
+                # self.logger.info(f'->> Polaris: age_of_518 is {age_of_518}s.')
+                # if we dont have any updates, even after trying to restart AHRS, then reboot the connection
+                if self._connected and age_of_518 > 5:
+                    self._task_exception = WatchdogError("==ERROR==: No position update for over 5s. Rebooting Connection.")
+
+                # if we dont have any updates for over 2s, then restart AHRS.
+                if self._connected and age_of_518 > 2:
+                    self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
+                    await self.send_cmd_520_position_updates(True)
+
+                await asyncio.sleep(2)
+
+            except Exception as e:
+                self._task_exception = e
+                break
+
+
+    async def _every_15s_send_polaris_keepalive(self):
+        while True:
+            try: 
+                if self._connected:
+                    await self.send_cmd_query_current_mode_async()
                 await asyncio.sleep(15)
+
             except Exception as e:
                 self._task_exception = e
                 break
@@ -326,7 +363,7 @@ class Polaris:
     async def every_50ms_send_message(self):
         while True:
             try: 
-                self.every_50ms_counter_check()
+                await self.every_50ms_counter_check()
                 msg = self._every_50ms_msg_to_send
                 if (msg):
                     await self.send_msg(msg)
@@ -335,12 +372,14 @@ class Polaris:
                 self._task_exception = e
                 break
 
-    def every_50ms_counter_check(self):
+    async def every_50ms_counter_check(self):
         self._every_50ms_counter += 1
         # At every log_perf_speed_interval take a measurement
         if self._every_50ms_counter >= Config.log_perf_speed_interval * 1000 / 50:
+
             # reset counter and store timestamps
             self._every_50ms_counter = 0
+
             # if we want to log performance data around speed travelled
             if (Config.log_performance_data == 2):
                 curr_timestamp = datetime.datetime.now()
@@ -528,6 +567,7 @@ class Polaris:
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":
             dt_now = datetime.datetime.now()
+            self._last_518_timestamp = dt_now
             arg_dict = self.polaris_parse_args(args)
             p_az = float(arg_dict['compass'])
             p_alt = -float(arg_dict['alt'])
