@@ -3,10 +3,9 @@
 # Main Todo List of Pending Items to Complete
 
 ## Development Pending
-* 3+ Point Alignment - Better understand protocol, Keep record of plate-solve syncs, calc compass and pointing alignment.
+* None
   
 ## QA Pending
-* Check whether Stellarium protocol handling needs same treatment as Polaris buffer
 * Stellarium Desktop Binary protocol for position updates
 * Develop automated test for drift over movable range of Polaris
 * Extend Troubleshooting Guide with any Beta Test feedback.
@@ -31,6 +30,7 @@
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* N Point Alignment - Sync will optionally re-align Benro Polaris rather than just being within the Driver
 * Add Watchdog to re-enable AHRS or even reboot connection if we dont see any position updates from Polaris
 * Fix position lag after extended use of Stellarium (due to remaining buffer messages growing and not being processed)
 * Fix Synscan protocol processing as it appears not to use J2000 epoch (effects StellariumPLUS GOTO Accuracy)

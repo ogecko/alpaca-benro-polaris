@@ -26,7 +26,7 @@ aiming_adjustment_az = -0.0300750663        # The initial az aiming adjustment (
 aiming_adjustment_alt = 0.0195474932        # The initial alt aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment.
 aim_max_error_correction = 0.5              # The maximum angle (decimal degrees) that the driver will correct for when aiming at alzaz .
 sync_pointing_model = 0                     # Pointing model used for SyncToCoordinates (0 = Alt/Az Offset, 1 = RA/Dec Offset)
-sync_3star_alignment = false                # (DO NOT USE YET)Benro Polaris Compass Alignment. false = sync only in Driver, true = use last 3 syncs to push re-alignment to Polaris
+sync_N_point_alignment = false              # Benro Polaris N Point Alignment. false = sync only in Driver, true = syncs will re-align Polaris
 
 [logging]
 log_dir = ''                                # Directory to store logs, '' is current working dir

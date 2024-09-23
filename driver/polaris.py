@@ -122,6 +122,7 @@ class Polaris:
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
+        self._N_point_alignment_results = {}         # record of all sync results for N point alignment
         #
         # Polaris site/device location variables
         #
@@ -499,12 +500,21 @@ class Polaris:
         self._altitude = a_alt
         self._azimuth = a_az
 
-        if Config.sync_pointing_model==0 and Config.sync_3star_alignment:
-            self.logger.info(f"->> Polaris: SYNC Star Align   RA  {dec2dms(a_ra)} Dec {dec2dms(a_dec)}")
-            self.logger.info(f"->> Polaris: SYNC Star Align   Alt {dec2dms(a_alt)} Az  {dec2dms(a_az)}")
-            self.logger.info(f"->> Polaris: SYNC Curr Align   Alt {dec2dms(p_alt)} Az  {dec2dms(p_az)}")
-            # await self.send_cmd_compass_alignment(a_az)
-            await self.send_cmd_star_alignment(a_alt, a_az)
+        if Config.sync_pointing_model==0 and Config.sync_N_point_alignment:
+            # Record all synctocordinates results
+            x = { "aAz": a_az, "aAlt": a_alt,  "oAz": offset_az, "oAlt": offset_alt }
+            self.logger.info(f"->> Polaris: SYNC Star Align at Az {dec2dms(x["aAz"])} Alt {dec2dms(x["aAlt"])} | SyncOffset Az {dec2dms(x["oAz"])} Alt {dec2dms(x["oAlt"])}")
+            key = f"{round(a_az/15)*15:3}"
+            if not key in self._N_point_alignment_results:
+                self._N_point_alignment_results[key] = []
+            self._N_point_alignment_results[key].append(x)
+            # Print past syncs out to log file
+            for key in self._N_point_alignment_results:
+                self.logger.info(f"->> Polaris: SYNC Star Align Summary around {key}°")
+                for x in self._N_point_alignment_results[key]:
+                    self.logger.info(f"->>        Az {dec2dms(x["aAz"])} Alt {dec2dms(x["aAlt"])} | SyncOffset Az {dec2dms(x["oAz"])} Alt {dec2dms(x["oAlt"])}")
+            # Perform the actual star alignment on the Polaris
+            asyncio.create_task(self.send_cmd_star_alignment(a_alt, a_az))
 
         return
 
@@ -538,7 +548,7 @@ class Polaris:
         if m:
             return (m.group(1), m.group(2), buffer[len(m.group(0)):])
         else:
-            if Config.log_polaris:
+            if Config.log_polaris and Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: Unmatched msg: {buffer}")
             return (False, False, "")
 
@@ -764,8 +774,6 @@ class Polaris:
 
         # log the aiming alt/az and correct it based on previous aiming results
         calt, caz = self.aim_altaz_log_and_correct(alt, az)
-        # calt = alt
-        # caz = 360 - az if az>180 else -az
 
         # if we are currently sidereal tracking then turn off tracking
         if currently_tracking:
@@ -799,8 +807,8 @@ class Polaris:
         if Config.log_polaris:
             self.logger.info(f"<<- Polaris: GOTO slew complete")
 
-        # log the result of the goto if it was NOT aborted
-        if not (ret_dict["ret"] == '-1'):
+        # log the result of the goto if it was NOT aborted and is a tracking GOTO
+        if (not (ret_dict["ret"] == '-1')) and istracking:
             self.aim_altaz_log_result()
 
         return ret_dict
@@ -821,13 +829,15 @@ class Polaris:
     async def send_cmd_star_alignment(self, a_alt:float, a_az:float):
         lat = self._sitelatitude
         lon = self._sitelongitude
-        if self._tracking:
-            await self.send_cmd_change_tracking_state(False)
+        ca_az = 360 - a_az if a_az>180 else -a_az
+        # Do we even need to GOTO Star since we are already pointing at it?
+        # await self.send_cmd_goto_altaz(self._p_altitude, self._p_azimuth, istracking=False)   
         await self.send_msg(f"1&530&3&step:1;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
         await asyncio.sleep(2)
-        await self.send_msg(f"1&530&3&step:2;yaw:{a_az};pitch:{a_alt};lat:{lat};num:1;lng:{lon};#")
+        await self.send_msg(f"1&530&3&step:2;yaw:{ca_az};pitch:{a_alt};lat:{lat};num:1;lng:{lon};#")
         await asyncio.sleep(0.2)
         await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
+        # No longer need a sync adjustment since Polaris has been aligned
         self._adj_sync_azimuth = 0
         self._adj_sync_altitude = 0
 
@@ -851,7 +861,7 @@ class Polaris:
         return ret_dict
 
     async def send_cmd_query_current_mode_async(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
             self.logger.info(f"->> Polaris: 284 Query Mode request")
         msg = f"1&284&2&-1#"
         await self.send_msg(msg)
