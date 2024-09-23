@@ -72,6 +72,14 @@ Once the driver is running, you can close the Benro Polaris App. Now you can sta
 ### Troubleshooting
 If you don't see the `communications init... done` message then you may want to check the [Troubleshooting Guide](./troubleshooting.md) for steps to diagnose and fix any issues.
 
+### Updating the Driver
+To update the Alpaca Benro Polaris Driver to the latest version:
+1. Download the latest [Alpaca Benro Polaris zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/main.zip) from this Github repository.
+2. Stop the driver by selecting its Window and pressing Ctrl+C.
+3. Extract the files, overwriting the old files
+4. Restart the Driver.
+5. If you can complete steps 2-4 within a minute, you won't need to use the BP App to re-establish the Polaris Wifi.
+   
 ### Installing the ASCOM Platform (OPTIONAL)
 ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. This `Alpaca Benro Polaris Driver (ABP) commplies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
 
