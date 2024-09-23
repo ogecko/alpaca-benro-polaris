@@ -66,22 +66,25 @@ TBD
 * Location: France
 * Optics: Canon R6 Mk II connected via USB3
 * Optics: ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
-* Mount: Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11, Android App v3.0.27
-* ABP Driver + CCDceil (hardware): Laptop is a 14 inch MacBook Pro with Apple M1 Pro CPU, 32Go RAM, MacOS Sonoma 14.6.1
+* Mount: Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11, iOS App v1.4.4, Android App v3.0.27
+* ABP Driver + CCDciel (hardware): Laptop is a 14 inch MacBook Pro with Apple M1 Pro CPU, 32Go RAM, MacOS Sonoma 14.6.1
 * ABP Driver + Nina Platform (hardware): ASUS Vivobook Pro 16X OLED K6604JV
 13th Gen Intel® Core™ i9-13980HX 2.2Ghz 24 cores, 32 Go RAM, NVidia RTX 4060 Laptop GPU
 * ABP Driver + Nina Platform (software): Windows 11 Family, Python 3.12.6, ASCOM Platform needed.
-* Siril + Stellarium Platform: 
+* Siril + Stellarium Platform: MacBook Pro with Apple M1 Pro CPU, 32Go RAM, MacOS Sonoma 14.6.1
+* Stellarium Mobile Plus v1.12.9 Plateform (hardware): iPad Pro 11" 1st gen
 * CCDciel : [INDIstarter](https://github.com/pchev/indistarter) for the INDI ZWO camera driver, as there are no Alcapa driver for that camera, [SkyChart](https://github.com/pchev/skychart) which is used in CCDciel for the goto and [ASTAP](http://www.hnsky.org/astap.htm) for the plate solving in CCDciel
 
 
 ## Test coverage
-MacOS testing and support, Raspberry Pi maybe. ZWO ASI 585 MC camera.
-Tried with success (in the living room) : Nina with a Canon R6 mk II connected using USB3 and Stellarium.
+MacOS testing and support. ZWO ASI 585 MC camera using INDIstarter, CCDciel, SkyChart, Stellarium Mobile Plus iOS.
+Tried with success (in the living room and on real target) : Nina with a Canon R6 mk II connected using USB3 and Stellarium.
 
 ## Test Results
+### MacOS, CCDciel, INDIstarter, SkyChart or Stellarium Mobile Plus
 TBD
-
+### Windows 11, Nina
+TBD
 
 
 
