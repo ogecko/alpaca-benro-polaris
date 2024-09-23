@@ -284,13 +284,23 @@ def bytes2hexascii(data):
     s_ascii = ''.join(chr(x) if 32 <= x <= 126 else '.' for x in data)
     return f"{s_hex}: {s_ascii}"
 
-def dec2dms(dd):
-   is_positive = dd >= 0
-   dd = abs(dd)
-   minutes,seconds = divmod(dd*3600,60)
-   degrees,minutes = divmod(minutes,60)
-   degrees = degrees if is_positive else -degrees
-   return f"{int(degrees)}:{int(minutes)}:{seconds:.2f}"
+def deg2dms(decimal_degrees):
+    # Determine the sign and work with the absolute value
+    sign = '-' if decimal_degrees < 0 else '+'
+    decimal_degrees = abs(decimal_degrees)
+    degrees = int(decimal_degrees)                          # Extract degrees
+    minutes_float = (decimal_degrees - degrees) * 60        # Extract minutes
+    minutes = int(minutes_float)
+    seconds = (minutes_float - minutes) * 60                # Extract seconds
+    
+    return f"{sign}{degrees}°{minutes:02}'{seconds:05.2f}\""
+
+def hr2hms(decimal_hr):
+    degrees = int(decimal_hr)                          # Extract degrees
+    minutes_float = (decimal_hr - degrees) * 60        # Extract minutes
+    minutes = int(minutes_float)
+    seconds = (minutes_float - minutes) * 60                # Extract seconds
+    return f"{degrees:02}h{minutes:02}m{seconds:05.2f}s"
 
 def dms2dec(dms):
     (degree, minute, second, frac_seconds) = re.split(r'[^0-9-]', dms, maxsplit=4)

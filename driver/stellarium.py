@@ -50,7 +50,7 @@ import time
 from config import Config
 from shr import DeviceMetadata
 from datetime import datetime
-from shr import dec2dms,rad2deg,rad2hr,hr2rad,deg2rad,bytes2hexascii
+from shr import deg2dms,hr2hms,rad2deg,rad2hr,hr2rad,deg2rad,bytes2hexascii
 import ephem
 import math
 
@@ -290,7 +290,7 @@ async def process_protocol(logger, data, writer):
     # SynSCAN GOTO 'r34AB0500,12CE0500', | Reply “#"
     elif data[0]==0x72:               
         ra, dec = synScan24bit_to_radec(data)
-        logger.info(f"<<- Stellarium: SynScan GOTO Ra: {dec2dms(ra)} Dec: {dec2dms(dec)}")
+        logger.info(f"<<- Stellarium: SynScan GOTO Ra: {hr2hms(ra)} Dec: {deg2dms(dec)}")
         if telescope.polaris.connected:
             await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
         msg = b'#'
