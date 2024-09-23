@@ -117,12 +117,13 @@ class Polaris:
         self._every_50ms_last_timestamp = None      # Fast Move counter, last 1s timestamp
         self._every_50ms_last_alt = None            # Fast Move counter, last 1s polaris altitude
         self._every_50ms_last_az = None             # Fast Move counter, last 1s polaris azimuth
-        self._performance_data_start_timestamp = None # Timestamp for Performance Data logging.
-        self._last_518_timestamp = None             # Timestamp for last 518 Position Update message from Polaris.
+        self._startup_timestamp = datetime.datetime.now()  # Timestamp for when the driver started.
+        self._performance_data_start_timestamp = None      # Timestamp for Performance Data logging.
+        self._last_518_timestamp = None                    # Timestamp for last 518 Position Update message from Polaris.
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
-        self._N_point_alignment_results = {}         # record of all sync results for N point alignment
+        self._N_point_alignment_results = {}        # record of all sync results for N point alignment
         #
         # Polaris site/device location variables
         #
@@ -502,7 +503,8 @@ class Polaris:
 
         if Config.sync_pointing_model==0 and Config.sync_N_point_alignment:
             # Record all synctocordinates results
-            x = { "aAz": a_az, "aAlt": a_alt,  "oAz": offset_az, "oAlt": offset_alt }
+            dt_now = datetime.datetime.now()
+            x = { "time": dt_now, "aAz": a_az, "aAlt": a_alt,  "oAz": offset_az, "oAlt": offset_alt }
             self.logger.info(f"->> Polaris: SYNC Star Align at Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}")
             key = f"{round(a_az/15)*15:3}"
             if not key in self._N_point_alignment_results:
@@ -512,7 +514,7 @@ class Polaris:
             for key in self._N_point_alignment_results:
                 self.logger.info(f"->> Polaris: SYNC Star Align Summary around {key}°")
                 for x in self._N_point_alignment_results[key]:
-                    self.logger.info(f"->>        Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}")
+                    self.logger.info(f"->>     {x["time"].strftime('%H:%M:%S')} | Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}")
             # Perform the actual star alignment on the Polaris
             asyncio.create_task(self.send_cmd_star_alignment(a_alt, a_az))
 
