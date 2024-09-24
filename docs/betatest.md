@@ -130,20 +130,37 @@ TBD
 * Location: Auckland, New Zealand
 * Optics: Nikon Z8 (z14-24mm F2.8)
 * Mount: Benro Polaris
-* ABP Driver: Mac (Apple M1 Silicon chipset)
-* ABP Driver: older Mac (Intel chipset), I’ve installed Windows 10 Home (OS build 19045.2965) which can be used from the initial boot up - enabling the Mac to effectively operate like a Windows PC (unsuccessful)
-* ABP Driver + Nina Platform (software): Mac (Apple M1 Silicon chipset) using the Codeweavers Crossover (WINE application) (unsuccessful as each
-program can only be run in isolation)
-* StellariumPLUS Platform: iPhone 15 Pro Max (IOS v17.6.1)
+* ABP Driver: 14” MacBook Pro 2021 (Apple M1 Silicon chipset) originally
+tested using macOS 14 Sonoma and more recently, the latest released
+version macOS 15 Sequoia
+* ABP Driver: older 13” MacBook Pro 2013 (Intel chipset), using Bootcamp
+Windows 10 Home (OS build 19045.2965) - enabling the Mac to effectively
+operate as a Windows PC 
   
 ## Test coverage
-Pentax K1 - Nikon Z6 - android
-Intending to use MacOS version of ABP on Apple M1 SiliconMacBook Pro and SynScan with Stellarium etc
+Nikon Z8 - iPhone 15 Pro Max (see above) with Stellarium PLUS
 
 ## Test Results
-TBD
-
-
+* Having tested ABP both in Windows format (bootcamp 2013 MacBook with
+Windows 10) and also the Mac version of ABP (on M1 MacBook), actually
+found the connection more stable and quicker to load using the Mac version.
+* ABP works well with the very latest and just released (16 Sept 24) version of
+macOS 15 Sequoia, which is excellent.
+* Latest desktop version of Stellarium (24.3) for macOS works well, though much
+better using Stellarium PLUS via iPhone
+* Stellarium PLUS tested on iPhone 15 Max Pro using both iOS17.6.1 and also
+the very latest version iOS 18 (released 16 Sept 24). The App runs excellent on
+both versions of iOS and the telescope GoTo function is brilliant
+* Using macOS, tested NINA (Windows only program) and the original Windows
+ABP driver using Codeweavers Crossover (WINE) - unsuccessful, since each
+program can then only be run in isolation and not integrate with the other
+programs
+* As a Mac user, fully accept that most Astro programs are Windows based and
+NINA doesn’t run on macOS. As such, a mini PC (Windows) would be
+preferable to install and run ABP - but hopefully Stellarium PLUS (on iPhone)
+could be used.
+* Amazing development project and an awesome upgrade to the existing
+functionality of the Benro Polaris
 
 
 # Ladislav (LS)
