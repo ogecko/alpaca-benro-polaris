@@ -129,9 +129,9 @@ alpaca_ip_address = '127.0.0.1'
 * Check you have downloaded the relevant STAR databases. For 200mm lens and less you may need to download the [Wide field STAR database G05](https://www.hnsky.org/astap.htm)
 
 ### S1 - Cannot connect StellariumPLUS to ABP
-* Check BP App is closed. If you get Connection Refused when trying to connect to the driver, make sure the BP App is closed. With the BP App open it will force your mobile device to connect to the Polaris hotspot Wifi and nothing else.
-* Check IP connectivity. You need to run StellariumPLUS on a mobile device that can communicate with the ABP driver. We do not recommend running StellariumPLUS and the Benro Polaris App on the same phone, at the same time. Unfortunately the Benro Polaris App takes over the phones WiFi and forces it to talk only the the BP. When in use it doesnt allow connectivity to your home network or Mini-PC hotspot. We suggest closing the BP App after you have setup the Polaris.
-* Check the StellariumPLUS Host field on the Observing Tools settings popup. This needs to be set to the IP address of the device running the Driver on your network.  
+* Check that the BP App is closed. If you are unable to connect to the driver, please ensure that the BP App is closed and that your mobile device's Wi-Fi is not connected to the Polaris hotspot Wi-Fi. Disable your phones autoconnect to the Polaris Wi-Fi hotspot. When the BP App is open, it will automatically connect your mobile device to the Polaris hotspot Wi-Fi and nothing else.
+* Check IP connectivity. You must run StellariumPLUS on a mobile device that can communicate with the ABP driver. Use a free mobile Ping app to check that you can ping the ABP driver device. If you cannot ping, then check that you are not using the phone's mobile data, that you are within range of your router's Wi-Fi signal, and that your phone is connected to your home Wi-Fi.
+* Check the StellariumPLUS Host field on the Observing Tools settings popup. This needs to be set to the ABP Driver's IP address. Do not use 127.0.0.1 Loopback. 
 * Check stellarium_telescope_ip_address in config.toml. This can be left as its default '' to make the Driver serve the SynScan protocol on any network adapter it can find. If you want to limit the IP address servered by the Driver, you can set this to the IP address of the Mini-PC on your home network. 
 * Check StellariumPLUS Alignment Flag. StellariumPLUS will show your telescope as Not Aligned whenever the ABP driver cannot communicate with the Benro Polaris, eg the Polaris Wifi has gone down.
 
