@@ -186,13 +186,16 @@ TBD
 * Location: US
 * Optics: Canon R, 16mm 2.8, 24-240mm f4-6.3
 * Mount: Benro Polaris
-* ABP Driver: Mac (M1), CCdciel (still working on it haha)
+* ABP Driver: Mac (Apple M1 Pro)
+* ABP Driver + Stellarium
+* ABP Driver + CCCdciel (unsuccessful)
 
 ## Test coverage
-Pentax K1 - Nikon Z6 - android
+Canon R - Mac M1
 
 ## Test Results
-TBD
+* Stellarium go-to and tracking successful. Alignment is still pretty dependent on a good initial Benro app alignment, though Stellarium Sync seems to help.
+* CCDciel is able to detect the ABP driver, but I was unable to figure out how to connect to the camera
 
 
 
