@@ -71,9 +71,20 @@
 * Tried with success (in the living room and on real target) : Nina with a Canon R6 mk II connected using USB3 and Stellarium.
 
 ## Test Results
-### MacOS, CCDciel, INDIstarter, SkyChart or Stellarium Mobile Plus
-TBD
-### Windows 11, Nina
+### MacOS, CCDciel, INDIstarter, SkyChart or Stellarium Mobile Plus, ASTAP
+* I started testing ABP in the early stage on my Macbook Pro laptop. Mac computers have Python pre-installed, version 3.9 for Sonoma 14.6.1, I had no issue installing the required dependencies but had one when running ABP the first time because it was using some Python features only available in version 3.11 of Python. This has been quickly fixed, I also did some other fixes and small improvements. Then I wrote the installation guide for MacOS.
+* Then I tried ABP for real using CCDciel which is somewhat like "Nina for Mac". CCDciel may drive both INDI and Alpaca device, I configured Alpaca in the mount device section and could easily detect the Alpaca Benro Polaris driver, multiple time, I used the local one with IP address 127.0.0.1. I also checked the option "Set mount site lat/lon from configuration" to send the observatory latitude/longitude configured in CCDciel to the ABP driver.
+For the Camera device I used a ZWO ASI585MC astro camera which only have INDI drivers. INDIstarter was configured to start the ZWO camera driver with the proper settings, then CCDciel could detect it in the Indi Camera device section. I also installed SkyChart which is used from CCDciel to find celestial objects and target them. And finally I installed ASTAP for plate solving.
+* At first I connected the devices (camera and mount) in CCDciel and could see in the CCDciel logging view that all was ok, and also in the terminal running ABP.
+* I played with the handpad in CCDciel to move the Polaris at different speed on Alt and Az axis, and could see that the displayed (RA, Dec) and (Az, Alt) coordinates were coherent.
+* I tried park/unpark the Polaris and found a issue if the Polaris was tracking, it would not park. This has been fixed now.
+* I tried the Goto using Skychart to select a target and the "Goto" button in CCDciel, the Polaris moved to the target then the position was refined and the target was in the view, not in the center but I was using a 400mm lens with a x1.4 multiplier and a small camera sensor, resulting in about 1750mm equivalent focal lenght. It seems that the position refinement from the ABP driver did a better job than the Benro phone app. I couldn't try the latest code using Alt/Az corrections which seems even better.
+* Then I configured plate solving in the "Astrometry" section using ASTAP. Now when doing a goto, CCDciel used plate solving to center the target but at first I got a error saying that the driver was not able to "Mount sync". I could fix this going to the "Slewing" configuration section and switch from "Mount sync" to "Pointing offset". The latest version of ABP provide now the sync option but I haven't tried this yet.
+* Using "Pointing offset" in precision slewing options allowed now the goto to use plate solving to iteratively refine the target aiming. I relaxed the "target precision" to 1.0 arcmin tolerance because the refinement moves wasn't able to achieve more precision jumping around the target. For the first test I didn't used the narrow band filter L-Ultimate HaOIII and the plate solving were succesful but when I tried with the filter ASTAP had a lot of issues doing the plate solving...
+* I also tried the tool which allows to clic in the last picture taken with the camera and ask CCDciel to re-center the image on the clicked point using plate solving, this also worked great.
+* Then I tried the "Capture" and "Sequence" sections in CCDCiel to take some series of 10s images. It worked but as usual the targets drifted quite quiclky from the center. Then I tried to take 20-30 images then recenter the target using plate solving then take another set of images,... this worked but was a bit painful doing it manually.
+  
+### Windows 11, Nina, ASTAP
 TBD
 
 
