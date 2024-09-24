@@ -116,9 +116,9 @@ On the Image > `HFR History` info panel you can also keep a eye on the HFR and #
 You can view a demonstration of parts of this documentation in the following YouTube Video.
 
 [TBD]
+Point
 
-
-## 4. Plate Solving and N Star Alignment
+## 4. Plate Solving and N Point Alignment
 Nina supports a range of Plate-Solving applications to help identify where your mount points in the night sky. Our recommended application is [ASTAP, the Astrometric STAcking Program](https://www.hnsky.org/astap.htm), which includes an astrometric solver. If you have used [Astronomy.net](https://nova.astrometry.net/upload) in the past, you will be amazed at ATAP's speed and ease of integration with Nina.
 
 ![Plate Solving Options](images/abp-nina-ps-settings.png)
@@ -181,7 +181,7 @@ Once settled, Nina will take its third exposure, plate solve, and calculate your
 
 Now, the painful part. You must rotate and adjust your leveling base to reduce the RA and Dec errors. I have had success in improving the alignment with this process. In my opinion, the benefit was not worth the pain. Your luck may vary. 
 
-### Alpaca N Star Alignment
+### Alpaca N Point Alignment
 
 The Polaris is an Alt/Az mount, not an equatorial mount. While we initially performed the Sync Offset in RA/Dec coordinates, we have added a second pointing model that performs the Sync Offset in Alt/Az coordinates. This offset is more consistent between different plate solves and is the recommended pointing model for the Driver.
 
