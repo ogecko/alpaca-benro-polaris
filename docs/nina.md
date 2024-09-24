@@ -115,8 +115,7 @@ On the Image > `HFR History` info panel you can also keep a eye on the HFR and #
 ## Plate Solving and Alignment - Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
 
-[TBD]
-Point
+[![Plate Solving and Alignment](https://img.youtube.com/vi/gLQwyCL6W_Q/0.jpg)](https://www.youtube.com/watch?v=gLQwyCL6W_Q)
 
 ## 4. Plate Solving and N Point Alignment
 Nina supports a range of Plate-Solving applications to help identify where your mount points in the night sky. Our recommended application is [ASTAP, the Astrometric STAcking Program](https://www.hnsky.org/astap.htm), which includes an astrometric solver. If you have used [Astronomy.net](https://nova.astrometry.net/upload) in the past, you will be amazed at ATAP's speed and ease of integration with Nina.
