@@ -17,7 +17,7 @@ If you want to go beyond the native app, several software options provide more t
 * [Nina](https://nighttime-imaging.eu/) - Nighttime Imaging 'N' Astronomy (free, ASCOM support, Win)
 * [CCDciel](https://ap-i.net/ccdciel/en/start/) - (free, ASCOM support, MacOS/Linux/Win)
 
-We are focusing on using Nina, since it is the recommended solution. 
+We are focusing on using Nina, the recommended solution, due to its price (free), and excellent user interface (improved user experience).
 
 ### Equipment Setup
 Upon opening Nina, the Equipment tab allows you to discover and connect to all your various astronomy equipment. The first thing you are likely to setup, is your Camera. Nina supports Nikon and Canon cameras natively, and many other cameras through the ASCOM platform.
@@ -114,10 +114,9 @@ On the Image > `HFR History` info panel you can also keep a eye on the HFR and #
 
 ## Plate Solving and Alignment - Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
-[![Autofocus](https://img.youtube.com/vi/di5nyA_pTJk/0.jpg)](https://www.youtube.com/watch?v=di5nyA_pTJk)
+
 
 ## 4. Plate Solving and N Star Alignment
-
 
 ### Setting up ASTAP
 
