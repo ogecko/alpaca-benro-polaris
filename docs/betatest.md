@@ -26,18 +26,6 @@
 * Matt17463 (Matthew McDaniel) -  I'd love to help with your Benro driver project. 
 * Cynical Sarge (Andrew Sargent) - I would like to participate in the Beta testing of the Polaris driver.
   
-## Potential Beta Testers
-* Charles Thomas (PCCGG) - Glad to be a beta tester. (Messenger DM 1/9)
-* Vasilis Triantafyllou (PCCGG) - Count me in! Could also help with beta testing (Messenger DM 2/9)
-* Craig Bobchin (PCCGG) - I am willing to help beta test. I have a Pentax K-1 as my main camera.
-* Steve Everitt (PCCGG) - I also shoot with Pentax cameras and am happy to assist with any beta testing. I live in Lanzarote so get a lot more opportunity than most.
-* @PdTCH (Youtube)  - will sing up for the kickstarter and let u know for betatesting (Messaged on YT 15/9)
-  
-## Potential Followup
-* Ian Morgan - Pentax
-* Pratik Patel - SW Development (Messenger DM 1/9)
-* Florian Fortin - Nina user, Travel (Messenger DM 1/9)
-
 # Beta Test Results Summary
 
 # jdm5001 (DM)
@@ -56,10 +44,11 @@
 * Tested targets M4, M8, M16, M17, M20, M24 M83, C63, C77, C78, C92, SMC, IC4605, Moon, random stars in southern hemisphere.
 
 ## Test Results
-TBD
-
-
-
+* Completed run of ConformU required relaxation of Slew tolerance
+* Connecting MiniPC without Home Wi-Fi was challenging but achievable.
+* Having no screen or keyboard at the remote location limited MiniPC troubleshooting. Recommend testing fully before you go to a dark site.
+* Have successfully used Nina for capturing images over a month now
+* Will never go back to vanilla BP App.
 
 # Vladimir Vyskocil
 ## Test Environment
@@ -196,9 +185,6 @@ Canon R - Mac M1
 ## Test Results
 * Stellarium go-to and tracking successful. Alignment is still pretty dependent on a good initial Benro app alignment, though Stellarium Sync seems to help.
 * CCDciel is able to detect the ABP driver, but I was unable to figure out how to connect to the camera
-
-
-
 
 
 
