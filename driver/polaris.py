@@ -505,16 +505,16 @@ class Polaris:
             # Record all synctocordinates results
             dt_now = datetime.datetime.now()
             x = { "time": dt_now, "aAz": a_az, "aAlt": a_alt,  "oAz": offset_az, "oAlt": offset_alt }
-            self.logger.info(f"->> Polaris: SYNC Star Align at Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}")
+            self.logger.info(f'->> Polaris: SYNC Star Align at Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}')
             key = f"{round(a_az/15)*15:3}"
             if not key in self._N_point_alignment_results:
                 self._N_point_alignment_results[key] = []
             self._N_point_alignment_results[key].append(x)
             # Print past syncs out to log file
             for key in self._N_point_alignment_results:
-                self.logger.info(f"->> Polaris: SYNC Star Align Summary around {key}°")
+                self.logger.info(f'->> Polaris: SYNC Star Align Summary around {key}°')
                 for x in self._N_point_alignment_results[key]:
-                    self.logger.info(f"->>     {x["time"].strftime('%H:%M:%S')} | Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}")
+                    self.logger.info(f'->>     {x["time"].strftime("%H:%M:%S")} | Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}')
             # Perform the actual star alignment on the Polaris
             asyncio.create_task(self.send_cmd_star_alignment(a_alt, a_az))
 
