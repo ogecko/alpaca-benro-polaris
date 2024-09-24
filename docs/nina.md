@@ -115,22 +115,96 @@ On the Image > `HFR History` info panel you can also keep a eye on the HFR and #
 ## Plate Solving and Alignment - Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
 
+[TBD]
+
 
 ## 4. Plate Solving and N Star Alignment
+Nina supports a range of Plate-Solving applications to help identify where your mount points in the night sky. Our recommended application is [ASTAP, the Astrometric STAcking Program](https://www.hnsky.org/astap.htm), which includes an astrometric solver. If you have used [Astronomy.net](https://nova.astrometry.net/upload) in the past, you will be amazed at ATAP's speed and ease of integration with Nina.
+
+![Plate Solving Options](images/abp-nina-ps-settings.png)
+
+The Alpaca Benro Polaris Driver allows you to integrate the Plate-Solving Sync feature with the alignment process of the Benro Polaris. The driver automatically aligns the Benro Polaris with the resolved coordinates whenever you perform a Sync. The more Plate-Solves you perform, the more accurate the alignment.  
+
+This can help eliminate the need to perform an initial compass alignment. It also eliminates using the BP App's joysticks to align your first star manually. Polar alignment with Benro Polaris was already relatively easy, and plate-solving makes it even easier.
 
 ### Setting up ASTAP
 
-### Important Settings for Plate Solving
+ASTAP is not bundled with Nina, so you must download and install the application from the ASTAP website. You will also need to install one or more STAR Databases, which are also available on the website. 
+
+In Nina, on the Options/Plate-Solving tab, you must select ASTAP from the Plate Solver and Blind Solver drop-downs. In the Plate Solver settings panel, choose ASTAP, then set the ASTAP location to where you installed astap.exe. We recommend a short 1-second Exposure Time to facilitate plate-solving when the Benro Polaris is misaligned.
+
+On the Options/Equipment tab, you must set the Camera Pixel Size and Telescope Focal Length to their correct values. If these do not match your equipment, the plate-solve will likely fail. We recommend also setting the Mount Coordinates Sync option to On. This will cause the Driver to align the Benro Polaris on each sync.
+
+![Plate Solving Options](images/abp-nina-ps-equip.png)
+
+You must also ensure your lens is in focus before attempting a plate-solve. It's a good idea to perform a manually initiated autofocus run.
 
 ### Manualy Initiated Plate Solving
 
-### Sequenced Plate Solving, Centering
+Plate solving can be manually initiated from Nina's Imaging tab, Plate Solving Tool Panel. Press the Play button, and Nina will take an exposure and attempt a plate-solve with ASTAP. It will update the Center RA and Center DEC fields on the Plate Solving Tool Panel if successful. You can also choose to Sync from the Plate Solving Tool Panel. This is a quick way to initiate an alignment of the Benro Polaris to its current position.
 
-### Polaris Compass and Star Alignment
+![Plate Solving Tool](images/abp-nina-ps-toolpanel.png)
 
-### Nina 3 Star Alignment
+The Imaging tab's main image panel has a button to initiate a Plate Solve from a recently exposed image. This does not allow a sync.
+
+### Sequence Target Centering and Aligning
+
+One of Nina's best features is automated target centering and aligning. From Nina's Sequencer tab, under Target Options, you can enable a Slew to Target and Center Target. 
+
+![Plate Solving Tool](images/abp-nina-ps-seq.png)
+
+When both these settings are enabled, Nina will do the following at the start of each sequence target:
+
+1. Slew Polaris to the target coordinates.
+2. Take an exposure and perform a plate-solve to identify where the Polaris is pointing.
+3. Perform a sync to correct all applications upstream of the Driver. 
+4. Push the sync through to align the Polaris with its actual orientation.
+5. Attempt to slew closer to the target, repeating the process until it is within tolerance.
+
+Once the target is centered, Nina will continue with the sequence, conducting an optional autofocus run and then taking your set of Light images of the target. You can add additional targets to the sequence while it is running, and Nina will repeat the slewing and centering once the first target is complete. 
+
+The Benro Polaris can have a habit of drifting off target. You can address this issue by simply pausing the sequence momentarily. Whenever Nina starts a sequence again, it will perform a Slew to Target and Center Target operation.
+
+### Nina 3 Point Polar Alignment
+
+Nina includes a 3-Point Polar Alignment plugin that can optionally be installed. The Alpaca Benro Polaris includes an "easter egg" feature that allows you to conduct manual 3-Point Polar Alignments using this plug-in. Note that we don't recommend this procedure as it tends to be more tedious than the existing Benro Polaris alignment, and you can get better results with the next section. 
+
+![Plate Solving 3 Point Polar Alignment](images/abp-nina-ps-3pnt.png)
+
+To conduct a three-point polar Alignment, install the plugin, navigate to the main Imaging tab, and open the three-point polar Alignment Tool Panel. Enable the Manual Model and set a Measure Point Distance of 20 degrees. Press the Start Button.
+
+Nina will take an exposure, plate solve, and ask you to rotate the telescope 20 degrees around the RA axis. To do this, navigate to the Equipment/Mount tab, enter 1.2 into the Primary Rate field, click the Secondary Rate field, and then click the W or E move button once. A decimal rate between 1 and 2 will cause the Driver to rotate around the RA axis.
+
+Nina will take its second exposure, plate solve, and ask you to rotate another 20 degrees around the RA axis. Navigate to the Equipment/Mount tab and click the W or E move buttons. The Driver will rotate again.
+
+Once settled, Nina will take its third exposure, plate solve, and calculate your polar alignment error. Nina will continue taking and plate-solving exposures to update the alignment error values. 
+
+Now, the painful part. You must rotate and adjust your leveling base to reduce the RA and Dec errors. I have had success in improving the alignment with this process. In my opinion, the benefit was not worth the pain. Your luck may vary. 
 
 ### Alpaca N Star Alignment
 
+The Polaris is an Alt/Az mount, not an equatorial mount. While we initially performed the Sync Offset in RA/Dec coordinates, we have added a second pointing model that performs the Sync Offset in Alt/Az coordinates. This offset is more consistent between different plate solves and is the recommended pointing model for the Driver.
 
+You don't need to do anything extra to perform N-point alignments with the Driver. Just perform multiple synced plate solves. Each new sync will add to the Driver's knowledge of how the Polaris was aligned at different orientations and times. It groups all the results around the Az axis in 15-degree segments. 
 
+You can review the altitude offsets in each of the 15-degree segments to help understand whether the Polaris is within tolerance or tilted. If it is not level, you may need to make some fine adjustments to the leveling base.
+
+![Plate Solving Log](images/abp-nina-ps-log.png)
+
+At every plate-solve and sync, the Polaris will be re-aligned. This means that each target will be aligned with coordinates very close to the target.
+
+### Polaris Setup using N Point Alignment
+
+This new alignment process dramatically improves the setup of the Benro Polaris. These are the steps I take now to start an imaging session include:
+
+* Start the BP App and connect to Polaris.
+* Switch to Astro Mode, then skip through the Compass Align and Star Align Steps.
+* Connect the Alpaca Driver, then turn off the BP App.
+* Using Nina, click Park in the Equipment/Mount tab. This is equivalent to double-tapping both BP App joysticks.
+* Mount the camera, place the tripod outside, and level it accurately.
+* Perform a Nina Autofocus run.
+* Perform a manually initiated plate-solve and sync. The Polaris is now aligned.
+* Set up a sequence of targets and let the night begin.
+* The alignment will automatically improve with each plate-solve, narrowing in on the targets.
+
+I hope you agree this is much easier than using the Benro Polaris App to perform alignment.
