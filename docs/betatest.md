@@ -25,6 +25,7 @@
 * RjhNZ (Richard Healey) (PCCGG) - Nice concept, happy to buy you several coffees and will beta test the hell out of your work. 
 * Matt17463 (Matthew McDaniel) -  I'd love to help with your Benro driver project. 
 * Cynical Sarge (Andrew Sargent) - I would like to participate in the Beta testing of the Polaris driver.
+* Ramymah (Ramy Mahdy) - I was wondering if I can be of any help? I’m a software quality engineer at Apple and I have a lot of Apple devices that run iOS/ iPadOS and macOS. 
   
 # Beta Test Results Summary
 
@@ -273,6 +274,23 @@ Pentax K1 - Nikon Z6 - android
 ## Test Results
 Firewall issue on first use
 Challenges getting Sony working with ASCOM Camera driver
+
+
+# Ramymah (Ramy Mahdy)
+## Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
+
 
 
 ---------------------
