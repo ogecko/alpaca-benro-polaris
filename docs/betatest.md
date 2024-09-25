@@ -122,7 +122,8 @@ TBD
 Pentax K1
 
 ## Test Results
-TBD
+Connected the K1 to Nina via ASCOM.
+Was able to slew the Polaris 
 
 
 
