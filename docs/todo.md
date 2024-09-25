@@ -6,7 +6,6 @@
 * None
   
 ## QA Pending
-* Stellarium Desktop Binary protocol for position updates
 * Develop automated test for drift over movable range of Polaris
 * Extend Troubleshooting Guide with any Beta Test feedback.
   
@@ -14,19 +13,17 @@
 * Testing on Raspbery Pi
 * Testing on Docker
 * Testing of Sky Safari
-* Closed Beta testing
-* Open Beta testing
+* Close Beta testing
 
 ## Requests for Benro to assist (in order of priority)
 * Protocol required on BT to establish wifi
 * Changes to allow minor MoveAxis while sidereal tracking enabled, without backlash - for guiding
-* Changes to allow integration of 3 point alignment
 * Incorporation of Driver into BP firmware
 
 ## Backlog
+* Stellarium Desktop Binary protocol for position updates
 * Hand controller web app
 * Config web app
-* Videos for progress updates and usage
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
