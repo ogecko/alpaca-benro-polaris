@@ -46,3 +46,12 @@ Wish you have a nice day!
 
 Best regards,
 The Benro Team
+
+## Final Call for involvement (25-Sep-2024)
+Dear Benro Support,
+I want to thank Benro Leadership again for releasing the excellent Benro Polaris Tripod Head. I've been more impressed with its design and quality as I have learned more about its performance and behavior. I also want to thank Benro Leadership for monitoring the Alpaca Benro Polaris Project and not attempting to halt or prevent its release. 
+
+This is the last-chance call for a review of the project before I release it on September 29th, 2024. I am still willing to add access to the GitHub repository for a Benro Technical Representative to review and request changes before the release. If you want to do this, please reply with a GitHub user account name as soon as possible.
+
+Best Regards
+David Morrison
