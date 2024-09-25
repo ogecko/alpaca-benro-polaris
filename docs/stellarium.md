@@ -77,6 +77,8 @@ Speeds 1 to 5 match the slow Move Axis speeds of the Polaris. Speeds 6 to 9 map 
 
 Note that Move Axis in Nina allows you to enter fractional speeds. Due to Benro Polaris, these only have effect from 5.1 to 9.0 (i.e., for the Benro Polaris Fast Move commands).
 
+The Driver also implements Equatorial rotation move around the RA and Dec Axes. By setting the Rate to a decimal value between 1 and 2, you can control how far the driver will rotate on the next axis move call. A rate of 1.30 on the primary axis will move the Right Ascention axis 30°. A rate of -1.15 on the secondary axis will move the Declination axis -15°.
+
 ### Sync Co-ordinates
 You can help improve the aim of the Benro Polaris by Syncing with a known object in the sky.
 
@@ -208,16 +210,22 @@ aim_max_error_correction = 0.5    # Ignore errors over this maximum angle (decim
 ```
 
 
-### Understanding Sync - RA/Dec Offset
+### Understanding Sync - Alt/Az or RA/Dec Offset
 Telescope synchronization, or ‘syncing,’ aligns your telescope with the night sky. Syncing helps the Driver understand where the telescope is pointing compared to where Polaris thinks it is.
 
 After identifying the actual center of view (from visual observation or plate-solving), you will notice that both Stellarium and Polaris may have it wrong. Syncing will help correct anything upstream of the Driver.
 
-As soon as you select the actual object at the center of view and press Sync, you will notice Stellarium immediately corrects itself and positions the reticule over the target you have synced with. Nothing is sent to Polaris, as the sync is purely within the Driver.
+As soon as you select the actual object at the center of view and press Sync, you will notice Stellarium immediately corrects itself and positions the reticule over the target you have synced with. 
 
-The Driver remembers an RA/Dec offset to add to all coordinates sent to Polaris. It subtracts this offset every time Polaris tells the Driver where it thinks it is pointing. You will see this offset in the logs when the Driver converts from ASCOM RA/Dec coordinates to Polaris RA/Dec coordinates.
+The Driver remembers a Sync Offset to add to all coordinates sent to Polaris. It subtracts this Sync Offset whenever Polaris tells the Driver where it thinks it is pointing. You will see this Sync Offset in the logs when the Driver converts from ASCOM coordinates to Polaris coordinates.
 
-This should not be confused with polar alignment, which is aligning your telescope's understanding of where the celestial polar axis is oriented relative to the Benro Polaris. Polar alignment is vital for sidereal tracking and minimizing the movement of stars during longer exposures.
+The Driver supports two pointing Models depending on the `sync_pointing_model` setting in config.toml. Pointing model 1 uses an RA/Dec Sync Offset, and pointing model 0 uses an Alt/Az Sync Offset. We recommend pointing model 0, as it is more independent of the Polaris orientation.
+
+By default, the Driver also performs a Polaris Star Alignment whenever a Sync function is performed. This tells the Polaris to update its alignment based on the current known coordinates of the Sync function. If the alignment is successful then the SyncOffset in the driver is reset back to zero, as the Polaris no longer needs correction.
+
+The Polaris will also update its understanding of where the polar axis is based on the sync coordinates given and its understanding of its lat/lon position. Polar alignment is vital for sidereal tracking and minimizing the movement of stars during longer exposures.
+
+You can change `sync_N_point_alignment` in config.toml to false if you do not want to align the Polaris on sync functions. When this is set to false, nothing is sent to Polaris, as the sync is purely within the Driver.
 
 ### Combing all three Offsets
 The following screen capture shows the log file of a successful GOTO command from Stellarium. The aiming ajustments are appled at (1) The SyncOffset RA/Dec, (2) The AimOffset for Time offset, (3) The AimOffset Alt/Az, and (4) Refining the AimOffset AltAz. 
