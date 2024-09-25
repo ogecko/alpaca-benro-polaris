@@ -1517,30 +1517,22 @@ class Polaris:
         else:
             rate = None
         
-        # calc the cmd based on axis and whether slow or fast (use +/-2000)
-        if x <= 5.0:
+        # Equatorial Absolute Move Commands '1.ddnnn' where dd=degrees, nnn=decimal degrees
+        if x>1.0 and x<2.0:
+            rate = (x - 1.0) * 100 * sign
+            cmd = None
+            cmdtype = 3
+        # Slow Move commands '1' to '5'
+        elif x <= 5.0:
             cmd = '532' if axis==0 else '533' if axis==1 else '534'
-            cmdtype = 1   # slow commands
+            cmdtype = 1   
+        # Fast Move Commands '5.001' to '9.0'
         elif x<=9.0:
             key = None
             rate = sign * rate
             cmd = '513' if axis==0 else '514' if axis==1 else '521'
-            cmdtype = 2   # fast commands
-        
-        # special extended commands should be moved to ASCOM extensions
-        elif x<=10.0:
-            cmd = None
-            cmdtype = 3   # 3 point alignment - move 15 degrees from current axis 0=RA, 1=Dec, 
-        elif x<=11.0:
-            cmd = None
-            cmdtype = 4   # 3 point alignment - start BP alignment from current pos
-        elif x<=12.0:
-            cmd = None
-            cmdtype = 5   # 3 point alignment - move (X-11)*10 deg from current eg 11.51 = 5.1'
-            rate = (ascomrate - 11.0) * 10.0
-        elif x<=13.0:
-            cmd = None
-            cmdtype = 6   # 3 point alignment - Finish BP alignment
+            cmdtype = 2  
+        # Invalid Move Command
         else:
             cmd = None
             cmdtype = None
@@ -1583,33 +1575,15 @@ class Polaris:
                 self.logger.info(f'->> Polaris: send_fastmove_repeating: {msg}')
             self.every_50ms_msg_to_set(msg)                     # start fast move msgs
 
-        # if cmdtype=3 then assume RA/Dec move 15 degrees
+        # if cmdtype=3 then Equatorial RA/Dec move Rate degrees
         elif cmdtype==3:
             if Config.log_polaris:
-                self.logger.info(f"->> Polaris: 3 Point Alignment: A. MOVE RA/Dec Axis {axis} 15 degrees")
+                self.logger.info(f"->> Polaris: Move Equatorial RA/Dec Axis: {axis} Rate: {rate}°")
             self._lock.acquire()
-            ra = self._rightascension + ((15.0*24/360) if axis==0 else 0)
-            dec = self._declination + (15.0 if axis==1 else 0)
+            ra = self._rightascension + ((rate*24/360) if axis==0 else 0)
+            dec = self._declination + (rate if axis==1 else 0)
             self._lock.release()
             await self.SlewToCoordinates(ra, dec, isasync=True)
-
-        # if cmdtype=4 then start alignment process
-        elif cmdtype==4:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: 3 Point Alignment: B. Start Start Alignment")
-            self._lock.acquire()
-            ra = self._rightascension 
-            dec = self._declination
-            self._lock.release()
-
-        # if cmdtype=5 then end alignment processmove (X-10)*10 deg from current eg 10.51 = 5.1'
-        elif cmdtype==5:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: 3 Point Alignment: B. Start Start Alignment")
-            self._lock.acquire()
-            ra = self._rightascension 
-            dec = self._declination
-            self._lock.release()
 
     async def park(self):
         self._lock.acquire()
