@@ -114,8 +114,8 @@ TBD
 * Location: Liverpool, England 
 * Optics: Pentax 150-450mm / Irix 45mm
 * Mount: Benro Polaris fried.
-* ABP Driver + Nina Platform (hardware): Windows 10
-* ABP Driver + Nina Platform (software): 
+* ABP Driver + Nina Platform (hardware): Ryzen 5 3600, 64gb Ram
+* ABP Driver + Nina Platform (software): Windows 10
 * Siril + Stellarium Platform: 
   
 ## Test coverage
