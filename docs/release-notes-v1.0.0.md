@@ -37,7 +37,7 @@
 - **[Sync Coordinates]**: Improve aiming accuracy by syncing with a known celestial object.
 - **[Sync Alignment]**: Ensure Polaris alignment by syncing with a known celestial object.
 - **[Full Customization]**: Allows users to customize what is shown and how it is shown. 
-- **[Extensive Extendability]**: An library of plug-ins that add additional functionality to the application.
+- **[App Extendability]**: A library of plug-ins that add additional functionality to the application.
 - **[Win11 Network]**: Connects to the driver over the network using Alpaca protocol.
 - **[MacOS Network]**: Connects to the driver over the network using Binary protocol.
 - **[OS Supported]**: Supports MacOS, Linux and Windows.
@@ -80,18 +80,17 @@
 - **[ASCOM ConformU]**: Passes standard validation tests for ITelescopeV3.
 - **[Driver Discovery]**: Provides Alpaca Discovery services.
 - **[ASCOM Alpaca Protocol]**: Supports the ASCOM Alpaca protocol.
-- **[SynSCAN Protocol]**: Supports the SynSCAN protocol for StellariumPLUS
-- **[Stellarium Binary Protocol]**: Supports the Binary Protocol for MacOS Stellarium Desktop.
-- **[Refraction Correction]**: Adjusts for atmospheric refraction to improve the accuracy. 
+- **[SynSCAN Protocol]**: Supports the SynSCAN protocol (for StellariumPLUS).
+- **[Stellarium Binary Protocol]**: Supports the Binary Protocol (for MacOS Stellarium Desktop).
+- **[Polaris Protocol]**: Supports the Benro Polaris protocol.
+- **[Refraction Correction]**: Adjusts for atmospheric refraction to improve aiming accuracy. 
 - **[Aim Correction]**: Adjusts for consistent Polaris inaccuracy on goto Alt/Az.
-- **[Time Correction]**: Adjusts for time delay due to Polaris Backlash removal.
+- **[Time Correction]**: Adjusts for time delay due to Polaris backlash removal.
 - **[Pointing Model]**: Support Alt/Az and RA/Dec Sync Offset pointing models.
 - **[Goto Coordinates]** Supports GOTO target, Alt/Az, Ra/Dec. Sync or aSync.
 - **[Move Axis]**: Controls the movement of primary, secondary and teriary axes.
 - **[Move Equatorial]**: Controls the movement of RA, Dec axes.
-- **[Park Unpark]**: Allows reset of all axes position.
-corrective action.
-or Polaris.
+- **[Park Unpark]**: Allows reset of all axis positions.
 - **[Sync Aligning]**: Aligns the Polaris with a known celestrial object by observation or plate solving.
 - **[N Point Alignment]**: Accurately polar aligns a telescope using multiple reference points.
 - **[Drift Correction]**: Compensate for the telescope’s drift off target.
@@ -102,15 +101,15 @@ or Polaris.
 - **[AHRS Data Logging]**: Logs data from the Attitude and Heading Reference System (AHRS).
 - **[Move Rate Data Logging]**: Logs movement rates of the telescope’s axes.
 - **[Diagnostics Logging]**: Captures detailed logs of system operations and errors.
-- **[Watchdog Timer]**: Monitors the health of the Driver/Polaris, taking 
-- **[Comms Recovery]**: Automatically recovers communication with applicationas 
-- **[Network Comms]**: Connects to the driver over the network using Alpaca protocol.
+- **[Watchdog Timer]**: Monitors the health of the Driver/Polaris, taking action when needed.
+- **[Comms Recovery]**: Automatically recovers communication with applications. 
+- **[Network Comms]**: Connects to the Polaris over the WiFi network
 - **[Nina Support]**: Support latest version of Nina
 - **[Stellarium Desktop Support]**: Support latest version of Stellarium Desktop.
 - **[StellariumPLUS Support]**: Supports latest version of StellariumPLUS for mobile.
 - **[Dark Site Support]**: Allows for operation, even without an internet connection.
-- **[OS Supported]**: Supports Windows.
-- **[Hardware Supported]**: Supports Laptop, Desktop, MiniPC, SurfacePC, Raspberry Pi, Docker.
+- **[OS Supported]**: Supports Windows, Linux, MacOS, RaspberryOS, Docker.
+- **[Hardware Supported]**: Supports Laptop, Desktop, MiniPC, SurfacePC, Raspberry Pi
 - **[Client Supported]**: Supports Local UI, Remote Desktop, and Mobile Remote Desktop Apps.
 - **[Cameras Supported]**: Support additional camera models through the ASCOM platform.
 - **[Video Demonstrations]**: Visual demonstrations of installation and operation.
@@ -140,7 +139,8 @@ Please let Dave know if you get around to trying any of these features.
   
 
 ## Known Issues
-- **[Pulse Guiding]**: Correct tracking errors caused by polar misalignment. Benro Change.
+- **[Emedded Driver]**: Driver should be embedded on Benro Polaris Device. Benro Change.
+- **[Pulse Guiding]**: Allow micro move axis commands, while tracking, without backlash. Benro Change.
 - **[Setup Dialog]**: Deliver a Graphical UI to manage config.toml and provide base UI. 
 - **[Software Delivery]**: Deliver as an App rather than a zip file, needing command line.
 
