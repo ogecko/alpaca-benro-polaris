@@ -120,6 +120,7 @@ Please let Dave know if you get around to trying any of these features.
 - **[Raspberry Pi]**: Supports running on Raspberry Pi Zero2, Pi 4 and Pi 5.
 - **[Docker Support]**: Supports running in Docker containers.
 - **[Sony Nina Plugin]**: Supports Sony Cameras and Lens. Untested.
+- **[Lumix Nina Plugin]**: Supports Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of camera. Untested.
 
 ## Bug Fixes (from Beta versions)
