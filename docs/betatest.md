@@ -111,15 +111,15 @@ TBD
 
 # 5x5Stuido (JH)
 ## Test Environment
-* Location: 
-* Optics: 
+* Location: Liverpool, England 
+* Optics: Pentax 150-450mm / Irix 45mm
 * Mount: Benro Polaris fried.
-* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (hardware): Windows 10
 * ABP Driver + Nina Platform (software): 
 * Siril + Stellarium Platform: 
   
 ## Test coverage
-Pentax K1 - Nikon Z6 - android
+Pentax K1
 
 ## Test Results
 TBD
