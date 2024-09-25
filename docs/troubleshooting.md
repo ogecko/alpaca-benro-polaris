@@ -1,6 +1,9 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Troubleshooting
+
+## Benro Polaris Troubleshooting
+
 ### B1 - Cannot start the Benro Polaris Device.
 There is a known issue with the recommended Benro Polaris device startup procedure. "Power On. In the off state, double press and hold the [Power Button], and release it after hearing “beep beep beep” three times to turn on the device. ".  Its worse than an old lawnmower at starting. If your device doesnt start, try the following:
 1. Remove Power cable - Dont have the Benro Polaris charging, while trying to start.
@@ -29,6 +32,7 @@ The current firmware of the Benro Polaris does not allow connection to other WiF
 
 This is no longer a limitation. The Alpaca Benro Polaris Driver can serve as a proxy for the Polaris. It is capable of connecting to both the Polaris Wi-Fi Hotspot and your home Wi-Fi network. This allows you to manage the Polaris from any device connected to your home Wi-Fi, including an iPad, a phone, a desktop, or a laptop.
 
+## Alpaca Communications  Troubleshooting
 ### C1 - Cannot see "`communications init... done`" in the log.
 * Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
 * Confirm the Benro Polaris is in Astro Mode.
@@ -101,6 +105,7 @@ C:\Users\Astro>
 ```
 * If the ping does not respond within a few milliseconds, go back through C1-C3 to double check the setup. 
 
+## Nina Troubleshooting
 
 ### N1 - Cannot connect Nina to ABP
 * Check which driver you select. Use the ASCOM Alpaca drivers over the ASCOM drivers. If you have ABP broadcasing on all interfaces (default) you may have 4 versions of it available. Don't use @160.254.253.159. 
@@ -127,6 +132,19 @@ alpaca_ip_address = '127.0.0.1'
 * Check to make sure you camera pixel size and telescope focal length is set correctly in equipment options, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values.
 * Check if you are using any filters. Using a narrow band filter on the camera, like the L-Ultimate Optolong HaOIII filter, can make plate solving more challenging for ASTAP.### R1 - Cannot connect Remote Desktop to Mini-PC
 * Check you have downloaded the relevant STAR databases. For 200mm lens and less you may need to download the [Wide field STAR database G05](https://www.hnsky.org/astap.htm)
+
+### N4 - Cannot Remote Desktop to MiniPC running Nina
+* There are a range of remote desktop applications avalable which you might want to try:
+  * Microsoft Remote Desktop - Free with Windows 11 Pro. Some testers have had issues connecting via MS Remote desktop. I've been using it quite successfully.
+  * AnyDesk - "Best remote desktop solution for occasional users" - Techradar. 
+   Successfully used by a beta tester.
+  * Splashtop - "Powerful remote desktop with impressive features" - Techradar. I've used this on my home network successfully.
+  * TeamViewer - "Best remote PC software for cross-platform compatibility" - Techradar.
+  * RemotePC - Short free trial.
+  * LogMeIn - Lacks a free trial.
+  * Zoho Assist - Free tier very limited.
+
+## Stellarium Troubleshooting
 
 ### S1 - Cannot connect StellariumPLUS to ABP
 * Check that the BP App is closed. If you are unable to connect to the driver, please ensure that the BP App is closed and that your mobile device's Wi-Fi is not connected to the Polaris hotspot Wi-Fi. Disable your phones autoconnect to the Polaris Wi-Fi hotspot. When the BP App is open, it will automatically connect your mobile device to the Polaris hotspot Wi-Fi and nothing else.
