@@ -35,7 +35,8 @@ Nina is a Windows application that best runs on a desktop, laptop, or mini PC. I
 Nina includes a plug-in called Session Manager that can record this and so much more into a set of csv files
 
 ### N6 - Is auto-guiding going to be possible?
-I'm sorry, but auto-guiding is unlikely. Drift of long sequences can be fixed with ABP, Nina, and slew/center.
+Auto-guiding is not included in the Alpaca Benro Polaris Driver. It requires fine move axis commands while tracking is enabled without backlash. The Benro Polaris doesn't support this at this stage.
+
 
 # Stellarium Usage Questions
 ### S1 - Will Stellarium work via Wifi or is a cable necessary?
