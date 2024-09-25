@@ -117,8 +117,11 @@ or Polaris.
 - **[Full Documentation]**: Hardware, Installation, Nina, Stellarium, Troubleshooting and FAQ Guides.
 
 ## Untested New Features
+Please let Dave know if you get around to trying any of these features.
 - **[Raspberry Pi]**: Supports running on Raspberry Pi Zero2, Pi 4 and Pi 5.
 - **[Docker Support]**: Supports running in Docker containers.
+- **[Sony Nina Plugin]**: Supports Sony Cameras and Lens. Untested.
+- **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of camera. Untested.
 
 ## Bug Fixes (from Beta versions)
 - **[BP Keepalive]**: Implement Wifi Keepalive, reduce phone battery usage, by closing BP App.
