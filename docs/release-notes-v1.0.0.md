@@ -19,7 +19,7 @@
 - **[Sync Coordinates]**: Improve aiming accuracy by syncing with a known celestial object.
 - **[Sync Alignment]**: Ensure Polaris alignment by syncing with a known celestial object.
 - **[Sync Location]**: Send Stellarium’s site altitude and azimuth to the driver for accurate positioning.
-- **[Sync Time]**: Check Stellarium time and Driver time are in sync for precise tracking.
+- **[Sync Time]**: Check that Stellarium and Driver times are in sync for precise tracking.
 - **[Equatorial Rotation]**: Supports equatorial rotation around the RA and Dec axes for precise adj.
 - **[Network Comms]**: Connects to the driver over the network using the SynScan protocol.
 - **[OS Supported]**: Supports IOS and Android.
@@ -126,7 +126,7 @@ Please let us know if you can try any of these features.
 ## Bug Fixes (from Beta versions)
 - **[BP Keepalive]**: Implement Wifi Keepalive, reduce phone battery usage, by closing BP App.
 - **[AHRS Keepalive]**: Ensure AHRS continues to inform of position updates.
-- **[Stelarium Lag]**: Longevity testing of Stellarium introduced lag in position readout
+- **[Stelarium Lag]**: Longevity testing of Stellarium introduced lag in position readout.
 - **[Network Recovery]**: Improved network communications recovery.
 - **[Network Exceptions]**: Handle more Win and MacOS network exceptions.
 - **[Park Reliability]**: Ensure tracking is disabled before Parking.
