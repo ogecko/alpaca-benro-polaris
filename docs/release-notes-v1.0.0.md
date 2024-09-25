@@ -7,7 +7,7 @@
 
 ## New Features (enabled by StellariumPLUS)
 
-- **[Telescope Control]**: Provides comprehensive control over the telescope
+- **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Larger Catalog]**: Includes an extensive catalog of celestial objects, surpassing the BP App.
 - **[GOTO Coordinates]**: Command the Benro Polaris to move to a selected target  with a simple click.
 - **[Move Axis]**: Control the primary and secondary axes of the Benro Polaris for precise adjustments.
@@ -27,7 +27,7 @@
 
 ## New Features (enabled by Stellarium Desktop)
 
-- **[Telescope Control]**: Provides comprehensive control over the telescope
+- **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Even Larger Catalog]**: Includes an extensive catalog of celestial objects, surpassing the BP App.
 - **[What’s Up Tonight]**: A tool for planning the best celestial objects to observe.
 - **[GOTO Coordinates]**: Command the Benro Polaris to move to a selected target  with a simple click.
@@ -44,7 +44,7 @@
 - **[Hardware Supported]**: Supports Laptop, Desktop.
 
 ## New Features (enabled by Nina)
-- **[Telescope Control]**: Provides comprehensive control over the telescope
+- **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Larger Catalog]**: Includes an extensive offline catalog of celestial objects, surpassing the BP App.
 - **[GOTO Coordinates]**: Command the Benro Polaris to move to a selected target.
 - **[Abort Slew]**: Immediately stop the Benro Polaris movement during a slew operation.
@@ -72,12 +72,12 @@
 - **[Simple Setup]**: Allows Polaris compass and polar alignment with a single plate-solve.
 - **[Network Comms]**: Connects to the driver over the network using Alpaca protocol.
 - **[OS Supported]**: Supports Windows.
-- **[Hardware Supported]**: Supports Laptop, Desktop.
+- **[Hardware Supported]**: Supports Laptop, Desktop, MiniPC, SurfacePC
 - **[Client Supported]**: Supports Local UI, Remote Desktop, and Mobile Remote Desktop Apps.
 - **[Cameras Supported]**: Support additional camera models through the ASCOM platform.
 
 ## New Features (Alpaca Driver)
-- **[ASCOM ConformU]**: Passes standard validation tests for ITelescopeV3
+- **[ASCOM ConformU]**: Passes standard validation tests for ITelescopeV3.
 - **[Driver Discovery]**: Provides Alpaca Discovery services.
 - **[ASCOM Alpaca Protocol]**: Supports the ASCOM Alpaca protocol.
 - **[SynSCAN Protocol]**: Supports the SynSCAN protocol for StellariumPLUS
@@ -110,7 +110,7 @@ or Polaris.
 - **[StellariumPLUS Support]**: Supports latest version of StellariumPLUS for mobile.
 - **[Dark Site Support]**: Allows for operation, even without an internet connection.
 - **[OS Supported]**: Supports Windows.
-- **[Hardware Supported]**: Supports Laptop, Desktop.
+- **[Hardware Supported]**: Supports Laptop, Desktop, MiniPC, SurfacePC, Raspberry Pi, Docker.
 - **[Client Supported]**: Supports Local UI, Remote Desktop, and Mobile Remote Desktop Apps.
 - **[Cameras Supported]**: Support additional camera models through the ASCOM platform.
 - **[Video Demonstrations]**: Visual demonstrations of installation and operation.
