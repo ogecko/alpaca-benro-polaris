@@ -6,27 +6,28 @@
 * None
   
 ## QA Pending
-* Develop automated test for drift over movable range of Polaris
-* Extend Troubleshooting Guide with any Beta Test feedback.
+* Final Beta Test feedback followup.
   
 ## Testing Pending
-* Testing on Raspbery Pi
-* Testing on Docker
-* Testing of Sky Safari
-* Close Beta testing
-
+* None
+  
 ## Requests for Benro to assist (in order of priority)
 * Protocol required on BT to establish wifi
 * Changes to allow minor MoveAxis while sidereal tracking enabled, without backlash - for guiding
 * Incorporation of Driver into BP firmware
 
 ## Backlog
+* Testing on Raspbery Pi
+* Testing on Docker
+* Testing of Sky Safari
+* Develop automated test for drift over movable range of Polaris
 * Stellarium Desktop Binary protocol for position updates
 * Hand controller web app
 * Config web app
 * Simplify install with Pi2EXE / Pi2APP
 
 ## Completed during campaign
+* Close Beta testing
 * N Point Alignment - Sync will optionally re-align Benro Polaris rather than just being within the Driver
 * Add Watchdog to re-enable AHRS or even reboot connection if we dont see any position updates from Polaris
 * Fix position lag after extended use of Stellarium (due to remaining buffer messages growing and not being processed)
