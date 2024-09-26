@@ -82,8 +82,8 @@ class DeviceMetadata:
     """ Metadata describing the Alpaca Device/Server """
     Version = '1.0.0'              # Alpaca Version Number (based on https://semver.org/)
     VersionSynScan = '010000'      # Must be 6 digits for SynScan protocol
-    Description = 'Alpaca Sample Telescope '
-    Manufacturer = 'ASCOM Initiative'
+    Description = 'Alpaca Benro Polaris Driver'
+    Manufacturer = 'oGecko'
 
 
 # ---------------

@@ -41,8 +41,8 @@ maxdev = 0                      # Single instance
 class TelescopeMetadata:
     """ Metadata describing the Telescope Device."""
     Name = 'Benro Polaris'
-    Version = 'v0.3'
-    Description = 'ASCOM Alpaca Telescope Driver'
+    Version = '1.0.0'
+    Description = 'Alpaca Benro Polaris Telescope'
     DeviceType = 'Telescope'
     DeviceID = '3ee8e486-6421-432c-9a66-cf240e298bb9' # https://guidgenerator.com/online-guid-generator.aspx
     Info = 'Limited ASCOM Alpaca driver for the\nBenro Polaris Tripod Head & Astro.\nImplements ASCOM  ITelescopeV3.'
