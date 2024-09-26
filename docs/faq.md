@@ -23,7 +23,7 @@ I've succeeded with 800mm and exposures of up to 15 seconds. I created an hour-l
 The Camera USB must be connected to either the BP App or an astrophotography imaging App like Nina, whichever you choose. Once you have set up the mount, Nina is quite capable of performing all imaging functions and more, including autofocus, plate solving, framing, and image sequencing. However, nothing stops you from disconnecting the Camera from Nina and returning to the BP App.
 
 ### N2 - Do I still need to plug my camera into the Benro Polaris?
-If you are using Nina or CCDceil for imaging, you dont really need to plug your camera into the Ben Polaris Tripod Head any more. You only need to connect the camera via USB into the NinaAir. Nina can then help with focusing, platesolving, taking image sequences etc.
+If you are using Nina or CCDceil for imaging, you dont really need to plug your camera into the Benro Polaris Tripod Head any more. You only need to connect the camera via USB into the NinaAir. Nina can then help with focusing, platesolving, taking image sequences etc.
 
 ### N3 - Can Nina access the Cameras SD Card?
 Nina doesn't access the Camera SD Card. It communicates with the camera via the physical USB cable using either a native or ASCOM camera driver. Nina supports Canon and Nikon cameras natively and Sony and other cameras via the ASCOM Camera driver. We've had one Beta tester have success with the ASCOM camera driver on a Sony A7Riv, but we have yet to have someone test it on Pentax or other cameras.
