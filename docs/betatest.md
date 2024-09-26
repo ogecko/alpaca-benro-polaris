@@ -305,6 +305,14 @@ Pentax K1 - Nikon Z6 - android
 Firewall issue on first use
 Challenges getting Sony working with ASCOM Camera driver
 
+## Overall Impression
+* Ok, general thoughts. Works exactly as it should as far as I could test. The hours of even partially clear sky. Stellarium now takes about thirty seconds to respond to a request to slew. (Fixed in v1.0.0)
+* Might be worth pointing out that now that you don't need the Benro app after enabling astro it is no longer necessary to select raw+jpg, you can omit jpg. 
+* Focusing works, but the camera MUST be set to manual focus. Focus steps are tiny compared to a telescope focuser. Only 128 steps are available. 
+* I found that five steps per move worked  well with four moves in total to achieve focus.
+* I'm gutted that I haven't been able to test astap. I'll certainly keep you posted. 
+* The ability to pick up the geolocation from windows positioning would be a plus - or even an easier way to access the config file. I did create a desktop shortcut that opens config in notepad, that helped.
+* I have to say that it's pretty straightforward even given no previous experience with ascom, Nina, astap etal. I would have loved to be able to test stability over a few hours.
 
 # Ramymah (Ramy Mahdy)
 ## Test Environment

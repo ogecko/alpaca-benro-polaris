@@ -12,7 +12,7 @@ The driver needs to be installed on a device that (a) supports Python and (b) ca
 
 ### A4 - What are are the advantages of a Mini-PC?
 Using a Mini-PC with Nina to control the Benro Polaris offers several advantages over alternative setups. 
-* **Enhanced Processing Power and Storage**: Mini-PCs offer more processing power and storage capacity than the Benro Polaris device. 
+* **Enhanced Processing Power and Storage**: Mini-PCs offer more processing power and storage capacity than the Benro Polaris device. All images are automatically copied off the camera, named and organised in a friendly way. It is no longer necessary to select raw+jpg, you can omit jpg, as Nina understands raw formats.
 * **Centralized Control Hub**: The mini-PC acts as a central hub for controlling all astronomy equipment. This includes the Benro Polaris, cameras (including DSLR and dedicated astronomy cameras), and potentially other equipment like filter wheels or focusers, depending on the setup.
 * **Remote Control and Monitoring**: With a mini-PC, you can remotely control and monitor your astrophotography setup from a laptop, desktop, tablet, or smartphone. This is achieved using remote desktop software, allowing you to operate from a more comfortable location, potentially indoors, while the equipment is set up outside.
 * **Improved User Experience**: Using a mini-PC with Nina provides a better user experience than the Benro Polaris App or mobile astrophotography solutions. Nina offers a more comprehensive and user-friendly interface for astrophotography tasks.
