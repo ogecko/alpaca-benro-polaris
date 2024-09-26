@@ -82,25 +82,29 @@ The Beta Testers' perseverance and feedback helped improve the documentation and
 * Cynical Sarge (Andrew Sargent)
 
 ## Kickstarter Backers
-I want to thank all the 96 [Kickstarter Project Backers](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver/community?ref=9a035f), especially those who pledged Game-Changing and That's Awesome amounts. I will keep the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f) open to continue funding ongoing support and making enhancements to this project. PS. Let me know if you want to be anonymous.
+I want to thank all the 114 [Kickstarter Project Backers](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver/community?ref=9a035f), especially those who pledged Game-Changing and That's Awesome amounts. I will keep the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f) open to continue funding ongoing support and making enhancements to this project. PS. Let me know if you want to be anonymous.
 
 |  GAME CHANGER | Thats Awesome | Thats Awesome | Thats Awesome |
 |:---:|:---:|:---:|:---:|
-| **Mack Cameron** | Adrian Squirrell | Cameron Palmer | Mangoe |
-| **Mark Bahu** | Alan Smallbone | Carlo Mascellani | Mark Penberthy |
-| **Peter** | Alessio Zanotti | Charles T. Simet | Max Izod |
-| **Richard Swaim** | Alex Murdoch | Dan Suskin | Michael C |
-| **Simone Chiari** | Alvin Christie | David Powell | Mike Drinkwater |
-| **William Siers** | Amy Kemp | David Proudfoot | Mike Goel |
-|  | Andreas Bichler | Donald Dunbar | Moshe Salama |
-|  | Andrew Roberts | Ed | Nagendra Narayan |
-|  | Baha Baydar | Fernando Villaverde Gaviña | Patryk Lesiecki |
-|  | Bikram Ghosh | Humayun Qureshi | Paul Moulton |
-|  | Bill Lazar | Ian Morgan | Paul Olsavsky |
-|  | Brad Anderson | Ilya Chernikov | Paul Rickwood |
-|  |  | John | Peps Choufme |
-|  |  | James White | Pudeldestodes |
-|  |  | Jonathan Shribman | Richard Healey |
+| **Devon** | Adrian Squirrell | Dan Suskin | Nagendra Narayan |
+| **Evie-Jeane Vyse** | Alan Smallbone | David Proudfoot | Patryk Lesiecki |
+| **Mack Cameron** | Alessio Zanotti | Donald Dunbar | Paul Moulton |
+| **Mark Bahu** | Alex Murdoch | Ed | Paul Olsavsky |
+| **Peter** | Alvin Christie | Fank Heirnash | Paul Rickwood |
+| **Richard Swaim** | Amy Kemp | Fernando Ribeiro | Paul Vandeputte |
+| **Simone Chiari** | Andreas Bichler | Fernando Villaverde Gaviña | Peps Choufme |
+| **William Siers** | Andrew Roberts | Humayun Qureshi | Pudeldestodes |
+|  | Baha Baydar | Ian Morgan | Richard Healey |
+|  | Bikram Ghosh | Ilya Chernikov | Rob Bristow |
+|  | Bill Lazar | John | Roger Good |
+|  | Blair Dunlop | Jack Cale | Sandra Coffey |
+|  | Boyce Fitzgerald | James White | Santanu Majumder |
+|  | Brad Anderson | Jonathan Shribman | Steve Renter |
+|  | Cameron Palmer | Juan Manuel López Fernández | Steven |
+|  | Carlo Mascellani | Juan Martinez | Stlwarehouse |
+|  | Charles T. Simet | Kaingc |  |
+|  |  | Kym Wallis |  |
+|  |  | Ladislav Svoboda |  |
 
 
 
@@ -113,9 +117,10 @@ I want to thank all the 96 [Kickstarter Project Backers](https://www.kickstarter
 * Benro - for creating and distributing such great products, including the Benro Polaris.
 * Napkin AI - for making it so easy to create all the diagrams.
 * Copilot AI - for attempting to help with coding.
+* Notebook LM - for attempting to help synthesize some of the documentation.
+* Grammarly - for reviewing and editing the documentation.
 * GitHub - for hosting git and providing many vanilla dev support tools.
 * Kickstarter - for helping so many creatives.
-* Grammarly - for reviewing and editing the documentation.
 
 And finaly, just a brief note about risks....
 
