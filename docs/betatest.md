@@ -71,7 +71,7 @@
 * Tried with success (in the living room and on real target) : Nina with a Canon R6 mk II connected using USB3 and Stellarium.
 
 ## Test Results
-### MacOS, CCDciel, INDIstarter, SkyChart or Stellarium Mobile Plus, ASTAP
+### MacOS, CCDciel, INDIstarter, SkyChart, ASTAP
 * I started testing ABP in the early stage on my Macbook Pro laptop. Mac computers have Python pre-installed, version 3.9 for Sonoma 14.6.1, I had no issue installing the required dependencies but had one when running ABP the first time because it was using some Python features only available in version 3.11 of Python. This has been quickly fixed, I also did some other fixes and small improvements. Then I wrote the installation guide for MacOS.
 * Then I tried ABP for real using CCDciel which is somewhat like "Nina for Mac". CCDciel may drive both INDI and Alpaca device, I configured Alpaca in the mount device section and could easily detect the Alpaca Benro Polaris driver, multiple time, I used the local one with IP address 127.0.0.1. I also checked the option "Set mount site lat/lon from configuration" to send the observatory latitude/longitude configured in CCDciel to the ABP driver.
 For the Camera device I used a ZWO ASI585MC astro camera which only have INDI drivers. INDIstarter was configured to start the ZWO camera driver with the proper settings, then CCDciel could detect it in the Indi Camera device section. I also installed SkyChart which is used from CCDciel to find celestial objects and target them. And finally I installed ASTAP for plate solving.
@@ -83,9 +83,25 @@ For the Camera device I used a ZWO ASI585MC astro camera which only have INDI dr
 * Using "Pointing offset" in precision slewing options allowed now the goto to use plate solving to iteratively refine the target aiming. I relaxed the "target precision" to 1.0 arcmin tolerance because the refinement moves wasn't able to achieve more precision jumping around the target. For the first test I didn't used the narrow band filter L-Ultimate HaOIII and the plate solving were succesful but when I tried with the filter ASTAP had a lot of issues doing the plate solving...
 * I also tried the tool which allows to clic in the last picture taken with the camera and ask CCDciel to re-center the image on the clicked point using plate solving, this also worked great.
 * Then I tried the "Capture" and "Sequence" sections in CCDCiel to take some series of 10s images. It worked but as usual the targets drifted quite quiclky from the center. Then I tried to take 20-30 images then recenter the target using plate solving then take another set of images,... this worked but was a bit painful doing it manually.
-  
+
+### MacOS, Stellarium (MacOS)
+* I added the code in ABP to support the Binary Telescope Control Protocol found in the desktop version of Stellarium. Only one way is implemented from Stellarium to ABP, the feedback way is missing.
+* I set `stellarium_telescope_ip_address = 127.0.0.1` in config.toml, started ABP and Stellarium on the Macbook.
+* I configured a remote telescope controle in Stellarium using `localhost` for the "Host" and started it.
+* Then I was able to select a target in Stellarium, use the "Slew telescope to" window to order a goto to the Polaris using "Selected object" or "Center of the screen" buttons and the pushing the "Slew" button. The Polaris performed the move as if it was ordered in the Benro mobile app.
+   
 ### Windows 11, Nina, ASTAP
-TBD
+* My friend Chris-F2024 asked me if she could participate to the beta tests because she'll probably buy a Benro Polaris soon and she's interrested in Nina and the ABP driver. She's using a Canon R6 Mark II and a RF 100-400 lens for astrophotography. We did the tests together using her Windows 11 laptop. I was very interested to try Nina and compare it to CCDciel.
+* We installed Python 3.12.6 and the needed dependencies as instructed in the Windows guide, then Nina and ASTAP for plate solving.
+* We edited the config.toml file setting the current location, the used lens.
+* Then connected the WIFI to the Polaris and started ABP in a terminal. 
+* We could quite easily setup the camera and the mount in Nina. 
+* Then we did the first tests in the living room trying to slew to targets. We had hard time using the search interface in Nina, we couldn't find any star using it... At last we tried "M 31" and Nina gave us a result... and it slew to the target as if we had used the Benro App.
+* Another night we did some tests outside with the same setup.
+* We tried to achieve the Canon lens AF using Nina but we couldn't find how to do it (we missed the point that we must install the 'LensAF' Nina plugin first)
+* Then we configured ASTAP and used it to do a goto with plate solving to refine the move and center automatically the target.
+* We searched for NGC 7000 (the North America Nebula in Cygnus) and performed a goto. The Polaris slew to the target, then Nina took a picture, plate solve it using ASTAP and made a first adjustement, then took another picture,... until it reached the desired tolerancy.
+* Then we took a serie of 30s image
 
 
 
@@ -198,25 +214,6 @@ Canon R - Mac M1
 ## Test Results
 * Stellarium go-to and tracking successful. Alignment is still pretty dependent on a good initial Benro app alignment, though Stellarium Sync seems to help.
 * CCDciel is able to detect the ABP driver, but I was unable to figure out how to connect to the camera
-
-
-
-# Chris-F2024
-## Test Environment
-* Location: 
-* Optics: 
-* Mount: 
-* ABP Driver + Nina Platform (hardware): 
-* ABP Driver + Nina Platform (software): 
-* Siril + Stellarium Platform: 
-  
-## Test coverage
-Pentax K1 - Nikon Z6 - android
-
-## Test Results
-TBD
-
-
 
 
 
