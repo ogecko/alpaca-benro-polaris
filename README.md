@@ -28,30 +28,30 @@ The priorities of this open-source project reflect feedback from the [Polaris Ca
 The Alpaca Benro Polaris has documentation to help you prepare your hardware, install software and use the features in Stellarium and Nina. Since the ABP is an ASCOM standard driver, many other applications can make use of it. Let us know what you've found that works.
 
 ## [Release Notes](./docs/release-notes-v1.0.0.md)
-The [Release Notes](./docs/release-notes-v1.0.0.md) list all the features that are enabled by the Alpaca Benro Polaris Project, any Untested Features, Known Issues and Bug Fixes 
+The [Release Notes](./docs/release-notes-v1.0.0.md) is a reference document that outlines new features, bug fixes, known issues and untested features of the Alpaca Benro Polaris Driver. The new features are organised by application to help document what new capabilities are enabled by using the driver with a given application.
 
 ## [Hardware Guide](./docs/hardware.md)
-The [Hardware Guide(s)](./docs/hardware.md) provide an overview of the recommended equipment/hardware to be used with Alpaca Benro Polaris. The guides describes preparing and seting up a Mini PC, Rapsberry Pi or Docker platform.
+The [Hardware Guide(s)](./docs/hardware.md) outlines the recommended hardware platforms for running the Alpaca Benro Polaris Driver, ranging from basic laptop setups to more advanced mini-PC configurations for controlling all astronomy equipment. It offers step-by-step guidance on setting up a "NinaAir" mini-PC, ensuring users can establish a robust and dedicated astrophotography control center.
 
 ## [Installation Guide](./docs/installation.md)
-The [Installation Guide](./docs/installation.md) provides instructions on installing the Alpaca Benro Polaris Driver, ASCOM Platform, Stellarium, and Nina.
+The [Installation Guide](./docs/installation.md) provides step-by-step instructions for installing and running the Alpaca Benro Polaris Driver on Windows 11 or MacOS, including setting up prerequisite software like Python and configuring Stellarium for initial use. It walks users through each step of the installation process, ensuring they can successfully install the driver and connect to their Benro Polaris.
 
 ## [Using Stellarium](./docs/stellarium.md)
-The [Using Stellarium Guide](./docs/stellarium.md) on Stellarium is not a comprehensive users guide. It is aimed to orient you in what features can leverage the Alpaca Benro Polaris. 
+The [Using Stellarium Guide](./docs/stellarium.md) focuses on using Stellarium with the Benro Polaris, explaining how to establish a connection, control the mount, and leverage Stellarium's features. It outlines the compatibility of different Stellarium versions and protocols, guiding users on connecting their setup and navigating Stellarium's interface for effective telescope control.
 
-The University of Western Australia has [A Guide To Using Stellarium](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf)
+The University of Western Australia has [A Guide To Using Stellarium](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf) for a more complete reference.
 
 ## [Using Nina](./docs/nina.md)
-The [Using Nina Guide](./docs/nina.md) is not a comprehensive users guide. It aims to orient you in what features can leverage the Alpaca Benro Polaris. 
+The [Using Nina Guide](./docs/nina.md) explains how to use Nina with the Benro Polaris for capturing, focusing, and aligning astrophotography images. It delves into essential features of Nina, such as equipment setup, target finding, image sequencing, and autofocus techniques, empowering users to optimize their astrophotography workflow.
 
-Refer to the thorough [Nina online documentation](https://nighttime-imaging.eu/docs/master/site/) or [Nina PDF Manual](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf) for the standard documentation. You can find some very informative, long form videos on Nina at the following youtube channels.
+For more detailed reference material refer to the thorough [Nina online documentation](https://nighttime-imaging.eu/docs/master/site/) or [Nina PDF Manual](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf) for the standard documentation. You can find some very informative, long form videos on Nina at the following youtube channels.
 * [Cuiv, The Lazy Geek Youtube Channel](https://www.youtube.com/@CuivTheLazyGeek)
 * [Patriot Astro Youtube channel](https://www.youtube.com/@PatriotAstro)
 
 ## [Troubleshooting and FAQ](./docs/troubleshooting.md)
-We have included a comprehensive [Troubleshooting Guide](./docs/troubleshooting.md) to help you diagnose and fix any issues you may encounter using the driver.
+We have included a comprehensive [Troubleshooting Guide](./docs/troubleshooting.md) which provides solutions for common issues encountered while setting up and using the Alpaca Benro Polaris Driver. It offers practical advice on starting the Benro Polaris device, establishing a network connection, and troubleshooting plate-solving issues with Nina and ASTAP.
 
-A list of [Frequently Asked Questions](./docs/faq.md) is included to help clarify capabilities and purpose of the Alpaca Benro Polaris Driver.
+A list of [Frequently Asked Questions](./docs/faq.md) addresses common questions about the Alpaca standard, the Benro Polaris's capabilities, and the use of Nina and Stellarium for astrophotography. It clarifies misconceptions about Alpaca and provides realistic expectations for using the Benro Polaris for deep-sky photography, emphasizing the importance of proper equipment and settings.
 
 
 # Recognition
