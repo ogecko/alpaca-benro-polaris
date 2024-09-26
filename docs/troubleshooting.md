@@ -145,21 +145,21 @@ alpaca_ip_address = '127.0.0.1'
   * Zoho Assist - Free tier very limited.
 
 ### N5 - Cannot Connect Sony Camera with Nina
-Some later model Sony Cameras are not recognised by the Sony Plug-in that is included with Nina. To resolve this:
-* Attach your camera via usb. Configure as you would to connect to the Polaris.
+Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by the Sony Plug-in that is included with Nina. To resolve this:
+* Attach your camera via USB. Configure as you would to connect to the Polaris.
 * Turn on your camera.
-* Enter Device Manager in the desktop search bar of windows.
-* Click on the Device Manager icon to open device manager.
-* Check for the linr "libusbK Usb Devices".
-* If the line does not exist close device manager. You are correctly configured.
-* If the line "libusbK Usb Devices" exists:
-  * Left click on the entry to expand the entry. You should now see Sony Remote Control Devices.
-  * Right click on "Sony Remote Control Devices" and select "Update Driver".
-  * Select "Browse my computer for drivers".
-  * Select "Let me pick from a list of available drivers on my computer".
-  * Left click on "MTP USB Device".
-  * Your driver should now update.  NOTE: Your camera is now listed  under the heading "portable device". Other software may not function correctly with device manager configured in this way. 
-  * You can change back to the original setting by following these steps and selecting "libusbK Usb Devices" as the new driver instead of "MTP USB Device".
+* Enter Device Manager in the Windows desktop search bar.
+* Click on the Device Manager icon to open the Device Manager.
+* Check for the linr `libusbK Usb Devices`.
+* If the line does not exist, close the Device Manager. You are correctly configured.
+* If the line `libusbK Usb Devices` exists:
+  * Left-click on the entry to expand the entry. You should now see Sony Remote Control Devices.
+  * Right-click on `Sony Remote Control Devices` and select `Update Driver`.
+  * Select `Browse my computer for drivers`.
+  * Select `Let me pick from a list of available drivers on my computer`.
+  * Left-click on `MTP USB Device`.
+  * Your driver should now update.  NOTE: Your camera is now listed under `Portable device`. Other software may not function correctly with the Device Manager configured this way. 
+  * You can change back to the original setting by following these steps and selecting `libusbK Usb Devices` as the new driver instead of `MTP USB Device`.
 
 Nina will now connect to your camera.
 
