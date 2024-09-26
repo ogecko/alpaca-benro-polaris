@@ -6,7 +6,7 @@
 * None
   
 ## QA Pending
-* Final Beta Test feedback followup.
+* None.
   
 ## Testing Pending
 * None
@@ -25,6 +25,7 @@
 * Hand controller web app
 * Config web app
 * Simplify install with Pi2EXE / Pi2APP
+* Explore addition of INDI Server/Telescope
 
 ## Completed during campaign
 * Close Beta testing
