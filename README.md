@@ -110,8 +110,21 @@ I want to thank all the 114 [Kickstarter Project Backers](https://www.kickstarte
 
 
 ## User Group Feedback
-* Everyone who posted feedback on the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755).
-* All the words of encouragement kept this project going  - eg. Just wow!, So much of this yes, Love it, This is a cool project, Would be awesome, Yes yes please, I'm all in, Absolute game changer, Great, Please make this work, Very exciting, Wow Wonderful, 100% Super enthusiastic about this, This is absolutely wicked, Sounds Great, Awesome initiative, Amazing work, Most certainly very worthwhile, Bring it on !!, Keeping a bllodshot eye on this thread!
+* I'd really like to thank everyone who posted feedback on the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755).
+
+* Many users expressed encouragement, excitement and great support for the project, using phrases like:
+  * "Just wow!", "So much of this yes", "Love it", "This is a cool project", "Would be awesome", "Yes yes please", "I'm all in", "Absolute game changer", "Great", "Please make this work", "Very exciting", "Super job", "Wow Wonderful", "100% Super enthusiastic about this", "This is absolutely wicked", "Sounds Great"
+  * "Awesome initiative", "Amazing work", "Most certainly very worthwhile",  "Bring it on !!", "I am TOTALY blowen away by this", "Outstanding work", "Keeping a bllodshot eye on this thread!", "I think we are going to have to name a star after you", "not a star, an entire Nebula, the Morrison Nebula!" :-)
+* Specific features that received positive feedback included:
+  * Plate solving, three-point alignment, integration with Stellarium, and the ability to use Nina with the Benro Polaris.
+* Users expressed a desire to: 
+  * Improve the Benro Polaris's tracking accuracy, particularly with longer lenses.
+  * Make the Benro Polaris a more portable astrophotography solution.
+  * Offer help with beta testing the project.
+  * Reach out to Benro for backing.
+* Overall, the feedback from the Polaris Camera Controller Global Group was overwhelmingly positive, with users expressing enthusiasm for the project's potential to unlock the full capabilities of the Benro Polaris.
+
+
 
 ## Organisations and Services
 * Benro - for creating and distributing such great products, including the Benro Polaris.
