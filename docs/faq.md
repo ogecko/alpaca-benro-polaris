@@ -11,11 +11,11 @@ The Driver needs to run on a platform that supports Python and has Wifi connecti
 The driver needs to be installed on a device that (a) supports Python and (b) can connect to the Benro Polaris wifi Network. Initially, we are exploring a Laptop, mini-PC, Raspberry Pi, and MacOS. We will provide guidelines on what we have successfully tested and how to set them up.
 
 ### A4 - What are are the advantages of a Mini-PC?
-Using a Mini-PC with Nina to control the Benro Polaris, offers several advantages over alternative setups. 
-* **Enhanced Processing Power and Storage**: Mini-PCs offer more processing power and storage capacity compared to the Benro Polaris device. 
+Using a Mini-PC with Nina to control the Benro Polaris offers several advantages over alternative setups. 
+* **Enhanced Processing Power and Storage**: Mini-PCs offer more processing power and storage capacity than the Benro Polaris device. 
 * **Centralized Control Hub**: The mini-PC acts as a central hub for controlling all astronomy equipment. This includes the Benro Polaris, cameras (including DSLR and dedicated astronomy cameras), and potentially other equipment like filter wheels or focusers, depending on the setup.
-* **Remote Control and Monitoring**: With a mini-PC, you can remotely control and monitor your astrophotography setup from a laptop, desktop, tablet, or even a smartphone. This is achieved using remote desktop software, allowing you to operate from a more comfortable location, potentially indoors, while the equipment is set up outside.
-* **Improved User Experience**: Using a mini-PC with Nina provides a better user experience compared to the Benro Polaris App or mobile astrophotography solutions [3]. Nina offers a more comprehensive and user-friendly interface for astrophotography tasks.
+* **Remote Control and Monitoring**: With a mini-PC, you can remotely control and monitor your astrophotography setup from a laptop, desktop, tablet, or smartphone. This is achieved using remote desktop software, allowing you to operate from a more comfortable location, potentially indoors, while the equipment is set up outside.
+* **Improved User Experience**: Using a mini-PC with Nina provides a better user experience than the Benro Polaris App or mobile astrophotography solutions. Nina offers a more comprehensive and user-friendly interface for astrophotography tasks.
 * **Offline Functionality**: The NinaAir setup can function offline, which is crucial for astrophotography in remote locations with limited internet connectivity.
 * **Flexibility and Customisation**: Mini-PCs offer flexibility in terms of hardware and software configurations. You can customize the setup to suit your needs and budget.
 
