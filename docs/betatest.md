@@ -117,13 +117,34 @@ For the Camera device I used a ZWO ASI585MC astro camera which only have INDI dr
 * Safari Platform:  iPhone and iPad, Safari 7
   
 ## Test coverage
-Pentax K1 - Nikon Z6 - android
+* Install on Win 11 PC 
+* Install on Minis Forum UM350
+* Control Mini with Win 10 Home Laptop
+* Use with Stellarium Desktop
+* Use with Stellarium Mobile iPhone 13 Max iOS 17.6
+* Use with N.I.N.A 
+* Use with NINA and Stellarium controlling from Laptop>>Mini>>BP
 
 ## Test Results
-TBD
-
-
-
+* Initial Install on Win PC was problematic due to communication errors. While the fix was to go into the startup programs and delete a multitude of unnecessary startup programs I was never certain which one actually was causing the issue. Conclusion get rid of the trash in your computer startup.
+* Should be noted that my desktop gains access to the internet thru ethernet cable not wifi.
+* If I needed wifi for initial testing I used a USB Wifi adapter NetGear A6210
+* Install instructions are well written and easy to follow. But each step must be followed in order including when to restart before continuing. 
+* However One section leads you down a path and then says But before this you need to do this. While this seems obvious to those familiar with the programming it will not be to those that do not and most will not read ahead. Suggestion is to restructure the instructions to avoid a backstep. 1-2-3-4-5 etc vs 1-2-3-6-7-4-5. Yes instructions for dummies. 
+* Install on Mini had issues with the internal wifi which I circumvented using the same USB Wifi adapter. Eventually establishing 2 wifi access points one with the internal connected to my LAN and wifi 2 with Netgear to BP.
+* Remote Operations from Laptop or IPhone were most easily accomplished using AnyDesk Free version. RD Client or Remote Desktop from MS was difficult to connect and subsequently the next day removed from the App Store and my iPhone, which would indicated that it is not compatible with current OS.
+* Working With Stellarium is fairly easy following the instructions. However I recommend not using auto connect to telescope on startup. The result is if BP is not ready the program freezes and or becomes very very slow to respond. More than likely caused a few of my initial connection issues.  
+* Stellarium Mobile was initially a problem but somehow after a period of time corrected itself and connected. No further problems….yet. 
+* Use of Angry IP Scanner can be a very useful tool Mocha Ping Lite. 
+* NINA install on Mini along with ASCOM, ASTAP, Star Database D80, Stellarium, Python, PIP, etc went very well. 
+* NINA is compatible with Canon, Nikon and SONY! Using the Sony Plugin. I used a Sony a6500 and a7iv, unfortunately no clear skies. 
+* Connection from the laptop went smoothly using the AnyDesk remote. Some reading to find the correct menu item to awake on LAN and not require permission from the mini to connect. It did however require a password entered from the controlling laptop. 
+* NINA and Stellarium were able to be open simultaneously and go back and forth between them, Stellarium has a better graphical interface for star surfing. 
+* Use of the ALPACA icon to start PY went very well. 
+* If using AnyDesk and some others it is necessary to use a HDMI Dummy Plug to acquire video from the mini pc if a monitor is not attached, which is most likely the case. MS RD Client or Remote Desktop does not require this but RD Client may not be available for mobile devices. 
+* Also in NINA, I found that an overexposure will present itself as a black screen vs a white screen as would be expected. 
+## Overall Impression
+Great Job!!! It will however be a challenge for many. Any simplification of install would be helpful, although you already have done a lot. Github is a mystery to many. I assume that individual involvement with GitHub will not be required in the future. It was easy to get the individual code or text lines without working Hyperlinks. In clear text the Links made life very easy to download everything needed. Just my fumbling around. Thank You, more was accomplished in one month than the last 2 years. 
 
 # 5x5Stuido (JH)
 ## Test Environment
