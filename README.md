@@ -82,7 +82,7 @@ The Beta Testers' perseverance and feedback helped improve the documentation and
 * Cynical Sarge (Andrew Sargent)
 
 ## Kickstarter Backers
-I want to thank all the 114 [Kickstarter Project Backers](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver/community?ref=9a035f), especially those who pledged Game-Changing and That's Awesome amounts. I will keep the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f) open to continue funding ongoing support and making enhancements to this project. PS. Let me know if you want to be anonymous.
+I want to thank all the 114 [Kickstarter Project Backers](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver/community?ref=9a035f), especially those who pledged Game-Changing and That's-Awesome amounts. I will keep the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f) open to continue funding ongoing support and making enhancements to this project. PS. Let me know if you want to be anonymous.
 
 |  GAME CHANGER | Thats Awesome | Thats Awesome | Thats Awesome |
 |:---:|:---:|:---:|:---:|
