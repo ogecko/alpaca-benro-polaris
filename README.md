@@ -4,7 +4,10 @@
 ![Overview](docs/images/abp-overview.png)
 
 
-Are you interested in trying your hand at amateur astrophotography? Invest in a [Benro Polaris with its Astro Kit](https://www.benro-polaris.com/) , and this project will transform it from a great Tripod Head to a full-featured, open Telescope Mount. This project makes the Benro Polaris compatible with advanced astrophotography applications like [Stellarium](https://stellarium.org/en/), [Nina](https://nighttime-imaging.eu/), and more.
+Are you interested in trying your hand at amateur astrophotography? Invest in a [Benro Polaris with its Astro Kit](https://www.benro-polaris.com/), and this project will transform it from a great Tripod Head to a full-featured, open Telescope Mount. This project aims to provide users with a way to control their Benro Polaris using more advanced astrophotography software, including [Stellarium](https://stellarium.org/en/), [Nina](https://nighttime-imaging.eu/), and other applications that support the ASCOM Alpaca platform. 
+
+# Intended Audience
+The project documentation and features target individuals familiar with astrophotography concepts and software like deep sky astronomy, image sequencing, plate solving, polar alignment, equatorial coordinates, and image stacking. The first release is intended for users comfortable with technical setups involving MacOS or Windows, mini-PCs, Command Windows, and Networks, as these are presented as options for running the Alpaca-Benro-Polaris Driver.
 
 # Project Purpose
 The [Benro Polaris](https://www.benro-polaris.com/) tripod head is a great product. It's manufactured to a high standard, comes in a compact and sturdy design, and its mobile App has many easy-to-use features. Although its not cheap, it is cheaper than a modern telescope mount like the [ZWO AM3 Harmonic Equatorial Mount](https://www.zwoastro.com/product/zwo-am3-harmonic-equatorial-mount/). The Polaris can also be used for other photography projects beyond astro-photography.
