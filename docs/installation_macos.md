@@ -35,13 +35,8 @@ On MacOS the minimal tested version is `3.9.6`
 	```
 
 ### Running the Alpaca Benro Polaris Driver
-Start the Alpaca Benro Polaris driver with the following command from within the installation directory:
 
-```
-python3 driver/main.py
-```
-
-Before you do, though, you'll need to do the following:
+There are a few preliminary steps before you start the driver. You'll need to do the following:
 
 1. Setup your Benro Polaris tripod head, camera, Mac, and power.
 2. Remove your lens cap (I often forget this step!).
@@ -53,8 +48,12 @@ Before you do, though, you'll need to do the following:
 8. Turn on the Mac and connect it to your camera via USB.
 9. Connect your Mac to the polaris-###### hotspot using WIFI (this will disconnect you from the previous WIFI and you'll loose the Internet connection)
 11. Wait for connection.
+12. IMPORTANT: One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
+13. Start the Alpaca Benro Polaris driver with the following command from within the installation directory:
 
-IMPORTANT: One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
+    ```
+    python3 driver/main.py
+    ```
 
 Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
 

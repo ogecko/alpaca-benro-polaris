@@ -36,12 +36,8 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
 
 
 ### Running the Alpaca Benro Polaris Driver
-Start the Alpaca Benro Polaris driver using the shortcut or the following command.
-```
-C:\Users\Nina\Documents\alpaca-benro-polaris-main> python driver\main.py
-```
 
-Before you do, though, you'll need to do the following:
+There are a few preliminary steps before you start the driver. You'll need to do the following:
 1. Setup your Benro Polaris tripod head, camera, mini-pc, and power.
 2. Remove your lens cap (I often forget this step!).
 3. Level the Benro Polaris as accurately as possible (important. See [Troubleshooting B3](./troubleshooting.md)). 
@@ -60,6 +56,11 @@ Before you do, though, you'll need to do the following:
 ![Public Network](images/abp-troubleshoot-wifi3.png)
 
 13. IMPORTANT: One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
+
+14. Now you can start the Alpaca Benro Polaris driver using the shortcut or the following command.
+    ```
+    C:\Users\Nina\Documents\alpaca-benro-polaris-main> python driver\main.py
+    ```
 
 Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
 
