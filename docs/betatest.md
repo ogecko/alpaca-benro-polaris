@@ -1,7 +1,32 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Beta Testing
-## Beta Testing Guidelines
+# Beta Test Final Results Summary
+
+The beta testing involved a diverse group of individuals, each bringing their unique setups, locations, and experiences to the table. The overall feedback appears highly positive, with many testers praising the driver's impact on the Benro Polaris's capabilities. However, the results also highlight areas requiring improvement and some persistent challenges.
+
+## Positive Results:
+* **Enhanced User Experience**: A recurring theme throughout the beta feedback is the significantly improved user experience compared to relying solely on the Benro Polaris App. Testers lauded the ABP Driver's seamless integration with applications like NINA and Stellarium, praising the expanded functionality and ease of use.
+* **Improved Aiming and Tracking**: Many testers observed noticeable enhancements in the Benro Polaris's aiming and tracking accuracy when using the ABP Driver. They attributed these improvements to the driver's N-Point Alignment, aim correction, and time correction features, which addressed some of the Polaris's inherent limitations.
+* **Plate Solving Success**: The integration of plate-solving emerged as a game-changer, enabling precise target centering and simplifying the Polaris's alignment process. Testers reported successful plate-solving using ASTAP in conjunction with the ABP Driver, highlighting its effectiveness in achieving accurate pointing without relying on the Benro Polaris App's joysticks.
+* **Remote Control and Monitoring**: Testers appreciated the ability to control and monitor their setups remotely using the ABP Driver and a mini-PC. This setup, dubbed "NinaAir" in the sources, allows operation from a more comfortable location, potentially indoors, while the equipment is set up outside.
+* **Cross-Platform Compatibility**: The ABP Driver's compatibility with Windows, macOS, and Linux, along with its support for both the Alpaca ASCOM and SynScan protocols, received positive feedback. This versatility allows users to leverage a wider range of astrophotography applications and devices.
+## Areas for Improvement:
+* **Installation Process**: Some testers found the initial installation process somewhat complex, particularly those less familiar with command-line operations or Python environments. They suggested simplifying the installation, potentially through an executable installer or more detailed instructions for less technical users. **Response** This may come in a future release.
+* **Documentation Clarity**: A few testers recommended enhancing the documentation, particularly in areas like network configuration and troubleshooting. They suggested reorganizing certain sections and providing more straightforward, step-by-step guidance. **Response** This has been incorporated in v1.0.0.
+* **Benro App Dependency**: While the ABP Driver aims to reduce reliance on the Benro Polaris App, the initial setup and certain functionalities still required using the app. Testers expressed a desire for complete independence from the Benro App, hoping for future updates to address this. **Response** This is being considered for a future version and will likely wait till on the new BP Connect App is released or Benro becomes involved.
+* **Autoguiding Limitation**: The lack of autoguiding support in the ABP Driver's initial release was a recurring point of discussion. While acknowledged as a limitation stemming from the Benro Polaris's firmware, testers expressed hope for potential future solutions, potentially requiring collaboration with Benro. **Response** Agree, hope for colaboration with Benro.
+* **MacOS Software Limitations**: Several issues specific to MacOS were raised. Primarily, that astrophotography applications such as Nina do not run natively on MacOS. Testers resorted to using alternative software such as CCDciel and virtualisation software such as WINE to overcome these issues. Also the need to add position updates to the Stelarium Desktop version for MacOS **Response** This is being considered for a future release.
+
+## Persistent Challenges:
+* **Network Connectivity**: Testers encountered occasional challenges with network connectivity, particularly when establishing communication between the ABP Driver and the Benro Polaris. The troubleshooting guide offers various solutions, but these issues highlight the importance of a stable and properly configured network environment.
+* **Inherent Polaris Limitations**: The beta testing reinforced the reality that the ABP Driver, while significantly enhancing the Benro Polaris, cannot entirely overcome the device's inherent hardware limitations. Testers using longer focal lengths or aiming for extended exposures still encountered tracking errors, emphasizing the importance of managing expectations.
+* **Learning Curve**: Despite the ABP Driver's goal of improving user-friendliness, some testers, particularly those new to astrophotography software like NINA, found the transition involved a learning curve. This suggests the need for continued community support, tutorials, and resources to aid users in harnessing the driver's full potential.
+
+## Conclusion:
+The beta testing phase provided invaluable feedback, shaping the ABP Driver's development and highlighting its strengths and areas needing attention. The overall sentiment suggests that the driver successfully delivers on its promise of unlocking greater potential from the Benro Polaris. However, addressing the identified areas for improvement and acknowledging the persistent challenges will be crucial for wider adoption and ensuring user satisfaction.
+
+# Beta Testing Guidelines
 * Document the test environment, focus areas annd results in [docs/betatest.md](./betatest.md).
 * Try to perform real world use case tests as well as load and performance tests.
 * Keep a record of what tests you perform and the results
@@ -11,7 +36,7 @@
 * Confirm you will send a final summary of Beta testing feedback to me by 25 Sep, so we have time to address any issues.
 * Confirm you will not share any pre-release code or docs with others.
 
-## Confirmed Beta Testers, Registered on GitHub
+# Confirmed Beta Testers, Registered on GitHub
 * David Morrison (PCCGG) - Dark site testing of mini-PC, Canon R5, Stellarium, ConformU, Nina
 * Vladimir Vyskocil (PCCGG) - for the MacOS testing and support for example, and Raspberry Pi maybe.  ZWO ASI 585 MC 
 * Spiderx01 (William Siers) (PCCG) - SurfacePC, Mini-PC
@@ -27,7 +52,8 @@
 * Cynical Sarge (Andrew Sargent) - I would like to participate in the Beta testing of the Polaris driver.
 * Ramymah (Ramy Mahdy) - I was wondering if I can be of any help? I’m a software quality engineer at Apple and I have a lot of Apple devices that run iOS/ iPadOS and macOS. 
   
-# Beta Test Results Summary
+
+# Beta Test Result - Raw Feedback 
 
 # jdm5001 (David Morrison)
 ## Test Environment
@@ -45,15 +71,17 @@
 * Tested targets M4, M8, M16, M17, M20, M24 M83, C63, C77, C78, C92, SMC, IC4605, Moon, random stars in southern hemisphere.
 
 ## Test Results
-* Completed run of ConformU required relaxation of Slew tolerance
-* Connecting MiniPC without Home Wi-Fi was challenging but achievable.
-* Having no screen or keyboard at the remote location limited MiniPC troubleshooting. Recommend testing fully before you go to a dark site.
-* Have successfully used Nina for capturing images over a month now
+* Completed run of ConformU, required relaxation of Slew tolerance
+* Connecting MiniPC without Home Wi-Fi, was challenging but achievable.
+* Having no screen or keyboard at the remote location, limited MiniPC troubleshooting. Recommend testing fully before you go to a dark site.
+* Have successfully used Nina for capturing images for over a month now
 * Will never go back to vanilla BP App.
 
+
+
 ---------------------
-# Vladimir Vyskocil
-## Test Environment
+## Vladimir Vyskocil
+### Test Environment
 * Location: France
 * Optics: Canon R6 Mk II connected via USB3
 * Optics: ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
@@ -67,12 +95,12 @@
 * CCDciel : [INDIstarter](https://github.com/pchev/indistarter) for the INDI ZWO camera driver, as there are no Alcapa driver for that camera, [SkyChart](https://github.com/pchev/skychart) which is used in CCDciel for the goto and [ASTAP](http://www.hnsky.org/astap.htm) for the plate solving in CCDciel
 
 
-## Test coverage
+### Test coverage
 * MacOS testing and support. ZWO ASI 585 MC camera using INDIstarter, CCDciel, SkyChart, Stellarium Mobile Plus iOS.
 * Tried with success (in the living room and on real target) : Nina with a Canon R6 mk II connected using USB3 and Stellarium.
 
-## Test Results
-### MacOS, CCDciel, INDIstarter, SkyChart, ASTAP
+### Test Results
+#### MacOS, CCDciel, INDIstarter, SkyChart, ASTAP
 * I started testing ABP in the early stage on my Macbook Pro laptop. Mac computers have Python pre-installed, version 3.9 for Sonoma 14.6.1, I had no issue installing the required dependencies but had one when running ABP the first time because it was using some Python features only available in version 3.11 of Python. This has been quickly fixed, I also did some other fixes and small improvements. Then I wrote the installation guide for MacOS.
 * Then I tried ABP for real using CCDciel which is somewhat like "Nina for Mac". CCDciel may drive both INDI and Alpaca device, I configured Alpaca in the mount device section and could easily detect the Alpaca Benro Polaris driver, multiple time, I used the local one with IP address 127.0.0.1. I also checked the option "Set mount site lat/lon from configuration" to send the observatory latitude/longitude configured in CCDciel to the ABP driver.
 For the Camera device I used a ZWO ASI585MC astro camera which only have INDI drivers. INDIstarter was configured to start the ZWO camera driver with the proper settings, then CCDciel could detect it in the Indi Camera device section. I also installed SkyChart which is used from CCDciel to find celestial objects and target them. And finally I installed ASTAP for plate solving.
@@ -85,13 +113,13 @@ For the Camera device I used a ZWO ASI585MC astro camera which only have INDI dr
 * I also tried the tool which allows to clic in the last picture taken with the camera and ask CCDciel to re-center the image on the clicked point using plate solving, this also worked great.
 * Then I tried the "Capture" and "Sequence" sections in CCDCiel to take some series of 10s images. It worked but as usual the targets drifted quite quiclky from the center. Then I tried to take 20-30 images then recenter the target using plate solving then take another set of images,... this worked but was a bit painful doing it manually.
 
-### MacOS, Stellarium (MacOS)
+#### MacOS, Stellarium (MacOS)
 * I added the code in ABP to support the Binary Telescope Control Protocol found in the desktop version of Stellarium. Only one way is implemented from Stellarium to ABP, the feedback way is missing.
 * I set `stellarium_telescope_ip_address = 127.0.0.1` in config.toml, started ABP and Stellarium on the Macbook.
 * I configured a remote telescope controle in Stellarium using `localhost` for the "Host" and started it.
 * Then I was able to select a target in Stellarium, use the "Slew telescope to" window to order a goto to the Polaris using "Selected object" or "Center of the screen" buttons and the pushing the "Slew" button. The Polaris performed the move as if it was ordered in the Benro mobile app.
    
-### Windows 11, Nina, ASTAP
+#### Windows 11, Nina, ASTAP
 * My friend Chris-F2024 asked me if she could participate to the beta tests because she'll probably buy a Benro Polaris soon and she's interrested in Nina and the ABP driver. She's using a Canon R6 Mark II and a RF 100-400 lens for astrophotography. We did the tests together using her Windows 11 laptop. I was very interested to try Nina and compare it to CCDciel.
 * We installed Python 3.12.6 and the needed dependencies as instructed in the Windows guide, then Nina and ASTAP for plate solving.
 * We edited the config.toml file setting the current location, the used lens.
@@ -106,8 +134,8 @@ For the Camera device I used a ZWO ASI585MC astro camera which only have INDI dr
 
 
 ---------------------
-# Spiderx01 (William Siers)
-## Test Environment
+## Spiderx01 (William Siers)
+### Test Environment
 * Location: US
 * Optics: Meade LX 200 
 * Mount: Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11, IOS App v1.4.4
@@ -117,7 +145,7 @@ For the Camera device I used a ZWO ASI585MC astro camera which only have INDI dr
 * Stellarium Platform (software): Stellarium v24.2
 * Safari Platform:  iPhone and iPad, Safari 7
   
-## Test coverage
+### Test coverage
 * Install on Win 11 PC 
 * Install on Minis Forum UM350
 * Control Mini with Win 10 Home Laptop
@@ -126,7 +154,7 @@ For the Camera device I used a ZWO ASI585MC astro camera which only have INDI dr
 * Use with N.I.N.A 
 * Use with NINA and Stellarium controlling from Laptop>>Mini>>BP
 
-## Test Results
+### Test Results
 * Initial Install on Win PC was problematic due to communication errors. While the fix was to go into the startup programs and delete a multitude of unnecessary startup programs I was never certain which one actually was causing the issue. Conclusion get rid of the trash in your computer startup.
 * Should be noted that my desktop gains access to the internet thru ethernet cable not wifi.
 * If I needed wifi for initial testing I used a USB Wifi adapter NetGear A6210
@@ -144,35 +172,16 @@ For the Camera device I used a ZWO ASI585MC astro camera which only have INDI dr
 * Use of the ALPACA icon to start PY went very well. 
 * If using AnyDesk and some others it is necessary to use a HDMI Dummy Plug to acquire video from the mini pc if a monitor is not attached, which is most likely the case. MS RD Client or Remote Desktop does not require this but RD Client may not be available for mobile devices. 
 * Also in NINA, I found that an overexposure will present itself as a black screen vs a white screen as would be expected. 
-## Overall Impression
+### Overall Impression
 Great Job!!! It will however be a challenge for many. Any simplification of install would be helpful, although you already have done a lot. Github is a mystery to many. I assume that individual involvement with GitHub will not be required in the future. It was easy to get the individual code or text lines without working Hyperlinks. In clear text the Links made life very easy to download everything needed. Just my fumbling around. Thank You, more was accomplished in one month than the last 2 years. 
 
 
 
 
----------------------
-# 5x5Stuido (John Harrison)
-## Test Environment
-* Location: Liverpool, England 
-* Optics: Pentax 150-450mm / Irix 45mm
-* Mount: Benro Polaris fried.
-* ABP Driver + Nina Platform (hardware): Ryzen 5 3600, 64gb Ram
-* ABP Driver + Nina Platform (software): Windows 10
-* Siril + Stellarium Platform: 
-  
-## Test coverage
-Pentax K1
-
-## Test Results
-Connected the K1 to Nina via ASCOM.
-Was able to slew the Polaris.
-
-
-
 
 ---------------------
-# bakermanz (Mark)
-## Test Environment
+## bakermanz (Mark)
+### Test Environment
 * Location: Auckland, New Zealand
 * Optics: Nikon Z8 (z14-24mm F2.8)
 * Mount: Benro Polaris
@@ -183,10 +192,10 @@ version macOS 15 Sequoia
 Windows 10 Home (OS build 19045.2965) - enabling the Mac to effectively
 operate as a Windows PC 
   
-## Test coverage
+### Test coverage
 Nikon Z8 - iPhone 15 Pro Max (see above) with Stellarium PLUS
 
-## Test Results
+### Test Results
 * Having tested ABP both in Windows format (bootcamp 2013 MacBook with
 Windows 10) and also the Mac version of ABP (on M1 MacBook), actually
 found the connection more stable and quicker to load using the Mac version.
@@ -209,66 +218,11 @@ could be used.
 functionality of the Benro Polaris
 
 
----------------------
-# Ladislav (Ladi Slav)
-## Test Environment
-* Location: Wellington, New Zealand
-* Optics: Sony a7RV + 24mm f1.4
-* Mount: Benro Polaris
-* ABP Driver: Mac (Apple M3 Pro Silicon)
-* ABP Driver + Nina Platform (Software): Mac Apple M3 Pro Silicon + parallels - Win 11 Home
-
-## Test coverage
-Pentax K1 - Nikon Z6 - android
-
-## Test Results
-TBD
-
-
-
 
 
 ---------------------
-# saltyminty (Mingyang Wang)
-## Test Environment
-* Location: US
-* Optics: Canon R, 16mm 2.8, 24-240mm f4-6.3
-* Mount: Benro Polaris
-* ABP Driver: Mac (Apple M1 Pro)
-* ABP Driver + Stellarium
-* ABP Driver + CCCdciel (unsuccessful)
-
-## Test coverage
-Canon R - Mac M1
-
-## Test Results
-* Stellarium go-to and tracking successful. Alignment is still pretty dependent on a good initial Benro app alignment, though Stellarium Sync seems to help.
-* CCDciel is able to detect the ABP driver, but I was unable to figure out how to connect to the camera
-
-
-
-
----------------------
-# hqureshi79 (Humayun Qureshi) 
-## Test Environment
-Location: ACT, Australia
-Optics: Canon R10, (R5 Mark II on the way), Takahashi FS-60CB
-Mount: Benro Polaris Astro
-ABP Driver + Nina Platform (hardware):
-ABP Driver + Nina Platform (software):
-Siril + Stellarium Platform:
-  
-## Test coverage
-Pentax K1 - Nikon Z6 - android
-
-## Test Results
-TBD
-
-
-
----------------------
-# RjhNZ (Richard Healey)
-## Test Environment
+## RjhNZ (Richard Healey)
+### Test Environment
 * Location: NW
 * Optics: Sony A7Riv, Pentax K1, K3, K5 and K7. 
 * Mount: Benro Polaris
@@ -276,14 +230,14 @@ TBD
 * ABP Driver + Nina Platform (software): 
 * Siril + Stellarium Platform: 
   
-## Test coverage
+### Test coverage
 Pentax K1 - Nikon Z6 - android
 
-## Test Results
+### Test Results
 Firewall issue on first use
 Challenges getting Sony working with ASCOM Camera driver
 
-## Overall Impression
+### Overall Impression
 * Ok, general thoughts. Works exactly as it should as far as I could test. The hours of even partially clear sky. Stellarium now takes about thirty seconds to respond to a request to slew. (Fixed in v1.0.0)
 * Might be worth pointing out that now that you don't need the Benro app after enabling astro it is no longer necessary to select raw+jpg, you can omit jpg. 
 * Focusing works, but the camera MUST be set to manual focus. Focus steps are tiny compared to a telescope focuser. Only 128 steps are available. 
@@ -294,28 +248,10 @@ Challenges getting Sony working with ASCOM Camera driver
 
 
 
----------------------
-# Matt17463 (Matthew McDaniel) 
-## Test Environment
-* Location: 
-* Optics: 
-* Mount: 
-* ABP Driver + Nina Platform (hardware): 
-* ABP Driver + Nina Platform (software): 
-* Siril + Stellarium Platform: 
-  
-## Test coverage
-Pentax K1 - Nikon Z6 - android
-
-## Test Results
-TBD
-
-
-
 
 ---------------------
-# CynicalSarge (Andrew Sargent)
-## Test Environment
+## CynicalSarge (Andrew Sargent)
+### Test Environment
 * Location: Melbourne, Australia
 * Optics: Canon 6D MkII, Canon EF 50mm f1.8, Canon 800D, Sigma DC 17-50mm f2.8, Tamron 16-300mm f3.5-6.3
 * Mount: Benro Polaris
@@ -323,14 +259,63 @@ TBD
 * ABP Driver + Nina Platform (software): Windows 11
 * Siril + Stellarium Platform: Microsoft Surface Laptop 2, Windows 11
 
-## Test Results
-TBD
+### Test Results
+* Windows 11 laptop. So, there were no issues with the Python driver, always connected to the device after the App had started. 
+* I did note that if you stop the driver and start it again, it keeps the connection alive without needing the App to be on.
+* Both Nina and Stellarium on the laptop had no issues connecting to the driver, slewing and tracking with no issues. 
+* Unfortunately, weather stopped me actually taking pictures. 
+* The mobile Stellarium app worked, but I needed to turn off mobile data before it would connect. But I think that's my phones issue(Samsung S24 Ultra). 
+* Could not get Sky Safari 7 Plus to connect.
 
 
 
 ---------------------
-# Ramymah (Ramy Mahdy)
-## Test Environment
+
+# Raw Feedback - Incomplete/Unknown
+
+
+
+---------------------
+## saltyminty (Mingyang Wang)
+### Test Environment
+* Location: US
+* Optics: Canon R, 16mm 2.8, 24-240mm f4-6.3
+* Mount: Benro Polaris
+* ABP Driver: Mac (Apple M1 Pro)
+* ABP Driver + Stellarium
+* ABP Driver + CCCdciel (unsuccessful)
+
+### Test coverage
+Canon R - Mac M1
+
+### Test Results
+* Stellarium go-to and tracking successful. Alignment is still pretty dependent on a good initial Benro app alignment, though Stellarium Sync seems to help.
+* CCDciel is able to detect the ABP driver, but I was unable to figure out how to connect to the camera
+
+
+
+---------------------
+## 5x5Stuido (John Harrison)
+### Test Environment
+* Location: Liverpool, England 
+* Optics: Pentax 150-450mm / Irix 45mm
+* Mount: Benro Polaris fried.
+* ABP Driver + Nina Platform (hardware): Ryzen 5 3600, 64gb Ram
+* ABP Driver + Nina Platform (software): Windows 10
+* Siril + Stellarium Platform: 
+  
+### Test coverage
+Pentax K1
+
+### Test Results
+Connected the K1 to Nina via ASCOM.
+Was able to slew the Polaris.
+
+
+
+---------------------
+## Matt17463 (Matthew McDaniel) 
+### Test Environment
 * Location: 
 * Optics: 
 * Mount: 
@@ -338,17 +323,53 @@ TBD
 * ABP Driver + Nina Platform (software): 
 * Siril + Stellarium Platform: 
   
-## Test coverage
+### Test coverage
 Pentax K1 - Nikon Z6 - android
 
-## Test Results
+### Test Results
+TBD
+
+
+
+
+
+---------------------
+## Ladislav (Ladi Slav)
+### Test Environment
+* Location: Wellington, New Zealand
+* Optics: Sony a7RV + 24mm f1.4
+* Mount: Benro Polaris
+* ABP Driver: Mac (Apple M3 Pro Silicon)
+* ABP Driver + Nina Platform (Software): Mac Apple M3 Pro Silicon + parallels - Win 11 Home
+
+### Test coverage
+Pentax K1 - Nikon Z6 - android
+
+### Test Results
 TBD
 
 
 
 ---------------------
-# Template
-## Test Environment
+## hqureshi79 (Humayun Qureshi) 
+### Test Environment
+Location: ACT, Australia
+Optics: Canon R10, (R5 Mark II on the way), Takahashi FS-60CB
+Mount: Benro Polaris Astro
+ABP Driver + Nina Platform (hardware):
+ABP Driver + Nina Platform (software):
+Siril + Stellarium Platform:
+  
+### Test coverage
+Pentax K1 - Nikon Z6 - android
+
+### Test Results
+TBD
+
+
+---------------------
+## Ramymah (Ramy Mahdy)
+### Test Environment
 * Location: 
 * Optics: 
 * Mount: 
@@ -356,10 +377,28 @@ TBD
 * ABP Driver + Nina Platform (software): 
 * Siril + Stellarium Platform: 
   
-## Test coverage
+### Test coverage
 Pentax K1 - Nikon Z6 - android
 
-## Test Results
+### Test Results
+TBD
+
+
+
+
+## Template
+### Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+### Test coverage
+Pentax K1 - Nikon Z6 - android
+
+### Test Results
 TBD
 
 

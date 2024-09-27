@@ -139,10 +139,19 @@ Please let us know if you can try any of these features.
   
 
 ## Known Issues
+- **[Sky Safari 7 Plus]**: One Beta tester was unable to get Sky Safari 7 Plus to connect.
+
+## Potential Future Enhacements
 - **[Emedded Driver]**: Driver should be embedded on the Benro Polaris Device. Benro Change.
 - **[Pulse Guiding]**: Allow micro move axis commands, while tracking, without backlash. Benro Change.
-- **[Setup Dialog]**: Deliver a Graphical UI to manage config.toml and provide base UI. 
-- **[Software Delivery]**: Deliver as an App rather than a zip file, needing a command line.
+- **[Setup Dialog]**: Deliver a Graphical UI to manage config.toml and provide a base UI. 
+- **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating  command line.
+- **[WiFi Setup]**: Eliminate need for BP App to setup Polaris WiFi Hotspot.
+- **[Astro Mode Setup]**: Eliminate need for BP App to manually change mode to Astro and align.
+- **[Stellarium MacOS]**: Add position update support to the Stellarium Binary protocol.
+- **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
+- **[Raspberry Pi]**: Complete full qualification on Raspberry Pi platforms.
+- **[CCDciel Support]**: Complete full qualification for CCDciel for MacOS.
 
 ## Deprecations
 - **[None Known]**: No features deprecated as this is the first release.
