@@ -2,24 +2,25 @@
 #
 # This bootstraps the unified application on a Raspberry Pi.
 #
+echo "==SETUP== Alpaca Benro Polaris Raspberry Pi Setup ======================================."
 if [ -e alpaca-benro-polaris ] || [ -e ~/alpaca-benro-polaris ]; then
     echo "ERROR: Existing alpaca-benro-polaris directory detected."
     echo "       You should run the raspberry_pi/update.sh script instead."
     exit 255
 fi
 
-echo "==SETUP==: 1. Update the software on the system, and install dependencies needed for git."
+echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git."
 sudo apt-get update
 sudo apt-get install --yes git python3-pip
 
-echo "==SETUP==: 2. Clone the alpaca-benro-polaris software from github."
+echo "==SETUP== 2. Clone the alpaca-benro-polaris software from github."
 git clone https://github.com/ogecko/alpaca-benro-polaris.git
 cd  alpaca-benro-polaris
 
 src_home=$(pwd)
 mkdir -p logs
 
-echo "==SETUP==: 3. Add pyenv to ~/.bashrc and install Python 3.12.5."
+echo "==SETUP== 3. Add pyenv to ~/.bashrc and install Python 3.12.5."
 curl https://pyenv.run | bash
 cat <<_EOF >> ~/.bashrc
 # start of alpaca-benro-polaris edits
