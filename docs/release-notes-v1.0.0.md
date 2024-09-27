@@ -141,7 +141,7 @@ Please let us know if you can try any of these features.
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11
-* Canon R5, RF135mm, RF800mm
+* Canon R5, RF 16mm, EF 35mm MkII, RF 135mm, RF 100-500mm, RF 800mm.
 * Canon R6 Mk II connected via USB3
 * Canon R, 16mm 2.8, 24-240mm f4-6.3
 * Canon 6D MkII, Canon EF 50mm f1.8
