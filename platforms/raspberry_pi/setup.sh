@@ -9,18 +9,12 @@ if [ -e alpaca-benro-polaris ] || [ -e ~/alpaca-benro-polaris ]; then
 fi
 
 sudo apt-get update
-sudo apt-get install --yes git python3-pip libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libgdbm-dev lzma lzma-dev tcl-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev wget curl make build-essential openssl libgl1
-
+sudo apt-get install --yes git python3-pip
 git clone https://github.com/ogecko/alpaca-benro-polaris.git
 cd  alpaca-benro-polaris
 
 src_home=$(pwd)
 mkdir -p logs
-
-if [ ! -e driver/config.toml ]; then
-    sed -e 's/127.0.0.1/0.0.0.0/g' driver/config.toml.example > driver/config.toml
-    sed -i -e 's|log_prefix =.*|log_prefix = "logs/"|g' driver/config.toml
-fi
 
 curl https://pyenv.run | bash
 cat <<_EOF >> ~/.bashrc

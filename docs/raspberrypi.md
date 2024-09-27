@@ -22,7 +22,7 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
 To automatically set up the Raspberry Pi for Alpaca Benro Polaris, run the following command as a non-root user:
 
 ```
-curl -s https://github.com/ogecko/alpaca-benro-polaris.git/platforms/raspberry_pi/setup.sh | bash
+curl -s https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/refs/heads/main/platforms/raspberry_pi/setup.sh | bash
 ```
 
 This script will perform the following:
