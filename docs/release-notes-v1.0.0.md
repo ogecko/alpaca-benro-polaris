@@ -20,7 +20,6 @@
 - **[Sync Alignment]**: Ensure Polaris alignment by syncing with a known celestial object.
 - **[Sync Location]**: Send Stellarium’s site altitude and azimuth to the driver for accurate positioning.
 - **[Sync Time]**: Check that Stellarium and Driver times are in sync for precise tracking.
-- **[Equatorial Rotation]**: Supports equatorial rotation around the RA and Dec axes for precise adj.
 - **[Network Comms]**: Connects to the driver over the network using the SynScan protocol.
 - **[OS Supported]**: Supports IOS and Android.
 - **[Hardware Supported]**: Supports iPad, Tablets and Mobile Phones.
