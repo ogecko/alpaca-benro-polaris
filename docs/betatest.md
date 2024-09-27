@@ -53,10 +53,10 @@ The beta testing phase provided invaluable feedback, shaping the ABP Driver's de
 * Ramymah (Ramy Mahdy) - I was wondering if I can be of any help? I’m a software quality engineer at Apple and I have a lot of Apple devices that run iOS/ iPadOS and macOS. 
   
 
-# Beta Test Result - Raw Feedback 
+# Raw Feedback - Beta Test Results
 
-# jdm5001 (David Morrison)
-## Test Environment
+## jdm5001 (David Morrison)
+### Test Environment
 * Location: Sydney, Australia | NSW National Park 
 * Optics: Canon R5, RF135mm, RF800mm,, NEEWER USB Lens Heater
 * Mount: Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11, Android App v3.0.27
@@ -64,13 +64,13 @@ The beta testing phase provided invaluable feedback, shaping the ABP Driver's de
 * ABP Driver + Nina Platform (software): Win 11 Pro v23H2, Nina v3.1.1.9001/HocusFocus v3.0.0.17 and Nina v3.1.2.9001/HocusFocus v3.0.0.18 
 * Siril + Stellarium Platform: Desktop PC, AMD 7950X, Win 11 Pro v23H2, Stellarium v24.2, Siril v1.2.3 de49749
   
-## Test coverage
+### Test coverage
 * Testing Polaris protocol all cmds and responses used across BP, Canon R5 and Win 11 platform. 
 * Tested ASCOM Alpaca interface fully with Nina, Stellarium and ConformU apps.
 * Tested in Sydney and NSW Kosciuszko National Park (dark sky for remote test, no internet).
 * Tested targets M4, M8, M16, M17, M20, M24 M83, C63, C77, C78, C92, SMC, IC4605, Moon, random stars in southern hemisphere.
 
-## Test Results
+### Test Results
 * Completed run of ConformU, required relaxation of Slew tolerance
 * Connecting MiniPC without Home Wi-Fi, was challenging but achievable.
 * Having no screen or keyboard at the remote location, limited MiniPC troubleshooting. Recommend testing fully before you go to a dark site.
@@ -407,7 +407,7 @@ TBD
 * ABP Driver + Nina Platform (Software): Mac Apple M3 Pro Silicon + parallels - Win 11 Home
 
 ### Test coverage
-Pentax K1 - Nikon Z6 - android
+TBD
 
 ### Test Results
 TBD
@@ -425,7 +425,7 @@ TBD
 * Siril + Stellarium Platform: 
   
 ### Test coverage
-Pentax K1 - Nikon Z6 - android
+TBD
 
 ### Test Results
 TBD
