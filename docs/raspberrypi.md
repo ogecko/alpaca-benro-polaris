@@ -27,10 +27,10 @@ curl -s https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/refs/heads
 
 This script will perform the following:
 
-1. Update the software on the system, and install dependencies needed for git
-2. Clone the alpaca-benro-polaris software from github
-3. Install the python dependencies needed for the application
-4. Modify the default config file to work on all network interfaces (wifi and ethernet)
+1. Update the software on the system, and install dependencies needed for git.
+2. Clone the alpaca-benro-polaris software from github.
+3. Add pyenv to ~/.bashrc and install Python 3.12.5.
+4. Install the python dependencies needed for the application
 5. Set up [systemd](https://en.wikipedia.org/wiki/Systemd) services to start the `polaris.service` at boot time
 6. Starts the service
 
