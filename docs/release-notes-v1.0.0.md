@@ -75,6 +75,7 @@
 - **[Hardware Supported]**: Supports Laptop, Desktop, MiniPC, SurfacePC
 - **[Client Supported]**: Supports Local UI, Remote Desktop, and Mobile Remote Desktop Apps.
 - **[Cameras Supported]**: Support additional camera models through the ASCOM platform.
+- **[Sony Nina Plugin]**: Supports Sony Cameras and Lens. 
 
 ## New Features (Alpaca Driver)
 - **[ASCOM ConformU]**: Passes standard validation tests for ITelescopeV3.
@@ -119,7 +120,6 @@
 Please let us know if you can try any of these features.
 - **[Raspberry Pi]**: Supports running on Raspberry Pi Zero2, Pi 4, and Pi 5.
 - **[Docker Support]**: Supports running in Docker containers.
-- **[Sony Nina Plugin]**: Supports Sony Cameras and Lens. Untested.
 - **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
