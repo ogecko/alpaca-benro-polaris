@@ -143,23 +143,23 @@ Please let us know if you can try any of these features.
   
 
 ## Known Issues
-- **[Sky Safari 7 Plus]**: One Beta tester was unable to get Sky Safari 7 Plus to connect.
+- **[Sky Safari 7 Plus]**: One Beta tester was unable to connect to Sky Safari 7 Plus.
 
-## Potential Future Enhacements
-- **[Raspberry Pi]** Official support an testing on Raspbery Pi
-- **[Docker Support]** Official support an testing on Docker.
-- **[Sky Safari]** Official support an testing on Sky Safari.
+## Potential Future Enhancements
+- **[Raspberry Pi]** Official support and testing on Raspberry  Pi
+- **[Docker Support]** Official support and testing on Docker.
+- **[Sky Safari]** Official support and testing on Sky Safari.
 - **[CCDciel Support]**: Official support and testing for CCDciel for MacOS.
 - **[Stellarium MacOS]**: Add position update support to the Stellarium Binary protocol.
-- **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating  command line.
-- **[WiFi Setup]**: Eliminate need for BP App to setup Polaris WiFi Hotspot.
-- **[Astro Mode Setup]**: Eliminate need for BP App to manually change mode to Astro and align.
+- **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
+- **[WiFi Setup]**: Eliminate the need for BP App to set up Polaris WiFi Hotspot.
+- **[Astro Mode Setup]**: Eliminate the need for the BP App to manually change mode to Astro and align.
 - **[Setup GUI]**: Deliver a Graphical UI to manage config.toml and provide a base UI. 
-- **[Control GUI]**: Deliver a Graphical UI for Telescope Control, as multi-platform webapp.
-- **[Drift Repport]** Develop automated test for drift over movable range of Polaris.
+- **[Control GUI]**: Deliver a Graphical UI for Telescope Control, as a multi-platform web app.
+- **[Drift Repport]** Develop an automated test for drift over a movable range of Polaris.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
-- **[Emedded Driver]**: Driver should be embedded on the Benro Polaris Device. Benro Change.
-- **[Pulse Guiding]**: Allow micro move axis commands, while tracking, without backlash. Benro Change.
+- **[Emedded Driver]**: The driver should be embedded on the Benro Polaris Device. Benro Change.
+- **[Pulse Guiding]**: Allow micro-move axis commands while tracking without backlash. Benro Change.
 
 ## Deprecations
 - **[None Known]**: No features deprecated as this is the first release.
