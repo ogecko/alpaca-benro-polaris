@@ -336,9 +336,6 @@ Canon R - Mac M1
 * CCDciel is able to detect the ABP driver, but I was unable to figure out how to connect to the camera
 
 
-
-
-
 ---------------------
 ## hqureshi79 (Humayun Qureshi) 
 ### Test Environment
@@ -357,6 +354,21 @@ Pentax K1 - Nikon Z6 - android
 * No problems. Thanks for the reply. - Dave.
 
 
+---------------------
+## Cosimo (Cosimo Streppone) 
+### Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+### Test coverage
+TBD
+
+### Test Results
+Unable to test due to lack of time.
 
 
 ---------------------
@@ -419,9 +431,9 @@ Pentax K1 - Nikon Z6 - android
 TBD
 
 
+
+
 ---------------------
-
-
 ## Template
 ### Test Environment
 * Location: 
