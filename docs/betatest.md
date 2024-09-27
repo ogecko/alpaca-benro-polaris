@@ -270,8 +270,33 @@ Challenges getting Sony working with ASCOM Camera driver
 
 
 ---------------------
+## 5x5Stuido (John Harrison)
+### Test Environment
+* Location: Liverpool, England 
+* Optics: Pentax 150-450mm / Irix 45mm
+* Mount: Benro Polaris fried.
+* ABP Driver + Nina Platform (hardware): Ryzen 5 3600, 64gb Ram
+* ABP Driver + Nina Platform (software): Windows 10
+* Siril + Stellarium Platform: 
+  
+### Test coverage
+* Pentax K1
+* Will test my autofocus lenses with Nina
+* Go back through the docs for mistakes.
 
-# Raw Feedback - Incomplete/Unknown
+### Test Results
+* having a gander through the requirements.
+* Connected the K1 to Nina via ASCOM.
+* Have got the pentax up and running with ascom, big issue I've got though is the windows tablet I was planning on using doesn't hold a charge. I don't have a laptop, so I picked up a long cable, but it doesn't transfer data . I've bought two more cables just to make sure I've got one that works.
+* Got some time in the morning to test everything is working properly.
+* I wish we had some better weather, had one clear night in the last 3 week.
+* The K1's control is mini usb but the output is mini hdmi. Have been able to fire the camera for test exposures. All good on images. It's a shame I can't connect the camera wireless.
+* Was able to slew the Polaris.
+* left my cable plugged in by mistake after heading out for astro. Pulled it out to test and the USB astro cable had bent along the way. Didn't realise when I turned it on and poof, funny smell!
+  
+### Overall Impression
+* It's a steep learning curve for a newbie and it's alot of info. however I can't really see what more you can do about that, especially with the mini video series you've got going
+* Potentially, you could finish off the video series with a 'shooting my first target' vid, but it's a case of how much work you want to put into it.
 
 
 
@@ -289,27 +314,25 @@ Challenges getting Sony working with ASCOM Camera driver
 Canon R - Mac M1
 
 ### Test Results
+* testing update: driver started up fine and connects via CCDciel, wasn’t able to shoot yet because I couldn’t figure out how to configure the camera (likely a me issue rather than a driver issue due to my unfamiliarity with the tool)
+* does that mean the camera wouldn’t be connected to the polaris? my camera (and i think most cameras) usually only have one usb c/usb port. Yes.
+* was able to get mac stellarium go-to working in today’s session; still couldn’t get CCDciel to connect to the camera.
+* no issues with the setup. One minor thing was that if the benro is disconnected/reconnected, stellarium will say it’s connected to the telescope but wont work until it’s also forcibly disconnected and reconnected.
+* goto was slightly off but that’s more of a limiation of the benro initiail one star alignment than stellarium. (pre sync alignment enhancement)
+* I’m on Mac Stellarium Desktop so I believe sync isnt available for me. Might try to take a look at that if I have time
+* There’s a bug in polaris.py due to mismatched quotes (probably python version dependent, i’m on 3.9.13) - Fixed. Thankyou.
+* I think the sync helped, but there isn’t any feedback when the button is clicked (which I think is intended) so i’m not 100% sure.
+* maybe I can try a test sometime of intentionally doing a bad benro app alignment and then doing stellarium sync
+* when I tried to skip the polaris alignment last week, the driver wouldn’t start and would tell me to align through the polaris app first; i didn’t try it today, is that no longer the case? >> You need to do Compass Align and Star Align, just dont spend much time on them in BP App as first sync will fix them.
+* my tests on the older version last week already worked fine when I closed my phone (iPhone 15)
 * Stellarium go-to and tracking successful. Alignment is still pretty dependent on a good initial Benro app alignment, though Stellarium Sync seems to help.
 * CCDciel is able to detect the ABP driver, but I was unable to figure out how to connect to the camera
 
 
 
 ---------------------
-## 5x5Stuido (John Harrison)
-### Test Environment
-* Location: Liverpool, England 
-* Optics: Pentax 150-450mm / Irix 45mm
-* Mount: Benro Polaris fried.
-* ABP Driver + Nina Platform (hardware): Ryzen 5 3600, 64gb Ram
-* ABP Driver + Nina Platform (software): Windows 10
-* Siril + Stellarium Platform: 
-  
-### Test coverage
-Pentax K1
 
-### Test Results
-Connected the K1 to Nina via ASCOM.
-Was able to slew the Polaris.
+# Raw Feedback - Incomplete/Unknown
 
 
 
