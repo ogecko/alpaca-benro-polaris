@@ -84,30 +84,31 @@ The Beta Testers' perseverance and feedback helped improve the documentation and
 * Cynical Sarge (Andrew Sargent)
 
 ## Kickstarter Backers
-I want to thank all the 116 [Kickstarter Project Backers](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver/community?ref=9a035f), especially those who pledged Game-Changing and That's-Awesome amounts. I will keep the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f) open to continue funding ongoing support and making enhancements to this project. PS. Let me know if you want to be anonymous.
+I want to thank all the 120 [Kickstarter Project Backers](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver/community?ref=9a035f), especially those who pledged Game-Changing and That's-Awesome amounts. I will keep the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f) open to continue funding ongoing support and making enhancements to this project. PS. Let me know if you want to be anonymous.
 
 |  GAME CHANGER | Thats Awesome | Thats Awesome | Thats Awesome |
 |:---:|:---:|:---:|:---:|
-| **Devon** | Adrian Squirrell | Ed | Michael C |
-| **Evie-Jeane Vyse** | Alan Smallbone | Fank Heirnash | Mike Drinkwater |
-| **Mack Cameron** | Alessio Zanotti | Fernando Ribeiro | Moshe Salama |
-| **Mark Bahu** | Alex Murdoch | Fernando Villaverde Gaviña | Nagendra Narayan |
-| **Peter** | Alvin Christie | Humayun Qureshi | Patryk Lesiecki |
-| **Richard Swaim** | Amy Kemp | Ian Morgan | Paul Moulton |
-| **Simone Chiari** | Andreas Bichler | Ilya Chernikov | Paul Olsavsky |
-| **William Siers** | Andrew Roberts | Jack Cale | Paul Rickwood |
-|  | Baha Baydar | James White | Paul Vandeputte |
-|  | Bikram Ghosh | John | Peps Choufme |
-|  | Bill Lazar | Jonathan Shribman | Pudeldestodes |
-|  | Blair Dunlop | Juan Manuel López Fernández | Richard Healey |
-|  | Boyce Fitzgerald | Juan Martinez | Rob Bristow |
-|  | Brad Anderson | Kaingc | Roger Good |
-|  | Cameron Palmer | Kym Wallis | Sandra Coffey |
-|  | Carlo Mascellani | Ladislav Svoboda | Santanu Majumder |
-|  | Charles T. Simet | Mahmudur Rahman | Steve Renter |
-|  | Dan Suskin | Mangoe | Steven |
-|  | David Proudfoot | Mark Penberthy | Stlwarehouse |
-|  | Donald Dunbar | Max Izod |  |
+| **Devon** | Adrian Squirrell | Ed | Max Izod |
+| **Evie-Jeane Vyse** | Alan Smallbone | Fank Heirnash | Michael C |
+| **Mack Cameron** | Alessio Zanotti | Fernando Ribeiro | Mike Drinkwater |
+| **Mark Bahu** | Alex Murdoch | Fernando Villaverde Gaviña | Moshe Salama |
+| **Peter** | Alvin Christie | Humayun Qureshi | Nagendra Narayan |
+| **Richard Swaim** | Amy Kemp | Ian Cannan | Patryk Lesiecki |
+| **Simone Chiari** | Andreas Bichler | Ian Morgan | Paul Moulton |
+| **William Siers** | Andrew Roberts | Ilya Chernikov | Paul Olsavsky |
+|  | Baha Baydar | Jack Cale | Paul Rickwood |
+|  | Bikram Ghosh | James White | Paul Vandeputte |
+|  | Bill Lazar | John | Peps Choufme |
+|  | Blair Dunlop | Jonathan Shribman | Pudeldestodes |
+|  | Boyce Fitzgerald | Juan Manuel López Fernández | Richard Healey |
+|  | Brad Anderson | Juan Martinez | Rob Bristow |
+|  | Cameron Palmer | Kaingc | Roger Good |
+|  | Carlo Mascellani | Kym Wallis | Sandra Coffey |
+|  | Charles T. Simet | Ladislav Svoboda | Santanu Majumder |
+|  | Dan Suskin | Mahmudur Rahman | Simon Modera |
+|  | David Proudfoot | Mangoe | Steve Renter |
+|  | Donald Dunbar | Mark Penberthy | Steven |
+|  |  |  | Stlwarehouse |
 
 
 
