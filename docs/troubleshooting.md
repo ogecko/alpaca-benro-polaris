@@ -175,8 +175,8 @@ Nina will now connect to your camera.
 
 ### S2 - Stellarium Desktop has greyed out ASCOM option
 * One Beta Tester encountered problems connecting Stellarium Desktop v24.3 for Windows via ASCOM.
-* Symptom: When trying to add a telescope in Stellarium's telescope plugin, the option to select an ASCOM device is greyed out. 
-* Solution: Uninstall V24.3,  restart your desktop, install V24.2 (available by searching on the download page). Check periodically for an update to Stellarium
+* Symptom: When trying to add a telescope in Stellarium's telescope plugin, selecting an ASCOM device is greyed out. 
+* Solution: Uninstall V24.3, restart your desktop, install V24.2 (available by searching on the download page). Check periodically for an update to Stellarium.
 
 ### S3 - Stellarium Desktop freezes with Remote Desktop
 * Check fps settings. Stellarium's default is a crazy 10000 fps. We suggest reducing the default settings in the following file `C:\Users\Nina\AppData\Roaming\Stellarium\config.ini`, where Nina is replaced with your User name.
