@@ -228,20 +228,27 @@ functionality of the Benro Polaris
 * Mount: Benro Polaris
 * ABP Driver + Nina Platform (hardware): 
 * ABP Driver + Nina Platform (software): 
-* Siril + Stellarium Platform: 
+* Siril + Stellarium Platform: ASCOM Platform 7 RC7
   
 ### Test coverage
 Pentax K1 - Nikon Z6 - android
 
 ### Test Results
-Firewall issue on first use
-Challenges getting Sony working with ASCOM Camera driver
-
+* Firewall issue on first use
+* installed driver on windows 11 with no problem (but this will of course be a problem for someone not famliar with working from the command line)
+* Connected to stellarium, go-to seems to  work, extreme frustration with wifi on Polaris dropping out randomly (issue with app too of course).
+* Challenges getting Sony working with ASCOM Camera driver. A7Riv connected to Nina, what a rigmarole, definitely needs a good user guide for process. Added Troubleshooting N5.
+* Lens autofocus. So far I've got it talking and controlling basic functions (reasonably clunkily), sets iso, shutter speed, aperture, fires shutter - after all the false starts I was just happy it didn't go on fire!
+* Ok, af works in as far as focus changes and images are recorded - without stars I'm afraid that's all I can tell you.
+* Focusing works, but the camera MUST be set to manual focus. Focus steps are tiny compared to a telescope focuser. Only 128 steps are available. 
+* I found that five steps per move worked  well with four moves in total to achieve focus.
+* Well this is odd. The Stellarium option to connect via ascom to a telescope has disappeared in stellarium windows desktop. Nina still connected fine. Stellarium plus Android still connected fine. Deleted stellarium, restarted, installed 24.2, ascom button is back, problem solved.
+* The really good news is that because of all the time and frowing, I got sick of the Polaris and it's flaky wifi so I set the connection to my phone to a static IP and what do you know, instant stable connection
+* ASCOM Platform 7 RC7 works fine with Nina.
 ### Overall Impression
 * Ok, general thoughts. Works exactly as it should as far as I could test. The hours of even partially clear sky. Stellarium now takes about thirty seconds to respond to a request to slew. (Fixed in v1.0.0)
 * Might be worth pointing out that now that you don't need the Benro app after enabling astro it is no longer necessary to select raw+jpg, you can omit jpg. 
-* Focusing works, but the camera MUST be set to manual focus. Focus steps are tiny compared to a telescope focuser. Only 128 steps are available. 
-* I found that five steps per move worked  well with four moves in total to achieve focus.
+
 * I'm gutted that I haven't been able to test astap. I'll certainly keep you posted. 
 * The ability to pick up the geolocation from windows positioning would be a plus - or even an easier way to access the config file. I did create a desktop shortcut that opens config in notepad, that helped.
 * I have to say that it's pretty straightforward even given no previous experience with ascom, Nina, astap etal. I would have loved to be able to test stability over a few hours.
