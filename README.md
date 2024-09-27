@@ -133,7 +133,7 @@ I want to thank all the 116 [Kickstarter Project Backers](https://www.kickstarte
 * Benro - for creating and distributing such great products, including the Benro Polaris.
 * Napkin AI - for making it so easy to create all the diagrams.
 * Copilot AI - for attempting to help with coding.
-* Notebook LM - for attempting to help synthesize some of the documentation.
+* Notebook LM - for the [Deep Dive Podcast](https://youtu.be/puRRH7VJ6cw) and helping synthesize the beta feedback.
 * Grammarly - for reviewing and editing the documentation.
 * GitHub - for hosting git and providing many vanilla dev support tools.
 * Kickstarter - for helping so many creatives.
