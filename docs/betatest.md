@@ -29,7 +29,7 @@
   
 # Beta Test Results Summary
 
-# jdm5001 (DM)
+# jdm5001 (David Morrison)
 ## Test Environment
 * Location: Sydney, Australia | NSW National Park 
 * Optics: Canon R5, RF135mm, RF800mm,, NEEWER USB Lens Heater
@@ -51,6 +51,7 @@
 * Have successfully used Nina for capturing images over a month now
 * Will never go back to vanilla BP App.
 
+---------------------
 # Vladimir Vyskocil
 ## Test Environment
 * Location: France
@@ -104,8 +105,8 @@ For the Camera device I used a ZWO ASI585MC astro camera which only have INDI dr
 * Then we took a serie of 30s image
 
 
-
-# Spiderx01 (WS)
+---------------------
+# Spiderx01 (William Siers)
 ## Test Environment
 * Location: US
 * Optics: Meade LX 200 
@@ -146,7 +147,11 @@ For the Camera device I used a ZWO ASI585MC astro camera which only have INDI dr
 ## Overall Impression
 Great Job!!! It will however be a challenge for many. Any simplification of install would be helpful, although you already have done a lot. Github is a mystery to many. I assume that individual involvement with GitHub will not be required in the future. It was easy to get the individual code or text lines without working Hyperlinks. In clear text the Links made life very easy to download everything needed. Just my fumbling around. Thank You, more was accomplished in one month than the last 2 years. 
 
-# 5x5Stuido (JH)
+
+
+
+---------------------
+# 5x5Stuido (John Harrison)
 ## Test Environment
 * Location: Liverpool, England 
 * Optics: Pentax 150-450mm / Irix 45mm
@@ -160,10 +165,12 @@ Pentax K1
 
 ## Test Results
 Connected the K1 to Nina via ASCOM.
-Was able to slew the Polaris 
+Was able to slew the Polaris.
 
 
 
+
+---------------------
 # bakermanz (Mark)
 ## Test Environment
 * Location: Auckland, New Zealand
@@ -202,7 +209,8 @@ could be used.
 functionality of the Benro Polaris
 
 
-# Ladislav (LS)
+---------------------
+# Ladislav (Ladi Slav)
 ## Test Environment
 * Location: Wellington, New Zealand
 * Optics: Sony a7RV + 24mm f1.4
@@ -220,7 +228,8 @@ TBD
 
 
 
-# Saltyminty (MW)
+---------------------
+# saltyminty (Mingyang Wang)
 ## Test Environment
 * Location: US
 * Optics: Canon R, 16mm 2.8, 24-240mm f4-6.3
@@ -239,7 +248,8 @@ Canon R - Mac M1
 
 
 
-# hqureshi79 (HQ)
+---------------------
+# hqureshi79 (Humayun Qureshi) 
 ## Test Environment
 Location: ACT, Australia
 Optics: Canon R10, (R5 Mark II on the way), Takahashi FS-60CB
@@ -256,39 +266,7 @@ TBD
 
 
 
-
-# Matt17463 (MM)
-## Test Environment
-* Location: 
-* Optics: 
-* Mount: 
-* ABP Driver + Nina Platform (hardware): 
-* ABP Driver + Nina Platform (software): 
-* Siril + Stellarium Platform: 
-  
-## Test coverage
-Pentax K1 - Nikon Z6 - android
-
-## Test Results
-TBD
-
-
-
-
-
-# CynicalSarge (Andrew Sargent) (PCCGG)
-## Test Environment
-* Location: Melbourne, Australia
-* Optics: Canon 6D MkII, Canon EF 50mm f1.8, Canon 800D, Sigma DC 17-50mm f2.8, Tamron 16-300mm f3.5-6.3
-* Mount: Benro Polaris
-* ABP Driver + Nina Platform (hardware): Microsoft Surface Laptop 2
-* ABP Driver + Nina Platform (software): Windows 11
-* Siril + Stellarium Platform: Microsoft Surface Laptop 2, Windows 11
-
-## Test Results
-TBD
-
-
+---------------------
 # RjhNZ (Richard Healey)
 ## Test Environment
 * Location: NW
@@ -314,6 +292,43 @@ Challenges getting Sony working with ASCOM Camera driver
 * The ability to pick up the geolocation from windows positioning would be a plus - or even an easier way to access the config file. I did create a desktop shortcut that opens config in notepad, that helped.
 * I have to say that it's pretty straightforward even given no previous experience with ascom, Nina, astap etal. I would have loved to be able to test stability over a few hours.
 
+
+
+---------------------
+# Matt17463 (Matthew McDaniel) 
+## Test Environment
+* Location: 
+* Optics: 
+* Mount: 
+* ABP Driver + Nina Platform (hardware): 
+* ABP Driver + Nina Platform (software): 
+* Siril + Stellarium Platform: 
+  
+## Test coverage
+Pentax K1 - Nikon Z6 - android
+
+## Test Results
+TBD
+
+
+
+
+---------------------
+# CynicalSarge (Andrew Sargent)
+## Test Environment
+* Location: Melbourne, Australia
+* Optics: Canon 6D MkII, Canon EF 50mm f1.8, Canon 800D, Sigma DC 17-50mm f2.8, Tamron 16-300mm f3.5-6.3
+* Mount: Benro Polaris
+* ABP Driver + Nina Platform (hardware): Microsoft Surface Laptop 2
+* ABP Driver + Nina Platform (software): Windows 11
+* Siril + Stellarium Platform: Microsoft Surface Laptop 2, Windows 11
+
+## Test Results
+TBD
+
+
+
+---------------------
 # Ramymah (Ramy Mahdy)
 ## Test Environment
 * Location: 
@@ -332,8 +347,7 @@ TBD
 
 
 ---------------------
-
-# 
+# Template
 ## Test Environment
 * Location: 
 * Optics: 
