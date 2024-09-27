@@ -143,7 +143,7 @@ alpaca_ip_address = '127.0.0.1'
   * RemotePC - Short free trial.
   * LogMeIn - Lacks a free trial.
   * Zoho Assist - Free tier very limited.
-* When using AnyDesk and certain other programs, you might need to use an HDMI Dummy Plug to get video output from the mini PC if a monitor is not connected. Microsoft Remote Desktop Client does not require this, but it may not be available for some mobile devices.
+* When using AnyDesk and certain other programs, you might need to use an [HDMI Dummy Plug](https://www.amazon.com/dp/B0CKKLTWMN) to get video output from the mini PC if a monitor is not connected. Microsoft Remote Desktop Client does not require this, but it may not be available for some mobile devices.
 
 ### N5 - Cannot Connect Sony Camera with Nina
 Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by the Sony Plug-in that is included with Nina. To resolve this:
