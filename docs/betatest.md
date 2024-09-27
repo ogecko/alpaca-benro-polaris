@@ -444,7 +444,7 @@ TBD
 * Siril + Stellarium Platform: 
   
 ### Test coverage
-Pentax K1 - Nikon Z6 - android
+TBD
 
 ### Test Results
 TBD
