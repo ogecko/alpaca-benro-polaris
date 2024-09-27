@@ -330,6 +330,28 @@ Canon R - Mac M1
 
 
 
+
+
+---------------------
+## hqureshi79 (Humayun Qureshi) 
+### Test Environment
+Location: ACT, Australia
+Optics: Canon R10, (R5 Mark II on the way), Takahashi FS-60CB
+Mount: Benro Polaris Astro
+ABP Driver + Nina Platform (hardware):
+ABP Driver + Nina Platform (software):
+Siril + Stellarium Platform:
+  
+### Test coverage
+Pentax K1 - Nikon Z6 - android
+
+### Test Results
+* Sadly, I have no further notes to add, as I haven't had a chance to actually do any beta testing, my apologies. :(
+* No problems. Thanks for the reply. - Dave.
+
+
+
+
 ---------------------
 
 # Raw Feedback - Incomplete/Unknown
@@ -374,23 +396,6 @@ TBD
 
 
 ---------------------
-## hqureshi79 (Humayun Qureshi) 
-### Test Environment
-Location: ACT, Australia
-Optics: Canon R10, (R5 Mark II on the way), Takahashi FS-60CB
-Mount: Benro Polaris Astro
-ABP Driver + Nina Platform (hardware):
-ABP Driver + Nina Platform (software):
-Siril + Stellarium Platform:
-  
-### Test coverage
-Pentax K1 - Nikon Z6 - android
-
-### Test Results
-TBD
-
-
----------------------
 ## Ramymah (Ramy Mahdy)
 ### Test Environment
 * Location: 
@@ -407,6 +412,7 @@ Pentax K1 - Nikon Z6 - android
 TBD
 
 
+---------------------
 
 
 ## Template
