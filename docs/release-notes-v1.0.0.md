@@ -7,52 +7,7 @@
 **Win11 Install:** Demonstration Video at https://youtu.be/ipbWT54afhY    
 **MacOS Install:** Demonstration Video at https://youtu.be/ZT91dpLObP8
 
-## Tested Compatible Hardware and Software
-### Photography Equipment
-* Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11
-* Canon R5, RF135mm, RF800mm
-* Canon R6 Mk II connected via USB3
-* Canon R, 16mm 2.8, 24-240mm f4-6.3
-* Canon 6D MkII, Canon EF 50mm f1.8
-* Canon 800D, Sigma DC 17-50mm f2.8, Tamron 16-300mm f3.5-6.3
-* Nikon Z8 (z14-24mm F2.8)
-* Sony Alpha 7R IV
-* Pentax K1 150-450mm / Irix 45mm
-* ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
-### Computing Equipment
-* MacBook Pro with Apple M1 Pro CPU (ABP Driver and CCDCiel)
-* MacBook Pro 14” 2021 
-* MacBook Pro 13” 2013
-* Mele Quieter 4C, Intel N100 800Mhz (ABP Driver and Nina)
-* Minis Forum UM350 (ABP Driver and Nina)
-* ASUS Vivobook Pro 16X OLED K6604JV (ABP Driver and Nina)
-* Laptop Windows 10 Home (ABP Driver and Nina)
-* Desktop PC, AMD 7950X (Stellarium Desktop, Siril)
-* Desktop PC, AMD Ryzen 5 3600
-### Portable/Mobile Equipment
-* iPhone 13 Max (Stellarium Mobile PLUS)
-* iPad Pro 3rd Generation
-* Samsung Galaxy S22 Ultra (Stellarium Mobile PLUS)
-* Microsoft Surface Laptop 2
-### Applications
-* Benro Polaris Android App v3.0.27, iOS App v1.4.4,
-* Stellarium Mobile PLUS v1.12.9 Android and iOS.
-* Stellarium Desktop v24.2.0 Windows
-* Nina v3.1.1.9001, HocusFocus v3.0.0.17, ASTAP 2024.08.11
-* Nina v3.1.2.9001, HocusFocus v3.0.0.18, LensAF v2.1.0.2, Scope Control  v2.0.2.0
-* CCDciel Version beta 0.9.87-3346 Windows
-* Siril v1.2.3 de49749
-### Drivers
-* ASCOM Platform 7 RC7
-* ASCOM Platform 6.6 SP2
-### Operating Systems
-* Windows 11 Pro v23H2
-* Windows 10
-* MacOS Sonoma 14.6.1
-* MacOS Sequoia 15
-* iOS 17.6  
-* iPadOS v17.6.1
-  
+
 ## New Features (enabled by StellariumPLUS)
 - **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Larger Catalog]**: Includes an extensive catalog of celestial objects, surpassing the BP App.
@@ -182,6 +137,52 @@ Please let us know if you can try any of these features.
 - **[Move Rate Continuity]**: Improve Move Rate continuity from 5.01 to 6.00.
 - **[Install Guide]**: Improve MacOS and Win installation guide based on Beta feedback.
 - **[Docs Improvement]**: Numerous documentation improvements and better troubleshooting.
+
+## Tested Compatible Hardware and Software
+### Photography Equipment
+* Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11
+* Canon R5, RF135mm, RF800mm
+* Canon R6 Mk II connected via USB3
+* Canon R, 16mm 2.8, 24-240mm f4-6.3
+* Canon 6D MkII, Canon EF 50mm f1.8
+* Canon 800D, Sigma DC 17-50mm f2.8, Tamron 16-300mm f3.5-6.3
+* Nikon Z8 (z14-24mm F2.8)
+* Sony Alpha 7R IV
+* Pentax K1 150-450mm / Irix 45mm
+* ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
+### Computing Equipment
+* MacBook Pro with Apple M1 Pro CPU (ABP Driver and CCDCiel)
+* MacBook Pro 14” 2021 
+* MacBook Pro 13” 2013
+* Mele Quieter 4C, Intel N100 800Mhz (ABP Driver and Nina)
+* Minis Forum UM350 (ABP Driver and Nina)
+* ASUS Vivobook Pro 16X OLED K6604JV (ABP Driver and Nina)
+* Laptop Windows 10 Home (ABP Driver and Nina)
+* Desktop PC, AMD 7950X (Stellarium Desktop, Siril)
+* Desktop PC, AMD Ryzen 5 3600
+### Portable/Mobile Equipment
+* iPhone 13 Max (Stellarium Mobile PLUS)
+* iPad Pro 3rd Generation
+* Samsung Galaxy S22 Ultra (Stellarium Mobile PLUS)
+* Microsoft Surface Laptop 2
+### Applications
+* Benro Polaris Android App v3.0.27, iOS App v1.4.4,
+* Stellarium Mobile PLUS v1.12.9 Android and iOS.
+* Stellarium Desktop v24.2.0 Windows
+* Nina v3.1.1.9001, HocusFocus v3.0.0.17, ASTAP 2024.08.11
+* Nina v3.1.2.9001, HocusFocus v3.0.0.18, LensAF v2.1.0.2, Scope Control  v2.0.2.0
+* CCDciel Version beta 0.9.87-3346 Windows
+* Siril v1.2.3 de49749
+### Drivers
+* ASCOM Platform 7 RC7
+* ASCOM Platform 6.6 SP2
+### Operating Systems
+* Windows 11 Pro v23H2
+* Windows 10
+* MacOS Sonoma 14.6.1
+* MacOS Sequoia 15
+* iOS 17.6  
+* iPadOS v17.6.1
   
 
 ## Known Issues
