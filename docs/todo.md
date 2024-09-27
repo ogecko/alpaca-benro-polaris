@@ -17,16 +17,22 @@
 * Incorporation of Driver into BP firmware
 
 ## Backlog
-* Testing on Raspbery Pi
-* Testing on Docker
-* Testing of Sky Safari
-* Develop automated test for drift over movable range of Polaris
-* Stellarium Desktop Binary protocol for position updates
-* Hand controller web app
-* Config web app
-* Simplify install with Pi2EXE / Pi2APP
-* Explore addition of INDI Server/Telescope
+- **[Raspberry Pi]** Official support an testing on Raspbery Pi
+- **[Docker Support]** Official support an testing on Docker.
+- **[Sky Safari]** Official support an testing on Sky Safari.
+- **[CCDciel Support]**: Official support and testing for CCDciel for MacOS.
+- **[Stellarium MacOS]**: Add position update support to the Stellarium Binary protocol.
+- **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating  command line.
+- **[WiFi Setup]**: Eliminate need for BP App to setup Polaris WiFi Hotspot.
+- **[Astro Mode Setup]**: Eliminate need for BP App to manually change mode to Astro and align.
+- **[Setup GUI]**: Deliver a Graphical UI to manage config.toml and provide a base UI. 
+- **[Control GUI]**: Deliver a Graphical UI for Telescope Control, as multi-platform webapp.
+- **[Drift Repport]** Develop automated test for drift over movable range of Polaris.
+- **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
+- **[Emedded Driver]**: Driver should be embedded on the Benro Polaris Device. Benro Change.
+- **[Pulse Guiding]**: Allow micro move axis commands, while tracking, without backlash. Benro Change.
 
+ 
 ## Completed during campaign
 * Close Beta testing
 * N Point Alignment - Sync will optionally re-align Benro Polaris rather than just being within the Driver
