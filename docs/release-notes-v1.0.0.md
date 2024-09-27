@@ -173,11 +173,12 @@ Please let us know if you can try any of these features.
 * Nina v3.1.2.9001, HocusFocus v3.0.0.18, LensAF v2.1.0.2, Scope Control  v2.0.2.0
 * CCDciel Version beta 0.9.87-3346 Windows
 * Siril v1.2.3 de49749
-### Drivers
+### Drivers and Utilities
+* Windows Remote Desktop v10.0.22621
 * ASCOM Platform 7 RC7
 * ASCOM Platform 6.6 SP2
 ### Operating Systems
-* Windows 11 Pro v23H2
+* Windows 11 Pro v23H2, 
 * Windows 10
 * MacOS Sonoma 14.6.1
 * MacOS Sequoia 15
