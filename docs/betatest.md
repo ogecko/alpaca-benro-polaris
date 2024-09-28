@@ -237,7 +237,7 @@ Pentax K1 - Nikon Z6 - android
 * Firewall issue on first use
 * installed driver on windows 11 with no problem (but this will of course be a problem for someone not famliar with working from the command line)
 * Connected to stellarium, go-to seems to  work, extreme frustration with wifi on Polaris dropping out randomly (issue with app too of course).
-* Challenges getting Sony working with ASCOM Camera driver. A7Riv connected to Nina, what a rigmarole, definitely needs a good user guide for process. Added Troubleshooting N5.
+* Challenges getting Sony working with ASCOM Camera driver. A7Riv connected to Nina, what a rigmarole, definitely needs a good user guide for process. Added Troubleshooting N7.
 * Lens autofocus. So far I've got it talking and controlling basic functions (reasonably clunkily), sets iso, shutter speed, aperture, fires shutter - after all the false starts I was just happy it didn't go on fire!
 * Ok, af works in as far as focus changes and images are recorded - without stars I'm afraid that's all I can tell you.
 * Focusing works, but the camera MUST be set to manual focus. Focus steps are tiny compared to a telescope focuser. Only 128 steps are available. 

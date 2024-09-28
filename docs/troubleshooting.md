@@ -107,33 +107,7 @@ C:\Users\Astro>
 
 ## Nina Troubleshooting
 
-### N1 - Cannot connect Nina to ABP
-* Check which driver you select. Use the ASCOM Alpaca drivers over the ASCOM drivers. If you have ABP broadcasing on all interfaces (default) you may have 4 versions of it available. Don't use @160.254.253.159. 
-* You can limit what IP Address the driver exposes the Alpaca Service on, by setting the field `alpaca_ip_address` in `driver/config.toml`. To limit the Alpaca Service only to applications that are running on the Mini-PC (ie no remote applications), set it the following.
-```
-alpaca_ip_address = '127.0.0.1' 
-```
-* Check Mini-PC state. Reconnect a monitor and Keyboard to the Mini-PC and check that it is up and running. Windows Updates can be delivered every month that may effect the state of the device.
-* Check IP connectivity. From a command prompt, use `ping <hostname>` to ensure you have IP connectivity and DNS lookup to your Mini-PC. You may find using the Mini-PC's `IP4-address` in Remote Desktop rather than `<hostname>` may make it easier to connect.
-* Check the Mini-PC Hotspot is connected first. You can unplug the TPlink to force the Nina hotspot to use the embedded Wifi of the Mele. Once you have connected to the mini-pc via Remote Desktop, re-plug in the TPLink.
-* Check that you have not dropped connection to the Mini-PCs WiFi hotspot.
-
-### N2 - Cannot obtain a good autofocus run with Nina?
-* Check your Lens Stabilisation is off. This interfers with sidereal tracking.
-* Check you Lens AutoFocus is off on the Lens and Camera Body. If left on this may cause the camera focusing system to hunt interering with the image capture process.
-* Check for Lens Cap not removed. Not kidding.
-* Check for clouds.
-* Check for haze or smoke.
-* Check for occulusion by trees or buildings.
-* Check for that you are close to focus before starting a Nina Focus run.
-
-### N3 - Cannot plate solve with Nina and ASTAP?
-* Check you are in Focus
-* Check to make sure you camera pixel size and telescope focal length is set correctly in equipment options, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values.
-* Check if you are using any filters. Using a narrow band filter on the camera, like the L-Ultimate Optolong HaOIII filter, can make plate solving more challenging for ASTAP.### R1 - Cannot connect Remote Desktop to Mini-PC
-* Check you have downloaded the relevant STAR databases. For 200mm lens and less you may need to download the [Wide field STAR database G05](https://www.hnsky.org/astap.htm)
-
-### N4 - Cannot Remote Desktop to MiniPC running Nina
+### N1 - Cannot Remote Desktop to MiniPC running Nina
 * There are a range of remote desktop applications avalable which you might want to try:
   * Microsoft Remote Desktop - Free with Windows 11 Pro. Some testers have had issues connecting via MS Remote desktop. I've been using it quite successfully.
   * AnyDesk - "Best remote desktop solution for occasional users" - Techradar. 
@@ -145,7 +119,45 @@ alpaca_ip_address = '127.0.0.1'
   * Zoho Assist - Free tier very limited.
 * When using AnyDesk and certain other programs, you might need to use an [HDMI Dummy Plug](https://www.amazon.com/dp/B0CKKLTWMN) to get video output from the mini PC if a monitor is not connected. Microsoft Remote Desktop Client does not require this, but it may not be available for some mobile devices.
 
-### N5 - Cannot Connect Sony Camera with Nina
+### N2 - I still cannot remotely connect to the MiniPC running Nina
+* Windows Updates can be delivered every month that may effect the state of the device.
+* Check Mini-PC state. Reconnect a monitor and Keyboard to the Mini-PC and check that it is up and running. 
+
+### N3 - I have a Mini-PC running without internet access. I cannot remotely connect to it.
+* This type of configuration is more challenging and can be confusing, but it is possible.
+* There are two Wifi Hotspots in this configuration, the BP Hotspot and the Mini-PC Hotspot. 
+* Check that your laptop has not dropped connection to the Mini-PCs hotspot.
+* Check IP connectivity. From a command prompt, use `ping <hostname>` to ensure you have IP connectivity and DNS lookup to your Mini-PC. 
+* You may find using the Mini-PC's `IP4-address` in Remote Desktop rather than `<hostname>` may make it easier to connect.
+* Check that the MiniPC Hotspot is not using the TPLink. You can unplug the TPlink to force the MiniPC hotspot to use the embedded Wifi of the Mele. 
+* Once you have connected to the mini-pc via Remote Desktop, then re-plug in the TPLink, to allow ABP to use it to connect with the BP Hotspot.
+
+### N4 - Which Mount should I select in Nina's Equipment Tab, it lists 8 Benro Polaris Mounts?
+* The ABP defaults to broadcasing `ASCOM Alpaca` services on all network interfaces on the MiniPC. 
+* If you have the ASCOM Platform installed, Nina will also detect all the `ASCOM direct` interfaces to the ABP. 
+* We recommend connecting to the ABP via `ASCOM Apaca` services rather than `ASCOM`. Choose one of the Mounts under `ASCOM Alpaca`.
+* You can limit what IP Address the driver exposes the `ASCOM Alpaca` Service on, by setting the field `alpaca_ip_address` in `driver/config.toml`. 
+* To limit the Alpaca Service only to applications that are running on the Mini-PC (ie no remote applications), set it the following.
+```
+alpaca_ip_address = '127.0.0.1' 
+```
+
+### N5 - Cannot obtain a good autofocus run with Nina?
+* Check your Lens Stabilisation is off. This interfers with sidereal tracking.
+* Check you Lens AutoFocus is off on the Lens and Camera Body. If left on this may cause the camera focusing system to hunt interering with the image capture process.
+* Check for Lens Cap not removed. Not kidding.
+* Check for clouds.
+* Check for haze or smoke.
+* Check for occulusion by trees or buildings.
+* Check for that you are close to focus before starting a Nina Focus run.
+
+### N6 - Cannot plate solve with Nina and ASTAP?
+* Check you are in Focus
+* Check to make sure you camera pixel size and telescope focal length is set correctly in equipment options, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values.
+* Check if you are using any filters. Using a narrow band filter on the camera, like the L-Ultimate Optolong HaOIII filter, can make plate solving more challenging for ASTAP.### R1 - Cannot connect Remote Desktop to Mini-PC
+* Check you have downloaded the relevant STAR databases. For 200mm lens and less you may need to download the [Wide field STAR database G05](https://www.hnsky.org/astap.htm)
+
+### N7 - Cannot Connect Sony Camera with Nina
 Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by the Sony Plug-in that is included with Nina. To resolve this:
 * Attach your camera via USB. Configure as you would to connect to the Polaris.
 * Turn on your camera.
