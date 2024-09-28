@@ -179,18 +179,35 @@ Nina will now connect to your camera.
 ## Stellarium Troubleshooting
 
 ### S1 - StellariumPLUS Cannot connect to ABP
-* Check that the BP App is closed. If you are unable to connect to the driver, please ensure that the BP App is closed and that your mobile device's Wi-Fi is not connected to the Polaris hotspot Wi-Fi. Disable your phones autoconnect to the Polaris Wi-Fi hotspot. When the BP App is open, it will automatically connect your mobile device to the Polaris hotspot Wi-Fi and nothing else.
+There are three approaches to connect StellariiumPLUS to the ABP, depending on your setup scenario.
+* Scenario A: The ABP device conencts to Polaris Hotspot only.
+    * Connect your phone to the Polaris Hotspot.
+    * In Stellarium's Observing Tools Setup, enter a Network Host of `192.168.0.3` 
+    * You may need to disable Mobile Data on your phone to get this to work.
+* Scenario B: The ABP device connects to Polaris Hotspot and your Home Wifi.
+    * Check that the BP App is closed. This frees the phones Wifi from the Polaris Wifi. 
+    * Check that your phone does not autoconnect to the Polaris Wifi.
+    * Connect your phone to your Home Wifi.
+    * In Stellarium's Observing Tools Setup, enter a Network Host of `192.168.X.XXX`
+    * This address needs to match the IP address of your ABP machine on your Home Wifi.
+* Scenario C: The ABP device connects to Polaris Hotspot and has its own NinaAir Hotspot.
+    * Check that the BP App is closed. This frees the phones Wifi from the Polaris Wifi.
+    * Check that your phone does not autoconnect to the Polaris Wifi.
+    * Connect your phone to the NinaAir Hotspot.
+    * In Stellarium's Observing Tools Setup, enter a Network Host of `192.168.X.XXX`
+    * This address needs to match the IP address of your ABP machine on your NinaAir Wifi.
+
+### S2 - Still cannot connect to ABP
 * Check IP connectivity. You must run StellariumPLUS on a mobile device that can communicate with the ABP driver. Use a free mobile Ping app to check that you can ping the ABP driver device. If you cannot ping, then check that you are not using the phone's mobile data, that you are within range of your router's Wi-Fi signal, and that your phone is connected to your home Wi-Fi.
 * Check the StellariumPLUS Host field on the Observing Tools settings popup. This needs to be set to the ABP Driver's IP address. Do not use 127.0.0.1 Loopback. 
 * Check stellarium_telescope_ip_address in config.toml. This can be left as its default '' to make the Driver serve the SynScan protocol on any network adapter it can find. If you want to limit the IP address servered by the Driver, you can set this to the IP address of the Mini-PC on your home network. 
-* Check StellariumPLUS Alignment Flag. StellariumPLUS will show your telescope as Not Aligned whenever the ABP driver cannot communicate with the Benro Polaris, eg the Polaris Wifi has gone down.
 
-### S2 - Stellarium Desktop has greyed out ASCOM option
+### S3 - Stellarium Desktop has greyed out ASCOM option
 * One Beta Tester encountered problems connecting Stellarium Desktop v24.3 for Windows via ASCOM.
 * Symptom: When trying to add a telescope in Stellarium's telescope plugin, selecting an ASCOM device is greyed out. 
 * Solution: Uninstall V24.3, restart your desktop, install V24.2 (available by searching on the download page). Check periodically for an update to Stellarium.
 
-### S3 - Stellarium Desktop freezes with Remote Desktop
+### S4 - Stellarium Desktop freezes with Remote Desktop
 * Check fps settings. Stellarium's default is a crazy 10000 fps. We suggest reducing the default settings in the following file `C:\Users\Nina\AppData\Roaming\Stellarium\config.ini`, where Nina is replaced with your User name.
     ```
     [video]
