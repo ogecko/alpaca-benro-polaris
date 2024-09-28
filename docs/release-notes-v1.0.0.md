@@ -188,6 +188,7 @@ Please let us know if you can try any of these features.
 
 ## Known Issues
 - **[Sky Safari 7 Plus]**: One Beta tester was unable to connect to Sky Safari 7 Plus.
+- **[Stellarium 24.3]**: Stellarium Desktop v24.3 has known issues with telescope control. See [Troubleshooting S2](./troubleshooting.md).
 
 ## Potential Future Enhancements
 - **[Raspberry Pi]** Official support and testing on Raspberry  Pi
