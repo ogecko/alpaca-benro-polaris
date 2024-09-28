@@ -130,7 +130,7 @@ C:\Users\Astro>
 * Check IP connectivity. From a command prompt, use `ping <hostname>` to ensure you have IP connectivity and DNS lookup to your Mini-PC. 
 * You may find using the Mini-PC's `IP4-address` in Remote Desktop rather than `<hostname>` may make it easier to connect.
 * Check that the MiniPC Hotspot is not using the TPLink. You can unplug the TPlink to force the MiniPC hotspot to use the embedded Wifi of the Mele. 
-* Once you have connected to the mini-pc via Remote Desktop, then re-plug in the TPLink, to allow ABP to use it to connect with the BP Hotspot.
+* Once you have connected to the Mini-PC via Remote Desktop, then re-plug in the TPLink, to allow ABP to use it to connect with the BP Hotspot.
 
 ### N4 - Which Mount should I select in Nina's Equipment Tab, it lists 8 Benro Polaris Mounts?
 * The ABP defaults to broadcasing `ASCOM Alpaca` services on all network interfaces on the MiniPC. 
