@@ -62,7 +62,7 @@ The beta testing phase provided invaluable feedback, shaping the ABP Driver's de
 * Mount: Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11, Android App v3.0.27
 * ABP Driver + Nina Platform (hardware): Mele Quieter 4C, Intel N100 800Mhz, 16Gb Ram, 2Tb SSD, INIU 140W Battery
 * ABP Driver + Nina Platform (software): Win 11 Pro v23H2, Nina v3.1.1.9001/HocusFocus v3.0.0.17 and Nina v3.1.2.9001/HocusFocus v3.0.0.18 
-* Siril + Stellarium Platform: Desktop PC, AMD 7950X, Win 11 Pro v23H2, Stellarium v24.2, Siril v1.2.3 de49749
+* Siril + Stellarium Platform: Desktop PC, AMD 7950X, Win 11 Pro v23H2, Stellarium v24.2, 
   
 ### Test coverage
 * Testing Polaris protocol all cmds and responses used across BP, Canon R5 and Win 11 platform. 
