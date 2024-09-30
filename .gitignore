@@ -9,8 +9,8 @@ __pycache__/
 # Alpaca Logs and Performance data
 *.log
 *.log.*
-alpaca.csv
-alpaca.csv.*
+alpaca*.csv
+alpaca*.csv.*
 Thumbs.db
 
 # Distribution / packaging
