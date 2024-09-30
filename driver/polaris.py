@@ -512,7 +512,7 @@ class Polaris:
             self._N_point_alignment_results[key].append(x)
             # Print past syncs out to log file
             for key in self._N_point_alignment_results:
-                self.logger.info(f'->> Polaris: SYNC Star Align Summary around {key}°')
+                self.logger.info(f'->> Polaris: SYNC Star Align Summary around {key} degrees')
                 for x in self._N_point_alignment_results[key]:
                     self.logger.info(f'->>     {x["time"].strftime("%H:%M:%S")} | Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}')
             # Perform the actual star alignment on the Polaris
@@ -1578,7 +1578,7 @@ class Polaris:
         # if cmdtype=3 then Equatorial RA/Dec move Rate degrees
         elif cmdtype==3:
             if Config.log_polaris:
-                self.logger.info(f"->> Polaris: Move Equatorial RA/Dec Axis: {axis} Rate: {rate}°")
+                self.logger.info(f"->> Polaris: Move Equatorial RA/Dec Axis: {axis} Rate: {rate} degrees")
             self._lock.acquire()
             ra = self._rightascension + ((rate*24/360) if axis==0 else 0)
             dec = self._declination + (rate if axis==1 else 0)

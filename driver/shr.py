@@ -293,7 +293,7 @@ def deg2dms(decimal_degrees):
     minutes = int(minutes_float)
     seconds = (minutes_float - minutes) * 60                # Extract seconds
     
-    return f"{sign}{degrees}°{minutes:02}'{seconds:05.2f}\""
+    return f"{sign}{degrees}d{minutes:02}'{seconds:05.2f}\""
 
 def hr2hms(decimal_hr):
     degrees = int(decimal_hr)                          # Extract degrees

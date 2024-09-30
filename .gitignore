@@ -11,6 +11,7 @@ __pycache__/
 *.log.*
 alpaca.csv
 alpaca.csv.*
+Thumbs.db
 
 # Distribution / packaging
 .Python
