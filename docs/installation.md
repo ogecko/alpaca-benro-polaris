@@ -86,7 +86,7 @@ ASCOM stands for Astronomy Common Object Model. It is a universal standard for A
 You may need to install the ASCOM Platform software for compatibility with some astronomry equipment or applications. You will need to install the ASCOM Platform with Stellarium as it is not bundled by default. You do not need to install the ASCOM Platform on a laptop that uses Remote Desktop to access the NinaAir. 
 
 #### To install the ASCOM Platform.
-1. Download the ASCOM Platform from https://ascom-standards.org/ (Download buttton on RHS)
+1. Download the ASCOM Platform from https://ascom-standards.org/ (Download buttton on the top-right-hand side of the home page).
 2. The remaining instructions assume you are using ASCOM Platform 6.6SP2 
 3. Open the installation .exe file and click `Yes` on the User Account Control dialog.
 4. Click `Next` to install any pre-requisites eg Microsoft .nett Framework 3.5 Service Pack 1 
@@ -94,6 +94,8 @@ You may need to install the ASCOM Platform software for compatibility with some 
 6. Once the blue window shows the operation has completed successfully, press any `key` to continue.
 7. Accept the ASCOM Platform Installer default options and click `Install`.
 8. Click `Finish`.
+
+You can also download other versions from the [ASCOM GitHub Releases Site](https://github.com/ASCOMInitiative/ASCOMPlatform/releases).
 
 ### Installing Stellarium (OPTIONAL)
 Stellarium is a free open-source planetarium for your computer. 
