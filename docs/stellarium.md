@@ -153,7 +153,7 @@ You can also bring up the `Slew Telescope To` dialog by pressing `Ctrl+0` (Windo
 ### Changing Field of View
 On Windows, as the telescope sweeps across the sky, you will see a reticule marking its path. You can tailor the size of the reticule to match your camera and lens setup, allowing you to visualize your framing easily.
 
-If you lose sight of where the mount is pointing in Stellarium, pressing `Ctrl+Shift+0` (Windows) or `Command+Shift+0` (MacOS) will pan the window to your telescope's position. If you lose site of your selected target, press `SPACE`, and the window will immediately pan to your selected object.
+If you lose site of your selected target, press `SPACE`, and the window will immediately pan to your selected object.
 
 ### Pulling Stellarium Desktop Targets into Nina
 You can use the Stellarium Desktop `Remote Control` Plug-in to further integrate Stellarium with Nina. Using this plug-in, Nina can pull any selected Stellarium Target into the Framing Tab on Nina. 
