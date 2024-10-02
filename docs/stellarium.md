@@ -153,8 +153,24 @@ You can also bring up the `Slew Telescope To` dialog by pressing `Ctrl+0` (Windo
 ### Changing Field of View
 On Windows, as the telescope sweeps across the sky, you will see a reticule marking its path. You can tailor the size of the reticule to match your camera and lens setup, allowing you to visualize your framing easily.
 
-If you lose sight of where the mount is pointing in Stellarium, simply press `SPACE`, and the view will immediately pan to your reticle.
+If you lose sight of where the mount is pointing in Stellarium, pressing `Ctrl+Shift+0` (Windows) or `Command+Shift+0` (MacOS) will pan the window to your telescope's position. If you lose site of your selected target, press `SPACE`, and the window will immediately pan to your selected object.
 
+### Pulling Stellarium Desktop Targets into Nina
+You can use the Stellarium Desktop `Remote Control` Plug-in to further integrate Stellarium with Nina. Using this plug-in, Nina can pull any selected Stellarium Target into the Framing Tab on Nina. 
+To setup this integration:
+* Using Stellarium
+   * Press `F2` to callup the Configuration Dialog and navigate to the Plug-ins tab
+   * Scroll down to Remote Control Plug-in and enable Load at startup.
+   * Restart Stellarium navigate back to its Configuration Dialog.
+   * Enable the Server and Enable the Server on Startup.
+   * Restart Stellarium
+* Using Nina
+  * Navigate to the Options/Equipment tab
+  * Under the Planetarium, select Stellarium
+  * Enter the Host IP address of `localhost` or its remote IP address.
+
+Now on the Framing tab you can click on a small pin icon next to the Coordinates Heading and Nina will ask Stellarium for the currently selected Target Co-ordinates. Much better than Nina's Sky Atlas.
+  
 ### Sync Co-ordinates
 On Windows, you can help improve the aim of the Benro Polaris by Syncing with a known object in the sky. 
 1. Using the Benro Polaris App, aim the telescope with the known object in the center of the eyepiece or image
