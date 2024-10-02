@@ -48,7 +48,7 @@ The imaging tab's main image panel allows you to zoom, rotate, or flip the image
 ### Telescope Control
 The Benro Polaris can be controlled from the Equipment/Mount tab as well as the Image tab in Nina. To enable Telescope Control from the Image tab you will need to install the `Scope Control` plugin. 
 
-This plugin provides the ability to MoveAxis, Stop/Stop Tracking, Park/UnPark, Slew to RA/Dec, Slew to Alt/Az, Abort Slew. It also adds two new views to visualise the current position of the Benro Polaris (a) top down view called `Azimulth Chart` and (b) Side View called `Altitude Chart`. These views can be enhanced to show where obstructions are located at your site with the `Horizon Creator` plug-in.
+This plugin provides the ability to MoveAxis, Control Rate, Stop/Stop Tracking, Park/UnPark, Slew to RA/Dec, Slew to Alt/Az, Abort Slew. It also adds two new views to visualise the current position of the Benro Polaris (a) top down view called `Azimulth Chart` and (b) Side View called `Altitude Chart`. These views can be enhanced to show where obstructions are located at your site with the `Horizon Creator` plug-in.
 
 ### Customising Settings
 The options tab includes a set of sub-tabs. On the Imaging sub-tab you to customize the directory where all the images will be saved. There is also a flexible approach to changing the naming convention of the images. You can capture additional metadata into a set of csv files using a plug-in called Session Metadata. Finally, you can copy images directly from the storage location to anywhere on your network. No more ejecting SD cards.
