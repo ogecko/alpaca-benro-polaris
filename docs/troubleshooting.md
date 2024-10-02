@@ -32,6 +32,13 @@ The current firmware of the Benro Polaris does not allow connection to other WiF
 
 This is no longer a limitation. The Alpaca Benro Polaris Driver can serve as a proxy for the Polaris. It is capable of connecting to both the Polaris Wi-Fi Hotspot and your home Wi-Fi network. This allows you to manage the Polaris from any device connected to your home Wi-Fi, including an iPad, a phone, a desktop, or a laptop.
 
+### B5 - The Polaris is at 1% Battery and wont charge
+Multiple people have had issues charging the Benro Polaris after it has drained its battery down to 1%. If you cannot recharge the Benro Polaris from 1% try the following
+* Benro recommends to charge using a 5V/2A charger, rather than some more advanced PD chargers.
+* Try charging with a different cable.
+* Try turning the cable upside down.
+* Try charging with a different power bank.
+
 ## Alpaca Communications  Troubleshooting
 ### C1 - Cannot see "`communications init... done`" in the log.
 * Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
