@@ -23,7 +23,7 @@ The Benro Polaris includes an **attitude and heading reference system** (AHRS) t
 
 Aiming performance in astrophotography refers to the accuracy and precision with which a telescope or camera mount can point to a specific celestial object. This involves the mount’s ability to locate and center the object in the field of view based on given coordinates.
 
-In this update, we measure aiming performance by the angular distance between the Target Coordinates and the Actual Coordinates after the Polaris has performed its slew and re-established tracking. This angular distance is measured in arc seconds of a degree for both the Azimuth and Altitude axes. We call this angular distance the **Aim Error**.
+This paper measures aiming performance by the angular distance between the Target Coordinates and the Actual Coordinates after the Polaris has performed its slew and re-established tracking. This angular distance is measured in arc seconds of a degree for both the Azimuth and Altitude axes. We call this angular distance the **Aim Error**.
 
 Aiming performance becomes more critical with lenses of longer focal lengths. If the Polaris cannot bring the target into the field of view (FOV), knowing which way to move the mount is often challenging, making it difficult to address. For example, a Canon R5 with an 800mm lens has a vertical FOV of only 1.72°, i.e., 6192 arc-seconds. We need a pointing tolerance of a maximum of **3000 arc seconds** to ensure our target is within view. 
 
@@ -35,9 +35,9 @@ We created a test in which we commanded the Polaris to slew to a range of Target
 
 ![Curent Aim Error](images/abp-perf-aim1.png)
 
-You can see that the Polaris consistently aims to the right and down. It has an average Aim Error on the Azimuth axis of +48 arc seconds. The standard deviation on the Azimuth axis is 98 arc seconds. The standard deviation on the Altitude axis is 72 arc seconds. 
+You can see that the Polaris consistently aims to the right and down. It has an average Aim Error on the Azimuth axis of **+48 arc seconds**. The standard deviation on the Azimuth axis is **98 arc seconds**. The standard deviation on the Altitude axis is **72 arc seconds**. 
 
-Not bad overall, but note that these measurements do not factor in leveling or polar misalignment. They assume that the Polaris is perfectly aligned, which, of course, is never the case. Misalignment with the compass and star alignment will add significant aiming errors of over 3600 arc seconds per degree of misalignment.
+Not bad overall, but note that these measurements do not factor in leveling or polar misalignment. They assume that the Polaris is perfectly aligned, which, of course, is never the case. Misalignment with the compass and star alignment will add significant aiming errors of over **3600 arc seconds** per degree of misalignment.
 
 ## What can you control?
 
@@ -59,15 +59,15 @@ There are numerous factors that you can control to help improve aiming performan
 
 ### Atmospheric Refraction Correction
 
-This correction accounts for the bending of light as it passes through Earth’s atmosphere, which causes celestial objects to appear higher in the sky than they are. The refraction angle depends on the object's altitude and the atmospheric conditions (temperature and pressure). A typical correction of a target near the horizon may be up to 2100 arc-seconds. A target 30° from the horizon only has a correction of around 60 arc seconds.
+This correction accounts for the bending of light as it passes through Earth’s atmosphere, which causes celestial objects to appear higher in the sky than they are. The refraction angle depends on the object's altitude and the atmospheric conditions (temperature and pressure). A typical correction of a target near the horizon may be up to **2100 arc-seconds**. A target 30° from the horizon only has a correction of around **60 arc seconds**.
 
 ### Backlash Delay Correction
 
-When testing the Polaris, we noticed a consistent misaiming of the target, with an error consistently behind on the RA axis. Backlash delay correction compensates for the time to remove any slack in mechanical systems, particularly in gears and lead screws. A typical correction of a target with a zero declination would be 225 arc seconds to cater for a 15-second delay. A target at 45° declination would have a correction of around 160 arc seconds.
+When testing the Polaris, we noticed a consistent misaiming of the target, with an error consistently behind on the RA axis. Backlash delay correction compensates for the time to remove any slack in mechanical systems, particularly in gears and lead screws. A typical correction of a target with a zero declination would be **225 arc seconds** to cater for a 15-second delay. A target at 45° declination would have a correction of around **160 arc seconds**.
 
 ### Goto Aiming Correction
 
-Surprisingly, the Polaris does not close the control loop on aiming performance. While it is told the coordinates to go to and can read the final orientation of the telescope, it does not appear to do anything to correct any persistent deviation. The Alpaca Driver corrects this with its adaptive integrative algorithm. This can make corrections of up to 3600 arc-seconds.
+Surprisingly, the Polaris does not close the control loop on aiming performance. While it is told the coordinates to go to and can read the final orientation of the telescope, it does not appear to do anything to correct any persistent deviation. The Alpaca Driver corrects this with its adaptive integrative algorithm. This can make corrections of up to **3600 arc-seconds**.
 
 ## Alpaca Improvement Results
 
@@ -78,9 +78,9 @@ With these three improvements above, the chart below shows the improved Aiming P
 ![Compared Aim Error](images/abp-perf-aim2.png)
 
 
-You can see that Alpaca consistently aims to be ON target due to the GOTO Aiming correction. It has an average Aim Error on the Azimuth axis of +2 arc seconds. The standard deviation on the Azimuth axis is 51 arc seconds. The standard deviation on the Altitude axis is 44 arc seconds. 
+You can see that Alpaca consistently aims to be ON target due to the GOTO Aiming correction. It has an average Aim Error on the Azimuth axis of **+2 arc seconds**. The standard deviation on the Azimuth axis is **51 arc seconds**. The standard deviation on the Altitude axis is **44 arc seconds**. 
 
-Much better, but note again that these measurements do not factor in leveling or polar misalignment. They assume that the Polaris is perfectly aligned, which, of course, is never the case. Misalignment with the compass and star alignment will add significant aiming errors of over 3600 arc seconds per degree of misalignment.
+Much better, but note again that these measurements do not factor in leveling or polar misalignment. They assume that the Polaris is perfectly aligned, which, of course, is never the case. Misalignment with the compass and star alignment will add significant aiming errors of over **3600 arc seconds** per degree of misalignment.
 
 ## Plate-solving Correction
 
@@ -96,20 +96,20 @@ Overall, Plate-Solving Correction eliminates any aiming problems with the Polari
 
 Tracking performance refers to the mount’s ability to follow the apparent motion of celestial objects across the sky due to Earth’s rotation. Good tracking performance ensures that the object remains centered in the field of view over time, allowing for long-exposure photography without star trails. 
 
-The Earth's sidereal rotation speed is approximately 900 arc seconds per minute. This means that in one minute of sidereal time, a star will appear to move 900 arcseconds across the sky. Ideal tracking eliminates this motion.  In this update, we quantify how well the Polaris does this using three measures: Periodic Error, RMS Error, and Drift Error. 
+The Earth's sidereal rotation speed is approximately **900 arc seconds per minute**. This means that in one minute of sidereal time, a star will appear to move 900 arcseconds across the sky. Ideal tracking eliminates this motion.  In this paper, we quantify how well the Polaris does this using three measures: Periodic Error, RMS Error, and Drift Error. 
 
 ![Periodic Error](images/abp-perf-am5.png)
 
 
-Periodic Error refers to the regular, repeating deviations in the tracking accuracy of a telescope mount caused by imperfections in the mount’s drive gears. We measure Periodic Error as an absolute arc-second deviation from the desired tracked position. Think of it as an absolute error. The chart above is an example of the Periodic Error tolerance of a high-end ZWO AM5 mount. The Periodic Error ranges from -18 arc seconds to +12 arc seconds.
+**Periodic Error** refers to the regular, repeating deviations in the tracking accuracy of a telescope mount caused by imperfections in the mount’s drive gears. We measure Periodic Error as an absolute arc-second deviation from the desired tracked position. Think of it as an absolute error. The chart above is an example of the Periodic Error tolerance of a high-end ZWO AM5 mount. The Periodic Error ranges from **-18 arc seconds** to **+12 arc seconds**.
 
 ![RMS Error](images/abp-perf-phd2.png)
 
-RMS Error (Root Mean Square) is a statistical measure representing the average deviation or spread of the telescope’s actual position from the desired tracked position over a short period. The nature of RMS removes any longer-term bias from the measure and only measures spread.  We will use a 15-second interval for all our RMS Error calculations. Think of it as the variation in the error. The chart above is an example RMS Error tolerance measured in PHD2. The RMS Error ranges from -3 arc-second to +3 arc-second on the blue RA Axis. An excellent mount can achieve an RMS Error of +/- 0.5 arc seconds.
+**RMS Error** (Root Mean Square) is a statistical measure representing the average deviation or spread of the telescope’s actual position from the desired tracked position over a short period. The nature of RMS removes any longer-term bias from the measure and only measures spread.  We will use a 15-second interval for all our RMS Error calculations. Think of it as the variation in the error. The chart above is an example RMS Error tolerance measured in PHD2. The RMS Error ranges from **-3 arc-second** to **+3 arc-second** on the blue RA Axis. An excellent mount can achieve an RMS Error of **+/- 0.5 arc seconds**.
 
 ![Drift MS Error](images/abp-perf-phd2b.png)
 
-Drift Error refers to the apparent movement of a celestial object in the telescope’s field of view over a more extended period. We measure Drift Error as an angular distance across the RA and Dec axes in arc seconds per minute, effectively an angular speed. Drift error occurs because the telescope is not accurately tracking the sky’s rotation. Think of it as a rotational slip speed. The chart above shows an apparent drift on the Dec axis. A typical tolerance for astrophotography is to keep Drift Error within 1 arc second per minute. 
+**Drift Error** refers to the apparent movement of a celestial object in the telescope’s field of view over a more extended period. We measure Drift Error as an angular distance across the RA and Dec axes in arc seconds per minute, effectively an angular speed. Drift error occurs because the telescope is not accurately tracking the sky’s rotation. Think of it as a rotational slip speed. The chart above shows an apparent drift on the Dec axis. A typical tolerance for astrophotography is to keep Drift Error within **1 arc second per minute**. 
 
 ## Current Polaris Performance
 
@@ -121,15 +121,15 @@ We start with a chart showing the Declination Axis Periodic Error on the y-axis 
 
 ![Current Periodic Error Zoomed In](images/abp-perf-pe2.png)
 
-I'm impressed with Polaris's performance. The periodic error ranges from -9 to -11 arc seconds, averaging around -10 arc seconds.  Let's look at the RMS Error.
+I'm impressed with Polaris's performance. The periodic error ranges from -9 to -11 arc seconds, averaging around **-10 arc seconds**.  Let's look at the RMS Error.
 
 ![Current RMS Error Zoomed in](images/abp-perf-pe3.png)
 
-This is great. An RMS Error of between 0.5 and 1.0 arc seconds. That's what you'd expect with a guided mount! This shows what the Polaris can do when expertly leveled and aligned (I'm not really an expert). Let's see how the RMS Error behaves over a more extended period. 
+This is great. An RMS Error of between **0.5 and 1.0 arc seconds**. That's what you'd expect with a guided mount! This shows what the Polaris can do when expertly leveled and aligned (I'm not really an expert). Let's see how the RMS Error behaves over a more extended period. 
 
 ![Current RMS Error Zoomed out](images/abp-perf-pe4.png)
 
-This is really good. Over 100 minutes, the declination axis RMS Error only peaked at 1.5 arc seconds. I should note that I was tracking C101 during this test, located at Epoch J2000, RA 19h09m and Dec -63°51'. On the declination axis I have had similar performance with other targets. Now, the RA axis isn't as great. Let's look at it.
+This is really good. Over 100 minutes, the declination axis RMS Error only peaked at **1.5 arc seconds**. I should note that I was tracking C101 during this test, located at Epoch J2000, RA 19h09m and Dec -63°51'. On the declination axis I have had similar performance with other targets. Now, the RA axis isn't as great. Let's look at it.
 
 ![Current RA Perodic Error](images/abp-perf-pe5.png)
 
@@ -137,9 +137,9 @@ Interesting, the Periodic Error on the RA axis shows a clear drift, we will come
 
 ![Current RA RMS Error](images/abp-perf-pe6.png)
 
-This is really good, too. Over 100 minutes, the RA axis RMS Error only peaked at 1.8 arc seconds. We'll disregard the 2.5 peaks and the rare peak to 20 arc seconds (not shown on the chart). These abnormal peaks are instantaneous and would only impact one image out of many. I don't feel they represent the Polaris's performance and may even be related to the AHRS restarting. 
+This is really good, too. Over 100 minutes, the RA axis RMS Error only peaked at **1.8 arc seconds**. We'll disregard the 2.5 peaks and the rare peak to 20 arc seconds (not shown on the chart). These abnormal peaks are instantaneous and would only impact one image out of many. I don't feel they represent the Polaris's performance and may even be related to the AHRS restarting. 
 
-So, in summary, there is reasonable short-term tracking performance in the RA and Dec axes. The Periodic Error is better on the Dec axis and typically ranges from +50 to -50 arc seconds, depending on the target. The Periodic Error on the RA axis is affected significantly by Drift Error and quickly departs the excellent Aiming Performance. The RMS Error on the RA and Dec axis appears to be less than 2 arc seconds.
+So, in summary, there is reasonable short-term tracking performance in the RA and Dec axes. The Periodic Error is better on the Dec axis and typically ranges from +50 to -50 arc seconds, depending on the target. The Periodic Error on the RA axis is affected significantly by Drift Error and quickly departs the excellent Aiming Performance. The RMS Error on the RA and Dec axis appears to be less than **2 arc seconds**.
 
 Now let's look at how bad that Drift Error is and where it occurs. I created a new test measuring the Drift Error over a 3-minute interval at different targets across the night sky, spaced by 15°. I measured the RA and Dec Drift Errors at each target to fully understand how bad the Drift Error problem was.
 
@@ -147,7 +147,7 @@ Now let's look at how bad that Drift Error is and where it occurs. I created a n
 
 This unique chart shows the Drift Error as a vector at different targets in the sky. The x-axis is the target's RA coordinate, and the y-axis is its Dec coordinate. The vectors near the top of the "hill" are closer to the horizon. I've removed all targets within 15° of the horizon, as I found Polaris is terrible at tracking them. Next to each vector is a number that represents the magnitude of the vector or size of the Drift Error Vector. All targets are calculated with an observer based in Sydney, Australia, hence the primarily negative declination.
 
-I was surprised that all targets had a consistent RA axis Drift Error. It's significant and terrible. In my understanding, the astro axis is 45° offset and influences the azimuth and field rotation axes. That's why it usually spins in concert with the azimuth axis, each offsetting the other slightly. Did Benro make a mistake coding the astro modules' sidereal tracking calculations? Did they purposely slow the RA axis by an average Drift Error of -3.4 arc-seconds per minute? Surely not.  I, of course, maybe totally incorrect in my conclusions, but these are measurements directly from the AHRS, independent of any polar misalignment. Is this unique to my Polaris? I don't think so based on the number of people with Drift problems.
+I was surprised that all targets had a consistent RA axis Drift Error. It's significant and terrible. In my understanding, the astro axis is 45° offset and influences the azimuth and field rotation axes. That's why it usually spins in concert with the azimuth axis, each offsetting the other slightly. Did Benro make a mistake coding the astro modules' sidereal tracking calculations? Did they purposely slow the RA axis by an average Drift Error of **-3.4 arc-seconds per minute**? Surely not.  I, of course, maybe totally incorrect in my conclusions, but these are measurements directly from the AHRS, independent of any polar misalignment. Is this unique to my Polaris? I don't think so based on the number of people with Drift problems.
 
 ## What Could Benro Improve?
 
@@ -285,7 +285,7 @@ You can relax your tolerance if you only view your images on your screen and don
 
 ## Calculating RMS Error
 
-The RMS Error measurement in this development update is based on the AHRS data logged. All AHRS data is collected over a rolling 15-second window. The raw error is based on the deviation from the mean of all the values from the 15-second window. The raw error units are arc seconds.
+The RMS Error measurement in this paper is based on the AHRS data logged. All AHRS data is collected over a rolling 15-second window. The raw error is based on the deviation from the mean of all the values from the 15-second window. The raw error units are arc seconds.
 
         Raw Error = position - mean(positions)
 
@@ -295,7 +295,7 @@ The RMS Error measurement in this development update is based on the AHRS data l
 
 ## Calculating Drift Error
 
-The Drift Error measurement in this development update is based on the AHRS data logged. The position is recorded at the beginning and end of a 3-minute period. These two positions are converted into RA/Dec coordinates. The duration of the 3-minute period is measured precisely and converted into minutes.
+The Drift Error measurement in this paper is based on the AHRS data logged. The position is recorded at the beginning and end of a 3-minute period. These two positions are converted into RA/Dec coordinates. The duration of the 3-minute period is measured precisely and converted into minutes.
 
         Drift Error = (Start Position - End Position) / Duration (minutes).
 
