@@ -102,7 +102,6 @@ Please let us know if you can try any of these features.
 - **[Astro Mode Setup]**: Eliminate the need for the BP App to manually change mode to Astro and align.
 - **[Setup GUI]**: Deliver a Graphical UI to manage config.toml and provide a base UI. 
 - **[Control GUI]**: Deliver a Graphical UI for Telescope Control, as a multi-platform web app.
-- **[Drift Repport]** Develop an automated test for drift over a movable range of Polaris.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
 - **[Emedded Driver]**: The driver should be embedded on the Benro Polaris Device. Benro Change.
 - **[Pulse Guiding]**: Allow micro-move axis commands while tracking without backlash. Benro Change.
