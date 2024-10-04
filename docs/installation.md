@@ -124,6 +124,11 @@ tested with ABP.
 6. If you are copying Oculars settings, duplicate the following file:
    `C:\Users\XXXXX\AppData\Roaming\Stellarium\modules\Oculars\ocular.ini`
 
+## Seting up Sky Safari Pro (OPTIONAL)
+The following screen captures show the settings you need to use for Sky Safari Pro to work with the Alpaca Driver. Choose an Mount as Alt-Az , Brand as Celestron NexStar 5i/i8 , IP Address 192.168.0.3, Port 10001, Preset Name as Polaris and Save Preset.
+
+![Sky Safari Pro](images/abp-sky-safari.png)
+
 ## Installing Nina (OPTIONAL)
 Nina is an open-source free software application covering image capture, autofocus, plate-solving, centering, star detection, guiding, and a lot more. Much of this now works with the Benro Polaris (well not guiding yet). The open-source nature makes it a bit more complicated to install and setup, but it's worth the effort - and it's free.
 
