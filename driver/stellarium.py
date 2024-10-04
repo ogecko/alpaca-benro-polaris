@@ -241,6 +241,14 @@ async def process_protocol(logger, data, writer):
         msg = bytearray([2,ord('#')]) if telescope.polaris.tracking else bytearray([0,ord('#')])
         await stellarium_send_msg(logger, writer, msg, ispolled=True)
 
+    # SynSCAN Set Tracking state 'T',m | Where m=0 Off, m=1 Alt/Az, m=2 Equitorial, m=3 Sidereal+PEC mode
+    elif data[0]==0x54: 
+        logger.info(f"<<- Stellarium: SynScan Set Tracking 'T'")
+        new_state = True if data[1]==0x02 or data[1]==0x03 else False
+        telescope.polaris.send_cmd_change_tracking_state(new_state)
+        msg = b'#'
+        await stellarium_send_msg(logger, writer, msg)
+
     # SynSCAN Is Alignment Complete 'J' | Reply 1 = Aligned
     elif data[0]==0x4a: 
         if not Config.supress_stellarium_polling_msgs:              
