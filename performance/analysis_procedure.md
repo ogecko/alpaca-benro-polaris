@@ -1,6 +1,9 @@
-# Performance Analsysis Test Procedure
+# Performance Analysis Test Procedure
 
-The Alpaca Benro Polaris Project includes performance data logging and tests within the driver. This document describes how you can enable and use these tests to assess the performance of your own Benro Polaris. It assumes you are fairly technical in nature and are familiar with using Jupyter Notebooks and Python for data analysis.
+The Alpaca Benro Polaris Project includes performance data logging and tests within the driver. This document describes how you can enable and use these tests to assess the performance of your own Benro Polaris. 
+
+This secion assumes you are fairly technical in nature and are familiar with using Jupyter Notebooks and Python for data analysis.
+**INTENDED FOR DEVELOPERS AND TESTERS ONLY**
 
 ## Prerequistites
 The software to perform the data logging and tests is currently only in the development branch of the GitHub repository. You will need to download the latest code from the [GitHub Repository Dev Branch](https://github.com/ogecko/alpaca-benro-polaris/tree/dev). Simply overwrite your current copy of the driver, or place in a separate directory.
