@@ -345,10 +345,9 @@ class Polaris:
                     self._task_exception = WatchdogError("==ERROR==: No position update for over 5s. Rebooting Connection.")
 
                 # if we dont have any updates for over 2s, then restart AHRS.
-                # if self._connected and age_of_518 > 2:
-                #     self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
-                #     await self.send_cmd_520_position_updates(True)
-                await self.send_cmd_520_position_updates(True)
+                if self._connected and age_of_518 > 2:
+                    self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
+                    await self.send_cmd_520_position_updates(True)
 
                 await asyncio.sleep(2)
 
