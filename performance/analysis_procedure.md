@@ -14,6 +14,8 @@ The Notebooks require three extra Python libraries to be installed before they c
 pip install -r platforms/win/perf-requirements.txt
 ```
 
+Note that you do not need clear skies to run this analysis and tests. The tests can be done inside without a camera or lens attached. The focus of the tests are around the performance of the Benro Polaris Aiming and Tracking capabilities.
+
 ## Data logging
 All data logging is controlled by the following entry in Config.toml
 ```
@@ -144,10 +146,14 @@ The following data is logged:
 The notebook `performance_periodic_error.ipynb provides a sample template to two different charts to analyse the Periodic Error. The template also calculates the RMS Error using the pandas rolling_window function.
 
 The first chart is a simple scatter plot. It shows the Declination Periodic Error on the vertical Axis and Time Elapsed on the horizontal axis. It includes two traces, one for the Periodic Error and one for the 15s RMS Error. It also adds markers for when the GOTO and SYNC commands occur.
+
 ![Alpaca Aim Error](images/abp-perf-pe1.png)
 
 The second chart is the same format, but for the Right Ascension axis.
+
 ![Alpaca Aim Error](images/abp-perf-pe5.png)
+
+The Notebook charts from plotly are interactive. This is very important for the Periodic and RMS Error charts as there is so much data. Make sure you use the drag and zoom feature to change the axis bounds. This allows you to click and drag a zoom region to look closer at the data. Show and hide traces. Hover over datapoints to get more information, etc. Plotly is a very powerful charting package in Python.
 
 ### Periodic Error Performance Test
 
