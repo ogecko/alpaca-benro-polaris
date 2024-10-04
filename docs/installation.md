@@ -129,3 +129,7 @@ Nina is an open-source free software application covering image capture, autofoc
 
 The [Astro What](https://astrowhat.com/) website has a good set of instructions for [Installing Nina and its Pre-requisiites](https://astrowhat.com/articles/setting-up-a-pc-with-n-i-n-a.18/page/installing-n-i-n-a.45/). 
 
+## Software Architecture
+The following diagram is provided as a reference to help you undersdtand how the different software modules fit together.
+
+![Software Layers](images/abp-software-layers.png)
