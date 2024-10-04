@@ -61,14 +61,21 @@ async def main():
 
 
     # Output performance data log headers if enabled
-    if Config.log_performance_data == 1:
-        logger.info(f",Dataset,Time,Tracking,Slewing,Gotoing,TargetRA,TargetDEC,AscomRA,AscomDEC,AscomAz,AscomAlt,ErrorRA,ErrorDec")
-        logger.info(f",'DATA1',{0:.3f},{False},{False},{False},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
+    if Config.log_performance_data == 1:        # Aim data
+        logger.info(f",Dataset,Time,AimAz,AimAlt,OffsetAz,OffsetAlt,AimErrorAz,AimErrorAlt")
+        logger.info(f",DATA1,{0:.3f},{0:.2f},{0:.2f},{0:.2f},{0:.2f},{0:.2f},{0:.2f}")
 
-    elif Config.log_performance_data == 2:
+    elif Config.log_performance_data == 2:      # Drift data
+        logger.info(f",Dataset,Time,TrackingT0,TrackingT1,TargetRA,TargetDec,DriftErrRA,DriftErrDec")
+        logger.info(f",DATA2,{0:.3f},{False},{False},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
+
+    elif Config.log_performance_data == 3:      # Speed data
         logger.info(f",Dataset,Time,Interval,Constant,RateAz,SpeedAz,RateAlt,SpeedAlt,SpeedRA,SpeedDec,SpeedTotal")
-        logger.info(f",'DATA2',{0:.3f},{0:.2f},False,{0:.2f},{0:.7f},{0:.2f},{0:.7f},{0:.7f},{0:.7f},'00:00:00.000'")
+        logger.info(f",DATA3,{0:.3f},{0:.2f},{False},{0:.2f},{0:.7f},{0:.2f},{0:.7f},{0:.7f},{0:.7f},'00:00:00.000'")
 
+    elif Config.log_performance_data == 4:      # Position data (heavy logging)
+        logger.info(f",Dataset,Time,Tracking,Slewing,Gotoing,TargetRA,TargetDEC,AscomRA,AscomDEC,AscomAz,AscomAlt,ErrorRA,ErrorDec")
+        logger.info(f",DATA4,{0:.3f},{False},{False},{False},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
 
     # Initialize the ASCOM devices
     telescope.start_polaris(logger)
