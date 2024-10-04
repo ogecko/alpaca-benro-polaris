@@ -95,7 +95,6 @@ Please let us know if you can try any of these features.
 ## Potential Future Enhancements
 - **[Raspberry Pi]** Official support and testing on Raspberry  Pi
 - **[Docker Support]** Official support and testing on Docker.
-- **[Sky Safari]** Official support and testing on Sky Safari.
 - **[CCDciel Support]**: Official support and testing for CCDciel for MacOS.
 - **[Stellarium MacOS]**: Add position update support to the Stellarium Binary protocol.
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
