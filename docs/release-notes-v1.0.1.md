@@ -38,7 +38,9 @@ Please let us know if you can try any of these features.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Bug Fixes (from v1.0.0 version)
-- None Yet
+**[Fix #018]**: Explicitly check for 'NaN' on all float inputs on REST API.
+**[Fix #019]**: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.
+**[Fix #020]**: Implement AbortSlew with SynScan protocol 'M' for Stellarium.
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
