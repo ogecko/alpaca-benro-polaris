@@ -266,18 +266,21 @@ async def process_protocol(logger, data, writer):
     # SynSCAN Fixed Rate Move Azm Command 'P':02:10:25:Rate:00:00:00
     elif data[0]==0x50 and data[1]==0x02:
         rate = data[4]
-        if data[2]==0x10 and data[3]==0x24:
-            logger.info(f"<<- Stellarium: SynScan Move Azm +ve 'P': Rate {rate}")
-            await telescope.polaris.move_axis(0, rate)
-        if data[2]==0x10 and data[3]==0x25:
-            logger.info(f"<<- Stellarium: SynScan Move Azm -ve 'P': Rate {rate}")
-            await telescope.polaris.move_axis(0, -rate)
-        if data[2]==0x11 and data[3]==0x24:
-            logger.info(f"<<- Stellarium: SynScan Move Alt +ve 'P': Rate {rate}")
-            await telescope.polaris.move_axis(1, rate)
-        if data[2]==0x11 and data[3]==0x25:
-            logger.info(f"<<- Stellarium: SynScan Move Alt -ve 'P': Rate {rate}")
-            await telescope.polaris.move_axis(1, -rate)
+        if rate < 0 or rate > telescope.polaris.axisrates[0]['Maximum'] or math.isnan(rate):
+            logger.error(f"<<- Stellarium: SynScan Move Rate invalid {bytes2hexascii(data)}")
+        else:
+            if data[2]==0x10 and data[3]==0x24:
+                logger.info(f"<<- Stellarium: SynScan Move Azm +ve 'P': Rate {rate}")
+                await telescope.polaris.move_axis(0, rate)
+            if data[2]==0x10 and data[3]==0x25:
+                logger.info(f"<<- Stellarium: SynScan Move Azm -ve 'P': Rate {rate}")
+                await telescope.polaris.move_axis(0, -rate)
+            if data[2]==0x11 and data[3]==0x24:
+                logger.info(f"<<- Stellarium: SynScan Move Alt +ve 'P': Rate {rate}")
+                await telescope.polaris.move_axis(1, rate)
+            if data[2]==0x11 and data[3]==0x25:
+                logger.info(f"<<- Stellarium: SynScan Move Alt -ve 'P': Rate {rate}")
+                await telescope.polaris.move_axis(1, -rate)
         msg = b'#'
         await stellarium_send_msg(logger, writer, msg)
 
@@ -299,18 +302,28 @@ async def process_protocol(logger, data, writer):
     # SynSCAN GOTO 'r34AB0500,12CE0500', | Reply “#"
     elif data[0]==0x72:               
         ra, dec = synScan24bit_to_radec(data)
-        logger.info(f"<<- Stellarium: SynScan GOTO Ra: {hr2hms(ra)} Dec: {deg2dms(dec)}")
-        if telescope.polaris.connected:
-            await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
+        if ra < 0 or ra > 24 or math.isnan(ra):
+            logger.error(f"<<- Stellarium: SynScan GOTO RA invalid {bytes2hexascii(data)}")
+        elif dec < -90 or dec > 90 or math.isnan(dec):
+            logger.error(f"<<- Stellarium: SynScan GOTO Dec invalid {bytes2hexascii(data)}")
+        else:
+            logger.info(f"<<- Stellarium: SynScan GOTO Ra: {hr2hms(ra)} Dec: {deg2dms(dec)}")
+            if telescope.polaris.connected:
+                await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
         msg = b'#'
         await stellarium_send_msg(logger, writer, msg)
 
     # SynSCAN SYNC 's34AB0500,12CE0500', | Reply “#"
     elif data[0]==0x73:               
         ra, dec = synScan24bit_to_radec(data)
-        logger.info(f"<<- Stellarium: SynScan SYNC Ra: {ra} Dec: {dec}")
-        if telescope.polaris.connected:
-            await telescope.polaris.radec_ascom_sync(ra, dec)
+        if ra < 0 or ra > 24 or math.isnan(ra):
+            logger.error(f"<<- Stellarium: SynScan SYNC RA invalid {bytes2hexascii(data)}")
+        elif dec < -90 or dec > 90 or math.isnan(dec):
+            logger.error(f"<<- Stellarium: SynScan SYNC Dec invalid {bytes2hexascii(data)}")
+        else:
+            logger.info(f"<<- Stellarium: SynScan SYNC Ra: {ra} Dec: {dec}")
+            if telescope.polaris.connected:
+                await telescope.polaris.radec_ascom_sync(ra, dec)
         msg = b'#'
         await stellarium_send_msg(logger, writer, msg)
 
@@ -339,18 +352,28 @@ async def process_protocol(logger, data, writer):
     # SynSCAN Set LOCATION 'WABCDEFGH', | Reply “#" where 
     elif data[0]==0x57:               
         lat, lon = WABCDEGFGH2latlon(data)
-        telescope.polaris.sitelatitude = lat
-        telescope.polaris.sitelongitude = lon         
-        logger.info(f"<<- Stellarium: SynScan Set LOCATION W | Lat: {lat:0.9} Lon: {lon:0.9}")
+        if lon < -180 or lon > 180 or math.isnan(lon):
+            logger.error(f"<<- Stellarium: SynScan SYNC Lon invalid {bytes2hexascii(data)}")
+        elif lat < -90 or lat > 90 or math.isnan(lat):
+            logger.error(f"<<- Stellarium: SynScan SYNC Lat invalid {bytes2hexascii(data)}")
+        else:
+            telescope.polaris.sitelatitude = lat
+            telescope.polaris.sitelongitude = lon         
+            logger.info(f"<<- Stellarium: SynScan Set LOCATION W | Lat: {lat:0.9} Lon: {lon:0.9}")
         msg = b'#'
         await stellarium_send_msg(logger, writer, msg)
 
     # Stellarium Desktop Binary Goto Command 
     elif data[0]==0x14:               
         (ra, dec, t) = bytes2radect(data)
-        logger.info(f"<<- Stellarium: Binary GOTO command Ra={ra} Dec={dec} t={t}")
-        if telescope.polaris.connected:
-            await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
+        if ra < 0 or ra > 24 or math.isnan(ra):
+            logger.error(f"<<- Stellarium: Binary GOTO RA invalid {bytes2hexascii(data)}")
+        elif dec < -90 or dec > 90 or math.isnan(dec):
+            logger.error(f"<<- Stellarium: Binary GOTO Dec invalid {bytes2hexascii(data)}")
+        else:
+            logger.info(f"<<- Stellarium: Binary GOTO command Ra={ra} Dec={dec} t={t}")
+            if telescope.polaris.connected:
+                await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
 
     else:
         logger.error(f"<<- Stellarium: Unknown Command: {bytes2hexascii(data)}")
