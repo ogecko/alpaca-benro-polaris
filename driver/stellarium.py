@@ -179,12 +179,11 @@ def bytes2radect(data):
     dec = (90*dec)/0x40000000
     return (ra, dec, t)
     
-def radec2bytes(ra, dec):
+def radec2bytes(ra, dec, t):
     data = bytearray(26)
     # Message lenght
     data[0] = 26
     # Current time
-    t = int(datetime.now().timestamp())
     data[4:12] = t.to_bytes(8, 'little')
     # Converted RA
     ra = int(ra * 0x100000000 / 24)
@@ -404,13 +403,29 @@ async def stellarium_handler(logger, reader, writer):
             if not data:
                 break
             await process_protocol(logger, data, writer)
+            await stellarium_update(logger, reader, writer)
         except Exception as e:
             logger.error(f"==ERROR== Network connection to Stellarium lost. {e}")
             break
+            
+async def stellarium_update(logger, reader, writer):
+    try:
+        if telescope.polaris.stellarium_binary_protocol:
+            # Current time
+            t = int(datetime.now().timestamp())
+            # current (RA, Dec)
+            ra = telescope.polaris.rightascension
+            dec = telescope.polaris.declination
+            logger.info(f"->> Stellarium: Stellarium binary protocol update Ra={ra} Dec={dec} t={t}")
+            data = radec2bytes(ra, dec, t)
+            writer.write(data)
+            await writer.drain()
+        await asyncio.sleep(1.0)
+    except Exception as e:
+        logger.error(f"==ERROR== Network connection to Stellarium lost. {e}")
 
 async def stellarium_telescope(logger, telescope_ip_address, telescope_port):    
     logger.info(f"==STARTUP== Serving Stellarium Telescope on {telescope_ip_address}:{telescope_port}")
 
     stellarium_server = await asyncio.start_server(lambda reader, writer: stellarium_handler(logger, reader, writer), 
                                                    telescope_ip_address, telescope_port)
-
