@@ -27,6 +27,7 @@
 - **[Software Architecture]**: Add a Software Architecture diagram to installation.md
 - **[Sky Safari Pro]**: Add instructions on how to setup Sky Safari Pro
 - **[Performance Paper]**: Add a revised copy of the Performance Analysis Paper
+- **[Troubleshoot C6]**: Add steps to resolve cannot Run pip to Install Prerequisites
 - **[Troubleshoot B5]**: Add steps to resolving Polaris at 1% and not charging
 - **[ASCOM Release]**: Add a link to the ASCOM Releases GitHub repository in installation.md
   
