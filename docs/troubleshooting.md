@@ -112,6 +112,24 @@ C:\Users\Astro>
 ```
 * If the ping does not respond within a few milliseconds, go back through C1-C3 to double check the setup. 
 
+### C6 - Cannot Run pip to Install Prerequisites
+Check that you have installed Python and pip. You can verify that python and pip are installed and accessible with the following commands:
+
+```
+python --version
+pip --version
+```
+Sometimes, pip might not be installed with Python by default. You can install it manually using the ensurepip module. Run the following command:
+```
+python -m ensurepip --default-pip
+```
+
+If the above step doesn't work, try reinstalling Python and ensure that the option to install pip is checked during the installation process.
+
+1. Download the Python installer from the official Python website.
+2. Run the installer and make sure to check the box that says “Add Python to PATH.”
+3. Select “Customize installation” and ensure that the option to install pip is checked.
+
 ## Nina Troubleshooting
 
 ### N1 - Cannot Remote Desktop to MiniPC running Nina
