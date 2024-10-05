@@ -259,6 +259,7 @@ async def process_protocol(logger, data, writer):
     # SynSCAN Cancel GOTO 'M' | Reply “#"
     elif data[0]==0x4d:               
         logger.info(f"<<- Stellarium: SynScan Cancel GOTO 'M'")
+        await telescope.polaris.send_cmd_goto_abort()
         msg = b'#'
         await stellarium_send_msg(logger, writer, msg)
 
