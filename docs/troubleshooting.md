@@ -228,10 +228,11 @@ There are three approaches to connect StellariiumPLUS to the ABP, depending on y
 * Check stellarium_telescope_ip_address in config.toml. This can be left as its default '' to make the Driver serve the SynScan protocol on any network adapter it can find. If you want to limit the IP address servered by the Driver, you can set this to the IP address of the Mini-PC on your home network. 
 
 ### S3 - Stellarium Desktop has greyed out ASCOM option
-* One Beta Tester encountered problems connecting Stellarium Desktop v24.3 for Windows via ASCOM.
-* Symptom: When trying to add a telescope in Stellarium's telescope plugin, selecting an ASCOM device is greyed out. 
-* Solution: Uninstall V24.3, restart your desktop, install V24.2 (available by searching on the download page). Check periodically for an update to Stellarium.
-
+* Stellarium Desktop v24.3 for Windows has two installable versions depending on a third party library it uses, called Qt. 
+* The Stellarium Desktop v24.3 Qt6 version no longer has ASCOM drivers enabled. 
+* We recommend you install Stellarium Desktop v24.3 Windows x86_64 **Qt5** Windows 7+ version.
+* If you installed the incorrect version, simply uninstall it and reinstall the version mentioned above.
+  
 ### S4 - Stellarium Desktop freezes with Remote Desktop
 * Check fps settings. Stellarium's default is a crazy 10000 fps. We suggest reducing the default settings in the following file `C:\Users\Nina\AppData\Roaming\Stellarium\config.ini`, where Nina is replaced with your User name.
     ```
