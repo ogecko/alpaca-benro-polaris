@@ -420,7 +420,6 @@ async def stellarium_update(logger, reader, writer):
             data = radec2bytes(ra, dec, t)
             writer.write(data)
             await writer.drain()
-        await asyncio.sleep(1.0)
     except Exception as e:
         logger.error(f"==ERROR== Network connection to Stellarium lost. {e}")
 
