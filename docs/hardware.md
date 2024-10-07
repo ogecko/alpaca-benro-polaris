@@ -37,6 +37,10 @@ The NinaAir connects to the camera via USB-C, so it can control the lens AF as w
 
 After one night of failed images with a dewed up lens, I also have a [NEEWER USB Lens Heater](https://www.amazon.com/Telescope-Temperature-Regulator-Condensation-Astrophotography/dp/B0C6Q4YFFC) which I power from a separate power bank, as it can be power hungry, although less critical. If I had more equipment to power, like a cooled astronomy camera or a laptop in the outback, I'd consider upgrading to a [Jackery Portable Power Station 500](https://www.amazon.com.au/Jackery-Portable-Explorer-Generator-Adventure/dp/B08744R27F).
 
+## Connecting up the NinaAir
+The image below shows how you could configure the cables and physical setup of the MiniPC and PowerBank. Note that the USB-C Dummy Battery Kit cable is optional. You can power your camera from your standard camera battery if you prefer.
+
+![Connecting NinaAir](images/abp-hardware4.jpg)
 
 ## Setting up the NinaAir platform
 The folllowing steps are a high level summary of the required setup for the NinaAir platform. It is not comprehensive and only provided as a guide to how you may wish to setup your mini-PC.

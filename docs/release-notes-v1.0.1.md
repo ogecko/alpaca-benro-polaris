@@ -24,7 +24,8 @@
 - **[SynScan T]**: Support SynScan Change Tracking state command.
   
 ## Documentation (Alpaca Driver)
-- **[Software Architecture]**: Add a Software Architecture diagram to installation.md
+- **[Hardware Cabling]**: Add an image on how to connect up the cables for NinaAir.
+- **[Installation Architecture]**: Add a Software Architecture diagram to illustrate module layers.
 - **[Sky Safari Pro]**: Add instructions on how to setup Sky Safari Pro
 - **[Performance Paper]**: Add a revised copy of the Performance Analysis Paper
 - **[Troubleshoot C6]**: Add steps to resolve cannot Run pip to Install Prerequisites
