@@ -21,7 +21,7 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
 
 2. Download the [Alpaca Benro Polaris zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/main.zip) from this Github repository.
 
-3. Expand the zip file to a location of your choice. We reccommend `C:\Users\`Username`\Documents`. Using Windows Explorer, right-click on the folder you just expanded to, and select `Open in Terminal` to open a Command Window. Enter the following: 
+3. Expand the zip file to a location of your choice. We reccommend `C:\Users\`Username`\Documents`. Using Windows Explorer, right-click on the folder you just expanded to, and select `Open in Terminal` to open a Command Window. If you cant see `Open in Terminal` try right clicking a second time. Enter the following: 
   
     ```
     C:\Users\Nina\Documents\alpaca-benro-polaris-main> pip install -r platforms/win/requirements.txt
