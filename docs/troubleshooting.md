@@ -179,7 +179,7 @@ alpaca_ip_address = '127.0.0.1'
 ### N6 - Cannot plate solve with Nina and ASTAP?
 * Check you are in Focus
 * Check to make sure you Camera Pixel Size and Telescope Focal Length is set correctly in Nina's Options > Equipment tab, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values. 
-* The focal_length and focal_ratio in config.toml are provided because of the ASCOM standard, but are not used by Nina.
+* The focal_length and focal_ratio in config.toml are provided because of the ASCOM standard, but are not used by Nina. You do not need to update these when you change lenses.
 * Check if you are using any filters. Using a narrow band filter on the camera, like the L-Ultimate Optolong HaOIII filter, can make plate solving more challenging for ASTAP.### R1 - Cannot connect Remote Desktop to Mini-PC
 * Check you have downloaded the relevant STAR databases. For 200mm lens and less you may need to download the [Wide field STAR database G05](https://www.hnsky.org/astap.htm)
 
