@@ -24,6 +24,7 @@
 - **[SynScan T]**: Support SynScan Change Tracking state command.
   
 ## Documentation (Alpaca Driver)
+- **[Table of Contents]**: Add a brief table of contents to each page of the documentation.
 - **[Hardware Cabling]**: Add an image on how to connect up the cables for NinaAir.
 - **[Installation Architecture]**: Add a Software Architecture diagram to illustrate module layers.
 - **[Sky Safari Pro]**: Add instructions on how to setup Sky Safari Pro

@@ -1,6 +1,7 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Using Nina with Benro Polaris
+[Capturing Images](#1-capturing-images) | [Selecting Targets](#2-selecting-targets) | [Autofocus](#3-star-detection-and-autofocus) | [Plate Solving](#4-plate-solving-and-n-point-alignment) | [Multi-Point Alignment](#alpaca-n-point-alignment) 
 
 ## Capturing Images -  Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
