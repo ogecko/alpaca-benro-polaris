@@ -1,6 +1,8 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Using Stellarium and Sky Safari Pro
+[Applications Supported](#telescope-control-compatibility) | [Stellarium Mobile](#1-using-stellarium-mobile-plus) | [Stellarium Desktop](#2-using-stellarium-desktop) | [Sky Safari Pro](./installation.md#seting-up-sky-safari-pro-optional) | [Aiming Accuracy](#3-improving-aiming-accuracy) 
+
 ## Telescope Control Compatibility
 The Alpaca Benro Polaris Driver supports both the Alpaca ASCOM and SynScan protocols. This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
 
