@@ -6,6 +6,9 @@ You can install the Alpaca Benro Polaris Driver on any platform that supports Py
 
 ![Hardware Architecture](images/abp-hardware1.png)
 
+Unfortunately some laptop Wifi controllers dont support connecting with the Benro Polaris Wifi, so you'll also need something like [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) (only US$17 from Amazon). 
+
+
 ## Using a Raspberry Pi for the driver
 You can install the Alpaca Benro Polaris Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
 
