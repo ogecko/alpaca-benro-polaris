@@ -1,7 +1,9 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Installation Guide 
-![Overview](images/abp-overview.png)
+[Alpaca Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Alpaca MacOS](./installation_macos.md) | [Startup](#running-the-alpaca-benro-polaris-driver) | [ASCOM](#installing-the-ascom-platform-optional) | [Stellarium](#installing-stellarium-optional) | [Sky Safari](#seting-up-sky-safari-pro-optional) | [Nina](#installing-nina-optional) | [Architecture](#software-architecture) 
+
+
 
 ## Software Installation
 
