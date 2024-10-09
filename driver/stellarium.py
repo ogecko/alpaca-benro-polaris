@@ -397,7 +397,10 @@ class Stellarium:
                     await self.stellarium_send_msg(data, ispolled = True)
                 await asyncio.sleep(0.5)
             except Exception as e:
-                self.logger.error(f"==ERROR== Network connection to Stellarium lost. {e}")
+                self.logger.error(f"==ERROR== Network connection to Stellarium lost from Position Updates. {e}")
+                await asyncio.sleep(5)
+                break
+
 
     #____________Stellarium Client_____________
     # Main Stellarium Loop for protocol reading and handling 
@@ -408,8 +411,10 @@ class Stellarium:
                 if not data:
                     break
                 await self.process_protocol(data)
+                await asyncio.sleep(0.25)                # slow down Stellarium from polling too quickly and overloading this loop
             except Exception as e:
-                self.logger.error(f"==ERROR== Network connection to Stellarium lost. {e}")
+                self.logger.error(f"==ERROR== Network connection to Stellarium lost from Client. {e}")
+                await asyncio.sleep(5)
                 break
 
 # Called once for every client connection
