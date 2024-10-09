@@ -169,7 +169,6 @@ class Polaris:
         self._adj_sync_declination: float = 0       # The Declination adjustment difference between polaris and ascom
         self._adj_sync_altitude: float = 0          # The Altitude adjustment difference between polaris and ascom
         self._adj_sync_azimuth: float = 0           # The Azimuth adjustment difference between polaris and ascom
-        self._stellarium_binary_protocol: bool = False  # True if connected to desktop Stellarium application using the old binary protocol
         #
         # Telescope device rates
         #
