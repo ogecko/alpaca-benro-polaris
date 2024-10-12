@@ -18,11 +18,12 @@
 - **[Horizon Limits]**: Add note about Scope Control and Horizon Creator Plugins
   
 ## New Features (Alpaca Driver)
+- **[Sky Safari Support]**: Support the latest version of Sky Safari 7 Pro.
+- **[Stellarium Position]**: Add Stellarium Desktop Binary Protocol Position Updates for reticle.
+- **[SynScan T]**: Support SynScan Change Tracking state command.
 - **[Performance Logs]**: Logs Aim Error, Drift Error, Periodic Error as csv.
 - **[Performance Analysis]**: Sample Jupyter Notebooks for performance analysis of your Polaris.
-- **[Sky Safari Support]**: Support the latest version of Sky Safari 7 Pro.
-- **[SynScan T]**: Support SynScan Change Tracking state command.
-  
+   
 ## Documentation (Alpaca Driver)
 - **[Table of Contents]**: Add a brief table of contents to each page of the documentation.
 - **[Hardware Cabling]**: Add an image on how to connect up the cables for NinaAir.
