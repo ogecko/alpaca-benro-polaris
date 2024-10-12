@@ -18,8 +18,7 @@ You can view a demonstration of parts of this documentation in the following You
 #### To Install on Windows 11
 The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed before it can run.
 
-1. Download and install Python 3+ from the [Microsoft Store](ttps://apps.microsoft.com/detail/9nrwmjp3717k)
- or [Python website](https://www.python.org/downloads/).
+1. Download Python 3.12.7 from the [Python website](https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe). Run the installation file downloaded. You must check the field `Add python.exe to PATH`, then click `Install Now`. 
 
 2. Download the [Alpaca Benro Polaris zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/main.zip) from this Github repository.
 
