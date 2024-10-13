@@ -30,7 +30,7 @@
 - **[Installation Architecture]**: Add a Software Architecture diagram to illustrate module layers.
 - **[Sky Safari Pro]**: Add instructions on how to setup Sky Safari Pro
 - **[Performance Paper]**: Add a revised copy of the Performance Analysis Paper
-- **[Troubleshoot C6]**: Add steps to resolve cannot Run pip to Install Prerequisites
+- **[Troubleshoot A1]**: Add steps to resolve cannot Run pip to Install Prerequisites
 - **[Troubleshoot B5]**: Add steps to resolving Polaris at 1% and not charging
 - **[ASCOM Release]**: Add a link to the ASCOM Releases GitHub repository in installation.md
   
@@ -42,9 +42,9 @@ Please let us know if you can try any of these features.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Bug Fixes (from v1.0.0 version)
-**[Fix #018]**: Explicitly check for 'NaN' on all float inputs on REST API.
-**[Fix #019]**: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.
-**[Fix #020]**: Implement AbortSlew with SynScan protocol 'M' for Stellarium.
+- **[Fix #018]**: Explicitly check for 'NaN' on all float inputs on REST API.
+- **[Fix #019]**: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.
+- **[Fix #020]**: Implement AbortSlew with SynScan protocol 'M' for Stellarium.
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
@@ -54,7 +54,6 @@ Please let us know if you can try any of these features.
 * Canon R, 16mm 2.8, 24-240mm f4-6.3
 * Canon 6D MkII, Canon EF 50mm f1.8
 * Canon 800D, Sigma DC 17-50mm f2.8, Tamron 16-300mm f3.5-6.3
-* Nikon Z8 (z14-24mm F2.8)
 * Sony Alpha 7R IV
 * Pentax K1 150-450mm / Irix 45mm
 * ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
