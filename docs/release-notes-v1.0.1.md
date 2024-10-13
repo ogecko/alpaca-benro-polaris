@@ -98,6 +98,7 @@ Please let us know if you can try any of these features.
 
 ## Known Issues
 - **[Stellarium 24.3]**: Stellarium Desktop v24.3 has known issues with telescope control. See [Troubleshooting S2](./troubleshooting.md).
+- **[Nina and Nikon Z8]**: Neither the Nina or ASCOM Camera Driver appear to work with the Nikon Z8.
 
 ## Potential Future Enhancements
 - **[Raspberry Pi]** Official support and testing on Raspberry  Pi
