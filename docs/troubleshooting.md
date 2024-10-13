@@ -208,6 +208,9 @@ Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by
 
 Nina will now connect to your camera.
 
+### N8 - Cannot Connect Nikon D850 Camera with Nina
+There is a known issue with connecting a D850 via USB2 with Nina. Try connecting the Nikon D850 via a USB3 or USB-C port. See this [Redit Post on the D850 and Nina](https://www.reddit.com/r/AskAstrophotography/comments/169yzsd/nikon_d850_will_not_connect_to_nina/) for more details.
+
 ## Stellarium Troubleshooting
 
 ### S1 - StellariumPLUS Cannot Connect to ABP
