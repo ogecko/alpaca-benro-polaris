@@ -76,6 +76,7 @@ Please let us know if you can try any of these features.
 * Microsoft Surface Laptop 2
 ### Applications
 * Sky Safari 7 Pro v7.3.6 iOS
+* Benro Connect Android App v3.0.30, iOS App v1.5.0
 * Benro Polaris Android App v3.0.27, iOS App v1.4.4
 * Stellarium Mobile PLUS v1.12.9 Android and iOS.
 * Stellarium Desktop v24.2 Windows
