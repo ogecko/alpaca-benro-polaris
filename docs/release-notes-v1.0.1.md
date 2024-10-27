@@ -33,6 +33,7 @@
 - **[Troubleshoot A1]**: Add steps to resolve cannot Run pip to Install Prerequisites
 - **[Troubleshoot B5]**: Add steps to resolving Polaris at 1% and not charging
 - **[Troubleshoot N8]**: Add information on how to connect Nikon D850 to Nina.
+- **[Troubleshoot N9]**: Add fix for integration issue between Nina and Stellarium.
 - **[ASCOM Release]**: Add a link to the ASCOM Releases GitHub repository in installation.md
   
 ## Untested New Features
