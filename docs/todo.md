@@ -3,14 +3,34 @@
 # Main Todo List of Pending Items to Complete
 
 ## Development Pending
-* None
   
 ## QA Pending
 * None.
   
 ## Testing Pending
 * None
-  
+
+## Exploration
+### Understanding
+* Determine what the 2 quanterions returned from 518 are
+* Determine what the current  yaw, pitch, roll from 517 are
+### Rotator implementation
+* Determine if field rotation can be set in a goto command
+* Determine if field rotation can be set using combined MoveAxis, without effecting alt/az
+* Determine algorithm for Equatorial Field Rotation
+* Implement as a rotator ASCOM service
+### Tracking Performance Improvement via pulsing moveAxis - FAILED
+* Determine if a pulse in MoveAxis can be issued without disabling sidereal tracking - No, any MoveAxis disables tracking momentarily.
+### Tracking Performance Improvement via tweaking settings
+* Determine delta alt/az/rot sensitivity to changes in sitelat/lon, align ra/dec, goto alt/az, time
+* Determine if drift can be offset by ajusting these values
+* Let plate solving fix any side effects
+### Tracking Performance Improvement via ABP controlled tracking
+* Explore whether Polaris can be mounted in equatorial mode
+* Explore whether RA can be controlled manually via Az when mounted equatorial
+* Slowest Move Speed 1 is 21.5 arc-sec/s. We need 15.04 arc-sec/s. 
+* Can pulsing the Move Speed 1 allow us to get a slower speed? 
+
 ## Requests for Benro to assist (in order of priority)
 * Protocol required on BT to establish wifi
 * Changes to allow minor MoveAxis while sidereal tracking enabled, without backlash - for guiding

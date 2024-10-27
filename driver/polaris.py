@@ -42,8 +42,9 @@
 # SOFTWARE.
 # -----------------------------------------------------------------------------
 # TODO:
-# * Implement ASCOM sync
+# * Correct for Drift
 # DONE:
+# * Implement ASCOM sync
 # * Move Slow and Move Fast
 # * Park/Unpark (reset axis)
 # * retry connecting to polaris if not currently
