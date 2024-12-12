@@ -540,6 +540,10 @@ class Polaris:
                     self.logger.info(f'->>     {x["time"].strftime("%H:%M:%S")} | Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}')
             # Perform the actual star alignment on the Polaris
             asyncio.create_task(self.send_cmd_star_alignment(a_alt, a_az))
+            # No longer need a sync adjustment since Polaris has been aligned
+            self._adj_sync_azimuth = 0
+            self._adj_sync_altitude = 0
+
 
         return
 
@@ -867,9 +871,6 @@ class Polaris:
         await self.send_msg(f"1&530&3&step:2;yaw:{ca_az};pitch:{a_alt};lat:{lat};num:1;lng:{lon};#")
         await asyncio.sleep(0.2)
         await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
-        # No longer need a sync adjustment since Polaris has been aligned
-        self._adj_sync_azimuth = 0
-        self._adj_sync_altitude = 0
 
     async def send_cmd_park(self):
         if self._tracking:
