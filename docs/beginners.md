@@ -22,7 +22,7 @@ The Alpaca Benro Polaris Driver (ABP) is installed on a separate device (like a 
 * Remote Control: Operate your setup from the comfort of indoors using a mini-PC and remote desktop software. This is especially helpful in cold weather or for long imaging sessions.
 * Autofocus: Alpaca allows integration with autofocus tools like Hocus Focus in Nina, achieving optimal focus for your lens.
 
-A great summary video which shows how Alpaca fits into a typical imaging session can be found in [Using the Benro Polaris with NINA - a game changer!](https://www.youtube.com/watch?v=D3JZOp0TFbk&t=33s)
+A great summary video which shows how Alpaca fits into a typical imaging session can be found in [Using the Benro Polaris with NINA - a game changer!](https://www.youtube.com/watch?v=D3JZOp0TFbk)
 
 ## Choosing the Right Imaging Equipment
 When selecting a camera and lens for astrophotography, what you currently have is probably your best option. If you are purchasing new equipment consider your target and desired outcome. For panoramas, wider focal lengths like 16mm, 24mm, or even 50mm are suitable, capturing a broader view of the Milky Way or nightscapes. For deep-sky objects like nebulae and galaxies, longer focal lengths, such as 135mm, 200mm, 400mm, or even 800mm, are necessary to magnify distant objects.
