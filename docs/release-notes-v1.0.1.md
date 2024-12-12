@@ -26,6 +26,7 @@
    
 ## Documentation (Alpaca Driver)
 - **[Table of Contents]**: Add a brief table of contents to each page of the documentation.
+- **[Beginners Guide]**: Add a topic for new astrophotophers.
 - **[Hardware Cabling]**: Add an image on how to connect up the cables for NinaAir.
 - **[Installation Architecture]**: Add a Software Architecture diagram to illustrate module layers.
 - **[Sky Safari Pro]**: Add instructions on how to setup Sky Safari Pro
