@@ -23,6 +23,7 @@
 - **[SynScan T]**: Support SynScan Change Tracking state command.
 - **[Performance Logs]**: Logs Aim Error, Drift Error, Periodic Error as csv.
 - **[Performance Analysis]**: Sample Jupyter Notebooks for performance analysis of your Polaris.
+- **[Image Cleanup]**: Added a Python Notebook to read ImageMetaData.csv and move bad images to a Rejected folder.
    
 ## Documentation (Alpaca Driver)
 - **[Table of Contents]**: Add a brief table of contents to each page of the documentation.
@@ -45,6 +46,7 @@ Please let us know if you can try any of these features.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Bug Fixes (from v1.0.0 version)
+- **[Fix #024]**: First GOTO after a PlateSolve and SYNC, overcorrects the offset by 2x the correct amount.
 - **[Fix #018]**: Explicitly check for 'NaN' on all float inputs on REST API.
 - **[Fix #019]**: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.
 - **[Fix #020]**: Implement AbortSlew with SynScan protocol 'M' for Stellarium.
