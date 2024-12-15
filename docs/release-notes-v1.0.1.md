@@ -21,7 +21,7 @@
 - **[SynScan T]**: Support SynScan Change Tracking state command.
 - **[Performance Logs]**: Logs Aim Error, Drift Error, Periodic Error as csv.
 - **[Performance Analysis]**: Sample Jupyter Notebooks for performance analysis of your Polaris.
-- **[Image Cleanup]**: Added a Python Notebook to read ImageMetaData.csv and move bad images to a Rejected folder.
+- **[Image Cleanup]**: Added a Jupyter Notebook to read ImageMetaData.csv and move bad images to a Rejected folder.
 
 ## Upgraded Win11 Requirements.txt Compatibility
 - **[Python 3.13.1]**: Upgraded Python support from 3.12.7 to 3.13.1.
