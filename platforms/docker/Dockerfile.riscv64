@@ -40,33 +40,25 @@ RUN apt-get update && \
 
 USER ${POLARIS_USER}
 
-ENV POLARIS_ALP_DIR=${POLARIS_USER_HOME}/polaris
+ENV POLARIS_ALP_DIR=${POLARIS_USER_HOME}/alpaca
 RUN mkdir ${POLARIS_ALP_DIR}
+RUN mkdir ${POLARIS_DIR}/driver
 WORKDIR ${POLARIS_ALP_DIR}
 
 
-COPY --chown=${POLARIS_USER}:${POLARIS_USER} ./requirements.txt ${POLARIS_ALP_DIR}/requirements.txt
+COPY --chown=${POLARIS_USER}:${POLARIS_USER} ./docker/requirements.txt ${POLARIS_DIR}/requirements.txt
+COPY --chown=${POLARIS_USER}:${POLARIS_USER} ./docker/driver ${POLARIS_DIR}/driver
 
 RUN python3 -m pip install -U pip && \
     python3 -m pip install -r requirements.txt
     
 
-COPY --chown=${POLARIS_USER}:${POLARIS_USER} . ${POLARIS_ALP_DIR}
-COPY --chown=${POLARIS_USER}:${POLARIS_USER} ./docker/entrypointALPACA.sh ${POLARIS_ALP_DIR}/entrypointALPACA.sh
-COPY --chown=${POLARIS_USER}:${POLARIS_USER} ./docker/entrypointINDI.sh ${POLARIS_ALP_DIR}/entrypointINDI.sh
+COPY --chown=${POLARIS_USER}:${POLARIS_USER} ./docker/entrypoint.sh ${POLARIS_DIR}/entrypoint.sh
 
-USER $ROOT
+USER root
 
-RUN if [ "$ASTRO_PLATFORM" = "ALPACA" ]; then \
-		mv ${POLARIS_ALP_DIR}/entrypointALPACA.sh ${POLARIS_USER_HOME}/entrypoint.sh; \
-	else \
-		apt-add-repository ppa:mutlaqja/ppa && \ 
-		apt-get install -y indi-bin && \
-		rm -rf /var/lib/apt/lists/* && \
-		apt-get clean && \
-		pip install git+https://github.com/MMTObservatory/pyINDI.git && \
-		mv ${POLARIS_ALP_DIR}/entrypointINDI.sh ${POLARIS_USER_HOME}/entrypoint.sh; \
-	fi
+RUN mv ${POLARIS_DIR}/entrypoint.sh ${POLARIS_USER_HOME}/entrypoint.sh; \
+    chmod +x ${POLARIS_USER_HOME}/entrypoint.sh
 	
 USER ${POLARIS_USER}
 
