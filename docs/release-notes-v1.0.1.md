@@ -38,6 +38,7 @@
 - **[Performance Paper]**: Add a revised copy of the Performance Analysis Paper
 - **[Troubleshoot A1]**: Add steps to resolve cannot Run pip to Install Prerequisites
 - **[Troubleshoot B5]**: Add steps to resolving Polaris at 1% and not charging
+- **[Troubleshoot C0]**: Add TPLink USB Wifi Adapter recommendation
 - **[Troubleshoot N7]**: Add a link to ASCOM Sony Drivers.
 - **[Troubleshoot N8]**: Add information on how to connect Nikon D850 to Nina.
 - **[Troubleshoot N9]**: Add fix for integration issue between Nina and Stellarium.

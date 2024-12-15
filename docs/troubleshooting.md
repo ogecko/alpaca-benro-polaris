@@ -63,6 +63,9 @@ Multiple people have had issues charging the Benro Polaris after it has drained 
 * Try charging with a different power bank.
 
 ## Alpaca Communications  Troubleshooting
+### C0 - Cannot connect Win11 Computer or Laptop to Benro Polaris Wifi
+There appears to be an issue with some types of Wifi Adapters being able to conenct with the Benro Polaris Wifi. If you cannot get Win11 to form a connection with the polaris_XXXXX Wifi, you may want to try using a USB Wifi Adapter. The following adapter is known to connect with Benro Polaris, [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/). 
+
 ### C1 - Cannot see "`communications init... done`" in the log.
 * Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
 * Confirm the Benro Polaris is in Astro Mode.
