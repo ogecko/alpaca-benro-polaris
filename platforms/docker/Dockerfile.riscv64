@@ -40,10 +40,10 @@ RUN apt-get update && \
 
 USER ${POLARIS_USER}
 
-ENV POLARIS_ALP_DIR=${POLARIS_USER_HOME}/alpaca
-RUN mkdir ${POLARIS_ALP_DIR}
+ENV POLARIS_DIR=${POLARIS_USER_HOME}/alpaca
+RUN mkdir ${POLARIS_DIR}
 RUN mkdir ${POLARIS_DIR}/driver
-WORKDIR ${POLARIS_ALP_DIR}
+WORKDIR ${POLARIS_DIR}
 
 
 COPY --chown=${POLARIS_USER}:${POLARIS_USER} ./docker/requirements.txt ${POLARIS_DIR}/requirements.txt
