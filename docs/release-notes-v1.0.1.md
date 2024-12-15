@@ -10,7 +10,7 @@
 ## Win11 Upgrade Instructions
 * Uninstall Python 3.12.7
 * Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
-* Follow the standard [Installation Guide](./installation.md) to install the new version of Pytho, the Alpaca Driver and its requiorements.txt
+* Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requiorements.txt
 
 ## New Features (enabled by Nina)
 - **[Horizon Limits]**: Add note about Scope Control and Horizon Creator Plugins
