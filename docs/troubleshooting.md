@@ -190,7 +190,11 @@ alpaca_ip_address = '127.0.0.1'
 * Check you have downloaded the relevant STAR databases. For 200mm lens and less you may need to download the [Wide field STAR database G05](https://www.hnsky.org/astap.htm)
 
 ### N7 - Cannot Connect Sony Camera with Nina
-Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by the Sony Plug-in that is included with Nina. To resolve this:
+Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by the Sony Plug-in that is included with Nina. 
+To resolve this:
+* You can download more up to date ASCOM Sony drivers from  the [ASCOMSonyCameraDriver GitHub repository](https://github.com/dougfor.../ASCOMSonyCameraDriver/releases).
+
+Alternatively, you can use the following procedure to try and get the Nina Driver to recognise your camera:
 * Attach your camera via USB. Configure as you would to connect to the Polaris.
 * Turn on your camera.
 * Enter Device Manager in the Windows desktop search bar.
@@ -206,7 +210,7 @@ Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by
   * Your driver should now update.  NOTE: Your camera is now listed under `Portable device`. Other software may not function correctly with the Device Manager configured this way. 
   * You can change back to the original setting by following these steps and selecting `libusbK Usb Devices` as the new driver instead of `MTP USB Device`.
 
-Nina will now connect to your camera.
+Hopefully, Nina will now connect to your camera.
 
 ### N8 - Cannot Connect Nikon D850 Camera with Nina
 There is a known issue with connecting a D850 via USB2 with Nina. Try connecting the Nikon D850 via a USB3 or USB-C port. See this [Redit Post on the D850 and Nina](https://www.reddit.com/r/AskAstrophotography/comments/169yzsd/nikon_d850_will_not_connect_to_nina/) for more details.
