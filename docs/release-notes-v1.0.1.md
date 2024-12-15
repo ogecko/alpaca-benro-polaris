@@ -45,12 +45,12 @@
 ## Untested New Features
 Please let us know if you can try any of these features.
 - **[Raspberry Pi]**: Supports running on Raspberry Pi Zero2, Pi 4, and Pi 5.
-- **[Docker Support]**: Supports running in Docker containers.
 - **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Bug Fixes (from v1.0.0 version)
 - **[Fix #024]**: First GOTO after a PlateSolve and SYNC, may overcorrect the offset by 2x the right amount.
+- **[Fix #023]**: Docker build process is not working.
 - **[Fix #018]**: Explicitly check for 'NaN' on all float inputs on REST API.
 - **[Fix #019]**: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.
 - **[Fix #020]**: Implement AbortSlew with SynScan protocol 'M' for Stellarium.
@@ -112,7 +112,6 @@ Please let us know if you can try any of these features.
 
 ## Potential Future Enhancements
 - **[Raspberry Pi]** Official support and testing on Raspberry  Pi
-- **[Docker Support]** Official support and testing on Docker.
 - **[CCDciel Support]**: Official support and testing for CCDciel for MacOS.
 - **[Stellarium MacOS]**: Add position update support to the Stellarium Binary protocol.
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.

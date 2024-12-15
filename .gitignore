@@ -12,6 +12,9 @@ __pycache__/
 alpaca*.csv
 alpaca*.csv.*
 Thumbs.db
+platforms/docker/config.toml
+platforms/docker/driver/
+platforms/docker/getopts_long/
 
 # Distribution / packaging
 .Python

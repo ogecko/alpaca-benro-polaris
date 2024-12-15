@@ -15,7 +15,7 @@ ASTRO_PLATFORM="ALPACA"
 
 # Set local time zone - choose from TZ identifier listed at 
 # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-if [ -z "${TIME_ZONE}" ]; then TIME_ZONE="America/Vancouver"; fi
+if [ -z "${TIME_ZONE}" ]; then TIME_ZONE="Australia/Sydney"; fi
 
 source "${SCRIPT_DIR}/util.sh"
 
@@ -29,7 +29,6 @@ Usage: ${define_usage_SCRIPT_NAME} [OPTIONS]
 
 Options:
     -t <TZ>, --timezone=<TZ>    Set the timezone (default: ${TIME_ZONE})
-    -i, --indi                  Enable INDI server.
     -b, --build                 Build the image before running.
     -h, --help                  Print help and exit.
 
@@ -45,10 +44,6 @@ parse_args() {
                 TIME_ZONE=${OPTARG}
                 echo "TIME_ZONE set to ${TIME_ZONE}"
                 ;;
-            "i" | "indi")
-            	ASTRO_PLATFORM="INDI"
-            	echo "INDI support enabled"
-            	;;
             "b" | "build")
                 DOCKER_BUILD_IMAGE="true"
                 echo "Docker build enabled"
@@ -74,6 +69,9 @@ parse_args() {
 
 
 main() {
+    if [ ! -f "${SCRIPT_DIR}/driver/main.py" ]; then
+        cp -r ${SCRIPT_DIR}/../../driver ${SCRIPT_DIR}
+    fi
     docker_build \
         DOCKER_BUILD_IMAGE \
         "true" \
@@ -87,16 +85,16 @@ main() {
         return 1
     fi
 
+
     if [ -z "${TIME_ZONE}" ]; then
         echo "TIME_ZONE has not been set - see arguments in run.sh"
         return 1
     fi
     
     read -d '' DOCKER_RUN_OPTIONS <<EOM
-        --mount type=bind,source="${SCRIPT_DIR}/config.toml",target="/home/polaris/polaris/device/config.toml" \
+        --mount type=bind,source="${SCRIPT_DIR}/config.toml",target="/home/polaris/aplaca/device/config.toml" \
         -p 5432:5432 \
-        -p 5555:5555 \
-        -p 7624:7624
+        -p 5555:5555
 EOM
 
     docker_run \
