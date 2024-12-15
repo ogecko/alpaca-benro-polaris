@@ -2,7 +2,7 @@
 
 ## Alpaca Benro Polaris Driver  
 **Version:** 1.0.1  
-**Release Date:** TBD   
+**Release Date:** 22-Dec-2024   
 **Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris    
 **Win11 Install:** Demonstration Video at https://youtu.be/ipbWT54afhY    
 **MacOS Install:** Demonstration Video at https://youtu.be/ZT91dpLObP8
