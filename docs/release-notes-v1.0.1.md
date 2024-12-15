@@ -7,12 +7,10 @@
 **Win11 Install:** Demonstration Video at https://youtu.be/ipbWT54afhY    
 **MacOS Install:** Demonstration Video at https://youtu.be/ZT91dpLObP8
 
-
-## New Features (enabled by StellariumPLUS)
-- None yet
-
-## New Features (enabled by Stellarium Desktop)
-- None yet
+## Win11 Upgrade Instructions
+* Uninstall Python 3.12.7
+* Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
+* Follow the standard [Installation Guide](./installation.md) to install the new version of Pytho, the Alpaca Driver and its requiorements.txt
 
 ## New Features (enabled by Nina)
 - **[Horizon Limits]**: Add note about Scope Control and Horizon Creator Plugins
@@ -24,7 +22,13 @@
 - **[Performance Logs]**: Logs Aim Error, Drift Error, Periodic Error as csv.
 - **[Performance Analysis]**: Sample Jupyter Notebooks for performance analysis of your Polaris.
 - **[Image Cleanup]**: Added a Python Notebook to read ImageMetaData.csv and move bad images to a Rejected folder.
-   
+
+## Upgraded Win11 Requirements.txt Compatibility
+- **[Python 3.13.1]**: Upgraded Python support from 3.12.7 to 3.13.1.
+- **[Falcon 4.0.2]**: Upgraded Falcon support from 3.1.3 to 4.0.2.
+- **[Uvicorn 0.33.0]**: Upgraded Uvicorn support from 0.30.6 to 0.33.0.
+- **[Ephem 4.1.6]**: Upgraded Ephem support from 4.1.5 to 4.1.6.
+ 
 ## Documentation (Alpaca Driver)
 - **[Table of Contents]**: Add a brief table of contents to each page of the documentation.
 - **[Beginners Guide]**: Add a topic for new astrophotophers.
@@ -46,14 +50,14 @@ Please let us know if you can try any of these features.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Bug Fixes (from v1.0.0 version)
-- **[Fix #024]**: First GOTO after a PlateSolve and SYNC, overcorrects the offset by 2x the correct amount.
+- **[Fix #024]**: First GOTO after a PlateSolve and SYNC, may overcorrect the offset by 2x the right amount.
 - **[Fix #018]**: Explicitly check for 'NaN' on all float inputs on REST API.
 - **[Fix #019]**: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.
 - **[Fix #020]**: Implement AbortSlew with SynScan protocol 'M' for Stellarium.
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
-* Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.48, Astro V1.0.2.11
+* Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.48, Astro V1.0.2.14
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11
 * Canon R5, RF 16mm, EF 35mm MkII, RF 135mm, RF 100-500mm, RF 800mm.
 * Canon R6 Mk II connected via USB3
