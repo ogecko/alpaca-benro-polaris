@@ -2,7 +2,7 @@
 
 ## Alpaca Benro Polaris Driver  
 **Version:** 1.0.1  
-**Release Date:** 22-Dec-2024   
+**Release Date:** 17-Dec-2024   
 **Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris    
 **Win11 Install:** Demonstration Video at https://youtu.be/ipbWT54afhY    
 **MacOS Install:** Demonstration Video at https://youtu.be/ZT91dpLObP8
@@ -10,13 +10,13 @@
 ## Win11 Upgrade Instructions
 * Uninstall Python 3.12.7
 * Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
-* Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requiorements.txt
+* Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
 
 ## New Features (enabled by Nina)
 - **[Horizon Limits]**: Add note about Scope Control and Horizon Creator Plugins
   
 ## New Features (Alpaca Driver)
-- **[Sky Safari Support]**: Support the latest version of Sky Safari 7 Pro.
+- **[Sky Safari Support]**: Support the latest Sky Safari 7 Pro version.
 - **[Stellarium Position]**: Add Stellarium Desktop Binary Protocol Position Updates for reticle.
 - **[SynScan T]**: Support SynScan Change Tracking state command.
 - **[Performance Logs]**: Logs Aim Error, Drift Error, Periodic Error as csv.
@@ -30,11 +30,11 @@
 - **[Ephem 4.1.6]**: Upgraded Ephem support from 4.1.5 to 4.1.6.
  
 ## Documentation (Alpaca Driver)
-- **[Table of Contents]**: Add a brief table of contents to each page of the documentation.
-- **[Beginners Guide]**: Add a topic for new astrophotophers.
-- **[Hardware Cabling]**: Add an image on how to connect up the cables for NinaAir.
+- **[Table of Contents]**: Add a brief table of contents to each documentation page.
+- **[Beginners Guide]**: Add a topic for new astrophotographers.
+- **[Hardware Cabling]**: Add an image of how to connect the cables for NinaAir.
 - **[Installation Architecture]**: Add a Software Architecture diagram to illustrate module layers.
-- **[Sky Safari Pro]**: Add instructions on how to setup Sky Safari Pro
+- **[Sky Safari Pro]**: Add instructions on how to set up Sky Safari Pro
 - **[Performance Paper]**: Add a revised copy of the Performance Analysis Paper
 - **[Troubleshoot A1]**: Add steps to resolve cannot Run pip to Install Prerequisites
 - **[Troubleshoot B5]**: Add steps to resolving Polaris at 1% and not charging
@@ -52,7 +52,7 @@ Please let us know if you can try any of these features.
 
 ## Bug Fixes (from v1.0.0 version)
 - **[Fix #024]**: First GOTO after a PlateSolve and SYNC, may overcorrect the offset by 2x the right amount.
-- **[Fix #023]**: Docker build process is not working.
+- **[Fix #023]**: Docker build process is now working.
 - **[Fix #018]**: Explicitly check for 'NaN' on all float inputs on REST API.
 - **[Fix #019]**: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.
 - **[Fix #020]**: Implement AbortSlew with SynScan protocol 'M' for Stellarium.
@@ -126,5 +126,5 @@ Please let us know if you can try any of these features.
 - **[Pulse Guiding]**: Allow micro-move axis commands while tracking without backlash. Benro Change.
 
 ## Deprecations
-- **[None Known]**: No features deprecated as this is the first release.
+- **[None Known]**: No features deprecated as this is the second release.
   
