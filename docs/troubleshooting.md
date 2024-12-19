@@ -23,7 +23,20 @@ If the above step doesn't work, try reinstalling Python and ensure that the opti
 2. Run the installer and make sure to check the box that says “Add Python to PATH.”
 3. Select “Customize installation” and ensure that the option to install pip is checked.
 
+### A2 - Pip fails to install pre-requisite packages listed in requirements.txt
+In some countries, your ISP's Domain Name Servers may redirect traffic to invalid Python Package servers. If you encounter the following errors when running pip.
+```
+$ pip install -r platforms/win/requirements.txt
+WARNING: Retrying (Retry (total=0 to 4.........
+ERROR: Could not find a version that satisfies the requirement falcon==4.0.2
+```
+You can force Windows to resolve the host names for the Python Package servers to their correct IPv4 addresses. Using Administrator, edit the file `hosts` in the directory 
+`C:\Windows\System32\drivers\etc`. Add the following two lines to the end of the `hosts` file.
+```
+151.101.0.223 pypi.org
+151.101.0.233 files.pythonhosted.org
 
+```
 
 ## Benro Polaris Troubleshooting
 

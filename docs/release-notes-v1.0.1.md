@@ -36,7 +36,8 @@
 - **[Installation Architecture]**: Add a Software Architecture diagram to illustrate module layers.
 - **[Sky Safari Pro]**: Add instructions on how to set up Sky Safari Pro
 - **[Performance Paper]**: Add a revised copy of the Performance Analysis Paper
-- **[Troubleshoot A1]**: Add steps to resolve cannot Run pip to Install Prerequisites
+- **[Troubleshoot A1]**: Add resolution to pip not being able to run 
+- **[Troubleshoot A2]**: Add resolution to pip install failures due to DNS issues
 - **[Troubleshoot B5]**: Add steps to resolving Polaris at 1% and not charging
 - **[Troubleshoot C0]**: Add TPLink USB Wifi Adapter recommendation
 - **[Troubleshoot N7]**: Add a link to ASCOM Sony Drivers.
