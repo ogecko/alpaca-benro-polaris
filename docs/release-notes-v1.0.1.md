@@ -2,7 +2,7 @@
 
 ## Alpaca Benro Polaris Driver  
 **Version:** 1.0.1  
-**Release Date:** 17-Dec-2024   
+**Release Date:** 22-Dec-2024   
 **Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris    
 **Win11 Install:** Demonstration Video at https://youtu.be/ipbWT54afhY    
 **MacOS Install:** Demonstration Video at https://youtu.be/ZT91dpLObP8
@@ -20,12 +20,12 @@
 - **[Horizon Limits]**: Add note about adding a custom Landscape using your own image
 
 ## New Features (Alpaca Driver)
+- **[Image Cleanup]**: Added a Jupyter Notebook to read Nina's ImageMetaData.csv and move bad images to a Rejected folder.
 - **[Sky Safari Support]**: Support the latest Sky Safari 7 Pro version.
 - **[Stellarium Position]**: Add Stellarium Desktop Binary Protocol Position Updates for reticle.
 - **[SynScan T]**: Support SynScan Change Tracking state command.
 - **[Performance Logs]**: Logs Aim Error, Drift Error, Periodic Error as csv.
 - **[Performance Analysis]**: Sample Jupyter Notebooks for performance analysis of your Polaris.
-- **[Image Cleanup]**: Added a Jupyter Notebook to read ImageMetaData.csv and move bad images to a Rejected folder.
 
 ## Upgraded Win11 Requirements.txt Compatibility
 - **[Python 3.13.1]**: Upgraded Python support from 3.12.7 to 3.13.1.
