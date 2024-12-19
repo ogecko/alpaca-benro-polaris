@@ -13,8 +13,12 @@
 * Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
 
 ## New Features (enabled by Nina)
+- **[Fast Centering]**: Slew and Centering is 2x as fast and more accurate
 - **[Horizon Limits]**: Add note about Scope Control and Horizon Creator Plugins
-  
+
+## New Features (enabled by Stellarium)
+- **[Horizon Limits]**: Add note about adding a custom Landscape using your own image
+
 ## New Features (Alpaca Driver)
 - **[Sky Safari Support]**: Support the latest Sky Safari 7 Pro version.
 - **[Stellarium Position]**: Add Stellarium Desktop Binary Protocol Position Updates for reticle.

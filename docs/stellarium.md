@@ -154,6 +154,34 @@ On Windows, as the telescope sweeps across the sky, you will see a reticule mark
 
 If you lose site of your selected target, press `SPACE`, and the window will immediately pan to your selected object.
 
+### Using a Custom Landscape and Horizon Image
+Stellarium Desktop allows you to create a custom Landscape to match your own observation site, including the image of the horizon overlaid into Stellarium.
+
+To create your own custom Landscape:
+* Create a 4096 x 2048 pixel image of your location's 360 degree horizon
+  * If you have an Insta360 X3 camera, take a 360 Photo from your tripod, with the screen facing. Open the image in Insta360Studio, change to a 2:1 FOV Ratio, and export the image.
+  * Take multiple images with a wide angle lens. Use Photoshop to merge the images into a 2:1 ratio image with the horizon in the middle and the 360 degrees spanning the width of the image.
+* Use Photoshop to edit the 4096 x 2048 pixel image and convert the background into a single layer. Select the Sky, modify the selection shrinking it 15 pixels, feathering it 15 pixels, then deleting the sky selection. Save the image as a transparent png called `horizon.png`.
+* Create a file called `location.ini` with the following contents, setting the name, latitude, longitude, altitude and timezone correctly.  
+  ```
+  [landscape]
+  name = Your Sites Observation Location
+  type = spherical
+  maptex = horizon.png
+  angle_rotatez = 0.0
+
+  [location]
+  planet = Earth
+  latitude = -33.000
+  longitude = 151.000
+  altitude = 39
+  timezone = Australia/Sydney
+  ```
+* Using Windows Explorer, select both files `location.ini` and `horizon.png`, then Right Click and select Compress To... Zip File.
+* Using Stellarium, open the 'Sky and viewing options' window by clicking F4, select the Landscape tab, click the Add/remote Landscapes button, then install the zip file you just created.
+* Check the orientation of the image in Stellarium. You may need to fine tune the `angle_rotatez` value to correctly align the image with reality.
+* You can now align your Benro Polaris during the day by syncing with a known spot in the horizon image.
+
 ### Pulling Stellarium Desktop Targets into Nina
 You can use the Stellarium Desktop `Remote Control` Plug-in to further integrate Stellarium with Nina. Using this plug-in, Nina can pull any selected Stellarium Target into the Framing Tab on Nina. 
 To setup this integration:
