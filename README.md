@@ -12,8 +12,7 @@ Just starting in Astrophotography and the Benro Polaris, then check out our [Beg
 # Project Purpose
 The [Benro Polaris](https://www.benro-polaris.com/) tripod head is a great product. It's manufactured to a high standard, comes in a compact and sturdy design, and its mobile App has many easy-to-use features. Although its not cheap, it is cheaper than a modern telescope mount like the [ZWO AM3 Harmonic Equatorial Mount](https://www.zwoastro.com/product/zwo-am3-harmonic-equatorial-mount/). The Polaris can also be used for other photography projects beyond astro-photography.
 
-That said, the mobile App and firmware updates appear to have slowed down. Many of the promised features from the original [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f)  haven't materialised. We are still waiting for 3 Point Alignment, a larger catalogue of deep sky objects, linking with planetarium software, improved sequencing of image capture, plate solving and framing. The product has more potential if only we could enable it.
-
+v
 That is what this project is all about. The intention is to open up the Benro Polaris with an HTTP-based [REST API](https://www.ibm.com/topics/rest-apis) that will allow other applications to leverage this great platform. 
 
 The Alpaca Benro Polaris (`ABP`) supports a standard [ASCOM](https://ascom-standards.org/) device interface called  [ITelescopeV3 interface](https://ascom-standards.org/Help/Developer/html/T_ASCOM_DeviceInterface_ITelescopeV3.htm) to control the Benro Polaris tripod head. This standard interface supports applications like [Stellarium Desktop](https://stellarium.org/en/) (a free open-source planetarium application) and [Nina](https://nighttime-imaging.eu/) (Nighttime Imaging 'N' Astronomy - An astrophotography imaging suite). 
@@ -28,7 +27,7 @@ The priorities of this open-source project reflect feedback from the [Polaris Ca
 The Alpaca Benro Polaris has documentation to help you prepare your hardware, install software and use the features in Stellarium and Nina. Since the ABP is an ASCOM standard driver, many other applications can make use of it. Let us know what you've found that works.
 
 ## [Release Notes](./docs/release-notes-v1.0.1.md)
-The [Release Notesv v1.0.1](./docs/release-notes-v1.0.1.md) is a reference document that outlines new features, compatible software, bug fixes, known issues and untested features of the Alpaca Benro Polaris Driver. The new features are organised by application to help document what new capabilities are enabled by using the driver with a given application.
+The [Release Notesv v1.0.1](./docs/release-notes-v1.0.1.md) is a reference document that outlines new features, compatible software, bug fixes, known issues and untested features of the Alpaca Benro Polaris Driver. The new features are organised by application to help document what new capabilities are enabled by using the driver with a given application. 
 
 ## [Hardware Guide](./docs/hardware.md)
 The [Hardware Guide(s)](./docs/hardware.md) outlines the recommended hardware platforms for running the Alpaca Benro Polaris Driver, ranging from basic laptop setups to more advanced mini-PC configurations for controlling all astronomy equipment. It offers step-by-step guidance on setting up a "NinaAir" mini-PC, ensuring users can establish a robust and dedicated astrophotography control center.
