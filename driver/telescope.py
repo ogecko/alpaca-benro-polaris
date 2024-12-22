@@ -20,6 +20,7 @@ from logging import Logger
 from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request_field, to_bool
 from exceptions import *        # Nothing but exception classes
 from polaris import Polaris
+import math
 import asyncio
 
 logger: Logger = None
@@ -104,7 +105,7 @@ class destinationsideofpier:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
-        if rightascension < 0 or rightascension > 24:
+        if rightascension < 0 or rightascension > 24 or math.isnan(rightascension):
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} must be between 0 and 24.'))
             return
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
@@ -113,7 +114,7 @@ class destinationsideofpier:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
-        if declination < -90 or declination > +90:
+        if declination < -90 or declination > +90 or math.isnan(declination):
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} must be between -90 and +90.'))
             return
         resp.text = await PropertyResponse(0, req)
@@ -692,7 +693,7 @@ class siteelevation:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'SiteElevation {siteelevationstr} not a valid number.'))
             return
-        if siteelevation < 0 or siteelevation > 10000:
+        if siteelevation < 0 or siteelevation > 10000 or math.isnan(siteelevation):
             resp.text = await MethodResponse(req, InvalidValueException(f'SiteElevation {siteelevationstr} must be between 0 and 10000.'))
             return
         try:
@@ -724,7 +725,7 @@ class sitelatitude:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'SiteLatitude {sitelatitudestr} not a valid number.'))
             return
-        if sitelatitude < -90 or sitelatitude > 90:
+        if sitelatitude < -90 or sitelatitude > 90 or math.isnan(sitelatitude):
             resp.text = await MethodResponse(req, InvalidValueException(f'SiteLatitude {sitelatitudestr} must be between -90 and 90.'))
             return
         try:
@@ -756,7 +757,7 @@ class sitelongitude:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'SiteLongitude {sitelongitudestr} not a valid number.'))
             return
-        if sitelongitude < -180 or sitelongitude > 180:
+        if sitelongitude < -180 or sitelongitude > 180 or math.isnan(sitelongitude):
             resp.text = await MethodResponse(req, InvalidValueException(f'SiteLongitude {sitelongitudestr} must be between -180 and 180.'))
             return
         try:
@@ -836,7 +837,7 @@ class targetdeclination:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'TargetDeclination {targetdeclinationstr} not a valid number.'))
             return
-        if targetdeclination < -90 or targetdeclination > +90:
+        if targetdeclination < -90 or targetdeclination > +90 or math.isnan(targetdeclination):
             resp.text = await MethodResponse(req, InvalidValueException(f'TargetDeclination {targetdeclinationstr} must be between -90 and +90.'))
             return
         try:
@@ -871,7 +872,7 @@ class targetrightascension:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'TargetRightAscension {targetrightascensionstr} not a valid number.'))
             return
-        if targetrightascension < 0 or targetrightascension > 24:
+        if targetrightascension < 0 or targetrightascension > 24 or math.isnan(targetrightascension):
             resp.text = await MethodResponse(req, InvalidValueException(f'TargetRightAscension {targetrightascensionstr} must be between 0 and 24.'))
             return
         try:
@@ -1063,7 +1064,7 @@ class moveaxis:
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Rate {ratestr} not a valid number.'))
             return
-        if (rate != 0 and abs(rate) < polaris.axisrates[0]['Minimum']) or abs(rate) > polaris.axisrates[0]['Maximum']:
+        if (rate != 0 and abs(rate) < polaris.axisrates[0]['Minimum']) or abs(rate) > polaris.axisrates[0]['Maximum'] or math.isnan(rate):
             resp.text = await PropertyResponse(None,req, InvalidValueException(f"rate {ratestr} must be between {polaris.axisrates[0]['Minimum']} and {polaris.axisrates[0]['Maximum']}."))
             return
         if polaris.gotoing and rate != 0:
@@ -1156,7 +1157,7 @@ class slewtoaltaz:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Azimuth {azimuthstr} not a valid number.'))
             return
-        if azimuth < 0 or azimuth > +360:
+        if azimuth < 0 or azimuth > +360 or math.isnan(azimuth):
             resp.text = await MethodResponse(req, InvalidValueException(f'Azimuth {azimuthstr} must be between 0 and 360.'))
             return
         altitudestr = await get_request_field('Altitude', req)      # Raises 400 bad request if missing
@@ -1165,7 +1166,7 @@ class slewtoaltaz:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
-        if altitude < 0 or altitude > +90:
+        if altitude < 0 or altitude > +90 or math.isnan(altitude):
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between 0 and 90.'))
             return
         if polaris.atpark:
@@ -1196,7 +1197,7 @@ class slewtoaltazasync:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Azimuth {azimuthstr} not a valid number.'))
             return
-        if azimuth < 0 or azimuth > +360:
+        if azimuth < 0 or azimuth > +360 or math.isnan(azimuth):
             resp.text = await MethodResponse(req, InvalidValueException(f'Azimuth {azimuthstr} must be between 0 and 360.'))
             return
         altitudestr = await get_request_field('Altitude', req)      # Raises 400 bad request if missing
@@ -1205,7 +1206,7 @@ class slewtoaltazasync:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
-        if altitude < 0 or altitude > +90:
+        if altitude < 0 or altitude > +90 or math.isnan(altitude):
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between 0 and 90.'))
             return
         if polaris.atpark:
@@ -1233,7 +1234,7 @@ class slewtocoordinates:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
-        if rightascension < 0 or rightascension > 24:
+        if rightascension < 0 or rightascension > 24 or math.isnan(rightascension):
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} must be between 0 and 24.'))
             return
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
@@ -1242,7 +1243,7 @@ class slewtocoordinates:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
-        if declination < -90 or declination > +90:
+        if declination < -90 or declination > +90 or math.isnan(declination):
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} must be between -90 and +90.'))
             return
         if polaris.atpark:
@@ -1273,7 +1274,7 @@ class slewtocoordinatesasync:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
-        if rightascension < 0 or rightascension > 24:
+        if rightascension < 0 or rightascension > 24 or math.isnan(rightascension):
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} must be between 0 and 24.'))
             return
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
@@ -1282,7 +1283,7 @@ class slewtocoordinatesasync:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
-        if declination < -90 or declination > +90:
+        if declination < -90 or declination > +90 or math.isnan(declination):
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} must be between -90 and +90.'))
             return
         if polaris.atpark:
@@ -1390,7 +1391,7 @@ class synctocoordinates:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
-        if rightascension < 0 or rightascension > 24:
+        if rightascension < 0 or rightascension > 24 or math.isnan(rightascension):
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} must be between 0 and 24.'))
             return
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
@@ -1399,7 +1400,7 @@ class synctocoordinates:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
-        if declination < -90 or declination > +90:
+        if declination < -90 or declination > +90 or math.isnan(declination):
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} must be between -90 and +90.'))
             return
         try:

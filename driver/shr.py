@@ -279,6 +279,18 @@ def getNextTransId() -> int:
 # -------------------------------
 # Number conversion functions
 # -------------------------------
+def clamparcsec(x):
+    try:
+        value = float(x) % (360 * 3600)  # Normalize to 0-360 degrees in arc-seconds
+        if value > 180 * 3600:
+            value -= 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
+        elif value < -180 * 3600:
+            value += 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
+        return value
+    except ValueError:
+        return float('nan')
+
+
 def bytes2hexascii(data):
     s_hex = ' '.join(('0'+hex(x)[2:])[-2:] for x in data)
     s_ascii = ''.join(chr(x) if 32 <= x <= 126 else '.' for x in data)
@@ -293,7 +305,7 @@ def deg2dms(decimal_degrees):
     minutes = int(minutes_float)
     seconds = (minutes_float - minutes) * 60                # Extract seconds
     
-    return f"{sign}{degrees}°{minutes:02}'{seconds:05.2f}\""
+    return f"{sign}{degrees}d{minutes:02}'{seconds:05.2f}\""
 
 def hr2hms(decimal_hr):
     degrees = int(decimal_hr)                          # Extract degrees

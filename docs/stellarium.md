@@ -1,6 +1,8 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
-# Using Stellarium with Benro Polaris
+# Using Stellarium and Sky Safari Pro
+[Applications Supported](#telescope-control-compatibility) | [Stellarium Mobile](#1-using-stellarium-mobile-plus) | [Stellarium Desktop](#2-using-stellarium-desktop) | [Sky Safari Pro](./installation.md#seting-up-sky-safari-pro-optional) | [Aiming Accuracy](#3-improving-aiming-accuracy) 
+
 ## Telescope Control Compatibility
 The Alpaca Benro Polaris Driver supports both the Alpaca ASCOM and SynScan protocols. This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
 
@@ -11,12 +13,9 @@ The Alpaca Benro Polaris Driver supports both the Alpaca ASCOM and SynScan proto
 * [Stellariium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) (IOS, Android) - paid, telescope control via SynScan protocol.
 * [Stellarium Desktop](https://stellarium.org/) (Win) - free, telescope control via Alpaca ASCOM
 * [Stellarium Desktop](https://stellarium.org/) (MacOS, Linux) - free, telescope control via a binary protocol
+* [Sky Safari 7 Plus and Pro](https://skysafariastronomy.com/) - paid, telescope control via Alpaca 
 * [Nina](https://nighttime-imaging.eu/) (Win) - free, telescope control via Alpaca
 * [CCDciel](https://www.ap-i.net/ccdciel/en/start) (MacOS) - free, telescope control via Alpaca
-
-### Potentially Supported (untested)
-
-* [Sky Safari 7 Plus and Pro](https://skysafariastronomy.com/) - paid, telescope control via Alpaca 
 
 ### Not supported
 
@@ -153,8 +152,52 @@ You can also bring up the `Slew Telescope To` dialog by pressing `Ctrl+0` (Windo
 ### Changing Field of View
 On Windows, as the telescope sweeps across the sky, you will see a reticule marking its path. You can tailor the size of the reticule to match your camera and lens setup, allowing you to visualize your framing easily.
 
-If you lose sight of where the mount is pointing in Stellarium, simply press `SPACE`, and the view will immediately pan to your reticle.
+If you lose site of your selected target, press `SPACE`, and the window will immediately pan to your selected object.
 
+### Using a Custom Landscape and Horizon Image
+Stellarium Desktop allows you to create a custom Landscape to match your own observation site, including the image of the horizon overlaid into Stellarium.
+
+To create your own custom Landscape:
+* Create a 4096 x 2048 pixel image of your location's 360 degree horizon
+  * If you have an Insta360 X3 camera, take a 360 Photo from your tripod, with the screen facing. Open the image in Insta360Studio, change to a 2:1 FOV Ratio, and export the image.
+  * Take multiple images with a wide angle lens. Use Photoshop to merge the images into a 2:1 ratio image with the horizon in the middle and the 360 degrees spanning the width of the image.
+* Use Photoshop to edit the 4096 x 2048 pixel image and convert the background into a single layer. Select the Sky, modify the selection shrinking it 15 pixels, feathering it 15 pixels, then deleting the sky selection. Save the image as a transparent png called `horizon.png`.
+* Create a file called `location.ini` with the following contents, setting the name, latitude, longitude, altitude and timezone correctly.  
+  ```
+  [landscape]
+  name = Your Sites Observation Location
+  type = spherical
+  maptex = horizon.png
+  angle_rotatez = 0.0
+
+  [location]
+  planet = Earth
+  latitude = -33.000
+  longitude = 151.000
+  altitude = 39
+  timezone = Australia/Sydney
+  ```
+* Using Windows Explorer, select both files `location.ini` and `horizon.png`, then Right Click and select Compress To... Zip File.
+* Using Stellarium, open the 'Sky and viewing options' window by clicking F4, select the Landscape tab, click the Add/remote Landscapes button, then install the zip file you just created.
+* Check the orientation of the image in Stellarium. You may need to fine tune the `angle_rotatez` value to correctly align the image with reality.
+* You can now align your Benro Polaris during the day by syncing with a known spot in the horizon image.
+
+### Pulling Stellarium Desktop Targets into Nina
+You can use the Stellarium Desktop `Remote Control` Plug-in to further integrate Stellarium with Nina. Using this plug-in, Nina can pull any selected Stellarium Target into the Framing Tab on Nina. 
+To setup this integration:
+* Using Stellarium
+   * Press `F2` to callup the Configuration Dialog and navigate to the Plug-ins tab
+   * Scroll down to Remote Control Plug-in and enable Load at startup.
+   * Restart Stellarium navigate back to its Configuration Dialog.
+   * Enable the Server and Enable the Server on Startup.
+   * Restart Stellarium
+* Using Nina
+  * Navigate to the Options/Equipment tab
+  * Under the Planetarium, select Stellarium
+  * Enter the Host IP address of `localhost` or its remote IP address.
+
+Now on the Framing tab you can click on a small pin icon next to the Coordinates Heading and Nina will ask Stellarium for the currently selected Target Co-ordinates. Much better than Nina's Sky Atlas.
+  
 ### Sync Co-ordinates
 On Windows, you can help improve the aim of the Benro Polaris by Syncing with a known object in the sky. 
 1. Using the Benro Polaris App, aim the telescope with the known object in the center of the eyepiece or image

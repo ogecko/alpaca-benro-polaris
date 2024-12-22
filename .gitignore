@@ -9,8 +9,12 @@ __pycache__/
 # Alpaca Logs and Performance data
 *.log
 *.log.*
-alpaca.csv
-alpaca.csv.*
+alpaca*.csv
+alpaca*.csv.*
+Thumbs.db
+platforms/docker/config.toml
+platforms/docker/driver/
+platforms/docker/getopts_long/
 
 # Distribution / packaging
 .Python

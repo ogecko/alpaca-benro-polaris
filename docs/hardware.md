@@ -1,10 +1,13 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Recommended Hardware Platform
-## Using a Laptop with Stellarium Desktop
-You can install the Alpaca Benro Polaris Driver on any platform that supports Python and Wifi. Installing it on your laptop or desktop in your Benro Polaris wifi range is an excellent place to start. You'll need to install the ASCOM Platform, Python, and Stellarium. This will allow you to use Stellarium to find Deep Sky objects, command the Benro Polaris to Skew to them, and watch its position update in real-time.
+[Laptop](#using-a-laptop-with-stellarium-desktop) | [Raspberry Pi](#using-a-raspberry-pi-for-the-driver) | [Docker](#using-docker-to-host-the-driver) | [Mini-PC](#a-mini-pc-to-control-all-your-astronomy-equipment-recommended) | [Powerbank](#powering-the-mini-pc-and-camera-overnight) | [Cabling](#connecting-up-the-ninaair) | [Setup NinaAir](#setting-up-the-ninaair-platform)
 
+## Using a Laptop with Stellarium Desktop
 ![Hardware Architecture](images/abp-hardware1.png)
+
+Unfortunately some laptop Wifi controllers dont support connecting with the Benro Polaris Wifi, so you'll also need something like [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) (only US$17 from Amazon). 
+
 
 ## Using a Raspberry Pi for the driver
 You can install the Alpaca Benro Polaris Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
@@ -37,6 +40,10 @@ The NinaAir connects to the camera via USB-C, so it can control the lens AF as w
 
 After one night of failed images with a dewed up lens, I also have a [NEEWER USB Lens Heater](https://www.amazon.com/Telescope-Temperature-Regulator-Condensation-Astrophotography/dp/B0C6Q4YFFC) which I power from a separate power bank, as it can be power hungry, although less critical. If I had more equipment to power, like a cooled astronomy camera or a laptop in the outback, I'd consider upgrading to a [Jackery Portable Power Station 500](https://www.amazon.com.au/Jackery-Portable-Explorer-Generator-Adventure/dp/B08744R27F).
 
+## Connecting up the NinaAir
+The image below shows how you could configure the cables and physical setup of the MiniPC and PowerBank. Note that the USB-C Dummy Battery Kit cable is optional. You can power your camera from your standard camera battery if you prefer.
+
+![Connecting NinaAir](images/abp-hardware4.jpg)
 
 ## Setting up the NinaAir platform
 The folllowing steps are a high level summary of the required setup for the NinaAir platform. It is not comprehensive and only provided as a guide to how you may wish to setup your mini-PC.

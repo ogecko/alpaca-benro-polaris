@@ -1,6 +1,7 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Using Nina with Benro Polaris
+[Capturing Images](#1-capturing-images) | [Selecting Targets](#2-selecting-targets) | [Autofocus](#3-star-detection-and-autofocus) | [Plate Solving](#4-plate-solving-and-n-point-alignment) | [Multi-Point Alignment](#alpaca-n-point-alignment) 
 
 ## Capturing Images -  Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
@@ -44,6 +45,11 @@ The Imaging tab is where you will spend most of your time. Across the top, a set
 ![imaging](images/abp-nina-all-imaging.png)
 
 The imaging tab's main image panel allows you to zoom, rotate, or flip the image. You can also see a zoomed-in-mosiac of the image's center sides and corners. You can enable a crosshair for centering the image. You can also enable star detection annotations, helping you identify focusing and tracking issues. Finally, there is a panel where you can review the images captured so far.
+
+### Telescope Control
+The Benro Polaris can be controlled from the Equipment/Mount tab as well as the Image tab in Nina. To enable Telescope Control from the Image tab you will need to install the `Scope Control` plugin. 
+
+This plugin provides the ability to MoveAxis, Control Rate, Stop/Stop Tracking, Park/UnPark, Slew to RA/Dec, Slew to Alt/Az, Abort Slew. It also adds two new views to visualise the current position of the Benro Polaris (a) top down view called `Azimulth Chart` and (b) Side View called `Altitude Chart`. These views can be enhanced to show where obstructions are located at your site with the `Horizon Creator` plug-in.
 
 ### Customising Settings
 The options tab includes a set of sub-tabs. On the Imaging sub-tab you to customize the directory where all the images will be saved. There is also a flexible approach to changing the naming convention of the images. You can capture additional metadata into a set of csv files using a plug-in called Session Metadata. Finally, you can copy images directly from the storage location to anywhere on your network. No more ejecting SD cards.

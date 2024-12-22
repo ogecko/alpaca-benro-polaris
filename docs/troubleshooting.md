@@ -1,6 +1,42 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Troubleshooting
+[Alpaca Install](#alpaca-install-troubleshooting) | [Benro Problems](#benro-polaris-troubleshooting) | [Comms Problems](#alpaca-communications--troubleshooting) | [Nina Problems](#nina-troubleshooting) | [Stellarium Problems](#stellarium-troubleshooting) 
+
+## Alpaca Install Troubleshooting
+
+### A1 - Cannot Run pip to Install Prerequisites
+Check that you have installed Python 3.13.1 and pip 24.3.1. You can verify that python and pip are installed and accessible with the following commands:
+
+```
+python --version
+pip --version
+```
+Sometimes, pip might not be installed with Python by default. You can install it manually using the ensurepip module. Run the following command:
+```
+python -m ensurepip --default-pip
+```
+
+If the above step doesn't work, try reinstalling Python and ensure that the option to install pip is checked during the installation process.
+
+1. Download the Python 3.13.1 installer from the official Python website.
+2. Run the installer and make sure to check the box that says “Add Python to PATH.”
+3. Select “Customize installation” and ensure that the option to install pip is checked.
+
+### A2 - Pip fails to install pre-requisite packages listed in requirements.txt
+In some countries, your ISP's Domain Name Servers may redirect traffic to invalid Python Package servers. If you encounter the following errors when running pip.
+```
+$ pip install -r platforms/win/requirements.txt
+WARNING: Retrying (Retry (total=0 to 4.........
+ERROR: Could not find a version that satisfies the requirement falcon==4.0.2
+```
+You can force Windows to resolve the host names for the Python Package servers to their correct IPv4 addresses. Using Administrator, edit the file `hosts` in the directory 
+`C:\Windows\System32\drivers\etc`. Add the following two lines to the end of the `hosts` file.
+```
+151.101.0.223 pypi.org
+151.101.0.233 files.pythonhosted.org
+
+```
 
 ## Benro Polaris Troubleshooting
 
@@ -32,7 +68,17 @@ The current firmware of the Benro Polaris does not allow connection to other WiF
 
 This is no longer a limitation. The Alpaca Benro Polaris Driver can serve as a proxy for the Polaris. It is capable of connecting to both the Polaris Wi-Fi Hotspot and your home Wi-Fi network. This allows you to manage the Polaris from any device connected to your home Wi-Fi, including an iPad, a phone, a desktop, or a laptop.
 
+### B5 - The Polaris is at 1% Battery and wont charge
+Multiple people have had issues charging the Benro Polaris after it has drained its battery down to 1%. If you cannot recharge the Benro Polaris from 1% try the following
+* Benro recommends to charge using a 5V/2A charger, rather than some more advanced PD chargers.
+* Try charging with a different cable.
+* Try turning the cable upside down.
+* Try charging with a different power bank.
+
 ## Alpaca Communications  Troubleshooting
+### C0 - Cannot connect Win11 Computer or Laptop to Benro Polaris Wifi
+There appears to be an issue with some types of Wifi Adapters being able to conenct with the Benro Polaris Wifi. If you cannot get Win11 to form a connection with the polaris_XXXXX Wifi, you may want to try using a USB Wifi Adapter. The following adapter is known to connect with Benro Polaris, [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/). 
+
 ### C1 - Cannot see "`communications init... done`" in the log.
 * Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
 * Confirm the Benro Polaris is in Astro Mode.
@@ -153,12 +199,18 @@ alpaca_ip_address = '127.0.0.1'
 
 ### N6 - Cannot plate solve with Nina and ASTAP?
 * Check you are in Focus
-* Check to make sure you camera pixel size and telescope focal length is set correctly in equipment options, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values.
+* Check to make sure you Camera Pixel Size and Telescope Focal Length is set correctly in Nina's Options > Equipment tab, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values. 
+* The focal_length and focal_ratio in config.toml are provided because of the ASCOM standard, but are not used by Nina. You do not need to update these when you change lenses.
+* When using plate-solving to do the first polar alignment of the Polaris, you need to set the exposure length short so that you dont get star trails. If it is too short you will not get enough stars for the plate solve to work. To overcome this trade off, do a compas alignment so that the Polaris is at least roughly polar aligned.
 * Check if you are using any filters. Using a narrow band filter on the camera, like the L-Ultimate Optolong HaOIII filter, can make plate solving more challenging for ASTAP.### R1 - Cannot connect Remote Desktop to Mini-PC
 * Check you have downloaded the relevant STAR databases. For 200mm lens and less you may need to download the [Wide field STAR database G05](https://www.hnsky.org/astap.htm)
 
 ### N7 - Cannot Connect Sony Camera with Nina
-Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by the Sony Plug-in that is included with Nina. To resolve this:
+Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by the Sony Plug-in that is included with Nina. 
+To resolve this:
+* You can download more up to date ASCOM Sony drivers from  the [ASCOMSonyCameraDriver GitHub repository](https://github.com/dougfor.../ASCOMSonyCameraDriver/releases).
+
+Alternatively, you can use the following procedure to try and get the Nina Driver to recognise your camera:
 * Attach your camera via USB. Configure as you would to connect to the Polaris.
 * Turn on your camera.
 * Enter Device Manager in the Windows desktop search bar.
@@ -174,7 +226,17 @@ Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by
   * Your driver should now update.  NOTE: Your camera is now listed under `Portable device`. Other software may not function correctly with the Device Manager configured this way. 
   * You can change back to the original setting by following these steps and selecting `libusbK Usb Devices` as the new driver instead of `MTP USB Device`.
 
-Nina will now connect to your camera.
+Hopefully, Nina will now connect to your camera.
+
+### N8 - Cannot Connect Nikon D850 Camera with Nina
+There is a known issue with connecting a D850 via USB2 with Nina. Try connecting the Nikon D850 via a USB3 or USB-C port. See this [Redit Post on the D850 and Nina](https://www.reddit.com/r/AskAstrophotography/comments/169yzsd/nikon_d850_will_not_connect_to_nina/) for more details.
+
+### N9 - Cannot retrieve Remote Stellarium Coordinates to Nina
+The Nina Sky Atlas has a feature to allow you to get target coordinates from your configured Planetarium Software. You can set the Options / Planetarium software as Stellarium with a given Host IP Address and Port. 
+
+You need to configure Stellarium, adding the Remote Control Plug-in, enabling it to run at startup. Restarting Stellarium allows you to configure the plug-in to automatically enable the server on startup. 
+
+The Remote Control Plug-in defaults to port 8090. This port can conflict with other software you may have on your computer eg Wonderware RecoverIt. If you cannot get Nina to retreive the coordinates from Stellarium try setting the port number to 8091 in both Stellarium and Nina. This may fix the integration between Nina and Stellarium.
 
 ## Stellarium Troubleshooting
 
@@ -203,10 +265,11 @@ There are three approaches to connect StellariiumPLUS to the ABP, depending on y
 * Check stellarium_telescope_ip_address in config.toml. This can be left as its default '' to make the Driver serve the SynScan protocol on any network adapter it can find. If you want to limit the IP address servered by the Driver, you can set this to the IP address of the Mini-PC on your home network. 
 
 ### S3 - Stellarium Desktop has greyed out ASCOM option
-* One Beta Tester encountered problems connecting Stellarium Desktop v24.3 for Windows via ASCOM.
-* Symptom: When trying to add a telescope in Stellarium's telescope plugin, selecting an ASCOM device is greyed out. 
-* Solution: Uninstall V24.3, restart your desktop, install V24.2 (available by searching on the download page). Check periodically for an update to Stellarium.
-
+* Stellarium Desktop v24.3 for Windows has two installable versions depending on a third party library it uses, called Qt. 
+* The Stellarium Desktop v24.3 Qt6 version no longer has ASCOM drivers enabled. 
+* We recommend you install Stellarium Desktop v24.3 Windows x86_64 **Qt5** Windows 7+ version.
+* If you installed the incorrect version, simply uninstall it and reinstall the version mentioned above.
+  
 ### S4 - Stellarium Desktop freezes with Remote Desktop
 * Check fps settings. Stellarium's default is a crazy 10000 fps. We suggest reducing the default settings in the following file `C:\Users\Nina\AppData\Roaming\Stellarium\config.ini`, where Nina is replaced with your User name.
     ```

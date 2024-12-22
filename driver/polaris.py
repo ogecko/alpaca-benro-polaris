@@ -42,8 +42,9 @@
 # SOFTWARE.
 # -----------------------------------------------------------------------------
 # TODO:
-# * Implement ASCOM sync
+# * Correct for Drift
 # DONE:
+# * Implement ASCOM sync
 # * Move Slow and Move Fast
 # * Park/Unpark (reset axis)
 # * retry connecting to polaris if not currently
@@ -77,7 +78,7 @@ from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
-from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, empty_queue
+from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue
 
 class Polaris:
     """Simulated telescope device that communicates with Polaris Device
@@ -124,6 +125,7 @@ class Polaris:
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
         self._N_point_alignment_results = {}        # record of all sync results for N point alignment
+        self._test_underway = False                 # flag to mark that a test is underway and executing
         #
         # Polaris site/device location variables
         #
@@ -236,6 +238,10 @@ class Polaris:
         background_keepalive.add_done_callback(self.task_done)
         background_fastmove = asyncio.create_task(self.every_50ms_send_message())
         background_fastmove.add_done_callback(self.task_done)
+        if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
+            background_driftcheck = asyncio.create_task(self.every_2min_drift_check())
+            background_driftcheck.add_done_callback(self.task_done)
+
 
         while True:
             try:
@@ -350,6 +356,18 @@ class Polaris:
                 self._task_exception = e
                 break
 
+    async def every_2min_drift_check(self):
+        while True:
+            try: 
+                ra = self._targetrightascension
+                dec = self._targetdeclination
+                if self.connected:
+                    await self.drift_error_test(ra,dec,duration=120)
+                else:
+                    await asyncio.sleep(10)
+            except Exception as e:
+                self._task_exception = e
+                break
 
     async def _every_15s_send_polaris_keepalive(self):
         while True:
@@ -383,12 +401,10 @@ class Polaris:
             self._every_50ms_counter = 0
 
             # if we want to log performance data around speed travelled
-            if (Config.log_performance_data == 2):
+            if (Config.log_performance_data == 3):
                 curr_timestamp = datetime.datetime.now()
                 last_timestamp = self._every_50ms_last_timestamp
-                if not self._performance_data_start_timestamp:
-                    self._performance_data_start_timestamp = curr_timestamp
-                time = (curr_timestamp - self._performance_data_start_timestamp).total_seconds()
+                time = self.get_performance_data_time()
                 # if we have a last recording
                 if last_timestamp:
                     r_curr = self._axis_ASCOM_slewing_rates
@@ -401,7 +417,7 @@ class Polaris:
                     d_total = math.sqrt(d_alt*d_alt + d_az*d_az)
                     d_sec = (curr_timestamp - last_timestamp).total_seconds()
                     if d_sec>0:
-                        self.logger.info(f",'DATA2',{time:.3f},{d_sec:.2f},{r_constant},{r_curr[0]:.2f},{d_az/d_sec:.7f},{r_curr[1]:.2f},{d_alt/d_sec:.7f},{d_ra/d_sec:.7f},{d_dec/d_sec:.7f},'{deg2dms(d_total/d_sec)}'")
+                        self.logger.info(f",DATA3,{time:.3f},{d_sec:.2f},{r_constant},{r_curr[0]:.2f},{d_az/d_sec:.7f},{r_curr[1]:.2f},{d_alt/d_sec:.7f},{d_ra/d_sec:.7f},{d_dec/d_sec:.7f},'{deg2dms(d_total/d_sec)}'")
 
                 # Store values for next run
                 self._every_50ms_last_timestamp = curr_timestamp
@@ -420,6 +436,13 @@ class Polaris:
         self._lock.acquire()
         self._every_50ms_msg_to_send = None
         self._lock.release()
+
+    def get_performance_data_time(self):
+        dt_now = datetime.datetime.now()
+        if not self._performance_data_start_timestamp:
+            self._performance_data_start_timestamp = dt_now
+        time = (dt_now - self._performance_data_start_timestamp).total_seconds()
+        return time
 
     def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.J2000):
         target = ephem.FixedBody()
@@ -512,11 +535,15 @@ class Polaris:
             self._N_point_alignment_results[key].append(x)
             # Print past syncs out to log file
             for key in self._N_point_alignment_results:
-                self.logger.info(f'->> Polaris: SYNC Star Align Summary around {key}°')
+                self.logger.info(f'->> Polaris: SYNC Star Align Summary around {key} degrees')
                 for x in self._N_point_alignment_results[key]:
                     self.logger.info(f'->>     {x["time"].strftime("%H:%M:%S")} | Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}')
             # Perform the actual star alignment on the Polaris
             asyncio.create_task(self.send_cmd_star_alignment(a_alt, a_az))
+            # No longer need a sync adjustment since Polaris has been aligned
+            self._adj_sync_azimuth = 0
+            self._adj_sync_altitude = 0
+
 
         return
 
@@ -607,18 +634,17 @@ class Polaris:
                 self._rightascension = a_ra 
                 self._declination = a_dec
 
-            if Config.log_performance_data == 1:
+            # if we ant to log position data
+            if Config.log_performance_data == 4:
                 a_slew = self._slewing
                 a_goto = self._gotoing
                 a_track = self.tracking
                 t_ra = self._targetrightascension if self._targetrightascension else a_ra       # Target Right Ascention (hours)
                 t_dec = self._targetdeclination if self._targetdeclination else a_dec           # Target Declination (degrees)
-                e_ra = (t_ra - a_ra)*3600*360/24                                                # Error Right Ascention (arc seconds)
-                e_dec = (t_dec - a_dec)*3600                                                    # Error Declination (arc seconds)
-                if not self._performance_data_start_timestamp:
-                    self._performance_data_start_timestamp = dt_now
-                time = (dt_now - self._performance_data_start_timestamp).total_seconds()
-                self.logger.info(f",'DATA1',{time:.3f},{a_track},{a_slew},{a_goto},{t_ra:.7f},{t_dec:.7f},{a_ra:.7f},{a_dec:.7f},{a_az:.7f},{a_alt:.7f},{e_ra:.3f},{e_dec:.3f}")
+                e_ra = clamparcsec((t_ra - a_ra)*3600*360/24)                                   # Error Right Ascention (arc seconds)
+                e_dec = clamparcsec((t_dec - a_dec)*3600)                                       # Error Declination (arc seconds)
+                time = self.get_performance_data_time()
+                self.logger.info(f",DATA4,{time:.3f},{a_track},{a_slew},{a_goto},{t_ra:.7f},{t_dec:.7f},{a_ra:.7f},{a_dec:.7f},{a_az:.7f},{a_alt:.7f},{e_ra:.3f},{e_dec:.3f}")
 
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
         elif cmd == "519":
@@ -699,6 +725,8 @@ class Polaris:
 
     def aim_altaz_log_result(self):
         self._lock.acquire()
+        a_alt = self._aim_altitude
+        a_az = self._aim_azimuth
         err_alt = self._aim_altitude - self._altitude
         err_az = self._aim_azimuth - self._azimuth
         # only fine tune the adjustment if the error was within the max correction allowed
@@ -709,7 +737,11 @@ class Polaris:
         adj_alt = self._adj_altitude
         adj_az = self._adj_azimuth
         self._lock.release()
-        self.logger.info(f"->> Polaris: GOTO Arc-sec Error Alt {err_alt*3600:.3f} Az {err_az*3600:.3f} | AimOffset (Alt {deg2dms(adj_alt)} Az {deg2dms(adj_az)})")
+        time = self.get_performance_data_time()
+        self.logger.info(f"->> Polaris: GOTO AimOffset (Az {deg2dms(adj_az)} Alt {deg2dms(adj_alt)}) | Error Az {err_az*3600:.3f} Alt {err_alt*3600:.3f}")
+        # if we want to log Aim data
+        if Config.log_performance_data == 1:
+            self.logger.info(f",DATA1,{time:.3f},{a_az:.7f},{a_alt:.7f},{adj_az:.7f},{adj_alt:.7f},{err_az*3600:.3f},{err_alt*3600:.3f}")
 
     def aim_altaz_log_and_correct(self, alt: float, az:float):
         # log the original aiming co-ordinates and grab the last error ajustments
@@ -839,9 +871,6 @@ class Polaris:
         await self.send_msg(f"1&530&3&step:2;yaw:{ca_az};pitch:{a_alt};lat:{lat};num:1;lng:{lon};#")
         await asyncio.sleep(0.2)
         await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
-        # No longer need a sync adjustment since Polaris has been aligned
-        self._adj_sync_azimuth = 0
-        self._adj_sync_altitude = 0
 
     async def send_cmd_park(self):
         if self._tracking:
@@ -942,13 +971,21 @@ class Polaris:
             self._connected = True
             self._task_errorstr = ''
             self._lock.release()
-            if Config.log_performance_data == 2 and Config.log_perf_speed_ramp_test:
+            # if we want to run Aim test or Drift test over a set of targets in the sky
+            if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
+                asyncio.create_task(self.goto_tracking_test())
+            # if we want to run Speed test to ramp moveaxis rate over its full range
+            if Config.log_performance_data == 3 and Config.log_performance_data_test == 3:
                 asyncio.create_task(self.moveaxis_ramp_speed_test())
         else:
             # Polaris is not in astro mode
             raise AstroModeError()
 
+
     async def moveaxis_ramp_speed_test(self):
+        if self._test_underway:
+            return
+        self._test_underway = True
         rates = 10
         samples = 5
         duration = Config.log_perf_speed_interval * (samples + 1)
@@ -961,6 +998,54 @@ class Polaris:
         # complete the test
         self.logger.info(f"== TEST == Ramp MoveAxis Test | COMPLETE")
         await self.move_axis(0, 0)
+
+    async def goto_tracking_test(self):
+        if self._test_underway:
+            return
+        self._test_underway = True
+        nRA = int(360/30)
+        nDec = int(180/15)
+        await asyncio.sleep(30)             # Start test 30s after startup
+        for j in range(0, nDec, 1):
+            for i in range(0, nRA, 1):
+                e_ra = i/nRA*24
+                e_dec = j/nDec*180-90 if self._sitelatitude<0 else (nDec - j)/nDec*180-90
+                if (abs(e_dec)==90 and e_ra!=0):    # only do it once at the poles
+                    continue
+                now_coord = ephem.Equatorial(hr2rad(e_ra), deg2rad(e_dec), epoch=ephem.now())
+                radec = ephem.Equatorial(now_coord, epoch=ephem.J2000)
+                a_ra=rad2hr(radec.ra)
+                a_dec=rad2deg(radec.dec)
+                p_ra, p_dec = self.radec_ascom2polaris(a_ra, a_dec)
+                p_alt, p_az = self.radec2altaz(p_ra, p_dec)
+                if p_alt>12 and p_alt<80:           # only GOTO if within range of Benro Polaris capabilities
+                    self.logger.info(f"== TEST == GOTO Tracking Test | Now RA {e_ra:5.1f} Dec {e_dec:5.1f} | J2000 RA {a_ra:5.1f} Dec {a_dec:5.1f} | Az {p_az:5.1f} Alt {p_alt:5.1f}")
+                    await self.SlewToCoordinates(a_ra, a_dec, isasync = False)
+                    # if we want to do Aim test (assumes Aim Data is being logged), just pause
+                    if Config.log_performance_data_test == 1:
+                        await asyncio.sleep(5)
+                    # if we want to do Drift test, await for it to perform a single test
+                    if Config.log_performance_data_test == 2:
+                        await self.drift_error_test(e_ra, e_dec, duration=3*60)
+
+    async def drift_error_test(self, ra, dec, duration=120):
+        a0_ra = self._rightascension
+        a0_dec = self._declination
+        a0_track = self.tracking
+        t0 = datetime.datetime.now()
+        await asyncio.sleep(duration)
+        a1_ra = self._rightascension
+        a1_dec = self._declination
+        a1_track = self.tracking
+        t1 = datetime.datetime.now()
+        d_t = (t1 - t0).total_seconds()
+        d_ra = clamparcsec((a0_ra - a1_ra)*3600/24*360)/d_t*60
+        d_dec = clamparcsec((a0_dec - a1_dec)*3600)/d_t*60
+        a_ra = ra if ra else self._targetrightascension if self._targetrightascension else self._rightascension
+        a_dec = dec if dec else self._targetdeclination if self._targetdeclination else self._declination
+        time = self.get_performance_data_time()
+        self.logger.info(f",DATA2,{time:.3f},{a0_track},{a1_track},{a_ra},{a_dec},{d_ra:.3f},{d_dec:.3f}")
+        return
 
 
     #
@@ -1578,7 +1663,7 @@ class Polaris:
         # if cmdtype=3 then Equatorial RA/Dec move Rate degrees
         elif cmdtype==3:
             if Config.log_polaris:
-                self.logger.info(f"->> Polaris: Move Equatorial RA/Dec Axis: {axis} Rate: {rate}°")
+                self.logger.info(f"->> Polaris: Move Equatorial RA/Dec Axis: {axis} Rate: {rate} degrees")
             self._lock.acquire()
             ra = self._rightascension + ((rate*24/360) if axis==0 else 0)
             dec = self._declination + (rate if axis==1 else 0)
