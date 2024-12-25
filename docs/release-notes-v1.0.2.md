@@ -17,6 +17,7 @@
 ## New Features (enabled by Stellarium)
 
 ## New Features (Alpaca Driver)
+- **[Driver Startup]**: Log Alpaca Driver version number on startup
 - **[Image Cleanup]**: Add scatter plots to indicate rejected images based on key statistics
 
 ## Upgraded Win11 Requirements.txt Compatibility
