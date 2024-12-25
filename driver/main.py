@@ -59,6 +59,7 @@ async def main():
     telescope.logger = logger
     shr.logger = logger
 
+    logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
     # Output performance data log headers if enabled
     if Config.log_performance_data == 1:        # Aim data

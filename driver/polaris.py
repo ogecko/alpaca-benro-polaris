@@ -250,7 +250,7 @@ class Polaris:
                 client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
                 self._reader = client_reader
                 self._writer = client_writer
-                logger.info(f'==STARTUP== Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}. ')
+                logger.info(f'==STARTUP== Starting Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}. ')
                 init_task = asyncio.create_task(self.polaris_init())
                 init_task.add_done_callback(self.task_done)
                 await self.read_msgs()
