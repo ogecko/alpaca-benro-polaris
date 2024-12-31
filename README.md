@@ -26,7 +26,7 @@ The priorities of this open-source project reflect feedback from the [Polaris Ca
 The Alpaca Benro Polaris has documentation to help you prepare your hardware, install software and use the features in Stellarium and Nina. Since the ABP is an ASCOM standard driver, many other applications can make use of it. Let us know what you've found that works.
 
 ## [Release Notes](./docs/release-notes-v1.0.1.md)
-The [Release Notesv v1.0.1](./docs/release-notes-v1.0.1.md) is a reference document that outlines new features, compatible software, bug fixes, known issues and untested features of the Alpaca Benro Polaris Driver. The new features are organised by application to help document what new capabilities are enabled by using the driver with a given application. 
+The [Release Notes v1.0.1](./docs/release-notes-v1.0.1.md) is a reference document that outlines new features, compatible software, bug fixes, known issues and untested features of the Alpaca Benro Polaris Driver. The new features are organised by application to help document what new capabilities are enabled by using the driver with a given application. 
 
 ## [Hardware Guide](./docs/hardware.md)
 The [Hardware Guide(s)](./docs/hardware.md) outlines the recommended hardware platforms for running the Alpaca Benro Polaris Driver, ranging from basic laptop setups to more advanced mini-PC configurations for controlling all astronomy equipment. It offers step-by-step guidance on setting up a "NinaAir" mini-PC, ensuring users can establish a robust and dedicated astrophotography control center.
