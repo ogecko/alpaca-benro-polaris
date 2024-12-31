@@ -58,7 +58,7 @@ The [Beta Test Results](./docs/betatest.md) provides an analysis and summary of 
 I'd like to thank the following people who helped make this project a reality:
 
 ## Technical Expertise
-* Vladimir Vyskocil - for his significant contribution to the project, work on the protocol, exploring an initial prototype, being a sounding board, and inspiration for this project.
+* Vladimir Vyskocil - for his significant contribution to the project, the [Polaris protocol](https://github.com/vyskocil/Polaris/wiki/Polaris-protocol-commands), exploring an initial prototype, being a sounding board, and inspiration for this project.
 * Stefan Berg - for creating and maintaining N.i.n.a. 
 * Robert B. Denny - for his work in writing a template for Alpaca drivers everywhere.
 * Steven Byrnes - and the SeeStar_alp driver developers for sharing their great work.
