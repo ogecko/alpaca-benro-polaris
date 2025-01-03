@@ -12,7 +12,8 @@
 * Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
 * Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
 
-## New Features (enabled by Nina)about Scope Control and Horizon Creator Plugins
+## New Features (enabled by Nina)
+- **[Nina and Nikon Z8]**: Nina v3.2 now supports Nikon Z8 cameras 
 
 ## New Features (enabled by Stellarium)
 
@@ -51,6 +52,7 @@ Please let us know if you can try any of these features.
 * Canon 6D MkII, Canon EF 50mm f1.8
 * Canon 800D, Sigma DC 17-50mm f2.8, Tamron 16-300mm f3.5-6.3
 * Sony Alpha 7R IV
+* Nikon Z8
 * Pentax K1 150-450mm / Irix 45mm
 * ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
 ### Computing Equipment
@@ -94,7 +96,7 @@ Please let us know if you can try any of these features.
 
 ## Known Issues
 - **[Stellarium 24.3]**: Stellarium Desktop v24.3 has known issues with telescope control. See [Troubleshooting S2](./troubleshooting.md).
-- **[Nina and Nikon Z8]**: Neither the Nina or ASCOM Camera Driver appear to work with the Nikon Z8.
+
 
 ## Potential Future Enhancements
 - **[Raspberry Pi]** Official support and testing on Raspberry  Pi
