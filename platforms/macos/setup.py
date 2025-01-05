@@ -23,11 +23,13 @@ DATA_FILES = ['../../driver/config.py',
  '../../driver/stellarium.py',
  '../../driver/telescope.py',
  '../../driver/ui.py']
+PLIST = {'CFBundleName': 'Alpaca Benro Polaris'}
 OPTIONS = {'emulate_shell_environment': True,
- 'iconfile': 'icon.png',
- 'includes': 'xml.etree,xml.etree.ElementTree,uvicorn.protocols.http.auto',
- 'packages': 'falcon,uvicorn',
- 'resources': '../../driver/config.toml'}
+  'iconfile': 'icon.png',
+  'includes': 'xml.etree,xml.etree.ElementTree,uvicorn.protocols.http.auto',
+  'packages': 'falcon,uvicorn',
+  'resources': '../../driver/config.toml',
+  'plist': PLIST}
 
 setup(
     app=APP,
