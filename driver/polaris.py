@@ -74,6 +74,8 @@ import datetime
 import re
 import asyncio
 import ephem
+import numpy as np
+from pyquaternion import Quaternion
 from threading import Lock
 from logging import Logger
 from config import Config
@@ -155,10 +157,12 @@ class Polaris:
         #
         self._altitude: float = 0.0                 # The Altitude above the local horizon of the telescope's current position (degrees, positive up)
         self._azimuth: float = 0.0                  # The Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
+        self._rotation: float = 0.0                 # The Field Rotation (-90 to 90), 0=after GOTO, -ve=clockwise rotation looking at celestrial south pole.
         self._declination: float = 0.0              # The declination (degrees) of the telescope's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property. Reading the property will raise an error if the value is unavailable.
         self._rightascension: float = 0.0           # The right ascension (hours) of the telescope's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property
         self._p_altitude: float = 0.0               # The Altitude of the Polaris
         self._p_azimuth: float = 0.0                # The Azimuth of the Polaris
+        self._p_rotation: float = 0.0               # The Field Rotation of the Polaris
         self._p_declination: float = 0.0            # The declination (degrees) of the Polaris
         self._p_rightascension: float = 0.0         # The right ascension (hours) of the Polaris
         self._siderealtime: float = 0.0             # The local apparent sidereal time from the telescope's internal clock (hours, sidereal)
@@ -581,12 +585,16 @@ class Polaris:
                 self.logger.info(f"<<- Polaris: Unmatched msg: {buffer}")
             return (False, False, "")
 
-    def polaris_parse_args(self, args_str):
+    def polaris_parse_args(self, args_str, name_postfix=False):
         # chop the last ";" and split
+        postfix = 0
         args = args_str[:-1].split(";")
         arg_dict = {}
         for arg in args:
             (name, value) = arg.split(":", 1)
+            if name_postfix and name in ['w', 'x', 'y', 'z']:
+                postfix = postfix + 1 if name == 'w' else postfix
+                name = f"{name}{postfix}"
             arg_dict[name] = value
         return arg_dict
 
@@ -607,12 +615,53 @@ class Polaris:
         elif cmd == "518":
             dt_now = datetime.datetime.now()
             self._last_518_timestamp = dt_now
-            arg_dict = self.polaris_parse_args(args)
+            arg_dict = self.polaris_parse_args(args, name_postfix=True)
             p_az = float(arg_dict['compass'])
             p_alt = -float(arg_dict['alt'])
+
+            # Q1 represents the 3 axis rotation of the Polaris, wrt X=East, Y=North, Z=Up. 
+            # Think of a plane flying East with a camera pitched down 90 degrees. This is the reference frame.
+            # The quaternion prepresents the 3D rotation on the plane, to get the camera pointing in the polaris orientation.
+            q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
+
+            # Q2 represents the 3 axis rotation of the Polaris, wrt X=North, Y=West, Z=Up. 
+            # Think of a plane flying North with a camera pointed to the left wing, then pitch the camera down 90 degrees. This is the reference frame.
+            # The quaternion prepresents the 3D rotation on the plane, to get the camera pointing in the polaris orientation.
+            q2 = Quaternion(arg_dict['w2'], arg_dict['x2'], arg_dict['y2'], arg_dict['z2'])
+
+            # Q3 represents the equivalent 3 axis rotation to Q1 but without the field rotation ie just the altitude and azimuth rotation
+            # It is created with the composition of just the Altitude (first) and Azimuth (second) rotations
+            qalt = Quaternion(axis=(0,1,0), degrees= -90 - p_alt)
+            qaz = Quaternion(axis=(0,0,1), degrees= +90 - p_az)
+            q3 = qaz * qalt
+
+            # Q4 represents the equivalent 3 axis rotation of just the Field Rotation
+            # It is created with the composition of Q1 and the inverse of Q3
+            #   Note that the vector part of the quaternion Q4 may not be aligned with the primary axes
+            #   So need to read the real part of the quaternion Q4 as the field rotation angle around the vector
+            # Field Rotation ranges from -80 to +80, where 0 is a framing level with the horizon
+            #   At the start of any GOTO the Polaris will set the Field rotation back to zero, before moving the Alt and Az axes
+            #   At higher pointing Altitudes the Field Rotation is limited even more due to Polaris design eg (at Alt=70, Rotation=+/-60) (at Alt=78 Rotation=+/-35)
+            # When pointing to targets towards the Southern Celestrial Pole
+            #   A -ve value is rotated clockwise from level, a +ve value is rotated a anti-clockwise
+            #   Enabling tracking will slowly decrease the Field Rotation angle (for long sequences, start with a +ve value)
+            # When pointing to targets towards the Northern Celestrial Pole
+            #   A -ve value is rotated clockwise from level, a +ve value is rotated a anti-clockwise
+            #   Enabling tracking will slowly increase the Field Rotation angle (for long sequences, start with a -ve value)
+            
+            q4 =  q1 / q3
+            p_rot = q4.degrees
+
+            def q_ypr(q):
+                return f',{q.w:+05f},{q.x:+05f},{q.y:+05f},{q.z:+05f}'
+            if Config.log_performance_data == 5:
+                time = self.get_performance_data_time()
+                self.logger.info(f',DATA5,{time:.3f} {q_ypr(q1)} {q_ypr(q2)} ,{p_az},{p_alt},{p_rot}')
+
             self._lock.acquire()
             self._p_altitude = p_alt
             self._p_azimuth = p_az
+            self._p_rotation = p_rot
             p_ra, p_dec = self.altaz2radec(p_alt, p_az)
             self._p_rightascension = p_ra 
             self._p_declination = p_dec
@@ -625,11 +674,13 @@ class Polaris:
                 a_alt, a_az = self.radec2altaz(a_ra, a_dec)
                 self._altitude = a_alt
                 self._azimuth = a_az
+                self._rotation = p_rot
             else:
                 # Use Alt/Az Sync Pointing model
                 a_alt, a_az = self.altaz_polaris2ascom(p_alt, p_az)
                 self._altitude = a_alt
                 self._azimuth = a_az
+                self._rotation = p_rot
                 a_ra, a_dec= self.altaz2radec(a_alt, a_az)
                 self._rightascension = a_ra 
                 self._declination = a_dec
@@ -977,10 +1028,34 @@ class Polaris:
             # if we want to run Speed test to ramp moveaxis rate over its full range
             if Config.log_performance_data == 3 and Config.log_performance_data_test == 3:
                 asyncio.create_task(self.moveaxis_ramp_speed_test())
+            if Config.log_performance_data_test == 5:
+                asyncio.create_task(self.rotator_test())
         else:
             # Polaris is not in astro mode
             raise AstroModeError()
 
+
+    async def rotator_test(self):
+        if self._test_underway:
+            return
+        self._test_underway = True
+        Config.log_performance_data == 0
+        steps = 8
+        duration = 90.0/4
+        self.logger.info(f"== TEST == Rotator Test | {steps} steps")
+        for i in range(0, steps, 1):
+            alt = 10 + 80/steps * i
+            az = 180
+            await self.send_cmd_goto_altaz(alt, az, False)
+            self.logger.info(f"== TEST == Rotator Test | {alt:.2f} alt")
+            Config.log_performance_data = 5
+            await self.move_axis(2, 9)
+            await asyncio.sleep(duration)
+            Config.log_performance_data = 0
+            await self.move_axis(2, 0)
+            await asyncio.sleep(2)
+        # complete the test
+        self.logger.info(f"== TEST == Rotator Test | COMPLETE")
 
     async def moveaxis_ramp_speed_test(self):
         if self._test_underway:
@@ -1151,6 +1226,13 @@ class Polaris:
     def azimuth(self) -> float:
         self._lock.acquire()
         res =  self._azimuth
+        self._lock.release()
+        return res
+
+    @property
+    def rotation(self) -> float:
+        self._lock.acquire()
+        res =  self._rotation
         self._lock.release()
         return res
 

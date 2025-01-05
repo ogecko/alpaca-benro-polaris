@@ -59,7 +59,6 @@ async def main():
     telescope.logger = logger
     shr.logger = logger
 
-    logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
     # Output performance data log headers if enabled
     if Config.log_performance_data == 1:        # Aim data
@@ -77,6 +76,14 @@ async def main():
     elif Config.log_performance_data == 4:      # Position data (heavy logging)
         logger.info(f",Dataset,Time,Tracking,Slewing,Gotoing,TargetRA,TargetDEC,AscomRA,AscomDEC,AscomAz,AscomAlt,ErrorRA,ErrorDec")
         logger.info(f",DATA4,{0:.3f},{False},{False},{False},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
+
+    elif Config.log_performance_data == 5:      # Rotator data (heavy logging)
+        logger.info(f",Dataset,Time,w1,x1,y1,z1,w2,x2,y2,z2,az,alt,rot")
+        logger.info(f",DATA5,{0:.3f},{0:.3f},{0:.3f},{0:.3f},{0:.3f},{0:.3f},{0:.3f},{0:.3f},{0:.3f},{0:.3f},{0:.3f},{0:.3f}")
+
+    # Output Alpaca Driver version
+    logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
+
 
     # Initialize the ASCOM devices
     telescope.start_polaris(logger)

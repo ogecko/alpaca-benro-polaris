@@ -34,8 +34,8 @@ log_level = 'INFO'                          # Default log level, show info and a
 log_to_file = true                          # log output to file alpaca.log, copying old logs to alpaca.1, ... alpaca.5
 log_to_stdout = true                        # log output to stdout.
 
-log_performance_data = 0                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim Data, 2=Drift data, 3=Speed data, 4=Position Data (heavy logging)
-log_performance_data_test = 0               # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test
+log_performance_data = 0                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim Data, 2=Drift data, 3=Speed data, 4=Position Data, 5=Rotator Data
+log_performance_data_test = 0               # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test, 5=Rotator test
 log_perf_speed_interval = 5                 # To calculate average speed, measure distance travelled, once every "log_perf_speed_interval" seconds.
 
 log_polaris = true                          # log polaris messages and activity.

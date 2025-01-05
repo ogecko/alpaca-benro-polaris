@@ -2,3 +2,4 @@ falcon==4.0.2
 uvicorn==0.33.0
 toml==0.10.2
 ephem==4.1.6
+pyquaternion==0.9.9

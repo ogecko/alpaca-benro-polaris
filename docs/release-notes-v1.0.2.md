@@ -19,6 +19,7 @@
 
 ## New Features (Alpaca Driver)
 - **[Driver Startup]**: Log Alpaca Driver version number on startup
+- **[Field Rotation]**: Calculate the current Field Rotation from quaternions in 518 msg from Polaris
 - **[Image Cleanup]**: Add scatter plots to indicate rejected images based on key statistics
 
 ## Upgraded Win11 Requirements.txt Compatibility
