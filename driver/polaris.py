@@ -614,7 +614,7 @@ class Polaris:
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":
             dt_now = datetime.datetime.now()
-            self._last_518_timestamp = dt_now
+
             arg_dict = self.polaris_parse_args(args, name_postfix=True)
             p_az = float(arg_dict['compass'])
             p_alt = -float(arg_dict['alt'])
@@ -652,13 +652,25 @@ class Polaris:
             q4 =  q1 / q3
             p_rot = q4.degrees
 
-            def q_ypr(q):
-                return f',{q.w:+05f},{q.x:+05f},{q.y:+05f},{q.z:+05f}'
+            # remember all the old values
+            dt_old = self._last_518_timestamp if self._last_518_timestamp else dt_now-1
+            p_az_old = self._p_azimuth if self._p_azimuth else p_az
+            p_alt_old = self._p_altitude if self._p_altitude else p_alt
+            p_rot_old = self._p_rotation if self._p_rotation else p_rot
+            dt_delta = (dt_now - dt_old).total_seconds()
+            p_daz_dt = (p_az - p_az_old) / dt_delta
+            p_dalt_dt = (p_alt - p_alt_old) / dt_delta
+            p_drot_dt = (p_rot - p_rot_old) / dt_delta
+
             if Config.log_performance_data == 5:
                 time = self.get_performance_data_time()
-                self.logger.info(f',DATA5,{time:.3f} {q_ypr(q1)} {q_ypr(q2)} ,{p_az},{p_alt},{p_rot}')
+                def q_ypr(q):
+                    return f',{q.w:+05f},{q.x:+05f},{q.y:+05f},{q.z:+05f}'
+                self.logger.info(f',DATA5,{time:.3f} {q_ypr(q1)} {q_ypr(q2)} ,{p_az:+03f},{p_alt:+03f},{p_rot:+03f} ,{p_daz_dt:+05f},{p_dalt_dt:+05f},{p_drot_dt:+05f}')
 
+            # Store all the new values
             self._lock.acquire()
+            self._last_518_timestamp = dt_now
             self._p_altitude = p_alt
             self._p_azimuth = p_az
             self._p_rotation = p_rot
