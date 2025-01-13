@@ -33,8 +33,10 @@
 
 import sys
 import asyncio
+import telescope
 
 from qasync import QEventLoop, QApplication, asyncSlot, asyncClose
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QMessageBox
 
 class MainWindow(QWidget):
@@ -43,15 +45,30 @@ class MainWindow(QWidget):
         self.logger = logger
         self.app_close_event = app_close_event
         self.setLayout(QVBoxLayout())
-        self.lbl_status = QLabel("ABP is running...", self)
+        self.lbl_status = QLabel("", self)
+        self.connected = False
         self.layout().addWidget(self.lbl_status)
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.on_btn_clicked)
         self.layout().addWidget(self.quit_button)
         self.setGeometry(100, 100, 300, 200)
         self.setWindowTitle("Alpaca Benro Polaris")
+        self.updateTimer = QtCore.QTimer()
+        self.updateTimer.timeout.connect(self.updateUI)
+        self.updateTimerInterval = 1000 * 0.5
+        self.updateTimer.setInterval(self.updateTimerInterval)
+        self.updateTimer.start()
      
-    @asyncClose   
+    @asyncSlot()
+    async def updateUI(self):
+        if self.lbl_status.text() == "" or self.connected != telescope.polaris.connected:
+            self.connected = telescope.polaris.connected
+            if telescope.polaris.connected:
+                self.lbl_status.setText("Connected to Polaris")
+            else:
+                self.lbl_status.setText("Not connected to Polaris")
+    
+    @asyncClose
     async def closeEvent(self, event):
         pass
         
