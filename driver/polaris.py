@@ -671,8 +671,8 @@ class Polaris:
                 time = self.get_performance_data_time()
                 def q_ypr(q):
                     return f',{q.w:+05f},{q.x:+05f},{q.y:+05f},{q.z:+05f}'
-                
-                self.logger.info(f',DATA5,{time:.3f} {q_ypr(q1)} {q_ypr(q2)} ,{p_az:+03f},{p_alt:+03f},{p_roll:+05f},{p_rot:+03f} ,{p_daz_dt:+05f},{p_dalt_dt:+05f},{p_droll_dt:+05f}')
+                rates = self._axis_ASCOM_slewing_rates
+                self.logger.info(f',DATA5,{time:.3f} {q_ypr(q1)} {q_ypr(q2)} ,{p_az:+03f},{p_alt:+03f},{p_roll:+05f},{p_rot:+03f} ,{rates[0]:+05f},{rates[1]:+05f},{rates[2]:+05f}')
 
             # Store all the new values
             self._lock.acquire()
@@ -1047,7 +1047,7 @@ class Polaris:
             if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
                 asyncio.create_task(self.goto_tracking_test())
             # if we want to run Speed test to ramp moveaxis rate over its full range
-            if Config.log_performance_data == 3 and Config.log_performance_data_test == 3:
+            if Config.log_performance_data_test == 3:
                 asyncio.create_task(self.moveaxis_ramp_speed_test())
             if Config.log_performance_data_test == 5:
                 asyncio.create_task(self.rotator_test())
@@ -1061,6 +1061,7 @@ class Polaris:
             return
         self._test_underway = True
         Config.log_performance_data == 0
+        axis = 2 # Rotation
         steps = 8
         duration = 90.0/4
         self.logger.info(f"== TEST == Rotator Test | {steps} steps")
@@ -1082,15 +1083,22 @@ class Polaris:
         if self._test_underway:
             return
         self._test_underway = True
+        axis = 2
         rates = 10
         samples = 5
-        duration = Config.log_perf_speed_interval * (samples + 1)
-        self.logger.info(f"== TEST == Ramp MoveAxis Test | {rates} rates | {samples} samples per rate | {duration}s per rate | {duration*rates/60} min total")
+        duration = 15
+        self.logger.info(f"== TEST == Ramp MoveAxis Test | {rates} rates | {duration*2+4}s per rate | {(duration*2+4)*rates/60} min total")
         for i in range(0, rates, 1):
             rate = 10/rates * i
-            self.logger.info(f"== TEST == Ramp MoveAxis Test | {rate:.2f} rate | {duration}s duration")
-            await self.move_axis(0, rate)
+            self.logger.info(f"== TEST == Ramp MoveAxis Test | {rate:.2f} rate | {duration*2+4}s duration")
+            await self.move_axis(axis, rate)
             await asyncio.sleep(duration)
+            await self.move_axis(axis, 0)
+            await asyncio.sleep(2)
+            await self.move_axis(axis, -rate)
+            await asyncio.sleep(duration)
+            await self.move_axis(axis, 0)
+            await asyncio.sleep(2)
         # complete the test
         self.logger.info(f"== TEST == Ramp MoveAxis Test | COMPLETE")
         await self.move_axis(0, 0)
@@ -1746,7 +1754,7 @@ class Polaris:
                 self.logger.info(f"->> Polaris: MOVE Slow Az/Alt/Rot Axis {axis} Rate {rate}")
             self._lock.acquire()
             self._axis_ASCOM_slewing_rates[axis] = ascomrate
-            self._axis_Polaris_slewing_rates[axis] = rate
+            self._axis_Polaris_slewing_rates[axis] = -rate if cmdtype==1 and key==1 else rate
             self._slewing = any(self._axis_Polaris_slewing_rates)
             self._lock.release()
             if self._every_50ms_msg_to_send and rate == 0:
@@ -1760,7 +1768,7 @@ class Polaris:
         elif cmdtype==2:
             self._lock.acquire()
             self._axis_ASCOM_slewing_rates[axis] = ascomrate
-            self._axis_Polaris_slewing_rates[axis] = rate
+            self._axis_Polaris_slewing_rates[axis] = -rate if cmdtype==1 and key==1 else rate
             self._slewing = any(self._axis_Polaris_slewing_rates)
             self._lock.release()
             msg=f"1&{cmd}&3&speed:{rate};#"
