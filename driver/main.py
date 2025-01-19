@@ -89,10 +89,13 @@ async def main(logger, ui):
                                               Config.stellarium_telescope_ip_address, 
                                               Config.stellarium_telescope_port)
     
-    task1 = asyncio.create_task(ui.run_event_loop())
-    task2 = asyncio.create_task(app.alpaca_httpd(logger))
-    task3 = asyncio.create_task(telescope.polaris.client(logger))
-    tasks = [task1, task2, task3]
+    task1 = asyncio.create_task(app.alpaca_httpd(logger))
+    task2 = asyncio.create_task(telescope.polaris.client(logger))
+    tasks = [task1, task2]
+    
+    # add the ui task if open_ui settings is set
+    if Config.open_ui:
+        tasks.append(asyncio.create_task(ui.run_event_loop()))
     
     done, pending = await asyncio.wait(tasks,return_when=asyncio.FIRST_COMPLETED)
     logger.info(f'==SHUTDOWN== Time stamps are UTC.')

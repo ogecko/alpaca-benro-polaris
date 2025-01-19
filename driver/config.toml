@@ -47,3 +47,6 @@ supress_stellarium_polling_msgs = true      # supress logging the frequent polli
 
 max_size_mb = 5                             # maximum log file size.
 num_keep_logs = 5                           # maximum number of log files to rotate through.
+
+[ui]
+open_ui = true                              # whatever to open the ui or not

@@ -290,14 +290,16 @@ class Polaris:
                         await asyncio.sleep(5)
                         continue
 
+                # errno = 51 : Network is unreachable
                 elif e.errno == 51:
                         self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App. Check Wifi connection.'
                         logger.error(self._task_errorstr)
                         await asyncio.sleep(5)
                         continue
+                # errno = 54 : Connection reset by peer
                 # errno = 60: Operation timed out
                 # errno = 64: Host is down
-                elif e.errno == 60 or e.errno == 64:
+                elif e.errno == 54 or e.errno == 60 or e.errno == 64:
                         self._task_errorstr = f'==ERROR== Network connection to Polaris lost. Use Polaris App to reconnect.'
                         logger.error(self._task_errorstr)
                         await asyncio.sleep(5)
@@ -1159,6 +1161,13 @@ class Polaris:
     def connected(self) -> bool:
         self._lock.acquire()
         res = self._connected
+        self._lock.release()
+        return res
+        
+    @property
+    def errorstr(self) -> str:
+        self._lock.acquire()
+        res = self._task_errorstr
         self._lock.release()
         return res
 

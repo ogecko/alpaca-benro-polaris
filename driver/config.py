@@ -112,3 +112,7 @@ class Config:
     supress_stellarium_polling_msgs: bool = get_toml('logging', 'supress_stellarium_polling_msgs')
     max_size_mb: int = get_toml('logging', 'max_size_mb')
     num_keep_logs: int = get_toml('logging', 'num_keep_logs')
+    # ----------
+    # Ui Section
+    # ----------
+    open_ui: bool = get_toml('ui', 'open_ui')

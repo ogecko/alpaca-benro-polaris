@@ -32,8 +32,10 @@
 # -----------------------------------------------------------------------------
 
 import sys
+import re
 import asyncio
 import telescope
+import shr
 
 from qasync import QEventLoop, QApplication, asyncSlot, asyncClose
 from PyQt5 import QtCore
@@ -45,14 +47,21 @@ class MainWindow(QWidget):
         self.logger = logger
         self.app_close_event = app_close_event
         self.setLayout(QVBoxLayout())
+        self.lbl_version = QLabel(f'{shr.DeviceMetadata.Description} {shr.DeviceMetadata.Version}', self)
         self.lbl_status = QLabel("", self)
+        self.lbl_error = QLabel("", self)
+        self.lbl_error.setWordWrap(True)
+        self.lbl_error.setMaximumWidth(280)
         self.connected = False
+        self.layout().addWidget(self.lbl_version)
         self.layout().addWidget(self.lbl_status)
+        self.layout().addWidget(self.lbl_error)
         self.quit_button = QPushButton("Quit", self)
+        self.quit_button.setMaximumWidth(60)
         self.quit_button.clicked.connect(self.on_btn_clicked)
-        self.layout().addWidget(self.quit_button)
-        self.setGeometry(100, 100, 300, 200)
-        self.setWindowTitle("Alpaca Benro Polaris")
+        self.layout().addWidget(self.quit_button, alignment=QtCore.Qt.AlignHCenter)
+        self.setGeometry(100, 100, 320, 240)
+        self.setWindowTitle(f'{shr.DeviceMetadata.Description}')
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.updateUI)
         self.updateTimerInterval = 1000 * 0.5
@@ -67,6 +76,8 @@ class MainWindow(QWidget):
                 self.lbl_status.setText("Connected to Polaris")
             else:
                 self.lbl_status.setText("Not connected to Polaris")
+        errorstr = re.sub(r"^==[A-Z]*== ", "", telescope.polaris.errorstr)
+        self.lbl_error.setText(errorstr)
     
     @asyncClose
     async def closeEvent(self, event):
