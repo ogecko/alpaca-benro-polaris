@@ -75,6 +75,18 @@ Multiple people have had issues charging the Benro Polaris after it has drained 
 * Try turning the cable upside down.
 * Try charging with a different power bank.
 
+### B6 - How can you reset the Benro Polaris password?
+To reset the password of your Benro Polaris
+1. Download the [Password Resetting Package](https://www.benro.com/en/downloads/page/polaris-reset-password.html) and place on to your SD card; 
+2. Insert your SD card into Polaris, and power cycle the Polaris. 
+3. When the Polaris powers up, it will read the SD card and reset your password.
+4. After resetting your password, please take the SD card out and delete the password resetting package from the SD card.
+
+
+### B7 - Where can I find the Benro Polaris manual?
+The user manual can be found at the following link - [Polaris User Manual English](https://resource.benro.com/assets/benro/manual/polaris/polaris_user_manual_en.pdf).
+
+
 ## Alpaca Communications  Troubleshooting
 ### C0 - Cannot connect Win11 Computer or Laptop to Benro Polaris Wifi
 There appears to be an issue with some types of Wifi Adapters being able to conenct with the Benro Polaris Wifi. If you cannot get Win11 to form a connection with the polaris_XXXXX Wifi, you may want to try using a USB Wifi Adapter. The following adapter is known to connect with Benro Polaris, [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/). 

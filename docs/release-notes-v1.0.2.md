@@ -29,7 +29,9 @@
 - **[Ephem 4.1.6]**: Upgraded Ephem support from 4.1.6.
  
 ## Documentation (Alpaca Driver)
-  
+- **[Troublshooting B6]**: Add description on how to reset Polaris password
+- **[Troublshooting B7]**: Add link to Polaris User Manual
+
 ## Untested New Features
 Please let us know if you can try any of these features.
 - **[Raspberry Pi]**: Supports running on Raspberry Pi Zero2, Pi 4, and Pi 5.
