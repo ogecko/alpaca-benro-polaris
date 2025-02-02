@@ -65,7 +65,7 @@ class MainWindow(QWidget):
         self.updateTimer = QtCore.QTimer()
         self.updateTimer.timeout.connect(self.updateUI)
         self.updateTimerInterval = 1000 * 0.5
-        self.updateTimer.setInterval(self.updateTimerInterval)
+        self.updateTimer.setInterval(int(self.updateTimerInterval))
         self.updateTimer.start()
      
     @asyncSlot()
