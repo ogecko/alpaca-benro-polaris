@@ -85,13 +85,12 @@ In order to create a hotspot, Windows 11 needs to create a tether to an existing
 8. On the left side, select "Microsoft" Note: It may take a moment for these lists to appear and populate, depending on the speed of your mini-PC
 9. On the right side, select "Microsoft KM-TEST Loopback Adapter"
 10. Click the "Next" button
-11. Click the "Next" button
-Open the Control Panel This can be done by opening the start menu and searching for "Control Panel"
-12. Click "Network and Internet"
-13. Click "Network and Sharing Center"
-14. Click " Change adapter settings" on the left
-15. Rename the KM-TEST loopback adapter to "Loopback"
-16. The right click and select "Rename" may not work. If not, you can select the device, press the F2 key, then type the new name
+11. Click the "Next" button and complete the installation
+12. Open the Control Panel. This can be done by opening the start menu and searching for "Control Panel"
+13. Click "Network and Internet"
+14. Click "Advanced Network Settings"
+15. Expand the Microsoft KM-TEST Loopback Network Adapter. 
+16. Rename the KM-TEST loopback adapter to "Loopback"
 17. Restart the mini-PC
 
 #### Hotspot: Create a Scheduled Task to start mobile hotspot on boot (OPTIONAL)
