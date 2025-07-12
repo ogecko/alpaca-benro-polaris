@@ -129,4 +129,37 @@ Open a PowerShell window, entering the following commands, substituting your nam
 git config --global user.name "FIRST_NAME LAST_NAME"
 git config --global user.email "MY_NAME@gmail.com"
 ```
-#### Gemini EAF Driver Installation
+### Installing the ASCOM Platform (OPTIONAL)
+ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. This `Alpaca Benro Polaris Driver (ABP) commplies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
+
+You may need to install the ASCOM Platform software for compatibility with some astronomry equipment or applications. You will need to install the ASCOM Platform with Stellarium as it is not bundled by default. You do not need to install the ASCOM Platform on a laptop that uses Remote Desktop to access the NinaAir. 
+
+#### To install the ASCOM Platform. 
+1. Download the ASCOM Platform from https://ascom-standards.org/ (Download buttton on the top-right-hand side of the home page).
+2. The remaining instructions assume you are using ASCOM Platform 7.0 Update 2 
+3. Open the installation .exe file and click `Yes` on the User Account Control dialog.
+4. Click `Next` to install any pre-requisites eg Microsoft .nett Framework 3.5 Service Pack 1 
+5. This can take quite some time to download and install (5 min for me)
+6. Once the blue window shows the operation has completed successfully, press any `key` to continue.
+7. Accept the ASCOM Platform Installer default options and click `Install`.
+8. Click `Finish`.
+
+You can also download other versions from the [ASCOM GitHub Releases Site](https://github.com/ASCOMInitiative/ASCOMPlatform/releases).
+
+### Gemini EAF Driver Installation (OPTIONAL)
+The Canon RF 2x and 1.4x Extenders do not appear to work with Nina and the LensAF plugin. You can work around their issue by using an Electronic Auto Focuser (EAF)
+to manually adjust the focus of an attatched Canon Lens. A cheap EAF available from AliExpress is the [Gemini EAF Product](https://www.aliexpress.com/item/1005006731851010.html).
+
+Use the following instructions to setup the Gemini EAF driver on your Mini-PC
+1. Download and install the Ascom Platform as described.
+2. Download the Gemini EAF Driver files from [Google Drive](https://drive.google.com/drive/mobile/folders/1-12XzPuiMEo5033jg36qKqBsfmllL0Zl).
+3. Run the installation program 'CH341SER.EXE'
+4. Click Install then Ok.
+5. Run the installation program 'ASCOM GeminiFocuserPro Setup.exe'
+6. Accept the License Agreement
+7. Click Install then Finish.
+8. Run the program 'GeminiFocuserProConsole.exe'
+9. Click the button to set the directory used to store the log file.
+10. Choose the Com Port 'COM3'
+11. Click Connect, the EAF should beep.
+12. Click Disconnect and Exit.

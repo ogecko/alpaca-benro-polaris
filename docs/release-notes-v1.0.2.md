@@ -23,7 +23,7 @@
 - **[Image Cleanup]**: Add scatter plots to indicate rejected images based on key statistics
 
 ## Upgraded Win11 Requirements.txt Compatibility
-- **[Python 3.13.1]**: Upgraded Python support from 3.13.1.
+- **[Python 3.13.5]**: Upgraded Python support from 3.13.1.
 - **[Falcon 4.0.2]**: Upgraded Falcon support from 4.0.2.
 - **[Uvicorn 0.33.0]**: Upgraded Uvicorn support from 0.33.0.
 - **[Ephem 4.1.6]**: Upgraded Ephem support from 4.1.6.
@@ -31,10 +31,11 @@
 ## Documentation (Alpaca Driver)
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
 - **[Troublshooting B7]**: Add link to Polaris User Manual
+- **[Gemini EAF]**: Add instructions to install Gemini EAF Driver
 
 ## Untested New Features
 Please let us know if you can try any of these features.
-- **[Raspberry Pi]**: Supports running on Raspberry Pi Zero2, Pi 4, and Pi 5.
+- **[Raspberry Pi]**: Known problems running on Raspberry Pi Zero2, Pi 4, and Pi 5.
 - **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
@@ -86,6 +87,7 @@ Please let us know if you can try any of these features.
 * Siril v1.2.3 de49749
 ### Drivers and Utilities
 * Windows Remote Desktop v10.0.22621
+* ASCOM Platform 7 Update 2
 * ASCOM Platform 7 RC7
 * ASCOM Platform 6.6 SP2
 ### Operating Systems

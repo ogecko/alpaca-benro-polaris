@@ -1,7 +1,7 @@
 [Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Installation Guide 
-[Alpaca Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Alpaca MacOS](./installation_macos.md) | [Startup](#running-the-alpaca-benro-polaris-driver) | [ASCOM](#installing-the-ascom-platform-optional) | [Stellarium](#installing-stellarium-optional) | [Sky Safari](#seting-up-sky-safari-pro-optional) | [Nina](#installing-nina-optional) | [Architecture](#software-architecture) 
+[Alpaca Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Alpaca MacOS](./installation_macos.md) | [Startup](#running-the-alpaca-benro-polaris-driver) | [Stellarium](#installing-stellarium-optional) | [Sky Safari](#seting-up-sky-safari-pro-optional) | [Nina](#installing-nina-optional) | [Architecture](#software-architecture) 
 
 
 
@@ -18,7 +18,7 @@ You can view a demonstration of parts of this documentation in the following You
 #### To Install on Windows 11
 The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed before it can run.
 
-1. Download Python 3.13.1 from the [Python website](https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe). Run the installation file downloaded. You must check the field `Add python.exe to PATH`, then click `Install Now`. 
+1. Download Python 3.13.5 from the [Python website](https://www.python.org/ftp/python/3.13.5/python-3.13.5-amd64.exe). Run the installation file downloaded. You must check the field `Add python.exe to PATH`, then click `Install Now`. 
 
 2. Download the [Alpaca Benro Polaris zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/main.zip) from this Github repository.
 
@@ -81,23 +81,6 @@ To update the Alpaca Benro Polaris Driver to the latest version:
 4. Restart the Driver.
 5. If you can complete steps 2-4 within a minute, you won't need to use the BP App to re-establish the Polaris Wifi.
    
-### Installing the ASCOM Platform (OPTIONAL)
-ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. This `Alpaca Benro Polaris Driver (ABP) commplies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
-
-You may need to install the ASCOM Platform software for compatibility with some astronomry equipment or applications. You will need to install the ASCOM Platform with Stellarium as it is not bundled by default. You do not need to install the ASCOM Platform on a laptop that uses Remote Desktop to access the NinaAir. 
-
-#### To install the ASCOM Platform.
-1. Download the ASCOM Platform from https://ascom-standards.org/ (Download buttton on the top-right-hand side of the home page).
-2. The remaining instructions assume you are using ASCOM Platform 6.6SP2 
-3. Open the installation .exe file and click `Yes` on the User Account Control dialog.
-4. Click `Next` to install any pre-requisites eg Microsoft .nett Framework 3.5 Service Pack 1 
-5. This can take quite some time to download and install (5 min for me)
-6. Once the blue window shows the operation has completed successfully, press any `key` to continue.
-7. Accept the ASCOM Platform Installer default options and click `Install`.
-8. Click `Finish`.
-
-You can also download other versions from the [ASCOM GitHub Releases Site](https://github.com/ASCOMInitiative/ASCOMPlatform/releases).
-
 ### Installing Stellarium (OPTIONAL)
 Stellarium is a free open-source planetarium for your computer. 
 While there are free and paid Mobile Stelarium Apps and free Web versions, 
@@ -125,17 +108,17 @@ tested with ABP.
 6. If you are copying Oculars settings, duplicate the following file:
    `C:\Users\XXXXX\AppData\Roaming\Stellarium\modules\Oculars\ocular.ini`
 
-## Seting up Sky Safari Pro (OPTIONAL)
+### Seting up Sky Safari Pro (OPTIONAL)
 The following screen captures show the settings you need to use for Sky Safari Pro to work with the Alpaca Driver. Choose an Mount as Alt-Az , Brand as Celestron NexStar 5i/i8 , IP Address 192.168.0.3, Port 10001, Preset Name as Polaris and Save Preset.
 
 ![Sky Safari Pro](images/abp-sky-safari.png)
 
-## Installing Nina (OPTIONAL)
+### Installing Nina (OPTIONAL)
 Nina is an open-source free software application covering image capture, autofocus, plate-solving, centering, star detection, guiding, and a lot more. Much of this now works with the Benro Polaris (well not guiding yet). The open-source nature makes it a bit more complicated to install and setup, but it's worth the effort - and it's free.
 
 The [Astro What](https://astrowhat.com/) website has a good set of instructions for [Installing Nina and its Pre-requisiites](https://astrowhat.com/articles/setting-up-a-pc-with-n-i-n-a.18/page/installing-n-i-n-a.45/). 
 
-## Software Architecture
+### Software Architecture
 The following diagram is provided as a reference to help you undersdtand how the different software modules fit together.
 
 ![Software Layers](images/abp-software-layers.png)
