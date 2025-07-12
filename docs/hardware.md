@@ -129,3 +129,4 @@ Open a PowerShell window, entering the following commands, substituting your nam
 git config --global user.name "FIRST_NAME LAST_NAME"
 git config --global user.email "MY_NAME@gmail.com"
 ```
+#### Gemini EAF Driver Installation
