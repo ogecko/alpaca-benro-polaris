@@ -613,6 +613,16 @@ class Polaris:
             if cmd in self._response_queues:
                 self._response_queues[cmd].put_nowait(arg_dict)
 
+        # return result of Query Orientation request {} 
+        if cmd == "517":
+            arg_dict = self.polaris_parse_args(args)
+            # Orientation of each axis motor rotational position in radians
+            # Typical Park Position yaw=-0.000280, pitch=0.000267, roll=0.000375
+            # yaw   = axis1 cw rotation in radians (-2pi=-360, -pi=-180, 0=Park, pi=180;, 2pi=360, 3pi=540, etc.)
+            # pitch = axis2 down rotation in radians (-0.6144=highest/83d00'37", 0=Park/47d46'06", 0.834020=0d, 0.914842=lowest/-04d38'04")
+            # roll  = axis3 E rotation in radians (-2pi=-360, -pi=-180, 0=Park, pi=180;, 2pi=360, 3pi=540', etc.)
+            self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
+
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":
             dt_now = datetime.datetime.now()
@@ -991,6 +1001,12 @@ class Polaris:
         if Config.log_polaris and Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 808 Connection request")
         msg = f"1&808&2&type:0;#"
+        await self.send_msg(msg)
+
+    async def send_cmd_517(self):
+        if Config.log_polaris and Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 517 Get Orientation request")
+        msg = f"1&517&3&-1#"
         await self.send_msg(msg)
 
     async def send_cmd_520_position_updates(self, state:bool=True):
