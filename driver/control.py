@@ -1,0 +1,299 @@
+import numpy as np
+import datetime
+from pyquaternion import Quaternion
+from config import Config
+
+
+# ************* Quaternion Kinematics *************
+
+def is_angle_same(a, b, tolerance=1e-6):
+    """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
+    return abs((a - b + 180) % 360 - 180) < tolerance
+
+
+def is_same_quaternion_rotation(q1, q2, tolerance=1e-6):
+    """Check if two quaternions represent the same rotation"""
+    t1, t2, t3, a1, a2, a3 = quaternion_to_angles(q1)
+    s1, s2, s3, b1, b2, b3 = quaternion_to_angles(q2)
+    return (t1-s1)**2+(t2-s2)**2+(t3-s3)**2+(a1-b1)**2+(a2-b2)**2+(a3-b3)**2 < tolerance
+
+
+def angular_difference(a, b):
+    """
+    Compute shortest angular difference from a to b, in degrees.
+    Wraps output to [-180°, +180°].
+    angular_difference(359, 1)   # → +2
+    angular_difference(1, 359)   # → -2
+    angular_difference(0, 180)   # → +180
+    angular_difference(180, 0)   # → -180
+
+    """
+    return ((b - a + 180) % 360) - 180
+
+
+def calculate_angular_velocity(history):
+    """
+    Computes angular velocity from the first and last entries in a history buffer.
+    Each entry must be a list or tuple: [timestamp, theta1, theta2, theta3]
+
+    Returns omega : ndarray
+        Angular velocity vector [ω₁, ω₂, ω₃] in degrees per second.
+        Returns [0.0, 0.0, 0.0] if input is insufficient or invalid.
+    """
+    # try:
+    if history is None or len(history) < 2:
+        return np.zeros(3)
+
+    # Use first and last entries
+    t_start, *theta_start = history[0]
+    t_end,   *theta_end   = history[-1]
+
+    if not isinstance(t_start, datetime.datetime) or not isinstance(t_end, datetime.datetime):
+        return np.zeros(3)
+
+    dt = (t_end - t_start).total_seconds()
+    if dt <= 0:
+        return np.zeros(3)
+
+    # Wrap-safe angular velocity
+    omega = np.array([
+        angular_difference(start, end) / dt
+        for start, end in zip(theta_start, theta_end)
+    ])
+    return omega
+
+    # except Exception:
+    #     return np.zeros(3)
+
+
+
+def extract_roll_from_quaternion(q3, reference_axis=np.array([0, 0, 1]), epsilon=1e-6):
+    """
+    Determines roll angle from quaternion q3, corrected for axis direction.
+    
+    Args:
+        q3: Quaternion representing rotation around boresight, with alt and az rotations removed
+        reference_axis: Expected boresight direction (default +z)
+        epsilon: Threshold for floating-point comparison
+    
+    Returns:
+        float: Corrected roll angle in degrees
+    """
+    axis_norm = np.linalg.norm(q3.axis)
+    if axis_norm < epsilon:
+        return 0.0  # No rotation → roll is zero
+
+    actual_axis = q3.axis / axis_norm
+    roll_raw = np.float64(q3.degrees)
+    alignment = np.dot(actual_axis, reference_axis)
+
+    # Flip sign if axis is pointing in the opposite direction
+    if alignment < -epsilon:
+        return roll_raw
+    else:
+        return -roll_raw
+
+
+
+def angles_to_quaternion(az, alt, roll):
+    """
+    Convert altitude, azimuth, and roll angles to a quaternion using simple rotation composition.
+    
+    Args:
+        az: Azimuth angle in degrees (0-360)
+        alt: Altitude angle in degrees (-90 to +90)
+        roll: Roll angle around boresight in degrees
+    
+    Returns:
+        Quaternion: q1 that rotates from camera frame to topocentric frame
+    """
+    # Reconstructing q1 from az, alt, roll
+    qaz = Quaternion(axis=[0, 0, 1], degrees= -az + 90)
+    qalt = Quaternion(axis=[0, 1, 0], degrees= -alt - 90)
+    qroll = Quaternion(axis=[0, 0, 1], degrees= roll)
+    q1 = qaz * qalt * qroll  # Reconstructed q1 quaternion from roll, then alt, then az
+    
+    return -q1.normalised
+
+
+
+def motors_to_quaternion(theta1, theta2, theta3):
+    """
+    Convert theta1, theta2, theta3 angles to a quaternion using simple rotation composition.
+    
+    Args:
+        theta1: Polaris Axis 1 angle in degrees (0-360)
+        theta2: Polaris Axis 2 angle in degrees (-90 to +90)
+        theta3: Polaris Axis 3 angle in degrees (-90 to +90)
+    
+    Returns:
+        Quaternion: q1 that rotates from camera frame to topocentric frame
+    """
+    
+    # Reconstructing q1 from theta1, theta2, theta3
+    qtheta1 = Quaternion(axis=[0, 0, 1], degrees= -theta1 + 90)
+    qtheta2 = Quaternion(axis=[0, 1, 0], degrees= -theta2 - 90)
+    qtheta3 = Quaternion(axis=(qtheta1*qtheta2).rotate([1, 0, 0]), degrees= theta3)
+    q1 = qtheta3 * qtheta1 * qtheta2   # Reconstructed q1 quaternion from theta2 then theta1 then theta3
+
+    return -q1.normalised
+
+
+
+def quaternion_to_angles(q1):
+    """
+    Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
+    
+    Args:
+        q1: Quaternion that rotates from camera frame to topocentric frame
+            Camera frame: -z = boresight, +x = up, +y = left
+            Topocentric frame: +z = Zenith, +y = North, +x = East
+    
+    Returns:
+        tuple: (theta1, theta2, theta3, alt, az, roll)
+            - theta1: Rotation around Polaris Axis 1 (degrees, 0-360)
+            - theta2: Rotation around Polaris Axis 2 (degrees, -90 to +90)
+            - theta3: Rotation around Polaris Axis 3 (degrees)
+            - alt: Altitude angle (degrees, -90 to +90)
+            - az: Azimuth angle (degrees, 0-360)
+            - roll: Roll angle around boresight (degrees)
+    """
+    
+    # Reference Unit Vectors
+    cBore =   np.array([0, 0,-1])     # Camera Pointing Unit Vector (same as optical axis) in the Camera Reference Frame
+    cUp =     np.array([1, 0, 0])     # Camera Up Unit Vector (same as Polaris Axis 3) in the Camera Reference Frame
+    cRight =  np.array([0,-1, 0])     # Camera Right Unit Vector in the Camera Reference Frame
+
+
+    # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
+    # Rotate Camera Reference Unit Vectors to Topocentric Reference Frame
+    [tBore, tUp, tRight] = np.array([q1.rotate(p) for p in [cBore, cUp, cRight]])    
+
+    # --- Azimuth and Altitude: rotation around unadjusted bore vector ie Topocentric co-ordinates including effect of Axis 3
+    az = (np.degrees(np.arctan2(tBore[0], tBore[1])) + 360) % 360       # Azimuth = Boresight axis projected on N/E plane
+    alt = np.degrees(np.arcsin(np.clip(tBore[2], -1.0, 1.0)))           # Altitude = Angle from N/E plane, vertically to the Boresight axis
+
+    # --- Roll angle: rotation around boresight ---
+    if abs(abs(alt) - 90) < 1e-3:                                       # if altitude is +90 = pointing straight up or -90 = straight down
+        roll = 0.0  
+    else:
+        qalt = Quaternion(axis=cRight, degrees= alt + 90)
+        qaz = Quaternion(axis=cBore, degrees= az - 90)
+        q3 = q1 * (qaz * qalt).inverse                                  # remove alt and az rotations, leaving only the residual roll about the boresight
+        roll = extract_roll_from_quaternion(q3)
+        
+    # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
+    q4 = q1 * Quaternion(axis=cUp, degrees=180)                     # since axis3 is last rotation ZYX in q1, we can simply read its Euler angle X after we flip it
+    theta3 = np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
+    
+    # --- Theta1 and Theta2: rotation around corrected bore vector ie Polaris Axis 1 and 2, without effect of Axis 3
+    unroll = Quaternion(axis=tUp, degrees=theta3).inverse               # Undo Theta3 rotation to get cleaned bore vector 
+    mBore = unroll.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module on the polaris
+    theta1 = (np.degrees(np.arctan2(mBore[0], mBore[1])) + 360) % 360
+    theta2 = np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0)))
+
+
+    return theta1, theta2, theta3, az, alt, roll
+
+
+
+# ************* Kalman Filter *************
+
+
+class KalmanFilter:
+    def __init__(self, logger, dt, initial_state):
+        self.logger = logger
+        self.dt = dt
+        self.x = initial_state.reshape(8, 1)                                # Initial state - 4 x positions (az,alt,roll,rot) and 4 x velocities (azv, altv, rollv, rotv)
+        self.A = np.block([                                                 # A = State transition matrix
+            [np.eye(4), dt * np.eye(4)],                                    #   Next Position = Last Position + dt * Last Velocity
+            [np.zeros((4, 4)), np.eye(4)]                                   #   Next Velocity = Last Velocity
+        ])
+        self.B = np.block([                                                 # B = Control matrix 
+            [np.zeros((4,4))],                                              #   Next Position = No effect
+            [np.zeros((4,4))],                                              #   Next Velocity = No effect
+            # [0.5 * np.eye(4)]                                               #   Next Velocity = += 0.5 * (control move rate - Last Velocity)
+        ])
+        self.H = np.hstack((np.eye(4), np.zeros((4, 4))))                   # H = Measurement matrix (only measuring Position)
+        self.Q = np.eye(8) * 0.0001                                         # Q = Process noise covariance
+        self.R = np.eye(4) * 0.000145                                       # R = Measurement noise covariance
+        self.P = np.eye(8)                                                  # Initial covariance matrix
+        self.I = np.eye(8)                                                  # Identity matrix
+
+    def predict(self, control_input):
+        self.u = control_input - self.x[4:]                                 # u = u - v
+        self.x = self.A @ self.x + self.B @ self.u                          # x(k+1) = A @ x(k) + B @ u(k)
+        self.P = self.A @ self.P @ self.A.T + self.Q                        # P(k+1) = A @ P(k) @ A.T + Q
+
+    def observe(self, measurement):
+        K = self.P @ self.H.T @ np.linalg.inv(self.H @ self.P @ self.H.T + self.R)
+        y = measurement - (self.H @ self.x)  # Measurement residual
+        self.x = self.x + (K @ y)
+        self.P = (self.I - K @ self.H) @ self.P
+
+    def get_state(self):
+        return self.x.flatten()
+
+    def set_state(self, x):
+        self.x = x.reshape(8, 1)
+
+    def process_518_args(self, arg_dict):
+        p_az = float(arg_dict['compass'])
+        p_alt = -float(arg_dict['alt'])
+
+        # 1/100 second sidereal timer, controls issue of steps at the selected RA and/or Dec rate(s) 
+        # is it in backlash mode?
+        # for pulse guiding, count down the ms and stop when timed out, guideTimeRemaining
+        # calcTimerRate = guideTimerRate + pecTimerRate + trackingTimerRate
+        # f = siderealRate / calcTimerRate
+        # remember actual runningTimeRate, how many steps made
+        # if a big step in rate change or at higher rates then consider smoothing the acceleration/deacceleration
+        # know when to stop guiding if calc rate too small
+        # timeInterval = TimerRate / ppsRateRatio * axis2StepGoto
+        
+        # Q1 represents the 3 axis rotation of the Polaris, wrt X=East/Roll/Axis2, Y=North/Pitch/Axis1, Z=Up/Yaw/Axis0. 
+        # Think of a plane flying East with a camera pitched down 90 degrees. This is the reference frame.
+        # The quaternion prepresents the 3D rotation on the plane, to get the camera pointing in the polaris orientation.
+        self.q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
+
+        # Q2 represents the 3 axis rotation of the Polaris, wrt X=North, Y=West, Z=Up. (affected by Roll Angle - TBD)
+        # Think of a plane flying North with a camera pointed to the left wing, then pitch the camera down 90 degrees. This is the reference frame.
+        # The quaternion prepresents the 3D rotation on the plane, to get the camera pointing in the polaris orientation.
+        self.q2 = Quaternion(arg_dict['w2'], arg_dict['x2'], arg_dict['y2'], arg_dict['z2'])
+
+        # Q3 represents the equivalent 3 axis rotation of Q1 with only the field rotation remaining (ie invert the az and alt rotations)
+        # Field Rotation ranges from -80 to +80, where 0 is a framing level with the horizon
+        #   Is calculation by the rotation angle of q3
+        #   At the start of any GOTO the Polaris will set the Field rotation back to zero, before moving the Alt and Az axes
+        #   At higher pointing Altitudes the Field Rotation is limited even more due to Polaris design eg (at Alt=70, Rotation=+/-60) (at Alt=78 Rotation=+/-35)
+        # When pointing to targets towards the Southern Celestrial Pole
+        #   A -ve value is rotated clockwise from level, a +ve value is rotated a anti-clockwise
+        #   Enabling tracking will slowly decrease the Field Rotation angle (for long sequences, start with a +ve value)
+        # When pointing to targets towards the Northern Celestrial Pole
+        #   A -ve value is rotated clockwise from level, a +ve value is rotated a anti-clockwise
+        #   Enabling tracking will slowly increase the Field Rotation angle (for long sequences, start with a -ve value)
+        qalt = Quaternion(axis=(0,1,0), degrees= -90 - p_alt)
+        qaz = Quaternion(axis=(0,0,1), degrees= +90 - p_az)
+        q3 = self.q1 * (qaz * qalt).inverse
+        p_rot = q3.degrees
+
+        # Q4 reoresebts the equivalent 3 axis rotation of Q1 but with a 180 x axis rotation to fix the roll value
+        # Roll angle ranges from -180 to +180, where 0 is the roll after a GOTO command
+        q4 = self.q1 * Quaternion(axis=(1,0,0), degrees=180)
+        p_yaw = np.degrees(np.arctan2(2 * (q4[0]*q4[3] + q4[1]*q4[2]), q4[0]**2 + q4[1]**2 - q4[2]**2 - q4[3]**2))
+        p_pitch = np.degrees(np.arcsin(2 * (q4[0]*q4[2] - q4[1]*q4[3])))
+        p_roll = np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
+
+        
+
+        # Need to update control_input to translate moveaxis_rates
+        # rates = self._axis_ASCOM_slewing_rates
+        control_input = np.array([0,0,0,0]).reshape(4, 1)
+        self.predict(control_input)
+
+        # Observation step
+        measurement = np.array([p_az, p_alt, p_roll, p_rot]).reshape(4, 1)
+        self.observe(measurement)
+
+
+

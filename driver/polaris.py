@@ -75,12 +75,14 @@ import re
 import asyncio
 import ephem
 import numpy as np
+from collections import deque
 from pyquaternion import Quaternion
 from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue
+from control import KalmanFilter, quaternion_to_angles, calculate_angular_velocity
 
 class Polaris:
     """Simulated telescope device that communicates with Polaris Device
@@ -155,6 +157,11 @@ class Polaris:
         #
         # Telescope device state variables
         #
+        self._kf: KalmanFilter = KalmanFilter(logger, 0.2, np.zeros(8))
+        self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
+        self._theta = None                          # The latest set of motor axis angles [theta1, theta2, theta3]
+        self._omega = None                          # The latest set of motor axis angular velocity [omega1, omega2, omega3]
+        self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._altitude: float = 0.0                 # The Pitch/Altitude above the local horizon of the telescope's current position (degrees, positive up)
         self._azimuth: float = 0.0                  # The Yaw/Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
         self._roll: float = 0.0                     # The Roll (-180 to +180), 0=after GOTO, -ve=clockwise rotation looking down onto top of Astro mount axis.
@@ -625,76 +632,44 @@ class Polaris:
 
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":
+            dt_prev = self._last_518_timestamp
             dt_now = datetime.datetime.now()
-
+    
+            # extract the quaternion, angles and velocities
             arg_dict = self.polaris_parse_args(args, name_postfix=True)
-            p_az = float(arg_dict['compass'])
-            p_alt = -float(arg_dict['alt'])
-
-            # Q1 represents the 3 axis rotation of the Polaris, wrt X=East/Roll/Axis2, Y=North/Pitch/Axis1, Z=Up/Yaw/Axis0. 
-            # Think of a plane flying East with a camera pitched down 90 degrees. This is the reference frame.
-            # The quaternion prepresents the 3D rotation on the plane, to get the camera pointing in the polaris orientation.
             q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
+            theta1, theta2, theta3, p_az, p_alt, p_roll = quaternion_to_angles(q1)
+            theta = [theta1, theta2, theta3]
+            self._history.append([dt_now, theta1, theta2, theta3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
+            omega = calculate_angular_velocity(self._history)
+            [ omega1, omega2, omega3 ] = omega
 
-            # Q2 represents the 3 axis rotation of the Polaris, wrt X=North, Y=West, Z=Up. 
-            # Think of a plane flying North with a camera pointed to the left wing, then pitch the camera down 90 degrees. This is the reference frame.
-            # The quaternion prepresents the 3D rotation on the plane, to get the camera pointing in the polaris orientation.
-            q2 = Quaternion(arg_dict['w2'], arg_dict['x2'], arg_dict['y2'], arg_dict['z2'])
+#            self._kf.process_518_args(arg_dict) # use a Kalman Filter on position measurements
+            # p_az,p_alt,p_roll,p_rot, v_az,v_alt,v_roll,v_rot = self._kf.get_state()
 
-            # Q3 represents the equivalent 3 axis rotation of Q1 with only the field rotation remaining (ie invert the az and alt rotations)
-            # Q4 reoresebts the equivalent 3 axis rotation of Q1 but with a 180 x axis rotation to fix the roll value
-            qalt = Quaternion(axis=(0,1,0), degrees= -90 - p_alt)
-            qaz = Quaternion(axis=(0,0,1), degrees= +90 - p_az)
-            q3 = q1 * (qaz * qalt).inverse
-            q4 = q1 * Quaternion(axis=(1,0,0), degrees=180)
+            p_az = float(arg_dict['compass'])   # override filtered az with raw value from Polaris
+            p_alt = -float(arg_dict['alt'])     # override filtered alt with raw value from Polaris
+            p_ra, p_dec = self.altaz2radec(p_alt, p_az)
+            rates = self._axis_ASCOM_slewing_rates
 
-            # Roll angle ranges from -180 to +180, where 0 is the roll after a GOTO command
-            # Field Rotation ranges from -80 to +80, where 0 is a framing level with the horizon
-            #   Is calculation by the rotation angle of q3
-            #   At the start of any GOTO the Polaris will set the Field rotation back to zero, before moving the Alt and Az axes
-            #   At higher pointing Altitudes the Field Rotation is limited even more due to Polaris design eg (at Alt=70, Rotation=+/-60) (at Alt=78 Rotation=+/-35)
-            # When pointing to targets towards the Southern Celestrial Pole
-            #   A -ve value is rotated clockwise from level, a +ve value is rotated a anti-clockwise
-            #   Enabling tracking will slowly decrease the Field Rotation angle (for long sequences, start with a +ve value)
-            # When pointing to targets towards the Northern Celestrial Pole
-            #   A -ve value is rotated clockwise from level, a +ve value is rotated a anti-clockwise
-            #   Enabling tracking will slowly increase the Field Rotation angle (for long sequences, start with a -ve value)
-            
-            p_rot = q3.degrees
-            p_yaw = np.degrees(np.arctan2(2 * (q4[0]*q4[3] + q4[1]*q4[2]), q4[0]**2 + q4[1]**2 - q4[2]**2 - q4[3]**2))
-            p_pitch = np.degrees(np.arcsin(2 * (q4[0]*q4[2] - q4[1]*q4[3])))
-            p_roll = np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
-
-            # remember all the old values
-            dt_old = self._last_518_timestamp if self._last_518_timestamp else dt_now-1
-            p_az_old = self._p_azimuth if self._p_azimuth else p_az
-            p_alt_old = self._p_altitude if self._p_altitude else p_alt
-            p_roll_old = self._p_roll if self._p_roll else p_roll
-            p_rot_old = self._p_rotation if self._p_rotation else p_rot
-            dt_delta = (dt_now - dt_old).total_seconds()
-            p_daz_dt = (p_az - p_az_old) / dt_delta
-            p_dalt_dt = (p_alt - p_alt_old) / dt_delta
-            p_droll_dt = (p_roll - p_roll_old) / dt_delta
-            p_drot_dt = (p_rot - p_rot_old) / dt_delta
-
+            time = self.get_performance_data_time()
             if Config.log_performance_data == 5:
-                time = self.get_performance_data_time()
-                def q_ypr(q):
-                    return f',{q.w:+05f},{q.x:+05f},{q.y:+05f},{q.z:+05f}'
-                rates = self._axis_ASCOM_slewing_rates
-                self.logger.info(f',DATA5,{time:.3f} {q_ypr(q1)} {q_ypr(q2)} ,{p_az:+03f},{p_alt:+03f},{p_roll:+05f},{p_rot:+03f} ,{rates[0]:+05f},{rates[1]:+05f},{rates[2]:+05f}')
+                self.logger.info(f',DATA5,{time:.3f},{p_az:+03f},{p_alt:+03f},{p_roll:+05f},{theta1:+03f} ,{theta2:+05f},{theta3:+05f},{omega1:+05f},{omega2:+05f},{omega3:+05f} ')
 
             # Store all the new values
             self._lock.acquire()
             self._last_518_timestamp = dt_now
+            self._q1 = q1
+            self._theta = theta
+            self._omega = omega
             self._p_altitude = p_alt
             self._p_azimuth = p_az
             self._p_roll = p_roll
-            self._p_rotation = p_rot
-            p_ra, p_dec = self.altaz2radec(p_alt, p_az)
+            self._p_rotation = theta3
             self._p_rightascension = p_ra 
             self._p_declination = p_dec
             self._lock.release()
+
             if Config.sync_pointing_model==1:
                 # Use RA/Dec Sync Pointing model
                 a_ra, a_dec = self.radec_polaris2ascom(p_ra, p_dec)
@@ -704,14 +679,14 @@ class Polaris:
                 self._altitude = a_alt
                 self._azimuth = a_az
                 self._roll = p_roll
-                self._rotation = p_rot
+                self._rotation = theta3
             else:
                 # Use Alt/Az Sync Pointing model
                 a_alt, a_az = self.altaz_polaris2ascom(p_alt, p_az)
                 self._altitude = a_alt
                 self._azimuth = a_az
                 self._roll = p_roll
-                self._rotation = p_rot
+                self._rotation = theta3
                 a_ra, a_dec= self.altaz2radec(a_alt, a_az)
                 self._rightascension = a_ra 
                 self._declination = a_dec
