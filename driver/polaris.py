@@ -82,7 +82,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue
-from control import KalmanFilter, quaternion_to_angles, calculate_angular_velocity
+from control import KalmanFilter, quaternion_to_angles, calculate_angular_velocity, is_angle_same, MotorSpeedController
 
 class Polaris:
     """Simulated telescope device that communicates with Polaris Device
@@ -232,6 +232,10 @@ class Polaris:
         self._axis_Polaris_slewing_rates = [ 0, 0, 0 ]   # Records the Polaris move rate of the primary, seconday and tertiary axis
         self._axis_ASCOM_slewing_rates = [ 0, 0, 0 ]     # Records the ASCOM move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
+        self._motorcontrollers = {
+            axis: MotorSpeedController(logger, axis, self.send_msg)
+            for axis in (0, 1, 2)
+        }
 
 
 
@@ -249,7 +253,7 @@ class Polaris:
         background_watchdog.add_done_callback(self.task_done)
         background_keepalive = asyncio.create_task(self._every_15s_send_polaris_keepalive())
         background_keepalive.add_done_callback(self.task_done)
-        background_fastmove = asyncio.create_task(self.every_50ms_send_message())
+        background_fastmove = asyncio.create_task(self.every_50ms_tick())
         background_fastmove.add_done_callback(self.task_done)
         if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
             background_driftcheck = asyncio.create_task(self.every_2min_drift_check())
@@ -393,13 +397,10 @@ class Polaris:
                 self._task_exception = e
                 break
 
-    async def every_50ms_send_message(self):
+    async def every_50ms_tick(self):
         while True:
             try: 
                 await self.every_50ms_counter_check()
-                msg = self._every_50ms_msg_to_send
-                if (msg):
-                    await self.send_msg(msg)
                 await asyncio.sleep(0.05)
             except Exception as e:
                 self._task_exception = e
@@ -439,16 +440,6 @@ class Polaris:
                 self._every_50ms_last_p_altitude = self._p_altitude
                 self._every_50ms_last_p_azimuth = self._p_azimuth
                 self._every_50ms_last_a_rates = self._axis_ASCOM_slewing_rates.copy()
-
-    def every_50ms_msg_to_set(self, msg):
-        self._lock.acquire()
-        self._every_50ms_msg_to_send = msg
-        self._lock.release()
-    
-    def every_50ms_msg_to_clear(self):
-        self._lock.acquire()
-        self._every_50ms_msg_to_send = None
-        self._lock.release()
 
     def get_performance_data_time(self):
         dt_now = datetime.datetime.now()
@@ -638,19 +629,24 @@ class Polaris:
             # extract the quaternion, angles and velocities
             arg_dict = self.polaris_parse_args(args, name_postfix=True)
             q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
-            theta1, theta2, theta3, p_az, p_alt, p_roll = quaternion_to_angles(q1)
+            theta1, theta2, theta3, az, alt, p_roll = quaternion_to_angles(q1)
             theta = [theta1, theta2, theta3]
             self._history.append([dt_now, theta1, theta2, theta3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
             omega = calculate_angular_velocity(self._history)
             [ omega1, omega2, omega3 ] = omega
 
-#            self._kf.process_518_args(arg_dict) # use a Kalman Filter on position measurements
-            # p_az,p_alt,p_roll,p_rot, v_az,v_alt,v_roll,v_rot = self._kf.get_state()
-
             p_az = float(arg_dict['compass'])   # override filtered az with raw value from Polaris
             p_alt = -float(arg_dict['alt'])     # override filtered alt with raw value from Polaris
             p_ra, p_dec = self.altaz2radec(p_alt, p_az)
             rates = self._axis_ASCOM_slewing_rates
+
+            if not is_angle_same(az, p_az):
+                self.logger.warn(f"Kinematics variance p_az {p_az:.5f} az {az:.5f} diff {p_az - az:.5f} ")              
+            if not is_angle_same(alt, p_alt):
+                self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} alt {alt:.5f} diff {p_alt - alt:.5f}") 
+
+#            self._kf.process_518_args(arg_dict) # use a Kalman Filter on position measurements
+            # p_az,p_alt,p_roll,p_rot, v_az,v_alt,v_roll,v_rot = self._kf.get_state()
 
             time = self.get_performance_data_time()
             if Config.log_performance_data == 5:
@@ -1663,121 +1659,12 @@ class Polaris:
         self.logger.info(f"->> Polaris: GOTO ASCOM   Alt: {deg2dms(a_alt)} Az: {deg2dms(a_az)}")
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
-    def convert_ascom2polaris_rate(self, axis: int, ascomrate: float):
-        # Map between ASCOM floatinig to Polaris rates for Slow and Fast Move
-        # __ASCOM RATE__:_POLARIS RATE__|__Aprox Speed__|_CMD__________________________________
-        # 0.000         : 0             |               | Stop all
-        # 0.001 to 1.000: 1             | 21.5 arcsec/s  | Slow move commands '532', '533', '534'
-        # 1.001 to 2.000: 2             |  1.1 arcmin/s  |   "
-        # 2.001 to 3.000: 3             |  2.8 arcmin/s  |   "
-        # 3.001 to 4.000: 4             |  5.3 arcmin/s  |   "
-        # 4.001 to 5.000: 5             | 12.5 arcmin/s  |   "
-        # 5.001 to 6.000: 1 to 500      | 32.5 arcmin/s  | Fast move commands '513', '514', '521'
-        # 6.001 to 7.000: 501 to 1000   |  1.5 degree/s  |   "
-        # 7.001 to 8.000: 1001 to 1500  |  3.0 degree/s  |   "
-        # 8.001 to 9.000: 1501 to 2000  |  5.2 degree/s  |   "
-        
-        # Number of units in each group for rates 6, 7, 8, 9 - MUST TOTAL 2000
-        offset5 = 360   # any value below 360 on scale 1-2000 is slower than slow rate 5
-        group6 = 410
-        group7 = 410
-        group8 = 410
-        group9 = 410
-
-        sign = -1 if ascomrate < 0 else 1
-        key = 0 if ascomrate > 0 else 1
-        x = abs(ascomrate)
-
-        if x==0:
-            rate = 0
-        elif x <= 1.0:
-            rate = 1
-        elif x <= 2.0:
-            rate = 2
-        elif x <= 3.0:
-            rate = 3
-        elif x <= 4.0:
-            rate = 4
-        elif x <= 5.0:
-            rate = 5
-        elif x <= 6.0:
-            rate = int(offset5 + 1 + (x - 5.0) * (group6 - 1))                              # (1 + (x - 4.0) * 499)
-        elif x <= 7.0:
-            rate = int(offset5 + group6 + 1 + (x - 6.0) * (group7 - 1))                     # (501 + (x - 5.0) * 499)
-        elif x <= 8.0:
-            rate = int(offset5 + group6 + group7 + 1 + (x - 7.0) * (group8 - 1))            # (1001 + (x - 6.0) * 499)
-        elif x <= 9.0:
-            rate = int(offset5 + group6 + group7 + group8 + 1 + (x - 8.0) * (group9 - 1))   # (1501 + (x - 7.0) * 499)
-        else:
-            rate = None
-        
-        # Equatorial Absolute Move Commands '1.ddnnn' where dd=degrees, nnn=decimal degrees
-        if x>1.0 and x<2.0:
-            rate = (x - 1.0) * 100 * sign
-            cmd = None
-            cmdtype = 3
-        # Slow Move commands '1' to '5'
-        elif x <= 5.0:
-            cmd = '532' if axis==0 else '533' if axis==1 else '534'
-            cmdtype = 1   
-        # Fast Move Commands '5.001' to '9.0'
-        elif x<=9.0:
-            key = None
-            rate = sign * rate
-            cmd = '513' if axis==0 else '514' if axis==1 else '521'
-            cmdtype = 2  
-        # Invalid Move Command
-        else:
-            cmd = None
-            cmdtype = None
-            rate = 0
-            key=0
-            
-        return cmd, cmdtype, key, rate           
-
 
     async def move_axis(self, axis:int, ascomrate:float):
-        cmd, cmdtype, key, rate = self.convert_ascom2polaris_rate(axis, ascomrate)
+        self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {ascomrate}")
+        self._motorcontrollers[axis].update_rate(ascomrate,"ASCOM")
+        return
 
-        # f cmdtype=1 then slow Alt/Az move and stop slow or fast
-        if cmdtype==1:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE Slow Az/Alt/Rot Axis {axis} Rate {rate}")
-            self._lock.acquire()
-            self._axis_ASCOM_slewing_rates[axis] = ascomrate
-            self._axis_Polaris_slewing_rates[axis] = -rate if cmdtype==1 and key==1 else rate
-            self._slewing = any(self._axis_Polaris_slewing_rates)
-            self._lock.release()
-            if self._every_50ms_msg_to_send and rate == 0:
-                self.every_50ms_msg_to_clear()                  # stop fast move msgs
-                if Config.log_polaris_protocol:
-                    self.logger.info(f'->> Polaris: stop_fastmove_repeating')
-            state = 0 if rate == 0 else 1
-            await self.send_msg(f"1&{cmd}&3&key:{key};state:{state};level:{rate};#")
-
-        # if cmdtype=2 then fast Alt/Az move
-        elif cmdtype==2:
-            self._lock.acquire()
-            self._axis_ASCOM_slewing_rates[axis] = ascomrate
-            self._axis_Polaris_slewing_rates[axis] = -rate if cmdtype==1 and key==1 else rate
-            self._slewing = any(self._axis_Polaris_slewing_rates)
-            self._lock.release()
-            msg=f"1&{cmd}&3&speed:{rate};#"
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE Fast Az/Alt/Rot Axis {axis} Rate {rate}")
-            if Config.log_polaris_protocol:
-                self.logger.info(f'->> Polaris: send_fastmove_repeating: {msg}')
-            self.every_50ms_msg_to_set(msg)                     # start fast move msgs
-
-        # if cmdtype=3 then Equatorial RA/Dec move Rate degrees
-        elif cmdtype==3:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: Move Equatorial RA/Dec Axis: {axis} Rate: {rate} degrees")
-            self._lock.acquire()
-            ra = self._rightascension + ((rate*24/360) if axis==0 else 0)
-            dec = self._declination + (rate if axis==1 else 0)
-            self._lock.release()
-            await self.SlewToCoordinates(ra, dec, isasync=True)
 
     async def park(self):
         self._lock.acquire()
