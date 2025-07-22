@@ -354,7 +354,7 @@ class MotorSpeedController:
         # Kick off the dispatch loop as an asyncio task
         asyncio.create_task(self._dispatch_loop())
 
-    def update_rate(self, rate: float, rate_unit="DPS"):
+    def set_motor_speed(self, rate: float, rate_unit="DPS"):
         async def _update():
             async with self._lock:
                 self._rate = rate

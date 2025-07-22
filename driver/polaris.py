@@ -1662,7 +1662,7 @@ class Polaris:
 
     async def move_axis(self, axis:int, ascomrate:float):
         self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {ascomrate}")
-        self._motorcontrollers[axis].update_rate(ascomrate,"ASCOM")
+        self._motorcontrollers[axis].set_motor_speed(ascomrate,"ASCOM")
         return
 
 
