@@ -1046,7 +1046,8 @@ class Polaris:
                 asyncio.create_task(self.goto_tracking_test())
             # if we want to run Speed test to ramp moveaxis rate over its full range
             if Config.log_performance_data_test == 3:
-                asyncio.create_task(self.moveaxis_speed_calibration_test(2))
+                # asyncio.create_task(self.moveaxis_speed_calibration_full_test())
+                asyncio.create_task(self.moveaxis_speed_calibration_test(0))
             if Config.log_performance_data_test == 5:
                 asyncio.create_task(self.rotator_test())
         else:
@@ -1077,10 +1078,27 @@ class Polaris:
         # complete the test
         self.logger.info(f"== TEST == Rotator Test | COMPLETE")
 
-    async def moveaxis_speed_calibration_test(self, axis):
+    async def moveaxis_speed_calibration_full_test(self):
         if self._test_underway:
             return
         self._test_underway = True
+
+        # Run all axis calibration tasks in parallel
+        tasks = [self.moveaxis_speed_calibration_test(axis) for axis in (0, 1, 2)]
+        results_list = await asyncio.gather(*tasks)
+
+        # Merge axis-wise results
+        result = {}
+        for axis_result in results_list:
+            result.update(axis_result)
+
+        self.logger.info("== TEST == Multi-Axis Calibration COMPLETE")
+        pprint.pprint(result, width=250)
+
+        self._test_underway = False
+
+
+    async def moveaxis_speed_calibration_test(self, axis):
         ascom_rates = list(range(10))  # ASCOM rates 0–9
 
         required_stable_samples = 5
@@ -1103,6 +1121,7 @@ class Polaris:
                 omega = self._omega[axis]
                 omega_samples.append(omega)
 
+                # if we potentially have enough samples, take a window the last set
                 if len(omega_samples) >= required_stable_samples:
                     window = omega_samples[-required_stable_samples:]
                     stdev = np.std(window)
@@ -1112,27 +1131,22 @@ class Polaris:
                         raw_results.append(float(raw_rate))
                         self.logger.info(f"== TEST == Stable | Axis {axis} | ASCOM {rate} | RAW: {raw_rate:.2f} | DPS: {measured_omega:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
                         break
-
+            # exited while without a vale in tollerance
             else:
-                # wasnt able to update so lets use whatever we have currently in the interpolation model
                 current_dps = self._motorcontrollers[axis]._model.interpolate["RAW"].toDPS(raw_rate)
                 dps_results.append(float(current_dps))
                 raw_results.append(float(raw_rate))
                 self.logger.info(f"== TEST == UNSTABLE | Axis {axis} | ASCOM {rate} | RAW: {raw_rate:.2f} | DPS: {current_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
-
  
-        result = {
+        await self.move_axis(axis, 0)
+        return {
             axis: {
                 "RAW": raw_results,
                 "ASCOM": [float(r) for r in ascom_rates],
                 "DPS": dps_results
             }
         }
-
-        self.logger.info("== TEST == MoveAxis Calibration COMPLETE")
-        pprint.pprint(result, width=250)
-        await self.move_axis(axis, 0)
-        self._test_underway = False
+        
 
 
     async def goto_tracking_test(self):
