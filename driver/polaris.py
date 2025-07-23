@@ -661,7 +661,7 @@ class Polaris:
                 [ rω1, rω2, rω3 ] = omega_ref
                 [ sθ1, sθ2, sθ3 ] = state[0:3]
                 [ sω1, sω2, sω3 ] = state[3:]
-                self.logger.info(f',DATA5,{time:.3f},  {p_az:+.3f},{p_alt:+.3f},{p_roll:+.3f},  {θ1:+.3f},{θ2:+.3f},{θ3:+.3f},  {sθ1:+.3f},{sθ2:+.3f},{sθ3:+.3f},  {ω1:+.4f},{ω2:+.4f},{ω3:+.4f}, {sω1:+.4f},{sω2:+.4f},{sω3:+.4f},  {rω1:+.4f},{rω2:+.4f},{rω3:+.4f} ')
+                self.logger.info(f',DATA5,{time:.4f},  {p_az:+.4f},{p_alt:+.4f},{p_roll:+.4f},  {θ1:+.4f},{θ2:+.4f},{θ3:+.4f},  {sθ1:+.4f},{sθ2:+.4f},{sθ3:+.4f},  {ω1:+.5f},{ω2:+.5f},{ω3:+.5f}, {sω1:+.5f},{sω2:+.5f},{sω3:+.5f},  {rω1:+.5f},{rω2:+.5f},{rω3:+.5f} ')
 
             # Store all the new values
             self._lock.acquire()

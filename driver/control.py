@@ -209,7 +209,7 @@ def motors_to_quaternion(theta1, theta2, theta3):
     # Reconstructing q1 from theta1, theta2, theta3
     qtheta1 = Quaternion(axis=[0, 0, 1], degrees= -theta1 + 90)
     qtheta2 = Quaternion(axis=[0, 1, 0], degrees= -theta2 - 90)
-    qtheta3 = Quaternion(axis=(qtheta1*qtheta2).rotate([1, 0, 0]), degrees= theta3)
+    qtheta3 = Quaternion(axis=(qtheta1*qtheta2).rotate([1, 0, 0]), degrees= -theta3)
     q1 = qtheta3 * qtheta1 * qtheta2   # Reconstructed q1 quaternion from theta2 then theta1 then theta3
 
     return -q1.normalised
@@ -260,10 +260,10 @@ def quaternion_to_angles(q1):
         
     # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
     q4 = q1 * Quaternion(axis=cUp, degrees=180)                     # since axis3 is last rotation ZYX in q1, we can simply read its Euler angle X after we flip it
-    theta3 = np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
+    theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
     
     # --- Theta1 and Theta2: rotation around corrected bore vector ie Polaris Axis 1 and 2, without effect of Axis 3
-    unroll = Quaternion(axis=tUp, degrees=theta3).inverse               # Undo Theta3 rotation to get cleaned bore vector 
+    unroll = Quaternion(axis=tUp, degrees= -theta3).inverse               # Undo Theta3 rotation to get cleaned bore vector 
     mBore = unroll.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module on the polaris
     theta1 = (np.degrees(np.arctan2(mBore[0], mBore[1])) + 360) % 360
     theta2 = np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0)))
@@ -293,16 +293,20 @@ class KalmanFilter:
         # Control matrix (B): acceleration nudging velocity
         self.B = np.block([
             [np.zeros((3, 3))],
-            [np.eye(3)]
+            [0.3*np.eye(3)]
         ])
 
         # Measurement matrix (H): measures both position and velocity
         self.H = np.eye(6)
 
         # Noise models
-        self.Q = np.eye(6) * 1e-4           # Process noise
-        self.R = np.eye(6) * 1.45e-4        # Measurement noise
-        self.P = np.eye(6)                  # Initial estimate covariance
+        pos_mn = 0.0001**2     # based on stdev of theta1 at rest
+        vel_mn = 0.05**2       # Based on stdev of FAST rate noise measurements at steady state
+        pos_pn = 1e-6
+        vel_pn = 1e-5
+        self.Q = np.diag([ pos_pn, pos_pn, pos_pn, vel_pn, vel_pn, vel_pn])   # _pn = Process Noise
+        self.R = np.diag([ pos_mn, pos_mn, pos_mn, vel_mn, vel_mn, vel_mn])   # _mn = Measurement Noise
+        self.P = np.eye(6)                           # Initial estimate covariance
         self.I = np.eye(6)
 
     def predict(self, control_input):
@@ -323,6 +327,9 @@ class KalmanFilter:
 
         self.x = self.x + K @ y
         self.P = (self.I - K @ self.H) @ self.P
+
+        self._logger.debug(f"KF Gain:{K} | Residual y:{y}")
+
 
     def get_state(self):
         return self.x.flatten()
@@ -345,24 +352,6 @@ move_axis_data = {
      'DPS': [0, 0.005945434889549598, 0.01758611225443198, 0.04788457182645594, 0.08921336389379046, 0.20928090939592375, 1.0934575905163402, 1.9804274954854724, 3.322779165508616, 5.032259957154958],
      'RAW': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 770.0, 1179.0, 1589.0, 2000.0]}
 }
-# {
-#     0: {  # Axis 0
-#         'RAW':   [0, 1, 2, 3, 4, 5, 370, 770, 1179, 1589, 2000],
-#         'ASCOM': [0, 1, 2, 3, 4, 5, 5.001, 6, 7, 8, 9],
-#         'DPS':   [0.0, 0.006003545, 0.01783035, 0.04750983, 0.089358299, 0.208111366, 0.2082, 1.086256628, 2.068490002, 3.491413677, 5.358685096]
-#     },
-#     1: {  # Axis 1
-#         'RAW':   [0, 1, 2, 3, 4, 5, 370, 770, 1179, 1589, 2000],
-#         'ASCOM': [0, 1, 2, 3, 4, 5, 5.001, 6, 7, 8, 9],
-#         'DPS':   [0.0, 0.006003545, 0.01783035, 0.04750983, 0.089358299, 0.208111366, 0.2082, 1.086256628, 2.068490002, 3.491413677, 5.358685096]
-#     },
-#     2: {  # Axis 2
-#         'RAW':   [0, 1, 2, 3, 4, 5, 370, 770, 1179, 1589, 2000],
-#         'ASCOM': [0, 1, 2, 3, 4, 5, 5.001, 6, 7, 8, 9],
-#         'DPS':   [0.0, 0.006003545, 0.01783035, 0.04750983, 0.089358299, 0.208111366, 0.2082, 1.086256628, 2.068490002, 3.491413677, 5.358685096]
-#     },
-# }
-
 
 class MoveAxisRateInterpolator:
     """
