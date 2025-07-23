@@ -278,7 +278,7 @@ def quaternion_to_angles(q1):
 
 class KalmanFilter:
     def __init__(self, logger, dt, initial_state):
-        self.logger = logger
+        self._logger = logger
         self.dt = dt
         self.x = initial_state.reshape(8, 1)                                # Initial state - 4 x positions (az,alt,roll,rot) and 4 x velocities (azv, altv, rollv, rotv)
         self.A = np.block([                                                 # A = State transition matrix
@@ -444,10 +444,10 @@ class MoveAxisRateUnitInterpolator:
 # ************* MoveAxis Speed Controller *************
 class MotorSpeedController:
     def __init__(self, logger, axis: int, send_msg):
-        self.logger = logger
         self.axis = axis
-        self.model = MoveAxisRateInterpolator(move_axis_data[axis])
-        self.messenger = MoveAxisMessenger(axis, send_msg)
+        self._logger = logger
+        self._model = MoveAxisRateInterpolator(move_axis_data[axis])
+        self._messenger = MoveAxisMessenger(axis, send_msg)
         self._stop_flag = asyncio.Event()
         self._lock = asyncio.Lock()
         self._strategy: Optional[AxisControlStrategy] = None
@@ -470,15 +470,15 @@ class MotorSpeedController:
                 previous = self._strategy
                 self.rate = rate
                 self.rate_unit = rate_unit
-                self.rate_raw = float(self.model.interpolate[rate_unit].toRAW(rate))
-                self.rate_dps = float(self.model.interpolate['RAW'].toDPS(self.rate_raw))
+                self.rate_raw = float(self._model.interpolate[rate_unit].toRAW(rate))
+                self.rate_dps = float(self._model.interpolate['RAW'].toDPS(self.rate_raw))
                 self._strategy = AxisControlStrategy(self.rate_raw, previous)
         asyncio.create_task(_update())
 
     async def stop(self):
         async with self._lock:
             self._stop_flag.set()
-            await self.messenger.send_slow_move_msg(0)
+            await self._messenger.send_slow_move_msg(0)
 
     async def _dispatch_loop(self):
         while not self._stop_flag.is_set():
@@ -488,14 +488,14 @@ class MotorSpeedController:
             if strategy:
                 cmd = strategy.get_command_if_due()
                 if cmd:
-                    self.logger.info(f"[Axis {self.axis}] Mode: {self.motor_mode}, DPS: {self.rate_dps:.4f}, RAW: {self.rate_raw:.4f}, Cmd: {cmd}, Duration: {strategy.next_dispatch_time - time.monotonic():.2f}s")
+                    # self._logger.info(f"[Axis {self.axis}] Mode: {self.motor_mode}, DPS: {self.rate_dps:.4f}, RAW: {self.rate_raw:.4f}, Cmd: {cmd}, Duration: {strategy.next_dispatch_time - time.monotonic():.2f}s")
                     raw_rate = cmd["raw_rate"]
                     typ = cmd["type"]
                     # Fire-and-forget async messages
                     if typ in ("SLOW", "PWM_SLOW"): 
-                        asyncio.create_task(self.messenger.send_slow_move_msg(raw_rate)) 
+                        asyncio.create_task(self._messenger.send_slow_move_msg(raw_rate)) 
                     else:
-                        asyncio.create_task(self.messenger.send_fast_move_msg(raw_rate))
+                        asyncio.create_task(self._messenger.send_fast_move_msg(raw_rate))
 
             # Non-blocking sleep until next dispatch
             next_time = strategy.next_dispatch_time if strategy else time.monotonic() + 0.05
