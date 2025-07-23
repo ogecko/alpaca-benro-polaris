@@ -395,6 +395,16 @@ move_axis_data = {
 }
 
 class MoveAxisRateInterpolator:
+    """
+    Interpolation manager for MoveAxis rates across multiple units.
+
+    Provides:
+    - interpolate['ASCOM'].toRAW(x): Interpolates ASCOM rate to RAW step command rate
+    - interpolate['DPS'].toRAW(x): Interpolates degrees/sec to RAW step command rate
+    - interpolate['RAW'].toRAW(x): Pass-through (input is already RAW)
+    - interpolate['RAW'].toDPS(x): Converts RAW step command to degrees/sec
+    """
+
     def __init__(self, data):
         self.RAW = MoveAxisRateUnitInterpolator(data, 'RAW')
         self.ASCOM = MoveAxisRateUnitInterpolator(data, 'ASCOM')
@@ -406,10 +416,17 @@ class MoveAxisRateUnitInterpolator:
         # any data point with raw > 5 is a FAST command
         idx = data['RAW'].index(5) + 1
         self.threshold = data[unit][idx - 1]
+
+        # unit → RAW interpolation
         self.SLOW = PchipInterpolator(data[unit][0:idx], data['RAW'][0:idx], extrapolate=True)
         self.FAST = PchipInterpolator(data[unit][idx:], data['RAW'][idx:], extrapolate=True)
         self.toRAW = lambda x: np.where(np.array(x) > self.threshold, self.FAST(x), self.SLOW(x))
 
+        # RAW → DPS interpolation
+        if unit == 'RAW':
+            self.SLOW_INV = PchipInterpolator(data['RAW'][0:idx], data['DPS'][0:idx], extrapolate=True)
+            self.FAST_INV = PchipInterpolator(data['RAW'][idx:], data['DPS'][idx:], extrapolate=True)
+            self.toDPS = lambda x: np.where(np.array(x) > 5, self.FAST_INV(x), self.SLOW_INV(x))
 
 
 # ************* MoveAxis Speed Controller *************
