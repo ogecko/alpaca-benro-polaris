@@ -14,9 +14,9 @@ from typing import Optional
 # [X] Angular Rate Interpolation Framework
 # [X] PWM Driven Speed Control
 # [X] Real-time Angular Position and Velocity Measurement
-# [ ] Control Input Normalisation
-# [ ] Orientation Estimation via Kalman Filtering
-# [ ] Speed Calibration & Response Profiling
+# [X] Control Input Normalisation
+# [X] Orientation Estimation via Kalman Filtering
+# [X] Speed Calibration & Response Profiling
 # [ ] Model Predicture Control trajectory shaping
 # [ ] Rate Derivative Estimation (Jerk Monitoring)
 # [ ] Feedforward Control Integration (minimise overshoot)
@@ -280,97 +280,55 @@ class KalmanFilter:
     def __init__(self, logger, dt, initial_state):
         self._logger = logger
         self.dt = dt
-        self.x = initial_state.reshape(8, 1)                                # Initial state - 4 x positions (az,alt,roll,rot) and 4 x velocities (azv, altv, rollv, rotv)
-        self.A = np.block([                                                 # A = State transition matrix
-            [np.eye(4), dt * np.eye(4)],                                    #   Next Position = Last Position + dt * Last Velocity
-            [np.zeros((4, 4)), np.eye(4)]                                   #   Next Velocity = Last Velocity
+
+        # State: [theta1, theta2, theta3, omega1, omega2, omega3]
+        self.x = initial_state.reshape(6, 1)
+
+        # State transition matrix (A): position + dt * velocity
+        self.A = np.block([
+            [np.eye(3), dt * np.eye(3)],
+            [np.zeros((3, 3)), np.eye(3)]
         ])
-        self.B = np.block([                                                 # B = Control matrix 
-            [np.zeros((4,4))],                                              #   Next Position = No effect
-            [np.zeros((4,4))],                                              #   Next Velocity = No effect
-            # [0.5 * np.eye(4)]                                               #   Next Velocity = += 0.5 * (control move rate - Last Velocity)
+
+        # Control matrix (B): acceleration nudging velocity
+        self.B = np.block([
+            [np.zeros((3, 3))],
+            [np.eye(3)]
         ])
-        self.H = np.hstack((np.eye(4), np.zeros((4, 4))))                   # H = Measurement matrix (only measuring Position)
-        self.Q = np.eye(8) * 0.0001                                         # Q = Process noise covariance
-        self.R = np.eye(4) * 0.000145                                       # R = Measurement noise covariance
-        self.P = np.eye(8)                                                  # Initial covariance matrix
-        self.I = np.eye(8)                                                  # Identity matrix
+
+        # Measurement matrix (H): measures both position and velocity
+        self.H = np.eye(6)
+
+        # Noise models
+        self.Q = np.eye(6) * 1e-4           # Process noise
+        self.R = np.eye(6) * 1.45e-4        # Measurement noise
+        self.P = np.eye(6)                  # Initial estimate covariance
+        self.I = np.eye(6)
 
     def predict(self, control_input):
-        self.u = control_input - self.x[4:]                                 # u = u - v
-        self.x = self.A @ self.x + self.B @ self.u                          # x(k+1) = A @ x(k) + B @ u(k)
-        self.P = self.A @ self.P @ self.A.T + self.Q                        # P(k+1) = A @ P(k) @ A.T + Q
+        control_input = np.array(control_input).reshape(3, 1)
+        omega_est = self.x[3:]                       # Estimated velocity
+        u = control_input - omega_est                # Acceleration signal
+        self.x = self.A @ self.x + self.B @ u
+        self.P = self.A @ self.P @ self.A.T + self.Q
 
-    def observe(self, measurement):
-        K = self.P @ self.H.T @ np.linalg.inv(self.H @ self.P @ self.H.T + self.R)
-        y = measurement - (self.H @ self.x)  # Measurement residual
-        self.x = self.x + (K @ y)
+    def observe(self, theta, omega):
+        theta = np.array(theta).reshape(3, 1)
+        omega = np.array(omega).reshape(3, 1)
+        z = np.vstack((theta, omega))               # Measurement: position + velocity
+
+        y = z - self.H @ self.x                     # Measurement residual
+        S = self.H @ self.P @ self.H.T + self.R
+        K = self.P @ self.H.T @ np.linalg.inv(S)
+
+        self.x = self.x + K @ y
         self.P = (self.I - K @ self.H) @ self.P
 
     def get_state(self):
         return self.x.flatten()
 
     def set_state(self, x):
-        self.x = x.reshape(8, 1)
-
-    def process_518_args(self, arg_dict):
-        p_az = float(arg_dict['compass'])
-        p_alt = -float(arg_dict['alt'])
-
-        # 1/100 second sidereal timer, controls issue of steps at the selected RA and/or Dec rate(s) 
-        # is it in backlash mode?
-        # for pulse guiding, count down the ms and stop when timed out, guideTimeRemaining
-        # calcTimerRate = guideTimerRate + pecTimerRate + trackingTimerRate
-        # f = siderealRate / calcTimerRate
-        # remember actual runningTimeRate, how many steps made
-        # if a big step in rate change or at higher rates then consider smoothing the acceleration/deacceleration
-        # know when to stop guiding if calc rate too small
-        # timeInterval = TimerRate / ppsRateRatio * axis2StepGoto
-        
-        # Q1 represents the 3 axis rotation of the Polaris, wrt X=East/Roll/Axis2, Y=North/Pitch/Axis1, Z=Up/Yaw/Axis0. 
-        # Think of a plane flying East with a camera pitched down 90 degrees. This is the reference frame.
-        # The quaternion prepresents the 3D rotation on the plane, to get the camera pointing in the polaris orientation.
-        self.q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
-
-        # Q2 represents the 3 axis rotation of the Polaris, wrt X=North, Y=West, Z=Up. (affected by Roll Angle - TBD)
-        # Think of a plane flying North with a camera pointed to the left wing, then pitch the camera down 90 degrees. This is the reference frame.
-        # The quaternion prepresents the 3D rotation on the plane, to get the camera pointing in the polaris orientation.
-        self.q2 = Quaternion(arg_dict['w2'], arg_dict['x2'], arg_dict['y2'], arg_dict['z2'])
-
-        # Q3 represents the equivalent 3 axis rotation of Q1 with only the field rotation remaining (ie invert the az and alt rotations)
-        # Field Rotation ranges from -80 to +80, where 0 is a framing level with the horizon
-        #   Is calculation by the rotation angle of q3
-        #   At the start of any GOTO the Polaris will set the Field rotation back to zero, before moving the Alt and Az axes
-        #   At higher pointing Altitudes the Field Rotation is limited even more due to Polaris design eg (at Alt=70, Rotation=+/-60) (at Alt=78 Rotation=+/-35)
-        # When pointing to targets towards the Southern Celestrial Pole
-        #   A -ve value is rotated clockwise from level, a +ve value is rotated a anti-clockwise
-        #   Enabling tracking will slowly decrease the Field Rotation angle (for long sequences, start with a +ve value)
-        # When pointing to targets towards the Northern Celestrial Pole
-        #   A -ve value is rotated clockwise from level, a +ve value is rotated a anti-clockwise
-        #   Enabling tracking will slowly increase the Field Rotation angle (for long sequences, start with a -ve value)
-        qalt = Quaternion(axis=(0,1,0), degrees= -90 - p_alt)
-        qaz = Quaternion(axis=(0,0,1), degrees= +90 - p_az)
-        q3 = self.q1 * (qaz * qalt).inverse
-        p_rot = q3.degrees
-
-        # Q4 reoresebts the equivalent 3 axis rotation of Q1 but with a 180 x axis rotation to fix the roll value
-        # Roll angle ranges from -180 to +180, where 0 is the roll after a GOTO command
-        q4 = self.q1 * Quaternion(axis=(1,0,0), degrees=180)
-        p_yaw = np.degrees(np.arctan2(2 * (q4[0]*q4[3] + q4[1]*q4[2]), q4[0]**2 + q4[1]**2 - q4[2]**2 - q4[3]**2))
-        p_pitch = np.degrees(np.arcsin(2 * (q4[0]*q4[2] - q4[1]*q4[3])))
-        p_roll = np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
-
-        
-
-        # Need to update control_input to translate moveaxis_rates
-        # rates = self._axis_ASCOM_slewing_rates
-        control_input = np.array([0,0,0,0]).reshape(4, 1)
-        self.predict(control_input)
-
-        # Observation step
-        measurement = np.array([p_az, p_alt, p_roll, p_rot]).reshape(4, 1)
-        self.observe(measurement)
-
+        self.x = np.array(x).reshape(6, 1)
 
 
 
