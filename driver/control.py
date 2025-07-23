@@ -7,6 +7,78 @@ import time
 import asyncio
 from typing import Optional
 
+# ************* TODO LIST *****************
+
+# Control Algorithm Features
+# [X] Quaternion-based kinematics and inverse solutions
+# [X] Angular Rate Interpolation Framework
+# [X] PWM Driven Speed Control
+# [X] Real-time Angular Position and Velocity Measurement
+# [ ] Control Input Normalisation
+# [ ] Orientation Estimation via Kalman Filtering
+# [ ] Speed Calibration & Response Profiling
+# [ ] Model Predicture Control trajectory shaping
+# [ ] Rate Derivative Estimation (Jerk Monitoring)
+# [ ] Feedforward Control Integration (minimise overshoot)
+# [ ] Constraint-Aware Rate Limiting
+# [ ] Control Mode Switching
+# [ ] Time-Differentiated Tracking Profiles
+#
+# Position Calculation Features
+# [X] Accurate Orbital Positioning of Earth and Target Body
+# [X] Light Travel Time Compensation for Apparent Position
+# [X] Epoch-Based Coordinate Precession Alignment
+# [X] Relativistic Light Deflection near Solar Limb
+# [x] Earth Nutation Correction (Polar Axis Wobble)
+# [x] Aberration of Light Due to Earth’s Orbital Velocity
+# [x] Atmospheric Refraction Modeling (Pressure & Temperature Based)
+# [x] Observer-Based Parallax Offset Correction
+# [x] Astrometric Geocentric Coordinate Generation
+# [x] Apparent Geocentric Position Refinement
+# [x] Topocentric Apparent Coordinate Output (RA, Dec, PA | Alt, Az, Roll)
+#
+# Precision Slew Control
+# [ ] Kinematically Optimised Mount Trajectory
+# [ ] Real-Time Interruptible Path Planning
+# [ ] Dynamically Smooth Motion and Acceleration
+# [ ] Predictive Anti-Backlash Correction
+# [ ] Expanded Target Catalog
+# [ ] Auto-fetch Target Catalog updates
+# [ ] Auto-fetch orbital elements
+#
+# Precision Tracking
+# [ ] Target position and velocity tracking with adaptive error correction
+# [ ] Seamless Axis Override During Tracking
+# [ ] Deep-Sky Object Tracking
+# [ ] Selenographic Lunar Tracking
+# [ ] Planetary and Orbital Moons Tracking
+# [ ] Commet and Asteroid Tracking
+# [ ] Satelite Tracking via TLE (Two Line Element)
+# [ ] Solar Tracking
+# [ ] Transiting Exoplanet Support
+
+#
+# Rotator Control Features
+# [ ] Parallactic and Roll Angle Targeting
+# [ ] ASCOM Rotator Driver Integration
+# [ ] Direct Slew to Defined Angular Pose
+#
+# Pulse Guiding Features
+# [ ] Guide Camera Support via PHD2
+# [ ] PHD2 Support via ASCOM/Alpaca
+# [ ] ASCOM Telescope Pulse Guide API Support
+# [ ] Pulse Guiding Tracking correction 
+#
+# Imaging and User Experience Enhancements
+# [ ] Long Exposure Tracking Stabilization
+# [ ] Drift supression and Auto-Centering
+# [ ] Automated Leveling Compensation
+# [ ] Dithering support
+# [ ] Zenith Imaging Support (18° Circle)
+# [ ] Mosaic imaging support through Nina
+
+
+
 
 # ************* Quaternion Kinematics *************
 
