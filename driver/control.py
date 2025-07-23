@@ -420,13 +420,25 @@ class MoveAxisRateUnitInterpolator:
         # unit → RAW interpolation
         self.SLOW = PchipInterpolator(data[unit][0:idx], data['RAW'][0:idx], extrapolate=True)
         self.FAST = PchipInterpolator(data[unit][idx:], data['RAW'][idx:], extrapolate=True)
-        self.toRAW = lambda x: np.where(np.array(x) > self.threshold, self.FAST(x), self.SLOW(x))
+        self.toRAW = lambda x: self._signed_raw(np.array(x))
 
         # RAW → DPS interpolation
         if unit == 'RAW':
             self.SLOW_INV = PchipInterpolator(data['RAW'][0:idx], data['DPS'][0:idx], extrapolate=True)
             self.FAST_INV = PchipInterpolator(data['RAW'][idx:], data['DPS'][idx:], extrapolate=True)
-            self.toDPS = lambda x: np.where(np.array(x) > 5, self.FAST_INV(x), self.SLOW_INV(x))
+            self.toDPS = lambda x: self._signed_dps(np.array(x))
+
+    def _signed_raw(self, x):
+        direction = np.sign(x)
+        abs_x = np.abs(x)
+        raw_val = np.where(abs_x > self.threshold, self.FAST(abs_x), self.SLOW(abs_x))
+        return raw_val * direction
+
+    def _signed_dps(self, x):
+        direction = np.sign(x)
+        abs_x = np.abs(x)
+        dps_val = np.where(abs_x > 5, self.FAST_INV(abs_x), self.SLOW_INV(abs_x))
+        return dps_val * direction
 
 
 # ************* MoveAxis Speed Controller *************
@@ -440,16 +452,27 @@ class MotorSpeedController:
         self._lock = asyncio.Lock()
         self._strategy: Optional[AxisControlStrategy] = None
 
+        self.rate = 0.0            # last set_motor_speed rate +/-
+        self.rate_unit = "DPS"     # units of the last set_motor_speed rate ('DPS', 'ASCOM', or 'RAW')
+        self.rate_raw = 0.0        # rate in raw units (command rate +/-0.0 to 5.0 SLOW, >5 to 2000 FAST)
+        self.rate_dps = 0.0        # rate in dps units (Degrees per second)
+
         # Kick off the dispatch loop as an asyncio task
         asyncio.create_task(self._dispatch_loop())
+
+    @property
+    def motor_mode(self):
+        return self._strategy.mode if self._strategy else "IDLE"
 
     def set_motor_speed(self, rate: float, rate_unit="DPS"):
         async def _update():
             async with self._lock:
-                self._rate = rate
-                self._rate_unit = rate_unit
                 previous = self._strategy
-                self._strategy = AxisControlStrategy(rate, rate_unit, self.model.interpolate[rate_unit], previous)
+                self.rate = rate
+                self.rate_unit = rate_unit
+                self.rate_raw = float(self.model.interpolate[rate_unit].toRAW(rate))
+                self.rate_dps = float(self.model.interpolate['RAW'].toDPS(self.rate_raw))
+                self._strategy = AxisControlStrategy(self.rate_raw, previous)
         asyncio.create_task(_update())
 
     async def stop(self):
@@ -465,12 +488,12 @@ class MotorSpeedController:
             if strategy:
                 cmd = strategy.get_command_if_due()
                 if cmd:
-                    # self.logger.info(f"[Axis {self.axis}] Mode: {strategy.mode}, Rate: {strategy.rate}, Cmd: {cmd}, Next: {strategy.next_dispatch_time - time.monotonic():.2f}s")
+                    self.logger.info(f"[Axis {self.axis}] Mode: {self.motor_mode}, DPS: {self.rate_dps:.4f}, RAW: {self.rate_raw:.4f}, Cmd: {cmd}, Duration: {strategy.next_dispatch_time - time.monotonic():.2f}s")
                     raw_rate = cmd["raw_rate"]
                     typ = cmd["type"]
                     # Fire-and-forget async messages
                     if typ in ("SLOW", "PWM_SLOW"): 
-                        asyncio.create_task( self.messenger.send_slow_move_msg(raw_rate)) 
+                        asyncio.create_task(self.messenger.send_slow_move_msg(raw_rate)) 
                     else:
                         asyncio.create_task(self.messenger.send_fast_move_msg(raw_rate))
 
@@ -480,10 +503,8 @@ class MotorSpeedController:
             await asyncio.sleep(sleep_sec)
 
 class AxisControlStrategy:
-    def __init__(self, rate: float, rate_unit: str, model: MoveAxisRateUnitInterpolator, previous: Optional['AxisControlStrategy'], pwm_cycle_ms=5000, fast_cycle_ms=50):
-        self.rate = rate
-        self.rate_unit = rate_unit
-        self.model = model
+    def __init__(self, raw_rate: float, previous: Optional['AxisControlStrategy'], pwm_cycle_ms=5000, fast_cycle_ms=50):
+        self.raw_rate = raw_rate
         self.mode = 'IDLE'
         self.pwm_cycle_ms = pwm_cycle_ms
         self.fast_cycle_ms = fast_cycle_ms
@@ -491,24 +512,19 @@ class AxisControlStrategy:
         self._analyze(previous)
 
     def _analyze(self, previous_strategy: Optional['AxisControlStrategy']):
-        abs_rate = abs(self.rate)
-        interp = float(self.model.toRAW(abs_rate))
-        direction = 1 if self.rate >= 0 else -1
-
+        interp = abs(self.raw_rate)
+        direction = 1 if self.raw_rate >= 0 else -1
         now = time.monotonic()
+
         # if a FAST rate
-        if abs_rate > self.model.threshold:
+        if interp > 5:
             self.mode = 'FAST'
             self.command = int(np.clip(round(interp), 300, 2000)) * direction
-            self.next_dispatch_time = now
-            return
 
         # if we are stopping this axis
         elif interp == 0:
             self.mode = 'SLOW'
             self.command = 0
-            self.next_dispatch_time = now
-            return
 
         # if a SLOW or PWM_SLOW rate
         else:
@@ -520,7 +536,6 @@ class AxisControlStrategy:
             if duty == 0 or base == next_up:
                 self.mode = 'SLOW'
                 self.command = base
-                self.next_dispatch_time = now
 
             # if a PWM_SLOW rate is needed
             else:
