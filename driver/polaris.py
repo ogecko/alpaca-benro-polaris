@@ -84,7 +84,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue
-from control import KalmanFilter, quaternion_to_angles, calculate_angular_velocity, is_angle_same, MotorSpeedController
+from control import KalmanFilter, quaternion_to_angles, calculate_angular_velocity, is_angle_same, format_move_axis_data, MotorSpeedController
 
 class Polaris:
     """Simulated telescope device that communicates with Polaris Device
@@ -1073,73 +1073,69 @@ class Polaris:
         # complete the test
         self.logger.info(f"== TEST == Rotator Test | COMPLETE")
 
+
     async def moveaxis_speed_calibration_full_test(self):
         if self._test_underway:
             return
         self._test_underway = True
-        results = []
+
+        results = {}
         for axis in [0,1,2]:
-            results.append(await self.moveaxis_speed_calibration_test(axis))
-        formatted_results = json.dumps(results, indent=2).replace(',\n',', ').replace('[\n','[ ').replace('\n      ],',' ],\n')
+            results[axis] = (await self.moveaxis_speed_calibration_test(axis))
+
+        formatted_results = format_move_axis_data(results)
         self.logger.info(f'== TEST == Multi-Axis Calibration COMPLETE\n{formatted_results}')
         self._test_underway = False
 
 
     async def moveaxis_speed_calibration_test(self, axis):
         ascom_rates = list(range(10))  # ASCOM rates 0–9
-
-        required_stable_samples = 5
-        initial_interval = 3.0          # number seconds to wait before measuring
-        sampling_interval = 0.25        # how often to measure
-        max_interval = 15               # max number of seconds to measure a single rate
+        ascom_rates = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.001, 6.0, 7.0, 8.0, 9.0]
         dps_results = []
         raw_results = []
         bad_results = []
-
-
+        # Ramp through the rates
         for rate in ascom_rates:
             await self.move_axis(axis, rate)
-            raw_rate = self._motorcontrollers[axis]._model.interpolate["ASCOM"].toRAW(rate)
-            stable_tolerance = 0.05 if rate > 5 else 0.0005     # deg/sec
-            omega_samples = []
-            start_time = time.monotonic()
-            await asyncio.sleep(initial_interval)
-
-            while time.monotonic() - start_time < max_interval:
-                await asyncio.sleep(sampling_interval)
-                omega = self._omega_meas[axis]
-                omega_samples.append(omega)
-
-                # if we potentially have enough samples, take a window the last set
-                if len(omega_samples) >= required_stable_samples:
-                    window = omega_samples[-required_stable_samples:]
-                    stdev = np.std(window)
-                    if stdev < stable_tolerance:
-                        measured_omega = float(np.mean(window)) if rate>0 else 0
-                        dps_results.append(measured_omega)
-                        raw_results.append(float(raw_rate))
-                        self.logger.info(f"== TEST == Stable | Axis {axis} | ASCOM {rate} | RAW: {raw_rate:.2f} | DPS: {measured_omega:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
-                        break
-            # exited while without a vale in tollerance
-            else:
-                current_dps = self._motorcontrollers[axis]._model.interpolate["RAW"].toDPS(raw_rate)
-                dps_results.append(float(current_dps))
-                raw_results.append(float(raw_rate))
-                msg = f'UNSTABLE Results on Axis {axis} | ASCOM {rate} | RAW: {raw_rate:.2f} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}'
-                self.logger.info(msg)
-                bad_results.append(msg)
+            dps, raw, bad = await self.moveaxis_speed_measurement(axis, rate)
+            dps_results.append(dps)
+            raw_results.append(raw)
+            bad_results.append(bad)
 
         await self.move_axis(axis, 0)
         await asyncio.sleep(3)
-        return {
-            axis: {
-                "RAW": raw_results,
-                "ASCOM": [float(r) for r in ascom_rates],
-                "DPS": dps_results,
-                "BAD": bad_results
-            }
-        }
+
+        return { "RAW": raw_results,  "ASCOM": ascom_rates, "DPS": dps_results, "BAD": bad_results }
         
+
+    async def moveaxis_speed_measurement(self, axis, rate, required_stable_samples = 5, initial_interval = 3.0, max_interval = 15, sampling_interval = 0.25):
+        start_time = time.monotonic()
+        stable_tolerance = 0.05 if rate > 5 else 0.0005
+        await asyncio.sleep(initial_interval)
+        rate_raw = self._motorcontrollers[axis].rate_raw    # what the controller thinks the raw rate is
+        rate_dps = self._motorcontrollers[axis].rate_dps    # what the controller thinks the dps rate is
+        status = "OK"
+
+        omega_samples = []     # deg/sec
+        while time.monotonic() - start_time < max_interval:
+            await asyncio.sleep(sampling_interval)
+            omega = self._omega_meas[axis]
+            omega_samples.append(omega)
+
+            # if we potentially have enough samples, take a window the last set
+            if len(omega_samples) >= required_stable_samples:
+                window = omega_samples[-required_stable_samples:]
+                stdev = np.std(window)
+                if stdev < stable_tolerance and (np.mean(window) > 0.002 or rate == 0):
+                    measured_dps = float(np.mean(window)) if rate>0 else 0
+                    self.logger.info(f"== TEST == Stable | Axis {axis} | ASCOM {rate} | RAW {rate_raw} | DPS: {measured_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
+                    break
+        # exited while without a value in tollerance
+        else:
+            measured_dps = rate_dps  # fallback to the controller's rate
+            status = "UNSTABLE"
+            self.logger.info(f'== TEST == **UNSTABLE** on Axis {axis} | ASCOM {rate} | RAW {rate_raw} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}')
+        return measured_dps, rate_raw, status
 
 
     async def goto_tracking_test(self):
@@ -1712,10 +1708,10 @@ class Polaris:
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
 
-    async def move_axis(self, axis:int, ascomrate:float):
-        self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {ascomrate}")
+    async def move_axis(self, axis:int, rate:float, units="ASCOM"):
+        self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {rate} Units {units}")
         if not self._tracking:
-            self._motorcontrollers[axis].set_motor_speed(ascomrate,"ASCOM")
+            self._motorcontrollers[axis].set_motor_speed(rate, units)
 
         # if tracking TODO - need to update trajectory
         #

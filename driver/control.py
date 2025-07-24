@@ -17,6 +17,7 @@ from typing import Optional
 # [X] Control Input Normalisation
 # [X] Orientation Estimation via Kalman Filtering
 # [X] Speed Calibration & Response Profiling
+# [X] Increased Maximum Alpaca Axis Speed to 7 degrees/s
 # [ ] Model Predicture Control trajectory shaping
 # [ ] Rate Derivative Estimation (Jerk Monitoring)
 # [ ] Feedforward Control Integration (minimise overshoot)
@@ -378,20 +379,46 @@ class KalmanFilter:
         self.x = np.array(x).reshape(6, 1)
 
 
-
 # ************* MoveAxis Rate Interpolation *************
 
+# MoveAxis Rate Interpolation Data from PERFORMANCE TEST 3
 move_axis_data = {
- 0: {'ASCOM': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
-     'DPS': [0, 0.00596920097446589, 0.017928441666756296, 0.04733397246593499, 0.08904085433032287, 0.20806976395168925, 1.0699113690382456, 2.142289076850062, 3.667423318161184, 5.598349267105214],
-     'RAW': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 770.0, 1179.0, 1589.0, 2000.0]},
- 1: {'ASCOM': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
-     'DPS': [0, 0.005936383962451606, 0.017889420247783564, 0.04743691462139636, 0.08920949438038576, 0.20893297074625328, 1.0065378707719344, 2.0388350782752096, 3.3461068168722776, 5.031200486529391],
-     'RAW': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 770.0, 1179.0, 1589.0, 2000.0]},
- 2: {'ASCOM': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
-     'DPS': [0, 0.005945434889549598, 0.01758611225443198, 0.04788457182645594, 0.08921336389379046, 0.20928090939592375, 1.0934575905163402, 1.9804274954854724, 3.322779165508616, 5.032259957154958],
-     'RAW': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 770.0, 1179.0, 1589.0, 2000.0]}
+    0: {
+        "RAW":   [        0.0,        1.0,        2.0,        3.0,        4.0,        5.0,      311.0,      857.0,     1405.0,     1952.0,     2500.0 ],
+        "ASCOM": [        0.0,        1.0,        2.0,        3.0,        4.0,        5.0,      5.001,        6.0,        7.0,        8.0,        9.0 ],
+        "DPS":   [  0.0000000,  0.0061034,  0.0177267,  0.0473817,  0.0889687,  0.2088231,  0.2138721,  1.3128444,  3.0647790,  5.6155992,  8.8537016 ],
+    },
+    1: {
+        "RAW":   [        0.0,        1.0,        2.0,        3.0,        4.0,        5.0,      311.0,      857.0,     1405.0,     1952.0,     2500.0 ],
+        "ASCOM": [        0.0,        1.0,        2.0,        3.0,        4.0,        5.0,      5.001,        6.0,        7.0,        8.0,        9.0 ],
+        "DPS":   [  0.0000000,  0.0060195,  0.0178287,  0.0474876,  0.0891532,  0.2075897,  0.1656389,  1.2136676,  2.7755063,  4.8412905,  7.7075713 ],
+    },
+    2: {
+        "RAW":   [        0.0,        1.0,        2.0,        3.0,        4.0,        5.0,      311.0,      857.0,     1405.0,     1952.0,     2500.0 ],
+        "ASCOM": [        0.0,        1.0,        2.0,        3.0,        4.0,        5.0,      5.001,        6.0,        7.0,        8.0,        9.0 ],
+        "DPS":   [  0.0000000,  0.0058953,  0.0179471,  0.0476743,  0.0893751,  0.2091879,  0.1407127,  1.2522202,  2.7929980,  5.0531830,  7.9175568 ],
+    },
 }
+
+
+def format_move_axis_data(data, col_width=10):
+    output_lines = []
+    for axis, axis_data in data.items():
+        output_lines.append(f"{axis}: {{")
+        keys = list(axis_data.keys())
+        for i, key in enumerate(keys):
+            values = axis_data[key]
+            if key == "DPS":
+                formatted = [f"{v:.7f}".rjust(col_width) for v in values]
+            elif key == "BAD":
+                formatted = [f"'{v}'".rjust(col_width) for v in values]
+            else:
+                formatted = [str(v).rjust(col_width) for v in values]
+            value_str = ', '.join(formatted)
+            comma = ',' if i < len(keys) - 1 else ''
+            output_lines.append(f'    "{key+'":':7s} [ {value_str} ]{comma}')
+        output_lines.append("},")  # End of axis block with trailing comma
+    return '\n'.join(output_lines)
 
 class MoveAxisRateInterpolator:
     """
@@ -502,7 +529,7 @@ class MotorSpeedController:
             await asyncio.sleep(sleep_sec)
 
 class AxisControlStrategy:
-    def __init__(self, raw_rate: float, previous: Optional['AxisControlStrategy'], pwm_cycle_ms=5000, fast_cycle_ms=50):
+    def __init__(self, raw_rate: float, previous: Optional['AxisControlStrategy'], pwm_cycle_ms=1200, fast_cycle_ms=50):
         self.raw_rate = raw_rate
         self.mode = 'IDLE'
         self.pwm_cycle_ms = pwm_cycle_ms
@@ -518,7 +545,7 @@ class AxisControlStrategy:
         # if a FAST rate
         if interp > 5:
             self.mode = 'FAST'
-            self.command = int(np.clip(round(interp), 300, 2000)) * direction
+            self.command = int(np.clip(round(interp), 100, 2500)) * direction
 
         # if we are stopping this axis
         elif interp == 0:
@@ -596,7 +623,7 @@ class MoveAxisMessenger:
         return msg
 
     async def send_fast_move_msg(self, fast_raw_rate: int) -> str:
-        if abs(fast_raw_rate) > 2000:
+        if abs(fast_raw_rate) > 2500:
             raise ValueError("FAST rate must be within ±2000.")
         msg = f"1&{self.cmd_fast}&3&speed:{int(fast_raw_rate)};#"
         await self.send_msg(msg)
