@@ -93,6 +93,24 @@ def is_same_quaternion_rotation(q1, q2, tolerance=1e-6):
     s1, s2, s3, b1, b2, b3 = quaternion_to_angles(q2)
     return (t1-s1)**2+(t2-s2)**2+(t3-s3)**2+(a1-b1)**2+(a2-b2)**2+(a3-b3)**2 < tolerance
 
+def wrap_to_360(angle):
+    """Wraps angle to [0, 360) degrees"""
+    return angle % 360.0
+
+def wrap_to_180(angle):
+    """Wraps angle to [-180, +180) degrees"""
+    return (angle + 180.0) % 360.0 - 180.0
+
+def wrap_angle_residual(measured_theta, predicted_theta):
+    return np.vectorize(wrap_to_180)(measured_theta - predicted_theta)
+
+def wrap_state_angles(x):
+    x_wrapped = x.copy()
+    x_wrapped[0, 0] = wrap_to_360(x[0, 0])    # theta1
+    x_wrapped[1, 0] = wrap_to_180(x[1, 0])    # theta2
+    x_wrapped[2, 0] = wrap_to_180(x[2, 0])    # theta3 
+    return x_wrapped
+
 
 def angular_difference(a, b):
     """
@@ -277,62 +295,84 @@ def quaternion_to_angles(q1):
 
 
 class KalmanFilter:
-    def __init__(self, logger, dt, initial_state):
+    def __init__(self, logger, initial_state):
         self._logger = logger
-        self.dt = dt
+        self._time = time.monotonic()
+        self._need_first_measurement = True
 
         # State: [theta1, theta2, theta3, omega1, omega2, omega3]
         self.x = initial_state.reshape(6, 1)
+        self.set_state_transition_matrix_A()    # State transition matrix (A): position + dt * velocity 
+        self.set_control_matrix_B()             # Control matrix (B): nudge state velocity by acceleration (omega_ref - omega_state)
+        self.H = np.eye(6)                      # Measurement matrix (H): measures both position and velocity
+        self.set_process_noise_model_Q()        # Process noise models matrix (Q) 
+        self.set_measurement_noise_model_R()    # Measurement noise model matrix (R)
+        self.P = np.eye(6)                      # Initial estimate covariance
+        self.I = np.eye(6)
 
-        # State transition matrix (A): position + dt * velocity
+    def set_state_transition_matrix_A(self):
+        # recalc State transition matrix (A): position + dt * velocity
+        # use time interval since last call as dt
+        new_time = time.monotonic()
+        dt = new_time - self._time
+        self._time = new_time
         self.A = np.block([
             [np.eye(3), dt * np.eye(3)],
             [np.zeros((3, 3)), np.eye(3)]
         ])
 
+    def set_control_matrix_B(self, accel_nudge_vel=0.5):
         # Control matrix (B): acceleration nudging velocity
         self.B = np.block([
             [np.zeros((3, 3))],
-            [0.3*np.eye(3)]
+            [accel_nudge_vel * np.eye(3)]
         ])
 
-        # Measurement matrix (H): measures both position and velocity
-        self.H = np.eye(6)
+    def set_process_noise_model_Q(self, pos=1e-5, vel=1e-4):
+        self.Q = np.diag([ pos, pos, pos, vel, vel, vel ])
 
-        # Noise models
-        pos_mn = 0.0001**2     # based on stdev of theta1 at rest
-        vel_mn = 0.05**2       # Based on stdev of FAST rate noise measurements at steady state
-        pos_pn = 1e-6
-        vel_pn = 1e-5
-        self.Q = np.diag([ pos_pn, pos_pn, pos_pn, vel_pn, vel_pn, vel_pn])   # _pn = Process Noise
-        self.R = np.diag([ pos_mn, pos_mn, pos_mn, vel_mn, vel_mn, vel_mn])   # _mn = Measurement Noise
-        self.P = np.eye(6)                           # Initial estimate covariance
-        self.I = np.eye(6)
+    def set_measurement_noise_model_R(self, pos=1e-5, vel=1e-4):
+        # The Astro axis2 (theta3 and omega3) tend to have more noisy measurements
+        self.R = np.diag([ pos, pos, pos*10, vel, vel, vel*10 ])
 
     def predict(self, control_input):
+        self.set_state_transition_matrix_A()
         control_input = np.array(control_input).reshape(3, 1)
-        omega_est = self.x[3:]                       # Estimated velocity
-        u = control_input - omega_est                # Acceleration signal
+        omega_state = self.x[3:]                    # stateimated velocity
+        u = control_input - omega_state             # Acceleration signal
         self.x = self.A @ self.x + self.B @ u
         self.P = self.A @ self.P @ self.A.T + self.Q
+        self.x = wrap_state_angles(self.x)
+
 
     def observe(self, theta, omega):
-        theta = np.array(theta).reshape(3, 1)
-        omega = np.array(omega).reshape(3, 1)
-        z = np.vstack((theta, omega))               # Measurement: position + velocity
+        if self._need_first_measurement:
+            self._need_first_measurement = False
+            self.set_state([*theta, *omega])
 
-        y = z - self.H @ self.x                     # Measurement residual
+        theta_meas = np.array(theta).reshape(3, 1)
+        omega_meas = np.array(omega).reshape(3, 1)
+        z = np.vstack((theta_meas, omega_meas))               # Measurement: position + velocity
+
+        # Measurement residual
+        theta_residual = wrap_angle_residual(theta_meas, self.x[:3])
+        omega_residual = omega_meas - self.x[3:]
+        y = np.vstack((theta_residual, omega_residual))
         S = self.H @ self.P @ self.H.T + self.R
         K = self.P @ self.H.T @ np.linalg.inv(S)
 
         self.x = self.x + K @ y
         self.P = (self.I - K @ self.H) @ self.P
+        self.x = wrap_state_angles(self.x)
 
         self._logger.debug(f"KF Gain:{K} | Residual y:{y}")
 
 
     def get_state(self):
-        return self.x.flatten()
+        state = self.x.flatten()
+        theta = state[0:3]
+        omega = state[3:]
+        return theta, omega
 
     def set_state(self, x):
         self.x = np.array(x).reshape(6, 1)

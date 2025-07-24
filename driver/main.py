@@ -79,7 +79,6 @@ async def main():
 
     elif Config.log_performance_data == 5:      # Rotator data (heavy logging)
         logger.info(f",Dataset,Time,  az,alt,roll,  theta1,theta2,theta3,  state1,state2,state3,  omega1,omega2,omega3,  state4,state5,state6,  oref1,oref2,oref3")
-        logger.info(f",DATA5,{0:.3f},  {0:.3f},{0:.3f},{0:.3f},  {0:.3f},{0:.3f},{0:.3f},  {0:.3f},{0:.3f},{0:.3f},  {0:.4f},{0:.4f},{0:.4f},  {0:.4f},{0:.4f},{0:.4f},  {0:.4f},{0:.4f},{0:.4f}")
 
     # Output Alpaca Driver version
     logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 

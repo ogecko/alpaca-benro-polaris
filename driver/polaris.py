@@ -75,7 +75,7 @@ import time
 import re
 import asyncio
 import ephem
-import pprint
+import json
 import numpy as np
 from collections import deque
 from pyquaternion import Quaternion
@@ -159,10 +159,10 @@ class Polaris:
         #
         # Telescope device state variables
         #
-        self._kf: KalmanFilter = KalmanFilter(logger, 0.2, np.zeros(6))
+        self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
-        self._theta = None                          # The latest set of motor axis angles [theta1, theta2, theta3]
-        self._omega = None                          # The latest set of motor axis angular velocity [omega1, omega2, omega3]
+        self._theta_meas = None                     # The latest set of motor axis angles [theta1, theta2, theta3] measured from q1
+        self._omega_meas = None                     # The latest set of motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._altitude: float = 0.0                 # The Pitch/Altitude above the local horizon of the telescope's current position (degrees, positive up)
         self._azimuth: float = 0.0                  # The Yaw/Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
@@ -625,50 +625,46 @@ class Polaris:
 
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":
-            dt_prev = self._last_518_timestamp
             dt_now = datetime.datetime.now()
     
             # extract the quaternion, angles and velocities
             arg_dict = self.polaris_parse_args(args, name_postfix=True)
             q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
             theta1, theta2, theta3, az, alt, p_roll = quaternion_to_angles(q1)
-            theta = [theta1, theta2, theta3]
+            theta_meas = [theta1, theta2, theta3]
             self._history.append([dt_now, theta1, theta2, theta3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
-            omega = calculate_angular_velocity(self._history)
+            omega_meas = calculate_angular_velocity(self._history)
             omega_ref = [controller.rate_dps for controller in self._motorcontrollers.values()]
 
-            self._kf.observe(theta, omega)
+            
             self._kf.predict(omega_ref)
-            state = self._kf.get_state()
+            self._kf.observe(theta_meas, omega_meas)
+            theta_state, omega_state = self._kf.get_state()
 
             p_az = float(arg_dict['compass'])   # override filtered az with raw value from Polaris
             p_alt = -float(arg_dict['alt'])     # override filtered alt with raw value from Polaris
             p_ra, p_dec = self.altaz2radec(p_alt, p_az)
-            rates = self._axis_ASCOM_slewing_rates
 
             if not is_angle_same(az, p_az):
                 self.logger.warn(f"Kinematics variance p_az {p_az:.5f} az {az:.5f} diff {p_az - az:.5f} ")              
             if not is_angle_same(alt, p_alt):
                 self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} alt {alt:.5f} diff {p_alt - alt:.5f}") 
 
-#            self._kf.process_518_args(arg_dict) # use a Kalman Filter on position measurements
-            # p_az,p_alt,p_roll,p_rot, v_az,v_alt,v_roll,v_rot = self._kf.get_state()
-
             time = self.get_performance_data_time()
             if Config.log_performance_data == 5:
-                [ θ1, θ2, θ3 ] = theta
-                [ ω1, ω2, ω3 ] = omega
+                [ θ1, θ2, θ3 ] = theta_meas
+                [ ω1, ω2, ω3 ] = omega_meas
                 [ rω1, rω2, rω3 ] = omega_ref
-                [ sθ1, sθ2, sθ3 ] = state[0:3]
-                [ sω1, sω2, sω3 ] = state[3:]
+                [ sθ1, sθ2, sθ3 ] = theta_state
+                [ sω1, sω2, sω3 ] = omega_state
                 self.logger.info(f',DATA5,{time:.4f},  {p_az:+.4f},{p_alt:+.4f},{p_roll:+.4f},  {θ1:+.4f},{θ2:+.4f},{θ3:+.4f},  {sθ1:+.4f},{sθ2:+.4f},{sθ3:+.4f},  {ω1:+.5f},{ω2:+.5f},{ω3:+.5f}, {sω1:+.5f},{sω2:+.5f},{sω3:+.5f},  {rω1:+.5f},{rω2:+.5f},{rω3:+.5f} ')
 
             # Store all the new values
             self._lock.acquire()
             self._last_518_timestamp = dt_now
             self._q1 = q1
-            self._theta = theta
-            self._omega = omega
+            self._theta_meas = theta_meas
+            self._omega_meas = omega_meas
             self._p_altitude = p_alt
             self._p_azimuth = p_az
             self._p_roll = p_roll
@@ -1046,8 +1042,7 @@ class Polaris:
                 asyncio.create_task(self.goto_tracking_test())
             # if we want to run Speed test to ramp moveaxis rate over its full range
             if Config.log_performance_data_test == 3:
-                # asyncio.create_task(self.moveaxis_speed_calibration_full_test())
-                asyncio.create_task(self.moveaxis_speed_calibration_test(0))
+                asyncio.create_task(self.moveaxis_speed_calibration_full_test())
             if Config.log_performance_data_test == 5:
                 asyncio.create_task(self.rotator_test())
         else:
@@ -1082,19 +1077,11 @@ class Polaris:
         if self._test_underway:
             return
         self._test_underway = True
-
-        # Run all axis calibration tasks in parallel
-        tasks = [self.moveaxis_speed_calibration_test(axis) for axis in (0, 1, 2)]
-        results_list = await asyncio.gather(*tasks)
-
-        # Merge axis-wise results
-        result = {}
-        for axis_result in results_list:
-            result.update(axis_result)
-
-        self.logger.info("== TEST == Multi-Axis Calibration COMPLETE")
-        pprint.pprint(result, width=250)
-
+        results = []
+        for axis in [0,1,2]:
+            results.append(await self.moveaxis_speed_calibration_test(axis))
+        formatted_results = json.dumps(results, indent=2).replace(',\n',', ').replace('[\n','[ ').replace('\n      ],',' ],\n')
+        self.logger.info(f'== TEST == Multi-Axis Calibration COMPLETE\n{formatted_results}')
         self._test_underway = False
 
 
@@ -1102,11 +1089,13 @@ class Polaris:
         ascom_rates = list(range(10))  # ASCOM rates 0–9
 
         required_stable_samples = 5
-        initial_interval = 1.0          # number seconds to wait before measuring
+        initial_interval = 3.0          # number seconds to wait before measuring
         sampling_interval = 0.25        # how often to measure
-        max_interval = 10               # max number of seconds to measure a single rate
+        max_interval = 15               # max number of seconds to measure a single rate
         dps_results = []
         raw_results = []
+        bad_results = []
+
 
         for rate in ascom_rates:
             await self.move_axis(axis, rate)
@@ -1118,7 +1107,7 @@ class Polaris:
 
             while time.monotonic() - start_time < max_interval:
                 await asyncio.sleep(sampling_interval)
-                omega = self._omega[axis]
+                omega = self._omega_meas[axis]
                 omega_samples.append(omega)
 
                 # if we potentially have enough samples, take a window the last set
@@ -1136,14 +1125,18 @@ class Polaris:
                 current_dps = self._motorcontrollers[axis]._model.interpolate["RAW"].toDPS(raw_rate)
                 dps_results.append(float(current_dps))
                 raw_results.append(float(raw_rate))
-                self.logger.info(f"== TEST == UNSTABLE | Axis {axis} | ASCOM {rate} | RAW: {raw_rate:.2f} | DPS: {current_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
- 
+                msg = f'UNSTABLE Results on Axis {axis} | ASCOM {rate} | RAW: {raw_rate:.2f} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}'
+                self.logger.info(msg)
+                bad_results.append(msg)
+
         await self.move_axis(axis, 0)
+        await asyncio.sleep(3)
         return {
             axis: {
                 "RAW": raw_results,
                 "ASCOM": [float(r) for r in ascom_rates],
-                "DPS": dps_results
+                "DPS": dps_results,
+                "BAD": bad_results
             }
         }
         
