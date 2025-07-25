@@ -189,7 +189,7 @@ class Polaris:
         # Telescope device rates
         #
         self._trackingrate: int = 0                 # Well-known telescope tracking rates. 0 = Sidereal tracking rate (15.041 arcseconds per second).
-        self._trackingrates = [0]                   # Returns a collection of supported DriveRates values that describe the permissible values of the TrackingRate property for this telescope type.
+        self._trackingrates = [0,1,2,3]             # Returns a collection of supported DriveRates values (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
         self._declinationrate: float = 0.0          # The declination tracking rate (arcseconds per SI second, default = 0.0)
         self._rightascensionrate: float = 0.0       # The right ascension tracking rate offset from sidereal (seconds per sidereal second, default = 0.0)
         self._guideratedeclination: float = 0.0     # The current Declination movement rate offset for telescope guiding (degrees/sec)

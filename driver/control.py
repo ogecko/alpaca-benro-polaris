@@ -59,7 +59,7 @@ import ephem
 # [ ] Satelite Tracking via TLE (Two Line Element)
 # [ ] Solar Tracking 
 # [ ] Transiting Exoplanet Support
-# [ ] Support ASCOM Alpaca Drive Rates (0=Sidereal, 1=Lunar, 2=Solar, 3=King, 4=Custom)
+# [ ] Support ASCOM Alpaca Drive Rates (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
 
 #
 # Rotator Control Features
