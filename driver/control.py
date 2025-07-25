@@ -6,6 +6,8 @@ from scipy.interpolate import PchipInterpolator
 import time
 import asyncio
 from typing import Optional
+import casadi as ca
+import ephem
 
 # ************* TODO LIST *****************
 
@@ -377,6 +379,202 @@ class KalmanFilter:
 
     def set_state(self, x):
         self.x = np.array(x).reshape(6, 1)
+
+
+
+
+# ************* MPC Controller *************
+
+def run_mpc_optimized(theta_0, omega_0, theta_ref, omega_ref, Δt, max_velocity, max_acceleration):
+    N = len(theta_ref)
+    opti = ca.Opti()
+
+    
+    # Decision variables
+    theta = [opti.variable(3) for _ in range(N+1)]
+    omega = [opti.variable(3) for _ in range(N)]
+
+    # Initial condition
+    opti.subject_to(theta[0] == theta_0)
+    opti.subject_to(omega[0] == omega_0)
+
+    # Dynamics and constraints
+    for t in range(N):
+        # Dynamics
+        D = int(2.0 / Δt)  # number of steps representing 2 second delay in actualisation
+        if D == 0:
+            opti.subject_to(theta[t+1] == theta[t] + omega[t])
+        elif t + D < N + 1:
+            opti.subject_to(theta[t+1] == theta[t] + omega[max(0, t-D)])
+        else:
+            # Beyond prediction horizon — assume zero velocity or maintain last valid one
+            opti.subject_to(theta[t+1] == theta[t] + omega[max(0, N-1)])
+
+        # Angular constraint
+        opti.subject_to(opti.bounded(0.0, theta[t][1], 84.0))
+
+        # Velocity constraint
+        opti.subject_to(opti.bounded(-max_velocity * Δt, omega[t], max_velocity * Δt))
+
+        # Acceleration constraint
+        if t > 0:
+            accel = (omega[t] - omega[t-1]) / Δt
+            opti.subject_to(opti.bounded(-max_acceleration, accel, max_acceleration))
+
+    cost = 0
+    for t in range(N):
+        # Objective: minimize absolute tracking error
+        cost += ca.sumsqr(theta[t] - theta_ref[t])
+
+    for t in range(N-1):
+        # Objective: minimize tracking angular rate error
+        velocity_penalty_weight = 3
+        cost += ca.sumsqr(omega[t] - omega_ref[t])*velocity_penalty_weight
+
+    opti.minimize(cost)
+
+    # Solver setup
+    opti.solver('ipopt')
+    sol = opti.solve()
+
+    # Extract solution
+    theta_opt = np.array([sol.value(theta[t]) for t in range(N+1)])
+    omega_opt = np.array([sol.value(omega[t]) for t in range(N)])
+
+    return theta_opt, omega_opt
+
+
+def generate_mpc_strategy():
+    # Setup observer
+    observer = ephem.Observer()
+    observer.lat = '-33.8688'  # Sydney
+    observer.lon = '151.2093'
+    observer.elevation = 50
+    observer.date = ephem.now()
+
+    # DSO target
+
+    # Acrux
+    ra_stellarium = "12:26:34.85"     # HH:MM:SS format
+    dec_stellarium = "-63:06:12.3"    # DD:MM:SS format
+    parallactic_stellarium = 0
+
+    # nCar
+    ra_stellarium = "10:44:17.18"     # HH:MM:SS format
+    dec_stellarium = "-59:53:31.7"    # DD:MM:SS format
+    parallactic_stellarium = 0
+
+
+    # Parse with ephem
+    ra = ephem.hours(ra_stellarium)
+    dec = ephem.degrees(dec_stellarium)
+
+    # Horizon
+    N = 30
+    Δt = 1
+    horizon_sec = int(N * Δt)
+
+    # Compute desired alt/az/roll
+    azaltroll_ref = compute_body_trajectory(observer, ra, dec, horizon_sec, int(Δt))
+
+    # Convert to desired motor angles
+    theta_ref = compute_desired_motor_angles(azaltroll_ref)
+    theta_ref_unwrapped = unwrap_angle_matrix(theta_ref, wrap=360.0)
+
+    # Compute desired motor velocities
+    omega_ref = compute_desired_motor_velocities(theta_ref_unwrapped, Δt)
+
+    # Initial mount orientation (not aligned with DSO yet)
+    topo_0 = [180.0, 70.0, 0.0]
+    q1_0 = angles_to_quaternion(*topo_0)
+    theta_0 = quaternion_to_angles(q1_0)[0:3]
+    omega_0 = [0, 0, 0]
+
+    # Run MPC
+    max_velocity = np.array([7, 7, 7])
+    max_acceleration = np.array([1, 1, 1])
+    theta_opt, omega_opt = run_mpc_optimized(theta_0, omega_0, theta_ref_unwrapped, omega_ref, Δt, max_velocity, max_acceleration)
+
+    return omega_opt[0]
+
+
+def compute_body_trajectory(observer, ra, dec, horizon_sec, Δt_sec, topo_roll=None, para_roll=None):
+    body = ephem.FixedBody()
+    body._ra = ra
+    body._dec = dec
+    body.compute(observer)
+
+    # Set initial roll offset
+    if para_roll is not None:
+        roll_offset = para_roll 
+    elif topo_roll is not None:
+        roll_offset = topo_roll + np.rad2deg(body.parallactic_angle())
+    else:
+        roll_offset = np.rad2deg(body.parallactic_angle())
+
+    next_transit = observer.next_transit(body)
+
+    t0 = ephem.now()
+    azaltroll_ref = []
+    for t in range(0, horizon_sec, Δt_sec):
+        observer.date = ephem.Date(t0 + t / (24*3600))
+        body.compute(observer)
+        az = np.rad2deg(body.az)
+        alt = np.rad2deg(body.alt)
+        roll = roll_offset - np.rad2deg(body.parallactic_angle())
+        azaltroll_ref.append([az, alt, roll])
+
+    return np.array(azaltroll_ref)
+
+
+def compute_desired_motor_angles(azaltroll_ref):
+    theta_ref = []
+    for az, alt, roll in azaltroll_ref:
+        q = angles_to_quaternion(az, alt, roll)
+        theta = quaternion_to_angles(q)[0:3]
+        theta_ref.append(np.array(theta))
+    return theta_ref
+
+
+def compute_desired_motor_velocities(theta_ref, Δt):
+    max_desired_velocity = 10
+    theta_ref = np.asarray(theta_ref)
+    omega = np.diff(theta_ref, axis=0)  # finite differences
+    motor_velocities = omega / Δt
+    # velocities where abs exceeds threshold, use velocity next to it
+    too_fast_mask = np.abs(motor_velocities) > max_desired_velocity
+    previous_vel = np.vstack([motor_velocities[0], motor_velocities[:-1]])
+    motor_velocities_clean = np.where(too_fast_mask, previous_vel, motor_velocities)
+
+    return motor_velocities_clean
+
+def compute_actual_altazroll(theta_opt):
+    alt_list, az_list, roll_list = [], [], []
+    for theta in theta_opt:
+        q = motors_to_quaternion(*theta)
+        _, _, _, alt, az, roll = quaternion_to_angles(q)
+        alt_list.append(alt)
+        az_list.append(az)
+        roll_list.append(roll)
+    return np.array(alt_list), np.array(az_list), np.array(roll_list)
+
+def unwrap_angle_sequence(seq, wrap=360.0):
+    seq = np.asarray(seq)
+    unwrapped = [seq[0]]
+    for a in seq[1:]:
+        prev = unwrapped[-1]
+        delta = a - prev
+        delta = ((delta + wrap / 2) % wrap) - wrap / 2
+        unwrapped.append(prev + delta)
+    return np.array(unwrapped)
+
+
+def unwrap_angle_matrix(matrix, wrap=360.0):
+    matrix = np.asarray(matrix)
+    return np.array([unwrap_angle_sequence(matrix[:, i], wrap) for i in range(matrix.shape[1])]).T
+
+
+
 
 
 # ************* MoveAxis Rate Interpolation *************
