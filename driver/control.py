@@ -435,7 +435,9 @@ def run_mpc_optimized(theta_0, omega_0, theta_ref, omega_ref, Δt, max_velocity,
     opti.minimize(cost)
 
     # Solver setup
-    opti.solver('ipopt')
+    p_opts = dict(print_time=False, verbose=False)
+    s_opts = dict(print_level=0)
+    opti.solver("ipopt", p_opts, s_opts)
     sol = opti.solve()
 
     # Extract solution
@@ -445,30 +447,13 @@ def run_mpc_optimized(theta_0, omega_0, theta_ref, omega_ref, Δt, max_velocity,
     return theta_opt, omega_opt
 
 
-def generate_mpc_strategy():
+def generate_mpc_strategy(observer, ra, dec, theta_0, omega_0):
     # Setup observer
-    observer = ephem.Observer()
-    observer.lat = '-33.8688'  # Sydney
-    observer.lon = '151.2093'
-    observer.elevation = 50
     observer.date = ephem.now()
 
-    # DSO target
-
-    # Acrux
-    ra_stellarium = "12:26:34.85"     # HH:MM:SS format
-    dec_stellarium = "-63:06:12.3"    # DD:MM:SS format
-    parallactic_stellarium = 0
-
-    # nCar
-    ra_stellarium = "10:44:17.18"     # HH:MM:SS format
-    dec_stellarium = "-59:53:31.7"    # DD:MM:SS format
-    parallactic_stellarium = 0
-
-
     # Parse with ephem
-    ra = ephem.hours(ra_stellarium)
-    dec = ephem.degrees(dec_stellarium)
+    ra = ephem.hours(ra)
+    dec = ephem.degrees(dec)
 
     # Horizon
     N = 30
@@ -478,25 +463,17 @@ def generate_mpc_strategy():
     # Compute desired alt/az/roll
     azaltroll_ref = compute_body_trajectory(observer, ra, dec, horizon_sec, int(Δt))
 
-    # Convert to desired motor angles
+    # Convert to desired motor angles and velocities
     theta_ref = compute_desired_motor_angles(azaltroll_ref)
     theta_ref_unwrapped = unwrap_angle_matrix(theta_ref, wrap=360.0)
-
-    # Compute desired motor velocities
     omega_ref = compute_desired_motor_velocities(theta_ref_unwrapped, Δt)
-
-    # Initial mount orientation (not aligned with DSO yet)
-    topo_0 = [180.0, 70.0, 0.0]
-    q1_0 = angles_to_quaternion(*topo_0)
-    theta_0 = quaternion_to_angles(q1_0)[0:3]
-    omega_0 = [0, 0, 0]
 
     # Run MPC
     max_velocity = np.array([7, 7, 7])
     max_acceleration = np.array([1, 1, 1])
     theta_opt, omega_opt = run_mpc_optimized(theta_0, omega_0, theta_ref_unwrapped, omega_ref, Δt, max_velocity, max_acceleration)
 
-    return omega_opt[0]
+    return theta_ref_unwrapped[1], theta_opt[1], omega_ref[1], omega_opt[1]
 
 
 def compute_body_trajectory(observer, ra, dec, horizon_sec, Δt_sec, topo_roll=None, para_roll=None):
@@ -522,7 +499,7 @@ def compute_body_trajectory(observer, ra, dec, horizon_sec, Δt_sec, topo_roll=N
         body.compute(observer)
         az = np.rad2deg(body.az)
         alt = np.rad2deg(body.alt)
-        roll = roll_offset - np.rad2deg(body.parallactic_angle())
+        roll = 0 # roll_offset - np.rad2deg(body.parallactic_angle())
         azaltroll_ref.append([az, alt, roll])
 
     return np.array(azaltroll_ref)
