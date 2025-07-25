@@ -78,6 +78,15 @@ class Config:
     focal_ratio: float = get_toml('server', 'focal_ratio')
     verbose_driver_exceptions: bool = get_toml('server', 'verbose_driver_exceptions')
     # --------------
+    # Control Section
+    # --------------
+    advanced_tracking: bool = get_toml('control', 'advanced_tracking')
+    advanced_goto: bool = get_toml('control', 'advanced_goto')
+    advanced_rotator: bool = get_toml('control', 'advanced_rotator')
+    advanced_guiding: bool = get_toml('control', 'advanced_guiding')
+    max_slew_rate: float = get_toml('control', 'max_slew_rate')
+    max_accel_rate: float = get_toml('control', 'max_accel_rate')
+    # --------------
     # Device Section
     # --------------
     tracking_settle_time: float = get_toml('device', 'tracking_settle_time')
