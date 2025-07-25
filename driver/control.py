@@ -52,13 +52,14 @@ import ephem
 # Precision Tracking
 # [ ] Target position and velocity tracking with adaptive error correction
 # [ ] Seamless Axis Override During Tracking
-# [ ] Deep-Sky Object Tracking
-# [ ] Selenographic Lunar Tracking
+# [ ] Deep-Sky Object Tracking 
+# [ ] Selenographic Lunar Tracking 
 # [ ] Planetary and Orbital Moons Tracking
 # [ ] Commet and Asteroid Tracking
 # [ ] Satelite Tracking via TLE (Two Line Element)
-# [ ] Solar Tracking
+# [ ] Solar Tracking 
 # [ ] Transiting Exoplanet Support
+# [ ] Support ASCOM Alpaca Drive Rates (0=Sidereal, 1=Lunar, 2=Solar, 3=King, 4=Custom)
 
 #
 # Rotator Control Features
