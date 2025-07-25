@@ -606,7 +606,8 @@ class Polaris:
             arg_dict = self.polaris_parse_args(args)
             self._lock.acquire()
             self._current_mode = int(arg_dict['mode'])
-            self._tracking = bool(arg_dict['track'] == '1') if 'track' in arg_dict else False
+            if not Config.advanced_tracking:        # if we are not doing tracking then update tracking status based on what Benro tells us 
+                self._tracking = bool(arg_dict['track'] == '1') if 'track' in arg_dict else False
             self._lock.release()
             if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
                 self.logger.info(f"<<- Polaris: MODE status changed: {cmd} {arg_dict}")
@@ -721,7 +722,8 @@ class Polaris:
         elif cmd == "531":
             arg_dict = self.polaris_parse_args(args)
             self._lock.acquire()
-            self._tracking = (arg_dict['ret'] == '1')
+            if not Config.advanced_tracking:     # if we are not doing tracking then update tracking status based on what Benro tells us 
+                self._tracking = (arg_dict['ret'] == '1')
             self._lock.release()
             if Config.log_polaris:
                 self.logger.info(f"<<- Polaris: TRACK status changed: {cmd} {arg_dict}")
@@ -869,9 +871,8 @@ class Polaris:
         # log the aiming alt/az and correct it based on previous aiming results
         calt, caz = self.aim_altaz_log_and_correct(alt, az)
 
-        # if we are currently sidereal tracking then turn off tracking
-        if currently_tracking:
-            await self.send_cmd_change_tracking_state(False)
+        # turn off tracking before we issue the cmd
+        await self.stop_tracking()
 
         # compose and send the GOTO message
         finaltrack = 1 if istracking else 0
@@ -933,8 +934,8 @@ class Polaris:
         await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
 
     async def send_cmd_park(self):
-        if self._tracking:
-            await self.send_cmd_change_tracking_state(False)
+        await self.stop_tracking()
+        await asyncio.sleep(1)
         if Config.log_polaris:
             self.logger.info(f"->> Polaris: PARK all 3 axis")
         await self.send_cmd_reset_axis(1)
@@ -1716,6 +1717,27 @@ class Polaris:
         # if tracking TODO - need to update trajectory
         #
 
+
+    async def stop_tracking(self):
+        if Config.advanced_tracking:
+            self.logger.info(f"Advanced MPC: STOP tracking")
+            self._tracking = False
+        else:
+            # only send message if we are already tracking
+            if self._tracking:
+                self._tracking = False
+                await self.send_cmd_change_tracking_state(False)
+
+
+    async def start_tracking(self):
+        if Config.advanced_tracking:
+            self.logger.info(f"Advanced MPC: START tracking with rate {self._trackingrate}")
+            self._tracking = True
+        else:
+            # only send message if we are not tracking and not slewing
+            if not self._tracking and not self._slewing:
+                self._tracking = True
+                await self.send_cmd_change_tracking_state(True)
 
 
     async def park(self):

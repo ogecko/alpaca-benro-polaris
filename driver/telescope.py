@@ -902,20 +902,14 @@ class tracking:
         tracking = to_bool(trackingstr)
 
         try:
-            slewing = polaris.slewing
-            oldtracking = polaris.tracking
-            polaris.tracking = tracking
-            # only send message if requested state differs and not slewing
-            if tracking != oldtracking and not slewing:
-                await polaris.send_cmd_change_tracking_state(tracking)                       # Same here
+            if tracking:
+                await polaris.start_tracking()
+            else:
+                await polaris.stop_tracking()
 
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
             resp.text = await MethodResponse(req)
         except Exception as ex:
-            resp.text = await MethodResponse(req,
-                            DriverException(0x500, 'Telescope.Tracking failed', ex))
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Tracking failed', ex))
 
 @before(PreProcessRequest(maxdev))
 class trackingrate:
@@ -931,7 +925,23 @@ class trackingrate:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Trackingrate failed', ex))
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await PropertyResponse(None, req, NotImplementedException())
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        trackingratestr = await get_request_field('TrackingRate', req)      # Raises 400 bad request if missing
+        try:
+            trackingrate = int(trackingratestr)
+        except:
+            resp.text = await MethodResponse(req, InvalidValueException(f'TrackingRate {trackingratestr} not a valid number.'))
+            return
+        if trackingrate < 0 or trackingrate > 3:
+            resp.text = await MethodResponse(req, InvalidValueException(f'TrackingRate {trackingrate} must be between 0 and 3.'))
+            return
+        try:
+            polaris.trackingrate = trackingrate
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Tracking failed', ex))
 
 @before(PreProcessRequest(maxdev))
 class trackingrates:
