@@ -653,13 +653,13 @@ class MotorSpeedController:
         self.pending_update = None  # Stores update tuple (raw, ramp_duration, timestamp)
         self.rate_dps = 0.0         # dps rate of current requested speed
         self.rate_raw = 0.0         # raw rate of current requested speed
-        self.mode = 'IDLE'          # Modes: IDLE, SLOW, PWM_SLOW, FAST_RAMP, FAST
+        self.mode = 'IDLE'          # Modes: IDLE, SLOW, SLOW_PWM, FAST_RAMP, FAST
         self.ramp_start = 0.0       # raw rate at start of ramp
         self.ramp_target = 0.0      # raw rate at end of ramp
         self.ramp_duration = None   # duration of ramp in seconds
         self.ramp_start_time = time.monotonic()     # Time the ramp started
         self.next_dispatch_time = time.monotonic()  # Next time to dispatch a command
-        self.command = None         # for PWM_SLOW hols (base, next); for all other modes holds Current command to send to the motor
+        self.command = None         # for SLOW_PWM hols (base, next); for all other modes holds Current command to send to the motor
 
         # PWM tracking
         self.duty_cycle = 0.0
@@ -679,7 +679,7 @@ class MotorSpeedController:
         if not self.pending_update:
             return
         
-        if self.mode == "PWM_SLOW" and now < self.next_dispatch_time:
+        if self.mode == "SLOW_PWM" and now < self.next_dispatch_time:
             return
 
         # Apply new rate and update state for dispatch to take over
@@ -717,7 +717,7 @@ class MotorSpeedController:
                 self.mode = "SLOW"
                 self.command = base
             else:
-                self.mode = "PWM_SLOW"
+                self.mode = "SLOW_PWM"
                 self.command = (base, next_up)
                 self.duty_cycle = duty
 
@@ -751,7 +751,7 @@ class MotorSpeedController:
                     if self.command == 0:
                         self.mode = "IDLE"
 
-                elif self.mode == "PWM_SLOW":
+                elif self.mode == "SLOW_PWM":
                     base, next_up = self.command
                     pwm_rate = base if self.pwm_phase == "ON" else next_up
                     duration = 1.2 * (1 - self.duty_cycle if self.pwm_phase == "ON" else self.duty_cycle)
