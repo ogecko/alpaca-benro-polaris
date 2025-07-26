@@ -16,6 +16,7 @@
 - **[Nina and Nikon Z8]**: Nina v3.2 now supports Nikon Z8 cameras 
 
 ## New Features (enabled by Stellarium)
+- **[Qt6 Support ]**: Latest Stellarium verision is supported (Qt6 UI library works with ASCOM Platform 7)
 
 ## New Features (Alpaca Driver)
 - **[Log Files]**: The default logging location has changed from the `driver` directory to the `logs` direcotry
