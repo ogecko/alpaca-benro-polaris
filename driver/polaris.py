@@ -371,7 +371,7 @@ class Polaris:
 
                 # if advanced_tracking or advanced_slewing is enabled, then reclaculate control parameters
                 if Config.advanced_tracking or Config.advanced_slewing:
-                    self.recalculate_mpc_control_parameters()
+                    await self.recalculate_mpc_control_parameters()
 
                 await asyncio.sleep(1)
 
@@ -1785,7 +1785,7 @@ class Polaris:
         self._atpark = False
         self._lock.release()
 
-    def recalculate_mpc_control_parameters(self):
+    async def recalculate_mpc_control_parameters(self):
         # recalculate MPC control parameters
         if self._tracking:
             ra = self._targetrightascension if self._targetrightascension else self._rightascension

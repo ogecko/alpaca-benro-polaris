@@ -50,6 +50,7 @@ import ephem
 # [ ] Auto-fetch orbital elements
 #
 # Precision Tracking
+# [X] Support ASCOM Alpaca Drive Rates (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
 # [ ] Target position and velocity tracking with adaptive error correction
 # [ ] Seamless Axis Override During Tracking
 # [ ] Deep-Sky Object Tracking 
@@ -59,7 +60,6 @@ import ephem
 # [ ] Satelite Tracking via TLE (Two Line Element)
 # [ ] Solar Tracking 
 # [ ] Transiting Exoplanet Support
-# [ ] Support ASCOM Alpaca Drive Rates (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
 
 #
 # Rotator Control Features
@@ -452,8 +452,10 @@ def generate_mpc_strategy(observer, ra, dec, theta_0, omega_0):
     observer.date = ephem.now()
 
     # Parse with ephem
-    ra = ephem.hours(ra)
-    dec = ephem.degrees(dec)
+    body = ephem.FixedBody()
+    body._ra = ephem.hours(ra)
+    body._dec = ephem.degrees(dec)
+    body.compute(observer)
 
     # Horizon
     N = 30
@@ -461,8 +463,7 @@ def generate_mpc_strategy(observer, ra, dec, theta_0, omega_0):
     horizon_sec = int(N * Δt)
 
     # Compute desired alt/az/roll
-    azaltroll_ref = compute_body_trajectory(observer, ra, dec, horizon_sec, int(Δt))
-
+    azaltroll_ref = compute_body_trajectory(observer, body, horizon_sec, int(Δt))
     # Convert to desired motor angles and velocities
     theta_ref = compute_desired_motor_angles(azaltroll_ref)
     theta_ref_unwrapped = unwrap_angle_matrix(theta_ref, wrap=360.0)
@@ -476,12 +477,7 @@ def generate_mpc_strategy(observer, ra, dec, theta_0, omega_0):
     return theta_ref_unwrapped[1], theta_opt[1], omega_ref[1], omega_opt[1]
 
 
-def compute_body_trajectory(observer, ra, dec, horizon_sec, Δt_sec, topo_roll=None, para_roll=None):
-    body = ephem.FixedBody()
-    body._ra = ra
-    body._dec = dec
-    body.compute(observer)
-
+def compute_body_trajectory(observer, body, horizon_sec, Δt_sec, topo_roll=None, para_roll=None):
     # Set initial roll offset
     if para_roll is not None:
         roll_offset = para_roll 
@@ -489,7 +485,6 @@ def compute_body_trajectory(observer, ra, dec, horizon_sec, Δt_sec, topo_roll=N
         roll_offset = topo_roll + np.rad2deg(body.parallactic_angle())
     else:
         roll_offset = np.rad2deg(body.parallactic_angle())
-
     next_transit = observer.next_transit(body)
 
     t0 = ephem.now()
@@ -645,140 +640,109 @@ class MoveAxisRateUnitInterpolator:
 
 # ************* MoveAxis Speed Controller *************
 class MotorSpeedController:
-    def __init__(self, logger, axis: int, send_msg):
+    def __init__(self, logger, axis, send_msg):
         self.axis = axis
         self._logger = logger
         self._model = MoveAxisRateInterpolator(move_axis_data[axis])
         self._messenger = MoveAxisMessenger(axis, send_msg)
         self._stop_flag = asyncio.Event()
         self._lock = asyncio.Lock()
-        self._strategy: Optional[AxisControlStrategy] = None
 
-        self.rate = 0.0            # last set_motor_speed rate +/-
-        self.rate_unit = "DPS"     # units of the last set_motor_speed rate ('DPS', 'ASCOM', or 'RAW')
-        self.rate_raw = 0.0        # rate in raw units (command rate +/-0.0 to 5.0 SLOW, >5 to 2000 FAST)
-        self.rate_dps = 0.0        # rate in dps units (Degrees per second)
+        # Core state
+        self.rate_dps = 0.0
+        self.rate_raw = 0.0
+        self.mode = 'IDLE'
+        self.command = None
+        self.next_dispatch_time = time.monotonic()
+        self.pending_update = None  # Stores tuple (raw, timestamp)
 
-        # Kick off the dispatch loop as an asyncio task
+        # PWM tracking
+        self.duty_cycle = 0.0
+        self.pwm_phase = 'ON'
+        self.last_switch_time = time.monotonic()
+
         asyncio.create_task(self._dispatch_loop())
 
-    @property
-    def motor_mode(self):
-        return self._strategy.mode if self._strategy else "IDLE"
-
-    def set_motor_speed(self, rate: float, rate_unit="DPS"):
-        async def _update():
+    def set_motor_speed(self, rate, rate_unit="DPS"):
+        async def _queue_update():
             async with self._lock:
-                previous = self._strategy
-                self.rate = rate
-                self.rate_unit = rate_unit
-                self.rate_raw = float(self._model.interpolate[rate_unit].toRAW(rate))
-                self.rate_dps = float(self._model.interpolate['RAW'].toDPS(self.rate_raw))
-                self._strategy = AxisControlStrategy(self.rate_raw, previous)
-        asyncio.create_task(_update())
+                raw = self._model.interpolate[rate_unit].toRAW(rate)
+                now = time.monotonic()
+                self.pending_update = (float(raw), now)
+        asyncio.create_task(_queue_update())
 
-    async def stop(self):
-        async with self._lock:
-            self._stop_flag.set()
-            await self._messenger.send_slow_move_msg(0)
+    def _apply_pending_update(self, now):
+        if not self.pending_update:
+            return
+        
+        if self.mode == "PWM_SLOW" and now < self.next_dispatch_time:
+            return
 
-    async def _dispatch_loop(self):
-        while not self._stop_flag.is_set():
-            async with self._lock:
-                strategy = self._strategy
+        # Apply new rate
+        print(f"Motor {self.axis} applying pending update: {self.pending_update}")
+        new_raw, update_time = self.pending_update
+        self.pending_update = None
+        self.rate_raw = new_raw
+        self.rate_dps = self._model.interpolate['RAW'].toDPS(new_raw)
+        interp = abs(self.rate_raw)
+        direction = 1 if self.rate_raw >= 0 else -1
+        self.next_dispatch_time = now
 
-            if strategy:
-                cmd = strategy.get_command_if_due()
-                if cmd:
-                    # self._logger.info(f"[Axis {self.axis}] Mode: {self.motor_mode}, DPS: {self.rate_dps:.4f}, RAW: {self.rate_raw:.4f}, Cmd: {cmd}, Duration: {strategy.next_dispatch_time - time.monotonic():.2f}s")
-                    raw_rate = cmd["raw_rate"]
-                    typ = cmd["type"]
-                    # Fire-and-forget async messages
-                    if typ in ("SLOW", "PWM_SLOW"): 
-                        asyncio.create_task(self._messenger.send_slow_move_msg(raw_rate)) 
-                    else:
-                        asyncio.create_task(self._messenger.send_fast_move_msg(raw_rate))
-
-            # Non-blocking sleep until next dispatch
-            next_time = strategy.next_dispatch_time if strategy else time.monotonic() + 0.05
-            sleep_sec = float(np.clip(next_time - time.monotonic(), 0.001, 0.05))
-            await asyncio.sleep(sleep_sec)
-
-class AxisControlStrategy:
-    def __init__(self, raw_rate: float, previous: Optional['AxisControlStrategy'], pwm_cycle_ms=1200, fast_cycle_ms=50):
-        self.raw_rate = raw_rate
-        self.mode = 'IDLE'
-        self.pwm_cycle_ms = pwm_cycle_ms
-        self.fast_cycle_ms = fast_cycle_ms
-        self.next_dispatch_time = time.monotonic()
-        self._analyze(previous)
-
-    def _analyze(self, previous_strategy: Optional['AxisControlStrategy']):
-        interp = abs(self.raw_rate)
-        direction = 1 if self.raw_rate >= 0 else -1
-        now = time.monotonic()
-
-        # if a FAST rate
-        if interp > 5:
-            self.mode = 'FAST'
-            self.command = int(np.clip(round(interp), 100, 2500)) * direction
-
-        # if we are stopping this axis
-        elif interp == 0:
-            self.mode = 'SLOW'
+        if interp == 0:
+            self.mode = "SLOW"
             self.command = 0
 
-        # if a SLOW or PWM_SLOW rate
+        elif interp > 5:
+            self.mode = "FAST"
+            self.command = int(np.clip(round(interp), 100, 2500)) * direction
+
         else:
             base = int(np.floor(interp)) * direction
             next_up = int(np.ceil(interp)) * direction
             duty = interp - np.floor(interp)
 
-            # if a integer SLOW rate
             if duty == 0 or base == next_up:
-                self.mode = 'SLOW'
+                self.mode = "SLOW"
                 self.command = base
-
-            # if a PWM_SLOW rate is needed
             else:
-                self.mode = 'PWM_SLOW'
+                self.mode = "PWM_SLOW"
                 self.command = (base, next_up)
                 self.duty_cycle = duty
-                self.pwm_phase = 'ON'
-                self.last_switch_time = now
-                self.next_dispatch_time = now  # Start immediately
 
-                if previous_strategy and previous_strategy.mode == 'PWM_SLOW':
-                    # Preserve PWM state and calculate adjusted next_dispatch_time
-                    elapsed = time.monotonic() - previous_strategy.last_switch_time
-                    last_phase = previous_strategy.pwm_phase
-                    new_duration = self.pwm_cycle_ms * (1 - self.duty_cycle if last_phase == 'ON' else self.duty_cycle)
+    async def _dispatch_loop(self):
+        while not self._stop_flag.is_set():
+            async with self._lock:
+                now = time.monotonic()
+                self._apply_pending_update(now)
 
-                    if elapsed < new_duration:
-                        self.pwm_phase = last_phase
-                        self.next_dispatch_time = time.monotonic() + (new_duration - elapsed) / 1000.0
-                        self.last_switch_time = time.monotonic()
+                if now < self.next_dispatch_time:
+                    await asyncio.sleep(0.001)
+                    continue
 
-    def get_command_if_due(self):
-        now = time.monotonic()
-        if now < self.next_dispatch_time:
-            return None
+                if self.mode == "FAST":
+                    await self._messenger.send_fast_move_msg(self.command)
+                    self.next_dispatch_time = now + 0.05
 
-        if self.mode == 'SLOW':
-            self.next_dispatch_time = time.monotonic() + float('inf')
-            return {"type": "SLOW", "raw_rate": self.command}
+                elif self.mode == "SLOW":
+                    await self._messenger.send_slow_move_msg(self.command)
+                    self.next_dispatch_time = now + float('inf')
 
-        elif self.mode == 'FAST':
-            self.next_dispatch_time = now + self.fast_cycle_ms / 1000.0
-            return {"type": "FAST", "raw_rate": self.command}
+                elif self.mode == "PWM_SLOW":
+                    base, next_up = self.command
+                    pwm_rate = base if self.pwm_phase == "ON" else next_up
+                    duration = 1.2 * (1 - self.duty_cycle if self.pwm_phase == "ON" else self.duty_cycle)
+                    await self._messenger.send_slow_move_msg(pwm_rate)
+                    print(f"Motor {self.axis} PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
+                    self.pwm_phase = "OFF" if self.pwm_phase == "ON" else "ON"
+                    self.last_switch_time = now
+                    self.next_dispatch_time = now + duration
 
-        elif self.mode == 'PWM_SLOW':
-            base, next_up = self.command
-            duration = self.pwm_cycle_ms * (1 - self.duty_cycle if self.pwm_phase == 'ON' else self.duty_cycle)
-            self.next_dispatch_time = now + duration / 1000.0
-            cmd = base if self.pwm_phase == 'ON' else next_up
-            self.pwm_phase = 'OFF' if self.pwm_phase == 'ON' else 'ON'
-            return {"type": "PWM_SLOW", "raw_rate": cmd}
+            await asyncio.sleep(0.001)
+
+    async def stop(self):
+        async with self._lock:
+            self._stop_flag.set()
+            await self._messenger.send_slow_move_msg(0)
 
 class MoveAxisMessenger:
     def __init__(self, axis: int, send_msg):
