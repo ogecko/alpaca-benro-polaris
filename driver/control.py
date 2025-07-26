@@ -650,12 +650,16 @@ class MotorSpeedController:
         self._lock = asyncio.Lock()
 
         # Core state
-        self.rate_dps = 0.0
-        self.rate_raw = 0.0
-        self.mode = 'IDLE'
-        self.command = None
-        self.next_dispatch_time = time.monotonic()
-        self.pending_update = None  # Stores tuple (raw, timestamp)
+        self.pending_update = None  # Stores update tuple (raw, ramp_duration, timestamp)
+        self.rate_dps = 0.0         # dps rate of current requested speed
+        self.rate_raw = 0.0         # raw rate of current requested speed
+        self.mode = 'IDLE'          # Modes: IDLE, SLOW, PWM_SLOW, FAST_RAMP, FAST
+        self.ramp_start = 0.0       # raw rate at start of ramp
+        self.ramp_target = 0.0      # raw rate at end of ramp
+        self.ramp_duration = None   # duration of ramp in seconds
+        self.ramp_start_time = time.monotonic()     # Time the ramp started
+        self.next_dispatch_time = time.monotonic()  # Next time to dispatch a command
+        self.command = None         # for PWM_SLOW hols (base, next); for all other modes holds Current command to send to the motor
 
         # PWM tracking
         self.duty_cycle = 0.0
@@ -668,6 +672,7 @@ class MotorSpeedController:
         async with self._lock:
             raw = self._model.interpolate[rate_unit].toRAW(rate)
             now = time.monotonic()
+            # if we get too many updates before they are applied, just overwrite the last one
             self.pending_update = (float(raw), ramp_duration, now)
 
     def _apply_pending_update(self, now):
@@ -677,7 +682,7 @@ class MotorSpeedController:
         if self.mode == "PWM_SLOW" and now < self.next_dispatch_time:
             return
 
-        # Apply new rate
+        # Apply new rate and update state for dispatch to take over
         new_raw, ramp_duration, update_time = self.pending_update
         self.pending_update = None
         prior_raw = self.rate_raw
@@ -737,26 +742,28 @@ class MotorSpeedController:
                     blend = max(0.0, min(1.0, elapsed / self.ramp_duration))
                     self.command = self.ramp_start + blend * (self.ramp_target - self.ramp_start)
                     await self._messenger.send_fast_move_msg(self.command)
-                    self._logger.info(f"Motor {self.axis} FAST_RAMP: rate {self.command}, blend {blend:.2f}, start {self.ramp_start:.2f}, target {self.ramp_target:.2f}")
+                    # self._logger.info(f"Motor {self.axis} FAST_RAMP: rate {self.command}, blend {blend:.2f}, start {self.ramp_start:.2f}, target {self.ramp_target:.2f}")
                     self.next_dispatch_time = now + 0.05
 
                 elif self.mode == "SLOW":
                     await self._messenger.send_slow_move_msg(self.command)
                     self.next_dispatch_time = now + float('inf')
+                    if self.command == 0:
+                        self.mode = "IDLE"
 
                 elif self.mode == "PWM_SLOW":
                     base, next_up = self.command
                     pwm_rate = base if self.pwm_phase == "ON" else next_up
-                    duration = 0.6 * (1 - self.duty_cycle if self.pwm_phase == "ON" else self.duty_cycle)
+                    duration = 1.2 * (1 - self.duty_cycle if self.pwm_phase == "ON" else self.duty_cycle)
                     await self._messenger.send_slow_move_msg(pwm_rate)
-#                    self._logger.info(f"Motor {self.axis} PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
+                    # self._logger.info(f"Motor {self.axis} PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
                     self.pwm_phase = "OFF" if self.pwm_phase == "ON" else "ON"
                     self.last_switch_time = now
                     self.next_dispatch_time = now + duration
 
             await asyncio.sleep(0.001)
 
-    async def stop(self):
+    async def stop_disspatch_loop_task(self):
         async with self._lock:
             self._stop_flag.set()
             await self._messenger.send_slow_move_msg(0)
