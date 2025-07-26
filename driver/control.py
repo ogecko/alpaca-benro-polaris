@@ -788,7 +788,7 @@ class MoveAxisMessenger:
 
     async def send_fast_move_msg(self, fast_raw_rate: int) -> str:
         if abs(fast_raw_rate) > 2500:
-            raise ValueError("FAST rate must be within ±2000.")
+            raise ValueError("FAST rate must be within ±2500.")
         msg = f"1&{self.cmd_fast}&3&speed:{int(fast_raw_rate)};#"
         await self.send_msg(msg)
         return msg
