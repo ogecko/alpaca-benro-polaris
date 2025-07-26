@@ -458,7 +458,7 @@ def generate_mpc_strategy(observer, ra, dec, theta_0, omega_0):
     body.compute(observer)
 
     # Horizon
-    N = 30
+    N = 60
     Δt = 1
     horizon_sec = int(N * Δt)
 
@@ -474,7 +474,8 @@ def generate_mpc_strategy(observer, ra, dec, theta_0, omega_0):
     max_acceleration = np.array([1, 1, 1])
     theta_opt, omega_opt = run_mpc_optimized(theta_0, omega_0, theta_ref_unwrapped, omega_ref, Δt, max_velocity, max_acceleration)
 
-    return theta_ref_unwrapped[1], theta_opt[1], omega_ref[1], omega_opt[1]
+    return theta_ref_unwrapped, theta_opt, omega_ref, omega_opt
+
 
 
 def compute_body_trajectory(observer, body, horizon_sec, Δt_sec, topo_roll=None, para_roll=None):
@@ -730,7 +731,7 @@ class MotorSpeedController:
                 elif self.mode == "PWM_SLOW":
                     base, next_up = self.command
                     pwm_rate = base if self.pwm_phase == "ON" else next_up
-                    duration = 1.2 * (1 - self.duty_cycle if self.pwm_phase == "ON" else self.duty_cycle)
+                    duration = 0.6 * (1 - self.duty_cycle if self.pwm_phase == "ON" else self.duty_cycle)
                     await self._messenger.send_slow_move_msg(pwm_rate)
                     print(f"Motor {self.axis} PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
                     self.pwm_phase = "OFF" if self.pwm_phase == "ON" else "ON"

@@ -163,6 +163,11 @@ class Polaris:
         self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
         self._theta_meas = None                     # The latest set of motor axis angles [theta1, theta2, theta3] measured from q1
         self._omega_meas = None                     # The latest set of motor axis angular velocity [omega1, omega2, omega3] measured from q1
+        self._mpc_theta_ref = []
+        self._mpc_theta_opt = []
+        self._mpc_omega_ref = []
+        self._mpc_omega_opt = []
+        self._mpc_index = 0
         self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._altitude: float = 0.0                 # The Pitch/Altitude above the local horizon of the telescope's current position (degrees, positive up)
         self._azimuth: float = 0.0                  # The Yaw/Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
@@ -1785,20 +1790,33 @@ class Polaris:
         self._atpark = False
         self._lock.release()
 
+
     async def recalculate_mpc_control_parameters(self):
-        # recalculate MPC control parameters
         if self._tracking:
-            ra = self._targetrightascension if self._targetrightascension else self._rightascension
-            dec = self._targetdeclination if self._targetdeclination else self._declination
-            theta_0 = self._theta_meas
-            omega_0 = self._omega_meas
-            theta_ref, theta_opt, omega_ref, omega_opt = generate_mpc_strategy(self._observer, ra, dec, theta_0, omega_0)
+            if self._mpc_index >= len(self._mpc_omega_opt)-1:
+                # Recalculate full MPC strategy
+                ra = self._targetrightascension if self._targetrightascension else self._rightascension
+                dec = self._targetdeclination if self._targetdeclination else self._declination
+                theta_0 = self._theta_meas
+                omega_0 = self._omega_meas
+
+                self._mpc_theta_ref, self._mpc_theta_opt, self._mpc_omega_ref, self._mpc_omega_opt = generate_mpc_strategy(
+                    self._observer, ra, dec, theta_0, omega_0
+                )
+                self._mpc_index = 0
+
+            # Use next set of control values
+            theta_ref = self._mpc_theta_ref[self._mpc_index]
+            theta_opt = self._mpc_theta_opt[self._mpc_index]
+            omega_ref = self._mpc_omega_ref[self._mpc_index]
+            omega_opt = self._mpc_omega_opt[self._mpc_index]
+
             def fmt3(x):
-                return  f'[ {x[0]:.4f} {x[1]:.4f} {x[2]:.4f} ]' 
-            self.logger.info(f"Advanced MPC: MPC control thta t0 {fmt3(theta_0)} ref {fmt3(theta_ref)} t1 {fmt3(theta_opt)} | omega t0 {fmt3(omega_0)} ref {fmt3(omega_ref)} ctl {fmt3(omega_opt)}") 
-            self._motorcontrollers[0].set_motor_speed(omega_opt[0], "DPS")
-            self._motorcontrollers[1].set_motor_speed(omega_opt[1], "DPS")
-            self._motorcontrollers[2].set_motor_speed(omega_opt[2], "DPS")
+                return f'[ {x[0]:.4f} {x[1]:.4f} {x[2]:.4f} ]'
 
+            self.logger.info(f"Advanced MPC: MPC control {self._mpc_index} theta t0 {fmt3(self._theta_meas)} ref {fmt3(theta_ref)} t1 {fmt3(theta_opt)} | omega t0 {fmt3(self._omega_meas)} ref {fmt3(omega_ref)} ctl {fmt3(omega_opt)}")
 
-    
+            for i, omega in enumerate(omega_opt):
+                self._motorcontrollers[i].set_motor_speed(omega, "DPS")
+
+            self._mpc_index += 1
