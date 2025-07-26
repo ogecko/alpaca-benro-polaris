@@ -1752,7 +1752,7 @@ class Polaris:
             self._tracking = True
             self._targetdeclination = self._declination
             self._targetrightascension = self._rightascension
-            self._mpc_index == 0
+            self._mpc_index = 0
             self.logger.info(f"Advanced MPC: START tracking with rate {self._trackingrate} at RA {self._targetrightascension:.3f}, Dec {self._targetdeclination:.3f}")
         else:
             # only send message if we are not tracking and not slewing
