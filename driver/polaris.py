@@ -1722,18 +1722,18 @@ class Polaris:
     async def move_axis(self, axis:int, rate:float, units="ASCOM"):
         if Config.advanced_tracking:
             self.logger.info(f"Advanced MPC: Move axis {axis} with rate {rate} units {units}")
-            self._motorcontrollers[axis].set_motor_speed(rate, units)
+            await self._motorcontrollers[axis].set_motor_speed(rate, units)
             # if tracking TODO - need to update trajectory
             #
         else:
             self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {rate} Units {units}")
             if not self._tracking:
-                self._motorcontrollers[axis].set_motor_speed(rate, units)
+                await self._motorcontrollers[axis].set_motor_speed(rate, units)
 
     async def stop_all_axes(self):
-        self._motorcontrollers[0].set_motor_speed(0, "DPS")
-        self._motorcontrollers[1].set_motor_speed(0, "DPS")
-        self._motorcontrollers[2].set_motor_speed(0, "DPS")
+        await self._motorcontrollers[0].set_motor_speed(0, "DPS")
+        await self._motorcontrollers[1].set_motor_speed(0, "DPS")
+        await self._motorcontrollers[2].set_motor_speed(0, "DPS")
 
     async def stop_tracking(self):
         if Config.advanced_tracking:
@@ -1752,6 +1752,7 @@ class Polaris:
             self._tracking = True
             self._targetdeclination = self._declination
             self._targetrightascension = self._rightascension
+            self._mpc_index == 0
             self.logger.info(f"Advanced MPC: START tracking with rate {self._trackingrate} at RA {self._targetrightascension:.3f}, Dec {self._targetdeclination:.3f}")
         else:
             # only send message if we are not tracking and not slewing
@@ -1793,7 +1794,7 @@ class Polaris:
 
     async def recalculate_mpc_control_parameters(self):
         if self._tracking:
-            if self._mpc_index >= len(self._mpc_omega_opt)-1:
+            if self._mpc_index == 0 or self._mpc_index >= len(self._mpc_omega_opt)-1:
                 # Recalculate full MPC strategy
                 ra = self._targetrightascension if self._targetrightascension else self._rightascension
                 dec = self._targetdeclination if self._targetdeclination else self._declination
@@ -1803,7 +1804,7 @@ class Polaris:
                 self._mpc_theta_ref, self._mpc_theta_opt, self._mpc_omega_ref, self._mpc_omega_opt = generate_mpc_strategy(
                     self._observer, ra, dec, theta_0, omega_0
                 )
-                self._mpc_index = 0
+                self._mpc_index = 1
 
             # Use next set of control values
             theta_ref = self._mpc_theta_ref[self._mpc_index]
@@ -1817,6 +1818,6 @@ class Polaris:
             self.logger.info(f"Advanced MPC: MPC control {self._mpc_index} theta t0 {fmt3(self._theta_meas)} ref {fmt3(theta_ref)} t1 {fmt3(theta_opt)} | omega t0 {fmt3(self._omega_meas)} ref {fmt3(omega_ref)} ctl {fmt3(omega_opt)}")
 
             for i, omega in enumerate(omega_opt):
-                self._motorcontrollers[i].set_motor_speed(omega, "DPS")
+                await self._motorcontrollers[i].set_motor_speed(omega, "DPS", ramp_duration=1.0)
 
             self._mpc_index += 1

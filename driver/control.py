@@ -664,13 +664,11 @@ class MotorSpeedController:
 
         asyncio.create_task(self._dispatch_loop())
 
-    def set_motor_speed(self, rate, rate_unit="DPS"):
-        async def _queue_update():
-            async with self._lock:
-                raw = self._model.interpolate[rate_unit].toRAW(rate)
-                now = time.monotonic()
-                self.pending_update = (float(raw), now)
-        asyncio.create_task(_queue_update())
+    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None):
+        async with self._lock:
+            raw = self._model.interpolate[rate_unit].toRAW(rate)
+            now = time.monotonic()
+            self.pending_update = (float(raw), ramp_duration, now)
 
     def _apply_pending_update(self, now):
         if not self.pending_update:
@@ -680,18 +678,26 @@ class MotorSpeedController:
             return
 
         # Apply new rate
-        print(f"Motor {self.axis} applying pending update: {self.pending_update}")
-        new_raw, update_time = self.pending_update
+        new_raw, ramp_duration, update_time = self.pending_update
         self.pending_update = None
+        prior_raw = self.rate_raw
         self.rate_raw = new_raw
         self.rate_dps = self._model.interpolate['RAW'].toDPS(new_raw)
-        interp = abs(self.rate_raw)
-        direction = 1 if self.rate_raw >= 0 else -1
+        interp = abs(new_raw)
+        direction = 1 if new_raw >= 0 else -1
         self.next_dispatch_time = now
 
         if interp == 0:
             self.mode = "SLOW"
             self.command = 0
+
+        elif interp > 5 and ramp_duration:
+            self.mode = "FAST_RAMP"
+            self.ramp_start = prior_raw
+            self.ramp_target = new_raw
+            self.ramp_duration = ramp_duration
+            self.ramp_start_time = time.monotonic()
+            # work out command on the fly with FAST_RAMP
 
         elif interp > 5:
             self.mode = "FAST"
@@ -724,6 +730,16 @@ class MotorSpeedController:
                     await self._messenger.send_fast_move_msg(self.command)
                     self.next_dispatch_time = now + 0.05
 
+                elif self.mode == "FAST_RAMP":
+                    elapsed = now - self.ramp_start_time
+                    if elapsed >= self.ramp_duration:
+                        self.mode = "FAST"
+                    blend = max(0.0, min(1.0, elapsed / self.ramp_duration))
+                    self.command = self.ramp_start + blend * (self.ramp_target - self.ramp_start)
+                    await self._messenger.send_fast_move_msg(self.command)
+                    self._logger.info(f"Motor {self.axis} FAST_RAMP: rate {self.command}, blend {blend:.2f}, start {self.ramp_start:.2f}, target {self.ramp_target:.2f}")
+                    self.next_dispatch_time = now + 0.05
+
                 elif self.mode == "SLOW":
                     await self._messenger.send_slow_move_msg(self.command)
                     self.next_dispatch_time = now + float('inf')
@@ -733,7 +749,7 @@ class MotorSpeedController:
                     pwm_rate = base if self.pwm_phase == "ON" else next_up
                     duration = 0.6 * (1 - self.duty_cycle if self.pwm_phase == "ON" else self.duty_cycle)
                     await self._messenger.send_slow_move_msg(pwm_rate)
-                    print(f"Motor {self.axis} PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
+#                    self._logger.info(f"Motor {self.axis} PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
                     self.pwm_phase = "OFF" if self.pwm_phase == "ON" else "ON"
                     self.last_switch_time = now
                     self.next_dispatch_time = now + duration
