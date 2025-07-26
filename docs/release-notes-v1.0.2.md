@@ -18,6 +18,7 @@
 ## New Features (enabled by Stellarium)
 
 ## New Features (Alpaca Driver)
+- **[Log Files]**: The default logging location has changed from the `driver` directory to the `logs` direcotry
 - **[Driver Startup]**: Log Alpaca Driver version number on startup
 - **[Field Rotation]**: Calculate the current Field Rotation from quaternions in 518 msg from Polaris
 - **[Image Cleanup]**: Add scatter plots to indicate rejected images based on key statistics

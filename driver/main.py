@@ -45,6 +45,9 @@ import telescope
 import stellarium
 import app
 import argparse
+from pathlib import Path
+import os
+
 
 # ===========
 # APP STARTUP
@@ -128,8 +131,14 @@ if __name__ == '__main__':
         Config.site_longitude = args.lon
     if args.elev:
         Config.site_elevation = args.elev
-    if args.logdir:
-        Config.log_dir = args.logdir
+
+    # Set the default log directory if not provided    
+    script_dir = Path(__file__).resolve().parent        # Get the path to the current script (main.py)
+    default_log_dir = script_dir.parent / 'logs'        # Default log directory: ../logs relative to main.py
+    Config.log_dir = Path(args.logdir).resolve() if args.logdir else default_log_dir
+
+    # Ensure the directory exists
+    os.makedirs(Config.log_dir, exist_ok=True)
 
     try:
         asyncio.run(main())
