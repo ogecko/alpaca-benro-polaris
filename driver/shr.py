@@ -311,11 +311,13 @@ def deg2dms(decimal_degrees):
 
 def hr2hms(decimal_hr):
     """Converts decimal hours to formatted hours-minutes-seconds (HMS) string."""
-    degrees = int(decimal_hr)                          # Extract degrees
-    minutes_float = (decimal_hr - degrees) * 60        # Extract minutes
+    sign = "-" if decimal_hr < 0 else ""
+    decimal_hr = abs(decimal_hr)
+    hours = int(decimal_hr)
+    minutes_float = (decimal_hr - hours) * 60
     minutes = int(minutes_float)
-    seconds = (minutes_float - minutes) * 60                # Extract seconds
-    return f"{degrees:02}h{minutes:02}m{seconds:05.2f}s"
+    seconds = (minutes_float - minutes) * 60
+    return f"{sign}{hours:02}h{minutes:02}m{seconds:05.2f}s"
 
 def dms2dec(dms):
     """Parses a DMS string into decimal degrees."""
@@ -329,6 +331,10 @@ def dms2dec(dms):
     degrees, minutes, seconds = abs(parts[0]), parts[1], parts[2]
     total_deg = degrees + minutes / 60 + seconds / 3600 
     return sign * total_deg
+
+def dms2rad(dms):
+    """Converts DMS formatted string (e.g. '+123d45\'56.78"') to radians."""
+    return deg2rad(dms2dec(dms))
 
 def hms2hr(hms):
     """Converts HMS formatted string to decimal hours."""
@@ -344,6 +350,10 @@ def hms2hr(hms):
 def hms2rad(hms):
     """Converts HMS formatted string (e.g. '12h30m00s') to radians."""
     return hr2rad(hms2hr(hms))
+
+def rad2hms(rad):
+    """Converts radians to HMS formatted string using hr2hms."""
+    return hr2hms(rad2hr(rad))
 
 def rad2hr(rad):
     """Converts radians to hours (assuming 2π radians = 24 hours)."""
