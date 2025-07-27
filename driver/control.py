@@ -516,7 +516,7 @@ def compute_body_trajectory(N, Δt, observer, body, roll=0, is_equatorial_roll=F
     # Set initial roll offset
     observer.date = ephem.now()
     body.compute(observer)
-    roll_start = roll if is_equatorial_roll else roll + polar_rotation_angle_wrapped(observer.lat, body.az, body.alt)
+    roll_start = roll if is_equatorial_roll else roll - polar_rotation_angle_wrapped(observer.lat, body.az, body.alt)
     next_transit = observer.next_transit(body)
 
     t0 = ephem.now()
@@ -526,7 +526,7 @@ def compute_body_trajectory(N, Δt, observer, body, roll=0, is_equatorial_roll=F
         body.compute(observer)
         az = rad2deg(body.az)
         alt = rad2deg(body.alt)
-        roll = wrap_to_180(roll_start - polar_rotation_angle_wrapped(observer.lat, body.az, body.alt))
+        roll = wrap_to_180(roll_start + polar_rotation_angle_wrapped(observer.lat, body.az, body.alt))
         azaltroll_ref.append([az, alt, roll])
 
     return np.array(azaltroll_ref)

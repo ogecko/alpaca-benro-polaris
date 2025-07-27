@@ -8,7 +8,7 @@ import math
 import numpy as np
 import datetime
 from shr import deg2rad, rad2hr, rad2deg, rad2hms, hr2rad, deg2dms, hr2hms, hms2rad, dms2rad
-from control import angular_difference, is_angle_same, compute_body_trajectory, polar_rotation_angle
+from control import angular_difference, is_angle_same, compute_body_trajectory, compute_desired_motor_angles
 
 def test_dummy():
     assert(1==1)
@@ -39,8 +39,8 @@ def test_target_ref():
     N = 60
     Δt = 1
  
-    azaltroll_ref = compute_body_trajectory(N, Δt, observer, body)
-
+    azaltroll_ref = compute_body_trajectory(N, Δt, observer, body, is_equatorial_roll=True)
+    theta_ref = compute_desired_motor_angles(azaltroll_ref)
       
     assert(1==1)
 
