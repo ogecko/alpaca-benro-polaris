@@ -19,7 +19,7 @@ focal_ratio = 11                            # The telescope's focal ratio ie foc
 verbose_driver_exceptions = true            # Provide more detailed description of any Exceptions encountered in the driver.
 
 [control]
-advanced_tracking = true                    # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
+advanced_tracking = false                    # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
 advanced_goto = true                        # Perform advanced goto slewing in Alpaca Driver (no longer uses Benro Polaris goto)
 advanced_rotator = true                     # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
 advanced_guiding = true                     # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
