@@ -8,6 +8,8 @@ import asyncio
 from typing import Optional
 import casadi as ca
 import ephem
+import math
+from shr import rad2deg
 
 # ************* TODO LIST *****************
 
@@ -105,6 +107,10 @@ def wrap_to_180(angle):
     """Wraps angle to [-180, +180) degrees"""
     return (angle + 180.0) % 360.0 - 180.0
 
+def wrap_to_90(angle):
+    """Wraps angle to [-90, +90) degrees"""
+    return (angle + 90.0) % 180.0 - 90.0
+
 def wrap_angle_residual(measured_theta, predicted_theta):
     return np.vectorize(wrap_to_180)(measured_theta - predicted_theta)
 
@@ -114,6 +120,27 @@ def wrap_state_angles(x):
     x_wrapped[1, 0] = wrap_to_180(x[1, 0])    # theta2
     x_wrapped[2, 0] = wrap_to_180(x[2, 0])    # theta3 
     return x_wrapped
+
+def polar_rotation_angle(latitude_rad, az_rad, alt_rad):
+    """Compute the polar rotation angle [-180 to +180) based on latitude, azimuth, and altitude."""
+    # Determine pole position based on hemisphere
+    pole_alt_rad = abs(latitude_rad)
+    pole_az_rad = 0.0 if latitude_rad > 0 else math.pi  # 0° north, 180° south
+
+    # Compute deltas from pole position
+    delta_alt = alt_rad - pole_alt_rad
+    delta_az = (az_rad - pole_az_rad) % (2 * math.pi)
+    if delta_az > math.pi:
+        delta_az -= 2 * math.pi  # wrap to [-π, π] for symmetry
+
+    # Final rotation angle
+    angle_rad = math.atan2(delta_az, delta_alt)
+    return math.degrees(angle_rad)
+
+def polar_rotation_angle_wrapped(latitude_rad, az_rad, alt_rad):
+    """ Compute the polar rotation angle [-90 to +90) degrees, turn your images upside down. """
+    angle_deg = polar_rotation_angle(latitude_rad, az_rad, alt_rad)
+    return wrap_to_90(angle_deg)
 
 
 def angular_difference(a, b):
@@ -460,10 +487,12 @@ def generate_mpc_strategy(observer, ra, dec, theta_0, omega_0):
     # Horizon
     N = 60
     Δt = 1
-    horizon_sec = int(N * Δt)
+    roll = 0
 
+    
     # Compute desired alt/az/roll
-    azaltroll_ref = compute_body_trajectory(observer, body, horizon_sec, int(Δt))
+    azaltroll_ref = compute_body_trajectory(N, Δt, observer, body)
+   
     # Convert to desired motor angles and velocities
     theta_ref = compute_desired_motor_angles(azaltroll_ref)
     theta_ref_unwrapped = unwrap_angle_matrix(theta_ref, wrap=360.0)
@@ -478,24 +507,26 @@ def generate_mpc_strategy(observer, ra, dec, theta_0, omega_0):
 
 
 
-def compute_body_trajectory(observer, body, horizon_sec, Δt_sec, topo_roll=None, para_roll=None):
+
+def compute_body_trajectory(N, Δt, observer, body, roll=0, is_equatorial_roll=False):
+    """ 
+    Computes the trajectory of a celestial body in topocentric coordinates.
+    roll: Initial roll angle in degrees (equatorial or altaz).
+    """
     # Set initial roll offset
-    if para_roll is not None:
-        roll_offset = para_roll 
-    elif topo_roll is not None:
-        roll_offset = topo_roll + np.rad2deg(body.parallactic_angle())
-    else:
-        roll_offset = np.rad2deg(body.parallactic_angle())
+    observer.date = ephem.now()
+    body.compute(observer)
+    roll_start = roll if is_equatorial_roll else roll + polar_rotation_angle_wrapped(observer.lat, body.az, body.alt)
     next_transit = observer.next_transit(body)
 
     t0 = ephem.now()
     azaltroll_ref = []
-    for t in range(0, horizon_sec, Δt_sec):
-        observer.date = ephem.Date(t0 + t / (24*3600))
+    for n in range(0, N):
+        observer.date = ephem.Date(t0 + n * Δt * ephem.second)
         body.compute(observer)
-        az = np.rad2deg(body.az)
-        alt = np.rad2deg(body.alt)
-        roll = 0 # roll_offset - np.rad2deg(body.parallactic_angle())
+        az = rad2deg(body.az)
+        alt = rad2deg(body.alt)
+        roll = wrap_to_180(roll_start - polar_rotation_angle_wrapped(observer.lat, body.az, body.alt))
         azaltroll_ref.append([az, alt, roll])
 
     return np.array(azaltroll_ref)

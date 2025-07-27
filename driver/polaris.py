@@ -1800,7 +1800,7 @@ class Polaris:
                 dec = self._targetdeclination if self._targetdeclination else self._declination
                 theta_0 = self._theta_meas
                 omega_0 = self._omega_meas
-
+                # Generate new MPC strategy
                 self._mpc_theta_ref, self._mpc_theta_opt, self._mpc_omega_ref, self._mpc_omega_opt = generate_mpc_strategy(
                     self._observer, ra, dec, theta_0, omega_0
                 )
