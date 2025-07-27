@@ -67,6 +67,7 @@ import asyncio
 from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
 from config import Config
+import re
 
 
 logger: Logger = None
@@ -297,6 +298,7 @@ def bytes2hexascii(data):
     return f"{s_hex}: {s_ascii}"
 
 def deg2dms(decimal_degrees):
+    """Converts decimal degrees to formatted degrees-minutes-seconds (DMS) string with sign."""
     # Determine the sign and work with the absolute value
     sign = '-' if decimal_degrees < 0 else '+'
     decimal_degrees = abs(decimal_degrees)
@@ -308,6 +310,7 @@ def deg2dms(decimal_degrees):
     return f"{sign}{degrees}d{minutes:02}'{seconds:05.2f}\""
 
 def hr2hms(decimal_hr):
+    """Converts decimal hours to formatted hours-minutes-seconds (HMS) string."""
     degrees = int(decimal_hr)                          # Extract degrees
     minutes_float = (decimal_hr - degrees) * 60        # Extract minutes
     minutes = int(minutes_float)
@@ -315,20 +318,48 @@ def hr2hms(decimal_hr):
     return f"{degrees:02}h{minutes:02}m{seconds:05.2f}s"
 
 def dms2dec(dms):
-    (degree, minute, second, frac_seconds) = re.split(r'[^0-9-]', dms, maxsplit=4)
-    return int(degree) + float(minute) / 60 + float(second) / 3600 + float(frac_seconds) / 360000
+    """Parses a DMS string into decimal degrees."""
+    parts = re.split(r'[^\d.-]+', dms)
+    parts = [float(p) for p in parts if p]
+    if not parts:
+        raise ValueError(f"dms2dec: Invalid HMS string input: '{dms}'")
+    while len(parts) < 3:
+        parts.append(0.0)
+    sign = 1 if parts[0] >= 0 else -1
+    degrees, minutes, seconds = abs(parts[0]), parts[1], parts[2]
+    total_deg = degrees + minutes / 60 + seconds / 3600 
+    return sign * total_deg
+
+def hms2hr(hms):
+    """Converts HMS formatted string to decimal hours."""
+    parts = re.split(r'[^0-9.]+', hms)
+    parts = [float(p) for p in parts if p]  # Remove empty entries
+    if not parts or len(parts) < 1:
+        raise ValueError(f"dms2dec: Invalid HMS string input: '{hms}'")
+    while len(parts) < 3:
+        parts.append(0.0)
+    hours, minutes, seconds = parts[0], parts[1], parts[2]
+    return hours + minutes / 60 + seconds / 3600
+
+def hms2rad(hms):
+    """Converts HMS formatted string (e.g. '12h30m00s') to radians."""
+    return hr2rad(hms2hr(hms))
 
 def rad2hr(rad):
-    return rad*24/2/math.pi
+    """Converts radians to hours (assuming 2π radians = 24 hours)."""
+    return rad*12/math.pi
 
 def hr2rad(hr):
-    return hr*2*math.pi/24
+    """Converts hours to radians."""
+    return hr*math.pi/12
 
 def rad2deg(rad):
-    return rad*360/2/math.pi
+    """Converts radians to decimal degrees."""
+    return rad*180/math.pi
 
 def deg2rad(deg):
-    return deg*2*math.pi/360
+    """Converts decimal degrees to radians."""
+    return deg*math.pi/180
 
 def empty_queue(q: asyncio.Queue):
   while not q.empty():
