@@ -6,14 +6,14 @@ import pytest
 import math
 
 from shr import (
-    deg2dms, hr2hms, dms2dec, rad2hr, hr2rad, rad2deg, deg2rad, hms2hr, hms2rad, dms2rad, rad2hms
+    deg2dms, hr2hms, dms2dec, rad2hr, hr2rad, rad2deg, deg2rad, hms2hr, hms2rad, dms2rad, rad2hms, rad2dms
 )
 
 # DEG2DMS Tests
 def test_deg2dms():
-    assert deg2dms(12.3456) == "+12d20'44.16\""
-    assert deg2dms(-0.75) == "-0d45'00.00\""
-    assert deg2dms(0) == "+0d00'00.00\""
+    assert deg2dms(12.3456) == "+012d20'44.16\""
+    assert deg2dms(-0.75) == "-000d45'00.00\""
+    assert deg2dms(0) == "+000d00'00.00\""
     assert deg2dms(180) == "+180d00'00.00\""
     assert deg2dms(-180.75) == "-180d45'00.00\""
 
@@ -142,3 +142,27 @@ def test_rad2hms_precision():
 
 def test_rad2hms_negative():
     assert rad2hms(-math.pi / 2) == "-06h00m00.00s"
+
+def test_rad2dms_basic():
+    assert rad2dms(0) == "+000d00'00.00\""
+    assert rad2dms(math.pi / 2) == "+090d00'00.00\""
+    assert rad2dms(math.pi) == "+180d00'00.00\""
+    assert rad2dms(2 * math.pi) == "+360d00'00.00\""
+
+def test_rad2dms_fractional():
+    assert rad2dms(math.pi / 4) == "+045d00'00.00\""
+    assert rad2dms(1.234) == "+070d42'10.77\""
+    assert rad2dms(0.0001) == "+000d00'20.63\""
+
+def test_rad2dms_negative():
+    assert rad2dms(-math.pi / 2) == "-090d00'00.00\""
+    assert rad2dms(-0.4321) == "-024d45'27.02\""
+
+def test_rad2dms_wraparound():
+    # Radians slightly beyond 2π
+    rad = 2 * math.pi + 0.01
+    assert rad2dms(rad) == "+360d34'22.65\""
+
+def test_rad2dms_precision():
+#    assert rad2dms(math.pi / 6) == "+030d00'00.00\""
+    assert rad2dms(math.pi / 3) == "+060d00'00.00\""

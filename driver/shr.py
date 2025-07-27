@@ -299,25 +299,33 @@ def bytes2hexascii(data):
 
 def deg2dms(decimal_degrees):
     """Converts decimal degrees to formatted degrees-minutes-seconds (DMS) string with sign."""
-    # Determine the sign and work with the absolute value
     sign = '-' if decimal_degrees < 0 else '+'
-    decimal_degrees = abs(decimal_degrees)
-    degrees = int(decimal_degrees)                          # Extract degrees
-    minutes_float = (decimal_degrees - degrees) * 60        # Extract minutes
-    minutes = int(minutes_float)
-    seconds = (minutes_float - minutes) * 60                # Extract seconds
-    
-    return f"{sign}{degrees}d{minutes:02}'{seconds:05.2f}\""
+    total_seconds = abs(decimal_degrees) * 3600
+    degrees, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    seconds = round(seconds, 2) # Beware of rounding to 60.00
+    if seconds >= 60.0:
+        seconds = 0.0
+        minutes += 1
+    if minutes >= 60:
+        minutes = 0
+        degrees += 1
+    return f"{sign}{int(degrees):03}d{int(minutes):02}'{seconds:05.2f}\""
 
 def hr2hms(decimal_hr):
     """Converts decimal hours to formatted hours-minutes-seconds (HMS) string."""
     sign = "-" if decimal_hr < 0 else ""
-    decimal_hr = abs(decimal_hr)
-    hours = int(decimal_hr)
-    minutes_float = (decimal_hr - hours) * 60
-    minutes = int(minutes_float)
-    seconds = (minutes_float - minutes) * 60
-    return f"{sign}{hours:02}h{minutes:02}m{seconds:05.2f}s"
+    decimal_seconds = abs(decimal_hr) * 3600
+    hours, remainder = divmod(decimal_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    seconds = round(seconds, 2) # Beware of rounding to 60.00
+    if seconds >= 60.0:
+        seconds = 0.0
+        minutes += 1
+    if minutes >= 60:
+        minutes = 0
+        hours += 1
+    return f"{sign}{int(hours):02}h{int(minutes):02}m{seconds:05.2f}s"
 
 def dms2dec(dms):
     """Parses a DMS string into decimal degrees."""
@@ -335,6 +343,10 @@ def dms2dec(dms):
 def dms2rad(dms):
     """Converts DMS formatted string (e.g. '+123d45\'56.78"') to radians."""
     return deg2rad(dms2dec(dms))
+
+def rad2dms(rad):
+    """Converts radians to DMS formatted string (e.g. '+123d45\'56.78"')."""
+    return deg2dms(rad2deg(rad))
 
 def hms2hr(hms):
     """Converts HMS formatted string to decimal hours."""
