@@ -106,7 +106,7 @@ When Windows connects to the Benro Polaris network, sometimes it only sets up an
 * From the polaris-XXXXX hotspot dialog, click the i circle for more information
 * Under IP Assignment, Automatic (DHCP), Click Edit
 * Click the Edit network IP setttings dropdown and choose Manual
-* Select IPc4 On and IPv6 off
+* Select IPv4 On and IPv6 off
 * Enter an IP address of `192.168.0.3`
 * Enter a Subnet mask of `255.255.255.0`
 * Enter a Gateway of `192.168.0.1`
