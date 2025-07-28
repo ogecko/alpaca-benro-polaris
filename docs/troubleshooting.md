@@ -91,7 +91,7 @@ The user manual can be found at the following link - [Polaris User Manual Englis
 ### C0 - Cannot connect Win11 Computer or Laptop to Benro Polaris Wifi
 There appears to be an issue with some types of Wifi Adapters being able to conenct with the Benro Polaris Wifi. If you cannot get Win11 to form a connection with the polaris_XXXXX Wifi, you may want to try using a USB Wifi Adapter. The following adapter is known to connect with Benro Polaris, [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/). 
 
-### C1 - Cannot see "`communications init... done`" in the log.
+### C1a - Cannot see "`communications init... done`" in the log.
 * Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
 * Confirm the Benro Polaris is in Astro Mode.
 * Confirm the Benro Polaris Compass and Star Alignment steps are complete.
@@ -100,7 +100,21 @@ There appears to be an issue with some types of Wifi Adapters being able to cone
 * Confirm the mini-PC has connected with the polaris-XXXXX hotspot. It should look like the following:
 <img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
 
-  
+
+ ### C1b - Cannot see "`communications init... done`" in the log.
+When Windows connects to the Benro Polaris network, sometimes it only sets up an IPv6 network. You can manually set the network settings to help speed up connection and force an IPv4 network. To manually set the network properties.
+* From the polaris-XXXXX hotspot dialog, click the i circle for more information
+* Under IP Assignment, Automatic (DHCP), Click Edit
+* Click the Edit network IP setttings dropdown and choose Manual
+* Select IPc4 On and IPv6 off
+* Enter an IP address of `192.168.0.3`
+* Enter a Subnet mask of `255.255.255.0`
+* Enter a Gateway of `192.168.0.1`
+* Enter a Preferred DNS of `192.168.0.1`
+* Choose DNS over HTTPS to be OFF 
+* Click the Save button
+<img style="display: block; margin: auto;"  src="images/abp-troubleshoot-wifi4.png"> 
+
 ### C2 - Cannot see any log message except two `INFO ==STARTUP==` lines
 * Check your device doesnt have any IT policy to not allow connecting to an open WIFI like the Polaris Hotspot.
 * Check which Wifi adapter is being used. There is a known issue with the Mele Quieter 4C not being able to connect to the Polaris Wifi. Do not use the MediaTek RZ616 Wi-Fi 6E 160MHz (Driver version 3.3.0.595) built in Wifi Adapter. Use the [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) instead.

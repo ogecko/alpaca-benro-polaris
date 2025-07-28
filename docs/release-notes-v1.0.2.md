@@ -35,6 +35,7 @@
 - **[Troublshooting B7]**: Add link to Polaris User Manual
 - **[Gemini EAF]**: Add instructions to install Gemini EAF Driver
 - **[Mobile Hotspot]**: Add instructions to use Registry to start the Mobile Hotspot
+- **[Manual Network]**: Describe how to define Manual Network settings to force IPv4 setup
 
 ## Untested New Features
 Please let us know if you can try any of these features.
