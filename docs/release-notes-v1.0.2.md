@@ -34,6 +34,7 @@
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
 - **[Troublshooting B7]**: Add link to Polaris User Manual
 - **[Gemini EAF]**: Add instructions to install Gemini EAF Driver
+- **[Mobile Hotspot]**: Add instructions to use Registry to start the Mobile Hotspot
 
 ## Untested New Features
 Please let us know if you can try any of these features.

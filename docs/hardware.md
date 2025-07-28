@@ -106,6 +106,16 @@ Because you will want this to run headless and won't have a way to start it manu
 
 6. Change conditions to uncheck only start if on AC power
 
+#### Hotspot: Registry based mobile hotspot startup (OPTIONAL)
+If the Task Scheduler startup doesnt enable the mobile hotspot on startup, you can try to use the Windows Registery as well.
+
+1. Press Win + R, and type regedit, accept account privelages check.
+2. Navigate to `\HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run` 
+3. Create a new String Value named `StartMobileHotspot`
+4. Set its value to the full path of the StartMobileHotpot.cmd ie `C:\....\platforms\win\StartMobileHotspot.cmd`
+
+5. Make sure you expand the .... in the full path.
+
 #### Hotspot: Fixing Remote Desktop 0x904 error (OPTIONAL)
 You may encounter an 0x904 error when using Remote Desktop to connect to NinaAir via its hotspot. If you encounter this issue, you can try downloading Remote Desktop from the Windows Store. This has successfuly resolved the 0x904 issue on some machines.
 
