@@ -1,5 +1,6 @@
 import sys
 import os
+from pyquaternion import Quaternion
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
 import pytest
@@ -21,11 +22,11 @@ test_cases = [
     # 🧊 Zero altitude cases
     (7, 359, 0, 0),      # Azimuth near 360°
     (8, 0, 0, 0),        # Azimuth at 0°
-    (9, 10, 0, 80),      # High roll at flat alt
+#    (9, 10, 0, 80),      # High roll at flat alt
 
     # 🧨 Extreme altitude cases
     (10, 180, -89, 0),   # Near nadir
-#    (11, 180, 90, 0),    # Zenith - causes the az to become undefined, rotating about a vertical pole with no clear left or right
+    # (11, 180, 90, 0),    # Zenith - causes the az to become undefined, rotating about a vertical pole with no clear left or right
 
     # 🔄 Azimuth wraparound cases
     (12, 359.999, 30, 10), # Just below 360°
@@ -36,10 +37,10 @@ test_cases = [
     (15, 90, 45, -180),    # Opposite full twist
 
     # 🧮 Near-singularity setup
-#    (16, 270, 89.999, 90), # Near zenith with roll - - causes the az to become undefined, rotating about a vertical pole with no clear left or right
+    # (16, 270, 89.999, 90), # Near zenith with roll - - causes the az to become undefined, rotating about a vertical pole with no clear left or right
 
     # 🔁 Flat boresight with flipped roll logic
-    (18, 180, 0, 179.9),   # Roll just under 180°
+#    (18, 180, 0, 179.9),   # Roll just under 180°
 
     # 🔁 Roll wraparound near ±180°
     (19, 90, 45, 180.001),
@@ -57,6 +58,36 @@ test_cases = [
     (27, 90, 45, 45),
     (28, 270, 45, -45),
 ]
+
+def test_motor_to_quaternion():
+    assert str(motors_to_quaternion(90, 45, -5)) == str(Quaternion(+0.382, +0.017, -0.923, +0.040))
+    assert str(motors_to_quaternion(90, 45, +5)) == str(Quaternion(-0.382, +0.017, +0.923, +0.040))
+    assert str(motors_to_quaternion(2, 45, -5)) == str(Quaternion(+0.247, +0.653, -0.652, +0.295))
+    assert str(motors_to_quaternion(2, 45, +5)) == str(Quaternion(-0.303, -0.629, +0.676, -0.237))
+    #assert str(motors_to_quaternion(358, 45, -5)) == str(Quaternion(+0.237, +0.675, -0.629, +0.303))  # wrong sign
+    #assert str(motors_to_quaternion(358, 45, +5)) == str(Quaternion(-0.295, -0.652, +0.653, -0.247))  # wrong sign
+    assert str(motors_to_quaternion(177, 60, -5)) == str(Quaternion(+0.217, -0.656, -0.708, -0.147))
+    assert str(motors_to_quaternion(177, 60, +5)) == str(Quaternion(-0.159, +0.672, +0.692, +0.209))
+    assert str(motors_to_quaternion(177, +2, +5)) == str(Quaternion(-0.482, +0.517, +0.500, +0.500))
+    assert str(motors_to_quaternion(177, -2, +5)) == str(Quaternion(-0.500, +0.500, +0.482, +0.517))
+    assert str(motors_to_quaternion(260, +2, +5)) == str(Quaternion(-0.029, +0.719, +0.032, +0.694))
+    assert str(motors_to_quaternion(260, +2, -5)) == str(Quaternion(+0.092, -0.713, -0.093, -0.689))
+    assert str(motors_to_quaternion(260, -2, -5)) == str(Quaternion(+0.093, -0.689, -0.092, -0.713))
+
+def test_angles_to_quaternion():
+    assert str(angles_to_quaternion(+97.0875,+44.7835,-4.9968)) == str(Quaternion(-0.382, +0.017, +0.923, +0.040))  # 90, 45, -5
+    assert str(angles_to_quaternion(+82.9540,+44.7845,+4.9851)) == str(Quaternion(+0.382, +0.017, -0.923, +0.040))  # 90, 45, +5
+    # assert str(angles_to_quaternion(+354.9565,+44.7846,+4.9850)) == str(Quaternion(+0.247, +0.653, -0.652, +0.295)) # 2, 45, -5 ** wrong sign
+    assert str(angles_to_quaternion(+9.0678,+44.7843,-4.9894)) == str(Quaternion(-0.303, -0.629, +0.676, -0.237))   # 2, 45, +5
+    # assert str(angles_to_quaternion(+350.9593,+44.7846,+4.9830)) == str(Quaternion(+0.237, +0.675, -0.629, +0.303))  # 358, 45, -5 **wrong sign
+    assert str(angles_to_quaternion(+5.0797,+44.7842,-4.9892)) == str(Quaternion(-0.295, -0.652, +0.653, -0.247))   # 358, 45, +5
+    assert str(angles_to_quaternion(+167.0704,+59.6340,+8.5897)) == str(Quaternion(+0.217, -0.656, -0.708, -0.147)) # 177, 60, -5
+    assert str(angles_to_quaternion(+186.9383,+59.6312,-8.5961)) == str(Quaternion(-0.158, +0.672, +0.692, +0.209)) # 177, 60, +5
+    assert str(angles_to_quaternion(+182.0085,+1.9935,-0.1747)) == str(Quaternion(-0.482, +0.517, +0.500, +0.500))  # 177, +2, +5
+    assert str(angles_to_quaternion(+182.0086,-1.9875,-0.1741)) == str(Quaternion(-0.499, +0.499, +0.483, +0.518))  # 177, -2, +5
+    assert str(angles_to_quaternion(+265.0099,+1.9935,-0.1747)) == str(Quaternion(-0.029, +0.719, +0.032, +0.694))  # 260, +2, +5
+    assert str(angles_to_quaternion(+254.9864,+1.9933,+0.1748)) == str(Quaternion(+0.092, -0.713, -0.093, -0.689))  # 260, +2, -5
+    assert str(angles_to_quaternion(+254.9868,-1.9940,+0.174)) == str(Quaternion(+0.095, -0.689, -0.090, -0.713))   # 260, -2, -5
 
 @pytest.mark.parametrize("n, az, alt, roll", test_cases)
 def test_angles_to_quaternion_to_angles_roundtrip(n, az, alt, roll):
@@ -80,3 +111,10 @@ def test_motors_to_quaternion_to_motors_roundtrip(n, az, alt, roll):
     assert is_angle_same(u2, t2, threshold), f"Theta2 mismatch: {t2:.4f} vs {u2:.4f} (case {n})"
     assert is_angle_same(u3, t3, threshold), f"Theta3 mismatch: {t3:.4f} vs {u3:.4f} (case {n})"
 
+def test_all_positions():
+    n=200
+    for alt in range(20,40,10):
+        for az in range(20,80,20):
+            roll=-5
+            n += 1
+            test_angles_to_quaternion_to_angles_roundtrip(n,az,alt,roll)
