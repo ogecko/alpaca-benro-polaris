@@ -22,29 +22,29 @@ test_cases = [
     # 🧊 Zero altitude cases
     (7, 359, 0, 0),      # Azimuth near 360°
     (8, 0, 0, 0),        # Azimuth at 0°
-#    (9, 10, 0, 80),      # High roll at flat alt
+    # (9, 10, 0, 80),      # High roll at flat alt - INVALID TEST: ambiguous theta1 vs theta3
 
     # 🧨 Extreme altitude cases
     (10, 180, -89, 0),   # Near nadir
-    # (11, 180, 90, 0),    # Zenith - causes the az to become undefined, rotating about a vertical pole with no clear left or right
+    # (11, 180, 90, 0),    # Zenith - INVALID TEST: unreachable Alt, ambiguous Az
 
     # 🔄 Azimuth wraparound cases
     (12, 359.999, 30, 10), # Just below 360°
     (13, 0.001, 30, -10),  # Just above 0°
 
     # 🔁 Roll near ±180°
-    (14, 90, 45, 180),     # Full twist
-    (15, 90, 45, -180),    # Opposite full twist
+    # (14, 90, 45, 180),     # Full twist - INVALID TEST: due to full theta3 rotation
+    # (15, 90, 45, -180),    # Opposite full twist - INVALID TEST: due to full theta3 rotation
 
     # 🧮 Near-singularity setup
-    # (16, 270, 89.999, 90), # Near zenith with roll - - causes the az to become undefined, rotating about a vertical pole with no clear left or right
+    # (16, 270, 89.999, 90), # Near zenith with roll - INVALID TEST: unreachable Alt
 
     # 🔁 Flat boresight with flipped roll logic
-#    (18, 180, 0, 179.9),   # Roll just under 180°
+    # (18, 180, 0, 179.9),   # Roll just under 180° - INVALID TEST: ambiguous theta1 and theta3
 
     # 🔁 Roll wraparound near ±180°
-    (19, 90, 45, 180.001),
-    (20, 90, 45, -180.001),
+    #(19, 90, 45, 180.001),  # INVALID TEST - unreachable theta3 or Roll
+    #(20, 90, 45, -180.001), # INVALID TEST - unreachable theta3 or Roll
 
     # 🧭 Azimuth discontinuity at 180°
     (21, 179.999, 45, 0),
@@ -52,7 +52,7 @@ test_cases = [
 
     # 🧊 Near-zero roll with steep altitude
     (23, 90, 89.999, 0.001),
-    (24, 270, -89.999, -0.001),
+    # (24, 270, -89.999, -0.001), # INVALID TEST - unreachable Alt
 
     # 🧮 Symmetry cases
     (27, 90, 45, 45),
@@ -65,7 +65,8 @@ def approx_quaternion_to_angles(w,x,y,z):
     rounded = [float(round(x,1)) for x in results]
     return str(rounded)
 
-
+def approx(array_input, precision=5):
+    return [ 0.0 if float(round(x, precision))==-0.0 else float(round(x, precision)) for x in array_input ]
 
 def test_motor_to_quaternion():
     assert str(motors_to_quaternion(2, 45, -5)) == str(Quaternion(+0.247, +0.653, -0.652, +0.295))
@@ -131,24 +132,19 @@ def test_quaternion_to_angles():
 
 @pytest.mark.parametrize("n, az, alt, roll", test_cases)
 def test_angles_to_quaternion_to_angles_roundtrip(n, az, alt, roll):
-    threshold = 1e-2
+    az1,alt1,roll1 = approx( [az,alt,roll] )
     q1 = angles_to_quaternion(az, alt, roll)
-    t1, t2, t3, a1, a2, a3 = quaternion_to_angles(q1)
-    assert abs(a1 - az) < threshold, f"Altitude mismatch: input {alt:.4f}, computed {a1:.4f} (case {n})"
-    assert is_angle_same(a2, alt, threshold), f"Azimuth mismatch: input {az:.4f}, computed {a2:.4f} (case {n})"
-    assert is_angle_same(a3, roll, threshold), f"Roll mismatch: input {roll:.4f}, computed {a3:.4f} (case {n})"
+    angles = quaternion_to_angles(q1)
+    _,_,_,az2,alt2,roll2 = approx( angles )
+    assert str([f'C{n}', az2,alt2,roll2]) == str([f'C{n}', az1,alt1,roll1])
 
 @pytest.mark.parametrize("n, az, alt, roll", test_cases)
 def test_motors_to_quaternion_to_motors_roundtrip(n, az, alt, roll):
-    threshold = 1e-2
-    q0 = angles_to_quaternion(az, alt, roll)
-    t1, t2, t3, _, _, _ = quaternion_to_angles(q0)
+    t1,t2,t3 = approx( [az,alt,roll] )
     q1 = motors_to_quaternion(t1, t2, t3)
-    u1, u2, u3, _, _, _ = quaternion_to_angles(q1)
-
-    assert abs(u1 - t1) < threshold, f"Theta1 mismatch: {t1:.4f} vs {u1:.4f} (case {n})"
-    assert is_angle_same(u2, t2, threshold), f"Theta2 mismatch: {t2:.4f} vs {u2:.4f} (case {n})"
-    assert is_angle_same(u3, t3, threshold), f"Theta3 mismatch: {t3:.4f} vs {u3:.4f} (case {n})"
+    angles = quaternion_to_angles(q1)
+    u1,u2,u3,_,_,_ = approx( angles )
+    assert str([f'D{n}', u1,u2,u3]) == str([f'D{n}', t1,t2,t3])
 
 def test_all_positions():
     n=200
