@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import is_angle_same, angles_to_quaternion, motors_to_quaternion, quaternion_to_angles
+from control import angles_to_quaternion, motors_to_quaternion, quaternion_to_angles
 
 
 test_cases = [
