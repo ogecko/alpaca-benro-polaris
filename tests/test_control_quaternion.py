@@ -148,8 +148,9 @@ def test_motors_to_quaternion_to_motors_roundtrip(n, az, alt, roll):
 
 def test_all_positions():
     n=200
-    for alt in range(20,40,10):
-        for az in range(20,80,20):
-            roll=-5
-            n += 1
-            test_angles_to_quaternion_to_angles_roundtrip(n,az,alt,roll)
+    for alt in range(1,90,10):
+        for az in range(0,360,30):
+            for roll in range(-175,180,30):
+                n += 1
+                test_angles_to_quaternion_to_angles_roundtrip(n,az,alt,roll)
+                #test_motors_to_quaternion_to_motors_roundtrip(n,az,alt,roll)
