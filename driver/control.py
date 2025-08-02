@@ -308,7 +308,7 @@ def quaternion_to_angles(q1):
         roll = extract_roll_from_quaternion(q3)
         
     # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
-    q4 = q1 if alt < 0 else q1 * Quaternion(axis=cUp, degrees=180)                     # since axis3 is last rotation ZYX in q1, we can simply read its Euler angle X after we flip it
+    q4 = q1 if alt < 0 else q1 * Quaternion(axis=cUp, degrees=180)      # since axis3 is last rotation ZYX in q1, we can simply read its Euler angle X after we flip it
     theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
     
     # --- Theta1 and Theta2: rotation around corrected bore vector ie Polaris Axis 1 and 2, without effect of Axis 3
