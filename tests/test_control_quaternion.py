@@ -59,6 +59,14 @@ test_cases = [
     (28, 270, 45, -45),
 ]
 
+def approx_quaternion_to_angles(w,x,y,z):
+    q1=Quaternion(w,x,y,z)
+    results = quaternion_to_angles(q1)
+    rounded = [float(round(x,1)) for x in results]
+    return str(rounded)
+
+
+
 def test_motor_to_quaternion():
     assert str(motors_to_quaternion(2, 45, -5)) == str(Quaternion(+0.247, +0.653, -0.652, +0.295))
     assert str(motors_to_quaternion(2, 45, +5)) == str(Quaternion(-0.303, -0.629, +0.676, -0.237))
@@ -98,13 +106,34 @@ def test_angles_to_quaternion():
     assert str(angles_to_quaternion(+254.9864,+1.9933,+0.1748)) == str(Quaternion(+0.092, -0.713, -0.093, -0.689))  # 260, +2, -5
     assert str(angles_to_quaternion(+254.9868,-1.9940,+0.174)) == str(Quaternion(+0.095, -0.689, -0.090, -0.713))   # 260, -2, -5
 
+def test_quaternion_to_angles():
+    assert approx_quaternion_to_angles(+0.247, +0.653, -0.652, +0.295) == str([2.0, 45.0, -5.0, 354.9, 44.7, 5.0])
+    assert approx_quaternion_to_angles(-0.303, -0.629, +0.676, -0.237) == str([2.1, 45.0, 4.9, 9.0, 44.8, -4.9])
+    assert approx_quaternion_to_angles(-0.382, +0.017, +0.923, +0.040) == str([90.1, 45.0, 4.9, 97.0, 44.8, -4.9])
+    assert approx_quaternion_to_angles(+0.382, +0.017, -0.923, +0.040) == str([89.9, 45.0, -4.9, 83.0, 44.8, +4.9])
+    assert approx_quaternion_to_angles(+0.217, -0.656, -0.708, -0.147) == str([177.0, 60.0, -5.1, 166.9, 59.6, 8.7])
+    assert approx_quaternion_to_angles(-0.159, +0.672, +0.692, +0.209) == str([177.0, 59.9, 5.0, 186.9, 59.5, -8.6])
+    assert approx_quaternion_to_angles(-0.482, +0.517, +0.500, +0.500) == str([179.4, 2.0, 2.6, 182.0, 2.0, -0.1])
+    #assert approx_quaternion_to_angles(-0.500, +0.500, +0.482, +0.517) == str([179.4, -2.0, 2.6, 182.0, -2.0, -0.1]) #Flips Theta 1 and 3
+    assert approx_quaternion_to_angles(-0.029, +0.719, +0.032, +0.694) == str([260.7, 2.0, 4.4, 265.1, 2.0, -0.2])
+    assert approx_quaternion_to_angles(+0.092, -0.713, -0.093, -0.689) == str([260.1, 1.9, -5.1, 255.0, 1.9, 0.2])
+    #assert approx_quaternion_to_angles(+0.093, -0.689, -0.092, -0.713) == str([260.1, -1.9, -5.1, 255.0, -1.9, 0.2]) #Flips Theta 1 and 3
+    assert approx_quaternion_to_angles(+0.081, +0.860, -0.097, +0.494) == str([280.0, 30.0, 5.0, 285.7, 29.9, -2.9])
+    assert approx_quaternion_to_angles(-0.006, -0.864, +0.054, -0.501) == str([280.0, 30.0, -5.0, 274.3, 29.9, 2.9])
+    assert approx_quaternion_to_angles(-0.080, -0.846, +0.181, -0.495) == str([297.1, 29.9, -5.0, 291.3, 29.8, 2.9])
+    assert approx_quaternion_to_angles(-0.217, -0.760, +0.414, -0.451) == str([330.0, 30.0, -5.0, 324.3, 29.9, 2.9])
+    assert approx_quaternion_to_angles(-0.256, -0.721, +0.478, -0.431) == str([339.9, 29.9, -4.9, 334.3, 29.8, 2.8])
+    assert approx_quaternion_to_angles(+0.256, +0.721, -0.478, +0.431) == str([339.9, 29.9, -4.9, 334.3, 29.8, 2.8])
+    assert approx_quaternion_to_angles(+0.292, +0.677, -0.539, +0.407) == str([349.9, 30.0, -5.0, 344.2, 29.9, 2.9])
+    assert approx_quaternion_to_angles(+0.237, +0.675, -0.629, +0.303) == str([358.0, 44.9, -5.0, 351.0, 44.7, 4.9])
+    assert approx_quaternion_to_angles(-0.295, -0.652, +0.653, -0.247) == str([358.0, 45.0, 5.0, 5.1, 44.7, -5.0])
+
 
 @pytest.mark.parametrize("n, az, alt, roll", test_cases)
 def test_angles_to_quaternion_to_angles_roundtrip(n, az, alt, roll):
     threshold = 1e-2
     q1 = angles_to_quaternion(az, alt, roll)
     t1, t2, t3, a1, a2, a3 = quaternion_to_angles(q1)
-
     assert abs(a1 - az) < threshold, f"Altitude mismatch: input {alt:.4f}, computed {a1:.4f} (case {n})"
     assert is_angle_same(a2, alt, threshold), f"Azimuth mismatch: input {az:.4f}, computed {a2:.4f} (case {n})"
     assert is_angle_same(a3, roll, threshold), f"Roll mismatch: input {roll:.4f}, computed {a3:.4f} (case {n})"
