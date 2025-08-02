@@ -114,10 +114,10 @@ def test_quaternion_to_angles():
     assert approx_quaternion_to_angles(+0.217, -0.656, -0.708, -0.147) == str([177.0, 60.0, -5.1, 166.9, 59.6, 8.7])
     assert approx_quaternion_to_angles(-0.159, +0.672, +0.692, +0.209) == str([177.0, 59.9, 5.0, 186.9, 59.5, -8.6])
     assert approx_quaternion_to_angles(-0.482, +0.517, +0.500, +0.500) == str([179.4, 2.0, 2.6, 182.0, 2.0, -0.1])
-    #assert approx_quaternion_to_angles(-0.500, +0.500, +0.482, +0.517) == str([179.4, -2.0, 2.6, 182.0, -2.0, -0.1]) #Flips Theta 1 and 3
+    assert approx_quaternion_to_angles(-0.500, +0.500, +0.482, +0.517) == str([179.4, -2.0, 2.6, 182.0, -2.0, -0.1]) 
     assert approx_quaternion_to_angles(-0.029, +0.719, +0.032, +0.694) == str([260.7, 2.0, 4.4, 265.1, 2.0, -0.2])
     assert approx_quaternion_to_angles(+0.092, -0.713, -0.093, -0.689) == str([260.1, 1.9, -5.1, 255.0, 1.9, 0.2])
-    #assert approx_quaternion_to_angles(+0.093, -0.689, -0.092, -0.713) == str([260.1, -1.9, -5.1, 255.0, -1.9, 0.2]) #Flips Theta 1 and 3
+    assert approx_quaternion_to_angles(+0.093, -0.689, -0.092, -0.713) == str([260.1, -1.9, -5.1, 255.0, -1.9, 0.2]) 
     assert approx_quaternion_to_angles(+0.081, +0.860, -0.097, +0.494) == str([280.0, 30.0, 5.0, 285.7, 29.9, -2.9])
     assert approx_quaternion_to_angles(-0.006, -0.864, +0.054, -0.501) == str([280.0, 30.0, -5.0, 274.3, 29.9, 2.9])
     assert approx_quaternion_to_angles(-0.080, -0.846, +0.181, -0.495) == str([297.1, 29.9, -5.0, 291.3, 29.8, 2.9])
