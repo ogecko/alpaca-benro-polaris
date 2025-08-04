@@ -705,12 +705,12 @@ class MotorSpeedController:
 
         asyncio.create_task(self._dispatch_loop())
 
-    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None):
+    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True):
         async with self._lock:
             raw = self._model.interpolate[rate_unit].toRAW(rate)
             now = time.monotonic()
             # if we get too many updates before they are applied, just overwrite the last one
-            self.pending_update = (float(raw), ramp_duration, now)
+            self.pending_update = (float(raw), ramp_duration, allow_PWM, now)
 
     def _apply_pending_update(self, now):
         if not self.pending_update:
@@ -720,7 +720,7 @@ class MotorSpeedController:
             return
 
         # Apply new rate and update state for dispatch to take over
-        new_raw, ramp_duration, update_time = self.pending_update
+        new_raw, ramp_duration, allow_PWM, update_time = self.pending_update
         self.pending_update = None
         prior_raw = self.rate_raw
         self.rate_raw = new_raw
@@ -750,7 +750,11 @@ class MotorSpeedController:
             next_up = int(np.ceil(interp)) * direction
             duty = interp - np.floor(interp)
 
-            if duty == 0 or base == next_up:
+            if not allow_PWM:
+                self.mode = "SLOW"
+                self.command = int(round(interp,0)) * direction
+                self.rate_dps = self._model.interpolate['RAW'].toDPS(self.command)
+            elif duty == 0 or base == next_up:
                 self.mode = "SLOW"
                 self.command = base
             else:
@@ -881,9 +885,10 @@ def clamp_error(theta_ref, theta_meas):
     return ((theta_ref - theta_meas + 180) % 360) - 180
 
 class PID_Controller():
-    def __init__(self, logger, controllers, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=8.0, Kc=10):
+    def __init__(self, logger, controllers, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=8.0, Kc=10, loop=None):
         self.logger = logger                                 # Logging utility
         self.controllers = controllers                       # Motor speed controllers[0,1,2]
+        self.control_loop_duration = loop                    # PID Control Loop duration in seconds
         self.target_type = 'NONE'                            # target body we are tracking
         self.alpha_meas = np.array([0,0,0], dtype=float)     # az, alt, roll measured angular position
         self.delta_meas = np.array([0,0,0], dtype=float)     # ra, dec, polar measured angular position
@@ -902,9 +907,10 @@ class PID_Controller():
         self.omega_op = np.array([0,0,0], dtype=float)       # omega1-3 motor angular velocity control output
         self.reset_offsets()
         self.reset_theta()
-        self.time_meas = ephem.now()    # Time of measurement
-        self.time_sp = ephem.now()      # Time that target was set
-        self.dt = dt    # Time interval since last measurement in seconds
+        self.time_meas = None           # Time of measurement
+        self.time_sp = None             # Time that target was set
+        self.time_step = ephem.now()    # Time that control step was done
+        self.dt = dt    # Time interval since last control step in seconds
         # Tunable gains and constraints
         self.Kp = Kp    # Proportional Gain - control speed correlated with error_signal
         self.Ki = Ki    # Integral Gain - reduce cumulative error when reference is ramping
@@ -913,6 +919,12 @@ class PID_Controller():
         self.Ka = Ka    # Maximum acceleration in degrees per seconds²
         self.Kv = Kv    # Maximum velocity in degrees per second
         self.Kc = Kc    # Number of Arc-Minutes error to accept as not deviating
+
+        if Config.advanced_control and self.control_loop_duration:
+            self._stop_flag = asyncio.Event()
+            self._lock = asyncio.Lock()
+            asyncio.create_task(self._control_loop())
+
         
     def reset_offsets(self):
         self.reset_delta()
@@ -1027,11 +1039,12 @@ class PID_Controller():
         # Add alpha offsets to position
         # Get theta reference positions of motors
     
-    def measure(self, theta_meas):
+    def measure(self, theta_meas, alpha_meas):
         now = ephem.now()
-        self.dt = now - self.time_meas
-        self.time_meas = now
+        if not self.time_meas:
+            self.set_alpha_target(alpha_meas)     # initialise alpha_sp with first measurement
         self.theta_meas = theta_meas
+        self.time_meas = now
 
     def predict(self):
         self.theta_meas = clamp_theta(self.theta_meas + self.dt * self.omega_op)
@@ -1081,9 +1094,25 @@ class PID_Controller():
             None
 
     def control_step(self):
-        self.track_target() # Update theta_ref with target's new position
-        self.errsignal()    # Update error_signal/integral with deviation from theta_ref
-        self.pid()          # Update omega_tgt, calculate raw PID control target
-        self.constrain()    # Update omega_ctl, constrain velocity and acceleration
-        self.control()      # Update omega_op, constrain with valid op control values
+        now = ephem.now()
+        self.dt = now - self.time_step
+        self.time_step = now
+        if self.time_meas:      # Only process if we have a measurement
+            self.track_target() # Update theta_ref with target's new position
+            self.errsignal()    # Update error_signal/integral with deviation from theta_ref
+            self.pid()          # Update omega_tgt, calculate raw PID control target
+            self.constrain()    # Update omega_ctl, constrain velocity and acceleration
+            self.control()      # Update omega_op, constrain with valid op control values
+            # self.logger.info(f'**** PID CONTROL STEP RUN **** { self.theta_meas} {self.theta_ref}')
+
+
+    async def _control_loop(self):
+        while not self._stop_flag.is_set():
+            # self.measure() is done at processing 518 message
+            self.control_step()
+            await asyncio.sleep(self.control_loop_duration)
+
+    async def stop_control_loop_task(self):
+        async with self._lock:
+            self._stop_flag.set()
 

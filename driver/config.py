@@ -80,6 +80,8 @@ class Config:
     # --------------
     # Control Section
     # --------------
+    advanced_control: bool = get_toml('control', 'advanced_control')
+    advanced_slewing: bool = get_toml('control', 'advanced_slewing')
     advanced_tracking: bool = get_toml('control', 'advanced_tracking')
     advanced_goto: bool = get_toml('control', 'advanced_goto')
     advanced_rotator: bool = get_toml('control', 'advanced_rotator')
