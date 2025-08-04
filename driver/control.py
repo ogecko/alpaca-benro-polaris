@@ -829,3 +829,250 @@ class MoveAxisMessenger:
         msg = f"1&{self.cmd_fast}&3&speed:{int(fast_raw_rate)};#"
         await self.send_msg(msg)
         return msg
+
+##################################### 
+#  PID CONTROL STRATEGY SIMULATION  #
+##################################### 
+
+def clamp_alpha(alpha):
+    """
+    Apply custom bounds to Topo-centric angles alpha[0], alpha[1], alpha[2]:
+    - Azimuth ∈ [0, 360)
+    - Altitude ∈ [-90, 90)
+    - Roll ∈ [-180, 180)
+    """
+    clamped = np.empty_like(alpha)
+    clamped[0] = alpha[0] % 360
+    clamped[1] = np.clip(alpha[1], -90, 90)
+    clamped[2] = ((alpha[2] + 180) % 360) - 180
+    return clamped
+
+def clamp_delta(delta):
+    """
+    Apply custom bounds to Equatorial angles delta[0], delta[1], delta[2]:
+    - Right Ascention ∈ [0, 360)
+    - Declination ∈ [-90, 90)
+    - Polar Angle ∈ [-180, 180)
+    """
+    clamped = np.empty_like(delta)
+    clamped[0] = delta[0] % 360
+    clamped[1] = np.clip(delta[1], -90, 90)
+    clamped[2] = ((delta[2] + 180) % 360) - 180
+    return clamped
+
+def clamp_theta(theta):
+    """
+    Apply custom bounds to Motor Angles theta[0], theta[1], theta[2]:
+    - Theta1 ∈ [0, 360)
+    - Theta2 ∈ [-90, 90)
+    - Theta3 ∈ [-180, 180)
+    """
+    clamped = np.empty_like(theta)
+    clamped[0] = theta[0] % 360
+    clamped[1] = np.clip(theta[1], -90, 90)
+    clamped[2] = ((theta[2] + 180) % 360) - 180
+    return clamped
+
+def clamp_error(theta_ref, theta_meas):
+    """
+    Calculates angular error considering wrap-around using modular arithmetic.
+    Each error is normalized to [-180, 180) range.
+    """
+    return ((theta_ref - theta_meas + 180) % 360) - 180
+
+class PID_Controller():
+    def __init__(self, logger, controllers, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=8.0, Kc=10):
+        self.logger = logger                                 # Logging utility
+        self.controllers = controllers                       # Motor speed controllers[0,1,2]
+        self.target_type = 'NONE'                            # target body we are tracking
+        self.alpha_meas = np.array([0,0,0], dtype=float)     # az, alt, roll measured angular position
+        self.delta_meas = np.array([0,0,0], dtype=float)     # ra, dec, polar measured angular position
+        self.theta_meas = np.array([0,0,0], dtype=float)     # theta1-3 motor measured angular position
+        self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor reference angular position
+        self.error_signal = np.array([0,0,0], dtype=float)   # theta1-3 error btw theta_ref and theta_meas
+        self.error_integral = np.array([0,0,0], dtype=float) # theta1-3 error btw theta_ref and theta_meas
+        self.cost_signal = 0.0                               # cost is a function of sum(error_signal²)
+        self.is_deviating = False                            # cost signal is > Kc Arc Minutes²
+        self.is_slewing = False                              # a velicity_sp is non-zero
+        self.is_tracking = False                             # tracking target body
+        self.is_moving = False                               # mount is deviating, slewing or tracking
+        self.was_moving = False                              # previous control step movement flag
+        self.omega_tgt = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity raw pid output
+        self.omega_ctl = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity limited output
+        self.omega_op = np.array([0,0,0], dtype=float)       # omega1-3 motor angular velocity control output
+        self.reset_offsets()
+        self.reset_theta()
+        self.time_meas = ephem.now()    # Time of measurement
+        self.time_sp = ephem.now()      # Time that target was set
+        self.dt = dt    # Time interval since last measurement in seconds
+        # Tunable gains and constraints
+        self.Kp = Kp    # Proportional Gain - control speed correlated with error_signal
+        self.Ki = Ki    # Integral Gain - reduce cumulative error when reference is ramping
+        self.Kd = Kd    # Derivative Gain - reduce control when angular velocity higher (damping)
+        self.Ke = Ke    # Expotential Smoothing - how much of current value to mix (0=None)
+        self.Ka = Ka    # Maximum acceleration in degrees per seconds²
+        self.Kv = Kv    # Maximum velocity in degrees per second
+        self.Kc = Kc    # Number of Arc-Minutes error to accept as not deviating
+        
+    def reset_offsets(self):
+        self.reset_delta()
+        self.reset_alpha()
+
+    def reset_delta(self):
+        self.delta_sp = np.array([0,0,0], dtype=float)       # Setpoint for ra, dec, polar anglular positions
+        self.delta_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for ra, dec, polar anglular velocities
+        self.delta_offst = np.array([0,0,0], dtype=float)    # ra, dec, polar anglular offsets
+        self.delta_ref = np.array([0,0,0], dtype=float)      # ra, dec, polar angular reference position
+
+    def reset_alpha(self):
+        self.alpha_sp = np.array([0,0,0], dtype=float)       # Setpoint for az, alt, roll angular positions
+        self.alpha_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for az, alt, roll angular velocities
+        self.alpha_offst = np.array([0,0,0], dtype=float)    #  az, alt, roll angular offsets
+        self.alpha_ref = np.array([0,0,0], dtype=float)      #  az, alt, roll angular reference position
+
+    def reset_theta(self):
+        self.theta_ref = np.array([0,0,0], dtype=float)      #  theta1-3 motor angular reference position
+
+    def set_tracking_on(self):
+        # get current alpha position and set it as target
+        return
+    
+    def set_tracking_off(self):
+        # set tracking to NONE
+        return
+    
+    def set_no_target(self):
+        self.target_type = "NONE"
+        self.reset_offsets()
+
+    def set_alpha_target(self, alpha):
+        self.reset_offsets()
+        self.target_type = "ALPHA"
+        self.alpha_sp = alpha 
+
+    def set_alpha_rotator_abs(self, roll):
+        self.reset_offsets()
+        self.target_type = "ALPHA"
+        self.target['coord'][2] = roll
+    
+    def set_delta_target(self, delta):
+        self.reset_offsets()
+        self.target_type = "DELTA"
+        self.delta_sp = delta
+
+    def set_delta_rotator_abs(self, polar_angle=None):
+        self.target_type = "DELTA"
+        self.target['coord'][2] = polar_angle if polar_angle is not None else 0
+
+    def set_TLE_target(self, line1, line2, line3):
+        self.reset_offsets()
+        self.target_type = "TLE"
+        self.target['lines'] = [line1, line2, line3]
+        self.reset_offsets()
+    
+    def set_XEphem_target(self, line):
+        self.reset_offsets()
+        self.target_type = "XEPHEM"
+        self.target['line'] = line
+
+
+    def set_alpha_axis_velocity(self, axis, sp=0.0):
+        self.alpha_v_sp[axis] = sp
+
+    def set_delta_axis_velocity(self, axis, sp=0.0):
+        self.delta_v_sp[axis] = sp
+    
+    def pulse_delta_axis(self, axis, duration, direction=1, sp=0.0020833):
+        # default guide rate is 0.50x sidereal rate (in the positive direction)
+        pulse = np.array([0,0,0], dtype=float)
+        pulse[axis] = direction * sp
+        self.delta_offst = clamp_delta(self.delta_offst + duration * pulse)
+
+    def track_target(self):
+        # Update offsets with current velocities
+        self.alpha_offst = clamp_alpha(self.alpha_offst + self.dt * self.alpha_v_sp)
+        self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
+        # if topocentric roll then roll offset = - polar angle + desired roll
+        # if equatorial roll then roll offset = roll
+        # if non-track abs roll then roll offset = - current roll + desired roll
+        # if non-track rel roll then roll offset += desired roll
+        # if alpha, tgtra and tgtdec set up font
+        # if delta or alpha radec = tgtra+offset, tgtdec+offset
+        # compute(observer, now)
+        # get target az,alt,polar_angle (if no tracking get current az,alt,roll)
+        # alt_ref= alt + offset # this needs to be done earlier to effect radec
+        # az_ref = az + offset # this needs to be done earlier to effect radec
+        # roll_ref = pa + offset
+        # convert alpha_ref to theta_ref
+        self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
+        self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
+
+        q1 = angles_to_quaternion(*self.alpha_ref)
+        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
+        self.theta_ref = np.array([theta1,theta2,theta3])
+        # Get current delta position of target
+        # Add delta offsets to position
+        # Get current alpha position based on observer 
+        # Add alpha offsets to position
+        # Get theta reference positions of motors
+    
+    def measure(self, theta_meas):
+        now = ephem.now()
+        self.dt = now - self.time_meas
+        self.time_meas = now
+        self.theta_meas = theta_meas
+
+    def predict(self):
+        self.theta_meas = clamp_theta(self.theta_meas + self.dt * self.omega_op)
+        self.time_meas = self.time_meas + self.dt
+
+    def errsignal(self):
+        self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
+        self.error_integral += self.error_signal * self.dt
+        self.cost_signal = np.sum(self.error_signal ** 2)
+        self.is_deviating = self.cost_signal > (self.Kc / 60) ** 2
+        self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
+        self.was_moving = self.is_moving
+        self.is_moving = self.is_deviating or self.is_slewing or self.is_tracking
+    
+    def pid(self):
+        self.omega_tgt = self.Kp * self.error_signal + self.Ki * self.error_integral - self.Kd * self.omega_op
+
+    def constrain(self):
+        # Limits applied to each axis
+        accel_min = np.array([-self.Ka, -self.Ka, -self.Ka], dtype=float)
+        accel_max = np.array([+self.Ka, +self.Ka, +self.Ka], dtype=float)
+        omega_min = np.array([-self.Kv, -self.Kv, -self.Kv], dtype=float)
+        omega_max = np.array([+self.Kv, +self.Kv, +self.Kv], dtype=float)
+        # Compute constrained acceleration
+        delta_omega = self.omega_tgt - self.omega_op
+        accel = delta_omega / self.dt
+        accel_clipped = np.clip(accel, accel_min, accel_max)
+        # Apply clipped acceleration, expotential smoothing, and clip velocity
+        self.omega_ctl = self.omega_op + accel_clipped * self.dt
+        self.omega_ctl = self.omega_ctl * (1.0 - self.Ke) + self.Ke * self.omega_op
+        self.omega_ctl = np.clip(self.omega_ctl, omega_min, omega_max)
+
+    def control(self):
+        self.omega_op = np.array([0,0,0], dtype=float)
+        # [0.0, 0.0059018, 0.0175906, 0.0478282, 0.0892742, 0.2079884]
+        for axis in range(3):
+            self.omega_op[axis] = self.omega_ctl[axis]
+            raw = self.controllers[axis]._model.DPS.toRAW(self.omega_ctl[axis])
+            if abs(raw) < 5.5:
+                raw = round(raw,0)  # no fractional SLOW commands
+                self.omega_op[axis] = self.controllers[axis]._model.RAW.toDPS(raw)
+        # send control to motor when moving
+        if self.is_moving:
+            None
+        # Stop motors when transitioning from moving to stopped
+        if self.was_moving and not self.is_moving:
+            None
+
+    def control_step(self):
+        self.track_target() # Update theta_ref with target's new position
+        self.errsignal()    # Update error_signal/integral with deviation from theta_ref
+        self.pid()          # Update omega_tgt, calculate raw PID control target
+        self.constrain()    # Update omega_ctl, constrain velocity and acceleration
+        self.control()      # Update omega_op, constrain with valid op control values
+
