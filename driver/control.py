@@ -935,11 +935,11 @@ class PID_Controller():
 
     def set_tracking_on(self):
         # get current alpha position and set it as target
-        return
+        self.is_tracking = True
     
     def set_tracking_off(self):
         # set tracking to NONE
-        return
+        self.is_tracking = False
     
     def set_no_target(self):
         self.target_type = "NONE"
@@ -950,19 +950,42 @@ class PID_Controller():
         self.target_type = "ALPHA"
         self.alpha_sp = alpha 
 
-    def set_alpha_rotator_abs(self, roll):
-        self.reset_offsets()
-        self.target_type = "ALPHA"
-        self.target['coord'][2] = roll
-    
+    def set_alpha_axis_position(self, axis, sp=0.0):
+        self.alpha_sp[axis] = sp
+        self.alpha_v_sp[axis] = 0
+        self.alpha_offst[axis] = 0
+        
+    def set_alpha_axis_position_relative(self, axis, sp=0.0):
+        self.alpha_sp[axis] = self.alpha_sp[axis] + sp
+        self.alpha_v_sp[axis] = 0
+        self.alpha_offst[axis] = 0
+        
+    def set_alpha_axis_velocity(self, axis, sp=0.0):
+        self.alpha_v_sp[axis] = sp
+
     def set_delta_target(self, delta):
         self.reset_offsets()
         self.target_type = "DELTA"
         self.delta_sp = delta
 
-    def set_delta_rotator_abs(self, polar_angle=None):
-        self.target_type = "DELTA"
-        self.target['coord'][2] = polar_angle if polar_angle is not None else 0
+    def set_delta_axis_position(self, axis, sp=0.0):
+        self.delta_sp[axis] = sp
+        self.delta_v_sp[axis] = 0
+        self.delta_offst[axis] = 0
+        
+    def set_delta_axis_position_relative(self, axis, sp=0.0):
+        self.delta_sp[axis] = self.delta_sp[axis] + sp
+        self.delta_v_sp[axis] = 0
+        self.delta_offst[axis] = 0
+
+    def set_delta_axis_velocity(self, axis, sp=0.0):
+        self.delta_v_sp[axis] = sp
+    
+    def pulse_delta_axis(self, axis, duration, direction=1, sp=0.0020833):
+        # default guide rate is 0.50x sidereal rate (in the positive direction)
+        pulse = np.array([0,0,0], dtype=float)
+        pulse[axis] = direction * sp
+        self.delta_offst = clamp_delta(self.delta_offst + duration * pulse)
 
     def set_TLE_target(self, line1, line2, line3):
         self.reset_offsets()
@@ -975,18 +998,6 @@ class PID_Controller():
         self.target_type = "XEPHEM"
         self.target['line'] = line
 
-
-    def set_alpha_axis_velocity(self, axis, sp=0.0):
-        self.alpha_v_sp[axis] = sp
-
-    def set_delta_axis_velocity(self, axis, sp=0.0):
-        self.delta_v_sp[axis] = sp
-    
-    def pulse_delta_axis(self, axis, duration, direction=1, sp=0.0020833):
-        # default guide rate is 0.50x sidereal rate (in the positive direction)
-        pulse = np.array([0,0,0], dtype=float)
-        pulse[axis] = direction * sp
-        self.delta_offst = clamp_delta(self.delta_offst + duration * pulse)
 
     def track_target(self):
         # Update offsets with current velocities
