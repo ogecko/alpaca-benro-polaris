@@ -884,6 +884,9 @@ def clamp_error(theta_ref, theta_meas):
     """
     return ((theta_ref - theta_meas + 180) % 360) - 180
 
+def fmt3(theta):
+    return ','.join([ f"{x:.4f}".rjust(8) for x in theta ])
+
 class PID_Controller():
     def __init__(self, logger, controllers, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=8.0, Kc=10, loop=None):
         self.logger = logger                                 # Logging utility
@@ -907,9 +910,9 @@ class PID_Controller():
         self.omega_op = np.array([0,0,0], dtype=float)       # omega1-3 motor angular velocity control output
         self.reset_offsets()
         self.reset_theta()
-        self.time_meas = None           # Time of measurement
-        self.time_sp = None             # Time that target was set
-        self.time_step = ephem.now()    # Time that control step was done
+        self.time_meas = None                # Time of measurement
+        self.time_sp = None                  # Time that target was set
+        self.time_step = time.monotonic()    # Time that control step was done
         self.dt = dt    # Time interval since last control step in seconds
         # Tunable gains and constraints
         self.Kp = Kp    # Proportional Gain - control speed correlated with error_signal
@@ -1051,8 +1054,9 @@ class PID_Controller():
         self.time_meas = self.time_meas + self.dt
 
     def errsignal(self):
+        old_error_signal = self.error_signal
         self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
-        self.error_integral += self.error_signal * self.dt
+        self.error_integral = old_error_signal + self.error_signal
         self.cost_signal = np.sum(self.error_signal ** 2)
         self.is_deviating = self.cost_signal > (self.Kc / 60) ** 2
         self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
@@ -1069,9 +1073,11 @@ class PID_Controller():
         omega_min = np.array([-self.Kv, -self.Kv, -self.Kv], dtype=float)
         omega_max = np.array([+self.Kv, +self.Kv, +self.Kv], dtype=float)
         # Compute constrained acceleration
-        delta_omega = self.omega_tgt - self.omega_op
-        accel = delta_omega / self.dt
-        accel_clipped = np.clip(accel, accel_min, accel_max)
+        accel_clipped = np.array([0, 0, 0], dtype=float)
+        if self.dt > 0:
+            delta_omega = self.omega_tgt - self.omega_op
+            accel = delta_omega / self.dt
+            accel_clipped = np.clip(accel, accel_min, accel_max)
         # Apply clipped acceleration, expotential smoothing, and clip velocity
         self.omega_ctl = self.omega_op + accel_clipped * self.dt
         self.omega_ctl = self.omega_ctl * (1.0 - self.Ke) + self.Ke * self.omega_op
@@ -1094,7 +1100,7 @@ class PID_Controller():
             None
 
     def control_step(self):
-        now = ephem.now()
+        now = time.monotonic()
         self.dt = now - self.time_step
         self.time_step = now
         if self.time_meas:      # Only process if we have a measurement
@@ -1103,7 +1109,7 @@ class PID_Controller():
             self.pid()          # Update omega_tgt, calculate raw PID control target
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
             self.control()      # Update omega_op, constrain with valid op control values
-            # self.logger.info(f'**** PID CONTROL STEP RUN **** { self.theta_meas} {self.theta_ref}')
+            self.logger.info(f'**** PID **** { fmt3(self.theta_meas)} | {fmt3(self.theta_ref)} | {fmt3(self.omega_op)}')
 
 
     async def _control_loop(self):
