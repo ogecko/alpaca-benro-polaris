@@ -377,8 +377,8 @@ class Polaris:
                     await self.send_cmd_520_position_updates(True)
 
                 # if advanced_tracking or advanced_slewing is enabled, then reclaculate control parameters
-                if Config.advanced_tracking or Config.advanced_slewing:
-                    await self.recalculate_mpc_control_parameters()
+                # if Config.advanced_tracking or Config.advanced_slewing:
+                #     await self.recalculate_mpc_control_parameters()
 
                 await asyncio.sleep(1)
 
@@ -1743,11 +1743,10 @@ class Polaris:
 # ******* Advanced MPC control aware methods ********
 
     async def move_axis(self, axis:int, rate:float, units="ASCOM"):
-        if Config.advanced_tracking:
-            # self.logger.info(f"Advanced MPC: Move axis {axis} with rate {rate} units {units}")
-            await self._motorcontrollers[axis].set_motor_speed(rate, units)
-            # if tracking TODO - need to update trajectory
-            #
+        if Config.advanced_slewing:
+            raw = self._motorcontrollers[axis]._model.interpolate[units].toRAW(rate)
+            dps = self._motorcontrollers[axis]._model.interpolate["RAW"].toDPS(raw)
+            self._pid.set_alpha_axis_velocity(axis, dps)
         else:
             self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {rate} Units {units}")
             if not self._tracking:

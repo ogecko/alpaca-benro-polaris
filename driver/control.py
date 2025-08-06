@@ -6,10 +6,10 @@ from scipy.interpolate import PchipInterpolator
 import time
 import asyncio
 from typing import Optional
-# import casadi as ca
 import ephem
 import math
 from shr import rad2deg
+# import casadi as ca
 
 # ************* TODO LIST *****************
 
@@ -21,7 +21,7 @@ from shr import rad2deg
 # [X] Control Input Normalisation
 # [X] Orientation Estimation via Kalman Filtering
 # [X] Speed Calibration & Response Profiling
-# [X] Increased Maximum Alpaca Axis Speed to 7 degrees/s
+# [X] Increased Maximum Alpaca Axis Speed to 8 degrees/s
 # [ ] Model Predicture Control trajectory shaping
 # [ ] Rate Derivative Estimation (Jerk Monitoring)
 # [ ] Feedforward Control Integration (minimise overshoot)
@@ -718,6 +718,7 @@ class MotorSpeedController:
         
         if self.mode == "SLOW_PWM" and now < self.next_dispatch_time:
             return
+        
 
         # Apply new rate and update state for dispatch to take over
         new_raw, ramp_duration, allow_PWM, update_time = self.pending_update
@@ -817,8 +818,12 @@ class MoveAxisMessenger:
         self.send_msg = send_msg
         self.cmd_slow = ['532', '533', '534'][axis]     # Pick right cmd based on axis passed in on initialisation
         self.cmd_fast = ['513', '514', '521'][axis]     # Pick right cmd based on axis passed in on initialisation
+        self.last_slow_raw_rate = 0
 
     async def send_slow_move_msg(self, slow_raw_rate: int) -> str:
+        if slow_raw_rate == self.last_slow_raw_rate:
+            return
+        self.last_slow_raw_rate = slow_raw_rate
         if not isinstance(slow_raw_rate, int) or not (-5 <= slow_raw_rate <= 5):
             raise ValueError("SLOW rate must be an integer between 0 and 5.")
         key = 0 if slow_raw_rate > 0 else 1
@@ -892,6 +897,7 @@ class PID_Controller():
         self.logger = logger                                 # Logging utility
         self.controllers = controllers                       # Motor speed controllers[0,1,2]
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
+        self.mode = 'IDLE'                                   # PID Controller mode: IDLE, AUTO, TRACK
         self.target_type = 'NONE'                            # target body we are tracking
         self.alpha_meas = np.array([0,0,0], dtype=float)     # az, alt, roll measured angular position
         self.delta_meas = np.array([0,0,0], dtype=float)     # ra, dec, polar measured angular position
@@ -1013,39 +1019,42 @@ class PID_Controller():
         self.target_type = "XEPHEM"
         self.target['line'] = line
 
-
     def track_target(self):
-        # Update offsets with current velocities
-        self.alpha_offst = clamp_alpha(self.alpha_offst + self.dt * self.alpha_v_sp)
-        self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
-        # if topocentric roll then roll offset = - polar angle + desired roll
-        # if equatorial roll then roll offset = roll
-        # if non-track abs roll then roll offset = - current roll + desired roll
-        # if non-track rel roll then roll offset += desired roll
-        # if alpha, tgtra and tgtdec set up font
-        # if delta or alpha radec = tgtra+offset, tgtdec+offset
-        # compute(observer, now)
-        # get target az,alt,polar_angle (if no tracking get current az,alt,roll)
-        # alt_ref= alt + offset # this needs to be done earlier to effect radec
-        # az_ref = az + offset # this needs to be done earlier to effect radec
-        # roll_ref = pa + offset
-        # convert alpha_ref to theta_ref
-        self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
-        self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
+        # update MODE transitions
+        if self.is_tracking and self.mode != 'TRACK':
+            self.mode = 'TRACK'
+            self.reset_delta()
+        elif self.is_moving and self.mode != 'AUTO':
+            self.mode = 'AUTO'
+        elif not self.is_moving and self.mode !='IDLE':
+            self.reset_alpha()
+            self.mode = 'IDLE'
 
+        # Update alpha_ref based on current mode
+        if self.mode == 'IDLE':
+            self.alpha_ref = self.alpha_meas
+            self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
+        
+        elif self.mode == 'AUTO':
+            self.alpha_offst = clamp_alpha(self.alpha_offst + self.dt * self.alpha_v_sp)
+            self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
+
+        elif self.mode == 'TRACK':
+            self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
+            self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
+            self.alpha_offst = clamp_alpha(self.alpha_offst + self.dt * self.alpha_v_sp)
+            self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
+
+        # Convert alpha_ref to theta_ref
         q1 = angles_to_quaternion(*self.alpha_ref)
         theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
         self.theta_ref = np.array([theta1,theta2,theta3])
-        # Get current delta position of target
-        # Add delta offsets to position
-        # Get current alpha position based on observer 
-        # Add alpha offsets to position
-        # Get theta reference positions of motors
     
     def measure(self, theta_meas, alpha_meas):
         now = ephem.now()
         if not self.time_meas:
             self.set_alpha_target(alpha_meas)     # initialise alpha_sp with first measurement
+        self.alpha_meas = alpha_meas
         self.theta_meas = theta_meas
         self.time_meas = now
 
@@ -1083,7 +1092,7 @@ class PID_Controller():
         self.omega_ctl = self.omega_ctl * (1.0 - self.Ke) + self.Ke * self.omega_op
         self.omega_ctl = np.clip(self.omega_ctl, omega_min, omega_max)
 
-    def control(self):
+    async def control(self):
         self.omega_op = np.array([0,0,0], dtype=float)
         # [0.0, 0.0059018, 0.0175906, 0.0478282, 0.0892742, 0.2079884]
         for axis in range(3):
@@ -1094,12 +1103,14 @@ class PID_Controller():
                 self.omega_op[axis] = self.controllers[axis]._model.RAW.toDPS(raw)
         # send control to motor when moving
         if self.is_moving:
-            None
+            for axis in range(3):
+                await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=False)
         # Stop motors when transitioning from moving to stopped
         if self.was_moving and not self.is_moving:
-            None
+            for axis in range(3):
+                await self.controllers[axis].set_motor_speed(0)
 
-    def control_step(self):
+    async def control_step(self):
         now = time.monotonic()
         self.dt = now - self.time_step
         self.time_step = now
@@ -1108,14 +1119,14 @@ class PID_Controller():
             self.errsignal()    # Update error_signal/integral with deviation from theta_ref
             self.pid()          # Update omega_tgt, calculate raw PID control target
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
-            self.control()      # Update omega_op, constrain with valid op control values
-            self.logger.info(f'**** PID **** { fmt3(self.theta_meas)} | {fmt3(self.theta_ref)} | {fmt3(self.omega_op)}')
+            await self.control()      # Update omega_op, constrain with valid op control values
+            self.logger.info(f'**** {self.mode} **** { fmt3(self.alpha_ref)} | {fmt3(self.theta_ref)} |{ fmt3(self.theta_meas)} | {fmt3(self.omega_op)}')
 
 
     async def _control_loop(self):
         while not self._stop_flag.is_set():
             # self.measure() is done at processing 518 message
-            self.control_step()
+            await self.control_step()
             await asyncio.sleep(self.control_loop_duration)
 
     async def stop_control_loop_task(self):
