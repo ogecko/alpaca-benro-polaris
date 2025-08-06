@@ -6,7 +6,7 @@ from scipy.interpolate import PchipInterpolator
 import time
 import asyncio
 from typing import Optional
-import casadi as ca
+# import casadi as ca
 import ephem
 import math
 from shr import rad2deg
@@ -415,61 +415,61 @@ class KalmanFilter:
 
 def run_mpc_optimized(theta_0, omega_0, theta_ref, omega_ref, Δt, max_velocity, max_acceleration):
     N = len(theta_ref)
-    opti = ca.Opti()
+    # opti = ca.Opti()
 
     
-    # Decision variables
-    theta = [opti.variable(3) for _ in range(N+1)]
-    omega = [opti.variable(3) for _ in range(N)]
+    # # Decision variables
+    # theta = [opti.variable(3) for _ in range(N+1)]
+    # omega = [opti.variable(3) for _ in range(N)]
 
-    # Initial condition
-    opti.subject_to(theta[0] == theta_0)
-    opti.subject_to(omega[0] == omega_0)
+    # # Initial condition
+    # opti.subject_to(theta[0] == theta_0)
+    # opti.subject_to(omega[0] == omega_0)
 
-    # Dynamics and constraints
-    for t in range(N):
-        # Dynamics
-        D = int(2.0 / Δt)  # number of steps representing 2 second delay in actualisation
-        if D == 0:
-            opti.subject_to(theta[t+1] == theta[t] + omega[t])
-        elif t + D < N + 1:
-            opti.subject_to(theta[t+1] == theta[t] + omega[max(0, t-D)])
-        else:
-            # Beyond prediction horizon — assume zero velocity or maintain last valid one
-            opti.subject_to(theta[t+1] == theta[t] + omega[max(0, N-1)])
+    # # Dynamics and constraints
+    # for t in range(N):
+    #     # Dynamics
+    #     D = int(2.0 / Δt)  # number of steps representing 2 second delay in actualisation
+    #     if D == 0:
+    #         opti.subject_to(theta[t+1] == theta[t] + omega[t])
+    #     elif t + D < N + 1:
+    #         opti.subject_to(theta[t+1] == theta[t] + omega[max(0, t-D)])
+    #     else:
+    #         # Beyond prediction horizon — assume zero velocity or maintain last valid one
+    #         opti.subject_to(theta[t+1] == theta[t] + omega[max(0, N-1)])
 
-        # Angular constraint
-        opti.subject_to(opti.bounded(0.0, theta[t][1], 84.0))
+    #     # Angular constraint
+    #     opti.subject_to(opti.bounded(0.0, theta[t][1], 84.0))
 
-        # Velocity constraint
-        opti.subject_to(opti.bounded(-max_velocity * Δt, omega[t], max_velocity * Δt))
+    #     # Velocity constraint
+    #     opti.subject_to(opti.bounded(-max_velocity * Δt, omega[t], max_velocity * Δt))
 
-        # Acceleration constraint
-        if t > 0:
-            accel = (omega[t] - omega[t-1]) / Δt
-            opti.subject_to(opti.bounded(-max_acceleration, accel, max_acceleration))
+    #     # Acceleration constraint
+    #     if t > 0:
+    #         accel = (omega[t] - omega[t-1]) / Δt
+    #         opti.subject_to(opti.bounded(-max_acceleration, accel, max_acceleration))
 
-    cost = 0
-    for t in range(N):
-        # Objective: minimize absolute tracking error
-        cost += ca.sumsqr(theta[t] - theta_ref[t])
+    # cost = 0
+    # for t in range(N):
+    #     # Objective: minimize absolute tracking error
+    #     cost += ca.sumsqr(theta[t] - theta_ref[t])
 
-    for t in range(N-1):
-        # Objective: minimize tracking angular rate error
-        velocity_penalty_weight = 3
-        cost += ca.sumsqr(omega[t] - omega_ref[t])*velocity_penalty_weight
+    # for t in range(N-1):
+    #     # Objective: minimize tracking angular rate error
+    #     velocity_penalty_weight = 3
+    #     cost += ca.sumsqr(omega[t] - omega_ref[t])*velocity_penalty_weight
 
-    opti.minimize(cost)
+    # opti.minimize(cost)
 
-    # Solver setup
-    p_opts = dict(print_time=False, verbose=False)
-    s_opts = dict(print_level=0)
-    opti.solver("ipopt", p_opts, s_opts)
-    sol = opti.solve()
+    # # Solver setup
+    # p_opts = dict(print_time=False, verbose=False)
+    # s_opts = dict(print_level=0)
+    # opti.solver("ipopt", p_opts, s_opts)
+    # sol = opti.solve()
 
-    # Extract solution
-    theta_opt = np.array([sol.value(theta[t]) for t in range(N+1)])
-    omega_opt = np.array([sol.value(omega[t]) for t in range(N)])
+    # # Extract solution
+    # theta_opt = np.array([sol.value(theta[t]) for t in range(N+1)])
+    # omega_opt = np.array([sol.value(omega[t]) for t in range(N)])
 
     return theta_opt, omega_opt
 

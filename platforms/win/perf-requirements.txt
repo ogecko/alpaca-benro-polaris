@@ -1,3 +1,6 @@
-pandas==2.2.3
-plotly==5.24.1
-jupyterlab==4.3.3
+pandas==2.3.1
+plotly==6.2.0
+pytest==8.4.1
+debugpy==1.8.15
+ipykernel==6.30.1
+nbformat==5.10.4

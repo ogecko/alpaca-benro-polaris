@@ -26,10 +26,12 @@
 
 ## Upgraded Win11 Requirements.txt Compatibility
 - **[Python 3.13.5]**: Upgraded Python support from 3.13.1.
-- **[Falcon 4.0.2]**: Upgraded Falcon support from 4.0.2.
-- **[Uvicorn 0.33.0]**: Upgraded Uvicorn support from 0.33.0.
-- **[Ephem 4.1.6]**: Upgraded Ephem support from 4.1.6.
- 
+- **[Uvicorn 0.35.0]**: Upgraded Uvicorn support from 0.33.0.
+- **[Ephem 4.2]**: Upgraded Ephem support from 4.1.6.
+- **[numpy 2.3.2]**: Upgraded numpy support from 1.24.4.
+- **[scipy 1.16.1]**: Upgraded scipy support from 1.16.0.
+
+
 ## Documentation (Alpaca Driver)
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
 - **[Troublshooting B7]**: Add link to Polaris User Manual
