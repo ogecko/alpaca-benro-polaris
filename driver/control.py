@@ -969,6 +969,7 @@ class PID_Controller():
     def set_alpha_target(self, alpha):
         self.reset_offsets()
         self.target_type = "ALPHA"
+        self.mode="AUTO"
         self.alpha_sp = alpha 
 
     def set_alpha_axis_position(self, axis, sp=0.0):
@@ -1112,7 +1113,8 @@ class PID_Controller():
 
     async def control_step(self):
         now = time.monotonic()
-        self.dt = now - self.time_step
+        if self.control_loop_duration:
+            self.dt = now - self.time_step
         self.time_step = now
         if self.time_meas:      # Only process if we have a measurement
             self.track_target() # Update theta_ref with target's new position
