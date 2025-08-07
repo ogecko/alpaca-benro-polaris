@@ -15,17 +15,16 @@ from shr import rad2deg
 
 # Control Algorithm Features
 # [X] Quaternion-based kinematics and inverse solutions
+# [X] Optimised PID Control for Orientation
+# [X] Independant Motor Speed Control
 # [X] Angular Rate Interpolation Framework
-# [X] PWM Driven Speed Control
 # [X] Real-time Angular Position and Velocity Measurement
-# [X] Control Input Normalisation
 # [X] Orientation Estimation via Kalman Filtering
 # [X] Speed Calibration & Response Profiling
-# [X] Increased Maximum Alpaca Axis Speed to 8 degrees/s
-# [ ] Model Predicture Control trajectory shaping
+# [X] Control Input Normalisation
+# [X] Constraint-Aware Position, Velocity and Acceleration Limiting
 # [ ] Rate Derivative Estimation (Jerk Monitoring)
 # [ ] Feedforward Control Integration (minimise overshoot)
-# [ ] Constraint-Aware Rate Limiting
 # [ ] Control Mode Switching
 # [ ] Time-Differentiated Tracking Profiles
 #
@@ -42,10 +41,19 @@ from shr import rad2deg
 # [x] Apparent Geocentric Position Refinement
 # [x] Topocentric Apparent Coordinate Output (RA, Dec, PA | Alt, Az, Roll)
 #
+# Precision Goto Control
+# [X] Kinematically Optimised Mount Trajectory
+# [X] Improved Goto accuracy through closed loop control
+# [X] Smooth acceleration and deacceleration profiles
+# [X] Real-time interruptable Goto execution
+# [X] Goto can be issued independant of current state
+# [X] Backlash compensation process eliminated
+# [X] Goto with specific roll angle 
+# 
 # Precision Slew Control
-# [ ] Kinematically Optimised Mount Trajectory
-# [ ] Real-Time Interruptible Path Planning
-# [ ] Dynamically Smooth Motion and Acceleration
+# [X] Slew by Azimuth, Altitude, and Roll coordinates (replaces direct motor axis control)
+# [X] Slew supports real-time interruption
+# [X] Increased Maximum Alpaca Axis Speed to 8 degrees/s
 # [ ] Predictive Anti-Backlash Correction
 # [ ] Expanded Target Catalog
 # [ ] Auto-fetch Target Catalog updates
