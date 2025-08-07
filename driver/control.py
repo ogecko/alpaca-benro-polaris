@@ -1136,7 +1136,7 @@ class PID_Controller():
             self.pid()          # Update omega_tgt, calculate raw PID control target
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
             await self.control()      # Update omega_op, constrain with valid op control values
-            self.logger.info(f'**** {self.mode} **** { fmt3(self.alpha_ref)} | {fmt3(self.theta_ref)} |{ fmt3(self.theta_meas)} | {fmt3(self.omega_op)}')
+            self.logger.info(f'**** {self.mode} **** Aref { fmt3(self.alpha_ref)} | TRef {fmt3(self.theta_ref)} | TMeas { fmt3(self.theta_meas)} | OP {fmt3(self.omega_op)}')
 
 
     async def _control_loop(self):
