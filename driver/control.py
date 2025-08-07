@@ -985,7 +985,6 @@ class PID_Controller():
         self.reset_offsets()
         self.target_type = "ALPHA"
         self.alpha_sp = alpha
-        self.mode="AUTO"
         self.is_moving = True
         print(f'**** SET SP **** {self.alpha_sp}')
 
@@ -1039,14 +1038,17 @@ class PID_Controller():
 
     def track_target(self):
         # update MODE transitions
-        if self.is_tracking and self.mode != 'TRACK':
-            self.mode = 'TRACK'
-            self.reset_delta()
-        elif self.is_moving and self.mode != 'AUTO':
-            self.mode = 'AUTO'
-        elif not self.is_moving and self.mode !='IDLE':
-            self.reset_alpha()
-            self.mode = 'IDLE'
+        if self.is_tracking:
+            if self.mode != 'TRACK':
+                self.mode = 'TRACK'
+                self.reset_delta()
+        elif self.is_moving:
+            if self.mode != 'AUTO':
+                self.mode = 'AUTO'
+        elif not self.is_moving:
+            if self.mode !='IDLE':
+                self.reset_alpha()
+                self.mode = 'IDLE'
 
         # Update alpha_ref based on current mode
         if self.mode == 'IDLE':

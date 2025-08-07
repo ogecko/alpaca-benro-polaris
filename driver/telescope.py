@@ -984,7 +984,7 @@ class abortslew:
             resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot abort slew while parked'))
             return
         try:
-            await polaris.send_cmd_goto_abort()
+            await polaris.AbortSlew()
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,

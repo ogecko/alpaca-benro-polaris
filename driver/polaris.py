@@ -376,10 +376,6 @@ class Polaris:
                     self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
-                # if advanced_tracking or advanced_slewing is enabled, then reclaculate control parameters
-                # if Config.advanced_tracking or Config.advanced_slewing:
-                #     await self.recalculate_mpc_control_parameters()
-
                 await asyncio.sleep(1)
 
             except Exception as e:
@@ -1701,6 +1697,16 @@ class Polaris:
     ####################################################################
     # Methods
     ####################################################################
+
+    async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
+        a_alt = altitude
+        a_az = azimuth
+        a_ra, a_dec = self.altaz2radec(a_alt, a_az)
+        self.logger.info(f"->> Polaris: GOTO ASCOM   Alt: {deg2dms(a_alt)} Az: {deg2dms(a_az)}")
+        await self.SlewToCoordinates(a_ra, a_dec, isasync)
+
+    # ******* Advanced MPC control aware methods ********
+
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
         a_ra = rightascension
         a_dec = declination
@@ -1726,8 +1732,9 @@ class Polaris:
             self.logger.info(f"->> Polaris: GOTO ASCOM   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)}")
             self.logger.info(f"->> Polaris: GOTO ASCOM   Alt {deg2dms(a_alt)} Az {deg2dms(a_az)}")
             self.logger.info(f"->> Polaris: GOTO POLARIS Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} | SyncOffset (Alt {deg2dms(o_alt)} Az {deg2dms(o_az)})")
-        if Config.advanced_goto:
-            self.logger.info(f"->> Polaris: ADVANCED GOTO Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} | SyncOffset (Alt {deg2dms(o_alt)} Az {deg2dms(o_az)})")
+
+        if Config.advanced_control and Config.advanced_goto:
+            self.logger.info(f"->> Advanced Contro: GOTO Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} | SyncOffset (Alt {deg2dms(o_alt)} Az {deg2dms(o_az)})")
             self._pid.set_alpha_target(np.array([p_az, p_alt, 0]))
         else:
             if isasync:
@@ -1735,19 +1742,16 @@ class Polaris:
             else:
                 await self.send_cmd_goto_altaz(p_alt, p_az, istracking=True)
 
-    async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
-        a_alt = altitude
-        a_az = azimuth
-        a_ra, a_dec = self.altaz2radec(a_alt, a_az)
-        self.logger.info(f"->> Polaris: GOTO ASCOM   Alt: {deg2dms(a_alt)} Az: {deg2dms(a_az)}")
-        await self.SlewToCoordinates(a_ra, a_dec, isasync)
+    async def AbortSlew(self):
+        if Config.advanced_control and Config.advanced_goto:
+            self.logger.info(f"Advanced Control: ABORT GOTO")
+            await self.stop_all_axes()
+        else:
+            await self.send_cmd_goto_abort()
 
-
-
-# ******* Advanced MPC control aware methods ********
 
     async def move_axis(self, axis:int, rate:float, units="ASCOM"):
-        if Config.advanced_slewing:
+        if Config.advanced_control and Config.advanced_slewing:
             raw = self._motorcontrollers[axis]._model.interpolate[units].toRAW(rate)
             dps = self._motorcontrollers[axis]._model.interpolate["RAW"].toDPS(raw)
             self._pid.set_alpha_axis_velocity(axis, dps)
@@ -1757,57 +1761,50 @@ class Polaris:
                 await self._motorcontrollers[axis].set_motor_speed(rate, units)
 
     async def stop_all_axes(self):
+        if Config.advanced_control:
+            self.logger.info(f"Advanced Control: STOP all axes")
+            self._pid.mode = "IDLE"
+            self._pid.is_moving = False
         await self._motorcontrollers[0].set_motor_speed(0, "DPS")
         await self._motorcontrollers[1].set_motor_speed(0, "DPS")
         await self._motorcontrollers[2].set_motor_speed(0, "DPS")
 
     async def stop_tracking(self):
-        if Config.advanced_tracking:
-            self.logger.info(f"Advanced MPC: STOP tracking")
+        if Config.advanced_control and Config.advanced_tracking:
+            self.logger.info(f"Advanced Control: STOP tracking")
             self._tracking = False
-            await self.stop_all_axes()
+            self._pid.is_tracking = False
         else:
             # only send message if we are already tracking
             if self._tracking:
                 self._tracking = False
                 await self.send_cmd_change_tracking_state(False)
 
-
     async def start_tracking(self):
-        if Config.advanced_tracking:
+        if Config.advanced_control and Config.advanced_tracking:
+            self.logger.info(f"Advanced Control: START tracking")
             self._tracking = True
-            self._targetdeclination = self._declination
-            self._targetrightascension = self._rightascension
-            self._mpc_index = 0
-            self.logger.info(f"Advanced MPC: START tracking with rate {self._trackingrate} at RA {self._targetrightascension:.3f}, Dec {self._targetdeclination:.3f}")
+            self._pid.is_tracking = True
         else:
             # only send message if we are not tracking and not slewing
             if not self._tracking and not self._slewing:
                 self._tracking = True
                 await self.send_cmd_change_tracking_state(True)
 
-
     async def park(self):
-        if Config.advanced_tracking:
-            self.logger.info(f"Advanced MPC: PARK telescope")
-            self._lock.acquire()
-            self._atpark = True
-            self._adj_sync_declination = 0
-            self._adj_sync_rightascension = 0
-            self._adj_altitude = 0
-            self._adj_azimuth = 0
-            self._lock.release()
-            await self.stop_tracking()
-            await asyncio.sleep(1)
+        self._lock.acquire()
+        self._atpark = True
+        self._adj_sync_declination = 0
+        self._adj_sync_rightascension = 0
+        self._adj_altitude = 0
+        self._adj_azimuth = 0
+        self._lock.release()
+        if Config.advanced_control:
+            self.logger.info(f"Advanced Control: PARK telescope")
+            await self.stop_all_axes()
+            await asyncio.sleep(2)
             await self.send_cmd_park()
         else:
-            self._lock.acquire()
-            self._atpark = True
-            self._adj_sync_declination = 0
-            self._adj_sync_rightascension = 0
-            self._adj_altitude = 0
-            self._adj_azimuth = 0
-            self._lock.release()
             await self.stop_tracking()
             await asyncio.sleep(1)
             await self.send_cmd_park()
@@ -1817,33 +1814,3 @@ class Polaris:
         self._atpark = False
         self._lock.release()
 
-
-    async def recalculate_mpc_control_parameters(self):
-        if self._tracking:
-            if self._mpc_index == 0 or self._mpc_index >= len(self._mpc_omega_opt)-1:
-                # Recalculate full MPC strategy
-                ra = self._targetrightascension if self._targetrightascension else self._rightascension
-                dec = self._targetdeclination if self._targetdeclination else self._declination
-                theta_0 = self._theta_meas
-                omega_0 = self._omega_meas
-                # Generate new MPC strategy
-                self._mpc_theta_ref, self._mpc_theta_opt, self._mpc_omega_ref, self._mpc_omega_opt = generate_mpc_strategy(
-                    self._observer, ra, dec, theta_0, omega_0
-                )
-                self._mpc_index = 1
-
-            # Use next set of control values
-            theta_ref = self._mpc_theta_ref[self._mpc_index]
-            theta_opt = self._mpc_theta_opt[self._mpc_index]
-            omega_ref = self._mpc_omega_ref[self._mpc_index]
-            omega_opt = self._mpc_omega_opt[self._mpc_index]
-
-            def fmt3(x):
-                return f'[ {x[0]:.4f} {x[1]:.4f} {x[2]:.4f} ]'
-
-            self.logger.info(f"Advanced MPC: MPC control {self._mpc_index} theta t0 {fmt3(self._theta_meas)} ref {fmt3(theta_ref)} t1 {fmt3(theta_opt)} | omega t0 {fmt3(self._omega_meas)} ref {fmt3(omega_ref)} ctl {fmt3(omega_opt)}")
-
-            for i, omega in enumerate(omega_opt):
-                await self._motorcontrollers[i].set_motor_speed(omega, "DPS", ramp_duration=1.0)
-
-            self._mpc_index += 1
