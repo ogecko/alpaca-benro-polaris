@@ -893,7 +893,7 @@ def fmt3(theta):
     return ','.join([ f"{x:.4f}".rjust(8) for x in theta ])
 
 class PID_Controller():
-    def __init__(self, logger, controllers, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=8.0, Kc=10, loop=None):
+    def __init__(self, logger, controllers, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=8.0, Kc=1.0, loop=None):
         self.logger = logger                                 # Logging utility
         self.controllers = controllers                       # Motor speed controllers[0,1,2]
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
@@ -969,8 +969,10 @@ class PID_Controller():
     def set_alpha_target(self, alpha):
         self.reset_offsets()
         self.target_type = "ALPHA"
+        self.alpha_sp = alpha
         self.mode="AUTO"
-        self.alpha_sp = alpha 
+        self.is_moving = True
+        print(f'**** SET SP **** {self.alpha_sp}')
 
     def set_alpha_axis_position(self, axis, sp=0.0):
         self.alpha_sp[axis] = sp

@@ -1726,10 +1726,14 @@ class Polaris:
             self.logger.info(f"->> Polaris: GOTO ASCOM   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)}")
             self.logger.info(f"->> Polaris: GOTO ASCOM   Alt {deg2dms(a_alt)} Az {deg2dms(a_az)}")
             self.logger.info(f"->> Polaris: GOTO POLARIS Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} | SyncOffset (Alt {deg2dms(o_alt)} Az {deg2dms(o_az)})")
-        if isasync:
-            asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
+        if Config.advanced_goto:
+            self.logger.info(f"->> Polaris: ADVANCED GOTO Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} | SyncOffset (Alt {deg2dms(o_alt)} Az {deg2dms(o_az)})")
+            self._pid.set_alpha_target(np.array([p_az, p_alt, 0]))
         else:
-            await self.send_cmd_goto_altaz(p_alt, p_az, istracking=True)
+            if isasync:
+                    asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
+            else:
+                await self.send_cmd_goto_altaz(p_alt, p_az, istracking=True)
 
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
         a_alt = altitude
