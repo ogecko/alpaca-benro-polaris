@@ -652,6 +652,7 @@ class MoveAxisRateInterpolator:
         self.RAW = MoveAxisRateUnitInterpolator(data, 'RAW')
         self.ASCOM = MoveAxisRateUnitInterpolator(data, 'ASCOM')
         self.DPS = MoveAxisRateUnitInterpolator(data, 'DPS')
+        self.maxDPS = data['DPS'][-1]
         self.interpolate = { 'RAW': self.RAW, 'ASCOM': self.ASCOM, 'DPS': self.DPS }
 
 class MoveAxisRateUnitInterpolator:
@@ -833,7 +834,7 @@ class MoveAxisMessenger:
             return
         self.last_slow_raw_rate = slow_raw_rate
         if not isinstance(slow_raw_rate, int) or not (-5 <= slow_raw_rate <= 5):
-            raise ValueError("SLOW rate must be an integer between 0 and 5.")
+            raise ValueError(f"SLOW rate must be an integer between 0 and 5. Value: {slow_raw_rate}")
         key = 0 if slow_raw_rate > 0 else 1
         state = 0 if slow_raw_rate == 0 else 1
         msg = f"1&{self.cmd_slow}&3&key:{key};state:{state};level:{abs(slow_raw_rate)};#"
@@ -842,7 +843,7 @@ class MoveAxisMessenger:
 
     async def send_fast_move_msg(self, fast_raw_rate: int) -> str:
         if abs(fast_raw_rate) > 2500:
-            raise ValueError("FAST rate must be within ±2500.")
+            raise ValueError(f"FAST rate must be within ±2500. Value: {fast_raw_rate}")
         msg = f"1&{self.cmd_fast}&3&speed:{int(fast_raw_rate)};#"
         await self.send_msg(msg)
         return msg
@@ -898,10 +899,10 @@ def clamp_error(theta_ref, theta_meas):
     return ((theta_ref - theta_meas + 180) % 360) - 180
 
 def fmt3(theta):
-    return ','.join([ f"{x:.4f}".rjust(8) for x in theta ])
+    return ','.join([ f"{x:.3f}".rjust(7) for x in theta ])
 
 class PID_Controller():
-    def __init__(self, logger, controllers, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=8.0, Kc=1.0, loop=None):
+    def __init__(self, logger, controllers, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=None, Kc=1.0, loop=None):
         self.logger = logger                                 # Logging utility
         self.controllers = controllers                       # Motor speed controllers[0,1,2]
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
@@ -933,16 +934,22 @@ class PID_Controller():
         self.Ki = Ki    # Integral Gain - reduce cumulative error when reference is ramping
         self.Kd = Kd    # Derivative Gain - reduce control when angular velocity higher (damping)
         self.Ke = Ke    # Expotential Smoothing - how much of current value to mix (0=None)
-        self.Ka = Ka    # Maximum acceleration in degrees per seconds²
-        self.Kv = Kv    # Maximum velocity in degrees per second
         self.Kc = Kc    # Number of Arc-Minutes error to accept as not deviating
+        self.Ka = self.Ka_array(Ka) # Maximum acceleration (float: degrees per seconds² or array(3): degrees per seconds²
+        self.Kv = self.Kv_array(Kv) # Maximum velocity (float: degrees per second or array(3): degrees per seconds or None: (maxDSP from controller)
 
         if Config.advanced_control and self.control_loop_duration:
             self._stop_flag = asyncio.Event()
             self._lock = asyncio.Lock()
             asyncio.create_task(self._control_loop())
 
-        
+    def Ka_array(self, Ka):
+        return Ka if isinstance(Ka, np.ndarray) else np.array([Ka, Ka, Ka], dtype=float)
+
+    def Kv_array(self, Kv):
+        maxKv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
+        return maxKv if Kv is None else Kv if isinstance(Kv, np.ndarray) else np.array([Kv, Kv, Kv], dtype=float) 
+
     def reset_offsets(self):
         self.reset_delta()
         self.reset_alpha()
@@ -1087,21 +1094,16 @@ class PID_Controller():
         self.omega_tgt = self.Kp * self.error_signal + self.Ki * self.error_integral - self.Kd * self.omega_op
 
     def constrain(self):
-        # Limits applied to each axis
-        accel_min = np.array([-self.Ka, -self.Ka, -self.Ka], dtype=float)
-        accel_max = np.array([+self.Ka, +self.Ka, +self.Ka], dtype=float)
-        omega_min = np.array([-self.Kv, -self.Kv, -self.Kv], dtype=float)
-        omega_max = np.array([+self.Kv, +self.Kv, +self.Kv], dtype=float)
         # Compute constrained acceleration
         accel_clipped = np.array([0, 0, 0], dtype=float)
         if self.dt > 0:
             delta_omega = self.omega_tgt - self.omega_op
             accel = delta_omega / self.dt
-            accel_clipped = np.clip(accel, accel_min, accel_max)
+            accel_clipped = np.clip(accel, -self.Ka, self.Ka)
         # Apply clipped acceleration, expotential smoothing, and clip velocity
         self.omega_ctl = self.omega_op + accel_clipped * self.dt
         self.omega_ctl = self.omega_ctl * (1.0 - self.Ke) + self.Ke * self.omega_op
-        self.omega_ctl = np.clip(self.omega_ctl, omega_min, omega_max)
+        self.omega_ctl = np.clip(self.omega_ctl, -self.Kv, self.Kv)
 
     async def control(self):
         self.omega_op = np.array([0,0,0], dtype=float)
