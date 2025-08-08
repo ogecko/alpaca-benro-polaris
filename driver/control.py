@@ -14,8 +14,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # ************* TODO LIST *****************
 #
 # Technical next steps
-# [ ] Implement TRACK mode
+# [X] Implement TRACK mode
 # [ ] Improve responsiveness of manual slewing
+# [ ] Improve fine grained tracking precision
 # [ ] Implement Lunar Tracking rate
 # [ ] Implement Solar Tracking rate
 # [ ] Implement King Tracking rate
