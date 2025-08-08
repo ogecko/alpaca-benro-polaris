@@ -244,7 +244,7 @@ class Polaris:
             axis: MotorSpeedController(logger, axis, self.send_msg)
             for axis in (0, 1, 2)
         }
-        self._pid = PID_Controller(logger, self._motorcontrollers, loop=0.2)
+        self._pid = PID_Controller(logger, self._motorcontrollers, self._observer, loop=0.2)
 
 
 
@@ -668,10 +668,8 @@ class Polaris:
                 self.logger.info(f',DATA5,{time:.4f},  {p_az:+.4f},{p_alt:+.4f},{p_roll:+.4f},  {θ1:+.4f},{θ2:+.4f},{θ3:+.4f},  {sθ1:+.4f},{sθ2:+.4f},{sθ3:+.4f},  {ω1:+.5f},{ω2:+.5f},{ω3:+.5f}, {sω1:+.5f},{sω2:+.5f},{sω3:+.5f},  {rω1:+.5f},{rω2:+.5f},{rω3:+.5f} ')
 
             # update the PID loop
-            polar_angle = polar_rotation_angle(self._observer.lat , deg2rad(az), deg2rad(alt))
             alpha_meas = np.array([az, alt, p_roll], dtype=float)
-            delta_meas = np.array([rad2deg(hr2rad(p_ra)), p_dec, polar_angle], dtype=float)
-            self._pid.measure(delta_meas, alpha_meas, theta_meas)
+            self._pid.measure(alpha_meas, theta_meas)
 
             # Store all the new values
             self._lock.acquire()

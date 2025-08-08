@@ -8,7 +8,7 @@ import asyncio
 from typing import Optional
 import ephem
 import math
-from shr import rad2deg
+from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # import casadi as ca
 
 # ************* TODO LIST *****************
@@ -945,10 +945,17 @@ def clamp_error(theta_ref, theta_meas):
 def fmt3(theta):
     return ','.join([ f"{x:.3f}".rjust(7) for x in theta ])
 
+def fmt4(delta):
+    return f'{rad2hms(delta[0]/180*math.pi)[:8]}, {deg2dms(delta[1])[:8]}, {deg2dms(delta[2])[:8]}'
+
 class PID_Controller():
-    def __init__(self, logger, controllers, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=None, Kc=1.0, loop=None):
+    def __init__(self, logger, controllers, observer, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=None, Kc=1.0, loop=None):
         self.logger = logger                                 # Logging utility
         self.controllers = controllers                       # Motor speed controllers[0,1,2]
+        self.observer = observer                             # Observing object from ephem
+        self.body = ephem.FixedBody()                        # Target body
+        self.body._epoch = ephem.J2000                       # default to J2000 epoch
+        self.body_pa_offset = 0                              # used to store body pa to oconvert back to roll
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
         self.mode = 'IDLE'                                   # PID Controller mode: IDLE, AUTO, TRACK
         self.target_type = 'NONE'                            # target body we are tracking
@@ -973,6 +980,7 @@ class PID_Controller():
         self.time_sp = None                  # Time that target was set
         self.time_step = time.monotonic()    # Time that control step was done
         self.dt = dt    # Time interval since last control step in seconds
+
         # Tunable gains and constraints
         self.Kp = Kp    # Proportional Gain - control speed correlated with error_signal
         self.Ki = Ki    # Integral Gain - reduce cumulative error when reference is ramping
@@ -986,6 +994,40 @@ class PID_Controller():
             self._stop_flag = asyncio.Event()
             self._lock = asyncio.Lock()
             asyncio.create_task(self._control_loop())
+
+    def body_pa(self):
+        return wrap_to_180(180 - rad2deg(self.body.parallactic_angle()))
+    
+    def body2alpha(self):
+        self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.body.compute(self.observer)
+        alt = rad2deg(self.body.alt)
+        az = rad2deg(self.body.az)
+        roll = self.body_pa() + self.body_pa_offset
+        return np.array([az, alt, roll], dtype=float)
+
+    def alpha2body(self, alpha):
+        self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        ra_rad, dec_rad = self.observer.radec_of(deg2rad(alpha[0]), deg2rad(alpha[1]))
+        self.body._ra = ra_rad
+        self.body._dec = dec_rad
+        self.body.compute(self.observer)
+        self.body_pa_offset = alpha[2] - self.body_pa()
+
+    def body2delta(self):
+        self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.body.compute(self.observer)
+        ra_deg = rad2deg(self.body._ra)
+        dec_deg = rad2deg(self.body._dec)
+        pa_deg = self.body_pa() + self.body_pa_offset
+        return np.array([ra_deg, dec_deg, pa_deg], dtype=float)
+    
+
+    def delta2body(self, delta):
+        self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.body._ra = deg2rad(delta[0])
+        self.body._dec = deg2rad(delta[1])
+        self.body_pa_offset = delta[2] + self.body_pa_offset
 
     def Ka_array(self, Ka):
         return Ka if isinstance(Ka, np.ndarray) else np.array([Ka, Ka, Ka], dtype=float)
@@ -1015,7 +1057,14 @@ class PID_Controller():
 
     def set_tracking_on(self):
         # get current alpha position and set it as target
+        self.reset_offsets()
         self.is_tracking = True
+        track_current = self.alpha_meas.copy()
+        track_current[2] = 0
+        self.alpha_sp = track_current
+        self.alpha2body(track_current)
+        self.delta_sp = self.body2delta()
+        self.is_moving = True
     
     def set_tracking_off(self):
         # set tracking to NONE
@@ -1029,6 +1078,8 @@ class PID_Controller():
         self.reset_offsets()
         self.target_type = "ALPHA"
         self.alpha_sp = alpha
+        self.alpha2body(alpha)
+        self.delta_sp = self.body2delta()
         self.is_moving = True
         print(f'**** SET SP **** {self.alpha_sp}')
 
@@ -1085,19 +1136,18 @@ class PID_Controller():
         if self.is_tracking:
             if self.mode != 'TRACK':
                 self.mode = 'TRACK'
-                self.reset_delta()
         elif self.is_moving:
             if self.mode != 'AUTO':
                 self.mode = 'AUTO'
         elif not self.is_moving:
             if self.mode !='IDLE':
-                self.reset_alpha()
                 self.mode = 'IDLE'
 
         # Update alpha_ref based on current mode
         if self.mode == 'IDLE':
-            self.delta_ref = self.delta_meas
-            self.delta_sp = self.delta_meas             # in case we switch to AUTO
+            self.alpha2body(self.alpha_meas)
+            self.delta_ref = self.body2delta()           
+            self.delta_sp = self.body2delta()            
             self.alpha_ref = self.alpha_meas
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
         
@@ -1108,20 +1158,19 @@ class PID_Controller():
         elif self.mode == 'TRACK':
             self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
-            # Convert delta_ref to current alt/az and set as alpha_ref
-            self.alpha_offst = clamp_alpha(self.alpha_offst + self.dt * self.alpha_v_sp)
-            self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
+            self.delta2body(self.delta_ref)
+            self.alpha_ref = self.body2alpha()
+            self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
 
         # Convert alpha_ref to theta_ref
         q1 = angles_to_quaternion(*self.alpha_ref)
         theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
         self.theta_ref = np.array([theta1,theta2,theta3])
     
-    def measure(self, delta_meas, alpha_meas, theta_meas):
+    def measure(self, alpha_meas, theta_meas):
         now = ephem.now()
         if not self.time_meas:
             self.set_alpha_target(alpha_meas)     # initialise alpha_sp with first measurement
-        self.delta_meas = delta_meas
         self.alpha_meas = alpha_meas
         self.theta_meas = theta_meas
         self.time_meas = now
@@ -1184,7 +1233,7 @@ class PID_Controller():
             self.pid()          # Update omega_tgt, calculate raw PID control target
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
             await self.control()      # Update omega_op, constrain with valid op control values
-            self.logger.info(f'**** {self.mode} **** DMeas { fmt3(self.delta_meas)} | Aref { fmt3(self.alpha_ref)} | TRef {fmt3(self.theta_ref)} | TMeas { fmt3(self.theta_meas)} | OP {fmt3(self.omega_op)}')
+            self.logger.info(f'{self.mode} DRef { fmt4(self.delta_ref)} | Aref { fmt3(self.alpha_ref)} | TRef {fmt3(self.theta_ref)} | TMeas { fmt3(self.theta_meas)} | OP {fmt3(self.omega_op)}')
 
 
     async def _control_loop(self):
