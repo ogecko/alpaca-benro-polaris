@@ -143,20 +143,51 @@ def wrap_state_angles(x):
     return x_wrapped
 
 def polar_rotation_angle(latitude_rad, az_rad, alt_rad):
-    """Compute the polar rotation angle [-180 to +180) based on latitude, azimuth, and altitude."""
-    # Determine pole position based on hemisphere
-    pole_alt_rad = abs(latitude_rad)
-    pole_az_rad = 0.0 if latitude_rad > 0 else math.pi  # 0° north, 180° south
+    """
+    Compute the roll angle (in degrees) needed to rotate a camera pointed at (az, alt)
+    so that the top of the image points toward the celestial pole.
+    Positive angle means clockwise rotation when looking through the camera.
+    """
+    # Convert alt-az to Cartesian unit vector
+    def altaz_to_vector(az, alt):
+        x = math.cos(alt) * math.sin(az)
+        y = math.cos(alt) * math.cos(az)
+        z = math.sin(alt)
+        return [x, y, z]
 
-    # Compute deltas from pole position
-    delta_alt = alt_rad - pole_alt_rad
-    delta_az = (az_rad - pole_az_rad) % (2 * math.pi)
-    if delta_az > math.pi:
-        delta_az -= 2 * math.pi  # wrap to [-π, π] for symmetry
+    # Step 1: Camera pointing vector
+    cam_vec = altaz_to_vector(az_rad, alt_rad)
 
-    # Final rotation angle
-    angle_rad = math.atan2(delta_az, delta_alt)
-    return math.degrees(angle_rad)
+    # Step 2: Construct orthonormal tangent basis
+    # Up vector: derivative of cam_vec w.r.t altitude; Right vector: derivative of cam_vec w.r.t azimuth
+    up_vec = [ -math.sin(alt_rad) * math.sin(az_rad), -math.sin(alt_rad) * math.cos(az_rad), math.cos(alt_rad) ]
+    right_vec = [ math.cos(alt_rad) * math.cos(az_rad), -math.cos(alt_rad) * math.sin(az_rad), 0 ]
+
+    # Normalize basis vectors
+    def normalize(v):
+        mag = math.sqrt(sum(c**2 for c in v))
+        return [c / mag for c in v]
+    up_vec = normalize(up_vec)
+    right_vec = normalize(right_vec)
+
+    # Step 3: Celestial pole vector
+    pole_az = 0.0 if latitude_rad >= 0 else math.pi
+    pole_alt = abs(latitude_rad)
+    pole_vec = altaz_to_vector(pole_az, pole_alt)
+
+    # Step 4: Project pole vector into tangent plane
+    # Subtract component along cam_vec
+    dot = sum(p * c for p, c in zip(pole_vec, cam_vec))
+    proj_vec = [p - dot * c for p, c in zip(pole_vec, cam_vec)]
+
+    # Step 5: Compute angle in tangent plane
+    proj_up = sum(p * u for p, u in zip(proj_vec, up_vec))
+    proj_right = sum(p * r for p, r in zip(proj_vec, right_vec))
+
+    angle_rad = math.atan2(proj_right, proj_up)
+    angle_deg = math.degrees(angle_rad)
+
+    return angle_deg
 
 def polar_rotation_angle_wrapped(latitude_rad, az_rad, alt_rad):
     """ Compute the polar rotation angle [-90 to +90) degrees, turn your images upside down. """
@@ -861,9 +892,9 @@ class MoveAxisMessenger:
         await self.send_msg(msg)
         return msg
 
-##################################### 
-#  PID CONTROL STRATEGY SIMULATION  #
-##################################### 
+########################## 
+#  PID CONTROL STRATEGY  #
+########################## 
 
 def clamp_alpha(alpha):
     """
@@ -921,8 +952,8 @@ class PID_Controller():
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
         self.mode = 'IDLE'                                   # PID Controller mode: IDLE, AUTO, TRACK
         self.target_type = 'NONE'                            # target body we are tracking
-        self.alpha_meas = np.array([0,0,0], dtype=float)     # az, alt, roll measured angular position
         self.delta_meas = np.array([0,0,0], dtype=float)     # ra, dec, polar measured angular position
+        self.alpha_meas = np.array([0,0,0], dtype=float)     # az, alt, roll measured angular position
         self.theta_meas = np.array([0,0,0], dtype=float)     # theta1-3 motor measured angular position
         self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor reference angular position
         self.error_signal = np.array([0,0,0], dtype=float)   # theta1-3 error btw theta_ref and theta_meas
@@ -1065,6 +1096,8 @@ class PID_Controller():
 
         # Update alpha_ref based on current mode
         if self.mode == 'IDLE':
+            self.delta_ref = self.delta_meas
+            self.delta_sp = self.delta_meas             # in case we switch to AUTO
             self.alpha_ref = self.alpha_meas
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
         
@@ -1084,10 +1117,11 @@ class PID_Controller():
         theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
         self.theta_ref = np.array([theta1,theta2,theta3])
     
-    def measure(self, theta_meas, alpha_meas):
+    def measure(self, delta_meas, alpha_meas, theta_meas):
         now = ephem.now()
         if not self.time_meas:
             self.set_alpha_target(alpha_meas)     # initialise alpha_sp with first measurement
+        self.delta_meas = delta_meas
         self.alpha_meas = alpha_meas
         self.theta_meas = theta_meas
         self.time_meas = now
@@ -1150,7 +1184,7 @@ class PID_Controller():
             self.pid()          # Update omega_tgt, calculate raw PID control target
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
             await self.control()      # Update omega_op, constrain with valid op control values
-            self.logger.info(f'**** {self.mode} **** Aref { fmt3(self.alpha_ref)} | TRef {fmt3(self.theta_ref)} | TMeas { fmt3(self.theta_meas)} | OP {fmt3(self.omega_op)}')
+            self.logger.info(f'**** {self.mode} **** DMeas { fmt3(self.delta_meas)} | Aref { fmt3(self.alpha_ref)} | TRef {fmt3(self.theta_ref)} | TMeas { fmt3(self.theta_meas)} | OP {fmt3(self.omega_op)}')
 
 
     async def _control_loop(self):
