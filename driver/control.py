@@ -874,21 +874,19 @@ class MoveAxisMessenger:
         self.last_slow_raw_rate = 0
 
     async def send_slow_move_msg(self, slow_raw_rate: int) -> str:
-        if slow_raw_rate == self.last_slow_raw_rate:
+        clamped_raw_rate = int(np.clip(slow_raw_rate, -5, +5))
+        if clamped_raw_rate == self.last_slow_raw_rate:
             return
-        self.last_slow_raw_rate = slow_raw_rate
-        if not isinstance(slow_raw_rate, int) or not (-5 <= slow_raw_rate <= 5):
-            raise ValueError(f"SLOW rate must be an integer between 0 and 5. Value: {slow_raw_rate}")
-        key = 0 if slow_raw_rate > 0 else 1
-        state = 0 if slow_raw_rate == 0 else 1
-        msg = f"1&{self.cmd_slow}&3&key:{key};state:{state};level:{abs(slow_raw_rate)};#"
+        self.last_slow_raw_rate = clamped_raw_rate
+        key = 0 if clamped_raw_rate > 0 else 1
+        state = 0 if clamped_raw_rate == 0 else 1
+        msg = f"1&{self.cmd_slow}&3&key:{key};state:{state};level:{abs(clamped_raw_rate)};#"
         await self.send_msg(msg)
         return msg
 
     async def send_fast_move_msg(self, fast_raw_rate: int) -> str:
-        if abs(fast_raw_rate) > 2500:
-            raise ValueError(f"FAST rate must be within ±2500. Value: {fast_raw_rate}")
-        msg = f"1&{self.cmd_fast}&3&speed:{int(fast_raw_rate)};#"
+        clamped_fast_rate = int(np.clip(fast_raw_rate, -2500, +2500))
+        msg = f"1&{self.cmd_fast}&3&speed:{int(clamped_fast_rate)};#"
         await self.send_msg(msg)
         return msg
 
