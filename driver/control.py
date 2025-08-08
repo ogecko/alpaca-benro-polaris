@@ -15,12 +15,16 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 #
 # Technical next steps
 # [X] Implement TRACK mode
+# [X] Allow first SLOW speed 0 through (dont assume it was 0)
+# [ ] Store Motor Calibration data to a file
+# [ ] Stop PID and Motor controllers on shutdown
+# [ ] PID tuning to use velocity error as well as position error
 # [ ] Improve responsiveness of manual slewing
 # [ ] Improve fine grained tracking precision
 # [ ] Implement Lunar Tracking rate
 # [ ] Implement Solar Tracking rate
 # [ ] Implement King Tracking rate
-# [ ] Implement ITelescope Pulse 
+# [ ] Implement Pulse Guiding API ITelescope Pulse 
 # [ ] Implement Rotator
 #
 # Control Algorithm Features
@@ -872,7 +876,7 @@ class MoveAxisMessenger:
         self.send_msg = send_msg
         self.cmd_slow = ['532', '533', '534'][axis]     # Pick right cmd based on axis passed in on initialisation
         self.cmd_fast = ['513', '514', '521'][axis]     # Pick right cmd based on axis passed in on initialisation
-        self.last_slow_raw_rate = 0
+        self.last_slow_raw_rate = None
 
     async def send_slow_move_msg(self, slow_raw_rate: int) -> str:
         clamped_raw_rate = int(np.clip(slow_raw_rate, -5, +5))
