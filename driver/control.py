@@ -12,7 +12,16 @@ from shr import rad2deg
 # import casadi as ca
 
 # ************* TODO LIST *****************
-
+#
+# Technical next steps
+# [ ] Implement TRACK mode
+# [ ] Improve responsiveness of manual slewing
+# [ ] Implement Lunar Tracking rate
+# [ ] Implement Solar Tracking rate
+# [ ] Implement King Tracking rate
+# [ ] Implement ITelescope Pulse 
+# [ ] Implement Rotator
+#
 # Control Algorithm Features
 # [X] Quaternion-based kinematics and inverse solutions
 # [X] Optimised PID Control for Orientation
@@ -23,10 +32,6 @@ from shr import rad2deg
 # [X] Speed Calibration & Response Profiling
 # [X] Control Input Normalisation
 # [X] Constraint-Aware Position, Velocity and Acceleration Limiting
-# [ ] Rate Derivative Estimation (Jerk Monitoring)
-# [ ] Feedforward Control Integration (minimise overshoot)
-# [ ] Control Mode Switching
-# [ ] Time-Differentiated Tracking Profiles
 #
 # Position Calculation Features
 # [X] Accurate Orbital Positioning of Earth and Target Body
@@ -44,20 +49,19 @@ from shr import rad2deg
 # Precision Goto Control
 # [X] Kinematically Optimised Mount Trajectory
 # [X] Improved Goto accuracy through closed loop control
+# [X] Goto allows specifying a roll angle for precise orientation
+# [X] Goto allows moving to a fixed terrestrial coordinate (without auto-enabling tracking mode)
+# [X] Real time Goto initiation and interruption (no need to wait for previous commands to finish)
 # [X] Smooth acceleration and deacceleration profiles
-# [X] Real-time interruptable Goto execution
-# [X] Goto can be issued independant of current state
 # [X] Backlash compensation process eliminated
-# [X] Goto with specific roll angle 
 # 
 # Precision Slew Control
+# [X] Improved roll movement (Azimuth and Altitude are maintained during roll movement)
+# [X] Improved vertical movement (Altitude axis now moves directly upward, even when the mount is tilted)
 # [X] Slew by Azimuth, Altitude, and Roll coordinates (replaces direct motor axis control)
+# [ ] Slew by Right Ascension, Declination and Polar Angle (when tracking enabled)
 # [X] Slew supports real-time interruption
-# [X] Increased Maximum Alpaca Axis Speed to 8 degrees/s
-# [ ] Predictive Anti-Backlash Correction
-# [ ] Expanded Target Catalog
-# [ ] Auto-fetch Target Catalog updates
-# [ ] Auto-fetch orbital elements
+# [X] Increased Maximum Alpaca Axis Speed to 8.4 degrees/s
 #
 # Precision Tracking
 # [X] Support ASCOM Alpaca Drive Rates (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
@@ -70,7 +74,6 @@ from shr import rad2deg
 # [ ] Satelite Tracking via TLE (Two Line Element)
 # [ ] Solar Tracking 
 # [ ] Transiting Exoplanet Support
-
 #
 # Rotator Control Features
 # [ ] Parallactic and Roll Angle Targeting
@@ -91,6 +94,16 @@ from shr import rad2deg
 # [ ] Zenith Imaging Support (18° Circle)
 # [ ] Mosaic imaging support through Nina
 
+# Candidate future enhancements
+# [ ] Rate Derivative Estimation (Jerk Monitoring)
+# [ ] Feedforward Control Integration (minimise overshoot)
+# [ ] Control Mode Switching
+# [ ] Time-Differentiated Tracking Profiles
+# [ ] Predictive Anti-Backlash Correction
+# [ ] Expanded Target Catalog
+# [ ] Auto-fetch Target Catalog updates
+# [ ] Auto-fetch orbital elements
+#
 
 
 
@@ -1062,6 +1075,7 @@ class PID_Controller():
         elif self.mode == 'TRACK':
             self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
+            # Convert delta_ref to current alt/az and set as alpha_ref
             self.alpha_offst = clamp_alpha(self.alpha_offst + self.dt * self.alpha_v_sp)
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
 
