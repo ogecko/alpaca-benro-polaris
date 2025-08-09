@@ -871,8 +871,9 @@ class MotorSpeedController:
 
     async def stop_disspatch_loop_task(self):
         async with self._lock:
-            await self._messenger.send_slow_move_msg(0)
-            await asyncio.sleep(0.2)
+            # dont bother trying to stop motors as some structures have been lost already
+            # await self._messenger.send_slow_move_msg(0)
+            # await asyncio.sleep(0.2)
             self._stop_flag.set()
 
 class MoveAxisMessenger:
