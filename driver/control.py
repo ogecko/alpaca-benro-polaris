@@ -17,9 +17,11 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Implement TRACK mode
 # [X] Allow first SLOW speed 0 through (dont assume it was 0)
 # [X] Stop PID and Motor controllers on shutdown
-# [ ] Enabling tracking mid GOTO should use SP as target, not current pos
+# [X] Enabling tracking mid GOTO should use SP as target, not current pos
+# [ ] Fix bug tracking on, off, on - rotates at a faster rate
 # [ ] Implement slewing and gotoing state monitoring
 # [ ] Add DATA6 for PID debugging
+# [ ] Fix delta_ref3 should represent framings desired equatorial angle (no change when tracking), alpha_ref desired camera roll angle +ve CCW, 0=horz (changes when tracking)
 # [ ] Check Astro head hardware connection
 # [ ] PID tuning to use velocity error as well as position error
 # [ ] Improve responsiveness of manual slewing
@@ -1063,20 +1065,23 @@ class PID_Controller():
         self.theta_ref = np.array([0,0,0], dtype=float)      #  theta1-3 motor angular reference position
 
     def set_tracking_on(self):
-        # get current alpha position and set it as target
+        if self.mode=="AUTO":
+            track_target = self.alpha_ref.copy()
+        else:
+            track_target = self.alpha_meas.copy()
         self.reset_offsets()
         self.is_tracking = True
-        track_current = self.alpha_meas.copy()
-        track_current[2] = 0
-        self.alpha_sp = track_current
-        self.alpha2body(track_current)
+        track_target[2] = 0
+        self.alpha_sp = track_target
+        self.alpha2body(track_target)
         self.delta_sp = self.body2delta()
         self.is_moving = True
     
     def set_tracking_off(self):
         # set tracking to NONE
         self.is_tracking = False
-    
+        self.is_moving = True
+
     def set_no_target(self):
         self.target_type = "NONE"
         self.reset_offsets()
