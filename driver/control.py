@@ -20,11 +20,10 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Enabling tracking mid GOTO should use SP as target, not current pos
 # [X] Fix bug tracking on, off, on - rotates at a faster rate
 # [X] Fix delta_ref3 should represent equatorial angle (no change when tracking), alpha_ref desired camera roll angle +ve CCW, 0=horz (changes when tracking)
-# [ ] Implement slewing and gotoing state monitoring
 # [ ] Add DATA6 for PID debugging
-# [ ] Check Astro head hardware connection
+# [ ] Implement slewing and gotoing state monitoring
 # [ ] PID tuning to use velocity error as well as position error
-# [ ] Improve responsiveness of manual slewing
+# [ ] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
 # [ ] Improve fine grained tracking precision
 # [ ] Implement Lunar Tracking rate
 # [ ] Implement Solar Tracking rate
@@ -32,6 +31,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Implement Pulse Guiding API ITelescope Pulse 
 # [ ] Implement Rotator
 # [ ] Store Motor Calibration data to a file
+# [ ] Check Astro head hardware connection
 #
 # Control Algorithm Features
 # [X] Quaternion-based kinematics and inverse solutions
@@ -983,7 +983,7 @@ class PID_Controller():
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
         self.omega_tgt = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity raw pid output
-        self.omega_ctl = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity limited output
+        self.omega_ctl = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity constrained output
         self.omega_op = np.array([0,0,0], dtype=float)       # omega1-3 motor angular velocity control output
         self.reset_offsets()
         self.reset_theta()
