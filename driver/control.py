@@ -1005,8 +1005,34 @@ class PID_Controller():
             self._lock = asyncio.Lock()
             asyncio.create_task(self._control_loop())
 
+    def Ka_array(self, Ka):
+        return Ka if isinstance(Ka, np.ndarray) else np.array([Ka, Ka, Ka], dtype=float)
+
+    def Kv_array(self, Kv):
+        maxKv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
+        return maxKv if Kv is None else Kv if isinstance(Kv, np.ndarray) else np.array([Kv, Kv, Kv], dtype=float) 
+
+    def reset_offsets(self):
+        self.reset_delta()
+        self.reset_alpha()
+
+    def reset_delta(self):
+        self.delta_sp = np.array([0,0,0], dtype=float)       # Setpoint for ra, dec, polar anglular positions
+        self.delta_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for ra, dec, polar anglular velocities
+        self.delta_offst = np.array([0,0,0], dtype=float)    # ra, dec, polar anglular offsets
+        self.delta_ref = np.array([0,0,0], dtype=float)      # ra, dec, polar angular reference position
+
+    def reset_alpha(self):
+        self.alpha_sp = np.array([0,0,0], dtype=float)       # Setpoint for az, alt, roll angular positions
+        self.alpha_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for az, alt, roll angular velocities
+        self.alpha_offst = np.array([0,0,0], dtype=float)    #  az, alt, roll angular offsets
+        self.alpha_ref = np.array([0,0,0], dtype=float)      #  az, alt, roll angular reference position
+
+    def reset_theta(self):
+        self.theta_ref = np.array([0,0,0], dtype=float)      #  theta1-3 motor angular reference position
+
     def body_pa(self):
-        return wrap_to_180(0 - rad2deg(self.body.parallactic_angle()))
+        return wrap_to_180(0.0 - rad2deg(self.body.parallactic_angle()))
     
     def body2alpha(self):
         self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
@@ -1038,32 +1064,6 @@ class PID_Controller():
         self.body._ra = deg2rad(delta[0])
         self.body._dec = deg2rad(delta[1])
         self.body_pa_offset = delta[2] 
-
-    def Ka_array(self, Ka):
-        return Ka if isinstance(Ka, np.ndarray) else np.array([Ka, Ka, Ka], dtype=float)
-
-    def Kv_array(self, Kv):
-        maxKv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
-        return maxKv if Kv is None else Kv if isinstance(Kv, np.ndarray) else np.array([Kv, Kv, Kv], dtype=float) 
-
-    def reset_offsets(self):
-        self.reset_delta()
-        self.reset_alpha()
-
-    def reset_delta(self):
-        self.delta_sp = np.array([0,0,0], dtype=float)       # Setpoint for ra, dec, polar anglular positions
-        self.delta_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for ra, dec, polar anglular velocities
-        self.delta_offst = np.array([0,0,0], dtype=float)    # ra, dec, polar anglular offsets
-        self.delta_ref = np.array([0,0,0], dtype=float)      # ra, dec, polar angular reference position
-
-    def reset_alpha(self):
-        self.alpha_sp = np.array([0,0,0], dtype=float)       # Setpoint for az, alt, roll angular positions
-        self.alpha_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for az, alt, roll angular velocities
-        self.alpha_offst = np.array([0,0,0], dtype=float)    #  az, alt, roll angular offsets
-        self.alpha_ref = np.array([0,0,0], dtype=float)      #  az, alt, roll angular reference position
-
-    def reset_theta(self):
-        self.theta_ref = np.array([0,0,0], dtype=float)      #  theta1-3 motor angular reference position
 
     def set_tracking_on(self):
         if self.mode=="AUTO":
@@ -1164,6 +1164,10 @@ class PID_Controller():
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
         
         elif self.mode == 'AUTO':
+            self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
+            self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
+            self.delta2body(self.delta_ref)
+            # when in AUTO ignore body, and use the alpha_sp + alpha_offset
             self.alpha_offst = clamp_alpha(self.alpha_offst + self.dt * self.alpha_v_sp)
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
 
