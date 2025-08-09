@@ -864,6 +864,7 @@ class PID_Controller():
 
     def reset_theta(self):
         self.theta_ref = np.array([0,0,0], dtype=float)      #  theta1-3 motor angular reference position
+        self.theta_ref_last = None
 
     def body_pa(self):
         return wrap_to_180(0.0 - rad2deg(self.body.parallactic_angle()))
@@ -1013,6 +1014,7 @@ class PID_Controller():
         # Convert alpha_ref to theta_ref
         q1 = angles_to_quaternion(*self.alpha_ref)
         theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
+        self.theta_ref_last = self.theta_ref
         self.theta_ref = np.array([theta1,theta2,theta3])
     
     def measure(self, alpha_meas, theta_meas):
@@ -1039,6 +1041,11 @@ class PID_Controller():
     
     def pid(self):
         self.omega_tgt = self.Kp * self.error_signal + self.Ki * self.error_integral - self.Kd * self.omega_op
+        # Feed forward when in track mode
+        if self.mode == "TRACK":
+            omega_ref = clamp_error(self.theta_ref, self.theta_ref_last)
+            if np.sum(omega_ref ** 2) < 0.2 ** 2:
+                self.omega_tgt += omega_ref
 
     def constrain(self):
         # Compute constrained acceleration
