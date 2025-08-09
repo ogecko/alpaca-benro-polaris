@@ -246,7 +246,14 @@ class Polaris:
         }
         self._pid = PID_Controller(logger, self._motorcontrollers, self._observer, loop=0.2)
 
+    async def shutdown(self):
+        self.logger.info(f'==SHUTDOWN== Stopping all tasks.')
+        for pid in [self._pid]:
+            await pid.stop_control_loop_task()
 
+        for axis in range(3):
+            motor = self._motorcontrollers[axis]
+            await motor.stop_disspatch_loop_task()
 
     ########################################
     # POLARIS COMMUNICATIONS METHODS 

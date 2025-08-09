@@ -104,8 +104,7 @@ async def main():
             telescope.polaris.client(logger)
     ]
     await asyncio.gather(*tasks)
-
-    logger.info(f'==SHUTDOWN== Time stamps are UTC.')
+    await telescope.polaris.shutdown()
 
 
 
@@ -142,13 +141,19 @@ if __name__ == '__main__':
 
     try:
         asyncio.run(main())
+        
     except ValueError as value:
         print(f"{value}\nQuit.")
+        asyncio.run(telescope.polaris.shutdown())
+
     except Exception as error:
         print(f"Error {error}, quit.")
+        asyncio.run(telescope.polaris.shutdown())
+
     except KeyboardInterrupt:
         print("Keyboard interrupt.")
-       
+        asyncio.run(telescope.polaris.shutdown())
+   
 
 
 
