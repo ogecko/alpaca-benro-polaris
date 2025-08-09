@@ -1079,9 +1079,8 @@ class PID_Controller():
         self.is_moving = True
     
     def set_tracking_off(self):
-        # set tracking to NONE
         self.is_tracking = False
-        self.is_moving = True
+        self.is_moving = True       # Push it into AUTO mode
 
     def set_no_target(self):
         self.target_type = "NONE"
