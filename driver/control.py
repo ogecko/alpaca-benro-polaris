@@ -20,7 +20,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Enabling tracking mid GOTO should use SP as target, not current pos
 # [X] Fix bug tracking on, off, on - rotates at a faster rate
 # [X] Fix delta_ref3 should represent equatorial angle (no change when tracking), alpha_ref desired camera roll angle +ve CCW, 0=horz (changes when tracking)
-# [ ] Add DATA6 for PID debugging
+# [X] Add DATA6 for PID debugging
 # [ ] Implement slewing and gotoing state monitoring
 # [ ] PID tuning to use velocity error as well as position error
 # [ ] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
@@ -954,7 +954,7 @@ def clamp_error(theta_ref, theta_meas):
     return ((theta_ref - theta_meas + 180) % 360) - 180
 
 def fmt3(theta):
-    return ','.join([ f"{x:.3f}".rjust(7) for x in theta ])
+    return ','.join([ f"{x:.4f}" for x in theta ])
 
 def fmt4(delta):
     return f'{rad2hms(delta[0]/180*math.pi)[:8]}, {deg2dms(delta[1])[:8]}, {deg2dms(delta[2])[:8]}'
@@ -1248,7 +1248,8 @@ class PID_Controller():
             self.pid()          # Update omega_tgt, calculate raw PID control target
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
             await self.control()      # Update omega_op, constrain with valid op control values
-            self.logger.info(f'{self.mode} DRef { fmt4(self.delta_ref)} | Aref { fmt3(self.alpha_ref)} | TRef {fmt3(self.theta_ref)} | TMeas { fmt3(self.theta_meas)} | OP {fmt3(self.omega_op)}')
+            if Config.log_performance_data==6:
+                self.logger.info(f',"DATA6", "{self.mode}",  { fmt3(self.delta_ref)},  {fmt3(self.alpha_ref)},  {fmt3(self.theta_ref)},  {fmt3(self.theta_meas)},  {fmt3(self.omega_op)}')
 
 
     async def _control_loop(self):

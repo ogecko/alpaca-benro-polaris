@@ -19,10 +19,10 @@ focal_ratio = 11                            # The telescope's focal ratio ie foc
 verbose_driver_exceptions = true            # Provide more detailed description of any Exceptions encountered in the driver.
 
 [control]
-advanced_control = false                    # Used to enable or disable all advanced control features
-advanced_slewing = false                    # Perform advanced control for move axis commands (no longer uses Benro Polaris tracking)
-advanced_tracking = false                   # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
-advanced_goto = false                       # Perform advanced goto slewing in Alpaca Driver (no longer uses Benro Polaris goto)
+advanced_control = true                    # Used to enable or disable all advanced control features
+advanced_slewing = true                    # Perform advanced control for move axis commands (no longer uses Benro Polaris tracking)
+advanced_goto = true                       # Perform advanced goto slewing in Alpaca Driver (no longer uses Benro Polaris goto)
+advanced_tracking = true                   # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
 advanced_rotator = false                    # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
 advanced_guiding = false                    # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
 max_slew_rate = 7.0                         # Maximum slew rate (degrees/s) on any motor axis (when using advanced control)
@@ -31,7 +31,7 @@ max_accel_rate = 1.0                        # Maximum acceleration (degress/s2) 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.
 aiming_adjustment_enabled = true            # Whether to make minor ajusttments to improve aiming.
-aiming_adjustment_time = 20                 # The time (in seconds) in the future to convert from ra/dec to az/alt, to cater for sidereal tracking settle time.
+aiming_adjustment_time = 2                 # The time (in seconds) in the future to convert from ra/dec to az/alt, to cater for sidereal tracking settle time.
 aiming_adjustment_az = -0.0300750663        # The initial az aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment.
 aiming_adjustment_alt = 0.0195474932        # The initial alt aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment.
 aim_max_error_correction = 0.5              # The maximum angle (decimal degrees) that the driver will correct for when aiming at alzaz .
@@ -44,8 +44,8 @@ log_level = 'INFO'                          # Default log level, show info and a
 log_to_file = true                          # log output to file alpaca.log, copying old logs to alpaca.1, ... alpaca.5
 log_to_stdout = true                        # log output to stdout.
 
-log_performance_data = 0                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim Data, 2=Drift data, 3=Speed data, 4=Position Data, 5=Rotator Data
-log_performance_data_test = 0              # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test, 5=Rotator test
+log_performance_data = 6                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim, 2=Drift, 3=Speed, 4=Position, 5=Rotator, 6=PID
+log_performance_data_test = 0               # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test, 5=Rotator test
 log_perf_speed_interval = 5                 # To calculate average speed, measure distance travelled, once every "log_perf_speed_interval" seconds.
 
 log_polaris = true                          # log polaris messages and activity.
