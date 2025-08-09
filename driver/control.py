@@ -18,10 +18,10 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Allow first SLOW speed 0 through (dont assume it was 0)
 # [X] Stop PID and Motor controllers on shutdown
 # [X] Enabling tracking mid GOTO should use SP as target, not current pos
-# [ ] Fix bug tracking on, off, on - rotates at a faster rate
+# [X] Fix bug tracking on, off, on - rotates at a faster rate
+# [X] Fix delta_ref3 should represent equatorial angle (no change when tracking), alpha_ref desired camera roll angle +ve CCW, 0=horz (changes when tracking)
 # [ ] Implement slewing and gotoing state monitoring
 # [ ] Add DATA6 for PID debugging
-# [ ] Fix delta_ref3 should represent framings desired equatorial angle (no change when tracking), alpha_ref desired camera roll angle +ve CCW, 0=horz (changes when tracking)
 # [ ] Check Astro head hardware connection
 # [ ] PID tuning to use velocity error as well as position error
 # [ ] Improve responsiveness of manual slewing
