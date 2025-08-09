@@ -872,6 +872,7 @@ class MotorSpeedController:
     async def stop_disspatch_loop_task(self):
         async with self._lock:
             await self._messenger.send_slow_move_msg(0)
+            await asyncio.sleep(0.2)
             self._stop_flag.set()
 
 class MoveAxisMessenger:
@@ -1005,7 +1006,7 @@ class PID_Controller():
             asyncio.create_task(self._control_loop())
 
     def body_pa(self):
-        return wrap_to_180(180 - rad2deg(self.body.parallactic_angle()))
+        return wrap_to_180(0 - rad2deg(self.body.parallactic_angle()))
     
     def body2alpha(self):
         self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
