@@ -21,6 +21,11 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Fix bug tracking on, off, on - rotates at a faster rate
 # [X] Fix delta_ref3 should represent equatorial angle (no change when tracking), alpha_ref desired camera roll angle +ve CCW, 0=horz (changes when tracking)
 # [X] Add DATA6 for PID debugging
+# [ ] Quantization-Aware PID Output Mapping, tracking fractional error, triggering step when accum exceeds threshold
+# [ ] Add a Feedforward Term for Constant Ramps
+# [ ] Introduce a Low-Pass Filter on Omega Output (aready doing this I think)
+# [ ] Integral Anti-Windup dontaccumulate when output is saturated or quantized
+# [ ] Overlay the expected tracking velocity on the omega plot
 # [ ] Implement slewing and gotoing state monitoring
 # [ ] PID tuning to use velocity error as well as position error
 # [ ] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
