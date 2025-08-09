@@ -16,8 +16,11 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # Technical next steps
 # [X] Implement TRACK mode
 # [X] Allow first SLOW speed 0 through (dont assume it was 0)
-# [ ] Store Motor Calibration data to a file
-# [ ] Stop PID and Motor controllers on shutdown
+# [X] Stop PID and Motor controllers on shutdown
+# [ ] Enabling tracking mid GOTO should use SP as target, not current pos
+# [ ] Implement slewing and gotoing state monitoring
+# [ ] Add DATA6 for PID debugging
+# [ ] Check Astro head hardware connection
 # [ ] PID tuning to use velocity error as well as position error
 # [ ] Improve responsiveness of manual slewing
 # [ ] Improve fine grained tracking precision
@@ -26,6 +29,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Implement King Tracking rate
 # [ ] Implement Pulse Guiding API ITelescope Pulse 
 # [ ] Implement Rotator
+# [ ] Store Motor Calibration data to a file
 #
 # Control Algorithm Features
 # [X] Quaternion-based kinematics and inverse solutions
