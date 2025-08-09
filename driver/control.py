@@ -871,8 +871,8 @@ class MotorSpeedController:
 
     async def stop_disspatch_loop_task(self):
         async with self._lock:
-            self._stop_flag.set()
             await self._messenger.send_slow_move_msg(0)
+            self._stop_flag.set()
 
 class MoveAxisMessenger:
     def __init__(self, axis: int, send_msg):
