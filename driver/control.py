@@ -1072,7 +1072,6 @@ class PID_Controller():
             track_target = self.alpha_meas.copy()
         self.reset_offsets()
         self.is_tracking = True
-        track_target[2] = 0
         self.alpha_sp = track_target
         self.alpha2body(track_target)
         self.delta_sp = self.body2delta()
