@@ -1028,7 +1028,7 @@ class PID_Controller():
         self.body.compute(self.observer)
         ra_deg = rad2deg(self.body._ra)
         dec_deg = rad2deg(self.body._dec)
-        pa_deg = self.body_pa() + self.body_pa_offset
+        pa_deg = self.body_pa_offset
         return np.array([ra_deg, dec_deg, pa_deg], dtype=float)
     
 
@@ -1036,7 +1036,7 @@ class PID_Controller():
         self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
         self.body._ra = deg2rad(delta[0])
         self.body._dec = deg2rad(delta[1])
-        self.body_pa_offset = delta[2] + self.body_pa_offset
+        self.body_pa_offset = delta[2] 
 
     def Ka_array(self, Ka):
         return Ka if isinstance(Ka, np.ndarray) else np.array([Ka, Ka, Ka], dtype=float)
@@ -1093,7 +1093,6 @@ class PID_Controller():
         self.alpha2body(alpha)
         self.delta_sp = self.body2delta()
         self.is_moving = True
-        print(f'**** SET SP **** {self.alpha_sp}')
 
     def set_alpha_axis_position(self, axis, sp=0.0):
         self.alpha_sp[axis] = sp
