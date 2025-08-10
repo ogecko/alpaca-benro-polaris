@@ -23,9 +23,11 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Add DATA6 for PID debugging
 # [X] Introduce a Low-Pass Filter on Omega Output (aready doing this I think)
 # [x] Overlay the expected tracking velocity on the omega plot
+# [X] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
+# [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
+# [ ] Fix quaternian maths when alt is negative
 # [ ] Implement slewing and gotoing state monitoring
 # [ ] PID tuning to use velocity error as well as position error
-# [ ] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
 # [ ] Improve fine grained tracking precision
 # [ ] Implement Lunar Tracking rate
 # [ ] Implement Solar Tracking rate
@@ -1052,7 +1054,10 @@ class PID_Controller():
             if delta_ref_nochange:
                 tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
                 self.omega_ref = tracking_vel
-            self.omega_tgt += self.omega_ref
+        # Feed forward slew velocities when in auto mode
+        elif self.mode == "AUTO":
+            self.omega_ref = self.alpha_v_sp
+        self.omega_tgt += self.omega_ref
 
     def constrain(self):
         # Compute constrained acceleration
