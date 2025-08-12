@@ -19,11 +19,18 @@ from falcon import Request, Response, before
 from logging import Logger
 from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request_field, to_bool
 from exceptions import *        # Nothing but exception classes
-from polaris import Polaris
 import math
-import asyncio
+from polaris import Polaris
 
 logger: Logger = None
+polaris: Polaris = None
+
+# ----------------------------------------------------------------------
+# Set our reference to the Polaris object (not at import time)
+# ----------------------------------------------------------------------
+def start_telescope(p: Polaris): 
+    global polaris
+    polaris = p
 
 # ----------------------
 # MULTI-INSTANCE SUPPORT
@@ -50,14 +57,7 @@ class TelescopeMetadata:
     MaxDeviceNumber = maxdev
     InterfaceVersion = 3
 
-# ----------------------------------------------------------------------
-# Create an instance of the Polaris Class to simulate an ASCOM telescope
-# ----------------------------------------------------------------------
-polaris = None
-# At app init not import :-)
-def start_polaris(logger: Logger): 
-    global polaris
-    polaris = Polaris(logger)
+
     
 # --------------------
 # RESOURCE CONTROLLERS

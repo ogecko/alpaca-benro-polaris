@@ -47,7 +47,7 @@ import app
 import argparse
 from pathlib import Path
 import os
-
+from polaris import Polaris
 
 # ===========
 # APP STARTUP
@@ -61,6 +61,10 @@ async def main():
     discovery.logger = logger
     telescope.logger = logger
     shr.logger = logger
+
+    # Create the Polaris master object and startup each ASCOM device
+    polaris = Polaris(logger)
+    telescope.start_telescope(polaris)
 
 
     # Output performance data log headers if enabled
@@ -90,8 +94,7 @@ async def main():
     logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
 
-    # Initialize the ASCOM devices
-    telescope.start_polaris(logger)
+
 
     # Create a separate thread for ASCOM Discovery
     _DSC = DiscoveryResponder(Config.alpaca_ip_address, Config.alpaca_port)
