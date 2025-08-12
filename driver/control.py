@@ -24,8 +24,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Introduce a Low-Pass Filter on Omega Output (aready doing this I think)
 # [x] Overlay the expected tracking velocity on the omega plot
 # [X] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
+# [X] Fix quaternian maths when alt is negative and zero
+# [ ] Implement Rotator
 # [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
-# [ ] Fix quaternian maths when alt is negative
 # [ ] Implement slewing and gotoing state monitoring
 # [ ] PID tuning to use velocity error as well as position error
 # [ ] Improve fine grained tracking precision
@@ -33,7 +34,6 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Implement Solar Tracking rate
 # [ ] Implement King Tracking rate
 # [ ] Implement Pulse Guiding API ITelescope Pulse 
-# [ ] Implement Rotator
 # [ ] Store Motor Calibration data to a file
 # [ ] Check Astro head hardware connection
 # [ ] Integral Anti-Windup dontaccumulate when output is saturated or quantized
@@ -1066,7 +1066,7 @@ class PID_Controller():
         if self.mode == "TRACK":
             delta_ref_change = self.delta_ref - self.delta_ref_last
             delta_ref_nochange = np.sum(delta_ref_change ** 2) < 1e-3
-            if delta_ref_nochange:
+            if delta_ref_nochange and self.dt > 0:
                 tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
                 self.omega_ref = tracking_vel
         # Feed forward slew velocities when in auto mode
