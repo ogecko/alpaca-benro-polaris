@@ -138,7 +138,7 @@ def test_quaternion_to_angles():
 def test_angles_to_quaternion_to_angles_roundtrip(n, az, alt, roll):
     az1,alt1,roll1 = approx( [az,alt,roll] )
     q1 = angles_to_quaternion(az, alt, roll)
-    angles = quaternion_to_angles(q1)
+    angles = quaternion_to_angles(q1, azhint=az)
     _,_,_,az2,alt2,roll2 = approx( angles )
     assert str([f'C{n}', az2,alt2,roll2]) == str([f'C{n}', az1,alt1,roll1])
 
@@ -146,7 +146,7 @@ def test_angles_to_quaternion_to_angles_roundtrip(n, az, alt, roll):
 def test_motors_to_quaternion_to_motors_roundtrip(n, t1, t2, t3):
     v1,v2,v3 = approx( [t1,t2,t3] )
     q1 = motors_to_quaternion(t1, t2, t3)
-    angles = quaternion_to_angles(q1)
+    angles = quaternion_to_angles(q1, azhint=t1)
     u1,u2,u3,_,_,_ = approx(angles)
     assert str([f'D{n}', u1,u2,u3]) == str([f'D{n}', v1,v2,v3])
 
@@ -164,7 +164,15 @@ def test_all_motor_positions():
     n=500
     # Motor to Q to Angles
     for t1 in range(0,360,30):
-        for t2 in range(1,85,10):
-            for t3 in range(-75,75,5):
+        for t2 in range(-80,80,10):
+            for t3 in range(-85,85,5):
                 n += 1
                 test_motors_to_quaternion_to_motors_roundtrip(n,t1,t2,t3)
+
+def test_zeroalt_motor_positions():
+    n=900
+    for t1 in range(0,360,30):
+        t2 = 0
+        for t3 in range(-175,175,5):
+            n += 1
+            test_motors_to_quaternion_to_motors_roundtrip(n,t1,t2,t3)

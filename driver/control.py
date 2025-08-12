@@ -337,7 +337,7 @@ def motors_to_quaternion(theta1, theta2, theta3):
 
 
 
-def quaternion_to_angles(q1):
+def quaternion_to_angles(q1, azhint = -1):
     """
     Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
     
@@ -345,6 +345,7 @@ def quaternion_to_angles(q1):
         q1: Quaternion that rotates from camera frame to topocentric frame
             Camera frame: -z = boresight, +x = up, +y = left
             Topocentric frame: +z = Zenith, +y = North, +x = East
+        azhint: Azimuth hint in case we have a gimbal lock at alt=0
     
     Returns:
         tuple: (theta1, theta2, theta3, alt, az, roll)
@@ -393,6 +394,12 @@ def quaternion_to_angles(q1):
     if abs(theta1 - 360) < 1e-10:
         theta1 = 0.0
 
+    # --- Handle the case where we have a gimbal lock at alt = 0
+    if abs(alt) < 1e-10 and azhint != -1:
+        roll = angular_difference(azhint, az)
+        az = wrap_to_360(azhint)
+        theta3 = roll
+        theta1 = az
 
     return theta1, theta2, theta3, az, alt, roll
 

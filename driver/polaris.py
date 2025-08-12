@@ -645,7 +645,8 @@ class Polaris:
             # extract the quaternion, angles and velocities
             arg_dict = self.polaris_parse_args(args, name_postfix=True)
             q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
-            theta1, theta2, theta3, az, alt, p_roll = quaternion_to_angles(q1)
+            az = float(arg_dict['compass']) # used to help when we have alt=0 & gimbal lock
+            theta1, theta2, theta3, az, alt, p_roll = quaternion_to_angles(q1, azhint=az)
             theta_meas = [theta1, theta2, theta3]
             self._history.append([dt_now, theta1, theta2, theta3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
             omega_meas = calculate_angular_velocity(self._history)
