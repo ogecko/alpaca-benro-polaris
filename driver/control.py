@@ -224,6 +224,58 @@ def angular_difference(a, b):
     """
     return ((b - a + 180) % 360) - 180
 
+def clamp_alpha(alpha):
+    """
+    Apply custom bounds to Topo-centric angles alpha[0], alpha[1], alpha[2]:
+    - Azimuth ∈ [0, 360)
+    - Altitude ∈ [-90, 90)
+    - Roll ∈ [-180, 180)
+    """
+    clamped = np.empty_like(alpha)
+    clamped[0] = alpha[0] % 360
+    clamped[1] = np.clip(alpha[1], -90, 90)
+    clamped[2] = ((alpha[2] + 180) % 360) - 180
+    return clamped
+
+def clamp_delta(delta):
+    """
+    Apply custom bounds to Equatorial angles delta[0], delta[1], delta[2]:
+    - Right Ascention ∈ [0, 360)
+    - Declination ∈ [-90, 90)
+    - Polar Angle ∈ [-180, 180)
+    """
+    clamped = np.empty_like(delta)
+    clamped[0] = delta[0] % 360
+    clamped[1] = np.clip(delta[1], -90, 90)
+    clamped[2] = ((delta[2] + 180) % 360) - 180
+    return clamped
+
+def clamp_theta(theta):
+    """
+    Apply custom bounds to Motor Angles theta[0], theta[1], theta[2]:
+    - Theta1 ∈ [0, 360)
+    - Theta2 ∈ [-90, 90)
+    - Theta3 ∈ [-180, 180)
+    """
+    clamped = np.empty_like(theta)
+    clamped[0] = theta[0] % 360
+    clamped[1] = np.clip(theta[1], -90, 90)
+    clamped[2] = ((theta[2] + 180) % 360) - 180
+    return clamped
+
+def clamp_error(theta_ref, theta_meas):
+    """
+    Calculates angular error considering wrap-around using modular arithmetic.
+    Each error is normalized to [-180, 180) range.
+    """
+    return ((theta_ref - theta_meas + 180) % 360) - 180
+
+def fmt3(theta):
+    return ','.join([ f"{x:.4f}" for x in theta ])
+
+def fmt4(delta):
+    return f'{rad2hms(delta[0]/180*math.pi)[:8]}, {deg2dms(delta[1])[:8]}, {deg2dms(delta[2])[:8]}'
+
 
 def calculate_angular_velocity(history):
     """
@@ -755,57 +807,6 @@ class MoveAxisMessenger:
 #  PID CONTROL STRATEGY  #
 ########################## 
 
-def clamp_alpha(alpha):
-    """
-    Apply custom bounds to Topo-centric angles alpha[0], alpha[1], alpha[2]:
-    - Azimuth ∈ [0, 360)
-    - Altitude ∈ [-90, 90)
-    - Roll ∈ [-180, 180)
-    """
-    clamped = np.empty_like(alpha)
-    clamped[0] = alpha[0] % 360
-    clamped[1] = np.clip(alpha[1], -90, 90)
-    clamped[2] = ((alpha[2] + 180) % 360) - 180
-    return clamped
-
-def clamp_delta(delta):
-    """
-    Apply custom bounds to Equatorial angles delta[0], delta[1], delta[2]:
-    - Right Ascention ∈ [0, 360)
-    - Declination ∈ [-90, 90)
-    - Polar Angle ∈ [-180, 180)
-    """
-    clamped = np.empty_like(delta)
-    clamped[0] = delta[0] % 360
-    clamped[1] = np.clip(delta[1], -90, 90)
-    clamped[2] = ((delta[2] + 180) % 360) - 180
-    return clamped
-
-def clamp_theta(theta):
-    """
-    Apply custom bounds to Motor Angles theta[0], theta[1], theta[2]:
-    - Theta1 ∈ [0, 360)
-    - Theta2 ∈ [-90, 90)
-    - Theta3 ∈ [-180, 180)
-    """
-    clamped = np.empty_like(theta)
-    clamped[0] = theta[0] % 360
-    clamped[1] = np.clip(theta[1], -90, 90)
-    clamped[2] = ((theta[2] + 180) % 360) - 180
-    return clamped
-
-def clamp_error(theta_ref, theta_meas):
-    """
-    Calculates angular error considering wrap-around using modular arithmetic.
-    Each error is normalized to [-180, 180) range.
-    """
-    return ((theta_ref - theta_meas + 180) % 360) - 180
-
-def fmt3(theta):
-    return ','.join([ f"{x:.4f}" for x in theta ])
-
-def fmt4(delta):
-    return f'{rad2hms(delta[0]/180*math.pi)[:8]}, {deg2dms(delta[1])[:8]}, {deg2dms(delta[2])[:8]}'
 
 class PID_Controller():
     def __init__(self, logger, controllers, observer, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=None, Kc=1.0, loop=None):
