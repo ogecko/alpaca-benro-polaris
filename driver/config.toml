@@ -19,10 +19,10 @@ focal_ratio = 11                            # The telescope's focal ratio ie foc
 verbose_driver_exceptions = true            # Provide more detailed description of any Exceptions encountered in the driver.
 
 [control]
-advanced_control = true                    # Used to enable or disable all advanced control features
-advanced_slewing = true                    # Perform advanced control for move axis commands (no longer uses Benro Polaris tracking)
-advanced_goto = true                       # Perform advanced goto slewing in Alpaca Driver (no longer uses Benro Polaris goto)
-advanced_tracking = true                   # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
+advanced_control = false                    # Used to enable or disable all advanced control features
+advanced_slewing = false                    # Perform advanced control for move axis commands (no longer uses Benro Polaris tracking)
+advanced_goto = false                       # Perform advanced goto slewing in Alpaca Driver (no longer uses Benro Polaris goto)
+advanced_tracking = false                   # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
 advanced_rotator = false                    # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
 advanced_guiding = false                    # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
 max_slew_rate = 7.0                         # Maximum slew rate (degrees/s) on any motor axis (when using advanced control)
@@ -44,7 +44,7 @@ log_level = 'INFO'                          # Default log level, show info and a
 log_to_file = true                          # log output to file alpaca.log, copying old logs to alpaca.1, ... alpaca.5
 log_to_stdout = true                        # log output to stdout.
 
-log_performance_data = 6                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim, 2=Drift, 3=Speed, 4=Position, 5=Rotator, 6=PID
+log_performance_data = 0                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim, 2=Drift, 3=Speed, 4=Position, 5=KalmanFilter, 6=PID
 log_performance_data_test = 0               # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test, 5=Rotator test
 log_perf_speed_interval = 5                 # To calculate average speed, measure distance travelled, once every "log_perf_speed_interval" seconds.
 
