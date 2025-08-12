@@ -282,10 +282,13 @@ def extract_roll_from_quaternion(q3, reference_axis=np.array([0, 0, 1]), epsilon
     alignment = np.dot(actual_axis, reference_axis)
 
     # Flip sign if axis is pointing in the opposite direction
-    if alignment < -epsilon:
-        return roll_raw
-    else:
-        return -roll_raw
+    # if alignment < -epsilon:
+    #     return roll_raw
+    # else:
+    #     return -roll_raw
+
+    return roll_raw
+
 
 
 
@@ -385,6 +388,10 @@ def quaternion_to_angles(q1):
     mBore = unroll.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module on the polaris
     theta1 = (np.degrees(np.arctan2(mBore[0], mBore[1])) + 360) % 360
     theta2 = np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0)))
+
+    # --- Handle a weird rounding problem for tests, ensure 359.9999999994 is 0.0 
+    if abs(theta1 - 360) < 1e-10:
+        theta1 = 0.0
 
 
     return theta1, theta2, theta3, az, alt, roll
