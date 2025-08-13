@@ -21,6 +21,7 @@ from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request
 from exceptions import *        # Nothing but exception classes
 import math
 from polaris import Polaris
+from shr import DeviceMetadata
 
 logger: Logger = None
 polaris: Polaris = None
@@ -48,12 +49,12 @@ maxdev = 0                      # Single instance
 # Static metadata not subject to configuration changes
 class TelescopeMetadata:
     """ Metadata describing the Telescope Device."""
-    Name = 'Benro Polaris'
-    Version = '1.0.0'
-    Description = 'Alpaca Benro Polaris Telescope'
+    Name = DeviceMetadata.Description 
+    Version = DeviceMetadata.Version
+    Description = 'Alpaca Telescope Mount'
     DeviceType = 'Telescope'
     DeviceID = '3ee8e486-6421-432c-9a66-cf240e298bb9' # https://guidgenerator.com/online-guid-generator.aspx
-    Info = 'Limited ASCOM Alpaca driver for the\nBenro Polaris Tripod Head & Astro.\nImplements ASCOM  ITelescopeV3.'
+    Info = 'ASCOM Alpaca driver for the Benro Polaris Mount. Implements ITelescopeV3.'
     MaxDeviceNumber = maxdev
     InterfaceVersion = 3
 

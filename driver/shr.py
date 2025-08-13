@@ -81,8 +81,8 @@ _bad_title = 'Bad Alpaca Request'
 # Static metadata not subject to configuration changes
 class DeviceMetadata:
     """ Metadata describing the Alpaca Device/Server """
-    Version = '1.0.2'              # Alpaca Version Number (based on https://semver.org/)
-    VersionSynScan = '010002'      # Must be 6 digits for SynScan protocol
+    Version = '2.0.0'              # Alpaca Version Number (based on https://semver.org/)
+    VersionSynScan = '020000'      # Must be 6 digits for SynScan protocol
     Description = 'Alpaca Benro Polaris Driver'
     Manufacturer = 'oGecko'
 
