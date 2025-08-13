@@ -169,4 +169,124 @@ class reverse:
         except Exception as ex:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Rotator.Reverse failed', ex))
-        
+
+@before(PreProcessRequest(maxdev))
+class ismoving:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = bool(polaris._pid.is_deviating)
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.IsMoving failed', ex))
+
+
+@before(PreProcessRequest(maxdev))
+class position:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = round(polaris.roll,3)
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.Position failed', ex))
+
+
+@before(PreProcessRequest(maxdev))
+class targetposition:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = round(polaris.roll,3)
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.TargetPosition failed', ex))
+
+
+@before(PreProcessRequest(maxdev))
+class mechanicalposition:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = round(polaris.roll,3)
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.MechanicalPosition failed', ex))
+
+
+@before(PreProcessRequest(maxdev))
+class movemechanical:
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        positionstr = await get_request_field('Position', req)      # Raises 400 bad request if missing
+        try:
+            position = float(positionstr)
+        except:
+            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} not a valid number.'))
+            return
+        if position < -180 or position > 180 or math.isnan(position):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and +180.'))
+            return
+        try:
+            polaris._pid.set_alpha_axis_position(2,position)
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Rotator.MoveMechanical failed', ex))
+
+@before(PreProcessRequest(maxdev))
+class moveabsolute:
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        positionstr = await get_request_field('Position', req)      # Raises 400 bad request if missing
+        try:
+            position = float(positionstr)
+        except:
+            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} not a valid number.'))
+            return
+        if position < -180 or position > 180 or math.isnan(position):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and +180.'))
+            return
+        try:
+            polaris._pid.set_alpha_axis_position(2,position)
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Rotator.MoveAbsolute failed', ex))
+
+
+@before(PreProcessRequest(maxdev))
+class move:
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        positionstr = await get_request_field('Position', req)      # Raises 400 bad request if missing
+        try:
+            position = float(positionstr)
+        except:
+            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} not a valid number.'))
+            return
+        if position < -180 or position > 180 or math.isnan(position):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and +180.'))
+            return
+        try:
+            polaris._pid.rotator_move_relative(position)
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Rotator.Move failed', ex))
+
+@before(PreProcessRequest(maxdev))
+class stepsize:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = await MethodResponse(req, NotImplementedException())

@@ -855,6 +855,8 @@ class PID_Controller():
         if Config.advanced_control and self.control_loop_duration:
             asyncio.create_task(self._control_loop())
 
+    #------- Helper functions ---------
+
     def Ka_array(self, Ka):
         return Ka if isinstance(Ka, np.ndarray) else np.array([Ka, Ka, Ka], dtype=float)
 
@@ -917,6 +919,8 @@ class PID_Controller():
         self.body._dec = deg2rad(delta[1])
         self.body_pa_offset = delta[2] 
 
+    #------- Functions to change SP, Targets and Mode ---------
+
     def set_tracking_on(self):
         if self.mode=="AUTO":
             track_target = self.alpha_ref.copy()
@@ -949,12 +953,14 @@ class PID_Controller():
         self.alpha_sp[axis] = sp
         self.alpha_v_sp[axis] = 0
         self.alpha_offst[axis] = 0
-        
+        self.is_moving = True
+                
     def set_alpha_axis_position_relative(self, axis, sp=0.0):
         self.alpha_sp[axis] = self.alpha_sp[axis] + sp
         self.alpha_v_sp[axis] = 0
         self.alpha_offst[axis] = 0
-        
+        self.is_moving = True
+
     def set_alpha_axis_velocity(self, axis, sp=0.0):
         self.alpha_v_sp[axis] = sp
 
@@ -992,6 +998,21 @@ class PID_Controller():
         self.reset_offsets()
         self.target_type = "XEPHEM"
         self.target['line'] = line
+
+    def set_alpha_axis_position(self, axis, sp=0.0):
+        self.alpha_sp[axis] = sp
+        self.alpha_v_sp[axis] = 0
+        self.alpha_offst[axis] = 0
+        self.is_moving = True
+
+    def rotator_move_relative(self, sp=0.0):
+        axis=2
+        self.alpha_sp[axis] = self.alpha_sp[axis] + sp
+        self.alpha_v_sp[axis] = 0
+        self.alpha_offst[axis] = 0
+        self.is_moving = True
+
+    #------- Control step functions ---------
 
     def track_target(self):
         # update MODE transitions
