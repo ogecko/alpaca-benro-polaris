@@ -131,7 +131,7 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
 # Log the request as soon as the resource handler gets it so subsequent
 # logged messages are in the right order. Logs PUT body as well.
 #
-ispollreq = re.compile('connected|utcdate|canslew|cansetpierside|canpulseguide|alignmentmode|cansetguiderates|slewing|sideofpier|siteelevation|sitelatitude|sitelongitude|siderealtime|declination|rightascension|azimuth|altitude|tracking|cansettracking|athome|atpark')
+ispollreq = re.compile('connected|utcdate|canslew|cansetpierside|canpulseguide|alignmentmode|cansetguiderates|slewing|sideofpier|siteelevation|sitelatitude|sitelongitude|siderealtime|declination|rightascension|azimuth|altitude|tracking|cansettracking|athome|atpark|position|ismoving|canreverse|reverse')
 
 async def log_request(req: Request):
     if Config.supress_alpaca_polling_msgs and req.method=="GET" and ispollreq.search(req.path):
