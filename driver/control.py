@@ -1032,7 +1032,8 @@ class PID_Controller():
             self.delta_ref = self.body2delta()           
             self.delta_sp = self.body2delta()            
             self.alpha_ref = self.alpha_meas
-            self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
+            self.alpha_sp = self.alpha_meas                  # in case we switch to AUTO
+            self.alpha_offst = np.array([0,0,0],dtype=float) # in case we switch to AUTO
         
         elif self.mode == 'AUTO':
             self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
