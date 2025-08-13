@@ -136,3 +136,37 @@ class connected:
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,  DriverException(0x500, ex))
+
+@before(PreProcessRequest(maxdev))
+class canreverse:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        resp.text = await PropertyResponse(True, req)
+
+@before(PreProcessRequest(maxdev))
+class reverse:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = polaris.rotator_reverse
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.Reverse failed', ex))
+
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        reverse = await get_request_field('Reverse', req)      # Raises 400 bad request if missing
+
+        try:
+            polaris.rotator_reverse = to_bool(reverse)                       # Same here
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req,
+                            DriverException(0x500, 'Rotator.Reverse failed', ex))
+        

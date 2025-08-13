@@ -201,6 +201,10 @@ class Polaris:
         self._guideratedeclination: float = 0.0     # The current Declination movement rate offset for telescope guiding (degrees/sec)
         self._guideraterightascension: float = 0.0  # The current Right Ascension movement rate offset for telescope guiding (degrees/sec)
         #
+        # Rotator device settings
+        #
+        self._rotator_reverse: bool = False         # Is the rotator in reverse direction.
+        #
         # Telescope device settings
         #
         self._alignmentmode: int = 0                # enum for Altitude-Azimuth alignment.
@@ -1438,6 +1442,20 @@ class Polaris:
     def guideraterightascension (self, guideraterightascension: float):
         self._lock.acquire()
         self._guideraterightascension = guideraterightascension
+        self._lock.release()
+    #
+    # Rotator device settings
+    #
+    @property
+    def rotator_reverse(self) -> int:
+        self._lock.acquire()
+        res =  self._rotator_reverse
+        self._lock.release()
+        return res
+    @rotator_reverse.setter
+    def rotator_reverse(self, state: bool):
+        self._lock.acquire()
+        self._rotator_reverse = state
         self._lock.release()
     #
     # Telescope device settings
