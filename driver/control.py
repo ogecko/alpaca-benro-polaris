@@ -810,6 +810,8 @@ class MoveAxisMessenger:
 
 class PID_Controller():
     def __init__(self, logger, controllers, observer, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=None, Kc=1.0, loop=None):
+        self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
+        self._lock = asyncio.Lock()                          # Used to ensure no threading issues
         self.logger = logger                                 # Logging utility
         self.controllers = controllers                       # Motor speed controllers[0,1,2]
         self.observer = observer                             # Observing object from ephem
@@ -849,10 +851,8 @@ class PID_Controller():
         self.Kc = Kc    # Number of Arc-Minutes error to accept as not deviating
         self.Ka = self.Ka_array(Ka) # Maximum acceleration (float: degrees per seconds² or array(3): degrees per seconds²
         self.Kv = self.Kv_array(Kv) # Maximum velocity (float: degrees per second or array(3): degrees per seconds or None: (maxDSP from controller)
-
+        
         if Config.advanced_control and self.control_loop_duration:
-            self._stop_flag = asyncio.Event()
-            self._lock = asyncio.Lock()
             asyncio.create_task(self._control_loop())
 
     def Ka_array(self, Ka):
