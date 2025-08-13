@@ -56,3 +56,67 @@ class RotatorMetadata:
     Info = 'ASCOM Alpaca driver for the Benro Polaris Mount. Implements IRotatorV3.'
     MaxDeviceNumber = maxdev
     InterfaceVersion = 3
+
+# --------------------
+# RESOURCE CONTROLLERS
+# --------------------
+
+@before(PreProcessRequest(maxdev))
+class action:
+    def on_put(self, req: Request, resp: Response, devnum: int):
+        resp.text = MethodResponse(req, NotImplementedException()).json
+
+
+@before(PreProcessRequest(maxdev))
+class commandblind:
+    def on_put(self, req: Request, resp: Response, devnum: int):
+        resp.text = MethodResponse(req, NotImplementedException()).json
+
+
+@before(PreProcessRequest(maxdev))
+class commandbool:
+    def on_put(self, req: Request, resp: Response, devnum: int):
+        resp.text = MethodResponse(req, NotImplementedException()).json
+
+
+@before(PreProcessRequest(maxdev))
+class commandstring:
+    def on_put(self, req: Request, resp: Response, devnum: int):
+        resp.text = MethodResponse(req, NotImplementedException()).json
+
+
+# Connected, though common, is implemented in rotator.py
+@before(PreProcessRequest(maxdev))
+class description:
+    def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = PropertyResponse(RotatorMetadata.Description, req).json
+
+
+@before(PreProcessRequest(maxdev))
+class driverinfo:
+    def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = PropertyResponse(RotatorMetadata.Info, req).json
+
+
+@before(PreProcessRequest(maxdev))
+class interfaceversion:
+    def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = PropertyResponse(RotatorMetadata.InterfaceVersion, req).json
+
+
+@before(PreProcessRequest(maxdev))
+class driverversion:
+    def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = PropertyResponse(RotatorMetadata.Version, req).json
+
+
+@before(PreProcessRequest(maxdev))
+class name:
+    def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = PropertyResponse(RotatorMetadata.Name, req).json
+
+
+@before(PreProcessRequest(maxdev))
+class supportedactions:
+    def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = PropertyResponse([], req).json  # Not PropertyNotImplemented

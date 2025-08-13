@@ -42,12 +42,15 @@ import log
 from config import Config
 from discovery import DiscoveryResponder
 import telescope
+import rotator
 import stellarium
 import app
 import argparse
 from pathlib import Path
 import os
 from polaris import Polaris
+
+polaris: Polaris = None
 
 # ===========
 # APP STARTUP
@@ -60,12 +63,14 @@ async def main():
     exceptions.logger = logger
     discovery.logger = logger
     telescope.logger = logger
+    rotator.logger = logger
     shr.logger = logger
 
     # Create the Polaris master object and startup each ASCOM device
+    global polaris
     polaris = Polaris(logger)
     telescope.start_telescope(polaris)
-
+    rotator.start_rotator(polaris)
 
     # Output performance data log headers if enabled
     if Config.log_performance_data == 1:        # Aim data
@@ -107,10 +112,10 @@ async def main():
     
     tasks = [
             app.alpaca_httpd(logger),
-            telescope.polaris.client(logger)
+            polaris.client(logger)
     ]
     await asyncio.gather(*tasks)
-    await telescope.polaris.shutdown()
+    await polaris.shutdown()
 
 
 
@@ -150,15 +155,15 @@ if __name__ == '__main__':
         
     except ValueError as value:
         print(f"{value}\nQuit.")
-        asyncio.run(telescope.polaris.shutdown())
+        asyncio.run(polaris.shutdown())
 
     except Exception as error:
         print(f"Error {error}, quit.")
-        asyncio.run(telescope.polaris.shutdown())
+        asyncio.run(polaris.shutdown())
 
     except KeyboardInterrupt:
         print("Keyboard interrupt.")
-        asyncio.run(telescope.polaris.shutdown())
+        asyncio.run(polaris.shutdown())
    
 
 
