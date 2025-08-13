@@ -42,6 +42,7 @@ from config import Config
 # FOR EACH ASCOM DEVICE #
 #########################
 import telescope
+import rotator
 
 #--------------
 API_VERSION = 1           
@@ -88,6 +89,7 @@ async def alpaca_httpd(logger):
     # FOR EACH ASCOM DEVICE #
     #########################
     init_routes(falc_app, 'telescope', telescope)
+    init_routes(falc_app, 'rotator', rotator)
     #
     # Initialize routes for Alpaca support endpoints
     falc_app.add_route('/management/apiversions', management.apiversions())

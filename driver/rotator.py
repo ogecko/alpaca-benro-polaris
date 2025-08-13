@@ -63,60 +63,76 @@ class RotatorMetadata:
 
 @before(PreProcessRequest(maxdev))
 class action:
-    def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = MethodResponse(req, NotImplementedException()).json
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        resp.text = await MethodResponse(req, NotImplementedException())
 
 
 @before(PreProcessRequest(maxdev))
 class commandblind:
-    def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = MethodResponse(req, NotImplementedException()).json
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        resp.text = await MethodResponse(req, NotImplementedException())
 
 
 @before(PreProcessRequest(maxdev))
 class commandbool:
-    def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = MethodResponse(req, NotImplementedException()).json
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        resp.text = await MethodResponse(req, NotImplementedException())
 
 
 @before(PreProcessRequest(maxdev))
 class commandstring:
-    def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = MethodResponse(req, NotImplementedException()).json
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        resp.text = await MethodResponse(req, NotImplementedException())
 
 
 # Connected, though common, is implemented in rotator.py
 @before(PreProcessRequest(maxdev))
 class description:
-    def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(RotatorMetadata.Description, req).json
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = await PropertyResponse(RotatorMetadata.Description, req)
 
 
 @before(PreProcessRequest(maxdev))
 class driverinfo:
-    def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(RotatorMetadata.Info, req).json
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = await PropertyResponse(RotatorMetadata.Info, req)
 
 
 @before(PreProcessRequest(maxdev))
 class interfaceversion:
-    def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(RotatorMetadata.InterfaceVersion, req).json
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = await PropertyResponse(RotatorMetadata.InterfaceVersion, req)
 
 
 @before(PreProcessRequest(maxdev))
 class driverversion:
-    def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(RotatorMetadata.Version, req).json
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = await PropertyResponse(RotatorMetadata.Version, req)
 
 
 @before(PreProcessRequest(maxdev))
 class name:
-    def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse(RotatorMetadata.Name, req).json
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = await PropertyResponse(RotatorMetadata.Name, req)
 
 
 @before(PreProcessRequest(maxdev))
 class supportedactions:
-    def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = PropertyResponse([], req).json  # Not PropertyNotImplemented
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = await PropertyResponse([], req)  # Not PropertyNotImplemented
+
+@before(PreProcessRequest(maxdev))
+class connected:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        client = await get_request_field('ClientID', req)      # Raises 400 bad request if missing
+        is_conn = polaris.connectionquery(client)
+        resp.text = await PropertyResponse(is_conn, req)
+
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        client = await get_request_field('ClientID', req)      # Raises 400 bad request if missing
+        conn = to_bool(await get_request_field('Connected', req))   # Raises 400 Bad Request if str to bool fails
+        try:
+            polaris.connectionrequest(client, conn)
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req,  DriverException(0x500, ex))

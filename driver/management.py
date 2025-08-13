@@ -48,6 +48,7 @@ from config import Config
 from logging import Logger
 # For each *type* of device served
 from telescope import TelescopeMetadata
+from rotator import RotatorMetadata
 
 logger: Logger = None
 #logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
@@ -88,6 +89,11 @@ class configureddevices():
             'DeviceType'    : TelescopeMetadata.DeviceType,
             'DeviceNumber'  : 0,
             'UniqueID'      : TelescopeMetadata.DeviceID
-            }
-        ]
+            },
+            {
+            'DeviceName'    : RotatorMetadata.Name,
+            'DeviceType'    : RotatorMetadata.DeviceType,
+            'DeviceNumber'  : 0,
+            'UniqueID'      : RotatorMetadata.DeviceID
+            }        ]
         resp.text = await PropertyResponse(confarray, req)
