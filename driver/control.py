@@ -26,7 +26,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
 # [X] Fix quaternian maths when alt is negative and zero
 # [X] Implement Rotator
-# [ ] Implement Position Angle and Reverse in Rotator
+# [ ] Rotator Halt, Sync, SetupDialog, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
 # [ ] Pass ConformU test on Rotator
 # [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
 # [ ] Implement slewing and gotoing state monitoring
