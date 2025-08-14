@@ -39,7 +39,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Store Motor Calibration data to a file
 # [ ] Check Astro head hardware connection
 # [ ] Integral Anti-Windup dontaccumulate when output is saturated or quantized
-#
+# [ ] Implement Alpaca Pilot App
+# 
+# 
 # Control Algorithm Features
 # [X] Quaternion-based kinematics and inverse solutions
 # [X] Optimised PID Control for Orientation
