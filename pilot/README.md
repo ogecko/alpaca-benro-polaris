@@ -1,6 +1,6 @@
-# Alpaca Benro Polaris Pilot (pilot)
+# Alpaca Benro Polaris Pilot (Position Control Reimagined)
 
-Position Control Reimagined. Alpaca Pilot is a modern control interface for astronomical mounts, designed to streamline and reimagine the way users interact with Alpaca-compatible devices. With intuitive dashboards, responsive controls, and real-time telemetry visualization, Alpaca Pilot empowers observers to manage slewing, rotating, targeting, tracking, guiding, and alignment with confidence and clarity. 
+Alpaca Pilot is a modern control interface for astronomical mounts, designed to streamline and reimagine the way users interact with Alpaca-compatible devices. With intuitive dashboards, responsive controls, and real-time telemetry visualization, Alpaca Pilot empowers observers to manage slewing, rotating, targeting, tracking, guiding, and alignment with confidence and clarity. 
 
 When paired with the Alpaca Benro Polaris Driver, Alpaca Pilot unlocks advanced control capabilities for both the Driver and the Benro Polaris mount - all within a single, streamlined interface. It goes beyond the standard Alpaca protocol by exposing powerful driver-specific features such as connection management, calibration tools, test report generation, and real-time diagnostics and analysis. This expanded functionality enables deeper insight, precision tuning, and robust system oversight for users who demand more than basic mount control.
 
