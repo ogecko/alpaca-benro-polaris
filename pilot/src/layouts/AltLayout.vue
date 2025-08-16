@@ -24,12 +24,17 @@
         <q-space />
 
         <div class="q-gutter-sm row items-center no-wrap">
-          <q-btn round dense flat  icon="notifications">
-            <q-badge color="red" text-color="white" floating>
-              2
-            </q-badge>
-            <q-tooltip>Notifications</q-tooltip>
-          </q-btn>
+            <div>
+                <span>70%</span>
+                <q-icon size="sm" name="battery_4_bar" />
+                <q-tooltip>Polaris Battery Level</q-tooltip>
+            </div>
+            <q-btn round dense flat  icon="notifications">
+                <q-badge color="red" text-color="white" floating>
+                2
+                </q-badge>
+                <q-tooltip>Notifications</q-tooltip>
+            </q-btn>
         </div>
       </q-toolbar>
     </q-header>
@@ -175,6 +180,7 @@ export default {
       ],
       links4: [
         { icon: 'camera', text: 'Imaging' },
+        { icon: 'vertical_align_top', text: 'Leveling' },
         { icon: 'ads_click', text: 'Calibration' },
         { icon: 'flag', text: 'Telemetry' },
         { icon: 'analytics', text: 'Diagnostics' }
