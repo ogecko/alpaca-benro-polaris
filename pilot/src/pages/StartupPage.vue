@@ -1,7 +1,7 @@
 <template>
   <q-page  class="row items-center ">
     <div class="col-6" style="display: flex; justify-content: flex-end; align-items: center;">
-      <q-img src="../assets/abp-logo.png" fit="scale-down" style="height:200px"></q-img>
+      <q-img src="../assets/abp-logo.png" fit="scale-down" position="100% 50%" style="height:200px"></q-img>
     </div>
     <div  class="col-6">
       <div class="text-bold text-h4">
