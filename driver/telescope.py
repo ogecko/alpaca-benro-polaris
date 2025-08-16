@@ -49,7 +49,7 @@ maxdev = 0                      # Single instance
 # Static metadata not subject to configuration changes
 class TelescopeMetadata:
     """ Metadata describing the Telescope Device."""
-    Name = DeviceMetadata.Description 
+    Name = 'Alpaca Benro Polaris Telescope' 
     Version = DeviceMetadata.Version
     Description = 'Alpaca Telescope Mount'
     DeviceType = 'Telescope'

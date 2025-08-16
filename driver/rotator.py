@@ -48,7 +48,7 @@ maxdev = 0                      # Single instance
 # Static metadata not subject to configuration changes
 class RotatorMetadata:
     """ Metadata describing the Rotator Device."""
-    Name = DeviceMetadata.Description
+    Name = 'Alpaca Benro Polaris Rotator'
     Version = DeviceMetadata.Version
     Description = 'Alpaca Rotator Emulator'
     DeviceType = 'Rotator'
