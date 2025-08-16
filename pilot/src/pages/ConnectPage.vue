@@ -84,7 +84,7 @@
             </div>
             </q-item-section>
             <q-item-section side>
-            <q-btn label="Get GPS" icon="my_location" color="secondary" @click="setFromPhoneLocation" />
+            <q-btn label="GPS" icon="my_location" color="secondary" @click="setFromPhoneLocation" />
             </q-item-section>
         </q-item>
       </q-card-section>
