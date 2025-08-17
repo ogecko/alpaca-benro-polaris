@@ -82,7 +82,6 @@ class StaticResource:
         requested_path = path or 'index.html'
 #        file_path = os.path.join(QUASAR_DIST, requested_path)
         file_path = QUASAR_DIST / requested_path
-        print(f'GET {file_path}')
         if not os.path.isfile(file_path):
             file_path = QUASAR_DIST / 'index.html'  # fallback for SPA routing
 
@@ -118,11 +117,10 @@ async def alpaca_httpd(logger):
     falc_app.add_route(f'/setup/v{API_VERSION}/telescope/{{devnum}}/setup', setup.devsetup())
 
     # add the Pilot Static routes
-    falc_app.add_static_route('/icons', QUASAR_DIST / 'icons')
-    falc_app.add_static_route('/assets', QUASAR_DIST / 'assets')
-    falc_app.add_route('/{path}', StaticResource())     # root directory with fallback
-    falc_app.add_route('/', StaticResource())           # root fallback
-
+    falc_app.add_static_route('/icons', QUASAR_DIST / 'icons')      # icons resources (note /{path} does serve subdirecties)
+    falc_app.add_static_route('/assets', QUASAR_DIST / 'assets')    # assets resources
+    falc_app.add_route('/{path}', StaticResource())                 # root resources, fallback to index.html when not found
+    falc_app.add_route('/', StaticResource())                       # root, fallback to index.html when nothing provided
 
     # Create a http server
     alpaca_config = uvicorn.Config(falc_app, host=Config.alpaca_ip_address, port=Config.alpaca_port, log_level="error")
