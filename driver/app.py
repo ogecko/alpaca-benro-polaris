@@ -30,13 +30,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # -----------------------------------------------------------------------------
-
+import os
+import mimetypes
+import aiofiles
 import inspect
 import uvicorn
 from falcon import App, asgi
 import management
 import setup
 from config import Config
+from pathlib import Path
 
 #########################
 # FOR EACH ASCOM DEVICE #
@@ -71,6 +74,22 @@ def init_routes(app: App, devname: str, module):
             app.add_route(f'/api/v{API_VERSION}/{devname}/{{devnum:int(min=0)}}/{cname.lower()}', ctype())  # type() creates instance!
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent    # Get the path to the current script
+QUASAR_DIST = SCRIPT_DIR.parent / 'pilot' / 'dist' / 'spa'   
+
+class StaticResource:
+    async def on_get(self, req, resp, path=None):
+        requested_path = path or 'index.html'
+#        file_path = os.path.join(QUASAR_DIST, requested_path)
+        file_path = QUASAR_DIST / requested_path
+        print(f'GET {file_path}')
+        if not os.path.isfile(file_path):
+            file_path = QUASAR_DIST / 'index.html'  # fallback for SPA routing
+
+        resp.content_type = mimetypes.guess_type(file_path)[0] or 'text/html'
+        async with aiofiles.open(file_path, 'rb') as f:
+            resp.data = await f.read()
+
 
 # ---------------------------------------------
 # MAIN HTTP/REST API ENGINE (FALCON ASGI BASED)
@@ -97,6 +116,13 @@ async def alpaca_httpd(logger):
     falc_app.add_route(f'/management/v{API_VERSION}/configureddevices', management.configureddevices())
     falc_app.add_route('/setup', setup.svrsetup())
     falc_app.add_route(f'/setup/v{API_VERSION}/telescope/{{devnum}}/setup', setup.devsetup())
+
+    # add the Pilot Static routes
+    falc_app.add_static_route('/icons', QUASAR_DIST / 'icons')
+    falc_app.add_static_route('/assets', QUASAR_DIST / 'assets')
+    falc_app.add_route('/{path}', StaticResource())     # root directory with fallback
+    falc_app.add_route('/', StaticResource())           # root fallback
+
 
     # Create a http server
     alpaca_config = uvicorn.Config(falc_app, host=Config.alpaca_ip_address, port=Config.alpaca_port, log_level="error")
