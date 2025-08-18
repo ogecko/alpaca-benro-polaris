@@ -106,7 +106,7 @@ from typing import List
 import psutil
 
 
-class discoverdevices():
+class discoveralpaca():
     async def on_get(self, req: falcon.Request, resp: falcon.Response):
         """
         GET /api/discover
@@ -140,7 +140,6 @@ async def discover_alpaca_devices_async(timeout: float = 2.0) -> List[str]:
     loop = asyncio.get_running_loop()
     discovered = set()
     interfaces = get_ipv4_interfaces()
-    print(f"Interfaces: {interfaces}")
 
     async def send_and_receive(iface_ip):
         try:
@@ -166,3 +165,109 @@ async def discover_alpaca_devices_async(timeout: float = 2.0) -> List[str]:
 
     await asyncio.gather(*(send_and_receive(ip) for ip in interfaces))
     return sorted(discovered)
+
+
+import asyncio
+import falcon
+import json
+from bleak import BleakScanner, BleakClient, exc
+
+DEFAULT_COMMAND = "enable_wifi"
+CHARACTERISTIC_UUID = "0000fff1-0000-1000-8000-00805f9b34fb"
+
+class discoverpolaris():
+    async def on_get(self, req: falcon.Request, resp: falcon.Response):
+        """
+        GET /api/discoverpolaris
+        Scans for Polaris BLE devices and sends 'enable_wifi' command.
+        Returns JSON with status and device info.
+        """
+        try:
+            devices = await BleakScanner.discover()
+            print(devices)
+            polaris_devices = []
+            for d in devices:
+                try:
+                    if d.name and d.name.lower().startswith("polaris"):
+                        polaris_devices.append({ "name": d.name, "address": d.address })
+                except AttributeError as e:
+                    print(f"Skipping malformed device: {d} — {e}")
+
+
+            if not polaris_devices:
+                resp.status = falcon.HTTP_404
+                resp.media = {"status": "not_found", "message": "No Polaris devices detected"}
+                return
+
+            if len(polaris_devices)==1:
+                command_bytes = DEFAULT_COMMAND.encode("utf-8")
+                async with BleakClient(polaris_devices[0]["address"]) as client:
+                    await client.write_gatt_char(CHARACTERISTIC_UUID, command_bytes, response=True)
+
+            resp.status = falcon.HTTP_200
+            resp.media = {
+                "status": "multiple_found" if len(polaris_devices) > 1 else "success",
+                "devices": polaris_devices,
+                "message": "Select a device to send command"
+            }
+
+        except exc.BleakDBusError as e:
+            resp.status = falcon.HTTP_500
+            resp.media = {
+                "status": "error",
+                "type": "BleakDBusError",
+                "details": e.dbus_error_details
+            }
+
+        except Exception as e:
+            resp.status = falcon.HTTP_500
+            resp.media = {
+                "status": "error",
+                "type": type(e).__name__,
+                "message": str(e)
+            }
+
+
+class blepolaris():
+    async def on_put(self, req: falcon.Request, resp: falcon.Response):
+        """
+        PUT /api/sendcommand
+        Sends a BLE command to a specified Polaris device.
+        Request JSON: { "address": "...", "command": "..." }
+        """
+        try:
+            body = await req.media
+            address = body.get("address")
+            command_str = body.get("command") or DEFAULT_COMMAND
+            command_bytes = command_str.encode("utf-8")
+
+            if not address:
+                resp.status = falcon.HTTP_400
+                resp.media = {"status": "error", "message": "Missing 'address'"}
+                return
+
+            async with BleakClient(address) as client:
+                await client.write_gatt_char(CHARACTERISTIC_UUID, command_bytes, response=True)
+
+            resp.status = falcon.HTTP_200
+            resp.media = {
+                "status": "success",
+                "device": address,
+                "message": f"Command '{command_str}' sent"
+            }
+
+        except exc.BleakDBusError as e:
+            resp.status = falcon.HTTP_500
+            resp.media = {
+                "status": "error",
+                "type": "BleakDBusError",
+                "details": e.dbus_error_details
+            }
+
+        except Exception as e:
+            resp.status = falcon.HTTP_500
+            resp.media = {
+                "status": "error",
+                "type": type(e).__name__,
+                "message": str(e)
+            }
