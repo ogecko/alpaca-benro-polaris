@@ -103,6 +103,8 @@ import json
 import asyncio
 import falcon
 from typing import List
+import psutil
+
 
 class discoverdevices():
     async def on_get(self, req: falcon.Request, resp: falcon.Response):
@@ -114,6 +116,17 @@ class discoverdevices():
         resp.status = falcon.HTTP_200
         resp.media = devices
 
+def get_ipv4_interfaces():
+    interfaces = []
+    for iface, addrs in psutil.net_if_addrs().items():
+        for addr in addrs:
+            if (
+                addr.family == socket.AF_INET
+                and not addr.address.startswith("127.")
+                and not addr.address.startswith("169.254.")
+            ):
+                interfaces.append(addr.address)
+    return interfaces
 
 async def discover_alpaca_devices_async(timeout: float = 2.0) -> List[str]:
     """
@@ -126,36 +139,30 @@ async def discover_alpaca_devices_async(timeout: float = 2.0) -> List[str]:
 
     loop = asyncio.get_running_loop()
     discovered = set()
+    interfaces = get_ipv4_interfaces()
+    print(f"Interfaces: {interfaces}")
 
-    # Create non-blocking UDP socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    sock.setblocking(False)
+    async def send_and_receive(iface_ip):
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            sock.setblocking(False)
+            sock.bind((iface_ip, 0))
+            await loop.sock_sendto(sock, DISCOVERY_MSG, (MCAST_GRP, MCAST_PORT))
+            end_time = loop.time() + timeout
+            while loop.time() < end_time:
+                try:
+                    data, addr = await asyncio.wait_for(loop.sock_recvfrom(sock, 1024), timeout=0.2)
+                    response = json.loads(data.decode('utf-8'))
+                    host = response.get("Address") or response.get("RemoteAddress") or addr[0]
+                    port = response.get("Port") or response.get("AlpacaPort") or 11111
+                    discovered.add(f"{host}:{port}")
+                except asyncio.TimeoutError:
+                    continue
+                except Exception as e:
+                    print(f"[{iface_ip}] Error: {e}")
+        finally:
+            sock.close()
 
-    # listen to any on a temporary port
-    try:
-        sock.bind(('', 0))  
-    except:
-        sock.close()
-        raise
-    try:
-        # Send discovery packet
-        await loop.sock_sendto(sock, DISCOVERY_MSG, (MCAST_GRP, MCAST_PORT))
-
-        start_time = loop.time()
-        while loop.time() - start_time < timeout:
-            try:
-                data, addr = await asyncio.wait_for(loop.sock_recvfrom(sock, 1024), timeout=0.2)
-
-                response = json.loads(data.decode('utf-8'))
-                host = response.get("Address") or response.get("RemoteAddress") or addr[0]
-                port = response.get("Port") or response.get("AlpacaPort") or 11111
-                discovered.add(f"{host}:{port}")
-            except asyncio.TimeoutError:
-                break
-            except Exception as e:
-                print(f"Error parsing response: {e}")
-    finally:
-        sock.close()
-    print(discovered)
+    await asyncio.gather(*(send_and_receive(ip) for ip in interfaces))
     return sorted(discovered)
