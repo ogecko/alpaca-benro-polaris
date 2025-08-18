@@ -101,7 +101,7 @@ async def alpaca_httpd(logger):
 
     """
     # falcon.asgi.App instances are callable ASGI apps
-    falc_app = asgi.App()
+    falc_app = asgi.App(middleware=[CORSMiddleware()])
 
     #########################
     # FOR EACH ASCOM DEVICE #
@@ -137,3 +137,18 @@ async def alpaca_httpd(logger):
         raise ValueError('Keyboard interrupt.')
 
 
+class CORSMiddleware:
+    async def process_request(self, req, resp):
+        # No-op for most requests; CORS headers are added in process_response
+        pass
+
+    async def process_response(self, req, resp, resource, req_succeeded):
+        origin = req.headers.get("origin", "*")
+        resp.set_header("Access-Control-Allow-Origin", origin)
+        resp.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+        resp.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        resp.set_header("Access-Control-Allow-Credentials", "true")
+
+        if req.method == "OPTIONS":
+            resp.status = falcon.HTTP_200
+            resp.complete = True
