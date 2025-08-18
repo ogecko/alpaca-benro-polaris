@@ -45,6 +45,7 @@ Run the following command to install the node.js package dependancies.
 
 ```bash
 npm install
+npm i -g @quasar/cli
 ```
 
 #### Start the app in development mode (hot-code reloading, error reporting, etc.)
