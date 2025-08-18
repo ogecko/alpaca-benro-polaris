@@ -187,12 +187,8 @@ class discoverpolaris():
             print(devices)
             polaris_devices = []
             for d in devices:
-                try:
-                    if d.name and d.name.lower().startswith("polaris"):
-                        polaris_devices.append({ "name": d.name, "address": d.address })
-                except AttributeError as e:
-                    print(f"Skipping malformed device: {d} — {e}")
-
+                if d.name and d.name.lower().startswith("polaris"):
+                    polaris_devices.append({ "name": d.name, "address": d.address })
 
             if not polaris_devices:
                 resp.status = falcon.HTTP_404
@@ -206,9 +202,8 @@ class discoverpolaris():
 
             resp.status = falcon.HTTP_200
             resp.media = {
-                "status": "multiple_found" if len(polaris_devices) > 1 else "success",
-                "devices": polaris_devices,
-                "message": "Select a device to send command"
+                "status": "success",
+                "devices": polaris_devices
             }
 
         except exc.BleakDBusError as e:
