@@ -113,6 +113,7 @@ async def alpaca_httpd(logger):
     falc_app.add_route('/management/apiversions', management.apiversions())
     falc_app.add_route(f'/management/v{API_VERSION}/description', management.description())
     falc_app.add_route(f'/management/v{API_VERSION}/configureddevices', management.configureddevices())
+    falc_app.add_route(f'/management/v{API_VERSION}/discoverdevices', management.discoverdevices())
     falc_app.add_route('/setup', setup.svrsetup())
     falc_app.add_route(f'/setup/v{API_VERSION}/telescope/{{devnum}}/setup', setup.devsetup())
 

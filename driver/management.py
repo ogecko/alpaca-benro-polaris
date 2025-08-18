@@ -97,3 +97,65 @@ class configureddevices():
             'UniqueID'      : RotatorMetadata.DeviceID
             }        ]
         resp.text = await PropertyResponse(confarray, req)
+
+import socket
+import json
+import asyncio
+import falcon
+from typing import List
+
+class discoverdevices():
+    async def on_get(self, req: falcon.Request, resp: falcon.Response):
+        """
+        GET /api/discover
+        Returns a JSON list of discovered Alpaca devices as ["hostname:port"]
+        """
+        devices = await discover_alpaca_devices_async()
+        resp.status = falcon.HTTP_200
+        resp.media = devices
+
+
+async def discover_alpaca_devices_async(timeout: float = 2.0) -> List[str]:
+    """
+    Asynchronously discovers Alpaca devices using UDP multicast.
+    Returns a list of "hostname:port" strings.
+    """
+    MCAST_GRP = '255.255.255.255'
+    MCAST_PORT = 32227
+    DISCOVERY_MSG = "alpacadiscovery1".encode('utf-8')
+
+    loop = asyncio.get_running_loop()
+    discovered = set()
+
+    # Create non-blocking UDP socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.setblocking(False)
+
+    # listen to any on a temporary port
+    try:
+        sock.bind(('', 0))  
+    except:
+        sock.close()
+        raise
+    try:
+        # Send discovery packet
+        await loop.sock_sendto(sock, DISCOVERY_MSG, (MCAST_GRP, MCAST_PORT))
+
+        start_time = loop.time()
+        while loop.time() - start_time < timeout:
+            try:
+                data, addr = await asyncio.wait_for(loop.sock_recvfrom(sock, 1024), timeout=0.2)
+
+                response = json.loads(data.decode('utf-8'))
+                host = response.get("Address") or response.get("RemoteAddress") or addr[0]
+                port = response.get("Port") or response.get("AlpacaPort") or 11111
+                discovered.add(f"{host}:{port}")
+            except asyncio.TimeoutError:
+                break
+            except Exception as e:
+                print(f"Error parsing response: {e}")
+    finally:
+        sock.close()
+    print(discovered)
+    return sorted(discovered)
