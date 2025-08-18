@@ -37,7 +37,6 @@ import inspect
 import uvicorn
 from falcon import App, asgi
 import management
-import setup
 from config import Config
 from pathlib import Path
 
@@ -77,10 +76,9 @@ def init_routes(app: App, devname: str, module):
 SCRIPT_DIR = Path(__file__).resolve().parent    # Get the path to the current script
 QUASAR_DIST = SCRIPT_DIR.parent / 'pilot' / 'dist' / 'spa'   
 
-class StaticResource:
+class QuasarStaticResource:
     async def on_get(self, req, resp, path=None):
         requested_path = path or 'index.html'
-#        file_path = os.path.join(QUASAR_DIST, requested_path)
         file_path = QUASAR_DIST / requested_path
         if not os.path.isfile(file_path):
             file_path = QUASAR_DIST / 'index.html'  # fallback for SPA routing
@@ -116,14 +114,15 @@ async def alpaca_httpd(logger):
     falc_app.add_route(f'/management/v{API_VERSION}/discoveralpaca', management.discoveralpaca())
     falc_app.add_route(f'/management/v{API_VERSION}/discoverpolaris', management.discoverpolaris())
     falc_app.add_route(f'/management/v{API_VERSION}/blepolaris', management.blepolaris())
-    falc_app.add_route('/setup', setup.svrsetup())
-    falc_app.add_route(f'/setup/v{API_VERSION}/telescope/{{devnum}}/setup', setup.devsetup())
+    falc_app.add_route('/setup', QuasarStaticResource())
+    falc_app.add_route(f'/setup/v{API_VERSION}/telescope/0/setup', QuasarStaticResource())
+    falc_app.add_route(f'/setup/v{API_VERSION}/rotator/0/setup', QuasarStaticResource())
 
     # add the Pilot Static routes
     falc_app.add_static_route('/icons', QUASAR_DIST / 'icons')      # icons resources (note /{path} does serve subdirecties)
     falc_app.add_static_route('/assets', QUASAR_DIST / 'assets')    # assets resources
-    falc_app.add_route('/{path}', StaticResource())                 # root resources, fallback to index.html when not found
-    falc_app.add_route('/', StaticResource())                       # root, fallback to index.html when nothing provided
+    falc_app.add_route('/{path}', QuasarStaticResource())                 # root resources, fallback to index.html when not found
+    falc_app.add_route('/', QuasarStaticResource())                       # root, fallback to index.html when nothing provided
 
     # Create a http server
     alpaca_config = uvicorn.Config(falc_app, host=Config.alpaca_ip_address, port=Config.alpaca_port, log_level="error")
