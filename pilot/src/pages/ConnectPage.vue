@@ -4,25 +4,27 @@
 
       <!-- Section 1: Connect Alpaca -->
       <q-card-section>
-        <div class="text-h6"><q-checkbox v-model="alpacaConnected" color="positive" label="Connect to Alpaca Driver" @update:model-value="attemptConnectAlpaca"/></div>
+        <div class="text-h6"><q-checkbox v-model="dev.alpacaConnected" color="positive" label="Connect to Alpaca Driver"/></div>
         <div class="q-pl-xl q-mt-sm">
-            <q-select
-              v-model="selectedAlpacaDevice"
-              :options="availableAlpacaDevices"
-              label="Nearby Alpaca Drivers"
-              dense
-              outlined
-              emit-value
-              map-options
-              option-label="name"
-              option-value="id"
-            />
-          </div>
+          <q-select
+            v-model="dev.selectedAlpacaDevice"
+            :options="dev.availableAlpacaDevices"
+            label="Nearby Alpaca Drivers"
+            dense
+            outlined
+            emit-value
+            map-options
+            option-label="name"
+            option-value="id"
+            @click="dev.discoverAlpacaDevices"
+          />
+
+        </div>
         <q-item class="q-pl-xl">
           <q-item-section>
             <div class="row items-start">
-              <q-input v-model="alpacaHost" label="Host Name" class="col-8 q-mt-sm" />
-              <q-input v-model="alpacaPort" label="Port" type="number" class="col-4 q-mt-sm" />
+              <q-input v-model="dev.alpacaHost" label="Host Name" class="col-8 q-mt-sm" />
+              <q-input v-model="dev.alpacaPort" label="Port" type="number" class="col-4 q-mt-sm" />
             </div>
           </q-item-section>
           <q-item-section side>
@@ -94,24 +96,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useQuasar } from 'quasar'
+import { useDeviceStore } from 'stores/device'
+import { ref, watch } from 'vue'
 
 const $q = useQuasar()
+const dev = useDeviceStore()
 
-const alpacaConnected = ref(false)
-const alpacaHost = ref('localhost')
-const alpacaPort = ref(11111)
 const polarisConnected = ref(false)
 const locationSynced = ref(false)
 const selectedPolarisDevice = ref(null)
-const selectedAlpacaDevice = ref(null)
-
-const availableAlpacaDevices = ref([
-  { id: 'alpaca-001', name: 'Alpaca A' },
-  { id: 'alpaca-002', name: 'Alpaca B' },
-  { id: 'alpaca-003', name: 'Alpaca C' }
-])
 
 const availablePolarisDevices = ref([
   { id: 'benro-001', name: 'Benro Polaris A' },
@@ -126,34 +120,29 @@ const polarisSteps = ref([
   { label: 'Running', icon: 'check_circle', status: false }
 ])
 
-function fixStep(index:number) {
-  // Simulate fixing the step
-    const step = polarisSteps.value[index]
-    if (step) {
-      step.status = true
-    }
+function fixStep(index: number) {
+  const step = polarisSteps.value[index]
+  if (step) step.status = true
 }
 
-function attemptConnectAlpaca(newValue: boolean) {
-  // Simulate fixing the step
-
-  if (newValue) {
-    if (!selectedAlpacaDevice.value) {
+watch(() => dev.alpacaConnected, (newVal) => {
+  if (newVal) {
+    if (!dev.selectedAlpacaDevice) {
       $q.notify({
-        type: 'negative', // or 'negative' for red
+        type: 'negative',
         message: 'Select an Alpaca Driver before attempting to connect',
-        position: 'top', // 'bottom', 'left', 'right' also valid
-        timeout: 3000,   // milliseconds before auto-dismiss
+        position: 'top',
+        timeout: 3000,
         actions: [{ icon: 'close', color: 'white' }]
       })
-      alpacaConnected.value = false
-
+      dev.alpacaConnected = false
+    } else {
+      dev.connectAlpaca()
     }
+  } else {
+    dev.disconnectAlpaca()
   }
-
-}
-const latitude = ref<number | null>(null)
-const longitude = ref<number | null>(null)
+})
 
 function setFromPhoneLocation() {
   if (navigator.geolocation) {
@@ -167,5 +156,9 @@ function setFromPhoneLocation() {
     console.warn('Geolocation not supported')
   }
 }
+
+const latitude = ref<number | null>(null)
+const longitude = ref<number | null>(null)
 </script>
+
 
