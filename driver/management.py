@@ -98,6 +98,10 @@ class configureddevices():
             }        ]
         resp.text = await PropertyResponse(confarray, req)
 
+# -----------------
+# Custom Resources for Managing the Benro Polaris and Alpaca Drivert
+# -----------------
+
 import socket
 import json
 import asyncio
@@ -105,11 +109,26 @@ import falcon
 from typing import List
 import psutil
 
+def is_json_serializable(value):
+    return isinstance(value, (str, int, float, bool, type(None), list, dict))
+
+def serialize_class(cls):
+    return {
+        k: v for k, v in cls.__dict__.items()
+        if not k.startswith('__') and not callable(v) and is_json_serializable(v)
+    }
+
+class config():
+    async def on_get(self, req: falcon.Request, resp: falcon.Response):
+        """
+        Returns a the Config settings of the Alpaca Driver
+        """
+        resp.status = falcon.HTTP_200
+        resp.media = serialize_class(Config)
 
 class discoveralpaca():
     async def on_get(self, req: falcon.Request, resp: falcon.Response):
         """
-        GET /api/discover
         Returns a JSON list of discovered Alpaca devices as ["hostname:port"]
         """
         devices = await discover_alpaca_devices_async()

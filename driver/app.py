@@ -111,9 +111,12 @@ async def alpaca_httpd(logger):
     falc_app.add_route('/management/apiversions', management.apiversions())
     falc_app.add_route(f'/management/v{API_VERSION}/description', management.description())
     falc_app.add_route(f'/management/v{API_VERSION}/configureddevices', management.configureddevices())
+    # Custom Resources for Alpaca Benro Polaris Driver Management
+    falc_app.add_route(f'/management/v{API_VERSION}/config', management.config())
     falc_app.add_route(f'/management/v{API_VERSION}/discoveralpaca', management.discoveralpaca())
     falc_app.add_route(f'/management/v{API_VERSION}/discoverpolaris', management.discoverpolaris())
     falc_app.add_route(f'/management/v{API_VERSION}/blepolaris', management.blepolaris())
+    # Custom Resrouces for Quasar Pilot App
     falc_app.add_route('/setup', QuasarStaticResource())
     falc_app.add_route(f'/setup/v{API_VERSION}/telescope/0/setup', QuasarStaticResource())
     falc_app.add_route(f'/setup/v{API_VERSION}/rotator/0/setup', QuasarStaticResource())
