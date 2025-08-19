@@ -1,8 +1,7 @@
 import axios from 'axios'
 import { defineStore, acceptHMRUpdate } from 'pinia'
-import { sleep } from 'src/utils/sleep'
 import { HTMLResponseError, NonJSONResponseError, NotFound404Error } from 'src/utils/error'
-import type { AlpacaDevice, AlpacaConfiguredDevices, AlpacaDescription } from 'src/utils/interfaces'
+import type { AlpacaConfiguredDevices, AlpacaDescription } from 'src/utils/interfaces'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
@@ -30,11 +29,9 @@ export const useDeviceStore = defineStore('device', {
       this.alpacaServerName = ''
       this.alpacaServerVersion = ''
       this.alpacaDevices = []
-      await sleep(200)
       try {
-          await this.getDeviceDescription();
-          await this.getConfiguredDevices();
-
+          await this.fetchDeviceDescription();
+          await this.fetchConfiguredDevices();
           this.alpacaConnected = true;
         } catch {
           // alpacaConnectErrorMsg is already set inside apiGet
@@ -48,17 +45,15 @@ export const useDeviceStore = defineStore('device', {
       this.alpacaConnected = false
     },
 
-    async getDeviceDescription(): Promise<AlpacaDescription['Value']> {
+    async fetchDeviceDescription() {
       const response = await this.apiGet<AlpacaDescription>('management/v1/description');
       this.alpacaServerName = response.Value.ServerName;
       this.alpacaServerVersion = response.Value.Version;
-      return response.Value;
     },
 
-    async getConfiguredDevices(): Promise<AlpacaDevice[]> {
+    async fetchConfiguredDevices() {
       const response = await this.apiGet<AlpacaConfiguredDevices>('management/v1/configureddevices');
       this.alpacaDevices = response.Value.map( d => (d.DeviceNumber)?`${d.DeviceType}/${d.DeviceNumber}`:`${d.DeviceType}` )
-      return response.Value;
     },
 
     async apiGet<T>(resourcePath: string, clientID = 0, clientTransactionID = 0): Promise<T> {

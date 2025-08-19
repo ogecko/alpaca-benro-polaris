@@ -36,7 +36,7 @@
 
           <q-item v-if="!dev.alpacaConnected">
             <div class="row items-start">
-              <q-input v-model="dev.alpacaHost" label="Host Name" class="col-8 q-mt-sm" />
+              <q-input v-model="dev.alpacaHost" label="Host Name / IP Address" class="col-8 q-mt-sm" />
               <q-input v-model="dev.alpacaPort" label="Port" type="number" class="col-4 q-mt-sm" />
             </div>
           </q-item>
