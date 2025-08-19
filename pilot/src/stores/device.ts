@@ -24,11 +24,13 @@ export const useDeviceStore = defineStore('device', {
     },
 
     async connectAlpaca() {
-      this.alpacaConnectingMsg = 'Connecting...'
-      this.alpacaConnectErrorMsg = ''
-      this.alpacaServerName = ''
-      this.alpacaServerVersion = ''
-      this.alpacaDevices = []
+      this.$patch({
+        alpacaConnectingMsg: 'Connecting...',
+        alpacaConnectErrorMsg: '',
+        alpacaServerName: '',
+        alpacaServerVersion: '',
+        alpacaDevices: []
+      });
       try {
           await this.fetchServerDescription();
           await this.fetchConfiguredDevices();
