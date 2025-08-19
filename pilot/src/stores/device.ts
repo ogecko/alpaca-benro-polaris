@@ -105,9 +105,6 @@ export const useDeviceStore = defineStore('device', {
 
     },
 
-    monitorAlpacaLink() {
-      // Optional: ping or poll connection status
-    }
   }
 })
 
