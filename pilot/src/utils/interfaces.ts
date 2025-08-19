@@ -1,4 +1,4 @@
-export interface AlpacaDescription {
+export interface DescriptionResponse {
       ServerTransactionID: number;
       ClientTransactionID: number;
       ErrorNumber: number;
@@ -11,19 +11,19 @@ export interface AlpacaDescription {
       };
     }
 
-export interface AlpacaDevice {
+export interface DeviceResponse {
   DeviceName: string;
   DeviceType: string;
   DeviceNumber: number;
   UniqueID: string;
 }
 
-export interface AlpacaConfiguredDevices {
+export interface ConfiguredDevicesResponse {
   ServerTransactionID: number;
   ClientTransactionID: number;
   ErrorNumber: number;
   ErrorMessage: string;
-  Value: AlpacaDevice[];
+  Value: DeviceResponse[];
 }
 
 

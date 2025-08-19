@@ -1,18 +1,18 @@
 import axios from 'axios'
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import { HTMLResponseError, NonJSONResponseError, NotFound404Error } from 'src/utils/error'
-import type { AlpacaConfiguredDevices, AlpacaDescription } from 'src/utils/interfaces'
+import type { DescriptionResponse, ConfiguredDevicesResponse } from 'src/utils/interfaces'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
-    alpacaHost: 'localhost',
-    alpacaPort: 11111,
-    alpacaConnectingMsg: '',
-    alpacaConnectErrorMsg: '',
-    alpacaConnected: false,
-    alpacaServerName: '',
-    alpacaServerVersion: '',
-    alpacaDevices: [] as string[],
+    alpacaHost: 'localhost',        // Hostname of Alpaca API
+    alpacaPort: 11111,              // Port of Alpaca API
+    alpacaConnectingMsg: '',        // Message to show while connecting in progress
+    alpacaConnectErrorMsg: '',      // Message to show when there is a connection error
+    alpacaConnected: false,         // Indicates whether connection to Alpaca API was successful
+    alpacaServerName: '',           // fetched from /management/v1/description
+    alpacaServerVersion: '',        // fetched from /management/v1/description
+    alpacaDevices: [] as string[],  // fetched from /management/v1/configureddevices
     alpacaServersDiscovered: [] as { name: string; id: string }[],
     alpacaDiscovering: false,
   }),
@@ -30,7 +30,7 @@ export const useDeviceStore = defineStore('device', {
       this.alpacaServerVersion = ''
       this.alpacaDevices = []
       try {
-          await this.fetchDeviceDescription();
+          await this.fetchServerDescription();
           await this.fetchConfiguredDevices();
           this.alpacaConnected = true;
         } catch {
@@ -45,14 +45,14 @@ export const useDeviceStore = defineStore('device', {
       this.alpacaConnected = false
     },
 
-    async fetchDeviceDescription() {
-      const response = await this.apiGet<AlpacaDescription>('management/v1/description');
+    async fetchServerDescription() {
+      const response = await this.apiGet<DescriptionResponse>('management/v1/description');
       this.alpacaServerName = response.Value.ServerName;
       this.alpacaServerVersion = response.Value.Version;
     },
 
     async fetchConfiguredDevices() {
-      const response = await this.apiGet<AlpacaConfiguredDevices>('management/v1/configureddevices');
+      const response = await this.apiGet<ConfiguredDevicesResponse>('management/v1/configureddevices');
       this.alpacaDevices = response.Value.map( d => (d.DeviceNumber)?`${d.DeviceType}/${d.DeviceNumber}`:`${d.DeviceType}` )
     },
 
