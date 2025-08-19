@@ -50,9 +50,6 @@ export const useDeviceStore = defineStore('device', {
 
     async getDeviceDescription(): Promise<AlpacaDescription['Value']> {
       const response = await this.apiGet<AlpacaDescription>('management/v1/description');
-      if (response.ErrorNumber !== 0) {
-        throw new Error(`Alpaca error ${response.ErrorNumber}: ${response.ErrorMessage}`);
-      }
       this.alpacaServerName = response.Value.ServerName;
       this.alpacaServerVersion = response.Value.Version;
       return response.Value;
@@ -60,28 +57,8 @@ export const useDeviceStore = defineStore('device', {
 
     async getConfiguredDevices(): Promise<AlpacaDevice[]> {
       const response = await this.apiGet<AlpacaConfiguredDevices>('management/v1/configureddevices');
-      if (response.ErrorNumber !== 0) {
-        throw new Error(`Alpaca error ${response.ErrorNumber}: ${response.ErrorMessage}`);
-      }
       this.alpacaDevices = response.Value.map( device => `${device.DeviceType}/${device.DeviceNumber}` )
       return response.Value;
-    },
-
-
-    async discoverAlpacaServers() {
-      this.alpacaDiscovering = true
-      try {
-        const { data } = await axios.get('http://192.168.50.54:5555/management/v1/discoveralpaca')
-        console.log(data)
-        this.alpacaServersDiscovered = data.map((addr: string) => ({
-          name: addr,
-          id: addr
-        }))
-      } catch (err) {
-        console.error('Discovery failed:', err)
-      } finally {
-        this.alpacaDiscovering = false
-      }
     },
 
     async apiGet<T>(resourcePath: string, clientID = 0, clientTransactionID = 0): Promise<T> {
