@@ -57,7 +57,7 @@ export const useDeviceStore = defineStore('device', {
 
     async getConfiguredDevices(): Promise<AlpacaDevice[]> {
       const response = await this.apiGet<AlpacaConfiguredDevices>('management/v1/configureddevices');
-      this.alpacaDevices = response.Value.map( device => `${device.DeviceType}/${device.DeviceNumber}` )
+      this.alpacaDevices = response.Value.map( d => (d.DeviceNumber)?`${d.DeviceType}/${d.DeviceNumber}`:`${d.DeviceType}` )
       return response.Value;
     },
 
