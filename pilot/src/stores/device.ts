@@ -1,24 +1,144 @@
 import axios from 'axios'
-import { defineStore, acceptHMRUpdate } from 'pinia';
+import { defineStore, acceptHMRUpdate } from 'pinia'
+import { sleep } from 'src/utils/sleep'
+import { HTMLResponseError, NonJSONResponseError, NotFound404Error } from 'src/utils/error'
+import type { AlpacaDevice, AlpacaConfiguredDevices, AlpacaDescription } from 'src/utils/interfaces'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
-    alpacaConnected: false,
     alpacaHost: 'localhost',
     alpacaPort: 11111,
-    selectedAlpacaDevice: null,
-    availableAlpacaDevices: ['Alpaca A', 'Alpaca B', 'Alpaca C'],
+    alpacaConnectingMsg: '',
+    alpacaConnectErrorMsg: '',
+    alpacaConnected: false,
+    alpacaServerName: '',
+    alpacaServerVersion: '',
+    alpacaDevices: [] as string[],
+    alpacaServersDiscovered: [] as { name: string; id: string }[],
+    alpacaDiscovering: false,
   }),
+
   actions: {
-    connectAlpaca() { /* ... */ },
-    disconnectAlpaca() { /* ... */ },
-    discoverAlpacaDevices() { 
-      console.log(window.location.host)
+    setAlpacaDevice(hostname: string, port: number) {
+      this.alpacaHost = hostname;
+      this.alpacaPort = port;
     },
-    monitorAlpacaLink() { /* ... */ },
+
+    async connectAlpaca() {
+      this.alpacaConnectingMsg = 'Connecting...'
+      this.alpacaConnectErrorMsg = ''
+      this.alpacaServerName = ''
+      this.alpacaServerVersion = ''
+      this.alpacaDevices = []
+      await sleep(200)
+      try {
+          await this.getDeviceDescription();
+          await this.getConfiguredDevices();
+
+          this.alpacaConnected = true;
+        } catch {
+          // alpacaConnectErrorMsg is already set inside apiGet
+          this.alpacaConnected = false;
+        } finally {
+          this.alpacaConnectingMsg = '';
+        }
+    },
+
+    disconnectAlpaca() {
+      this.alpacaConnected = false
+    },
+
+    async getDeviceDescription(): Promise<AlpacaDescription['Value']> {
+      const response = await this.apiGet<AlpacaDescription>('management/v1/description');
+      if (response.ErrorNumber !== 0) {
+        throw new Error(`Alpaca error ${response.ErrorNumber}: ${response.ErrorMessage}`);
+      }
+      this.alpacaServerName = response.Value.ServerName;
+      this.alpacaServerVersion = response.Value.Version;
+      return response.Value;
+    },
+
+    async getConfiguredDevices(): Promise<AlpacaDevice[]> {
+      const response = await this.apiGet<AlpacaConfiguredDevices>('management/v1/configureddevices');
+      if (response.ErrorNumber !== 0) {
+        throw new Error(`Alpaca error ${response.ErrorNumber}: ${response.ErrorMessage}`);
+      }
+      this.alpacaDevices = response.Value.map( device => `${device.DeviceType}/${device.DeviceNumber}` )
+      return response.Value;
+    },
+
+
+    async discoverAlpacaServers() {
+      this.alpacaDiscovering = true
+      try {
+        const { data } = await axios.get('http://192.168.50.54:5555/management/v1/discoveralpaca')
+        console.log(data)
+        this.alpacaServersDiscovered = data.map((addr: string) => ({
+          name: addr,
+          id: addr
+        }))
+      } catch (err) {
+        console.error('Discovery failed:', err)
+      } finally {
+        this.alpacaDiscovering = false
+      }
+    },
+
+    async apiGet<T>(resourcePath: string, clientID = 0, clientTransactionID = 0): Promise<T> {
+      const baseUrl = `http://${this.alpacaHost}:${this.alpacaPort}`;
+      const url = `${baseUrl}/${resourcePath}?ClientID=${clientID}&ClientTransactionID=${clientTransactionID}`;
+      try {
+        const response = await axios.get(url, {
+          timeout: 5000,
+          responseType: 'json',
+          validateStatus: () => true, // allow non-2xx for inspection
+        });
+        // Handle 404 or other non-success status codes
+        if (response.status === 404) {
+          throw new NotFound404Error('');
+        }
+        // Detect HTML fallback (e.g. index.html returned instead of JSON)
+        if (typeof response.data === 'string' && response.data.includes('<html')) {
+          throw new HTMLResponseError('');
+        }
+        // Validate basic shape of Alpaca response
+        if (typeof response.data !== 'object' || response.data === null) {
+          throw new NonJSONResponseError('');
+        }
+        return response.data as T;
+
+      } catch (error: unknown) {
+        if (error instanceof NotFound404Error) {
+          this.alpacaConnectErrorMsg = 'API endpoint not found (404).';
+        } else if (error instanceof HTMLResponseError) {
+          this.alpacaConnectErrorMsg = 'Received HTML fallback — Alpaca API service may not be running.';
+        } else if (error instanceof NonJSONResponseError) {
+          this.alpacaConnectErrorMsg = 'Received unexpected response format.';
+        } else if (axios.isAxiosError(error)) {
+          if (error.code === 'ECONNABORTED') {
+            this.alpacaConnectErrorMsg = 'Connection request timed out.';
+          } else if (error.message?.includes('Network Error')) {
+            this.alpacaConnectErrorMsg = 'Network error — hostname may be unreachable.';
+          } else if (!error.response) {
+            this.alpacaConnectErrorMsg = 'No response — device may be offline or DNS failed.';
+          } else {
+            this.alpacaConnectErrorMsg = `Unexpected error: ${error.message || 'Unknown failure'}`;
+          }
+        } else {
+          this.alpacaConnectErrorMsg = 'Non-Axios error occurred.';
+          console.error('Unexpected error type:', error);
+        }
+        throw error;
+      }
+
+    },
+
+    monitorAlpacaLink() {
+      // Optional: ping or poll connection status
+    }
   }
 })
 
 if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useDeviceStore, import.meta.hot));
+  import.meta.hot.accept(acceptHMRUpdate(useDeviceStore, import.meta.hot))
 }

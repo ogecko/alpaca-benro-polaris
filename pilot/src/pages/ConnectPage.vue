@@ -5,34 +5,43 @@
       <!-- Section 1: Connect Alpaca -->
       <q-card-section>
         <div class="text-h6"><q-checkbox v-model="dev.alpacaConnected" color="positive" label="Connect to Alpaca Driver"/></div>
-        <div class="q-pl-xl q-mt-sm">
-          <q-select
-            v-model="dev.selectedAlpacaDevice"
-            :options="dev.availableAlpacaDevices"
-            label="Nearby Alpaca Drivers"
-            dense
-            outlined
-            emit-value
-            map-options
-            option-label="name"
-            option-value="id"
-            @click="dev.discoverAlpacaDevices"
-          />
+        <q-list class="q-pl-lg">
 
-        </div>
-        <q-item class="q-pl-xl">
-          <q-item-section>
+          <q-item v-if="dev.alpacaConnectingMsg">
+            <q-item-section avatar>
+              <q-circular-progress indeterminate rounded size="lg" color="positive" />
+            </q-item-section>
+            <q-item-section>{{ dev.alpacaConnectingMsg }}</q-item-section>
+          </q-item>
+
+          <q-item v-else-if="dev.alpacaConnected">
+            <q-item-section avatar>
+              <q-icon name='check_circle' color='green'/>
+            </q-item-section>
+            <q-item-section>
+              <div class="q-gutter-sm">
+                {{ dev.alpacaServerName }}
+                <q-badge>v{{ dev.alpacaServerVersion }}</q-badge> 
+                <q-badge v-for="id in dev.alpacaDevices" :key="id" color="positive">{{ id }}</q-badge>
+              </div>
+            </q-item-section>
+          </q-item>
+
+          <q-item v-if="dev.alpacaConnectErrorMsg">
+            <q-item-section avatar>
+              <q-icon name='error' color='red'/>
+            </q-item-section>
+            <q-item-section>{{ dev.alpacaConnectErrorMsg }}</q-item-section>
+          </q-item>
+
+          <q-item v-if="!dev.alpacaConnected">
             <div class="row items-start">
               <q-input v-model="dev.alpacaHost" label="Host Name" class="col-8 q-mt-sm" />
               <q-input v-model="dev.alpacaPort" label="Port" type="number" class="col-4 q-mt-sm" />
             </div>
-          </q-item-section>
-          <q-item-section side>
-            <q-btn label="Default" icon="computer" color="secondary" @click="setFromPhoneLocation" />
-          </q-item-section>
-        </q-item>
-        <div class="row q-pl-xl items-start">
-        </div>        
+          </q-item>
+
+        </q-list>
       </q-card-section>
 
       <q-separator />
@@ -98,7 +107,7 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar'
 import { useDeviceStore } from 'stores/device'
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
@@ -120,25 +129,28 @@ const polarisSteps = ref([
   { label: 'Running', icon: 'check_circle', status: false }
 ])
 
+onMounted(() => {
+  dev.setAlpacaDevice(window.location.hostname, parseInt(window.location.port))
+  dev.alpacaConnected = true    // kicks off the watch to initiate a dev.connectAlpaca
+})
+
+
 function fixStep(index: number) {
   const step = polarisSteps.value[index]
   if (step) step.status = true
 }
 
-watch(() => dev.alpacaConnected, (newVal) => {
+watch(() => dev.alpacaConnected, async (newVal) => {
   if (newVal) {
-    if (!dev.selectedAlpacaDevice) {
+    await dev.connectAlpaca()
+    if (dev.alpacaConnected) {
       $q.notify({
-        type: 'negative',
-        message: 'Select an Alpaca Driver before attempting to connect',
-        position: 'top',
-        timeout: 3000,
+        message: 'Alpaca Driver successfuly connected.',
+        type: 'positive', position: 'top', timeout: 3000,
         actions: [{ icon: 'close', color: 'white' }]
       })
-      dev.alpacaConnected = false
-    } else {
-      dev.connectAlpaca()
     }
+
   } else {
     dev.disconnectAlpaca()
   }
