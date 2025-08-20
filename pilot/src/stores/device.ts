@@ -2,6 +2,7 @@ import axios from 'axios'
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import { HTMLResponseError, NonJSONResponseError, NotFound404Error } from 'src/utils/error'
 import type { DescriptionResponse, ConfiguredDevicesResponse } from 'src/utils/interfaces'
+import { sleep } from 'src/utils/sleep'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
@@ -32,6 +33,7 @@ export const useDeviceStore = defineStore('device', {
         alpacaDevices: []
       });
       try {
+          await sleep(200);  // some time to see connecting message
           await this.fetchServerDescription();
           await this.fetchConfiguredDevices();
           this.alpacaConnected = true;

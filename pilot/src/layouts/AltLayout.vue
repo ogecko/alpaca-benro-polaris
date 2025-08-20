@@ -46,6 +46,8 @@
       class="dark-page"
       :width="200"
     >
+      <q-separator class="q-my-md" />
+
       <q-scroll-area class="fit">
         <q-list dense>
           <q-item v-for="link in links1" :key="link.text" :to="link.to" v-ripple clickable>
@@ -163,7 +165,7 @@ export default {
       links1: [
         { icon: 'home', text: 'Home', to: '/' },
         { icon: 'power', text: 'Connections', to: '/connect' },
-        { icon: 'settings', text: 'Settings', to: '/settings' },
+        { icon: 'settings', text: 'Settings', to: '/config' },
       ],
       links2: [
         { icon: 'flare', text: 'Stars' },
