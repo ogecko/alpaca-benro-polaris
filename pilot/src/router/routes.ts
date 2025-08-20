@@ -11,7 +11,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/AltLayout.vue'),
     children: [{ path: '', component: () => import('pages/ConnectPage.vue') }],
   },
-
+  {
+    path: '/config',
+    component: () => import('layouts/AltLayout.vue'),
+    children: [{ path: '', component: () => import('pages/ConfigPage.vue') }],
+  },
   // Always leave this as last one,
   // but you can also remove it
   {
