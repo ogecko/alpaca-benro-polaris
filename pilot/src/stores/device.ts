@@ -11,6 +11,7 @@ export const useDeviceStore = defineStore('device', {
     alpacaConnectingMsg: '',        // Message to show while connecting in progress
     alpacaConnectErrorMsg: '',      // Message to show when there is a connection error
     alpacaConnected: false,         // Indicates whether connection to Alpaca API was successful
+    alpacaConnectedAt: 0,           // Timestamp of last successful alpaca connection
     alpacaServerName: '',           // fetched from /management/v1/description
     alpacaServerVersion: '',        // fetched from /management/v1/description
     alpacaDevices: [] as string[],  // fetched from /management/v1/configureddevices
@@ -37,6 +38,7 @@ export const useDeviceStore = defineStore('device', {
           await this.fetchServerDescription();
           await this.fetchConfiguredDevices();
           this.alpacaConnected = true;
+          this.alpacaConnectedAt = Date.now();
         } catch {
           // alpacaConnectErrorMsg is already set inside apiGet
           this.alpacaConnected = false;

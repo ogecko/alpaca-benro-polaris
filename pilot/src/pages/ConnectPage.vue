@@ -4,7 +4,7 @@
 
       <!-- Section 1: Connect Alpaca -->
       <q-card-section>
-        <div class="text-h6"><q-checkbox v-model="dev.alpacaConnected" color="positive" label="Connect to Alpaca Driver"/></div>
+        <div class="text-h6"><q-checkbox v-model="connectToAlpacaCheckbox" color="positive" label="Connect to Alpaca Driver"/></div>
         <q-list class="q-pl-lg">
 
           <q-item v-if="dev.alpacaConnectingMsg">
@@ -34,7 +34,7 @@
             <q-item-section>{{ dev.alpacaConnectErrorMsg }}</q-item-section>
           </q-item>
 
-          <q-item v-if="!dev.alpacaConnected">
+          <q-item v-if="!dev.alpacaConnected && !dev.alpacaConnectingMsg">
             <div class="row items-start">
               <q-input v-model="dev.alpacaHost" label="Host Name / IP Address" class="col-8 q-mt-sm" />
               <q-input v-model="dev.alpacaPort" label="Port" type="number" class="col-4 q-mt-sm" />
@@ -112,6 +112,7 @@ import { ref, watch, onMounted } from 'vue'
 const $q = useQuasar()
 const dev = useDeviceStore()
 
+const connectToAlpacaCheckbox = ref(false);
 const polarisConnected = ref(false)
 const locationSynced = ref(false)
 const selectedPolarisDevice = ref(null)
@@ -131,7 +132,7 @@ const polarisSteps = ref([
 
 onMounted(() => {
   dev.setAlpacaDevice(window.location.hostname, parseInt(window.location.port))
-  dev.alpacaConnected = true    // kicks off the watch to initiate a dev.connectAlpaca
+  connectToAlpacaCheckbox.value = true    // kicks off the watch to initiate a dev.connectAlpaca
 })
 
 
@@ -140,7 +141,7 @@ function fixStep(index: number) {
   if (step) step.status = true
 }
 
-watch(() => dev.alpacaConnected, async (newVal) => {
+watch(connectToAlpacaCheckbox, async (newVal) => {
   if (newVal) {
     await dev.connectAlpaca()
     if (dev.alpacaConnected) {
@@ -150,10 +151,10 @@ watch(() => dev.alpacaConnected, async (newVal) => {
         actions: [{ icon: 'close', color: 'white' }]
       })
     }
-
   } else {
     dev.disconnectAlpaca()
   }
+  connectToAlpacaCheckbox.value = dev.alpacaConnected
 })
 
 function setFromPhoneLocation() {
