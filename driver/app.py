@@ -35,7 +35,7 @@ import mimetypes
 import aiofiles
 import inspect
 import uvicorn
-from falcon import App, asgi
+from falcon import App, asgi, HTTP_200
 import management
 from config import Config
 from pathlib import Path
@@ -112,7 +112,6 @@ async def alpaca_httpd(logger):
     falc_app.add_route(f'/management/v{API_VERSION}/description', management.description())
     falc_app.add_route(f'/management/v{API_VERSION}/configureddevices', management.configureddevices())
     # Custom Resources for Alpaca Benro Polaris Driver Management
-    falc_app.add_route(f'/management/v{API_VERSION}/config', management.config())
     falc_app.add_route(f'/management/v{API_VERSION}/discoveralpaca', management.discoveralpaca())
     falc_app.add_route(f'/management/v{API_VERSION}/discoverpolaris', management.discoverpolaris())
     falc_app.add_route(f'/management/v{API_VERSION}/blepolaris', management.blepolaris())
@@ -152,5 +151,5 @@ class CORSMiddleware:
         resp.set_header("Access-Control-Allow-Credentials", "true")
 
         if req.method == "OPTIONS":
-            resp.status = falcon.HTTP_200
+            resp.status = HTTP_200
             resp.complete = True

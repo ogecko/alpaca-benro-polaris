@@ -22,6 +22,7 @@
       <div v-else class="text-negative">
         Configuration not loaded.
       </div>
+            <q-btn flat label="Test" @click="putcall" />
 
     </q-card>
 </q-page>
@@ -35,10 +36,6 @@ import { useDeviceStore } from 'src/stores/device';
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 
-// onMounted(async () => {
-//     if (dev.alpacaConnected)
-//       await cfg.fetchConfig()
-// })
 onMounted(async () => {
   const shouldFetch =
     dev.alpacaConnected &&
@@ -49,5 +46,12 @@ onMounted(async () => {
     await cfg.fetchConfig()
   }
 })
+
+async function putcall() {
+    console.log('test');
+    const value = await dev.apiAction<string>('ConfigTOML', { location:'Test change', site_elevation: 345, advanced_control: true });
+    console.log(value);
+}
+
 
 </script>

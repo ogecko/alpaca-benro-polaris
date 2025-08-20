@@ -76,7 +76,7 @@ export const useConfigStore = defineStore('config', {
   actions: {
     async fetchConfig() {
       try {
-        const response = await dev.apiGet<ConfigResponse>('management/v1/config');
+        const response = await dev.apiAction<ConfigResponse>('ConfigTOML');
         this.$patch(response)
         this.fetchedAt = Date.now()
       } catch (err) {

@@ -26,4 +26,18 @@ export interface ConfiguredDevicesResponse {
   Value: DeviceResponse[];
 }
 
+export interface SupportedActionsResponse {
+  ServerTransactionID: number;
+  ClientTransactionID: number;
+  ErrorNumber: number;
+  ErrorMessage: string;
+  Value: string[];
+}
 
+export interface ActionResponse {
+  ServerTransactionID: number;
+  ClientTransactionID: number;
+  ErrorNumber: number;
+  ErrorMessage: string;
+  Value: string;
+}

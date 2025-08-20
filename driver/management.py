@@ -109,39 +109,6 @@ import falcon
 from typing import List
 import psutil
 
-def is_json_serializable(value):
-    return isinstance(value, (str, int, float, bool, type(None), list, dict))
-
-def serialize_class(cls):
-    return {
-        k: v for k, v in cls.__dict__.items()
-        if not k.startswith('__') and not callable(v) and is_json_serializable(v)
-    }
-
-class config():
-    async def on_get(self, req: falcon.Request, resp: falcon.Response):
-        """
-        Returns a the Config settings of the Alpaca Driver
-        """
-        resp.status = falcon.HTTP_200
-        resp.media = serialize_class(Config)
-    async def on_put(self, req: falcon.Request, resp: falcon.Response):
-        """
-        Sets a subset of the Config settings of the Alpaca Driver
-        """
-        payload = await req.media
-        for key, value in payload.items():
-            if hasattr(Config, key):
-                setattr(Config, key, value)
-        # # Save to override file
-        # with open("config_override.json", "w") as f:
-        #     json.dump({
-        #         k: v for k, v in Config.__dict__.items()
-        #         if not k.startswith('__') and not callable(v)
-        #     }, f, indent=2)
-        resp.status = falcon.HTTP_200
-        resp.media = {"status": "ok"}
-
 class discoveralpaca():
     async def on_get(self, req: falcon.Request, resp: falcon.Response):
         """

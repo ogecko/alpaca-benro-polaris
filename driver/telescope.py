@@ -65,11 +65,6 @@ class TelescopeMetadata:
 # --------------------
 
 @before(PreProcessRequest(maxdev))
-class action:
-    async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
-
-@before(PreProcessRequest(maxdev))
 class commandblind:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
@@ -161,10 +156,6 @@ class name():
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.Name, req)
 
-@before(PreProcessRequest(maxdev))
-class supportedactions:
-    async def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = await PropertyResponse([], req)  # Not PropertyNotImplemented
 
 @before(PreProcessRequest(maxdev))
 class alignmentmode:
@@ -1452,3 +1443,30 @@ class unpark:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Unpark failed', ex))
 
+
+@before(PreProcessRequest(maxdev))
+class supportedactions:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = await PropertyResponse(['ConfigTOML'], req)  
+
+
+@before(PreProcessRequest(maxdev))
+class action:
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        actionName = await get_request_field('Action', req)
+        parameters = dict(await get_request_field('Parameters', req))
+        logger.info(f'ACTION request {actionName}: {parameters}')
+        if actionName=="ConfigTOML":
+            for key, value in parameters.items():
+                if hasattr(Config, key):
+                    setattr(Config, key, value)
+            resp.text = await PropertyResponse(serialize_class(Config), req)
+
+def is_json_serializable(value):
+    return isinstance(value, (str, int, float, bool, type(None), list, dict))
+
+def serialize_class(cls):
+    return {
+        k: v for k, v in cls.__dict__.items()
+        if not k.startswith('__') and not callable(v) and is_json_serializable(v)
+    }
