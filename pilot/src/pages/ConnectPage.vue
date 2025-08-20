@@ -95,7 +95,7 @@
             </div>
             </q-item-section>
             <q-item-section side>
-            <q-btn label="GPS" icon="my_location" color="secondary" @click="setFromPhoneLocation" />
+            <q-btn label="GPS" icon="my_location" color="secondary"  />
             </q-item-section>
         </q-item>
       </q-card-section>
@@ -162,18 +162,6 @@ function fixStep(index: number) {
 }
 
 
-function setFromPhoneLocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((pos) => {
-      latitude.value = pos.coords.latitude
-      longitude.value = pos.coords.longitude
-    }, (err) => {
-      console.error('Location error:', err)
-    })
-  } else {
-    console.warn('Geolocation not supported')
-  }
-}
 
 const latitude = ref<number | null>(null)
 const longitude = ref<number | null>(null)
