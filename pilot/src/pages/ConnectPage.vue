@@ -130,19 +130,16 @@ const polarisSteps = ref([
   { label: 'Running', icon: 'check_circle', status: false }
 ])
 
-onMounted(() => {
-  dev.setAlpacaDevice(window.location.hostname, parseInt(window.location.port))
-  connectToAlpacaCheckbox.value = true    // kicks off the watch to initiate a dev.connectAlpaca
+onMounted(async () => {
+  if (!dev.alpacaHost) {
+    dev.setAlpacaDevice(window.location.hostname, parseInt(window.location.port))
+    await dev.connectAlpaca()
+  }
+  connectToAlpacaCheckbox.value = dev.alpacaConnected    
 })
 
-
-function fixStep(index: number) {
-  const step = polarisSteps.value[index]
-  if (step) step.status = true
-}
-
 watch(connectToAlpacaCheckbox, async (newVal) => {
-  if (newVal) {
+  if (newVal && !dev.alpacaConnected) {
     await dev.connectAlpaca()
     if (dev.alpacaConnected) {
       $q.notify({
@@ -151,11 +148,19 @@ watch(connectToAlpacaCheckbox, async (newVal) => {
         actions: [{ icon: 'close', color: 'white' }]
       })
     }
-  } else {
+  }
+  if (!newVal) {
     dev.disconnectAlpaca()
   }
   connectToAlpacaCheckbox.value = dev.alpacaConnected
 })
+
+
+function fixStep(index: number) {
+  const step = polarisSteps.value[index]
+  if (step) step.status = true
+}
+
 
 function setFromPhoneLocation() {
   if (navigator.geolocation) {

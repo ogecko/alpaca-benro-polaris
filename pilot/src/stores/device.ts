@@ -6,7 +6,7 @@ import { sleep } from 'src/utils/sleep'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
-    alpacaHost: 'localhost',        // Hostname of Alpaca API
+    alpacaHost: '',                 // Hostname of Alpaca API
     alpacaPort: 11111,              // Port of Alpaca API
     alpacaConnectingMsg: '',        // Message to show while connecting in progress
     alpacaConnectErrorMsg: '',      // Message to show when there is a connection error
