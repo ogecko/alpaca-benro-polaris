@@ -14,7 +14,7 @@
       <div class="text-h6">Alpaca Configuration</div>
       <q-separator spaced />
       <div v-if="cfg.fetchedAt">
-        <div><strong>Location:</strong> {{ cfg.location }}</div>
+        <q-input filled v-model="cfg.location" label="Location" @update:model-value="put('location', cfg.location)" />
         <div><strong>Latitude:</strong> {{ cfg.site_latitude }}</div>
         <div><strong>Longitude:</strong> {{ cfg.site_longitude }}</div>
         <div><strong>Elevation:</strong> {{ cfg.site_elevation }} m</div>
@@ -32,6 +32,8 @@
 import { onMounted } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
+import type { ConfigResponse } from 'stores/config';
+import { debounce } from 'quasar'
 
 const dev = useDeviceStore()
 const cfg = useConfigStore()
@@ -46,6 +48,17 @@ onMounted(async () => {
     await cfg.fetchConfig()
   }
 })
+
+const put = debounce(rawUpdateField, 500)
+async function rawUpdateField<K extends keyof typeof cfg.$state>(key: K, value: typeof cfg.$state[K]) {
+  try {
+    const updated = await dev.apiAction<ConfigResponse>('ConfigTOML', { [key]: value });
+    cfg.$patch(updated);
+  } catch (err) {
+    console.warn(`Failed to update ${key}:`, err);
+  }
+}
+
 
 async function putcall() {
     console.log('test');

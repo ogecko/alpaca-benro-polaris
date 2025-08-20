@@ -3,7 +3,7 @@ import { useDeviceStore } from 'stores/device'
 
 const dev = useDeviceStore()
 
-type ConfigResponse = ReturnType<typeof useConfigStore>['$state']
+export type ConfigResponse = ReturnType<typeof useConfigStore>['$state']
 
 
 export const useConfigStore = defineStore('config', {

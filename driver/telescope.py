@@ -1456,11 +1456,24 @@ class action:
         actionName = await get_request_field('Action', req)
         parameters = dict(await get_request_field('Parameters', req))
         logger.info(f'ACTION request {actionName}: {parameters}')
-        if actionName=="ConfigTOML":
+        if actionName == "ConfigTOML":
+            if not parameters:
+                # No parameters: return full config
+                resp.text = await PropertyResponse(serialize_class(Config), req)
+                return
+            changed = {}
             for key, value in parameters.items():
                 if hasattr(Config, key):
-                    setattr(Config, key, value)
-            resp.text = await PropertyResponse(serialize_class(Config), req)
+                    expected_type = type(getattr(Config, key))
+                    try:
+                        # Attempt to coerce value to expected type
+                        coerced = expected_type(value)
+                        setattr(Config, key, coerced)
+                        changed[key] = coerced
+                    except (ValueError, TypeError):
+                        logger.warning(f"Type mismatch for '{key}': expected {expected_type.__name__}, got {type(value).__name__}")
+            # Return only changed keys
+            resp.text = await PropertyResponse(changed, req)
 
 def is_json_serializable(value):
     return isinstance(value, (str, int, float, bool, type(None), list, dict))
