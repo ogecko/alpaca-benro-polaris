@@ -36,8 +36,8 @@
 
           <q-item v-if="!dev.alpacaConnected && !dev.alpacaConnectingMsg">
             <div class="row items-start">
-              <q-input v-model="dev.alpacaHost" label="Host Name / IP Address" class="col-8 q-mt-sm" />
-              <q-input v-model="dev.alpacaPort" label="Port" type="number" class="col-4 q-mt-sm" />
+              <q-input v-model="dev.alpacaHost" @keyup.enter="connect" label="Host Name / IP Address" class="col-8 q-mt-sm" />
+              <q-input v-model="dev.alpacaPort" @keyup.enter="connect" label="Port" type="number" class="col-4 q-mt-sm" />
             </div>
           </q-item>
 
@@ -147,7 +147,10 @@ watch(connectToAlpacaCheckbox, async (newVal) => {
   connectToAlpacaCheckbox.value = dev.alpacaConnected
 })
 
-
+async function connect() {
+  await dev.connectAlpaca()
+  connectToAlpacaCheckbox.value = dev.alpacaConnected
+}
 function fixStep(index: number) {
   const step = polarisSteps.value[index]
   if (step) step.status = true
