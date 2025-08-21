@@ -45,6 +45,7 @@ import os
 import socket                                           # for discovery responder
 from threading import Thread                            # Same here
 from logging import Logger
+from config import Config
 
 logger: Logger = None
 
@@ -65,7 +66,7 @@ class DiscoveryResponder(Thread):
         # It's a sledge hammer technique to bind to ' ' for sending multicast
         # The right way is to bind to the broadcast address for the current
         # subnet.
-        self.device_address = (ADDR, 32227)    # Listen at multicast address, not ' '
+        self.device_address = (ADDR, Config.alpaca_discovery_port)    # Listen at multicast address, not ' '
         self.alpaca_response  = "{\"AlpacaPort\": " + str(PORT) + "}"
         self.rsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  #share address

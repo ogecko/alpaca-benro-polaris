@@ -1,12 +1,18 @@
 title = "Alpaca Benro Polaris Driver (Telescope)"
 
 [network]
-alpaca_ip_address = ''                      # IP Address to expose this Alpaca Service on. Loopback='127.0.0.1', Any Address=''.
-alpaca_port = 5555                          # Port to expose Alpaca Service on.
 polaris_ip_address = '192.168.0.1'          # IP Address of the Benro Polaris on its WiFi Hotspot network.
 polaris_port = 9090                         # Port the Benro Polaris is listening on.
-stellarium_telescope_ip_address = ''        # IP Address to expose this Stellarium Telescope service on. 
-stellarium_telescope_port = 10001           # Stellarium Telescope control protocol port, 0 to disable.
+enable_restapi = true                       # Provide the Alpaca REST API Service (do not turn off).
+enable_discovery = true                     # Provide the Alpaca Discovery Service.
+enable_pilot = true                         # Provide the Alpaca Pilot Web Service.
+enable_synscan = true                       # Provide the SynSCAN/Stellarium API Service.
+alpaca_restapi_port = 5555                  # Port to expose Alpaca REST API Service on.
+alpaca_discovery_port = 32227               # Port to expose Alpaca Discovery Service on.
+alpaca_pilot_port = 80                      # Port to expose Alpaca Pilot Web Service on.
+stellarium_synscan_port = 10001             # Port to expose the Stellarium/SynSCAN Telescope Control Service on.
+stellarium_synscan_ip_address = ''          # IP Address to expose this StellariumSynSCAN Service on. Loopback='127.0.0.1', Any Address=''.
+alpaca_restapi_ip_address = ''              # IP Address to expose this Alpaca REST API Service on. Loopback='127.0.0.1', Any Address=''.
 
 [server]
 location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az.

@@ -56,16 +56,28 @@ def get_toml(sect: str, item: str):
         return ''
 
 class Config:
-    """Device configuration in ``config.toml``"""
+    """
+    Device configuration stored in ``config.toml``
+    Alpaca Pilot configuration stored in ``pilot/stores/config.ts``
+    Alpaca Pilot configuration page in ``pilot/pages/ConfigPage.vue``
+    """
+
     # ---------------
     # Network Section
     # ---------------
-    alpaca_ip_address: str = get_toml('network', 'alpaca_ip_address')
-    alpaca_port: int = get_toml('network', 'alpaca_port')
     polaris_ip_address: str = get_toml('network', 'polaris_ip_address')
     polaris_port: int = get_toml('network', 'polaris_port')
-    stellarium_telescope_ip_address: int = get_toml('network', 'stellarium_telescope_ip_address')
-    stellarium_telescope_port: int = get_toml('network', 'stellarium_telescope_port')
+    enable_restapi: bool = get_toml('network', 'enable_restapi')
+    enable_discovery: bool = get_toml('network', 'enable_discovery')
+    enable_pilot: bool = get_toml('network', 'enable_pilot')
+    enable_synscan: bool = get_toml('network', 'enable_synscan')
+    alpaca_restapi_port: int = get_toml('network', 'alpaca_restapi_port')
+    alpaca_discovery_port: int = get_toml('network', 'alpaca_discovery_port')
+    alpaca_pilot_port: int = get_toml('network', 'alpaca_pilot_port')
+    stellarium_synscan_port: int = get_toml('network', 'stellarium_synscan_port')
+    stellarium_synscan_ip_address: str = get_toml('network', 'stellarium_synscan_ip_address')
+    alpaca_restapi_ip_address: str = get_toml('network', 'alpaca_restapi_ip_address')
+
     # --------------
     # Server Section
     # --------------

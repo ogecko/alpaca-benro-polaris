@@ -100,15 +100,15 @@ async def main():
 
 
 
+    if Config.enable_discovery:
+        # Create a separate thread for ASCOM Discovery
+        _DSC = DiscoveryResponder(Config.alpaca_restapi_ip_address, Config.alpaca_restapi_port)
 
-    # Create a separate thread for ASCOM Discovery
-    _DSC = DiscoveryResponder(Config.alpaca_ip_address, Config.alpaca_port)
-
-    # Create a native stellarium telescope service
-    if Config.stellarium_telescope_port > 0:
+    if Config.enable_synscan > 0:
+        # Create a native stellarium telescope service
         await stellarium.stellarium_telescope(logger, 
-                                              Config.stellarium_telescope_ip_address, 
-                                              Config.stellarium_telescope_port)
+                                              Config.stellarium_synscan_ip_address, 
+                                              Config.stellarium_synscan_port)
     
     tasks = [
             app.alpaca_httpd(logger),

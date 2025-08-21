@@ -11,12 +11,18 @@ export const useConfigStore = defineStore('config', {
     fetchedAt: 0,       // local timestamp of when config was last fetched
 
     // Network
-    alpaca_ip_address: '',
-    alpaca_port: 5555,
     polaris_ip_address: '',
     polaris_port: 9090,
-    stellarium_telescope_ip_address: '',
-    stellarium_telescope_port: 10001,
+    enable_restapi: true,
+    enable_discovery: true,
+    enable_pilot: true,
+    enable_synscan: true,
+    alpaca_restapi_port: 5555,
+    alpaca_discovery_port: 32227,
+    alpaca_pilot_port: 80,
+    stellarium_synscan_port: 10001,
+    stellarium_synscan_ip_address: '',
+    alpaca_restapi_ip_address: '',
 
     // Site Info
     location: 'Unknown',

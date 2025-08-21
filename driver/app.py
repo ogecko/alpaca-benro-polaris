@@ -115,21 +115,21 @@ async def alpaca_httpd(logger):
     falc_app.add_route(f'/management/v{API_VERSION}/discoveralpaca', management.discoveralpaca())
     falc_app.add_route(f'/management/v{API_VERSION}/discoverpolaris', management.discoverpolaris())
     falc_app.add_route(f'/management/v{API_VERSION}/blepolaris', management.blepolaris())
-    # Custom Resrouces for Quasar Pilot App
-    falc_app.add_route('/setup', QuasarStaticResource())
-    falc_app.add_route(f'/setup/v{API_VERSION}/telescope/0/setup', QuasarStaticResource())
-    falc_app.add_route(f'/setup/v{API_VERSION}/rotator/0/setup', QuasarStaticResource())
-
-    # add the Pilot Static routes
-    falc_app.add_static_route('/icons', QUASAR_DIST / 'icons')      # icons resources (note /{path} does serve subdirecties)
-    falc_app.add_static_route('/assets', QUASAR_DIST / 'assets')    # assets resources
-    falc_app.add_route('/{path}', QuasarStaticResource())                 # root resources, fallback to index.html when not found
-    falc_app.add_route('/', QuasarStaticResource())                       # root, fallback to index.html when nothing provided
+    if (Config.enable_pilot):
+        # Custom Resrouces for Quasar Pilot App
+        falc_app.add_route('/setup', QuasarStaticResource())
+        falc_app.add_route(f'/setup/v{API_VERSION}/telescope/0/setup', QuasarStaticResource())
+        falc_app.add_route(f'/setup/v{API_VERSION}/rotator/0/setup', QuasarStaticResource())
+        # add the Pilot Static routes
+        falc_app.add_static_route('/icons', QUASAR_DIST / 'icons')      # icons resources (note /{path} does serve subdirecties)
+        falc_app.add_static_route('/assets', QUASAR_DIST / 'assets')    # assets resources
+        falc_app.add_route('/{path}', QuasarStaticResource())                 # root resources, fallback to index.html when not found
+        falc_app.add_route('/', QuasarStaticResource())                       # root, fallback to index.html when nothing provided
 
     # Create a http server
-    alpaca_config = uvicorn.Config(falc_app, host=Config.alpaca_ip_address, port=Config.alpaca_port, log_level="error")
+    alpaca_config = uvicorn.Config(falc_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_restapi_port, log_level="error")
     alpaca_server = uvicorn.Server(alpaca_config)
-    logger.info(f'==STARTUP== Serving ASCOM Alpaca on {Config.alpaca_ip_address}:{Config.alpaca_port}. Time stamps are UTC.')
+    logger.info(f'==STARTUP== Serving ASCOM Alpaca on {Config.alpaca_restapi_ip_address}:{Config.alpaca_restapi_port}. Time stamps are UTC.')
 
     # Serve the application
     try:

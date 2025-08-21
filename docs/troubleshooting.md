@@ -208,10 +208,10 @@ C:\Users\Astro>
 * The ABP defaults to broadcasing `ASCOM Alpaca` services on all network interfaces on the MiniPC. 
 * If you have the ASCOM Platform installed, Nina will also detect all the `ASCOM direct` interfaces to the ABP. 
 * We recommend connecting to the ABP via `ASCOM Apaca` services rather than `ASCOM`. Choose one of the Mounts under `ASCOM Alpaca`.
-* You can limit what IP Address the driver exposes the `ASCOM Alpaca` Service on, by setting the field `alpaca_ip_address` in `driver/config.toml`. 
+* You can limit what IP Address the driver exposes the `ASCOM Alpaca` Service on, by setting the field `alpaca_restapi_ip_address` in `driver/config.toml`. 
 * To limit the Alpaca Service only to applications that are running on the Mini-PC (ie no remote applications), set it the following.
 ```
-alpaca_ip_address = '127.0.0.1' 
+alpaca_restapi_ip_address = '127.0.0.1' 
 ```
 
 ### N5 - Cannot obtain a good autofocus run with Nina?
