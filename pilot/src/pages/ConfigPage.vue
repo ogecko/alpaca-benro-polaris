@@ -143,10 +143,10 @@ onMounted(async () => {
 function setFromPhoneLocation() {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition((pos) => {
-      put({ site_latitude: pos.coords.latitude, site_longitude: pos.coords.longitude })
-      triggerAnimation('latlon')
+        put({ site_latitude: pos.coords.latitude, site_longitude: pos.coords.longitude })
+        triggerAnimation('latlon')
     }, (err) => {
-      console.error('Location error:', err)
+        console.error('Location error:', err)
     })
   } else {
     console.warn('Geolocation not supported')
@@ -158,10 +158,10 @@ function triggerAnimation(field: string) {
   setTimeout(() => { taKey.value = null }, 600) // match animation duration
 }
 
+// debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 
 const put = debounce(rawUpdateFields, 500)
 async function rawUpdateFields(payload: Partial<typeof cfg.$state>) {
   try {
-    console.log(payload)
     const updated = await dev.apiAction<ConfigResponse>('ConfigTOML', payload)
     cfg.$patch(updated)
   } catch (err) {
