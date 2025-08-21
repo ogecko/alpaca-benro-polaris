@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { defineStore, acceptHMRUpdate } from 'pinia'
-import { HTMLResponseError, NonJSONResponseError, NotFound404Error, AlpacaError } from 'src/utils/error'
+import { HTMLResponseError, NonJSONResponseError, NotFound404Error, AlpacaResponseError } from 'src/utils/error'
 import type { DescriptionResponse, ConfiguredDevicesResponse, SupportedActionsResponse, ActionResponse } from 'src/utils/interfaces'
 import { sleep } from 'src/utils/sleep'
 
@@ -115,13 +115,16 @@ export const useDeviceStore = defineStore('device', {
           throw new NonJSONResponseError('');
         }
         if (response.data.ErrorNumber) {
-          throw new AlpacaError(response.data.ErrorMessage)
+          throw new AlpacaResponseError(response.data.ErrorMessage)
         }
 
         return response.data as T;
 
       } catch (error: unknown) {
-        if (error instanceof NotFound404Error) {
+        if (error instanceof AlpacaResponseError) {
+          this.alpacaConnectErrorMsg = error.message;
+          console.error(error)
+        } else if (error instanceof NotFound404Error) {
           this.alpacaConnectErrorMsg = 'API endpoint not found (404).';
         } else if (error instanceof HTMLResponseError) {
           this.alpacaConnectErrorMsg = 'Received HTML fallback — Alpaca API service may not be running.';
