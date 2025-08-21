@@ -13,7 +13,10 @@
     <q-card flat bordered class="q-pa-md">
       <div class="text-h6">Alpaca Driver Configuration</div>
       <q-separator spaced />
-      <div v-if="cfg.fetchedAt">
+      <div v-if="!cfg.fetchedAt" class="text-negative">
+        Configuration not loaded.
+      </div>
+      <div v-else>
         <!-- Network -->
         <div class="text-subtitle1 q-mt-md">Network Services</div>
         <div class="text-caption text-grey-6">
@@ -34,14 +37,13 @@
             <q-input v-if="cfg.enable_discovery" dense prefix="Port:" type="number"  v-model="cfg.alpaca_discovery_port" @update:model-value="put({alpaca_discovery_port: cfg.alpaca_discovery_port})"/>
         </div>
         <div class="row  q-gutter-sm">
-           <q-toggle v-model="cfg.enable_synscan" label="Stellarium/SynSCAN Service."  @update:model-value="put({enable_synscan: cfg.enable_synscan})" />
-           <q-input v-if="cfg.enable_synscan" dense prefix="Port:" type="number" v-model.number="cfg.stellarium_synscan_port" @update:model-value="put({stellarium_synscan_port: cfg.stellarium_synscan_port})"/>
-        </div>
-        <div class="row  q-gutter-sm">
             <q-toggle v-model="cfg.enable_pilot" label="Alpaca Pilot Web Service."  @update:model-value="put({enable_pilot: cfg.enable_pilot})" />
             <q-input v-if="cfg.enable_pilot" dense prefix="Port:" type="number" v-model="cfg.alpaca_pilot_port" @update:model-value="put({alpaca_pilot_port: cfg.alpaca_pilot_port})"/>
         </div>
-
+        <div class="row  q-gutter-sm">
+           <q-toggle v-model="cfg.enable_synscan" label="Stellarium/SynSCAN Service."  @update:model-value="put({enable_synscan: cfg.enable_synscan})" />
+           <q-input v-if="cfg.enable_synscan" dense prefix="Port:" type="number" v-model.number="cfg.stellarium_synscan_port" @update:model-value="put({stellarium_synscan_port: cfg.stellarium_synscan_port})"/>
+        </div>
         <div class="row q-pl-md q-gutter-lg">
             <q-input v-model="cfg.polaris_ip_address" label="Polaris IP" @update:model-value="put({polaris_ip_address: cfg.polaris_ip_address})" />
             <q-input type="number" v-model.number="cfg.polaris_port" label="Polaris Port" @update:model-value="put({polaris_port: cfg.polaris_port})" />
@@ -115,10 +117,6 @@
         <q-input type="number" v-model.number="cfg.log_performance_data_test" label="Perf Data Test" @update:model-value="put({log_performance_data_test: cfg.log_performance_data_test})" />
         <q-input type="number" v-model.number="cfg.log_perf_speed_interval" label="Perf Speed Interval" @update:model-value="put({log_perf_speed_interval: cfg.log_perf_speed_interval})" />
       </div>
-      <div v-else class="text-negative">
-        Configuration not loaded.
-      </div>
-
     </q-card>
 </q-page>
 </template>
