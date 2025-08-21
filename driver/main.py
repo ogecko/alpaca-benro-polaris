@@ -50,7 +50,7 @@ import argparse
 from pathlib import Path
 import os
 from polaris import Polaris
-from exceptions import RestartDriver
+
 
 polaris: Polaris = None
 
@@ -101,18 +101,14 @@ async def main():
     logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
 
-    try:
-        tasks = [
-                polaris.client(logger),
-                app_api.alpaca_rest_httpd(logger),
-                app_web.alpaca_pilot_httpd(logger),
-                discovery.socket_client(logger),
-                stellarium.synscan_api(logger)
-        ]
-        await asyncio.gather(*tasks)
-
-    except RestartDriver:
-        logger.info('RESTART')
+    tasks = [
+            polaris.client(logger),
+            app_api.alpaca_rest_httpd(logger),
+            app_web.alpaca_pilot_httpd(logger),
+            discovery.socket_client(logger),
+            stellarium.synscan_api(logger)
+    ]
+    await asyncio.gather(*tasks)
 
     await polaris.shutdown()
 
