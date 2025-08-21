@@ -7,7 +7,7 @@ import { sleep } from 'src/utils/sleep'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
-    alpacaHost: 'localhost',        // Hostname of Alpaca API
+    alpacaHost: '',                 // Hostname of Alpaca API
     alpacaPort: 5555,               // Port of Alpaca API
     alpacaClientID: 860,            // ClientID of Alpaca Pilot App
     alpacaClientTransactionID: 1000,// ClientTransactionID of Alpaca Pilot App

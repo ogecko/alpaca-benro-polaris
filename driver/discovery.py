@@ -49,18 +49,32 @@ from config import Config
 
 logger: Logger = None
 
+async def socket_client(log):
+    global logger
+    logger = log
+
+    if Config.enable_discovery:
+        logger.info(f'==STARTUP== Serving Alpaca Discovery Socket on {Config.alpaca_restapi_ip_address}:{Config.alpaca_discovery_port}.')
+        # Create an instance of the Discovery Responder    
+        _DSC = DiscoveryResponder()
+
+
 class DiscoveryResponder(Thread):
     """Alpaca device discovery responder """
 
-    def __init__(self, ADDR, PORT):
+    def __init__(self):
         """ The Alpaca Discovery responder runs in a separate thread and is invoked
-        by a 1-line call during app startup::
+        by a 1-line call during app startup
 
             _DSC = DiscoveryResponder(ip_address, port)
 
         where the ``ip_address`` and ``port`` come from the :doc:`/config`
         ``Config`` object and ultimately from the config file ``config.toml``.
         """
+       
+        ADDR = Config.alpaca_restapi_ip_address
+        PORT = Config.alpaca_restapi_port
+
         Thread.__init__(self, name='Discovery')
         # TODO See https://stackoverflow.com/a/32372627/159508
         # It's a sledge hammer technique to bind to ' ' for sending multicast

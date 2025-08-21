@@ -40,7 +40,7 @@ import exceptions
 import shr
 import log
 from config import Config
-from discovery import DiscoveryResponder
+import discovery
 import telescope
 import rotator
 import stellarium
@@ -50,6 +50,7 @@ import argparse
 from pathlib import Path
 import os
 from polaris import Polaris
+from exceptions import RestartDriver
 
 polaris: Polaris = None
 
@@ -100,25 +101,19 @@ async def main():
     logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
 
+    try:
+        tasks = [
+                polaris.client(logger),
+                app_api.alpaca_rest_httpd(logger),
+                app_web.alpaca_pilot_httpd(logger),
+                discovery.socket_client(logger),
+                stellarium.synscan_api(logger)
+        ]
+        await asyncio.gather(*tasks)
 
-    tasks = [
-            app_api.alpaca_rest_httpd(logger),
-            polaris.client(logger)
-    ]
+    except RestartDriver:
+        logger.info('RESTART')
 
-    if Config.enable_discovery:
-        # Create a separate thread for ASCOM Discovery
-        _DSC = DiscoveryResponder(Config.alpaca_restapi_ip_address, Config.alpaca_restapi_port)
-
-    if Config.enable_synscan:
-        # Create a native stellarium telescope service
-        await stellarium.stellarium_telescope(logger, 
-                                              Config.stellarium_synscan_ip_address, 
-                                              Config.stellarium_synscan_port)
-    if Config.enable_pilot:
-        tasks.append(app_web.alpaca_pilot_httpd(logger))
-
-    await asyncio.gather(*tasks)
     await polaris.shutdown()
 
 

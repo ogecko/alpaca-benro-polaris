@@ -56,6 +56,9 @@ async def alpaca_pilot_httpd(logger):
     Then create a httpd server based on the app and serve it.
 
     """
+    if not Config.enable_pilot:
+        return
+
     # falcon.asgi.App instances are callable ASGI apps
     web_app = asgi.App()
 
@@ -69,7 +72,7 @@ async def alpaca_pilot_httpd(logger):
     # Create a http server
     pilot_config = uvicorn.Config(web_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_pilot_port, log_level="error")
     pilot_server = uvicorn.Server(pilot_config)
-    logger.info(f'==STARTUP== Serving Alpaca Pilot on {Config.alpaca_restapi_ip_address}:{Config.alpaca_pilot_port}.')
+    logger.info(f'==STARTUP== Serving Alpaca Pilot Web Server on {Config.alpaca_restapi_ip_address}:{Config.alpaca_pilot_port}.')
 
     # Serve the application
     try:

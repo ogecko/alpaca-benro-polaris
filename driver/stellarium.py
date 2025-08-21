@@ -430,8 +430,10 @@ async def stellarium_handler(logger, reader, writer):
 
 
 # Main entry for Stellarium
-async def stellarium_telescope(logger, telescope_ip_address, telescope_port):    
-    logger.info(f"==STARTUP== Serving Stellarium/SynSCAN API on {telescope_ip_address}:{telescope_port}")
+async def synscan_api(logger):   
+    if Config.enable_synscan:
+        host = Config.stellarium_synscan_ip_address
+        port = Config.stellarium_synscan_port 
+        logger.info(f"==STARTUP== Serving Stellarium/SynSCAN API on {host}:{port}")
+        await asyncio.start_server(lambda reader, writer: stellarium_handler(logger, reader, writer), host, port)
 
-    stellarium_server = await asyncio.start_server(lambda reader, writer: stellarium_handler(logger, reader, writer), 
-                                                   telescope_ip_address, telescope_port)

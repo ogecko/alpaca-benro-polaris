@@ -1447,7 +1447,7 @@ class unpark:
 @before(PreProcessRequest(maxdev))
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = await PropertyResponse(['ConfigTOML'], req)  
+        resp.text = await PropertyResponse(['RestartDriver', 'ConfigTOML'], req)  
 
 
 @before(PreProcessRequest(maxdev))
@@ -1456,7 +1456,9 @@ class action:
         actionName = await get_request_field('Action', req)
         parameters = dict(await get_request_field('Parameters', req))
         logger.info(f'ACTION request {actionName}: {parameters}')
-        if actionName == "ConfigTOML":
+        if actionName == "RestartDriver":
+            raise RestartDriver('Action request to restart Alpaca Driver.')
+        elif actionName == "ConfigTOML":
             if not parameters:
                 # No parameters: return full config
                 resp.text = await PropertyResponse(serialize_class(Config), req)
