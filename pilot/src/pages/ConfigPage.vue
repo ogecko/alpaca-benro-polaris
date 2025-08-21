@@ -5,9 +5,7 @@
     <div v-if="!dev.alpacaConnected" >
       <q-banner inline-actions rounded class="bg-warning">
         WARNING: You have lost connection to the Alpaca Driver. This app is offline.
-        <template v-slot:action>
-            <q-btn flat label="Reconnect" to="/connect" />
-        </template>
+        <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
     <q-card flat bordered class="q-pa-md">
