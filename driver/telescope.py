@@ -1474,6 +1474,9 @@ class action:
                         logger.warning(f"Type mismatch for '{key}': expected {expected_type.__name__}, got {type(value).__name__}")
             # Return only changed keys
             resp.text = await PropertyResponse(changed, req)
+        else:
+            resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
+
 
 def is_json_serializable(value):
     return isinstance(value, (str, int, float, bool, type(None), list, dict))

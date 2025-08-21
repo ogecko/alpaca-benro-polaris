@@ -18,3 +18,10 @@ export class NotFound404Error extends Error {
     this.name = 'NotFound404Error';
   }
 }
+
+export class AlpacaError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AlpacaError';
+  }
+}
