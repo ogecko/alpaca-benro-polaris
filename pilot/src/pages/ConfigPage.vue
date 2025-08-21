@@ -123,7 +123,6 @@
 import { onMounted, ref } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
-import type { ConfigResponse } from 'stores/config';
 import { debounce } from 'quasar'
 
 const dev = useDeviceStore()
@@ -161,16 +160,7 @@ function triggerAnimation(field: string) {
 }
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 
-const put = debounce(rawUpdateFields, 500)
-async function rawUpdateFields(payload: Partial<typeof cfg.$state>) {
-  try {
-    const updated = await dev.apiAction<ConfigResponse>('ConfigTOML', payload)
-    cfg.$patch(updated)
-  } catch (err) {
-    const keys = Object.keys(payload).join(', ')
-    console.warn(`Failed to update ${keys}:`, err)
-  }
-}
+const put = debounce((payload) => cfg.updateConfig(payload), 500)
 
 </script>
 

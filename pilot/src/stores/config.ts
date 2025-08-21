@@ -90,8 +90,15 @@ export const useConfigStore = defineStore('config', {
       }
     },
 
-    updateConfig(newConfig: Partial<ConfigResponse>) {
-      Object.assign(this.$state, newConfig)
-    }
+    async updateConfig(payload: Partial<ConfigResponse>) {
+      try {
+        const updated = await dev.apiAction<ConfigResponse>('ConfigTOML', payload)
+        this.$patch(updated)
+      } catch (err) {
+        const keys = Object.keys(payload).join(', ')
+        console.warn(`Failed to update ${keys}:`, err)
+      }
+    },
+
   }
 })
