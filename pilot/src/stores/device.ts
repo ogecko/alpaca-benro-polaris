@@ -4,10 +4,11 @@ import { HTMLResponseError, NonJSONResponseError, NotFound404Error, AlpacaRespon
 import type { DescriptionResponse, ConfiguredDevicesResponse, SupportedActionsResponse, ActionResponse } from 'src/utils/interfaces'
 import { sleep } from 'src/utils/sleep'
 
+
 export const useDeviceStore = defineStore('device', {
   state: () => ({
-    alpacaHost: '',                 // Hostname of Alpaca API
-    alpacaPort: 11111,              // Port of Alpaca API
+    alpacaHost: 'localhost',        // Hostname of Alpaca API
+    alpacaPort: 5555,               // Port of Alpaca API
     alpacaClientID: 860,            // ClientID of Alpaca Pilot App
     alpacaClientTransactionID: 1000,// ClientTransactionID of Alpaca Pilot App
     alpacaConnectingMsg: '',        // Message to show while connecting in progress
@@ -23,11 +24,6 @@ export const useDeviceStore = defineStore('device', {
   }),
 
   actions: {
-    setAlpacaDevice(hostname: string, port: number) {
-      this.alpacaHost = hostname;
-      this.alpacaPort = port;
-    },
-
     async connectAlpaca() {
       this.$patch({
         alpacaConnectingMsg: 'Connecting...',

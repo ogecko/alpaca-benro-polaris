@@ -44,7 +44,8 @@ from discovery import DiscoveryResponder
 import telescope
 import rotator
 import stellarium
-import app
+import app_api
+import app_web
 import argparse
 from pathlib import Path
 import os
@@ -100,20 +101,23 @@ async def main():
 
 
 
+    tasks = [
+            app_api.alpaca_rest_httpd(logger),
+            polaris.client(logger)
+    ]
+
     if Config.enable_discovery:
         # Create a separate thread for ASCOM Discovery
         _DSC = DiscoveryResponder(Config.alpaca_restapi_ip_address, Config.alpaca_restapi_port)
 
-    if Config.enable_synscan > 0:
+    if Config.enable_synscan:
         # Create a native stellarium telescope service
         await stellarium.stellarium_telescope(logger, 
                                               Config.stellarium_synscan_ip_address, 
                                               Config.stellarium_synscan_port)
-    
-    tasks = [
-            app.alpaca_httpd(logger),
-            polaris.client(logger)
-    ]
+    if Config.enable_pilot:
+        tasks.append(app_web.alpaca_pilot_httpd(logger))
+
     await asyncio.gather(*tasks)
     await polaris.shutdown()
 

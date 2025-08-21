@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# app.py - Alpaca Application module
-#
-# Part of the AlpycaDevice Alpaca skeleton/template device driver
-#
-# Python Compatibility: Requires Python 3.7 or later
-# GitHub: https://github.com/ASCOMInitiative/AlpycaDevice
-#
+# app_api.py - Alpaca REST API Application module
 # -----------------------------------------------------------------------------
 # MIT License
 #
-# Copyright (c) 2022 Bob Denny
+# Copyright (c) 2025 David Morrison
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,15 +24,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # -----------------------------------------------------------------------------
-import os
-import mimetypes
-import aiofiles
+
 import inspect
 import uvicorn
-from falcon import App, asgi, HTTP_200
+from falcon import App, asgi, HTTP_200, HTTPFound
 import management
 from config import Config
-from pathlib import Path
+
 
 #########################
 # FOR EACH ASCOM DEVICE #
@@ -72,26 +64,15 @@ def init_routes(app: App, devname: str, module):
         if ctype.__module__ == module.__name__:    # Only classes *defined* in the module
             app.add_route(f'/api/v{API_VERSION}/{devname}/{{devnum:int(min=0)}}/{cname.lower()}', ctype())  # type() creates instance!
 
-
-SCRIPT_DIR = Path(__file__).resolve().parent    # Get the path to the current script
-QUASAR_DIST = SCRIPT_DIR.parent / 'pilot' / 'dist' / 'spa'   
-
-class QuasarStaticResource:
-    async def on_get(self, req, resp, path=None):
-        requested_path = path or 'index.html'
-        file_path = QUASAR_DIST / requested_path
-        if not os.path.isfile(file_path):
-            file_path = QUASAR_DIST / 'index.html'  # fallback for SPA routing
-
-        resp.content_type = mimetypes.guess_type(file_path)[0] or 'text/html'
-        async with aiofiles.open(file_path, 'rb') as f:
-            resp.data = await f.read()
-
+class RedirectResource:
+    async def on_get(self, req, resp):
+        # Redirect to a different port (e.g. 8080)
+        raise HTTPFound(f'http://{req.host}:{Config.alpaca_pilot_port}/?api={Config.alpaca_restapi_port}')
 
 # ---------------------------------------------
 # MAIN HTTP/REST API ENGINE (FALCON ASGI BASED)
 # ---------------------------------------------
-async def alpaca_httpd(logger):
+async def alpaca_rest_httpd(logger):
     """Initialize Falcon app and start serving it
      
     Create an asgi Falcon app defining all routes. 
@@ -99,37 +80,32 @@ async def alpaca_httpd(logger):
 
     """
     # falcon.asgi.App instances are callable ASGI apps
-    falc_app = asgi.App(middleware=[CORSMiddleware()])
+    rest_app = asgi.App(middleware=[CORSMiddleware()])
 
     #########################
     # FOR EACH ASCOM DEVICE #
     #########################
-    init_routes(falc_app, 'telescope', telescope)
-    init_routes(falc_app, 'rotator', rotator)
+    init_routes(rest_app, 'telescope', telescope)
+    init_routes(rest_app, 'rotator', rotator)
     #
     # Initialize routes for Alpaca support endpoints
-    falc_app.add_route('/management/apiversions', management.apiversions())
-    falc_app.add_route(f'/management/v{API_VERSION}/description', management.description())
-    falc_app.add_route(f'/management/v{API_VERSION}/configureddevices', management.configureddevices())
+    rest_app.add_route('/management/apiversions', management.apiversions())
+    rest_app.add_route(f'/management/v{API_VERSION}/description', management.description())
+    rest_app.add_route(f'/management/v{API_VERSION}/configureddevices', management.configureddevices())
     # Custom Resources for Alpaca Benro Polaris Driver Management
-    falc_app.add_route(f'/management/v{API_VERSION}/discoveralpaca', management.discoveralpaca())
-    falc_app.add_route(f'/management/v{API_VERSION}/discoverpolaris', management.discoverpolaris())
-    falc_app.add_route(f'/management/v{API_VERSION}/blepolaris', management.blepolaris())
+    rest_app.add_route(f'/management/v{API_VERSION}/discoveralpaca', management.discoveralpaca())
+    rest_app.add_route(f'/management/v{API_VERSION}/discoverpolaris', management.discoverpolaris())
+    rest_app.add_route(f'/management/v{API_VERSION}/blepolaris', management.blepolaris())
     if (Config.enable_pilot):
-        # Custom Resrouces for Quasar Pilot App
-        falc_app.add_route('/setup', QuasarStaticResource())
-        falc_app.add_route(f'/setup/v{API_VERSION}/telescope/0/setup', QuasarStaticResource())
-        falc_app.add_route(f'/setup/v{API_VERSION}/rotator/0/setup', QuasarStaticResource())
-        # add the Pilot Static routes
-        falc_app.add_static_route('/icons', QUASAR_DIST / 'icons')      # icons resources (note /{path} does serve subdirecties)
-        falc_app.add_static_route('/assets', QUASAR_DIST / 'assets')    # assets resources
-        falc_app.add_route('/{path}', QuasarStaticResource())                 # root resources, fallback to index.html when not found
-        falc_app.add_route('/', QuasarStaticResource())                       # root, fallback to index.html when nothing provided
+        # Redirect Resources for Quasar Pilot App
+        rest_app.add_route('/setup', RedirectResource())
+        rest_app.add_route(f'/setup/v{API_VERSION}/telescope/0/setup', RedirectResource())
+        rest_app.add_route(f'/setup/v{API_VERSION}/rotator/0/setup', RedirectResource())
 
     # Create a http server
-    alpaca_config = uvicorn.Config(falc_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_restapi_port, log_level="error")
+    alpaca_config = uvicorn.Config(rest_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_restapi_port, log_level="error")
     alpaca_server = uvicorn.Server(alpaca_config)
-    logger.info(f'==STARTUP== Serving ASCOM Alpaca on {Config.alpaca_restapi_ip_address}:{Config.alpaca_restapi_port}. Time stamps are UTC.')
+    logger.info(f'==STARTUP== Serving ASCOM Alpaca REST API on {Config.alpaca_restapi_ip_address}:{Config.alpaca_restapi_port}. Time stamps are UTC.')
 
     # Serve the application
     try:

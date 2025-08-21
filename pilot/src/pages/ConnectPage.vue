@@ -107,12 +107,12 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar'
 import { useDeviceStore } from 'stores/device'
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
 
-const connectToAlpacaCheckbox = ref(false);
+const connectToAlpacaCheckbox = ref(dev.alpacaConnected);
 const polarisConnected = ref(false)
 const locationSynced = ref(false)
 const selectedPolarisDevice = ref(null)
@@ -129,14 +129,6 @@ const polarisSteps = ref([
   { label: 'Aligned', icon: 'add', status: false },
   { label: 'Running', icon: 'check_circle', status: false }
 ])
-
-onMounted(async () => {
-  if (!dev.alpacaHost) {
-    dev.setAlpacaDevice(window.location.hostname, parseInt(window.location.port))
-    await dev.connectAlpaca()
-  }
-  connectToAlpacaCheckbox.value = dev.alpacaConnected    
-})
 
 watch(connectToAlpacaCheckbox, async (newVal) => {
   if (newVal && !dev.alpacaConnected) {
