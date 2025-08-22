@@ -9,7 +9,7 @@
       </q-banner>
     </div>
     <div v-else>
-      <div class="row q-col-gutter-sm q-pb-sm ">
+      <div class="row q-col-gutter-sm q-pb-sm">
         <div class="col">
           <!-- Page Heading -->
           <q-card flat bordered class="q-pa-md">
@@ -88,28 +88,26 @@
         <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Observing Site Information</div>
-            <div class="row">
-              <div class="col-8 text-caption text-grey-6">
+            <div class="row q-col-gutter-lg">
+              <div class="col-9 text-caption text-grey-6">
                 Latitude and longitude are essential for accurate tracking. Elevation and pressure improve precision. 
                 Click GPS to use your device’s location. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
-              <div class="col q-pl-lg q-gutter-sm">
+              <div class="col-3 q-pl-lg q-gutter-sm">
                 <q-icon name="my_location"></q-icon>
                 <q-btn outline color="grey-5" label="GPS"  @click="setFromPhoneLocation"/>
               </div>
             </div>
-            <div class="row q-pl-md q-gutter-lg">
+            <div class="row q-col-gutter-lg">
                 <q-input class="col-3" type="number" v-model.number="cfg.site_latitude" label="Latitude" @update:model-value="putdb({site_latitude: cfg.site_latitude})" :class="{ taflash: taKey=='latlon'}"/>
                 <q-input class="col-3" type="number" v-model.number="cfg.site_longitude" label="Longitude" @update:model-value="putdb({site_longitude: cfg.site_longitude})" :class="{ taflash: taKey=='latlon'}"/>
-                <q-input class="col-5" v-model="cfg.location" label="Location" @update:model-value="putdb({location: cfg.location})" />
+                <q-input class="col-6" v-model="cfg.location" label="Location" @update:model-value="putdb({location: cfg.location})" />
             </div>
-            <div class="row q-pl-md q-gutter-lg">
+            <div class="row q-col-gutter-lg">
                 <q-input class="col-3" type="number" v-model.number="cfg.site_elevation" label="Elevation (m)" @update:model-value="putdb({site_elevation: cfg.site_elevation})" />
                 <q-input class="col-3" type="number" v-model.number="cfg.site_pressure" label="Pressure (hPa)" @update:model-value="putdb({site_pressure: cfg.site_pressure})" />
-            </div>
-            <div class="row q-pl-md q-gutter-lg">
                 <q-input class="col-3" type="number" v-model.number="cfg.focal_length" label="Focal Length (mm)" @update:model-value="putdb({focal_length: cfg.focal_length})" />
-                <q-input class="col-3" type="number" v-model.number="cfg.focal_ratio" label="Focal Ratio (f-stop)" @update:model-value="putdb({focal_ratio: cfg.focal_ratio})" />
+                <q-input class="col-3" type="number" v-model.number="cfg.focal_ratio" label="Focal Ratio" @update:model-value="putdb({focal_ratio: cfg.focal_ratio})" />
             </div>
           </q-card>
         </div>
@@ -117,12 +115,12 @@
         <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Advanced Control Features</div>
-            <div class="row q-pb-md">
-              <div class="col-8 text-caption text-grey-6">
+            <div class="row q-col-gutter-lg">
+              <div class="col-9 text-caption text-grey-6">
                 Use Advanced Position Control to override the Benro Polaris default behaviour. 
                 Toggle individual features below to enable advanced slewing, goto, tracking, guiding and rotator support.
               </div>
-              <div class="col">
+              <div class="col-3">
                 <q-toggle class='col' v-model="cfg.advanced_control" label="Enable" @update:model-value="put({advanced_control: cfg.advanced_control})" />
               </div>
             </div>
@@ -136,7 +134,7 @@
                 <q-toggle class='col-6' v-model="cfg.advanced_guiding" label="Advanced Guiding" @update:model-value="put({advanced_guiding: cfg.advanced_guiding})" />
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-model="cfg.advanced_rotator" label="Advanced Rotator" @update:model-value="put({advanced_rotator: cfg.advanced_rotator})" />
+                <q-toggle class='col-6' v-model="cfg.advanced_rotator" label="Alpaca Rotator" @update:model-value="put({advanced_rotator: cfg.advanced_rotator})" />
               </div>
               <div class="row q-pl-md q-gutter-lg">
                   <q-input class='col-3' type="number" v-model.number="cfg.max_slew_rate" label="Max Slew Rate" @update:model-value="putdb({max_slew_rate: cfg.max_slew_rate})" />
