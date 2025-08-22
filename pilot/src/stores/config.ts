@@ -94,6 +94,10 @@ export const useConfigStore = defineStore('config', {
       try {
         const updated = await dev.apiAction<ConfigResponse>('ConfigTOML', payload)
         this.$patch(updated)
+        console.log(updated)
+        if (Object.prototype.hasOwnProperty.call(updated, 'advanced_rotator')) {
+          await dev.fetchConfiguredDevices()
+        }
       } catch (err) {
         const keys = Object.keys(payload).join(', ')
         console.warn(`Failed to update ${keys}:`, err)
