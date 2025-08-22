@@ -129,6 +129,7 @@ export const useDeviceStore = defineStore('device', {
         } else if (axios.isAxiosError(error)) {
           if (error.code === 'ECONNABORTED') {
             this.alpacaConnectErrorMsg = 'Connection request timed out.';
+            this.alpacaConnected = false
           } else if (error.message?.includes('Network Error')) {
             this.alpacaConnectErrorMsg = 'Network error — hostname may be unreachable.';
           } else if (!error.response) {
