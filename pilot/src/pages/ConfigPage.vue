@@ -8,38 +8,53 @@
         <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
+
     <q-card flat bordered class="q-pa-md">
-      <div class="text-h6">Alpaca Driver Configuration</div>
-      <q-separator spaced />
+      <div class="text-h5">Alpaca Driver Configuration</div>
       <div v-if="!cfg.fetchedAt" class="text-negative">
+        <q-separator spaced />
         Configuration not loaded.
       </div>
       <div v-else>
-        <!-- Network -->
-        <div class="text-subtitle1 q-mt-md">Network Services</div>
-        <div class="text-caption text-grey-6">
-       The Alpaca Driver provides several network services for external aplications to use the Benro Polaris.
+        <div class="row q-pb-md">
+          <div class="col text-caption text-grey-6">
+            Changes in Alpaca Pilot apply immediately. Click Save to keep them after restarting. 
+            Network Services require saving to take effect. Click Restore to reset all settings back to Config.toml defaults.
+          </div>
+          <div class="col q-pl-lg q-gutter-md">
+            <q-btn outline size="md" color="grey-5"  label="Save" @click="dev.apiAction('RestartDriver')" />
+            <q-btn outline color="grey-5"  label="Restore" to="/connect" />
+          </div>
         </div>
+        <!-- Network -->
+        <q-separator spaced />
+        <div class="text-h6 q-mt-md">Network Services</div>
+        <div class="row q-pb-md">
+          <div class="col text-caption text-grey-6">
+            The Alpaca Driver provides several network services for external aplications to use the Benro Polaris. 
+          </div>
+        </div>
+
         <div class="row  q-gutter-sm">
-            <q-toggle v-model="cfg.enable_restapi" label="Alpaca REST API Service."  @update:model-value="put({enable_restapi: cfg.enable_restapi})"/>
+            <q-toggle class='col-3' v-model="cfg.enable_restapi" label="Alpaca REST API"  @update:model-value="put({enable_restapi: cfg.enable_restapi})"/>
             <q-input v-if="cfg.enable_restapi" dense prefix="Port:" type="number"  v-model="cfg.alpaca_restapi_port" @update:model-value="putdb({alpaca_restapi_port: cfg.alpaca_restapi_port})"/>
+        </div>
             <q-banner v-if="!cfg.enable_restapi" inline-actions rounded class="bg-warning">
-                WARNING: The REST API is required for Nina, Stellarium and Alpaca Pilot.
+                WARNING: The Alpaca REST API is required for Nina, Stellarium and Alpaca Pilot.
             </q-banner>
             <q-banner v-if="cfg.alpaca_restapi_port!=dev.alpacaPort" inline-actions rounded class="bg-warning">
-                WARNING: The REST API Port is different to the current Alpaca Connection. 
+                WARNING: The Alpaca REST API port will change. Please reconnect Alpaca Pilot when prompted. 
             </q-banner>
-        </div>
         <div class="row  q-gutter-sm">
-            <q-toggle v-model="cfg.enable_discovery" label="Alpaca Discovery Service."  @update:model-value="put({enable_discovery: cfg.enable_discovery})" />
+            <q-toggle class='col-3' v-model="cfg.enable_discovery" label="Alpaca Discovery"  @update:model-value="put({enable_discovery: cfg.enable_discovery})" />
             <q-input v-if="cfg.enable_discovery" dense prefix="Port:" type="number"  v-model="cfg.alpaca_discovery_port" @update:model-value="putdb({alpaca_discovery_port: cfg.alpaca_discovery_port})"/>
         </div>
         <div class="row  q-gutter-sm">
-            <q-toggle v-model="cfg.enable_pilot" label="Alpaca Pilot Web Service."  @update:model-value="put({enable_pilot: cfg.enable_pilot})" />
+            <q-toggle class='col-3' v-model="cfg.enable_pilot" label="Alpaca Pilot"  @update:model-value="put({enable_pilot: cfg.enable_pilot})" />
             <q-input v-if="cfg.enable_pilot" dense prefix="Port:" type="number" v-model="cfg.alpaca_pilot_port" @update:model-value="putdb({alpaca_pilot_port: cfg.alpaca_pilot_port})"/>
         </div>
         <div class="row  q-gutter-sm">
-           <q-toggle v-model="cfg.enable_synscan" label="Stellarium/SynSCAN Service."  @update:model-value="put({enable_synscan: cfg.enable_synscan})" />
+           <q-toggle class='col-3' v-model="cfg.enable_synscan" label="SynSCAN API"  @update:model-value="put({enable_synscan: cfg.enable_synscan})" />
            <q-input v-if="cfg.enable_synscan" dense prefix="Port:" type="number" v-model.number="cfg.stellarium_synscan_port" @update:model-value="putdb({stellarium_synscan_port: cfg.stellarium_synscan_port})"/>
         </div>
         <div class="row q-pl-md q-gutter-lg">
@@ -47,13 +62,17 @@
             <q-input type="number" v-model.number="cfg.polaris_port" label="Polaris Port" @update:model-value="putdb({polaris_port: cfg.polaris_port})" />
         </div>
         <!-- Site Info -->
-        <div class="text-subtitle1 q-mt-md">Observing Site Information</div>
-        <div class="text-caption text-grey-6">
-        The latitude and longitude are critical for accurate co-ordinate conversion and sidereal tracking. The elevation and pressure can further refine conversion calculations. All other settings are part of the ASCOM Alpaca standard and optional. 
+        <div class="text-h6 q-mt-lg">Observing Site Information</div>
+        <div class="row q-pb-md">
+          <div class="col text-caption text-grey-6">
+            Latitude and longitude are essential for accurate tracking. Elevation and pressure improve precision. 
+            Click GPS to use your device’s location. Other settings follow the ASCOM Alpaca standard and are optional.
+          </div>
+          <div class="col q-pl-lg q-gutter-md">
+            <q-btn outline color="grey-5" label="GPS" icon="my_location" @click="setFromPhoneLocation"/>
+          </div>
         </div>
-
         <div class="row q-pl-md q-gutter-lg">
-            <div class="q-pa-md"><q-btn class="col-5" label="Use GPS" icon="my_location" color="secondary" @click="setFromPhoneLocation"/></div>
             <q-input class="col-5" v-model="cfg.location" label="Location" @update:model-value="putdb({location: cfg.location})" />
         </div>
         <div >
@@ -72,26 +91,37 @@
         </div>
 
         <!-- Advanced Features -->
-        <div class="text-subtitle1 q-mt-md">Advanced Control Features</div>
-        <div class="text-caption text-grey-6">
-        The Alpaca Driver can perform advanced position control, overriding the Benro Polaris standard features. Choose which features you would like the Alpaca Driver to control. 
+        <div class="text-h6 q-mt-lg">Advanced Control Features</div>
+        <div class="row q-pb-md">
+          <div class="col text-caption text-grey-6">
+            Use Advanced Position Control to override the Benro Polaris default behaviour. 
+            Toggle individual features below to enable advanced slewing, goto, tracking, guiding and rotator support.
+          </div>
+          <div class="col">
+            <q-toggle class='col-3' v-model="cfg.advanced_control" label="Enable" @update:model-value="put({advanced_control: cfg.advanced_control})" />
+          </div>
         </div>
-
-        <q-toggle v-model="cfg.advanced_control" label="Advanced Control" @update:model-value="put({advanced_control: cfg.advanced_control})" />
-        <q-toggle v-model="cfg.advanced_slewing" label="Advanced Slewing" @update:model-value="put({advanced_slewing: cfg.advanced_slewing})" />
-        <q-toggle v-model="cfg.advanced_tracking" label="Advanced Tracking" @update:model-value="put({advanced_tracking: cfg.advanced_tracking})" />
-        <q-toggle v-model="cfg.advanced_goto" label="Advanced Goto" @update:model-value="put({advanced_goto: cfg.advanced_goto})" />
-        <q-toggle v-model="cfg.advanced_rotator" label="Advanced Rotator" @update:model-value="put({advanced_rotator: cfg.advanced_rotator})" />
-        <q-toggle v-model="cfg.advanced_guiding" label="Advanced Guiding" @update:model-value="put({advanced_guiding: cfg.advanced_guiding})" />
-
-        <div class="row q-pl-md q-gutter-lg">
-            <q-input type="number" v-model.number="cfg.max_slew_rate" label="Max Slew Rate" @update:model-value="putdb({max_slew_rate: cfg.max_slew_rate})" />
-            <q-input type="number" v-model.number="cfg.max_accel_rate" label="Max Accel Rate" @update:model-value="putdb({max_accel_rate: cfg.max_accel_rate})" />
-            <q-input type="number" v-model.number="cfg.tracking_settle_time" label="Tracking Settle Time" @update:model-value="putdb({tracking_settle_time: cfg.tracking_settle_time})" />
+        <div v-if="cfg.advanced_control">
+          <div class="row">
+            <q-toggle class='col-3' v-model="cfg.advanced_slewing" label="Advanced Slewing" @update:model-value="put({advanced_slewing: cfg.advanced_slewing})" />
+            <q-toggle class='col-3' v-model="cfg.advanced_goto" label="Advanced Goto" @update:model-value="put({advanced_goto: cfg.advanced_goto})" />
+          </div>
+          <div class="row">
+            <q-toggle class='col-3' v-model="cfg.advanced_tracking" label="Advanced Tracking" @update:model-value="put({advanced_tracking: cfg.advanced_tracking})" />
+            <q-toggle class='col-3' v-model="cfg.advanced_guiding" label="Advanced Guiding" @update:model-value="put({advanced_guiding: cfg.advanced_guiding})" />
+          </div>
+          <div class="row">
+            <q-toggle class='col-3' v-model="cfg.advanced_rotator" label="Advanced Rotator" @update:model-value="put({advanced_rotator: cfg.advanced_rotator})" />
+          </div>
+          <div class="row q-pl-md q-gutter-lg">
+              <q-input type="number" v-model.number="cfg.max_slew_rate" label="Max Slew Rate" @update:model-value="putdb({max_slew_rate: cfg.max_slew_rate})" />
+              <q-input type="number" v-model.number="cfg.max_accel_rate" label="Max Accel Rate" @update:model-value="putdb({max_accel_rate: cfg.max_accel_rate})" />
+              <q-input type="number" v-model.number="cfg.tracking_settle_time" label="Tracking Settle Time" @update:model-value="putdb({tracking_settle_time: cfg.tracking_settle_time})" />
+          </div>
         </div>
 
         <!-- Aiming Adjustment -->
-        <div class="text-subtitle1 q-mt-md">Aiming Adjustment</div>
+        <div class="text-h6 q-mt-lg">Aiming Adjustment</div>
         <q-toggle v-model="cfg.aiming_adjustment_enabled" label="Enable Adjustment" @update:model-value="put({aiming_adjustment_enabled: cfg.aiming_adjustment_enabled})" />
         <q-input type="number" v-model.number="cfg.aiming_adjustment_time" label="Adjustment Time" @update:model-value="putdb({aiming_adjustment_time: cfg.aiming_adjustment_time})" />
         <q-input type="number" v-model.number="cfg.aiming_adjustment_az" label="Adjustment Az" @update:model-value="putdb({aiming_adjustment_az: cfg.aiming_adjustment_az})" />
@@ -99,12 +129,12 @@
         <q-input type="number" v-model.number="cfg.aim_max_error_correction" label="Max Error Correction" @update:model-value="putdb({aim_max_error_correction: cfg.aim_max_error_correction})" />
 
         <!--  Sync -->
-        <div class="text-subtitle1 q-mt-md">Sync</div>
+        <div class="text-h6 q-mt-lg">Sync</div>
         <q-input type="number" v-model.number="cfg.sync_pointing_model" label="Pointing Model" @update:model-value="putdb({sync_pointing_model: cfg.sync_pointing_model})" />
         <q-toggle v-model="cfg.sync_N_point_alignment" label="N-Point Alignment" @update:model-value="put({sync_N_point_alignment: cfg.sync_N_point_alignment})" />
 
         <!-- Logging -->
-        <div class="text-subtitle1 q-mt-md">Logging</div>
+        <div class="text-h6 q-mt-lg">Logging</div>
         <q-toggle v-model="cfg.log_to_file" label="Log to File" @update:model-value="put({log_to_file: cfg.log_to_file})" />
         <q-toggle v-model="cfg.log_to_stdout" label="Log to Stdout" @update:model-value="put({log_to_stdout: cfg.log_to_stdout})" />
         <q-toggle v-model="cfg.log_polaris" label="Log Polaris" @update:model-value="put({log_polaris: cfg.log_polaris})" />
