@@ -31,9 +31,9 @@
           </q-card>
         </div>
       </div>
-      <div class="row q-col-gutter-sm">
+      <div class="row q-col-gutter-sm items-stretch">
         <!-- Network -->
-        <div class="col-md-6 col-lg-4">
+        <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Network Services</div>
             <div class="row">
@@ -85,7 +85,7 @@
           </q-card>
         </div>
         <!-- Site Info -->
-        <div class="col-md-6 col-lg-4">
+        <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Observing Site Information</div>
             <div class="row">
@@ -93,8 +93,9 @@
                 Latitude and longitude are essential for accurate tracking. Elevation and pressure improve precision. 
                 Click GPS to use your device’s location. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
-              <div class="col q-pl-lg q-gutter-md">
-                <q-btn outline color="grey-5" label="GPS" icon="my_location" @click="setFromPhoneLocation"/>
+              <div class="col q-pl-lg q-gutter-sm">
+                <q-icon name="my_location"></q-icon>
+                <q-btn outline color="grey-5" label="GPS"  @click="setFromPhoneLocation"/>
               </div>
             </div>
             <div class="row q-pl-md q-gutter-lg">
@@ -113,7 +114,7 @@
           </q-card>
         </div>
         <!-- Advanced Features -->
-        <div class="col-md-6 col-lg-4">
+        <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Advanced Control Features</div>
             <div class="row q-pb-md">
@@ -127,15 +128,15 @@
             </div>
             <div v-if="cfg.advanced_control">
               <div class="row">
-                <q-toggle class='col-4' v-model="cfg.advanced_slewing" label="Advanced Slewing" @update:model-value="put({advanced_slewing: cfg.advanced_slewing})" />
-                <q-toggle class='col-4' v-model="cfg.advanced_goto" label="Advanced Goto" @update:model-value="put({advanced_goto: cfg.advanced_goto})" />
+                <q-toggle class='col-6' v-model="cfg.advanced_slewing" label="Advanced Slewing" @update:model-value="put({advanced_slewing: cfg.advanced_slewing})" />
+                <q-toggle class='col-6' v-model="cfg.advanced_goto" label="Advanced Goto" @update:model-value="put({advanced_goto: cfg.advanced_goto})" />
               </div>
               <div class="row">
-                <q-toggle class='col-4' v-model="cfg.advanced_tracking" label="Advanced Tracking" @update:model-value="put({advanced_tracking: cfg.advanced_tracking})" />
-                <q-toggle class='col-4' v-model="cfg.advanced_guiding" label="Advanced Guiding" @update:model-value="put({advanced_guiding: cfg.advanced_guiding})" />
+                <q-toggle class='col-6' v-model="cfg.advanced_tracking" label="Advanced Tracking" @update:model-value="put({advanced_tracking: cfg.advanced_tracking})" />
+                <q-toggle class='col-6' v-model="cfg.advanced_guiding" label="Advanced Guiding" @update:model-value="put({advanced_guiding: cfg.advanced_guiding})" />
               </div>
               <div class="row">
-                <q-toggle class='col-4' v-model="cfg.advanced_rotator" label="Advanced Rotator" @update:model-value="put({advanced_rotator: cfg.advanced_rotator})" />
+                <q-toggle class='col-6' v-model="cfg.advanced_rotator" label="Advanced Rotator" @update:model-value="put({advanced_rotator: cfg.advanced_rotator})" />
               </div>
               <div class="row q-pl-md q-gutter-lg">
                   <q-input class='col-3' type="number" v-model.number="cfg.max_slew_rate" label="Max Slew Rate" @update:model-value="putdb({max_slew_rate: cfg.max_slew_rate})" />
@@ -146,15 +147,16 @@
           </q-card>
         </div>
         <!-- Aiming Adjustment -->
-        <div class="col-md-6 col-lg-4">
+        <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Aiming Adjustment</div>
             <q-toggle v-model="cfg.aiming_adjustment_enabled" label="Enable Adjustment" @update:model-value="put({aiming_adjustment_enabled: cfg.aiming_adjustment_enabled})" />
-            <q-input type="number" v-model.number="cfg.aiming_adjustment_time" label="Adjustment Time" @update:model-value="putdb({aiming_adjustment_time: cfg.aiming_adjustment_time})" />
-            <q-input type="number" v-model.number="cfg.aiming_adjustment_az" label="Adjustment Az" @update:model-value="putdb({aiming_adjustment_az: cfg.aiming_adjustment_az})" />
-            <q-input type="number" v-model.number="cfg.aiming_adjustment_alt" label="Adjustment Alt" @update:model-value="putdb({aiming_adjustment_alt: cfg.aiming_adjustment_alt})" />
-            <q-input type="number" v-model.number="cfg.aim_max_error_correction" label="Max Error Correction" @update:model-value="putdb({aim_max_error_correction: cfg.aim_max_error_correction})" />
-
+            <div class="row q-pl-md q-gutter-lg">
+              <q-input class='col-3' type="number" v-model.number="cfg.aiming_adjustment_time" label="Adjustment Time" @update:model-value="putdb({aiming_adjustment_time: cfg.aiming_adjustment_time})" />
+              <q-input class='col-3' type="number" v-model.number="cfg.aiming_adjustment_az" label="Adjustment Az" @update:model-value="putdb({aiming_adjustment_az: cfg.aiming_adjustment_az})" />
+              <q-input class='col-3' type="number" v-model.number="cfg.aiming_adjustment_alt" label="Adjustment Alt" @update:model-value="putdb({aiming_adjustment_alt: cfg.aiming_adjustment_alt})" />
+              <q-input class='col-3' type="number" v-model.number="cfg.aim_max_error_correction" label="Max Error Correction" @update:model-value="putdb({aim_max_error_correction: cfg.aim_max_error_correction})" />
+            </div>
             <!--  Sync -->
             <div class="text-h6 q-mt-lg">Sync</div>
             <q-input type="number" v-model.number="cfg.sync_pointing_model" label="Pointing Model" @update:model-value="putdb({sync_pointing_model: cfg.sync_pointing_model})" />
@@ -162,7 +164,7 @@
           </q-card>
         </div>
         <!-- Logging -->
-        <div class="col-md-6 col-lg-4">
+        <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Logging</div>
             <q-toggle v-model="cfg.log_to_file" label="Log to File" @update:model-value="put({log_to_file: cfg.log_to_file})" />
