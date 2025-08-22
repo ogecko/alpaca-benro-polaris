@@ -64,6 +64,7 @@ import json
 import re
 import math
 import asyncio
+import threading
 from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
 from config import Config
@@ -389,3 +390,44 @@ def empty_queue(q: asyncio.Queue):
         q.get_nowait()
     except asyncio.QueueEmpty:
         break
+
+from enum import Enum, auto
+
+class LifecycleEvent(Enum):
+    NONE = auto()
+    SHUTDOWN = auto()
+    RESTART = auto()
+    INTERRUPT = auto()
+
+class LifecycleController:
+    def __init__(self):
+        self._event = LifecycleEvent.NONE
+        self._cond = asyncio.Condition()
+        self._lock = threading.Lock()  # For thread-safe sync signaling
+
+    async def wait_for_event(self):
+        async with self._cond:
+            await self._cond.wait()
+            return self._event
+
+    async def signal(self, event: LifecycleEvent):
+        async with self._cond:
+            self._event = event
+            self._cond.notify_all()
+
+    def signal_sync(self, event: LifecycleEvent):
+        # Called from signal handlers (e.g., SIGINT)
+        with self._lock:
+            loop = asyncio.get_event_loop()
+            loop.call_soon_threadsafe(self._set_event_and_notify, event)
+
+    def _set_event_and_notify(self, event: LifecycleEvent):
+        # Internal helper for thread-safe signaling
+        async def notify():
+            async with self._cond:
+                self._event = event
+                self._cond.notify_all()
+        asyncio.create_task(notify())
+
+    def reset(self):
+        self._event = LifecycleEvent.NONE

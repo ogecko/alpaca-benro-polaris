@@ -89,13 +89,15 @@ class configureddevices():
             'DeviceType'    : TelescopeMetadata.DeviceType,
             'DeviceNumber'  : 0,
             'UniqueID'      : TelescopeMetadata.DeviceID
-            },
-            {
-            'DeviceName'    : RotatorMetadata.Name,
-            'DeviceType'    : RotatorMetadata.DeviceType,
-            'DeviceNumber'  : 0,
-            'UniqueID'      : RotatorMetadata.DeviceID
-            }        ]
+            }
+        ]
+        if Config.advanced_rotator:
+            confarray.append({
+                'DeviceName'    : RotatorMetadata.Name,
+                'DeviceType'    : RotatorMetadata.DeviceType,
+                'DeviceNumber'  : 0,
+                'UniqueID'      : RotatorMetadata.DeviceID
+            })
         resp.text = await PropertyResponse(confarray, req)
 
 # -----------------

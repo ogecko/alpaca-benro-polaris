@@ -48,7 +48,7 @@ import asyncio
 import telescope
 import time
 from config import Config
-from shr import DeviceMetadata
+from shr import DeviceMetadata, LifecycleController
 from datetime import datetime
 from shr import deg2dms,hr2hms,rad2deg,rad2hr,hr2rad,deg2rad,bytes2hexascii
 import ephem
@@ -430,10 +430,30 @@ async def stellarium_handler(logger, reader, writer):
 
 
 # Main entry for Stellarium
-async def synscan_api(logger):   
-    if Config.enable_synscan:
-        host = Config.stellarium_synscan_ip_address
-        port = Config.stellarium_synscan_port 
-        logger.info(f"==STARTUP== Serving Stellarium/SynSCAN API on {host}:{port}")
-        await asyncio.start_server(lambda reader, writer: stellarium_handler(logger, reader, writer), host, port)
+async def synscan_api(logger, lifecycle: LifecycleController):
+    if not Config.enable_synscan:
+        return
+
+    host = Config.stellarium_synscan_ip_address
+    port = Config.stellarium_synscan_port
+    logger.info(f"==STARTUP== Serving Stellarium/SynSCAN API on {host}:{port}")
+
+    try:
+        server = await asyncio.start_server(
+            lambda reader, writer: stellarium_handler(logger, reader, writer),
+            host,
+            port
+        )
+
+        async with server:
+            await lifecycle.wait_for_event()
+    except asyncio.CancelledError:
+        logger.info("==CANCELLED== SynSCAN API task cancelled.")
+        raise  # Important: re-raise to propagate cancellation
+    except Exception as e:
+        logger.exception(f"==ERROR== SynSCAN API encountered an exception: {e}")
+    finally:
+        server.close()
+        await server.wait_closed()
+
 

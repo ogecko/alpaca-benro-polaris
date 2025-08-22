@@ -20,7 +20,7 @@ from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request
 from exceptions import *        # Nothing but exception classes
 import math
 from polaris import Polaris
-from shr import DeviceMetadata
+from shr import DeviceMetadata, LifecycleController
 
 logger: Logger = None
 polaris: Polaris = None
@@ -28,7 +28,7 @@ polaris: Polaris = None
 # ----------------------------------------------------------------------
 # Set our reference to the Polaris object (not at import time)
 # ----------------------------------------------------------------------
-def start_rotator(p: Polaris): 
+def start_rotator(p: Polaris, lifecyle: LifecycleController): 
     global polaris
     polaris = p
 

@@ -27,10 +27,12 @@
 import os
 import mimetypes
 import aiofiles
+import asyncio
 import uvicorn
 from falcon import asgi, HTTP_200
 from config import Config
 from pathlib import Path
+from shr import LifecycleController
 
 SCRIPT_DIR = Path(__file__).resolve().parent    # Get the path to the current script
 QUASAR_DIST = SCRIPT_DIR.parent / 'pilot' / 'dist' / 'spa'   
@@ -49,7 +51,7 @@ class QuasarStaticResource:
 # ---------------------------------------------
 # MAIN HTTP ENGINE (FALCON ASGI BASED)
 # ---------------------------------------------
-async def alpaca_pilot_httpd(logger):
+async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     """Initialize Falcon app and start serving it
      
     Create an asgi Falcon app defining all routes. 
@@ -76,8 +78,15 @@ async def alpaca_pilot_httpd(logger):
 
     # Serve the application
     try:
-        await pilot_server.serve()
+        await asyncio.gather(
+            pilot_server.serve(),
+            lifecycle.wait_for_event()
+        )
+    except asyncio.CancelledError:
+        logger.info("==CANCELLED== Alpaca Web Server cancelled.")
     except KeyboardInterrupt:
         raise ValueError('Keyboard interrupt.')
-
+    finally:
+        # shutdown the server
+        await pilot_server.shutdown()
 

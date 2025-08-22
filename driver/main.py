@@ -50,69 +50,80 @@ import argparse
 from pathlib import Path
 import os
 from polaris import Polaris
-
-
+from shr import LifecycleController, LifecycleEvent
+import signal
 polaris: Polaris = None
 
-# ===========
-# APP STARTUP
-# ===========
+# ===================================
+# MAIN LOOP RESPONSIBLE FOR RETARTS
+# ===================================
 async def main():
-
     logger = log.init_logging()
-    # Share this logger throughout
-    log.logger = logger
-    exceptions.logger = logger
-    discovery.logger = logger
-    telescope.logger = logger
-    rotator.logger = logger
-    shr.logger = logger
+    log.logger = exceptions.logger = discovery.logger = telescope.logger = rotator.logger = shr.logger = logger
+
+    while True:
+        lifecycle = LifecycleController()
+        def handle_sigint(signum, frame):
+            lifecycle.signal_sync(LifecycleEvent.INTERRUPT)
+        signal.signal(signal.SIGINT, handle_sigint)
+        try:
+            await run_all(logger, lifecycle)
+        except KeyboardInterrupt:
+            logger.info("Keyboard Interrupt received. Exiting.")
+            break
+        except asyncio.CancelledError:
+            logger.info("Main loop cancelled.")
+            break
+        except Exception as e:
+            logger.exception("Fatal error in main loop.")
+            break
+        else:
+            if lifecycle._event == LifecycleEvent.RESTART:
+                logger.info("Restarting driver stack...")
+                continue
+            elif lifecycle._event == LifecycleEvent.INTERRUPT:
+                logger.info("SIGINT received. Shutting down.")
+                break
+            else:
+                logger.info("Shutdown requested. Exiting.")
+                break
+
+# ===================
+# RUN ALL TASKS
+# ===================
+async def run_all(logger, lifecycle: LifecycleController):
+    # Output Alpaca Driver version
+    logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
     # Create the Polaris master object and startup each ASCOM device
     global polaris
     polaris = Polaris(logger)
-    telescope.start_telescope(polaris)
-    rotator.start_rotator(polaris)
+    telescope.start_telescope(polaris, lifecycle)
+    rotator.start_rotator(polaris, lifecycle)
 
-    # Output performance data log headers if enabled
-    if Config.log_performance_data == 1:        # Aim data
-        logger.info(f",Dataset,Time,AimAz,AimAlt,OffsetAz,OffsetAlt,AimErrorAz,AimErrorAlt")
-        logger.info(f",DATA1,{0:.3f},{0:.2f},{0:.2f},{0:.2f},{0:.2f},{0:.2f},{0:.2f}")
-
-    elif Config.log_performance_data == 2:      # Drift data
-        logger.info(f",Dataset,Time,TrackingT0,TrackingT1,TargetRA,TargetDec,DriftErrRA,DriftErrDec")
-        logger.info(f",DATA2,{0:.3f},{False},{False},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
-
-    elif Config.log_performance_data == 3:      # Speed data
-        logger.info(f",Dataset,Time,Interval,Constant,RateAz,SpeedAz,RateAlt,SpeedAlt,SpeedRA,SpeedDec,SpeedTotal")
-        logger.info(f",DATA3,{0:.3f},{0:.2f},{False},{0:.2f},{0:.7f},{0:.2f},{0:.7f},{0:.7f},{0:.7f},'00:00:00.000'")
-
-    elif Config.log_performance_data == 4:      # Position data (heavy logging)
-        logger.info(f",Dataset,Time,Tracking,Slewing,Gotoing,TargetRA,TargetDEC,AscomRA,AscomDEC,AscomAz,AscomAlt,ErrorRA,ErrorDec")
-        logger.info(f",DATA4,{0:.3f},{False},{False},{False},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
-
-    elif Config.log_performance_data == 5:      # Rotator data (heavy logging)
-        logger.info(f",Dataset,Time,  w1,x1,y1,z1, az,alt,roll,  theta1,theta2,theta3,  state1,state2,state3,  omega1,omega2,omega3,  state4,state5,state6,  oref1,oref2,oref3")
-
-    elif Config.log_performance_data == 6:      # PID data (heavy logging)
-        logger.info(f",Dataset,  Mode,  DRef1,DRef2,DRef3, ARef1,ARef2,ARef3, TRef1,TRef2,TRef3, TMeas,TMeas2,TMeas3, ORef1,ORef2,ORef3, OP1,OP2,OP3")
-
-    # Output Alpaca Driver version
-    logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
-
+    async def wrap(task_coro, name: str = "UnnamedTask"):
+        try:
+            await task_coro
+        except asyncio.CancelledError:
+            logger.info(f"[{name}] Task cancelled.")
+        except Exception:
+            logger.exception(f"[{name}] Unhandled exception.")
 
     tasks = [
-            polaris.client(logger),
-            app_api.alpaca_rest_httpd(logger),
-            app_web.alpaca_pilot_httpd(logger),
-            discovery.socket_client(logger),
-            stellarium.synscan_api(logger)
+        asyncio.create_task(wrap(polaris.client(logger), name='Polaris')),
+        asyncio.create_task(wrap(app_api.alpaca_rest_httpd(logger, lifecycle), name='RestAPI')),
+        asyncio.create_task(wrap(app_web.alpaca_pilot_httpd(logger, lifecycle), name='Pilot')),
+        asyncio.create_task(wrap(discovery.socket_client(logger, lifecycle), name='Discovery')),
+        asyncio.create_task(wrap(stellarium.synscan_api(logger, lifecycle), name='SynscanAPI'))
     ]
-    await asyncio.gather(*tasks)
 
+    event = await lifecycle.wait_for_event()
+
+    logger.info(f'==SHUTDOWN== Shutting down all tasks...for {event}')
+    for t in tasks:
+        t.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
     await polaris.shutdown()
-
-
 
 
 # ==================================================================

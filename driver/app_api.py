@@ -28,9 +28,10 @@
 import inspect
 import uvicorn
 from falcon import App, asgi, HTTP_200, HTTPFound
+import asyncio
 import management
 from config import Config
-
+from shr import LifecycleController
 
 #########################
 # FOR EACH ASCOM DEVICE #
@@ -72,7 +73,7 @@ class RedirectResource:
 # ---------------------------------------------
 # MAIN HTTP/REST API ENGINE (FALCON ASGI BASED)
 # ---------------------------------------------
-async def alpaca_rest_httpd(logger):
+async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
     """Initialize Falcon app and start serving it
      
     Create an asgi Falcon app defining all routes. 
@@ -109,9 +110,19 @@ async def alpaca_rest_httpd(logger):
 
     # Serve the application
     try:
-        await alpaca_server.serve()
+        await asyncio.gather(
+            alpaca_server.serve(),
+            lifecycle.wait_for_event()
+        )
+    except asyncio.CancelledError:
+        logger.info("==CANCELLED== Alpaca REST API cancelled.")
     except KeyboardInterrupt:
-        raise ValueError('Keyboard interrupt.')
+        logger.info("Alpaca REST API received KeyboardInterrupt. Shutting down.")
+        raise
+    finally:
+        # shutdown the server
+        await alpaca_server.shutdown()
+
 
 
 class CORSMiddleware:

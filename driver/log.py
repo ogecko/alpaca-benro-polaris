@@ -95,4 +95,28 @@ def init_logging():
         """
         logger.debug('Logging to stdout disabled in settings')
         logger.removeHandler(logger.handlers[0])    # This is the stdout handler
+    
+    # Output performance data log headers if enabled
+    if Config.log_performance_data == 1:        # Aim data
+        logger.info(f",Dataset,Time,AimAz,AimAlt,OffsetAz,OffsetAlt,AimErrorAz,AimErrorAlt")
+        logger.info(f",DATA1,{0:.3f},{0:.2f},{0:.2f},{0:.2f},{0:.2f},{0:.2f},{0:.2f}")
+
+    elif Config.log_performance_data == 2:      # Drift data
+        logger.info(f",Dataset,Time,TrackingT0,TrackingT1,TargetRA,TargetDec,DriftErrRA,DriftErrDec")
+        logger.info(f",DATA2,{0:.3f},{False},{False},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
+
+    elif Config.log_performance_data == 3:      # Speed data
+        logger.info(f",Dataset,Time,Interval,Constant,RateAz,SpeedAz,RateAlt,SpeedAlt,SpeedRA,SpeedDec,SpeedTotal")
+        logger.info(f",DATA3,{0:.3f},{0:.2f},{False},{0:.2f},{0:.7f},{0:.2f},{0:.7f},{0:.7f},{0:.7f},'00:00:00.000'")
+
+    elif Config.log_performance_data == 4:      # Position data (heavy logging)
+        logger.info(f",Dataset,Time,Tracking,Slewing,Gotoing,TargetRA,TargetDEC,AscomRA,AscomDEC,AscomAz,AscomAlt,ErrorRA,ErrorDec")
+        logger.info(f",DATA4,{0:.3f},{False},{False},{False},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
+
+    elif Config.log_performance_data == 5:      # Rotator data (heavy logging)
+        logger.info(f",Dataset,Time,  w1,x1,y1,z1, az,alt,roll,  theta1,theta2,theta3,  state1,state2,state3,  omega1,omega2,omega3,  state4,state5,state6,  oref1,oref2,oref3")
+
+    elif Config.log_performance_data == 6:      # PID data (heavy logging)
+        logger.info(f",Dataset,  Mode,  DRef1,DRef2,DRef3, ARef1,ARef2,ARef3, TRef1,TRef2,TRef3, TMeas,TMeas2,TMeas3, ORef1,ORef2,ORef3, OP1,OP2,OP3")
+    
     return logger

@@ -21,17 +21,20 @@ from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request
 from exceptions import *        # Nothing but exception classes
 import math
 from polaris import Polaris
-from shr import DeviceMetadata
+from shr import DeviceMetadata, LifecycleController, LifecycleEvent
 
 logger: Logger = None
 polaris: Polaris = None
+lifecycle: LifecycleController = None
 
 # ----------------------------------------------------------------------
 # Set our reference to the Polaris object (not at import time)
 # ----------------------------------------------------------------------
-def start_telescope(p: Polaris): 
+def start_telescope(p: Polaris, lf: LifecycleController): 
     global polaris
     polaris = p
+    global lifecycle
+    lifecycle = lf
 
 # ----------------------
 # MULTI-INSTANCE SUPPORT
@@ -1456,8 +1459,11 @@ class action:
         actionName = await get_request_field('Action', req)
         parameters = dict(await get_request_field('Parameters', req))
         logger.info(f'ACTION request {actionName}: {parameters}')
+
         if actionName == "RestartDriver":
-            raise RestartDriver('Action request to restart Alpaca Driver.')
+            await lifecycle.signal(LifecycleEvent.RESTART)
+            resp.text = await PropertyResponse('RestartDriver ok', req)  
+
         elif actionName == "ConfigTOML":
             if not parameters:
                 # No parameters: return full config
