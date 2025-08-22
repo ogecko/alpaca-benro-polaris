@@ -43,7 +43,7 @@
             </div>
             <div class="row no-wrap q-gutter-sm">
                 <q-toggle class='col-8' v-model="cfg.enable_restapi" label="Alpaca REST API"  @update:model-value="put({enable_restapi: cfg.enable_restapi})"/>
-                <q-input class="short" v-if="cfg.enable_restapi" dense label="Port" type="number"  
+                <q-input v-if="cfg.enable_restapi" label="Port" dense class="col-3" type="number"  input-class="text-right"
                   v-model="cfg.alpaca_restapi_port" @update:model-value="putdb({alpaca_restapi_port: cfg.alpaca_restapi_port})">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
@@ -56,21 +56,21 @@
                 </q-banner>
             <div class="row no-wrap q-gutter-sm">
                 <q-toggle class='col-8' v-model="cfg.enable_discovery" label="Alpaca Discovery"  @update:model-value="put({enable_discovery: cfg.enable_discovery})" />
-                <q-input v-if="cfg.enable_discovery" label="Port" dense class="short" type="number"
+                <q-input v-if="cfg.enable_discovery" label="Port" dense class="col-3" type="number" input-class="text-right"
                   v-model="cfg.alpaca_discovery_port" @update:model-value="putdb({alpaca_discovery_port: cfg.alpaca_discovery_port})">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
             </div>
             <div class="row no-wrap  q-gutter-sm">
                 <q-toggle class='col-8' v-model="cfg.enable_pilot" label="Alpaca Pilot"  @update:model-value="put({enable_pilot: cfg.enable_pilot})" />
-                <q-input v-if="cfg.enable_pilot" label="Port" dense class="short" type="number"
+                <q-input v-if="cfg.enable_pilot" label="Port" dense class="col-3" type="number" input-class="text-right"
                   v-model="cfg.alpaca_pilot_port" @update:model-value="putdb({alpaca_pilot_port: cfg.alpaca_pilot_port})">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
             </div>
             <div class="row no-wrap  q-gutter-sm">
               <q-toggle class='col-8' v-model="cfg.enable_synscan" label="SynSCAN API"  @update:model-value="put({enable_synscan: cfg.enable_synscan})" />
-              <q-input v-if="cfg.enable_synscan" label="Port" dense class="short" type="number"
+              <q-input v-if="cfg.enable_synscan" label="Port" dense class="col-3" type="number" input-class="text-right"
                 v-model.number="cfg.stellarium_synscan_port" @update:model-value="putdb({stellarium_synscan_port: cfg.stellarium_synscan_port})">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
@@ -92,15 +92,21 @@
               </div>
             </div>
             <div class="row q-col-gutter-lg">
-                <q-input class="col-3" type="number" v-model.number="cfg.site_latitude" label="Latitude" @update:model-value="putdb({site_latitude: cfg.site_latitude})" :class="{ taflash: taKey=='latlon'}"/>
-                <q-input class="col-3" type="number" v-model.number="cfg.site_longitude" label="Longitude" @update:model-value="putdb({site_longitude: cfg.site_longitude})" :class="{ taflash: taKey=='latlon'}"/>
+                <q-input class="col-3" type="number" label="Latitude" suffix="°" input-class="text-right"
+                  v-model.number="cfg.site_latitude" @update:model-value="putdb({site_latitude: cfg.site_latitude})" :class="{ taflash: taKey=='latlon'}"/>
+                <q-input class="col-3" type="number" label="Longitude" suffix="°" input-class="text-right"
+                v-model.number="cfg.site_longitude" @update:model-value="putdb({site_longitude: cfg.site_longitude})" :class="{ taflash: taKey=='latlon'}"/>
                 <q-input class="col-6" v-model="cfg.location" label="Location" @update:model-value="putdb({location: cfg.location})" />
             </div>
             <div class="row q-col-gutter-lg">
-                <q-input class="col-3" type="number" v-model.number="cfg.site_elevation" label="Elevation (m)" @update:model-value="putdb({site_elevation: cfg.site_elevation})" />
-                <q-input class="col-3" type="number" v-model.number="cfg.site_pressure" label="Pressure (hPa)" @update:model-value="putdb({site_pressure: cfg.site_pressure})" />
-                <q-input class="col-3" type="number" v-model.number="cfg.focal_length" label="Focal Length (mm)" @update:model-value="putdb({focal_length: cfg.focal_length})" />
-                <q-input class="col-3" type="number" v-model.number="cfg.focal_ratio" label="Focal Ratio" @update:model-value="putdb({focal_ratio: cfg.focal_ratio})" />
+                <q-input class="col-3" type="number" label="Elevation" suffix="m" input-class="text-right"
+                  v-model.number="cfg.site_elevation" @update:model-value="putdb({site_elevation: cfg.site_elevation})" />
+                <q-input class="col-3" type="number" label="Pressure" suffix="hPa" input-class="text-right"
+                  v-model.number="cfg.site_pressure" @update:model-value="putdb({site_pressure: cfg.site_pressure})" />
+                <q-input class="col-3" type="number" label="Focal Length"  suffix="mm" input-class="text-right"
+                  v-model.number="cfg.focal_length" @update:model-value="putdb({focal_length: cfg.focal_length})" />
+                <q-input class="col-3" type="number" label="Focal Ratio"  suffix="f-stop" input-class="text-right"
+                  v-model.number="cfg.focal_ratio"  @update:model-value="putdb({focal_ratio: cfg.focal_ratio})" />
             </div>
           </q-card>
         </div>
@@ -119,20 +125,23 @@
             </div>
             <div v-if="cfg.advanced_control">
               <div class="row">
-                <q-toggle class='col-6' v-model="cfg.advanced_slewing" label="Advanced Slewing" @update:model-value="put({advanced_slewing: cfg.advanced_slewing})" />
+                <q-toggle class='col-6' v-model="cfg.advanced_slewing" label="Slewing" @update:model-value="put({advanced_slewing: cfg.advanced_slewing})" />
                 <q-toggle class='col-6' v-model="cfg.advanced_goto" label="Advanced Goto" @update:model-value="put({advanced_goto: cfg.advanced_goto})" />
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-model="cfg.advanced_tracking" label="Advanced Tracking" @update:model-value="put({advanced_tracking: cfg.advanced_tracking})" />
-                <q-toggle class='col-6' v-model="cfg.advanced_guiding" label="Advanced Guiding" @update:model-value="put({advanced_guiding: cfg.advanced_guiding})" />
+                <q-toggle class='col-6' v-model="cfg.advanced_tracking" label="Tracking" @update:model-value="put({advanced_tracking: cfg.advanced_tracking})" />
+                <q-toggle class='col-6' v-model="cfg.advanced_guiding" label="Pulse Guiding" @update:model-value="put({advanced_guiding: cfg.advanced_guiding})" />
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-model="cfg.advanced_rotator" label="Alpaca Rotator" @update:model-value="put({advanced_rotator: cfg.advanced_rotator})" />
               </div>
               <div class="row q-pl-md q-gutter-lg">
-                  <q-input class='col-3' type="number" v-model.number="cfg.max_slew_rate" label="Max Slew Rate" @update:model-value="putdb({max_slew_rate: cfg.max_slew_rate})" />
-                  <q-input class='col-3' type="number" v-model.number="cfg.max_accel_rate" label="Max Accel Rate" @update:model-value="putdb({max_accel_rate: cfg.max_accel_rate})" />
-                  <q-input class='col-3' type="number" v-model.number="cfg.tracking_settle_time" label="Tracking Settle Time" @update:model-value="putdb({tracking_settle_time: cfg.tracking_settle_time})" />
+                  <q-input class='col-3' type="number" label="Max Slew Rate" suffix="°/s" input-class="text-right"
+                    v-model.number="cfg.max_slew_rate" @update:model-value="putdb({max_slew_rate: cfg.max_slew_rate})" />
+                  <q-input class='col-3' type="number" label="Max Accel Rate" suffix="°/s²" input-class="text-right"
+                    v-model.number="cfg.max_accel_rate" @update:model-value="putdb({max_accel_rate: cfg.max_accel_rate})" />
+                  <q-input class='col-3' type="number" label="Settle Time" suffix="s" input-class="text-right"
+                    v-model.number="cfg.tracking_settle_time"  @update:model-value="putdb({tracking_settle_time: cfg.tracking_settle_time})" />
               </div>
             </div>
           </q-card>
@@ -227,6 +236,18 @@ const put = debounce((payload) => cfg.updateConfig(payload), 5)     // fast put 
 
 .short {
   width: 100px;
+}
+
+/* No Spinner - Chrome, Safari, Edge */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* No Spinner - Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }
 
 </style>
