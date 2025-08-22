@@ -75,13 +75,6 @@
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
             </div>
-            <div class="row no-wrap q-gutter-sm">
-                <q-input class='col-8 q-pl-sm' label="Polaris IP" dense v-model="cfg.polaris_ip_address" @update:model-value="putdb({polaris_ip_address: cfg.polaris_ip_address})" />
-                <q-input label="Port" dense class="short" type="number" 
-                  v-model.number="cfg.polaris_port" @update:model-value="putdb({polaris_port: cfg.polaris_port})">
-                  <template v-slot:prepend><q-icon name="nat"></q-icon></template>
-                </q-input>
-            </div>
           </q-card>
         </div>
         <!-- Site Info -->
