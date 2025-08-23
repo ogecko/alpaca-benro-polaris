@@ -1,7 +1,7 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-**Version:** 1.0.2
+**Version:** 2.0.0
 **Release Date:** TBD   
 **Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris    
 **Win11 Install:** Demonstration Video at https://youtu.be/ipbWT54afhY    
@@ -12,17 +12,83 @@
 * Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
 * Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
 
+## New Features (Alpaca Pilot)
+- **[Modern App]**: Alpaca Pilot offers an elegant, adaptive UI for control and management of Alpaca Drivers
+- **[Responsive UI]**: Adapts seamlessly to phones, tablets, and desktops for a consistent experience across devices
+- **[Connection Page]**: Quickly connect to your Alpaca Driver and Benro Polaris through a clean, intuitive interface
+- **[Configuration Page]**: Instantly view and modify Alpaca Driver settings; no need to edit config.toml or restart
+- **[Nina integration]**: Launch Alpaca Pilot directly from the Settings Cogs in NINA’s Equipment tab
+
+## New Features (Alpaca Driver)
+- **[Alpaca Actions]**: Expose extended ASCOM Actions for Driver Restart, Config Service Control
+- **[Task Orchestration]**: Streamlined task lifecycle management with coordinated creation and teardown
+- **[Configuration Service]**: Enhanced config handling with support for saving overrides and restoring defaults
+- **[Network Services]**: Unified control over network services and port bindings for cleaner security management
+- **[Web Service]**: Introduced embedded Web Service to host the Alpaca Pilot Single Page Application
+- **[Log Files]**: Default log output now directed to the `logs` directory (previously `driver`)
+- **[Driver Startup]**: Driver version now logged on startup for traceability
+- **[Field Rotation]**: Field Rotation derived from Polaris quaternion data in 518 messages
+- **[Image Cleanup]**: Added scatter plots to visualize rejected images based on statistical thresholds
+- **[CORS Middleware]**: Integrated middleware for Cross-Origin Request support
+- **[Testing Framework]**: Introduced testing framework for Alpaca Driver validation and regression checks
+
+## New Features (ASCOM Alpaca Rotator support)
+- **[ASCOM Rotator]** Implement the ASCOM Alpaca Rotator device standard
+- **[Nina Integration]** Support Nina Equipment tab and Rotator Control
+- **[TODO]** Parallactic and Roll Angle Targeting
+- **[TODO]** Direct Slew to Defined Angular Pose
+
+## New Features (Advanced Position Control Algorithm)
+- **[Kinematic Solver]** Quaternion-based kinematics and inverse solutions
+- **[PID Tuning]** Optimised PID Control for mount orientation control from Alpaca Driver
+- **[Motor Control]** Independant Motor Speed Control
+- **[Rate Interpolation]** Angular Rate Interpolation Framework
+- **[Angular Metrics]** Real-time Angular Position and Velocity Measurement
+- **[Orientation Filter]** Orientation Estimation via Kalman Filtering
+- **[Speed Profiling]** Speed Calibration & Response Profiling
+- **[Input Normalisation]** Speed Control Input Normalisation across SLOW and FAST Polaris commands
+- **[Constraint Limiting]** Constraint-Aware Position, Velocity and Acceleration Limiting
+
+# New Features (Ephem Position Calculation)
+- **[Orbital Positioning]** Accurate Orbital Positioning of Earth and Target Body
+- **[Light Compensation]** Light Travel Time Compensation for Apparent Position
+- **[Epoch Alignment]** Epoch-Based Coordinate Precession Alignment
+- **[Relativistic Deflection]** Relativistic Light Deflection near Solar Limb
+- **[Nutation Correction]** Earth Nutation Correction (Polar Axis Wobble)
+- **[Velocity Aberration]** Aberration of Light Due to Earth’s Orbital Velocity
+- **[Refraction Modeling]** Atmospheric Refraction Modeling (Pressure & Temperature Based)
+- **[Parallax Offset]** Observer-Based Parallax Offset Correction
+- **[Geocentric Generation]** Astrometric Geocentric Coordinate Generation
+- **[Position Refinemen]** Apparent Geocentric Position Refinement
+- **[Topocentric Output]** Topocentric Apparent Coordinate Output (RA, Dec, PA | Alt, Az, Roll)
+
+# New Features (Precision Goto Control)
+- **[Trajectory Planning]** Kinematically Optimised Mount Trajectory
+- **[Loop Accuracy]** Improved Goto accuracy through closed loop control
+- **[Roll Targeting]** Goto allows specifying a roll angle for precise orientation
+- **[Fixed Movement]** Goto allows moving to a fixed terrestrial coordinate (without auto-enabling tracking mode)
+- **[Realtime Control]** Real time Goto initiation and interruption (no need to wait for previous commands to finish)
+- **[Motion Smoothing]** Smooth acceleration and deacceleration profiles
+- **[Backlash Removal]** Benro Polaris backlash removal process eliminated
+
+## New Features (Precision Slew Control)
+- **[Roll Stability]** Improved roll movement (Azimuth and Altitude are maintained during roll movement)
+- **[Vertical Stability]** Improved vertical movement (Altitude axis now moves directly upward, even when the mount is tilted)
+- **[Speed Boost]** Increased Maximum Alpaca Axis Speed to 8.4 degrees/s
+- **[Interruptable Slew]** Slew supports real-time interruption
+- **[Az/Alt/Roll Slew]** Slew by Azimuth, Altitude, and Roll coordinates (replaces direct motor axis control)
+- **[TODO]** Slew by Right Ascension, Declination and Polar Angle (when tracking enabled)
+
+## New Features (Precision Tracking Control)
+- **[Tracking Rates]** Support ASCOM Alpaca Drive Rates (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
+- **[Zero Drift]** PID Control of Target position for zero drift and closed loop tracking
+- **[Feed Forward]** Feedforward control anticipates motion and tracking sidereal velocities
+
 ## New Features (enabled by Nina)
 - **[Nina and Nikon Z8]**: Nina v3.2 now supports Nikon Z8 cameras 
 
 ## New Features (enabled by Stellarium)
 - **[Qt6 Support ]**: Latest Stellarium verision is supported (Qt6 UI library works with ASCOM Platform 7)
-
-## New Features (Alpaca Driver)
-- **[Log Files]**: The default logging location has changed from the `driver` directory to the `logs` direcotry
-- **[Driver Startup]**: Log Alpaca Driver version number on startup
-- **[Field Rotation]**: Calculate the current Field Rotation from quaternions in 518 msg from Polaris
-- **[Image Cleanup]**: Add scatter plots to indicate rejected images based on key statistics
 
 ## Upgraded Win11 Requirements.txt Compatibility
 - **[Python 3.13.5]**: Upgraded Python support from 3.13.1.
@@ -30,7 +96,6 @@
 - **[Ephem 4.2]**: Upgraded Ephem support from 4.1.6.
 - **[numpy 2.3.2]**: Upgraded numpy support from 1.24.4.
 - **[scipy 1.16.1]**: Upgraded scipy support from 1.16.0.
-
 
 ## Documentation (Alpaca Driver)
 - **[Troublshooting B6]**: Add description on how to reset Polaris password

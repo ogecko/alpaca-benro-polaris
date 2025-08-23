@@ -42,51 +42,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Implement Alpaca Pilot App
 # 
 # 
-# Control Algorithm Features
-# [X] Quaternion-based kinematics and inverse solutions
-# [X] Optimised PID Control for Orientation
-# [X] Independant Motor Speed Control
-# [X] Angular Rate Interpolation Framework
-# [X] Real-time Angular Position and Velocity Measurement
-# [X] Orientation Estimation via Kalman Filtering
-# [X] Speed Calibration & Response Profiling
-# [X] Control Input Normalisation
-# [X] Constraint-Aware Position, Velocity and Acceleration Limiting
-#
-# Position Calculation Features
-# [X] Accurate Orbital Positioning of Earth and Target Body
-# [X] Light Travel Time Compensation for Apparent Position
-# [X] Epoch-Based Coordinate Precession Alignment
-# [X] Relativistic Light Deflection near Solar Limb
-# [x] Earth Nutation Correction (Polar Axis Wobble)
-# [x] Aberration of Light Due to Earth’s Orbital Velocity
-# [x] Atmospheric Refraction Modeling (Pressure & Temperature Based)
-# [x] Observer-Based Parallax Offset Correction
-# [x] Astrometric Geocentric Coordinate Generation
-# [x] Apparent Geocentric Position Refinement
-# [x] Topocentric Apparent Coordinate Output (RA, Dec, PA | Alt, Az, Roll)
-#
-# Precision Goto Control
-# [X] Kinematically Optimised Mount Trajectory
-# [X] Improved Goto accuracy through closed loop control
-# [X] Goto allows specifying a roll angle for precise orientation
-# [X] Goto allows moving to a fixed terrestrial coordinate (without auto-enabling tracking mode)
-# [X] Real time Goto initiation and interruption (no need to wait for previous commands to finish)
-# [X] Smooth acceleration and deacceleration profiles
-# [X] Backlash compensation process eliminated
-# 
-# Precision Slew Control
-# [X] Improved roll movement (Azimuth and Altitude are maintained during roll movement)
-# [X] Improved vertical movement (Altitude axis now moves directly upward, even when the mount is tilted)
-# [X] Slew by Azimuth, Altitude, and Roll coordinates (replaces direct motor axis control)
-# [ ] Slew by Right Ascension, Declination and Polar Angle (when tracking enabled)
-# [X] Slew supports real-time interruption
-# [X] Increased Maximum Alpaca Axis Speed to 8.4 degrees/s
-#
 # Precision Tracking
-# [X] Support ASCOM Alpaca Drive Rates (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
-# [x] PID Control of Target position for zero drift and closed loop tracking
-# [x] Feedforward control anticipates motion and tracking sidereal velocities
 # [ ] Seamless Axis Override During Tracking
 # [ ] Deep-Sky Object Tracking 
 # [ ] Selenographic Lunar Tracking 
@@ -96,10 +52,6 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Solar Tracking 
 # [ ] Transiting Exoplanet Support
 #
-# Rotator Control Features
-# [X] ASCOM Rotator Driver Integration
-# [ ] Parallactic and Roll Angle Targeting
-# [ ] Direct Slew to Defined Angular Pose
 #
 # Pulse Guiding Features
 # [ ] Guide Camera Support via PHD2
