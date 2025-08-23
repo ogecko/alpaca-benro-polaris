@@ -136,7 +136,7 @@
               <div class="row">
                 <q-toggle class='col-6' v-model="cfg.advanced_rotator" label="Alpaca Rotator" @update:model-value="put({advanced_rotator: cfg.advanced_rotator})" />
               </div>
-              <div class="row q-pl-md q-gutter-lg">
+              <div class="row q-col-gutter-lg">
                   <q-input class='col-3' type="number" label="Max Slew Rate" suffix="°/s" input-class="text-right"
                     v-model.number="cfg.max_slew_rate" @update:model-value="putdb({max_slew_rate: cfg.max_slew_rate})" />
                   <q-input class='col-3' type="number" label="Max Accel Rate" suffix="°/s²" input-class="text-right"
