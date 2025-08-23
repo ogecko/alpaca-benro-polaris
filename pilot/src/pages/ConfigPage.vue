@@ -190,16 +190,18 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { useQuasar } from 'quasar'
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { debounce } from 'quasar'
+import { PollingManager } from 'src/utils/polling';
 import LocationPicker from 'components/LocationPicker.vue';
 
 const $q = useQuasar()
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 
+const poll = new PollingManager()
 const taKey = ref<string | null>(null)      // Used to trigger animations on a particular Key'ed element
 
 onMounted(async () => {
@@ -211,6 +213,11 @@ onMounted(async () => {
   if (shouldFetch) {
     await cfg.configFetch()
   }
+  poll.startPolling(() => { void cfg.configFetch() }, 10, 'configFetch')
+})
+
+onUnmounted(() => {
+  poll.stopPolling()
 })
 
 function setFromPhoneLocation() {
