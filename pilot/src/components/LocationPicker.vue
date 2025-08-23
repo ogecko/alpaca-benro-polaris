@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
+import axios from 'axios';
 import { onMounted, watch, ref } from 'vue';
 import { useConfigStore } from 'stores/config';
 
@@ -16,6 +16,7 @@ import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
 L.Icon.Default.imagePath = '';
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: new URL(markerIcon2x, import.meta.url).href,
@@ -29,6 +30,7 @@ let marker: L.Marker | undefined;
 let map: L.Map;
 
 onMounted(() => {
+    serviceCheck()
     map = L.map('map').setView([cfg.site_latitude, cfg.site_longitude], 13);
     marker = L.marker([cfg.site_latitude, cfg.site_longitude], { title: 'Site location' }).addTo(map);
 
@@ -45,7 +47,11 @@ onMounted(() => {
         }
         void cfg.configUpdate({ site_latitude: lat, site_longitude: lng });
     });
+});
 
+
+
+function serviceCheck() {
     axios.head('https://tile.openstreetmap.org/0/0/0.png')
     .then(() => {
         mapAvailable.value = true
@@ -54,8 +60,8 @@ onMounted(() => {
         console.error('OpenStreetMap unavailable:', err);
         mapAvailable.value = false;
     });
+}
 
-});
 
 // Watch for reactive updates to cfg.site_latitude and cfg.site_longitude
 watch(
