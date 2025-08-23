@@ -51,21 +51,11 @@ from config import Config
 from shr import LifecycleController, LifecycleEvent
 
 async def socket_client(logger: Logger, lifecycle: LifecycleController):
-    if Config.enable_discovery:
-        # create the responder and a task to run it
-        responder = AsyncDiscoveryResponder(logger)
-        task = asyncio.create_task(responder.run())
-
-        # wait for a lifecycle event to stop it or to be canceled by main
-        try:
-            while True:
-                await lifecycle.wait_for_event()
-        except asyncio.CancelledError:
-            logger.info("==CANCELLED== Discovery cancel received.")
-        finally:
-            logger.info("==SHUTDOWN== Discovery shuting down.")
-            responder.stop()
-            await task
+    if not Config.enable_discovery:
+        return
+    # create the responder and run it until an event
+    responder = AsyncDiscoveryResponder(logger)
+    await responder.run_until_event(lifecycle)
 
 class AsyncDiscoveryResponder:
     def __init__(self, logger: Logger):
@@ -76,7 +66,7 @@ class AsyncDiscoveryResponder:
         self.device_address = (self.ADDR, Config.alpaca_discovery_port)
         self.alpaca_response = json.dumps({"AlpacaPort": self.PORT})
 
-    async def run(self):
+    async def run_until_event(self, lifecycle):
         loop = asyncio.get_running_loop()
 
         # Receive socket
@@ -99,18 +89,20 @@ class AsyncDiscoveryResponder:
             while self.running:
                 try:
                     data, addr = await asyncio.wait_for(loop.sock_recvfrom(self.rsock, 1024), timeout=2.0)
+                    datascii = data.decode('ascii', errors='ignore')
+                    self.logger.info(f'Disc rcv {datascii} from {addr}')
+                    if 'alpacadiscovery1' in datascii:
+                        await loop.sock_sendto(self.tsock, self.alpaca_response.encode(), addr)
                 except asyncio.TimeoutError:
+                    if lifecycle._event in (LifecycleEvent.SHUTDOWN, LifecycleEvent.RESTART, LifecycleEvent.INTERRUPT):
+                        break
                     continue  # check self.running again
-                datascii = data.decode('ascii', errors='ignore')
-                self.logger.info(f'Disc rcv {datascii} from {addr}')
-                if 'alpacadiscovery1' in datascii:
-                    await loop.sock_sendto(self.tsock, self.alpaca_response.encode(), addr)
         except asyncio.CancelledError:
             self.logger.info("==CANCELLED== Alpaca Discovery cancel received.")
         except Exception as e:
             self.logger.info(f"==EXCEPTIION== Alpaca Discovery Unhandled exception: {e}")
         finally:
-            self.logger.info("==SHUTDOWN== Discovery inner loop shutting down.")
+            self.logger.info("==SHUTDOWN== Discovery shutting down.")
             self.rsock.close()
             self.tsock.close()
 
