@@ -46,7 +46,6 @@ import rotator
 import stellarium
 import app_api
 import app_web
-import argparse
 from pathlib import Path
 import os
 from polaris import Polaris
@@ -58,8 +57,19 @@ polaris: Polaris = None
 # MAIN LOOP RESPONSIBLE FOR RETARTS
 # ===================================
 async def main():
+    Config.load()
+
+    if not Config.log_dir:
+        # Set the default log directory if not provided    
+        script_dir = Path(__file__).resolve().parent             # Get the path to the current script (main.py)
+        default_log_dir = str(script_dir.parent / 'logs')        # Default log directory: ../logs relative to main.py
+        Config.apply_changes({ "log_dir": default_log_dir })
+
+    # Ensure the directory exists and initialise
+    os.makedirs(Config.log_dir, exist_ok=True)
     logger = log.init_logging()
     log.logger = exceptions.logger = discovery.logger = telescope.logger = rotator.logger = shr.logger = logger
+
 
     while True:
         lifecycle = LifecycleController()
@@ -128,33 +138,6 @@ async def run_all(logger, lifecycle: LifecycleController):
 
 # ==================================================================
 if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser(description="Alpaca Benro Polaris Driver.")
-
-    # Add the arguments
-    parser.add_argument('--lat', type=float, help='Site Latitude in decimal degrees')
-    parser.add_argument('--lon', type=float, help='Site Longitude in decimal degrees')
-    parser.add_argument('--elev', type=float, help='Site Elevation from sea level in meters')
-    parser.add_argument('--logdir', type=str, help='Directory to store log file(s)')
-
-    # Parse the arguments
-    args = parser.parse_args()
-
-    # Store any of the optional the arguments
-    if args.lat:
-        Config.site_latitude = args.lat
-    if args.lon:
-        Config.site_longitude = args.lon
-    if args.elev:
-        Config.site_elevation = args.elev
-
-    # Set the default log directory if not provided    
-    script_dir = Path(__file__).resolve().parent        # Get the path to the current script (main.py)
-    default_log_dir = script_dir.parent / 'logs'        # Default log directory: ../logs relative to main.py
-    Config.log_dir = Path(args.logdir).resolve() if args.logdir else default_log_dir
-
-    # Ensure the directory exists
-    os.makedirs(Config.log_dir, exist_ok=True)
 
     try:
         asyncio.run(main())

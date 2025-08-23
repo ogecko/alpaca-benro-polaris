@@ -18,14 +18,16 @@
               <q-separator spaced />
               Configuration not loaded.
             </div>
-              <div class="row q-pb-md">
-                <div class="col-8 text-caption text-grey-6">
+              <div class="row q-col-gutter-lg items-center">
+                <div class="col text-caption text-grey-6">
                   Changes in Alpaca Pilot apply immediately. Click Save to keep them after restarting. 
                   Click Restore to reset all settings back to Config.toml defaults.
                 </div>
-                <div class="col self-center q-pl-lg q-gutter-md">
-                  <q-btn outline size="md" color="grey-5"  label="Save" @click="dev.apiAction('RestartDriver')" />
-                  <q-btn outline color="grey-5"  label="Restore" to="/connect" />
+                <div class="col-auto q-gutter-sm flex justify-end items-center">
+                  <q-btn outline size="md" color="grey-5"  label="Save" 
+                         @click="save" :disable="cfg.isSaving" :loading="cfg.isSaving" />
+                  <q-btn outline color="grey-5"  label="Restore" 
+                         @click="restore" :disable="cfg.isRestoring" :loading="cfg.isRestoring"/>
                 </div>
               </div>
           </q-card>
@@ -81,14 +83,13 @@
         <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Observing Site Information</div>
-            <div class="row q-col-gutter-lg">
-              <div class="col-9 text-caption text-grey-6">
+            <div class="row q-col-gutter-lg items-center">
+              <div class="col text-caption text-grey-6">
                 Latitude and longitude are essential for accurate tracking. Elevation and pressure improve precision. 
                 Click GPS to use your device’s location. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
-              <div class="col-3 q-pl-lg q-gutter-sm">
-                <q-icon name="my_location"></q-icon>
-                <q-btn outline color="grey-5" label="GPS"  @click="setFromPhoneLocation"/>
+              <div class="col-auto q-gutter-sm flex justify-end items-center">
+                <q-btn outline icon="my_location" color="grey-5" label="GPS"  @click="setFromPhoneLocation"/>
               </div>
             </div>
             <div class="row q-col-gutter-lg">
@@ -114,12 +115,12 @@
         <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Advanced Control Features</div>
-            <div class="row q-col-gutter-lg">
-              <div class="col-9 text-caption text-grey-6">
+            <div class="row q-col-gutter-lg items-center">
+              <div class="col text-caption text-grey-6">
                 Use Advanced Position Control to override the Benro Polaris default behaviour. 
                 Toggle individual features below to enable advanced slewing, goto, tracking, guiding and rotator support.
               </div>
-              <div class="col-3">
+              <div class="col-auto q-gutter-sm flex justify-end items-center">
                 <q-toggle class='col' v-model="cfg.advanced_control" label="Enable" @update:model-value="put({advanced_control: cfg.advanced_control})" />
               </div>
             </div>
@@ -172,7 +173,7 @@
             <q-toggle v-model="cfg.log_polaris" label="Log Polaris" @update:model-value="put({log_polaris: cfg.log_polaris})" />
             <q-toggle v-model="cfg.log_polaris_protocol" label="Log Polaris Protocol" @update:model-value="put({log_polaris_protocol: cfg.log_polaris_protocol})" />
             <q-toggle v-model="cfg.log_stellarium_protocol" label="Log Stellarium Protocol" @update:model-value="put({log_stellarium_protocol: cfg.log_stellarium_protocol})" />
-            <q-input type="number" v-model.number="cfg.log_level" label="Log Level" @update:model-value="putdb({log_level: cfg.log_level})" />
+            <q-input v-model.number="cfg.log_level" label="Log Level" @update:model-value="putdb({log_level: cfg.log_level})" />
             <q-input type="number" v-model.number="cfg.log_performance_data" label="Performance Data" @update:model-value="putdb({log_performance_data: cfg.log_performance_data})" />
             <q-input type="number" v-model.number="cfg.log_performance_data_test" label="Perf Data Test" @update:model-value="putdb({log_performance_data_test: cfg.log_performance_data_test})" />
             <q-input type="number" v-model.number="cfg.log_perf_speed_interval" label="Perf Speed Interval" @update:model-value="putdb({log_perf_speed_interval: cfg.log_perf_speed_interval})" />
@@ -184,11 +185,13 @@
 </template>
 
 <script setup lang="ts">
+import { useQuasar } from 'quasar'
 import { onMounted, ref } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { debounce } from 'quasar'
 
+const $q = useQuasar()
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 
@@ -201,7 +204,7 @@ onMounted(async () => {
     cfg.fetchedAt < dev.alpacaConnectedAt
 
   if (shouldFetch) {
-    await cfg.fetchConfig()
+    await cfg.configFetch()
   }
 })
 
@@ -223,9 +226,22 @@ function triggerAnimation(field: string) {
   setTimeout(() => { taKey.value = null }, 600) // match animation duration
 }
 
+async function save() {
+  const ok = await cfg.configSave()
+  $q.notify({ message:`Configuration save ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
+    position: 'top', timeout: 3000, actions: [{ icon: 'close', color: 'white' }] })
+}
+
+async function restore() {
+  const ok = await cfg.configRestore()
+  $q.notify({ message:`Configuration restore ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
+    position: 'top', timeout: 3000, actions: [{ icon: 'close', color: 'white' }] })
+}
+
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 
-const putdb = debounce((payload) => cfg.updateConfig(payload), 500) // slow put for input text
-const put = debounce((payload) => cfg.updateConfig(payload), 5)     // fast put for toggles
+const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put for input text
+const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put for toggles
+
 
 </script>
 

@@ -1464,24 +1464,22 @@ class action:
             await lifecycle.signal(LifecycleEvent.RESTART)
             resp.text = await PropertyResponse('RestartDriver ok', req)  
 
-        elif actionName == "ConfigTOML":
-            if not parameters:
-                # No parameters: return full config
-                resp.text = await PropertyResponse(serialize_class(Config), req)
-                return
-            changed = {}
-            for key, value in parameters.items():
-                if hasattr(Config, key):
-                    expected_type = type(getattr(Config, key))
-                    try:
-                        # Attempt to coerce value to expected type
-                        coerced = expected_type(value)
-                        setattr(Config, key, coerced)
-                        changed[key] = coerced
-                    except (ValueError, TypeError):
-                        logger.warning(f"Type mismatch for '{key}': expected {expected_type.__name__}, got {type(value).__name__}")
-            # Return only changed keys
-            resp.text = await PropertyResponse(changed, req)
+        elif actionName == "ConfigFetch":
+            resp.text = await PropertyResponse(Config.as_dict(), req)
+            return
+        
+        elif actionName == "ConfigUpdate":
+            resp.text = await PropertyResponse(Config.apply_changes(parameters), req)
+            return
+
+        elif actionName == "ConfigSave":
+            resp.text = await PropertyResponse(Config.save_pilot_overrides(), req)
+            return
+
+        elif actionName == "ConfigRestore":
+            resp.text = await PropertyResponse(Config.restore_base(), req)
+            return
+
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
 

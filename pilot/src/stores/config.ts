@@ -9,6 +9,8 @@ export type ConfigResponse = ReturnType<typeof useConfigStore>['$state']
 export const useConfigStore = defineStore('config', {
   state: () => ({
     fetchedAt: 0,       // local timestamp of when config was last fetched
+    isSaving: false,
+    isRestoring: false,
 
     // Network
     polaris_ip_address: '',
@@ -61,7 +63,7 @@ export const useConfigStore = defineStore('config', {
     sync_N_point_alignment: true,
 
     // Logging
-    log_level: 20,
+    log_level: 'INFO',
     log_to_file: true,
     log_to_stdout: true,
     log_polaris: true,
@@ -80,9 +82,9 @@ export const useConfigStore = defineStore('config', {
   }),
 
   actions: {
-    async fetchConfig() {
+    async configFetch() {
       try {
-        const response = await dev.apiAction<ConfigResponse>('ConfigTOML');
+        const response = await dev.apiAction<ConfigResponse>('ConfigFetch');
         this.$patch(response)
         this.fetchedAt = Date.now()
       } catch (err) {
@@ -90,9 +92,9 @@ export const useConfigStore = defineStore('config', {
       }
     },
 
-    async updateConfig(payload: Partial<ConfigResponse>) {
+    async configUpdate(payload: Partial<ConfigResponse>) {
       try {
-        const updated = await dev.apiAction<ConfigResponse>('ConfigTOML', payload)
+        const updated = await dev.apiAction<ConfigResponse>('ConfigUpdate', payload)
         this.$patch(updated)
         console.log(updated)
         if (Object.prototype.hasOwnProperty.call(updated, 'advanced_rotator')) {
@@ -103,6 +105,33 @@ export const useConfigStore = defineStore('config', {
         console.warn(`Failed to update ${keys}:`, err)
       }
     },
+    async configSave() {
+      this.isSaving = true
+      try {
+        await dev.apiAction<ConfigResponse>('ConfigSave');
+        return true
+      } catch (err) {
+        console.warn('Config Save failed:', err);
+        return false
+      } finally {
+        this.isSaving = false
+      }
+    },
+    async configRestore() {
+      this.isRestoring = true
+      try {
+        const response = await dev.apiAction<ConfigResponse>('ConfigRestore');
+        this.$patch(response)
+        this.fetchedAt = Date.now()
+        return true
+      } catch (err) {
+        console.warn('Config restore failed:', err);
+        return false
+      } finally {
+        this.isRestoring = false
+      }
+    },
+
 
   }
 })
