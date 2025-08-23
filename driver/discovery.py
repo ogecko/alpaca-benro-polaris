@@ -103,8 +103,14 @@ class AsyncDiscoveryResponder:
             self.logger.info(f"==EXCEPTIION== Alpaca Discovery Unhandled exception: {e}")
         finally:
             self.logger.info("==SHUTDOWN== Discovery shutting down.")
-            self.rsock.close()
-            self.tsock.close()
+            try:
+                self.rsock.close()
+            except Exception:
+                pass
+            try:
+                self.tsock.close()
+            except Exception:
+                pass
 
     def stop(self):
         self.running = False
