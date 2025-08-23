@@ -52,16 +52,20 @@ from shr import LifecycleController, LifecycleEvent
 
 async def socket_client(logger: Logger, lifecycle: LifecycleController):
     if Config.enable_discovery:
+        # create the responder and a task to run it
         responder = AsyncDiscoveryResponder(logger)
         task = asyncio.create_task(responder.run())
 
-        while True:
-            event = await lifecycle.wait_for_event()
-            if event in (LifecycleEvent.SHUTDOWN, LifecycleEvent.RESTART, LifecycleEvent.INTERRUPT):
-                responder.stop()
-                await task
-                break
-
+        # wait for a lifecycle event to stop it or to be canceled by main
+        try:
+            while True:
+                await lifecycle.wait_for_event()
+        except asyncio.CancelledError:
+            logger.info("==CANCELLED== Discovery cancel received.")
+        finally:
+            logger.info("==SHUTDOWN== Discovery shuting down.")
+            responder.stop()
+            await task
 
 class AsyncDiscoveryResponder:
     def __init__(self, logger: Logger):
@@ -102,9 +106,11 @@ class AsyncDiscoveryResponder:
                 if 'alpacadiscovery1' in datascii:
                     await loop.sock_sendto(self.tsock, self.alpaca_response.encode(), addr)
         except asyncio.CancelledError:
-            self.logger.info("[Discovery] CancelledError received.")
+            self.logger.info("==CANCELLED== Alpaca Discovery cancel received.")
+        except Exception as e:
+            self.logger.info(f"==EXCEPTIION== Alpaca Discovery Unhandled exception: {e}")
         finally:
-            self.logger.info("==CANCELLED== Alpaca Discovery Server cancelled.")
+            self.logger.info("==SHUTDOWN== Discovery inner loop shutting down.")
             self.rsock.close()
             self.tsock.close()
 

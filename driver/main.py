@@ -72,30 +72,33 @@ async def main():
 
 
     while True:
+        # Create a new LifeCycle Controller and install SIGINT handler
         lifecycle = LifecycleController()
         def handle_sigint(signum, frame):
             lifecycle.signal_sync(LifecycleEvent.INTERRUPT)
         signal.signal(signal.SIGINT, handle_sigint)
+
+        # Try running all tasks
         try:
             await run_all(logger, lifecycle)
         except KeyboardInterrupt:
-            logger.info("Keyboard Interrupt received. Exiting.")
+            logger.info("==MAIN== Keyboard Interrupt received. Exiting.")
             break
         except asyncio.CancelledError:
-            logger.info("Main loop cancelled.")
+            logger.info("==MAIN== Main loop cancel received. Exiting.")
             break
         except Exception as e:
-            logger.exception("Fatal error in main loop.")
+            logger.exception(f"==MAIN== Fatal error in main loop: {e}")
             break
         else:
             if lifecycle._event == LifecycleEvent.RESTART:
-                logger.info("Restarting driver stack...")
+                logger.info("==MAIN== Restarting driver stack...")
                 continue
             elif lifecycle._event == LifecycleEvent.INTERRUPT:
-                logger.info("SIGINT received. Shutting down.")
+                logger.info("==MAIN== Interrupt. Exiting.")
                 break
             else:
-                logger.info("Shutdown requested. Exiting.")
+                logger.info("==MAIN== Shutdown requested. Exiting.")
                 break
 
 # ===================
@@ -111,20 +114,12 @@ async def run_all(logger, lifecycle: LifecycleController):
     telescope.start_telescope(polaris, lifecycle)
     rotator.start_rotator(polaris, lifecycle)
 
-    async def wrap(task_coro, name: str = "UnnamedTask"):
-        try:
-            await task_coro
-        except asyncio.CancelledError:
-            logger.info(f"[{name}] Task cancelled.")
-        except Exception:
-            logger.exception(f"[{name}] Unhandled exception.")
-
     tasks = [
-        asyncio.create_task(wrap(polaris.client(logger), name='Polaris')),
-        asyncio.create_task(wrap(app_api.alpaca_rest_httpd(logger, lifecycle), name='RestAPI')),
-        asyncio.create_task(wrap(app_web.alpaca_pilot_httpd(logger, lifecycle), name='Pilot')),
-        asyncio.create_task(wrap(discovery.socket_client(logger, lifecycle), name='Discovery')),
-        asyncio.create_task(wrap(stellarium.synscan_api(logger, lifecycle), name='SynscanAPI'))
+        asyncio.create_task(polaris.client(logger), name='Polaris'),
+        asyncio.create_task(app_api.alpaca_rest_httpd(logger, lifecycle), name='RestAPI'),
+        asyncio.create_task(app_web.alpaca_pilot_httpd(logger, lifecycle), name='Pilot'),
+        asyncio.create_task(discovery.socket_client(logger, lifecycle), name='Discovery'),
+        asyncio.create_task(stellarium.synscan_api(logger, lifecycle), name='SynscanAPI')
     ]
 
     event = await lifecycle.wait_for_event()

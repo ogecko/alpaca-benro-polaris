@@ -8,9 +8,10 @@ export type ConfigResponse = ReturnType<typeof useConfigStore>['$state']
 
 export const useConfigStore = defineStore('config', {
   state: () => ({
-    fetchedAt: 0,       // local timestamp of when config was last fetched
-    isSaving: false,
-    isRestoring: false,
+    fetchedAt: 0,             // local timestamp of when config was last fetched
+    isSaving: false,          // saving overrides to Driver
+    isRestoring: false,       // restoring config from config.toml
+    isRestartRequired: false, // network services keys have changed
 
     // Network
     polaris_ip_address: '',
@@ -97,8 +98,20 @@ export const useConfigStore = defineStore('config', {
         const updated = await dev.apiAction<ConfigResponse>('ConfigUpdate', payload)
         this.$patch(updated)
         console.log(updated)
+        // Check if we need to refetch configured devices
         if (Object.prototype.hasOwnProperty.call(updated, 'advanced_rotator')) {
           await dev.fetchConfiguredDevices()
+        }
+        // Check if any updated key requires restart
+        const restartKeys = [
+          'enable_restapi', 'enable_discovery', 'enable_pilot', 'enable_synscan', 
+          'alpaca_restapi_port', 'alpaca_discovery_port', 'alpaca_pilot_port', 'stellarium_synscan_port', 
+        ]
+        const updatedKeys = Object.keys(updated)
+        const requiresRestart = updatedKeys.some(key => restartKeys.includes(key))
+        if (requiresRestart) {
+          this.isRestartRequired = true
+          console.info(`Restart required due to: ${updatedKeys.join(', ')}`)
         }
       } catch (err) {
         const keys = Object.keys(payload).join(', ')
@@ -108,7 +121,11 @@ export const useConfigStore = defineStore('config', {
     async configSave() {
       this.isSaving = true
       try {
-        await dev.apiAction<ConfigResponse>('ConfigSave');
+        await dev.apiAction<ConfigResponse>('ConfigSave')
+        if (this.isRestartRequired) {
+          this.isRestartRequired = false
+          await dev.apiAction<string>('RestartDriver')
+        }
         return true
       } catch (err) {
         console.warn('Config Save failed:', err);

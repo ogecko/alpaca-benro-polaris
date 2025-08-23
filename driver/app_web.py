@@ -83,10 +83,11 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
             lifecycle.wait_for_event()
         )
     except asyncio.CancelledError:
-        logger.info("==CANCELLED== Alpaca Web Server cancelled.")
-    except KeyboardInterrupt:
-        raise ValueError('Keyboard interrupt.')
+        logger.info("==CANCELLED== Alpaca Web Server cancel received.")
+    except Exception as e:
+        logger.info(f"==EXCEPTIION== Alpaca Web Server Unhandled exception: {e}")
     finally:
         # shutdown the server
+        logger.info("==SHUTDOWN== Alpaca Web Server shutting down.")
         await pilot_server.shutdown()
 

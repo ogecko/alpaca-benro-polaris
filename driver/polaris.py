@@ -251,7 +251,7 @@ class Polaris:
         self._pid = PID_Controller(logger, self._motorcontrollers, self._observer, loop=0.2)
 
     async def shutdown(self):
-        self.logger.info(f'==SHUTDOWN== Stopping all tasks.')
+        self.logger.info(f'==SHUTDOWN== Polaris stopping all tasks.')
         for pid in [self._pid]:
             await pid.stop_control_loop_task()
 

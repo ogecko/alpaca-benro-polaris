@@ -115,12 +115,11 @@ async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
             lifecycle.wait_for_event()
         )
     except asyncio.CancelledError:
-        logger.info("==CANCELLED== Alpaca REST API cancelled.")
-    except KeyboardInterrupt:
-        logger.info("Alpaca REST API received KeyboardInterrupt. Shutting down.")
-        raise
+        logger.info("==CANCELLED== Alpaca REST API cancel received.")
+    except Exception as e:
+        logger.info(f"==EXCEPTIION== Alpaca REST API Unhandled exception: {e}")
     finally:
-        # shutdown the server
+        logger.info("==SHUTDOWN== Alpaca REST API shutting down.")
         await alpaca_server.shutdown()
 
 

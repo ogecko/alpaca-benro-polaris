@@ -448,11 +448,11 @@ async def synscan_api(logger, lifecycle: LifecycleController):
         async with server:
             await lifecycle.wait_for_event()
     except asyncio.CancelledError:
-        logger.info("==CANCELLED== SynSCAN API task cancelled.")
-        raise  # Important: re-raise to propagate cancellation
+        logger.info("==CANCELLED== SynSCAN API cancel received.")
     except Exception as e:
-        logger.exception(f"==ERROR== SynSCAN API encountered an exception: {e}")
+        logger.exception(f"==EXCEPTION== SynSCAN API unhandled exception: {e}")
     finally:
+        logger.info("==SHUTDOWN== SynSCAN API shutting down.")
         server.close()
         await server.wait_closed()
 
