@@ -1,10 +1,12 @@
 <template>
-  <div id="map" style="height: 200px;"></div>
+    <div class="map-container">
+      <div id="map" :class="mapAvailable ? 'showMap' : 'hideMap'"></div>
+    </div>
 </template>
 
 <script setup lang="ts">
-
-import { onMounted, watch } from 'vue';
+import axios from 'axios'
+import { onMounted, watch, ref } from 'vue';
 import { useConfigStore } from 'stores/config';
 
 import L from 'leaflet';
@@ -21,29 +23,38 @@ L.Icon.Default.mergeOptions({
   shadowUrl: new URL(markerShadow, import.meta.url).href
 });
 
-
-
+const mapAvailable = ref(false)
 const cfg = useConfigStore()
 let marker: L.Marker | undefined;
 let map: L.Map;
 
 onMounted(() => {
-      map = L.map('map').setView([cfg.site_latitude, cfg.site_longitude], 13);
-      marker = L.marker([cfg.site_latitude, cfg.site_longitude], { title: 'Site location' }).addTo(map);
+    map = L.map('map').setView([cfg.site_latitude, cfg.site_longitude], 13);
+    marker = L.marker([cfg.site_latitude, cfg.site_longitude], { title: 'Site location' }).addTo(map);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
+    }).addTo(map);
 
-      map.on('click', (e) => {
+    map.on('click', (e) => {
         const { lat, lng } = e.latlng;
         if (marker) {
-          marker.setLatLng(e.latlng);
+        marker.setLatLng(e.latlng);
         } else {
-          marker = L.marker(e.latlng).addTo(map);
+        marker = L.marker(e.latlng).addTo(map);
         }
         void cfg.configUpdate({ site_latitude: lat, site_longitude: lng });
-      });
+    });
+
+    axios.head('https://tile.openstreetmap.org/0/0/0.png')
+    .then(() => {
+        mapAvailable.value = true
+    })
+    .catch((err) => {
+        console.error('OpenStreetMap unavailable:', err);
+        mapAvailable.value = false;
+    });
+
 });
 
 // Watch for reactive updates to cfg.site_latitude and cfg.site_longitude
@@ -58,3 +69,22 @@ watch(
 );
 
 </script>
+
+<style lang="scss">
+
+.showMap {
+    height: 200px;
+}
+
+.hideMap {
+    height: 0px;
+}
+
+.map-container {
+  width: 100%;
+  max-height: 200px;
+  overflow: hidden;
+  position: relative;
+}
+
+</style>
