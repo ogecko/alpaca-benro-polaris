@@ -39,13 +39,13 @@
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Network Services</div>
             <div class="row">
-              <div class="col-12 text-caption text-grey-6">
+              <div class="col-12 text-caption text-grey-6 q-pb-md">
                 The Alpaca Driver provides several network services for external aplications to use the Benro Polaris. Changes to Network Services require saving to take effect. 
               </div>
             </div>
-            <div class="row no-wrap q-gutter-sm">
-                <q-toggle class='col-8' v-model="cfg.enable_restapi" label="Alpaca REST API"  @update:model-value="put({enable_restapi: cfg.enable_restapi})"/>
-                <q-input v-if="cfg.enable_restapi" label="Port" dense class="col-3" type="number"  input-class="text-right"
+            <div class="row q-col-gutter-sm no-wrap">
+                <q-toggle class='col-8' label="Alpaca REST API" v-model="cfg.enable_restapi" @update:model-value="put({enable_restapi: cfg.enable_restapi})"/>
+                <q-input class="col-4" label="Port" type="number"  input-class="text-right" :style="{ visibility: cfg.enable_restapi ? 'visible' : 'hidden' }"
                   v-model="cfg.alpaca_restapi_port" @update:model-value="putdb({alpaca_restapi_port: cfg.alpaca_restapi_port})">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
@@ -56,23 +56,23 @@
                 <q-banner v-if="cfg.alpaca_restapi_port!=dev.alpacaPort" inline-actions rounded class="bg-warning">
                     WARNING: The Alpaca REST API port will change. Please reconnect Alpaca Pilot when prompted. 
                 </q-banner>
-            <div class="row no-wrap q-gutter-sm">
-                <q-toggle class='col-8' v-model="cfg.enable_discovery" label="Alpaca Discovery"  @update:model-value="put({enable_discovery: cfg.enable_discovery})" />
-                <q-input v-if="cfg.enable_discovery" label="Port" dense class="col-3" type="number" input-class="text-right"
+            <div class="row q-col-gutter-sm no-wrap">
+                <q-toggle class='col-8' label="Alpaca Discovery" v-model="cfg.enable_discovery" @update:model-value="put({enable_discovery: cfg.enable_discovery})" />
+                <q-input class="col-4" label="Port" type="number" input-class="text-right" :style="{ visibility: cfg.enable_discovery ? 'visible' : 'hidden' }"
                   v-model="cfg.alpaca_discovery_port" @update:model-value="putdb({alpaca_discovery_port: cfg.alpaca_discovery_port})">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
             </div>
-            <div class="row no-wrap  q-gutter-sm">
-                <q-toggle class='col-8' v-model="cfg.enable_pilot" label="Alpaca Pilot"  @update:model-value="put({enable_pilot: cfg.enable_pilot})" />
-                <q-input v-if="cfg.enable_pilot" label="Port" dense class="col-3" type="number" input-class="text-right"
+            <div class="row q-col-gutter-sm no-wrap">
+                <q-toggle class='col-8' label="Alpaca Pilot" v-model="cfg.enable_pilot" @update:model-value="put({enable_pilot: cfg.enable_pilot})" />
+                <q-input class="col-4" label="Port" type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }"
                   v-model="cfg.alpaca_pilot_port" @update:model-value="putdb({alpaca_pilot_port: cfg.alpaca_pilot_port})">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
             </div>
-            <div class="row no-wrap  q-gutter-sm">
-              <q-toggle class='col-8' v-model="cfg.enable_synscan" label="SynSCAN API"  @update:model-value="put({enable_synscan: cfg.enable_synscan})" />
-              <q-input v-if="cfg.enable_synscan" label="Port" dense class="col-3" type="number" input-class="text-right"
+            <div class="row q-col-gutter-sm no-wrap">
+              <q-toggle class='col-8' label="SynSCAN API" v-model="cfg.enable_synscan" @update:model-value="put({enable_synscan: cfg.enable_synscan})" />
+              <q-input class="col-4" label="Port" type="number" input-class="text-right" :style="{ visibility: cfg.enable_synscan ? 'visible' : 'hidden' }"
                 v-model.number="cfg.stellarium_synscan_port" @update:model-value="putdb({stellarium_synscan_port: cfg.stellarium_synscan_port})">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
@@ -84,18 +84,18 @@
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Observing Site Information</div>
             <div class="row q-col-gutter-lg items-center">
-              <div class="col text-caption text-grey-6">
+              <div class="col text-caption text-grey-6  q-pb-md">
                 Latitude and longitude are essential for accurate tracking. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
               <div class="col-auto q-gutter-sm flex justify-end items-center">
                 <q-btn outline icon="my_location" color="grey-5" label="GPS"  @click="setFromPhoneLocation"/>
               </div>
             </div>
-            <div class="q-pt-md q-pb-sm">
+            <div class="q-pt-md q-pb-md">
               <LocationPicker />
             </div>
 
-            <div class="row q-col-gutter-lg">
+            <div class="row q-col-gutter-lg q-pb-md">
                 <q-input class="col-3" type="number" label="Latitude" suffix="°" input-class="text-right"
                   v-model.number="cfg.site_latitude" @update:model-value="putdb({site_latitude: cfg.site_latitude})" :class="{ taflash: taKey=='latlon'}"/>
                 <q-input class="col-3" type="number" label="Longitude" suffix="°" input-class="text-right"
@@ -119,7 +119,7 @@
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Advanced Control Features</div>
             <div class="row q-col-gutter-lg items-center">
-              <div class="col text-caption text-grey-6">
+              <div class="col text-caption text-grey-6  q-pb-md">
                 Use Advanced Position Control to override the Benro Polaris default behaviour. 
                 Toggle individual features below to enable advanced slewing, goto, tracking, guiding and rotator support.
               </div>
@@ -127,7 +127,7 @@
                 <q-toggle class='col' v-model="cfg.advanced_control" label="Enable" @update:model-value="put({advanced_control: cfg.advanced_control})" />
               </div>
             </div>
-            <div v-if="cfg.advanced_control">
+            <div v-if="cfg.advanced_control" >
               <div class="row">
                 <q-toggle class='col-6' v-model="cfg.advanced_slewing" label="Slewing" @update:model-value="put({advanced_slewing: cfg.advanced_slewing})" />
                 <q-toggle class='col-6' v-model="cfg.advanced_goto" label="Advanced Goto" @update:model-value="put({advanced_goto: cfg.advanced_goto})" />
@@ -282,16 +282,24 @@ const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put 
   width: 100px;
 }
 
-/* No Spinner - Chrome, Safari, Edge */
+
+
+// No Spinner - Chrome, Safari, Edge
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* No Spinner - Firefox */
+// No Spinner - Firefox 
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+
+// debug flexgrid .row, .col, .q-card
+// .col, .q-card {
+//   border: 1px dashed red;
+// }
 
 </style>
