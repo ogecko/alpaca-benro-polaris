@@ -34,6 +34,35 @@
         </div>
       </div>
       <div class="row q-col-gutter-sm items-stretch">
+        <!-- Site Info -->
+        <div class="col-md-6 col-lg-4 flex">
+          <q-card flat bordered class="q-pa-md">
+            <div class="text-h6">Observing Site Information</div>
+            <div class="row q-col-gutter-lg items-center">
+              <div class="col text-caption text-grey-6  q-pb-md">
+                Latitude and longitude are essential for accurate tracking. Other settings follow the ASCOM Alpaca standard and are optional.
+              </div>
+              <div class="col-auto q-gutter-sm flex justify-end items-center">
+                <q-btn outline icon="my_location" color="grey-5" label="Locate"  @click="setFromLocationServices"/>
+              </div>
+            </div>
+            <div class="q-pt-md q-pb-md">
+              <LocationPicker :lat="cfg.site_latitude" :lon="cfg.site_longitude" @locationInfo="setFromMapClick"/>
+            </div>
+
+            <div class="row q-col-gutter-lg q-pb-md">
+                <q-input class="col-3" v-bind="bindField('site_latitude', 'Latitude', '°')" type="number" input-class="text-right"/>
+                <q-input class="col-3" v-bind="bindField('site_longitude','Longitude', '°')" type="number" input-class="text-right"/>
+                <q-input class="col-6" v-bind="bindField('location','Location')" />
+            </div>
+            <div class="row q-col-gutter-lg">
+                <q-input class="col-3" v-bind="bindField('site_elevation', 'Elevation', 'm')" type="number" input-class="text-right"/>
+                <q-input class="col-3" v-bind="bindField('site_pressure', 'Pressure', 'hPa')" type="number" input-class="text-right"/>
+                <q-input class="col-3" v-bind="bindField('focal_length', 'Focal Length', 'mm')" type="number" input-class="text-right"/>
+                <q-input class="col-3" v-bind="bindField('focal_ratio', 'Focal Ratio', 'f-stop')" type="number" input-class="text-right"/>
+            </div>
+          </q-card>
+        </div>
         <!-- Network -->
         <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
@@ -79,35 +108,6 @@
             </div>
           </q-card>
         </div>
-        <!-- Site Info -->
-        <div class="col-md-6 col-lg-4 flex">
-          <q-card flat bordered class="q-pa-md">
-            <div class="text-h6">Observing Site Information</div>
-            <div class="row q-col-gutter-lg items-center">
-              <div class="col text-caption text-grey-6  q-pb-md">
-                Latitude and longitude are essential for accurate tracking. Other settings follow the ASCOM Alpaca standard and are optional.
-              </div>
-              <div class="col-auto q-gutter-sm flex justify-end items-center">
-                <q-btn outline icon="my_location" color="grey-5" label="Locate"  @click="setFromLocationServices"/>
-              </div>
-            </div>
-            <div class="q-pt-md q-pb-md">
-              <LocationPicker :lat="cfg.site_latitude" :lon="cfg.site_longitude" @locationInfo="setFromMapClick"/>
-            </div>
-
-            <div class="row q-col-gutter-lg q-pb-md">
-                <q-input class="col-3" v-bind="bindField('site_latitude', 'Latitude', '°')" type="number" input-class="text-right"/>
-                <q-input class="col-3" v-bind="bindField('site_longitude','Longitude', '°')" type="number" input-class="text-right"/>
-                <q-input class="col-6" v-bind="bindField('location','Location')" />
-            </div>
-            <div class="row q-col-gutter-lg">
-                <q-input class="col-3" v-bind="bindField('site_elevation', 'Elevation', 'm')" type="number" input-class="text-right"/>
-                <q-input class="col-3" v-bind="bindField('site_pressure', 'Pressure', 'hPa')" type="number" input-class="text-right"/>
-                <q-input class="col-3" v-bind="bindField('focal_length', 'Focal Length', 'mm')" type="number" input-class="text-right"/>
-                <q-input class="col-3" v-bind="bindField('focal_ratio', 'Focal Ratio', 'f-stop')" type="number" input-class="text-right"/>
-            </div>
-          </q-card>
-        </div>
         <!-- Advanced Features -->
         <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
@@ -141,17 +141,67 @@
             </div>
           </q-card>
         </div>
-        <!-- Logging -->
+        <!-- Protocol Logging -->
         <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
-            <div class="text-h6">Logging</div>
-            <q-toggle v-model="cfg.log_polaris" label="Log Polaris" @update:model-value="put({log_polaris: cfg.log_polaris})" />
-            <q-toggle v-model="cfg.log_polaris_protocol" label="Log Polaris Protocol" @update:model-value="put({log_polaris_protocol: cfg.log_polaris_protocol})" />
-            <q-toggle v-model="cfg.log_stellarium_protocol" label="Log Stellarium Protocol" @update:model-value="put({log_stellarium_protocol: cfg.log_stellarium_protocol})" />
-            <q-input v-model.number="cfg.log_level" label="Log Level" @update:model-value="putdb({log_level: cfg.log_level})" />
-            <q-input type="number" v-model.number="cfg.log_performance_data" label="Performance Data" @update:model-value="putdb({log_performance_data: cfg.log_performance_data})" />
-            <q-input type="number" v-model.number="cfg.log_performance_data_test" label="Perf Data Test" @update:model-value="putdb({log_performance_data_test: cfg.log_performance_data_test})" />
-            <q-input type="number" v-model.number="cfg.log_perf_speed_interval" label="Perf Speed Interval" @update:model-value="putdb({log_perf_speed_interval: cfg.log_perf_speed_interval})" />
+            <div class="text-h6">Protocol Log Settings</div>
+            <div class="row">
+              <div class="col-12 text-caption text-grey-6 q-pb-md">
+                Select which messages to log, such as those from Alpaca clients (NINA, CCDciel, Pilot), 
+                SynScan apps (Stellarium), and the messages sent to the Benro Polaris.              
+              </div>
+            </div>
+            <div class="q-gutter-y-sm">
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('log_alpaca_protocol', 'Log Alpaca Protocol')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Alpaca Polling')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('log_alpaca_discovery', 'Log Alpaca Discovery')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Action Invokation')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('log_polaris_protocol', 'Log Pulse Guiding')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_polaris_polling', 'Log Rotator Protocol')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('log_synscan_protocol', 'Log SynSCAN Protocol')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_synscan_polling', 'Log SynSCAN Polling')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('log_polaris_protocol', 'Log Benro Polaris Protocol')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_polaris_polling', 'Log Benro Polaris Polling')"/>
+              </div>
+            </div>
+          </q-card>
+        </div>
+        <!-- Performance Logging -->
+        <div class="col-md-6 col-lg-4 flex">
+          <q-card flat bordered class="q-pa-md">
+            <div class="text-h6">Performance Recording Settings</div>
+            <div class="row">
+              <div class="col-12 text-caption text-grey-6 q-pb-md">
+                Enable recording of data to help analyse various performance characteristics of your Benro Polaris, including aiming, tracking, and control performance.
+              </div>
+            </div>
+            <div class="q-gutter-y-sm">
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('log_alpaca_discovery', 'Log Telementry')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_synscan_protocol', 'Log Aiming Accuracy')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Drift Error')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_synscan_polling', 'Log Periodic Error')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Kalman Filtering')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_alpaca_protocol', 'Log PID Control')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Sync Performance')"/>
+              </div>
+              
+            </div>
           </q-card>
         </div>
         <!-- Aiming Adjustment -->
