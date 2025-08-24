@@ -88,7 +88,7 @@
                 Latitude and longitude are essential for accurate tracking. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
               <div class="col-auto q-gutter-sm flex justify-end items-center">
-                <q-btn outline icon="my_location" color="grey-5" label="GPS"  @click="setFromLocationServices"/>
+                <q-btn outline icon="my_location" color="grey-5" label="Locate"  @click="setFromLocationServices"/>
               </div>
             </div>
             <div class="q-pt-md q-pb-md">
