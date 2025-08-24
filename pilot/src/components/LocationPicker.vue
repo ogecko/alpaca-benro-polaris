@@ -49,12 +49,13 @@ onMounted(() => {
     });
 });
 
-
-
 function serviceCheck() {
     axios.head('https://tile.openstreetmap.org/0/0/0.png')
     .then(() => {
         mapAvailable.value = true
+        if (map) {   // Let leaflet know of Map size change, delay slightly to allow DOM to settle
+            setTimeout(() => { map.invalidateSize() }, 100);
+        }
     })
     .catch((err) => {
         console.error('OpenStreetMap unavailable:', err);
