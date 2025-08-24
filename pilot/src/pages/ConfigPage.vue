@@ -92,7 +92,7 @@
               </div>
             </div>
             <div class="q-pt-md q-pb-md">
-              <LocationPicker />
+              <LocationPicker :lat="cfg.site_latitude" :lon="cfg.site_longitude" @locationInfo="setFromMapClick"/>
             </div>
 
             <div class="row q-col-gutter-lg q-pb-md">
@@ -191,6 +191,7 @@ import { debounce } from 'quasar'
 import { PollingManager } from 'src/utils/polling';
 import LocationPicker from 'components/LocationPicker.vue';
 import { getLocationServices } from 'src/utils/locationServices';
+import type { LocationResult } from 'src/utils/locationServices';
 
 const $q = useQuasar()
 const dev = useDeviceStore()
@@ -249,20 +250,25 @@ function bindField(key: string, label: string, suffix?: string) {
 
 
 const taKeys = ref(new Set<string>()) // set of keys to animate
-function triggerAnimation(changes: Record<string, unknown>) {
-  const keys = Object.keys(structuredClone(changes))
+function triggerAnimation(keys: string[]) {
   keys.forEach(key => taKeys.value.add(key))
   setTimeout(() => {
     keys.forEach(key => taKeys.value.delete(key))
   }, 600)
 }
 
-
 async function setFromLocationServices() {
-  const results = await getLocationServices()
-  if (results && typeof results === 'object') {
-    put(results)
-    triggerAnimation(results as Record<string, unknown>)
+  const result = await getLocationServices()
+  if (result.success) {
+    put(result.data)
+    triggerAnimation(Object.keys(result.data))
+  }
+}
+
+function setFromMapClick(result: LocationResult) {
+  if (result.success) {
+    put(result.data)
+    triggerAnimation(Object.keys(result.data))
   }
 }
 

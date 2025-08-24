@@ -1,5 +1,9 @@
 import axios from 'axios'
 
+export type LocationResult =
+  | { success: true; data: LocationData }
+  | { success: false; reason: 'no-location' | 'lookup-failed' }
+
 export interface LocationData {
   location: string
   site_elevation: number
@@ -72,11 +76,17 @@ async function getWeatherData(lat: number, lon: number): Promise<{ pressure: num
     return { pressure, elevation };
 }
 
-// Main function to retrieve geo-location and weather data
-export async function getLocationServices(inputLat?: number, inputLon?: number): Promise<LocationData | object> {
+export async function getLocationServices(inputLat?: number, inputLon?: number): Promise<LocationResult> {
+/**
+ * Retrieves enriched location metadata based on latitude and longitude input.
+ * If coordinates are not provided, attempts to infer location via browser geolocation or IP fallback.
+ * Returns site coordinates, elevation, pressure, and a human-readable location name.
+ * If no location can be determined or external lookups fail, returns a structured failure response.
+ */
   let lat = inputLat
   let lon = inputLon
 
+  // If lat/lon not provided, try to get from browser or IP
   if (typeof lat !== 'number' || typeof lon !== 'number') {
     const browserLoc = await getNavigatorLocation()
     if (browserLoc) {
@@ -88,20 +98,28 @@ export async function getLocationServices(inputLat?: number, inputLon?: number):
         lat = ipLoc.lat
         lon = ipLoc.lon
       } else {
-        return {} // No location available
+        return { success: false, reason: 'no-location' }
       }
     }
   }
-  const [location, weather] = await Promise.all([
-    getLocationName(lat, lon),
-    getWeatherData(lat, lon)
-  ])
 
-  return {
-    site_latitude: lat,
-    site_longitude: lon,
-    location,
-    site_elevation: weather.elevation,
-    site_pressure: weather.pressure
+  // Now we have lat/lon, get location name and weather data
+  try {
+    const [location, weather] = await Promise.all([
+      getLocationName(lat, lon),
+      getWeatherData(lat, lon)
+    ])
+    return {
+      success: true,
+      data: {
+        site_latitude: lat,
+        site_longitude: lon,
+        location,
+        site_elevation: weather.elevation,
+        site_pressure: weather.pressure
+      }
+    }
+  } catch {
+    return { success: false, reason: 'lookup-failed' }
   }
 }
