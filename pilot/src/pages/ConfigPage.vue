@@ -44,9 +44,9 @@
               </div>
             </div>
             <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' label="Alpaca REST API" v-model="cfg.enable_restapi" @update:model-value="put({enable_restapi: cfg.enable_restapi})"/>
-                <q-input class="col-4" label="Port" type="number"  input-class="text-right" :style="{ visibility: cfg.enable_restapi ? 'visible' : 'hidden' }"
-                  v-model="cfg.alpaca_restapi_port" @update:model-value="putdb({alpaca_restapi_port: cfg.alpaca_restapi_port})">
+                <q-toggle class='col-8' v-bind="bindField('enable_restapi', 'Alpaca REST API')"/>
+                <q-input class="col-4" v-bind="bindField('alpaca_restapi_port', 'Port')"
+                  type="number"  input-class="text-right" :style="{ visibility: cfg.enable_restapi ? 'visible' : 'hidden' }">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
               </div>
@@ -57,25 +57,25 @@
                     WARNING: The Alpaca REST API port will change. Please reconnect Alpaca Pilot when prompted. 
                 </q-banner>
             <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' label="Alpaca Discovery" v-model="cfg.enable_discovery" @update:model-value="put({enable_discovery: cfg.enable_discovery})" />
-                <q-input class="col-4" label="Port" type="number" input-class="text-right" :style="{ visibility: cfg.enable_discovery ? 'visible' : 'hidden' }"
-                  v-model="cfg.alpaca_discovery_port" @update:model-value="putdb({alpaca_discovery_port: cfg.alpaca_discovery_port})">
+                <q-toggle class='col-8' v-bind="bindField('enable_discovery', 'Alpaca Discovery')"/>
+                <q-input class="col-4" v-bind="bindField('alpaca_discovery_port', 'Port')"
+                  type="number" input-class="text-right" :style="{ visibility: cfg.enable_discovery ? 'visible' : 'hidden' }">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
             </div>
             <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' label="Alpaca Pilot" v-model="cfg.enable_pilot" @update:model-value="put({enable_pilot: cfg.enable_pilot})" />
-                <q-input class="col-4" label="Port" type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }"
-                  v-model="cfg.alpaca_pilot_port" @update:model-value="putdb({alpaca_pilot_port: cfg.alpaca_pilot_port})">
+                <q-toggle class='col-8' v-bind="bindField('enable_pilot', 'Alpaca Pilot')"/>
+                <q-input class="col-4" v-bind="bindField('alpaca_pilot_port', 'Port')"
+                  type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
                   <template v-slot:prepend><q-icon name="nat"></q-icon></template>
                 </q-input>
             </div>
             <div class="row q-col-gutter-sm no-wrap">
-              <q-toggle class='col-8' label="SynSCAN API" v-model="cfg.enable_synscan" @update:model-value="put({enable_synscan: cfg.enable_synscan})" />
-              <q-input class="col-4" label="Port" type="number" input-class="text-right" :style="{ visibility: cfg.enable_synscan ? 'visible' : 'hidden' }"
-                v-model.number="cfg.stellarium_synscan_port" @update:model-value="putdb({stellarium_synscan_port: cfg.stellarium_synscan_port})">
-                  <template v-slot:prepend><q-icon name="nat"></q-icon></template>
-                </q-input>
+              <q-toggle class='col-8' v-bind="bindField('enable_synscan', 'SynSCAN API')"/>
+              <q-input class="col-4" v-bind="bindField('stellarium_synscan_port', 'Port')"
+                type="number" input-class="text-right" :style="{ visibility: cfg.enable_synscan ? 'visible' : 'hidden' }">
+                <template v-slot:prepend><q-icon name="nat"></q-icon></template>
+              </q-input>
             </div>
           </q-card>
         </div>
@@ -96,21 +96,15 @@
             </div>
 
             <div class="row q-col-gutter-lg q-pb-md">
-                <q-input class="col-3" type="number" label="Latitude" suffix="°" input-class="text-right"
-                  v-model.number="cfg.site_latitude" @update:model-value="putdb({site_latitude: cfg.site_latitude})" :class="{ taflash: taKey=='latlon'}"/>
-                <q-input class="col-3" type="number" label="Longitude" suffix="°" input-class="text-right"
-                v-model.number="cfg.site_longitude" @update:model-value="putdb({site_longitude: cfg.site_longitude})" :class="{ taflash: taKey=='latlon'}"/>
-                <q-input class="col-6" v-model="cfg.location" label="Location" @update:model-value="putdb({location: cfg.location})" />
+                <q-input class="col-3" v-bind="bindField('site_latitude', 'Latitude', '°')" type="number" input-class="text-right"/>
+                <q-input class="col-3" v-bind="bindField('site_longitude','Longitude', '°')" type="number" input-class="text-right"/>
+                <q-input class="col-6" v-bind="bindField('location','Location')" />
             </div>
             <div class="row q-col-gutter-lg">
-                <q-input class="col-3" type="number" label="Elevation" suffix="m" input-class="text-right"
-                  v-model.number="cfg.site_elevation" @update:model-value="putdb({site_elevation: cfg.site_elevation})" />
-                <q-input class="col-3" type="number" label="Pressure" suffix="hPa" input-class="text-right"
-                  v-model.number="cfg.site_pressure" @update:model-value="putdb({site_pressure: cfg.site_pressure})" />
-                <q-input class="col-3" type="number" label="Focal Length"  suffix="mm" input-class="text-right"
-                  v-model.number="cfg.focal_length" @update:model-value="putdb({focal_length: cfg.focal_length})" />
-                <q-input class="col-3" type="number" label="Focal Ratio"  suffix="f-stop" input-class="text-right"
-                  v-model.number="cfg.focal_ratio"  @update:model-value="putdb({focal_ratio: cfg.focal_ratio})" />
+                <q-input class="col-3" v-bind="bindField('site_elevation', 'Elevation', 'm')" type="number" input-class="text-right"/>
+                <q-input class="col-3" v-bind="bindField('site_pressure', 'Pressure', 'hPa')" type="number" input-class="text-right"/>
+                <q-input class="col-3" v-bind="bindField('focal_length', 'Focal Length', 'mm')" type="number" input-class="text-right"/>
+                <q-input class="col-3" v-bind="bindField('focal_ratio', 'Focal Ratio', 'f-stop')" type="number" input-class="text-right"/>
             </div>
           </q-card>
         </div>
@@ -203,7 +197,6 @@ const dev = useDeviceStore()
 const cfg = useConfigStore()
 
 const poll = new PollingManager()
-const taKey = ref<string | null>(null)      // Used to trigger animations on a particular Key'ed element
 
 onMounted(async () => {
   const shouldFetch =
@@ -221,17 +214,57 @@ onUnmounted(() => {
   poll.stopPolling()
 })
 
-async function setFromLocationServices() {
-  const results = await getLocationServices()
-  if (results) {
-    put(results)
+function bindField(key: string, label: string, suffix?: string) {
+  /**
+   * Creates a v-model binding object for a given config key.
+   * Supports string, number, and boolean values. Updates cfg and persists changes via api.
+   * Also applies a 'taflash' class if the key is flagged for animation.
+   *
+   * @param key - The config key to bind
+   * @param label - The label of the field
+   * @param suffix - Optional suffix to display in the input
+   * @returns A binding object compatible with Quasar input components
+   */
+  // @ts-expect-error: dynamic key access on cfg
+  const val = cfg[key]
+  const type = typeof val
+  const isValid = ['string', 'number', 'boolean'].includes(type)
+  const isBoolean = type === 'boolean'
+  return {
+    label,
+    ...(suffix ? { suffix } : {}),
+    class: { taflash: taKeys.value.has(key) },
+    modelValue: isValid ? val : '',
+    'onUpdate:modelValue': (v: string | number | boolean | null) => {
+      if (v !== null && isValid) {
+        // @ts-expect-error: dynamic key assignment
+        cfg[key] = v
+        const payload = { [key]: v }
+        if (isBoolean) { put(payload) } else { putdb(payload) }
+      }
+    }
   }
 }
 
-// function triggerAnimation(field: string) {
-//   taKey.value = field
-//   setTimeout(() => { taKey.value = null }, 600) // match animation duration
-// }
+
+
+const taKeys = ref(new Set<string>()) // set of keys to animate
+function triggerAnimation(changes: Record<string, unknown>) {
+  const keys = Object.keys(structuredClone(changes))
+  keys.forEach(key => taKeys.value.add(key))
+  setTimeout(() => {
+    keys.forEach(key => taKeys.value.delete(key))
+  }, 600)
+}
+
+
+async function setFromLocationServices() {
+  const results = await getLocationServices()
+  if (results && typeof results === 'object') {
+    put(results)
+    triggerAnimation(results as Record<string, unknown>)
+  }
+}
 
 async function save() {
   const ok = await cfg.configSave()
