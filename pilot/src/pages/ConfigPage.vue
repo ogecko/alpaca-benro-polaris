@@ -13,14 +13,14 @@
         <div class="col">
           <!-- Page Heading -->
           <q-card flat bordered class="q-pa-md">
-            <div class="text-h5">Alpaca Driver Configuration</div>
+            <div class="text-h5">Alpaca Driver Settings</div>
             <div v-if="!cfg.fetchedAt" class="text-negative">
               <q-separator spaced />
               Configuration not loaded.
             </div>
               <div class="row q-col-gutter-lg items-center">
                 <div class="col text-caption text-grey-6">
-                  Changes in Alpaca Pilot apply immediately. Click Save to keep them after restarting. 
+                  Changes in Alpaca Pilot Settings apply immediately. Click Save to keep them after restarting. 
                   Click Restore to reset all settings back to Config.toml defaults.
                 </div>
                 <div class="col-auto q-gutter-sm flex justify-end items-center">
