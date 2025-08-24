@@ -117,31 +117,41 @@
                 Use Advanced Position Control to override the Benro Polaris default behaviour. 
                 Toggle individual features below to enable advanced slewing, goto, tracking, guiding and rotator support.
               </div>
-              <div class="col-auto q-gutter-sm flex justify-end items-center">
-                <q-toggle class='col' v-model="cfg.advanced_control" label="Enable" @update:model-value="put({advanced_control: cfg.advanced_control})" />
+              <div class="col-auto q-gutter-sm flex justify-end">
+                <q-toggle class='col' v-bind="bindField('advanced_control', 'Enable')"/>
               </div>
             </div>
-            <div v-if="cfg.advanced_control" >
+            <div v-if="cfg.advanced_control" class="q-gutter-y-sm" >
               <div class="row">
-                <q-toggle class='col-6' v-model="cfg.advanced_slewing" label="Slewing" @update:model-value="put({advanced_slewing: cfg.advanced_slewing})" />
-                <q-toggle class='col-6' v-model="cfg.advanced_goto" label="Advanced Goto" @update:model-value="put({advanced_goto: cfg.advanced_goto})" />
+                <q-toggle class='col-6' v-bind="bindField('advanced_slewing', 'Slewing')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_goto', 'Advanced Goto')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-model="cfg.advanced_tracking" label="Tracking" @update:model-value="put({advanced_tracking: cfg.advanced_tracking})" />
-                <q-toggle class='col-6' v-model="cfg.advanced_guiding" label="Pulse Guiding" @update:model-value="put({advanced_guiding: cfg.advanced_guiding})" />
+                <q-toggle class='col-6' v-bind="bindField('advanced_tracking', 'Tracking')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-model="cfg.advanced_rotator" label="Alpaca Rotator" @update:model-value="put({advanced_rotator: cfg.advanced_rotator})" />
+                <q-toggle class='col-6' v-bind="bindField('advanced_rotator', 'Alpaca Rotator')"/>
               </div>
-              <div class="row q-col-gutter-lg">
-                  <q-input class='col-3' type="number" label="Max Slew Rate" suffix="°/s" input-class="text-right"
-                    v-model.number="cfg.max_slew_rate" @update:model-value="putdb({max_slew_rate: cfg.max_slew_rate})" />
-                  <q-input class='col-3' type="number" label="Max Accel Rate" suffix="°/s²" input-class="text-right"
-                    v-model.number="cfg.max_accel_rate" @update:model-value="putdb({max_accel_rate: cfg.max_accel_rate})" />
-                  <q-input class='col-3' type="number" label="Settle Time" suffix="s" input-class="text-right"
-                    v-model.number="cfg.tracking_settle_time"  @update:model-value="putdb({tracking_settle_time: cfg.tracking_settle_time})" />
+              <div class="row q-pt-md q-col-gutter-lg">
+                  <q-input class='col-3' v-bind="bindField('max_slew_rate', 'Max Slew Rate', '°/s')" type="number" input-class="text-right"/>
+                  <q-input class='col-3' v-bind="bindField('max_accel_rate', 'Max Accel Rate', '°/s²')" type="number" input-class="text-right"/>
+                  <q-input class='col-3' v-bind="bindField('tracking_settle_time', 'Settle Time', 's')" type="number" input-class="text-right"/>
               </div>
             </div>
+          </q-card>
+        </div>
+        <!-- Logging -->
+        <div class="col-md-6 col-lg-4 flex">
+          <q-card flat bordered class="q-pa-md">
+            <div class="text-h6">Logging</div>
+            <q-toggle v-model="cfg.log_polaris" label="Log Polaris" @update:model-value="put({log_polaris: cfg.log_polaris})" />
+            <q-toggle v-model="cfg.log_polaris_protocol" label="Log Polaris Protocol" @update:model-value="put({log_polaris_protocol: cfg.log_polaris_protocol})" />
+            <q-toggle v-model="cfg.log_stellarium_protocol" label="Log Stellarium Protocol" @update:model-value="put({log_stellarium_protocol: cfg.log_stellarium_protocol})" />
+            <q-input v-model.number="cfg.log_level" label="Log Level" @update:model-value="putdb({log_level: cfg.log_level})" />
+            <q-input type="number" v-model.number="cfg.log_performance_data" label="Performance Data" @update:model-value="putdb({log_performance_data: cfg.log_performance_data})" />
+            <q-input type="number" v-model.number="cfg.log_performance_data_test" label="Perf Data Test" @update:model-value="putdb({log_performance_data_test: cfg.log_performance_data_test})" />
+            <q-input type="number" v-model.number="cfg.log_perf_speed_interval" label="Perf Speed Interval" @update:model-value="putdb({log_perf_speed_interval: cfg.log_perf_speed_interval})" />
           </q-card>
         </div>
         <!-- Aiming Adjustment -->
@@ -159,21 +169,6 @@
             <div class="text-h6 q-mt-lg">Sync</div>
             <q-input type="number" v-model.number="cfg.sync_pointing_model" label="Pointing Model" @update:model-value="putdb({sync_pointing_model: cfg.sync_pointing_model})" />
             <q-toggle v-model="cfg.sync_N_point_alignment" label="N-Point Alignment" @update:model-value="put({sync_N_point_alignment: cfg.sync_N_point_alignment})" />
-          </q-card>
-        </div>
-        <!-- Logging -->
-        <div class="col-md-6 col-lg-4 flex">
-          <q-card flat bordered class="q-pa-md">
-            <div class="text-h6">Logging</div>
-            <q-toggle v-model="cfg.log_to_file" label="Log to File" @update:model-value="put({log_to_file: cfg.log_to_file})" />
-            <q-toggle v-model="cfg.log_to_stdout" label="Log to Stdout" @update:model-value="put({log_to_stdout: cfg.log_to_stdout})" />
-            <q-toggle v-model="cfg.log_polaris" label="Log Polaris" @update:model-value="put({log_polaris: cfg.log_polaris})" />
-            <q-toggle v-model="cfg.log_polaris_protocol" label="Log Polaris Protocol" @update:model-value="put({log_polaris_protocol: cfg.log_polaris_protocol})" />
-            <q-toggle v-model="cfg.log_stellarium_protocol" label="Log Stellarium Protocol" @update:model-value="put({log_stellarium_protocol: cfg.log_stellarium_protocol})" />
-            <q-input v-model.number="cfg.log_level" label="Log Level" @update:model-value="putdb({log_level: cfg.log_level})" />
-            <q-input type="number" v-model.number="cfg.log_performance_data" label="Performance Data" @update:model-value="putdb({log_performance_data: cfg.log_performance_data})" />
-            <q-input type="number" v-model.number="cfg.log_performance_data_test" label="Perf Data Test" @update:model-value="putdb({log_performance_data_test: cfg.log_performance_data_test})" />
-            <q-input type="number" v-model.number="cfg.log_perf_speed_interval" label="Perf Speed Interval" @update:model-value="putdb({log_perf_speed_interval: cfg.log_perf_speed_interval})" />
           </q-card>
         </div>
       </div>
