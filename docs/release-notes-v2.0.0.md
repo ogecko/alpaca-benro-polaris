@@ -18,6 +18,7 @@
 - **[Connection Page]**: Quickly connect to your Alpaca Driver and Benro Polaris through a clean, intuitive interface
 - **[Configuration Page]**: Instantly view and modify Alpaca Driver settings; no need to edit config.toml or restart
 - **[Map Verification]**: - Display site coordinates on an interactive map to visually confirm the location
+- **[Site Autocomplete]**: - Automatically retrieve location name, elevation, and current pressure via external web services
 - **[Nina integration]**: Launch Alpaca Pilot directly from the Settings Cogs in NINA’s Equipment tab
 
 ## New Features (Alpaca Driver)

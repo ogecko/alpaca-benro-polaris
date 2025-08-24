@@ -88,7 +88,7 @@
                 Latitude and longitude are essential for accurate tracking. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
               <div class="col-auto q-gutter-sm flex justify-end items-center">
-                <q-btn outline icon="my_location" color="grey-5" label="GPS"  @click="setFromPhoneLocation"/>
+                <q-btn outline icon="my_location" color="grey-5" label="GPS"  @click="setFromLocationServices"/>
               </div>
             </div>
             <div class="q-pt-md q-pb-md">
@@ -188,7 +188,7 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
+// import axios from 'axios'
 import { useQuasar } from 'quasar'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useConfigStore } from 'stores/config';
@@ -196,6 +196,7 @@ import { useDeviceStore } from 'src/stores/device';
 import { debounce } from 'quasar'
 import { PollingManager } from 'src/utils/polling';
 import LocationPicker from 'components/LocationPicker.vue';
+import { getLocationServices } from 'src/utils/locationServices';
 
 const $q = useQuasar()
 const dev = useDeviceStore()
@@ -220,46 +221,17 @@ onUnmounted(() => {
   poll.stopPolling()
 })
 
-function setFromPhoneLocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((pos) => {
-        put({ site_latitude: pos.coords.latitude, site_longitude: pos.coords.longitude })
-        triggerAnimation('latlon')
-    }, (err) => {
-        console.error('Location error:', err)
-        fallbackToIPLocation();
-    })
-  } else {
-    console.warn('Geolocation not supported')
-    fallbackToIPLocation();
+async function setFromLocationServices() {
+  const results = await getLocationServices()
+  if (results) {
+    put(results)
   }
 }
 
-function fallbackToIPLocation() {
-  void axios.get('https://ipapi.co/json/')
-    .then(({ data }) => {
-      const { latitude, longitude, city, region, country_name } = data;
-      if (latitude && longitude) {
-        const locationName = [city, region, country_name].filter(Boolean).join(', ');
-        put({
-          site_latitude: latitude,
-          site_longitude: longitude,
-          location: locationName
-        });
-        triggerAnimation('latlon');
-      } else {
-        console.warn('IP-based location unavailable');
-      }
-    })
-    .catch((err) => {
-      console.error('IP location fetch failed:', err);
-    });
-}
-
-function triggerAnimation(field: string) {
-  taKey.value = field
-  setTimeout(() => { taKey.value = null }, 600) // match animation duration
-}
+// function triggerAnimation(field: string) {
+//   taKey.value = field
+//   setTimeout(() => { taKey.value = null }, 600) // match animation duration
+// }
 
 async function save() {
   const ok = await cfg.configSave()

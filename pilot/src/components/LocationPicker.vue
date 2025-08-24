@@ -8,6 +8,7 @@
 import axios from 'axios';
 import { onMounted, watch, ref } from 'vue';
 import { useConfigStore } from 'stores/config';
+import { getLocationServices } from 'src/utils/locationServices';
 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -39,13 +40,16 @@ onMounted(() => {
     }).addTo(map);
 
     map.on('click', (e) => {
-        const { lat, lng } = e.latlng;
-        if (marker) {
-        marker.setLatLng(e.latlng);
-        } else {
-        marker = L.marker(e.latlng).addTo(map);
-        }
-        void cfg.configUpdate({ site_latitude: lat, site_longitude: lng });
+        void (async () => {
+            const { lat, lng } = e.latlng;
+            if (marker) {
+                marker.setLatLng(e.latlng);
+            } else {
+                marker = L.marker(e.latlng).addTo(map);
+            }
+            const results = await getLocationServices(lat, lng);
+            void cfg.configUpdate(results);
+        })();
     });
 });
 
