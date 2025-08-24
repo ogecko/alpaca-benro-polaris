@@ -27,6 +27,7 @@ export const useDeviceStore = defineStore('device', {
     async connectAlpaca() {
       this.$patch({
         alpacaConnectingMsg: 'Connecting...',
+        alpacaClientID: 8000+Math.floor(Math.random()*1000),
         alpacaConnectErrorMsg: '',
         alpacaServerName: '',
         alpacaServerVersion: '',
