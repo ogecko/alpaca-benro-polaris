@@ -69,6 +69,7 @@ from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
 from config import Config
 import re
+from typing import Set, Coroutine
 
 
 logger: Logger = None
@@ -407,6 +408,35 @@ class LifecycleController:
         self._event = LifecycleEvent.NONE
         self._cond = asyncio.Condition()
         self._lock = threading.Lock()  # For thread-safe sync signaling
+        self._tasks: Set[asyncio.Task] = set()
+
+    def create_task(self, coro: Coroutine, *, name: str = None) -> asyncio.Task:
+        task = asyncio.create_task(self._wrap(coro), name=name)
+        self._tasks.add(task)
+        task.add_done_callback(self._done_task)
+        return task
+
+    def _done_task(self, task: asyncio.Task):
+        self._tasks.discard(task)  # Remove completed task from the set
+
+    async def _wrap(self, coro: Coroutine):
+        try:
+            await coro
+        except asyncio.CancelledError:
+            logger.debug("Task cancelled")
+        except Exception as e:
+            logger.exception("Unhandled exception in task: %s", e)
+
+    async def shutdown_tasks(self, timeout: float = 5.0):
+        await self.signal(LifecycleEvent.SHUTDOWN)
+        for task in list(self._tasks):
+            task.cancel()
+        _, pending = await asyncio.wait(self._tasks, timeout=timeout)
+        if pending:
+            logger.warning("Tasks still pending: %s", pending)
+
+    def should_stop(self) -> bool:
+        return self._event in {LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT}
 
     async def wait_for_event(self):
         async with self._cond:

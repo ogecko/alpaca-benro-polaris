@@ -115,19 +115,17 @@ async def run_all(logger, lifecycle: LifecycleController):
     rotator.start_rotator(polaris, lifecycle)
 
     tasks = [
-        asyncio.create_task(polaris.client(logger), name='Polaris'),
-        asyncio.create_task(app_api.alpaca_rest_httpd(logger, lifecycle), name='RestAPI'),
-        asyncio.create_task(app_web.alpaca_pilot_httpd(logger, lifecycle), name='Pilot'),
-        asyncio.create_task(discovery.socket_client(logger, lifecycle), name='Discovery'),
-        asyncio.create_task(stellarium.synscan_api(logger, lifecycle), name='SynscanAPI')
+        lifecycle.create_task(polaris.client(logger), name='Polaris'),
+        lifecycle.create_task(app_api.alpaca_rest_httpd(logger, lifecycle), name='RestAPI'),
+        lifecycle.create_task(app_web.alpaca_pilot_httpd(logger, lifecycle), name='Pilot'),
+        lifecycle.create_task(discovery.socket_client(logger, lifecycle), name='Discovery'),
+        lifecycle.create_task(stellarium.synscan_api(logger, lifecycle), name='SynscanAPI')
     ]
 
     event = await lifecycle.wait_for_event()
 
     logger.info(f'==SHUTDOWN== Shutting down all tasks...for {event}')
-    for t in tasks:
-        t.cancel()
-    await asyncio.gather(*tasks, return_exceptions=True)
+    await lifecycle.shutdown_tasks()
     await polaris.shutdown()
 
 
