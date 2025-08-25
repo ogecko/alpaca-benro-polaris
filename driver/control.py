@@ -26,7 +26,16 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
 # [X] Fix quaternian maths when alt is negative and zero
 # [X] Implement Rotator
-# [ ] Rotator Halt, Sync, SetupDialog, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
+# [X] Setup Dialog in Alpaca Pilot
+# [ ] Proper task cleanup in polaris.restart(), especially to fix no position updates for over 2s. Restarting AHRS
+# [ ] Rationalise performance data capture and analysis
+# [ ] Move performance tests to actions
+# [ ] Alpaca pilot catalog of targets, search, select, goto, display current target
+# [ ] Alpaca pilot current position main display, is parked, is tracking, is slewing, is gotoing, is PID active, is Pulse Guiding
+# [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, tracking rate, halt, goto, track, park, unpark
+# [ ] Alpaca Action ConfigUpdate pass through to live polaris
+# 
+# [ ] Rotator Halt, Sync, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
 # [ ] Pass ConformU test on Rotator
 # [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
 # [ ] Implement slewing and gotoing state monitoring
