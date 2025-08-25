@@ -87,6 +87,9 @@ from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, 
 from control import KalmanFilter, quaternion_to_angles, calculate_angular_velocity, is_angle_same, format_move_axis_data, polar_rotation_angle, MotorSpeedController, PID_Controller
 from scipy.interpolate import PchipInterpolator
 
+POLARIS_POLL_COMMANDS = {'284', '518', '525'}
+
+
 class Polaris:
     """Simulated telescope device that communicates with Polaris Device
     
@@ -362,7 +365,9 @@ class Polaris:
             self._task_exception = task.exception()
 
     async def send_msg(self, msg):
-        if Config.log_polaris_protocol:
+        parts = msg.strip('#').split('&')
+        ispoll = len(parts)>1 and parts[1] in POLARIS_POLL_COMMANDS
+        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
             self.logger.info(f'->> Polaris: send_msg: {msg}')
         if self._writer:
             self._writer.write(msg.encode())
@@ -588,7 +593,8 @@ class Polaris:
             while buffer:
                 cmd, args, buffer = self.parse_msg(buffer)
                 if cmd:
-                    if Config.log_polaris_protocol and not((cmd == "518" or cmd == "284" or cmd == "525") and Config.supress_polaris_frequent_msgs):
+                    ispoll = cmd in POLARIS_POLL_COMMANDS
+                    if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
                         self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
                     self.polaris_parse_cmd(cmd, args)
             else:
@@ -601,7 +607,7 @@ class Polaris:
         if m:
             return (m.group(1), m.group(2), buffer[len(m.group(0)):])
         else:
-            if Config.log_polaris and Config.log_polaris_protocol:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: Unmatched msg: {buffer}")
             return (False, False, "")
 
@@ -627,13 +633,13 @@ class Polaris:
             if not Config.advanced_tracking:        # if we are not doing tracking then update tracking status based on what Benro tells us 
                 self._tracking = bool(arg_dict['track'] == '1') if 'track' in arg_dict else False
             self._lock.release()
-            if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
+            if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: MODE status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
                 self._response_queues[cmd].put_nowait(arg_dict)
 
         # return result of Query Orientation request {} 
-        if cmd == "517":
+        elif cmd == "517":
             arg_dict = self.polaris_parse_args(args)
             # Orientation of each axis motor rotational position in radians
             # Typical Park Position yaw=-0.000280, pitch=0.000267, roll=0.000375
@@ -739,7 +745,7 @@ class Polaris:
 
         # return result of UNKNOWN command SP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361d0000265a ;]
         elif cmd == "525":
-            if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
+            if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: 525 status changed: {cmd} {args}")
 
         # return result of TRACK change request {'ret': 'X'} where X=0 (NoTracking), X=1 (Tracking)
@@ -749,7 +755,7 @@ class Polaris:
             if not Config.advanced_tracking:     # if we are not doing tracking then update tracking status based on what Benro tells us 
                 self._tracking = (arg_dict['ret'] == '1')
             self._lock.release()
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: TRACK status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
                 self._response_queues[cmd].put_nowait(arg_dict)
@@ -757,55 +763,55 @@ class Polaris:
         # return result of FILE request {'type':1; 'class':0; 'path':'/app/sd/normal/SP_0052.jpg'; 'size':'916156'; 'cTime':'2023-10-24 22:33:12'; 'duration':'0'} 
         elif cmd == "771":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: FILE status changed: {cmd} {arg_dict}")
 
         # return result of STORAGE request {'status': '1', 'totalspace': '30420', 'freespace': '30163', 'usespace': '256'} 
         elif cmd == "775":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: STORAGE status changed: {cmd} {arg_dict}")
 
         # return result of BATTTERY request {'capacity': 'X', 'charge': 'Y'}  X=batttery%, Y=1 (charging), Y=0 (draining)
         elif cmd == "778":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: BATTERY status changed: {cmd} {arg_dict}")
 
         # return result of VERSION request {'hw':'1.3.1.4'; 'sw': '6.0.0.40'; 'exAxis':'1.0.2.11'; 'sv':'1'} 
         elif cmd == "780":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: VERSION status changed: {cmd} {arg_dict}")
 
         # return result of SECURITY request {'step': '1', 'password': 'YmVucm8=', 'securityQ': '2', 'securityA': 'QnJhaW4='}
         elif cmd == "790":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: SECURITY status changed: {cmd} {arg_dict}")
 
         # return result of WIFI request {'band': '1'}
         elif cmd == "802":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: WIFI status changed: {cmd} {arg_dict}")
 
         # return result of Connection request result {'ret': '0'}
         elif cmd == "808":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris and Config.log_polaris_protocol:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: Connection request result: {cmd} {arg_dict}")
 
         # return result of Position Updaten request result {'ret': '1'}
         elif cmd == "520":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris and Config.log_polaris_protocol:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: Position Update request result: {cmd} {arg_dict}")
 
 
         # return result of unrecognised msg
         else:
-            if Config.log_polaris and not Config.log_polaris_protocol:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: response to command received: {cmd} {args}")
 
 
@@ -847,7 +853,7 @@ class Polaris:
     async def send_cmd_change_tracking_state(self, tracking: bool):
         cmd = '531'
         state = 1 if tracking else 0
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: TRACK request change to {state}")
         empty_queue(self._response_queues[cmd])
         await self.send_msg(f"1&{cmd}&3&state:{state};speed:0;#")
@@ -861,7 +867,7 @@ class Polaris:
         self._gotoing = False
         self._lock.release()
         # log the command
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: GOTO ABORT")
         arg_dict = {'ret': '-1', 'track': '-1'}
         cmd = '519'
@@ -890,7 +896,7 @@ class Polaris:
         self._lock.release()
 
         # log the command
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: GOTO Execute Alt {deg2dms(alt)} Az {deg2dms(az)} ")
 
         # log the aiming alt/az and correct it based on previous aiming results
@@ -908,12 +914,12 @@ class Polaris:
 
         # Wait for 1st response of slew started
         ret_dict = await self._response_queues[cmd].get()
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO starting slew: {cmd} {ret_dict}")
             
         # wait for 2nd response of slew stopped
         ret_dict = await self._response_queues[cmd].get()
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO stopping slew: {cmd} {ret_dict}")
 
         # wait for sidereal tracking to settle
@@ -924,7 +930,7 @@ class Polaris:
         self._slewing = False
         self._gotoing = False
         self._lock.release()
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO slew complete")
 
         # log the result of the goto if it was NOT aborted and is a tracking GOTO
@@ -959,14 +965,14 @@ class Polaris:
         await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
 
     async def send_cmd_park(self):
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: PARK all 3 axis")
         await self.send_cmd_reset_axis(1)
         await self.send_cmd_reset_axis(2)
         await self.send_cmd_reset_axis(3)
 
     async def send_cmd_query_current_mode(self):
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: MODE query status info request")
         cmd = '284'
         msg = f"1&{cmd}&2&-1#"
@@ -976,62 +982,62 @@ class Polaris:
         return ret_dict
 
     async def send_cmd_query_current_mode_async(self):
-        if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
+        if Config.log_polaris_polling:
             self.logger.info(f"->> Polaris: 284 Query Mode request")
         msg = f"1&284&2&-1#"
         await self.send_msg(msg)
 
     async def send_cmd_799(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 799 request")
         msg = f"1&799&2&-1#"
         await self.send_msg(msg)
 
     async def send_cmd_296(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 296 request")
         msg = f"1&296&2&-1#"
         await self.send_msg(msg)
 
     async def send_cmd_303(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 303 request")
         msg = f"1&303&2&-1#"
         await self.send_msg(msg)
 
     async def send_cmd_808(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 808 Connection request")
         msg = f"1&808&2&type:0;#"
         await self.send_msg(msg)
 
     async def send_cmd_517(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 517 Get Orientation request")
         msg = f"1&517&3&-1#"
         await self.send_msg(msg)
 
     async def send_cmd_520_position_updates(self, state:bool=True):
         state = "1" if state else "0"
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 520 Position Updates request")
         msg = f"1&520&2&state:{state};#"
         await self.send_msg(msg)
 
     async def send_cmd_524(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 524 request")
         msg = f"1&524&3&-1#"
         await self.send_msg(msg)
 
     async def send_cmd_305(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 305 request")
         msg = f"1&305&2&step:2;#"
         await self.send_msg(msg)
 
     async def send_cmd_780(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 780 request")
         msg = f"1&780&2&-1#"
         await self.send_msg(msg)
@@ -1253,7 +1259,7 @@ class Polaris:
         self._connections[client] = connect
         numclients = sum(v for v in self._connections.values() if v)
         self._lock.release()
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f'[connection request] Client {client} Connected: {connect} Total Connected Clients: {numclients}')
 
         # check is any exceptions with polaris.client() and polaris_init() last run
