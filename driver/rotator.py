@@ -61,7 +61,7 @@ class RotatorMetadata:
 # RESOURCE CONTROLLERS
 # --------------------
 
-@before(PreProcessRequest(maxdev,'log_rotator_protocol'))
+@before(PreProcessRequest(maxdev,'log_alpaca_actions'))
 class action:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
@@ -121,7 +121,7 @@ class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([], req)  # Not PropertyNotImplemented
 
-@before(PreProcessRequest(maxdev,'log_rotator_protocol'))
+@before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class connected:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         client = await get_request_field('ClientID', req)      # Raises 400 bad request if missing
@@ -137,7 +137,7 @@ class connected:
         except Exception as ex:
             resp.text = await MethodResponse(req,  DriverException(0x500, ex))
 
-@before(PreProcessRequest(maxdev,'log_rotator_protocol'))
+@before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class canreverse:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
@@ -145,7 +145,7 @@ class canreverse:
             return
         resp.text = await PropertyResponse(True, req)
 
-@before(PreProcessRequest(maxdev,'log_rotator_protocol'))
+@before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class reverse:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
@@ -170,7 +170,7 @@ class reverse:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Rotator.Reverse failed', ex))
 
-@before(PreProcessRequest(maxdev,'log_rotator_protocol'))
+@before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class ismoving:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
@@ -183,7 +183,7 @@ class ismoving:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.IsMoving failed', ex))
 
 
-@before(PreProcessRequest(maxdev,'log_rotator_protocol'))
+@before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class position:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
