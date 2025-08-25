@@ -67,32 +67,32 @@ class TelescopeMetadata:
 # RESOURCE CONTROLLERS
 # --------------------
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class commandblind:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class commandbool:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class commandstring:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class dispose:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class findhome:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class destinationsideofpier:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
@@ -118,7 +118,7 @@ class destinationsideofpier:
             return
         resp.text = await PropertyResponse(0, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class connected:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         client = await get_request_field('ClientID', req)      # Raises 400 bad request if missing
@@ -134,33 +134,33 @@ class connected:
         except Exception as ex:
             resp.text = await MethodResponse(req,  DriverException(0x500, ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class description:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.Description, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class driverinfo:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.Info, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class interfaceversion:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.InterfaceVersion, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class driverversion():
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.Version, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class name():
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.Name, req)
 
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class alignmentmode:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -173,7 +173,7 @@ class alignmentmode:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Alignmentmode failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class altitude:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -186,7 +186,7 @@ class altitude:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Altitude failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class aperturearea:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -199,7 +199,7 @@ class aperturearea:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Aperturearea failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class aperturediameter:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -212,7 +212,7 @@ class aperturediameter:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Aperturediameter failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class athome:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -225,7 +225,7 @@ class athome:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Athome failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class atpark:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -238,7 +238,7 @@ class atpark:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Atpark failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class azimuth:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -251,7 +251,7 @@ class azimuth:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Azimuth failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canfindhome:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -264,7 +264,7 @@ class canfindhome:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canfindhome failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canpark:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -329,7 +329,7 @@ class cansetdeclinationrate:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetdeclinationrate failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class cansetpark:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -342,7 +342,7 @@ class cansetpark:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetpark failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class cansetpierside:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -355,7 +355,7 @@ class cansetpierside:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetpierside failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class cansettracking:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -368,7 +368,7 @@ class cansettracking:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansettracking failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class canslew:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -381,7 +381,7 @@ class canslew:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canslew failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canslewaltaz:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -394,7 +394,7 @@ class canslewaltaz:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canslewaltaz failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canslewaltazasync:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -407,7 +407,7 @@ class canslewaltazasync:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canslewaltazasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canslewasync:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -420,7 +420,7 @@ class canslewasync:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canslewasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class cansync:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -433,7 +433,7 @@ class cansync:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class cansyncaltaz:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -446,7 +446,7 @@ class cansyncaltaz:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansyncaltaz failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canunpark:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -459,7 +459,7 @@ class canunpark:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canunpark failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class declination:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -472,7 +472,7 @@ class declination:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Declination failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class declinationrate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -488,7 +488,7 @@ class declinationrate:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class doesrefraction:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -514,7 +514,7 @@ class doesrefraction:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Doesrefraction failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class equatorialsystem:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -527,7 +527,7 @@ class equatorialsystem:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Equatorialsystem failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class focallength:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -540,7 +540,7 @@ class focallength:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Focallength failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class guideratedeclination:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -556,7 +556,7 @@ class guideratedeclination:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class guideraterightascension:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -589,7 +589,7 @@ class ispulseguiding:
 
         # resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class rightascension:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -602,7 +602,7 @@ class rightascension:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Rightascension failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class rightascensionrate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -618,7 +618,7 @@ class rightascensionrate:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class sideofpier:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -652,7 +652,7 @@ class sideofpier:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Sideofpier failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class siderealtime:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -665,7 +665,7 @@ class siderealtime:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Siderealtime failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class siteelevation:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -697,7 +697,7 @@ class siteelevation:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Siteelevation failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class sitelatitude:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -729,7 +729,7 @@ class sitelatitude:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Sitelatitude failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class sitelongitude:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -761,7 +761,7 @@ class sitelongitude:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Sitelongitude failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class slewing:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -774,7 +774,7 @@ class slewing:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Slewing failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewsettletime:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -806,7 +806,7 @@ class slewsettletime:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.slewsettletime failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class targetdeclination:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -841,7 +841,7 @@ class targetdeclination:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.targetdeclination failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class targetrightascension:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -876,7 +876,7 @@ class targetrightascension:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.targetrightascension failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class tracking:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -906,7 +906,7 @@ class tracking:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Tracking failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class trackingrate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -938,7 +938,7 @@ class trackingrate:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Tracking failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class trackingrates:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -951,7 +951,7 @@ class trackingrates:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Trackingrates failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class utcdate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -968,7 +968,7 @@ class utcdate:
         resp.text = await PropertyResponse(None, req, NotImplementedException())
         return
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class abortslew:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -985,7 +985,7 @@ class abortslew:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Abortslew failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class axisrates:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -1004,7 +1004,7 @@ class axisrates:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Axisrates failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canmoveaxis:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -1026,7 +1026,7 @@ class canmoveaxis:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canmoveaxis failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class sideofpier:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -1042,7 +1042,7 @@ class sideofpier:
         resp.text = await PropertyResponse(None, req, NotImplementedException())
         return
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class moveaxis:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1085,7 +1085,7 @@ class moveaxis:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Moveaxis failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class park:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1133,7 +1133,7 @@ class pulseguide:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Pulseguide failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class setpark:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1149,7 +1149,7 @@ class setpark:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Setpark failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtoaltaz:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1189,7 +1189,7 @@ class slewtoaltaz:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Slewtoaltaz failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtoaltazasync:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1226,7 +1226,7 @@ class slewtoaltazasync:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Slewtoaltazasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtocoordinates:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1266,7 +1266,7 @@ class slewtocoordinates:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Slewtocoordinates failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtocoordinatesasync:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1303,7 +1303,7 @@ class slewtocoordinatesasync:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Slewtocoordinatesasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtotarget:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1326,7 +1326,7 @@ class slewtotarget:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Slewtotarget failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtotargetasync:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1346,7 +1346,7 @@ class slewtotargetasync:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Slewtotargetasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class synctoaltaz:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1380,7 +1380,7 @@ class synctoaltaz:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Synctoaltaz failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class synctocoordinates:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1415,7 +1415,7 @@ class synctocoordinates:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Synctocoordinates failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class synctotarget:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1432,7 +1432,7 @@ class synctotarget:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Synctotarget failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class unpark:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):

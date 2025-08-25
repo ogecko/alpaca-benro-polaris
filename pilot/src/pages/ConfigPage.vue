@@ -133,10 +133,33 @@
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_rotator', 'Alpaca Rotator')"/>
               </div>
-              <div class="row q-pt-md q-col-gutter-lg">
-                  <q-input class='col-3' v-bind="bindField('max_slew_rate', 'Max Slew Rate', '°/s')" type="number" input-class="text-right"/>
-                  <q-input class='col-3' v-bind="bindField('max_accel_rate', 'Max Accel Rate', '°/s²')" type="number" input-class="text-right"/>
-                  <q-input class='col-3' v-bind="bindField('tracking_settle_time', 'Settle Time', 's')" type="number" input-class="text-right"/>
+              <div class="row q-pt-md q-pl-md q-col-gutter-lg">
+                  <q-input class='col-4' v-bind="bindField('max_slew_rate', 'Max Slew Rate', '°/s')" type="number" input-class="text-right"/>
+                  <q-input class='col-4' v-bind="bindField('max_accel_rate', 'Max Accel Rate', '°/s²')" type="number" input-class="text-right"/>
+              </div>
+            </div>
+          </q-card>
+        </div>
+        <!-- Standard Control Features -->
+        <div class="col-md-6 col-lg-4 flex">
+          <q-card flat bordered class="q-pa-md">
+            <div class="text-h6">Standard Control Features</div>
+            <div class="row">
+              <div class="col-12 text-caption text-grey-6 q-pb-md">
+                Aiming Adjustment improves the standard Benro Polaris Goto performance, by correcting any aiming bias, and by forward calculating co-ordinates into the future.
+              </div>
+            </div>
+            <div class="q-gutter-y-sm" >
+              <div class="row">
+                <q-toggle v-bind="bindField('sync_N_point_alignment', 'Sync through to Benro Polaris (Multi Point Alignment)')"/>
+              </div>
+              <div class="row">
+                <q-toggle v-bind="bindField('aiming_adjustment_enabled', 'Enable Aiming Adjustment')"/>
+              </div>
+              <div class="row q-pt-md q-pl-md q-col-gutter-lg">
+                <q-input v-if="cfg.aiming_adjustment_enabled" class='col-4' v-bind="bindField('aim_max_error_correction', 'Max Bias Correction', '°')" type="number" input-class="text-right"/>
+                <q-input v-if="cfg.aiming_adjustment_enabled" class='col-4' v-bind="bindField('aiming_adjustment_time', 'Future offset Time', 's')" type="number" input-class="text-right"/>
+                <q-input class='col-4' v-bind="bindField('tracking_settle_time', 'Tracking Settle Time', 's')" type="number" input-class="text-right"/>
               </div>
             </div>
           </q-card>
@@ -161,8 +184,8 @@
                 <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Action Invokation')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_pulse_guiding', 'Log Pulse Guiding')"/>
                 <q-toggle class='col-6' v-bind="bindField('log_rotator_protocol', 'Log Rotator Protocol')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_pulse_guiding', 'Log Pulse Guiding')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('log_synscan_protocol', 'Log SynSCAN Protocol')"/>
@@ -202,23 +225,6 @@
               </div>
               
             </div>
-          </q-card>
-        </div>
-        <!-- Aiming Adjustment -->
-        <div class="col-md-6 col-lg-4 flex">
-          <q-card flat bordered class="q-pa-md">
-            <div class="text-h6">Aiming Adjustment</div>
-            <q-toggle v-model="cfg.aiming_adjustment_enabled" label="Enable Adjustment" @update:model-value="put({aiming_adjustment_enabled: cfg.aiming_adjustment_enabled})" />
-            <div class="row q-pl-md q-gutter-lg">
-              <q-input class='col-3' type="number" v-model.number="cfg.aiming_adjustment_time" label="Adjustment Time" @update:model-value="putdb({aiming_adjustment_time: cfg.aiming_adjustment_time})" />
-              <q-input class='col-3' type="number" v-model.number="cfg.aiming_adjustment_az" label="Adjustment Az" @update:model-value="putdb({aiming_adjustment_az: cfg.aiming_adjustment_az})" />
-              <q-input class='col-3' type="number" v-model.number="cfg.aiming_adjustment_alt" label="Adjustment Alt" @update:model-value="putdb({aiming_adjustment_alt: cfg.aiming_adjustment_alt})" />
-              <q-input class='col-3' type="number" v-model.number="cfg.aim_max_error_correction" label="Max Error Correction" @update:model-value="putdb({aim_max_error_correction: cfg.aim_max_error_correction})" />
-            </div>
-            <!--  Sync -->
-            <div class="text-h6 q-mt-lg">Sync</div>
-            <q-input type="number" v-model.number="cfg.sync_pointing_model" label="Pointing Model" @update:model-value="putdb({sync_pointing_model: cfg.sync_pointing_model})" />
-            <q-toggle v-model="cfg.sync_N_point_alignment" label="N-Point Alignment" @update:model-value="put({sync_N_point_alignment: cfg.sync_N_point_alignment})" />
           </q-card>
         </div>
       </div>

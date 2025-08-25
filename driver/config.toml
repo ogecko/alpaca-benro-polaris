@@ -25,24 +25,24 @@ focal_ratio = 11                            # The telescope's focal ratio ie foc
 verbose_driver_exceptions = true            # Provide more detailed description of any Exceptions encountered in the driver.
 
 [control]
-advanced_control = false                    # Used to enable or disable all advanced control features
+advanced_control = true                     # Used to enable or disable all advanced control features
 advanced_slewing = false                    # Perform advanced control for move axis commands (no longer uses Benro Polaris tracking)
 advanced_goto = false                       # Perform advanced goto slewing in Alpaca Driver (no longer uses Benro Polaris goto)
 advanced_tracking = false                   # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
-advanced_rotator = false                    # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
+advanced_rotator = true                     # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
 advanced_guiding = false                    # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
-max_slew_rate = 7.0                         # Maximum slew rate (degrees/s) on any motor axis (when using advanced control)
+max_slew_rate = 8.5                         # Maximum slew rate (degrees/s) on any motor axis (when using advanced control)
 max_accel_rate = 1.0                        # Maximum acceleration (degress/s2) on any motor axis (when using advanced controls)
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.
 aiming_adjustment_enabled = true            # Whether to make minor ajusttments to improve aiming.
-aiming_adjustment_time = 2                 # The time (in seconds) in the future to convert from ra/dec to az/alt, to cater for sidereal tracking settle time.
+aiming_adjustment_time = 2                  # The time (in seconds) in the future to convert from ra/dec to az/alt, to cater for sidereal tracking settle time.
+aim_max_error_correction = 0.5              # The maximum angle (decimal degrees) that the driver will correct for when aiming at alzaz .
+sync_N_point_alignment = true               # Benro Polaris N Point Alignment. false = sync only in Driver, true = syncs will re-align Polaris
+sync_pointing_model = 0                     # Pointing model used for SyncToCoordinates (0 = Alt/Az Offset, 1 = RA/Dec Offset)
 aiming_adjustment_az = -0.0300750663        # The initial az aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment.
 aiming_adjustment_alt = 0.0195474932        # The initial alt aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment.
-aim_max_error_correction = 0.5              # The maximum angle (decimal degrees) that the driver will correct for when aiming at alzaz .
-sync_pointing_model = 0                     # Pointing model used for SyncToCoordinates (0 = Alt/Az Offset, 1 = RA/Dec Offset)
-sync_N_point_alignment = true               # Benro Polaris N Point Alignment. false = sync only in Driver, true = syncs will re-align Polaris
 
 [logging]
 log_dir = ''                                # Directory to store logs, '' is ../logs directory
@@ -50,16 +50,16 @@ log_level = 'INFO'                          # Default log level, show info and a
 log_to_file = true                          # log output to file alpaca.log, copying old logs to alpaca.1, ... alpaca.5
 log_to_stdout = true                        # log output to stdout.
 
-log_alpaca_protocol = false
-log_alpaca_polling = false 
-log_alpaca_discovery = false                # log ASCOM Alpaca discovery and management protocol messages
-log_alpaca_actions = false                  # log ASCOM Alpaca action protocol messages
+log_alpaca_protocol = true                  # log ASCOM Alpaca telescope protocol messages sent and received
+log_rotator_protocol = true                 # log ASCOM Alpaca rotator protocol messages sent and received
+log_alpaca_discovery = true                 # log ASCOM Alpaca discovery and management protocol messages sent and received
+log_synscan_protocol = true                 # log stellarium synscan and binary protocol messages sent and received
+log_polaris_protocol = false                # log Benro Polaris protocol messages sent and received
+log_alpaca_actions = false                  # log ASCOM Alpaca action protocol messages (extensions to standard)
 log_pulse_guiding = false                   # log ASCOM Alpaca pulse guiding protocol messages
-log_rotator_protocol = false                # log ASCOM Alpaca rotator protocol messages
-log_synscan_protocol = false                # log stellarium synscan and binary protocol messages sent and received.
-log_synscan_polling = false                 # log frequent polling messages from Stellarium SynScan protocol.
-log_polaris_protocol = false                # log polaris protocol messages sent and received.
-log_polaris_polling = false                 # log frequent polling messages from polaris.
+log_alpaca_polling = false                  # log frequent polling messages from ASCOM Alpaca clients (eg Nina)
+log_synscan_polling = false                 # log frequent polling messages from SynScan clients (eg Stellarium)
+log_polaris_polling = false                 # log frequent polling messages from Benro Polaris
 
 log_telemetry_data = false                  # log raw telemetry data from polaris
 log_aiming_data = false                     # log aiming accuracy metrics and corrections
@@ -68,10 +68,6 @@ log_periodic_data = false                   # log periodic error tracking and mo
 log_kalman_data = false                     # log Kalman filter inputs and outputs
 log_pid_data = false                        # log PID control loop activity
 log_sync_data = false                       # log sync performance metrics and timing
-
-log_polaris = true                          # log polaris messages and activity. (to remove)
-supress_polaris_frequent_msgs = true        # supress logging the frequent messages from Polaris beno protocol (518 position and 525 Tempa509ca36...). (to remove)
-supress_alpaca_polling_msgs = true          # supress logging the frequent polling messages from Nina Alpaca protocol. (to remove)
 
 log_performance_data = 0                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim, 2=Drift, 3=Speed, 4=Position, 5=KalmanFilter, 6=PID
 log_performance_data_test = 0               # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test, 5=Rotator test
