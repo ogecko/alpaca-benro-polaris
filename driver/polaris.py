@@ -775,8 +775,7 @@ class Polaris:
         # return result of BATTTERY request {'capacity': 'X', 'charge': 'Y'}  X=batttery%, Y=1 (charging), Y=0 (draining)
         elif cmd == "778":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris_protocol:
-                self.logger.info(f"<<- Polaris: BATTERY status changed: {cmd} {arg_dict}")
+            self.logger.info(f"<<- Polaris: BATTERY status changed: {cmd} {arg_dict}")
 
         # return result of VERSION request {'hw':'1.3.1.4'; 'sw': '6.0.0.40'; 'exAxis':'1.0.2.11'; 'sv':'1'} 
         elif cmd == "780":
