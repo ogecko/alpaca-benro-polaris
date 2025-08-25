@@ -64,7 +64,7 @@ class AsyncDiscoveryResponder:
         self.ADDR = Config.alpaca_restapi_ip_address
         self.PORT = Config.alpaca_restapi_port
         self.device_address = (self.ADDR, Config.alpaca_discovery_port)
-        self.alpaca_response = json.dumps({"AlpacaPort": self.PORT})
+        self.alpaca_response = json.dumps({"AlpacaPort": self.PORT}).encode()
 
     async def run_until_event(self, lifecycle):
         loop = asyncio.get_running_loop()
@@ -90,9 +90,12 @@ class AsyncDiscoveryResponder:
                 try:
                     data, addr = await asyncio.wait_for(loop.sock_recvfrom(self.rsock, 1024), timeout=2.0)
                     datascii = data.decode('ascii', errors='ignore')
-                    self.logger.info(f'Disc rcv {datascii} from {addr}')
+                    if Config.log_alpaca_discovery:
+                        self.logger.info(f'Discovery req received {datascii} from {addr}')
                     if 'alpacadiscovery1' in datascii:
-                        await loop.sock_sendto(self.tsock, self.alpaca_response.encode(), addr)
+                        if Config.log_alpaca_discovery:
+                            self.logger.info(f'Discovery response {self.alpaca_response} to {addr}')
+                        await loop.sock_sendto(self.tsock, self.alpaca_response, addr)
                 except asyncio.TimeoutError:
                     if lifecycle._event in (LifecycleEvent.SHUTDOWN, LifecycleEvent.RESTART, LifecycleEvent.INTERRUPT):
                         break

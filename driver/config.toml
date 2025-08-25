@@ -45,21 +45,37 @@ sync_pointing_model = 0                     # Pointing model used for SyncToCoor
 sync_N_point_alignment = true               # Benro Polaris N Point Alignment. false = sync only in Driver, true = syncs will re-align Polaris
 
 [logging]
-log_dir = ''                                # Directory to store logs, '' is current working dir
+log_dir = ''                                # Directory to store logs, '' is ../logs directory
 log_level = 'INFO'                          # Default log level, show info and above messages.
 log_to_file = true                          # log output to file alpaca.log, copying old logs to alpaca.1, ... alpaca.5
 log_to_stdout = true                        # log output to stdout.
 
+log_alpaca_protocol = false
+log_alpaca_polling = false 
+log_alpaca_discovery = false                # log ASCOM Alpaca discovery and management protocol messages
+log_alpaca_actions = false                  # log ASCOM Alpaca action protocol messages
+log_pulse_guiding = false                   # log ASCOM Alpaca pulse guiding protocol messages
+log_rotator_protocol = false                # log ASCOM Alpaca rotator protocol messages
+log_synscan_protocol = false                # log stellarium synscan and binary protocol messages sent and received.
+log_synscan_polling = false                 # log frequent polling messages from Stellarium SynScan protocol.
+log_polaris_protocol = false                # log polaris protocol messages sent and received.
+log_polaris_polling = false                 # log frequent polling messages from polaris.
+
+log_telemetry_data = false                  # log raw telemetry data from polaris
+log_aiming_data = false                     # log aiming accuracy metrics and corrections
+log_drift_data = false                      # log drift error measurements and compensation
+log_periodic_data = false                   # log periodic error tracking and modeling
+log_kalman_data = false                     # log Kalman filter inputs and outputs
+log_pid_data = false                        # log PID control loop activity
+log_sync_data = false                       # log sync performance metrics and timing
+
+log_polaris = true                          # log polaris messages and activity. (to remove)
+supress_polaris_frequent_msgs = true        # supress logging the frequent messages from Polaris beno protocol (518 position and 525 Tempa509ca36...). (to remove)
+supress_alpaca_polling_msgs = true          # supress logging the frequent polling messages from Nina Alpaca protocol. (to remove)
+
 log_performance_data = 0                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim, 2=Drift, 3=Speed, 4=Position, 5=KalmanFilter, 6=PID
 log_performance_data_test = 0               # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test, 5=Rotator test
 log_perf_speed_interval = 5                 # To calculate average speed, measure distance travelled, once every "log_perf_speed_interval" seconds.
-
-log_polaris = true                          # log polaris messages and activity.
-log_polaris_protocol = false                # log polaris protocol messages sent and received.
-log_stellarium_protocol = false             # log stellarium synscan and binary protocol messages sent and received.
-supress_polaris_frequent_msgs = true        # supress logging the frequent messages from Polaris beno protocol (518 position and 525 Tempa509ca36...).
-supress_alpaca_polling_msgs = true          # supress logging the frequent polling messages from Nina Alpaca protocol.
-supress_stellarium_polling_msgs = true      # supress logging the frequent polling messages from Stellarium SynScan protocol.
 
 max_size_mb = 5                             # maximum log file size.
 num_keep_logs = 5                           # maximum number of log files to rotate through.

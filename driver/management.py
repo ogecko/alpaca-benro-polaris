@@ -43,7 +43,7 @@
 #               GitHub issue #1
 #
 from falcon import Request, Response
-from shr import PropertyResponse, DeviceMetadata
+from shr import PropertyResponse, DeviceMetadata, log_request, log_response
 from config import Config
 from logging import Logger
 # For each *type* of device served
@@ -62,6 +62,7 @@ def set_management_logger(lgr):
 # -----------
 class apiversions:
     async def on_get(self, req: Request, resp: Response):
+        await log_request(req,'log_alpaca_discovery')
         apis = [ 1 ]                            # TODO MAKE CONFIG OR GLOBAL
         resp.text = await PropertyResponse(apis, req)
 
@@ -70,6 +71,7 @@ class apiversions:
 # -------------------------
 class description:
     async def on_get(self, req: Request, resp: Response):
+        await log_request(req,'log_alpaca_discovery')
         desc = {
             'ServerName'   : DeviceMetadata.Description,
             'Manufacturer' : DeviceMetadata.Manufacturer,
@@ -83,6 +85,7 @@ class description:
 # -----------------
 class configureddevices():
     async def on_get(self, req: Request, resp: Response):
+        await log_request(req,'log_alpaca_discovery')
         confarray = [    # ADD ONE FOR EACH DEVICE TYPE AND INSTANCE SERVED
             {
             'DeviceName'    : TelescopeMetadata.Name,

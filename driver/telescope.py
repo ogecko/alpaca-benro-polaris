@@ -277,7 +277,7 @@ class canpark:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canpark failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
 class canpulseguide:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -290,20 +290,7 @@ class canpulseguide:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canpulseguide failed', ex))
 
-@before(PreProcessRequest(maxdev))
-class cansetdeclinationrate:
-
-    async def on_get(self, req: Request, resp: Response, devnum: int):
-        if not polaris.connected:
-            resp.text = await PropertyResponse(None, req, NotConnectedException())
-            return
-        try:
-            val = polaris.cansetdeclinationrate
-            resp.text = await PropertyResponse(val, req)
-        except Exception as ex:
-            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetdeclinationrate failed', ex))
-
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
 class cansetguiderates:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -315,6 +302,32 @@ class cansetguiderates:
             resp.text = await PropertyResponse(val, req)
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetguiderates failed', ex))
+
+@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
+class cansetrightascensionrate:
+
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = polaris.cansetrightascensionrate
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetrightascensionrate failed', ex))
+
+@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
+class cansetdeclinationrate:
+
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = polaris.cansetdeclinationrate
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetdeclinationrate failed', ex))
 
 @before(PreProcessRequest(maxdev))
 class cansetpark:
@@ -341,19 +354,6 @@ class cansetpierside:
             resp.text = await PropertyResponse(val, req)
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetpierside failed', ex))
-
-@before(PreProcessRequest(maxdev))
-class cansetrightascensionrate:
-
-    async def on_get(self, req: Request, resp: Response, devnum: int):
-        if not polaris.connected:
-            resp.text = await PropertyResponse(None, req, NotConnectedException())
-            return
-        try:
-            val = polaris.cansetrightascensionrate
-            resp.text = await PropertyResponse(val, req)
-        except Exception as ex:
-            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetrightascensionrate failed', ex))
 
 @before(PreProcessRequest(maxdev))
 class cansettracking:
@@ -572,7 +572,7 @@ class guideraterightascension:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev), 'log_pulse_guiding')
 class ispulseguiding:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -1099,7 +1099,7 @@ class park:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Park failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
 class pulseguide:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1447,36 +1447,40 @@ class unpark:
                             DriverException(0x500, 'Telescope.Unpark failed', ex))
 
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_discovery'))
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = await PropertyResponse(['RestartDriver', 'ConfigTOML'], req)  
+        resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:ConfigFetch', 'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore'], req)  
 
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
 class action:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         actionName = await get_request_field('Action', req)
         parameters = dict(await get_request_field('Parameters', req))
-        logger.info(f'ACTION request {actionName}: {parameters}')
 
-        if actionName == "RestartDriver":
+        if actionName == "Polaris:RestartDriver":
             await lifecycle.signal(LifecycleEvent.RESTART)
             resp.text = await PropertyResponse('RestartDriver ok', req)  
 
-        elif actionName == "ConfigFetch":
+        elif actionName == "Polaris:ConfigFetch":
             resp.text = await PropertyResponse(Config.as_dict(), req)
             return
         
-        elif actionName == "ConfigUpdate":
-            resp.text = await PropertyResponse(Config.apply_changes(parameters), req)
+        elif actionName == "Polaris:ConfigUpdate":
+            # Apply changes to store in Config
+            changed_params = Config.apply_changes(parameters)
+            ## TODO - Take action on the following parameters to make them live in polaris
+            #  "Latitude", "Longitude", "Elevation", "SiteName", "TrackingRate"
+            # Return changed parameters to client
+            resp.text = await PropertyResponse(changed_params, req)
             return
 
-        elif actionName == "ConfigSave":
+        elif actionName == "Polaris:ConfigSave":
             resp.text = await PropertyResponse(Config.save_pilot_overrides(), req)
             return
 
-        elif actionName == "ConfigRestore":
+        elif actionName == "Polaris:ConfigRestore":
             resp.text = await PropertyResponse(Config.restore_base(), req)
             return
 

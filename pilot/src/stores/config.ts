@@ -67,15 +67,35 @@ export const useConfigStore = defineStore('config', {
     log_level: 'INFO',
     log_to_file: true,
     log_to_stdout: true,
-    log_polaris: true,
+
     log_performance_data: 0,
     log_performance_data_test: 0,
     log_perf_speed_interval: 5,
-    log_polaris_protocol: false,
+    
+    log_polaris: true,
     log_stellarium_protocol: false,
     supress_polaris_frequent_msgs: true,
     supress_alpaca_polling_msgs: true,
     supress_stellarium_polling_msgs: true,
+
+    log_alpaca_protocol: false,
+    log_alpaca_polling: false, 
+    log_alpaca_discovery: false, 
+    log_alpaca_actions: false, 
+    log_pulse_guiding: false,   
+    log_rotator_protocol: false, 
+    log_synscan_protocol: false,
+    log_synscan_polling: false,
+    log_polaris_protocol: false,
+    log_polaris_polling: false,
+    
+    log_telemetry_data: false,
+    log_aiming_data: false,
+    log_drift_data: false,
+    log_periodic_data: false,
+    log_kalman_data: false,
+    log_pid_data: false,
+    log_sync_data: false,
 
     // Log Rotation
     max_size_mb: 5,
@@ -85,7 +105,7 @@ export const useConfigStore = defineStore('config', {
   actions: {
     async configFetch() {
       try {
-        const response = await dev.apiAction<ConfigResponse>('ConfigFetch');
+        const response = await dev.apiAction<ConfigResponse>('Polaris:ConfigFetch');
         this.$patch(response)
         this.fetchedAt = Date.now()
       } catch (err) {
@@ -95,7 +115,7 @@ export const useConfigStore = defineStore('config', {
 
     async configUpdate(payload: Partial<ConfigResponse>) {
       try {
-        const updated = await dev.apiAction<ConfigResponse>('ConfigUpdate', payload)
+        const updated = await dev.apiAction<ConfigResponse>('Polaris:ConfigUpdate', payload)
         this.$patch(updated)
         console.log(updated)
         // Check if we need to refetch configured devices
@@ -121,10 +141,10 @@ export const useConfigStore = defineStore('config', {
     async configSave() {
       this.isSaving = true
       try {
-        await dev.apiAction<ConfigResponse>('ConfigSave')
+        await dev.apiAction<ConfigResponse>('Polaris:ConfigSave')
         if (this.isRestartRequired) {
           this.isRestartRequired = false
-          await dev.apiAction<string>('RestartDriver')
+          await dev.apiAction<string>('Polaris:RestartDriver')
         }
         return true
       } catch (err) {
@@ -137,7 +157,7 @@ export const useConfigStore = defineStore('config', {
     async configRestore() {
       this.isRestoring = true
       try {
-        const response = await dev.apiAction<ConfigResponse>('ConfigRestore');
+        const response = await dev.apiAction<ConfigResponse>('Polaris:ConfigRestore');
         this.$patch(response)
         this.fetchedAt = Date.now()
         return true

@@ -161,8 +161,8 @@
                 <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Action Invokation')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_polaris_protocol', 'Log Pulse Guiding')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_polaris_polling', 'Log Rotator Protocol')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_pulse_guiding', 'Log Pulse Guiding')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_rotator_protocol', 'Log Rotator Protocol')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('log_synscan_protocol', 'Log SynSCAN Protocol')"/>
@@ -186,19 +186,19 @@
             </div>
             <div class="q-gutter-y-sm">
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_alpaca_discovery', 'Log Telementry')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_synscan_protocol', 'Log Aiming Accuracy')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_telemetry_data', 'Log Telementry')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_aiming_data', 'Log Aiming Accuracy')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Drift Error')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_synscan_polling', 'Log Periodic Error')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_drift_data', 'Log Drift Error')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_periodic_data', 'Log Periodic Error')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Kalman Filtering')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_alpaca_protocol', 'Log PID Control')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_kalman_data', 'Log Kalman Filtering')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_pid_data', 'Log PID Control')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Sync Performance')"/>
+                <q-toggle class='col-6' v-bind="bindField('log_sync_data', 'Log Sync Performance')"/>
               </div>
               
             </div>

@@ -132,45 +132,47 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
 # Log the request as soon as the resource handler gets it so subsequent
 # logged messages are in the right order. Logs PUT body as well.
 #
-ispollreq = re.compile('connected|utcdate|canslew|cansetpierside|canpulseguide|alignmentmode|cansetguiderates|slewing|sideofpier|siteelevation|sitelatitude|sitelongitude|siderealtime|declination|rightascension|azimuth|altitude|tracking|cansettracking|athome|atpark|position|ismoving|canreverse|reverse')
+async def log_request(req: Request, log_flag_names: list[str] | str | None = None):
+    # get log flags from optional argument or req.context
+    if isinstance(log_flag_names, str):
+        log_flags = [log_flag_names]
+    else:
+        log_flags = log_flag_names or getattr(req.context, 'log_flag_names', None)
+    req.context.log_flag_names = log_flags   # Save for later use by log_response()
 
-async def log_request(req: Request):
-    if Config.supress_alpaca_polling_msgs and req.method=="GET" and ispollreq.search(req.path):
-        return
+    if log_flags:  # log if any specified Config.log_flags are set
+        if not any(getattr(Config, name, False) for name in log_flags):
+            return  # Skip logging
+
     msg = f'{req.remote_addr} -> {req.method} {req.path}'
     if req.query_string != '':
         msg += f'?{req.query_string}'
-    logger.info(msg)
     if req.method == 'PUT' and req.content_length != 0:
-        logger.info(f'{req.remote_addr} -> {await req.get_media()}')
+        msg += f' {await req.get_media()}'
+    logger.info(msg)
 
 def log_response(req: Request, valuestr: str):
-    if Config.supress_alpaca_polling_msgs and req.method=="GET" and ispollreq.search(req.path):
-        return
+    log_flags = getattr(req.context, 'log_flag_names', None)
+    if log_flags:  # log if any specified Config.log_flags are set
+        if not any(getattr(Config, name, False) for name in log_flags):
+            return  # Skip logging
     logger.info(f'{req.remote_addr} <- {valuestr}')
 
 # ------------------------------------------------
 # Incoming Pre-Logging and Request Quality Control
 # ------------------------------------------------
 class PreProcessRequest():
-    """Decorator for responders that quality-checks an incoming request
-
+    """Decorator for responders that quality-checks an incoming request and records logging requirements
     If there is a problem, this causes a ``400 Bad Request`` to be returned
     to the client, and logs the problem.
 
     """
-    def __init__(self, maxdev):
+    def __init__(self, maxdev, log_flag_names: list[str] | str | None = None):
         self.maxdev = maxdev
-        """Initialize a ``PreProcessRequest`` decorator object.
-
-        Args:
-            maxdev: The maximun device number. If multiple instances of this device
-                type are supported, this will be > 0.
-
-        Notes:
-            * Bumps the ServerTransactionID value and returns it in sequence
-        """
-
+        if isinstance(log_flag_names, str):
+            self.log_flag_names = [log_flag_names]
+        else:
+            self.log_flag_names = log_flag_names or []
     #
     # Quality check of numerical value for trans IDs
     #
@@ -207,7 +209,8 @@ class PreProcessRequest():
     # and format converter. This is the device number from the URI
     #
     async def __call__(self, req: Request, resp: Response, resource, params):
-        await log_request(req)                            # Log even a bad request
+        req.context.log_flag_names = self.log_flag_names   # For use by log_request() and log_response()
+        await log_request(req)                             # Log even a bad request
         await self._check_request(req, params['devnum'])   # Raises to 400 error on check failure
 
 # ------------------

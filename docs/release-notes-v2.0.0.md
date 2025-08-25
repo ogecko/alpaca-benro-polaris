@@ -27,6 +27,7 @@
 - **[Configuration Service]**: Enhanced config handling with support for saving overrides and restoring defaults
 - **[Network Services]**: Unified control over network services and port bindings for cleaner security management
 - **[Web Service]**: Introduced embedded Web Service to host the Alpaca Pilot Single Page Application
+- **[Log Services]**: Aligned logging configuration across all network services
 - **[Log Files]**: Default log output now directed to the `logs` directory (previously `driver`)
 - **[Driver Startup]**: Driver version now logged on startup for traceability
 - **[Field Rotation]**: Field Rotation derived from Polaris quaternion data in 518 messages
