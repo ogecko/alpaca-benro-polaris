@@ -120,3 +120,14 @@ def init_logging():
         logger.info(f",Dataset,  Mode,  DRef1,DRef2,DRef3, ARef1,ARef2,ARef3, TRef1,TRef2,TRef3, TMeas,TMeas2,TMeas3, ORef1,ORef2,ORef3, OP1,OP2,OP3")
     
     return logger
+
+def update_log_level(level_name: str):
+    level = getattr(logging, level_name.upper(), None)
+    if isinstance(level, int):
+        logger.setLevel(level)
+        for handler in logger.handlers:
+            handler.setLevel(level)
+        logger.info(f"Log level updated to {level_name}")
+    else:
+        logger.warning(f"Invalid log level: {level_name}")
+    return logger.level

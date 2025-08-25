@@ -17,11 +17,12 @@
 # -----------------------------------------------------------------------------
 from falcon import Request, Response, before
 from logging import Logger
-from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request_field, to_bool
+from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request_field, to_bool, deg2rad
 from exceptions import *        # Nothing but exception classes
 import math
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent
+from log import update_log_level
 
 logger: Logger = None
 polaris: Polaris = None
@@ -1470,8 +1471,24 @@ class action:
         elif actionName == "Polaris:ConfigUpdate":
             # Apply changes to store in Config
             changed_params = Config.apply_changes(parameters)
+            # make changes live in polaris where possible
+            for param in changed_params:
+                if param == "log_level":
+                    update_log_level(Config.log_level)
+                elif param == "site_latitude":
+                    polaris._sitelatitude = float(Config.site_latitude)
+                    polaris._observer.lat = deg2rad(Config.site_latitude) 
+                elif param == "site_longitude":
+                    polaris._sitelongitude = float(Config.site_longitude)
+                    polaris._observer.long = deg2rad(Config.site_longitude)
+                elif param == "site_elevation":
+                    polaris._siteelevation = Config.site_elevation
+                    polaris._observer.elevation = Config.site_elevation
+                elif param == "site_pressure":
+                    polaris._observer.pressure = Config.site_pressure
+
             ## TODO - Take action on the following parameters to make them live in polaris
-            #  "Latitude", "Longitude", "Elevation", "SiteName", "TrackingRate"
+            #  "TrackingRate"
             # Return changed parameters to client
             resp.text = await PropertyResponse(changed_params, req)
             return
