@@ -990,6 +990,12 @@ class Polaris:
         msg = f"1&799&2&-1#"
         await self.send_msg(msg)
 
+    async def send_cmd_778(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 778 Battery status request")
+        msg = f"1&778&2&-1#"
+        await self.send_msg(msg)
+
     async def send_cmd_296(self):
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 296 request")
@@ -1060,6 +1066,7 @@ class Polaris:
             # await self.send_cmd_524()
             # await self.send_cmd_305()
             # await self.send_cmd_780()
+            await self.send_cmd_778()   # get battery status
             with self._lock:
                 self._connected = True
                 self._task_errorstr = ''
