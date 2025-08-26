@@ -24,7 +24,7 @@
         <q-space />
 
         <div class="q-gutter-sm row items-center no-wrap">
-            <div>
+            <div v-if="p.battery_is_available">
                 <span class="text-body">{{p.battery_level}}%</span>
                 <q-icon class="" size="md" :name="getBatteryIcon()" :color="getBatteryColor()"/>
                 <q-tooltip>Polaris Battery Level</q-tooltip>
