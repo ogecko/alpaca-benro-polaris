@@ -27,8 +27,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Fix quaternian maths when alt is negative and zero
 # [X] Implement Rotator
 # [X] Setup Dialog in Alpaca Pilot
-# [ ] Proper task cleanup in polaris.restart(), especially to fix no position updates for over 2s. Restarting AHRS
-# [ ] Fetch lat/lon/elev/pressure from telescope rather than config (help pickup if Nina or Stelarium Mobile changes it)
+# [X] Proper task cleanup in polaris.restart(), especially to fix no position updates for over 2s. Restarting AHRS
+# [X] Fetch lat/lon/elev/pressure from telescope rather than config (help pickup if Nina or Stelarium Mobile changes it)
 # [ ] Rationalise performance data capture and analysis
 # [ ] Move performance tests to actions
 # [ ] Alpaca pilot catalog of targets, search, select, goto, display current target

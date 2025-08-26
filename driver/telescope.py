@@ -1466,7 +1466,12 @@ class action:
             resp.text = await PropertyResponse('RestartDriver ok', req)  
 
         elif actionName == "Polaris:ConfigFetch":
-            resp.text = await PropertyResponse(Config.as_dict(), req)
+            fetched_params = Config.as_dict()
+            # fetch live values from polaris where possible
+            fetched_params['site_latitude'] = polaris.sitelatitude
+            fetched_params['site_longitude'] = polaris.sitelongitude
+            fetched_params['site_elevation'] = polaris.siteelevation
+            resp.text = await PropertyResponse(fetched_params, req)
             return
         
         elif actionName == "Polaris:ConfigUpdate":
