@@ -17,7 +17,7 @@
 
               <q-item v-else-if="dev.alpacaConnected">
                 <q-item-section avatar>
-                  <q-icon name='check_circle' color='green'/>
+                  <q-icon name='mdi-check-circle' color='green'/>
                 </q-item-section>
                 <q-item-section>
                   <div class="q-gutter-sm">
@@ -30,7 +30,7 @@
 
               <q-item v-if="dev.alpacaConnectErrorMsg">
                 <q-item-section avatar>
-                  <q-icon name='error' color='red'/>
+                  <q-icon name='mdi-alert-circle' color='red'/>
                 </q-item-section>
                 <q-item-section>{{ dev.alpacaConnectErrorMsg }}</q-item-section>
               </q-item>
@@ -39,7 +39,7 @@
                 <div class="row items-start">
                   <q-input class="col-8" v-model="dev.alpacaHost" @keyup.enter="connect" label="Host Name / IP Address"  />
                   <q-input class="col-4" label='Port' v-model="dev.alpacaPort" @keyup.enter="connect" type="number" input-class="text-right">
-                  <template v-slot:prepend><q-icon name="nat"></q-icon></template>
+                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
                   </q-input>
                 </div>
               </q-item>
@@ -70,7 +70,7 @@
               <q-list :dense="true">
                 <q-item v-for="(step, index) in polarisSteps" :key="index" class="q-mb-sm">
                   <q-item-section avatar>
-                    <q-icon :name="step.status ? 'check_circle' : 'error'" :color="step.status ? 'green' : 'red'" />
+                    <q-icon :name="step.status ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="step.status ? 'green' : 'red'" />
                   </q-item-section>
                   <q-item-section>
                     <div>{{ step.label }}</div>
@@ -99,7 +99,7 @@
 
   <div class="q-pl-xl q-mt-sm">
     <q-expansion-item
-      icon="satellite_alt"
+      icon="mdi-satellite_alt"
       label="Nearby Benro Polaris Devices"
       caption="Select a discovered device or enter manually"
       dense
@@ -109,7 +109,7 @@
       <div class="q-mb-sm">
         <q-btn
           label="Refresh Device List"
-          icon="refresh"
+          icon="mdi-refresh"
           color="primary"
           flat
           dense
@@ -151,7 +151,7 @@
           type="number"
           input-class="text-right"
         >
-          <template v-slot:prepend><q-icon name="nat" /></template>
+          <template v-slot:prepend><q-icon name="mdi-network-outline" /></template>
         </q-input>
       </div>
     </q-expansion-item>
@@ -162,7 +162,7 @@
     <q-list dense>
       <q-item v-for="(step, index) in polarisSteps" :key="index" class="q-mb-sm">
         <q-item-section avatar>
-          <q-icon :name="step.status ? 'check_circle' : 'error'" :color="step.status ? 'green' : 'red'" />
+          <q-icon :name="step.status ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="step.status ? 'green' : 'red'" />
         </q-item-section>
         <q-item-section>
           <div>{{ step.label }}</div>
@@ -207,10 +207,10 @@ const availablePolarisDevices = ref([
 ])
 
 const polarisSteps = ref([
-  { label: 'WiFi Enabled', icon: 'wifi', status: false },
-  { label: 'Astro Mode', icon: 'camera', status: false },
-  { label: 'Aligned', icon: 'add', status: false },
-  { label: 'Running', icon: 'check_circle', status: false }
+  { label: 'WiFi Enabled', icon: 'mdi-wifi', status: false },
+  { label: 'Astro Mode', icon: 'mdi-camera', status: false },
+  { label: 'Aligned', icon: 'mdi-compass-rose', status: false },
+  { label: 'Running', icon: 'mdi-check-circle', status: false }
 ])
 
 watch(connectToAlpacaCheckbox, async (newVal) => {
@@ -220,7 +220,7 @@ watch(connectToAlpacaCheckbox, async (newVal) => {
       $q.notify({
         message: 'Alpaca Driver successfuly connected.',
         type: 'positive', position: 'top', timeout: 3000,
-        actions: [{ icon: 'close', color: 'white' }]
+        actions: [{ icon: 'mdi-close', color: 'white' }]
       })
     }
   }

@@ -5,7 +5,7 @@
         <q-btn flat dense round
           @click="toggleLeftDrawer"
           aria-label="Menu"
-          icon="menu"
+          icon="mdi-menu"
         />
 
         <q-btn flat no-caps no-wrap class="q-ml-xs" to="/" v-if="$q.screen.gt.xs">
@@ -18,7 +18,7 @@
 
         <div class="YL__toolbar-input-container row no-wrap">
           <q-input dense outlined square v-model="search" placeholder="Search" class="bg-blue-9 col" />
-          <q-btn class="YL__toolbar-input-btn" color="grey-4" text-color="grey-8" icon="search" unelevated />
+          <q-btn class="YL__toolbar-input-btn" color="grey-4" text-color="grey-8" icon="mdi-magnify" unelevated />
         </div>
 
         <q-space />
@@ -29,7 +29,7 @@
                 <q-icon class="" size="md" :name="getBatteryIcon()" :color="getBatteryColor()"/>
                 <q-tooltip>Polaris Battery Level</q-tooltip>
             </div>
-            <q-btn round dense flat  icon="notifications">
+            <q-btn round dense flat  icon="mdi-bell">
                 <q-badge color="red" text-color="white" floating>
                 2
                 </q-badge>
@@ -173,13 +173,16 @@ function getBatteryColor(): string {
 
 function getBatteryIcon(): string {
   const levels = [
-    { threshold: 95, charging: 'battery_charging_full', discharging: 'battery_full' },
-    { threshold: 90, charging: 'battery_charging_90', discharging: 'battery_6_bar' },
-    { threshold: 80, charging: 'battery_charging_80', discharging: 'battery_5_bar' },
-    { threshold: 60, charging: 'battery_charging_60', discharging: 'battery_4_bar' },
-    { threshold: 50, charging: 'battery_charging_50', discharging: 'battery_3_bar' },
-    { threshold: 30, charging: 'battery_charging_30', discharging: 'battery_2_bar' },
-    { threshold: 20, charging: 'battery_charging_20', discharging: 'battery_1_bar' },
+    { threshold: 95, charging: 'mdi-battery-charging-100', discharging: 'mdi-battery' },
+    { threshold: 90, charging: 'mdi-battery-charging-90', discharging: 'mdi-battery-90' },
+    { threshold: 80, charging: 'mdi-battery-charging-80', discharging: 'mdi-battery-80' },
+    { threshold: 70, charging: 'mdi-battery-charging-70', discharging: 'mdi-battery-70' },
+    { threshold: 60, charging: 'mdi-battery-charging-60', discharging: 'mdi-battery-60' },
+    { threshold: 50, charging: 'mdi-battery-charging-50', discharging: 'mdi-battery-50' },
+    { threshold: 40, charging: 'mdi-battery-charging-40', discharging: 'mdi-battery-40' },
+    { threshold: 30, charging: 'mdi-battery-charging-30', discharging: 'mdi-battery-30' },
+    { threshold: 20, charging: 'mdi-battery-charging-20', discharging: 'mdi-battery-20' },
+    { threshold: 10, charging: 'mdi-battery-charging-10', discharging: 'mdi-battery-10' },
   ]
 
   for (const level of levels) {
@@ -188,33 +191,33 @@ function getBatteryIcon(): string {
     }
   }
 
-  return 'battery_alert'
+  return 'mdi-battery-alert'
 }
 
   const links1 = [
-    { icon: 'home', text: 'Home', to: '/' },
-    { icon: 'power', text: 'Connections', to: '/connect' },
-    { icon: 'settings', text: 'Settings', to: '/config' },
+    { icon: 'mdi-home', text: 'Home', to: '/' },
+    { icon: 'mdi-power', text: 'Connections', to: '/connect' },
+    { icon: 'mdi-cog-outline', text: 'Settings', to: '/config' },
   ]
   const links2 = [
-    { icon: 'flare', text: 'Stars' },
-    { icon: 'whatshot', text: 'Nebulae' },
-    { icon: 'album', text: 'Galaxies' },
-    { icon: 'blur_on', text: 'Clusters' },
+    { icon: 'mdi-flare', text: 'Stars' },
+    { icon: 'mdi-horse-variant', text: 'Nebulae' },
+    { icon: 'mdi-light-recessed', text: 'Galaxies' },
+    { icon: 'mdi-creation-outline', text: 'Clusters' },
   ]
   const links3 = [
-    { icon: 'motion_photos_on', text: 'Planets' },
-    { icon: 'brightness_2', text: 'Moons' },
-    { icon: 'hdr_strong', text: 'Asteroids' },
-    { icon: 'egg', text: 'Comets' },
-    { icon: 'satellite_alt', text: 'Satelites' }
+    { icon: 'mdi-earth', text: 'Planets' },
+    { icon: 'mdi-moon-waning-crescent', text: 'Moons' },
+    { icon: 'mdi-egg', text: 'Asteroids' },
+    { icon: 'mdi-star-shooting', text: 'Comets' },
+    { icon: 'mdi-satellite-variant', text: 'Satelites' }
   ]
   const links4 = [
-    { icon: 'camera', text: 'Imaging' },
-    { icon: 'vertical_align_top', text: 'Leveling' },
-    { icon: 'ads_click', text: 'Calibration' },
-    { icon: 'flag', text: 'Telemetry' },
-    { icon: 'analytics', text: 'Diagnostics' }
+    { icon: 'mdi-camera', text: 'Imaging' },
+    { icon: 'mdi-spirit-level', text: 'Leveling' },
+    { icon: 'mdi-set-split', text: 'Calibration' },
+    { icon: 'mdi-flag', text: 'Telemetry' },
+    { icon: 'mdi-stethoscope', text: 'Diagnostics' }
   ]
   const buttons1 = [
     { text: 'About' },

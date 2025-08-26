@@ -43,7 +43,7 @@
                 Latitude and longitude are essential for accurate tracking. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
               <div class="col-auto q-gutter-sm flex justify-end items-center">
-                <q-btn outline icon="my_location" color="grey-5" label="Locate"  @click="setFromLocationServices"/>
+                <q-btn outline icon="mdi-crosshairs-gps" color="grey-5" label="Locate"  @click="setFromLocationServices"/>
               </div>
             </div>
             <div class="q-pt-md q-pb-md">
@@ -76,7 +76,7 @@
                 <q-toggle class='col-8' v-bind="bindField('enable_restapi', 'Alpaca REST API')"/>
                 <q-input class="col-4" v-bind="bindField('alpaca_restapi_port', 'Port')"
                   type="number"  input-class="text-right" :style="{ visibility: cfg.enable_restapi ? 'visible' : 'hidden' }">
-                  <template v-slot:prepend><q-icon name="nat"></q-icon></template>
+                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
                 </q-input>
               </div>
                 <q-banner v-if="!cfg.enable_restapi" inline-actions rounded class="bg-warning">
@@ -89,21 +89,21 @@
                 <q-toggle class='col-8' v-bind="bindField('enable_discovery', 'Alpaca Discovery')"/>
                 <q-input class="col-4" v-bind="bindField('alpaca_discovery_port', 'Port')"
                   type="number" input-class="text-right" :style="{ visibility: cfg.enable_discovery ? 'visible' : 'hidden' }">
-                  <template v-slot:prepend><q-icon name="nat"></q-icon></template>
+                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
                 </q-input>
             </div>
             <div class="row q-col-gutter-sm no-wrap">
                 <q-toggle class='col-8' v-bind="bindField('enable_pilot', 'Alpaca Pilot')"/>
                 <q-input class="col-4" v-bind="bindField('alpaca_pilot_port', 'Port')"
                   type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
-                  <template v-slot:prepend><q-icon name="nat"></q-icon></template>
+                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
                 </q-input>
             </div>
             <div class="row q-col-gutter-sm no-wrap">
               <q-toggle class='col-8' v-bind="bindField('enable_synscan', 'SynSCAN API')"/>
               <q-input class="col-4" v-bind="bindField('stellarium_synscan_port', 'Port')"
                 type="number" input-class="text-right" :style="{ visibility: cfg.enable_synscan ? 'visible' : 'hidden' }">
-                <template v-slot:prepend><q-icon name="nat"></q-icon></template>
+                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
               </q-input>
             </div>
           </q-card>
@@ -176,7 +176,7 @@
             </div>
             <div class="row q-mb-md">
               <q-select
-                class="col-12 q-pb-md"
+                class="col-12 q-pb-md" 
                 filled
                 v-bind="bindField('log_level', 'Log Detail and Verbosity Level')"
                 :options="[
@@ -187,8 +187,7 @@
                   { label: 'CRITICAL – Only log fatal system errors', value: 'CRITICAL' }
                 ]"
                 emit-value
-                map-options
-              />
+                map-options/>
             </div>
             <div class="q-gutter-y-sm">
               <div class="row">
@@ -342,13 +341,13 @@ function setFromMapClick(result: LocationResult) {
 async function save() {
   const ok = await cfg.configSave()
   $q.notify({ message:`Configuration save ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
-    position: 'top', timeout: 3000, actions: [{ icon: 'close', color: 'white' }] })
+    position: 'top', timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }] })
 }
 
 async function restore() {
   const ok = await cfg.configRestore()
   $q.notify({ message:`Configuration restore ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
-    position: 'top', timeout: 3000, actions: [{ icon: 'close', color: 'white' }] })
+    position: 'top', timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }] })
 }
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 
