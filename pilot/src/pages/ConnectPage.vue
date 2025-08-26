@@ -209,7 +209,7 @@ const availablePolarisDevices = ref([
 const polarisSteps = ref([
   { label: 'WiFi Enabled', icon: 'mdi-wifi', status: false },
   { label: 'Astro Mode', icon: 'mdi-camera', status: false },
-  { label: 'Aligned', icon: 'mdi-compass-rose', status: false },
+  { label: 'Aligned', icon: 'mdi-altimeter', status: false },
   { label: 'Running', icon: 'mdi-check-circle', status: false }
 ])
 

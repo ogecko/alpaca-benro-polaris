@@ -202,21 +202,21 @@ function getBatteryIcon(): string {
   const links2 = [
     { icon: 'mdi-flare', text: 'Stars' },
     { icon: 'mdi-horse-variant', text: 'Nebulae' },
-    { icon: 'mdi-light-recessed', text: 'Galaxies' },
-    { icon: 'mdi-creation-outline', text: 'Clusters' },
+    { icon: 'mdi-cryengine', text: 'Galaxies' },
+    { icon: 'mdi-blur', text: 'Clusters' },
   ]
   const links3 = [
     { icon: 'mdi-earth', text: 'Planets' },
     { icon: 'mdi-moon-waning-crescent', text: 'Moons' },
-    { icon: 'mdi-egg', text: 'Asteroids' },
-    { icon: 'mdi-star-shooting', text: 'Comets' },
+    { icon: 'mdi-cookie', text: 'Asteroids' },
+    { icon: 'mdi-magic-staff', text: 'Comets' },
     { icon: 'mdi-satellite-variant', text: 'Satelites' }
   ]
   const links4 = [
     { icon: 'mdi-camera', text: 'Imaging' },
-    { icon: 'mdi-spirit-level', text: 'Leveling' },
+    { icon: 'mdi-format-vertical-align-top', text: 'Leveling' },
     { icon: 'mdi-set-split', text: 'Calibration' },
-    { icon: 'mdi-flag', text: 'Telemetry' },
+    { icon: 'mdi-chart-bell-curve-cumulative', text: 'Telemetry' },
     { icon: 'mdi-stethoscope', text: 'Diagnostics' }
   ]
   const buttons1 = [
