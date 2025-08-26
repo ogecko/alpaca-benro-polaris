@@ -143,12 +143,13 @@ class Polaris:
         self._sitelatitude: float = float(Config.site_latitude)     # The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
         self._sitelongitude: float = float(Config.site_longitude)   # The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
         self._siteelevation: float = float(Config.site_elevation)   # The elevation above mean sea level (meters) of the site at which the telescope is located
+        self._sitepressure: float = float(Config.site_pressure)     # The pressure above mean sea level (meters) of the site at which the telescope is located
         self._observer = ephem.Observer()                           # Observer object for the telescopes site
-        self._observer.pressure = Config.site_pressure              # site pressure used for refraction calculations close to horizon
+        self._observer.pressure = float(Config.site_pressure)       # site pressure used for refraction calculations close to horizon
         self._observer.epoch = ephem.J2000                          # a moment in time used as a reference point for RA/Dec
         self._observer.lat = deg2rad(self._sitelatitude)            # dms version on lat
         self._observer.long = deg2rad(self._sitelongitude)          # dms version of long
-        self._observer.elevation = self._siteelevation              # site elevation
+        self._observer.elevation = float(self._siteelevation)       # site elevation
         #
         # Polaris status variables
         self._battery_is_available: bool = False    # Is the Polaris battery status current
@@ -630,11 +631,10 @@ class Polaris:
         # return result of MODE request {} 
         if cmd == "284":
             arg_dict = self.polaris_parse_args(args)
-            self._lock.acquire()
-            self._current_mode = int(arg_dict['mode'])
-            if not Config.advanced_tracking:        # if we are not doing tracking then update tracking status based on what Benro tells us 
-                self._tracking = bool(arg_dict['track'] == '1') if 'track' in arg_dict else False
-            self._lock.release()
+            with self._lock:
+                self._current_mode = int(arg_dict['mode'])
+                if not Config.advanced_tracking:        # if we are not doing tracking then update tracking status based on what Benro tells us 
+                    self._tracking = bool(arg_dict['track'] == '1') if 'track' in arg_dict else False
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: MODE status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
@@ -752,10 +752,9 @@ class Polaris:
         # return result of TRACK change request {'ret': 'X'} where X=0 (NoTracking), X=1 (Tracking)
         elif cmd == "531":
             arg_dict = self.polaris_parse_args(args)
-            self._lock.acquire()
-            if not Config.advanced_tracking:     # if we are not doing tracking then update tracking status based on what Benro tells us 
-                self._tracking = (arg_dict['ret'] == '1')
-            self._lock.release()
+            with self._lock:
+                if not Config.advanced_tracking:     # if we are not doing tracking then update tracking status based on what Benro tells us 
+                    self._tracking = (arg_dict['ret'] == '1')
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: TRACK status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
@@ -820,19 +819,18 @@ class Polaris:
 
 
     def aim_altaz_log_result(self):
-        self._lock.acquire()
-        a_alt = self._aim_altitude
-        a_az = self._aim_azimuth
-        err_alt = self._aim_altitude - self._altitude
-        err_az = self._aim_azimuth - self._azimuth
-        # only fine tune the adjustment if the error was within the max correction allowed
-        max = Config.aim_max_error_correction
-        if abs(err_alt) < max and abs(err_az) < max:
-             self._adj_altitude =  self._adj_altitude + err_alt
-             self._adj_azimuth = self._adj_azimuth + err_az
-        adj_alt = self._adj_altitude
-        adj_az = self._adj_azimuth
-        self._lock.release()
+        with self._lock:
+            a_alt = self._aim_altitude
+            a_az = self._aim_azimuth
+            err_alt = self._aim_altitude - self._altitude
+            err_az = self._aim_azimuth - self._azimuth
+            # only fine tune the adjustment if the error was within the max correction allowed
+            max = Config.aim_max_error_correction
+            if abs(err_alt) < max and abs(err_az) < max:
+                self._adj_altitude =  self._adj_altitude + err_alt
+                self._adj_azimuth = self._adj_azimuth + err_az
+            adj_alt = self._adj_altitude
+            adj_az = self._adj_azimuth
         time = self.get_performance_data_time()
         self.logger.info(f"->> Polaris: GOTO AimOffset (Az {deg2dms(adj_az)} Alt {deg2dms(adj_alt)}) | Error Az {err_az*3600:.3f} Alt {err_alt*3600:.3f}")
         # if we want to log Aim data
@@ -841,12 +839,11 @@ class Polaris:
 
     def aim_altaz_log_and_correct(self, alt: float, az:float):
         # log the original aiming co-ordinates and grab the last error ajustments
-        self._lock.acquire()
-        self._aim_altitude = alt
-        self._aim_azimuth = az
-        adj_alt = self._adj_altitude
-        adj_az = self._adj_azimuth
-        self._lock.release()
+        with self._lock:
+            self._aim_altitude = alt
+            self._aim_azimuth = az
+            adj_alt = self._adj_altitude
+            adj_az = self._adj_azimuth
 
         # ajust the aiming altaz and clap az being sent to the Polaris -180° < polaris_az < 180°
         calt = alt + adj_alt if Config.aiming_adjustment_enabled else alt
@@ -866,10 +863,9 @@ class Polaris:
     # Abort Slew
     # eg state:0;yaw:0.0;pitch:0.0;lat:-33.655422;track:0;speed:0;lng:151.12244;
     async def send_cmd_goto_abort(self):
-        self._lock.acquire()
-        self._slewing = False
-        self._gotoing = False
-        self._lock.release()
+        with self._lock:
+            self._slewing = False
+            self._gotoing = False
         # log the command
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: GOTO ABORT")
@@ -882,11 +878,10 @@ class Polaris:
 
     # Assumes polaris altaz
     async def send_cmd_goto_altaz(self, alt, az, istracking = True):
-        self._lock.acquire()
-        currently_slewing = self._slewing
-        currently_gotoing = self._gotoing
-        currently_tracking = self._tracking
-        self._lock.release()
+        with self._lock:
+            currently_slewing = self._slewing
+            currently_gotoing = self._gotoing
+            currently_tracking = self._tracking
 
         # if we are currently slewing or gotoing, dont try again
         if currently_slewing or currently_gotoing:
@@ -894,10 +889,9 @@ class Polaris:
             return
 
         # Mark that we are gotoing and slewing
-        self._lock.acquire()
-        self._slewing = True
-        self._gotoing = True
-        self._lock.release()
+        with self._lock:
+            self._slewing = True
+            self._gotoing = True
 
         # log the command
         if Config.log_polaris_protocol:
@@ -930,10 +924,9 @@ class Polaris:
         await asyncio.sleep(Config.tracking_settle_time)
 
         # mark the slew as complete      
-        self._lock.acquire()
-        self._slewing = False
-        self._gotoing = False
-        self._lock.release()
+        with self._lock:
+            self._slewing = False
+            self._gotoing = False
         if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO slew complete")
 
@@ -1067,10 +1060,9 @@ class Polaris:
             # await self.send_cmd_524()
             # await self.send_cmd_305()
             # await self.send_cmd_780()
-            self._lock.acquire()
-            self._connected = True
-            self._task_errorstr = ''
-            self._lock.release()
+            with self._lock:
+                self._connected = True
+                self._task_errorstr = ''
             # if we want to run Aim test or Drift test over a set of targets in the sky
             if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
                 asyncio.create_task(self.goto_tracking_test())
@@ -1244,25 +1236,22 @@ class Polaris:
     #
     @property
     def connected(self) -> bool:
-        self._lock.acquire()
-        res = self._connected
-        self._lock.release()
+        with self._lock:
+            res = self._connected
         return res
 
     def connectionquery(self, client: str):
-        self._lock.acquire()
-        # if no record of client, assume it was connected so that it can continue working
-        if not client in self._connections:
-            self._connections[client] = True
-        res = self._connections[client]
-        self._lock.release()
+        with self._lock:
+            # if no record of client, assume it was connected so that it can continue working
+            if not client in self._connections:
+                self._connections[client] = True
+            res = self._connections[client]
         return res
                           
     def connectionrequest(self, client: str, connect: bool):
-        self._lock.acquire()
-        self._connections[client] = connect
-        numclients = sum(v for v in self._connections.values() if v)
-        self._lock.release()
+        with self._lock:
+            self._connections[client] = connect
+            numclients = sum(v for v in self._connections.values() if v)
         if Config.log_polaris_protocol:
             self.logger.info(f'[connection request] Client {client} Connected: {connect} Total Connected Clients: {numclients}')
 
@@ -1295,111 +1284,97 @@ class Polaris:
 
     @property
     def tracking(self) -> bool:
-        self._lock.acquire()
-        res = self._tracking
-        self._lock.release()
+        with self._lock:
+            res = self._tracking
         return res
     @tracking.setter
     def tracking (self, tracking: int):
-        self._lock.acquire()
-        self._tracking = tracking
-        self._lock.release()
+        with self._lock:
+            self._tracking = tracking
 
     @property
     def sideofpier(self) -> int:
-        self._lock.acquire()
-        res =  self._sideofpier
-        self._lock.release()
+        with self._lock:
+            res =  self._sideofpier
         return res
     @sideofpier.setter
     def sideofpier (self, sideofpier: int):
-        self._lock.acquire()
-        self._sideofpier = sideofpier
-        self._lock.release()
+        with self._lock:
+            self._sideofpier = sideofpier
 
     @property
     def athome(self) -> bool:
-        self._lock.acquire()
-        res =  self._athome
-        self._lock.release()
+        with self._lock:
+            res =  self._athome
         return res
 
     @property
     def atpark(self) -> bool:
-        self._lock.acquire()
-        res =  self._atpark
-        self._lock.release()
+        with self._lock:
+            res =  self._atpark
         return res
 
     @property
     def slewing(self) -> bool:
-        self._lock.acquire()
-        res =  self._slewing
-        self._lock.release()
+        with self._lock:
+            res =  self._slewing
         return res
 
     @property
     def gotoing(self) -> bool:
-        self._lock.acquire()
-        res =  self._gotoing
-        self._lock.release()
+        with self._lock:
+            res =  self._gotoing
         return res
 
     @property
     def ispulseguiding(self) -> bool:
-        self._lock.acquire()
-        res =  self._ispulseguiding
-        self._lock.release()
+        with self._lock:
+            res =  self._ispulseguiding
         return res
     #
     # Telescope device variables
     #
     @property
     def altitude(self) -> float:
-        self._lock.acquire()
-        res =  self._altitude
-        self._lock.release()
+        with self._lock:
+            res =  self._altitude
         return res
 
     @property
     def azimuth(self) -> float:
-        self._lock.acquire()
-        res =  self._azimuth
-        self._lock.release()
+        with self._lock:
+            res =  self._azimuth
         return res
 
     @property
     def roll(self) -> float:
-        self._lock.acquire()
-        res =  self._roll
-        self._lock.release()
+        with self._lock:
+            res =  self._roll
         return res
 
     @property
     def rotation(self) -> float:
-        self._lock.acquire()
-        res =  self._rotation
-        self._lock.release()
+        with self._lock:
+            res =  self._rotation
         return res
 
     @property
     def declination(self) -> float:
-        self._lock.acquire()
-        res =  self._declination
-        self._lock.release()
+        with self._lock:
+            res =  self._declination
         return res
 
     @property
     def rightascension(self) -> float:
-        self._lock.acquire()
-        res =  self._rightascension
-        self._lock.release()
+        with self._lock:
+            res =  self._rightascension
         return res
 
     @property
     def siderealtime(self) -> float:
-        self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
-        res =  self._observer.sidereal_time()/2/math.pi*24
+        with self._lock:
+            self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+            res =  self._observer.sidereal_time()/2/math.pi*24
         return res
 
     @property
@@ -1412,344 +1387,305 @@ class Polaris:
     #
     @property
     def trackingrate(self) -> int:
-        self._lock.acquire()
-        res =  self._trackingrate
-        self._lock.release()
+        with self._lock:
+            res =  self._trackingrate
         return res
     @trackingrate.setter
     def trackingrate (self, trackingrate: int):
-        self._lock.acquire()
-        self._trackingrate = trackingrate
-        self._lock.release()
+        with self._lock:
+            self._trackingrate = trackingrate
 
     @property
     def trackingrates(self):
-        self._lock.acquire()
-        res =  self._trackingrates
-        self._lock.release()
+        with self._lock:
+            res =  self._trackingrates
         return res
 
     @property
     def declinationrate(self) -> float:
-        self._lock.acquire()
-        res =  self._declinationrate
-        self._lock.release()
+        with self._lock:
+            res =  self._declinationrate
         return res
     @declinationrate.setter
     def declinationrate (self, declinationrate: float):
-        self._lock.acquire()
-        self._declinationrate = declinationrate
-        self._lock.release()
+        with self._lock:
+            self._declinationrate = declinationrate
 
     @property
     def rightascensionrate(self) -> float:
-        self._lock.acquire()
-        res =  self._rightascensionrate
-        self._lock.release()
+        with self._lock:
+            res =  self._rightascensionrate
         return res
     @rightascensionrate.setter
     def rightascensionrate (self, rightascensionrate: float):
-        self._lock.acquire()
-        self._rightascensionrate = rightascensionrate
-        self._lock.release()
+        with self._lock:
+            self._rightascensionrate = rightascensionrate
 
     @property
     def guideratedeclination(self) -> float:
-        self._lock.acquire()
-        res =  self._guideratedeclination
-        self._lock.release()
+        with self._lock:
+            res =  self._guideratedeclination
         return res
     @guideratedeclination.setter
     def guideratedeclination (self, guideratedeclination: float):
-        self._lock.acquire()
-        self._guideratedeclination = guideratedeclination
-        self._lock.release()
+        with self._lock:
+            self._guideratedeclination = guideratedeclination
 
     @property
     def guideraterightascension(self) -> float:
-        self._lock.acquire()
-        res =  self._guideraterightascension
-        self._lock.release()
+        with self._lock:
+            res =  self._guideraterightascension
         return res
     @guideraterightascension.setter
     def guideraterightascension (self, guideraterightascension: float):
-        self._lock.acquire()
-        self._guideraterightascension = guideraterightascension
-        self._lock.release()
+        with self._lock:
+            self._guideraterightascension = guideraterightascension
     #
     # Rotator device settings
     #
     @property
     def rotator_reverse(self) -> int:
-        self._lock.acquire()
-        res =  self._rotator_reverse
-        self._lock.release()
+        with self._lock:
+            res =  self._rotator_reverse
         return res
     @rotator_reverse.setter
     def rotator_reverse(self, state: bool):
-        self._lock.acquire()
-        self._rotator_reverse = state
-        self._lock.release()
+        with self._lock:
+            self._rotator_reverse = state
     #
     # Telescope device settings
     #
     @property
     def alignmentmode(self) -> int:
-        self._lock.acquire()
-        res =  self._alignmentmode
-        self._lock.release()
+        with self._lock:
+            res =  self._alignmentmode
         return res
 
     @property
     def aperturearea(self) -> float:
-        self._lock.acquire()
-        res =  self._aperturearea
-        self._lock.release()
+        with self._lock:
+            res =  self._aperturearea
         return res
 
     @property
     def aperturediameter(self) -> float:
-        self._lock.acquire()
-        res =  self._aperturediameter
-        self._lock.release()
+        with self._lock:
+            res =  self._aperturediameter
         return res
 
     @property
     def equatorialsystem(self) -> float:
-        self._lock.acquire()
-        res =  self._equatorialsystem
-        self._lock.release()
+        with self._lock:
+            res =  self._equatorialsystem
         return res
 
     @property
     def focallength(self) -> float:
-        self._lock.acquire()
-        res = self._focallength
-        self._lock.release()
+        with self._lock:
+            res = self._focallength
         return res
+
+    @property
+    def sitepressure(self) -> float:
+        with self._lock:
+            res = self._sitepressure
+        return res
+    @sitepressure.setter
+    def sitepressure (self, sitepressure: float):
+        with self._lock:
+            self._sitepressure = sitepressure
+            self._observer.pressure = sitepressure
 
     @property
     def siteelevation(self) -> float:
-        self._lock.acquire()
-        res = self._siteelevation
-        self._lock.release()
+        with self._lock:
+            res = self._siteelevation
         return res
     @siteelevation.setter
     def siteelevation (self, siteelevation: float):
-        self._lock.acquire()
-        self._siteelevation = siteelevation
-        self._lock.release()
+        with self._lock:
+            self._siteelevation = siteelevation
+            self._observer.elevation = siteelevation
 
     @property
     def sitelatitude(self) -> float:
-        self._lock.acquire()
-        res = self._sitelatitude
-        self._lock.release()
+        with self._lock:
+            res = self._sitelatitude
         return res
     @sitelatitude.setter
     def sitelatitude (self, sitelatitude: float):
-        self._lock.acquire()
-        self._sitelatitude = sitelatitude
-        self._observer.lat = deg2rad(sitelatitude) 
-        self._lock.release()
+        with self._lock:
+            self._sitelatitude = sitelatitude
+            self._observer.lat = deg2rad(sitelatitude) 
 
     @property
     def sitelongitude(self) -> float:
-        self._lock.acquire()
-        res =  self._sitelongitude
-        self._lock.release()
+        with self._lock:
+            res =  self._sitelongitude
         return res
     @sitelongitude.setter
     def sitelongitude (self, sitelongitude: float):
-        self._lock.acquire()
-        self._sitelongitude = sitelongitude
-        self._observer.long = deg2rad(sitelongitude) 
-        self._lock.release()
+        with self._lock:
+            self._sitelongitude = sitelongitude
+            self._observer.long = deg2rad(sitelongitude) 
     
     @property
     def slewsettletime(self) -> int:
-        self._lock.acquire()
-        res =  self._slewsettletime
-        self._lock.release()
+        with self._lock:
+            res =  self._slewsettletime
         return res
     @slewsettletime.setter
     def slewsettletime (self, slewsettletime: int):
-        self._lock.acquire()
-        self._slewsettletime = slewsettletime
-        self._lock.release()
+        with self._lock:
+            self._slewsettletime = slewsettletime
 
     @property
     def supportedactions(self) -> float:
-        self._lock.acquire()
-        res =  self._supportedactions
-        self._lock.release()
+        with self._lock:
+            res =  self._supportedactions
         return res
 
     @property
     def targetdeclination(self) -> float:
-        self._lock.acquire()
-        res =  self._targetdeclination
-        self._lock.release()
+        with self._lock:
+            res =  self._targetdeclination
         return res
     @targetdeclination.setter
     def targetdeclination (self, targetdeclination: float):
-        self._lock.acquire()
-        self._targetdeclination = targetdeclination
-        self._lock.release()
+        with self._lock:
+            self._targetdeclination = targetdeclination
 
     @property
     def targetrightascension(self) -> float:
-        self._lock.acquire()
-        res =  self._targetrightascension
-        self._lock.release()
+        with self._lock:
+            res =  self._targetrightascension
         return res
     @targetrightascension.setter
     def targetrightascension (self, targetrightascension: float):
-        self._lock.acquire()
-        self._targetrightascension = targetrightascension
-        self._lock.release()
+        with self._lock:
+            self._targetrightascension = targetrightascension
     #
     # Telescope capability constants
     #
     @property
     def canfindhome(self) -> bool:
-        self._lock.acquire()
-        res =  self._canfindhome
-        self._lock.release()
+        with self._lock:
+            res =  self._canfindhome
         return res
 
     @property
     def canpark(self) -> bool:
-        self._lock.acquire()
-        res =  self._canpark
-        self._lock.release()
+        with self._lock:
+            res =  self._canpark
         return res
 
     @property
     def canpulseguide(self) -> bool:
-        self._lock.acquire()
-        res =  self._canpulseguide
-        self._lock.release()
+        with self._lock:
+            res =  self._canpulseguide
         return res
 
     @property
     def cansetdeclinationrate(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetdeclinationrate
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetdeclinationrate
         return res
 
     @property
     def cansetguiderates(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetguiderates
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetguiderates
         return res
 
     @property
     def cansetpark(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetpark
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetpark
         return res
 
     @property
     def cansetpierside(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetpierside
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetpierside
         return res
 
     @property
     def cansetrightascensionrate(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetrightascensionrate
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetrightascensionrate
         return res
 
     @property
     def cansettracking(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansettracking
-        self._lock.release()
+        with self._lock:
+            res =  self._cansettracking
         return res
 
     @property
     def canslew(self) -> bool:
-        self._lock.acquire()
-        res =  self._canslew
-        self._lock.release()
+        with self._lock:
+            res =  self._canslew
         return res
 
     @property
     def canslewasync(self) -> bool:
-        self._lock.acquire()
-        res =  self._canslewasync
-        self._lock.release()
+        with self._lock:
+            res =  self._canslewasync
         return res
 
     @property
     def canslewaltaz(self) -> bool:
-        self._lock.acquire()
-        res =  self._canslewaltaz
-        self._lock.release()
+        with self._lock:
+            res =  self._canslewaltaz
         return res
 
     @property
     def canslewaltazasync(self) -> bool:
-        self._lock.acquire()
-        res =  self._canslewaltazasync
-        self._lock.release()
+        with self._lock:
+            res =  self._canslewaltazasync
         return res
 
     @property
     def cansync(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansync
-        self._lock.release()
+        with self._lock:
+            res =  self._cansync
         return res
 
     @property
     def cansyncaltaz(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansyncaltaz
-        self._lock.release()
+        with self._lock:
+            res =  self._cansyncaltaz
         return res
 
     @property
     def canunpark(self) -> bool:
-        self._lock.acquire()
-        res =  self._canunpark
-        self._lock.release()
+        with self._lock:
+            res =  self._canunpark
         return res
 
     @property
     def doesrefraction(self) -> bool:
-        self._lock.acquire()
-        res =  self._doesrefraction
-        self._lock.release()
+        with self._lock:
+            res =  self._doesrefraction
         return res
     @doesrefraction.setter
     def doesrefraction (self, doesrefraction: float):
-        self._lock.acquire()
-        self._doesrefraction = doesrefraction
-        self._observer.pressure = Config.site_pressure if doesrefraction else 0
-        self._lock.release()
+        with self._lock:
+            self._doesrefraction = doesrefraction
+            self._observer.pressure = Config.site_pressure if doesrefraction else 0
     #
     # Telescope method constants
     #
     @property
     def axisrates(self) -> bool:
-        self._lock.acquire()
-        res =  self._axisrates
-        self._lock.release()
+        with self._lock:
+            res =  self._axisrates
         return res
 
     @property
     def canmoveaxis(self) -> bool:
-        self._lock.acquire()
-        res =  self._canmoveaxis
-        self._lock.release()
+        with self._lock:
+            res =  self._canmoveaxis
         return res
 
     
@@ -1772,10 +1708,9 @@ class Polaris:
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
         a_ra = rightascension
         a_dec = declination
-        self._lock.acquire()
-        self._targetrightascension = a_ra
-        self._targetdeclination = a_dec
-        self._lock.release()
+        with self._lock:
+            self._targetrightascension = a_ra
+            self._targetdeclination = a_dec
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
         if Config.sync_pointing_model==1:
             # Use RA/Dec Sync Pointing model
@@ -1854,13 +1789,12 @@ class Polaris:
                 await self.send_cmd_change_tracking_state(True)
 
     async def park(self):
-        self._lock.acquire()
-        self._atpark = True
-        self._adj_sync_declination = 0
-        self._adj_sync_rightascension = 0
-        self._adj_altitude = 0
-        self._adj_azimuth = 0
-        self._lock.release()
+        with self._lock:
+            self._atpark = True
+            self._adj_sync_declination = 0
+            self._adj_sync_rightascension = 0
+            self._adj_altitude = 0
+            self._adj_azimuth = 0
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: PARK telescope")
             await self.stop_all_axes()
@@ -1872,7 +1806,6 @@ class Polaris:
             await self.send_cmd_park()
 
     async def unpark(self):
-        self._lock.acquire()
-        self._atpark = False
-        self._lock.release()
+        with self._lock:
+            self._atpark = False
 

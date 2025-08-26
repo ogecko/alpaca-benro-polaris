@@ -1477,16 +1477,13 @@ class action:
                 if param == "log_level":
                     update_log_level(Config.log_level)
                 elif param == "site_latitude":
-                    polaris._sitelatitude = float(Config.site_latitude)
-                    polaris._observer.lat = deg2rad(Config.site_latitude) 
+                    polaris.sitelatitude = float(Config.site_latitude)
                 elif param == "site_longitude":
-                    polaris._sitelongitude = float(Config.site_longitude)
-                    polaris._observer.long = deg2rad(Config.site_longitude)
+                    polaris.sitelongitude = float(Config.site_longitude)
                 elif param == "site_elevation":
-                    polaris._siteelevation = Config.site_elevation
-                    polaris._observer.elevation = Config.site_elevation
+                    polaris.siteelevation = Config.site_elevation
                 elif param == "site_pressure":
-                    polaris._observer.pressure = Config.site_pressure
+                    polaris.sitepressure = Config.site_pressure
 
             ## TODO - Take action on the following parameters to make them live in polaris
             #  "TrackingRate"
