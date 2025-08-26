@@ -178,7 +178,7 @@
               <q-select
                 class="col-12 q-pb-md"
                 filled
-                v-bind="bindField('log_level', 'Log Verbosity Level')"
+                v-bind="bindField('log_level', 'Log Detail and Verbosity Level')"
                 :options="[
                   { label: 'DEBUG – Detailed diagnostic logs', value: 'DEBUG' },
                   { label: 'INFO – Default routine logging information', value: 'INFO' },

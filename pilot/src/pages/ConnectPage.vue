@@ -37,8 +37,10 @@
 
               <q-item v-if="!dev.alpacaConnected && !dev.alpacaConnectingMsg">
                 <div class="row items-start">
-                  <q-input v-model="dev.alpacaHost" @keyup.enter="connect" label="Host Name / IP Address" class="col-8 q-mt-sm" />
-                  <q-input v-model="dev.alpacaPort" @keyup.enter="connect" label="Port" type="number" class="col-4 q-mt-sm" />
+                  <q-input class="col-8" v-model="dev.alpacaHost" @keyup.enter="connect" label="Host Name / IP Address"  />
+                  <q-input class="col-4" label='Port' v-model="dev.alpacaPort" @keyup.enter="connect" type="number" input-class="text-right">
+                  <template v-slot:prepend><q-icon name="nat"></q-icon></template>
+                  </q-input>
                 </div>
               </q-item>
 
@@ -81,6 +83,101 @@
               </q-list>
             </div>
         </q-card>
+
+
+
+
+
+
+
+
+        
+<q-card flat bordered class="q-pa-md full-width">
+  <div class="text-h6">
+    <q-checkbox v-model="polarisConnected" color="positive" label="Connect to Benro Polaris" />
+  </div>
+
+  <div class="q-pl-xl q-mt-sm">
+    <q-expansion-item
+      icon="satellite_alt"
+      label="Nearby Benro Polaris Devices"
+      caption="Select a discovered device or enter manually"
+      dense
+      expand-separator
+      default-opened
+    >
+      <div class="q-mb-sm">
+        <q-btn
+          label="Refresh Device List"
+          icon="refresh"
+          color="primary"
+          flat
+          dense
+        />
+      </div>
+
+      <q-select
+        v-model="selectedPolarisDevice"
+        :options="availablePolarisDevices"
+        label="Discovered Devices"
+        emit-value
+        map-options
+        option-label="name"
+        option-value="id"
+        outlined
+        dense
+        class="q-mb-md"
+      >
+        <template v-slot:no-option>
+          <q-item>
+            <q-item-section>No devices found. Please enter manually.</q-item-section>
+          </q-item>
+        </template>
+      </q-select>
+
+      <!-- Manual Entry Fallback -->
+      <div  class="row items-start q-mt-sm">
+        <q-input
+          class="col-8"
+          v-model="dev.alpacaHost"
+          @keyup.enter="connect"
+          label="Host Name / IP Address"
+        />
+        <q-input
+          class="col-4"
+          label="Port"
+          v-model="dev.alpacaPort"
+          @keyup.enter="connect"
+          type="number"
+          input-class="text-right"
+        >
+          <template v-slot:prepend><q-icon name="nat" /></template>
+        </q-input>
+      </div>
+    </q-expansion-item>
+  </div>
+
+  <!-- Polaris Connection Steps -->
+  <div class="q-mt-md q-pl-lg">
+    <q-list dense>
+      <q-item v-for="(step, index) in polarisSteps" :key="index" class="q-mb-sm">
+        <q-item-section avatar>
+          <q-icon :name="step.status ? 'check_circle' : 'error'" :color="step.status ? 'green' : 'red'" />
+        </q-item-section>
+        <q-item-section>
+          <div>{{ step.label }}</div>
+        </q-item-section>
+        <q-item-section side>
+          <q-btn label="Fix" :icon="step.icon" color="secondary" @click="fixStep(index)" />
+        </q-item-section>
+      </q-item>
+    </q-list>
+  </div>
+</q-card>
+
+
+
+
       </div>      
     </div>
 

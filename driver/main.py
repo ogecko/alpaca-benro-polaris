@@ -110,7 +110,7 @@ async def run_all(logger, lifecycle: LifecycleController):
 
     # Create the Polaris master object and startup each ASCOM device
     global polaris
-    polaris = Polaris(logger)
+    polaris = Polaris(logger, lifecycle)
     telescope.start_telescope(polaris, lifecycle)
     rotator.start_rotator(polaris, lifecycle)
 

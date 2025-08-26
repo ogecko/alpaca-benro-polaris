@@ -423,17 +423,18 @@ class LifecycleController:
         try:
             await coro
         except asyncio.CancelledError:
-            logger.debug("Task cancelled")
+            logger.debug("Lifecycle Wrap: Task cancelled")
         except Exception as e:
-            logger.exception("Unhandled exception in task: %s", e)
+            logger.exception("Lifecycle Wrap: Unhandled exception in task: %s", e)
 
     async def shutdown_tasks(self, timeout: float = 5.0):
-        await self.signal(LifecycleEvent.SHUTDOWN)
+        if self._event == LifecycleEvent.NONE:
+            await self.signal(LifecycleEvent.SHUTDOWN)
         for task in list(self._tasks):
             task.cancel()
         _, pending = await asyncio.wait(self._tasks, timeout=timeout)
         if pending:
-            logger.warning("Tasks still pending: %s", pending)
+            logger.warning("==SHUTDOWN==Tasks still pending: %s", pending)
 
     def should_stop(self) -> bool:
         return self._event in {LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT}

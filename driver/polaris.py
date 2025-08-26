@@ -83,7 +83,7 @@ from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
-from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue
+from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
 from control import KalmanFilter, quaternion_to_angles, calculate_angular_velocity, is_angle_same, format_move_axis_data, polar_rotation_angle, MotorSpeedController, PID_Controller
 from scipy.interpolate import PchipInterpolator
 
@@ -107,10 +107,11 @@ class Polaris:
     #
     # Only override __init_()  and run() (pydoc 17.1.2)
     #
-    def __init__(self, logger: Logger):
+    def __init__(self, logger: Logger, lifecycle: LifecycleController):
         self._lock = Lock()
         self.name: str = 'device'
-        self.logger = logger
+        self.logger: Logger = logger
+        self.lifecycle: LifecycleController = lifecycle
         #
         # Polaris device communications state variables
         #
@@ -272,15 +273,11 @@ class Polaris:
 
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
-        background_watchdog = asyncio.create_task(self._every_1s_watchdog_check())
-        background_watchdog.add_done_callback(self.task_done)
-        background_keepalive = asyncio.create_task(self._every_15s_send_polaris_keepalive())
-        background_keepalive.add_done_callback(self.task_done)
-        background_fastmove = asyncio.create_task(self.every_50ms_tick())
-        background_fastmove.add_done_callback(self.task_done)
+        self.lifecycle.create_task(self._every_1s_watchdog_check(), name="PolarisWatchdog")
+        self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisWatchdog")
+        self.lifecycle.create_task(self.every_50ms_tick(), name="PolarisFastMove")
         if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
-            background_driftcheck = asyncio.create_task(self.every_2min_drift_check())
-            background_driftcheck.add_done_callback(self.task_done)
+            self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
 
 
         while True:
