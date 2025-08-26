@@ -25,8 +25,8 @@
 
         <div class="q-gutter-sm row items-center no-wrap">
             <div>
-                <span>70%</span>
-                <q-icon size="sm" name="battery_4_bar" />
+                <span class="text-body">{{p.battery_level}}%</span>
+                <q-icon class="" size="md" :name="getBatteryIcon()" :color="getBatteryColor()"/>
                 <q-tooltip>Polaris Battery Level</q-tooltip>
             </div>
             <q-btn round dense flat  icon="notifications">
@@ -139,70 +139,97 @@
   </q-layout>
 </template>
 
-<script lang="ts">
-import { ref } from 'vue'
-import { fabYoutube } from '@quasar/extras/fontawesome-v6'
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted  } from 'vue'
+import { useStatusStore } from 'stores/status'
+import { PollingManager } from 'src/utils/polling'
 
-export default {
-  name: 'MyLayout',
+const leftDrawerOpen = ref(false)
+const search = ref('')
+const poll = new PollingManager()
+const p = useStatusStore()
 
-  setup () {
-    const leftDrawerOpen = ref(false)
-    const search = ref('')
+  onMounted(() => {
+    poll.startPolling(() => { void p.statusFetch() }, 1, 'statusFetch')
+  })
 
-    function toggleLeftDrawer () {
-      leftDrawerOpen.value = !leftDrawerOpen.value
-    }
+  onUnmounted(() => {
+    poll.stopPolling()
+  })
 
-    return {
-      fabYoutube,
+  function toggleLeftDrawer () {
+    leftDrawerOpen.value = !leftDrawerOpen.value
+  }
 
-      leftDrawerOpen,
-      search,
-
-      toggleLeftDrawer,
-
-      links1: [
-        { icon: 'home', text: 'Home', to: '/' },
-        { icon: 'power', text: 'Connections', to: '/connect' },
-        { icon: 'settings', text: 'Settings', to: '/config' },
-      ],
-      links2: [
-        { icon: 'flare', text: 'Stars' },
-        { icon: 'whatshot', text: 'Nebulae' },
-        { icon: 'album', text: 'Galaxies' },
-        { icon: 'blur_on', text: 'Clusters' },
-      ],
-      links3: [
-        { icon: 'motion_photos_on', text: 'Planets' },
-        { icon: 'brightness_2', text: 'Moons' },
-        { icon: 'hdr_strong', text: 'Asteroids' },
-        { icon: 'egg', text: 'Comets' },
-        { icon: 'satellite_alt', text: 'Satelites' }
-      ],
-      links4: [
-        { icon: 'camera', text: 'Imaging' },
-        { icon: 'vertical_align_top', text: 'Leveling' },
-        { icon: 'ads_click', text: 'Calibration' },
-        { icon: 'flag', text: 'Telemetry' },
-        { icon: 'analytics', text: 'Diagnostics' }
-      ],
-      buttons1: [
-        { text: 'About' },
-        { text: 'Copyright' },
-        { text: 'Contact us' },
-        { text: 'Contributors' },
-        { text: 'Developers' }
-      ],
-      buttons2: [
-        { text: 'Terms' },
-        { text: 'Privacy' },
-        { text: 'Policy & Safety' },
-
-      ]
-    }
+function getBatteryColor(): string {
+  if (p.battery_level >= 50) {
+    return p.battery_is_charging ? 'light-green' : 'white'
+  } else if (p.battery_level >= 20) {
+    return 'warning'
+  } else {
+    return 'negative'
   }
 }
+
+function getBatteryIcon(): string {
+  const levels = [
+    { threshold: 95, charging: 'battery_charging_full', discharging: 'battery_full' },
+    { threshold: 90, charging: 'battery_charging_90', discharging: 'battery_6_bar' },
+    { threshold: 80, charging: 'battery_charging_80', discharging: 'battery_5_bar' },
+    { threshold: 60, charging: 'battery_charging_60', discharging: 'battery_4_bar' },
+    { threshold: 50, charging: 'battery_charging_50', discharging: 'battery_3_bar' },
+    { threshold: 30, charging: 'battery_charging_30', discharging: 'battery_2_bar' },
+    { threshold: 20, charging: 'battery_charging_20', discharging: 'battery_1_bar' },
+  ]
+
+  for (const level of levels) {
+    if (p.battery_level >= level.threshold) {
+      return p.battery_is_charging ? level.charging : level.discharging
+    }
+  }
+
+  return 'battery_alert'
+}
+
+  const links1 = [
+    { icon: 'home', text: 'Home', to: '/' },
+    { icon: 'power', text: 'Connections', to: '/connect' },
+    { icon: 'settings', text: 'Settings', to: '/config' },
+  ]
+  const links2 = [
+    { icon: 'flare', text: 'Stars' },
+    { icon: 'whatshot', text: 'Nebulae' },
+    { icon: 'album', text: 'Galaxies' },
+    { icon: 'blur_on', text: 'Clusters' },
+  ]
+  const links3 = [
+    { icon: 'motion_photos_on', text: 'Planets' },
+    { icon: 'brightness_2', text: 'Moons' },
+    { icon: 'hdr_strong', text: 'Asteroids' },
+    { icon: 'egg', text: 'Comets' },
+    { icon: 'satellite_alt', text: 'Satelites' }
+  ]
+  const links4 = [
+    { icon: 'camera', text: 'Imaging' },
+    { icon: 'vertical_align_top', text: 'Leveling' },
+    { icon: 'ads_click', text: 'Calibration' },
+    { icon: 'flag', text: 'Telemetry' },
+    { icon: 'analytics', text: 'Diagnostics' }
+  ]
+  const buttons1 = [
+    { text: 'About' },
+    { text: 'Copyright' },
+    { text: 'Contact us' },
+    { text: 'Contributors' },
+    { text: 'Developers' }
+  ]
+  const buttons2 = [
+    { text: 'Terms' },
+    { text: 'Privacy' },
+    { text: 'Policy & Safety' },
+  ]
+
+
 </script>
 
 <style lang="sass">

@@ -19,6 +19,7 @@
 - **[Configuration Page]**: Instantly view and modify Alpaca Driver settings; no need to edit config.toml or restart
 - **[Map Verification]**: - Display site coordinates on an interactive map to visually confirm the location
 - **[Site Autocomplete]**: - Automatically retrieve location name, elevation, and current pressure via external web services
+- **[Battery Level]**: Shows charging state and battery percentage in the Alpaca Pilot heading bar.
 - **[Nina integration]**: Launch Alpaca Pilot directly from the Settings Cogs in NINA’s Equipment tab
 
 ## New Features (Alpaca Driver)
