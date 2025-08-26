@@ -1451,7 +1451,8 @@ class unpark:
 @before(PreProcessRequest(maxdev, 'log_alpaca_discovery'))
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:ConfigFetch', 'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore'], req)  
+        resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:StatusFetch', 'Polaris:ConfigFetch', 
+                                            'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore'], req)  
 
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
@@ -1499,6 +1500,10 @@ class action:
 
         elif actionName == "Polaris:ConfigRestore":
             resp.text = await PropertyResponse(Config.restore_base(), req)
+            return
+
+        elif actionName == "Polaris:StatusFetch":
+            resp.text = await PropertyResponse(polaris.getStatus(), req)
             return
 
         else:

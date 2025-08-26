@@ -150,6 +150,11 @@ class Polaris:
         self._observer.long = deg2rad(self._sitelongitude)          # dms version of long
         self._observer.elevation = self._siteelevation              # site elevation
         #
+        # Polaris status variables
+        self._battery_is_available: bool = False    # Is the Polaris battery status current
+        self._battery_is_charging: bool = False     # Is the Polaris device currently charging
+        self._battery_level: int = 100              # Battery level of the Polaris device (percentage)
+        #
         # Telescope device completion flags
         #
         self._connections = {}                      # Dictionary of client's connection status True/False
@@ -164,16 +169,6 @@ class Polaris:
         #
         # Telescope device state variables
         #
-        self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
-        self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
-        self._theta_meas = None                     # The latest set of motor axis angles [theta1, theta2, theta3] measured from q1
-        self._omega_meas = None                     # The latest set of motor axis angular velocity [omega1, omega2, omega3] measured from q1
-        self._mpc_theta_ref = []
-        self._mpc_theta_opt = []
-        self._mpc_omega_ref = []
-        self._mpc_omega_opt = []
-        self._mpc_index = 0
-        self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._altitude: float = 0.0                 # The Pitch/Altitude above the local horizon of the telescope's current position (degrees, positive up)
         self._azimuth: float = 0.0                  # The Yaw/Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
         self._roll: float = 0.0                     # The Roll (-180 to +180), 0=after GOTO, -ve=clockwise rotation looking down onto top of Astro mount axis.
@@ -248,6 +243,13 @@ class Polaris:
         self._axis_Polaris_slewing_rates = [ 0, 0, 0 ]   # Records the Polaris move rate of the primary, seconday and tertiary axis
         self._axis_ASCOM_slewing_rates = [ 0, 0, 0 ]     # Records the ASCOM move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
+
+        # Advanced Control variables
+        self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
+        self._theta_meas = None                     # The latest set of motor axis angles [theta1, theta2, theta3] measured from q1
+        self._omega_meas = None                     # The latest set of motor axis angular velocity [omega1, omega2, omega3] measured from q1
+        self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
+        self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         self._motorcontrollers = {
             axis: MotorSpeedController(logger, axis, self.send_msg)
             for axis in (0, 1, 2)
@@ -282,8 +284,10 @@ class Polaris:
 
         while True:
             try:
-                self._connected = False             # set to true when "Polaris communication init... done"
-                self._task_exception = None
+                with self._lock:
+                    self._connected = False             # set to true when "Polaris communication init... done"
+                    self._battery_is_available = False  # set to true when we get a battery status message
+                    self._task_exception = None
                 client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
                 self._reader = client_reader
                 self._writer = client_writer
@@ -397,9 +401,10 @@ class Polaris:
 
     async def every_2min_drift_check(self):
         while True:
-            try: 
-                ra = self._targetrightascension
-                dec = self._targetdeclination
+            try:
+                with self._lock: 
+                    ra = self._targetrightascension
+                    dec = self._targetdeclination
                 if self.connected:
                     await self.drift_error_test(ra,dec,duration=120)
                 else:
@@ -688,18 +693,17 @@ class Polaris:
             self._pid.measure(alpha_meas, theta_meas)
 
             # Store all the new values
-            self._lock.acquire()
-            self._last_518_timestamp = dt_now
-            self._q1 = q1
-            self._theta_meas = theta_meas
-            self._omega_meas = omega_meas
-            self._p_altitude = p_alt
-            self._p_azimuth = p_az
-            self._p_roll = p_roll
-            self._p_rotation = theta3
-            self._p_rightascension = p_ra 
-            self._p_declination = p_dec
-            self._lock.release()
+            with self._lock:
+                self._last_518_timestamp = dt_now
+                self._q1 = q1
+                self._theta_meas = theta_meas
+                self._omega_meas = omega_meas
+                self._p_altitude = p_alt
+                self._p_azimuth = p_az
+                self._p_roll = float(p_roll)
+                self._p_rotation = float(theta3)
+                self._p_rightascension = p_ra 
+                self._p_declination = p_dec
 
             if Config.sync_pointing_model==1:
                 # Use RA/Dec Sync Pointing model
@@ -709,15 +713,15 @@ class Polaris:
                 a_alt, a_az = self.radec2altaz(a_ra, a_dec)
                 self._altitude = a_alt
                 self._azimuth = a_az
-                self._roll = p_roll
-                self._rotation = theta3
+                self._roll = float(p_roll)
+                self._rotation = float(theta3)
             else:
                 # Use Alt/Az Sync Pointing model
                 a_alt, a_az = self.altaz_polaris2ascom(p_alt, p_az)
                 self._altitude = a_alt
                 self._azimuth = a_az
-                self._roll = p_roll
-                self._rotation = theta3
+                self._roll = float(p_roll)
+                self._rotation = float(theta3)
                 a_ra, a_dec= self.altaz2radec(a_alt, a_az)
                 self._rightascension = a_ra 
                 self._declination = a_dec
@@ -772,6 +776,10 @@ class Polaris:
         # return result of BATTTERY request {'capacity': 'X', 'charge': 'Y'}  X=batttery%, Y=1 (charging), Y=0 (draining)
         elif cmd == "778":
             arg_dict = self.polaris_parse_args(args)
+            with self._lock:
+                self._battery_is_available = True
+                self._battery_is_charging = (arg_dict['charge'] == '1')
+                self._battery_level = int(arg_dict['capacity'])
             self.logger.info(f"<<- Polaris: BATTERY status changed: {cmd} {arg_dict}")
 
         # return result of VERSION request {'hw':'1.3.1.4'; 'sw': '6.0.0.40'; 'exAxis':'1.0.2.11'; 'sv':'1'} 
@@ -1261,7 +1269,30 @@ class Polaris:
         # check is any exceptions with polaris.client() and polaris_init() last run
         if  self._task_errorstr:
             raise Exception(self._task_errorstr)
-        
+
+    def getStatus(self) -> dict:
+        with self._lock:
+            res = {
+                'battery_is_available': self._battery_is_available,
+                'battery_is_charging': self._battery_is_charging,
+                'battery_level': self._battery_level,
+                'connected': self._connected,
+                'tracking': self._tracking,
+                'athome': self._athome,
+                'atpark': self._atpark,
+                'slewing': self._slewing,
+                'gotoing': self._gotoing,
+                'ispulseguiding': self._ispulseguiding,
+                'altitude': self._altitude,
+                'azimuth': self._azimuth,
+                'roll': self._roll,
+                'rotation': self._rotation,
+                'declination': self._declination,
+                'rightascension': self._rightascension,
+                'siderealtime': self._siderealtime,
+            }
+        return res
+
     @property
     def tracking(self) -> bool:
         self._lock.acquire()

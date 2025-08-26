@@ -19,13 +19,16 @@
 
 <script setup lang="ts" >
 
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'stores/device'
+import { useStatusStore } from 'stores/status'
+import { PollingManager } from 'src/utils/polling'
 
 const route = useRoute()
 const dev = useDeviceStore()
-
+const poll = new PollingManager()
+const p = useStatusStore()
 onMounted(async () => {
 
   const apiParam = Array.isArray(route.query.api)
@@ -47,7 +50,13 @@ onMounted(async () => {
   if (dev.alpacaHost && dev.alpacaPort) {
     await dev.connectAlpaca()
   }
+  poll.startPolling(() => { void p.statusFetch() }, 1, 'statusFetch')
 })
+
+onUnmounted(() => {
+  poll.stopPolling()
+})
+
 
 
 </script>
