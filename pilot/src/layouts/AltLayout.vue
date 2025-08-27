@@ -17,10 +17,12 @@
           <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
           <q-route-tab icon="mdi-database-clock-outline" :label="$q.screen.gt.sm ? 'Logs' : ''" to="/log"/>
         </q-tabs>
-        <q-space />
         <div class="row no-wrap q-pl-md">
-          <q-input dense outlined square v-model="search" placeholder="Search" class="bg-blue-9 " />
-          <q-btn color="grey-4" text-color="grey-8" icon="mdi-magnify" unelevated />
+          <q-input rounded dense filled bg-color="blue-9" v-model="search" placeholder="Search Catalogue">
+            <template v-slot:append>
+              <q-btn  round icon="mdi-magnify" unelevated />
+            </template>
+          </q-input>
         </div>
 
         <q-space />
