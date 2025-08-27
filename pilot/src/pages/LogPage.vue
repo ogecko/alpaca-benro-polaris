@@ -1,20 +1,23 @@
 <template>
-  <q-page class="q-pa-sm column">
-    <!-- Header Row -->
-    <div class="row q-pb-sm q-col-gutter-lg items-center">
+  <q-page class="column">
+        <!-- Header Row -->
+    <div class="row q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
         Alpaca Driver Logfile
         <q-badge v-if="isAtBottom" size="lg" color="primary">Live</q-badge>
+        <div class="text-caption text-grey-6">
+        Monitor device status, activity, communications, and events in real time 
+       </div>
       </div>
-      <div class="col q-gutter-sm flex justify-end">
+      <q-space />
+      <div class="q-gutter-md flex justify-end q-mr-md">
         <q-btn-dropdown rounded color="grey-9" label="Log Settings" >
           <LogSettings />
         </q-btn-dropdown>
-      </div>
-      <div class="col-auto q-gutter-sm flex justify-end">
-        <q-toggle class='col' label="Live" v-model="keepAtBottom"/>
+        <q-toggle dense label="Live" v-model="keepAtBottom"/>
       </div>
     </div>
+
     <!-- Log card fills rest -->
     <q-card flat bordered class="col">
       <q-card-section class="column" style="font-family: monospace;" >
