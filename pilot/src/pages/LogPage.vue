@@ -4,7 +4,6 @@
       <div class="col text-h6 q-mb-md">
         Alpaca Driver Logfile
         <q-badge v-if="isAtBottom" size="lg" color="primary">Live</q-badge>
-        <q-badge v-if="storeChangedRecently" size="lg" color="primary">Updated</q-badge>
       </div>
       <div class="col-auto q-gutter-sm flex justify-end">
         <q-toggle class='col' label="Live" v-model="keepAtBottom"/>
@@ -12,8 +11,9 @@
     </div>
 
     <q-card flat bordered>
-      <q-card-section style="font-family: monospace;">
-        <q-scroll-area ref="scrollArea" @scroll="onScroll" style="height: 70vh; font-family: monospace;">
+      <q-card-section style="font-family: monospace;" >
+        <q-scroll-area ref="scrollArea" @scroll="onScroll"  style="height: 80vh; font-family: monospace;"
+          @wheel="resetKeepAtBottom" @click="resetKeepAtBottom" @touchstart="resetKeepAtBottom">
           <div>
             <div v-for="(entry, index) in logEntries" :key="index">
               {{ format(entry) }}
@@ -27,7 +27,6 @@
 </template>
 
 <script setup lang="ts">
-import { debounce } from 'quasar'
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useStreamStore } from 'stores/stream'
 import type { TelemetryRecord } from 'stores/stream'
@@ -57,7 +56,6 @@ const scrollArea = ref()
 onMounted(() => {
   store.connect('ws://192.168.50.54:5556/ws')
   store.subscribe('log')
-  setStoreChangedRecently()
   scrollToBottom()
 })
 
@@ -77,51 +75,27 @@ function onSentinelVisibility(visible: boolean) {
 }
 
 function scrollToBottom() {
-  const pos = scrollArea.value.getScroll()
+    const pos = scrollArea.value.getScroll()
     const maxPos = pos.verticalSize - pos.verticalContainerSize
-    scrollArea.value.setScrollPosition('vertical', maxPos, 100)
-
+    scrollArea.value.setScrollPosition('vertical', maxPos, 200)
 }
 
-const storeChangedRecently = ref(false)
-let resetTimer: ReturnType<typeof setTimeout> | null = null
-function setStoreChangedRecently() {
-  storeChangedRecently.value = true
-  if (resetTimer) {
-    clearTimeout(resetTimer)
+function resetKeepAtBottom() {
+    keepAtBottom.value = false
+}
+
+
+function onScroll() {
+  if (keepAtBottom.value) {
+    scrollToBottom()
   }
-  // only reset after X seconds of no changes
-  resetTimer = setTimeout(() => { 
-    storeChangedRecently.value = false
-    resetTimer = null
-  }, 1000)
 }
 
-const debouncedCheckForUserScroll = debounce(checkForUserScroll, 50)
-function checkForUserScroll() {
-  setTimeout(() => { 
-    // scrolls without any store changes are user scrolls, turn off keepAtBottom
-    if (!storeChangedRecently.value) {
-      keepAtBottom.value = false
-    }
-  }, 50)
-}
-
-watch(store.topics['log'] ?? [], debounce(setStoreChangedRecently, 10))
-
-watch(keepAtBottom, (newVal) => {
-  if (newVal) {
-    setStoreChangedRecently()
+watch(keepAtBottom, (val) => {
+  if (val) {
     scrollToBottom()
   }
 })
-
-function onScroll() {
-    debouncedCheckForUserScroll()
-    if (keepAtBottom.value) {
-      scrollToBottom()
-    }
-}
 
 
 </script>
