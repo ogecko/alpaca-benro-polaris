@@ -4,10 +4,8 @@
       <q-toolbar>
         <q-btn flat dense round @click="toggleLeftDrawer" aria-label="Menu" >
           <q-avatar>
-          <q-img src="icons/favicon-128x128.png" style="width: 35px; height: 35px;"/>
-
+            <q-img src="icons/favicon-128x128.png" style="width: 35px; height: 35px;"/>
           </q-avatar>
-
         </q-btn>
         <q-btn flat no-caps no-wrap to="/" v-if="$q.screen.gt.xs">
           <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>

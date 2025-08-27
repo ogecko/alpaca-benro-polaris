@@ -5,6 +5,11 @@
         Alpaca Driver Logfile
         <q-badge v-if="isAtBottom" size="lg" color="primary">Live</q-badge>
       </div>
+      <div class="col q-gutter-sm flex justify-end">
+        <q-btn-dropdown rounded color="grey-9" label="Log Settings" >
+          <LogSettings />
+        </q-btn-dropdown>
+      </div>
       <div class="col-auto q-gutter-sm flex justify-end">
         <q-toggle class='col' label="Live" v-model="keepAtBottom"/>
       </div>
@@ -31,6 +36,7 @@ import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useStreamStore } from 'stores/stream'
 import type { TelemetryRecord } from 'stores/stream'
 import type { ComponentPublicInstance } from 'vue'
+import LogSettings from 'components/LogSettings.vue'
 
 export type QScrollAreaScrollEvent = {
   ref: ComponentPublicInstance

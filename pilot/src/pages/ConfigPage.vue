@@ -171,55 +171,6 @@
             </div>
           </q-card>
         </div>
-        <!-- Protocol Logging -->
-        <div class="col-md-6 col-lg-4 flex">
-          <q-card flat bordered class="q-pa-md">
-            <div class="text-h6">Protocol Log Settings</div>
-            <div class="row">
-              <div class="col-12 text-caption text-grey-6 q-pb-md">
-                Select which messages to log, such as those from Alpaca clients (NINA, CCDciel, Pilot), 
-                SynScan apps (Stellarium), and the messages sent to the Benro Polaris.              
-              </div>
-            </div>
-            <div class="row q-mb-md">
-              <q-select
-                class="col-12 q-pb-md" 
-                filled
-                v-bind="bindField('log_level', 'Log Detail and Verbosity Level')"
-                :options="[
-                  { label: 'DEBUG – Detailed diagnostic logs', value: 'DEBUG' },
-                  { label: 'INFO – Default routine logging information', value: 'INFO' },
-                  { label: 'WARNING – Only log unexpected issues and above', value: 'WARNING' },
-                  { label: 'ERROR – Only log serious functional problems', value: 'ERROR' },
-                  { label: 'CRITICAL – Only log fatal system errors', value: 'CRITICAL' }
-                ]"
-                emit-value
-                map-options/>
-            </div>
-            <div class="q-gutter-y-sm">
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_alpaca_protocol', 'Log Alpaca Protocol')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Alpaca Polling')"/>
-              </div>
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_alpaca_discovery', 'Log Alpaca Discovery')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Action Invokation')"/>
-              </div>
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_rotator_protocol', 'Log Rotator Protocol')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_pulse_guiding', 'Log Pulse Guiding')"/>
-              </div>
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_synscan_protocol', 'Log SynSCAN Protocol')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_synscan_polling', 'Log SynSCAN Polling')"/>
-              </div>
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_polaris_protocol', 'Log Benro Polaris Protocol')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_polaris_polling', 'Log Benro Polaris Polling')"/>
-              </div>
-            </div>
-          </q-card>
-        </div>
         <!-- Performance Logging -->
         <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
