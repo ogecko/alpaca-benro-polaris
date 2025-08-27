@@ -1,7 +1,8 @@
 <template>
-  <q-page class="q-pa-md">
-    <div class="row q-col-gutter-lg items-center">
-      <div class="col text-h6 q-mb-md">
+  <q-page class="q-pa-sm column">
+    <!-- Header Row -->
+    <div class="row q-pb-sm q-col-gutter-lg items-center">
+      <div class="col text-h6 q-ml-md">
         Alpaca Driver Logfile
         <q-badge v-if="isAtBottom" size="lg" color="primary">Live</q-badge>
       </div>
@@ -14,9 +15,9 @@
         <q-toggle class='col' label="Live" v-model="keepAtBottom"/>
       </div>
     </div>
-
-    <q-card flat bordered>
-      <q-card-section style="font-family: monospace;" >
+    <!-- Log card fills rest -->
+    <q-card flat bordered class="col">
+      <q-card-section class="column" style="font-family: monospace;" >
         <q-scroll-area ref="scrollArea" @scroll="onScroll"  style="height: 80vh; font-family: monospace;" class="text-body1"
           @wheel="resetKeepAtBottom" @click="resetKeepAtBottom" @touchstart="resetKeepAtBottom">
           <div>
