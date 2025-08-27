@@ -1,6 +1,6 @@
 <template>
   <q-page class="q-pa-sm">
-        <!-- Header Row -->
+    <!-- Header Row -->
     <div class="row q-pb-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
         Alpaca Driver Logfile
@@ -11,7 +11,7 @@
       </div>
       <q-space />
       <div class="q-gutter-md flex justify-end q-mr-md">
-        <q-btn-dropdown rounded color="grey-9" label="Log Settings" >
+        <q-btn-dropdown rounded color="grey-9" label="Log Settings" :content-style="{ width: '600px' }">
           <LogSettings />
         </q-btn-dropdown>
         <q-toggle dense label="Live" v-model="keepAtBottom"/>

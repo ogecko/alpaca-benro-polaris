@@ -1,9 +1,8 @@
 
 
 <template>
-    <!-- Protocol Logging -->
-    <div class="col-md-6 col-lg-4 flex">
-        <q-card flat bordered class="q-pa-md">
+    <q-card flat bordered class="q-pa-md">
+        <!-- Logging Settings Heading -->
         <div class="text-h6">Protocol Log Settings</div>
         <div class="row">
             <div class="col-12 text-caption text-grey-6 q-pb-md">
@@ -11,6 +10,7 @@
             SynScan apps (Stellarium), and the messages sent to the Benro Polaris.              
             </div>
         </div>
+        <!-- Logging Level -->
         <div class="row q-mb-md">
             <q-select
             class="col-12 q-pb-md" 
@@ -26,6 +26,7 @@
             emit-value
             map-options/>
         </div>
+        <!-- Logging Flags -->
         <div class="q-gutter-y-sm">
             <div class="row">
             <q-toggle class='col-6' v-bind="bindField('log_alpaca_protocol', 'Log Alpaca Protocol')"/>
@@ -48,8 +49,7 @@
             <q-toggle class='col-6' v-bind="bindField('log_polaris_polling', 'Log Benro Polaris Polling')"/>
             </div>
         </div>
-        </q-card>
-    </div>
+    </q-card>
 </template>
 
 <script setup lang="ts">

@@ -58,58 +58,6 @@
             </div>
           </q-card>
         </div>
-        <!-- Network -->
-        <div class="col-md-6 col-lg-4 flex">
-          <q-card flat bordered class="q-pa-md">
-            <div class="text-h6">Network Services</div>
-            <div class="row">
-              <div class="col-12 text-caption text-grey-6 q-pb-md">
-                The Alpaca Driver provides several network services for external aplications to use the Benro Polaris. Changes to Network Services require saving to take effect. 
-              </div>
-            </div>
-            <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' v-bind="bindField('enable_restapi', 'Alpaca REST API Service')"/>
-                <q-input class="col-4" v-bind="bindField('alpaca_restapi_port', 'Port')"
-                  type="number"  input-class="text-right" :style="{ visibility: cfg.enable_restapi ? 'visible' : 'hidden' }">
-                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-                </q-input>
-              </div>
-                <q-banner v-if="!cfg.enable_restapi" inline-actions rounded class="bg-warning">
-                    WARNING: The Alpaca REST API is required for Nina, Stellarium and Alpaca Pilot.
-                </q-banner>
-                <q-banner v-if="cfg.alpaca_restapi_port!=dev.alpacaPort" inline-actions rounded class="bg-warning">
-                    WARNING: The Alpaca REST API port will change. Please reconnect Alpaca Pilot when prompted. 
-                </q-banner>
-            <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' v-bind="bindField('enable_discovery', 'Alpaca Discovery Service')"/>
-                <q-input class="col-4" v-bind="bindField('alpaca_discovery_port', 'Port')"
-                  type="number" input-class="text-right" :style="{ visibility: cfg.enable_discovery ? 'visible' : 'hidden' }">
-                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-                </q-input>
-            </div>
-            <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>
-                <q-input class="col-4" v-bind="bindField('alpaca_pilot_port', 'Port')"
-                  type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
-                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-                </q-input>
-            </div>
-            <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' v-bind="bindField('enable_socket', 'Alpaca Pilot Socket IO')"/>
-                <q-input class="col-4" v-bind="bindField('alpaca_socket_port', 'Port')"
-                  type="number" input-class="text-right" :style="{ visibility: cfg.enable_socket ? 'visible' : 'hidden' }">
-                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-                </q-input>
-            </div>
-            <div class="row q-col-gutter-sm no-wrap">
-              <q-toggle class='col-8' v-bind="bindField('enable_synscan', 'SynSCAN API Service')"/>
-              <q-input class="col-4" v-bind="bindField('stellarium_synscan_port', 'Port')"
-                type="number" input-class="text-right" :style="{ visibility: cfg.enable_synscan ? 'visible' : 'hidden' }">
-                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-              </q-input>
-            </div>
-          </q-card>
-        </div>
         <!-- Advanced Features -->
         <div class="col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">

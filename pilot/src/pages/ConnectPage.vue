@@ -1,5 +1,20 @@
 <template>
   <q-page class="q-pa-sm">
+    <!-- Header Row -->
+    <div class="row q-pb-sm q-col-gutter-md items-center">
+      <div class="col text-h6 q-ml-md">
+        Device Connections
+        <div class="text-caption text-grey-6">
+        Connect to the Alpaca Driver and Benro Polaris.
+       </div>
+      </div>
+      <q-space />
+      <div class="q-gutter-md flex justify-end q-mr-md">
+        <q-btn-dropdown rounded color="grey-9" label="Network Services" :content-style="{ width: '600px' }">
+          <NetworkSettings />
+        </q-btn-dropdown>
+      </div>
+    </div>
     <div class="row q-col-gutter-sm items-stretch">
       <div class="col-12 col-md-6 flex">
         <!-- Section 1: Connect Alpaca -->
@@ -192,6 +207,7 @@
 import { useQuasar } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { ref, watch } from 'vue'
+import NetworkSettings from 'components/NetworkSettings.vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
