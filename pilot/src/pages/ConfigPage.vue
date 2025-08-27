@@ -9,30 +9,25 @@
       </q-banner>
     </div>
     <div v-else>
-      <div class="row q-col-gutter-sm q-pb-sm">
-        <div class="col">
-          <!-- Page Heading -->
-          <q-card flat bordered class="q-pa-md">
-            <div class="text-h5">Alpaca Driver Settings</div>
-            <div v-if="!cfg.fetchedAt" class="text-negative">
-              <q-separator spaced />
-              Configuration not loaded.
-            </div>
-              <div class="row q-col-gutter-lg items-center">
-                <div class="col text-caption text-grey-6">
-                  Changes in Alpaca Pilot Settings apply immediately. Click Save to keep them after restarting. 
-                  Click Restore to reset all settings back to Config.toml defaults.
-                </div>
-                <div class="col-auto q-gutter-sm flex justify-end items-center">
-                  <q-btn outline size="md" color="grey-5"  label="Save" 
-                         @click="save" :disable="cfg.isSaving" :loading="cfg.isSaving" />
-                  <q-btn outline color="grey-5"  label="Restore" 
-                         @click="restore" :disable="cfg.isRestoring" :loading="cfg.isRestoring"/>
-                </div>
-              </div>
-          </q-card>
+      <!-- Header Row -->
+      <div class="row q-pb-sm q-col-gutter-md items-center">
+        <div class="col text-h6 q-ml-md">
+          Alpaca Driver Settings
+          <div class="text-caption text-grey-6">
+          Settings take effect instantly. Click Save to persist after restart, or Restore to revert to Config.toml defaults.
+        </div>
+        </div>
+        <q-space />
+        <div class="q-gutter-md flex justify-end q-mr-md">
+          <div class="col-auto q-gutter-sm flex justify-end items-center">
+            <q-btn  rounded  color="grey-9"  label="Save" 
+                    @click="save" :disable="cfg.isSaving" :loading="cfg.isSaving" />
+            <q-btn rounded color="grey-9"  label="Restore" 
+                    @click="restore" :disable="cfg.isRestoring" :loading="cfg.isRestoring"/>
+          </div>
         </div>
       </div>
+      <!-- Page Body -->
       <div class="row q-col-gutter-sm items-stretch">
         <!-- Site Info -->
         <div class="col-md-6 col-lg-4 flex">

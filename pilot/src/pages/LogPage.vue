@@ -1,7 +1,7 @@
 <template>
-  <q-page class="column">
+  <q-page class="q-pa-sm">
         <!-- Header Row -->
-    <div class="row q-col-gutter-md items-center">
+    <div class="row q-pb-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
         Alpaca Driver Logfile
         <q-badge v-if="isAtBottom" size="lg" color="primary">Live</q-badge>
@@ -21,7 +21,7 @@
     <!-- Log card fills rest -->
     <q-card flat bordered class="col">
       <q-card-section class="column" style="font-family: monospace;" >
-        <q-scroll-area ref="scrollArea" @scroll="onScroll"  style="height: 80vh; font-family: monospace;" class="text-body1"
+        <q-scroll-area ref="scrollArea" @scroll="onScroll"  style="height: 85vh; font-family: monospace;" class="text-body1"
           @wheel="resetKeepAtBottom" @click="resetKeepAtBottom" @touchstart="resetKeepAtBottom">
           <div>
             <div v-for="(entry, index) in logEntries" :key="index">
