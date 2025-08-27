@@ -72,6 +72,7 @@ export const useStreamStore = defineStore('telemetry', {
 
     unsubscribe(topic: string) {
       this.subscriptions.delete(topic)
+      this.topics[topic] = []
       if (this.connected && this.socket) {
         this.socket.send(JSON.stringify({ type: 'unsubscribe', topic }))
       }

@@ -33,6 +33,13 @@ async def socket_handler(websocket: WebSocket):
                 filter_args = msg.get("filter", {})
                 if topic:
                     subscriptions.setdefault(topic, {})[websocket] = filter_args
+                    # Send backlog if available
+                    backlog = PublishLogTopic.get_backlog(topic)
+                    for entry in backlog:
+                        try:
+                            await websocket.send_json(entry)
+                        except Exception:
+                            _remove_client(websocket)
 
             elif msg_type == "unsubscribe":
                 topic = msg.get("topic")
