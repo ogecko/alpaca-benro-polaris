@@ -71,15 +71,15 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         web_app.add_route('/{path}', QuasarStaticResource())                 # root resources, fallback to index.html when not found
         web_app.add_route('/', QuasarStaticResource())                       # root, fallback to index.html when nothing provided
 
-    # Create a http server
-    pilot_config = uvicorn.Config(web_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_pilot_port, log_level="error")
-    pilot_server = uvicorn.Server(pilot_config)
-    logger.info(f'==STARTUP== Serving Alpaca Pilot Web Server on {Config.alpaca_restapi_ip_address}:{Config.alpaca_pilot_port}.')
-
     # Serve the application
     try:
+        # Create a http server
+        pilot_config = uvicorn.Config(web_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_pilot_port, log_level="error")
+        pilot_server = uvicorn.Server(pilot_config)
+        logger.info(f'==STARTUP== Serving Alpaca Pilot Web Server on {Config.alpaca_restapi_ip_address}:{Config.alpaca_pilot_port}.')
+
         await asyncio.gather(
-            pilot_server.serve(),
+            lifecycle._wrap(pilot_server.serve()),
             lifecycle.wait_for_event()
         )
     except asyncio.CancelledError:
@@ -89,5 +89,6 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     finally:
         # shutdown the server
         logger.info("==SHUTDOWN== Alpaca Web Server shutting down.")
-        await pilot_server.shutdown()
+        if pilot_server and pilot_server.started and getattr(pilot_server, "_server", None):
+            await pilot_server.shutdown()
 

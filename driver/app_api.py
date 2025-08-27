@@ -103,15 +103,16 @@ async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
         rest_app.add_route(f'/setup/v{API_VERSION}/telescope/0/setup', RedirectResource())
         rest_app.add_route(f'/setup/v{API_VERSION}/rotator/0/setup', RedirectResource())
 
-    # Create a http server
-    alpaca_config = uvicorn.Config(rest_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_restapi_port, log_level="error")
-    alpaca_server = uvicorn.Server(alpaca_config)
-    logger.info(f'==STARTUP== Serving ASCOM Alpaca REST API on {Config.alpaca_restapi_ip_address}:{Config.alpaca_restapi_port}. Time stamps are UTC.')
 
     # Serve the application
     try:
+        # Create a http server
+        alpaca_config = uvicorn.Config(rest_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_restapi_port, log_level="error")
+        alpaca_server = uvicorn.Server(alpaca_config)
+        logger.info(f'==STARTUP== Serving ASCOM Alpaca REST API on {Config.alpaca_restapi_ip_address}:{Config.alpaca_restapi_port}. Time stamps are UTC.')
+
         await asyncio.gather(
-            alpaca_server.serve(),
+            lifecycle._wrap(alpaca_server.serve()),
             lifecycle.wait_for_event()
         )
     except asyncio.CancelledError:
@@ -120,7 +121,8 @@ async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
         logger.info(f"==EXCEPTIION== Alpaca REST API Unhandled exception: {e}")
     finally:
         logger.info("==SHUTDOWN== Alpaca REST API shutting down.")
-        await alpaca_server.shutdown()
+        if alpaca_server and alpaca_server.started and getattr(alpaca_server, "_server", None):
+            await alpaca_server.shutdown()
 
 
 
