@@ -1,24 +1,26 @@
 <template>
   <q-layout view="hHh LpR fFf" class="dark-page">
-    <q-header elevated class="q-py-xs" height-hint="58">
+    <q-header elevated height-hint="58">
       <q-toolbar>
-        <q-btn flat dense round
-          @click="toggleLeftDrawer"
-          aria-label="Menu"
-          icon="mdi-menu"
-        />
+        <q-btn flat dense round @click="toggleLeftDrawer" aria-label="Menu" >
+          <q-avatar>
+          <q-img src="icons/favicon-128x128.png" style="width: 35px; height: 35px;"/>
 
-        <q-btn flat no-caps no-wrap class="q-ml-xs" to="/" v-if="$q.screen.gt.xs">
-          <q-toolbar-title shrink class="text-weight-bold">
-            Alpaca Pilot
-          </q-toolbar-title>
+          </q-avatar>
+
         </q-btn>
-
+        <q-btn flat no-caps no-wrap to="/" v-if="$q.screen.gt.xs">
+          <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
+        </q-btn>
+        <q-tabs inline-label class="wide-indicator">
+          <q-route-tab icon="mdi-power" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect"/>
+          <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
+          <q-route-tab icon="mdi-database-clock-outline" :label="$q.screen.gt.sm ? 'Logs' : ''" to="/log"/>
+        </q-tabs>
         <q-space />
-
-        <div class="YL__toolbar-input-container row no-wrap">
-          <q-input dense outlined square v-model="search" placeholder="Search" class="bg-blue-9 col" />
-          <q-btn class="YL__toolbar-input-btn" color="grey-4" text-color="grey-8" icon="mdi-magnify" unelevated />
+        <div class="row no-wrap q-pl-md">
+          <q-input dense outlined square v-model="search" placeholder="Search" class="bg-blue-9 " />
+          <q-btn color="grey-4" text-color="grey-8" icon="mdi-magnify" unelevated />
         </div>
 
         <q-space />
@@ -46,20 +48,9 @@
       class="dark-page"
       :width="200"
     >
-      <q-separator class="q-my-md" />
 
       <q-scroll-area class="fit">
         <q-list dense>
-          <q-item v-for="link in links1" :key="link.text" :to="link.to" v-ripple clickable>
-            <q-item-section avatar>
-              <q-icon color="grey" :name="link.icon" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>{{ link.text }}</q-item-label>
-            </q-item-section>
-          </q-item>
-
-          <q-separator class="q-my-md" />
 
           <q-item-label header class="text-weight-bold text-uppercase">
             Deep Sky Objects
@@ -194,12 +185,6 @@ function getBatteryIcon(): string {
   return 'mdi-battery-alert'
 }
 
-  const links1 = [
-    { icon: 'mdi-home', text: 'Home', to: '/' },
-    { icon: 'mdi-power', text: 'Connections', to: '/connect' },
-    { icon: 'mdi-cog-outline', text: 'Settings', to: '/config' },
-    { icon: 'mdi-database-clock-outline', text: 'Log', to: '/log' },
-  ]
   const links2 = [
     { icon: 'mdi-flare', text: 'Stars' },
     { icon: 'mdi-horse-variant', text: 'Nebulae' },
@@ -236,27 +221,22 @@ function getBatteryIcon(): string {
 
 </script>
 
-<style lang="sass">
-.YL
+<style scoped lang="scss">
+.wide-indicator {
+  ::v-deep(.q-tab__indicator) {
+    height: 6px;
+    background-color: $blue-3;
+  }
+}
 
-  &__toolbar-input-container
-    min-width: 100px
-    width: 55%
+.YL__drawer-footer-link {
+  color: var(--q-color-grey-7);
+  font-size: 0.75rem;
+  text-decoration: none;
+  cursor: pointer;
 
-  &__toolbar-input-btn
-    border-radius: 0
-    border-style: solid
-    border-width: 1px 1px 1px 0
-    border-color: rgba(0,0,0,.24)
-    max-width: 60px
-    width: 100%
-
-  &__drawer-footer-link
-    color: inherit
-    text-decoration: none
-    font-weight: 500
-    font-size: .75rem
-
-    &:hover
-      color: #000
+  &:hover {
+    text-decoration: underline;
+  }
+}
 </style>

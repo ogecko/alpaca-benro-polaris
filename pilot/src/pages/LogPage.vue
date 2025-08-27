@@ -12,7 +12,7 @@
 
     <q-card flat bordered>
       <q-card-section style="font-family: monospace;" >
-        <q-scroll-area ref="scrollArea" @scroll="onScroll"  style="height: 80vh; font-family: monospace;"
+        <q-scroll-area ref="scrollArea" @scroll="onScroll"  style="height: 80vh; font-family: monospace;" class="text-body1"
           @wheel="resetKeepAtBottom" @click="resetKeepAtBottom" @touchstart="resetKeepAtBottom">
           <div>
             <div v-for="(entry, index) in logEntries" :key="index">

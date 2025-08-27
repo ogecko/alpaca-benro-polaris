@@ -100,7 +100,7 @@
                 </q-input>
             </div>
             <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' v-bind="bindField('enable_socket', 'Alpaca Pilot SocketIO')"/>
+                <q-toggle class='col-8' v-bind="bindField('enable_socket', 'Alpaca Pilot Socket IO')"/>
                 <q-input class="col-4" v-bind="bindField('alpaca_socket_port', 'Port')"
                   type="number" input-class="text-right" :style="{ visibility: cfg.enable_socket ? 'visible' : 'hidden' }">
                   <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
