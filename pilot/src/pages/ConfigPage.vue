@@ -73,7 +73,7 @@
               </div>
             </div>
             <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' v-bind="bindField('enable_restapi', 'Alpaca REST API')"/>
+                <q-toggle class='col-8' v-bind="bindField('enable_restapi', 'Alpaca REST API Service')"/>
                 <q-input class="col-4" v-bind="bindField('alpaca_restapi_port', 'Port')"
                   type="number"  input-class="text-right" :style="{ visibility: cfg.enable_restapi ? 'visible' : 'hidden' }">
                   <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
@@ -86,21 +86,28 @@
                     WARNING: The Alpaca REST API port will change. Please reconnect Alpaca Pilot when prompted. 
                 </q-banner>
             <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' v-bind="bindField('enable_discovery', 'Alpaca Discovery')"/>
+                <q-toggle class='col-8' v-bind="bindField('enable_discovery', 'Alpaca Discovery Service')"/>
                 <q-input class="col-4" v-bind="bindField('alpaca_discovery_port', 'Port')"
                   type="number" input-class="text-right" :style="{ visibility: cfg.enable_discovery ? 'visible' : 'hidden' }">
                   <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
                 </q-input>
             </div>
             <div class="row q-col-gutter-sm no-wrap">
-                <q-toggle class='col-8' v-bind="bindField('enable_pilot', 'Alpaca Pilot')"/>
+                <q-toggle class='col-8' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>
                 <q-input class="col-4" v-bind="bindField('alpaca_pilot_port', 'Port')"
                   type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
                   <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
                 </q-input>
             </div>
             <div class="row q-col-gutter-sm no-wrap">
-              <q-toggle class='col-8' v-bind="bindField('enable_synscan', 'SynSCAN API')"/>
+                <q-toggle class='col-8' v-bind="bindField('enable_socket', 'Alpaca Pilot SocketIO')"/>
+                <q-input class="col-4" v-bind="bindField('alpaca_socket_port', 'Port')"
+                  type="number" input-class="text-right" :style="{ visibility: cfg.enable_socket ? 'visible' : 'hidden' }">
+                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
+                </q-input>
+            </div>
+            <div class="row q-col-gutter-sm no-wrap">
+              <q-toggle class='col-8' v-bind="bindField('enable_synscan', 'SynSCAN API Service')"/>
               <q-input class="col-4" v-bind="bindField('stellarium_synscan_port', 'Port')"
                 type="number" input-class="text-right" :style="{ visibility: cfg.enable_synscan ? 'visible' : 'hidden' }">
                 <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>

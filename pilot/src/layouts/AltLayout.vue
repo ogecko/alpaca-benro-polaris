@@ -198,6 +198,7 @@ function getBatteryIcon(): string {
     { icon: 'mdi-home', text: 'Home', to: '/' },
     { icon: 'mdi-power', text: 'Connections', to: '/connect' },
     { icon: 'mdi-cog-outline', text: 'Settings', to: '/config' },
+    { icon: 'mdi-database-clock-outline', text: 'Log', to: '/log' },
   ]
   const links2 = [
     { icon: 'mdi-flare', text: 'Stars' },

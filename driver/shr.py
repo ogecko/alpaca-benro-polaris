@@ -424,8 +424,12 @@ class LifecycleController:
             await coro
         except asyncio.CancelledError:
             logger.debug("Lifecycle Wrap: Task cancelled")
-        except Exception as e:
-            logger.exception("Lifecycle Wrap: Unhandled exception in task: %s", e)
+        except SystemExit as exc:
+            logger.error(f"Lifecycle Wrap: Task SystemExit: {exc}")
+            raise RuntimeError("SystemExit in task") from exc
+        except Exception as exc:
+            co_name = coro.cr_code.co_name
+            logger.exception(f"Lifecycle Wrap: Task {co_name} Unhandled exception: {exc}")
 
     async def shutdown_tasks(self, timeout: float = 5.0):
         if self._event == LifecycleEvent.NONE:
@@ -434,7 +438,24 @@ class LifecycleController:
             task.cancel()
         _, pending = await asyncio.wait(self._tasks, timeout=timeout)
         if pending:
-            logger.warning("==SHUTDOWN==Tasks still pending: %s", pending)
+            logger.warning(f"==SHUTDOWN==Tasks still pending: {pending}")
+
+    async def shutdown_tasks(self, timeout: float = 5.0):
+        if self._event == LifecycleEvent.NONE:
+            await self.signal(LifecycleEvent.SHUTDOWN)
+        for task in list(self._tasks):
+            task.cancel()
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*self._tasks, return_exceptions=True),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            logger.warning("==SHUTDOWN==Timeout while waiting for tasks to cancel")
+        pending = [t for t in self._tasks if not t.done()]
+        if pending:
+            logger.warning(f"==SHUTDOWN==Tasks still pending: {pending}")
+
 
     def should_stop(self) -> bool:
         return self._event in {LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT}

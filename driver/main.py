@@ -46,6 +46,7 @@ import rotator
 import stellarium
 import app_api
 import app_web
+import app_socket
 from pathlib import Path
 import os
 from polaris import Polaris
@@ -117,6 +118,7 @@ async def run_all(logger, lifecycle: LifecycleController):
     tasks = [
         lifecycle.create_task(polaris.client(logger), name='Polaris'),
         lifecycle.create_task(app_api.alpaca_rest_httpd(logger, lifecycle), name='RestAPI'),
+        lifecycle.create_task(app_socket.alpaca_socket_httpd(logger, lifecycle), name='Sockets'),
         lifecycle.create_task(app_web.alpaca_pilot_httpd(logger, lifecycle), name='Pilot'),
         lifecycle.create_task(discovery.socket_client(logger, lifecycle), name='Discovery'),
         lifecycle.create_task(stellarium.synscan_api(logger, lifecycle), name='SynscanAPI')
