@@ -13,7 +13,7 @@
       <div class="row q-pb-sm q-col-gutter-md items-center">
         <div class="col text-h6 q-ml-md">
           Alpaca Driver Settings
-          <div class="text-caption text-grey-6">
+          <div v-if="$q.screen.gt.xs" class="text-caption text-grey-6">
           Settings take effect instantly. Click Save to persist after restart, or Restore to revert to Config.toml defaults.
         </div>
         </div>

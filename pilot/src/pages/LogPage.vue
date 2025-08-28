@@ -5,7 +5,7 @@
       <div class="col text-h6 q-ml-md">
         Alpaca Driver Logfile
         <q-badge v-if="isAtBottom" size="lg" color="primary">Live</q-badge>
-        <div class="text-caption text-grey-6">
+        <div v-if="$q.screen.gt.xs" class="text-caption text-grey-6">
         Monitor device status, activity, communications, and events in real time 
        </div>
       </div>

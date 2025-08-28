@@ -4,7 +4,7 @@
     <div class="row q-pb-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
         Device Connections
-        <div class="text-caption text-grey-6">
+        <div v-if="$q.screen.gt.xs" class="text-caption text-grey-6">
         Connect to the Alpaca Driver and Benro Polaris.
        </div>
       </div>
