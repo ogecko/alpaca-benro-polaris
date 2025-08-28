@@ -2,7 +2,7 @@
 
 <template>
   <q-page class="q-pa-sm">
-    <div v-if="!dev.alpacaConnected" >
+    <div v-if="!dev.restAPIConnected" >
       <q-banner inline-actions rounded class="bg-warning">
         WARNING: You have lost connection to the Alpaca Driver. This app is offline.
         <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
@@ -168,9 +168,9 @@ const poll = new PollingManager()
 
 onMounted(async () => {
   const shouldFetch =
-    dev.alpacaConnected &&
-    dev.alpacaConnectedAt &&
-    cfg.fetchedAt < dev.alpacaConnectedAt
+    dev.restAPIConnected &&
+    dev.restAPIConnectedAt &&
+    cfg.fetchedAt < dev.restAPIConnectedAt
 
   if (shouldFetch) {
     await cfg.configFetch()

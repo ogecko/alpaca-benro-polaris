@@ -97,19 +97,19 @@ onMounted(async () => {
     : route.query.api
 
   if (apiParam) {
-    dev.alpacaPort = parseInt(apiParam)
+    dev.restAPIPort = parseInt(apiParam)
   }
 
   if (!dev.alpacaHost && window.location.hostname) {
     dev.alpacaHost = window.location.hostname
   }
 
-  if (!dev.alpacaPort && window.location.port) {
-    dev.alpacaPort = parseInt(window.location.port)
+  if (!dev.restAPIPort && window.location.port) {
+    dev.restAPIPort = parseInt(window.location.port)
   }
 
-  if (dev.alpacaHost && dev.alpacaPort) {
-    await dev.connectAlpaca()
+  if (dev.alpacaHost && dev.restAPIPort) {
+    await dev.connectRestAPI()
   }
 })
 

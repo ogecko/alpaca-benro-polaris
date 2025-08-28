@@ -64,9 +64,9 @@ const cfg = useConfigStore()
 
 onMounted(async () => {
   const shouldFetch =
-    dev.alpacaConnected &&
-    dev.alpacaConnectedAt &&
-    cfg.fetchedAt < dev.alpacaConnectedAt
+    dev.restAPIConnected &&
+    dev.restAPIConnectedAt &&
+    cfg.fetchedAt < dev.restAPIConnectedAt
 
   if (shouldFetch) {
     await cfg.configFetch()

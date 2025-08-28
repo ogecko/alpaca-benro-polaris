@@ -7,14 +7,14 @@ import { sleep } from 'src/utils/sleep'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
-    alpacaHost: '',                 // Hostname of Alpaca API
-    alpacaPort: 5555,               // Port of Alpaca API
+    alpacaHost: '',                 // Hostname of Alpaca Driver
+    restAPIPort: 5555,              // Port of Alpaca REST API
+    restAPIConnectingMsg: '',       // Message to show while connecting in progress
+    restAPIConnectErrorMsg: '',     // Message to show when there is a connection error
+    restAPIConnected: false,        // Indicates whether connection to Alpaca API was successful
+    restAPIConnectedAt: 0,          // Timestamp of last successful alpaca connection
     alpacaClientID: 860,            // ClientID of Alpaca Pilot App
     alpacaClientTransactionID: 1000,// ClientTransactionID of Alpaca Pilot App
-    alpacaConnectingMsg: '',        // Message to show while connecting in progress
-    alpacaConnectErrorMsg: '',      // Message to show when there is a connection error
-    alpacaConnected: false,         // Indicates whether connection to Alpaca API was successful
-    alpacaConnectedAt: 0,           // Timestamp of last successful alpaca connection
     alpacaServerName: '',           // fetched from /management/v1/description
     alpacaServerVersion: '',        // fetched from /management/v1/description
     alpacaDevices: [] as string[],  // fetched from /management/v1/configureddevices
@@ -24,11 +24,11 @@ export const useDeviceStore = defineStore('device', {
   }),
 
   actions: {
-    async connectAlpaca() {
+    async connectRestAPI() {
       this.$patch({
-        alpacaConnectingMsg: 'Connecting...',
+        restAPIConnectingMsg: 'Connecting...',
         alpacaClientID: 8000+Math.floor(Math.random()*1000),
-        alpacaConnectErrorMsg: '',
+        restAPIConnectErrorMsg: '',
         alpacaServerName: '',
         alpacaServerVersion: '',
         alpacaDevices: []
@@ -38,18 +38,19 @@ export const useDeviceStore = defineStore('device', {
           await this.fetchServerDescription();
           await this.fetchConfiguredDevices();
           await this.fetchSupportedActions();
-          this.alpacaConnected = true;
-          this.alpacaConnectedAt = Date.now();
+          this.restAPIConnected = true;
+          this.restAPIConnectedAt = Date.now();
+          this.restAPIConnectErrorMsg = ''
         } catch {
-          // alpacaConnectErrorMsg is already set inside apiGet
-          this.alpacaConnected = false;
+          // restAPIConnectErrorMsg is already set inside apiGet
+          this.restAPIConnected = false;
         } finally {
-          this.alpacaConnectingMsg = '';
+          this.restAPIConnectingMsg = '';
         }
     },
 
-    disconnectAlpaca() {
-      this.alpacaConnected = false
+    disconnectRestAPI() {
+      this.restAPIConnected = false
     },
 
     async fetchServerDescription() {
@@ -84,7 +85,7 @@ export const useDeviceStore = defineStore('device', {
       const ClientID = this.alpacaClientID
       const ClientTransactionID = this.alpacaClientTransactionID
       const isPut = body
-      const baseUrl = `http://${this.alpacaHost}:${this.alpacaPort}`;
+      const baseUrl = `http://${this.alpacaHost}:${this.restAPIPort}`;
       const url = isPut ? `${baseUrl}/${resourcePath}`
         : `${baseUrl}/${resourcePath}?ClientID=${ClientID}&ClientTransactionID=${ClientTransactionID}`;
 
@@ -119,27 +120,27 @@ export const useDeviceStore = defineStore('device', {
 
       } catch (error: unknown) {
         if (error instanceof AlpacaResponseError) {
-          this.alpacaConnectErrorMsg = error.message;
+          this.restAPIConnectErrorMsg = error.message;
           console.error(error)
         } else if (error instanceof NotFound404Error) {
-          this.alpacaConnectErrorMsg = 'API endpoint not found (404).';
+          this.restAPIConnectErrorMsg = 'API endpoint not found (404).';
         } else if (error instanceof HTMLResponseError) {
-          this.alpacaConnectErrorMsg = 'Received HTML fallback — Alpaca API service may not be running.';
+          this.restAPIConnectErrorMsg = 'Received HTML fallback — Alpaca API service may not be running.';
         } else if (error instanceof NonJSONResponseError) {
-          this.alpacaConnectErrorMsg = 'Received unexpected response format.';
+          this.restAPIConnectErrorMsg = 'Received unexpected response format.';
         } else if (axios.isAxiosError(error)) {
           if (error.code === 'ECONNABORTED') {
-            this.alpacaConnectErrorMsg = 'Connection request timed out.';
-            this.alpacaConnected = false
+            this.restAPIConnectErrorMsg = 'Connection request timed out.';
+            this.restAPIConnected = false
           } else if (error.message?.includes('Network Error')) {
-            this.alpacaConnectErrorMsg = 'Network error — hostname may be unreachable.';
+            this.restAPIConnectErrorMsg = 'Network error — hostname may be unreachable.';
           } else if (!error.response) {
-            this.alpacaConnectErrorMsg = 'No response — device may be offline or DNS failed.';
+            this.restAPIConnectErrorMsg = 'No response — device may be offline or DNS failed.';
           } else {
-            this.alpacaConnectErrorMsg = `Unexpected error: ${error.message || 'Unknown failure'}`;
+            this.restAPIConnectErrorMsg = `Unexpected error: ${error.message || 'Unknown failure'}`;
           }
         } else {
-          this.alpacaConnectErrorMsg = 'Non-Axios error occurred.';
+          this.restAPIConnectErrorMsg = 'Non-Axios error occurred.';
           console.error('Unexpected error type:', error);
         }
         throw error;

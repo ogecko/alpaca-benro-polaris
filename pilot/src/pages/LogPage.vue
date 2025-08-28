@@ -64,7 +64,9 @@ const keepAtBottom = ref(true)
 const scrollArea = ref()
 
 onMounted(() => {
-  store.connect('ws://192.168.50.54:5556/ws')
+  store.socketHost = 'nina01'
+  store.socketPort = 5556
+  store.connectSocket()   //    'ws://192.168.50.54:5556/ws'
   store.subscribe('log')
   scrollToBottom()
 })

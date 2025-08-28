@@ -23,14 +23,14 @@
             <div class="text-h6"><q-checkbox v-model="connectToAlpacaCheckbox" color="positive" label="Connect to Alpaca Driver"/></div>
             <q-list class="q-pl-lg">
 
-              <q-item v-if="dev.alpacaConnectingMsg">
+              <q-item v-if="dev.restAPIConnectingMsg">
                 <q-item-section avatar>
                   <q-circular-progress indeterminate rounded size="lg" color="positive" />
                 </q-item-section>
-                <q-item-section>{{ dev.alpacaConnectingMsg }}</q-item-section>
+                <q-item-section>{{ dev.restAPIConnectingMsg }}</q-item-section>
               </q-item>
 
-              <q-item v-else-if="dev.alpacaConnected">
+              <q-item v-else-if="dev.restAPIConnected">
                 <q-item-section avatar>
                   <q-icon name='mdi-check-circle' color='green'/>
                 </q-item-section>
@@ -43,17 +43,17 @@
                 </q-item-section>
               </q-item>
 
-              <q-item v-if="dev.alpacaConnectErrorMsg">
+              <q-item v-if="dev.restAPIConnectErrorMsg">
                 <q-item-section avatar>
                   <q-icon name='mdi-alert-circle' color='red'/>
                 </q-item-section>
-                <q-item-section>{{ dev.alpacaConnectErrorMsg }}</q-item-section>
+                <q-item-section>{{ dev.restAPIConnectErrorMsg }}</q-item-section>
               </q-item>
 
-              <q-item v-if="!dev.alpacaConnected && !dev.alpacaConnectingMsg">
+              <q-item v-if="!dev.restAPIConnected && !dev.restAPIConnectingMsg">
                 <div class="row items-start">
-                  <q-input class="col-8" v-model="dev.alpacaHost" @keyup.enter="connectToRESTAPI" label="Host Name / IP Address"  />
-                  <q-input class="col-4" label='Port' v-model="dev.alpacaPort" @keyup.enter="connectToRESTAPI" type="number" input-class="text-right">
+                  <q-input class="col-8" v-model="dev.alpacaHost" @keyup.enter="attemmptConnectToAlpaca" label="Host Name / IP Address"  />
+                  <q-input class="col-4" label='Port' v-model="dev.restAPIPort" @keyup.enter="attemmptConnectToAlpaca" type="number" input-class="text-right">
                   <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
                   </q-input>
                 </div>
@@ -149,14 +149,14 @@
         <q-input
           class="col-8"
           v-model="dev.alpacaHost"
-          @keyup.enter="connectToRESTAPI"
+          @keyup.enter="attemmptConnectToAlpaca"
           label="Host Name / IP Address"
         />
         <q-input
           class="col-4"
           label="Port"
-          v-model="dev.alpacaPort"
-          @keyup.enter="connectToRESTAPI"
+          v-model="dev.restAPIPort"
+          @keyup.enter="attemmptConnectToAlpaca"
           type="number"
           input-class="text-right"
         >
@@ -200,7 +200,7 @@ import NetworkSettings from 'components/NetworkSettings.vue'
 const $q = useQuasar()
 const dev = useDeviceStore()
 
-const connectToAlpacaCheckbox = ref(dev.alpacaConnected);
+const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
 const polarisConnected = ref(false)
 const selectedPolarisDevice = ref(null)
 
@@ -219,24 +219,24 @@ const polarisSteps = ref([
 
 watch(connectToAlpacaCheckbox, async (newVal) => {
   if (newVal) {
-    await connectToRESTAPI()
+    await attemmptConnectToAlpaca()
   } else {
-    disconnectFromRESTAPI()
+    attemptDisconnectFromAlpaca()
   }
 })
 
 // disconnect when user unchecks the checkbox
-function disconnectFromRESTAPI() {
-  dev.disconnectAlpaca()
-  connectToAlpacaCheckbox.value = dev.alpacaConnected
+function attemptDisconnectFromAlpaca() {
+  dev.disconnectRestAPI()
+  connectToAlpacaCheckbox.value = dev.restAPIConnected
 }
 
 // connect when user checks the checkbox or presses enter on Host or Port field
-async function connectToRESTAPI() {
-  if (!dev.alpacaConnected) {
-    await dev.connectAlpaca()
-    connectToAlpacaCheckbox.value = dev.alpacaConnected
-    if (dev.alpacaConnected) {
+async function attemmptConnectToAlpaca() {
+  if (!dev.restAPIConnected) {
+    await dev.connectRestAPI()
+    connectToAlpacaCheckbox.value = dev.restAPIConnected
+    if (dev.restAPIConnected) {
       $q.notify({
         message: 'Alpaca Driver successfuly connected.',
         type: 'positive', position: 'top', timeout: 3000,

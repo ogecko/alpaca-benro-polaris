@@ -16,7 +16,7 @@
           </q-btn>
           <q-route-tab v-else icon="mdi-home"  to="/"/>
           <q-route-tab icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect" 
-                      :alert="dev.alpacaConnected?'positive':'negative'" />
+                      :alert="dev.restAPIConnected?'positive':'negative'" />
           <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
           <q-route-tab icon="mdi-database-clock-outline" :label="$q.screen.gt.sm ? 'Logs' : ''" to="/log"/>
         </q-tabs>
