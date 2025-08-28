@@ -1,7 +1,9 @@
 <template>
   <q-layout view="hHh LpR fFf" class="dark-page">
+    <!-- Alpaca Pilot Header Bar -->
     <q-header elevated height-hint="58">
       <q-toolbar>
+        <!-- Alpaca Pilot Title -->
         <q-btn flat dense round @click="toggleLeftDrawer" aria-label="Menu" >
           <q-avatar>
             <q-img src="icons/favicon-128x128.png" style="width: 35px; height: 35px;"/>
@@ -10,11 +12,13 @@
         <q-btn flat no-caps no-wrap to="/" v-if="$q.screen.gt.xs">
           <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
         </q-btn>
+        <!-- Connect, Settings, Logs Tabs -->
         <q-tabs inline-label class="wide-indicator">
           <q-route-tab icon="mdi-power" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect"/>
           <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
           <q-route-tab icon="mdi-database-clock-outline" :label="$q.screen.gt.sm ? 'Logs' : ''" to="/log"/>
         </q-tabs>
+        <!-- Search -->
         <div class="row no-wrap q-pl-md">
           <q-input rounded dense filled bg-color="blue-9" v-model="search" placeholder="Search Catalogue">
             <template v-slot:append>
@@ -25,6 +29,7 @@
 
         <q-space />
 
+        <!-- Battery and Notifications -->
         <div class="q-gutter-sm row items-center no-wrap">
             <div v-if="p.battery_is_available">
                 <span class="text-body">{{p.battery_level}}%</span>
@@ -41,21 +46,14 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer
-      v-model="leftDrawerOpen"
-      show-if-above
-      bordered
-      class="dark-page"
-      :width="200"
-    >
-
+    <!-- LHS Draw menu -->
+    <q-drawer v-model="leftDrawerOpen" show-if-above bordered class="dark-page" :width="200" >
       <q-scroll-area class="fit">
+        <!-- Deep Sky Objects -->
         <q-list dense>
-
           <q-item-label header class="text-weight-bold text-uppercase">
             Deep Sky Objects
           </q-item-label>
-
           <q-item v-for="link in links2" :key="link.text" v-ripple clickable>
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
@@ -64,9 +62,11 @@
               <q-item-label>{{ link.text }}</q-item-label>
             </q-item-section>
           </q-item>
-
-          <q-separator class="q-mt-md q-mb-xs" />
-
+          <q-separator class="q-mt-md q-mb-xs" />          
+        </q-list>
+       
+        <!-- Orbitals -->
+        <q-list dense>
           <q-item-label header class="text-weight-bold text-uppercase">
             Orbitals
           </q-item-label>
@@ -79,12 +79,14 @@
               <q-item-label>{{ link.text }}</q-item-label>
             </q-item-section>
           </q-item>
-
           <q-separator class="q-my-md" />
+        </q-list>
+       
+        <!-- Experimental -->
+        <q-list dense>
           <q-item-label header class="text-weight-bold text-uppercase">
             Experimental
           </q-item-label>
-
           <q-item v-for="link in links4" :key="link.text" v-ripple clickable>
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
@@ -93,29 +95,23 @@
               <q-item-label>{{ link.text }}</q-item-label>
             </q-item-section>
           </q-item>
-
           <q-separator class="q-mt-md q-mb-lg" />
-
+        </q-list>
+       
+        <!-- About Us and Terms-->
+        <q-list dense>
           <div class="q-px-md text-grey-7">
             <div class="row items-center q-gutter-x-sm q-gutter-y-xs">
-              <a
-                v-for="button in buttons1"
-                :key="button.text"
-                class="YL__drawer-footer-link"
-                href="javascript:void(0)"
-              >
+              <a v-for="button in buttons1" :key="button.text" class="YL__drawer-footer-link" :href="button.to" >
                 {{ button.text }}
               </a>
             </div>
           </div>
+
+          <!-- Terms -->
           <div class="q-py-md q-px-md text-grey-7">
             <div class="row items-center q-gutter-x-sm q-gutter-y-xs">
-              <a
-                v-for="button in buttons2"
-                :key="button.text"
-                class="YL__drawer-footer-link"
-                href="javascript:void(0)"
-              >
+              <a v-for="button in buttons2" :key="button.text" class="YL__drawer-footer-link" href="javascript:void(0)" >
                 {{ button.text }}
               </a>
             </div>
@@ -206,11 +202,11 @@ function getBatteryIcon(): string {
     { icon: 'mdi-stethoscope', text: 'Diagnostics' }
   ]
   const buttons1 = [
-    { text: 'About' },
-    { text: 'Copyright' },
-    { text: 'Contact us' },
-    { text: 'Contributors' },
-    { text: 'Developers' }
+    { text: 'About', to: '/markdown' },
+    { text: 'Copyright', to: '/' },
+    { text: 'Contact us', to: '/' },
+    { text: 'Contributors', to: '/' },
+    { text: 'Developers', to: '/' }
   ]
   const buttons2 = [
     { text: 'Terms' },
