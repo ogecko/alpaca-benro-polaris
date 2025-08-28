@@ -17,7 +17,7 @@
     </div>
     <div class="row q-col-gutter-sm items-stretch">
       <div class="col-12 col-md-6 flex">
-        <!-- Section 1: Connect Alpaca -->
+        <!-- Section 1: Connect Alpaca Driver -->
         <q-card flat bordered class="q-pa-md full-width">
 
             <div class="text-h6"><q-checkbox v-model="connectToAlpacaCheckbox" color="positive" label="Connect to Alpaca Driver"/></div>
@@ -52,8 +52,8 @@
 
               <q-item v-if="!dev.alpacaConnected && !dev.alpacaConnectingMsg">
                 <div class="row items-start">
-                  <q-input class="col-8" v-model="dev.alpacaHost" @keyup.enter="connect" label="Host Name / IP Address"  />
-                  <q-input class="col-4" label='Port' v-model="dev.alpacaPort" @keyup.enter="connect" type="number" input-class="text-right">
+                  <q-input class="col-8" v-model="dev.alpacaHost" @keyup.enter="connectToRESTAPI" label="Host Name / IP Address"  />
+                  <q-input class="col-4" label='Port' v-model="dev.alpacaPort" @keyup.enter="connectToRESTAPI" type="number" input-class="text-right">
                   <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
                   </q-input>
                 </div>
@@ -100,13 +100,7 @@
         </q-card>
 
 
-
-
-
-
-
-
-        
+<!-- Section 2: Temporary Junk Polaris -->
 <q-card flat bordered class="q-pa-md full-width">
   <div class="text-h6">
     <q-checkbox v-model="polarisConnected" color="positive" label="Connect to Benro Polaris" />
@@ -155,14 +149,14 @@
         <q-input
           class="col-8"
           v-model="dev.alpacaHost"
-          @keyup.enter="connect"
+          @keyup.enter="connectToRESTAPI"
           label="Host Name / IP Address"
         />
         <q-input
           class="col-4"
           label="Port"
           v-model="dev.alpacaPort"
-          @keyup.enter="connect"
+          @keyup.enter="connectToRESTAPI"
           type="number"
           input-class="text-right"
         >
@@ -191,14 +185,8 @@
 </q-card>
 
 
-
-
       </div>      
     </div>
-
-
-
-
 
 </q-page>
 </template>
@@ -230,8 +218,24 @@ const polarisSteps = ref([
 ])
 
 watch(connectToAlpacaCheckbox, async (newVal) => {
-  if (newVal && !dev.alpacaConnected) {
+  if (newVal) {
+    await connectToRESTAPI()
+  } else {
+    disconnectFromRESTAPI()
+  }
+})
+
+// disconnect when user unchecks the checkbox
+function disconnectFromRESTAPI() {
+  dev.disconnectAlpaca()
+  connectToAlpacaCheckbox.value = dev.alpacaConnected
+}
+
+// connect when user checks the checkbox or presses enter on Host or Port field
+async function connectToRESTAPI() {
+  if (!dev.alpacaConnected) {
     await dev.connectAlpaca()
+    connectToAlpacaCheckbox.value = dev.alpacaConnected
     if (dev.alpacaConnected) {
       $q.notify({
         message: 'Alpaca Driver successfuly connected.',
@@ -240,16 +244,8 @@ watch(connectToAlpacaCheckbox, async (newVal) => {
       })
     }
   }
-  if (!newVal) {
-    dev.disconnectAlpaca()
-  }
-  connectToAlpacaCheckbox.value = dev.alpacaConnected
-})
-
-async function connect() {
-  await dev.connectAlpaca()
-  connectToAlpacaCheckbox.value = dev.alpacaConnected
 }
+
 function fixStep(index: number) {
   const step = polarisSteps.value[index]
   if (step) step.status = true
