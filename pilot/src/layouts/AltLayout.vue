@@ -15,7 +15,8 @@
             <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
           </q-btn>
           <q-route-tab v-else icon="mdi-home"  to="/"/>
-          <q-route-tab icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect"/>
+          <q-route-tab icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect" 
+                      :alert="dev.alpacaConnected?'positive':'negative'" />
           <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
           <q-route-tab icon="mdi-database-clock-outline" :label="$q.screen.gt.sm ? 'Logs' : ''" to="/log"/>
         </q-tabs>
@@ -137,10 +138,12 @@ import { ref, onMounted, onUnmounted  } from 'vue'
 import { useStatusStore } from 'stores/status'
 import { PollingManager } from 'src/utils/polling'
 import { RouterLink } from 'vue-router'
+import { useDeviceStore } from 'src/stores/device'
 
 const leftDrawerOpen = ref(false)
 const search = ref('')
 const poll = new PollingManager()
+const dev = useDeviceStore()
 const p = useStatusStore()
 
   onMounted(() => {
