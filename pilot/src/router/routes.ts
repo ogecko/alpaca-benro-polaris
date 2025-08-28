@@ -21,6 +21,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/AltLayout.vue'),
     children: [{ path: '', component: () => import('pages/LogPage.vue') }],
   },
+  {
+    path: '/markdown',
+    component: () => import('layouts/AltLayout.vue'),
+    children: [{ path: '', component: () => import('pages/MarkdownPage.vue') }],
+  },
   // Always leave this as last one,
   // but you can also remove it
   {

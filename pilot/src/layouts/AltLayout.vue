@@ -226,13 +226,14 @@ function getBatteryIcon(): string {
 }
 
 .YL__drawer-footer-link {
-  color: var(--q-color-grey-7);
+  color: var(--q-color-grey-6);
   font-size: 0.75rem;
   text-decoration: none;
   cursor: pointer;
 
   &:hover {
-    text-decoration: underline;
+      text-decoration: underline;
+      color: $grey-4;
   }
 }
 </style>
