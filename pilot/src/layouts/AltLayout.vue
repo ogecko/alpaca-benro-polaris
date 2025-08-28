@@ -147,7 +147,7 @@ const dev = useDeviceStore()
 const p = useStatusStore()
 
   onMounted(() => {
-    poll.startPolling(() => { void p.statusFetch() }, 1, 'statusFetch')
+    poll.startPolling(() => { void p.statusFetch() }, 0.2, 'statusFetch')
   })
 
   onUnmounted(() => {
