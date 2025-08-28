@@ -1,7 +1,7 @@
 <template>
   <div class="map-container">
     <div id="map" :class="mapAvailable ? 'showMap' : 'hideMap'"></div>
-    <q-skeleton v-if="!mapAvailable" type="rect" class="showMap" />
+    <q-skeleton type="rect" :class="mapAvailable ? 'hideMap' : 'showMap'" />
   </div>
 </template>
 
@@ -88,10 +88,18 @@ function serviceCheck() {
 <style lang="scss">
 .showMap {
   height: 200px;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+  overflow: hidden;
 }
+
 .hideMap {
   height: 0px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  overflow: hidden;
 }
+
 .map-container {
   width: 100%;
   max-height: 200px;
