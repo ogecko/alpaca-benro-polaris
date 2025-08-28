@@ -1,14 +1,58 @@
 <template>
-  <q-page>
-    <div class="row">
-      {{az.sign}}{{az.degrees}} | {{az.minutes}} | {{az.seconds}}
+  <q-page class="q-pa-lg">
+    <div class="row items-center">
+      <q-space/>
+      <div>
+      <div class="col">
+        <div class="row items-center ">
+          <div class="col-auto text-h4">{{az.sign}}</div>
+          <div class="col-auto text-h2 text-weight-bold">{{az.degrees}}°</div>
+          <div class="col-auto columns q-pl-sm">
+            <div class="col text-h5 text-grey-4">{{az.minutestr}}'</div>
+            <div class="col text-caption text-grey-5">{{az.secondstr}}"</div>
+          </div>
+        </div>
+        <div class="row items-center text-h4 text-grey-6 text-center">
+          <div class="col-auto">
+          Azimuth
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="row items-center ">
+          <div class="col-auto text-h4">{{alt.sign}}</div>
+          <div class="col-auto text-h2 text-weight-bold">{{alt.degrees}}°</div>
+          <div class="col-auto columns q-pl-sm">
+            <div class="col text-h5 text-grey-4">{{alt.minutestr}}'</div>
+            <div class="col text-caption text-grey-5">{{alt.secondstr}}"</div>
+          </div>
+        </div>
+        <div class="row items-center text-h4 text-grey-6 text-center">
+          <div class="col-auto">
+          Altitude
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="row items-center ">
+          <div class="col-auto text-h4">{{roll.sign}}</div>
+          <div class="col-auto text-h2 text-weight-bold">{{roll.degrees}}°</div>
+          <div class="col-auto columns q-pl-sm">
+            <div class="col text-h5 text-grey-4">{{roll.minutestr}}'</div>
+            <div class="col text-caption text-grey-5">{{roll.secondstr}}"</div>
+          </div>
+        </div>
+        <div class="row items-center text-h4 text-grey-6 text-center">
+          <div class="col-auto">
+          Roll
+          </div>
+        </div>
+      </div>
+
+      </div>
+      <q-space/>
     </div>
-    <div class="row">
-      {{az.sign}}{{alt.degrees}} | {{alt.minutes}} | {{alt.seconds}}
-    </div>
-    <div class="row">
-      {{az.sign}}{{roll.degrees}} | {{roll.minutes}} | {{roll.seconds}}
-    </div>
+
 
     <div class="row items-center">
         <q-space/>
@@ -42,9 +86,9 @@ import { deg2dms } from 'src/utils/angles'
 const route = useRoute()
 const dev = useDeviceStore()
 const p = useStatusStore()
-const az = computed(() => deg2dms(p.azimuth))
-const alt = computed(() => deg2dms(p.altitude))
-const roll = computed(() => deg2dms(p.roll))
+const az = computed(() => deg2dms(p.azimuth,1))
+const alt = computed(() => deg2dms(p.altitude,1))
+const roll = computed(() => deg2dms(p.roll,1))
 
 onMounted(async () => {
 
