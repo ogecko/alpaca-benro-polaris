@@ -1,6 +1,7 @@
 <template>
   <div class="map-container">
     <div id="map" :class="mapAvailable ? 'showMap' : 'hideMap'"></div>
+    <q-skeleton v-if="!mapAvailable" type="rect" class="showMap" />
   </div>
 </template>
 
