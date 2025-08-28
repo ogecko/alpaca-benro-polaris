@@ -3,17 +3,18 @@
     <!-- Alpaca Pilot Header Bar -->
     <q-header elevated height-hint="58">
       <q-toolbar>
-        <!-- Alpaca Pilot Title -->
+        <!-- Alpaca Pilot Icon/Menu -->
         <q-btn flat dense round @click="toggleLeftDrawer" aria-label="Menu" >
           <q-avatar>
             <q-img src="icons/favicon-128x128.png" style="width: 35px; height: 35px;"/>
           </q-avatar>
         </q-btn>
-        <q-btn flat no-caps no-wrap to="/" v-if="$q.screen.gt.xs">
-          <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
-        </q-btn>
-        <!-- Connect, Settings, Logs Tabs -->
-        <q-tabs inline-label active-class="active-link-bottom">
+        <!-- Home, Connect, Settings, Logs Tabs -->
+        <q-tabs inline-label  active-class="active-link-bottom" active-bg-color="secondary">
+          <q-btn v-if="$q.screen.gt.xs" flat no-caps no-wrap to="/">
+            <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
+          </q-btn>
+          <q-route-tab v-else icon="mdi-home"  to="/"/>
           <q-route-tab icon="mdi-power" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect"/>
           <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
           <q-route-tab icon="mdi-database-clock-outline" :label="$q.screen.gt.sm ? 'Logs' : ''" to="/log"/>
