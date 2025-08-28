@@ -13,7 +13,7 @@
           <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
         </q-btn>
         <!-- Connect, Settings, Logs Tabs -->
-        <q-tabs inline-label class="wide-indicator">
+        <q-tabs inline-label active-class="active-link-bottom">
           <q-route-tab icon="mdi-power" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect"/>
           <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
           <q-route-tab icon="mdi-database-clock-outline" :label="$q.screen.gt.sm ? 'Logs' : ''" to="/log"/>
@@ -54,7 +54,7 @@
           <q-item-label header class="text-weight-bold text-uppercase">
             Deep Sky Objects
           </q-item-label>
-          <q-item v-for="link in links2" :key="link.text" v-ripple clickable>
+          <q-item v-for="link in links2" :key="link.text" v-ripple clickable :to="link.to" active-class="active-link-right">
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
             </q-item-section>
@@ -71,7 +71,7 @@
             Orbitals
           </q-item-label>
 
-          <q-item v-for="link in links3" :key="link.text" v-ripple clickable>
+          <q-item v-for="link in links3" :key="link.text" v-ripple clickable :to="link.to">
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
             </q-item-section>
@@ -87,7 +87,7 @@
           <q-item-label header class="text-weight-bold text-uppercase">
             Experimental
           </q-item-label>
-          <q-item v-for="link in links4" :key="link.text" v-ripple clickable>
+          <q-item v-for="link in links4" :key="link.text" v-ripple clickable :to="link.to">
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
             </q-item-section>
@@ -102,21 +102,23 @@
         <q-list dense>
           <div class="q-px-md text-grey-7">
             <div class="row items-center q-gutter-x-sm q-gutter-y-xs">
-              <a v-for="button in buttons1" :key="button.text" class="YL__drawer-footer-link" :href="button.to" >
+              <RouterLink v-for="button in buttons1" :key="button.text" :to="button.to" class="YL__drawer-footer-link">
                 {{ button.text }}
-              </a>
+              </RouterLink>
             </div>
           </div>
 
           <!-- Terms -->
           <div class="q-py-md q-px-md text-grey-7">
             <div class="row items-center q-gutter-x-sm q-gutter-y-xs">
-              <a v-for="button in buttons2" :key="button.text" class="YL__drawer-footer-link" href="javascript:void(0)" >
+              <RouterLink v-for="button in buttons2" :key="button.text" :to="button.to" class="YL__drawer-footer-link">
                 {{ button.text }}
-              </a>
+              </RouterLink>
             </div>
           </div>
         </q-list>
+
+
       </q-scroll-area>
     </q-drawer>
 
@@ -124,12 +126,16 @@
       <router-view />
     </q-page-container>
   </q-layout>
+
+
+
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted  } from 'vue'
 import { useStatusStore } from 'stores/status'
 import { PollingManager } from 'src/utils/polling'
+import { RouterLink } from 'vue-router'
 
 const leftDrawerOpen = ref(false)
 const search = ref('')
@@ -181,49 +187,55 @@ function getBatteryIcon(): string {
   return 'mdi-battery-alert'
 }
 
-  const links2 = [
-    { icon: 'mdi-flare', text: 'Stars' },
-    { icon: 'mdi-horse-variant', text: 'Nebulae' },
-    { icon: 'mdi-cryengine', text: 'Galaxies' },
-    { icon: 'mdi-blur', text: 'Clusters' },
-  ]
-  const links3 = [
-    { icon: 'mdi-earth', text: 'Planets' },
-    { icon: 'mdi-moon-waning-crescent', text: 'Moons' },
-    { icon: 'mdi-cookie', text: 'Asteroids' },
-    { icon: 'mdi-magic-staff', text: 'Comets' },
-    { icon: 'mdi-satellite-variant', text: 'Satelites' }
-  ]
-  const links4 = [
-    { icon: 'mdi-camera', text: 'Imaging' },
-    { icon: 'mdi-format-vertical-align-top', text: 'Leveling' },
-    { icon: 'mdi-set-split', text: 'Calibration' },
-    { icon: 'mdi-chart-bell-curve-cumulative', text: 'Telemetry' },
-    { icon: 'mdi-stethoscope', text: 'Diagnostics' }
-  ]
+const links2 = [
+  { icon: 'mdi-flare', text: 'Stars', to: '/' },
+  { icon: 'mdi-horse-variant', text: 'Nebulae', to: '/' },
+  { icon: 'mdi-cryengine', text: 'Galaxies', to: '/' },
+  { icon: 'mdi-blur', text: 'Clusters', to: '/' },
+]
+
+const links3 = [
+  { icon: 'mdi-earth', text: 'Planets', to: '/' },
+  { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: '/' },
+  { icon: 'mdi-cookie', text: 'Asteroids', to: '/' },
+  { icon: 'mdi-magic-staff', text: 'Comets', to: '/' },
+  { icon: 'mdi-satellite-variant', text: 'Satelites', to: '/' },
+]
+
+const links4 = [
+  { icon: 'mdi-camera', text: 'Imaging', to: '/' },
+  { icon: 'mdi-format-vertical-align-top', text: 'Leveling', to: '/' },
+  { icon: 'mdi-set-split', text: 'Calibration', to: '/' },
+  { icon: 'mdi-chart-bell-curve-cumulative', text: 'Telemetry', to: '/' },
+  { icon: 'mdi-stethoscope', text: 'Diagnostics', to: '/' },
+]
   const buttons1 = [
-    { text: 'About', to: '/markdown' },
+    { text: 'About', to: '/' },
     { text: 'Copyright', to: '/' },
     { text: 'Contact us', to: '/' },
     { text: 'Contributors', to: '/' },
-    { text: 'Developers', to: '/' }
+    { text: 'Developers', to: '/markdown' }
   ]
   const buttons2 = [
-    { text: 'Terms' },
-    { text: 'Privacy' },
-    { text: 'Policy & Safety' },
+    { text: 'Terms', to: '/' },
+    { text: 'Privacy', to: '/' },
+    { text: 'Policy & Safety', to: '/' },
   ]
 
 
 </script>
 
 <style scoped lang="scss">
-.wide-indicator {
+.active-link-bottom {
   ::v-deep(.q-tab__indicator) {
-    height: 6px;
-    background-color: $blue-3;
+    border-bottom: 6px solid $blue-3; 
   }
 }
+
+.active-link-right {
+  border-right: 6px solid $blue-3; 
+}
+
 
 .YL__drawer-footer-link {
   color: var(--q-color-grey-6);
