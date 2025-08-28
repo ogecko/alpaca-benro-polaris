@@ -1475,24 +1475,9 @@ class action:
             return
         
         elif actionName == "Polaris:ConfigUpdate":
-            # Apply changes to store in Config
+            # Apply changes to store in Config and make them live
             changed_params = Config.apply_changes(parameters)
-            # make changes live in polaris where possible
-            for param in changed_params:
-                if param == "log_level":
-                    update_log_level(Config.log_level)
-                elif param == "site_latitude":
-                    polaris.sitelatitude = float(Config.site_latitude)
-                elif param == "site_longitude":
-                    polaris.sitelongitude = float(Config.site_longitude)
-                elif param == "site_elevation":
-                    polaris.siteelevation = Config.site_elevation
-                elif param == "site_pressure":
-                    polaris.sitepressure = Config.site_pressure
-
-            ## TODO - Take action on the following parameters to make them live in polaris
-            #  "TrackingRate"
-            # Return changed parameters to client
+            make_params_live(changed_params)
             resp.text = await PropertyResponse(changed_params, req)
             return
 
@@ -1501,7 +1486,10 @@ class action:
             return
 
         elif actionName == "Polaris:ConfigRestore":
-            resp.text = await PropertyResponse(Config.restore_base(), req)
+            # Restore Config from config.toml and make them live
+            changed_params = Config.restore_base()
+            make_params_live(changed_params)
+            resp.text = await PropertyResponse(changed_params, req)
             return
 
         elif actionName == "Polaris:StatusFetch":
@@ -1512,11 +1500,16 @@ class action:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
 
 
-def is_json_serializable(value):
-    return isinstance(value, (str, int, float, bool, type(None), list, dict))
-
-def serialize_class(cls):
-    return {
-        k: v for k, v in cls.__dict__.items()
-        if not k.startswith('__') and not callable(v) and is_json_serializable(v)
-    }
+def make_params_live(changed_params):
+    # make changes live in polaris where possible
+    for param in changed_params:
+        if param == "log_level":
+            update_log_level(Config.log_level)
+        elif param == "site_latitude":
+            polaris.sitelatitude = float(Config.site_latitude)
+        elif param == "site_longitude":
+            polaris.sitelongitude = float(Config.site_longitude)
+        elif param == "site_elevation":
+            polaris.siteelevation = Config.site_elevation
+        elif param == "site_pressure":
+            polaris.sitepressure = Config.site_pressure
