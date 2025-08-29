@@ -218,6 +218,7 @@ const links4 = [
     { text: 'Copyright', to: '/' },
     { text: 'Contact us', to: '/' },
     { text: 'Contributors', to: '/' },
+    { text: 'Test', to: '/test' },
     { text: 'Developers', to: '/markdown' }
   ]
   const buttons2 = [
