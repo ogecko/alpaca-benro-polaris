@@ -58,7 +58,7 @@ function renderLinearScale() {
   const group = select(linearGroup.value)
 
   group.transition()
-    .duration(600)
+    .duration(10000)
     .ease(easeCubicOut)
     .call(axis)
 }
@@ -90,8 +90,8 @@ enter => enter.append('line')
   .attr('stroke', 'white')
   .attr('x1', d => radius * Math.cos(oldScale(d) * Math.PI / 180) * 0.9)
   .attr('y1', d => radius * Math.sin(oldScale(d) * Math.PI / 180) * 0.9)
-  .attr('x2', d => radius * Math.cos(oldScale(d) * Math.PI / 180) * 1.1)
-  .attr('y2', d => radius * Math.sin(oldScale(d) * Math.PI / 180) * 1.1)
+  .attr('x2', d => radius * Math.cos(oldScale(d) * Math.PI / 180) * 1.0)
+  .attr('y2', d => radius * Math.sin(oldScale(d) * Math.PI / 180) * 1.0)
   .attr('opacity', 0)
   .transition(t)
   .attr('opacity', 1)
@@ -102,8 +102,8 @@ enter => enter.append('line')
       const angle = interp(t);
       const x1 = radius * Math.cos(angle * Math.PI / 180) * 0.9;
       const y1 = radius * Math.sin(angle * Math.PI / 180) * 0.9;
-      const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.1;
-      const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.1;
+      const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.0;
+      const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.0;
       select(node).attr('x1', x1).attr('y1', y1).attr('x2', x2).attr('y2', y2);
     };
   }),
@@ -116,8 +116,8 @@ enter => enter.append('line')
         const angle = interp(t);
         const x1 = radius * Math.cos(angle * Math.PI / 180) * 0.9;
         const y1 = radius * Math.sin(angle * Math.PI / 180) * 0.9;
-        const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.1;
-        const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.1;
+        const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.0;
+        const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.0;
         select(node)
           .attr('x1', x1)
           .attr('y1', y1)
@@ -126,7 +126,25 @@ enter => enter.append('line')
       };
     }),
 
-  exit => exit.transition(t).attr('opacity', 0).remove()
+exit => exit.transition(t)
+  .tween('rotate', function(d) {
+    const node = this as SVGLineElement;
+    const interp = interpolate(oldScale(d), newScale(d));
+    return function(t) {
+      const angle = interp(t);
+      const x1 = radius * Math.cos(angle * Math.PI / 180) * 0.9;
+      const y1 = radius * Math.sin(angle * Math.PI / 180) * 0.9;
+      const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.0;
+      const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.0;
+      select(node)
+        .attr('x1', x1)
+        .attr('y1', y1)
+        .attr('x2', x2)
+        .attr('y2', y2);
+    };
+  })
+  .attr('opacity', 0)
+  .remove()
 );
 
   // Bind data to text
@@ -137,6 +155,8 @@ enter => enter.append('line')
   labels.join(
   enter => enter.append('text')
     .attr('fill', 'white')
+    .attr('text-anchor', 'middle')
+    .attr('dominant-baseline', 'middle')
     .attr('x', d => radius * Math.cos(oldScale(d) * Math.PI / 180)*1.1)
     .attr('y', d => radius * Math.sin(oldScale(d) * Math.PI / 180)*1.1)
     .text(d => d.toString())
@@ -166,7 +186,25 @@ enter => enter.append('line')
           .attr('x', x)
           .attr('y', y);
       };
-    })
+    }),
+
+exit => exit.transition(t)
+  .tween('rotate', function(d) {
+    const node = this as SVGTextElement;
+    const interp = interpolate(oldScale(d), newScale(d));
+    return function(t) {
+      const angle = interp(t);
+      const x = radius * Math.cos(angle * Math.PI / 180) * 1.1;
+      const y = radius * Math.sin(angle * Math.PI / 180) * 1.1;
+      select(node)
+        .attr('x', x)
+        .attr('y', y);
+    };
+  })
+  .attr('opacity', 0)
+  .remove()
+
+
 );
 
 }
