@@ -7,10 +7,17 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue'
-import * as d3 from 'd3'
-import type { Axis } from 'd3-axis'
-import type { Selection } from 'd3-selection'
-import type { NumberValue } from 'd3-scale'
+import { scaleLinear } from 'd3-scale'
+import { axisBottom } from 'd3-axis'
+import { select } from 'd3-selection'
+import { transition } from 'd3-transition'
+import { interpolate } from 'd3-interpolate'
+// import { zoom } from 'd3-zoom'
+import { easeCubicOut } from 'd3-ease'
+
+// import type { Axis } from 'd3-axis'
+// import type { Selection } from 'd3-selection'
+// import type { NumberValue } from 'd3-scale'
 
 export type ScaleDomainType =
   | 'linear_360'
@@ -37,57 +44,120 @@ const isCircular = computed(() => props.domain === 'circular_360' || props.domai
 const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}`)
 
 onMounted(renderScale)
-
 watch(renderKey, renderScale)
 
 function renderLinearScale() {
   if (!linearGroup.value) return
 
-  const scale = d3.scaleLinear()
+  const scale = scaleLinear()
     .domain([props.scaleStart, props.scaleStart + props.scaleRange])
-    .range([0, width-40])
+    .range([0, width - 40])
 
-const axis: Axis<NumberValue> = d3.axisBottom(scale).ticks(10)
+  const axis = axisBottom(scale).ticks(10)
+  const group = select(linearGroup.value)
 
-  const selection: Selection<SVGGElement, unknown, null, undefined> = d3.select(linearGroup.value)
-  selection.call(axis)
+  group.transition()
+    .duration(600)
+    .ease(easeCubicOut)
+    .call(axis)
 }
+
 
 function renderCircularScale() {
   if (!circularGroup.value) return
 
-  const radius = width/2-60
-  const scale = d3.scaleLinear()
+  const radius = width / 2 - 60
+  const scale = scaleLinear()
     .domain([props.scaleStart, props.scaleStart + props.scaleRange])
     .range([-10, 190])
 
-  const ticks = scale.ticks(10)
-  const group = d3.select(circularGroup.value)
+  const ticks: number[]  = scale.ticks(10)
+  const group = select(circularGroup.value)
+  const t = transition().duration(600).ease(easeCubicOut)
 
-  group.selectAll('*').remove()
+  // Bind data to lines
+  const lines: d3.Selection<SVGLineElement, number, SVGGElement, unknown> =
+    group.selectAll<SVGLineElement, number>('line')
+        .data(ticks, (d: number) => d);
 
-  ticks.forEach(tick => {
-    const angle = scale(tick) * (Math.PI / 180)
-    const x = radius * Math.cos(angle)
-    const y = radius * Math.sin(angle)
+// const tickAngleCache = new WeakMap<SVGLineElement, number>();
 
-    group.append('line')
-      .attr('x1', x)
-      .attr('y1', y)
-      .attr('x2', x * 1.1)
-      .attr('y2', y * 1.1)
-      .attr('stroke', 'white')
+lines.join(
+  enter => enter.append('line')
+    .attr('stroke', 'white')
+    .attr('x1', d => radius * Math.cos(scale(d) * Math.PI / 180) * 0.9)
+    .attr('y1', d => radius * Math.sin(scale(d) * Math.PI / 180) * 0.9)
+    .attr('x2', d => radius * Math.cos(scale(d) * Math.PI / 180))
+    .attr('y2', d => radius * Math.sin(scale(d) * Math.PI / 180))
+    .attr('opacity', 0)
+    .transition(t)
+    .attr('opacity', 1)
+    .attr('x2', d => radius * Math.cos(scale(d) * Math.PI / 180) * 1.1)
+    .attr('y2', d => radius * Math.sin(scale(d) * Math.PI / 180) * 1.1),
 
-    group.append('text')
-      .attr('x', x * 1.25)
-      .attr('y', y * 1.25)
-      .attr('text-anchor', 'middle')
-      .attr('alignment-baseline', 'middle')
-      .attr('font-size', '12px')
-      .attr('fill', 'white')
-      .text(tick.toFixed(1))
-  })
+  update => update.transition(t)
+    .tween('rotate', function(d) {
+      const node = this as SVGLineElement & { __angle?: number };
+      const prevAngle = node.__angle ?? scale(d); // fallback if no previous
+      const nextAngle = scale(d);
+      node.__angle = nextAngle; // stash for next transition
+
+      const interp = interpolate(prevAngle, nextAngle);
+      return function(t) {
+        const angle = interp(t);
+        const x1 = radius * Math.cos(angle * Math.PI / 180) * 0.9;
+        const y1 = radius * Math.sin(angle * Math.PI / 180) * 0.9;
+        const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.1;
+        const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.1;
+
+        select(node)
+          .attr('x1', x1)
+          .attr('y1', y1)
+          .attr('x2', x2)
+          .attr('y2', y2);
+      };
+    }),
+
+  exit => exit.transition(t).attr('opacity', 0).remove()
+);
+
+  // Bind data to text
+  const labels: d3.Selection<SVGTextElement, number, SVGGElement, unknown> =
+    group.selectAll<SVGTextElement, number>('text')
+        .data(ticks, (d: number) => d);
+
+  labels.join(
+  enter => enter.append('text')
+    .attr('x', d => radius * Math.cos(scale(d) * Math.PI / 180)*1.1)
+    .attr('y', d => radius * Math.sin(scale(d) * Math.PI / 180)*1.1)
+    .attr('fill', 'white')
+    .text(d => d.toString())
+    .attr('opacity', 0)
+    .transition(t)
+    .attr('opacity', 1),
+
+  update => update.transition(t)
+    .tween('rotate', function(d) {
+      const node = this as SVGTextElement & { __angle?: number };
+      const prevAngle = node.__angle ?? scale(d); // fallback if no previous
+      const nextAngle = scale(d);
+      node.__angle = nextAngle; // stash for next transition
+
+      const interp = interpolate(prevAngle, nextAngle);
+      return function(t) {
+        const angle = interp(t);
+        const x = radius * Math.cos(angle * Math.PI / 180)*1.1;
+        const y = radius * Math.sin(angle * Math.PI / 180)*1.1;
+        select(node)
+          .attr('x', x)
+          .attr('y', y);
+      };
+    })
+);
+
 }
+
+
 
 function renderScale() {
   if (isLinear.value) {
