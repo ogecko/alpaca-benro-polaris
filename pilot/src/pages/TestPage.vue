@@ -20,7 +20,7 @@
     <q-card flat bordered class="col q-pa-lg">
         <div class="row">
             <div clas="col">
-               <ScaleDisplay :sp="110.324" :pv="110.33245" :scaleStart="10" :scaleRange="sr" :domain="ic" />
+               <ScaleDisplay :sp="110.324" :pv="pv" :scaleStart="10" :scaleRange="sr" :domain="ic" />
             </div>
             <div class="col-12">
                 <q-btn-toggle
@@ -55,9 +55,26 @@
                     {label: '20\'\'', value: 20/3660},
                     ]"
                 />
+                <q-btn-toggle
+                    v-model="pv"
+                    color="brown"
+                    text-color="white"
+                    toggle-color="orange"
+                    toggle-text-color="black"
+                    rounded
+                    unelevated
+                    glossy
+                    :options="[
+                    {label: '180', value: 180},
+                    {label: '180.3', value: 180.3},
+                    {label: '170', value: 170},
+                    {label: '89.7', value: 89.7},
+                    {label: '90.3', value: 90.3},
+                    {label: '90.302', value: 90.302},
+                    ]"
+                />
             </div>
         </div>
-
     </q-card>
   </q-page>
 </template>
@@ -67,6 +84,7 @@ import { onMounted, onUnmounted,ref } from 'vue'
 import ScaleDisplay from 'components/ScaleDisplay.vue'
 import type { ScaleDomainType } from 'components/ScaleDisplay.vue'
 
+const pv = ref<number>(120.234761)
 const sr = ref<number>(2)
 const ic = ref<ScaleDomainType>('linear_360')
 

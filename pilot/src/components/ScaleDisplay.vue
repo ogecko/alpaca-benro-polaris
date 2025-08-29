@@ -31,6 +31,7 @@ export type ScaleDomainType =
 const props = defineProps<{
   scaleStart: number
   scaleRange: number
+  pv: number
   domain: ScaleDomainType
 }>()
 
@@ -42,7 +43,7 @@ const circularGroup = ref<SVGGElement | null>(null)
 
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => props.domain === 'circular_360' || props.domain === 'circular_180')
-const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}`)
+const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}`)
 
 onMounted(renderScale)
 watch(renderKey, renderScale)
@@ -51,7 +52,7 @@ function renderLinearScale() {
   if (!linearGroup.value) return
 
   const scale = scaleLinear()
-    .domain([props.scaleStart, props.scaleStart + props.scaleRange])
+    .domain([props.pv-props.scaleRange/2, props.pv + props.scaleRange/2])
     .range([0, width - 40])
 
   const axis = axisBottom(scale).ticks(10)
@@ -69,7 +70,7 @@ function renderCircularScale() {
 
   const radius = width / 2 - 60
   const newScale = scaleLinear()
-    .domain([props.scaleStart, props.scaleStart + props.scaleRange])
+    .domain([props.pv-props.scaleRange/2, props.pv + props.scaleRange/2])
     .range([-10, 190]);
   const oldScale = prevScale ?? newScale; // fallback on first render
   prevScale = newScale; // stash for next time
@@ -88,118 +89,65 @@ function renderCircularScale() {
 lines.join(
 enter => enter.append('line')
   .attr('stroke', 'white')
-  .attr('x1', d => radius * Math.cos(oldScale(d) * Math.PI / 180) * 0.9)
-  .attr('y1', d => radius * Math.sin(oldScale(d) * Math.PI / 180) * 0.9)
-  .attr('x2', d => radius * Math.cos(oldScale(d) * Math.PI / 180) * 1.0)
-  .attr('y2', d => radius * Math.sin(oldScale(d) * Math.PI / 180) * 1.0)
+  .attr('x1', radius * 0.9)
+  .attr('x2', radius * 1.0)
+  .attr('y1', 0)
+  .attr('y2', 0)
   .attr('opacity', 0)
+  .attr('transform', d => `rotate(${oldScale(d)})`)
   .transition(t)
   .attr('opacity', 1)
-  .tween('rotate', function(d) {
-    const node = this as SVGLineElement;
+  .attrTween('transform', function(d) {
     const interp = interpolate(oldScale(d), newScale(d));
-    return function(t) {
-      const angle = interp(t);
-      const x1 = radius * Math.cos(angle * Math.PI / 180) * 0.9;
-      const y1 = radius * Math.sin(angle * Math.PI / 180) * 0.9;
-      const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.0;
-      const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.0;
-      select(node).attr('x1', x1).attr('y1', y1).attr('x2', x2).attr('y2', y2);
-    };
+    return t => `rotate(${interp(t)})`;
   }),
 
-  update => update.transition(t)
-    .tween('rotate', function(d) {
-      const node = this as SVGLineElement;
-      const interp = interpolate(oldScale(d), newScale(d));
-      return function(t) {
-        const angle = interp(t);
-        const x1 = radius * Math.cos(angle * Math.PI / 180) * 0.9;
-        const y1 = radius * Math.sin(angle * Math.PI / 180) * 0.9;
-        const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.0;
-        const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.0;
-        select(node)
-          .attr('x1', x1)
-          .attr('y1', y1)
-          .attr('x2', x2)
-          .attr('y2', y2);
-      };
-    }),
+update => update.transition(t)
+  .attrTween('transform', function(d) {
+    const interp = interpolate(oldScale(d), newScale(d));
+    return t => `rotate(${interp(t)})`;
+  }),
 
 exit => exit.transition(t)
-  .tween('rotate', function(d) {
-    const node = this as SVGLineElement;
+  .attrTween('transform', function(d) {
     const interp = interpolate(oldScale(d), newScale(d));
-    return function(t) {
-      const angle = interp(t);
-      const x1 = radius * Math.cos(angle * Math.PI / 180) * 0.9;
-      const y1 = radius * Math.sin(angle * Math.PI / 180) * 0.9;
-      const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.0;
-      const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.0;
-      select(node)
-        .attr('x1', x1)
-        .attr('y1', y1)
-        .attr('x2', x2)
-        .attr('y2', y2);
-    };
+    return t => `rotate(${interp(t)})`;
   })
   .attr('opacity', 0)
   .remove()
-);
-
+)
   // Bind data to text
   const labels: d3.Selection<SVGTextElement, number, SVGGElement, unknown> =
     group.selectAll<SVGTextElement, number>('text')
         .data(ticks, (d: number) => d);
 
   labels.join(
-  enter => enter.append('text')
-    .attr('fill', 'white')
-    .attr('text-anchor', 'middle')
-    .attr('dominant-baseline', 'middle')
-    .attr('x', d => radius * Math.cos(oldScale(d) * Math.PI / 180)*1.1)
-    .attr('y', d => radius * Math.sin(oldScale(d) * Math.PI / 180)*1.1)
-    .text(d => d.toString())
-    .attr('opacity', 0)
-    .transition(t)
-    .attr('opacity', 1)
-    .tween('rotate', function(d) {
-        const node = this as SVGTextElement;
-        const interp = interpolate(oldScale(d), newScale(d));
-        return function(t) {
-        const angle = interp(t);
-        const x = radius * Math.cos(angle * Math.PI / 180) * 1.1;
-        const y = radius * Math.sin(angle * Math.PI / 180) * 1.1;
-        select(node).attr('x', x).attr('y', y);
-        };
-    }),
+enter => enter.append('text')
+  .attr('fill', 'white')
+  .attr('text-anchor', 'middle')
+  .attr('dominant-baseline', 'middle')
+  .attr('x', radius * 1.1)
+  .attr('y', 0)
+  .text(d => d.toString())
+  .attr('opacity', 0)
+  .attr('transform', d => `rotate(${oldScale(d)})`)
+  .transition(t)
+  .attr('opacity', 1)
+  .attrTween('transform', function(d) {
+    const interp = interpolate(oldScale(d), newScale(d));
+    return t => `rotate(${interp(t)})`;
+  }),
 
-  update => update.transition(t)
-    .tween('rotate', function(d) {
-      const node = this as SVGTextElement;
-      const interp = interpolate(oldScale(d), newScale(d));
-      return function(t) {
-        const angle = interp(t);
-        const x = radius * Math.cos(angle * Math.PI / 180)*1.1;
-        const y = radius * Math.sin(angle * Math.PI / 180)*1.1;
-        select(node)
-          .attr('x', x)
-          .attr('y', y);
-      };
-    }),
+update => update.transition(t)
+  .attrTween('transform', function(d) {
+    const interp = interpolate(oldScale(d), newScale(d));
+    return t => `rotate(${interp(t)})`;
+  }),
 
 exit => exit.transition(t)
-  .tween('rotate', function(d) {
-    const node = this as SVGTextElement;
+  .attrTween('transform', function(d) {
     const interp = interpolate(oldScale(d), newScale(d));
-    return function(t) {
-      const angle = interp(t);
-      const x = radius * Math.cos(angle * Math.PI / 180) * 1.1;
-      const y = radius * Math.sin(angle * Math.PI / 180) * 1.1;
-      select(node)
-        .attr('x', x)
-        .attr('y', y);
-    };
+    return t => `rotate(${interp(t)})`;
   })
   .attr('opacity', 0)
   .remove()
