@@ -58,7 +58,7 @@ function renderLinearScale() {
   const group = select(linearGroup.value)
 
   group.transition()
-    .duration(10000)
+    .duration(600)
     .ease(easeCubicOut)
     .call(axis)
 }
