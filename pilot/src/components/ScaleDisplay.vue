@@ -14,6 +14,7 @@ import { transition } from 'd3-transition'
 import { interpolate } from 'd3-interpolate'
 // import { zoom } from 'd3-zoom'
 import { easeCubicOut } from 'd3-ease'
+import type { ScaleLinear } from 'd3-scale'
 
 // import type { Axis } from 'd3-axis'
 // import type { Selection } from 'd3-selection'
@@ -62,16 +63,18 @@ function renderLinearScale() {
     .call(axis)
 }
 
-
+let prevScale: ScaleLinear<number, number> | undefined;
 function renderCircularScale() {
   if (!circularGroup.value) return
 
   const radius = width / 2 - 60
-  const scale = scaleLinear()
+  const newScale = scaleLinear()
     .domain([props.scaleStart, props.scaleStart + props.scaleRange])
-    .range([-10, 190])
+    .range([-10, 190]);
+  const oldScale = prevScale ?? newScale; // fallback on first render
+  prevScale = newScale; // stash for next time
 
-  const ticks: number[]  = scale.ticks(10)
+  const ticks: number[]  = newScale.ticks(10)
   const group = select(circularGroup.value)
   const t = transition().duration(600).ease(easeCubicOut)
 
@@ -83,33 +86,38 @@ function renderCircularScale() {
 // const tickAngleCache = new WeakMap<SVGLineElement, number>();
 
 lines.join(
-  enter => enter.append('line')
-    .attr('stroke', 'white')
-    .attr('x1', d => radius * Math.cos(scale(d) * Math.PI / 180) * 0.9)
-    .attr('y1', d => radius * Math.sin(scale(d) * Math.PI / 180) * 0.9)
-    .attr('x2', d => radius * Math.cos(scale(d) * Math.PI / 180))
-    .attr('y2', d => radius * Math.sin(scale(d) * Math.PI / 180))
-    .attr('opacity', 0)
-    .transition(t)
-    .attr('opacity', 1)
-    .attr('x2', d => radius * Math.cos(scale(d) * Math.PI / 180) * 1.1)
-    .attr('y2', d => radius * Math.sin(scale(d) * Math.PI / 180) * 1.1),
+enter => enter.append('line')
+  .attr('stroke', 'white')
+  .attr('x1', d => radius * Math.cos(oldScale(d) * Math.PI / 180) * 0.9)
+  .attr('y1', d => radius * Math.sin(oldScale(d) * Math.PI / 180) * 0.9)
+  .attr('x2', d => radius * Math.cos(oldScale(d) * Math.PI / 180) * 1.1)
+  .attr('y2', d => radius * Math.sin(oldScale(d) * Math.PI / 180) * 1.1)
+  .attr('opacity', 0)
+  .transition(t)
+  .attr('opacity', 1)
+  .tween('rotate', function(d) {
+    const node = this as SVGLineElement;
+    const interp = interpolate(oldScale(d), newScale(d));
+    return function(t) {
+      const angle = interp(t);
+      const x1 = radius * Math.cos(angle * Math.PI / 180) * 0.9;
+      const y1 = radius * Math.sin(angle * Math.PI / 180) * 0.9;
+      const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.1;
+      const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.1;
+      select(node).attr('x1', x1).attr('y1', y1).attr('x2', x2).attr('y2', y2);
+    };
+  }),
 
   update => update.transition(t)
     .tween('rotate', function(d) {
-      const node = this as SVGLineElement & { __angle?: number };
-      const prevAngle = node.__angle ?? scale(d); // fallback if no previous
-      const nextAngle = scale(d);
-      node.__angle = nextAngle; // stash for next transition
-
-      const interp = interpolate(prevAngle, nextAngle);
+      const node = this as SVGLineElement;
+      const interp = interpolate(oldScale(d), newScale(d));
       return function(t) {
         const angle = interp(t);
         const x1 = radius * Math.cos(angle * Math.PI / 180) * 0.9;
         const y1 = radius * Math.sin(angle * Math.PI / 180) * 0.9;
         const x2 = radius * Math.cos(angle * Math.PI / 180) * 1.1;
         const y2 = radius * Math.sin(angle * Math.PI / 180) * 1.1;
-
         select(node)
           .attr('x1', x1)
           .attr('y1', y1)
@@ -128,22 +136,28 @@ lines.join(
 
   labels.join(
   enter => enter.append('text')
-    .attr('x', d => radius * Math.cos(scale(d) * Math.PI / 180)*1.1)
-    .attr('y', d => radius * Math.sin(scale(d) * Math.PI / 180)*1.1)
     .attr('fill', 'white')
+    .attr('x', d => radius * Math.cos(oldScale(d) * Math.PI / 180)*1.1)
+    .attr('y', d => radius * Math.sin(oldScale(d) * Math.PI / 180)*1.1)
     .text(d => d.toString())
     .attr('opacity', 0)
     .transition(t)
-    .attr('opacity', 1),
+    .attr('opacity', 1)
+    .tween('rotate', function(d) {
+        const node = this as SVGTextElement;
+        const interp = interpolate(oldScale(d), newScale(d));
+        return function(t) {
+        const angle = interp(t);
+        const x = radius * Math.cos(angle * Math.PI / 180) * 1.1;
+        const y = radius * Math.sin(angle * Math.PI / 180) * 1.1;
+        select(node).attr('x', x).attr('y', y);
+        };
+    }),
 
   update => update.transition(t)
     .tween('rotate', function(d) {
-      const node = this as SVGTextElement & { __angle?: number };
-      const prevAngle = node.__angle ?? scale(d); // fallback if no previous
-      const nextAngle = scale(d);
-      node.__angle = nextAngle; // stash for next transition
-
-      const interp = interpolate(prevAngle, nextAngle);
+      const node = this as SVGTextElement;
+      const interp = interpolate(oldScale(d), newScale(d));
       return function(t) {
         const angle = interp(t);
         const x = radius * Math.cos(angle * Math.PI / 180)*1.1;
