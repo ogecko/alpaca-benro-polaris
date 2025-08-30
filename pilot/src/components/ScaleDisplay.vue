@@ -105,55 +105,56 @@ const steps = [
   if (!md || !lg || !sm) return [];
   console.log('lg',lg,'md',md,'sm',sm)
 
-  const start = Math.floor(scaleStart / sm.step) * sm.step;
-  const end = scaleStart + scaleRange;
-  const count = Math.floor((end - start) / sm.step);
-  const lgMultiple = Math.round(lg.step / sm.step);
-  const mdMultiple = Math.round(md.step / sm.step);
+const lgMultiple = Math.round(lg.step / sm.step); // e.g. 15
+const mdMultiple = Math.round(md.step / sm.step); // e.g. 5
 
-  for (let i = 0; i <= count; i++) {
-    const v = +(start + i * sm.step).toFixed(6); 
-    const isLarge = i % lgMultiple === 0;
-    const isMedium = i % mdMultiple === 0;
+const startSm = Math.floor(scaleStart / sm.step) * sm.step;
+const end = scaleStart + scaleRange;
+const countSm = Math.floor((end - startSm) / sm.step);
 
+for (let i = 0; i <= countSm; i++) {
+  const v = +(startSm + i * sm.step).toFixed(6);
 
-    if (isLarge) {
-      ticks.push({
-        key: `label-lg-${v.toFixed(6)}`,
-        angle: v,
-        label: lg.format(v),
-        level: 'label-lg',
-        offset: 1.28
-      });
-      ticks.push({
-        key: `tick-lg-${v.toFixed(6)}`,
-        angle: v,
-        path: pathLg,
-        level: 'tick-lg'
-      });
-    } else if (isMedium) {
-      ticks.push({
-        key: `label-md-${v.toFixed(6)}`,
-        angle: v,
-        label: md.format(v),
-        level: 'label-md',
-        offset: 1.18
-      });
-      ticks.push({
-        key: `tick-md-${v.toFixed(6)}`,
-        angle: v,
-        path: pathMd,
-        level: 'tick-md'
-      });
-    } else {
-      ticks.push({
-        key: `tick-sm-${v.toFixed(6)}`,
-        angle: v,
-        path: pathSm,
-        level: 'tick-sm'
-      });
-    }
+  const isLarge = i % lgMultiple === 0;
+  const isMedium = !isLarge && i % mdMultiple === 0;
+
+  if (isLarge) {
+    ticks.push({
+      key: `label-lg-${v.toFixed(6)}`,
+      angle: v,
+      label: lg.format(v),
+      level: 'label-lg',
+      offset: 1.28
+    });
+    ticks.push({
+      key: `tick-lg-${v.toFixed(6)}`,
+      angle: v,
+      path: pathLg,
+      level: 'tick-lg'
+    });
+  } else if (isMedium) {
+    ticks.push({
+      key: `label-md-${v.toFixed(6)}`,
+      angle: v,
+      label: md.format(v),
+      level: 'label-md',
+      offset: 1.18
+    });
+    ticks.push({
+      key: `tick-md-${v.toFixed(6)}`,
+      angle: v,
+      path: pathMd,
+      level: 'tick-md'
+    });
+  } else {
+    ticks.push({
+      key: `tick-sm-${v.toFixed(6)}`,
+      angle: v,
+      path: pathSm,
+      level: 'tick-sm'
+    });
   }
+}
 
   return ticks;
 }
