@@ -46,19 +46,24 @@ const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.sc
 onMounted(renderScale)
 watch(renderKey, renderScale)
 
+// Computes an interpolator between old and new scale values for smooth transitions
 function angleInterp(oldScale: ScaleLinear<number, number>, newScale: ScaleLinear<number, number>) {
   return (d: number) => interpolate(oldScale(d), newScale(d));
 }
 
-function labelTransformTween(interpFn: (t: number) => number, radius: number) {
+
+// Generates a transform string that rotates text around its own origin along a circular path
+function labelTransformTween(interpFn: (t: number) => number, radius: number, radialOffset: number = 1.1) {
   return function (t: number) {
     const angle = interpFn(t);
-    const x = radius * Math.cos(angle * Math.PI / 180) * 1.1;
-    const y = radius * Math.sin(angle * Math.PI / 180) * 1.1;
-    return `rotate(${-angle}, ${x}, ${y}) rotate(${angle})`;
+    const x = radius * Math.cos(angle * Math.PI / 180) * radialOffset;
+    const y = radius * Math.sin(angle * Math.PI / 180) * radialOffset;
+	const rot = (angle > 90) ? 180 : 0 
+    return `rotate(${rot}, ${x}, ${y}) rotate(${angle})`;
   };
 }
 
+// Renders and animates tick lines (major or minor) along a circular scale
 function joinLines(group: Selection<SVGGElement, unknown, null, undefined>, 
 	ticks: number[], oldScale: ScaleLinear<number, number>, 
 	newScale: ScaleLinear<number, number>, 
@@ -68,14 +73,10 @@ function joinLines(group: Selection<SVGGElement, unknown, null, undefined>,
 		key = 'line',
 		x1 = 0.9,
 		x2 = 0.98,
-		thickness = 1.0,
-		color = 'white'
 	}: {
 		key?: string,
 		x1?: number;
 		x2?: number;
-		thickness?: number;
-		color?: string;
 	} = {} // default to empty object
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,8 +88,6 @@ function joinLines(group: Selection<SVGGElement, unknown, null, undefined>,
     .join(
       enter => enter.append('line')
 	    .attr('class', key)
-        .attr('stroke', color)
-		.attr('stroke-width', thickness)
         .attr('x1', radius * x1)
         .attr('x2', radius * x2)
         .attr('y1', 0)
@@ -110,6 +109,7 @@ function joinLines(group: Selection<SVGGElement, unknown, null, undefined>,
     );
 }
 
+// Renders and animates tick labels along a circular scale
 function joinLabels(group: Selection<SVGGElement, unknown, null, undefined>, 
 	ticks: number[], oldScale: ScaleLinear<number, number>, 
 	newScale: ScaleLinear<number, number>, 
@@ -117,10 +117,10 @@ function joinLabels(group: Selection<SVGGElement, unknown, null, undefined>,
     tRaw: Transition<BaseType, number, SVGGElement, unknown>,
 		{
 		key = 'text',
-		color = 'white'
+		radialOffset = 1.1,
 	}: {
 		key?: string,
-		color?: string;
+		radialOffset?: number,
 	} = {} // default to empty object
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,28 +132,77 @@ function joinLabels(group: Selection<SVGGElement, unknown, null, undefined>,
     .join(
       enter => enter.append('text')
  	    .attr('class', key)
-        .attr('fill', color)
         .attr('text-anchor', 'middle')
         .attr('dominant-baseline', 'middle')
-        .attr('x', radius * 1.1)
+        .attr('x', radius * radialOffset)
         .attr('y', 0)
         .text(d => d.toString())
         .attr('opacity', 0)
-        .attr('transform', d => `rotate(${oldScale(d)})`)
         .transition(t)
         .attr('opacity', 1)
-        .attrTween('transform', d => t => labelTransformTween(interp(d), radius)(t)),
+        .attrTween('transform', d => t => labelTransformTween(interp(d), radius, radialOffset)(t)),
 
       update => update.transition(t)
-        .attrTween('transform', d => t => labelTransformTween(interp(d), radius)(t)),
+        .attrTween('transform', d => t => labelTransformTween(interp(d), radius, radialOffset)(t)),
 
       exit => exit.transition(t)
         .attr('opacity', 0)
         .remove()
-        .attrTween('transform', d => t => labelTransformTween(interp(d), radius)(t))
+        .attrTween('transform', d => t => labelTransformTween(interp(d), radius, radialOffset)(t))
     );
 }
 
+
+// Adds a marker (default: triangle) at a specified angle with smooth rotation transition
+function joinMarker(
+  group: Selection<SVGGElement, unknown, null, undefined>,
+  angle: number,
+  oldScale: ScaleLinear<number, number>,
+  newScale: ScaleLinear<number, number>,
+  radius: number,
+  tRaw: Transition<BaseType, number, SVGGElement, unknown>,
+	{
+		key = 'marker',
+		pathD = 'M0,-6 L6,6 L-6,6 Z'
+	}: {
+		key?: string,
+		pathD?: string,
+	} = {} // default to empty object
+
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const t = tRaw as Transition<BaseType, any, any, any>
+  const interp = angleInterp(oldScale, newScale);
+
+  group.selectAll<SVGPathElement, number>(`.${key}`)
+    .data([angle])
+    .join(
+      enter => enter.append('path')
+ 	    .attr('class', key)
+        .attr('d', pathD)
+        .attr('transform', `rotate(${oldScale(angle)}) translate(${radius},0)`)
+        .attr('opacity', 0)
+        .transition(t)
+        .attr('opacity', 1)
+        .attrTween('transform', d => t => {
+          const a = interp(d)(t);
+          return `rotate(${a}) translate(${radius},0)`;
+        }),
+
+      update => update.transition(t)
+        .attrTween('transform', d => t => {
+          const a = interp(d)(t);
+          return `rotate(${a}) translate(${radius},0)`;
+        }),
+
+      exit => exit.transition(t)
+        .attr('opacity', 0)
+        .remove()
+    );
+}
+
+
+// Renders a linear scale with animated axis ticks
 function renderLinearScale() {
 	if (!linearGroup.value) return
 
@@ -168,6 +217,7 @@ function renderLinearScale() {
 }
 
 let prevScale: ScaleLinear<number, number> | undefined;
+// Renders a circular scale with major/minor ticks and labels
 function renderCircularScale() {
   if (!circularGroup.value) return;
 
@@ -184,13 +234,14 @@ function renderCircularScale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
-  joinLines(group, bticks, oldScale, newScale, radius, t, { key: 'major', thickness: 3, color: 'lightskyblue' });
-  joinLines(group, sticks, oldScale, newScale, radius, t, { key: 'minor', x1: 0.9, x2: 0.94,  color: 'cornflowerblue'});
-  joinLabels(group, bticks, oldScale, newScale, radius, t, { color: 'lightCyan' });
+  joinLines(group, bticks, oldScale, newScale, radius, t, { key: 'majortick' });
+  joinLines(group, sticks, oldScale, newScale, radius, t, { key: 'minortick', x1: 0.9, x2: 0.94});
+  joinLabels(group, bticks, oldScale, newScale, radius, t, { key: 'minorlabel' });
+  joinMarker(group, props.pv, oldScale, newScale, radius, t, { key: 'pvMarker' });
 }
 
 
-
+// Dispatches rendering based on scale type (linear or circular)
 function renderScale() {
 	if (isLinear.value) {
 		renderLinearScale()
@@ -200,3 +251,22 @@ function renderScale() {
 }
 
 </script>
+<style lang="scss">
+g .majortick {
+	stroke-width: 3;
+	stroke: lightskyblue; 
+}
+
+g .minortick {
+	stroke-width: 1;
+	stroke: lightskyblue; 
+}
+
+g .minorlabel {
+	fill: lightCyan; 
+}
+
+g .pvMarker {
+	fill: lightcoral; 
+}
+</style>
