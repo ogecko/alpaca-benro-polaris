@@ -108,15 +108,23 @@ const steps = [
 const lgMultiple = Math.round(lg.step / sm.step); // e.g. 15
 const mdMultiple = Math.round(md.step / sm.step); // e.g. 5
 
+// Snap each level to its own boundary
+const startLg = Math.ceil(scaleStart / lg.step) * lg.step;
+const startMd = Math.ceil(scaleStart / md.step) * md.step;
 const startSm = Math.floor(scaleStart / sm.step) * sm.step;
+// Compute offset in sm.step units
+const lgOffset = Math.round((startLg - startSm) / sm.step);
+const mdOffset = Math.round((startMd - startSm) / sm.step);
+
 const end = scaleStart + scaleRange;
 const countSm = Math.floor((end - startSm) / sm.step);
 
 for (let i = 0; i <= countSm; i++) {
   const v = +(startSm + i * sm.step).toFixed(6);
 
-  const isLarge = i % lgMultiple === 0;
-  const isMedium = !isLarge && i % mdMultiple === 0;
+  const isLarge = (i - lgOffset) % lgMultiple === 0;
+  const isMedium = !isLarge && (i - mdOffset) % mdMultiple === 0;
+
 
   if (isLarge) {
     ticks.push({
