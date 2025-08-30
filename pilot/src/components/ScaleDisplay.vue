@@ -67,20 +67,17 @@ function formatArcSeconds(v: number): string {
   return formatDegrees(deg);
 }
 
-interface Step {
-  step: number;
-  unit: string;
-  format: (v: number) => string;
-}
+// interface Step {
+//   step: number;
+//   unit: string;
+//   format: (v: number) => string;
+// }
 
-function getTickLevel(i: number, lgOffset: number, mdOffset: number, lgMultiple: number, mdMultiple: number, lg: Step): 'lg' | 'md' | 'sm' {
+function getTickLevel(i: number, lgOffset: number, mdOffset: number, lgMultiple: number, mdMultiple: number): 'lg' | 'md' | 'sm' {
   const isLarge = (i - lgOffset) % lgMultiple === 0;
   const isMedium = !isLarge && (i - mdOffset) % mdMultiple === 0;
 
-  const downgradeLg = false // (lg.unit === `"`) && lg.step === 30 / 3600 ||
-                      // (lg.unit === `'`) && lg.step === 30 / 60;
-
-  if (isLarge && !downgradeLg) return 'lg';
+  if (isLarge) return 'lg';
   if (isMedium) return 'md';
   return 'sm';
 }
@@ -154,7 +151,7 @@ const countSm = Math.floor((end - startSm) / sm.step);
 
 for (let i = 0; i <= countSm; i++) {
   const v = +(startSm + i * sm.step).toFixed(6);
-  const level = getTickLevel(i, lgOffset, mdOffset, lgMultiple, mdMultiple, lg);
+  const level = getTickLevel(i, lgOffset, mdOffset, lgMultiple, mdMultiple);
   const format = level === 'lg' ? lg.format : level === 'md' ? md.format : sm.format;
   pushTick(ticks, level, v, format);
 }
