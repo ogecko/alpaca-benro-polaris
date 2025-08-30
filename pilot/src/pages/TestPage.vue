@@ -23,6 +23,17 @@
                <ScaleDisplay :sp="110.324" :pv="pv" :scaleStart="10" :scaleRange="sr" :domain="ic" />
             </div>
             <div class="col-12">
+                  <q-slider
+    v-model="logSr"
+    :min="-2.3"
+    :max="2.3"
+    :step="0.01"
+    label
+    label-always
+    color="orange"
+    track-color="brown"
+    thumb-color="black"
+  />
                 <q-btn-toggle
                     v-model="ic"
                     color="brown"
@@ -73,6 +84,13 @@
                     {label: '90.302', value: 90.302},
                     ]"
                 />
+
+
+  <div class="q-mt-md text-bold">
+    Current range: {{ formatSr(sr) }}
+  </div>
+
+
             </div>
         </div>
     </q-card>
@@ -80,12 +98,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted,ref } from 'vue'
+import { onMounted, onUnmounted,ref, computed } from 'vue'
 import ScaleDisplay from 'components/ScaleDisplay.vue'
 import type { ScaleDomainType } from 'components/ScaleDisplay.vue'
 
 const pv = ref<number>(120.234761)
-const sr = ref<number>(2)
 const ic = ref<ScaleDomainType>('linear_360')
 
 onMounted(() => {
@@ -93,6 +110,19 @@ onMounted(() => {
 
 onUnmounted(() => {
 })
+
+const logSr = ref(0.3) // default to ~2°
+
+const sr = computed({
+  get: () => Math.pow(10, logSr.value),
+  set: val => { logSr.value = Math.log10(val) }
+})
+
+function formatSr(val: number): string {
+  if (val >= 1) return `${val.toFixed(0)}°`
+  if (val >= 1 / 60) return `${Math.round(val * 60)}′`
+  return `${Math.round(val * 3600)}″`
+}
 
 
 </script>
