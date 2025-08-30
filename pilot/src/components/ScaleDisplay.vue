@@ -67,13 +67,46 @@ function formatArcSeconds(v: number): string {
   return formatDegrees(deg);
 }
 
+interface Step {
+  step: number;
+  unit: string;
+  format: (v: number) => string;
+}
+
+function getTickLevel(i: number, lgOffset: number, mdOffset: number, lgMultiple: number, mdMultiple: number, lg: Step): 'lg' | 'md' | 'sm' {
+  const isLarge = (i - lgOffset) % lgMultiple === 0;
+  const isMedium = !isLarge && (i - mdOffset) % mdMultiple === 0;
+
+  const downgradeLg = false // (lg.unit === `"`) && lg.step === 30 / 3600 ||
+                      // (lg.unit === `'`) && lg.step === 30 / 60;
+
+  if (isLarge && !downgradeLg) return 'lg';
+  if (isMedium) return 'md';
+  return 'sm';
+}
+
+function pushTick(ticks: MarkDatum[], level: 'lg' | 'md' | 'sm', v: number, format: (v: number) => string) {
+  const keyBase = v.toFixed(6);
+  const angle = v;
+  const pathLg = 'M0,0 L15,0';
+  const pathMd = 'M0,0 L10,0';
+  const pathSm = 'M0,0 L5,0';
+
+  if (level === 'lg') {
+    ticks.push({ key: `label-lg-${keyBase}`, angle, label: format(v), level: 'label-lg', offset: 1.28 });
+    ticks.push({ key: `tick-lg-${keyBase}`, angle, path: pathLg, level: 'tick-lg' });
+  } else if (level === 'md') {
+    ticks.push({ key: `label-md-${keyBase}`, angle, label: format(v), level: 'label-md', offset: 1.18 });
+    ticks.push({ key: `tick-md-${keyBase}`, angle, path: pathMd, level: 'tick-md' });
+  } else {
+    ticks.push({ key: `tick-sm-${keyBase}`, angle, path: pathSm, level: 'tick-sm' });
+  }
+}
+
 
 function generateTicks(scaleStart: number, scaleRange: number): MarkDatum[] {
   const ticks: MarkDatum[] = [];
 
-  const pathLg = 'M0,0 L15,0';
-  const pathMd = 'M0,0 L10,0';
-  const pathSm = 'M0,0 L5,0';
 
 const steps = [
   { step: 90, unit: '°', format: formatDegrees },
@@ -121,48 +154,11 @@ const countSm = Math.floor((end - startSm) / sm.step);
 
 for (let i = 0; i <= countSm; i++) {
   const v = +(startSm + i * sm.step).toFixed(6);
-
-  const isLarge = (i - lgOffset) % lgMultiple === 0;
-  const isMedium = !isLarge && (i - mdOffset) % mdMultiple === 0;
-
-
-  if (isLarge) {
-    ticks.push({
-      key: `label-lg-${v.toFixed(6)}`,
-      angle: v,
-      label: lg.format(v),
-      level: 'label-lg',
-      offset: 1.28
-    });
-    ticks.push({
-      key: `tick-lg-${v.toFixed(6)}`,
-      angle: v,
-      path: pathLg,
-      level: 'tick-lg'
-    });
-  } else if (isMedium) {
-    ticks.push({
-      key: `label-md-${v.toFixed(6)}`,
-      angle: v,
-      label: md.format(v),
-      level: 'label-md',
-      offset: 1.18
-    });
-    ticks.push({
-      key: `tick-md-${v.toFixed(6)}`,
-      angle: v,
-      path: pathMd,
-      level: 'tick-md'
-    });
-  } else {
-    ticks.push({
-      key: `tick-sm-${v.toFixed(6)}`,
-      angle: v,
-      path: pathSm,
-      level: 'tick-sm'
-    });
-  }
+  const level = getTickLevel(i, lgOffset, mdOffset, lgMultiple, mdMultiple, lg);
+  const format = level === 'lg' ? lg.format : level === 'md' ? md.format : sm.format;
+  pushTick(ticks, level, v, format);
 }
+
 
   return ticks;
 }
