@@ -163,10 +163,12 @@ function joinMarker(
   tRaw: Transition<BaseType, number, SVGGElement, unknown>,
 	{
 		key = 'marker',
-		pathD = 'M0,-6 L6,6 L-6,6 Z'
+		pathD = 'M0,-6 L6,6 L-6,6 Z',
+		radialOffset = 1,
 	}: {
 		key?: string,
 		pathD?: string,
+		radialOffset?: number,
 	} = {} // default to empty object
 
 ) {
@@ -180,19 +182,19 @@ function joinMarker(
       enter => enter.append('path')
  	    .attr('class', key)
         .attr('d', pathD)
-        .attr('transform', `rotate(${oldScale(angle)}) translate(${radius},0)`)
+        .attr('transform', `rotate(${oldScale(angle)}) translate(${radius*radialOffset},0)`)
         .attr('opacity', 0)
         .transition(t)
         .attr('opacity', 1)
         .attrTween('transform', d => t => {
           const a = interp(d)(t);
-          return `rotate(${a}) translate(${radius},0)`;
+          return `rotate(${a}) translate(${radius*radialOffset},0)`;
         }),
 
       update => update.transition(t)
         .attrTween('transform', d => t => {
           const a = interp(d)(t);
-          return `rotate(${a}) translate(${radius},0)`;
+          return `rotate(${a}) translate(${radius*radialOffset},0)`;
         }),
 
       exit => exit.transition(t)
@@ -237,7 +239,7 @@ function renderCircularScale() {
   joinLines(group, bticks, oldScale, newScale, radius, t, { key: 'majortick' });
   joinLines(group, sticks, oldScale, newScale, radius, t, { key: 'minortick', x1: 0.9, x2: 0.94});
   joinLabels(group, bticks, oldScale, newScale, radius, t, { key: 'minorlabel' });
-  joinMarker(group, props.pv, oldScale, newScale, radius, t, { key: 'pvMarker' });
+  joinMarker(group, props.pv, oldScale, newScale, radius, t, { key: 'pvMarker', radialOffset: 0.85 });
 }
 
 
