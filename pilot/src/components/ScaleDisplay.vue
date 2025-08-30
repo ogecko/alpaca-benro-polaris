@@ -50,73 +50,100 @@ watch(renderKey, renderScale)
 function generateTicks(scaleStart: number, scaleRange: number): MarkDatum[] {
   const ticks: MarkDatum[] = [];
 
-  let lgStep: number;
-  let mdStep: number;
-  let smStep: number;
-
-  let formatLg: (v: number) => string;
-  let formatMd: (v: number) => string;
-
   const pathLg = 'M0,0 L15,0';
   const pathMd = 'M0,0 L10,0';
   const pathSm = 'M0,0 L5,0';
 
-  if (scaleRange >= 100) {
-    lgStep = 90;
-    mdStep = 10;
-    smStep = 5;
-    formatLg = v => `${Math.round(v)}°`;
-    formatMd = v => `${Math.round(v)}°`;
-  } else if (scaleRange >= 20) {
-    lgStep = 10;
-    mdStep = 2;
-    smStep = 0.5;
-    formatLg = v => `${Math.round(v)}°`;
-    formatMd = v => `${Math.round(v)}°`;
-  } else if (scaleRange >= 2) {
-    lgStep = 1;
-    mdStep = 1 / 6;
-    smStep = 1 / 12;
-    formatLg = v => `${Math.floor(v)}°`;
-    formatMd = v => {
-      const min = Math.round((v - Math.floor(v)) * 60);
-      return `${min}′`;
-    };
-  } else if (scaleRange >= 1 / 3) {
-    lgStep = 1 / 30;
-    mdStep = 1 / 120;
-    smStep = 1 / 240;
-    formatLg = v => `${Math.round(v * 60)}′`;
-    formatMd = v => `${Math.round(v * 60)}′`;
-  } else {
-    lgStep = 1 / 180;
-    mdStep = 1 / 720;
-    smStep = 1 / 3600;
-    formatLg = v => `${Math.round(v * 3600)}″`;
-    formatMd = v => `${Math.round(v * 3600)}″`;
-  }
+  const steps = [
+    { step: 90, unit: '°', format: (v: number) => `${Math.round(v)}°` },
+    { step: 30, unit: '°', format: (v: number) => `${Math.round(v)}°` },
+    { step: 10, unit: '°', format: (v: number) => `${Math.round(v)}°` },
+    // { step: 5, unit: '°', format: (v: number) => `${Math.round(v)}°` },
+    { step: 2, unit: '°', format: (v: number) => `${Math.round(v)}°` },
+    // { step: 1, unit: '°', format: (v: number) => `${Math.round(v)}°` },
+    { step: 30 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
+    // { step: 15 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
+    { step: 10 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
+    // { step: 5 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
+    { step: 2 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
+    // { step: 1 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
+    { step: 30 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
+    // { step: 15 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
+    { step: 10 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
+    // { step: 5 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
+    { step: 2 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
+    // { step: 1 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
+  ];
 
-  const start = Math.floor(scaleStart / lgStep) * lgStep;
+// finds the first step that satisfies the spacing constraint. 
+const minLabelSpacingDeg = 20; // minimum spacing between md labels in degrees
+const screenAngleRange = 200;
+const maxLabels = screenAngleRange/minLabelSpacingDeg; // around 20
+
+// Find the finest step that still keeps label count ≤ maxLabels
+const mdIndex = steps.findIndex(s => (scaleRange / s.step) > maxLabels);
+const safeMdIndex = mdIndex >= 0 ? mdIndex : steps.length - 1;
+
+const md = steps[safeMdIndex];
+console.log('initial md',md)
+const lg = steps[Math.max(0, safeMdIndex - 1)];
+const sm = steps[Math.min(steps.length - 1, safeMdIndex + 1)];
+
+
+
+
+if (!md || !lg || !sm) return [];
+console.log('lg',lg,'md',md,'sm',sm)
+
+
+  const start = Math.floor(scaleStart / sm.step) * sm.step;
   const end = scaleStart + scaleRange;
 
-  for (let v = start; v <= end; v += smStep) {
-    const isLarge = Math.abs(v % lgStep) < 1e-6;
-    const isMedium = Math.abs(v % mdStep) < 1e-6;
+  for (let v = start; v <= end; v += sm.step) {
+    const isLarge = Math.abs(v % lg.step) < 1e-6;
+    const isMedium = Math.abs(v % md.step) < 1e-6;
 
     if (isLarge) {
-      ticks.push({ key: `label-lg-${v.toFixed(6)}`, angle: v, label: formatLg(v), level: 'label-lg', offset:1.28 });
-      ticks.push({ key: `tick-lg-${v.toFixed(6)}`, angle: v, path: pathLg, level: 'tick-lg' });
+      ticks.push({
+        key: `label-lg-${v.toFixed(6)}`,
+        angle: v,
+        label: lg.format(v),
+        level: 'label-lg',
+        offset: 1.28
+      });
+      ticks.push({
+        key: `tick-lg-${v.toFixed(6)}`,
+        angle: v,
+        path: pathLg,
+        level: 'tick-lg'
+      });
     } else if (isMedium) {
-      ticks.push({ key: `label-md-${v.toFixed(6)}`, angle: v, label: formatMd(v), level: 'label-md', offset:1.18});
-      ticks.push({ key: `tick-md-${v.toFixed(6)}`, angle: v, path: pathMd, level: 'tick-md' });
+      ticks.push({
+        key: `label-md-${v.toFixed(6)}`,
+        angle: v,
+        label: md.format(v),
+        level: 'label-md',
+        offset: 1.18
+      });
+      ticks.push({
+        key: `tick-md-${v.toFixed(6)}`,
+        angle: v,
+        path: pathMd,
+        level: 'tick-md'
+      });
     } else {
-      ticks.push({ key: `tick-sm-${v.toFixed(6)}`, angle: v, path: pathSm, level: 'tick-sm' });
+      ticks.push({
+        key: `tick-sm-${v.toFixed(6)}`,
+        angle: v,
+        path: pathSm,
+        level: 'tick-sm'
+      });
     }
-
   }
 
   return ticks;
 }
+
 
 
 // Computes an interpolator between old and new scale values for smooth transitions
@@ -224,7 +251,7 @@ function renderCircularScale() {
   const low = props.pv - props.scaleRange / 2
   const high = props.pv + props.scaleRange / 2
   const ticks = generateTicks(low,props.scaleRange)
-
+console.log(ticks)
   const radius = width / 2 - 60;
   const newScale = scaleLinear().domain([low, high]).range([-10, 190]);
   const oldScale = prevScale ?? newScale;
@@ -273,12 +300,12 @@ g .tick-sm {
 }
 
 g .label-lg {
-	fill: lightCyan; 
+	fill: white; 
   font-size: 20px;
 }
 
 g .label-md {
-	fill: lightCyan; 
+	fill: lightblue; 
   font-size: 12px;
 }
 
