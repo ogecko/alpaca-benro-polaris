@@ -76,12 +76,15 @@
                     unelevated
                     glossy
                     :options="[
+                    {label: '358', value: 358},
+                    {label: '359.9992', value: 359},
                     {label: '180', value: 180},
                     {label: '180.3', value: 180.3},
                     {label: '170', value: 170},
                     {label: '89.7', value: 89.7},
                     {label: '90.3', value: 90.3},
                     {label: '90.302', value: 90.302},
+                    {label: '10.302', value: 10.302},
                     ]"
                 />
 

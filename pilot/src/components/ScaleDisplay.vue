@@ -13,6 +13,7 @@ import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { interpolate } from 'd3-interpolate'
 import { easeCubicOut } from 'd3-ease'
+import { isAngleBetween } from 'src/utils/angles'
 import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
@@ -47,6 +48,26 @@ onMounted(renderScale)
 watch(renderKey, renderScale)
 
 
+function formatDegrees(v: number): string {
+  return `${Math.round(v)}°`;
+}
+
+function formatArcMinutes(v: number): string {
+  const arcmin = Math.round((v % 1) * 60);
+  const deg = Math.floor(v);
+  return arcmin === 0 ? formatDegrees(deg) : `${arcmin}′`;
+}
+
+function formatArcSeconds(v: number): string {
+  const arcsec = Math.round((v * 3600) % 60);
+  const arcmin = Math.floor((v * 60) % 60);
+  const deg = Math.floor(v);
+  if (arcsec !== 0) return `${arcsec}″`;
+  if (arcmin !== 0) return `${arcmin}′`;
+  return formatDegrees(deg);
+}
+
+
 function generateTicks(scaleStart: number, scaleRange: number): MarkDatum[] {
   const ticks: MarkDatum[] = [];
 
@@ -54,54 +75,47 @@ function generateTicks(scaleStart: number, scaleRange: number): MarkDatum[] {
   const pathMd = 'M0,0 L10,0';
   const pathSm = 'M0,0 L5,0';
 
-  const steps = [
-    { step: 90, unit: '°', format: (v: number) => `${Math.round(v)}°` },
-    { step: 30, unit: '°', format: (v: number) => `${Math.round(v)}°` },
-    { step: 10, unit: '°', format: (v: number) => `${Math.round(v)}°` },
-    // { step: 5, unit: '°', format: (v: number) => `${Math.round(v)}°` },
-    { step: 2, unit: '°', format: (v: number) => `${Math.round(v)}°` },
-    // { step: 1, unit: '°', format: (v: number) => `${Math.round(v)}°` },
-    { step: 30 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
-    // { step: 15 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
-    { step: 10 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
-    // { step: 5 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
-    { step: 2 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
-    // { step: 1 / 60, unit: `'`, format: (v: number) => `${Math.round((v % 1) * 60)}′` },
-    { step: 30 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
-    // { step: 15 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
-    { step: 10 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
-    // { step: 5 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
-    { step: 2 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
-    // { step: 1 / 3600, unit: `"`, format: (v: number) => `${Math.round((v * 3600) % 60)}″` },
-  ];
+const steps = [
+  { step: 90, unit: '°', format: formatDegrees },
+  { step: 30, unit: '°', format: formatDegrees },
+  { step: 10, unit: '°', format: formatDegrees },
+  { step: 2, unit: '°', format: formatDegrees },
+  { step: 30 / 60, unit: `'`, format: formatArcMinutes },
+  { step: 10 / 60, unit: `'`, format: formatArcMinutes },
+  { step: 2 / 60, unit: `'`, format: formatArcMinutes },
+  { step: 30 / 3600, unit: `"`, format: formatArcSeconds },
+  { step: 10 / 3600, unit: `"`, format: formatArcSeconds },
+  { step: 2 / 3600, unit: `"`, format: formatArcSeconds },
+];
 
-// finds the first step that satisfies the spacing constraint. 
-const minLabelSpacingDeg = 20; // minimum spacing between md labels in degrees
-const screenAngleRange = 200;
-const maxLabels = screenAngleRange/minLabelSpacingDeg; // around 20
+  // finds the first step that satisfies the spacing constraint. 
+  const minLabelSpacingDeg = 20; // minimum spacing between md labels in degrees
+  const screenAngleRange = 200;
+  const maxLabels = screenAngleRange/minLabelSpacingDeg; // around 20
 
-// Find the finest step that still keeps label count ≤ maxLabels
-const mdIndex = steps.findIndex(s => (scaleRange / s.step) > maxLabels);
-const safeMdIndex = mdIndex >= 0 ? mdIndex : steps.length - 1;
+  // Find the finest step that still keeps label count ≤ maxLabels
+  const mdIndex = steps.findIndex(s => (scaleRange / s.step) > maxLabels);
+  const safeMdIndex = mdIndex >= 0 ? mdIndex : steps.length - 1;
 
-const md = steps[safeMdIndex];
-console.log('initial md',md)
-const lg = steps[Math.max(0, safeMdIndex - 1)];
-const sm = steps[Math.min(steps.length - 1, safeMdIndex + 1)];
+  const md = steps[safeMdIndex];
+  console.log('initial md',md)
+  const lg = steps[Math.max(0, safeMdIndex - 1)];
+  const sm = steps[Math.min(steps.length - 1, safeMdIndex + 1)];
 
-
-
-
-if (!md || !lg || !sm) return [];
-console.log('lg',lg,'md',md,'sm',sm)
-
+  if (!md || !lg || !sm) return [];
+  console.log('lg',lg,'md',md,'sm',sm)
 
   const start = Math.floor(scaleStart / sm.step) * sm.step;
   const end = scaleStart + scaleRange;
+  const count = Math.floor((end - start) / sm.step);
+  const lgMultiple = Math.round(lg.step / sm.step);
+  const mdMultiple = Math.round(md.step / sm.step);
 
-  for (let v = start; v <= end; v += sm.step) {
-    const isLarge = Math.abs(v % lg.step) < 1e-6;
-    const isMedium = Math.abs(v % md.step) < 1e-6;
+  for (let i = 0; i <= count; i++) {
+    const v = +(start + i * sm.step).toFixed(6); 
+    const isLarge = i % lgMultiple === 0;
+    const isMedium = i % mdMultiple === 0;
+
 
     if (isLarge) {
       ticks.push({
@@ -174,7 +188,7 @@ function joinMarks(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tRaw as Transition<BaseType, any, any, any>;
   const [min, max] = newScale.domain() as [number, number];
-  const visibleMarks = marks.filter(m => m.angle >= min && m.angle <= max);
+  const visibleMarks = marks.filter(m => isAngleBetween(m.angle, min, max));
   const interp = angleInterp(oldScale, newScale);
 
   group.selectAll<SVGTextElement | SVGPathElement, MarkDatum>(`.${cname}`)
@@ -202,6 +216,7 @@ function joinMarks(
         }),
 
       update => update.transition(t)
+        .attr('opacity', 1)
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
           const flip = (d.label) ? angle > 90 : false;

@@ -41,3 +41,14 @@ export function deg2dms(decimalDegrees: number, precision: number) {
     secondstr,
   };
 }
+
+
+export function angularDifference(a:number, b:number) {
+  return ((b - a + 180) % 360 + 360) % 360 - 180;
+}
+
+export function isAngleBetween(angle:number, min:number, max:number) {
+  const diffToMin = angularDifference(min, angle);
+  const diffToMax = angularDifference(max, angle);
+  return diffToMin >= 0 && diffToMax <= 0;
+}
