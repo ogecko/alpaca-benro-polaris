@@ -46,22 +46,6 @@ const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.sc
 onMounted(renderScale)
 watch(renderKey, renderScale)
 
-// Computes an interpolator between old and new scale values for smooth transitions
-function angleInterp(oldScale: ScaleLinear<number, number>, newScale: ScaleLinear<number, number>) {
-  return (d: number) => interpolate(oldScale(d), newScale(d));
-}
-
-
-// Generates a transform string that rotates text around its own origin along a circular path
-function labelTransformTween(interpFn: (t: number) => number, radius: number, radialOffset: number = 1.1) {
-  return function (t: number) {
-    const angle = interpFn(t);
-    const x = radius * Math.cos(angle * Math.PI / 180) * radialOffset;
-    const y = radius * Math.sin(angle * Math.PI / 180) * radialOffset;
-	const rot = (angle > 90) ? 180 : 0 
-    return `rotate(${rot}, ${x}, ${y}) rotate(${angle})`;
-  };
-}
 
 // Renders and animates tick lines (major or minor) along a circular scale
 function joinLines(group: Selection<SVGGElement, unknown, null, undefined>, 
@@ -147,8 +131,8 @@ function joinLabels(group: Selection<SVGGElement, unknown, null, undefined>,
 
       exit => exit.transition(t)
         .attr('opacity', 0)
-        .remove()
         .attrTween('transform', d => t => labelTransformTween(interp(d), radius, radialOffset)(t))
+        .remove()
     );
 }
 
@@ -177,30 +161,125 @@ function joinMarker(
   const interp = angleInterp(oldScale, newScale);
 
   group.selectAll<SVGPathElement, number>(`.${key}`)
-    .data([angle])
+    .data([angle],()=>`${key}`)
     .join(
       enter => enter.append('path')
  	    .attr('class', key)
         .attr('d', pathD)
-        .attr('transform', `rotate(${oldScale(angle)}) translate(${radius*radialOffset},0)`)
+        .attr('opacity', 0)
+        .transition(t)
+        .attr('opacity', 1)
+        .attrTween('transform', d => t => markTransformTween(interp(d), radius, radialOffset)(t)),
+
+      update => update.transition(t)
+        .attrTween('transform', d => t => markTransformTween(interp(d), radius, radialOffset)(t)),
+
+      exit => exit.transition(t)
+        .attr('opacity', 0)
+        .attrTween('transform', d => t => markTransformTween(interp(d), radius, radialOffset)(t))
+        .remove()
+
+    );
+}
+
+// Computes an interpolator between old and new scale values for smooth transitions
+function angleInterp(oldScale: ScaleLinear<number, number>, newScale: ScaleLinear<number, number>) {
+  return (d: number) => interpolate(oldScale(d), newScale(d));
+}
+
+
+// Generates a transform string that rotates text around its own origin along a circular path
+function labelTransformTween(interpFn: (t: number) => number, radius: number, radialOffset: number = 1.1) {
+  return function (t: number) {
+    const angle = interpFn(t);
+    const x = radius * Math.cos(angle * Math.PI / 180) * radialOffset;
+    const y = radius * Math.sin(angle * Math.PI / 180) * radialOffset;
+	const rot = (angle > 90) ? 180 : 0 
+    return `rotate(${rot}, ${x}, ${y}) rotate(${angle})`;
+  };
+}
+// Generates a transform string that rotates text around its own origin along a circular path
+function markTransformTween(interpFn: (t: number) => number, radius: number, radialOffset: number = 1.1) {
+  return function (t: number) {
+    const angle = interpFn(t);
+    const x = radius * Math.cos(angle * Math.PI / 180) * radialOffset;
+    const y = radius * Math.sin(angle * Math.PI / 180) * radialOffset;
+	// const rot = (angle > 90) ? 180 : 0 
+    return `translate(${x}, ${y}) rotate(180)`;
+  };
+}
+
+
+type MarkDatum = {
+  angle: number;
+  mark: string; // either path string or label text
+};
+
+function joinMarks(
+  group: Selection<SVGGElement, unknown, null, undefined>,
+  marks: MarkDatum[],
+  oldScale: ScaleLinear<number, number>,
+  newScale: ScaleLinear<number, number>,
+  radius: number,
+  tRaw: Transition<BaseType, MarkDatum, SVGGElement, unknown>,
+  {
+    key = 'mark',
+    radialOffset = 1.0,
+  }: {
+    key?: string;
+    radialOffset?: number;
+  } = {}
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const t = tRaw as Transition<BaseType, any, any, any>;
+  const [min, max] = newScale.domain() as [number, number];;
+  const visibleMarks = marks.filter(m => m.angle >= min && m.angle <= max);
+  const interp = angleInterp(oldScale, newScale);
+
+  group.selectAll<SVGTextElement | SVGPathElement, MarkDatum>(`.${key}`)
+    .data(visibleMarks, d => `${d.angle}-${d.mark}`)
+    .join(
+      enter => enter.append(d => document.createElementNS('http://www.w3.org/2000/svg', 
+	                            d.mark.startsWith('M0') ? 'path' : 'text'))
+        .attr('class', key)
+        .attr('d', d => d.mark.startsWith('M0') ? d.mark : null)
+        .text(d => d.mark.startsWith('M0') ? null : d.mark)
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'middle')
         .attr('opacity', 0)
         .transition(t)
         .attr('opacity', 1)
         .attrTween('transform', d => t => {
-          const a = interp(d)(t);
-          return `rotate(${a}) translate(${radius*radialOffset},0)`;
+          const angle = interp(d.angle)(t);
+          const flip = !d.mark.startsWith('M0') && angle > 90;
+          return radialTransform(angle, radius, radialOffset, flip);
         }),
 
       update => update.transition(t)
         .attrTween('transform', d => t => {
-          const a = interp(d)(t);
-          return `rotate(${a}) translate(${radius*radialOffset},0)`;
+          const angle = interp(d.angle)(t);
+          const flip = !d.mark.startsWith('M0') && angle > 90;
+          return radialTransform(angle, radius, radialOffset, flip);
         }),
 
       exit => exit.transition(t)
         .attr('opacity', 0)
+        .attrTween('transform', d => t => {
+          const angle = interp(d.angle)(t);
+          const flip = !d.mark.startsWith('M0') && angle > 90;
+          return radialTransform(angle, radius, radialOffset, flip);
+        })
         .remove()
     );
+}
+
+
+
+function radialTransform(angle: number, radius: number, radialOffset: number = 1.0, flip: boolean = false): string {
+  const x = radius * Math.cos(angle * Math.PI / 180) * radialOffset;
+  const y = radius * Math.sin(angle * Math.PI / 180) * radialOffset;
+  const rot = flip ? 180 : 0;
+  return `translate(${x}, ${y}) rotate(${rot+angle})`;
 }
 
 
@@ -240,6 +319,10 @@ function renderCircularScale() {
   joinLines(group, sticks, oldScale, newScale, radius, t, { key: 'minortick', x1: 0.9, x2: 0.94});
   joinLabels(group, bticks, oldScale, newScale, radius, t, { key: 'minorlabel' });
   joinMarker(group, props.pv, oldScale, newScale, radius, t, { key: 'pvMarker', radialOffset: 0.85 });
+  joinMarks(group, [{angle:90.2, mark:'M0,0 L60,0'}], oldScale, newScale, radius, t, { key: 'lineMark', radialOffset: 1 });
+  joinMarks(group, [{angle:180.2, mark:'M0,0 L-20,10 L-20,-10 Z'}], oldScale, newScale, radius, t, { key: 'pvMark', radialOffset: 0.9 });
+  joinMarks(group, [{angle:180.4, mark:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z'}], oldScale, newScale, radius, t, { key: 'spMark', radialOffset: 0.9 });
+  joinMarks(group, [{angle:180.1, mark:'test'}], oldScale, newScale, radius, t, { key: 'textMark', radialOffset: 0.75 });
 }
 
 
@@ -270,5 +353,19 @@ g .minorlabel {
 
 g .pvMarker {
 	fill: lightcoral; 
+}
+
+g .pvMark {
+	fill: lightcoral; 
+}
+
+g .spMark {
+	fill: rgb(105, 219, 117); 
+}
+
+g .lineMark {
+	stroke: yellow; 
+	stroke-width: 5;
+
 }
 </style>
