@@ -13,25 +13,38 @@ import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { interpolate } from 'd3-interpolate'
 import { easeCubicOut } from 'd3-ease'
-import { isAngleBetween } from 'src/utils/angles'
+import { isAngleBetween, wrapTo360 } from 'src/utils/angles'
 import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
 
-export type ScaleDomainType =
+export type DomainStyleType =
 	| 'linear_360'
 	| 'circular_360'
+	| 'semihi_360'
+	| 'semilo_360'
 	| 'circular_180'
 	| 'alt_90'
 	| 'dec_90'
 	| 'ra_hours'
 
+const domainStyle = {
+  'linear_360': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'circular_360': { centerVw: 0.5, centerVh: 0.1, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'semihi_360': { centerVw: 0.5, centerVh: 0.7, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360 },
+	'semilo_360': { centerVw: 0.5, centerVh: 0.35, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'circular_180': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'alt_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'dec_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'ra_hours': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+}
+
 const props = defineProps<{
 	scaleStart: number
 	scaleRange: number
 	pv: number
-	domain: ScaleDomainType
+	domain: DomainStyleType
 }>()
 
 const width = 400
@@ -41,7 +54,7 @@ const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 
 const isLinear = computed(() => props.domain === 'linear_360')
-const isCircular = computed(() => props.domain === 'circular_360' || props.domain === 'circular_180')
+const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
 const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}`)
 
 onMounted(renderScale)
@@ -197,22 +210,6 @@ function generateTicks(scaleStart: number, scaleRange: number,
     pushTick(ticks, label as 'lg' | 'md' | 'sm', v, format);
   }
 
-  // If a degree is within the range then push it on
-  if (scaleRange < 1) {
-    const degBoundary = Math.ceil(scaleStart);
-    if (degBoundary <= end) {
-      pushTick(ticks, 'lg', degBoundary, formatDegrees);
-    }
-  }
-
-  // If a minute is within the range then push it on
-  if (scaleRange < 1 / 60) {
-    const minBoundary = Math.ceil(scaleStart * 60) / 60;
-    if (minBoundary <= end) {
-      pushTick(ticks, 'md', minBoundary, formatArcMinutes);
-    }
-  }
-
   // diagnostics
   // console.log(`scaleStart: ${scaleStart}; scaleRange: ${scaleRange};  stepSize ${stepSize}; labels: [`,ticks.map(t=>t.key),`]`, )
 
@@ -277,7 +274,7 @@ function joinMarks(
         .attr('opacity', 1)
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
-          const flip = (d.label) ? angle > 90 : false;
+          const flip = (d.label) ? (Math.cos(angle * Math.PI / 180) < 0) : false;
           return radialTransform(angle, radius, d.offset ?? 1.0, flip);
         }),
 
@@ -396,16 +393,22 @@ let prevScale: ScaleLinear<number, number> | undefined;
 function renderCircularScale() {
   if (!circularGroup.value) return;
 
+
+  const dProps = domainStyle[props.domain]
   const low = props.pv - props.scaleRange / 2
   const high = props.pv + props.scaleRange / 2
   const { stepSize, ticks } = generateTicks(low,props.scaleRange)
-console.log(stepSize)
+  console.log(stepSize)
+
+
+  const cx = width * dProps.centerVw
+  const cy = height * dProps.centerVh
   const radius = width / 2 - 60;
-  const newScale = scaleLinear().domain([low, high]).range([-10, 190]);
+  const newScale = scaleLinear().domain([low, high]).range([dProps.sAngleLow, dProps.sAngleHigh]);
   const oldScale = prevScale ?? newScale;
   prevScale = newScale;
 
-  const group = select(circularGroup.value);
+  const group = select(circularGroup.value).attr('transform', `translate(${cx},${cy})`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 

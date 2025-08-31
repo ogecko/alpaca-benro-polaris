@@ -20,7 +20,7 @@
     <q-card flat bordered class="col q-pa-lg">
         <div class="row">
             <div clas="col">
-               <ScaleDisplay :sp="110.324" :pv="pv" :scaleStart="10" :scaleRange="sr" :domain="ic" />
+               <ScaleDisplay :sp="110.324" :pv="pv" :scaleStart="10" :scaleRange="sr" :domain="domainChoice" />
             </div>
             <div class="col-12">
                   <q-slider
@@ -46,7 +46,7 @@
                     thumb-color="black"
                   />
                 <q-btn-toggle
-                    v-model="ic"
+                    v-model="domainChoice"
                     color="brown"
                     text-color="white"
                     toggle-color="orange"
@@ -57,6 +57,8 @@
                     :options="[
                     {label: 'Linear', value: 'linear_360'},
                     {label: 'Circular', value: 'circular_360'},
+                    {label: 'Semi Hi', value: 'semihi_360'},
+                    {label: 'Semi Lo', value: 'semilo_360'},
                     ]"
                 />
                 <q-btn-toggle
@@ -114,10 +116,10 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted,ref, computed } from 'vue'
 import ScaleDisplay from 'components/ScaleDisplay.vue'
-import type { ScaleDomainType } from 'components/ScaleDisplay.vue'
+import type { DomainStyleType } from 'components/ScaleDisplay.vue'
 
 const pv = ref<number>(120.234761)
-const ic = ref<ScaleDomainType>('linear_360')
+const domainChoice = ref<DomainStyleType>('linear_360')
 
 onMounted(() => {
 })

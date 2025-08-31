@@ -52,3 +52,18 @@ export function isAngleBetween(angle:number, min:number, max:number) {
   const diffToMax = angularDifference(max, angle);
   return diffToMin >= 0 && diffToMax <= 0;
 }
+
+// Wraps angle to [0, 360)
+export function wrapTo360(angle: number) {
+  return ((angle % 360) + 360) % 360;
+}
+
+// Wraps angle to [-180, +180)
+export function wrapTo180(angle: number) {
+  return ((angle + 180) % 360 + 360) % 360 - 180;
+}
+
+// Wraps angle to [-90, +90)
+export function wrapTo90(angle: number) {
+  return ((angle + 90) % 180 + 180) % 180 - 90;
+}
