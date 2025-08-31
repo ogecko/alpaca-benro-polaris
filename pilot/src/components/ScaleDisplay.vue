@@ -126,7 +126,7 @@ function pushTick(
   }
 
   // push the label and tickmark onto the ticks array  
-  const pathMap = { lg: 'M0,0 L15,0', md: 'M0,0 L10,0', sm: 'M0,0 L5,0' };
+  const pathMap = { lg: 'M-3,0 L15,0', md: 'M-3,0 L10,0', sm: 'M-3,0 L8,0' };
   const offsetMap = { lg: 1.28, md: 1.18, sm: 1.13 }
 
   ticks.push({
@@ -291,10 +291,14 @@ function radialTransform(angle: number, radius: number, radialOffset: number = 1
   return `translate(${x}, ${y}) rotate(${rot+angle})`;
 }
 
-function strokeDashArray(stepSize:number, stepDiv:number, radius:number, newScale:ScaleLinear<number, number>) {
-  const s0 = newScale(0 + stepSize) - newScale(0); 
-  const dashLength = radius * (s0 / stepDiv) * (Math.PI / 180);
-  return `${dashLength*0.1} ${dashLength*0.9}`
+function strokeDashArray(radius:number, newScale:ScaleLinear<number, number>, stepSize:number|undefined, stepDiv:number|undefined, ) {
+  if (stepSize && stepDiv) {
+    const s0 = newScale(0 + stepSize) - newScale(0); 
+    const dashLength = radius * (s0 / stepDiv) * (Math.PI / 180);
+    return `${dashLength*0.1} ${dashLength*0.9}`
+  } else {
+    return 'none'
+  }
 }
 
 function zOrder<T extends { zorder?: string }>(el: SVGElement, d: T): void {
@@ -342,7 +346,7 @@ function joinArcs(
       enter => enter.append('path')
         .attr('class', d => `${cname} ${d.level}`.trim())
         .each(function (d) { zOrder<ArcDatum>(this, d) })
-        .style('stroke-dasharray', d => strokeDashArray(d.stepSize ?? 1, d.stepDiv ?? 5, radius, newScale))
+        .style('stroke-dasharray', d => strokeDashArray(radius, newScale, d.stepSize, d.stepDiv))
         .attr('opacity', 0)
         .transition(t)
         .attr('opacity', 1)
@@ -354,7 +358,7 @@ function joinArcs(
 
       update => update.transition(t)
         .attr('opacity', 1)
-        .style('stroke-dasharray', d => strokeDashArray(d.stepSize ?? 1, d.stepDiv ?? 5, radius, newScale))
+        .style('stroke-dasharray', d => strokeDashArray(radius, newScale, d.stepSize, d.stepDiv))
         .attrTween('d', d => t => {
           const a0 = interp(d.beginAngle)(t);
           const a1 = interp(d.endAngle)(t);
@@ -421,9 +425,9 @@ function renderCircularScale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
-  joinMarks(group, [{angle:90.2, path:'M0,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t, 'lineMark' );    // example Scale boundary line
+  joinMarks(group, [{angle:90.2, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t, 'spLine' );    // example Scale boundary line
   joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
-  joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset:1}], newScale, newScale, radius, t, 'pvMark');
+  joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t, 'pvMark');
   joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
   joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
 
@@ -432,7 +436,8 @@ function renderCircularScale() {
   const fractionalStep = stepSize / stepDiv
   const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
   const endAngle = beginAngle + high - low;
-  joinArcs(group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1}], oldScale, newScale, radius, t, 'arcMark');
+  joinArcs(group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1}], oldScale, newScale, radius, t, 'arcDashes');
+  joinArcs(group, [{beginAngle:low, endAngle:high, offset:1}], oldScale, newScale, radius, t, 'arcLine');
 }
 
 
@@ -458,7 +463,7 @@ g .tick-md {
 }
 
 g .tick-sm {
-	stroke-width: 0.8;
+	stroke-width: 1;
 	stroke: lightskyblue; 
 }
 
@@ -485,19 +490,26 @@ g .spMark {
 	fill: rgb(105, 219, 117); 
 }
 
-g .lineMark {
-	stroke: red; 
+g .spLine {
+	stroke: green; 
 	stroke-width: 5;
+ stroke-linecap: round;
 
 }
 
-.arcMark {
+.arcDashes {
   fill: none;
   stroke: lightskyblue;
-  stroke-width: 4;
-  stroke-dasharray: 2 10; /* dot spacing */
+  stroke-width: 5;
 }
 
+.arcLine {
+  fill: none;
+  stroke: lightskyblue;
+  opacity: 0.2;
+  stroke-width: 5;
+
+}
 
 // g {
 // 	stroke: red; 
