@@ -338,7 +338,7 @@ function renderCircularScale() {
 
   joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
   joinMarks(group, [{angle:90.2, path:'M0,0 L60,0'}], oldScale, newScale, radius, t, 'lineMark' );
-  joinMarks(group, [{angle:180.2, path:'M0,0 L-20,10 L-20,-10 Z', offset:1}], oldScale, newScale, radius, t, 'pvMark');
+  joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset:1}], oldScale, newScale, radius, t, 'pvMark');
   joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
   joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
 }
