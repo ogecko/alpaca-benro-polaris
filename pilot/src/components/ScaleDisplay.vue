@@ -15,11 +15,11 @@
           <div class="col-9 sp-input text-h5 text-grey-6">
             <q-input rounded filled label="Setpoint" color="positive" class="text-h6" v-model=spi  type="text" mask='###°##′##.#"'>
               <template v-slot:prepend>
-                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-left-box" class="q-mr-xs" />
+                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-left-circle" class="q-mr-xs" />
                 <!-- <q-icon name="mdi-crosshairs-gps" /> -->
               </template>
               <template v-slot:append>
-                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-right-box" class="q-mr-xs" />
+                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-right-circle" class="q-mr-xs" />
                 <!-- <q-icon name="mdi-crosshairs-gps" /> -->
               </template>
             </q-input>
@@ -540,13 +540,13 @@ g .pvMark {
 }
 
 g .spMark {
-	fill: rgb(105, 219, 117); 
+	fill: var(--q-positive); 
 }
 .sp-input {
   width:80%;
 }
 g .spLine {
-	stroke: green; 
+	stroke: var(--q-positive); 
 	stroke-width: 5;
  stroke-linecap: round;
 
