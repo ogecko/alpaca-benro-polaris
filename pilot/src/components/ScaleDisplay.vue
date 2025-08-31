@@ -74,31 +74,67 @@ interface Step {
   label: string;
 }
 
-function pushTick(ticks: MarkDatum[], level: 'lg' | 'md' | 'sm', v: number, format: (v: number) => string) {
+// Adds a tick and its label to the ticks array, promoting to higher label levels if appropriate and ensuring only the highest-priority tick at each angle.
+function pushTick(
+  ticks: MarkDatum[],
+  level: 'lg' | 'md' | 'sm',
+  v: number,
+  format: (v: number) => string
+) {
   const keyBase = v.toFixed(6);
   const angle = v;
-  const pathLg = 'M0,0 L15,0';
-  const pathMd = 'M0,0 L10,0';
-  const pathSm = 'M0,0 L5,0';
+  const labelText = format(v);
 
-  if (level === 'lg') {
-    ticks.push({ key: `label-lg-${keyBase}`, angle, label: format(v), level: 'label-lg', offset: 1.28 });
-    ticks.push({ key: `tick-lg-${keyBase}`, angle, path: pathLg, level: 'tick-lg' });
-  } else if (level === 'md') {
-    ticks.push({ key: `label-md-${keyBase}`, angle, label: format(v), level: 'label-md', offset: 1.18 });
-    ticks.push({ key: `tick-md-${keyBase}`, angle, path: pathMd, level: 'tick-md' });
-  } else {
-    ticks.push({ key: `label-sm-${keyBase}`, angle, label: format(v), level: 'label-sm', offset: 1.18 });
-    ticks.push({ key: `tick-sm-${keyBase}`, angle, path: pathSm, level: 'tick-sm' });
+  // Promote md ticks that look like whole degrees
+  if (['md','sm'].includes(level) && /^\d+°$/.test(labelText)) {
+    level = 'lg'
+  } 
+  // Promote sm ticks that look like whole minutes
+  if ('sm' === level  && /^\d+′$/.test(labelText)) {
+    level = 'md'
+  } 
+
+  // Remove any lower-priority duplicate labels
+  const labelPriority = { lg: 3, md: 2, sm: 1 };
+  const existingIndex = ticks.findIndex(t => t.angle === angle);
+  const existing = ticks[existingIndex];
+  const existingLevel = existing?.level?.slice(6) as 'lg' | 'md' | 'sm' | undefined;
+  if (existingLevel) {
+    if (labelPriority[level] <= labelPriority[existingLevel]) {
+      return;                         // dont push a lower-priority or duplicate level tick
+    } else {
+      ticks.splice(existingIndex, 1); // remove lower-priority level, existing tick
+    }
   }
+
+  // push the label and tickmark onto the ticks array  
+  const pathMap = { lg: 'M0,0 L15,0', md: 'M0,0 L10,0', sm: 'M0,0 L5,0' };
+  const offsetMap = { lg: 1.28, md: 1.18, sm: 1.13 }
+
+  ticks.push({
+    key: `label-${level}-${keyBase}`,
+    angle,
+    label: labelText,
+    level: `label-${level}`,
+    offset: offsetMap[level],
+  });
+
+  ticks.push({
+    key: `tick-${level}-${keyBase}`,
+    angle,
+    path: pathMap[level],
+    level: `tick-${level}`,
+  });
 }
 
 
 
+// pick the most suitable step size for the scale range
 function selectStep (scaleRange: number, minLabels: number, maxLabels: number): Step {
   const steps: Step[] = [
     { step: 90, unit: '°', format: formatDegrees, label: 'lg' },
     { step: 30, unit: '°', format: formatDegrees, label: 'lg' },
+    { step: 15, unit: '°', format: formatDegrees, label: 'lg' },
     { step: 10, unit: '°', format: formatDegrees, label: 'lg' },
     { step: 5, unit: '°', format: formatDegrees, label: 'lg' },
     { step: 2, unit: '°', format: formatDegrees, label: 'lg' },
@@ -137,27 +173,24 @@ function selectStep (scaleRange: number, minLabels: number, maxLabels: number): 
 }
 
 
+// Generates an array of tick mark and label data for the given scale range and label count constraints.
+function generateTicks(scaleStart: number, scaleRange: number, 
+                      minLabels:number = 6, maxLabels:number = 30): MarkDatum[] 
+{
 
-
-
-
-function generateTicks(scaleStart: number, scaleRange: number): MarkDatum[] {
+  // array of tick marks selected, then select best step size
   const ticks: MarkDatum[] = [];
-  const minLabels = 6;
-  const maxLabels = 30;
-
   const { step, format, label } = selectStep(scaleRange, minLabels, maxLabels);
 
   const start = Math.ceil(scaleStart / step) * step;
   const end = scaleStart + scaleRange;
   const count = Math.floor((end - start) / step);
-
   for (let i = 0; i <= count && i < maxLabels; i++) {
     const v = +(start + i * step).toFixed(6);
     pushTick(ticks, label as 'lg' | 'md' | 'sm', v, format);
   }
 
-  // Boundary enforcement
+  // If a degree is within the range then push it on
   if (scaleRange < 1) {
     const degBoundary = Math.ceil(scaleStart);
     if (degBoundary <= end) {
@@ -165,27 +198,25 @@ function generateTicks(scaleStart: number, scaleRange: number): MarkDatum[] {
     }
   }
 
+  // If a minute is within the range then push it on
   if (scaleRange < 1 / 60) {
     const minBoundary = Math.ceil(scaleStart * 60) / 60;
     if (minBoundary <= end) {
       pushTick(ticks, 'md', minBoundary, formatArcMinutes);
     }
   }
-  console.log(`scaleStart: ${scaleStart}; scaleRange: ${scaleRange};  step ${step}; labels: [`,ticks.map(t=>t.key),`]`, )
+
+  // diagnostics
+  // console.log(`scaleStart: ${scaleStart}; scaleRange: ${scaleRange};  step ${step}; labels: [`,ticks.map(t=>t.key),`]`, )
 
   return ticks;
 }
-
-
-
-
 
 
 // Computes an interpolator between old and new scale values for smooth transitions
 function angleInterp(oldScale: ScaleLinear<number, number>, newScale: ScaleLinear<number, number>) {
   return (d: number) => interpolate(oldScale(d), newScale(d));
 }
-
 
 
 type MarkDatum = {
@@ -256,7 +287,6 @@ function joinMarks(
 }
 
 
-
 function radialTransform(angle: number, radius: number, radialOffset: number = 1.0, flip: boolean = false): string {
   const x = radius * Math.cos(angle * Math.PI / 180) * radialOffset;
   const y = radius * Math.sin(angle * Math.PI / 180) * radialOffset;
@@ -279,7 +309,9 @@ function renderLinearScale() {
 	group.transition().duration(200).ease(easeCubicOut).call(axis)
 }
 
+// global used to remember previous scale for tweening circular scales
 let prevScale: ScaleLinear<number, number> | undefined;
+
 // Renders a circular scale with major/minor ticks and labels
 function renderCircularScale() {
   if (!circularGroup.value) return;
@@ -297,10 +329,6 @@ function renderCircularScale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
-  // joinLines(group, bticks, oldScale, newScale, radius, t, { key: 'majortick' });
-  // joinLines(group, sticks, oldScale, newScale, radius, t, { key: 'minortick', x1: 0.9, x2: 0.94});
-  // joinLabels(group, bticks, oldScale, newScale, radius, t, { key: 'minorlabel' });
-  // joinMarker(group, props.pv, oldScale, newScale, radius, t, { key: 'pvMarker', radialOffset: 0.85 });
   joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
   joinMarks(group, [{angle:90.2, path:'M0,0 L60,0'}], oldScale, newScale, radius, t, 'lineMark' );
   joinMarks(group, [{angle:180.2, path:'M0,0 L-20,10 L-20,-10 Z', offset:1}], oldScale, newScale, radius, t, 'pvMark');
