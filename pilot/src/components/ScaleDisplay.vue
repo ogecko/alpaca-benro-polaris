@@ -291,9 +291,9 @@ function radialTransform(angle: number, radius: number, radialOffset: number = 1
   return `translate(${x}, ${y}) rotate(${rot+angle})`;
 }
 
-function strokeDashArray(stepSize:number, radius:number, newScale:ScaleLinear<number, number>) {
+function strokeDashArray(stepSize:number, stepDiv:number, radius:number, newScale:ScaleLinear<number, number>) {
   const s0 = newScale(0 + stepSize) - newScale(0); 
-  const dashLength = radius * (s0 / 5) * (Math.PI / 180);
+  const dashLength = radius * (s0 / stepDiv) * (Math.PI / 180);
   return `${dashLength*0.1} ${dashLength*0.9}`
 }
 
@@ -310,15 +310,15 @@ function addPathOrText(el: SVGElement, d: MarkDatum): void {
 }
 
 
-
 interface ArcDatum {
-  key?: string;
-  beginAngle: number;
-  endAngle: number;
-  offset?: number;
-  stepSize?: number;
-  level?: string;
-  zorder?: string;
+  key?: string;       // element key used by D3 to match existing elements
+  beginAngle: number; // where the arc starts in domain angle degrees 
+  endAngle: number;   // where the arc ends in domain angle degrees 
+  offset?: number;    // radial offset from the radius 1=no offset, 0.9=inside, 1.1=outside
+  stepSize?: number;  // size between tick labels 
+  stepDiv?: number;   // number of dashes between each step
+  level?: string;     // optional class name added to element
+  zorder?: 'high' | 'low' | '';    // optional z-order for arc
 }
 
 function joinArcs(
@@ -328,7 +328,7 @@ function joinArcs(
   newScale: ScaleLinear<number, number>,
   radius: number,
   tRaw: Transition<BaseType, ArcDatum, SVGGElement, unknown>,
-  cname: string = 'arc'
+  cname: string = 'arc'   // must be unique per joinArcs call
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tRaw as Transition<BaseType, any, any, any>;
@@ -342,7 +342,7 @@ function joinArcs(
       enter => enter.append('path')
         .attr('class', d => `${cname} ${d.level}`.trim())
         .each(function (d) { zOrder<ArcDatum>(this, d) })
-        .style('stroke-dasharray', d => strokeDashArray(d.stepSize ?? 1, radius, newScale))
+        .style('stroke-dasharray', d => strokeDashArray(d.stepSize ?? 1, d.stepDiv ?? 5, radius, newScale))
         .attr('opacity', 0)
         .transition(t)
         .attr('opacity', 1)
@@ -354,7 +354,7 @@ function joinArcs(
 
       update => update.transition(t)
         .attr('opacity', 1)
-        .style('stroke-dasharray', d => strokeDashArray(d.stepSize ?? 1, radius, newScale))
+        .style('stroke-dasharray', d => strokeDashArray(d.stepSize ?? 1, d.stepDiv ?? 5, radius, newScale))
         .attrTween('d', d => t => {
           const a0 = interp(d.beginAngle)(t);
           const a1 = interp(d.endAngle)(t);
@@ -428,8 +428,11 @@ function renderCircularScale() {
   joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
 
   // add an arc dashed-line for the small ticks
-  // const arcFirstTick = (ticks.length > 0 && ticks[0].angle != null ? ticks[0].angle - dProps.sAngleLow : 0) 
-  joinArcs(group, [{beginAngle:low, endAngle:high, stepSize, offset:1}], oldScale, newScale, radius, t, 'arcMark');
+  const stepDiv = 5
+  const fractionalStep = stepSize / stepDiv
+  const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
+  const endAngle = beginAngle + high - low;
+  joinArcs(group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1}], oldScale, newScale, radius, t, 'arcMark');
 }
 
 
