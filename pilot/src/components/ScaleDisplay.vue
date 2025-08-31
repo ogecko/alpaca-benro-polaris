@@ -305,12 +305,18 @@ function radialTransform(angle: number, radius: number, radialOffset: number = 1
   return `translate(${x}, ${y}) rotate(${rot+angle})`;
 }
 
+function strokeDashArray(stepSize:number, radius:number, newScale:ScaleLinear<number, number>) {
+  const s0 = newScale(0 + stepSize) - newScale(0); 
+  const dashLength = radius * (s0 / 5) * (Math.PI / 180);
+  return `${dashLength*0.1} ${dashLength*0.9}`
+}
 
 interface ArcDatum {
   key?: string;
   beginAngle: number;
   endAngle: number;
   offset?: number;
+  stepSize?: number;
   level?: string;
 }
 
@@ -334,6 +340,7 @@ function joinArcs(
     .join(
       enter => enter.append('path')
         .attr('class', d => `${cname} ${d.level}`.trim())
+        .style('stroke-dasharray', d => strokeDashArray(d.stepSize ?? 1, radius, newScale))
         .attr('opacity', 0)
         .transition(t)
         .attr('opacity', 1)
@@ -345,6 +352,7 @@ function joinArcs(
 
       update => update.transition(t)
         .attr('opacity', 1)
+        .style('stroke-dasharray', d => strokeDashArray(d.stepSize ?? 1, radius, newScale))
         .attrTween('d', d => t => {
           const a0 = interp(d.beginAngle)(t);
           const a1 = interp(d.endAngle)(t);
@@ -398,7 +406,6 @@ function renderCircularScale() {
   const low = props.pv - props.scaleRange / 2
   const high = props.pv + props.scaleRange / 2
   const { stepSize, ticks } = generateTicks(low,props.scaleRange)
-  console.log(stepSize)
 
 
   const cx = width * dProps.centerVw
@@ -417,7 +424,7 @@ function renderCircularScale() {
   joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset:1}], newScale, newScale, radius, t, 'pvMark');
   joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
   joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
-  joinArcs(group, [{beginAngle:low, endAngle:high, offset:1}], oldScale, newScale, radius, t, 'arcMark');
+  joinArcs(group, [{beginAngle:low, endAngle:high, stepSize, offset:1}], oldScale, newScale, radius, t, 'arcMark');
 }
 
 
