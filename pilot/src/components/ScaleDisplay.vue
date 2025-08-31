@@ -68,7 +68,7 @@ function formatArcSeconds(v: number): string {
 }
 
 interface Step {
-  step: number;
+  stepSize: number;
   unit: string;
   format: (v: number) => string;
   label: string;
@@ -137,26 +137,26 @@ function pushTick(
 // pick the most suitable step size for the scale range
 function selectStep (scaleRange: number, minLabels: number, maxLabels: number): Step {
   const steps: Step[] = [
-    { step: 90, unit: '°', format: formatDegrees, label: 'lg' },
-    { step: 30, unit: '°', format: formatDegrees, label: 'lg' },
-    { step: 15, unit: '°', format: formatDegrees, label: 'lg' },
-    { step: 10, unit: '°', format: formatDegrees, label: 'lg' },
-    { step: 5, unit: '°', format: formatDegrees, label: 'lg' },
-    { step: 2, unit: '°', format: formatDegrees, label: 'lg' },
-    { step: 1, unit: '°', format: formatDegrees, label: 'lg' },
-    { step: 30 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { step: 20 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { step: 15 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { step: 10 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { step: 5 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { step: 2 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { step: 1 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { step: 30 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { step: 20 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { step: 15 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { step: 10 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { step: 5 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { step: 2 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { stepSize: 90, unit: '°', format: formatDegrees, label: 'lg' },
+    { stepSize: 30, unit: '°', format: formatDegrees, label: 'lg' },
+    { stepSize: 15, unit: '°', format: formatDegrees, label: 'lg' },
+    { stepSize: 10, unit: '°', format: formatDegrees, label: 'lg' },
+    { stepSize: 5, unit: '°', format: formatDegrees, label: 'lg' },
+    { stepSize: 2, unit: '°', format: formatDegrees, label: 'lg' },
+    { stepSize: 1, unit: '°', format: formatDegrees, label: 'lg' },
+    { stepSize: 30 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { stepSize: 20 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { stepSize: 15 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { stepSize: 10 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { stepSize: 5 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { stepSize: 2 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { stepSize: 1 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { stepSize: 30 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { stepSize: 20 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { stepSize: 15 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { stepSize: 10 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { stepSize: 5 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { stepSize: 2 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
   ];
 
   // Filter steps by zoom eligibility
@@ -169,12 +169,12 @@ function selectStep (scaleRange: number, minLabels: number, maxLabels: number): 
 
   // Prefer steps within label count bounds
   const preferred = eligible.find(s => {
-    const count = Math.floor(scaleRange / s.step);
+    const count = Math.floor(scaleRange / s.stepSize);
     return count >= minLabels && count <= maxLabels;
   });
 
   // Fallback: pick coarsest eligible step that gives ≥ 1 label
-  const fallback = eligible.find(s => Math.floor(scaleRange / s.step) >= 1);
+  const fallback = eligible.find(s => Math.floor(scaleRange / s.stepSize) >= 1);
 
   return preferred ?? fallback ?? steps.find(s => s.label === 'lg')!;
 }
@@ -182,18 +182,18 @@ function selectStep (scaleRange: number, minLabels: number, maxLabels: number): 
 
 // Generates an array of tick mark and label data for the given scale range and label count constraints.
 function generateTicks(scaleStart: number, scaleRange: number, 
-                      minLabels:number = 6, maxLabels:number = 30): MarkDatum[] 
+                      minLabels:number = 6, maxLabels:number = 30): { stepSize: number, ticks: MarkDatum[] }
 {
 
   // array of tick marks selected, then select best step size
   const ticks: MarkDatum[] = [];
-  const { step, format, label } = selectStep(scaleRange, minLabels, maxLabels);
+  const { stepSize, format, label } = selectStep(scaleRange, minLabels, maxLabels);
 
-  const start = Math.ceil(scaleStart / step) * step;
+  const start = Math.ceil(scaleStart / stepSize) * stepSize;
   const end = scaleStart + scaleRange;
-  const count = Math.floor((end - start) / step);
+  const count = Math.floor((end - start) / stepSize);
   for (let i = 0; i <= count && i < maxLabels; i++) {
-    const v = +(start + i * step).toFixed(6);
+    const v = +(start + i * stepSize).toFixed(6);
     pushTick(ticks, label as 'lg' | 'md' | 'sm', v, format);
   }
 
@@ -214,9 +214,9 @@ function generateTicks(scaleStart: number, scaleRange: number,
   }
 
   // diagnostics
-  // console.log(`scaleStart: ${scaleStart}; scaleRange: ${scaleRange};  step ${step}; labels: [`,ticks.map(t=>t.key),`]`, )
+  // console.log(`scaleStart: ${scaleStart}; scaleRange: ${scaleRange};  stepSize ${stepSize}; labels: [`,ticks.map(t=>t.key),`]`, )
 
-  return ticks;
+  return { stepSize, ticks };
 }
 
 
@@ -233,6 +233,7 @@ type MarkDatum = {
   label?: string;     // text string to render at radial position
   path?: string;      // SVG path string to render at radial position
   level?: string;     // optional class name added to element
+  zorder?: 'high' | 'low' | ''  // optional zorder requirement for mark
 };
 
 function joinMarks(
@@ -263,6 +264,12 @@ function joinMarks(
               sel.text(d.label)
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'middle');
+            }
+            if (d.zorder==='high') {
+              sel.raise()
+            }
+            if (d.zorder==='low') {
+              sel.lower()
             }
         })
         .attr('opacity', 0)
@@ -391,8 +398,8 @@ function renderCircularScale() {
 
   const low = props.pv - props.scaleRange / 2
   const high = props.pv + props.scaleRange / 2
-  const ticks = generateTicks(low,props.scaleRange)
-
+  const { stepSize, ticks } = generateTicks(low,props.scaleRange)
+console.log(stepSize)
   const radius = width / 2 - 60;
   const newScale = scaleLinear().domain([low, high]).range([-10, 190]);
   const oldScale = prevScale ?? newScale;
@@ -402,7 +409,7 @@ function renderCircularScale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
-  joinMarks(group, [{angle:90.2, path:'M0,0 L60,0'}], oldScale, newScale, radius, t, 'lineMark' );
+  joinMarks(group, [{angle:90.2, path:'M0,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t, 'lineMark' );    // example Scale boundary line
   joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
   joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset:1}], newScale, newScale, radius, t, 'pvMark');
   joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
