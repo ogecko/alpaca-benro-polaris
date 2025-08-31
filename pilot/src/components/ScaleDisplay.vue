@@ -302,6 +302,72 @@ function radialTransform(angle: number, radius: number, radialOffset: number = 1
 }
 
 
+interface ArcDatum {
+  key?: string;
+  beginAngle: number;
+  endAngle: number;
+  offset?: number;
+  level?: string;
+}
+
+function joinArcs(
+  group: Selection<SVGGElement, unknown, null, undefined>,
+  arcs: ArcDatum[],
+  oldScale: ScaleLinear<number, number>,
+  newScale: ScaleLinear<number, number>,
+  radius: number,
+  tRaw: Transition<BaseType, ArcDatum, SVGGElement, unknown>,
+  cname: string = 'arc'
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const t = tRaw as Transition<BaseType, any, any, any>;
+  const [min, max] = newScale.domain() as [number, number];
+  const visibleArcs = arcs.filter(m => isAngleBetween(m.beginAngle, min, max) || isAngleBetween(m.endAngle, min, max)) ;
+  const interp = angleInterp(oldScale, newScale);
+
+  group.selectAll<SVGPathElement, ArcDatum>(`.${cname}`)
+    .data(visibleArcs, d => `${d.key}`)
+    .join(
+      enter => enter.append('path')
+        .attr('class', d => `${cname} ${d.level}`.trim())
+        .attr('opacity', 0)
+        .transition(t)
+        .attr('opacity', 1)
+        .attrTween('d', d => t => {
+          const a0 = interp(d.beginAngle)(t);
+          const a1 = interp(d.endAngle)(t);
+          return arcPath(a0, a1, radius * (d.offset ?? 1));
+        }),
+
+      update => update.transition(t)
+        .attr('opacity', 1)
+        .attrTween('d', d => t => {
+          const a0 = interp(d.beginAngle)(t);
+          const a1 = interp(d.endAngle)(t);
+          return arcPath(a0, a1, radius * (d.offset ?? 1));
+        }),
+
+      exit => exit.transition(t)
+        .attr('opacity', 0)
+        .remove()
+    );
+}
+
+function arcPath(startAngle: number, endAngle: number, radius: number): string {
+  const a0 = (startAngle * Math.PI) / 180;
+  const a1 = (endAngle * Math.PI) / 180;
+  const x0 = radius * Math.cos(a0);
+  const y0 = radius * Math.sin(a0);
+  const x1 = radius * Math.cos(a1);
+  const y1 = radius * Math.sin(a1);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+
+  return `M${x0},${y0} A${radius},${radius} 0 ${largeArc} 1 ${x1},${y1}`;
+}
+
+
+
+
 // Renders a linear scale with animated axis ticks
 function renderLinearScale() {
 	if (!linearGroup.value) return
@@ -336,11 +402,12 @@ function renderCircularScale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
-  joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
   joinMarks(group, [{angle:90.2, path:'M0,0 L60,0'}], oldScale, newScale, radius, t, 'lineMark' );
+  joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
   joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset:1}], newScale, newScale, radius, t, 'pvMark');
   joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
   joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
+  joinArcs(group, [{beginAngle:low, endAngle:high, offset:1}], oldScale, newScale, radius, t, 'arcMark');
 }
 
 
@@ -385,10 +452,6 @@ g .label-sm {
   font-size: 12px;
 }
 
-g .pvMarker {
-	fill: lightcoral; 
-}
-
 g .pvMark {
 	fill: lightcoral; 
 }
@@ -402,6 +465,14 @@ g .lineMark {
 	stroke-width: 5;
 
 }
+
+.arcMark {
+  fill: none;
+  stroke: lightskyblue;
+  stroke-width: 4;
+  stroke-dasharray: 2 10; /* dot spacing */
+}
+
 
 // g {
 // 	stroke: red; 
