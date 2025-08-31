@@ -7,6 +7,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue'
+import { debounce } from 'quasar'
 import { scaleLinear } from 'd3-scale'
 import { axisBottom } from 'd3-axis'
 import { select } from 'd3-selection'
@@ -52,7 +53,7 @@ const height = 300
 const pathMap = { lg: 'M-7,0 L16,0', md: 'M-7,0 L12,0', sm: 'M-7,0 L10,0' };
 const offsetMap = { lg: 1.28, md: 1.18, sm: 1.13 }
 
-
+const dbRenderScale = debounce(renderScale, 10, true)
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 
@@ -60,8 +61,8 @@ const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
 const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}`)
 
-onMounted(renderScale)
-watch(renderKey, renderScale)
+onMounted(dbRenderScale)
+watch(renderKey, dbRenderScale)
 
 
 function formatDegrees(v: number): string {
@@ -445,6 +446,7 @@ function renderCircularScale() {
   joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
 
 }
+
 
 
 // Dispatches rendering based on scale type (linear or circular)
