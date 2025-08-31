@@ -266,6 +266,7 @@ function joinMarks(
 
       update => update.transition(t)
         .attr('opacity', 1)
+        .each(function (d) { zOrder<MarkDatum>(this, d) })
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
           const flip = (d.label) ? (Math.cos(angle * Math.PI / 180) < 0) : false;
@@ -358,6 +359,7 @@ function joinArcs(
 
       update => update.transition(t)
         .attr('opacity', 1)
+        .each(function (d) { zOrder<ArcDatum>(this, d) })
         .style('stroke-dasharray', d => strokeDashArray(radius, newScale, d.stepSize, d.stepDiv))
         .attrTween('d', d => t => {
           const a0 = interp(d.beginAngle)(t);
