@@ -17,7 +17,7 @@
     </div>
 
     <!-- Log card fills rest -->
-    <q-card flat bordered class="col q-pa-lg">
+    <q-card flat bordered class="col q-pa-md">
         <div class="row">
             <div clas="col">
                <ScaleDisplay :sp="110.324" :pv="pv" :scaleStart="10" :scaleRange="sr" :domain="domainChoice" />

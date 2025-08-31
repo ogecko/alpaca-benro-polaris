@@ -1,9 +1,33 @@
 <template>
-	<svg :width="width" :height="height">
-		<g v-if="isLinear" ref="linearGroup" :transform="`translate(10, ${height / 2})`" />
-		<g v-else-if="isCircular" ref="circularGroup" />
-	</svg>
+  <div class="overlay-container relative-position">
+    <!-- SVG Background -->
+    <svg class="background-svg" :width="width" :height="height">
+      <g v-if="isLinear" ref="linearGroup" :transform="`translate(10, ${height / 2})`" />
+      <g v-else-if="isCircular" ref="circularGroup" />
+    </svg>
+
+    <!-- Foreground Content Centered -->
+    <div class="foreground-content absolute-center">
+      <div class="column items-center text-center">
+        <div class="text-h4 text-grey-6 q-mt-sm">Azimuth</div>
+        <div class="row items-center q-gutter-sm">
+          <div class="text-h5 text-grey-6 q-mt-sm">sp</div>
+        <div class="text-h5 text-grey-6 q-mt-sm">
+          {{spx.sign}}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}"</div>
+        </div>
+        <div class="row items-center q-gutter-sm">
+          <div class="text-h4">{{ pvx.sign }}</div>
+          <div class="text-h2 text-weight-bold">{{ pvx.degrees }}°</div>
+          <div class="column q-pl-sm">
+            <div class="text-h5 text-grey-4">{{ pvx.minutestr }}′</div>
+            <div class="text-caption text-grey-5">{{ pvx.secondstr }}"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
+
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue'
@@ -14,7 +38,7 @@ import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { interpolate } from 'd3-interpolate'
 import { easeCubicOut } from 'd3-ease'
-import { isAngleBetween, wrapTo360 } from 'src/utils/angles'
+import { deg2dms, isAngleBetween, wrapTo360 } from 'src/utils/angles'
 import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
@@ -45,7 +69,8 @@ const props = defineProps<{
 	scaleStart: number
 	scaleRange: number
 	pv: number
-	domain: DomainStyleType
+	sp: number
+  domain: DomainStyleType
 }>()
 
 const width = 400
@@ -57,9 +82,12 @@ const dbRenderScale = debounce(renderScale, 10, true)
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 
+// computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
-const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}`)
+const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}-${props.sp}`)
+const pvx = computed(() => deg2dms(props.pv, 1))
+const spx = computed(() => deg2dms(props.sp, 1))
 
 onMounted(dbRenderScale)
 watch(renderKey, dbRenderScale)
@@ -151,6 +179,7 @@ function pushTick(
 // pick the most suitable step size for the scale range
 function selectStep (scaleRange: number, minLabels: number, maxLabels: number): Step {
   const steps: Step[] = [
+    { stepSize: 180, unit: '°', format: formatDegrees, label: 'lg' },
     { stepSize: 90, unit: '°', format: formatDegrees, label: 'lg' },
     { stepSize: 30, unit: '°', format: formatDegrees, label: 'lg' },
     { stepSize: 15, unit: '°', format: formatDegrees, label: 'lg' },
@@ -428,7 +457,7 @@ function renderCircularScale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
-  joinMarks(group, [{angle:90.2, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t, 'spLine' );    // example SP line
+  joinMarks(group, [{angle:props.sp, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t, 'spLine' );    // example SP line
   // add an arc dashed-line for the small ticks
   const stepDiv = 5
   const fractionalStep = stepSize / stepDiv
@@ -519,9 +548,34 @@ g .spLine {
 
 }
 
-// g {
-// 	stroke: red; 
-// 	stroke-width: 1;
-// }
+.overlay-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+
+.background-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+
+.foreground-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  width: 400px;
+  height: 300px;
+}
+
+
 
 </style>
