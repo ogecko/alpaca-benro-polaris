@@ -268,7 +268,7 @@ function joinMarks(
         .attr('opacity', 1)
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
-          const flip = (d.label) ? angle > 90 : false;
+          const flip = (d.label) ? (Math.cos(angle * Math.PI / 180) < 0) : false;
           return radialTransform(angle, radius, d.offset ?? 1, flip);
         }),
 
@@ -276,7 +276,7 @@ function joinMarks(
         .attr('opacity', 0)
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
-          const flip = (d.label) ? angle > 90 : false;
+          const flip = (d.label) ? (Math.cos(angle * Math.PI / 180) < 0) : false;
           return radialTransform(angle, radius, d.offset ?? 1, flip);
         })
         .remove()
