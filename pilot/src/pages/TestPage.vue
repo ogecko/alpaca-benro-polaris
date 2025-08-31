@@ -20,7 +20,7 @@
     <q-card flat bordered class="col q-pa-md">
         <div class="row">
             <div clas="col">
-               <ScaleDisplay :sp="110.324" :pv="pv" :scaleStart="10" :scaleRange="sr" :domain="domainChoice" />
+               <ScaleDisplay :sp="110.32423421" :pv="pv" :scaleStart="10" :scaleRange="sr" :domain="domainChoice" />
             </div>
             <div class="col-12">
                   <q-slider
@@ -119,7 +119,7 @@ import ScaleDisplay from 'components/ScaleDisplay.vue'
 import type { DomainStyleType } from 'components/ScaleDisplay.vue'
 
 const pv = ref<number>(120.234761)
-const domainChoice = ref<DomainStyleType>('linear_360')
+const domainChoice = ref<DomainStyleType>('semilo_360')
 const logSr = ref(2) 
 
 

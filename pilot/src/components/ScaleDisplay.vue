@@ -9,18 +9,33 @@
     <!-- Foreground Content Centered -->
     <div class="foreground-content absolute-center">
       <div class="column items-center text-center">
-        <div class="text-h4 text-grey-6 q-mt-sm">Azimuth</div>
-        <div class="row items-center q-gutter-sm">
-          <div class="text-h5 text-grey-6 q-mt-sm">sp</div>
-        <div class="text-h5 text-grey-6 q-mt-sm">
-          {{spx.sign}}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}"</div>
+        <div class="row items-center justify-center">
+          <!-- <div class="text-h5 text-grey-6 q-mt-sm">sp</div> -->
+          <q-space/>
+          <div class="col-9 sp-input text-h5 text-grey-6">
+            <q-input rounded filled label="Setpoint" color="positive" class="text-h6" v-model=spi  type="text" mask='###°##′##.#"'>
+              <template v-slot:prepend>
+                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-left-box" class="q-mr-xs" />
+                <!-- <q-icon name="mdi-crosshairs-gps" /> -->
+              </template>
+              <template v-slot:append>
+                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-right-box" class="q-mr-xs" />
+                <!-- <q-icon name="mdi-crosshairs-gps" /> -->
+              </template>
+            </q-input>
+            <!-- {{spx.sign}}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}" -->
+          </div>
+          <q-space/>
         </div>
-        <div class="row items-center q-gutter-sm">
+        <div class="text-h4 text-grey-6 q-mt-sm">
+          Right Ascention
+        </div>
+        <div class="row items-center q-gutter-xm">
           <div class="text-h4">{{ pvx.sign }}</div>
           <div class="text-h2 text-weight-bold">{{ pvx.degrees }}°</div>
-          <div class="column q-pl-sm">
+          <div class="column">
             <div class="text-h5 text-grey-4">{{ pvx.minutestr }}′</div>
-            <div class="text-caption text-grey-5">{{ pvx.secondstr }}"</div>
+            <div class="text-subtitle2 text-grey-5">{{ pvx.secondstr }}"</div>
           </div>
         </div>
       </div>
@@ -58,7 +73,7 @@ const domainStyle = {
   'linear_360': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
 	'circular_360': { centerVw: 0.5, centerVh: 0.1, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
 	'semihi_360': { centerVw: 0.5, centerVh: 0.7, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360 },
-	'semilo_360': { centerVw: 0.5, centerVh: 0.35, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'semilo_360': { centerVw: 0.5, centerVh: 0.28, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
 	'circular_180': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
 	'alt_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
 	'dec_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
@@ -81,13 +96,14 @@ const offsetMap = { lg: 1.28, md: 1.18, sm: 1.13 }
 const dbRenderScale = debounce(renderScale, 10, true)
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
+const spi = ref<string>(`${props.sp}`)
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
 const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1))
-const spx = computed(() => deg2dms(props.sp, 1))
+// const spx = computed(() => deg2dms(props.sp, 1))
 
 onMounted(dbRenderScale)
 watch(renderKey, dbRenderScale)
@@ -470,9 +486,9 @@ function renderCircularScale() {
   joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
 
   // pv mark and tests
-  joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t, 'pvMark');
-  joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
-  joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
+  joinMarks(group, [{angle:props.pv, path:'M0,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t, 'pvMark');
+  // joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
+  // joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
 
 }
 
@@ -505,13 +521,13 @@ g .tick-sm {
 }
 
 g .label-lg {
-	fill: white; 
-  font-size: 20px;
+	fill: lightblue; 
+  font-size: 16px;
 }
 
 g .label-md {
 	fill: lightblue; 
-  font-size: 16px;
+  font-size: 14px;
 }
 
 g .label-sm {
@@ -526,7 +542,9 @@ g .pvMark {
 g .spMark {
 	fill: rgb(105, 219, 117); 
 }
-
+.sp-input {
+  width:80%;
+}
 g .spLine {
 	stroke: green; 
 	stroke-width: 5;
