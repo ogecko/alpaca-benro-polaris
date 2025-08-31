@@ -253,22 +253,8 @@ function joinMarks(
     .join(
       enter => enter.append(d => document.createElementNS('http://www.w3.org/2000/svg', d.path ? 'path' : 'text'))
         .attr('class', d => `${cname} ${d.level}`.trim())
-        .each(function (d) {
-            const sel = select(this);
-            if (d.path) {
-              sel.attr('d', d.path)
-            } else if (d.label) {
-              sel.text(d.label)
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'middle');
-            }
-            if (d.zorder==='high') {
-              sel.raise()
-            }
-            if (d.zorder==='low') {
-              sel.lower()
-            }
-        })
+        .each(function (d) { zOrder<MarkDatum>(this, d) })
+        .each(function (d) { addPathOrText(this, d) })
         .attr('opacity', 0)
         .transition(t)
         .attr('opacity', 1)
@@ -311,6 +297,20 @@ function strokeDashArray(stepSize:number, radius:number, newScale:ScaleLinear<nu
   return `${dashLength*0.1} ${dashLength*0.9}`
 }
 
+function zOrder<T extends { zorder?: string }>(el: SVGElement, d: T): void {
+  const sel = select(el);
+  if      (d.zorder === 'high') sel.raise();
+  else if (d.zorder === 'low')  sel.lower();
+}
+
+function addPathOrText(el: SVGElement, d: MarkDatum): void {
+  const sel = select(el);
+  if      (d.path)  sel.attr('d', d.path)
+  else if (d.label) sel.text(d.label).attr('text-anchor', 'middle').attr('dominant-baseline', 'middle');
+}
+
+
+
 interface ArcDatum {
   key?: string;
   beginAngle: number;
@@ -318,6 +318,7 @@ interface ArcDatum {
   offset?: number;
   stepSize?: number;
   level?: string;
+  zorder?: string;
 }
 
 function joinArcs(
@@ -340,6 +341,7 @@ function joinArcs(
     .join(
       enter => enter.append('path')
         .attr('class', d => `${cname} ${d.level}`.trim())
+        .each(function (d) { zOrder<ArcDatum>(this, d) })
         .style('stroke-dasharray', d => strokeDashArray(d.stepSize ?? 1, radius, newScale))
         .attr('opacity', 0)
         .transition(t)
@@ -424,6 +426,9 @@ function renderCircularScale() {
   joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset:1}], newScale, newScale, radius, t, 'pvMark');
   joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
   joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
+
+  // add an arc dashed-line for the small ticks
+  // const arcFirstTick = (ticks.length > 0 && ticks[0].angle != null ? ticks[0].angle - dProps.sAngleLow : 0) 
   joinArcs(group, [{beginAngle:low, endAngle:high, stepSize, offset:1}], oldScale, newScale, radius, t, 'arcMark');
 }
 
