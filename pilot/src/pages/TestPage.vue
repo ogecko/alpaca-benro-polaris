@@ -120,14 +120,14 @@ import type { DomainStyleType } from 'components/ScaleDisplay.vue'
 
 const pv = ref<number>(120.234761)
 const domainChoice = ref<DomainStyleType>('linear_360')
+const logSr = ref(2) 
+
 
 onMounted(() => {
 })
 
 onUnmounted(() => {
 })
-
-const logSr = ref(0.3) // default to ~2°
 
 const sr = computed({
   get: () => Math.pow(10, logSr.value),

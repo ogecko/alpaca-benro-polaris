@@ -1,7 +1,7 @@
 <template>
 	<svg :width="width" :height="height">
 		<g v-if="isLinear" ref="linearGroup" :transform="`translate(10, ${height / 2})`" />
-		<g v-else-if="isCircular" ref="circularGroup" :transform="`translate(${width / 2}, 40)`" />
+		<g v-else-if="isCircular" ref="circularGroup" />
 	</svg>
 </template>
 
@@ -49,6 +49,9 @@ const props = defineProps<{
 
 const width = 400
 const height = 300
+const pathMap = { lg: 'M-7,0 L16,0', md: 'M-7,0 L12,0', sm: 'M-7,0 L10,0' };
+const offsetMap = { lg: 1.28, md: 1.18, sm: 1.13 }
+
 
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
@@ -126,9 +129,6 @@ function pushTick(
   }
 
   // push the label and tickmark onto the ticks array  
-  const pathMap = { lg: 'M-3,0 L15,0', md: 'M-3,0 L10,0', sm: 'M-3,0 L8,0' };
-  const offsetMap = { lg: 1.28, md: 1.18, sm: 1.13 }
-
   ticks.push({
     key: `label-${level}-${keyBase}`,
     angle,
@@ -425,19 +425,23 @@ function renderCircularScale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
-  joinMarks(group, [{angle:90.2, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t, 'spLine' );    // example Scale boundary line
-  joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
-  joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t, 'pvMark');
-  joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
-  joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
-
+  joinMarks(group, [{angle:90.2, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t, 'spLine' );    // example SP line
   // add an arc dashed-line for the small ticks
   const stepDiv = 5
   const fractionalStep = stepSize / stepDiv
   const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
   const endAngle = beginAngle + high - low;
-  joinArcs(group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1}], oldScale, newScale, radius, t, 'arcDashes');
-  joinArcs(group, [{beginAngle:low, endAngle:high, offset:1}], oldScale, newScale, radius, t, 'arcLine');
+  joinArcs(group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low'}], oldScale, newScale, radius, t, 'arcDashes');
+  joinArcs(group, [{beginAngle:low, endAngle:high, offset:1, zorder: 'low'}], oldScale, newScale, radius, t, 'arcLine');
+
+  // ticks and labels
+  joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
+
+  // pv mark and tests
+  joinMarks(group, [{angle:props.pv, path:'M0,0 L-20,10 L-20,-10 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t, 'pvMark');
+  joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
+  joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
+
 }
 
 
@@ -500,14 +504,14 @@ g .spLine {
 .arcDashes {
   fill: none;
   stroke: lightskyblue;
-  stroke-width: 5;
+  stroke-width: 12;
 }
 
 .arcLine {
   fill: none;
   stroke: lightskyblue;
   opacity: 0.2;
-  stroke-width: 5;
+  stroke-width: 12;
 
 }
 
