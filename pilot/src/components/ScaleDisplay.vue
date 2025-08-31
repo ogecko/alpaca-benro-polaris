@@ -83,7 +83,7 @@ function pushTick(
 ) {
   const keyBase = v.toFixed(6);
   const angle = v;
-  const labelText = format(v);
+  let labelText = format(v);
 
   // Promote md ticks that look like whole degrees
   if (['md','sm'].includes(level) && /^\d+°$/.test(labelText)) {
@@ -92,6 +92,11 @@ function pushTick(
   // Promote sm ticks that look like whole minutes
   if ('sm' === level  && /^\d+′$/.test(labelText)) {
     level = 'md'
+  } 
+  // Promote sm ticks that look like 60" to whole minutes
+  if ('sm' === level  && /^60″$/.test(labelText)) {
+    level = 'md'
+    labelText = formatArcMinutes(v)
   } 
 
   // Remove any lower-priority duplicate labels
