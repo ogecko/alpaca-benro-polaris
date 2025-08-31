@@ -24,16 +24,27 @@
             </div>
             <div class="col-12">
                   <q-slider
-    v-model="logSr"
-    :min="-2.3"
-    :max="2.3"
-    :step="0.01"
-    label
-    label-always
-    color="orange"
-    track-color="brown"
-    thumb-color="black"
-  />
+                    v-model="pv"
+                    :min="0"
+                    :max="360"
+                    :step="0.01"
+                    label
+                    label-always
+                    color="orange"
+                    track-color="brown"
+                    thumb-color="black"
+                  />
+                  <q-slider
+                    v-model="logSr"
+                    :min="-2.3"
+                    :max="2.3"
+                    :step="0.01"
+                    label
+                    label-always
+                    color="orange"
+                    track-color="brown"
+                    thumb-color="black"
+                  />
                 <q-btn-toggle
                     v-model="ic"
                     color="brown"
