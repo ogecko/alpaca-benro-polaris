@@ -67,19 +67,11 @@ function formatArcSeconds(v: number): string {
   return formatDegrees(deg);
 }
 
-// interface Step {
-//   step: number;
-//   unit: string;
-//   format: (v: number) => string;
-// }
-
-function getTickLevel(i: number, lgOffset: number, mdOffset: number, lgMultiple: number, mdMultiple: number): 'lg' | 'md' | 'sm' {
-  const isLarge = (i - lgOffset) % lgMultiple === 0;
-  const isMedium = !isLarge && (i - mdOffset) % mdMultiple === 0;
-
-  if (isLarge) return 'lg';
-  if (isMedium) return 'md';
-  return 'sm';
+interface Step {
+  step: number;
+  unit: string;
+  format: (v: number) => string;
+  label: string;
 }
 
 function pushTick(ticks: MarkDatum[], level: 'lg' | 'md' | 'sm', v: number, format: (v: number) => string) {
@@ -96,69 +88,96 @@ function pushTick(ticks: MarkDatum[], level: 'lg' | 'md' | 'sm', v: number, form
     ticks.push({ key: `label-md-${keyBase}`, angle, label: format(v), level: 'label-md', offset: 1.18 });
     ticks.push({ key: `tick-md-${keyBase}`, angle, path: pathMd, level: 'tick-md' });
   } else {
+    ticks.push({ key: `label-sm-${keyBase}`, angle, label: format(v), level: 'label-sm', offset: 1.18 });
     ticks.push({ key: `tick-sm-${keyBase}`, angle, path: pathSm, level: 'tick-sm' });
   }
 }
 
 
-function generateTicks(scaleStart: number, scaleRange: number): MarkDatum[] {
-  const ticks: MarkDatum[] = [];
 
+function selectStep (scaleRange: number, minLabels: number, maxLabels: number): Step {
+  const steps: Step[] = [
+    { step: 90, unit: '°', format: formatDegrees, label: 'lg' },
+    { step: 30, unit: '°', format: formatDegrees, label: 'lg' },
+    { step: 10, unit: '°', format: formatDegrees, label: 'lg' },
+    { step: 5, unit: '°', format: formatDegrees, label: 'lg' },
+    { step: 2, unit: '°', format: formatDegrees, label: 'lg' },
+    { step: 1, unit: '°', format: formatDegrees, label: 'lg' },
+    { step: 30 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { step: 20 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { step: 10 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { step: 5 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { step: 2 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { step: 1 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
+    { step: 30 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { step: 20 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { step: 10 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { step: 5 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { step: 2 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+  ];
 
-const steps = [
-  { step: 90, unit: '°', format: formatDegrees },
-  { step: 30, unit: '°', format: formatDegrees },
-  { step: 10, unit: '°', format: formatDegrees },
-  { step: 2, unit: '°', format: formatDegrees },
-  { step: 30 / 60, unit: `'`, format: formatArcMinutes },
-  { step: 10 / 60, unit: `'`, format: formatArcMinutes },
-  { step: 2 / 60, unit: `'`, format: formatArcMinutes },
-  { step: 30 / 3600, unit: `"`, format: formatArcSeconds },
-  { step: 10 / 3600, unit: `"`, format: formatArcSeconds },
-  { step: 2 / 3600, unit: `"`, format: formatArcSeconds },
-];
+  // Filter steps by zoom eligibility
+  const eligible = steps.filter(s => {
+    if (s.label === 'sm' && scaleRange >= 8 / 60) return false;
+    if (s.label === 'md' && scaleRange >= 8) return false;
+    // if (s.label === 'lg' && scaleRange < 1) return false;
+    return true;
+  });
 
-  // finds the first step that satisfies the spacing constraint. 
-  const minLabelSpacingDeg = 20; // minimum spacing between md labels in degrees
-  const screenAngleRange = 200;
-  const maxLabels = screenAngleRange/minLabelSpacingDeg; // around 20
+  // Prefer steps within label count bounds
+  const preferred = eligible.find(s => {
+    const count = Math.floor(scaleRange / s.step);
+    return count >= minLabels && count <= maxLabels;
+  });
 
-  // Find the finest step that still keeps label count ≤ maxLabels
-  const mdIndex = steps.findIndex(s => (scaleRange / s.step) > maxLabels);
-  const safeMdIndex = mdIndex >= 0 ? mdIndex : steps.length - 1;
+  // Fallback: pick coarsest eligible step that gives ≥ 1 label
+  const fallback = eligible.find(s => Math.floor(scaleRange / s.step) >= 1);
 
-  const md = steps[safeMdIndex];
-  console.log('initial md',md)
-  const lg = steps[Math.max(0, safeMdIndex - 1)];
-  const sm = steps[Math.min(steps.length - 1, safeMdIndex + 1)];
-
-  if (!md || !lg || !sm) return [];
-  console.log('lg',lg,'md',md,'sm',sm)
-
-const lgMultiple = Math.round(lg.step / sm.step); // e.g. 15
-const mdMultiple = Math.round(md.step / sm.step); // e.g. 5
-
-// Snap each level to its own boundary
-const startLg = Math.ceil(scaleStart / lg.step) * lg.step;
-const startMd = Math.ceil(scaleStart / md.step) * md.step;
-const startSm = Math.floor(scaleStart / sm.step) * sm.step;
-// Compute offset in sm.step units
-const lgOffset = Math.round((startLg - startSm) / sm.step);
-const mdOffset = Math.round((startMd - startSm) / sm.step);
-
-const end = scaleStart + scaleRange;
-const countSm = Math.floor((end - startSm) / sm.step);
-
-for (let i = 0; i <= countSm; i++) {
-  const v = +(startSm + i * sm.step).toFixed(6);
-  const level = getTickLevel(i, lgOffset, mdOffset, lgMultiple, mdMultiple);
-  const format = level === 'lg' ? lg.format : level === 'md' ? md.format : sm.format;
-  pushTick(ticks, level, v, format);
+  return preferred ?? fallback ?? steps.find(s => s.label === 'lg')!;
 }
 
+
+
+
+
+
+function generateTicks(scaleStart: number, scaleRange: number): MarkDatum[] {
+  const ticks: MarkDatum[] = [];
+  const minLabels = 6;
+  const maxLabels = 30;
+
+  const { step, format, label } = selectStep(scaleRange, minLabels, maxLabels);
+
+  const start = Math.ceil(scaleStart / step) * step;
+  const end = scaleStart + scaleRange;
+  const count = Math.floor((end - start) / step);
+
+  for (let i = 0; i <= count && i < maxLabels; i++) {
+    const v = +(start + i * step).toFixed(6);
+    pushTick(ticks, label as 'lg' | 'md' | 'sm', v, format);
+  }
+
+  // Boundary enforcement
+  if (scaleRange < 1) {
+    const degBoundary = Math.ceil(scaleStart);
+    if (degBoundary <= end) {
+      pushTick(ticks, 'lg', degBoundary, formatDegrees);
+    }
+  }
+
+  if (scaleRange < 1 / 60) {
+    const minBoundary = Math.ceil(scaleStart * 60) / 60;
+    if (minBoundary <= end) {
+      pushTick(ticks, 'md', minBoundary, formatArcMinutes);
+    }
+  }
+  console.log(`scaleStart: ${scaleStart}; scaleRange: ${scaleRange};  step ${step}; labels: [`,ticks.map(t=>t.key),`]`, )
 
   return ticks;
 }
+
+
+
 
 
 
@@ -268,7 +287,7 @@ function renderCircularScale() {
   const low = props.pv - props.scaleRange / 2
   const high = props.pv + props.scaleRange / 2
   const ticks = generateTicks(low,props.scaleRange)
-console.log(ticks)
+
   const radius = width / 2 - 60;
   const newScale = scaleLinear().domain([low, high]).range([-10, 190]);
   const oldScale = prevScale ?? newScale;
@@ -322,6 +341,11 @@ g .label-lg {
 }
 
 g .label-md {
+	fill: lightblue; 
+  font-size: 16px;
+}
+
+g .label-sm {
 	fill: lightblue; 
   font-size: 12px;
 }
