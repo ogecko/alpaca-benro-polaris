@@ -94,7 +94,7 @@ const props = defineProps<{
 const width = 400
 const height = 300
 const pathMap = { lg: 'M-7,0 L16,0', md: 'M-7,0 L12,0', sm: 'M-7,0 L10,0' };
-const offsetMap = { lg: 1.28, md: 1.18, sm: 1.13 }
+const offsetMap = { lg: 1.22, md: 1.18, sm: 1.13 }
 const opacityMap = { lg: 1, md: 1, sm: 0.5 }
 
 const throttledRenderScale = throttle(renderScale, 100)
@@ -535,8 +535,8 @@ function renderCircularScale() {
   joinMarks('tkMarks', group, ticks, oldScale, newScale, radius, t);
 
   // pv and sp marks and tests
+  joinMarks('spLine', group, [{angle:props.sp, path:'M-35,0  L6,0 L12,-5, L12,5 L6,0', zorder: 'high'}], oldScale, newScale, radius, t);    // example SP line
   joinMarks('pvMark', group, [{angle:props.pv, path:'M-6,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t);
-  joinMarks('spLine', group, [{angle:props.sp, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t);    // example SP line
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);
   joinArcs('tkArcHighWarning', group, [{ beginAngle:92, endAngle:120, offset:1, opacity: 0.7, zorder: 'low' }], oldScale, newScale, radius, t);
