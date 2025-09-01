@@ -1,7 +1,7 @@
 <template>
-  <q-page class="q-pa-sm">
+  <q-page >
     <!-- Header Row -->
-    <div class="row q-pb-sm q-col-gutter-md items-center">
+    <div class="row q-pa-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
         Alpaca Test Page
         <div v-if="$q.screen.gt.xs" class="text-caption text-grey-6">
@@ -17,10 +17,10 @@
     </div>
 
     <!-- Log card fills rest -->
-    <q-card flat bordered class="col q-pa-md">
+    <div flat bordered class="col ">
         <div class="row">
             <div clas="col">
-               <ScaleDisplay :sp="110.32423421" :pv="pv" :scaleStart="10" :scaleRange="sr" :domain="domainChoice" />
+               <ScaleDisplay :sp="110.32423421" :pv="pv" :scaleStart="10" :initialRange="sr" :domain="domainChoice" />
             </div>
             <div class="col-12">
                   <q-slider
@@ -109,7 +109,7 @@
 
             </div>
         </div>
-    </q-card>
+    </div>
   </q-page>
 </template>
 

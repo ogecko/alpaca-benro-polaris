@@ -13,13 +13,13 @@
           <!-- <div class="text-h5 text-grey-6 q-mt-sm">sp</div> -->
           <q-space/>
           <div class="col-9 sp-input text-h5 text-grey-6">
-            <q-input rounded filled label="Setpoint" color="positive" class="text-h6" v-model=spi  type="text" mask='###°##′##.#"'>
+            <q-input rounded filled label="Setpoint" color="positive" class="text-subtitle1" v-model=spi  type="text" mask='###°##′##.#"'>
               <template v-slot:prepend>
-                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-left-circle" class="q-mr-xs" />
+                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " />
                 <!-- <q-icon name="mdi-crosshairs-gps" /> -->
               </template>
               <template v-slot:append>
-                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-right-circle" class="q-mr-xs" />
+                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-right-circle" class="" />
                 <!-- <q-icon name="mdi-crosshairs-gps" /> -->
               </template>
             </q-input>
@@ -30,7 +30,7 @@
         <div class="text-h4 text-grey-6 q-mt-sm">
           Right Ascention
         </div>
-        <div class="row items-center q-gutter-xm">
+        <div class="row items-center q-gutter-xs">
           <div class="text-h4">{{ pvx.sign }}</div>
           <div class="text-h2 text-weight-bold">{{ pvx.degrees }}°</div>
           <div class="column">
@@ -38,6 +38,34 @@
             <div class="text-subtitle2 text-grey-5">{{ pvx.secondstr }}"</div>
           </div>
         </div>
+      </div>
+      <div class="row absolute-bottom-left" > 
+
+                <q-btn-toggle
+                    class="tkMagnifyBtn q-gutter-sm"
+                    v-model="xScaleRange"
+                    color="brown"
+                    size="md"
+                    text-color="grey-7"
+                    toggle-color="cyan-5"
+                    rounded :stack="false"
+                    dense 
+                    flat
+                    :options="[
+                    {icon: 'mdi-magnify-plus-outline', label: '30°', value: 180},
+                    {label: '10°', value: 80},
+                    {label: '5°', value: 50},
+                    {label: '1°', value: 10},
+                    {label: '20\'', value: 2.9},
+                    {label: '10\'', value: 1.3},
+                    {label: '5\'', value: 40/60},
+                    {label: '1\'', value: 10/60},
+                    {label: '20\'\'', value: 2.9/60},
+                    {label: '10\'\'', value: 1.3/60},
+                    ]"
+                >
+            </q-btn-toggle>                
+
       </div>
     </div>
   </div>
@@ -82,7 +110,7 @@ const domainStyle = {
 
 const props = defineProps<{
 	scaleStart: number
-	scaleRange: number
+	initialRange: number
 	pv: number
 	sp: number
   domain: DomainStyleType
@@ -98,11 +126,12 @@ const dbRenderScale = debounce(renderScale, 10, true)
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const spi = ref<string>(`${props.sp}`)
+const xScaleRange = ref<number>(props.initialRange)
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
-const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}-${props.sp}`)
+const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${xScaleRange.value}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1))
 // const spx = computed(() => deg2dms(props.sp, 1))
 
@@ -464,7 +493,7 @@ function renderLinearScale() {
 	if (!linearGroup.value) return
 
 	const scale = scaleLinear()
-		.domain([props.pv - props.scaleRange / 2, props.pv + props.scaleRange / 2])
+		.domain([props.pv - xScaleRange.value / 2, props.pv + xScaleRange.value / 2])
 		.range([0, width - 40])
 
 	const axis = axisBottom(scale).ticks(10)
@@ -482,9 +511,9 @@ function renderCircularScale() {
 
 
   const dProps = domainStyle[props.domain]
-  const low = props.pv - props.scaleRange / 2
-  const high = props.pv + props.scaleRange / 2
-  const { stepSize, ticks } = generateTicks(low, props.scaleRange)
+  const low = props.pv - xScaleRange.value / 2
+  const high = props.pv + xScaleRange.value / 2
+  const { stepSize, ticks } = generateTicks(low, xScaleRange.value)
   const arcs = generateArcs(low, high, stepSize, 5)
 
 
@@ -533,6 +562,10 @@ function renderScale() {
 
 </script>
 <style lang="scss" scoped>
+.tkMagnifyBtn .text-primary {
+  color: lightskyblue;
+}
+
 :deep(g) {
   .tkDash {
     stroke: lightskyblue;
@@ -594,7 +627,7 @@ function renderScale() {
   z-index: 1;
   text-align: center;
   width: 400px;
-  height: 300px;
+  height: 320px;
 }
 
 
