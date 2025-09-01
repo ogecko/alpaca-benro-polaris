@@ -92,6 +92,7 @@ const width = 400
 const height = 300
 const pathMap = { lg: 'M-7,0 L16,0', md: 'M-7,0 L12,0', sm: 'M-7,0 L10,0' };
 const offsetMap = { lg: 1.28, md: 1.18, sm: 1.13 }
+const opacityMap = { lg: 1, md: 1, sm: 0.5 }
 
 const dbRenderScale = debounce(renderScale, 10, true)
 const linearGroup = ref<SVGGElement | null>(null)
@@ -181,6 +182,7 @@ function pushTick(
     angle,
     label: labelText,
     level: `tkLabel tk-${level}`,
+    opacity: opacityMap[level],
     offset: offsetMap[level],
   });
 
@@ -271,7 +273,7 @@ function generateArcs(low: number, high: number, stepSize: number, stepDiv: numb
   const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
   const endAngle = beginAngle + high - low;
   return [
-    { key: `tkArcS-${stepSize}-${stepDiv}`, level:'tk-solid', beginAngle:low, endAngle:high, offset:1, zorder: 'low' },
+    { key: `tkArcS-${stepSize}-${stepDiv}`, level:'tk-solid', beginAngle:low, endAngle:high, offset:1, opacity: 0.2, zorder: 'low' },
     { key: `tkArcD-${stepSize}-${stepDiv}`, level:'tk-dashed', beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low' },
   ]
 }
@@ -332,6 +334,7 @@ type MarkDatum = {
   key?: string;       // element key used by D3 to match existing elements
   angle: number;      // domain angle in degrees
   offset?: number;    // radial offset from the radius 1=no offset, 0.9=inside, 1.1=outside
+  opacity?: number;   // opacity of the mark
   label?: string;     // text string to render at radial position
   path?: string;      // SVG path string to render at radial position
   level?: string;     // optional class name added to element
@@ -363,7 +366,7 @@ function joinMarks(
         .each(function (d) { addPathOrText(this, d) })
         .attr('opacity', 0)
         .transition(t)
-        .attr('opacity', 1)
+        .attr('opacity', d => d.opacity ?? 1)
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
           const flip = (d.label) ? (Math.cos(angle * Math.PI / 180) < 0) : false;
@@ -371,7 +374,7 @@ function joinMarks(
         }),
 
       update => update.transition(t)
-        .attr('opacity', 1)
+        .attr('opacity', d => d.opacity ?? 1)
         .each(function (d) { zOrder<MarkDatum>(this, d) })
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
@@ -398,6 +401,7 @@ interface ArcDatum {
   beginAngle: number; // where the arc starts in domain angle degrees 
   endAngle: number;   // where the arc ends in domain angle degrees 
   offset?: number;    // radial offset from the radius 1=no offset, 0.9=inside, 1.1=outside
+  opacity?: number;   // opacity of the arc
   stepSize?: number;  // size between tick labels 
   stepDiv?: number;   // number of dashes between each step
   level?: string;     // optional class name added to element
@@ -429,7 +433,7 @@ function joinArcs(
         .style('stroke-dasharray', d => strokeDashArray(radius, newScale, d.stepSize, d.stepDiv))
         .attr('opacity', 0)
         .transition(t)
-        .attr('opacity', 1)
+        .attr('opacity', d => d.opacity ?? 1)
         .attrTween('d', d => t => {
           const a0 = interp(d.beginAngle)(t);
           const a1 = interp(d.endAngle)(t);
@@ -438,6 +442,7 @@ function joinArcs(
 
       update => update.transition(t)
         .each(function (d) { zOrder<ArcDatum>(this, d) })
+        .attr('opacity', d => d.opacity ?? 1)
         .style('stroke-dasharray', d => strokeDashArray(radius, newScale, d.stepSize, d.stepDiv))
         .attrTween('d', d => t => {
           const a0 = interp(d.beginAngle)(t);
@@ -545,9 +550,9 @@ function renderScale() {
 
   .tkArc {
     fill: none;
-    stroke: lightskyblue;
     stroke-width: 12;
-    &.tk-solid { opacity: 0.2;}
+    &.tk-dashed { stroke: lightskyblue; }
+    &.tk-solid { stroke: lightskyblue; }
   }
 
   .pvMark { fill: lightcoral; }
