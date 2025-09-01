@@ -432,10 +432,13 @@ function joinArcs(
   const t = tRaw as Transition<BaseType, any, any, any>;
   const [min, max] = newScale.domain() as [number, number];
   const visibleArcs = arcs.filter(m => {
-    if ((m.beginAngle>max) || (m.endAngle<min)) return false
-    if ((m.beginAngle>=min) && (m.endAngle<=max)) return true
-    if (m.beginAngle<min) m.beginAngle=min
-    if (m.endAngle>max) m.endAngle=max
+    const x = m.beginAngle
+    const y = m.endAngle
+    if (x > y) { m.beginAngle=y; m.endAngle=x; }               // swap them
+    if ((m.beginAngle>max) || (m.endAngle<min)) return false   // not within range
+    if ((m.beginAngle>=min) && (m.endAngle<=max)) return true  // within range
+    if (m.beginAngle<min) m.beginAngle=min                     // clip to min
+    if (m.endAngle>max) m.endAngle=max                         // clip to max
     return true
   }) ;
   const interp = angleInterp(oldScale, newScale);
@@ -525,17 +528,19 @@ function renderCircularScale() {
   // const endAngle = beginAngle + high - low;
   // joinArcs('arcDashes', group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);
   // joinArcs('arcLine', group, [{beginAngle:low, endAngle:high, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);
-  joinArcs('tkArc', group, arcs, oldScale, newScale, radius, t);
+    joinArcs('tkArcPVtoSP', group, [{ beginAngle:props.pv, endAngle:props.sp, offset:1, opacity: 0.9, zorder: 'low' }], oldScale, newScale, radius, t);
+    joinArcs('tkArc', group, arcs, oldScale, newScale, radius, t);
 
   // ticks and labels
   joinMarks('tkMarks', group, ticks, oldScale, newScale, radius, t);
 
   // pv and sp marks and tests
-  joinMarks('pvMark', group, [{angle:props.pv, path:'M0,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t);
+  joinMarks('pvMark', group, [{angle:props.pv, path:'M-6,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t);
   joinMarks('spLine', group, [{angle:props.sp, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t);    // example SP line
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);
-  joinArcs('tkArcHighWarning', group, [{ beginAngle:82, endAngle:120, offset:1, opacity: 0.7, zorder: 'low' }], oldScale, newScale, radius, t);
+  joinArcs('tkArcHighWarning', group, [{ beginAngle:92, endAngle:120, offset:1, opacity: 0.7, zorder: 'low' }], oldScale, newScale, radius, t);
+
 
 }
 
@@ -580,6 +585,12 @@ function renderScale() {
     fill: none;
     stroke-width: 12;
     stroke: var(--q-warning); 
+  }
+
+  .tkArcPVtoSP {
+    fill: none;
+    stroke-width: 12;
+    stroke: var(--q-positive); 
   }
 
   .pvMark { fill: lightcoral; }
