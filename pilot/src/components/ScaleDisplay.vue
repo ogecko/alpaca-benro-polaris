@@ -1,7 +1,7 @@
 <template>
   <div class="overlay-container relative-position">
     <!-- SVG Background -->
-    <svg class="background-svg" :width="width" :height="height">
+    <svg @click="onSvgClick" class="background-svg" :width="width" :height="height">
       <g v-if="isLinear" ref="linearGroup" :transform="`translate(10, ${height / 2})`" />
       <g v-else-if="isCircular" ref="circularGroup" />
     </svg>
@@ -81,7 +81,7 @@ import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { interpolate } from 'd3-interpolate'
 import { easeCubicOut } from 'd3-ease'
-import { deg2dms, isAngleBetween, wrapTo360 } from 'src/utils/angles'
+import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo90 } from 'src/utils/angles'
 import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
@@ -99,13 +99,13 @@ export type DomainStyleType =
 
 const domainStyle = {
   'linear_360': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
-	'circular_360': { centerVw: 0.5, centerVh: 0.1, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'circular_360': { centerVw: 0.5, centerVh: 0.5, sAngleLow: 170, sAngleHigh: 270, dAngleFn: wrapTo360 },
 	'semihi_360': { centerVw: 0.5, centerVh: 0.7, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360 },
 	'semilo_360': { centerVw: 0.5, centerVh: 0.28, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
-	'circular_180': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
-	'alt_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
-	'dec_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
-	'ra_hours': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'circular_180': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180 },
+	'alt_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
+	'dec_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
+	'ra_hours': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
 }
 
 const props = defineProps<{
@@ -138,7 +138,9 @@ const pvx = computed(() => deg2dms(props.pv, 1))
 onMounted(dbRenderScale)
 watch(renderKey, dbRenderScale)
 
-
+function onSvgClick(e:Event) {
+  console.log(e)
+}
 // ------------------- Tick generation and Helper functions ---------------------
 
 function formatDegrees(v: number): string {
@@ -162,8 +164,7 @@ function formatArcSeconds(v: number): string {
 
 interface Step {
   stepSize: number;
-  unit: string;
-  format: (v: number) => string;
+  dFormatFn: (v: number) => string;
   label: string;
 }
 
@@ -172,11 +173,12 @@ function pushTick(
   ticks: MarkDatum[],
   level: 'lg' | 'md' | 'sm',
   v: number,
-  format: (v: number) => string
+  dWrapFn: (v: number) => number,
+  dFormatFn: (v: number) => string
 ) {
   const keyBase = v.toFixed(6);
-  const angle = v;
-  let labelText = format(v);
+  const angle = v;  // dont wrap the angle so comparisons still work
+  let labelText = dFormatFn(dWrapFn(v));
 
   // Promote md ticks that look like whole degrees
   if (['md','sm'].includes(level) && /^\d+°$/.test(labelText)) {
@@ -227,27 +229,27 @@ function pushTick(
 // pick the most suitable step size for the scale range
 function selectStep (scaleRange: number, minLabels: number, maxLabels: number): Step {
   const steps: Step[] = [
-    { stepSize: 180, unit: '°', format: formatDegrees, label: 'lg' },
-    { stepSize: 90, unit: '°', format: formatDegrees, label: 'lg' },
-    { stepSize: 30, unit: '°', format: formatDegrees, label: 'lg' },
-    { stepSize: 15, unit: '°', format: formatDegrees, label: 'lg' },
-    { stepSize: 10, unit: '°', format: formatDegrees, label: 'lg' },
-    { stepSize: 5, unit: '°', format: formatDegrees, label: 'lg' },
-    { stepSize: 2, unit: '°', format: formatDegrees, label: 'lg' },
-    { stepSize: 1, unit: '°', format: formatDegrees, label: 'lg' },
-    { stepSize: 30 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { stepSize: 20 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { stepSize: 15 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { stepSize: 10 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { stepSize: 5 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { stepSize: 2 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { stepSize: 1 / 60, unit: `'`, format: formatArcMinutes, label: 'md' },
-    { stepSize: 30 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { stepSize: 20 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { stepSize: 15 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { stepSize: 10 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { stepSize: 5 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
-    { stepSize: 2 / 3600, unit: `"`, format: formatArcSeconds, label: 'sm' },
+    { stepSize: 180, dFormatFn: formatDegrees, label: 'lg' },
+    { stepSize: 90, dFormatFn: formatDegrees, label: 'lg' },
+    { stepSize: 30, dFormatFn: formatDegrees, label: 'lg' },
+    { stepSize: 15, dFormatFn: formatDegrees, label: 'lg' },
+    { stepSize: 10, dFormatFn: formatDegrees, label: 'lg' },
+    { stepSize: 5, dFormatFn: formatDegrees, label: 'lg' },
+    { stepSize: 2, dFormatFn: formatDegrees, label: 'lg' },
+    { stepSize: 1, dFormatFn: formatDegrees, label: 'lg' },
+    { stepSize: 30 / 60, dFormatFn: formatArcMinutes, label: 'md' },
+    { stepSize: 20 / 60, dFormatFn: formatArcMinutes, label: 'md' },
+    { stepSize: 15 / 60, dFormatFn: formatArcMinutes, label: 'md' },
+    { stepSize: 10 / 60, dFormatFn: formatArcMinutes, label: 'md' },
+    { stepSize: 5 / 60, dFormatFn: formatArcMinutes, label: 'md' },
+    { stepSize: 2 / 60, dFormatFn: formatArcMinutes, label: 'md' },
+    { stepSize: 1 / 60, dFormatFn: formatArcMinutes, label: 'md' },
+    { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
+    { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
+    { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
+    { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
+    { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
+    { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
   ];
 
   // Filter steps by zoom eligibility
@@ -272,20 +274,20 @@ function selectStep (scaleRange: number, minLabels: number, maxLabels: number): 
 
 
 // Generates an array of tick MarkDatum for the given scale range and label count constraints.
-function generateTicks(scaleStart: number, scaleRange: number, 
+function generateTicks(scaleStart: number, scaleRange: number, dWrapFn:(v:number)=>number,
                       minLabels:number = 6, maxLabels:number = 30): { stepSize: number, ticks: MarkDatum[] }
 {
 
   // array of tick marks selected, then select best step size
   const ticks: MarkDatum[] = [];
-  const { stepSize, format, label } = selectStep(scaleRange, minLabels, maxLabels);
+  const { stepSize, dFormatFn, label } = selectStep(scaleRange, minLabels, maxLabels);
 
   const start = Math.ceil(scaleStart / stepSize) * stepSize;
   const end = scaleStart + scaleRange;
   const count = Math.floor((end - start) / stepSize);
   for (let i = 0; i <= count && i < maxLabels; i++) {
     const v = +(start + i * stepSize).toFixed(6);
-    pushTick(ticks, label as 'lg' | 'md' | 'sm', v, format);
+    pushTick(ticks, label as 'lg' | 'md' | 'sm', v, dWrapFn, dFormatFn);
   }
 
   // diagnostics
@@ -513,7 +515,7 @@ function renderCircularScale() {
   const dProps = domainStyle[props.domain]
   const low = props.pv - xScaleRange.value / 2
   const high = props.pv + xScaleRange.value / 2
-  const { stepSize, ticks } = generateTicks(low, xScaleRange.value)
+  const { stepSize, ticks } = generateTicks(low, xScaleRange.value, dProps.dAngleFn)
   const arcs = generateArcs(low, high, stepSize, 5)
 
 
@@ -626,10 +628,19 @@ function renderScale() {
   position: relative;
   z-index: 1;
   text-align: center;
+   pointer-events: none;
+
   width: 400px;
   height: 320px;
 }
 
-
-
+.foreground-content .q-field {
+  pointer-events: auto;
+}
+.foreground-content .q-btn {
+  pointer-events: auto;
+}
+.foreground-content .q-btn-group {
+  pointer-events: auto;
+}
 </style>
