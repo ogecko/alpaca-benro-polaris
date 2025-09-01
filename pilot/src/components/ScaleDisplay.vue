@@ -40,32 +40,7 @@
         </div>
       </div>
       <div class="row absolute-bottom-left" > 
-
-                <q-btn-toggle
-                    class="tkMagnifyBtn q-gutter-sm"
-                    v-model="xScaleRange"
-                    color="brown"
-                    size="md"
-                    text-color="grey-7"
-                    toggle-color="cyan-5"
-                    rounded :stack="false"
-                    dense 
-                    flat
-                    :options="[
-                    {icon: 'mdi-magnify-plus-outline', label: '30°', value: 180},
-                    {label: '10°', value: 80},
-                    {label: '5°', value: 50},
-                    {label: '1°', value: 10},
-                    {label: '20\'', value: 2.9},
-                    {label: '10\'', value: 1.3},
-                    {label: '5\'', value: 40/60},
-                    {label: '1\'', value: 10/60},
-                    {label: '20\'\'', value: 2.9/60},
-                    {label: '10\'\'', value: 1.3/60},
-                    ]"
-                >
-            </q-btn-toggle>                
-
+        LeftBottom
       </div>
     </div>
   </div>
@@ -110,7 +85,7 @@ const domainStyle = {
 
 const props = defineProps<{
 	scaleStart: number
-	initialRange: number
+	scaleRange: number
 	pv: number
 	sp: number
   domain: DomainStyleType
@@ -126,12 +101,11 @@ const dbRenderScale = debounce(renderScale, 10, true)
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const spi = ref<string>(`${props.sp}`)
-const xScaleRange = ref<number>(props.initialRange)
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
-const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${xScaleRange.value}-${props.pv}-${props.sp}`)
+const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1))
 // const spx = computed(() => deg2dms(props.sp, 1))
 
@@ -495,7 +469,7 @@ function renderLinearScale() {
 	if (!linearGroup.value) return
 
 	const scale = scaleLinear()
-		.domain([props.pv - xScaleRange.value / 2, props.pv + xScaleRange.value / 2])
+		.domain([props.pv - props.scaleRange / 2, props.pv + props.scaleRange / 2])
 		.range([0, width - 40])
 
 	const axis = axisBottom(scale).ticks(10)
@@ -513,9 +487,9 @@ function renderCircularScale() {
 
 
   const dProps = domainStyle[props.domain]
-  const low = props.pv - xScaleRange.value / 2
-  const high = props.pv + xScaleRange.value / 2
-  const { stepSize, ticks } = generateTicks(low, xScaleRange.value, dProps.dAngleFn)
+  const low = props.pv - props.scaleRange / 2
+  const high = props.pv + props.scaleRange / 2
+  const { stepSize, ticks } = generateTicks(low, props.scaleRange, dProps.dAngleFn)
   const arcs = generateArcs(low, high, stepSize, 5)
 
 

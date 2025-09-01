@@ -20,9 +20,10 @@
     <div flat bordered class="col ">
         <div class="row">
             <div clas="col">
-               <ScaleDisplay :sp="110.32423421" :pv="pv" :scaleStart="10" :initialRange="sr" :domain="domainChoice" />
+               <ScaleDisplay  :pv="pv" :sp="90.0023" :scaleRange="sr" :scaleStart="10"  :domain="domainChoice" />
             </div>
-            <div class="col-12">
+            <div >
+            <div class="col-12 q-pa-lg q-gutter-md">
                   <q-slider
                     v-model="pv"
                     :min="0"
@@ -71,12 +72,15 @@
                     unelevated
                     glossy
                     :options="[
-                    {label: '200°', value: 200},
-                    {label: '20°', value: 20},
-                    {label: '2°', value: 2},
-                    {label: '20\'', value: 20/60},
-                    {label: '2\'', value: 2/60},
-                    {label: '20\'\'', value: 20/3660},
+                    {label: '10°', value: 80},
+                    {label: '5°', value: 50},
+                    {label: '1°', value: 10},
+                    {label: '20\'', value: 2.9},
+                    {label: '10\'', value: 1.3},
+                    {label: '5\'', value: 40/60},
+                    {label: '1\'', value: 10/60},
+                    {label: '20\'\'', value: 2.9/60},
+                    {label: '10\'\'', value: 1.3/60},
                     ]"
                 />
                 <q-btn-toggle
@@ -100,12 +104,12 @@
                     {label: '10.302', value: 10.302},
                     ]"
                 />
-
-
   <div class="q-mt-md text-bold">
     Current range: {{ formatSr(sr) }}
   </div>
 
+
+            </div>
 
             </div>
         </div>
