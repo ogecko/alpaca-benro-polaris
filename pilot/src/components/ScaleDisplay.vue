@@ -49,7 +49,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue'
-import { debounce } from 'quasar'
+import { throttle } from 'quasar'
 import { scaleLinear } from 'd3-scale'
 import { axisBottom } from 'd3-axis'
 import { select } from 'd3-selection'
@@ -97,7 +97,7 @@ const pathMap = { lg: 'M-7,0 L16,0', md: 'M-7,0 L12,0', sm: 'M-7,0 L10,0' };
 const offsetMap = { lg: 1.28, md: 1.18, sm: 1.13 }
 const opacityMap = { lg: 1, md: 1, sm: 0.5 }
 
-const dbRenderScale = debounce(renderScale, 10, true)
+const throttledRenderScale = throttle(renderScale, 100)
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const spi = ref<string>(`${props.sp}`)
@@ -109,8 +109,8 @@ const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.sc
 const pvx = computed(() => deg2dms(props.pv, 1))
 // const spx = computed(() => deg2dms(props.sp, 1))
 
-onMounted(dbRenderScale)
-watch(renderKey, dbRenderScale)
+onMounted(throttledRenderScale)
+watch(renderKey, throttledRenderScale)
 
 function onSvgClick(e:Event) {
   console.log(e)
@@ -309,6 +309,10 @@ function strokeDashArray(radius:number, newScale:ScaleLinear<number, number>, st
   }
 }
 
+function determineOpacity<T extends { angle: number, opacity?: number }>(d: T, min:number, max:number): number {
+  return (d.angle>=min && d.angle<=max)? d.opacity ?? 1 : 0
+}
+
 function zOrder<T extends { zorder?: string }>(el: SVGElement, d: T): void {
   const sel = select(el);
   if      (d.zorder === 'high') sel.raise();
@@ -371,7 +375,7 @@ function joinMarks(
         .each(function (d) { addPathOrText(this, d) })
         .attr('opacity', 0)
         .transition(t)
-        .attr('opacity', d => d.opacity ?? 1)
+        .attr('opacity', d => determineOpacity(d, min, max))
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
           const flip = (d.label) ? (Math.cos(angle * Math.PI / 180) < 0) : false;
@@ -379,7 +383,8 @@ function joinMarks(
         }),
 
       update => update.transition(t)
-        .attr('opacity', d => d.opacity ?? 1)
+        // .attr('opacity', d => d.opacity ?? 1)
+        .attr('opacity', d => determineOpacity(d, min, max))
         .each(function (d) { zOrder<MarkDatum>(this, d) })
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
@@ -426,7 +431,13 @@ function joinArcs(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tRaw as Transition<BaseType, any, any, any>;
   const [min, max] = newScale.domain() as [number, number];
-  const visibleArcs = arcs.filter(m => isAngleBetween(m.beginAngle, min, max) || isAngleBetween(m.endAngle, min, max)) ;
+  const visibleArcs = arcs.filter(m => {
+    if ((m.beginAngle>max) || (m.endAngle<min)) return false
+    if ((m.beginAngle>=min) && (m.endAngle<=max)) return true
+    if (m.beginAngle<min) m.beginAngle=min
+    if (m.endAngle>max) m.endAngle=max
+    return true
+  }) ;
   const interp = angleInterp(oldScale, newScale);
 
   group.selectAll<SVGPathElement, ArcDatum>(`.${cname}`)
@@ -524,6 +535,7 @@ function renderCircularScale() {
   joinMarks('spLine', group, [{angle:props.sp, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t);    // example SP line
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);
+  joinArcs('tkArcHighWarning', group, [{ beginAngle:82, endAngle:120, offset:1, opacity: 0.7, zorder: 'low' }], oldScale, newScale, radius, t);
 
 }
 
@@ -562,6 +574,12 @@ function renderScale() {
     stroke-width: 12;
     &.tk-dashed { stroke: lightskyblue; }
     &.tk-solid { stroke: lightskyblue; }
+  }
+
+  .tkArcHighWarning {
+    fill: none;
+    stroke-width: 12;
+    stroke: var(--q-warning); 
   }
 
   .pvMark { fill: lightcoral; }
