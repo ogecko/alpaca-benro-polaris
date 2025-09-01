@@ -109,6 +109,8 @@ onMounted(dbRenderScale)
 watch(renderKey, dbRenderScale)
 
 
+// ------------------- Tick generation and Helper functions ---------------------
+
 function formatDegrees(v: number): string {
   return `${Math.round(v)}°`;
 }
@@ -175,21 +177,20 @@ function pushTick(
 
   // push the label and tickmark onto the ticks array  
   ticks.push({
-    key: `label-${level}-${keyBase}`,
+    key: `tkLabel-${level}-${keyBase}`,
     angle,
     label: labelText,
-    level: `label-${level}`,
+    level: `tkLabel tk-${level}`,
     offset: offsetMap[level],
   });
 
   ticks.push({
-    key: `tick-${level}-${keyBase}`,
+    key: `tkDash-${level}-${keyBase}`,
     angle,
     path: pathMap[level],
-    level: `tick-${level}`,
+    level: `tkDash tk-${level}`,
   });
 }
-
 
 
 // pick the most suitable step size for the scale range
@@ -239,7 +240,7 @@ function selectStep (scaleRange: number, minLabels: number, maxLabels: number): 
 }
 
 
-// Generates an array of tick mark and label data for the given scale range and label count constraints.
+// Generates an array of tick MarkDatum for the given scale range and label count constraints.
 function generateTicks(scaleStart: number, scaleRange: number, 
                       minLabels:number = 6, maxLabels:number = 30): { stepSize: number, ticks: MarkDatum[] }
 {
@@ -263,11 +264,69 @@ function generateTicks(scaleStart: number, scaleRange: number,
 }
 
 
+
+// Generates an array of ArcDatum for the given scale range, label stepSize, and number of divisions between.
+function generateArcs(low: number, high: number, stepSize: number, stepDiv: number): ArcDatum[] {
+  const fractionalStep = stepSize / stepDiv
+  const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
+  const endAngle = beginAngle + high - low;
+  return [
+    { key: `tkArcS-${stepSize}-${stepDiv}`, level:'tk-solid', beginAngle:low, endAngle:high, offset:1, zorder: 'low' },
+    { key: `tkArcD-${stepSize}-${stepDiv}`, level:'tk-dashed', beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low' },
+  ]
+}
+
+
+// ------------------- D3 Helper functions ---------------------
+
 // Computes an interpolator between old and new scale values for smooth transitions
 function angleInterp(oldScale: ScaleLinear<number, number>, newScale: ScaleLinear<number, number>) {
   return (d: number) => interpolate(oldScale(d), newScale(d));
 }
 
+
+function radialTransform(angle: number, radius: number, radialOffset: number = 1.0, flip: boolean = false): string {
+  const x = radius * Math.cos(angle * Math.PI / 180) * radialOffset;
+  const y = radius * Math.sin(angle * Math.PI / 180) * radialOffset;
+  const rot = flip ? 180 : 0;
+  return `translate(${x}, ${y}) rotate(${rot+angle})`;
+}
+
+function strokeDashArray(radius:number, newScale:ScaleLinear<number, number>, stepSize:number|undefined, stepDiv:number|undefined, ) {
+  if (stepSize && stepDiv) {
+    const s0 = newScale(0 + stepSize) - newScale(0); 
+    const dashLength = radius * (s0 / stepDiv) * (Math.PI / 180);
+    return `${dashLength*0.1} ${dashLength*0.9}`
+  } else {
+    return 'none'
+  }
+}
+
+function zOrder<T extends { zorder?: string }>(el: SVGElement, d: T): void {
+  const sel = select(el);
+  if      (d.zorder === 'high') sel.raise();
+  else if (d.zorder === 'low')  sel.lower();
+}
+
+function addPathOrText(el: SVGElement, d: MarkDatum): void {
+  const sel = select(el);
+  if      (d.path)  sel.attr('d', d.path)
+  else if (d.label) sel.text(d.label).attr('text-anchor', 'middle').attr('dominant-baseline', 'middle');
+}
+
+function arcPath(startAngle: number, endAngle: number, radius: number): string {
+  const a0 = (startAngle * Math.PI) / 180;
+  const a1 = (endAngle * Math.PI) / 180;
+  const x0 = radius * Math.cos(a0);
+  const y0 = radius * Math.sin(a0);
+  const x1 = radius * Math.cos(a1);
+  const y1 = radius * Math.sin(a1);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+
+  return `M${x0},${y0} A${radius},${radius} 0 ${largeArc} 1 ${x1},${y1}`;
+}
+
+// ------------------- D3 Join Functions ---------------------
 
 type MarkDatum = {
   key?: string;       // element key used by D3 to match existing elements
@@ -279,14 +338,15 @@ type MarkDatum = {
   zorder?: 'high' | 'low' | ''  // optional zorder requirement for mark
 };
 
+// ****** D3 ****** Keyed data joins/animation for Marks of text and path elements, positioned radially
 function joinMarks(
+  cname: string = 'mark',    // identifies elements for this call of joinMarks
   group: Selection<SVGGElement, unknown, null, undefined>,
   marks: MarkDatum[],
   oldScale: ScaleLinear<number, number>,
   newScale: ScaleLinear<number, number>,
   radius: number,
   tRaw: Transition<BaseType, MarkDatum, SVGGElement, unknown>,
-  cname: string = 'mark'    // identifies elements for this call of joinMarks
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tRaw as Transition<BaseType, any, any, any>;
@@ -331,34 +391,6 @@ function joinMarks(
 }
 
 
-function radialTransform(angle: number, radius: number, radialOffset: number = 1.0, flip: boolean = false): string {
-  const x = radius * Math.cos(angle * Math.PI / 180) * radialOffset;
-  const y = radius * Math.sin(angle * Math.PI / 180) * radialOffset;
-  const rot = flip ? 180 : 0;
-  return `translate(${x}, ${y}) rotate(${rot+angle})`;
-}
-
-function strokeDashArray(radius:number, newScale:ScaleLinear<number, number>, stepSize:number|undefined, stepDiv:number|undefined, ) {
-  if (stepSize && stepDiv) {
-    const s0 = newScale(0 + stepSize) - newScale(0); 
-    const dashLength = radius * (s0 / stepDiv) * (Math.PI / 180);
-    return `${dashLength*0.1} ${dashLength*0.9}`
-  } else {
-    return 'none'
-  }
-}
-
-function zOrder<T extends { zorder?: string }>(el: SVGElement, d: T): void {
-  const sel = select(el);
-  if      (d.zorder === 'high') sel.raise();
-  else if (d.zorder === 'low')  sel.lower();
-}
-
-function addPathOrText(el: SVGElement, d: MarkDatum): void {
-  const sel = select(el);
-  if      (d.path)  sel.attr('d', d.path)
-  else if (d.label) sel.text(d.label).attr('text-anchor', 'middle').attr('dominant-baseline', 'middle');
-}
 
 
 interface ArcDatum {
@@ -372,14 +404,15 @@ interface ArcDatum {
   zorder?: 'high' | 'low' | '';    // optional z-order for arc
 }
 
+// ****** D3 ****** Keyed data joins/animation for ARCs of path elements, dashed or solid, positioned radially
 function joinArcs(
+  cname: string = 'arc',   // must be unique per joinArcs call
   group: Selection<SVGGElement, unknown, null, undefined>,
   arcs: ArcDatum[],
   oldScale: ScaleLinear<number, number>,
   newScale: ScaleLinear<number, number>,
   radius: number,
   tRaw: Transition<BaseType, ArcDatum, SVGGElement, unknown>,
-  cname: string = 'arc'   // must be unique per joinArcs call
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tRaw as Transition<BaseType, any, any, any>;
@@ -404,7 +437,6 @@ function joinArcs(
         }),
 
       update => update.transition(t)
-        .attr('opacity', 1)
         .each(function (d) { zOrder<ArcDatum>(this, d) })
         .style('stroke-dasharray', d => strokeDashArray(radius, newScale, d.stepSize, d.stepDiv))
         .attrTween('d', d => t => {
@@ -419,20 +451,8 @@ function joinArcs(
     );
 }
 
-function arcPath(startAngle: number, endAngle: number, radius: number): string {
-  const a0 = (startAngle * Math.PI) / 180;
-  const a1 = (endAngle * Math.PI) / 180;
-  const x0 = radius * Math.cos(a0);
-  const y0 = radius * Math.sin(a0);
-  const x1 = radius * Math.cos(a1);
-  const y1 = radius * Math.sin(a1);
-  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
 
-  return `M${x0},${y0} A${radius},${radius} 0 ${largeArc} 1 ${x1},${y1}`;
-}
-
-
-
+// ------------------- Rendering ---------------------
 
 // Renders a linear scale with animated axis ticks
 function renderLinearScale() {
@@ -459,7 +479,8 @@ function renderCircularScale() {
   const dProps = domainStyle[props.domain]
   const low = props.pv - props.scaleRange / 2
   const high = props.pv + props.scaleRange / 2
-  const { stepSize, ticks } = generateTicks(low,props.scaleRange)
+  const { stepSize, ticks } = generateTicks(low, props.scaleRange)
+  const arcs = generateArcs(low, high, stepSize, 5)
 
 
   const cx = width * dProps.centerVw
@@ -473,26 +494,28 @@ function renderCircularScale() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
-  joinMarks(group, [{angle:props.sp, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t, 'spLine' );    // example SP line
+
+
+
   // add an arc dashed-line for the small ticks
-  const stepDiv = 5
-  const fractionalStep = stepSize / stepDiv
-  const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
-  const endAngle = beginAngle + high - low;
-  joinArcs(group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low'}], oldScale, newScale, radius, t, 'arcDashes');
-  joinArcs(group, [{beginAngle:low, endAngle:high, offset:1, zorder: 'low'}], oldScale, newScale, radius, t, 'arcLine');
+  // const stepDiv = 5
+  // const fractionalStep = stepSize / stepDiv
+  // const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
+  // const endAngle = beginAngle + high - low;
+  // joinArcs('arcDashes', group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);
+  // joinArcs('arcLine', group, [{beginAngle:low, endAngle:high, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);
+  joinArcs('tkArc', group, arcs, oldScale, newScale, radius, t);
 
   // ticks and labels
-  joinMarks(group, ticks, oldScale, newScale, radius, t, 'tickMarks' );
+  joinMarks('tkMarks', group, ticks, oldScale, newScale, radius, t);
 
-  // pv mark and tests
-  joinMarks(group, [{angle:props.pv, path:'M0,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t, 'pvMark');
-  // joinMarks(group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t, 'spMark');
-  // joinMarks(group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t, 'textMark');
+  // pv and sp marks and tests
+  joinMarks('pvMark', group, [{angle:props.pv, path:'M0,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t);
+  joinMarks('spLine', group, [{angle:props.sp, path:'M-10,0 L60,0', zorder: 'low'}], oldScale, newScale, radius, t);    // example SP line
+  // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
+  // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);
 
 }
-
-
 
 // Dispatches rendering based on scale type (linear or circular)
 function renderScale() {
@@ -504,67 +527,42 @@ function renderScale() {
 }
 
 </script>
-<style lang="scss">
-g .tick-lg {
-	stroke-width: 5;
-	stroke: lightskyblue; 
-}
+<style lang="scss" scoped>
+:deep(g) {
+  .tkDash {
+    stroke: lightskyblue;
+    &.tk-lg { stroke-width: 5; }
+    &.tk-md { stroke-width: 3; }
+    &.tk-sm { stroke-width: 2; }
+  }
 
-g .tick-md {
-	stroke-width: 2;
-	stroke: lightskyblue; 
-}
+  .tkLabel {
+    fill: lightskyblue;
+    &.tk-lg { font-size: 16px; }
+    &.tk-md { font-size: 14px; }
+    &.tk-sm { font-size: 12px; }
+  }
 
-g .tick-sm {
-	stroke-width: 1;
-	stroke: lightskyblue; 
-}
+  .tkArc {
+    fill: none;
+    stroke: lightskyblue;
+    stroke-width: 12;
+    &.tk-solid { opacity: 0.2;}
+  }
 
-g .label-lg {
-	fill: lightblue; 
-  font-size: 16px;
-}
+  .pvMark { fill: lightcoral; }
+  .spMark { fill: var(--q-positive); }
 
-g .label-md {
-	fill: lightblue; 
-  font-size: 14px;
-}
+  .spLine {
+    stroke: var(--q-positive);
+    stroke-width: 5;
+    stroke-linecap: round;
+  }
 
-g .label-sm {
-	fill: lightblue; 
-  font-size: 12px;
-}
 
-g .pvMark {
-	fill: lightcoral; 
-}
-
-g .spMark {
-	fill: var(--q-positive); 
-}
-.sp-input {
-  width:80%;
-}
-g .spLine {
-	stroke: var(--q-positive); 
-	stroke-width: 5;
- stroke-linecap: round;
 
 }
 
-.arcDashes {
-  fill: none;
-  stroke: lightskyblue;
-  stroke-width: 12;
-}
-
-.arcLine {
-  fill: none;
-  stroke: lightskyblue;
-  opacity: 0.2;
-  stroke-width: 12;
-
-}
 
 .overlay-container {
   position: relative;
