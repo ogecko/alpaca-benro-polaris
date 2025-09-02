@@ -292,13 +292,14 @@ function angleInterp(oldScale: ScaleLinear<number, number>, newScale: ScaleLinea
 }
 
 
-function radialTransform(angle: number, radius: number, radialOffset: number = 1.0, flip: boolean = false): string {
+// computes the x,y translate based on angle, and spins the mark around its 0,0 point
+function radialTransform(angle: number, radius: number, radialOffset: number = 1.0, spin: number): string {
   const x = radius * Math.cos(angle * Math.PI / 180) * radialOffset;
   const y = radius * Math.sin(angle * Math.PI / 180) * radialOffset;
-  const rot = flip ? 180 : 0;
-  return `translate(${x}, ${y}) rotate(${rot+angle})`;
+  return `translate(${x}, ${y}) rotate(${spin+angle})`;
 }
 
+// computes the dash length for achieve stepDiv marks between each stepSize
 function strokeDashArray(radius:number, newScale:ScaleLinear<number, number>, stepSize:number|undefined, stepDiv:number|undefined, ) {
   if (stepSize && stepDiv) {
     const s0 = newScale(0 + stepSize) - newScale(0); 
@@ -363,6 +364,8 @@ function joinMarks(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tRaw as Transition<BaseType, any, any, any>;
   const [min, max] = newScale.domain() as [number, number];
+  const [smin, smax] = newScale.range() as [number, number];
+  const smid = (smin+smax)/2
   const visibleMarks = marks.filter(m => isAngleBetween(m.angle, min, max));
   const interp = angleInterp(oldScale, newScale);
 
@@ -378,8 +381,8 @@ function joinMarks(
         .attr('opacity', d => determineOpacity(d, min, max))
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
-          const flip = (d.label) ? (Math.cos(angle * Math.PI / 180) < 0) : false;
-          return radialTransform(angle, radius, d.offset ?? 1.0, flip);
+          const spin = (!d.label) ? 0 : (Math.sin(smid * Math.PI / 180) > 0) ? -90 : +90;
+          return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         }),
 
       update => update.transition(t)
@@ -388,16 +391,16 @@ function joinMarks(
         .each(function (d) { zOrder<MarkDatum>(this, d) })
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
-          const flip = (d.label) ? (Math.cos(angle * Math.PI / 180) < 0) : false;
-          return radialTransform(angle, radius, d.offset ?? 1, flip);
+          const spin = (!d.label) ? 0 : (Math.sin(smid * Math.PI / 180) > 0) ? -90 : +90;
+          return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         }),
 
       exit => exit.transition(t)
         .attr('opacity', 0)
         .attrTween('transform', d => t => {
           const angle = interp(d.angle)(t);
-          const flip = (d.label) ? (Math.cos(angle * Math.PI / 180) < 0) : false;
-          return radialTransform(angle, radius, d.offset ?? 1, flip);
+          const spin = (!d.label) ? 0 : (Math.sin(angle * Math.PI / 180) > 0) ? -90 : +90;
+          return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         })
         .remove()
     );
