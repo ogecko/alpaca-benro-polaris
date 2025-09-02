@@ -1274,6 +1274,7 @@ class Polaris:
                 'battery_level': self._battery_level,
                 'connected': self._connected,
                 'tracking': self._tracking,
+                'trackingrate': self._trackingrate,
                 'athome': self._athome,
                 'atpark': self._atpark,
                 'slewing': self._slewing,

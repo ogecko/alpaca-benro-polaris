@@ -13,6 +13,7 @@ export const useStatusStore = defineStore('status', {
         battery_level: 0,
         connected: false,
         tracking: false,
+        trackingrate: 0,
         athome: false,
         atpark: false,
         slewing: false,
@@ -37,5 +38,14 @@ export const useStatusStore = defineStore('status', {
                 console.warn('Status fetch failed:', err);
             }
         },
+    },
+    getters: {
+        trackingratestr: (state): string => {
+            const tr = state.trackingrate;
+            return tr === 0 ? 'Sidereal' :
+                tr === 1 ? 'Lunar' :
+                tr === 2 ? 'Solar' : 'Custom';
+        }
     }
+
 })
