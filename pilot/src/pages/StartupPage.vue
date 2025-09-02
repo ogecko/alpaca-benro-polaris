@@ -5,24 +5,24 @@
       <q-toggle v-model="isEquatorial" label="Equatorial"/>
     </div>
     <div v-if="isEquatorial" class="row">
-        <div>
+        <div class="col-12 col-md-6 col-lg-4">
           <ScaleDisplay label="Right Ascension" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-        <div>
+        <div class="col-12 col-md-6 col-lg-4">
           <ScaleDisplay label="Declination" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-        <div>
+        <div class="col-12 col-md-6 col-lg-4">
           <ScaleDisplay label="Position Angle" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
     </div>
     <div v-else class="row">
-        <div>
+        <div class="col-12 col-md-6 col-lg-4">
           <ScaleDisplay @clickScale="onClickAz" label="Azimuth" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-        <div>
+        <div class="col-12 col-md-6 col-lg-4">
           <ScaleDisplay @clickScale="onClickAlt" label="Altitude" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-        <div>
+        <div class="col-12 col-md-6 col-lg-4">
           <ScaleDisplay @clickScale="onClickRoll" label="Roll" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
     </div>
