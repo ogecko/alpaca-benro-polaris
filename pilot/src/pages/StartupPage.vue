@@ -1,6 +1,6 @@
 <template>
-  <q-page class="q-pa-lg">
-    <div class="row">
+  <q-page class="">
+    <div class="row q-pr-lg">
       <q-space />
       <q-toggle v-model="isEquatorial" label="Equatorial"/>
     </div>
@@ -17,13 +17,13 @@
     </div>
     <div v-else class="row">
         <div>
-          <ScaleDisplay label="Azimuth" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickAz" label="Azimuth" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
         <div>
-          <ScaleDisplay label="Altitude" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickAlt" label="Altitude" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
         <div>
-          <ScaleDisplay label="Roll" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickRoll" label="Roll" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
     </div>
 
@@ -86,5 +86,16 @@ onMounted(async () => {
   }
 })
 
+function onClickAz(e: { angle: number }) {
+  console.log('Clicked Az angle:', e.angle);
+}
+
+function onClickAlt(e: { angle: number }) {
+  console.log('Clicked Alt angle:', e.angle);
+}
+
+function onClickRoll(e: { angle: number }) {
+  console.log('Clicked Roll angle:', e.angle);
+}
 
 </script>

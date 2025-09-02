@@ -148,6 +148,9 @@ const pvx = computed(() => deg2dms(props.pv, 1))
 const spx = computed(() => deg2dms(props.sp, 1))
 const dProps = computed(() => domainStyle[props.domain])
 
+const emit = defineEmits<{
+  (e: 'clickScale', payload: { angle: number }): void;
+}>();
 
 onMounted(throttledRenderScale)
 watch(renderKey, throttledRenderScale)
@@ -175,7 +178,7 @@ function onSvgClick(e: MouseEvent) {
   const inverseScale = scaleLinear().domain([dProps.value.sAngleLow, dProps.value.sAngleHigh]).range([low, high]);
   const domainValue = dProps.value.dAngleFn(inverseScale(screen_angleDeg));
 
-  console.log(svgCoords.x, svgCoords.y, screen_angleDeg, domainValue);
+  emit('clickScale', { angle: domainValue });
 }
 
 
