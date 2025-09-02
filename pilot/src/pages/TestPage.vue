@@ -10,7 +10,7 @@
       </div>
       <q-space />
       <div class="q-gutter-md flex justify-end q-mr-md">
-        <q-btn-dropdown rounded color="grey-9" label="Log Settings" :content-style="{ width: '600px' }">
+        <q-btn-dropdown rounded color="grey-9" label="Log Settings" :content-style="{ width: '400px' }">
             dummy dropdown content
         </q-btn-dropdown>
       </div>

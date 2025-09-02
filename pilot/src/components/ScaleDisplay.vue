@@ -1,21 +1,40 @@
 <template>
   <div class="overlay-container relative-position">
+
+    <!-- Outer Boundary Content -->
+    <div class="outer-content" :style="`width:${dProps.width}px; height: ${dProps.height}px`">
+      <div class="row absolute-top-left" > 
+        LeftTop
+      </div>
+      <div class="row absolute-top-right" > 
+        RightTop
+      </div>
+      <div class="row absolute-bottom-left" > 
+        LeftBottom
+      </div>
+      <div class="row absolute-bottom-right" > 
+        RightBottom
+      </div>
+    </div>
+
     <!-- SVG Background -->
-    <svg @click="onSvgClick" class="background-svg" :width="width" :height="height">
-      <g v-if="isLinear" ref="linearGroup" :transform="`translate(10, ${height / 2})`" />
+    <svg class="background-svg" @click="onSvgClick" :width="dProps.width" :height="dProps.height">
+      <g v-if="isLinear" ref="linearGroup" />
       <g v-else-if="isCircular" ref="circularGroup" />
     </svg>
 
-    <!-- Foreground Content Centered -->
-    <div class="foreground-content absolute-center">
-      <div class="column items-center text-center">
-        <div class="row absolute text-positive text-caption items-center q-gutter-xs" style="top: -8px;">
-          Setpoint
-        </div>
-        <div class="row text-positive text-h6 items-center q-gutter-xs">
-          <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " />
-          {{ spx.sign }}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}"
-          <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-right-circle" class="" />
+    <!-- Center Content -->
+    <div class="center-content" :style="`left:${100*dProps.cx/dProps.width}%; top: ${100*dProps.cy/dProps.height}%`" >
+      <div class="column items-center">
+        <div :class=" {'order-last': dProps.cy>dProps.height/2}">
+          <div class="row text-positive text-caption">
+            Setpoint{{ dProps.cy }}
+          </div>
+          <div class="row text-positive text-h6 items-center q-gutter-xs">
+            <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " />
+            {{ spx.sign }}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}"
+            <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-right-circle" class="" />
+          </div>
         </div>
         <div class="text-h4 text-grey-6">
           Azimuth
@@ -28,9 +47,6 @@
             <div class="text-subtitle2 text-grey-5">{{ pvx.secondstr }}"</div>
           </div>
         </div>
-      </div>
-      <div class="row absolute-bottom-left" > 
-        LeftBottom
       </div>
     </div>
   </div>
@@ -63,14 +79,14 @@ export type DomainStyleType =
 	| 'ra_hours'
 
 const domainStyle = {
-  'linear_360': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
-	'circular_360': { centerVw: 0.5, centerVh: 0.5, sAngleLow: 170, sAngleHigh: 270, dAngleFn: wrapTo360 },
-	'semihi_360': { centerVw: 0.5, centerVh: 0.7, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360 },
-	'semilo_360': { centerVw: 0.5, centerVh: 0.28, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
-	'circular_180': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180 },
-	'alt_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
-	'dec_90': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
-	'ra_hours': { centerVw: 0.5, centerVh: 0.9, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
+  'linear_360':   { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'circular_360': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: 10, sAngleHigh: 340, dAngleFn: wrapTo360 },
+	'semihi_360':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360 },
+	'semilo_360':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'circular_180': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180 },
+	'alt_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
+	'dec_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
+	'ra_hours':     { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
 }
 
 const props = defineProps<{
@@ -81,8 +97,6 @@ const props = defineProps<{
   domain: DomainStyleType
 }>()
 
-const width = 400
-const height = 300
 const pathMap = { lg: 'M-8,0 L18,0', md: 'M-8,0 L14,0', sm: 'M-8,0 L11,0' };
 const offsetMap = { lg: 1.20, md: 1.165, sm: 1.13 }
 const opacityMap = { lg: 1, md: 1, sm: 0.5 }
@@ -97,6 +111,8 @@ const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', '
 const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1))
 const spx = computed(() => deg2dms(props.sp, 1))
+const dProps = computed(() => domainStyle[props.domain])
+
 
 onMounted(throttledRenderScale)
 watch(renderKey, throttledRenderScale)
@@ -484,7 +500,7 @@ function renderLinearScale() {
 
 	const scale = scaleLinear()
 		.domain([props.pv - props.scaleRange / 2, props.pv + props.scaleRange / 2])
-		.range([0, width - 40])
+		.range([0, dProps.value.width - 40])
 
 	const axis = axisBottom(scale).ticks(10)
 	const group = select(linearGroup.value)
@@ -500,46 +516,39 @@ function renderCircularScale() {
   if (!circularGroup.value) return;
 
 
-  const dProps = domainStyle[props.domain]
   const low = props.pv - props.scaleRange / 2
   const high = props.pv + props.scaleRange / 2
-  const { stepSize, ticks } = generateTicks(low, props.scaleRange, dProps.dAngleFn)
+  const { stepSize, ticks } = generateTicks(low, props.scaleRange, dProps.value.dAngleFn)
   const arcs = generateArcs(low, high, stepSize, 5)
 
 
-  const cx = width * dProps.centerVw
-  const cy = height * dProps.centerVh
-  const radius = width / 2 - 60;
-  const newScale = scaleLinear().domain([low, high]).range([dProps.sAngleLow, dProps.sAngleHigh]);
+  const radius = dProps.value.radius;
+  const newScale = scaleLinear().domain([low, high]).range([dProps.value.sAngleLow, dProps.value.sAngleHigh]);
   const oldScale = prevScale ?? newScale;
   prevScale = newScale;
 
-  const group = select(circularGroup.value).attr('transform', `translate(${cx},${cy})`);
+  const group = select(circularGroup.value).attr('transform', `translate(${dProps.value.cx},${dProps.value.cy})`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
 
 
+  // arcs, arc ticks, and annotations for SP and HighWarning
+  joinArcs('tkArc', group, arcs, oldScale, newScale, radius, t);
+  joinArcs('tkArcPVtoSP', group, [{ beginAngle:props.pv, endAngle:props.sp, offset:1, opacity: 0.9, zorder: 'low' }], oldScale, newScale, radius, t);
+  joinArcs('tkArcHighWarning', group, [{ beginAngle:92, endAngle:120, offset:1, opacity: 0.7, zorder: 'low' }], oldScale, newScale, radius, t);
 
-  // add an arc dashed-line for the small ticks
-  // const stepDiv = 5
-  // const fractionalStep = stepSize / stepDiv
-  // const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
-  // const endAngle = beginAngle + high - low;
-  // joinArcs('arcDashes', group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);
-  // joinArcs('arcLine', group, [{beginAngle:low, endAngle:high, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);
-    joinArcs('tkArcPVtoSP', group, [{ beginAngle:props.pv, endAngle:props.sp, offset:1, opacity: 0.9, zorder: 'low' }], oldScale, newScale, radius, t);
-    joinArcs('tkArc', group, arcs, oldScale, newScale, radius, t);
-
-  // ticks and labels
+  // scale ticks and labels
   joinMarks('tkMarks', group, ticks, oldScale, newScale, radius, t);
 
   // pv and sp marks and tests
-  joinMarks('spLine', group, [{angle:props.sp, path:'M-35,0  L8,0 L12,-5, L12,5 L8,0', zorder: 'high'}], oldScale, newScale, radius, t);    // example SP line
+  joinMarks('spLine', group, [{angle:props.sp, path:'M-35,0  L8,0 L12,-5, L12,5 L8,0', zorder: 'high'}], oldScale, newScale, radius, t); 
   joinMarks('pvMark', group, [{angle:props.pv, path:'M-8,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t);
+
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);
-  joinArcs('tkArcHighWarning', group, [{ beginAngle:92, endAngle:120, offset:1, opacity: 0.7, zorder: 'low' }], oldScale, newScale, radius, t);
+  // joinArcs('arcDashes', group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);
+  // joinArcs('arcLine', group, [{beginAngle:low, endAngle:high, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);
 
 
 }
@@ -609,13 +618,14 @@ function renderScale() {
 
 .overlay-container {
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   width: 100%;
   height: 100%;
 }
 
+.outer-content {
+  position: relative;
+  pointer-events: none;
+}
 
 .background-svg {
   position: absolute;
@@ -627,23 +637,22 @@ function renderScale() {
 }
 
 
-.foreground-content {
-  position: relative;
+.center-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1;
-  text-align: center;
-   pointer-events: none;
-
-  width: 400px;
-  height: 320px;
+  pointer-events: none;
 }
 
-.foreground-content .q-field {
+.center-content .q-field {
   pointer-events: auto;
 }
-.foreground-content .q-btn {
+.center-content .q-btn {
   pointer-events: auto;
 }
-.foreground-content .q-btn-group {
+.center-content .q-btn-group {
   pointer-events: auto;
 }
 </style>
