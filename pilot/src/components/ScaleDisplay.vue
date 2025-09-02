@@ -30,14 +30,14 @@
     <!-- Center Content -->
     <div class="center-content" :style="`left:${100*dProps.cx/dProps.width}%; top: ${100*dProps.cy/dProps.height}%`" >
       <div class="column items-center ">
-        <div :class=" {'order-last': dProps.cy>dProps.height/2}">
-          <div class="row absolute text-positive text-caption">
+        <div :class=" {'order-last': dProps.cy>dProps.height/2} " >
+          <div class="row absolute text-positive text-caption ">
             Setpoint
           </div>
-          <div class="row text-positive text-h6 items-center q-pt-md q-gutter-xs  no-wrap">
-            <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " />
+          <div class="row text-positive text-h6 items-center q-pt-md q-gutter-xs  no-wrap text-weight-light">
+            <!-- <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " /> -->
             {{ spx.sign }}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}"
-            <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-right-circle" class="" />
+            <!-- <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-right-circle" class="" /> -->
           </div>
         </div>
         <div class="text-h4 text-grey-6 text-center">
