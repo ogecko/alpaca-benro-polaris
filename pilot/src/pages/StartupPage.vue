@@ -1,56 +1,30 @@
 <template>
   <q-page class="q-pa-lg">
-    <div class="row items-center">
-      <q-space/>
-      <div>
-      <div class="col">
-        <div class="row items-center ">
-          <div class="col-auto text-h4">{{az.sign}}</div>
-          <div class="col-auto text-h2 text-weight-bold">{{az.degrees}}°</div>
-          <div class="col-auto columns q-pl-sm">
-            <div class="col text-h5 text-grey-4">{{az.minutestr}}'</div>
-            <div class="col text-caption text-grey-5">{{az.secondstr}}"</div>
-          </div>
+    <div class="row">
+      <q-space />
+      <q-toggle v-model="isEquatorial" label="Equatorial"/>
+    </div>
+    <div v-if="isEquatorial" class="row">
+        <div>
+          <ScaleDisplay label="Right Ascension" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-        <div class="row items-center text-h4 text-grey-6 text-center">
-          <div class="col-auto">
-          Azimuth
-          </div>
+        <div>
+          <ScaleDisplay label="Declination" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-      </div>
-      <div class="col">
-        <div class="row items-center ">
-          <div class="col-auto text-h4">{{alt.sign}}</div>
-          <div class="col-auto text-h2 text-weight-bold">{{alt.degrees}}°</div>
-          <div class="col-auto columns q-pl-sm">
-            <div class="col text-h5 text-grey-4">{{alt.minutestr}}'</div>
-            <div class="col text-caption text-grey-5">{{alt.secondstr}}"</div>
-          </div>
+        <div>
+          <ScaleDisplay label="Position Angle" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-        <div class="row items-center text-h4 text-grey-6 text-center">
-          <div class="col-auto">
-          Altitude
-          </div>
+    </div>
+    <div v-else class="row">
+        <div>
+          <ScaleDisplay label="Azimuth" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-      </div>
-      <div class="col">
-        <div class="row items-center ">
-          <div class="col-auto text-h4">{{roll.sign}}</div>
-          <div class="col-auto text-h2 text-weight-bold">{{roll.degrees}}°</div>
-          <div class="col-auto columns q-pl-sm">
-            <div class="col text-h5 text-grey-4">{{roll.minutestr}}'</div>
-            <div class="col text-caption text-grey-5">{{roll.secondstr}}"</div>
-          </div>
+        <div>
+          <ScaleDisplay label="Altitude" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-        <div class="row items-center text-h4 text-grey-6 text-center">
-          <div class="col-auto">
-          Roll
-          </div>
+        <div>
+          <ScaleDisplay label="Roll" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-      </div>
-
-      </div>
-      <q-space/>
     </div>
 
 
@@ -77,18 +51,17 @@
 
 <script setup lang="ts" >
 
-import { onMounted, computed } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'stores/device'
 import { useStatusStore } from 'src/stores/status'
-import { deg2dms } from 'src/utils/angles'
+import ScaleDisplay from 'components/ScaleDisplay.vue'
 
 const route = useRoute()
 const dev = useDeviceStore()
 const p = useStatusStore()
-const az = computed(() => deg2dms(p.azimuth,1))
-const alt = computed(() => deg2dms(p.altitude,1))
-const roll = computed(() => deg2dms(p.roll,1))
+const isEquatorial = ref<boolean>(false)
+
 
 onMounted(async () => {
 

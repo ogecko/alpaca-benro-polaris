@@ -3,17 +3,16 @@
 
     <!-- Outer Boundary Content -->
     <div class="outer-content" :style="`width:${dProps.width}px; height: ${dProps.height}px`">
-      <div class="row absolute-top-left" > 
-        LeftTop
+      <div class="row absolute-top-left q-pa-sm" > 
+        <q-btn round size="md" color="positive" dense flat icon="mdi-format-horizontal-align-center" class=" " />
       </div>
-      <div class="row absolute-top-right" > 
-        RightTop
+      <div class="row absolute-top-right q-pa-sm" > 
+        <q-btn round size="md" color="positive" dense flat icon="mdi-magnify-minus-outline" class=" " />
+        <q-btn round size="md" color="positive" dense flat icon="mdi-magnify-plus-outline" class=" " />
       </div>
-      <div class="row absolute-bottom-left" > 
-        LeftBottom
+      <div class="row absolute-bottom-left q-pa-sm" > 
       </div>
-      <div class="row absolute-bottom-right" > 
-        RightBottom
+      <div class="row absolute-bottom-right q-pa-sm" > 
       </div>
     </div>
 
@@ -27,16 +26,16 @@
     <div class="center-content" :style="`left:${100*dProps.cx/dProps.width}%; top: ${100*dProps.cy/dProps.height}%`" >
       <div class="column items-center">
         <div :class=" {'order-last': dProps.cy>dProps.height/2}">
-          <div class="row text-positive text-caption">
-            Setpoint{{ dProps.cy }}
+          <div class="row absolute text-positive text-caption">
+            Setpoint
           </div>
-          <div class="row text-positive text-h6 items-center q-gutter-xs">
+          <div class="row text-positive text-h6 items-center q-pt-md q-gutter-xs">
             <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " />
             {{ spx.sign }}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}"
             <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-right-circle" class="" />
           </div>
         </div>
-        <div class="text-h4 text-grey-6">
+        <div class="text-h4 text-grey-6 text-center">
           {{props.label}}
         </div>
         <div class="row items-center q-gutter-xs">
@@ -90,7 +89,6 @@ const domainStyle = {
 }
 
 const props = defineProps<{
-	scaleStart: number
 	scaleRange: number
 	pv: number
 	sp: number
@@ -109,7 +107,7 @@ const circularGroup = ref<SVGGElement | null>(null)
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
-const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}-${props.sp}`)
+const renderKey = computed(() => `${props.domain}-${props.scaleRange}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1))
 const spx = computed(() => deg2dms(props.sp, 1))
 const dProps = computed(() => domainStyle[props.domain])
@@ -647,13 +645,13 @@ function renderScale() {
   pointer-events: none;
 }
 
-.center-content .q-field {
+.overlay-container .q-field {
   pointer-events: auto;
 }
-.center-content .q-btn {
+.overlay-container .q-btn {
   pointer-events: auto;
 }
-.center-content .q-btn-group {
+.overlay-container .q-btn-group {
   pointer-events: auto;
 }
 </style>
