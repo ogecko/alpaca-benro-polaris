@@ -11,7 +11,7 @@
           <q-btn @click="onScaleIncClick" size="md" dense flat color="secondary" icon="mdi-magnify-plus-outline" class=" " />
         </div>
         <div class="column" text-primary>
-          <span @click="onScaleAutoClick" class="text-secondary text-body1">{{ formatScaleRange() }}</span>
+          <q-btn @click="onScaleAutoClick" dense class="text-secondary">{{ formatScaleRange() }}</q-btn>
           <q-btn @click="onScaleDecClick" size="md" dense flat color="secondary" icon="mdi-magnify-minus-outline" class=" " />
         </div>
       </q-btn-group>
