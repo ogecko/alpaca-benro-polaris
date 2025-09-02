@@ -4,7 +4,7 @@
     <!-- Outer Boundary Content -->
     <div class="outer-content" :style="`width:${dProps.width}px; height: ${dProps.height}px`">
       <div class="row absolute-top-left q-pl-lg" > 
-        <q-btn round color="secondary" dense flat icon="mdi-format-horizontal-align-center" />
+        <!-- <q-btn round color="secondary" dense flat icon="mdi-format-horizontal-align-center" /> -->
       </div>
       <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
         <div class="column">
