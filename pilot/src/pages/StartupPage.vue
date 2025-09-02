@@ -28,7 +28,7 @@
     </div>
 
 
-    <div class="row items-center">
+    <div class="row items-center q-pt-xl">
         <q-space/>
         <div class="col">
           <q-img src="../assets/abp-logo.png" fit="scale-down" position="100% 50%" style="height:200px"></q-img>
