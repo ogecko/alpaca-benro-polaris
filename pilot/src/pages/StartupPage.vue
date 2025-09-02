@@ -1,34 +1,34 @@
 <template>
   <q-page class="">
-    <div class="row q-pa-md justify-center items-center">
-      <div class="col-4 q-gutter-sm q-mb-md justify-left">
-        <q-btn-group class="q-gutter-sm ">
-          <q-btn round :outline="!isEquatorial" @click="isEquatorial=!isEquatorial"  color="secondary" dense label="Eq" />
-          <q-btn round :outline="!p.atpark" color="secondary" dense  icon="mdi-parking" />
-          <q-btn round color="secondary" dense  icon="mdi-stop" />
-          <q-btn round :outline="!p.tracking" color="secondary" dense  label="Tr" />
-        </q-btn-group>
+    <div class="row q-pa-md justify-center items-center q-col-gutter-sm">
+      <div class="row col-12 col-sm-4 justify-center ">
+        <div class="q-gutter-sm ">
+          <q-btn glossy  size="md" :outline="isEquatorial" @click="isEquatorial=!isEquatorial"  color="secondary" label="Az/Alt" />
+          <q-btn glossy  size="md" :outline="!p.atpark" color="secondary" label="Park"/>
+          <q-btn glossy  size="md" color="secondary" icon="mdi-stop" />
+          <q-btn glossy  size="md" :outline="!p.tracking" color="secondary" label="Track" />
+        </div>
       </div>
-      <div class="row col-8 q-gutter-sm wrap justify-end ">
+      <div class="row col-6 col-sm-4 text-positive text-h5 q-gutter-sm justify-center ">
+        <div v-if="p.tracking">
+          <span>M3</span> 
+          <q-chip color="positive">Tracking</q-chip>
+        </div>
+      </div>
+      <div class="row col-6 col-sm-4 wrap justify-end ">
         <q-chip color="positive" :outline="!p.slewing">
           Slewing
         </q-chip>
         <q-chip color="positive" :outline="!p.gotoing">
           Gotoing
         </q-chip>
-        <q-chip color="positive" :outline="!p.atpark">
-          Parked
-        </q-chip> 
         <q-chip color="positive" :outline="!p.gotoing">
           PID
         </q-chip> 
-        <q-chip color="positive" :outline="!p.tracking">
-          Tracking
-        </q-chip>
       </div>
     </div>
     <div v-if="isEquatorial" class="row">
-        <div class="col-12 col-md-6 col-lg-4">
+       <div class="col-12 col-md-6 col-lg-4">
           <ScaleDisplay @clickScale="onClickRA" label="Right Ascension" :pv="p.rightascension" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
         <div class="col-12 col-md-6 col-lg-4">
@@ -37,8 +37,8 @@
         <div class="col-12 col-md-6 col-lg-4">
           <ScaleDisplay @clickScale="onClickPA" label="Position Angle" :pv="p.rotation" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
-    </div>
-    <div v-else class="row">
+     </div>
+      <div v-else class="row">
         <div class="col-12 col-md-6 col-lg-4">
           <ScaleDisplay @clickScale="onClickAz" label="Azimuth" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>

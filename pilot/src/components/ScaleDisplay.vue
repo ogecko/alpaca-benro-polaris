@@ -9,22 +9,26 @@
     >
     <!-- Outer Boundary Content for buttons -->
     <div class="outer-content" :style="`width:${dProps.width}px; height: ${dProps.height}px`">
-      <div class="row absolute-top-left q-pl-lg" > 
-        <!-- <q-btn round color="secondary" dense flat icon="mdi-format-horizontal-align-center" /> -->
-      </div>
-      <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
-        <div class="column">
-          <q-btn @click="onScaleZoomInClick" dense flat color="secondary" icon="mdi-magnify-plus-outline" />
+      <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
+        <div v-if="showButtons">
+          <div class="row absolute-top-left q-pl-lg" > 
+            <!-- <q-btn round color="secondary" dense flat icon="mdi-format-horizontal-align-center" /> -->
+          </div>
+          <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
+            <div class="column">
+              <q-btn @click="onScaleZoomInClick" dense flat color="secondary" icon="mdi-magnify-plus-outline" />
+            </div>
+            <div class="column" text-primary>
+              <q-btn @click="onScaleAutoClick" dense flat color="secondary">{{ formatScaleRange() }}</q-btn>
+              <q-btn @click="onScaleZoomOutClick" dense flat color="secondary" icon="mdi-magnify-minus-outline" />
+            </div>
+          </q-btn-group>
+          <div class="row absolute-bottom-left q-pa-sm" > 
+          </div>
+          <div class="row absolute-bottom-right q-pa-sm" > 
+          </div>
         </div>
-        <div class="column" text-primary>
-          <q-btn @click="onScaleAutoClick" dense flat color="secondary">{{ formatScaleRange() }}</q-btn>
-          <q-btn @click="onScaleZoomOutClick" dense flat color="secondary" icon="mdi-magnify-minus-outline" />
-        </div>
-      </q-btn-group>
-      <div class="row absolute-bottom-left q-pa-sm" > 
-      </div>
-      <div class="row absolute-bottom-right q-pa-sm" > 
-      </div>
+      </transition>
     </div>
 
     <!-- SVG Background -->
@@ -763,14 +767,15 @@ function renderScale() {
   pointer-events: auto;
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+// .fade-enter-active,
+// .fade-leave-active {
+//   transition: opacity 0.3s;
+// }
+// .fade-enter-from,
+// .fade-leave-to {
+//   opacity: 0;
+// }
+
 
 :deep(.no-edit-cursor) {
   cursor: default;
