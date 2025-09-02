@@ -8,11 +8,11 @@
       </div>
       <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
         <div class="column">
-          <q-btn @click="onScaleIncClick" size="md" dense flat color="secondary" icon="mdi-magnify-plus-outline" class=" " />
+          <q-btn @click="onScaleZoomInClick" size="md" dense flat color="secondary" icon="mdi-magnify-plus-outline" class=" " />
         </div>
         <div class="column" text-primary>
           <q-btn @click="onScaleAutoClick" dense class="text-secondary">{{ formatScaleRange() }}</q-btn>
-          <q-btn @click="onScaleDecClick" size="md" dense flat color="secondary" icon="mdi-magnify-minus-outline" class=" " />
+          <q-btn @click="onScaleZoomOutClick" size="md" dense flat color="secondary" icon="mdi-magnify-minus-outline" class=" " />
         </div>
       </q-btn-group>
       <div class="row absolute-bottom-left q-pa-sm" > 
@@ -152,6 +152,9 @@ const dProps = computed(() => domainStyle[props.domain])
 onMounted(throttledRenderScale)
 watch(renderKey, throttledRenderScale)
 
+
+// ------------------- Event handlers ---------------------
+
 function onSvgClick(e: MouseEvent) {
   const svg = svgElement.value;
   if (!svg) return;
@@ -176,12 +179,12 @@ function onSvgClick(e: MouseEvent) {
 }
 
 
-function onScaleIncClick() {
+function onScaleZoomInClick() {
   const closest = getClosestSteps(_scaleRange.value)
-  if (closest.nextDown) _scaleRange.value = closest.nextDown
+  if (closest.nextDown && closest.nextDown >= 1/60) _scaleRange.value = closest.nextDown
 }
 
-function onScaleDecClick() {
+function onScaleZoomOutClick() {
   const closest = getClosestSteps(_scaleRange.value)
   if (closest.nextUp) _scaleRange.value = closest.nextUp
 }
