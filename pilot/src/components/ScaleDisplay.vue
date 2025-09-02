@@ -7,8 +7,8 @@
         <q-btn round size="md" color="positive" dense flat icon="mdi-format-horizontal-align-center" class=" " />
       </div>
       <div class="row absolute-top-right q-pa-sm" > 
-        <q-btn round size="md" color="positive" dense flat icon="mdi-magnify-minus-outline" class=" " />
-        <q-btn round size="md" color="positive" dense flat icon="mdi-magnify-plus-outline" class=" " />
+        <q-btn @click="onScaleDecClick" round size="md" color="positive" dense flat icon="mdi-magnify-minus-outline" class=" " />
+        <q-btn @click="onScaleIncClick" round size="md" color="positive" dense flat icon="mdi-magnify-plus-outline" class=" " />
       </div>
       <div class="row absolute-bottom-left q-pa-sm" > 
       </div>
@@ -17,7 +17,7 @@
     </div>
 
     <!-- SVG Background -->
-    <svg class="background-svg" @click="onSvgClick" :width="dProps.width" :height="dProps.height">
+    <svg class="background-svg" @click="onSvgClick" ref="svgElement" :width="dProps.width" :height="dProps.height">
       <g v-if="isLinear" ref="linearGroup" />
       <g v-else-if="isCircular" ref="circularGroup" />
     </svg>
@@ -71,7 +71,9 @@ export type DomainStyleType =
 	| 'linear_360'
 	| 'circular_360'
 	| 'semihi_360'
+	| 'semihi_180'
 	| 'semilo_360'
+	| 'semilo_180'
 	| 'circular_180'
 	| 'alt_90'
 	| 'dec_90'
@@ -81,7 +83,9 @@ const domainStyle = {
   'linear_360':   { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
 	'circular_360': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: 10, sAngleHigh: 340, dAngleFn: wrapTo360 },
 	'semihi_360':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360 },
+	'semihi_180':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo180 },
 	'semilo_360':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
+	'semilo_180':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180 },
 	'circular_180': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180 },
 	'alt_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
 	'dec_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
@@ -100,9 +104,11 @@ const pathMap = { lg: 'M-8,0 L18,0', md: 'M-8,0 L14,0', sm: 'M-8,0 L11,0' };
 const offsetMap = { lg: 1.20, md: 1.165, sm: 1.13 }
 const opacityMap = { lg: 1, md: 1, sm: 0.5 }
 
-const throttledRenderScale = throttle(renderScale, 100)
+const throttledRenderScale = throttle(renderScale, 20)
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
+const svgElement = ref<SVGSVGElement | null>(null);
+
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
@@ -116,8 +122,35 @@ const dProps = computed(() => domainStyle[props.domain])
 onMounted(throttledRenderScale)
 watch(renderKey, throttledRenderScale)
 
-function onSvgClick(e:Event) {
-  console.log(e)
+function onSvgClick(e: MouseEvent) {
+  const svg = svgElement.value;
+  if (!svg) return;
+
+  // determine the svg co-ordinates
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const svgCoords = pt.matrixTransform(svg.getScreenCTM()?.inverse());
+
+  // determine screen angle from cx,cy, and reject clicks outside scale angle
+  const screen_angleRad = Math.atan2(svgCoords.y - dProps.value.cy, svgCoords.x - dProps.value.cx)
+  const screen_angleDeg = wrapTo360(screen_angleRad * (180 / Math.PI))
+  if (screen_angleDeg<dProps.value.sAngleLow || screen_angleDeg>dProps.value.sAngleHigh) return
+
+  // calculate inverse scaleLinear and wrap the domain angle value
+  const low = props.pv - props.scaleRange / 2
+  const high = props.pv + props.scaleRange / 2
+  const inverseScale = scaleLinear().domain([dProps.value.sAngleLow, dProps.value.sAngleHigh]).range([low, high]);
+  const domainValue = dProps.value.dAngleFn(inverseScale(screen_angleDeg));
+
+  console.log(svgCoords.x, svgCoords.y, screen_angleDeg, domainValue);
+}
+
+
+function onScaleIncClick(e:Event) {
+  console.log('scale+',e)
+}
+function onScaleDecClick(e:Event) {
+  console.log('scale-',e)
 }
 // ------------------- Tick generation and Helper functions ---------------------
 
@@ -619,11 +652,8 @@ function renderScale() {
   position: relative;
   width: 100%;
   height: 100%;
-}
+    pointer-events: auto;
 
-.outer-content {
-  position: relative;
-  pointer-events: none;
 }
 
 .background-svg {
@@ -635,14 +665,19 @@ function renderScale() {
   z-index: 0;
 }
 
+.outer-content {
+  position: relative;
+  pointer-events: none;
+  z-index: 1;
+}
 
 .center-content {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1;
-  pointer-events: none;
+  z-index: 2;
+  pointer-events: auto;
 }
 
 .overlay-container .q-field {
