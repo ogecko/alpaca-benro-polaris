@@ -9,26 +9,16 @@
     <!-- Foreground Content Centered -->
     <div class="foreground-content absolute-center">
       <div class="column items-center text-center">
-        <div class="row items-center justify-center">
-          <!-- <div class="text-h5 text-grey-6 q-mt-sm">sp</div> -->
-          <q-space/>
-          <div class="col-9 sp-input text-h5 text-grey-6">
-            <q-input rounded filled label="Setpoint" color="positive" class="text-subtitle1" v-model=spi  type="text" mask='###°##′##.#"'>
-              <template v-slot:prepend>
-                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " />
-                <!-- <q-icon name="mdi-crosshairs-gps" /> -->
-              </template>
-              <template v-slot:append>
-                <q-btn round size="lg" color="positive" dense flat icon="mdi-arrow-right-circle" class="" />
-                <!-- <q-icon name="mdi-crosshairs-gps" /> -->
-              </template>
-            </q-input>
-            <!-- {{spx.sign}}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}" -->
-          </div>
-          <q-space/>
+        <div class="row absolute text-positive text-caption items-center q-gutter-xs" style="top: -8px;">
+          Setpoint
         </div>
-        <div class="text-h4 text-grey-6 q-mt-sm">
-          Right Ascention
+        <div class="row text-positive text-h6 items-center q-gutter-xs">
+          <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " />
+          {{ spx.sign }}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}"
+          <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-right-circle" class="" />
+        </div>
+        <div class="text-h4 text-grey-6">
+          Azimuth
         </div>
         <div class="row items-center q-gutter-xs">
           <div class="text-h4">{{ pvx.sign }}</div>
@@ -100,13 +90,13 @@ const opacityMap = { lg: 1, md: 1, sm: 0.5 }
 const throttledRenderScale = throttle(renderScale, 100)
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
-const spi = ref<string>(`${props.sp.toFixed(6)}`)
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
 const renderKey = computed(() => `${props.domain}-${props.scaleStart}-${props.scaleRange}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1))
+const spx = computed(() => deg2dms(props.sp, 1))
 
 onMounted(throttledRenderScale)
 watch(renderKey, throttledRenderScale)
