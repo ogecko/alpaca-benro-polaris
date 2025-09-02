@@ -1,7 +1,13 @@
 <template>
-  <div class="overlay-container relative-position">
+  <div class="overlay-container relative-position" >
 
-    <!-- Outer Boundary Content -->
+    <div class="interaction-area"
+      :style="`width:${dProps.width}px; height: ${dProps.height}px`"
+      @mouseenter="showButtons = true; console.log(`enter ${props.label}`)"
+      @mouseleave="showButtons = false; console.log(`leave ${props.label}`)"
+      @touchstart="showButtons = true; console.log(`touch ${props.label}`)"
+    >
+    <!-- Outer Boundary Content for buttons -->
     <div class="outer-content" :style="`width:${dProps.width}px; height: ${dProps.height}px`">
       <div class="row absolute-top-left q-pl-lg" > 
         <!-- <q-btn round color="secondary" dense flat icon="mdi-format-horizontal-align-center" /> -->
@@ -22,13 +28,15 @@
     </div>
 
     <!-- SVG Background -->
-    <svg class="background-svg" @click="onSvgClick" ref="svgElement" :width="dProps.width" :height="dProps.height">
+    <svg class="background-svg" @click="onSvgClick" ref="svgElement" :width="dProps.width" :height="dProps.height" 
+    >
+      <rect :width="dProps.width" :height="dProps.height" fill="transparent" />
       <g v-if="isLinear" ref="linearGroup" />
       <g v-else-if="isCircular" ref="circularGroup" />
     </svg>
 
     <!-- Center Content -->
-    <div class="center-content" :style="`left:${100*dProps.cx/dProps.width}%; top: ${100*dProps.cy/dProps.height}%`" >
+    <div class="center-content no-edit-cursor" :style="`left:${100*dProps.cx/dProps.width}%; top: ${100*dProps.cy/dProps.height}%`" >
       <div class="column items-center ">
         <div :class=" {'order-last': dProps.cy>dProps.height/2} " >
           <div class="row absolute text-positive text-caption ">
@@ -53,6 +61,10 @@
         </div>
       </div>
     </div>
+
+
+    </div>
+
   </div>
 </template>
 
@@ -139,6 +151,8 @@ const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const svgElement = ref<SVGSVGElement | null>(null);
 const _scaleRange = ref<number>(props.scaleRange)
+const showButtons = ref<boolean>(false);
+
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
@@ -282,7 +296,7 @@ function pushTick(
     key: `tkLabel-${level}-${keyBase}`,
     angle,
     label: labelText,
-    level: `tkLabel tk-${level}`,
+    level: `tkLabel tk-${level} no-edit-cursor`,
     opacity: opacityMap[level],
     offset: offsetMap[level],
   });
@@ -709,7 +723,7 @@ function renderScale() {
   position: relative;
   width: 100%;
   height: 100%;
-    pointer-events: auto;
+  pointer-events: auto;
 
 }
 
@@ -722,7 +736,7 @@ function renderScale() {
 }
 
 .outer-content {
-  position: relative;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -748,4 +762,22 @@ function renderScale() {
 .overlay-container .q-btn-group {
   pointer-events: auto;
 }
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+:deep(.no-edit-cursor) {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+
+}
+
 </style>
