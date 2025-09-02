@@ -3,16 +3,16 @@
 
     <!-- Outer Boundary Content -->
     <div class="outer-content" :style="`width:${dProps.width}px; height: ${dProps.height}px`">
-      <div class="row absolute-top-left q-pa-sm" > 
-        <q-btn round size="md" color="positive" dense flat icon="mdi-format-horizontal-align-center" class=" " />
+      <div class="row absolute-top-left q-pl-lg" > 
+        <q-btn round color="secondary" dense flat icon="mdi-format-horizontal-align-center" />
       </div>
       <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
         <div class="column">
-          <q-btn @click="onScaleZoomInClick" size="md" dense flat color="secondary" icon="mdi-magnify-plus-outline" class=" " />
+          <q-btn @click="onScaleZoomInClick" dense flat color="secondary" icon="mdi-magnify-plus-outline" />
         </div>
         <div class="column" text-primary>
-          <q-btn @click="onScaleAutoClick" dense class="text-secondary">{{ formatScaleRange() }}</q-btn>
-          <q-btn @click="onScaleZoomOutClick" size="md" dense flat color="secondary" icon="mdi-magnify-minus-outline" class=" " />
+          <q-btn @click="onScaleAutoClick" dense flat color="secondary">{{ formatScaleRange() }}</q-btn>
+          <q-btn @click="onScaleZoomOutClick" dense flat color="secondary" icon="mdi-magnify-minus-outline" />
         </div>
       </q-btn-group>
       <div class="row absolute-bottom-left q-pa-sm" > 
