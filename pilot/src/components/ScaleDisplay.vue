@@ -147,7 +147,8 @@ function pushTick(
   level: 'lg' | 'md' | 'sm',
   v: number,
   dWrapFn: (v: number) => number,
-  dFormatFn: (v: number) => string
+  dFormatFn: (v: number) => string,
+  stepSize: number,
 ) {
   const keyBase = v.toFixed(6);
   const angle = v;  // dont wrap the angle so comparisons still work
@@ -166,6 +167,13 @@ function pushTick(
     level = 'md'
     labelText = formatArcMinutes(v)
   } 
+  // Demote if we have too many degree labels
+  if (stepSize==1 && v%5!=0) level='sm'
+  if (stepSize==2 && v%10!=0) level='sm'
+  if (stepSize==5 && v%30!=0) level='sm'
+  if (stepSize==10 && v%30!=0) level='sm'
+  if (stepSize==15 && v%90!=0) level='sm'
+  if (stepSize==30 && v%90!=0) level='sm'
 
   // Remove any lower-priority duplicate labels
   const labelPriority = { lg: 3, md: 2, sm: 1 };
@@ -260,7 +268,7 @@ function generateTicks(scaleStart: number, scaleRange: number, dWrapFn:(v:number
   const count = Math.floor((end - start) / stepSize);
   for (let i = 0; i <= count && i < maxLabels; i++) {
     const v = +(start + i * stepSize).toFixed(6);
-    pushTick(ticks, level as 'lg' | 'md' | 'sm', v, dWrapFn, dFormatFn);
+    pushTick(ticks, level as 'lg' | 'md' | 'sm', v, dWrapFn, dFormatFn, stepSize);
   }
 
   // diagnostics
