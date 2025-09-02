@@ -6,10 +6,15 @@
       <div class="row absolute-top-left q-pa-sm" > 
         <q-btn round size="md" color="positive" dense flat icon="mdi-format-horizontal-align-center" class=" " />
       </div>
-      <div class="row absolute-top-right q-pa-sm" > 
-        <q-btn @click="onScaleDecClick" round size="md" color="positive" dense flat icon="mdi-magnify-minus-outline" class=" " />
-        <q-btn @click="onScaleIncClick" round size="md" color="positive" dense flat icon="mdi-magnify-plus-outline" class=" " />
-      </div>
+      <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
+        <div class="column">
+          <q-btn @click="onScaleIncClick" size="md" dense flat color="secondary" icon="mdi-magnify-plus-outline" class=" " />
+        </div>
+        <div class="column" text-primary>
+          <span @click="onScaleAutoClick" class="text-secondary text-body1">{{ formatScaleRange() }}</span>
+          <q-btn @click="onScaleDecClick" size="md" dense flat color="secondary" icon="mdi-magnify-minus-outline" class=" " />
+        </div>
+      </q-btn-group>
       <div class="row absolute-bottom-left q-pa-sm" > 
       </div>
       <div class="row absolute-bottom-right q-pa-sm" > 
@@ -92,6 +97,31 @@ const domainStyle = {
 	'ra_hours':     { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
 }
 
+const steps: Step[] = [
+  { stepSize: 180, dFormatFn: formatDegrees, level: 'lg' },
+  { stepSize: 90, dFormatFn: formatDegrees, level: 'lg' },
+  { stepSize: 30, dFormatFn: formatDegrees, level: 'lg' },
+  { stepSize: 15, dFormatFn: formatDegrees, level: 'lg' },
+  { stepSize: 10, dFormatFn: formatDegrees, level: 'lg' },
+  { stepSize: 5, dFormatFn: formatDegrees, level: 'lg' },
+  { stepSize: 2, dFormatFn: formatDegrees, level: 'lg' },
+  { stepSize: 1, dFormatFn: formatDegrees, level: 'lg' },
+  { stepSize: 30 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 20 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 15 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 10 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 5 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 2 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 1 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+];
+
+
 const props = defineProps<{
 	scaleRange: number
 	pv: number
@@ -108,12 +138,12 @@ const throttledRenderScale = throttle(renderScale, 20)
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const svgElement = ref<SVGSVGElement | null>(null);
-
+const _scaleRange = ref<number>(props.scaleRange)
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
-const renderKey = computed(() => `${props.domain}-${props.scaleRange}-${props.pv}-${props.sp}`)
+const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1))
 const spx = computed(() => deg2dms(props.sp, 1))
 const dProps = computed(() => domainStyle[props.domain])
@@ -137,8 +167,8 @@ function onSvgClick(e: MouseEvent) {
   if (screen_angleDeg<dProps.value.sAngleLow || screen_angleDeg>dProps.value.sAngleHigh) return
 
   // calculate inverse scaleLinear and wrap the domain angle value
-  const low = props.pv - props.scaleRange / 2
-  const high = props.pv + props.scaleRange / 2
+  const low = props.pv - _scaleRange.value / 2
+  const high = props.pv + _scaleRange.value / 2
   const inverseScale = scaleLinear().domain([dProps.value.sAngleLow, dProps.value.sAngleHigh]).range([low, high]);
   const domainValue = dProps.value.dAngleFn(inverseScale(screen_angleDeg));
 
@@ -146,13 +176,28 @@ function onSvgClick(e: MouseEvent) {
 }
 
 
-function onScaleIncClick(e:Event) {
-  console.log('scale+',e)
+function onScaleIncClick() {
+  const closest = getClosestSteps(_scaleRange.value)
+  if (closest.nextDown) _scaleRange.value = closest.nextDown
 }
-function onScaleDecClick(e:Event) {
-  console.log('scale-',e)
+
+function onScaleDecClick() {
+  const closest = getClosestSteps(_scaleRange.value)
+  if (closest.nextUp) _scaleRange.value = closest.nextUp
 }
+
+function onScaleAutoClick() {
+  _scaleRange.value = 200
+}
+
 // ------------------- Tick generation and Helper functions ---------------------
+
+
+function formatScaleRange(): string {
+  if (_scaleRange.value >= 1) return formatDegrees(_scaleRange.value)
+  if (_scaleRange.value >= 1/60) return formatArcMinutes(_scaleRange.value)
+  return formatArcSeconds(_scaleRange.value)
+}
 
 function formatDegrees(v: number): string {
   return `${Math.round(v)}°`;
@@ -245,31 +290,37 @@ function pushTick(
 }
 
 
+
+function getClosestSteps(current: number): {
+  nextUp?: number;
+  nextDown?: number;
+} {
+  const step_numbers = steps.map(s => s.stepSize)
+  let nextUp: number | undefined;
+  let nextDown: number | undefined;
+
+  for (const step of step_numbers) {
+    if (step > current && (!nextUp || step - current < nextUp - current)) {
+      nextUp = step;
+    } else if (step < current && (!nextDown || current - step < current - nextDown)) {
+      nextDown = step;
+    }
+  }
+
+  const result: { nextUp?: number; nextDown?: number } = {};
+  if (nextUp !== undefined) result.nextUp = nextUp;
+  if (nextDown !== undefined) result.nextDown = nextDown;
+
+  return result;
+}
+
+
+
+
+
+
 // pick the most suitable step size for the scale range
 function selectStep (scaleRange: number, minLabels: number, maxLabels: number): Step {
-  const steps: Step[] = [
-    { stepSize: 180, dFormatFn: formatDegrees, level: 'lg' },
-    { stepSize: 90, dFormatFn: formatDegrees, level: 'lg' },
-    { stepSize: 30, dFormatFn: formatDegrees, level: 'lg' },
-    { stepSize: 15, dFormatFn: formatDegrees, level: 'lg' },
-    { stepSize: 10, dFormatFn: formatDegrees, level: 'lg' },
-    { stepSize: 5, dFormatFn: formatDegrees, level: 'lg' },
-    { stepSize: 2, dFormatFn: formatDegrees, level: 'lg' },
-    { stepSize: 1, dFormatFn: formatDegrees, level: 'lg' },
-    { stepSize: 30 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-    { stepSize: 20 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-    { stepSize: 15 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-    { stepSize: 10 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-    { stepSize: 5 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-    { stepSize: 2 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-    { stepSize: 1 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-    { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-    { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-    { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-    { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-    { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-    { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  ];
 
   // Filter steps by zoom eligibility
   const eligible = steps.filter(s => {
@@ -531,7 +582,7 @@ function renderLinearScale() {
 	if (!linearGroup.value) return
 
 	const scale = scaleLinear()
-		.domain([props.pv - props.scaleRange / 2, props.pv + props.scaleRange / 2])
+		.domain([props.pv - _scaleRange.value / 2, props.pv + _scaleRange.value / 2])
 		.range([0, dProps.value.width - 40])
 
 	const axis = axisBottom(scale).ticks(10)
@@ -548,9 +599,9 @@ function renderCircularScale() {
   if (!circularGroup.value) return;
 
 
-  const low = props.pv - props.scaleRange / 2
-  const high = props.pv + props.scaleRange / 2
-  const { stepSize, ticks } = generateTicks(low, props.scaleRange, dProps.value.dAngleFn)
+  const low = props.pv - _scaleRange.value / 2
+  const high = props.pv + _scaleRange.value / 2
+  const { stepSize, ticks } = generateTicks(low, _scaleRange.value, dProps.value.dAngleFn)
   const arcs = generateArcs(low, high, stepSize, 5)
 
 
