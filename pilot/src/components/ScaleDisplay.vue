@@ -138,7 +138,7 @@ function formatArcSeconds(v: number): string {
 interface Step {
   stepSize: number;
   dFormatFn: (v: number) => string;
-  label: string;
+  level: string;
 }
 
 // Adds a tick and its label to the ticks array, promoting to higher label levels if appropriate and ensuring only the highest-priority tick at each angle.
@@ -202,34 +202,34 @@ function pushTick(
 // pick the most suitable step size for the scale range
 function selectStep (scaleRange: number, minLabels: number, maxLabels: number): Step {
   const steps: Step[] = [
-    { stepSize: 180, dFormatFn: formatDegrees, label: 'lg' },
-    { stepSize: 90, dFormatFn: formatDegrees, label: 'lg' },
-    { stepSize: 30, dFormatFn: formatDegrees, label: 'lg' },
-    { stepSize: 15, dFormatFn: formatDegrees, label: 'lg' },
-    { stepSize: 10, dFormatFn: formatDegrees, label: 'lg' },
-    { stepSize: 5, dFormatFn: formatDegrees, label: 'lg' },
-    { stepSize: 2, dFormatFn: formatDegrees, label: 'lg' },
-    { stepSize: 1, dFormatFn: formatDegrees, label: 'lg' },
-    { stepSize: 30 / 60, dFormatFn: formatArcMinutes, label: 'md' },
-    { stepSize: 20 / 60, dFormatFn: formatArcMinutes, label: 'md' },
-    { stepSize: 15 / 60, dFormatFn: formatArcMinutes, label: 'md' },
-    { stepSize: 10 / 60, dFormatFn: formatArcMinutes, label: 'md' },
-    { stepSize: 5 / 60, dFormatFn: formatArcMinutes, label: 'md' },
-    { stepSize: 2 / 60, dFormatFn: formatArcMinutes, label: 'md' },
-    { stepSize: 1 / 60, dFormatFn: formatArcMinutes, label: 'md' },
-    { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
-    { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
-    { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
-    { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
-    { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
-    { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, label: 'sm' },
+    { stepSize: 180, dFormatFn: formatDegrees, level: 'lg' },
+    { stepSize: 90, dFormatFn: formatDegrees, level: 'lg' },
+    { stepSize: 30, dFormatFn: formatDegrees, level: 'lg' },
+    { stepSize: 15, dFormatFn: formatDegrees, level: 'lg' },
+    { stepSize: 10, dFormatFn: formatDegrees, level: 'lg' },
+    { stepSize: 5, dFormatFn: formatDegrees, level: 'lg' },
+    { stepSize: 2, dFormatFn: formatDegrees, level: 'lg' },
+    { stepSize: 1, dFormatFn: formatDegrees, level: 'lg' },
+    { stepSize: 30 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+    { stepSize: 20 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+    { stepSize: 15 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+    { stepSize: 10 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+    { stepSize: 5 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+    { stepSize: 2 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+    { stepSize: 1 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+    { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+    { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+    { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+    { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+    { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+    { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
   ];
 
   // Filter steps by zoom eligibility
   const eligible = steps.filter(s => {
-    if (s.label === 'sm' && scaleRange >= 8 / 60) return false;
-    if (s.label === 'md' && scaleRange >= 8) return false;
-    // if (s.label === 'lg' && scaleRange < 1) return false;
+    if (s.level === 'sm' && scaleRange >= 8 / 60) return false;
+    if (s.level === 'md' && scaleRange >= 8) return false;
+    // if (s.level === 'lg' && scaleRange < 1) return false;
     return true;
   });
 
@@ -242,7 +242,7 @@ function selectStep (scaleRange: number, minLabels: number, maxLabels: number): 
   // Fallback: pick coarsest eligible step that gives ≥ 1 label
   const fallback = eligible.find(s => Math.floor(scaleRange / s.stepSize) >= 1);
 
-  return preferred ?? fallback ?? steps.find(s => s.label === 'lg')!;
+  return preferred ?? fallback ?? steps.find(s => s.level === 'lg')!;
 }
 
 
@@ -253,14 +253,14 @@ function generateTicks(scaleStart: number, scaleRange: number, dWrapFn:(v:number
 
   // array of tick marks selected, then select best step size
   const ticks: MarkDatum[] = [];
-  const { stepSize, dFormatFn, label } = selectStep(scaleRange, minLabels, maxLabels);
+  const { stepSize, dFormatFn, level } = selectStep(scaleRange, minLabels, maxLabels);
 
   const start = Math.ceil(scaleStart / stepSize) * stepSize;
   const end = scaleStart + scaleRange;
   const count = Math.floor((end - start) / stepSize);
   for (let i = 0; i <= count && i < maxLabels; i++) {
     const v = +(start + i * stepSize).toFixed(6);
-    pushTick(ticks, label as 'lg' | 'md' | 'sm', v, dWrapFn, dFormatFn);
+    pushTick(ticks, level as 'lg' | 'md' | 'sm', v, dWrapFn, dFormatFn);
   }
 
   // diagnostics
