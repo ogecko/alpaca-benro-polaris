@@ -20,7 +20,7 @@
     <div flat bordered class="col ">
         <div class="row">
             <div clas="col">
-               <ScaleDisplay  :pv="pv" :sp="90.0023" :scaleRange="sr" :scaleStart="10"  :domain="domainChoice" />
+               <ScaleDisplay  :pv="pv" :sp="90.0023" label="Azimuth" :scaleRange="sr" :scaleStart="10"  :domain="domainChoice" />
             </div>
             <div >
             <div class="col-12 q-pa-lg q-gutter-md">

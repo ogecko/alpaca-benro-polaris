@@ -37,7 +37,7 @@
           </div>
         </div>
         <div class="text-h4 text-grey-6">
-          Azimuth
+          {{props.label}}
         </div>
         <div class="row items-center q-gutter-xs">
           <div class="text-h4">{{ pvx.sign }}</div>
@@ -94,6 +94,7 @@ const props = defineProps<{
 	scaleRange: number
 	pv: number
 	sp: number
+  label: string
   domain: DomainStyleType
 }>()
 
