@@ -1,29 +1,31 @@
 <template>
   <q-page class="">
-    <div class="row wrap q-pa-md">
-      <q-btn-group class="q-gutter-sm">
-        <q-btn round color="secondary" dense  icon="mdi-parking" />
-        <q-btn round color="secondary" dense  icon="mdi-stop" />
-        <q-btn round color="secondary" dense  label="Tr" />
-      </q-btn-group>
-      <q-space />
-      <q-chip color="positive" :outline="!p.slewing">
-        Slewing
-      </q-chip>
-      <q-chip color="positive" :outline="!p.gotoing">
-        Gotoing
-      </q-chip>
-      <q-chip color="positive" :outline="!p.atpark">
-        Parked
-      </q-chip> 
-      <q-chip color="positive" :outline="!p.gotoing">
-        PID
-      </q-chip> 
-      <q-chip color="positive" :outline="!p.tracking">
-        Tracking
-      </q-chip>
-      <q-space />
-      <q-toggle v-model="isEquatorial" label="Equatorial"/>
+    <div class="row q-pa-md justify-center ">
+      <div class="col-12 col-sm-6 q-gutter-sm q-mb-md justify-left">
+        <q-btn-group class="q-gutter-sm ">
+          <q-btn round color="secondary" dense  icon="mdi-parking" />
+          <q-btn round color="secondary" dense  icon="mdi-stop" />
+          <q-btn round color="secondary" dense  label="Tr" />
+        </q-btn-group>
+        <q-toggle v-model="isEquatorial" label="Equatorial"/>
+      </div>
+      <div class="row col-12 col-sm-6 q-gutter-sm  justify-end ">
+        <q-chip color="positive" :outline="!p.slewing">
+          Slewing
+        </q-chip>
+        <q-chip color="positive" :outline="!p.gotoing">
+          Gotoing
+        </q-chip>
+        <q-chip color="positive" :outline="!p.atpark">
+          Parked
+        </q-chip> 
+        <q-chip color="positive" :outline="!p.gotoing">
+          PID
+        </q-chip> 
+        <q-chip color="positive" :outline="!p.tracking">
+          Tracking
+        </q-chip>
+      </div>
     </div>
     <div v-if="isEquatorial" class="row">
         <div class="col-12 col-md-6 col-lg-4">
