@@ -184,7 +184,7 @@ function onSvgClick(e: MouseEvent) {
 
 function onScaleZoomInClick() {
   const closest = getClosestSteps(_scaleRange.value)
-  if (closest.nextDown && closest.nextDown >= 1/60) _scaleRange.value = closest.nextDown
+  if (closest.nextDown && closest.nextDown >= 2/60) _scaleRange.value = closest.nextDown
 }
 
 function onScaleZoomOutClick() {
