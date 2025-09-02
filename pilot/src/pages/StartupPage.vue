@@ -1,18 +1,39 @@
 <template>
   <q-page class="">
-    <div class="row q-pr-lg">
+    <div class="row wrap q-pa-md">
+      <q-btn-group class="q-gutter-sm">
+        <q-btn round color="secondary" dense  icon="mdi-parking" />
+        <q-btn round color="secondary" dense  icon="mdi-stop" />
+        <q-btn round color="secondary" dense  label="Tr" />
+      </q-btn-group>
+      <q-space />
+      <q-chip color="positive" :outline="!p.slewing">
+        Slewing
+      </q-chip>
+      <q-chip color="positive" :outline="!p.gotoing">
+        Gotoing
+      </q-chip>
+      <q-chip color="positive" :outline="!p.atpark">
+        Parked
+      </q-chip> 
+      <q-chip color="positive" :outline="!p.gotoing">
+        PID
+      </q-chip> 
+      <q-chip color="positive" :outline="!p.tracking">
+        Tracking
+      </q-chip>
       <q-space />
       <q-toggle v-model="isEquatorial" label="Equatorial"/>
     </div>
     <div v-if="isEquatorial" class="row">
         <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay label="Right Ascension" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickRA" label="Right Ascension" :pv="p.rightascension" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
         <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay label="Declination" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickDec" label="Declination" :pv="p.declination" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
         <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay label="Position Angle" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickPA" label="Position Angle" :pv="p.rotation" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
     </div>
     <div v-else class="row">
@@ -97,5 +118,19 @@ function onClickAlt(e: { angle: number }) {
 function onClickRoll(e: { angle: number }) {
   console.log('Clicked Roll angle:', e.angle);
 }
+
+function onClickRA(e: { angle: number }) {
+  console.log('Clicked RA angle:', e.angle);
+}
+
+function onClickDec(e: { angle: number }) {
+  console.log('Clicked Dec angle:', e.angle);
+}
+
+function onClickPA(e: { angle: number }) {
+  console.log('Clicked PA angle:', e.angle);
+}
+
+
 
 </script>
