@@ -1,15 +1,15 @@
 <template>
   <q-page class="">
-    <div class="row q-pa-md justify-center ">
-      <div class="col-12 col-sm-6 q-gutter-sm q-mb-md justify-left">
+    <div class="row q-pa-md justify-center items-center">
+      <div class="col-4 q-gutter-sm q-mb-md justify-left">
         <q-btn-group class="q-gutter-sm ">
-          <q-btn round color="secondary" dense  icon="mdi-parking" />
+          <q-btn round :outline="!isEquatorial" @click="isEquatorial=!isEquatorial"  color="secondary" dense label="Eq" />
+          <q-btn round :outline="!p.atpark" color="secondary" dense  icon="mdi-parking" />
           <q-btn round color="secondary" dense  icon="mdi-stop" />
-          <q-btn round color="secondary" dense  label="Tr" />
+          <q-btn round :outline="!p.tracking" color="secondary" dense  label="Tr" />
         </q-btn-group>
-        <q-toggle v-model="isEquatorial" label="Equatorial"/>
       </div>
-      <div class="row col-12 col-sm-6 q-gutter-sm  justify-end ">
+      <div class="row col-8 q-gutter-sm wrap justify-end ">
         <q-chip color="positive" :outline="!p.slewing">
           Slewing
         </q-chip>
