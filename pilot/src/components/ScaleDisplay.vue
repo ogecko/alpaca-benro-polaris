@@ -12,7 +12,8 @@
       <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
         <div v-if="showButtons">
           <div class="row absolute-top-left q-pl-lg" > 
-            <!-- <q-btn round color="secondary" dense flat icon="mdi-format-horizontal-align-center" /> -->
+            <q-btn v-if="props.label=='Roll'" round color="secondary" dense flat icon="mdi-format-align-middle" @click="emit('clickRollLevel')"/>
+            <q-btn v-if="props.label=='Altitude'" round color="secondary" dense flat icon="mdi-angle-acute" @click="emit('clickAlt45')"/>
           </div>
           <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
             <div class="column">
@@ -117,7 +118,9 @@ const spx = computed(() => deg2dms(props.sp, 1))
 const dProps = computed(() => domainStyle[props.domain])
 
 const emit = defineEmits<{
-  (e: 'clickScale', payload: { label: string, angle: number }): void;
+  (e: 'clickScale', payload: { label: string, angle: number }): void,
+  (e: 'clickRollLevel' ): void,
+  (e: 'clickAlt45' ): void,
 }>();
 
 

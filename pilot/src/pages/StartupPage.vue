@@ -63,6 +63,7 @@
             :scaleRange="cfg.scaleRange"
             :domain="cfg.domain"
             @clickScale="onClickScale"
+            @clickRollLevel="onClickRollLevel"
           />
         </div>
     </div>
@@ -171,4 +172,8 @@ async function onClickScale(e: { label:string, angle: number }) {
   }
 }
 
+async function onClickRollLevel() {
+  const result = await dev.alpacaMoveMechanical(0)
+  console.log('Roll Level:', result);
+}
 </script>
