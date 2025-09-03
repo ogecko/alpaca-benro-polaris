@@ -11,16 +11,16 @@
           <q-btn icon="mdi-stop" glossy  size="md" color="secondary"  />
           <q-btn-dropdown label="Track" glossy size="md" color="secondary" split :outline="!p.tracking" @click="onTrack">
             <q-list dense >
-              <q-item clickable v-close-popup :active="p.trackingrate==0" active-class="bg-secondary text-white" >
+              <q-item clickable v-close-popup :active="p.trackingrate==0" active-class="bg-secondary text-white" @click="onTrackRate(0)">
                 <q-item-section><q-item-label>Sidereal</q-item-label></q-item-section>
               </q-item>
-              <q-item clickable v-close-popup :active="p.trackingrate==1" active-class="bg-secondary text-white" >
+              <q-item clickable v-close-popup :active="p.trackingrate==1" active-class="bg-secondary text-white" @click="onTrackRate(1)">
                 <q-item-section><q-item-label>Lunar</q-item-label></q-item-section>
               </q-item>
-              <q-item clickable v-close-popup :active="p.trackingrate==2" active-class="bg-secondary text-white" >
+              <q-item clickable v-close-popup :active="p.trackingrate==2" active-class="bg-secondary text-white" @click="onTrackRate(2)">
                 <q-item-section><q-item-label>Solar</q-item-label></q-item-section>
               </q-item>
-              <q-item clickable v-close-popup :active="p.trackingrate==3" active-class="bg-secondary text-white" >
+              <q-item clickable v-close-popup :active="p.trackingrate==3" active-class="bg-secondary text-white" @click="onTrackRate(3)">
                 <q-item-section><q-item-label>Custom</q-item-label></q-item-section>
               </q-item>
             </q-list>
@@ -142,10 +142,16 @@ async function onTrack() {
   console.log(result)
 }
 
+async function onTrackRate(n: number) {
+  const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaTrackingRate(n);  
+  console.log(result)
+}
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
   console.log(result)
 }
+
+
 
 function onClickAz(e: { angle: number }) {
   console.log('Clicked Az angle:', e.angle);
