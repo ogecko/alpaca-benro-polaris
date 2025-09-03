@@ -8,7 +8,7 @@
     </div>
     <div v-if="p.atpark" >
       <q-banner inline-actions rounded class="bg-warning">
-        WARNING: The Alpaca Driver is Parked. Most functions are disabled.
+        WARNING: The Alpaca Driver is parking/parked. Most functions are disabled.
         <template v-slot:action><q-btn flat label="UnPark" @click="onPark" /></template>
       </q-banner>
     </div>
