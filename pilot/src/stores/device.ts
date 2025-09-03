@@ -69,6 +69,10 @@ export const useDeviceStore = defineStore('device', {
       this.alpacaSupportedActions = response.Value
     },
 
+    async alpacaAbortSlew() {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/abortslew',{});
+    },
+  
     async alpacaTracking(state:boolean) {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/tracking',{ Tracking: state });
     },

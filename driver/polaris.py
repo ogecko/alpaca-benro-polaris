@@ -1748,6 +1748,8 @@ class Polaris:
                 await self.send_cmd_goto_altaz(p_alt, p_az, istracking=True)
 
     async def AbortSlew(self):
+        await self.unpark()
+        await self.stop_tracking()
         if Config.advanced_control and Config.advanced_goto:
             self.logger.info(f"Advanced Control: ABORT GOTO")
             await self.stop_all_axes()
@@ -1805,6 +1807,7 @@ class Polaris:
             self._adj_azimuth = 0
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: PARK telescope")
+            await self.stop_tracking()
             await self.stop_all_axes()
             await asyncio.sleep(2)
             await self.send_cmd_park()

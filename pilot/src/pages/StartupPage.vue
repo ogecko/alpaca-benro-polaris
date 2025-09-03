@@ -1,5 +1,17 @@
 <template>
-  <q-page class="">
+  <q-page class="q-pa-sm">
+    <div v-if="!dev.restAPIConnected" >
+      <q-banner inline-actions rounded class="bg-warning" >
+        WARNING: You have lost connection to the Alpaca Driver. This app is offline.
+        <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
+      </q-banner>
+    </div>
+    <div v-if="p.atpark" >
+      <q-banner inline-actions rounded class="bg-warning">
+        WARNING: The Alpaca Driver is Parked. Most functions are disabled.
+        <template v-slot:action><q-btn flat label="UnPark" @click="onPark" /></template>
+      </q-banner>
+    </div>
     <!----- Page header ----->
     <div class="row q-pa-md justify-center items-center q-col-gutter-sm">
 
@@ -8,7 +20,7 @@
         <div class="q-gutter-sm ">
           <q-btn label="Az/Alt"  glossy  size="md" color="secondary" :outline="isEquatorial" @click="isEquatorial=!isEquatorial"  />
           <q-btn label="Park"    glossy  size="md" color="secondary" :outline="!p.atpark"  @click="onPark"/>
-          <q-btn icon="mdi-stop" glossy  size="md" color="secondary"  />
+          <q-btn icon="mdi-stop" glossy  size="md" color="secondary" @click="onAbort"/>
           <q-btn-dropdown label="Track" glossy size="md" color="secondary" split :outline="!p.tracking" @click="onTrack">
             <q-list dense >
               <q-item clickable v-close-popup :active="p.trackingrate==0" active-class="bg-secondary text-white" @click="onTrackRate(0)">
@@ -138,20 +150,27 @@ onMounted(async () => {
 })
 
 async function onTrack() {
+  if (p.atpark) return
   const result = (p.tracking) ? await dev.alpacaTracking(false) : await dev.alpacaTracking(true);  
   console.log(result)
 }
 
 async function onTrackRate(n: number) {
+  if (p.atpark) return
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaTrackingRate(n);  
   console.log(result)
 }
+
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
   console.log(result)
 }
 
-
+async function onAbort() {
+  if (p.atpark) return
+  const result = await dev.alpacaAbortSlew()
+  console.log(result)
+}
 
 function onClickAz(e: { angle: number }) {
   console.log('Clicked Az angle:', e.angle);
