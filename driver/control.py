@@ -26,32 +26,49 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
 # [X] Fix quaternian maths when alt is negative and zero
 # [X] Implement Rotator
-# [X] Setup Dialog in Alpaca Pilot
 # [X] Proper task cleanup in polaris.restart(), especially to fix no position updates for over 2s. Restarting AHRS
-# [X] Fetch lat/lon/elev/pressure from telescope rather than config (help pickup if Nina or Stelarium Mobile changes it)
-# [ ] Rationalise performance data capture and analysis
-# [ ] Move performance tests to actions
-# [ ] Alpaca pilot catalog of targets, search, select, goto, display current target
-# [ ] Alpaca pilot current position main display, is parked, is tracking, is slewing, is gotoing, is PID active, is Pulse Guiding
-# [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, tracking rate, halt, goto, track, park, unpark
-# [ ] Alpaca Action ConfigUpdate pass through to live polaris
-# 
-# [ ] Rotator Halt, Sync, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
-# [ ] Pass ConformU test on Rotator
-# [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
+# [X] Implement Alpaca Pilot App
+# [X] Setup Dialog in Alpaca Pilot
+# [X] Alpaca Pilot Action ConfigUpdate pass through to live polaris and pickup from live Polaris eg lat/lon Nina changes
+# [X] Alpaca Pilot Log file viewer and streaming of data
+# [X] Alpaca Pilot Radial Indicators and home dashboard
+# [X] Alpaca pilot current position main display, is parked, is tracking, is slewing, is gotoing, is PID active, is Pulse Guiding
+# Alpaca Features
+# [ ] Alpaca pilot goto SP click on Radial Indicators
+# [ ] Indicate speed on Alpaca Dashboard
+# [ ] Auto set scales based on speed
 # [ ] Implement slewing and gotoing state monitoring
+# [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, tracking rate, halt, goto, track, park, unpark
+# [ ] Alpaca pilot Sync
+# [ ] Alpaca pilot better feature degredation when not ABP
+# Connection
+# [ ] Implement Benro Polaris Connection process and diagnostics
+# [ ] Implement Benro Polaris Wifi On 
+# Performance
+# [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
+# [ ] Move performance tests to actions
+# [ ] Rationalise performance data capture and analysis
 # [ ] PID tuning to use velocity error as well as position error
 # [ ] Improve fine grained tracking precision
+# [ ] Improve Kalman Filter tuning
+# [ ] Store Motor Calibration data to a file
+# [ ] Improve tracking performance beyond BP implementation
+# Rotator
+# [ ] Rotator Halt, Sync, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
+# [ ] Pass ConformU test on Rotator
+# Catalog
+# [ ] Favorite Targets to Search Home page
+# [ ] Alpaca pilot catalog of targets, search, select, goto, display current target
+# Orbitals
 # [ ] Implement Lunar Tracking rate
 # [ ] Implement Solar Tracking rate
 # [ ] Implement King Tracking rate
 # [ ] Implement Pulse Guiding API ITelescope Pulse 
-# [ ] Store Motor Calibration data to a file
 # [ ] Check Astro head hardware connection
 # [ ] Integral Anti-Windup dontaccumulate when output is saturated or quantized
-# [ ] Implement Alpaca Pilot App
 # 
-# 
+# Features 
+#
 # Precision Tracking
 # [ ] Seamless Axis Override During Tracking
 # [ ] Deep-Sky Object Tracking 
