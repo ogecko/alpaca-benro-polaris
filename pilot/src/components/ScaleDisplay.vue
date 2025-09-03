@@ -262,25 +262,25 @@ function pushTick(
   let labelText = dFormatFn(dWrapFn(v));
 
   // Promote md ticks that look like whole degrees
-  if (['md','sm'].includes(level) && /^\d+°$/.test(labelText)) {
+  if (['md','sm'].includes(level) && /^[+-]?\d+°$/.test(labelText)) {
     level = 'lg'
   } 
   // Promote sm ticks that look like whole minutes
-  if ('sm' === level  && /^\d+′$/.test(labelText)) {
+  if ('sm' === level  && /^[+-]?\d+′$/.test(labelText)) {
     level = 'md'
   } 
   // Promote sm ticks that look like 60" to whole minutes
-  if ('sm' === level  && /^60″$/.test(labelText)) {
+  if ('sm' === level  && /^[+-]?60″$/.test(labelText)) {
     level = 'md'
     labelText = formatArcMinutes(v)
   } 
   // Demote if we have too many degree labels
-  if (stepSize==1 && v%5!=0) level='sm'
-  if (stepSize==2 && v%10!=0) level='sm'
-  if (stepSize==5 && v%30!=0) level='sm'
-  if (stepSize==10 && v%30!=0) level='sm'
-  if (stepSize==15 && v%90!=0) level='sm'
-  if (stepSize==30 && v%90!=0) level='sm'
+  if (stepSize==1 && v%5!=0) level='md'
+  if (stepSize==2 && v%10!=0) level='md'
+  if (stepSize==5 && v%30!=0) level='md'
+  if (stepSize==10 && v%30!=0) level='md'
+  if (stepSize==15 && v%90!=0) level='md'
+  if (stepSize==30 && v%90!=0) level='md'
 
   // Remove any lower-priority duplicate labels
   const labelPriority = { lg: 3, md: 2, sm: 1 };
