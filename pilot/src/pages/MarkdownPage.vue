@@ -1,5 +1,8 @@
 <template>
   <q-page class="q-pa-sm dark-page">
+
+    <StatusBanners />
+
     <!-- Header Row -->
     <div class="row q-pb-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
@@ -56,6 +59,11 @@ console.log(foo(5));
   </q-page>
 </template>
 
+
+<script setup lang="ts">
+import StatusBanners from 'src/components/StatusBanners.vue'
+
+</script>
 
 <style lang="scss">
   .q-markdown--link {

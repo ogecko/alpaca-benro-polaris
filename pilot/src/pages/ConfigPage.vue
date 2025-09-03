@@ -2,6 +2,9 @@
 
 <template>
   <q-page class="q-pa-sm">
+
+    <StatusBanners />
+
     <div v-if="!dev.restAPIConnected" >
       <q-banner inline-actions rounded class="bg-warning">
         WARNING: You have lost connection to the Alpaca Driver. This app is offline.
@@ -150,15 +153,16 @@
 
 <script setup lang="ts">
 // import axios from 'axios'
-import { useQuasar } from 'quasar'
+import { useQuasar, debounce } from 'quasar'
 import { onMounted, onUnmounted, ref } from 'vue'
-import { useConfigStore } from 'stores/config';
+import { useConfigStore } from 'src/stores/config';
 import { useDeviceStore } from 'src/stores/device';
-import { debounce } from 'quasar'
 import { PollingManager } from 'src/utils/polling';
-import LocationPicker from 'components/LocationPicker.vue';
 import { getLocationServices } from 'src/utils/locationServices';
+
 import type { LocationResult } from 'src/utils/locationServices';
+import LocationPicker from 'src/components/LocationPicker.vue';
+import StatusBanners from 'src/components/StatusBanners.vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()

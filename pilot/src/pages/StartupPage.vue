@@ -1,17 +1,8 @@
 <template>
   <q-page class="q-pa-sm">
-    <div v-if="!dev.restAPIConnected" >
-      <q-banner inline-actions rounded class="bg-warning" >
-        WARNING: You have lost connection to the Alpaca Driver. This app is offline.
-        <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
-      </q-banner>
-    </div>
-    <div v-if="p.atpark" >
-      <q-banner inline-actions rounded class="bg-warning">
-        WARNING: The Alpaca Driver is parking/parked. Most functions are disabled.
-        <template v-slot:action><q-btn flat label="UnPark" @click="onPark" /></template>
-      </q-banner>
-    </div>
+
+    <StatusBanners />
+
     <!----- Page header ----->
     <div class="row q-pa-md justify-center items-center q-col-gutter-sm">
 
@@ -103,10 +94,11 @@
 
 import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { useDeviceStore } from 'stores/device'
+import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
-import ScaleDisplay  from 'components/ScaleDisplay.vue'
-import type { DomainStyleType } from 'components/ScaleDisplay.vue'
+import ScaleDisplay  from 'src/components/ScaleDisplay.vue'
+import StatusBanners from 'src/components/StatusBanners.vue'
+import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 
 const route = useRoute()
 const dev = useDeviceStore()

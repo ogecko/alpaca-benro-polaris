@@ -1,5 +1,8 @@
 <template>
   <q-page class="q-pa-sm">
+
+    <StatusBanners />
+
     <!-- Header Row -->
     <div class="row q-pb-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
@@ -37,10 +40,12 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
-import { useStreamStore } from 'stores/stream'
-import type { TelemetryRecord } from 'stores/stream'
+import { useStreamStore } from 'src/stores/stream'
+import LogSettings from 'src/components/LogSettings.vue'
+import StatusBanners from 'src/components/StatusBanners.vue'
+
+import type { TelemetryRecord } from 'src/stores/stream'
 import type { ComponentPublicInstance } from 'vue'
-import LogSettings from 'components/LogSettings.vue'
 
 export type QScrollAreaScrollEvent = {
   ref: ComponentPublicInstance
