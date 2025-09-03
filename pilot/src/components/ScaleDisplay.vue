@@ -12,16 +12,18 @@
       <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
         <div v-if="showButtons">
           <div class="row absolute-top-left q-pl-lg" > 
-            <q-btn v-if="props.label=='Roll'" round color="secondary" dense flat icon="mdi-format-align-middle" @click="emit('clickRollLevel')"/>
-            <q-btn v-if="props.label=='Altitude'" round color="secondary" dense flat icon="mdi-angle-acute" @click="emit('clickAlt45')"/>
+            <q-btn v-if="props.label=='Roll'" round color="secondary" dense flat icon="mdi-format-align-middle" @click="emit('clickRollLevel')">
+            <q-tooltip>Roll to level 0° position</q-tooltip></q-btn>
+            <q-btn v-if="props.label=='Altitude'" round color="secondary" dense flat icon="mdi-angle-acute" @click="emit('clickAlt45')">
+            <q-tooltip>Altitude to 45° position</q-tooltip></q-btn>
           </div>
           <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
             <div class="column">
-              <q-btn @click="onScaleZoomInClick" dense flat color="secondary" icon="mdi-magnify-plus-outline" />
+              <q-btn @click="onScaleZoomInClick" dense flat color="secondary" icon="mdi-magnify-plus-outline"></q-btn>
             </div>
             <div class="column" text-primary>
               <q-btn @click="onScaleAutoClick" dense flat color="secondary">{{ formatScaleRange() }}</q-btn>
-              <q-btn @click="onScaleZoomOutClick" dense flat color="secondary" icon="mdi-magnify-minus-outline" />
+              <q-btn @click="onScaleZoomOutClick" dense flat color="secondary" icon="mdi-magnify-minus-outline"></q-btn>
             </div>
           </q-btn-group>
           <div class="row absolute-bottom-left q-pa-sm" > 
