@@ -1,6 +1,9 @@
 <template>
   <q-page class="">
+    <!----- Page header ----->
     <div class="row q-pa-md justify-center items-center q-col-gutter-sm">
+
+      <!----- LHS Action Buttons ----->
       <div class="row col-12 col-sm-4 justify-center ">
         <div class="q-gutter-sm ">
           <q-btn label="Az/Alt"  glossy  size="md" color="secondary" :outline="isEquatorial" @click="isEquatorial=!isEquatorial"  />
@@ -22,15 +25,18 @@
               </q-item>
             </q-list>
           </q-btn-dropdown>
-
         </div>
       </div>
+
+      <!----- Center Tracking Info ----->
       <div class="row col-6 col-sm-4 text-positive text-h5 q-gutter-sm justify-center ">
         <div v-if="p.tracking">
           <span>{{p.trackingratestr}}</span> 
           <q-chip color="positive">Tracking</q-chip>
         </div>
       </div>
+
+      <!----- RHS Chip Status Info ----->
       <div class="row col-6 col-sm-4 wrap justify-end ">
         <q-chip color="positive" :outline="!p.slewing">
           Slewing
@@ -43,30 +49,23 @@
         </q-chip> 
       </div>
     </div>
-    <div v-if="isEquatorial" class="row">
-       <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickRA" label="Right Ascension" :pv="p.rightascension" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
-        </div>
-        <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickDec" label="Declination" :pv="p.declination" :sp="90.0023" :scaleRange="10"  domain="semihi_180" />
-        </div>
-        <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickPA" label="Position Angle" :pv="p.rotation" :sp="90.0023" :scaleRange="10"  domain="semihi_180" />
-        </div>
-     </div>
-      <div v-else class="row">
-        <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickAz" label="Azimuth" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
-        </div>
-        <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickAlt" label="Altitude" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_180" />
-        </div>
-        <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickRoll" label="Roll" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_180" />
+
+    <!----- Dynamic Set of 3 Radial Scales ----->
+    <div class="row">
+       <div v-for="(cfg, i) in displayConfig" :key="i" class="col-12 col-md-6 col-lg-4">
+          <ScaleDisplay
+            :label="cfg.label"
+            :pv="cfg.pv"
+            :sp="cfg.sp"
+            :scaleRange="cfg.scaleRange"
+            :domain="cfg.domain"
+            @clickScale="cfg.onClick"
+          />
         </div>
     </div>
 
 
+    <!----- Logo Startup Image ----->
     <div class="row items-center q-pt-xl">
         <q-space/>
         <div class="col">
@@ -90,20 +89,33 @@
 
 <script setup lang="ts" >
 
-import { onMounted, ref } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'stores/device'
 import { useStatusStore } from 'src/stores/status'
-import ScaleDisplay from 'components/ScaleDisplay.vue'
+import ScaleDisplay  from 'components/ScaleDisplay.vue'
+import type { DomainStyleType } from 'components/ScaleDisplay.vue'
 
 const route = useRoute()
 const dev = useDeviceStore()
 const p = useStatusStore()
 const isEquatorial = ref<boolean>(false)
 
+// ------------------- Layout Configuration Data ---------------------
+
+const displayConfig = computed(() => isEquatorial.value ? [
+  { label: 'Right Ascension', pv: p.rightascension, sp: 90.0023, scaleRange: 10, domain: 'semihi_360' as DomainStyleType, onClick: onClickRA },
+  { label: 'Declination', pv: p.declination, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType, onClick: onClickDec },
+  { label: 'Position Angle', pv: p.rotation, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType, onClick: onClickPA }
+] : [
+  { label: 'Azimuth', pv: p.azimuth, sp: 90.0023, scaleRange: 10, domain: 'semihi_360' as DomainStyleType, onClick: onClickAz },
+  { label: 'Altitude', pv: p.altitude, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType, onClick: onClickAlt },
+  { label: 'Roll', pv: p.roll, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType, onClick: onClickRoll }
+]);
+
+// ------------------- Lifecycle and Event Handlers ---------------------
 
 onMounted(async () => {
-
   const apiParam = Array.isArray(route.query.api)
     ? route.query.api[0]
     : route.query.api
@@ -129,8 +141,6 @@ async function onTrack() {
   const result = (p.tracking) ? await dev.alpacaTracking(false) : await dev.alpacaTracking(true);  
   console.log(result)
 }
-
-
 
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
@@ -160,7 +170,5 @@ function onClickDec(e: { angle: number }) {
 function onClickPA(e: { angle: number }) {
   console.log('Clicked PA angle:', e.angle);
 }
-
-
 
 </script>

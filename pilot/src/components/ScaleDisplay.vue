@@ -88,6 +88,41 @@ import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
 
+const props = defineProps<{
+	scaleRange: number
+	pv: number
+	sp: number
+  label: string
+  domain: DomainStyleType
+}>()
+
+const pathMap = { lg: 'M-8,0 L18,0', md: 'M-8,0 L14,0', sm: 'M-8,0 L11,0' };
+const offsetMap = { lg: 1.20, md: 1.165, sm: 1.13 }
+const opacityMap = { lg: 1, md: 1, sm: 0.5 }
+
+const throttledRenderScale = throttle(renderScale, 20)
+const linearGroup = ref<SVGGElement | null>(null)
+const circularGroup = ref<SVGGElement | null>(null)
+const svgElement = ref<SVGSVGElement | null>(null);
+const _scaleRange = ref<number>(200)
+const showButtons = ref<boolean>(false);
+
+
+// computed properties
+const isLinear = computed(() => props.domain === 'linear_360')
+const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semilo_180', 'circular_180'].includes(props.domain))
+const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}`)
+const pvx = computed(() => deg2dms(props.pv, 1))
+const spx = computed(() => deg2dms(props.sp, 1))
+const dProps = computed(() => domainStyle[props.domain])
+
+const emit = defineEmits<{
+  (e: 'clickScale', payload: { angle: number }): void;
+}>();
+
+
+// ------------------- Layout Configuration Data ---------------------
+
 export type DomainStyleType =
 	| 'linear_360'
 	| 'circular_360'
@@ -138,43 +173,12 @@ const steps: Step[] = [
 ];
 
 
-const props = defineProps<{
-	scaleRange: number
-	pv: number
-	sp: number
-  label: string
-  domain: DomainStyleType
-}>()
 
-const pathMap = { lg: 'M-8,0 L18,0', md: 'M-8,0 L14,0', sm: 'M-8,0 L11,0' };
-const offsetMap = { lg: 1.20, md: 1.165, sm: 1.13 }
-const opacityMap = { lg: 1, md: 1, sm: 0.5 }
-
-const throttledRenderScale = throttle(renderScale, 20)
-const linearGroup = ref<SVGGElement | null>(null)
-const circularGroup = ref<SVGGElement | null>(null)
-const svgElement = ref<SVGSVGElement | null>(null);
-const _scaleRange = ref<number>(props.scaleRange)
-const showButtons = ref<boolean>(false);
-
-
-// computed properties
-const isLinear = computed(() => props.domain === 'linear_360')
-const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semilo_180', 'circular_180'].includes(props.domain))
-const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}`)
-const pvx = computed(() => deg2dms(props.pv, 1))
-const spx = computed(() => deg2dms(props.sp, 1))
-const dProps = computed(() => domainStyle[props.domain])
-
-const emit = defineEmits<{
-  (e: 'clickScale', payload: { angle: number }): void;
-}>();
+// ------------------- Lifecycle and Event handlers ---------------------
 
 onMounted(throttledRenderScale)
+
 watch(renderKey, throttledRenderScale)
-
-
-// ------------------- Event handlers ---------------------
 
 function onSvgClick(e: MouseEvent) {
   const svg = svgElement.value;
