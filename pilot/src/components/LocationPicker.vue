@@ -87,7 +87,7 @@ function serviceCheck() {
 
 <style lang="scss">
 .showMap {
-  height: 200px;
+  height: 300px;
   opacity: 1;
   transition: opacity 0.5s ease;
   overflow: hidden;
@@ -102,7 +102,7 @@ function serviceCheck() {
 
 .map-container {
   width: 100%;
-  max-height: 200px;
+  max-height: 300px;
   overflow: hidden;
   position: relative;
 }
