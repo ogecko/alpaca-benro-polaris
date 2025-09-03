@@ -129,6 +129,14 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
             raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
         return default
 
+# Should we log this HTTP req or response
+def should_log(req: Request, log_flags): 
+    for name in log_flags:
+        if getattr(Config, name, False):
+            return True  # explicitly enabled
+        if req.method == 'PUT' and name == 'log_alpaca_polling' and Config.log_alpaca_protocol:
+            return True  # allow polling logs on PUT even if disabled
+    return False  # skip logging
 #
 # Log the request as soon as the resource handler gets it so subsequent
 # logged messages are in the right order. Logs PUT body as well.
@@ -141,9 +149,8 @@ async def log_request(req: Request, log_flag_names: list[str] | str | None = Non
         log_flags = log_flag_names or getattr(req.context, 'log_flag_names', None)
     req.context.log_flag_names = log_flags   # Save for later use by log_response()
 
-    if log_flags:  # log if any specified Config.log_flags are set
-        if not any(getattr(Config, name, False) for name in log_flags):
-            return  # Skip logging
+    if not should_log(req, log_flags):
+        return   # skip logging
 
     msg = f'{req.remote_addr} -> {req.method} {req.path}'
     if req.query_string != '':
@@ -154,9 +161,9 @@ async def log_request(req: Request, log_flag_names: list[str] | str | None = Non
 
 def log_response(req: Request, valuestr: str):
     log_flags = getattr(req.context, 'log_flag_names', None)
-    if log_flags:  # log if any specified Config.log_flags are set
-        if not any(getattr(Config, name, False) for name in log_flags):
-            return  # Skip logging
+    if not should_log(req, log_flags):
+        return   # skip logging
+
     logger.info(f'{req.remote_addr} <- {valuestr}')
 
 # ------------------------------------------------
