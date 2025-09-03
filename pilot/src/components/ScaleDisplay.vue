@@ -160,7 +160,7 @@ const showButtons = ref<boolean>(false);
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
-const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'circular_180'].includes(props.domain))
+const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semilo_180', 'circular_180'].includes(props.domain))
 const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1))
 const spx = computed(() => deg2dms(props.sp, 1))

@@ -32,10 +32,10 @@
           <ScaleDisplay @clickScale="onClickRA" label="Right Ascension" :pv="p.rightascension" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
         <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickDec" label="Declination" :pv="p.declination" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickDec" label="Declination" :pv="p.declination" :sp="90.0023" :scaleRange="10"  domain="semihi_180" />
         </div>
         <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickPA" label="Position Angle" :pv="p.rotation" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickPA" label="Position Angle" :pv="p.rotation" :sp="90.0023" :scaleRange="10"  domain="semihi_180" />
         </div>
      </div>
       <div v-else class="row">
@@ -43,10 +43,10 @@
           <ScaleDisplay @clickScale="onClickAz" label="Azimuth" :pv="p.azimuth" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
         </div>
         <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickAlt" label="Altitude" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickAlt" label="Altitude" :pv="p.altitude" :sp="90.0023" :scaleRange="10"  domain="semihi_180" />
         </div>
         <div class="col-12 col-md-6 col-lg-4">
-          <ScaleDisplay @clickScale="onClickRoll" label="Roll" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_360" />
+          <ScaleDisplay @clickScale="onClickRoll" label="Roll" :pv="p.roll" :sp="90.0023" :scaleRange="10"  domain="semihi_180" />
         </div>
     </div>
 
