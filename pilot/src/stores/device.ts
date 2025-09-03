@@ -69,6 +69,18 @@ export const useDeviceStore = defineStore('device', {
       this.alpacaSupportedActions = response.Value
     },
 
+    async alpacaTracking(state:boolean) {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/tracking',{ Tracking: state });
+    },
+  
+    async alpacaPark() {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/park',{});
+    },
+
+    async alpacaUnPark() {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/unpark',{});
+    },
+
     async apiAction<T>(action: string, parameters = {}): Promise<T> {
         const result = await this.api<ActionResponse>('api/v1/telescope/0/action', {
             Action: action,
@@ -95,6 +107,9 @@ export const useDeviceStore = defineStore('device', {
         ? await axios.put(url, payload, {
             timeout: 5000,
             responseType: 'json',
+            // headers: {
+            //   'Content-Type': 'application/x-www-form-urlencoded'
+            // },
             validateStatus: () => true,
           })
         : await axios.get(url, {
