@@ -649,8 +649,9 @@ function renderCircularScale() {
   joinMarks('tkMarks', group, ticks, oldScale, newScale, radius, t);
 
   // pv and sp marks and tests
-  joinMarks('spLine', group, [{angle:props.sp, path:'M-35,0  L8,0 L12,-5, L12,5 L8,0', zorder: 'high'}], oldScale, newScale, radius, t); 
   joinMarks('pvMark', group, [{angle:props.pv, path:'M-8,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t);
+  joinMarks('spMark', group, [{angle:props.sp, path:'M-8,0 L-30,15 L-30,-15 Z', zorder: 'high'}], oldScale, newScale, radius, t); 
+  joinMarks('spLine', group, [{angle:props.sp, path:'M-60,0 L-15,0 Z', zorder: 'high'}], oldScale, newScale, radius, t); 
 
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);
@@ -709,12 +710,12 @@ function renderScale() {
     stroke: var(--q-positive); 
   }
 
-  .pvMark { fill: lightcoral; }
+  .pvMark { fill: white; }
   .spMark { fill: var(--q-positive); }
 
   .spLine {
     stroke: var(--q-positive);
-    stroke-width: 5;
+    stroke-width: 8;
     stroke-linecap: round;
   }
 
