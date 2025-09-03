@@ -81,7 +81,7 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/unpark',{});
     },
 
-    async apiAction<T>(action: string, parameters = {}): Promise<T> {
+    async apiAction<T>(action: string, parameters: object | string = ' '): Promise<T> {
         const result = await this.api<ActionResponse>('api/v1/telescope/0/action', {
             Action: action,
             Parameters: parameters
@@ -97,26 +97,19 @@ export const useDeviceStore = defineStore('device', {
       const ClientID = this.alpacaClientID
       const ClientTransactionID = this.alpacaClientTransactionID
       const isPut = body
+      const isJSONContent = (isPut && body.Action && body.Action=='Polaris:ConfigUpdate')
       const baseUrl = `http://${this.alpacaHost}:${this.restAPIPort}`;
-      const url = isPut ? `${baseUrl}/${resourcePath}`
-        : `${baseUrl}/${resourcePath}?ClientID=${ClientID}&ClientTransactionID=${ClientTransactionID}`;
+      const url = isPut ? `${baseUrl}/${resourcePath}` : `${baseUrl}/${resourcePath}?ClientID=${ClientID}&ClientTransactionID=${ClientTransactionID}`;
+      const payload = isPut ? { ...body, ClientID, ClientTransactionID } : {}
+      const options = {
+          timeout: 5000,
+          // responseType: 'json',      // node.js only
+          validateStatus: () => true,
+          headers: { 'Content-Type': isJSONContent ? 'application/json': 'application/x-www-form-urlencoded' },
+        }
 
       try {
-        const payload = isPut ? { ...body, ClientID, ClientTransactionID } : {}
-        const response = isPut 
-        ? await axios.put(url, payload, {
-            timeout: 5000,
-            responseType: 'json',
-            // headers: {
-            //   'Content-Type': 'application/x-www-form-urlencoded'
-            // },
-            validateStatus: () => true,
-          })
-        : await axios.get(url, {
-            timeout: 5000,
-            responseType: 'json',
-            validateStatus: () => true,
-          })
+        const response = isPut ? await axios.put(url, payload, options) : await axios.get(url, options)
 
         if (response.status === 404) {
           throw new NotFound404Error('');

@@ -17,9 +17,10 @@
 # -----------------------------------------------------------------------------
 from falcon import Request, Response, before
 from logging import Logger
-from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request_field, to_bool, deg2rad
+from shr import PropertyResponse, MethodResponse, HTTPBadRequest,  PreProcessRequest, get_request_field, to_bool, deg2rad
 from exceptions import *        # Nothing but exception classes
 import math
+import json
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent
 from log import update_log_level
@@ -1459,7 +1460,16 @@ class supportedactions:
 class action:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         actionName = await get_request_field('Action', req)
-        parameters = dict(await get_request_field('Parameters', req))
+        raw_params = await get_request_field('Parameters', req)
+        try:
+            if isinstance(raw_params, dict):
+                parameters = raw_params
+            elif isinstance(raw_params, str) and raw_params.strip() == '':
+                parameters = {}
+            else:
+                parameters = json.loads(raw_params)
+        except Exception:
+            raise HTTPBadRequest(title='Bad Action Request', description='Invalid Parameters format')
 
         if actionName == "Polaris:RestartDriver":
             await lifecycle.signal(LifecycleEvent.RESTART)
