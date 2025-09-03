@@ -62,7 +62,7 @@
             :sp="cfg.sp"
             :scaleRange="cfg.scaleRange"
             :domain="cfg.domain"
-            @clickScale="cfg.onClick"
+            @clickScale="onClickScale"
           />
         </div>
     </div>
@@ -108,13 +108,13 @@ const isEquatorial = ref<boolean>(false)
 // ------------------- Layout Configuration Data ---------------------
 
 const displayConfig = computed(() => isEquatorial.value ? [
-  { label: 'Right Ascension', pv: p.rightascension, sp: 90.0023, scaleRange: 10, domain: 'semihi_360' as DomainStyleType, onClick: onClickRA },
-  { label: 'Declination', pv: p.declination, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType, onClick: onClickDec },
-  { label: 'Position Angle', pv: p.rotation, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType, onClick: onClickPA }
+  { label: 'Right Ascension', pv: p.rightascension, sp: 90.0023, scaleRange: 10, domain: 'semihi_360' as DomainStyleType },
+  { label: 'Declination', pv: p.declination, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType },
+  { label: 'Position Angle', pv: p.rotation, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType }
 ] : [
-  { label: 'Azimuth', pv: p.azimuth, sp: 90.0023, scaleRange: 10, domain: 'semihi_360' as DomainStyleType, onClick: onClickAz },
-  { label: 'Altitude', pv: p.altitude, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType, onClick: onClickAlt },
-  { label: 'Roll', pv: p.roll, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType, onClick: onClickRoll }
+  { label: 'Azimuth', pv: p.azimuth, sp: 90.0023, scaleRange: 10, domain: 'semihi_360' as DomainStyleType },
+  { label: 'Altitude', pv: p.altitude, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType },
+  { label: 'Roll', pv: p.roll, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType }
 ]);
 
 // ------------------- Lifecycle and Event Handlers ---------------------
@@ -164,28 +164,11 @@ async function onAbort() {
   console.log(result)
 }
 
-function onClickAz(e: { angle: number }) {
-  console.log('Clicked Az angle:', e.angle);
-}
-
-function onClickAlt(e: { angle: number }) {
-  console.log('Clicked Alt angle:', e.angle);
-}
-
-function onClickRoll(e: { angle: number }) {
-  console.log('Clicked Roll angle:', e.angle);
-}
-
-function onClickRA(e: { angle: number }) {
-  console.log('Clicked RA angle:', e.angle);
-}
-
-function onClickDec(e: { angle: number }) {
-  console.log('Clicked Dec angle:', e.angle);
-}
-
-function onClickPA(e: { angle: number }) {
-  console.log('Clicked PA angle:', e.angle);
+async function onClickScale(e: { label:string, angle: number }) {
+  if (e.label=="Roll") {
+    const result = await dev.alpacaMoveMechanical(e.angle)
+    console.log('Roll angle:', e.angle, result);
+  }
 }
 
 </script>

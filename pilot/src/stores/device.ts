@@ -89,6 +89,10 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/unpark',{});
     },
 
+    async alpacaMoveMechanical(roll:number) {
+      return await this.api<SupportedActionsResponse>('api/v1/rotator/0/movemechanical',{ Position: roll });
+    },
+
     async apiAction<T>(action: string, parameters: object | string = ' '): Promise<T> {
         const result = await this.api<ActionResponse>('api/v1/telescope/0/action', {
             Action: action,

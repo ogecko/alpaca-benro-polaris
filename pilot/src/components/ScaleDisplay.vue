@@ -117,7 +117,7 @@ const spx = computed(() => deg2dms(props.sp, 1))
 const dProps = computed(() => domainStyle[props.domain])
 
 const emit = defineEmits<{
-  (e: 'clickScale', payload: { angle: number }): void;
+  (e: 'clickScale', payload: { label: string, angle: number }): void;
 }>();
 
 
@@ -180,6 +180,8 @@ onMounted(throttledRenderScale)
 
 watch(renderKey, throttledRenderScale)
 
+
+
 function onSvgClick(e: MouseEvent) {
   const svg = svgElement.value;
   if (!svg) return;
@@ -200,7 +202,7 @@ function onSvgClick(e: MouseEvent) {
   const inverseScale = scaleLinear().domain([dProps.value.sAngleLow, dProps.value.sAngleHigh]).range([low, high]);
   const domainValue = dProps.value.dAngleFn(inverseScale(screen_angleDeg));
 
-  emit('clickScale', { angle: domainValue });
+  emit('clickScale', { label: props.label, angle: domainValue });
 }
 
 
