@@ -712,7 +712,6 @@ function renderScale() {
 
   .pvMark { fill: white; }
   .spMark { fill: var(--q-positive); }
-
   .spLine {
     stroke: var(--q-positive);
     stroke-width: 8;
