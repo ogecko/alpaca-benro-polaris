@@ -35,7 +35,7 @@
     </div>
 
     <!-- SVG Background -->
-    <svg class="background-svg" @click="onSvgClick" ref="svgElement" :width="dProps.width" :height="dProps.height" 
+    <svg class="background-svg" @mousedown="onSvgClick" @touchstart="onSvgClick" ref="svgElement" :width="dProps.width" :height="dProps.height" 
     >
       <rect :width="dProps.width" :height="dProps.height" fill="transparent" />
       <g v-if="isLinear" ref="linearGroup" />
@@ -186,13 +186,28 @@ watch(renderKey, throttledRenderScale)
 
 
 
-function onSvgClick(e: MouseEvent) {
+function onSvgClick(e: MouseEvent | TouchEvent) {
   const svg = svgElement.value;
   if (!svg) return;
 
+  let clientX: number | undefined;
+  let clientY: number | undefined;
+
+  // Normalize coordinates
+  if (e instanceof TouchEvent) {
+    const touch = e.touches[0];
+    if (!touch) return; // no touch point, bail early
+    clientX = touch.clientX;
+    clientY = touch.clientY;
+  } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
+  }
+  if (clientX === undefined || clientY === undefined) return;
+
   // determine the svg co-ordinates
   const pt = svg.createSVGPoint();
-  pt.x = e.clientX; pt.y = e.clientY;
+  pt.x = clientX; pt.y = clientY;
   const svgCoords = pt.matrixTransform(svg.getScreenCTM()?.inverse());
 
   // determine screen angle from cx,cy, and reject clicks outside scale angle
