@@ -1286,6 +1286,10 @@ class Polaris:
                 'rotation': self._rotation,
                 'declination': self._declination,
                 'rightascension': self._rightascension,
+                'pidmode': self._pid.mode,
+                'deltaref': self._pid.delta_ref.tolist(),
+                'alpharef': self._pid.alpha_ref.tolist(),
+                'omegaref': self._pid.omega_ref.tolist(),
                 'siderealtime': self._siderealtime,
             }
         return res
