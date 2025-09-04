@@ -119,7 +119,7 @@ const spx = computed(() => deg2dms(props.sp, 1))
 const dProps = computed(() => domainStyle[props.domain])
 
 const emit = defineEmits<{
-  (e: 'clickScale', payload: { label: string, angle: number }): void,
+  (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
   (e: 'clickRollLevel' ): void,
   (e: 'clickAlt45' ): void,
 }>();
@@ -204,9 +204,15 @@ function onSvgClick(e: MouseEvent) {
   const low = (props.pv ?? 0) - _scaleRange.value / 2
   const high = (props.pv ?? 0) + _scaleRange.value / 2
   const inverseScale = scaleLinear().domain([dProps.value.sAngleLow, dProps.value.sAngleHigh]).range([low, high]);
-  const domainValue = dProps.value.dAngleFn(inverseScale(screen_angleDeg));
+  const angle = dProps.value.dAngleFn(inverseScale(screen_angleDeg));
 
-  emit('clickScale', { label: props.label, angle: domainValue });
+  // Compute radial offset relative to scale radius
+  const dx = svgCoords.x - dProps.value.cx;
+  const dy = svgCoords.y - dProps.value.cy;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const radialOffset = distance / dProps.value.radius;
+
+  emit('clickScale', { label: props.label, angle, radialOffset });
 }
 
 
