@@ -38,12 +38,12 @@
                 <q-icon class="" size="md" :name="getBatteryIcon()" :color="getBatteryColor()"/>
                 <q-tooltip>Polaris Battery Level</q-tooltip>
             </div>
-            <q-btn round dense flat  icon="mdi-bell">
+            <!-- <q-btn round dense flat  icon="mdi-bell">
                 <q-badge color="red" text-color="white" floating>
                 2
                 </q-badge>
                 <q-tooltip>Notifications</q-tooltip>
-            </q-btn>
+            </q-btn> -->
         </div>
       </q-toolbar>
     </q-header>
