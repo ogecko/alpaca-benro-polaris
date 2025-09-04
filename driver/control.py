@@ -809,6 +809,7 @@ class PID_Controller():
         self.delta_meas = np.array([0,0,0], dtype=float)     # ra, dec, polar measured angular position
         self.alpha_meas = np.array([0,0,0], dtype=float)     # az, alt, roll measured angular position
         self.theta_meas = np.array([0,0,0], dtype=float)     # theta1-3 motor measured angular position
+        self.alpha_ref = np.array([0,0,0], dtype=float)      # az, alt, roll angular reference position
         self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor reference angular position
         self.error_signal = np.array([0,0,0], dtype=float)   # theta1-3 error btw theta_ref and theta_meas
         self.error_integral = np.array([0,0,0], dtype=float) # theta1-3 error btw theta_ref and theta_meas
@@ -862,7 +863,6 @@ class PID_Controller():
     def reset_alpha_offsets(self):
         self.alpha_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for az, alt, roll angular velocities
         self.alpha_offst = np.array([0,0,0], dtype=float)    # az, alt, roll angular offsets
-        self.alpha_ref = np.array([0,0,0], dtype=float)      # az, alt, roll angular reference position
 
     def reset_theta(self):
         self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor angular reference position
