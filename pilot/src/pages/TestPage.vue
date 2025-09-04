@@ -22,6 +22,9 @@
             <div clas="col">
                <ScaleDisplay  :pv="pv" :sp="90.0023" label="Azimuth" :scaleRange="sr" :scaleStart="10"  :domain="domainChoice" />
             </div>
+            <div clas="col">
+               <ScaleDisplay  :pv="pv" :sp="90.0023" label="Right Ascension" :scaleRange="sr" :scaleStart="10"  :domain="domainChoice" />
+            </div>
             <div >
             <div class="col-12 q-pa-lg q-gutter-md">
                   <q-slider
@@ -60,6 +63,7 @@
                     {label: 'Circular', value: 'circular_360'},
                     {label: 'Semi Hi 360', value: 'semihi_360'},
                     {label: 'Semi Hi 180', value: 'semihi_180'},
+                    {label: 'Semi Hi 24', value: 'semihi_24'},
                     {label: 'Semi Lo 360', value: 'semilo_360'},
                     {label: 'Semi Lo 180', value: 'semilo_180'},
                     ]"

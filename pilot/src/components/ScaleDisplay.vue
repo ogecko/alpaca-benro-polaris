@@ -310,7 +310,7 @@ function formatArcSeconds(v: number): string {
   const arcmin = Math.floor((v * 60) % 60);
   const deg = Math.floor(v);
   if (arcsec !== 0) return (isRA.value) ? `${arcsec}ˢ` : `${arcsec}″`;
-  if (arcmin !== 0) formatArcMinutes(deg);
+  if (arcmin !== 0) return (isRA.value) ? `${arcmin}ᵐ` : `${arcmin}′`;
   return formatDegrees(deg);
 }
 
