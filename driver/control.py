@@ -804,6 +804,8 @@ class PID_Controller():
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
         self.mode = 'IDLE'                                   # PID Controller mode: IDLE, AUTO, TRACK
         self.target_type = 'NONE'                            # target body we are tracking
+        self.delta_sp = np.array([0,0,0], dtype=float)       # Setpoint for ra, dec, polar anglular positions
+        self.alpha_sp = np.array([0,0,0], dtype=float)       # Setpoint for az, alt, roll angular positions
         self.delta_meas = np.array([0,0,0], dtype=float)     # ra, dec, polar measured angular position
         self.alpha_meas = np.array([0,0,0], dtype=float)     # az, alt, roll measured angular position
         self.theta_meas = np.array([0,0,0], dtype=float)     # theta1-3 motor measured angular position
@@ -848,18 +850,16 @@ class PID_Controller():
         return maxKv if Kv is None else Kv if isinstance(Kv, np.ndarray) else np.array([Kv, Kv, Kv], dtype=float) 
 
     def reset_offsets(self):
-        self.reset_delta()
-        self.reset_alpha()
+        self.reset_delta_offsets()
+        self.reset_alpha_offsets()
 
-    def reset_delta(self):
-        self.delta_sp = np.array([0,0,0], dtype=float)       # Setpoint for ra, dec, polar anglular positions
+    def reset_delta_offsets(self):
         self.delta_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for ra, dec, polar anglular velocities
         self.delta_offst = np.array([0,0,0], dtype=float)    # ra, dec, polar anglular offsets
         self.delta_ref = np.array([0,0,0], dtype=float)      # ra, dec, polar angular reference position
         self.delta_ref_last = np.array([0,0,0], dtype=float) # ra, dec, polar angular reference position of last control step
 
-    def reset_alpha(self):
-        self.alpha_sp = np.array([0,0,0], dtype=float)       # Setpoint for az, alt, roll angular positions
+    def reset_alpha_offsets(self):
         self.alpha_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for az, alt, roll angular velocities
         self.alpha_offst = np.array([0,0,0], dtype=float)    # az, alt, roll angular offsets
         self.alpha_ref = np.array([0,0,0], dtype=float)      # az, alt, roll angular reference position
@@ -924,24 +924,15 @@ class PID_Controller():
         self.target_type = "NONE"
         self.reset_offsets()
 
-    def set_alpha_target(self, alpha):
+    def set_alpha_target(self, sp: dict[str, float]):
         self.reset_offsets()
         self.target_type = "ALPHA"
-        self.alpha_sp = alpha
-        self.alpha2body(alpha)
+        # Safely update alpha_sp components if provided
+        self.alpha_sp[0] = sp.get("az", self.alpha_sp[0])
+        self.alpha_sp[1] = sp.get("alt", self.alpha_sp[1])
+        self.alpha_sp[2] = sp.get("roll", self.alpha_sp[2])
+        self.alpha2body(self.alpha_sp)
         self.delta_sp = self.body2delta()
-        self.is_moving = True
-
-    def set_alpha_axis_position(self, axis, sp=0.0):
-        self.alpha_sp[axis] = sp
-        self.alpha_v_sp[axis] = 0
-        self.alpha_offst[axis] = 0
-        self.is_moving = True
-                
-    def set_alpha_axis_position_relative(self, axis, sp=0.0):
-        self.alpha_sp[axis] = self.alpha_sp[axis] + sp
-        self.alpha_v_sp[axis] = 0
-        self.alpha_offst[axis] = 0
         self.is_moving = True
 
     def set_alpha_axis_velocity(self, axis, sp=0.0):
@@ -981,12 +972,6 @@ class PID_Controller():
         self.reset_offsets()
         self.target_type = "XEPHEM"
         self.target['line'] = line
-
-    def set_alpha_axis_position(self, axis, sp=0.0):
-        self.alpha_sp[axis] = sp
-        self.alpha_v_sp[axis] = 0
-        self.alpha_offst[axis] = 0
-        self.is_moving = True
 
     def rotator_move_relative(self, sp=0.0):
         axis=2
@@ -1042,8 +1027,8 @@ class PID_Controller():
     
     def measure(self, alpha_meas, theta_meas):
         now = ephem.now()
-        if not self.time_meas:
-            self.set_alpha_target(alpha_meas)     # initialise alpha_sp with first measurement
+        # if not self.time_meas:
+        #     self.alpha_sp = alpha_meas     # initialise alpha_sp with first measurement
         self.alpha_meas = alpha_meas
         self.theta_meas = theta_meas
         self.time_meas = now

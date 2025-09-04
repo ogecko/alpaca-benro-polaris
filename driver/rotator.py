@@ -238,7 +238,7 @@ class movemechanical:
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and +180.'))
             return
         try:
-            polaris._pid.set_alpha_axis_position(2,position)
+            polaris._pid.set_alpha_target({ "roll": position })
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Rotator.MoveMechanical failed', ex))
@@ -259,7 +259,7 @@ class moveabsolute:
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and +180.'))
             return
         try:
-            polaris._pid.set_alpha_axis_position(2,position)
+            polaris._pid.set_alpha_target({ "roll": position })
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Rotator.MoveAbsolute failed', ex))
