@@ -47,7 +47,7 @@
         <q-chip color="positive" :outline="!p.gotoing">
           Gotoing
         </q-chip>
-        <q-chip color="positive" :outline="!p.gotoing">
+        <q-chip color="positive" :outline="p.pidmode=='IDLE'">
           PID
         </q-chip> 
       </div>
