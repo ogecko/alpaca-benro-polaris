@@ -34,11 +34,14 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot Radial Indicators and home dashboard
 # [X] Alpaca pilot current position main display, is parked, is tracking, is slewing, is gotoing, is PID active, is Pulse Guiding
 # Alpaca Features
-# [ ] Alpaca pilot goto SP click on Radial Indicators
+# [X] Alpaca pilot commands for Eq-Az toggle, park, unpark, abort, track, tracking rate
+# [X] Alpaca pilot goto Az, Alt, Roll with click on Radial Indicators
+# [X] Alpaca pilot floating action buttons for quick axis settings (az, alt, roll)
+# [ ] Alpaca pilot goto RA, Dec, PA with click on Radial Indicators
 # [ ] Indicate speed on Alpaca Dashboard
 # [ ] Auto set scales based on speed
 # [ ] Implement slewing and gotoing state monitoring
-# [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, tracking rate, halt, goto, track, park, unpark
+# [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, 
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca pilot better feature degredation when not ABP
 # Connection
