@@ -93,8 +93,8 @@ import type { BaseType } from 'd3-selection';
 
 const props = defineProps<{
 	scaleRange: number
-	pv: number
-	sp: number
+	pv: number | undefined
+	sp: number | undefined
   label: string
   domain: DomainStyleType
 }>()
@@ -202,8 +202,8 @@ function onSvgClick(e: MouseEvent) {
   if (screen_angleDeg<dProps.value.sAngleLow || screen_angleDeg>dProps.value.sAngleHigh) return
 
   // calculate inverse scaleLinear and wrap the domain angle value
-  const low = props.pv - _scaleRange.value / 2
-  const high = props.pv + _scaleRange.value / 2
+  const low = (props.pv ?? 0) - _scaleRange.value / 2
+  const high = (props.pv ?? 0) + _scaleRange.value / 2
   const inverseScale = scaleLinear().domain([dProps.value.sAngleLow, dProps.value.sAngleHigh]).range([low, high]);
   const domainValue = dProps.value.dAngleFn(inverseScale(screen_angleDeg));
 
@@ -441,7 +441,8 @@ function strokeDashArray(radius:number, newScale:ScaleLinear<number, number>, st
   }
 }
 
-function determineOpacity<T extends { angle: number, opacity?: number }>(d: T, min:number, max:number): number {
+function determineOpacity<T extends { angle?: number, opacity?: number }>(d: T, min:number, max:number): number {
+  if (typeof d.angle !== 'number') return 0;
   return (d.angle>=min && d.angle<=max)? d.opacity ?? 1 : 0
 }
 
@@ -469,11 +470,31 @@ function arcPath(startAngle: number, endAngle: number, radius: number): string {
   return `M${x0},${y0} A${radius},${radius} 0 ${largeArc} 1 ${x1},${y1}`;
 }
 
+// swap beginAngle and endAngle if they are in the wrong order
+function normalizeArcAngles(arcs: ArcDatum[]): ArcDatum[] {
+  return arcs.map(arc => {
+    const { beginAngle, endAngle } = arc;
+    if (
+      typeof beginAngle === 'number' &&
+      typeof endAngle === 'number' &&
+      endAngle < beginAngle
+    ) {
+      return {
+        ...arc,
+        beginAngle: endAngle,
+        endAngle: beginAngle
+      };
+    }
+    return arc;
+  })
+}
+
+
 // ------------------- D3 Join Functions ---------------------
 
 type MarkDatum = {
   key?: string;       // element key used by D3 to match existing elements
-  angle: number;      // domain angle in degrees
+  angle?: number;      // domain angle in degrees
   offset?: number;    // radial offset from the radius 1=no offset, 0.9=inside, 1.1=outside
   opacity?: number;   // opacity of the mark
   label?: string;     // text string to render at radial position
@@ -497,7 +518,7 @@ function joinMarks(
   const [min, max] = newScale.domain() as [number, number];
   const [smin, smax] = newScale.range() as [number, number];
   const smid = (smin+smax)/2
-  const visibleMarks = marks.filter(m => isAngleBetween(m.angle, min, max));
+  const visibleMarks = marks.filter(m => isAngleBetween(m.angle ?? 0, min, max));
   const interp = angleInterp(oldScale, newScale);
 
   group.selectAll<SVGTextElement | SVGPathElement, MarkDatum>(`.${cname}`)
@@ -511,7 +532,7 @@ function joinMarks(
         .transition(t)
         .attr('opacity', d => determineOpacity(d, min, max))
         .attrTween('transform', d => t => {
-          const angle = interp(d.angle)(t);
+          const angle = interp(d.angle??0)(t);
           const spin = (!d.label) ? 0 : (Math.sin(smid * Math.PI / 180) > 0) ? -90 : +90;
           return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         }),
@@ -521,7 +542,7 @@ function joinMarks(
         .attr('opacity', d => determineOpacity(d, min, max))
         .each(function (d) { zOrder<MarkDatum>(this, d) })
         .attrTween('transform', d => t => {
-          const angle = interp(d.angle)(t);
+          const angle = interp(d.angle??0)(t);
           const spin = (!d.label) ? 0 : (Math.sin(smid * Math.PI / 180) > 0) ? -90 : +90;
           return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         }),
@@ -529,7 +550,7 @@ function joinMarks(
       exit => exit.transition(t)
         .attr('opacity', 0)
         .attrTween('transform', d => t => {
-          const angle = interp(d.angle)(t);
+          const angle = interp(d.angle??0)(t);
           const spin = (!d.label) ? 0 : (Math.sin(angle * Math.PI / 180) > 0) ? -90 : +90;
           return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         })
@@ -542,8 +563,8 @@ function joinMarks(
 
 interface ArcDatum {
   key?: string;       // element key used by D3 to match existing elements
-  beginAngle: number; // where the arc starts in domain angle degrees 
-  endAngle: number;   // where the arc ends in domain angle degrees 
+  beginAngle?: number; // where the arc starts in domain angle degrees 
+  endAngle?: number;   // where the arc ends in domain angle degrees 
   offset?: number;    // radial offset from the radius 1=no offset, 0.9=inside, 1.1=outside
   opacity?: number;   // opacity of the arc
   stepSize?: number;  // size between tick labels 
@@ -565,12 +586,11 @@ function joinArcs(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tRaw as Transition<BaseType, any, any, any>;
   const [min, max] = newScale.domain() as [number, number];
-  const visibleArcs = arcs.filter(m => {
-    const x = m.beginAngle
-    const y = m.endAngle
-    if (x > y) { m.beginAngle=y; m.endAngle=x; }               // swap them
-    if ((m.beginAngle>max) || (m.endAngle<min)) return false   // not within range
+  const normalisedArcs = normalizeArcAngles(arcs)
+  const visibleArcs = normalisedArcs.filter(m => {
+    if (typeof m.beginAngle !== 'number' || typeof m.endAngle !== 'number') return false;
     if ((m.beginAngle>=min) && (m.endAngle<=max)) return true  // within range
+    if ((m.beginAngle>max) || (m.endAngle<min)) return false   // not within range
     if (m.beginAngle<min) m.beginAngle=min                     // clip to min
     if (m.endAngle>max) m.endAngle=max                         // clip to max
     return true
@@ -588,8 +608,8 @@ function joinArcs(
         .transition(t)
         .attr('opacity', d => d.opacity ?? 1)
         .attrTween('d', d => t => {
-          const a0 = interp(d.beginAngle)(t);
-          const a1 = interp(d.endAngle)(t);
+          const a0 = interp(d.beginAngle ?? 0)(t);
+          const a1 = interp(d.endAngle ?? 0)(t);
           return arcPath(a0, a1, radius * (d.offset ?? 1));
         }),
 
@@ -598,8 +618,8 @@ function joinArcs(
         .attr('opacity', d => d.opacity ?? 1)
         .style('stroke-dasharray', d => strokeDashArray(radius, newScale, d.stepSize, d.stepDiv))
         .attrTween('d', d => t => {
-          const a0 = interp(d.beginAngle)(t);
-          const a1 = interp(d.endAngle)(t);
+          const a0 = interp(d.beginAngle ?? 0)(t);
+          const a1 = interp(d.endAngle ?? 0)(t);
           return arcPath(a0, a1, radius * (d.offset ?? 1));
         }),
 
@@ -617,7 +637,7 @@ function renderLinearScale() {
 	if (!linearGroup.value) return
 
 	const scale = scaleLinear()
-		.domain([props.pv - _scaleRange.value / 2, props.pv + _scaleRange.value / 2])
+		.domain([props.pv??0 - _scaleRange.value / 2, props.pv??0 + _scaleRange.value / 2])
 		.range([0, dProps.value.width - 40])
 
 	const axis = axisBottom(scale).ticks(10)
@@ -634,8 +654,8 @@ function renderCircularScale() {
   if (!circularGroup.value) return;
 
 
-  const low = props.pv - _scaleRange.value / 2
-  const high = props.pv + _scaleRange.value / 2
+  const low = (props.pv ?? 0) - _scaleRange.value / 2
+  const high = (props.pv ?? 0) + _scaleRange.value / 2
   const { stepSize, ticks } = generateTicks(low, _scaleRange.value, dProps.value.dAngleFn)
   const arcs = generateArcs(low, high, stepSize, 5)
 
@@ -653,16 +673,16 @@ function renderCircularScale() {
 
   // arcs, arc ticks, and annotations for SP and HighWarning
   joinArcs('tkArc', group, arcs, oldScale, newScale, radius, t);
-  joinArcs('tkArcPVtoSP', group, [{ beginAngle:props.pv, endAngle:props.sp, offset:1, opacity: 0.9, zorder: 'low' }], oldScale, newScale, radius, t);
-  joinArcs('tkArcHighWarning', group, [{ beginAngle:92, endAngle:120, offset:1, opacity: 0.7, zorder: 'low' }], oldScale, newScale, radius, t);
+  joinArcs('tkArcPVtoSP', group, [{ beginAngle:props.pv, endAngle:props.sp, offset:1, opacity: 0.9, zorder: 'low' } as ArcDatum], oldScale, newScale, radius, t);
+  joinArcs('tkArcHighWarning', group, [{ beginAngle:92, endAngle:120, offset:1, opacity: 0.7, zorder: 'low' } as ArcDatum], oldScale, newScale, radius, t);
 
   // scale ticks and labels
   joinMarks('tkMarks', group, ticks, oldScale, newScale, radius, t);
 
   // pv and sp marks and tests
-  joinMarks('pvMark', group, [{angle:props.pv, path:'M-8,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'}], newScale, newScale, radius, t);
-  joinMarks('spMark', group, [{angle:props.sp, path:'M-8,0 L-30,15 L-30,-15 Z', zorder: 'high'}], oldScale, newScale, radius, t); 
-  joinMarks('spLine', group, [{angle:props.sp, path:'M-60,0 L-15,0 Z', zorder: 'high'}], oldScale, newScale, radius, t); 
+  joinMarks('pvMark', group, [{angle:props.pv, path:'M-8,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'} as MarkDatum], newScale, newScale, radius, t);
+  joinMarks('spMark', group, [{angle:props.sp, path:'M-8,0 L-30,15 L-30,-15 Z', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
+  joinMarks('spLine', group, [{angle:props.sp, path:'M-60,0 L-15,0 Z', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
 
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);

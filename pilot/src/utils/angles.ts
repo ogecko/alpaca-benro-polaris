@@ -1,4 +1,6 @@
-export function deg2dms(decimalDegrees: number, precision: number) {
+export function deg2dms(decimalDegrees: number | undefined, precision: number) {
+
+  if (decimalDegrees === undefined) return {}
   const sign = decimalDegrees < 0 ? '-' : '+';
   const totalSeconds = Math.abs(decimalDegrees) * 3600;
 
