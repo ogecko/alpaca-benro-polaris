@@ -35,7 +35,7 @@
     </div>
 
     <!-- SVG Background -->
-    <svg class="background-svg" @mousedown="onSvgClick" @touchstart="onSvgClick" ref="svgElement" :width="dProps.width" :height="dProps.height" 
+    <svg class="background-svg" @mousedown="onSvgClick" @touchstart="onSvgClick" @wheel="onScaleWheel" ref="svgElement" :width="dProps.width" :height="dProps.height" 
     >
       <rect :width="dProps.width" :height="dProps.height" fill="transparent" />
       <g v-if="isLinear" ref="linearGroup" />
@@ -230,6 +230,27 @@ function onSvgClick(e: MouseEvent | TouchEvent) {
   emit('clickScale', { label: props.label, angle, radialOffset });
 }
 
+
+function onScaleWheel(e: WheelEvent) {
+  e.preventDefault();
+
+  const baseFactor = 1.2;   // tweak baseFactor for step sensitivity     
+  const divisor = 50        // tweak divisor for magnitude sensitivity
+  const minRange = 2 / 60;
+  const maxRange = 200;
+
+  const direction = Math.sign(e.deltaY);
+  const magnitude = Math.abs(e.deltaY);
+  const zoomFactor = Math.pow(baseFactor, magnitude / divisor); 
+
+  // Scroll down → dir is +1, zoom out; Scroll up → dir is -1, zoom in
+  let newRange = _scaleRange.value;
+  newRange *= Math.pow(zoomFactor, direction);
+
+  // clap the new range
+  newRange = Math.max(minRange, Math.min(maxRange, newRange));
+  _scaleRange.value = newRange;
+}
 
 function onScaleZoomInClick() {
   const closest = getClosestSteps(_scaleRange.value)
