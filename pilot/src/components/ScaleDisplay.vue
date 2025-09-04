@@ -83,7 +83,6 @@ import { scaleLinear } from 'd3-scale'
 import { axisBottom } from 'd3-axis'
 import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
-import { interpolate } from 'd3-interpolate'
 import { easeCubicOut } from 'd3-ease'
 import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo90 } from 'src/utils/angles'
 import type { ScaleLinear } from 'd3-scale'
@@ -417,9 +416,13 @@ function generateArcs(low: number, high: number, stepSize: number, stepDiv: numb
 
 // ------------------- D3 Helper functions ---------------------
 
-// Computes an interpolator between old and new scale values for smooth transitions
-function angleInterp(oldScale: ScaleLinear<number, number>, newScale: ScaleLinear<number, number>) {
-  return (d: number) => interpolate(oldScale(d), newScale(d));
+// Computes a fn(angle, oldangle) that returns an interpolator fn(t) to tween between old and new scale values for smooth transitions, assumes angle changes too
+function movingAngleInterp(oldScale: ScaleLinear<number, number>, newScale: ScaleLinear<number, number>) {
+   return (angle:number|undefined, oldAngle?:number) => {
+    const a0 = oldScale(oldAngle ?? angle ?? 0);
+    const a1 = newScale(angle ?? 0);
+    return (t: number) => a0 + (a1 - a0) * t;
+  };
 }
 
 
@@ -494,7 +497,8 @@ function normalizeArcAngles(arcs: ArcDatum[]): ArcDatum[] {
 
 type MarkDatum = {
   key?: string;       // element key used by D3 to match existing elements
-  angle?: number;      // domain angle in degrees
+  angle?: number;     // domain angle in degrees
+  oldAngle?: number;  // optional old domain angle in degrees (if you want it animated from old to new)
   offset?: number;    // radial offset from the radius 1=no offset, 0.9=inside, 1.1=outside
   opacity?: number;   // opacity of the mark
   label?: string;     // text string to render at radial position
@@ -519,7 +523,7 @@ function joinMarks(
   const [smin, smax] = newScale.range() as [number, number];
   const smid = (smin+smax)/2
   const visibleMarks = marks.filter(m => isAngleBetween(m.angle ?? 0, min, max));
-  const interp = angleInterp(oldScale, newScale);
+  const interp = movingAngleInterp(oldScale, newScale);
 
   group.selectAll<SVGTextElement | SVGPathElement, MarkDatum>(`.${cname}`)
     .data(visibleMarks, d => `${d.key}`)
@@ -532,17 +536,16 @@ function joinMarks(
         .transition(t)
         .attr('opacity', d => determineOpacity(d, min, max))
         .attrTween('transform', d => t => {
-          const angle = interp(d.angle??0)(t);
+          const angle = interp(d.angle, d.oldAngle)(t);
           const spin = (!d.label) ? 0 : (Math.sin(smid * Math.PI / 180) > 0) ? -90 : +90;
           return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         }),
 
       update => update.transition(t)
-        // .attr('opacity', d => d.opacity ?? 1)
         .attr('opacity', d => determineOpacity(d, min, max))
         .each(function (d) { zOrder<MarkDatum>(this, d) })
         .attrTween('transform', d => t => {
-          const angle = interp(d.angle??0)(t);
+          const angle = interp(d.angle, d.oldAngle)(t);
           const spin = (!d.label) ? 0 : (Math.sin(smid * Math.PI / 180) > 0) ? -90 : +90;
           return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         }),
@@ -550,7 +553,7 @@ function joinMarks(
       exit => exit.transition(t)
         .attr('opacity', 0)
         .attrTween('transform', d => t => {
-          const angle = interp(d.angle??0)(t);
+          const angle = interp(d.angle, d.oldAngle)(t);
           const spin = (!d.label) ? 0 : (Math.sin(angle * Math.PI / 180) > 0) ? -90 : +90;
           return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         })
@@ -595,7 +598,7 @@ function joinArcs(
     if (m.endAngle>max) m.endAngle=max                         // clip to max
     return true
   }) ;
-  const interp = angleInterp(oldScale, newScale);
+  const interp = movingAngleInterp(oldScale, newScale);
 
   group.selectAll<SVGPathElement, ArcDatum>(`.${cname}`)
     .data(visibleArcs, d => `${d.key}`)
@@ -646,8 +649,9 @@ function renderLinearScale() {
 	group.transition().duration(200).ease(easeCubicOut).call(axis)
 }
 
-// global used to remember previous scale for tweening circular scales
+// global used to remember previous scale, PV and SP for tweening circular scales
 let prevScale: ScaleLinear<number, number> | undefined;
+let prevSP: number | undefined
 
 // Renders a circular scale with major/minor ticks and labels
 function renderCircularScale() {
@@ -663,13 +667,13 @@ function renderCircularScale() {
   const radius = dProps.value.radius;
   const newScale = scaleLinear().domain([low, high]).range([dProps.value.sAngleLow, dProps.value.sAngleHigh]);
   const oldScale = prevScale ?? newScale;
+  const oldSP = prevSP ?? props.sp
   prevScale = newScale;
+  prevSP = props.sp;
 
   const group = select(circularGroup.value).attr('transform', `translate(${dProps.value.cx},${dProps.value.cy})`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
-
-
 
   // arcs, arc ticks, and annotations for SP and HighWarning
   joinArcs('tkArc', group, arcs, oldScale, newScale, radius, t);
@@ -680,9 +684,9 @@ function renderCircularScale() {
   joinMarks('tkMarks', group, ticks, oldScale, newScale, radius, t);
 
   // pv and sp marks and tests
-  joinMarks('pvMark', group, [{angle:props.pv, path:'M-8,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'} as MarkDatum], newScale, newScale, radius, t);
-  joinMarks('spMark', group, [{angle:props.sp, path:'M-8,0 L-30,15 L-30,-15 Z', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
-  joinMarks('spLine', group, [{angle:props.sp, path:'M-60,0 L-15,0', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
+  joinMarks('pvMark', group, [{key: 'pvMark', angle:props.pv, path:'M-8,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'} as MarkDatum], newScale, newScale, radius, t);
+  joinMarks('spMark', group, [{key: 'spMark', angle:props.sp, oldAngle: oldSP, path:'M-8,0 L-30,15 L-30,-15 Z', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
+  joinMarks('spLine', group, [{key: 'spLine', angle:props.sp, oldAngle: oldSP, path:'M-60,0 L-15,0', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
 
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);
