@@ -168,7 +168,19 @@ async function onAbort() {
 async function onClickScale(e: { label:string, angle: number }) {
   if (e.label=="Roll") {
     const result = await dev.alpacaMoveMechanical(e.angle)
-    console.log('Roll angle:', e.angle, result);
+    console.log(`Change ${e.label} angle to `, e.angle, result);
+  } else if (e.label=="Altitude") {
+    const az = p.alpharef[0] ?? 0
+    const alt = e.angle
+    const result = await dev.alpacaSlewToAltAz(alt, az)
+    console.log(`Change ${e.label} angle to `, e.angle, result);
+  } else if (e.label=="Azimuth") {
+    const az = e.angle
+    const alt = p.alpharef[1] ?? 0
+    const result = await dev.alpacaSlewToAltAz(alt, az)
+    console.log(`Change ${e.label} angle to `, e.angle, result);
+  } else {
+    console.log(`Click ${e.label} angle `, e.angle);
   }
 }
 
