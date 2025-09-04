@@ -12,10 +12,23 @@
       <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
         <div v-if="showButtons">
           <div class="row absolute-top-left q-pl-lg" > 
-            <q-btn v-if="props.label=='Roll'" round color="secondary" dense flat icon="mdi-format-align-middle" @click="emit('clickRollLevel')">
-            <q-tooltip>Roll to level 0° position</q-tooltip></q-btn>
-            <q-btn v-if="props.label=='Altitude'" round color="secondary" dense flat icon="mdi-angle-acute" @click="emit('clickAlt45')">
-            <q-tooltip>Altitude to 45° position</q-tooltip></q-btn>
+            <q-fab v-if="props.label=='Roll'" color="secondary" padding="xs" push icon="mdi-format-align-middle" direction="right" >
+              <q-fab-action color="secondary" @click="onClickFabAngle({roll: 0})" >0°</q-fab-action>
+              <q-fab-action color="secondary" @click="onClickFabAngle({roll: -45})">-45°</q-fab-action>
+              <q-fab-action color="secondary" @click="onClickFabAngle({roll: +45})">+45°</q-fab-action>
+            </q-fab>
+            <q-fab v-if="props.label=='Altitude'" color="secondary" padding="xs" push icon="mdi-angle-acute" direction="right" >
+              <q-fab-action color="secondary" @click="onClickFabAngle({alt: 0})" >0°</q-fab-action>
+              <q-fab-action color="secondary" @click="onClickFabAngle({alt: 30})">30°</q-fab-action>
+              <q-fab-action color="secondary" @click="onClickFabAngle({alt: 45})">45°</q-fab-action>
+              <q-fab-action color="secondary" @click="onClickFabAngle({alt: 60})">60°</q-fab-action>
+            </q-fab>
+            <q-fab v-if="props.label=='Azimuth'" color="secondary" padding="xs" push icon="mdi-compass-rose" direction="right" >
+              <q-fab-action color="secondary" @click="onClickFabAngle({az: 270})">W</q-fab-action>
+              <q-fab-action color="secondary" @click="onClickFabAngle({az: 0})"  >N</q-fab-action>
+              <q-fab-action color="secondary" @click="onClickFabAngle({az: 180})">S</q-fab-action>
+              <q-fab-action color="secondary" @click="onClickFabAngle({az: 90})" >E</q-fab-action>
+            </q-fab>
           </div>
           <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
             <div class="column">
@@ -122,6 +135,7 @@ const emit = defineEmits<{
   (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
   (e: 'clickRollLevel' ): void,
   (e: 'clickAlt45' ): void,
+  (e: 'clickFabAngle', payload: { az?: number, alt?: number, roll?: number }): void,
 }>();
 
 
@@ -184,7 +198,9 @@ onMounted(throttledRenderScale)
 
 watch(renderKey, throttledRenderScale)
 
-
+function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number}) {
+  emit('clickFabAngle', payload)
+}
 
 function onSvgClick(e: MouseEvent | TouchEvent) {
   const svg = svgElement.value;
@@ -842,6 +858,9 @@ function renderScale() {
   pointer-events: auto;
 }
 .overlay-container .q-btn-group {
+  pointer-events: auto;
+}
+.overlay-container .q-fab {
   pointer-events: auto;
 }
 

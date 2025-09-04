@@ -63,8 +63,7 @@
             :scaleRange="cfg.scaleRange"
             :domain="cfg.domain"
             @clickScale="onClickScale"
-            @clickRollLevel="onClickRollLevel"
-            @clickAlt45="onClickAlt45"
+            @clickFabAngle="onClickFabAngle"
           />
         </div>
     </div>
@@ -186,16 +185,18 @@ async function onClickScale(e: { label:string, angle: number, radialOffset: numb
   }
 }
 
-async function onClickRollLevel() {
-  const result = await dev.alpacaMoveMechanical(0)
-  console.log('Roll Level:', result);
-}
 
-async function onClickAlt45() {
-    const az = p.alpharef[0] ?? 0
-    const alt = 45
-    const result = await dev.alpacaSlewToAltAz(alt, az)
-    console.log(`Change Altitude angle to `, alt, result);
+
+async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
+  const az = e.az ?? p.alpharef[0] ?? 0;
+  const alt = e.alt ?? p.alpharef[1] ?? 0;
+  if (e.roll !== undefined) {
+    await dev.alpacaMoveMechanical(e.roll);
+  }
+  if (e.az !== undefined || e.alt !== undefined) {
+    await dev.alpacaSlewToAltAz(alt, az);
+  }
+  console.log('Fab Angle:', e);
 }
 
 </script>
