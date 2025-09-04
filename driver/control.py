@@ -38,6 +38,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca pilot goto Az, Alt, Roll with click on Radial Indicators
 # [X] Alpaca pilot floating action buttons for quick axis settings (az, alt, roll)
 # [ ] Alpaca pilot goto RA, Dec, PA with click on Radial Indicators
+# [ ] Alpaca pilot radial scales to show warning limits on angles
 # [ ] Indicate speed on Alpaca Dashboard
 # [ ] Auto set scales based on speed
 # [ ] Implement slewing and gotoing state monitoring

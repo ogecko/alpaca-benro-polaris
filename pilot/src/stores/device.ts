@@ -93,8 +93,16 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/rotator/0/movemechanical',{ Position: roll });
     },
 
+    async alpacaMoveAbsolute(pa:number) {
+      return await this.api<SupportedActionsResponse>('api/v1/rotator/0/moveabsolute',{ Position: pa });
+    },
+
     async alpacaSlewToAltAz(alt:number, az:number) {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtoaltazasync',{ Altitude: alt, Azimuth: az });
+    },
+
+    async alpacaSlewToCoord(ra:number, dec:number) {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtocoordinatesasync',{ RightAscension: ra, Declination: dec });
     },
 
     async apiAction<T>(action: string, parameters: object | string = ' '): Promise<T> {

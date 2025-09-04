@@ -109,9 +109,9 @@ const isEquatorial = ref<boolean>(false)
 // ------------------- Layout Configuration Data ---------------------
 
 const displayConfig = computed(() => isEquatorial.value ? [
-  { label: 'Right Ascension', pv: p.rightascension, sp: 90.0023, scaleRange: 10, domain: 'semihi_360' as DomainStyleType },
-  { label: 'Declination', pv: p.declination, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType },
-  { label: 'Position Angle', pv: p.rotation, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType }
+  { label: 'Right Ascension', pv: p.rightascension, sp: p.deltaref[0], scaleRange: 10, domain: 'semihi_360' as DomainStyleType },
+  { label: 'Declination', pv: p.declination, sp: p.deltaref[1], scaleRange: 10, domain: 'semihi_180' as DomainStyleType },
+  { label: 'Position Angle', pv: p.rotation, sp: p.deltaref[2], scaleRange: 10, domain: 'semihi_180' as DomainStyleType }
 ] : [
   { label: 'Azimuth', pv: p.azimuth, sp: p.alpharef[0], scaleRange: 10, domain: 'semihi_360' as DomainStyleType },
   { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], scaleRange: 10, domain: 'semihi_180' as DomainStyleType },
@@ -167,18 +167,31 @@ async function onAbort() {
 
 async function onClickScale(e: { label:string, angle: number, radialOffset: number }) {
   if (e.radialOffset<0.8 || e.radialOffset>1.25) return
-  if (e.label=="Roll") {
-    const result = await dev.alpacaMoveMechanical(e.angle)
+  if (e.label=="Azimuth") {
+    const az = e.angle
+    const alt = p.alpharef[1] ?? 0
+    const result = await dev.alpacaSlewToAltAz(alt, az)
     console.log(`Change ${e.label} angle to ${e.angle}`,  result);
   } else if (e.label=="Altitude") {
     const az = p.alpharef[0] ?? 0
     const alt = e.angle
     const result = await dev.alpacaSlewToAltAz(alt, az)
     console.log(`Change ${e.label} angle to ${e.angle}`,  result);
-  } else if (e.label=="Azimuth") {
-    const az = e.angle
-    const alt = p.alpharef[1] ?? 0
-    const result = await dev.alpacaSlewToAltAz(alt, az)
+  } else if (e.label=="Roll") {
+    const result = await dev.alpacaMoveMechanical(e.angle)
+    console.log(`Change ${e.label} angle to ${e.angle}`,  result);
+  } else if (e.label=="Right Ascension") {
+    const ra = e.angle
+    const dec = p.deltaref[1] ?? 0
+    const result = await dev.alpacaSlewToCoord(ra, dec)
+    console.log(`Change ${e.label} angle to ${e.angle}`,  result);
+  } else if (e.label=="Declination") {
+    const ra = p.deltaref[0] ?? 0
+    const dec = e.angle
+    const result = await dev.alpacaSlewToCoord(ra, dec)
+    console.log(`Change ${e.label} angle to ${e.angle}`,  result);
+  } else if (e.label=="Position Angle") {
+    const result = await dev.alpacaMoveAbsolute(e.angle)
     console.log(`Change ${e.label} angle to ${e.angle}`,  result);
   } else {
     console.log(`Click ${e.label} angle: ${e.angle}, offset: ${e.radialOffset}`);
