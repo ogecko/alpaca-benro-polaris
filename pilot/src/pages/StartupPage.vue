@@ -64,6 +64,7 @@
             :domain="cfg.domain"
             @clickScale="onClickScale"
             @clickRollLevel="onClickRollLevel"
+            @clickAlt45="onClickAlt45"
           />
         </div>
     </div>
@@ -188,4 +189,12 @@ async function onClickRollLevel() {
   const result = await dev.alpacaMoveMechanical(0)
   console.log('Roll Level:', result);
 }
+
+async function onClickAlt45() {
+    const az = p.alpharef[0] ?? 0
+    const alt = 45
+    const result = await dev.alpacaSlewToAltAz(alt, az)
+    console.log(`Change Altitude angle to `, alt, result);
+}
+
 </script>
