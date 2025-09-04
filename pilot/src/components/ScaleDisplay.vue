@@ -682,7 +682,7 @@ function renderCircularScale() {
   // pv and sp marks and tests
   joinMarks('pvMark', group, [{angle:props.pv, path:'M-8,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'} as MarkDatum], newScale, newScale, radius, t);
   joinMarks('spMark', group, [{angle:props.sp, path:'M-8,0 L-30,15 L-30,-15 Z', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
-  joinMarks('spLine', group, [{angle:props.sp, path:'M-60,0 L-15,0 Z', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
+  joinMarks('spLine', group, [{angle:props.sp, path:'M-60,0 L-15,0', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
 
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);

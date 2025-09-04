@@ -113,8 +113,8 @@ const displayConfig = computed(() => isEquatorial.value ? [
   { label: 'Declination', pv: p.declination, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType },
   { label: 'Position Angle', pv: p.rotation, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType }
 ] : [
-  { label: 'Azimuth', pv: p.azimuth, sp: 90.0023, scaleRange: 10, domain: 'semihi_360' as DomainStyleType },
-  { label: 'Altitude', pv: p.altitude, sp: 90.0023, scaleRange: 10, domain: 'semihi_180' as DomainStyleType },
+  { label: 'Azimuth', pv: p.azimuth, sp: p.alpharef[0], scaleRange: 10, domain: 'semihi_360' as DomainStyleType },
+  { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], scaleRange: 10, domain: 'semihi_180' as DomainStyleType },
   { label: 'Roll', pv: p.roll, sp: p.alpharef[2], scaleRange: 10, domain: 'semihi_180' as DomainStyleType }
 ]);
 
