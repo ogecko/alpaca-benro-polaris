@@ -84,7 +84,7 @@ import { axisBottom } from 'd3-axis'
 import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { easeCubicOut } from 'd3-ease'
-import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo90 } from 'src/utils/angles'
+import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo90, angularDifference } from 'src/utils/angles'
 import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
@@ -421,7 +421,8 @@ function movingAngleInterp(oldScale: ScaleLinear<number, number>, newScale: Scal
    return (angle:number|undefined, oldAngle?:number) => {
     const a0 = oldScale(oldAngle ?? angle ?? 0);
     const a1 = newScale(angle ?? 0);
-    return (t: number) => a0 + (a1 - a0) * t;
+    const delta = angularDifference(a0, a1)
+    return (t: number) => a0 + delta * t;
   };
 }
 
