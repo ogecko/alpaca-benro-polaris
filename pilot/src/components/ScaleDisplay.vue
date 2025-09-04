@@ -24,9 +24,9 @@
               <q-fab-action color="secondary" @click="onClickFabAngle({alt: 60})">60°</q-fab-action>
             </q-fab>
             <q-fab v-if="props.label=='Azimuth'" color="secondary" padding="xs" push icon="mdi-compass-rose" direction="right" >
-              <q-fab-action color="secondary" @click="onClickFabAngle({az: 270})">W</q-fab-action>
               <q-fab-action color="secondary" @click="onClickFabAngle({az: 0})"  >N</q-fab-action>
               <q-fab-action color="secondary" @click="onClickFabAngle({az: 180})">S</q-fab-action>
+              <q-fab-action color="secondary" @click="onClickFabAngle({az: 270})">W</q-fab-action>
               <q-fab-action color="secondary" @click="onClickFabAngle({az: 90})" >E</q-fab-action>
             </q-fab>
           </div>
@@ -848,7 +848,7 @@ function renderScale() {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 2;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .overlay-container .q-field {
