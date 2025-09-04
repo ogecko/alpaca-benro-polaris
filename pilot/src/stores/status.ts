@@ -26,6 +26,9 @@ export const useStatusStore = defineStore('status', {
         declination: 0,
         rightascension: 0,
         siderealtime: 0,
+        deltaref: [0,0,0],
+        alpharef: [0,0,0],
+        omegaref: [0,0,0],
     }),
 
     actions: {
