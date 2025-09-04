@@ -109,7 +109,7 @@ const isEquatorial = ref<boolean>(false)
 // ------------------- Layout Configuration Data ---------------------
 
 const displayConfig = computed(() => isEquatorial.value ? [
-  { label: 'Right Ascension', pv: p.rightascension, sp: p.deltaref[0], scaleRange: 10, domain: 'semihi_360' as DomainStyleType },
+  { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, scaleRange: 10, domain: 'semihi_24' as DomainStyleType },
   { label: 'Declination', pv: p.declination, sp: p.deltaref[1], scaleRange: 10, domain: 'semihi_180' as DomainStyleType },
   { label: 'Position Angle', pv: p.rotation, sp: p.deltaref[2], scaleRange: 10, domain: 'semihi_180' as DomainStyleType }
 ] : [

@@ -69,3 +69,8 @@ export function wrapTo180(angle: number) {
 export function wrapTo90(angle: number) {
   return ((angle + 90) % 180 + 180) % 180 - 90;
 }
+
+// Wraps angle to [0, 24)
+export function wrapTo24(angle: number) {
+  return ((angle % 24) + 24) % 24;
+}

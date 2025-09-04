@@ -97,7 +97,7 @@ import { axisBottom } from 'd3-axis'
 import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { easeCubicOut } from 'd3-ease'
-import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo90, angularDifference } from 'src/utils/angles'
+import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo90, wrapTo24, angularDifference } from 'src/utils/angles'
 import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
@@ -125,11 +125,12 @@ const showButtons = ref<boolean>(false);
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
-const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semilo_180', 'circular_180'].includes(props.domain))
+const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180'].includes(props.domain))
 const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1))
 const spx = computed(() => deg2dms(props.sp, 1))
 const dProps = computed(() => domainStyle[props.domain])
+const isRA = computed(() => props.label === 'Right Ascension')
 
 const emit = defineEmits<{
   (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
@@ -146,6 +147,7 @@ export type DomainStyleType =
 	| 'circular_360'
 	| 'semihi_360'
 	| 'semihi_180'
+  | 'semihi_24'
 	| 'semilo_360'
 	| 'semilo_180'
 	| 'circular_180'
@@ -158,6 +160,7 @@ const domainStyle = {
 	'circular_360': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: 10, sAngleHigh: 340, dAngleFn: wrapTo360 },
 	'semihi_360':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360 },
 	'semihi_180':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo180 },
+	'semihi_24':    { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo24 },
 	'semilo_360':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
 	'semilo_180':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180 },
 	'circular_180': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180 },
@@ -292,21 +295,22 @@ function formatScaleRange(): string {
 }
 
 function formatDegrees(v: number): string {
-  return `${Math.round(v)}°`;
+  return (isRA.value) ? `${Math.round(v)}ʰ` : `${Math.round(v)}°`;
 }
 
 function formatArcMinutes(v: number): string {
   const arcmin = Math.round((v % 1) * 60);
   const deg = Math.floor(v);
-  return arcmin === 0 ? formatDegrees(deg) : `${arcmin}′`;
+  return (arcmin === 0) ? formatDegrees(deg) : 
+         (isRA.value) ? `${arcmin}ᵐ` : `${arcmin}′`;
 }
 
 function formatArcSeconds(v: number): string {
   const arcsec = Math.round((v * 3600) % 60);
   const arcmin = Math.floor((v * 60) % 60);
   const deg = Math.floor(v);
-  if (arcsec !== 0) return `${arcsec}″`;
-  if (arcmin !== 0) return `${arcmin}′`;
+  if (arcsec !== 0) return (isRA.value) ? `${arcsec}ˢ` : `${arcsec}″`;
+  if (arcmin !== 0) formatArcMinutes(deg);
   return formatDegrees(deg);
 }
 
@@ -330,15 +334,15 @@ function pushTick(
   let labelText = dFormatFn(dWrapFn(v));
 
   // Promote md ticks that look like whole degrees
-  if (['md','sm'].includes(level) && /^[+-]?\d+°$/.test(labelText)) {
+  if (['md','sm'].includes(level) && /^[+-]?\d+[°ʰ]$/.test(labelText)) {
     level = 'lg'
   } 
   // Promote sm ticks that look like whole minutes
-  if ('sm' === level  && /^[+-]?\d+′$/.test(labelText)) {
+  if ('sm' === level  && /^[+-]?\d+[′ᵐ]$/.test(labelText)) {
     level = 'md'
   } 
   // Promote sm ticks that look like 60" to whole minutes
-  if ('sm' === level  && /^[+-]?60″$/.test(labelText)) {
+  if ('sm' === level  && /^[+-]?60[″ˢ]$/.test(labelText)) {
     level = 'md'
     labelText = formatArcMinutes(v)
   } 
@@ -365,7 +369,7 @@ function pushTick(
 
   // push the label and tickmark onto the ticks array  
   ticks.push({
-    key: `tkLabel-${level}-${keyBase}`,
+    key: `${props.label}-tkLabel-${level}-${keyBase}`,
     angle,
     label: labelText,
     level: `tkLabel tk-${level} no-edit-cursor`,

@@ -44,6 +44,7 @@ export const useStatusStore = defineStore('status', {
         },
     },
     getters: {
+        deltarefRAhrs: (state): number => (state.deltaref[0]??0)/180*12,
         trackingratestr: (state): string => {
             const tr = state.trackingrate;
             return tr === 0 ? 'Sidereal' :
