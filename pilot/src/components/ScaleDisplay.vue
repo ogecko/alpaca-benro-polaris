@@ -347,8 +347,8 @@ function pushTick(
     labelText = formatArcMinutes(v)
   } 
   // Demote if we have too many degree labels
-  if (stepSize==1 && v%5!=0) level='md'
-  if (stepSize==2 && v%10!=0) level='md'
+  if (stepSize==1 && v%5!=0 && !isRA.value) level='md'
+  if (stepSize==2 && v%10!=0 && !isRA.value) level='md'
   if (stepSize==5 && v%30!=0) level='md'
   if (stepSize==10 && v%30!=0) level='md'
   if (stepSize==15 && v%90!=0) level='md'

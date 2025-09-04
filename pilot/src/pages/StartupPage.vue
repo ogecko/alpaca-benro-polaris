@@ -186,7 +186,7 @@ async function onClickScale(e: { label:string, angle: number, radialOffset: numb
     const result = await dev.alpacaSlewToCoord(ra, dec)
     console.log(`Change ${e.label} angle to ${e.angle}`,  result);
   } else if (e.label=="Declination") {
-    const ra = p.deltaref[0] ?? 0
+    const ra = p.deltarefRAhrs ?? 0
     const dec = e.angle
     const result = await dev.alpacaSlewToCoord(ra, dec)
     console.log(`Change ${e.label} angle to ${e.angle}`,  result);
