@@ -907,6 +907,9 @@ function renderScale() {
 .overlay-container .q-btn-group {
   pointer-events: auto;
 }
+.q-fab__actions--closed .q-btn {
+  pointer-events: none;     // fixes aria issues when fab buttons are hidden
+}
 .overlay-container .q-fab {
   pointer-events: auto;
 }
