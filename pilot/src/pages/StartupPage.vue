@@ -93,6 +93,7 @@
 
 <script setup lang="ts" >
 
+import { useQuasar } from 'quasar'
 import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
@@ -101,6 +102,8 @@ import ScaleDisplay  from 'src/components/ScaleDisplay.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 
+
+const $q = useQuasar()
 const route = useRoute()
 const dev = useDeviceStore()
 const p = useStatusStore()
@@ -118,7 +121,8 @@ const displayConfig = computed(() => isEquatorial.value ? [
   { label: 'Roll', pv: p.roll, sp: p.alpharef[2], scaleRange: 10, domain: 'roll_180' as DomainStyleType }
 ]);
 
-// ------------------- Lifecycle and Event Handlers ---------------------
+
+// ------------------- Lifecycle Events ---------------------
 
 onMounted(async () => {
   const apiParam = Array.isArray(route.query.api)
@@ -142,15 +146,27 @@ onMounted(async () => {
   }
 })
 
+// ------------------- Helper Functions ---------------------
+
+function cannotPerformCommand(cmd:string) {
+  if (p.atpark) {
+      $q.notify({ message: `Cannot ${cmd} while mount is parked.`, type: 'negative', position: 'top', 
+                           timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }]})
+      return true
+  }
+  return false
+}
+
+// ------------------- Event Handlers ---------------------
+
 async function onTrack() {
-  if (p.atpark) return
+  if (cannotPerformCommand('toggle tracking')) return
   const result = (p.tracking) ? await dev.alpacaTracking(false) : await dev.alpacaTracking(true);  
   console.log(result)
 }
 
 async function onTrackRate(n: number) {
-  if (p.atpark) return
-  const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaTrackingRate(n);  
+  const result = await dev.alpacaTrackingRate(n);  
   console.log(result)
 }
 
@@ -160,13 +176,14 @@ async function onPark() {
 }
 
 async function onAbort() {
-  if (p.atpark) return
+  if (cannotPerformCommand('abort')) return
   const result = await dev.alpacaAbortSlew()
   console.log(result)
 }
 
 async function onClickScale(e: { label:string, angle: number, radialOffset: number }) {
-  if (e.radialOffset<0.8 || e.radialOffset>1.25) return
+  if (cannotPerformCommand('slew')) return
+
   if (e.label=="Azimuth") {
     const az = e.angle
     const alt = p.alpharef[1] ?? 0
@@ -201,6 +218,8 @@ async function onClickScale(e: { label:string, angle: number, radialOffset: numb
 
 
 async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
+  if (cannotPerformCommand('slew')) return
+
   const az = e.az ?? p.alpharef[0] ?? 0;
   const alt = e.alt ?? p.alpharef[1] ?? 0;
   if (e.roll !== undefined) {

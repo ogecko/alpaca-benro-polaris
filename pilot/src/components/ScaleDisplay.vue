@@ -285,6 +285,9 @@ function onSvgClick(e: MouseEvent | TouchEvent) {
   const distance = Math.sqrt(dx * dx + dy * dy);
   const radialOffset = distance / dProps.value.radius;
 
+  // check that click was within the scale radial offset
+  if (radialOffset<0.8 || radialOffset>1.25) return
+
   emit('clickScale', { label: props.label, angle, radialOffset });
 }
 
