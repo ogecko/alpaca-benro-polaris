@@ -65,7 +65,10 @@
                     {label: 'Semi Hi 180', value: 'semihi_180'},
                     {label: 'Semi Hi 24', value: 'semihi_24'},
                     {label: 'Semi Lo 360', value: 'semilo_360'},
-                    {label: 'Semi Lo 180', value: 'semilo_180'},
+                    {label: 'Az', value: 'az_360'},
+                    {label: 'Alt', value: 'alt_180'},
+                    {label: 'Roll', value: 'roll_180'},
+                    {label: 'Dec', value: 'dec_180'},
                     ]"
                 />
                 <q-btn-toggle
