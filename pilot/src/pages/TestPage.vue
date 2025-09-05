@@ -41,9 +41,6 @@
                   {label: 'PA', value: 'pa_180'},
                   {label: 'Linear', value: 'linear_360'},
                   {label: 'Circular', value: 'circular_360'},
-                  {label: 'Semi Hi 360', value: 'semihi_360'},
-                  {label: 'Semi Hi 180', value: 'semihi_180'},
-                  {label: 'Semi Lo 360', value: 'semilo_360'},
                   ]"
               />
               <q-btn-toggle
