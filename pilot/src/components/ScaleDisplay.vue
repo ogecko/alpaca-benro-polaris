@@ -121,11 +121,14 @@ const showButtons = ref<boolean>(false);
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
-const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180', 'az_360', 'alt_90', 'dec_180', 'roll_180'].includes(props.domain))
 const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1, dProps.value.unit))
 const spx = computed(() => deg2dms(props.sp, 1, dProps.value.unit))
 const dProps = computed(() => domainStyle[props.domain])
+const isCircular = computed(() => [
+  'circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semilo_180', 'circular_180', 
+  'az_360', 'alt_90', 'roll_180', 'ra_24', 'dec_180', 'pa_180'
+].includes(props.domain))
 
 // events that can be emitted
 const emit = defineEmits<{
@@ -143,14 +146,15 @@ export type DomainStyleType =
 	| 'circular_360'
 	| 'semihi_360'
 	| 'semihi_180'
-  | 'semihi_24'
 	| 'semilo_360'
 	| 'semilo_180'
 	| 'circular_180'
 	| 'az_360'
 	| 'alt_90'
-	| 'dec_180'
 	| 'roll_180'
+  | 'ra_24'
+	| 'dec_180'
+	| 'pa_180'
 
 type WarningRange = [number, number];
 type DomainStyleConfig = {
@@ -174,14 +178,15 @@ const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
   'circular_360': { width:400, height:400, cx:200, cy:200, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'semihi_360':   { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'semihi_180':   { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'semihi_24':    { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12,  warnings:[] },
   'semilo_360':   { width:400, height:270, cx:200, cy:80,  radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'semilo_180':   { width:400, height:270, cx:200, cy:80,  radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'circular_180': { width:400, height:400, cx:200, cy:200, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'ra_24':        { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12,  warnings:[] },
   'az_360':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90,  sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-180, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-100,-1]] },
-  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0,    sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
   'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90,  sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-82,-170]] },
+  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0,    sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
+  'pa_180':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0,    sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
 };
 
 
@@ -634,8 +639,8 @@ function joinMarks(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = tRaw as Transition<BaseType, any, any, any>;
   const [min, max] = newScale.domain() as [number, number];
-  const [smin, smax] = newScale.range() as [number, number];
-  const smid = (smin+smax)/2
+  // const [smin, smax] = newScale.range() as [number, number];
+  // const smid = (smin+smax)/2
   const visibleMarks = marks.filter(m => isAngleBetween(m.angle ?? 0, min, max));
   const interp = movingAngleInterp(oldScale, newScale);
 
@@ -651,7 +656,7 @@ function joinMarks(
         .attr('opacity', d => determineOpacity(d, min, max))
         .attrTween('transform', d => t => {
           const angle = interp(d.angle, d.oldAngle)(t);
-          const spin = (!d.label) ? 0 : (Math.sin(smid * Math.PI / 180) > 0) ? -90 : +90;
+          const spin = (!d.label) ? 0 : (Math.sin(angle * Math.PI / 180) > 0) ? -90 : +90;
           return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         }),
 
@@ -660,7 +665,7 @@ function joinMarks(
         .each(function (d) { zOrder<MarkDatum>(this, d) })
         .attrTween('transform', d => t => {
           const angle = interp(d.angle, d.oldAngle)(t);
-          const spin = (!d.label) ? 0 : (Math.sin(smid * Math.PI / 180) > 0) ? -90 : +90;
+          const spin = (!d.label) ? 0 : (Math.sin(angle * Math.PI / 180) > 0) ? -90 : +90;
           return radialTransform(angle, radius, d.offset ?? 1.0, spin);
         }),
 
