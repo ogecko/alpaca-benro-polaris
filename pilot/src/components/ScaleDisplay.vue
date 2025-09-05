@@ -64,7 +64,7 @@
           </div>
           <div class="row text-positive text-h6 items-center q-pt-md q-gutter-xs  no-wrap text-weight-light">
             <!-- <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " /> -->
-            {{ spx.sign }}{{ spx.degrees }}°{{ spx.minutestr }}′{{ spx.secondstr }}"
+            {{ spx.sign }}{{ spx.degreestr }}{{ spx.minutestr }}{{ spx.secondstr }}
             <!-- <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-right-circle" class="" /> -->
           </div>
         </div>
@@ -73,10 +73,10 @@
         </div>
         <div class="row items-center q-gutter-xs no-wrap">
           <div class="text-h4">{{ pvx.sign }}</div>
-          <div class="text-h2 text-weight-bold">{{ pvx.degrees }}°</div>
+          <div class="text-h2 text-weight-bold">{{ pvx.degreestr }}</div>
           <div class="column">
-            <div class="text-h5 text-grey-4">{{ pvx.minutestr }}′</div>
-            <div class="text-subtitle2 text-grey-5">{{ pvx.secondstr }}"</div>
+            <div class="text-h5 text-grey-4">{{ pvx.minutestr }}</div>
+            <div class="text-subtitle2 text-grey-5">{{ pvx.secondstr }}</div>
           </div>
         </div>
       </div>
@@ -97,11 +97,12 @@ import { axisBottom } from 'd3-axis'
 import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { easeCubicOut } from 'd3-ease'
-import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo90, wrapTo24, angularDifference } from 'src/utils/angles'
+import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo90, wrapTo24, angularDifference, symbol } from 'src/utils/angles'
 import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
+import type { UnitKey } from 'src/utils/angles'
 
 const props = defineProps<{
 	scaleRange: number
@@ -127,10 +128,9 @@ const showButtons = ref<boolean>(false);
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180'].includes(props.domain))
 const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}`)
-const pvx = computed(() => deg2dms(props.pv, 1))
-const spx = computed(() => deg2dms(props.sp, 1))
+const pvx = computed(() => deg2dms(props.pv, 1, dProps.value.unit))
+const spx = computed(() => deg2dms(props.sp, 1, dProps.value.unit))
 const dProps = computed(() => domainStyle[props.domain])
-const isRA = computed(() => props.label === 'Right Ascension')
 
 const emit = defineEmits<{
   (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
@@ -153,44 +153,66 @@ export type DomainStyleType =
 	| 'circular_180'
 	| 'alt_90'
 	| 'dec_90'
-	| 'ra_hours'
 
-const domainStyle = {
-  'linear_360':   { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
-	'circular_360': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: 10, sAngleHigh: 340, dAngleFn: wrapTo360 },
-	'semihi_360':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360 },
-	'semihi_180':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo180 },
-	'semihi_24':    { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo24 },
-	'semilo_360':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360 },
-	'semilo_180':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180 },
-	'circular_180': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180 },
-	'alt_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
-	'dec_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
-	'ra_hours':     { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90 },
+type DomainStyleConfig = {
+  width: number;
+  height: number;
+  cx: number;
+  cy: number;
+  radius: number;
+  sAngleLow: number;
+  sAngleHigh: number;
+  dAngleFn: (angle: number) => number;
+  unit: UnitKey;
+  minScale: number;
+  maxScale: number;
+};
+
+const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
+  'linear_360':   { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360, unit: 'deg', minScale: 2/60, maxScale: 200 },
+	'circular_360': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: 10, sAngleHigh: 340, dAngleFn: wrapTo360, unit: 'deg', minScale: 2/60, maxScale: 200 },
+	'semihi_360':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360, unit: 'deg', minScale: 2/60, maxScale: 200 },
+	'semihi_180':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo180, unit: 'deg', minScale: 2/60, maxScale: 200 },
+	'semihi_24':    { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo24, unit: 'hr', minScale: 1/60, maxScale: 12 },
+	'semilo_360':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360, unit: 'deg', minScale: 2/60, maxScale: 200 },
+	'semilo_180':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180, unit: 'deg', minScale: 2/60, maxScale: 200 },
+	'circular_180': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180, unit: 'deg', minScale: 2/60, maxScale: 200 },
+	'alt_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90, unit: 'deg', minScale: 2/60, maxScale: 200 },
+	'dec_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90, unit: 'deg', minScale: 2/60, maxScale: 200 },
+}
+
+type Step = {
+  stepSize: number;
+  dFormatFn: (v: number) => string;
+  level: string;
+  units: UnitKey[];
 }
 
 const steps: Step[] = [
-  { stepSize: 180, dFormatFn: formatDegrees, level: 'lg' },
-  { stepSize: 90, dFormatFn: formatDegrees, level: 'lg' },
-  { stepSize: 30, dFormatFn: formatDegrees, level: 'lg' },
-  { stepSize: 15, dFormatFn: formatDegrees, level: 'lg' },
-  { stepSize: 10, dFormatFn: formatDegrees, level: 'lg' },
-  { stepSize: 5, dFormatFn: formatDegrees, level: 'lg' },
-  { stepSize: 2, dFormatFn: formatDegrees, level: 'lg' },
-  { stepSize: 1, dFormatFn: formatDegrees, level: 'lg' },
-  { stepSize: 30 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 20 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 15 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 10 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 5 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 2 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 1 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 200, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
+  { stepSize: 180, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
+  { stepSize: 90, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
+  { stepSize: 30, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
+  { stepSize: 15, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
+  { stepSize: 10, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
+  { stepSize: 6, dFormatFn: formatDegreesHr, level: 'lg', units: ['hr'] },
+  { stepSize: 5, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
+  { stepSize: 3, dFormatFn: formatDegreesHr, level: 'lg', units: ['hr'] },
+  { stepSize: 2, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg','hr'] },
+  { stepSize: 1, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg','hr'] },
+  { stepSize: 30 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
+  { stepSize: 20 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
+  { stepSize: 15 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
+  { stepSize: 10 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
+  { stepSize: 5 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
+  { stepSize: 2 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
+  { stepSize: 1 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
+  { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
+  { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
+  { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
+  { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
+  { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
+  { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
 ];
 
 
@@ -205,6 +227,7 @@ function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number}) {
   emit('clickFabAngle', payload)
 }
 
+// handle clicks on the scale and emit a clickScale event
 function onSvgClick(e: MouseEvent | TouchEvent) {
   const svg = svgElement.value;
   if (!svg) return;
@@ -250,13 +273,12 @@ function onSvgClick(e: MouseEvent | TouchEvent) {
 }
 
 
+// handle mouse wheel events while over the svg and change zoom level/scaleRange
 function onScaleWheel(e: WheelEvent) {
   e.preventDefault();
 
   const baseFactor = 1.2;   // tweak baseFactor for step sensitivity     
   const divisor = 50        // tweak divisor for magnitude sensitivity
-  const minRange = 2 / 60;
-  const maxRange = 200;
 
   const direction = Math.sign(e.deltaY);
   const magnitude = Math.abs(e.deltaY);
@@ -267,58 +289,57 @@ function onScaleWheel(e: WheelEvent) {
   newRange *= Math.pow(zoomFactor, direction);
 
   // clap the new range
-  newRange = Math.max(minRange, Math.min(maxRange, newRange));
+  newRange = Math.max(dProps.value.minScale, Math.min(dProps.value.maxScale, newRange));
   _scaleRange.value = newRange;
 }
 
+
+
+// handle click on ZOOM-IN button to decrease scaleRange
 function onScaleZoomInClick() {
   const closest = getClosestSteps(_scaleRange.value)
-  if (closest.nextDown && closest.nextDown >= 2/60) _scaleRange.value = closest.nextDown
+  if (closest.nextDown && closest.nextDown >= dProps.value.minScale) _scaleRange.value = closest.nextDown
 }
 
+// handle click on ZOOM-OUT button to increase scaleRange
 function onScaleZoomOutClick() {
   const closest = getClosestSteps(_scaleRange.value)
-  if (closest.nextUp) _scaleRange.value = closest.nextUp
+  if (closest.nextUp && closest.nextUp <= dProps.value.maxScale) _scaleRange.value = closest.nextUp
 }
 
+// handle click on top right AUTO button to change scaleRange to maxScale
 function onScaleAutoClick() {
-  _scaleRange.value = 200
+  _scaleRange.value = dProps.value.maxScale
 }
 
 // ------------------- Tick generation and Helper functions ---------------------
 
 
 function formatScaleRange(): string {
-  if (_scaleRange.value >= 1) return formatDegrees(_scaleRange.value)
+  if (_scaleRange.value >= 1) return formatDegreesHr(_scaleRange.value)
   if (_scaleRange.value >= 1/60) return formatArcMinutes(_scaleRange.value)
   return formatArcSeconds(_scaleRange.value)
 }
 
-function formatDegrees(v: number): string {
-  return (isRA.value) ? `${Math.round(v)}ʰ` : `${Math.round(v)}°`;
+function formatDegreesHr(v: number): string {
+  return `${Math.round(v)}${symbol[dProps.value.unit].d}`;
 }
 
 function formatArcMinutes(v: number): string {
   const arcmin = Math.round((v % 1) * 60);
   const deg = Math.floor(v);
-  return (arcmin === 0) ? formatDegrees(deg) : 
-         (isRA.value) ? `${arcmin}ᵐ` : `${arcmin}′`;
+  return (arcmin === 0) ? formatDegreesHr(deg) : `${arcmin}${symbol[dProps.value.unit].m}`;
 }
 
 function formatArcSeconds(v: number): string {
   const arcsec = Math.round((v * 3600) % 60);
   const arcmin = Math.floor((v * 60) % 60);
   const deg = Math.floor(v);
-  if (arcsec !== 0) return (isRA.value) ? `${arcsec}ˢ` : `${arcsec}″`;
-  if (arcmin !== 0) return (isRA.value) ? `${arcmin}ᵐ` : `${arcmin}′`;
-  return formatDegrees(deg);
+  if (arcsec !== 0) return `${arcsec}${symbol[dProps.value.unit].s}`;
+  if (arcmin !== 0) return `${arcmin}${symbol[dProps.value.unit].m}`;
+  return formatDegreesHr(deg);
 }
 
-interface Step {
-  stepSize: number;
-  dFormatFn: (v: number) => string;
-  level: string;
-}
 
 // Adds a tick and its label to the ticks array, promoting to higher label levels if appropriate and ensuring only the highest-priority tick at each angle.
 function pushTick(
@@ -347,8 +368,8 @@ function pushTick(
     labelText = formatArcMinutes(v)
   } 
   // Demote if we have too many degree labels
-  if (stepSize==1 && v%5!=0 && !isRA.value) level='md'
-  if (stepSize==2 && v%10!=0 && !isRA.value) level='md'
+  if (stepSize==1 && v%5!=0 && dProps.value.unit=='deg') level='md'
+  if (stepSize==2 && v%10!=0 && dProps.value.unit=='deg') level='md'
   if (stepSize==5 && v%30!=0) level='md'
   if (stepSize==10 && v%30!=0) level='md'
   if (stepSize==15 && v%90!=0) level='md'

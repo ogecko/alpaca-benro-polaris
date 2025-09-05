@@ -1,4 +1,13 @@
-export function deg2dms(decimalDegrees: number | undefined, precision: number) {
+export type UnitKey = 'deg' | 'hr';
+export type SymbolKey = 'd' | 'm' | 's';
+export type SymbolMap = Record<UnitKey, Record<SymbolKey, string>>;
+export const symbol: SymbolMap = {
+  deg: { d: '°', m: '′', s: '″' },
+  hr:  { d: 'ʰ', m: 'ᵐ', s: 'ˢ' },
+};
+
+
+export function deg2dms(decimalDegrees: number | undefined, precision: number = 1, unit: UnitKey = 'deg') {
 
   if (decimalDegrees === undefined) return {}
   const sign = decimalDegrees < 0 ? '-' : '+';
@@ -27,11 +36,11 @@ export function deg2dms(decimalDegrees: number | undefined, precision: number) {
     degrees += 1;
   }
 
-  // Format secondstr with fixed precision
+  // Format degreestr, minutestr, secondstr with fixed precision and relevant symbol
   const padLength = precision === 0 ? 2 : 3 + precision;
-  const secondstr = rawSeconds.toFixed(precision).padStart(padLength, '0'); // "nn.n", "nn.nn", "nn.nnn"
-  const minutestr = minutes.toString().padStart(2, '0');
-
+  const secondstr = `${rawSeconds.toFixed(precision).padStart(padLength, '0')}${symbol[unit].s}`;   // "nn.n", "nn.nn", "nn.nnn"
+  const minutestr = `${minutes.toString().padStart(2, '0')}${symbol[unit].m}`;
+  const degreestr = `${degrees.toString()}${symbol[unit].d}`;
 
   return {
     sign,
@@ -39,6 +48,7 @@ export function deg2dms(decimalDegrees: number | undefined, precision: number) {
     minutes,
     seconds,
     milliseconds,
+    degreestr,
     minutestr,
     secondstr,
   };
