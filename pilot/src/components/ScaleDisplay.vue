@@ -174,19 +174,19 @@ type DomainStyleConfig = {
 
 
 const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
-  'linear_360':   { width:400, height:400, cx:200, cy:200, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'circular_360': { width:400, height:400, cx:200, cy:200, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'semihi_360':   { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'semihi_180':   { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'semilo_360':   { width:400, height:270, cx:200, cy:80,  radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'semilo_180':   { width:400, height:270, cx:200, cy:80,  radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'circular_180': { width:400, height:400, cx:200, cy:200, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'ra_24':        { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12,  warnings:[] },
-  'az_360':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90,  sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-180, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-100,-1]] },
-  'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90,  sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-82,-170]] },
-  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0,    sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
-  'pa_180':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0,    sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
+  'linear_360':   { width:400, height:400, cx:200, cy:200, radius:150, sOffset:0,   sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'circular_360': { width:400, height:400, cx:200, cy:200, radius:150, sOffset:0,   sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'semihi_360':   { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0,   sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'semihi_180':   { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0,   sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'semilo_360':   { width:400, height:270, cx:200, cy:80,  radius:150, sOffset:0,   sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'semilo_180':   { width:400, height:270, cx:200, cy:80,  radius:150, sOffset:0,   sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'circular_180': { width:400, height:400, cx:200, cy:200, radius:150, sOffset:0,   sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'az_360':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90, sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-180,sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-100,-1]] },
+  'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-82,-170]] },
+  'ra_24':        { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0,   sRange:200, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12,  warnings:[] },
+  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
+  'pa_180':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
 };
 
 
