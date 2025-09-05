@@ -123,7 +123,6 @@ const svgElement = ref<SVGSVGElement | null>(null);
 const _scaleRange = ref<number>(200)
 const showButtons = ref<boolean>(false);
 
-
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
 const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180'].includes(props.domain))
@@ -131,6 +130,7 @@ const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.p
 const pvx = computed(() => deg2dms(props.pv, 1, dProps.value.unit))
 const spx = computed(() => deg2dms(props.sp, 1, dProps.value.unit))
 const dProps = computed(() => domainStyle[props.domain])
+
 
 const emit = defineEmits<{
   (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
@@ -185,34 +185,33 @@ type Step = {
   stepSize: number;
   dFormatFn: (v: number) => string;
   level: string;
-  units: UnitKey[];
 }
 
 const steps: Step[] = [
-  { stepSize: 200, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
-  { stepSize: 180, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
-  { stepSize: 90, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
-  { stepSize: 30, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
-  { stepSize: 15, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
-  { stepSize: 10, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
-  { stepSize: 6, dFormatFn: formatDegreesHr, level: 'lg', units: ['hr'] },
-  { stepSize: 5, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg'] },
-  { stepSize: 3, dFormatFn: formatDegreesHr, level: 'lg', units: ['hr'] },
-  { stepSize: 2, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg','hr'] },
-  { stepSize: 1, dFormatFn: formatDegreesHr, level: 'lg', units: ['deg','hr'] },
-  { stepSize: 30 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
-  { stepSize: 20 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
-  { stepSize: 15 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
-  { stepSize: 10 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
-  { stepSize: 5 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
-  { stepSize: 2 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
-  { stepSize: 1 / 60, dFormatFn: formatArcMinutes, level: 'md', units: ['deg','hr'] },
-  { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
-  { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
-  { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
-  { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
-  { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
-  { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm', units: ['deg','hr'] },
+  { stepSize: 200, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 180, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 90, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 30, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 15, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 10, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 6, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 5, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 3, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 2, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 1, dFormatFn: formatDegreesHr, level: 'lg' },
+  { stepSize: 30 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 20 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 15 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 10 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 5 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 2 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 1 / 60, dFormatFn: formatArcMinutes, level: 'md' },
+  { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
+  { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
 ];
 
 
@@ -222,6 +221,11 @@ const steps: Step[] = [
 onMounted(throttledRenderScale)
 
 watch(renderKey, throttledRenderScale)
+
+watch(dProps, () => {
+    // clap the scaleRange to the valid range for the given domain style
+  _scaleRange.value = Math.max(dProps.value.minScale, Math.min(dProps.value.maxScale, _scaleRange.value));
+})
 
 function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number}) {
   emit('clickFabAngle', payload)
