@@ -97,7 +97,7 @@ import { axisBottom } from 'd3-axis'
 import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { easeCubicOut } from 'd3-ease'
-import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo90, wrapTo24, angularDifference, symbol } from 'src/utils/angles'
+import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo24, angularDifference, symbol } from 'src/utils/angles'
 import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
@@ -112,11 +112,7 @@ const props = defineProps<{
   domain: DomainStyleType
 }>()
 
-const pathMap = { lg: 'M-8,0 L18,0', md: 'M-8,0 L14,0', sm: 'M-8,0 L11,0' };
-const offsetMap = { lg: 1.20, md: 1.165, sm: 1.13 }
-const opacityMap = { lg: 1, md: 1, sm: 0.5 }
-
-const throttledRenderScale = throttle(renderScale, 20)
+// dynamic variables/refs
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const svgElement = ref<SVGSVGElement | null>(null);
@@ -125,13 +121,13 @@ const showButtons = ref<boolean>(false);
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
-const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180'].includes(props.domain))
+const isCircular = computed(() => ['circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180', 'alt_90', 'dec_180', 'roll_180'].includes(props.domain))
 const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}`)
 const pvx = computed(() => deg2dms(props.pv, 1, dProps.value.unit))
 const spx = computed(() => deg2dms(props.sp, 1, dProps.value.unit))
 const dProps = computed(() => domainStyle[props.domain])
 
-
+// events that can be emitted
 const emit = defineEmits<{
   (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
   (e: 'clickRollLevel' ): void,
@@ -152,8 +148,10 @@ export type DomainStyleType =
 	| 'semilo_180'
 	| 'circular_180'
 	| 'alt_90'
-	| 'dec_90'
+	| 'dec_180'
+	| 'roll_180'
 
+type WarningRange = [number, number];
 type DomainStyleConfig = {
   width: number;
   height: number;
@@ -166,20 +164,29 @@ type DomainStyleConfig = {
   unit: UnitKey;
   minScale: number;
   maxScale: number;
+  warnings: WarningRange[];
 };
 
+
 const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
-  'linear_360':   { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360, unit: 'deg', minScale: 2/60, maxScale: 200 },
-	'circular_360': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: 10, sAngleHigh: 340, dAngleFn: wrapTo360, unit: 'deg', minScale: 2/60, maxScale: 200 },
-	'semihi_360':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo360, unit: 'deg', minScale: 2/60, maxScale: 200 },
-	'semihi_180':   { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo180, unit: 'deg', minScale: 2/60, maxScale: 200 },
-	'semihi_24':    { width:400, height: 270, cx: 200, cy: 190, radius: 150, sAngleLow: 170, sAngleHigh: 370, dAngleFn: wrapTo24, unit: 'hr', minScale: 1/60, maxScale: 12 },
-	'semilo_360':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo360, unit: 'deg', minScale: 2/60, maxScale: 200 },
-	'semilo_180':   { width:400, height: 270, cx: 200, cy: 80,  radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180, unit: 'deg', minScale: 2/60, maxScale: 200 },
-	'circular_180': { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo180, unit: 'deg', minScale: 2/60, maxScale: 200 },
-	'alt_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90, unit: 'deg', minScale: 2/60, maxScale: 200 },
-	'dec_90':       { width:400, height: 400, cx: 200, cy: 200, radius: 150, sAngleLow: -10, sAngleHigh: 190, dAngleFn: wrapTo90, unit: 'deg', minScale: 2/60, maxScale: 200 },
-}
+  'linear_360':   { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:-10, sAngleHigh:190, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'circular_360': { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:10,  sAngleHigh:340, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'semihi_360':   { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'semihi_180':   { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'semihi_24':    { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12,  warnings:[] },
+  'semilo_360':   { width:400, height:270, cx:200, cy:80,  radius:150, sAngleLow:-10, sAngleHigh:190, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'semilo_180':   { width:400, height:270, cx:200, cy:80,  radius:150, sAngleLow:-10, sAngleHigh:190, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'circular_180': { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:-10, sAngleHigh:190, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-100,-1]] },
+  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
+  'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-82,-170]] },
+};
+
+
+// radial dial label formatting data
+const pathMap = { lg: 'M-8,0 L18,0', md: 'M-8,0 L14,0', sm: 'M-8,0 L11,0' };
+const offsetMap = { lg: 1.20, md: 1.165, sm: 1.13 }
+const opacityMap = { lg: 1, md: 1, sm: 0.5 }
 
 type Step = {
   stepSize: number;
@@ -216,8 +223,9 @@ const steps: Step[] = [
 
 
 
-// ------------------- Lifecycle and Event handlers ---------------------
+// ------------------- Lifecycle Functions ---------------------
 
+const throttledRenderScale = throttle(renderScale, 20)
 onMounted(throttledRenderScale)
 
 watch(renderKey, throttledRenderScale)
@@ -226,6 +234,10 @@ watch(dProps, () => {
     // clap the scaleRange to the valid range for the given domain style
   _scaleRange.value = Math.max(dProps.value.minScale, Math.min(dProps.value.maxScale, _scaleRange.value));
 })
+
+
+
+// ------------------- Event handlers ---------------------
 
 function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number}) {
   emit('clickFabAngle', payload)
@@ -316,8 +328,8 @@ function onScaleAutoClick() {
   _scaleRange.value = dProps.value.maxScale
 }
 
-// ------------------- Tick generation and Helper functions ---------------------
 
+// ------------------- Tick generation and Helper functions ---------------------
 
 function formatScaleRange(): string {
   if (_scaleRange.value >= 1) return formatDegreesHr(_scaleRange.value)
@@ -411,7 +423,7 @@ function pushTick(
 }
 
 
-
+// Find the closest step tick the current number, for zoom in/out 
 function getClosestSteps(current: number): {
   nextUp?: number;
   nextDown?: number;
@@ -434,10 +446,6 @@ function getClosestSteps(current: number): {
 
   return result;
 }
-
-
-
-
 
 
 // pick the most suitable step size for the scale range
@@ -490,7 +498,7 @@ function generateTicks(scaleStart: number, scaleRange: number, dWrapFn:(v:number
 
 
 // Generates an array of ArcDatum for the given scale range, label stepSize, and number of divisions between.
-function generateArcs(low: number, high: number, stepSize: number, stepDiv: number): ArcDatum[] {
+function generateScaleArcs(low: number, high: number, stepSize: number, stepDiv: number): ArcDatum[] {
   const fractionalStep = stepSize / stepDiv
   const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
   const endAngle = beginAngle + high - low;
@@ -498,6 +506,13 @@ function generateArcs(low: number, high: number, stepSize: number, stepDiv: numb
     { key: `tkArcS-${stepSize}-${stepDiv}`, level:'tk-solid', beginAngle:low, endAngle:high, offset:1, opacity: 0.2, zorder: 'low' },
     { key: `tkArcD-${stepSize}-${stepDiv}`, level:'tk-dashed', beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low' },
   ]
+}
+
+function generateWarningArcs(low: number, high: number, stepSize: number): ArcDatum[] {
+  const arcs = dProps.value.warnings.map( w => {
+    return { key: `tkWrn-${w[0]}-${w[1]}-${stepSize}`, beginAngle:w[0], endAngle:w[1], offset:1, opacity: 0.7, zorder: 'low' } as ArcDatum
+  })
+ return arcs
 }
 
 
@@ -749,8 +764,8 @@ function renderCircularScale() {
   const low = (props.pv ?? 0) - _scaleRange.value / 2
   const high = (props.pv ?? 0) + _scaleRange.value / 2
   const { stepSize, ticks } = generateTicks(low, _scaleRange.value, dProps.value.dAngleFn)
-  const arcs = generateArcs(low, high, stepSize, 5)
-
+  const scaleArcs = generateScaleArcs(low, high, stepSize, 5)
+  const warningArcs = generateWarningArcs(low, high, stepSize)
 
   const radius = dProps.value.radius;
   const newScale = scaleLinear().domain([low, high]).range([dProps.value.sAngleLow, dProps.value.sAngleHigh]);
@@ -764,9 +779,9 @@ function renderCircularScale() {
   const t = transition().duration(200).ease(easeCubicOut) as Transition<BaseType, any, any, any>;
 
   // arcs, arc ticks, and annotations for SP and HighWarning
-  joinArcs('tkArc', group, arcs, oldScale, newScale, radius, t);
+  joinArcs('scaleArcs', group, scaleArcs, oldScale, newScale, radius, t);
+  joinArcs('warningArcs', group, warningArcs, oldScale, newScale, radius, t);
   joinArcs('tkArcPVtoSP', group, [{ beginAngle:props.pv, endAngle:props.sp, offset:1, opacity: 0.9, zorder: 'low' } as ArcDatum], oldScale, newScale, radius, t);
-  joinArcs('tkArcHighWarning', group, [{ beginAngle:92, endAngle:120, offset:1, opacity: 0.7, zorder: 'low' } as ArcDatum], oldScale, newScale, radius, t);
 
   // scale ticks and labels
   joinMarks('tkMarks', group, ticks, oldScale, newScale, radius, t);
@@ -814,14 +829,14 @@ function renderScale() {
     &.tk-sm { font-size: 12px; }
   }
 
-  .tkArc {
+  .scaleArcs {
     fill: none;
     stroke-width: 16;
     &.tk-dashed { stroke: lightskyblue; }
     &.tk-solid { stroke: lightskyblue; }
   }
 
-  .tkArcHighWarning {
+  .warningArcs {
     fill: none;
     stroke-width: 12;
     stroke: var(--q-warning); 
