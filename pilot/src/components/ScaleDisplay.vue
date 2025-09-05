@@ -154,18 +154,18 @@ export type DomainStyleType =
 
 type WarningRange = [number, number];
 type DomainStyleConfig = {
-  width: number;
-  height: number;
-  cx: number;
-  cy: number;
-  radius: number;
-  sOffset: number;
-  sRange: number;
-  dAngleFn: (angle: number) => number;
-  unit: UnitKey;
-  minScale: number;
-  maxScale: number;
-  warnings: WarningRange[];
+  width: number;      // width of the svg in px
+  height: number;     // height of the svg in px
+  cx: number;         // center of the scale circle in px (x coord)
+  cy: number;         // center of the scale circle in px (y coord)
+  radius: number;     // radius of the scale in px
+  sOffset: number;    // what angle is zero on the screen 0=RHS, -90=Top (az), -180=LHS (Alt) 
+  sRange: number;     // screen angle range visible, typically 200 degrees
+  dAngleFn: (angle: number) => number;  // function used to wrap the unit eg wrapTo360, wrapTo180 etc.
+  unit: UnitKey;      // what unit are we representing 'deg' or 'hr'
+  minScale: number;   // what is the minimum domain scaleRange that we can zoom into (eg 2/60 of an arc second)
+  maxScale: number;   // What is the maximum domain scaleRange that we can zoom out to (eg 200 degrees to match sRange at 0 zero)
+  warnings: WarningRange[];  // an array of tuples [begin, end] of each warning zone (in domain angles)
 };
 
 
@@ -178,9 +178,9 @@ const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
   'semilo_360':   { width:400, height:270, cx:200, cy:80,  radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'semilo_180':   { width:400, height:270, cx:200, cy:80,  radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'circular_180': { width:400, height:400, cx:200, cy:200, radius:150, sOffset:0, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'az_360':       { width:400, height:270, cx:200, cy:200, radius:150, sOffset:-90,  sRange:270, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:270, warnings:[] },
+  'az_360':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90,  sRange:200, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-180, sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-100,-1]] },
-  'dec_180':      { width:400, height:270, cx:200, cy:200, radius:150, sOffset:0,    sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
+  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sOffset:0,    sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[91,170],[-91,-170]] },
   'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sOffset:-90,  sRange:200, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,170],[-82,-170]] },
 };
 
