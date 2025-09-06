@@ -5,13 +5,7 @@
 
     <StatusBanners />
 
-    <div v-if="!dev.restAPIConnected" >
-      <q-banner inline-actions rounded class="bg-warning">
-        WARNING: You have lost connection to the Alpaca Driver. This app is offline.
-        <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
-      </q-banner>
-    </div>
-    <div v-else>
+    <div>
       <!-- Header Row -->
       <div class="row q-pb-sm q-col-gutter-md items-center">
         <div class="col text-h6 q-ml-md">
