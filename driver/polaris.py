@@ -1709,6 +1709,16 @@ class Polaris:
     # Methods
     ####################################################################
 
+    def markGotoAsUnderway(self):
+        with self._lock:
+            self._slewing = True
+            self._gotoing = True
+
+    def markGotoAsComplete(self):
+        with self._lock:
+            self._slewing = False
+            self._gotoing = False
+
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
         a_alt = altitude
         a_az = azimuth
@@ -1743,9 +1753,12 @@ class Polaris:
             self.logger.info(f"->> Polaris: GOTO ASCOM   Alt {deg2dms(a_alt)} Az {deg2dms(a_az)}")
             self.logger.info(f"->> Polaris: GOTO POLARIS Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} | SyncOffset (Alt {deg2dms(o_alt)} Az {deg2dms(o_az)})")
 
+
         if Config.advanced_control and Config.advanced_goto:
             self.logger.info(f"->> Advanced Contro: GOTO Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} | SyncOffset (Alt {deg2dms(o_alt)} Az {deg2dms(o_az)})")
+            self.markGotoAsUnderway()
             self._pid.set_alpha_target({ "az": p_az, "alt": p_alt })
+            self._pid.set_no_deviation_callback(self.markGotoAsComplete)
         else:
             if isasync:
                     asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
