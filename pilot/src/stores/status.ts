@@ -8,6 +8,7 @@ export type StatusResponse = ReturnType<typeof useStatusStore>['$state']
 export const useStatusStore = defineStore('status', {
     state: () => ({
         fetchedAt: 0,             // local timestamp of when config was last fetched
+        polarismode: 0,
         battery_is_available: false,
         battery_is_charging: false,
         battery_level: 0,

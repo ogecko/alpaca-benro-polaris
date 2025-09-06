@@ -122,7 +122,7 @@ class Polaris:
             '519': asyncio.Queue(),                 # queue for GOTO result (2 return msgs per GOTO)
             '531': asyncio.Queue()                  # queue for TRACK result
         }
-        self._current_mode = -1                     # Current Mode of the Polaris Device (8 = Astro, 1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=HolyG 10=Video, )
+        self._polaris_mode = -1                     # Current Mode of the Polaris Device (1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=Sun, 8=**Astro**, 9=Program, 10=Video )
         self._polaris_msg_re = re.compile(r'^(\d\d\d)@([^#]*)#')
         self._every_50ms_msg_to_send = None         # Fast Move message to send every 50ms
         self._every_50ms_counter = 0                # Fast Move counter, incrementing every 50ms up to 1s
@@ -632,7 +632,7 @@ class Polaris:
         if cmd == "284":
             arg_dict = self.polaris_parse_args(args)
             with self._lock:
-                self._current_mode = int(arg_dict['mode'])
+                self._polaris_mode = int(arg_dict['mode'])
                 if not Config.advanced_tracking:        # if we are not doing tracking then update tracking status based on what Benro tells us 
                     self._tracking = bool(arg_dict['track'] == '1') if 'track' in arg_dict else False
             if Config.log_polaris_polling:
@@ -1269,6 +1269,7 @@ class Polaris:
     def getStatus(self) -> dict:
         with self._lock:
             res = {
+                'polarismode': self._polaris_mode,
                 'battery_is_available': self._battery_is_available,
                 'battery_is_charging': self._battery_is_charging,
                 'battery_level': self._battery_level,
