@@ -241,7 +241,6 @@ class Polaris:
         # Telescope method constants
         #
         self._axisrates = [{ "Maximum":9, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
-        self._axis_Polaris_slewing_rates = [ 0, 0, 0 ]   # Records the Polaris move rate of the primary, seconday and tertiary axis
         self._axis_ASCOM_slewing_rates = [ 0, 0, 0 ]     # Records the ASCOM move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
 
@@ -1766,9 +1765,8 @@ class Polaris:
         if axis not in (0, 1, 2):
             raise ValueError(f"Invalid axis index: {axis}. Must be 0, 1, or 2.")
         with self._lock:
-            current_speeds = [motor.rate_dps for motor in self._motors.values()]
-            current_speeds[axis] = rate
-            self._slewing = any(current_speeds)
+            self._axis_ASCOM_slewing_rates[axis] = rate
+            self._slewing = any(self._axis_ASCOM_slewing_rates)
         motor = self._motors[axis]
         if Config.advanced_control and Config.advanced_slewing:
             raw = motor._model.interpolate[units].toRAW(rate)
@@ -1781,6 +1779,7 @@ class Polaris:
 
     async def stop_all_axes(self):
         with self._lock:
+            self._axis_ASCOM_slewing_rates = [0,0,0]
             self._slewing = False
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: STOP all axes")

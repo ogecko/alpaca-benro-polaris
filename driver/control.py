@@ -38,7 +38,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca pilot floating action buttons for quick axis settings (az, alt, roll)
 # [X] Alpaca pilot goto RA, Dec, PA with click on Radial Indicators
 # [X] Alpaca pilot radial scales to show warning limits on angles
-# [ ] Implement slewing and gotoing state monitoring
+# [X] Implement slewing state monitoring
+# [ ] Implement gotoing state monitoring
 # [ ] Ensure polaris tracking is off when enabling advanced tracked
 # [ ] Ensure pid is IDLE when parking
 # [ ] Indicate speed on Alpaca Dashboard
