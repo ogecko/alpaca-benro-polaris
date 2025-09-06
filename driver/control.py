@@ -40,7 +40,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca pilot goto RA, Dec, PA with click on Radial Indicators
 # [X] Alpaca pilot radial scales to show warning limits on angles
 # [ ] Implement slewing and gotoing state monitoring
-# [ ] Improve blocking of pid when parked
+# [ ] Ensure polaris tracking is off when enabling advanced tracked
+# [ ] Ensure pid is IDLE when parking
 # [ ] Indicate speed on Alpaca Dashboard
 # [ ] Auto set scales based on speed
 # [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, 
