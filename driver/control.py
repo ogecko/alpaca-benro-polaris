@@ -37,15 +37,18 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca pilot commands for Eq-Az toggle, park, unpark, abort, track, tracking rate
 # [X] Alpaca pilot goto Az, Alt, Roll with click on Radial Indicators
 # [X] Alpaca pilot floating action buttons for quick axis settings (az, alt, roll)
-# [ ] Alpaca pilot goto RA, Dec, PA with click on Radial Indicators
-# [ ] Alpaca pilot radial scales to show warning limits on angles
+# [X] Alpaca pilot goto RA, Dec, PA with click on Radial Indicators
+# [X] Alpaca pilot radial scales to show warning limits on angles
+# [ ] Implement slewing and gotoing state monitoring
+# [ ] Improve blocking of pid when parked
 # [ ] Indicate speed on Alpaca Dashboard
 # [ ] Auto set scales based on speed
-# [ ] Implement slewing and gotoing state monitoring
 # [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, 
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca pilot better feature degredation when not ABP
+# [ ] Alpaca memory and logevity tests
 # Connection
+# [ ] Alpaca pilot work outside of Astro Mode
 # [ ] Implement Benro Polaris Connection process and diagnostics
 # [ ] Implement Benro Polaris Wifi On 
 # Performance
