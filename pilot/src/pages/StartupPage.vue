@@ -60,7 +60,7 @@
             :label="cfg.label"
             :pv="cfg.pv"
             :sp="cfg.sp"
-            :scaleRange="cfg.scaleRange"
+            :lst="p.siderealtime"
             :domain="cfg.domain"
             @clickScale="onClickScale"
             @clickFabAngle="onClickFabAngle"
@@ -112,13 +112,13 @@ const isEquatorial = ref<boolean>(false)
 // ------------------- Layout Configuration Data ---------------------
 
 const displayConfig = computed(() => isEquatorial.value ? [
-  { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, scaleRange: 10, domain: 'ra_24' as DomainStyleType },
-  { label: 'Declination', pv: p.declination, sp: p.deltaref[1], scaleRange: 10, domain: 'dec_180' as DomainStyleType },
-  { label: 'Position Angle', pv: p.rotation, sp: p.deltaref[2], scaleRange: 10, domain: 'pa_180' as DomainStyleType }
+  { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, domain: 'ra_24' as DomainStyleType },
+  { label: 'Declination', pv: p.declination, sp: p.deltaref[1], domain: 'dec_180' as DomainStyleType },
+  { label: 'Position Angle', pv: p.rotation, sp: p.deltaref[2], domain: 'pa_180' as DomainStyleType }
 ] : [
-  { label: 'Azimuth', pv: p.azimuth, sp: p.alpharef[0], scaleRange: 10, domain: 'az_360' as DomainStyleType },
-  { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], scaleRange: 10, domain: 'alt_90' as DomainStyleType },
-  { label: 'Roll', pv: p.roll, sp: p.alpharef[2], scaleRange: 10, domain: 'roll_180' as DomainStyleType }
+  { label: 'Azimuth', pv: p.azimuth, sp: p.alpharef[0], domain: 'az_360' as DomainStyleType },
+  { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType },
+  { label: 'Roll', pv: p.roll, sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType }
 ]);
 
 

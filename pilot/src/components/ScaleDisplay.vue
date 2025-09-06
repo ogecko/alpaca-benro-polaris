@@ -104,10 +104,11 @@ import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
 import type { UnitKey } from 'src/utils/angles'
 
+// Component properties
 const props = defineProps<{
-	scaleRange: number
 	pv: number | undefined
 	sp: number | undefined
+	lst?: number 
   label: string
   domain: DomainStyleType
 }>()
@@ -116,12 +117,12 @@ const props = defineProps<{
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const svgElement = ref<SVGSVGElement | null>(null);
-const _scaleRange = ref<number>(200)
+const _scaleRange = ref<number>(24)
 const showButtons = ref<boolean>(false);
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
-const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}`)
+const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}-${props.lst}`)
 const pvx = computed(() => deg2dms(props.pv, 1, dProps.value.unit))
 const spx = computed(() => deg2dms(props.sp, 1, dProps.value.unit))
 const dProps = computed(() => domainStyle[props.domain])
@@ -791,6 +792,13 @@ function renderCircularScale() {
   joinMarks('spMark', group, [{key: 'spMark', angle:props.sp, oldAngle: oldSP, path:'M-8,0 L-30,15 L-30,-15 Z', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
   joinMarks('spLine', group, [{key: 'spLine', angle:props.sp, oldAngle: oldSP, path:'M-60,0 L-15,0', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
 
+  if (props.domain=='ra_24' && props.lst) {
+     joinMarks('lstMark', group, [
+       { key: '1', angle:props.lst, path:'M-8,0 L18,0', offset:1, zorder:'high', level: 'dash'},
+       { key: '2', angle:props.lst, label:'LST', offset:1.2, zorder:'high', level: 'label'},
+     ], oldScale, newScale, radius, t);
+
+  }
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);
   // joinArcs('arcDashes', group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);
@@ -827,6 +835,17 @@ function renderScale() {
     &.tk-lg { font-size: 16px; }
     &.tk-md { font-size: 14px; }
     &.tk-sm { font-size: 12px; }
+  }
+
+  .lstMark {
+    fill: rgb(250, 166, 135);
+    &.label {
+      font-size: 16px; 
+    }
+    &.dash {
+      stroke: rgb(250, 166, 135);
+      stroke-width: 5; 
+    }
   }
 
   .scaleArcs {

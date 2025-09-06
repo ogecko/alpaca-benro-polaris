@@ -20,7 +20,7 @@
     <div flat bordered class="col ">
       <div class="row">
         <div clas="col">
-          <ScaleDisplay :pv="pv" :sp="sp" label="Azimuth" :scaleRange="12" :scaleStart="10" :domain="domainChoice" />
+          <ScaleDisplay :pv="pv" :sp="sp" :lst="lst" label="Azimuth" :domain="domainChoice" />
         </div>
         <div class="col-12 q-pa-lg q-gutter-md">
           <q-btn-toggle v-model="domainChoice" color="brown" text-color="white" toggle-color="orange"
@@ -51,6 +51,14 @@
                 <q-slider v-model="sp" :min="0" :max="360" :step="0.01" label label-always color="orange" track-color="brown" thumb-color="black" />
               </q-item-section>
             </q-item>
+            <q-item>
+              <q-item-section avatar>
+                <q-icon color="positive" name="mdi-clock-outline" >LST</q-icon>
+              </q-item-section>
+              <q-item-section>
+                <q-slider v-model="lst" :min="0" :max="24" :step="1/60" label label-always color="orange" track-color="brown" thumb-color="black" />
+              </q-item-section>
+            </q-item>
           </q-list>
         </div>
       </div>
@@ -65,6 +73,7 @@ import type { DomainStyleType } from 'components/ScaleDisplay.vue'
 
 const pv = ref<number>(0)
 const sp = ref<number>(90)
+const lst = ref<number>(10)
 const domainChoice = ref<DomainStyleType>('az_360')
 
 
