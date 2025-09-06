@@ -9,7 +9,6 @@ from typing import Optional
 import ephem
 import math
 from shr import rad2deg, deg2rad, rad2hms, deg2dms
-# import casadi as ca
 
 # ************* TODO LIST *****************
 #
