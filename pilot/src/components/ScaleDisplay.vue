@@ -117,14 +117,16 @@ const props = defineProps<{
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const svgElement = ref<SVGSVGElement | null>(null);
-const _scaleRange = ref<number>(24)
+const scaleRange = ref<number>(200)
 const showButtons = ref<boolean>(false);
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
-const renderKey = computed(() => `${props.domain}-${_scaleRange.value}-${props.pv}-${props.sp}-${props.lst}`)
-const pvx = computed(() => deg2dms(props.pv, 1, dProps.value.unit))
-const spx = computed(() => deg2dms(props.sp, 1, dProps.value.unit))
+const renderKey = computed(() => `${props.domain}-${scaleRange.value}-${props.pv}-${props.sp}-${props.lst}`)
+const pvn = computed(() => dProps.value.dAngleFn(props.pv??0))        // pv normalised
+const spn = computed(() => dProps.value.dAngleFn(props.sp??0))        // sp normalised
+const pvx = computed(() => deg2dms(pvn.value, 1, dProps.value.unit))   // pv decomposed
+const spx = computed(() => deg2dms(spn.value, 1, dProps.value.unit))   // sp decomposed
 const dProps = computed(() => domainStyle[props.domain])
 const isCircular = computed(() => [
   'circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180', 
@@ -229,8 +231,8 @@ onMounted(throttledRenderScale)
 watch(renderKey, throttledRenderScale)
 
 watch(dProps, () => {
-    // clap the scaleRange to the valid range for the given domain style
-  _scaleRange.value = Math.max(dProps.value.minScale, Math.min(dProps.value.maxScale, _scaleRange.value));
+  // clap the scaleRange to the valid range for the given domain style
+  scaleRange.value = Math.max(dProps.value.minScale, Math.min(dProps.value.maxScale, scaleRange.value));
 })
 
 
@@ -272,8 +274,8 @@ function onSvgClick(e: MouseEvent | TouchEvent) {
   if (screen_angleDeg<dProps.value.sAngleLow || screen_angleDeg>dProps.value.sAngleHigh) return
 
   // calculate inverse scaleLinear and wrap the domain angle value
-  const low = (props.pv ?? 0) - _scaleRange.value / 2
-  const high = (props.pv ?? 0) + _scaleRange.value / 2
+  const low = (props.pv ?? 0) - scaleRange.value / 2
+  const high = (props.pv ?? 0) + scaleRange.value / 2
   const inverseScale = scaleLinear().domain([dProps.value.sAngleLow, dProps.value.sAngleHigh]).range([low, high]);
   const angle = dProps.value.dAngleFn(inverseScale(screen_angleDeg));
 
@@ -302,40 +304,40 @@ function onScaleWheel(e: WheelEvent) {
   const zoomFactor = Math.pow(baseFactor, magnitude / divisor); 
 
   // Scroll down → dir is +1, zoom out; Scroll up → dir is -1, zoom in
-  let newRange = _scaleRange.value;
+  let newRange = scaleRange.value;
   newRange *= Math.pow(zoomFactor, direction);
 
   // clap the new range
   newRange = Math.max(dProps.value.minScale, Math.min(dProps.value.maxScale, newRange));
-  _scaleRange.value = newRange;
+  scaleRange.value = newRange;
 }
 
 
 
 // handle click on ZOOM-IN button to decrease scaleRange
 function onScaleZoomInClick() {
-  const closest = getClosestSteps(_scaleRange.value)
-  if (closest.nextDown && closest.nextDown >= dProps.value.minScale) _scaleRange.value = closest.nextDown
+  const closest = getClosestSteps(scaleRange.value)
+  if (closest.nextDown && closest.nextDown >= dProps.value.minScale) scaleRange.value = closest.nextDown
 }
 
 // handle click on ZOOM-OUT button to increase scaleRange
 function onScaleZoomOutClick() {
-  const closest = getClosestSteps(_scaleRange.value)
-  if (closest.nextUp && closest.nextUp <= dProps.value.maxScale) _scaleRange.value = closest.nextUp
+  const closest = getClosestSteps(scaleRange.value)
+  if (closest.nextUp && closest.nextUp <= dProps.value.maxScale) scaleRange.value = closest.nextUp
 }
 
 // handle click on top right AUTO button to change scaleRange to maxScale
 function onScaleAutoClick() {
-  _scaleRange.value = dProps.value.maxScale
+  scaleRange.value = dProps.value.maxScale
 }
 
 
 // ------------------- Tick generation and Helper functions ---------------------
 
 function formatScaleRange(): string {
-  if (_scaleRange.value >= 1) return formatDegreesHr(_scaleRange.value)
-  if (_scaleRange.value >= 1/60) return formatArcMinutes(_scaleRange.value)
-  return formatArcSeconds(_scaleRange.value)
+  if (scaleRange.value >= 1) return formatDegreesHr(scaleRange.value)
+  if (scaleRange.value >= 1/60) return formatArcMinutes(scaleRange.value)
+  return formatArcSeconds(scaleRange.value)
 }
 
 function formatDegreesHr(v: number): string {
@@ -744,7 +746,7 @@ function renderLinearScale() {
 	if (!linearGroup.value) return
 
 	const scale = scaleLinear()
-		.domain([props.pv??0 - _scaleRange.value / 2, props.pv??0 + _scaleRange.value / 2])
+		.domain([props.pv??0 - scaleRange.value / 2, props.pv??0 + scaleRange.value / 2])
 		.range([0, dProps.value.width - 40])
 
 	const axis = axisBottom(scale).ticks(10)
@@ -762,9 +764,9 @@ function renderCircularScale() {
   if (!circularGroup.value) return;
 
 
-  const low = (props.pv ?? 0) - _scaleRange.value / 2
-  const high = (props.pv ?? 0) + _scaleRange.value / 2
-  const { stepSize, ticks } = generateTicks(low, _scaleRange.value, dProps.value.dAngleFn)
+  const low = (props.pv ?? 0) - scaleRange.value / 2
+  const high = (props.pv ?? 0) + scaleRange.value / 2
+  const { stepSize, ticks } = generateTicks(low, scaleRange.value, dProps.value.dAngleFn)
   const scaleArcs = generateScaleArcs(low, high, stepSize, 5)
   const warningArcs = generateWarningArcs(low, high, stepSize)
 
