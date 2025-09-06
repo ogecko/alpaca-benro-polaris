@@ -822,7 +822,7 @@ class PID_Controller():
         self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor reference angular position
         self.error_signal = np.array([0,0,0], dtype=float)   # theta1-3 error btw theta_ref and theta_meas
         self.error_integral = np.array([0,0,0], dtype=float) # theta1-3 error btw theta_ref and theta_meas
-        self.no_deviation_callback = None                    # callback function when no longer deviating
+        self.goto_complete_callback = None                    # callback function when no longer deviating
         self.is_deviating = False                            # cost signal is > Kc Arc Minutes²
         self.is_slewing = False                              # a velicity_sp is non-zero
         self.is_tracking = False                             # tracking target body
@@ -989,9 +989,9 @@ class PID_Controller():
         self.alpha_offst[axis] = 0
         self.is_moving = True
 
-    def set_no_deviation_callback(self, fn):
+    def set_goto_complete_callback(self, fn):
         self.is_deviating = True
-        self.no_deviation_callback = fn
+        self.goto_complete_callback = fn
 
     #------- Control step functions ---------
 
@@ -1108,9 +1108,9 @@ class PID_Controller():
                 await self.controllers[axis].set_motor_speed(0)
 
     def notify(self):
-        if not self.is_deviating and self.no_deviation_callback:
-            self.no_deviation_callback()
-            self.no_deviation_callback = None
+        if not self.is_deviating and self.goto_complete_callback:
+            self.goto_complete_callback()
+            self.goto_complete_callback = None
 
     async def control_step(self):
         now = time.monotonic()

@@ -1758,7 +1758,7 @@ class Polaris:
             self.logger.info(f"->> Advanced Contro: GOTO Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} | SyncOffset (Alt {deg2dms(o_alt)} Az {deg2dms(o_az)})")
             self.markGotoAsUnderway()
             self._pid.set_alpha_target({ "az": p_az, "alt": p_alt })
-            self._pid.set_no_deviation_callback(self.markGotoAsComplete)
+            self._pid.set_goto_complete_callback(self.markGotoAsComplete)
         else:
             if isasync:
                     asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
