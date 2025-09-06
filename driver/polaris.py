@@ -251,11 +251,11 @@ class Polaris:
         self._omega_meas = None                     # The latest set of motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
-        self._motorcontrollers = {
+        self._motor = {
             axis: MotorSpeedController(logger, axis, self.send_msg)
             for axis in (0, 1, 2)
         }
-        self._pid = PID_Controller(logger, self._motorcontrollers, self._observer, loop=0.2)
+        self._pid = PID_Controller(logger, self._motor, self._observer, loop=0.2)
 
     async def shutdown(self):
         self.logger.info(f'==SHUTDOWN== Polaris stopping all tasks.')
@@ -263,7 +263,7 @@ class Polaris:
             await pid.stop_control_loop_task()
 
         for axis in range(3):
-            motor = self._motorcontrollers[axis]
+            motor = self._motor[axis]
             await motor.stop_disspatch_loop_task()
 
     ########################################
@@ -663,7 +663,7 @@ class Polaris:
             theta_meas = [theta1, theta2, theta3]
             self._history.append([dt_now, theta1, theta2, theta3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
             omega_meas = calculate_angular_velocity(self._history)
-            omega_ref = [controller.rate_dps for controller in self._motorcontrollers.values()]
+            omega_ref = [controller.rate_dps for controller in self._motor.values()]
 
             
             self._kf.predict(omega_ref)
@@ -1164,8 +1164,8 @@ class Polaris:
         start_time = time.monotonic()
         stable_tolerance = 0.05 if rate > 5 else 0.0005
         await asyncio.sleep(initial_interval)
-        rate_raw = self._motorcontrollers[axis].rate_raw    # what the controller thinks the raw rate is
-        rate_dps = self._motorcontrollers[axis].rate_dps    # what the controller thinks the dps rate is
+        rate_raw = self._motor[axis].rate_raw    # what the controller thinks the raw rate is
+        rate_dps = self._motor[axis].rate_dps    # what the controller thinks the dps rate is
         status = "OK"
 
         omega_samples = []     # deg/sec
@@ -1291,6 +1291,7 @@ class Polaris:
                 'deltaref': self._pid.delta_ref.tolist(),
                 'alpharef': self._pid.alpha_ref.tolist(),
                 'omegaref': self._pid.omega_ref.tolist(),
+                'motorref': [self._motor[0].rate_dps, self._motor[1].rate_dps, self._motor[2].rate_dps],
                 'siderealtime': self._siderealtime,
             }
         return res
@@ -1763,22 +1764,22 @@ class Polaris:
 
     async def move_axis(self, axis:int, rate:float, units="ASCOM"):
         if Config.advanced_control and Config.advanced_slewing:
-            raw = self._motorcontrollers[axis]._model.interpolate[units].toRAW(rate)
-            dps = self._motorcontrollers[axis]._model.interpolate["RAW"].toDPS(raw)
+            raw = self._motor[axis]._model.interpolate[units].toRAW(rate)
+            dps = self._motor[axis]._model.interpolate["RAW"].toDPS(raw)
             self._pid.set_alpha_axis_velocity(axis, dps)
         else:
             self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {rate} Units {units}")
             if not self._tracking:
-                await self._motorcontrollers[axis].set_motor_speed(rate, units)
+                await self._motor[axis].set_motor_speed(rate, units)
 
     async def stop_all_axes(self):
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: STOP all axes")
             self._pid.mode = "IDLE"
             self._pid.is_moving = False
-        await self._motorcontrollers[0].set_motor_speed(0, "DPS")
-        await self._motorcontrollers[1].set_motor_speed(0, "DPS")
-        await self._motorcontrollers[2].set_motor_speed(0, "DPS")
+        await self._motor[0].set_motor_speed(0, "DPS")
+        await self._motor[1].set_motor_speed(0, "DPS")
+        await self._motor[2].set_motor_speed(0, "DPS")
 
     async def stop_tracking(self):
         if Config.advanced_control and Config.advanced_tracking:

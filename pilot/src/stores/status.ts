@@ -30,6 +30,7 @@ export const useStatusStore = defineStore('status', {
         deltaref: [0,0,0],
         alpharef: [0,0,0],
         omegaref: [0,0,0],
+        motorref: [0,0,0],
     }),
 
     actions: {
