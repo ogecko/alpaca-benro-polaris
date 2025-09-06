@@ -33,7 +33,6 @@
 
       <!----- Center Tracking Info ----->
       <div class="row col-6 col-sm-4 text-positive text-h5 q-gutter-sm justify-center ">
-        {{ p.pidmode }}
         <div v-if="p.tracking">
           <span>{{p.trackingratestr}}</span> 
           <q-chip color="positive">Tracking</q-chip>
@@ -51,8 +50,8 @@
         <q-chip color="positive" :outline="!p.gotoing">
           Gotoing
         </q-chip>
-        <q-chip color="positive" :outline="p.pidmode=='IDLE'">
-          PID
+        <q-chip color="positive" :outline="['IDLE','PARK'].includes(p.pidmode)">
+          PID: {{p.pidmode}}
         </q-chip> 
       </div>
     </div>
