@@ -797,8 +797,10 @@ function renderCircularScale() {
        { key: '1', angle:props.lst, path:'M-8,0 L18,0', offset:1, zorder:'high', level: 'dash'},
        { key: '2', angle:props.lst, label:'LST', offset:1.2, zorder:'high', level: 'label'},
      ], oldScale, newScale, radius, t);
-
+  } else {
+     joinMarks('lstMark', group, [], oldScale, newScale, radius, t);
   }
+
   // joinMarks('spMark', group, [{angle:180.4, path:'M0,0 L-10,5 L-10,-5 L-10,-10 L-10,10 L2,10 L2,-10 L-10,-10 L-10,-5 Z', offset:0.85}], oldScale, newScale, radius, t);
   // joinMarks('textMark', group, [{angle:180.1, label:'test', offset:0.5}], oldScale, newScale, radius, t);
   // joinArcs('arcDashes', group, [{beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low'}], oldScale, newScale, radius, t);

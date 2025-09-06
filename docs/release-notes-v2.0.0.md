@@ -15,10 +15,12 @@
 ## New Features (Alpaca Pilot)
 - **[Modern App]**: Alpaca Pilot offers an elegant, adaptive UI for control and management of Alpaca Drivers
 - **[Responsive UI]**: Adapts seamlessly to phones, tablets, and desktops for a consistent experience across devices
+- **[Live Dashboard]**: Real-time telemetry of current Azimuth, Altitude, Roll, Right Ascension, Declination, Position Angle, and Local Sidereal Time
+- **[Interactive Dials]**: Precision radial dials with zoomable scales for accurate readout and tap-to-set angular targeting
 - **[Connection Page]**: Quickly connect to your Alpaca Driver and Benro Polaris through a clean, intuitive interface
 - **[Configuration Page]**: Instantly view and modify Alpaca Driver settings; no need to edit config.toml or restart
-- **[Map Verification]**: - Display site coordinates on an interactive map to visually confirm the location
-- **[Site Autocomplete]**: - Automatically retrieve location name, elevation, and current pressure via external web services
+- **[Map Verification]**: Display site coordinates on an interactive map to visually confirm the location
+- **[Site Autocomplete]**: Automatically retrieve location name, elevation, and current pressure via external web services
 - **[Battery Level]**: Shows charging state and battery percentage in the Alpaca Pilot heading bar
 - **[Log Streaming]**: - Support real-time remote monitoring of Alpaca Driver log activity
 - **[Nina integration]**: Launch Alpaca Pilot directly from the Settings Cogs in NINA’s Equipment tab
