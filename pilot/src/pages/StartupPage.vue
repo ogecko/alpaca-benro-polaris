@@ -68,7 +68,6 @@
         </div>
     </div>
 
-
     <!----- Logo Startup Image ----->
     <div class="row items-center q-pt-xl">
         <q-space/>

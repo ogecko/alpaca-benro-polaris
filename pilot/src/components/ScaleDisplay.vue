@@ -572,7 +572,7 @@ function arcPath(startAngle: number, endAngle: number, radius: number): string {
   const y0 = radius * Math.sin(a0);
   const x1 = radius * Math.cos(a1);
   const y1 = radius * Math.sin(a1);
-  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  const largeArc = wrapTo360(endAngle - startAngle) > 180 ? 1 : 0;
 
   return `M${x0},${y0} A${radius},${radius} 0 ${largeArc} 1 ${x1},${y1}`;
 }
