@@ -84,3 +84,54 @@ export function wrapTo90(angle: number) {
 export function wrapTo24(angle: number) {
   return ((angle % 24) + 24) % 24;
 }
+
+// calculates the RA rising and setting values for a given Declination, Lattitude and Local Sidereal Time
+export function raAtAltitudeZero(decDeg: number, latDeg: number, lstDeg: number): number[] | null {
+  const toRad = (d: number) => d * Math.PI / 180;
+  const toDeg = (r: number) => r * 180 / Math.PI;
+
+  const dec = toRad(decDeg);
+  const lat = toRad(latDeg);
+
+  const cosHA = -Math.sin(lat) * Math.sin(dec) / (Math.cos(lat) * Math.cos(dec));
+
+  if (Math.abs(cosHA) > 1) return null; // always above or below horizon
+
+  const HA1 = toDeg(Math.acos(cosHA));
+  const HA2 = -HA1;
+
+  const RA1 = (lstDeg - HA1 + 360) % 360;
+  const RA2 = (lstDeg - HA2 + 360) % 360;
+
+  return [RA1, RA2]; // rising and setting RA
+}
+
+
+// Calculate range of Dec that is always above or below the horizon
+// eg invalidDeclinationRange(-33.9)
+// Output:
+// alwaysAbove: [-90, -56.1]   // Southern circumpolar zone
+// alwaysBelow: [56.1, 90]     // Northern never-rises zone
+export function invalidDeclinationRange(latDeg: number): { alwaysAbove?: [number, number], alwaysBelow?: [number, number] } {
+  const absLat = Math.abs(latDeg);
+
+  if (absLat >= 90) {
+    // At the poles: all Dec > 0 or < 0 are always above/below
+    return latDeg > 0
+      ? { alwaysBelow: [-90, 0], alwaysAbove: [0, 90] }
+      : { alwaysBelow: [0, 90], alwaysAbove: [-90, 0] };
+  }
+
+  const decAbove = latDeg > 0
+    ? 90 - absLat
+    : -(90 - absLat);
+
+  const decBelow = latDeg > 0
+    ? -(90 - absLat)
+    : 90 - absLat;
+
+  return {
+    alwaysAbove: latDeg > 0 ? [decAbove, 90] : [-90, decAbove],
+    alwaysBelow: latDeg > 0 ? [-90, decBelow] : [decBelow, 90]
+  };
+}
