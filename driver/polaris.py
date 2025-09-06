@@ -1807,7 +1807,7 @@ class Polaris:
         if Config.advanced_control and Config.advanced_tracking:
             self.logger.info(f"Advanced Control: STOP tracking")
             self._tracking = False
-            self._pid.is_tracking = False
+            self._pid.set_tracking_off()
         else:
             # only send message if we are already tracking
             if self._tracking:
@@ -1818,7 +1818,7 @@ class Polaris:
         if Config.advanced_control and Config.advanced_tracking:
             self.logger.info(f"Advanced Control: START tracking")
             self._tracking = True
-            self._pid.is_tracking = True
+            self._pid.set_tracking_on()
         else:
             # only send message if we are not tracking and not slewing
             if not self._tracking and not self._slewing:
@@ -1837,6 +1837,7 @@ class Polaris:
             await self.stop_tracking()
             await self.stop_all_axes()
             await asyncio.sleep(2)
+            self._pid.set_pid_mode('PARK')
             await self.send_cmd_park()
         else:
             await self.stop_tracking()
@@ -1845,5 +1846,6 @@ class Polaris:
 
     async def unpark(self):
         with self._lock:
+            self._pid.set_pid_mode('IDLE')
             self._atpark = False
 

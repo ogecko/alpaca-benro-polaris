@@ -41,8 +41,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Implement slewing state monitoring
 # [X] Implement gotoing state monitoring
 # [X] Alpaca pilot to restrict pid max velocity and accel in real time
+# [X] Explicit pid mode changes, add a 'PARK' mode, ensure no pid activity while parked.
 # [ ] Ensure polaris tracking is off when enabling advanced tracked
-# [ ] Ensure pid is IDLE when parking
 # [ ] Indicate speed on Alpaca Dashboard
 # [ ] Auto set scales based on speed
 # [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, 
@@ -812,7 +812,7 @@ class PID_Controller():
         self.body._epoch = ephem.J2000                       # default to J2000 epoch
         self.body_pa_offset = 0                              # used to store body pa to oconvert back to roll
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
-        self.mode = 'IDLE'                                   # PID Controller mode: IDLE, AUTO, TRACK
+        self.mode = 'IDLE'                                   # PID Controller mode: PARK, IDLE, AUTO, TRACK
         self.target_type = 'NONE'                            # target body we are tracking
         self.delta_sp = np.array([0,0,0], dtype=float)       # Setpoint for ra, dec, polar anglular positions
         self.alpha_sp = np.array([0,0,0], dtype=float)       # Setpoint for az, alt, roll angular positions
@@ -924,26 +924,35 @@ class PID_Controller():
     #------- Functions to change SP, Targets and Mode ---------
 
     def set_tracking_on(self):
+        if self.mode=="PARK":
+            return
         if self.mode=="AUTO":
             track_target = self.alpha_ref.copy()
         else:
             track_target = self.alpha_meas.copy()
         self.reset_offsets()
-        self.is_tracking = True
         self.alpha_sp = track_target
         self.alpha2body(track_target)
         self.delta_sp = self.body2delta()
-        self.is_moving = True
+        self.set_pid_mode('TRACK')
     
     def set_tracking_off(self):
-        self.is_tracking = False
-        self.is_moving = True       # Push it into AUTO mode
+        if self.mode=="PARK":
+            return
+        if self.mode == 'TRACK':
+            self.set_pid_mode('AUTO')
+
+    def set_pid_mode(self, newMode):
+        if newMode in ['PARK', 'IDLE', 'AUTO', 'TRACK']:
+            self.mode = newMode
 
     def set_no_target(self):
         self.target_type = "NONE"
         self.reset_offsets()
 
     def set_alpha_target(self, sp: dict[str, float]):
+        if self.mode=="PARK":
+            return
         self.reset_offsets()
         self.target_type = "ALPHA"
         # Safely update alpha_sp components if provided
@@ -952,73 +961,97 @@ class PID_Controller():
         self.alpha_sp[2] = sp.get("roll", self.alpha_sp[2])
         self.alpha2body(self.alpha_sp)
         self.delta_sp = self.body2delta()
-        self.is_moving = True
+        if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
 
     def set_alpha_axis_velocity(self, axis, sp=0.0):
+        if self.mode=="PARK":
+            return
         self.alpha_v_sp[axis] = sp
+        if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
 
     def set_delta_target(self, delta):
+        if self.mode=="PARK":
+            return
         self.reset_offsets()
         self.target_type = "DELTA"
         self.delta_sp = delta
+        if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
 
     def set_delta_axis_position(self, axis, sp=0.0):
+        if self.mode=="PARK":
+            return
         self.delta_sp[axis] = sp
         self.delta_v_sp[axis] = 0
         self.delta_offst[axis] = 0
+        if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
         
     def set_delta_axis_position_relative(self, axis, sp=0.0):
+        if self.mode=="PARK":
+            return
         self.delta_sp[axis] = self.delta_sp[axis] + sp
         self.delta_v_sp[axis] = 0
         self.delta_offst[axis] = 0
+        if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
 
     def set_delta_axis_velocity(self, axis, sp=0.0):
+        if self.mode=="PARK":
+            return
         self.delta_v_sp[axis] = sp
+        if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
     
     def pulse_delta_axis(self, axis, duration, direction=1, sp=0.0020833):
+        if self.mode!="TRACK":
+            return
         # default guide rate is 0.50x sidereal rate (in the positive direction)
         pulse = np.array([0,0,0], dtype=float)
         pulse[axis] = direction * sp
         self.delta_offst = clamp_delta(self.delta_offst + duration * pulse)
 
     def set_TLE_target(self, line1, line2, line3):
+        if self.mode=="PARK":
+            return
         self.reset_offsets()
         self.target_type = "TLE"
         self.target['lines'] = [line1, line2, line3]
         self.reset_offsets()
+        if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
     
     def set_XEphem_target(self, line):
+        if self.mode=="PARK":
+            return
         self.reset_offsets()
         self.target_type = "XEPHEM"
         self.target['line'] = line
+        if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
 
     def rotator_move_relative(self, sp=0.0):
+        if self.mode=="PARK":
+            return
         axis=2
         self.alpha_sp[axis] = self.alpha_sp[axis] + sp
         self.alpha_v_sp[axis] = 0
         self.alpha_offst[axis] = 0
-        self.is_moving = True
+        if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
 
     def set_goto_complete_callback(self, fn):
         self.is_deviating = True
         self.goto_complete_callback = fn
+              
 
     #------- Control step functions ---------
 
     def track_target(self):
-        # update MODE transitions
-        if self.is_tracking:
-            if self.mode != 'TRACK':
-                self.mode = 'TRACK'
-        elif self.is_moving:
-            if self.mode != 'AUTO':
-                self.mode = 'AUTO'
-        elif not self.is_moving:
-            if self.mode !='IDLE':
-                self.mode = 'IDLE'
-
         # Update alpha_ref based on current mode
-        if self.mode == 'IDLE':
+        if self.mode in ['IDLE', 'PARK']:
             self.alpha2body(self.alpha_meas)
             self.delta_ref = self.body2delta()           
             self.delta_sp = self.body2delta()            
@@ -1068,7 +1101,9 @@ class PID_Controller():
         self.is_deviating = self.cost_signal > (self.Kc / 60) ** 2
         self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
         self.was_moving = self.is_moving
-        self.is_moving = self.is_deviating or self.is_slewing or self.is_tracking
+        self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
+        if not self.is_moving and self.mode=='AUTO':
+            self.set_pid_mode('IDLE')
     
     def pid(self):
         self.omega_tgt = self.Kp * self.error_signal + self.Ki * self.error_integral - self.Kd * self.omega_op
@@ -1109,7 +1144,7 @@ class PID_Controller():
                 raw = round(raw,0)  # no fractional SLOW commands
                 self.omega_op[axis] = self.controllers[axis]._model.RAW.toDPS(raw)
         # send control to motor when moving
-        if self.is_moving:
+        if self.is_moving and self.mode in ['AUTO', 'TRACK']:
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=False)
         # Stop motors when transitioning from moving to stopped

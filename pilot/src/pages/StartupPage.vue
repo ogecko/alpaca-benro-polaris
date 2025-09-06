@@ -33,6 +33,7 @@
 
       <!----- Center Tracking Info ----->
       <div class="row col-6 col-sm-4 text-positive text-h5 q-gutter-sm justify-center ">
+        {{ p.pidmode }}
         <div v-if="p.tracking">
           <span>{{p.trackingratestr}}</span> 
           <q-chip color="positive">Tracking</q-chip>
