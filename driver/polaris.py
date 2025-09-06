@@ -490,6 +490,7 @@ class Polaris:
 
     def altaz2radec(self, alt, az):
         self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self._siderealtime =  self._observer.sidereal_time()/math.pi*12
         ra_rad, dec_rad = self._observer.radec_of(deg2rad(az), deg2rad(alt))
         ra = rad2hr(ra_rad)  
         dec = rad2deg(dec_rad)
@@ -1385,8 +1386,7 @@ class Polaris:
     @property
     def siderealtime(self) -> float:
         with self._lock:
-            self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
-            res =  self._observer.sidereal_time()/2/math.pi*24
+            res =  self._siderealtime
         return res
 
     @property
