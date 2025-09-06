@@ -40,6 +40,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca pilot radial scales to show warning limits on angles
 # [X] Implement slewing state monitoring
 # [X] Implement gotoing state monitoring
+# [X] Alpaca pilot to restrict pid max velocity and accel in real time
 # [ ] Ensure polaris tracking is off when enabling advanced tracked
 # [ ] Ensure pid is IDLE when parking
 # [ ] Indicate speed on Alpaca Dashboard
@@ -48,6 +49,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca pilot better feature degredation when not ABP
 # [ ] Alpaca memory and logevity tests
+
 # Connection
 # [ ] Alpaca pilot work outside of Astro Mode
 # [ ] Implement Benro Polaris Connection process and diagnostics
@@ -800,7 +802,7 @@ class MoveAxisMessenger:
 
 
 class PID_Controller():
-    def __init__(self, logger, controllers, observer, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Ka=3.0, Kv=None, Kc=1.0, loop=None):
+    def __init__(self, logger, controllers, observer, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Kc=1.0, loop=None):
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
         self._lock = asyncio.Lock()                          # Used to ensure no threading issues
         self.logger = logger                                 # Logging utility
@@ -845,20 +847,28 @@ class PID_Controller():
         self.Kd = Kd    # Derivative Gain - reduce control when angular velocity higher (damping)
         self.Ke = Ke    # Expotential Smoothing - how much of current value to mix (0=None)
         self.Kc = Kc    # Number of Arc-Minutes error to accept as not deviating
-        self.Ka = self.Ka_array(Ka) # Maximum acceleration (float: degrees per seconds² or array(3): degrees per seconds²
-        self.Kv = self.Kv_array(Kv) # Maximum velocity (float: degrees per second or array(3): degrees per seconds or None: (maxDSP from controller)
+        self.set_Ka_array(Config.max_accel_rate) # Maximum acceleration (float: degrees per seconds² or array(3): degrees per seconds²
+        self.set_Kv_array(Config.max_slew_rate)  # Maximum velocity (float: degrees per second or array(3): degrees per seconds or None: (maxDSP from controller)
         
         if Config.advanced_control and self.control_loop_duration:
             asyncio.create_task(self._control_loop())
 
     #------- Helper functions ---------
+    def set_Ka_array(self, Ka):
+        if isinstance(Ka, (list, tuple)):
+            self.Ka = np.array(Ka, dtype=float)
+        elif isinstance(Ka, float) and Ka>0 and Ka<10:
+            self.Ka = np.array([Ka, Ka, Ka], dtype=float)
+        else:
+            self.Ka = np.array([3,3,3], dtype=float)
 
-    def Ka_array(self, Ka):
-        return Ka if isinstance(Ka, np.ndarray) else np.array([Ka, Ka, Ka], dtype=float)
-
-    def Kv_array(self, Kv):
-        maxKv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
-        return maxKv if Kv is None else Kv if isinstance(Kv, np.ndarray) else np.array([Kv, Kv, Kv], dtype=float) 
+    def set_Kv_array(self, Kv):
+        if  isinstance(Kv, (list, tuple)):
+            self.Kv = np.array(Kv, dtype=float)
+        elif isinstance(Kv, float) and Kv>0 and Kv<10:
+            self.Kv = np.array([Kv, Kv, Kv], dtype=float) 
+        else:
+            self.Kv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
 
     def reset_offsets(self):
         self.reset_delta_offsets()

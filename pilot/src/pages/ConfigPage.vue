@@ -80,9 +80,15 @@
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_rotator', 'Alpaca Rotator')"/>
               </div>
-              <div class="row q-pt-md q-pl-md q-col-gutter-lg">
-                  <q-input class='col-4' v-bind="bindField('max_slew_rate', 'Max Slew Rate', '°/s')" type="number" input-class="text-right"/>
-                  <q-input class='col-4' v-bind="bindField('max_accel_rate', 'Max Accel Rate', '°/s²')" type="number" input-class="text-right"/>
+              <div class="text-caption text-grey-6 q-pt-md">Restrict the motor controller’s peak slew rate and how quickly it will accelerate.</div>
+              <div class="row">
+                  <q-toggle class='col-6' v-model="isRestricted">Restrict Slew and Acceleration Rates</q-toggle>
+              </div>
+              <div v-if="isRestricted" class="row q-pl-md q-gutter-xl">
+                  <q-input class='col-4' v-bind="bindField('max_slew_rate', 'Max Slew Rate', '°/s')" 
+                           type="number" :rules="max_rate_rules" input-class="text-right"/>
+                  <q-input class='col-4' v-bind="bindField('max_accel_rate', 'Max Acceleration Rate', '°/s²')" 
+                           type="number" :rules="max_rate_rules" input-class="text-right"/>
               </div>
             </div>
           </q-card>
@@ -148,7 +154,7 @@
 <script setup lang="ts">
 // import axios from 'axios'
 import { useQuasar, debounce } from 'quasar'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useConfigStore } from 'src/stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { PollingManager } from 'src/utils/polling';
@@ -161,8 +167,23 @@ import StatusBanners from 'src/components/StatusBanners.vue'
 const $q = useQuasar()
 const dev = useDeviceStore()
 const cfg = useConfigStore()
-
 const poll = new PollingManager()
+const max_rate_rules = [ 
+  (x:number) => x>0 || 'Rate must be greater than zero',
+  (x:number) => x<9 || 'Rate must be less than 9.0'
+]
+
+const isRestricted = ref<boolean>(cfg.max_slew_rate!=0)
+watch(isRestricted, (isRestrictedNewValueTrue)=>{
+  if (isRestrictedNewValueTrue) {
+    cfg.max_slew_rate = 8.5
+    cfg.max_accel_rate = 3
+  } else {
+    cfg.max_slew_rate = 0
+    cfg.max_accel_rate = 0
+  }
+  put({max_slew_rate: cfg.max_slew_rate, max_accel_rate: cfg.max_accel_rate})
+})
 
 onMounted(async () => {
   const shouldFetch =

@@ -33,8 +33,8 @@ advanced_goto = false                       # Perform advanced goto slewing in A
 advanced_tracking = false                   # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
 advanced_rotator = true                     # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
 advanced_guiding = false                    # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
-max_slew_rate = 8.5                         # Maximum slew rate (degrees/s) on any motor axis (when using advanced control)
-max_accel_rate = 1.0                        # Maximum acceleration (degress/s2) on any motor axis (when using advanced controls)
+max_slew_rate = 8.5                         # Maximum slew rate (0 to 8.5 degrees/s) on any motor axis (use 0 to set calibrated max)
+max_accel_rate = 3.0                        # Maximum acceleration (0.5 to 5.0 degress/s2) on any motor axis (use 0 to set default)
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.

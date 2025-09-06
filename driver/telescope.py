@@ -1523,3 +1523,8 @@ def make_params_live(changed_params):
             polaris.siteelevation = Config.site_elevation
         elif param == "site_pressure":
             polaris.sitepressure = Config.site_pressure
+        elif param == "max_accel_rate":        
+            polaris._pid.set_Ka_array(Config.max_accel_rate)
+        elif param == "max_slew_rate":
+            polaris._pid.set_Kv_array(Config.max_slew_rate)
+
