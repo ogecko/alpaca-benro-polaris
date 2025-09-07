@@ -138,7 +138,7 @@ const isCircular = computed(() => [
 const emit = defineEmits<{
   (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
   (e: 'clickFabAngle', payload: { az?: number, alt?: number, roll?: number }): void,
-  (e: 'clickMove', payload: { label: string, rate: number} ): void,
+  (e: 'clickMove', payload: { label: string, rateScale: number} ): void,
 }>();
 
 
@@ -336,13 +336,12 @@ function onScaleAutoClick() {
 
 // handle click on movePlus
 function onPlus(payload: { isPressed: boolean }) {
-  emit('clickMove', { label: props.label, rate: payload.isPressed ? scaleRange.value: 0})
+  emit('clickMove', { label: props.label, rateScale: payload.isPressed ? scaleRange.value: 0})
 }
 
 // handle click on moveMinus
 function onMinus(payload: { isPressed: boolean }) {
-  emit('clickMove', { label: props.label, rate: payload.isPressed ? -scaleRange.value: 0})
-
+  emit('clickMove', { label: props.label, rateScale: payload.isPressed ? -scaleRange.value: 0})
 }
 
 // ------------------- Tick generation and Helper functions ---------------------

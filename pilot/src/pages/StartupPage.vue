@@ -194,6 +194,7 @@ async function onAbort() {
   console.log(result)
 }
 
+
 async function onClickScale(e: { label:string, angle: number, radialOffset: number }) {
   if (cannotPerformCommand('slew')) return
 
@@ -244,8 +245,14 @@ async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
   console.log('Fab Angle:', e);
 }
 
-function onClickMove(e: { label: string, rate: number}) {
-  console.log('ClickMove ', e.label, e.rate)
+async function onClickMove(e: { label: string, rateScale: number}) {
+  console.log('ClickMove ', e.label, e.rateScale)
+  if (e.label=="Azimuth") {
+    const axis = 0
+    const rate = e.rateScale / 200*9
+    const result = await dev.alpacaMoveAxis(axis, rate)
+    console.log(`Move ${e.label} rate ${rate}`,  result);
+  } 
 }
 
 </script>
