@@ -160,7 +160,8 @@ class Polaris:
         #
         self._connections = {}                      # Dictionary of client's connection status True/False
         self._connected: bool = False               # Polaris connection status. True if any client is connected. False when all clients have left.
-        self._tracking: bool = False                # The state of the telescope's sidereal tracking drive.
+        self._tracking: bool = False                # The state of the ASCOM telescope's sidereal tracking drive.
+        self._tracking_in_benro: bool = False       # The state of the Benro Polaris tracking mode.
         self._sideofpier: int = -1                  # Indicates the pointing state of the mount. Unknown = -1
         self._athome: bool = False                  # True if the telescope is stopped in the Home position. Set only following a FindHome() operation, and reset with any slew operation. This property must be False if the telescope does not support homing.
         self._atpark: bool = False                  # True if the telescope has been put into the parked state by the seee Park() method. Set False by calling the Unpark() method.
@@ -633,8 +634,9 @@ class Polaris:
             arg_dict = self.polaris_parse_args(args)
             with self._lock:
                 self._polaris_mode = int(arg_dict['mode'])
-                if not Config.advanced_tracking:        # if we are not doing tracking then update tracking status based on what Benro tells us 
-                    self._tracking = bool(arg_dict['track'] == '1') if 'track' in arg_dict else False
+                self._tracking_in_benro = arg_dict.get('track') == '1'
+                if not Config.advanced_tracking:        # only update tracking if Benro in control
+                    self._tracking = self._tracking_in_benro
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: MODE status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
@@ -753,8 +755,9 @@ class Polaris:
         elif cmd == "531":
             arg_dict = self.polaris_parse_args(args)
             with self._lock:
-                if not Config.advanced_tracking:     # if we are not doing tracking then update tracking status based on what Benro tells us 
-                    self._tracking = (arg_dict['ret'] == '1')
+                self._tracking_in_benro = arg_dict.get('ret') == '1'
+                if not Config.advanced_tracking:        # only update tracking if Benro in control
+                    self._tracking = self._tracking_in_benro
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: TRACK status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
@@ -1797,32 +1800,27 @@ class Polaris:
             self._slewing = False
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: STOP all axes")
-            self._pid.mode = "IDLE"
-            self._pid.is_moving = False
+            self._pid.set_pid_mode("IDLE")
         await self._motors[0].set_motor_speed(0, "DPS")
         await self._motors[1].set_motor_speed(0, "DPS")
         await self._motors[2].set_motor_speed(0, "DPS")
 
     async def stop_tracking(self):
-        if Config.advanced_control and Config.advanced_tracking:
-            self.logger.info(f"Advanced Control: STOP tracking")
-            self._tracking = False
-            self._pid.set_tracking_off()
-        else:
-            # only send message if we are already tracking
-            if self._tracking:
-                self._tracking = False
+        self._tracking = False
+        if self._tracking_in_benro:
                 await self.send_cmd_change_tracking_state(False)
+        if self._pid.mode == "TRACK":
+            self.logger.info(f"Advanced Control: STOP tracking")
+            self._pid.set_tracking_off()
 
     async def start_tracking(self):
+        self._tracking = True
         if Config.advanced_control and Config.advanced_tracking:
             self.logger.info(f"Advanced Control: START tracking")
-            self._tracking = True
             self._pid.set_tracking_on()
         else:
             # only send message if we are not tracking and not slewing
-            if not self._tracking and not self._slewing:
-                self._tracking = True
+            if not self._tracking_in_benro and not self._slewing:
                 await self.send_cmd_change_tracking_state(True)
 
     async def park(self):

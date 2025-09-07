@@ -42,7 +42,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Implement gotoing state monitoring
 # [X] Alpaca pilot to restrict pid max velocity and accel in real time
 # [X] Explicit pid mode changes, add a 'PARK' mode, ensure no pid activity while parked.
-# [ ] Ensure polaris tracking is off when enabling advanced tracked
+# [X] Ensure polaris tracking is off when enabling advanced tracked
 # [ ] Indicate speed on Alpaca Dashboard
 # [ ] Indicate motor activity on Alpaca Dashboard
 # [ ] Auto set scales based on speed
