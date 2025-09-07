@@ -288,6 +288,9 @@ function onSvgClick(e: MouseEvent | TouchEvent) {
   // check that click was within the scale radial offset
   if (radialOffset<0.8 || radialOffset>1.25) return
 
+  // check that the buttons are visible and it wasnt an accidental scroll tap on phone
+  if (!showButtons.value) return
+
   emit('clickScale', { label: props.label, angle, radialOffset });
 }
 
