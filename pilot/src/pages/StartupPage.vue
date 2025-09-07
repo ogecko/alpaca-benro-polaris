@@ -50,7 +50,7 @@
         <q-chip color="positive" :outline="!p.gotoing">
           Gotoing
         </q-chip>
-        <q-chip color="positive" :outline="['IDLE','PARK'].includes(p.pidmode)">
+        <q-chip v-if="cfg.advanced_control" color="positive" :outline="['IDLE','PARK'].includes(p.pidmode)">
           PID: {{p.pidmode}}
         </q-chip> 
       </div>
@@ -68,6 +68,9 @@
             @clickScale="onClickScale"
             @clickFabAngle="onClickFabAngle"
           />
+        </div>
+        <div class="col-12 col-md-6 col-lg-4">
+          
         </div>
     </div>
 
@@ -100,6 +103,7 @@ import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
+import { useConfigStore } from 'src/stores/config'
 import ScaleDisplay  from 'src/components/ScaleDisplay.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
@@ -108,6 +112,7 @@ import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 const $q = useQuasar()
 const route = useRoute()
 const dev = useDeviceStore()
+const cfg = useConfigStore()
 const p = useStatusStore()
 const isEquatorial = ref<boolean>(false)
 
