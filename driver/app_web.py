@@ -85,10 +85,10 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     except asyncio.CancelledError:
         logger.info("==CANCELLED== Alpaca Web Server cancel received.")
     except Exception as e:
-        logger.info(f"==EXCEPTIION== Alpaca Web Server Unhandled exception: {e}")
+        logger.exception(f"==EXCEPTIION== Alpaca Web Server Unhandled exception: {e}")
     finally:
         # shutdown the server
         logger.info("==SHUTDOWN== Alpaca Web Server shutting down.")
-        if pilot_server and pilot_server.started and getattr(pilot_server, "_server", None):
+        if pilot_server and pilot_server.started:
             await pilot_server.shutdown()
 

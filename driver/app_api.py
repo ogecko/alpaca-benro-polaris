@@ -118,10 +118,10 @@ async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
     except asyncio.CancelledError:
         logger.info("==CANCELLED== Alpaca REST API cancel received.")
     except Exception as e:
-        logger.info(f"==EXCEPTIION== Alpaca REST API Unhandled exception: {e}")
+        logger.exception(f"==EXCEPTIION== Alpaca REST API Unhandled exception: {e}")
     finally:
         logger.info("==SHUTDOWN== Alpaca REST API shutting down.")
-        if alpaca_server and alpaca_server.started and getattr(alpaca_server, "_server", None):
+        if alpaca_server and alpaca_server.started:
             await alpaca_server.shutdown()
 
 

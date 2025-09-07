@@ -155,3 +155,6 @@ async def alpaca_socket_httpd(logger, lifecycle: LifecycleController, polaris):
         logger.info("==SHUTDOWN== Alpaca Pilot WebSocket shutting down.")
         if socket_server and socket_server.started:
             socket_server.should_exit = True
+            await socket_server.shutdown()
+
+

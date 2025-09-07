@@ -1,6 +1,8 @@
 // stores/telemetry.ts
 import { defineStore } from 'pinia'
+import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status';
+import { computed, ref } from 'vue'
 
 type LogMessage = { text: string }
 type PIDMessage = { p: number; i: number; d: number }
@@ -15,170 +17,176 @@ export type TelemetryRecord = {
 }
 
 
-const p = useStatusStore()
+export const useStreamStore = defineStore('telemetry', () => {
+  const dev = useDeviceStore()
+  const status = useStatusStore()
 
-export const useStreamStore = defineStore('telemetry', {
-  state: () => ({
-    socketHost: 'nina01' as string,
-    socketPort: 5556 as number,
-    // socketURL is computed from socketHost and socketPort
-    topics: {} as Record<string, TelemetryRecord[]>,
-    subscriptions: new Set<string>(),
-    socketConnectionStatus: 'disconnected' as 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'error',
-    lastActivity: Date.now(),
-    _socket: null as WebSocket | null,            // holder for actual WebSocket
-    _socketConnectedURL: null as string | null,   // URL of WebSocket connected
-    _pingInterval: null as ReturnType<typeof setInterval> | null,
-    _reconnectTimeout: null as ReturnType<typeof setTimeout> | null,
-    retryCount: 0,
-  }),
+  // Reactive derived config
+  const socketHost = computed(() => dev.alpacaHost)
+  const socketPort = computed(() => dev.socketAPIPort)
+  const socketURL = computed(() => `ws://${socketHost.value}:${socketPort.value}/ws`)
+  const socketConnected = computed(() => socketConnectionStatus.value === 'connected')
 
-  getters: {
-    socketURL: (state) => `ws://${state.socketHost}:${state.socketPort}/ws`,
-    socketConnected: (state) => state.socketConnectionStatus === 'connected',
-  },
+  // State
+  const socketConnectionStatus = ref<'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'error'>('disconnected')
+  const lastActivity = ref(Date.now())
+  const topics = ref<Record<string, TelemetryRecord[]>>({})
+  const subscriptions = ref(new Set<string>())
+  const _socket = ref<WebSocket | null>(null)
+  const _socketConnectedURL = ref<string | null>(null)
+  const _pingInterval = ref<ReturnType<typeof setInterval> | null>(null)
+  const _reconnectTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+  const retryCount = ref(0)
 
-  actions: {
-    connectSocket(url?: string | null) {
-      const targetUrl = url ?? this.socketURL;
-      if (!targetUrl) return;
+  // Actions (unchanged logic, just scoped)
+  function connectSocket(url?: string | null) {
+    const targetUrl = url ?? socketURL.value
+    if (!targetUrl) return
 
-      // If already connected to a different URL, disconnect first
-      if (this._socket && this._socketConnectedURL !== targetUrl) {
-        console.warn(`Switching WebSocket from ${this._socketConnectedURL} to ${targetUrl}`);
-        this.disconnectSocket(); // clean up old socket and timers
-      }
-
-      if (this._socket) return; // still connected to same URL
-
-      this.socketConnectionStatus = url ? 'connecting': 'reconnecting';
-      this._socket = new WebSocket(targetUrl);
-      this._socketConnectedURL = targetUrl
-
-      this._socket.onopen = () => {
-        this.socketConnectionStatus = 'connected'; 
-        this.lastActivity = Date.now();
-        this.retryCount = 0;
-
-        this.subscriptions.forEach(topic => this.subscribe(topic));
-
-        this.startPing();
-      };
-
-      this._socket.onmessage = (event) => {
-        this.lastActivity = Date.now(); // update activity
-        try {
-          const record = JSON.parse(event.data);
-          const topic = record.topic || record.type;
-          if (topic=='pong') {
-            // No action
-          } else if (topic=='status') {
-            p.statusUpdate(record.data)
-          } else {
-            if (!this.topics[topic]) this.topics[topic] = [];
-            this.topics[topic].push(record);
-            const MAX_RECORDS = 500;
-            if (this.topics[topic].length > MAX_RECORDS) {
-              this.topics[topic].splice(0, this.topics[topic].length - MAX_RECORDS);
-            }
-          }
-        } catch (err) {
-          console.warn('Invalid telemetry:', err);
-        }
-      };
-
-      this._socket.onerror = (event) => {
-        this.socketConnectionStatus = 'error'; 
-        console.error("WebSocket error:", event);
-      };
-
-      this._socket.onclose = (event) => {
-        this.socketConnectionStatus = 'disconnected';
-        console.warn("WebSocket closed:", event.code, event.reason);
-        this.cleanupSocket();
-        this.scheduleReconnect();
-      };
-    },
-
-    scheduleReconnect() {
-      if (this._reconnectTimeout) return;
-      this.socketConnectionStatus = 'reconnecting'; 
-
-      const delay = Math.min(1000 * Math.pow(2, this.retryCount), 10000); // exponential backoff
-      this._reconnectTimeout = setTimeout(() => {
-        this._reconnectTimeout = null;
-        this.retryCount++;
-        this.connectSocket();
-      }, delay);
-    },
-
-
-    disconnectSocket() {
-      this.socketConnectionStatus = 'disconnected';
-      this.cleanupSocket();
-      if (this._reconnectTimeout) {
-        clearTimeout(this._reconnectTimeout);
-        this._reconnectTimeout = null;
-      }
-    },
-
-    startPing() {
-      this.stopPing();
-      this._pingInterval = setInterval(() => {
-        this.ping();
-        this.checkAlive();
-      }, 5000); // every 5s
-    },
-
-    stopPing() {
-      if (this._pingInterval) {
-        clearInterval(this._pingInterval);
-        this._pingInterval = null;
-      }
-    },
-
-    ping() {
-      if (this.socketConnected && this._socket) {
-        this._socket.send(JSON.stringify({ type: 'ping' }))
-      }
-    },
-
-    checkAlive() {
-      const now = Date.now();
-      const timeout = 10000; // 10s without activity
-      if (now - this.lastActivity > timeout) {
-        console.warn("Socket appears stale, reconnecting...");
-        this.cleanupSocket();
-        this.scheduleReconnect();
-      }
-    },
-
-    cleanupSocket() {
-      this.stopPing();
-      if (this._socket) {
-        this._socket.close();
-        this._socket = null;
-      }
-    },
-
-
-    subscribe(topic: string, filter: Record<string, unknown> = {}) {
-      this.subscriptions.add(topic)
-      if (this.socketConnected && this._socket) {
-        this._socket.send(JSON.stringify({ type: 'subscribe', topic, filter }))
-      }
-    },
-
-    unsubscribe(topic: string) {
-      this.subscriptions.delete(topic)
-      this.topics[topic] = []
-      if (this.socketConnected && this._socket) {
-        this._socket.send(JSON.stringify({ type: 'unsubscribe', topic }))
-      }
-    },
-
-    clear(topic: string) {
-      this.topics[topic] = []
+    if (_socket.value && _socketConnectedURL.value !== targetUrl) {
+      console.warn(`Switching WebSocket from ${_socketConnectedURL.value} to ${targetUrl}`)
+      disconnectSocket()
     }
+
+    if (_socket.value) return
+
+    socketConnectionStatus.value = url ? 'connecting' : 'reconnecting'
+    _socket.value = new WebSocket(targetUrl)
+    _socketConnectedURL.value = targetUrl
+
+    _socket.value.onopen = () => {
+      socketConnectionStatus.value = 'connected'
+      lastActivity.value = Date.now()
+      retryCount.value = 0
+      subscriptions.value.forEach(topic => subscribe(topic))
+      startPing()
+    }
+
+    _socket.value.onmessage = (event) => {
+      lastActivity.value = Date.now()
+      try {
+        const record = JSON.parse(event.data)
+        const topic = record.topic || record.type
+        if (topic === 'pong') return
+        if (topic === 'status') {
+          status.statusUpdate(record.data)
+        } else {
+          if (!topics.value[topic]) topics.value[topic] = []
+          topics.value[topic].push(record)
+          const MAX_RECORDS = 500
+          if (topics.value[topic].length > MAX_RECORDS) {
+            topics.value[topic].splice(0, topics.value[topic].length - MAX_RECORDS)
+          }
+        }
+      } catch (err) {
+        console.warn('Invalid telemetry:', err)
+      }
+    }
+
+    _socket.value.onerror = (event) => {
+      socketConnectionStatus.value = 'error'
+      console.error("WebSocket error:", event)
+    }
+
+    _socket.value.onclose = (event) => {
+      socketConnectionStatus.value = 'disconnected'
+      console.warn("WebSocket closed:", event.code, event.reason)
+      cleanupSocket()
+      scheduleReconnect()
+    }
+  }
+
+  function scheduleReconnect() {
+    if (_reconnectTimeout.value) return
+    socketConnectionStatus.value = 'reconnecting'
+    const delay = Math.min(1000 * Math.pow(2, retryCount.value), 10000)
+    _reconnectTimeout.value = setTimeout(() => {
+      _reconnectTimeout.value = null
+      retryCount.value++
+      connectSocket()
+    }, delay)
+  }
+
+  function disconnectSocket() {
+    socketConnectionStatus.value = 'disconnected'
+    cleanupSocket()
+    if (_reconnectTimeout.value) {
+      clearTimeout(_reconnectTimeout.value)
+      _reconnectTimeout.value = null
+    }
+  }
+
+  function startPing() {
+    stopPing()
+    _pingInterval.value = setInterval(() => {
+      ping()
+      checkAlive()
+    }, 5000)
+  }
+
+  function stopPing() {
+    if (_pingInterval.value) {
+      clearInterval(_pingInterval.value)
+      _pingInterval.value = null
+    }
+  }
+
+  function ping() {
+    if (socketConnected.value && _socket.value) {
+      _socket.value.send(JSON.stringify({ type: 'ping' }))
+    }
+  }
+
+  function checkAlive() {
+    const now = Date.now()
+    const timeout = 10000
+    if (now - lastActivity.value > timeout) {
+      console.warn("Socket appears stale, reconnecting...")
+      cleanupSocket()
+      scheduleReconnect()
+    }
+  }
+
+  function cleanupSocket() {
+    stopPing()
+    if (_socket.value) {
+      _socket.value.close()
+      _socket.value = null
+    }
+  }
+
+  function subscribe(topic: string, filter: Record<string, unknown> = {}) {
+    subscriptions.value.add(topic)
+    if (socketConnected.value && _socket.value) {
+      _socket.value.send(JSON.stringify({ type: 'subscribe', topic, filter }))
+    }
+  }
+
+  function unsubscribe(topic: string) {
+    subscriptions.value.delete(topic)
+    topics.value[topic] = []
+    if (socketConnected.value && _socket.value) {
+      _socket.value.send(JSON.stringify({ type: 'unsubscribe', topic }))
+    }
+  }
+
+  function clear(topic: string) {
+    topics.value[topic] = []
+  }
+
+  return {
+    socketHost,
+    socketPort,
+    socketURL,
+    socketConnected,
+    socketConnectionStatus,
+    lastActivity,
+    topics,
+    subscriptions,
+    connectSocket,
+    disconnectSocket,
+    subscribe,
+    unsubscribe,
+    clear,
   }
 })

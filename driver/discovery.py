@@ -103,7 +103,7 @@ class AsyncDiscoveryResponder:
         except asyncio.CancelledError:
             self.logger.info("==CANCELLED== Alpaca Discovery cancel received.")
         except Exception as e:
-            self.logger.info(f"==EXCEPTIION== Alpaca Discovery Unhandled exception: {e}")
+            self.logger.exception(f"==EXCEPTIION== Alpaca Discovery Unhandled exception: {e}")
         finally:
             self.logger.info("==SHUTDOWN== Discovery shutting down.")
             try:

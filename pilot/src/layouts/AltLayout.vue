@@ -147,8 +147,6 @@ const p = useStatusStore()
 const socket = useStreamStore()
 
   onMounted(() => {
-    socket.socketHost = 'nina01'
-    socket.socketPort = 5556
     socket.connectSocket()   //    'ws://192.168.50.54:5556/ws'
     socket.subscribe('status')
 

@@ -93,7 +93,8 @@ async def main():
             break
         else:
             if lifecycle._event == LifecycleEvent.RESTART:
-                logger.info("==MAIN== Restarting driver stack...")
+                logger.info("==MAIN== Restarting driver stack...in 5 sec")
+                await asyncio.sleep(5)
                 continue
             elif lifecycle._event == LifecycleEvent.INTERRUPT:
                 logger.info("==MAIN== Interrupt. Exiting.")

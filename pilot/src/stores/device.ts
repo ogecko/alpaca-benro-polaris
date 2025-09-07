@@ -3,12 +3,13 @@ import { defineStore, acceptHMRUpdate } from 'pinia'
 import { HTMLResponseError, NonJSONResponseError, NotFound404Error, AlpacaResponseError } from 'src/utils/error'
 import type { DescriptionResponse, ConfiguredDevicesResponse, SupportedActionsResponse, ActionResponse } from 'src/utils/interfaces'
 import { sleep } from 'src/utils/sleep'
-
+import type { ConfigResponse } from 'src/stores/config'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
     alpacaHost: '',                 // Hostname of Alpaca Driver
     restAPIPort: 5555,              // Port of Alpaca REST API
+    socketAPIPort: 5556,            // Port of Alpaca Socket API
     restAPIConnectingMsg: '',       // Message to show while connecting in progress
     restAPIConnectErrorMsg: '',     // Message to show when there is a connection error
     restAPIConnected: false,        // Indicates whether connection to Alpaca API was successful
@@ -38,6 +39,8 @@ export const useDeviceStore = defineStore('device', {
           await this.fetchServerDescription();
           await this.fetchConfiguredDevices();
           await this.fetchSupportedActions();
+          const response = await this.apiAction<ConfigResponse>('Polaris:ConfigFetch');
+          this.socketAPIPort = response.alpaca_socket_port || 5556
           this.restAPIConnected = true;
           this.restAPIConnectedAt = Date.now();
           this.restAPIConnectErrorMsg = ''
