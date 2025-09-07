@@ -24,20 +24,24 @@ const svgRef = ref<SVGSVGElement | null>(null)
 
 const rotationSpeed = computed(() => {
   const s = props.speed ?? 0
-  return mapLog(Math.abs(s)) // seconds per full rotation
+  return mapLog(s) // seconds per full rotation
 })
 
 
 function mapLog(x: number): number {
+  const absx = Math.abs(x)
   const xMin = 0.0059018
   const xMax = 9
   const yMin = 0.2
   const yMax = 5
-  const logX = Math.log10(x)
+  if (absx < xMin) return 0
+  const logX = Math.log10(absx)
   const logMin = Math.log10(xMin)
   const logMax = Math.log10(xMax)
   const t = (logX - logMin) / (logMax - logMin)
-  return yMax - t * (yMax - yMin)
+  const y =  yMax - t * (yMax - yMin)
+  return 360 / y
+
 }
 
 // 🌀 Rotation logic
@@ -51,7 +55,7 @@ function animate() {
   lastTime = now
 
   const direction = (props.speed ?? 0) <= 0 ? 1 : -1
-  const speed = direction * (360 / rotationSpeed.value) // signed degrees/sec
+  const speed = direction * rotationSpeed.value // signed degrees/sec
   angle = (angle + delta * speed) % 360
 
   if (orbitingCircle.value) {
