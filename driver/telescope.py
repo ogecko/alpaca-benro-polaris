@@ -1453,7 +1453,8 @@ class unpark:
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:StatusFetch', 'Polaris:ConfigFetch', 
-                                            'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore'], req)  
+                                            'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore',
+                                            'Polaris:MoveAxis'], req)  
 
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
@@ -1505,6 +1506,12 @@ class action:
         elif actionName == "Polaris:StatusFetch":
             resp.text = await PropertyResponse(polaris.getStatus(), req)
             return
+        
+        elif actionName == "Polaris:MoveAxis":
+            # Apply changes to store in Config and make them live
+            logger.info(f'MoveAxis {parameters}')
+            return
+
 
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))

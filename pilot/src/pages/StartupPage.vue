@@ -245,14 +245,32 @@ async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
   console.log('Fab Angle:', e);
 }
 
+type AxisLabel =
+  | "Azimuth"
+  | "Altitude"
+  | "Roll"
+  | "Right Ascension"
+  | "Declination"
+  | "Position Angle"
+
+const axisMap:Record<AxisLabel, number> = {
+  "Azimuth": 0,
+  "Altitude": 1,
+  "Roll": 2,
+  "Right Ascension": -1,
+  "Declination": -1,
+  "Position Angle": -1  
+}
+
 async function onClickMove(e: { label: string, rateScale: number}) {
   console.log('ClickMove ', e.label, e.rateScale)
-  if (e.label=="Azimuth") {
-    const axis = 0
-    const rate = e.rateScale / 200*9
-    const result = await dev.alpacaMoveAxis(axis, rate)
-    console.log(`Move ${e.label} rate ${rate}`,  result);
-  } 
+  if (!Object.keys(axisMap).includes(e.label)) return
+  const axis = axisMap[e.label as AxisLabel] ?? -1
+  const rate = e.rateScale / 200*9
+  if (axis>=0 && axis<=3) {
+    await dev.apiAction('Polaris:MoveAxis', `axis=${axis}&rate=${rate}`)
+  }
+  //   // const result = await dev.alpacaMoveAxis(axis, rate)
 }
 
 </script>
