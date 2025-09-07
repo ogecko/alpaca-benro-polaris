@@ -169,20 +169,18 @@ const dev = useDeviceStore()
 const cfg = useConfigStore()
 const poll = new PollingManager()
 const max_rate_rules = [ 
-  (x:number) => x>0 || 'Rate must be greater than zero',
-  (x:number) => x<9 || 'Rate must be less than 9.0'
+  (x:number) => x>0.0 || 'Rate must be greater than zero',
+  (x:number) => x<9.0 || 'Rate must be less than 9.0'
 ]
 
 const isRestricted = ref<boolean>(cfg.max_slew_rate!=0)
-watch(isRestricted, (isRestrictedNewValueTrue)=>{
-  if (isRestrictedNewValueTrue) {
-    cfg.max_slew_rate = 8.5
-    cfg.max_accel_rate = 3
-  } else {
-    cfg.max_slew_rate = 0
-    cfg.max_accel_rate = 0
-  }
-  put({max_slew_rate: cfg.max_slew_rate, max_accel_rate: cfg.max_accel_rate})
+watch(isRestricted, async (isRestrictedNewValueTrue) => {
+  const cfgChanges = (isRestrictedNewValueTrue) ? {max_slew_rate: 8.5, max_accel_rate: 3 } : {max_slew_rate: 0, max_accel_rate: 0 }
+  await cfg.configUpdate(cfgChanges)
+})
+
+watch(() => cfg.max_slew_rate, (newRate) => {
+  isRestricted.value = (newRate == 0) ? false : true 
 })
 
 onMounted(async () => {

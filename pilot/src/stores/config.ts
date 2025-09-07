@@ -50,8 +50,8 @@ export const useConfigStore = defineStore('config', {
     advanced_guiding: false,
 
     // Motion
-    max_slew_rate: 7,
-    max_accel_rate: 1,
+    max_slew_rate: 0.0,
+    max_accel_rate: 0.0,
     tracking_settle_time: 16,
 
     // Aiming Adjustment
@@ -119,7 +119,7 @@ export const useConfigStore = defineStore('config', {
       try {
         const updated = await dev.apiAction<ConfigResponse>('Polaris:ConfigUpdate', payload)
         this.$patch(updated)
-        console.log(updated)
+        console.log('configUpdate',updated)
         // Check if we need to refetch configured devices
         if (Object.prototype.hasOwnProperty.call(updated, 'advanced_rotator')) {
           await dev.fetchConfiguredDevices()
