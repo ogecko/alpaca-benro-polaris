@@ -134,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted  } from 'vue'
+import { ref, onMounted, onUnmounted, watch  } from 'vue'
 import { useStatusStore } from 'stores/status'
 import { RouterLink } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
@@ -146,20 +146,28 @@ const dev = useDeviceStore()
 const p = useStatusStore()
 const socket = useStreamStore()
 
-  onMounted(() => {
-    socket.connectSocket()   //    'ws://192.168.50.54:5556/ws'
+onMounted(() => {
+  // socket.connectSocket()   //    connect whenever the socketURL changes
+  // socket.subscribe('status')
+})
+
+onUnmounted(() => {
+  socket.unsubscribe('status')
+  socket.disconnectSocket()
+})
+
+watch(()=>socket.socketURL, ()=>{
+  if (socket) {
+    socket.connectSocket()   //    
     socket.subscribe('status')
-
-
-  })
-
-  onUnmounted(() => {
-    socket.unsubscribe('status')
-  })
-
-  function toggleLeftDrawer () {
-    leftDrawerOpen.value = !leftDrawerOpen.value
   }
+
+})
+
+
+function toggleLeftDrawer () {
+  leftDrawerOpen.value = !leftDrawerOpen.value
+}
 
 function getBatteryColor(): string {
   if (p.battery_level >= 50) {
