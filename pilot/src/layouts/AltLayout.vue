@@ -156,8 +156,8 @@ onUnmounted(() => {
   socket.disconnectSocket()
 })
 
-watch(()=>socket.socketURL, ()=>{
-  if (socket) {
+watch([() => dev.restAPIConnected, ()=>socket.socketURL], ()=>{
+  if (dev.restAPIConnected && socket) {
     socket.connectSocket()   //    
     socket.subscribe('status')
   }
