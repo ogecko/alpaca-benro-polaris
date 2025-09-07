@@ -67,6 +67,7 @@
             :domain="cfg.domain"
             @clickScale="onClickScale"
             @clickFabAngle="onClickFabAngle"
+            @clickMove="onClickMove"
           />
         </div>
         <div v-if="!(p.pidmode=='PARK')" class="col-12 col-md-6 col-lg-4 row justify-center ">
@@ -241,6 +242,10 @@ async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
     await dev.alpacaSlewToAltAz(alt, az);
   }
   console.log('Fab Angle:', e);
+}
+
+function onClickMove(e: { label: string, rate: number}) {
+  console.log('ClickMove ', e.label, e.rate)
 }
 
 </script>

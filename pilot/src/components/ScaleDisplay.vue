@@ -63,9 +63,9 @@
             Setpoint
           </div>
           <div class="row text-positive text-h6 items-center q-pt-md q-gutter-xs  no-wrap text-weight-light">
-            <!-- <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-left-circle" class=" " /> -->
+            <MoveButton v-if="showButtons" activeColor="positive" icon="mdi-minus-circle" @push="onMinus"/>
             {{ spx.sign }}{{ spx.degreestr }}{{ spx.minutestr }}{{ spx.secondstr }}
-            <!-- <q-btn round size="md" color="positive" dense flat icon="mdi-arrow-right-circle" class="" /> -->
+            <MoveButton v-if="showButtons" activeColor="positive" icon="mdi-plus-circle" @push="onPlus"/>
           </div>
         </div>
         <div class="text-h4 text-grey-6 text-center">
@@ -89,7 +89,7 @@
 </template>
 
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import { throttle } from 'quasar'
 import { scaleLinear } from 'd3-scale'
@@ -103,6 +103,7 @@ import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
 import type { UnitKey } from 'src/utils/angles'
+import MoveButton from 'src/components/MoveButton.vue'
 
 // Component properties
 const props = defineProps<{
@@ -136,9 +137,8 @@ const isCircular = computed(() => [
 // events that can be emitted
 const emit = defineEmits<{
   (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
-  (e: 'clickRollLevel' ): void,
-  (e: 'clickAlt45' ): void,
   (e: 'clickFabAngle', payload: { az?: number, alt?: number, roll?: number }): void,
+  (e: 'clickMove', payload: { label: string, rate: number} ): void,
 }>();
 
 
@@ -334,6 +334,16 @@ function onScaleAutoClick() {
   scaleRange.value = dProps.value.maxScale
 }
 
+// handle click on movePlus
+function onPlus(payload: { isPressed: boolean }) {
+  emit('clickMove', { label: props.label, rate: payload.isPressed ? scaleRange.value: 0})
+}
+
+// handle click on moveMinus
+function onMinus(payload: { isPressed: boolean }) {
+  emit('clickMove', { label: props.label, rate: payload.isPressed ? -scaleRange.value: 0})
+
+}
 
 // ------------------- Tick generation and Helper functions ---------------------
 
