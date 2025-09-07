@@ -44,10 +44,13 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Explicit pid mode changes, add a 'PARK' mode, ensure no pid activity while parked.
 # [ ] Ensure polaris tracking is off when enabling advanced tracked
 # [ ] Indicate speed on Alpaca Dashboard
+# [ ] Indicate motor activity on Alpaca Dashboard
 # [ ] Auto set scales based on speed
 # [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, 
 # [ ] Alpaca pilot Sync
-# [ ] Alpaca pilot better feature degredation when not ABP
+# [ ] Alpaca pilot feature degredation when not in Advanced Control
+# [ ] Alpaca pilot feature degredation when no Rotator
+# [ ] Alpaca pilot feature degredation when not ABP Driver
 # [ ] Alpaca memory and logevity tests
 
 # Connection
