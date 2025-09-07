@@ -50,7 +50,7 @@
         <q-chip color="positive" :outline="!p.gotoing">
           Gotoing
         </q-chip>
-        <q-chip v-if="cfg.advanced_control" color="positive" :outline="['IDLE','PARK'].includes(p.pidmode)">
+        <q-chip color="positive" :outline="['IDLE','PARK'].includes(p.pidmode)">
           PID: {{p.pidmode}}
         </q-chip> 
       </div>
@@ -106,7 +106,6 @@ import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
-import { useConfigStore } from 'src/stores/config'
 import ScaleDisplay  from 'src/components/ScaleDisplay.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
 import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
@@ -116,7 +115,6 @@ import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 const $q = useQuasar()
 const route = useRoute()
 const dev = useDeviceStore()
-const cfg = useConfigStore()
 const p = useStatusStore()
 const isEquatorial = ref<boolean>(false)
 
@@ -257,18 +255,18 @@ const axisMap:Record<AxisLabel, number> = {
   "Azimuth": 0,
   "Altitude": 1,
   "Roll": 2,
-  "Right Ascension": -1,
-  "Declination": -1,
-  "Position Angle": -1  
+  "Right Ascension": 3,
+  "Declination": 4,
+  "Position Angle": 5  
 }
 
 async function onClickMove(e: { label: string, rateScale: number}) {
   console.log('ClickMove ', e.label, e.rateScale)
   if (!Object.keys(axisMap).includes(e.label)) return
   const axis = axisMap[e.label as AxisLabel] ?? -1
-  const rate = e.rateScale / 200*9
-  if (axis>=0 && axis<=3) {
-    await dev.apiAction('Polaris:MoveAxis', `axis=${axis}&rate=${rate}`)
+  const rate = (axis!=3) ? e.rateScale / 200*9 : e.rateScale / 12*9
+  if (axis>=0 && axis<=5) {
+    await dev.apiAction('Polaris:MoveAxis', `{"axis":${axis},"rate":${rate}}`)
   }
   //   // const result = await dev.alpacaMoveAxis(axis, rate)
 }

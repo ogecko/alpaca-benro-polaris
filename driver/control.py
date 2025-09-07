@@ -45,7 +45,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Ensure polaris tracking is off when enabling advanced tracked
 # [X] Indicate speed on Alpaca Dashboard
 # [X] Indicate motor activity on Alpaca Dashboard
-# [ ] Alpaca pilot manual slew AltAzRoll, slew RADecPA, slew rate, 
+# [X] Alpaca pilot manual slew AltAzRoll, slew rate
+# [X] Alpaca pilot manual slew RADecPA, 
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
 # [ ] Alpaca pilot feature degredation when no Rotator
@@ -1004,8 +1005,8 @@ class PID_Controller():
         if self.mode=="PARK":
             return
         self.delta_v_sp[axis] = sp
-        if self.mode == 'IDLE':
-            self.set_pid_mode('AUTO')
+        if self.mode in ['IDLE','AUTO']:
+            self.set_pid_mode('TRACK')
     
     def pulse_delta_axis(self, axis, duration, direction=1, sp=0.0020833):
         if self.mode!="TRACK":

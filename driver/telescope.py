@@ -1510,6 +1510,13 @@ class action:
         elif actionName == "Polaris:MoveAxis":
             # Apply changes to store in Config and make them live
             logger.info(f'MoveAxis {parameters}')
+            axis = parameters.get('axis', -1)
+            rate = parameters.get('rate', 0)
+            if axis in [0,1,2] and rate <10 and rate >-10:
+                polaris._pid.set_alpha_axis_velocity(axis, rate)
+            if axis in [3,4,5] and rate <10 and rate >-10:
+                polaris._pid.set_delta_axis_velocity(axis-3, rate)
+            resp.text = await PropertyResponse('MoveAxis ok', req)  
             return
 
 
