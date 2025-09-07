@@ -22,6 +22,11 @@
         <div clas="col">
           <ScaleDisplay :pv="pv" :sp="sp" :lst="lst" label="Azimuth" :domain="domainChoice" />
         </div>
+        <div class="col">
+          <SpinnerSpeed :speed="pv" label="M3" />
+          <SpinnerSpeed :speed="-5/600" label="M2" />
+          <SpinnerSpeed :speed=".2" label="M1" />
+        </div>
         <div class="col-12 q-pa-lg q-gutter-md">
           <q-btn-toggle v-model="domainChoice" color="brown" text-color="white" toggle-color="orange"
             toggle-text-color="black" rounded unelevated glossy :options="[
@@ -69,6 +74,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted,ref } from 'vue'
 import ScaleDisplay from 'components/ScaleDisplay.vue'
+import SpinnerSpeed from 'components/SpinnerSpeed.vue'
 import type { DomainStyleType } from 'components/ScaleDisplay.vue'
 
 const pv = ref<number>(0)

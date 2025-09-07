@@ -69,8 +69,10 @@
             @clickFabAngle="onClickFabAngle"
           />
         </div>
-        <div class="col-12 col-md-6 col-lg-4">
-          
+        <div v-if="!(p.pidmode=='PARK')" class="col-12 col-md-6 col-lg-4 row justify-center ">
+          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[0]" label="M1" />
+          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[1]" label="M2" />
+          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[2]" label="M3" />
         </div>
     </div>
 
@@ -106,6 +108,7 @@ import { useStatusStore } from 'src/stores/status'
 import { useConfigStore } from 'src/stores/config'
 import ScaleDisplay  from 'src/components/ScaleDisplay.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
+import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 
 
