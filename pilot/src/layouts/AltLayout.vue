@@ -136,22 +136,27 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted  } from 'vue'
 import { useStatusStore } from 'stores/status'
-import { PollingManager } from 'src/utils/polling'
 import { RouterLink } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
+import { useStreamStore } from 'src/stores/stream'
 
 const leftDrawerOpen = ref(false)
 const search = ref('')
-const poll = new PollingManager()
 const dev = useDeviceStore()
 const p = useStatusStore()
+const socket = useStreamStore()
 
   onMounted(() => {
-    poll.startPolling(() => { void p.statusFetch() }, 0.2, 'statusFetch')
+    socket.socketHost = 'nina01'
+    socket.socketPort = 5556
+    socket.connectSocket()   //    'ws://192.168.50.54:5556/ws'
+    socket.subscribe('status')
+
+
   })
 
   onUnmounted(() => {
-    poll.stopPolling()
+    socket.unsubscribe('status')
   })
 
   function toggleLeftDrawer () {

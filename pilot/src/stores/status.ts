@@ -44,6 +44,11 @@ export const useStatusStore = defineStore('status', {
                 console.warn('Status fetch failed:', err);
             }
         },
+        // called from socket.onmessage whenever a status subscription payload comes in
+        statusUpdate(data: StatusResponse) {
+            this.$patch(data)
+            this.fetchedAt = Date.now()
+        },
     },
     getters: {
         deltarefRAhrs: (state): number => (state.deltaref[0]??0)/180*12,

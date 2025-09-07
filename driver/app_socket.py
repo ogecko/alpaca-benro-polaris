@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from polaris import Polaris
 from datetime import datetime, timezone
 from typing import Dict, Any
 from collections import deque
@@ -22,13 +23,13 @@ async def socket_handler(websocket: WebSocket):
     try:
         while True:
             msg = await websocket.receive_json()
-            logger.info(f"==WS== Received message: {msg}")
             msg_type = msg.get("type")
-
             if msg_type == "ping":
                 await websocket.send_json({"type": "pong"})
+                continue
 
-            elif msg_type == "subscribe":
+            logger.info(f"==WS== Received message: {msg}")
+            if msg_type == "subscribe":
                 topic = msg.get("topic")
                 filter_args = msg.get("filter", {})
                 if topic:
@@ -67,18 +68,16 @@ def _matches_filter(payload: Dict[str, Any], filter_args: Dict[str, Any]) -> boo
             return False
     return True
 
-async def publish_status():
+async def publish_status(polaris: Polaris):
     while True:
-        await asyncio.sleep(1.0)
-        status = { 'test': 101 }
-        payload = {"type": "status", "data": status}
-
+        await asyncio.sleep(0.2)
+        statusdata = polaris.getStatus()
+        payload = {"type": "status", "data": statusdata}
         for ws, filter_args in subscriptions.get("status", {}).copy().items():
-            if _matches_filter(status, filter_args):
-                try:
-                    await ws.send_json(payload)
-                except Exception:
-                    _remove_client(ws)
+            try:
+                await ws.send_json(payload)
+            except Exception:
+                _remove_client(ws)
 
 class PublishLogTopic(logging.Handler):
     _buffers: Dict[str, deque] = {}
@@ -129,7 +128,7 @@ def attach_publisher_to_logger(topic: str, level=logging.INFO):
         logger.setLevel('INFO')             # Default level for non-root loggers
     return logger
 
-async def alpaca_socket_httpd(logger, lifecycle: LifecycleController):
+async def alpaca_socket_httpd(logger, lifecycle: LifecycleController, polaris):
     log_logger = attach_publisher_to_logger("log")
     pos_logger = attach_publisher_to_logger("pos")
     pid_logger = attach_publisher_to_logger("pid")
@@ -143,7 +142,7 @@ async def alpaca_socket_httpd(logger, lifecycle: LifecycleController):
 
         await asyncio.gather(
             lifecycle._wrap(socket_server.serve()),
-            lifecycle._wrap(publish_status()),
+            lifecycle._wrap(publish_status(polaris)),
             lifecycle.wait_for_event()
         )
     except asyncio.CancelledError:

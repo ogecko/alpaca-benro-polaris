@@ -1,5 +1,6 @@
 // stores/telemetry.ts
 import { defineStore } from 'pinia'
+import { useStatusStore } from 'src/stores/status';
 
 type LogMessage = { text: string }
 type PIDMessage = { p: number; i: number; d: number }
@@ -14,7 +15,7 @@ export type TelemetryRecord = {
 }
 
 
-
+const p = useStatusStore()
 
 export const useStreamStore = defineStore('telemetry', {
   state: () => ({
@@ -69,11 +70,17 @@ export const useStreamStore = defineStore('telemetry', {
         try {
           const record = JSON.parse(event.data);
           const topic = record.topic || record.type;
-          if (!this.topics[topic]) this.topics[topic] = [];
-          this.topics[topic].push(record);
-          const MAX_RECORDS = 500;
-          if (this.topics[topic].length > MAX_RECORDS) {
-            this.topics[topic].splice(0, this.topics[topic].length - MAX_RECORDS);
+          if (topic=='pong') {
+            // No action
+          } else if (topic=='status') {
+            p.statusUpdate(record.data)
+          } else {
+            if (!this.topics[topic]) this.topics[topic] = [];
+            this.topics[topic].push(record);
+            const MAX_RECORDS = 500;
+            if (this.topics[topic].length > MAX_RECORDS) {
+              this.topics[topic].splice(0, this.topics[topic].length - MAX_RECORDS);
+            }
           }
         } catch (err) {
           console.warn('Invalid telemetry:', err);
