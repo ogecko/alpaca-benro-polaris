@@ -133,7 +133,7 @@ export const useConfigStore = defineStore('config', {
         const requiresRestart = updatedKeys.some(key => restartKeys.includes(key))
         if (requiresRestart) {
           this.isRestartRequired = true
-          console.info(`Restart required due to: ${updatedKeys.join(', ')}`)
+          console.info(`ABP Driver Restart required due to: ${updatedKeys.join(', ')}`)
         }
       } catch (err) {
         const keys = Object.keys(payload).join(', ')
