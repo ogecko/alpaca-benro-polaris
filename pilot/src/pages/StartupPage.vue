@@ -58,7 +58,7 @@
 
     <!----- Dynamic Set of 3 Radial Scales ----->
     <div class="row">
-       <div v-for="(cfg, i) in displayConfig" :key="i" class="col-12 col-md-6 col-lg-4">
+       <div v-for="(cfg, i) in displayConfig" :key="i" class="col-12 col-md-6 col-lg-4 col-xl-3">
           <ScaleDisplay
             :label="cfg.label"
             :pv="cfg.pv"
@@ -70,7 +70,7 @@
             @clickMove="onClickMove"
           />
         </div>
-        <div v-if="!(p.pidmode=='PARK')" class="col-12 col-md-6 col-lg-4 row justify-center ">
+        <div v-if="!(p.pidmode=='PARK')" class="col-12 col-md-6 col-lg-4  col-xl-3 row justify-center ">
           <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[0]" label="M1" />
           <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[1]" label="M2" />
           <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[2]" label="M3" />
