@@ -20,7 +20,7 @@
 # Kalman Filter Analysis
 Kalman Filter Analysis
       </q-markdown>
-      <ChartXY  :data="kalmanData"></ChartXY>
+      <ChartXY  :data="chartData"></ChartXY>
       <div class="q-pb-xl"></div>
     </q-card>
 
@@ -39,17 +39,17 @@ import type { TelemetryRecord, KalmanMessage }from 'src/stores/stream'
 
 const socket = useStreamStore()
 
-function formatKalmanData(d: TelemetryRecord):DataPoint {
+function formatChartData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts).getTime()/1000
   const data = d.data as KalmanMessage
-  const value = ('θ1_meas' in data) ? data.θ1_meas : 0
+  const y1 = ('θ1_meas' in data) ? data.θ1_meas : 0
   const y2 = ('θ1_state' in data) ? data.θ1_state : 0
-  return { time, value, y2 }
+  return { time, y1, y2 }
 }
 
-const kalmanData = computed<DataPoint[]>(() => {
+const chartData = computed<DataPoint[]>(() => {
    const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
-   return kf.map(formatKalmanData)
+   return kf.map(formatChartData)
 })
 
 onMounted(() => {

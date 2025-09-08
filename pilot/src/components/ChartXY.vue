@@ -8,7 +8,7 @@ import * as d3 from 'd3'
 
 export type DataPoint = {
   time: number
-  value: number
+  y1: number
   y2: number
 }
 
@@ -96,7 +96,7 @@ function initChart() {
 
     liney1 = d3.line<DataPoint>()
         .x(d => xScale(d.time))
-        .y(d => yScale(d.value))
+        .y(d => yScale(d.y1))
 
     liney2 = d3.line<DataPoint>()
         .x(d => xScale(d.time))
@@ -126,7 +126,7 @@ function initChart() {
             const zy = currentTransform.rescaleY(yScale)
             gX.call(d3.axisBottom(zx))
             gY.call(d3.axisLeft(zy))
-            pathy1.attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.value))(props.data))
+            pathy1.attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.y1))(props.data))
             pathy2.attr('d', liney2.x(d => zx(d.time)).y(d => zy(d.y2))(props.data))
             drawGridlines(zx, zy)
 
@@ -141,10 +141,10 @@ function updateChart() {
   if (!props.data || props.data.length === 0) return
 
   const times = props.data.map(d => d.time)
-  const values = props.data.map(d => d.value)
+  const y1s = props.data.map(d => d.y1)
 
   xScale.domain([d3.min(times) ?? 0, d3.max(times) ?? 100])
-  yScale.domain([d3.min(values) ?? 0, d3.max(values) ?? 100])
+  yScale.domain([d3.min(y1s) ?? 0, d3.max(y1s) ?? 100])
 
   const zx = currentTransform ? currentTransform.rescaleX(xScale) : xScale
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
@@ -153,7 +153,7 @@ function updateChart() {
   gX.call(d3.axisBottom(zx))
   gY.call(d3.axisLeft(zy))
 
-  pathy1.datum(props.data).attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.value)))
+  pathy1.datum(props.data).attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.y1)))
   pathy2.datum(props.data).attr('d', liney2.x(d => zx(d.time)).y(d => zy(d.y2)))
 }
 
