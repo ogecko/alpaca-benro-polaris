@@ -70,7 +70,7 @@
             <MoveButton v-if="showButtons" activeColor="positive" icon="mdi-plus-circle" @push="onPlus"/>
           </div>
         </div>
-        <div class="text-h4 text-grey-6 text-center">
+        <div class="text-h4 text-grey-6 text-center text-no-wrap">
           {{props.label}}
         </div>
         <div class="row items-center q-gutter-xs no-wrap">
