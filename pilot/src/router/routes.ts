@@ -31,7 +31,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/AltLayout.vue'),
     children: [{ path: '', component: () => import('pages/TestPage.vue') }],
   },
-  // Always leave this as last one,
+  {
+    path: '/kalman',
+    component: () => import('layouts/AltLayout.vue'),
+    children: [{ path: '', component: () => import('pages/AnalyseKalman.vue') }],
+  },
+
+    // Always leave this as last one,
   // but you can also remove it
   {
     path: '/:catchAll(.*)*',

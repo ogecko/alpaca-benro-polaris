@@ -228,9 +228,9 @@ const links4 = [
     { text: 'About', to: '/' },
     { text: 'Copyright', to: '/' },
     { text: 'Contact us', to: '/' },
-    { text: 'Contributors', to: '/' },
+    { text: 'Developers', to: '/markdown' },
+    { text: 'Kalman', to: '/kalman' },
     { text: 'Test', to: '/test' },
-    { text: 'Developers', to: '/markdown' }
   ]
   const buttons2 = [
     { text: 'Terms', to: '/' },
