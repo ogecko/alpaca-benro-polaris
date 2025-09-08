@@ -6,7 +6,7 @@
     :style="isOpen? 'opacity: 1' : 'opacity: 0.4'"
 
 >
-        <slot />
+        <slot ></slot>
 </q-fab>
 </template>
 
@@ -25,6 +25,5 @@ const isOpen = ref(false)
 .move-fab {
   transition: opacity 0.3s ease;
 }
-
 
 </style>
