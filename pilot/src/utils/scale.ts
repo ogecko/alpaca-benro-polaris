@@ -1,10 +1,10 @@
 import { symbol } from 'src/utils/angles'
-import type { UnitKey } from 'src/utils/angles';
+import type { UnitKey, LevelKey } from 'src/utils/angles';
 
 export type Step = {
   stepSize: number;                                  // decimal number of step size
   dFormatFn: (v: number, unit: UnitKey) => string;   // converts decimal number into formatted string with unit symbol
-  level: string;                                     // level of step 'lg', 'md', 'sm'
+  level: LevelKey;                                   // level of step 'lg', 'md', 'sm'
 }
 
 export const steps: Step[] = [

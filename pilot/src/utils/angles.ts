@@ -1,3 +1,4 @@
+export type LevelKey = 'lg' | 'md' | 'sm';
 export type UnitKey = 'deg' | 'hr';
 export type SymbolKey = 'd' | 'm' | 's';
 export type SymbolMap = Record<UnitKey, Record<SymbolKey, string>>;

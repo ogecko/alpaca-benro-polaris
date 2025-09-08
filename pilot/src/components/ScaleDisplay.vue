@@ -107,7 +107,7 @@ import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
-import type { UnitKey } from 'src/utils/angles'
+import type { LevelKey, UnitKey } from 'src/utils/angles'
 
 // Component properties
 const props = defineProps<{
@@ -192,7 +192,6 @@ const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
 const pathMap = { lg: 'M-8,0 L18,0', md: 'M-8,0 L14,0', sm: 'M-8,0 L11,0' };
 const offsetMap = { lg: 1.20, md: 1.165, sm: 1.13 }
 const opacityMap = { lg: 1, md: 1, sm: 0.5 }
-
 
 
 // ------------------- Lifecycle Functions ---------------------
@@ -321,7 +320,7 @@ function onMinus(payload: { isPressed: boolean }) {
 // Adds a tick and its label to the ticks array, promoting to higher label levels if appropriate and ensuring only the highest-priority tick at each angle.
 function pushTick(
   ticks: MarkDatum[],
-  level: 'lg' | 'md' | 'sm',
+  level: LevelKey,
   v: number,
   dWrapFn: (v: number) => number,
   dFormatFn: (v: number, unit: UnitKey) => string,
