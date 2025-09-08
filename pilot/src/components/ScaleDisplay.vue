@@ -11,24 +11,7 @@
     <div class="outer-content" :style="`width:${dProps.width}px; height: ${dProps.height}px`">
       <transition appear enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
         <div v-if="showButtons">
-          <div class="row absolute-top-left q-pl-lg" > 
-            <q-fab v-if="props.label=='Roll'" color="secondary" padding="xs" push icon="mdi-format-align-middle" direction="right" >
-              <q-fab-action color="secondary" @click="onClickFabAngle({roll: 0})" >0°</q-fab-action>
-              <q-fab-action color="secondary" @click="onClickFabAngle({roll: -45})">-45°</q-fab-action>
-              <q-fab-action color="secondary" @click="onClickFabAngle({roll: +45})">+45°</q-fab-action>
-            </q-fab>
-            <q-fab v-if="props.label=='Altitude'" color="secondary" padding="xs" push icon="mdi-angle-acute" direction="right" >
-              <q-fab-action color="secondary" @click="onClickFabAngle({alt: 0})" >0°</q-fab-action>
-              <q-fab-action color="secondary" @click="onClickFabAngle({alt: 30})">30°</q-fab-action>
-              <q-fab-action color="secondary" @click="onClickFabAngle({alt: 45})">45°</q-fab-action>
-              <q-fab-action color="secondary" @click="onClickFabAngle({alt: 60})">60°</q-fab-action>
-            </q-fab>
-            <q-fab v-if="props.label=='Azimuth'" color="secondary" padding="xs" push icon="mdi-compass-rose" direction="right" >
-              <q-fab-action color="secondary" @click="onClickFabAngle({az: 0})"  >N</q-fab-action>
-              <q-fab-action color="secondary" @click="onClickFabAngle({az: 180})">S</q-fab-action>
-              <q-fab-action color="secondary" @click="onClickFabAngle({az: 270})">W</q-fab-action>
-              <q-fab-action color="secondary" @click="onClickFabAngle({az: 90})" >E</q-fab-action>
-            </q-fab>
+          <div class="row absolute-top-left q-pl-xl q-pb-sm" > 
           </div>
           <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
             <div class="column">
@@ -58,13 +41,32 @@
     <!-- Center Content -->
     <div class="center-content no-edit-cursor" :style="`left:${100*dProps.cx/dProps.width}%; top: ${100*dProps.cy/dProps.height}%`" >
       <div class="column items-center ">
-        <div :class=" {'order-last': dProps.cy>dProps.height/2} " >
-          <div class="row absolute text-positive text-caption ">
-            Setpoint
-          </div>
-          <div class="row text-positive text-h6 items-center q-pt-md q-gutter-xs  no-wrap text-weight-light">
+        <div :class="{'row': true, 'order-last': dProps.cy>dProps.height/2} " >
+          <div class="row text-positive text-h6 items-center q-gutter-xs  no-wrap text-weight-light">
+            <div v-if="showButtons">
+              <MoveFab v-if="props.label=='Roll'" icon="mdi-format-align-middle" >
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: 0})" >0°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: -45})">-45°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: +45})">+45°</q-fab-action>
+              </MoveFab>
+              <MoveFab v-if="props.label=='Altitude'" icon="mdi-angle-acute" >
+                <q-fab-action color="positive" @click="onClickFabAngle({alt: 0})" >0°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({alt: 30})">30°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({alt: 45})">45°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({alt: 60})">60°</q-fab-action>
+              </MoveFab>
+              <MoveFab v-if="props.label=='Azimuth'" icon="mdi-compass-rose" >
+                <q-fab-action color="positive" @click="onClickFabAngle({az: 180})">S</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({az: 90})" >E</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({az: 270})">W</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({az: 0})"  >N</q-fab-action>
+              </MoveFab>
+            </div>
             <MoveButton v-if="showButtons" activeColor="positive" icon="mdi-minus-circle" @push="onMinus"/>
-            {{ spx.sign }}{{ spx.degreestr }}{{ spx.minutestr }}{{ spx.secondstr }}
+            <div class="column items-left">
+              <div class="absolute text-positive text-caption">Setpoint</div>
+              <div class="q-pt-md">{{ spx.sign }}{{ spx.degreestr }}{{ spx.minutestr }}{{ spx.secondstr }}</div>
+            </div>
             <MoveButton v-if="showButtons" activeColor="positive" icon="mdi-plus-circle" @push="onPlus"/>
           </div>
         </div>
@@ -104,6 +106,7 @@ import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
 import type { UnitKey } from 'src/utils/angles'
 import MoveButton from 'src/components/MoveButton.vue'
+import MoveFab from 'src/components/MoveFab.vue'
 
 // Component properties
 const props = defineProps<{
@@ -942,19 +945,13 @@ function renderScale() {
 .q-fab__actions--closed .q-btn {
   pointer-events: none;     // fixes aria issues when fab buttons are hidden
 }
-.overlay-container .q-fab {
-  pointer-events: auto;
+.q-fab__actions {
+  opacity: 1;
 }
-
-// .fade-enter-active,
-// .fade-leave-active {
-//   transition: opacity 0.3s;
-// }
-// .fade-enter-from,
-// .fade-leave-to {
-//   opacity: 0;
-// }
-
+.overlay-container .q-fab.row {
+  pointer-events: auto;
+  opacity: 0.5;
+}
 
 :deep(.no-edit-cursor) {
   cursor: default;

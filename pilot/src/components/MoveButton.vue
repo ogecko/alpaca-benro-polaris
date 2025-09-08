@@ -5,7 +5,7 @@
     :class="{ isPressed }"
     :text-color="isPressed? 'white' : 'positive'"
     :color="isPressed? 'positive' : ''"
-    :style="isPressed? 'opacity: 1' : 'opacity: 0.3'"
+    :style="isPressed? 'opacity: 1' : 'opacity: 0.4'"
     @mousedown="onDown"
     @mouseup="onUp"
     @mouseleave="onUp"
