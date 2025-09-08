@@ -4,10 +4,10 @@ import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status';
 import { computed, ref } from 'vue'
 
-type LogMessage = { text: string }
-type PIDMessage = { p: number; i: number; d: number }
-type KalmanMessage = { estimate: number; variance: number }
-type TelemetryMessage = LogMessage | PIDMessage | KalmanMessage
+export type LogMessage = { text: string }
+export type PIDMessage = { p: number; i: number; d: number }
+export type KalmanMessage = { θ1_meas: number;  }
+export type TelemetryMessage = LogMessage | PIDMessage | KalmanMessage
 
 export type TelemetryRecord = {
   ts: string

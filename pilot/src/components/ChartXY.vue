@@ -18,7 +18,7 @@ const chart = ref(null)
 
 const width = 800
 const height = 400
-const margin = { top: 20, right: 30, bottom: 30, left: 40 }
+const margin = { top: 20, right: 30, bottom: 30, left: 80 }
 const clipId = 'plot-clip';
 
 let svg: d3.Selection<SVGSVGElement, unknown, null, undefined>

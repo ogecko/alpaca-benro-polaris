@@ -32,33 +32,33 @@ Kalman Filter Analysis
 
 <script setup lang="ts">
 import StatusBanners from 'src/components/StatusBanners.vue'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
+import type { TelemetryRecord, KalmanMessage }from 'src/stores/stream'
 
-const kalmanData = ref<DataPoint[]>([])
 const socket = useStreamStore()
 
-function generateData() {
-  const t = Date.now() / 1000
-  const noisy = Math.sin(t) + Math.random() * 0.5
-
-  // Simple Kalman filter stub (replace with real logic)
-  const filtered = noisy
-
-  kalmanData.value.push({ time: t, value: filtered })
-  if (kalmanData.value.length > 200) kalmanData.value.shift()
+function formatKalmanData(d: TelemetryRecord):DataPoint {
+  const time = new Date(d.ts).getTime()/1000
+  const data = d.data as KalmanMessage
+  const value = ('θ1_meas' in data) ? data.θ1_meas : 0
+  return { time, value }
 }
 
-let timer: ReturnType<typeof setInterval> | null = null
+const kalmanData = computed<DataPoint[]>(() => {
+   const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
+   return kf.map(formatKalmanData)
+})
+
 onMounted(() => {
-  timer = setInterval(generateData, 50)
+  // timer = setInterval(generateData, 50)
   socket.subscribe('kf')
 })
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer)
+  // if (timer) clearInterval(timer)
   socket.unsubscribe('kf')
 })
 

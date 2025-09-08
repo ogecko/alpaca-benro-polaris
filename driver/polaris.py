@@ -76,6 +76,7 @@ import re
 import asyncio
 import ephem
 import json
+import logging
 import numpy as np
 from collections import deque
 from pyquaternion import Quaternion
@@ -681,14 +682,19 @@ class Polaris:
                 self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} alt {alt:.5f} diff {p_alt - alt:.5f}") 
 
             time = self.get_performance_data_time()
-            if Config.log_performance_data == 5:
-                q1s = str(q1).replace(' ',',').replace('i','').replace('j','').replace('k','')
-                [ θ1, θ2, θ3 ] = theta_meas
-                [ ω1, ω2, ω3 ] = omega_meas
-                [ rω1, rω2, rω3 ] = omega_ref
-                [ sθ1, sθ2, sθ3 ] = theta_state
-                [ sω1, sω2, sω3 ] = omega_state
-                self.logger.info(f',DATA5,{time:.4f},  {q1s},  {p_az:+.4f},{p_alt:+.4f},{p_roll:+.4f},  {θ1:+.4f},{θ2:+.4f},{θ3:+.4f},  {sθ1:+.4f},{sθ2:+.4f},{sθ3:+.4f},  {ω1:+.5f},{ω2:+.5f},{ω3:+.5f}, {sω1:+.5f},{sω2:+.5f},{sω3:+.5f},  {rω1:+.5f},{rω2:+.5f},{rω3:+.5f} ')
+
+
+            # if Config.log_performance_data == 5:
+            q1s = str(q1).replace(' ',',').replace('i','').replace('j','').replace('k','')
+            [ θ1, θ2, θ3 ] = theta_meas
+            [ ω1, ω2, ω3 ] = omega_meas
+            [ rω1, rω2, rω3 ] = omega_ref
+            [ sθ1, sθ2, sθ3 ] = theta_state
+            [ sω1, sω2, sω3 ] = omega_state
+            payload = {"θ1_meas":θ1, "ω1_meas":ω1, "ω1_ref":rω1, "θ1_state":sθ1, "ω1_state":sω1 }
+            kflogger = logging.getLogger('kf') 
+            kflogger.info(payload)
+            # self.logger.info(f',DATA5,{time:.4f},  {q1s},  {p_az:+.4f},{p_alt:+.4f},{p_roll:+.4f},  {θ1:+.4f},{θ2:+.4f},{θ3:+.4f},  {sθ1:+.4f},{sθ2:+.4f},{sθ3:+.4f},  {ω1:+.5f},{ω2:+.5f},{ω3:+.5f}, {sω1:+.5f},{sω2:+.5f},{sω3:+.5f},  {rω1:+.5f},{rω2:+.5f},{rω3:+.5f} ')
 
             # update the PID loop
             alpha_meas = np.array([az, alt, p_roll], dtype=float)
