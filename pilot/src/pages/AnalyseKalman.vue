@@ -13,20 +13,19 @@
       </div>
       <q-space />
     </div>
+
+    <!-- First Preamble and Chart -->
     <q-card flat bordered class="col">
-      <div>
       <q-markdown class="q-pa-md" :no-mark="false">
 # Kalman Filter Analysis
 Kalman Filter Analysis
-        </q-markdown>
-
-        <ChartXY  :data="kalmanData"></ChartXY>
-
-        <div class="q-pb-xl"></div>
-      </div>
-
+      </q-markdown>
+      <ChartXY  :data="kalmanData"></ChartXY>
+      <div class="q-pb-xl"></div>
     </q-card>
-  </q-page>
+
+
+</q-page>
 </template>
 
 
