@@ -43,7 +43,8 @@ function formatKalmanData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts).getTime()/1000
   const data = d.data as KalmanMessage
   const value = ('θ1_meas' in data) ? data.θ1_meas : 0
-  return { time, value }
+  const y2 = ('θ1_state' in data) ? data.θ1_state : 0
+  return { time, value, y2 }
 }
 
 const kalmanData = computed<DataPoint[]>(() => {

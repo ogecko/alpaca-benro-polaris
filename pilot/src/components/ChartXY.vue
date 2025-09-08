@@ -9,6 +9,7 @@ import * as d3 from 'd3'
 export type DataPoint = {
   time: number
   value: number
+  y2: number
 }
 
 const props = defineProps<{ data: DataPoint[] }>();
@@ -26,10 +27,12 @@ let xScale: d3.ScaleLinear<number, number>
 let yScale: d3.ScaleLinear<number, number>
 let xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
 let yAxis: d3.Selection<SVGGElement, unknown, null, undefined>
-let line: d3.Line<DataPoint>
+let liney1: d3.Line<DataPoint>
+let liney2: d3.Line<DataPoint>
 let gX: d3.Selection<SVGGElement, unknown, null, undefined>
 let gY: d3.Selection<SVGGElement, unknown, null, undefined>
-let path: d3.Selection<SVGPathElement, unknown, null, undefined>
+let pathy1: d3.Selection<SVGPathElement, unknown, null, undefined>
+let pathy2: d3.Selection<SVGPathElement, unknown, null, undefined>
 let zoom: d3.ZoomBehavior<SVGSVGElement, unknown>
 let currentTransform: d3.ZoomTransform | null = null
 let gridX: d3.Selection<SVGGElement, unknown, null, undefined>
@@ -91,14 +94,25 @@ function initChart() {
         .attr('class', 'y-axis')
         .attr('color', '#999')
 
-    line = d3.line<DataPoint>()
+    liney1 = d3.line<DataPoint>()
         .x(d => xScale(d.time))
         .y(d => yScale(d.value))
 
-    path = g.append('path')
+    liney2 = d3.line<DataPoint>()
+        .x(d => xScale(d.time))
+        .y(d => yScale(d.y2))
+
+    pathy1 = g.append('path')
         .attr('class', 'line plot')
         .attr('fill', 'none')
         .attr('stroke', '#42b983')
+        .attr('stroke-width', 2)
+        .attr('clip-path', `url(#${clipId})`);
+
+    pathy2 = g.append('path')
+        .attr('class', 'line plot')
+        .attr('fill', 'none')
+        .attr('stroke', 'red')
         .attr('stroke-width', 2)
         .attr('clip-path', `url(#${clipId})`);
 
@@ -112,7 +126,8 @@ function initChart() {
             const zy = currentTransform.rescaleY(yScale)
             gX.call(d3.axisBottom(zx))
             gY.call(d3.axisLeft(zy))
-            path.attr('d', line.x(d => zx(d.time)).y(d => zy(d.value))(props.data))
+            pathy1.attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.value))(props.data))
+            pathy2.attr('d', liney2.x(d => zx(d.time)).y(d => zy(d.y2))(props.data))
             drawGridlines(zx, zy)
 
         })
@@ -138,7 +153,8 @@ function updateChart() {
   gX.call(d3.axisBottom(zx))
   gY.call(d3.axisLeft(zy))
 
-  path.datum(props.data).attr('d', line.x(d => zx(d.time)).y(d => zy(d.value)))
+  pathy1.datum(props.data).attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.value)))
+  pathy2.datum(props.data).attr('d', liney2.x(d => zx(d.time)).y(d => zy(d.y2)))
 }
 
 onMounted(() => {

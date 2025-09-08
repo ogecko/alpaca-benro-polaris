@@ -6,7 +6,7 @@ import { computed, ref } from 'vue'
 
 export type LogMessage = { text: string }
 export type PIDMessage = { p: number; i: number; d: number }
-export type KalmanMessage = { θ1_meas: number;  }
+export type KalmanMessage = { θ1_meas: number;  θ1_state: number}
 export type TelemetryMessage = LogMessage | PIDMessage | KalmanMessage
 
 export type TelemetryRecord = {
@@ -73,7 +73,7 @@ export const useStreamStore = defineStore('telemetry', () => {
         } else {
           if (!topics.value[topic]) topics.value[topic] = []
           topics.value[topic].push(record)
-          const MAX_RECORDS = 500
+          const MAX_RECORDS = 200
           if (topics.value[topic].length > MAX_RECORDS) {
             topics.value[topic].splice(0, topics.value[topic].length - MAX_RECORDS)
           }
