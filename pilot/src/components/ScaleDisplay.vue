@@ -18,7 +18,7 @@
               <q-btn @click="onScaleZoomInClick" dense flat color="secondary" icon="mdi-magnify-plus-outline"></q-btn>
             </div>
             <div class="column" text-primary>
-              <q-btn @click="onScaleAutoClick" dense flat color="secondary">{{ formatScaleRange() }}</q-btn>
+              <q-btn @click="onScaleAutoClick" dense flat color="secondary">{{ formatAngle(scaleRange, unit) }}</q-btn>
               <q-btn @click="onScaleZoomOutClick" dense flat color="secondary" icon="mdi-magnify-minus-outline"></q-btn>
             </div>
           </q-btn-group>
@@ -99,14 +99,16 @@ import { axisBottom } from 'd3-axis'
 import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { easeCubicOut } from 'd3-ease'
-import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo24, angularDifference, symbol } from 'src/utils/angles'
+import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo24, angularDifference } from 'src/utils/angles'
+import { steps, formatAngle, formatArcMinutes } from 'src/utils/scale'
+import MoveButton from 'src/components/MoveButton.vue'
+import MoveFab from 'src/components/MoveFab.vue'
 import type { ScaleLinear } from 'd3-scale'
 import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
 import type { UnitKey } from 'src/utils/angles'
-import MoveButton from 'src/components/MoveButton.vue'
-import MoveFab from 'src/components/MoveFab.vue'
+import type { Step } from 'src/utils/scale'
 
 // Component properties
 const props = defineProps<{
@@ -132,6 +134,7 @@ const spn = computed(() => dProps.value.dAngleFn(props.sp??0))        // sp norm
 const pvx = computed(() => deg2dms(pvn.value, 1, dProps.value.unit))   // pv decomposed
 const spx = computed(() => deg2dms(spn.value, 1, dProps.value.unit))   // sp decomposed
 const dProps = computed(() => domainStyle[props.domain])
+const unit = computed(() => dProps.value.unit)
 const isCircular = computed(() => [
   'circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180', 
   'az_360', 'alt_90', 'roll_180', 'ra_24', 'dec_180', 'pa_180',
@@ -190,39 +193,6 @@ const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
 const pathMap = { lg: 'M-8,0 L18,0', md: 'M-8,0 L14,0', sm: 'M-8,0 L11,0' };
 const offsetMap = { lg: 1.20, md: 1.165, sm: 1.13 }
 const opacityMap = { lg: 1, md: 1, sm: 0.5 }
-
-type Step = {
-  stepSize: number;
-  dFormatFn: (v: number) => string;
-  level: string;
-}
-
-const steps: Step[] = [
-  { stepSize: 200, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 180, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 90, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 30, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 15, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 10, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 6, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 5, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 3, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 2, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 1, dFormatFn: formatDegreesHr, level: 'lg' },
-  { stepSize: 30 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 20 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 15 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 10 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 5 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 2 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 1 / 60, dFormatFn: formatArcMinutes, level: 'md' },
-  { stepSize: 30 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 20 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 15 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 10 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 5 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-  { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
-];
 
 
 
@@ -349,44 +319,18 @@ function onMinus(payload: { isPressed: boolean }) {
 
 // ------------------- Tick generation and Helper functions ---------------------
 
-function formatScaleRange(): string {
-  if (scaleRange.value >= 1) return formatDegreesHr(scaleRange.value)
-  if (scaleRange.value >= 1/60) return formatArcMinutes(scaleRange.value)
-  return formatArcSeconds(scaleRange.value)
-}
-
-function formatDegreesHr(v: number): string {
-  return `${Math.round(v)}${symbol[dProps.value.unit].d}`;
-}
-
-function formatArcMinutes(v: number): string {
-  const arcmin = Math.round((v % 1) * 60);
-  const deg = Math.floor(v);
-  return (arcmin === 0) ? formatDegreesHr(deg) : `${arcmin}${symbol[dProps.value.unit].m}`;
-}
-
-function formatArcSeconds(v: number): string {
-  const arcsec = Math.round((v * 3600) % 60);
-  const arcmin = Math.floor((v * 60) % 60);
-  const deg = Math.floor(v);
-  if (arcsec !== 0) return `${arcsec}${symbol[dProps.value.unit].s}`;
-  if (arcmin !== 0) return `${arcmin}${symbol[dProps.value.unit].m}`;
-  return formatDegreesHr(deg);
-}
-
-
 // Adds a tick and its label to the ticks array, promoting to higher label levels if appropriate and ensuring only the highest-priority tick at each angle.
 function pushTick(
   ticks: MarkDatum[],
   level: 'lg' | 'md' | 'sm',
   v: number,
   dWrapFn: (v: number) => number,
-  dFormatFn: (v: number) => string,
+  dFormatFn: (v: number, unit: UnitKey) => string,
   stepSize: number,
 ) {
   const keyBase = v.toFixed(6);
   const angle = v;  // dont wrap the angle so comparisons still work
-  let labelText = dFormatFn(dWrapFn(v));
+  let labelText = dFormatFn(dWrapFn(v), unit.value);
 
   // Promote md ticks that look like whole degrees
   if (['md','sm'].includes(level) && /^[+-]?\d+[°ʰ]$/.test(labelText)) {
@@ -399,7 +343,7 @@ function pushTick(
   // Promote sm ticks that look like 60" to whole minutes
   if ('sm' === level  && /^[+-]?60[″ˢ]$/.test(labelText)) {
     level = 'md'
-    labelText = formatArcMinutes(v)
+    labelText = formatArcMinutes(v, unit.value)
   } 
   // Demote if we have too many degree labels
   if (stepSize==1 && v%5!=0 && dProps.value.unit=='deg') level='md'
