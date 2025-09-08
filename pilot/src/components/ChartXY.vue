@@ -103,16 +103,16 @@ function initChart() {
         .y(d => yScale(d.y2))
 
     pathy1 = g.append('path')
-        .attr('class', 'line plot')
+        .attr('class', 'line ploty1')
         .attr('fill', 'none')
-        .attr('stroke', '#42b983')
+        .attr('stroke', '#00695c ')
         .attr('stroke-width', 2)
         .attr('clip-path', `url(#${clipId})`);
 
     pathy2 = g.append('path')
-        .attr('class', 'line plot')
+        .attr('class', 'line ploty2')
         .attr('fill', 'none')
-        .attr('stroke', 'red')
+        .attr('stroke', '#cddc39')
         .attr('stroke-width', 2)
         .attr('clip-path', `url(#${clipId})`);
 
@@ -191,6 +191,9 @@ svg {
   .y-axis text {
     fill: #ccc;
   }
+
+
 }
+
 
 </style>
