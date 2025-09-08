@@ -35,9 +35,10 @@ import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import ChartXY from 'src/components/ChartXY.vue'
+import { useStreamStore } from 'src/stores/stream'
 
 const kalmanData = ref<DataPoint[]>([])
-
+const socket = useStreamStore()
 
 function generateData() {
   const t = Date.now() / 1000
@@ -47,16 +48,18 @@ function generateData() {
   const filtered = noisy
 
   kalmanData.value.push({ time: t, value: filtered })
-  if (kalmanData.value.length > 500) kalmanData.value.shift()
+  if (kalmanData.value.length > 200) kalmanData.value.shift()
 }
 
 let timer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
-  timer = setInterval(generateData, 100)
+  timer = setInterval(generateData, 50)
+  socket.subscribe('kf')
 })
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
+  socket.unsubscribe('kf')
 })
 
 </script>
