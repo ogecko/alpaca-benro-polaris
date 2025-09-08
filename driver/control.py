@@ -54,6 +54,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Alpaca pilot feature degredation when no Rotator
 # [ ] Alpaca pilot feature degredation when not ABP Driver
 # [ ] Alpaca Pilot memory and logevity tests
+# [ ] Fix Position Angle dashboard and interaction
+# [ ] Fix 340-360 Control Kinematics
 
 # Connection
 # [ ] Alpaca pilot work outside of Astro Mode
