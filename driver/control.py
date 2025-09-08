@@ -46,12 +46,14 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Indicate speed on Alpaca Dashboard
 # [X] Indicate motor activity on Alpaca Dashboard
 # [X] Alpaca pilot manual slew AltAzRoll, slew rate
-# [X] Alpaca pilot manual slew RADecPA, 
+# [X] Alpaca pilot manual slew RADecPA
 # [ ] Alpaca pilot Sync
+# [ ] Alpaca Pilot SP pointer is removed around +/- 90 degrees too early
+# [ ] Alpaca Pilot Radial Scale PVtoSP can arc the wrong way when around 360/0 wraparound
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
 # [ ] Alpaca pilot feature degredation when no Rotator
 # [ ] Alpaca pilot feature degredation when not ABP Driver
-# [ ] Alpaca memory and logevity tests
+# [ ] Alpaca Pilot memory and logevity tests
 
 # Connection
 # [ ] Alpaca pilot work outside of Astro Mode
