@@ -168,7 +168,8 @@ function formatVelData(d: TelemetryRecord):DataPoint {
   const data = d.data as KalmanMessage
   const y1 = data.ω_meas[axis.value] ?? 0
   const y2 = data.ω_state[axis.value] ?? 0
-  return { time, y1, y2 }
+  const y3 = data.ω_ref[axis.value] ?? 0
+  return { time, y1, y2, y3 }
 }
 
 

@@ -688,7 +688,7 @@ class Polaris:
             q1s = str(q1).replace(' ',',').replace('i','').replace('j','').replace('k','')
             payload = { 
                 "θ_meas":theta_meas.tolist(), "θ_state":theta_state.tolist(), "K_gain": K_gain.tolist(),
-                "ω_meas":omega_meas.tolist(), "ω_state":omega_state.tolist(), "ω_ref":omega_ref.tolist(),  
+                "ω_meas":omega_meas.tolist(), "ω_state":omega_state.tolist(), "ω_ref": omega_ref.tolist(),  
             }
             kflogger = logging.getLogger('kf') 
             kflogger.info(payload)

@@ -10,6 +10,7 @@ export type DataPoint = {
   time: number
   y1: number
   y2: number
+  y3?: number
 }
 
 const props = defineProps<{ data: DataPoint[] }>();
@@ -29,10 +30,12 @@ let xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
 let yAxis: d3.Selection<SVGGElement, unknown, null, undefined>
 let liney1: d3.Line<DataPoint>
 let liney2: d3.Line<DataPoint>
+let liney3: d3.Line<DataPoint>
 let gX: d3.Selection<SVGGElement, unknown, null, undefined>
 let gY: d3.Selection<SVGGElement, unknown, null, undefined>
 let pathy1: d3.Selection<SVGPathElement, unknown, null, undefined>
 let pathy2: d3.Selection<SVGPathElement, unknown, null, undefined>
+let pathy3: d3.Selection<SVGPathElement, unknown, null, undefined>
 let zoom: d3.ZoomBehavior<SVGSVGElement, unknown>
 let currentTransform: d3.ZoomTransform | null = null
 let gridX: d3.Selection<SVGGElement, unknown, null, undefined>
@@ -102,6 +105,11 @@ function initChart() {
         .x(d => xScale(d.time))
         .y(d => yScale(d.y2))
 
+    liney3 = d3.line<DataPoint>()
+        .defined(d => typeof d.y3 === 'number')
+        .x(d => xScale(d.time))
+        .y(d => yScale(d.y3!))
+
     pathy1 = g.append('path')
         .attr('class', 'line ploty1')
         .attr('fill', 'none')
@@ -113,6 +121,13 @@ function initChart() {
         .attr('class', 'line ploty2')
         .attr('fill', 'none')
         .attr('stroke', '#cddc39')
+        .attr('stroke-width', 2)
+        .attr('clip-path', `url(#${clipId})`);
+
+    pathy3 = g.append('path')
+        .attr('class', 'line ploty3')
+        .attr('fill', 'none')
+        .attr('stroke', '#d84315')
         .attr('stroke-width', 2)
         .attr('clip-path', `url(#${clipId})`);
 
@@ -128,6 +143,7 @@ function initChart() {
             gY.call(d3.axisLeft(zy))
             pathy1.attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.y1))(props.data))
             pathy2.attr('d', liney2.x(d => zx(d.time)).y(d => zy(d.y2))(props.data))
+            pathy3.attr('d', liney3.x(d => zx(d.time)).y(d => zy(d.y3 ?? 0))(props.data))
             drawGridlines(zx, zy)
 
         })
@@ -143,7 +159,8 @@ function updateChart() {
   const times = props.data.map(d => d.time)
   const y1s = props.data.map(d => d.y1)
   const y2s = props.data.map(d => d.y2);
-  const allys = [...y1s, ...y2s]
+  const y3s = props.data.map(d => d.y3).filter((v): v is number => typeof v === 'number');
+  const allys = [...y1s, ...y2s, ...y3s]
 
   xScale.domain([d3.min(times) ?? 0, d3.max(times) ?? 100])
   yScale.domain([d3.min(allys) ?? 0, d3.max(allys) ?? 100])
@@ -157,6 +174,11 @@ function updateChart() {
 
   pathy1.datum(props.data).attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.y1)))
   pathy2.datum(props.data).attr('d', liney2.x(d => zx(d.time)).y(d => zy(d.y2)))
+  if (y3s.length > 0) {
+    pathy3.attr('d', liney3.x(d => zx(d.time)).y(d => zy(d.y3!))(props.data));
+  } else {
+    pathy3.attr('d', null);
+  }
 }
 
 onMounted(() => {
