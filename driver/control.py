@@ -673,7 +673,7 @@ class MotorSpeedController:
 
         asyncio.create_task(self._dispatch_loop())
 
-    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True):
+    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=False):
         async with self._lock:
             raw = self._model.interpolate[rate_unit].toRAW(rate)
             now = time.monotonic()
