@@ -72,9 +72,6 @@ Changes take effect immediately, use Settings Save to store adjustments.
             </div>
           </q-item-section>
         </q-item>
-        <q-item class="col-6 row items-top">
-        
-        </q-item>
       </q-list>
       <ChartXY  :data="chartData"></ChartXY>
       <div class="q-pb-xl"></div>
