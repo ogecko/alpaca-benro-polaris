@@ -73,7 +73,8 @@ Changes take effect immediately, use Settings Save to store adjustments.
           </q-item-section>
         </q-item>
       </q-list>
-      <ChartXY  :data="chartData"></ChartXY>
+      <ChartXY  :data="chartPosData"></ChartXY>
+      <ChartXY  :data="chartVelData"></ChartXY>
       <div class="q-pb-xl"></div>
     </q-card>
 
@@ -110,9 +111,14 @@ const pos_stdev = computed<string>(() => formatAngle(Math.sqrt(pos_variance.valu
 const accel_variance = computed<number>(() => accel_variance_factor.value * pos_variance.value / dt / dt)
 const accel_stdev = computed<string>(() => formatAngle(Math.sqrt(accel_variance.value),'deg'))
 
-const chartData = computed<DataPoint[]>(() => {
+const chartPosData = computed<DataPoint[]>(() => {
    const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
-   return kf.map(formatChartData)
+   return kf.map(formatPosData)
+})
+
+const chartVelData = computed<DataPoint[]>(() => {
+   const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
+   return kf.map(formatVelData)
 })
 
 watch(pos_variance, (newVal)=>{
@@ -148,13 +154,23 @@ function setKnobValues() {
   accel_variance_factor.value = accelVar * dt * dt / posVar;
 }
 
-function formatChartData(d: TelemetryRecord):DataPoint {
+
+function formatPosData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts).getTime()/1000
   const data = d.data as KalmanMessage
   const y1 = data.θ_meas[axis.value] ?? 0
   const y2 = data.θ_state[axis.value] ?? 0
   return { time, y1, y2 }
 }
+
+function formatVelData(d: TelemetryRecord):DataPoint {
+  const time = new Date(d.ts).getTime()/1000
+  const data = d.data as KalmanMessage
+  const y1 = data.ω_meas[axis.value] ?? 0
+  const y2 = data.ω_state[axis.value] ?? 0
+  return { time, y1, y2 }
+}
+
 
 onMounted(async () => {
   await cfg.configFetch()

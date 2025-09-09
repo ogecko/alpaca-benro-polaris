@@ -1,5 +1,5 @@
 <template>
-  <div ref="chart" class="q-pa-md" style="height: 400px; width: 100%;"></div>
+  <div ref="chart" class="q-pa-md" style="height: 300px; width: 100%;"></div>
 </template>
 
 <script setup lang="ts">
@@ -17,8 +17,8 @@ const props = defineProps<{ data: DataPoint[] }>();
 const chart = ref(null)
 
 
-const width = 800
-const height = 400
+const width = 600
+const height = 300
 const margin = { top: 20, right: 30, bottom: 30, left: 80 }
 const clipId = 'plot-clip';
 
