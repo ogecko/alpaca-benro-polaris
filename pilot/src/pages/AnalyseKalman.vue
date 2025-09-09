@@ -151,18 +151,8 @@ function setKnobValues() {
 function formatChartData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts).getTime()/1000
   const data = d.data as KalmanMessage
-  let y1 = 0
-  let y2 = 0
-  if (axis.value==0) {
-    y1 = ('θ1_meas' in data) ? data.θ1_meas : 0
-    y2 = ('θ1_state' in data) ? data.θ1_state : 0
-  } else if (axis.value==1) {
-    y1 = ('θ2_meas' in data) ? data.θ2_meas : 0
-    y2 = ('θ2_state' in data) ? data.θ2_state : 0
-  } else if (axis.value==2) {
-    y1 = ('θ3_meas' in data) ? data.θ3_meas : 0
-    y2 = ('θ3_state' in data) ? data.θ3_state : 0
-  }
+  const y1 = data.θ_meas[axis.value] ?? 0
+  const y2 = data.θ_state[axis.value] ?? 0
   return { time, y1, y2 }
 }
 
