@@ -108,11 +108,16 @@ class PayloadFormatter(logging.Formatter):
         self.topic = topic
     def format(self, record: logging.LogRecord) -> dict:
         ts = datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        data = record.msg if isinstance(record.msg, dict) else {"text": record.getMessage()}
+        try:
+            json.dumps(data)  # Validate serializability
+        except TypeError:
+            data = {"text": str(data)}
         return {
             "ts": ts,
             "topic": self.topic,
             "level": record.levelname,
-            "data": record.msg if isinstance(record.msg, dict) else {"text": record.getMessage()}
+            "data": data
         }
 
 
