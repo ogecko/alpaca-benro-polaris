@@ -35,6 +35,9 @@ advanced_rotator = true                     # Enable the ASCOM Alpaca Rotator AP
 advanced_guiding = false                    # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
 max_slew_rate = 0.0                         # Maximum slew rate (0.0 to 8.5 degrees/s) on any motor axis (use 0.0 to set calibrated max) must be float
 max_accel_rate = 0.0                        # Maximum acceleration (0.5 to 5.0 degress/s2) on any motor axis (use 0.0 to set default) must be float
+kf_process_noise = [1e-5,1e-5,1e-5,1e-4,1e-4,1e-4]
+kf_measure_noise = [1e-5,1e-5,1e-5,1e-4,1e-4,1e-4]
+
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.

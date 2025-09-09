@@ -502,6 +502,7 @@ class KalmanFilter:
         self.R = np.diag([ pos, pos, pos*10, vel, vel, vel*10 ])
 
     def predict(self, control_input):
+        self.Q = np.diag(Config.kf_process_noise)
         self.set_state_transition_matrix_A()
         control_input = np.array(control_input).reshape(3, 1)
         omega_state = self.x[3:]                    # stateimated velocity
@@ -512,6 +513,7 @@ class KalmanFilter:
 
 
     def observe(self, theta, omega):
+        self.R = np.diag(Config.kf_measure_noise)
         if self._need_first_measurement:
             self._need_first_measurement = False
             self.set_state([*theta, *omega])

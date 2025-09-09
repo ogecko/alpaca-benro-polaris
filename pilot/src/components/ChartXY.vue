@@ -142,9 +142,11 @@ function updateChart() {
 
   const times = props.data.map(d => d.time)
   const y1s = props.data.map(d => d.y1)
+  const y2s = props.data.map(d => d.y2);
+  const allys = [...y1s, ...y2s]
 
   xScale.domain([d3.min(times) ?? 0, d3.max(times) ?? 100])
-  yScale.domain([d3.min(y1s) ?? 0, d3.max(y1s) ?? 100])
+  yScale.domain([d3.min(allys) ?? 0, d3.max(allys) ?? 100])
 
   const zx = currentTransform ? currentTransform.rescaleX(xScale) : xScale
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
