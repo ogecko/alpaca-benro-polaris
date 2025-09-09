@@ -106,7 +106,7 @@ const axis_knob = ref<number>(1)
 const pos_variance_log = ref<number>(5)
 const accel_variance_factor = ref<number>(5)      // typically 1 to 10
 
-const dt = 0.2 // 200ms
+const dt = 0.2 * 6 // 200ms for each mesurement, see polaris._history on how angular velocity is calc
 const axis = computed<number>(() => axis_knob.value - 1)
 const pos_variance = computed<number>(() =>Math.pow(10,-6+pos_variance_log.value))
 const pos_stdev = computed<string>(() => formatAngle(Math.sqrt(pos_variance.value),'deg'))
