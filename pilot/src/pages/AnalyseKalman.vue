@@ -58,6 +58,20 @@ Changes take effect immediately, use Settings Save to store adjustments.
             </q-item-label>
           </q-item-section>
         </q-item>
+        <q-item :inset-level="1">
+          <q-item-section >
+            <q-item-label> Test movement of M{{ axis_knob }}</q-item-label>
+            <q-item-label caption>
+              Use the following action buttons to move the motor and monitor how the estimated position tracks the raw sensor readings. 
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <div class=" q-gutter-ax">
+            <MoveButton activeColor="positive" icon="mdi-minus-circle" @push="onMinus"/>
+            <MoveButton activeColor="positive" icon="mdi-plus-circle" @push="onPlus"/>
+            </div>
+          </q-item-section>
+        </q-item>
         <q-item class="col-6 row items-top">
         
         </q-item>
@@ -78,12 +92,15 @@ import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
+import { useDeviceStore } from 'src/stores/device'
 import { formatAngle } from 'src/utils/scale'
+import MoveButton from 'src/components/MoveButton.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, KalmanMessage }from 'src/stores/stream'
 
 const socket = useStreamStore()
 const cfg = useConfigStore()
+const dev = useDeviceStore()
 
 const axis_knob = ref<number>(1)
 const pos_variance_log = ref<number>(5)
@@ -114,6 +131,16 @@ watch(accel_variance, (newVal)=>{
 })
 
 watch(axis, () => setKnobValues())
+
+async function onPlus(payload: { isPressed: boolean }) {
+    const isPressed = payload.isPressed
+    await dev.apiAction('Polaris:MoveAxis', `{"axis":${axis.value},"rate":${isPressed ? 1 : 0}}`)
+
+}
+async function onMinus(payload: { isPressed: boolean }) {
+    const isPressed = payload.isPressed
+    await dev.apiAction('Polaris:MoveAxis', `{"axis":${axis.value},"rate":${isPressed ? -1 : 0}}`)
+}
 
 function setKnobValues() {
   const idx = axis.value ?? 0
