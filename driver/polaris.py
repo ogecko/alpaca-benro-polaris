@@ -691,7 +691,7 @@ class Polaris:
             [ rω1, rω2, rω3 ] = omega_ref
             [ sθ1, sθ2, sθ3 ] = theta_state
             [ sω1, sω2, sω3 ] = omega_state
-            payload = {"θ1_meas":θ1, "ω1_meas":ω1, "ω1_ref":rω1, "θ1_state":sθ1, "ω1_state":sω1 }
+            payload = {"θ1_meas":θ1, "θ2_meas":θ2, "θ3_meas":θ3, "ω1_meas":ω1, "ω1_ref":rω1, "θ1_state":sθ1, "θ2_state":sθ2, "θ3_state":sθ3, "ω1_state":sω1 }
             kflogger = logging.getLogger('kf') 
             kflogger.info(payload)
             # self.logger.info(f',DATA5,{time:.4f},  {q1s},  {p_az:+.4f},{p_alt:+.4f},{p_roll:+.4f},  {θ1:+.4f},{θ2:+.4f},{θ3:+.4f},  {sθ1:+.4f},{sθ2:+.4f},{sθ3:+.4f},  {ω1:+.5f},{ω2:+.5f},{ω3:+.5f}, {sω1:+.5f},{sω2:+.5f},{sω3:+.5f},  {rω1:+.5f},{rω2:+.5f},{rω3:+.5f} ')

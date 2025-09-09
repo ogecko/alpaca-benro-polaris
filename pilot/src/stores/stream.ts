@@ -6,7 +6,7 @@ import { computed, ref } from 'vue'
 
 export type LogMessage = { text: string }
 export type PIDMessage = { p: number; i: number; d: number }
-export type KalmanMessage = { θ1_meas: number;  θ1_state: number}
+export type KalmanMessage = { θ1_meas: number;  θ1_state: number, θ2_meas: number;  θ2_state: number, θ3_meas: number;  θ3_state: number}
 export type TelemetryMessage = LogMessage | PIDMessage | KalmanMessage
 
 export type TelemetryRecord = {

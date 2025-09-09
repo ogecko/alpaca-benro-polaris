@@ -22,10 +22,21 @@ The Kalman filter uses a model of how noisy our measurements are. For example, i
       <q-list>
         <q-item>
           <q-item-section side top>
+            <q-knob v-model="axis_knob" show-value :min="0" :inner-min="1" :inner-max="3" :max="4" :step="1"></q-knob>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label> Choosen Motor Axis</q-item-label>
+            <q-item-label caption>
+              Pick the motor axis that you wish to analyse and tune. Motor 1 = Azimuth, Motor 2 = "Altitude", Motor 3 = "Astro head". 
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item>
+          <q-item-section side top>
             <q-knob v-model="pos_variance_log" show-value :min="1" :max="6" :step="0.1">{{pos_stdev}}</q-knob>
           </q-item-section>
           <q-item-section>
-            <q-item-label> Angular Position Measurement Error</q-item-label>
+            <q-item-label> Angular Position Measurement Error for M{{ axis_knob }}</q-item-label>
             <q-item-label caption>
               This defines the expected uncertainty in the measurement of angular position. 
               Larger values means less trust in position measurement, smoother but possibly lagging estimates. 
@@ -37,7 +48,7 @@ The Kalman filter uses a model of how noisy our measurements are. For example, i
             <q-knob v-model="accel_variance_factor" show-value :min="1" :max="100" :step="0.1">{{accel_stdev}}</q-knob>
           </q-item-section>
           <q-item-section>
-            <q-item-label> Angular Velocity Measurement Error</q-item-label>
+            <q-item-label> Angular Velocity Measurement Error for M{{ axis_knob }}</q-item-label>
             <q-item-label caption>
               The velocity is calculated from the change in position and its uncertainty is based on the position uncertainty times this factor. 
               A larger factor means less trust in velocity measurement, smoother but possibly lagging estimates. 
@@ -71,10 +82,12 @@ import type { TelemetryRecord, KalmanMessage }from 'src/stores/stream'
 const socket = useStreamStore()
 const cfg = useConfigStore()
 
+const axis_knob = ref<number>(1)
 const pos_variance_log = ref<number>(5)
 const accel_variance_factor = ref<number>(5)      // typically 1 to 10
 
 const dt = 0.2 // 200ms
+const axis = computed<number>(() => axis_knob.value - 1)
 const pos_variance = computed<number>(() =>Math.pow(10,-6+pos_variance_log.value))
 const pos_stdev = computed<string>(() => formatAngle(Math.sqrt(pos_variance.value),'deg'))
 const accel_variance = computed<number>(() => accel_variance_factor.value * pos_variance.value / dt / dt)
@@ -87,34 +100,48 @@ const chartData = computed<DataPoint[]>(() => {
 
 watch(pos_variance, (newVal)=>{
   const payload = { kf_measure_noise: cfg.kf_measure_noise}
-  payload.kf_measure_noise[0] = newVal
+  payload.kf_measure_noise[axis.value] = newVal
   putdb(payload)
 })
 
 watch(accel_variance, (newVal)=>{
   const payload = { kf_measure_noise: cfg.kf_measure_noise}
-  payload.kf_measure_noise[3] = newVal
+  payload.kf_measure_noise[axis.value+3] = newVal
   putdb(payload)
 })
 
+watch(axis, () => setKnobValues())
+
+function setKnobValues() {
+  const idx = axis.value ?? 0
+  const posVar = cfg.kf_measure_noise[idx] ?? 1e-6;
+  pos_variance_log.value = Math.log10(posVar) + 6;
+
+  const accelVar = cfg.kf_measure_noise[idx + 3] ?? 1e-4;
+  accel_variance_factor.value = accelVar * dt * dt / posVar;
+}
 
 function formatChartData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts).getTime()/1000
   const data = d.data as KalmanMessage
-  const y1 = ('θ1_meas' in data) ? data.θ1_meas : 0
-  const y2 = ('θ1_state' in data) ? data.θ1_state : 0
+  let y1 = 0
+  let y2 = 0
+  if (axis.value==0) {
+    y1 = ('θ1_meas' in data) ? data.θ1_meas : 0
+    y2 = ('θ1_state' in data) ? data.θ1_state : 0
+  } else if (axis.value==1) {
+    y1 = ('θ2_meas' in data) ? data.θ2_meas : 0
+    y2 = ('θ2_state' in data) ? data.θ2_state : 0
+  } else if (axis.value==2) {
+    y1 = ('θ3_meas' in data) ? data.θ3_meas : 0
+    y2 = ('θ3_state' in data) ? data.θ3_state : 0
+  }
   return { time, y1, y2 }
 }
 
 onMounted(() => {
   socket.subscribe('kf')
-
-  const posVar = cfg.kf_measure_noise[0] ?? 1e-6;
-  pos_variance_log.value = Math.log10(posVar) + 6;
-
-  const accelVar = cfg.kf_measure_noise[3] ?? 1e-4;
-  accel_variance_factor.value = accelVar * dt * dt / posVar;
-
+  setKnobValues()
 })
 
 onUnmounted(() => {
