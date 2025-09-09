@@ -86,13 +86,13 @@ const chartData = computed<DataPoint[]>(() => {
 })
 
 watch(pos_variance, (newVal)=>{
-  const payload = { kf_measure_noise: cfg.kf_measure_noise}
+  const payload = { kf_measure_noise: [...cfg.kf_measure_noise]}
   payload.kf_measure_noise[0] = newVal
   putdb(payload)
 })
 
 watch(accel_variance, (newVal)=>{
-  const payload = { kf_measure_noise: cfg.kf_measure_noise}
+  const payload = { kf_measure_noise: [...cfg.kf_measure_noise]}
   payload.kf_measure_noise[3] = newVal
   putdb(payload)
 })
@@ -107,8 +107,8 @@ function formatChartData(d: TelemetryRecord):DataPoint {
 }
 
 onMounted(() => {
-  // timer = setInterval(generateData, 50)
   socket.subscribe('kf')
+
   const posVar = cfg.kf_measure_noise[0] ?? 1e-6;
   pos_variance_log.value = Math.log10(posVar) + 6;
 
