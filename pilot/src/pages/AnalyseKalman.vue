@@ -18,17 +18,20 @@
     <q-card flat bordered class="col">
       <q-markdown class="q-pa-md" :no-mark="false">
 # Kalman Filter Tuning
-The Kalman filter uses a model of how noisy our measurements are. For example, if our angular accelon sensor is accurate to within ±0.1°, we tell the filter that the standard deviation of the position measurement error is 0.1°. That helps it decide how much to trust each reading.      </q-markdown>
+The purpose of a Kalman Filter (KF) is to estimate the true orientation of the telescope mount. It combines noisy sensor measurements and expected motion to produce the most accurate result possible. This page presents the raw sensor data in dark green and the estimated orientation in yellow.
+
+Changes take effect immediately, use Settings Save to store adjustments.
+      </q-markdown>
       <q-list>
         <q-item>
           <q-item-section side top>
-            <q-knob v-model="axis_knob" show-value :min="0" :inner-min="1" :inner-max="3" :max="4" :step="1"></q-knob>
+            <q-knob v-model="axis_knob" show-value :min="0" :inner-min="1" :inner-max="3" :max="4" :step="1">M{{ axis_knob }}</q-knob>
           </q-item-section>
           <q-item-section>
             <q-item-label> Choosen Motor Axis</q-item-label>
             <q-item-label caption>
-              Pick the motor axis that you wish to analyse and tune. Motor 1 = Azimuth, Motor 2 = "Altitude", Motor 3 = "Astro head". 
-            </q-item-label>
+              Select the motor axis you'd like to analyse and tune. Motor 1 Azimuth; Motor 2 Altitude; Motor 3 Astro head. 
+              Keep in mind: when Motor 3 (Astro Head) is rotated, the orientation of Motor 1 and Motor 2 no longer corresponds directly to Azimuth and Altitude.            </q-item-label>
           </q-item-section>
         </q-item>
         <q-item>
@@ -139,7 +142,8 @@ function formatChartData(d: TelemetryRecord):DataPoint {
   return { time, y1, y2 }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await cfg.configFetch()
   socket.subscribe('kf')
   setKnobValues()
 })
