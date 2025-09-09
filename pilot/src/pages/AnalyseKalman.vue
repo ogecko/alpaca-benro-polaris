@@ -22,7 +22,7 @@ The purpose of a Kalman Filter (KF) is to estimate the true orientation of the t
 
 Changes take effect immediately, use Settings Save to store adjustments.
       </q-markdown>
-      <q-list>
+      <q-list style="max-width: 800px">
         <q-item>
           <q-item-section side top>
             <q-knob v-model="axis_knob" show-value :min="0" :inner-min="1" :inner-max="3" :max="4" :step="1">M{{ axis_knob }}</q-knob>
