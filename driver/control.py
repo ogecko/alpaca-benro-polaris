@@ -475,6 +475,7 @@ class KalmanFilter:
         self.set_measurement_noise_model_R()    # Measurement noise model matrix (R)
         self.P = np.eye(6)                      # Initial estimate covariance
         self.I = np.eye(6)
+        self.K = np.zeros((6, 6))
 
     def set_state_transition_matrix_A(self):
         # recalc State transition matrix (A): position + dt * velocity
@@ -527,20 +528,21 @@ class KalmanFilter:
         omega_residual = omega_meas - self.x[3:]
         y = np.vstack((theta_residual, omega_residual))
         S = self.H @ self.P @ self.H.T + self.R
-        K = self.P @ self.H.T @ np.linalg.inv(S)
+        self.K = self.P @ self.H.T @ np.linalg.inv(S)
 
-        self.x = self.x + K @ y
-        self.P = (self.I - K @ self.H) @ self.P
+        self.x = self.x + self.K @ y
+        self.P = (self.I - self.K @ self.H) @ self.P
         self.x = wrap_state_angles(self.x)
 
-        self._logger.debug(f"KF Gain:{K} | Residual y:{y}")
+        # self._logger.debug(f"KF Gain:{K} | Residual y:{y}")
 
 
     def get_state(self):
         state = self.x.flatten()
         theta = state[0:3]
         omega = state[3:]
-        return theta, omega
+        K = np.diag(self.K)
+        return theta, omega, K
 
     def set_state(self, x):
         self.x = np.array(x).reshape(6, 1)

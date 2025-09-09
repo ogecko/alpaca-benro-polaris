@@ -6,7 +6,14 @@ import { computed, ref } from 'vue'
 
 export type LogMessage = { text: string }
 export type PIDMessage = { p: number; i: number; d: number }
-export type KalmanMessage = { θ1_meas: number;  θ1_state: number, θ2_meas: number;  θ2_state: number, θ3_meas: number;  θ3_state: number}
+export type KalmanMessage = { 
+  θ1_meas: number;  θ1_state: number, 
+  θ2_meas: number;  θ2_state: number, 
+  θ3_meas: number;  θ3_state: number, 
+  θ_meas: [number, number, number], θ_state: [number, number, number],
+  ω_meas: [number, number, number], ω_state: [number, number, number], ω_ref: [number, number, number],
+  K_gain: [number, number, number, number, number, number],
+}
 export type TelemetryMessage = LogMessage | PIDMessage | KalmanMessage
 
 export type TelemetryRecord = {
