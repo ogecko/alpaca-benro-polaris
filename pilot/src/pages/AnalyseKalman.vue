@@ -20,15 +20,15 @@
       <q-card flat bordered class="col q-pa-md">
         <div class="row">
           <!-- KF intro -->
-          <div class="col-6">
-<q-markdown class="q-pa-md" :no-mark="false">
+          <div class="col-md-6">
+<q-markdown  :no-mark="false">
 # Kalman Filter Tuning
 The purpose of a Kalman Filter (KF) is to estimate the true orientation of the telescope mount. It combines noisy sensor measurements and expected motion to produce the most accurate result possible. 
 
 This page presents the raw sensor data in dark green, the filtered data in yellow, and the control velocity in red. Changes take effect immediately, use Settings Save to store adjustments.
 </q-markdown>
           </div>
-          <div class="col-6 q-pt-xl">
+          <div class="col-md-6 q-pt-sm">
             <q-list style="max-width: 800px">
               <!-- Choose Motor -->
               <q-item>
