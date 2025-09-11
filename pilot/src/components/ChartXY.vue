@@ -18,7 +18,7 @@ const props = defineProps<{ data: DataPoint[] }>();
 const chart = ref(null)
 
 
-const width = 600
+const width = 500
 const height = 300
 const margin = { top: 20, right: 30, bottom: 30, left: 80 }
 const clipId = 'plot-clip';

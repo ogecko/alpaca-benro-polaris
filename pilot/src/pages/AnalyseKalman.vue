@@ -73,10 +73,10 @@ Changes take effect immediately, use Settings Save to store adjustments.
           <q-list style="max-width: 800px">
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="pos_variance_log" show-value :min="1" :max="6" :step="0.1">{{pos_stdev}}</q-knob>
+                <q-knob v-model="pos_meas_var_log" show-value :min="1" :max="6" :step="0.1">{{pos_meas_stdev}}</q-knob>
               </q-item-section>
               <q-item-section>
-                <q-item-label> Angular Position Measurement Error for {{ motor }}</q-item-label>
+                <q-item-label> Angular Position Measurement Error (R) for {{ motor }}</q-item-label>
                 <q-item-label caption>
                   This defines the expected uncertainty in the measurement of angular position. 
                   Larger values means less trust in position measurement, smoother but possibly lagging estimates. 
@@ -85,13 +85,13 @@ Changes take effect immediately, use Settings Save to store adjustments.
             </q-item>
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="accel_variance_factor" show-value :min="1" :max="100" :step="0.1">{{accel_stdev}}</q-knob>
+                <q-knob v-model="pos_proc_var_log" show-value :min="1" :max="6" :step="0.1">{{pos_proc_stdev}}</q-knob>
               </q-item-section>
               <q-item-section>
-                <q-item-label> Angular Velocity Measurement Error for {{ motor }}</q-item-label>
+                <q-item-label> Angular Position Process Error (Q) for {{ motor }}</q-item-label>
                 <q-item-label caption>
-                  The velocity is calculated from the change in position and its uncertainty is based on the position uncertainty times this factor. 
-                  A larger factor means less trust in velocity measurement, smoother but possibly lagging estimates. 
+                  This defines the expected uncertainty in the dynamic process of predicting angular position.  
+                  Larger values means less trust in position prediction, smoother but possibly lagging estimates. 
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -105,25 +105,25 @@ Changes take effect immediately, use Settings Save to store adjustments.
           <q-list style="max-width: 800px">
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="pos_variance_log" show-value :min="1" :max="6" :step="0.1">{{pos_stdev}}</q-knob>
+                <q-knob v-model="vel_meas_var_factor" show-value :min="1" :max="100" :step="0.1">{{vel_meas_stdev}}</q-knob>
               </q-item-section>
               <q-item-section>
-                <q-item-label> Angular Velocity Measurement Error for {{ motor }}</q-item-label>
+                <q-item-label> Angular Velocity Measurement Error (R) for {{ motor }}</q-item-label>
                 <q-item-label caption>
-                  This defines the expected uncertainty in the measurement of angular velocity. 
+                  The velocity is calculated from the change in velocity and its uncertainty is based on the position uncertainty times this factor. 
                   Larger values means less trust in velocity measurement, smoother but possibly lagging estimates. 
                 </q-item-label>
               </q-item-section>
             </q-item>
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="accel_variance_factor" show-value :min="1" :max="100" :step="0.1">{{accel_stdev}}</q-knob>
+                <q-knob v-model="vel_proc_var_log" show-value :min="1" :max="6" :step="0.1">{{vel_proc_stdev}}</q-knob>
               </q-item-section>
               <q-item-section>
-                <q-item-label> Angular Velocity Measurement Error for {{ motor }}</q-item-label>
+                <q-item-label> Angular Velocity Process Error (Q) for {{ motor }}</q-item-label>
                 <q-item-label caption>
-                  The velocity is calculated from the change in velocity and its uncertainty is based on the velocity uncertainty times this factor. 
-                  A larger factor means less trust in velocity measurement, smoother but possibly lagging estimates. 
+                  This defines the expected uncertainty in the dynamic process of predicting angular velocity.  
+                  Larger values means less trust in velocity prediction, smoother but possibly lagging estimates. 
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -157,15 +157,27 @@ const cfg = useConfigStore()
 const dev = useDeviceStore()
 
 const axis = ref<number>(0)
-const pos_variance_log = ref<number>(5)
-const accel_variance_factor = ref<number>(5)      // typically 1 to 10
+const pos_meas_var_log = ref<number>(5)
+const vel_meas_var_factor = ref<number>(5)      // typically 1 to 10
+const pos_proc_var_log = ref<number>(5)
+const vel_proc_var_log = ref<number>(5)      
 
 const dt = 0.2 * 6 // 200ms for each mesurement, see polaris._history on how angular velocity is calc
 const motor = computed<string>(() => `M${axis.value+1}`)
-const pos_variance = computed<number>(() =>Math.pow(10,-6+pos_variance_log.value))
-const pos_stdev = computed<string>(() => formatAngle(Math.sqrt(pos_variance.value),'deg'))
-const accel_variance = computed<number>(() => accel_variance_factor.value * pos_variance.value / dt / dt)
-const accel_stdev = computed<string>(() => formatAngle(Math.sqrt(accel_variance.value),'deg'))
+const pos_meas_var = computed<number>(() => log2var(pos_meas_var_log.value))
+const pos_meas_stdev = computed<string>(() => var2stdev(pos_meas_var.value))
+const vel_meas_var = computed<number>(() => fac2var(vel_meas_var_factor.value, pos_meas_var.value))
+const vel_meas_stdev = computed<string>(() => var2stdev(vel_meas_var.value))
+const pos_proc_var = computed<number>(() => log2var(pos_proc_var_log.value))
+const pos_proc_stdev = computed<string>(() => var2stdev(pos_proc_var.value))
+const vel_proc_var = computed<number>(() => log2var(vel_proc_var_log.value))
+const vel_proc_stdev = computed<string>(() => var2stdev(vel_proc_var.value))
+// const pos_K_gain = computed<string>(() => socket.topics?.kf?[-1].))
+const var2log = (x:number) => Math.log10(x) + 6
+const log2var = (k:number) => Math.pow(10,-6 + k)
+const fac2var = (k:number, vp:number) => k * vp / dt / dt
+const var2fac = (vp:number, va:number) => va * dt * dt / vp
+const var2stdev = (x:number) => formatAngle(Math.sqrt(x),'deg')
 
 const chartPosData = computed<DataPoint[]>(() => {
    const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
@@ -177,15 +189,12 @@ const chartVelData = computed<DataPoint[]>(() => {
    return kf.map(formatVelData)
 })
 
-watch(pos_variance, (newVal)=>{
-  const payload = { kf_measure_noise: cfg.kf_measure_noise}
-  payload.kf_measure_noise[axis.value] = newVal
-  putdb(payload)
-})
-
-watch(accel_variance, (newVal)=>{
-  const payload = { kf_measure_noise: cfg.kf_measure_noise}
-  payload.kf_measure_noise[axis.value+3] = newVal
+watch([pos_meas_var, vel_meas_var, pos_proc_var, vel_proc_var], (newVal)=>{
+  const payload = { kf_measure_noise: cfg.kf_measure_noise, kf_process_noise: cfg.kf_process_noise}
+  payload.kf_measure_noise[axis.value] = newVal[0]
+  payload.kf_measure_noise[axis.value+3] = newVal[1]
+  payload.kf_process_noise[axis.value] = newVal[2]
+  payload.kf_process_noise[axis.value+3] = newVal[3]
   putdb(payload)
 })
 
@@ -201,13 +210,21 @@ async function onMinus(payload: { isPressed: boolean }) {
     await dev.apiAction('Polaris:MoveAxis', `{"axis":${axis.value},"rate":${isPressed ? -1 : 0}}`)
 }
 
+
 function setKnobValues() {
   const idx = axis.value ?? 0
-  const posVar = cfg.kf_measure_noise[idx] ?? 1e-6;
-  pos_variance_log.value = Math.log10(posVar) + 6;
 
-  const accelVar = cfg.kf_measure_noise[idx + 3] ?? 1e-4;
-  accel_variance_factor.value = accelVar * dt * dt / posVar;
+  const pos_meas_var = cfg.kf_measure_noise[idx] ?? 1e-6;
+  pos_meas_var_log.value = var2log(pos_meas_var);
+
+  const acc_meas_var = cfg.kf_measure_noise[idx + 3] ?? 1e-4;
+  vel_meas_var_factor.value = var2fac(pos_meas_var, acc_meas_var)
+  
+  const pos_proc_var = cfg.kf_process_noise[idx] ?? 1e-6;
+  pos_proc_var_log.value = var2log(pos_proc_var);
+
+  const acc_proc_var = cfg.kf_process_noise[idx] ?? 1e-6;
+  vel_proc_var_log.value = var2log(acc_proc_var);
 }
 
 
