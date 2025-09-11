@@ -1454,7 +1454,7 @@ class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:StatusFetch', 'Polaris:ConfigFetch', 
                                             'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore',
-                                            'Polaris:MoveAxis'], req)  
+                                            'Polaris:MoveAxis', 'Polaris:MoveMotor'], req)  
 
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
@@ -1508,7 +1508,6 @@ class action:
             return
         
         elif actionName == "Polaris:MoveAxis":
-            # Apply changes to store in Config and make them live
             logger.info(f'MoveAxis {parameters}')
             axis = parameters.get('axis', -1)
             rate = parameters.get('rate', 0)
@@ -1516,6 +1515,15 @@ class action:
                 polaris._pid.set_alpha_axis_velocity(axis, rate)
             if axis in [3,4,5] and rate <10 and rate >-10:
                 polaris._pid.set_delta_axis_velocity(axis-3, rate)
+            resp.text = await PropertyResponse('MoveAxis ok', req)  
+            return
+
+        elif actionName == "Polaris:MoveMotor":
+            logger.info(f'MoveAxis {parameters}')
+            axis = parameters.get('axis', -1)
+            rate = parameters.get('rate', 0)
+            if axis in [0,1,2] and rate <10 and rate >-10:
+                await polaris._motors[axis].set_motor_speed(rate, 'RAW')
             resp.text = await PropertyResponse('MoveAxis ok', req)  
             return
 

@@ -23,9 +23,9 @@
           <div class="col-6">
 <q-markdown class="q-pa-md" :no-mark="false">
 # Kalman Filter Tuning
-The purpose of a Kalman Filter (KF) is to estimate the true orientation of the telescope mount. It combines noisy sensor measurements and expected motion to produce the most accurate result possible. This page presents the raw sensor data in dark green and the estimated orientation in yellow.
+The purpose of a Kalman Filter (KF) is to estimate the true orientation of the telescope mount. It combines noisy sensor measurements and expected motion to produce the most accurate result possible. 
 
-Changes take effect immediately, use Settings Save to store adjustments.
+This page presents the raw sensor data in dark green, the filtered data in yellow, and the control velocity in red. Changes take effect immediately, use Settings Save to store adjustments.
 </q-markdown>
           </div>
           <div class="col-6 q-pt-xl">
@@ -59,7 +59,7 @@ Changes take effect immediately, use Settings Save to store adjustments.
                 <q-item-section >
                   <q-item-label> Test movement of {{ motor }}</q-item-label>
                   <q-item-label caption>
-                    Use the following action buttons to move the motor and monitor how the estimated position tracks the raw sensor readings. 
+                    Use the following action buttons to move the motor and monitor how the filtered position tracks the raw sensor readings. 
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -236,12 +236,12 @@ watch(axis, () => setKnobValues())
 
 async function onPlus(payload: { isPressed: boolean }) {
     const isPressed = payload.isPressed
-    await dev.apiAction('Polaris:MoveAxis', `{"axis":${axis.value},"rate":${isPressed ? 1 : 0}}`)
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${isPressed ? 1 : 0}}`)
 
 }
 async function onMinus(payload: { isPressed: boolean }) {
     const isPressed = payload.isPressed
-    await dev.apiAction('Polaris:MoveAxis', `{"axis":${axis.value},"rate":${isPressed ? -1 : 0}}`)
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${isPressed ? -1 : 0}}`)
 }
 
 
