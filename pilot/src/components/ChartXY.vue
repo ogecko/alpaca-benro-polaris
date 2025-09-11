@@ -1,5 +1,5 @@
 <template>
-  <div ref="chart" class="q-pa-md" style="height: 300px; width: 100%;"></div>
+  <div ref="chart" style="height: 300px; width: 100%;"></div>
 </template>
 
 <script setup lang="ts">

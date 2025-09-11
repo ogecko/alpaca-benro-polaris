@@ -95,6 +95,13 @@ Changes take effect immediately, use Settings Save to store adjustments.
                 </q-item-label>
               </q-item-section>
             </q-item>
+            <q-item >
+              <q-item-section>
+                <q-item-label>
+              Position Measured (K = {{ K_gain.pos }}) and Filtered vs Time 
+                </q-item-label>
+              </q-item-section>
+            </q-item>
           </q-list>
           <ChartXY  :data="chartPosData"></ChartXY>
           <div class="q-pb-xl"></div>
@@ -105,7 +112,7 @@ Changes take effect immediately, use Settings Save to store adjustments.
           <q-list style="max-width: 800px">
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="vel_meas_var_factor" show-value :min="1" :max="100" :step="0.1">{{vel_meas_stdev}}</q-knob>
+                <q-knob v-model="vel_meas_var_factor" show-value :min="1" :max="20" :step="0.1">{{vel_meas_stdev}}</q-knob>
               </q-item-section>
               <q-item-section>
                 <q-item-label> Angular Velocity Measurement Error (R) for {{ motor }}</q-item-label>
@@ -128,6 +135,13 @@ Changes take effect immediately, use Settings Save to store adjustments.
               </q-item-section>
             </q-item>
           </q-list>
+            <q-item >
+              <q-item-section>
+                <q-item-label>
+              Velocity Measured (K = {{ K_gain.vel }}) and Filtered vs Time 
+                </q-item-label>
+              </q-item-section>
+            </q-item>
           <ChartXY  :data="chartVelData"></ChartXY>
           <div class="q-pb-xl"></div>
         </q-card>
@@ -172,11 +186,10 @@ const pos_proc_var = computed<number>(() => log2var(pos_proc_var_log.value))
 const pos_proc_stdev = computed<string>(() => var2stdev(pos_proc_var.value))
 const vel_proc_var = computed<number>(() => log2var(vel_proc_var_log.value))
 const vel_proc_stdev = computed<string>(() => var2stdev(vel_proc_var.value))
-// const pos_K_gain = computed<string>(() => socket.topics?.kf?[-1].))
 const var2log = (x:number) => Math.log10(x) + 6
 const log2var = (k:number) => Math.pow(10,-6 + k)
-const fac2var = (k:number, vp:number) => k * vp / dt / dt
-const var2fac = (vp:number, va:number) => va * dt * dt / vp
+const fac2var = (k:number, vp:number) => k/5 * vp / dt / dt
+const var2fac = (vp:number, va:number) => 5*va * dt * dt / vp
 const var2stdev = (x:number) => formatAngle(Math.sqrt(x),'deg')
 
 const chartPosData = computed<DataPoint[]>(() => {
@@ -188,6 +201,27 @@ const chartVelData = computed<DataPoint[]>(() => {
    const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
    return kf.map(formatVelData)
 })
+
+const K_gain = computed((): { pos: string; vel: string } => {
+  const last = socket.topics?.kf?.[socket.topics.kf.length - 1];
+  if (!last) return { pos: '', vel: '' };
+
+  const data = last.data as Partial<KalmanMessage>;
+  const gain = data.K_gain;
+
+  if (Array.isArray(gain) && gain.length === 6 && axis.value >= 0 && axis.value < 3) {
+    const pos = gain[axis.value] ?? 0;
+    const vel = gain[axis.value + 3] ?? 0;
+    return {
+      pos: pos.toFixed(2),
+      vel: vel.toFixed(2),
+    };
+  }
+
+  return { pos: '', vel: '' };
+});
+
+
 
 watch([pos_meas_var, vel_meas_var, pos_proc_var, vel_proc_var], (newVal)=>{
   const payload = { kf_measure_noise: cfg.kf_measure_noise, kf_process_noise: cfg.kf_process_noise}
