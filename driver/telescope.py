@@ -1522,8 +1522,9 @@ class action:
             logger.info(f'MoveAxis {parameters}')
             axis = parameters.get('axis', -1)
             rate = parameters.get('rate', 0)
+            unit = parameters.get('unit', 'DPS')
             if axis in [0,1,2] and rate <10 and rate >-10:
-                await polaris._motors[axis].set_motor_speed(rate, 'RAW')
+                await polaris._motors[axis].set_motor_speed(rate, unit)
             resp.text = await PropertyResponse('MoveAxis ok', req)  
             return
 

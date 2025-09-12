@@ -679,6 +679,9 @@ class MotorSpeedController:
 
     async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True):
         async with self._lock:
+            if not rate_unit in ['RAW', 'DPS', 'ASCOM']:
+                self._logger.info(f'Set Motor Speed - Invalid units {rate_unit}')
+                return
             raw = self._model.interpolate[rate_unit].toRAW(rate)
             now = time.monotonic()
             # if we get too many updates before they are applied, just overwrite the last one

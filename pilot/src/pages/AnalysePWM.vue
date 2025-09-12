@@ -200,12 +200,12 @@ async function stopPWM() {
 
 async function dutyOn() {
   registerTimeout(() => { void dutyOff() }, pulse_width.value*1000)
-  await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${direction.value * active_rate.value}}`)
+  await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${direction.value * active_rate.value}, "unit":"RAW"}`)
 }
 
 async function dutyOff() {
   registerTimeout(() => { void dutyOn() }, cycle_period.value*1000 - pulse_width.value*1000)
-  await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${direction.value * inactive_rate.value}}`)
+  await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${direction.value * inactive_rate.value}, "unit":"RAW"}`)
 }
 
 function formatPosData(d: TelemetryRecord):DataPoint {
