@@ -34,30 +34,34 @@ export const steps: Step[] = [
   { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
 ];
 
-export function formatAngle(x: number, unit: UnitKey): string {
-  if (x >= 1) return formatDegreesHr(x, unit)
-  if (x >= 1/60) return formatArcMinutes(x, unit)
-  return formatArcSeconds(x, unit)
+export function formatAngle(x: number, unit: UnitKey, decimals: number = 0): string {
+  if (x >= 1) return formatDegreesHr(x, unit, decimals);
+  if (x >= 1 / 60) return formatArcMinutes(x, unit, decimals);
+  return formatArcSeconds(x, unit, decimals);
 }
 
-export function formatDegreesHr(v: number, unit: UnitKey): string {
-  return `${Math.round(v)}${symbol[unit].d}`;
+export function formatDegreesHr(v: number, unit: UnitKey, decimals: number = 0): string {
+  const formatted = v.toFixed(decimals);
+  return `${formatted}${symbol[unit].d}`;
 }
 
-export function formatArcMinutes(v: number, unit: UnitKey): string {
-  const arcmin = Math.round((v % 1) * 60);
+export function formatArcMinutes(v: number, unit: UnitKey, decimals: number = 0): string {
+  const arcmin = ((v % 1) * 60).toFixed(decimals);
   const deg = Math.floor(v);
-  return (arcmin === 0) ? formatDegreesHr(deg, unit) : `${arcmin}${symbol[unit].m}`;
+  return (parseFloat(arcmin) === 0)
+    ? formatDegreesHr(deg, unit, decimals)
+    : `${arcmin}${symbol[unit].m}`;
 }
 
-export function formatArcSeconds(v: number, unit: UnitKey): string {
-  const arcsec = Math.round((v * 3600) % 60);
+export function formatArcSeconds(v: number, unit: UnitKey, decimals: number = 0): string {
+  const arcsec = ((v * 3600) % 60).toFixed(decimals);
   const arcmin = Math.floor((v * 60) % 60);
   const deg = Math.floor(v);
-  if (arcsec !== 0) return `${arcsec}${symbol[unit].s}`;
+  if (parseFloat(arcsec) !== 0) return `${arcsec}${symbol[unit].s}`;
   if (arcmin !== 0) return `${arcmin}${symbol[unit].m}`;
-  return formatDegreesHr(deg, unit);
+  return formatDegreesHr(deg, unit, decimals);
 }
+
 
 // Find the closest step tick the current number, for zoom in/out 
 export function getClosestSteps(current: number): {

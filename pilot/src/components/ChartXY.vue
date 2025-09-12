@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import * as d3 from 'd3'
+import { formatAngle } from 'src/utils/scale'
 
 export type DataPoint = {
   x1: number | Date
@@ -139,6 +140,15 @@ function initChart() {
         .attr('stroke-width', 2)
         .attr('clip-path', `url(#${clipId})`);
 
+    svg.append('text')
+      .attr('class', 'stdev-label')
+      .attr('text-anchor', 'end')
+      .attr('x', width - 40)
+      .attr('y', height - 40)
+      .attr('fill', '#ccc')
+      .style('font-size', '12px')
+      .text('');
+
     zoom = d3.zoom<SVGSVGElement, unknown>()
         .scaleExtent([1, 10])
         .translateExtent([[0, 0], [width, height]])
@@ -199,6 +209,11 @@ function updateChart() {
   pathy2.attr('d', liney2.x(getZX).y(d => zy(d.y2))(props.data))
   pathy3.attr('d', liney3.x(getZX).y(d => zy(d.y3 ?? 0))(props.data))
 
+  const stdevY1 = d3.deviation(props.data, d => d.y1) ?? 0;
+  svg.select('.stdev-label')
+    .text(`σ(y₁): ${formatAngle(stdevY1,'deg',2)}`);
+
+
 }
 
 onMounted(() => {
@@ -237,6 +252,12 @@ svg {
   }
 
 
+}
+
+
+.stdev-label {
+  font-family: sans-serif;
+  pointer-events: none;
 }
 
 
