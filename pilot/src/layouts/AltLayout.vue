@@ -228,9 +228,10 @@ const links4 = [
     { text: 'About', to: '/' },
     { text: 'Copyright', to: '/' },
     { text: 'Contact us', to: '/' },
-    { text: 'Developers', to: '/markdown' },
-    { text: 'Kalman', to: '/kalman' },
-    { text: 'Test', to: '/test' },
+    { text: 'Kalman Filter', to: '/kalman' },
+    { text: 'Motor PWM', to: '/pwm' },
+    { text: 'Markdown', to: '/markdown' },
+    { text: 'Widgets', to: '/test' },
   ]
   const buttons2 = [
     { text: 'Terms', to: '/' },

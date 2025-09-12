@@ -36,6 +36,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/AltLayout.vue'),
     children: [{ path: '', component: () => import('pages/AnalyseKalman.vue') }],
   },
+  {
+    path: '/pwm',
+    component: () => import('layouts/AltLayout.vue'),
+    children: [{ path: '', component: () => import('pages/AnalysePWM.vue') }],
+  },
+
 
     // Always leave this as last one,
   // but you can also remove it
