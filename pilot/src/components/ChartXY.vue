@@ -7,13 +7,16 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import * as d3 from 'd3'
 
 export type DataPoint = {
-  time: number
+  x1: number | Date
   y1: number
   y2: number
   y3?: number
 }
 
-const props = defineProps<{ data: DataPoint[] }>();
+const props = defineProps<{ 
+  data: DataPoint[] 
+  x1Type: 'number' | 'time'
+}>();
 
 const chart = ref(null)
 
@@ -24,7 +27,7 @@ const margin = { top: 20, right: 30, bottom: 30, left: 80 }
 const clipId = 'plot-clip';
 
 let svg: d3.Selection<SVGSVGElement, unknown, null, undefined>
-let xScale: d3.ScaleLinear<number, number>
+let xScale: d3.ScaleTime<number, number> | d3.ScaleLinear<number, number> 
 let yScale: d3.ScaleLinear<number, number>
 let xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
 let yAxis: d3.Selection<SVGGElement, unknown, null, undefined>
@@ -42,7 +45,10 @@ let gridX: d3.Selection<SVGGElement, unknown, null, undefined>
 let gridY: d3.Selection<SVGGElement, unknown, null, undefined>
 
 
-function drawGridlines(zx: d3.ScaleLinear<number, number>, zy: d3.ScaleLinear<number, number>) {
+function drawGridlines(
+  zx: d3.ScaleLinear<number, number> | d3.ScaleTime<number, number>, 
+  zy: d3.ScaleLinear<number, number>
+) {
   gridX.call(
     d3.axisBottom(zx)
       .tickSize(-height + margin.top + margin.bottom)
@@ -56,7 +62,9 @@ function drawGridlines(zx: d3.ScaleLinear<number, number>, zy: d3.ScaleLinear<nu
 }
 
 function initChart() {
-    xScale = d3.scaleLinear().range([0, width - margin.left - margin.right])
+    xScale = props.x1Type === 'time'
+      ? d3.scaleTime().range([0, width - margin.left - margin.right])
+      : d3.scaleLinear().range([0, width - margin.left - margin.right])    
     yScale = d3.scaleLinear().range([height - margin.top - margin.bottom, 0])
     svg = d3.select(chart.value)
         .append('svg')
@@ -98,16 +106,16 @@ function initChart() {
         .attr('color', '#999')
 
     liney1 = d3.line<DataPoint>()
-        .x(d => xScale(d.time))
+        .x(d => xScale(d.x1))
         .y(d => yScale(d.y1))
 
     liney2 = d3.line<DataPoint>()
-        .x(d => xScale(d.time))
+        .x(d => xScale(d.x1))
         .y(d => yScale(d.y2))
 
     liney3 = d3.line<DataPoint>()
         .defined(d => typeof d.y3 === 'number')
-        .x(d => xScale(d.time))
+        .x(d => xScale(d.x1))
         .y(d => yScale(d.y3!))
 
     pathy1 = g.append('path')
@@ -141,9 +149,12 @@ function initChart() {
             const zy = currentTransform.rescaleY(yScale)
             gX.call(d3.axisBottom(zx))
             gY.call(d3.axisLeft(zy))
-            pathy1.attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.y1))(props.data))
-            pathy2.attr('d', liney2.x(d => zx(d.time)).y(d => zy(d.y2))(props.data))
-            pathy3.attr('d', liney3.x(d => zx(d.time)).y(d => zy(d.y3 ?? 0))(props.data))
+
+            const getZX = (d: DataPoint) => props.x1Type === 'time' ? zx(d.x1 as Date) : zx(d.x1 as number)
+            pathy1.attr('d', liney1.x(getZX).y(d => zy(d.y1))(props.data))
+            pathy2.attr('d', liney2.x(getZX).y(d => zy(d.y2))(props.data))
+            pathy3.attr('d', liney3.x(getZX).y(d => zy(d.y3 ?? 0))(props.data))
+
             drawGridlines(zx, zy)
 
         })
@@ -156,13 +167,16 @@ function initChart() {
 function updateChart() {
   if (!props.data || props.data.length === 0) return
 
-  const times = props.data.map(d => d.time)
+  const x1 = props.data.map(d => d.x1)
   const y1s = props.data.map(d => d.y1)
   const y2s = props.data.map(d => d.y2);
   const y3s = props.data.map(d => d.y3).filter((v): v is number => typeof v === 'number');
   const allys = [...y1s, ...y2s, ...y3s]
 
-  xScale.domain([d3.min(times) ?? 0, d3.max(times) ?? 100])
+  const xDomain = props.x1Type === 'time'
+  ? [d3.min(x1.map(t => t as Date))!, d3.max(x1.map(t => t as Date))!]
+  : [d3.min(x1 as number[]) ?? 0, d3.max(x1 as number[]) ?? 100]
+  xScale.domain(xDomain)
   yScale.domain([d3.min(allys) ?? 0, d3.max(allys) ?? 100])
 
   const zx = currentTransform ? currentTransform.rescaleX(xScale) : xScale
@@ -172,13 +186,19 @@ function updateChart() {
   gX.call(d3.axisBottom(zx))
   gY.call(d3.axisLeft(zy))
 
-  pathy1.datum(props.data).attr('d', liney1.x(d => zx(d.time)).y(d => zy(d.y1)))
-  pathy2.datum(props.data).attr('d', liney2.x(d => zx(d.time)).y(d => zy(d.y2)))
-  if (y3s.length > 0) {
-    pathy3.attr('d', liney3.x(d => zx(d.time)).y(d => zy(d.y3!))(props.data));
-  } else {
-    pathy3.attr('d', null);
-  }
+  const getX = (d: DataPoint) => props.x1Type === 'time' ? xScale(d.x1 as Date) : xScale(d.x1 as number)
+  liney1 = d3.line<DataPoint>().x(getX).y(d => yScale(d.y1))
+  liney2 = d3.line<DataPoint>().x(getX).y(d => yScale(d.y2))
+  liney3 = d3.line<DataPoint>()
+    .defined(d => typeof d.y3 === 'number')
+    .x(getX)
+    .y(d => yScale(d.y3!))
+
+  const getZX = (d: DataPoint) => props.x1Type === 'time' ? zx(d.x1 as Date) : zx(d.x1 as number)
+  pathy1.attr('d', liney1.x(getZX).y(d => zy(d.y1))(props.data))
+  pathy2.attr('d', liney2.x(getZX).y(d => zy(d.y2))(props.data))
+  pathy3.attr('d', liney3.x(getZX).y(d => zy(d.y3 ?? 0))(props.data))
+
 }
 
 onMounted(() => {

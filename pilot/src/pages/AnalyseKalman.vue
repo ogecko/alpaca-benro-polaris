@@ -103,7 +103,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY  :data="chartPosData"></ChartXY>
+          <ChartXY  :data="chartPosData" x1Type="time"></ChartXY>
           <div class="q-pb-xl"></div>
         </q-card>
       </div>
@@ -142,7 +142,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
                 </q-item-label>
               </q-item-section>
             </q-item>
-          <ChartXY  :data="chartVelData"></ChartXY>
+          <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
           <div class="q-pb-xl"></div>
         </q-card>
     </div>    </div>
@@ -263,20 +263,20 @@ function setKnobValues() {
 
 
 function formatPosData(d: TelemetryRecord):DataPoint {
-  const time = new Date(d.ts).getTime()/1000
+  const time = new Date(d.ts)
   const data = d.data as KalmanMessage
   const y1 = data.θ_meas[axis.value] ?? 0
   const y2 = data.θ_state[axis.value] ?? 0
-  return { time, y1, y2 }
+  return { x1: time, y1, y2 }
 }
 
 function formatVelData(d: TelemetryRecord):DataPoint {
-  const time = new Date(d.ts).getTime()/1000
+  const time = new Date(d.ts)
   const data = d.data as KalmanMessage
   const y1 = data.ω_meas[axis.value] ?? 0
   const y2 = data.ω_state[axis.value] ?? 0
   const y3 = data.ω_ref[axis.value] ?? 0
-  return { time, y1, y2, y3 }
+  return { x1: time, y1, y2, y3 }
 }
 
 
