@@ -30,7 +30,7 @@ const rotationSpeed = computed(() => {
 
 function mapLog(x: number): number {
   const absx = Math.abs(x)
-  const xMin = 0.0059018
+  const xMin = 0.002
   const xMax = 9
   const yMin = 0.2
   const yMax = 5
