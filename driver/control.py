@@ -47,6 +47,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Indicate motor activity on Alpaca Dashboard
 # [X] Alpaca pilot manual slew AltAzRoll, slew rate
 # [X] Alpaca pilot manual slew RADecPA
+# [X] Alpaca Pilot KF Tuning page
+# [X] Alpaca Pilot PWM Testing page
+# [X] Alpaca Improved PWM_SLOW with (-1, +1) rate instead of 0
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca Pilot SP pointer is removed around +/- 90 degrees too early
 # [ ] Alpaca Pilot Radial Scale PVtoSP can arc the wrong way when around 360/0 wraparound
@@ -56,7 +59,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Alpaca Pilot memory and logevity tests
 # [ ] Fix Position Angle dashboard and interaction
 # [ ] Fix 340-360 Control Kinematics
-
+# [ ] Fix chart sizing when screen resized
+# [ ] Documentation on new features Topocentric tracking (You're maintaining a fixed pointing direction relative to the local horizon. The origin is your specific observing site, not Earth’s center.
 # Connection
 # [ ] Alpaca pilot work outside of Astro Mode
 # [ ] Implement Benro Polaris Connection process and diagnostics
@@ -673,7 +677,7 @@ class MotorSpeedController:
 
         asyncio.create_task(self._dispatch_loop())
 
-    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=False):
+    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True):
         async with self._lock:
             raw = self._model.interpolate[rate_unit].toRAW(rate)
             now = time.monotonic()
@@ -686,7 +690,6 @@ class MotorSpeedController:
         
         if self.mode == "SLOW_PWM" and now < self.next_dispatch_time:
             return
-        
 
         # Apply new rate and update state for dispatch to take over
         new_raw, ramp_duration, allow_PWM, update_time = self.pending_update
@@ -718,7 +721,6 @@ class MotorSpeedController:
             base = int(np.floor(interp)) * direction
             next_up = int(np.ceil(interp)) * direction
             duty = interp - np.floor(interp)
-
             if not allow_PWM:
                 self.mode = "SLOW"
                 self.command = int(round(interp,0)) * direction
@@ -726,10 +728,16 @@ class MotorSpeedController:
             elif duty == 0 or base == next_up:
                 self.mode = "SLOW"
                 self.command = base
-            else:
+            elif interp > 1:
                 self.mode = "SLOW_PWM"
                 self.command = (base, next_up)
                 self.duty_cycle = duty
+            else:
+                self.mode = "SLOW_PWM"
+                self.command = (-1, +1)               # dont use 0 as it disengages torque
+                self.duty_cycle = (new_raw + 1.0)/2   # -1=>0, -0.5=>0.25 0=>0.5, +0.5=>0.75 +1=>1.0
+            # self._logger.info(f'apply {self.mode}, {self.rate_dps}, {self.command}, {self.duty_cycle}  ')
+
 
     async def _dispatch_loop(self):
         while not self._stop_flag.is_set():
@@ -763,11 +771,12 @@ class MotorSpeedController:
 
                 elif self.mode == "SLOW_PWM":
                     base, next_up = self.command
-                    pwm_rate = base if self.pwm_phase == "ON" else next_up
-                    duration = 1.2 * (1 - self.duty_cycle if self.pwm_phase == "ON" else self.duty_cycle)
+                    was_on = self.pwm_phase == "ON"
+                    pwm_rate = base if was_on else next_up
+                    duration = 0.5 * (1 - self.duty_cycle if was_on else self.duty_cycle)
                     await self._messenger.send_slow_move_msg(pwm_rate)
                     # self._logger.info(f"Motor {self.axis} PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
-                    self.pwm_phase = "OFF" if self.pwm_phase == "ON" else "ON"
+                    self.pwm_phase = "OFF" if was_on else "ON"
                     self.last_switch_time = now
                     self.next_dispatch_time = now + duration
 
@@ -1151,13 +1160,13 @@ class PID_Controller():
         for axis in range(3):
             self.omega_op[axis] = self.omega_ctl[axis]
             raw = self.controllers[axis]._model.DPS.toRAW(self.omega_ctl[axis])
-            if abs(raw) < 5.5:
-                raw = round(raw,0)  # no fractional SLOW commands
-                self.omega_op[axis] = self.controllers[axis]._model.RAW.toDPS(raw)
+            # if abs(raw) < 5.5:      # no longer relevant after PWM  improved
+            #     raw = round(raw,0)  # no fractional SLOW commands
+            #     self.omega_op[axis] = self.controllers[axis]._model.RAW.toDPS(raw)
         # send control to motor when moving
         if self.is_moving and self.mode in ['AUTO', 'TRACK']:
             for axis in range(3):
-                await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=False)
+                await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True)
         # Stop motors when transitioning from moving to stopped
         if self.was_moving and not self.is_moving:
             for axis in range(3):
