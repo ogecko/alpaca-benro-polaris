@@ -85,7 +85,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import KalmanFilter, quaternion_to_angles, calculate_angular_velocity, is_angle_same, format_move_axis_data, polar_rotation_angle, MotorSpeedController, PID_Controller
+from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, format_move_axis_data, polar_rotation_angle, MotorSpeedController, PID_Controller
 from scipy.interpolate import PchipInterpolator
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525'}
@@ -695,8 +695,13 @@ class Polaris:
             # self.logger.info(f',DATA5,{time:.4f},  {q1s},  {p_az:+.4f},{p_alt:+.4f},{p_roll:+.4f},  {θ1:+.4f},{θ2:+.4f},{θ3:+.4f},  {sθ1:+.4f},{sθ2:+.4f},{sθ3:+.4f},  {ω1:+.5f},{ω2:+.5f},{ω3:+.5f}, {sω1:+.5f},{sω2:+.5f},{sω3:+.5f},  {rω1:+.5f},{rω2:+.5f},{rω3:+.5f} ')
 
             # update the PID loop
-            alpha_meas = np.array([az, alt, p_roll], dtype=float)
-            self._pid.measure(alpha_meas, theta_meas)
+            # alpha_meas = np.array([az, alt, p_roll], dtype=float)
+            # self._pid.measure(alpha_meas, theta_meas)
+
+            qs = motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2],)
+            _, _, _, as0, as1, as2 = quaternion_to_angles(qs, azhint=az)
+            alpha_state= np.array([as0,as1,as2])
+            self._pid.measure(alpha_state, theta_state)
 
             # Store all the new values
             with self._lock:
