@@ -112,12 +112,12 @@ This page presents the raw sensor data in dark green, the filtered data in yello
           <q-list style="max-width: 800px">
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="vel_meas_var_factor" show-value :min="1" :max="20" :step="0.1">{{vel_meas_stdev}}</q-knob>
+                <q-knob v-model="vel_meas_var_log" show-value :min="1" :max="6" :step="0.1">{{vel_meas_stdev}}</q-knob>
               </q-item-section>
               <q-item-section>
                 <q-item-label> Angular Velocity Measurement Error (R) for {{ motor }}</q-item-label>
                 <q-item-label caption>
-                  The velocity is calculated from the change in velocity and its uncertainty is based on the position uncertainty times this factor. 
+                  The defines the expected uncertainty in the measurement of angular velocity.  
                   Larger values means less trust in velocity measurement, smoother but possibly lagging estimates. 
                 </q-item-label>
               </q-item-section>
@@ -172,15 +172,14 @@ const dev = useDeviceStore()
 
 const axis = ref<number>(0)
 const pos_meas_var_log = ref<number>(5)
-const vel_meas_var_factor = ref<number>(5)      // typically 1 to 10
+const vel_meas_var_log = ref<number>(5)      // typically 1 to 10
 const pos_proc_var_log = ref<number>(5)
 const vel_proc_var_log = ref<number>(5)      
 
-const dt = 0.2 * 6 // 200ms for each mesurement, see polaris._history on how angular velocity is calc
 const motor = computed<string>(() => `M${axis.value+1}`)
 const pos_meas_var = computed<number>(() => log2var(pos_meas_var_log.value))
 const pos_meas_stdev = computed<string>(() => var2stdev(pos_meas_var.value))
-const vel_meas_var = computed<number>(() => fac2var(vel_meas_var_factor.value, pos_meas_var.value))
+const vel_meas_var = computed<number>(() => log2var(vel_meas_var_log.value))
 const vel_meas_stdev = computed<string>(() => var2stdev(vel_meas_var.value))
 const pos_proc_var = computed<number>(() => log2var(pos_proc_var_log.value))
 const pos_proc_stdev = computed<string>(() => var2stdev(pos_proc_var.value))
@@ -188,8 +187,6 @@ const vel_proc_var = computed<number>(() => log2var(vel_proc_var_log.value))
 const vel_proc_stdev = computed<string>(() => var2stdev(vel_proc_var.value))
 const var2log = (x:number) => Math.log10(x) + 6
 const log2var = (k:number) => Math.pow(10,-6 + k)
-const fac2var = (k:number, vp:number) => k/5 * vp / dt / dt
-const var2fac = (vp:number, va:number) => 5*va * dt * dt / vp
 const var2stdev = (x:number) => formatAngle(Math.sqrt(x),'deg')
 
 const chartPosData = computed<DataPoint[]>(() => {
@@ -251,8 +248,8 @@ function setKnobValues() {
   const pos_meas_var = cfg.kf_measure_noise[idx] ?? 1e-6;
   pos_meas_var_log.value = var2log(pos_meas_var);
 
-  const acc_meas_var = cfg.kf_measure_noise[idx + 3] ?? 1e-4;
-  vel_meas_var_factor.value = var2fac(pos_meas_var, acc_meas_var)
+  const vel_meas_var = cfg.kf_measure_noise[idx + 3] ?? 1e-6;
+  vel_meas_var_log.value = var2log(vel_meas_var)
   
   const pos_proc_var = cfg.kf_process_noise[idx] ?? 1e-6;
   pos_proc_var_log.value = var2log(pos_proc_var);
