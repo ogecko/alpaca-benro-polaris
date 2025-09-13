@@ -230,6 +230,7 @@ const links4 = [
     { text: 'Contact us', to: '/' },
     { text: 'Kalman Filter', to: '/kalman' },
     { text: 'Motor PWM', to: '/pwm' },
+    { text: 'Calibration', to: '/speed' },
     { text: 'Markdown', to: '/markdown' },
     { text: 'Widgets', to: '/test' },
   ]

@@ -1120,7 +1120,7 @@ class Polaris:
         self._test_underway = True
 
         results = {}
-        for axis in [0,1,2]:
+        for axis in [0]:
             results[axis] = (await self.moveaxis_slow_fast_calibration_test(axis))
 
         formatted_results = format_move_axis_data(results)
@@ -1128,7 +1128,7 @@ class Polaris:
         self._test_underway = False
 
     async def moveaxis_slow_fast_calibration_test(self, axis):
-        raw_rates = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0] 
+        raw_rates = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0] 
         raw_rates += [0.0] + [x for x in range(200,500,100)] + [x for x in range(500,2500+250,250)]
         results = []
         direction = +1
