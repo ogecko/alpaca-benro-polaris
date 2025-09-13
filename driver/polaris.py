@@ -1120,7 +1120,7 @@ class Polaris:
         self._test_underway = True
 
         results = {}
-        for axis in [0]:
+        for axis in [2]:
             results[axis] = (await self.moveaxis_slow_fast_calibration_test(axis))
 
         formatted_results = format_move_axis_data(results)
@@ -1134,7 +1134,7 @@ class Polaris:
         direction = +1
         # Ramp through the raw rates
         for rate in raw_rates:
-            if axis==1 and self._theta_meas:
+            if axis==1 and self._theta_meas.any():
                 if self._theta_meas[1] > 60:
                     await self.move_axis(axis, 0)
                     await asyncio.sleep(3)
@@ -1168,7 +1168,7 @@ class Polaris:
 
     async def moveaxis_speed_measurement(self, axis, rate, required_stable_samples = 5, initial_interval = 3.0, max_interval = 15, sampling_interval = 0.25):
         start_time = time.monotonic()
-        stable_tolerance = 0.05 if rate > 5 else 0.0005
+        stable_tolerance = 0.05 if rate > 5 else 0.002
         await asyncio.sleep(initial_interval)
         rate_raw = self._motors[axis].rate_raw    # what the controller thinks the raw rate is
         rate_dps = self._motors[axis].rate_dps    # what the controller thinks the dps rate is
