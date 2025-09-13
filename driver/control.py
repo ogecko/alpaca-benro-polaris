@@ -708,7 +708,7 @@ class MotorSpeedController:
 
         asyncio.create_task(self._dispatch_loop())
 
-    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True):
+    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True, tracking=False):
         async with self._lock:
             if not rate_unit in ['RAW', 'DPS', 'ASCOM']:
                 self._logger.info(f'Set Motor Speed - Invalid units {rate_unit}')
@@ -716,7 +716,7 @@ class MotorSpeedController:
             raw = self._model.interpolate[rate_unit].toRAW(rate)
             now = time.monotonic()
             # if we get too many updates before they are applied, just overwrite the last one
-            self.pending_update = (float(raw), ramp_duration, allow_PWM, now)
+            self.pending_update = (float(raw), ramp_duration, allow_PWM, tracking, now)
 
     def _apply_pending_update(self, now):
         if not self.pending_update:
@@ -726,7 +726,7 @@ class MotorSpeedController:
             return
 
         # Apply new rate and update state for dispatch to take over
-        new_raw, ramp_duration, allow_PWM, update_time = self.pending_update
+        new_raw, ramp_duration, allow_PWM, tracking, update_time = self.pending_update
         self.pending_update = None
         prior_raw = self.rate_raw
         self.rate_raw = new_raw
@@ -759,7 +759,7 @@ class MotorSpeedController:
                 self.mode = "SLOW"
                 self.command = int(round(interp,0)) * direction
                 self.rate_dps = self._model.interpolate['RAW'].toDPS(self.command)
-            elif duty == 0 or base == next_up:
+            elif (duty == 0 or base == next_up) and not (base==0 and tracking):
                 self.mode = "SLOW"
                 self.command = base
             elif interp > 1:
@@ -1200,7 +1200,7 @@ class PID_Controller():
         # send control to motor when moving
         if self.is_moving and self.mode in ['AUTO', 'TRACK']:
             for axis in range(3):
-                await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True)
+                await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
         # Stop motors when transitioning from moving to stopped
         if self.was_moving and not self.is_moving:
             for axis in range(3):
