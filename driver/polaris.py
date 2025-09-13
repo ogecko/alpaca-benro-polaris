@@ -699,8 +699,8 @@ class Polaris:
             # self._pid.measure(alpha_meas, theta_meas)
 
             qs = motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2],)
-            _, _, _, as0, as1, as2 = quaternion_to_angles(qs, azhint=az)
-            alpha_state= np.array([as0,as1,as2])
+            ts0, ts1, ts2, as0, as1, as2 = quaternion_to_angles(qs, azhint=az)
+            alpha_state = np.array([as0,as1,as2])
             self._pid.measure(alpha_state, theta_state)
 
             # Store all the new values
@@ -709,12 +709,12 @@ class Polaris:
                 self._q1 = q1
                 self._theta_meas = theta_meas
                 self._omega_meas = omega_meas
-                self._p_altitude = p_alt
-                self._p_azimuth = p_az
-                self._p_roll = float(p_roll)
-                self._p_rotation = float(theta3)
-                self._p_rightascension = p_ra 
-                self._p_declination = p_dec
+                self._p_azimuth = float(as0)
+                self._p_altitude = float(as1)
+                self._p_roll = float(as2)
+                self._p_rightascension = float(ts0) 
+                self._p_declination = float(ts1)
+                self._p_rotation = float(ts2)
 
             if Config.sync_pointing_model==1:
                 # Use RA/Dec Sync Pointing model
