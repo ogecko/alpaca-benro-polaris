@@ -1204,6 +1204,8 @@ class Polaris:
         omega_samples = []     # deg/sec
         while time.monotonic() - start_time < max_interval:
             await asyncio.sleep(sampling_interval)
+            if self._omega_meas is None:
+                return 0,0,0,"NO DATA"
             omega = self._omega_meas[axis]
             omega_samples.append(omega)
 

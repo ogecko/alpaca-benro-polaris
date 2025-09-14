@@ -11,6 +11,7 @@ import asyncio
 from typing import Optional
 import ephem
 import math
+import copy
 from shr import rad2deg, deg2rad, rad2hms, deg2dms
 
 # ************* TODO LIST *****************
@@ -136,7 +137,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
-CALIBRATION_PATH = DATA_DIR / 'calibration.json'
+CALIBRATION_PATH = DATA_DIR / 'speed_calibration.json'
+TESTDATA_PATH = DATA_DIR / 'speed_testdata.json'
 
 
 # ************* Quaternion Kinematics *************
@@ -590,7 +592,7 @@ class CalibrationManager:
         if self.liveInstance:
             if not self.loadTestDataFromFile():
                 self.createTestDataFromBaseline()
-        self.generateFinalCalibrationData()
+            self.saveAllDataToFiles()
 
     def createTestDataFromBaseline(self):
         self.test_data = {}
@@ -617,16 +619,18 @@ class CalibrationManager:
         ascom = float(interpToASCOM(result) if raw > 5 else raw)
         dps = float(interpToBaseline.toDPS(raw))
         change = (result/dps - 1) * 100
+        status = status if change<20 else 'HIGH CHANGE'
+        bad_test = status in ['HIGH STDEV', 'HIGH CHANGE', 'NO DATA']
+        test_result = f'{result:.7f}' if not bad_test else ''
         test_change = f'{change:.2f}%'
-        test_result = f'{result:.7f}' if (change<10) and (status!='HIGH STDEV') else ''
         test_stdev = f'{stdev:.7f}'
-        test_status = status if (change<10) else 'HIGH CHANGE'
+        test_status = status
         self.test_data[name] = dict(
             name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
             test_result= test_result, test_change= test_change, test_stdev= test_stdev, test_status= test_status)
         if self.liveInstance:
             self.logTestData([name])
-            self.saveTestDataToFile()
+            self.saveAllDataToFiles()
 
     def pendingTests(self, axis, testNameList):
         if not testNameList:
@@ -643,7 +647,7 @@ class CalibrationManager:
                 tests.append(raw)
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.saveTestDataToFile()
+            self.saveAllDataToFiles()
         return tests
 
     def approveTests(self, testNameList):
@@ -656,8 +660,7 @@ class CalibrationManager:
                 self.test_data[testName]['test_status'] = 'APPROVED'
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.saveTestDataToFile()
-            self.generateFinalCalibrationData()
+            self.saveAllDataToFiles()
 
     def rejectTests(self, testNameList):
         if not testNameList:
@@ -669,8 +672,7 @@ class CalibrationManager:
                 self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.saveTestDataToFile()
-            self.generateFinalCalibrationData()
+            self.saveAllDataToFiles()
 
     def toggleApproval(self, axis, testNameList):
         if not testNameList:
@@ -685,7 +687,7 @@ class CalibrationManager:
                     self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.saveTestDataToFile()
+            self.saveAllDataToFiles()
 
     def logTestData(self, testNameList):
         cm_logger = logging.getLogger('cm')
@@ -695,11 +697,20 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             cm_logger.info(testData)
 
-    def saveTestDataToFile(self, path = CALIBRATION_PATH):
+    def saveAllDataToFiles(self):
+        self.generateFinalCalibrationData()
+        self.saveCalibrationDataToFile()
+        self.saveTestDataToFile()
+
+    def saveCalibrationDataToFile(self, path = CALIBRATION_PATH):
+        with open(path, 'w') as f:
+            f.write(self.formatCalibrationData())
+
+    def saveTestDataToFile(self, path = TESTDATA_PATH):
         with open(path, 'w') as f:
             json.dump(self.test_data, f, indent=2)
 
-    def loadTestDataFromFile(self, path = CALIBRATION_PATH):
+    def loadTestDataFromFile(self, path = TESTDATA_PATH):
         if os.path.exists(path):
             with open(path, 'r') as f:
                 self.test_data = json.load(f)
@@ -708,7 +719,8 @@ class CalibrationManager:
             return False
 
     def generateFinalCalibrationData(self):
-        self.calibration_data = self.baseline_data.copy()
+        self.calibration_data = copy.deepcopy(self.baseline_data)
+        print(self.baseline_data[0]['DPS'][1], self.calibration_data[0]['DPS'][1])
         for testName in self.test_data.keys():
             if self.test_data[testName].get('test_status','')=='APPROVED':
                 axis = self.test_data[testName].get('axis',0)
@@ -721,6 +733,7 @@ class CalibrationManager:
                     continue
 
     def formatCalibrationData(self, col_width=10):
+        begin = '{\n"_comment": "Copy of consolidated calibration data overriden with approved test data."\n'
         output_lines = []
         for axis, axis_data in self.calibration_data.items():
             output_lines.append(f"{axis}: {{")
@@ -737,7 +750,7 @@ class CalibrationManager:
                 comma = ',' if i < len(keys) - 1 else ''
                 output_lines.append(f'    "{key+'":':7s} [ {value_str} ]{comma}')
             output_lines.append("},")  # End of axis block with trailing comma
-        return '\n'.join(output_lines)
+        return begin + '\n'.join(output_lines) + '\n}\n'
 
 
 
