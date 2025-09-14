@@ -218,10 +218,11 @@ const links3 = [
 ]
 
 const links4 = [
-  { icon: 'mdi-camera', text: 'Imaging', to: '/' },
+  { icon: 'mdi-set-split', text: 'Calibration', to: '/speed' },
+  { icon: 'mdi-chart-line', text: 'KF Tuning', to: '/kalman' },
+  { icon: 'mdi-chart-bell-curve-cumulative', text: 'PID Tuning', to: '/' },
+  { icon: 'mdi-pulse', text: 'PWM Testing', to: '/pwm' },
   { icon: 'mdi-format-vertical-align-top', text: 'Leveling', to: '/' },
-  { icon: 'mdi-set-split', text: 'Calibration', to: '/' },
-  { icon: 'mdi-chart-bell-curve-cumulative', text: 'Telemetry', to: '/' },
   { icon: 'mdi-stethoscope', text: 'Diagnostics', to: '/' },
 ]
   const buttons1 = [
