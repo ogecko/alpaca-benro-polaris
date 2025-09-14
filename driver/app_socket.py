@@ -138,6 +138,7 @@ async def alpaca_socket_httpd(logger, lifecycle: LifecycleController, polaris):
     pos_logger = attach_publisher_to_logger("pos")
     pid_logger = attach_publisher_to_logger("pid")
     kf_logger = attach_publisher_to_logger("kf")
+    cm_logger = attach_publisher_to_logger("cm")
 
     try:
         socket_app = Starlette(routes=[ WebSocketRoute("/ws", socket_handler) ])

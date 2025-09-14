@@ -1,6 +1,7 @@
 import numpy as np
 import datetime
 import json, os
+import logging
 from pathlib import Path
 from pyquaternion import Quaternion
 from config import Config
@@ -563,7 +564,8 @@ class KalmanFilter:
 
 # ************* Calibration Manager ************
 class CalibrationManager:
-    def __init__(self, loadTestData=True):
+    def __init__(self, liveInstance=True):
+        self.liveInstance = liveInstance        # False = used for unit testing purposes
         self.baseline_data = {
             0: {
                 "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,     2250.0,     2500.0 ],
@@ -585,11 +587,10 @@ class CalibrationManager:
         }     
         self.test_data = {}
         self.calibration_data = {}
-        if loadTestData:
+        if self.liveInstance:
             if not self.loadTestDataFromFile():
                 self.createTestDataFromBaseline()
         self.generateFinalCalibrationData()
-
 
     def createTestDataFromBaseline(self):
         self.test_data = {}
@@ -607,7 +608,7 @@ class CalibrationManager:
 
     def addTestResult(self, axis, raw, result, stdev, status):
         cmd = 'SLOW' if raw<=5 else 'FAST'
-        name = f'M{axis}-{cmd}-{raw}'
+        name = f'M{axis+1}-{cmd}-{raw}'
         idxSlow5 = self.baseline_data[axis]['RAW'].index(5) 
         mid = self.baseline_data[axis]['DPS'][idxSlow5]
         max = self.baseline_data[axis]['DPS'][-1]
@@ -622,7 +623,9 @@ class CalibrationManager:
         self.test_data[name] = dict(
             name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
             test_result= test_result, test_change= test_change, test_stdev= test_stdev, test_status= test_status)
-        self.saveTestDataToFile()
+        if self.liveInstance:
+            self.logTestData([name])
+            self.saveTestDataToFile()
 
     def approveTests(self, testNameList):
         if not testNameList:
@@ -632,8 +635,10 @@ class CalibrationManager:
             status = testData.get('test_status','')
             if status in ['PENDING', 'REJECTED']:
                 self.test_data[testName]['test_status'] = 'APPROVED'
-        self.saveTestDataToFile()
-        self.generateFinalCalibrationData()
+        if self.liveInstance:
+            self.logTestData(testNameList)
+            self.saveTestDataToFile()
+            self.generateFinalCalibrationData()
 
     def rejectTests(self, testNameList):
         if not testNameList:
@@ -643,8 +648,18 @@ class CalibrationManager:
             status = testData.get('test_status','')
             if status in ['PENDING', 'APPROVED']:
                 self.test_data[testName]['test_status'] = 'REJECTED'
-        self.saveTestDataToFile()
-        self.generateFinalCalibrationData()
+        if self.liveInstance:
+            self.logTestData(testNameList)
+            self.saveTestDataToFile()
+            self.generateFinalCalibrationData()
+
+    def logTestData(self, testNameList):
+        cm_logger = logging.getLogger('cm')
+        if not testNameList:
+            testNameList = self.test_data.keys()
+        for testName in testNameList:
+            testData = self.test_data.get(testName, {})
+            cm_logger.info(testData)
 
     def saveTestDataToFile(self, path = CALIBRATION_PATH):
         with open(path, 'w') as f:

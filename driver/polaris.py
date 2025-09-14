@@ -85,7 +85,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, format_move_axis_data, polar_rotation_angle, MotorSpeedController, PID_Controller
+from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, CalibrationManager, format_move_axis_data, polar_rotation_angle, MotorSpeedController, PID_Controller
 from scipy.interpolate import PchipInterpolator
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525'}
@@ -257,7 +257,8 @@ class Polaris:
             for axis in (0, 1, 2)
         }
         self._pid = PID_Controller(logger, self._motors, self._observer, loop=0.2)
-
+        self._cm = CalibrationManager()
+        
     async def shutdown(self):
         self.logger.info(f'==SHUTDOWN== Polaris stopping all tasks.')
         for pid in [self._pid]:
@@ -1169,7 +1170,28 @@ class Polaris:
         
         return summary
 
-      
+    async def moveaxis_speed_test(self, axis, rates):
+        cm_logger = logging.getLogger('cm')
+        for rate in rates:
+            direction = +1
+            # check axis 1 bounds and reverse direction if necc 
+            if axis==1 and self._theta_meas.any():
+                if self._theta_meas[1] > 60:
+                    await self.move_axis(axis, 0)
+                    await asyncio.sleep(3)
+                    direction = -1
+                if self._theta_meas[1] < 20:
+                    await self.move_axis(axis, 0)
+                    await asyncio.sleep(3)
+                    direction = +1
+            # send the move request
+            await self.move_axis(axis, rate * direction, "RAW")
+            result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
+            self._cm.addTestResult(axis, rate, result, stdev, status)
+        # ensure we stop all movement
+        await self.move_axis(axis, 0)
+
+
 
     async def moveaxis_speed_measurement(self, axis, rate, required_stable_samples = 5, initial_interval = 3.0, max_interval = 15, sampling_interval = 0.25):
         start_time = time.monotonic()
@@ -1177,7 +1199,7 @@ class Polaris:
         await asyncio.sleep(initial_interval)
         rate_raw = self._motors[axis].rate_raw    # what the controller thinks the raw rate is
         rate_dps = self._motors[axis].rate_dps    # what the controller thinks the dps rate is
-        status = "OK"
+        status = "PENDING"
 
         omega_samples = []     # deg/sec
         while time.monotonic() - start_time < max_interval:
