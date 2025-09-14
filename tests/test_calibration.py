@@ -16,50 +16,64 @@ def test_baseline():
 def test_calibrationFromBaseline():
     cm = CalibrationManager(False)
     cm.createTestDataFromBaseline()
-    assert(cm.test_data['M0-SLOW-5.0']=={
-        'name': 'M0-SLOW-5.0', 'axis': 0, 'raw': 5.0, 'ascom': 5.0, 'dps': 0.2078883, 
+    assert(cm.test_data['M1-SLOW-5.0']=={
+        'name': 'M1-SLOW-5.0', 'axis': 0, 'raw': 5.0, 'ascom': 5.0, 'dps': 0.2078883, 
         'test_result': '', 'test_change': '', 'test_stdev': '', 'test_status': 'UNTESTED' 
     })
 
 def test_addTestResult():
     cm = CalibrationManager(False)
     cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
-    assert(cm.test_data['M0-SLOW-3.0']=={
-        'name': 'M0-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0473643, 
+    assert(cm.test_data['M1-SLOW-3.0']=={
+        'name': 'M1-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0473643, 
         'test_result': '0.0476541', 'test_change': '0.61%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
     })
     cm.addTestResult(1, 2500, 7.012345678, 0.0002345678, 'PENDING')
-    assert(cm.test_data['M1-FAST-2500']=={
-        'name': 'M1-FAST-2500', 'axis': 1, 'raw': 2500, 'ascom': 8.903224431248036, 'dps':  7.1661097, 
+    assert(cm.test_data['M2-FAST-2500']=={
+        'name': 'M2-FAST-2500', 'axis': 1, 'raw': 2500, 'ascom': 8.903224431248036, 'dps':  7.1661097, 
         'test_result': '7.0123457', 'test_change': '-2.15%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
     })
 
+def test_PendingTests():
+    cm = CalibrationManager(False)
+    cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'COMPLETED')
+    cm.addTestResult(1, 2500, 7.012345678, 0.0002345678, 'BAD READ')
+    cm.addTestResult(1, 2000, 7.012345678, 0.0002345678, 'COMPLETED')
+    cm.addTestResult(1, 1000, 7.012345678, 0.0002345678, 'COMPLETED')
+    tests = cm.pendingTests(['M1-SLOW-3.0','M2-FAST-2500','M2-FAST-2000', 'DUMMY'])
+    assert(cm.test_data['M1-SLOW-3.0']['test_status']=='PENDING')
+    assert(cm.test_data['M2-FAST-2500']['test_status']=='PENDING')
+    assert(cm.test_data['M2-FAST-2000']['test_status']=='PENDING')
+    assert(cm.test_data['M2-FAST-1000']['test_status']=='COMPLETED')
+    assert(tests=={0: [3.0], 1:[2500,2000], 2: []})
+    
+
 def test_ApproveRejectTest():
     cm = CalibrationManager(False)
-    cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
+    cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'COMPLETED')
     cm.addTestResult(1, 2500, 7.012345678, 0.0002345678, 'BAD READ')
-    cm.addTestResult(1, 2000, 7.012345678, 0.0002345678, 'PENDING')
-    cm.addTestResult(1, 1000, 7.012345678, 0.0002345678, 'PENDING')
-    cm.approveTests(['M0-SLOW-3.0','M1-FAST-2500','M1-FAST-2000', 'DUMMY'])
-    assert(cm.test_data['M0-SLOW-3.0']['test_status']=='APPROVED')
-    assert(cm.test_data['M1-FAST-2500']['test_status']=='BAD READ')
-    assert(cm.test_data['M1-FAST-2000']['test_status']=='APPROVED')
-    assert(cm.test_data['M1-FAST-1000']['test_status']=='PENDING')
-    cm.rejectTests(['M0-SLOW-3.0'])
-    assert(cm.test_data['M0-SLOW-3.0']['test_status']=='REJECTED')
-    assert(cm.test_data['M1-FAST-1000']['test_status']=='PENDING')
+    cm.addTestResult(1, 2000, 7.012345678, 0.0002345678, 'COMPLETED')
+    cm.addTestResult(1, 1000, 7.012345678, 0.0002345678, 'COMPLETED')
+    cm.approveTests(['M1-SLOW-3.0','M2-FAST-2500','M2-FAST-2000', 'DUMMY'])
+    assert(cm.test_data['M1-SLOW-3.0']['test_status']=='APPROVED')
+    assert(cm.test_data['M2-FAST-2500']['test_status']=='BAD READ')
+    assert(cm.test_data['M2-FAST-2000']['test_status']=='APPROVED')
+    assert(cm.test_data['M2-FAST-1000']['test_status']=='COMPLETED')
+    cm.rejectTests(['M1-SLOW-3.0'])
+    assert(cm.test_data['M1-SLOW-3.0']['test_status']=='REJECTED')
+    assert(cm.test_data['M2-FAST-1000']['test_status']=='COMPLETED')
     cm.rejectTests([])
-    assert(cm.test_data['M0-SLOW-3.0']['test_status']=='REJECTED')
-    assert(cm.test_data['M1-FAST-2500']['test_status']=='BAD READ')
-    assert(cm.test_data['M1-FAST-2000']['test_status']=='REJECTED')
-    assert(cm.test_data['M1-FAST-2000']['test_status']=='REJECTED')
+    assert(cm.test_data['M1-SLOW-3.0']['test_status']=='REJECTED')
+    assert(cm.test_data['M2-FAST-2500']['test_status']=='BAD READ')
+    assert(cm.test_data['M2-FAST-2000']['test_status']=='REJECTED')
+    assert(cm.test_data['M2-FAST-2000']['test_status']=='REJECTED')
 
 
 def test_generateFinalCalibrationData():
     cm = CalibrationManager(False)
     assert(cm.calibration_data[0]['DPS'][6]==0.0473643)
-    cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
-    cm.approveTests(['M0-SLOW-3.0'])
+    cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'COMPLETED')
+    cm.approveTests(['M1-SLOW-3.0'])
     cm.generateFinalCalibrationData()
     assert(cm.calibration_data[0]['DPS'][6]==0.0476541)
 
@@ -76,15 +90,15 @@ def test_saveTestDataToFile(tmp_fixture):
     cm.saveTestDataToFile(file_path)
     cm.test_data = {}
     cm.loadTestDataFromFile(file_path)
-    assert(cm.test_data['M0-SLOW-3.0']=={
-        'name': 'M0-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0473643, 
+    assert(cm.test_data['M1-SLOW-3.0']=={
+        'name': 'M1-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0473643, 
         'test_result': '0.0476541', 'test_change': '0.61%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
     })
 
 def test_formatCalibrationData():
     cm = CalibrationManager(False)
     cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
-    cm.approveTests(['M0-SLOW-3.0'])
+    cm.approveTests(['M1-SLOW-3.0'])
     cm.generateFinalCalibrationData()
     cmdata = cm.formatCalibrationData()
     assert(cmdata.startswith('0: {\n    "RAW":   [        0.0,        0.5,        1.0,        1.5'))

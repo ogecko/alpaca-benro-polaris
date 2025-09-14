@@ -600,7 +600,7 @@ class CalibrationManager:
                 ascom = axisData['ASCOM'][i]
                 dps = axisData['DPS'][i]
                 cmd = 'SLOW' if raw<=5 else 'FAST'
-                name = f'M{axis}-{cmd}-{raw}'
+                name = f'M{axis+1}-{cmd}-{raw}'
                 if not raw==0:
                     self.test_data[name] = dict(
                         name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
@@ -626,6 +626,22 @@ class CalibrationManager:
         if self.liveInstance:
             self.logTestData([name])
             self.saveTestDataToFile()
+
+    def pendingTests(self, testNameList):
+        if not testNameList:
+            testNameList = self.test_data.keys()
+        tests={ 0: [], 1: [], 2: []}
+        for testName in testNameList:
+            testData = self.test_data.get(testName, {})
+            if testData:
+                self.test_data[testName]['test_status'] = 'PENDING'
+                axis = self.test_data[testName]['axis']
+                raw = self.test_data[testName]['raw']
+                tests[axis].append(raw)
+        if self.liveInstance:
+            self.logTestData(testNameList)
+            self.saveTestDataToFile()
+        return tests
 
     def approveTests(self, testNameList):
         if not testNameList:

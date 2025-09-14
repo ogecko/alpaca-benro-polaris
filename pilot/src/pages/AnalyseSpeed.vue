@@ -116,7 +116,6 @@
 
                 :rows="rows" :columns="columns" row-key="name">
               </q-table>
-              Selected: {{ JSON.stringify(selected) }}
           </div>
         </q-card>
     </div>    
@@ -129,7 +128,7 @@
 <script setup lang="ts">
 
 import StatusBanners from 'src/components/StatusBanners.vue'
-import { onMounted, onUnmounted, computed, ref } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useDeviceStore } from 'src/stores/device'
@@ -161,6 +160,8 @@ const rows = computed<TableRow[]>(() => {
   }
   return Array.from(consolidated.values())
 })
+
+watch(axis, ()=>selected.value=[])
 
 type TableRow = {
   name:string, axis:number, raw:number, ascom:number, dps:number, 
@@ -213,8 +214,10 @@ onUnmounted(() => {
 
 async function startTest() {
   console.log('start test')
-  await dev.apiAction('Polaris:SpeedTest', `{"axis":${axis.value},"rates":[3,4]}`)
-  await sleep(5000)
+  const testNames = selected.value.map((d:TableRow) => `"${d.name}"`).join(',') 
+  selected.value=[]
+  await dev.apiAction('Polaris:SpeedTest', `{"testNames": [${testNames}]}`)
+  await sleep(3000)
  
 }
 
