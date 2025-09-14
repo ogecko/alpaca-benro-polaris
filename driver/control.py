@@ -54,10 +54,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot KF Tuning page
 # [X] Alpaca Pilot PWM Testing page
 # [X] Alpaca Improved PWM_SLOW with (-1, +1) rate instead of 0
-# [ ] Alpaca Pilot Speed Calibration Test Result Table Live
-# [ ] Alpaca Pilot Speed Calibration Actions (Run, Approve, Ignore)
-# [ ] Alpaca Pilot Speed Calibration Actions (Run, Update, Fetch, Stream)
-# [ ] Alpaca Pilot Speed control for 0 while tracking should remain in PWM_SLOW not SLOW
+# [X] Alpaca Pilot Speed control for 0 while tracking should remain in PWM_SLOW not SLOW
+# [X] Alpaca Pilot Speed Calibration Test Management and Actions
+# [ ] Alpaca Pilot Speed Calibration hookup and cancel test
 
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca Pilot SP pointer is removed around +/- 90 degrees too early
