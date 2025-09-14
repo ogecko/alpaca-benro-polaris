@@ -1454,7 +1454,7 @@ class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:StatusFetch', 'Polaris:ConfigFetch', 
                                             'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore',
-                                            'Polaris:MoveAxis', 'Polaris:MoveMotor'], req)  
+                                            'Polaris:MoveAxis', 'Polaris:MoveMotor', 'Polaris:SpeedTest' ], req)  
 
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
@@ -1526,6 +1526,15 @@ class action:
             if axis in [0,1,2] and rate <10 and rate >-10:
                 await polaris._motors[axis].set_motor_speed(rate, unit)
             resp.text = await PropertyResponse('MoveAxis ok', req)  
+            return
+
+        elif actionName == "Polaris:SpeedTest":
+            logger.info(f'SpeedTest {parameters}')
+            axis = parameters.get('axis', -1)
+            rate = parameters.get('rates', [0])
+            if axis in [0,1,2]:
+                await polaris.moveaxis_speed_test(axis, rate)
+            resp.text = await PropertyResponse('SpeedTest ok', req)  
             return
 
 
