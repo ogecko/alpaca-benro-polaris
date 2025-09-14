@@ -563,7 +563,7 @@ class KalmanFilter:
 
 # ************* Calibration Manager ************
 class CalibrationManager:
-    def __init__(self):
+    def __init__(self, loadTestData=True):
         self.baseline_data = {
             0: {
                 "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,     2250.0,     2500.0 ],
@@ -585,12 +585,11 @@ class CalibrationManager:
         }     
         self.test_data = {}
         self.calibration_data = {}
-        self.initialiseTestAndCalibrationData()
-
-    def initialiseTestAndCalibrationData(self):
-        if not self.loadTestDataFromFile():
-            self.createTestDataFromBaseline()
+        if loadTestData:
+            if not self.loadTestDataFromFile():
+                self.createTestDataFromBaseline()
         self.generateFinalCalibrationData()
+
 
     def createTestDataFromBaseline(self):
         self.test_data = {}
@@ -634,6 +633,7 @@ class CalibrationManager:
             if status in ['PENDING', 'REJECTED']:
                 self.test_data[testName]['test_status'] = 'APPROVED'
         self.saveTestDataToFile()
+        self.generateFinalCalibrationData()
 
     def rejectTests(self, testNameList):
         if not testNameList:
@@ -644,6 +644,7 @@ class CalibrationManager:
             if status in ['PENDING', 'APPROVED']:
                 self.test_data[testName]['test_status'] = 'REJECTED'
         self.saveTestDataToFile()
+        self.generateFinalCalibrationData()
 
     def saveTestDataToFile(self, path = CALIBRATION_PATH):
         with open(path, 'w') as f:
@@ -669,6 +670,25 @@ class CalibrationManager:
                     self.calibration_data[axis]['DPS'][idx] = dps
                 except ValueError:
                     continue
+
+    def formatCalibrationData(self, col_width=10):
+        output_lines = []
+        for axis, axis_data in self.calibration_data.items():
+            output_lines.append(f"{axis}: {{")
+            keys = list(axis_data.keys())
+            for i, key in enumerate(keys):
+                values = axis_data[key]
+                if key in ["DPS", "ASCOM", "STDEV"] :
+                    formatted = [f"{v:.7f}".rjust(col_width) for v in values]
+                elif key == "BAD":
+                    formatted = [f"'{v}'".rjust(col_width) for v in values]
+                else:
+                    formatted = [str(v).rjust(col_width) for v in values]
+                value_str = ', '.join(formatted)
+                comma = ',' if i < len(keys) - 1 else ''
+                output_lines.append(f'    "{key+'":':7s} [ {value_str} ]{comma}')
+            output_lines.append("},")  # End of axis block with trailing comma
+        return '\n'.join(output_lines)
 
 
 

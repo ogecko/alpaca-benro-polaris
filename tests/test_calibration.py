@@ -10,11 +10,11 @@ def test_dummy():
     assert(1==1)
 
 def test_baseline():
-    cm = CalibrationManager()
+    cm = CalibrationManager(False)
     assert(cm.baseline_data[0]['RAW'][1]==0.5)
 
 def test_calibrationFromBaseline():
-    cm = CalibrationManager()
+    cm = CalibrationManager(False)
     cm.createTestDataFromBaseline()
     assert(cm.test_data['M0-SLOW-5.0']=={
         'name': 'M0-SLOW-5.0', 'axis': 0, 'raw': 5.0, 'ascom': 5.0, 'dps': 0.2078883, 
@@ -22,7 +22,7 @@ def test_calibrationFromBaseline():
     })
 
 def test_addTestResult():
-    cm = CalibrationManager()
+    cm = CalibrationManager(False)
     cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
     assert(cm.test_data['M0-SLOW-3.0']=={
         'name': 'M0-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0473643, 
@@ -35,7 +35,7 @@ def test_addTestResult():
     })
 
 def test_ApproveRejectTest():
-    cm = CalibrationManager()
+    cm = CalibrationManager(False)
     cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
     cm.addTestResult(1, 2500, 7.012345678, 0.0002345678, 'BAD READ')
     cm.addTestResult(1, 2000, 7.012345678, 0.0002345678, 'PENDING')
@@ -56,7 +56,7 @@ def test_ApproveRejectTest():
 
 
 def test_generateFinalCalibrationData():
-    cm = CalibrationManager()
+    cm = CalibrationManager(False)
     assert(cm.calibration_data[0]['DPS'][6]==0.0473643)
     cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
     cm.approveTests(['M0-SLOW-3.0'])
@@ -71,7 +71,7 @@ def tmp_fixture(tmp_path):
 
 def test_saveTestDataToFile(tmp_fixture):
     tmp_path, file_path = tmp_fixture
-    cm = CalibrationManager()
+    cm = CalibrationManager(False)
     cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
     cm.saveTestDataToFile(file_path)
     cm.test_data = {}
@@ -80,3 +80,11 @@ def test_saveTestDataToFile(tmp_fixture):
         'name': 'M0-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0473643, 
         'test_result': '0.0476541', 'test_change': '0.61%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
     })
+
+def test_formatCalibrationData():
+    cm = CalibrationManager(False)
+    cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
+    cm.approveTests(['M0-SLOW-3.0'])
+    cm.generateFinalCalibrationData()
+    cmdata = cm.formatCalibrationData()
+    assert(cmdata.startswith('0: {\n    "RAW":   [        0.0,        0.5,        1.0,        1.5'))
