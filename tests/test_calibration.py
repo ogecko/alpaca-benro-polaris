@@ -53,3 +53,30 @@ def test_ApproveRejectTest():
     assert(cm.test_data['M1-FAST-2500']['test_status']=='BAD READ')
     assert(cm.test_data['M1-FAST-2000']['test_status']=='REJECTED')
     assert(cm.test_data['M1-FAST-2000']['test_status']=='REJECTED')
+
+
+def test_generateFinalCalibrationData():
+    cm = CalibrationManager()
+    assert(cm.calibration_data[0]['DPS'][6]==0.0473643)
+    cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
+    cm.approveTests(['M0-SLOW-3.0'])
+    cm.generateFinalCalibrationData()
+    assert(cm.calibration_data[0]['DPS'][6]==0.0476541)
+
+@pytest.fixture
+def tmp_fixture(tmp_path):
+    file_path = tmp_path / 'calibration.json'
+    yield tmp_path, file_path
+
+
+def test_saveTestDataToFile(tmp_fixture):
+    tmp_path, file_path = tmp_fixture
+    cm = CalibrationManager()
+    cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
+    cm.saveTestDataToFile(file_path)
+    cm.test_data = {}
+    cm.loadTestDataFromFile(file_path)
+    assert(cm.test_data['M0-SLOW-3.0']=={
+        'name': 'M0-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0473643, 
+        'test_result': '0.0476541', 'test_change': '0.61%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
+    })

@@ -1,5 +1,7 @@
 import numpy as np
 import datetime
+import json, os
+from pathlib import Path
 from pyquaternion import Quaternion
 from config import Config
 from scipy.interpolate import PchipInterpolator
@@ -131,6 +133,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Auto-fetch orbital elements
 #
 
+DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
+DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
+CALIBRATION_PATH = DATA_DIR / 'calibration.json'
 
 
 # ************* Quaternion Kinematics *************
@@ -559,8 +564,6 @@ class KalmanFilter:
 # ************* Calibration Manager ************
 class CalibrationManager:
     def __init__(self):
-        self.calibration_data = {}
-        self.test_data = {}
         self.baseline_data = {
             0: {
                 "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,     2250.0,     2500.0 ],
@@ -580,6 +583,14 @@ class CalibrationManager:
                 "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.1059046,  5.2953173,  5.4563247,  5.6045402,  5.8719654,  6.0894325,  6.3677080,  6.6855091,  7.0802587,  7.5992287,  8.2492810,  9.0000000 ],
             },
         }     
+        self.test_data = {}
+        self.calibration_data = {}
+        self.initialiseTestAndCalibrationData()
+
+    def initialiseTestAndCalibrationData(self):
+        if not self.loadTestDataFromFile():
+            self.createTestDataFromBaseline()
+        self.generateFinalCalibrationData()
 
     def createTestDataFromBaseline(self):
         self.test_data = {}
@@ -594,16 +605,6 @@ class CalibrationManager:
                     self.test_data[name] = dict(
                         name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
                         test_result= '', test_change= '', test_stdev= '', test_status= 'UNTESTED')
-
-    def generateFinalCalibration(self):
-        self.calibration_data = self.baseline_data.copy()
-        for testName in self.test_data.keys():
-            if self.test_data[testName].get('test_status','')=='APPROVED':
-                axis = self.test_data[testName].get('axis',0)
-                raw = self.test_data[testName].get('raw',0)
-                ascom = self.test_data[testName].get('ascom',0)
-                dps = self.test_data[testName].get('dps',0)
-                self.calibration_data[axis]['RAW']
 
     def addTestResult(self, axis, raw, result, stdev, status):
         cmd = 'SLOW' if raw<=5 else 'FAST'
@@ -622,7 +623,7 @@ class CalibrationManager:
         self.test_data[name] = dict(
             name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
             test_result= test_result, test_change= test_change, test_stdev= test_stdev, test_status= test_status)
-
+        self.saveTestDataToFile()
 
     def approveTests(self, testNameList):
         if not testNameList:
@@ -632,6 +633,7 @@ class CalibrationManager:
             status = testData.get('test_status','')
             if status in ['PENDING', 'REJECTED']:
                 self.test_data[testName]['test_status'] = 'APPROVED'
+        self.saveTestDataToFile()
 
     def rejectTests(self, testNameList):
         if not testNameList:
@@ -641,6 +643,33 @@ class CalibrationManager:
             status = testData.get('test_status','')
             if status in ['PENDING', 'APPROVED']:
                 self.test_data[testName]['test_status'] = 'REJECTED'
+        self.saveTestDataToFile()
+
+    def saveTestDataToFile(self, path = CALIBRATION_PATH):
+        with open(path, 'w') as f:
+            json.dump(self.test_data, f, indent=2)
+
+    def loadTestDataFromFile(self, path = CALIBRATION_PATH):
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                self.test_data = json.load(f)
+            return True
+        else:
+            return False
+
+    def generateFinalCalibrationData(self):
+        self.calibration_data = self.baseline_data.copy()
+        for testName in self.test_data.keys():
+            if self.test_data[testName].get('test_status','')=='APPROVED':
+                axis = self.test_data[testName].get('axis',0)
+                raw = self.test_data[testName].get('raw',0)
+                dps = float(self.test_data[testName].get('test_result',0))
+                try:
+                    idx = self.calibration_data[axis]['RAW'].index(raw)
+                    self.calibration_data[axis]['DPS'][idx] = dps
+                except ValueError:
+                    continue
+
 
 
 # ************* MoveAxis Rate Interpolation *************
