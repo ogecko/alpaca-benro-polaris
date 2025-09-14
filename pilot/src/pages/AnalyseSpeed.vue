@@ -126,7 +126,7 @@ import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useDeviceStore } from 'src/stores/device'
 import type { DataPoint } from 'src/components/ChartXY.vue'
-import type { TelemetryRecord, KalmanMessage }from 'src/stores/stream'
+import type { TelemetryRecord, KalmanMessage, CalibrationMessage }from 'src/stores/stream'
 // import { formatAngle } from 'src/utils/scale'
 import { sleep } from 'src/utils/sleep'
 
@@ -144,8 +144,17 @@ const chartVelData = computed<DataPoint[]>(() => {
    const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
    return kf.map(formatVelData)
 })
+const rows = computed<TableRow[]>(() => {
+   const cm = socket.topics?.cm ?? [] as TelemetryRecord[];
+   return cm
+    .map(formatTestData)
+    .filter(d => d.axis == axis.value)
+})
 
-
+type TableRow = {
+  name:string, axis:number, raw:number, ascom:number, dps:number, 
+  test_result:string, test_change:string, test_stdev:string, test_status:string 
+}
 
 function formatPosData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
@@ -165,26 +174,36 @@ function formatVelData(d: TelemetryRecord):DataPoint {
   return { x1: time, y1, y2, y3 }
 }
 
+function formatTestData(d: TelemetryRecord):TableRow {
+  const data = d.data as CalibrationMessage
+  const name = data.name ?? ''
+  const axis = data.axis ?? 0
+  const raw = data.raw ?? 0
+  const ascom = data.ascom ?? 0
+  const dps = data.dps ?? 0
+  const test_result = data.test_result ?? ''
+  const test_change = data.test_change ?? ''
+  const test_stdev = data.test_stdev ?? ''
+  const test_status = data.test_status ?? ''
+  return { name, axis, raw, ascom, dps, test_result, test_change, test_stdev, test_status }
+}
 
 onMounted(() => {
+  socket.subscribe('cm')
   socket.subscribe('kf')
 })
 
 onUnmounted(() => {
   // if (timer) clearInterval(timer)
+  socket.unsubscribe('cm')
   socket.unsubscribe('kf')
 })
 
 
 async function startTest() {
   console.log('start test')
-  for (let r=-1; r<=1; r+=0.1) {
-    const rate = Math.round(r*100)/100
-    await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${rate}, "unit":"RAW"}`)
-    await sleep(5000)
-    console.log (rate)
-  }
-  await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${0}}`)
+  await dev.apiAction('Polaris:SpeedTest', `{"axis":${axis.value},"rates":[3,4]}`)
+  await sleep(5000)
  
 }
 
@@ -194,44 +213,21 @@ const columns = [
   {
     name: 'name',
     required: true,
-    label: 'Test Name',
+    label: 'Test Case',
     align: 'left' as AlignType,
     field: (row: { name: string }) => row.name,
     format: (val: string) => `${val}`,
     sortable: true
   },
-  { name: 'raw', align: 'center' as AlignType, label: 'Raw Rate', field: 'RAW', sortable: true },
-  { name: 'ascom', label: 'ASCOM', field: 'ASCOM', sortable: true },
-  { name: 'dps', label: 'Calibration', field: 'DPS', sortable: true },
-  { name: 'testdps', label: 'Test Result', field: 'test_dps' },
-  { name: 'teststdev', label: 'Test Stdev', field: 'test_stdev' },
-  { name: 'teststatus', label: 'Test Status', field: 'test_status' },
+  { name: 'raw', align: 'center' as AlignType, label: 'Raw Rate', field: 'raw', sortable: true },
+  { name: 'dps', label: 'Baseline (°/s)', field: 'dps', sortable: true },
+  { name: 'testdps', label: 'Test Result (°/s)', field: 'test_result', sortable: true, sort: (a:string, b:string) => parseInt(a, 10) - parseInt(b, 10) },
   { name: 'testchange', label: 'Change', field: 'test_change', sortable: true, sort: (a:string, b:string) => parseInt(a, 10) - parseInt(b, 10) },
+  { name: 'teststdev', label: 'Test Stdev', field: 'test_stdev', sortable: true, sort: (a:string, b:string) => parseInt(a, 10) - parseInt(b, 10) },
+  { name: 'teststatus', label: 'Test Status', field: 'test_status', sortable: true },
   ]
 
-const rows = [
-  {
-    name: 'M1-Slow-0.0',
-    RAW: 0,
-    ASCOM: 0,
-    DPS: 0,
-    test_dps: 0,
-    test_stdev: 0.0023,
-    test_status: 'OK',
-    test_change: '0%',
-  },
-  {
-    name: 'M1-Slow-0.5',
-    RAW: 0.5,
-    ASCOM: 0.5,
-    DPS: 0.000343,
-    test_dps: 0.000355,
-    test_stdev: 0.23,
-    test_status: 'OK',
-    test_change: '14%',
-  },
 
-]
 const initialPagination = {
         rowsPerPage: 30
       }
@@ -239,7 +235,7 @@ const initialPagination = {
 const selected = ref([])
 
 function getSelectedString () {
-        return selected.value.length === 0 ? '' : `${selected.value.length} Test${selected.value.length > 1 ? 's' : ''} selected of ${rows.length}`
+        return selected.value.length === 0 ? '' : `${selected.value.length} Test${selected.value.length > 1 ? 's' : ''} selected of ${rows.value.length}`
 }
 
 </script>
