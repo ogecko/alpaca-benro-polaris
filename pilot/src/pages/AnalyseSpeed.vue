@@ -23,7 +23,7 @@
             <div class="col-md-6">
   <q-markdown  :no-mark="false">
   # Motor Speed Calibration
-  The Alpaca Driver maps raw move axis commands to angular rates (°/s). Use this page to calibrate against your device. Ensure the mount can move freely in all directions before testing. Remove cameras and equipment first.
+  The Alpaca Driver maps raw move axis commands to angular rates (°/s). Use this page to calibrate against your device. Ensure the mount can move freely in all directions before testing. Remove cameras and equipment first. Changes take effect on next Driver restart.
   </q-markdown>
             </div>
             <div class="col-md-6 q-pt-sm">
@@ -49,7 +49,7 @@
                 <!-- Test Motor -->
                 <q-item :inset-level="0">
                   <q-item-section top side>
-                    <q-btn @click="startTest">Test</q-btn>
+                    <q-btn rounded push @click="startTest">Test</q-btn>
                   </q-item-section>
                   <q-item-section >
                     <q-item-label caption>
@@ -60,7 +60,7 @@
                 <!-- Save Calibration Result -->
                 <q-item :inset-level="0">
                   <q-item-section top side>
-                    <q-btn @click="startTest">Save</q-btn>
+                    <q-btn rounded push @click="toggleApproval">Approve</q-btn>
                   </q-item-section>
                   <q-item-section >
                     <q-item-label caption>
@@ -236,6 +236,16 @@ async function executeTest() {
   await dev.apiAction('Polaris:SpeedTest', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
   await sleep(3000)
 }
+
+async function toggleApproval() {
+  const testNames = selected.value
+    .filter((d:TableRow) => d.axis == axis.value)
+    .map((d:TableRow) => `"${d.name}"`)
+    .join(',') 
+  selected.value=[]
+  await dev.apiAction('Polaris:TestApproval', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
+}
+
 
 type AlignType = 'left' | 'center' | 'right'
 

@@ -575,7 +575,7 @@ class CalibrationManager:
 
             1: {
                 "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,        2250.0,     2500.0 ],
-                "DPS":   [  0.0000000,  0.0029805,  0.0057960,  0.0117185,  0.0179169,  0.0326153,  0.0474580,  0.0680185,  0.0891068,  0.1493288,  0.2082413,  0.0000000,  0.0639841,  0.1601654,  0.2753685,  0.4358950,  0.9520996,  1.4283435,  2.0636520,  2.7884692,  3.6537407,  5.0558151,  6.1462419,  7.1661097 ],
+                "DPS":   [  0.0000000,  0.0029805,  0.0057960,  0.0117185,  0.0179169,  0.0326153,  0.0474580,  0.0680185,  0.0891068,  0.1493288,  0.2082415,  0.0000000,  0.0639841,  0.1601654,  0.2753685,  0.4358950,  0.9520996,  1.4283435,  2.0636520,  2.7884692,  3.6537407,  5.0558151,  6.1462419,  7.1661097 ],
                 "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.0701129,  5.2593430,  5.4397258,  5.6204410,  5.8704272,  6.0775486,  6.3777151,  6.6626556,  7.0344015,  7.7582774,  8.1985778,  9.0000000 ],
             },
 
@@ -671,6 +671,21 @@ class CalibrationManager:
             self.logTestData(testNameList)
             self.saveTestDataToFile()
             self.generateFinalCalibrationData()
+
+    def toggleApproval(self, axis, testNameList):
+        if not testNameList:
+            testNameList = self.test_data.keys()
+        for testName in testNameList:
+            testData = self.test_data.get(testName, {})
+            if testData and testData.get('axis')==axis:
+                status = testData.get('test_status','')
+                if status in ['COMPLETED', 'REJECTED']:
+                    self.test_data[testName]['test_status'] = 'APPROVED'
+                elif status in ['APPROVED']:
+                    self.test_data[testName]['test_status'] = 'REJECTED'
+        if self.liveInstance:
+            self.logTestData(testNameList)
+            self.saveTestDataToFile()
 
     def logTestData(self, testNameList):
         cm_logger = logging.getLogger('cm')

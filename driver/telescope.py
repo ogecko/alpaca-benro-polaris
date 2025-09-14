@@ -1455,7 +1455,8 @@ class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:StatusFetch', 'Polaris:ConfigFetch', 
                                             'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore',
-                                            'Polaris:MoveAxis', 'Polaris:MoveMotor', 'Polaris:SpeedTest' ], req)  
+                                            'Polaris:MoveAxis', 'Polaris:MoveMotor', 
+                                            'Polaris:SpeedTest', 'Polaris:TestApproval' ], req)  
 
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
@@ -1536,6 +1537,14 @@ class action:
             rates = polaris._cm.pendingTests(axis, testNames)
             asyncio.create_task(polaris.moveaxis_speed_test(axis, rates))
             resp.text = await PropertyResponse('SpeedTest ok', req)  
+            return
+
+        elif actionName == "Polaris:TestApproval":
+            logger.info(f'TestApproval {parameters}')
+            axis = parameters.get('axis', 0)
+            testNames = parameters.get('testNames', -1)
+            polaris._cm.toggleApproval(axis, testNames)
+            resp.text = await PropertyResponse('TestApproval ok', req)  
             return
 
 
