@@ -85,7 +85,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, CalibrationManager, format_move_axis_data, polar_rotation_angle, MotorSpeedController, PID_Controller
+from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, CalibrationManager, polar_rotation_angle, MotorSpeedController, PID_Controller
 from scipy.interpolate import PchipInterpolator
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525'}
@@ -1086,9 +1086,6 @@ class Polaris:
             # if we want to run Aim test or Drift test over a set of targets in the sky
             if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
                 asyncio.create_task(self.goto_tracking_test())
-            # if we want to run Speed test to ramp moveaxis rate over its full range
-            if Config.log_performance_data_test == 3:
-                asyncio.create_task(self.moveaxis_speed_calibration_full_test())
             if Config.log_performance_data_test == 5:
                 asyncio.create_task(self.rotator_test())
         else:
@@ -1119,56 +1116,6 @@ class Polaris:
         # complete the test
         self.logger.info(f"== TEST == Rotator Test | COMPLETE")
 
-
-    async def moveaxis_speed_calibration_full_test(self):
-        if self._test_underway:
-            return
-        self._test_underway = True
-
-        results = {}
-        for axis in [2]:
-            results[axis] = (await self.moveaxis_slow_fast_calibration_test(axis))
-
-        formatted_results = format_move_axis_data(results)
-        self.logger.info(f'== TEST == Multi-Axis Calibration COMPLETE\n{formatted_results}')
-        self._test_underway = False
-
-    async def moveaxis_slow_fast_calibration_test(self, axis):
-        raw_rates = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0] 
-        raw_rates += [0.0] + [x for x in range(200,500,100)] + [x for x in range(500,2500+250,250)]
-        results = []
-        direction = +1
-        # Ramp through the raw rates
-        for rate in raw_rates:
-            if axis==1 and self._theta_meas.any():
-                if self._theta_meas[1] > 60:
-                    await self.move_axis(axis, 0)
-                    await asyncio.sleep(3)
-                    direction = -1
-                if self._theta_meas[1] < 20:
-                    await self.move_axis(axis, 0)
-                    await asyncio.sleep(3)
-                    direction = +1
-
-            await self.move_axis(axis, rate * direction, "RAW")
-            result = await self.moveaxis_speed_measurement(axis, rate)
-            results.append(result)
-
-        await self.move_axis(axis, 0)
-        await asyncio.sleep(3)
-
-        mid = results[5][0]
-        max = results[-1][0]
-        interp = PchipInterpolator([0, mid, 0.18*max, 0.5*max, max], [0,5,6,7,9], extrapolate=True)
-        summary = { 'RAW':[], 'DPS':[], 'ASCOM':[], 'STDEV':[], 'BAD':[] }
-        for result in results:
-            summary['DPS'].append(result[0])
-            summary['RAW'].append(result[1])
-            summary['STDEV'].append(result[2])
-            summary['BAD'].append(result[3])
-            summary['ASCOM'].append(interp(result[0]) if result[1] > 5 else result[1])
-        
-        return summary
 
     async def moveaxis_speed_test(self, axis, rates):
         cm_logger = logging.getLogger('cm')

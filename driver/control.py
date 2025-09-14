@@ -586,7 +586,9 @@ class CalibrationManager:
                 "DPS":   [  0.0000000,  0.0028014,  0.0062829,  0.0116572,  0.0180921,  0.0332946,  0.0477771,  0.0694168,  0.0895084,  0.1473723,  0.2095603,  0.0000000,  0.0837834,  0.1887125,  0.3006626,  0.4380173,  1.0034091,  1.5207945,  2.1388829,  2.9854808,  3.9290364,  4.9913994,  6.2159233,  7.5135817 ],
                 "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.1059046,  5.2953173,  5.4563247,  5.6045402,  5.8719654,  6.0894325,  6.3677080,  6.6855091,  7.0802587,  7.5992287,  8.2492810,  9.0000000 ],
             },
-        }     
+        }
+        self.raw_rates = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0] 
+        self.raw_rates += [0.0] + [x for x in range(200,500,100)] + [x for x in range(500,2500+250,250)]
         self.test_data = {}
         self.calibration_data = {}
         if self.liveInstance:
@@ -784,25 +786,6 @@ move_axis_data = {
 
 }
 
-
-def format_move_axis_data(data, col_width=10):
-    output_lines = []
-    for axis, axis_data in data.items():
-        output_lines.append(f"{axis}: {{")
-        keys = list(axis_data.keys())
-        for i, key in enumerate(keys):
-            values = axis_data[key]
-            if key in ["DPS", "ASCOM", "STDEV"] :
-                formatted = [f"{v:.7f}".rjust(col_width) for v in values]
-            elif key == "BAD":
-                formatted = [f"'{v}'".rjust(col_width) for v in values]
-            else:
-                formatted = [str(v).rjust(col_width) for v in values]
-            value_str = ', '.join(formatted)
-            comma = ',' if i < len(keys) - 1 else ''
-            output_lines.append(f'    "{key+'":':7s} [ {value_str} ]{comma}')
-        output_lines.append("},")  # End of axis block with trailing comma
-    return '\n'.join(output_lines)
 
 class MoveAxisRateInterpolator:
     """

@@ -74,7 +74,7 @@ log_kalman_data = false                     # log Kalman filter inputs and outpu
 log_pid_data = false                        # log PID control loop activity
 log_sync_data = false                       # log sync performance metrics and timing
 
-log_performance_data = 0                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim, 2=Drift, 3=Speed, 4=Position, 5=KalmanFilter, 6=PID
+log_performance_data = 0                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim, 2=Drift, 3=Obsolete, 4=Position, 5=KalmanFilter, 6=PID
 log_performance_data_test = 0               # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test, 5=Rotator test
 log_perf_speed_interval = 5                 # To calculate average speed, measure distance travelled, once every "log_perf_speed_interval" seconds.
 

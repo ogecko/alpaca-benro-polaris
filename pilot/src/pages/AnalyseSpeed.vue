@@ -242,7 +242,6 @@ async function toggleApproval() {
     .filter((d:TableRow) => d.axis == axis.value)
     .map((d:TableRow) => `"${d.name}"`)
     .join(',') 
-  selected.value=[]
   await dev.apiAction('Polaris:TestApproval', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
 }
 
