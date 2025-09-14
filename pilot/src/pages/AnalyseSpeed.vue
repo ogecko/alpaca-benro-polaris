@@ -64,7 +64,7 @@
                   </q-item-section>
                   <q-item-section >
                     <q-item-label caption>
-                      Save selected test results as the revised calibration.
+                      Toggle Approval/Rejection of selected test cases to override baseline.
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -127,6 +127,7 @@
 
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
+import { useQuasar } from 'quasar'
 import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useDeviceStore } from 'src/stores/device'
@@ -137,7 +138,9 @@ import { sleep } from 'src/utils/sleep'
 
 const socket = useStreamStore()
 const dev = useDeviceStore()
+const $q = useQuasar()
 
+const selected = ref([])
 const axis = ref<number>(0)
 const motor = computed<string>(() => `M${axis.value+1}`)
 
@@ -210,7 +213,20 @@ onUnmounted(() => {
 })
 
 
-async function startTest() {
+function startTest() {
+  const count = selected.value.length 
+  const str = (count==0) ? 'ALL' : `${count}`
+  $q.notify({
+    message: `Are you sure you want to test motor ${motor.value} with ${str} speed calibration tests?`,
+    color: 'warning', position: 'top', timeout: 5000,
+    actions: [
+      { label: 'Confirm', icon: 'mdi-check', color: 'yellow', handler: () => {void executeTest()} },
+      { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => { /* ... */ } }
+    ]
+  })
+}
+
+async function executeTest() {
   console.log('start test')
   const testNames = selected.value
     .filter((d:TableRow) => d.axis == axis.value)
@@ -219,7 +235,6 @@ async function startTest() {
   selected.value=[]
   await dev.apiAction('Polaris:SpeedTest', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
   await sleep(3000)
- 
 }
 
 type AlignType = 'left' | 'center' | 'right'
@@ -247,7 +262,6 @@ const initialPagination = {
         rowsPerPage: 30
       }
 
-const selected = ref([])
 
 function getSelectedString () {
         return selected.value.length === 0 ? '' : `${selected.value.length} Test${selected.value.length > 1 ? 's' : ''} selected of ${rows.value.length}`
