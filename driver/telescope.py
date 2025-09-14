@@ -16,6 +16,7 @@
 #
 # -----------------------------------------------------------------------------
 from falcon import Request, Response, before
+import asyncio
 from logging import Logger
 from shr import PropertyResponse, MethodResponse, HTTPBadRequest,  PreProcessRequest, get_request_field, to_bool, deg2rad
 from exceptions import *        # Nothing but exception classes
@@ -1533,7 +1534,7 @@ class action:
             axis = parameters.get('axis', -1)
             rate = parameters.get('rates', [0])
             if axis in [0,1,2]:
-                await polaris.moveaxis_speed_test(axis, rate)
+                asyncio.create_task(polaris.moveaxis_speed_test(axis, rate))
             resp.text = await PropertyResponse('SpeedTest ok', req)  
             return
 

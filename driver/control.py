@@ -633,7 +633,7 @@ class CalibrationManager:
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
             status = testData.get('test_status','')
-            if status in ['PENDING', 'REJECTED']:
+            if status in ['COMPLETED', 'REJECTED']:
                 self.test_data[testName]['test_status'] = 'APPROVED'
         if self.liveInstance:
             self.logTestData(testNameList)
@@ -646,7 +646,7 @@ class CalibrationManager:
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
             status = testData.get('test_status','')
-            if status in ['PENDING', 'APPROVED']:
+            if status in ['COMPLETED', 'APPROVED']:
                 self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
             self.logTestData(testNameList)

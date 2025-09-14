@@ -44,21 +44,29 @@
                   <q-item-section>
                     <q-item-label> Choosen Motor Axis</q-item-label>
                     <q-item-label caption>
-                      Select the motor axis you'd like to analyse and tune. Motor 1 Azimuth; Motor 2 Altitude; Motor 3 Astro head. 
-                      Keep in mind: when Motor 3 (Astro Head) is rotated, the orientation of Motor 1 and Motor 2 no longer corresponds directly to Azimuth and Altitude.            </q-item-label>
+                      Select the motor axis you'd like to calibrate.
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
                 <!-- Test Motor -->
-                <q-item :inset-level="1">
+                <q-item :inset-level="0">
                   <q-item-section top side>
-                    <div class=" q-gutter-ax">
-                      <q-btn icon="mdi-clock-start" @click="startTest">Test</q-btn>
-                    </div>
+                    <q-btn @click="startTest">Test</q-btn>
                   </q-item-section>
                   <q-item-section >
-                    <q-item-label> Start Speed Test of {{ motor }}</q-item-label>
                     <q-item-label caption>
-                      Initiate a speed test that measures actual angular velocity for a range of inputs.
+                      Initiate selected speed calibration tests for {{ motor }}.
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <!-- Save Calibration Result -->
+                <q-item :inset-level="0">
+                  <q-item-section top side>
+                    <q-btn @click="startTest">Save</q-btn>
+                  </q-item-section>
+                  <q-item-section >
+                    <q-item-label caption>
+                      Save selected test results as the revised calibration.
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -145,10 +153,13 @@ const chartVelData = computed<DataPoint[]>(() => {
    return kf.map(formatVelData)
 })
 const rows = computed<TableRow[]>(() => {
-   const cm = socket.topics?.cm ?? [] as TelemetryRecord[];
-   return cm
-    .map(formatTestData)
-    .filter(d => d.axis == axis.value)
+  const cm = socket.topics?.cm ?? [] as TelemetryRecord[];
+  const testdata = cm.map(formatTestData).filter(d => d.axis == axis.value)
+  const consolidated = new Map<string, TableRow>()
+  for (const test of testdata) {
+    consolidated.set(test.name, test)
+  }
+  return Array.from(consolidated.values())
 })
 
 type TableRow = {

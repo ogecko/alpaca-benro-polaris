@@ -1199,7 +1199,7 @@ class Polaris:
         await asyncio.sleep(initial_interval)
         rate_raw = self._motors[axis].rate_raw    # what the controller thinks the raw rate is
         rate_dps = self._motors[axis].rate_dps    # what the controller thinks the dps rate is
-        status = "PENDING"
+        status = "COMPLETED"
 
         omega_samples = []     # deg/sec
         while time.monotonic() - start_time < max_interval:
@@ -1218,7 +1218,7 @@ class Polaris:
         # exited while without a value in tollerance
         else:
             measured_dps = rate_dps  # fallback to the controller's rate
-            status = "UNSTABLE"
+            status = "HIGH STDEV"
             self.logger.info(f'== TEST == **UNSTABLE** on Axis {axis} |  RAW {rate_raw} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}')
         return abs(measured_dps), abs(rate_raw), stdev, status
 
