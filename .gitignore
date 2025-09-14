@@ -7,6 +7,8 @@ __pycache__/
 *.so
 
 # Alpaca Logs and Performance data
+speed_calibration.json
+speed_testdata.json
 config.temp.json
 *.log
 *.log.*
