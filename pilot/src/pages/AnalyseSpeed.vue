@@ -23,9 +23,7 @@
             <div class="col-md-6">
   <q-markdown  :no-mark="false">
   # Motor Speed Calibration
-  The lowest layer of the Alpaca Control System is an open loop motor speed controller. You give it a speed in degrees per second and it makes it happen.
-
-  This page allows you to evaluate the calibration of the motor speed controller.
+  The Alpaca Driver maps raw move axis commands to angular rates (°/s). Use this page to calibrate against your device. Ensure the mount can move freely in all directions before testing. Remove cameras and equipment first.
   </q-markdown>
             </div>
             <div class="col-md-6 q-pt-sm">
@@ -75,6 +73,19 @@
           </div>
         </q-card>
       </div>
+      <div class="col-12 flex">
+        <q-card flat bordered class="col">
+          <div class="q-pa-md">
+              <q-table title="Speed Calibration Test Results" dense
+                    :selected-rows-label="getSelectedString" :pagination="initialPagination"
+      selection="multiple"
+      v-model:selected="selected"
+
+                :rows="rows" :columns="columns" row-key="name">
+              </q-table>
+          </div>
+        </q-card>
+      </div>    
       <div class="col-md-6 flex">
         <q-card flat bordered class="col">
           <q-list style="max-width: 800px">
@@ -106,19 +117,6 @@
           <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
         </q-card>
       </div>    
-      <div class="col-12 flex">
-        <q-card flat bordered class="col">
-          <div class="q-pa-md">
-              <q-table title="Speed Calibration Test Results" dense
-                    :selected-rows-label="getSelectedString" :pagination="initialPagination"
-      selection="multiple"
-      v-model:selected="selected"
-
-                :rows="rows" :columns="columns" row-key="name">
-              </q-table>
-          </div>
-        </q-card>
-    </div>    
   </div>
 
 </q-page>
@@ -214,9 +212,12 @@ onUnmounted(() => {
 
 async function startTest() {
   console.log('start test')
-  const testNames = selected.value.map((d:TableRow) => `"${d.name}"`).join(',') 
+  const testNames = selected.value
+    .filter((d:TableRow) => d.axis == axis.value)
+    .map((d:TableRow) => `"${d.name}"`)
+    .join(',') 
   selected.value=[]
-  await dev.apiAction('Polaris:SpeedTest', `{"testNames": [${testNames}]}`)
+  await dev.apiAction('Polaris:SpeedTest', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
   await sleep(3000)
  
 }
@@ -233,7 +234,7 @@ const columns = [
     format: (val: string) => `${val}`,
     sortable: true
   },
-  { name: 'raw', align: 'center' as AlignType, label: 'Raw Rate', field: 'raw', sortable: true },
+  { name: 'raw', align: 'center' as AlignType, label: 'Raw Command', field: 'raw', sortable: true },
   { name: 'dps', label: 'Baseline (°/s)', field: 'dps', sortable: true },
   { name: 'testdps', label: 'Test Result (°/s)', field: 'test_result', sortable: true, sort: (a:string, b:string) => parseInt(a, 10) - parseInt(b, 10) },
   { name: 'testchange', label: 'Change', field: 'test_change', sortable: true, sort: (a:string, b:string) => parseInt(a, 10) - parseInt(b, 10) },

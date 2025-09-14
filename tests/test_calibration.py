@@ -40,12 +40,12 @@ def test_PendingTests():
     cm.addTestResult(1, 2500, 7.012345678, 0.0002345678, 'BAD READ')
     cm.addTestResult(1, 2000, 7.012345678, 0.0002345678, 'COMPLETED')
     cm.addTestResult(1, 1000, 7.012345678, 0.0002345678, 'COMPLETED')
-    tests = cm.pendingTests(['M1-SLOW-3.0','M2-FAST-2500','M2-FAST-2000', 'DUMMY'])
-    assert(cm.test_data['M1-SLOW-3.0']['test_status']=='PENDING')
+    tests = cm.pendingTests(1, ['M1-SLOW-3.0','M2-FAST-2500','M2-FAST-2000', 'DUMMY'])
+    assert(cm.test_data['M1-SLOW-3.0']['test_status']=='COMPLETED')
     assert(cm.test_data['M2-FAST-2500']['test_status']=='PENDING')
     assert(cm.test_data['M2-FAST-2000']['test_status']=='PENDING')
-    assert(cm.test_data['M2-FAST-1000']['test_status']=='COMPLETED')
-    assert(tests=={0: [3.0], 1:[2500,2000], 2: []})
+    assert(cm.test_data['M2-FAST-1000']['test_status']=='HIGH CHANGE')
+    assert(tests==[2500, 2000])
     
 
 def test_ApproveRejectTest():
@@ -57,16 +57,16 @@ def test_ApproveRejectTest():
     cm.approveTests(['M1-SLOW-3.0','M2-FAST-2500','M2-FAST-2000', 'DUMMY'])
     assert(cm.test_data['M1-SLOW-3.0']['test_status']=='APPROVED')
     assert(cm.test_data['M2-FAST-2500']['test_status']=='BAD READ')
-    assert(cm.test_data['M2-FAST-2000']['test_status']=='APPROVED')
-    assert(cm.test_data['M2-FAST-1000']['test_status']=='COMPLETED')
+    assert(cm.test_data['M2-FAST-2000']['test_status']=='HIGH CHANGE')
+    assert(cm.test_data['M2-FAST-1000']['test_status']=='HIGH CHANGE')
     cm.rejectTests(['M1-SLOW-3.0'])
     assert(cm.test_data['M1-SLOW-3.0']['test_status']=='REJECTED')
-    assert(cm.test_data['M2-FAST-1000']['test_status']=='COMPLETED')
+    assert(cm.test_data['M2-FAST-1000']['test_status']=='HIGH CHANGE')
     cm.rejectTests([])
     assert(cm.test_data['M1-SLOW-3.0']['test_status']=='REJECTED')
     assert(cm.test_data['M2-FAST-2500']['test_status']=='BAD READ')
-    assert(cm.test_data['M2-FAST-2000']['test_status']=='REJECTED')
-    assert(cm.test_data['M2-FAST-2000']['test_status']=='REJECTED')
+    assert(cm.test_data['M2-FAST-2000']['test_status']=='HIGH CHANGE')
+    assert(cm.test_data['M2-FAST-2000']['test_status']=='HIGH CHANGE')
 
 
 def test_generateFinalCalibrationData():

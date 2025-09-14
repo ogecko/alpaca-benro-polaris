@@ -1531,11 +1531,10 @@ class action:
 
         elif actionName == "Polaris:SpeedTest":
             logger.info(f'SpeedTest {parameters}')
+            axis = parameters.get('axis', 0)
             testNames = parameters.get('testNames', -1)
-            tests = polaris._cm.pendingTests(testNames)
-            for axis in tests.keys():
-                rates = tests[axis]
-                asyncio.create_task(polaris.moveaxis_speed_test(axis, rates))
+            rates = polaris._cm.pendingTests(axis, testNames)
+            asyncio.create_task(polaris.moveaxis_speed_test(axis, rates))
             resp.text = await PropertyResponse('SpeedTest ok', req)  
             return
 

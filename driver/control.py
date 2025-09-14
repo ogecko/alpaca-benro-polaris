@@ -616,10 +616,11 @@ class CalibrationManager:
         interpToBaseline = MoveAxisRateUnitInterpolator(self.baseline_data[axis], 'RAW')
         ascom = float(interpToASCOM(result) if raw > 5 else raw)
         dps = float(interpToBaseline.toDPS(raw))
-        test_result = f'{result:.7f}'
-        test_change = f'{(result/dps - 1)*100:.2f}%'
+        change = (result/dps - 1) * 100
+        test_change = f'{change:.2f}%'
+        test_result = f'{result:.7f}' if (change<10) and (status!='HIGH STDEV') else ''
         test_stdev = f'{stdev:.7f}'
-        test_status = status
+        test_status = status if (change<10) else 'HIGH CHANGE'
         self.test_data[name] = dict(
             name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
             test_result= test_result, test_change= test_change, test_stdev= test_stdev, test_status= test_status)
@@ -627,17 +628,19 @@ class CalibrationManager:
             self.logTestData([name])
             self.saveTestDataToFile()
 
-    def pendingTests(self, testNameList):
+    def pendingTests(self, axis, testNameList):
         if not testNameList:
             testNameList = self.test_data.keys()
-        tests={ 0: [], 1: [], 2: []}
+        tests=[]
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
-            if testData:
+            if testData and testData.get('axis')==axis:
                 self.test_data[testName]['test_status'] = 'PENDING'
-                axis = self.test_data[testName]['axis']
-                raw = self.test_data[testName]['raw']
-                tests[axis].append(raw)
+                self.test_data[testName]['test_result'] = ''
+                self.test_data[testName]['test_change'] = ''
+                self.test_data[testName]['test_stdev'] = ''
+                raw = testData.get('raw',0)
+                tests.append(raw)
         if self.liveInstance:
             self.logTestData(testNameList)
             self.saveTestDataToFile()
