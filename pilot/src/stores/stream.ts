@@ -11,7 +11,11 @@ export type KalmanMessage = {
   ω_meas: [number, number, number], ω_state: [number, number, number], ω_ref: [number, number, number],
   K_gain: [number, number, number, number, number, number],
 }
-export type TelemetryMessage = LogMessage | PIDMessage | KalmanMessage
+export type CalibrationMessage = { 
+  name: string, axis: number, raw: number, ascom: number, dps: number,
+  test_result: string, test_change: string, test_stdev:string, test_status:string
+} 
+export type TelemetryMessage = LogMessage | PIDMessage | KalmanMessage | CalibrationMessage
 
 export type TelemetryRecord = {
   ts: string
