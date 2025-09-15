@@ -40,16 +40,17 @@ from pathlib import Path
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (config.py)
 CONFIG_DIR = DRIVER_DIR.parent / 'driver'         # Default config directory: ../driver 
+DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
 
 CONFIG_TOML_PATH = CONFIG_DIR / 'config.toml'
-CONFIG_TEMP_PATH = CONFIG_DIR / 'config.temp.json'
+CONFIG_PILOT_PATH = DATA_DIR / 'config.pilot.json'
 
 class Config:
     _base: Dict[str, Any] = {}
     _current: Dict[str, Any] = {}
 
     @classmethod
-    def load(cls, tomlpath=CONFIG_TOML_PATH, pilotpath=CONFIG_TEMP_PATH):
+    def load(cls, tomlpath=CONFIG_TOML_PATH, pilotpath=CONFIG_PILOT_PATH):
         """Load config.toml and apply pilot overrides from config.temp.json if present."""
         raw = toml.load(tomlpath)
         cls._base = cls._flatten(raw)
@@ -98,7 +99,7 @@ class Config:
         return applied
 
     @classmethod
-    def restore_base(cls, tomlpath=CONFIG_TOML_PATH, pilotpath=CONFIG_TEMP_PATH):
+    def restore_base(cls, tomlpath=CONFIG_TOML_PATH, pilotpath=CONFIG_PILOT_PATH):
         """Delete pilot override file and reload config from config.toml only."""
         if os.path.exists(pilotpath):
             os.remove(pilotpath)
@@ -106,7 +107,7 @@ class Config:
         return cls.as_dict()
 
     @classmethod
-    def save_pilot_overrides(cls,pilotpath=CONFIG_TEMP_PATH):
+    def save_pilot_overrides(cls,pilotpath=CONFIG_PILOT_PATH):
         """Save all changes from current config that differ from config.toml into config.temp.json."""
         changes = cls.diff()
         with open(pilotpath, 'w') as f:

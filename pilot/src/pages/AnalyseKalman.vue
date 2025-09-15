@@ -12,6 +12,15 @@
        </div>
       </div>
       <q-space />
+      <div class="q-gutter-md flex justify-end q-mr-md">
+        <div class="col-auto q-gutter-sm flex justify-end items-center">
+          <q-btn  rounded  color="grey-9"  label="Save" 
+                  @click="save" :disable="cfg.isSaving" :loading="cfg.isSaving" />
+          <q-btn rounded color="grey-9"  label="Restore" 
+                  @click="restore" :disable="cfg.isRestoring" :loading="cfg.isRestoring"/>
+        </div>
+      </div>
+
     </div>
 
     <!-- Page Body -->
@@ -154,7 +163,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
 
 
 <script setup lang="ts">
-import { debounce } from 'quasar'
+import { useQuasar, debounce } from 'quasar'
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
@@ -166,6 +175,7 @@ import MoveButton from 'src/components/MoveButton.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, KalmanMessage }from 'src/stores/stream'
 
+const $q = useQuasar()
 const socket = useStreamStore()
 const cfg = useConfigStore()
 const dev = useDeviceStore()
@@ -288,6 +298,18 @@ onUnmounted(() => {
   socket.unsubscribe('kf')
 })
 
+async function save() {
+  const ok = await cfg.configSave()
+  $q.notify({ message:`Configuration save ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
+    position: 'top', timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }] })
+}
+
+async function restore() {
+  const ok = await cfg.configRestore()
+  $q.notify({ message:`Configuration restore ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
+    position: 'top', timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }] })
+  setKnobValues()
+}
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 
 const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put for input text
