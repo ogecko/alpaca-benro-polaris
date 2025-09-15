@@ -570,20 +570,18 @@ class CalibrationManager:
         self.baseline_data = {
             0: {
                 "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,     2250.0,     2500.0 ],
-                "DPS":   [  0.0000000,  0.0027623,  0.0059366,  0.0118329,  0.0178360,  0.0327548,  0.0473643,  0.0683989,  0.0890021,  0.1476585,  0.2078883,  0.0000000,  0.0897528,  0.1958442,  0.3528437,  0.5551249,  1.0378114,  1.6486653,  2.3721838,  3.2627602,  4.3420125,  5.5617832,  6.8910176,  7.7218907 ],
-                "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.1284937,  5.3007042,  5.5095365,  5.6867827,  5.8739240,  6.1311617,  6.4341598,  6.7568192,  7.2206272,  7.8160615,  8.5247481,  9.0000000 ],
+                "DPS":   [  0.0000000,  0.0028021,  0.0060228,  0.0118625,  0.0178193,  0.0325911,  0.0475504,  0.0682790,  0.0890018,  0.1494888,  0.2081359,  0.0000000,  0.0856123,  0.1956495,  0.3488612,  0.5493848,  1.0887906,  1.7124653,  2.5596667,  3.4889146,  4.6249466,  5.8937798,  7.3677819,  8.9185931 ],
+                "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.1284937,  5.3007042,  5.5095365,  5.6867827,  5.8739240,  6.1311617,  6.4341598,  6.7568192,  7.2206272,  7.8160615,  8.5247481,  9.0000000 ]
             },
-
             1: {
-                "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,        2250.0,     2500.0 ],
-                "DPS":   [  0.0000000,  0.0029805,  0.0057960,  0.0117185,  0.0179169,  0.0326153,  0.0474580,  0.0680185,  0.0891068,  0.1493288,  0.2082415,  0.0000000,  0.0639841,  0.1601654,  0.2753685,  0.4358950,  0.9520996,  1.4283435,  2.0636520,  2.7884692,  3.6537407,  5.0558151,  6.1462419,  7.1661097 ],
-                "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.0701129,  5.2593430,  5.4397258,  5.6204410,  5.8704272,  6.0775486,  6.3777151,  6.6626556,  7.0344015,  7.7582774,  8.1985778,  9.0000000 ],
+                "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,     2250.0,     2500.0 ],
+                "DPS":   [  0.0000000,  0.0027828,  0.0061134,  0.0118115,  0.0179306,  0.0329477,  0.0474911,  0.0678652,  0.0892049,  0.1490858,  0.2079325,  0.0000000,  0.0624035,  0.1550967,  0.2818549,  0.4429422,  0.9865743,  1.5764286,  2.2335193,  3.0316268,  3.9409350,  5.0398936,  6.2998655,  7.6626160 ],
+                "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.0701129,  5.2593430,  5.4397258,  5.6204410,  5.8704272,  6.0775486,  6.3777151,  6.6626556,  7.0344015,  7.7582774,  8.1985778,  9.0000000 ]
             },
-
             2: {
                 "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,     2250.0,     2500.0 ],
-                "DPS":   [  0.0000000,  0.0028014,  0.0062829,  0.0116572,  0.0180921,  0.0332946,  0.0477771,  0.0694168,  0.0895084,  0.1473723,  0.2095603,  0.0000000,  0.0837834,  0.1887125,  0.3006626,  0.4380173,  1.0034091,  1.5207945,  2.1388829,  2.9854808,  3.9290364,  4.9913994,  6.2159233,  7.5135817 ],
-                "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.1059046,  5.2953173,  5.4563247,  5.6045402,  5.8719654,  6.0894325,  6.3677080,  6.6855091,  7.0802587,  7.5992287,  8.2492810,  9.0000000 ],
+                "DPS":   [  0.0000000,  0.0025771,  0.0060485,  0.0116477,  0.0178566,  0.0331094,  0.0477487,  0.0681221,  0.0896771,  0.1484604,  0.2090765,  0.0000000,  0.0710666,  0.1906350,  0.2917780,  0.4614574,  1.0211624,  1.6094697,  2.2771888,  3.1632519,  4.1730833,  5.3294800,  6.5653307,  7.9927540 ],
+                "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.1059046,  5.2953173,  5.4563247,  5.6045402,  5.8719654,  6.0894325,  6.3677080,  6.6855091,  7.0802587,  7.5992287,  8.2492810,  9.0000000 ]
             },
         }
         self.raw_rates = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0] 
@@ -591,9 +589,12 @@ class CalibrationManager:
         self.test_data = {}
         self.calibration_data = {}
         if self.liveInstance:
-            if not self.loadTestDataFromFile():
-                self.createTestDataFromBaseline()
-            self.saveAllDataToFiles()
+            self.initialiseCalibrationData()
+
+    def initialiseCalibrationData(self):
+        if not self.loadTestDataFromFile():
+            self.createTestDataFromBaseline()
+        self.generateCalibrationAndSaveAllDataToFiles()
 
     def createTestDataFromBaseline(self):
         self.test_data = {}
@@ -631,7 +632,7 @@ class CalibrationManager:
             test_result= test_result, test_change= test_change, test_stdev= test_stdev, test_status= test_status)
         if self.liveInstance:
             self.logTestData([name])
-            self.saveAllDataToFiles()
+            self.generateCalibrationAndSaveAllDataToFiles()
 
     def pendingTests(self, axis, testNameList):
         if not testNameList:
@@ -648,7 +649,7 @@ class CalibrationManager:
                 tests.append(raw)
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.saveAllDataToFiles()
+            self.generateCalibrationAndSaveAllDataToFiles()
         return tests
 
     def approveTests(self, testNameList):
@@ -661,7 +662,7 @@ class CalibrationManager:
                 self.test_data[testName]['test_status'] = 'APPROVED'
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.saveAllDataToFiles()
+            self.generateCalibrationAndSaveAllDataToFiles()
 
     def rejectTests(self, testNameList):
         if not testNameList:
@@ -673,7 +674,7 @@ class CalibrationManager:
                 self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.saveAllDataToFiles()
+            self.generateCalibrationAndSaveAllDataToFiles()
 
     def toggleApproval(self, axis, testNameList):
         if not testNameList:
@@ -688,7 +689,7 @@ class CalibrationManager:
                     self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.saveAllDataToFiles()
+            self.generateCalibrationAndSaveAllDataToFiles()
 
     def logTestData(self, testNameList):
         cm_logger = logging.getLogger('cm')
@@ -698,7 +699,7 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             cm_logger.info(testData)
 
-    def saveAllDataToFiles(self):
+    def generateCalibrationAndSaveAllDataToFiles(self):
         self.generateFinalCalibrationData()
         self.saveCalibrationDataToFile()
         self.saveTestDataToFile()
