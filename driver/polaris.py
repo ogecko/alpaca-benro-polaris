@@ -251,13 +251,13 @@ class Polaris:
         self._theta_meas = None                     # The latest set of motor axis angles [theta1, theta2, theta3] measured from q1
         self._omega_meas = None                     # The latest set of motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
+        self._cm = CalibrationManager()
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         self._motors = {
-            axis: MotorSpeedController(logger, axis, self.send_msg)
+            axis: MotorSpeedController(logger, self._cm, axis, self.send_msg)
             for axis in (0, 1, 2)
         }
         self._pid = PID_Controller(logger, self._motors, self._observer, loop=0.2)
-        self._cm = CalibrationManager()
         
     async def shutdown(self):
         self.logger.info(f'==SHUTDOWN== Polaris stopping all tasks.')

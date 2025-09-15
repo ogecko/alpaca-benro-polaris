@@ -567,6 +567,8 @@ class KalmanFilter:
 class CalibrationManager:
     def __init__(self, liveInstance=True):
         self.liveInstance = liveInstance        # False = used for unit testing purposes
+        self.raw_rates = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0] 
+        self.raw_rates += [0.0] + [x for x in range(200,500,100)] + [x for x in range(500,2500+250,250)]
         self.baseline_data = {
             0: {
                 "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,     2250.0,     2500.0 ],
@@ -584,17 +586,16 @@ class CalibrationManager:
                 "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.1059046,  5.2953173,  5.4563247,  5.6045402,  5.8719654,  6.0894325,  6.3677080,  6.6855091,  7.0802587,  7.5992287,  8.2492810,  9.0000000 ]
             },
         }
-        self.raw_rates = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0] 
-        self.raw_rates += [0.0] + [x for x in range(200,500,100)] + [x for x in range(500,2500+250,250)]
         self.test_data = {}
         self.calibration_data = {}
+        self.interpolator_data = {0:{}, 1:{}, 2:{}}
         if self.liveInstance:
             self.initialiseCalibrationData()
 
     def initialiseCalibrationData(self):
         if not self.loadTestDataFromFile():
             self.createTestDataFromBaseline()
-        self.generateCalibrationAndSaveAllDataToFiles()
+        self.updateCalibrationAndInterpolators()
 
     def createTestDataFromBaseline(self):
         self.test_data = {}
@@ -632,7 +633,7 @@ class CalibrationManager:
             test_result= test_result, test_change= test_change, test_stdev= test_stdev, test_status= test_status)
         if self.liveInstance:
             self.logTestData([name])
-            self.generateCalibrationAndSaveAllDataToFiles()
+            self.saveTestDataToFile()
 
     def pendingTests(self, axis, testNameList):
         if not testNameList:
@@ -649,7 +650,6 @@ class CalibrationManager:
                 tests.append(raw)
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.generateCalibrationAndSaveAllDataToFiles()
         return tests
 
     def approveTests(self, testNameList):
@@ -662,7 +662,7 @@ class CalibrationManager:
                 self.test_data[testName]['test_status'] = 'APPROVED'
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.generateCalibrationAndSaveAllDataToFiles()
+            self.updateCalibrationAndInterpolators()
 
     def rejectTests(self, testNameList):
         if not testNameList:
@@ -674,7 +674,7 @@ class CalibrationManager:
                 self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.generateCalibrationAndSaveAllDataToFiles()
+            self.updateCalibrationAndInterpolators()
 
     def toggleApproval(self, axis, testNameList):
         if not testNameList:
@@ -689,7 +689,7 @@ class CalibrationManager:
                     self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
             self.logTestData(testNameList)
-            self.generateCalibrationAndSaveAllDataToFiles()
+            self.updateCalibrationAndInterpolators()
 
     def logTestData(self, testNameList):
         cm_logger = logging.getLogger('cm')
@@ -699,30 +699,14 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             cm_logger.info(testData)
 
-    def generateCalibrationAndSaveAllDataToFiles(self):
-        self.generateFinalCalibrationData()
+    def updateCalibrationAndInterpolators(self):
+        self.generateCalibrationFromBaselineAndTestData()
+        self.generateInterpolatorsFromCalibrationData()
         self.saveCalibrationDataToFile()
         self.saveTestDataToFile()
 
-    def saveCalibrationDataToFile(self, path = CALIBRATION_PATH):
-        with open(path, 'w') as f:
-            f.write(self.formatCalibrationData())
-
-    def saveTestDataToFile(self, path = TESTDATA_PATH):
-        with open(path, 'w') as f:
-            json.dump(self.test_data, f, indent=2)
-
-    def loadTestDataFromFile(self, path = TESTDATA_PATH):
-        if os.path.exists(path):
-            with open(path, 'r') as f:
-                self.test_data = json.load(f)
-            return True
-        else:
-            return False
-
-    def generateFinalCalibrationData(self):
+    def generateCalibrationFromBaselineAndTestData(self):
         self.calibration_data = copy.deepcopy(self.baseline_data)
-        print(self.baseline_data[0]['DPS'][1], self.calibration_data[0]['DPS'][1])
         for testName in self.test_data.keys():
             if self.test_data[testName].get('test_status','')=='APPROVED':
                 axis = self.test_data[testName].get('axis',0)
@@ -733,6 +717,12 @@ class CalibrationManager:
                     self.calibration_data[axis]['DPS'][idx] = dps
                 except ValueError:
                     continue
+
+    def generateInterpolatorsFromCalibrationData(self):
+        self.interpolator_data = {
+            axis: MoveAxisRateInterpolator(self.calibration_data[axis])
+            for axis in range(3)
+        }
 
     def formatCalibrationData(self, col_width=10):
         begin = '{\n"_comment": "Copy of consolidated calibration data overriden with approved test data."\n'
@@ -754,38 +744,25 @@ class CalibrationManager:
             output_lines.append("},")  # End of axis block with trailing comma
         return begin + '\n'.join(output_lines) + '\n}\n'
 
+    def saveCalibrationDataToFile(self, path = CALIBRATION_PATH):
+        with open(path, 'w') as f:
+            f.write(self.formatCalibrationData())
+
+    def saveTestDataToFile(self, path = TESTDATA_PATH):
+        with open(path, 'w') as f:
+            json.dump(self.test_data, f, indent=2)
+
+    def loadTestDataFromFile(self, path = TESTDATA_PATH):
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                self.test_data = json.load(f)
+            return True
+        else:
+            return False
+
 
 
 # ************* MoveAxis Rate Interpolation *************
-
-# MoveAxis Rate Interpolation Data from PERFORMANCE TEST 3
-move_axis_data = {
-0: {
-    "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,     2250.0,     2500.0 ],
-    "DPS":   [  0.0000000,  0.0027623,  0.0059366,  0.0118329,  0.0178360,  0.0327548,  0.0473643,  0.0683989,  0.0890021,  0.1476585,  0.2078883,  0.0000000,  0.0963619,  0.1958442,  0.3528437,  0.5551249,  1.0378114,  1.6486653,  2.3721838,  3.2627602,  4.3420125,  5.5617832,  6.8910176,  7.7218907 ],
-    "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.1284937,  5.3007042,  5.5095365,  5.6867827,  5.8739240,  6.1311617,  6.4341598,  6.7568192,  7.2206272,  7.8160615,  8.5247481,  9.0000000 ],
-    "STDEV": [  0.0001477,  0.0002275,  0.0002025,  0.0002053,  0.0001570,  0.0007672,  0.0001372,  0.0007485,  0.0001170,  0.0014876,  0.0001780,  0.0001229,  0.0081117,  0.0085960,  0.0135922,  0.0115295,  0.0174373,  0.0114195,  0.0073658,  0.0047231,  0.0146202,  0.0054750,  0.0057276,  0.0032548 ],
-    "BAD":   [       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK' ]
-},
-
-1: {
-    "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,        2250.0,     2500.0 ],
-    "DPS":   [  0.0000000,  0.0029805,  0.0057960,  0.0117185,  0.0179169,  0.0326153,  0.0474580,  0.0680185,  0.0891068,  0.1493288,  0.2082413,  0.0000000,  0.0639841,  0.1601654,  0.2753685,  0.4358950,  0.9520996,  1.4283435,  2.0636520,  2.7884692,  3.6537407,  5.0558151,  6.1462419,  7.1661097 ],
-    "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.0701129,  5.2593430,  5.4397258,  5.6204410,  5.8704272,  6.0775486,  6.3777151,  6.6626556,  7.0344015,  7.7582774,  8.1985778,  9.0000000 ],
-    "STDEV": [  0.0002505,  0.0002316,  0.0002159,  0.0004152,  0.0002640,  0.0007726,  0.0001092,  0.0009654,  0.0002537,  0.0012478,  0.0006615,  0.0000984,  0.0301784,  0.0075483,  0.0144308,  0.0152224,  0.0038219,  0.0030198,  0.0041966,  0.0106528,  0.0145682,  0.0042744,  0.0035787,  0.0165158 ],
-    "BAD":   [       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK', 'UNSTABLE', 'UNSTABLE',       'OK' ]
-},
-
-2: {
-    "RAW":   [        0.0,        0.5,        1.0,        1.5,        2.0,        2.5,        3.0,        3.5,        4.0,        4.5,        5.0,        0.0,      200.0,      300.0,      400.0,      500.0,      750.0,     1000.0,     1250.0,     1500.0,     1750.0,     2000.0,     2250.0,     2500.0 ],
-    "DPS":   [  0.0000000,  0.0028014,  0.0062829,  0.0116572,  0.0180921,  0.0332946,  0.0477771,  0.0694168,  0.0895084,  0.1473723,  0.2095603,  0.0000000,  0.0837834,  0.1887125,  0.3006626,  0.4380173,  1.0034091,  1.5207945,  2.1388829,  2.9854808,  3.9290364,  4.9913994,  6.2159233,  7.5135817 ],
-    "ASCOM": [  0.0000000,  0.5000000,  1.0000000,  1.5000000,  2.0000000,  2.5000000,  3.0000000,  3.5000000,  4.0000000,  4.5000000,  5.0000000,  0.0000000,  5.1059046,  5.2953173,  5.4563247,  5.6045402,  5.8719654,  6.0894325,  6.3677080,  6.6855091,  7.0802587,  7.5992287,  8.2492810,  9.0000000 ],
-    "STDEV": [  0.0002000,  0.0001012,  0.0001483,  0.0002491,  0.0001235,  0.0002555,  0.0002627,  0.0003782,  0.0004383,  0.0007785,  0.0005268,  0.0001520,  0.0113494,  0.0070089,  0.0021171,  0.0034717,  0.0130540,  0.0161564,  0.0162121,  0.0105175,  0.0116924,  0.0133720,  0.0203026,  0.0143955 ],
-    "BAD":   [       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK',       'OK' ]
-},
-
-}
-
 
 class MoveAxisRateInterpolator:
     """
@@ -837,10 +814,10 @@ class MoveAxisRateUnitInterpolator:
 
 # ************* MoveAxis Speed Controller *************
 class MotorSpeedController:
-    def __init__(self, logger, axis, send_msg):
+    def __init__(self, logger, cm:CalibrationManager, axis:int, send_msg):
         self.axis = axis
         self._logger = logger
-        self._model = MoveAxisRateInterpolator(move_axis_data[axis])
+        self._calibration_manager = cm
         self._messenger = MoveAxisMessenger(axis, send_msg)
         self._stop_flag = asyncio.Event()
         self._lock = asyncio.Lock()
@@ -861,8 +838,11 @@ class MotorSpeedController:
         self.duty_cycle = 0.0
         self.pwm_phase = 'ON'
         self.last_switch_time = time.monotonic()
-
         asyncio.create_task(self._dispatch_loop())
+
+    @property
+    def _model(self):
+        return self._calibration_manager.interpolator_data[self.axis]
 
     async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True, tracking=False):
         async with self._lock:

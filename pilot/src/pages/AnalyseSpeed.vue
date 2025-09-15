@@ -23,7 +23,7 @@
             <div class="col-md-6">
   <q-markdown  :no-mark="false">
   # Motor Speed Calibration
-  The Alpaca Driver maps raw move axis commands to angular rates (°/s). Use this page to calibrate against your device. Ensure the mount can move freely in all directions before testing. Remove cameras and equipment first. Changes take effect on next Driver restart.
+  The Alpaca Driver maps raw move axis commands to angular rates (°/s). Use this page to calibrate against your device. Ensure the mount can move freely in all directions before testing. Remove cameras and equipment first. Calibration changes are applied immediately upon test approval.
   </q-markdown>
             </div>
             <div class="col-md-6 q-pt-sm">
