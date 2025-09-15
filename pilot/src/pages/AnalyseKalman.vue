@@ -73,7 +73,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
           <q-list style="max-width: 800px">
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="pos_meas_var_log" show-value :min="1" :max="6" :step="0.1">{{pos_meas_stdev}}</q-knob>
+                <q-knob v-model="pos_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_meas_str}}</q-knob>
               </q-item-section>
               <q-item-section>
                 <q-item-label> Angular Position Measurement Error (R) for {{ motor }}</q-item-label>
@@ -85,7 +85,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
             </q-item>
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="pos_proc_var_log" show-value :min="1" :max="6" :step="0.1">{{pos_proc_stdev}}</q-knob>
+                <q-knob v-model="pos_proc_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_proc_str}}</q-knob>
               </q-item-section>
               <q-item-section>
                 <q-item-label> Angular Position Process Error (Q) for {{ motor }}</q-item-label>
@@ -112,7 +112,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
           <q-list style="max-width: 800px">
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="vel_meas_var_log" show-value :min="1" :max="6" :step="0.1">{{vel_meas_stdev}}</q-knob>
+                <q-knob v-model="vel_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_meas_str}}</q-knob>
               </q-item-section>
               <q-item-section>
                 <q-item-label> Angular Velocity Measurement Error (R) for {{ motor }}</q-item-label>
@@ -124,7 +124,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
             </q-item>
             <q-item>
               <q-item-section side top>
-                <q-knob v-model="vel_proc_var_log" show-value :min="1" :max="6" :step="0.1">{{vel_proc_stdev}}</q-knob>
+                <q-knob v-model="vel_proc_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_proc_str}}</q-knob>
               </q-item-section>
               <q-item-section>
                 <q-item-label> Angular Velocity Process Error (Q) for {{ motor }}</q-item-label>
@@ -178,16 +178,16 @@ const vel_proc_var_log = ref<number>(5)
 
 const motor = computed<string>(() => `M${axis.value+1}`)
 const pos_meas_var = computed<number>(() => log2var(pos_meas_var_log.value))
-const pos_meas_stdev = computed<string>(() => var2stdev(pos_meas_var.value))
+const pos_meas_str = computed<string>(() => var2str(pos_meas_var.value))
 const vel_meas_var = computed<number>(() => log2var(vel_meas_var_log.value))
-const vel_meas_stdev = computed<string>(() => var2stdev(vel_meas_var.value))
+const vel_meas_str = computed<string>(() => var2str(vel_meas_var.value))
 const pos_proc_var = computed<number>(() => log2var(pos_proc_var_log.value))
-const pos_proc_stdev = computed<string>(() => var2stdev(pos_proc_var.value))
+const pos_proc_str = computed<string>(() => var2str(pos_proc_var.value))
 const vel_proc_var = computed<number>(() => log2var(vel_proc_var_log.value))
-const vel_proc_stdev = computed<string>(() => var2stdev(vel_proc_var.value))
+const vel_proc_str = computed<string>(() => var2str(vel_proc_var.value))
 const var2log = (x:number) => Math.log10(x) + 6
 const log2var = (k:number) => Math.pow(10,-6 + k)
-const var2stdev = (x:number) => formatAngle(Math.sqrt(x),'deg')
+const var2str = (x:number) => formatAngle(x,'deg',1)
 
 const chartPosData = computed<DataPoint[]>(() => {
    const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
@@ -233,12 +233,12 @@ watch(axis, () => setKnobValues())
 
 async function onPlus(payload: { isPressed: boolean }) {
     const isPressed = payload.isPressed
-    await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${isPressed ? 1 : 0}}`)
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${isPressed ? 0.0178360 : 0}}`)
 
 }
 async function onMinus(payload: { isPressed: boolean }) {
     const isPressed = payload.isPressed
-    await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${isPressed ? -1 : 0}}`)
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${isPressed ? -0.0178360 : 0}}`)
 }
 
 
