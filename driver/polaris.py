@@ -668,38 +668,37 @@ class Polaris:
             omega_meas = calculate_angular_velocity(self._history)
             omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
 
-            
-            self._kf.predict(omega_ref)
-            self._kf.observe(theta_meas, omega_meas)
-            theta_state, omega_state, K_gain = self._kf.get_state()
-
+            # extract the Polaris orientation data direct
             p_az = float(arg_dict['compass'])   # override filtered az with raw value from Polaris
             p_alt = -float(arg_dict['alt'])     # override filtered alt with raw value from Polaris
             p_ra, p_dec = self.altaz2radec(p_alt, p_az)
 
+            # Process through the Kalman Filter to determine theta_state
+            self._kf.predict(omega_ref)
+            self._kf.observe(theta_meas, omega_meas)
+            theta_state, omega_state, K_gain = self._kf.get_state()
+
+            # Flag when variance from quaternion az and p_az
             if not is_angle_same(az, p_az):
                 self.logger.warn(f"Kinematics variance p_az {p_az:.5f} az {az:.5f} diff {p_az - az:.5f} ")              
             if not is_angle_same(alt, p_alt):
                 self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} alt {alt:.5f} diff {p_alt - alt:.5f}") 
 
-            time = self.get_performance_data_time()
-
-
-            # if Config.log_performance_data == 5:
-            q1s = str(q1).replace(' ',',').replace('i','').replace('j','').replace('k','')
+            # Log meas, state and ref for websocket streaming
+            # q1s = str(q1).replace(' ',',').replace('i','').replace('j','').replace('k','')
             payload = { 
                 "θ_meas":theta_meas.tolist(), "θ_state":theta_state.tolist(), "K_gain": K_gain.tolist(),
                 "ω_meas":omega_meas.tolist(), "ω_state":omega_state.tolist(), "ω_ref": omega_ref.tolist(),  
             }
             kflogger = logging.getLogger('kf') 
             kflogger.info(payload)
-            # self.logger.info(f',DATA5,{time:.4f},  {q1s},  {p_az:+.4f},{p_alt:+.4f},{p_roll:+.4f},  {θ1:+.4f},{θ2:+.4f},{θ3:+.4f},  {sθ1:+.4f},{sθ2:+.4f},{sθ3:+.4f},  {ω1:+.5f},{ω2:+.5f},{ω3:+.5f}, {sω1:+.5f},{sω2:+.5f},{sω3:+.5f},  {rω1:+.5f},{rω2:+.5f},{rω3:+.5f} ')
 
-            # update the PID loop
+            # Update PID Loop with non KF data
             # alpha_meas = np.array([az, alt, p_roll], dtype=float)
             # self._pid.measure(alpha_meas, theta_meas)
 
-            qs = motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2],)
+            # Update PID Loop with KF State
+            qs = motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2])
             ts0, ts1, ts2, as0, as1, as2 = quaternion_to_angles(qs, azhint=az)
             alpha_state = np.array([as0,as1,as2])
             self._pid.measure(alpha_state, theta_state)
@@ -738,7 +737,7 @@ class Polaris:
                 self._rightascension = a_ra 
                 self._declination = a_dec
 
-            # if we ant to log position data
+            # if we want to log position data
             if Config.log_performance_data == 4:
                 a_slew = self._slewing
                 a_goto = self._gotoing
