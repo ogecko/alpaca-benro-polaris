@@ -82,8 +82,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Rationalise performance data capture and analysis
 # [ ] PID tuning to use velocity error as well as position error
 # [ ] Improve fine grained tracking precision
-# [ ] Improve Kalman Filter tuning
-# [ ] Store Motor Calibration data to a file
+# [X] Improve Kalman Filter tuning
+# [X] Store Motor Calibration data to a file
 # [ ] Improve tracking performance beyond BP implementation
 # Rotator
 # [ ] Rotator Halt, Sync, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
