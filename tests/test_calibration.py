@@ -17,7 +17,7 @@ def test_calibrationFromBaseline():
     cm = CalibrationManager(False)
     cm.createTestDataFromBaseline()
     assert(cm.test_data['M1-SLOW-5.0']=={
-        'name': 'M1-SLOW-5.0', 'axis': 0, 'raw': 5.0, 'ascom': 5.0, 'dps': 0.2078883, 
+        'name': 'M1-SLOW-5.0', 'axis': 0, 'raw': 5.0, 'ascom': 5.0, 'dps': 0.2081359, 
         'test_result': '', 'test_change': '', 'test_stdev': '', 'test_status': 'UNTESTED' 
     })
 
@@ -25,13 +25,13 @@ def test_addTestResult():
     cm = CalibrationManager(False)
     cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
     assert(cm.test_data['M1-SLOW-3.0']=={
-        'name': 'M1-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0473643, 
-        'test_result': '0.0476541', 'test_change': '0.61%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
+        'name': 'M1-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0475504, 
+        'test_result': '0.0476541', 'test_change': '0.22%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
     })
     cm.addTestResult(1, 2500, 7.012345678, 0.0002345678, 'PENDING')
     assert(cm.test_data['M2-FAST-2500']=={
-        'name': 'M2-FAST-2500', 'axis': 1, 'raw': 2500, 'ascom': 8.903224431248036, 'dps':  7.1661097, 
-        'test_result': '7.0123457', 'test_change': '-2.15%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
+        'name': 'M2-FAST-2500', 'axis': 1, 'raw': 2500, 'ascom': 8.623088802393088, 'dps':  7.662616, 
+        'test_result': '7.0123457', 'test_change': '-8.49%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
     })
 
 def test_PendingTests():
@@ -71,10 +71,11 @@ def test_ApproveRejectTest():
 
 def test_generateFinalCalibrationData():
     cm = CalibrationManager(False)
-    assert(cm.calibration_data[0]['DPS'][6]==0.0473643)
+    cm.generateCalibrationFromBaselineAndTestData()
+    assert(cm.calibration_data[0]['DPS'][6]==0.0475504)
     cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'COMPLETED')
     cm.approveTests(['M1-SLOW-3.0'])
-    cm.generateFinalCalibrationData()
+    cm.generateCalibrationFromBaselineAndTestData()
     assert(cm.calibration_data[0]['DPS'][6]==0.0476541)
 
 @pytest.fixture
@@ -91,14 +92,14 @@ def test_saveTestDataToFile(tmp_fixture):
     cm.test_data = {}
     cm.loadTestDataFromFile(file_path)
     assert(cm.test_data['M1-SLOW-3.0']=={
-        'name': 'M1-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0473643, 
-        'test_result': '0.0476541', 'test_change': '0.61%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
+        'name': 'M1-SLOW-3.0', 'axis': 0, 'raw': 3.0, 'ascom': 3.0, 'dps':  0.0475504, 
+        'test_result': '0.0476541', 'test_change': '0.22%', 'test_stdev': '0.0002346', 'test_status': 'PENDING' 
     })
 
 def test_formatCalibrationData():
     cm = CalibrationManager(False)
     cm.addTestResult(0, 3.0, 0.0476541, 0.0002345678, 'PENDING')
     cm.approveTests(['M1-SLOW-3.0'])
-    cm.generateFinalCalibrationData()
+    cm.generateCalibrationFromBaselineAndTestData()
     cmdata = cm.formatCalibrationData()
-    assert(cmdata.startswith('0: {\n    "RAW":   [        0.0,        0.5,        1.0,        1.5'))
+    assert(cmdata.startswith('{\n"_comment": "Copy of consolidated calibration data overriden with approved test data."\n0: {\n    "RAW":   [        0.0,        0.5,        1.0,        1.5'))
