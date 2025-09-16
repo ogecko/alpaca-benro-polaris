@@ -61,15 +61,15 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot Speed Calibration Test Management and Actions
 # [X] Alpaca Pilot Speed Calibration hookup and cancel test
 # [X] Alpaca Pilot close inactive websocket clients
+# [X] Alpaca pilot Ability to optionally use KF
 #
+# [ ] Fix 340-360 Control Kinematics, note roll flips sign near N
+# [ ] Fix Position Angle dashboard and interaction
 # [ ] Alpaca pilot Sync
-# [ ] Alpaca pilot Ability to optionally use KF
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
 # [ ] Alpaca pilot feature degredation when no Rotator
 # [ ] Alpaca pilot feature degredation when not ABP Driver
 # [ ] Alpaca Pilot memory and logevity tests
-# [ ] Fix Position Angle dashboard and interaction
-# [ ] Fix 340-360 Control Kinematics
 # [ ] Fix chart sizing when screen resized
 # [ ] Documentation on new features Topocentric tracking (You're maintaining a fixed pointing direction relative to the local horizon. The origin is your specific observing site, not Earth’s center.
 # Connection

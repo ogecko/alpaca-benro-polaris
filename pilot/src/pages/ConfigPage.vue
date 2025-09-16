@@ -70,15 +70,16 @@
             </div>
             <div v-if="cfg.advanced_control" class="q-gutter-y-sm" >
               <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_kf', 'Kalman Filtering')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_rotator', 'Alpaca Rotator')"/>
+              </div>
+              <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_slewing', 'Slewing')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_goto', 'Advanced Goto')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_tracking', 'Tracking')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
-              </div>
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_rotator', 'Alpaca Rotator')"/>
               </div>
               <div class="text-caption text-grey-6 q-pt-md">Restrict the motor controller’s peak slew rate and how quickly it will accelerate.</div>
               <div class="row">

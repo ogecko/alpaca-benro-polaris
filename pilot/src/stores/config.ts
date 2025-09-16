@@ -42,6 +42,7 @@ export const useConfigStore = defineStore('config', {
 
     // Advanced Features
     verbose_driver_exceptions: true,
+    advanced_kf: false,
     advanced_control: false,
     advanced_slewing: false,
     advanced_tracking: false,

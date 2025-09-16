@@ -658,31 +658,27 @@ class Polaris:
         elif cmd == "518":
             dt_now = datetime.datetime.now()
     
-            # extract the quaternion, angles and velocities
+            # extract the quaternion and derive its angles and velocities
             arg_dict = self.polaris_parse_args(args, name_postfix=True)
             q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
-            az = float(arg_dict['compass']) # used to help when we have alt=0 & gimbal lock
-            theta1, theta2, theta3, az, alt, p_roll = quaternion_to_angles(q1, azhint=az)
+            p_az = float(arg_dict['compass'])   # from Polaris direct
+            p_alt = -float(arg_dict['alt'])     # from Polaris direct
+            theta1, theta2, theta3, q_az, q_alt, q_roll = quaternion_to_angles(q1, azhint=p_az)
             theta_meas = np.array([theta1, theta2, theta3])
             self._history.append([dt_now, theta1, theta2, theta3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
             omega_meas = calculate_angular_velocity(self._history)
             omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
-
-            # extract the Polaris orientation data direct
-            p_az = float(arg_dict['compass'])   # override filtered az with raw value from Polaris
-            p_alt = -float(arg_dict['alt'])     # override filtered alt with raw value from Polaris
-            p_ra, p_dec = self.altaz2radec(p_alt, p_az)
 
             # Process through the Kalman Filter to determine theta_state
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas)
             theta_state, omega_state, K_gain = self._kf.get_state()
 
-            # Flag when variance from quaternion az and p_az
-            if not is_angle_same(az, p_az):
-                self.logger.warn(f"Kinematics variance p_az {p_az:.5f} az {az:.5f} diff {p_az - az:.5f} ")              
-            if not is_angle_same(alt, p_alt):
-                self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} alt {alt:.5f} diff {p_alt - alt:.5f}") 
+            # Flag when variance from quaternion q_az and p_az
+            if not is_angle_same(q_az, p_az):
+                self.logger.warn(f"Kinematics variance p_az {p_az:.5f} q_az {q_az:.5f} diff {p_az - q_az:.5f} ")              
+            if not is_angle_same(q_alt, p_alt):
+                self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} q_alt {q_alt:.5f} diff {p_alt - q_alt:.5f}") 
 
             # Log meas, state and ref for websocket streaming
             # q1s = str(q1).replace(' ',',').replace('i','').replace('j','').replace('k','')
@@ -693,49 +689,59 @@ class Polaris:
             kflogger = logging.getLogger('kf') 
             kflogger.info(payload)
 
-            # Update PID Loop with non KF data
-            # alpha_meas = np.array([az, alt, p_roll], dtype=float)
-            # self._pid.measure(alpha_meas, theta_meas)
+            if Config.advanced_kf:
+                # base the state off the filtered theta_state
+                qs = motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2])
+                ts0, ts1, ts2, s_az, s_alt, s_roll = quaternion_to_angles(qs, azhint=p_az)
+                s_ra, s_dec = self.altaz2radec(s_alt, s_az)
+                alpha_state = np.array([s_az, s_alt, s_roll], dtype=float)
+            else:
+                # base the state off the raw polaris measurements
+                s_az = p_az     # from Polaris direct
+                s_alt = p_alt   # from Polaris direct
+                s_roll = q_roll # from quaternion
+                s_ra, s_dec = self.altaz2radec(s_alt, s_az)
+                alpha_state = np.array([s_az, s_alt, s_roll], dtype=float)
+                theta_state = theta_meas
 
-            # Update PID Loop with KF State
-            qs = motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2])
-            ts0, ts1, ts2, as0, as1, as2 = quaternion_to_angles(qs, azhint=az)
-            alpha_state = np.array([as0,as1,as2])
+            # Update PID Loop with current state
             self._pid.measure(alpha_state, theta_state)
 
-            # Store all the new values
+            # Store all the new polaris values
             with self._lock:
                 self._last_518_timestamp = dt_now
                 self._q1 = q1
                 self._theta_meas = theta_meas
                 self._omega_meas = omega_meas
-                self._p_azimuth = float(as0)
-                self._p_altitude = float(as1)
-                self._p_roll = float(as2)
-                self._p_rightascension = float(ts0) 
-                self._p_declination = float(ts1)
-                self._p_rotation = float(ts2)
+                self._p_azimuth = float(s_az)
+                self._p_altitude = float(s_alt)
+                self._p_roll = float(s_roll)
+                self._p_rightascension = float(s_ra) 
+                self._p_declination = float(s_dec)
+                self._p_rotation = float(theta_state[2])
 
-            if Config.sync_pointing_model==1:
-                # Use RA/Dec Sync Pointing model
-                a_ra, a_dec = self.radec_polaris2ascom(p_ra, p_dec)
-                self._rightascension = a_ra 
-                self._declination = a_dec
-                a_alt, a_az = self.radec2altaz(a_ra, a_dec)
-                self._altitude = a_alt
-                self._azimuth = a_az
-                self._roll = float(p_roll)
-                self._rotation = float(theta3)
+            if Config.sync_pointing_model==0:
+                # Use Alt/Az Sync Pointing model, store all the ASCOM values
+                a_alt, a_az = self.altaz_polaris2ascom(s_alt, s_az)
+                with self._lock:
+                    self._altitude = a_alt
+                    self._azimuth = a_az
+                    self._roll = float(s_roll)
+                    self._rotation = float(theta_state[2])
+                    a_ra, a_dec= self.altaz2radec(a_alt, a_az)
+                    self._rightascension = a_ra 
+                    self._declination = a_dec
             else:
-                # Use Alt/Az Sync Pointing model
-                a_alt, a_az = self.altaz_polaris2ascom(p_alt, p_az)
-                self._altitude = a_alt
-                self._azimuth = a_az
-                self._roll = float(p_roll)
-                self._rotation = float(theta3)
-                a_ra, a_dec= self.altaz2radec(a_alt, a_az)
-                self._rightascension = a_ra 
-                self._declination = a_dec
+                # Use RA/Dec Sync Pointing model, store all the ASCOM values
+                a_ra, a_dec = self.radec_polaris2ascom(s_ra, s_dec)
+                with self._lock:
+                    self._rightascension = a_ra 
+                    self._declination = a_dec
+                    a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+                    self._altitude = a_alt
+                    self._azimuth = a_az
+                    self._roll = float(s_roll)
+                    self._rotation = float(theta_state[2])
 
             # if we want to log position data
             if Config.log_performance_data == 4:
