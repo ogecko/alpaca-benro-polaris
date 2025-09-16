@@ -45,7 +45,7 @@
                 <q-icon name="mdi-triangle">PV</q-icon>
               </q-item-section>
               <q-item-section>
-                <q-slider v-model="pv" :min="0" :max="360" :step="0.01" label label-always color="orange" track-color="brown" thumb-color="black" />
+                <q-slider v-model="pv" :min="-360" :max="360" :step="0.01" label label-always color="orange" track-color="brown" thumb-color="black" />
               </q-item-section>
             </q-item>
             <q-item>
@@ -53,7 +53,7 @@
                 <q-icon color="positive" name="mdi-arrow-up-bold" >SP</q-icon>
               </q-item-section>
               <q-item-section>
-                <q-slider v-model="sp" :min="0" :max="360" :step="0.01" label label-always color="orange" track-color="brown" thumb-color="black" />
+                <q-slider v-model="sp" :min="-360" :max="360" :step="0.01" label label-always color="orange" track-color="brown" thumb-color="black" />
               </q-item-section>
             </q-item>
             <q-item>
@@ -61,7 +61,7 @@
                 <q-icon color="positive" name="mdi-clock-outline" >LST</q-icon>
               </q-item-section>
               <q-item-section>
-                <q-slider v-model="lst" :min="0" :max="24" :step="1/60" label label-always color="orange" track-color="brown" thumb-color="black" />
+                <q-slider v-model="lst" :min="-24" :max="24" :step="1/60" label label-always color="orange" track-color="brown" thumb-color="black" />
               </q-item-section>
             </q-item>
           </q-list>
