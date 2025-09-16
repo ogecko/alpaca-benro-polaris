@@ -249,7 +249,6 @@ async function executeTest() {
     .filter((d:TableRow) => d.axis == axis.value)
     .map((d:TableRow) => `"${d.name}"`)
     .join(',') 
-  selected.value=[]
   await dev.apiAction('Polaris:SpeedTestStart', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
   await sleep(3000)
 }
