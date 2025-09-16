@@ -683,9 +683,11 @@ function renderCircularScale() {
   const radius = dProps.value.radius;
   const newScale = scaleLinear().domain([low, high]).range([dProps.value.sAngleLow, dProps.value.sAngleHigh]);
   const oldScale = prevScale ?? newScale;
-  const oldSP = prevSP ?? props.sp
   prevScale = newScale;
-  prevSP = props.sp;
+ 
+  const closeSP = (props.pv??0) + angularDifference(props.pv??0, props.sp??0) 
+  const oldSP = prevSP ?? closeSP
+  prevSP = closeSP;
 
   const group = select(circularGroup.value).attr('transform', `translate(${dProps.value.cx},${dProps.value.cy})`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -694,15 +696,15 @@ function renderCircularScale() {
   // arcs, arc ticks, and annotations for SP and HighWarning
   joinArcs('scaleArcs', group, scaleArcs, oldScale, newScale, radius, t);
   joinArcs('warningArcs', group, warningArcs, oldScale, newScale, radius, t);
-  joinArcs('tkArcPVtoSP', group, [{ beginAngle:props.pv, endAngle:props.sp, offset:1, opacity: 0.9, zorder: 'low' } as ArcDatum], oldScale, newScale, radius, t);
+  joinArcs('tkArcPVtoSP', group, [{ beginAngle:props.pv, endAngle:closeSP, offset:1, opacity: 0.9, zorder: 'low' } as ArcDatum], oldScale, newScale, radius, t);
 
   // scale ticks and labels
   joinMarks('tkMarks', group, ticks, oldScale, newScale, radius, t);
 
   // pv and sp marks and tests
   joinMarks('pvMark', group, [{key: 'pvMark', angle:props.pv, path:'M-8,0 L-30,15 L-30,-15 Z', offset: 1, zorder: 'high'} as MarkDatum], newScale, newScale, radius, t);
-  joinMarks('spMark', group, [{key: 'spMark', angle:props.sp, oldAngle: oldSP, path:'M-8,0 L-30,15 L-30,-15 Z', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
-  joinMarks('spLine', group, [{key: 'spLine', angle:props.sp, oldAngle: oldSP, path:'M-60,0 L-15,0', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
+  joinMarks('spMark', group, [{key: 'spMark', angle:closeSP, oldAngle: oldSP, path:'M-8,0 L-30,15 L-30,-15 Z', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
+  joinMarks('spLine', group, [{key: 'spLine', angle:closeSP, oldAngle: oldSP, path:'M-60,0 L-15,0', zorder: 'high'} as MarkDatum], oldScale, newScale, radius, t); 
 
   if (props.domain=='ra_24' && props.lst) {
      joinMarks('lstMark', group, [

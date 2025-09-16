@@ -43,6 +43,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca pilot goto RA, Dec, PA with click on Radial Indicators
 # [X] Alpaca pilot radial scales to show warning limits on angles
 # [X] Alpaca Pilot SP pointer is removed around +/- 90 degrees too early
+# [X] Alpaca Pilot Radial Scale PVtoSP can arc the wrong way when around 360/0 wraparound
 # [X] Implement slewing state monitoring
 # [X] Implement gotoing state monitoring
 # [X] Alpaca pilot to restrict pid max velocity and accel in real time
@@ -60,7 +61,6 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot Speed Calibration hookup and cancel test
 
 # [ ] Alpaca pilot Sync
-# [ ] Alpaca Pilot Radial Scale PVtoSP can arc the wrong way when around 360/0 wraparound
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
 # [ ] Alpaca pilot feature degredation when no Rotator
 # [ ] Alpaca pilot feature degredation when not ABP Driver
