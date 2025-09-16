@@ -61,8 +61,8 @@ export function angularDifference(a:number, b:number) {
 }
 
 export function isAngleBetween(angle:number, min:number, max:number) {
-  const diffToMin = angularDifference(min, angle);
-  const diffToMax = angularDifference(max, angle);
+  const diffToMin = angle - min
+  const diffToMax = angle - max
   return diffToMin >= 0 && diffToMax <= 0;
 }
 

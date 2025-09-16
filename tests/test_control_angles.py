@@ -3,7 +3,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
 # import pytest
-from control import angular_difference, is_angle_same, polar_rotation_angle, wrap_to_90
+from control import angular_difference, is_angle_same, polar_rotation_angle, wrap_to_90, is_angle_between
 from shr import deg2rad, rad2deg
 import pytest
 
@@ -89,3 +89,7 @@ def test_azimuth_wraparound_consistency():
     a2 = polar_rotation_angle(lat, deg2rad(1), alt)
     assert not math.isclose(a1, a2, abs_tol=1e-6)
 
+def test_is_angle_between():
+    assert(is_angle_between(90,80,100)==True)
+    assert(is_angle_between(-84,-100,+100)==True)
+    None
