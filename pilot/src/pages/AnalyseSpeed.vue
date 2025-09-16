@@ -40,14 +40,14 @@
                       />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label> Choosen Motor Axis</q-item-label>
+                    <q-item-label>Choosen Motor Axis</q-item-label>
                     <q-item-label caption>
                       Select the motor axis you'd like to calibrate.
                     </q-item-label>
                   </q-item-section>
                 </q-item>
-                <!-- Test Motor -->
-                <q-item :inset-level="0">
+                <!-- Start Motor Test -->
+                <q-item v-if="p.lifecycleevent == 'NONE'">
                   <q-item-section top side>
                     <q-btn rounded push @click="startTest">Test</q-btn>
                   </q-item-section>
@@ -57,7 +57,18 @@
                     </q-item-label>
                   </q-item-section>
                 </q-item>
-                <!-- Save Calibration Result -->
+                <!-- Stop Motor Test -->
+                <q-item v-if="p.lifecycleevent == 'START'">
+                  <q-item-section top side>
+                    <q-btn rounded push @click="stopTest">Stop</q-btn>
+                  </q-item-section>
+                  <q-item-section >
+                    <q-item-label caption>
+                      Stop speed calibration tests for {{ motor }}.
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <!-- Approve Calibration Result -->
                 <q-item :inset-level="0">
                   <q-item-section top side>
                     <q-btn rounded push @click="toggleApproval">Approve</q-btn>
@@ -135,9 +146,11 @@ import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, KalmanMessage, CalibrationMessage }from 'src/stores/stream'
 // import { formatAngle } from 'src/utils/scale'
 import { sleep } from 'src/utils/sleep'
+import { useStatusStore } from 'src/stores/status'
 
 const socket = useStreamStore()
 const dev = useDeviceStore()
+const p = useStatusStore()
 const $q = useQuasar()
 
 const selected = ref([])
@@ -212,6 +225,10 @@ onUnmounted(() => {
   socket.unsubscribe('kf')
 })
 
+async function stopTest() {
+  console.log('stop test')
+  await dev.apiAction('Polaris:SpeedTestStop', `{"axis": ${axis.value}}`)
+}
 
 function startTest() {
   const count = selected.value.length 
@@ -233,7 +250,7 @@ async function executeTest() {
     .map((d:TableRow) => `"${d.name}"`)
     .join(',') 
   selected.value=[]
-  await dev.apiAction('Polaris:SpeedTest', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
+  await dev.apiAction('Polaris:SpeedTestStart', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
   await sleep(3000)
 }
 
@@ -242,7 +259,7 @@ async function toggleApproval() {
     .filter((d:TableRow) => d.axis == axis.value)
     .map((d:TableRow) => `"${d.name}"`)
     .join(',') 
-  await dev.apiAction('Polaris:TestApproval', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
+  await dev.apiAction('Polaris:SpeedTestApproval', `{"axis": ${axis.value}, "testNames": [${testNames}]}`)
 }
 
 

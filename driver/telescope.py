@@ -1456,7 +1456,7 @@ class supportedactions:
         resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:StatusFetch', 'Polaris:ConfigFetch', 
                                             'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore',
                                             'Polaris:MoveAxis', 'Polaris:MoveMotor', 
-                                            'Polaris:SpeedTest', 'Polaris:TestApproval' ], req)  
+                                            'Polaris:SpeedTestStart', 'Polaris:SpeedTestStop', 'Polaris:SpeedTestApprove' ], req)  
 
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
@@ -1530,17 +1530,26 @@ class action:
             resp.text = await PropertyResponse('MoveAxis ok', req)  
             return
 
-        elif actionName == "Polaris:SpeedTest":
-            logger.info(f'SpeedTest {parameters}')
+        elif actionName == "Polaris:SpeedTestStart":
+            logger.info(f'SpeedTestStart {parameters}')
             axis = parameters.get('axis', 0)
             testNames = parameters.get('testNames', -1)
             rates = polaris._cm.pendingTests(axis, testNames)
-            asyncio.create_task(polaris.moveaxis_speed_test(axis, rates))
+            lifecycle.create_task(polaris.moveaxis_speed_test(axis, rates), name="SpeedTest")
             resp.text = await PropertyResponse('SpeedTest ok', req)  
             return
 
-        elif actionName == "Polaris:TestApproval":
-            logger.info(f'TestApproval {parameters}')
+        elif actionName == "Polaris:SpeedTestStop":
+            logger.info(f'SpeedTestStop {parameters}')
+            lifecycle.stop()
+            polaris._cm.stopTests()
+            # rates = polaris._cm.pendingTests(axis, testNames)
+            resp.text = await PropertyResponse('SpeedTest ok', req)  
+            return
+
+
+        elif actionName == "Polaris:SpeedTestApproval":
+            logger.info(f'SpeedTestApproval {parameters}')
             axis = parameters.get('axis', 0)
             testNames = parameters.get('testNames', -1)
             polaris._cm.toggleApproval(axis, testNames)

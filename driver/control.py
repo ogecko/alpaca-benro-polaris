@@ -622,8 +622,8 @@ class CalibrationManager:
         ascom = float(interpToASCOM(result) if raw > 5 else raw)
         dps = float(interpToBaseline.toDPS(raw))
         change = (result/dps - 1) * 100
-        status = status if abs(change)<20 else 'HIGH CHANGE'
-        bad_test = status in ['HIGH STDEV', 'HIGH CHANGE', 'NO DATA']
+        status = 'HIGH CHANGE' if abs(change)>25 and status in ['COMPLETED'] else status
+        bad_test = status in ['HIGH STDEV', 'HIGH CHANGE', 'NO DATA', 'STOPPED']
         test_result = f'{result:.7f}' if not bad_test else ''
         test_change = f'{change:.2f}%'
         test_stdev = f'{stdev:.7f}'
@@ -634,6 +634,19 @@ class CalibrationManager:
         if self.liveInstance:
             self.logTestData([name])
             self.saveTestDataToFile()
+
+    def stopTests(self):
+        testNameList = self.test_data.keys()
+        for testName in testNameList:
+            testData = self.test_data.get(testName, {})
+            if testData and testData.get('test_status')=='PENDING':
+                self.test_data[testName]['test_status'] = 'STOPPED'
+                self.test_data[testName]['test_result'] = ''
+                self.test_data[testName]['test_change'] = ''
+                self.test_data[testName]['test_stdev'] = ''
+        if self.liveInstance:
+            self.logTestData(testNameList)
+
 
     def pendingTests(self, axis, testNameList):
         if not testNameList:

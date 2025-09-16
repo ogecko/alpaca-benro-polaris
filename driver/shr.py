@@ -406,10 +406,12 @@ from enum import Enum, auto
 
 class LifecycleEvent(Enum):
     NONE = auto()
-    SHUTDOWN = auto()
-    RESTART = auto()
-    INTERRUPT = auto()
-
+    SHUTDOWN = auto()           # shutdown the process
+    RESTART = auto()            # restart all network services and running async tasks
+    INTERRUPT = auto()          # user initiated shutdown ^C
+    START = auto()              # used initated start of a stopable procedure
+    STOP = auto()               # user initiated stop of a procedure
+    
 class LifecycleController:
     def __init__(self):
         self._event = LifecycleEvent.NONE
@@ -443,15 +445,6 @@ class LifecycleController:
             await self.signal(LifecycleEvent.SHUTDOWN)
         for task in list(self._tasks):
             task.cancel()
-        _, pending = await asyncio.wait(self._tasks, timeout=timeout)
-        if pending:
-            logger.warning(f"==SHUTDOWN==Tasks still pending: {pending}")
-
-    async def shutdown_tasks(self, timeout: float = 5.0):
-        if self._event == LifecycleEvent.NONE:
-            await self.signal(LifecycleEvent.SHUTDOWN)
-        for task in list(self._tasks):
-            task.cancel()
         try:
             await asyncio.wait_for(
                 asyncio.gather(*self._tasks, return_exceptions=True),
@@ -465,7 +458,7 @@ class LifecycleController:
 
 
     def should_stop(self) -> bool:
-        return self._event in {LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT}
+        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT, LifecycleEvent.STOP}
 
     async def wait_for_event(self):
         async with self._cond:
@@ -490,6 +483,12 @@ class LifecycleController:
                 self._event = event
                 self._cond.notify_all()
         asyncio.create_task(notify())
+
+    def start(self):
+        self._event = LifecycleEvent.START
+
+    def stop(self):
+        self._event = LifecycleEvent.STOP
 
     def reset(self):
         self._event = LifecycleEvent.NONE

@@ -27,6 +27,7 @@ export const useStatusStore = defineStore('status', {
         declination: 0,
         rightascension: 0,
         siderealtime: 0,
+        lifecycleevent: 'NONE',
         pidmode: '',
         deltaref: [0,0,0],
         alpharef: [0,0,0],

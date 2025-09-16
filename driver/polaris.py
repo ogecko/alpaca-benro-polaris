@@ -1118,8 +1118,11 @@ class Polaris:
 
 
     async def moveaxis_speed_test(self, axis, rates):
+        self.lifecycle.start()
         cm_logger = logging.getLogger('cm')
         for rate in rates:
+            if self.lifecycle.should_stop():
+                break
             direction = +1
             # check axis 1 bounds and reverse direction if necc 
             if axis==1 and self._theta_meas.any():
@@ -1137,6 +1140,7 @@ class Polaris:
             self._cm.addTestResult(axis, rate, result, stdev, status)
         # ensure we stop all movement
         await self.move_axis(axis, 0)
+        self.lifecycle.reset()
 
 
 
@@ -1151,6 +1155,8 @@ class Polaris:
         omega_samples = []     # deg/sec
         while time.monotonic() - start_time < max_interval:
             await asyncio.sleep(sampling_interval)
+            if self.lifecycle.should_stop():
+                return 0,0,0,"STOPPED"
             if self._omega_meas is None:
                 return 0,0,0,"NO DATA"
             omega = self._omega_meas[axis]
@@ -1276,6 +1282,7 @@ class Polaris:
                 'omegaref': self._pid.omega_ref.tolist(),
                 'motorref': [motor.rate_dps for motor in self._motors.values()],
                 'siderealtime': self._siderealtime,
+                'lifecycleevent': self.lifecycle._event.name,
             }
         return res
 
