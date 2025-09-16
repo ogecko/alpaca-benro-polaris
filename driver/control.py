@@ -59,7 +59,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot Speed control for 0 while tracking should remain in PWM_SLOW not SLOW
 # [X] Alpaca Pilot Speed Calibration Test Management and Actions
 # [X] Alpaca Pilot Speed Calibration hookup and cancel test
-
+# [X] Alpaca Pilot close inactive websocket clients
+#
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
 # [ ] Alpaca pilot feature degredation when no Rotator

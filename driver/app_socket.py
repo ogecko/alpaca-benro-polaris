@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from polaris import Polaris
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 from collections import deque
 import uvicorn
@@ -16,16 +16,20 @@ from shr import LifecycleController, LifecycleEvent
 
 # Subscription registry: topic → { websocket → filter }
 subscriptions: Dict[str, Dict[WebSocket, Dict[str, Any]]] = {}
+client_activity: Dict[WebSocket, datetime] = {}
+active_clients: set[WebSocket] = set()
 
 async def socket_handler(websocket: WebSocket):
     await websocket.accept()
+    active_clients.add(websocket)
     logger = logging.getLogger()
     try:
         while True:
             msg = await websocket.receive_json()
             msg_type = msg.get("type")
             if msg_type == "ping":
-                await websocket.send_json({"type": "pong"})
+                client_activity[websocket] = datetime.now(timezone.utc)
+                await ws_safe_send_json(websocket, {"type": "pong"})
                 continue
 
             logger.info(f"==WS== Received message: {msg}")
@@ -38,7 +42,7 @@ async def socket_handler(websocket: WebSocket):
                     backlog = PublishLogTopic.get_backlog(topic)
                     for entry in backlog:
                         try:
-                            await websocket.send_json(entry)
+                            await ws_safe_send_json(websocket, entry)
                         except Exception:
                             _remove_client(websocket)
 
@@ -59,8 +63,30 @@ async def socket_handler(websocket: WebSocket):
         _remove_client(websocket)
 
 def _remove_client(ws: WebSocket):
+    active_clients.discard(ws)
+    client_activity.pop(ws, None)
     for topic_subs in subscriptions.values():
         topic_subs.pop(ws, None)
+
+async def cleanup_inactive_clients(timeout_seconds: int = 10):
+    while True:
+        await asyncio.sleep(2)
+        now = datetime.now(timezone.utc)
+        stale_clients = [
+            ws for ws, last_seen in client_activity.items()
+            if (now - last_seen) > timedelta(seconds=timeout_seconds)
+        ]
+        for ws in stale_clients:
+            logging.getLogger().info(f"==TIMEOUT== Removing inactive subscription client: {ws}")
+            _remove_client(ws)
+            await ws.close()
+
+async def ws_safe_send_json(ws: WebSocket, payload: dict):
+    if ws in active_clients:
+        try:
+            await ws.send_json(payload)
+        except Exception:
+            _remove_client(ws)
 
 def _matches_filter(payload: Dict[str, Any], filter_args: Dict[str, Any]) -> bool:
     for key, val in filter_args.items():
@@ -150,6 +176,7 @@ async def alpaca_socket_httpd(logger, lifecycle: LifecycleController, polaris):
         await asyncio.gather(
             lifecycle._wrap(socket_server.serve()),
             lifecycle._wrap(publish_status(polaris)),
+            lifecycle._wrap(cleanup_inactive_clients(timeout_seconds=10)),
             lifecycle.wait_for_event()
         )
     except asyncio.CancelledError:
