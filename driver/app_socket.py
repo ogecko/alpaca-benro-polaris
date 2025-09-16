@@ -7,7 +7,7 @@ from typing import Dict, Any
 from collections import deque
 import uvicorn
 import socket
-from starlette.websockets import WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState, WebSocketClose
 from starlette.applications import Starlette
 from starlette.routing import WebSocketRoute
 
@@ -25,6 +25,8 @@ async def socket_handler(websocket: WebSocket):
     logger = logging.getLogger()
     try:
         while True:
+            if websocket.client_state != WebSocketState.CONNECTED:
+                raise WebSocketDisconnect(1006)
             msg = await websocket.receive_json()
             msg_type = msg.get("type")
             if msg_type == "ping":
@@ -63,11 +65,12 @@ async def socket_handler(websocket: WebSocket):
         await _remove_client(websocket)
 
 async def _remove_client(ws: WebSocket):
-    active_clients.discard(ws)
-    client_activity.pop(ws, None)
     for topic_subs in subscriptions.values():
         topic_subs.pop(ws, None)
-    await ws.close()
+    client_activity.pop(ws, None)
+    active_clients.discard(ws)
+    if ws.client_state == WebSocketState.CONNECTED:
+        await ws.close()
 
 async def cleanup_inactive_clients(timeout_seconds: int = 10):
     while True:
