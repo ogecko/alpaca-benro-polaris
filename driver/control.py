@@ -36,6 +36,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot Log file viewer and streaming of data
 # [X] Alpaca Pilot Radial Indicators and home dashboard
 # [X] Alpaca pilot current position main display, is parked, is tracking, is slewing, is gotoing, is PID active, is Pulse Guiding
+
 # Alpaca Features
 # [X] Alpaca pilot commands for Eq-Az toggle, park, unpark, abort, track, tracking rate
 # [X] Alpaca pilot goto Az, Alt, Roll with click on Radial Indicators
@@ -62,6 +63,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot close inactive websocket clients
 #
 # [ ] Alpaca pilot Sync
+# [ ] Alpaca pilot Ability to optionally use KF
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
 # [ ] Alpaca pilot feature degredation when no Rotator
 # [ ] Alpaca pilot feature degredation when not ABP Driver

@@ -44,7 +44,7 @@ async def socket_handler(websocket: WebSocket):
                         try:
                             await ws_safe_send_json(websocket, entry)
                         except Exception:
-                            _remove_client(websocket)
+                            await _remove_client(websocket)
 
             elif msg_type == "unsubscribe":
                 topic = msg.get("topic")
@@ -55,18 +55,19 @@ async def socket_handler(websocket: WebSocket):
                 # Future: handle restart/reload/etc
                 pass
     except asyncio.CancelledError:
-        _remove_client(websocket)
+        await _remove_client(websocket)
     except WebSocketDisconnect:
-        _remove_client(websocket)
+        await _remove_client(websocket)
     except Exception as e:
         logging.getLogger().info(f"==EXCEPTION== WebSocket error: {e}")
-        _remove_client(websocket)
+        await _remove_client(websocket)
 
-def _remove_client(ws: WebSocket):
+async def _remove_client(ws: WebSocket):
     active_clients.discard(ws)
     client_activity.pop(ws, None)
     for topic_subs in subscriptions.values():
         topic_subs.pop(ws, None)
+    await ws.close()
 
 async def cleanup_inactive_clients(timeout_seconds: int = 10):
     while True:
@@ -78,15 +79,14 @@ async def cleanup_inactive_clients(timeout_seconds: int = 10):
         ]
         for ws in stale_clients:
             logging.getLogger().info(f"==TIMEOUT== Removing inactive subscription client: {ws}")
-            _remove_client(ws)
-            await ws.close()
+            await _remove_client(ws)
 
 async def ws_safe_send_json(ws: WebSocket, payload: dict):
     if ws in active_clients:
         try:
             await ws.send_json(payload)
         except Exception:
-            _remove_client(ws)
+            await _remove_client(ws)
 
 def _matches_filter(payload: Dict[str, Any], filter_args: Dict[str, Any]) -> bool:
     for key, val in filter_args.items():
@@ -103,7 +103,7 @@ async def publish_status(polaris: Polaris):
             try:
                 await ws.send_json(payload)
             except Exception:
-                _remove_client(ws)
+                await _remove_client(ws)
 
 class PublishLogTopic(logging.Handler):
     _buffers: Dict[str, deque] = {}
