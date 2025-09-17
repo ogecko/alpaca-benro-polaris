@@ -63,7 +63,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot close inactive websocket clients
 # [X] Alpaca pilot Ability to optionally use KF
 #
-# [ ] Fix 340-360 Control Kinematics, note roll flips sign near N
+# [ ] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
 # [ ] Fix Position Angle dashboard and interaction
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
