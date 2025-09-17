@@ -248,7 +248,9 @@ class Polaris:
 
         # Advanced Control variables
         self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
+        self._q1s = None                            # The estimated quaternion state based on Kalman Filter
         self._theta_meas = None                     # The latest set of motor axis angles [theta1, theta2, theta3] measured from q1
+        self._theta_state = None                    # The state of motor axis angles [theta1, theta2, theta3] estimated by KF
         self._omega_meas = None                     # The latest set of motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._cm = CalibrationManager()
@@ -691,8 +693,9 @@ class Polaris:
 
             if Config.advanced_kf:
                 # base the state off the filtered theta_state
-                qs = motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2])
-                ts0, ts1, ts2, s_az, s_alt, s_roll = quaternion_to_angles(qs, azhint=p_az)
+                q1s= motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2])
+                self._q1s = '' if q1s is None else str(q1s)
+                ts0, ts1, ts2, s_az, s_alt, s_roll = quaternion_to_angles(q1s, azhint=p_az)
                 s_ra, s_dec = self.altaz2radec(s_alt, s_az)
                 alpha_state = np.array([s_az, s_alt, s_roll], dtype=float)
             else:
@@ -710,9 +713,10 @@ class Polaris:
             # Store all the new polaris values
             with self._lock:
                 self._last_518_timestamp = dt_now
-                self._q1 = q1
+                self._q1 = '' if q1 is None else str(q1)
                 self._theta_meas = theta_meas
                 self._omega_meas = omega_meas
+                self._theta_state = theta_state
                 self._p_azimuth = float(s_az)
                 self._p_altitude = float(s_alt)
                 self._p_roll = float(s_roll)
@@ -1282,6 +1286,10 @@ class Polaris:
                 'declination': self._declination,
                 'rightascension': self._rightascension,
                 'pidmode': self._pid.mode,
+                'q1': self._q1,
+                'q1s': self._q1s,
+                'thetameas': [0,0,0] if self._theta_meas is None else self._theta_meas.tolist(),
+                'thetastate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
                 'deltaref': self._pid.delta_ref.tolist(),
                 'alpharef': self._pid.alpha_ref.tolist(),
                 'omegaref': self._pid.omega_ref.tolist(),

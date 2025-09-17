@@ -229,9 +229,7 @@ const links4 = [
     { text: 'About', to: '/' },
     { text: 'Copyright', to: '/' },
     { text: 'Contact us', to: '/' },
-    { text: 'Kalman Filter', to: '/kalman' },
-    { text: 'Motor PWM', to: '/pwm' },
-    { text: 'Calibration', to: '/speed' },
+    { text: 'Position', to: '/position' },
     { text: 'Markdown', to: '/markdown' },
     { text: 'Widgets', to: '/test' },
   ]

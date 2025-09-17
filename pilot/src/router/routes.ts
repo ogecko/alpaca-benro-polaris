@@ -46,6 +46,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/AltLayout.vue'),
     children: [{ path: '', component: () => import('pages/AnalyseSpeed.vue') }],
   },
+  {
+    path: '/position',
+    component: () => import('layouts/AltLayout.vue'),
+    children: [{ path: '', component: () => import('pages/AnalysePosition.vue') }],
+  },
 
 
     // Always leave this as last one,
