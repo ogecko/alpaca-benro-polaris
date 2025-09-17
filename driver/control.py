@@ -408,8 +408,9 @@ def motors_to_quaternion(theta1, theta2, theta3):
     qtheta2 = Quaternion(axis=[0, 1, 0], degrees= -theta2 - 90)
     qtheta3 = Quaternion(axis=(qtheta1*qtheta2).rotate([1, 0, 0]), degrees= -theta3)
     q1 = qtheta3 * qtheta1 * qtheta2   # Reconstructed q1 quaternion from theta2 then theta1 then theta3
+    q1n = q1.normalised if theta3 < 0 else -q1.normalised
 
-    return q1.normalised if theta3 < 0 else -q1.normalised
+    return q1n
 
 
 
