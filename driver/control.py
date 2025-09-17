@@ -471,11 +471,12 @@ def quaternion_to_angles(q1, azhint = -1):
     if abs(theta1 - 360) < 1e-10:
         theta1 = 0.0
 
-    # --- Handle the case where we have a gimbal lock at alt = 0
+    # --- Handle the case where we have a gimbal lock at alt = 0, ie t1/t3 in gimbal lock
     if abs(alt) < 1e-10 and azhint != -1:
-        roll = angular_difference(azhint, az)
+        diff = angular_difference(azhint, az)
+        roll = 0
         az = wrap_to_360(azhint)
-        theta3 = roll
+        theta3 = diff
         theta1 = az
 
     return theta1, theta2, theta3, az, alt, roll
