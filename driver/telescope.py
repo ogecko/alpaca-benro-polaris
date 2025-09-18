@@ -1505,7 +1505,7 @@ class action:
             resp.text = await PropertyResponse(changed_params, req)
             return
 
-        elif actionName == "Polaris:StatusFetch":
+        elif actionName == "Polaris:StatusFetch":       # (DO NOT USE) Replaced by WebSockets 
             resp.text = await PropertyResponse(polaris.getStatus(), req)
             return
         
