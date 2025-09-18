@@ -62,127 +62,74 @@
             </q-list>
         </q-card>
       </div>      
-      <div class="col-12 col-md-6 flex">
-        <!-- Section 2: Connect Polaris -->
-        <q-card flat bordered class="q-pa-md full-width">
-            <div class="text-h6"><q-checkbox v-model="polarisConnected" color="positive" label="Connect to Benro Polaris"/></div>
-            <div class="q-pl-xl q-mt-sm">
-                <q-select 
-                  v-model="selectedPolarisDevice"
-                  :options="availablePolarisDevices"
-                  label="Nearby Benro Polaris Devices"
-                  dense
-                  outlined
-                  emit-value
-                  map-options
-                  option-label="name"
-                  option-value="id"
-                  class="q-mb-md"
-                />
-              </div>
 
-            <div class="q-mt-md q-pl-lg ">
-              <q-list :dense="true">
-                <q-item v-for="(step, index) in polarisSteps" :key="index" class="q-mb-sm">
+      <div class="col-12 col-md-6 flex">
+        <!-- Section 2: Connect Benro Polaris -->
+        <q-card flat bordered class="q-pa-md full-width">
+          <div class="text-h6">
+            <q-checkbox v-model="polarisConnected" color="positive" label="Connect to Benro Polaris" />
+          </div>
+
+          <div class="q-pl-xl q-mt-sm">
+          </div>
+
+          <!-- Polaris Connection Steps -->
+          <div class="q-mt-md q-pl-lg">
+            <q-list dense>
+              <!-- Select Device -->
+              <q-expansion-item default-opened>
+                <template v-slot:header>
                   <q-item-section avatar>
-                    <q-icon :name="step.status ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="step.status ? 'green' : 'red'" />
+                    <q-icon name="mdi-alert-circle" color="red"/>
                   </q-item-section>
                   <q-item-section>
-                    <div>{{ step.label }}</div>
+                    <q-item-label>Select Benro Polaris Device</q-item-label>
+                    <q-item-label caption>From discovered devices or enter manually</q-item-label>
                   </q-item-section>
-                  <q-item-section side>
-                    <q-btn label="Fix" :icon="step.icon" color="secondary" @click="fixStep(index)" />
-                  </q-item-section>
-                </q-item>
+                </template>
+                <q-list bordered separator padding class="">
+                  <q-item>
+                    <q-item-section avatar><q-icon name="mdi-satellite-variant"/></q-item-section>
+                    <q-item-section>Polaris 234422</q-item-section>
+                  </q-item>
+                  <q-item>
+                    <q-item-section avatar><q-icon name="mdi-satellite-variant"/></q-item-section>
+                    <q-item-section>Polaris 234422</q-item-section>
+                  </q-item>
+                  <q-item dense>
+                    <!-- Manual Entry Fallback -->
+                    <q-item-section avatar><q-icon name="mdi-satellite-variant"/></q-item-section>
+                      <div  class="row items-start ">
+                        <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
+                          v-model="dev.alpacaHost" @keyup.enter="attemmptConnectToAlpaca" >
+                        </q-input>
+                        <q-input class="col-4" label="Port" type="number" input-class="text-right"
+                          v-model="dev.restAPIPort" @keyup.enter="attemmptConnectToAlpaca" >
+                          <template v-slot:prepend><q-icon name="mdi-network-outline" /></template>
+                        </q-input>
+                      </div>
+                  </q-item>
+                </q-list>
+                <div class="row q-mb-sm">
+                  <q-space />
+                  <q-btn label="Refresh Device List" icon="mdi-refresh" color="primary" flat dense />
+                </div>
+              </q-expansion-item>
 
-              </q-list>
-            </div>
+              <q-item v-for="(step, index) in polarisSteps" :key="index" class="q-mb-sm">
+                <q-item-section avatar>
+                  <q-icon :name="step.status ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="step.status ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <div>{{ step.label }}</div>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn label="Fix" :icon="step.icon" color="secondary" @click="fixStep(index)" />
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
         </q-card>
-
-
-<!-- Section 2: Temporary Junk Polaris -->
-<q-card flat bordered class="q-pa-md full-width">
-  <div class="text-h6">
-    <q-checkbox v-model="polarisConnected" color="positive" label="Connect to Benro Polaris" />
-  </div>
-
-  <div class="q-pl-xl q-mt-sm">
-    <q-expansion-item
-      icon="mdi-satellite_alt"
-      label="Nearby Benro Polaris Devices"
-      caption="Select a discovered device or enter manually"
-      dense
-      expand-separator
-      default-opened
-    >
-      <div class="q-mb-sm">
-        <q-btn
-          label="Refresh Device List"
-          icon="mdi-refresh"
-          color="primary"
-          flat
-          dense
-        />
-      </div>
-
-      <q-select
-        v-model="selectedPolarisDevice"
-        :options="availablePolarisDevices"
-        label="Discovered Devices"
-        emit-value
-        map-options
-        option-label="name"
-        option-value="id"
-        outlined
-        dense
-        class="q-mb-md"
-      >
-        <template v-slot:no-option>
-          <q-item>
-            <q-item-section>No devices found. Please enter manually.</q-item-section>
-          </q-item>
-        </template>
-      </q-select>
-
-      <!-- Manual Entry Fallback -->
-      <div  class="row items-start q-mt-sm">
-        <q-input
-          class="col-8"
-          v-model="dev.alpacaHost"
-          @keyup.enter="attemmptConnectToAlpaca"
-          label="Host Name / IP Address"
-        />
-        <q-input
-          class="col-4"
-          label="Port"
-          v-model="dev.restAPIPort"
-          @keyup.enter="attemmptConnectToAlpaca"
-          type="number"
-          input-class="text-right"
-        >
-          <template v-slot:prepend><q-icon name="mdi-network-outline" /></template>
-        </q-input>
-      </div>
-    </q-expansion-item>
-  </div>
-
-  <!-- Polaris Connection Steps -->
-  <div class="q-mt-md q-pl-lg">
-    <q-list dense>
-      <q-item v-for="(step, index) in polarisSteps" :key="index" class="q-mb-sm">
-        <q-item-section avatar>
-          <q-icon :name="step.status ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="step.status ? 'green' : 'red'" />
-        </q-item-section>
-        <q-item-section>
-          <div>{{ step.label }}</div>
-        </q-item-section>
-        <q-item-section side>
-          <q-btn label="Fix" :icon="step.icon" color="secondary" @click="fixStep(index)" />
-        </q-item-section>
-      </q-item>
-    </q-list>
-  </div>
-</q-card>
 
 
       </div>      
@@ -202,13 +149,13 @@ const dev = useDeviceStore()
 
 const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
 const polarisConnected = ref(false)
-const selectedPolarisDevice = ref(null)
+// const selectedPolarisDevice = ref(null)
 
-const availablePolarisDevices = ref([
-  { id: 'benro-001', name: 'Benro Polaris A' },
-  { id: 'benro-002', name: 'Benro Polaris B' },
-  { id: 'benro-003', name: 'Benro Polaris C' }
-])
+// const availablePolarisDevices = ref([
+//   { id: 'benro-001', name: 'Benro Polaris A' },
+//   { id: 'benro-002', name: 'Benro Polaris B' },
+//   { id: 'benro-003', name: 'Benro Polaris C' }
+// ])
 
 const polarisSteps = ref([
   { label: 'WiFi Enabled', icon: 'mdi-wifi', status: false },
