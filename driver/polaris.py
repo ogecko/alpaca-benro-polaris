@@ -86,7 +86,6 @@ from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
 from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, CalibrationManager, polar_rotation_angle, MotorSpeedController, PID_Controller
-from scipy.interpolate import PchipInterpolator
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525'}
 
@@ -1846,4 +1845,6 @@ class Polaris:
         with self._lock:
             self._pid.set_pid_mode('IDLE')
             self._atpark = False
+
+
 
