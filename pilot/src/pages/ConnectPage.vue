@@ -67,7 +67,7 @@
         <!-- Section 2: Connect Benro Polaris -->
         <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">
-            <q-checkbox v-model="polarisConnected" color="positive" label="Connect to Benro Polaris" />
+            <q-checkbox v-model="connectToPolarisCheckbox" color="positive" label="Connect to Benro Polaris" />
           </div>
 
           <div class="q-pl-xl q-mt-sm">
@@ -101,10 +101,10 @@
                     <q-item-section avatar><q-icon name="mdi-satellite-variant"/></q-item-section>
                       <div  class="row items-start ">
                         <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
-                          v-model="dev.alpacaHost" @keyup.enter="attemmptConnectToAlpaca" >
+                          v-model="cfg.polaris_ip_address" @keyup.enter="attemmptConnectToPolaris" >
                         </q-input>
                         <q-input class="col-4" label="Port" type="number" input-class="text-right"
-                          v-model="dev.restAPIPort" @keyup.enter="attemmptConnectToAlpaca" >
+                          v-model="cfg.polaris_port" @keyup.enter="attemmptConnectToPolaris" >
                           <template v-slot:prepend><q-icon name="mdi-network-outline" /></template>
                         </q-input>
                       </div>
@@ -141,14 +141,17 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar'
 import { useDeviceStore } from 'stores/device'
+import { useConfigStore } from 'stores/config'
+
 import { ref, watch } from 'vue'
 import NetworkSettings from 'components/NetworkSettings.vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
+const cfg = useConfigStore()
 
 const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
-const polarisConnected = ref(false)
+const connectToPolarisCheckbox = ref(false)
 // const selectedPolarisDevice = ref(null)
 
 // const availablePolarisDevices = ref([
@@ -178,6 +181,7 @@ function attemptDisconnectFromAlpaca() {
   connectToAlpacaCheckbox.value = dev.restAPIConnected
 }
 
+
 // connect when user checks the checkbox or presses enter on Host or Port field
 async function attemmptConnectToAlpaca() {
   if (!dev.restAPIConnected) {
@@ -191,6 +195,23 @@ async function attemmptConnectToAlpaca() {
       })
     }
   }
+}
+
+watch(connectToPolarisCheckbox, (newVal) => {
+  if (newVal) {
+    attemmptConnectToPolaris()
+  } else {
+    attemptDisconnectFromPolaris()
+  }
+})
+
+// disconnect when user unchecks the checkbox
+function attemptDisconnectFromPolaris() {
+  console.log('Disconnect Polaris')
+}
+
+function attemmptConnectToPolaris() {
+  console.log('Connecting to Polaris')
 }
 
 function fixStep(index: number) {
