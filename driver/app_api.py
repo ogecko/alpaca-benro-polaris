@@ -93,10 +93,6 @@ async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
     rest_app.add_route('/management/apiversions', management.apiversions())
     rest_app.add_route(f'/management/v{API_VERSION}/description', management.description())
     rest_app.add_route(f'/management/v{API_VERSION}/configureddevices', management.configureddevices())
-    # Custom Resources for Alpaca Benro Polaris Driver Management
-    rest_app.add_route(f'/management/v{API_VERSION}/discoveralpaca', management.discoveralpaca())
-    rest_app.add_route(f'/management/v{API_VERSION}/discoverpolaris', management.discoverpolaris())
-    rest_app.add_route(f'/management/v{API_VERSION}/blepolaris', management.blepolaris())
     if (Config.enable_pilot):
         # Redirect Resources for Quasar Pilot App
         rest_app.add_route('/setup', RedirectResource())
