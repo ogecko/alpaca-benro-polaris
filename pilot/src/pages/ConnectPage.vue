@@ -214,7 +214,7 @@ import { useQuasar } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
 import { useStatusStore, polarisModeOptions } from 'stores/status'
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import NetworkSettings from 'components/NetworkSettings.vue'
 
 const $q = useQuasar()
@@ -225,6 +225,8 @@ const p = useStatusStore()
 const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
 const connectToPolarisCheckbox = ref(false)
 const isPolarisConnected = ref(false)
+
+// ------------------- Computed Resources ---------------------
 
 const bleLen = computed(() => p.bledevices.length);
 const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
@@ -243,15 +245,18 @@ const astroCaption = computed(() => {
   return (isAstroMode.value) ? '' : 'Change Polaris Mode to Astro.'
 });
 
+// ------------------- Lifecycle Events ---------------------
 
+onMounted(async () => {
 
-watch(connectToAlpacaCheckbox, async (newVal) => {
-  if (newVal) {
-    await attemmptConnectToAlpaca()
-  } else {
-    attemptDisconnectFromAlpaca()
-  }
 })
+
+onUnmounted(() => {
+
+})
+
+
+// ------------------- Event Handlers ---------------------
 
 async function onBleSelected(newVal:string) {
   await dev.bleSelectDevice(newVal)
@@ -261,12 +266,15 @@ async function onBleEnableWifi() {
   await dev.bleEnableWifi()
 }
 
-// disconnect when user unchecks the checkbox
-function attemptDisconnectFromAlpaca() {
-  dev.disconnectRestAPI()
-  connectToAlpacaCheckbox.value = dev.restAPIConnected
-}
+// ------------------- Alpaca Connection Helper Functions ---------------------
 
+watch(connectToAlpacaCheckbox, async (newVal) => {
+  if (newVal) {
+    await attemmptConnectToAlpaca()
+  } else {
+    attemptDisconnectFromAlpaca()
+  }
+})
 
 // connect when user checks the checkbox or presses enter on Host or Port field
 async function attemmptConnectToAlpaca() {
@@ -274,6 +282,7 @@ async function attemmptConnectToAlpaca() {
     await dev.connectRestAPI()
     connectToAlpacaCheckbox.value = dev.restAPIConnected
     if (dev.restAPIConnected) {
+      await cfg.configFetch()
       $q.notify({
         message: 'Alpaca Driver successfuly connected.',
         type: 'positive', position: 'top', timeout: 3000,
@@ -283,6 +292,14 @@ async function attemmptConnectToAlpaca() {
   }
 }
 
+// disconnect when user unchecks the checkbox
+function attemptDisconnectFromAlpaca() {
+  dev.disconnectRestAPI()
+  connectToAlpacaCheckbox.value = dev.restAPIConnected
+}
+
+// ------------------- Polaris Connection Helper Functions ---------------------
+
 watch(connectToPolarisCheckbox, (newVal) => {
   if (newVal) {
     attemmptConnectToPolaris()
@@ -291,14 +308,15 @@ watch(connectToPolarisCheckbox, (newVal) => {
   }
 })
 
+function attemmptConnectToPolaris() {
+  console.log('Connecting to Polaris')
+}
+
 // disconnect when user unchecks the checkbox
 function attemptDisconnectFromPolaris() {
   console.log('Disconnect Polaris')
 }
 
-function attemmptConnectToPolaris() {
-  console.log('Connecting to Polaris')
-}
 
 
 </script>
