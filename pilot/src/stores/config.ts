@@ -92,6 +92,7 @@ export const useConfigStore = defineStore('config', {
     log_rotator_protocol: false, 
     log_synscan_protocol: false,
     log_synscan_polling: false,
+    log_polaris_ble: false,
     log_polaris_protocol: false,
     log_polaris_polling: false,
     

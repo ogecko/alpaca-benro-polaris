@@ -86,6 +86,7 @@ from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
 from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, CalibrationManager, polar_rotation_angle, MotorSpeedController, PID_Controller
+from ble_service import BLE_Controller
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525'}
 
@@ -259,6 +260,8 @@ class Polaris:
             for axis in (0, 1, 2)
         }
         self._pid = PID_Controller(logger, self._motors, self._observer, loop=0.2)
+        self._ble = BLE_Controller(logger, lifecycle)
+
         
     async def shutdown(self):
         self.logger.info(f'==SHUTDOWN== Polaris stopping all tasks.')
@@ -279,6 +282,7 @@ class Polaris:
 
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
+        self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
         self.lifecycle.create_task(self._every_1s_watchdog_check(), name="PolarisWatchdog")
         self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisWatchdog")
         self.lifecycle.create_task(self.every_50ms_tick(), name="PolarisFastMove")
@@ -1295,6 +1299,8 @@ class Polaris:
                 'motorref': [motor.rate_dps for motor in self._motors.values()],
                 'siderealtime': self._siderealtime,
                 'lifecycleevent': self.lifecycle._event.name,
+                'bledevices' : [info["name"] for info in self._ble.devices.values()]
+
             }
         return res
 

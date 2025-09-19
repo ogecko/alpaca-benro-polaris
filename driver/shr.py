@@ -460,6 +460,9 @@ class LifecycleController:
     def should_stop(self) -> bool:
         return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT, LifecycleEvent.STOP}
 
+    def should_shutdown(self) -> bool:
+        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT}
+
     async def wait_for_event(self):
         async with self._cond:
             await self._cond.wait()

@@ -88,13 +88,9 @@
                   </q-item-section>
                 </template>
                 <q-list bordered separator padding class="">
-                  <q-item>
+                  <q-item v-for="(device_name, index) in p.bledevices" :key="index">
                     <q-item-section avatar><q-icon name="mdi-satellite-variant"/></q-item-section>
-                    <q-item-section>Polaris 234422</q-item-section>
-                  </q-item>
-                  <q-item>
-                    <q-item-section avatar><q-icon name="mdi-satellite-variant"/></q-item-section>
-                    <q-item-section>Polaris 234422</q-item-section>
+                    <q-item-section>{{ device_name }}</q-item-section>
                   </q-item>
                   <q-item dense>
                     <!-- Manual Entry Fallback -->
@@ -112,7 +108,7 @@
                 </q-list>
                 <div class="row q-mb-sm">
                   <q-space />
-                  <q-btn label="Refresh Device List" icon="mdi-refresh" color="primary" flat dense />
+                  <q-btn label="Refresh Device List" icon="mdi-refresh" color="primary" flat dense @click="dev.bleEnableWifi('polaris_3b3906')"/>
                 </div>
               </q-expansion-item>
 
@@ -142,13 +138,14 @@
 import { useQuasar } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
-
+import { useStatusStore } from 'stores/status'
 import { ref, watch } from 'vue'
 import NetworkSettings from 'components/NetworkSettings.vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
 const cfg = useConfigStore()
+const p = useStatusStore()
 
 const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
 const connectToPolarisCheckbox = ref(false)
@@ -213,6 +210,7 @@ function attemptDisconnectFromPolaris() {
 function attemmptConnectToPolaris() {
   console.log('Connecting to Polaris')
 }
+
 
 function fixStep(index: number) {
   const step = polarisSteps.value[index]

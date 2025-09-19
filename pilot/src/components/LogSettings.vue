@@ -48,6 +48,9 @@
             <q-toggle class='col-6' v-bind="bindField('log_polaris_protocol', 'Log Benro Polaris Protocol')"/>
             <q-toggle class='col-6' v-bind="bindField('log_polaris_polling', 'Log Benro Polaris Polling')"/>
             </div>
+            <div class="row">
+            <q-toggle class='col-6' v-bind="bindField('log_polaris_ble', 'Log Bluetooth Low Energy')"/>
+            </div>
         </div>
     </q-card>
 </template>

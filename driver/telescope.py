@@ -1456,7 +1456,9 @@ class supportedactions:
         resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:StatusFetch', 'Polaris:ConfigFetch', 
                                             'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore',
                                             'Polaris:MoveAxis', 'Polaris:MoveMotor', 
-                                            'Polaris:SpeedTestStart', 'Polaris:SpeedTestStop', 'Polaris:SpeedTestApprove' ], req)  
+                                            'Polaris:SpeedTestStart', 'Polaris:SpeedTestStop', 'Polaris:SpeedTestApprove' 
+                                            'Polaris:bleEnableWifi', 
+                                            ], req)  
 
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
@@ -1556,6 +1558,13 @@ class action:
             resp.text = await PropertyResponse('TestApproval ok', req)  
             return
 
+        elif actionName == "Polaris:bleEnableWifi":
+            logger.info(f'BLE Enable Wifi {parameters}')
+            name = parameters.get('name', '')
+            lifecycle.create_task(polaris._ble.enableWifi(name), name="bleEnableWifi")
+            resp.text = await PropertyResponse('bleEnableWifi ok', req)  
+            return
+
 
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
@@ -1578,4 +1587,6 @@ def make_params_live(changed_params):
             polaris._pid.set_Ka_array(Config.max_accel_rate)
         elif param == "max_slew_rate":
             polaris._pid.set_Kv_array(Config.max_slew_rate)
+
+   
 
