@@ -5,7 +5,7 @@
       :style="`width:${dProps.width}px; height: ${dProps.height}px`"
       @mouseenter="showButtons = true; console.log(`enter ${props.label}`)"
       @mouseleave="showButtons = false; console.log(`leave ${props.label}`)"
-      @touchstart="showButtons = true; console.log(`touch ${props.label}`)"
+      @touchstart.passive="showButtons = true; console.log(`touch ${props.label}`)"
     >
     <!-- Outer Boundary Content for buttons -->
     <div class="outer-content" :style="`width:${dProps.width}px; height: ${dProps.height}px`">
