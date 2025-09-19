@@ -3,7 +3,7 @@ import { useDeviceStore } from 'stores/device'
 
 const dev = useDeviceStore()
 export const polarisModeOptions = [
-  { value: 0, label: 'Unknown' },
+  { value: 8, label: 'Astro' },
   { value: 1, label: 'Photo' },
   { value: 2, label: 'Pano' },
   { value: 3, label: 'Focus' },
@@ -11,9 +11,9 @@ export const polarisModeOptions = [
   { value: 5, label: 'Pathlapse' },
   { value: 6, label: 'HDR' },
   { value: 7, label: 'Sun' },
-  { value: 8, label: 'Astro' },
   { value: 9, label: 'Program' },
   { value: 10, label: 'Video' },
+  { value: 0, label: 'Unknown' },
 ] as const;
 
 export type StatusResponse = ReturnType<typeof useStatusStore>['$state']
