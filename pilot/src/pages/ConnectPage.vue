@@ -267,12 +267,17 @@ async function onBleEnableWifi() {
 }
 
 // ------------------- Alpaca Connection Helper Functions ---------------------
-
 watch(connectToAlpacaCheckbox, async (newVal) => {
   if (newVal) {
     await attemmptConnectToAlpaca()
   } else {
     attemptDisconnectFromAlpaca()
+  }
+})
+
+watch(() => dev.restAPIConnected, async (newVal) => {
+  if (newVal) {
+    await cfg.configFetch()     // ensure config store is refreshed after any connect
   }
 })
 
@@ -282,7 +287,6 @@ async function attemmptConnectToAlpaca() {
     await dev.connectRestAPI()
     connectToAlpacaCheckbox.value = dev.restAPIConnected
     if (dev.restAPIConnected) {
-      await cfg.configFetch()
       $q.notify({
         message: 'Alpaca Driver successfuly connected.',
         type: 'positive', position: 'top', timeout: 3000,
