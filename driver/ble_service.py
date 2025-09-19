@@ -3,6 +3,7 @@ import json
 from bleak import BleakScanner, BleakClient, exc
 from shr import LifecycleController, bytes2hexascii
 from config import Config
+import time
 
 ENABLE_WIFI_COMMAND = "enable_wifi"
 SEND_UUID = "0000fff1-0000-1000-8000-00805f9b34fb"
@@ -14,14 +15,18 @@ class BLE_Controller():
         self.lifecycle = lifecycle
         self.devices: dict[str, dict] = { }
         self.selectedDevice = None
+        self.isEnablingWifi = False
+        self.isWifiEnabled = False
 
-    def get_address_by_name(self, name: str) -> str | None:
+
+    def get_address_by_name(self, name: str | None) -> str | None:
+        if not name:
+            return None
         name = name.lower()
-        for address, info in self.devices.items():
-            if info["name"] == name:
-                return address
+        for addr, info in self.devices.items():
+            if info.get("name", "").lower() == name:
+                return addr
         return None
-
 
     def scannerCallback(self, device, adv):
         name = (adv.local_name or device.name or "").lower()
@@ -31,11 +36,21 @@ class BLE_Controller():
                 "address": device.address,
                 "service_uuids": adv.service_uuids,
                 "rssi": adv.rssi,
+                "last_seen": time.time(),
             }
             if self.selectedDevice is None:
                 self.selectedDevice = name
             if Config.log_polaris_ble:
                 self.logger.info(f"BLE Discovered Polaris: {device.address} ({self.devices[device.address]})")
+
+    def prune_stale_devices(self, timeout=30):
+        now = time.time()
+        stale = [addr for addr, info in self.devices.items() if now - info.get("last_seen", 0) > timeout]
+        for addr in stale:
+            self.logger.info(f"BLE Pruning stale device: {addr}")
+            if self.selectedDevice == self.devices.get(addr, {}).get("name"):
+                self.selectedDevice = None
+            del self.devices[addr]
 
     def notification_handler(self, sender, data):
         if Config.log_polaris_ble:
@@ -64,24 +79,35 @@ class BLE_Controller():
         if not address:
             self.logger.warn(f"BLE No Polaris device found with name '{name}'")
             return
-        device = self.devices[address]
-        try:
-            async with BleakClient(address) as client:
-                await client.start_notify(RECV_UUID, self.notification_handler)
-                await client.write_gatt_char(SEND_UUID, b'enable_wifi', response=True)
-                if Config.log_polaris_ble:
-                    self.logger.info(f"BLE Sent request to enable Wifi {address}")
-                data = await client.read_gatt_char(RECV_UUID)
-                if Config.log_polaris_ble:
-                    self.logger.info(f"BLE Read request {bytes2hexascii(data)}")
-                await asyncio.sleep(30) # give time for client notification_handler
-        except Exception as e:
-            self.logger.warn(f"Failed to enable Wifi {address}: {e}")
+        self.isEnablingWifi = True
+        self.isWifiEnabled = False
+        max_attempts = 3
+        for attempt in range(1, max_attempts+1):
+            try:
+                async with BleakClient(address) as client:
+                    await client.start_notify(RECV_UUID, self.notification_handler)
+                    await client.write_gatt_char(SEND_UUID, b'enable_wifi', response=True)
+                    if Config.log_polaris_ble:
+                        self.logger.info(f"BLE Send request to enable Wifi {address}")
+                    data = await client.read_gatt_char(RECV_UUID)
+                    if Config.log_polaris_ble:
+                        self.logger.info(f"BLE Read request complete {bytes2hexascii(data)}")
+                    self.isEnablingWifi = False
+                    self.isWifiEnabled = True
+                    return
+            except Exception as e:
+                self.logger.warn(f"BLE Attempt {attempt} failed to enable Wifi {address}: {e}")
+                if attempt < max_attempts:
+                    await asyncio.sleep(1)
+                else:
+                    self.logger.warn(f"BLE failed to enable wifi after {max_attempts}")
+                    self.isEnablingWifi = False
+
 
 
     async def runBleScanner(self):
         async with BleakScanner(self.scannerCallback) as scanner:
-            await asyncio.sleep(15)
             while not self.lifecycle.should_shutdown():
-                await self.lifecycle.wait_for_event()
+                self.prune_stale_devices()
+                await asyncio.sleep(15)
 

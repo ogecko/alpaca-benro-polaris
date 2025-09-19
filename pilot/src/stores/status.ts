@@ -51,6 +51,8 @@ export const useStatusStore = defineStore('status', {
         motorref: [0,0,0],
         bledevices: [] as string[],
         bleselected: '',
+        bleisenablingwifi: false,
+        bleiswifienabled: false,
     }),
 
     actions: {

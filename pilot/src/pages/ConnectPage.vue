@@ -85,7 +85,7 @@
                   <q-item-label>Select Benro Polaris</q-item-label>
                   <q-item-label caption>{{ bleCaption }}</q-item-label>
                 </q-item-section>
-                <q-item-section side>
+                <q-item-section v-if="bleLen>0" side>
                   <q-select label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices" class="fixedWidth"
                             :display-value="`${isBLESelected ? p.bleselected : 'Unselected'}`" color="secondary">
                     <template>
@@ -107,8 +107,10 @@
               <!-- Enable Wifi -->
               <q-item :inset-level="1.5">
                 <q-item-section><q-item-label caption>Enable Polaris Wifi Hotspot</q-item-label></q-item-section>
+                <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="md" color="positive" />
                 <q-item-section side>
-                  <q-btn label="Enable" icon="mdi-wifi"  @click="onBleEnableWifi" class="fixedWidth"/>
+                  <q-badge v-if="p.bleiswifienabled">On</q-badge>
+                  <q-btn label="Enable" icon="mdi-wifi"  @click="onBleEnableWifi" class="fixedWidth" />
                 </q-item-section>
               </q-item>
               <!-- Network Settings -->
@@ -221,8 +223,8 @@ const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
 const connectToPolarisCheckbox = ref(false)
 const isPolarisConnected = ref(false)
 
-const isBLESelected = computed(() => !!p.bleselected);
 const bleLen = computed(() => p.bledevices.length);
+const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
 const bleCaption = computed(() => {
   return (bleLen.value==0) ? 'Check Power, no devices discovered.' :
          (bleLen.value>1) ? 'Multiple devices discovered.' :

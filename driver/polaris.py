@@ -1301,6 +1301,8 @@ class Polaris:
                 'lifecycleevent': self.lifecycle._event.name,
                 'bledevices' : [info["name"] for info in self._ble.devices.values()],
                 'bleselected' : self._ble.selectedDevice,
+                'bleisenablingwifi': self._ble.isEnablingWifi,
+                'bleiswifienabled': self._ble.isWifiEnabled,
             }
         return res
 
