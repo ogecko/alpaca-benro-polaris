@@ -1299,8 +1299,8 @@ class Polaris:
                 'motorref': [motor.rate_dps for motor in self._motors.values()],
                 'siderealtime': self._siderealtime,
                 'lifecycleevent': self.lifecycle._event.name,
-                'bledevices' : [info["name"] for info in self._ble.devices.values()]
-
+                'bledevices' : [info["name"] for info in self._ble.devices.values()],
+                'bleselected' : self._ble.selectedDevice,
             }
         return res
 

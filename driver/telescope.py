@@ -1457,7 +1457,7 @@ class supportedactions:
                                             'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore',
                                             'Polaris:MoveAxis', 'Polaris:MoveMotor', 
                                             'Polaris:SpeedTestStart', 'Polaris:SpeedTestStop', 'Polaris:SpeedTestApprove' 
-                                            'Polaris:bleEnableWifi', 
+                                            'Polaris:bleSelectDevice', 'Polaris:bleEnableWifi', 
                                             ], req)  
 
 
@@ -1560,11 +1560,16 @@ class action:
 
         elif actionName == "Polaris:bleEnableWifi":
             logger.info(f'BLE Enable Wifi {parameters}')
-            name = parameters.get('name', '')
-            lifecycle.create_task(polaris._ble.enableWifi(name), name="bleEnableWifi")
+            lifecycle.create_task(polaris._ble.enableWifi(), name="bleEnableWifi")
             resp.text = await PropertyResponse('bleEnableWifi ok', req)  
             return
 
+        elif actionName == "Polaris:bleSelectDevice":
+            logger.info(f'BLE Select Device {parameters}')
+            name = parameters.get('name', '')
+            polaris._ble.setSelectedDevice(name)
+            resp.text = await PropertyResponse('bleSelectDevice ok', req)  
+            return
 
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))

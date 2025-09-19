@@ -76,15 +76,33 @@
           <!-- Polaris Connection Steps -->
           <div class="q-mt-md q-pl-lg">
             <q-list dense>
-              <!-- Select Device -->
+              <!-- Select Polaris Device -->
+              <q-item>
+                <q-item-section avatar>
+                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Select Benro Polaris</q-item-label>
+                  <q-item-label caption>{{ bleCaption }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-select label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices" 
+                            :display-value="`${isBLESelected ? p.bleselected : 'Unselected'}`" color="secondary">
+                    <template>
+                      <q-icon name="mdi-satellite-variant"></q-icon>
+                    </template>
+                  </q-select>
+                </q-item-section>
+              </q-item>
+              <!-- Connect via Network -->
               <q-expansion-item default-opened>
                 <template v-slot:header>
                   <q-item-section avatar>
                     <q-icon name="mdi-alert-circle" color="red"/>
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label>Select Benro Polaris Device</q-item-label>
-                    <q-item-label caption>From discovered devices or enter manually</q-item-label>
+                    <q-item-label>Device Connection</q-item-label>
+                    <q-item-label caption>Open connection to device.</q-item-label>
                   </q-item-section>
                 </template>
                 <q-list bordered separator padding class="">
@@ -108,7 +126,7 @@
                 </q-list>
                 <div class="row q-mb-sm">
                   <q-space />
-                  <q-btn label="Refresh Device List" icon="mdi-refresh" color="primary" flat dense @click="dev.bleEnableWifi('polaris_3b3906')"/>
+                  <q-btn label="Refresh Device List" icon="mdi-refresh" color="primary" flat dense @click="dev.bleEnableWifi()"/>
                 </div>
               </q-expansion-item>
 
@@ -139,7 +157,7 @@ import { useQuasar } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
 import { useStatusStore } from 'stores/status'
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import NetworkSettings from 'components/NetworkSettings.vue'
 
 const $q = useQuasar()
@@ -149,13 +167,16 @@ const p = useStatusStore()
 
 const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
 const connectToPolarisCheckbox = ref(false)
-// const selectedPolarisDevice = ref(null)
 
-// const availablePolarisDevices = ref([
-//   { id: 'benro-001', name: 'Benro Polaris A' },
-//   { id: 'benro-002', name: 'Benro Polaris B' },
-//   { id: 'benro-003', name: 'Benro Polaris C' }
-// ])
+
+const isBLESelected = computed(() => !!p.bleselected);
+const bleLen = computed(() => p.bledevices.length);
+const bleCaption = computed(() => {
+  return (bleLen.value==0) ? 'Check Power, no devices discovered.' :
+         (bleLen.value>1) ? 'Multiple devices discovered.' :
+         (isBLESelected.value) ? 'Device discovered and selected.' :
+                                 'Please select device.'
+});
 
 const polarisSteps = ref([
   { label: 'WiFi Enabled', icon: 'mdi-wifi', status: false },
@@ -171,6 +192,10 @@ watch(connectToAlpacaCheckbox, async (newVal) => {
     attemptDisconnectFromAlpaca()
   }
 })
+
+async function onBleSelected(newVal:string) {
+  await dev.bleSelectDevice(newVal)
+}
 
 // disconnect when user unchecks the checkbox
 function attemptDisconnectFromAlpaca() {

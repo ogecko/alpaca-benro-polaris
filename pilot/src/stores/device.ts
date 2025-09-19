@@ -112,8 +112,12 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtocoordinatesasync',{ RightAscension: ra, Declination: dec });
     },
 
-    async bleEnableWifi(name:string) {
-      await this.apiAction<void>('Polaris:bleEnableWifi', `{"name": "${name}"}`)
+    async bleSelectDevice(name:string) {
+      await this.apiAction<void>('Polaris:bleSelectDevice', `{"name": "${name}"}`)
+    },
+
+    async bleEnableWifi() {
+      await this.apiAction<void>('Polaris:bleEnableWifi')
     },
 
     async apiAction<T>(action: string, parameters: object | string = ' '): Promise<T> {

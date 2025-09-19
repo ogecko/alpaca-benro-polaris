@@ -37,6 +37,7 @@ export const useStatusStore = defineStore('status', {
         omegaref: [0,0,0],
         motorref: [0,0,0],
         bledevices: [] as string[],
+        bleselected: '',
     }),
 
     actions: {

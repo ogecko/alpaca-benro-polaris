@@ -12,7 +12,8 @@ class BLE_Controller():
     def __init__(self, logger, lifecycle:LifecycleController):
         self.logger = logger
         self.lifecycle = lifecycle
-        self.devices: dict[str, dict] = {}
+        self.devices: dict[str, dict] = { }
+        self.selectedDevice = None
 
     def get_address_by_name(self, name: str) -> str | None:
         name = name.lower()
@@ -31,6 +32,8 @@ class BLE_Controller():
                 "service_uuids": adv.service_uuids,
                 "rssi": adv.rssi,
             }
+            if self.selectedDevice is None:
+                self.selectedDevice = name
             if Config.log_polaris_ble:
                 self.logger.info(f"BLE Discovered Polaris: {device.address} ({self.devices[device.address]})")
 
@@ -51,7 +54,12 @@ class BLE_Controller():
             except Exception as e:
                 self.logger.warn(f"Failed to connect to {address}: {e}")
 
-    async def enableWifi(self, name):
+    def setSelectedDevice(self, name):
+        if any(dev.get("name") == name for dev in self.devices.values()):
+            self.selectedDevice = name
+
+    async def enableWifi(self):
+        name = self.selectedDevice
         address = self.get_address_by_name(name)
         if not address:
             self.logger.warn(f"BLE No Polaris device found with name '{name}'")
