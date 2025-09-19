@@ -75,7 +75,7 @@
 
           <!-- Polaris Connection Steps -->
           <div class="q-mt-md q-pl-lg">
-            <q-list dense>
+            <q-list >
               <!-- Select Polaris Device -->
               <q-item>
                 <q-item-section avatar>
@@ -86,7 +86,7 @@
                   <q-item-label caption>{{ bleCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-select label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices" 
+                  <q-select label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices" class="fixedWidth"
                             :display-value="`${isBLESelected ? p.bleselected : 'Unselected'}`" color="secondary">
                     <template>
                       <q-icon name="mdi-satellite-variant"></q-icon>
@@ -95,52 +95,104 @@
                 </q-item-section>
               </q-item>
               <!-- Connect via Network -->
-              <q-expansion-item default-opened>
-                <template v-slot:header>
-                  <q-item-section avatar>
-                    <q-icon name="mdi-alert-circle" color="red"/>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>Device Connection</q-item-label>
-                    <q-item-label caption>Open connection to device.</q-item-label>
-                  </q-item-section>
-                </template>
-                <q-list bordered separator padding class="">
-                  <q-item v-for="(device_name, index) in p.bledevices" :key="index">
-                    <q-item-section avatar><q-icon name="mdi-satellite-variant"/></q-item-section>
-                    <q-item-section>{{ device_name }}</q-item-section>
-                  </q-item>
-                  <q-item dense>
-                    <!-- Manual Entry Fallback -->
-                    <q-item-section avatar><q-icon name="mdi-satellite-variant"/></q-item-section>
-                      <div  class="row items-start ">
-                        <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
-                          v-model="cfg.polaris_ip_address" @keyup.enter="attemmptConnectToPolaris" >
-                        </q-input>
-                        <q-input class="col-4" label="Port" type="number" input-class="text-right"
-                          v-model="cfg.polaris_port" @keyup.enter="attemmptConnectToPolaris" >
-                          <template v-slot:prepend><q-icon name="mdi-network-outline" /></template>
-                        </q-input>
-                      </div>
-                  </q-item>
-                </q-list>
-                <div class="row q-mb-sm">
-                  <q-space />
-                  <q-btn label="Refresh Device List" icon="mdi-refresh" color="primary" flat dense @click="dev.bleEnableWifi()"/>
-                </div>
-              </q-expansion-item>
-
-              <q-item v-for="(step, index) in polarisSteps" :key="index" class="q-mb-sm">
+              <q-item>
                 <q-item-section avatar>
-                  <q-icon :name="step.status ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="step.status ? 'green' : 'red'" />
+                  <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <div>{{ step.label }}</div>
-                </q-item-section>
-                <q-item-section side>
-                  <q-btn label="Fix" :icon="step.icon" color="secondary" @click="fixStep(index)" />
+                  <q-item-label>Device Connection</q-item-label>
+                  <q-item-label caption>{{ openCaption }}</q-item-label>
                 </q-item-section>
               </q-item>
+              <!-- Enable Wifi -->
+              <q-item :inset-level="1.5">
+                <q-item-section><q-item-label caption>Enable Polaris Wifi Hotspot</q-item-label></q-item-section>
+                <q-item-section side>
+                  <q-btn label="Enable" icon="mdi-wifi"  @click="onBleEnableWifi" class="fixedWidth"/>
+                </q-item-section>
+              </q-item>
+              <!-- Network Settings -->
+              <q-item  :inset-level="1.5">
+                <q-item-section>
+                  <div  class="row items-start ">
+                    <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
+                      v-model="cfg.polaris_ip_address" @keyup.enter="attemmptConnectToPolaris" >
+                    </q-input>
+                    <q-input class="col-4" label="Port" type="number" input-class="text-right"
+                      v-model="cfg.polaris_port" @keyup.enter="attemmptConnectToPolaris" >
+                      <template v-slot:prepend><q-icon name="mdi-network-outline" /></template>
+                    </q-input>
+                  </div>
+                </q-item-section>
+              </q-item>
+              <!-- Select Astro Mode -->
+              <q-item>
+                <q-item-section avatar>
+                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Select Astro Mode</q-item-label>
+                  <q-item-label caption>{{ astroCaption }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-select label="Mode" v-model="p.polarismode" :options="polarisModeOptions" options-dense  class="fixedWidth"
+                            :display-value="`${p.polarismodestr}`" color="secondary">
+                    <template>
+                      <q-icon name="mdi-satellite-variant"></q-icon>
+                    </template>
+                  </q-select>
+                </q-item-section>
+              </q-item>
+              <!-- Park -->
+              <q-item>
+                <q-item-section avatar>
+                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Goto Park Position</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn label="Park" icon="mdi-parking"  @click="onBleEnableWifi" class="fixedWidth"/>
+                </q-item-section>
+              </q-item>
+              <!-- Compass -->
+              <q-item>
+                <q-item-section avatar>
+                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Align Compass Azimuth</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn label="Skip" icon="mdi-compass"  @click="onBleEnableWifi" class="fixedWidth"/>
+                </q-item-section>
+              </q-item>
+              <!-- Single Star Align -->
+              <q-item>
+                <q-item-section avatar>
+                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Single Star Alignment</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn label="Skip" icon="mdi-flare"  @click="onBleEnableWifi" class="fixedWidth"/>
+                </q-item-section>
+              </q-item>
+              <!-- Multi Star Align -->
+              <q-item>
+                <q-item-section avatar>
+                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Multi Star Alignment</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn label="Begin" icon="mdi-creation-outline"  @click="onBleEnableWifi" class="fixedWidth"/>
+                </q-item-section>
+              </q-item>
+
+
             </q-list>
           </div>
         </q-card>
@@ -156,7 +208,7 @@
 import { useQuasar } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
-import { useStatusStore } from 'stores/status'
+import { useStatusStore, polarisModeOptions } from 'stores/status'
 import { ref, watch, computed } from 'vue'
 import NetworkSettings from 'components/NetworkSettings.vue'
 
@@ -167,7 +219,7 @@ const p = useStatusStore()
 
 const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
 const connectToPolarisCheckbox = ref(false)
-
+const isPolarisConnected = ref(false)
 
 const isBLESelected = computed(() => !!p.bleselected);
 const bleLen = computed(() => p.bledevices.length);
@@ -177,13 +229,16 @@ const bleCaption = computed(() => {
          (isBLESelected.value) ? 'Device discovered and selected.' :
                                  'Please select device.'
 });
+const openCaption = computed(() => {
+  return (!isPolarisConnected.value) ? 'Check Network settings, cannot open connection.' :
+                          'Device connected.'
+});
+const astroCaption = computed(() => {
+  return (!isPolarisConnected.value) ? 'Check Astro Module, none detected.' :
+                          'Change Polaris Mode to Astro.'
+});
 
-const polarisSteps = ref([
-  { label: 'WiFi Enabled', icon: 'mdi-wifi', status: false },
-  { label: 'Astro Mode', icon: 'mdi-camera', status: false },
-  { label: 'Aligned', icon: 'mdi-altimeter', status: false },
-  { label: 'Running', icon: 'mdi-check-circle', status: false }
-])
+
 
 watch(connectToAlpacaCheckbox, async (newVal) => {
   if (newVal) {
@@ -195,6 +250,10 @@ watch(connectToAlpacaCheckbox, async (newVal) => {
 
 async function onBleSelected(newVal:string) {
   await dev.bleSelectDevice(newVal)
+}
+
+async function onBleEnableWifi() {
+  await dev.bleEnableWifi()
 }
 
 // disconnect when user unchecks the checkbox
@@ -237,11 +296,13 @@ function attemmptConnectToPolaris() {
 }
 
 
-function fixStep(index: number) {
-  const step = polarisSteps.value[index]
-  if (step) step.status = true
-}
-
 </script>
 
+<style lang="scss">
+
+.fixedWidth {
+  width:140px;
+}
+
+</style>
 

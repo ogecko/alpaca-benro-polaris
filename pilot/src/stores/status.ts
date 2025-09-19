@@ -2,6 +2,19 @@ import { defineStore } from 'pinia'
 import { useDeviceStore } from 'stores/device'
 
 const dev = useDeviceStore()
+export const polarisModeOptions = [
+  { value: 0, label: 'Unknown' },
+  { value: 1, label: 'Photo' },
+  { value: 2, label: 'Pano' },
+  { value: 3, label: 'Focus' },
+  { value: 4, label: 'Timelapse' },
+  { value: 5, label: 'Pathlapse' },
+  { value: 6, label: 'HDR' },
+  { value: 7, label: 'Sun' },
+  { value: 8, label: 'Astro' },
+  { value: 9, label: 'Program' },
+  { value: 10, label: 'Video' },
+] as const;
 
 export type StatusResponse = ReturnType<typeof useStatusStore>['$state']
 
@@ -63,6 +76,10 @@ export const useStatusStore = defineStore('status', {
             return tr === 0 ? 'Sidereal' :
                 tr === 1 ? 'Lunar' :
                 tr === 2 ? 'Solar' : 'Custom';
+        },
+        polarismodestr: (state): string => {
+            const mode = polarisModeOptions.find(m => m.value === state.polarismode);
+            return mode?.label ?? 'Unknown';
         }
     }
 
