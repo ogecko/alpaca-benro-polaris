@@ -24,39 +24,43 @@
             <q-list class="q-pl-lg">
 
               <q-item v-if="dev.restAPIConnectingMsg">
-                <q-item-section avatar>
+                <q-item-section thumbnail>
                   <q-circular-progress indeterminate rounded size="lg" color="positive" />
                 </q-item-section>
                 <q-item-section>{{ dev.restAPIConnectingMsg }}</q-item-section>
               </q-item>
 
               <q-item v-else-if="dev.restAPIConnected">
-                <q-item-section avatar>
+                <q-item-section thumbnail>
                   <q-icon name='mdi-check-circle' color='green'/>
                 </q-item-section>
                 <q-item-section>
-                  <div class="q-gutter-sm">
+                  <q-item-label>
                     {{ dev.alpacaServerName }}
+                    <span class="q-gutter-sm q-pl-sm">
                     <q-badge>v{{ dev.alpacaServerVersion }}</q-badge> 
                     <q-badge v-for="id in dev.alpacaDevices" :key="id" color="positive">{{ id }}</q-badge>
-                  </div>
+                    </span>
+                  </q-item-label>
                 </q-item-section>
               </q-item>
 
               <q-item v-if="dev.restAPIConnectErrorMsg">
-                <q-item-section avatar>
+                <q-item-section thumbnail>
                   <q-icon name='mdi-alert-circle' color='red'/>
                 </q-item-section>
                 <q-item-section>{{ dev.restAPIConnectErrorMsg }}</q-item-section>
               </q-item>
 
-              <q-item v-if="!dev.restAPIConnected && !dev.restAPIConnectingMsg">
-                <div class="row items-start">
-                  <q-input class="col-8" v-model="dev.alpacaHost" @keyup.enter="attemmptConnectToAlpaca" label="Host Name / IP Address"  />
-                  <q-input class="col-4" label='Port' v-model="dev.restAPIPort" @keyup.enter="attemmptConnectToAlpaca" type="number" input-class="text-right">
-                  <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-                  </q-input>
-                </div>
+              <q-item v-if="!dev.restAPIConnected && !dev.restAPIConnectingMsg"  :inset-level="0.5">
+                <q-item-section>
+                  <div class="row items-start">
+                    <q-input class="col-8" v-model="dev.alpacaHost" @keyup.enter="attemmptConnectToAlpaca" label="Host Name / IP Address"  />
+                    <q-input class="col-4" label='Port' v-model="dev.restAPIPort" @keyup.enter="attemmptConnectToAlpaca" type="number" input-class="text-right">
+                    <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
+                    </q-input>
+                  </div>
+                </q-item-section>
               </q-item>
 
             </q-list>
@@ -78,7 +82,7 @@
             <q-list >
               <!-- Select Polaris Device -->
               <q-item>
-                <q-item-section avatar>
+                <q-item-section thumbnail>
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
@@ -88,15 +92,23 @@
                 <q-item-section v-if="bleLen>0" side>
                   <q-select label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices" class="fixedWidth"
                             :display-value="`${isBLESelected ? p.bleselected : 'Unselected'}`" color="secondary">
-                    <template>
-                      <q-icon name="mdi-satellite-variant"></q-icon>
-                    </template>
                   </q-select>
+                </q-item-section>
+              </q-item>
+              <!-- Enable Wifi -->
+              <q-item >
+                <q-item-section thumbnail>
+                  <q-icon :name="p.bleiswifienabled ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.bleiswifienabled ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section><q-item-label>Enable Polaris Wifi Hotspot</q-item-label></q-item-section>
+                <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="md" color="positive" />
+                <q-item-section side>
+                  <q-btn label="Enable" icon="mdi-wifi"  @click="onBleEnableWifi" class="fixedWidth" />
                 </q-item-section>
               </q-item>
               <!-- Connect via Network -->
               <q-item>
-                <q-item-section avatar>
+                <q-item-section thumbnail>
                   <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
@@ -104,19 +116,10 @@
                   <q-item-label caption>{{ openCaption }}</q-item-label>
                 </q-item-section>
               </q-item>
-              <!-- Enable Wifi -->
-              <q-item :inset-level="1.5">
-                <q-item-section><q-item-label caption>Enable Polaris Wifi Hotspot</q-item-label></q-item-section>
-                <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="md" color="positive" />
-                <q-item-section side>
-                  <q-badge v-if="p.bleiswifienabled">On</q-badge>
-                  <q-btn label="Enable" icon="mdi-wifi"  @click="onBleEnableWifi" class="fixedWidth" />
-                </q-item-section>
-              </q-item>
               <!-- Network Settings -->
-              <q-item  :inset-level="1.5">
+              <q-item  :inset-level="0.5">
                 <q-item-section>
-                  <div  class="row items-start ">
+                  <div  class="row items-start">
                     <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
                       v-model="cfg.polaris_ip_address" @keyup.enter="attemmptConnectToPolaris" >
                     </q-input>
@@ -129,16 +132,16 @@
               </q-item>
               <!-- Select Astro Mode -->
               <q-item>
-                <q-item-section avatar>
-                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                <q-item-section thumbnail>
+                  <q-icon :name="isAstroMode ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isAstroMode ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Select Astro Mode</q-item-label>
                   <q-item-label caption>{{ astroCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-select label="Mode" v-model="p.polarismode" :options="polarisModeOptions" options-dense  class="fixedWidth"
-                            :display-value="`${p.polarismodestr}`" color="secondary">
+                  <q-select label="Mode" v-model="p.polarismode" :options="polarisModeOptions" :display-value="`${p.polarismodestr}`"
+                             emit-value map-options options-dense  class="fixedWidth" color="secondary">
                     <template>
                       <q-icon name="mdi-satellite-variant"></q-icon>
                     </template>
@@ -147,7 +150,7 @@
               </q-item>
               <!-- Park -->
               <q-item>
-                <q-item-section avatar>
+                <q-item-section thumbnail>
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
@@ -159,7 +162,7 @@
               </q-item>
               <!-- Compass -->
               <q-item>
-                <q-item-section avatar>
+                <q-item-section thumbnail>
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
@@ -171,7 +174,7 @@
               </q-item>
               <!-- Single Star Align -->
               <q-item>
-                <q-item-section avatar>
+                <q-item-section thumbnail>
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
@@ -183,7 +186,7 @@
               </q-item>
               <!-- Multi Star Align -->
               <q-item>
-                <q-item-section avatar>
+                <q-item-section thumbnail>
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
@@ -235,9 +238,9 @@ const openCaption = computed(() => {
   return (!isPolarisConnected.value) ? 'Check Network settings, cannot open connection.' :
                           'Device connected.'
 });
+const isAstroMode = computed(() => p.polarismode==8);
 const astroCaption = computed(() => {
-  return (!isPolarisConnected.value) ? 'Check Astro Module, none detected.' :
-                          'Change Polaris Mode to Astro.'
+  return (isAstroMode.value) ? '' : 'Change Polaris Mode to Astro.'
 });
 
 
