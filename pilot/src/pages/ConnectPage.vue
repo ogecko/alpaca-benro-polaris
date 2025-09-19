@@ -49,7 +49,10 @@
                 <q-item-section thumbnail>
                   <q-icon name='mdi-alert-circle' color='red'/>
                 </q-item-section>
-                <q-item-section>{{ dev.restAPIConnectErrorMsg }}</q-item-section>
+                <q-item-section>
+                  <q-item-label>Alpaca Driver Connection Problem</q-item-label>
+                  <q-item-label caption>{{ dev.restAPIConnectErrorMsg }}</q-item-label>
+                </q-item-section>
               </q-item>
 
               <q-item v-if="!dev.restAPIConnected && !dev.restAPIConnectingMsg"  :inset-level="0.5">
@@ -121,10 +124,10 @@
                 <q-item-section>
                   <div  class="row items-start">
                     <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
-                      v-model="cfg.polaris_ip_address" @keyup.enter="attemmptConnectToPolaris" >
+                      v-model="cfg.polaris_ip_address" :onUpdate:modelValue="onPolarisIPChange" @keyup.enter="attemmptConnectToPolaris" >
                     </q-input>
                     <q-input class="col-4" label="Port" type="number" input-class="text-right"
-                      v-model="cfg.polaris_port" @keyup.enter="attemmptConnectToPolaris" >
+                      v-model="cfg.polaris_port" :onUpdate:modelValue="onPolarisPortChange" @keyup.enter="attemmptConnectToPolaris" >
                       <template v-slot:prepend><q-icon name="mdi-network-outline" /></template>
                     </q-input>
                   </div>
@@ -210,7 +213,7 @@
 </template>
 
 <script setup lang="ts">
-import { useQuasar } from 'quasar'
+import { useQuasar, debounce } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
 import { useStatusStore, polarisModeOptions } from 'stores/status'
@@ -321,7 +324,18 @@ function attemptDisconnectFromPolaris() {
   console.log('Disconnect Polaris')
 }
 
+// ------------------- Misc Helper Functions ---------------------
 
+function onPolarisIPChange(v: string | number | boolean | null) {
+  putdb({ polaris_ip_address: v })
+
+}
+
+function onPolarisPortChange(v: string | number | boolean | null) {
+  putdb({ polaris_port: v })
+}
+
+const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put for input text
 
 </script>
 
