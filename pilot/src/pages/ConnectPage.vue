@@ -118,6 +118,9 @@
                   <q-item-label>Open Polaris Connection</q-item-label>
                   <q-item-label caption>{{ openCaption }}</q-item-label>
                 </q-item-section>
+                <q-item-section v-if="!p.connected" side>
+                  <q-btn label="Connect" icon="mdi-wifi"  @click="attemmptConnectToPolaris" class="fixedWidth" />
+                </q-item-section>
               </q-item>
               <!-- Network Settings -->
               <q-item v-if="!isPolarisConnected" :inset-level="0.5">
