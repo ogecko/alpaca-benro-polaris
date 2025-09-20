@@ -69,8 +69,12 @@ async def _remove_client(ws: WebSocket):
         topic_subs.pop(ws, None)
     client_activity.pop(ws, None)
     active_clients.discard(ws)
-    if ws.client_state == WebSocketState.CONNECTED:
+    if ws.client_state == WebSocketState.DISCONNECTED:
+        return
+    try:
         await ws.close()
+    except RuntimeError:
+        pass  # already closed
 
 async def cleanup_inactive_clients(timeout_seconds: int = 10):
     while True:
@@ -105,7 +109,7 @@ async def publish_status(polaris: Polaris):
         for ws, filter_args in subscriptions.get("status", {}).copy().items():
             try:
                 await ws.send_json(payload)
-            except Exception:
+            except (WebSocketDisconnect, RuntimeError):
                 await _remove_client(ws)
 
 class PublishLogTopic(logging.Handler):
