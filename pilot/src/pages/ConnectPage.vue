@@ -74,7 +74,7 @@
         <!-- Section 2: Connect Benro Polaris -->
         <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">
-            <q-checkbox v-model="connectToPolarisCheckbox" color="positive" label="Connect to Benro Polaris" />
+            <q-checkbox v-model="connectToPolarisCheckbox" color="positive" label="Connect Driver to Benro Polaris" />
           </div>
 
           <div class="q-pl-xl q-mt-sm">
@@ -101,11 +101,11 @@
               <!-- Enable Wifi -->
               <q-item >
                 <q-item-section thumbnail>
-                  <q-icon :name="p.bleiswifienabled ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.bleiswifienabled ? 'green' : 'red'" />
+                  <q-icon :name="isWifiEnabled ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isWifiEnabled ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section><q-item-label>Enable Polaris Wifi Hotspot</q-item-label></q-item-section>
                 <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="md" color="positive" />
-                <q-item-section side>
+                <q-item-section v-if="isBLESelected" side>
                   <q-btn label="Enable" icon="mdi-wifi"  @click="onBleEnableWifi" class="fixedWidth" />
                 </q-item-section>
               </q-item>
@@ -233,6 +233,7 @@ const isPolarisConnected = ref(false)
 
 const bleLen = computed(() => p.bledevices.length);
 const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
+const isWifiEnabled = computed(() => !!p.bleiswifienabled && isBLESelected.value);
 const bleCaption = computed(() => {
   return (bleLen.value==0) ? 'Check Power, no devices discovered.' :
          (bleLen.value>1) ? 'Multiple devices discovered.' :
