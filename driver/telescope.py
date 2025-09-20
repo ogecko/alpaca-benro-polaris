@@ -1588,6 +1588,7 @@ class action:
 
         elif actionName == "Polaris:DisconnectPolaris":
             logger.info(f'Device Disconnect {parameters}')
+            await polaris.attempt_polaris_disconnect()
             resp.text = await PropertyResponse('DisconnectPolaris ok', req)  
             return
 

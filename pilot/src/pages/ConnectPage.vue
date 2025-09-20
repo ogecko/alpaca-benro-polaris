@@ -312,7 +312,7 @@ watch(connectToPolarisCheckbox, async (newVal) => {
   if (newVal) {
     await attemmptConnectToPolaris()
   } else {
-    attemptDisconnectFromPolaris()
+    await attemptDisconnectFromPolaris()
   }
 })
 
@@ -335,8 +335,9 @@ async function attemmptConnectToPolaris() {
 }
 
 // disconnect when user unchecks the checkbox
-function attemptDisconnectFromPolaris() {
+async function attemptDisconnectFromPolaris() {
   console.log('Disconnect Polaris')
+  await dev.disconnectPolaris()
 }
 
 // ------------------- Misc Helper Functions ---------------------

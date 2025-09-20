@@ -304,6 +304,27 @@ class Polaris:
             return "Polaris not communicating. Resetting connection."
         return f"Unexpected error: {str(e)}"
 
+
+    async def attempt_polaris_disconnect(self):
+        self.logger.info("==SHUTDOWN== Disconnecting Polaris...")
+        # Close socket connection
+        if self._writer:
+            try:
+                self._writer.close()
+                await self._writer.wait_closed()
+                self.logger.info("==SHUTDOWN== Polaris socket closed.")
+            except Exception as e:
+                self.logger.error(f"==SHUTDOWN== Error closing socket: {e}")
+
+        # Reset internal state
+        with self._lock:
+            self._connected = False
+            self._battery_is_available = False
+            self._reader = None
+            self._writer = None
+            self._task_exception = None
+            self._task_errorstr = ""
+
     async def attempt_polaris_connect(self):
         try:
             with self._lock:
