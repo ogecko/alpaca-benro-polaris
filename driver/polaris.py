@@ -84,7 +84,7 @@ from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
-from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
+from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
 from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, CalibrationManager, polar_rotation_angle, MotorSpeedController, PID_Controller
 from ble_service import BLE_Controller
 
@@ -156,6 +156,8 @@ class Polaris:
         self._battery_is_available: bool = False    # Is the Polaris battery status current
         self._battery_is_charging: bool = False     # Is the Polaris device currently charging
         self._battery_level: int = 100              # Battery level of the Polaris device (percentage)
+        self._polaris_sw_ver: str = ''              # Polaris Software Version
+        self._polaris_hw_ver: str = ''              # Polaris Hardware Version
         #
         # Telescope device completion flags
         #
@@ -440,7 +442,7 @@ class Polaris:
         while True:
             try: 
                 if self._connected:
-                    await self.send_cmd_query_current_mode_async()
+                    await self.send_cmd_284_query_current_mode_async()
                 await asyncio.sleep(15)
 
             except Exception as e:
@@ -650,7 +652,7 @@ class Polaris:
             return (m.group(1), m.group(2), buffer[len(m.group(0)):])
         else:
             if Config.log_polaris_protocol:
-                self.logger.info(f"<<- Polaris: Unmatched msg: {buffer}")
+                self.logger.info(f"<<- Polaris: Unmatched msg: {bytes2hexascii(buffer.encode())}")
             return (False, False, "")
 
     def polaris_parse_args(self, args_str, name_postfix=False):
@@ -840,6 +842,9 @@ class Polaris:
         # return result of VERSION request {'hw':'1.3.1.4'; 'sw': '6.0.0.40'; 'exAxis':'1.0.2.11'; 'sv':'1'} 
         elif cmd == "780":
             arg_dict = self.polaris_parse_args(args)
+            with self._lock:
+                self._polaris_sw_ver = arg_dict.get('sw')
+                self._polaris_hw_ver = arg_dict.get('hw')
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: VERSION status changed: {cmd} {arg_dict}")
 
@@ -1024,44 +1029,10 @@ class Polaris:
         await self.send_cmd_reset_axis(2)
         await self.send_cmd_reset_axis(3)
 
-    async def send_cmd_query_current_mode(self):
+    async def send_cmd_824(self):
         if Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: MODE query status info request")
-        cmd = '284'
-        msg = f"1&{cmd}&2&-1#"
-        empty_queue(self._response_queues[cmd])
-        await self.send_msg(msg)
-        ret_dict = await self._response_queues[cmd].get()
-        return ret_dict
-
-    async def send_cmd_query_current_mode_async(self):
-        if Config.log_polaris_polling:
-            self.logger.info(f"->> Polaris: 284 Query Mode request")
-        msg = f"1&284&2&-1#"
-        await self.send_msg(msg)
-
-    async def send_cmd_799(self):
-        if Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 799 request")
-        msg = f"1&799&2&-1#"
-        await self.send_msg(msg)
-
-    async def send_cmd_778(self):
-        if Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 778 Battery status request")
-        msg = f"1&778&2&-1#"
-        await self.send_msg(msg)
-
-    async def send_cmd_296(self):
-        if Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 296 request")
-        msg = f"1&296&2&-1#"
-        await self.send_msg(msg)
-
-    async def send_cmd_303(self):
-        if Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 303 request")
-        msg = f"1&303&2&-1#"
+            self.logger.info(f"->> Polaris: 824 request")
+        msg = f"1&824&3&-100#"
         await self.send_msg(msg)
 
     async def send_cmd_808(self):
@@ -1070,10 +1041,62 @@ class Polaris:
         msg = f"1&808&2&type:0;#"
         await self.send_msg(msg)
 
-    async def send_cmd_517(self):
+    async def send_cmd_802(self):
         if Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 517 Get Orientation request")
-        msg = f"1&517&3&-1#"
+            self.logger.info(f"->> Polaris: 802 Band request")
+        msg = f"1&802&3&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_799(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 799 request")
+        msg = f"1&799&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_790(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 790 Pswd and Challenge request")
+        msg = f"1&790&2&step:1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_782(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 782 SET DATETIME request")
+        now = datetime.datetime.now(datetime.timezone.utc).astimezone()
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M:%S")
+        offset_seconds = int(now.utcoffset().total_seconds())
+        msg = f"1&782&2&date:{date_str};time:{time_str};zone:{offset_seconds:+d}#"
+        await self.send_msg(msg)
+
+    async def send_cmd_780(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 780 QUERY FIRMWARE request")
+        msg = f"1&780&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_778(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 778 Battery status request")
+        msg = f"1&778&2&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_775(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 775 Query SD Card request")
+        msg = f"1&775&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_547(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 547 request")
+        msg = f"1&547&3&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_524(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 524 request")
+        msg = f"1&524&3&-100#"
         await self.send_msg(msg)
 
     async def send_cmd_520_position_updates(self, state:bool=True):
@@ -1083,10 +1106,10 @@ class Polaris:
         msg = f"1&520&2&state:{state};#"
         await self.send_msg(msg)
 
-    async def send_cmd_524(self):
+    async def send_cmd_517(self):
         if Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 524 request")
-        msg = f"1&524&3&-1#"
+            self.logger.info(f"->> Polaris: 517 Get Orientation request")
+        msg = f"1&517&3&-1#"
         await self.send_msg(msg)
 
     async def send_cmd_305(self):
@@ -1095,16 +1118,76 @@ class Polaris:
         msg = f"1&305&2&step:2;#"
         await self.send_msg(msg)
 
-    async def send_cmd_780(self):
+    async def send_cmd_303(self):
         if Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 780 request")
-        msg = f"1&780&2&-1#"
+            self.logger.info(f"->> Polaris: 303 request")
+        msg = f"1&303&2&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_300(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 300 Query HDMI request")
+        msg = f"1&300&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_298(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 298 Query Extime request")
+        msg = f"1&298&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_296(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 296 Query Mode request")
+        msg = f"1&296&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_284_query_current_mode(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: MODE query status info request")
+        cmd = '284'
+        msg = f"1&{cmd}&2&-1#"
+        empty_queue(self._response_queues[cmd])
+        await self.send_msg(msg)
+        ret_dict = await self._response_queues[cmd].get()
+        return ret_dict
+
+    async def send_cmd_284_query_current_mode_async(self):
+        if Config.log_polaris_polling:
+            self.logger.info(f"->> Polaris: 284 Query Mode request")
+        msg = f"1&284&2&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_272(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 272 request")
+        msg = f"1&272&2&step:10#"
         await self.send_msg(msg)
 
 
     async def polaris_init(self):
         self.logger.info("Polaris communication init...")
-        ret_dict = await self.send_cmd_query_current_mode()
+        await self.send_cmd_790()
+        await self.send_cmd_799()
+        await self.send_cmd_296()
+        await self.send_cmd_300()
+        await self.send_cmd_298()
+        await asyncio.sleep(0.5)
+        await self.send_cmd_520_position_updates(True)
+        await self.send_cmd_524()
+        await self.send_cmd_782()
+        await self.send_cmd_778()
+        await self.send_cmd_775()
+        ret_dict = await self.send_cmd_284_query_current_mode()
+        await self.send_cmd_802()
+        await self.send_cmd_824()
+        await self.send_cmd_780()
+        await self.send_cmd_305()
+        await self.send_cmd_272()
+        await self.send_cmd_547()
+        await self.send_cmd_808()   # Connection Context
+        await self.send_cmd_520_position_updates(True)
+
         if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
             if 'track' in ret_dict and int(ret_dict['track']) == 3:
                 # Polaris is in astro mode but alignment not complete
@@ -1114,15 +1197,6 @@ class Polaris:
             self.logger.info("Polaris communication init... done")
             self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
             self.logger.warn(f'Change site_latitude and site_longitude in config.toml or use Nina/StellariumPLUS to sync.')
-            # await self.send_cmd_799()
-            # await self.send_cmd_296()
-            # await self.send_cmd_303()
-            await self.send_cmd_808()
-            await self.send_cmd_520_position_updates(True)
-            # await self.send_cmd_524()
-            # await self.send_cmd_305()
-            # await self.send_cmd_780()
-            await self.send_cmd_778()   # get battery status
             with self._lock:
                 self._connected = True
                 self._task_errorstr = ''
@@ -1334,6 +1408,8 @@ class Polaris:
                 'bleselected' : self._ble.selectedDevice,
                 'bleisenablingwifi': self._ble.isEnablingWifi,
                 'bleiswifienabled': self._ble.isWifiEnabled,
+                'polarisswver': self._polaris_sw_ver,
+                'polarishwver': self._polaris_hw_ver,
             }
         return res
 

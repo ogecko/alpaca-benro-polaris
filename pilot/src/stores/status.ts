@@ -53,6 +53,8 @@ export const useStatusStore = defineStore('status', {
         bleselected: '',
         bleisenablingwifi: false,
         bleiswifienabled: false,
+        polarisswver: '',
+        polarishwver: '',
     }),
 
     actions: {

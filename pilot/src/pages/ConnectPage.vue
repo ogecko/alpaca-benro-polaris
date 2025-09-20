@@ -118,7 +118,13 @@
                   <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Open Polaris Connection</q-item-label>
+                  <q-item-label>
+                    Benro Polaris Mount
+                    <span v-if="p.connected" class="q-gutter-sm q-pl-sm">
+                      <q-badge>hw v{{ p.polarishwver }}</q-badge>
+                      <q-badge>sw v{{ p.polarisswver }}</q-badge> 
+                    </span>
+                  </q-item-label>
                   <q-item-label caption>{{ openCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section v-if="!p.connected" side>
@@ -337,13 +343,13 @@ watch(()=>p.connected, (newVal)=>{
 
 async function attemmptConnectToPolaris() {
   console.log('Connecting to Polaris')
-  await dev.connectPolaris()
+  if (!p.connected) await dev.connectPolaris()
 }
 
 // disconnect when user unchecks the checkbox
 async function attemptDisconnectFromPolaris() {
   console.log('Disconnect Polaris')
-  await dev.disconnectPolaris()
+  if (p.connected) await dev.disconnectPolaris()
 }
 
 // ------------------- Misc Helper Functions ---------------------
