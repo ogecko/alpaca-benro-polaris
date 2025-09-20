@@ -1,6 +1,7 @@
 title = "Alpaca Benro Polaris Driver (Telescope)"
 
 [network]
+polaris_auto_retry = false                  # On connection failure, true=Continuously retry opening connection OR false=Use Alpaca Pilot to initiate reconnection, 
 polaris_ip_address = '192.168.0.1'          # IP Address of the Benro Polaris on its WiFi Hotspot network.
 polaris_port = 9090                         # Port the Benro Polaris is listening on.
 enable_restapi = true                       # Provide the Alpaca REST API Service (do not turn off).

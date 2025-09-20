@@ -418,6 +418,7 @@ class LifecycleController:
         self._cond = asyncio.Condition()
         self._lock = threading.Lock()  # For thread-safe sync signaling
         self._tasks: Set[asyncio.Task] = set()
+        self._task_exception = None
 
     def create_task(self, coro: Coroutine, *, name: str = None) -> asyncio.Task:
         task = asyncio.create_task(self._wrap(coro), name=name)
@@ -427,6 +428,9 @@ class LifecycleController:
 
     def _done_task(self, task: asyncio.Task):
         self._tasks.discard(task)  # Remove completed task from the set
+        if not task.cancelled():
+            # task.exception returns None if no exception
+            self._task_exception = task.exception()
 
     async def _wrap(self, coro: Coroutine):
         try:

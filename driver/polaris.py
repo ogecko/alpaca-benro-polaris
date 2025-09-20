@@ -280,6 +280,67 @@ class Polaris:
     # ConnectionAbortedError [WinError 1236] The network connection was aborted by the local system
     # OSError [error 22][WinError 121] The semaphore timeout period has expired
 
+    def _format_connection_error(self, e: Exception) -> str:
+        if isinstance(e, ConnectionAbortedError):
+            return "The Polaris network connection was aborted."
+        if isinstance(e, OSError):
+            if getattr(e, 'winerror', None) == 121:
+                return "Cannot open network connection. Check Wi-Fi and Polaris App."
+            if getattr(e, 'winerror', None) == 1225:
+                return "Connection refused. Check Polaris App and network."
+            if getattr(e, 'winerror', None) == 1236:
+                return "Connection lost. Reconnect via Polaris App."
+            if getattr(e, 'winerror', None) == 10054:
+                return "Connection reset. Reconnect via Polaris App."
+            if e.errno == 51:
+                return "Cannot open network connection. Check Wi-Fi and Polaris App."
+            if e.errno in (60, 64):
+                return "Polaris host unreachable. Reconnect via Polaris App."
+        if isinstance(e, AstroModeError):
+            return "Polaris not in Astro Mode. Use Polaris App to change."
+        if isinstance(e, AstroAlignmentError):
+            return "Polaris not aligned. Complete alignment in Polaris App."
+        if isinstance(e, WatchdogError):
+            return "Polaris not communicating. Resetting connection."
+        return f"Unexpected error: {str(e)}"
+
+    async def attempt_polaris_connect(self):
+        try:
+            with self._lock:
+                self._connected = False             # set to true when "Polaris communication init... done"
+                self._battery_is_available = False  # set to true when we get a battery status message
+                self._task_exception = None
+
+            client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
+            self._reader = client_reader
+            self._writer = client_writer
+
+            init_task = asyncio.create_task(self.polaris_init())
+            init_task.add_done_callback(self.task_done)
+            self.logger.info(f'==STARTUP== Starting Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}.')
+            return True
+
+        except Exception as e:
+            self._task_errorstr = self._format_connection_error(e)
+            self.logger.error(self._task_errorstr)
+            return False
+    
+
+    async def run_connection_cycle(self, max_retries):
+        attempt = 0
+        while (not self.lifecycle.should_shutdown()) and (attempt <= max_retries):
+            try:
+                attempt += 1
+                success = await self.attempt_polaris_connect()
+                if success:
+                    await self.read_msgs()       # blocks until error or shutdown
+                await asyncio.sleep(10)
+        
+            except Exception as e:
+                self._task_errorstr = self._format_connection_error(e)
+                self.logger.error(f"==STARTUP== Connection error: {self._task_errorstr}")
+                await asyncio.sleep(10)
+
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
         self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
@@ -289,83 +350,10 @@ class Polaris:
         if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
             self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
 
-
-        while True:
-            try:
-                with self._lock:
-                    self._connected = False             # set to true when "Polaris communication init... done"
-                    self._battery_is_available = False  # set to true when we get a battery status message
-                    self._task_exception = None
-                client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
-                self._reader = client_reader
-                self._writer = client_writer
-                logger.info(f'==STARTUP== Starting Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}. ')
-                init_task = asyncio.create_task(self.polaris_init())
-                init_task.add_done_callback(self.task_done)
-                await self.read_msgs()
-
-            except ConnectionAbortedError as e:
-                self._task_errorstr = f'==STARTUP== The Polaris network connection was aborted.'
-                logger.error(self._task_errorstr)
-                await asyncio.sleep(5)
-                continue
-
-            except OSError as e:
-                if hasattr(e, 'winerror'):
-                    if e.winerror == 121:
-                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App. Check Wifi connection.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                    if e.winerror == 1225:
-                        self._task_errorstr = f'==STARTUP== Network connection to Polaris was refused. Connect with Polaris App. Check Wifi connection.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                    if e.winerror == 1236:
-                        self._task_errorstr = f'==ERROR== Network connection to Polaris lost. Use Polaris App to reconnect.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                    if e.winerror == 10054:
-                        self._task_errorstr = f'==ERROR== Network connection to Polaris reset. Use Polaris App to reconnect.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-
-                elif e.errno == 51:
-                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App. Check Wifi connection.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                # errno = 60: Operation timed out
-                # errno = 64: Host is down
-                elif e.errno == 60 or e.errno == 64:
-                        self._task_errorstr = f'==ERROR== Network connection to Polaris lost. Use Polaris App to reconnect.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                else:
-                    raise e
-
-                
-            except AstroModeError as e:
-                self._task_errorstr = f'==STARTUP== Polaris not in Astro Mode. Use Polaris App to change.'
-                logger.error(self._task_errorstr)
-                await asyncio.sleep(15)
-                continue
-
-            except AstroAlignmentError as e:
-                self._task_errorstr = f'==STARTUP== Polaris not Aligned. Use Polaris App to complete alignment.'
-                logger.error(self._task_errorstr)
-                await asyncio.sleep(15)
-                continue
-
-            except WatchdogError as e:
-                self._task_errorstr = f'==STARTUP== Polaris not communicating. Resetting connection.'
-                logger.error(self._task_errorstr)
-                await asyncio.sleep(2)
-                continue
+        if Config.polaris_auto_retry:
+            self.lifecycle.create_task(self.run_connection_cycle(float('inf')), name="PolarisConnectionCycle")
+        else:
+            self.logger.info("==STARTUP== Auto-restart disabled. Awaiting manual connection trigger.")
 
     def task_done(self, task):
         # task.exception raises an exception if the task was cancelled, so only grab it if not cancelled.

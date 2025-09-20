@@ -1458,6 +1458,7 @@ class supportedactions:
                                             'Polaris:MoveAxis', 'Polaris:MoveMotor', 
                                             'Polaris:SpeedTestStart', 'Polaris:SpeedTestStop', 'Polaris:SpeedTestApprove' 
                                             'Polaris:bleSelectDevice', 'Polaris:bleEnableWifi', 
+                                            'Polaris:DeviceConnect', 'Polaris:DeviceDisconnect',
                                             ], req)  
 
 
@@ -1577,6 +1578,17 @@ class action:
             name = parameters.get('name', '')
             polaris._ble.setSelectedDevice(name)
             resp.text = await PropertyResponse('bleSelectDevice ok', req)  
+            return
+
+        elif actionName == "Polaris:ConnectPolaris":
+            logger.info(f'Device Connect {parameters}')
+            lifecycle.create_task(polaris.run_connection_cycle(0), name="ConnectPolaris")
+            resp.text = await PropertyResponse('ConnectPolaris ok', req)  
+            return
+
+        elif actionName == "Polaris:DisconnectPolaris":
+            logger.info(f'Device Disconnect {parameters}')
+            resp.text = await PropertyResponse('DisconnectPolaris ok', req)  
             return
 
         else:

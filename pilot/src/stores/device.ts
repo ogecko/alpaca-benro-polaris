@@ -120,6 +120,14 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:bleEnableWifi')
     },
 
+    async connectPolaris() {
+      await this.apiAction<void>('Polaris:ConnectPolaris')
+    },
+
+    async disconnectPolaris() {
+      await this.apiAction<void>('Polaris:DisconnectPolaris')
+    },
+
     async apiAction<T>(action: string, parameters: object | string = ' '): Promise<T> {
         const result = await this.api<ActionResponse>('api/v1/telescope/0/action', {
             Action: action,

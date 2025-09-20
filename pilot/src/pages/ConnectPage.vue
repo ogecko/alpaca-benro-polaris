@@ -270,6 +270,7 @@ async function onBleEnableWifi() {
   await dev.bleEnableWifi()
 }
 
+
 // ------------------- Alpaca Connection Helper Functions ---------------------
 watch(connectToAlpacaCheckbox, async (newVal) => {
   if (newVal) {
@@ -308,16 +309,18 @@ function attemptDisconnectFromAlpaca() {
 
 // ------------------- Polaris Connection Helper Functions ---------------------
 
-watch(connectToPolarisCheckbox, (newVal) => {
+watch(connectToPolarisCheckbox, async (newVal) => {
   if (newVal) {
-    attemmptConnectToPolaris()
+    await attemmptConnectToPolaris()
   } else {
     attemptDisconnectFromPolaris()
   }
 })
 
-function attemmptConnectToPolaris() {
+async function attemmptConnectToPolaris() {
   console.log('Connecting to Polaris')
+  await dev.connectPolaris()
+
 }
 
 // disconnect when user unchecks the checkbox
