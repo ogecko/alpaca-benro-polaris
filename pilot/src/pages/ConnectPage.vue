@@ -238,7 +238,7 @@ const cfg = useConfigStore()
 const p = useStatusStore()
 
 const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
-const connectToPolarisCheckbox = ref(false)
+const connectToPolarisCheckbox = ref(p.connected)
 
 // ------------------- Computed Resources ---------------------
 
