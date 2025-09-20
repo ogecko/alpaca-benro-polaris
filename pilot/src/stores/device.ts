@@ -39,7 +39,7 @@ export const useDeviceStore = defineStore('device', {
           await this.fetchServerDescription();
           await this.fetchConfiguredDevices();
           await this.fetchSupportedActions();
-          const response = await this.apiAction<ConfigResponse>('Polaris:ConfigFetch');
+          const response = await this.apiAction<ConfigResponse>('Polaris:ConfigFetch', '{"configNames": ["alpaca_socket_port"]}'); 
           this.socketAPIPort = response.alpaca_socket_port || 5556
           this.restAPIConnected = true;
           this.restAPIConnectedAt = Date.now();

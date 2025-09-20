@@ -1486,7 +1486,15 @@ class action:
             fetched_params['site_latitude'] = polaris.sitelatitude
             fetched_params['site_longitude'] = polaris.sitelongitude
             fetched_params['site_elevation'] = polaris.siteelevation
-            resp.text = await PropertyResponse(fetched_params, req)
+
+            # only return requested Config.names
+            configNames = parameters.get('configNames')
+            if isinstance(configNames, list):
+                filtered_params = {k: fetched_params[k] for k in configNames if k in fetched_params}
+            else:
+                filtered_params = fetched_params
+
+            resp.text = await PropertyResponse(filtered_params, req)
             return
         
         elif actionName == "Polaris:ConfigUpdate":

@@ -110,9 +110,11 @@ export const useConfigStore = defineStore('config', {
   }),
 
   actions: {
-    async configFetch() {
+    async configFetch(configNames:string[]=[]) {
       try {
-        const response = await dev.apiAction<ConfigResponse>('Polaris:ConfigFetch');
+        const names = configNames.map(d=>`"${d}"`).join(',')
+        const payload = `{"configNames": [${names}]}`
+        const response = await dev.apiAction<ConfigResponse>('Polaris:ConfigFetch', payload);
         this.$patch(response)
         this.fetchedAt = Date.now()
       } catch (err) {
