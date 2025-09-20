@@ -105,7 +105,7 @@
                 </q-item-section>
                 <q-item-section><q-item-label>Enable Polaris Wifi Hotspot</q-item-label></q-item-section>
                 <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="md" color="positive" />
-                <q-item-section v-if="isBLESelected" side>
+                <q-item-section v-if="isShowEnableWifi" side>
                   <q-btn label="Enable" icon="mdi-wifi"  @click="onBleEnableWifi" class="fixedWidth" />
                 </q-item-section>
               </q-item>
@@ -120,7 +120,7 @@
                 </q-item-section>
               </q-item>
               <!-- Network Settings -->
-              <q-item  :inset-level="0.5">
+              <q-item v-if="!isPolarisConnected" :inset-level="0.5">
                 <q-item-section>
                   <div  class="row items-start">
                     <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
@@ -227,22 +227,21 @@ const p = useStatusStore()
 
 const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
 const connectToPolarisCheckbox = ref(false)
-const isPolarisConnected = ref(false)
 
 // ------------------- Computed Resources ---------------------
 
 const bleLen = computed(() => p.bledevices.length);
 const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
-const isWifiEnabled = computed(() => !!p.bleiswifienabled && isBLESelected.value);
+const isShowEnableWifi = computed(() => isBLESelected.value && !p.connected);
+const isWifiEnabled = computed(() => (!!p.bleiswifienabled && isBLESelected.value)||p.connected);
+const isPolarisConnected = computed(() => (!!p.connected));
 const bleCaption = computed(() => {
   return (bleLen.value==0) ? 'Check Power, no devices discovered.' :
          (bleLen.value>1) ? 'Multiple devices discovered.' :
-         (isBLESelected.value) ? 'Device discovered and selected.' :
-                                 'Please select device.'
+         (isBLESelected.value) ? '' : 'Please select device.'
 });
 const openCaption = computed(() => {
-  return (!isPolarisConnected.value) ? 'Check Network settings, cannot open connection.' :
-                          'Device connected.'
+  return (!isPolarisConnected.value) ? 'Check Network settings, cannot open connection.' : ''
 });
 const isAstroMode = computed(() => p.polarismode==8);
 const astroCaption = computed(() => {
@@ -317,10 +316,22 @@ watch(connectToPolarisCheckbox, async (newVal) => {
   }
 })
 
+watch(()=>p.connected, (newVal)=>{
+  if (newVal) {
+      connectToPolarisCheckbox.value=true
+      $q.notify({
+        message: 'Benro Polaris successfuly connected.',
+        type: 'positive', position: 'top', timeout: 3000,
+        actions: [{ icon: 'mdi-close', color: 'white' }]
+      })
+  } else {
+      connectToPolarisCheckbox.value=false
+  }
+})
+
 async function attemmptConnectToPolaris() {
   console.log('Connecting to Polaris')
   await dev.connectPolaris()
-
 }
 
 // disconnect when user unchecks the checkbox
