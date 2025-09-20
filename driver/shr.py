@@ -69,7 +69,7 @@ from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
 from config import Config
 import re
-from typing import Set, Coroutine
+from typing import Set, Coroutine, Dict, Optional
 
 
 logger: Logger = None
@@ -419,15 +419,27 @@ class LifecycleController:
         self._lock = threading.Lock()  # For thread-safe sync signaling
         self._tasks: Set[asyncio.Task] = set()
         self._task_exception = None
+        self._named_tasks: Dict[str, asyncio.Task] = {}
+
 
     def create_task(self, coro: Coroutine, *, name: str = None) -> asyncio.Task:
         task = asyncio.create_task(self._wrap(coro), name=name)
         self._tasks.add(task)
+        if name:
+            self._named_tasks[name] = task
         task.add_done_callback(self._done_task)
         return task
 
+    def get_task(self, name: str) -> Optional[asyncio.Task]:
+        return self._named_tasks.get(name)
+
+
     def _done_task(self, task: asyncio.Task):
         self._tasks.discard(task)  # Remove completed task from the set
+        for name, t in list(self._named_tasks.items()):
+            if t is task:
+                del self._named_tasks[name]
+                break
         if not task.cancelled():
             # task.exception returns None if no exception
             self._task_exception = task.exception()
@@ -444,7 +456,7 @@ class LifecycleController:
             co_name = coro.cr_code.co_name
             logger.exception(f"Lifecycle Wrap: Task {co_name} Unhandled exception: {exc}")
 
-    async def shutdown_tasks(self, timeout: float = 5.0):
+    async def shutdown_tasks(self, timeout: float = 8.0):
         if self._event == LifecycleEvent.NONE:
             await self.signal(LifecycleEvent.SHUTDOWN)
         for task in list(self._tasks):
