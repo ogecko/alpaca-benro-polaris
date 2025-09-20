@@ -45,13 +45,16 @@
                 </q-item-section>
               </q-item>
 
-              <q-item v-if="dev.restAPIConnectErrorMsg">
+              <q-item v-else>
                 <q-item-section thumbnail>
                   <q-icon name='mdi-alert-circle' color='red'/>
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Alpaca Driver Connection Problem</q-item-label>
                   <q-item-label caption>{{ dev.restAPIConnectErrorMsg }}</q-item-label>
+                </q-item-section>
+                <q-item-section v-if="!dev.restAPIConnected" side>
+                  <q-btn label="Connect" icon="mdi-wifi"  @click="attemmptConnectToAlpaca" class="fixedWidth" />
                 </q-item-section>
               </q-item>
 
@@ -93,7 +96,7 @@
                   <q-item-label caption>{{ bleCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section v-if="bleLen>0" side>
-                  <q-select label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices" class="fixedWidth"
+                  <q-select  label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices" class="fixedWidth" dense options-dense
                             :display-value="`${isBLESelected ? p.bleselected : 'Unselected'}`" color="secondary">
                   </q-select>
                 </q-item-section>
@@ -109,7 +112,7 @@
                   <q-btn label="Enable" icon="mdi-wifi"  @click="onBleEnableWifi" class="fixedWidth" />
                 </q-item-section>
               </q-item>
-              <!-- Connect via Network -->
+              <!-- Connect to Polaris -->
               <q-item>
                 <q-item-section thumbnail>
                   <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
@@ -147,7 +150,7 @@
                 </q-item-section>
                 <q-item-section side>
                   <q-select label="Mode" v-model="p.polarismode" :options="polarisModeOptions" :display-value="`${p.polarismodestr}`"
-                             emit-value map-options options-dense  class="fixedWidth" color="secondary">
+                             emit-value map-options dense options-dense  class="fixedWidth" color="secondary">
                     <template>
                       <q-icon name="mdi-satellite-variant"></q-icon>
                     </template>
