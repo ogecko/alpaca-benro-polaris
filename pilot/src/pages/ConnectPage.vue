@@ -115,7 +115,7 @@
                   <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Device Connection</q-item-label>
+                  <q-item-label>Open Polaris Connection</q-item-label>
                   <q-item-label caption>{{ openCaption }}</q-item-label>
                 </q-item-section>
               </q-item>
@@ -193,7 +193,7 @@
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Multi Star Alignment</q-item-label>
+                  <q-item-label>Auto Level and Multi Star Alignment</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-btn label="Begin" icon="mdi-creation-outline"  @click="onBleEnableWifi" class="fixedWidth"/>
