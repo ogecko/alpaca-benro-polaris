@@ -280,7 +280,7 @@ watch(connectToAlpacaCheckbox, async (newVal) => {
 
 watch(() => dev.restAPIConnected, async (newVal) => {
   if (newVal) {
-    await cfg.configFetch(["polaris_ip_address","polaris_port"])     // ensure config store is refreshed after any connect
+    await cfg.configFetch()     // ensure config store is refreshed after any connect
   }
 })
 

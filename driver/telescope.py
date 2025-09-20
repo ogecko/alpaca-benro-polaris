@@ -1489,7 +1489,7 @@ class action:
 
             # only return requested Config.names
             configNames = parameters.get('configNames')
-            if isinstance(configNames, list):
+            if isinstance(configNames, list) and len(configNames)>0:
                 filtered_params = {k: fetched_params[k] for k in configNames if k in fetched_params}
             else:
                 filtered_params = fetched_params
