@@ -362,13 +362,19 @@ class Polaris:
             self._task_exception = task.exception()
 
     async def send_msg(self, msg):
+        if self.lifecycle.should_shutdown():
+            return
         parts = msg.strip('#').split('&')
         ispoll = len(parts)>1 and parts[1] in POLARIS_POLL_COMMANDS
         if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
             self.logger.info(f'->> Polaris: send_msg: {msg}')
-        if self._writer:
-            self._writer.write(msg.encode())
-            await self._writer.drain()
+        try:
+            if self._writer:
+                self._writer.write(msg.encode())
+                await asyncio.wait_for(self._writer.drain(), timeout=2.0)
+        except (ConnectionResetError, BrokenPipeError, asyncio.TimeoutError) as e:
+            self._task_exception = e
+            self.logger.error(f"==SEND== Failed to send message: {e}")
 
     async def _every_1s_watchdog_check(self):
         while True:
@@ -571,34 +577,50 @@ class Polaris:
             # No longer need a sync adjustment since Polaris has been aligned
             self._adj_sync_azimuth = 0
             self._adj_sync_altitude = 0
-
-
         return
 
     async def read_msgs(self):
         buffer = ""
-        while True:
-            # read protocol from Polaris, adding it to the buffer
-            if self._reader:
-                data = await self._reader.read(1024)
-                if data:
+        try:
+            while not self.lifecycle.should_shutdown():
+                # Raise any subtask exceptions immediately
+                if self._task_exception:
+                    raise self._task_exception
+
+                # Read from Polaris
+                if self._reader:
+                    try:
+                        data = await asyncio.wait_for(self._reader.read(1024), timeout=2.0)
+                    except asyncio.TimeoutError:
+                        continue  # No data, keep looping
+                    except (ConnectionResetError, BrokenPipeError) as e:
+                        self.logger.error(f"==DISCONNECT== Polaris socket error: {e}")
+                        break
+                    if not data:
+                        self.logger.warn("==DISCONNECT== Polaris socket closed.")
+                        break
+
                     buffer += data.decode()
 
-            # raise any subtask exceptions so polaris.client can pick them up
-            if  self._task_exception:
-                raise self._task_exception
-                   
-            # parse all the messages in the buffer
-            while buffer:
-                cmd, args, buffer = self.parse_msg(buffer)
-                if cmd:
-                    ispoll = cmd in POLARIS_POLL_COMMANDS
-                    if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
-                        self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
-                    self.polaris_parse_cmd(cmd, args)
-            else:
-                # dont overload the platform trying to read data from polaris too quickly
+                # Parse all messages in the buffer
+                while buffer:
+                    cmd, args, buffer = self.parse_msg(buffer)
+                    if cmd:
+                        ispoll = cmd in POLARIS_POLL_COMMANDS
+                        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
+                            self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
+                        self.polaris_parse_cmd(cmd, args)
+
+                # Avoid tight loop
                 await asyncio.sleep(0.05)
+
+        except asyncio.CancelledError:
+            self.logger.info("==CANCELLED== PolarisReadMsgs cancelled.")
+            raise
+
+        except Exception as e:
+            self._task_exception = e
+            self.logger.error(f"==ERROR== read_msgs failed: {e}")
 
     # Parse a buffer returning a matched (cmd, args, remainingbuffer) or a cleared remaining buffer (False, False, "")
     def parse_msg(self, buffer):
