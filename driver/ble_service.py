@@ -37,15 +37,15 @@ class BLE_Controller():
                 "address": device.address,
                 "service_uuids": adv.service_uuids,
                 "rssi": adv.rssi,
-                "last_seen": time.time(),
+                "last_seen": time.monotonic(),
             }
             if self.selectedDevice is None:     # select the first one we discover
                 asyncio.create_task(self.setSelectedDevice(name)) 
             if Config.log_polaris_ble:
                 self.logger.info(f"BLE Discovered Polaris: {device.address} ({self.devices[device.address]})")
 
-    def prune_stale_devices(self, timeout=30):
-        now = time.time()
+    def prune_stale_devices(self, timeout=60):
+        now = time.monotonic()
         stale = [addr for addr, info in self.devices.items() if now - info.get("last_seen", 0) > timeout]
         for addr in stale:
             self.logger.info(f"BLE Pruning stale device: {addr}")

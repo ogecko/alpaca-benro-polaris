@@ -176,7 +176,7 @@
               <!-- Park -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
-                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                  <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Goto Park Position</q-item-label>
