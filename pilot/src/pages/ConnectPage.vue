@@ -139,7 +139,7 @@
                   <q-icon name="mdi-alert-circle" color="red" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Benro Polaris Mount Problem</q-item-label>
+                  <q-item-label>Benro Polaris Connection Problem</q-item-label>
                   <q-item-label caption>{{p.connectionmsg}}</q-item-label>
                 </q-item-section>
                 <q-item-section side>

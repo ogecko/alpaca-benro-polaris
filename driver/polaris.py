@@ -290,7 +290,7 @@ class Polaris:
             return "The Polaris network connection was aborted."
         if isinstance(e, OSError):
             if getattr(e, 'winerror', None) == 121:
-                return "Cannot open network connection. Check Wi-Fi and Polaris App."
+                return "Check Network. Cannot open Polaris connection."
             if getattr(e, 'winerror', None) == 1225:
                 return "Connection refused. Check Polaris App and network."
             if getattr(e, 'winerror', None) == 1236:
@@ -298,9 +298,9 @@ class Polaris:
             if getattr(e, 'winerror', None) == 10054:
                 return "Connection reset. Reconnect via Polaris App."
             if e.errno == 51:
-                return "Cannot open network connection. Check Wi-Fi and Polaris App."
+                return "Check Network. Cannot open Polaris connection"
             if e.errno in (60, 64):
-                return "Polaris host unreachable. Reconnect via Polaris App."
+                return "Check Hostname. Polaris host unreachable."
         if isinstance(e, AstroModeError):
             return "Polaris not in Astro Mode. Use Polaris App to change."
         if isinstance(e, AstroAlignmentError):
