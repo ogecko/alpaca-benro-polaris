@@ -1592,6 +1592,14 @@ class action:
             resp.text = await PropertyResponse('DisconnectPolaris ok', req)  
             return
 
+        elif actionName == "Polaris:SetMode":
+            logger.info(f'Polaris SetMode {parameters}')
+            mode = int(parameters.get('mode', 8))
+            await polaris.send_cmd_285_set_mode(mode)
+            resp.text = await PropertyResponse('Polaris SetMode ok', req)  
+            return
+
+
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
 

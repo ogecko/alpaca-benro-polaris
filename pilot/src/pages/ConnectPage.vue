@@ -164,7 +164,7 @@
                   <q-item-label caption>{{ astroCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-select label="Mode" v-model="p.polarismode" :options="polarisModeOptions" :display-value="`${p.polarismodestr}`"
+                  <q-select label="Mode" v-model="p.polarismode" @update:modelValue="onModeUpdate" :options="polarisModeOptions" :display-value="`${p.polarismodestr}`"
                              emit-value map-options dense options-dense  class="fixedWidth" color="secondary">
                     <template>
                       <q-icon name="mdi-satellite-variant"></q-icon>
@@ -187,7 +187,7 @@
               <!-- Compass -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
-                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                  <q-icon :name="p.aligned ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.aligned ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Align Compass Azimuth</q-item-label>
@@ -199,7 +199,7 @@
               <!-- Single Star Align -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
-                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                  <q-icon :name="p.aligned ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.aligned ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Single Star Alignment</q-item-label>
@@ -211,7 +211,7 @@
               <!-- Multi Star Align -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
-                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                  <q-icon :name="p.aligned ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.aligned ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Auto Level and Multi Star Alignment</q-item-label>
@@ -285,6 +285,18 @@ async function onBleEnableWifi() {
   await dev.bleEnableWifi()
 }
 
+async function onPark() {
+  console.log('Goto Park Position')
+  await dev.alpacaPark()
+  await dev.alpacaUnPark()
+}
+
+
+
+async function onModeUpdate(newVal:number) {
+  console.log("Polaris Mode", newVal)
+  await dev.setPolarisMode(newVal)
+}
 
 // ------------------- Alpaca Connection Helper Functions ---------------------
 watch(connectToAlpacaCheckbox, async (newVal) => {
@@ -367,11 +379,7 @@ function onPolarisPortChange(v: string | number | boolean | null) {
   putdb({ polaris_port: v })
 }
 
-async function onPark() {
-  console.log('Goto Park Position')
-  await dev.alpacaPark()
-  await dev.alpacaUnPark()
-}
+
 
 const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put for input text
 

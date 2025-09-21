@@ -681,12 +681,20 @@ class Polaris:
             with self._lock:
                 self._polaris_mode = int(arg_dict['mode'])
                 self._tracking_in_benro = arg_dict.get('track') == '1'
+                self._aligned = not arg_dict.get('track') == '3'
                 if not Config.advanced_tracking:        # only update tracking if Benro in control
                     self._tracking = self._tracking_in_benro
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: MODE status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
                 self._response_queues[cmd].put_nowait(arg_dict)
+
+        # return result of set Mode {} 
+        elif cmd == "285":
+            arg_dict = self.polaris_parse_args(args)
+            if arg_dict.get('ret') == '0':
+                with self._lock:
+                    self._polaris_mode = int(arg_dict['mode'])
 
         # return result of Query Orientation request {} 
         elif cmd == "517":
@@ -1142,10 +1150,19 @@ class Polaris:
         msg = f"1&298&2&-100#"
         await self.send_msg(msg)
 
-    async def send_cmd_296(self):
+    async def send_cmd_296_query_mode(self):
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 296 Query Mode request")
         msg = f"1&296&2&-100#"
+        await self.send_msg(msg)
+        
+    async def send_cmd_285_set_mode(self, mode):
+        if mode<1 or mode>10: 
+            self.logger.info(f"Invalid 285 Polaris Set Mode request {mode}")
+            return
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 285 Set Mode request {mode}")
+        msg = f"1&285&2&mode:{mode}#"
         await self.send_msg(msg)
 
     async def send_cmd_284_query_current_mode(self):
@@ -1175,7 +1192,7 @@ class Polaris:
         self.logger.info("Polaris communication init...")
         await self.send_cmd_790()
         await self.send_cmd_799()
-        await self.send_cmd_296()
+        await self.send_cmd_296_query_mode()
         await self.send_cmd_300()
         await self.send_cmd_298()
         await asyncio.sleep(0.5)

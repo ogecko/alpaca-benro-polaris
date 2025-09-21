@@ -40,7 +40,6 @@ class BLE_Controller():
             }
             if self.selectedDevice is None:     # select the first one we discover
                 self.selectedDevice = name
-                self.enableWifi()
             if Config.log_polaris_ble:
                 self.logger.info(f"BLE Discovered Polaris: {device.address} ({self.devices[device.address]})")
 
@@ -73,7 +72,6 @@ class BLE_Controller():
     def setSelectedDevice(self, name):
         if any(dev.get("name") == name for dev in self.devices.values()):
             self.selectedDevice = name
-            self.enableWifi()
 
     async def enableWifi(self):
         name = self.selectedDevice
