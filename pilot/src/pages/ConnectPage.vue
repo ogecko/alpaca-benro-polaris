@@ -100,7 +100,7 @@
                             :display-value="`${isBLESelected ? p.bleselected : 'Unselected'}`" color="secondary">
                     <template v-slot:before>
                       <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="sm" color="primary" />
-                      <q-btn v-else round dense flat icon="mdi-wifi" :color="(p.bleiswifienabled)?'primary':'white'" @click="onBleEnableWifi"/>
+                      <q-btn v-else round dense flat icon="mdi-wifi-sync" :color="(p.bleiswifienabled)?'primary':'white'" @click="onBleEnableWifi"/>
                     </template>
                   </q-select>
                 </q-item-section>
