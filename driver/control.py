@@ -73,9 +73,10 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Fix chart sizing when screen resized
 # [ ] Documentation on new features Topocentric tracking (You're maintaining a fixed pointing direction relative to the local horizon. The origin is your specific observing site, not Earth’s center.
 # Connection
-# [ ] Alpaca pilot work outside of Astro Mode
-# [ ] Implement Benro Polaris Connection process and diagnostics
-# [ ] Implement Benro Polaris Wifi On 
+# [X] Implement Benro Polaris Connection process and diagnostics
+# [X] Connect to Benro Polaris without Benro App
+# [X] Implement Benro Polaris Wifi On 
+# [X] Alpaca pilot work outside of Astro Mode
 # Performance
 # [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
 # [ ] Move performance tests to actions

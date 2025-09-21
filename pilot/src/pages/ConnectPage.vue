@@ -181,7 +181,7 @@
                   <q-item-label>Goto Park Position</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn label="Park" icon="mdi-parking"  @click="onBleEnableWifi" class="fixedWidth"/>
+                  <q-btn label="Park" icon="mdi-parking"  class="fixedWidth" @click="onPark"/>
                 </q-item-section>
               </q-item>
               <!-- Compass -->
@@ -365,6 +365,12 @@ function onPolarisIPChange(v: string | number | boolean | null) {
 
 function onPolarisPortChange(v: string | number | boolean | null) {
   putdb({ polaris_port: v })
+}
+
+async function onPark() {
+  console.log('Goto Park Position')
+  await dev.alpacaPark()
+  await dev.alpacaUnPark()
 }
 
 const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put for input text
