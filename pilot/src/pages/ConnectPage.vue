@@ -20,7 +20,8 @@
         <!-- Section 1: Connect Alpaca Driver -->
         <q-card flat bordered class="q-pa-md full-width">
 
-            <div class="text-h6"><q-checkbox v-model="connectToAlpacaCheckbox" color="positive" label="Connect to Alpaca Driver"/></div>
+            <div class="text-h6"><q-checkbox label="Connect to Alpaca Driver" color="positive" 
+              :model-value="dev.restAPIConnected" @update:model-value="onAlpacaCheckboxToggle" /></div>
             <q-list class="q-pl-lg">
 
               <q-item v-if="dev.restAPIConnectingMsg">
@@ -77,7 +78,7 @@
         <!-- Section 2: Connect Benro Polaris -->
         <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">
-            <q-checkbox v-model="connectToPolarisCheckbox" color="positive" label="Connect Driver to Benro Polaris" />
+            <q-checkbox :model-value="p.connected" @update:model-value="onPolarisCheckboxToggle" color="positive" label="Connect Driver to Benro Polaris" />
           </div>
 
           <div class="q-pl-xl q-mt-sm">
@@ -238,16 +239,13 @@ import { useQuasar, debounce } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
 import { useStatusStore, polarisModeOptions } from 'stores/status'
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { watch, computed, onMounted, onUnmounted } from 'vue'
 import NetworkSettings from 'components/NetworkSettings.vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
-
-const connectToAlpacaCheckbox = ref(dev.restAPIConnected);
-const connectToPolarisCheckbox = ref(p.connected)
 
 // ------------------- Computed Resources ---------------------
 
@@ -299,62 +297,55 @@ async function onModeUpdate(newVal:number) {
 }
 
 // ------------------- Alpaca Connection Helper Functions ---------------------
-watch(connectToAlpacaCheckbox, async (newVal) => {
-  if (newVal) {
+async function onAlpacaCheckboxToggle(checked:boolean) {
+  if (checked && !dev.restAPIConnected) {
     await attemmptConnectToAlpaca()
-  } else {
+  } else if (!checked && dev.restAPIConnected) {
     attemptDisconnectFromAlpaca()
   }
-})
+}
+
 
 watch(() => dev.restAPIConnected, async (newVal) => {
   if (newVal) {
     await cfg.configFetch()     // ensure config store is refreshed after any connect
+    $q.notify({
+      message: 'Alpaca Driver successfuly connected.',
+      type: 'positive', position: 'top', timeout: 3000,
+      actions: [{ icon: 'mdi-close', color: 'white' }]
+    })
   }
 })
 
 // connect when user checks the checkbox or presses enter on Host or Port field
 async function attemmptConnectToAlpaca() {
-  if (!dev.restAPIConnected) {
-    await dev.connectRestAPI()
-    connectToAlpacaCheckbox.value = dev.restAPIConnected
-    if (dev.restAPIConnected) {
-      $q.notify({
-        message: 'Alpaca Driver successfuly connected.',
-        type: 'positive', position: 'top', timeout: 3000,
-        actions: [{ icon: 'mdi-close', color: 'white' }]
-      })
-    }
-  }
+  if (!dev.restAPIConnected) await dev.connectRestAPI()
 }
 
 // disconnect when user unchecks the checkbox
 function attemptDisconnectFromAlpaca() {
-  dev.disconnectRestAPI()
-  connectToAlpacaCheckbox.value = dev.restAPIConnected
+  if (dev.restAPIConnected) dev.disconnectRestAPI()
 }
 
 // ------------------- Polaris Connection Helper Functions ---------------------
 
-watch(connectToPolarisCheckbox, async (newVal) => {
-  if (newVal) {
+async function onPolarisCheckboxToggle(checked:boolean) {
+  if (checked && !p.connected) {
     await attemmptConnectToPolaris()
-  } else {
+  } else if (!checked && p.connected) {
     await attemptDisconnectFromPolaris()
   }
-})
+}
+
 
 watch(()=>p.connected, (newVal)=>{
   if (newVal) {
-      connectToPolarisCheckbox.value=true
       $q.notify({
         message: 'Benro Polaris successfuly connected.',
         type: 'positive', position: 'top', timeout: 3000,
         actions: [{ icon: 'mdi-close', color: 'white' }]
       })
-  } else {
-      connectToPolarisCheckbox.value=false
-  }
+  } 
 })
 
 async function attemmptConnectToPolaris() {

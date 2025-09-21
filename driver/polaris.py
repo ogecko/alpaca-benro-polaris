@@ -345,7 +345,6 @@ class Polaris:
             init_task = asyncio.create_task(self.polaris_init())
             init_task.add_done_callback(self.task_done)
             self.logger.info(f'==STARTUP== Starting Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}.')
-            self._connecting = False
             return True
 
         except Exception as e:
@@ -624,9 +623,11 @@ class Polaris:
                         continue  # No data, keep looping
                     except (ConnectionResetError, BrokenPipeError) as e:
                         self.logger.error(f"==DISCONNECT== Polaris socket error: {e}")
+                        self._connecting = False
                         break
                     if not data:
                         self.logger.warn("==DISCONNECT== Polaris socket closed.")
+                        self._connecting = False
                         break
 
                     buffer += data.decode()
@@ -645,11 +646,13 @@ class Polaris:
 
         except asyncio.CancelledError:
             self.logger.info("==CANCELLED== PolarisReadMsgs cancelled.")
+            self._connecting = False
             raise
 
         except Exception as e:
             self._task_exception = e
             self.logger.error(f"==ERROR== read_msgs failed: {e}")
+            self._connecting = False
 
     # Parse a buffer returning a matched (cmd, args, remainingbuffer) or a cleared remaining buffer (False, False, "")
     def parse_msg(self, buffer):
@@ -1210,6 +1213,7 @@ class Polaris:
         await self.send_cmd_547()
         await self.send_cmd_808()   # Connection Context
         await self.send_cmd_520_position_updates(True)
+        self._connecting = False
 
         # if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
         #     if 'track' in ret_dict and int(ret_dict['track']) == 3:
