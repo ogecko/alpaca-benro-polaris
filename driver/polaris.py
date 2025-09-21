@@ -265,7 +265,7 @@ class Polaris:
             for axis in (0, 1, 2)
         }
         self._pid = PID_Controller(logger, self._motors, self._observer, loop=0.2)
-        self._ble = BLE_Controller(logger, lifecycle)
+        self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
 
         
     async def shutdown(self):

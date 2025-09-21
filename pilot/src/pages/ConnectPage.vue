@@ -127,7 +127,7 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <div v-else>
+              <div v-else-if="isBLESelected">
               <q-item>
                 <q-item-section thumbnail>
                   <q-icon name="mdi-alert-circle" color="red" />

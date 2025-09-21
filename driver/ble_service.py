@@ -10,13 +10,14 @@ SEND_UUID = "0000fff1-0000-1000-8000-00805f9b34fb"
 RECV_UUID = "0000fff2-0000-1000-8000-00805f9b34fb"
 
 class BLE_Controller():
-    def __init__(self, logger, lifecycle:LifecycleController):
+    def __init__(self, logger, lifecycle:LifecycleController, isConnectedFn):
         self.logger = logger
         self.lifecycle = lifecycle
         self.devices: dict[str, dict] = { }
         self.selectedDevice = None
         self.isEnablingWifi = False
         self.isWifiEnabled = False
+        self.isConnectedFn = isConnectedFn
 
 
     def get_address_by_name(self, name: str | None) -> str | None:
@@ -39,7 +40,7 @@ class BLE_Controller():
                 "last_seen": time.time(),
             }
             if self.selectedDevice is None:     # select the first one we discover
-                self.selectedDevice = name
+                asyncio.create_task(self.setSelectedDevice(name)) 
             if Config.log_polaris_ble:
                 self.logger.info(f"BLE Discovered Polaris: {device.address} ({self.devices[device.address]})")
 
@@ -69,15 +70,16 @@ class BLE_Controller():
             except Exception as e:
                 self.logger.warn(f"Failed to connect to {address}: {e}")
 
-    def setSelectedDevice(self, name):
+    async def setSelectedDevice(self, name):
         if any(dev.get("name") == name for dev in self.devices.values()):
-            self.selectedDevice = name
+            if self.selectedDevice != name:
+                self.selectedDevice = name
+                await self.enableWifi() 
 
     async def enableWifi(self):
         name = self.selectedDevice
         address = self.get_address_by_name(name)
         if not address:
-            self.logger.warn(f"BLE No Polaris device found with name '{name}'")
             return
         self.isEnablingWifi = True
         self.isWifiEnabled = False
@@ -109,5 +111,7 @@ class BLE_Controller():
         async with BleakScanner(self.scannerCallback) as scanner:
             while not self.lifecycle.should_shutdown():
                 self.prune_stale_devices()
-                await asyncio.sleep(15)
+                if not self.isConnectedFn():
+                    await self.enableWifi()
+                await asyncio.sleep(30)
 

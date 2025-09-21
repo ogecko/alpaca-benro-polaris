@@ -1576,7 +1576,7 @@ class action:
         elif actionName == "Polaris:bleSelectDevice":
             logger.info(f'BLE Select Device {parameters}')
             name = parameters.get('name', '')
-            polaris._ble.setSelectedDevice(name)
+            asyncio.create_task(polaris._ble.setSelectedDevice(name)) 
             resp.text = await PropertyResponse('bleSelectDevice ok', req)  
             return
 
