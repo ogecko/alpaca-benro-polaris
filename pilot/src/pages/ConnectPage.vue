@@ -96,20 +96,13 @@
                   <q-item-label caption>{{ bleCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section v-if="bleLen>0" side>
-                  <q-select  label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices" class="fixedWidth" dense options-dense
+                  <q-select  label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices"  dense options-dense
                             :display-value="`${isBLESelected ? p.bleselected : 'Unselected'}`" color="secondary">
+                    <template v-slot:before>
+                      <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="sm" color="primary" />
+                      <q-btn v-else round dense flat icon="mdi-wifi" :color="(p.bleiswifienabled)?'primary':'white'" @click="onBleEnableWifi"/>
+                    </template>
                   </q-select>
-                </q-item-section>
-              </q-item>
-              <!-- Enable Wifi -->
-              <q-item >
-                <q-item-section thumbnail>
-                  <q-icon :name="isWifiEnabled ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isWifiEnabled ? 'green' : 'red'" />
-                </q-item-section>
-                <q-item-section><q-item-label>Enable Polaris Wifi Hotspot</q-item-label></q-item-section>
-                <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="md" color="positive" />
-                <q-item-section v-if="isShowEnableWifi" side>
-                  <q-btn label="Enable" icon="mdi-wifi"  @click="onBleEnableWifi" class="fixedWidth" />
                 </q-item-section>
               </q-item>
               <!-- Connect to Polaris -->
@@ -260,8 +253,6 @@ const connectToPolarisCheckbox = ref(p.connected)
 
 const bleLen = computed(() => p.bledevices.length);
 const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
-const isShowEnableWifi = computed(() => isBLESelected.value && !p.connected);
-const isWifiEnabled = computed(() => (!!p.bleiswifienabled && isBLESelected.value)||p.connected);
 const isPolarisConnected = computed(() => (!!p.connected));
 const bleCaption = computed(() => {
   return (bleLen.value==0) ? 'Check Power, no devices discovered.' :
