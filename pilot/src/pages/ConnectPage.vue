@@ -73,7 +73,7 @@
         </q-card>
       </div>      
 
-      <div class="col-12 col-md-6 flex">
+      <div v-if="dev.restAPIConnected" class="col-12 col-md-6 flex">
         <!-- Section 2: Connect Benro Polaris -->
         <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">
@@ -118,7 +118,7 @@
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>
-                    Benro Polaris Mount
+                    Benro Polaris
                     <span class="q-gutter-sm q-pl-sm">
                       <q-badge>hw v{{ p.polarishwver }}</q-badge>
                       <q-badge>sw v{{ p.polarisswver }}</q-badge> 

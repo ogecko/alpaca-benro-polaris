@@ -1211,26 +1211,28 @@ class Polaris:
         await self.send_cmd_808()   # Connection Context
         await self.send_cmd_520_position_updates(True)
 
-        if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
-            if 'track' in ret_dict and int(ret_dict['track']) == 3:
-                # Polaris is in astro mode but alignment not complete
-                raise AstroAlignmentError()
-            s_lat = self._sitelatitude
-            s_lon = self._sitelongitude
-            self.logger.info("Polaris communication init... done")
-            self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
-            self.logger.warn(f'Change site_latitude and site_longitude in config.toml or use Nina/StellariumPLUS to sync.')
-            with self._lock:
-                self._connected = True
-                self._task_errorstr = ''
-            # if we want to run Aim test or Drift test over a set of targets in the sky
-            if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
-                asyncio.create_task(self.goto_tracking_test())
-            if Config.log_performance_data_test == 5:
-                asyncio.create_task(self.rotator_test())
-        else:
-            # Polaris is not in astro mode
-            raise AstroModeError()
+        # if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
+        #     if 'track' in ret_dict and int(ret_dict['track']) == 3:
+        #         # Polaris is in astro mode but alignment not complete
+        #         raise AstroAlignmentError()
+        # else:
+        #     # Polaris is not in astro mode
+        #     raise AstroModeError()
+
+        # Completed initialisation
+        with self._lock:
+            self._connected = True
+            self._task_errorstr = ''
+        s_lat = self._sitelatitude
+        s_lon = self._sitelongitude
+        self.logger.info("Polaris communication init... done")
+        self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
+        self.logger.warn(f'Change site_latitude and site_longitude in config.toml or use Nina/StellariumPLUS to sync.')
+        # if we want to run Aim test or Drift test over a set of targets in the sky
+        if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
+            asyncio.create_task(self.goto_tracking_test())
+        if Config.log_performance_data_test == 5:
+            asyncio.create_task(self.rotator_test())
 
 
     async def rotator_test(self):
