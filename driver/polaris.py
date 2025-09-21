@@ -162,7 +162,10 @@ class Polaris:
         # Telescope device completion flags
         #
         self._connections = {}                      # Dictionary of client's connection status True/False
+        self._compassed: bool = False               # Polaris alignment status. True if compass alignment performed. 
+        self._aligned: bool = False                 # Polaris alignment status. True if one star alignment performed. 
         self._connected: bool = False               # Polaris connection status. True if any client is connected. False when all clients have left.
+        self._connecting: bool = False              # Polaris is in the process of connecting. 
         self._tracking: bool = False                # The state of the ASCOM telescope's sidereal tracking drive.
         self._tracking_in_benro: bool = False       # The state of the Benro Polaris tracking mode.
         self._sideofpier: int = -1                  # Indicates the pointing state of the mount. Unknown = -1
@@ -317,10 +320,10 @@ class Polaris:
                 self.logger.info("==SHUTDOWN== Polaris socket closed.")
             except Exception as e:
                 self.logger.error(f"==SHUTDOWN== Error closing socket: {e}")
-
         # Reset internal state
         with self._lock:
             self._connected = False
+            self._connecting = False
             self._battery_is_available = False
             self._reader = None
             self._writer = None
@@ -331,6 +334,7 @@ class Polaris:
         try:
             with self._lock:
                 self._connected = False             # set to true when "Polaris communication init... done"
+                self._connecting = True             # set to false when this function returns"
                 self._battery_is_available = False  # set to true when we get a battery status message
                 self._task_exception = None
 
@@ -341,11 +345,13 @@ class Polaris:
             init_task = asyncio.create_task(self.polaris_init())
             init_task.add_done_callback(self.task_done)
             self.logger.info(f'==STARTUP== Starting Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}.')
+            self._connecting = False
             return True
 
         except Exception as e:
             self._task_errorstr = self._format_connection_error(e)
             self.logger.error(self._task_errorstr)
+            self._connecting = False
             return False
     
 
@@ -1379,7 +1385,11 @@ class Polaris:
                 'battery_is_available': self._battery_is_available,
                 'battery_is_charging': self._battery_is_charging,
                 'battery_level': self._battery_level,
+                'compassed': self._compassed,
+                'aligned': self._aligned,
                 'connected': self._connected,
+                'connecting': self._connecting,
+                'connectionmsg': self._task_errorstr,
                 'tracking': self._tracking,
                 'trackingrate': self._trackingrate,
                 'athome': self._athome,

@@ -113,26 +113,41 @@
                 </q-item-section>
               </q-item>
               <!-- Connect to Polaris -->
-              <q-item>
+              <q-item v-if="p.connecting">
                 <q-item-section thumbnail>
-                  <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
+                  <q-circular-progress indeterminate rounded size="lg" color="positive" />
+                </q-item-section>
+                <q-item-section>Connecting...</q-item-section>
+              </q-item>
+              <q-item v-else-if="isPolarisConnected">
+                <q-item-section thumbnail>
+                  <q-icon name="mdi-check-circle" color="green" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>
                     Benro Polaris Mount
-                    <span v-if="p.connected" class="q-gutter-sm q-pl-sm">
+                    <span class="q-gutter-sm q-pl-sm">
                       <q-badge>hw v{{ p.polarishwver }}</q-badge>
                       <q-badge>sw v{{ p.polarisswver }}</q-badge> 
                     </span>
                   </q-item-label>
-                  <q-item-label caption>{{ openCaption }}</q-item-label>
                 </q-item-section>
-                <q-item-section v-if="!p.connected" side>
+              </q-item>
+              <div v-else>
+              <q-item>
+                <q-item-section thumbnail>
+                  <q-icon name="mdi-alert-circle" color="red" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Benro Polaris Mount Problem</q-item-label>
+                  <q-item-label caption>{{p.connectionmsg}}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
                   <q-btn label="Connect" icon="mdi-wifi"  @click="attemmptConnectToPolaris" class="fixedWidth" />
                 </q-item-section>
               </q-item>
               <!-- Network Settings -->
-              <q-item v-if="!isPolarisConnected" :inset-level="0.5">
+              <q-item :inset-level="0.5">
                 <q-item-section>
                   <div  class="row items-start">
                     <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
@@ -145,8 +160,9 @@
                   </div>
                 </q-item-section>
               </q-item>
+              </div>
               <!-- Select Astro Mode -->
-              <q-item>
+              <q-item v-if="p.connected">
                 <q-item-section thumbnail>
                   <q-icon :name="isAstroMode ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isAstroMode ? 'green' : 'red'" />
                 </q-item-section>
@@ -164,7 +180,7 @@
                 </q-item-section>
               </q-item>
               <!-- Park -->
-              <q-item>
+              <q-item v-if="p.connected">
                 <q-item-section thumbnail>
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
@@ -176,7 +192,7 @@
                 </q-item-section>
               </q-item>
               <!-- Compass -->
-              <q-item>
+              <q-item v-if="p.connected">
                 <q-item-section thumbnail>
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
@@ -188,7 +204,7 @@
                 </q-item-section>
               </q-item>
               <!-- Single Star Align -->
-              <q-item>
+              <q-item v-if="p.connected">
                 <q-item-section thumbnail>
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
@@ -200,7 +216,7 @@
                 </q-item-section>
               </q-item>
               <!-- Multi Star Align -->
-              <q-item>
+              <q-item v-if="p.connected">
                 <q-item-section thumbnail>
                   <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
                 </q-item-section>
@@ -251,9 +267,6 @@ const bleCaption = computed(() => {
   return (bleLen.value==0) ? 'Check Power, no devices discovered.' :
          (bleLen.value>1) ? 'Multiple devices discovered.' :
          (isBLESelected.value) ? '' : 'Please select device.'
-});
-const openCaption = computed(() => {
-  return (!isPolarisConnected.value) ? 'Check Network settings, cannot open connection.' : ''
 });
 const isAstroMode = computed(() => p.polarismode==8);
 const astroCaption = computed(() => {
