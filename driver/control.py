@@ -74,9 +74,15 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [ ] Documentation on new features Topocentric tracking (You're maintaining a fixed pointing direction relative to the local horizon. The origin is your specific observing site, not Earth’s center.
 # Connection
 # [X] Implement Benro Polaris Connection process and diagnostics
-# [X] Connect to Benro Polaris without Benro App
-# [X] Implement Benro Polaris Wifi On 
-# [X] Alpaca pilot work outside of Astro Mode
+# [X] Connect to Benro Polaris without the Benro App
+# [X] Use BT Low Energey to Discover nearby Benro Polaris devices
+# [X] Use BT Low Energey to enable Wifi on selected Benro Polaris device
+# [X] Show Benro Polaris hardware and firmware versions
+# [X] Alpaca pilot able to change Polaris Mode to Astro
+# [X] Alpaca pilot able to goto Park position from Connection page
+# [X] Alpaca pilot able to skip Compass and Single Star Alignment using default values
+# [X] Alpaca pilot works outside of Astro Mode eg in Photo Mode
+# [ ] Alpaca pilot works without the third axis Astro Module Hardware (adjust Az/Alt)
 # Performance
 # [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
 # [ ] Move performance tests to actions

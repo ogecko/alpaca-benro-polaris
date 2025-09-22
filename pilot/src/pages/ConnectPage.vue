@@ -204,7 +204,7 @@
                   <q-item-label>Compass Alignment</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn-dropdown label="Skip" split icon="mdi-compass"  @click="onCompass(default_az)" class="fixedWidth">
+                  <q-btn-dropdown label="Skip" split icon="mdi-compass"  @click="onCompass(cfg.default_azimuth)" class="fixedWidth">
                     <q-list dense class="q-mt-md q-mb-md">
                       <q-item>
                         <q-item-section>
@@ -213,7 +213,7 @@
                         </q-item-section>
                       </q-item>
                       <q-item>
-                        <q-input label="Azimuth" v-model="default_az" number input-class="text-right" class="fixedWidth"/>
+                        <q-input label="Azimuth" v-model="cfg.default_azimuth" :onUpdate:modelValue="onDefaultAzChange" number input-class="text-right" class="fixedWidth"/>
                       </q-item>
                     </q-list>
                   </q-btn-dropdown>
@@ -231,7 +231,7 @@
                 <q-item-section side>
                   <div class="row items-center q-gutter-sm">
                     <q-circular-progress v-if="p.aligning" indeterminate rounded size="sm" />
-                    <q-btn-dropdown label="Skip" split icon="mdi-flare"  @click="onAlignment(default_az, default_alt)" class="fixedWidth">
+                    <q-btn-dropdown label="Skip" split icon="mdi-flare"  @click="onAlignment(cfg.default_azimuth, cfg.default_altitude)" class="fixedWidth">
                       <q-list dense class="q-mt-md q-mb-md">
                         <q-item>
                           <q-item-section>
@@ -240,10 +240,10 @@
                           </q-item-section>
                         </q-item>
                         <q-item>
-                          <q-input label="Azimuth" v-model="default_az" number input-class="text-right" class="fixedWidth"/>
+                          <q-input label="Azimuth" v-model="cfg.default_azimuth" :onUpdate:modelValue="onDefaultAzChange" number input-class="text-right" class="fixedWidth"/>
                         </q-item>
                         <q-item>
-                          <q-input label="Altitude" v-model="default_alt" number input-class="text-right" class="fixedWidth"/>
+                          <q-input label="Altitude" v-model="cfg.default_altitude" :onUpdate:modelValue="onDefaultAltChange" number input-class="text-right" class="fixedWidth"/>
                         </q-item>
                       </q-list>
                     </q-btn-dropdown>
@@ -268,7 +268,7 @@ import { useQuasar, debounce } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
 import { useStatusStore, polarisModeOptions } from 'stores/status'
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { watch, computed, onMounted, onUnmounted } from 'vue'
 import NetworkSettings from 'components/NetworkSettings.vue'
 
 const $q = useQuasar()
@@ -276,8 +276,6 @@ const dev = useDeviceStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
 
-const default_az = ref<number>(180)
-const default_alt = ref<number>(45)
 
 // ------------------- Computed Resources ---------------------
 
@@ -411,6 +409,13 @@ function onPolarisPortChange(v: string | number | boolean | null) {
   putdb({ polaris_port: v })
 }
 
+function onDefaultAzChange(v: string | number | boolean | null) {
+  putdb({ default_azimuth: v })
+}
+
+function onDefaultAltChange(v: string | number | boolean | null) {
+  putdb({ default_altitude: v })
+}
 
 
 const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put for input text

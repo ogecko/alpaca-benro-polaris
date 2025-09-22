@@ -26,6 +26,8 @@ site_pressure = 1010                        # atmospheric pressure in milli Bars
 focal_length = 800                          # The telescope's focal length, in miliimeters.
 focal_ratio = 11                            # The telescope's focal ratio ie focal_length / aperture_diameter.
 verbose_driver_exceptions = true            # Provide more detailed description of any Exceptions encountered in the driver.
+default_azimuth = 180                       # Used by Alpaca Pilot as default azimuth on Compass and Single Star Align
+default_altitude = 45                       # Used by Alpaca Pilot as default altitude on Single Star Align
 
 [control]
 advanced_kf = false                         # Enable the Kalman Filtering of measurement data to smooth out noise
