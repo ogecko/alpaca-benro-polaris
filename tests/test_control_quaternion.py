@@ -85,11 +85,11 @@ def test_motor_to_quaternion():
     assert str(motors_to_quaternion(297, 30, -5)) == str(Quaternion(-0.080, -0.846, +0.181, -0.495))
     assert str(motors_to_quaternion(330, 30, -5)) == str(Quaternion(-0.217, -0.760, +0.414, -0.451))
     assert str(motors_to_quaternion(340, 30, -5)) == str(Quaternion(-0.256, -0.721, +0.478, -0.431))
-    #assert str(motors_to_quaternion(340.0125, 30, -5)) == str(Quaternion(+0.256, +0.721, -0.478, +0.431)) # Wrong sign
-    #assert str(motors_to_quaternion(340, 30, -5)) == str(Quaternion(+0.256, +0.721, -0.478, +0.431)) # Wrong Sign
-    #assert str(motors_to_quaternion(350, 30, -5)) == str(Quaternion(+0.292, +0.677, -0.539, +0.407)) # wrong Sign
-    #assert str(motors_to_quaternion(358, 45, -5)) == str(Quaternion(+0.237, +0.675, -0.629, +0.303))  # wrong sign
-    #assert str(motors_to_quaternion(358, 45, +5)) == str(Quaternion(-0.295, -0.652, +0.653, -0.247))  # wrong sign
+    assert str(motors_to_quaternion(340.0125, 30, -5)) == str(Quaternion(-0.256, -0.721, +0.478, -0.431)) 
+    assert str(motors_to_quaternion(340, 30, -5)) == str(Quaternion(-0.256, -.721, +.478, -.431)) 
+    assert str(motors_to_quaternion(350, 30, -5)) == str(Quaternion(-0.292, -0.677, +0.539, -0.407)) 
+    assert str(motors_to_quaternion(358, 45, -5)) == str(Quaternion(-0.237, -0.676, +0.629, -0.303))  
+    assert str(motors_to_quaternion(358, 45, +5)) == str(Quaternion(+0.295, +0.652, -0.653, +0.247))
     assert str(motors_to_quaternion(+150,-5,0)) == str(Quaternion(-0.639,+0.338,+0.585,+0.369))
 
 
