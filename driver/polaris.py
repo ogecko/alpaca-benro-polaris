@@ -164,6 +164,7 @@ class Polaris:
         self._connections = {}                      # Dictionary of client's connection status True/False
         self._compassed: bool = False               # Polaris alignment status. True if compass alignment performed. 
         self._aligned: bool = False                 # Polaris alignment status. True if one star alignment performed. 
+        self._aligning: bool = False                # Polaris is in the process of aligning single star. 
         self._connected: bool = False               # Polaris connection status. True if any client is connected. False when all clients have left.
         self._connecting: bool = False              # Polaris is in the process of connecting. 
         self._tracking: bool = False                # The state of the ASCOM telescope's sidereal tracking drive.
@@ -601,17 +602,22 @@ class Polaris:
                 for x in self._N_point_alignment_results[key]:
                     self.logger.info(f'->>     {x["time"].strftime("%H:%M:%S")} | Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}')
             # Perform the actual star alignment on the Polaris
-            asyncio.create_task(self.send_cmd_star_alignment(a_alt, a_az))
+            asyncio.create_task(self.send_cmd_star_alignment(a_az, a_alt))
             # No longer need a sync adjustment since Polaris has been aligned
             self._adj_sync_azimuth = 0
             self._adj_sync_altitude = 0
         return
 
+    async def skip_compass_alignment(self, compass):
+            await self.send_cmd_compass_alignment(compass)
+            await self.send_cmd_284_query_current_mode()
+
+
     async def skip_star_alignment(self, azimuth, altitude):
-            # goto current position
-            # await self.send_cmd_goto_altaz(self._p_altitude, self._p_azimuth, istracking=False)
-            await asyncio.sleep(2)
-            await self.send_cmd_star_alignment(altitude, azimuth)
+            self._aligning = True
+            await self.send_cmd_star_alignment(azimuth, altitude)
+            await self.send_cmd_284_query_current_mode()
+            self._aligning = False
 
     async def read_msgs(self):
         buffer = ""
@@ -1041,7 +1047,7 @@ class Polaris:
         self._adj_sync_azimuth = 0
         await self.send_msg(f"1&527&3&compass:{compass};lat:{lat};lng:{lon};#")
 
-    async def send_cmd_star_alignment(self, a_alt:float, a_az:float):
+    async def send_cmd_star_alignment(self, a_az:float, a_alt:float):
         lat = self._sitelatitude
         lon = self._sitelongitude
         ca_az = 360 - a_az if a_az>180 else -a_az
@@ -1221,12 +1227,23 @@ class Polaris:
         ret_dict = await self.send_cmd_284_query_current_mode()
         await self.send_cmd_802()
         await self.send_cmd_824()
+        # 286
         await self.send_cmd_780()
         await self.send_cmd_305()
         await self.send_cmd_272()
         await self.send_cmd_547()
         await self.send_cmd_808()   # Connection Context
         await self.send_cmd_520_position_updates(True)
+        # 523 Reset axes
+        # 543
+        # 285 Mode 8
+        # 284
+        # 520
+        # 527 Compass
+        # 520
+        # 284
+        # 519 type:3;code:519;val:state:1;yaw:-166.577;pitch:61.513;lat:-33.655254;track:0;speed:0;lng:151.12231;
+        # 530
         self._connecting = False
 
         # if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
@@ -1424,6 +1441,7 @@ class Polaris:
                 'battery_level': self._battery_level,
                 'compassed': self._compassed,
                 'aligned': self._aligned,
+                'aligning': self._aligning,
                 'connected': self._connected,
                 'connecting': self._connecting,
                 'connectionmsg': self._task_errorstr,

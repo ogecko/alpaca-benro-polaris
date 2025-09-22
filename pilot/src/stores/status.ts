@@ -27,6 +27,7 @@ export const useStatusStore = defineStore('status', {
         battery_level: 0,
         compassed: false,
         aligned: false,
+        aligning: false,
         connected: false,
         connecting: false,
         connectionmsg: '',

@@ -1603,7 +1603,7 @@ class action:
         elif actionName == "Polaris:SetCompass":
             logger.info(f'Polaris SetCompass {parameters}')
             compass = int(parameters.get('compass', 0))
-            await polaris.send_cmd_compass_alignment(compass)
+            asyncio.create_task(polaris.skip_compass_alignment(compass)) 
             resp.text = await PropertyResponse('Polaris Set Compass ok', req)  
             return
 
@@ -1611,7 +1611,7 @@ class action:
             logger.info(f'Polaris SetAlignment {parameters}')
             azimuth = int(parameters.get('azimuth', 0))
             altitude = int(parameters.get('altitude', 0))
-            asyncio.create_task(polaris.skip_star_alignment(altitude, azimuth)) 
+            asyncio.create_task(polaris.skip_star_alignment(azimuth, altitude)) 
             resp.text = await PropertyResponse('Polaris Set Alignment ok', req)  
             return
 

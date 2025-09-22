@@ -229,22 +229,25 @@
                   <q-item-label>Single Star Alignment</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn-dropdown label="Skip" split icon="mdi-flare"  @click="onAlignment(default_az, default_alt)" class="fixedWidth">
-                    <q-list dense class="q-mt-md q-mb-md">
-                      <q-item>
-                        <q-item-section>
-                          <q-item-label caption>Use these defaults.</q-item-label>
-                          <q-item-label caption>Plate solve later.</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                      <q-item>
-                        <q-input label="Azimuth" v-model="default_az" number input-class="text-right" class="fixedWidth"/>
-                      </q-item>
-                      <q-item>
-                        <q-input label="Altitude" v-model="default_alt" number input-class="text-right" class="fixedWidth"/>
-                      </q-item>
-                    </q-list>
-                  </q-btn-dropdown>
+                  <div class="row items-center q-gutter-sm">
+                    <q-circular-progress v-if="p.aligning" indeterminate rounded size="sm" />
+                    <q-btn-dropdown label="Skip" split icon="mdi-flare"  @click="onAlignment(default_az, default_alt)" class="fixedWidth">
+                      <q-list dense class="q-mt-md q-mb-md">
+                        <q-item>
+                          <q-item-section>
+                            <q-item-label caption>Use these defaults.</q-item-label>
+                            <q-item-label caption>Plate solve later.</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                        <q-item>
+                          <q-input label="Azimuth" v-model="default_az" number input-class="text-right" class="fixedWidth"/>
+                        </q-item>
+                        <q-item>
+                          <q-input label="Altitude" v-model="default_alt" number input-class="text-right" class="fixedWidth"/>
+                        </q-item>
+                      </q-list>
+                    </q-btn-dropdown>
+                  </div>
                 </q-item-section>
               </q-item>
 
