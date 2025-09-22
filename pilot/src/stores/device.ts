@@ -113,7 +113,15 @@ export const useDeviceStore = defineStore('device', {
     },
 
     async setPolarisMode(mode:number) {
-      await this.apiAction<void>('Polaris:SetMode', `{"mode": "${mode}"}`)
+      await this.apiAction<void>('Polaris:SetMode', `{"mode": ${mode}}`)
+    },
+
+    async setPolarisCompass(compass:number) {
+      await this.apiAction<void>('Polaris:SetCompass', `{"compass": ${compass}}`)
+    },
+
+    async setPolarisAlignment(az:number, alt:number) {
+      await this.apiAction<void>('Polaris:SetAlignment', `{"azimuth": ${az}, "altitude": ${alt}}`)
     },
 
     async bleSelectDevice(name:string) {

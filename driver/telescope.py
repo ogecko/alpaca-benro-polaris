@@ -1453,13 +1453,14 @@ class unpark:
 @before(PreProcessRequest(maxdev, 'log_alpaca_discovery'))
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = await PropertyResponse(['Polaris:RestartDriver', 'Polaris:StatusFetch', 'Polaris:ConfigFetch', 
-                                            'Polaris:ConfigUpdate', 'Polaris:ConfigSave', 'Polaris:ConfigRestore',
-                                            'Polaris:MoveAxis', 'Polaris:MoveMotor', 
-                                            'Polaris:SpeedTestStart', 'Polaris:SpeedTestStop', 'Polaris:SpeedTestApprove' 
-                                            'Polaris:bleSelectDevice', 'Polaris:bleEnableWifi', 
-                                            'Polaris:DeviceConnect', 'Polaris:DeviceDisconnect',
-                                            ], req)  
+        resp.text = await PropertyResponse([
+            "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
+            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StatusFetch", 
+            "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
+            "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
+            "Polaris:MoveAxis", "Polaris:MoveMotor", 
+            "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove" 
+        ], req)  
 
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
@@ -1599,6 +1600,20 @@ class action:
             resp.text = await PropertyResponse('Polaris SetMode ok', req)  
             return
 
+        elif actionName == "Polaris:SetCompass":
+            logger.info(f'Polaris SetCompass {parameters}')
+            compass = int(parameters.get('compass', 0))
+            await polaris.send_cmd_compass_alignment(compass)
+            resp.text = await PropertyResponse('Polaris Set Compass ok', req)  
+            return
+
+        elif actionName == "Polaris:SetAlignment":
+            logger.info(f'Polaris SetAlignment {parameters}')
+            azimuth = int(parameters.get('azimuth', 0))
+            altitude = int(parameters.get('altitude', 0))
+            await polaris.send_cmd_star_alignment(altitude, azimuth)
+            resp.text = await PropertyResponse('Polaris Set Alignment ok', req)  
+            return
 
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))

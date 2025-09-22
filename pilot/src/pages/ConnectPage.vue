@@ -188,13 +188,13 @@
               <!-- Compass -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
-                  <q-icon :name="p.aligned ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.aligned ? 'green' : 'red'" />
+                  <q-icon :name="p.compassed ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.compassed ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Align Compass Azimuth</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn label="Skip" icon="mdi-compass"  @click="onBleEnableWifi" class="fixedWidth"/>
+                  <q-btn label="Skip" icon="mdi-compass"  @click="onCompass(180)" class="fixedWidth"/>
                 </q-item-section>
               </q-item>
               <!-- Single Star Align -->
@@ -206,7 +206,7 @@
                   <q-item-label>Single Star Alignment</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn label="Skip" icon="mdi-flare"  @click="onBleEnableWifi" class="fixedWidth"/>
+                  <q-btn label="Skip" icon="mdi-flare"  @click="onAlignment(180,45)" class="fixedWidth"/>
                 </q-item-section>
               </q-item>
               <!-- Multi Star Align -->
@@ -289,6 +289,15 @@ async function onPark() {
   await dev.alpacaUnPark()
 }
 
+async function onCompass(newVal:number = 180.0) {
+  console.log('Set Compass Alignment')
+  await dev.setPolarisCompass(newVal)
+}
+
+async function onAlignment(az:number = 180.0, alt:number = 45.0) {
+  console.log('Set Alignment Alignment')
+  await dev.setPolarisAlignment(az, alt)
+}
 
 
 async function onModeUpdate(newVal:number) {

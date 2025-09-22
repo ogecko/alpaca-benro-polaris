@@ -824,6 +824,13 @@ class Polaris:
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: 525 status changed: {cmd} {args}")
 
+        # return result of SET COMPASS
+        elif cmd == "527":
+            arg_dict = self.polaris_parse_args(args)
+            self._compassed = arg_dict.get('ret') == '0'
+            if Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: 527 Set Compass: {cmd} {arg_dict}")
+
         # return result of TRACK change request {'ret': 'X'} where X=0 (NoTracking), X=1 (Tracking)
         elif cmd == "531":
             arg_dict = self.polaris_parse_args(args)
