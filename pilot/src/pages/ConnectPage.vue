@@ -24,6 +24,7 @@
               :model-value="dev.restAPIConnected" @update:model-value="onAlpacaCheckboxToggle" /></div>
             <q-list class="q-pl-lg">
 
+              <!-- Alpaca Connecting -->
               <q-item v-if="dev.restAPIConnectingMsg">
                 <q-item-section thumbnail>
                   <q-circular-progress indeterminate rounded size="lg" color="positive" />
@@ -31,6 +32,7 @@
                 <q-item-section>{{ dev.restAPIConnectingMsg }}</q-item-section>
               </q-item>
 
+              <!-- Alpaca Connected -->
               <q-item v-else-if="dev.restAPIConnected">
                 <q-item-section thumbnail>
                   <q-icon name='mdi-check-circle' color='green'/>
@@ -46,6 +48,7 @@
                 </q-item-section>
               </q-item>
 
+              <!-- Alpaca Connection Problem -->
               <q-item v-else>
                 <q-item-section thumbnail>
                   <q-icon name='mdi-alert-circle' color='red'/>
@@ -59,6 +62,7 @@
                 </q-item-section>
               </q-item>
 
+              <!-- Alpaca Connection Settings -->
               <q-item v-if="!dev.restAPIConnected && !dev.restAPIConnectingMsg"  :inset-level="0.5">
                 <q-item-section>
                   <div class="row items-start">
@@ -79,9 +83,6 @@
         <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">
             <q-checkbox :model-value="p.connected" @update:model-value="onPolarisCheckboxToggle" color="positive" label="Connect Driver to Benro Polaris" />
-          </div>
-
-          <div class="q-pl-xl q-mt-sm">
           </div>
 
           <!-- Polaris Connection Steps -->
@@ -106,13 +107,16 @@
                   </q-select>
                 </q-item-section>
               </q-item>
-              <!-- Connect to Polaris -->
+
+              <!-- Polaris Connecting -->
               <q-item v-if="p.connecting && p.bleselected">
                 <q-item-section thumbnail>
                   <q-circular-progress indeterminate rounded size="lg" color="positive" />
                 </q-item-section>
                 <q-item-section>Connecting...</q-item-section>
               </q-item>
+
+              <!-- Polaris Connected -->
               <q-item v-else-if="isPolarisConnected">
                 <q-item-section thumbnail>
                   <q-icon name="mdi-check-circle" color="green" />
@@ -127,34 +131,38 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
+
               <div v-else-if="isBLESelected">
-              <q-item>
-                <q-item-section thumbnail>
-                  <q-icon name="mdi-alert-circle" color="red" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Benro Polaris Connection Problem</q-item-label>
-                  <q-item-label caption>{{p.connectionmsg}}</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-btn label="Connect" icon="mdi-wifi"  @click="attemmptConnectToPolaris" class="fixedWidth" />
-                </q-item-section>
-              </q-item>
-              <!-- Network Settings -->
-              <q-item :inset-level="0.5">
-                <q-item-section>
-                  <div  class="row items-start">
-                    <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
-                      v-model="cfg.polaris_ip_address" :onUpdate:modelValue="onPolarisIPChange" @keyup.enter="attemmptConnectToPolaris" >
-                    </q-input>
-                    <q-input class="col-4" label="Port" type="number" input-class="text-right"
-                      v-model="cfg.polaris_port" :onUpdate:modelValue="onPolarisPortChange" @keyup.enter="attemmptConnectToPolaris" >
-                      <template v-slot:prepend><q-icon name="mdi-network-outline" /></template>
-                    </q-input>
-                  </div>
-                </q-item-section>
-              </q-item>
+                <!-- Polaris Connection Problem -->
+                <q-item>
+                  <q-item-section thumbnail>
+                    <q-icon name="mdi-alert-circle" color="red" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Benro Polaris Connection Problem</q-item-label>
+                    <q-item-label caption>{{p.connectionmsg}}</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-btn label="Connect" icon="mdi-wifi"  @click="attemmptConnectToPolaris" class="fixedWidth" />
+                  </q-item-section>
+                </q-item>
+
+                <!-- Polaris Network Settings -->
+                <q-item :inset-level="0.5">
+                  <q-item-section>
+                    <div  class="row items-start">
+                      <q-input class="col-8 q-pt-none" label="Host Name / IP Address"
+                        v-model="cfg.polaris_ip_address" :onUpdate:modelValue="onPolarisIPChange" @keyup.enter="attemmptConnectToPolaris" >
+                      </q-input>
+                      <q-input class="col-4" label="Port" type="number" input-class="text-right"
+                        v-model="cfg.polaris_port" :onUpdate:modelValue="onPolarisPortChange" @keyup.enter="attemmptConnectToPolaris" >
+                        <template v-slot:prepend><q-icon name="mdi-network-outline" /></template>
+                      </q-input>
+                    </div>
+                  </q-item-section>
+                </q-item>
               </div>
+
               <!-- Select Astro Mode -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
@@ -173,6 +181,7 @@
                   </q-select>
                 </q-item-section>
               </q-item>
+
               <!-- Park -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
@@ -185,18 +194,32 @@
                   <q-btn label="Park" icon="mdi-parking"  class="fixedWidth" @click="onPark"/>
                 </q-item-section>
               </q-item>
+
               <!-- Compass -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
                   <q-icon :name="p.compassed ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.compassed ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Align Compass Azimuth</q-item-label>
+                  <q-item-label>Compass Alignment</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn label="Skip" icon="mdi-compass"  @click="onCompass(180)" class="fixedWidth"/>
+                  <q-btn-dropdown label="Skip" split icon="mdi-compass"  @click="onCompass(default_az)" class="fixedWidth">
+                    <q-list dense class="q-mt-md q-mb-md">
+                      <q-item>
+                        <q-item-section>
+                          <q-item-label caption>Use this default.</q-item-label>
+                          <q-item-label caption>Plate solve later.</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                      <q-item>
+                        <q-input label="Azimuth" v-model="default_az" number input-class="text-right" class="fixedWidth"/>
+                      </q-item>
+                    </q-list>
+                  </q-btn-dropdown>
                 </q-item-section>
               </q-item>
+
               <!-- Single Star Align -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
@@ -206,19 +229,22 @@
                   <q-item-label>Single Star Alignment</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn label="Skip" icon="mdi-flare"  @click="onAlignment(180,45)" class="fixedWidth"/>
-                </q-item-section>
-              </q-item>
-              <!-- Multi Star Align -->
-              <q-item v-if="p.connected">
-                <q-item-section thumbnail>
-                  <q-icon :name="p.aligned ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.aligned ? 'green' : 'red'" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Auto Level and Multi Star Alignment</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-btn label="Begin" icon="mdi-creation-outline"  @click="onBleEnableWifi" class="fixedWidth"/>
+                  <q-btn-dropdown label="Skip" split icon="mdi-flare"  @click="onAlignment(default_az, default_alt)" class="fixedWidth">
+                    <q-list dense class="q-mt-md q-mb-md">
+                      <q-item>
+                        <q-item-section>
+                          <q-item-label caption>Use these defaults.</q-item-label>
+                          <q-item-label caption>Plate solve later.</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                      <q-item>
+                        <q-input label="Azimuth" v-model="default_az" number input-class="text-right" class="fixedWidth"/>
+                      </q-item>
+                      <q-item>
+                        <q-input label="Altitude" v-model="default_alt" number input-class="text-right" class="fixedWidth"/>
+                      </q-item>
+                    </q-list>
+                  </q-btn-dropdown>
                 </q-item-section>
               </q-item>
 
@@ -239,13 +265,16 @@ import { useQuasar, debounce } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
 import { useStatusStore, polarisModeOptions } from 'stores/status'
-import { watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import NetworkSettings from 'components/NetworkSettings.vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
+
+const default_az = ref<number>(180)
+const default_alt = ref<number>(45)
 
 // ------------------- Computed Resources ---------------------
 

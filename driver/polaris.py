@@ -1046,6 +1046,7 @@ class Polaris:
         await self.send_msg(f"1&530&3&step:2;yaw:{ca_az};pitch:{a_alt};lat:{lat};num:1;lng:{lon};#")
         await asyncio.sleep(0.2)
         await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
+        await self.send_cmd_284_query_current_mode()
 
     async def send_cmd_park(self):
         if Config.log_polaris_protocol:
