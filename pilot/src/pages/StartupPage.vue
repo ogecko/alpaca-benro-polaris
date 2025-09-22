@@ -41,9 +41,6 @@
 
       <!----- RHS Chip Status Info ----->
       <div class="row col-6 col-sm-4 wrap justify-end ">
-        <q-chip color="positive" :outline="p.polarismode!=8">
-          {{polarismodestr}}
-        </q-chip>
         <q-chip color="positive" :outline="!p.slewing">
           Slewing
         </q-chip>
@@ -129,9 +126,7 @@ const displayConfig = computed(() => isEquatorial.value ? [
   { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType },
   { label: 'Roll', pv: p.roll, sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType }
 ]);
-const polarisModeConfig = ['Unknown', 'Photo', 'Pano', 'Focus', 'Timelapse', 'Pathlapse', 'HDR', 'Sun', 'Astro', 'Program', 'Video']
 
-const polarismodestr = computed(() => polarisModeConfig[p.polarismode])
 
 // ------------------- Lifecycle Events ---------------------
 
