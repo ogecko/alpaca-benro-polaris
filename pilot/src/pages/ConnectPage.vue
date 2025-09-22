@@ -107,7 +107,7 @@
                 </q-item-section>
               </q-item>
               <!-- Connect to Polaris -->
-              <q-item v-if="p.connecting">
+              <q-item v-if="p.connecting && p.bleselected">
                 <q-item-section thumbnail>
                   <q-circular-progress indeterminate rounded size="lg" color="positive" />
                 </q-item-section>
