@@ -1611,7 +1611,7 @@ class action:
             logger.info(f'Polaris SetAlignment {parameters}')
             azimuth = int(parameters.get('azimuth', 0))
             altitude = int(parameters.get('altitude', 0))
-            await polaris.send_cmd_star_alignment(altitude, azimuth)
+            asyncio.create_task(polaris.skip_star_alignment(altitude, azimuth)) 
             resp.text = await PropertyResponse('Polaris Set Alignment ok', req)  
             return
 
