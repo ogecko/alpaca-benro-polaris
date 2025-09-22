@@ -415,11 +415,11 @@ class Polaris:
 
                 # self.logger.info(f'->> Polaris: age_of_518 is {age_of_518}s.')
                 # if we dont have any updates, even after trying to restart AHRS, then reboot the connection
-                if self._connected and age_of_518 > 5:
+                if self._connected and self._aligned and age_of_518 > 5:
                     self._task_exception = WatchdogError("==ERROR==: No position update for over 5s. Rebooting Connection.")
 
                 # if we dont have any updates for over 2s, then restart AHRS.
-                if self._connected and age_of_518 > 2:
+                if self._connected and self._aligned and age_of_518 > 2:
                     self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
@@ -683,8 +683,9 @@ class Polaris:
             arg_dict = self.polaris_parse_args(args)
             with self._lock:
                 self._polaris_mode = int(arg_dict['mode'])
-                self._tracking_in_benro = arg_dict.get('track') == '1'
-                self._aligned = not arg_dict.get('track') == '3'
+                if self._polaris_mode == 8:
+                    self._tracking_in_benro = arg_dict.get('track') == '1'
+                    self._aligned = not arg_dict.get('track') == '3'
                 if not Config.advanced_tracking:        # only update tracking if Benro in control
                     self._tracking = self._tracking_in_benro
             if Config.log_polaris_polling:
