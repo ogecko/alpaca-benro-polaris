@@ -418,6 +418,31 @@ def motors_to_quaternion(theta1, theta2, theta3):
     q1n = q1.normalised if noflip else -q1.normalised
     return q1n
 
+def extract_theta_given_theta3(tUp, tBore, theta3):
+    unroll = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
+    mBore = unroll.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module on the polaris
+    theta1 = (np.degrees(np.arctan2(mBore[0], mBore[1])) + 360) % 360
+    theta2 = np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0)))
+    return theta1, theta2, theta3
+
+def quaternion_to_motors(q1):
+    # --- Camera Up and Boresight vector in topo frame
+    tUp = q1.rotate(np.array([1, 0, 0]))
+    tBore = q1.rotate(np.array([0, 0, -1]))
+
+    # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
+    q4 = q1 * Quaternion(axis=np.array([1, 0, 0]), degrees=180) 
+    theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
+    #theta3 = wrap_to_180(theta3 - 180)   # Alternate possible solution
+
+    # --- Theta1 and Theta2: rotation around corrected bore vector ie Polaris Axis 1 and 2, without effect of Axis 3
+    unroll = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
+    mBore = unroll.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module on the polaris
+    theta1 = wrap_to_360(np.degrees(np.arctan2(mBore[0], mBore[1])))
+    theta2 = wrap_to_90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
+
+    return theta1, theta2, theta3
+
 
 def quaternion_to_angles(q1, azhint = -1):
     """

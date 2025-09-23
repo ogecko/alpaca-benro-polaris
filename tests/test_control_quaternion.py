@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import angles_to_quaternion, motors_to_quaternion, quaternion_to_angles
+from control import angles_to_quaternion, motors_to_quaternion, quaternion_to_angles, quaternion_to_motors
 
 
 test_cases = [
@@ -94,49 +94,84 @@ def test_motor_to_quaternion():
 
 
 
-def test_az5_alt30_motor_to_quaternion():
-    assert str(motors_to_quaternion(+5,+30,-170)) == str(Quaternion(-0.551, 0.418, +0.281, +0.666))
-    assert str(motors_to_quaternion(+5,+30,-100)) == str(Quaternion(-0.211, +0.658, -0.152, +0.706))
-    assert str(motors_to_quaternion(+5,+30,-80)) == str(Quaternion(-0.094, +0.685, -0.272, +0.669))
-    assert str(motors_to_quaternion(+5,+30,-10)) == str(Quaternion(0.316, +0.615, -0.607, +0.392))
-    assert str(motors_to_quaternion(+5,+30,0)) == str(Quaternion(-0.369, -0.585, +0.639, -0.338))
-    assert str(motors_to_quaternion(+5,+30,+10)) == str(Quaternion(-0.418, -0.551, +0.666, -0.281))
-    assert str(motors_to_quaternion(+5,+30,+80)) == str(Quaternion(-0.658, -0.211, +0.706, +0.152))
-    assert str(motors_to_quaternion(+5,+30,+100)) == str(Quaternion(-0.685, -0.094, +0.669, +0.272))
-    assert str(motors_to_quaternion(+5,+30,+170)) == str(Quaternion(-0.615, +0.316, +0.392, +0.607))
 
-def test_az355_alt30_motor_to_quaternion():
-    assert str(motors_to_quaternion(+355,+30,-170)) == str(Quaternion(0.607, -0.392, -0.316, -0.615))
-    assert str(motors_to_quaternion(+355,+30,-100)) == str(Quaternion(0.272, -0.669, +0.094, -0.685))
-    assert str(motors_to_quaternion(+355,+30,-80)) == str(Quaternion(0.152, -0.706, +0.211, -0.658))
-    assert str(motors_to_quaternion(+355,+30,-10)) == str(Quaternion(-0.281, -0.666, +0.551, -0.418))
-    assert str(motors_to_quaternion(+355,+30,0)) == str(Quaternion(0.338, +0.639, -0.585, +0.369))
-    assert str(motors_to_quaternion(+355,+30,+10)) == str(Quaternion(0.392, +0.607, -0.615, +0.316))
-    assert str(motors_to_quaternion(+355,+30,+80)) == str(Quaternion(0.669, +0.272, -0.685, -0.094))
-    assert str(motors_to_quaternion(+355,+30,+100)) == str(Quaternion(0.706, +0.152, -0.658, -0.211))
-    assert str(motors_to_quaternion(+355,+30,+170)) == str(Quaternion(0.666, -0.281, -0.418, -0.551))
+test_az5_alt30_cases = [
+    # (theta1, theta2, theta3, expected_quaternion)
+    (+5, +30, -170, Quaternion(-0.551, +0.418, +0.281, +0.666)),
+    (+5, +30, -100, Quaternion(-0.211, +0.658, -0.152, +0.706)),
+    (+5, +30,  -80, Quaternion(-0.094, +0.685, -0.272, +0.669)),
+    (+5, +30,  -10, Quaternion(+0.316, +0.615, -0.607, +0.392)),
+    (+5, +30,    0, Quaternion(-0.369, -0.585, +0.639, -0.338)),
+    (+5, +30,  +10, Quaternion(-0.418, -0.551, +0.666, -0.281)),
+    (+5, +30,  +80, Quaternion(-0.658, -0.211, +0.706, +0.152)),
+    (+5, +30, +100, Quaternion(-0.685, -0.094, +0.669, +0.272)),
+    (+5, +30, +170, Quaternion(-0.615, +0.316, +0.392, +0.607)),
+]
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az5_alt30_cases)
+def test_az5_alt30_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
 
-def test_az355_alt_ve7_motor_to_quaternion():
-    assert str(motors_to_quaternion(+355,-7,-170)) == str(Quaternion(0.443, -0.547, -0.511, -0.494))
-    assert str(motors_to_quaternion(+355,-7,-100)) == str(Quaternion(0.049, -0.702, -0.135, -0.698))
-    assert str(motors_to_quaternion(+355,-7,-80)) == str(Quaternion(-0.074, -0.699, -0.012, -0.711))
-    assert str(motors_to_quaternion(+355,-7,-10)) == str(Quaternion(-0.461, -0.531, +0.398, -0.589))
-    # assert str(motors_to_quaternion(+355,-7,+0)) == str(Quaternion(-0.506, -0.489, +0.448, -0.552))   # need flipping
-    assert str(motors_to_quaternion(+355,-7,+10)) == str(Quaternion(0.547, +0.443, -0.494, +0.511))
-    assert str(motors_to_quaternion(+355,-7,+70)) == str(Quaternion(0.695, +0.110, -0.683, +0.196))
-    assert str(motors_to_quaternion(+355,-7,+100)) == str(Quaternion(0.699, -0.074, -0.711, +0.012))
-    assert str(motors_to_quaternion(+355,-7,+170)) == str(Quaternion(0.531, -0.461, -0.589, -0.398))
 
-def test_az5_alt0_motor_to_quaternion():
-    assert str(motors_to_quaternion(+5,+0,-170)) == str(Quaternion(-0.430, +0.561, +0.430, +0.561))
-    assert str(motors_to_quaternion(+5,+0,-100)) == str(Quaternion(-0.031, +0.706, +0.031, +0.706))
-    assert str(motors_to_quaternion(+5,+0,-80)) == str(Quaternion(0.092, +0.701, -0.092, +0.701))
-    assert str(motors_to_quaternion(+5,+0,-10)) == str(Quaternion(0.478, +0.521, -0.478, +0.521))
-    # assert str(motors_to_quaternion(+5,+0,0)) == str(Quaternion(0.521, +0.478, -0.521, +0.478))  # need flipping
-    assert str(motors_to_quaternion(+5,+0,+10)) == str(Quaternion(-0.561, -0.430, +0.561, -0.430))
-    assert str(motors_to_quaternion(+5,+0,+80)) == str(Quaternion(-0.706, -0.031, +0.706, -0.031))
-    assert str(motors_to_quaternion(+5,+0,+100)) == str(Quaternion(-0.701, +0.092, +0.701, +0.092))
-    assert str(motors_to_quaternion(+5,+0,+170)) == str(Quaternion(-0.521, +0.478, +0.521, +0.478))
+
+test_az355_alt30_cases = [
+    # (theta1, theta2, theta3, expected_quaternion)
+    (+355, +30, -170, Quaternion(+0.607, -0.392, -0.316, -0.615)),
+    (+355, +30, -100, Quaternion(+0.272, -0.669, +0.094, -0.685)),
+    (+355, +30,  -80, Quaternion(+0.152, -0.706, +0.211, -0.658)),
+    (+355, +30,  -10, Quaternion(-0.281, -0.666, +0.551, -0.418)),
+    (+355, +30,    0, Quaternion(+0.338, +0.639, -0.585, +0.369)),
+    (+355, +30,  +10, Quaternion(+0.392, +0.607, -0.615, +0.316)),
+    (+355, +30,  +80, Quaternion(+0.669, +0.272, -0.685, -0.094)),
+    (+355, +30, +100, Quaternion(+0.706, +0.152, -0.658, -0.211)),
+    (+355, +30, +170, Quaternion(+0.666, -0.281, -0.418, -0.551)),
+]
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az355_alt30_cases)
+def test_az355_alt30_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
+
+
+
+
+test_az355_alt_minus7_cases = [
+    # (theta1, theta2, theta3, expected_quaternion)
+    (+355, -7, -170, Quaternion(+0.443, -0.547, -0.511, -0.494)),
+    (+355, -7, -100, Quaternion(+0.049, -0.702, -0.135, -0.698)),
+    (+355, -7,  -80, Quaternion(-0.074, -0.699, -0.012, -0.711)),
+    (+355, -7,  -10, Quaternion(-0.461, -0.531, +0.398, -0.589)),
+    # (+355, -7,    0, Quaternion(-0.506, -0.489, +0.448, -0.552)),  # needs flipping — skip or handle separately
+    (+355, -7,  +10, Quaternion(+0.547, +0.443, -0.494, +0.511)),
+    (+355, -7,  +70, Quaternion(+0.695, +0.110, -0.683, +0.196)),
+    (+355, -7, +100, Quaternion(+0.699, -0.074, -0.711, +0.012)),
+    (+355, -7, +170, Quaternion(+0.531, -0.461, -0.589, -0.398)),
+]
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az355_alt_minus7_cases)
+def test_az355_alt_minus7_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
+#    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
+
+
+
+
+test_az5_alt0_cases = [
+    # (theta1, theta2, theta3, expected_quaternion)
+    (+5, 0, -170, Quaternion(-0.430, +0.561, +0.430, +0.561)),
+    (+5, 0, -100, Quaternion(-0.031, +0.706, +0.031, +0.706)),
+    (+5, 0,  -80, Quaternion(+0.092, +0.701, -0.092, +0.701)),
+    (+5, 0,  -10, Quaternion(+0.478, +0.521, -0.478, +0.521)),
+    # (+5, 0,    0, Quaternion(+0.521, +0.478, -0.521, +0.478)),  # needs flipping — optional to include
+    (+5, 0,  +10, Quaternion(-0.561, -0.430, +0.561, -0.430)),
+    (+5, 0,  +80, Quaternion(-0.706, -0.031, +0.706, -0.031)),
+    (+5, 0, +100, Quaternion(-0.701, +0.092, +0.701, +0.092)),
+    (+5, 0, +170, Quaternion(-0.521, +0.478, +0.521, +0.478)),
+]
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az5_alt0_cases)
+def test_az5_alt0_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
+#    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
+
+
 
 def test_angles_to_quaternion():
     assert str(angles_to_quaternion(+97.0875,+44.7835,-4.9968)) == str(Quaternion(-0.382, +0.017, +0.923, +0.040))  # 90, 45, -5
