@@ -5,6 +5,12 @@
         <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
+    <div v-else-if="!p.connected" >
+      <q-banner inline-actions rounded class="bg-warning" >
+        WARNING: The Alpaca Driver has lost connection to the Benro Polaris.
+        <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
+      </q-banner>
+    </div>
     <div v-if="p.atpark" >
       <q-banner inline-actions rounded class="bg-warning">
         WARNING: The Alpaca Driver is parking/parked. Most functions are disabled.
@@ -19,6 +25,8 @@ import { useStatusStore } from 'src/stores/status';
 
 const dev = useDeviceStore()
 const p = useStatusStore()
+
+
 
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
