@@ -92,16 +92,6 @@ def test_motor_to_quaternion():
     assert str(motors_to_quaternion(358, 45, +5)) == str(Quaternion(+0.295, +0.652, -0.653, +0.247))
     assert str(motors_to_quaternion(+150,-5,0)) == str(Quaternion(-0.639,+0.338,+0.585,+0.369))
 
-def test_az5_alt0_motor_to_quaternion():
-    assert str(motors_to_quaternion(+5,+0,-170)) == str(Quaternion(-0.430, +0.561, +0.430, +0.561))
-    assert str(motors_to_quaternion(+5,+0,-100)) == str(Quaternion(-0.031, +0.706, +0.031, +0.706))
-    assert str(motors_to_quaternion(+5,+0,-80)) == str(Quaternion(0.092, +0.701, -0.092, +0.701))
-    assert str(motors_to_quaternion(+5,+0,-10)) == str(Quaternion(0.478, +0.521, -0.478, +0.521))
-    # assert str(motors_to_quaternion(+5,+0,0)) == str(Quaternion(0.521, +0.478, -0.521, +0.478))  # need flipping
-    assert str(motors_to_quaternion(+5,+0,+10)) == str(Quaternion(-0.561, -0.430, +0.561, -0.430))
-    assert str(motors_to_quaternion(+5,+0,+80)) == str(Quaternion(-0.706, -0.031, +0.706, -0.031))
-    assert str(motors_to_quaternion(+5,+0,+100)) == str(Quaternion(-0.701, +0.092, +0.701, +0.092))
-    assert str(motors_to_quaternion(+5,+0,+170)) == str(Quaternion(-0.521, +0.478, +0.521, +0.478))
 
 
 def test_az5_alt30_motor_to_quaternion():
@@ -136,6 +126,17 @@ def test_az355_alt_ve7_motor_to_quaternion():
     assert str(motors_to_quaternion(+355,-7,+70)) == str(Quaternion(0.695, +0.110, -0.683, +0.196))
     assert str(motors_to_quaternion(+355,-7,+100)) == str(Quaternion(0.699, -0.074, -0.711, +0.012))
     assert str(motors_to_quaternion(+355,-7,+170)) == str(Quaternion(0.531, -0.461, -0.589, -0.398))
+
+def test_az5_alt0_motor_to_quaternion():
+    assert str(motors_to_quaternion(+5,+0,-170)) == str(Quaternion(-0.430, +0.561, +0.430, +0.561))
+    assert str(motors_to_quaternion(+5,+0,-100)) == str(Quaternion(-0.031, +0.706, +0.031, +0.706))
+    assert str(motors_to_quaternion(+5,+0,-80)) == str(Quaternion(0.092, +0.701, -0.092, +0.701))
+    assert str(motors_to_quaternion(+5,+0,-10)) == str(Quaternion(0.478, +0.521, -0.478, +0.521))
+    # assert str(motors_to_quaternion(+5,+0,0)) == str(Quaternion(0.521, +0.478, -0.521, +0.478))  # need flipping
+    assert str(motors_to_quaternion(+5,+0,+10)) == str(Quaternion(-0.561, -0.430, +0.561, -0.430))
+    assert str(motors_to_quaternion(+5,+0,+80)) == str(Quaternion(-0.706, -0.031, +0.706, -0.031))
+    assert str(motors_to_quaternion(+5,+0,+100)) == str(Quaternion(-0.701, +0.092, +0.701, +0.092))
+    assert str(motors_to_quaternion(+5,+0,+170)) == str(Quaternion(-0.521, +0.478, +0.521, +0.478))
 
 def test_angles_to_quaternion():
     assert str(angles_to_quaternion(+97.0875,+44.7835,-4.9968)) == str(Quaternion(-0.382, +0.017, +0.923, +0.040))  # 90, 45, -5

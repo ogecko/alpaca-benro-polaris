@@ -402,9 +402,9 @@ def motors_to_quaternion(theta1, theta2, theta3):
     Convert theta1, theta2, theta3 angles to a quaternion using simple rotation composition.
     
     Args:
-        theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount)
-        theta2: Polaris Axis 2 angle in degrees (-90 to +90) +ve=upwards (looking side on to mount)
-        theta3: Polaris Axis 3 angle in degrees (-180 to +180) +ve=cw (looking down towards mount)
+        theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount, 0=North)
+        theta2: Polaris Axis 2 angle in degrees (-90 to +90) +ve=upwards (looking side on to mount, 0=Horizon)
+        theta3: Polaris Axis 3 angle in degrees (-180 to +180) +ve=cw (looking down towards mount. 0=Level)
     
     Returns:
         # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
