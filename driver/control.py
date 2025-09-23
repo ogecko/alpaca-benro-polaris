@@ -402,12 +402,12 @@ def motors_to_quaternion(theta1, theta2, theta3):
     Convert theta1, theta2, theta3 angles to a quaternion using simple rotation composition.
     
     Args:
-        theta1: Polaris Axis 1 angle in degrees (0-360)
+        theta1: Polaris Axis 1 angle in degrees [0-360)
         theta2: Polaris Axis 2 angle in degrees (-90 to +90)
-        theta3: Polaris Axis 3 angle in degrees (-90 to +90)
+        theta3: Polaris Axis 3 angle in degrees (-180 to +180)
     
     Returns:
-        Quaternion: q1 that rotates from camera frame to topocentric frame
+        # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
     """
     
     # Reconstructing q1 from theta1, theta2, theta3
@@ -441,7 +441,7 @@ def quaternion_to_angles(q1, azhint = -1):
             - roll: Roll angle around boresight (degrees)
     """
     
-    # Reference Unit Vectors
+    # Reference Unit Vectors in Camera Frame
     cBore =   np.array([0, 0,-1])     # Camera Pointing Unit Vector (same as optical axis) in the Camera Reference Frame
     cUp =     np.array([1, 0, 0])     # Camera Up Unit Vector (same as Polaris Axis 3) in the Camera Reference Frame
     cRight =  np.array([0,-1, 0])     # Camera Right Unit Vector in the Camera Reference Frame
