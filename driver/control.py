@@ -478,18 +478,12 @@ def quaternion_to_angles(q1, azhint = -1):
             - theta3: Rotation around Polaris Axis 3 (degrees)
             - alt: Altitude angle (degrees, -90 to +90)
             - az: Azimuth angle (degrees, 0-360)
-            - roll: Roll angle around boresight (degrees)
+            - roll: Roll angle around boresight (degrees),  (+ve=camera rotates ccw when view from rear, image rotates cw)
     """
-    
-    # Reference Unit Vectors in Camera Frame
-    cBore =   np.array([0, 0,-1])     # Camera Pointing Unit Vector (same as optical axis) in the Camera Reference Frame
-    cUp =     np.array([1, 0, 0])     # Camera Up Unit Vector (same as Polaris Axis 3) in the Camera Reference Frame
-    cRight =  np.array([0,-1, 0])     # Camera Right Unit Vector in the Camera Reference Frame
-
 
     # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
-    # Rotate Camera Reference Unit Vectors to Topocentric Reference Frame
-    [tBore, tUp, tRight] = np.array([q1.rotate(p) for p in [cBore, cUp, cRight]])    
+    # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
+    tBore = q1.rotate(np.array([0, 0,-1]))   
 
     # --- Azimuth and Altitude: rotation around unadjusted bore vector ie Topocentric co-ordinates including effect of Axis 3
     az = (np.degrees(np.arctan2(tBore[0], tBore[1])) + 360) % 360       # Azimuth = Boresight axis projected on N/E plane
@@ -499,8 +493,8 @@ def quaternion_to_angles(q1, azhint = -1):
     if abs(abs(alt) - 90) < 1e-3:                                       # if altitude is +90 = pointing straight up or -90 = straight down
         roll = 0.0  
     else:
-        qalt = Quaternion(axis=cRight, degrees= alt + 90)
-        qaz = Quaternion(axis=cBore, degrees= az - 90)
+        qalt = Quaternion(axis=np.array([0,-1, 0]), degrees= alt + 90)  # Rotate Alt around cRight
+        qaz = Quaternion(axis=np.array([0, 0,-1]), degrees= az - 90)    # Rotate Az around cBore
         q3 = q1 * (qaz * qalt).inverse                                  # remove alt and az rotations, leaving only the residual roll about the boresight
         roll = extract_roll_from_quaternion(q3)
         
