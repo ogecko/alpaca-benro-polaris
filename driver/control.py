@@ -402,22 +402,41 @@ def motors_to_quaternion(theta1, theta2, theta3):
     Convert theta1, theta2, theta3 angles to a quaternion using simple rotation composition.
     
     Args:
-        theta1: Polaris Axis 1 angle in degrees [0-360)
-        theta2: Polaris Axis 2 angle in degrees (-90 to +90)
-        theta3: Polaris Axis 3 angle in degrees (-180 to +180)
+        theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount)
+        theta2: Polaris Axis 2 angle in degrees (-90 to +90) +ve=upwards (looking side on to mount)
+        theta3: Polaris Axis 3 angle in degrees (-180 to +180) +ve=cw (looking down towards mount)
     
     Returns:
         # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
     """
-    
     # Reconstructing q1 from theta1, theta2, theta3
     qtheta1 = Quaternion(axis=[0, 0, 1], degrees= -theta1 + 90)                      # Spin camera around vertical
     qtheta2 = Quaternion(axis=[0, 1, 0], degrees= -theta2 - 90)                      # Tilt camera up/down
     qtheta3 = Quaternion(axis=(qtheta1*qtheta2).rotate([1, 0, 0]), degrees= -theta3) # Pan camera left/right
     q1 = qtheta3 * qtheta1 * qtheta2   # Reconstructed q1 quaternion from tilt then pan then spin
-    q1n = q1.normalised if theta3 < 0 else -q1.normalised
-
+    noflip = theta3 < 0
+    q1n = q1.normalised if noflip else -q1.normalised
     return q1n
+
+def quaternion_to_motors(q1):
+    tBore = q1.rotate([0, 0, -1])                                       # Rotate camera boresight (-Z) into topocentric frame
+    theta2 = -np.degrees(np.arcsin(tBore[1])) - 90                      # Extract theta2 (altitude tilt)
+    theta1 = -np.degrees(np.arctan2(tBore[0], -tBore[2])) + 90          # Extract theta1 (azimuth spin)
+    # Reconstruct qtheta1 and qtheta2
+    qtheta1 = Quaternion(axis=[0, 0, 1], degrees=-theta1 + 90)
+    qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-theta2 - 90)
+    qtheta3 = q1 * (qtheta1 * qtheta2).inverse
+    # Extract theta3 from qtheta3
+    dynamic_y = (qtheta1 * qtheta2).rotate([0, 1, 0])
+    angle = -np.degrees(qtheta3.angle)
+    if np.dot(qtheta3.axis, dynamic_y) < 0:
+        angle = -angle
+    # wrap and return
+    theta3 = wrap_to_180(angle)
+    theta1 = wrap_to_360(theta1)
+    theta2 = wrap_to_90(theta2)
+
+    return theta1, theta2, theta3
 
 
 
