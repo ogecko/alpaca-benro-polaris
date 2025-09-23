@@ -1035,8 +1035,9 @@ class Polaris:
         return ret_dict
 
     async def send_cmd_reset_axis(self, axis:int):
-        if axis==1 or axis==2 or axis==3:
-            await self.send_msg(f"1&523&3&axis:{axis};#")
+        if axis==0 or axis==1 or axis==2:
+            polaris_axis = axis + 1
+            await self.send_msg(f"1&523&3&axis:{polaris_axis};#")
 
     async def send_cmd_compass_alignment(self, angle:float = None):
         # use angle provided or assume synced ASCOM azimuth
@@ -1062,9 +1063,9 @@ class Polaris:
     async def send_cmd_park(self):
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: PARK all 3 axis")
+        await self.send_cmd_reset_axis(0)
         await self.send_cmd_reset_axis(1)
         await self.send_cmd_reset_axis(2)
-        await self.send_cmd_reset_axis(3)
 
     async def send_cmd_824(self):
         if Config.log_polaris_protocol:
@@ -1296,7 +1297,7 @@ class Polaris:
 
     async def moveaxis_speed_test(self, axis, rates):
         self.lifecycle.start()
-        cm_logger = logging.getLogger('cm')
+        motor = self._motors[axis]
         for rate in rates:
             if self.lifecycle.should_stop():
                 break
@@ -1304,21 +1305,22 @@ class Polaris:
             # check axis 1 bounds and reverse direction if necc 
             if axis==1 and self._theta_meas.any():
                 if self._theta_meas[1] > 60:
-                    await self.move_axis(axis, 0)
+                    await motor.set_motor_speed(0, "RAW")
                     await asyncio.sleep(3)
                     direction = -1
                 if self._theta_meas[1] < 20:
-                    await self.move_axis(axis, 0)
+                    await motor.set_motor_speed(0, "RAW")
                     await asyncio.sleep(3)
                     direction = +1
             # send the move request
-            await self.move_axis(axis, rate * direction, "RAW")
+            await motor.set_motor_speed(rate * direction, "RAW")
             result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
             self._cm.addTestResult(axis, rate, result, stdev, status)
         # ensure we stop all movement
-        await self.move_axis(axis, 0)
+        await motor.set_motor_speed(0, "RAW")
+        await asyncio.sleep(2)
+        await self.send_cmd_reset_axis(axis)
         self.lifecycle.reset()
-
 
 
     async def moveaxis_speed_measurement(self, axis, rate, required_stable_samples = 5, initial_interval = 3.0, max_interval = 15, sampling_interval = 0.25):
