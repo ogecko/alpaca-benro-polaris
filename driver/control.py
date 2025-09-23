@@ -436,7 +436,7 @@ def quaternion_to_motors(q1, theta1Hint=None):
     q4 = q1 * Quaternion(axis=np.array([1, 0, 0]), degrees=180) 
     theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
 
-    # --- Theta1 and Theta2: rotation around corrected boresight vector (vector without effect of theta3)
+    # --- Find the two solutions based on theta3 being pointing one way or the opposite
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
@@ -450,9 +450,9 @@ def quaternion_to_motors(q1, theta1Hint=None):
 
     # --- Handle the case where we have a gimbal lock at Theta2 = 0, ie t1/t3 in gimbal lock
     if abs(theta2) < 1e-10 and theta1Hint:
-        diffC = angular_difference(theta1Hint, theta1)
+        diffC = angular_difference(theta1, theta1Hint)
         theta1 = wrap_to_360(theta1Hint)
-        theta3 = wrap_to_180(theta3 + diffC)
+        theta3 = wrap_to_180(theta3 - diffC)
 
     return theta1, theta2, theta3
 
