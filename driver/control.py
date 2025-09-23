@@ -440,8 +440,12 @@ def quaternion_to_motors(q1, theta1Hint=None):
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
-    # Get the closest solution to theta1Hint
-    if theta1Hint:
+    
+    if theta2_A < 8:            # Rules out Solution A
+        [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
+    elif theta2_B < 8:       # Rules out Solution B
+        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
+    elif theta1Hint:         # Get the closest solution to theta1Hint
         diffA = angular_difference(theta1_A, theta1Hint)
         diffB = angular_difference(theta1_B, theta1Hint)
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if abs(diffA)<abs(diffB) else [theta1_B, theta2_B, theta3_B]
@@ -500,27 +504,29 @@ def quaternion_to_angles(q1, azhint = -1):
         q3 = q1 * (qaz * qalt).inverse                                  # remove alt and az rotations, leaving only the residual roll about the boresight
         roll = extract_roll_from_quaternion(q3)
         
-    # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
-    q4 = q1 if alt < 0 else q1 * Quaternion(axis=cUp, degrees=180)      # since axis3 is last rotation ZYX in q1, we can simply read its Euler angle X after we flip it
-    theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
+
+    theta1, theta2, theta3 = quaternion_to_motors(q1, theta1Hint=azhint)
+    # # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
+    # q4 = q1 if alt < 0 else q1 * Quaternion(axis=cUp, degrees=180)      # since axis3 is last rotation ZYX in q1, we can simply read its Euler angle X after we flip it
+    # theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
     
-    # --- Theta1 and Theta2: rotation around corrected bore vector ie Polaris Axis 1 and 2, without effect of Axis 3
-    unroll = Quaternion(axis=tUp, degrees= -theta3).inverse               # Undo Theta3 rotation to get cleaned bore vector 
-    mBore = unroll.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module on the polaris
-    theta1 = (np.degrees(np.arctan2(mBore[0], mBore[1])) + 360) % 360
-    theta2 = np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0)))
+    # # --- Theta1 and Theta2: rotation around corrected bore vector ie Polaris Axis 1 and 2, without effect of Axis 3
+    # unroll = Quaternion(axis=tUp, degrees= -theta3).inverse               # Undo Theta3 rotation to get cleaned bore vector 
+    # mBore = unroll.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module on the polaris
+    # theta1 = (np.degrees(np.arctan2(mBore[0], mBore[1])) + 360) % 360
+    # theta2 = np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0)))
 
-    # --- Handle a weird rounding problem for tests, ensure 359.9999999994 is 0.0 
-    if abs(theta1 - 360) < 1e-10:
-        theta1 = 0.0
+    # # --- Handle a weird rounding problem for tests, ensure 359.9999999994 is 0.0 
+    # if abs(theta1 - 360) < 1e-10:
+    #     theta1 = 0.0
 
-    # --- Handle the case where we have a gimbal lock at alt = 0, ie t1/t3 in gimbal lock
-    if abs(alt) < 1e-10 and azhint != -1:
-        diff = angular_difference(azhint, az)
-        roll = 0
-        az = wrap_to_360(azhint)
-        theta3 = diff
-        theta1 = az
+    # # --- Handle the case where we have a gimbal lock at alt = 0, ie t1/t3 in gimbal lock
+    # if abs(alt) < 1e-10 and azhint != -1:
+    #     diff = angular_difference(azhint, az)
+    #     roll = 0
+    #     az = wrap_to_360(azhint)
+    #     theta3 = diff
+    #     theta1 = az
 
     return theta1, theta2, theta3, az, alt, roll
 

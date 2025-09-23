@@ -175,6 +175,22 @@ def test_az5_alt0_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
     assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=theta1))
 
+test_az180_alt70_cases = [
+    # (theta1, theta2, theta3, expected_quaternion)
+    (+180, 70, -170, Quaternion(0.704, +0.062, -0.183, +0.683)),
+    (+180, 70, -100, Quaternion(0.612, -0.354, -0.542, +0.455)),
+    (+180, 70, -80, Quaternion(0.542, -0.455, -0.612, +0.354)),
+    (+180, 70, -10, Quaternion(0.183, -0.683, -0.704, -0.062)),
+    (+180, 70, 0, Quaternion(-0.123, +0.696, +0.696, +0.123)),
+    (+180, 70, 10, Quaternion(-0.062, +0.704, +0.683, +0.183)),
+    (+180, 70, 80, Quaternion(0.354, +0.612, +0.455, +0.542)),
+    (+180, 70, 100, Quaternion(0.455, +0.542, +0.354, +0.612)),
+    (+180, 70, 170, Quaternion(0.683, +0.183, -0.062, +0.704)),
+]
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az180_alt70_cases)
+def test_az180_alt70_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=theta1))
 
 
 def test_angles_to_quaternion():
