@@ -173,7 +173,7 @@ test_az5_alt0_cases = [
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az5_alt0_cases)
 def test_az5_alt0_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-#    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=theta1))
 
 
 

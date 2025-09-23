@@ -437,13 +437,24 @@ def quaternion_to_motors(q1, theta1Hint=None):
     theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
 
     # --- Theta1 and Theta2: rotation around corrected boresight vector (vector without effect of theta3)
-    solution1 = extract_theta_given_theta3(tUp, tBore, theta3)
-    solution2 = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
+    theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
+    theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
+
+    # Get the closest solution to theta1Hint
     if theta1Hint:
-        diff1 = angular_difference(solution1[0], theta1Hint)
-        diff2 = angular_difference(solution2[0], theta1Hint)
-        return solution1 if abs(diff1)<abs(diff2) else solution2
-    return solution1
+        diffA = angular_difference(theta1_A, theta1Hint)
+        diffB = angular_difference(theta1_B, theta1Hint)
+        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if abs(diffA)<abs(diffB) else [theta1_B, theta2_B, theta3_B]
+    else:
+        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
+
+    # --- Handle the case where we have a gimbal lock at Theta2 = 0, ie t1/t3 in gimbal lock
+    if abs(theta2) < 1e-10 and theta1Hint:
+        diffC = angular_difference(theta1Hint, theta1)
+        theta1 = wrap_to_360(theta1Hint)
+        theta3 = wrap_to_180(theta3 + diffC)
+
+    return theta1, theta2, theta3
 
 
 def quaternion_to_angles(q1, azhint = -1):
