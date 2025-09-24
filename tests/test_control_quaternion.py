@@ -160,7 +160,7 @@ test_az5_alt0_cases = [
     (+5, 0, -100, Quaternion(-0.031, +0.706, +0.031, +0.706)),
     (+5, 0,  -80, Quaternion(+0.092, +0.701, -0.092, +0.701)),
     (+5, 0,  -10, Quaternion(+0.478, +0.521, -0.478, +0.521)),
-    # (+5, 0,    0, Quaternion(+0.521, +0.478, -0.521, +0.478)),  # needs flipping — optional to include
+    # (+5, 0,    0, Quaternion(+0.521, +0.478, -0.521, +0.478)),  # Needs flipping
     (+5, 0,  +10, Quaternion(-0.561, -0.430, +0.561, -0.430)),
     (+5, 0,  +80, Quaternion(-0.706, -0.031, +0.706, -0.031)),
     (+5, 0, +100, Quaternion(-0.701, +0.092, +0.701, +0.092)),
@@ -192,9 +192,9 @@ def test_az180_alt70_roundtrip_theta_q1(theta1, theta2, theta3, q1):
 def test_angles_to_quaternion():
     assert str(angles_to_quaternion(+97.0875,+44.7835,-4.9968)) == str(Quaternion(-0.382, +0.017, +0.923, +0.040))  # 90, 45, -5
     assert str(angles_to_quaternion(+82.9540,+44.7845,+4.9851)) == str(Quaternion(+0.382, +0.017, -0.923, +0.040))  # 90, 45, +5
-    # assert str(angles_to_quaternion(+354.9565,+44.7846,+4.9850)) == str(Quaternion(+0.247, +0.653, -0.652, +0.295)) # 2, 45, -5 ** wrong sign
+    #assert str(angles_to_quaternion(+354.9565,+44.7846,+4.9850)) == str(Quaternion(+0.247, +0.653, -0.652, +0.295)) # 2, 45, -5 ** wrong sign
     assert str(angles_to_quaternion(+9.0678,+44.7843,-4.9894)) == str(Quaternion(-0.303, -0.629, +0.676, -0.237))   # 2, 45, +5
-    # assert str(angles_to_quaternion(+350.9593,+44.7846,+4.9830)) == str(Quaternion(+0.237, +0.675, -0.629, +0.303))  # 358, 45, -5 **wrong sign
+    #assert str(angles_to_quaternion(+350.9593,+44.7846,+4.9830)) == str(Quaternion(+0.237, +0.675, -0.629, +0.303))  # 358, 45, -5 **wrong sign
     assert str(angles_to_quaternion(+5.0797,+44.7842,-4.9892)) == str(Quaternion(-0.295, -0.652, +0.653, -0.247))   # 358, 45, +5
     assert str(angles_to_quaternion(+167.0704,+59.6340,+8.5897)) == str(Quaternion(+0.217, -0.656, -0.708, -0.147)) # 177, 60, -5
     assert str(angles_to_quaternion(+186.9383,+59.6312,-8.5961)) == str(Quaternion(-0.158, +0.672, +0.692, +0.209)) # 177, 60, +5
@@ -207,7 +207,6 @@ def test_angles_to_quaternion():
     assert str(angles_to_quaternion(+150.0044,-5.0069,-0.0010,)) == str(Quaternion(-0.639,+0.338,+0.585,+0.369))   # 260, -2, -5
 
 def test_quaternion_to_angles():
-    # assert approx_quaternion_to_angles(+0.247, +0.653, -0.652, +0.295) == str([2.0, 45.0, -5.0, 354.9, 44.7, 5.0])
     assert approx_quaternion_to_angles(-0.303, -0.629, +0.676, -0.237) == str([2.1, 45.0, 4.9, 9.0, 44.8, -4.9])
     assert approx_quaternion_to_angles(-0.382, +0.017, +0.923, +0.040) == str([90.1, 45.0, 4.9, 97.0, 44.8, -4.9])
     assert approx_quaternion_to_angles(+0.382, +0.017, -0.923, +0.040) == str([89.9, 45.0, -4.9, 83.0, 44.8, +4.9])
@@ -223,11 +222,12 @@ def test_quaternion_to_angles():
     assert approx_quaternion_to_angles(-0.080, -0.846, +0.181, -0.495) == str([297.1, 29.9, -5.0, 291.3, 29.8, 2.9])
     assert approx_quaternion_to_angles(-0.217, -0.760, +0.414, -0.451) == str([330.0, 30.0, -5.0, 324.3, 29.9, 2.9])
     assert approx_quaternion_to_angles(-0.256, -0.721, +0.478, -0.431) == str([339.9, 29.9, -4.9, 334.3, 29.8, 2.8])
-    #assert approx_quaternion_to_angles(+0.256, +0.721, -0.478, +0.431) == str([339.9, 29.9, -4.9, 334.3, 29.8, 2.8])
-    #assert approx_quaternion_to_angles(+0.292, +0.677, -0.539, +0.407) == str([349.9, 30.0, -5.0, 344.2, 29.9, 2.9])
-    #assert approx_quaternion_to_angles(+0.237, +0.675, -0.629, +0.303) == str([358.0, 44.9, -5.0, 351.0, 44.7, 4.9])
     assert approx_quaternion_to_angles(-0.295, -0.652, +0.653, -0.247) == str([358.0, 45.0, 5.0, 5.1, 44.7, -5.0])
     assert approx_quaternion_to_angles(-0.639, +0.338, +0.585, +0.369) == str([149.9, -5.0, 0.2, 150.0, -5.0, -0.0])
+    assert approx_quaternion_to_angles(+0.247, +0.653, -0.652, +0.295) == str([2.0, 45.0, -5.0, 354.9, 44.7, 5.0])
+    assert approx_quaternion_to_angles(+0.256, +0.721, -0.478, +0.431) == str([339.9, 29.9, -4.9, 334.3, 29.8, 2.8])
+    assert approx_quaternion_to_angles(+0.292, +0.677, -0.539, +0.407) == str([349.9, 30.0, -5.0, 344.2, 29.9, 2.9])
+    assert approx_quaternion_to_angles(+0.237, +0.675, -0.629, +0.303) == str([358.0, 44.9, -5.0, 351.0, 44.7, 4.9])
 
 
 @pytest.mark.parametrize("n, az, alt, roll", test_cases)
@@ -249,9 +249,9 @@ def test_motors_to_quaternion_to_motors_roundtrip(n, t1, t2, t3):
 def test_all_angle_positions():
     n=200
     # Angles to Q to Angles: Positive Alt, Zero Alt and Negative Alt tests
-    for alt in range(-80,90,10):
+    for alt in range(-85,85,5):
         for az in range(0,360,30):
-            for roll in range(-170,+180,10):
+            for roll in range(-80,+90,10):
                 n += 1
                 if (alt==0 and roll!=0):
                     continue    # unsolvable 

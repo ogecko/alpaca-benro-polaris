@@ -346,37 +346,6 @@ def calculate_angular_velocity(history):
 
 
 
-def extract_roll_from_quaternion(q3, reference_axis=np.array([0, 0, 1]), epsilon=1e-6):
-    """
-    Determines roll angle from quaternion q3, corrected for axis direction.
-    
-    Args:
-        q3: Quaternion representing rotation around boresight, with alt and az rotations removed
-        reference_axis: Expected boresight direction (default +z)
-        epsilon: Threshold for floating-point comparison
-    
-    Returns:
-        float: Corrected roll angle in degrees
-    """
-    axis_norm = np.linalg.norm(q3.axis)
-    if axis_norm < epsilon:
-        return 0.0  # No rotation → roll is zero
-
-    actual_axis = q3.axis / axis_norm
-    roll_raw = np.float64(q3.degrees)
-    alignment = np.dot(actual_axis, reference_axis)
-
-    # Flip sign if axis is pointing in the opposite direction
-    # if alignment < -epsilon:
-    #     return roll_raw
-    # else:
-    #     return -roll_raw
-
-    return roll_raw
-
-
-
-
 def angles_to_quaternion(az, alt, roll):
     """
     Convert altitude, azimuth, and roll angles to a quaternion using simple rotation composition.
@@ -442,7 +411,7 @@ def quaternion_to_motors(q1, theta1Hint=None):
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
-    
+    # --- Choose the best solution
     if theta2_A < -8:                    # Rules out Solution A
         [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
     elif theta2_B < -8:                  # Rules out Solution B
@@ -484,6 +453,10 @@ def quaternion_to_angles(q1, azhint = None):
     """
 
     # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
+
+    # calculate the motor angles from the quaternion
+    theta1, theta2, theta3 = quaternion_to_motors(q1, theta1Hint=azhint)
+
     # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
     tBore = q1.rotate(np.array([0, 0,-1]))   
 
@@ -498,31 +471,9 @@ def quaternion_to_angles(q1, azhint = None):
         qalt = Quaternion(axis=np.array([0,-1, 0]), degrees= alt + 90)  # Rotate Alt around cRight
         qaz = Quaternion(axis=np.array([0, 0,-1]), degrees= az - 90)    # Rotate Az around cBore
         q3 = q1 * (qaz * qalt).inverse                                  # remove alt and az rotations, leaving only the residual roll about the boresight
-        roll = extract_roll_from_quaternion(q3)
-        
-
-    theta1, theta2, theta3 = quaternion_to_motors(q1, theta1Hint=azhint)
-    # # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
-    # q4 = q1 if alt < 0 else q1 * Quaternion(axis=cUp, degrees=180)      # since axis3 is last rotation ZYX in q1, we can simply read its Euler angle X after we flip it
-    # theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
-    
-    # # --- Theta1 and Theta2: rotation around corrected bore vector ie Polaris Axis 1 and 2, without effect of Axis 3
-    # unroll = Quaternion(axis=tUp, degrees= -theta3).inverse               # Undo Theta3 rotation to get cleaned bore vector 
-    # mBore = unroll.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module on the polaris
-    # theta1 = (np.degrees(np.arctan2(mBore[0], mBore[1])) + 360) % 360
-    # theta2 = np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0)))
-
-    # # --- Handle a weird rounding problem for tests, ensure 359.9999999994 is 0.0 
-    # if abs(theta1 - 360) < 1e-10:
-    #     theta1 = 0.0
-
-    # # --- Handle the case where we have a gimbal lock at alt = 0, ie t1/t3 in gimbal lock
-    # if abs(alt) < 1e-10 and azhint != -1:
-    #     diff = angular_difference(azhint, az)
-    #     roll = 0
-    #     az = wrap_to_360(azhint)
-    #     theta3 = diff
-    #     theta1 = az
+        roll = abs(q3.degrees)
+        aDiff = angular_difference(theta1, az)                          # anglular distance from theta1 to az (-ve diff is a positive ccw roll)
+        roll = roll if aDiff<0 else -roll
 
     return theta1, theta2, theta3, az, alt, roll
 
