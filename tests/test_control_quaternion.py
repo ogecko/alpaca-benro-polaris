@@ -262,11 +262,9 @@ def test_all_motor_positions():
     n=500
     # Motor to Q to Angles
     for t1 in range(0,360,30):
-        for t2 in range(0,80,10):
-            for t3 in range(-85,85,5):
+        for t2 in range(-5,80,5):
+            for t3 in range(-170,+170,10):
                 n += 1
-                if (t2==0 and t3!=0):
-                    continue    # unsolvable 
                 test_motors_to_quaternion_to_motors_roundtrip(n,t1,t2,t3)
 
 def test_zeroalt_motor_positions():
