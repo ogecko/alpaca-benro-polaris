@@ -124,7 +124,7 @@ class Polaris:
             '531': asyncio.Queue()                  # queue for TRACK result
         }
         self._polaris_mode = -1                     # Current Mode of the Polaris Device (1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=Sun, 8=**Astro**, 9=Program, 10=Video )
-        self._polaris_msg_re = re.compile(r'^(\d\d\d)@([^#]*)#')
+        self._polaris_msg_re = re.compile(r'(\d{3})@(.+?)#')
         self._every_50ms_msg_to_send = None         # Fast Move message to send every 50ms
         self._every_50ms_counter = 0                # Fast Move counter, incrementing every 50ms up to 1s
         self._every_50ms_last_timestamp = None      # Fast Move counter, last 1s timestamp
@@ -645,13 +645,16 @@ class Polaris:
                     buffer += data.decode()
 
                 # Parse all messages in the buffer
-                while buffer:
-                    cmd, args, buffer = self.parse_msg(buffer)
+                while True:
+                    cmd, args, new_buffer = self.parse_msg(buffer)
                     if cmd:
+                        buffer = new_buffer
                         ispoll = cmd in POLARIS_POLL_COMMANDS
                         if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
                             self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
                         self.polaris_parse_cmd(cmd, args)
+                    else:
+                        break  # No complete message yet — wait for more data
 
                 # Avoid tight loop
                 await asyncio.sleep(0.05)
@@ -666,15 +669,20 @@ class Polaris:
             self.logger.error(f"==ERROR== read_msgs failed: {e}")
             self._connecting = False
 
-    # Parse a buffer returning a matched (cmd, args, remainingbuffer) or a cleared remaining buffer (False, False, "")
+    # Parse a buffer returning a matched (cmd, args, remainingBuffer) or when no match (None, None, remainingBuffer)
     def parse_msg(self, buffer):
-        m = self._polaris_msg_re.match(buffer)
+        m = self._polaris_msg_re.search(buffer)
         if m:
-            return (m.group(1), m.group(2), buffer[len(m.group(0)):])
+            start, end = m.span()
+            cmd = m.group(1)
+            args = m.group(2)
+            remaining = buffer[end:]
+            if start > 0 and Config.log_polaris_protocol:
+                self.logger.warn(f"<<- Polaris: Discarding junk protocol: {bytes2hexascii(buffer[:start].encode())}")
+            return (cmd, args, remaining)
         else:
-            if Config.log_polaris_protocol:
-                self.logger.info(f"<<- Polaris: Unmatched msg: {bytes2hexascii(buffer.encode())}")
-            return (False, False, "")
+            # No complete message yet — wait for more data
+            return (None, None, buffer)
 
     def polaris_parse_args(self, args_str, name_postfix=False):
         # chop the last ";" and split
