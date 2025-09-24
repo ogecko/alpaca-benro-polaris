@@ -63,7 +63,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot close inactive websocket clients
 # [X] Alpaca pilot Ability to optionally use KF
 # [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
-# [ ] Fix Alt 0 Control Kinematics, theta1/theta3 spin
+# [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin
 # [ ] Fix Position Angle dashboard and interaction
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
@@ -1286,7 +1286,7 @@ class PID_Controller():
 
         # Convert alpha_ref to theta_ref
         q1 = angles_to_quaternion(*self.alpha_ref)
-        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
+        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1, azhint=self.alpha_ref[0])
         self.theta_ref_last = self.theta_ref
         self.theta_ref = np.array([theta1,theta2,theta3])
     
