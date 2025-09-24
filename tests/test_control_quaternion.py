@@ -251,7 +251,7 @@ def test_all_angle_positions():
     # Angles to Q to Angles: Positive Alt, Zero Alt and Negative Alt tests
     for alt in range(-80,90,10):
         for az in range(0,360,30):
-            for roll in range(-170,180,10):
+            for roll in range(-170,+180,10):
                 n += 1
                 if (alt==0 and roll!=0):
                     continue    # unsolvable 
@@ -263,7 +263,7 @@ def test_all_motor_positions():
     # Motor to Q to Angles
     for t1 in range(0,360,30):
         for t2 in range(-5,80,5):
-            for t3 in range(-170,+170,10):
+            for t3 in range(-170,+180,10):
                 n += 1
                 test_motors_to_quaternion_to_motors_roundtrip(n,t1,t2,t3)
 

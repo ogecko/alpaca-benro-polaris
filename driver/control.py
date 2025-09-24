@@ -451,8 +451,8 @@ def quaternion_to_motors(q1, theta1Hint=None):
         diffA = angular_difference(theta1_A, theta1Hint)
         diffB = angular_difference(theta1_B, theta1Hint)
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if abs(diffA)<abs(diffB) else [theta1_B, theta2_B, theta3_B]
-    else:
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
+    else:                                # Get the one with smaller theta3
+        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if abs(theta3_A)<abs(theta3_B) else [theta1_B, theta2_B, theta3_B]
 
     # --- Handle the case where we have a gimbal lock at Theta2 = 0, ie t1/t3 in gimbal lock
     if abs(theta2) < 1e-10 and theta1Hint is not None:
@@ -463,7 +463,7 @@ def quaternion_to_motors(q1, theta1Hint=None):
     return theta1, theta2, theta3
 
 
-def quaternion_to_angles(q1, azhint = -1):
+def quaternion_to_angles(q1, azhint = None):
     """
     Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
     
