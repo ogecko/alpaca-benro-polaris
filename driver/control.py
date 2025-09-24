@@ -165,7 +165,9 @@ def is_same_quaternion_rotation(q1, q2, tolerance=1e-6):
 
 def wrap_to_360(angle):
     """Wraps angle to [0, 360) degrees"""
-    return angle % 360.0
+    wrapped = angle % 360.0
+    # --- Handle a weird rounding problem for tests, ensure 359.9999999994 is 0.0 and not 360
+    return 0.0 if abs(wrapped - 360) < 1e-10 else wrapped
 
 def wrap_to_180(angle):
     """Wraps angle to [-180, +180) degrees"""
@@ -441,9 +443,9 @@ def quaternion_to_motors(q1, theta1Hint=None):
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
     
-    if theta2_A < 8:            # Rules out Solution A
+    if theta2_A < -8:            # Rules out Solution A
         [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
-    elif theta2_B < 8:       # Rules out Solution B
+    elif theta2_B < -8:       # Rules out Solution B
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
     elif theta1Hint:         # Get the closest solution to theta1Hint
         diffA = angular_difference(theta1_A, theta1Hint)
