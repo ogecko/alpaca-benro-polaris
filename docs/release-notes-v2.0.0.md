@@ -123,6 +123,7 @@ Please let us know if you can try any of these features.
 - **[Fix #018]**: Explicitly check for 'NaN' on all float inputs on REST API.
 - **[Fix #019]**: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.
 - **[Fix #020]**: Implement AbortSlew with SynScan protocol 'M' for Stellarium.
+- **[Fix #036]**: Polaris protocol parsing should gracefully handle partially received messages.
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
