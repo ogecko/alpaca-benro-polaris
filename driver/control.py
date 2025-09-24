@@ -443,11 +443,11 @@ def quaternion_to_motors(q1, theta1Hint=None):
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
     
-    if theta2_A < -8:            # Rules out Solution A
+    if theta2_A < -8:                    # Rules out Solution A
         [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
-    elif theta2_B < -8:       # Rules out Solution B
+    elif theta2_B < -8:                  # Rules out Solution B
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
-    elif theta1Hint:         # Get the closest solution to theta1Hint
+    elif theta1Hint is not None:         # Get the closest solution to theta1Hint
         diffA = angular_difference(theta1_A, theta1Hint)
         diffB = angular_difference(theta1_B, theta1Hint)
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if abs(diffA)<abs(diffB) else [theta1_B, theta2_B, theta3_B]
@@ -455,7 +455,7 @@ def quaternion_to_motors(q1, theta1Hint=None):
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
 
     # --- Handle the case where we have a gimbal lock at Theta2 = 0, ie t1/t3 in gimbal lock
-    if abs(theta2) < 1e-10 and theta1Hint:
+    if abs(theta2) < 1e-10 and theta1Hint is not None:
         diffC = angular_difference(theta1, theta1Hint)
         theta1 = wrap_to_360(theta1Hint)
         theta3 = wrap_to_180(theta3 - diffC)
