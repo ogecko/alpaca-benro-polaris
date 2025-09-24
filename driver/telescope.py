@@ -1174,8 +1174,8 @@ class slewtoaltaz:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
-        if altitude < 0 or altitude > +90 or math.isnan(altitude):
-            resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between 0 and 90.'))
+        if altitude < -8 or altitude > +90 or math.isnan(altitude):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between -8 and 90.'))
             return
         if polaris.atpark:
             resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot slew while parked'))
@@ -1214,8 +1214,8 @@ class slewtoaltazasync:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
-        if altitude < 0 or altitude > +90 or math.isnan(altitude):
-            resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between 0 and 90.'))
+        if altitude < -8 or altitude > +90 or math.isnan(altitude):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between -8 and 90.'))
             return
         if polaris.atpark:
             resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot slew while parked'))
