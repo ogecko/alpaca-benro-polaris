@@ -2023,8 +2023,8 @@ class Polaris:
             self.logger.info(f"Advanced Control: PARK telescope")
             await self.stop_tracking()
             await self.stop_all_axes()
-            await asyncio.sleep(2)
             self._pid.set_pid_mode('PARK')
+            await asyncio.sleep(2)
             await self.send_cmd_park()
         else:
             await self.stop_tracking()
