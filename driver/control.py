@@ -432,10 +432,15 @@ def quaternion_to_motors(q1, theta1Hint=None, lastPos=None):
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
-    # --- Choose the solution closest to the last mechnical position
-    diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A,)
-    diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B,)
-    [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if diffA<diffB else [theta1_B, theta2_B, theta3_B]
+    # Choose the best mechnical solution
+    if theta2_A < -8:           # Rules out Solution A
+        [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
+    elif theta2_B < -8:         # Rules out Solution B
+        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
+    else:                       # --- Choose the solution closest to the last mechnical position
+        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A,)
+        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B,)
+        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if diffA<diffB else [theta1_B, theta2_B, theta3_B]
     lastPos.update(theta1, theta2, theta3)
 
     # --- Handle the case where we have a gimbal lock at Alt = 0, ie t1/t3 in gimbal lock
