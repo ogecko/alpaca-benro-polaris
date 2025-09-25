@@ -398,8 +398,28 @@ def extract_theta_given_theta3(tUp, tBore, theta3):
     theta2 = wrap_to_90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
     return theta1, theta2, wrap_to_180(theta3)
 
-def quaternion_to_motors(q1, theta1Hint=None):
+class LastPosition:
+    def __init__(self, t1=180, t2=45, t3=0):
+        self.last_theta1 = t1
+        self.last_theta2 = t2
+        self.last_theta3 = t3
+    def update(self,t1,t2,t3):
+        self.last_theta1 = t1
+        self.last_theta2 = t2
+        self.last_theta3 = t3
+    def calcMechanicalAngularDiff(self,t1,t2,t3):
+        dt1 = angular_difference(t1, self.last_theta1)
+        dt2 = angular_difference(t2, self.last_theta2)
+        dt3 = angular_difference(t3, self.last_theta3)
+        return dt1*dt1 + dt2*dt2 + dt3*dt3
+_lp = LastPosition()
+
+def quaternion_to_motors(q1, theta1Hint=None, lastPos=None):
     """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
+    global _lp
+    if lastPos is None:
+        lastPos = _lp
+
     # --- Camera Up and Boresight vector in topo frame
     tUp = q1.rotate(np.array([1, 0, 0]))
     tBore = q1.rotate(np.array([0, 0, -1]))
@@ -412,17 +432,11 @@ def quaternion_to_motors(q1, theta1Hint=None):
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
-    # --- Choose the best solution
-    if theta2_A < -8:                    # Rules out Solution A
-        [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
-    elif theta2_B < -8:                  # Rules out Solution B
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
-    elif theta1Hint is not None:         # Get the closest solution to theta1Hint
-        diffA = angular_difference(theta1_A, theta1Hint)
-        diffB = angular_difference(theta1_B, theta1Hint)
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if abs(diffA)<abs(diffB) else [theta1_B, theta2_B, theta3_B]
-    else:                                # Get the one with smaller theta3
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if abs(theta3_A)<abs(theta3_B) else [theta1_B, theta2_B, theta3_B]
+    # --- Choose the solution closest to the last mechnical position
+    diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A,)
+    diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B,)
+    [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if diffA<diffB else [theta1_B, theta2_B, theta3_B]
+    lastPos.update(theta1, theta2, theta3)
 
     # --- Handle the case where we have a gimbal lock at Alt = 0, ie t1/t3 in gimbal lock
     alt = np.degrees(np.arcsin(np.clip(tBore[2], -1.0, 1.0)))           # Altitude = Angle from N/E plane, vertically to the Boresight axis
@@ -434,7 +448,7 @@ def quaternion_to_motors(q1, theta1Hint=None):
     return theta1, theta2, theta3
 
 
-def quaternion_to_angles(q1, azhint = None):
+def quaternion_to_angles(q1, azhint=None, lastPos = None):
     """
     Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
     
@@ -442,7 +456,7 @@ def quaternion_to_angles(q1, azhint = None):
         q1: Quaternion that rotates from camera frame to topocentric frame
             Camera frame: -z = boresight, +x = up, +y = left
             Topocentric frame: +z = Zenith, +y = North, +x = East
-        azhint: Azimuth hint in case we have a gimbal lock at alt=0
+        lastPos: last mechnical position (LastPosition object)
     
     Returns:
         tuple: (theta1, theta2, theta3, alt, az, roll)
@@ -457,7 +471,7 @@ def quaternion_to_angles(q1, azhint = None):
     # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
 
     # calculate the motor angles from the quaternion
-    theta1, theta2, theta3 = quaternion_to_motors(q1, theta1Hint=azhint)
+    theta1, theta2, theta3 = quaternion_to_motors(q1, lastPos=lastPos)
 
     # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
     tBore = q1.rotate(np.array([0, 0,-1]))   

@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import angles_to_quaternion, motors_to_quaternion, quaternion_to_angles, quaternion_to_motors
+from control import angles_to_quaternion, motors_to_quaternion, quaternion_to_angles, quaternion_to_motors, LastPosition
 
 
 
@@ -45,7 +45,7 @@ test_misc_motor_to_q1_cases = [
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_misc_motor_to_q1_cases)
 def test_misc_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(180,30,0)))
 
 
 
@@ -64,7 +64,7 @@ test_5t1_30t2_cases = [
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_5t1_30t2_cases)
 def test_5t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(+5,+30,0)))
 
 
 
@@ -83,7 +83,7 @@ test_355t1_30t2_cases = [
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_355t1_30t2_cases)
 def test_355t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(355,+30,0)))
 
 
 
@@ -103,7 +103,7 @@ test_355t1_minus7t2_cases = [
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_355t1_minus7t2_cases)
 def test_355t1_minus7t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=355))
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(355,-7,0)))
 
 
 test_5t1_0t2_cases = [
@@ -133,7 +133,7 @@ test_90t1_minus5t2_cases = [
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_90t1_minus5t2_cases)
 def test_90t1_minus5t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=theta1))
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(90,-5,80)))
 
 
 
@@ -152,7 +152,7 @@ test_180t1_70t2_cases = [
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_180t1_70t2_cases)
 def test_180t1_70t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=theta1))
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(180,70,0)))
 
 
 def test_angles_to_quaternion():
@@ -231,7 +231,7 @@ test_misc_azaltroll_cases = [
 
     # 🧊 Near-zero roll with steep altitude
     (23, 90, 89.999, 0.001),
-    (24, 270, -8, -0.001), 
+    (24, 185, 15, -0.001), 
 
     # 🧮 Symmetry cases
     (27, 90, 45, 45),
@@ -242,7 +242,7 @@ test_misc_azaltroll_cases = [
 def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
     az1,alt1,roll1 = approx( [az,alt,roll] )
     q1 = angles_to_quaternion(az, alt, roll)
-    angles = quaternion_to_angles(q1, azhint=az)
+    angles = quaternion_to_angles(q1, LastPosition(180,30,0))
     _,_,_,az2,alt2,roll2 = approx( angles )
     assert str([f'C{n}', az2,alt2,roll2]) == str([f'C{n}', az1,alt1,roll1])
 
@@ -250,7 +250,7 @@ def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
 def test_misc_t1t2t3_motors_to_q1_roundtrip(n, t1, t2, t3):
     v1,v2,v3 = approx( [t1,t2,t3] )
     q1 = motors_to_quaternion(t1, t2, t3)
-    angles = quaternion_to_motors(q1, theta1Hint=t1)
+    angles = quaternion_to_motors(q1, lastPos=LastPosition(t1,t2,t3))
     u1,u2,u3 = approx(angles)
     assert str([f'D{n}', u1,u2,u3]) == str([f'D{n}', v1,v2,v3])
 
