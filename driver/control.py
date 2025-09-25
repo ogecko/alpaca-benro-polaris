@@ -63,7 +63,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot close inactive websocket clients
 # [X] Alpaca pilot Ability to optionally use KF
 # [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
-# [ ] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, (now pass azhint, but what defines M3 position when roll 0)?
+# [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
 # [ ] Fix when Pilot left behind other window, and Chrome hangs
 # [ ] Fix Position Angle dashboard and interaction
 # [ ] Alpaca pilot Sync
