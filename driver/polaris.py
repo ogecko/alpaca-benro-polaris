@@ -1475,6 +1475,7 @@ class Polaris:
                 'rightascension': self._rightascension,
                 'parallacticangle': self._parallactic_angle,
                 'positionangle': self._position_angle,
+                'pidmode': self._pid.mode,                
                 'q1': self._q1,
                 'q1s': self._q1s,
                 'thetameas': [0,0,0] if self._theta_meas is None else self._theta_meas.tolist(),
