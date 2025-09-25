@@ -85,7 +85,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, CalibrationManager, polar_rotation_angle, MotorSpeedController, PID_Controller
+from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, CalibrationManager, parallactic_angle, wrap_to_360, MotorSpeedController, PID_Controller
 from ble_service import BLE_Controller
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525'}
@@ -184,6 +184,8 @@ class Polaris:
         self._rotation: float = 0.0                 # The Field Rotation (-90 to 90), 0=after GOTO, -ve=clockwise rotation looking at celestrial south pole.
         self._declination: float = 0.0              # The declination (degrees) of the telescope's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property. Reading the property will raise an error if the value is unavailable.
         self._rightascension: float = 0.0           # The right ascension (hours) of the telescope's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property
+        self._parallactic_angle: float = 0.0         # The current parallactic angle of the telescope (degrees, -180 to +180)
+        self._position_angle: float = 0.0            # The current position angle of the telescope (degrees, 0 to 360)
         self._p_altitude: float = 0.0               # The Pirch/Altitude of the Polaris
         self._p_azimuth: float = 0.0                # The Yaw/Azimuth of the Polaris
         self._p_roll: float = 0.0                   # The Roll of the Polaris
@@ -757,7 +759,6 @@ class Polaris:
                 self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} q_alt {q_alt:.5f} diff {p_alt - q_alt:.5f}") 
 
             # Log meas, state and ref for websocket streaming
-            # q1s = str(q1).replace(' ',',').replace('i','').replace('j','').replace('k','')
             payload = { 
                 "θ_meas":theta_meas.tolist(), "θ_state":theta_state.tolist(), "K_gain": K_gain.tolist(),
                 "ω_meas":omega_meas.tolist(), "ω_state":omega_state.tolist(), "ω_ref": omega_ref.tolist(),  
@@ -820,6 +821,10 @@ class Polaris:
                     self._azimuth = a_az
                     self._roll = float(s_roll)
                     self._rotation = float(theta_state[2])
+
+            # update the parallactic angle and position angle
+            self._parallactic_angle = parallactic_angle(a_ra, a_dec, self._siderealtime, self._sitelatitude)
+            self._position_angle = wrap_to_360(self._parallactic_angle + self._roll)
 
             # if we want to log position data
             if Config.log_performance_data == 4:
@@ -1468,7 +1473,8 @@ class Polaris:
                 'rotation': self._rotation,
                 'declination': self._declination,
                 'rightascension': self._rightascension,
-                'pidmode': self._pid.mode,
+                'parallacticangle': self._parallactic_angle,
+                'positionangle': self._position_angle,
                 'q1': self._q1,
                 'q1s': self._q1s,
                 'thetameas': [0,0,0] if self._theta_meas is None else self._theta_meas.tolist(),

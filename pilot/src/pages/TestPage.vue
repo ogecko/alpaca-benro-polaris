@@ -35,7 +35,7 @@
                   {label: 'Roll', value: 'roll_180'},
                   {label: 'RA', value: 'ra_24'},
                   {label: 'Dec', value: 'dec_180'},
-                  {label: 'PA', value: 'pa_180'},
+                  {label: 'PA', value: 'pa_360'},
                   {label: 'Linear', value: 'linear_360'},
                   {label: 'Circular', value: 'circular_360'},
                   ]" />

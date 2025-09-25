@@ -188,6 +188,39 @@ def wrap_state_angles(x):
     x_wrapped[2, 0] = wrap_to_180(x[2, 0])    # theta3 
     return x_wrapped
 
+
+def parallactic_angle(ra_hr, dec_deg, sidereal_time_hr, lat_deg):
+    """
+    Compute the signed parallactic angle in degrees.
+    
+    Inputs:
+        lat_deg: Observer latitude in degrees
+        dec_deg: Declination of object in degrees
+        sidereal_time_hr: Local sidereal time in hours
+        ra_hr: Right Ascension of object in hours
+        
+    Returns:
+        Parallactic angle in degrees (range: -180 to +180)
+    """
+    # Convert to radians
+    lat_rad = np.radians(lat_deg)
+    dec_rad = np.radians(dec_deg)
+    ha_rad = np.radians((sidereal_time_hr - ra_hr) * 15.0)  # 15° per hour
+
+    # Compute signed parallactic angle
+    sin_ha = np.sin(ha_rad)
+    cos_ha = np.cos(ha_rad)
+    tan_lat = np.tan(lat_rad)
+    cos_dec = np.cos(dec_rad)
+    sin_dec = np.sin(dec_rad)
+
+    numerator = sin_ha
+    denominator = tan_lat * cos_dec - sin_dec * cos_ha
+
+    pa_rad = np.arctan2(numerator, denominator)
+    return np.degrees(pa_rad)
+
+
 def polar_rotation_angle(latitude_rad, az_rad, alt_rad):
     """
     Compute the roll angle (in degrees) needed to rotate a camera pointed at (az, alt)
@@ -578,9 +611,6 @@ class KalmanFilter:
         self.P = (self.I - self.K @ self.H) @ self.P
         self.x = wrap_state_angles(self.x)
 
-        # self._logger.debug(f"KF Gain:{K} | Residual y:{y}")
-
-
     def get_state(self):
         state = self.x.flatten()
         theta = state[0:3]
@@ -590,6 +620,8 @@ class KalmanFilter:
 
     def set_state(self, x):
         self.x = np.array(x).reshape(6, 1)
+
+
 
 # ************* Calibration Manager ************
 class CalibrationManager:

@@ -120,7 +120,7 @@ const isEquatorial = ref<boolean>(false)
 const displayConfig = computed(() => isEquatorial.value ? [
   { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, domain: 'ra_24' as DomainStyleType },
   { label: 'Declination', pv: p.declination, sp: p.deltaref[1], domain: 'dec_180' as DomainStyleType },
-  { label: 'Position Angle', pv: p.rotation, sp: p.deltaref[2], domain: 'pa_180' as DomainStyleType }
+  { label: 'Position Angle', pv: p.positionangle, sp: p.deltaref[2], domain: 'pa_360' as DomainStyleType }
 ] : [
   { label: 'Azimuth', pv: p.azimuth, sp: p.alpharef[0], domain: 'az_360' as DomainStyleType },
   { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType },

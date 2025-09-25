@@ -136,7 +136,7 @@ const dProps = computed(() => domainStyle[props.domain])
 const unit = computed(() => dProps.value.unit)
 const isCircular = computed(() => [
   'circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180', 
-  'az_360', 'alt_90', 'roll_180', 'ra_24', 'dec_180', 'pa_180',
+  'az_360', 'alt_90', 'roll_180', 'ra_24', 'dec_180', 'pa_360',
 ].includes(props.domain))
 
 // events that can be emitted
@@ -157,7 +157,7 @@ export type DomainStyleType =
 	| 'roll_180'
 	| 'ra_24'
 	| 'dec_180'
-	| 'pa_180'
+	| 'pa_360'
 
 type WarningRange = [number, number];
 type DomainStyleConfig = {
@@ -184,7 +184,7 @@ const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
   'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,200],[-82,-200]] },
   'ra_24':        { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12,  warnings:[] },
   'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[90,200],[-90,-200]] },
-  'pa_180':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,200],[-82,-200]] },
+  'pa_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
 };
 
 

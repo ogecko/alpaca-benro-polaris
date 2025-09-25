@@ -45,6 +45,8 @@ export const useStatusStore = defineStore('status', {
         declination: 0,
         rightascension: 0,
         siderealtime: 0,
+        parallacticangle: 0,
+        positionangle: 0,
         lifecycleevent: 'NONE',
         pidmode: '',
         q1: '',
