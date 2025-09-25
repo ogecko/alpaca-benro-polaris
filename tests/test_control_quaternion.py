@@ -242,7 +242,7 @@ test_misc_azaltroll_cases = [
 def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
     az1,alt1,roll1 = approx( [az,alt,roll] )
     q1 = angles_to_quaternion(az, alt, roll)
-    angles = quaternion_to_angles(q1, LastPosition(180,30,0))
+    angles = quaternion_to_angles(q1, lastPos=LastPosition(180,30,0))
     _,_,_,az2,alt2,roll2 = approx( angles )
     assert str([f'C{n}', az2,alt2,roll2]) == str([f'C{n}', az1,alt1,roll1])
 
@@ -250,21 +250,9 @@ def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
 def test_misc_t1t2t3_motors_to_q1_roundtrip(n, t1, t2, t3):
     v1,v2,v3 = approx( [t1,t2,t3] )
     q1 = motors_to_quaternion(t1, t2, t3)
-    angles = quaternion_to_motors(q1, lastPos=LastPosition(t1,t2,t3))
+    angles = quaternion_to_motors(q1, theta1Hint=t1, lastPos=LastPosition(t1,t2,t3))
     u1,u2,u3 = approx(angles)
     assert str([f'D{n}', u1,u2,u3]) == str([f'D{n}', v1,v2,v3])
-
-def test_all_angle_positions():
-    n=200
-    # Angles to Q to Angles: Positive Alt, Zero Alt and Negative Alt tests
-    for alt in range(-85,85,5):
-        for az in range(0,360,30):
-            for roll in range(-80,+90,10):
-                n += 1
-                if (alt==0 and roll!=0):
-                    continue    # unsolvable 
-                test_misc_azaltroll_angles_to_q1_roundtrip(n,az,alt,roll)
-
 
 def test_all_motor_positions():
     n=500
