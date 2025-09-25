@@ -63,7 +63,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms
 # [X] Alpaca Pilot close inactive websocket clients
 # [X] Alpaca pilot Ability to optionally use KF
 # [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
-# [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin
+# [ ] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, (now pass azhint, but what defines M3 position when roll 0)?
+# [ ] Fix when Pilot left behind other window, and Chrome hangs
 # [ ] Fix Position Angle dashboard and interaction
 # [ ] Alpaca pilot Sync
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
@@ -473,7 +474,8 @@ def quaternion_to_angles(q1, azhint = None):
         q3 = q1 * (qaz * qalt).inverse                                  # remove alt and az rotations, leaving only the residual roll about the boresight
         roll = abs(q3.degrees)
         aDiff = angular_difference(theta1, az)                          # anglular distance from theta1 to az (-ve diff is a positive ccw roll)
-        roll = roll if aDiff<0 else -roll
+        flip = (roll<90 and aDiff>0) or (roll>=90 and aDiff<=0)
+        roll = -roll if flip else roll
 
     return theta1, theta2, theta3, az, alt, roll
 
