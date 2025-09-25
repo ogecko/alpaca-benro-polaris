@@ -424,8 +424,9 @@ def quaternion_to_motors(q1, theta1Hint=None):
     else:                                # Get the one with smaller theta3
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if abs(theta3_A)<abs(theta3_B) else [theta1_B, theta2_B, theta3_B]
 
-    # --- Handle the case where we have a gimbal lock at Theta2 = 0, ie t1/t3 in gimbal lock
-    if abs(theta2) < 1e-10 and theta1Hint is not None:
+    # --- Handle the case where we have a gimbal lock at Alt = 0, ie t1/t3 in gimbal lock
+    alt = np.degrees(np.arcsin(np.clip(tBore[2], -1.0, 1.0)))           # Altitude = Angle from N/E plane, vertically to the Boresight axis
+    if abs(alt) < 1e-10 and theta1Hint is not None:
         diffC = angular_difference(theta1, theta1Hint)
         theta1 = wrap_to_360(theta1Hint)
         theta3 = wrap_to_180(theta3 - diffC)

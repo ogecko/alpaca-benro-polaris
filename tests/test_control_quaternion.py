@@ -19,7 +19,7 @@ def approx(array_input, precision=5):
     return [ 0.0 if float(round(x, precision))==-0.0 else float(round(x, precision)) for x in array_input ]
 
 
-test_misc_motor_to_quaternion_cases = [
+test_misc_motor_to_q1_cases = [
     (2, 45, -5, Quaternion(+0.247, +0.653, -0.652, +0.295)),
     (2, 45, +5, Quaternion(-0.303, -0.629, +0.676, -0.237)),
     (90, 45, -5, Quaternion(+0.382, +0.017, -0.923, +0.040)),
@@ -42,14 +42,14 @@ test_misc_motor_to_quaternion_cases = [
     (179, -2, +3, Quaternion(-0.500, +0.500, +0.482, +0.517)),  
     (150, -5, 0, Quaternion(-0.639, +0.338, +0.585, +0.369)),   
 ]
-@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_misc_motor_to_quaternion_cases)
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_misc_motor_to_q1_cases)
 def test_misc_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
     assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
 
 
 
-test_az5_alt30_cases = [
+test_5t1_30t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
     (+5, +30, -170, Quaternion(-0.551, +0.418, +0.281, +0.666)),
     (+5, +30, -100, Quaternion(-0.211, +0.658, -0.152, +0.706)),
@@ -61,14 +61,14 @@ test_az5_alt30_cases = [
     (+5, +30, +100, Quaternion(-0.685, -0.094, +0.669, +0.272)),
     (+5, +30, +170, Quaternion(-0.615, +0.316, +0.392, +0.607)),
 ]
-@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az5_alt30_cases)
-def test_az5_alt30_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_5t1_30t2_cases)
+def test_5t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
     assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
 
 
 
-test_az355_alt30_cases = [
+test_355t1_30t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
     (+355, +30, -170, Quaternion(+0.607, -0.392, -0.316, -0.615)),
     (+355, +30, -100, Quaternion(+0.272, -0.669, +0.094, -0.685)),
@@ -80,15 +80,15 @@ test_az355_alt30_cases = [
     (+355, +30, +100, Quaternion(+0.706, +0.152, -0.658, -0.211)),
     (+355, +30, +170, Quaternion(+0.666, -0.281, -0.418, -0.551)),
 ]
-@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az355_alt30_cases)
-def test_az355_alt30_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_355t1_30t2_cases)
+def test_355t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
     assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1))
 
 
 
 
-test_az355_alt_minus7_cases = [
+test_355t1_minus7t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
     (+355, -7, -170, Quaternion(+0.443, -0.547, -0.511, -0.494)),
     (+355, -7, -100, Quaternion(+0.049, -0.702, -0.135, -0.698)),
@@ -100,15 +100,13 @@ test_az355_alt_minus7_cases = [
     (+355, -7, +100, Quaternion(+0.699, -0.074, -0.711, +0.012)),
     (+355, -7, +170, Quaternion(+0.531, -0.461, -0.589, -0.398)),
 ]
-@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az355_alt_minus7_cases)
-def test_az355_alt_minus7_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_355t1_minus7t2_cases)
+def test_355t1_minus7t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
     assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=355))
 
 
-
-
-test_az5_alt0_cases = [
+test_5t1_0t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
     (+5, 0, -170, Quaternion(-0.430, +0.561, +0.430, +0.561)),
     (+5, 0, -100, Quaternion(-0.031, +0.706, +0.031, +0.706)),
@@ -120,12 +118,26 @@ test_az5_alt0_cases = [
     (+5, 0, +100, Quaternion(-0.701, +0.092, +0.701, +0.092)),
     (+5, 0, +170, Quaternion(-0.521, +0.478, +0.521, +0.478)),
 ]
-@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az5_alt0_cases)
-def test_az5_alt0_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_5t1_0t2_cases)
+def test_5t1_0t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
     assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=theta1))
 
-test_az180_alt70_cases = [
+
+
+test_90t1_minus5t2_cases = [
+    # (theta1, theta2, theta3, expected_quaternion)
+    (+90, -5, +89, Quaternion(-0.526, +0.517, +0.482, +0.474)),     # around Az180, Alt0, Roll+5
+    (+90, -5, +91, Quaternion(-0.517, +0.526, +0.474, +0.482)),     # around Az180, Alt0, Roll+5
+]
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_90t1_minus5t2_cases)
+def test_90t1_minus5t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=theta1))
+
+
+
+test_180t1_70t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
     (+180, 70, -170, Quaternion(0.704, +0.062, -0.183, +0.683)),
     (+180, 70, -100, Quaternion(0.612, -0.354, -0.542, +0.455)),
@@ -137,8 +149,8 @@ test_az180_alt70_cases = [
     (+180, 70, 100, Quaternion(0.455, +0.542, +0.354, +0.612)),
     (+180, 70, 170, Quaternion(0.683, +0.183, -0.062, +0.704)),
 ]
-@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_az180_alt70_cases)
-def test_az180_alt70_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_180t1_70t2_cases)
+def test_180t1_70t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
     assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=theta1))
 
@@ -197,7 +209,7 @@ test_misc_azaltroll_cases = [
     # 🧊 Zero altitude cases
     (7, 359, 0, 0),      # Azimuth near 360°
     (8, 0, 0, 0),        # Azimuth at 0°
-    # (9, 10, 0, 80),      # High roll at flat alt - INVALID TEST: ambiguous theta1 vs theta3
+    (9, 10, 0, 80),      # High roll at flat alt 
 
     # 🔄 Azimuth wraparound cases
     (12, 359.999, 30, 10), # Just below 360°
@@ -208,10 +220,10 @@ test_misc_azaltroll_cases = [
     (15, 90, 45, -175),    # Opposite full twist 
 
     # 🧮 Near-singularity setup
-    (16, 270, 89.999, 90), # Near zenith with roll - INVALID TEST: unreachable Alt
+    (16, 270, 89.999, 90), # Near zenith with roll 
 
     # 🔁 Flat boresight with flipped roll logic
-    #(18, 180, 0, 5),   # Roll just under 180° - INVALID TEST: ambiguous theta1 and theta3
+    (18, 180, 0, 5),   # Pointing South, Alt 0,  with a +5 Roll 
 
     # 🧭 Azimuth discontinuity at 180°
     (21, 179.999, 45, 0),
@@ -235,7 +247,7 @@ def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
     assert str([f'C{n}', az2,alt2,roll2]) == str([f'C{n}', az1,alt1,roll1])
 
 @pytest.mark.parametrize("n, t1, t2, t3", test_misc_azaltroll_cases)
-def test_misc_azaltroll_motors_to_q1_roundtrip(n, t1, t2, t3):
+def test_misc_t1t2t3_motors_to_q1_roundtrip(n, t1, t2, t3):
     v1,v2,v3 = approx( [t1,t2,t3] )
     q1 = motors_to_quaternion(t1, t2, t3)
     angles = quaternion_to_motors(q1, theta1Hint=t1)
@@ -251,7 +263,7 @@ def test_all_angle_positions():
                 n += 1
                 if (alt==0 and roll!=0):
                     continue    # unsolvable 
-                test_angles_to_quaternion_to_angles_roundtrip(n,az,alt,roll)
+                test_misc_azaltroll_angles_to_q1_roundtrip(n,az,alt,roll)
 
 
 def test_all_motor_positions():
@@ -261,7 +273,7 @@ def test_all_motor_positions():
         for t2 in range(-5,80,5):
             for t3 in range(-170,+180,10):
                 n += 1
-                test_motors_to_quaternion_to_motors_roundtrip(n,t1,t2,t3)
+                test_misc_t1t2t3_motors_to_q1_roundtrip(n,t1,t2,t3)
 
 def test_zeroalt_motor_positions():
     n=900
@@ -269,4 +281,4 @@ def test_zeroalt_motor_positions():
         t2 = 0
         for t3 in range(-175,175,5):
             n += 1
-            test_motors_to_quaternion_to_motors_roundtrip(n,t1,t2,t3)
+            test_misc_t1t2t3_motors_to_q1_roundtrip(n,t1,t2,t3)
