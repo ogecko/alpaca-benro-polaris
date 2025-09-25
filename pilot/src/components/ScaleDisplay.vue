@@ -180,7 +180,7 @@ const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
   'linear_360':   { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:-10, sAngleHigh:190, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'circular_360': { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:10,  sAngleHigh:340, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
   'az_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,200],[-100,-1]] },
+  'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,200],[-100,-8]] },
   'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,200],[-82,-200]] },
   'ra_24':        { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12,  warnings:[] },
   'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[90,200],[-90,-200]] },
