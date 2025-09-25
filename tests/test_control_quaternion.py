@@ -8,52 +8,6 @@ import numpy as np
 from control import angles_to_quaternion, motors_to_quaternion, quaternion_to_angles, quaternion_to_motors
 
 
-test_cases = [
-    # 🔁 Slight altitude around Az=160°
-    (1, 160, 5, -6),     # Low alt, negative roll
-    (2, 160, 5, 12),     # Low alt, positive roll
-
-    # 🧭 Steeper altitude around Az=240°
-    (3, 240, 60, 30),    # Mid-alt, positive roll
-    (4, 240, 60, -35),   # Mid-alt, negative roll
-    (5, 240, 60, 0),     # Mid-alt, zero roll
-    (6, 0, 60, 0),       # Mid-alt, azimuth wraparound
-
-    # 🧊 Zero altitude cases
-    (7, 359, 0, 0),      # Azimuth near 360°
-    (8, 0, 0, 0),        # Azimuth at 0°
-    # (9, 10, 0, 80),      # High roll at flat alt - INVALID TEST: ambiguous theta1 vs theta3
-
-    # 🔄 Azimuth wraparound cases
-    (12, 359.999, 30, 10), # Just below 360°
-    (13, 0.001, 30, -10),  # Just above 0°
-
-    # 🔁 Roll near ±180°
-    # (14, 90, 45, 180),     # Full twist - INVALID TEST: due to full theta3 rotation
-    # (15, 90, 45, -180),    # Opposite full twist - INVALID TEST: due to full theta3 rotation
-
-    # 🧮 Near-singularity setup
-    # (16, 270, 89.999, 90), # Near zenith with roll - INVALID TEST: unreachable Alt
-
-    # 🔁 Flat boresight with flipped roll logic
-    # (18, 180, 0, 179.9),   # Roll just under 180° - INVALID TEST: ambiguous theta1 and theta3
-
-    # 🔁 Roll wraparound near ±180°
-    #(19, 90, 45, 180.001),  # INVALID TEST - unreachable theta3 or Roll
-    #(20, 90, 45, -180.001), # INVALID TEST - unreachable theta3 or Roll
-
-    # 🧭 Azimuth discontinuity at 180°
-    (21, 179.999, 45, 0),
-    (22, 180.001, 45, 0),
-
-    # 🧊 Near-zero roll with steep altitude
-    (23, 90, 89.999, 0.001),
-    # (24, 270, -89.999, -0.001), # INVALID TEST - unreachable Alt
-
-    # 🧮 Symmetry cases
-    (27, 90, 45, 45),
-    (28, 270, 45, -45),
-]
 
 def approx_quaternion_to_angles(w,x,y,z):
     q1=Quaternion(w,x,y,z)
@@ -84,9 +38,9 @@ test_misc_motor_to_quaternion_cases = [
     (350, 30, -5, Quaternion(-0.292, -0.677, +0.539, -0.407)),
     (358, 45, -5, Quaternion(-0.237, -0.676, +0.629, -0.303)),
     (358, 45, +5, Quaternion(+0.295, +0.652, -0.653, +0.247)),
-#    (260, -2, -5, Quaternion(+0.093, -0.689, -0.092, -0.713)),  # Default solution has +Theta2
-#    (177, -2, +5, Quaternion(-0.500, +0.500, +0.482, +0.517)),  # Default solution has +Theta2
-#    (150, -5, 0, Quaternion(-0.639, +0.338, +0.585, +0.369)),   # Default solution has +Theta2
+    (260, -2, -5, Quaternion(+0.093, -0.689, -0.092, -0.713)),  
+    (179, -2, +3, Quaternion(-0.500, +0.500, +0.482, +0.517)),  
+    (150, -5, 0, Quaternion(-0.639, +0.338, +0.585, +0.369)),   
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_misc_motor_to_quaternion_cases)
 def test_misc_roundtrip_theta_q1(theta1, theta2, theta3, q1):
@@ -229,17 +183,59 @@ def test_quaternion_to_angles():
     assert approx_quaternion_to_angles(+0.292, +0.677, -0.539, +0.407) == str([349.9, 30.0, -5.0, 344.2, 29.9, 2.9])
     assert approx_quaternion_to_angles(+0.237, +0.675, -0.629, +0.303) == str([358.0, 44.9, -5.0, 351.0, 44.7, 4.9])
 
+test_misc_azaltroll_cases = [
+    # 🔁 Slight altitude around Az=160°
+    (1, 160, 5, -6),     # Low alt, negative roll
+    (2, 160, 5, 12),     # Low alt, positive roll
 
-@pytest.mark.parametrize("n, az, alt, roll", test_cases)
-def test_angles_to_quaternion_to_angles_roundtrip(n, az, alt, roll):
+    # 🧭 Steeper altitude around Az=240°
+    (3, 240, 60, 30),    # Mid-alt, positive roll
+    (4, 240, 60, -35),   # Mid-alt, negative roll
+    (5, 240, 60, 0),     # Mid-alt, zero roll
+    (6, 0, 60, 0),       # Mid-alt, azimuth wraparound
+
+    # 🧊 Zero altitude cases
+    (7, 359, 0, 0),      # Azimuth near 360°
+    (8, 0, 0, 0),        # Azimuth at 0°
+    # (9, 10, 0, 80),      # High roll at flat alt - INVALID TEST: ambiguous theta1 vs theta3
+
+    # 🔄 Azimuth wraparound cases
+    (12, 359.999, 30, 10), # Just below 360°
+    (13, 0.001, 30, -10),  # Just above 0°
+
+    # 🔁 Roll near ±180°
+    (14, 90, 45, 175),     # Full twist 
+    (15, 90, 45, -175),    # Opposite full twist 
+
+    # 🧮 Near-singularity setup
+    (16, 270, 89.999, 90), # Near zenith with roll - INVALID TEST: unreachable Alt
+
+    # 🔁 Flat boresight with flipped roll logic
+    #(18, 180, 0, 5),   # Roll just under 180° - INVALID TEST: ambiguous theta1 and theta3
+
+    # 🧭 Azimuth discontinuity at 180°
+    (21, 179.999, 45, 0),
+    (22, 180.001, 45, 0),
+
+    # 🧊 Near-zero roll with steep altitude
+    (23, 90, 89.999, 0.001),
+    (24, 270, -8, -0.001), 
+
+    # 🧮 Symmetry cases
+    (27, 90, 45, 45),
+    (28, 270, 45, -45),
+]
+
+@pytest.mark.parametrize("n, az, alt, roll", test_misc_azaltroll_cases)
+def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
     az1,alt1,roll1 = approx( [az,alt,roll] )
     q1 = angles_to_quaternion(az, alt, roll)
     angles = quaternion_to_angles(q1, azhint=az)
     _,_,_,az2,alt2,roll2 = approx( angles )
     assert str([f'C{n}', az2,alt2,roll2]) == str([f'C{n}', az1,alt1,roll1])
 
-@pytest.mark.parametrize("n, t1, t2, t3", test_cases)
-def test_motors_to_quaternion_to_motors_roundtrip(n, t1, t2, t3):
+@pytest.mark.parametrize("n, t1, t2, t3", test_misc_azaltroll_cases)
+def test_misc_azaltroll_motors_to_q1_roundtrip(n, t1, t2, t3):
     v1,v2,v3 = approx( [t1,t2,t3] )
     q1 = motors_to_quaternion(t1, t2, t3)
     angles = quaternion_to_motors(q1, theta1Hint=t1)
