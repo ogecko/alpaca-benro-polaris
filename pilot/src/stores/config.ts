@@ -136,7 +136,7 @@ export const useConfigStore = defineStore('config', {
         }
         // Check if any updated key requires restart
         const restartKeys = [
-          'enable_restapi', 'enable_socket', 'enable_discovery', 'enable_pilot', 'enable_synscan', 
+          'polaris_auto_retry', 'enable_restapi', 'enable_socket', 'enable_discovery', 'enable_pilot', 'enable_synscan', 
           'alpaca_restapi_port', 'alpaca_socket_port', 'alpaca_discovery_port', 'alpaca_pilot_port', 'stellarium_synscan_port', 
         ]
         const updatedKeys = Object.keys(updated)
