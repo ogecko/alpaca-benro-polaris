@@ -6,6 +6,7 @@ from pathlib import Path
 from pyquaternion import Quaternion
 from config import Config
 from scipy.interpolate import PchipInterpolator
+from scipy.optimize import minimize
 import time
 import asyncio
 from typing import Optional
@@ -1447,4 +1448,101 @@ class PID_Controller():
     async def stop_control_loop_task(self):
         async with self._lock:
             self._stop_flag.set()
+
+class SyncManager:
+    def __init__(self, logger, polaris):
+        self.logger = logger
+        self.polaris = polaris
+        self.body = ephem.FixedBody()           # Target body
+        self.body._epoch = ephem.J2000          # default to J2000 epoch
+        self.sync_history = []                  # list of sync events, indexed by str(q1)
+        self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion, initially identity
+        self.q1_adj_message = ""                # message from last optimisation
+        self.q1_adj_finalcost = None            # final cost after last optimisation
+
+    def standard_entry(self):
+        entry = {
+            "timestamp": time.monotonic(),
+            "q1": self.polaris._q1,
+            "p_az": self.polaris._p_azimuth,
+            "p_alt": self.polaris._p_altitude,
+            "p_roll": self.polaris._p_roll,
+            "a_az": None,
+            "a_alt": None,
+            "a_roll": None,
+            "cost": None  
+        }
+        return entry
+
+    def sync_az_alt(self, a_az, a_alt):
+        entry = self.standard_entry()
+        entry["a_az"] = a_az
+        entry["a_alt"] = a_alt
+        self.sync_history.append(entry)
+        self.optimize_q1_adj()
+
+    def sync_roll(self, a_roll):
+        entry = self.standard_entry()
+        entry["a_roll"] = a_roll
+        self.sync_history.append(entry)
+        self.optimize_q1_adj()
+
+    def compute_cost(self, q_adj):
+        total_cost = 0.0
+        no_roll_syncs = not any(entry["a_roll"] is not None for entry in self.sync_history)
+        for entry in self.sync_history:
+            q1 = entry["q1"]
+            a_az = entry["a_az"]
+            a_alt = entry["a_alt"]
+            a_roll = entry["a_roll"]
+            p_roll = entry["p_roll"]
+
+            pred_q1 = q_adj * q1
+            pred_az, pred_alt, pred_roll, _, _, _ = quaternion_to_angles(pred_q1, azhint=entry["a_az"])
+
+            cost = 0.0
+            if a_az is not None and a_alt is not None:
+                d_az = angular_difference(pred_az, a_az)
+                d_alt = angular_difference(pred_alt, a_alt)
+                cost += d_az**2 + d_alt**2
+                if no_roll_syncs:
+                    d_roll = angular_difference(pred_roll, p_roll)
+                    cost += d_roll**2
+
+            if a_roll is not None:
+                d_roll = angular_difference(pred_roll, a_roll)
+                cost += d_roll**2
+
+            entry["cost"] = math.sqrt(cost)
+            total_cost += cost
+
+        return total_cost
+
+
+    def optimize_q1_adj(self):
+        def rotation_vector_to_quaternion(vec):
+            angle = np.linalg.norm(vec)
+            axis = vec / angle if angle != 0 else [1, 0, 0]
+            return Quaternion(axis=axis, radians=angle)
+
+        def cost_fn(rot_vec):
+            q_adj = rotation_vector_to_quaternion(rot_vec)
+            return self.compute_cost(q_adj)
+
+        # Rodrigues vector encodes a rotation in space using just three numbers; 
+        # the direction of the vector is the axis of rotation, and the magnitude is the angle of rotation in radians.
+        initial_vec = np.array([0.0, 0.0, 0.0])
+        # 10 arcsec accuracy = 0.00278° = 4.85e-5 radians
+        options = {'xtol': 1e-4, 'ftol': 1e-4, 'disp': True, 'maxiter': 2000 }
+        result = minimize(cost_fn, initial_vec, method='Powell', options=options)  # Non-gradient method as cost function not smooth and may have flat areas
+
+        if not result.success:
+            self.q1_adj_message = result.message
+            self.logger.warning(f"Optimization failed: {result.message}")
+            return None, None
+
+        q_opt = rotation_vector_to_quaternion(result.x)
+        self.q1_adj = q_opt  
+        self.q1_adj_finalcost = result.fun
+        self.q1_adj_vector = result.x
 
