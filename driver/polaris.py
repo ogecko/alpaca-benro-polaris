@@ -706,8 +706,10 @@ class Polaris:
             with self._lock:
                 self._polaris_mode = int(arg_dict['mode'])
                 if self._polaris_mode == 8:
+                    isAligned = not arg_dict.get('track') == '3'
                     self._tracking_in_benro = arg_dict.get('track') == '1'
-                    self._aligned = not arg_dict.get('track') == '3'
+                    self._aligned = isAligned
+                    self._compassed = isAligned
                 if not Config.advanced_tracking:        # only update tracking if Benro in control
                     self._tracking = self._tracking_in_benro
             if Config.log_polaris_polling:
