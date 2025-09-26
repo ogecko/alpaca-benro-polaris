@@ -1453,8 +1453,6 @@ class SyncManager:
     def __init__(self, logger, polaris):
         self.logger = logger
         self.polaris = polaris
-        self.body = ephem.FixedBody()           # Target body
-        self.body._epoch = ephem.J2000          # default to J2000 epoch
         self.sync_history = []                  # list of sync events, indexed by str(q1)
         self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion, initially identity
         self.q1_adj_message = ""                # message from last optimisation
@@ -1463,7 +1461,7 @@ class SyncManager:
     def standard_entry(self):
         entry = {
             "timestamp": time.monotonic(),
-            "q1": self.polaris._q1,
+            "p_q1": self.polaris._q1,
             "p_az": self.polaris._p_azimuth,
             "p_alt": self.polaris._p_altitude,
             "p_roll": self.polaris._p_roll,
@@ -1487,17 +1485,133 @@ class SyncManager:
         self.sync_history.append(entry)
         self.optimize_q1_adj()
 
+    def az_alt_to_vector(self, az_deg, alt_deg):
+        az = math.radians(az_deg)
+        alt = math.radians(alt_deg)
+        x = math.cos(alt) * math.sin(az)
+        y = math.cos(alt) * math.cos(az)
+        z = math.sin(alt)
+        return np.array([x, y, z])
+
+    def vector_to_az_alt(self, vec):
+        x, y, z = vec
+        az = math.degrees(math.atan2(x, y)) % 360
+        alt = math.degrees(math.asin(z / np.linalg.norm(vec)))
+        return az, alt
+
+    def altaz_polaris2ascom(self, p_az, p_alt):
+        if self.q1_adj is None:
+            return p_az, p_alt
+        v_pred = self.az_alt_to_vector(p_az, p_alt)
+        v_obs = self.q1_adj.rotate(v_pred)
+        c_az, c_alt = self.vector_to_az_alt(v_obs) 
+        return c_az, c_alt
+
+    def altaz_ascom2polaris(self, a_az, a_alt):
+        if self.q1_adj is None:
+            return a_az, a_alt
+        v_obs = self.az_alt_to_vector(a_az, a_alt)
+        v_pred = self.q1_adj.inverse.rotate(v_obs)
+        p_az, p_alt = self.vector_to_az_alt(v_pred)
+        return p_az, p_alt
+
+    def optimize_q1_adj(self):
+        """
+        Implement the QUEST algorithm to find the optimal rotation quaternion
+        that minimizes the misalignment between predicted (Polaris) and observed (Plate Solved/ASCOM) vectors.
+        Based on: Markley, F. L. (1988). "Attitude Determination Using Vector Observations and the Quaternion Estimator."
+        """
+        pairs = []
+        for entry in self.sync_history:
+            if entry["a_az"] is None or entry["a_alt"] is None:
+                continue
+            # Observed vector from sync
+            v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])
+            # Predicted vector from mount
+            v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])
+            pairs.append((v_pred, v_obs))
+
+        if len(pairs) < 2:
+            self.q1_adj = self.optimise_q1_adj_fallback_single_sync()
+            self.q1_adj_message = "Fallback rotation from single sync"
+            self.q1_adj_finalcost = self.compute_cost(self.q1_adj)
+            return
+
+        # Build the B matrix: sum of weighted outer products between predicted and observed vectors
+        # Each term aligns a predicted direction (from Polaris) to an observed direction (from sync)
+        # This builds the core rotation alignment matrix
+        B = sum(np.outer(v_pred, v_obs) for v_pred, v_obs in pairs)
+
+        # Construct the Davenport matrix K, which encodes the optimal rotation in quaternion form
+        # This is based on the method from Markley's QUEST algorithm
+        S = B + B.T             # Symmetric part of B
+        sigma = np.trace(B)     # Scalar part: trace of B (sum of diagonal elements)
+
+        # Anti-symmetric part: used to build the vector Z
+        # Z encodes the cross-product-like skew between predicted and observed vectors
+        Z = np.array([
+            B[1,2] - B[2,1],    # YZ - ZY
+            B[2,0] - B[0,2],    # ZX - XZ
+            B[0,1] - B[1,0]     # XY - YX
+        ])
+        # Initialize the 4x4 Davenport matrix K
+        # K is structured to find the quaternion that best rotates predicted vectors to observed ones
+        K = np.zeros((4,4))
+        K[0,0] = sigma
+        K[0,1:] = Z
+        K[1:,0] = Z
+        K[1:,1:] = S - sigma * np.eye(3)
+
+        # Solve the eigenvalue problem: find the eigenvector of K with the largest eigenvalue
+        # This eigenvector represents the optimal quaternion [w, x, y, z]
+        eigvals, eigvecs = np.linalg.eigh(K)
+        q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
+
+        self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
+        self.q1_adj_message = "QUEST solution applied"
+        self.q1_adj_finalcost = self.compute_cost(self.q1_adj)
+        return
+
+    def optimise_q1_adj_fallback_single_sync(self):
+        entry = self.sync_history[0]
+        v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])
+        v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])
+
+        # Normalize both vectors
+        v_pred /= np.linalg.norm(v_pred)
+        v_obs /= np.linalg.norm(v_obs)
+
+        # Compute rotation axis and angle
+        cross = np.cross(v_pred, v_obs)
+        dot = np.dot(v_pred, v_obs)
+        norm_cross = np.linalg.norm(cross)
+
+        if norm_cross == 0:
+            # Vectors are aligned or opposite — return identity or 180° rotation
+            if dot > 0:
+                return Quaternion(1, 0, 0, 0)  # identity
+            else:
+                # 180° rotation around any orthogonal axis
+                axis = np.array([1, 0, 0]) if abs(v_pred[0]) < 0.9 else np.array([0, 1, 0])
+                ortho = np.cross(v_pred, axis)
+                ortho /= np.linalg.norm(ortho)
+                return Quaternion(axis=ortho, radians=np.pi)
+
+        axis = cross / norm_cross
+        angle = math.acos(np.clip(dot, -1.0, 1.0))
+        return Quaternion(axis=axis, radians=angle)
+
     def compute_cost(self, q_adj):
         total_cost = 0.0
         no_roll_syncs = not any(entry["a_roll"] is not None for entry in self.sync_history)
         for entry in self.sync_history:
-            q1 = entry["q1"]
+            p_q1 = entry["p_q1"]
             a_az = entry["a_az"]
             a_alt = entry["a_alt"]
             a_roll = entry["a_roll"]
             p_roll = entry["p_roll"]
 
-            pred_q1 = q_adj * q1
+            pred_q1 = q_adj * p_q1
             pred_az, pred_alt, pred_roll, _, _, _ = quaternion_to_angles(pred_q1, azhint=entry["a_az"])
 
             cost = 0.0
@@ -1519,30 +1633,30 @@ class SyncManager:
         return total_cost
 
 
-    def optimize_q1_adj(self):
-        def rotation_vector_to_quaternion(vec):
-            angle = np.linalg.norm(vec)
-            axis = vec / angle if angle != 0 else [1, 0, 0]
-            return Quaternion(axis=axis, radians=angle)
+    # def optimize_q1_adj(self):
+    #     def rotation_vector_to_quaternion(vec):
+    #         angle = np.linalg.norm(vec)
+    #         axis = vec / angle if angle != 0 else [1, 0, 0]
+    #         return Quaternion(axis=axis, radians=angle)
 
-        def cost_fn(rot_vec):
-            q_adj = rotation_vector_to_quaternion(rot_vec)
-            return self.compute_cost(q_adj)
+    #     def cost_fn(rot_vec):
+    #         q_adj = rotation_vector_to_quaternion(rot_vec)
+    #         return self.compute_cost(q_adj)
 
-        # Rodrigues vector encodes a rotation in space using just three numbers; 
-        # the direction of the vector is the axis of rotation, and the magnitude is the angle of rotation in radians.
-        initial_vec = np.array([0.0, 0.0, 0.0])
-        # 10 arcsec accuracy = 0.00278° = 4.85e-5 radians
-        options = {'xtol': 1e-4, 'ftol': 1e-4, 'disp': True, 'maxiter': 2000 }
-        result = minimize(cost_fn, initial_vec, method='Powell', options=options)  # Non-gradient method as cost function not smooth and may have flat areas
+    #     # Rodrigues vector encodes a rotation in space using just three numbers; 
+    #     # the direction of the vector is the axis of rotation, and the magnitude is the angle of rotation in radians.
+    #     initial_vec = np.array([0.0, 0.0, 0.0])
+    #     # 10 arcsec accuracy = 0.00278° = 4.85e-5 radians
+    #     options = {'xtol': 1e-4, 'ftol': 1e-4, 'disp': True, 'maxiter': 2000 }
+    #     result = minimize(cost_fn, initial_vec, method='Powell', options=options)  # Non-gradient method as cost function not smooth and may have flat areas
 
-        if not result.success:
-            self.q1_adj_message = result.message
-            self.logger.warning(f"Optimization failed: {result.message}")
-            return None, None
+    #     if not result.success:
+    #         self.q1_adj_message = result.message
+    #         self.logger.warning(f"Optimization failed: {result.message}")
+    #         return None, None
 
-        q_opt = rotation_vector_to_quaternion(result.x)
-        self.q1_adj = q_opt  
-        self.q1_adj_finalcost = result.fun
-        self.q1_adj_vector = result.x
+    #     q_opt = rotation_vector_to_quaternion(result.x)
+    #     self.q1_adj = q_opt  
+    #     self.q1_adj_finalcost = result.fun
+    #     self.q1_adj_vector = result.x
 
