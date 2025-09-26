@@ -61,6 +61,10 @@
             <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
             </q-input>
         </div>
+        <!-- Auto Reconnect  -->
+        <div class="row q-col-gutter-sm no-wrap">
+            <q-toggle class='col-8' v-bind="bindField('polaris_auto_retry', 'Auto Retry Polaris Connection')"/>
+        </div>
     </q-card>
 
 </template>

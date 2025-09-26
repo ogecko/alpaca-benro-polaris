@@ -14,6 +14,7 @@ export const useConfigStore = defineStore('config', {
     isRestartRequired: false, // network services keys have changed
 
     // Network
+    polaris_auto_retry: true,
     polaris_ip_address: '',
     polaris_port: 9090,
     enable_restapi: true,
