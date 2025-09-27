@@ -389,7 +389,7 @@ def angles_to_quaternion(az, alt, roll):
     Args:
         az: Azimuth angle in degrees (0-360)
         alt: Altitude angle in degrees (-90 to +90)
-        roll: Roll angle around boresight in degrees
+        roll: Roll angle around boresight (degrees),  (+ve=camera rotates ccw when view from rear, image rotates cw)
     
     Returns:
         Quaternion: q1 that rotates from camera frame to topocentric frame
@@ -1678,10 +1678,10 @@ class SyncManager:
         alt = math.radians(alt_deg)
         lat = math.radians(lat_deg)
 
-        sin_pa = math.sin(az)
-        cos_pa = math.cos(az) * math.sin(lat) - math.tan(alt) * math.cos(lat)
-        angle = math.degrees(math.atan2(sin_pa, cos_pa))
-        return wrap_to_360(angle)
+        numerator = math.sin(az)
+        denominator = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
+        angle = math.degrees(math.atan2(numerator, denominator))
+        return wrap_to_180(-angle)
 
     def roll2pa(self, az_deg, alt_deg, roll_deg):
         """Convert camera-frame roll to sky-frame position angle using parallactic angle at ascom azalt."""
