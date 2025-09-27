@@ -32,13 +32,13 @@ def test_sync_history():
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
     sm.sync_az_alt(170, 45.123456)
-    sm.sync_position_angle(5)
+    sm.sync_roll(5)
     assert len(sm.sync_history) >= 1
     assert isinstance(sm.sync_history[0], dict)
-    expected_keys = {"timestamp", "p_q1", "p_az", "p_alt", "p_roll", "a_az", "a_alt", "a_pa"}
+    expected_keys = {"timestamp", "p_q1", "p_az", "p_alt", "p_roll", "a_az", "a_alt", "a_roll"}
     assert expected_keys.issubset(sm.sync_history[0].keys())
     assert sm.sync_history[0]["a_az"] == 170
-    assert sm.sync_history[1]["a_pa"] == 5
+    assert sm.sync_history[1]["a_roll"] == 5
 
 def test_no_sync_adj():
     p = Polaris()
@@ -120,3 +120,43 @@ def test_az170alt15shift_sync_adj():
     sm.sync_az_alt(100, 45)
     az,alt = sm.azalt_polaris2ascom(270,45)
     assert f'{az:.6f}, {alt:.6f}' == "91.215983, 43.045464"
+
+def test_zeroroll_sync_adj():
+    p = Polaris()
+    logger = logging.getLogger()
+    sm = SyncManager(logger,p)
+    p.update(180, 45, 10)
+    sm.sync_roll(10)
+    a_roll = sm.roll_polaris2ascom(20)
+    assert f'{a_roll:.6f}' == "20.000000"
+
+def test_15roll_sync_adj():
+    p = Polaris()
+    logger = logging.getLogger()
+    sm = SyncManager(logger,p)
+    p.update(180, 45, 10)
+    sm.sync_roll(25)
+    a_roll = sm.roll_polaris2ascom(90)
+    assert f'{a_roll:.6f}' == "105.000000"
+
+def test_neg60roll_sync_adj():
+    p = Polaris()
+    logger = logging.getLogger()
+    sm = SyncManager(logger,p)
+    p.update(180, 30, 90)
+    sm.sync_roll(30)
+    a_roll = sm.roll_polaris2ascom(180)
+    assert f'{a_roll:.6f}' == "120.000000"
+    p_roll = sm.roll_ascom2polaris(200)
+    assert f'{p_roll:.6f}' == "260.000000"
+
+def test_tworoll_sync_adj():
+    p = Polaris()
+    logger = logging.getLogger()
+    sm = SyncManager(logger,p)
+    p.update(180, 30, 0)
+    sm.sync_roll(30)
+    p.update(180, 30, 90)
+    sm.sync_roll(140)
+    a_roll = sm.roll_polaris2ascom(180)
+    assert f'{a_roll:.6f}' == "220.000000"  # 180 + (30+50)/2

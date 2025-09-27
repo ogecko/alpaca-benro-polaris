@@ -1475,8 +1475,7 @@ class SyncManager:
             "p_roll": self.polaris._p_roll,
             "a_az": None,
             "a_alt": None,
-            "a_pa": None,
-            "cost": None  
+            "a_roll": None,
         }
         return entry
 
@@ -1487,9 +1486,9 @@ class SyncManager:
         self.sync_history.append(entry)
         self.optimize_q1_adj()
 
-    def sync_position_angle(self, a_position_angle):
+    def sync_roll(self, a_roll):
         entry = self.standard_entry()
-        entry["a_pa"] = a_position_angle
+        entry["a_roll"] = a_roll
         self.sync_history.append(entry)
         self.optimize_roll_adj()
 
@@ -1633,13 +1632,11 @@ class SyncManager:
 
     def compute_roll_residuals(self):
         for entry in self.sync_history:
-            if entry["a_pa"] is None:
+            if entry["a_roll"] is None:
                 continue
-            p_az = entry["p_az"]
-            p_alt = entry["p_alt"]
-            polaris_roll = entry["p_roll"]
-            predicted_pa = self.roll_polaris2ascom(polaris_roll, p_az, p_alt)
-            entry["residual_magnitude"] = angular_difference(predicted_pa, entry["a_pa"])
+            p_roll = entry["p_roll"]
+            a_roll = entry["a_roll"]
+            entry["residual_magnitude"] = angular_difference(p_roll, a_roll)
 
 
     def compute_tilt(self):
@@ -1686,35 +1683,33 @@ class SyncManager:
         angle = math.degrees(math.atan2(sin_pa, cos_pa))
         return wrap_to_360(angle)
 
+    def roll2pa(self, az_deg, alt_deg, roll_deg):
+        """Convert camera-frame roll to sky-frame position angle using parallactic angle at ascom azalt."""
+        parallactic_angle = self.parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
+        return wrap_to_360(roll_deg + parallactic_angle)
 
-    def roll_polaris2ascom(self, polaris_roll_deg, p_az, p_alt):
-        a_az, a_alt = self.azalt_polaris2ascom(p_az, p_alt)
-        pa = self.parallactic_angle(a_az, a_alt, self.polaris._sitelatitude)
-        return wrap_to_360(polaris_roll_deg + self.roll_adj + pa)
+    def pa2roll(self, az_deg, alt_deg, position_angle_deg):
+        """Convert sky-frame position angle to camera-fram roll using parallactic angle at ascom azalt."""
+        parallactic_angle = self.parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
+        return wrap_to_360(position_angle_deg - parallactic_angle)
 
+    def roll_polaris2ascom(self, polaris_roll_deg):
+        """Convert Polaris roll angle to ASCOM roll angle (mechanical angle), applying roll sync adjustment correction."""
+        return wrap_to_360(polaris_roll_deg + self.roll_adj)
 
-    def roll_ascom2polaris(self, position_angle_deg, a_az, a_alt):
-        pa = self.parallactic_angle(a_az, a_alt, self.polaris._sitelatitude)
-        return wrap_to_360(position_angle_deg - pa - self.roll_adj)
-
+    def roll_ascom2polaris(self, ascom_roll_deg):
+        """Convert ASCOM roll angle (mechanical angle) to Polaris roll angle, applying roll sync adjustment."""
+        return wrap_to_360(ascom_roll_deg - self.roll_adj)
 
     def optimize_roll_adj(self):
         deltas = []
 
         for entry in self.sync_history:
-            if entry["a_pa"] is None:
+            if entry["a_roll"] is None:
                 continue
 
-            az = entry["p_az"]
-            alt = entry["p_alt"]
-            polaris_roll = entry["p_roll"]
-            position_angle = entry["a_pa"]
-            pa = self.parallactic_angle(az, alt, self.polaris._sitelatitude)
-
             # Compute delta: how much Polaris roll differs from expected PA
-            delta = angular_difference(polaris_roll + self.roll_adj + pa, position_angle)
-            if delta > 180:
-                delta -= 360  # wrap to [-180, 180]
+            delta = angular_difference(entry["p_roll"], entry["a_roll"])
             deltas.append(delta)
 
         self.roll_adj = sum(deltas) / len(deltas) if deltas else 0
