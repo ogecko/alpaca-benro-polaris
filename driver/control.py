@@ -1499,7 +1499,7 @@ class SyncManager:
         alt = math.degrees(math.asin(z / np.linalg.norm(vec)))
         return az, alt
 
-    def altaz_polaris2ascom(self, p_az, p_alt):
+    def azalt_polaris2ascom(self, p_az, p_alt):
         if self.q1_adj is None:
             return p_az, p_alt
         v_pred = self.az_alt_to_vector(p_az, p_alt)
@@ -1507,7 +1507,7 @@ class SyncManager:
         c_az, c_alt = self.vector_to_az_alt(v_obs) 
         return c_az, c_alt
 
-    def altaz_ascom2polaris(self, a_az, a_alt):
+    def azalt_ascom2polaris(self, a_az, a_alt):
         if self.q1_adj is None:
             return a_az, a_alt
         v_obs = self.az_alt_to_vector(a_az, a_alt)
@@ -1536,7 +1536,6 @@ class SyncManager:
         if len(pairs) < 2:
             self.q1_adj = self.optimise_q1_adj_fallback_single_sync()
             self.q1_adj_message = "Fallback rotation from single sync"
-            self.q1_adj_finalcost = self.compute_cost(self.q1_adj)
             return
 
         # Build the B matrix: sum of weighted outer products between predicted and observed vectors
@@ -1571,8 +1570,11 @@ class SyncManager:
 
         self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
         self.q1_adj_message = "QUEST solution applied"
-        self.q1_adj_finalcost = self.compute_cost(self.q1_adj)
+
+        self.compute_residuals()   # Compute and store residuals
+        self.compute_tilt()        # Compute tilt correction
         return
+
 
     def optimise_q1_adj_fallback_single_sync(self):
         entry = self.sync_history[0]
@@ -1608,63 +1610,48 @@ class SyncManager:
         q_tilt = Quaternion(axis=axis, radians=angle)
         return q_tilt * q_az
 
-    def compute_cost(self, q_adj):
-        total_cost = 0.0
-        no_roll_syncs = not any(entry["a_roll"] is not None for entry in self.sync_history)
+    def compute_residuals(self):
         for entry in self.sync_history:
-            p_q1 = entry["p_q1"]
-            a_az = entry["a_az"]
-            a_alt = entry["a_alt"]
-            a_roll = entry["a_roll"]
-            p_roll = entry["p_roll"]
+            if entry["a_az"] is None or entry["a_alt"] is None:
+                continue
+            az_corr, alt_corr = self.azalt_polaris2ascom(entry["p_az"], entry["p_alt"])
+            az_err = angular_difference(az_corr, entry["a_az"])
+            alt_err = angular_difference(alt_corr, entry["a_alt"])
+            magnitude = math.sqrt(az_err**2 + alt_err**2)
+            entry["residual_vector"] = (az_err, alt_err)
+            entry["residual_magnitude"] = magnitude
 
-            pred_q1 = q_adj * p_q1
-            pred_az, pred_alt, pred_roll, _, _, _ = quaternion_to_angles(pred_q1, azhint=entry["a_az"])
+    def compute_tilt(self):
+        # Sample altitudes at cardinal azimuths
+        _, north_alt = self.azalt_polaris2ascom(0, 0)
+        _, east_alt  = self.azalt_polaris2ascom(90, 0)
+        _, south_alt = self.azalt_polaris2ascom(180, 0)
 
-            cost = 0.0
-            if a_az is not None and a_alt is not None:
-                d_az = angular_difference(pred_az, a_az)
-                d_alt = angular_difference(pred_alt, a_alt)
-                cost += d_az**2 + d_alt**2
-                if no_roll_syncs:
-                    d_roll = angular_difference(pred_roll, p_roll)
-                    cost += d_roll**2
+        # Build vectors: each points in azimuth direction with altitude as Z
+        v_north = np.array([0, 1, math.tan(math.radians(north_alt))])
+        v_east  = np.array([1, 0, math.tan(math.radians(east_alt))])
+        v_south = np.array([0, -1, math.tan(math.radians(south_alt))])
 
-            if a_roll is not None:
-                d_roll = angular_difference(pred_roll, a_roll)
-                cost += d_roll**2
-
-            entry["cost"] = math.sqrt(cost)
-            total_cost += cost
-
-        return total_cost
-    
+        # Fit a plane to these three points
+        A = np.vstack([v_north, v_east, v_south])
+        centroid = np.mean(A, axis=0)
+        A_centered = A - centroid
+        _, _, vh = np.linalg.svd(A_centered)
+        normal = vh[-1]  # normal to best-fit plane
+        if normal[2] < 0:
+            normal = -normal
 
 
-    # def optimize_q1_adj(self):
-    #     def rotation_vector_to_quaternion(vec):
-    #         angle = np.linalg.norm(vec)
-    #         axis = vec / angle if angle != 0 else [1, 0, 0]
-    #         return Quaternion(axis=axis, radians=angle)
+        # Tilt magnitude: angle between normal and vertical
+        tilt_angle_rad = math.acos(np.clip(normal[2], -1.0, 1.0))
+        tilt_magnitude_deg = math.degrees(tilt_angle_rad)
 
-    #     def cost_fn(rot_vec):
-    #         q_adj = rotation_vector_to_quaternion(rot_vec)
-    #         return self.compute_cost(q_adj)
+        # Tilt azimuth: direction of tilt projected onto horizontal plane
+        v_downhill = np.array([-normal[0], -normal[1], 0]) # invert to get "downhill" direction
+        tilt_az_polaris = math.degrees(math.atan2(v_downhill[0], v_downhill[1])) % 360
+        tilt_az_observed, _ = self.azalt_polaris2ascom(tilt_az_polaris, 0)
 
-    #     # Rodrigues vector encodes a rotation in space using just three numbers; 
-    #     # the direction of the vector is the axis of rotation, and the magnitude is the angle of rotation in radians.
-    #     initial_vec = np.array([0.0, 0.0, 0.0])
-    #     # 10 arcsec accuracy = 0.00278° = 4.85e-5 radians
-    #     options = {'xtol': 1e-4, 'ftol': 1e-4, 'disp': True, 'maxiter': 2000 }
-    #     result = minimize(cost_fn, initial_vec, method='Powell', options=options)  # Non-gradient method as cost function not smooth and may have flat areas
+        self.tilt_az = tilt_az_observed
+        self.tilt_mag = tilt_magnitude_deg
 
-    #     if not result.success:
-    #         self.q1_adj_message = result.message
-    #         self.logger.warning(f"Optimization failed: {result.message}")
-    #         return None, None
-
-    #     q_opt = rotation_vector_to_quaternion(result.x)
-    #     self.q1_adj = q_opt  
-    #     self.q1_adj_finalcost = result.fun
-    #     self.q1_adj_vector = result.x
 
