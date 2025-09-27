@@ -48,14 +48,18 @@ def test_no_sync_adj():
     assert f'{alt:.6f}' == "45.000000"
     assert f'{roll:.6f}' == "0.000000"
 
-def test_no_roll_syncs_adj():
+def test_single_syncs_adj():
     p = Polaris()
     logger = logging.getLogger()
-    p.update(180, 45)
     sm = SyncManager(logger,p)
+    p.update(180, 45)
     sm.sync_az_alt(170, 45.123456)
-    az,alt = sm.altaz_polaris2ascom(40,45)
-    assert f'{az:.6f}, {alt:.6f}' == "38.315261, 41.422510"
+    az,alt = sm.altaz_polaris2ascom(180,45)
+    assert f'{az:.6f}, {alt:.6f}' == "170.000000, 45.123456"
+    az,alt = sm.altaz_polaris2ascom(160,45)
+    assert f'{az:.6f}, {alt:.6f}' == "149.957647, 45.115995"
+    az,alt = sm.altaz_polaris2ascom(180,0)
+    assert f'{az:.6f}, {alt:.6f}' == "170.000000, 0.123456"
 
 def test_azshift10_sync_adj():
     p = Polaris()
@@ -82,3 +86,16 @@ def test_leveling_sync_adj():
     sm.sync_az_alt(90, 0)  # level again
     az,alt = sm.altaz_polaris2ascom(0,0)
     assert f'{az:.6f}, {alt:.6f}' == "0.000000, 1.000000"
+
+def test_az170alt15shift_sync_adj():
+    p = Polaris()
+    logger = logging.getLogger()
+    sm = SyncManager(logger,p)
+    p.update(180, 45)
+    sm.sync_az_alt(10, 30)
+    p.update(90, 45)
+    sm.sync_az_alt(260, 45)
+    p.update(270, 45)
+    sm.sync_az_alt(100, 45)
+    az,alt = sm.altaz_polaris2ascom(270,45)
+    assert f'{az:.6f}, {alt:.6f}' == "91.215983, 43.045464"

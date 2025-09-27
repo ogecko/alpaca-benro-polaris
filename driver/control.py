@@ -1453,7 +1453,7 @@ class SyncManager:
     def __init__(self, logger, polaris):
         self.logger = logger
         self.polaris = polaris
-        self.sync_history = []                  # list of sync events, indexed by str(q1)
+        self.sync_history = []                  # list of sync events
         self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion, initially identity
         self.q1_adj_message = ""                # message from last optimisation
         self.q1_adj_finalcost = None            # final cost after last optimisation
@@ -1519,7 +1519,9 @@ class SyncManager:
         """
         Implement the QUEST algorithm to find the optimal rotation quaternion
         that minimizes the misalignment between predicted (Polaris) and observed (Plate Solved/ASCOM) vectors.
-        Based on: Markley, F. L. (1988). "Attitude Determination Using Vector Observations and the Quaternion Estimator."
+        Based on: 
+        Markley, F. L. (2000). "Quaternion Attitude Estimation Using Vector Observations." https://tinyurl.com/ymk5xd7z
+        Markley, F. L. (2003). "Attitude Estimation or Quaternion Estimation?" https://ntrs.nasa.gov/citations/20030093641
         """
         pairs = []
         for entry in self.sync_history:
@@ -1577,29 +1579,34 @@ class SyncManager:
         v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])
         v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])
 
-        # Normalize both vectors
         v_pred /= np.linalg.norm(v_pred)
         v_obs /= np.linalg.norm(v_obs)
 
-        # Compute rotation axis and angle
-        cross = np.cross(v_pred, v_obs)
+        # Horizontal projection
+        v_pred_h = np.array([v_pred[0], v_pred[1], 0])
+        v_obs_h = np.array([v_obs[0], v_obs[1], 0])
+
+        # Azimuth correction
+        q_az = Quaternion(1, 0, 0, 0)
+        if np.linalg.norm(v_pred_h - v_obs_h) > 1e-6:
+            az_pred = math.atan2(v_pred[1], v_pred[0])
+            az_obs = math.atan2(v_obs[1], v_obs[0])
+            d_az = az_obs - az_pred
+            q_az = Quaternion(axis=[0, 0, 1], radians=d_az)
+            v_pred = q_az.rotate(v_pred)
+
+        # Tilt correction
         dot = np.dot(v_pred, v_obs)
-        norm_cross = np.linalg.norm(cross)
-
-        if norm_cross == 0:
-            # Vectors are aligned or opposite — return identity or 180° rotation
-            if dot > 0:
-                return Quaternion(1, 0, 0, 0)  # identity
-            else:
-                # 180° rotation around any orthogonal axis
-                axis = np.array([1, 0, 0]) if abs(v_pred[0]) < 0.9 else np.array([0, 1, 0])
-                ortho = np.cross(v_pred, axis)
-                ortho /= np.linalg.norm(ortho)
-                return Quaternion(axis=ortho, radians=np.pi)
-
-        axis = cross / norm_cross
         angle = math.acos(np.clip(dot, -1.0, 1.0))
-        return Quaternion(axis=axis, radians=angle)
+        axis = np.cross(v_pred, v_obs)
+        axis = np.array([axis[0], axis[1], 0])  # project to horizontal
+
+        if np.linalg.norm(axis) < 1e-6:
+            return q_az  # only azimuth correction needed
+
+        axis /= np.linalg.norm(axis)
+        q_tilt = Quaternion(axis=axis, radians=angle)
+        return q_tilt * q_az
 
     def compute_cost(self, q_adj):
         total_cost = 0.0
@@ -1631,6 +1638,7 @@ class SyncManager:
             total_cost += cost
 
         return total_cost
+    
 
 
     # def optimize_q1_adj(self):
