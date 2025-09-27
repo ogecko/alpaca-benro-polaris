@@ -1460,7 +1460,8 @@ class SyncManager:
         self.logger = logger
         self.polaris = polaris
         self.sync_history = []                  # list of sync events
-        self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion, initially identity
+        self.roll_adj = 0                       # optimised adjustment offset for roll syncing (°)
+        self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
         self.q1_adj_message = ""                # message from last optimisation
         self.tilt_az = 0                        # Tilt azimuth (°): direction of steepest upward inclination      
         self.tilt_mag = 0                       # Tilt magnitude (°): angle of inclination from horizontal plane
@@ -1474,7 +1475,7 @@ class SyncManager:
             "p_roll": self.polaris._p_roll,
             "a_az": None,
             "a_alt": None,
-            "a_roll": None,
+            "a_pa": None,
             "cost": None  
         }
         return entry
@@ -1486,11 +1487,11 @@ class SyncManager:
         self.sync_history.append(entry)
         self.optimize_q1_adj()
 
-    def sync_roll(self, a_roll):
+    def sync_position_angle(self, a_position_angle):
         entry = self.standard_entry()
-        entry["a_roll"] = a_roll
+        entry["a_pa"] = a_position_angle
         self.sync_history.append(entry)
-        self.optimize_q1_adj()
+        self.optimize_roll_adj()
 
     def az_alt_to_vector(self, az_deg, alt_deg):
         az = math.radians(az_deg)
@@ -1543,7 +1544,7 @@ class SyncManager:
         if len(pairs) < 2:
             self.q1_adj = self.optimise_q1_adj_fallback_single_sync()
             self.q1_adj_message = "Fallback rotation from single sync"
-            self.compute_residuals()   # Compute and store residuals
+            self.compute_azalt_residuals()   # Compute and store residuals
             self.compute_tilt()        # Compute tilt correction
             return
 
@@ -1580,8 +1581,8 @@ class SyncManager:
         self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
         self.q1_adj_message = "QUEST solution applied"
 
-        self.compute_residuals()   # Compute and store residuals
-        self.compute_tilt()        # Compute tilt correction
+        self.compute_azalt_residuals()   # Compute and store residuals
+        self.compute_tilt()              # Compute tilt correction
         return
 
 
@@ -1619,7 +1620,7 @@ class SyncManager:
         q_tilt = Quaternion(axis=axis, radians=angle)
         return q_tilt * q_az
 
-    def compute_residuals(self):
+    def compute_azalt_residuals(self):
         for entry in self.sync_history:
             if entry["a_az"] is None or entry["a_alt"] is None:
                 continue
@@ -1629,6 +1630,17 @@ class SyncManager:
             magnitude = math.sqrt(az_err**2 + alt_err**2)
             entry["residual_vector"] = (az_err, alt_err)
             entry["residual_magnitude"] = magnitude
+
+    def compute_roll_residuals(self):
+        for entry in self.sync_history:
+            if entry["a_pa"] is None:
+                continue
+            p_az = entry["p_az"]
+            p_alt = entry["p_alt"]
+            polaris_roll = entry["p_roll"]
+            predicted_pa = self.roll_polaris2ascom(polaris_roll, p_az, p_alt)
+            entry["residual_magnitude"] = angular_difference(predicted_pa, entry["a_pa"])
+
 
     def compute_tilt(self):
         # Sample altitudes at cardinal azimuths
@@ -1662,5 +1674,50 @@ class SyncManager:
 
         self.tilt_az = tilt_az_observed
         self.tilt_mag = tilt_magnitude_deg
+
+
+    def parallactic_angle(self, az_deg, alt_deg, lat_deg):
+        az = math.radians(az_deg)
+        alt = math.radians(alt_deg)
+        lat = math.radians(lat_deg)
+
+        sin_pa = math.sin(az)
+        cos_pa = math.cos(az) * math.sin(lat) - math.tan(alt) * math.cos(lat)
+        angle = math.degrees(math.atan2(sin_pa, cos_pa))
+        return wrap_to_360(angle)
+
+
+    def roll_polaris2ascom(self, polaris_roll_deg, p_az, p_alt):
+        a_az, a_alt = self.azalt_polaris2ascom(p_az, p_alt)
+        pa = self.parallactic_angle(a_az, a_alt, self.polaris._sitelatitude)
+        return wrap_to_360(polaris_roll_deg + self.roll_adj + pa)
+
+
+    def roll_ascom2polaris(self, position_angle_deg, a_az, a_alt):
+        pa = self.parallactic_angle(a_az, a_alt, self.polaris._sitelatitude)
+        return wrap_to_360(position_angle_deg - pa - self.roll_adj)
+
+
+    def optimize_roll_adj(self):
+        deltas = []
+
+        for entry in self.sync_history:
+            if entry["a_pa"] is None:
+                continue
+
+            az = entry["p_az"]
+            alt = entry["p_alt"]
+            polaris_roll = entry["p_roll"]
+            position_angle = entry["a_pa"]
+            pa = self.parallactic_angle(az, alt, self.polaris._sitelatitude)
+
+            # Compute delta: how much Polaris roll differs from expected PA
+            delta = angular_difference(polaris_roll + self.roll_adj + pa, position_angle)
+            if delta > 180:
+                delta -= 360  # wrap to [-180, 180]
+            deltas.append(delta)
+
+        self.roll_adj = sum(deltas) / len(deltas) if deltas else 0
+        self.compute_roll_residuals()
 
 

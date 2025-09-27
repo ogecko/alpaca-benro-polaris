@@ -15,6 +15,7 @@ import math
 class Polaris:
     def __init__(self):
         self.update(180, 45, 0)
+        self._sitelatitude = -33.65528161613541
 
     def update(self, az, alt, roll=0):
         self._p_azimuth = az
@@ -31,13 +32,13 @@ def test_sync_history():
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
     sm.sync_az_alt(170, 45.123456)
-    sm.sync_roll(5)
+    sm.sync_position_angle(5)
     assert len(sm.sync_history) >= 1
     assert isinstance(sm.sync_history[0], dict)
-    expected_keys = {"timestamp", "p_q1", "p_az", "p_alt", "p_roll", "a_az", "a_alt", "a_roll", "cost"}
+    expected_keys = {"timestamp", "p_q1", "p_az", "p_alt", "p_roll", "a_az", "a_alt", "a_pa"}
     assert expected_keys.issubset(sm.sync_history[0].keys())
     assert sm.sync_history[0]["a_az"] == 170
-    assert sm.sync_history[1]["a_roll"] == 5
+    assert sm.sync_history[1]["a_pa"] == 5
 
 def test_no_sync_adj():
     p = Polaris()
