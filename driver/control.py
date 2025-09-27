@@ -1449,6 +1449,12 @@ class PID_Controller():
         async with self._lock:
             self._stop_flag.set()
 
+
+
+########################## 
+#  SYNC MANAGER          #
+########################## 
+
 class SyncManager:
     def __init__(self, logger, polaris):
         self.logger = logger
@@ -1456,7 +1462,8 @@ class SyncManager:
         self.sync_history = []                  # list of sync events
         self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion, initially identity
         self.q1_adj_message = ""                # message from last optimisation
-        self.q1_adj_finalcost = None            # final cost after last optimisation
+        self.tilt_az = 0                        # Tilt azimuth (°): direction of steepest upward inclination      
+        self.tilt_mag = 0                       # Tilt magnitude (°): angle of inclination from horizontal plane
 
     def standard_entry(self):
         entry = {
@@ -1536,6 +1543,8 @@ class SyncManager:
         if len(pairs) < 2:
             self.q1_adj = self.optimise_q1_adj_fallback_single_sync()
             self.q1_adj_message = "Fallback rotation from single sync"
+            self.compute_residuals()   # Compute and store residuals
+            self.compute_tilt()        # Compute tilt correction
             return
 
         # Build the B matrix: sum of weighted outer products between predicted and observed vectors

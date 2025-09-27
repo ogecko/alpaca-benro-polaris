@@ -60,6 +60,7 @@ def test_single_syncs_adj():
     assert f'{az:.6f}, {alt:.6f}' == "149.957647, 45.115995"
     az,alt = sm.azalt_polaris2ascom(180,0)
     assert f'{az:.6f}, {alt:.6f}' == "170.000000, 0.123456"
+    assert f'{sm.tilt_az:.6f}, {sm.tilt_mag:.6f}' == "170.000000, 0.123456"
 
 def test_azshift10_sync_adj():
     p = Polaris()
