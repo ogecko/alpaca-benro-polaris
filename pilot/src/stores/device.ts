@@ -7,8 +7,8 @@ import type { ConfigResponse } from 'src/stores/config'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
-    alpacaHost: '',                 // Hostname of Alpaca Driver
-    restAPIPort: 5555,              // Port of Alpaca REST API
+    alpacaHost: localStorage.getItem('alpacaHost') || '',                 // Hostname of Alpaca Driver
+    restAPIPort: localStorage.getItem('restAPIPort') || 5555,              // Port of Alpaca REST API
     socketAPIPort: 5556,            // Port of Alpaca Socket API
     restAPIConnectingMsg: '',       // Message to show while connecting in progress
     restAPIConnectErrorMsg: '',     // Message to show when there is a connection error
@@ -25,6 +25,16 @@ export const useDeviceStore = defineStore('device', {
   }),
 
   actions: {
+    setAlpacaHost(host: string) {
+      this.alpacaHost = host
+      localStorage.setItem('alpacaHost', host)
+    },
+
+    setRestAPIPort(port: number) {
+      this.restAPIPort = port
+      localStorage.setItem('restAPIPort', port.toString())
+    },
+
     async connectRestAPI() {
       this.$patch({
         restAPIConnectingMsg: 'Connecting...',

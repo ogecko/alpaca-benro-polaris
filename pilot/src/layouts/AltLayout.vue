@@ -156,13 +156,17 @@ onUnmounted(() => {
   socket.disconnectSocket()
 })
 
-watch([() => dev.restAPIConnected, ()=>socket.socketURL], ()=>{
-  if (dev.restAPIConnected && socket) {
-    socket.connectSocket()   //    
-    socket.subscribe('status')
-  }
+watch(
+  [() => dev.restAPIConnected, () => socket.socketURL],
+  () => {
+    if (dev.restAPIConnected && socket) {
+      socket.connectSocket()
+      socket.subscribe('status')
+    }
+  },
+  { immediate: true }     // ensure it runs immediately on component mount, as boot/autoconnect.ts may have already connected
+)
 
-})
 
 
 function toggleLeftDrawer () {

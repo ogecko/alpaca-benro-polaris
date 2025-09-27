@@ -66,8 +66,8 @@
               <q-item v-if="!dev.restAPIConnected && !dev.restAPIConnectingMsg"  :inset-level="0.5">
                 <q-item-section>
                   <div class="row items-start">
-                    <q-input class="col-8" v-model="dev.alpacaHost" @keyup.enter="attemmptConnectToAlpaca" label="Host Name / IP Address"  />
-                    <q-input class="col-4" label='Port' v-model="dev.restAPIPort" @keyup.enter="attemmptConnectToAlpaca" type="number" input-class="text-right">
+                    <q-input class="col-8" v-model="alpacaHost" @keyup.enter="attemmptConnectToAlpaca" label="Host Name / IP Address"  />
+                    <q-input class="col-4" label='Port' v-model="restAPIPort" @keyup.enter="attemmptConnectToAlpaca" type="number" input-class="text-right">
                     <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
                     </q-input>
                   </div>
@@ -278,6 +278,17 @@ const p = useStatusStore()
 
 
 // ------------------- Computed Resources ---------------------
+
+const alpacaHost = computed({
+  get: () => dev.alpacaHost,
+  set: (val) => dev.setAlpacaHost(val)
+})
+
+const restAPIPort = computed({
+  get: () => dev.restAPIPort,
+  set: (val) => dev.setRestAPIPort(Number(val))
+})
+
 
 const bleLen = computed(() => p.bledevices.length);
 const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
