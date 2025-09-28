@@ -27,11 +27,11 @@
       <!-- Page Body -->
       <div class="row q-col-gutter-sm items-stretch">
         <!-- Site Info -->
-        <div class="col-md-6 col-lg-4 flex">
+        <div class="col-12 col-md-6 col-lg-4 flex" >
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Observing Site Information</div>
             <div class="row q-col-gutter-lg items-center">
-              <div class="col text-caption text-grey-6  q-pb-md">
+              <div class="col text-caption text-grey-6 q-pb-md">
                 Latitude and longitude are essential for accurate tracking. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
               <div class="col-auto q-gutter-sm flex justify-end items-center">
@@ -56,7 +56,7 @@
           </q-card>
         </div>
         <!-- Advanced Features -->
-        <div class="col-md-6 col-lg-4 flex">
+        <div class="col-12 col-md-6 col-lg-4 flex" >
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Advanced Control Features</div>
             <div class="row q-col-gutter-lg items-center">
@@ -95,7 +95,7 @@
           </q-card>
         </div>
         <!-- Standard Control Features -->
-        <div class="col-md-6 col-lg-4 flex">
+        <div class="col-12 col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Standard Control Features</div>
             <div class="row">
@@ -119,7 +119,7 @@
           </q-card>
         </div>
         <!-- Performance Logging -->
-        <div class="col-md-6 col-lg-4 flex">
+        <div class="col-12 col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Performance Recording Settings</div>
             <div class="row">
