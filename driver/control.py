@@ -1485,12 +1485,14 @@ class SyncManager:
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
         self.optimize_q1_adj()
+        self.logSyncData()
 
     def sync_roll(self, a_roll):
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         self.sync_history.append(entry)
         self.optimize_roll_adj()
+        self.logSyncData()
 
     def az_alt_to_vector(self, az_deg, alt_deg):
         az = math.radians(az_deg)
@@ -1717,5 +1719,10 @@ class SyncManager:
 
         self.roll_adj = sum(deltas) / len(deltas) if deltas else 0
         self.compute_roll_residuals()
+
+    def logSyncData(self, entry):
+        sm_logger = logging.getLogger('sm')
+        for entry in self.sync_history:
+            sm_logger.info(entry)
 
 

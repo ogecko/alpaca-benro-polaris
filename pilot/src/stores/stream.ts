@@ -15,7 +15,15 @@ export type CalibrationMessage = {
   name: string, axis: number, raw: number, ascom: number, dps: number,
   test_result: string, test_change: string, test_stdev:string, test_status:string
 } 
-export type TelemetryMessage = LogMessage | PIDMessage | KalmanMessage | CalibrationMessage
+export type SyncMessage = { 
+  timestamp: string,  p_q1: number,  
+  p_az: number,  p_alt: number,  p_roll: number,
+  a_az: number | null,  a_alt: number | null,  a_roll: number | null,
+  residual_vector: [ number, number ] | null,  residual_magnitude: number,
+}
+
+
+export type TelemetryMessage = LogMessage | PIDMessage | KalmanMessage | CalibrationMessage | SyncMessage
 
 export type TelemetryRecord = {
   ts: string

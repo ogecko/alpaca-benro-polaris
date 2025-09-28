@@ -85,7 +85,8 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import KalmanFilter, quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, CalibrationManager, parallactic_angle, wrap_to_360, MotorSpeedController, PID_Controller
+from control import quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, parallactic_angle, wrap_to_360
+from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525'}
@@ -269,6 +270,7 @@ class Polaris:
         }
         self._pid = PID_Controller(logger, self._motors, self._observer, loop=0.2)
         self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
+        self._sm = SyncManager(logger, self)
 
         
     async def shutdown(self):
@@ -559,6 +561,7 @@ class Polaris:
     async def radec_ascom_sync(self, a_ra, a_dec):
         a_alt, a_az = self.radec2altaz(a_ra, a_dec)
         self.logger.info(f"->> Polaris: SYNC ASCOM   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} good")
+        self._sm.sync_az_alt(a_az, a_alt)
 
         if Config.sync_pointing_model==1:
             # Use RA/Dec Sync Pointing model
