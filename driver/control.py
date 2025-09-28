@@ -1674,6 +1674,9 @@ class SyncManager:
 
 
     def parallactic_angle(self, az_deg, alt_deg, lat_deg):
+        if abs(alt_deg - 90.0) < 1e-6:
+            return 0.0  # Zenith has no parallactic angle
+
         az = math.radians(az_deg)
         alt = math.radians(alt_deg)
         lat = math.radians(lat_deg)

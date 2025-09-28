@@ -190,6 +190,13 @@ def test_aboveNorth_roll2pa():
     pa = sm.roll2pa(0, 0, 30)
     assert f'{pa:.6f}' == "210.000000"  
 
+def test_horizEast_roll2pa():
+    p = Polaris()
+    logger = logging.getLogger()
+    sm = SyncManager(logger,p)
+    pa = sm.roll2pa(90, 0, 30)
+    assert f'{pa:.6f}' == "266.344718"  # PA -123+30 = -93+360 = 267
+
 
 def test_East_parallactic_angle():
     p = Polaris()
@@ -205,10 +212,25 @@ def test_West_parallactic_angle():
     pa = sm.parallactic_angle(270, 0, p._sitelatitude)
     assert f'{pa:.6f}' == "123.655282"  
 
-
-def test_horizEast_roll2pa():
+def test_Zenith_parallactic_angle():
     p = Polaris()
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
-    pa = sm.roll2pa(90, 0, 30)
-    assert f'{pa:.6f}' == "266.344718"  # PA -123+30 = -93+360 = 267
+    pa = sm.parallactic_angle(45, 90, p._sitelatitude)
+    assert f'{pa:.6f}' == "0.000000"  
+
+def test_NearZenith_parallactic_angle():
+    p = Polaris()
+    logger = logging.getLogger()
+    sm = SyncManager(logger,p)
+    pa = sm.parallactic_angle(90, 89.999, p._sitelatitude)
+    assert f'{pa:.6f}' == "-90.000666"  
+
+def test_SouthCelestrialPole_parallactic_angle():
+    p = Polaris()
+    logger = logging.getLogger()
+    sm = SyncManager(logger,p)
+    pa = sm.parallactic_angle(180, p._sitelatitude, p._sitelatitude)
+    assert f'{pa:.6f}' == "-180.000000"  
+
+
