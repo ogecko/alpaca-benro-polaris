@@ -28,7 +28,7 @@
       <div class="col-12 flex">
       <q-card flat bordered class="col q-pa-md">
         <div class="row">
-          <!-- KF intro -->
+          <!-- KF intro description -->
           <div class="col-md-6">
 <q-markdown  :no-mark="false">
 # Kalman Filter Tuning
@@ -37,8 +37,9 @@ The purpose of a Kalman Filter (KF) is to estimate the true orientation of the t
 This page presents the raw sensor data in dark green, the filtered data in yellow, and the control velocity in red. Changes take effect immediately, use Settings Save to store adjustments.
 </q-markdown>
           </div>
+          <!-- KF intro settings -->
           <div class="col-md-6 q-pt-sm">
-            <q-list style="max-width: 800px">
+            <q-list >
               <!-- Choose Motor -->
               <q-item>
                 <q-item-section side top>
@@ -77,9 +78,10 @@ This page presents the raw sensor data in dark green, the filtered data in yello
         </div>
       </q-card>
       </div>
-      <div class="col-md-6 flex">
+      <!-- Angular Position Plot -->
+      <div class="col-md-6">
         <q-card flat bordered class="col">
-          <q-list style="max-width: 800px">
+          <q-list>
             <q-item>
               <q-item-section side top>
                 <q-knob v-model="pos_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_meas_str}}</q-knob>
@@ -116,9 +118,10 @@ This page presents the raw sensor data in dark green, the filtered data in yello
           <div class="q-pb-xl"></div>
         </q-card>
       </div>
-      <div class="col-md-6 flex">
+      <!-- Angular Velocity Plot -->
+      <div class="col-md-6">
         <q-card flat bordered class="col">
-          <q-list style="max-width: 800px">
+          <q-list>
             <q-item>
               <q-item-section side top>
                 <q-knob v-model="vel_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_meas_str}}</q-knob>
@@ -154,11 +157,9 @@ This page presents the raw sensor data in dark green, the filtered data in yello
           <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
           <div class="q-pb-xl"></div>
         </q-card>
-    </div>    </div>
-
-    <!-- First Preamble and Chart -->
-
-</q-page>
+      </div>    
+    </div>
+  </q-page>
 </template>
 
 
