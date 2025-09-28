@@ -68,25 +68,13 @@ You can choose from three different options to perform SYNCs, as described below
           </div>
         </q-card>
       </div>
-      <div class="col-6 flex">
-        <q-card flat bordered class="col">
-          <div class="q-pa-md">
-              <q-table title="Sync Positions and Residuals" dense
-                    :selected-rows-label="getSelectedString" :pagination="initialPagination"
-      selection="multiple"
-      v-model:selected="selected"
-
-                :rows="rows" :columns="columns" row-key="name">
-              </q-table>
-          </div>
-        </q-card>
-      </div>    
+   
         <div class="col-md-6 ">
             <q-card flat bordered class="q-pa-md">
             <div class="text-h6">Telescope Alignment Model</div>
             <div class="row">
                 <div class="col-12 text-caption text-grey-6 q-pb-md">
-                Add more SYNCs to improve the model. Remove any SYNCs with large residuals.
+                Add more SYNCs to improve the model. Remove any that show large residuals or are no longer valid. 
                 </div>
             </div>
           <q-list bordered separator dense >
@@ -109,7 +97,7 @@ You can choose from three different options to perform SYNCs, as described below
             <div class="text-h7 q-pt-md">Correction Summary</div>
             <div class="row">
                 <div class="col-12 text-caption text-grey-6">
-                The alignment model is correcting for the following adjustments.
+                The telescope alignment model is correcting for the following adjustments.
                 </div>
             </div>
             <div class="row text-center">
@@ -138,53 +126,41 @@ You can choose from three different options to perform SYNCs, as described below
                 Corrects rotational misalignment between the camera and mount optical axis.
                 </div>
             </div>
+          <q-list bordered separator dense >
+            <q-item v-for="data in rotator_syncs" :key="data.timestamp">
+                <q-item-section>
+                    <q-item-label >SYNC @ 10:20</q-item-label>
+                </q-item-section>
+                <q-item-section>
+                    <q-item-label caption>Roll {{data.a_roll}} </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-item-label caption>Residual {{data.resmag}}</q-item-label>
+                    <q-item-label></q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-btn dense size="sm" round icon="mdi-close" />
+                </q-item-section>
+            </q-item>
+            </q-list>
+            <div class="text-h7 q-pt-md">Correction Summary</div>
+            <div class="row">
+                <div class="col-12 text-caption text-grey-6">
+                The rotator alignment model is correcting for the following adjustment.
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="text-h4">12°</div>
+                    <div class="text-caption">Roll Correction</div>
+                </div>
+
+            </div>
             </q-card>
         </div>
 
 
 
-      <div class="col-md-6 flex">
-        <q-card flat bordered class="col q-pa-md">
-          <div class="q-gutter-xs">
-            <q-chip removable   color="primary" text-color="white" >
-            <q-badge color="white" text-color="primary" class="q-mr-sm">SYNC 1</q-badge>
-            10:20
-            </q-chip>
-          </div>
-
-          <q-list bordered separator style="max-width: 350px">
-            <q-item >
-                <q-item-section>
-                    <q-item-label >SYNC @ 10:20</q-item-label>
-                    <q-item-label caption>Az 120.0° Alt 45.0° </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                    <q-item-label caption>Residual</q-item-label>
-                    <q-item-label>45.0°</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                    <q-btn dense  round icon="mdi-close" />
-                </q-item-section>
-            </q-item>
-            <q-item >
-                <q-item-section>
-                    <q-item-label >2. SYNC 10:22</q-item-label>
-                    <q-item-label caption>Az 120.0° Alt 45.0° </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                    <q-item-label caption>Residual</q-item-label>
-                    <q-item-label>45.0°</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                    <q-btn dense  round icon="mdi-close" />
-                </q-item-section>
-            </q-item>
-          </q-list>
-          <div class="q-pb-xl"></div>
-            {{ p.bleselected }}
-        </q-card>
-
-      </div>    
   </div>
 
 </q-page>
@@ -216,15 +192,16 @@ const telescope_syncs = computed(() => {
   return Array.from(consolidated.values())
 })
 
-const rows = computed<TableRow[]>(() => {
+const rotator_syncs = computed(() => {
   const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData)
+  const syncdata = sm.map(formatSyncData).filter(d=>d.a_roll !== null)
   const consolidated = new Map<string, TableRow>()
   for (const data of syncdata) {
     consolidated.set(data.timestamp, data)
   }
   return Array.from(consolidated.values())
 })
+
 
 watch(axis, ()=>selected.value=[])
 
@@ -255,33 +232,6 @@ onUnmounted(() => {
 
 
 
-type AlignType = 'left' | 'center' | 'right'
-
-const columns = [
-  {
-    name: 'timestamp',
-    required: true,
-    label: 'Timestamp',
-    align: 'left' as AlignType,
-    field: (row: { name: string }) => row.name,
-    format: (val: string) => `${val}`,
-    sortable: true
-  },
-  { name: 'a_az', label: 'Azimuth', field: 'a_az', sortable: true },
-  { name: 'a_alt', label: 'Altitude', field: 'a_alt', sortable: true },
-  { name: 'a_roll', label: 'Roll', field: 'a_roll', sortable: true },
-  { name: 'resmag', label: 'Residual', field: 'resmag', sortable: true },
-  ]
-
-
-const initialPagination = {
-        rowsPerPage: 30
-      }
-
-
-function getSelectedString () {
-        return selected.value.length === 0 ? '' : `${selected.value.length} Test${selected.value.length > 1 ? 's' : ''} selected of ${rows.value.length}`
-}
 
 </script>
 
