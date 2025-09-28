@@ -1720,7 +1720,7 @@ class SyncManager:
         self.roll_adj = sum(deltas) / len(deltas) if deltas else 0
         self.compute_roll_residuals()
 
-    def logSyncData(self, entry):
+    def logSyncData(self):
         sm_logger = logging.getLogger('sm')
         for entry in self.sync_history:
             sm_logger.info(entry)

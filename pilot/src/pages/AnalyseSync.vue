@@ -68,10 +68,10 @@ You can choose from three different options to perform SYNCs, as described below
           </div>
         </q-card>
       </div>
-      <div class="col-12 flex">
+      <div class="col-6 flex">
         <q-card flat bordered class="col">
           <div class="q-pa-md">
-              <q-table title="Speed Calibration Test Results" dense
+              <q-table title="Sync Positions and Residuals" dense
                     :selected-rows-label="getSelectedString" :pagination="initialPagination"
       selection="multiple"
       v-model:selected="selected"
@@ -81,36 +81,109 @@ You can choose from three different options to perform SYNCs, as described below
           </div>
         </q-card>
       </div>    
+        <div class="col-md-6 ">
+            <q-card flat bordered class="q-pa-md">
+            <div class="text-h6">Telescope Alignment Model</div>
+            <div class="row">
+                <div class="col-12 text-caption text-grey-6 q-pb-md">
+                Add more SYNCs to improve the model. Remove any SYNCs with large residuals.
+                </div>
+            </div>
+          <q-list bordered separator dense >
+            <q-item v-for="data in telescope_syncs" :key="data.timestamp">
+                <q-item-section>
+                    <q-item-label >SYNC @ 10:20</q-item-label>
+                </q-item-section>
+                <q-item-section>
+                    <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-item-label caption>Residual {{data.resmag}}</q-item-label>
+                    <q-item-label></q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-btn dense size="sm" round icon="mdi-close" />
+                </q-item-section>
+            </q-item>
+            </q-list>
+            <div class="text-h7 q-pt-md">Correction Summary</div>
+            <div class="row">
+                <div class="col-12 text-caption text-grey-6">
+                The alignment model is correcting for the following adjustments.
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="text-h4">12°</div>
+                    <div class="text-caption">Az Correction</div>
+                </div>
+                <div class="col-4">
+                    <div class="text-h4">12°</div>
+                    <div class="text-caption">Tilt Correction</div>
+                </div>
+                <div class="col-4">
+                    <div class="text-h4">12°</div>
+                    <div class="text-caption">Highest Tilt</div>
+                </div>
+
+            </div>
+            </q-card>
+        </div>
+
+        <div class="col-md-6 ">
+            <q-card flat bordered class="q-pa-md">
+            <div class="text-h6">Rotator Alignment Model</div>
+            <div class="row">
+                <div class="col-12 text-caption text-grey-6 q-pb-md">
+                Corrects rotational misalignment between the camera and mount optical axis.
+                </div>
+            </div>
+            </q-card>
+        </div>
+
+
+
       <div class="col-md-6 flex">
-        <q-card flat bordered class="col">
-          <q-list style="max-width: 800px">
-            <q-item>
-              <q-item-section>
-                <q-item-label> Angular Position for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  Measured (green) and Filtered (yellow) angular position.
-                </q-item-label>
-              </q-item-section>
+        <q-card flat bordered class="col q-pa-md">
+          <div class="q-gutter-xs">
+            <q-chip removable   color="primary" text-color="white" >
+            <q-badge color="white" text-color="primary" class="q-mr-sm">SYNC 1</q-badge>
+            10:20
+            </q-chip>
+          </div>
+
+          <q-list bordered separator style="max-width: 350px">
+            <q-item >
+                <q-item-section>
+                    <q-item-label >SYNC @ 10:20</q-item-label>
+                    <q-item-label caption>Az 120.0° Alt 45.0° </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-item-label caption>Residual</q-item-label>
+                    <q-item-label>45.0°</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-btn dense  round icon="mdi-close" />
+                </q-item-section>
+            </q-item>
+            <q-item >
+                <q-item-section>
+                    <q-item-label >2. SYNC 10:22</q-item-label>
+                    <q-item-label caption>Az 120.0° Alt 45.0° </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-item-label caption>Residual</q-item-label>
+                    <q-item-label>45.0°</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-btn dense  round icon="mdi-close" />
+                </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY  :data="chartPosData" x1Type="time"></ChartXY>
           <div class="q-pb-xl"></div>
+            {{ p.bleselected }}
         </q-card>
-      </div>    
-      <div class="col-md-6 flex">
-        <q-card flat bordered class="col">
-          <q-list>
-            <q-item>
-              <q-item-section>
-                <q-item-label> Angular Velocity for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  Control reference (red), Measured (green) and Filtered (yellow) Angular Velocity. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
-          <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
-        </q-card>
+
       </div>    
   </div>
 
@@ -122,36 +195,33 @@ You can choose from three different options to perform SYNCs, as described below
 
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
-import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
-import { useDeviceStore } from 'src/stores/device'
-import type { DataPoint } from 'src/components/ChartXY.vue'
-import type { TelemetryRecord, KalmanMessage, CalibrationMessage }from 'src/stores/stream'
-// import { formatAngle } from 'src/utils/scale'
+import type { TelemetryRecord, SyncMessage }from 'src/stores/stream'
+import { formatAngle } from 'src/utils/scale'
 import { useStatusStore } from 'src/stores/status'
 
 const socket = useStreamStore()
-const dev = useDeviceStore()
 const p = useStatusStore()
 
 const selected = ref([])
 const axis = ref<number>(0)
-const motor = computed<string>(() => `M${axis.value+1}`)
 
-const chartPosData = computed<DataPoint[]>(() => {
-   const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
-   return kf.map(formatPosData)
-})
-const chartVelData = computed<DataPoint[]>(() => {
-   const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
-   return kf.map(formatVelData)
-})
-const rows = computed<TableRow[]>(() => {
-  const cm = socket.topics?.cm ?? [] as TelemetryRecord[];
-  const testdata = cm.map(formatTestData).filter(d => d.axis == axis.value)
+const telescope_syncs = computed(() => {
+  const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
+  const syncdata = sm.map(formatSyncData).filter(d=>d.a_az !== null && d.a_alt !== null)
   const consolidated = new Map<string, TableRow>()
-  for (const test of testdata) {
-    consolidated.set(test.name, test)
+  for (const data of syncdata) {
+    consolidated.set(data.timestamp, data)
+  }
+  return Array.from(consolidated.values())
+})
+
+const rows = computed<TableRow[]>(() => {
+  const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
+  const syncdata = sm.map(formatSyncData)
+  const consolidated = new Map<string, TableRow>()
+  for (const data of syncdata) {
+    consolidated.set(data.timestamp, data)
   }
   return Array.from(consolidated.values())
 })
@@ -159,51 +229,28 @@ const rows = computed<TableRow[]>(() => {
 watch(axis, ()=>selected.value=[])
 
 type TableRow = {
-  name:string, axis:number, raw:number, ascom:number, dps:number, 
-  test_result:string, test_change:string, test_stdev:string, test_status:string 
-}
-
-function formatPosData(d: TelemetryRecord):DataPoint {
-  const time = new Date(d.ts)
-  const data = d.data as KalmanMessage
-  const y1 = data.θ_meas[axis.value] ?? 0
-  const y2 = data.θ_state[axis.value] ?? 0
-  return { x1: time, y1, y2 }
+  timestamp:string, a_az:string, a_alt:string, a_roll:string, resmag:string, resvec:[number, number] 
 }
 
 
-function formatVelData(d: TelemetryRecord):DataPoint {
-  const time = new Date(d.ts)
-  const data = d.data as KalmanMessage
-  const y1 = data.ω_meas[axis.value] ?? 0
-  const y2 = data.ω_state[axis.value] ?? 0
-  const y3 = data.ω_ref[axis.value] ?? 0
-  return { x1: time, y1, y2, y3 }
-}
-
-function formatTestData(d: TelemetryRecord):TableRow {
-  const data = d.data as CalibrationMessage
-  const name = data.name ?? ''
-  const axis = data.axis ?? 0
-  const raw = data.raw ?? 0
-  const ascom = data.ascom ?? 0
-  const dps = data.dps ?? 0
-  const test_result = data.test_result ?? ''
-  const test_change = data.test_change ?? ''
-  const test_stdev = data.test_stdev ?? ''
-  const test_status = data.test_status ?? ''
-  return { name, axis, raw, ascom, dps, test_result, test_change, test_stdev, test_status }
+function formatSyncData(d: TelemetryRecord):TableRow {
+  const data = d.data as SyncMessage
+  const timestamp = data.timestamp ?? 0
+  const a_az = formatAngle(data.a_az ?? 0, 'deg', 1)
+  const a_alt = formatAngle(data.a_alt ?? 0, 'deg', 1)
+  const a_roll = formatAngle(data.a_roll ?? 0, 'deg', 1)
+  const resmag = formatAngle(data.residual_magnitude ?? 0, 'deg', 1)
+  const resvec = data.residual_vector ?? [0,0]
+  return { timestamp, a_az, a_alt, a_roll, resmag, resvec }
 }
 
 onMounted(() => {
-  socket.subscribe('cm')
-  socket.subscribe('kf')
+  socket.subscribe('sm')
 })
 
 onUnmounted(() => {
   // if (timer) clearInterval(timer)
-  socket.unsubscribe('cm')
-  socket.unsubscribe('kf')
+  socket.unsubscribe('sm')
 })
 
 
@@ -212,20 +259,18 @@ type AlignType = 'left' | 'center' | 'right'
 
 const columns = [
   {
-    name: 'name',
+    name: 'timestamp',
     required: true,
-    label: 'Test Case',
+    label: 'Timestamp',
     align: 'left' as AlignType,
     field: (row: { name: string }) => row.name,
     format: (val: string) => `${val}`,
     sortable: true
   },
-  { name: 'raw', align: 'center' as AlignType, label: 'Raw Command', field: 'raw', sortable: true },
-  { name: 'dps', label: 'Baseline (°/s)', field: 'dps', sortable: true },
-  { name: 'testdps', label: 'Test Result (°/s)', field: 'test_result', sortable: true, sort: (a:string, b:string) => parseInt(a, 10) - parseInt(b, 10) },
-  { name: 'testchange', label: 'Change', field: 'test_change', sortable: true, sort: (a:string, b:string) => parseInt(a, 10) - parseInt(b, 10) },
-  { name: 'teststdev', label: 'Test Stdev', field: 'test_stdev', sortable: true, sort: (a:string, b:string) => parseInt(a, 10) - parseInt(b, 10) },
-  { name: 'teststatus', label: 'Test Status', field: 'test_status', sortable: true },
+  { name: 'a_az', label: 'Azimuth', field: 'a_az', sortable: true },
+  { name: 'a_alt', label: 'Altitude', field: 'a_alt', sortable: true },
+  { name: 'a_roll', label: 'Roll', field: 'a_roll', sortable: true },
+  { name: 'resmag', label: 'Residual', field: 'resmag', sortable: true },
   ]
 
 
