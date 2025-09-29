@@ -61,7 +61,7 @@ def test_single_syncs_adj():
     assert f'{az:.6f}, {alt:.6f}' == "149.957647, 45.115995"
     az,alt = sm.azalt_polaris2ascom(180,0)
     assert f'{az:.6f}, {alt:.6f}' == "170.000000, 0.123456"
-    assert f'{sm.tilt_az:.6f}, {sm.tilt_mag:.6f}' == "170.000000, 0.123456"
+    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "170.000000, 0.123456"
 
 def test_azshift10_sync_adj():
     p = Polaris()
@@ -75,7 +75,7 @@ def test_azshift10_sync_adj():
     assert f'{az:.6f}, {alt:.6f}' == "49.877848, 44.999870"
     az,alt = sm.azalt_ascom2polaris(49.877848,44.999870)
     assert f'{az:.6f}, {alt:.6f}' == "40.000000, 45.000000"
-    assert f'{sm.tilt_az:.6f}, {sm.tilt_mag:.6f}' == "139.999989, 0.122152"
+    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "139.999989, 0.122152"
 
 def test_leveling_sync_adj():
     p = Polaris()
@@ -89,7 +89,7 @@ def test_leveling_sync_adj():
     sm.sync_az_alt(90, 0)  # level again
     az,alt = sm.azalt_polaris2ascom(0,0)
     assert f'{az:.6f}, {alt:.6f}' == "0.000000, 1.000000"
-    assert f'{sm.tilt_az:.6f}, {sm.tilt_mag:.6f}' == "0.000000, 1.000000"
+    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "0.000000, 1.000000"
 
 def test_largetilt_sync_adj():
     p = Polaris()
@@ -105,7 +105,7 @@ def test_largetilt_sync_adj():
     assert f'{az:.6f}, {alt:.6f}' == "360.000000, 22.500000"
     az,alt = sm.azalt_polaris2ascom(135,45)
     assert f'{az:.6f}, {alt:.6f}' == "180.000000, 22.500000"
-    assert f'{sm.tilt_az:.6f}, {sm.tilt_mag:.6f}' == "360.000000, 21.678499"
+    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "360.000000, 21.678499"
 
 
 def test_az170alt15shift_sync_adj():

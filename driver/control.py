@@ -1459,7 +1459,8 @@ class SyncManager:
     def __init__(self, logger, polaris):
         self.logger = logger
         self.polaris = polaris
-        self.sync_history = []                  # list of sync events
+        self.sync_history = []                  # list of sync events, both AzAlt and Roll
+        self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
         self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
         self.q1_adj_message = ""                # message from last optimisation
         self.tilt_adj_az = 0                    # q1_adj Tilt azimuth (°): direction of steepest upward inclination (info only)     
@@ -1543,6 +1544,7 @@ class SyncManager:
             v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])
             pairs.append((v_pred, v_obs))
 
+        self.aligned_count = len(pairs)
         if len(pairs) < 2:
             self.q1_adj = self.optimise_q1_adj_fallback_single_sync()
             self.q1_adj_message = "Fallback rotation from single sync"

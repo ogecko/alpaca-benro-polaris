@@ -254,7 +254,7 @@
               <!-- Multi Point Align -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
-                  <q-icon :name="p.aligned ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.aligned ? 'green' : 'red'" />
+                  <q-icon :name="isMultiPointAligned ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isMultiPointAligned ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Multi Point Alignment</q-item-label>
@@ -303,7 +303,7 @@ const restAPIPort = computed({
   set: (val) => dev.setRestAPIPort(Number(val))
 })
 
-
+const isMultiPointAligned = computed(() => p.aligned_count>=3);
 const bleLen = computed(() => p.bledevices.length);
 const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
 const isPolarisConnected = computed(() => (!!p.connected));

@@ -68,15 +68,15 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
           </div>
           <div class="row text-center">
             <div class="col-4">
-                <div class="text-h4">12°</div>
+                <div class="text-h4">{{formatAngle(p.az_adj,'deg',1)}}</div>
                 <div class="text-caption">Az Correction</div>
             </div>
             <div class="col-4">
-                <div class="text-h4">12°</div>
+                <div class="text-h4">{{formatAngle(p.tilt_adj_mag,'deg',1)}}</div>
                 <div class="text-caption">Tilt Correction</div>
             </div>
             <div class="col-4">
-                <div class="text-h4">12°</div>
+                <div class="text-h4">{{formatAngle(p.tilt_adj_az,'deg',1)}}</div>
                 <div class="text-caption">Highest Tilt Az</div>
             </div>
 
@@ -118,7 +118,7 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
           </div>
           <div class="row text-center">
               <div class="col-4">
-                  <div class="text-h4">{{p.battery_level}}°</div>
+                  <div class="text-h4">{{formatAngle(p.roll_adj,'deg',1)}}</div>
                   <div class="text-caption">Roll Correction</div>
               </div>
 
@@ -284,7 +284,7 @@ const rotator_syncs = computed(() => {
   const syncdata = sm.map(formatSyncData).filter(d=>d.a_roll !== null)
   const consolidated = new Map<string, TableRow>()
   for (const data of syncdata) {
-    consolidated.set(data.time, data)
+    consolidated.set(data.timestamp, data)
   }
   return Array.from(consolidated.values())
 })
@@ -293,19 +293,20 @@ const rotator_syncs = computed(() => {
 watch(axis, ()=>selected.value=[])
 
 type TableRow = {
-  time:string, a_az:string, a_alt:string, a_roll:string, resmag:string, resvec:[number, number] 
+  timestamp:string, time:string, a_az:string, a_alt:string, a_roll:string, resmag:string, resvec:[number, number] 
 }
 
 
 function formatSyncData(d: TelemetryRecord):TableRow {
   const data = d.data as SyncMessage
+  const timestamp = data.timestamp ?? ''
   const time = new Date(data.timestamp).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true}) ?? ''
   const a_az = formatAngle(data.a_az ?? 0, 'deg', 1)
   const a_alt = formatAngle(data.a_alt ?? 0, 'deg', 1)
   const a_roll = formatAngle(data.a_roll ?? 0, 'deg', 1)
   const resmag = formatAngle(data.residual_magnitude ?? 0, 'deg', 1)
   const resvec = data.residual_vector ?? [0,0]
-  return { time, a_az, a_alt, a_roll, resmag, resvec }
+  return { timestamp, time, a_az, a_alt, a_roll, resmag, resvec }
 }
 
 onMounted(async () => {
