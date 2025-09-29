@@ -56,6 +56,38 @@ export function deg2dms(decimalDegrees: number | undefined, precision: number = 
 }
 
 
+export function dms2deg(str: string | undefined, unit: UnitKey = 'deg'): number {
+  // check input format
+  if (!str || typeof str !== 'string') return 0;
+
+  // Normalize separators to colon
+  const { d, m, s } = symbol[unit]
+  const cleaned = str
+    .replace(/[^\d.+-]+/g, ':') // Replace all non-numeric separators with colon
+    .replace(new RegExp(`[${d}${m}${s}]`, 'g'), ':') // Replace unit symbols with colon
+    .trim()
+
+  // Extract sign
+  const signMatch = cleaned.match(/^[-+]/)
+  const sign = signMatch?.[0] === '-' ? -1 : 1
+
+  // Split and parse parts
+  const parts = cleaned.split(':').map(p => parseFloat(p)).filter(p => !isNaN(p))
+  if (parts.length === 0) return 0
+  
+  while (parts.length < 3) {
+    parts.push(0)
+  }
+
+  const [degreesRaw = 0, minutes = 0, seconds = 0] = parts
+  const degrees = Math.abs(degreesRaw)
+  const decimal = degrees + minutes / 60 + seconds / 3600
+
+  return sign * decimal
+}
+
+
+
 export function angularDifference(a:number, b:number) {
   return ((b - a + 180) % 360 + 360) % 360 - 180;
 }

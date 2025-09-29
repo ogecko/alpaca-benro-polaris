@@ -26,6 +26,7 @@
 # Multi-Point Alignment 
 Alpaca multi-point alignment calibrates how your mount’s internal coordinate system maps to the horizon and celestrial sky. By syncing with three or more known positions, it builds a correction model that accounts for tripod tilt, polar misalignment, cone error, and other mechanical offsets that can affect pointing and tracking accuracy. 
 </q-markdown>
+RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az {{ Az.toFixed(4) }} | Alt {{ Alt.toFixed(4) }} | Roll {{ Roll.toFixed(4) }}
             </div>
           </div>
         </q-card>
@@ -242,7 +243,7 @@ import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
 import type { TelemetryRecord, SyncMessage }from 'src/stores/stream'
 import { formatAngle } from 'src/utils/scale'
-import { deg2dms } from 'src/utils/angles'
+import { deg2dms, dms2deg } from 'src/utils/angles'
 import { useStatusStore } from 'src/stores/status'
 import type { LocationResult } from 'src/utils/locationServices';
 import LocationPicker from 'src/components/LocationPicker.vue';
@@ -260,6 +261,13 @@ const PA_str = ref('000:00:00')
 const Az_Str = ref('180:00:00')
 const Alt_str = ref('045:00:00')
 const Roll_str = ref('000:00:00')
+
+const RA = computed(() => dms2deg(RA_str.value, 'hr'))
+const Dec = computed(() => dms2deg(Dec_str.value, 'deg'))
+const PA = computed(() => dms2deg(PA_str.value, 'deg'))
+const Az = computed(() => dms2deg(Az_Str.value, 'deg'))
+const Alt = computed(() => dms2deg(Alt_str.value, 'deg'))
+const Roll = computed(() => dms2deg(Roll_str.value, 'deg'))
 
 const telescope_syncs = computed(() => {
   const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
