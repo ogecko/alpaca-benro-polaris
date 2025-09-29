@@ -16,150 +16,177 @@
 
     <!-- Page Body -->
     <div class="row q-col-gutter-sm items-stretch">
+      <!-- Multi-Point Alignment Intro -->
       <div class="col-12 flex">
         <q-card flat bordered class="col q-pa-md">
           <div class="row">
             <!-- KF intro -->
-            <div class="col-md-6">
-  <q-markdown  :no-mark="false">
-# Multi-Point Alignment and Tripod Leveling
-Alpaca multi-point alignment calibrates how your mount’s internal coordinate system maps to the horizon and celestrial sky. 
-By syncing with three or more known positions, it builds a correction model that accounts for tripod tilt, polar misalignment, cone error, and other mechanical offsets that can affect pointing and tracking accuracy. 
-
-You need to perform SYNCs to add known positions to the model. The more positions you use, the better the model can correct for these errors. 
-You can choose from three different options to perform SYNCs, as described below.
+            <div class="col-md-12">
+<q-markdown  :no-mark="false">
+# Multi-Point Alignment 
+Alpaca multi-point alignment calibrates how your mount’s internal coordinate system maps to the horizon and celestrial sky. By syncing with three or more known positions, it builds a correction model that accounts for tripod tilt, polar misalignment, cone error, and other mechanical offsets that can affect pointing and tracking accuracy. 
 </q-markdown>
-            </div>
-            <div class="col-md-6 q-pt-sm">
-              <q-list style="max-width: 800px">
-                <!-- Choose Motor -->
-                <q-item>
-                  <q-item-section side>
-                    <q-item-label>Option A</q-item-label>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>Align using automatic Plate Solve</q-item-label>
-                    <q-item-label caption>Slew to an arbitary position and initiate a manual plate solve and sync using Nina or equivalent.</q-item-label>
-                    <q-item-label caption>Repeat for at least three different positions across the sky. Fastest and easiest method.</q-item-label>  
-                  </q-item-section>
-                </q-item>
-                <q-item>
-                  <q-item-section side>
-                    <q-item-label>Option B</q-item-label>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>Align using known Stars or Targets</q-item-label>
-                    <q-item-label caption>Slew to a known target and center it within the cameras frame.</q-item-label>
-                    <q-item-label caption>Using Stellaruium or equivalent, select the target, then choose to sync co-ordinates.</q-item-label>  
-                  </q-item-section>
-                </q-item>
-                <q-item>
-                  <q-item-section side>
-                    <q-item-label>Option C</q-item-label>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>Align using Daytime Geographic Targets</q-item-label>
-                    <q-item-label caption>Slew to a known distant position and center it within the cameras frame.</q-item-label>
-                    <q-item-label caption>Manually enter the Azimuth and Altitude of the position and press SYNC below.</q-item-label>  
-                  </q-item-section>
-                </q-item>
-              </q-list>
             </div>
           </div>
         </q-card>
       </div>
    
-        <div class="col-md-6 ">
-            <q-card flat bordered class="q-pa-md">
-            <div class="text-h6">Telescope Alignment Model</div>
-            <div class="row">
-                <div class="col-12 text-caption text-grey-6 q-pb-md">
-                Add more SYNCs to improve the model. Remove any that show large residuals or are no longer valid. 
-                </div>
-            </div>
+      <!-- Telescope Alignment Row -->
+      <div class="col-12 col-md-6 col-lg-4">
+        <q-card flat bordered class="q-pa-md flex column">
+          <div class="text-h6">Telescope Alignment Model</div>
+          <div class="row">
+              <div class="col-12 text-caption text-grey-6 q-pb-md">
+              Add more SYNCs to improve the model. Remove any that show large residuals or are no longer valid. 
+              </div>
+          </div>
+          <!-- Telescope Sync Summary Row -->
           <q-list bordered separator dense >
             <q-item v-for="data in telescope_syncs" :key="data.timestamp">
-                <q-item-section>
-                    <q-item-label >SYNC @ 10:20</q-item-label>
-                </q-item-section>
-                <q-item-section>
-                    <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                    <q-item-label caption>Residual {{data.resmag}}</q-item-label>
-                    <q-item-label></q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                    <q-btn dense size="sm" round icon="mdi-close" />
-                </q-item-section>
+              <q-item-section>
+                  <q-item-label >SYNC @ 10:20</q-item-label>
+              </q-item-section>
+              <q-item-section>
+                  <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-item-label caption>Residual {{data.resmag}}</q-item-label>
+                  <q-item-label></q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn dense size="sm" round icon="mdi-close" />
+              </q-item-section>
             </q-item>
-            </q-list>
-            <div class="text-h7 q-pt-md">Correction Summary</div>
-            <div class="row">
+          </q-list>
+          <!-- Telescope Correction Summary Row -->
+          <div class="text-h7 q-pt-md">Correction Summary</div>
+          <div class="row">
                 <div class="col-12 text-caption text-grey-6">
                 The telescope alignment model is correcting for the following adjustments.
                 </div>
+          </div>
+          <div class="row text-center">
+            <div class="col-4">
+                <div class="text-h4">12°</div>
+                <div class="text-caption">Az Correction</div>
             </div>
-            <div class="row text-center">
-                <div class="col-4">
-                    <div class="text-h4">12°</div>
-                    <div class="text-caption">Az Correction</div>
-                </div>
-                <div class="col-4">
-                    <div class="text-h4">12°</div>
-                    <div class="text-caption">Tilt Correction</div>
-                </div>
-                <div class="col-4">
-                    <div class="text-h4">12°</div>
-                    <div class="text-caption">Highest Tilt</div>
-                </div>
+            <div class="col-4">
+                <div class="text-h4">12°</div>
+                <div class="text-caption">Tilt Correction</div>
+            </div>
+            <div class="col-4">
+                <div class="text-h4">12°</div>
+                <div class="text-caption">Highest Tilt Az</div>
+            </div>
 
-            </div>
-            </q-card>
-        </div>
+          </div>
+        </q-card>
+      </div>
 
-        <div class="col-md-6 ">
-            <q-card flat bordered class="q-pa-md">
-            <div class="text-h6">Rotator Alignment Model</div>
-            <div class="row">
-                <div class="col-12 text-caption text-grey-6 q-pb-md">
-                Corrects rotational misalignment between the camera and mount optical axis.
-                </div>
-            </div>
+      <!-- Rotator Alignment Row -->
+      <div class="col-12 col-md-6 col-lg-4">
+        <q-card flat bordered class="q-pa-md flex column">
+          <div class="text-h6">Rotator Alignment Model</div>
+          <div class="row">
+              <div class="col-12 text-caption text-grey-6 q-pb-md">
+              Corrects rotational misalignment between the camera and mount optical axis.
+              </div>
+          </div>
           <q-list bordered separator dense >
             <q-item v-for="data in rotator_syncs" :key="data.timestamp">
-                <q-item-section>
-                    <q-item-label >SYNC @ 10:20</q-item-label>
-                </q-item-section>
-                <q-item-section>
-                    <q-item-label caption>Roll {{data.a_roll}} </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                    <q-item-label caption>Residual {{data.resmag}}</q-item-label>
-                    <q-item-label></q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                    <q-btn dense size="sm" round icon="mdi-close" />
-                </q-item-section>
+              <q-item-section>
+                  <q-item-label >SYNC @ 10:20</q-item-label>
+              </q-item-section>
+              <q-item-section>
+                  <q-item-label caption>Roll {{data.a_roll}} </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-item-label caption>Residual {{data.resmag}}</q-item-label>
+                  <q-item-label></q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn dense size="sm" round icon="mdi-close" />
+              </q-item-section>
             </q-item>
-            </q-list>
-            <div class="text-h7 q-pt-md">Correction Summary</div>
-            <div class="row">
-                <div class="col-12 text-caption text-grey-6">
-                The rotator alignment model is correcting for the following adjustment.
-                </div>
-            </div>
-            <div class="row text-center">
-                <div class="col-4">
-                    <div class="text-h4">12°</div>
-                    <div class="text-caption">Roll Correction</div>
-                </div>
+          </q-list>
+          <div class="text-h7 q-pt-md">Correction Summary</div>
+          <div class="row">
+              <div class="col-12 text-caption text-grey-6">
+              The rotator alignment model is correcting for the following adjustment.
+              </div>
+          </div>
+          <div class="row text-center">
+              <div class="col-4">
+                  <div class="text-h4">{{p.battery_level}}°</div>
+                  <div class="text-caption">Roll Correction</div>
+              </div>
 
-            </div>
-            </q-card>
-        </div>
+          </div>
+          </q-card>
+      </div>
 
+      <!-- Telescope Alignment Row -->
+      <div class="col-12 col-md-6 col-lg-4">
+          <q-card flat bordered class="q-pa-md flex column">
+          <div class="text-h6">Methods to add SYNC Points</div>
+          <div class="row">
+              <div class="col-12  text-grey-6 q-pb-md">
 
+              </div>
+          </div>
+          <q-tabs v-model="tab" dense class="text-grey" 
+              active-color="primary" indicator-color="primary"
+              align="justify" narrow-indicator
+          >
+              <q-tab name="plate" label="Plate Solve" />
+              <q-tab name="star" label="Celestrial" />
+              <q-tab name="map" label="Geographic" />
+          </q-tabs>
+     <q-tab-panels v-model="tab" animated >
+        <q-tab-panel name="plate" class="text-grey-8">
+          <div class="text-grey text-caption">
+            The quickest way to perform a SYNC is by using plate solving to determine the telescope’s true sky position.
+            You will need to use an external application to plate solve.
+          </div>
+          <ol class="text-grey text-caption">
+            <li>Enable Sidereal Tracking to follow the stars.</li>
+            <li>Goto an arbitrary location in the sky.</li>
+            <li>Using Nina, run a manual plate solve and sync.</li>
+            <li>Repeat at three or more positions spread across the sky.</li>
+          </ol>
+        </q-tab-panel>
+
+        <q-tab-panel name="star">
+          <div class="text-grey text-caption">
+            You can manually align to a known star or celestrial target. 
+            This is typically done using a planetarium application such as Stellarium. 
+          </div>
+          <ol class="text-grey text-caption">
+            <li>Enable Sidereal Tracking to follow the stars.</li>
+            <li>Goto any known celestrial target in the sky.</li>
+            <li>Slew to center the target within the camera's frame.</li>
+            <li>Using Stellarium, select the known target.</li>
+            <li>Press Ctrl+0, Current Object, and Sync.</li>
+            <li>Repeat at three or more targets spread across the sky.</li>
+          </ol>
+          <div class="text-grey text-caption">
+            Alternately enter the current RA/Dec coordinates below and SYNC. 
+          </div>
+        </q-tab-panel>
+
+        <q-tab-panel name="map">
+          <div class="text-grey text-caption">
+            During daylight hours, center a known landmark within the camera's frame. Tap the landmap on the map below to set coordinates.
+
+          </div>
+          <div class="text-grey text-caption">
+            Adjust the current Az/Alt coordinates below and SYNC. 
+          </div>
+        </q-tab-panel>
+      </q-tab-panels>
+
+          </q-card>
+      </div>
 
   </div>
 
@@ -181,6 +208,7 @@ const p = useStatusStore()
 
 const selected = ref([])
 const axis = ref<number>(0)
+const tab = ref('plate')
 
 const telescope_syncs = computed(() => {
   const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
