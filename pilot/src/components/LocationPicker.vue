@@ -28,6 +28,7 @@ L.Icon.Default.mergeOptions({
 const props = defineProps<{
   lat: number
   lon: number
+  arrow?: boolean
 }>()
 
 // Emits
@@ -39,6 +40,8 @@ const { lat, lon } = toRefs(props)
 const mapAvailable = ref(false)
 let map: L.Map
 let marker: L.Marker | undefined
+let arrowLine: L.Polyline | undefined
+
 
 onMounted(() => {
   serviceCheck()
@@ -53,12 +56,29 @@ onMounted(() => {
   map.on('click', (e) => {
     void (async () => {
       const { lat: newLat, lng: newLon } = e.latlng
-      if (marker) {
-        marker.setLatLng(e.latlng)
-      } else {
-        marker = L.marker(e.latlng).addTo(map)
-      }
+      if (props.arrow) {
+        // Draw or update arrow from marker to clicked point
+        if (marker) {
+          const from = marker.getLatLng()
+          const to = e.latlng
 
+          if (arrowLine) {
+            arrowLine.setLatLngs([from, to])
+          } else {
+            arrowLine = L.polyline([from, to], {
+              color: 'red',
+              weight: 2,
+              dashArray: '5,5'
+            }).addTo(map)
+          }
+        }
+      } else {
+        if (marker) {
+          marker.setLatLng(e.latlng)
+        } else {
+          marker = L.marker(e.latlng).addTo(map)
+        }
+      }
       const result = await getLocationServices(newLat, newLon)
       emit('locationInfo', result)
     })()

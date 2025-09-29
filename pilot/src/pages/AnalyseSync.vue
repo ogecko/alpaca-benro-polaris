@@ -198,17 +198,17 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
             During daylight hours, center a known landmark within the camera's frame. Tap the landmap on the map below to set coordinates.
           </div>
           <div class="q-pt-md q-pb-md">
-            <LocationPicker :lat="cfg.site_latitude" :lon="cfg.site_longitude" @locationInfo="setFromMapClick"/>
+            <LocationPicker arrow :lat="cfg.site_latitude" :lon="cfg.site_longitude" @locationInfo="setFromMapClick"/>
           </div>
           <div class="text-grey text-caption">
-            Adjust the current Az/Alt below and SYNC. 
+            Adjust the current Az/Alt/Roll below and SYNC. 
           </div>
           <div class="row q-col-gutter-sm text-center items-center">
             <div class="col-4">
-              <q-input   label="Az (deg:mm:ss)" v-model="Az_Str"/>
+              <q-input   label="Azimuth (deg:mm:ss)" v-model="Az_Str"/>
             </div>
             <div class="col-4">
-              <q-input   label="Alt (deg:mm:ss)" v-model="Alt_str"/>
+              <q-input   label="Altitude (deg:mm:ss)" v-model="Alt_str"/>
             </div>
             <div class="col-4">
               <q-btn label="SYNC" icon="mdi-telescope" />
