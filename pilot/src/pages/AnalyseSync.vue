@@ -245,7 +245,7 @@ import { formatAngle } from 'src/utils/scale'
 import { useStatusStore } from 'src/stores/status'
 import type { LocationResult } from 'src/utils/locationServices';
 import LocationPicker from 'src/components/LocationPicker.vue';
-
+import { getWeatherData, deltalatlon2AzAlt } from 'src/utils/locationServices';
 const socket = useStreamStore()
 const p = useStatusStore()
 const cfg = useConfigStore()
@@ -309,8 +309,21 @@ onUnmounted(() => {
   socket.unsubscribe('sm')
 })
 
-function setFromMapClick (result: LocationResult) {
-  console.log('Map Click', result)
+async function setFromMapClick (landmark: LocationResult) {
+  if (landmark.success) {
+    const lm_lat = landmark.data.site_latitude
+    const lm_lon = landmark.data.site_longitude
+    const { elevation } = await getWeatherData(lm_lat, lm_lon)
+    const site_lat = cfg.site_latitude
+    const site_lon = cfg.site_longitude
+    const site_elev = cfg.site_elevation
+    // calculate Az/Alt from lat/lon, elevation difference from site to landmark
+    const azalt = deltalatlon2AzAlt(site_lat, site_lon, site_elev, lm_lat, lm_lon, elevation)
+    console.log('Map Click', azalt)
+    if (!azalt) return
+    Az_Str.value = formatAngle(azalt.azimuth, 'deg', 1)
+    Alt_str.value = formatAngle(azalt.altitude, 'deg', 1)
+  }
 }
 
 

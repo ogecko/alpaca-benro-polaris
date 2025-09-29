@@ -12,6 +12,10 @@ export interface LocationData {
   site_longitude: number
 }
 
+export const toRadians = (d: number) => d * Math.PI / 180;
+export const toDegrees = (r: number) => r * 180 / Math.PI;
+
+
 // Retrieve navigator geolocation (requires HTTPS hosting of app)
 async function getNavigatorLocation(): Promise<{ lat: number; lon: number } | null> {
   return new Promise((resolve) => {
@@ -67,7 +71,7 @@ async function getLocationName(lat: number, lon: number): Promise<string> {
 // }
 
 // Retrieve elevation and pressure from Open-Meteo Weather API
-async function getWeatherData(lat: number, lon: number): Promise<{ pressure: number; elevation: number }> {
+export async function getWeatherData(lat: number, lon: number): Promise<{ pressure: number; elevation: number }> {
     const { data } = await axios.get('https://api.open-meteo.com/v1/forecast', {
         params: { latitude: lat, longitude: lon, hourly: 'surface_pressure', current_weather: true, timezone: 'auto' }
     });
@@ -122,4 +126,47 @@ export async function getLocationServices(inputLat?: number, inputLon?: number):
   } catch {
     return { success: false, reason: 'lookup-failed' }
   }
+}
+
+
+export function deltalatlon2AzAlt(site_lat: number, site_lon: number, site_elev: number,
+  lm_lat: number, lm_lon: number, lm_elevation: number): { azimuth: number; altitude: number } | null {
+/**
+ * Converts a landmark's latitude, longitude, and elevation into azimuth and altitude angles
+ * relative to a site location defined by its latitude, longitude, and elevation.
+ * Uses the Haversine formula for distance calculation and basic trigonometry for angles.
+ * Returns null if any input is invalid.
+ */
+    if (
+      [site_lat, site_lon, site_elev, lm_lat, lm_lon, lm_elevation].some(v => typeof v !== 'number' || isNaN(v))
+    ) return null 
+
+    // Convert to radians
+    const φ1 = toRadians(site_lat)
+    const λ1 = toRadians(site_lon)
+    const φ2 = toRadians(lm_lat)
+    const λ2 = toRadians(lm_lon)
+
+    // Δ values
+    const Δλ = λ2 - λ1
+    const Δφ = φ2 - φ1
+
+    // Haversine distance (horizontal)
+    const R = 6371000 // Earth radius in meters
+    const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    const horizontalDist = R * c
+
+    // Elevation difference
+    const Δelev = lm_elevation - site_elev
+
+    // Altitude angle
+    const alt = toDegrees(Math.atan2(Δelev, horizontalDist))
+
+    // Azimuth angle (bearing from site to landmark)
+    const y = Math.sin(Δλ) * Math.cos(φ2)
+    const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
+    const az = (toDegrees(Math.atan2(y, x)) + 360) % 360
+
+    return { azimuth: az, altitude: alt }
 }
