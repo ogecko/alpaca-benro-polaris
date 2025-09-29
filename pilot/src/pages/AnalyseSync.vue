@@ -32,8 +32,8 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
       </div>
    
       <!-- Telescope Alignment Row -->
-      <div class="col-12 col-md-6 col-lg-4">
-        <q-card flat bordered class="q-pa-md flex column">
+      <div class="col-12 col-md-6 col-lg-4 flex">
+        <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">Telescope Alignment Model</div>
           <div class="row">
               <div class="col-12 text-caption text-grey-6 q-pb-md">
@@ -84,8 +84,8 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
       </div>
 
       <!-- Rotator Alignment Row -->
-      <div class="col-12 col-md-6 col-lg-4">
-        <q-card flat bordered class="q-pa-md flex column">
+      <div class="col-12 col-md-6 col-lg-4 flex">
+        <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">Rotator Alignment Model</div>
           <div class="row">
               <div class="col-12 text-caption text-grey-6 q-pb-md">
@@ -126,8 +126,8 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
       </div>
 
       <!-- Telescope Alignment Row -->
-      <div class="col-12 col-md-6 col-lg-4">
-          <q-card flat bordered class="q-pa-md flex column">
+      <div class="col-12 col-md-6 col-lg-4 flex">
+          <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">Methods to add SYNC Points</div>
           <div class="row">
               <div class="col-12  text-grey-6 q-pb-md">
