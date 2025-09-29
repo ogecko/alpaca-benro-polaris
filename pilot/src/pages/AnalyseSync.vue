@@ -273,42 +273,43 @@ const Roll = computed(() => dms2deg(Roll_str.value, 'deg'))
 
 const telescope_syncs = computed(() => {
   const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData).filter(d=>d.a_az !== null && d.a_alt !== null)
-  const consolidated = new Map<string, TableRow>()
-  for (const data of syncdata) {
-    consolidated.set(data.time, data)
-  }
-  return Array.from(consolidated.values())
-})
-
-const rotator_syncs = computed(() => {
-  const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData).filter(d=>d.a_roll !== null)
+  const syncdata = sm.map(formatSyncData).filter(d=>((d.a_az !== null) && (d.a_alt !== null)))
   const consolidated = new Map<string, TableRow>()
   for (const data of syncdata) {
     consolidated.set(data.timestamp, data)
   }
-  return Array.from(consolidated.values())
+  return Array.from(consolidated.values()).filter(d=>(!d.deleted))
+})
+
+const rotator_syncs = computed(() => {
+  const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
+  const syncdata = sm.map(formatSyncData).filter(d=>(d.a_roll !== ''))
+  const consolidated = new Map<string, TableRow>()
+  for (const data of syncdata) {
+    consolidated.set(data.timestamp, data)
+  }
+  return Array.from(consolidated.values()).filter(d=>(!d.deleted))
 })
 
 
 watch(axis, ()=>selected.value=[])
 
 type TableRow = {
-  timestamp:string, time:string, a_az:string, a_alt:string, a_roll:string, resmag:string, resvec:[number, number] 
+  timestamp:string, deleted:boolean, time:string, a_az:string, a_alt:string, a_roll:string, resmag:string, resvec:[number, number] 
 }
 
 
 function formatSyncData(d: TelemetryRecord):TableRow {
   const data = d.data as SyncMessage
   const timestamp = data.timestamp ?? ''
+  const deleted = data.deleted ?? false
   const time = new Date(data.timestamp).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true}) ?? ''
-  const a_az = formatAngle(data.a_az ?? 0, 'deg', 1)
-  const a_alt = formatAngle(data.a_alt ?? 0, 'deg', 1)
-  const a_roll = formatAngle(data.a_roll ?? 0, 'deg', 1)
-  const resmag = formatAngle(data.residual_magnitude ?? 0, 'deg', 1)
+  const a_az = data.a_az ? formatAngle(data.a_az, 'deg', 1) : ''
+  const a_alt = data.a_alt ? formatAngle(data.a_alt, 'deg', 1) : ''
+  const a_roll = data.a_roll ? formatAngle(data.a_roll, 'deg', 1) : ''
+  const resmag = data.residual_magnitude ? formatAngle(data.residual_magnitude, 'deg', 1) : ''
   const resvec = data.residual_vector ?? [0,0]
-  return { timestamp, time, a_az, a_alt, a_roll, resmag, resvec }
+  return { timestamp, deleted, time, a_az, a_alt, a_roll, resmag, resvec }
 }
 
 onMounted(async () => {
