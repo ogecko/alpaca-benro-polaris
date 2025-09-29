@@ -319,7 +319,7 @@ async function setFromMapClick (landmark: LocationResult) {
     const site_elev = cfg.site_elevation
     // calculate Az/Alt from lat/lon, elevation difference from site to landmark
     const azalt = delta_latlon2AzAlt(site_lat, site_lon, site_elev, lm_lat, lm_lon, elevation)
-    console.log('Map Click', azalt)
+    console.log(`Map Click Elevation of Site ${site_elev}, Landmark ${elevation}, Bearing:`, azalt)
     if (!azalt) return
     Az_Str.value = formatAngle(azalt.azimuth, 'deg', 1)
     Alt_str.value = formatAngle(azalt.altitude, 'deg', 1)
