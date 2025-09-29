@@ -1676,7 +1676,7 @@ class SyncManager:
 
         self.tilt_adj_az = tilt_az_observed
         self.tilt_adj_mag = tilt_magnitude_deg
-        self.az_correction = wrap_to_180(north_az)
+        self.az_adj = wrap_to_180(north_az)
 
 
     def parallactic_angle(self, az_deg, alt_deg, lat_deg):

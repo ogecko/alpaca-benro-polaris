@@ -76,6 +76,7 @@ def test_azshift10_sync_adj():
     az,alt = sm.azalt_ascom2polaris(49.877848,44.999870)
     assert f'{az:.6f}, {alt:.6f}' == "40.000000, 45.000000"
     assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "139.999989, 0.122152"
+    assert f'{sm.az_adj:.6f}' == "10.000064"
 
 def test_leveling_sync_adj():
     p = Polaris()
