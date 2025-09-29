@@ -1460,7 +1460,8 @@ class supportedactions:
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
             "Polaris:MoveAxis", "Polaris:MoveMotor", 
-            "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove" 
+            "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
+            "Polaris:SyncRoll", "Polaris:SyncRemove",  
         ], req)  
 
 
@@ -1614,6 +1615,20 @@ class action:
             altitude = int(parameters.get('altitude', 0))
             asyncio.create_task(polaris.skip_star_alignment(azimuth, altitude)) 
             resp.text = await PropertyResponse('Polaris Set Alignment ok', req)  
+            return
+
+        elif actionName == "Polaris:SyncRoll":
+            logger.info(f'Polaris SyncRoll {parameters}')
+            roll = int(parameters.get('roll', 0))
+            await polaris.sync_to_roll(roll) 
+            resp.text = await PropertyResponse('Polaris SyncRoll ok', req)  
+            return
+
+        elif actionName == "Polaris:SyncRemove":
+            logger.info(f'Polaris SyncRemove {parameters}')
+            timestamp = parameters.get('timestamp', '')
+            polaris._sm.sync_remove(timestamp) 
+            resp.text = await PropertyResponse('Polaris SyncRemove ok', req)  
             return
 
         else:

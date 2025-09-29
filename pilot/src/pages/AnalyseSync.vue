@@ -43,7 +43,7 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
           </div>
           <!-- Telescope Sync Summary Row -->
           <q-list bordered separator dense >
-            <q-item v-for="data in telescope_syncs" :key="data.time">
+            <q-item v-for="data in telescope_syncs" :key="data.timestamp">
               <q-item-section>
                   <q-item-label >SYNC @ {{data.time}}</q-item-label>
               </q-item-section>
@@ -55,7 +55,7 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
                   <q-item-label></q-item-label>
               </q-item-section>
               <q-item-section side>
-                  <q-btn dense size="sm" round icon="mdi-close" />
+                  <q-btn dense size="sm" round icon="mdi-close" @click="onSyncRemove(data.timestamp)"/>
               </q-item-section>
             </q-item>
           </q-list>
@@ -94,7 +94,7 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
               </div>
           </div>
           <q-list bordered separator dense >
-            <q-item v-for="data in rotator_syncs" :key="data.time">
+            <q-item v-for="data in rotator_syncs" :key="data.timestamp">
               <q-item-section>
                   <q-item-label >SYNC @ {{data.time}}</q-item-label>
               </q-item-section>
@@ -358,6 +358,11 @@ async function onSyncPA() {
 async function onSyncRoll() {
   console.log(`SYNC Roll ${Roll.value}`)
   await dev.alpacaSyncToRoll(Roll.value)
+} 
+
+async function onSyncRemove(timestamp:string) {
+  console.log(`REMOVE SYNC ${timestamp}`)
+  await dev.alpacaSyncRemove(timestamp)
 } 
 
 </script>

@@ -138,6 +138,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:SyncRoll', `{"roll": ${roll}}`)
     },
 
+    async alpacaSyncRemove(timestamp:string) {
+      await this.apiAction<void>('Polaris:SyncRemove', `{"timestamp": "${timestamp}"}`)
+    },
+
     async setPolarisMode(mode:number) {
       await this.apiAction<void>('Polaris:SetMode', `{"mode": ${mode}}`)
     },

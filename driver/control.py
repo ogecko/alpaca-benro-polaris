@@ -1471,6 +1471,7 @@ class SyncManager:
     def standard_entry(self):
         entry = {
             "timestamp": format_timestamp(),
+            "deleted": False,
             "p_q1": self.polaris._q1,
             "p_az": self.polaris._p_azimuth,
             "p_alt": self.polaris._p_altitude,
@@ -1495,6 +1496,21 @@ class SyncManager:
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.logSyncData()
+
+    def sync_remove(self, timestamp):
+        found = False
+        for entry in self.sync_history:
+            if entry.get("timestamp") == timestamp:
+                entry["deleted"] = True
+                found = True
+                break
+        if found:
+            self.logger.info(f"Cleared sync data for timestamp: {timestamp}")
+            self.optimize_q1_adj()
+            self.optimize_roll_adj()
+            self.logSyncData()
+        else:
+            self.logger.warning(f"No sync entry found with timestamp: {timestamp}")
 
     def az_alt_to_vector(self, az_deg, alt_deg):
         az = math.radians(az_deg)
@@ -1536,7 +1552,7 @@ class SyncManager:
         """
         pairs = []
         for entry in self.sync_history:
-            if entry["a_az"] is None or entry["a_alt"] is None:
+            if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
             # Observed vector from sync
             v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])
@@ -1592,6 +1608,9 @@ class SyncManager:
 
     def optimise_q1_adj_fallback_single_sync(self):
         entry = self.sync_history[0]
+        if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
+            return Quaternion(1,0,0,0)  # identity quaternion
+        
         v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])
         v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])
 
@@ -1626,7 +1645,7 @@ class SyncManager:
 
     def compute_azalt_residuals(self):
         for entry in self.sync_history:
-            if entry["a_az"] is None or entry["a_alt"] is None:
+            if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
             az_corr, alt_corr = self.azalt_polaris2ascom(entry["p_az"], entry["p_alt"])
             az_err = angular_difference(az_corr, entry["a_az"])

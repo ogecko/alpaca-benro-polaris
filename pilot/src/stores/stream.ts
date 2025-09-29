@@ -16,7 +16,7 @@ export type CalibrationMessage = {
   test_result: string, test_change: string, test_stdev:string, test_status:string
 } 
 export type SyncMessage = { 
-  timestamp: string,  p_q1: number,  
+  timestamp: string,  deleted: boolean, p_q1: number,  
   p_az: number,  p_alt: number,  p_roll: number,
   a_az: number | null,  a_alt: number | null,  a_roll: number | null,
   residual_vector: [ number, number ] | null,  residual_magnitude: number,
