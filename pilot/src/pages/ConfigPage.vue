@@ -28,7 +28,7 @@
       <div class="row q-col-gutter-sm items-stretch">
         <!-- Site Info -->
         <div class="col-12 col-md-6 col-lg-4 flex" >
-          <q-card flat bordered class="q-pa-md">
+          <q-card flat bordered class="q-pa-md full-width">
             <div class="text-h6">Observing Site Information</div>
             <div class="row q-col-gutter-lg items-center">
               <div class="col text-caption text-grey-6 q-pb-md">
@@ -57,7 +57,7 @@
         </div>
         <!-- Advanced Features -->
         <div class="col-12 col-md-6 col-lg-4 flex" >
-          <q-card flat bordered class="q-pa-md">
+          <q-card flat bordered class="q-pa-md full-width">
             <div class="text-h6">Advanced Control Features</div>
             <div class="row q-col-gutter-lg items-center">
               <div class="col text-caption text-grey-6  q-pb-md">
@@ -96,7 +96,7 @@
         </div>
         <!-- Standard Control Features -->
         <div class="col-12 col-md-6 col-lg-4 flex">
-          <q-card flat bordered class="q-pa-md">
+          <q-card flat bordered class="q-pa-md full-width">
             <div class="text-h6">Standard Control Features</div>
             <div class="row">
               <div class="col-12 text-caption text-grey-6 q-pb-md">
@@ -120,7 +120,7 @@
         </div>
         <!-- Performance Logging -->
         <div class="col-12 col-md-6 col-lg-4 flex">
-          <q-card flat bordered class="q-pa-md">
+          <q-card flat bordered class="q-pa-md full-width">
             <div class="text-h6">Performance Recording Settings</div>
             <div class="row">
               <div class="col-12 text-caption text-grey-6 q-pb-md">

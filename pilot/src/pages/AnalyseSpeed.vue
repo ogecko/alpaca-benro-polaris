@@ -97,7 +97,7 @@
           </div>
         </q-card>
       </div>    
-      <div class="col-md-6 flex">
+      <div class="col-12 col-md-6 flex">
         <q-card flat bordered class="col">
           <q-list style="max-width: 800px">
             <q-item>
@@ -113,7 +113,7 @@
           <div class="q-pb-xl"></div>
         </q-card>
       </div>    
-      <div class="col-md-6 flex">
+      <div class="col-12 col-md-6 flex">
         <q-card flat bordered class="col">
           <q-list>
             <q-item>

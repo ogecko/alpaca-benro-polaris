@@ -79,7 +79,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
       </q-card>
       </div>
       <!-- Angular Position Plot -->
-      <div class="col-md-6">
+      <div class="col-md-6 flex">
         <q-card flat bordered class="col">
           <q-list>
             <q-item>
@@ -119,7 +119,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
         </q-card>
       </div>
       <!-- Angular Velocity Plot -->
-      <div class="col-md-6">
+      <div class="col-md-6 flex">
         <q-card flat bordered class="col">
           <q-list>
             <q-item>

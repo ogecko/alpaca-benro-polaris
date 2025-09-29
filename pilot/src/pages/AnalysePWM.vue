@@ -16,61 +16,62 @@
 
     <!-- Page Body -->
     <div class="row q-col-gutter-sm items-stretch">
+      <!-- PWM intro -->
       <div class="col-12 flex">
-      <q-card flat bordered class="col q-pa-md">
-        <div class="row">
-          <!-- KF intro -->
-          <div class="col-md-6">
-<q-markdown  :no-mark="false">
-# Motor PWM Testing
-To achieve the precise, low-speed motion required for sidereal tracking, we control the motors using Pulse Width Modulation (PWM). By adjusting the period and pulse width, we can finely tune motor behavior to maintain consistent tracking rates.
+        <q-card flat bordered class="col q-pa-md">
+          <div class="row">
+            <div class="col-md-6">
+  <q-markdown  :no-mark="false">
+  # Motor PWM Testing
+  To achieve the precise, low-speed motion required for sidereal tracking, we control the motors using Pulse Width Modulation (PWM). By adjusting the period and pulse width, we can finely tune motor behavior to maintain consistent tracking rates.
 
-This page allows you to evaluate the speed performance of each motor across a range of PWM configurations, helping you identify optimal settings for smooth, accurate motion.
-</q-markdown>
+  This page allows you to evaluate the speed performance of each motor across a range of PWM configurations, helping you identify optimal settings for smooth, accurate motion.
+  </q-markdown>
+            </div>
+            <div class="col-md-6 q-pt-sm">
+              <q-list style="max-width: 800px">
+                <!-- Choose Motor -->
+                <q-item>
+                  <q-item-section side top>
+                      <q-btn-toggle v-model="axis" push rounded glossy toggle-color="primary"  
+                        :options="[
+                          {label: 'M1', value: 0},
+                          {label: 'M2', value: 1},
+                          {label: 'M3', value: 2}
+                        ]"
+                      />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label> Choosen Motor Axis</q-item-label>
+                    <q-item-label caption>
+                      Select the motor axis you'd like to analyse and tune. Motor 1 Azimuth; Motor 2 Altitude; Motor 3 Astro head. 
+                      Keep in mind: when Motor 3 (Astro Head) is rotated, the orientation of Motor 1 and Motor 2 no longer corresponds directly to Azimuth and Altitude.            </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <!-- Test Motor -->
+                <q-item :inset-level="1">
+                  <q-item-section top side>
+                    <div class=" q-gutter-ax">
+                    <MoveButton activeColor="positive" icon="mdi-minus-circle" @push="onMinus"/>
+                    <MoveButton activeColor="positive" icon="mdi-plus-circle" @push="onPlus"/>
+                    </div>
+                  </q-item-section>
+                  <q-item-section >
+                    <q-item-label> Test movement of {{ motor }}</q-item-label>
+                    <q-item-label caption>
+                      Use the following action buttons to move the motor and monitor how well the motor speed is controlled. 
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
           </div>
-          <div class="col-md-6 q-pt-sm">
-            <q-list style="max-width: 800px">
-              <!-- Choose Motor -->
-              <q-item>
-                <q-item-section side top>
-                    <q-btn-toggle v-model="axis" push rounded glossy toggle-color="primary"  
-                      :options="[
-                        {label: 'M1', value: 0},
-                        {label: 'M2', value: 1},
-                        {label: 'M3', value: 2}
-                      ]"
-                    />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label> Choosen Motor Axis</q-item-label>
-                  <q-item-label caption>
-                    Select the motor axis you'd like to analyse and tune. Motor 1 Azimuth; Motor 2 Altitude; Motor 3 Astro head. 
-                    Keep in mind: when Motor 3 (Astro Head) is rotated, the orientation of Motor 1 and Motor 2 no longer corresponds directly to Azimuth and Altitude.            </q-item-label>
-                </q-item-section>
-              </q-item>
-              <!-- Test Motor -->
-              <q-item :inset-level="1">
-                <q-item-section top side>
-                  <div class=" q-gutter-ax">
-                  <MoveButton activeColor="positive" icon="mdi-minus-circle" @push="onMinus"/>
-                  <MoveButton activeColor="positive" icon="mdi-plus-circle" @push="onPlus"/>
-                  </div>
-                </q-item-section>
-                <q-item-section >
-                  <q-item-label> Test movement of {{ motor }}</q-item-label>
-                  <q-item-label caption>
-                    Use the following action buttons to move the motor and monitor how well the motor speed is controlled. 
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </div>
-        </div>
-      </q-card>
+        </q-card>
       </div>
-      <div class="col-md-6 flex">
-        <q-card flat bordered class="col">
-          <q-list style="max-width: 800px">
+      <!-- Duty On/Off -->
+      <div class="col-12 col-md-6 flex">
+        <q-card flat bordered class="col full-width">
+          <q-list>
             <q-item>
               <q-item-section side top>
                 <q-knob v-model="active_rate" show-value :min="0" :inner-min="1" :inner-max="5" :max="6" :step="1"></q-knob>
@@ -98,8 +99,8 @@ This page allows you to evaluate the speed performance of each motor across a ra
           <div class="q-pb-xl"></div>
         </q-card>
     </div>    
-      <div class="col-md-6 flex">
-        <q-card flat bordered class="col">
+      <div class="col-12 col-md-6 flex">
+        <q-card flat bordered class="col full-width">
           <q-list>
             <q-item>
               <q-item-section side top>
