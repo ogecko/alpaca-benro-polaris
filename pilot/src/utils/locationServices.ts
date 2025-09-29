@@ -129,11 +129,11 @@ export async function getLocationServices(inputLat?: number, inputLon?: number):
 }
 
 
-export function deltalatlon2AzAlt(site_lat: number, site_lon: number, site_elev: number,
+export function delta_latlon2AzAlt(site_lat: number, site_lon: number, site_elev: number,
   lm_lat: number, lm_lon: number, lm_elevation: number): { azimuth: number; altitude: number } | null {
 /**
- * Converts a landmark's latitude, longitude, and elevation into azimuth and altitude angles
- * relative to a site location defined by its latitude, longitude, and elevation.
+ * Converts the difference in latitude, longitude, and elevation into azimuth and altitude bearing angles
+ * from an observing site location to a known landmark location, both defined by latitude, longitude, and elevation.
  * Uses the Haversine formula for distance calculation and basic trigonometry for angles.
  * Returns null if any input is invalid.
  */
