@@ -251,6 +251,20 @@
                 </q-item-section>
               </q-item>
 
+              <!-- Multi Point Align -->
+              <q-item v-if="p.connected">
+                <q-item-section thumbnail>
+                  <q-icon :name="p.aligned ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.aligned ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Multi Point Alignment</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="row items-center q-gutter-sm">
+                    <q-btn label="Align" split icon="mdi-creation-outline"  to="/sync" class="fixedWidth" />
+                  </div>
+                </q-item-section>
+              </q-item>
 
             </q-list>
           </div>

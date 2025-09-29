@@ -145,14 +145,14 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
      <q-tab-panels v-model="tab" animated >
         <q-tab-panel name="plate" class="text-grey-8">
           <div class="text-grey text-caption">
-            The quickest way to perform a SYNC is by using plate solving to determine the telescope’s true sky position.
+            The quickest way to perform a SYNC is by using plate solving to determine the telescope’s true sky orientation.
             You will need to use an external application to plate solve.
           </div>
           <ol class="text-grey text-caption">
             <li>Enable Sidereal Tracking to follow the stars.</li>
             <li>Goto an arbitrary location in the sky.</li>
             <li>Using Nina, run a manual plate solve and sync.</li>
-            <li>Repeat at three or more positions spread across the sky.</li>
+            <li>Repeat for three or more positions spread across the sky.</li>
           </ol>
         </q-tab-panel>
 
@@ -167,20 +167,60 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
             <li>Slew to center the target within the camera's frame.</li>
             <li>Using Stellarium, select the known target.</li>
             <li>Press Ctrl+0, Current Object, and Sync.</li>
-            <li>Repeat at three or more targets spread across the sky.</li>
+            <li>Repeat for three or more targets spread across the sky.</li>
           </ol>
           <div class="text-grey text-caption">
-            Alternately enter the current RA/Dec coordinates below and SYNC. 
+            Alternately enter the current RA/Dec/PA below and SYNC. 
+          </div>
+          <div class="row q-col-gutter-sm text-center items-center">
+            <div class="col-4">
+              <q-input   label="RA (hh:mm:ss)" v-model="RA_str"/>
+            </div>
+            <div class="col-4">
+              <q-input   label="Dec (deg:mm:ss)" v-model="Dec_str"/>
+            </div>
+            <div class="col-4">
+              <q-btn label="SYNC" icon="mdi-telescope" />
+            </div>
+          </div>
+          <div class="row q-col-gutter-sm q-pt-md text-center items-center">
+            <div class="col">
+              <q-input   label="Position Angle (deg:mm:ss)" v-model="PA_str"/>
+            </div>
+            <div class="col-4">
+              <q-btn label="SYNC" icon="mdi-restore"  />
+            </div>
           </div>
         </q-tab-panel>
 
         <q-tab-panel name="map">
           <div class="text-grey text-caption">
             During daylight hours, center a known landmark within the camera's frame. Tap the landmap on the map below to set coordinates.
-
+          </div>
+          <div class="q-pt-md q-pb-md">
+            <LocationPicker :lat="cfg.site_latitude" :lon="cfg.site_longitude" @locationInfo="setFromMapClick"/>
           </div>
           <div class="text-grey text-caption">
-            Adjust the current Az/Alt coordinates below and SYNC. 
+            Adjust the current Az/Alt below and SYNC. 
+          </div>
+          <div class="row q-col-gutter-sm text-center items-center">
+            <div class="col-4">
+              <q-input   label="Az (deg:mm:ss)" v-model="Az_Str"/>
+            </div>
+            <div class="col-4">
+              <q-input   label="Alt (deg:mm:ss)" v-model="Alt_str"/>
+            </div>
+            <div class="col-4">
+              <q-btn label="SYNC" icon="mdi-telescope" />
+            </div>
+          </div>
+          <div class="row q-col-gutter-sm q-pt-md text-center items-center">
+            <div class="col">
+              <q-input   label="Roll Angle (deg:mm:ss)" v-model="Roll_str"/>
+            </div>
+            <div class="col-4">
+              <q-btn label="SYNC" icon="mdi-restore"  />
+            </div>
           </div>
         </q-tab-panel>
       </q-tab-panels>
@@ -199,16 +239,26 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useStreamStore } from 'src/stores/stream'
+import { useConfigStore } from 'src/stores/config'
 import type { TelemetryRecord, SyncMessage }from 'src/stores/stream'
 import { formatAngle } from 'src/utils/scale'
 import { useStatusStore } from 'src/stores/status'
+import type { LocationResult } from 'src/utils/locationServices';
+import LocationPicker from 'src/components/LocationPicker.vue';
 
 const socket = useStreamStore()
 const p = useStatusStore()
+const cfg = useConfigStore()
 
 const selected = ref([])
 const axis = ref<number>(0)
 const tab = ref('plate')
+const RA_str = ref('00:00:00')
+const Dec_str = ref('000:00:00')
+const PA_str = ref('000:00:00')
+const Az_Str = ref('180:00:00')
+const Alt_str = ref('045:00:00')
+const Roll_str = ref('000:00:00')
 
 const telescope_syncs = computed(() => {
   const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
@@ -249,8 +299,9 @@ function formatSyncData(d: TelemetryRecord):TableRow {
   return { timestamp, a_az, a_alt, a_roll, resmag, resvec }
 }
 
-onMounted(() => {
+onMounted(async () => {
   socket.subscribe('sm')
+  await cfg.configFetch()
 })
 
 onUnmounted(() => {
@@ -258,7 +309,9 @@ onUnmounted(() => {
   socket.unsubscribe('sm')
 })
 
-
+function setFromMapClick (result: LocationResult) {
+  console.log('Map Click', result)
+}
 
 
 </script>
