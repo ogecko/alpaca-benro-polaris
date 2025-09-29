@@ -181,7 +181,7 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
               <q-input   label="Dec (deg:mm:ss)" v-model="Dec_str"/>
             </div>
             <div class="col-4">
-              <q-btn label="SYNC" icon="mdi-telescope" />
+              <q-btn label="SYNC" icon="mdi-telescope" @click="onSyncRADec"/>
             </div>
           </div>
           <div class="row q-col-gutter-sm q-pt-md text-center items-center">
@@ -189,7 +189,7 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
               <q-input   label="Position Angle (deg:mm:ss)" v-model="PA_str"/>
             </div>
             <div class="col-4">
-              <q-btn label="SYNC" icon="mdi-restore"  />
+              <q-btn label="SYNC" icon="mdi-restore" @click="onSyncPA" />
             </div>
           </div>
         </q-tab-panel>
@@ -212,7 +212,7 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
               <q-input   label="Altitude (deg:mm:ss)" v-model="Alt_str"/>
             </div>
             <div class="col-4">
-              <q-btn label="SYNC" icon="mdi-telescope" />
+              <q-btn label="SYNC" icon="mdi-telescope" @click="onSyncAzAlt"/>
             </div>
           </div>
           <div class="row q-col-gutter-sm q-pt-md text-center items-center">
@@ -220,7 +220,7 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
               <q-input   label="Roll Angle (deg:mm:ss)" v-model="Roll_str"/>
             </div>
             <div class="col-4">
-              <q-btn label="SYNC" icon="mdi-restore"  />
+              <q-btn label="SYNC" icon="mdi-restore"  @click="onSyncRoll"/>
             </div>
           </div>
         </q-tab-panel>
@@ -241,6 +241,7 @@ import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
+import { useDeviceStore } from 'src/stores/device'
 import type { TelemetryRecord, SyncMessage }from 'src/stores/stream'
 import { formatAngle } from 'src/utils/scale'
 import { deg2dms, dms2deg } from 'src/utils/angles'
@@ -251,6 +252,7 @@ import { getWeatherData, delta_latlon2AzAlt } from 'src/utils/locationServices';
 const socket = useStreamStore()
 const p = useStatusStore()
 const cfg = useConfigStore()
+const dev = useDeviceStore()
 
 const selected = ref([])
 const axis = ref<number>(0)
@@ -338,6 +340,25 @@ async function setFromMapClick (landmark: LocationResult) {
   }
 }
 
+async function onSyncRADec() {
+  console.log(`SYNC RA ${RA.value} Dec ${Dec.value}`)
+  await dev.alpacaSyncToRADec(RA.value, Dec.value)
+} 
+
+async function onSyncAzAlt() {
+  console.log(`SYNC Az ${Az.value} Alt ${Alt.value}`)
+  await dev.alpacaSyncToAzAlt(Az.value, Alt.value)
+} 
+
+async function onSyncPA() {
+  console.log(`SYNC PA ${PA.value}`)
+  await dev.alpacaSyncToPA(PA.value)
+} 
+
+async function onSyncRoll() {
+  console.log(`SYNC Roll ${Roll.value}`)
+  await dev.alpacaSyncToRoll(Roll.value)
+} 
 
 </script>
 

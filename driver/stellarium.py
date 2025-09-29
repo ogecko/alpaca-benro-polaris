@@ -334,7 +334,7 @@ class Stellarium:
                 if Config.log_synscan_protocol:
                     self.logger.info(f"<<- Stellarium: SynScan SYNC Ra: {ra} Dec: {dec}")
                 if telescope.polaris.connected:
-                    await telescope.polaris.radec_ascom_sync(ra, dec)
+                    await telescope.polaris.sync_to_radec(ra, dec)
             msg = b'#'
             await self.stellarium_send_msg(msg)
 

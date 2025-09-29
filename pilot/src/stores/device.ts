@@ -122,6 +122,22 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtocoordinatesasync',{ RightAscension: ra, Declination: dec });
     },
 
+    async alpacaSyncToRADec(ra:number, dec:number) {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/synctocoordinates',{ RightAscension: ra, Declination: dec });
+    },
+
+    async alpacaSyncToAzAlt(az:number, alt:number) {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/synctoaltaz',{ Azimuth: az, Altitude: alt });
+    },
+
+    async alpacaSyncToPA(pa:number) {
+      return await this.api<SupportedActionsResponse>('api/v1/rotator/0/sync',{ Position: pa });
+    },
+
+    async alpacaSyncToRoll(roll:number) {
+      await this.apiAction<void>('Polaris:SyncRoll', `{"roll": ${roll}}`)
+    },
+
     async setPolarisMode(mode:number) {
       await this.apiAction<void>('Polaris:SetMode', `{"mode": ${mode}}`)
     },

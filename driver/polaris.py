@@ -557,10 +557,25 @@ class Polaris:
         p_dec = a_dec - self._adj_sync_declination
         return p_ra, p_dec
 
+    async def sync_to_azalt(self, a_az, a_alt):
+        self.logger.info(f"->> Polaris: SYNC ASCOM   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} good")
+        await self.sync_telescope_pointing_models(a_az=a_az, a_alt=a_alt)
+        return
 
-    async def radec_ascom_sync(self, a_ra, a_dec):
-        a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+    async def sync_to_radec(self, a_ra, a_dec):
         self.logger.info(f"->> Polaris: SYNC ASCOM   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} good")
+        await self.sync_telescope_pointing_models(a_ra=a_ra, a_dec=a_dec)
+        return
+
+    async def sync_telescope_pointing_models(self, a_ra=None, a_dec=None, a_az=None, a_alt=None, name=None):
+        if a_ra is not None and a_dec is not None:
+            a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+        elif a_az is not None and a_alt is not None:
+            a_ra, a_dec = self.altaz2radec(a_alt, a_az)
+        else:
+            self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
+            return
+
         self._sm.sync_az_alt(a_az, a_alt)
 
         if Config.sync_pointing_model==1:

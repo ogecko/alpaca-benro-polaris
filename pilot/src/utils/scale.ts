@@ -35,8 +35,8 @@ export const steps: Step[] = [
 ];
 
 export function formatAngle(x: number, unit: UnitKey, decimals: number = 0): string {
-  if (x >= 1) return formatDegreesHr(x, unit, decimals);
-  if (x >= 1 / 60) return formatArcMinutes(x, unit, decimals);
+  if (Math.abs(x) >= 1) return formatDegreesHr(x, unit, decimals);
+  if (Math.abs(x) >= 1 / 60) return formatArcMinutes(x, unit, decimals);
   return formatArcSeconds(x, unit, decimals);
 }
 
