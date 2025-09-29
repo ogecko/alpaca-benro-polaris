@@ -242,6 +242,7 @@ import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
 import type { TelemetryRecord, SyncMessage }from 'src/stores/stream'
 import { formatAngle } from 'src/utils/scale'
+import { deg2dms } from 'src/utils/angles'
 import { useStatusStore } from 'src/stores/status'
 import type { LocationResult } from 'src/utils/locationServices';
 import LocationPicker from 'src/components/LocationPicker.vue';
@@ -321,8 +322,10 @@ async function setFromMapClick (landmark: LocationResult) {
     const azalt = delta_latlon2AzAlt(site_lat, site_lon, site_elev, lm_lat, lm_lon, elevation)
     console.log(`Map Click Elevation of Site ${site_elev}, Landmark ${elevation}, Bearing:`, azalt)
     if (!azalt) return
-    Az_Str.value = formatAngle(azalt.azimuth, 'deg', 1)
-    Alt_str.value = formatAngle(azalt.altitude, 'deg', 1)
+    const az = deg2dms(azalt.azimuth, 1, 'deg')
+    const alt = deg2dms(azalt.altitude, 1, 'deg')
+    Az_Str.value = (az.degreestr ?? '') + (az.minutestr ?? '') + (az.secondstr ?? '')
+    Alt_str.value = (alt.sign ?? '') + (alt.degreestr ?? '') + (alt.minutestr ?? '') + (alt.secondstr ?? '')
   }
 }
 
