@@ -43,9 +43,9 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
           </div>
           <!-- Telescope Sync Summary Row -->
           <q-list bordered separator dense >
-            <q-item v-for="data in telescope_syncs" :key="data.timestamp">
+            <q-item v-for="data in telescope_syncs" :key="data.time">
               <q-item-section>
-                  <q-item-label >SYNC @ 10:20</q-item-label>
+                  <q-item-label >SYNC @ {{data.time}}</q-item-label>
               </q-item-section>
               <q-item-section>
                   <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} </q-item-label>
@@ -94,9 +94,9 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
               </div>
           </div>
           <q-list bordered separator dense >
-            <q-item v-for="data in rotator_syncs" :key="data.timestamp">
+            <q-item v-for="data in rotator_syncs" :key="data.time">
               <q-item-section>
-                  <q-item-label >SYNC @ 10:20</q-item-label>
+                  <q-item-label >SYNC @ {{data.time}}</q-item-label>
               </q-item-section>
               <q-item-section>
                   <q-item-label caption>Roll {{data.a_roll}} </q-item-label>
@@ -274,7 +274,7 @@ const telescope_syncs = computed(() => {
   const syncdata = sm.map(formatSyncData).filter(d=>d.a_az !== null && d.a_alt !== null)
   const consolidated = new Map<string, TableRow>()
   for (const data of syncdata) {
-    consolidated.set(data.timestamp, data)
+    consolidated.set(data.time, data)
   }
   return Array.from(consolidated.values())
 })
@@ -284,7 +284,7 @@ const rotator_syncs = computed(() => {
   const syncdata = sm.map(formatSyncData).filter(d=>d.a_roll !== null)
   const consolidated = new Map<string, TableRow>()
   for (const data of syncdata) {
-    consolidated.set(data.timestamp, data)
+    consolidated.set(data.time, data)
   }
   return Array.from(consolidated.values())
 })
@@ -293,19 +293,19 @@ const rotator_syncs = computed(() => {
 watch(axis, ()=>selected.value=[])
 
 type TableRow = {
-  timestamp:string, a_az:string, a_alt:string, a_roll:string, resmag:string, resvec:[number, number] 
+  time:string, a_az:string, a_alt:string, a_roll:string, resmag:string, resvec:[number, number] 
 }
 
 
 function formatSyncData(d: TelemetryRecord):TableRow {
   const data = d.data as SyncMessage
-  const timestamp = data.timestamp ?? 0
+  const time = new Date(data.timestamp).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true}) ?? ''
   const a_az = formatAngle(data.a_az ?? 0, 'deg', 1)
   const a_alt = formatAngle(data.a_alt ?? 0, 'deg', 1)
   const a_roll = formatAngle(data.a_roll ?? 0, 'deg', 1)
   const resmag = formatAngle(data.residual_magnitude ?? 0, 'deg', 1)
   const resvec = data.residual_vector ?? [0,0]
-  return { timestamp, a_az, a_alt, a_roll, resmag, resvec }
+  return { time, a_az, a_alt, a_roll, resmag, resvec }
 }
 
 onMounted(async () => {

@@ -13,7 +13,7 @@ from typing import Optional
 import ephem
 import math
 import copy
-from shr import rad2deg, deg2rad, rad2hms, deg2dms
+from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 
 # ************* TODO LIST *****************
 #
@@ -1460,15 +1460,16 @@ class SyncManager:
         self.logger = logger
         self.polaris = polaris
         self.sync_history = []                  # list of sync events
-        self.roll_adj = 0                       # optimised adjustment offset for roll syncing (°)
         self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
         self.q1_adj_message = ""                # message from last optimisation
-        self.tilt_az = 0                        # Tilt azimuth (°): direction of steepest upward inclination      
-        self.tilt_mag = 0                       # Tilt magnitude (°): angle of inclination from horizontal plane
+        self.tilt_adj_az = 0                    # q1_adj Tilt azimuth (°): direction of steepest upward inclination (info only)     
+        self.tilt_adj_mag = 0                   # q1_adj Tilt magnitude (°): angle of inclination from horizontal plane (info only)
+        self.az_adj = 0                         # q1_adj Azimuth correction (°): azimuth axis correction to apply (info only)
+        self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
 
     def standard_entry(self):
         entry = {
-            "timestamp": time.monotonic(),
+            "timestamp": format_timestamp(),
             "p_q1": self.polaris._q1,
             "p_az": self.polaris._p_azimuth,
             "p_alt": self.polaris._p_altitude,
@@ -1643,7 +1644,7 @@ class SyncManager:
 
     def compute_tilt(self):
         # Sample altitudes at cardinal azimuths
-        _, north_alt = self.azalt_polaris2ascom(0, 0)
+        north_az, north_alt = self.azalt_polaris2ascom(0, 0)
         _, east_alt  = self.azalt_polaris2ascom(90, 0)
         _, south_alt = self.azalt_polaris2ascom(180, 0)
 
@@ -1671,8 +1672,9 @@ class SyncManager:
         tilt_az_polaris = math.degrees(math.atan2(v_downhill[0], v_downhill[1])) % 360
         tilt_az_observed, _ = self.azalt_polaris2ascom(tilt_az_polaris, 0)
 
-        self.tilt_az = tilt_az_observed
-        self.tilt_mag = tilt_magnitude_deg
+        self.tilt_adj_az = tilt_az_observed
+        self.tilt_adj_mag = tilt_magnitude_deg
+        self.az_correction = wrap_to_180(north_az)
 
 
     def parallactic_angle(self, az_deg, alt_deg, lat_deg):

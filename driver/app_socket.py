@@ -12,7 +12,7 @@ from starlette.applications import Starlette
 from starlette.routing import WebSocketRoute
 
 from config import Config
-from shr import LifecycleController, LifecycleEvent
+from shr import LifecycleController, format_timestamp
 
 # Subscription registry: topic → { websocket → filter }
 subscriptions: Dict[str, Dict[WebSocket, Dict[str, Any]]] = {}
@@ -140,7 +140,7 @@ class PayloadFormatter(logging.Formatter):
         super().__init__()
         self.topic = topic
     def format(self, record: logging.LogRecord) -> dict:
-        ts = datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        ts = format_timestamp(record.created)
         data = record.msg if isinstance(record.msg, dict) else {"text": record.getMessage()}
         try:
             json.dumps(data)  # Validate serializability

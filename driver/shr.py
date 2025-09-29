@@ -70,6 +70,7 @@ from logging import Logger
 from config import Config
 import re
 from typing import Set, Coroutine, Dict, Optional
+from datetime import datetime, timezone
 
 
 logger: Logger = None
@@ -292,6 +293,36 @@ def getNextTransId() -> int:
 # -------------------------------
 # Number conversion functions
 # -------------------------------
+
+def format_timestamp(ts: datetime | float | None = None) -> str:
+    """
+    Converts various timestamp types to ISO 8601 UTC string with milliseconds and 'Z' suffix.
+    If no timestamp is provided, uses current local time.
+    """
+    # Default to current local time
+    if ts is None:
+        ts = datetime.now()
+
+    # Handle float (Unix timestamp or monotonic)
+    if isinstance(ts, (int, float)):
+        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+
+    # Handle datetime object
+    elif isinstance(ts, datetime):
+        # If naive, assume it's local time and convert to UTC
+        dt = ts.astimezone(timezone.utc) if ts.tzinfo else ts.replace(tzinfo=None).astimezone(timezone.utc)
+
+    # Handle ephem.Date
+    elif hasattr(ts, 'datetime'):
+        dt = ts.datetime().replace(tzinfo=timezone.utc)
+
+    else:
+        raise TypeError(f"Unsupported timestamp type: {type(ts)}")
+
+    return dt.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+
+
+
 def clamparcsec(x):
     try:
         value = float(x) % (360 * 3600)  # Normalize to 0-360 degrees in arc-seconds
