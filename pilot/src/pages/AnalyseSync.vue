@@ -26,7 +26,6 @@
 # Multi-Point Alignment 
 Alpaca multi-point alignment calibrates how your mount’s internal coordinate system maps to the horizon and celestrial sky. By syncing with three or more known positions, it builds a correction model that accounts for tripod tilt, polar misalignment, cone error, and other mechanical offsets that can affect pointing and tracking accuracy. 
 </q-markdown>
-RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az {{ Az.toFixed(4) }} | Alt {{ Alt.toFixed(4) }} | Roll {{ Roll.toFixed(4) }}
             </div>
           </div>
         </q-card>
@@ -206,10 +205,10 @@ RA {{ RA.toFixed(4) }} | Dec {{ Dec.toFixed(4) }} | PA {{ PA.toFixed(4) }} | Az 
           </div>
           <div class="row q-col-gutter-sm text-center items-center">
             <div class="col-4">
-              <q-input   label="Azimuth (deg:mm:ss)" v-model="Az_Str"/>
+              <q-input   label="Azimuth (deg:mm:ss)" v-model="Az_Str" :class="{ taflash: taKeys.has('Az_Str') }"/>
             </div>
             <div class="col-4">
-              <q-input   label="Altitude (deg:mm:ss)" v-model="Alt_str"/>
+              <q-input   label="Altitude (deg:mm:ss)" v-model="Alt_str" :class="{ taflash: taKeys.has('Alt_Str') }"/>
             </div>
             <div class="col-4">
               <q-btn label="SYNC" icon="mdi-telescope" @click="onSyncAzAlt"/>
@@ -338,6 +337,7 @@ async function setFromMapClick (landmark: LocationResult) {
     const alt = deg2dms(azalt.altitude, 1, 'deg')
     Az_Str.value = (az.degreestr ?? '') + (az.minutestr ?? '') + (az.secondstr ?? '')
     Alt_str.value = (alt.sign ?? '') + (alt.degreestr ?? '') + (alt.minutestr ?? '') + (alt.secondstr ?? '')
+    triggerAnimation(['Az_Str', 'Alt_Str'])
   }
 }
 
@@ -366,15 +366,29 @@ async function onSyncRemove(timestamp:string) {
   await dev.alpacaSyncRemove(timestamp)
 } 
 
+
+const taKeys = ref(new Set<string>()) // set of keys to animate
+function triggerAnimation(keys: string[]) {
+  keys.forEach(key => taKeys.value.add(key))
+  setTimeout(() => {
+    keys.forEach(key => taKeys.value.delete(key))
+  }, 600)
+}
+
 </script>
 
 <style lang="scss">
-  .q-markdown--link {
-    color: $grey-6;
+.taflash {
+  animation: flash 0.6s;
+}
 
-    &:hover {
-      text-decoration: underline;
-      color: $grey-4;
-    }
+
+.q-markdown--link {
+  color: $grey-6;
+
+  &:hover {
+    text-decoration: underline;
+    color: $grey-4;
   }
+}
 </style>
