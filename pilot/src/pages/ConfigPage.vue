@@ -79,6 +79,9 @@
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_tracking', 'Tracking')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
+              </div>
+              <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
               </div>
               <div class="text-caption text-grey-6 q-pt-md">Restrict the motor controller’s peak slew rate and how quickly it will accelerate.</div>
@@ -104,9 +107,6 @@
               </div>
             </div>
             <div class="q-gutter-y-sm" >
-              <div class="row">
-                <q-toggle v-bind="bindField('sync_N_point_alignment', 'Sync through to Benro Polaris (Multi Point Alignment)')"/>
-              </div>
               <div class="row">
                 <q-toggle v-bind="bindField('aiming_adjustment_enabled', 'Enable Aiming Adjustment')"/>
               </div>

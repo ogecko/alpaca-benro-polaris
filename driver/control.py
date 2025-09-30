@@ -1712,9 +1712,10 @@ class SyncManager:
         return wrap_to_180(-angle)
 
     def roll2pa(self, az_deg, alt_deg, roll_deg):
-        """Convert camera-frame roll to sky-frame position angle using parallactic angle at ascom azalt."""
+        """Convert camera-frame roll to sky-frame position angle and parallactic angle at ascom azalt."""
         parallactic_angle = self.parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
-        return wrap_to_360(roll_deg + parallactic_angle)
+        position_angle = wrap_to_360(roll_deg + parallactic_angle)
+        return position_angle, parallactic_angle
 
     def pa2roll(self, az_deg, alt_deg, position_angle_deg):
         """Convert sky-frame position angle to camera-fram roll using parallactic angle at ascom azalt."""

@@ -52,6 +52,7 @@ export const useConfigStore = defineStore('config', {
     advanced_goto: false,
     advanced_rotator: false,
     advanced_guiding: false,
+    advanced_alignment: false,
 
     // Motion
     max_slew_rate: 0.0,
@@ -67,10 +68,6 @@ export const useConfigStore = defineStore('config', {
     aiming_adjustment_az: -0.0300750663,
     aiming_adjustment_alt: 0.0195474932,
     aim_max_error_correction: 0.5,
-
-    // Sync
-    sync_pointing_model: 0,
-    sync_N_point_alignment: true,
 
     // Logging
     log_level: 'INFO',

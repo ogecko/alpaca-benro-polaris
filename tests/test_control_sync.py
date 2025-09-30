@@ -167,36 +167,36 @@ def test_aboveSouth_roll2pa():
     p = Polaris()
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
-    pa = sm.roll2pa(180, 45, 10)
-    assert f'{pa:.6f}' == "10.000000"  
+    position_ang, parallactic_ang = sm.roll2pa(180, 45, 10)
+    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "10.000000, -0.000000"  
 
 def test_belowSouth_roll2pa():
     p = Polaris()
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
-    pa = sm.roll2pa(180, 30, 10)
-    assert f'{pa:.6f}' == "190.000000"  
+    position_ang, parallactic_ang = sm.roll2pa(180, 30, 10)
+    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "190.000000, -180.000000"  
 
 def test_belowSouth_pa2roll():
     p = Polaris()
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
-    pa = sm.roll2pa(180, 30, 200)
-    assert f'{pa:.6f}' == "20.000000"  
+    position_ang, parallactic_ang = sm.roll2pa(180, 30, 200)
+    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "20.000000, -180.000000"  
 
 def test_aboveNorth_roll2pa():
     p = Polaris()
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
-    pa = sm.roll2pa(0, 0, 30)
-    assert f'{pa:.6f}' == "210.000000"  
+    position_ang, parallactic_ang = sm.roll2pa(0, 0, 30)
+    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "210.000000, -180.000000"  
 
 def test_horizEast_roll2pa():
     p = Polaris()
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
-    pa = sm.roll2pa(90, 0, 30)
-    assert f'{pa:.6f}' == "266.344718"  # PA -123+30 = -93+360 = 267
+    position_ang, parallactic_ang = sm.roll2pa(90, 0, 30)
+    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "266.344718, -123.655282"  # PA -123+30 = -93+360 = 267
 
 
 def test_East_parallactic_angle():
