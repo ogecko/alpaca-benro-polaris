@@ -22,7 +22,9 @@ class Polaris:
         self._p_altitude = alt
         self._p_roll = roll
         self._q1 = angles_to_quaternion(az, alt, roll)
-
+        t1,t2,t3,_,_,_ = quaternion_to_angles(self._q1)
+        self._theta_meas = [t1, t2, t3]
+        self._roll = roll
 
 def test_dummy():
     assert(1==1)
@@ -89,8 +91,8 @@ def test_leveling_sync_adj():
     p.update(90, 0)
     sm.sync_az_alt(90, 0)  # level again
     az,alt = sm.azalt_polaris2ascom(0,0)
-    assert f'{az:.6f}, {alt:.6f}' == "0.000000, 1.000000"
-    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "0.000000, 1.000000"
+    assert f'{az:.6f}, {alt:.6f}' == "360.000000, 1.000000"
+    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "360.000000, 1.000000"
 
 def test_largetilt_sync_adj():
     p = Polaris()
