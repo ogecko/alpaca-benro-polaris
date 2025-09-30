@@ -3,8 +3,8 @@
 
     <div class="interaction-area"
       :style="`width:${dProps.width}px; height: ${dProps.height}px`"
-      @mouseenter="showButtons = true; console.log(`enter ${props.label}`)"
-      @mouseleave="showButtons = false; console.log(`leave ${props.label}`)"
+      @mouseenter="showButtons = true"
+      @mouseleave="showButtons = false"
       @touchstart.passive="showButtons = true; console.log(`touch ${props.label}`)"
     >
     <!-- Outer Boundary Content for buttons -->

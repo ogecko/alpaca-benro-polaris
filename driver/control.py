@@ -40,9 +40,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 
 # Alpaca Features
 # [X] Alpaca pilot commands for Eq-Az toggle, park, unpark, abort, track, tracking rate
-# [X] Alpaca pilot goto Az, Alt, Roll with click on Radial Indicators
+# [X] Alpaca pilot goto Az, Alt, Roll with click on Radial Scale or Radial Labels
+# [X] Alpaca pilot goto RA, Dec, PA with click on Radial Scale or Radial Labels
 # [X] Alpaca pilot floating action buttons for quick axis settings (az, alt, roll)
-# [X] Alpaca pilot goto RA, Dec, PA with click on Radial Indicators
 # [X] Alpaca pilot radial scales to show warning limits on angles
 # [X] Alpaca Pilot SP pointer is removed around +/- 90 degrees too early
 # [X] Alpaca Pilot Radial Scale PVtoSP can arc the wrong way when around 360/0 wraparound
@@ -66,15 +66,23 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
 # [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
 # [X] Fix Position Angle dashboard
+# [X] Alpaca pilot Single-Point Alignment using Polaris internal model
+# [X] Alpaca pilot Multi-Point Alignment using QUEST modeling
+# [X] Alpaca pilot Sync Analysis and Residual display
+# [X] Alpaca pilot Sync editing and removal
+# [X] Alpaca pilot Tripod Level Correction
+# [x] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
 # [ ] Fix Position Angle interaction
 # [ ] Fix when Pilot left behind other window, and Chrome hangs
-# [ ] Alpaca pilot Sync
 # [ ] Alpaca pilot feature degredation when not in Advanced Control
+# [ ] Alpaca pilot feature degredation when no Multi-Point Alignment
 # [ ] Alpaca pilot feature degredation when no Rotator
 # [ ] Alpaca pilot feature degredation when not ABP Driver
 # [ ] Alpaca Pilot memory and logevity tests
 # [ ] Fix chart sizing when screen resized
 # [ ] Documentation on new features Topocentric tracking (You're maintaining a fixed pointing direction relative to the local horizon. The origin is your specific observing site, not Earth’s center.
+# [ ] Youtube training videos
+# [ ] Kickstarter project
 # Connection
 # [X] Implement Benro Polaris Connection process and diagnostics
 # [X] Connect to Benro Polaris without the Benro App
@@ -113,14 +121,13 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 #
 # Precision Tracking
 # [ ] Seamless Axis Override During Tracking
-# [ ] Deep-Sky Object Tracking 
+# [X] Deep-Sky Object Tracking 
 # [ ] Selenographic Lunar Tracking 
 # [ ] Planetary and Orbital Moons Tracking
 # [ ] Commet and Asteroid Tracking
 # [ ] Satelite Tracking via TLE (Two Line Element)
 # [ ] Solar Tracking 
 # [ ] Transiting Exoplanet Support
-#
 #
 # Pulse Guiding Features
 # [ ] Guide Camera Support via PHD2
@@ -138,7 +145,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 
 # Candidate future enhancements
 # [ ] Rate Derivative Estimation (Jerk Monitoring)
-# [ ] Feedforward Control Integration (minimise overshoot)
+# [X] Feedforward Control Integration (minimise overshoot)
 # [ ] Control Mode Switching
 # [ ] Time-Differentiated Tracking Profiles
 # [ ] Predictive Anti-Backlash Correction
