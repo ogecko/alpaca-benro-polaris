@@ -50,8 +50,7 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
                   <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} </q-item-label>
               </q-item-section>
               <q-item-section side>
-                  <q-item-label caption>Residual {{data.resmag}}</q-item-label>
-                  <q-item-label></q-item-label>
+                  <q-item-label><span class="text-caption">Residual</span> {{data.resmag}}</q-item-label>
               </q-item-section>
               <q-item-section side>
                   <q-btn dense size="sm" round icon="mdi-close" @click="onSyncRemove(data.timestamp)"/>
@@ -101,8 +100,7 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
                   <q-item-label caption>Roll {{data.a_roll}} </q-item-label>
               </q-item-section>
               <q-item-section side>
-                  <q-item-label caption>Residual {{data.resmag}}</q-item-label>
-                  <q-item-label></q-item-label>
+                  <q-item-label><span class="text-caption">Residual</span> {{data.resmag}}</q-item-label>
               </q-item-section>
               <q-item-section side>
                   <q-btn dense size="sm" round icon="mdi-close" />

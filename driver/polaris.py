@@ -190,7 +190,6 @@ class Polaris:
         self._p_altitude: float = 0.0               # The Pirch/Altitude of the Polaris
         self._p_azimuth: float = 0.0                # The Yaw/Azimuth of the Polaris
         self._p_roll: float = 0.0                   # The Roll of the Polaris
-        self._p_rotation: float = 0.0               # The Field Rotation of the Camera mounted on the Polaris
         self._p_declination: float = 0.0            # The declination (degrees) of the Polaris
         self._p_rightascension: float = 0.0         # The right ascension (hours) of the Polaris
         self._siderealtime: float = 0.0             # The local apparent sidereal time from the telescope's internal clock (hours, sidereal)
@@ -714,12 +713,13 @@ class Polaris:
             p_az = float(arg_dict['compass'])   # from Polaris direct
             p_alt = -float(arg_dict['alt'])     # from Polaris direct
             theta1, theta2, theta3, q_az, q_alt, q_roll = quaternion_to_angles(q1, azhint=p_az)
+            q_ra, q_dec = self.altaz2radec(q_alt, q_az)
             theta_meas = np.array([theta1, theta2, theta3])
             self._history.append([dt_now, theta1, theta2, theta3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
             omega_meas = calculate_angular_velocity(self._history)
             omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
 
-            # Process through the Kalman Filter to determine theta_state
+            # Process through the Kalman Filter to determine Polaris theta_state (uncorrected for alignment)
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas)
             theta_state, omega_state, K_gain = self._kf.get_state()
@@ -738,35 +738,26 @@ class Polaris:
             kflogger = logging.getLogger('kf') 
             kflogger.info(payload)
 
+            azhint = p_az
             if Config.advanced_kf:
-                # base the state off the filtered theta_state
-                q1s= motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2])
-                self._q1s = '' if q1s is None else str(q1s)
-                ts0, ts1, ts2, s_az, s_alt, s_roll = quaternion_to_angles(self._sm.q1_adj * q1s, azhint=p_az)
-                s_ra, s_dec = self.altaz2radec(s_alt, s_az)
-                alpha_state = np.array([s_az, s_alt, s_roll], dtype=float)
-                theta_state = np.array([ts0, ts1, ts2], dtype=float)
+                # base the polaris q1 state off the kalman filtered theta_state
+                q1s = motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2])
             else:
-                # base the state off the raw polaris measurements
-                s_az = p_az     # from Polaris direct
-                s_alt = p_alt   # from Polaris direct
-                s_roll = q_roll # from quaternion
-                s_ra, s_dec = self.altaz2radec(s_alt, s_az)
-                alpha_state = np.array([s_az, s_alt, s_roll], dtype=float)
-                theta_state = theta_meas
+                # base the polaris q1 state off the raw polaris measurements
+                q1s = motors_to_quaternion(theta_meas[0], theta_meas[1], theta_meas[2])
+
+            if Config.advanced_alignment:
+                # Correct the q1s state and azhint with the QUEST optimal rotation
+                q1s = self._sm.q1_adj * q1s
+                azhint = p_az + self._sm.az_adj
+
+            a_theta1, a_theta2, a_theta3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
+            alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
+            theta_state = np.array([a_theta1, a_theta2, a_theta3], dtype=float)
 
             # Update PID Loop with current state
             self._pid.measure(alpha_state, theta_state)
 
-            if Config.advanced_alignment:
-                # Use Multi-Point Alignment model from sync manager
-                [a_az, a_alt, a_roll] = [s_az, s_alt, s_roll]  # self._sm.altaz_polaris2ascom(s_alt, s_az)
-                # a_az, a_alt = self._sm.azalt_polaris2ascom(s_az, s_alt)
-                # a_roll = self._sm.roll_polaris2ascom(s_roll)
-            else:
-                # Use Single-Point Alignment model from Polaris (no real change as sync pushed to Polaris)
-                a_alt, a_az = self.altaz_polaris2ascom(s_alt, s_az)
-                a_roll = s_roll
             # Convert ASCOM Alt/Az/Roll to RA/Dec/PA
             a_ra, a_dec = self.altaz2radec(a_alt, a_az)
             position_ang, parallactic_ang = self._sm.roll2pa(a_az, a_alt, a_roll)
@@ -775,21 +766,21 @@ class Polaris:
             with self._lock:
                 self._last_518_timestamp = dt_now
                 self._q1 = '' if q1 is None else str(q1)
+                self._q1s = '' if q1s is None else str(q1s)
                 self._theta_meas = theta_meas
                 self._omega_meas = omega_meas
                 self._theta_state = theta_state
 
-                self._p_azimuth = float(s_az)
-                self._p_altitude = float(s_alt)
-                self._p_roll = float(s_roll)
-                self._p_rightascension = float(s_ra) 
-                self._p_declination = float(s_dec)
-                self._p_rotation = float(theta_state[2])
+                self._p_azimuth = float(q_az)
+                self._p_altitude = float(q_alt)
+                self._p_roll = float(q_roll)
+                self._p_rightascension = float(q_ra) 
+                self._p_declination = float(q_dec)
 
                 self._altitude = float(a_alt)
                 self._azimuth = float(a_az)
                 self._roll = float(a_roll)
-                self._rotation = float(theta_state[2])
+                self._rotation = float(a_theta3)
                 self._rightascension = float(a_ra) 
                 self._declination = float(a_dec)
                 self._position_angle = float(position_ang)

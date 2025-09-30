@@ -1655,11 +1655,11 @@ class SyncManager:
         for entry in self.sync_history:
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
-            az_corr, alt_corr = self.azalt_polaris2ascom(entry["p_az"], entry["p_alt"])
-            az_err = angular_difference(az_corr, entry["a_az"])
-            alt_err = angular_difference(alt_corr, entry["a_alt"])
-            magnitude = math.sqrt(az_err**2 + alt_err**2)
-            entry["residual_vector"] = (az_err, alt_err)
+            theta1_corr, theta2_corr = self.azalt_polaris2ascom(entry["p_theta1"], entry["p_theta2"])
+            theta1_err = angular_difference(theta1_corr, entry["a_theta1"])
+            theta2_err = angular_difference(theta2_corr, entry["a_theta2"])
+            magnitude = math.sqrt(theta1_err**2 + theta2_err**2)
+            entry["residual_vector"] = (theta1_err, theta2_err)
             entry["residual_magnitude"] = magnitude
 
     def compute_roll_residuals(self):
