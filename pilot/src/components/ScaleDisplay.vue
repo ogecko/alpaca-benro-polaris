@@ -214,6 +214,12 @@ function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number}) {
   emit('clickFabAngle', payload)
 }
 
+// handle clicks on the labels and emit a clickScale event
+function onLabelClick(angle: number) {
+  emit('clickScale', { label: props.label, angle, radialOffset: 1.0 }); // radialOffset is fixed for label clicks
+}
+
+
 // handle clicks on the scale and emit a clickScale event
 function onSvgClick(e: MouseEvent | TouchEvent) {
   const svg = svgElement.value;
@@ -549,6 +555,7 @@ function joinMarks(
         .each(function (d) { zOrder<MarkDatum>(this, d) })
         .each(function (d) { addPathOrText(this, d) })
         .attr('opacity', 0)
+        .on('click', function (event, d) { if (d.label && typeof d.angle==='number') { onLabelClick(d.angle) } })
         .transition(t)
         .attr('opacity', d => determineOpacity(d, min, max))
         .attrTween('transform', d => t => {
