@@ -36,8 +36,8 @@ export const useConfigStore = defineStore('config', {
     site_longitude: 151.2021771,
     site_elevation: 39,
     site_pressure: 1010,
-    default_azimuth: 180,
-    default_altitude: 45,
+    default_azimuth: '180',
+    default_altitude: '45',
 
     // Optics
     focal_length: 800,

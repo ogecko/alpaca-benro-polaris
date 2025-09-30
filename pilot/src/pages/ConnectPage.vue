@@ -213,7 +213,7 @@
                         </q-item-section>
                       </q-item>
                       <q-item>
-                        <q-input label="Azimuth" v-model="cfg.default_azimuth" :onUpdate:modelValue="onDefaultAzChange" number input-class="text-right" class="fixedWidth"/>
+                        <q-input label="Azimuth (deg:mm:ss)" v-model="cfg.default_azimuth" :onUpdate:modelValue="onDefaultAzChange" number input-class="text-right" class="fixedWidth"/>
                       </q-item>
                     </q-list>
                   </q-btn-dropdown>
@@ -240,10 +240,10 @@
                           </q-item-section>
                         </q-item>
                         <q-item>
-                          <q-input label="Azimuth" v-model="cfg.default_azimuth" :onUpdate:modelValue="onDefaultAzChange" number input-class="text-right" class="fixedWidth"/>
+                          <q-input label="Azimuth (deg:mm:ss)" v-model="cfg.default_azimuth" :onUpdate:modelValue="onDefaultAzChange" input-class="text-right" class="fixedWidth"/>
                         </q-item>
                         <q-item>
-                          <q-input label="Altitude" v-model="cfg.default_altitude" :onUpdate:modelValue="onDefaultAltChange" number input-class="text-right" class="fixedWidth"/>
+                          <q-input label="Altitude (deg:mm:ss)" v-model="cfg.default_altitude" :onUpdate:modelValue="onDefaultAltChange" input-class="text-right" class="fixedWidth"/>
                         </q-item>
                       </q-list>
                     </q-btn-dropdown>
@@ -283,6 +283,7 @@ import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
 import { useStatusStore, polarisModeOptions } from 'stores/status'
 import { watch, computed, onMounted, onUnmounted } from 'vue'
+import { dms2deg } from 'src/utils/angles'
 import NetworkSettings from 'components/NetworkSettings.vue'
 
 const $q = useQuasar()
@@ -344,13 +345,16 @@ async function onPark() {
   await dev.alpacaUnPark()
 }
 
-async function onCompass(newVal:number = 180.0) {
-  console.log('Set Compass Alignment')
-  await dev.setPolarisCompass(newVal)
+async function onCompass(newVal:string = '180.0') {
+  const bearing = dms2deg(newVal, 'deg')
+  console.log('Set Compass Alignment to ${bearing}')
+  await dev.setPolarisCompass(bearing)
 }
 
-async function onAlignment(az:number = 180.0, alt:number = 45.0) {
-  console.log('Set Alignment Alignment')
+async function onAlignment(azstr:string = '180.0', altstr:string = '45.0') {
+  const az = dms2deg(azstr, 'deg')
+  const alt = dms2deg(altstr, 'deg')
+  console.log('Set Alignment Alignment Az ${az}, Alt ${alt}')
   await dev.setPolarisAlignment(az, alt)
 }
 
