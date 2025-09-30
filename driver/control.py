@@ -1476,6 +1476,9 @@ class SyncManager:
             "p_az": self.polaris._p_azimuth,
             "p_alt": self.polaris._p_altitude,
             "p_roll": self.polaris._p_roll,
+            "p_theta1": self.polaris._theta_meas[0],
+            "p_theta2": self.polaris._theta_meas[1],
+            "p_theta3": self.polaris._theta_meas[2],
             "a_az": None,
             "a_alt": None,
             "a_roll": None,
@@ -1484,6 +1487,11 @@ class SyncManager:
 
     def sync_az_alt(self, a_az, a_alt):
         entry = self.standard_entry()
+        q1_observ = angles_to_quaternion(a_az, a_alt, self.polaris._roll)
+        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1_observ)
+        entry["a_theta1"] = theta1
+        entry["a_theta2"] = theta2
+        entry["a_theta3"] = theta3 
         entry["a_az"] = a_az
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
@@ -1555,9 +1563,9 @@ class SyncManager:
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
             # Observed vector from sync
-            v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])
+            v_obs = self.az_alt_to_vector(entry["a_theta1"], entry["a_theta2"])
             # Predicted vector from mount
-            v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])
+            v_pred = self.az_alt_to_vector(entry["p_theta1"], entry["p_theta2"])
             pairs.append((v_pred, v_obs))
 
         self.aligned_count = len(pairs)

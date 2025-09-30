@@ -742,9 +742,10 @@ class Polaris:
                 # base the state off the filtered theta_state
                 q1s= motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2])
                 self._q1s = '' if q1s is None else str(q1s)
-                ts0, ts1, ts2, s_az, s_alt, s_roll = quaternion_to_angles(q1s, azhint=p_az)
+                ts0, ts1, ts2, s_az, s_alt, s_roll = quaternion_to_angles(self._sm.q1_adj * q1s, azhint=p_az)
                 s_ra, s_dec = self.altaz2radec(s_alt, s_az)
                 alpha_state = np.array([s_az, s_alt, s_roll], dtype=float)
+                theta_state = np.array([ts0, ts1, ts2], dtype=float)
             else:
                 # base the state off the raw polaris measurements
                 s_az = p_az     # from Polaris direct
@@ -759,8 +760,9 @@ class Polaris:
 
             if Config.advanced_alignment:
                 # Use Multi-Point Alignment model from sync manager
-                a_az, a_alt = self._sm.azalt_polaris2ascom(s_az, s_alt)
-                a_roll = self._sm.roll_polaris2ascom(s_roll)
+                [a_az, a_alt, a_roll] = [s_az, s_alt, s_roll]  # self._sm.altaz_polaris2ascom(s_alt, s_az)
+                # a_az, a_alt = self._sm.azalt_polaris2ascom(s_az, s_alt)
+                # a_roll = self._sm.roll_polaris2ascom(s_roll)
             else:
                 # Use Single-Point Alignment model from Polaris (no real change as sync pushed to Polaris)
                 a_alt, a_az = self.altaz_polaris2ascom(s_alt, s_az)
@@ -1907,7 +1909,7 @@ class Polaris:
 
         if Config.advanced_control and Config.advanced_goto:
             self.markGotoAsUnderway()
-            self._pid.set_alpha_target({ "az": p_az, "alt": p_alt })
+            self._pid.set_alpha_target({ "az": a_az, "alt": a_alt })
             self._pid.set_goto_complete_callback(self.markGotoAsComplete)
         else:
             if isasync:

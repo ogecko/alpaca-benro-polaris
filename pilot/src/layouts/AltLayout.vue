@@ -227,7 +227,7 @@ const links4 = [
   { icon: 'mdi-chart-line', text: 'KF Tuning', to: '/kalman' },
   { icon: 'mdi-chart-bell-curve-cumulative', text: 'PID Tuning', to: '/' },
   { icon: 'mdi-pulse', text: 'PWM Testing', to: '/pwm' },
-  { icon: 'mdi-stethoscope', text: 'Diagnostics', to: '/' },
+  { icon: 'mdi-stethoscope', text: 'Diagnostics', to: '/position' },
 ]
   const buttons1 = [
     { text: 'About', to: '/' },
