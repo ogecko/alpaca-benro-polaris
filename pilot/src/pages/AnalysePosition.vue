@@ -95,11 +95,11 @@ const columns = [
 const rows = computed<TableRow[]>(() => {
   return [
   { name:'Polaris: q1', q:p.q1, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
-  { name:'KF: Theta State (Motor Positions)', q:'', az:fmt(p.thetastate[0]), alt:fmt(p.thetastate[1]), roll:fmt(p.thetastate[2]), ra:'', dec:'', pa:'',},
-  { name:'KF: q1s (derived from Theta)', q:p.q1s, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
-  { name:'PID: Delta Ref (Body RADEC)', q:'', az:'', alt:'', roll:'', ra:fmt((p.deltaref[0]??0)/180*12, "hr"), dec:fmt(p.deltaref[1]), pa:fmt(p.deltaref[2])},
-  { name:'PID: Alpha Ref (Body AzAlt)', q:'',  az:fmt(p.alpharef[0]), alt:fmt(p.alpharef[1]), roll:fmt(p.alpharef[2]), ra:'', dec:'', pa:'',},
-  { name:'ASCOM: Orientation', q:'', az:fmt(p.azimuth), alt:fmt(p.altitude), roll:fmt(p.roll), ra:fmt(p.rightascension, "hr"), dec:fmt(p.declination), pa:fmt(p.rotation)},
+  { name:'Alpaca: q1s (KF and Aligned)', q:p.q1s, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
+  { name:'Motor Positions (Theta 1,2,3)', q:'', az:fmt(p.thetastate[0]), alt:fmt(p.thetastate[1]), roll:fmt(p.thetastate[2]), ra:'', dec:'', pa:'',},
+  { name:'PID: Alpha and Delta Ref (Body)', q:'',  az:fmt(p.alpharef[0]), alt:fmt(p.alpharef[1]), roll:fmt(p.alpharef[2]), ra:fmt((p.deltaref[0]??0)/180*12, "hr"), dec:fmt(p.deltaref[1]), pa:fmt(p.deltaref[2])},
+  { name:'ASCOM: Orientation', q:'', az:fmt(p.azimuth), alt:fmt(p.altitude), roll:fmt(p.roll), ra:fmt(p.rightascension, "hr"), dec:fmt(p.declination), pa:fmt(p.positionangle)},
+  { name:'ASCOM: Parallatic Angle', q:'', az:'', alt:'', roll:'', ra:'', dec:'', pa:fmt(p.parallacticangle)},
   { name:'PID: Omega Ref (Motor Velocities)', q:'',  az:fmt(p.omegaref[0]), alt:fmt(p.omegaref[1]), roll:fmt(p.omegaref[2]), ra:'', dec:'', pa:'',},
   { name:'MC: Motor Ref (Motor Velocities)', q:'',  az:fmt(p.motorref[0]), alt:fmt(p.motorref[1]), roll:fmt(p.motorref[2]), ra:'', dec:'', pa:'',},
 
