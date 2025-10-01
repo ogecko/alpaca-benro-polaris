@@ -747,7 +747,7 @@ class Polaris:
                 q1s = motors_to_quaternion(theta_meas[0], theta_meas[1], theta_meas[2])
 
             if Config.advanced_alignment:
-                # Correct the q1s state and azhint with the QUEST optimal rotation
+                # Correct the q1s state with the Multi-Point QUEST optimal rotation
                 q1s = self._sm.q1_adj * q1s
                 azhint = p_az + self._sm.az_adj
 
