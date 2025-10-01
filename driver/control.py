@@ -1570,9 +1570,9 @@ class SyncManager:
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
             # Observed vector from sync
-            v_obs = self.az_alt_to_vector(entry["a_theta1"], entry["a_theta2"])
+            v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])
             # Predicted vector from mount
-            v_pred = self.az_alt_to_vector(entry["p_theta1"], entry["p_theta2"])
+            v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])
             pairs.append((v_pred, v_obs))
 
         self.aligned_count = len(pairs)
@@ -1662,11 +1662,11 @@ class SyncManager:
         for entry in self.sync_history:
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
-            theta1_corr, theta2_corr = self.azalt_polaris2ascom(entry["p_theta1"], entry["p_theta2"])
-            theta1_err = angular_difference(theta1_corr, entry["a_theta1"])
-            theta2_err = angular_difference(theta2_corr, entry["a_theta2"])
-            magnitude = math.sqrt(theta1_err**2 + theta2_err**2)
-            entry["residual_vector"] = (theta1_err, theta2_err)
+            az_corr, alt_corr = self.azalt_polaris2ascom(entry["p_az"], entry["p_alt"])
+            az_err = angular_difference(az_corr, entry["a_az"])
+            alt_err = angular_difference(alt_corr, entry["a_alt"])
+            magnitude = math.sqrt(az_err**2 + alt_err**2)
+            entry["residual_vector"] = (az_err, alt_err)
             entry["residual_magnitude"] = magnitude
 
     def compute_roll_residuals(self):
