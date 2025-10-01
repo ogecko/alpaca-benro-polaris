@@ -66,14 +66,14 @@
             <div class="column items-left sp-readout-value">
               <div class="absolute text-positive text-caption">Setpoint</div>
               <div class="q-pt-md">{{ spxValueDisplayStr }}</div>
-              <q-popup-edit v-model="spxValueEditStr" v-slot="scope" color="positive" @before-show="spxValueEditStr = spxValueDisplayStr" >
-                <q-input :label="props.label+' SP'" color="positive" v-model="spxValueEditStr"  autofocus>
+              <q-popup-edit v-model="spxValueEditStr" v-slot="scope" color="positive" @before-show="onPopupShowSPEdit" >
+                <q-input :label="props.label+' SP'" color="positive" ref="spxInputRef" v-model="spxValueEditStr" autofocus @keyup.enter="onClickSetpoint(true, scope)">
                   <template v-slot:prepend>
                     <q-icon name="mdi-arrow-up-bold" color="positive"/>
                   </template>                  
                   <template v-slot:after>
-                    <q-btn flat dense round color="negative" icon="cancel" @click.stop.prevent="scope.cancel"/>
-                    <q-btn flat dense round color="positive" icon="check_circle" @click.stop.prevent="scope.cancel" @click="onClickSetpoint"/>
+                    <q-btn flat dense round color="negative" icon="cancel" @click="onClickSetpoint(false, scope)"/>
+                    <q-btn flat dense round color="positive" icon="check_circle" @click="onClickSetpoint(true, scope)"/>
                   </template>
                 </q-input>
               </q-popup-edit>
@@ -103,7 +103,7 @@
 
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, nextTick, onMounted, watch, computed } from 'vue'
 import { throttle } from 'quasar'
 import { scaleLinear } from 'd3-scale'
 import { axisBottom } from 'd3-axis'
@@ -136,6 +136,7 @@ const svgElement = ref<SVGSVGElement | null>(null);
 const scaleRange = ref<number>(200)
 const showButtons = ref<boolean>(false);
 const spxValueEditStr = ref<string>('')
+const spxInputRef = ref();
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
@@ -232,9 +233,21 @@ function onLabelClick(angle: number) {
   emit('clickScale', { label: props.label, angle, radialOffset: 1.0 }); 
 }
 
-function onClickSetpoint() {
-  const angle = dms2deg(spxValueEditStr.value)
-  emit('clickScale', { label: props.label, angle, radialOffset: 1.0 }); 
+async function onPopupShowSPEdit() {
+  // initialise the edit field
+  spxValueEditStr.value = spxValueDisplayStr.value
+  // select all the text
+  await nextTick()
+  const el = spxInputRef.value?.$el?.querySelector('input');
+  if (el) el.select();
+}
+
+function onClickSetpoint(isSetEvent:boolean, scope: { cancel: () => void }) {
+  scope.cancel()
+  if (isSetEvent) {
+    const angle = dms2deg(spxValueEditStr.value)
+    emit('clickScale', { label: props.label, angle, radialOffset: 1.0 }); 
+  }
 }
 
 
