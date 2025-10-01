@@ -31,7 +31,7 @@
     </div>
 
     <!-- SVG Background -->
-    <svg class="background-svg" @mousedown="onSvgClick" @touchstart="onSvgClick" @wheel="onScaleWheel" ref="svgElement" :width="dProps.width" :height="dProps.height" 
+    <svg class="background-svg" @mousedown="onSvgClick" @touchstart.passive="onSvgClick" @wheel.passive="onScaleWheel" ref="svgElement" :width="dProps.width" :height="dProps.height" 
     >
       <rect :width="dProps.width" :height="dProps.height" fill="transparent" />
       <g v-if="isLinear" ref="linearGroup" />
@@ -63,9 +63,20 @@
               </MoveFab>
             </div>
             <MoveButton v-if="showButtons" activeColor="positive" icon="mdi-minus-circle" @push="onMinus"/>
-            <div class="column items-left">
+            <div class="column items-left sp-readout-value">
               <div class="absolute text-positive text-caption">Setpoint</div>
-              <div class="q-pt-md">{{ spx.sign }}{{ spx.degreestr }}{{ spx.minutestr }}{{ spx.secondstr }}</div>
+              <div class="q-pt-md">{{ spxValueDisplayStr }}</div>
+              <q-popup-edit v-model="spxValueEditStr" v-slot="scope" color="positive" @before-show="spxValueEditStr = spxValueDisplayStr" >
+                <q-input :label="props.label+' SP'" color="positive" v-model="spxValueEditStr"  autofocus>
+                  <template v-slot:prepend>
+                    <q-icon name="mdi-arrow-up-bold" color="positive"/>
+                  </template>                  
+                  <template v-slot:after>
+                    <q-btn flat dense round color="negative" icon="cancel" @click.stop.prevent="scope.cancel"/>
+                    <q-btn flat dense round color="positive" icon="check_circle" @click.stop.prevent="scope.cancel" @click="onClickSetpoint"/>
+                  </template>
+                </q-input>
+              </q-popup-edit>
             </div>
             <MoveButton v-if="showButtons" activeColor="positive" icon="mdi-plus-circle" @push="onPlus"/>
           </div>
@@ -99,7 +110,7 @@ import { axisBottom } from 'd3-axis'
 import { select } from 'd3-selection'
 import { transition } from 'd3-transition'
 import { easeCubicOut } from 'd3-ease'
-import { deg2dms, isAngleBetween, wrapTo360, wrapTo180, wrapTo24, angularDifference } from 'src/utils/angles'
+import { deg2dms, dms2deg, isAngleBetween, wrapTo360, wrapTo180, wrapTo24, angularDifference } from 'src/utils/angles'
 import { formatAngle, formatArcMinutes, getClosestSteps, selectStep } from 'src/utils/scale'
 import MoveButton from 'src/components/MoveButton.vue'
 import MoveFab from 'src/components/MoveFab.vue'
@@ -124,6 +135,7 @@ const circularGroup = ref<SVGGElement | null>(null)
 const svgElement = ref<SVGSVGElement | null>(null);
 const scaleRange = ref<number>(200)
 const showButtons = ref<boolean>(false);
+const spxValueEditStr = ref<string>('')
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
@@ -132,12 +144,14 @@ const pvn = computed(() => dProps.value.dAngleFn(props.pv??0))        // pv norm
 const spn = computed(() => dProps.value.dAngleFn(props.sp??0))        // sp normalised
 const pvx = computed(() => deg2dms(pvn.value, 1, dProps.value.unit))   // pv decomposed
 const spx = computed(() => deg2dms(spn.value, 1, dProps.value.unit))   // sp decomposed
+const spxValueDisplayStr = computed(() => (spx.value ? ((spx.value.sign??'') + spx.value.degreestr + spx.value.minutestr + spx.value.secondstr) : '') )
 const dProps = computed(() => domainStyle[props.domain])
 const unit = computed(() => dProps.value.unit)
 const isCircular = computed(() => [
   'circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180', 
   'az_360', 'alt_90', 'roll_180', 'ra_24', 'dec_180', 'pa_360',
 ].includes(props.domain))
+
 
 // events that can be emitted
 const emit = defineEmits<{
@@ -207,7 +221,6 @@ watch(dProps, () => {
 })
 
 
-
 // ------------------- Event handlers ---------------------
 
 function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number}) {
@@ -216,7 +229,12 @@ function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number}) {
 
 // handle clicks on the labels and emit a clickScale event
 function onLabelClick(angle: number) {
-  emit('clickScale', { label: props.label, angle, radialOffset: 1.0 }); // radialOffset is fixed for label clicks
+  emit('clickScale', { label: props.label, angle, radialOffset: 1.0 }); 
+}
+
+function onClickSetpoint() {
+  const angle = dms2deg(spxValueEditStr.value)
+  emit('clickScale', { label: props.label, angle, radialOffset: 1.0 }); 
 }
 
 
@@ -837,6 +855,10 @@ function renderScale() {
   pointer-events: none;
 }
 
+
+.overlay-container .sp-readout-value {
+  pointer-events: auto;
+} 
 .overlay-container .q-field {
   pointer-events: auto;
 }
