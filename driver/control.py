@@ -17,73 +17,12 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 
 # ************* TODO LIST *****************
 #
-# Technical next steps
-# [X] Implement TRACK mode
-# [X] Allow first SLOW speed 0 through (dont assume it was 0)
-# [X] Stop PID and Motor controllers on shutdown
-# [X] Enabling tracking mid GOTO should use SP as target, not current pos
-# [X] Fix bug tracking on, off, on - rotates at a faster rate
-# [X] Fix delta_ref3 should represent equatorial angle (no change when tracking), alpha_ref desired camera roll angle +ve CCW, 0=horz (changes when tracking)
-# [X] Add DATA6 for PID debugging
-# [X] Introduce a Low-Pass Filter on Omega Output (aready doing this I think)
-# [x] Overlay the expected tracking velocity on the omega plot
-# [X] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
-# [X] Fix quaternian maths when alt is negative and zero
-# [X] Implement Rotator
-# [X] Proper task cleanup in polaris.restart(), especially to fix no position updates for over 2s. Restarting AHRS
-# [X] Implement Alpaca Pilot App
-# [X] Setup Dialog in Alpaca Pilot
-# [X] Alpaca Pilot Action ConfigUpdate pass through to live polaris and pickup from live Polaris eg lat/lon Nina changes
-# [X] Alpaca Pilot Log file viewer and streaming of data
-# [X] Alpaca Pilot Radial Indicators and home dashboard
-# [X] Alpaca pilot current position main display, is parked, is tracking, is slewing, is gotoing, is PID active, is Pulse Guiding
-
-# Alpaca Features
-# [X] Alpaca pilot commands for Eq-Az toggle, park, unpark, abort, track, tracking rate
-# [X] Alpaca pilot goto Az, Alt, Roll with click on Radial Scale or Radial Labels
-# [X] Alpaca pilot goto RA, Dec, PA with click on Radial Scale or Radial Labels
-# [X] Alpaca pilot floating action buttons for quick axis settings (az, alt, roll)
-# [X] Alpaca pilot radial scales to show warning limits on angles
-# [X] Alpaca Pilot SP pointer is removed around +/- 90 degrees too early
-# [X] Alpaca Pilot Radial Scale PVtoSP can arc the wrong way when around 360/0 wraparound
-# [X] Implement slewing state monitoring
-# [X] Implement gotoing state monitoring
-# [X] Alpaca pilot to restrict pid max velocity and accel in real time
-# [X] Explicit pid mode changes, add a 'PARK' mode, ensure no pid activity while parked.
-# [X] Ensure polaris tracking is off when enabling advanced tracked
-# [X] Indicate speed on Alpaca Dashboard
-# [X] Indicate motor activity on Alpaca Dashboard
-# [X] Alpaca pilot manual slew AltAzRoll, slew rate
-# [X] Alpaca pilot manual slew RADecPA
-# [X] Alpaca Pilot KF Tuning page
-# [X] Alpaca Pilot PWM Testing page
-# [X] Alpaca Improved PWM_SLOW with (-1, +1) rate instead of 0
-# [X] Alpaca Pilot Speed control for 0 while tracking should remain in PWM_SLOW not SLOW
-# [X] Alpaca Pilot Speed Calibration Test Management and Actions
-# [X] Alpaca Pilot Speed Calibration hookup and cancel test
-# [X] Alpaca Pilot close inactive websocket clients
-# [X] Alpaca pilot Ability to optionally use KF
-# [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
-# [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
-# [X] Fix Position Angle dashboard
-# [X] Alpaca pilot Single-Point Alignment using Polaris internal model
-# [X] Alpaca pilot Multi-Point Alignment using QUEST modeling
-# [X] Alpaca pilot Sync Analysis and Residual display
-# [X] Alpaca pilot Sync editing and removal
-# [X] Alpaca pilot Tripod Level Correction
-# [x] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
-# [ ] Fix Position Angle interaction
-# [ ] Fix when Pilot left behind other window, and Chrome hangs
-# [ ] Alpaca pilot feature degredation when not in Advanced Control
-# [ ] Alpaca pilot feature degredation when no Multi-Point Alignment
-# [ ] Alpaca pilot feature degredation when no Rotator
-# [ ] Alpaca pilot feature degredation when not ABP Driver
-# [ ] Alpaca Pilot memory and logevity tests
-# [ ] Fix chart sizing when screen resized
-# [ ] Documentation on new features Topocentric tracking (You're maintaining a fixed pointing direction relative to the local horizon. The origin is your specific observing site, not Earth’s center.
-# [ ] Youtube training videos
-# [ ] Kickstarter project
-# Connection
+# Alpaca Pilot App
+# [X] Implement Alpaca Pilot App Framework
+# [X] Implement Alpaca Pilot sidebar menu and toolbar menu
+# [X] Implment Alpaca Pilot routing
+#
+# Alpaca Pilot Connection, Bluetooth LE, Polaris Connection
 # [X] Implement Benro Polaris Connection process and diagnostics
 # [X] Connect to Benro Polaris without the Benro App
 # [X] Use BT Low Energey to Discover nearby Benro Polaris devices
@@ -93,22 +32,116 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca pilot able to goto Park position from Connection page
 # [X] Alpaca pilot able to skip Compass and Single Star Alignment using default values
 # [X] Alpaca pilot works outside of Astro Mode eg in Photo Mode
+#
+# Alpaca Pilot Configuration/Setup 
+# [X] Setup Dialog in Alpaca Pilot
+# [X] Foolproof and Simple observing site lat/lon configuration
+# [x] Ability to enable various advanced conrtol features
+# [X] Alpaca Pilot Action ConfigUpdate pass through to live polaris and pickup from live Polaris eg lat/lon Nina changes
+# [X] Alpaca pilot to restrict pid max velocity and accel in real time
+#
+# Alpaca Pilot Log 
+# [X] Alpaca Pilot Log file viewer and streaming of data over Sockets
+#
+# # Alpaca Pilot Dashboard Features
+# [X] Alpaca Pilot Radial Indicators and home dashboard
+# [X] Alpaca pilot current position main display, is parked, is tracking, is slewing, is gotoing, is PID active, is Pulse Guiding
+# [X] Alpaca pilot commands for Eq-Az toggle, park, unpark, abort, track, tracking rate
+# [X] Alpaca pilot goto Az, Alt, Roll with click on Radial Scale or Radial Labels
+# [X] Alpaca pilot goto RA, Dec, PA with click on Radial Scale or Radial Labels
+# [X] Alpaca pilot floating action buttons for quick axis settings (az, alt, roll)
+# [X] Alpaca pilot radial scales to show warning limits on angles
+# [X] Alpaca Pilot SP pointer is removed around +/- 90 degrees too early
+# [X] Alpaca Pilot Radial Scale PVtoSP can arc the wrong way when around 360/0 wraparound
+# [X] Implement slewing and gotoing state monitoring
+# [X] Ensure polaris tracking is off when enabling advanced tracked
+# [X] Indicate speed on Alpaca Dashboard
+# [X] Indicate motor activity on Alpaca Dashboard
+# [X] Alpaca pilot manual slew AltAzRoll, slew rate
+# [X] Alpaca pilot manual slew RADecPA
+# [X] Fix Position Angle dashboard
+#
+# Alpaca Pilot Tuning
+# [X] Alpaca Pilot KF Tuning page
+# [X] Alpaca Pilot PWM Testing page
+# [X] Alpaca Improved PWM_SLOW with (-1, +1) rate instead of 0
+# [X] Alpaca Pilot Speed Calibration Test Management and Actions
+# [X] Alpaca Pilot Speed Calibration hookup and cancel test
+# [ ] Alpaca Pilot PID Tuning page
+#
+# Alpaca Single-Point and Multi-Point Alignment
+# [X] Alpaca pilot Single-Point Alignment using Polaris internal model
+# [X] Alpaca pilot Multi-Point Alignment using QUEST modeling
+# [X] Alpaca pilot SYNC with RA/Dec and Az/Alt co-ordinates
+# [X] Alpaca pilot SYNC with landmark on map
+# [X] Alpaca pilot Sync Analysis and Residual display
+# [X] Alpaca pilot Sync editing and removal
+# [X] Alpaca pilot Tripod Level Correction
+# [x] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
+#
+# Alpaca Speed Control
+# [X] Allow first SLOW speed 0 through (dont assume it was 0)
+# [ ] Improve motor limits indication and safety protection (including with tilts)
+# [ ] Fix zero Altitude movement
+# [ ] Fix Position Angle interaction
+# [ ] Fix chart sizing when screen resized
+# [ ] Documentation on new features Topocentric tracking (You're maintaining a fixed pointing direction relative to the local horizon. The origin is your specific observing site, not Earth’s center.
+# [ ] Youtube training videos
+# [ ] Kickstarter project
+# 
+# Alpaca Kinematics
+# [X] Fix quaternian maths when alt is negative and zero
+# [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
+# [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
+#
+# Alpaca Kalman Filter
+# [X] Alpaca pilot Ability to optionally use KF
+# [X] Introduce a Low-Pass Filter on Omega Output (aready doing this I think)
+#
+# Alpaca PID Control
+# [X] Implement PID control loop
+# [X] Stop PID and Motor controllers on shutdown
+# [X] Implement TRACK mode
+# [X] Alpaca Pilot Speed control for 0 while tracking should remain in PWM_SLOW not SLOW
+# [X] Enabling tracking mid GOTO should use SP as target, not current pos
+# [X] Fix bug tracking on, off, on - rotates at a faster rate
+# [X] Fix delta_ref3 should represent equatorial angle (no change when tracking), alpha_ref desired camera roll angle +ve CCW, 0=horz (changes when tracking)
+# [X] Add DATA6 for PID debugging
+# [x] Overlay the expected tracking velocity on the omega plot
+# [X] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
+# [X] Explicit pid mode changes, add a 'PARK' mode, ensure no pid activity while parked.
+#
+# Reliability and degrdation
+# [X] Proper task cleanup in polaris.restart(), especially to fix no position updates for over 2s. Restarting AHRS
+# [X] Fix when Pilot left behind other window, and Chrome hangs
+# [X] Alpaca Pilot close inactive websocket clients
+# [ ] Alpaca pilot feature degredation when not in Advanced Control
+# [ ] Alpaca pilot feature degredation when no Multi-Point Alignment
+# [ ] Alpaca pilot feature degredation when no Rotator
+# [ ] Alpaca pilot feature degredation when not ABP Driver
 # [ ] Alpaca pilot works without the third axis Astro Module Hardware (adjust Az/Alt)
+# [ ] Alpaca Pilot memory and logevity tests
+# 
 # Performance
+# [X] Improve fine grained tracking precision
+# [X] Improve Kalman Filter tuning
+# [X] Store Motor Calibration data to a file
+# [X] Improve tracking performance beyond BP implementation
 # [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
 # [ ] Move performance tests to actions
 # [ ] Rationalise performance data capture and analysis
 # [ ] PID tuning to use velocity error as well as position error
-# [ ] Improve fine grained tracking precision
-# [X] Improve Kalman Filter tuning
-# [X] Store Motor Calibration data to a file
-# [ ] Improve tracking performance beyond BP implementation
+# [ ] Move image culling to Alpaca Pilot
+#
 # Rotator
+# [X] Implement Rotator
 # [ ] Rotator Halt, Sync, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
 # [ ] Pass ConformU test on Rotator
+#
 # Catalog
 # [ ] Favorite Targets to Search Home page
 # [ ] Alpaca pilot catalog of targets, search, select, goto, display current target
+#
 # Orbitals
 # [ ] Implement Lunar Tracking rate
 # [ ] Implement Solar Tracking rate
@@ -117,8 +150,6 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [ ] Check Astro head hardware connection
 # [ ] Integral Anti-Windup dontaccumulate when output is saturated or quantized
 # 
-# Features 
-#
 # Precision Tracking
 # [ ] Seamless Axis Override During Tracking
 # [X] Deep-Sky Object Tracking 
@@ -136,16 +167,16 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [ ] Pulse Guiding Tracking correction 
 #
 # Imaging and User Experience Enhancements
-# [ ] Long Exposure Tracking Stabilization
-# [ ] Drift supression and Auto-Centering
-# [ ] Automated Leveling Compensation
+# [X] Long Exposure Tracking Stabilization
+# [X] Automated Leveling Compensation
+# [X] Zenith Imaging Support (18° Circle)
+# [X] Drift supression and Auto-Centering
 # [ ] Dithering support
-# [ ] Zenith Imaging Support (18° Circle)
 # [ ] Mosaic imaging support through Nina
 
 # Candidate future enhancements
-# [ ] Rate Derivative Estimation (Jerk Monitoring)
 # [X] Feedforward Control Integration (minimise overshoot)
+# [ ] Rate Derivative Estimation (Jerk Monitoring)
 # [ ] Control Mode Switching
 # [ ] Time-Differentiated Tracking Profiles
 # [ ] Predictive Anti-Backlash Correction
