@@ -46,6 +46,7 @@ import StatusBanners from 'src/components/StatusBanners.vue'
 
 import type { TelemetryRecord } from 'src/stores/stream'
 import type { ComponentPublicInstance } from 'vue'
+import { useDeviceStore } from 'src/stores/device'
 
 export type QScrollAreaScrollEvent = {
   ref: ComponentPublicInstance
@@ -62,21 +63,27 @@ export type QScrollAreaScrollEvent = {
 }
 
 
-const store = useStreamStore()
-const logEntries = computed(() => store.topics['log'] || [])
+const socket = useStreamStore()
+const dev = useDeviceStore()
+const logEntries = computed(() => socket.topics['log'] || [])
 const isAtBottom = ref(true)
 const keepAtBottom = ref(true)
 const scrollArea = ref()
 
 onMounted(() => {
-  store.connectSocket()   //    'ws://192.168.50.54:5556/ws'
-  store.subscribe('log')
+  socket.connectSocket()   //    'ws://192.168.50.54:5556/ws'
+  socket.subscribe('log')
   scrollToBottom()
 })
 
 onUnmounted(() => {
-  store.unsubscribe('log')
+  socket.unsubscribe('log')
 })
+
+watch(() => dev.isVisible, (isVisible) => {
+  void (isVisible ? socket.subscribe('log') : socket.unsubscribe('log'))
+})
+
 
 function format(entry: TelemetryRecord): string {
   const ts = entry.ts || ''
