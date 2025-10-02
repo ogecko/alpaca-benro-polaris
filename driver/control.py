@@ -22,44 +22,50 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Implement Alpaca Pilot sidebar menu and toolbar menu
 # [X] Implment Alpaca Pilot routing
 #
-# Alpaca Pilot Connection, Bluetooth LE, Polaris Connection
+# Alpaca Pilot Connection, Bluetooth LE
 # [X] Implement Benro Polaris Connection process and diagnostics
 # [X] Connect to Benro Polaris without the Benro App
 # [X] Use BT Low Energey to Discover nearby Benro Polaris devices
 # [X] Use BT Low Energey to enable Wifi on selected Benro Polaris device
 # [X] Show Benro Polaris hardware and firmware versions
-# [X] Alpaca pilot able to change Polaris Mode to Astro
-# [X] Alpaca pilot able to goto Park position from Connection page
-# [X] Alpaca pilot able to skip Compass and Single Star Alignment using default values
+# [X] Allow change Polaris Mode to Astro
+# [X] Allow goto Park position from Connection page
+# [X] Allow skip Compass and Single Star Alignment using default values
 # [X] Alpaca pilot works outside of Astro Mode eg in Photo Mode
 #
 # Alpaca Pilot Configuration/Setup 
 # [X] Setup Dialog in Alpaca Pilot
 # [X] Foolproof and Simple observing site lat/lon configuration
-# [x] Ability to enable various advanced conrtol features
+# [x] Ability to enable various advanced conrtol features and standard control features
+# [X] Ability to save and restore configuration modifications
 # [X] Alpaca Pilot Action ConfigUpdate pass through to live polaris and pickup from live Polaris eg lat/lon Nina changes
 # [X] Alpaca pilot to restrict pid max velocity and accel in real time
+# [ ] Remove Alpaca Performance Recording Settings
 #
 # Alpaca Pilot Log 
 # [X] Alpaca Pilot Log file viewer and streaming of data over Sockets
+# [X] Ability to change Log Level and Log Settings
+# [X] Rationalise loggin across alpaca, polaris, discovery, synscan, bluetooth protocols
 #
-# # Alpaca Pilot Dashboard Features
-# [X] Alpaca Pilot Radial Indicators and home dashboard
-# [X] Alpaca pilot current position main display, is parked, is tracking, is slewing, is gotoing, is PID active, is Pulse Guiding
-# [X] Alpaca pilot commands for Eq-Az toggle, park, unpark, abort, track, tracking rate
+# Alpaca Pilot Dashboard Features
+# [X] Alpaca Pilot Radial Indicators
 # [X] Alpaca pilot goto Az, Alt, Roll with click on Radial Scale or Radial Labels
 # [X] Alpaca pilot goto RA, Dec, PA with click on Radial Scale or Radial Labels
 # [X] Alpaca pilot floating action buttons for quick axis settings (az, alt, roll)
 # [X] Alpaca pilot radial scales to show warning limits on angles
 # [X] Alpaca Pilot SP pointer is removed around +/- 90 degrees too early
 # [X] Alpaca Pilot Radial Scale PVtoSP can arc the wrong way when around 360/0 wraparound
-# [X] Implement slewing and gotoing state monitoring
-# [X] Ensure polaris tracking is off when enabling advanced tracked
+# [X] Alpaca Pilot Home dashboard
+# [X] Alpaca pilot current position main display
+# [X] Alpaca Pilot is parked, is tracking, is slewing, is gotoing, is PID active, is Pulse Guiding
+# [X] Alpaca pilot commands for Eq-Az toggle, park, unpark, abort, track, tracking rate
 # [X] Indicate speed on Alpaca Dashboard
 # [X] Indicate motor activity on Alpaca Dashboard
 # [X] Alpaca pilot manual slew AltAzRoll, slew rate
 # [X] Alpaca pilot manual slew RADecPA
 # [X] Fix Position Angle dashboard
+# [ ] Fix Position Angle interaction
+# [ ] Fix Az/Alt/Roll interaction while tracking
 #
 # Alpaca Pilot Tuning
 # [X] Alpaca Pilot KF Tuning page
@@ -67,7 +73,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca Improved PWM_SLOW with (-1, +1) rate instead of 0
 # [X] Alpaca Pilot Speed Calibration Test Management and Actions
 # [X] Alpaca Pilot Speed Calibration hookup and cancel test
+# [X] Alpaca Pilot Position Diagnostics Page
 # [ ] Alpaca Pilot PID Tuning page
+# [ ] Fix chart sizing when screen resized
 #
 # Alpaca Single-Point and Multi-Point Alignment
 # [X] Alpaca pilot Single-Point Alignment using Polaris internal model
@@ -78,23 +86,23 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca pilot Sync editing and removal
 # [X] Alpaca pilot Tripod Level Correction
 # [x] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
+# [ ] Reduce number of Nina plate-solve and sync to get to target
 #
 # Alpaca Speed Control
+# [X] Refactor low level SLOW and FAST speed controler
+# [X] Implement reliable PWM control over +1 to -1 SLOW Speed
 # [X] Allow first SLOW speed 0 through (dont assume it was 0)
-# [ ] Improve motor limits indication and safety protection (including with tilts)
-# [ ] Fix zero Altitude movement
-# [ ] Fix Position Angle interaction
-# [ ] Fix chart sizing when screen resized
-# [ ] Documentation on new features Topocentric tracking (You're maintaining a fixed pointing direction relative to the local horizon. The origin is your specific observing site, not Earth’s center.
-# [ ] Youtube training videos
-# [ ] Kickstarter project
 # 
 # Alpaca Kinematics
+# [X] Build comprehensive test suite for Kinematics calculations
 # [X] Fix quaternian maths when alt is negative and zero
 # [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
 # [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
+# [ ] Fix zero Altitude movement
+# [ ] Improve motor limits indication and safety protection (including with tilts)
 #
 # Alpaca Kalman Filter
+# [X] Implment Kalman Filter to improve reliabilty of state assessment
 # [X] Alpaca pilot Ability to optionally use KF
 # [X] Introduce a Low-Pass Filter on Omega Output (aready doing this I think)
 #
@@ -102,6 +110,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Implement PID control loop
 # [X] Stop PID and Motor controllers on shutdown
 # [X] Implement TRACK mode
+# [X] Implement slewing and gotoing state monitoring
+# [X] Ensure polaris tracking is off when enabling advanced tracked
 # [X] Alpaca Pilot Speed control for 0 while tracking should remain in PWM_SLOW not SLOW
 # [X] Enabling tracking mid GOTO should use SP as target, not current pos
 # [X] Fix bug tracking on, off, on - rotates at a faster rate
@@ -122,6 +132,11 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [ ] Alpaca pilot works without the third axis Astro Module Hardware (adjust Az/Alt)
 # [ ] Alpaca Pilot memory and logevity tests
 # 
+# Documentation
+# [ ] Documentation on new features Topocentric tracking
+# [ ] Youtube training videos
+# [ ] Kickstarter project
+#
 # Performance
 # [X] Improve fine grained tracking precision
 # [X] Improve Kalman Filter tuning
@@ -137,10 +152,14 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Implement Rotator
 # [ ] Rotator Halt, Sync, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
 # [ ] Pass ConformU test on Rotator
+# [ ] Pass ConformU test on Telescope
 #
 # Catalog
-# [ ] Favorite Targets to Search Home page
+# [ ] Expanded Target Catalog
 # [ ] Alpaca pilot catalog of targets, search, select, goto, display current target
+# [ ] Favorite Targets to Search Home page
+# [ ] Auto-fetch Target Catalog updates
+# [ ] Auto-fetch orbital elements
 #
 # Orbitals
 # [ ] Implement Lunar Tracking rate
@@ -151,8 +170,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [ ] Integral Anti-Windup dontaccumulate when output is saturated or quantized
 # 
 # Precision Tracking
-# [ ] Seamless Axis Override During Tracking
 # [X] Deep-Sky Object Tracking 
+# [ ] Seamless Axis Override During Tracking
 # [ ] Selenographic Lunar Tracking 
 # [ ] Planetary and Orbital Moons Tracking
 # [ ] Commet and Asteroid Tracking
@@ -180,9 +199,6 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [ ] Control Mode Switching
 # [ ] Time-Differentiated Tracking Profiles
 # [ ] Predictive Anti-Backlash Correction
-# [ ] Expanded Target Catalog
-# [ ] Auto-fetch Target Catalog updates
-# [ ] Auto-fetch orbital elements
 #
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
