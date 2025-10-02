@@ -299,6 +299,10 @@ onUnmounted(() => {
   socket.unsubscribe('kf')
 })
 
+watch(() => dev.isVisible, (isVisible) => {
+  void (isVisible ? socket.subscribe('kf') : socket.unsubscribe('kf'))
+})
+
 async function save() {
   const ok = await cfg.configSave()
   $q.notify({ message:`Configuration save ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 

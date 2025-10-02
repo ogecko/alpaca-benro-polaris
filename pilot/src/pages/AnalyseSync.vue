@@ -319,6 +319,10 @@ onUnmounted(() => {
   socket.unsubscribe('sm')
 })
 
+watch(() => dev.isVisible, (isVisible) => {
+  void (isVisible ? socket.subscribe('sm') : socket.unsubscribe('sm'))
+})
+
 async function setFromMapClick (landmark: LocationResult) {
   if (landmark.success) {
     const lm_lat = landmark.data.site_latitude

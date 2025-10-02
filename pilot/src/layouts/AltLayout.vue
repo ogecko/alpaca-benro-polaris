@@ -147,7 +147,7 @@ const p = useStatusStore()
 const socket = useStreamStore()
 
 onMounted(() => {
-  // socket.connectSocket()   //    connect whenever the socketURL changes
+  // socket.connectSocket()   //    connect whenever the socketURL or AppVisibility changes - see watch below
   // socket.subscribe('status')
 })
 
@@ -157,11 +157,15 @@ onUnmounted(() => {
 })
 
 watch(
-  [() => dev.restAPIConnected, () => socket.socketURL],
+  [() => dev.restAPIConnected, () => socket.socketURL, () => dev.isVisible],
   () => {
-    if (dev.restAPIConnected && socket) {
-      socket.connectSocket()
-      socket.subscribe('status')
+    if (dev.isVisible) {
+      if (dev.restAPIConnected && socket) {
+        socket.connectSocket()
+        socket.subscribe('status')
+      }
+    } else {
+      socket.unsubscribe('status')
     }
   },
   { immediate: true }     // ensure it runs immediately on component mount, as boot/autoconnect.ts may have already connected

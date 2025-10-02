@@ -139,7 +139,7 @@
 <script setup lang="ts">
 import { useTimeout } from 'quasar'
 import StatusBanners from 'src/components/StatusBanners.vue'
-import { onMounted, onUnmounted, computed, ref } from 'vue'
+import { watch, onMounted, onUnmounted, computed, ref } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useDeviceStore } from 'src/stores/device'
@@ -235,6 +235,10 @@ onMounted(() => {
 onUnmounted(() => {
   // if (timer) clearInterval(timer)
   socket.unsubscribe('kf')
+})
+
+watch(() => dev.isVisible, (isVisible) => {
+  void (isVisible ? socket.subscribe('kf') : socket.unsubscribe('kf'))
 })
 
 

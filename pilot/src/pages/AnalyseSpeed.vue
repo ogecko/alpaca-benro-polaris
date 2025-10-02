@@ -225,6 +225,13 @@ onUnmounted(() => {
   socket.unsubscribe('kf')
 })
 
+watch(() => dev.isVisible, (isVisible) => {
+  void (isVisible ? socket.subscribe('cm') : socket.unsubscribe('cm'))
+  void (isVisible ? socket.subscribe('kf') : socket.unsubscribe('kf'))
+})
+
+
+
 async function stopTest() {
   console.log('stop test')
   await dev.apiAction('Polaris:SpeedTestStop', `{"axis": ${axis.value}}`)

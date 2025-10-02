@@ -4,6 +4,7 @@ import { HTMLResponseError, NonJSONResponseError, NotFound404Error, AlpacaRespon
 import type { DescriptionResponse, ConfiguredDevicesResponse, SupportedActionsResponse, ActionResponse } from 'src/utils/interfaces'
 import { sleep } from 'src/utils/sleep'
 import type { ConfigResponse } from 'src/stores/config'
+import { AppVisibility } from 'quasar'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
@@ -23,6 +24,10 @@ export const useDeviceStore = defineStore('device', {
     alpacaServersDiscovered: [] as { name: string; id: string }[],
     alpacaDiscovering: false,
   }),
+
+  getters: {
+    isVisible: () => AppVisibility.appVisible,
+  },
 
   actions: {
     setAlpacaHost(host: string) {
