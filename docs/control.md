@@ -34,18 +34,34 @@ You can view a demonstration of parts of this documentation in the following You
 
 ## 9. Polar Alignment
 
-Version 2.0 of the driver offers two methods for polar alignment: Single Point Alignment and Multi-Point Alignment.
+Version 2.0 of the driver supports two polar alignment methods: **Single-Point Alignment** and **Multi-Point Alignment**.
+
 
 ### Single-Point Alignment
-The Single-Point Alignment method uses the standard Benro Polaris alignment technique as a SYNC function for Alpaca Clients. This allows clients to adjust the Benro Polaris to align its current pointing direction with a known position.
+This method uses the standard Benro Polaris alignment technique, exposed as a SYNC function for Alpaca clients. It enables clients to adjust the Polaris mount so its current pointing direction matches a known celestial position.
 
-The advantage of this method is that the alignment correction is made directly in the Benro Polaris, benefiting all connected clients. However, this approach heavily relies on accurately leveling the tripod and is vulnerable to drift and inconsistent tracking.
+The key advantage is that alignment corrections are applied directly within the Benro Polaris, benefiting all connected clients. However, this method depends heavily on precise tripod leveling and is susceptible to drift and tracking inconsistencies.
+
 
 ### Multi-Point Alignment
-The Multi-Point Alignment method also provides a SYNC function for Alpaca clients. By syncing with three or more known positions, it creates a correction model that accounts for factors such as tripod tilt, polar misalignment, cone error, and other mechanical offsets that might affect pointing and tracking accuracy.
+Multi-Point Alignment also uses the SYNC function, but builds a correction model from three or more known positions. This model compensates for tripod tilt, polar misalignment, cone error, and other mechanical offsets that can affect pointing and tracking accuracy.
 
-This algorithm is derived from a method used in various NASA satellite launches. It is efficient, employs a closed-form solution, and utilizes quaternions to achieve precise polar alignment.
+The algorithm is adapted from techniques used in NASA satellite launches. It’s efficient, closed-form, and quaternion-based, delivering high-precision polar alignment.
 
-The Alpaca Pilot App allows you to monitor the development of this model. You can assess how accurately the model fits all received SYNCs. Additionally, you have the option to remove any inaccurate SYNCs to help improve the model's performance. The app also provides a new method for syncing during the day: simply point your camera at a known landmark on the horizon and click on a map to confirm its location. The app will calculate the elevation of the point you clicked on and determine the true azimuth and altitude of your current pointing position.
+The Alpaca Pilot App lets you monitor the model’s development in real time. You can evaluate how well it fits the collected SYNC points, and optionally remove outliers to refine its accuracy.
 
+### Adding SYNC Points
+You can add SYNC points using several methods, all compatible with both alignment modes. For Multi-Point Alignment, adding more points improves model precision.
+
+* **NINA’s Plate-Solve + Sync**. 
+Initiate a plate-solve and sync manually from the Image tab, at the start of an imaging schedule, or as a scheduled step.
+
+* **Stellarium’s Sync Feature**. 
+Center a star or DSO in the camera frame, select it in Stellarium, and click the SYNC button in the Telescope Control dialog.
+
+* **Alpaca Pilot’s Celestial Sync**.
+Similar to Stellarium: align the camera to a known celestial position and enter the RA/Dec coordinates manually.
+
+* **Alpaca Pilot’s Geographic Sync**.
+Ideal for daytime alignment. Point the camera at a known horizon landmark, then click its location on the map. The app calculates its elevation and derives Azimuth/Altitude coordinates relative to your observing site.
 
