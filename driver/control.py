@@ -40,7 +40,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Ability to save and restore configuration modifications
 # [X] Alpaca Pilot Action ConfigUpdate pass through to live polaris and pickup from live Polaris eg lat/lon Nina changes
 # [X] Alpaca pilot to restrict pid max velocity and accel in real time
-# [ ] Remove Alpaca Performance Recording Settings
+# [X] Remove Alpaca Performance Recording Settings
 #
 # Alpaca Pilot Log 
 # [X] Alpaca Pilot Log file viewer and streaming of data over Sockets

@@ -712,12 +712,24 @@ class Polaris:
             q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
             p_az = float(arg_dict['compass'])   # from Polaris direct
             p_alt = -float(arg_dict['alt'])     # from Polaris direct
-            theta1, theta2, theta3, q_az, q_alt, q_roll = quaternion_to_angles(q1, azhint=p_az)
+            q_t1, q_t2, q_t3, q_az, q_alt, q_roll = quaternion_to_angles(q1, azhint=p_az)
             q_ra, q_dec = self.altaz2radec(q_alt, q_az)
-            theta_meas = np.array([theta1, theta2, theta3])
-            self._history.append([dt_now, theta1, theta2, theta3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
+            theta_meas = np.array([q_t1, q_t2, q_t3])
+            self._history.append([dt_now, q_t1, q_t2, q_t3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
             omega_meas = calculate_angular_velocity(self._history)
             omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
+
+            # Store all the polaris values
+            with self._lock:
+                self._last_518_timestamp = dt_now
+                self._q1 = '' if q1 is None else str(q1)
+                self._theta_meas = theta_meas
+                self._omega_meas = omega_meas
+                self._p_azimuth = float(q_az)
+                self._p_altitude = float(q_alt)
+                self._p_roll = float(q_roll)
+                self._p_rightascension = float(q_ra) 
+                self._p_declination = float(q_dec)
 
             # Process through the Kalman Filter to determine Polaris theta_state (uncorrected for alignment)
             self._kf.predict(omega_ref)
@@ -751,9 +763,9 @@ class Polaris:
                 q1s = self._sm.q1_adj * q1s
                 azhint = p_az + self._sm.az_adj
 
-            a_theta1, a_theta2, a_theta3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
+            a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
             alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
-            theta_state = np.array([a_theta1, a_theta2, a_theta3], dtype=float)
+            theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)
 
             # Update PID Loop with current state
             self._pid.measure(alpha_state, theta_state)
@@ -762,25 +774,14 @@ class Polaris:
             a_ra, a_dec = self.altaz2radec(a_alt, a_az)
             position_ang, parallactic_ang = self._sm.roll2pa(a_az, a_alt, a_roll)
 
-            # Store all the new polaris values
+            # Store all the new ascom values
             with self._lock:
-                self._last_518_timestamp = dt_now
-                self._q1 = '' if q1 is None else str(q1)
                 self._q1s = '' if q1s is None else str(q1s)
-                self._theta_meas = theta_meas
-                self._omega_meas = omega_meas
                 self._theta_state = theta_state
-
-                self._p_azimuth = float(q_az)
-                self._p_altitude = float(q_alt)
-                self._p_roll = float(q_roll)
-                self._p_rightascension = float(q_ra) 
-                self._p_declination = float(q_dec)
-
                 self._altitude = float(a_alt)
                 self._azimuth = float(a_az)
                 self._roll = float(a_roll)
-                self._rotation = float(a_theta3)
+                self._rotation = float(a_t3)
                 self._rightascension = float(a_ra) 
                 self._declination = float(a_dec)
                 self._position_angle = float(position_ang)
