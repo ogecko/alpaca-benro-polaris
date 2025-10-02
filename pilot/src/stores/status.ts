@@ -73,7 +73,7 @@ export const useStatusStore = defineStore('status', {
     }),
 
     actions: {
-        async statusFetch() {
+        async statusFetch() {               // no longer used after WebSockets introduced
             try {
                 const response = await dev.apiAction<StatusResponse>('Polaris:StatusFetch');
                 this.$patch(response)
