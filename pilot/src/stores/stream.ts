@@ -157,9 +157,13 @@ export const useStreamStore = defineStore('telemetry', () => {
     const now = Date.now()
     const timeout = 10000
     if (now - lastActivity.value > timeout) {
-      console.warn("Socket appears stale, reconnecting...")
-      cleanupSocket()
-      scheduleReconnect()
+      if (dev.isVisible) {
+        console.warn("Socket appears stale, reconnecting...")
+        cleanupSocket()
+        scheduleReconnect()
+      } else {
+        cleanupSocket()
+      }
     }
   }
 
