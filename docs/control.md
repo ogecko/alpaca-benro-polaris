@@ -51,7 +51,7 @@ The algorithm is adapted from techniques used in NASA satellite launches. It’s
 The Alpaca Pilot App lets you monitor the model’s development in real time. You can evaluate how well it fits the collected SYNC points, and optionally remove outliers to refine its accuracy.
 
 ### Adding SYNC Points
-You can add SYNC points using several methods, all compatible with both alignment modes. For Multi-Point Alignment, adding more points improves model precision.
+You can add SYNC points using several methods, all compatible with both alignment modes. For Multi-Point Alignment, adding more points spread across the sky improves model precision. Methods to add SYNC points include:
 
 * **NINA’s Plate-Solve + Sync**. 
 Initiate a plate-solve and sync manually from the Image tab, at the start of an imaging schedule, or as a scheduled step.
@@ -60,8 +60,10 @@ Initiate a plate-solve and sync manually from the Image tab, at the start of an 
 Center a star or DSO in the camera frame, select it in Stellarium, and click the SYNC button in the Telescope Control dialog.
 
 * **Alpaca Pilot’s Celestial Sync**.
-Similar to Stellarium: align the camera to a known celestial position and enter the RA/Dec coordinates manually.
+Similar to Stellarium: align the camera to a known celestial position and sync with the known RA/Dec coordinates.
 
 * **Alpaca Pilot’s Geographic Sync**.
 Ideal for daytime alignment. Point the camera at a known horizon landmark, then click its location on the map. The app calculates its elevation and derives Azimuth/Altitude coordinates relative to your observing site.
+
+* **Alpaca Pilot’s Manual Sync**. Manually enter the true current pointing direction of the mount as RA/Dec or Az/Alt co-ordinates.
 
