@@ -242,7 +242,7 @@ class Polaris:
         self._canslewaltaz: bool = True             # True if this telescope is capable of programmed slewing (synchronous or asynchronous) to local horizontal coordinates
         self._canslewaltazasync: bool = True        # True if this telescope is capable of programmed asynchronous slewing to local horizontal coordinates
         self._cansync: bool = True                  # True if this telescope is capable of programmed synching to equatorial coordinates.
-        self._cansyncaltaz: bool = False            # True if this telescope is capable of programmed synching to local horizontal coordinates
+        self._cansyncaltaz: bool = True             # True if this telescope is capable of programmed synching to local horizontal coordinates
         self._canunpark: bool = True                # True if this telescope is capable of programmed unparking (Unpark() method).
         self._doesrefraction: bool = True           # True if the telescope or driver applies atmospheric refraction to coordinates.
         #

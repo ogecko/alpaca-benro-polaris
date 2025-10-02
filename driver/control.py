@@ -1624,7 +1624,7 @@ class SyncManager:
 
         self.aligned_count = len(pairs)
         if len(pairs) < 2:
-            self.q1_adj = self.optimise_q1_adj_fallback_single_sync()
+            self.q1_adj = self.optimise_q1_adj_fallback_single_sync(pairs)
             self.q1_adj_message = "Fallback rotation from single sync"
             self.compute_azalt_residuals()   # Compute and store residuals
             self.compute_tilt()        # Compute tilt correction
@@ -1668,14 +1668,11 @@ class SyncManager:
         return
 
 
-    def optimise_q1_adj_fallback_single_sync(self):
-        entry = self.sync_history[0]
-        if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
+    def optimise_q1_adj_fallback_single_sync(self, pairs):
+        if len(pairs) == 0:
             return Quaternion(1,0,0,0)  # identity quaternion
         
-        v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])
-        v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])
-
+        v_pred, v_obs = pairs[0]
         v_pred /= np.linalg.norm(v_pred)
         v_obs /= np.linalg.norm(v_obs)
 

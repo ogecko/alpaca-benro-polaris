@@ -1353,7 +1353,6 @@ class slewtotargetasync:
 class synctoaltaz:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
