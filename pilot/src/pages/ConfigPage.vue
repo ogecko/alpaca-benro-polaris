@@ -118,35 +118,6 @@
             </div>
           </q-card>
         </div>
-        <!-- Performance Logging -->
-        <div class="col-12 col-md-6 col-lg-4 flex">
-          <q-card flat bordered class="q-pa-md full-width">
-            <div class="text-h6">Performance Recording Settings</div>
-            <div class="row">
-              <div class="col-12 text-caption text-grey-6 q-pb-md">
-                Enable recording of data to help analyse various performance characteristics of your Benro Polaris, including aiming, tracking, and control performance.
-              </div>
-            </div>
-            <div class="q-gutter-y-sm">
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_telemetry_data', 'Log Telementry')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_aiming_data', 'Log Aiming Accuracy')"/>
-              </div>
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_drift_data', 'Log Drift Error')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_periodic_data', 'Log Periodic Error')"/>
-              </div>
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_kalman_data', 'Log Kalman Filtering')"/>
-                <q-toggle class='col-6' v-bind="bindField('log_pid_data', 'Log PID Control')"/>
-              </div>
-              <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('log_sync_data', 'Log Sync Performance')"/>
-              </div>
-              
-            </div>
-          </q-card>
-        </div>
       </div>
     </div>
 </q-page>
