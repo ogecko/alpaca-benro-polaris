@@ -46,6 +46,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca Pilot Log file viewer and streaming of data over Sockets
 # [X] Ability to change Log Level and Log Settings
 # [X] Rationalise loggin across alpaca, polaris, discovery, synscan, bluetooth protocols
+# [ ] Fix sizing of log scrolling window
 #
 # Alpaca Pilot Dashboard Features
 # [X] Alpaca Pilot Radial Indicators
@@ -86,7 +87,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca pilot Sync editing and removal
 # [X] Alpaca pilot Tripod Level Correction
 # [x] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
-# [ ] Reduce number of Nina plate-solve and sync to get to target
+# [ ] Fix Reduce number of Nina plate-solve and sync to get to target
+# [ ] Fix SYNC events are not cleared in client after driver restart
 #
 # Alpaca Speed Control
 # [X] Refactor low level SLOW and FAST speed controler
