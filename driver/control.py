@@ -679,6 +679,11 @@ class KalmanFilter:
     def set_state(self, x):
         self.x = np.array(x).reshape(6, 1)
 
+    def set_theta_state(self, theta_state):
+        theta_state = np.array(theta_state).reshape(3, 1)
+        if self.x is None or self.x.shape != (6, 1):
+            self.x = np.zeros((6, 1))
+        self.x[:3] = theta_state
 
 
 # ************* Calibration Manager ************
@@ -1528,13 +1533,9 @@ class SyncManager:
         entry = {
             "timestamp": format_timestamp(),
             "deleted": False,
-            "p_q1": self.polaris._q1,
             "p_az": self.polaris._p_azimuth,
             "p_alt": self.polaris._p_altitude,
             "p_roll": self.polaris._p_roll,
-            "p_theta1": self.polaris._theta_meas[0],
-            "p_theta2": self.polaris._theta_meas[1],
-            "p_theta3": self.polaris._theta_meas[2],
             "a_az": None,
             "a_alt": None,
             "a_roll": None,
@@ -1543,11 +1544,6 @@ class SyncManager:
 
     def sync_az_alt(self, a_az, a_alt):
         entry = self.standard_entry()
-        q1_observ = angles_to_quaternion(a_az, a_alt, self.polaris._roll)
-        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1_observ)
-        entry["a_theta1"] = theta1
-        entry["a_theta2"] = theta2
-        entry["a_theta3"] = theta3 
         entry["a_az"] = a_az
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
@@ -1628,45 +1624,50 @@ class SyncManager:
         if len(pairs) < 2:
             self.q1_adj = self.optimise_q1_adj_fallback_single_sync(pairs)
             self.q1_adj_message = "Fallback rotation from single sync"
-            self.compute_azalt_residuals()   # Compute and store residuals
-            self.compute_tilt()        # Compute tilt correction
-            return
+        else:
+            # Build the B matrix: sum of weighted outer products between predicted and observed vectors
+            # Each term aligns a predicted direction (from Polaris) to an observed direction (from sync)
+            # This builds the core rotation alignment matrix
+            B = sum(np.outer(v_pred, v_obs) for v_pred, v_obs in pairs)
 
-        # Build the B matrix: sum of weighted outer products between predicted and observed vectors
-        # Each term aligns a predicted direction (from Polaris) to an observed direction (from sync)
-        # This builds the core rotation alignment matrix
-        B = sum(np.outer(v_pred, v_obs) for v_pred, v_obs in pairs)
+            # Construct the Davenport matrix K, which encodes the optimal rotation in quaternion form
+            # This is based on the method from Markley's QUEST algorithm
+            S = B + B.T             # Symmetric part of B
+            sigma = np.trace(B)     # Scalar part: trace of B (sum of diagonal elements)
 
-        # Construct the Davenport matrix K, which encodes the optimal rotation in quaternion form
-        # This is based on the method from Markley's QUEST algorithm
-        S = B + B.T             # Symmetric part of B
-        sigma = np.trace(B)     # Scalar part: trace of B (sum of diagonal elements)
+            # Anti-symmetric part: used to build the vector Z
+            # Z encodes the cross-product-like skew between predicted and observed vectors
+            Z = np.array([
+                B[1,2] - B[2,1],    # YZ - ZY
+                B[2,0] - B[0,2],    # ZX - XZ
+                B[0,1] - B[1,0]     # XY - YX
+            ])
+            # Initialize the 4x4 Davenport matrix K
+            # K is structured to find the quaternion that best rotates predicted vectors to observed ones
+            K = np.zeros((4,4))
+            K[0,0] = sigma
+            K[0,1:] = Z
+            K[1:,0] = Z
+            K[1:,1:] = S - sigma * np.eye(3)
 
-        # Anti-symmetric part: used to build the vector Z
-        # Z encodes the cross-product-like skew between predicted and observed vectors
-        Z = np.array([
-            B[1,2] - B[2,1],    # YZ - ZY
-            B[2,0] - B[0,2],    # ZX - XZ
-            B[0,1] - B[1,0]     # XY - YX
-        ])
-        # Initialize the 4x4 Davenport matrix K
-        # K is structured to find the quaternion that best rotates predicted vectors to observed ones
-        K = np.zeros((4,4))
-        K[0,0] = sigma
-        K[0,1:] = Z
-        K[1:,0] = Z
-        K[1:,1:] = S - sigma * np.eye(3)
+            # Solve the eigenvalue problem: find the eigenvector of K with the largest eigenvalue
+            # This eigenvector represents the optimal quaternion [w, x, y, z]
+            eigvals, eigvecs = np.linalg.eigh(K)
+            q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
 
-        # Solve the eigenvalue problem: find the eigenvector of K with the largest eigenvalue
-        # This eigenvector represents the optimal quaternion [w, x, y, z]
-        eigvals, eigvecs = np.linalg.eigh(K)
-        q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
+            self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
+            self.q1_adj_message = "QUEST solution applied"
 
-        self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
-        self.q1_adj_message = "QUEST solution applied"
-
+        # Now compute the residuals and tilt correction
         self.compute_azalt_residuals()   # Compute and store residuals
         self.compute_tilt()              # Compute tilt correction
+
+        # Update the ASCOM values, KF and PID with the ajustment
+        q1s = self.q1_adj * self.polaris._q1
+        azhint = self.az_adj + self.polaris._p_azimuth 
+        alpha_state, theta_state = self.polaris.update_ascom_from_new_q1_adj(q1s, azhint)
+        self.polaris._pid.measure(alpha_state, theta_state)
+
         return
 
 

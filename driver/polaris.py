@@ -722,7 +722,7 @@ class Polaris:
             # Store all the polaris values
             with self._lock:
                 self._last_518_timestamp = dt_now
-                self._q1 = '' if q1 is None else str(q1)
+                self._q1 = q1
                 self._theta_meas = theta_meas
                 self._omega_meas = omega_meas
                 self._p_azimuth = float(q_az)
@@ -751,41 +751,15 @@ class Polaris:
             kflogger.info(payload)
 
             azhint = p_az
-            if Config.advanced_kf:
-                # base the polaris q1 state off the kalman filtered theta_state
-                q1s = motors_to_quaternion(theta_state[0], theta_state[1], theta_state[2])
-            else:
-                # base the polaris q1 state off the raw polaris measurements
-                q1s = motors_to_quaternion(theta_meas[0], theta_meas[1], theta_meas[2])
-
-            if Config.advanced_alignment:
-                # Correct the q1s state with the Multi-Point QUEST optimal rotation
+            q1s = motors_to_quaternion(*(theta_state if Config.advanced_kf else theta_meas))
+            if Config.advanced_alignment:        # Correct the q1s state with the Multi-Point QUEST optimal rotation
                 q1s = self._sm.q1_adj * q1s
                 azhint = p_az + self._sm.az_adj
 
-            a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
-            alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
-            theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)
-
-            # Update PID Loop with current state
+            # update all the ASCOM values and the PID loop
+            alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1s, azhint)
             self._pid.measure(alpha_state, theta_state)
 
-            # Convert ASCOM Alt/Az/Roll to RA/Dec/PA
-            a_ra, a_dec = self.altaz2radec(a_alt, a_az)
-            position_ang, parallactic_ang = self._sm.roll2pa(a_az, a_alt, a_roll)
-
-            # Store all the new ascom values
-            with self._lock:
-                self._q1s = '' if q1s is None else str(q1s)
-                self._theta_state = theta_state
-                self._altitude = float(a_alt)
-                self._azimuth = float(a_az)
-                self._roll = float(a_roll)
-                self._rotation = float(a_t3)
-                self._rightascension = float(a_ra) 
-                self._declination = float(a_dec)
-                self._position_angle = float(position_ang)
-                self._parallactic_angle = float(parallactic_ang)
 
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
         elif cmd == "519":
@@ -871,12 +845,35 @@ class Polaris:
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: Position Update request result: {cmd} {arg_dict}")
 
-
         # return result of unrecognised msg
         else:
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: response to command received: {cmd} {args}")
 
+
+
+    def update_ascom_from_new_q1_adj(self, q1s, azhint):
+        # Calc all the new ASCOM values based on a shifted q1s
+        a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
+        alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
+        theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)
+        a_ra, a_dec = self.altaz2radec(a_alt, a_az)
+        position_ang, parallactic_ang = self._sm.roll2pa(a_az, a_alt, a_roll)
+ 
+        # Store all the new ascom values
+        with self._lock:
+            self._q1s = q1s
+            self._theta_state = theta_state
+            self._altitude = float(a_alt)
+            self._azimuth = float(a_az)
+            self._roll = float(a_roll)
+            self._rotation = float(a_t3)
+            self._rightascension = float(a_ra) 
+            self._declination = float(a_dec)
+            self._position_angle = float(position_ang)
+            self._parallactic_angle = float(parallactic_ang)
+
+        return alpha_state, theta_state
 
     def aim_altaz_log_result(self):
         with self._lock:
@@ -1433,8 +1430,8 @@ class Polaris:
                 'parallacticangle': self._parallactic_angle,
                 'positionangle': self._position_angle,
                 'pidmode': self._pid.mode,                
-                'q1': self._q1,
-                'q1s': self._q1s,
+                'q1': str(self._q1),
+                'q1s': str(self._q1s),
                 'thetameas': [0,0,0] if self._theta_meas is None else self._theta_meas.tolist(),
                 'thetastate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
                 'deltaref': self._pid.delta_ref.tolist(),
