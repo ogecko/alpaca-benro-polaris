@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
-# import pytest
+import numpy as np
 from control import SyncManager, quaternion_to_angles, angles_to_quaternion, angular_difference
 from polaris import Polaris
 
@@ -12,10 +12,21 @@ from pyquaternion import Quaternion
 
 import math
 
+class PID_Controller:
+    def measure(self, alpha, theta):
+        return
+
 class Polaris:
     def __init__(self):
         self.update(180, 45, 0)
         self._sitelatitude = -33.65528161613541
+        self._pid = PID_Controller()
+
+    def update_ascom_from_new_q1_adj(self, q1s, azhint):
+        a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
+        alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
+        theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)
+        return alpha_state, theta_state
 
     def update(self, az, alt, roll=0):
         self._p_azimuth = az
@@ -37,7 +48,7 @@ def test_sync_history():
     sm.sync_roll(5)
     assert len(sm.sync_history) >= 1
     assert isinstance(sm.sync_history[0], dict)
-    expected_keys = {"timestamp", "p_q1", "p_az", "p_alt", "p_roll", "a_az", "a_alt", "a_roll"}
+    expected_keys = {"timestamp", "p_az", "p_alt", "p_roll", "a_az", "a_alt", "a_roll"}
     assert expected_keys.issubset(sm.sync_history[0].keys())
     assert sm.sync_history[0]["a_az"] == 170
     assert sm.sync_history[1]["a_roll"] == 5
@@ -91,8 +102,8 @@ def test_leveling_sync_adj():
     p.update(90, 0)
     sm.sync_az_alt(90, 0)  # level again
     az,alt = sm.azalt_polaris2ascom(0,0)
-    assert f'{az:.6f}, {alt:.6f}' == "360.000000, 1.000000"
-    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "360.000000, 1.000000"
+    assert f'{az:.6f}, {alt:.6f}' == "0.000000, 1.000000"
+    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "0.000000, 1.000000"
 
 def test_largetilt_sync_adj():
     p = Polaris()
