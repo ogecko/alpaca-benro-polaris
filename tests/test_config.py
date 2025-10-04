@@ -26,7 +26,6 @@ def config_fixture(tmp_path):
     "port": 9000
     }""")
     yield Config, tomlpath, pilotpath
-    tmp_path.cleanup()
 
 
 def test_load_and_inject(config_fixture):

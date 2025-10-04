@@ -3,7 +3,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
 import numpy as np
-from control import SyncManager, quaternion_to_angles, angles_to_quaternion, angular_difference
+from control import SyncManager, quaternion_to_angles, angles_to_quaternion, angular_difference, calc_parallactic_angle
 from polaris import Polaris
 
 import pytest
@@ -214,37 +214,27 @@ def test_horizEast_roll2pa():
 
 def test_East_parallactic_angle():
     p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    pa = sm.parallactic_angle(90, 0, p._sitelatitude)
+    pa = calc_parallactic_angle(90, 0, p._sitelatitude)
     assert f'{pa:.6f}' == "-123.655282"  
 
 def test_West_parallactic_angle():
     p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    pa = sm.parallactic_angle(270, 0, p._sitelatitude)
+    pa = calc_parallactic_angle(270, 0, p._sitelatitude)
     assert f'{pa:.6f}' == "123.655282"  
 
 def test_Zenith_parallactic_angle():
     p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    pa = sm.parallactic_angle(45, 90, p._sitelatitude)
+    pa = calc_parallactic_angle(45, 90, p._sitelatitude)
     assert f'{pa:.6f}' == "0.000000"  
 
 def test_NearZenith_parallactic_angle():
     p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    pa = sm.parallactic_angle(90, 89.999, p._sitelatitude)
+    pa = calc_parallactic_angle(90, 89.999, p._sitelatitude)
     assert f'{pa:.6f}' == "-90.000666"  
 
 def test_SouthCelestrialPole_parallactic_angle():
     p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    pa = sm.parallactic_angle(180, p._sitelatitude, p._sitelatitude)
+    pa = calc_parallactic_angle(180, p._sitelatitude, p._sitelatitude)
     assert f'{pa:.6f}' == "-180.000000"  
 
 

@@ -246,37 +246,18 @@ def wrap_state_angles(x):
     x_wrapped[2, 0] = wrap_to_180(x[2, 0])    # theta3 
     return x_wrapped
 
+def calc_parallactic_angle(az_deg, alt_deg, lat_deg):
+    if abs(alt_deg - 90.0) < 1e-6:
+        return 0.0  # Zenith has no parallactic angle
 
-def parallactic_angle(ra_hr, dec_deg, sidereal_time_hr, lat_deg):
-    """
-    Compute the signed parallactic angle in degrees.
-    
-    Inputs:
-        lat_deg: Observer latitude in degrees
-        dec_deg: Declination of object in degrees
-        sidereal_time_hr: Local sidereal time in hours
-        ra_hr: Right Ascension of object in hours
-        
-    Returns:
-        Parallactic angle in degrees (range: -180 to +180)
-    """
-    # Convert to radians
-    lat_rad = np.radians(lat_deg)
-    dec_rad = np.radians(dec_deg)
-    ha_rad = np.radians((sidereal_time_hr - ra_hr) * 15.0)  # 15° per hour
+    az = math.radians(az_deg)
+    alt = math.radians(alt_deg)
+    lat = math.radians(lat_deg)
 
-    # Compute signed parallactic angle
-    sin_ha = np.sin(ha_rad)
-    cos_ha = np.cos(ha_rad)
-    tan_lat = np.tan(lat_rad)
-    cos_dec = np.cos(dec_rad)
-    sin_dec = np.sin(dec_rad)
-
-    numerator = sin_ha
-    denominator = tan_lat * cos_dec - sin_dec * cos_ha
-
-    pa_rad = np.arctan2(numerator, denominator)
-    return np.degrees(pa_rad)
+    numerator = math.sin(az)
+    denominator = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
+    angle = math.degrees(math.atan2(numerator, denominator))
+    return wrap_to_180(-angle)
 
 
 def polar_rotation_angle(latitude_rad, az_rad, alt_rad):
@@ -325,11 +306,6 @@ def polar_rotation_angle(latitude_rad, az_rad, alt_rad):
     angle_deg = math.degrees(angle_rad)
 
     return angle_deg
-
-def polar_rotation_angle_wrapped(latitude_rad, az_rad, alt_rad):
-    """ Compute the polar rotation angle [-90 to +90) degrees, turn your images upside down. """
-    angle_deg = polar_rotation_angle(latitude_rad, az_rad, alt_rad)
-    return wrap_to_90(angle_deg)
 
 
 def angular_difference(a, b):
@@ -1760,28 +1736,15 @@ class SyncManager:
         self.az_adj = wrap_to_180(north_az)
 
 
-    def parallactic_angle(self, az_deg, alt_deg, lat_deg):
-        if abs(alt_deg - 90.0) < 1e-6:
-            return 0.0  # Zenith has no parallactic angle
-
-        az = math.radians(az_deg)
-        alt = math.radians(alt_deg)
-        lat = math.radians(lat_deg)
-
-        numerator = math.sin(az)
-        denominator = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
-        angle = math.degrees(math.atan2(numerator, denominator))
-        return wrap_to_180(-angle)
-
     def roll2pa(self, az_deg, alt_deg, roll_deg):
         """Convert camera-frame roll to sky-frame position angle and parallactic angle at ascom azalt."""
-        parallactic_angle = self.parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
+        parallactic_angle = calc_parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
         position_angle = wrap_to_360(roll_deg + parallactic_angle)
         return position_angle, parallactic_angle
 
     def pa2roll(self, az_deg, alt_deg, position_angle_deg):
         """Convert sky-frame position angle to camera-fram roll using parallactic angle at ascom azalt."""
-        parallactic_angle = self.parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
+        parallactic_angle = calc_parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
         return wrap_to_360(position_angle_deg - parallactic_angle)
 
     def roll_polaris2ascom(self, polaris_roll_deg):
