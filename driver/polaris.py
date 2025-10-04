@@ -85,7 +85,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, parallactic_angle, wrap_to_360
+from control import quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, wrap_to_360
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
