@@ -1102,19 +1102,28 @@ class park:
 class pulseguide:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
-        return
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
+        if polaris.atpark:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot pulse guide while parked'))
+            return
+        if polaris.slewing:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot pulse guide while slewing'))
+            return
+        if not polaris.tracking:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot pulse guide while not tracking'))
+            return
         directionstr = await get_request_field('Direction', req)      # Raises 400 bad request if missing
         try:
-            direction = int(directionstr)
+            # 0=North (+ declination/altitude); 1=South (- declination/altitude); 2=East (+ right ascension/azimuth); 3=West (- right ascension/azimuth)
+            direction = int(directionstr)   
         except:
-            resp.text = await MethodResponse(req,
-                            InvalidValueException(f'Direction {directionstr} not a valid number.'))
+            resp.text = await MethodResponse(req, InvalidValueException(f'Direction {directionstr} not a valid number'))
             return
-        ### RANGE CHECK AS NEEDED ###          # Raise Alpaca InvalidValueException with details!
+        if direction < 0 or direction > 3:
+            resp.text = await PropertyResponse(None,req, InvalidValueException(f'Direction {directionstr} must be 0,1,2, or 3.'))
+            return
         durationstr = await get_request_field('Duration', req)      # Raises 400 bad request if missing
         try:
             duration = int(durationstr)
@@ -1122,11 +1131,11 @@ class pulseguide:
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Duration {durationstr} not a valid number.'))
             return
-        ### RANGE CHECK AS NEEDED ###          # Raise Alpaca InvalidValueException with details!
+        if duration <= 0 or duration > 5000:
+            resp.text = await PropertyResponse(None,req, InvalidValueException(f'duration {durationstr} must be between 1 and 5000 ms.'))
+            return
         try:
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
+            polaris.pulse_guide(direction, duration)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,

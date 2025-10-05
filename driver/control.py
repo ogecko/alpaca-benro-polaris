@@ -1105,12 +1105,13 @@ class MoveAxisMessenger:
 
 
 class PID_Controller():
-    def __init__(self, logger, controllers, observer, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Kc=1.0, loop=None):
+    def __init__(self, logger, polaris, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Kc=1.0, loop=None):
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
         self._lock = asyncio.Lock()                          # Used to ensure no threading issues
         self.logger = logger                                 # Logging utility
-        self.controllers = controllers                       # Motor speed controllers[0,1,2]
-        self.observer = observer                             # Observing object from ephem
+        self.polaris = polaris                               # Only used for guiding clacs and flaging
+        self.controllers = polaris._motors                   # Motor speed controllers[0,1,2]
+        self.observer = polaris._observer                    # Observing object from ephem
         self.body = ephem.FixedBody()                        # Target body
         self.body._epoch = ephem.J2000                       # default to J2000 epoch
         self.body_pa_offset = 0                              # used to store body pa to oconvert back to roll
@@ -1371,7 +1372,21 @@ class PID_Controller():
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
 
         elif self.mode == 'TRACK':
-            self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
+            # Apply relevant guiderate if delta_v_sp duration is non-zero
+            for axis in [0, 1]:  # RA, Dec
+                duration = self.delta_v_sp[axis]
+                if duration != 0:
+                    sign = np.sign(duration)
+                    remaining_ms = abs(duration)
+                    step_ms = min(remaining_ms, self.dt * 1000)  # apply only up to what's left
+                    step_sec = step_ms / 1000.0
+                    velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
+                    self.delta_offst[axis] += step_sec * velocity
+                    self.delta_v_sp[axis] -= sign * step_ms
+                    self.delta_v_sp[axis] = int(self.delta_v_sp[axis])  # ensure it's cleanly integral
+            if np.all(self.delta_v_sp[:2] == 0):
+                with self.polaris._lock:
+                    self.polaris._ispulseguiding = False
             self.delta_ref_last = self.delta_ref
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)

@@ -207,8 +207,8 @@ class Polaris:
         self._trackingrates = [0,1,2,3]             # Returns a collection of supported DriveRates values (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
         self._declinationrate: float = 0.0          # The declination tracking rate (arcseconds per SI second, default = 0.0)
         self._rightascensionrate: float = 0.0       # The right ascension tracking rate offset from sidereal (seconds per sidereal second, default = 0.0)
-        self._guideratedeclination: float = 0.0     # The current Declination movement rate offset for telescope guiding (degrees/sec)
-        self._guideraterightascension: float = 0.0  # The current Right Ascension movement rate offset for telescope guiding (degrees/sec)
+        self._guideratedeclination: float = 0.002089     # The current Declination movement rate offset for telescope guiding, default 0.5 x sidereal (degrees/sec)
+        self._guideraterightascension: float = 0.002089  # The current Right Ascension movement rate offset for telescope guiding, default 0.5 x sidereal (degrees/sec)
         #
         # Rotator device settings
         #
@@ -266,7 +266,7 @@ class Polaris:
             axis: MotorSpeedController(logger, self._cm, axis, self.send_msg)
             for axis in (0, 1, 2)
         }
-        self._pid = PID_Controller(logger, self._motors, self._observer, loop=0.2)
+        self._pid = PID_Controller(logger, self, loop=0.2)
         self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
         self._sm = SyncManager(logger, self)
 
@@ -1968,6 +1968,24 @@ class Polaris:
             # only send message if we are not tracking and not slewing
             if not self._tracking_in_benro and not self._slewing:
                 await self.send_cmd_change_tracking_state(True)
+
+    def pulse_guide(self, direction: int, duration: int):
+        with self._lock:
+            self._ispulseguiding = True                     # is reset in _pid.track_target when all done
+        axis = None
+        sign = 0
+        if direction == 0: axis, sign = 1, +1    # North
+        elif direction == 1: axis, sign = 1, -1  # South
+        elif direction == 2: axis, sign = 0, +1  # East
+        elif direction == 3: axis, sign = 0, -1  # West
+        else:
+            self.logger.warning(f"Invalid pulse guide direction: {direction}")
+            return
+        # accumulate the pulse guide durations on the relevant axis
+        self._pid.delta_v_sp[axis] += sign * duration       
+        if Config.log_pulse_guiding:
+            self.logger.info(f"Pulse guide queued: axis {axis}, sign {sign}, duration {duration}ms")
+
 
     async def park(self):
         with self._lock:
