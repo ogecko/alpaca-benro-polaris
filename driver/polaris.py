@@ -1981,8 +1981,13 @@ class Polaris:
         else:
             self.logger.warning(f"Invalid pulse guide direction: {direction}")
             return
+
         # accumulate the pulse guide durations on the relevant axis
-        self._pid.delta_v_sp[axis] += sign * duration       
+        current = self._pid.delta_v_sp[axis]
+        proposed = current + sign * duration
+        clamped = max(-10_000, min(10_000, proposed))
+        self._pid.delta_v_sp[axis] = clamped
+
         if Config.log_pulse_guiding:
             self.logger.info(f"Pulse guide queued: axis {axis}, sign {sign}, duration {duration}ms")
 

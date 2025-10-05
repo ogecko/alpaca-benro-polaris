@@ -182,11 +182,11 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [ ] Transiting Exoplanet Support
 #
 # Pulse Guiding Features
+# [X] ASCOM Telescope Pulse Guide API Support
+# [X] Pulse Guiding Tracking correction 
+# [X] Enable Nina Dithering via Nina Direct Guider and Advanced Schedule (uses Pulse Guide API)
 # [ ] Guide Camera Support via PHD2
 # [ ] PHD2 Support via ASCOM/Alpaca
-# [ ] ASCOM Telescope Pulse Guide API Support
-# [ ] Pulse Guiding Tracking correction 
-# [ ] Enable Nina Dithering via Pulse Guide API
 #
 # Imaging and User Experience Enhancements
 # [X] Long Exposure Tracking Stabilization
