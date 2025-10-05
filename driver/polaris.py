@@ -175,6 +175,7 @@ class Polaris:
         self._atpark: bool = False                  # True if the telescope has been put into the parked state by the seee Park() method. Set False by calling the Unpark() method.
         self._slewing: bool = False                 # True if telescope is in the process of moving in response to one of the Goto methods or the MoveAxis(TelescopeAxes, Double) method, False at all other times.
         self._gotoing: bool = False                 # True if telescope is in the process of moving in response to one of the Goto methods, False at all other times.
+        self._goto_complete_event = None            # asyncio Event to allow notification of goto complete (only used with advanced control gotos)
         self._ispulseguiding: bool = False          # True if a PulseGuide(GuideDirections, Int32) command is in progress, False otherwise
         #
         # Telescope device state variables
@@ -1866,11 +1867,13 @@ class Polaris:
         with self._lock:
             self._slewing = True
             self._gotoing = True
+        self._goto_complete_event = asyncio.Event()
 
     def markGotoAsComplete(self):
         with self._lock:
             self._slewing = False
             self._gotoing = False
+        self._goto_complete_event.set()
 
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
         a_alt = altitude
@@ -1903,6 +1906,8 @@ class Polaris:
             self.markGotoAsUnderway()
             self._pid.set_alpha_target({ "az": a_az, "alt": a_alt })
             self._pid.set_goto_complete_callback(self.markGotoAsComplete)
+            if not isasync:
+                await self._goto_complete_event.wait()
         else:
             if isasync:
                     asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
