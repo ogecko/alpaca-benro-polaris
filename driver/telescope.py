@@ -575,12 +575,10 @@ class guideraterightascension:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev), 'log_pulse_guiding')
+@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
 class ispulseguiding:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
-        return
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
@@ -589,8 +587,6 @@ class ispulseguiding:
             resp.text = await PropertyResponse(val, req)
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.ispulseguiding failed', ex))
-
-        # resp.text = await MethodResponse(req, NotImplementedException())
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class rightascension:

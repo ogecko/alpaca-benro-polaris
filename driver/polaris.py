@@ -231,7 +231,7 @@ class Polaris:
         #
         self._canfindhome: bool = False             # True if this telescope is capable of programmed finding its home position (FindHome() method).
         self._canpark: bool = True                  # True if this telescope is capable of programmed parking (Park()method)
-        self._canpulseguide: bool = False           # True if this telescope is capable of software-pulsed guiding (via the PulseGuide(GuideDirections, Int32) method)
+        self._canpulseguide: bool = True            # True if this telescope is capable of software-pulsed guiding (via the PulseGuide(GuideDirections, Int32) method)
         self._cansetdeclinationrate: bool = False   # True if the DeclinationRate property can be changed to provide offset tracking in the declination axis.
         self._cansetguiderates: bool = False        # True if the guide rate properties used for PulseGuide(GuideDirections, Int32) can ba adjusted.
         self._cansetpark: bool = False              # True if this telescope is capable of programmed setting of its park position (SetPark() method)
