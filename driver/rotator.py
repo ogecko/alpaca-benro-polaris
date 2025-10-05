@@ -255,8 +255,8 @@ class moveabsolute:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} not a valid number.'))
             return
-        if position < -180 or position > 180 or math.isnan(position):
-            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and +180.'))
+        if position < -180 or position > 360 or math.isnan(position):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and +360.'))
             return
         try:
             polaris._pid.set_alpha_target({ "roll": position })
