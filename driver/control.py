@@ -186,6 +186,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [ ] PHD2 Support via ASCOM/Alpaca
 # [ ] ASCOM Telescope Pulse Guide API Support
 # [ ] Pulse Guiding Tracking correction 
+# [ ] Enable Nina Dithering via Pulse Guide API
 #
 # Imaging and User Experience Enhancements
 # [X] Long Exposure Tracking Stabilization
