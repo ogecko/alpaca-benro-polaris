@@ -2026,24 +2026,12 @@ class Polaris:
     def pulse_guide(self, direction: int, duration: int):
         with self._lock:
             self._ispulseguiding = True                     # is reset in _pid.track_target when all done
-        axis = None
-        sign = 0
-        if direction == 0: axis, sign = 1, +1    # North
-        elif direction == 1: axis, sign = 1, -1  # South
-        elif direction == 2: axis, sign = 0, +1  # East
-        elif direction == 3: axis, sign = 0, -1  # West
-        else:
-            self.logger.warning(f"Invalid pulse guide direction: {direction}")
-            return
-
-        # accumulate the pulse guide durations on the relevant axis
-        current = self._pid.delta_v_sp[axis]
-        proposed = current + sign * duration
-        clamped = max(-10_000, min(10_000, proposed))
-        self._pid.delta_v_sp[axis] = clamped
 
         if Config.log_pulse_guiding:
-            self.logger.info(f"Pulse guide queued: axis {axis}, sign {sign}, duration {duration}ms")
+            self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")
+
+        self._pid.pulse_delta_axis(direction, duration)
+
 
 
     async def park(self):

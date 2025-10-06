@@ -1181,6 +1181,7 @@ class PID_Controller():
 
     def reset_delta_offsets(self):
         self.delta_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for ra, dec, polar anglular velocities
+        self.delta_g_sp = np.array([0,0,0], dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
         self.delta_offst = np.array([0,0,0], dtype=float)    # ra, dec, polar anglular offsets
         self.delta_ref_last = np.array([0,0,0], dtype=float) # ra, dec, polar angular reference position of last control step
 
@@ -1310,13 +1311,23 @@ class PID_Controller():
         if self.mode in ['IDLE','AUTO']:
             self.set_pid_mode('TRACK')
     
-    def pulse_delta_axis(self, axis, duration, direction=1, sp=0.0020833):
+    def pulse_delta_axis(self, direction, duration):
         if self.mode!="TRACK":
             return
-        # default guide rate is 0.50x sidereal rate (in the positive direction)
-        pulse = np.array([0,0,0], dtype=float)
-        pulse[axis] = direction * sp
-        self.delta_offst = clamp_delta(self.delta_offst + duration * pulse)
+        axis = None
+        sign = 0
+        if direction == 0: axis, sign = 1, +1    # North
+        elif direction == 1: axis, sign = 1, -1  # South
+        elif direction == 2: axis, sign = 0, +1  # East
+        elif direction == 3: axis, sign = 0, -1  # West
+        else:
+            self.logger.warning(f"Invalid pulse guide direction: {direction}")
+            return
+        # accumulate the pulse guide durations on the relevant axis
+        current = self.delta_g_sp[axis]
+        proposed = current + sign * duration
+        clamped = max(-10_000, min(10_000, proposed))
+        self.delta_g_sp[axis] = clamped
 
     def set_TLE_target(self, line1, line2, line3):
         if self.mode=="PARK":
@@ -1377,9 +1388,9 @@ class PID_Controller():
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
 
         elif self.mode == 'TRACK':
-            # Apply relevant guiderate if delta_v_sp duration is non-zero
+            # Apply relevant guiderate if delta_g_sp duration is non-zero
             for axis in [0, 1]:  # RA, Dec
-                duration = self.delta_v_sp[axis]
+                duration = self.delta_g_sp[axis]
                 if duration != 0:
                     sign = np.sign(duration)
                     remaining_ms = abs(duration)
@@ -1387,11 +1398,13 @@ class PID_Controller():
                     step_sec = step_ms / 1000.0
                     velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
                     self.delta_offst[axis] += step_sec * velocity
-                    self.delta_v_sp[axis] -= sign * step_ms
-                    self.delta_v_sp[axis] = int(self.delta_v_sp[axis])  # ensure it's cleanly integral
-            if np.all(self.delta_v_sp[:2] == 0):
+                    self.delta_g_sp[axis] -= sign * step_ms
+                    self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral
+            if np.all(self.delta_g_sp[:2] == 0):
                 with self.polaris._lock:
                     self.polaris._ispulseguiding = False
+            # Apply relevant delta slew velocities
+            self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
             self.delta_ref_last = self.delta_ref
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
