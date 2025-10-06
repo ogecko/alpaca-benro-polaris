@@ -1990,20 +1990,20 @@ class Polaris:
 
 
     async def move_axis(self, axis:int, rate:float, units="ASCOM"):
-        if axis not in (0, 1, 2):
-            raise ValueError(f"Invalid axis index: {axis}. Must be 0, 1, or 2.")
-        with self._lock:
-            self._axis_ASCOM_slewing_rates[axis] = rate
-            self._slewing = any(self._axis_ASCOM_slewing_rates)
-        motor = self._motors[axis]
+        if axis not in (0, 1, 2, 3, 4, 5):
+            raise ValueError(f"Invalid axis index: {axis}. Must be 0 Az, 1 Alt, 2 Roll, 3 RA, 4 Dec, 5 PA.")
+        motor = self._motors[axis % 3]
         if Config.advanced_control and Config.advanced_slewing:
             raw = motor._model.interpolate[units].toRAW(rate)
             dps = motor._model.interpolate["RAW"].toDPS(raw)
             self.markSlewAsUnderway()
-            self._pid.set_alpha_axis_velocity(axis, dps)
+            self._pid.set_alpha_axis_velocity(axis % 3, dps) if axis<3 else self._pid.set_delta_axis_velocity(axis % 3, dps)
             self._pid.set_slew_complete_callback(self.markSlewAsComplete)
         else:
             self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {rate} Units {units}")
+            with self._lock:
+                self._axis_ASCOM_slewing_rates[axis] = rate
+                self._slewing = any(self._axis_ASCOM_slewing_rates)
             if not self._tracking:
                 await motor.set_motor_speed(rate, units)
 
