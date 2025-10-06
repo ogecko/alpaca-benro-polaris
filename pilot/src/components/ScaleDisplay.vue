@@ -31,7 +31,7 @@
     </div>
 
     <!-- SVG Background -->
-    <svg class="background-svg" @mousedown="onSvgClick" @touchstart.passive="onSvgClick" @wheel.passive="onScaleWheel" ref="svgElement" :width="dProps.width" :height="dProps.height" 
+    <svg class="background-svg" @mousedown="onSvgClick" @touchstart.passive="onSvgClick" @wheel="onScaleWheel" ref="svgElement" :width="dProps.width" :height="dProps.height" 
     >
       <rect :width="dProps.width" :height="dProps.height" fill="transparent" />
       <g v-if="isLinear" ref="linearGroup" />
@@ -305,7 +305,7 @@ function onSvgClick(e: MouseEvent | TouchEvent) {
 
 // handle mouse wheel events while over the svg and change zoom level/scaleRange
 function onScaleWheel(e: WheelEvent) {
-  // e.preventDefault();  - unable to pre3ventDefault inside passive event listener invocation
+  e.preventDefault();  
 
   const baseFactor = 1.2;   // tweak baseFactor for step sensitivity     
   const divisor = 50        // tweak divisor for magnitude sensitivity
