@@ -4,16 +4,18 @@
     <StatusBanners />
 
     <!----- Page header ----->
-    <div class="row q-pa-md justify-center items-center q-col-gutter-sm">
+    <div class="row q-pa-xs items-center q-col-gutter-sm">
 
       <!----- LHS Action Buttons ----->
-      <div class="row col-12 col-sm-4 justify-center ">
-        <div class="q-gutter-sm ">
-          <q-btn label="Az/Alt"  glossy  size="md" color="secondary" :outline="isEquatorial" @click="isEquatorial=!isEquatorial"  />
-          <q-btn label="Park"    glossy  size="md" color="secondary" :outline="!p.atpark"  @click="onPark"/>
-          <q-btn icon="mdi-stop" glossy  size="md" color="secondary" @click="onAbort"/>
-          <q-btn-dropdown label="Track" glossy size="md" color="secondary" split :outline="!p.tracking" @click="onTrack">
-            <q-list dense >
+      <div class="">
+        <div class="q-gutter-md ">
+          <q-btn-group >
+            <q-btn icon="mdi-telescope"  glossy dense  size="md" color="secondary" push :outline="!isEq" @click="isEq=!isEq"  />
+            <q-btn icon="mdi-parking"  glossy dense size="md" color="secondary" :outline="!p.atpark"  @click="onPark"/>
+            <q-btn icon="mdi-stop" glossy dense size="md" color="secondary" :outline="isStopOutline" @click="onAbort"/>
+          </q-btn-group>
+          <q-btn-dropdown dense icon="mdi-star-shooting-outline" glossy size="md" color="secondary" split :outline="!p.tracking" @click="onTrack">
+            <q-list  dense >
               <q-item clickable v-close-popup :active="p.trackingrate==0" active-class="bg-secondary text-white" @click="onTrackRate(0)">
                 <q-item-section><q-item-label>Sidereal</q-item-label></q-item-section>
               </q-item>
@@ -32,24 +34,19 @@
       </div>
 
       <!----- Center Tracking Info ----->
-      <div class="row col-6 col-sm-4 text-positive text-h5 q-gutter-sm justify-center ">
+      <!-- <div class="row col-6 col-sm-4 text-positive text-h5 q-gutter-sm justify-center ">
         <div v-if="p.tracking">
           <span>{{p.trackingratestr}}</span> 
           <q-chip color="positive">Tracking</q-chip>
         </div>
-      </div>
+      </div> -->
 
+      <q-space />
       <!----- RHS Chip Status Info ----->
-      <div class="row col-6 col-sm-4 wrap justify-end ">
-        <q-chip color="positive" :outline="!p.slewing">
-          Slewing
+      <div class="">
+        <q-chip color="positive" :outline="statusLabel=='Idle'" :icon="statusIcon">
+          {{statusLabel}}
         </q-chip>
-        <q-chip color="positive" :outline="!p.gotoing">
-          Gotoing
-        </q-chip>
-        <q-chip color="positive" :outline="['IDLE','PARK'].includes(p.pidmode)">
-          PID: {{p.pidmode}}
-        </q-chip> 
       </div>
     </div>
 
@@ -113,11 +110,12 @@ const $q = useQuasar()
 const route = useRoute()
 const dev = useDeviceStore()
 const p = useStatusStore()
-const isEquatorial = ref<boolean>(false)
+const isEq = ref<boolean>(false)
+const isStopOutline = ref<boolean>(true)
 
 // ------------------- Layout Configuration Data ---------------------
 
-const displayConfig = computed(() => isEquatorial.value ? [
+const displayConfig = computed(() => isEq.value ? [
   { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, domain: 'ra_24' as DomainStyleType },
   { label: 'Declination', pv: p.declination, sp: p.deltaref[1], domain: 'dec_180' as DomainStyleType },
   { label: 'Position Angle', pv: p.positionangle, sp: p.deltaref[2], domain: 'pa_360' as DomainStyleType }
@@ -127,6 +125,24 @@ const displayConfig = computed(() => isEquatorial.value ? [
   { label: 'Roll', pv: p.roll, sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType }
 ]);
 
+
+const statusLabel = computed(() => 
+  p.atpark ? "Parked" : 
+  p.gotoing ? "Gotoing" : 
+  p.slewing ? "Slewing" :
+  p.rotating ? "Rotating" :
+  p.tracking ? "Tracking" : 
+               "Idle"
+)
+
+const statusIcon = computed(() => 
+  p.atpark ? "mdi-parking" : 
+  p.gotoing ? "mdi-move-resize-variant" : 
+  p.slewing ? "mdi-cursor-move" :
+  p.rotating ? "mdi-restore" :
+  p.tracking ? "mdi-star-shooting-outline" : 
+               "mdi-sleep"
+)
 
 // ------------------- Lifecycle Events ---------------------
 
@@ -165,6 +181,7 @@ function cannotPerformCommand(cmd:string) {
 
 // ------------------- Event Handlers ---------------------
 
+
 async function onTrack() {
   if (cannotPerformCommand('toggle tracking')) return
   const result = (p.tracking) ? await dev.alpacaTracking(false) : await dev.alpacaTracking(true);  
@@ -183,6 +200,8 @@ async function onPark() {
 
 async function onAbort() {
   if (cannotPerformCommand('abort')) return
+  isStopOutline.value = false
+  setTimeout(() => { isStopOutline.value = true }, 200)
   const result = await dev.alpacaAbortSlew()
   console.log(result)
 }
