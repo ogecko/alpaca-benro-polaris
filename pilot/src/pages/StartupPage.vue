@@ -137,6 +137,7 @@ const statusLabel = computed(() =>
   p.gotoing ? "Gotoing" : 
   p.slewing ? "Slewing" :
   p.rotating ? "Rotating" :
+  p.ispulseguiding ? "Guiding" :
   p.tracking ? "Tracking" : 
                "Idle"
 )
@@ -146,6 +147,7 @@ const statusIcon = computed(() =>
   p.gotoing ? "mdi-move-resize-variant" : 
   p.slewing ? "mdi-cursor-move" :
   p.rotating ? "mdi-restore" :
+  p.ispulseguiding ? "mdi-pulse" :
   p.tracking ? "mdi-star-shooting-outline" : 
                "mdi-sleep"
 )
