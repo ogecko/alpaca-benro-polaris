@@ -178,6 +178,7 @@ class Polaris:
         self._rotating: bool = False                # True if rotator is in the process of moving 
         self._goto_complete_event = None            # asyncio Event to allow notification of goto complete (only used with advanced control gotos)
         self._rotate_complete_event = None          # asyncio Event to allow notification of rotate complete (only used with advanced control rotates)
+        self._slew_complete_event = None            # asyncio Event to allow notification of slew complete (only used with advanced control rotates)
         self._ispulseguiding: bool = False          # True if a PulseGuide(GuideDirections, Int32) command is in progress, False otherwise
         #
         # Telescope device state variables
@@ -1911,6 +1912,16 @@ class Polaris:
             self._rotating = False
         self._rotate_complete_event.set()
 
+    def markSlewAsUnderway(self):
+        with self._lock:
+            self._slewing = True
+        self._slew_complete_event = asyncio.Event()
+
+    def markSlewAsComplete(self):
+        with self._lock:
+            self._slewing = False
+        self._slew_complete_event.set()
+
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
         a_alt = altitude
         a_az = azimuth
@@ -1988,7 +1999,9 @@ class Polaris:
         if Config.advanced_control and Config.advanced_slewing:
             raw = motor._model.interpolate[units].toRAW(rate)
             dps = motor._model.interpolate["RAW"].toDPS(raw)
+            self.markSlewAsUnderway()
             self._pid.set_alpha_axis_velocity(axis, dps)
+            self._pid.set_slew_complete_callback(self.markSlewAsComplete)
         else:
             self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {rate} Units {units}")
             if not self._tracking:
@@ -2031,7 +2044,6 @@ class Polaris:
             self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")
 
         self._pid.pulse_delta_axis(direction, duration)
-
 
 
     async def park(self):
