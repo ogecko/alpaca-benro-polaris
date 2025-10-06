@@ -177,7 +177,7 @@ class ismoving:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         try:
-            val = bool(polaris._pid.is_deviating)
+            val = bool(polaris.rotating)
             resp.text = await PropertyResponse(val, req)
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.IsMoving failed', ex))
@@ -190,7 +190,10 @@ class position:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         try:
-            val = round(polaris.roll,3)
+            if polaris.positionangle is None:
+                val = 0
+            else:
+                val = round(polaris.positionangle, 3)
             resp.text = await PropertyResponse(val, req)
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.Position failed', ex))
@@ -203,7 +206,10 @@ class targetposition:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         try:
-            val = round(polaris.roll,3)
+            if polaris.targetpositionangle is None:
+                val = 0
+            else:
+                val = round(polaris.targetpositionangle, 3)
             resp.text = await PropertyResponse(val, req)
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.TargetPosition failed', ex))
@@ -259,7 +265,7 @@ class moveabsolute:
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and +360.'))
             return
         try:
-            polaris._pid.set_alpha_target({ "roll": position })
+            polaris.RotateToAbsolutePositionAngle(position)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Rotator.MoveAbsolute failed', ex))
@@ -281,7 +287,7 @@ class move:
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and 360.'))
             return
         try:
-            polaris._pid.rotator_move_relative(position)
+            polaris.RotateToRelativePositionAngle(position)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Rotator.Move failed', ex))
@@ -290,3 +296,20 @@ class move:
 class stepsize:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
+
+@before(PreProcessRequest(maxdev, 'log_rotator_protocol'))
+class halt:
+
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        if polaris.atpark:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot Halt Rotator while parked'))
+            return
+        try:
+            await polaris.AbortSlew()
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req,
+                            DriverException(0x500, 'Telescope.Abortslew failed', ex))

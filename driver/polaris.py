@@ -175,7 +175,9 @@ class Polaris:
         self._atpark: bool = False                  # True if the telescope has been put into the parked state by the seee Park() method. Set False by calling the Unpark() method.
         self._slewing: bool = False                 # True if telescope is in the process of moving in response to one of the Goto methods or the MoveAxis(TelescopeAxes, Double) method, False at all other times.
         self._gotoing: bool = False                 # True if telescope is in the process of moving in response to one of the Goto methods, False at all other times.
+        self._rotating: bool = False                # True if rotator is in the process of moving 
         self._goto_complete_event = None            # asyncio Event to allow notification of goto complete (only used with advanced control gotos)
+        self._rotate_complete_event = None          # asyncio Event to allow notification of rotate complete (only used with advanced control rotates)
         self._ispulseguiding: bool = False          # True if a PulseGuide(GuideDirections, Int32) command is in progress, False otherwise
         #
         # Telescope device state variables
@@ -226,6 +228,7 @@ class Polaris:
         self._supportedactions = []                 # Returns the list of custom action names supported by this driver.
         self._targetdeclination: float = None       # The declination (degrees, positive North) for the target of an equatorial slew or sync operation
         self._targetrightascension: float = None    # The right ascension (hours) for the target of an equatorial slew or sync operation
+        self._targetpositionangle: float = None     # The position angle (degrees) for the target of a rotator move or moveabsolute
         #
         # Telescope capability constants
         #
@@ -233,7 +236,7 @@ class Polaris:
         self._canpark: bool = True                  # True if this telescope is capable of programmed parking (Park()method)
         self._canpulseguide: bool = True            # True if this telescope is capable of software-pulsed guiding (via the PulseGuide(GuideDirections, Int32) method)
         self._cansetdeclinationrate: bool = False   # True if the DeclinationRate property can be changed to provide offset tracking in the declination axis.
-        self._cansetguiderates: bool = False        # True if the guide rate properties used for PulseGuide(GuideDirections, Int32) can ba adjusted.
+        self._cansetguiderates: bool = True         # True if the guide rate properties used for PulseGuide(GuideDirections, Int32) can ba adjusted.
         self._cansetpark: bool = False              # True if this telescope is capable of programmed setting of its park position (SetPark() method)
         self._cansetpierside: bool = False          # True if the SideOfPier property can be set, meaning that the mount can be forced to flip.
         self._cansetrightascensionrate: bool = False# True if the RightAscensionRate property can be changed to provide offset tracking in the right ascension axis.
@@ -1418,6 +1421,7 @@ class Polaris:
                 'atpark': self._atpark,
                 'slewing': self._slewing,
                 'gotoing': self._gotoing,
+                'rotating': self._rotating,
                 'ispulseguiding': self._ispulseguiding,
                 'paltitude': self._p_altitude,
                 'pazimuth': self._p_azimuth,
@@ -1495,6 +1499,12 @@ class Polaris:
         return res
 
     @property
+    def rotating(self) -> bool:
+        with self._lock:
+            res =  self._rotating
+        return res
+
+    @property
     def ispulseguiding(self) -> bool:
         with self._lock:
             res =  self._ispulseguiding
@@ -1524,6 +1534,12 @@ class Polaris:
     def rotation(self) -> float:
         with self._lock:
             res =  self._rotation
+        return res
+
+    @property
+    def positionangle(self) -> float:
+        with self._lock:
+            res =  self._position_angle
         return res
 
     @property
@@ -1731,6 +1747,16 @@ class Polaris:
     def targetrightascension (self, targetrightascension: float):
         with self._lock:
             self._targetrightascension = targetrightascension
+
+    @property
+    def targetpositionangle(self) -> float:
+        with self._lock:
+            res =  self._targetpositionangle
+        return res
+    @targetpositionangle.setter
+    def targetpositionangle (self, targetpositionangle: float):
+        with self._lock:
+            self._targetpositionangle = targetpositionangle
     #
     # Telescope capability constants
     #
@@ -1875,6 +1901,16 @@ class Polaris:
             self._gotoing = False
         self._goto_complete_event.set()
 
+    def markRotateAsUnderway(self):
+        with self._lock:
+            self._rotating = True
+        self._rotate_complete_event = asyncio.Event()
+
+    def markRotateAsComplete(self):
+        with self._lock:
+            self._rotating = False
+        self._rotate_complete_event.set()
+
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
         a_alt = altitude
         a_az = azimuth
@@ -1882,6 +1918,24 @@ class Polaris:
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
     # ******* Advanced MPC control aware methods ********
+    def RotateToRelativePositionAngle(self, rel_position_angle):
+        self.logger.info(f"->> Polaris: Rotate Relative Observed   PositionAngle {deg2dms(self.positionangle)} + {deg2dms(rel_position_angle)}")
+        position_angle = self.positionangle + rel_position_angle
+        self.RotateToAbsolutePositionAngle(position_angle)
+
+
+    def RotateToAbsolutePositionAngle(self, position_angle):
+        self.logger.info(f"->> Polaris: Rotate Absolute Observed   PositionAngle {deg2dms(position_angle)}")
+        roll = self._sm.pa2roll(self.azimuth, self.altitude, position_angle)
+        self.RotateToRollAngle(roll)
+
+    def RotateToRollAngle(self, roll):
+        if Config.advanced_rotator:
+            self.logger.info(f"->> Polaris: Rotate Absolute Observed   RollAngle {deg2dms(roll)}")
+            self.markRotateAsUnderway()
+            self._pid.set_alpha_target({ "roll": roll })
+            self._pid.set_rotate_complete_callback(self.markRotateAsComplete)
+            self.logger.info(f"->> Polaris: Rotate Observed   rotating {self.rotating}")
 
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
