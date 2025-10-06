@@ -305,7 +305,7 @@ function onSvgClick(e: MouseEvent | TouchEvent) {
 
 // handle mouse wheel events while over the svg and change zoom level/scaleRange
 function onScaleWheel(e: WheelEvent) {
-  e.preventDefault();
+  // e.preventDefault();  - unable to pre3ventDefault inside passive event listener invocation
 
   const baseFactor = 1.2;   // tweak baseFactor for step sensitivity     
   const divisor = 50        // tweak divisor for magnitude sensitivity
