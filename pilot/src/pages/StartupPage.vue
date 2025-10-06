@@ -7,14 +7,14 @@
     <div class="row q-pa-xs items-center q-col-gutter-sm">
 
       <!----- LHS Action Buttons ----->
-      <div class="">
+      <div class="q-pb-sm">
         <div class="q-gutter-md ">
           <q-btn-group >
-            <q-btn icon="mdi-telescope"  glossy dense  size="md" color="secondary" push :outline="!isEq" @click="isEq=!isEq"  />
-            <q-btn icon="mdi-parking"  glossy dense size="md" color="secondary" :outline="!p.atpark"  @click="onPark"/>
-            <q-btn icon="mdi-stop" glossy dense size="md" color="secondary" :outline="isStopOutline" @click="onAbort"/>
+            <q-btn icon="mdi-telescope"  glossy  :dense="btnDense" :size="btnSize" color="secondary" push :outline="!isEq" @click="isEq=!isEq"  />
+            <q-btn icon="mdi-parking"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark"/>
+            <q-btn icon="mdi-stop" glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="isStopOutline" @click="onAbort"/>
           </q-btn-group>
-          <q-btn-dropdown dense icon="mdi-star-shooting-outline" glossy size="md" color="secondary" split :outline="!p.tracking" @click="onTrack">
+          <q-btn-dropdown :dense="btnDense" icon="mdi-star-shooting-outline" glossy :size="btnSize" color="secondary" split :outline="!p.tracking" @click="onTrack">
             <q-list  dense >
               <q-item clickable v-close-popup :active="p.trackingrate==0" active-class="bg-secondary text-white" @click="onTrackRate(0)">
                 <q-item-section><q-item-label>Sidereal</q-item-label></q-item-section>
@@ -125,6 +125,12 @@ const displayConfig = computed(() => isEq.value ? [
   { label: 'Roll', pv: p.roll, sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType }
 ]);
 
+const btnSize = computed(() =>
+  $q.screen.lt.sm ? 'md' : 'md'   // leave at md
+)
+const btnDense = computed(() =>
+  $q.screen.lt.md ? true : false
+)
 
 const statusLabel = computed(() => 
   p.atpark ? "Parked" : 
