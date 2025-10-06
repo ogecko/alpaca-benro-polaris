@@ -43,11 +43,9 @@
 
       <q-space />
       <!----- RHS Chip Status Info ----->
-      <div class="">
-        <q-chip color="positive" :outline="statusLabel=='Idle'" :icon="statusIcon">
-          {{statusLabel}}
-        </q-chip>
-      </div>
+      <q-chip color="positive" :outline="statusLabel=='Idle'" :icon="statusIcon" class="q-pa-md">
+        {{statusLabel}}
+      </q-chip>
     </div>
 
     <!----- Dynamic Set of 3 Radial Scales ----->
