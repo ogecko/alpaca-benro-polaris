@@ -127,9 +127,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Proper task cleanup in polaris.restart(), especially to fix no position updates for over 2s. Restarting AHRS
 # [X] Fix when Pilot left behind other window, and Chrome hangs
 # [X] Alpaca Pilot close inactive websocket clients
-# [ ] Alpaca pilot feature degredation when not in Advanced Control
-# [ ] Alpaca pilot feature degredation when no Multi-Point Alignment
-# [ ] Alpaca pilot feature degredation when no Rotator
+# [X] Alpaca pilot feature degredation when not in Advanced Control
+# [X] Alpaca pilot feature degredation when no Multi-Point Alignment
+# [X] Alpaca pilot feature degredation when no Rotator
 # [ ] Alpaca pilot feature degredation when not ABP Driver
 # [ ] Alpaca pilot works without the third axis Astro Module Hardware (adjust Az/Alt)
 # [ ] Alpaca Pilot memory and logevity tests

@@ -21,18 +21,46 @@
         <q-card flat bordered class="col q-pa-md">
           <div class="row">
             <!-- KF intro -->
-            <div class="col-md-12">
-<q-markdown  :no-mark="false">
+            <div class="col-md-8">
+<q-markdown  v-if="cfg.advanced_alignment && cfg.advanced_control" :no-mark="false">
 # Multi-Point Alignment 
 Alpaca multi-point alignment calibrates how your mount’s internal coordinate system maps to the horizon and celestrial sky. By syncing with three or more known positions, it builds a correction model that accounts for tripod tilt, polar misalignment, cone error, and other mechanical offsets that can affect pointing and tracking accuracy. 
 </q-markdown>
+<q-markdown  v-else :no-mark="false">
+# Single-Point Alignment 
+Alpaca single-point alignment mirrors the standard Polaris alignment method, syncing the mount to a known celestial position. Works with plate-solving, corrections apply globally, but this method relies on precise tripod leveling and can be susceptible to drift. 
+</q-markdown>
+
+            </div>
+
+            <div class="col-md-4 q-pt-sm">
+              <q-list style="max-width: 800px">
+                <!-- Choose Motor -->
+                <q-item class="q-pt-md">
+                  <q-item-section side top>
+                      <q-btn-toggle v-model="cfg.advanced_alignment" push rounded glossy toggle-color="primary"  
+                        @update:model-value="onModelUpdate"
+                        :options="[
+                          {label: 'Single', value: false},
+                          {label: 'Multi', value: true},
+                        ]"
+                      />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>Choosen Alignment Model</q-item-label>
+                    <q-item-label caption>
+                      Select single point or multi-point alignment.
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
             </div>
           </div>
         </q-card>
       </div>
    
       <!-- Telescope Alignment Row -->
-      <div class="col-12 col-md-6 col-lg-4 flex">
+      <div v-if="cfg.advanced_alignment && cfg.advanced_control" class="col-12 col-md-6 col-lg-4 flex">
         <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">Telescope Alignment Model</div>
           <div class="row">
@@ -83,7 +111,7 @@ Alpaca multi-point alignment calibrates how your mount’s internal coordinate s
       </div>
 
       <!-- Rotator Alignment Row -->
-      <div class="col-12 col-md-6 col-lg-4 flex">
+      <div v-if="cfg.advanced_rotator && cfg.advanced_control" class="col-12 col-md-6 col-lg-4 flex">
         <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">Rotator Alignment Model</div>
           <div class="row">
@@ -246,6 +274,7 @@ import { useStatusStore } from 'src/stores/status'
 import type { LocationResult } from 'src/utils/locationServices';
 import LocationPicker from 'src/components/LocationPicker.vue';
 import { getWeatherData, delta_latlon2AzAlt } from 'src/utils/locationServices';
+import { debounce } from 'quasar'
 const socket = useStreamStore()
 const p = useStatusStore()
 const cfg = useConfigStore()
@@ -376,6 +405,16 @@ function triggerAnimation(keys: string[]) {
     keys.forEach(key => taKeys.value.delete(key))
   }, 600)
 }
+
+
+function onModelUpdate(v: string | number | boolean | null) {
+  const payload = { advanced_alignment: v }
+  console.log(payload)
+  put(payload)
+}
+
+// debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 
+const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put for toggles
 
 </script>
 
