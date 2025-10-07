@@ -94,7 +94,7 @@ class configureddevices():
             'UniqueID'      : TelescopeMetadata.DeviceID
             }
         ]
-        if Config.advanced_rotator:
+        if Config.advanced_rotator and Config.advanced_control:
             confarray.append({
                 'DeviceName'    : RotatorMetadata.Name,
                 'DeviceType'    : RotatorMetadata.DeviceType,

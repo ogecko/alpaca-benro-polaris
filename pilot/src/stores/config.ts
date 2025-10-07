@@ -128,7 +128,10 @@ export const useConfigStore = defineStore('config', {
         this.$patch(updated)
         console.log('configUpdate',updated)
         // Check if we need to refetch configured devices
-        if (Object.prototype.hasOwnProperty.call(updated, 'advanced_rotator')) {
+        if (
+          Object.prototype.hasOwnProperty.call(updated, 'advanced_control') ||
+          Object.prototype.hasOwnProperty.call(updated, 'advanced_rotator')
+        ) {
           await dev.fetchConfiguredDevices()
         }
         // Check if any updated key requires restart

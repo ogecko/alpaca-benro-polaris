@@ -1941,12 +1941,15 @@ class Polaris:
         self.RotateToRollAngle(roll)
 
     def RotateToRollAngle(self, roll):
-        if Config.advanced_rotator:
+        if Config.advanced_rotator and Config.advanced_control:
             self.logger.info(f"->> Polaris: Rotate Absolute Observed   RollAngle {deg2dms(roll)}")
             self.markRotateAsUnderway()
             self._pid.set_alpha_target({ "roll": roll })
             self._pid.set_rotate_complete_callback(self.markRotateAsComplete)
             self.logger.info(f"->> Polaris: Rotate Observed   rotating {self.rotating}")
+        else:
+            self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
+
 
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0

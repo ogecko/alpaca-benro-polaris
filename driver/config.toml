@@ -30,9 +30,9 @@ default_azimuth = '180'                     # String 'deg:mm:ss' used by Alpaca 
 default_altitude = '45'                     # String 'deg:mm:ss' used by Alpaca Pilot as default altitude on Single Star Align
 
 [control]
+advanced_control = true                     # Used to disable all advanced control features, must be true to use any advanced feature
 advanced_kf = false                         # Enable the Kalman Filtering of measurement data to smooth out noise
 advanced_rotator = true                     # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
-advanced_control = true                     # Used to enable or disable all advanced control features
 advanced_slewing = false                    # Perform advanced control for move axis commands (no longer uses Benro Polaris tracking)
 advanced_goto = false                       # Perform advanced goto slewing in Alpaca Driver (no longer uses Benro Polaris goto)
 advanced_tracking = false                   # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
