@@ -548,13 +548,13 @@ class Polaris:
         return p_alt, p_az
 
     async def sync_to_azalt(self, a_az, a_alt):
-        syncmsg = 'Multi-Point Alignment' if Config.advanced_alignment else 'Single-Point Alignment'
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
         self.logger.info(f"->> Polaris: SYNC Observed   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
         await self.sync_telescope_pointing_models(a_az=a_az, a_alt=a_alt)
         return
 
     async def sync_to_radec(self, a_ra, a_dec):
-        syncmsg = 'Multi-Point Alignment' if Config.advanced_alignment else 'Single-Point Alignment'
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
         self.logger.info(f"->> Polaris: SYNC Observed   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} ({syncmsg})")
         await self.sync_telescope_pointing_models(a_ra=a_ra, a_dec=a_dec)
         return
@@ -568,7 +568,7 @@ class Polaris:
             self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
             return
 
-        if Config.advanced_alignment:
+        if Config.advanced_alignment and Config.advanced_control:
             # Use Multi-Point Alignment and QUEST Model to determine Optimal Quaternion offset
             self._sm.sync_az_alt(a_az, a_alt)
         else:
@@ -757,7 +757,7 @@ class Polaris:
 
             azhint = p_az
             q1s = motors_to_quaternion(*(theta_state if (Config.advanced_kf and Config.advanced_control) else theta_meas))
-            if Config.advanced_alignment:        # Correct the q1s state with the Multi-Point QUEST optimal rotation
+            if Config.advanced_alignment and Config.advanced_control:        # Correct the q1s state with the Multi-Point QUEST optimal rotation
                 q1s = self._sm.q1_adj * q1s
                 azhint = p_az + self._sm.az_adj
 
@@ -1961,13 +1961,13 @@ class Polaris:
         with self._lock:
             self._targetrightascension = a_ra
             self._targetdeclination = a_dec
-        if Config.advanced_alignment:
+        if Config.advanced_alignment and Config.advanced_control:
             p_az, p_alt = self._sm.azalt_ascom2polaris(a_az, a_alt)         # Use Multi-Point Alignment model
         else:
             p_alt, p_az = self.altaz_ascom2polaris(a_alt, a_az)             # Use Single-Point Alignment model
 
-        syncmsg = 'Multi-Point Alignment' if Config.advanced_alignment else 'Single-Point Alignment'
-        gotomsg = 'Advanced Control' if Config.advanced_control and (Config.advanced_goto and Config.advanced_control) else 'Polaris Control'
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
+        gotomsg = 'Advanced Control' if (Config.advanced_goto and Config.advanced_control) else 'Polaris Control'
         self.logger.info(f"->> Polaris: GOTO Predicted  Az {deg2dms(p_az)}   Alt {deg2dms(p_alt)} ({syncmsg}, {gotomsg})")
 
         if Config.advanced_goto and Config.advanced_control:
