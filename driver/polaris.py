@@ -2040,14 +2040,16 @@ class Polaris:
                 await self.send_cmd_change_tracking_state(True)
 
     def pulse_guide(self, direction: int, duration: int):
-        with self._lock:
-            self._ispulseguiding = True                     # is reset in _pid.track_target when all done
+        if Config.advanced_guiding and Config.advanced_control:
+            with self._lock:
+                self._ispulseguiding = True                     # is reset in _pid.track_target when all done
 
-        if Config.log_pulse_guiding:
-            self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")
+            if Config.log_pulse_guiding:
+                self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")
 
-        self._pid.pulse_delta_axis(direction, duration)
-
+            self._pid.pulse_delta_axis(direction, duration)
+        else:
+            self.logger.warning(f"->> Polaris: Advanced Guiding is not enabled")
 
     async def park(self):
         with self._lock:
