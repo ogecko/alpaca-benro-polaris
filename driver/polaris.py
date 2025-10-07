@@ -684,7 +684,7 @@ class Polaris:
                     self._tracking_in_benro = arg_dict.get('track') == '1'
                     self._aligned = isAligned
                     self._compassed = isAligned
-                if not Config.advanced_tracking:        # only update tracking if Benro in control
+                if not (Config.advanced_tracking and Config.advanced_control):        # only update tracking if Benro in control
                     self._tracking = self._tracking_in_benro
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: MODE status changed: {cmd} {arg_dict}")
@@ -789,7 +789,7 @@ class Polaris:
             arg_dict = self.polaris_parse_args(args)
             with self._lock:
                 self._tracking_in_benro = arg_dict.get('ret') == '1'
-                if not Config.advanced_tracking:        # only update tracking if Benro in control
+                if not (Config.advanced_tracking and Config.advanced_control):        # only update tracking if Benro in control
                     self._tracking = self._tracking_in_benro
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: TRACK status changed: {cmd} {arg_dict}")
@@ -2031,7 +2031,7 @@ class Polaris:
 
     async def start_tracking(self):
         self._tracking = True
-        if Config.advanced_control and Config.advanced_tracking:
+        if Config.advanced_tracking and Config.advanced_control:
             self.logger.info(f"Advanced Control: START tracking")
             self._pid.set_tracking_on()
         else:
