@@ -756,7 +756,7 @@ class Polaris:
             kflogger.info(payload)
 
             azhint = p_az
-            q1s = motors_to_quaternion(*(theta_state if Config.advanced_kf else theta_meas))
+            q1s = motors_to_quaternion(*(theta_state if (Config.advanced_kf and Config.advanced_control) else theta_meas))
             if Config.advanced_alignment:        # Correct the q1s state with the Multi-Point QUEST optimal rotation
                 q1s = self._sm.q1_adj * q1s
                 azhint = p_az + self._sm.az_adj
