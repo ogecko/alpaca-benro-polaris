@@ -1967,10 +1967,10 @@ class Polaris:
             p_alt, p_az = self.altaz_ascom2polaris(a_alt, a_az)             # Use Single-Point Alignment model
 
         syncmsg = 'Multi-Point Alignment' if Config.advanced_alignment else 'Single-Point Alignment'
-        gotomsg = 'Advanced Control' if Config.advanced_control and Config.advanced_goto else 'Polaris Control'
+        gotomsg = 'Advanced Control' if Config.advanced_control and (Config.advanced_goto and Config.advanced_control) else 'Polaris Control'
         self.logger.info(f"->> Polaris: GOTO Predicted  Az {deg2dms(p_az)}   Alt {deg2dms(p_alt)} ({syncmsg}, {gotomsg})")
 
-        if Config.advanced_control and Config.advanced_goto:
+        if Config.advanced_goto and Config.advanced_control:
             self.markGotoAsUnderway()
             self._pid.set_alpha_target({ "az": a_az, "alt": a_alt })
             self._pid.set_goto_complete_callback(self.markGotoAsComplete)
@@ -1985,7 +1985,7 @@ class Polaris:
     async def AbortSlew(self):
         await self.unpark()
         await self.stop_tracking()
-        if Config.advanced_control and Config.advanced_goto:
+        if Config.advanced_goto and Config.advanced_control:
             self.logger.info(f"Advanced Control: ABORT GOTO")
             await self.stop_all_axes()
         else:
