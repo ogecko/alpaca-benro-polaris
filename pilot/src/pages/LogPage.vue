@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-sm">
+  <q-page class="q-pa-sm column">
 
     <StatusBanners />
 
@@ -22,9 +22,9 @@
     </div>
 
     <!-- Log card fills rest -->
-    <q-card flat bordered class="col">
-      <q-card-section class="column" style="font-family: monospace;" >
-        <q-scroll-area ref="scrollArea" @scroll="onScroll"  style="height: 85vh; font-family: monospace;" class="text-body1"
+    <q-card ref="cardArea" flat bordered class="col full-height q-pa-md text-body1" style="font-family: monospace;">
+        <q-resize-observer @resize="onResize" />
+        <q-scroll-area ref="scrollArea" @scroll="onScroll"  :style="{ 'height': scrollHeight + 'px' }"
           @wheel="resetKeepAtBottom" @click="resetKeepAtBottom" @touchstart="resetKeepAtBottom">
           <div>
             <div v-for="(entry, index) in logEntries" :key="index">
@@ -33,7 +33,6 @@
             <q-intersection @visibility="onSentinelVisibility" />
           </div>
         </q-scroll-area>
-      </q-card-section>
     </q-card>
   </q-page>
 </template>
@@ -68,7 +67,9 @@ const dev = useDeviceStore()
 const logEntries = computed(() => socket.topics['log'] || [])
 const isAtBottom = ref(true)
 const keepAtBottom = ref(true)
+const cardArea = ref()
 const scrollArea = ref()
+const scrollHeight = ref(0)
 
 onMounted(() => {
   socket.connectSocket()   //    'ws://192.168.50.54:5556/ws'
@@ -83,6 +84,23 @@ onUnmounted(() => {
 watch(() => dev.isVisible, (isVisible) => {
   void (isVisible ? socket.subscribe('log') : socket.unsubscribe('log'))
 })
+
+
+function onResize(size: { width: number; height: number }) {
+  console.log('Resize Log', size)
+  scrollHeight.value = size.height-50
+}
+
+
+// function updateScrollHeight() {
+//   this.$nextTick(() => {
+//     const card = this.$refs.logCard
+//     if (card) {
+//       const height = card.getBoundingClientRect().height
+//       this.scrollHeight = height
+//     }
+//   })
+// }
 
 
 function format(entry: TelemetryRecord): string {

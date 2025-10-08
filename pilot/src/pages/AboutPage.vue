@@ -47,15 +47,15 @@
       <!-- Kickstarter Recognition -->
       <div class="col-12 col-md-6 col-lg-4 flex">
         <div flat  class="q-pa-md full-width">
-          <div class="text-h6">Kickstarter Recognition</div>
+          <div class="text-h6">Kickstarter & Beta Recognition</div>
           <div class="row">
               <div class="col-12 text-caption text-grey-6 q-pb-md">
-              Thanks to all Kickstarter backers, especially the following.
+              Thanks to all Kickstarter backers and Beta testers, especially the following.
               </div>
           </div>
           <q-markup-table dense flat class="bg-grey-10">
             <thead>
-              <tr><th class="text-left">Game Changer</th><th class="text-left">Thats Awesome</th></tr>
+              <tr><th class="text-left">Game Changer</th><th class="text-left">Beta Testers</th></tr>
             </thead>
             <tr><td>Mack Cameron</td><td>TBD</td></tr>
             <tr><td>Peter</td><td></td></tr>
@@ -83,9 +83,10 @@
             <tr><td>Benro (Polaris)</td><td>GitHub</td></tr>
             <tr><td>Stefan Berg (Nina)</td><td>Kickstarter</td></tr>
             <tr><td>Robert B. Denny (Alpaca)</td><td>Napkin AI</td></tr>
-            <tr><td>Steven Byrnes (Seestar_alp)</td><td>Copilot AI</td></tr>
+            <tr><td>Steven Byrnes (Seestar_alp)</td><td>Open AI</td></tr>
             <tr><td>Peter Simpson (ASCOM)</td><td>Grammarly</td></tr>
-            <tr><td>ASCOM Initiative Members</td><td></td></tr>
+            <tr><td>ASCOM Initiative Members</td><td>Pictogrtammers</td></tr>
+            <tr><td>Gary Imm (Catalog)</td><td>Stellarium</td></tr>
           </q-markup-table>
         </div>
       </div>
