@@ -1156,7 +1156,7 @@ class PID_Controller():
         self.set_Ka_array(Config.max_accel_rate) # Maximum acceleration (float: degrees per seconds² or array(3): degrees per seconds²
         self.set_Kv_array(Config.max_slew_rate)  # Maximum velocity (float: degrees per second or array(3): degrees per seconds or None: (maxDSP from controller)
         
-        if Config.advanced_control and self.control_loop_duration:
+        if self.control_loop_duration:
             asyncio.create_task(self._control_loop())
 
     #------- Helper functions ---------
