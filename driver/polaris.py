@@ -2007,7 +2007,7 @@ class Polaris:
             with self._lock:
                 self._axis_ASCOM_slewing_rates[axis] = rate
                 self._slewing = any(self._axis_ASCOM_slewing_rates)
-            if not self._tracking:
+            if not (self._tracking and Config.advanced_control and Config.advanced_tracking):
                 await motor.set_motor_speed(rate, units)
 
     async def stop_all_axes(self):
