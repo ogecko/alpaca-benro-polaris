@@ -84,10 +84,10 @@
           <q-separator class="q-my-md" />
         </q-list>
        
-        <!-- Experimental -->
+        <!-- Performance Tuning -->
         <q-list dense>
           <q-item-label header class="text-weight-bold text-uppercase">
-            Experimental
+            Performance Tuning
           </q-item-label>
           <q-item v-for="link in links4" :key="link.text" v-ripple clickable :to="link.to">
             <q-item-section avatar>
