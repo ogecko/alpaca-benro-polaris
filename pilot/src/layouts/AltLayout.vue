@@ -235,16 +235,14 @@ const links4 = [
 ]
   const buttons1 = [
     { text: 'About', to: '/about' },
-    { text: 'Copyright', to: '/' },
-    { text: 'Contact us', to: '/' },
-    { text: 'Position', to: '/position' },
-    { text: 'Markdown', to: '/markdown' },
+    { text: 'Home', to: '/' },
+    { text: 'Settings', to: '/config' },
+    { text: 'Logs', to: '/log' },
     { text: 'Widgets', to: '/test' },
+    { text: 'Markdown', to: '/markdown' },
   ]
   const buttons2 = [
-    { text: 'Terms', to: '/' },
-    { text: 'Privacy', to: '/' },
-    { text: 'Policy & Safety', to: '/' },
+    { text: 'Warnings', to: '/warning' },
   ]
 
 

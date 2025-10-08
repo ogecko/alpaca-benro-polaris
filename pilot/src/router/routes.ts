@@ -61,6 +61,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/AltLayout.vue'),
     children: [{ path: '', component: () => import('pages/AboutPage.vue') }],
   },
+  {
+    path: '/warning',
+    component: () => import('layouts/AltLayout.vue'),
+    children: [{ path: '', component: () => import('pages/WarningPage.vue') }],
+  },
 
 
     // Always leave this as last one,
