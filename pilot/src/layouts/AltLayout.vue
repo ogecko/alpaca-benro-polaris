@@ -234,7 +234,7 @@ const links4 = [
   { icon: 'mdi-stethoscope', text: 'Diagnostics', to: '/position' },
 ]
   const buttons1 = [
-    { text: 'About', to: '/' },
+    { text: 'About', to: '/about' },
     { text: 'Copyright', to: '/' },
     { text: 'Contact us', to: '/' },
     { text: 'Position', to: '/position' },
