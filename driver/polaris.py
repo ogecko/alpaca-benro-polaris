@@ -1938,7 +1938,7 @@ class Polaris:
 
     # ******* Advanced MPC control aware methods ********
     def RotateToRelativePositionAngle(self, rel_position_angle):
-        self.logger.info(f"->> Polaris: Rotate Relative Observed   PositionAngle {deg2dms(self.positionangle)} + {deg2dms(rel_position_angle)}")
+        self.logger.info(f"->> Polaris: Rotate Relative Observed   PositionAngle {deg2dms(self.positionangle)} PLUS {deg2dms(rel_position_angle)}")
         position_angle = self.positionangle + rel_position_angle
         self.RotateToAbsolutePositionAngle(position_angle)
 
