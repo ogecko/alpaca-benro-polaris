@@ -1376,7 +1376,7 @@ class PID_Controller():
 
     def track_target(self):
         # Update alpha_ref based on current mode
-        if self.mode in ['IDLE', 'PARK']:
+        if self.mode in ['PARK']:
             self.alpha2body(self.alpha_meas)
             self.delta_ref = self.body2delta()           
             self.delta_sp = self.body2delta()            
@@ -1384,6 +1384,15 @@ class PID_Controller():
             self.alpha_sp = self.alpha_meas                  # in case we switch to AUTO
             self.alpha_offst = np.array([0,0,0],dtype=float) # in case we switch to AUTO
         
+        elif self.mode in ['IDLE']:
+            if (self.alpha_ref[0]==0):
+                self.alpha2body(self.alpha_meas)
+                self.delta_ref = self.body2delta()           
+                self.delta_sp = self.body2delta()            
+                self.alpha_ref = self.alpha_meas
+                self.alpha_sp = self.alpha_meas                  # in case we switch to AUTO
+            self.alpha_offst = np.array([0,0,0],dtype=float) # in case we switch to AUTO
+
         elif self.mode == 'AUTO':
             self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
