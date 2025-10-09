@@ -581,6 +581,10 @@ class Polaris:
         self._targetdeclination = a_dec
         self._altitude = a_alt
         self._azimuth = a_az
+        self._pid.alpha_sp[0] = a_az
+        self._pid.alpha_sp[1] = a_alt
+        self._pid.delta_sp[0] = a_ra
+        self._pid.delta_sp[1] = a_dec
 
         return
 
@@ -1960,13 +1964,16 @@ class Polaris:
 
     def SyncToPositionAngle(self, position_angle):
         self.logger.info(f"->> Polaris: Sync Absolute Observed   PositionAngle {deg2dms(position_angle)}, Current {deg2dms(self.positionangle)}")
-        roll = self._sm.pa2roll(self.self._pid.alpha_sp[0], self._pid.alpha_sp[1], position_angle)
+        roll = self._sm.pa2roll(self._pid.alpha_sp[0], self._pid.alpha_sp[1], position_angle)
         self.SyncToRoll(roll)
 
     def SyncToRoll(self, roll_angle):
         if Config.advanced_rotator and Config.advanced_control:
             self.logger.info(f"->> Polaris: Sync Absolute Observed   RollAngle {deg2dms(roll_angle)}, Current {deg2dms(self.roll)}")
             self._sm.sync_roll(roll_angle)
+            position_angle,_ = self._sm.roll2pa(self._pid.alpha_sp[0], self._pid.alpha_sp[1], roll_angle)
+            self._pid.alpha_sp[2] = roll_angle
+            self._pid.delta_sp[2] = position_angle
         else:
             self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
 
