@@ -280,7 +280,7 @@ class canpark:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canpark failed', ex))
 
-@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class canpulseguide:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -293,7 +293,7 @@ class canpulseguide:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canpulseguide failed', ex))
 
-@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class cansetguiderates:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -306,7 +306,7 @@ class cansetguiderates:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetguiderates failed', ex))
 
-@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class cansetrightascensionrate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -319,7 +319,7 @@ class cansetrightascensionrate:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetrightascensionrate failed', ex))
 
-@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class cansetdeclinationrate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -543,7 +543,7 @@ class focallength:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Focallength failed', ex))
 
-@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class guideratedeclination:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -559,7 +559,7 @@ class guideratedeclination:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class guideraterightascension:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -575,7 +575,7 @@ class guideraterightascension:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class ispulseguiding:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -1131,8 +1131,8 @@ class pulseguide:
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Duration {durationstr} not a valid number.'))
             return
-        if duration <= 0 or duration > 5000:
-            resp.text = await PropertyResponse(None,req, InvalidValueException(f'duration {durationstr} must be between 1 and 5000 ms.'))
+        if duration <= 0 or duration > 10000:
+            resp.text = await PropertyResponse(None,req, InvalidValueException(f'duration {durationstr} must be between 1 and 10000 ms.'))
             return
         try:
             polaris.pulse_guide(direction, duration)
