@@ -1804,7 +1804,7 @@ class SyncManager:
         deltas = []
 
         for entry in self.sync_history:
-            if entry["a_roll"] is None:
+            if entry["deleted"] or entry["a_roll"] is None:
                 continue
 
             # Compute delta: how much Polaris roll differs from expected PA
