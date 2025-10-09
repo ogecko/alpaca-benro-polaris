@@ -1742,8 +1742,8 @@ class SyncManager:
             if entry["a_roll"] is None:
                 continue
             p_roll = entry["p_roll"]
-            a_roll = entry["a_roll"]
-            entry["residual_magnitude"] = angular_difference(p_roll, a_roll)
+            p_corr = self.roll_polaris2ascom(p_roll)
+            entry["residual_magnitude"] = angular_difference(p_corr, entry["a_roll"])
 
 
     def compute_tilt(self):
