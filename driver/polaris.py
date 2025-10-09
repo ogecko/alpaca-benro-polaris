@@ -1949,7 +1949,7 @@ class Polaris:
 
     def RotateToAbsolutePositionAngle(self, position_angle):
         self.logger.info(f"->> Polaris: Rotate Absolute Observed   PositionAngle {deg2dms(position_angle)}")
-        roll = self._sm.pa2roll(self.self._pid.alpha_sp[0], self._pid.alpha_sp[1], position_angle)
+        roll = self._sm.pa2roll(self._pid.alpha_sp[0], self._pid.alpha_sp[1], position_angle)
         self.RotateToRollAngle(roll)
 
     def RotateToRollAngle(self, roll):
