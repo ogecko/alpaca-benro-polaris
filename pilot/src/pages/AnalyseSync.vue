@@ -131,7 +131,7 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
                   <q-item-label><span class="text-caption">Residual</span> {{data.resmag}}</q-item-label>
               </q-item-section>
               <q-item-section side>
-                  <q-btn dense size="sm" round icon="mdi-close" />
+                  <q-btn dense size="sm" round icon="mdi-close" @click="onSyncRemove(data.timestamp)"/>
               </q-item-section>
             </q-item>
           </q-list>
@@ -299,7 +299,7 @@ const Roll = computed(() => dms2deg(Roll_str.value, 'deg'))
 
 const telescope_syncs = computed(() => {
   const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData).filter(d=>((d.a_az !== null) && (d.a_alt !== null)))
+  const syncdata = sm.map(formatSyncData).filter(d=>((d.a_az != '') && (d.a_alt != '')))
   const consolidated = new Map<string, TableRow>()
   for (const data of syncdata) {
     consolidated.set(data.timestamp, data)
@@ -309,7 +309,7 @@ const telescope_syncs = computed(() => {
 
 const rotator_syncs = computed(() => {
   const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData).filter(d=>(d.a_roll !== ''))
+  const syncdata = sm.map(formatSyncData).filter(d=>(d.a_roll != ''))
   const consolidated = new Map<string, TableRow>()
   for (const data of syncdata) {
     consolidated.set(data.timestamp, data)
@@ -330,9 +330,9 @@ function formatSyncData(d: TelemetryRecord):TableRow {
   const timestamp = data.timestamp ?? ''
   const deleted = data.deleted ?? false
   const time = new Date(data.timestamp).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true}) ?? ''
-  const a_az = data.a_az ? formatAngle(data.a_az, 'deg', 1) : ''
-  const a_alt = data.a_alt ? formatAngle(data.a_alt, 'deg', 1) : ''
-  const a_roll = data.a_roll ? formatAngle(data.a_roll, 'deg', 1) : ''
+  const a_az = data.a_az != null ? formatAngle(data.a_az, 'deg', 1) : ''
+  const a_alt = data.a_alt != null  ? formatAngle(data.a_alt, 'deg', 1) : ''
+  const a_roll = data.a_roll != null ? formatAngle(data.a_roll, 'deg', 1) : ''
   const resmag = data.residual_magnitude ? formatAngle(data.residual_magnitude, 'deg', 1) : ''
   const resvec = data.residual_vector ?? [0,0]
   return { timestamp, deleted, time, a_az, a_alt, a_roll, resmag, resvec }
