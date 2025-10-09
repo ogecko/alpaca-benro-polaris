@@ -757,12 +757,10 @@ class Polaris:
 
             azhint = p_az
             q1s = motors_to_quaternion(*(theta_state if (Config.advanced_kf and Config.advanced_control) else theta_meas))
-            if Config.advanced_alignment and Config.advanced_control:        # Correct the q1s state with the Multi-Point QUEST optimal rotation
-                q1s = self._sm.q1_adj * q1s
-                azhint = p_az + self._sm.az_adj
 
             # update all the ASCOM values and the PID loop
             alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1s, azhint)
+
             self._pid.measure(alpha_state, theta_state)
 
 
@@ -858,8 +856,18 @@ class Polaris:
 
 
     def update_ascom_from_new_q1_adj(self, q1s, azhint):
-        # Calc all the new ASCOM values based on a shifted q1s
+        # Correct the q1s state with the Multi-Point QUEST optimal adj
+        if Config.advanced_alignment and Config.advanced_control:        
+                q1s = self._sm.q1_adj * q1s
+                azhint = azhint + self._sm.az_adj
+
+        # Calc all the new ASCOM values based on a corrected q1s
         a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
+
+        # Correct the roll state with the Rotator adj
+        if Config.advanced_rotator and Config.advanced_control:         
+            a_roll = self._sm.roll_polaris2ascom(a_roll)
+
         alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
         theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)
         a_ra, a_dec = self.altaz2radec(a_alt, a_az)
