@@ -861,7 +861,7 @@ class Polaris:
 
         # Correct the q1s state with the Multi-Point QUEST optimal adj
         if Config.advanced_alignment and Config.advanced_control:        
-                a_az, a_alt = self._sm.azalt_polaris2ascom(a_az, a_alt)
+            _, _, _, a_az, a_alt, a_roll = quaternion_to_angles(self._sm.q1_adj * q1s, azhint=azhint)
 
         # Correct the roll state with the Rotator adj
         if Config.advanced_rotator and Config.advanced_control:         

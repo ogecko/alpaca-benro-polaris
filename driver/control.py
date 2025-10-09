@@ -1420,10 +1420,12 @@ class PID_Controller():
         a_az, a_alt, a_roll = self.alpha_ref
         if Config.advanced_rotator and Config.advanced_control:
             a_roll = self.polaris._sm.roll_ascom2polaris(a_roll)
-        if Config.advanced_rotator and Config.advanced_control:
-            a_az, a_alt = self.polaris._sm.azalt_ascom2polaris(a_az, a_alt)
 
         q1 = angles_to_quaternion(a_az, a_alt, a_roll)
+
+        if Config.advanced_rotator and Config.advanced_control:
+            q1 = self.polaris._sm.q1_adj.inverse * q1
+
         theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1, azhint=self.alpha_ref[0])
         self.theta_ref_last = self.theta_ref
         self.theta_ref = np.array([theta1,theta2,theta3])
@@ -1580,6 +1582,9 @@ class SyncManager:
     def sync_roll(self, a_roll):
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
+        if (Config.advanced_alignment and Config.advanced_control):
+            _,_,_,_,_,p_roll = quaternion_to_angles(self.q1_adj * self.polaris._q1, azhint=self.polaris.azimuth)
+            entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using q1_adj
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.logSyncData()
