@@ -856,13 +856,12 @@ class Polaris:
 
 
     def update_ascom_from_new_q1_adj(self, q1s, azhint):
-        # Correct the q1s state with the Multi-Point QUEST optimal adj
-        if Config.advanced_alignment and Config.advanced_control:        
-                q1s = self._sm.q1_adj * q1s
-                azhint = azhint + self._sm.az_adj
-
         # Calc all the new ASCOM values based on a corrected q1s
         a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
+
+        # Correct the q1s state with the Multi-Point QUEST optimal adj
+        if Config.advanced_alignment and Config.advanced_control:        
+                a_az, a_alt = self._sm.azalt_polaris2ascom(a_az, a_alt)
 
         # Correct the roll state with the Rotator adj
         if Config.advanced_rotator and Config.advanced_control:         

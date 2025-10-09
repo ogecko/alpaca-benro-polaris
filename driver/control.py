@@ -1417,7 +1417,13 @@ class PID_Controller():
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
 
         # Convert alpha_ref to theta_ref
-        q1 = angles_to_quaternion(*self.alpha_ref)
+        a_az, a_alt, a_roll = self.alpha_ref
+        if Config.advanced_rotator and Config.advanced_control:
+            a_roll = self.polaris._sm.roll_ascom2polaris(a_roll)
+        if Config.advanced_rotator and Config.advanced_control:
+            a_az, a_alt = self.polaris._sm.azalt_ascom2polaris(a_az, a_alt)
+
+        q1 = angles_to_quaternion(a_az, a_alt, a_roll)
         theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1, azhint=self.alpha_ref[0])
         self.theta_ref_last = self.theta_ref
         self.theta_ref = np.array([theta1,theta2,theta3])
