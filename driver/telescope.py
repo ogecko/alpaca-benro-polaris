@@ -1621,7 +1621,7 @@ class action:
         elif actionName == "Polaris:SyncRoll":
             logger.info(f'Polaris SyncRoll {parameters}')
             roll = int(parameters.get('roll', 0))
-            await polaris.sync_to_roll(roll) 
+            polaris.SyncToRoll(roll) 
             resp.text = await PropertyResponse('Polaris SyncRoll ok', req)  
             return
 

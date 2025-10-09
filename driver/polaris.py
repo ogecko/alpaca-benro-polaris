@@ -1950,6 +1950,17 @@ class Polaris:
         else:
             self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
 
+    def SyncToPositionAngle(self, position_angle):
+        self.logger.info(f"->> Polaris: Sync Absolute Observed   PositionAngle {deg2dms(position_angle)}, Current {deg2dms(self.positionangle)}")
+        roll = self._sm.pa2roll(self.azimuth, self.altitude, position_angle)
+        self.SyncToRoll(roll)
+
+    def SyncToRoll(self, roll_angle):
+        if Config.advanced_rotator and Config.advanced_control:
+            self.logger.info(f"->> Polaris: Sync Absolute Observed   RollAngle {deg2dms(roll_angle)}, Current {deg2dms(self.roll)}")
+            self._sm.sync_roll(roll_angle)
+        else:
+            self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
 
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
