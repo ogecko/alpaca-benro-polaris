@@ -740,6 +740,7 @@ class Polaris:
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas)
             theta_state, omega_state, K_gain = self._kf.get_state()
+            q1_state = motors_to_quaternion(*theta_state)
 
             # Flag when variance from quaternion q_az and p_az
             if not is_angle_same(q_az, p_az):
@@ -755,12 +756,12 @@ class Polaris:
             kflogger = logging.getLogger('kf') 
             kflogger.info(payload)
 
-            azhint = p_az
-            q1s = motors_to_quaternion(*(theta_state if (Config.advanced_kf and Config.advanced_control) else theta_meas))
+            # Use direct measurements if no KF
+            if not (Config.advanced_kf and Config.advanced_control):
+                q1_state, theta_state, omega_state = q1, theta_meas, omega_meas
 
             # update all the ASCOM values and the PID loop
-            alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1s, azhint)
-
+            alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1_state, azhint=p_az)
             self._pid.measure(alpha_state, theta_state)
 
 
@@ -855,27 +856,27 @@ class Polaris:
 
 
 
-    def update_ascom_from_new_q1_adj(self, q1s, azhint):
-        # Calc all the new ASCOM values based on a corrected q1s
-        a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
+    def update_ascom_from_new_q1_adj(self, q1_state, azhint):
+        # default to the ASCOM az,alt,roll values based on a q1 state
+        a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1_state, azhint=azhint)
 
-        # Correct the q1s state with the Multi-Point QUEST optimal adj
+        # Correct the ASCOM az,alt,roll values with the Multi-Point QUEST optimal adj and re-grab
         if Config.advanced_alignment and Config.advanced_control:        
-            _, _, _, a_az, a_alt, a_roll = quaternion_to_angles(self._sm.q1_adj * q1s, azhint=azhint)
+            _, _, _, a_az, a_alt, a_roll = quaternion_to_angles(self._sm.q1_adj * q1_state, azhint=azhint)
 
-        # Correct the roll state with the Rotator adj
+        # Correct the ASCOM roll value with the Rotator adj
         if Config.advanced_rotator and Config.advanced_control:         
             a_roll = self._sm.roll_polaris2ascom(a_roll)
 
         alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
-        theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)
+        theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)          # always unadjusted
         a_ra, a_dec = self.altaz2radec(a_alt, a_az)
         position_ang, parallactic_ang = self._sm.roll2pa(a_az, a_alt, a_roll)
  
         # Store all the new ascom values
         with self._lock:
-            self._q1s = q1s
-            self._theta_state = theta_state
+            self._q1s = q1_state
+            self._theta_state = theta_state             # based on polaris q1 (unadjusted)
             self._altitude = float(a_alt)
             self._azimuth = float(a_az)
             self._roll = float(a_roll)
