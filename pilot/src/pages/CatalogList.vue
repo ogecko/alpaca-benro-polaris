@@ -8,7 +8,7 @@
       <div class="col text-h6 q-ml-md">
         Alpaca Pilot Catalog
         <div class="text-caption text-grey-6">
-        Interactive Catalog of Stellar and Deep-Sky Objects by Rating, Type, Size, and Visibility.
+        Interactive Catalog of Stellar and Deep-Sky Objects.
        </div>
       </div>
       <q-space />
@@ -47,12 +47,15 @@
       <div class="col-12">
         <q-card flat bordered class="col">
           <q-list bordered separator>
-            <q-item v-for="dso in cat.paginated" v-bind:key="dso.MainID">
+            <q-item clickable v-for="dso in cat.paginated" v-bind:key="dso.MainID">
               <q-item-section avatar>
                 <q-icon :name="typeLookupIcon[dso.C1]" />
               </q-item-section>
               <q-item-section top>
-                <q-item-label class="text-bold">{{dso.MainID}}</q-item-label>
+                <q-item-label>
+                  <span class="text-weight-bolder">{{dso.MainID}}</span>
+                  <span v-if="dso.OtherIDs" class="text-grey-7"> &nbsp;&nbsp;|&nbsp;&nbsp; {{ dso.OtherIDs }}</span>
+                </q-item-label>
                 <q-item-label overline>{{ dso.Name }} </q-item-label>
                 <q-item-label caption class="text-grey-6"> 
                   {{dso.Subtype}} in {{ dso.Constellation }}. {{ dso.Notes }} 
@@ -60,7 +63,7 @@
               </q-item-section>
 
               <q-item-section top side class="q-gutter-xs">
-                  <q-item-label caption>{{ dso.OtherIDs }}</q-item-label>
+                  <q-item-label caption></q-item-label>
                   <q-badge  color="accent">{{ dso.Rating }}</q-badge>
                   <q-badge  color="primary">{{ dso.Size }}</q-badge>
                   <q-badge v-if="dso.Vz!=7" color="primary">{{ dso.Visibility }}</q-badge>
