@@ -12,17 +12,49 @@
        </div>
       </div>
       <q-space />
+    <q-pagination
+      v-model="cat.page" :max="cat.numPages" :max-pages="5"
+      direction-links 
+      icon-first="skip_previous"
+      icon-last="skip_next"
+      icon-prev="fast_rewind"
+      icon-next="fast_forward"
+    />
     </div>
 
     <!-- Page Body -->
     <div class="row q-col-gutter-sm items-stretch">
-      <div class="col-12 flex">
+      <div class="col-12">
         <q-card flat bordered class="col">
+          <q-list bordered separator>
+            <q-item v-for="dso in cat.paginated" v-bind:key="dso.MainID">
+              <q-item-section avatar>
+                <q-icon :name="typeLookupIcon[dso.C1]" />
+              </q-item-section>
+              <q-item-section top>
+                <q-item-label class="text-bold">{{dso.MainID}}</q-item-label>
+                <q-item-label overline>{{ dso.Name }} </q-item-label>
+                <q-item-label caption class="text-grey-6"> 
+                  {{dso.Subtype}} in {{ dso.Constellation }}. {{ dso.Notes }} 
+                </q-item-label>
+              </q-item-section>
+
+              <q-item-section top side class="q-gutter-xs">
+                  <q-item-label caption>{{ dso.OtherIDs }}</q-item-label>
+                  <q-badge  color="accent">{{ dso.Rating }}</q-badge>
+                  <q-badge  color="primary">{{ dso.Size }}</q-badge>
+                  <q-badge v-if="dso.Vz" color="primary">{{ dso.Visibility }}</q-badge>
+                  <q-badge v-if="dso.Class" color="positive">{{ dso.Class }}</q-badge>
+              </q-item-section>
+              <q-item-section side class="q-gutter-xs">
+                <div class="text-grey-8 q-gutter-xs">
+                  <q-btn class="gt-xs" size="12px" flat dense icon="mdi-move-resize-variant" />
+                </div>
+              </q-item-section>
+
+            </q-item>
+          </q-list>
           <div class="q-pa-md">
-              <q-table title="Current Mount Orientation" 
-                    :pagination="initialPagination"
-                    :rows="rows" :columns="columns" row-key="name">
-              </q-table>
           </div>
         </q-card>
       </div>    
@@ -35,68 +67,57 @@
 <script setup lang="ts">
 
 import StatusBanners from 'src/components/StatusBanners.vue'
-import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
-import { deg2dms } from 'src/utils/angles'
-import { useStatusStore } from 'src/stores/status'
-import type { UnitKey } from 'src/utils/angles'
+import { onMounted, onUnmounted, ref } from 'vue'
+// import { deg2dms } from 'src/utils/angles'
+// import { useStatusStore } from 'src/stores/status'
+// import type { UnitKey } from 'src/utils/angles'
 import { useDeviceStore } from 'src/stores/device'
+import { useCatalogStore } from 'src/stores/catalog'
+import type { CatalogItem } from 'src/stores/catalog'
+
 
 const dev = useDeviceStore()
-const p = useStatusStore()
-const selected = ref([])
-const axis = ref<number>(0)
-const data = ref()
+const cat = useCatalogStore()
 
-watch(axis, ()=>selected.value=[])
+// const p = useStatusStore()
+const data = ref<CatalogItem[]>([])
 
-function fmt(x:number|undefined, unit:UnitKey="deg"): string {
-  const s = deg2dms(x ?? 0, 1, unit)
-  return `${s.sign}${s.degreestr}${s.minutestr}${s.secondstr}`
+
+
+// function fmt(x:number|undefined, unit:UnitKey="deg"): string {
+//   const s = deg2dms(x ?? 0, 1, unit)
+//   return `${s.sign}${s.degreestr}${s.minutestr}${s.secondstr}`
+// }
+
+
+// ---------- Computed
+
+
+
+
+
+// ---------- Helpers
+type DsoType = 0 | 1 | 2 | 3;
+
+const typeLookupIcon: Record<DsoType, string>  = {
+  0: 'mdi-horse-variant', 
+  1: 'mdi-cryengine', 
+  2: 'mdi-blur', 
+  3: 'mdi-flare'
 }
 
-type TableRow = {
-  q:string, name:string, az:string, alt:string, roll:string, ra:string, dec:string, pa:string, 
-}
+
+
+// ---------- Lifecycle Events
 
 onMounted(async () => {
     data.value = await dev.catalogFetch()
-
+    await cat.catalogFetch()
 })
 
 onUnmounted(() => {
 })
 
-
-type AlignType = 'left' | 'center' | 'right'
-
-const columns = [
-  { name: 'name', label: 'Position Variable', field: 'name', sortable: true, align: 'left' as AlignType, required: true },
-  { name: 'q', label: 'Quaternion',  field: 'q', sortable: true, align: 'center' as AlignType,  },
-  { name: 'az', label: 'Azimuth',  field: 'az', sortable: true, align: 'center' as AlignType,  },
-  { name: 'alt', label: 'Altitude',  field: 'alt', sortable: true, align: 'center' as AlignType,  },
-  { name: 'roll', label: 'Roll', field: 'roll', sortable: true, align: 'center' as AlignType, },
-  { name: 'ra', label: 'RA',  field: 'ra', sortable: true, align: 'center' as AlignType,  },
-  { name: 'dec', label: 'Dec',  field: 'dec', sortable: true, align: 'center' as AlignType,  },
-  { name: 'pa', label: 'PA', field: 'pa', sortable: true, align: 'center' as AlignType, },
-  ]
-
-const rows = computed<TableRow[]>(() => {
-  return [
-  { name:'Polaris: q1 and Alpha', q:p.q1, az:fmt(p.pazimuth), alt:fmt(p.paltitude), roll:fmt(p.proll), ra:'', dec:'', pa:''},
-  { name:'Alpaca: q1s (KF and Aligned)', q:p.q1s, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
-  { name:'Motor Positions (Theta 1,2,3)', q:'', az:fmt(p.thetastate[0]), alt:fmt(p.thetastate[1]), roll:fmt(p.thetastate[2]), ra:'', dec:'', pa:'',},
-  { name:'PID: Alpha and Delta Ref (Body)', q:'',  az:fmt(p.alpharef[0]), alt:fmt(p.alpharef[1]), roll:fmt(p.alpharef[2]), ra:fmt((p.deltaref[0]??0)/180*12, "hr"), dec:fmt(p.deltaref[1]), pa:fmt(p.deltaref[2])},
-  { name:'ASCOM: Orientation', q:'', az:fmt(p.azimuth), alt:fmt(p.altitude), roll:fmt(p.roll), ra:fmt(p.rightascension, "hr"), dec:fmt(p.declination), pa:fmt(p.positionangle)},
-  { name:'ASCOM: Parallatic Angle', q:'', az:'', alt:'', roll:'', ra:'', dec:'', pa:fmt(p.parallacticangle)},
-  { name:'PID: Omega Ref (Motor Velocities)', q:'',  az:fmt(p.omegaref[0]), alt:fmt(p.omegaref[1]), roll:fmt(p.omegaref[2]), ra:'', dec:'', pa:'',},
-  { name:'MC: Motor Ref (Motor Velocities)', q:'',  az:fmt(p.motorref[0]), alt:fmt(p.motorref[1]), roll:fmt(p.motorref[2]), ra:'', dec:'', pa:'',},
-
-]
-})
-
-const initialPagination = {
-        rowsPerPage: 30
-      }
 
 
 </script>
