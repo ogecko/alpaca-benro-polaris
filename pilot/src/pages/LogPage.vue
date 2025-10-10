@@ -6,7 +6,7 @@
     <!-- Header Row -->
     <div class="row q-pb-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
-        Alpaca Driver Logfile
+        Alpaca Driver Log
         <q-badge v-if="isAtBottom" size="lg" color="primary">Live</q-badge>
         <div v-if="$q.screen.gt.xs" class="text-caption text-grey-6">
         Monitor device status, activity, communications, and events in real time 
