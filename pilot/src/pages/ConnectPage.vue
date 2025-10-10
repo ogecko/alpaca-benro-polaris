@@ -361,6 +361,7 @@ async function onAlignment(azstr:string = '180.0', altstr:string = '45.0') {
 
 async function onModeUpdate(newVal:number) {
   console.log("Polaris Mode", newVal)
+  p.polarismode = newVal
   await dev.setPolarisMode(newVal)
 }
 
