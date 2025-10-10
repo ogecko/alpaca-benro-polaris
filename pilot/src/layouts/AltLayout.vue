@@ -139,6 +139,7 @@ import { RouterLink } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStreamStore } from 'src/stores/stream'
 
+
 const leftDrawerOpen = ref(false)
 const search = ref('')
 const dev = useDeviceStore()
@@ -210,6 +211,7 @@ function getBatteryIcon(): string {
 }
 
 const links2 = [
+  { icon: 'mdi-library', text: 'Catalogue', to: '/cataloglist' },
   { icon: 'mdi-flare', text: 'Stars', to: '/' },
   { icon: 'mdi-horse-variant', text: 'Nebulae', to: '/' },
   { icon: 'mdi-cryengine', text: 'Galaxies', to: '/' },

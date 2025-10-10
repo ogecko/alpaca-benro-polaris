@@ -167,6 +167,23 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:bleEnableWifi')
     },
 
+    async catalogFetch() {
+      try {
+        const resp = await axios.get('/catalog_a_lg.json');
+        if (resp.status !== 200) {
+          throw new Error(`Unexpected status code: ${resp.status}`);
+        }
+        const data = resp.data;
+        // Optional: validate structure
+        if (!Array.isArray(data)) {
+          throw new Error('Catalog data is not an array');
+        }
+        return data;
+      } catch  {
+        return []; // fallback to empty array
+      }
+    },
+
     async connectPolaris() {
       await this.apiAction<void>('Polaris:ConnectPolaris')
     },
