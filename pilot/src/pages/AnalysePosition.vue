@@ -17,27 +17,11 @@
     <!-- Page Body -->
     <div class="row q-col-gutter-sm items-stretch">
       <div class="col-12 flex">
-        <q-card flat bordered class="col q-pa-md">
-          <div class="row">
-            <!-- KF intro -->
-            <div class="col-md-6">
-  <q-markdown  :no-mark="false">
-  # Position Analysis
-  This page shows the current orientation parameters of the Benro Polaris.
-  </q-markdown>
-            </div>
-          </div>
-        </q-card>
-      </div>
-      <div class="col-12 flex">
         <q-card flat bordered class="col">
           <div class="q-pa-md">
               <q-table title="Current Mount Orientation" 
-                    :selected-rows-label="getSelectedString" :pagination="initialPagination"
-      selection="multiple"
-      v-model:selected="selected"
-
-                :rows="rows" :columns="columns" row-key="name">
+                    :pagination="initialPagination"
+                    :rows="rows" :columns="columns" row-key="name">
               </q-table>
           </div>
         </q-card>
@@ -110,10 +94,6 @@ const initialPagination = {
         rowsPerPage: 30
       }
 
-
-function getSelectedString () {
-        return selected.value.length === 0 ? '' : `${selected.value.length} Test${selected.value.length > 1 ? 's' : ''} selected of ${rows.value.length}`
-}
 
 </script>
 
