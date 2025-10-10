@@ -14,15 +14,14 @@
           <q-btn v-if="$q.screen.gt.xs" flat no-caps no-wrap to="/">
             <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
           </q-btn>
-          <q-route-tab v-else icon="mdi-home"  to="/"/>
+          <q-route-tab icon="mdi-monitor-dashboard" :label="$q.screen.gt.sm ? 'Dashboard' : ''" to="/"/>
           <q-route-tab icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect" 
                       :alert="dev.restAPIConnected?'positive':'negative'" />
           <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
-          <q-route-tab icon="mdi-database-clock-outline" :label="$q.screen.gt.sm ? 'Logs' : ''" to="/log"/>
         </q-tabs>
         <!-- Search -->
         <div class="row no-wrap q-pl-md">
-          <q-input rounded dense filled bg-color="blue-9" v-model="search" placeholder="Search Catalogue">
+          <q-input rounded dense filled bg-color="blue-9" v-model="search" placeholder="Catalogue">
             <template v-slot:append>
               <q-btn  round icon="mdi-magnify" unelevated />
             </template>
@@ -232,6 +231,7 @@ const links4 = [
   { icon: 'mdi-chart-bell-curve-cumulative', text: 'PID Tuning', to: '/' },
   { icon: 'mdi-pulse', text: 'PWM Testing', to: '/pwm' },
   { icon: 'mdi-stethoscope', text: 'Diagnostics', to: '/position' },
+  { icon: 'mdi-database-clock-outline', text: 'Driver Log', to: '/log' },
 ]
   const buttons1 = [
     { text: 'About', to: '/about' },
