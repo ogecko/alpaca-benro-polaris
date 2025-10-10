@@ -7,8 +7,8 @@ import { AppVisibility } from 'quasar'
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
     dsos: [] as CatalogItem[],
-    page: 3,
-    pageSize: 10,
+    page: 1,
+    pageSize: 8,
     selected: 0,
     filter: {
         Rt: undefined as DsoRating | undefined,
@@ -18,10 +18,11 @@ export const useCatalogStore = defineStore('catalog', {
         C1: undefined as DsoType | undefined,
         C2: undefined as DsoSubtype | undefined,
     },
-    sorting: {
-        field: 'Name' as keyof CatalogItem,
-        direction: 'asc' as 'asc' | 'desc',
-    },
+    sorting: [
+        { field: 'Rt', direction: 'desc' },
+        { field: 'Sz', direction: 'desc' },
+        { field: 'Name', direction: 'asc' }
+    ] as { field: keyof CatalogItem; direction: 'asc' | 'desc' }[],
   }),
 
   getters: {
@@ -36,19 +37,20 @@ export const useCatalogStore = defineStore('catalog', {
         });
     },
     sorted(): CatalogItem[] {
-        const { field, direction } = this.sorting;
-
         return [...this.filtered].sort((a, b) => {
+            for (const { field, direction } of this.sorting) {
             const valA = a[field];
             const valB = b[field];
 
-            if (valA == null && valB == null) return 0;
+            if (valA == null && valB == null) continue;
             if (valA == null) return 1;
             if (valB == null) return -1;
 
-            return direction === 'asc'
-            ? valA > valB ? 1 : -1
-            : valA < valB ? 1 : -1;
+            if (valA > valB) return direction === 'asc' ? 1 : -1;
+            if (valA < valB) return direction === 'asc' ? -1 : 1;
+            // if equal, continue to next field
+            }
+            return 0;
         });
     },
     paginated(): CatalogItem[] {
@@ -144,25 +146,29 @@ const ratingLookup: Record<DsoRating, string> = {
 type DsoSize = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 const sizeLookup: Record<DsoSize, string> = {
   0: 'Tiny (<0.5′)', 
-  1: 'Small (0.5–1′)', 
-  2: 'Compact (1–2′)', 
-  3: 'Moderate (2–5′)', 
-  4: 'Prominent (5–10′)', 
-  5: 'Wide (10–30′)', 
-  6: 'Extended (30–100′)', 
+  1: 'Small (0.5 – 1′)', 
+  2: 'Compact (1 – 2′)', 
+  3: 'Moderate (2 – 5′)', 
+  4: 'Prominent (5 – 10′)', 
+  5: 'Wide (10 – 30′)', 
+  6: 'Extended (30 – 100′)', 
   7: 'Expansive (100′+)'
 }
 
-type DsoVisibility = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type DsoVisibility = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 const visibilityLookup: Record<DsoVisibility, string> = {
-  0: 'Brilliant (<2 Mag)', 
-  1: 'Bright (<4 Mag)', 
-  2: 'Visible (<6 Mag)', 
-  3: 'Dim (<8 Mag)', 
-  4: 'Faint (<10 Mag)', 
-  5: 'Ghostly (<12 Mag)', 
-  6: 'Ultra Faint (12+ Mag)'
+  0: 'Ultra Faint (Mag 12+)', 
+  1: 'Ghostly (Mag 10 = 12)', 
+  2: 'Faint (Mag 8 - 10)', 
+  3: 'Dim (Mag 6 - 8)', 
+  4: 'Visible (Mag 4 - 6)', 
+  5: 'Bright (Mag 2 - 4)', 
+  6: 'Brilliant (Mag <2)',
+  7: ''
 }
+
+
+
 
 type DsoSubtype = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
                   10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 |

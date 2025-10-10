@@ -43,7 +43,7 @@
                   <q-item-label caption>{{ dso.OtherIDs }}</q-item-label>
                   <q-badge  color="accent">{{ dso.Rating }}</q-badge>
                   <q-badge  color="primary">{{ dso.Size }}</q-badge>
-                  <q-badge v-if="dso.Vz" color="primary">{{ dso.Visibility }}</q-badge>
+                  <q-badge v-if="dso.Vz!=7" color="primary">{{ dso.Visibility }}</q-badge>
                   <q-badge v-if="dso.Class" color="positive">{{ dso.Class }}</q-badge>
               </q-item-section>
               <q-item-section side class="q-gutter-xs">
