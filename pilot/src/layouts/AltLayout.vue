@@ -21,7 +21,7 @@
         </q-tabs>
         <!-- Search -->
         <div class="row no-wrap q-pl-md">
-          <q-input rounded dense filled bg-color="blue-9" v-model="search" placeholder="Catalogue">
+          <q-input rounded dense filled bg-color="blue-9" v-model="search" placeholder="Catalog">
             <template v-slot:append>
               <q-btn  round icon="mdi-magnify" unelevated />
             </template>
@@ -211,7 +211,7 @@ function getBatteryIcon(): string {
 }
 
 const links2 = [
-  { icon: 'mdi-library', text: 'Catalogue', to: '/cataloglist' },
+  { icon: 'mdi-library', text: 'Catalog', to: '/cataloglist' },
   { icon: 'mdi-flare', text: 'Stars', to: '/' },
   { icon: 'mdi-horse-variant', text: 'Nebulae', to: '/' },
   { icon: 'mdi-cryengine', text: 'Galaxies', to: '/' },

@@ -6,9 +6,9 @@
     <!-- Header Row -->
     <div class="row q-pb-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
-        Alpaca Pilot Catalogue
+        Alpaca Pilot Catalog
         <div class="text-caption text-grey-6">
-        Star and Deep Space Object Catalogue. 
+        Interactive Catalog of Stellar and Deep-Sky Objects by Rating, Type, Size, and Visibility.
        </div>
       </div>
       <q-space />
