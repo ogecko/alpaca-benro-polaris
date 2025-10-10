@@ -21,7 +21,27 @@
       icon-next="fast_forward"
     />
     </div>
+    <div class="row q-pb-sm ">
+      <q-btn color="primary" icon="mdi-filter" label="Filters"  />
+      <q-menu v-model="showFilters" >
+        <div class="row no-wrap ">
+          <div class="column">
+            <q-list dense>
+              <q-item><q-checkbox dense label="Top 2%" v-model="rt5"></q-checkbox></q-item>
+              <q-item><q-checkbox dense label="Top 10%" v-model="rt4"></q-checkbox></q-item>
+              <q-item><q-checkbox dense label="Top 25%" v-model="rt3"></q-checkbox></q-item>
+              <q-item><q-checkbox dense label="Typical" v-model="rt2"></q-checkbox></q-item>
+              <q-item><q-checkbox dense label="Challenging" v-model="rt1"></q-checkbox></q-item>
+              <q-item><q-checkbox dense label="Avoid" v-model="rt0"></q-checkbox></q-item>
+            </q-list>>
 
+          </div>
+        </div>
+      </q-menu>
+    </div>
+    <div class="row q-pb-sm q-col-gutter-md items-center">
+
+    </div>
     <!-- Page Body -->
     <div class="row q-col-gutter-sm items-stretch">
       <div class="col-12">
@@ -71,18 +91,23 @@ import { onMounted, onUnmounted, ref } from 'vue'
 // import { deg2dms } from 'src/utils/angles'
 // import { useStatusStore } from 'src/stores/status'
 // import type { UnitKey } from 'src/utils/angles'
-import { useDeviceStore } from 'src/stores/device'
+// import { useDeviceStore } from 'src/stores/device'
 import { useCatalogStore } from 'src/stores/catalog'
-import type { CatalogItem } from 'src/stores/catalog'
 
 
-const dev = useDeviceStore()
+
+// const dev = useDeviceStore()
 const cat = useCatalogStore()
 
 // const p = useStatusStore()
-const data = ref<CatalogItem[]>([])
+const showFilters = ref<boolean>(false)
 
-
+const rt5 = ref<boolean>(false)
+const rt4 = ref<boolean>(false)
+const rt3 = ref<boolean>(false)
+const rt2 = ref<boolean>(false)
+const rt1 = ref<boolean>(false)
+const rt0 = ref<boolean>(false)
 
 // function fmt(x:number|undefined, unit:UnitKey="deg"): string {
 //   const s = deg2dms(x ?? 0, 1, unit)
@@ -111,7 +136,6 @@ const typeLookupIcon: Record<DsoType, string>  = {
 // ---------- Lifecycle Events
 
 onMounted(async () => {
-    data.value = await dev.catalogFetch()
     await cat.catalogFetch()
 })
 
