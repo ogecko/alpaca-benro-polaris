@@ -36,20 +36,20 @@ export const useCatalogStore = defineStore('catalog', {
     isVisible() {
         return AppVisibility.appVisible
     }, 
-filtered(): CatalogItem[] {
-  return this.dsos.filter(dso => {
-    return Object.entries(this.filter).every(([key, value]) => {
-      if (value === undefined) return true;
-      const fieldValue = dso[key as keyof CatalogItem];
-      if (Array.isArray(value)) {
-        // Ensure fieldValue is not null/undefined before checking
-        return fieldValue != null && (value as (string | number)[]).includes(fieldValue);
-      }
+    filtered(): CatalogItem[] {
+        return this.dsos.filter(dso => {
+            return Object.entries(this.filter).every(([key, value]) => {
+            if (value == null) return true;
+            const fieldValue = dso[key as keyof CatalogItem];
+            if (Array.isArray(value)) {
+                // Ensure fieldValue is not null/undefined before checking
+                return fieldValue != null && (value as (string | number)[]).includes(fieldValue);
+            }
 
-      return fieldValue === value;
-    });
-  });
-},
+            return fieldValue === value;
+            });
+        });
+    },
     sorted(): CatalogItem[] {
         return [...this.filtered].sort((a, b) => {
             for (const { field, direction } of this.sorting) {
@@ -74,8 +74,11 @@ filtered(): CatalogItem[] {
     numPages(): number {
         const pageSize = this.pageSize;
         return Math.ceil(this.filtered.length / pageSize);
-    }
-
+    },
+    C1Options() {
+        const opt = Object.entries(typeLookup).map(([key, label]) => ({  label,  value: Number(key) as DsoType }))
+        return opt
+    },
 
 
   },
@@ -146,6 +149,15 @@ const typeLookupIcon: Record<DsoType, string>  = {
   2: 'mdi-blur', 
   3: 'mdi-flare'
 }
+
+const typeLookup: Record<DsoType, string>  = {
+  0: 'Nebula', 
+  1: 'Galaxy', 
+  2: 'Cluster', 
+  3: 'Star'
+}
+
+
 
 type DsoRating = 0 | 1 | 2 | 3 | 4 | 5;
 const ratingLookup: Record<DsoRating, string> = {
