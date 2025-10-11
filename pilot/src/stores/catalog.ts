@@ -14,6 +14,7 @@ import { AppVisibility } from 'quasar'
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
     dsos: [] as CatalogItem[],
+    dsoGotoed: undefined as CatalogItem | undefined,
     page: 1,
     pageSize: 10,
     selected: 0,

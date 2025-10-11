@@ -55,7 +55,7 @@
                   <q-btn flat dense icon="mdi-close" label="Clear" class="position-right" @click="cat.clearFilter()"/>
               </q-item-section>
             </q-item>
-            <q-item v-else clickable v-for="dso in cat.paginated" v-bind:key="dso.MainID">
+            <q-item v-else clickable v-for="dso in cat.paginated" v-bind:key="dso.MainID" @click="onClickDSO(dso)">
               <q-item-section avatar>
                 <q-icon :name="typeLookupIcon[dso.C1]" />
               </q-item-section>
@@ -83,7 +83,7 @@
               <q-item-section side class="q-gutter-xs">
                 <div class="text-grey-8 q-gutter-xs">
                   <q-btn class="gt-xs" size="12px" flat dense icon="mdi-move-resize-variant" 
-                    @click="onGoto(dso)"/>
+                    @click.stop="onClickGoto(dso)"/>
                 </div>
               </q-item-section>
 
@@ -164,11 +164,24 @@ function syncFiltersFromRoute() {
 }
 
 
-async function onGoto(dso: CatalogItem) {
+function onClickDSO(dso: CatalogItem) {
+    $q.notify({
+    message: `Ready to goto ${dso.MainID} ${dso.Name ? dso.Name : ''}?`,
+    color: 'warning', position: 'top', timeout: 5000,
+    actions: [
+      { label: 'Goto', icon: 'mdi-check', color: 'yellow', handler: () => {void onClickGoto(dso)} },
+      { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => { /* ... */ } }
+    ]
+  })
+
+}
+
+async function onClickGoto(dso: CatalogItem) {
   console.log(dso.RA_hr, dso.Dec_deg)
   await dev.alpacaSlewToCoord(dso.RA_hr, dso.Dec_deg)
   $q.notify({ message:`Goto issued for ${dso.MainID} ${dso.Name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
+  cat.dsoGotoed = dso
 }
 
 // ---------- Lifecycle Events
