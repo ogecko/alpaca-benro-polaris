@@ -65,7 +65,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca pilot manual slew AltAzRoll, slew rate
 # [X] Alpaca pilot manual slew RADecPA
 # [X] Fix Position Angle dashboard
-# [ ] Fix Position Angle interaction
+# [X] Fix Position Angle interaction
 # [ ] Fix Az/Alt/Roll interaction while tracking
 #
 # Alpaca Pilot Tuning
@@ -144,23 +144,25 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Improve Kalman Filter tuning
 # [X] Store Motor Calibration data to a file
 # [X] Improve tracking performance beyond BP implementation
-# [ ] Improve responsiveness of manual slewing, stop immediately, faster accel?
 # [ ] Move performance tests to actions
 # [ ] Rationalise performance data capture and analysis
-# [ ] PID tuning to use velocity error as well as position error
 # [ ] Move image culling to Alpaca Pilot
 #
 # Rotator
 # [X] Implement Rotator
-# [ ] Rotator Halt, Sync, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
-# [ ] Pass ConformU test on Rotator
-# [ ] Pass ConformU test on Telescope
+# [X] Rotator Halt, Sync, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
+# [X] Pass ConformU test on Rotator
+# [X] Pass ConformU test on Telescope
 #
 # Catalog
-# [ ] Expanded Target Catalog
-# [ ] Alpaca pilot catalog of targets, search, select, goto, display current target
+# [X] Expanded Target Catalog (Stars, Nebula, Galaxies, Clusters)
+# [X] Alpaca pilot catalog of targets, search, filter, pagination
+# [X] Data cleaning and creation pipeline
+# [ ] GOTO from catalog
+# [ ] Sync from catalog
+# [ ] Catalog Target Info on Dashboard
+# [ ] Ability to switch catalogs from settings, revise grouping/sizing of each one
 # [ ] Favorite Targets to Search Home page
-# [ ] Auto-fetch Target Catalog updates
 # [ ] Auto-fetch orbital elements
 #
 # Orbitals
@@ -185,15 +187,15 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] ASCOM Telescope Pulse Guide API Support
 # [X] Pulse Guiding Tracking correction 
 # [X] Enable Nina Dithering via Nina Direct Guider and Advanced Schedule (uses Pulse Guide API)
-# [ ] Guide Camera Support via PHD2
-# [ ] PHD2 Support via ASCOM/Alpaca
+# [X] Guide Camera Support via PHD2
+# [X] PHD2 Support via ASCOM/Alpaca
 #
 # Imaging and User Experience Enhancements
 # [X] Long Exposure Tracking Stabilization
 # [X] Automated Leveling Compensation
 # [X] Zenith Imaging Support (18° Circle)
 # [X] Drift supression and Auto-Centering
-# [ ] Dithering support
+# [X] Dithering support
 # [ ] Mosaic imaging support through Nina
 
 # Candidate future enhancements
