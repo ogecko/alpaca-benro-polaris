@@ -21,9 +21,10 @@
         </q-tabs>
         <!-- Search -->
         <div class="row no-wrap q-pl-md">
-          <q-input rounded dense filled bg-color="blue-9" v-model="search" placeholder="Catalog">
+          <q-input rounded dense filled bg-color="blue-9" v-model="searchBoxString" placeholder="Catalog">
             <template v-slot:append>
-              <q-btn  round icon="mdi-magnify" unelevated />
+              <q-btn v-if="searchBoxString==''" round icon="mdi-magnify" unelevated />
+              <q-btn v-else round icon="mdi-close" unelevated @click="searchBoxString=''"/>
             </template>
           </q-input>
         </div>
@@ -135,16 +136,19 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch  } from 'vue'
 import { useStatusStore } from 'stores/status'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStreamStore } from 'src/stores/stream'
-
+import { debounce } from 'quasar'
 
 const leftDrawerOpen = ref(false)
-const search = ref('')
 const dev = useDeviceStore()
 const p = useStatusStore()
 const socket = useStreamStore()
+const router = useRouter()
+const route = useRoute()
+
+const searchBoxString = ref<string>('')
 
 onMounted(() => {
   // socket.connectSocket()   //    connect whenever the socketURL or AppVisibility changes - see watch below
@@ -171,6 +175,14 @@ watch(
   { immediate: true }     // ensure it runs immediately on component mount, as boot/autoconnect.ts may have already connected
 )
 
+watch(searchBoxString, () => {
+  triggerSearch()
+})
+
+const triggerSearch = debounce(async () => {
+  const searchFor = searchBoxString.value.trim()
+  await router.push({ path: '/catalogList', query: { ...route.query, q: searchFor } }) 
+}, 300) // 300ms debounce
 
 
 function toggleLeftDrawer () {

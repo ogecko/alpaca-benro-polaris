@@ -45,7 +45,17 @@
       <div class="col-12">
         <q-card flat bordered class="col">
           <q-list bordered separator>
-            <q-item clickable v-for="dso in cat.paginated" v-bind:key="dso.MainID">
+            <q-item v-if="cat.paginated.length==0" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-help" /></q-item-section>
+              <q-item-section>
+                <q-item-label>No Results Found</q-item-label>
+                <q-item-label caption>Clear the search and filters to try again</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn flat dense icon="mdi-close" label="Clear" class="position-right" @click="cat.clearFilter()"/>
+              </q-item-section>
+            </q-item>
+            <q-item v-else clickable v-for="dso in cat.paginated" v-bind:key="dso.MainID">
               <q-item-section avatar>
                 <q-icon :name="typeLookupIcon[dso.C1]" />
               </q-item-section>
@@ -75,8 +85,6 @@
 
             </q-item>
           </q-list>
-          <div class="q-pa-md">
-          </div>
         </q-card>
       </div>    
   </div>
@@ -88,7 +96,7 @@
 <script setup lang="ts">
 
 import StatusBanners from 'src/components/StatusBanners.vue'
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 // import { deg2dms } from 'src/utils/angles'
 // import { useStatusStore } from 'src/stores/status'
 // import type { UnitKey } from 'src/utils/angles'
@@ -96,11 +104,15 @@ import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useCatalogStore } from 'src/stores/catalog'
 import MultiSelect from 'src/components/MultiSelect.vue'
 import { useQuasar } from 'quasar'
+import { useRoute } from 'vue-router'
+
+
 
 
 // const dev = useDeviceStore()
 const cat = useCatalogStore()
 const $q = useQuasar()
+const route = useRoute()
 
 // const p = useStatusStore()
 const showFilters = ref<boolean>(false)
@@ -117,6 +129,12 @@ const showFilters = ref<boolean>(false)
 const maxPages = computed(() => $q.screen.gt.sm ? 9 : 4)
 
 
+// ---------- Computed
+watch(() => route.query.q, (newQ) => {
+    cat.searchFor = typeof newQ === 'string' ? newQ.trim() : ''
+  },
+  { immediate: true }
+)
 
 
 // ---------- Helpers

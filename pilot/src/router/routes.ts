@@ -67,7 +67,7 @@ const routes: RouteRecordRaw[] = [
     children: [{ path: '', component: () => import('pages/WarningPage.vue') }],
   },
   {
-    path: '/cataloglist',
+    path: '/cataloglist', 
     component: () => import('layouts/AltLayout.vue'),
     children: [{ path: '', component: () => import('pages/CatalogList.vue') }],
   },

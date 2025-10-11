@@ -15,8 +15,9 @@ export const useCatalogStore = defineStore('catalog', {
   state: () => ({
     dsos: [] as CatalogItem[],
     page: 1,
-    pageSize: 8,
+    pageSize: 10,
     selected: 0,
+    searchFor: '',
     filter: {
         Rt: undefined as DsoRating[] | undefined,
         Sz: undefined as DsoSize[] | undefined,
@@ -37,20 +38,21 @@ export const useCatalogStore = defineStore('catalog', {
         return AppVisibility.appVisible
     }, 
     filtered(): CatalogItem[] {
-        return this.dsos.filter(dso => {
-            return Object.entries(this.filter).every(([key, value]) => {
-            if (value == null) return true;
-            if (Array.isArray(value) && (value.length === 0)) return true;
+      const search = normalize(this.searchFor);
 
-            const fieldValue = dso[key as keyof CatalogItem];
-            if (Array.isArray(value)) {
-                // Ensure fieldValue is not null/undefined before checking
-                return fieldValue != null && (value as (string | number)[]).includes(fieldValue);
-            }
-
-            return fieldValue === value;
-            });
+      return this.dsos.filter(dso => {
+        // Filter match
+        const matchesFilter = Object.entries(this.filter).every(([key, value]) => {
+          if (value == null || (Array.isArray(value) && value.length === 0)) return true;
+          const fieldValue = dso[key as keyof CatalogItem];
+          return Array.isArray(value)
+            ? fieldValue != null && (value as (string | number)[]).includes(fieldValue)
+            : fieldValue === value;
         });
+        // Search match
+        const matchesSearch = (search === '' || (dso.SearchText?.includes(search) ?? false)); 
+        return matchesFilter && matchesSearch;
+      });
     },
     isFiltered(): boolean {
         return Object.values(this.filter).some(value => {
@@ -138,6 +140,7 @@ export const useCatalogStore = defineStore('catalog', {
         this.filter.Cn = undefined;
         this.filter.C1 = undefined;
         this.filter.C2 = undefined;
+        this.searchFor = '';
     },
     async catalogFetch() {
       try {
@@ -156,7 +159,8 @@ export const useCatalogStore = defineStore('catalog', {
             Visibility: visibilityLookup[dso.Vz],
             Constellation: constellationLookup[dso.Cn],
             Type: typeLookupIcon[dso.C1],
-            Subtype: subtypeLookup[dso.C2]
+            Subtype: subtypeLookup[dso.C2],
+            SearchText: normalize(`${dso.MainID} ${dso.OtherIDs} ${dso.Name}`)
             }));
 
         this.dsos = enriched;
@@ -190,7 +194,7 @@ export interface CatalogItem {
   Constellation?: string;
   Type?: string;
   Subtype?: string;
-
+  SearchText?: string;
 }
 
 
@@ -316,7 +320,12 @@ const constellationLookup: Record<DsoConstellation, string> = {
   78: 'Ursa Minor', 79: 'Vela', 80: 'Virgo', 81: 'Volans', 82: 'Vulpecula'
 };
 
-
+function normalize(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, ' ') // collapse punctuation
+    .trim();
+}
 
 if (import.meta.hot) {
   import.meta.hot.accept(acceptHMRUpdate(useCatalogStore, import.meta.hot))
