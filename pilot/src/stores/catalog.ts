@@ -40,6 +40,8 @@ export const useCatalogStore = defineStore('catalog', {
         return this.dsos.filter(dso => {
             return Object.entries(this.filter).every(([key, value]) => {
             if (value == null) return true;
+            if (Array.isArray(value) && (value.length === 0)) return true;
+
             const fieldValue = dso[key as keyof CatalogItem];
             if (Array.isArray(value)) {
                 // Ensure fieldValue is not null/undefined before checking
@@ -48,6 +50,13 @@ export const useCatalogStore = defineStore('catalog', {
 
             return fieldValue === value;
             });
+        });
+    },
+    isFiltered(): boolean {
+        return Object.values(this.filter).some(value => {
+            if (value == null) return false;
+            if (Array.isArray(value)) return value.length > 0;
+            return true;
         });
     },
     sorted(): CatalogItem[] {
@@ -79,11 +88,31 @@ export const useCatalogStore = defineStore('catalog', {
         const opt = Object.entries(typeLookup).map(([key, label]) => ({  label,  value: Number(key) as DsoType }))
         return opt
     },
-
+    RtOptions() {
+        const opt = Object.entries(ratingLookup).map(([key, label]) => ({  label,  value: Number(key) as DsoType })).reverse()
+        return opt
+    },
+    VzOptions() {
+        const opt = Object.entries(visibilityLookup).map(([key, label]) => ({  label,  value: Number(key) as DsoType })).reverse()
+        if (opt.length>0 && opt[0]) opt[0].label = "Unknown"
+        return opt
+    },
+    SzOptions() {
+        const opt = Object.entries(sizeLookup).map(([key, label]) => ({  label,  value: Number(key) as DsoType })).reverse()
+        return opt
+    },
 
   },
 
   actions: {
+    clearFilter() {
+        this.filter.Rt = undefined;
+        this.filter.Sz = undefined;
+        this.filter.Vz = undefined;
+        this.filter.Cn = undefined;
+        this.filter.C1 = undefined;
+        this.filter.C2 = undefined;
+    },
     async catalogFetch() {
       try {
         const resp = await axios.get('/catalog_a_lg.json');
