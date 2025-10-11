@@ -81,9 +81,13 @@
                   <q-chip v-if="dso.Class" dense color="positive" class="text-caption">{{ dso.Class }}</q-chip>
               </q-item-section>
               <q-item-section side class="q-gutter-xs">
-                <div class="text-grey-8 q-gutter-xs">
-                  <q-btn class="gt-xs" size="12px" flat dense icon="mdi-move-resize-variant" 
-                    @click.stop="onClickGoto(dso)"/>
+                <div class="column text-grey-8 q-gutter-xs">
+                  <q-btn class="gt-xs" flat dense icon="mdi-move-resize-variant" @click.stop="onClickGoto(dso)">
+                    <q-tooltip>Goto</q-tooltip>
+                  </q-btn>
+                  <q-btn class="gt-xs" flat dense icon="mdi-sync" @click.stop="onClickSync(dso)">
+                    <q-tooltip>Sync</q-tooltip>
+                  </q-btn>
                 </div>
               </q-item-section>
 
@@ -167,18 +171,28 @@ function syncFiltersFromRoute() {
 
 function onClickDSO(dso: CatalogItem) {
     $q.notify({
-    message: `Ready to goto ${dso.MainID} ${dso.Name ? dso.Name : ''}?`,
+    message: `Ready to sync or goto ${dso.MainID} ${dso.Name ? dso.Name : ''}?`,
     color: 'warning', position: 'top', timeout: 5000,
     actions: [
-      { label: 'Goto', icon: 'mdi-check', color: 'yellow', handler: () => {void onClickGoto(dso)} },
+      { label: 'Sync', icon: 'mdi-sync', color: 'yellow', handler: () => { void onClickSync(dso)} },
+      { label: 'Goto', icon: 'mdi-move-resize-variant', color: 'yellow', handler: () => {void onClickGoto(dso)} },
       { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => { /* ... */ } }
     ]
   })
 
 }
 
+async function onClickSync(dso: CatalogItem) {
+  await dev.alpacaSyncToRADec(dso.RA_hr, dso.Dec_deg)
+  $q.notify({ message:`Sync issued for ${dso.MainID} ${dso.Name}.`, icon:typeLookupIcon[dso.C1],
+  type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
+  cat.dsoGotoed = dso
+  await router.push({ path: '/sync', query: { ...route.query, q: cat.searchFor } }) 
+
+}
+
+
 async function onClickGoto(dso: CatalogItem) {
-  console.log(dso.RA_hr, dso.Dec_deg)
   await dev.alpacaSlewToCoord(dso.RA_hr, dso.Dec_deg)
   $q.notify({ message:`Goto issued for ${dso.MainID} ${dso.Name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })

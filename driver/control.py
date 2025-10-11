@@ -160,9 +160,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Data cleaning and creation pipeline
 # [X] Fix RA hrs vs deg, qnotify of goto
 # [X] GOTO from catalog
+# [X] Sync from catalog
 # [ ] Calc Altitude, Tonights Altitude, Proximity
 # [ ] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
-# [ ] Sync from catalog
 # [ ] Catalog Target Info on Dashboard
 # [ ] Ability to switch catalogs from settings, revise grouping/sizing of each one
 # [ ] Favorite Targets to Search Home page
