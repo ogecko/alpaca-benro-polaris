@@ -12,20 +12,24 @@
        </div>
       </div>
       <q-space />
-                <div>
-            <q-btn v-if="cat.isFiltered" color="primary" icon="mdi-filter-off" label="Filters" @click="cat.clearFilter()" />
-            <q-btn v-else icon="mdi-filter" label="Filters" @click="showFilters=!showFilters" />
+          <div>
+            <q-btn dense v-if="cat.isFiltered" color="primary" icon="mdi-filter-off" 
+                         :label="$q.screen.gt.sm ? 'Filters' : ''" @click="cat.clearFilter()" />
+            <q-btn dense v-else icon="mdi-filter" 
+                         :label="$q.screen.gt.sm ? 'Filters' : ''" @click="showFilters=!showFilters">
+            </q-btn>
           </div>
-
-    <q-pagination
-      v-model="cat.page" :max="cat.numPages" :max-pages="5"
-      direction-links 
-      icon-first="skip_previous"
-      icon-last="skip_next"
-      icon-prev="fast_rewind"
-      icon-next="fast_forward"
-    />
-    </div>
+          <div>
+            <q-pagination v-if="$q.screen.gt.xs" v-model="cat.page" :max="cat.numPages" :max-pages="maxPages" direction-links
+              icon-first="skip_previous" icon-last="skip_next" icon-prev="fast_rewind" icon-next="fast_forward"
+            />
+            <div v-else>
+              <q-btn dense flat color="primary" icon="fast_rewind" @click="cat.page = Math.max(1, cat.page - 1)" />
+              <q-btn dense color="primary" :label="cat.page" style="min-width:30px"/>
+              <q-btn dense flat color="primary" icon="fast_forward" @click="cat.page = Math.min(cat.numPages, cat.page + 1)" />
+            </div>
+          </div>
+  </div>
     <div v-if="showFilters" class="row q-pb-sm ">
       <MultiSelect label="Rating" v-model="cat.filter['Rt']" :options="cat.RtOptions" />
       <MultiSelect label="Type" v-model="cat.filter['C1']" :options="cat.C1Options" />
@@ -84,17 +88,19 @@
 <script setup lang="ts">
 
 import StatusBanners from 'src/components/StatusBanners.vue'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 // import { deg2dms } from 'src/utils/angles'
 // import { useStatusStore } from 'src/stores/status'
 // import type { UnitKey } from 'src/utils/angles'
 // import { useDeviceStore } from 'src/stores/device'
 import { useCatalogStore } from 'src/stores/catalog'
 import MultiSelect from 'src/components/MultiSelect.vue'
+import { useQuasar } from 'quasar'
 
 
 // const dev = useDeviceStore()
 const cat = useCatalogStore()
+const $q = useQuasar()
 
 // const p = useStatusStore()
 const showFilters = ref<boolean>(false)
@@ -108,6 +114,7 @@ const showFilters = ref<boolean>(false)
 
 // ---------- Computed
 
+const maxPages = computed(() => $q.screen.gt.sm ? 9 : 4)
 
 
 
