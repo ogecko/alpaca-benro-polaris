@@ -73,7 +73,7 @@
               <q-item-section top side class="q-gutter-xs">
                   <q-item-label caption></q-item-label>
                   <q-chip dense color="accent" class="text-caption">{{ dso.Rating }}</q-chip>
-                  <q-chip dense color="primary" class="text-caption">{{ dso.Size }}</q-chip>
+                  <q-chip v-if="dso.Sz!=8" dense color="primary" class="text-caption">{{ dso.Size }}</q-chip>
                   <q-chip v-if="dso.Vz!=7" dense color="primary" class="text-caption">{{ dso.Visibility }}</q-chip>
                   <q-chip v-if="dso.Class" dense color="positive" class="text-caption">{{ dso.Class }}</q-chip>
               </q-item-section>

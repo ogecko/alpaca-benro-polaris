@@ -228,7 +228,7 @@ const ratingLookup: Record<DsoRating, string> = {
   0: 'Avoid'
 }
 
-export type DsoSize = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type DsoSize = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 const sizeLookup: Record<DsoSize, string> = {
   0: 'Tiny (<0.5′)', 
   1: 'Small (0.5 – 1′)', 
@@ -237,7 +237,8 @@ const sizeLookup: Record<DsoSize, string> = {
   4: 'Prominent (5 – 10′)', 
   5: 'Wide (10 – 30′)', 
   6: 'Extended (30 – 100′)', 
-  7: 'Expansive (100′+)'
+  7: 'Expansive (100′+)',
+  8: ''
 }
 
 export type DsoVisibility = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -299,26 +300,31 @@ export type DsoConstellation =
   | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59
   | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69
   | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79
-  | 80 | 81 | 82;
+  | 80 | 81 | 82 | 83;
 const constellationLookup: Record<DsoConstellation, string> = {
-  0: 'Andromeda', 1: 'Antlia', 2: 'Apus', 3: 'Aquila', 4: 'Aquarius', 5: 'Ara',
-  6: 'Aries', 7: 'Auriga', 8: 'Boötes', 9: 'Canis Major', 10: 'Canis Minor',
-  11: 'Canes Venatici', 12: 'Camelopardalis', 13: 'Capricornus', 14: 'Carina',
-  15: 'Cassiopeia', 16: 'Centaurus', 17: 'Cepheus', 18: 'Cetus', 19: 'Chamaeleon',
-  20: 'Circinus', 21: 'Cancer', 22: 'Columba', 23: 'Coma Berenices', 24: 'Corona Australis',
-  25: 'Corona Borealis', 26: 'Crater', 27: 'Crux', 28: 'Corvus', 29: 'Cygnus',
-  30: 'Delphinus', 31: 'Dorado', 32: 'Draco', 33: 'Eridanus', 34: 'Fornax',
-  35: 'Gemini', 36: 'Grus', 37: 'Hercules', 38: 'Horologium', 39: 'Hydra',
-  40: 'Leo Minor', 41: 'Lacerta', 42: 'Leo', 43: 'Lepus', 44: 'Libra',
-  45: 'Lupus', 46: 'Lynx', 47: 'Lyra', 48: 'Mensa', 49: 'Microscopium',
-  50: 'Monoceros', 51: 'Musca', 52: 'Norma', 53: 'Octans', 54: 'Ophiuchus',
-  55: 'Orion', 56: 'Pavo', 57: 'Pegasus', 58: 'Perseus', 59: 'Pictor',
-  60: 'Piscis Austrinus', 61: 'Pisces', 62: 'Puppis', 63: 'Pyxis', 64: 'Reticulum',
-  65: 'Sculptor', 66: 'Scorpius', 67: 'Scutum', 68: 'Serpens', 69: 'Sextans',
-  70: 'Sagitta', 71: 'Sagittarius', 72: 'Taurus', 73: 'Telescopium',
-  74: 'Triangulum Australe', 75: 'Triangulum', 76: 'Tucana', 77: 'Ursa Major',
-  78: 'Ursa Minor', 79: 'Vela', 80: 'Virgo', 81: 'Volans', 82: 'Vulpecula'
-};
+  0: 'Andromeda', 1: 'Antlia', 2: 'Apus', 3: 'Aquila',
+  4: 'Aquarius', 5: 'Ara', 6: 'Aries', 7: 'Auriga',
+  8: 'Boötes', 9: 'Canis Major', 10: 'Canis Minor', 11: 'Canes Venatici',
+  12: 'Camelopardalis', 13: 'Capricornus', 14: 'Carina', 15: 'Cassiopeia',
+  16: 'Centaurus', 17: 'Cepheus', 18: 'Cetus', 19: 'Chamaeleon',
+  20: 'Circinus', 21: 'Cancer', 22: 'Columba', 23: 'Coma Berenices',
+  24: 'Corona Australis', 25: 'Corona Borealis', 26: 'Crater', 27: 'Crux',
+  28: 'Corvus', 29: 'Cygnus', 30: 'Delphinus', 31: 'Dorado',
+  32: 'Draco', 33: 'Eridanus', 34: 'Fornax', 35: 'Gemini',
+  36: 'Grus', 37: 'Hercules', 38: 'Horologium', 39: 'Hydra',
+  40: 'Leo Minor', 41: 'Lacerta', 42: 'Leo', 43: 'Lepus',
+  44: 'Libra', 45: 'Lupus', 46: 'Lynx', 47: 'Lyra',
+  48: 'Mensa', 49: 'Microscopium', 50: 'Monoceros', 51: 'Musca',
+  52: 'Norma', 53: 'Octans', 54: 'Ophiuchus', 55: 'Orion',
+  56: 'Pavo', 57: 'Pegasus', 58: 'Perseus', 59: 'Phoenix',
+  60: 'Pictor', 61: 'Piscis Austrinus', 62: 'Pisces', 63: 'Puppis',
+  64: 'Pyxis', 65: 'Reticulum', 66: 'Sculptor', 67: 'Scorpius',
+  68: 'Scutum', 69: 'Serpens', 70: 'Sextans', 71: 'Sagitta',
+  72: 'Sagittarius', 73: 'Taurus', 74: 'Telescopium', 75: 'Triangulum Australe',
+  76: 'Triangulum', 77: 'Tucana', 78: 'Ursa Major', 79: 'Ursa Minor',
+  80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula'
+}
+
 
 function normalize(str: string): string {
   return str
