@@ -1,5 +1,5 @@
 <template>
-  <q-select :label="props.label" dense multiple  filled map-options  :style="{width:size}" 
+  <q-select :label="props.label" dense multiple  filled map-options :style="{width:size}" 
     @update:modelValue="val => emit('update:modelValue', val)"
     v-model="localModel" :options="props.options">
       <template v-slot:option="scope">
@@ -8,7 +8,7 @@
         </q-item>
       </template>
       <template v-slot:selected-item="scope">
-        <q-chip :color='color' class="text-caption" dense @remove="scope.removeAtIndex(scope.index)">
+        <q-chip :color='color' class="text-caption" dense removable @remove="scope.removeAtIndex(scope.index)">
           {{ scope.opt.label }}
         </q-chip>
       </template>

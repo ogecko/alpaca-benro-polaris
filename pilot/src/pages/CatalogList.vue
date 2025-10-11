@@ -105,7 +105,7 @@ import { deg2fulldms } from 'src/utils/angles'
 import { useCatalogStore } from 'src/stores/catalog'
 import MultiSelect from 'src/components/MultiSelect.vue'
 import { useQuasar } from 'quasar'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import type { DsoType, DsoSubtype, CatalogItem } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
 
@@ -117,6 +117,7 @@ const cat = useCatalogStore()
 const $q = useQuasar()
 const route = useRoute()
 const dev = useDeviceStore()
+const router = useRouter()
 
 const showFilters = ref<boolean>(false)
 
@@ -182,6 +183,8 @@ async function onClickGoto(dso: CatalogItem) {
   $q.notify({ message:`Goto issued for ${dso.MainID} ${dso.Name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   cat.dsoGotoed = dso
+  await router.push({ path: '/', query: { ...route.query, q: cat.searchFor } }) 
+
 }
 
 // ---------- Lifecycle Events
