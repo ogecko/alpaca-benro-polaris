@@ -31,11 +31,11 @@
           </div>
   </div>
     <div v-if="showFilters" class="row q-pb-sm ">
-      <MultiSelect label="Rating" v-model="cat.filter['Rt']" :options="cat.RtOptions" />
-      <MultiSelect label="Type" v-model="cat.filter['C1']" :options="cat.C1Options" />
-      <MultiSelect label="SubType" size="220px" v-model="cat.filter['C2']" :options="cat.C2Options" />
-      <MultiSelect label="Visibility" size="220px" v-model="cat.filter['Vz']" :options="cat.VzOptions" />
-      <MultiSelect label="Size" size="220px" v-model="cat.filter['Sz']" :options="cat.SzOptions" />
+      <MultiSelect label="Rating" v-model="cat.filter['Rt']" :options="cat.RtOptions" color="accent"/>
+      <MultiSelect label="Type" v-model="cat.filter['C1']" :options="cat.C1Options" color="grey-7"/>
+      <MultiSelect label="SubType" v-model="cat.filter['C2']" :options="cat.C2Options" color="grey-7"/>
+      <MultiSelect label="Visibility" v-model="cat.filter['Vz']" :options="cat.VzOptions" color="primary"/>
+      <MultiSelect label="Size" v-model="cat.filter['Sz']" :options="cat.SzOptions" color="primary"/>
     </div>
     <div class="row q-pb-sm q-col-gutter-md items-center">
 
@@ -72,10 +72,10 @@
 
               <q-item-section top side class="q-gutter-xs">
                   <q-item-label caption></q-item-label>
-                  <q-badge  color="accent">{{ dso.Rating }}</q-badge>
-                  <q-badge  color="primary">{{ dso.Size }}</q-badge>
-                  <q-badge v-if="dso.Vz!=7" color="primary">{{ dso.Visibility }}</q-badge>
-                  <q-badge v-if="dso.Class" color="positive">{{ dso.Class }}</q-badge>
+                  <q-chip dense color="accent" class="text-caption">{{ dso.Rating }}</q-chip>
+                  <q-chip dense color="primary" class="text-caption">{{ dso.Size }}</q-chip>
+                  <q-chip v-if="dso.Vz!=7" dense color="primary" class="text-caption">{{ dso.Visibility }}</q-chip>
+                  <q-chip v-if="dso.Class" dense color="positive" class="text-caption">{{ dso.Class }}</q-chip>
               </q-item-section>
               <q-item-section side class="q-gutter-xs">
                 <div class="text-grey-8 q-gutter-xs">

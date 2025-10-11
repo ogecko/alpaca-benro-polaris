@@ -8,7 +8,7 @@
         </q-item>
       </template>
       <template v-slot:selected-item="scope">
-        <q-chip dense removable @remove="scope.removeAtIndex(scope.index)">
+        <q-chip :color='color' class="text-caption" dense @remove="scope.removeAtIndex(scope.index)">
           {{ scope.opt.label }}
         </q-chip>
       </template>
@@ -24,10 +24,11 @@ type SelectOption = { label: string; value: number }
 const props = withDefaults(defineProps<{
   label: string
   size?: string 
+  color?: string
   modelValue: number[] | undefined
   options: SelectOption[]
 }>(), {
-  size: '140px'
+  size: '180px'
 })
 
 

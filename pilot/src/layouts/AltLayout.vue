@@ -10,7 +10,7 @@
           </q-avatar>
         </q-btn>
         <!-- Home, Connect, Settings, Logs Tabs -->
-        <q-tabs inline-label  active-class="active-link-bottom" active-bg-color="secondary">
+        <q-tabs inline-label active-class="active-link-bottom" active-bg-color="secondary">
           <q-btn v-if="$q.screen.gt.xs" flat no-caps no-wrap to="/">
             <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
           </q-btn>
@@ -23,8 +23,8 @@
         <div class="row no-wrap q-pl-md">
           <q-input rounded dense filled bg-color="blue-9" v-model="searchBoxString" placeholder="Catalog">
             <template v-slot:append>
-              <q-btn v-if="searchBoxString==''" round icon="mdi-magnify" unelevated />
-              <q-btn v-else round icon="mdi-close" unelevated @click="searchBoxString=''"/>
+              <q-btn dense size="sm" v-if="searchBoxString==''" round icon="mdi-magnify" unelevated />
+              <q-btn dense size="sm" v-else round icon="mdi-close" unelevated @click="searchBoxString=''"/>
             </template>
           </q-input>
         </div>
@@ -32,18 +32,11 @@
         <q-space />
 
         <!-- Battery and Notifications -->
-        <div class="q-gutter-sm row items-center no-wrap">
+        <div class="q-gutter-sm q-pl-sm items-center">
             <div v-if="p.battery_is_available">
                 <span class="text-body">{{p.battery_level}}%</span>
-                <q-icon class="" size="md" :name="getBatteryIcon()" :color="getBatteryColor()"/>
-                <q-tooltip>Polaris Battery Level</q-tooltip>
+                <q-icon class="" size="sm" :name="getBatteryIcon()" :color="getBatteryColor()"/>
             </div>
-            <!-- <q-btn round dense flat  icon="mdi-bell">
-                <q-badge color="red" text-color="white" floating>
-                2
-                </q-badge>
-                <q-tooltip>Notifications</q-tooltip>
-            </q-btn> -->
         </div>
       </q-toolbar>
     </q-header>
@@ -68,7 +61,7 @@
         </q-list>
        
         <!-- Orbitals -->
-        <q-list dense>
+        <!-- <q-list dense>
           <q-item-label header class="text-weight-bold text-uppercase">
             Orbitals
           </q-item-label>
@@ -82,7 +75,7 @@
             </q-item-section>
           </q-item>
           <q-separator class="q-my-md" />
-        </q-list>
+        </q-list> -->
        
         <!-- Performance Tuning -->
         <q-list dense>
@@ -233,19 +226,19 @@ function getBatteryIcon(): string {
 
 const links2 = [
   { icon: 'mdi-library', text: 'Catalog', to: '/cataloglist' },
-  { icon: 'mdi-flare', text: 'Stars', to: '/' },
-  { icon: 'mdi-horse-variant', text: 'Nebulae', to: '/' },
-  { icon: 'mdi-cryengine', text: 'Galaxies', to: '/' },
-  { icon: 'mdi-blur', text: 'Clusters', to: '/' },
+  { icon: 'mdi-flare', text: 'Stars', to: { path: '/catalogList', query: { C1:3 } } },
+  { icon: 'mdi-horse-variant', text: 'Nebulae', to: { path: '/catalogList', query: { C1:0 } } },
+  { icon: 'mdi-cryengine', text: 'Galaxies', to: { path: '/catalogList', query: { C1:1 } } },
+  { icon: 'mdi-blur', text: 'Clusters', to: { path: '/catalogList', query: { C1:2 } } },
 ]
 
-const links3 = [
-  { icon: 'mdi-earth', text: 'Planets', to: '/' },
-  { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: '/' },
-  { icon: 'mdi-cookie', text: 'Asteroids', to: '/' },
-  { icon: 'mdi-magic-staff', text: 'Comets', to: '/' },
-  { icon: 'mdi-satellite-variant', text: 'Satelites', to: '/' },
-]
+// const links3 = [
+//   { icon: 'mdi-earth', text: 'Planets', to: '/' },
+//   { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: '/' },
+//   { icon: 'mdi-cookie', text: 'Asteroids', to: '/' },
+//   { icon: 'mdi-magic-staff', text: 'Comets', to: '/' },
+//   { icon: 'mdi-satellite-variant', text: 'Satelites', to: '/' },
+// ]
 
 const links4 = [
   { icon: 'mdi-format-vertical-align-top', text: 'Alignment', to: '/sync' },
