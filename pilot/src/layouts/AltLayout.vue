@@ -140,6 +140,7 @@ import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStreamStore } from 'src/stores/stream'
 import { debounce } from 'quasar'
+import { useCatalogStore } from 'src/stores/catalog'
 
 const leftDrawerOpen = ref(false)
 const dev = useDeviceStore()
@@ -147,6 +148,7 @@ const p = useStatusStore()
 const socket = useStreamStore()
 const router = useRouter()
 const route = useRoute()
+const cat = useCatalogStore()
 
 const searchBoxString = ref<string>('')
 
@@ -178,6 +180,13 @@ watch(
 watch(searchBoxString, () => {
   triggerSearch()
 })
+
+watch(() => cat.searchFor, (newVal) => {
+    if (searchBoxString.value !== newVal) {
+      searchBoxString.value = newVal
+    }
+  }
+)
 
 const triggerSearch = debounce(async () => {
   const searchFor = searchBoxString.value.trim()
