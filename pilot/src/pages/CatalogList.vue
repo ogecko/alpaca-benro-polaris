@@ -83,7 +83,7 @@
               <q-item-section side class="q-gutter-xs">
                 <div class="text-grey-8 q-gutter-xs">
                   <q-btn class="gt-xs" size="12px" flat dense icon="mdi-move-resize-variant" 
-                    @click="onGoto(dso.RA_hr, dso.Dec_deg)"/>
+                    @click="onGoto(dso)"/>
                 </div>
               </q-item-section>
 
@@ -106,7 +106,7 @@ import { useCatalogStore } from 'src/stores/catalog'
 import MultiSelect from 'src/components/MultiSelect.vue'
 import { useQuasar } from 'quasar'
 import { useRoute } from 'vue-router'
-import type { DsoType, DsoSubtype } from 'src/stores/catalog' // adjust path as needed
+import type { DsoType, DsoSubtype, CatalogItem } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
 
 
@@ -164,9 +164,11 @@ function syncFiltersFromRoute() {
 }
 
 
-async function onGoto(ra:number, dec:number) {
-  console.log(ra,dec)
-  await dev.alpacaSlewToCoord(ra, dec)
+async function onGoto(dso: CatalogItem) {
+  console.log(dso.RA_hr, dso.Dec_deg)
+  await dev.alpacaSlewToCoord(dso.RA_hr, dso.Dec_deg)
+  $q.notify({ message:`Goto issued for ${dso.MainID} ${dso.Name}.`, icon:typeLookupIcon[dso.C1],
+  type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
 }
 
 // ---------- Lifecycle Events
