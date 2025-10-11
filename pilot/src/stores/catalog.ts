@@ -144,7 +144,7 @@ export const useCatalogStore = defineStore('catalog', {
     },
     async catalogFetch() {
       try {
-        const resp = await axios.get('/catalog_a_lg.json');
+        const resp = await axios.get('/catalog_top25_lg.json');
         if (resp.status !== 200) {
           throw new Error(`Unexpected status code: ${resp.status}`);
         }
@@ -185,7 +185,7 @@ export interface CatalogItem {
   Cn: DsoConstellation;
   C1: DsoType;
   C2: DsoSubtype;
-  RA_deg: number;
+  RA_hr: number;
   Dec_deg: number;
   // Enriched display fields
   Rating?: string;

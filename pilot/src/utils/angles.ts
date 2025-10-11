@@ -56,6 +56,12 @@ export function deg2dms(decimalDegrees: number | undefined, precision: number = 
 }
 
 
+export function deg2fulldms(angle:number, precision: number = 1, unit:UnitKey = 'deg') {
+  const dms = deg2dms(angle, precision, unit)
+  const str = (dms ? ((dms.sign??'') + dms.degreestr + dms.minutestr + dms.secondstr) : '') 
+  return str
+}
+
 export function dms2deg(str: string | undefined, unit: UnitKey = 'deg'): number {
   // check input format
   if (!str || typeof str !== 'string') return 0;

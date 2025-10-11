@@ -68,6 +68,9 @@
                 <q-item-label caption class="text-grey-6"> 
                   {{dso.Subtype}} in {{ dso.Constellation }}. {{ dso.Notes }} 
                 </q-item-label>
+                <q-item-label caption class="text-grey-6">
+                  Right Ascension: {{ deg2fulldms(dso.RA_hr,1,'hr') }} Declination: {{ deg2fulldms(dso.Dec_deg) }}
+                </q-item-label>
               </q-item-section>
 
               <q-item-section top side class="q-gutter-xs">
@@ -79,7 +82,8 @@
               </q-item-section>
               <q-item-section side class="q-gutter-xs">
                 <div class="text-grey-8 q-gutter-xs">
-                  <q-btn class="gt-xs" size="12px" flat dense icon="mdi-move-resize-variant" />
+                  <q-btn class="gt-xs" size="12px" flat dense icon="mdi-move-resize-variant" 
+                    @click="onGoto(dso.RA_hr, dso.Dec_deg)"/>
                 </div>
               </q-item-section>
 
@@ -97,25 +101,23 @@
 
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
-// import { deg2dms } from 'src/utils/angles'
-// import { useStatusStore } from 'src/stores/status'
-// import type { UnitKey } from 'src/utils/angles'
-// import { useDeviceStore } from 'src/stores/device'
+import { deg2fulldms } from 'src/utils/angles'
 import { useCatalogStore } from 'src/stores/catalog'
 import MultiSelect from 'src/components/MultiSelect.vue'
 import { useQuasar } from 'quasar'
 import { useRoute } from 'vue-router'
 import type { DsoType, DsoSubtype } from 'src/stores/catalog' // adjust path as needed
+import { useDeviceStore } from 'src/stores/device'
 
 
 
 
-// const dev = useDeviceStore()
+
 const cat = useCatalogStore()
 const $q = useQuasar()
 const route = useRoute()
+const dev = useDeviceStore()
 
-// const p = useStatusStore()
 const showFilters = ref<boolean>(false)
 
 
@@ -128,7 +130,6 @@ const showFilters = ref<boolean>(false)
 // ---------- Computed
 
 const maxPages = computed(() => $q.screen.gt.sm ? 9 : 4)
-
 
 // ---------- Watches
 watch(() => route.query.q, (newQ) => {
@@ -163,6 +164,10 @@ function syncFiltersFromRoute() {
 }
 
 
+async function onGoto(ra:number, dec:number) {
+  console.log(ra,dec)
+  await dev.alpacaSlewToCoord(ra, dec)
+}
 
 // ---------- Lifecycle Events
 
@@ -173,7 +178,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
 })
-
 
 
 </script>

@@ -123,6 +123,7 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtoaltazasync',{ Altitude: alt, Azimuth: az });
     },
 
+    // dont forget ra needs to be in hrs
     async alpacaSlewToCoord(ra:number, dec:number) {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtocoordinatesasync',{ RightAscension: ra, Declination: dec });
     },

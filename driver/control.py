@@ -158,6 +158,9 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Expanded Target Catalog (Stars, Nebula, Galaxies, Clusters)
 # [X] Alpaca pilot catalog of targets, search, filter, pagination
 # [X] Data cleaning and creation pipeline
+# [X] Fix RA hrs vs deg, qnotify of goto
+# [ ] Calc Altitude, Tonights Altitude, Proximity
+# [ ] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
 # [ ] GOTO from catalog
 # [ ] Sync from catalog
 # [ ] Catalog Target Info on Dashboard
