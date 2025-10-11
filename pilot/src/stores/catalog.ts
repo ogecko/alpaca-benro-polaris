@@ -200,7 +200,7 @@ export interface CatalogItem {
 
 
 // ---------- Helpers
-type DsoType = 0 | 1 | 2 | 3;
+export type DsoType = 0 | 1 | 2 | 3;
 
 const typeLookupIcon: Record<DsoType, string>  = {
   0: 'mdi-horse-variant', 
@@ -218,7 +218,7 @@ const typeLookup: Record<DsoType, string>  = {
 
 
 
-type DsoRating = 0 | 1 | 2 | 3 | 4 | 5;
+export type DsoRating = 0 | 1 | 2 | 3 | 4 | 5;
 const ratingLookup: Record<DsoRating, string> = {
   5: 'Top 2%', 
   4: 'Top 10%', 
@@ -228,7 +228,7 @@ const ratingLookup: Record<DsoRating, string> = {
   0: 'Avoid'
 }
 
-type DsoSize = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type DsoSize = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 const sizeLookup: Record<DsoSize, string> = {
   0: 'Tiny (<0.5′)', 
   1: 'Small (0.5 – 1′)', 
@@ -240,7 +240,7 @@ const sizeLookup: Record<DsoSize, string> = {
   7: 'Expansive (100′+)'
 }
 
-type DsoVisibility = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type DsoVisibility = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 const visibilityLookup: Record<DsoVisibility, string> = {
   0: 'Ultra Faint (Mag 12+)', 
   1: 'Ghostly (Mag 10 = 12)', 
@@ -255,7 +255,7 @@ const visibilityLookup: Record<DsoVisibility, string> = {
 
 
 
-type DsoSubtype = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+export type DsoSubtype = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
                   10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 |
                   20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28;
 const subtypeLookup: Record<DsoSubtype, string> = {
@@ -290,7 +290,7 @@ const subtypeLookup: Record<DsoSubtype, string> = {
   28: 'Young Stellar Object'
 }
 
-type DsoConstellation =
+export type DsoConstellation =
   | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
   | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19
   | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29
