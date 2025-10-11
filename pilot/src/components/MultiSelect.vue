@@ -39,7 +39,7 @@ const emit = defineEmits<{
 }>()
 
 watch(() => props.modelValue, val => {
-  if (val !== undefined) localModel.value = val
+  localModel.value = val ?? []
 })
 
 watch(localModel, val => {
