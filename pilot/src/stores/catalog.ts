@@ -101,6 +101,32 @@ export const useCatalogStore = defineStore('catalog', {
         const opt = Object.entries(sizeLookup).map(([key, label]) => ({  label,  value: Number(key) as DsoType })).reverse()
         return opt
     },
+    C2Options(): { label: string; value: DsoSubtype }[] {
+        const selectedTypes = this.filter.C1 ?? [];
+        // If no C1 filter is applied, return all subtypes
+        if (selectedTypes.length === 0) {
+            return Object.entries(subtypeLookup).map(([key, label]) => ({ label, value: Number(key) as DsoSubtype }));
+        }
+        // Define subtype ranges for each DsoType
+        const subtypeRanges: Record<DsoType, [number, number]> = {
+            0: [15, 21], // Nebula
+            1: [0, 14],  // Galaxy
+            2: [22, 28], // Stellar (Cluster + Star)
+            3: [22, 28]  // Star (merged with Stellar range)
+        };
+        // Collect all valid subtype keys based on selected C1 types
+        const allowedSubtypes = new Set<number>();
+        for (const type of selectedTypes) {
+            const [start, end] = subtypeRanges[type] ?? [];
+            for (let i = start; i <= end; i++) {
+            allowedSubtypes.add(i);
+            }
+        }
+        // Filter and map subtypeLookup
+        return Object.entries(subtypeLookup)
+            .filter(([key]) => allowedSubtypes.has(Number(key)))
+            .map(([key, label]) => ({ label, value: Number(key) as DsoSubtype }));
+    },
 
   },
 

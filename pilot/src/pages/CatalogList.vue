@@ -25,6 +25,7 @@
         <div class="row ">
           <MultiSelect label="Rating" v-model="cat.filter['Rt']" :options="cat.RtOptions" />
           <MultiSelect label="Type" v-model="cat.filter['C1']" :options="cat.C1Options" />
+          <MultiSelect label="SubType" size="220px" v-model="cat.filter['C2']" :options="cat.C2Options" />
           <MultiSelect label="Visibility" size="220px" v-model="cat.filter['Vz']" :options="cat.VzOptions" />
           <MultiSelect label="Size" size="220px" v-model="cat.filter['Sz']" :options="cat.SzOptions" />
           <div class="col">
