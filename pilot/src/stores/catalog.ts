@@ -2,6 +2,10 @@ import axios from 'axios'
 import { defineStore, acceptHMRUpdate } from 'pinia'
 // import { sleep } from 'src/utils/sleep'
 import { AppVisibility } from 'quasar'
+import { useStatusStore } from './status'
+import { useConfigStore } from './config'
+import { getAzAlt } from 'src/utils/angles'
+
 
 // # C1 {0: 'Nebula', 1: 'Galaxy', 2: 'Cluster', 3: 'Star'}
 // # C2 {0: 'Set of Chained Galaxies', 1: 'Set of Clustered Galaxies', 2: 'Set of Grouped Galaxies', 3: 'Set of Merging Galaxies', 4: 'Pair of Galaxies', 5: 'Trio of Galaxies', 6: 'Blue Compact Dwarf Galaxy', 7: 'Collisional Ring Galaxy', 8: 'Dwarf Galaxy', 9: 'Elliptical Galaxy', 10: 'Flocculent Galaxy', 11: 'Lenticular Galaxy', 12: 'Magellanic Galaxy', 13: 'Polar Galaxy', 14: 'Spiral Galaxy', 15: 'Dark Nebula', 16: 'Emission Nebula', 17: 'Molecular Cloud Nebula', 18: 'Planetary Nebula', 19: 'Protoplanetary Nebula', 20: 'Reflection Nebula', 21: 'Supernova Remnant Nebula', 22: 'Globular Cluster', 23: 'Herbig-Haro Object', 24: 'Nova Object', 25: 'Open Cluster', 26: 'Star', 27: 'Star Cloud', 28: 'Young Stellar Object'}
@@ -9,6 +13,10 @@ import { AppVisibility } from 'quasar'
 // # Sz {0: 'Tiny (<0.5′)', 1: 'Small (0.5–1′)', 2: 'Compact (1–2′)', 3: 'Moderate (2–5′)', 4: 'Prominent (5–10′)', 5: 'Wide (10–30′)', 6: 'Extended (30–100′)', 7: 'Expansive (100′+)'}
 // # Rt {5: 'Showcase (Top 2%)', 4: 'Excellent (Top 10%)', 3: 'Good (Top 25%)', 2: 'Typical', 1: 'Challenging', 0: 'Not recommended'}
 // # Vz {0: 'Ultra Faint (Mag 12+)', 1: 'Ghostly (Mag 10-12)', 2: 'Faint (Mag 8-10)', 3: 'Dim (Mag 6-8)', 4: 'Visible (Mag 4-6)', 5: 'Bright (Mag 2-4)', 6: 'Brilliant (Mag <2)', 7: 'Unknown'}
+
+const p = useStatusStore()
+const cfg = useConfigStore()
+let positionUpdateTimer: ReturnType<typeof setInterval> | null = null;
 
 
 export const useCatalogStore = defineStore('catalog', {
@@ -22,7 +30,7 @@ export const useCatalogStore = defineStore('catalog', {
     filter: {
         Rt: undefined as DsoRating[] | undefined,
         Sz: undefined as DsoSize[] | undefined,
-        Vz: undefined as DsoVisibility[] | undefined,
+        Vz: undefined as DsoBrightness[] | undefined,
         Cn: undefined as DsoConstellation[] | undefined,
         C1: undefined as DsoType[] | undefined,
         C2: undefined as DsoSubtype[] | undefined,
@@ -35,6 +43,11 @@ export const useCatalogStore = defineStore('catalog', {
   }),
 
   getters: {
+    site_sidereal: () => p.siderealtime,  // current sidereal time
+    site_lat: () => cfg.site_latitude,    // observing site latitude in dec deg
+    site_lon: () => cfg.site_longitude,   // observing site longitude in dec deg
+    cur_azimuth: () => p.azimuth,         // current azimuth of the telescope
+    cur_altitude: () => p.altitude,       // current altitude of the telescope
     isVisible() {
         return AppVisibility.appVisible
     }, 
@@ -96,7 +109,7 @@ export const useCatalogStore = defineStore('catalog', {
         return opt
     },
     VzOptions() {
-        const opt = Object.entries(visibilityLookup).map(([key, label]) => ({  label,  value: Number(key) as DsoType })).reverse()
+        const opt = Object.entries(brightnessLookup).map(([key, label]) => ({  label,  value: Number(key) as DsoType })).reverse()
         if (opt.length>0 && opt[0]) opt[0].label = "Unknown"
         return opt
     },
@@ -156,8 +169,7 @@ export const useCatalogStore = defineStore('catalog', {
         const enriched = raw.map((dso: CatalogItem) => ({
             ...dso,
             Rating: ratingLookup[dso.Rt],
-            Size: sizeLookup[dso.Sz],
-            Visibility: visibilityLookup[dso.Vz],
+            Visibility: visibilityLookup(dso.Vz, dso.Sz),
             Constellation: constellationLookup[dso.Cn],
             Type: typeLookupIcon[dso.C1],
             Subtype: subtypeLookup[dso.C2],
@@ -169,6 +181,48 @@ export const useCatalogStore = defineStore('catalog', {
         return []; // fallback to empty array
       }
     },
+    updateDsoPositions() {
+      const siderealHr = this.site_sidereal;
+      const latDeg = this.site_lat;
+      this.dsos = this.dsos.map(dso => {
+        const { az, alt } = getAzAlt(dso.RA_hr, dso.Dec_deg, siderealHr, latDeg);
+        const Az = enumAz(az)
+        const Alt = enumAlt(alt)
+        return {
+          ...dso,
+          Position: positionLookup(Az, Alt),
+          Az_deg: az,
+          Alt_deg: alt,
+          Az,
+          Alt
+        };
+      });
+    },
+    startPositionUpdater() {
+      if (positionUpdateTimer) return; // already running
+
+      const tryStart = () => {
+        const sidereal = this.site_sidereal;
+        const lat = this.site_lat;
+
+        if (typeof sidereal === 'number' && typeof lat === 'number') {
+          this.updateDsoPositions(); // initial run
+
+          positionUpdateTimer = setInterval(() => {
+            this.updateDsoPositions();
+          }, 15 * 60 * 1000); // every 15 minutes
+        } else {
+          setTimeout(tryStart, 10000); // retry in 10s
+        }
+      };
+      tryStart();
+    },
+    stopPositionUpdater() {
+      if (positionUpdateTimer) {
+        clearInterval(positionUpdateTimer);
+        positionUpdateTimer = null;
+      }
+    }
 
   }
 })
@@ -182,7 +236,7 @@ export interface CatalogItem {
   OtherIDs: string;
   Rt: DsoRating;
   Sz: DsoSize;
-  Vz: DsoVisibility;
+  Vz: DsoBrightness;
   Cn: DsoConstellation;
   C1: DsoType;
   C2: DsoSubtype;
@@ -190,19 +244,85 @@ export interface CatalogItem {
   Dec_deg: number;
   // Enriched display fields
   Rating?: string;
-  Size?: string;
   Visibility?: string;
   Constellation?: string;
   Type?: string;
   Subtype?: string;
   SearchText?: string;
+  Alt_deg?: number;
+  Az_deg?: number;
+  Az?: DsoAzimuth; 
+  Alt?: DsoAltitude; 
+  Position?: string;
 }
 
-
-
 // ---------- Helpers
-export type DsoType = 0 | 1 | 2 | 3;
 
+
+
+
+// Bin azimuth (8 compass directions, 45° each)
+function enumAz(azDeg: number) {
+  const azEnum: DsoAzimuth = Math.floor(((azDeg + 22.5) % 360) / 45) as DsoAzimuth;
+  return azEnum
+}
+
+// Bin altitude
+function enumAlt(altDeg: number) {
+  let altEnum: DsoAltitude = 0;
+  if (altDeg < 0) altEnum = 0;
+  else if (altDeg < 15) altEnum = 1;
+  else if (altDeg < 30) altEnum = 2;
+  else if (altDeg < 45) altEnum = 3;
+  else if (altDeg < 60) altEnum = 4;
+  else if (altDeg < 82) altEnum = 5;
+  else altEnum = 6;
+
+  return altEnum
+}
+
+function positionLookup(azEnum: DsoAzimuth, altEnum: DsoAltitude) {
+  const azStr = azimuthLookup[azEnum]
+  const altStr = altitudeLookup[altEnum]
+  return (altEnum==0 || altEnum==6) ? altStr :
+         (altEnum==1) ? 'At ' + azStr + ' ' + altStr 
+                      : altStr + ' ' + azStr
+}
+
+function visibilityLookup(brtEnum: DsoBrightness, sizeEnum: DsoSize):string {
+  const brtStr =  brightnessLookup[brtEnum].split(' ')[0] ?? ''
+  const sizeStr = sizeLookup[sizeEnum].split(' ')[0] ?? ''
+  const str = (brtEnum==7 && sizeEnum==8) ? '' :
+              (brtEnum==7) ? sizeStr :
+              (sizeEnum==8) ? brtStr : brtStr + ', ' + sizeStr
+  return str
+}
+
+export type DsoAltitude = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export const altitudeLookup: Record<DsoAltitude, string> = {
+  0: 'Below Horizon',       // < 0°
+  1: 'Horizon',             // 0–15°
+  2: 'Low',                 // 15–30°
+  3: 'Mid-Low',             // 30–45°
+  4: 'Mid-High',            // 45–60°
+  5: 'High',                // 60–82°
+  6: 'Near Zenith'          // > 82°
+};
+
+export type DsoAzimuth = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export const azimuthLookup: Record<DsoAzimuth, string> = {
+  0: 'North',
+  1: 'NE',
+  2: 'East',
+  3: 'SE',
+  4: 'South',
+  5: 'SW',
+  6: 'West',
+  7: 'NW'
+};
+
+
+export type DsoType = 0 | 1 | 2 | 3;
 const typeLookupIcon: Record<DsoType, string>  = {
   0: 'mdi-horse-variant', 
   1: 'mdi-cryengine', 
@@ -239,19 +359,19 @@ const sizeLookup: Record<DsoSize, string> = {
   5: 'Wide (10 – 30′)', 
   6: 'Extended (30 – 100′)', 
   7: 'Expansive (100′+)',
-  8: ''
+  8: 'Unknown'
 }
 
-export type DsoVisibility = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
-const visibilityLookup: Record<DsoVisibility, string> = {
-  0: 'Ultra Faint (Mag 12+)', 
+export type DsoBrightness = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+const brightnessLookup: Record<DsoBrightness, string> = {
+  0: 'Ultra-Faint (Mag 12+)', 
   1: 'Ghostly (Mag 10 = 12)', 
   2: 'Faint (Mag 8 - 10)', 
   3: 'Dim (Mag 6 - 8)', 
   4: 'Visible (Mag 4 - 6)', 
   5: 'Bright (Mag 2 - 4)', 
   6: 'Brilliant (Mag <2)',
-  7: ''
+  7: 'Unknown'
 }
 
 
@@ -333,6 +453,7 @@ function normalize(str: string): string {
     .replace(/[^a-z0-9]+/gi, ' ') // collapse punctuation
     .trim();
 }
+
 
 if (import.meta.hot) {
   import.meta.hot.accept(acceptHMRUpdate(useCatalogStore, import.meta.hot))

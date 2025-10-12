@@ -98,6 +98,27 @@ export function angularDifference(a:number, b:number) {
   return ((b - a + 180) % 360 + 360) % 360 - 180;
 }
 
+/**
+ * Computes angular separation (in degrees) between two azimuth/altitude points.
+ * Uses spherical law of cosines and handles azimuth wrapping.
+ */
+export function angularSeparation(
+  az1: number, alt1: number,
+  az2: number, alt2: number
+): number {
+  const alt1Rad = toRad(alt1);
+  const alt2Rad = toRad(alt2);
+  const azDiffRad = toRad(Math.abs(angularDifference(az1, az2)));
+
+  const cosSep = Math.sin(alt1Rad) * Math.sin(alt2Rad) +
+                 Math.cos(alt1Rad) * Math.cos(alt2Rad) * Math.cos(azDiffRad);
+
+  const sepRad = Math.acos(Math.min(Math.max(cosSep, -1), 1)); // Clamp for safety
+  return toDeg(sepRad);
+}
+
+
+
 export function isAngleBetween(angle:number, min:number, max:number) {
   const diffToMin = angle - min
   const diffToMax = angle - max
@@ -124,10 +145,12 @@ export function wrapTo24(angle: number) {
   return ((angle % 24) + 24) % 24;
 }
 
+
+export const toRad = (d: number) => d * Math.PI / 180;
+export const toDeg = (r: number) => r * 180 / Math.PI;
+
 // calculates the RA rising and setting values for a given Declination, Lattitude and Local Sidereal Time
 export function raAtAltitudeZero(decDeg: number, latDeg: number, lstDeg: number): number[] | null {
-  const toRad = (d: number) => d * Math.PI / 180;
-  const toDeg = (r: number) => r * 180 / Math.PI;
 
   const dec = toRad(decDeg);
   const lat = toRad(latDeg);
@@ -173,4 +196,43 @@ export function invalidDeclinationRange(latDeg: number): { alwaysAbove?: [number
     alwaysAbove: latDeg > 0 ? [decAbove, 90] : [-90, decAbove],
     alwaysBelow: latDeg > 0 ? [-90, decBelow] : [decBelow, 90]
   };
+}
+
+/**
+ * Computes approximate azimuth and altitude for a celestial object
+ * given its right ascension (RA), declination (Dec), observer latitude,
+ * and local sidereal time. Fast and suitable for batch updates.
+ */
+export function getAzAlt(
+  raHr: number,           // Right Ascension in hours
+  decDeg: number,         // Declination in degrees
+  siderealTimeHr: number, // Local sidereal time in hours
+  latDeg: number          // Observer latitude in degrees
+): { az: number; alt: number } {
+
+  const raDeg = raHr * 15; // Convert RA to degrees
+  const haDeg = (siderealTimeHr * 15 - raDeg + 360) % 360; // Hour angle
+
+  const haRad = toRad(haDeg);
+  const decRad = toRad(decDeg);
+  const latRad = toRad(latDeg);
+
+  // Altitude
+  const sinAlt = Math.sin(decRad) * Math.sin(latRad) +
+                 Math.cos(decRad) * Math.cos(latRad) * Math.cos(haRad);
+  const altRad = Math.asin(sinAlt);
+  const altDeg = toDeg(altRad);
+
+  // Azimuth
+  const cosAz = (Math.sin(decRad) - Math.sin(altRad) * Math.sin(latRad)) /
+                (Math.cos(altRad) * Math.cos(latRad));
+  let azRad = Math.acos(Math.min(Math.max(cosAz, -1), 1)); // Clamp to [-1, 1]
+
+  if (Math.sin(haRad) > 0) {
+    azRad = 2 * Math.PI - azRad;
+  }
+
+  const azDeg = toDeg(azRad);
+
+  return { az: azDeg, alt: altDeg };
 }

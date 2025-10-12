@@ -34,7 +34,7 @@
       <MultiSelect label="Rating" v-model="cat.filter['Rt']" :options="cat.RtOptions" color="accent"/>
       <MultiSelect label="Type" v-model="cat.filter['C1']" :options="cat.C1Options" color="grey-7"/>
       <MultiSelect label="SubType" v-model="cat.filter['C2']" :options="cat.C2Options" color="grey-7"/>
-      <MultiSelect label="Visibility" v-model="cat.filter['Vz']" :options="cat.VzOptions" color="primary"/>
+      <MultiSelect label="Brightness" v-model="cat.filter['Vz']" :options="cat.VzOptions" color="primary"/>
       <MultiSelect label="Size" v-model="cat.filter['Sz']" :options="cat.SzOptions" color="primary"/>
     </div>
     <div class="row q-pb-sm q-col-gutter-md items-center">
@@ -69,16 +69,20 @@
                   {{dso.Subtype}} in {{ dso.Constellation }}. {{ dso.Notes }} 
                 </q-item-label>
                 <q-item-label caption class="text-grey-6">
-                  Right Ascension: {{ deg2fulldms(dso.RA_hr,1,'hr') }} Declination: {{ deg2fulldms(dso.Dec_deg) }}
+                  <span v-if="dso.Class">Class: {{ dso.Class }}<VBar /></span>
+                  RA: {{ deg2fulldms(dso.RA_hr,1,'hr') }} <VBar /> Dec: {{ deg2fulldms(dso.Dec_deg) }}
+                  <span v-if="dso.Az_deg"> <VBar /> Az: {{ formatAngle(dso.Az_deg,'deg',0) }}</span>
+                  <span v-if="dso.Alt_deg"> <VBar /> Altitude: {{ formatAngle(dso.Alt_deg,'deg',0) }}</span>
+                  <span v-if="cat.site_lat"> <VBar /> Lat: {{ formatAngle(cat.site_lat,'deg',0) }}</span>
+                  <span v-if="cat.site_sidereal"> <VBar /> Sd: {{ cat.site_sidereal }}</span>
                 </q-item-label>
               </q-item-section>
 
               <q-item-section top side class="q-gutter-xs">
                   <q-item-label caption></q-item-label>
                   <q-chip dense color="accent" class="text-caption">{{ dso.Rating }}</q-chip>
-                  <q-chip v-if="dso.Sz!=8" dense color="primary" class="text-caption">{{ dso.Size }}</q-chip>
-                  <q-chip v-if="dso.Vz!=7" dense color="primary" class="text-caption">{{ dso.Visibility }}</q-chip>
-                  <q-chip v-if="dso.Class" dense color="positive" class="text-caption">{{ dso.Class }}</q-chip>
+                  <q-chip v-if="!(dso.Vz==7 && dso.Sz==8)" dense color="primary" class="text-caption">{{ dso.Visibility }}</q-chip>
+                  <q-chip v-if="dso.Position" dense :color="altLookupColor[dso.Alt??2]" class="text-caption">{{ dso.Position }}</q-chip>
               </q-item-section>
               <q-item-section side class="q-gutter-xs">
                 <div class="column text-grey-8 q-gutter-xs">
@@ -110,10 +114,10 @@ import { useCatalogStore } from 'src/stores/catalog'
 import MultiSelect from 'src/components/MultiSelect.vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
-import type { DsoType, DsoSubtype, CatalogItem } from 'src/stores/catalog' // adjust path as needed
+import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
-
-
+import VBar from 'src/components/VBar.vue'
+import { formatAngle } from 'src/utils/scale'
 
 
 
@@ -151,6 +155,16 @@ const typeLookupIcon: Record<DsoType, string>  = {
   1: 'mdi-cryengine', 
   2: 'mdi-blur', 
   3: 'mdi-flare'
+}
+
+const altLookupColor: Record<DsoAltitude, string>  = {
+  0: 'negative', 
+  1: 'warning', 
+  2: 'positive', 
+  3: 'positive', 
+  4: 'positive', 
+  5: 'positive', 
+  6: 'negative'
 }
 
 function parseNumberArray(param: unknown): number[] {
@@ -206,9 +220,11 @@ async function onClickGoto(dso: CatalogItem) {
 onMounted(async () => {
     await cat.catalogFetch()
     syncFiltersFromRoute()
+    cat.startPositionUpdater();
 })
 
 onUnmounted(() => {
+    cat.stopPositionUpdater();
 })
 
 
