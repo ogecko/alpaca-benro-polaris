@@ -200,18 +200,28 @@ export function invalidDeclinationRange(latDeg: number): { alwaysAbove?: [number
 
 /**
  * Computes approximate azimuth and altitude for a celestial object
- * given its right ascension (RA), declination (Dec), observer latitude,
- * and local sidereal time. Fast and suitable for batch updates.
+ * given RA/Dec, observer latitude and longitude, and a JS Date.
  */
 export function getAzAlt(
   raHr: number,           // Right Ascension in hours
   decDeg: number,         // Declination in degrees
-  siderealTimeHr: number, // Local sidereal time in hours
-  latDeg: number          // Observer latitude in degrees
+  latDeg: number,         // Observer latitude in degrees
+  lonDeg: number,         // Observer longitude in degrees (east positive)
+  date: Date = new Date() // UTC or local time, defaulting to now
 ): { az: number; alt: number } {
+  // Convert UTC time to Julian Date
+  const JD = (date.getTime() / 86400000) + 2440587.5;
 
-  const raDeg = raHr * 15; // Convert RA to degrees
-  const haDeg = (siderealTimeHr * 15 - raDeg + 360) % 360; // Hour angle
+  // Calculate Greenwich Mean Sidereal Time (GMST) in hours
+  const T = (JD - 2451545.0) / 36525;
+  const GMST = (280.46061837 + 360.98564736629 * (JD - 2451545.0) +
+                0.000387933 * T * T - T * T * T / 38710000) % 360;
+
+  const lstDeg = (GMST + lonDeg + 360) % 360;
+  const lstHr = lstDeg / 15;
+
+  const raDeg = raHr * 15;
+  const haDeg = (lstHr * 15 - raDeg + 360) % 360;
 
   const haRad = toRad(haDeg);
   const decRad = toRad(decDeg);
@@ -226,13 +236,12 @@ export function getAzAlt(
   // Azimuth
   const cosAz = (Math.sin(decRad) - Math.sin(altRad) * Math.sin(latRad)) /
                 (Math.cos(altRad) * Math.cos(latRad));
-  let azRad = Math.acos(Math.min(Math.max(cosAz, -1), 1)); // Clamp to [-1, 1]
+  let azRad = Math.acos(Math.min(Math.max(cosAz, -1), 1));
 
   if (Math.sin(haRad) > 0) {
     azRad = 2 * Math.PI - azRad;
   }
 
   const azDeg = toDeg(azRad);
-
   return { az: azDeg, alt: altDeg };
 }

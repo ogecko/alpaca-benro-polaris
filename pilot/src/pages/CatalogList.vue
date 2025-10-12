@@ -74,8 +74,6 @@
                   RA: {{ deg2fulldms(dso.RA_hr,1,'hr') }} <VBar /> Dec: {{ deg2fulldms(dso.Dec_deg) }}
                   <span v-if="dso.Az_deg"> <VBar /> Az: {{ formatAngle(dso.Az_deg,'deg',0) }}</span>
                   <span v-if="dso.Alt_deg"> <VBar /> Altitude: {{ formatAngle(dso.Alt_deg,'deg',0) }}</span>
-                  <span v-if="cat.site_lat"> <VBar /> Lat: {{ formatAngle(cat.site_lat,'deg',0) }}</span>
-                  <span v-if="cat.site_sidereal"> <VBar /> Sd: {{ cat.site_sidereal }}</span>
                 </q-item-label>
               </q-item-section>
 
