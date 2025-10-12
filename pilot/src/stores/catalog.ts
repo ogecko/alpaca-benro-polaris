@@ -34,6 +34,7 @@ export const useCatalogStore = defineStore('catalog', {
         Cn: undefined as DsoConstellation[] | undefined,
         C1: undefined as DsoType[] | undefined,
         C2: undefined as DsoSubtype[] | undefined,
+        Alt: undefined as DsoAltitude[] | undefined,
     },
     sorting: [
         { field: 'Rt', direction: 'desc' },
@@ -142,6 +143,10 @@ export const useCatalogStore = defineStore('catalog', {
         return Object.entries(subtypeLookup)
             .filter(([key]) => allowedSubtypes.has(Number(key)))
             .map(([key, label]) => ({ label, value: Number(key) as DsoSubtype }));
+    },
+    AltOptions() {
+        const opt = Object.entries(altitudeLookup).map(([key, label]) => ({  label,  value: Number(key) as DsoType })).reverse()
+        return opt
     },
 
   },
@@ -282,8 +287,8 @@ function enumAlt(altDeg: number) {
 }
 
 function positionLookup(azEnum: DsoAzimuth, altEnum: DsoAltitude) {
-  const azStr = azimuthLookup[azEnum]
-  const altStr = altitudeLookup[altEnum]
+  const azStr = azimuthLookup[azEnum].split(' ')[0] ?? ''
+  const altStr = altitudeLookup[altEnum].split(' ')[0] ?? ''
   return (altEnum==0 || altEnum==6) ? altStr :
          (altEnum==1) ? 'At ' + azStr + ' ' + altStr 
                       : altStr + ' ' + azStr
@@ -300,13 +305,13 @@ function visibilityLookup(brtEnum: DsoBrightness, sizeEnum: DsoSize):string {
 
 export type DsoAltitude = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export const altitudeLookup: Record<DsoAltitude, string> = {
-  0: 'Below Horizon',       // < 0°
-  1: 'Horizon',             // 0–15°
-  2: 'Low',                 // 15–30°
-  3: 'Mid-Low',             // 30–45°
-  4: 'Mid-High',            // 45–60°
-  5: 'High',                // 60–82°
-  6: 'Near Zenith'          // > 82°
+  0: 'Below-Horizon < 0°',       // < 0°
+  1: 'Horizon (0–15°)',             // 0–15°
+  2: 'Low (15–30°)',                 // 15–30°
+  3: 'Mid-Low (30–45°)',             // 30–45°
+  4: 'Mid-High (45–60°)',            // 45–60°
+  5: 'High (60–82°)',                // 60–82°
+  6: 'Near-Zenith > 82°'          // > 82°
 };
 
 export type DsoAzimuth = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -351,14 +356,14 @@ const ratingLookup: Record<DsoRating, string> = {
 
 export type DsoSize = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 const sizeLookup: Record<DsoSize, string> = {
-  0: 'Tiny (<0.5′)', 
-  1: 'Small (0.5 – 1′)', 
-  2: 'Compact (1 – 2′)', 
-  3: 'Moderate (2 – 5′)', 
-  4: 'Prominent (5 – 10′)', 
-  5: 'Wide (10 – 30′)', 
-  6: 'Extended (30 – 100′)', 
-  7: 'Expansive (100′+)',
+  0: 'Tiny < 0.5′', 
+  1: 'Small (0.5-1′)', 
+  2: 'Compact (1-2′)', 
+  3: 'Moderate (2-5′)', 
+  4: 'Prominent (5-10′)', 
+  5: 'Wide (10-30′)', 
+  6: 'Extended (30-100′)', 
+  7: 'Expansive > 100′',
   8: 'Unknown'
 }
 

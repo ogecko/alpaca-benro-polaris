@@ -32,10 +32,11 @@
   </div>
     <div v-if="showFilters" class="row q-pb-sm ">
       <MultiSelect label="Rating" v-model="cat.filter['Rt']" :options="cat.RtOptions" color="accent"/>
+      <MultiSelect label="Altitude" v-model="cat.filter['Alt']" :options="cat.AltOptions" color="positive"/>
       <MultiSelect label="Type" v-model="cat.filter['C1']" :options="cat.C1Options" color="grey-7"/>
       <MultiSelect label="SubType" v-model="cat.filter['C2']" :options="cat.C2Options" color="grey-7"/>
-      <MultiSelect label="Brightness" v-model="cat.filter['Vz']" :options="cat.VzOptions" color="primary"/>
       <MultiSelect label="Size" v-model="cat.filter['Sz']" :options="cat.SzOptions" color="primary"/>
+      <MultiSelect label="Brightness" v-model="cat.filter['Vz']" :options="cat.VzOptions" color="primary"/>
     </div>
     <div class="row q-pb-sm q-col-gutter-md items-center">
 

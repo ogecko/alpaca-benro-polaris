@@ -8,7 +8,7 @@
         </q-item>
       </template>
       <template v-slot:selected-item="scope">
-        <q-chip :color='color' class="text-caption" dense removable @remove="scope.removeAtIndex(scope.index)">
+        <q-chip :color='enrichedColor(scope.opt.value)' class="text-caption" dense removable @remove="scope.removeAtIndex(scope.index)">
           {{ scope.opt.label }}
         </q-chip>
       </template>
@@ -20,7 +20,7 @@ import { ref, watch } from 'vue'
 
 type SelectOption = { label: string; value: number }
 
-// Props
+// ------ Props and Events
 const props = withDefaults(defineProps<{
   label: string
   size?: string 
@@ -31,13 +31,15 @@ const props = withDefaults(defineProps<{
   size: '180px'
 })
 
-
-// Refs
-const localModel = ref<number[]>(props.modelValue ?? [])
-
 const emit = defineEmits<{
   (e: 'update:modelValue', value: number[]): void
 }>()
+
+// ----- Refs
+const localModel = ref<number[]>(props.modelValue ?? [])
+
+
+// ----- Watches
 
 watch(() => props.modelValue, val => {
   localModel.value = val ?? []
@@ -46,5 +48,19 @@ watch(() => props.modelValue, val => {
 watch(localModel, val => {
   emit('update:modelValue', val)
 })
+
+// ----- helpers
+function enrichedColor(val:number) {
+  // Special case for Altitude chips
+  if (props.label == 'Altitude') {
+    if (val == 0) return 'negative'
+    if (val == 1) return 'warning'
+    if (val == 6) return 'negative'
+  }
+
+  return props.color;
+}
+
+
 
 </script>
