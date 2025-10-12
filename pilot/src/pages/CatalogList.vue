@@ -113,7 +113,7 @@ import { useCatalogStore } from 'src/stores/catalog'
 import MultiSelect from 'src/components/MultiSelect.vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
-import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude } from 'src/stores/catalog' // adjust path as needed
+import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude, DsoConstellation, DsoRating, DsoSize, DsoBrightness } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
 import VBar from 'src/components/VBar.vue'
 import { formatAngle } from 'src/utils/scale'
@@ -179,6 +179,11 @@ function parseNumberArray(param: unknown): number[] {
 function syncFiltersFromRoute() {
   cat.filter.C1 = parseNumberArray(route.query.C1) as DsoType[]
   cat.filter.C2 = parseNumberArray(route.query.C2) as DsoSubtype[]
+  cat.filter.Cn = parseNumberArray(route.query.Cn) as DsoConstellation[]
+  cat.filter.Rt = parseNumberArray(route.query.Rt) as DsoRating[]
+  cat.filter.Sz = parseNumberArray(route.query.Sz) as DsoSize[]
+  cat.filter.Vz = parseNumberArray(route.query.Vz) as DsoBrightness[]
+  cat.filter.Alt = parseNumberArray(route.query.Alt) as DsoAltitude[]
 }
 
 

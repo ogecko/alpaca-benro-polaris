@@ -174,6 +174,7 @@ export const useCatalogStore = defineStore('catalog', {
         this.filter.Cn = undefined;
         this.filter.C1 = undefined;
         this.filter.C2 = undefined;
+        this.filter.Alt = undefined;
         this.searchFor = '';
     },
     async catalogFetch() {
