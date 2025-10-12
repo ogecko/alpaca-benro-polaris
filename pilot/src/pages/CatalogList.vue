@@ -183,6 +183,7 @@ function syncFiltersFromRoute() {
   cat.filter.Rt = parseNumberArray(route.query.Rt) as DsoRating[]
   cat.filter.Sz = parseNumberArray(route.query.Sz) as DsoSize[]
   cat.filter.Vz = parseNumberArray(route.query.Vz) as DsoBrightness[]
+  cat.filter.Az = parseNumberArray(route.query.Az) as DsoAltitude[]
   cat.filter.Alt = parseNumberArray(route.query.Alt) as DsoAltitude[]
 }
 

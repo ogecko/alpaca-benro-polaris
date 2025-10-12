@@ -38,6 +38,7 @@ export const useCatalogStore = defineStore('catalog', {
         Cn: undefined as DsoConstellation[] | undefined,
         C1: undefined as DsoType[] | undefined,
         C2: undefined as DsoSubtype[] | undefined,
+        Az: undefined as DsoAltitude[] | undefined,
         Alt: undefined as DsoAltitude[] | undefined,
     },
     sorting: [
@@ -174,6 +175,7 @@ export const useCatalogStore = defineStore('catalog', {
         this.filter.Cn = undefined;
         this.filter.C1 = undefined;
         this.filter.C2 = undefined;
+        this.filter.Az = undefined;
         this.filter.Alt = undefined;
         this.searchFor = '';
     },
