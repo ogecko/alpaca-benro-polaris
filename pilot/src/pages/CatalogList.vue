@@ -30,7 +30,7 @@
             </div>
           </div>
   </div>
-    <div v-if="showFilters" class="row q-pb-sm ">
+    <div v-if="showFilters" class="row q-pb-sm " style="background-color:rgba(255, 255, 255, 0.07);">
       <MultiSelect label="Rating" v-model="cat.filter['Rt']" :options="cat.RtOptions" color="accent"/>
       <MultiSelect label="Altitude" v-model="cat.filter['Alt']" :options="cat.AltOptions" color="positive"/>
       <MultiSelect label="Type" v-model="cat.filter['C1']" :options="cat.C1Options" color="grey-7"/>
