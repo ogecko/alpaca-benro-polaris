@@ -1468,6 +1468,8 @@ class Polaris:
                 'deltaref': self._pid.delta_ref.tolist(),
                 'alpharef': self._pid.alpha_ref.tolist(),
                 'omegaref': self._pid.omega_ref.tolist(),
+                'omegamin': self._pid.omega_min.tolist(),
+                'omegamax': self._pid.omega_max.tolist(),
                 'motorref': [motor.rate_dps for motor in self._motors.values()],
                 'siderealtime': self._siderealtime,
                 'lifecycleevent': self.lifecycle._event.name,

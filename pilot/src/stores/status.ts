@@ -67,6 +67,8 @@ export const useStatusStore = defineStore('status', {
         alpharef: [0,0,0],
         omegaref: [0,0,0],
         motorref: [0,0,0],
+        omegamin: [0,0,0],
+        omegamax: [0,0,0],
         bledevices: [] as string[],
         bleselected: '',
         bleisenablingwifi: false,

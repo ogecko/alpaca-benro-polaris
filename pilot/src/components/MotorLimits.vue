@@ -14,23 +14,29 @@
         </div>
         <q-img src="../assets/abp-v2-motor-limits.png" fit="scale-down" position="50% 50%" style="height:300px"></q-img>
         <!-- Motor Limits -->
-        <div class="row q-col-gutter-lg items-center">
-            <div class="text-h6">Z3 <span v-if="$q.screen.gt.xs">Axis</span></div>
-            <q-input class="col-3" v-bind="bindField('z3_min_limit', 'Minimum (-)', '°')" type="number" input-class="text-right"/>
-            <q-input class="col-3" readonly label="Current" v-bind="z3curr" type="text" input-class="text-right"/>
-            <q-input class="col-3" v-bind="bindField('z3_max_limit','Maximum (+)', '°')" type="number" input-class="text-right"/>
+        <div class="row q-col-gutter-lg items-center q-pt-md">
+              <div  class="text-h6">Z3 <span v-if="$q.screen.gt.xs">Axis</span></div>
+              <q-input class="col-3" v-bind="bindField('z3_min_limit','Min (-)', '°')" type="number" input-class="text-right" 
+                       dense :bg-color="p.omegamin[2] === 0 ? 'negative' : undefined" />
+              <q-input dense class="col-3" readonly label="Current" v-bind="z3curr" type="text" input-class="text-right"/>
+              <q-input class="col-3" v-bind="bindField('z3_max_limit','Max (+)', '°')" type="number" input-class="text-right"
+                       dense :bg-color="p.omegamax[2] === 0 ? 'negative' : undefined" />
         </div>
-        <div class="row q-col-gutter-lg  items-center">
+        <div class="row q-col-gutter-lg  items-center q-pt-sm">
             <div class="text-h6">Z2 <span v-if="$q.screen.gt.xs">Axis</span></div>
-            <q-input class="col-3" v-bind="bindField('z2_min_limit', 'Minimum (-)', '°')" type="number" input-class="text-right"/>
-            <q-input class="col-3" readonly label="Current" v-bind="z2curr" type="text" input-class="text-right"/>
-            <q-input class="col-3" v-bind="bindField('z2_max_limit','Maximum (+)', '°')" type="number" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z2_min_limit', 'Min (-)', '°')" type="number" input-class="text-right"
+                      dense :bg-color="p.omegamin[1] === 0 ? 'negative' : undefined" />
+            <q-input dense class="col-3" readonly label="Current" v-bind="z2curr" type="text" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z2_max_limit','Max (+)', '°')" type="number" input-class="text-right"
+                      dense :bg-color="p.omegamax[1] === 0 ? 'negative' : undefined" />
         </div>
-        <div class="row q-col-gutter-lg q-pb-md items-center">
+        <div class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
             <div class="text-h6">Z1 <span v-if="$q.screen.gt.xs">Axis</span></div>
-            <q-input class="col-3" v-bind="bindField('z1_min_limit', 'Minimum (-)', '°')" type="number" input-class="text-right"/>
-            <q-input class="col-3" readonly label="Current" v-bind="z1curr" type="text" input-class="text-right"/>
-            <q-input class="col-3" v-bind="bindField('z1_max_limit','Maximum (+)', '°')" type="number" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z1_min_limit', 'Min (-)', '°')" type="number" input-class="text-right"
+                     dense  :bg-color="p.omegamin[0] === 0 ? 'negative' : undefined" />
+            <q-input dense class="col-3" readonly label="Current" v-bind="z1curr" type="text" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z1_max_limit','Max (+)', '°')" type="number" input-class="text-right"
+                     dense  :bg-color="p.omegamax[0] === 0 ? 'negative' : undefined" />
         </div>
 
     </q-card>

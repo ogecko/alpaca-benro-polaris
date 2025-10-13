@@ -112,7 +112,7 @@ const btnDense = computed(() =>
 )
 
 const statusLabel = computed(() => 
-  p.pidmode=="LIMIT"? "Limit" :
+  isLimited.value ? "Limit" :
   p.atpark ? "Parked" : 
   p.gotoing ? "Gotoing" : 
   p.slewing ? "Slewing" :
@@ -123,11 +123,11 @@ const statusLabel = computed(() =>
 )
 
 const statusColor = computed(() =>
-  p.pidmode=="LIMIT"? "negative" : "positive"
+  isLimited.value ? "negative" : "positive"
 )
 
 const statusIcon = computed(() => 
-  p.pidmode=="LIMIT"? "mdi-alert" :
+  isLimited.value ? "mdi-alert" :
   p.atpark ? "mdi-parking" : 
   p.gotoing ? "mdi-move-resize-variant" : 
   p.slewing ? "mdi-cursor-move" :
@@ -136,6 +136,13 @@ const statusIcon = computed(() =>
   p.tracking ? "mdi-star-shooting-outline" : 
                "mdi-sleep"
 )
+
+const isLimited = computed(() => {
+    return (p.omegamin?.some(v => v === 0) ?? false) ||
+           (p.omegamax?.some(v => v === 0) ?? false);
+  }
+)
+
 
 // ------------------- Lifecycle Events ---------------------
 

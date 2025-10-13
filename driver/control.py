@@ -1142,6 +1142,8 @@ class PID_Controller():
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
         self.omega_ref = np.array([0,0,0], dtype=float)      # omega1-3 reference tracking angular velocity
+        self.omega_min = np.array([0,0,0], dtype=float)      # omega1-3 min allowable angular velocity (0=axis at limit, no more -ve)
+        self.omega_max = np.array([0,0,0], dtype=float)      # omega1-3 max allowable angular velocity (0=axis at limit, no more +ve)
         self.omega_tgt = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity raw pid output
         self.omega_ctl = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity constrained output
         self.omega_op = np.array([0,0,0], dtype=float)       # omega1-3 motor angular velocity control output
@@ -1496,12 +1498,16 @@ class PID_Controller():
         self.omega_ctl = self.omega_op + accel_clipped * self.dt
         self.omega_ctl = self.omega_ctl * (1.0 - self.Ke) + self.Ke * self.omega_op
         # Check zeta motor limits and constrain omega further if past limits
-        zeta = self.polaris._zeta_meas
-        zeta_min = [Config.z1_min_limit, Config.z2_min_limit, Config.z3_min_limit]
-        zeta_max = [Config.z1_max_limit, Config.z2_max_limit, Config.z3_max_limit]
-        omega_min = np.where(zeta < zeta_min, [0,0,0], -self.Kv) if zeta else -self.Kv
-        omega_max = np.where(zeta > zeta_max, [0,0,0], +self.Kv) if zeta else +self.Kv
-        self.omega_ctl = np.clip(self.omega_ctl, omega_min, omega_max)
+        if self.polaris._zeta_meas is None:
+            self.omega_min = -self.Kv
+            self.omega_max = +self.Kv
+        else:
+            zeta = np.array(self.polaris._zeta_meas)
+            zeta_min = np.array([Config.z1_min_limit, Config.z2_min_limit, Config.z3_min_limit])
+            zeta_max = np.array([Config.z1_max_limit, Config.z2_max_limit, Config.z3_max_limit])
+            self.omega_min = np.where(zeta < zeta_min, np.array([0,0,0]), -self.Kv) 
+            self.omega_max = np.where(zeta > zeta_max, np.array([0,0,0]), +self.Kv) 
+        self.omega_ctl = np.clip(self.omega_ctl, self.omega_min, self.omega_max)
 
     async def control(self):
         self.omega_op = np.array([0,0,0], dtype=float)
