@@ -97,6 +97,10 @@
             </div>
           </q-card>
         </div>
+        <div class="col-12 col-md-6 col-lg-4 flex">
+        <MotorLimits />
+
+        </div>
         <!-- Standard Control Features -->
         <div class="col-12 col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md full-width">
@@ -135,6 +139,7 @@ import { getLocationServices } from 'src/utils/locationServices';
 import type { LocationResult } from 'src/utils/locationServices';
 import LocationPicker from 'src/components/LocationPicker.vue';
 import StatusBanners from 'src/components/StatusBanners.vue'
+import MotorLimits from 'src/components/MotorLimits.vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
