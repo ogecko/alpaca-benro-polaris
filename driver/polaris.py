@@ -382,7 +382,7 @@ class Polaris:
     async def client(self, logger: Logger):
         self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
         self.lifecycle.create_task(self._every_1s_watchdog_check(), name="PolarisWatchdog")
-        self.lifecycle.create_task(self._every_5s_send_polaris_keepalive(), name="PolarisWatchdog")
+        self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisWatchdog")
         self.lifecycle.create_task(self.every_50ms_tick(), name="PolarisFastMove")
         if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
             self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
@@ -416,6 +416,9 @@ class Polaris:
     async def _every_1s_watchdog_check(self):
         while True:
             try: 
+                # get update on true orientation
+                if self._connected:
+                    await self.send_cmd_517()
                 # calculate age of last 518 message
                 curr_timestamp = datetime.datetime.now()
                 if not self._last_518_timestamp:
@@ -452,13 +455,12 @@ class Polaris:
                 self._task_exception = e
                 break
 
-    async def _every_5s_send_polaris_keepalive(self):
+    async def _every_15s_send_polaris_keepalive(self):
         while True:
             try: 
                 if self._connected:
                     await self.send_cmd_284_query_current_mode_async()
-                    await self.send_cmd_517()
-                await asyncio.sleep(5)
+                await asyncio.sleep(15)
 
             except Exception as e:
                 self._task_exception = e
@@ -714,7 +716,7 @@ class Polaris:
             # pitch = axis2 down rotation in radians (-0.6144=highest/83d00'37", 0=Park/47d46'06", 0.834020=0d, 0.914842=lowest/-04d38'04")
             # roll  = axis3 cw rotation in radians (-2pi=-360, -pi=-180, 0=Park, pi=180;, 2pi=360, 3pi=540', etc.)
             p_yaw = rad2deg(float(arg_dict['yaw']))         # from Polaris direct
-            p_pitch = rad2deg(float(arg_dict['pitch']))     # from Polaris direct
+            p_pitch = -rad2deg(float(arg_dict['pitch']))    # from Polaris direct, note sign switch to align with Alt direction
             p_roll = rad2deg(float(arg_dict['roll']))       # from Polaris direct
             with self._lock:
                 self._zeta_meas = [p_yaw, p_pitch, p_roll]

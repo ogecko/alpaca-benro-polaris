@@ -1467,7 +1467,7 @@ class PID_Controller():
         self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
         if not self.is_moving and self.mode=='AUTO':
             self.set_pid_mode('IDLE')
-    
+   
     def pid(self):
         self.omega_tgt = self.Kp * self.error_signal + self.Ki * self.error_integral - self.Kd * self.omega_op
 
@@ -1495,7 +1495,13 @@ class PID_Controller():
         # Apply clipped acceleration, expotential smoothing, and clip velocity
         self.omega_ctl = self.omega_op + accel_clipped * self.dt
         self.omega_ctl = self.omega_ctl * (1.0 - self.Ke) + self.Ke * self.omega_op
-        self.omega_ctl = np.clip(self.omega_ctl, -self.Kv, self.Kv)
+        # Check zeta motor limits and constrain omega further if past limits
+        zeta = self.polaris._zeta_meas
+        zeta_min = [Config.z1_min_limit, Config.z2_min_limit, Config.z3_min_limit]
+        zeta_max = [Config.z1_max_limit, Config.z2_max_limit, Config.z3_max_limit]
+        omega_min = np.where(zeta < zeta_min, [0,0,0], -self.Kv) if zeta else -self.Kv
+        omega_max = np.where(zeta > zeta_max, [0,0,0], +self.Kv) if zeta else +self.Kv
+        self.omega_ctl = np.clip(self.omega_ctl, omega_min, omega_max)
 
     async def control(self):
         self.omega_op = np.array([0,0,0], dtype=float)

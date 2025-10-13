@@ -43,7 +43,7 @@
 
       <q-space />
       <!----- RHS Chip Status Info ----->
-      <q-chip color="positive" :outline="statusLabel=='Idle'" :icon="statusIcon" class="q-pa-md">
+      <q-chip :color="statusColor" :outline="statusLabel=='Idle'" :icon="statusIcon" class="q-pa-md">
         {{statusLabel}}
       </q-chip>
     </div>
@@ -112,6 +112,7 @@ const btnDense = computed(() =>
 )
 
 const statusLabel = computed(() => 
+  p.pidmode=="LIMIT"? "Limit" :
   p.atpark ? "Parked" : 
   p.gotoing ? "Gotoing" : 
   p.slewing ? "Slewing" :
@@ -121,7 +122,12 @@ const statusLabel = computed(() =>
                "Idle"
 )
 
+const statusColor = computed(() =>
+  p.pidmode=="LIMIT"? "negative" : "positive"
+)
+
 const statusIcon = computed(() => 
+  p.pidmode=="LIMIT"? "mdi-alert" :
   p.atpark ? "mdi-parking" : 
   p.gotoing ? "mdi-move-resize-variant" : 
   p.slewing ? "mdi-cursor-move" :

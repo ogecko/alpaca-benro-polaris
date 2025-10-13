@@ -44,8 +44,8 @@ kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192
 kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674 ]
 z1_min_limit = -190                         # Z1 Axis Raw Motor Control minimum in degrees
 z1_max_limit = +190                         # Z1 Axis Raw Motor Control maximum in degrees
-z2_min_limit = -32                          # z2 Axis Raw Motor Control minimum in degrees
-z2_max_limit = +48                          # z2 Axis Raw Motor Control maximum in degrees
+z2_min_limit = -48                          # z2 Axis Raw Motor Control minimum in degrees
+z2_max_limit = +35                          # z2 Axis Raw Motor Control maximum in degrees
 z3_min_limit = -190                         # Z3 Axis Raw Motor Control minimum in degrees
 z3_max_limit = +190                         # Z3 Axis Raw Motor Control maximum in degrees
 
