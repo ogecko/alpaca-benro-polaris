@@ -58,9 +58,15 @@ export const useConfigStore = defineStore('config', {
     max_slew_rate: 0.0,
     max_accel_rate: 0.0,
     tracking_settle_time: 16,
-    kf_process_noise: [1e-5,1e-5,1e-5,1e-4,1e-4,1e-4],
-    kf_measure_noise: [1e-5,1e-5,1e-5,1e-4,1e-4,1e-4],
-        
+    kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4], 
+    kf_measure_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4], 
+    z1_min_limit: -190,
+    z1_max_limit: +190,
+    z2_min_limit: -32,
+    z2_max_limit: +40,
+    z3_min_limit: -190,
+    z3_max_limit: +190,
+ 
 
     // Aiming Adjustment
     aiming_adjustment_enabled: true,

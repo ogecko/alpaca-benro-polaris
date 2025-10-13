@@ -16,21 +16,21 @@
         <!-- Motor Limits -->
         <div class="row q-col-gutter-lg items-center">
             <div class="text-h6">Z3 <span v-if="$q.screen.gt.xs">Axis</span></div>
-            <q-input class="col-3" v-bind="bindField('site_latitude', 'Minimum (-)', '°')" type="number" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z3_min_limit', 'Minimum (-)', '°')" type="number" input-class="text-right"/>
             <q-input class="col-3" readonly label="Current" v-bind="z3curr" type="text" input-class="text-right"/>
-            <q-input class="col-3" v-bind="bindField('site_longitude','Maximum (+)', '°')" type="number" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z3_max_limit','Maximum (+)', '°')" type="number" input-class="text-right"/>
         </div>
         <div class="row q-col-gutter-lg  items-center">
             <div class="text-h6">Z2 <span v-if="$q.screen.gt.xs">Axis</span></div>
-            <q-input class="col-3" v-bind="bindField('site_latitude', 'Minimum (-)', '°')" type="number" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z2_min_limit', 'Minimum (-)', '°')" type="number" input-class="text-right"/>
             <q-input class="col-3" readonly label="Current" v-bind="z2curr" type="text" input-class="text-right"/>
-            <q-input class="col-3" v-bind="bindField('site_longitude','Maximum (+)', '°')" type="number" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z2_max_limit','Maximum (+)', '°')" type="number" input-class="text-right"/>
         </div>
         <div class="row q-col-gutter-lg q-pb-md items-center">
             <div class="text-h6">Z1 <span v-if="$q.screen.gt.xs">Axis</span></div>
-            <q-input class="col-3" v-bind="bindField('site_latitude', 'Minimum (-)', '°')" type="number" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z1_min_limit', 'Minimum (-)', '°')" type="number" input-class="text-right"/>
             <q-input class="col-3" readonly label="Current" v-bind="z1curr" type="text" input-class="text-right"/>
-            <q-input class="col-3" v-bind="bindField('site_longitude','Maximum (+)', '°')" type="number" input-class="text-right"/>
+            <q-input class="col-3" v-bind="bindField('z1_max_limit','Maximum (+)', '°')" type="number" input-class="text-right"/>
         </div>
 
     </q-card>
@@ -96,6 +96,9 @@ function bindField(key: string, label: string, suffix?: string) {
     }
   }
 }
+
+
+
 
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 

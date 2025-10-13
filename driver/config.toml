@@ -42,6 +42,12 @@ max_slew_rate = 0.0                         # Maximum slew rate (0.0 to 8.5 degr
 max_accel_rate = 0.0                        # Maximum acceleration (0.5 to 5.0 degress/s2) on any motor axis (use 0.0 to set default) must be float
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.003981071705534973 ]
 kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674 ]
+z1_min_limit = -190                         # Z1 Axis Raw Motor Control minimum in degrees
+z1_max_limit = +190                         # Z1 Axis Raw Motor Control maximum in degrees
+z2_min_limit = -32                          # z2 Axis Raw Motor Control minimum in degrees
+z2_max_limit = +48                          # z2 Axis Raw Motor Control maximum in degrees
+z3_min_limit = -190                         # Z3 Axis Raw Motor Control minimum in degrees
+z3_max_limit = +190                         # Z3 Axis Raw Motor Control maximum in degrees
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.
