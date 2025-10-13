@@ -55,6 +55,10 @@
             </div>
           </q-card>
         </div>
+        <!-- Motor Limits -->
+        <div class="col-12 col-md-6 col-lg-4 flex">
+          <MotorLimits />
+        </div>
         <!-- Advanced Features -->
         <div class="col-12 col-md-6 col-lg-4 flex" >
           <q-card flat bordered class="q-pa-md full-width">
@@ -96,10 +100,6 @@
               </div>
             </div>
           </q-card>
-        </div>
-        <div class="col-12 col-md-6 col-lg-4 flex">
-        <MotorLimits />
-
         </div>
         <!-- Standard Control Features -->
         <div class="col-12 col-md-6 col-lg-4 flex">

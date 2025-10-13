@@ -6,16 +6,37 @@
         <div class="text-h6">Motor Angle Limts</div>
         <div class="row">
             <div class="col text-caption text-grey-6 q-pb-md">
-            To prevent windup, set minimum and maximum limits for each axis.              
+            To prevent windup, set minimum and maximum limits for each axis. Control axes directly or Park Polaris.             
             </div>
-            <div class="col-auto q-gutter-sm flex justify-end">
-              <q-btn class='col' label="Defaults"/>
+            <div class="col-auto q-gutter-sm flex justify-end items-center">
+              <q-btn outline icon="mdi-parking" color="grey-5" label="Park"  @click="1"/>
             </div>
         </div>
-        <q-img src="../assets/abp-v2-motor-limits.png" fit="scale-down" position="50% 50%" style="height:300px"></q-img>
+        <!-- Benro Polaris Image -->
+        <div class="row justify-center">
+          <div class="relative-position" style="height:300px; width:300px">
+            <q-img src="../assets/abp-v2-motor-limits-b.png" fit="scale-down">
+            </q-img>
+            <MoveButton activeColor="positive" label="M3+" :opacity="1.0" size="md" color="white" icon=""  dense @push="1" class="absolute" style="top:2%; left:47%"/>
+            <MoveButton activeColor="positive" label="M3-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="1" class="absolute" style="top:2%; left:77%"/>
+
+            <MoveButton activeColor="positive" label="M2+" :opacity="1.0" size="md" color="white" icon=""  dense  @push="1" class="absolute" style="top:43%; left:38%"/>
+            <MoveButton activeColor="positive" label="M2-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="1" class="absolute" style="top:66%; left:25%"/>
+
+            <MoveButton activeColor="positive" label="M1+" :opacity="1.0" size="md" color="white" icon=""  dense   @push="1" class="absolute" style="top:79%; left:11%"/>
+            <MoveButton activeColor="positive" label="M1-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="1" class="absolute" style="top:91%; left:30%"/>
+
+            <!-- <q-btn flat rounded push activeColor="positive" label="M3+" class="absolute" style="top:2%; left:45%"/> -->
+            <!-- <q-btn flat rounded activeColor="positive" label="M3-" class="absolute" style="top:2%; left:74%"/> -->
+            <!-- <q-btn flat rounded activeColor="positive" label="M2+" class="absolute" style="top:43%; left:35%"/> -->
+            <!-- <q-btn flat rounded activeColor="positive" label="M2-" class="absolute" style="top:65%; left:21%"/> -->
+            <!-- <q-btn flat rounded activeColor="positive" label="M1+" class="absolute" style="top:79%; left:8%"/> -->
+            <!-- <q-btn flat rounded activeColor="positive" label="M1-" class="absolute" style="top:90%; left:28%"/> -->
+          </div>
+        </div>
         <!-- Motor Limits -->
         <div class="row q-col-gutter-lg items-center q-pt-md">
-              <div  class="text-h6">Z3 <span v-if="$q.screen.gt.xs">Axis</span></div>
+              <div  class="text-h6">M3 <span v-if="$q.screen.gt.xs">Axis</span></div>
               <q-input class="col-3" v-bind="bindField('z3_min_limit','Min (-)', '°')" type="number" input-class="text-right" 
                        dense :bg-color="p.omegamin[2] === 0 ? 'negative' : undefined" />
               <q-input dense class="col-3" readonly label="Current" v-bind="z3curr" type="text" input-class="text-right"/>
@@ -23,7 +44,7 @@
                        dense :bg-color="p.omegamax[2] === 0 ? 'negative' : undefined" />
         </div>
         <div class="row q-col-gutter-lg  items-center q-pt-sm">
-            <div class="text-h6">Z2 <span v-if="$q.screen.gt.xs">Axis</span></div>
+            <div class="text-h6">M2 <span v-if="$q.screen.gt.xs">Axis</span></div>
             <q-input class="col-3" v-bind="bindField('z2_min_limit', 'Min (-)', '°')" type="number" input-class="text-right"
                       dense :bg-color="p.omegamin[1] === 0 ? 'negative' : undefined" />
             <q-input dense class="col-3" readonly label="Current" v-bind="z2curr" type="text" input-class="text-right"/>
@@ -31,7 +52,7 @@
                       dense :bg-color="p.omegamax[1] === 0 ? 'negative' : undefined" />
         </div>
         <div class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
-            <div class="text-h6">Z1 <span v-if="$q.screen.gt.xs">Axis</span></div>
+            <div class="text-h6">M1 <span v-if="$q.screen.gt.xs">Axis</span></div>
             <q-input class="col-3" v-bind="bindField('z1_min_limit', 'Min (-)', '°')" type="number" input-class="text-right"
                      dense  :bg-color="p.omegamin[0] === 0 ? 'negative' : undefined" />
             <q-input dense class="col-3" readonly label="Current" v-bind="z1curr" type="text" input-class="text-right"/>
@@ -50,6 +71,7 @@ import { useDeviceStore } from 'src/stores/device';
 import { useStatusStore } from 'src/stores/status';
 import { debounce } from 'quasar'
 import { formatDegreesHr } from 'src/utils/scale'
+import MoveButton from 'src/components/MoveButton.vue'
 
 const dev = useDeviceStore()
 const cfg = useConfigStore()

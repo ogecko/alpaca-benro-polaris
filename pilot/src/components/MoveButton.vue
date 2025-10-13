@@ -1,18 +1,20 @@
 <template>
   <q-btn
-    dense push size="lg" style="opacity:0.4" 
-    :icon="icon"
+    dense push size="lg" style="opacity:opacity" 
     :class="{ isPressed }"
-    :text-color="isPressed? 'white' : 'positive'"
+    :text-color="isPressed? 'white' : color"
     :color="isPressed? 'positive' : ''"
-    :style="isPressed? 'opacity: 1' : 'opacity: 0.4'"
+    :style="isPressed? 'opacity: 1' : `opacity: ${opacity}`"
     @mousedown="onDown"
     @mouseup="onUp"
     @mouseleave="onUp"
     @touchstart="onDown"
     @touchend="onUp"
     class="q-mx-xs"
-  />
+  >
+    <q-icon v-if="icon!=''" :name="icon" />
+    <div v-if="label!=''"> {{ label }} </div>
+  </q-btn>
 </template>
 
 <script setup lang="ts">
@@ -20,6 +22,9 @@ import { ref } from 'vue'
 
 defineProps({
   icon: { type: String, default: 'mdi-plus-circle' },
+  opacity: { type: Number, default: 0.4 },
+  label: { type: String, default: '' },
+  color: { type: String, default: 'positive' }
 })
 
 const isPressed = ref(false)
