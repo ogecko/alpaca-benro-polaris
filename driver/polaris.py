@@ -260,9 +260,11 @@ class Polaris:
         # Advanced Control variables
         self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
         self._q1s = None                            # The estimated quaternion state based on Kalman Filter
-        self._theta_meas = None                     # The latest set of motor axis angles [theta1, theta2, theta3] measured from q1
-        self._theta_state = None                    # The state of motor axis angles [theta1, theta2, theta3] estimated by KF
-        self._omega_meas = None                     # The latest set of motor axis angular velocity [omega1, omega2, omega3] measured from q1
+        self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
+        self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
+        self._theta_meas = None                     # The latest set of Polaris 1-aligned motor axis angles [theta1, theta2, theta3] measured from q1
+        self._theta_state = None                    # The state of 1-aligned motor axis angles [theta1, theta2, theta3] estimated by KF
+        self._omega_meas = None                     # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._cm = CalibrationManager()
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
@@ -380,7 +382,7 @@ class Polaris:
     async def client(self, logger: Logger):
         self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
         self.lifecycle.create_task(self._every_1s_watchdog_check(), name="PolarisWatchdog")
-        self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisWatchdog")
+        self.lifecycle.create_task(self._every_5s_send_polaris_keepalive(), name="PolarisWatchdog")
         self.lifecycle.create_task(self.every_50ms_tick(), name="PolarisFastMove")
         if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
             self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
@@ -450,12 +452,13 @@ class Polaris:
                 self._task_exception = e
                 break
 
-    async def _every_15s_send_polaris_keepalive(self):
+    async def _every_5s_send_polaris_keepalive(self):
         while True:
             try: 
                 if self._connected:
                     await self.send_cmd_284_query_current_mode_async()
-                await asyncio.sleep(15)
+                    await self.send_cmd_517()
+                await asyncio.sleep(5)
 
             except Exception as e:
                 self._task_exception = e
@@ -710,7 +713,13 @@ class Polaris:
             # yaw   = axis1 E rotation in radians (-2pi=-360, -pi=-180, 0=Park, pi=180;, 2pi=360, 3pi=540, etc.)
             # pitch = axis2 down rotation in radians (-0.6144=highest/83d00'37", 0=Park/47d46'06", 0.834020=0d, 0.914842=lowest/-04d38'04")
             # roll  = axis3 cw rotation in radians (-2pi=-360, -pi=-180, 0=Park, pi=180;, 2pi=360, 3pi=540', etc.)
-            self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
+            p_yaw = rad2deg(float(arg_dict['yaw']))         # from Polaris direct
+            p_pitch = rad2deg(float(arg_dict['pitch']))     # from Polaris direct
+            p_roll = rad2deg(float(arg_dict['roll']))       # from Polaris direct
+            with self._lock:
+                self._zeta_meas = [p_yaw, p_pitch, p_roll]
+            if Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
 
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":
@@ -1450,6 +1459,8 @@ class Polaris:
                 'pidmode': self._pid.mode,                
                 'q1': str(self._q1),
                 'q1s': str(self._q1s),
+                'zetameas': [0,0,0] if self._zeta_meas is None else self._zeta_meas,
+                'lotameas': [0,0,0,0,0] if self._theta_meas is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],
                 'thetameas': [0,0,0] if self._theta_meas is None else self._theta_meas.tolist(),
                 'thetastate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
                 'deltaref': self._pid.delta_ref.tolist(),

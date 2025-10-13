@@ -60,6 +60,8 @@ export const useStatusStore = defineStore('status', {
         pidmode: '',
         q1: '',
         q1s: '',
+        zetameas: [0,0,0],
+        lotameas: [0,0,0,0,0],
         thetastate: [0,0,0],
         deltaref: [0,0,0],
         alpharef: [0,0,0],
