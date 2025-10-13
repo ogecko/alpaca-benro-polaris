@@ -9,7 +9,7 @@
             To prevent windup, set minimum and maximum limits for each axis. Control axes directly or Park Polaris.             
             </div>
             <div class="col-auto q-gutter-sm flex justify-end items-center">
-              <q-btn outline icon="mdi-parking" color="grey-5" label="Park"  @click="1"/>
+              <q-btn outline icon="mdi-parking" color="grey-5" label="Park"  @click="onPark"/>
             </div>
         </div>
         <!-- Benro Polaris Image -->
@@ -17,21 +17,15 @@
           <div class="relative-position" style="height:300px; width:300px">
             <q-img src="../assets/abp-v2-motor-limits-b.png" fit="scale-down">
             </q-img>
-            <MoveButton activeColor="positive" label="M3+" :opacity="1.0" size="md" color="white" icon=""  dense @push="1" class="absolute" style="top:2%; left:47%"/>
-            <MoveButton activeColor="positive" label="M3-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="1" class="absolute" style="top:2%; left:77%"/>
+            <MoveButton activeColor="positive" label="M3+" :opacity="1.0" size="md" color="white" icon=""  dense @push="onM3Plus" class="absolute" style="top:2%; left:47%"/>
+            <MoveButton activeColor="positive" label="M3-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM3Minus" class="absolute" style="top:2%; left:77%"/>
 
-            <MoveButton activeColor="positive" label="M2+" :opacity="1.0" size="md" color="white" icon=""  dense  @push="1" class="absolute" style="top:43%; left:38%"/>
-            <MoveButton activeColor="positive" label="M2-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="1" class="absolute" style="top:66%; left:25%"/>
+            <MoveButton activeColor="positive" label="M2+" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM2Plus" class="absolute" style="top:43%; left:38%"/>
+            <MoveButton activeColor="positive" label="M2-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM2Minus" class="absolute" style="top:66%; left:25%"/>
 
-            <MoveButton activeColor="positive" label="M1+" :opacity="1.0" size="md" color="white" icon=""  dense   @push="1" class="absolute" style="top:79%; left:11%"/>
-            <MoveButton activeColor="positive" label="M1-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="1" class="absolute" style="top:91%; left:30%"/>
+            <MoveButton activeColor="positive" label="M1+" :opacity="1.0" size="md" color="white" icon=""  dense   @push="onM1Plus" class="absolute" style="top:79%; left:11%"/>
+            <MoveButton activeColor="positive" label="M1-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM1Minus" class="absolute" style="top:91%; left:30%"/>
 
-            <!-- <q-btn flat rounded push activeColor="positive" label="M3+" class="absolute" style="top:2%; left:45%"/> -->
-            <!-- <q-btn flat rounded activeColor="positive" label="M3-" class="absolute" style="top:2%; left:74%"/> -->
-            <!-- <q-btn flat rounded activeColor="positive" label="M2+" class="absolute" style="top:43%; left:35%"/> -->
-            <!-- <q-btn flat rounded activeColor="positive" label="M2-" class="absolute" style="top:65%; left:21%"/> -->
-            <!-- <q-btn flat rounded activeColor="positive" label="M1+" class="absolute" style="top:79%; left:8%"/> -->
-            <!-- <q-btn flat rounded activeColor="positive" label="M1-" class="absolute" style="top:90%; left:28%"/> -->
           </div>
         </div>
         <!-- Motor Limits -->
@@ -59,7 +53,6 @@
             <q-input class="col-3" v-bind="bindField('z1_max_limit','Max (+)', '°')" type="number" input-class="text-right"
                      dense  :bg-color="p.omegamax[0] === 0 ? 'negative' : undefined" />
         </div>
-
     </q-card>
 </template>
 
@@ -93,6 +86,32 @@ onMounted(async () => {
     await cfg.configFetch()
   }
 })
+
+
+async function onPark() {
+  console.log('Goto Park Position')
+  await dev.alpacaPark()
+  await dev.alpacaUnPark()
+}
+
+async function onM1Plus(payload: { isPressed: boolean }) {
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":0,"rate":${payload.isPressed ? 5 : 0}}`)
+}
+async function onM1Minus(payload: { isPressed: boolean }) {
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":0,"rate":${payload.isPressed ? -5 : 0}}`)
+}
+async function onM2Plus(payload: { isPressed: boolean }) {
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":1,"rate":${payload.isPressed ? 5 : 0}}`)
+}
+async function onM2Minus(payload: { isPressed: boolean }) {
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":1,"rate":${payload.isPressed ? -5 : 0}}`)
+}
+async function onM3Plus(payload: { isPressed: boolean }) {
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":2,"rate":${payload.isPressed ? 5 : 0}}`)
+}
+async function onM3Minus(payload: { isPressed: boolean }) {
+    await dev.apiAction('Polaris:MoveMotor', `{"axis":2,"rate":${payload.isPressed ? -5 : 0}}`)
+}
 
 
 function bindField(key: string, label: string, suffix?: string) {
