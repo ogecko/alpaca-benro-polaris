@@ -15,7 +15,7 @@
         <!-- Benro Polaris Image -->
         <div class="row justify-center">
           <div class="relative-position" style="height:300px; width:300px">
-            <q-img src="../assets/abp-v2-motor-limits-b.png" fit="scale-down">
+            <q-img src="../assets/abp-v2-motor-limits-b.png" fit="scale-down" @contextmenu.prevent>
             </q-img>
             <MoveButton activeColor="positive" label="M3+" :opacity="1.0" size="md" color="white" icon=""  dense @push="onM3Plus" class="absolute" style="top:2%; left:47%"/>
             <MoveButton activeColor="positive" label="M3-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM3Minus" class="absolute" style="top:2%; left:77%"/>
