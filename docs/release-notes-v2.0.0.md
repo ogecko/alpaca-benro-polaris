@@ -1,11 +1,15 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-**Version:** 2.0.0
-**Release Date:** TBD   
-**Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris    
-**Win11 Install:** Demonstration Video at https://youtu.be/ipbWT54afhY    
-**MacOS Install:** Demonstration Video at https://youtu.be/ZT91dpLObP8
+* **Version:** 2.0.0 Alpha1
+* **Release Date:** 14-Oct-2025   
+* **Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris
+* **Current Branch:** releases/2_0_alpha1 
+* **Demo Video:** Demonstration Video at https://youtu.be/4wRKDHmwVlE 
+* **Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
+
+## Alpha and Beta Agreement
+Please read and confirm your agreement with [Beta Agreement](./beta_agreement.md)
 
 ## Win11 Upgrade Instructions
 * Uninstall Python 3.12.7
@@ -16,21 +20,34 @@
 - **[Modern App]**: Alpaca Pilot offers an elegant, adaptive UI for control and management of Alpaca Drivers
 - **[Responsive UI]**: Adapts seamlessly to phones, tablets, and desktops for a consistent experience across devices
 - **[Live Dashboard]**: Real-time telemetry of current Azimuth, Altitude, Roll, Right Ascension, Declination, Position Angle, and Local Sidereal Time
+- **[Dashboard Status]**: Display mount state including parked, tracking, slewing, gotoing, PID active, and pulse guiding
+- **[Motor Activity]**: Indicate motor activity and speed on the dashboard
 - **[Interactive Dials]**: Precision radial dials with zoomable scales for accurate readout and tap-to-set angular targeting
-- **[Connection Page]**: Quickly connect to your Alpaca Driver and Benro Polaris through a clean, intuitive interface
-- **[Configuration Page]**: Instantly view and modify Alpaca Driver settings; no need to edit config.toml or restart
+- **[Radial Scales]**: Show warning limits on angles; fix wraparound and pointer issues near ±90° and 360/0
+- **[Quick Actions]**: Floating action buttons for axis control; commands for Eq-Az toggle, park, unpark, abort, track, and tracking rate
+- **[Manual Slew]**: Slew manually by Alt/Az/Roll or RA/Dec/PA with adjustable slew rate
+- **[Connection Page]**: Connect to Benro Polaris without the Benro App; discover nearby devices via Bluetooth LE and enable WiFi
+- **[Configuration Page]**: Instantly view and modify Alpaca Driver settings; save and restore configuration changes
 - **[Map Verification]**: Display site coordinates on an interactive map to visually confirm the location
 - **[Site Autocomplete]**: Automatically retrieve location name, elevation, and current pressure via external web services
 - **[Battery Level]**: Shows charging state and battery percentage in the Alpaca Pilot heading bar
-- **[Log Streaming]**: - Support real-time remote monitoring of Alpaca Driver log activity
+- **[Log Streaming]**: - Real-time remote monitoring of Alpaca Driver log activity; includes log viewer and log level control
 - **[Nina integration]**: Launch Alpaca Pilot directly from the Settings Cogs in NINA’s Equipment tab
+- **[PWM Testing]**: Dedicated PWM test page with improved SLOW speed handling
+- **[Speed Calibration]**: Speed calibration test management with cancel and hookup support
+- **[Position Diagnostics]**: Dedicated diagnostics page for mount position and movement
+- **[Alignment Tools]**: Single-point and multi-point alignment using Polaris internal model and QUEST modeling; sync with map landmarks and RA/Dec or Az/Alt coordinates
+- **[Sync Analysis]**: Residual display, editing, and removal of sync points; tripod level correction
+- **[Rotator Support]**: Full rotator control including Halt, Sync, Reverse, MoveRel, MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
+- **[Target Catalog]**: Expanded catalog with search, filter, pagination, and sync/goto integration
+- **[Imaging Enhancements]**: Long exposure stabilization, auto-leveling, Zenith imaging, drift suppression, and dithering support
 
 ## New Features (Alpaca Driver)
 - **[Alpaca Actions]**: Expose extended ASCOM Actions for Driver Restart, Config Service Control
 - **[Task Orchestration]**: Streamlined task lifecycle management with coordinated creation and teardown
 - **[Configuration Service]**: Enhanced config handling with support for saving overrides and restoring defaults
 - **[Network Services]**: Unified control over network services and port bindings for cleaner security management
-- **[Web Service]**: Introduced embedded Web Service to host the Alpaca Pilot Single Page Application
+- **[Web Service]**: Introduced embedded Web and Sockets Service to host the Alpaca Pilot Single Page Application
 - **[Log Services]**: Aligned logging configuration across all network services
 - **[Log Files]**: Default log output now directed to the `logs` directory (previously `driver`)
 - **[Driver Startup]**: Driver version now logged on startup for traceability
@@ -38,12 +55,13 @@
 - **[Image Cleanup]**: Added scatter plots to visualize rejected images based on statistical thresholds
 - **[CORS Middleware]**: Integrated middleware for Cross-Origin Request support
 - **[Testing Framework]**: Introduced testing framework for Alpaca Driver validation and regression checks
+- **[Performance Enhancements]**: Improved tracking precision, Kalman Filter tuning, and motor calibration persistence
 
 ## New Features (ASCOM Alpaca Rotator support)
 - **[ASCOM Rotator]** Implement the ASCOM Alpaca Rotator device standard
 - **[Nina Integration]** Support Nina Equipment tab and Rotator Control
-- **[TODO]** Parallactic and Roll Angle Targeting
-- **[TODO]** Direct Slew to Defined Angular Pose
+- **[Paralactic Angle]** Parallactic Angle, Position Angle and Roll Angle Targeting
+- **[Direct Slew]** Direct Slew to Defined Angular Pose
 
 ## New Features (Advanced Position Control Algorithm)
 - **[Kinematic Solver]** Quaternion-based kinematics and inverse solutions
@@ -84,12 +102,14 @@
 - **[Speed Boost]** Increased Maximum Alpaca Axis Speed to 8.4 degrees/s
 - **[Interruptable Slew]** Slew supports real-time interruption
 - **[Az/Alt/Roll Slew]** Slew by Azimuth, Altitude, and Roll coordinates (replaces direct motor axis control)
-- **[TODO]** Slew by Right Ascension, Declination and Polar Angle (when tracking enabled)
+- **[RA/Dec/PA Skew]** Slew by Right Ascension, Declination and Polar Angle (when tracking enabled)
 
 ## New Features (Precision Tracking Control)
-- **[Tracking Rates]** Support ASCOM Alpaca Drive Rates (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
-- **[Zero Drift]** PID Control of Target position for zero drift and closed loop tracking
+- **[Tracking Rates]** Support ASCOM Alpaca Drive Rate Config (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
+- **[Reduced Drift]** PID Control of Target position for zero drift and closed loop tracking
 - **[Feed Forward]** Feedforward control anticipates motion and tracking sidereal velocities
+- **[Deep-Sky Tracking]**: Support for tracking deep-sky objects with high precision
+- **[Pulse Guiding]**: ASCOM Pulse Guide API support; Nina Dithering and PHD2 integration
 
 ## New Features (enabled by Nina)
 - **[Nina and Nikon Z8]**: Nina v3.2 now supports Nikon Z8 cameras 
@@ -181,6 +201,7 @@ Please let us know if you can try any of these features.
   
 
 ## Known Issues
+- **[Gimbal Lock]**: There is potential gimbal loack at low altitudes. Please watch mount at all times.
 - **[Stellarium 24.3]**: Stellarium Desktop v24.3 has known issues with telescope control. See [Troubleshooting S2](./troubleshooting.md).
 
 
