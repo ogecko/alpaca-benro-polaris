@@ -75,6 +75,7 @@ class description:
         desc = {
             'ServerName'   : DeviceMetadata.Description,
             'Manufacturer' : DeviceMetadata.Manufacturer,
+            'ManufacturerVersion'      : DeviceMetadata.Version,
             'Version'      : DeviceMetadata.Version,
             'Location'     : Config.location
             }
