@@ -47,7 +47,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca Pilot Log file viewer and streaming of data over Sockets
 # [X] Ability to change Log Level and Log Settings
 # [X] Rationalise loggin across alpaca, polaris, discovery, synscan, bluetooth protocols
-# [ ] Fix sizing of log scrolling window
+# [X] Fix sizing of log scrolling window
 #
 # Alpaca Pilot Dashboard Features
 # [X] Alpaca Pilot Radial Indicators
@@ -101,6 +101,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Fix quaternian maths when alt is negative and zero
 # [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
 # [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
+# [X] Add Anti-Windup Motor Angle Limits
 # [ ] Fix zero Altitude movement
 # [ ] Improve motor limits indication and safety protection (including with tilts)
 #
@@ -131,6 +132,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca pilot feature degredation when not in Advanced Control
 # [X] Alpaca pilot feature degredation when no Multi-Point Alignment
 # [X] Alpaca pilot feature degredation when no Rotator
+# [X] Alpaca pilot feature degredation when no Bluetooth
 # [ ] Alpaca pilot feature degredation when not ABP Driver
 # [ ] Alpaca pilot works without the third axis Astro Module Hardware (adjust Az/Alt)
 # [ ] Alpaca Pilot memory and logevity tests
@@ -162,7 +164,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Fix RA hrs vs deg, qnotify of goto
 # [X] GOTO from catalog
 # [X] Sync from catalog
-# [ ] Calc Altitude, Tonights Altitude, Proximity
+# [X] Calc current Azimuth, Altitude of dso and categorise it for filtering
+# [ ] Tonights Altitude, Proximity
 # [ ] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
 # [ ] Catalog Target Info on Dashboard
 # [ ] Ability to switch catalogs from settings, revise grouping/sizing of each one
@@ -179,7 +182,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # 
 # Precision Tracking
 # [X] Deep-Sky Object Tracking 
-# [ ] Seamless Axis Override During Tracking
+# [X] Seamless Axis Override During Tracking
 # [ ] Selenographic Lunar Tracking 
 # [ ] Planetary and Orbital Moons Tracking
 # [ ] Commet and Asteroid Tracking
@@ -200,7 +203,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Zenith Imaging Support (18° Circle)
 # [X] Drift supression and Auto-Centering
 # [X] Dithering support
-# [ ] Mosaic imaging support through Nina
+# [X] Mosaic imaging support through Nina
 
 # Candidate future enhancements
 # [X] Feedforward Control Integration (minimise overshoot)
@@ -1741,12 +1744,6 @@ class SyncManager:
         # Now compute the residuals and tilt correction
         self.compute_azalt_residuals()   # Compute and store residuals
         self.compute_tilt()              # Compute tilt correction
-
-        # Update the ASCOM values, KF and PID with the ajustment
-        q1s = self.q1_adj * self.polaris._q1
-        azhint = self.az_adj + self.polaris._p_azimuth 
-        alpha_state, theta_state = self.polaris.update_ascom_from_new_q1_adj(q1s, azhint)
-        self.polaris._pid.measure(alpha_state, theta_state)
 
         return
 
