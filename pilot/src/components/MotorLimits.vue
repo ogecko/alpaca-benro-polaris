@@ -6,7 +6,7 @@
         <div class="text-h6">Motor Angle Limts</div>
         <div class="row">
             <div class="col text-caption text-grey-6 q-pb-md">
-            To prevent windup, set minimum and maximum limits for each axis. Control axes directly or Park Polaris.             
+            To prevent cable windup, set minimum and maximum limits for each axis. Control axes directly or Park Polaris.             
             </div>
             <div class="col-auto q-gutter-sm flex justify-end items-center">
               <q-btn outline icon="mdi-parking" color="grey-5" label="Park"  @click="onPark"/>
