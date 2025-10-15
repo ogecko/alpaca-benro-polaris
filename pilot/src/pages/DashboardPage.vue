@@ -140,11 +140,6 @@ const statusIcon = computed(() =>
                "mdi-sleep"
 )
 
-const isLimited = computed(() => {
-    return (p.omegamin?.some(v => v === 0) ?? false) ||
-           (p.omegamax?.some(v => v === 0) ?? false);
-  }
-)
 
 
 // ------------------- Lifecycle Events ---------------------
