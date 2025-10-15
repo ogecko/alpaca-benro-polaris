@@ -862,11 +862,16 @@ class CalibrationManager:
             output_lines.append("},")  # End of axis block with trailing comma
         return begin + '\n'.join(output_lines) + '\n}\n'
 
+    def ensure_data_dir_exists(self):
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+
     def saveCalibrationDataToFile(self, path = CALIBRATION_PATH):
+        self.ensure_data_dir_exists()
         with open(path, 'w') as f:
             f.write(self.formatCalibrationData())
 
     def saveTestDataToFile(self, path = TESTDATA_PATH):
+        self.ensure_data_dir_exists()
         with open(path, 'w') as f:
             json.dump(self.test_data, f, indent=2)
 
