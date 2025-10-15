@@ -11,9 +11,24 @@
         <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
-    <div v-if="p.atpark" >
+    <div v-if="p.pidmode=='PRESETUP'" >
       <q-banner inline-actions rounded class="bg-warning">
-        WARNING: The Alpaca Driver is parking/parked. Most functions are disabled.
+        PRESETUP: Please set your Observing Site Lattitude and Longitude before proceeding.
+        <template v-slot:action><q-btn flat label="Setup" to="/config" /></template>
+      </q-banner>
+    </div>
+    <div v-else-if="p.pidmode=='LIMIT'" >
+      <q-banner inline-actions rounded class="bg-warning">
+        LIMIT: The Polaris has reached an anti-windup Motor Angle Limit. Please Review and Reset.
+        <template v-slot:action>
+          <q-btn flat label="Review" to="/config" />
+          <q-btn flat label="Reset" @click="dev.ackLimitAlarm()" />
+        </template>
+      </q-banner>
+    </div>
+    <div v-else-if="p.atpark" >
+      <q-banner inline-actions rounded class="bg-warning">
+        PARK: The Alpaca Driver is parking/parked. Most functions are disabled.
         <template v-slot:action><q-btn flat label="UnPark" @click="onPark" /></template>
       </q-banner>
     </div>

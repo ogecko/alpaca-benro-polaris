@@ -168,6 +168,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:bleEnableWifi')
     },
 
+    async ackLimitAlarm() {
+      await this.apiAction<void>('Polaris:Ack', `{"alarm": "LIMIT"}`)
+    },
+
     async catalogFetch() {
       try {
         const resp = await axios.get('/catalog_a_lg.json');

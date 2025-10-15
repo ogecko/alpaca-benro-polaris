@@ -1465,7 +1465,8 @@ class supportedactions:
             "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
             "Polaris:MoveAxis", "Polaris:MoveMotor", 
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
-            "Polaris:SyncRoll", "Polaris:SyncRemove",  
+            "Polaris:SyncRoll", "Polaris:SyncRemove", 
+            "Polaris:Ack", 
         ], req)  
 
 
@@ -1630,6 +1631,14 @@ class action:
             timestamp = parameters.get('timestamp', '')
             polaris._sm.sync_remove(timestamp) 
             resp.text = await PropertyResponse('Polaris SyncRemove ok', req)  
+            return
+
+        elif actionName == "Polaris:Ack":
+            logger.info(f'Polaris Ack {parameters}')
+            alarm = parameters.get('alarm', '')
+            if alarm == 'LIMIT':
+                polaris._pid.ack_limit_alarm()
+            resp.text = await PropertyResponse('Polaris Ack ok', req)  
             return
 
         else:

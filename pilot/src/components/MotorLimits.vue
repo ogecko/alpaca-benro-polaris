@@ -5,11 +5,20 @@
         <!-- Logging Settings Heading -->
         <div class="text-h6">Motor Angle Limts</div>
         <div class="row">
-            <div class="col text-caption text-grey-6 q-pb-md">
-            To prevent cable windup, set minimum and maximum limits for each axis. Control axes directly or Park Polaris.             
+            <div v-if="isLimited" class="col text-caption text-grey-6 q-pb-md">
+              <q-item>
+                <q-item-section avatar><q-icon name="mdi-alert" color="negative" size="lg" /></q-item-section>
+                <q-item-section>
+                  <q-item-label>Anti-windup Motor Angle Limit Reached</q-item-label>
+                  <q-item-label class="text-grey-6" caption>Use the buttons M1+, M1-, etc to move the mount back to safety. Alternitively issue a Park command. </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn label="Park" icon="mdi-parking"  class="fixedWidth" @click="onPark"/>
+                </q-item-section>
+              </q-item>
             </div>
-            <div class="col-auto q-gutter-sm flex justify-end items-center">
-              <q-btn outline icon="mdi-parking" color="grey-5" label="Park"  @click="onPark"/>
+            <div v-else class="col text-caption text-grey-6 q-pb-md">
+              To prevent cable windup, define minimum and maximum angle limits for each axis. Values beyond ±360° indicate the number of full rotations permitted in that direction. Axis M2 is also mechanically limited.                     
             </div>
         </div>
         <!-- Benro Polaris Image -->
@@ -74,6 +83,11 @@ const p = useStatusStore()
 const z3curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[2]??0,"deg",1) }));
 const z2curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[1]??0,"deg",1) }));
 const z1curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[0]??0,"deg",1) }));
+const isLimited = computed(() => {
+    return (p.omegamin?.some(v => v === 0) ?? false) ||
+           (p.omegamax?.some(v => v === 0) ?? false);
+  }
+)
 
 
 onMounted(async () => {

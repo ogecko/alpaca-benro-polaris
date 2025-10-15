@@ -15,6 +15,7 @@ import math
 import copy
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 
+
 # ************* TODO LIST *****************
 #
 # Alpaca Pilot App
@@ -1126,7 +1127,8 @@ class PID_Controller():
         self.body._epoch = ephem.J2000                       # default to J2000 epoch
         self.body_pa_offset = 0                              # used to store body pa to oconvert back to roll
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
-        self.mode = 'IDLE'                                   # PID Controller mode: PARK, IDLE, AUTO, TRACK
+        self.mode = 'PRESETUP'                               # PID Controller mode: PARK, IDLE, AUTO, TRACK, PRESETUP, LIMIT
+        self.ack_limit_timestamp = None                      # Timestamp of last ACK of PID LIMIT ALARM
         self.target_type = 'NONE'                            # target body we are tracking
         self.delta_sp = np.array([0,0,0], dtype=float)       # Setpoint for ra, dec, polar anglular positions
         self.alpha_sp = np.array([0,0,0], dtype=float)       # Setpoint for az, alt, roll angular positions
@@ -1243,9 +1245,9 @@ class PID_Controller():
     #------- Functions to change SP, Targets and Mode ---------
 
     def set_tracking_on(self):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        if self.mode=="AUTO":
+        if self.mode=='AUTO':
             track_target = self.alpha_ref.copy()
         else:
             track_target = self.alpha_meas.copy()
@@ -1256,24 +1258,24 @@ class PID_Controller():
         self.set_pid_mode('TRACK')
     
     def set_tracking_off(self):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         if self.mode == 'TRACK':
             self.set_pid_mode('AUTO')
 
     def set_pid_mode(self, newMode):
-        if newMode in ['PARK', 'IDLE', 'AUTO', 'TRACK']:
+        if newMode in ['PRESETUP', 'PARK', 'IDLE', 'AUTO', 'TRACK', 'LIMIT', ]:
             self.mode = newMode
 
     def set_no_target(self):
-        self.target_type = "NONE"
+        self.target_type = 'NONE'
         self.reset_offsets()
 
     def set_alpha_target(self, sp: dict[str, float]):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.reset_offsets()
-        self.target_type = "ALPHA"
+        self.target_type = 'ALPHA'
         # Safely update alpha_sp components if provided
         self.alpha_sp[0] = sp.get("az", self.alpha_sp[0])
         self.alpha_sp[1] = sp.get("alt", self.alpha_sp[1])
@@ -1284,14 +1286,14 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
 
     def set_alpha_axis_velocity(self, axis, sp=0.0):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.alpha_v_sp[axis] = sp
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
     def set_delta_target(self, delta):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.reset_offsets()
         self.target_type = "DELTA"
@@ -1300,7 +1302,7 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
 
     def set_delta_axis_position(self, axis, sp=0.0):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.delta_sp[axis] = sp
         self.delta_v_sp[axis] = 0
@@ -1309,7 +1311,7 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
         
     def set_delta_axis_position_relative(self, axis, sp=0.0):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.delta_sp[axis] = self.delta_sp[axis] + sp
         self.delta_v_sp[axis] = 0
@@ -1318,7 +1320,7 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
 
     def set_delta_axis_velocity(self, axis, sp=0.0):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.delta_v_sp[axis] = sp
         if self.mode in ['IDLE','AUTO']:
@@ -1343,7 +1345,7 @@ class PID_Controller():
         self.delta_g_sp[axis] = clamped
 
     def set_TLE_target(self, line1, line2, line3):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.reset_offsets()
         self.target_type = "TLE"
@@ -1353,7 +1355,7 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
     
     def set_XEphem_target(self, line):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.reset_offsets()
         self.target_type = "XEPHEM"
@@ -1362,7 +1364,7 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
 
     def rotator_move_relative(self, sp=0.0):
-        if self.mode=="PARK":
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         axis=2
         self.alpha_sp[axis] = self.alpha_sp[axis] + sp
@@ -1383,12 +1385,15 @@ class PID_Controller():
         self.is_slewing = True
         self.slew_complete_callback = fn
               
+    def ack_limit_alarm(self):
+        self.ack_limit_timestamp = datetime.datetime.now()
+        self.set_pid_mode('IDLE')
 
     #------- Control step functions ---------
 
     def track_target(self):
         # Update alpha_ref based on current mode
-        if self.mode in ['PARK']:
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             self.alpha2body(self.alpha_meas)
             self.delta_ref = self.body2delta()           
             self.delta_sp = self.body2delta()            
@@ -1512,6 +1517,21 @@ class PID_Controller():
             zeta_max = np.array([Config.z1_max_limit, Config.z2_max_limit, Config.z3_max_limit])
             self.omega_min = np.where(zeta < zeta_min, np.array([0,0,0]), -self.Kv) 
             self.omega_max = np.where(zeta > zeta_max, np.array([0,0,0]), +self.Kv) 
+            isLimited = np.any(self.omega_min == 0) or np.any(self.omega_max == 0)
+            isUnAcked = self.ack_limit_timestamp is None or (datetime.datetime.now() - self.ack_limit_timestamp).total_seconds() > 60*2
+            isnotPARKorPRESETUP = not self.set_pid_mode in ['PRESETUP', 'PARK']
+            if isLimited and isUnAcked and isnotPARKorPRESETUP:
+                self.set_pid_mode('LIMIT')
+
+        # Check that lat/lon has been set
+        lat_unchanged = abs(rad2deg(float(self.observer.lat)) - -33.8598874) <= 0.00001
+        lon_unchanged = abs(rad2deg(float(self.observer.lon)) - 151.2021771) <= 0.00001
+        if lat_unchanged and lon_unchanged:
+            self.set_pid_mode('PRESETUP')
+        else:
+            if self.mode=='PRESETUP':
+                self.set_pid_mode('IDLE')
+
         self.omega_ctl = np.clip(self.omega_ctl, self.omega_min, self.omega_max)
 
     async def control(self):
@@ -1520,9 +1540,6 @@ class PID_Controller():
         for axis in range(3):
             self.omega_op[axis] = self.omega_ctl[axis]
             raw = self.controllers[axis]._model.DPS.toRAW(self.omega_ctl[axis])
-            # if abs(raw) < 5.5:      # no longer relevant after PWM  improved
-            #     raw = round(raw,0)  # no fractional SLOW commands
-            #     self.omega_op[axis] = self.controllers[axis]._model.RAW.toDPS(raw)
         # send control to motor when moving
         if self.is_moving and self.mode in ['AUTO', 'TRACK']:
             for axis in range(3):
