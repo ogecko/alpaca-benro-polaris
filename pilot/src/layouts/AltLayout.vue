@@ -14,7 +14,7 @@
           <q-btn v-if="$q.screen.gt.xs" flat no-caps no-wrap to="/">
             <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
           </q-btn>
-          <q-route-tab icon="mdi-monitor-dashboard" :label="$q.screen.gt.sm ? 'Dashboard' : ''" to="/"/>
+          <q-route-tab icon="mdi-monitor-dashboard" :label="$q.screen.gt.sm ? 'Dashboard' : ''" to="/dashboard"/>
           <q-route-tab icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect" 
                       :alert="dev.restAPIConnected?'positive':'negative'" />
           <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
@@ -250,8 +250,8 @@ const links4 = [
   { icon: 'mdi-database-clock-outline', text: 'Driver Log', to: '/log' },
 ]
   const buttons1 = [
-    { text: 'About', to: '/about' },
     { text: 'Home', to: '/' },
+    { text: 'About', to: '/about' },
     { text: 'Settings', to: '/config' },
     { text: 'Logs', to: '/log' },
     { text: 'Widgets', to: '/test' },

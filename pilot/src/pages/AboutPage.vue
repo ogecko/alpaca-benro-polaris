@@ -6,21 +6,14 @@
 
     <div class="row q-col-gutter-sm items-stretch">
       <!----- Logo Startup Image ----->
-      <div class="row col-12 items-center q-pa-xl">
-          <div class="col">
-            <q-img src="../assets/abp-logo.png" fit="scale-down" position="100% 50%" style="height:200px"></q-img>
-          </div>
-          <div class="col">
-            <div class="text-bold text-h4">
-              <div>PRECISION</div>
-              <div>CONTROL</div>
-              <div>REIMAGINED</div>
-            </div>
-            <div class="q-pt-lg text-primary text-subtitle1">
-              <div>Slewing, Rotating, Targeting,</div>
-              <div>Tracking, and Guiding.</div>
-            </div>
-          </div>
+      <div class="row col-12 items-center q-pa-lg">
+        <div class="col flex flex-center" style="height: 300px; ">
+          <q-img
+            src="../assets/abp-v2-logo-hires-full.png"
+            fit="scale-down"
+            style="max-width: 100%; max-height: 100%;"
+          />
+        </div>
       </div>
 
       <!-- Component Versions -->
