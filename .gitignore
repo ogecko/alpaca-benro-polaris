@@ -23,7 +23,8 @@ platforms/docker/getopts_long/
 .Python
 build/
 develop-eggs/
-dist/
+/dist/*
+!/dist/spa
 downloads/
 eggs/
 .eggs/
