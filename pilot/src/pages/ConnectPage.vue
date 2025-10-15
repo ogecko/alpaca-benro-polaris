@@ -309,7 +309,7 @@ const bleLen = computed(() => p.bledevices.length);
 const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
 const isPolarisConnected = computed(() => (!!p.connected));
 const bleCaption = computed(() => {
-  return (bleLen.value==0) ? 'Check Power, no devices discovered.' :
+  return (bleLen.value==0) ? 'Check Power or Bluetooth, no devices discovered.' :
          (bleLen.value>1) ? 'Multiple devices discovered.' :
          (isBLESelected.value) ? '' : 'Please select device.'
 });

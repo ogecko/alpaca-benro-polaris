@@ -1,6 +1,7 @@
 import asyncio
 import json
 from bleak import BleakScanner, BleakClient, exc
+from bleak.exc import BleakError
 from shr import LifecycleController, bytes2hexascii
 from config import Config
 import time
@@ -108,10 +109,16 @@ class BLE_Controller():
 
 
     async def runBleScanner(self):
-        async with BleakScanner(self.scannerCallback) as scanner:
-            while not self.lifecycle.should_shutdown():
-                self.prune_stale_devices()
-                if not self.isConnectedFn():
-                    await self.enableWifi()
-                await asyncio.sleep(30)
+        try:
+            async with BleakScanner(self.scannerCallback) as scanner:
+                while not self.lifecycle.should_shutdown():
+                    self.prune_stale_devices()
+                    if not self.isConnectedFn():
+                        await self.enableWifi()
+                    await asyncio.sleep(30)
+        except (BleakError, OSError) as e:
+            if "Bluetooth device is turned off" in str(e) or "device is not ready" in str(e):
+                self.logger.warning("Bluetooth is off. Skipping BLE scan.")
+            else:
+                self.logger.exception(f"BLE scan failed: {e}")
 
