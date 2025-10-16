@@ -34,7 +34,8 @@ async def socket_handler(websocket: WebSocket):
                 await ws_safe_send_json(websocket, {"type": "pong"})
                 continue
 
-            logger.info(f"==WS== Received message: {msg}")
+            if Config.log_alpaca_actions:
+                logger.info(f"==WS== Received message: {msg}")
             if msg_type == "subscribe":
                 topic = msg.get("topic")
                 filter_args = msg.get("filter", {})

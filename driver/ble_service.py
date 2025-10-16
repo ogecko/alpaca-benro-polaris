@@ -99,11 +99,13 @@ class BLE_Controller():
                     self.isWifiEnabled = True
                     return
             except Exception as e:
-                self.logger.warn(f"BLE Attempt {attempt} failed to enable Wifi {address}: {e}")
+                if Config.log_polaris_ble:
+                    self.logger.warn(f"BLE Attempt {attempt} failed to enable Wifi {address}: {e}")
                 if attempt < max_attempts:
                     await asyncio.sleep(1)
                 else:
-                    self.logger.warn(f"BLE failed to enable wifi after {max_attempts}")
+                    if Config.log_polaris_ble:
+                        self.logger.warn(f"BLE failed to enable wifi after {max_attempts}")
                     self.isEnablingWifi = False
 
 
