@@ -106,6 +106,7 @@ export default defineConfig((/* ctx */) => {
       plugins: [
         'Notify',
         'LocalStorage',
+        'AppFullscreen',
       ],
     },
 

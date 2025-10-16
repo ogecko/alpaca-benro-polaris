@@ -14,10 +14,10 @@
           <q-btn v-if="$q.screen.gt.xs" flat no-caps no-wrap to="/">
             <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
           </q-btn>
-          <q-route-tab icon="mdi-monitor-dashboard" :label="$q.screen.gt.sm ? 'Dashboard' : ''" to="/dashboard"/>
-          <q-route-tab icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : ''"  to="/connect" 
+          <q-route-tab icon="mdi-monitor-dashboard" :label="$q.screen.gt.sm ? 'Dashboard' : undefined" to="/dashboard"/>
+          <q-route-tab icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : undefined"  to="/connect" 
                       :alert="dev.restAPIConnected?'positive':'negative'" />
-          <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : ''" to="/config"/>
+          <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : undefined" to="/config"/>
         </q-tabs>
         <!-- Search -->
         <div class="row no-wrap q-pl-md">
@@ -30,14 +30,17 @@
         </div>
 
         <q-space />
+        
 
         <!-- Battery and Notifications -->
-        <div class="q-gutter-sm q-pl-sm items-center">
+        
+        <div class="q-gutter-sm q-pl-sm items-center" @click="onToggleFullscreen()">
             <div v-if="p.battery_is_available">
                 <span class="text-body">{{p.battery_level}}%</span>
                 <q-icon class="" size="sm" :name="getBatteryIcon()" :color="getBatteryColor()"/>
             </div>
         </div>
+        <q-btn dense size="lg" flat icon="mdi-fullscreen" @click="onToggleFullscreen()"/>
       </q-toolbar>
     </q-header>
 
@@ -134,6 +137,7 @@ import { useDeviceStore } from 'src/stores/device'
 import { useStreamStore } from 'src/stores/stream'
 import { debounce } from 'quasar'
 import { useCatalogStore } from 'src/stores/catalog'
+import { AppFullscreen } from 'quasar'
 
 const leftDrawerOpen = ref(false)
 const dev = useDeviceStore()
@@ -144,6 +148,17 @@ const route = useRoute()
 const cat = useCatalogStore()
 
 const searchBoxString = ref<string>('')
+const isFullscreen= ref(false)
+
+async function onToggleFullscreen() {
+  if (isFullscreen.value) {
+    await AppFullscreen.exit()
+    isFullscreen.value = false
+  } else {
+    await AppFullscreen.request()
+    isFullscreen.value = true
+  }
+}
 
 onMounted(() => {
   // socket.connectSocket()   //    connect whenever the socketURL or AppVisibility changes - see watch below
