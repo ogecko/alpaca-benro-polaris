@@ -1641,6 +1641,12 @@ class action:
             resp.text = await PropertyResponse('Polaris Ack ok', req)  
             return
 
+        elif actionName == "Polaris:ResetSP":
+            logger.info(f'Polaris ResetSP {parameters}')
+            polaris._pid.reset_sp()
+            resp.text = await PropertyResponse('Polaris ResetSP ok', req)  
+            return
+
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
 

@@ -1211,6 +1211,14 @@ class PID_Controller():
         self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor angular reference position
         self.theta_ref_last = np.array([0,0,0], dtype=float) # theta1-3 motor angular reference position of last control step
 
+    def reset_sp(self):                                      # align all SP with alpha_meas current position
+        self.alpha2body(self.alpha_meas)
+        self.delta_ref = self.body2delta()           
+        self.delta_sp = self.delta_ref            
+        self.alpha_ref = self.alpha_meas
+        self.alpha_sp = self.alpha_meas                  
+        self.reset_offsets() 
+
     def body_pa(self):
         return wrap_to_180(0.0 - rad2deg(self.body.parallactic_angle()))
     
@@ -1397,20 +1405,11 @@ class PID_Controller():
     def track_target(self):
         # Update alpha_ref based on current mode
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
-            self.alpha2body(self.alpha_meas)
-            self.delta_ref = self.body2delta()           
-            self.delta_sp = self.body2delta()            
-            self.alpha_ref = self.alpha_meas
-            self.alpha_sp = self.alpha_meas                  # in case we switch to AUTO
-            self.alpha_offst = np.array([0,0,0],dtype=float) # in case we switch to AUTO
+            self.reset_sp()
         
         elif self.mode in ['IDLE']:
-            if (self.alpha_ref[0]==0):
-                self.alpha2body(self.alpha_meas)
-                self.delta_ref = self.body2delta()           
-                self.delta_sp = self.body2delta()            
-                self.alpha_ref = self.alpha_meas
-                self.alpha_sp = self.alpha_meas                  # in case we switch to AUTO
+            if (self.alpha_ref[0]==0):                       # only reset sp in special case
+                self.reset_sp()
             self.alpha_offst = np.array([0,0,0],dtype=float) # in case we switch to AUTO
 
         elif self.mode == 'AUTO':

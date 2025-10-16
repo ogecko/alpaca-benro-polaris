@@ -11,6 +11,7 @@
         <div class="q-gutter-md ">
           <q-btn-group >
             <q-btn icon="mdi-telescope"  glossy  :dense="btnDense" :size="btnSize" color="secondary" push :outline="!isEq" @click="isEq=!isEq"  />
+            <q-btn v-if="isDeviated" icon="mdi-format-horizontal-align-center"  glossy :dense="btnDense" :size="btnSize" color="secondary" outline  @click="onResetSP"/>
             <q-btn icon="mdi-parking"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark"/>
             <q-btn icon="mdi-stop" glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="isStopOutline" @click="onAbort"/>
           </q-btn-group>
@@ -83,6 +84,7 @@ import ScaleDisplay  from 'src/components/ScaleDisplay.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
 import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
+import { angularDifference } from 'src/utils/angles'
 
 
 const $q = useQuasar()
@@ -103,6 +105,18 @@ const displayConfig = computed(() => isEq.value ? [
   { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType },
   { label: 'Roll', pv: p.roll, sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType }
 ]);
+
+const isDeviated = computed(() => {
+  if (p.pidmode!='IDLE') return false
+  const RAD = angularDifference(p.rightascension, p.deltarefRAhrs)
+  const DecD = angularDifference(p.declination, p.deltaref[1]?? 0)
+  const PAD = angularDifference(p.positionangle, p.deltaref[2]?? 0)
+  const AzD = angularDifference(p.azimuth, p.alpharef[0]?? 0)
+  const AltD = angularDifference(p.altitude, p.alpharef[1]?? 0)
+  const RollD = angularDifference(p.roll, p.alpharef[2]?? 0)
+  const delta = RAD*RAD + DecD*DecD + PAD*PAD + AzD*AzD + AltD*AltD + RollD*RollD
+  return delta > 1
+})
 
 const btnSize = computed(() =>
   $q.screen.lt.sm ? 'md' : 'md'   // leave at md
@@ -178,6 +192,11 @@ function cannotPerformCommand(cmd:string) {
 }
 
 // ------------------- Event Handlers ---------------------
+
+async function onResetSP() {
+  const result = await dev.alpacaResetSP()
+  console.log(result)
+}
 
 
 async function onTrack() {

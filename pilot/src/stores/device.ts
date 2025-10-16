@@ -128,6 +128,10 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtocoordinatesasync',{ RightAscension: ra, Declination: dec });
     },
 
+    async alpacaResetSP() {
+      await this.apiAction<void>('Polaris:ResetSP')
+    },
+
     async alpacaSyncToRADec(ra:number, dec:number) {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/synctocoordinates',{ RightAscension: ra, Declination: dec });
     },
