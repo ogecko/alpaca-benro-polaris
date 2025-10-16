@@ -576,7 +576,9 @@ class Polaris:
 
         if Config.advanced_alignment and Config.advanced_control:
             # Use Multi-Point Alignment and QUEST Model to determine Optimal Quaternion offset
+            self.logger.info(f"->> Polaris: SYNC Observed   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)}")
             self._sm.sync_az_alt(a_az, a_alt)
+
         else:
             # Use Single-Point Alignment and Alt/Az Sync Pointing model, send through to Polaris
             asyncio.create_task(self.send_cmd_star_alignment(a_az, a_alt))
@@ -589,8 +591,12 @@ class Polaris:
         self._azimuth = a_az
         self._pid.alpha_sp[0] = a_az
         self._pid.alpha_sp[1] = a_alt
-        self._pid.delta_sp[0] = a_ra
+        self._pid.delta_sp[0] = a_ra * 15
         self._pid.delta_sp[1] = a_dec
+        corrected_position_angle, _ = self._sm.roll2pa(a_az, a_alt, self._roll) # to preserve roll
+        self._pid.delta_sp[2] = corrected_position_angle
+        self.logger.info(f"->> Polaris: DeltaSP    RA {hr2hms(self._pid.delta_sp[0])} Dec {deg2dms(self._pid.delta_sp[1])} PA {deg2dms(self._pid.delta_sp[2])}")
+        self.logger.info(f"->> Polaris: DeltaOfft  RA {hr2hms(self._pid.delta_offst[0])} Dec {deg2dms(self._pid.delta_offst[1])} PA {deg2dms(self._pid.delta_offst[2])}")
 
         return
 

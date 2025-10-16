@@ -47,7 +47,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca Pilot Log file viewer and streaming of data over Sockets
 # [X] Ability to change Log Level and Log Settings
 # [X] Rationalise loggin across alpaca, polaris, discovery, synscan, bluetooth protocols
-# [ ] Fix sizing of log scrolling window
+# [X] Fix sizing of log scrolling window
 #
 # Alpaca Pilot Dashboard Features
 # [X] Alpaca Pilot Radial Indicators
@@ -101,6 +101,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Fix quaternian maths when alt is negative and zero
 # [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
 # [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
+# [X] Add Anti-Windup Motor Angle Limits
 # [ ] Fix zero Altitude movement
 # [ ] Improve motor limits indication and safety protection (including with tilts)
 #
@@ -131,6 +132,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Alpaca pilot feature degredation when not in Advanced Control
 # [X] Alpaca pilot feature degredation when no Multi-Point Alignment
 # [X] Alpaca pilot feature degredation when no Rotator
+# [X] Alpaca pilot feature degredation when no Bluetooth
 # [ ] Alpaca pilot feature degredation when not ABP Driver
 # [ ] Alpaca pilot works without the third axis Astro Module Hardware (adjust Az/Alt)
 # [ ] Alpaca Pilot memory and logevity tests
@@ -162,7 +164,8 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Fix RA hrs vs deg, qnotify of goto
 # [X] GOTO from catalog
 # [X] Sync from catalog
-# [ ] Calc Altitude, Tonights Altitude, Proximity
+# [X] Calc current Azimuth, Altitude of dso and categorise it for filtering
+# [ ] Tonights Altitude, Proximity
 # [ ] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
 # [ ] Catalog Target Info on Dashboard
 # [ ] Ability to switch catalogs from settings, revise grouping/sizing of each one
@@ -179,7 +182,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # 
 # Precision Tracking
 # [X] Deep-Sky Object Tracking 
-# [ ] Seamless Axis Override During Tracking
+# [X] Seamless Axis Override During Tracking
 # [ ] Selenographic Lunar Tracking 
 # [ ] Planetary and Orbital Moons Tracking
 # [ ] Commet and Asteroid Tracking
@@ -200,7 +203,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Zenith Imaging Support (18° Circle)
 # [X] Drift supression and Auto-Centering
 # [X] Dithering support
-# [ ] Mosaic imaging support through Nina
+# [X] Mosaic imaging support through Nina
 
 # Candidate future enhancements
 # [X] Feedforward Control Integration (minimise overshoot)
@@ -1208,6 +1211,14 @@ class PID_Controller():
         self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor angular reference position
         self.theta_ref_last = np.array([0,0,0], dtype=float) # theta1-3 motor angular reference position of last control step
 
+    def reset_sp(self):                                      # align all SP with alpha_meas current position
+        self.alpha2body(self.alpha_meas)
+        self.delta_ref = self.body2delta()           
+        self.delta_sp = self.delta_ref            
+        self.alpha_ref = self.alpha_meas
+        self.alpha_sp = self.alpha_meas                  
+        self.reset_offsets() 
+
     def body_pa(self):
         return wrap_to_180(0.0 - rad2deg(self.body.parallactic_angle()))
     
@@ -1394,20 +1405,11 @@ class PID_Controller():
     def track_target(self):
         # Update alpha_ref based on current mode
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
-            self.alpha2body(self.alpha_meas)
-            self.delta_ref = self.body2delta()           
-            self.delta_sp = self.body2delta()            
-            self.alpha_ref = self.alpha_meas
-            self.alpha_sp = self.alpha_meas                  # in case we switch to AUTO
-            self.alpha_offst = np.array([0,0,0],dtype=float) # in case we switch to AUTO
+            self.reset_sp()
         
         elif self.mode in ['IDLE']:
-            if (self.alpha_ref[0]==0):
-                self.alpha2body(self.alpha_meas)
-                self.delta_ref = self.body2delta()           
-                self.delta_sp = self.body2delta()            
-                self.alpha_ref = self.alpha_meas
-                self.alpha_sp = self.alpha_meas                  # in case we switch to AUTO
+            if (self.alpha_ref[0]==0):                       # only reset sp in special case
+                self.reset_sp()
             self.alpha_offst = np.array([0,0,0],dtype=float) # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
@@ -1741,12 +1743,6 @@ class SyncManager:
         # Now compute the residuals and tilt correction
         self.compute_azalt_residuals()   # Compute and store residuals
         self.compute_tilt()              # Compute tilt correction
-
-        # Update the ASCOM values, KF and PID with the ajustment
-        q1s = self.q1_adj * self.polaris._q1
-        azhint = self.az_adj + self.polaris._p_azimuth 
-        alpha_state, theta_state = self.polaris.update_ascom_from_new_q1_adj(q1s, azhint)
-        self.polaris._pid.measure(alpha_state, theta_state)
 
         return
 

@@ -73,6 +73,7 @@ Please read and confirm your agreement with [Beta Agreement](./beta_agreement.md
 - **[Speed Profiling]** Speed Calibration & Response Profiling
 - **[Input Normalisation]** Speed Control Input Normalisation across SLOW and FAST Polaris commands
 - **[Constraint Limiting]** Constraint-Aware Position, Velocity and Acceleration Limiting
+- **[Motor Limits]** Add Motor Angle Limit for anti-windup protection
 
 # New Features (Ephem Position Calculation)
 - **[Orbital Positioning]** Accurate Orbital Positioning of Earth and Target Body
