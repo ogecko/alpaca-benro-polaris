@@ -86,7 +86,8 @@ async def cleanup_inactive_clients(timeout_seconds: int = 10):
             if (now - last_seen) > timedelta(seconds=timeout_seconds)
         ]
         for ws in stale_clients:
-            logging.getLogger().info(f"==TIMEOUT== Removing inactive subscription client: {ws}")
+            if Config.log_alpaca_actions:
+                logging.getLogger().info(f"==TIMEOUT== Removing inactive subscription client: {ws}")
             await _remove_client(ws)
 
 async def ws_safe_send_json(ws: WebSocket, payload: dict):

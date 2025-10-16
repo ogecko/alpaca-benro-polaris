@@ -432,7 +432,8 @@ class Polaris:
 
                 # if we dont have any updates for over 2s, then restart AHRS.
                 if self._connected and self._aligned and age_of_518 > 2:
-                    self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
+                    if Config.log_polaris_protocol:
+                        self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
                 await asyncio.sleep(1)
@@ -1250,7 +1251,7 @@ class Polaris:
         s_lon = self._sitelongitude
         self.logger.info("Polaris communication init... done")
         self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
-        self.logger.warn(f'Change site_latitude and site_longitude in config.toml or use Nina/StellariumPLUS to sync.')
+        self.logger.warn(f'Change site_latitude and site_longitude in Alpaca Pilot App or use Nina/StellariumPLUS to sync.')
         # if we want to run Aim test or Drift test over a set of targets in the sky
         if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
             asyncio.create_task(self.goto_tracking_test())
