@@ -1466,7 +1466,7 @@ class supportedactions:
             "Polaris:MoveAxis", "Polaris:MoveMotor", 
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove", 
-            "Polaris:Ack", 
+            "Polaris:Ack", "Polaris:ResetSP",
         ], req)  
 
 
