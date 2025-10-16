@@ -33,8 +33,8 @@
 
         <!-- Battery and Notifications -->
         
-        <div class="q-gutter-sm q-pl-sm items-center" @click="onToggleFullscreen()">
-            <div v-if="p.battery_is_available">
+        <div class="q-pl-sm items-center" @click="onToggleFullscreen()">
+            <div v-if="p.battery_is_available" class="column items-center justify-center">
                 <span class="text-body">{{p.battery_level}}%</span>
                 <q-icon class="" size="sm" :name="getBatteryIcon()" :color="getBatteryColor()"/>
             </div>
