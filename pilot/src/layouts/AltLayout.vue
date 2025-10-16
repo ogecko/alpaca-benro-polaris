@@ -14,17 +14,16 @@
           <q-btn v-if="$q.screen.gt.xs" flat no-caps no-wrap to="/">
             <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
           </q-btn>
-          <q-route-tab icon="mdi-monitor-dashboard" :label="$q.screen.gt.sm ? 'Dashboard' : undefined" to="/dashboard"/>
-          <q-route-tab icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : undefined"  to="/connect" 
+          <q-route-tab v-if="isRoomy" icon="mdi-monitor-dashboard" :label="$q.screen.gt.sm ? 'Dashboard' : undefined" to="/dashboard"/>
+          <q-route-tab v-if="isRoomy" icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : undefined"  to="/connect" 
                       :alert="dev.restAPIConnected?'positive':'negative'" />
-          <q-route-tab icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : undefined" to="/config"/>
+          <q-route-tab v-if="isRoomy" icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : undefined" to="/config"/>
         </q-tabs>
         <!-- Search -->
         <div class="row no-wrap q-pl-md">
-          <q-input rounded dense filled bg-color="blue-9" v-model="searchBoxString" placeholder="Catalog">
+          <q-input rounded dense filled bg-color="blue-9" v-model="searchBoxString" :placeholder="$q.screen.gt.xs?'Catalog':undefined">
             <template v-slot:append>
-              <q-btn dense size="sm" v-if="searchBoxString==''" round icon="mdi-magnify" unelevated />
-              <q-btn dense size="sm" v-else round icon="mdi-close" unelevated @click="searchBoxString=''"/>
+              <q-btn dense size="sm" round unelevated :icon="(searchBoxString=='')? 'mdi-magnify': 'mdi-close'" @click="onMagnify()" />
             </template>
           </q-input>
         </div>
@@ -40,7 +39,7 @@
                 <q-icon class="" size="sm" :name="getBatteryIcon()" :color="getBatteryColor()"/>
             </div>
         </div>
-        <q-btn dense size="lg" flat icon="mdi-fullscreen" @click="onToggleFullscreen()"/>
+        <q-btn v-if="$q.screen.gt.xs" dense size="lg" flat icon="mdi-fullscreen" @click="onToggleFullscreen()"/>
       </q-toolbar>
     </q-header>
 
@@ -138,8 +137,9 @@ import { useStreamStore } from 'src/stores/stream'
 import { debounce } from 'quasar'
 import { useCatalogStore } from 'src/stores/catalog'
 import { AppFullscreen } from 'quasar'
+import { useQuasar } from 'quasar'
 
-const leftDrawerOpen = ref(false)
+const $q = useQuasar()
 const dev = useDeviceStore()
 const p = useStatusStore()
 const socket = useStreamStore()
@@ -147,8 +147,10 @@ const router = useRouter()
 const route = useRoute()
 const cat = useCatalogStore()
 
+const isFullscreen = ref(false)
+const leftDrawerOpen = ref(false)
 const searchBoxString = ref<string>('')
-const isFullscreen= ref(false)
+const isRoomy = ref(true)
 
 async function onToggleFullscreen() {
   if (isFullscreen.value) {
@@ -157,6 +159,18 @@ async function onToggleFullscreen() {
   } else {
     await AppFullscreen.request()
     isFullscreen.value = true
+  }
+}
+
+function onMagnify() {
+  if (searchBoxString.value!='') {
+    searchBoxString.value=''
+    isRoomy.value = true
+  } else {
+    if ($q.screen.lt.sm) {
+      // on small screens its not very much space, hide other qtabs when entering search string
+      isRoomy.value = !isRoomy.value
+    }
   }
 }
 
