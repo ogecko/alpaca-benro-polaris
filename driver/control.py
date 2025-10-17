@@ -862,7 +862,8 @@ class CalibrationManager:
                     formatted = [str(v).rjust(col_width) for v in values]
                 value_str = ', '.join(formatted)
                 comma = ',' if i < len(keys) - 1 else ''
-                output_lines.append(f'    "{key+'":':7s} [ {value_str} ]{comma}')
+                formatted_key = f'{key:7s}'
+                output_lines.append(f'    "{formatted_key}": [ {value_str} ]{comma}')
             output_lines.append("},")  # End of axis block with trailing comma
         return begin + '\n'.join(output_lines) + '\n}\n'
 

@@ -58,6 +58,7 @@
 # 01-Jun-2023   rbd 0.3 Issue #2 Do not return empty Value field in property
 #               response, and omit Value if error is not success().
 
+from __future__ import annotations
 from threading import Lock
 from exceptions import Success
 import json
