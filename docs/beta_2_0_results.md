@@ -1,6 +1,6 @@
 # Beta test results
 
-## Beta Tester: XYZ
+## Beta Tester: Vladimir (Dis: vyskocil; GH: vyskocil; FB Validimir V..)
 ### Platform & Environment
 ...
 ### Test Areas
@@ -9,3 +9,31 @@
 ...
 ### Feedback
 ...
+
+## Beta Tester: Mark (Dis: Bakermanz; GH: bakermanz; FB: Real Bread Aotearoa)
+### Platform & Environment
+...
+### Test Areas
+...
+### Results
+...
+### Feedback
+...
+
+## Beta Tester: Steve (Dis: LanzaSteve; FB: Steve E...)
+### Platform & Environment
+...
+### Test Areas
+...
+### Results
+...
+### Feedback
+...
+
+
+## RFC
+FB: William Siers; GH: Spiderx01
+FB: Richard Healey; GH: RjhNZ
+FB: Andrew Sargent; GH: CynicalSarge
+FB: John Harrison; GH: 5x5Stuido
+FB: Mingyang Wang; GH: saltyminty
