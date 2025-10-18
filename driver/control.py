@@ -151,11 +151,17 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [ ] Rationalise performance data capture and analysis
 # [ ] Move image culling to Alpaca Pilot
 #
-# Rotator
+# ASCOM Rotator
 # [X] Implement Rotator
 # [X] Rotator Halt, Sync, Reverse, Move(relative), MoveAbs, MoveMech, Position(PA), TargetPosition(PA)
 # [X] Pass ConformU test on Rotator
 # [X] Pass ConformU test on Telescope
+#
+# ASCOM Park and Home
+# [ ] Add ASCOM FindHome command, and expose in Alpaca Pilot, use true Home co-ord from zeta
+# [ ] Change ASCOM Park to true custom Park position, persisted in settings
+# [ ] Add ASCOM SetPark command, and expose in Alpaca Pilot 
+# [ ] Add Park and Home to Dashboard
 #
 # Catalog
 # [X] Expanded Target Catalog (Stars, Nebula, Galaxies, Clusters)
@@ -200,6 +206,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] Enable Nina Dithering via Nina Direct Guider and Advanced Schedule (uses Pulse Guide API)
 # [X] Guide Camera Support via PHD2
 # [X] PHD2 Support via ASCOM/Alpaca
+# [ ] Allow setting of guiderates 0.5x 1.0x 1.5x 2.0x in Settings of Alpaca Pilot
 #
 # Imaging and User Experience Enhancements
 # [X] Long Exposure Tracking Stabilization
