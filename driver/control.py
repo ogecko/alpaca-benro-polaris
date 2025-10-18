@@ -165,7 +165,7 @@ from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 # [X] GOTO from catalog
 # [X] Sync from catalog
 # [X] Calc current Azimuth, Altitude of dso and categorise it for filtering
-# [ ] Fix filter clear to only clear when filter is already open
+# [X] Fix filter clear to only clear when filter is already open
 # [ ] Add South and North Celestrial Pole
 # [ ] Add images of each target
 # [ ] Add a details page for each target

@@ -13,7 +13,7 @@
       </div>
       <q-space />
           <div>
-            <q-btn dense v-if="cat.isFiltered" color="primary" icon="mdi-filter-off" 
+            <q-btn dense v-if="showFilters && cat.isFiltered" color="primary" icon="mdi-filter-off" 
                          :label="$q.screen.gt.sm ? 'Filters' : ''" @click="cat.clearFilter()" />
             <q-btn dense v-else icon="mdi-filter" 
                          :label="$q.screen.gt.sm ? 'Filters' : ''" @click="showFilters=!showFilters">
