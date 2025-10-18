@@ -354,21 +354,8 @@ With these strategies, alt/az/roll mounts can deliver the accuracy required for 
 | **OAG / Guiding Integration**              | Hardware/software feedback, corrects in real-time                    | Highest attainable                | High                      | Compensates for unmodeled errors     | Requires extra hardware, guiding stars     |
 | **Machine-Learning Models**                | Data-driven, adapt to systematic errors                              | High over long term/large datasets| High                      | Learns time-varying error patterns   | Requires data, possible black-box results  |
 
----
-
-This comprehensive analysis should guide both implementation and further research. For direct code and algorithm examples, see also:
-- [telescope-sync n-point triangulation](https://github.com/henrythasler/telescope-sync)
-- [ESOQ2 quaternion estimator](https://github.com/muzhig/ESOQ2)
-- [Open-source mount control scripts](https://github.com/legourrierec/dobson)
-- [Mount pointing and guiding models in community control packages (N.I.N.A., EQMOD, PHD2, SharpCap)].
-
-**Here’s a curated reference list of key sources on QUEST, attitude estimation, and telescope mount alignment for sidereal tracking accuracy.** These are highly relevant to your research and implementation goals:
 
 ---
-Certainly, David. Here's a citation-ready bibliography in APA style, covering the foundational and applied sources used to develop the research on QUEST-based alignment and sidereal tracking accuracy for telescope mounts:
-
----
-
 ### Bibliography 
 
 - AHRS Documentation. (n.d.). *QUEST Filter*.  
