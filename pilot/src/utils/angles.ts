@@ -245,3 +245,50 @@ export function getAzAlt(
   const azDeg = toDeg(azRad);
   return { az: azDeg, alt: altDeg };
 }
+
+
+export function computeVisibilityRanges(raDeg: number, decDeg: number) {
+  const toRadians = (deg:number) => deg * Math.PI / 180;
+  const toDegrees = (rad:number) => rad * 180 / Math.PI;
+  const wrap = (deg:number) => ((deg % 360) + 360) % 360;
+
+  const latitude = 0, siderealTimeDeg=0 ;//***********************************TODO************************** */
+  const phi = toRadians(latitude);
+
+  function raInvalidRanges(dec:number) {
+    const delta = toRadians(dec);
+    const cosH = -Math.tan(phi) * Math.tan(delta);
+
+    if (cosH < -1) return []; // Always visible
+    if (cosH > 1) return [[0, 360]]; // Always below
+
+    const H = toDegrees(Math.acos(cosH));
+    const raMin = wrap(siderealTimeDeg - H);
+    const raMax = wrap(siderealTimeDeg + H);
+
+    if (raMin < raMax) {
+      return [[0, raMin], [raMax, 360]];
+    } else {
+      return [[raMax, raMin]]; // Wraparound
+    }
+  }
+
+  function decInvalidRanges(ra:number) {
+    const H = toRadians(wrap(siderealTimeDeg - ra));
+    const cosH = Math.cos(H);
+    const tanDelta = -Math.cos(phi) * cosH / Math.sin(phi);
+
+    if (Math.abs(tanDelta) < 1e-6) return [[-90, 90]]; // Equator always visible
+
+    const delta = toDegrees(Math.atan(tanDelta));
+    if (delta < -90) return [[-90, 90]]; // Always below
+    if (delta > 90) return []; // Always above
+
+    return [[-90, delta]];
+  }
+
+  return {
+    RAWarnings: raInvalidRanges(decDeg),
+    DecWarnings: decInvalidRanges(raDeg)
+  };
+}
