@@ -1428,7 +1428,7 @@ class PID_Controller():
         elif self.mode == 'TRACK':
             # Apply relevant guiderate if delta_g_sp duration is non-zero
             for axis in [0, 1]:  # RA, Dec
-                duration = self.delta_g_sp[axis]
+                duration = self.delta_g_sp[axis]        # remaining pulse guide duration in ms
                 if duration != 0:
                     sign = np.sign(duration)
                     remaining_ms = abs(duration)

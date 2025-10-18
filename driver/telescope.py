@@ -557,7 +557,24 @@ class guideratedeclination:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Guideratedeclination failed', ex))
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        guideratedeclinationstr = await get_request_field('GuideRateDeclination', req)      # Raises 400 bad request if missing
+        try:
+            guideratedeclination = float(guideratedeclinationstr)
+        except:
+            resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateDeclination {guideratedeclinationstr} not a valid number.'))
+            return
+        if guideratedeclination <=0 or guideratedeclination > 2 or math.isnan(guideratedeclination):
+            resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateDeclination {guideratedeclinationstr} must be between 0 and 2 degree/s.'))
+            return
+        try:
+            polaris.guideratedeclination = guideratedeclination
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.GuideRateDeclination failed', ex))
+
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class guideraterightascension:
@@ -573,7 +590,25 @@ class guideraterightascension:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Guideraterightascension failed', ex))
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        guideraterightascensionstr = await get_request_field('GuideRateRightAscension', req)      # Raises 400 bad request if missing
+        try:
+            guideraterightascension = float(guideraterightascensionstr)
+        except:
+            resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateRightAscension {guideraterightascensionstr} not a valid number.'))
+            return
+        if guideraterightascension <=0 or guideraterightascension > 2 or math.isnan(guideraterightascension):
+            resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateRightAscension {guideraterightascensionstr} must be between 0 and 2 degree/s.'))
+            return
+        try:
+            polaris.guideraterightascension = guideraterightascension
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.GuideRateRightAscension failed', ex))
+
+
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class ispulseguiding:
