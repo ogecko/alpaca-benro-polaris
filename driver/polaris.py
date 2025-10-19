@@ -2089,13 +2089,11 @@ class Polaris:
 
     def pulse_guide(self, direction: int, duration: int):
         if Config.advanced_guiding and Config.advanced_control:
-            with self._lock:
-                self._ispulseguiding = True                     # is reset in _pid.track_target when all done
-
             if Config.log_pulse_guiding:
                 self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")
-
             self._pid.pulse_delta_axis(direction, duration)
+            with self._lock:
+                self._ispulseguiding = True                     # is reset in _pid.track_target when all done
         else:
             self.logger.warning(f"->> Polaris: Advanced Guiding is not enabled")
 

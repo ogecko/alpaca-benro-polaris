@@ -14,7 +14,7 @@ import ephem
 import math
 import copy
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
-
+from threading import Lock
 
 # ************* TODO LIST *****************
 #
@@ -1133,7 +1133,7 @@ class MoveAxisMessenger:
 class PID_Controller():
     def __init__(self, logger, polaris, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Kc=1.0, loop=None):
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
-        self._lock = asyncio.Lock()                          # Used to ensure no threading issues
+        self._lock = Lock()                                  # Used to ensure no threading issues
         self.logger = logger                                 # Logging utility
         self.polaris = polaris                               # Only used for guiding clacs and flaging
         self.controllers = polaris._motors                   # Motor speed controllers[0,1,2]
@@ -1362,10 +1362,11 @@ class PID_Controller():
             self.logger.warning(f"Invalid pulse guide direction: {direction}")
             return
         # accumulate the pulse guide durations on the relevant axis
-        current = self.delta_g_sp[axis]
-        proposed = current + sign * duration
-        clamped = max(-10_000, min(10_000, proposed))
-        self.delta_g_sp[axis] = clamped
+        with self._lock:
+            current = self.delta_g_sp[axis]
+            proposed = current + sign * duration
+            clamped = max(-10_000, min(10_000, proposed))
+            self.delta_g_sp[axis] = clamped
 
     def set_TLE_target(self, line1, line2, line3):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
@@ -1435,16 +1436,17 @@ class PID_Controller():
         elif self.mode == 'TRACK':
             # Apply relevant guiderate if delta_g_sp duration is non-zero
             for axis in [0, 1]:  # RA, Dec
-                duration = self.delta_g_sp[axis]        # remaining pulse guide duration in ms
-                if duration != 0:
-                    sign = np.sign(duration)
-                    remaining_ms = abs(duration)
-                    step_ms = min(remaining_ms, self.dt * 1000)  # apply only up to what's left
-                    step_sec = step_ms / 1000.0
-                    velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
-                    self.delta_offst[axis] += step_sec * velocity
-                    self.delta_g_sp[axis] -= sign * step_ms
-                    self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral
+                with self._lock:
+                    duration = self.delta_g_sp[axis]        # remaining pulse guide duration in ms
+                    if duration != 0:
+                        sign = np.sign(duration)
+                        remaining_ms = abs(duration)
+                        step_ms = min(remaining_ms, self.dt * 1000)  # apply only up to what's left
+                        step_sec = step_ms / 1000.0
+                        velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
+                        self.delta_offst[axis] += step_sec * velocity
+                        self.delta_g_sp[axis] -= sign * step_ms
+                        self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral
             if np.all(self.delta_g_sp[:2] == 0):
                 with self.polaris._lock:
                     self.polaris._ispulseguiding = False
@@ -1598,7 +1600,7 @@ class PID_Controller():
             await asyncio.sleep(self.control_loop_duration)
 
     async def stop_control_loop_task(self):
-        async with self._lock:
+        with self._lock:
             self._stop_flag.set()
 
 
