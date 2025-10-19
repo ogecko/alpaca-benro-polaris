@@ -233,12 +233,12 @@ class Polaris:
         #
         # Telescope capability constants
         #
-        self._canfindhome: bool = False             # True if this telescope is capable of programmed finding its home position (FindHome() method).
+        self._canfindhome: bool = True             # True if this telescope is capable of programmed finding its home position (FindHome() method).
         self._canpark: bool = True                  # True if this telescope is capable of programmed parking (Park()method)
         self._canpulseguide: bool = True            # True if this telescope is capable of software-pulsed guiding (via the PulseGuide(GuideDirections, Int32) method)
         self._cansetdeclinationrate: bool = False   # True if the DeclinationRate property can be changed to provide offset tracking in the declination axis.
         self._cansetguiderates: bool = True         # True if the guide rate properties used for PulseGuide(GuideDirections, Int32) can ba adjusted.
-        self._cansetpark: bool = False              # True if this telescope is capable of programmed setting of its park position (SetPark() method)
+        self._cansetpark: bool = True              # True if this telescope is capable of programmed setting of its park position (SetPark() method)
         self._cansetpierside: bool = False          # True if the SideOfPier property can be set, meaning that the mount can be forced to flip.
         self._cansetrightascensionrate: bool = False# True if the RightAscensionRate property can be changed to provide offset tracking in the right ascension axis.
         self._cansettracking: bool = True           # True if the Tracking property can be changed, turning telescope sidereal tracking on and off.
@@ -784,7 +784,7 @@ class Polaris:
 
             # update all the ASCOM values and the PID loop
             alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1_state, azhint=p_az)
-            self._pid.measure(alpha_state, theta_state)
+            self._pid.measure(alpha_state, theta_state, self._zeta_meas)
 
 
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
@@ -2096,6 +2096,16 @@ class Polaris:
                 self._ispulseguiding = True                     # is reset in _pid.track_target when all done
         else:
             self.logger.warning(f"->> Polaris: Advanced Guiding is not enabled")
+
+    async def findHome(self):
+        if Config.advanced_control:
+            self.logger.info(f"Advanced Control: Find HOME telescope")
+            await self.stop_tracking()
+            self._pid.set_pid_mode('HOMING')
+
+
+    async def setPark(self):
+        pass
 
     async def park(self):
         with self._lock:

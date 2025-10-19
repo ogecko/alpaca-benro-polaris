@@ -13,12 +13,12 @@
                   <q-item-label class="text-grey-6" caption>Use the buttons M1+, M1-, etc to move the mount back to safety. Alternitively issue a Park command. </q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn label="Park" icon="mdi-parking"  class="fixedWidth" @click="onPark"/>
+                  <q-btn label="Home" icon="mdi-home"  class="fixedWidth" @click="onFindHome"/>
                 </q-item-section>
               </q-item>
             </div>
             <div v-else class="col text-caption text-grey-6 q-pb-md">
-              To prevent cable windup, define minimum and maximum angle limits for each axis. Values beyond ±360° indicate the number of full rotations permitted in that direction. Axis M2 is also mechanically limited.                     
+              To prevent cable windup, define minimum and maximum angle limits for each axis. Values beyond ±360° indicate the number of full rotations permitted in that direction. Axis M2 is mechanically limited.                     
             </div>
         </div>
         <!-- Benro Polaris Image -->
@@ -102,10 +102,9 @@ onMounted(async () => {
 })
 
 
-async function onPark() {
-  console.log('Goto Park Position')
-  await dev.alpacaPark()
-  await dev.alpacaUnPark()
+async function onFindHome() {
+  console.log('Find Home Position')
+  await dev.alpacaFindHome()
 }
 
 async function onM1Plus(payload: { isPressed: boolean }) {

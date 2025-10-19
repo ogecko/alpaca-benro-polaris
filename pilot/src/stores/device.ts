@@ -99,6 +99,10 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/trackingrate',{ TrackingRate: n });
     },
   
+    async alpacaFindHome() {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/findhome',{});
+    },
+
     async alpacaPark() {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/park',{});
     },

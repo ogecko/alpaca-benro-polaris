@@ -16,9 +16,9 @@
             <q-btn v-if="isDeviated" icon="mdi-format-horizontal-align-center"  glossy :dense="btnDense" :size="btnSize" color="secondary" outline @click="onResetSP">
               <q-tooltip>Reset all setpoints to their current values.</q-tooltip>
             </q-btn>
-            <!-- <q-btn icon="mdi-home"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark">
+            <q-btn icon="mdi-home"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onHome">
               <q-tooltip>Return the mount to its Home position</q-tooltip>
-            </q-btn> -->
+            </q-btn>
             <q-btn icon="mdi-parking"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark">
               <q-tooltip>Return the mount to its Park position.</q-tooltip>
               <!-- <q-tooltip>Park the mount. Hold > 5 s to set the Park Position.</q-tooltip> -->
@@ -144,6 +144,8 @@ const btnDense = computed(() =>
 const statusLabel = computed(() => 
   p.pidmode=='PRESETUP' ? "PreSetup" :
   p.pidmode=='LIMIT' ? "Limit" :
+  p.pidmode=='HOMING' ? "Homing" :
+  p.pidmode=='PARKING' ? "Parking" :
   p.atpark ? "Parked" : 
   p.gotoing ? "Gotoing" : 
   p.slewing ? "Slewing" :
@@ -161,6 +163,8 @@ const statusColor = computed(() =>
 const statusIcon = computed(() => 
   p.pidmode=='PRESETUP' ? "mdi-cellphone-cog" :
   p.pidmode=='LIMIT' ? "mdi-alert" :
+  p.pidmode=='HOMING' ? "mdi-home-outline" :
+  p.pidmode=='PARKING' ? "mdi-alpha-p" :
   p.atpark ? "mdi-parking" : 
   p.gotoing ? "mdi-move-resize-variant" : 
   p.slewing ? "mdi-cursor-move" :
@@ -223,6 +227,11 @@ async function onTrack() {
 
 async function onTrackRate(n: number) {
   const result = await dev.alpacaTrackingRate(n);  
+  console.log(result)
+}
+
+async function onHome() {
+  const result = await dev.alpacaFindHome();  
   console.log(result)
 }
 

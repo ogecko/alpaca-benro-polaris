@@ -93,7 +93,18 @@ class dispose:
 @before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class findhome:
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        if polaris.atpark:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot find home while parked'))
+            return
+        try:
+            await polaris.findHome()
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req,
+                            DriverException(0x500, 'Telescope.FindHome failed', ex))
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class destinationsideofpier:

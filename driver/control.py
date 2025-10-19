@@ -158,10 +158,10 @@ from threading import Lock
 # [X] Pass ConformU test on Telescope
 #
 # ASCOM Park and Home
-# [ ] Add ASCOM FindHome command, and expose in Alpaca Pilot, use true Home co-ord from zeta
+# [X] Add ASCOM FindHome command, and expose in Alpaca Pilot, use true Home co-ord from zeta
+# [X] Add Park and Home to Dashboard
 # [ ] Change ASCOM Park to true custom Park position, persisted in settings
 # [ ] Add ASCOM SetPark command, and expose in Alpaca Pilot 
-# [ ] Add Park and Home to Dashboard
 #
 # Catalog
 # [X] Expanded Target Catalog (Stars, Nebula, Galaxies, Clusters)
@@ -1150,9 +1150,11 @@ class PID_Controller():
         self.delta_meas = np.array([0,0,0], dtype=float)     # ra, dec, polar measured angular position
         self.alpha_meas = np.array([0,0,0], dtype=float)     # az, alt, roll measured angular position
         self.theta_meas = np.array([0,0,0], dtype=float)     # theta1-3 motor measured angular position
+        self.zeta_meas = np.array([0,0,0], dtype=float)      # zeta1-3 motor raw measured angular position (no alignment effect)
         self.delta_ref = np.array([0,0,0], dtype=float)      # ra, dec, polar angular reference position
         self.alpha_ref = np.array([0,0,0], dtype=float)      # az, alt, roll angular reference position
         self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor reference angular position
+        self.zeta_ref = np.array([0,0,0], dtype=float)       # zeta1-3 motor reference angular position (used in PARKING, HOMING)
         self.error_signal = np.array([0,0,0], dtype=float)   # theta1-3 error btw theta_ref and theta_meas
         self.error_integral = np.array([0,0,0], dtype=float) # theta1-3 error btw theta_ref and theta_meas
         self.goto_complete_callback = None                   # callback function when no longer deviating
@@ -1287,7 +1289,7 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
 
     def set_pid_mode(self, newMode):
-        if newMode in ['PRESETUP', 'PARK', 'IDLE', 'AUTO', 'TRACK', 'LIMIT', ]:
+        if newMode in ['PRESETUP', 'HOMING', 'PARKING', 'PARK', 'IDLE', 'AUTO', 'TRACK', 'LIMIT', ]:
             self.mode = newMode
 
     def set_no_target(self):
@@ -1417,7 +1419,7 @@ class PID_Controller():
 
     def track_target(self):
         # Update alpha_ref based on current mode
-        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
+        if self.mode in ['PRESETUP', 'PARKING', 'HOMING', 'PARK', 'LIMIT']:
             self.reset_sp()
         
         elif self.mode in ['IDLE']:
@@ -1472,12 +1474,13 @@ class PID_Controller():
         self.theta_ref_last = self.theta_ref
         self.theta_ref = np.array([theta1,theta2,theta3])
     
-    def measure(self, alpha_meas, theta_meas):
+    def measure(self, alpha_meas, theta_meas, zeta_meas):
         now = ephem.now()
         # if not self.time_meas:
         #     self.alpha_sp = alpha_meas     # initialise alpha_sp with first measurement
         self.alpha_meas = alpha_meas
         self.theta_meas = theta_meas
+        self.zeta_meas = zeta_meas
         self.time_meas = now
 
     def predict(self):
@@ -1486,14 +1489,17 @@ class PID_Controller():
 
     def errsignal(self):
         old_error_signal = self.error_signal
-        self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
+        if self.mode in ['HOMING', 'PARKING']:
+            self.error_signal = self.zeta_ref - self.zeta_meas
+        else:            
+            self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
         self.error_integral = old_error_signal + self.error_signal
         self.cost_signal = np.sum(self.error_signal ** 2)
         self.is_deviating = self.cost_signal > (self.Kc / 60) ** 2
         self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
         self.was_moving = self.is_moving
         self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
-        if not self.is_moving and self.mode=='AUTO':
+        if not self.is_moving and self.mode in ['AUTO', 'HOMING', 'PARKING']:
             self.set_pid_mode('IDLE')
    
     def pid(self):
@@ -1557,7 +1563,7 @@ class PID_Controller():
             self.omega_op[axis] = self.omega_ctl[axis]
             raw = self.controllers[axis]._model.DPS.toRAW(self.omega_ctl[axis])
         # send control to motor when moving
-        if self.is_moving and self.mode in ['AUTO', 'TRACK']:
+        if self.is_moving and self.mode in ['AUTO', 'TRACK', 'HOMING', 'PARKING']:
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
         # Stop motors when transitioning from moving to stopped
