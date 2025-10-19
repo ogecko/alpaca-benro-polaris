@@ -16,7 +16,7 @@
             <q-btn v-if="isDeviated" icon="mdi-format-horizontal-align-center"  glossy :dense="btnDense" :size="btnSize" color="secondary" outline @click="onResetSP">
               <q-tooltip>Reset all setpoints to their current values.</q-tooltip>
             </q-btn>
-            <q-btn icon="mdi-home"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onHome">
+            <q-btn icon="mdi-home"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="p.pidmode!='HOMING'"  @click="onHome">
               <q-tooltip>Return the mount to its Home position</q-tooltip>
             </q-btn>
             <q-btn icon="mdi-parking"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark">
