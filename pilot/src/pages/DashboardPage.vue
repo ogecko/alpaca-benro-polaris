@@ -10,12 +10,28 @@
       <div class="q-pb-sm">
         <div class="q-gutter-md ">
           <q-btn-group >
-            <q-btn icon="mdi-telescope"  glossy  :dense="btnDense" :size="btnSize" color="secondary" push :outline="!isEq" @click="isEq=!isEq"  />
-            <q-btn v-if="isDeviated" icon="mdi-format-horizontal-align-center"  glossy :dense="btnDense" :size="btnSize" color="secondary" outline  @click="onResetSP"/>
-            <q-btn icon="mdi-parking"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark"/>
-            <q-btn icon="mdi-stop" glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="isStopOutline" @click="onAbort"/>
+            <q-btn icon="mdi-telescope"  glossy  :dense="btnDense" :size="btnSize" color="secondary" push :outline="!isEq" @click="isEq=!isEq" >
+              <q-tooltip>Switch between Equatorial and Az/Alt Co-ordinates.</q-tooltip>
+            </q-btn>
+            <q-btn v-if="isDeviated" icon="mdi-format-horizontal-align-center"  glossy :dense="btnDense" :size="btnSize" color="secondary" outline @click="onResetSP">
+              <q-tooltip>Reset all setpoints to their current values.</q-tooltip>
+            </q-btn>
+            <!-- <q-btn icon="mdi-home"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark">
+              <q-tooltip>Return the mount to its Home position</q-tooltip>
+            </q-btn> -->
+            <q-btn icon="mdi-parking"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark">
+              <q-tooltip>Return the mount to its Park position.</q-tooltip>
+              <!-- <q-tooltip>Park the mount. Hold > 5 s to set the Park Position.</q-tooltip> -->
+            </q-btn>
+            <q-btn icon="mdi-stop" glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="isStopOutline" @click="onAbort">
+              <q-tooltip>Stop all motion of the mount.</q-tooltip>
+            </q-btn>
           </q-btn-group>
-          <q-btn-dropdown :dense="btnDense" icon="mdi-star-shooting-outline" glossy :size="btnSize" color="secondary" split :outline="!p.tracking" @click="onTrack">
+          <q-btn-dropdown :dense="btnDense" glossy :size="btnSize" color="secondary" split :outline="!p.tracking" @click="onTrack">
+            <template #label>
+              <q-icon name="mdi-star-shooting-outline"/>
+              <q-tooltip>Toggle tracking on and off.</q-tooltip>
+            </template>
             <q-list  dense >
               <q-item clickable v-close-popup :active="p.trackingrate==0" active-class="bg-secondary text-white" @click="onTrackRate(0)">
                 <q-item-section><q-item-label>Sidereal</q-item-label></q-item-section>
