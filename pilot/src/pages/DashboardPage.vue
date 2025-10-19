@@ -64,9 +64,9 @@
           />
         </div>
         <div v-if="!(p.pidmode=='PARK')" class="col-12 col-md-6 col-lg-4  col-xl-3 row justify-center ">
-          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[0]" label="M1" />
-          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[1]" label="M2" />
-          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[2]" label="M3" />
+          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[0]" :position="p.zetameas[0]" label="M1" />
+          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[1]" :position="p.zetameas[1]" label="M2" />
+          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[2]" :position="p.zetameas[2]" label="M3" />
         </div>
     </div>
 

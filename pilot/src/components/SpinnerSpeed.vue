@@ -1,21 +1,25 @@
 <template>
   <div class="row items-center no-wrap q-pb-md">
-    <svg ref="svgRef" class="q-spinner text-primary" width="50px" height="50px" viewBox="0 0 100 100"
+    <svg ref="svgRef" class="q-spinner text-primary" width="50px" height="80px" viewBox="0 0 100 160"
          preserveAspectRatio="xMidYMid" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="44" fill="none" stroke-width="4" stroke-opacity=".5" stroke="currentColor" />
-      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="currentColor" font-size="35px">
+      <text x="50" y="50" text-anchor="middle" dominant-baseline="middle" fill="currentColor" font-size="35px">
         {{ props.label }}
       </text>
       <circle ref="orbitingCircle" cx="8" cy="54" r="6" fill="currentColor" stroke-width="3" stroke="currentColor" />
-    </svg>
+      <text x="50" y="130" text-anchor="middle" dominant-baseline="middle" fill="currentColor" font-size="35px">
+        {{ positionStr }}
+      </text>    </svg>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref,  onMounted, onUnmounted, computed } from 'vue'
+import { formatDegreesHr } from 'src/utils/scale';
 
 const props = defineProps<{
   speed: number | undefined
+  position: number | undefined
   label: string | undefined
 }>()
 
@@ -27,6 +31,9 @@ const rotationSpeed = computed(() => {
   return mapLog(s) // seconds per full rotation
 })
 
+const positionStr = computed(() => {
+  return props.position!=undefined ? formatDegreesHr(props.position, "deg", 1) : ''
+})
 
 function mapLog(x: number): number {
   const absx = Math.abs(x)

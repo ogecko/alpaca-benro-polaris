@@ -23,9 +23,9 @@
           <ScaleDisplay :pv="pv" :sp="sp" :lst="lst" label="Azimuth" :domain="domainChoice" />
         </div>
         <div class="col">
-          <SpinnerSpeed :speed="pv" label="M3" />
-          <SpinnerSpeed :speed="-5/600" label="M2" />
-          <SpinnerSpeed :speed=".2" label="M1" />
+          <SpinnerSpeed :speed="pv" :position="359.2" label="M3" />
+          <SpinnerSpeed :speed="-5/600" :position="180.2" label="M2" />
+          <SpinnerSpeed :speed=".2" :position="0.0" label="M1" />
         </div>
         <div class="col-12 q-pa-lg q-gutter-md">
           <q-btn-toggle v-model="domainChoice" color="brown" text-color="white" toggle-color="orange"
