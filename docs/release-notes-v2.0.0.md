@@ -63,11 +63,11 @@ Please read and confirm your agreement with [Beta Agreement](./beta_agreement.md
 - **[Paralactic Angle]** Parallactic Angle, Position Angle and Roll Angle Targeting
 - **[Direct Slew]** Direct Slew to Defined Angular Pose
 
-## New Features (ASCOM Alpaca FindHome and SetPark support)
+## New Features (ASCOM Alpaca FindHome, SetPark, Park, UnPark support, using Telescope v4 standard)
 - **[Find Home]** Returns mount to true Home position, unwinding cables. 
 - **[Set Park]** Ability to customise the Park location.
 - **[Advanced Park]** Rewrite of Benro Polaris Park from V1.0 to be more ASCOM compliant. Uses PID controller, smoother Park, interruptable, unwinds, custom locations.
-- **[Nina Support]** Find Home and Set Park are accessable from any Alpaca Client, including Nina, Alpaca Pilot and others.
+- **[Nina Support]** Find Home, Set Park, Park and UnPark are accessable from any Alpaca Client, including Nina, Alpaca Pilot and others.
 
 ## New Features (Advanced Position Control Algorithm)
 - **[Kinematic Solver]** Quaternion-based kinematics and inverse solutions
