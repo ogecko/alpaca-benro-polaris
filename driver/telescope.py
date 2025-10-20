@@ -1189,19 +1189,19 @@ class pulseguide:
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class setpark:
-
     async def on_put(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
+        if polaris.slewing:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot set Park while slewing'))
+            return
         try:
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
+            await polaris.setPark()
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
-                            DriverException(0x500, 'Telescope.Setpark failed', ex))
+                            DriverException(0x500, 'Telescope.SetPark failed', ex))
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtoaltaz:

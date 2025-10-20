@@ -28,7 +28,7 @@
     </div>
     <div v-else-if="p.atpark" >
       <q-banner inline-actions rounded class="bg-warning">
-        PARK: The Alpaca Driver is parking/parked. Most functions are disabled.
+        PARK: The Alpaca Driver is parked. Most functions are disabled.
         <template v-slot:action><q-btn flat label="UnPark" @click="onPark" /></template>
       </q-banner>
     </div>

@@ -10,7 +10,7 @@
                 <q-item-section avatar><q-icon name="mdi-alert" color="negative" size="lg" /></q-item-section>
                 <q-item-section>
                   <q-item-label>Anti-windup Motor Angle Limit Reached</q-item-label>
-                  <q-item-label class="text-grey-6" caption>Use the buttons M1+, M1-, etc to move the mount back to safety. Alternitively issue a Park command. </q-item-label>
+                  <q-item-label class="text-grey-6" caption>Use the buttons M1+, M1-, etc to move the mount back to safety. Alternitively issue a Home command. </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-btn label="Home" icon="mdi-home"  class="fixedWidth" @click="onFindHome"/>

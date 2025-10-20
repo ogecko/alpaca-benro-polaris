@@ -103,6 +103,10 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/findhome',{});
     },
 
+    async alpacaSetPark() {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/setpark',{});
+    },
+
     async alpacaPark() {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/park',{});
     },

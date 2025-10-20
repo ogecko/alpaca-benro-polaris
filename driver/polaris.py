@@ -1928,33 +1928,51 @@ class Polaris:
         with self._lock:
             self._slewing = True
             self._gotoing = True
-        self._goto_complete_event = asyncio.Event()
+            self._goto_complete_event = asyncio.Event()
 
     def markGotoAsComplete(self):
         with self._lock:
             self._slewing = False
             self._gotoing = False
-        self._goto_complete_event.set()
+            if self._goto_complete_event:
+                self._goto_complete_event.set() 
 
     def markRotateAsUnderway(self):
         with self._lock:
             self._rotating = True
-        self._rotate_complete_event = asyncio.Event()
+            self._rotate_complete_event = asyncio.Event()
 
     def markRotateAsComplete(self):
         with self._lock:
             self._rotating = False
-        self._rotate_complete_event.set()
+            if self._rotate_complete_event:
+                self._rotate_complete_event.set() 
 
     def markSlewAsUnderway(self):
         with self._lock:
             self._slewing = True
-        self._slew_complete_event = asyncio.Event()
+            self._slew_complete_event = asyncio.Event()
 
     def markSlewAsComplete(self):
         with self._lock:
             self._slewing = False
-        self._slew_complete_event.set()
+            if self._slew_complete_event:
+                self._slew_complete_event.set()
+
+    def markParkingAsUnderway(self):
+        with self._lock:
+            self._slewing = True
+            self._atpark = False
+
+    def markParkingAsComplete(self):
+        with self._lock:
+            self._slewing = False
+            self._atpark = True
+
+    def markParkingAsCanceled(self):
+        with self._lock:
+            self._slewing = False
+            self._atpark = False
 
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
         a_alt = altitude
@@ -2065,6 +2083,10 @@ class Polaris:
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: STOP all axes")
             self._pid.set_pid_mode("IDLE")
+            self.markGotoAsComplete()
+            self.markRotateAsComplete()
+            self.markSlewAsComplete()
+            self.markParkingAsCanceled()
         await self._motors[0].set_motor_speed(0, "DPS")
         await self._motors[1].set_motor_speed(0, "DPS")
         await self._motors[2].set_motor_speed(0, "DPS")
@@ -2099,27 +2121,33 @@ class Polaris:
 
     async def findHome(self):
         if Config.advanced_control:
-            self.logger.info(f"Advanced Control: Find HOME telescope")
+            self.logger.info(f"Advanced Control: Find HOME Position of telescope")
             await self.stop_tracking()
+            self._pid.set_zeta_ref_to_home()
             self._pid.set_pid_mode('HOMING')
 
 
     async def setPark(self):
-        pass
+        if Config.advanced_control:
+            self.logger.info(f"Advanced Control: Set Park Position of telescope")
+            Config.m1_park = self._zeta_meas[0]
+            Config.m2_park = self._zeta_meas[1]
+            Config.m3_park = self._zeta_meas[2]
 
     async def park(self):
         with self._lock:
-            self._atpark = True
             self._adj_altitude = 0
             self._adj_azimuth = 0
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: PARK telescope")
+            self.markParkingAsUnderway()
             await self.stop_tracking()
-            await self.stop_all_axes()
-            self._pid.set_pid_mode('PARK')
-            await asyncio.sleep(2)
-            await self.send_cmd_park()
+            self._pid.set_zeta_ref_to_park()
+            self._pid.set_pid_mode('PARKING')
+            self._pid.set_parking_complete_callback(self.markParkingAsComplete)
         else:
+            with self._lock:
+                self._atpark = True
             await self.stop_tracking()
             await asyncio.sleep(1)
             await self.send_cmd_park()

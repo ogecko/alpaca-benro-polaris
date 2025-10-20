@@ -1160,6 +1160,7 @@ class PID_Controller():
         self.goto_complete_callback = None                   # callback function when no longer deviating
         self.rotate_complete_callback = None                 # callback function when no longer deviating
         self.slew_complete_callback = None                   # callback function when no longer slewing
+        self.parking_complete_callback = None                # callback function when reached parking position
         self.is_deviating = False                            # cost signal is > Kc Arc Minutes²
         self.is_slewing = False                              # a velicity_sp is non-zero
         self.is_tracking = False                             # tracking target body
@@ -1370,6 +1371,20 @@ class PID_Controller():
             clamped = max(-10_000, min(10_000, proposed))
             self.delta_g_sp[axis] = clamped
 
+    def set_zeta_ref_to_home(self):
+        if self.mode in ['PRESETUP']:
+            return
+        self.reset_offsets()
+        self.target_type = "ZETA"
+        self.zeta_ref = np.array([0,0,0], dtype=float)
+
+    def set_zeta_ref_to_park(self):
+        if self.mode in ['PRESETUP']:
+            return
+        self.reset_offsets()
+        self.target_type = "ZETA"
+        self.zeta_ref = np.array([Config.m1_park, Config.m2_park, Config.m3_park], dtype=float)
+
     def set_TLE_target(self, line1, line2, line3):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
@@ -1410,6 +1425,9 @@ class PID_Controller():
     def set_slew_complete_callback(self, fn):
         self.is_slewing = True
         self.slew_complete_callback = fn
+              
+    def set_parking_complete_callback(self, fn):
+        self.parking_complete_callback = fn
               
     def ack_limit_alarm(self):
         self.ack_limit_timestamp = datetime.datetime.now()
@@ -1540,10 +1558,11 @@ class PID_Controller():
             self.omega_min = np.where(zeta < zeta_min, np.array([0,0,0]), -self.Kv) 
             self.omega_max = np.where(zeta > zeta_max, np.array([0,0,0]), +self.Kv) 
             isLimited = np.any(self.omega_min == 0) or np.any(self.omega_max == 0)
-            isUnAcked = self.ack_limit_timestamp is None or (datetime.datetime.now() - self.ack_limit_timestamp).total_seconds() > 60*2
+            isUnAcked = self.ack_limit_timestamp is None or (datetime.datetime.now() - self.ack_limit_timestamp).total_seconds() > 60
             isnotPARKorPRESETUP = not self.set_pid_mode in ['PRESETUP', 'PARK']
             if isLimited and isUnAcked and isnotPARKorPRESETUP:
                 self.set_pid_mode('LIMIT')
+                self.parking_complete_callback = None  # Cancel any parking underway
 
         # Check that lat/lon has been set
         lat_unchanged = abs(rad2deg(float(self.observer.lat)) - -33.8598874) <= 0.00001
@@ -1578,6 +1597,9 @@ class PID_Controller():
         if not self.is_deviating and self.rotate_complete_callback:
             self.rotate_complete_callback()
             self.rotate_complete_callback = None
+        if not self.is_deviating and self.parking_complete_callback:
+            self.parking_complete_callback()
+            self.parking_complete_callback = None
         if not self.is_slewing and self.slew_complete_callback:
             self.slew_complete_callback()
             self.slew_complete_callback = None
