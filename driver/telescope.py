@@ -1509,7 +1509,7 @@ class supportedactions:
             "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StatusFetch", 
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
-            "Polaris:MoveAxis", "Polaris:MoveMotor", 
+            "Polaris:MoveAxis", "Polaris:MoveMotor", "Polaris:ResetAxes",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove", 
             "Polaris:Ack", "Polaris:ResetSP",
@@ -1580,6 +1580,12 @@ class action:
             rate = parameters.get('rate', 0)
             await polaris.move_axis(axis, rate, units="DPS")
             resp.text = await PropertyResponse('MoveAxis ok', req)  
+            return
+
+        elif actionName == "Polaris:ResetAxes":
+            logger.info(f'ResetAxes {parameters}')
+            await polaris.resetAxes()
+            resp.text = await PropertyResponse('ResetAxes ok', req)  
             return
 
         elif actionName == "Polaris:MoveMotor":

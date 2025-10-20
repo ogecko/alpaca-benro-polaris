@@ -2150,16 +2150,20 @@ class Polaris:
             self._pid.set_pid_mode('PARKING')
             self._pid.set_parking_complete_callback(self.markParkingAsComplete)
         else:
+            # Benro Polaris Park (reset axes)
             with self._lock:
                 self._atpark = True
-            await self.stop_tracking()
-            await asyncio.sleep(1)
-            await self.send_cmd_park()
+            self.resetAxes()
 
     async def unpark(self):
         with self._lock:
             self._pid.set_pid_mode('IDLE')
             self._atpark = False
 
-
+    async def resetAxes(self):
+        # Benro Polaris Park (reset axes)
+        await self.stop_all_axes()
+        await self.stop_tracking()
+        await asyncio.sleep(1)
+        await self.send_cmd_park()
 

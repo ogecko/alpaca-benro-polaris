@@ -127,6 +127,10 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/moveaxis',{ Axis: axis, Rate: rate });
     },
 
+    async alpacaResetAxes() {
+      await this.apiAction<void>('Polaris:ResetAxes')
+    },
+
     async alpacaSlewToAltAz(alt:number, az:number) {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtoaltazasync',{ Altitude: alt, Azimuth: az });
     },

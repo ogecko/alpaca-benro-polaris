@@ -188,10 +188,10 @@
                   <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Goto Home Position</q-item-label>
+                  <q-item-label>Reset all Polaris Axes</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn label="Home" icon="mdi-home"  class="fixedWidth" @click="onHome"/>
+                  <q-btn label="Reset" icon="mdi-backup-restore"  class="fixedWidth" @click="onResetAxes"/>
                 </q-item-section>
               </q-item>
 
@@ -339,10 +339,9 @@ async function onBleEnableWifi() {
   await dev.bleEnableWifi()
 }
 
-async function onHome() {
-  console.log('Goto Home Position')
-  await dev.alpacaUnPark()
-  await dev.alpacaFindHome()
+async function onResetAxes() {
+  console.log('Polaris Reset Axes')
+  await dev.alpacaResetAxes()
 }
 
 async function onCompass(newVal:string = '180.0') {
