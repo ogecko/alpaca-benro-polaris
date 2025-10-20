@@ -1,6 +1,7 @@
 # Beta test results
 
 ## Beta Tester: Vladimir (Dis: vyskocil; GH: vyskocil; FB Validimir V..)
+Notes: feedback on MacOS
 ### Platform & Environment
 ...
 ### Test Areas
@@ -9,8 +10,10 @@
 ...
 ### Feedback
 ...
+
 
 ## Beta Tester: Mark (Dis: Bakermanz; GH: bakermanz; FB: Real Bread Aotearoa)
+Notes: connect ok, tracking pulsing, top 360
 ### Platform & Environment
 ...
 ### Test Areas
@@ -20,7 +23,60 @@
 ### Feedback
 ...
 
-## Beta Tester: Steve (Dis: LanzaSteve; FB: Steve E...)
+
+
+## Beta Tester: Mark (FB: John Harrison; GH: 5x5Stuido)
+Notes: Ireland Week43, New 5nm filters.
+### Platform & Environment
+...
+### Test Areas
+...
+### Results
+...
+### Feedback
+...
+
+
+
+## Beta Tester: Mark (FB: William Siers; GH: Spiderx01)
+Notes: Phoenix Week43
+### Platform & Environment
+...
+### Test Areas
+...
+### Results
+...
+### Feedback
+...
+
+
+## Beta Tester: Daniel (Dis: Dmich39; GH: Dmich39)
+Notes: Typical User, Non technical
+### Platform & Environment
+...
+### Test Areas
+...
+### Results
+...
+### Feedback
+...
+
+
+
+## Beta Tester: Mark (FB: Richard Healey; GH: RjhNZ)
+Notes: Maybe, but, other commitments
+### Platform & Environment
+...
+### Test Areas
+...
+### Results
+...
+### Feedback
+...
+
+
+## Beta Tester: Steve (Dis: LanzaSteve; FB: Steve E...; GH: SteveE..)
+Notes: Tried BP Dither
 ### Platform & Environment
 ...
 ### Test Areas
@@ -32,8 +88,5 @@
 
 
 ## RFC
-FB: William Siers; GH: Spiderx01
-FB: Richard Healey; GH: RjhNZ
 FB: Andrew Sargent; GH: CynicalSarge
-FB: John Harrison; GH: 5x5Stuido
 FB: Mingyang Wang; GH: saltyminty
