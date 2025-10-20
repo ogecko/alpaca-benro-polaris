@@ -5010,6 +5010,36 @@
     "Dec_deg":-16.127286
   },
   {
+    "MainID":"South Celestrial Pole",
+    "Name":null,
+    "Notes":"Point in the sky above the south pole, around which all stars appear to rotate.",
+    "Class":null,
+    "OtherIDs":"Sigma Octantis Pole",
+    "Rt":3,
+    "Sz":8,
+    "Vz":7,
+    "Cn":53,
+    "C1":3,
+    "C2":26,
+    "RA_hr":0.0,
+    "Dec_deg":-90.0
+  },
+  {
+    "MainID":"North Celestrial Pole",
+    "Name":null,
+    "Notes":"Point in the sky above the north pole, around which all stars appear to rotate.",
+    "Class":null,
+    "OtherIDs":"Polaris Pole",
+    "Rt":3,
+    "Sz":8,
+    "Vz":7,
+    "Cn":78,
+    "C1":3,
+    "C2":26,
+    "RA_hr":0.0,
+    "Dec_deg":90.0
+  },
+  {
     "MainID":"LBN 603",
     "Name":null,
     "Notes":"Dark nebula and molecular cloud with nice color",
