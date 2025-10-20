@@ -19,7 +19,7 @@
             <q-btn icon="mdi-home"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="p.pidmode!='HOMING'"  @click="onHome">
               <q-tooltip>Return the mount to its Home position</q-tooltip>
             </q-btn>
-            <q-btn icon="mdi-parking"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark">
+            <q-btn icon="mdi-parking"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="p.pidmode!='PARKING'"  @click="onPark">
               <q-tooltip>Return the mount to its Park position.</q-tooltip>
             </q-btn>
             <q-btn icon="mdi-stop" glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="isStopOutline" @click="onAbort">

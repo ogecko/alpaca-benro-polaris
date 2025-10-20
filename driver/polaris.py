@@ -1971,6 +1971,7 @@ class Polaris:
 
     def markParkingAsCanceled(self):
         with self._lock:
+            self._pid.set_parking_complete_callback(None)
             self._slewing = False
             self._atpark = False
 
@@ -2124,6 +2125,7 @@ class Polaris:
             self.logger.info(f"Advanced Control: Find HOME Position of telescope")
             await self.stop_tracking()
             self._pid.set_zeta_ref_to_home()
+            self.markParkingAsCanceled()
             self._pid.set_pid_mode('HOMING')
 
 
