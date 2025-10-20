@@ -59,6 +59,58 @@
         <div class="col-12 col-md-6 col-lg-4 flex">
           <MotorLimits />
         </div>
+        <!-- Home and Park Positions -->
+        <div class="col-12 col-md-6 col-lg-4 flex">
+          <q-card flat bordered class="q-pa-md full-width">
+            <div class="text-h6">Home Position</div>
+            <div class="row">
+              <div class="col text-caption text-grey-6 q-pb-md">
+                The home position is the mount’s fixed mechanical reference point, where all motor angles are zero. 
+                When commanded to find home, the mount will unwind any accumulated rotation in motors M1 and M3.
+              </div>
+              <div class="col-auto q-gutter-sm flex justify-end items-center">
+                <q-btn outline icon="mdi-home" color="grey-5" label="Home"  @click="onHome"/>
+              </div>
+            </div>
+            <div class="text-h6">Park Position</div>
+            <div class="row">
+              <div class="col text-caption text-grey-6 q-pb-md">
+              The park position is a user-defined resting position that the mount can return to when not in use. 
+             </div>
+              <div class="col-auto q-gutter-sm flex justify-end items-center">
+                <q-btn outline icon="mdi-parking" color="grey-5" label="Park"  @click="onPark"/>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col text-caption text-grey-6 q-pb-md">
+              Select Park Save to store the mount’s current orientation as the new park position.
+             </div>
+              <div class="col-auto q-gutter-sm flex justify-end items-center">
+                <q-btn outline icon="mdi-car-brake-parking" color="grey-5" label="SAVE"  @click="onSetPark"/>
+              </div>
+            </div>
+              <div class="q-gutter-y-sm" >
+                <div class="row q-col-gutter-lg items-center q-pt-md">
+                      <div  class="text-h6">M3 <span v-if="$q.screen.gt.xs">Axis</span></div>
+                      <q-input dense class="col-3" readonly label="Current" v-bind="z3curr" type="text" input-class="text-right"/>
+                      <q-input class="col-3" v-bind="bindField('m3_park','Park Angle', '°')" type="number" input-class="text-right" dense />
+                </div>
+                <div class="row q-col-gutter-lg  items-center q-pt-sm">
+                    <div class="text-h6">M2 <span v-if="$q.screen.gt.xs">Axis</span></div>
+                    <q-input dense class="col-3" readonly label="Current" v-bind="z2curr" type="text" input-class="text-right"/>
+                    <q-input class="col-3" v-bind="bindField('m2_park','Park Angle', '°')" type="number" input-class="text-right" dense />
+                </div>
+                <div class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
+                    <div class="text-h6">M1 <span v-if="$q.screen.gt.xs">Axis</span></div>
+                    <q-input dense class="col-3" readonly label="Current" v-bind="z1curr" type="text" input-class="text-right"/>
+                    <q-input class="col-3" v-bind="bindField('m1_park','Park Angle', '°')" type="number" input-class="text-right" dense />
+                            
+                </div>
+            </div>
+          </q-card>
+        </div>
+
+
         <!-- Advanced Features -->
         <div class="col-12 col-md-6 col-lg-4 flex" >
           <q-card flat bordered class="q-pa-md full-width">
@@ -130,11 +182,13 @@
 <script setup lang="ts">
 // import axios from 'axios'
 import { useQuasar, debounce } from 'quasar'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch, computed } from 'vue'
 import { useConfigStore } from 'src/stores/config';
 import { useDeviceStore } from 'src/stores/device';
+import { useStatusStore } from 'src/stores/status';
 import { PollingManager } from 'src/utils/polling';
 import { getLocationServices } from 'src/utils/locationServices';
+import { formatDegreesHr } from 'src/utils/scale';
 
 import type { LocationResult } from 'src/utils/locationServices';
 import LocationPicker from 'src/components/LocationPicker.vue';
@@ -144,6 +198,7 @@ import MotorLimits from 'src/components/MotorLimits.vue'
 const $q = useQuasar()
 const dev = useDeviceStore()
 const cfg = useConfigStore()
+const p = useStatusStore()
 const poll = new PollingManager()
 const max_rate_rules = [ 
   (x:number) => x>0.0 || 'Rate must be greater than zero',
@@ -151,6 +206,11 @@ const max_rate_rules = [
 ]
 
 const isRestricted = ref<boolean>(cfg.max_slew_rate!=0)
+
+const z3curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[2]??0,"deg",1) }));
+const z2curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[1]??0,"deg",1) }));
+const z1curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[0]??0,"deg",1) }));
+
 watch(isRestricted, async (isRestrictedNewValueTrue) => {
   const cfgChanges = (isRestrictedNewValueTrue) ? {max_slew_rate: 8.5, max_accel_rate: 3 } : {max_slew_rate: 0, max_accel_rate: 0 }
   await cfg.configUpdate(cfgChanges)
@@ -175,6 +235,26 @@ onMounted(async () => {
 onUnmounted(() => {
   poll.stopPolling()
 })
+
+async function onHome() {
+  const result = await dev.alpacaFindHome();  
+  console.log(result)
+}
+
+async function onPark() {
+  const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
+  console.log(result)
+}
+
+async function onSetPark() {
+  const result = await dev.alpacaSetPark();  
+  $q.notify({ message: `The mounts Park Postion has been set to the current orientation.`, type: 'positive', position: 'top', 
+                        timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }]})
+  const ok = await cfg.configFetch()
+  triggerAnimation(['m1_park','m2_park', 'm3_park'])
+  console.log(result, ok)
+}
+
 
 function bindField(key: string, label: string, suffix?: string) {
   /**

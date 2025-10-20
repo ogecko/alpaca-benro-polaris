@@ -188,10 +188,10 @@
                   <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Goto Park Position</q-item-label>
+                  <q-item-label>Goto Home Position</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn label="Park" icon="mdi-parking"  class="fixedWidth" @click="onPark"/>
+                  <q-btn label="Home" icon="mdi-home"  class="fixedWidth" @click="onHome"/>
                 </q-item-section>
               </q-item>
 
@@ -339,10 +339,10 @@ async function onBleEnableWifi() {
   await dev.bleEnableWifi()
 }
 
-async function onPark() {
-  console.log('Goto Park Position')
-  await dev.alpacaPark()
+async function onHome() {
+  console.log('Goto Home Position')
   await dev.alpacaUnPark()
+  await dev.alpacaFindHome()
 }
 
 async function onCompass(newVal:string = '180.0') {

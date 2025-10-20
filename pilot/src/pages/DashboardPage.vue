@@ -21,10 +21,6 @@
             </q-btn>
             <q-btn icon="mdi-parking"  glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="!p.atpark"  @click="onPark">
               <q-tooltip>Return the mount to its Park position.</q-tooltip>
-              <!-- <q-tooltip>Park the mount. Hold > 5 s to set the Park Position.</q-tooltip> -->
-            </q-btn>
-            <q-btn icon="mdi-car-brake-parking" glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="isStopOutline" @click="onSetPark">
-              <q-tooltip>set the Park Position.</q-tooltip>
             </q-btn>
             <q-btn icon="mdi-stop" glossy :dense="btnDense" :size="btnSize" color="secondary" :outline="isStopOutline" @click="onAbort">
               <q-tooltip>Stop all motion of the mount.</q-tooltip>
@@ -240,14 +236,6 @@ async function onHome() {
 
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
-  console.log(result)
-}
-
-async function onSetPark() {
-  const result = await dev.alpacaSetPark();  
-  $q.notify({ message: `The mounts Park Postion has been set to the Current Position.`, type: 'positive', position: 'top', 
-                        timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }]})
-
   console.log(result)
 }
 

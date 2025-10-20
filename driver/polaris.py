@@ -2129,10 +2129,14 @@ class Polaris:
 
     async def setPark(self):
         if Config.advanced_control:
-            self.logger.info(f"Advanced Control: Set Park Position of telescope")
-            Config.m1_park = self._zeta_meas[0]
-            Config.m2_park = self._zeta_meas[1]
-            Config.m3_park = self._zeta_meas[2]
+            payload = {
+                "m1_park": float(self._zeta_meas[0]),
+                "m2_park": float(self._zeta_meas[1]),
+                "m3_park": float(self._zeta_meas[2]),
+            }
+            Config.apply_changes(payload)
+            Config.save_pilot_overrides()
+            self.logger.info(f"Advanced Control: Set Park Position {payload}")
 
     async def park(self):
         with self._lock:
