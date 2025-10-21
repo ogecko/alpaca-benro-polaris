@@ -117,6 +117,18 @@ Notes: Maybe, but, other commitments
 ...
 
 
+## Beta Tester: Alex (Dis: Alex; FB: Alexander M...; GH: ..)
+Notes: help with producing tutorial/overview and beta testing
+### Platform & Environment
+...
+### Test Areas
+...
+### Results
+...
+### Feedback
+...
+
+
 ## Beta Tester: Steve (Dis: LanzaSteve; FB: Steve E...; GH: SteveE..)
 Notes: Tried BP Dither
 ### Platform & Environment
