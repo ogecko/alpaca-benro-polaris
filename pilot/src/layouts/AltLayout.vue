@@ -273,7 +273,7 @@ const links4 = [
   { icon: 'mdi-format-vertical-align-top', text: 'Alignment', to: '/sync' },
   { icon: 'mdi-set-split', text: 'Calibration', to: '/speed' },
   { icon: 'mdi-chart-line', text: 'KF Tuning', to: '/kalman' },
-  { icon: 'mdi-chart-bell-curve-cumulative', text: 'PID Tuning', to: '/' },
+  { icon: 'mdi-chart-bell-curve-cumulative', text: 'PID Tuning', to: '/pid' },
   { icon: 'mdi-pulse', text: 'PWM Testing', to: '/pwm' },
   { icon: 'mdi-stethoscope', text: 'Diagnostics', to: '/position' },
   { icon: 'mdi-database-clock-outline', text: 'Driver Log', to: '/log' },
