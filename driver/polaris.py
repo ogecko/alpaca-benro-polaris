@@ -760,8 +760,8 @@ class Polaris:
 
             # Process through the Kalman Filter to determine Polaris theta_state (uncorrected for alignment)
             self._kf.predict(omega_ref)
-            self._kf.observe(theta_meas, omega_meas)
-            theta_state, omega_state, K_gain = self._kf.get_state()
+            self._kf.observe(theta_meas, omega_meas, omega_ref)
+            theta_state, _ = self._kf.get_state()
             q1_state = motors_to_quaternion(*theta_state)
 
             # Flag when variance from quaternion q_az and p_az
@@ -770,17 +770,9 @@ class Polaris:
             if not is_angle_same(q_alt, p_alt):
                 self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} q_alt {q_alt:.5f} diff {p_alt - q_alt:.5f}") 
 
-            # Log meas, state and ref for websocket streaming
-            payload = { 
-                "θ_meas":theta_meas.tolist(), "θ_state":theta_state.tolist(), "K_gain": K_gain.tolist(),
-                "ω_meas":omega_meas.tolist(), "ω_state":omega_state.tolist(), "ω_ref": omega_ref.tolist(),  
-            }
-            kflogger = logging.getLogger('kf') 
-            kflogger.info(payload)
-
             # Use direct measurements if no KF
             if not (Config.advanced_kf and Config.advanced_control):
-                q1_state, theta_state, omega_state = q1, theta_meas, omega_meas
+                q1_state, theta_state = q1, theta_meas
 
             # update all the ASCOM values and the PID loop
             alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1_state, azhint=p_az)

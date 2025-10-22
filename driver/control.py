@@ -645,7 +645,7 @@ class KalmanFilter:
         self.x = wrap_state_angles(self.x)
 
 
-    def observe(self, theta, omega):
+    def observe(self, theta, omega, omega_ref):
         self.R = np.diag(Config.kf_measure_noise)
         if self._need_first_measurement:
             self._need_first_measurement = False
@@ -666,12 +666,24 @@ class KalmanFilter:
         self.P = (self.I - self.K @ self.H) @ self.P
         self.x = wrap_state_angles(self.x)
 
+        # Log meas, state and ref for websocket streaming
+        payload = { 
+            "θ_meas":  theta_meas.flatten().tolist(), 
+            "θ_state": self.x[:3].flatten().tolist(), 
+            "K_gain":  np.diag(self.K).tolist(),
+            "ω_meas":  omega_meas.flatten().tolist(), 
+            "ω_state": self.x[3:].flatten().tolist(), 
+            "ω_ref":   omega_ref.tolist(),  
+        }
+        kflogger = logging.getLogger('kf') 
+        kflogger.info(payload)
+
+
     def get_state(self):
         state = self.x.flatten()
         theta = state[0:3]
         omega = state[3:]
-        K = np.diag(self.K)
-        return theta, omega, K
+        return theta, omega
 
     def set_state(self, x):
         self.x = np.array(x).reshape(6, 1)
