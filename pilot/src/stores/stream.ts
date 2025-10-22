@@ -181,6 +181,7 @@ export const useStreamStore = defineStore('telemetry', () => {
 
   function subscribe(topic: string, filter: Record<string, unknown> = {}) {
     subscriptions.value.add(topic)
+    clear(topic)
     if (socketConnected.value && _socket.value) {
       _socket.value.send(JSON.stringify({ type: 'subscribe', topic, filter }))
     }
