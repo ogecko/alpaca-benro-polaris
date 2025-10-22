@@ -79,8 +79,8 @@ This page presents the raw sensor data in dark green, the filtered data in yello
       </q-card>
       </div>
       <!-- Angular Position Plot -->
-      <div class="col-md-6 flex">
-        <q-card flat bordered class="col">
+      <div class="col-12 col-lg-6 flex">
+        <q-card flat bordered class="q-pa-md full-width">
           <q-list>
             <q-item>
               <q-item-section side top>
@@ -109,18 +109,18 @@ This page presents the raw sensor data in dark green, the filtered data in yello
             <q-item >
               <q-item-section>
                 <q-item-label>
-              Position Measured (K = {{ K_gain.pos }}) and Filtered vs Time 
+              Position Measured (K = {{ K_gain.pos }}) and Filtered vs Time
                 </q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY  :data="chartPosData" x1Type="time"></ChartXY>
+          <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
           <div class="q-pb-xl"></div>
         </q-card>
       </div>
       <!-- Angular Velocity Plot -->
-      <div class="col-md-6 flex">
-        <q-card flat bordered class="col">
+      <div class="col-12 col-lg-6 flex">
+        <q-card flat bordered class="q-pa-md full-width">
           <q-list>
             <q-item>
               <q-item-section side top>

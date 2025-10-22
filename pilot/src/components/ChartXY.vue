@@ -1,9 +1,11 @@
 <template>
-  <div ref="chart" style="height: 300px; width: 100%;"></div>
+  <div ref="chart" style="height: 300px; width: 100%;">
+    <q-resize-observer @resize="onResize" />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import * as d3 from 'd3'
 import { formatAngle } from 'src/utils/scale'
 
@@ -19,15 +21,12 @@ const props = defineProps<{
   x1Type: 'number' | 'time'
 }>();
 
-const chart = ref(null)
+const chart = ref<HTMLDivElement | null>(null)
 
-
-const width = 500
 const height = 300
 const margin = { top: 20, right: 30, bottom: 30, left: 80 }
-const clipId = 'plot-clip';
 
-let svg: d3.Selection<SVGSVGElement, unknown, null, undefined>
+let svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null
 let xScale: d3.ScaleTime<number, number> | d3.ScaleLinear<number, number> 
 let yScale: d3.ScaleLinear<number, number>
 let xAxis: d3.Selection<SVGGElement, unknown, null, undefined>
@@ -45,137 +44,147 @@ let currentTransform: d3.ZoomTransform | null = null
 let gridX: d3.Selection<SVGGElement, unknown, null, undefined>
 let gridY: d3.Selection<SVGGElement, unknown, null, undefined>
 
-
 function drawGridlines(
   zx: d3.ScaleLinear<number, number> | d3.ScaleTime<number, number>, 
-  zy: d3.ScaleLinear<number, number>
+  zy: d3.ScaleLinear<number, number>,
+  width: number
 ) {
   gridX.call(
     d3.axisBottom(zx)
-      .tickSize(-height + margin.top + margin.bottom)
+      .tickSize(-(height - margin.top - margin.bottom))
       .tickFormat(() => '')
   )
   gridY.call(
     d3.axisLeft(zy)
-      .tickSize(-width + margin.left + margin.right)
+      .tickSize(-(width - margin.left - margin.right))
       .tickFormat(() => '')
   )
 }
 
 function initChart() {
-    xScale = props.x1Type === 'time'
-      ? d3.scaleTime().range([0, width - margin.left - margin.right])
-      : d3.scaleLinear().range([0, width - margin.left - margin.right])    
-    yScale = d3.scaleLinear().range([height - margin.top - margin.bottom, 0])
-    svg = d3.select(chart.value)
-        .append('svg')
-        .attr('width', width)
-        .attr('height', height)
-    
-    svg.append('defs')
-        .append('clipPath')
-        .attr('id', clipId)
-        .append('rect')
-        .attr('width', width - margin.left - margin.right)
-        .attr('height', height - margin.top - margin.bottom);
+  const width = chart.value?.clientWidth ?? 500
+  // make a unique clip id for this component instance (prevents cross-instance collisions)
+  const clipId = `plot-clip-${Math.random().toString(36).slice(2, 9)}`
 
-    const g = svg.append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`)
+  xScale = props.x1Type === 'time'
+    ? d3.scaleTime().range([0, width - margin.left - margin.right])
+    : d3.scaleLinear().range([0, width - margin.left - margin.right])    
+  yScale = d3.scaleLinear().range([height - margin.top - margin.bottom, 0])
 
-    g.append('rect')
-        .attr('width', width - margin.left - margin.right)
-        .attr('height', height - margin.top - margin.bottom)
-        .attr('fill', '#1e1e1e') // dark surface
-        .lower() // ensure it sits behind everything
+  // create svg (remove previous svg if any)
+  d3.select(chart.value).select('svg').remove()
+  svg = d3.select(chart.value)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMinYMin meet')
 
-    gridX = g.append('g')
-        .attr('class', 'grid-x')
-        .attr('color', '#444')
-        .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
+  svg.append('defs')
+      .append('clipPath')
+      .attr('id', clipId)
+      .append('rect')
+      .attr('width', width - margin.left - margin.right)
+      .attr('height', height - margin.top - margin.bottom);
 
-    gridY = g.append('g')
-        .attr('class', 'grid-y')
-        .attr('color', '#444')
+  const g = svg.append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`)
 
-    xAxis = g.append('g')
-        .attr('class', 'x-axis')
-        .attr('color', '#999')
-        .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
+  g.append('rect')
+      .attr('width', width - margin.left - margin.right)
+      .attr('height', height - margin.top - margin.bottom)
+      .attr('fill', '#1e1e1e') // dark surface
+      .lower()
 
-    yAxis = g.append('g')
-        .attr('class', 'y-axis')
-        .attr('color', '#999')
+  gridX = g.append('g')
+      .attr('class', 'grid-x')
+      .attr('color', '#444')
+      .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
 
-    liney1 = d3.line<DataPoint>()
-        .x(d => xScale(d.x1))
-        .y(d => yScale(d.y1))
+  gridY = g.append('g')
+      .attr('class', 'grid-y')
+      .attr('color', '#444')
 
-    liney2 = d3.line<DataPoint>()
-        .x(d => xScale(d.x1))
-        .y(d => yScale(d.y2))
+  xAxis = g.append('g')
+      .attr('class', 'x-axis')
+      .attr('color', '#999')
+      .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
 
-    liney3 = d3.line<DataPoint>()
-        .defined(d => typeof d.y3 === 'number')
-        .x(d => xScale(d.x1))
-        .y(d => yScale(d.y3!))
+  yAxis = g.append('g')
+      .attr('class', 'y-axis')
+      .attr('color', '#999')
 
-    pathy1 = g.append('path')
-        .attr('class', 'line ploty1')
-        .attr('fill', 'none')
-        .attr('stroke', '#00695c ')
-        .attr('stroke-width', 2)
-        .attr('clip-path', `url(#${clipId})`);
+  liney1 = d3.line<DataPoint>()
+      .x(d => xScale(d.x1))
+      .y(d => yScale(d.y1))
 
-    pathy2 = g.append('path')
-        .attr('class', 'line ploty2')
-        .attr('fill', 'none')
-        .attr('stroke', '#cddc39')
-        .attr('stroke-width', 2)
-        .attr('clip-path', `url(#${clipId})`);
+  liney2 = d3.line<DataPoint>()
+      .x(d => xScale(d.x1))
+      .y(d => yScale(d.y2))
 
-    pathy3 = g.append('path')
-        .attr('class', 'line ploty3')
-        .attr('fill', 'none')
-        .attr('stroke', '#d84315')
-        .attr('stroke-width', 2)
-        .attr('clip-path', `url(#${clipId})`);
+  liney3 = d3.line<DataPoint>()
+      .defined(d => typeof d.y3 === 'number')
+      .x(d => xScale(d.x1))
+      .y(d => yScale(d.y3!))
 
-    svg.append('text')
-      .attr('class', 'stdev-label')
-      .attr('text-anchor', 'end')
-      .attr('x', width - 40)
-      .attr('y', height - 40)
-      .attr('fill', '#ccc')
-      .style('font-size', '12px')
-      .text('');
+  pathy1 = g.append('path')
+      .attr('class', 'line ploty1')
+      .attr('fill', 'none')
+      .attr('stroke', '#00695c ')
+      .attr('stroke-width', 2)
+      .attr('clip-path', `url(#${clipId})`);
 
-    zoom = d3.zoom<SVGSVGElement, unknown>()
-        .scaleExtent([1, 10])
-        .translateExtent([[0, 0], [width, height]])
-        .on('zoom', (event) => {
-            currentTransform = event.transform
-            if (!currentTransform) return
-            const zx = currentTransform.rescaleX(xScale)
-            const zy = currentTransform.rescaleY(yScale)
-            gX.call(d3.axisBottom(zx))
-            gY.call(d3.axisLeft(zy))
+  pathy2 = g.append('path')
+      .attr('class', 'line ploty2')
+      .attr('fill', 'none')
+      .attr('stroke', '#cddc39')
+      .attr('stroke-width', 2)
+      .attr('clip-path', `url(#${clipId})`);
 
-            const getZX = (d: DataPoint) => props.x1Type === 'time' ? zx(d.x1 as Date) : zx(d.x1 as number)
-            pathy1.attr('d', liney1.x(getZX).y(d => zy(d.y1))(props.data))
-            pathy2.attr('d', liney2.x(getZX).y(d => zy(d.y2))(props.data))
-            pathy3.attr('d', liney3.x(getZX).y(d => zy(d.y3 ?? 0))(props.data))
+  pathy3 = g.append('path')
+      .attr('class', 'line ploty3')
+      .attr('fill', 'none')
+      .attr('stroke', '#d84315')
+      .attr('stroke-width', 2)
+      .attr('clip-path', `url(#${clipId})`);
 
-            drawGridlines(zx, zy)
+  svg.append('text')
+    .attr('class', 'stdev-label')
+    .attr('text-anchor', 'end')
+    .attr('x', width - 40)
+    .attr('y', height - 40)
+    .attr('fill', '#ccc')
+    .style('font-size', '12px')
+    .text('');
 
-        })
+  zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, 10])
+      .translateExtent([[0, 0], [width, height]])
+      .on('zoom', (event) => {
+          currentTransform = event.transform
+          if (!currentTransform) return
+          const zx = currentTransform.rescaleX(xScale)
+          const zy = currentTransform.rescaleY(yScale)
+          gX.call(d3.axisBottom(zx))
+          gY.call(d3.axisLeft(zy))
 
-    svg.call(zoom)
-    gX = xAxis
-    gY = yAxis
+          const getZX = (d: DataPoint) => props.x1Type === 'time' ? zx(d.x1 as Date) : zx(d.x1 as number)
+          pathy1.attr('d', liney1.x(getZX).y(d => zy(d.y1))(props.data))
+          pathy2.attr('d', liney2.x(getZX).y(d => zy(d.y2))(props.data))
+          pathy3.attr('d', liney3.x(getZX).y(d => zy(d.y3 ?? 0))(props.data))
+
+          drawGridlines(zx, zy, width)
+      })
+
+  svg.call(zoom)
+  gX = xAxis
+  gY = yAxis
 }
 
 function updateChart() {
-  if (!props.data || props.data.length === 0) return
+  if (!props.data || props.data.length === 0 || !svg) return
+
+  const width = chart.value?.clientWidth ?? 500
 
   const x1 = props.data.map(d => d.x1)
   const y1s = props.data.map(d => d.y1)
@@ -184,15 +193,15 @@ function updateChart() {
   const allys = [...y1s, ...y2s, ...y3s]
 
   const xDomain = props.x1Type === 'time'
-  ? [d3.min(x1.map(t => t as Date))!, d3.max(x1.map(t => t as Date))!]
-  : [d3.min(x1 as number[]) ?? 0, d3.max(x1 as number[]) ?? 100]
+    ? [d3.min(x1.map(t => t as Date))!, d3.max(x1.map(t => t as Date))!]
+    : [d3.min(x1 as number[]) ?? 0, d3.max(x1 as number[]) ?? 100]
   xScale.domain(xDomain)
   yScale.domain([d3.min(allys) ?? 0, d3.max(allys) ?? 100])
 
   const zx = currentTransform ? currentTransform.rescaleX(xScale) : xScale
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
 
-  drawGridlines(zx, zy)
+  drawGridlines(zx, zy, width)
   gX.call(d3.axisBottom(zx))
   gY.call(d3.axisLeft(zy))
 
@@ -212,20 +221,33 @@ function updateChart() {
   const stdevY1 = d3.deviation(props.data, d => d.y1) ?? 0;
   svg.select('.stdev-label')
     .text(`σ(y₁): ${formatAngle(stdevY1,'deg',2)}`);
-
-
 }
 
-onMounted(() => {
+function onResize() {
+  // Only remove the svg, do not remove the q-resize-observer or other nodes inside the container.
+  d3.select(chart.value).select('svg').remove()
+  // re-init with fresh measurement
+  initChart()
+  updateChart()
+}
+
+// mount after layout is settled
+onMounted(async () => {
+  await nextTick()
   initChart()
   updateChart()
 })
 
-watch(() => props.data, updateChart, { deep: true })
+// update when data changes
+watch(() => props.data, () => {
+  updateChart()
+}, { deep: true })
 
 onBeforeUnmount(() => {
-  d3.select(chart.value).selectAll('*').remove()
+  if (chart.value) d3.select(chart.value).select('svg').remove()
 })
+
+
 </script>
 
 <style scoped lang="scss">

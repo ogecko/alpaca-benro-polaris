@@ -69,8 +69,8 @@
         </q-card>
       </div>
       <!-- Duty On/Off -->
-      <div class="col-12 col-md-6 flex">
-        <q-card flat bordered class="col full-width">
+      <div class="col-12 col-lg-6 flex">
+        <q-card flat bordered class="q-pa-md full-width">
           <q-list>
             <q-item>
               <q-item-section side top>
@@ -99,8 +99,8 @@
           <div class="q-pb-xl"></div>
         </q-card>
     </div>    
-      <div class="col-12 col-md-6 flex">
-        <q-card flat bordered class="col full-width">
+      <div class="col-12 col-lg-6 flex">
+        <q-card flat bordered class="q-pa-md full-width">
           <q-list>
             <q-item>
               <q-item-section side top>
