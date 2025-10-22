@@ -82,6 +82,13 @@ This page presents the raw sensor data in dark green, the filtered data in yello
       <div class="col-12 col-lg-6 flex">
         <q-card flat bordered class="q-pa-md full-width">
           <q-list>
+            <q-item >
+              <q-item-section>
+                <q-item-label>Angular Position (degrees) vs Time (seconds);  K Gain = {{ K_gain.pos }}</q-item-label>
+                <q-item-label caption>Y1: Measured Position, Y2: State Position </q-item-label>
+              </q-item-section>
+            </q-item>
+            <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
             <q-item>
               <q-item-section side top>
                 <q-knob v-model="pos_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_meas_str}}</q-knob>
@@ -106,22 +113,20 @@ This page presents the raw sensor data in dark green, the filtered data in yello
                 </q-item-label>
               </q-item-section>
             </q-item>
-            <q-item >
-              <q-item-section>
-                <q-item-label>
-              Position Measured (K = {{ K_gain.pos }}) and Filtered vs Time
-                </q-item-label>
-              </q-item-section>
-            </q-item>
           </q-list>
-          <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
-          <div class="q-pb-xl"></div>
         </q-card>
       </div>
       <!-- Angular Velocity Plot -->
       <div class="col-12 col-lg-6 flex">
         <q-card flat bordered class="q-pa-md full-width">
           <q-list>
+            <q-item >
+              <q-item-section>
+                <q-item-label>Angular Velocity (degrees/s) vs Time (seconds);  K Gain = {{ K_gain.vel }}</q-item-label>
+                <q-item-label caption>Y1: Measured Velocity, Y2: State Velocity. Y3: Reference</q-item-label>
+              </q-item-section>
+            </q-item>
+            <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
             <q-item>
               <q-item-section side top>
                 <q-knob v-model="vel_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_meas_str}}</q-knob>
@@ -147,15 +152,6 @@ This page presents the raw sensor data in dark green, the filtered data in yello
               </q-item-section>
             </q-item>
           </q-list>
-            <q-item >
-              <q-item-section>
-                <q-item-label>
-              Velocity Measured (K = {{ K_gain.vel }}) and Filtered vs Time 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-          <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
-          <div class="q-pb-xl"></div>
         </q-card>
       </div>    
     </div>
@@ -232,7 +228,7 @@ const K_gain = computed((): { pos: string; vel: string } => {
 
 
 watch([pos_meas_var, vel_meas_var, pos_proc_var, vel_proc_var], (newVal)=>{
-  const payload = { kf_measure_noise: cfg.kf_measure_noise, kf_process_noise: cfg.kf_process_noise}
+  const payload = { kf_measure_noise: [...cfg.kf_measure_noise], kf_process_noise: [...cfg.kf_process_noise]}
   payload.kf_measure_noise[axis.value] = newVal[0]
   payload.kf_measure_noise[axis.value+3] = newVal[1]
   payload.kf_process_noise[axis.value] = newVal[2]

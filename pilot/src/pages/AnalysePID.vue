@@ -32,9 +32,9 @@
           <div class="col-md-6">
 <q-markdown  :no-mark="false">
 # PID Controller Tuning
-The purpose of a Kalman Filter (PID) is to estimate the true orientation of the telescope mount. It combines noisy sensor measurements and expected motion to produce the most accurate result possible. 
+The purpose of the PID controller is to regulate the mount’s motion so that it accurately follows the target setpoint position.
 
-This page presents the raw sensor data in dark green, the filtered data in yellow, and the control velocity in red. Changes take effect immediately, use Settings Save to store adjustments.
+This page displays the SP, PV, OP and Error Signals. Changes to PID gains take effect immediately. Use Save to store your adjustments.
 </q-markdown>
           </div>
           <!-- PID intro settings -->
@@ -55,7 +55,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
                   <q-item-label> Choosen Motor Axis</q-item-label>
                   <q-item-label caption>
                     Select the motor axis you'd like to analyse and tune. Motor 1 Azimuth; Motor 2 Altitude; Motor 3 Astro head. 
-                    Keep in mind: when Motor 3 (Astro Head) is rotated, the orientation of Motor 1 and Motor 2 no longer corresponds directly to Azimuth and Altitude.            </q-item-label>
+                  </q-item-label>
                 </q-item-section>
               </q-item>
               <!-- Test Motor -->
@@ -82,39 +82,30 @@ This page presents the raw sensor data in dark green, the filtered data in yello
       <div class="col-12 col-lg-6 flex">
         <q-card flat bordered class="q-pa-md full-width">
           <q-list>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="pos_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_meas_str}}</q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Angular Position Measurement Error (R) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  This defines the expected uncertainty in the measurement of angular position. 
-                  Larger values means less trust in position measurement, smoother but possibly lagging estimates. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="pos_proc_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_proc_str}}</q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Angular Position Process Error (Q) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  This defines the expected uncertainty in the dynamic process of predicting angular position.  
-                  Larger values means less trust in position prediction, smoother but possibly lagging estimates. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
             <q-item >
               <q-item-section>
-                <q-item-label>
-              Position Measured and Filtered vs Time
-                </q-item-label>
+                <q-item-label>Angular Position (degrees) vs Time (seconds)</q-item-label>
+                <q-item-label caption>SP: Setpoint Green, PV: Present Value White</q-item-label>
               </q-item-section>
             </q-item>
-          </q-list>
           <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
+          <div class="row q-pt-lg q-pl-xl items-center justify-center">
+            <div class="col row q-gutter-sm">
+                <q-knob v-model="Ke_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="1.0" :max="1.2" :step="0.01">{{Ke_str}}</q-knob>
+                <div class="column">
+                  <div class="text-h6">Ke</div>
+                  <div class="text-caption">Expotential Smoothing Gain</div>
+                </div> 
+            </div>
+            <div class="col row q-gutter-sm">
+                <q-knob v-model="Kc_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kc_str}}</q-knob>
+                <div class="column">
+                  <div class="text-h6">Kc</div>
+                  <div class="text-caption">Goto Tollerance (arc-min)</div>
+                </div> 
+            </div>
+          </div>
+          </q-list>
           <div class="q-pb-xl"></div>
         </q-card>
       </div>
@@ -122,39 +113,38 @@ This page presents the raw sensor data in dark green, the filtered data in yello
       <div class="col-12 col-lg-6 flex">
         <q-card flat bordered class="q-pa-md full-width">
           <q-list>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="vel_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_meas_str}}</q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Angular Velocity Measurement Error (R) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  The defines the expected uncertainty in the measurement of angular velocity.  
-                  Larger values means less trust in velocity measurement, smoother but possibly lagging estimates. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="vel_proc_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_proc_str}}</q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Angular Velocity Process Error (Q) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  This defines the expected uncertainty in the dynamic process of predicting angular velocity.  
-                  Larger values means less trust in velocity prediction, smoother but possibly lagging estimates. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
           </q-list>
             <q-item >
               <q-item-section>
-                <q-item-label>
-              Velocity Measured and Filtered vs Time 
-                </q-item-label>
+                <q-item-label>Angular Velocity (degrees/s) vs Time (seconds)</q-item-label>
+                <q-item-label caption>OP: Output Red, Kp: Proportion Yellow, Ki: Integral Orange, Kd: Derivative Red, FF: Slew Rate Green</q-item-label>
               </q-item-section>
             </q-item>
           <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
+          <div class="row q-pt-lg q-pl-xl items-center justify-center">
+            <div class="col row q-gutter-sm">
+                <q-knob v-model="Kp_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kp_str}}</q-knob>
+                <div class="column">
+                  <div class="text-h6">Kp</div>
+                  <div class="text-caption">Proportional Gain</div>
+                </div> 
+            </div>
+            <div class="col row q-gutter-sm">
+                <q-knob v-model="Ki_var" show-value :min="-0.2" :inner-min="0.0" :inner-max="2.0" :max="2.2" :step="0.01">{{Ki_str}}</q-knob>
+                <div class="column">
+                  <div class="text-h6">Ki</div>
+                  <div class="text-caption">Integral Gain</div>
+                </div> 
+            </div>
+            <div class="col row q-gutter-sm">
+                <q-knob v-model="Kd_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kd_str}}</q-knob>
+                <div class="column">
+                  <div class="text-h6">Kd</div>
+                  <div class="text-caption">Derivative Gain</div>
+                </div> 
+            </div>
+          </div>
+
           <div class="q-pb-xl"></div>
         </q-card>
       </div>    
@@ -171,7 +161,6 @@ import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
-import { formatAngle } from 'src/utils/scale'
 import MoveButton from 'src/components/MoveButton.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, PIDMessage }from 'src/stores/stream'
@@ -182,23 +171,19 @@ const cfg = useConfigStore()
 const dev = useDeviceStore()
 
 const axis = ref<number>(0)
-const pos_meas_var_log = ref<number>(5)
-const vel_meas_var_log = ref<number>(5)      // typically 1 to 10
-const pos_proc_var_log = ref<number>(5)
-const vel_proc_var_log = ref<number>(5)      
+const Kp_var = ref<number>(0)
+const Ki_var = ref<number>(0)      
+const Kd_var = ref<number>(0)      
+const Ke_var = ref<number>(0)      
+const Kc_var = ref<number>(0)      
 
 const motor = computed<string>(() => `M${axis.value+1}`)
-const pos_meas_var = computed<number>(() => log2var(pos_meas_var_log.value))
-const pos_meas_str = computed<string>(() => var2str(pos_meas_var.value))
-const vel_meas_var = computed<number>(() => log2var(vel_meas_var_log.value))
-const vel_meas_str = computed<string>(() => var2str(vel_meas_var.value))
-const pos_proc_var = computed<number>(() => log2var(pos_proc_var_log.value))
-const pos_proc_str = computed<string>(() => var2str(pos_proc_var.value))
-const vel_proc_var = computed<number>(() => log2var(vel_proc_var_log.value))
-const vel_proc_str = computed<string>(() => var2str(vel_proc_var.value))
-const var2log = (x:number) => Math.log10(x) + 6
-const log2var = (k:number) => Math.pow(10,-6 + k)
-const var2str = (x:number) => formatAngle(x,'deg',1)
+const Kp_str = computed<string>(() => var2str(Kp_var.value))
+const Ki_str = computed<string>(() => var2str(Ki_var.value))
+const Kd_str = computed<string>(() => var2str(Kd_var.value))
+const Ke_str = computed<string>(() => var2str(Ke_var.value))
+const Kc_str = computed<string>(() => var2str(Kc_var.value))
+const var2str = (x:number) => x.toFixed(2)
 
 const chartPosData = computed<DataPoint[]>(() => {
    const pid = socket.topics?.pid ?? [] as TelemetryRecord[];
@@ -211,12 +196,13 @@ const chartVelData = computed<DataPoint[]>(() => {
 })
 
 
-watch([pos_meas_var, vel_meas_var, pos_proc_var, vel_proc_var], (newVal)=>{
-  const payload = { kf_measure_noise: cfg.kf_measure_noise, kf_process_noise: cfg.kf_process_noise}
-  payload.kf_measure_noise[axis.value] = newVal[0]
-  payload.kf_measure_noise[axis.value+3] = newVal[1]
-  payload.kf_process_noise[axis.value] = newVal[2]
-  payload.kf_process_noise[axis.value+3] = newVal[3]
+watch([Kp_var, Ki_var, Kd_var, Ke_var, Kc_var], (newVal)=>{
+  const payload = { pid_Kp: [...cfg.pid_Kp], pid_Ki: [...cfg.pid_Ki], pid_Kd:[...cfg.pid_Kd], pid_Ke:[...cfg.pid_Ke], pid_Kc:[...cfg.pid_Kc]}
+  payload.pid_Kp[axis.value] = newVal[0]
+  payload.pid_Ki[axis.value] = newVal[1]
+  payload.pid_Kd[axis.value] = newVal[2]
+  payload.pid_Ke[axis.value] = newVal[3]
+  payload.pid_Kc[axis.value] = newVal[4]
   putdb(payload)
 })
 
@@ -236,17 +222,11 @@ async function onMinus(payload: { isPressed: boolean }) {
 function setKnobValues() {
   const idx = axis.value ?? 0
 
-  const pos_meas_var = cfg.kf_measure_noise[idx] ?? 1e-6;
-  pos_meas_var_log.value = var2log(pos_meas_var);
-
-  const vel_meas_var = cfg.kf_measure_noise[idx + 3] ?? 1e-6;
-  vel_meas_var_log.value = var2log(vel_meas_var)
-  
-  const pos_proc_var = cfg.kf_process_noise[idx] ?? 1e-6;
-  pos_proc_var_log.value = var2log(pos_proc_var);
-
-  const acc_proc_var = cfg.kf_process_noise[idx] ?? 1e-6;
-  vel_proc_var_log.value = var2log(acc_proc_var);
+  Kp_var.value = cfg.pid_Kp[idx] ?? 0;
+  Ki_var.value = cfg.pid_Ki[idx] ?? 0;
+  Kd_var.value = cfg.pid_Kd[idx] ?? 0;
+  Ke_var.value = cfg.pid_Ke[idx] ?? 0;
+  Kc_var.value = cfg.pid_Kc[idx] ?? 0;
 }
 
 
