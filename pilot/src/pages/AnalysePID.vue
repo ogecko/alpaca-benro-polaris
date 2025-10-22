@@ -85,11 +85,11 @@ This page displays the SP, PV, OP and Error Signals. Changes to PID gains take e
             <q-item >
               <q-item-section>
                 <q-item-label>Angular Position (degrees) vs Time (seconds)</q-item-label>
-                <q-item-label caption>SP: Setpoint Green, PV: Present Value White</q-item-label>
+                <q-item-label caption>SP: Setpoint, PV: Present Value</q-item-label>
               </q-item-section>
             </q-item>
           <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
-          <div class="row q-pt-lg q-pl-xl items-center justify-center">
+          <div class="row q-pt-lg q-pl-xl items-top justify-center">
             <div class="col row q-gutter-sm">
                 <q-knob v-model="Ke_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="1.0" :max="1.2" :step="0.01">{{Ke_str}}</q-knob>
                 <div class="column">
@@ -117,11 +117,11 @@ This page displays the SP, PV, OP and Error Signals. Changes to PID gains take e
             <q-item >
               <q-item-section>
                 <q-item-label>Angular Velocity (degrees/s) vs Time (seconds)</q-item-label>
-                <q-item-label caption>OP: Output Red, Kp: Proportion Yellow, Ki: Integral Orange, Kd: Derivative Red, FF: Slew Rate Green</q-item-label>
+                <q-item-label caption>OP: Output, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Slew Rate</q-item-label>
               </q-item-section>
             </q-item>
           <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
-          <div class="row q-pt-lg q-pl-xl items-center justify-center">
+          <div class="row q-pt-lg q-pl-xl items-top justify-center">
             <div class="col row q-gutter-sm">
                 <q-knob v-model="Kp_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kp_str}}</q-knob>
                 <div class="column">
