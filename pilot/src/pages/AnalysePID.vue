@@ -109,7 +109,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
             <q-item >
               <q-item-section>
                 <q-item-label>
-              Position Measured (K = {{ K_gain.pos }}) and Filtered vs Time
+              Position Measured and Filtered vs Time
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -150,7 +150,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
             <q-item >
               <q-item-section>
                 <q-item-label>
-              Velocity Measured (K = {{ K_gain.vel }}) and Filtered vs Time 
+              Velocity Measured and Filtered vs Time 
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -174,7 +174,7 @@ import { useDeviceStore } from 'src/stores/device'
 import { formatAngle } from 'src/utils/scale'
 import MoveButton from 'src/components/MoveButton.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
-import type { TelemetryRecord, KalmanMessage }from 'src/stores/stream'
+import type { TelemetryRecord, PIDMessage }from 'src/stores/stream'
 
 const $q = useQuasar()
 const socket = useStreamStore()
@@ -201,34 +201,14 @@ const log2var = (k:number) => Math.pow(10,-6 + k)
 const var2str = (x:number) => formatAngle(x,'deg',1)
 
 const chartPosData = computed<DataPoint[]>(() => {
-   const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
-   return kf.map(formatPosData)
+   const pid = socket.topics?.pid ?? [] as TelemetryRecord[];
+   return pid.map(formatPosData)
 })
 
 const chartVelData = computed<DataPoint[]>(() => {
-   const kf = socket.topics?.kf ?? [] as TelemetryRecord[];
-   return kf.map(formatVelData)
+   const pid = socket.topics?.pid ?? [] as TelemetryRecord[];
+   return pid.map(formatVelData)
 })
-
-const K_gain = computed((): { pos: string; vel: string } => {
-  const last = socket.topics?.kf?.[socket.topics.kf.length - 1];
-  if (!last) return { pos: '', vel: '' };
-
-  const data = last.data as Partial<KalmanMessage>;
-  const gain = data.K_gain;
-
-  if (Array.isArray(gain) && gain.length === 6 && axis.value >= 0 && axis.value < 3) {
-    const pos = gain[axis.value] ?? 0;
-    const vel = gain[axis.value + 3] ?? 0;
-    return {
-      pos: pos.toFixed(2),
-      vel: vel.toFixed(2),
-    };
-  }
-
-  return { pos: '', vel: '' };
-});
-
 
 
 watch([pos_meas_var, vel_meas_var, pos_proc_var, vel_proc_var], (newVal)=>{
@@ -272,35 +252,35 @@ function setKnobValues() {
 
 function formatPosData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
-  const data = d.data as KalmanMessage
-  const y1 = data.θ_meas[axis.value] ?? 0
-  const y2 = data.θ_state[axis.value] ?? 0
+  const data = d.data as PIDMessage
+  const y1 = data.θ_pv[axis.value] ?? 0
+  const y2 = data.θ_sp[axis.value] ?? 0
   return { x1: time, y1, y2 }
 }
 
 function formatVelData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
-  const data = d.data as KalmanMessage
-  const y1 = data.ω_meas[axis.value] ?? 0
-  const y2 = data.ω_state[axis.value] ?? 0
-  const y3 = data.ω_ref[axis.value] ?? 0
+  const data = d.data as PIDMessage
+  const y1 = data.ω_kp[axis.value] ?? 0
+  const y2 = data.ω_op[axis.value] ?? 0
+  const y3 = data.ω_ff[axis.value] ?? 0
   return { x1: time, y1, y2, y3 }
 }
 
 
 onMounted(async () => {
   await cfg.configFetch()
-  socket.subscribe('kf')
+  socket.subscribe('pid')
   setKnobValues()
 })
 
 onUnmounted(() => {
   // if (timer) clearInterval(timer)
-  socket.unsubscribe('kf')
+  socket.unsubscribe('pid')
 })
 
 watch(() => dev.isVisible, (isVisible) => {
-  void (isVisible ? socket.subscribe('kf') : socket.unsubscribe('kf'))
+  void (isVisible ? socket.subscribe('pid') : socket.unsubscribe('pid'))
 })
 
 async function save() {

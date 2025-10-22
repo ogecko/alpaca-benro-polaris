@@ -5,11 +5,15 @@ import { useStatusStore } from 'src/stores/status';
 import { computed, ref } from 'vue'
 
 export type LogMessage = { text: string }
-export type PIDMessage = { p: number; i: number; d: number }
 export type KalmanMessage = { 
   θ_meas: [number, number, number], θ_state: [number, number, number],
   ω_meas: [number, number, number], ω_state: [number, number, number], ω_ref: [number, number, number],
   K_gain: [number, number, number, number, number, number],
+}
+export type PIDMessage = { 
+  θ_sp: [number, number, number], θ_pv: [number, number, number],
+  ω_kp: [number, number, number], ω_ki: [number, number, number], ω_kd: [number, number, number],
+  ω_ff: [number, number, number], ω_op: [number, number, number], 
 }
 export type CalibrationMessage = { 
   name: string, axis: number, raw: number, ascom: number, dps: number,

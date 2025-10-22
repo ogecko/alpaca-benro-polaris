@@ -1659,6 +1659,7 @@ class PID_Controller():
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
             await self.control()      # Update omega_op, constrain with valid op control values
             self.notify()       # Notify any callback of no longer deviating
+            self.telemetry()    # send to Alpaca Pilot
             if Config.log_performance_data==6:
                 self.logger.info(f',"DATA6", "{self.mode}",  { fmt3(self.delta_ref)},  {fmt3(self.alpha_ref)},  {fmt3(self.theta_ref)},  {fmt3(self.theta_meas)},  {fmt3(self.omega_ref)},  {fmt3(self.omega_op)}')
 
