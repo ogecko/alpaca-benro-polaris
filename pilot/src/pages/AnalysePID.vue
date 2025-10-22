@@ -264,7 +264,9 @@ function formatVelData(d: TelemetryRecord):DataPoint {
   const y1 = data.ω_kp[axis.value] ?? 0
   const y2 = data.ω_op[axis.value] ?? 0
   const y3 = data.ω_ff[axis.value] ?? 0
-  return { x1: time, y1, y2, y3 }
+  const y4 = data.ω_ki[axis.value] ?? 0
+  const y5 = data.ω_kd[axis.value] ?? 0
+  return { x1: time, y1, y2, y3, y4, y5 }
 }
 
 
