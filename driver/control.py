@@ -1178,7 +1178,10 @@ class PID_Controller():
         self.is_tracking = False                             # tracking target body
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
-        self.omega_ref = np.array([0,0,0], dtype=float)      # omega1-3 reference tracking angular velocity
+        self.omega_kp = np.array([0,0,0], dtype=float)       # omega1-3 due to proportional error
+        self.omega_ki = np.array([0,0,0], dtype=float)       # omega1-3 due to integrated error
+        self.omega_kd = np.array([0,0,0], dtype=float)       # omega1-3 due to velocity damping (derivative of position)
+        self.omega_ref = np.array([0,0,0], dtype=float)      # omega1-3 due to requested velocity feed forward (slew, tracking)
         self.omega_min = np.array([0,0,0], dtype=float)      # omega1-3 min allowable angular velocity (0=axis at limit, no more -ve)
         self.omega_max = np.array([0,0,0], dtype=float)      # omega1-3 max allowable angular velocity (0=axis at limit, no more +ve)
         self.omega_tgt = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity raw pid output
@@ -1518,12 +1521,21 @@ class PID_Controller():
         self.time_meas = self.time_meas + self.dt
 
     def errsignal(self):
-        old_error_signal = self.error_signal
+        # calc the error signal off theta (1 star aligned motor angles) or zeta (raw motor angles)
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
-        self.error_integral = old_error_signal + self.error_signal
+        # calc the integral error
+        if self.Ki != 0: 
+            i_limit = 5 / self.Ki      # Clamp integral term with anti-windup limit of 5 degrees/s
+            can_integrate = (          # Conditional integration
+                (self.omega_min <= self.omega_tgt <= self.omega_max) or     # when not saturated
+                (np.sign(self.error_signal) != np.sign(self.omega_tgt))     # or when reduces saturation
+            )
+            if can_integrate:            
+                self.error_integral = np.clip(self.error_integral + self.error_signal, -i_limit, +i_limit) 
+        # calc cost signal and flags
         self.cost_signal = np.sum(self.error_signal ** 2)
         self.is_deviating = self.cost_signal > (self.Kc / 60) ** 2
         self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
@@ -1533,7 +1545,10 @@ class PID_Controller():
             self.set_pid_mode('IDLE')
    
     def pid(self):
-        self.omega_tgt = self.Kp * self.error_signal + self.Ki * self.error_integral - self.Kd * self.omega_op
+        self.omega_kp = self.Kp * self.error_signal    # increase control proportional to error
+        self.omega_ki = self.Ki * self.error_integral  # increase control when integral error is high
+        self.omega_kd = - self.Kd * self.omega_op      # dampen control when velocity high
+        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd
 
     def feed_forward(self):
         # Feed forward tracking velocities (when in track mode and no delta_ref change)
@@ -1615,6 +1630,21 @@ class PID_Controller():
         if not self.is_slewing and self.slew_complete_callback:
             self.slew_complete_callback()
             self.slew_complete_callback = None
+
+    def telemetry(self):
+        # Log meas, state and ref for websocket streaming
+        payload = { 
+            "θ_sp":  self.theta_ref.tolist(), 
+            "θ_pv":  self.theta_meas.tolist(), 
+            "ω_kp":  self.omega_kp.tolist(), 
+            "ω_ki":  self.omega_ki.tolist(),  
+            "ω_kd":  self.omega_kd.tolist(), 
+            "ω_ff":  self.omega_ref.tolist(), 
+            "ω_op":  self.omega_op.tolist(), 
+        }
+        pidlogger = logging.getLogger('pid') 
+        pidlogger.info(payload)
+
 
     async def control_step(self):
         now = time.monotonic()
