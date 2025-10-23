@@ -23,8 +23,8 @@
 - **[Celestrial Poles]** Added North and South Celestrial Poles to the catalog to easy alignment
 - **[QUEST Paper]** Added a research paper on QUEST in docs
 
-## Alpha and Beta Agreement
-Please read and confirm your agreement with [Beta Agreement](./beta_agreement.md)
+## Beta Agreement
+Please read and confirm your agreement with [Beta Agreement](./beta_agreement.md) if you havent already.
 
 ## Win11 Upgrade Instructions
 * Uninstall Python 3.12.7
