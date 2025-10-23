@@ -65,7 +65,65 @@ solving with ASTAP
 
     Please disregard my second observation comment about config.toml .... since I've just used Pilot to change the coordinates instead
 
+* MiniPC Hotspot 
 
+    I have always had issues with the Hotspot feature on the Mini Pc, in particular because I am most
+    often using the equipment away from the home wi-fi and as such, do not have access to any
+    network.
+    Whilst it originally worked perfectly well last year, it began to become unreliable, particularly
+    following several Windows 11 updates. Despite following online guidance from Cuiv the Lazy
+    Geek (‘elusive hotspot’ etc) and various start up and registry changes, I still had issues - usually at
+    the most inconvenient moments (imaging the night sky) - where it was consistently requiring
+    connection to a wi-fi network….. which clearly wasn’t available.
+    As a consequence, I simply gave up and replaced this method of connectivity with a travel router,
+    which I have found works very well in my set up.
+
+* Travel Router
+
+    Tp-link AC750 (WR902AC) is connected to the Mele 4C via ethernet and generates its own local
+    wi-fi network. I also use one of the USB-A ports on the mini PC to power the unit. This enables
+    me to connect to its local wi-fi network and control N.I.N.A on the mini PC, without any
+    connection drop outs whatsoever.
+
+* Tablet Control - connects to travel router wif-fi
+
+    I use an iPad with the latest version of Microsoft’s “Windows App Mobile” (formally called Remote
+    Desktop), in order to connect to the mini PC (using the above method)
+
+* Wi-Fi Adapter - connects to Benro Polaris wi-fi
+
+    Originally I used the tp-link AC600, which worked well for about 12 months before becoming
+    unreliable. Once again, this may be due to Windows 11 updates, although a self test did show an
+    intermittent fault on the unit. There was a fair bit of movement in the USB-A port and its antenna
+    made it vulnerable to accidentally being dislodged.
+    I now use a very small (no lengthy antenna to dislodge) tp-link Archer T1300U Nano, which fits
+    more securely in the USB-A port of the mini PC. Being less than 1cm tall, it is also less vulnerable
+    to being dislodged, compared to my previous AC600.
+
+* Alpaca Pilot
+
+    **Connection** Pilot needs to have access to the Polaris wi-fi and the ABP driver needs to be running - Correction Pilot only needs connection to ABP driver.
+
+    **Nina Gear Icon** Pilot access via N.I.N.A. gear icon - open N.I.N.A. and select ‘Mount’ (via telescope icon),
+    which should display the address of the Alpaca Benro Polaris Telescope in the drop down
+    menu at the top of the screen (192.168.0.2). May need to use the refresh icon, so that the
+    Alpaca Benro Polaris Telescope can be detected. Select the gear icon to open Pilot before the
+    Alpaca Benro Polaris Telescope is actually connected.
+    Otherwise, if the Alpaca Benro Polaris Telescope is connected first, the gear icon becomes
+    greyed out and Pilot can longer be accessed using this method (disconnecting the Alpaca
+    Benro Polaris Telescope, makes the gear icon available)
+
+    **Browser Start** Pilot access via browser - N.I.N.A. will display the address of the Alpaca Benro Polaris
+    Telescope ‘Mount’ (see above) and by inputting these details (192.168.0.2) into the browser,
+    Pilot can be accessed at anytime. These details (192.168.0.2) can also be used on the iPhone
+
+    **Observing Site Information** - the map is greyed out when using the iPad (N.I.N.A gear
+    icon or via browser) because there is no access to internet). As such, I used the iPhone to
+    access Pilot via its browser, because it can provide necessary internet access it’s via 4G,
+    allowing the location map to be visible and move the pin, to change location etc.
+
+    **Tripod Leveling** Haven’t quite worked out how to avoid the necessity to mess around levelling the tripod, but
+    understand Pilot has such a feature (somewhere?)
 
 ## Beta Tester: Mark (FB: John Harrison; GH: 5x5Stuido)
 Notes: Ireland Week43, New 5nm filters.
