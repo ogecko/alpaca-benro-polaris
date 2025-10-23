@@ -1527,17 +1527,19 @@ class PID_Controller():
         else:            
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
         # calc the integral error
-        if self.Ki != 0: 
-            i_limit = 5 / self.Ki      # Clamp integral term with anti-windup limit of 5 degrees/s
-            can_integrate = (          # Conditional integration
-                (self.omega_min <= self.omega_tgt <= self.omega_max) or     # when not saturated
-                (np.sign(self.error_signal) != np.sign(self.omega_tgt))     # or when reduces saturation
-            )
-            if can_integrate:            
-                self.error_integral = np.clip(self.error_integral + self.error_signal, -i_limit, +i_limit) 
+        for i in range(3):
+            Ki = Config.pid_Ki[i]
+            if Ki != 0 and self.mode in ['AUTO', 'TRACK']: 
+                i_limit = 5 / Ki      # Clamp integral term with anti-windup limit of 5 degrees/s
+                can_integrate = (          # Conditional integration
+                    (self.omega_min[i] <= self.omega_tgt[i] <= self.omega_max[i]) or     # when not saturated
+                    (np.sign(self.error_signal[i]) != np.sign(self.omega_tgt[i]))     # or when reduces saturation
+                )
+                if can_integrate:            
+                    self.error_integral[i] = np.clip(self.error_integral[i] + self.error_signal[i], -i_limit, +i_limit) 
         # calc cost signal and flags
         self.cost_signal = np.sum(self.error_signal ** 2)
-        self.is_deviating = self.cost_signal > (self.Kc / 60) ** 2
+        self.is_deviating = self.cost_signal > (Config.pid_Kc / 60) ** 2
         self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
         self.was_moving = self.is_moving
         self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
@@ -1545,9 +1547,9 @@ class PID_Controller():
             self.set_pid_mode('IDLE')
    
     def pid(self):
-        self.omega_kp = self.Kp * self.error_signal    # increase control proportional to error
-        self.omega_ki = self.Ki * self.error_integral  # increase control when integral error is high
-        self.omega_kd = - self.Kd * self.omega_op      # dampen control when velocity high
+        self.omega_kp = np.array(Config.pid_Kp, dtype=float) * self.error_signal    # increase control proportional to error
+        self.omega_ki = np.array(Config.pid_Ki, dtype=float) * self.error_integral  # increase control when integral error is high
+        self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * self.omega_op      # dampen control when velocity high
         self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd
 
     def feed_forward(self):
@@ -1573,7 +1575,7 @@ class PID_Controller():
             accel_clipped = np.clip(accel, -self.Ka, self.Ka)
         # Apply clipped acceleration, expotential smoothing, and clip velocity
         self.omega_ctl = self.omega_op + accel_clipped * self.dt
-        self.omega_ctl = self.omega_ctl * (1.0 - self.Ke) + self.Ke * self.omega_op
+        self.omega_ctl = self.omega_ctl * (1.0 - Config.pid_Ke) + Config.pid_Ke * self.omega_op
         # Check zeta motor limits and constrain omega further if past limits
         if self.polaris._zeta_meas is None:
             self.omega_min = -self.Kv

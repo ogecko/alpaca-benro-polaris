@@ -91,17 +91,17 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
           <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
           <div class="row q-pt-lg q-pl-xl items-top justify-center">
             <div class="col row q-gutter-sm">
-                <q-knob v-model="Ke_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="1.0" :max="1.2" :step="0.01">{{Ke_str}}</q-knob>
-                <div class="column">
-                  <div class="text-h6">Ke</div>
-                  <div class="text-caption">Expotential Smoothing Gain</div>
-                </div> 
-            </div>
-            <div class="col row q-gutter-sm">
                 <q-knob v-model="Kc_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kc_str}}</q-knob>
                 <div class="column">
                   <div class="text-h6">Kc</div>
                   <div class="text-caption">Goto Tollerance (arc-min)</div>
+                </div> 
+            </div>
+            <div class="col row q-gutter-sm">
+                <q-knob v-model="Ke_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="1.0" :max="1.2" :step="0.01">{{Ke_str}}</q-knob>
+                <div class="column">
+                  <div class="text-h6">Ke</div>
+                  <div class="text-caption">Expotential Smoothing Gain</div>
                 </div> 
             </div>
           </div>
@@ -197,12 +197,18 @@ const chartVelData = computed<DataPoint[]>(() => {
 
 
 watch([Kp_var, Ki_var, Kd_var, Ke_var, Kc_var], (newVal)=>{
-  const payload = { pid_Kp: [...cfg.pid_Kp], pid_Ki: [...cfg.pid_Ki], pid_Kd:[...cfg.pid_Kd], pid_Ke:[...cfg.pid_Ke], pid_Kc:[...cfg.pid_Kc]}
+  const payload = { pid_Kp: [...cfg.pid_Kp], pid_Ki: [...cfg.pid_Ki], pid_Kd:[...cfg.pid_Kd] }
   payload.pid_Kp[axis.value] = newVal[0]
   payload.pid_Ki[axis.value] = newVal[1]
   payload.pid_Kd[axis.value] = newVal[2]
-  payload.pid_Ke[axis.value] = newVal[3]
-  payload.pid_Kc[axis.value] = newVal[4]
+  putdb(payload)
+})
+
+watch([Ke_var, Kc_var], (newVal)=>{
+  const payload = {
+    pid_Ke: newVal[0],
+    pid_Kc: newVal[1]
+  }
   putdb(payload)
 })
 
@@ -225,8 +231,8 @@ function setKnobValues() {
   Kp_var.value = cfg.pid_Kp[idx] ?? 0;
   Ki_var.value = cfg.pid_Ki[idx] ?? 0;
   Kd_var.value = cfg.pid_Kd[idx] ?? 0;
-  Ke_var.value = cfg.pid_Ke[idx] ?? 0;
-  Kc_var.value = cfg.pid_Kc[idx] ?? 0;
+  Ke_var.value = cfg.pid_Ke ?? 0;
+  Kc_var.value = cfg.pid_Kc ?? 0;
 }
 
 
