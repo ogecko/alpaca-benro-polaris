@@ -54,22 +54,35 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                 <q-item-section>
                   <q-item-label> Choosen Motor Axis</q-item-label>
                   <q-item-label caption>
-                    Select the motor axis you'd like to analyse and tune. Motor 1 Azimuth; Motor 2 Altitude; Motor 3 Astro head. 
+                    Select the motor axis you'd like to analyse and tune. 
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <!-- Test Motor -->
+
+              <!-- Test Case -->
               <q-item :inset-level="1">
                 <q-item-section top side>
                   <div class=" q-gutter-ax">
+                  <q-select label="Test Case"  v-model="testcase" :options="optionsData">
+                    <template v-slot:option="scope">
+                      <q-item dense v-bind="scope.itemProps">
+                        <q-item-section avatar>
+                          <q-icon size="xs" :name="scope.opt.icon" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt.label }}</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
                   <MoveButton activeColor="positive" icon="mdi-minus-circle" @push="onMinus"/>
                   <MoveButton activeColor="positive" icon="mdi-plus-circle" @push="onPlus"/>
                   </div>
                 </q-item-section>
                 <q-item-section >
-                  <q-item-label> Test movement of {{ motor }}</q-item-label>
+                  <q-item-label> Choose Test Case for {{ motor }}</q-item-label>
                   <q-item-label caption>
-                    Use the following action buttons to move the motor and monitor how the filtered position tracks the raw sensor readings. 
+                    Choose the type and magnitude of the test case. Use the action buttons to move the motor and monitor PID response. 
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -179,14 +192,18 @@ import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
+import { useStatusStore } from 'src/stores/status'
 import MoveButton from 'src/components/MoveButton.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, PIDMessage }from 'src/stores/stream'
+import { wrapTo360, wrapTo90 } from 'src/utils/angles'
 
 const $q = useQuasar()
 const socket = useStreamStore()
 const cfg = useConfigStore()
 const dev = useDeviceStore()
+const p = useStatusStore()
+const var2str = (x:number) => x.toFixed(2)
 
 const axis = ref<number>(0)
 const Kp_var = ref<number>(0)
@@ -197,6 +214,27 @@ const Kc_var = ref<number>(0)
 const Kv_var = ref<number>(0)      
 const Ka_var = ref<number>(0)      
 
+type TestCaseOption = {
+  label: string
+  value: number
+  case: 'goto' | 'slew' | 'pulse'
+  icon: string
+}
+
+const optionsData:TestCaseOption[] = [
+  { label: '30′ Goto', value: 5/60, case: 'goto', icon: 'mdi-move-resize-variant' },
+  { label: '5° Goto', value: 5, case: 'goto', icon: 'mdi-move-resize-variant' },
+  { label: '45° Goto', value: 45, case: 'goto', icon: 'mdi-move-resize-variant' },
+  { label: '90° Goto', value: 90, case: 'goto', icon: 'mdi-move-resize-variant' },
+  { label: '0.006°/s Slew', value: 1.0, case: 'slew', icon: 'mdi-arrow-right' },
+  { label: '0.2°/s Slew', value: 5.01, case: 'slew', icon: 'mdi-arrow-right' },
+  { label: '1.0°/s Slew', value: 5.87, case: 'slew', icon: 'mdi-arrow-right' },
+  { label: '250ms Pulse', value: 0.25, case: 'pulse', icon: 'mdi-pulse' },
+  { label: '2000ms Pulse', value: 2.0, case: 'pulse', icon: 'mdi-pulse' },
+  { label: '4000ms Pulse', value: 4.0, case: 'pulse', icon: 'mdi-pulse' },
+]
+const testcase = ref<TestCaseOption | undefined>(optionsData[1])
+
 const motor = computed<string>(() => `M${axis.value+1}`)
 const Kp_str = computed<string>(() => var2str(Kp_var.value))
 const Ki_str = computed<string>(() => var2str(Ki_var.value))
@@ -205,9 +243,7 @@ const Ke_str = computed<string>(() => var2str(Ke_var.value))
 const Kc_str = computed<string>(() => var2str(Kc_var.value))
 const Kv_str = computed<string>(() => var2str(Kv_var.value))
 const Ka_str = computed<string>(() => var2str(Ka_var.value))
-const var2str = (x:number) => x.toFixed(2)
-
-const idx = computed(() => axis.value + 1)
+const idx = computed<number>(() => axis.value + 1)
 
 const chartPosData = computed<DataPoint[]>(() => {
    const pid = socket.topics?.pid ?? [] as TelemetryRecord[];
@@ -219,6 +255,11 @@ const chartVelData = computed<DataPoint[]>(() => {
    return pid.map(formatVelData)
 })
 
+watch(testcase, async (newVal,oldVal) => {
+  if (newVal?.case=='pulse' && oldVal?.case!='pulse')  await dev.alpacaTracking(true)
+  if (newVal?.case!='pulse' && oldVal?.case=='pulse')  await dev.alpacaTracking(false)
+}
+)
 
 watch([Kp_var, Ki_var, Kd_var, Ke_var, Kc_var], (newVal)=>{
   const payload = { pid_Kp: [...cfg.pid_Kp], pid_Ki: [...cfg.pid_Ki], pid_Kd:[...cfg.pid_Kd] }
@@ -246,14 +287,32 @@ watch([Kv_var, Ka_var], (newVal)=>{
 
 watch(axis, () => setKnobValues())
 
-async function onPlus(payload: { isPressed: boolean }) {
-    const isPressed = payload.isPressed
-    await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${isPressed ? 0.0178360 : 0}}`)
+const onMinus = (payload: { isPressed: boolean }) => runTestCase(payload, -1)
+const onPlus = (payload: { isPressed: boolean }) => runTestCase(payload, +1)
 
-}
-async function onMinus(payload: { isPressed: boolean }) {
-    const isPressed = payload.isPressed
-    await dev.apiAction('Polaris:MoveMotor', `{"axis":${axis.value},"rate":${isPressed ? -0.0178360 : 0}}`)
+async function runTestCase(payload: { isPressed: boolean }, sign:number) {
+    await dev.alpacaResetSP()
+    if (testcase.value?.case=='goto' && payload.isPressed) {
+
+      if (axis.value==0) {
+        const az = wrapTo360(p.azimuth + sign * testcase.value?.value)
+        const alt = p.altitude 
+        await dev.alpacaSlewToAltAz(alt, az)
+      } else if (axis.value==1) {
+        const az = p.azimuth 
+        const alt = wrapTo90(p.altitude + sign * testcase.value?.value)
+        await dev.alpacaSlewToAltAz(alt, az)
+      } else {
+        const roll = p.roll + sign * testcase.value?.value
+        await dev.alpacaMoveMechanical(roll)
+      }
+
+    } else if (testcase.value?.case=='slew') {
+      const isPressed = payload.isPressed
+      await dev.alpacaMoveAxis(axis.value, isPressed ? sign*testcase.value?.value : 0)
+    } else {
+      true
+    }
 }
 
 
