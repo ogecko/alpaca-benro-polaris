@@ -1154,7 +1154,7 @@ class PID_Controller():
         self.body._epoch = ephem.J2000                       # default to J2000 epoch
         self.body_pa_offset = 0                              # used to store body pa to oconvert back to roll
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
-        self.mode = 'PRESETUP'                               # PID Controller mode: PARK, IDLE, AUTO, TRACK, PRESETUP, LIMIT
+        self.mode = 'PRESETUP'                               # PID Controller mode: HOMING, PARKING, PARK, IDLE, AUTO, TRACK, PRESETUP, LIMIT
         self.ack_limit_timestamp = None                      # Timestamp of last ACK of PID LIMIT ALARM
         self.target_type = 'NONE'                            # target body we are tracking
         self.delta_sp = np.array([0,0,0], dtype=float)       # Setpoint for ra, dec, polar anglular positions
@@ -1527,16 +1527,19 @@ class PID_Controller():
         else:            
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
         # calc the integral error
-        for i in range(3):
-            Ki = Config.pid_Ki[i]
-            if Ki != 0 and self.mode in ['AUTO', 'TRACK']: 
-                i_limit = 5 / Ki      # Clamp integral term with anti-windup limit of 5 degrees/s
-                can_integrate = (          # Conditional integration
-                    (self.omega_min[i] <= self.omega_tgt[i] <= self.omega_max[i]) or     # when not saturated
-                    (np.sign(self.error_signal[i]) != np.sign(self.omega_tgt[i]))     # or when reduces saturation
-                )
-                if can_integrate:            
-                    self.error_integral[i] = np.clip(self.error_integral[i] + self.error_signal[i], -i_limit, +i_limit) 
+        if self.mode in ['TRACK'] and not self.is_deviating:
+            for i in range(3):
+                Ki = Config.pid_Ki[i]
+                if Ki != 0: 
+                    i_limit = 5 / Ki           # Clamp integral term with anti-windup limit of 5 degrees/s
+                    can_integrate = (          # Conditional integration
+                        (self.omega_min[i] <= self.omega_tgt[i] <= self.omega_max[i]) or  # when not saturated
+                        (np.sign(self.error_signal[i]) != np.sign(self.omega_tgt[i]))     # or when reduces saturation
+                    )
+                    if can_integrate:            
+                        self.error_integral[i] = np.clip(self.error_integral[i] + self.error_signal[i], -i_limit, +i_limit) 
+        else:
+            self.error_integral = np.array([0,0,0], dtype=float)
         # calc cost signal and flags
         self.cost_signal = np.sum(self.error_signal ** 2)
         self.is_deviating = self.cost_signal > (Config.pid_Kc / 60) ** 2
