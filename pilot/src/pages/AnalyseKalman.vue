@@ -269,18 +269,18 @@ function setKnobValues() {
 function formatPosData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as KalmanMessage
-  const y1 = data.θ_meas[axis.value] ?? 0
-  const y2 = data.θ_state[axis.value] ?? 0
-  return { x1: time, y1, y2 }
+  const m1 = data.θ_meas[axis.value] ?? 0
+  const pv = data.θ_state[axis.value] ?? 0
+  return { x1: time, m1, pv }
 }
 
 function formatVelData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as KalmanMessage
-  const y1 = data.ω_meas[axis.value] ?? 0
-  const y2 = data.ω_state[axis.value] ?? 0
-  const y3 = data.ω_ref[axis.value] ?? 0
-  return { x1: time, y1, y2, y3 }
+  const m1 = data.ω_meas[axis.value] ?? 0
+  const pv = data.ω_state[axis.value] ?? 0
+  const sp = data.ω_ref[axis.value] ?? 0
+  return { x1: time, m1, pv, sp }
 }
 
 

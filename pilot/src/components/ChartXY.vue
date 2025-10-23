@@ -7,8 +7,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import * as d3 from 'd3'
-import { formatAngle } from 'src/utils/scale'
-
+import { formatAngle, colors } from 'src/utils/scale'
 export type DataPoint = Record<string, number | Date | undefined>
 
 const props = defineProps<{ 
@@ -23,11 +22,14 @@ const margin = { top: 20, right: 30, bottom: 30, left: 80 }
 
 // --- Define line configurations here ---
 const lineDefs = [
-  { key: 'y1', color: '#00695c' },
-  { key: 'y2', color: '#cddc39' },
-  { key: 'y3', color: '#d84315' },
-  { key: 'y4', color: '#64b5f6' },
-  { key: 'y5', color: '#ffb300' },
+  { key: 'm1', color: colors.m1 },
+  { key: 'pv', color: colors.pv },
+  { key: 'sp', color: colors.sp },
+  { key: 'kp', color: colors.kp },
+  { key: 'ki', color: colors.ki },
+  { key: 'kd', color: colors.kd },
+  { key: 'kf', color: colors.kf },
+  { key: 'op', color: colors.op },
 ]
 
 let svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null
