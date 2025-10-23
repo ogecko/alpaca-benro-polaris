@@ -152,12 +152,56 @@ function updateChart() {
   gY.call(d3.axisLeft(zy)).style('color', '#aaa')
   drawLines(zx, zy)
 
-  const stdevY1 = d3.deviation(props.data, d => d.y1 as number) ?? 0
-  svg.select('.stdev-label')
-    .text(`σ(y₁): ${formatAngle(stdevY1, 'deg', 2)}`)
+  // const stdevY1 = d3.deviation(props.data, d => d.y1 as number) ?? 0
+  // svg.select('.stdev-label')
+  //   .text(`σ(y₁): ${formatAngle(stdevY1, 'deg', 2)}`)
+  drawStatistics(svg)
 
   drawLegend(svg, width)
 }
+
+
+function drawStatistics(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>) {
+  const hasPV = props.data.some(d => typeof d.PV === 'number')
+  const hasSP = props.data.some(d => typeof d.SP === 'number')
+  const hasOP = props.data.some(d => typeof d.OP === 'number')
+  const hasMx = props.data.some(d => typeof d.M1 === 'number' || typeof d.M2 === 'number' || typeof d.M3 === 'number')
+
+  let label = ''
+
+  if (hasMx && hasPV) {
+    const mxValues = props.data.flatMap(d =>
+      ['M1', 'M2', 'M3']
+        .map(k => typeof d[k] === 'number' ? d[k] : null)
+        .filter((v): v is number => v !== null)
+    )
+    const pvValues = props.data
+      .map(d => d.PV)
+      .filter((v): v is number => typeof v === 'number')
+
+    const stdevMx = d3.deviation(mxValues) ?? 0
+    const stdevPV = d3.deviation(pvValues) ?? 0
+
+    label = `σ(Mx): ${formatAngle(stdevMx, 'deg', 2)} vs σ(PV): ${formatAngle(stdevPV, 'deg', 2)}`
+  } else if (hasPV && hasSP) {
+    const errors = props.data
+      .map(d => (typeof d.PV === 'number' && typeof d.SP === 'number') ? d.SP - d.PV : null)
+      .filter((v): v is number => v !== null)
+
+    const rms = Math.sqrt(d3.mean(errors.map(e => e * e)) ?? 0)
+    label = `RMS Error: ${formatAngle(rms, 'deg', 2)}`
+  } else if (hasOP) {
+    const opValues = props.data
+      .map(d => d.OP)
+      .filter((v): v is number => typeof v === 'number')
+
+    const stdevOP = d3.deviation(opValues) ?? 0
+    label = `σ(OP): ${formatAngle(stdevOP, 'deg', 2)}`
+  }
+
+  svg.select('.stdev-label').text(label)
+}
+
 
 
 function drawLegend(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, width: number) {
