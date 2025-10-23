@@ -110,7 +110,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
           </div>
           <div class="row q-pt-lg q-pl-xl items-top justify-center">
             <div class="col row q-gutter-sm">
-                <q-knob v-model="Kc_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kc_str}}</q-knob>
+                <q-knob v-model="Kc_var" show-value :min="-1" :inner-min="0.01" :inner-max="10.0" :max="11" :step="0.01">{{Kc_str}}</q-knob>
                 <div class="column">
                   <div class="text-h6">Kc</div>
                   <div class="text-caption">Goto Tollerance (arc-min)</div>
@@ -143,21 +143,21 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
             <div class="col row q-gutter-sm">
                 <q-knob v-model="Kp_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kp_str}}</q-knob>
                 <div class="column">
-                  <div class="text-h6">Kp</div>
+                  <div class="text-h6">Kp<sub>{{ idx }}</sub></div>
                   <div class="text-caption">Proportional Gain</div>
                 </div> 
             </div>
             <div class="col row q-gutter-sm">
-                <q-knob v-model="Ki_var" show-value :min="-0.2" :inner-min="0.0" :inner-max="2.0" :max="2.2" :step="0.01">{{Ki_str}}</q-knob>
+                <q-knob v-model="Ki_var" show-value :min="-0.1" :inner-min="0.0" :inner-max="0.5" :max="0.6" :step="0.01">{{Ki_str}}</q-knob>
                 <div class="column">
-                  <div class="text-h6">Ki</div>
+                  <div class="text-h6">Ki<sub>{{ idx }}</sub></div>
                   <div class="text-caption">Integral Gain</div>
                 </div> 
             </div>
             <div class="col row q-gutter-sm">
                 <q-knob v-model="Kd_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kd_str}}</q-knob>
                 <div class="column">
-                  <div class="text-h6">Kd</div>
+                  <div class="text-h6">Kd<sub>{{ idx }}</sub></div>
                   <div class="text-caption">Derivative Gain</div>
                 </div> 
             </div>
@@ -206,6 +206,8 @@ const Kc_str = computed<string>(() => var2str(Kc_var.value))
 const Kv_str = computed<string>(() => var2str(Kv_var.value))
 const Ka_str = computed<string>(() => var2str(Ka_var.value))
 const var2str = (x:number) => x.toFixed(2)
+
+const idx = computed(() => axis.value + 1)
 
 const chartPosData = computed<DataPoint[]>(() => {
    const pid = socket.topics?.pid ?? [] as TelemetryRecord[];
