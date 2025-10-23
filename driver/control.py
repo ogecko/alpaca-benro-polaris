@@ -1200,8 +1200,8 @@ class PID_Controller():
         self.Kd = Kd    # Derivative Gain - reduce control when angular velocity higher (damping)
         self.Ke = Ke    # Expotential Smoothing - how much of current value to mix (0=None)
         self.Kc = Kc    # Number of Arc-Minutes error to accept as not deviating
-        self.set_Ka_array(Config.max_accel_rate) # Maximum acceleration (float: degrees per seconds² or array(3): degrees per seconds²
-        self.set_Kv_array(Config.max_slew_rate)  # Maximum velocity (float: degrees per second or array(3): degrees per seconds or None: (maxDSP from controller)
+        self.set_Ka_array(Config.pid_Ka) # Maximum acceleration (float: degrees per seconds² or array(3): degrees per seconds²
+        self.set_Kv_array(Config.pid_Kv) # Maximum velocity (float: degrees per second or array(3): degrees per seconds or None: (maxDSP from controller)
         
         if self.control_loop_duration:
             asyncio.create_task(self._control_loop())
@@ -1570,6 +1570,8 @@ class PID_Controller():
         self.omega_tgt += self.omega_ref
 
     def constrain(self):
+        self.set_Ka_array(Config.pid_Ka) 
+        self.set_Kv_array(Config.pid_Kv) 
         # Compute constrained acceleration
         accel_clipped = np.array([0, 0, 0], dtype=float)
         if self.dt > 0:

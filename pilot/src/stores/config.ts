@@ -55,8 +55,6 @@ export const useConfigStore = defineStore('config', {
     advanced_alignment: false,
 
     // Motion and Tuning Constants
-    max_slew_rate: 0.0,
-    max_accel_rate: 0.0,
     tracking_settle_time: 16,
     kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4], 
     kf_measure_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4], 
@@ -65,6 +63,8 @@ export const useConfigStore = defineStore('config', {
     pid_Kd: [0.8, 0.8, 0.8],
     pid_Ke: 0.4,
     pid_Kc: 1.0,
+    pid_Kv: 0.0,
+    pid_Ka: 0.0,
 
     z1_min_limit: -190,
     z1_max_limit: +190,

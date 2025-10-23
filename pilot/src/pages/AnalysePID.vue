@@ -88,6 +88,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                 <q-item-label caption>SP: Setpoint Position, PV: Present Value Position</q-item-label>
               </q-item-section>
             </q-item>
+          </q-list>
           <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
           <div class="row q-pt-lg q-pl-xl items-top justify-center">
             <div class="col row q-gutter-sm">
@@ -105,7 +106,24 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                 </div> 
             </div>
           </div>
-          </q-list>
+          <div class="row q-pt-lg q-pl-xl items-top justify-center">
+            <div class="col row q-gutter-sm">
+                <q-knob v-model="Ka_var" show-value :min="-0.5" :inner-min="0.0" :inner-max="5.0" :max="5.5" :step="0.1">{{Ka_str}}</q-knob>
+                <div class="column">
+                  <div class="text-h6">Ka</div>
+                  <div class="text-caption">Max OP Acceleration Rate (°/s²)</div>
+                  <div class="text-caption">0 = Use Default Max</div>
+                </div> 
+            </div>
+            <div class="col row q-gutter-sm">
+                <q-knob v-model="Kv_var" show-value :min="-1" :inner-min="0.0" :inner-max="9.5" :max="11" :step="0.1">{{Kv_str}}</q-knob>
+                <div class="column">
+                  <div class="text-h6">Kv</div>
+                  <div class="text-caption">Max OP Slew Velocity (°/s)</div>
+                  <div class="text-caption">0 = Use Motor Calibration Max</div>
+                </div> 
+            </div>
+          </div>
           <div class="q-pb-xl"></div>
         </q-card>
       </div>
@@ -176,6 +194,8 @@ const Ki_var = ref<number>(0)
 const Kd_var = ref<number>(0)      
 const Ke_var = ref<number>(0)      
 const Kc_var = ref<number>(0)      
+const Kv_var = ref<number>(0)      
+const Ka_var = ref<number>(0)      
 
 const motor = computed<string>(() => `M${axis.value+1}`)
 const Kp_str = computed<string>(() => var2str(Kp_var.value))
@@ -183,6 +203,8 @@ const Ki_str = computed<string>(() => var2str(Ki_var.value))
 const Kd_str = computed<string>(() => var2str(Kd_var.value))
 const Ke_str = computed<string>(() => var2str(Ke_var.value))
 const Kc_str = computed<string>(() => var2str(Kc_var.value))
+const Kv_str = computed<string>(() => var2str(Kv_var.value))
+const Ka_str = computed<string>(() => var2str(Ka_var.value))
 const var2str = (x:number) => x.toFixed(2)
 
 const chartPosData = computed<DataPoint[]>(() => {
@@ -212,6 +234,14 @@ watch([Ke_var, Kc_var], (newVal)=>{
   putdb(payload)
 })
 
+watch([Kv_var, Ka_var], (newVal)=>{
+  const payload = {
+    pid_Kv: newVal[0],
+    pid_Ka: newVal[1]
+  }
+  putdb(payload)
+})
+
 watch(axis, () => setKnobValues())
 
 async function onPlus(payload: { isPressed: boolean }) {
@@ -233,6 +263,8 @@ function setKnobValues() {
   Kd_var.value = cfg.pid_Kd[idx] ?? 0;
   Ke_var.value = cfg.pid_Ke ?? 0;
   Kc_var.value = cfg.pid_Kc ?? 0;
+  Kv_var.value = cfg.pid_Kv ?? 0;
+  Ka_var.value = cfg.pid_Ka ?? 0;
 }
 
 

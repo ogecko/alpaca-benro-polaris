@@ -138,16 +138,6 @@
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
               </div>
-              <div class="text-caption text-grey-6 q-pt-md">Restrict the motor controller’s peak slew rate and how quickly it will accelerate.</div>
-              <div class="row">
-                  <q-toggle class='col-6' v-model="isRestricted">Restrict Slew and Acceleration Rates</q-toggle>
-              </div>
-              <div v-if="isRestricted" class="row q-pl-md q-gutter-xl">
-                  <q-input class='col-4' v-bind="bindField('max_slew_rate', 'Max Slew Rate', '°/s')" 
-                           type="number" :rules="max_rate_rules" input-class="text-right"/>
-                  <q-input class='col-4' v-bind="bindField('max_accel_rate', 'Max Acceleration Rate', '°/s²')" 
-                           type="number" :rules="max_rate_rules" input-class="text-right"/>
-              </div>
             </div>
           </q-card>
         </div>
@@ -180,7 +170,7 @@
 <script setup lang="ts">
 // import axios from 'axios'
 import { useQuasar, debounce } from 'quasar'
-import { onMounted, onUnmounted, ref, watch, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useConfigStore } from 'src/stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { useStatusStore } from 'src/stores/status';
@@ -198,25 +188,12 @@ const dev = useDeviceStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
 const poll = new PollingManager()
-const max_rate_rules = [ 
-  (x:number) => x>0.0 || 'Rate must be greater than zero',
-  (x:number) => x<9.0 || 'Rate must be less than 9.0'
-]
 
-const isRestricted = ref<boolean>(cfg.max_slew_rate!=0)
 
 const z3curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[2]??0,"deg",1) }));
 const z2curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[1]??0,"deg",1) }));
 const z1curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[0]??0,"deg",1) }));
 
-watch(isRestricted, async (isRestrictedNewValueTrue) => {
-  const cfgChanges = (isRestrictedNewValueTrue) ? {max_slew_rate: 8.5, max_accel_rate: 3 } : {max_slew_rate: 0, max_accel_rate: 0 }
-  await cfg.configUpdate(cfgChanges)
-})
-
-watch(() => cfg.max_slew_rate, (newRate) => {
-  isRestricted.value = (newRate == 0) ? false : true 
-})
 
 onMounted(async () => {
   const shouldFetch =
