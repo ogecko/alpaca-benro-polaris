@@ -101,7 +101,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                 <q-knob v-model="Ke_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="1.0" :max="1.2" :step="0.01">{{Ke_str}}</q-knob>
                 <div class="column">
                   <div class="text-h6">Ke</div>
-                  <div class="text-caption">Expotential Smoothing Gain</div>
+                  <div class="text-caption">Expotential OP Smoothing</div>
                 </div> 
             </div>
           </div>
