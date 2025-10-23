@@ -9,13 +9,17 @@
 * **Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
 
 ## Improvements in Beta2 over Beta1
+- **[PID Integral]** Fixed issue with PID integral component calculation, better tracking closure
+- **[PID Acceleration]** Increased default max acceleration to 5 degrees per sec, faster response
+- **[PID Tuning]** Implemented PID Tuning page and performance statistics on charts
+- **[Chart Legends]** Add chart legends to all charts
+- **[Chart UX]** Improve charts for resize and improve color consistency across app for SP, PV, OP.
+- **[M1-3 readout]** Add absolute angle readouts for motors M1, M2, M3 on dashboard
 - **[Find Home]** Returns mount to true Home position, unwinding cables. 
 - **[Set Park]** Ability to customise the Park location.
 - **[Advanced Park]** Rewrite of Benro Polaris Park from V1.0 to be more ASCOM compliant. Uses PID controller, smoother Park, interruptable, unwinds, custom locations.
 - **[Parking, Homing]** Add new PID states for monitoring movement to Park and Home positions
 - **[Nina Support]** Find Home, Set Park, Park and UnPark are accessable from any Alpaca Client, including Nina, Alpaca Pilot and others.
-- **[PID Tuning]** Implemented PID Tuning page
-- **[Chart Legends]** Add chart legends, resize and improve color consistency across app for SP, PV, OP.
 - **[Celestrial Poles]** Added North and South Celestrial Poles to the catalog to easy alignment
 - **[QUEST Paper]** Added a research paper on QUEST in docs
 
