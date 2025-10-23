@@ -7,7 +7,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import * as d3 from 'd3'
-import { formatAngle, colors } from 'src/utils/scale'
+import { formatAngle } from 'src/utils/scale'
 // import { deg2fulldms } from 'src/utils/angles'
 export type DataPoint = Record<string, number | Date | undefined>
 
@@ -20,6 +20,18 @@ const chart = ref<HTMLDivElement | null>(null)
 
 const height = 300
 const margin = { top: 20, right: 30, bottom: 30, left: 80 }
+
+const colors = {
+  sp: 'hsl(132, 79%, 60%)',      // Green
+  pv: 'hsl(0,   0%, 100%)',      // White
+  op: 'hsl(195, 99%, 70%)',      // Cyan
+  m1: 'hsl(218, 63%, 32%)',      // Dark Blue
+  kp: 'hsl(70,  60%, 30%)',      // Dark Lime
+  ki: 'hsl(50,  60%, 30%)',      // Dark Yellow   
+  kd: 'hsl(20,  60%, 30%)',      // Dark Red
+  kf: 'hsl(320, 70%, 30%)',    // Dark Magenta
+}
+
 
 // --- Define line configurations here ---
 const lineDefs = [

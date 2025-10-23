@@ -7,17 +7,6 @@ export type Step = {
   level: LevelKey;                                   // level of step 'lg', 'md', 'sm'
 }
 
-export const colors = {
-  sp: '#52e53eff',
-  pv: '#ffffff',
-  op: '#02afffff',
-  m1: '#1f4686ff',
-  kp: '#747e21ff',
-  ki: '#795707ff',
-  kd: '#794321ff',
-  kf: '#772121ff',
-}
-
 export const steps: Step[] = [
   { stepSize: 200, dFormatFn: formatDegreesHr, level: 'lg' },
   { stepSize: 180, dFormatFn: formatDegreesHr, level: 'lg' },
