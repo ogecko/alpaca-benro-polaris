@@ -1517,7 +1517,7 @@ class PID_Controller():
         else:            
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
         # calc the integral error
-        if self.mode in ['TRACK'] and not self.is_deviating:
+        if (self.mode=='TRACK' and not self.is_deviating) or self.is_slewing:
             for i in range(3):
                 Ki = Config.pid_Ki[i]
                 if Ki != 0: 
