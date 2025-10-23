@@ -85,7 +85,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
             <q-item >
               <q-item-section>
                 <q-item-label>Angular Position (degrees) vs Time (seconds);  K Gain = {{ K_gain.pos }}</q-item-label>
-                <q-item-label caption>Y1: Measured Position, Y2: State Position </q-item-label>
+                <q-item-label caption>M1-3: Measured Position, PV: Present Value Position </q-item-label>
               </q-item-section>
             </q-item>
             <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
@@ -123,7 +123,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
             <q-item >
               <q-item-section>
                 <q-item-label>Angular Velocity (degrees/s) vs Time (seconds);  K Gain = {{ K_gain.vel }}</q-item-label>
-                <q-item-label caption>Y1: Measured Velocity, Y2: State Velocity. Y3: Reference</q-item-label>
+                <q-item-label caption>M1-3: Measured Velocity, PV: Present Value Velocity. SP: Setpoint Velocity</q-item-label>
               </q-item-section>
             </q-item>
             <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
@@ -269,18 +269,20 @@ function setKnobValues() {
 function formatPosData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as KalmanMessage
-  const m1 = data.θ_meas[axis.value] ?? 0
-  const pv = data.θ_state[axis.value] ?? 0
-  return { x1: time, m1, pv }
+  const mxKey = `M${axis.value + 1}`
+  const MX = data.θ_meas[axis.value] ?? 0
+  const PV = data.θ_state[axis.value] ?? 0
+  return { x1: time, [mxKey]: MX, PV }
 }
 
 function formatVelData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as KalmanMessage
-  const m1 = data.ω_meas[axis.value] ?? 0
-  const pv = data.ω_state[axis.value] ?? 0
-  const sp = data.ω_ref[axis.value] ?? 0
-  return { x1: time, m1, pv, sp }
+  const mxKey = `M${axis.value + 1}`
+  const MX = data.ω_meas[axis.value] ?? 0
+  const PV = data.ω_state[axis.value] ?? 0
+  const SP = data.ω_ref[axis.value] ?? 0
+  return { x1: time, [mxKey]: MX, PV, SP }
 }
 
 

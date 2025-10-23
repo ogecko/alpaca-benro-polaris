@@ -72,6 +72,13 @@
       <div class="col-12 col-lg-6 flex">
         <q-card flat bordered class="q-pa-md full-width">
           <q-list>
+            <q-item >
+              <q-item-section>
+                <q-item-label>Angular Position (degrees) vs Time (seconds)</q-item-label>
+                <q-item-label caption>M1-3: Measured Position, PV: Present Value Position </q-item-label>
+              </q-item-section>
+            </q-item>
+            <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
             <q-item>
               <q-item-section side top>
                 <q-knob v-model="active_rate" show-value :min="0" :inner-min="1" :inner-max="5" :max="6" :step="1"></q-knob>
@@ -95,13 +102,19 @@
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY  :data="chartPosData" x1Type="time"></ChartXY>
           <div class="q-pb-xl"></div>
         </q-card>
     </div>    
       <div class="col-12 col-lg-6 flex">
         <q-card flat bordered class="q-pa-md full-width">
           <q-list>
+            <q-item >
+              <q-item-section>
+                <q-item-label>Angular Velocity (degrees/s) vs Time (seconds)</q-item-label>
+                <q-item-label caption>M1-3: Measured Velocity, PV: Present Value Velocity. SP: Setpoint Velocity</q-item-label>
+              </q-item-section>
+            </q-item>
+            <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
             <q-item>
               <q-item-section side top>
                 <q-knob v-model="pulse_width" show-value :min="-1" :inner-min="0.01" :inner-max="cycle_period-0.01" :max="cycle_period+1" :step="0.01"></q-knob>
@@ -125,7 +138,6 @@
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
         </q-card>
       </div>    
   </div>
@@ -212,19 +224,20 @@ async function dutyOff() {
 function formatPosData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as KalmanMessage
-  const y1 = data.θ_meas[axis.value] ?? 0
-  const y2 = data.θ_state[axis.value] ?? 0
-  return { x1: time, y1, y2 }
+  const mxKey = `M${axis.value + 1}`
+  const MX = data.θ_meas[axis.value] ?? 0
+  const PV = data.θ_state[axis.value] ?? 0
+  return { x1: time, [mxKey]: MX, PV }
 }
-
 
 function formatVelData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as KalmanMessage
-  const y1 = data.ω_meas[axis.value] ?? 0
-  const y2 = data.ω_state[axis.value] ?? 0
-  const y3 = data.ω_ref[axis.value] ?? 0
-  return { x1: time, y1, y2, y3 }
+  const mxKey = `M${axis.value + 1}`
+  const MX = data.ω_meas[axis.value] ?? 0
+  const PV = data.ω_state[axis.value] ?? 0
+  const SP = data.ω_ref[axis.value] ?? 0
+  return { x1: time, [mxKey]: MX, PV, SP }
 }
 
 

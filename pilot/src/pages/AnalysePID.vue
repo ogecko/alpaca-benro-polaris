@@ -85,7 +85,7 @@ This page displays the SP, PV, OP and Error Signals. Changes to PID gains take e
             <q-item >
               <q-item-section>
                 <q-item-label>Angular Position (degrees) vs Time (seconds)</q-item-label>
-                <q-item-label caption>SP: Setpoint, PV: Present Value</q-item-label>
+                <q-item-label caption>SP: Setpoint Position, PV: Present Value Position</q-item-label>
               </q-item-section>
             </q-item>
           <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
@@ -117,7 +117,7 @@ This page displays the SP, PV, OP and Error Signals. Changes to PID gains take e
             <q-item >
               <q-item-section>
                 <q-item-label>Angular Velocity (degrees/s) vs Time (seconds)</q-item-label>
-                <q-item-label caption>OP: Output, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Slew Rate</q-item-label>
+                <q-item-label caption>OP: Output Velocity, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Feed Forward</q-item-label>
               </q-item-section>
             </q-item>
           <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
@@ -233,20 +233,20 @@ function setKnobValues() {
 function formatPosData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as PIDMessage
-  const pv = data.θ_pv[axis.value] ?? 0
-  const sp = data.θ_sp[axis.value] ?? 0
-  return { x1: time, pv, sp }
+  const PV = data.θ_pv[axis.value] ?? 0
+  const SP = data.θ_sp[axis.value] ?? 0
+  return { x1: time, PV, SP }
 }
 
 function formatVelData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as PIDMessage
-  const op = data.ω_op[axis.value] ?? 0
-  const kp = data.ω_kp[axis.value] ?? 0
-  const ki = data.ω_ki[axis.value] ?? 0
-  const kd = data.ω_kd[axis.value] ?? 0
-  const kf = data.ω_ff[axis.value] ?? 0
-  return { x1: time, kp, ki, kd, kf, op  }
+  const OP = data.ω_op[axis.value] ?? 0
+  const Kp = data.ω_kp[axis.value] ?? 0
+  const Ki = data.ω_ki[axis.value] ?? 0
+  const Kd = data.ω_kd[axis.value] ?? 0
+  const FF = data.ω_ff[axis.value] ?? 0
+  return { x1: time, Kp, Ki, Kd, FF, OP  }
 }
 
 

@@ -8,6 +8,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import * as d3 from 'd3'
 import { formatAngle, colors } from 'src/utils/scale'
+// import { deg2fulldms } from 'src/utils/angles'
 export type DataPoint = Record<string, number | Date | undefined>
 
 const props = defineProps<{ 
@@ -22,14 +23,16 @@ const margin = { top: 20, right: 30, bottom: 30, left: 80 }
 
 // --- Define line configurations here ---
 const lineDefs = [
-  { key: 'm1', color: colors.m1 },
-  { key: 'pv', color: colors.pv },
-  { key: 'sp', color: colors.sp },
-  { key: 'kp', color: colors.kp },
-  { key: 'ki', color: colors.ki },
-  { key: 'kd', color: colors.kd },
-  { key: 'kf', color: colors.kf },
-  { key: 'op', color: colors.op },
+  { key: 'M1', color: colors.m1 },
+  { key: 'M2', color: colors.m1 },
+  { key: 'M3', color: colors.m1 },
+  { key: 'PV', color: colors.pv },
+  { key: 'SP', color: colors.sp },
+  { key: 'Kp', color: colors.kp },
+  { key: 'Ki', color: colors.ki },
+  { key: 'Kd', color: colors.kd },
+  { key: 'FF', color: colors.kf },
+  { key: 'OP', color: colors.op },
 ]
 
 let svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null
@@ -110,17 +113,7 @@ function initChart() {
     })
 
   svg.call(zoom)
-}
-
-function drawLines(zx = xScale, zy = yScale) {
-  const getX = (d: DataPoint) => props.x1Type === 'time' ? zx(d.x1 as Date) : zx(d.x1 as number)
-  lineDefs.forEach(def => {
-    const line = d3.line<DataPoint>()
-      .defined(d => typeof d[def.key] === 'number')
-      .x(getX)
-      .y(d => zy(d[def.key] as number))
-    paths[def.key]?.attr('d', line(props.data))
-  })
+  drawLegend(svg, width)
 }
 
 function updateChart() {
@@ -143,13 +136,62 @@ function updateChart() {
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
 
   drawGridlines(zx, zy, width)
-  gX.call(d3.axisBottom(zx))
-  gY.call(d3.axisLeft(zy))
+  gX.call(d3.axisBottom(zx)).style('color', '#aaa')
+  gY.call(d3.axisLeft(zy)).style('color', '#aaa')
   drawLines(zx, zy)
 
   const stdevY1 = d3.deviation(props.data, d => d.y1 as number) ?? 0
   svg.select('.stdev-label')
     .text(`σ(y₁): ${formatAngle(stdevY1, 'deg', 2)}`)
+
+  drawLegend(svg, width)
+}
+
+
+function drawLegend(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, width: number) {
+  // Remove any existing legend
+  svg.select('.legend').remove()
+
+  const legendData = lineDefs.filter(def =>
+    props.data.some(d => typeof d[def.key] === 'number')
+  )
+
+  const legend = svg.append('g')
+    .attr('class', 'legend')
+    .attr('transform', `translate(${width - margin.right - 60}, ${margin.top + 10})`)
+
+  legendData.forEach((def, i) => {
+    const legendRow = legend.append('g')
+      .attr('transform', `translate(0, ${i * 18})`)
+
+    legendRow.append('line')
+      .attr('x1', 0)
+      .attr('x2', 30)
+      .attr('y1', 8)
+      .attr('y2', 8)
+      .attr('stroke', def.color)
+      .attr('stroke-width', 2)
+
+    legendRow.append('text')
+      .attr('x', 35)
+      .attr('y', 12)
+      .attr('fill', '#ccc')
+      .style('font-size', '12px')
+      .text(def.key)
+  })
+}
+
+
+
+function drawLines(zx = xScale, zy = yScale) {
+  const getX = (d: DataPoint) => props.x1Type === 'time' ? zx(d.x1 as Date) : zx(d.x1 as number)
+  lineDefs.forEach(def => {
+    const line = d3.line<DataPoint>()
+      .defined(d => typeof d[def.key] === 'number')
+      .x(getX)
+      .y(d => zy(d[def.key] as number))
+    paths[def.key]?.attr('d', line(props.data))
+  })
 }
 
 
@@ -168,8 +210,8 @@ function drawGridlines(
       .tickSize(-(width - margin.left - margin.right))
       .tickFormat(() => '')
   )
-}
 
+}
 
 function onResize() {
   d3.select(chart.value).select('svg').remove()
@@ -209,7 +251,7 @@ svg {
   // Axis labels
   .x-axis text,
   .y-axis text {
-    fill: #ccc;
+    color: #ccc;
   }
 
 
