@@ -1203,7 +1203,7 @@ class PID_Controller():
         elif isinstance(Ka, float) and Ka>0 and Ka<10:
             self.Ka = np.array([Ka, Ka, Ka], dtype=float)
         else:
-            self.Ka = np.array([3,3,3], dtype=float)
+            self.Ka = np.array([5,5,5], dtype=float)
 
     def set_Kv_array(self, Kv):
         if  isinstance(Kv, (list, tuple)):
