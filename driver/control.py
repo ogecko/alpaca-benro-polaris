@@ -1143,7 +1143,7 @@ class MoveAxisMessenger:
 
 
 class PID_Controller():
-    def __init__(self, logger, polaris, dt=0.2, Kp=0.8, Ki=0.0, Kd=0.8, Ke=0.4, Kc=1.0, loop=None):
+    def __init__(self, logger, polaris, dt=0.2, loop=None):
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
         self._lock = Lock()                                  # Used to ensure no threading issues
         self.logger = logger                                 # Logging utility
@@ -1193,16 +1193,6 @@ class PID_Controller():
         self.time_sp = None                  # Time that target was set
         self.time_step = time.monotonic()    # Time that control step was done
         self.dt = dt    # Time interval since last control step in seconds
-
-        # Tunable gains and constraints
-        self.Kp = Kp    # Proportional Gain - control speed correlated with error_signal
-        self.Ki = Ki    # Integral Gain - reduce cumulative error when reference is ramping
-        self.Kd = Kd    # Derivative Gain - reduce control when angular velocity higher (damping)
-        self.Ke = Ke    # Expotential Smoothing - how much of current value to mix (0=None)
-        self.Kc = Kc    # Number of Arc-Minutes error to accept as not deviating
-        self.set_Ka_array(Config.pid_Ka) # Maximum acceleration (float: degrees per seconds² or array(3): degrees per seconds²
-        self.set_Kv_array(Config.pid_Kv) # Maximum velocity (float: degrees per second or array(3): degrees per seconds or None: (maxDSP from controller)
-        
         if self.control_loop_duration:
             asyncio.create_task(self._control_loop())
 
