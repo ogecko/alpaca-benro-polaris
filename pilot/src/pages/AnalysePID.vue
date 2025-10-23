@@ -32,9 +32,9 @@
           <div class="col-md-6">
 <q-markdown  :no-mark="false">
 # PID Controller Tuning
-The purpose of the PID controller is to regulate the mount’s motion so that it accurately follows the target setpoint position.
+The purpose of the PID controller is to regulate the mount’s motion so that it accurately follows the setpoint position. This page displays the SP, PV, and OP sent to the Speed Controller. The contribution of Kp, Ki, Kd and feed forward are also shown.
 
-This page displays the SP, PV, OP and Error Signals. Changes to PID gains take effect immediately. Use Save to store your adjustments.
+Changes to PID gains take effect immediately. Use Save to store your adjustments.
 </q-markdown>
           </div>
           <!-- PID intro settings -->
