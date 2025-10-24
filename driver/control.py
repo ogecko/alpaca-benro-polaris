@@ -1248,7 +1248,7 @@ class PID_Controller():
         self.body.compute(self.observer)
         alt = rad2deg(self.body.alt)
         az = rad2deg(self.body.az)
-        roll = self.body_pa() + self.body_pa_offset
+        roll = self.body_pa_offset
         return np.array([az, alt, roll], dtype=float)
 
     def alpha2body(self, alpha):
@@ -1257,14 +1257,17 @@ class PID_Controller():
         self.body._ra = ra_rad
         self.body._dec = dec_rad
         self.body.compute(self.observer)
-        self.body_pa_offset = alpha[2] - self.body_pa()
+        self.body_pa_offset = alpha[2]
 
     def body2delta(self):
         self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
         self.body.compute(self.observer)
         ra_deg = rad2deg(self.body._ra)
         dec_deg = rad2deg(self.body._dec)
-        pa_deg = self.body_pa_offset
+        alt = rad2deg(self.body.alt)
+        az = rad2deg(self.body.az)
+        parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
+        pa_deg = self.body_pa_offset + parallactic_angle
         return np.array([ra_deg, dec_deg, pa_deg], dtype=float)
     
 
@@ -1272,7 +1275,13 @@ class PID_Controller():
         self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
         self.body._ra = deg2rad(delta[0])
         self.body._dec = deg2rad(delta[1])
-        self.body_pa_offset = delta[2] 
+        self.body.compute(self.observer)
+        alt = rad2deg(self.body.alt)
+        az = rad2deg(self.body.az)
+        parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
+        self.body_pa_offset = wrap_to_360(delta[2] - parallactic_angle)
+
+
 
     #------- Functions to change SP, Targets and Mode ---------
 
@@ -1481,7 +1490,7 @@ class PID_Controller():
             self.delta_ref_last = self.delta_ref
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
-            self.alpha_ref = self.body2alpha()
+            self.alpha_ref = clamp_alpha(self.body2alpha())
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
 
         # Convert alpha_ref to theta_ref
@@ -1518,8 +1527,16 @@ class PID_Controller():
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
-        # calc the integral error
-        if (self.mode=='TRACK' and not self.is_deviating) or self.is_slewing:
+
+        # calc cost signal and flags
+        self.cost_signal = np.sum(self.error_signal ** 2)
+        self.is_deviating = self.cost_signal > (Config.pid_Kc / 60) ** 2
+        self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
+        self.was_moving = self.is_moving
+        self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
+
+        # calc the integral error if tracking and within 3 arcmin or slewing
+        if (self.mode=='TRACK' and not (self.cost_signal > (3 / 60) ** 2)) or self.is_slewing:
             for i in range(3):
                 Ki = Config.pid_Ki[i]
                 if Ki != 0: 
@@ -1532,12 +1549,8 @@ class PID_Controller():
                         self.error_integral[i] = np.clip(self.error_integral[i] + self.error_signal[i], -i_limit, +i_limit) 
         else:
             self.error_integral = np.array([0,0,0], dtype=float)
-        # calc cost signal and flags
-        self.cost_signal = np.sum(self.error_signal ** 2)
-        self.is_deviating = self.cost_signal > (Config.pid_Kc / 60) ** 2
-        self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
-        self.was_moving = self.is_moving
-        self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
+
+        # If we have stopped moving in AUTO, HOMING or PARKING, go to IDLE
         if not self.is_moving and self.mode in ['AUTO', 'HOMING', 'PARKING']:
             self.set_pid_mode('IDLE')
    
