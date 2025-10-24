@@ -116,7 +116,7 @@ async def publish_status(polaris: Polaris):
 
 class PublishLogTopic(logging.Handler):
     _buffers: Dict[str, deque] = {}
-    _maxlen = 100
+    _maxlen = 150
 
     def __init__(self, topic: str):
         super().__init__()

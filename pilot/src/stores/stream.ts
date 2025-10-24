@@ -93,7 +93,7 @@ export const useStreamStore = defineStore('telemetry', () => {
         } else {
           if (!topics.value[topic]) topics.value[topic] = []
           topics.value[topic].push(record)
-          const MAX_RECORDS = 200
+          const MAX_RECORDS = 150
           if (topics.value[topic].length > MAX_RECORDS) {
             topics.value[topic].splice(0, topics.value[topic].length - MAX_RECORDS)
           }
