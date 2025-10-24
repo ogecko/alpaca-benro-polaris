@@ -47,6 +47,7 @@ const lineDefs = [
   { key: 'OP', color: colors.op },
 ]
 
+let hasAnimated = false
 let svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null
 let xScale: d3.ScaleTime<number, number> | d3.ScaleLinear<number, number>
 let yScale: d3.ScaleLinear<number, number>
@@ -243,6 +244,11 @@ function drawLines(
     zx = xScale, 
     zy = yScale,
 ) {
+  const shouldAnimate = props.data.length >= 150 && hasAnimated
+  if (!hasAnimated && props.data.length >= 150) {
+    hasAnimated = true
+  }
+
   lineDefs.forEach(def => {
   const line = d3.line<DataPoint>()
     .defined(d => typeof d[def.key] === 'number')
@@ -265,7 +271,12 @@ function drawLines(
     if (!path) return
 
     path.attr('transform', `translate(${dx},0)`)
-    path.transition().duration(170).ease(d3.easeLinear).attr('transform', `translate(0,0)`)
+
+    if (shouldAnimate) {
+      path.transition().duration(170).ease(d3.easeLinear).attr('transform', `translate(0,0)`)
+    } else {
+      path.attr('transform', `translate(0,0)`)
+    }
   })
 }
 

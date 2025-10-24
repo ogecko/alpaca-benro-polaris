@@ -1,1 +1,0 @@
-import{a6 as o,m as s,p as a,aC as r,i as c}from"./index-CzUz1poz.js";function u(){let e;const n=c();function t(){e=void 0}return o(t),s(t),{removeTick:t,registerTick(i){e=i,a(()=>{e===i&&(r(n)===!1&&e(),e=void 0)})}}}export{u};
