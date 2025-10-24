@@ -116,12 +116,7 @@ function initChart() {
     .on('zoom', (event) => {
       currentTransform = event.transform
       if (!currentTransform) return
-      const zx = currentTransform.rescaleX(xScale)
-      const zy = currentTransform.rescaleY(yScale)
-      gX.call(d3.axisBottom(zx))
-      gY.call(d3.axisLeft(zy))
-      drawLines(zx, zy)
-      drawGridlines(zx, zy, width)
+      updateChart()
     })
 
   svg.call(zoom)
@@ -140,16 +135,21 @@ function updateChart() {
   const xDomain = props.x1Type === 'time'
     ? [d3.min(x1 as Date[])!, d3.max(x1 as Date[])!]
     : [d3.min(x1 as number[]) ?? 0, d3.max(x1 as number[]) ?? 100]
-  const yDomain: [number, number] = [d3.min(allYValues) ?? 0, d3.max(allYValues) ?? 100]
   xScale.domain(xDomain)
+
+  const yDomain: [number, number] = [d3.min(allYValues) ?? 0, d3.max(allYValues) ?? 100]
   yScale.domain(yDomain)
 
+  const tX = gX.transition().duration(180).ease(d3.easeLinear)
+  const tY = gY.transition().duration(180).ease(d3.easeLinear)
   const zx = currentTransform ? currentTransform.rescaleX(xScale) : xScale
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
 
+  tX.call(d3.axisBottom(zx)).style('color', '#aaa')
+  tY.call(d3.axisLeft(zy)).style('color', '#aaa')
+
+
   drawGridlines(zx, zy, width)
-  gX.call(d3.axisBottom(zx)).style('color', '#aaa')
-  gY.call(d3.axisLeft(zy)).style('color', '#aaa')
   drawLines(zx, zy)
 
   // const stdevY1 = d3.deviation(props.data, d => d.y1 as number) ?? 0
@@ -239,14 +239,33 @@ function drawLegend(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, 
 
 
 
-function drawLines(zx = xScale, zy = yScale) {
-  const getX = (d: DataPoint) => props.x1Type === 'time' ? zx(d.x1 as Date) : zx(d.x1 as number)
+function drawLines(
+    zx = xScale, 
+    zy = yScale,
+) {
   lineDefs.forEach(def => {
-    const line = d3.line<DataPoint>()
-      .defined(d => typeof d[def.key] === 'number')
-      .x(getX)
-      .y(d => zy(d[def.key] as number))
-    paths[def.key]?.attr('d', line(props.data))
+  const line = d3.line<DataPoint>()
+    .defined(d => typeof d[def.key] === 'number')
+    .x(d => zx(props.x1Type === 'time' ? d.x1 as Date : d.x1 as number))
+    .y(d => zy(d[def.key] as number))
+
+  paths[def.key]?.attr('d', line(props.data))
+    .attr('transform', null) // reset any previous transform
+  })
+  const dx = zx(props.x1Type === 'time'
+    ? props.data[1]?.x1 as Date
+    : props.data[1]?.x1 as number
+  ) - zx(props.x1Type === 'time'
+    ? props.data[0]?.x1 as Date
+    : props.data[0]?.x1 as number
+  )
+
+  lineDefs.forEach(def => {
+    paths[def.key]?.attr('transform', `translate(${dx},0)`) // start offset
+      .transition()
+      .duration(170)
+      .ease(d3.easeLinear)
+      .attr('transform', `translate(0,0)`) // animate back to origin
   })
 }
 
@@ -254,18 +273,19 @@ function drawLines(zx = xScale, zy = yScale) {
 function drawGridlines(
   zx: d3.ScaleLinear<number, number> | d3.ScaleTime<number, number>, 
   zy: d3.ScaleLinear<number, number>,
-  width: number
+  width: number,
 ) {
-  gridX.call(
-    d3.axisBottom(zx)
-      .tickSize(-(height - margin.top - margin.bottom))
-      .tickFormat(() => '')
-  )
-  gridY.call(
-    d3.axisLeft(zy)
-      .tickSize(-(width - margin.left - margin.right))
-      .tickFormat(() => '')
-  )
+gridX.transition().duration(180).ease(d3.easeLinear).call(
+  d3.axisBottom(zx)
+    .tickSize(-(height - margin.top - margin.bottom))
+    .tickFormat(() => '')
+)
+
+gridY.transition().duration(180).ease(d3.easeLinear).call(
+  d3.axisLeft(zy)
+    .tickSize(-(width - margin.left - margin.right))
+    .tickFormat(() => '')
+)
 
 }
 
