@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import * as d3 from 'd3'
 import { formatAngle } from 'src/utils/scale'
 // import { deg2fulldms } from 'src/utils/angles'
@@ -47,7 +47,6 @@ const lineDefs = [
   { key: 'OP', color: colors.op },
 ]
 
-let hasAnimated = false
 let svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null
 let xScale: d3.ScaleTime<number, number> | d3.ScaleLinear<number, number>
 let yScale: d3.ScaleLinear<number, number>
@@ -59,6 +58,7 @@ let gridX: d3.Selection<SVGGElement, unknown, null, undefined>
 let gridY: d3.Selection<SVGGElement, unknown, null, undefined>
 const paths: Record<string, d3.Selection<SVGPathElement, unknown, null, undefined>> = {}
 
+const dlen = computed(() => props.data.length)
 
 function initChart() {
   const width = chart.value?.clientWidth ?? 500
@@ -141,14 +141,13 @@ function updateChart() {
   const yDomain: [number, number] = [d3.min(allYValues) ?? 0, d3.max(allYValues) ?? 100]
   yScale.domain(yDomain)
 
-  const tX = gX.transition().duration(180).ease(d3.easeLinear)
-  const tY = gY.transition().duration(180).ease(d3.easeLinear)
+  const tX = (dlen.value>140) ? gX.transition().duration(180).ease(d3.easeLinear) : gX
+  const tY = (dlen.value>140) ? gY.transition().duration(180).ease(d3.easeLinear) : gY
   const zx = currentTransform ? currentTransform.rescaleX(xScale) : xScale
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
 
   tX.call(d3.axisBottom(zx)).style('color', '#aaa')
   tY.call(d3.axisLeft(zy)).style('color', '#aaa')
-
 
   drawGridlines(zx, zy, width)
   drawLines(zx, zy)
@@ -244,10 +243,6 @@ function drawLines(
     zx = xScale, 
     zy = yScale,
 ) {
-  const shouldAnimate = props.data.length >= 150 && hasAnimated
-  if (!hasAnimated && props.data.length >= 150) {
-    hasAnimated = true
-  }
 
   lineDefs.forEach(def => {
   const line = d3.line<DataPoint>()
@@ -268,15 +263,10 @@ function drawLines(
 
   lineDefs.forEach(def => {
     const path = paths[def.key]
-    if (!path) return
-
+    if (!path || dlen.value<140) return
+   
     path.attr('transform', `translate(${dx},0)`)
-
-    if (shouldAnimate) {
-      path.transition().duration(170).ease(d3.easeLinear).attr('transform', `translate(0,0)`)
-    } else {
-      path.attr('transform', `translate(0,0)`)
-    }
+    path.transition().duration(170).ease(d3.easeLinear).attr('transform', `translate(0,0)`)
   })
 }
 
@@ -287,13 +277,15 @@ function drawGridlines(
   zy: d3.ScaleLinear<number, number>,
   width: number,
 ) {
-gridX.transition().duration(180).ease(d3.easeLinear).call(
+const tX = (dlen.value>140) ? gridX.transition().duration(180).ease(d3.easeLinear) : gridX
+tX.call(
   d3.axisBottom(zx)
     .tickSize(-(height - margin.top - margin.bottom))
     .tickFormat(() => '')
 )
 
-gridY.transition().duration(180).ease(d3.easeLinear).call(
+const tY = (dlen.value>140) ? gridY.transition().duration(180).ease(d3.easeLinear) : gridY
+tY.call(
   d3.axisLeft(zy)
     .tickSize(-(width - margin.left - margin.right))
     .tickFormat(() => '')
