@@ -67,7 +67,7 @@ from threading import Lock
 # [X] Alpaca pilot manual slew RADecPA
 # [X] Fix Position Angle dashboard
 # [X] Fix Position Angle interaction
-# [ ] Fix Az/Alt/Roll interaction while tracking
+# [X] Fix Az/Alt/Roll interaction while tracking
 #
 # Alpaca Pilot Tuning
 # [X] Alpaca Pilot KF Tuning page
@@ -76,8 +76,8 @@ from threading import Lock
 # [X] Alpaca Pilot Speed Calibration Test Management and Actions
 # [X] Alpaca Pilot Speed Calibration hookup and cancel test
 # [X] Alpaca Pilot Position Diagnostics Page
-# [ ] Alpaca Pilot PID Tuning page
-# [ ] Fix chart sizing when screen resized
+# [X] Alpaca Pilot PID Tuning page
+# [X] Fix chart sizing when screen resized
 #
 # Alpaca Single-Point and Multi-Point Alignment
 # [X] Alpaca pilot Single-Point Alignment using Polaris internal model
@@ -102,8 +102,8 @@ from threading import Lock
 # [X] Fix 340-360 Control Kinematics, note roll flips sign near N when KF enabled
 # [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
 # [X] Add Anti-Windup Motor Angle Limits
+# [X] Improve motor limits indication and safety protection (including with tilts)
 # [ ] Fix zero Altitude movement
-# [ ] Improve motor limits indication and safety protection (including with tilts)
 #
 # Alpaca Kalman Filter
 # [X] Implment Kalman Filter to improve reliabilty of state assessment
@@ -138,9 +138,10 @@ from threading import Lock
 # [ ] Alpaca Pilot memory and logevity tests
 # 
 # Documentation
+# [X] Kickstarter project
+# [X] Youtube training videos 3 of X
+# [ ] Youtube training videos remaining
 # [ ] Documentation on new features Topocentric tracking
-# [ ] Youtube training videos
-# [ ] Kickstarter project
 #
 # Performance
 # [X] Improve fine grained tracking precision
@@ -160,8 +161,8 @@ from threading import Lock
 # ASCOM Park and Home
 # [X] Add ASCOM FindHome command, and expose in Alpaca Pilot, use true Home co-ord from zeta
 # [X] Add Park and Home to Dashboard
-# [ ] Change ASCOM Park to true custom Park position, persisted in settings
-# [ ] Add ASCOM SetPark command, and expose in Alpaca Pilot 
+# [X] Change ASCOM Park to true custom Park position, persisted in settings
+# [X] Add ASCOM SetPark command, and expose in Alpaca Pilot 
 #
 # Catalog
 # [X] Expanded Target Catalog (Stars, Nebula, Galaxies, Clusters)
@@ -172,7 +173,7 @@ from threading import Lock
 # [X] Sync from catalog
 # [X] Calc current Azimuth, Altitude of dso and categorise it for filtering
 # [X] Fix filter clear to only clear when filter is already open
-# [ ] Add South and North Celestrial Pole
+# [X] Add South and North Celestrial Pole
 # [ ] Add images of each target
 # [ ] Add a details page for each target
 # [ ] Tonights Altitude, Proximity
@@ -206,7 +207,7 @@ from threading import Lock
 # [X] Enable Nina Dithering via Nina Direct Guider and Advanced Schedule (uses Pulse Guide API)
 # [X] Guide Camera Support via PHD2
 # [X] PHD2 Support via ASCOM/Alpaca
-# [ ] Allow setting of guiderates 0.5x 1.0x 1.5x 2.0x in Settings of Alpaca Pilot
+# [X] Allow setting of pulseguiderates 0.25x 0.5x 1.0x 1.5x 2.0x in Settings of Alpaca Pilot
 #
 # Imaging and User Experience Enhancements
 # [X] Long Exposure Tracking Stabilization

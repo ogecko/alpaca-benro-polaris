@@ -1720,6 +1720,9 @@ def make_params_live(changed_params):
             polaris._pid.set_Ka_array(Config.max_accel_rate)
         elif param == "max_slew_rate":
             polaris._pid.set_Kv_array(Config.max_slew_rate)
-
+        elif param == "guide_rate_ra":
+            polaris.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
+        elif param == "guide_rate_dec":
+            polaris.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
    
 

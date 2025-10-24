@@ -135,9 +135,24 @@
                 <q-toggle class='col-6' v-bind="bindField('advanced_tracking', 'Tracking')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
               </div>
-              <div class="row">
+              <div class="row q-pb-md">
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
               </div>
+              <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pl-md q-pr-mdn ">
+                <q-select
+                  class="col-6 q-pt-none" label="RA Guide Rate" emit-value map-options
+                  v-model="cfg.guide_rate_ra" @update:model-value="v => putdb({ guide_rate_ra: v })"
+                  :options="guideRateOptions"
+                />
+                <q-select
+                  class="col-6 q-pt-none" label="Dec Guide Rate" emit-value map-options
+                  v-model="cfg.guide_rate_dec" @update:model-value="v => putdb({ guide_rate_dec: v })"
+                  :options="guideRateOptions"
+                />
+              </div>
+              <div class="q-pb-md"></div>
+
+
             </div>
           </q-card>
         </div>
@@ -194,6 +209,12 @@ const z3curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[2]??0,"d
 const z2curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[1]??0,"deg",1) }));
 const z1curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[0]??0,"deg",1) }));
 
+const guideRateOptions = [
+  { label: '0.25× sidereal', value: 0.25 },
+  { label: '0.5× sidereal', value: 0.5 },
+  { label: '1.0× sidereal', value: 1 },
+  { label: '2.0× sidereal', value: 2 },
+]
 
 onMounted(async () => {
   const shouldFetch =

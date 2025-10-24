@@ -56,6 +56,8 @@ z3_max_limit = +270                         # Z3 Axis Raw Motor Control maximum 
 m1_park = 0                                 # Motor 1 position for saved Park Location
 m2_park = 0                                 # Motor 2 position for saved Park Location
 m3_park = 0                                 # Motor 3 position for saved Park Location
+guide_rate_ra = 0.5                         # Right Ascensiion guide rate multiple of sidereal rate
+guide_rate_dec = 0.5                        # Declination guide rate multiple of sidereal rate
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.

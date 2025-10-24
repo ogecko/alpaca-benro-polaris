@@ -210,8 +210,8 @@ class Polaris:
         self._trackingrates = [0,1,2,3]             # Returns a collection of supported DriveRates values (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
         self._declinationrate: float = 0.0          # The declination tracking rate (arcseconds per SI second, default = 0.0)
         self._rightascensionrate: float = 0.0       # The right ascension tracking rate offset from sidereal (seconds per sidereal second, default = 0.0)
-        self._guideratedeclination: float = 0.002089     # The current Declination movement rate offset for telescope guiding, default 0.5 x sidereal (degrees/sec)
-        self._guideraterightascension: float = 0.002089  # The current Right Ascension movement rate offset for telescope guiding, default 0.5 x sidereal (degrees/sec)
+        self._guideratedeclination: float = Config.guide_rate_dec * 15/3600      # The current Declination movement rate offset for telescope guiding, default 0.5 x sidereal (degrees/sec)
+        self._guideraterightascension: float = Config.guide_rate_ra * 15/3600    # The current Right Ascension movement rate offset for telescope guiding, default 0.5 x sidereal (degrees/sec)
         #
         # Rotator device settings
         #

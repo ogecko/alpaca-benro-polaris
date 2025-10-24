@@ -13,10 +13,11 @@
 ## Improvements in Beta2 over Beta1
 - **[PID Integral]** Fixed issue with PID integral component calculation, better tracking error closure to zero
 - **[PID Acceleration]** Increased default max acceleration from 3 to 5°/s², faster response
-- **[PID Tuning]** Implemented PID Tuning page and expose all tunable parameters
+- **[PID Tuning]** Implemented PID Tuning page, including goto, slew, pulse tests and exposing all tunable parameters
+- **[Guide Rate]** Allow Pulse Guide rates to be set from Alpaca Pilot
+- **[Chart UX]** Improve charts for resize, smooth scroll and color consistency across app for SP, PV, OP, Mx.
 - **[Chart Legends]** Add trace legend to all charts
 - **[Chart Statistics]** Add performance statistics to all charts
-- **[Chart UX]** Improve charts for resize and improve color consistency across app for SP, PV, OP, Mx.
 - **[M1-3 readout]** Add absolute angle readouts for motors M1, M2, M3 on dashboard
 - **[Find Home]** Returns mount to true Home position (M1=M2=M3=0), unwinding cables. 
 - **[Set Park]** Ability to customise the Park location.

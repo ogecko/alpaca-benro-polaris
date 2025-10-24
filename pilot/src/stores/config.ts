@@ -75,7 +75,8 @@ export const useConfigStore = defineStore('config', {
     m1_park: 0,
     m2_park: 0,
     m3_park: 0,
-
+    guide_rate_ra: 0.5,
+    guide_rate_dec: 0.5,
 
     // Aiming Adjustment
     aiming_adjustment_enabled: true,
