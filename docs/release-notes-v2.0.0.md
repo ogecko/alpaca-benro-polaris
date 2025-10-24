@@ -10,11 +10,25 @@
 * **Demo Video 2:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
 * **Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
 
-## Improvements in Beta2 over Beta1
-- **[PID Integral]** Fixed issue with PID integral component calculation, better tracking error closure to zero
-- **[PID Acceleration]** Increased default max acceleration from 3 to 5°/s², faster response
-- **[PID Tuning]** Implemented PID Tuning page, including goto, slew, pulse tests and exposing all tunable parameters
-- **[Guide Rate]** Allow Pulse Guide rates to be set from Alpaca Pilot
+## What’s new since beta1
+- **[PID Integral]** Corrected integral component calculation for better error convergence to zero
+- **[PID Acceleration]** Increased default max acceleration from 3 to 5°/s² for quicker response
+- **[PID Tuning]** Added a full PID Tuning page with support for goto, slew, pulse tests, and full parameter exposure
+- **[Guide Rate]** Pulse Guide rates can now be configured directly from Alpaca Pilot Settings
+- **[Chart UX]** Improved chart behavior on resize, smoother scrolling, and consistent color mapping for SP, PV, OP, Mx
+- **[Chart Legends]** All charts now include trace legends
+- **[Chart Statistics]** Performance metrics now displayed on all charts
+- **[M1–M3 Readout]** Dashboard now shows absolute angle readouts for motors M1, M2, and M3
+- **[Find Home]** New feature to return the mount to true Home (M1 = M2 = M3 = 0), safely unwinding cables
+- **[Set Park]** Park location is now customizable
+- **[Advanced Park]** Rewritten Park logic for ASCOM compliance — smoother, interruptable, and PID-driven
+- **[Parking & Homing]** New PID states added to monitor transitions to Park and Home positions
+- **[NINA Support]** Find Home, Set Park, Park, and UnPark are now accessible from any Alpaca client, including NINA and Alpaca Pilot
+- **[Celestial Poles]** North and South Celestial Poles added to the catalog for easier alignment
+- **[QUEST Paper]** A research paper on QUEST has been added to the documentation
+
+Let me know if you want a changelog version, a markdown export, or a short announcement for Discord or GitHub.
+
 - **[Chart UX]** Improve charts for resize, smooth scroll and color consistency across app for SP, PV, OP, Mx.
 - **[Chart Legends]** Add trace legend to all charts
 - **[Chart Statistics]** Add performance statistics to all charts
