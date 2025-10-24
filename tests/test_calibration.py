@@ -102,4 +102,4 @@ def test_formatCalibrationData():
     cm.approveTests(['M1-SLOW-3.0'])
     cm.generateCalibrationFromBaselineAndTestData()
     cmdata = cm.formatCalibrationData()
-    assert(cmdata.startswith('{\n"_comment": "Copy of consolidated calibration data overriden with approved test data."\n0: {\n    "RAW":   [        0.0,        0.5,        1.0,        1.5'))
+    assert(cmdata.startswith('{\n"_comment": "Copy of consolidated calibration data overriden with approved test data."\n0: {\n    "RAW    ": [        0.0,        0.5,        1.0,        1.5'))
