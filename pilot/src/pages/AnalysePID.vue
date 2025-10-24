@@ -255,9 +255,9 @@ const testcaseOptionsData:TestCaseOption[] = [
   { label: '0.006°/s Slew', value: 1.0, case: 'slew', icon: 'mdi-arrow-right' },
   { label: '0.2°/s Slew', value: 5.01, case: 'slew', icon: 'mdi-arrow-right' },
   { label: '1.0°/s Slew', value: 5.87, case: 'slew', icon: 'mdi-arrow-right' },
-  { label: '250ms Pulse', value: 0.25, case: 'pulse', icon: 'mdi-pulse' },
-  { label: '2000ms Pulse', value: 2.0, case: 'pulse', icon: 'mdi-pulse' },
-  { label: '4000ms Pulse', value: 4.0, case: 'pulse', icon: 'mdi-pulse' },
+  { label: '200ms Pulse', value: 200, case: 'pulse', icon: 'mdi-pulse' },
+  { label: '2000ms Pulse', value: 2000, case: 'pulse', icon: 'mdi-pulse' },
+  { label: '5000ms Pulse', value: 5000, case: 'pulse', icon: 'mdi-pulse' },
 ]
 const testcase = ref<TestCaseOption | undefined>(testcaseOptionsData[1])
 
@@ -316,27 +316,47 @@ const onMinus = (payload: { isPressed: boolean }) => runTestCase(payload, -1)
 const onPlus = (payload: { isPressed: boolean }) => runTestCase(payload, +1)
 
 async function runTestCase(payload: { isPressed: boolean }, sign:number) {
+    // Get test case amount from the testcase object { label, value, case, icon }
+    const testVal = testcase.value?.value
+    if (testVal === undefined) {
+      console.warn('Test case value is undefined')
+      return
+    }
+
+    // Goto Test Case
     if (testcase.value?.case=='goto' && payload.isPressed) {
       await dev.alpacaResetSP()
       if (axis.value==0) {
-        const az = wrapTo360(p.azimuth + sign * testcase.value?.value)
+        const az = wrapTo360(p.azimuth + sign * testVal)
         const alt = p.altitude 
         await dev.alpacaSlewToAltAz(alt, az)
       } else if (axis.value==1) {
         const az = p.azimuth 
-        const alt = wrapTo90(p.altitude + sign * testcase.value?.value)
+        const alt = wrapTo90(p.altitude + sign * testVal)
         await dev.alpacaSlewToAltAz(alt, az)
       } else {
-        const roll = p.roll + sign * testcase.value?.value
+        const roll = p.roll + sign * testVal
         await dev.alpacaMoveMechanical(roll)
       }
 
+    // Slew Test Case
     } else if (testcase.value?.case=='slew') {
       await dev.alpacaResetSP()
       const isPressed = payload.isPressed
-      await dev.alpacaMoveAxis(axis.value, isPressed ? sign*testcase.value?.value : 0)
-    } else {
-      console.log('pulse test case not implemented')
+      await dev.alpacaMoveAxis(axis.value, isPressed ? sign*testVal : 0)
+
+    // Pulse Test Case
+    } else if (testcase.value?.case=='pulse' && payload.isPressed) {
+      if (axis.value==1) {
+        const dir = (sign>0) ? 0 : 1
+        await dev.alpacaPulseGuide(testVal, dir)
+      } else if (axis.value==0) {
+        const dir = (sign>0) ? 2 : 3
+        await dev.alpacaPulseGuide(testVal, dir)
+      } else {
+        console.log('pulse test case not implemented for PA axis')
+        return
+      }
     }
 }
 

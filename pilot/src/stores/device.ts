@@ -95,6 +95,10 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/tracking',{ Tracking: state });
     },
   
+    async alpacaPulseGuide(duration:number, direction:number) {
+      return await this.api<SupportedActionsResponse>('api/v1/telescope/0/pulseguide',{ Duration: duration, Direction: direction });
+    },
+
     async alpacaTrackingRate(n:number) {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/trackingrate',{ TrackingRate: n });
     },
