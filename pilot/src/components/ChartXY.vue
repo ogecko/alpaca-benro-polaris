@@ -26,10 +26,10 @@ const colors = {
   pv: 'hsl(0,   0%, 100%)',      // White
   op: 'hsl(195, 99%, 70%)',      // Cyan
   m1: 'hsl(218, 63%, 32%)',      // Dark Blue
-  kp: 'hsl(80,  50%, 30%)',      // Dark Lime
+  kp: 'hsl(320, 70%, 30%)',      // Dark Magenta
   ki: 'hsl(50,  70%, 30%)',      // Dark Yellow   
   kd: 'hsl(20,  60%, 30%)',      // Dark Red
-  kf: 'hsl(320, 70%, 30%)',    // Dark Magenta
+  kf: 'hsl(80,  50%, 40%)',      // Dark Lime
 }
 
 
