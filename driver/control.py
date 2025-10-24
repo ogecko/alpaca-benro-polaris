@@ -1497,10 +1497,11 @@ class PID_Controller():
         self.theta_ref_last = self.theta_ref
         self.theta_ref = np.array([theta1,theta2,theta3])
     
-    def measure(self, alpha_meas, theta_meas, zeta_meas):
+    def measure(self, delta_meas, alpha_meas, theta_meas, zeta_meas):
         now = ephem.now()
         # if not self.time_meas:
         #     self.alpha_sp = alpha_meas     # initialise alpha_sp with first measurement
+        self.delta_meas = delta_meas
         self.alpha_meas = alpha_meas
         self.theta_meas = theta_meas
         self.zeta_meas = zeta_meas

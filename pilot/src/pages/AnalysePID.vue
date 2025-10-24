@@ -40,16 +40,29 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
           <!-- PID intro settings -->
           <div class="col-md-6 q-pt-sm">
             <q-list >
+              <!-- Choose Coordinates  -->
+              <q-item>
+                <q-item-section side top>
+                    <q-btn-toggle v-model="coord" push rounded glossy toggle-color="primary"  
+                      :options="[
+                        {label: 'Mot', value: 0},
+                        {label: 'Top', value: 1},
+                        {label: 'Equ', value: 2}
+                      ]"
+                    />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> Choosen Co-ordinate System</q-item-label>
+                  <q-item-label caption>
+                    Choose from Motor Angles, Topocentric or Equatorial. 
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+
               <!-- Choose Motor -->
               <q-item>
                 <q-item-section side top>
-                    <q-btn-toggle v-model="axis" push rounded glossy toggle-color="primary"  
-                      :options="[
-                        {label: 'M1', value: 0},
-                        {label: 'M2', value: 1},
-                        {label: 'M3', value: 2}
-                      ]"
-                    />
+                    <q-btn-toggle v-model="axis" push rounded glossy toggle-color="primary" :options="axisOptions" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label> Choosen Motor Axis</q-item-label>
@@ -63,7 +76,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
               <q-item :inset-level="1">
                 <q-item-section top side>
                   <div class=" q-gutter-ax">
-                  <q-select label="Test Case"  v-model="testcase" :options="optionsData">
+                  <q-select label="Test Case"  v-model="testcase" :options="testcaseOptionsData">
                     <template v-slot:option="scope">
                       <q-item dense v-bind="scope.itemProps">
                         <q-item-section avatar>
@@ -149,7 +162,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
               <q-item-section>
                 <q-item-label>Angular Velocity (degrees/s) vs Time (seconds)</q-item-label>
                 <q-item-label caption>OP: Output Velocity, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Feed Forward</q-item-label>
-              </q-item-section>
+                </q-item-section>
             </q-item>
           <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
           <div class="row q-pt-lg q-pl-xl items-top justify-center">
@@ -205,6 +218,7 @@ const dev = useDeviceStore()
 const p = useStatusStore()
 const var2str = (x:number) => x.toFixed(2)
 
+const coord = ref<number>(0)
 const axis = ref<number>(0)
 const Kp_var = ref<number>(0)
 const Ki_var = ref<number>(0)      
@@ -221,7 +235,14 @@ type TestCaseOption = {
   icon: string
 }
 
-const optionsData:TestCaseOption[] = [
+const axisOptionsData = [
+  [ { label: 'M1', value: 0 }, { label: 'M2', value: 1 },   { label: 'M3', value: 2 } ],
+  [ { label: 'Az', value: 0 }, { label: 'Alt', value: 1 },   { label: 'Roll', value: 2 } ],
+  [ { label: 'RA ', value: 0 }, { label: 'Dec', value: 1 },   { label: 'PA ', value: 2 } ],
+]
+const axisOptions = computed(() => axisOptionsData[coord.value] ?? [])
+
+const testcaseOptionsData:TestCaseOption[] = [
   { label: '30′ Goto', value: 5/60, case: 'goto', icon: 'mdi-move-resize-variant' },
   { label: '5° Goto', value: 5, case: 'goto', icon: 'mdi-move-resize-variant' },
   { label: '45° Goto', value: 45, case: 'goto', icon: 'mdi-move-resize-variant' },
@@ -233,7 +254,7 @@ const optionsData:TestCaseOption[] = [
   { label: '2000ms Pulse', value: 2.0, case: 'pulse', icon: 'mdi-pulse' },
   { label: '4000ms Pulse', value: 4.0, case: 'pulse', icon: 'mdi-pulse' },
 ]
-const testcase = ref<TestCaseOption | undefined>(optionsData[1])
+const testcase = ref<TestCaseOption | undefined>(testcaseOptionsData[1])
 
 const motor = computed<string>(() => `M${axis.value+1}`)
 const Kp_str = computed<string>(() => var2str(Kp_var.value))
@@ -291,9 +312,8 @@ const onMinus = (payload: { isPressed: boolean }) => runTestCase(payload, -1)
 const onPlus = (payload: { isPressed: boolean }) => runTestCase(payload, +1)
 
 async function runTestCase(payload: { isPressed: boolean }, sign:number) {
-    await dev.alpacaResetSP()
     if (testcase.value?.case=='goto' && payload.isPressed) {
-
+      await dev.alpacaResetSP()
       if (axis.value==0) {
         const az = wrapTo360(p.azimuth + sign * testcase.value?.value)
         const alt = p.altitude 
@@ -308,6 +328,7 @@ async function runTestCase(payload: { isPressed: boolean }, sign:number) {
       }
 
     } else if (testcase.value?.case=='slew') {
+      await dev.alpacaResetSP()
       const isPressed = payload.isPressed
       await dev.alpacaMoveAxis(axis.value, isPressed ? sign*testcase.value?.value : 0)
     } else {
@@ -329,13 +350,30 @@ function setKnobValues() {
 }
 
 
-function formatPosData(d: TelemetryRecord):DataPoint {
+function formatPosData(d: TelemetryRecord): DataPoint {
   const time = new Date(d.ts)
   const data = d.data as PIDMessage
-  const PV = data.θ_pv[axis.value] ?? 0
-  const SP = data.θ_sp[axis.value] ?? 0
+
+  let pvKey: keyof PIDMessage
+  let spKey: keyof PIDMessage
+
+  if (coord.value === 0) {
+    pvKey = "θ_pv"
+    spKey = "θ_sp"
+  } else if (coord.value === 1) {
+    pvKey = "α_pv"
+    spKey = "α_sp"
+  } else {
+    pvKey = "Δ_pv"
+    spKey = "Δ_sp"
+  }
+
+  const PV = data[pvKey]?.[axis.value] ?? 0
+  const SP = data[spKey]?.[axis.value] ?? 0
+
   return { x1: time, PV, SP }
 }
+
 
 function formatVelData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)

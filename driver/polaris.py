@@ -775,8 +775,8 @@ class Polaris:
                 q1_state, theta_state = q1, theta_meas
 
             # update all the ASCOM values and the PID loop
-            alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1_state, azhint=p_az)
-            self._pid.measure(alpha_state, theta_state, self._zeta_meas)
+            delta_state, alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1_state, azhint=p_az)
+            self._pid.measure(delta_state, alpha_state, theta_state, self._zeta_meas)
 
 
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
@@ -882,11 +882,12 @@ class Polaris:
         if Config.advanced_rotator and Config.advanced_control:         
             a_roll = self._sm.roll_polaris2ascom(a_roll)
 
-        alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
-        theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)          # always unadjusted
         a_ra, a_dec = self.altaz2radec(a_alt, a_az)
         position_ang, parallactic_ang = self._sm.roll2pa(a_az, a_alt, a_roll)
- 
+        alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
+        theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)          # always unadjusted
+        delta_state = np.array([a_ra*15, a_dec, -position_ang], dtype=float)         
+    
         # Store all the new ascom values
         with self._lock:
             self._q1s = q1_state
@@ -900,7 +901,7 @@ class Polaris:
             self._position_angle = float(position_ang)
             self._parallactic_angle = float(parallactic_ang)
 
-        return alpha_state, theta_state
+        return delta_state, alpha_state, theta_state
 
     def aim_altaz_log_result(self):
         with self._lock:
