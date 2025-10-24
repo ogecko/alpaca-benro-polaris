@@ -93,7 +93,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                   </div>
                 </q-item-section>
                 <q-item-section >
-                  <q-item-label> Choose Test Case for {{ motor }}</q-item-label>
+                  <q-item-label> Choose Test Case for {{ axisLabel }}</q-item-label>
                   <q-item-label caption>
                     Choose the type and magnitude of the test case. Use the action buttons to move the motor and monitor PID response. 
                   </q-item-label>
@@ -110,7 +110,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
           <q-list>
             <q-item >
               <q-item-section>
-                <q-item-label>Angular Position (degrees) vs Time (seconds)</q-item-label>
+                <q-item-label>{{axisLabel}} Angular Position (degrees) vs Time (seconds)</q-item-label>
                 <q-item-label caption>SP: Setpoint Position, PV: Present Value Position</q-item-label>
               </q-item-section>
             </q-item>
@@ -160,7 +160,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
           </q-list>
             <q-item >
               <q-item-section>
-                <q-item-label>Angular Velocity (degrees/s) vs Time (seconds)</q-item-label>
+                <q-item-label>{{motorLabel}} Angular Velocity (degrees/s) vs Time (seconds)</q-item-label>
                 <q-item-label caption>OP: Output Velocity, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Feed Forward</q-item-label>
                 </q-item-section>
             </q-item>
@@ -241,6 +241,11 @@ const axisOptionsData = [
   [ { label: 'RA ', value: 0 }, { label: 'Dec', value: 1 },   { label: 'PA ', value: 2 } ],
 ]
 const axisOptions = computed(() => axisOptionsData[coord.value] ?? [])
+const axisLabel = computed(() => {
+  const group = axisOptionsData[coord.value]
+  return group?.[axis.value]?.label ?? ''
+})
+const motorLabel = computed<string>(() => `M${axis.value+1}`)
 
 const testcaseOptionsData:TestCaseOption[] = [
   { label: '30′ Goto', value: 5/60, case: 'goto', icon: 'mdi-move-resize-variant' },
@@ -256,7 +261,6 @@ const testcaseOptionsData:TestCaseOption[] = [
 ]
 const testcase = ref<TestCaseOption | undefined>(testcaseOptionsData[1])
 
-const motor = computed<string>(() => `M${axis.value+1}`)
 const Kp_str = computed<string>(() => var2str(Kp_var.value))
 const Ki_str = computed<string>(() => var2str(Ki_var.value))
 const Kd_str = computed<string>(() => var2str(Kd_var.value))
