@@ -26,8 +26,8 @@ const colors = {
   pv: 'hsl(0,   0%, 100%)',      // White
   op: 'hsl(195, 99%, 70%)',      // Cyan
   m1: 'hsl(218, 63%, 32%)',      // Dark Blue
-  kp: 'hsl(70,  60%, 30%)',      // Dark Lime
-  ki: 'hsl(50,  60%, 30%)',      // Dark Yellow   
+  kp: 'hsl(80,  50%, 30%)',      // Dark Lime
+  ki: 'hsl(50,  70%, 30%)',      // Dark Yellow   
   kd: 'hsl(20,  60%, 30%)',      // Dark Red
   kf: 'hsl(320, 70%, 30%)',    // Dark Magenta
 }
@@ -243,8 +243,6 @@ function drawLines(
     zx = xScale, 
     zy = yScale,
 ) {
-  const shouldAnimate = props.data.length >= 150
-
   lineDefs.forEach(def => {
   const line = d3.line<DataPoint>()
     .defined(d => typeof d[def.key] === 'number')
@@ -254,28 +252,20 @@ function drawLines(
   paths[def.key]?.attr('d', line(props.data))
     .attr('transform', null) // reset any previous transform
   })
-  const dx = zx(props.x1Type === 'time'
-    ? props.data[1]?.x1 as Date
-    : props.data[1]?.x1 as number
-  ) - zx(props.x1Type === 'time'
-    ? props.data[0]?.x1 as Date
-    : props.data[0]?.x1 as number
-  )
+
+  let dx = 0
+  if (props.data.length >= 150) {
+    const x0 = props.x1Type === 'time' ? props.data[0]?.x1 as Date : props.data[0]?.x1 as number
+    const x1 = props.x1Type === 'time' ? props.data[1]?.x1 as Date : props.data[1]?.x1 as number
+    dx = zx(x1) - zx(x0)
+  }
 
   lineDefs.forEach(def => {
     const path = paths[def.key]
     if (!path) return
 
     path.attr('transform', `translate(${dx},0)`)
-
-    if (shouldAnimate) {
-      path.transition()
-        .duration(170)
-        .ease(d3.easeLinear)
-        .attr('transform', `translate(0,0)`)
-    } else {
-      path.attr('transform', `translate(0,0)`)
-    }
+    path.transition().duration(170).ease(d3.easeLinear).attr('transform', `translate(0,0)`)
   })
 }
 
