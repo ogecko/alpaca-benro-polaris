@@ -1631,13 +1631,17 @@ class PID_Controller():
     def telemetry(self):
         # Log meas, state and ref for websocket streaming
         payload = { 
-            "θ_sp":  self.theta_ref.tolist(), 
-            "θ_pv":  self.theta_meas.tolist(), 
-            "ω_kp":  self.omega_kp.tolist(), 
-            "ω_ki":  self.omega_ki.tolist(),  
-            "ω_kd":  self.omega_kd.tolist(), 
-            "ω_ff":  self.omega_ref.tolist(), 
-            "ω_op":  self.omega_op.tolist(), 
+            "Δ_sp": self.delta_ref.tolist(),
+            "Δ_pv": self.delta_meas.tolist(),
+            "α_sp": self.alpha_ref.tolist(),
+            "α_pv": self.alpha_meas.tolist(),
+            "θ_sp": self.theta_ref.tolist(), 
+            "θ_pv": self.theta_meas.tolist(), 
+            "ω_kp": self.omega_kp.tolist(), 
+            "ω_ki": self.omega_ki.tolist(),  
+            "ω_kd": self.omega_kd.tolist(), 
+            "ω_ff": self.omega_ref.tolist(), 
+            "ω_op": self.omega_op.tolist(), 
         }
         pidlogger = logging.getLogger('pid') 
         pidlogger.info(payload)

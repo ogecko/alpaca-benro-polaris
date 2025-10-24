@@ -11,6 +11,8 @@ export type KalmanMessage = {
   K_gain: [number, number, number, number, number, number],
 }
 export type PIDMessage = { 
+  Δ_sp: [number, number, number], Δ_pv: [number, number, number],
+  α_sp: [number, number, number], α_pv: [number, number, number],
   θ_sp: [number, number, number], θ_pv: [number, number, number],
   ω_kp: [number, number, number], ω_ki: [number, number, number], ω_kd: [number, number, number],
   ω_ff: [number, number, number], ω_op: [number, number, number], 
