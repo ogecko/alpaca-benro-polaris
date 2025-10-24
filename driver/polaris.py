@@ -85,7 +85,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, wrap_to_360
+from control import quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, wrap_to_360, wrap_to_180
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
@@ -884,9 +884,9 @@ class Polaris:
 
         a_ra, a_dec = self.altaz2radec(a_alt, a_az)
         position_ang, parallactic_ang = self._sm.roll2pa(a_az, a_alt, a_roll)
-        alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
+        alpha_state = np.array([a_az, a_alt, wrap_to_180(a_roll)], dtype=float)
         theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)          # always unadjusted
-        delta_state = np.array([a_ra*15, a_dec, -position_ang], dtype=float)         
+        delta_state = np.array([a_ra*15, a_dec, wrap_to_360(position_ang)], dtype=float)         
     
         # Store all the new ascom values
         with self._lock:
