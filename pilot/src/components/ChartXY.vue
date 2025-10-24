@@ -243,6 +243,8 @@ function drawLines(
     zx = xScale, 
     zy = yScale,
 ) {
+  const shouldAnimate = props.data.length >= 150
+
   lineDefs.forEach(def => {
   const line = d3.line<DataPoint>()
     .defined(d => typeof d[def.key] === 'number')
@@ -261,13 +263,22 @@ function drawLines(
   )
 
   lineDefs.forEach(def => {
-    paths[def.key]?.attr('transform', `translate(${dx},0)`) // start offset
-      .transition()
-      .duration(170)
-      .ease(d3.easeLinear)
-      .attr('transform', `translate(0,0)`) // animate back to origin
+    const path = paths[def.key]
+    if (!path) return
+
+    path.attr('transform', `translate(${dx},0)`)
+
+    if (shouldAnimate) {
+      path.transition()
+        .duration(170)
+        .ease(d3.easeLinear)
+        .attr('transform', `translate(0,0)`)
+    } else {
+      path.attr('transform', `translate(0,0)`)
+    }
   })
 }
+
 
 
 function drawGridlines(
