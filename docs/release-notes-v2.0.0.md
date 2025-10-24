@@ -2,23 +2,26 @@
 
 ## Alpaca Benro Polaris Driver  
 * **Version:** 2.0.0 Beta2
-* **Release Date:** 14-Oct-2025   
+* **Release Date:** 24-Oct-2025   
 * **Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris
-* **Current Branch:** releases/2_0_alpha1 
-* **Demo Video:** Demonstration Video at https://youtu.be/4wRKDHmwVlE 
+* **Current Branch:** releases/2_0_beta2 
 * **Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
+* **Demo Video 1:** Demonstration Video at https://youtu.be/0QSKD1GCzOc 
+* **Demo Video 2:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
+* **Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
 
 ## Improvements in Beta2 over Beta1
-- **[PID Integral]** Fixed issue with PID integral component calculation, better tracking closure
-- **[PID Acceleration]** Increased default max acceleration to 5 degrees per sec, faster response
-- **[PID Tuning]** Implemented PID Tuning page and performance statistics on charts
-- **[Chart Legends]** Add chart legends to all charts
-- **[Chart UX]** Improve charts for resize and improve color consistency across app for SP, PV, OP.
+- **[PID Integral]** Fixed issue with PID integral component calculation, better tracking error closure to zero
+- **[PID Acceleration]** Increased default max acceleration from 3 to 5°/s², faster response
+- **[PID Tuning]** Implemented PID Tuning page and expose all tunable parameters
+- **[Chart Legends]** Add trace legend to all charts
+- **[Chart Statistics]** Add performance statistics to all charts
+- **[Chart UX]** Improve charts for resize and improve color consistency across app for SP, PV, OP, Mx.
 - **[M1-3 readout]** Add absolute angle readouts for motors M1, M2, M3 on dashboard
-- **[Find Home]** Returns mount to true Home position, unwinding cables. 
+- **[Find Home]** Returns mount to true Home position (M1=M2=M3=0), unwinding cables. 
 - **[Set Park]** Ability to customise the Park location.
-- **[Advanced Park]** Rewrite of Benro Polaris Park from V1.0 to be more ASCOM compliant. Uses PID controller, smoother Park, interruptable, unwinds, custom locations.
-- **[Parking, Homing]** Add new PID states for monitoring movement to Park and Home positions
+- **[Advanced Park]** Rewrite V1.0 Park to be more ASCOM compliant. Uses PID controller, smoother Park, interruptable, unwinds.
+- **[Parking, Homing]** Add new PID states for monitoring transition to Park and Home positions
 - **[Nina Support]** Find Home, Set Park, Park and UnPark are accessable from any Alpaca Client, including Nina, Alpaca Pilot and others.
 - **[Celestrial Poles]** Added North and South Celestrial Poles to the catalog to easy alignment
 - **[QUEST Paper]** Added a research paper on QUEST in docs
