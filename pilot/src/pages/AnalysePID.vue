@@ -311,7 +311,7 @@ async function runTestCase(payload: { isPressed: boolean }, sign:number) {
       const isPressed = payload.isPressed
       await dev.alpacaMoveAxis(axis.value, isPressed ? sign*testcase.value?.value : 0)
     } else {
-      true
+      console.log('pulse test case not implemented')
     }
 }
 
