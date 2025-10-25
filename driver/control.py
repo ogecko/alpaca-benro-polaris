@@ -1182,7 +1182,7 @@ class PID_Controller():
         self.omega_kp = np.array([0,0,0], dtype=float)       # omega1-3 due to proportional error
         self.omega_ki = np.array([0,0,0], dtype=float)       # omega1-3 due to integrated error
         self.omega_kd = np.array([0,0,0], dtype=float)       # omega1-3 due to velocity damping (derivative of position)
-        self.omega_ref = np.array([0,0,0], dtype=float)      # omega1-3 due to requested velocity feed forward (slew, tracking)
+        self.omega_ff = np.array([0,0,0], dtype=float)       # omega1-3 due to requested velocity feed forward (slew, tracking)
         self.omega_min = np.array([0,0,0], dtype=float)      # omega1-3 min allowable angular velocity (0=axis at limit, no more -ve)
         self.omega_max = np.array([0,0,0], dtype=float)      # omega1-3 max allowable angular velocity (0=axis at limit, no more +ve)
         self.omega_tgt = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity raw pid output
@@ -1500,7 +1500,7 @@ class PID_Controller():
 
         q1 = angles_to_quaternion(a_az, a_alt, a_roll)
 
-        if Config.advanced_rotator and Config.advanced_control:
+        if Config.advanced_alignment and Config.advanced_control:
             q1 = self.polaris._sm.q1_adj.inverse * q1
 
         theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1, azhint=self.alpha_ref[0])
@@ -1517,7 +1517,7 @@ class PID_Controller():
         self.zeta_meas = zeta_meas
         self.time_meas = now
 
-    def predict(self):
+    def predict(self):          # This is not used in the PID Control Loop
         self.theta_meas = clamp_theta(self.theta_meas + self.dt * self.omega_op)
         self.time_meas = self.time_meas + self.dt
 
@@ -1562,17 +1562,17 @@ class PID_Controller():
 
     def feed_forward(self):
         # Feed forward tracking velocities (when in track mode and no delta_ref change)
-        self.omega_ref = np.array([0,0,0], dtype=float)
+        self.omega_ff = np.array([0,0,0], dtype=float)
         if self.mode == "TRACK":
             delta_ref_change = self.delta_ref - self.delta_ref_last
             delta_ref_nochange = np.sum(delta_ref_change ** 2) < 1e-3
             if delta_ref_nochange and self.dt > 0:
                 tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
-                self.omega_ref = tracking_vel
+                self.omega_ff = tracking_vel
         # Feed forward slew velocities when in auto mode
         elif self.mode == "AUTO":
-            self.omega_ref = self.alpha_v_sp
-        self.omega_tgt += self.omega_ref
+            self.omega_ff = self.alpha_v_sp
+        self.omega_tgt += self.omega_ff
 
     def constrain(self):
         self.set_Ka_array(Config.pid_Ka) 
@@ -1619,7 +1619,6 @@ class PID_Controller():
         # [0.0, 0.0059018, 0.0175906, 0.0478282, 0.0892742, 0.2079884]
         for axis in range(3):
             self.omega_op[axis] = self.omega_ctl[axis]
-            raw = self.controllers[axis]._model.DPS.toRAW(self.omega_ctl[axis])
         # send control to motor when moving
         if self.is_moving and self.mode in ['AUTO', 'TRACK', 'HOMING', 'PARKING']:
             for axis in range(3):
@@ -1655,7 +1654,7 @@ class PID_Controller():
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 
-            "ω_ff": self.omega_ref.tolist(), 
+            "ω_ff": self.omega_ff.tolist(), 
             "ω_op": self.omega_op.tolist(), 
         }
         pidlogger = logging.getLogger('pid') 
@@ -1676,9 +1675,6 @@ class PID_Controller():
             await self.control()      # Update omega_op, constrain with valid op control values
             self.notify()       # Notify any callback of no longer deviating
             self.telemetry()    # send to Alpaca Pilot
-            if Config.log_performance_data==6:
-                self.logger.info(f',"DATA6", "{self.mode}",  { fmt3(self.delta_ref)},  {fmt3(self.alpha_ref)},  {fmt3(self.theta_ref)},  {fmt3(self.theta_meas)},  {fmt3(self.omega_ref)},  {fmt3(self.omega_op)}')
-
 
     async def _control_loop(self):
         while not self._stop_flag.is_set():

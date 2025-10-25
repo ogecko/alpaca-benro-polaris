@@ -138,7 +138,7 @@ Notes: Ireland Week43, New 5nm filters.
 
 
 
-## Beta Tester: Mark (FB: William Siers; GH: Spiderx01)
+## Beta Tester: Mark (FB: William Siers; GH: Spiderx01, Dis: williamsiers)
 Notes: Phoenix Week43
 ### Platform & Environment
 ...

@@ -1467,7 +1467,7 @@ class Polaris:
                 'thetastate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
                 'deltaref': self._pid.delta_ref.tolist(),
                 'alpharef': self._pid.alpha_ref.tolist(),
-                'omegaref': self._pid.omega_ref.tolist(),
+                'omegaref': self._pid.omega_ff.tolist(),
                 'omegamin': self._pid.omega_min.tolist(),
                 'omegamax': self._pid.omega_max.tolist(),
                 'motorref': [motor.rate_dps for motor in self._motors.values()],
