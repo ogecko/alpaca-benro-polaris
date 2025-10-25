@@ -1303,10 +1303,14 @@ class Polaris:
             await motor.set_motor_speed(rate * direction, "RAW")
             result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
             self._cm.addTestResult(axis, rate, result, stdev, status)
+
         # ensure we stop all movement
         await motor.set_motor_speed(0, "RAW")
-        await asyncio.sleep(2)
-        await self.send_cmd_reset_axis(axis)
+        if Config.advanced_control:
+            await self.findHome()
+        else:
+            await asyncio.sleep(2)
+            await self.send_cmd_reset_axis(axis)
         self.lifecycle.reset()
 
 
