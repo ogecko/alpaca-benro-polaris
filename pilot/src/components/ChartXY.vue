@@ -8,6 +8,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import * as d3 from 'd3'
 import { formatAngle } from 'src/utils/scale'
+import { throttle } from 'quasar'
 // import { deg2fulldms } from 'src/utils/angles'
 export type DataPoint = Record<string, number | Date | undefined>
 
@@ -266,7 +267,7 @@ function drawLines(
     if (!path || dlen.value<140) return
    
     path.attr('transform', `translate(${dx},0)`)
-    path.transition().duration(170).ease(d3.easeLinear).attr('transform', `translate(0,0)`)
+    path.transition().duration(175).ease(d3.easeLinear).attr('transform', `translate(0,0)`)
   })
 }
 
@@ -304,7 +305,10 @@ onMounted(async () => {
   initChart()
   updateChart()
 })
-watch(() => props.data, updateChart, { deep: true })
+
+const throttledUpdateChart = throttle(() => { updateChart()}, 170) 
+watch(() => props.data, throttledUpdateChart, { deep: true })
+
 onBeforeUnmount(() => {
   d3.select(chart.value).select('svg').remove()
 })
