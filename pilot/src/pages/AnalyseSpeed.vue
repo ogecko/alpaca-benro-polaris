@@ -103,9 +103,7 @@
             <q-item>
               <q-item-section>
                 <q-item-label> Angular Position for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  Measured (green) and Filtered (yellow) angular position.
-                </q-item-label>
+                <q-item-label caption>M1-3: Measured Position, PV: Present Value Position </q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -119,9 +117,7 @@
             <q-item>
               <q-item-section>
                 <q-item-label> Angular Velocity for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  Control reference (red), Measured (green) and Filtered (yellow) Angular Velocity. 
-                </q-item-label>
+                <q-item-label caption>M1-3: Measured Velocity, PV: Present Value Velocity. SP: Setpoint Velocity</q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -185,19 +181,21 @@ type TableRow = {
 function formatPosData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as KalmanMessage
-  const y1 = data.θ_meas[axis.value] ?? 0
-  const y2 = data.θ_state[axis.value] ?? 0
-  return { x1: time, y1, y2 }
+  const mxKey = `M${axis.value + 1}`
+  const MX = data.θ_meas[axis.value] ?? 0
+  const PV = data.θ_state[axis.value] ?? 0
+  return { x1: time, [mxKey]: MX, PV }
 }
 
 
 function formatVelData(d: TelemetryRecord):DataPoint {
   const time = new Date(d.ts)
   const data = d.data as KalmanMessage
-  const y1 = data.ω_meas[axis.value] ?? 0
-  const y2 = data.ω_state[axis.value] ?? 0
-  const y3 = data.ω_ref[axis.value] ?? 0
-  return { x1: time, y1, y2, y3 }
+  const mxKey = `M${axis.value + 1}`
+  const MX = data.ω_meas[axis.value] ?? 0
+  const PV = data.ω_state[axis.value] ?? 0
+  const SP = data.ω_ref[axis.value] ?? 0
+  return { x1: time, [mxKey]: MX, PV, SP }
 }
 
 function formatTestData(d: TelemetryRecord):TableRow {
