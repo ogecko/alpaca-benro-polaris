@@ -33,18 +33,28 @@ class BLE_Controller():
 
     def scannerCallback(self, device, adv):
         name = (adv.local_name or device.name or "").lower()
-        if name.startswith("polaris"):
-            self.devices[device.address] = {
-                "name": name,
-                "address": device.address,
-                "service_uuids": adv.service_uuids,
-                "rssi": adv.rssi,
-                "last_seen": time.monotonic(),
-            }
-            if self.selectedDevice is None:     # select the first one we discover
-                asyncio.create_task(self.setSelectedDevice(name)) 
-            if Config.log_polaris_ble:
-                self.logger.info(f"BLE Discovered Polaris: {device.address} ({self.devices[device.address]})")
+        if not name.startswith("polaris"):
+            return
+        now = time.monotonic()
+        addr = device.address
+        # existing or new entry
+        existing = self.devices.get(addr)
+        last_seen = existing.get("last_seen", 0) if existing else 0
+        # Skip if we've seen it too recently (< 1s)
+        if now - last_seen < 1.0:
+            return
+        self.devices[addr] = {
+            "name": name,
+            "address": addr,
+            "service_uuids": adv.service_uuids,
+            "rssi": adv.rssi,
+            "last_seen": now,
+        }
+        if self.selectedDevice is None:
+            asyncio.create_task(self.setSelectedDevice(name))
+        if Config.log_polaris_ble:
+            self.logger.info(f"BLE Discovered Polaris: {addr} ({self.devices[addr]})")
+
 
     def prune_stale_devices(self, timeout=60):
         now = time.monotonic()
@@ -83,33 +93,67 @@ class BLE_Controller():
         address = self.get_address_by_name(name)
         if not address:
             return
+
         self.isEnablingWifi = True
         self.isWifiEnabled = False
         max_attempts = 3
-        for attempt in range(1, max_attempts+1):
+
+        for attempt in range(1, max_attempts + 1):
             try:
-                async with BleakClient(address) as client:
+                if Config.log_polaris_ble:
+                    self.logger.info(f"BLE Connecting to {address} (attempt {attempt})")
+
+                async with BleakClient(address, timeout=10.0) as client:
+                    # Explicitly wait for services (cross-platform)
+                    try:
+                        services = await getattr(client, "get_services", lambda: client.services)()
+                    except Exception:
+                        services = client.services
+
+                    # Sanity-check expected UUIDs
+                    send_char = services.get_characteristic(SEND_UUID)
+                    recv_char = services.get_characteristic(RECV_UUID)
+                    if not (send_char and recv_char):
+                        raise BleakError("Expected characteristics not found")
+                    if not any(p in send_char.properties for p in ("write", "write-without-response")):
+                        raise BleakError(f"Characteristic {SEND_UUID} is not writable: {send_char.properties}")
+
                     await client.start_notify(RECV_UUID, self.notification_handler)
-                    await client.write_gatt_char(SEND_UUID, b'enable_wifi', response=True)
+                    await asyncio.sleep(0.3)  # Allow macOS/Windows to settle
+                    await client.write_gatt_char(SEND_UUID, b"enable_wifi", response=True)
+
                     if Config.log_polaris_ble:
-                        self.logger.info(f"BLE Send request to enable Wifi {address}")
+                        self.logger.info(f"BLE Sent enable_wifi to {address}")
+
                     data = await client.read_gatt_char(RECV_UUID)
                     if Config.log_polaris_ble:
-                        self.logger.info(f"BLE Read request complete {bytes2hexascii(data)}")
+                        self.logger.info(f"BLE Read: {bytes2hexascii(data)}")
+
                     self.isEnablingWifi = False
                     self.isWifiEnabled = True
                     return
-            except Exception as e:
+
+            except asyncio.TimeoutError:
                 if Config.log_polaris_ble:
-                    self.logger.warn(f"BLE Attempt {attempt} failed to enable Wifi {address}: {e}")
-                if attempt < max_attempts:
-                    await asyncio.sleep(1)
-                else:
-                    if Config.log_polaris_ble:
-                        self.logger.warn(f"BLE failed to enable wifi after {max_attempts}")
-                    self.isEnablingWifi = False
+                    self.logger.warning(f"BLE timeout on connect attempt {attempt} for {address}")
+            except asyncio.CancelledError:
+                if Config.log_polaris_ble:
+                    self.logger.warning(f"BLE connect cancelled (WinRT stall) on attempt {attempt}")
+                await asyncio.sleep(2)  # small cooldown before retry
+            except BleakError as e:
+                if Config.log_polaris_ble:
+                    self.logger.warning(f"BLE Attempt {attempt} failed for {address}: {e}")
+            except Exception as e:
+                self.logger.exception(f"Unexpected BLE error on attempt {attempt}: {e}")
 
+            # Re-scan between retries
+            if attempt < max_attempts:
+                await asyncio.sleep(3)
+                await BleakScanner.discover(timeout=3.0)
 
+        if Config.log_polaris_ble:
+            self.logger.error(f"BLE failed to enable Wi-Fi after {max_attempts} attempts")
+        self.isEnablingWifi = False
 
     async def runBleScanner(self):
         try:
