@@ -1250,7 +1250,7 @@ class Polaris:
         s_lon = self._sitelongitude
         self.logger.info("Polaris communication init... done")
         self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
-        self.logger.warn(f'Change site_latitude and site_longitude in Alpaca Pilot App or use Nina/StellariumPLUS to sync.')
+        self.logger.warn(f'Change site_latitude and site_longitude in Alpaca Pilot App.')
         # if we want to run Aim test or Drift test over a set of targets in the sky
         if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
             asyncio.create_task(self.goto_tracking_test())
