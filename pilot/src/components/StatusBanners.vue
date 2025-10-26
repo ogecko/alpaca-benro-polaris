@@ -11,7 +11,7 @@
         <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
-    <div v-if="p.pidmode=='PRESETUP'" >
+    <div v-else-if="p.pidmode=='PRESETUP'" >
       <q-banner inline-actions rounded class="bg-warning">
         PRESETUP: Please set your Observing Site Lattitude and Longitude before proceeding.
         <template v-slot:action><q-btn flat label="Setup" to="/config" /></template>
