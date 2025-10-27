@@ -5,7 +5,8 @@ Please review the following agreement before using any Alpha or Beta version of 
 ## You agree to the following responsibilities
 
 ### 1. Create a GitHub account
-Ff you don’t already have one, please create an account and let me know so that I can add you to the repository. You can use this to raise issues and make changes to the beta test results document.
+If you don’t already have a GitHub account, please create one and let me know so I can add you to the repository. This will allow you to raise issues and contribute directly to the beta test results document.
+
 
 ---
 
