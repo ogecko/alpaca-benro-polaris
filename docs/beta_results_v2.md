@@ -194,7 +194,43 @@ Notes: Tried BP Dither
 ### Test Areas
 ...
 ### Results
-...
+26/10/2025
+    windows 11 laptop
+    start BP (repaired so first time)
+    bp on tripod
+    mount Pentax & Rok 135
+    connect with USB to laptop 
+    insert wifi dongle, connect to BP wifi
+    star alpaca driver v2 "comm init done" no phone used
+    start stellarium
+    find A6 Lemmon
+    start NINA
+    connect camera
+    connect mount Alpaca BP Telescope 
+    check focal length in options > Equipment, amend as necessary
+    open framing again check focal length
+    get coordinates from planetarium
+    cannot rotate mount to target, no movement
+    same in NINA, gets coordinates from stella but no slew
+    go to stella config > plugins > scope control 
+        status connecting ¦ type local,ascom ¦ name BP
+    stays on connecting
+    tried a park in nina didn't react so ....
+    disconnect from nina, close stella
+    connect phone
+    calibrate compass
+    goto something
+    start stella still no scope control in stella
+    nina started, coordinates from stella slewed successfully to target
+    plate solve failed, clods and obstructions in FOV so moved the rig 1 meter forward.
+    tried another platesolve, slew an centre and it contorted the rig into some very weird angles.
+    parked and tried again, this time it did the opposite of the weirdness (see photos)
+    tried to manually turn BP using the east button in nina and the rotator is turning too
+    used bp app on phone to goto target using coordinates written in from stella and it went to the cords without rotator turning
+    back to nina > framing get cords from stella success
+    slew and centre 
+    forced to quit, clouds :(
+
 ### Feedback
 ...
 
