@@ -277,3 +277,31 @@ V2 will still require a separate mini-PC to run the driver. I explored the possi
 Reply
 Kevin Jones
 just pledged for the Awesome package! bring it on David!
+
+user avatar
+Charles T. Simet
+16 minutes ago
+You are one of the few exceptions on Kickstarter that I'll gladly back (after being burned a number of times). You deliver on your promises and are the best communicator! Keep up the great work.
+
+
+@AlvinChristie-o4z  • 1 day ago
+It's looking phenomenal David...keep it up!
+
+ • 1 day ago
+Nice work!
+
+
+@The-explorer  • 6 days ago
+great work. Thanks, from Egypt
+
+
+@outsideoursphere  • 11 days ago
+this will be awesome, can’t wait to give this new version a crack!!
+
+Reply
+
+0 replies
+
+
+@madhatterbakery-artisanmad7631  • 13 days ago (edited)
+Great Podcast highlighting the amazing developments .... sounds brilliant  😀
