@@ -1727,7 +1727,7 @@ class SyncManager:
             # Find entry with lowest weight
             lowest_entry = min(active_entries, key=lambda e: e["w_total"])
             timestamp_to_remove = lowest_entry.get("timestamp")
-            self.sync_remove(timestamp_to_remove)
+            self.sync_remove(timestamp_to_remove, optimise=False)
         entry = self.standard_entry()
         entry["a_ra"] = a_ra
         entry["a_dec"] = a_dec
@@ -1747,7 +1747,7 @@ class SyncManager:
         self.optimize_roll_adj()
         self.logSyncData()
 
-    def sync_remove(self, timestamp):
+    def sync_remove(self, timestamp, optimise=True):
         found = False
         for entry in self.sync_history:
             if entry.get("timestamp") == timestamp:
@@ -1756,8 +1756,9 @@ class SyncManager:
                 break
         if found:
             self.logger.info(f"Cleared sync data for timestamp: {timestamp}")
-            self.optimize_q1_adj()
-            self.optimize_roll_adj()
+            if optimise:
+                self.optimize_q1_adj()
+                self.optimize_roll_adj()
             self.logSyncData()
         else:
             self.logger.warning(f"No sync entry found with timestamp: {timestamp}")
@@ -1806,9 +1807,6 @@ class SyncManager:
         def v_angular_distance(v1, v2):
             """Compute angular separation between two unit vectors in radians."""
             return np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
-        def dec_from_vector(v):
-            """Compute declination from a unit vector."""
-            return np.degrees(np.arcsin(v[2]))  # z component = sin(dec)
 
         v_current = self.az_alt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
 
@@ -1817,8 +1815,7 @@ class SyncManager:
                 continue
             v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])            # Observed vector from sync
             v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])           # Predicted vector from Polaris
-
-            proximity_angle = v_angular_distance(v_obs, v_current)
+            proximity_angle = v_angular_distance(v_pred, v_current)                 # in Polaris space
 
             w_recency = 0.5 * np.exp(-0.1 * (len(self.sync_history) - i))                 # Recent syncs weighted more heavily: ~0.6–1.0
             w_proximity = 1.0 * np.exp(-(proximity_angle**2) / (2 * np.radians(10)**2))   # Higher weight for syncs near current pointing orientation: #  guassian σ=10°
