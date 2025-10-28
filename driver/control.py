@@ -1721,6 +1721,13 @@ class SyncManager:
         return entry
 
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
+        active_entries = [e for e in self.sync_history if not e.get("deleted", False)]
+        # If limit reached, remove the lowest-weighted entry
+        if len(active_entries) >= 10:
+            # Find entry with lowest weight
+            lowest_entry = min(active_entries, key=lambda e: e["w_total"])
+            timestamp_to_remove = lowest_entry.get("timestamp")
+            self.sync_remove(timestamp_to_remove)
         entry = self.standard_entry()
         entry["a_ra"] = a_ra
         entry["a_dec"] = a_dec
@@ -1819,6 +1826,7 @@ class SyncManager:
             
             # Combine weights additively to ensure no single factor can zero out the weight
             w_total = w_proximity + w_polar + w_recency + 0.01  
+            entry["w_total"] = w_total
 
             pairs.append((v_pred, v_obs))
             weights.append(w_total)
