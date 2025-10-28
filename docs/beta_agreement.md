@@ -60,7 +60,7 @@ To help resolve issues effectively, follow these steps:
 
 * **Reproduce** - If something goes wrong, try to repeat it and record the steps. This is especially important for intermittent problems.  
 
-* **Isolate** - Try to narrow down the cause or area of the problem. The more constrained the issue, the easier it is to resolve. Repeat the test under different scenarios to help isolate and special causes. 
+* **Isolate** - Try to narrow down the cause or area of the problem. The more constrained the issue, the easier it is to resolve. Repeat the test under different scenarios to help isolate any special causes. 
 
 
 * **Diagnose** - Compare what is expected vs what was observed. What might be causing the problem. What data/logs might be needed to help find the cause. Anything you can do before involving someone else?
