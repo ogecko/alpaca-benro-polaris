@@ -1,14 +1,23 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.0.0 Beta2
-* **Release Date:** 24-Oct-2025   
+* **Version:** 2.0.0 Beta3
+* **Release Date:** 31-Oct-2025   
 * **Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris
-* **Current Branch:** releases/2_0_beta2 
+* **Current Branch:** releases/2_0_beta3 
 * **Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
 * **Demo Video 1:** Demonstration Video at https://youtu.be/0QSKD1GCzOc 
 * **Demo Video 2:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
 * **Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
+
+## What's new since beta2
+- **[Goto Timeout]** When a GOTO does not achieve GOTO tolerance after 45s, it will stop the motors and return to IDLE
+- **[Weighted Sync]** Syncs with higher recency, closer proximity, or closer to the pole are given more weight in multi-point alignment
+- **[Limit Syncs]** Limit to a maximum of 10 sync points, discarding lowest-weighted points when new syncs performed.
+- **[Sync Diagnostics]** Added a new Driver Log Setting to optionally log the weights when calculating the QUEST model.
+- **[Bluetooth LE]** Improved handling of Bluetooth LE on MacOS
+- **[Warning Banner]** Show warning banner on Connection Page as well as every other page
+
 
 ## What’s new since beta1
 - **[PID Integral]** Corrected integral component calculation for better error convergence to zero

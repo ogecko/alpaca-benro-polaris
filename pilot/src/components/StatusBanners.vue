@@ -2,13 +2,13 @@
     <div v-if="!dev.restAPIConnected" >
       <q-banner inline-actions rounded class="bg-warning" >
         WARNING: You have lost connection to the Alpaca Driver. This app is offline.
-        <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
+        <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
     <div v-else-if="!p.connected" >
       <q-banner inline-actions rounded class="bg-warning" >
         WARNING: The Alpaca Driver has lost connection to the Benro Polaris.
-        <template v-slot:action><q-btn flat label="Reconnect" to="/connect" /></template>
+        <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
     <div v-else-if="p.pidmode=='PRESETUP'" >
@@ -37,11 +37,14 @@
 <script setup lang="ts">
 import { useDeviceStore } from 'src/stores/device';
 import { useStatusStore } from 'src/stores/status';
+import { useRoute } from 'vue-router'
+import { computed  } from 'vue'
 
 const dev = useDeviceStore()
 const p = useStatusStore()
+const route = useRoute()
 
-
+const isShowReconnect = computed(() => route.path != '/connect')
 
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
