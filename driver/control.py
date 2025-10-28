@@ -1823,14 +1823,13 @@ class SyncManager:
             
             # Combine weights additively to ensure no single factor can zero out the weight
             w_total = w_proximity + w_polar + w_recency + 0.01  
+            entry["w_recency"] = w_recency
+            entry["w_proximity"] = w_proximity
+            entry["w_polar"] = w_polar
             entry["w_total"] = w_total
 
             pairs.append((v_pred, v_obs))
             weights.append(w_total)
-            if Config.log_quest_model:
-                self.logger.info(
-                f"Sync[{i}] | Timestamp: {entry['timestamp']} | Pred AzAlt: ({entry['p_az']:.2f}, {entry['p_alt']:.2f}) | Obs AzAlt: ({entry['a_az']:.2f}, {entry['a_alt']:.2f}) | Obs RADec: ({entry['a_ra']:.2f}, {entry['a_dec']:.2f}) | ProximityW: {w_proximity:.4f} | RecencyW: {w_recency:.4f} | PolarW: {w_polar:.4f} | TotalW: {w_total:.4f}"
-                )
 
 
         self.aligned_count = len(pairs)
@@ -1879,6 +1878,15 @@ class SyncManager:
         self.compute_azalt_residuals()   # Compute and store residuals
         self.compute_tilt()              # Compute tilt correction
 
+        if Config.log_quest_model:
+            for entry in self.sync_history:
+                if entry["deleted"]:
+                    continue
+                msg = f"Sync[{i}] | Timestamp: {entry['timestamp']} | Pred AzAlt: ({entry['p_az']:.2f}, {entry['p_alt']:.2f}) "
+                msg += f"| Obs AzAlt: ({entry['a_az']:.2f}, {entry['a_alt']:.2f}) | Obs RADec: ({entry['a_ra']:.2f}, {entry['a_dec']:.2f}) "
+                msg += f"| ProximityW: {entry['w_proximity']:.4f} | RecencyW: {entry['w_recency']:.4f} | PolarW']: {entry['w_polar']:.4f} "
+                msg += f"| TotalW: {entry['w_total']:.4f} | Residual: { deg2dms(entry['residual_magnitude'])}"
+                self.logger.info(msg)
         return
 
 
