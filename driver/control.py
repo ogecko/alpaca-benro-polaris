@@ -1191,7 +1191,7 @@ class PID_Controller():
         self.reset_offsets()
         self.reset_theta()
         self.time_meas = None                # Time of measurement
-        self.time_sp = None                  # Time that target was set
+        self.time_goto = None                # Time that goto callback was set
         self.time_step = time.monotonic()    # Time that control step was done
         self.dt = dt    # Time interval since last control step in seconds
         if self.control_loop_duration:
@@ -1429,8 +1429,12 @@ class PID_Controller():
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
+    def goto_timeout(self):
+        return self.time_goto and (ephem.now() - self.time_goto) * 24 * 3600 > 45
+    
     def set_goto_complete_callback(self, fn):
         self.is_deviating = True
+        self.time_goto = ephem.now()
         self.goto_complete_callback = fn
               
     def set_rotate_complete_callback(self, fn):
@@ -1550,9 +1554,6 @@ class PID_Controller():
         else:
             self.error_integral = np.array([0,0,0], dtype=float)
 
-        # If we have stopped moving in AUTO, HOMING or PARKING, go to IDLE
-        if not self.is_moving and self.mode in ['AUTO', 'HOMING', 'PARKING']:
-            self.set_pid_mode('IDLE')
    
     def pid(self):
         self.omega_kp = np.array(Config.pid_Kp, dtype=float) * self.error_signal    # increase control proportional to error
@@ -1623,13 +1624,18 @@ class PID_Controller():
         if self.is_moving and self.mode in ['AUTO', 'TRACK', 'HOMING', 'PARKING']:
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
+        # If we have goto timeout or stopped moving; while  in AUTO, HOMING or PARKING, go to IDLE
+        if (not self.is_moving or self.goto_timeout()) and self.mode in ['AUTO', 'HOMING', 'PARKING']:
+            self.set_pid_mode('IDLE')
+            self.was_moving = True
+            self.is_moving = False
         # Stop motors when transitioning from moving to stopped
         if self.was_moving and not self.is_moving:
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(0)
 
     def notify(self):
-        if not self.is_deviating and self.goto_complete_callback:
+        if ((not self.is_deviating) or self.goto_timeout()) and self.goto_complete_callback:
             self.goto_complete_callback()
             self.goto_complete_callback = None
         if not self.is_deviating and self.rotate_complete_callback:
