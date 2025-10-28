@@ -1,5 +1,8 @@
 <template>
   <q-page class="q-pa-sm">
+
+    <StatusBanners />
+
     <!-- Header Row -->
     <div class="row q-pb-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
@@ -285,6 +288,7 @@ import { useStatusStore, polarisModeOptions } from 'stores/status'
 import { watch, computed, onMounted, onUnmounted } from 'vue'
 import { dms2deg } from 'src/utils/angles'
 import NetworkSettings from 'components/NetworkSettings.vue'
+import StatusBanners from 'src/components/StatusBanners.vue'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
