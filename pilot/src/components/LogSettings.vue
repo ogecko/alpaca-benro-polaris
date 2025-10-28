@@ -50,6 +50,7 @@
             </div>
             <div class="row">
             <q-toggle class='col-6' v-bind="bindField('log_polaris_ble', 'Log Bluetooth Low Energy')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_quest_model', 'Log Multi-Point Sync')"/>
             </div>
         </div>
     </q-card>

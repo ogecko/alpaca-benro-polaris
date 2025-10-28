@@ -576,8 +576,8 @@ class Polaris:
 
         if Config.advanced_alignment and Config.advanced_control:
             # Use Multi-Point Alignment and QUEST Model to determine Optimal Quaternion offset
-            self.logger.info(f"->> Polaris: SYNC Observed   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)}")
-            self._sm.sync_az_alt(a_az, a_alt)
+            self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)}")
+            self._sm.sync_az_alt(a_ra, a_dec, a_az, a_alt)
 
         else:
             # Use Single-Point Alignment and Alt/Az Sync Pointing model, send through to Polaris

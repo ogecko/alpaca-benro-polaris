@@ -1712,14 +1712,18 @@ class SyncManager:
             "p_az": self.polaris._p_azimuth,
             "p_alt": self.polaris._p_altitude,
             "p_roll": self.polaris._p_roll,
+            "a_ra": None,
+            "a_dec": None,
             "a_az": None,
             "a_alt": None,
             "a_roll": None,
         }
         return entry
 
-    def sync_az_alt(self, a_az, a_alt):
+    def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
         entry = self.standard_entry()
+        entry["a_ra"] = a_ra
+        entry["a_dec"] = a_dec
         entry["a_az"] = a_az
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
@@ -1790,24 +1794,53 @@ class SyncManager:
         Markley, F. L. (2003). "Attitude Estimation or Quaternion Estimation?" https://ntrs.nasa.gov/citations/20030093641
         """
         pairs = []
-        for entry in self.sync_history:
+        weights = []
+
+        def v_angular_distance(v1, v2):
+            """Compute angular separation between two unit vectors in radians."""
+            return np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
+        def dec_from_vector(v):
+            """Compute declination from a unit vector."""
+            return np.degrees(np.arcsin(v[2]))  # z component = sin(dec)
+
+        v_current = self.az_alt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
+
+        for i, entry in enumerate(self.sync_history):
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
-            # Observed vector from sync
-            v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])
-            # Predicted vector from mount
-            v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])
+            v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])            # Observed vector from sync
+            v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])           # Predicted vector from Polaris
+
+            proximity_angle = v_angular_distance(v_obs, v_current)
+
+            w_recency = 0.5 * np.exp(-0.1 * (len(self.sync_history) - i))                 # Recent syncs weighted more heavily: ~0.6–1.0
+            w_proximity = 1.0 * np.exp(-(proximity_angle**2) / (2 * np.radians(10)**2))   # Higher weight for syncs near current pointing orientation: #  guassian σ=10°
+            w_polar = 1.0 * np.exp(-((abs(entry['a_dec']) - 90)**2) / (2 * 10**2))        # Gaussian peak at ±90°, σ=10°
+            
+            # Combine weights additively to ensure no single factor can zero out the weight
+            w_total = w_proximity + w_polar + w_recency + 0.01  
+
             pairs.append((v_pred, v_obs))
+            weights.append(w_total)
+            if Config.log_quest_model:
+                self.logger.info(
+                f"Sync[{i}] | Timestamp: {entry['timestamp']} | Pred AzAlt: ({entry['p_az']:.2f}, {entry['p_alt']:.2f}) | Obs AzAlt: ({entry['a_az']:.2f}, {entry['a_alt']:.2f}) | Obs RADec: ({entry['a_ra']:.2f}, {entry['a_dec']:.2f}) | ProximityW: {w_proximity:.4f} | RecencyW: {w_recency:.4f} | PolarW: {w_polar:.4f} | TotalW: {w_total:.4f}"
+                )
+
 
         self.aligned_count = len(pairs)
         if len(pairs) < 2:
             self.q1_adj = self.optimise_q1_adj_fallback_single_sync(pairs)
             self.q1_adj_message = "Fallback rotation from single sync"
         else:
+            # Normalize weights
+            weights = np.array(weights)
+            weights /= np.sum(weights)
+
             # Build the B matrix: sum of weighted outer products between predicted and observed vectors
             # Each term aligns a predicted direction (from Polaris) to an observed direction (from sync)
             # This builds the core rotation alignment matrix
-            B = sum(np.outer(v_pred, v_obs) for v_pred, v_obs in pairs)
+            B = sum(w * np.outer(v_pred, v_obs) for (v_pred, v_obs), w in zip(pairs, weights))
 
             # Construct the Davenport matrix K, which encodes the optimal rotation in quaternion form
             # This is based on the method from Markley's QUEST algorithm
