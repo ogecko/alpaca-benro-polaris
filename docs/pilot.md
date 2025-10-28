@@ -38,6 +38,7 @@ You can view a demonstration of parts of this documentation in the following You
 
 ## 6. Tuning
 ### Speed Calibration
+With the calibration there is no realy right answer and being closer to "zero" doesnt really matter. The intent is to make the driver understand what speeds it will get when it commands the mount to go at a specific cmd. The right answer is the result from your own mount. Faster or slower than the baseline doesnt really matter. The %change is just a check that its not too large a change like >20% which may indicate a bad test result. 7% is fine. send through your results if your unsure what to approve, but I'd suggest approving all.
 ### Kalman Filter Tuning
 ### PID Tuning
 ### Alpaca Driver Network Services
