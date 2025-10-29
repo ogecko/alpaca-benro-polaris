@@ -5,7 +5,7 @@
       :style="`width:${dProps.width}px; height: ${dProps.height}px`"
       @mouseenter="showButtons = true"
       @mouseleave="showButtons = false"
-      @touchstart.passive="showButtons = true; console.log(`touch ${props.label}`)"
+      @pointerdown="showButtons = true"
     >
     <!-- Outer Boundary Content for buttons -->
     <div class="outer-content" :style="`width:${dProps.width}px; height: ${dProps.height}px`">
@@ -31,9 +31,9 @@
     </div>
 
     <!-- SVG Background -->
-    <svg class="background-svg" @mousedown="onSvgClick" @touchstart.passive="onSvgClick" @wheel="onScaleWheel" ref="svgElement" :width="dProps.width" :height="dProps.height" 
+    <svg class="background-svg" @pointerdown="onSvgPointerDown" @wheel="onScaleWheel" ref="svgElement" :width="dProps.width" :height="dProps.height" 
     >
-      <rect :width="dProps.width" :height="dProps.height" fill="transparent" />
+      <rect :width="dProps.width" :height="dProps.height" fill="none" pointer-events="all"/>
       <g v-if="isLinear" ref="linearGroup" />
       <g v-else-if="isCircular" ref="circularGroup" />
     </svg>
@@ -255,28 +255,14 @@ function onClickSetpoint(isSetEvent:boolean, scope: { cancel: () => void }) {
 
 
 // handle clicks on the scale and emit a clickScale event
-function onSvgClick(e: MouseEvent | TouchEvent) {
+function onSvgPointerDown(e: PointerEvent) {
   const svg = svgElement.value;
   if (!svg) return;
 
-  let clientX: number | undefined;
-  let clientY: number | undefined;
-
-  // Normalize coordinates
-  if (e instanceof TouchEvent) {
-    const touch = e.touches[0];
-    if (!touch) return; // no touch point, bail early
-    clientX = touch.clientX;
-    clientY = touch.clientY;
-  } else {
-    clientX = e.clientX;
-    clientY = e.clientY;
-  }
-  if (clientX === undefined || clientY === undefined) return;
-
-  // determine the svg co-ordinates
   const pt = svg.createSVGPoint();
-  pt.x = clientX; pt.y = clientY;
+  pt.x = e.clientX;
+  pt.y = e.clientY;
+
   const svgCoords = pt.matrixTransform(svg.getScreenCTM()?.inverse());
 
   // determine screen angle from cx,cy, and reject clicks outside scale angle

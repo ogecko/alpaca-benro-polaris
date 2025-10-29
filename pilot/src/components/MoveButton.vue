@@ -5,11 +5,9 @@
     :text-color="isPressed? 'white' : color"
     :color="isPressed? 'positive' : ''"
     :style="isPressed? 'opacity: 1' : `opacity: ${opacity}`"
-    @mousedown="onDown"
-    @mouseup="onUp"
-    @mouseleave="onUp"
-    @touchstart="onDown"
-    @touchend="onUp"
+    @pointerdown="onDown"
+    @pointerup="onUp"
+    @pointerleave="onUp"
     class="q-mx-xs"
   >
     <q-icon v-if="icon!=''" :name="icon" />
@@ -29,22 +27,21 @@ defineProps({
 
 const isPressed = ref(false)
 
-// events that can be emitted
 type PushEvents = {
   (e: 'push', payload: { isPressed: boolean }): void
 }
 const emit = defineEmits<PushEvents>()
 
-
-function onDown() {
+function onDown(e: PointerEvent) {
+  e.preventDefault() // optional: prevents unwanted text selection on long-press
   isPressed.value = true
-  emit('push', { isPressed: true})
+  emit('push', { isPressed: true })
 }
 
 function onUp() {
   if (isPressed.value) {
     isPressed.value = false
-    emit('push', { isPressed: false})
+    emit('push', { isPressed: false })
   }
 }
 </script>

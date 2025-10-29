@@ -25,7 +25,7 @@
     <q-card ref="cardArea" flat bordered class="col full-height q-pa-md text-body1" style="font-family: monospace;">
         <q-resize-observer @resize="onResize" />
         <q-scroll-area ref="scrollArea" @scroll="onScroll"  :style="{ 'height': scrollHeight + 'px' }"
-          @wheel="resetKeepAtBottom" @click="resetKeepAtBottom" @touchstart="resetKeepAtBottom">
+          @wheel="resetKeepAtBottom" @click="resetKeepAtBottom" @pointerdown="resetKeepAtBottom">
           <div>
             <div v-for="(entry, index) in logEntries" :key="index">
               {{ format(entry) }}
@@ -45,6 +45,7 @@ import StatusBanners from 'src/components/StatusBanners.vue'
 
 import type { TelemetryRecord } from 'src/stores/stream'
 import type { ComponentPublicInstance } from 'vue'
+import type { QScrollArea } from 'quasar'
 import { useDeviceStore } from 'src/stores/device'
 
 export type QScrollAreaScrollEvent = {
@@ -64,11 +65,11 @@ export type QScrollAreaScrollEvent = {
 
 const socket = useStreamStore()
 const dev = useDeviceStore()
-const logEntries = computed(() => socket.topics['log'] || [])
+const logEntries = computed<TelemetryRecord[]>(() => socket.topics['log'] || [])
 const isAtBottom = ref(true)
 const keepAtBottom = ref(true)
-const cardArea = ref()
-const scrollArea = ref()
+const cardArea = ref<HTMLElement | null>(null)
+const scrollArea = ref<QScrollArea | null>(null)
 const scrollHeight = ref(0)
 
 onMounted(() => {
@@ -87,8 +88,7 @@ watch(() => dev.isVisible, (isVisible) => {
 
 
 function onResize(size: { width: number; height: number }) {
-  console.log('Resize Log', size)
-  scrollHeight.value = size.height-50
+  scrollHeight.value = size.height - 50
 }
 
 
@@ -115,15 +115,16 @@ function onSentinelVisibility(visible: boolean) {
 }
 
 function scrollToBottom() {
-    const pos = scrollArea.value.getScroll()
-    const maxPos = pos.verticalSize - pos.verticalContainerSize
-    scrollArea.value.setScrollPosition('vertical', maxPos, 200)
+  if (!scrollArea.value) return
+
+  const pos = scrollArea.value.getScroll()
+  const maxPos = pos.verticalSize - pos.verticalContainerSize
+  scrollArea.value.setScrollPosition('vertical', maxPos, 200)
 }
 
 function resetKeepAtBottom() {
-    keepAtBottom.value = false
+  keepAtBottom.value = false
 }
-
 
 function onScroll() {
   if (keepAtBottom.value) {
@@ -132,9 +133,7 @@ function onScroll() {
 }
 
 watch(keepAtBottom, (val) => {
-  if (val) {
-    scrollToBottom()
-  }
+  if (val) scrollToBottom()
 })
 
 
