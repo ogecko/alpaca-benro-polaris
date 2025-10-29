@@ -176,6 +176,7 @@ from threading import Lock
 # [X] Add South and North Celestrial Pole
 # [ ] Add images of each target
 # [ ] Add a details page for each target
+# [ ] Fix J2000 co-ordinate display of 60" for Running chicken RA: +11ʰ38ᵐ60.0ˢ   |   Dec: -63°11′60.0″ 
 # [ ] Tonights Altitude, Proximity
 # [ ] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
 # [ ] Catalog Target Info on Dashboard
