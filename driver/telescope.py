@@ -16,9 +16,10 @@
 #
 # -----------------------------------------------------------------------------
 from falcon import Request, Response, before
+import ephem
 import asyncio
 from logging import Logger
-from shr import PropertyResponse, MethodResponse, HTTPBadRequest,  PreProcessRequest, get_request_field, to_bool, deg2rad
+from shr import PropertyResponse, MethodResponse, HTTPBadRequest,  PreProcessRequest, get_request_field, to_bool, deg2rad, rad2deg, rad2hr, hr2rad
 from exceptions import *        # Nothing but exception classes
 import math
 import json
@@ -1512,6 +1513,7 @@ class supportedactions:
             "Polaris:MoveAxis", "Polaris:MoveMotor", "Polaris:ResetAxes",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove", 
+            "Polaris:J2000Sync", "Polaris:J2000Goto"
             "Polaris:Ack", "Polaris:ResetSP",
         ], req)  
 
@@ -1697,6 +1699,26 @@ class action:
             logger.info(f'Polaris ResetSP {parameters}')
             polaris._pid.reset_sp()
             resp.text = await PropertyResponse('Polaris ResetSP ok', req)  
+            return
+
+        elif actionName == "Polaris:J2000Sync":
+            logger.info(f'Polaris J2000Sync {parameters}')
+            j2000_ra = float(parameters.get('ra', ''))
+            j2000_dec = float(parameters.get('dec', ''))
+            J2000_coord = ephem.Equatorial(hr2rad(j2000_ra), deg2rad(j2000_dec), epoch=ephem.J2000)
+            radec = ephem.Equatorial(J2000_coord, epoch=ephem.now())
+            await polaris.sync_to_radec(rad2hr(radec.ra), rad2deg(radec.dec))
+            resp.text = await PropertyResponse('Polaris J2000Sync ok', req)  
+            return
+
+        elif actionName == "Polaris:J2000Goto":
+            logger.info(f'Polaris J2000Goto {parameters}')
+            j2000_ra = float(parameters.get('ra', ''))
+            j2000_dec = float(parameters.get('dec', ''))
+            J2000_coord = ephem.Equatorial(hr2rad(j2000_ra), deg2rad(j2000_dec), epoch=ephem.J2000)
+            radec = ephem.Equatorial(J2000_coord, epoch=ephem.now())
+            await polaris.SlewToCoordinates(rad2hr(radec.ra), rad2deg(radec.dec))
+            resp.text = await PropertyResponse('Polaris J2000Goto ok', req)  
             return
 
         else:

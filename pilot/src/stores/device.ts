@@ -144,6 +144,16 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtocoordinatesasync',{ RightAscension: ra, Declination: dec });
     },
 
+    // dont forget ra needs to be in hrs
+    async alpacaJ2000Goto(ra:number, dec:number) {
+      await this.apiAction<void>('Polaris:J2000Goto', `{"ra": "${ra}", "dec": "${dec}"}`)
+    },
+
+    // dont forget ra needs to be in hrs
+    async alpacaJ2000Sync(ra:number, dec:number) {
+      await this.apiAction<void>('Polaris:J2000Sync', `{"ra": "${ra}", "dec": "${dec}"}`)
+    },
+
     async alpacaResetSP() {
       await this.apiAction<void>('Polaris:ResetSP')
     },

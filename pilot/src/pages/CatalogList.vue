@@ -202,7 +202,7 @@ function onClickDSO(dso: CatalogItem) {
 }
 
 async function onClickSync(dso: CatalogItem) {
-  await dev.alpacaSyncToRADec(dso.RA_hr, dso.Dec_deg)
+  await dev.alpacaJ2000Sync(dso.RA_hr, dso.Dec_deg)
   $q.notify({ message:`Sync issued for ${dso.MainID} ${dso.Name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   cat.dsoGotoed = dso
@@ -212,7 +212,7 @@ async function onClickSync(dso: CatalogItem) {
 
 
 async function onClickGoto(dso: CatalogItem) {
-  await dev.alpacaSlewToCoord(dso.RA_hr, dso.Dec_deg)
+  await dev.alpacaJ2000Goto(dso.RA_hr, dso.Dec_deg)
   $q.notify({ message:`Goto issued for ${dso.MainID} ${dso.Name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   cat.dsoGotoed = dso
