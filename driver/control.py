@@ -1761,7 +1761,8 @@ class SyncManager:
                 found = True
                 break
         if found:
-            self.logger.info(f"Cleared sync data for timestamp: {timestamp}")
+            if Config.log_quest_model:
+                self.logger.info(f"Cleared sync data for timestamp: {timestamp}")
             if optimise:
                 self.optimize_q1_adj()
                 self.optimize_roll_adj()
