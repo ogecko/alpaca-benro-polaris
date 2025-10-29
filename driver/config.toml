@@ -40,9 +40,9 @@ advanced_guiding = true                     # Enable the ASCOM Alpaca Pulse guid
 advanced_alignment = true                   # Enable Multi-Point Alignment using the QUEST Correction Model
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.003981071705534973 ]
 kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674 ]
-pid_Kp = [0.8, 0.8, 0.8]                    # PID Proportional Gain for M1, M2, M3 - increase control in proportion to position deviation (error)
-pid_Ki = [0.01, 0.01, 0.01]                 # PID Integral Gain for M1, M2, M3 - increase control when error is accumulating and persistent
-pid_Kd = [0.8, 0.8, 0.8]                    # PID Derivative Gain for M1, M2, M3 - reduce control when angular velocity higher (damping)
+pid_Kp = [1.0, 1.0, 1.0]                    # PID Proportional Gain for M1, M2, M3 - increase control in proportion to position deviation (error)
+pid_Ki = [0.05, 0.05, 0.05]                 # PID Integral Gain for M1, M2, M3 - increase control when error is accumulating and persistent
+pid_Kd = [0.5, 0.5, 0.8]                    # PID Derivative Gain for M1, M2, M3 - reduce control when angular velocity higher (damping)
 pid_Ke = 0.4                                # PID Expotential Smoothing Gain for OP (0=None, 0.4=mix 40% of old OP)
 pid_Kc = 1.0                                # PID Arc-minutes tollerance to accept as not deviating
 pid_Ka = 0.0                                # PID Maximum acceleration (0.5 to 5.0 degress/s2) on any motor axis (use 0.0 to set default of 5) must be float
