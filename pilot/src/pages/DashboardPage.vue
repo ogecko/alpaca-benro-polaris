@@ -230,6 +230,7 @@ async function onTrackRate(n: number) {
 }
 
 async function onHome() {
+  if (cannotPerformCommand('find Home')) return
   const result = await dev.alpacaFindHome();  
   console.log(result)
 }

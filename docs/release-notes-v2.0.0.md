@@ -23,6 +23,9 @@
 - **[Sync Diagnostics]** Added a new Driver Log Setting to optionally log the weights when calculating the QUEST model.
 - **[Bluetooth LE]** Improved handling of Bluetooth LE on MacOS
 - **[Warning Banner]** Show warning banner on Connection Page as well as every other page
+- **[Park Notification]** Pilot notifies that you Cannot perform find Home while Parked
+- **[Catalog Search]** When searching catalog for specific DSO, allow below horizon and near zenith
+- **[Home Parked]** Notify that you cannot find Home while the mount is Parked.
 
 ## What’s new since beta1
 - **[PID Integral]** Corrected integral component calculation for better error convergence to zero
