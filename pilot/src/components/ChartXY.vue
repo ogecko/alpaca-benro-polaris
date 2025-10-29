@@ -30,7 +30,7 @@ const colors = {
   kp: 'hsl(320, 70%, 30%)',      // Dark Magenta
   ki: 'hsl(50,  70%, 30%)',      // Dark Yellow   
   kd: 'hsl(20,  60%, 30%)',      // Dark Red
-  kf: 'hsl(80,  50%, 40%)',      // Dark Lime
+  kf: 'hsl(132, 79%, 60%)',      // Dark Lime
 }
 
 
