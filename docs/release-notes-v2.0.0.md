@@ -10,6 +10,12 @@
 * **Demo Video 2:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
 * **Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
 
+## Win11 Upgrade Instructions
+* Uninstall Python 3.12.7
+* Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
+* Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
+* Recreate Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.0
+
 ## What's new since beta2
 - **[Goto Timeout]** When a GOTO does not achieve GOTO tolerance after 45s, it will stop the motors and return to IDLE
 - **[Weighted Sync]** Syncs with higher recency, closer proximity, or closer to the pole are given more weight in multi-point alignment
@@ -17,7 +23,6 @@
 - **[Sync Diagnostics]** Added a new Driver Log Setting to optionally log the weights when calculating the QUEST model.
 - **[Bluetooth LE]** Improved handling of Bluetooth LE on MacOS
 - **[Warning Banner]** Show warning banner on Connection Page as well as every other page
-
 
 ## What’s new since beta1
 - **[PID Integral]** Corrected integral component calculation for better error convergence to zero
@@ -53,10 +58,6 @@ Let me know if you want a changelog version, a markdown export, or a short annou
 ## Beta Agreement
 Please read and confirm your agreement with [Beta Agreement](./beta_agreement.md) if you havent already.
 
-## Win11 Upgrade Instructions
-* Uninstall Python 3.12.7
-* Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
-* Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
 
 ## New Features (Alpaca Pilot)
 - **[Modern App]**: Alpaca Pilot offers an elegant, adaptive UI for control and management of Alpaca Drivers
