@@ -65,9 +65,9 @@ export const useCatalogStore = defineStore('catalog', {
 
           // Special case: Altitude filter default
           if (key === 'Alt') {
-            const altFilter = (value == null || (Array.isArray(value) && value.length === 0))
-              ? [1, 2, 3, 4, 5] // default: exclude 0 and 6
-              : value;
+            const altFilter = ((value == null)  || (Array.isArray(value) && value.length === 0))
+              ? ((search=='')? [1,2,3,4,5] : [0,1,2,3,4,5,6])   // default: exclude 0 and 6, unless search term then include all
+              : value;                                          // use provided filter for altitude
 
             return altFilter.includes(fieldValue as DsoAltitude);
           }
