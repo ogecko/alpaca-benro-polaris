@@ -138,8 +138,8 @@ def latlon2ABCDEGFGH(latitude, longitude):
 
 
 def radec_to_SynScan24bit(ra_hours, dec_degrees):
-    j2000_coord = ephem.Equatorial(hr2rad(ra_hours), deg2rad(dec_degrees), epoch=ephem.J2000)
-    radec = ephem.Equatorial(j2000_coord, epoch=ephem.now())
+    jNow_coord = ephem.Equatorial(hr2rad(ra_hours), deg2rad(dec_degrees), epoch=ephem.now())
+    radec = ephem.Equatorial(jNow_coord, epoch=ephem.J2000)
     # Convert RA from hours to fraction of a revolution
     ra_fraction = radec.ra / math.pi / 2
     # Convert DEC from degrees to fraction of a revolution
@@ -167,8 +167,8 @@ def synScan24bit_to_radec(byte_array):
     ra_fraction = ra_hex / 16777216.0
     dec_fraction = dec_hex / 16777216.0
     # Convert the fractions J2000 ra dec
-    now_coord = ephem.Equatorial(ra_fraction*math.pi*2, dec_fraction*math.pi*2, epoch=ephem.now())
-    radec = ephem.Equatorial(now_coord, epoch=ephem.J2000)
+    J2000_coord = ephem.Equatorial(ra_fraction*math.pi*2, dec_fraction*math.pi*2, epoch=ephem.J2000)
+    radec = ephem.Equatorial(J2000_coord, epoch=ephem.now())
 
     return rad2hr(radec.ra), rad2deg(radec.dec)
 

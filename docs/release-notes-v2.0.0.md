@@ -14,9 +14,13 @@
 * Uninstall Python 3.12.7
 * Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
 * Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
-* Recreate Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.0
+* WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.0
+    * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.0
+    * Change the Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
+    * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new since beta2
+- **[Epoch Change]** Changed default epoch from J2000 to Jnow for all live co-ordinates (recommended default from ASCOM)
 - **[Goto Timeout]** When a GOTO does not achieve GOTO tolerance after 45s, it will stop the motors and return to IDLE
 - **[Weighted Sync]** Syncs with higher recency, closer proximity, or closer to the pole are given more weight in multi-point alignment
 - **[Limit Syncs]** Limit to a maximum of 10 sync points, discarding lowest-weighted points when new syncs performed.
@@ -26,6 +30,7 @@
 - **[Park Notification]** Pilot notifies that you Cannot perform find Home while Parked
 - **[Catalog Search]** When searching catalog for specific DSO, allow below horizon and near zenith
 - **[Home Parked]** Notify that you cannot find Home while the mount is Parked.
+- **[Issue #52]** Fixed Home and Park do not work after 45s has expired since last goto
 
 ## What’s new since beta1
 - **[PID Integral]** Corrected integral component calculation for better error convergence to zero

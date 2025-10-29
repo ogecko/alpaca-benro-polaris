@@ -1153,7 +1153,7 @@ class PID_Controller():
         self.controllers = polaris._motors                   # Motor speed controllers[0,1,2]
         self.observer = polaris._observer                    # Observing object from ephem
         self.body = ephem.FixedBody()                        # Target body
-        self.body._epoch = ephem.J2000                       # default to J2000 epoch
+        self.body._epoch = ephem.now()                       # default to J2000 epoch
         self.body_pa_offset = 0                              # used to store body pa to oconvert back to roll
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
         self.mode = 'PRESETUP'                               # PID Controller mode: HOMING, PARKING, PARK, IDLE, AUTO, TRACK, PRESETUP, LIMIT
@@ -1246,6 +1246,7 @@ class PID_Controller():
     
     def body2alpha(self):
         self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.observer.epoch = ephem.now()
         self.body.compute(self.observer)
         alt = rad2deg(self.body.alt)
         az = rad2deg(self.body.az)
@@ -1254,6 +1255,7 @@ class PID_Controller():
 
     def alpha2body(self, alpha):
         self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.observer.epoch = ephem.now()
         ra_rad, dec_rad = self.observer.radec_of(deg2rad(alpha[0]), deg2rad(alpha[1]))
         self.body._ra = ra_rad
         self.body._dec = dec_rad
@@ -1262,6 +1264,7 @@ class PID_Controller():
 
     def body2delta(self):
         self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.observer.epoch = ephem.now()
         self.body.compute(self.observer)
         ra_deg = rad2deg(self.body._ra)
         dec_deg = rad2deg(self.body._dec)
@@ -1274,6 +1277,7 @@ class PID_Controller():
 
     def delta2body(self, delta):
         self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.observer.epoch = ephem.now()
         self.body._ra = deg2rad(delta[0])
         self.body._dec = deg2rad(delta[1])
         self.body.compute(self.observer)

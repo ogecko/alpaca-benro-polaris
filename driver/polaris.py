@@ -148,7 +148,7 @@ class Polaris:
         self._sitepressure: float = float(Config.site_pressure)     # The pressure above mean sea level (meters) of the site at which the telescope is located
         self._observer = ephem.Observer()                           # Observer object for the telescopes site
         self._observer.pressure = float(Config.site_pressure)       # site pressure used for refraction calculations close to horizon
-        self._observer.epoch = ephem.J2000                          # a moment in time used as a reference point for RA/Dec
+        self._observer.epoch = ephem.now()                          # a moment in time used as a reference point for RA/Dec
         self._observer.lat = deg2rad(self._sitelatitude)            # dms version on lat
         self._observer.long = deg2rad(self._sitelongitude)          # dms version of long
         self._observer.elevation = float(self._siteelevation)       # site elevation
@@ -220,7 +220,7 @@ class Polaris:
         # Telescope device settings
         #
         self._alignmentmode: int = 0                # enum for Altitude-Azimuth alignment.
-        self._equatorialsystem: int = 2             # Equatorial coordinate system used by this telescope (2 = J2000 equator/equinox. Coordinates of the object at mid-day on 1st January 2000, ICRS reference frame.).
+        self._equatorialsystem: int = 1             # Equatorial coordinate system used by this telescope (1 = equTopocentric (JNow) 2 = equJ200 (J2000). Coordinates of the object at mid-day on epoch date provided.).
         self._focallength: float = Config.focal_length/1000                       # The telescope's focal length, meters
         self._focalratio: float = Config.focal_ratio                              # The telescope's focal ratio
         self._aperturediameter: float = self._focallength / self._focalratio      # The telescope's effective aperture diameter (meters)
@@ -518,7 +518,7 @@ class Polaris:
         time = (dt_now - self._performance_data_start_timestamp).total_seconds()
         return time
 
-    def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.J2000):
+    def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.now()):
         target = ephem.FixedBody()
         target._ra = hr2rad(ra)
         target._dec = deg2rad(dec)
@@ -1362,7 +1362,7 @@ class Polaris:
                 if (abs(e_dec)==90 and e_ra!=0):    # only do it once at the poles
                     continue
                 now_coord = ephem.Equatorial(hr2rad(e_ra), deg2rad(e_dec), epoch=ephem.now())
-                radec = ephem.Equatorial(now_coord, epoch=ephem.J2000)
+                radec = ephem.Equatorial(now_coord, epoch=ephem.now())
                 a_ra=rad2hr(radec.ra)
                 a_dec=rad2deg(radec.dec)
                 p_ra, p_dec = self.radec_ascom2polaris(a_ra, a_dec)
