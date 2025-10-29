@@ -30,6 +30,7 @@
 - **[Park Notification]** Pilot notifies that you Cannot perform find Home while Parked
 - **[Catalog Search]** When searching catalog for specific DSO, allow below horizon and near zenith
 - **[Home Parked]** Notify that you cannot find Home while the mount is Parked.
+- **[PID Tuning]** Adjust default PID tuning, increase Kp to 1.0, increase Ki to 0.05, decrease Kd to 0.5
 - **[Issue #52]** Fixed Home and Park do not work after 45s has expired since last goto
 
 ## What’s new since beta1
