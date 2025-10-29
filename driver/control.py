@@ -1626,10 +1626,11 @@ class PID_Controller():
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
         # If we have goto timeout or stopped moving; while  in AUTO, HOMING or PARKING, go to IDLE
-        if (not self.is_moving or self.goto_timeout()) and self.mode in ['AUTO', 'HOMING', 'PARKING']:
+        if (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']:
             self.set_pid_mode('IDLE')
             self.was_moving = True
             self.is_moving = False
+            self.time_goto = None
         # Stop motors when transitioning from moving to stopped
         if self.was_moving and not self.is_moving:
             for axis in range(3):
@@ -1639,6 +1640,7 @@ class PID_Controller():
         if ((not self.is_deviating) or self.goto_timeout()) and self.goto_complete_callback:
             self.goto_complete_callback()
             self.goto_complete_callback = None
+            self.time_goto = None
         if not self.is_deviating and self.rotate_complete_callback:
             self.rotate_complete_callback()
             self.rotate_complete_callback = None
