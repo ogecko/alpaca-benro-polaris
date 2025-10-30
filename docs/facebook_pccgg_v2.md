@@ -305,3 +305,86 @@ Reply
 
 @madhatterbakery-artisanmad7631  • 13 days ago (edited)
 Great Podcast highlighting the amazing developments .... sounds brilliant  😀
+
+
+
+
+
+
+
+
+
+-----------------------------
+PANARAMA REQUEST FOR COMMENTS
+-----------------------------
+Polaris -Camera Controller Global Group
+David Morrison
+ ·
+ ·
+Isn’t the Polaris already good for panoramas? I’ve had a few requests from Kevin Jones, and others for improved panorama features or a “Pro Pano” mode in Alpaca, but I’m not entirely sure what that would entail. I’d really appreciate hearing from experienced astrophotographers. What works well for you, what doesn’t, and how do you find the current Benro app? What would make a real difference?
+I’ve tried creating panoramas in the past but often ran into alignment and exposure issues, especially near the zenith. The new rotator support in Alpaca V2.0 and NINA's preserve alignment option in framing should help create the "perfect rectangular mosaics.” I’m waiting for clear skies to test. 
+I'm curious to hear your thoughts — what’s the one panorama feature or improvement (if any) that would make the most significant impact for you?
+
+
+Koen Pijpers
+Hello I mainly shoot wide images:
+I would like to plan a panoramic image entirely from home/ make presets (of my focal lengths/ settings, etc). Is there a possibility that the Alpaca driver seen the current lens focal length and select that specific preset ? Have options of setting the starting position (left, right top bottom). Usually a full MW pano you want about 270 horizontal/ 70 Vertical FOV to be sure you can crop. It would be cool if you could see a low detail preview of what it would look like with your current FOV settings. To not mess up the top or sides so you have a full MW pano arch (it happens). I also would love to see a feature where I can plan my Foreground shots (without tracking). So in the field I just press start and enjoy the stars, that’s why I got this device in the first place. I will back on Kickstarter awesome developments and everybody!!
+
+The current Benro app has some nice functionality, I like the overlap percentage, the direct preview of the image in Full JPEG.
+
+Off topic: I would love all this to be put in a new firmware or mobile/tablet app, which would be awesome for travel, which I intend to use this thing for. Currently I didn’t travel with this because I just find the Benro software unreliable and just want a less complex star tracker and no laptop.
+6d
+Reply
+
+
+Edited
+Kevin Jones
+Koen Pijpers exactly what i would have written down! the current Benro Pro Pano for wide field is pretty good but there are bugs in the software such as when you leave Pro Pano and go back in, it doesn't remember the lens size, etc. also, the start and end process of setting up the pano can be 'forgetful'. there should be a 'clear' option too to reset the pano start and end positions. i have backed this project understanding it's for deep space targets as i will use this in the future but the wide field and pano options are of high importance if they can be implemented in a better, bug free way.
+5d
+Reply
+
+
+Koen Pijpers
+The device has so much potential 🙂
+4d
+Reply
+
+
+
+
+Eric Chiu
+Keen to follow this one.
+I think it may be when both star and landscape are involved.
+6d
+Reply
+
+
+John Harrison
+Here's the thing, am shooting panos manual so unless I change cameras I haven't got that functionality
+4d
+Reply
+
+
+Billy Bass
+Aside from maintaining state like others have mentioned, there are a few issues that I think would be game changers for making panoramas much better with the Polaris:
+1. Rotate the camera to maintain the same horizon for each panel;
+2. Allow users to control the sequence with which the panels are captured; and
+3. Control of tracking for the panels.
+
+The first is especially important when stacking or using longer exposures with a larger field of view. If taking 4x60” subs for a pano with >= 6 panels the horizon will be rotated at least 7.5 degrees between the first and last panel. This results in insufficient coverage of the sky in some panels and a pain to deal with in processing. If instead, the camera is returned back to the starting position on the RA axis there will be a stair step pattern along the horizon across panels, but better coverage of the sky and a much easier time stitching the panorama together in post and aligning with foreground shots.
+
+The second issue is also somewhat related, though not exactly. Currently the Polaris uses a zig zag pattern of movement with multirow panoramas. This can be a pain to deal with compared to shooting each row with the same motion (i.e., left to right or right to left). There could also be use cases to shoot across the rows of the panorama before shifting the azimuth, but that also isn’t supported.
+
+Lastly, it would be outstanding to be able to turn tracking off to take long exposure foreground shots followed by turning tracking on to take the shots of the sky in a single sequence; this is especially important since the Polaris and mobile application seem to be unable to maintain state long enough to make it easily feasible to do this consistently manually.
+2h
+Reply
+
+
+
+Uli Fehr
+  · 
+Setting a referece point in the upper left corner, pan/tilt to see it in the down right corner to determine the FOV and use this for setting the panels
+6d
+Reply
+
+
