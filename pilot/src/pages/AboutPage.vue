@@ -29,8 +29,8 @@
             <thead>
               <tr><th class="text-left">Component</th><th class="text-left">Version</th></tr>
             </thead>
-            <tr><td>Alpaca Pilot App</td><td>v2.0.0</td></tr>
-            <tr><td>{{ dev.alpacaServerName }}</td><td>v{{ dev.alpacaServerVersion }}</td></tr>
+            <tr><td>Alpaca Pilot App</td><td>v2.0.0 Beta3</td></tr>
+            <tr><td>{{ dev.alpacaServerName }}</td><td>v{{ dev.alpacaServerVersion }} Beta3</td></tr>
             <tr><td>Benro Polaris Firmware</td><td>v{{ p.polarisswver }}</td></tr>
             <tr><td>Benro Polaris Hardware</td><td>v{{ p.polarishwver }}</td></tr>
           </q-markup-table>
@@ -50,12 +50,11 @@
             <thead>
               <tr><th class="text-left">Game Changer</th><th class="text-left">Beta Testers</th></tr>
             </thead>
-            <tr><td>Mack Cameron</td><td>TBD</td></tr>
-            <tr><td>Peter</td><td></td></tr>
-            <tr><td>Simone Chiari</td><td></td></tr>
-            <tr><td>Mark Bahu</td><td></td></tr>
+            <tr><td>ADC</td><td>Validimir Vyskocil</td></tr>
+            <tr><td>Bertolissio</td><td>Mark Long</td></tr>
+            <tr><td>Alan Johnston</td><td>Steve Everit</td></tr>
+            <tr><td>William Siers</td><td>Daniel Michaud</td></tr>
             <tr><td>Richard Swaim</td><td></td></tr>
-            <tr><td>William Siers</td><td></td></tr>
           </q-markup-table>
         </div>
       </div>

@@ -163,7 +163,7 @@ Notes: Typical User, Non technical
 
 
 
-## Beta Tester: Mark (FB: Richard Healey; GH: RjhNZ)
+## Beta Tester: Richard (FB: Richard Healey; GH: RjhNZ)
 Notes: Maybe, but, other commitments
 ### Platform & Environment
 ...
