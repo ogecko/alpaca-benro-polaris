@@ -23,7 +23,8 @@ You can view a demonstration of parts of this documentation in the following You
 ## 4. Dashboard
 ### Status and Motor Indicators
 ### Equatorial vs Az/Alt
-### Park, Stop, Track
+### Home, Park, Stop, Track
+Find Home and Park. Both of these functions use the slower absolute motor positions M1, M2, M3. This is the only way we can ensure unwinding of cables. FindHome will return these motors to M1=M2=M3=0, which may not correspond to Az180, Alt45, especially if you have done a single or multi-point alignment. The same with Park, it remembers the M1, M2, M3 positions when you Save the Park Position (or 0,0,0 as a default). If you realign the Polaris with single or multi-point align, the Az/Alt of your park position may change, but the motor angles wont.
 ### Dial Interaction
 #### Scale adjustment
 #### Relative Goto
