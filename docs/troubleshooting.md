@@ -69,11 +69,12 @@ The current firmware of the Benro Polaris does not allow connection to other WiF
 This is no longer a limitation. The Alpaca Benro Polaris Driver can serve as a proxy for the Polaris. It is capable of connecting to both the Polaris Wi-Fi Hotspot and your home Wi-Fi network. This allows you to manage the Polaris from any device connected to your home Wi-Fi, including an iPad, a phone, a desktop, or a laptop.
 
 ### B5 - The Polaris is at 1% Battery and wont charge
-Multiple people have had issues charging the Benro Polaris after it has drained its battery down to 1%. If you cannot recharge the Benro Polaris from 1% try the following
-* Benro recommends to charge using a 5V/2A charger, rather than some more advanced PD chargers.
-* Try charging with a different cable.
-* Try turning the cable upside down.
-* Try charging with a different power bank.
+The Polaris may have a design flaw that causes it to reject high-speed or smart chargers when the battery is in a low 1% state. It requires a slow, steady 5V source to restore sufficient power for the charging circuit to work correctly. Once it gets past that initial threshold, you can switch to a faster charger if needed. To fix the issue:
+- Use a basic 5V 2.4A charger or an old battery pack via USB-A.
+- Avoid smart or high-speed USB-C PD chargers initially.
+- Let it charge without interruptions.
+- Once it’s above 10–20%, you can switch to your usual power source.
+
 
 ### B6 - How can you reset the Benro Polaris password?
 To reset the password of your Benro Polaris
