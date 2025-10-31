@@ -5,9 +5,12 @@
 * **Release Date:** 31-Oct-2025   
 * **Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris
 * **Current Branch:** releases/2_0_beta3 
+
+## Demonstration Videos
 * **Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
-* **Demo Video 1:** Demonstration Video at https://youtu.be/0QSKD1GCzOc 
-* **Demo Video 2:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
+* **Preview Demo:** Demonstration Video at https://youtu.be/0QSKD1GCzOc 
+* **Starting and Using:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
+* **Rotator Framing:** Demonstration Video at https://youtu.be/_Swd-jIyQis
 * **Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
 
 ## Win11 Upgrade Instructions
