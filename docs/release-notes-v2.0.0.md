@@ -36,6 +36,8 @@
 - **[PID Tuning]** Adjust default PID tuning, increase Kp to 1.0, increase Ki to 0.05, decrease Kd to 0.5
 - **[Issue #52]** Fixed Home and Park do not work after 45s has expired since last goto
 - **[Issue #53]** Improve Pilot Radial Dial click on scale compatibility with Firefox Browser
+- **[FAQ B5]** Added note on load capacity of Benro Polaris
+
 
 ## What’s new since beta1
 - **[PID Integral]** Corrected integral component calculation for better error convergence to zero

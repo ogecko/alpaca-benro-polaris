@@ -55,6 +55,11 @@ The ABP Driver doesn't directly modify the Benro Polaris's gears, motors, or fir
 
 The ABP Driver, as of version 1.0.0, doesn't include auto-guiding capabilities. Auto-guiding requires sending minute move commands to the mount while tracking is engaged, something the Benro Polaris's firmware doesn't currently support.
 
+### B5 - What is the heaviest load the Polaris can handle?
+The Benro USA Site claims the Astro version of the Polaris can handle a load of 7 kg (15.4 lbs). Pretty impressive for such a small mount, without a counterweight. 
+
+I have tested the performance of the Polaris with my rig up to around 3.4kg (Canon R5, RF 500mm lens, Dew Heater, Mini-PC, Gemini Focuser, ArcaSwiss Mounting Bar). The Polaris seems to easily handle this load and performs sidereal tracking well. Soon to add another 700g for a guide scope and camera. 
+
 # Nina Capability Questions
 ### N1 - How can I connect both Nina and BP App to my Camera via USB?
 You don't need to connect your camera to both Nina and the Benro Polaris App simultaneously. Choose one or the other. Once you've set up your mount, Nina can handle all imaging functions, including:
