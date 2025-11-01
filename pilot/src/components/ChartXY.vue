@@ -109,7 +109,7 @@ function initChart() {
     .attr('x', width - 40)
     .attr('y', height - 40)
     .attr('fill', '#ccc')
-    .style('font-size', '12px')
+    .style('font-size', '18px')
     .text('')
 
   zoom = d3.zoom<SVGSVGElement, unknown>()
