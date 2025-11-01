@@ -1894,7 +1894,10 @@ class SyncManager:
             q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
 
             self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
+
+            self.apply_final_sync_alignment()
             self.q1_adj_message = "QUEST solution applied"
+
 
         # Now compute the residuals and tilt correction
         self.compute_azalt_residuals()   # Compute and store residuals
@@ -1910,6 +1913,29 @@ class SyncManager:
                 msg += f"| TotalW: {entry['w_total']:.4f} | Residual: { deg2dms(entry['residual_magnitude'])}"
                 self.logger.info(msg)
         return
+
+    def apply_final_sync_alignment(self):
+        """
+        Apply a minimal correction quaternion to self.q1_adj so that the last valid sync point
+        has zero residual. This ensures the most recent sync is perfectly honored.
+        """
+        last_valid = next((entry for entry in reversed(self.sync_history)
+                        if not entry["deleted"] and entry["a_az"] is not None and entry["a_alt"] is not None), None)
+        if not last_valid:
+            self.q1_adj_message += " | No valid sync for final alignment"
+            return
+        v_obs = self.az_alt_to_vector(last_valid["a_az"], last_valid["a_alt"])
+        v_pred = self.az_alt_to_vector(last_valid["p_az"], last_valid["p_alt"])
+        v_pred_rot = self.q1_adj.rotate(v_pred)
+        axis = np.cross(v_pred_rot, v_obs)
+        norm_axis = np.linalg.norm(axis)
+        if norm_axis < 1e-8:
+            self.q1_adj_message += " | Final sync already aligned"
+            return
+        axis /= norm_axis
+        angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
+        q_correction = Quaternion(axis=axis, angle=angle)
+        self.q1_adj = q_correction * self.q1_adj
 
 
     def optimise_q1_adj_fallback_single_sync(self, pairs):

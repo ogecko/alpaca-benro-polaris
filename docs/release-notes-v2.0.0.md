@@ -24,6 +24,7 @@
 
 ## What's new in beta3
 - **[Epoch Change]** Default epoch for live coordinates changed from J2000 to JNow (ASCOM-recommended)
+- **[Zero Residual]** Combine globally optimized multi-point alignment, with a final local adjustment to ensure zero residual at the most recent sync
 - **[PID Integral]** Improved reliability of PID integral term: preloads with offset to cancel derivative, clamps to 3× sidereal rate.
 - **[PID Tuning]** Updated default PID parameters: increased Kp to 1.0, Ki to 0.05, and reduced Kd to 0.5.
 - **[PID Status]** Added PID Status chip to the tuning page for real-time GOTO completion monitoring
@@ -41,6 +42,7 @@
 - **[Issue #53]** Improved radial dial click compatibility with Firefox browser
 - **[FAQ B5]** Added FAQ documentation note on Benro Polaris load capacity
 - **[ASCOM 7.1]** Verified compatibility with ASCOM Platform 7.1
+
 
 ## What’s new in beta2
 - **[PID Integral]** Corrected integral component calculation for better error convergence to zero
