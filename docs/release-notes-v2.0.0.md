@@ -37,7 +37,7 @@
 - **[Issue #52]** Fixed Home and Park do not work after 45s has expired since last goto
 - **[Issue #53]** Improve Pilot Radial Dial click on scale compatibility with Firefox Browser
 - **[FAQ B5]** Added note on load capacity of Benro Polaris
-
+- **[ASCOM 7.1]** Add compatibility with ASCOM Platform 7.1
 
 ## What’s new since beta1
 - **[PID Integral]** Corrected integral component calculation for better error convergence to zero
