@@ -59,9 +59,7 @@
 
       <q-space />
       <!----- RHS Chip Status Info ----->
-      <q-chip :color="statusColor" :outline="statusLabel=='Idle'" :icon="statusIcon" class="q-pa-md">
-        {{statusLabel}}
-      </q-chip>
+      <PIDStatus />
     </div>
 
     <!----- Dynamic Set of 3 Radial Scales ----->
@@ -98,6 +96,7 @@ import { useStatusStore } from 'src/stores/status'
 import ScaleDisplay  from 'src/components/ScaleDisplay.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
 import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
+import PIDStatus from 'src/components/PIDStatus.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 import { angularDifference } from 'src/utils/angles'
 
@@ -139,40 +138,6 @@ const btnSize = computed(() =>
 const btnDense = computed(() =>
   $q.screen.lt.md ? true : false
 )
-
-const statusLabel = computed(() => 
-  p.pidmode=='PRESETUP' ? "PreSetup" :
-  p.pidmode=='LIMIT' ? "Limit" :
-  p.pidmode=='HOMING' ? "Homing" :
-  p.pidmode=='PARKING' ? "Parking" :
-  p.atpark ? "Parked" : 
-  p.gotoing ? "Gotoing" : 
-  p.slewing ? "Slewing" :
-  p.rotating ? "Rotating" :
-  p.ispulseguiding ? "Guiding" :
-  p.tracking ? "Tracking" : 
-               "Idle"
-)
-
-const statusColor = computed(() =>
-  p.pidmode=='PRESETUP' ? "negative" :
-  p.pidmode=='LIMIT' ? "negative" : "positive"
-)
-
-const statusIcon = computed(() => 
-  p.pidmode=='PRESETUP' ? "mdi-cellphone-cog" :
-  p.pidmode=='LIMIT' ? "mdi-alert" :
-  p.pidmode=='HOMING' ? "mdi-home-outline" :
-  p.pidmode=='PARKING' ? "mdi-alpha-p" :
-  p.atpark ? "mdi-parking" : 
-  p.gotoing ? "mdi-move-resize-variant" : 
-  p.slewing ? "mdi-cursor-move" :
-  p.rotating ? "mdi-restore" :
-  p.ispulseguiding ? "mdi-pulse" :
-  p.tracking ? "mdi-star-shooting-outline" : 
-               "mdi-sleep"
-)
-
 
 
 // ------------------- Lifecycle Events ---------------------

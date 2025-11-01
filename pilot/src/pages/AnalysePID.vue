@@ -113,6 +113,9 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                 <q-item-label>{{axisLabel}} Angular Position (degrees) vs Time (seconds)</q-item-label>
                 <q-item-label caption>SP: Setpoint Position, PV: Present Value Position</q-item-label>
               </q-item-section>
+              <q-item-section side top>
+                <PIDStatus />
+              </q-item-section>
             </q-item>
           </q-list>
           <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
@@ -207,6 +210,7 @@ import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
 import MoveButton from 'src/components/MoveButton.vue'
+import PIDStatus from 'src/components/PIDStatus.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, PIDMessage }from 'src/stores/stream'
 import { wrapTo360, wrapTo90 } from 'src/utils/angles'
