@@ -253,6 +253,7 @@ Please let us know if you can try any of these features.
 * Siril v1.2.3 de49749
 ### Drivers and Utilities
 * Windows Remote Desktop v10.0.22621
+* ASCOM Platform 7.1 (Build 4707)
 * ASCOM Platform 7 Update 3 RC7 (not Update 2 version)
 * ASCOM Platform 7 RC7
 * ASCOM Platform 6.6 SP2
