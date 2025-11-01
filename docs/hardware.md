@@ -147,7 +147,7 @@ You may need to install the ASCOM Platform software for compatibility with some 
 
 #### To install the ASCOM Platform. 
 1. Download the ASCOM Platform from https://ascom-standards.org/ (Download buttton on the top-right-hand side of the home page).
-2. The remaining instructions assume you are using ASCOM Platform 7.0 Update 2 
+2. The remaining instructions assume you are using ASCOM Platform 7.1 
 3. Open the installation .exe file and click `Yes` on the User Account Control dialog.
 4. Click `Next` to install any pre-requisites eg Microsoft .nett Framework 3.5 Service Pack 1 
 5. This can take quite some time to download and install (5 min for me)
