@@ -1159,18 +1159,18 @@ class PID_Controller():
         self.mode = 'PRESETUP'                               # PID Controller mode: HOMING, PARKING, PARK, IDLE, AUTO, TRACK, PRESETUP, LIMIT
         self.ack_limit_timestamp = None                      # Timestamp of last ACK of PID LIMIT ALARM
         self.target_type = 'NONE'                            # target body we are tracking
-        self.delta_sp = np.array([0,0,0], dtype=float)       # Setpoint for ra, dec, polar anglular positions
-        self.alpha_sp = np.array([0,0,0], dtype=float)       # Setpoint for az, alt, roll angular positions
-        self.delta_meas = np.array([0,0,0], dtype=float)     # ra, dec, polar measured angular position
-        self.alpha_meas = np.array([0,0,0], dtype=float)     # az, alt, roll measured angular position
-        self.theta_meas = np.array([0,0,0], dtype=float)     # theta1-3 motor measured angular position
-        self.zeta_meas = np.array([0,0,0], dtype=float)      # zeta1-3 motor raw measured angular position (no alignment effect)
-        self.delta_ref = np.array([0,0,0], dtype=float)      # ra, dec, polar angular reference position
-        self.alpha_ref = np.array([0,0,0], dtype=float)      # az, alt, roll angular reference position
-        self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor reference angular position
-        self.zeta_ref = np.array([0,0,0], dtype=float)       # zeta1-3 motor reference angular position (used in PARKING, HOMING)
-        self.error_signal = np.array([0,0,0], dtype=float)   # theta1-3 error btw theta_ref and theta_meas
-        self.error_integral = np.array([0,0,0], dtype=float) # theta1-3 error btw theta_ref and theta_meas
+        self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, polar anglular positions
+        self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
+        self.delta_meas = np.zeros(3, dtype=float)     # ra, dec, polar measured angular position
+        self.alpha_meas = np.zeros(3, dtype=float)     # az, alt, roll measured angular position
+        self.theta_meas = np.zeros(3, dtype=float)     # theta1-3 motor measured angular position
+        self.zeta_meas = np.zeros(3, dtype=float)      # zeta1-3 motor raw measured angular position (no alignment effect)
+        self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, polar angular reference position
+        self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll angular reference position
+        self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor reference angular position
+        self.zeta_ref = np.zeros(3, dtype=float)       # zeta1-3 motor reference angular position (used in PARKING, HOMING)
+        self.error_signal = np.zeros(3, dtype=float)   # theta1-3 error btw theta_ref and theta_meas
+        self.error_integral = np.zeros(3, dtype=float) # theta1-3 error btw theta_ref and theta_meas
         self.goto_complete_callback = None                   # callback function when no longer deviating
         self.rotate_complete_callback = None                 # callback function when no longer deviating
         self.slew_complete_callback = None                   # callback function when no longer slewing
@@ -1180,15 +1180,15 @@ class PID_Controller():
         self.is_tracking = False                             # tracking target body
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
-        self.omega_kp = np.array([0,0,0], dtype=float)       # omega1-3 due to proportional error
-        self.omega_ki = np.array([0,0,0], dtype=float)       # omega1-3 due to integrated error
-        self.omega_kd = np.array([0,0,0], dtype=float)       # omega1-3 due to velocity damping (derivative of position)
-        self.omega_ff = np.array([0,0,0], dtype=float)       # omega1-3 due to requested velocity feed forward (slew, tracking)
-        self.omega_min = np.array([0,0,0], dtype=float)      # omega1-3 min allowable angular velocity (0=axis at limit, no more -ve)
-        self.omega_max = np.array([0,0,0], dtype=float)      # omega1-3 max allowable angular velocity (0=axis at limit, no more +ve)
-        self.omega_tgt = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity raw pid output
-        self.omega_ctl = np.array([0,0,0], dtype=float)      # omega1-3 motor angular velocity constrained output
-        self.omega_op = np.array([0,0,0], dtype=float)       # omega1-3 motor angular velocity control output
+        self.omega_kp = np.zeros(3, dtype=float)       # omega1-3 due to proportional error
+        self.omega_ki = np.zeros(3, dtype=float)       # omega1-3 due to integrated error
+        self.omega_kd = np.zeros(3, dtype=float)       # omega1-3 due to velocity damping (derivative of position)
+        self.omega_ff = np.zeros(3, dtype=float)       # omega1-3 due to requested velocity feed forward (slew, tracking)
+        self.omega_min = np.zeros(3, dtype=float)      # omega1-3 min allowable angular velocity (0=axis at limit, no more -ve)
+        self.omega_max = np.zeros(3, dtype=float)      # omega1-3 max allowable angular velocity (0=axis at limit, no more +ve)
+        self.omega_tgt = np.zeros(3, dtype=float)      # omega1-3 motor angular velocity raw pid output
+        self.omega_ctl = np.zeros(3, dtype=float)      # omega1-3 motor angular velocity constrained output
+        self.omega_op = np.zeros(3, dtype=float)       # omega1-3 motor angular velocity control output
         self.reset_offsets()
         self.reset_theta()
         self.time_meas = None                # Time of measurement
@@ -1220,18 +1220,18 @@ class PID_Controller():
         self.reset_alpha_offsets()
 
     def reset_delta_offsets(self):
-        self.delta_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for ra, dec, polar anglular velocities
-        self.delta_g_sp = np.array([0,0,0], dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
-        self.delta_offst = np.array([0,0,0], dtype=float)    # ra, dec, polar anglular offsets
-        self.delta_ref_last = np.array([0,0,0], dtype=float) # ra, dec, polar angular reference position of last control step
+        self.delta_v_sp = np.zeros(3, dtype=float)     # Setpoint for ra, dec, polar anglular velocities
+        self.delta_g_sp = np.zeros(3, dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
+        self.delta_offst = np.zeros(3, dtype=float)    # ra, dec, polar anglular offsets
+        self.delta_ref_last = np.zeros(3, dtype=float) # ra, dec, polar angular reference position of last control step
 
     def reset_alpha_offsets(self):
-        self.alpha_v_sp = np.array([0,0,0], dtype=float)     # Setpoint for az, alt, roll angular velocities
-        self.alpha_offst = np.array([0,0,0], dtype=float)    # az, alt, roll angular offsets
+        self.alpha_v_sp = np.zeros(3, dtype=float)     # Setpoint for az, alt, roll angular velocities
+        self.alpha_offst = np.zeros(3, dtype=float)    # az, alt, roll angular offsets
 
     def reset_theta(self):
-        self.theta_ref = np.array([0,0,0], dtype=float)      # theta1-3 motor angular reference position
-        self.theta_ref_last = np.array([0,0,0], dtype=float) # theta1-3 motor angular reference position of last control step
+        self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor angular reference position
+        self.theta_ref_last = np.zeros(3, dtype=float) # theta1-3 motor angular reference position of last control step
 
     def reset_sp(self):                                      # align all SP with alpha_meas current position
         self.alpha2body(self.alpha_meas)
@@ -1396,7 +1396,7 @@ class PID_Controller():
             return
         self.reset_offsets()
         self.target_type = "ZETA"
-        self.zeta_ref = np.array([0,0,0], dtype=float)
+        self.zeta_ref = np.zeros(3, dtype=float)
 
     def set_zeta_ref_to_park(self):
         if self.mode in ['PRESETUP']:
@@ -1530,6 +1530,19 @@ class PID_Controller():
         self.theta_meas = clamp_theta(self.theta_meas + self.dt * self.omega_op)
         self.time_meas = self.time_meas + self.dt
 
+    def feed_forward(self):
+        # Feed forward tracking velocities (when in track mode and no delta_ref change)
+        self.omega_ff = np.zeros(3, dtype=float)
+        if self.mode == "TRACK":
+            delta_ref_change = self.delta_ref - self.delta_ref_last
+            delta_ref_nochange = np.sum(delta_ref_change ** 2) < 1e-3
+            if delta_ref_nochange and self.dt > 0:
+                tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
+                self.omega_ff = tracking_vel
+        # Feed forward slew velocities when in auto mode
+        elif self.mode == "AUTO":
+            self.omega_ff = self.alpha_v_sp
+
     def errsignal(self):
         # calc the error signal off theta (1 star aligned motor angles) or zeta (raw motor angles)
         if self.mode in ['HOMING', 'PARKING']:
@@ -1544,41 +1557,33 @@ class PID_Controller():
         self.was_moving = self.is_moving
         self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
 
-        # calc the integral error if tracking and within 3 arcmin or slewing
-        if (self.mode=='TRACK' and not (self.cost_signal > (3 / 60) ** 2)) or self.is_slewing:
-            for i in range(3):
-                Ki = Config.pid_Ki[i]
-                if Ki != 0: 
-                    i_limit = 5 / Ki           # Clamp integral term with anti-windup limit of 5 degrees/s
-                    can_integrate = (          # Conditional integration
-                        (self.omega_min[i] <= self.omega_tgt[i] <= self.omega_max[i]) or  # when not saturated
-                        (np.sign(self.error_signal[i]) != np.sign(self.omega_tgt[i]))     # or when reduces saturation
-                    )
-                    if can_integrate:            
-                        self.error_integral[i] = np.clip(self.error_integral[i] + self.error_signal[i], -i_limit, +i_limit) 
+        # calc the integral error if tracking or slewing
+        Ki = np.array(Config.pid_Ki, dtype=float)
+        i_limit = np.where(Ki != 0, 3 * 15/3600 / Ki, 0)    # limit integral to 3 x sidereal rate / Ki
+
+        if self.mode=='TRACK' or self.is_slewing:
+            if (self.cost_signal > (3 / 60) ** 2):          # When deviating greater than 3 arcmin.
+                # Preload to cancel derivative term: omega_kd = -Kd * omega_op
+                Kd = np.array(Config.pid_Kd, dtype=float)
+                preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
+                self.error_integral = np.clip(preload, -i_limit, +i_limit)
+            else:                                           # When within 3 arcmin, integrate with anti-windup clamping.
+                # Conditional integration mask
+                can_integrate = (
+                    ((self.omega_tgt >= self.omega_min) & (self.omega_tgt <= self.omega_max)) |
+                    (np.sign(self.error_signal) != np.sign(self.omega_tgt))
+                )
+                delta_integral = np.where(can_integrate, self.error_signal, 0)
+                self.error_integral = np.clip(self.error_integral + delta_integral, -i_limit, +i_limit)
         else:
-            self.error_integral = np.array([0,0,0], dtype=float)
+            self.error_integral = np.zeros(3, dtype=float)
 
    
     def pid(self):
         self.omega_kp = np.array(Config.pid_Kp, dtype=float) * self.error_signal    # increase control proportional to error
         self.omega_ki = np.array(Config.pid_Ki, dtype=float) * self.error_integral  # increase control when integral error is high
         self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * self.omega_op      # dampen control when velocity high
-        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd
-
-    def feed_forward(self):
-        # Feed forward tracking velocities (when in track mode and no delta_ref change)
-        self.omega_ff = np.array([0,0,0], dtype=float)
-        if self.mode == "TRACK":
-            delta_ref_change = self.delta_ref - self.delta_ref_last
-            delta_ref_nochange = np.sum(delta_ref_change ** 2) < 1e-3
-            if delta_ref_nochange and self.dt > 0:
-                tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
-                self.omega_ff = tracking_vel
-        # Feed forward slew velocities when in auto mode
-        elif self.mode == "AUTO":
-            self.omega_ff = self.alpha_v_sp
-        self.omega_tgt += self.omega_ff
+        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff
 
     def constrain(self):
         self.set_Ka_array(Config.pid_Ka) 
@@ -1621,7 +1626,7 @@ class PID_Controller():
         self.omega_ctl = np.clip(self.omega_ctl, self.omega_min, self.omega_max)
 
     async def control(self):
-        self.omega_op = np.array([0,0,0], dtype=float)
+        self.omega_op = np.zeros(3, dtype=float)
         # [0.0, 0.0059018, 0.0175906, 0.0478282, 0.0892742, 0.2079884]
         for axis in range(3):
             self.omega_op[axis] = self.omega_ctl[axis]
@@ -1681,9 +1686,9 @@ class PID_Controller():
         self.time_step = now
         if self.time_meas:      # Only process if we have a measurement
             self.track_target() # Update theta_ref with target's new position
+            self.feed_forward() # Feed forward tracking velocities when in TRACK mode
             self.errsignal()    # Update error_signal/integral with deviation from theta_ref
             self.pid()          # Update omega_tgt, calculate raw PID control target
-            self.feed_forward() # Feed forward tracking velocities when in TRACK mode
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
             await self.control()      # Update omega_op, constrain with valid op control values
             self.notify()       # Notify any callback of no longer deviating

@@ -24,6 +24,8 @@
 
 ## What's new since beta2
 - **[Epoch Change]** Changed default epoch from J2000 to Jnow for all live co-ordinates (recommended default from ASCOM)
+- **[PID Integral]** Improve PID integral term reliability (preload with desired offset, clamp to 3x sidereal) 
+- **[PID Tuning]** Adjust default PID tuning, increase Kp to 1.0, increase Ki to 0.05, decrease Kd to 0.5
 - **[Goto Timeout]** When a GOTO does not achieve GOTO tolerance after 45s, it will stop the motors and return to IDLE
 - **[Weighted Sync]** Syncs with higher recency, closer proximity, or closer to the pole are given more weight in multi-point alignment
 - **[Limit Syncs]** Limit to a maximum of 10 sync points, discarding lowest-weighted points when new syncs performed.
@@ -31,9 +33,8 @@
 - **[Bluetooth LE]** Improved handling of Bluetooth LE on MacOS
 - **[Warning Banner]** Show warning banner on Connection Page as well as every other page
 - **[Park Notification]** Pilot notifies that you Cannot perform find Home while Parked
-- **[Catalog Search]** When searching catalog for specific DSO, allow below horizon and near zenith
 - **[Home Parked]** Notify that you cannot find Home while the mount is Parked.
-- **[PID Tuning]** Adjust default PID tuning, increase Kp to 1.0, increase Ki to 0.05, decrease Kd to 0.5
+- **[Catalog Search]** When searching catalog for specific DSO, allow below horizon and near zenith
 - **[Issue #52]** Fixed Home and Park do not work after 45s has expired since last goto
 - **[Issue #53]** Improve Pilot Radial Dial click on scale compatibility with Firefox Browser
 - **[FAQ B5]** Added note on load capacity of Benro Polaris
