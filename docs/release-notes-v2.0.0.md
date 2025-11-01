@@ -22,27 +22,26 @@
     * Change the Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new since beta2
-- **[Epoch Change]** Changed default epoch from J2000 to Jnow for all live co-ordinates (recommended default from ASCOM)
-- **[PID Integral]** Improve PID integral term reliability (preload with desired offset, clamp to 3x sidereal) 
-- **[PID Tuning]** Adjust default PID tuning, increase Kp to 1.0, increase Ki to 0.05, decrease Kd to 0.5
-- **[PID Status]** Added PID Status chip to PID Tuning page for monitoring GOTO completion
-- **[GOTO Tollerance]** Halve GOTO tollerance to 0.5 arc minutes to give more time to stabilise tracking
-- **[Goto Timeout]** When a GOTO does not achieve GOTO tolerance after 45s, it will stop the motors and return to IDLE
-- **[Weighted Sync]** Syncs with higher recency, closer proximity, or closer to the pole are given more weight in multi-point alignment
-- **[Limit Syncs]** Limit to a maximum of 10 sync points, discarding lowest-weighted points when new syncs performed.
-- **[Sync Diagnostics]** Added a new Driver Log Setting to optionally log the weights when calculating the QUEST model.
-- **[Bluetooth LE]** Improved handling of Bluetooth LE on MacOS
-- **[Warning Banner]** Show warning banner on Connection Page as well as every other page
-- **[Park Notification]** Pilot notifies that you Cannot perform find Home while Parked
-- **[Home Parked]** Notify that you cannot find Home while the mount is Parked.
-- **[Catalog Search]** When searching catalog for specific DSO, allow below horizon and near zenith
-- **[Issue #52]** Fixed Home and Park do not work after 45s has expired since last goto
-- **[Issue #53]** Improve Pilot Radial Dial click on scale compatibility with Firefox Browser
-- **[FAQ B5]** Added note on load capacity of Benro Polaris
-- **[ASCOM 7.1]** Add compatibility with ASCOM Platform 7.1
+## What's new in beta3
+- **[Epoch Change]** Default epoch for live coordinates changed from J2000 to JNow (ASCOM-recommended)
+- **[PID Integral]** Improved reliability of PID integral term: preloads with offset to cancel derivative, clamps to 3× sidereal rate.
+- **[PID Tuning]** Updated default PID parameters: increased Kp to 1.0, Ki to 0.05, and reduced Kd to 0.5.
+- **[PID Status]** Added PID Status chip to the tuning page for real-time GOTO completion monitoring
+- **[GOTO Tolerance]** Reduced GOTO tolerance to 0.5 arcminutes to allow more time for tracking stabilization
+- **[Goto Timeout]** If GOTO fails to reach tolerance within 45s, motors stop and system returns to IDLE
+- **[Weighted Sync]** Multi-point sync now prioritizes recent, nearby, and polar-adjacent points for improved alignment
+- **[Limit Syncs]** Capped sync history to 10 points; lowest-weighted entries are discarded when new syncs are added
+- **[Sync Diagnostics]** New Driver Log setting enables optional logging of sync weights used in QUEST model calculations
+- **[Bluetooth LE]** Enhanced Bluetooth Low Energy support on macOS
+- **[Warning Banner]** Connection warnings now appear on all pages, including the Connection Page
+- **[Park Notification]** Clear notification you cannot find Home while mount is Parked
+- **[Catalog Search]** Catalog search now includes DSOs below horizon and near zenith
+- **[Issue #52]** Fixed bug preventing Home and Park after 45s timeout post-GOTO
+- **[Issue #53]** Improved radial dial click compatibility with Firefox browser
+- **[FAQ B5]** Added FAQ documentation note on Benro Polaris load capacity
+- **[ASCOM 7.1]** Verified compatibility with ASCOM Platform 7.1
 
-## What’s new since beta1
+## What’s new in beta2
 - **[PID Integral]** Corrected integral component calculation for better error convergence to zero
 - **[PID Acceleration]** Increased default max acceleration from 3 to 5°/s² for quicker response
 - **[PID Tuning]** Added a full PID Tuning page with support for goto, slew, pulse tests, and full parameter exposure
