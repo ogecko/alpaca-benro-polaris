@@ -27,6 +27,7 @@
 - **[PID Integral]** Improve PID integral term reliability (preload with desired offset, clamp to 3x sidereal) 
 - **[PID Tuning]** Adjust default PID tuning, increase Kp to 1.0, increase Ki to 0.05, decrease Kd to 0.5
 - **[PID Status]** Added PID Status chip to PID Tuning page for monitoring GOTO completion
+- **[GOTO Tollerance]** Halve GOTO tollerance to 0.5 arc minutes to give more time to stabilise tracking
 - **[Goto Timeout]** When a GOTO does not achieve GOTO tolerance after 45s, it will stop the motors and return to IDLE
 - **[Weighted Sync]** Syncs with higher recency, closer proximity, or closer to the pole are given more weight in multi-point alignment
 - **[Limit Syncs]** Limit to a maximum of 10 sync points, discarding lowest-weighted points when new syncs performed.
