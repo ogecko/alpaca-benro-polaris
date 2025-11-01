@@ -278,21 +278,31 @@ function drawGridlines(
   zy: d3.ScaleLinear<number, number>,
   width: number,
 ) {
-const tX = (dlen.value>140) ? gridX.transition().duration(180).ease(d3.easeLinear) : gridX
-tX.call(
-  d3.axisBottom(zx)
-    .tickSize(-(height - margin.top - margin.bottom))
-    .tickFormat(() => '')
-)
+  const tX = (dlen.value>140) ? gridX.transition().duration(180).ease(d3.easeLinear) : gridX
+  tX.call(
+    d3.axisBottom(zx)
+      .tickSize(-(height - margin.top - margin.bottom))
+      .tickFormat(() => '')
+  )
 
-const tY = (dlen.value>140) ? gridY.transition().duration(180).ease(d3.easeLinear) : gridY
-tY.call(
-  d3.axisLeft(zy)
-    .tickSize(-(width - margin.left - margin.right))
-    .tickFormat(() => '')
-)
+  const tY = (dlen.value>140) ? gridY.transition().duration(180).ease(d3.easeLinear) : gridY
+  tY.call(
+    d3.axisLeft(zy)
+      .tickSize(-(width - margin.left - margin.right))
+      .tickFormat(() => '')
+  )
 
-}
+  // Highlight the horizontal gridline at y = 0.000
+  gridY.selectAll<SVGGElement, number>(".tick")
+    .each(function (d) {
+      if (Math.abs(d) < 1e-6) {
+        d3.select(this).select("line")
+          .attr("stroke", "#555")
+          .attr("stroke-width", 3);
+      }
+    });
+
+  }
 
 function onResize() {
   d3.select(chart.value).select('svg').remove()
