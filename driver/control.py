@@ -1467,7 +1467,7 @@ class PID_Controller():
         elif self.mode in ['IDLE']:
             if (self.alpha_ref[0]==0):                       # only reset sp in special case
                 self.reset_sp()
-            self.alpha_offst = np.array([0,0,0],dtype=float) # in case we switch to AUTO
+            self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
             self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
@@ -1550,31 +1550,34 @@ class PID_Controller():
         else:            
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
 
+        # Per-axis deviation flags
+        self.is_axis_preloading = np.abs(self.error_signal) > 3 / 60           # preload error_integration outside 3 arcmin
+        self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
+
         # calc cost signal and flags
+        self.is_deviating = np.any(self.is_axis_deviating)
         self.cost_signal = np.sum(self.error_signal ** 2)
-        self.is_deviating = self.cost_signal > (Config.pid_Kc / 60) ** 2
         self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
         self.was_moving = self.is_moving
         self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
 
         # calc the integral error if tracking or slewing
         Ki = np.array(Config.pid_Ki, dtype=float)
+        Kd = np.array(Config.pid_Kd, dtype=float)
         i_limit = np.where(Ki != 0, 3 * 15/3600 / Ki, 0)    # limit integral to 3 x sidereal rate / Ki
 
         if self.mode=='TRACK' or self.is_slewing:
-            if (self.cost_signal > (3 / 60) ** 2):          # When deviating greater than 3 arcmin.
-                # Preload to cancel derivative term: omega_kd = -Kd * omega_op
-                Kd = np.array(Config.pid_Kd, dtype=float)
-                preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
-                self.error_integral = np.clip(preload, -i_limit, +i_limit)
-            else:                                           # When within 3 arcmin, integrate with anti-windup clamping.
-                # Conditional integration mask
-                can_integrate = (
-                    ((self.omega_tgt >= self.omega_min) & (self.omega_tgt <= self.omega_max)) |
-                    (np.sign(self.error_signal) != np.sign(self.omega_tgt))
-                )
-                delta_integral = np.where(can_integrate, self.error_signal, 0)
-                self.error_integral = np.clip(self.error_integral + delta_integral, -i_limit, +i_limit)
+            # Preload to cancel derivative term: omega_kd = -Kd * omega_op, or use last integral value
+            preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
+            preload_masked = np.where(self.is_axis_preloading, preload, self.error_integral)
+            # Conditional integration mask
+            can_integrate = (
+                ((self.omega_tgt >= self.omega_min) & (self.omega_tgt <= self.omega_max)) |
+                (np.sign(self.error_signal) != np.sign(self.omega_tgt))
+            )
+            delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
+            updated_integral = preload_masked + delta_integral
+            self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
         else:
             self.error_integral = np.zeros(3, dtype=float)
 
