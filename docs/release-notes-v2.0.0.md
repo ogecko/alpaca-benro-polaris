@@ -24,9 +24,9 @@
 
 ## What's new in beta3
 - **[Epoch Change]** Default epoch for live coordinates changed from J2000 to JNow (ASCOM-recommended)
-- **[Zero Residual]** Combine globally optimized multi-point alignment, with a final local adjustment to ensure zero residual at the most recent sync
-- **[PID Integral]** Improved reliability of PID integral term: preloads with offset to cancel derivative, clamps to 3× sidereal rate.
-- **[PID Tuning]** Updated default PID parameters: increased Kp to 1.0, Ki to 0.05, and reduced Kd to 0.5.
+- **[Zero Residual]** Ensure most recent sync has zero residual; Combine globally optimized multi-point alignment with a final local adjustment
+- **[PID Integral]** Improved reliability of PID integral term: preloads with offset to cancel derivative, clamps to 3× sidereal rate
+- **[PID Tuning]** Updated default PID parameters to improve responsiveness: increased Kp to 1.0, Ki to 0.05, and reduced Kd to 0.5
 - **[PID Status]** Added PID Status chip to the tuning page for real-time GOTO completion monitoring
 - **[Chart Gridlines]** Highlight horizontal gridline at Y = 0 for better visibility on all charts
 - **[GOTO Tolerance]** Reduced GOTO tolerance to 0.5 arcminutes to allow more time for tracking stabilization
