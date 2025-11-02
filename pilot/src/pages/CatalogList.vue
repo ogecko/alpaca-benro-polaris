@@ -8,7 +8,7 @@
       <div class="col text-h6 q-ml-md">
         Alpaca Pilot Catalog
         <div class="text-caption text-grey-6">
-        Interactive Catalog of Stellar and Deep-Sky Objects.
+        Interactive Catalog of Stellar and Deep-Sky Objects, sorted by {{ sorted_str }}.
        </div>
       </div>
       <q-space />
@@ -74,6 +74,7 @@
                   RA: {{ deg2fulldms(dso.RA_hr,1,'hr') }} <VBar /> Dec: {{ deg2fulldms(dso.Dec_deg) }}
                   <span v-if="dso.Az_deg"> <VBar /> Az: {{ formatAngle(dso.Az_deg,'deg',0) }}</span>
                   <span v-if="dso.Alt_deg"> <VBar /> Altitude: {{ formatAngle(dso.Alt_deg,'deg',0) }}</span>
+                  <span v-if="isProxSort"> <VBar /> Proximity: {{ formatAngle(dso.Proximity??0,'deg',1) }}</span>
                 </q-item-label>
               </q-item-section>
 
@@ -109,14 +110,15 @@
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { deg2fulldms } from 'src/utils/angles'
-import { useCatalogStore } from 'src/stores/catalog'
-import MultiSelect from 'src/components/MultiSelect.vue'
+import { formatAngle } from 'src/utils/scale'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude, DsoConstellation, DsoRating, DsoSize, DsoBrightness } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
+import { useStatusStore } from 'src/stores/status'
+import { useCatalogStore } from 'src/stores/catalog'
 import VBar from 'src/components/VBar.vue'
-import { formatAngle } from 'src/utils/scale'
+import MultiSelect from 'src/components/MultiSelect.vue'
 
 
 
@@ -125,6 +127,7 @@ const $q = useQuasar()
 const route = useRoute()
 const dev = useDeviceStore()
 const router = useRouter()
+const p = useStatusStore()
 
 const showFilters = ref<boolean>(false)
 
@@ -138,6 +141,8 @@ const showFilters = ref<boolean>(false)
 // ---------- Computed
 
 const maxPages = computed(() => $q.screen.gt.sm ? 9 : 4)
+const sorted_str = computed(() => isProxSort.value ?  'Nearby Proximity' : 'Ranking and Size' )
+const isProxSort = computed(() => cat.sorting[0]?.field === 'Proximity')
 
 // ---------- Watches
 watch(() => route.query.q, (newQ) => {
@@ -145,7 +150,10 @@ watch(() => route.query.q, (newQ) => {
   },
   { immediate: true }
 )
-watch(() => route.query, syncFiltersFromRoute, { deep: true })
+
+
+// watch(() => route.query, syncFiltersFromRoute, { deep: true })
+watch(() => route.query, syncFiltersFromRoute, { deep: true, flush: 'sync' });
 
 
 // ---------- Helpers
@@ -185,6 +193,13 @@ function syncFiltersFromRoute() {
   cat.filter.Vz = parseNumberArray(route.query.Vz) as DsoBrightness[]
   cat.filter.Az = parseNumberArray(route.query.Az) as DsoAltitude[]
   cat.filter.Alt = parseNumberArray(route.query.Alt) as DsoAltitude[]
+
+  if (route.query.sort === 'Proximity') {
+    cat.updateDsoProximity(p.rightascension, p.declination);
+    cat.sorting = [{ field: 'Proximity', direction: 'asc' }];
+  } else {
+    cat.sorting = [];
+  }
 }
 
 

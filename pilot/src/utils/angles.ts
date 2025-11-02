@@ -151,6 +151,7 @@ export function wrapTo24(angle: number) {
 }
 
 
+export const hrToDeg = (hr: number) => hr * 15;
 export const toRad = (d: number) => d * Math.PI / 180;
 export const toDeg = (r: number) => r * 180 / Math.PI;
 

@@ -255,6 +255,7 @@ function getBatteryIcon(): string {
 
 const links2 = [
   { icon: 'mdi-library', text: 'Catalog', to: '/cataloglist' },
+  { icon: 'mdi-nfc-tap', text: 'Nearby', to: { path: '/catalogList', query: { sort:'Proximity' } } },
   { icon: 'mdi-flare', text: 'Stars', to: { path: '/catalogList', query: { C1:3 } } },
   { icon: 'mdi-horse-variant', text: 'Nebulae', to: { path: '/catalogList', query: { C1:0 } } },
   { icon: 'mdi-cryengine', text: 'Galaxies', to: { path: '/catalogList', query: { C1:1 } } },

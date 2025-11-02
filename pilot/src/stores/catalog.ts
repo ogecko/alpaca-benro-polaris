@@ -4,8 +4,8 @@ import { defineStore, acceptHMRUpdate } from 'pinia'
 import { AppVisibility } from 'quasar'
 import { useStatusStore } from './status'
 import { useConfigStore } from './config'
-import { getAzAlt } from 'src/utils/angles'
-
+import { getAzAlt, hrToDeg, toDeg, toRad } from 'src/utils/angles'
+import { toRaw } from 'vue'
 // # Total Number of Objects:  3263
 // #  ../pilot/public/catalog_top25_lg.json 530
 // #  ../pilot/public/catalog_top25_sm.json 401
@@ -20,7 +20,11 @@ import { getAzAlt } from 'src/utils/angles'
 const p = useStatusStore()
 const cfg = useConfigStore()
 let positionUpdateTimer: ReturnType<typeof setInterval> | null = null;
-
+const defaultSorting = [
+        { field: 'Rt', direction: 'desc' },
+        { field: 'Sz', direction: 'desc' },
+        { field: 'Name', direction: 'asc' }
+    ] as { field: keyof CatalogItem; direction: 'asc' | 'desc' }[]
 
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
@@ -40,11 +44,7 @@ export const useCatalogStore = defineStore('catalog', {
         Az: undefined as DsoAltitude[] | undefined,
         Alt: undefined as DsoAltitude[] | undefined,
     },
-    sorting: [
-        { field: 'Rt', direction: 'desc' },
-        { field: 'Sz', direction: 'desc' },
-        { field: 'Name', direction: 'asc' }
-    ] as { field: keyof CatalogItem; direction: 'asc' | 'desc' }[],
+    sorting: [] as { field: keyof CatalogItem; direction: 'asc' | 'desc' }[],
   }),
 
   getters: {
@@ -93,7 +93,8 @@ export const useCatalogStore = defineStore('catalog', {
     },
     sorted(): CatalogItem[] {
         return [...this.filtered].sort((a, b) => {
-            for (const { field, direction } of this.sorting) {
+            const effectiveSorting = this.sorting.length > 0 ? this.sorting : defaultSorting;
+            for (const { field, direction } of effectiveSorting) {
             const valA = a[field];
             const valB = b[field];
 
@@ -244,8 +245,27 @@ export const useCatalogStore = defineStore('catalog', {
         clearInterval(positionUpdateTimer);
         positionUpdateTimer = null;
       }
-    }
+    },
+    updateDsoProximity(currentRA_hr: number, currentDec_deg: number) {
+      const ra1 = toRad(hrToDeg(currentRA_hr));
+      const dec1 = toRad(currentDec_deg);
 
+      const updated = this.dsos.map(item => {
+        const ra2 = toRad(hrToDeg(item.RA_hr));
+        const dec2 = toRad(item.Dec_deg);
+        // Angular separation using spherical law of cosines
+        const cosAngle = Math.sin(dec1) * Math.sin(dec2) + Math.cos(dec1) * Math.cos(dec2) * Math.cos(ra1 - ra2);
+        const angleRad = Math.acos(Math.min(Math.max(cosAngle, -1), 1));
+        const angleDeg = toDeg(angleRad);
+        return {
+          ...toRaw(item), // strip reactivity from original item
+          Proximity: angleDeg,
+        };
+      });
+
+      // Replace the reactive array with a new one
+      this.dsos = updated;
+    }
   }
 })
 
@@ -276,6 +296,7 @@ export interface CatalogItem {
   Az?: DsoAzimuth; 
   Alt?: DsoAltitude; 
   Position?: string;
+  Proximity?: number;
 }
 
 // ---------- Helpers
