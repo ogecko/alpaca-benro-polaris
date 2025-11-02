@@ -61,7 +61,7 @@ guide_rate_dec = 0.5                        # Declination guide rate multiple of
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.
-aiming_adjustment_enabled = true            # Whether to make minor ajusttments to improve aiming.
+aiming_adjustment_enabled = false           # Whether to make minor ajusttments to improve aiming.
 aiming_adjustment_time = 2                  # The time (in seconds) in the future to convert from ra/dec to az/alt, to cater for sidereal tracking settle time.
 aim_max_error_correction = 0.5              # The maximum angle (decimal degrees) that the driver will correct for when aiming at alzaz .
 aiming_adjustment_az = -0.0300750663        # The initial az aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment.
