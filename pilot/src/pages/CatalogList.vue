@@ -218,7 +218,8 @@ function onClickDSO(dso: CatalogItem) {
 
 async function onClickSync(dso: CatalogItem) {
   await dev.alpacaJ2000Sync(dso.RA_hr, dso.Dec_deg)
-  $q.notify({ message:`Sync issued for ${dso.MainID} ${dso.Name}.`, icon:typeLookupIcon[dso.C1],
+  const name = dso.Name?.trim() || '';
+  $q.notify({ message:`Sync issued for ${dso.MainID} ${name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   cat.dsoGotoed = dso
   await router.push({ path: '/sync', query: { ...route.query, q: cat.searchFor } }) 
@@ -228,7 +229,8 @@ async function onClickSync(dso: CatalogItem) {
 
 async function onClickGoto(dso: CatalogItem) {
   await dev.alpacaJ2000Goto(dso.RA_hr, dso.Dec_deg)
-  $q.notify({ message:`Goto issued for ${dso.MainID} ${dso.Name}.`, icon:typeLookupIcon[dso.C1],
+  const name = dso.Name?.trim() || '';
+  $q.notify({ message:`Goto issued for ${dso.MainID} ${name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   cat.dsoGotoed = dso
   await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
