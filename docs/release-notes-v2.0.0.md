@@ -22,6 +22,12 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
+## What's new in beta4
+- **[Delta Angles]** Relative angles can be entered using a 'd' prefix. eg entering 'd2' in the RA axis setpoint will increase the current value by 2 hours
+- **[Partial Angles]** Partial angles can be entered using a ':' separator. eg entering ':2' means 2 arcmin, entering '::10' means 10 arcsec
+
+
+
 ## What's new in beta3
 - **[Epoch Change]** Default epoch for live coordinates changed from J2000 to JNow (ASCOM-recommended)
 - **[PID Integral]** Improved reliability of PID integral term: preloads with offset to cancel derivative, clamps to 3× sidereal rate

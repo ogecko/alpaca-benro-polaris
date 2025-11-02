@@ -245,13 +245,28 @@ async function onPopupShowSPEdit() {
   if (el) el.select();
 }
 
-function onClickSetpoint(isSetEvent:boolean, scope: { cancel: () => void }) {
-  scope.cancel()
-  if (isSetEvent) {
-    const angle = dms2deg(spxValueEditStr.value)
-    emit('clickScale', { label: props.label, angle, radialOffset: 1.0 }); 
+
+function onClickSetpoint(isSetEvent: boolean, scope: { cancel: () => void }) {
+  scope.cancel();
+  if (!isSetEvent) return;
+  let input = spxValueEditStr.value?.trim();
+  if (!input) return;
+
+  // Normalize delta prefix
+  const deltaPrefix = /^(delta|Delta|d|D|r|R)\s*/;
+  const hasDeltaPrefix = deltaPrefix.test(input);
+  if (hasDeltaPrefix) {
+    input = input.replace(deltaPrefix, '').trim();
   }
+
+  // Always parse using dms2deg for consistent handling
+  const parsed = dms2deg(input, dProps.value.unit);
+  const angle = hasDeltaPrefix ? pvn.value + parsed : parsed;
+
+  emit('clickScale', { label: props.label, angle, radialOffset: 1.0 });
 }
+
+
 
 
 // handle clicks on the scale and emit a clickScale event

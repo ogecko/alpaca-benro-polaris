@@ -63,34 +63,39 @@ export function deg2fulldms(angle:number, precision: number = 1, unit:UnitKey = 
 }
 
 export function dms2deg(str: string | undefined, unit: UnitKey = 'deg'): number {
-  // check input format
   if (!str || typeof str !== 'string') return 0;
 
+  const { d, m, s } = symbol[unit];
+
   // Normalize separators to colon
-  const { d, m, s } = symbol[unit]
   const cleaned = str
-    .replace(/[^\d.+-]+/g, ':') // Replace all non-numeric separators with colon
     .replace(new RegExp(`[${d}${m}${s}]`, 'g'), ':') // Replace unit symbols with colon
-    .trim()
+    .replace(/[^\d.+\-:]/g, '') // Remove stray characters except colon and sign
+    .trim();
 
   // Extract sign
-  const signMatch = cleaned.match(/^[-+]/)
-  const sign = signMatch?.[0] === '-' ? -1 : 1
+  const signMatch = cleaned.match(/^[-+]/);
+  const sign = signMatch?.[0] === '-' ? -1 : 1;
 
-  // Split and parse parts
-  const parts = cleaned.split(':').map(p => parseFloat(p)).filter(p => !isNaN(p))
-  if (parts.length === 0) return 0
-  
+  // Remove sign for splitting
+  const unsigned = cleaned.replace(/^[-+]/, '');
+
+  // Split into components, preserving empty fields as zero
+  const rawParts = unsigned.split(':');
+  const parts = rawParts.map(p => p === '' ? 0 : parseFloat(p));
+
   while (parts.length < 3) {
-    parts.push(0)
+    parts.push(0);
   }
 
-  const [degreesRaw = 0, minutes = 0, seconds = 0] = parts
-  const degrees = Math.abs(degreesRaw)
-  const decimal = degrees + minutes / 60 + seconds / 3600
+  const [degreesRaw = 0, minutes = 0, seconds = 0] = parts;
+  const degrees = Math.abs(degreesRaw);
+  const decimal = degrees + minutes / 60 + seconds / 3600;
 
-  return sign * decimal
+  return sign * decimal;
 }
+
+
 
 
 
