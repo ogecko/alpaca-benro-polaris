@@ -19,7 +19,7 @@
 * Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
 * WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.0
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.0
-    * Change the Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
+    * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in beta3
@@ -61,23 +61,8 @@
 - **[Celestial Poles]** North and South Celestial Poles added to the catalog for easier alignment
 - **[QUEST Paper]** A research paper on QUEST has been added to the documentation
 
-Let me know if you want a changelog version, a markdown export, or a short announcement for Discord or GitHub.
-
-- **[Chart UX]** Improve charts for resize, smooth scroll and color consistency across app for SP, PV, OP, Mx.
-- **[Chart Legends]** Add trace legend to all charts
-- **[Chart Statistics]** Add performance statistics to all charts
-- **[M1-3 readout]** Add absolute angle readouts for motors M1, M2, M3 on dashboard
-- **[Find Home]** Returns mount to true Home position (M1=M2=M3=0), unwinding cables. 
-- **[Set Park]** Ability to customise the Park location.
-- **[Advanced Park]** Rewrite V1.0 Park to be more ASCOM compliant. Uses PID controller, smoother Park, interruptable, unwinds.
-- **[Parking, Homing]** Add new PID states for monitoring transition to Park and Home positions
-- **[Nina Support]** Find Home, Set Park, Park and UnPark are accessable from any Alpaca Client, including Nina, Alpaca Pilot and others.
-- **[Celestrial Poles]** Added North and South Celestrial Poles to the catalog to easy alignment
-- **[QUEST Paper]** Added a research paper on QUEST in docs
-
 ## Beta Agreement
 Please read and confirm your agreement with [Beta Agreement](./beta_agreement.md) if you havent already.
-
 
 ## New Features (Alpaca Pilot)
 - **[Modern App]**: Alpaca Pilot offers an elegant, adaptive UI for control and management of Alpaca Drivers
@@ -269,11 +254,14 @@ Please let us know if you can try any of these features.
 * MacOS Sequoia 15
 * iOS 17.6  
 * iPadOS v17.6.1
-  
+### Alpaca Pilot compatible Browsers
+* Firefox version 115+ 
+* Google Chrome version 115+
+* Microsoft Edge version 115+
+* Apple Safari 14+
 
 ## Known Issues
 - **[Gimbal Lock]**: There is potential gimbal loack at low altitudes. Please watch mount at all times.
-- **[Stellarium 24.3]**: Stellarium Desktop v24.3 has known issues with telescope control. See [Troubleshooting S2](./troubleshooting.md).
 
 
 ## Potential Future Enhancements
@@ -281,14 +269,10 @@ Please let us know if you can try any of these features.
 - **[CCDciel Support]**: Official support and testing for CCDciel for MacOS.
 - **[Stellarium MacOS]**: Add position update support to the Stellarium Binary protocol.
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
-- **[WiFi Setup]**: Eliminate the need for BP App to set up Polaris WiFi Hotspot.
-- **[Astro Mode Setup]**: Eliminate the need for the BP App to manually change mode to Astro and align.
-- **[Setup GUI]**: Deliver a Graphical UI to manage config.toml and provide a base UI. 
-- **[Control GUI]**: Deliver a Graphical UI for Telescope Control, as a multi-platform web app.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
 - **[Emedded Driver]**: The driver should be embedded on the Benro Polaris Device. Benro Change.
-- **[Pulse Guiding]**: Allow micro-move axis commands while tracking without backlash. Benro Change.
 
 ## Deprecations
-- **[None Known]**: No features deprecated as this is the second release.
+- **[RA 1.04]**: Special RA Axis move command in V1.0 has been replaced with Alpaca Pilot direct RA radial dial control.
+- **[N-Point Alignment]**: N-Point Alignment in V1.0 has been replaced with Multi-Point Alignment
   
