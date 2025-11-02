@@ -27,6 +27,7 @@
 - **[Nearby Catalog]** Enable side menu to show nearby catalog targets, sorted by angular proximity to current RA and Dec
 - **[Delta Angles]** Relative angles can be entered using a 'd' prefix. eg entering 'd2' in the RA axis setpoint will increase the current value by 2 hours
 - **[Partial Angles]** Partial angles can be entered using a ':' separator. eg entering ':2' means 2 arcmin, entering '::10' means 10 arcsec
+- **[Astro Warning]** Notify user to switch to Astro Mode before Compass, Single Star or Multi-Point Alignment
 
 
 

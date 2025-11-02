@@ -234,7 +234,7 @@
                 <q-item-section side>
                   <div class="row items-center q-gutter-sm">
                     <q-circular-progress v-if="p.aligning" indeterminate rounded size="sm" />
-                    <q-btn-dropdown label="Skip" split icon="mdi-flare"  @click="onAlignment(cfg.default_azimuth, cfg.default_altitude)" class="fixedWidth">
+                    <q-btn-dropdown label="Skip" split icon="mdi-flare"  @click="onSingleAlignment(cfg.default_azimuth, cfg.default_altitude)" class="fixedWidth">
                       <q-list dense class="q-mt-md q-mb-md">
                         <q-item>
                           <q-item-section>
@@ -264,7 +264,7 @@
                 </q-item-section>
                 <q-item-section side>
                   <div class="row items-center q-gutter-sm">
-                    <q-btn label="Align" split icon="mdi-creation-outline"  to="/sync" class="fixedWidth" />
+                    <q-btn label="Align" split icon="mdi-creation-outline"  @click="onMultiAlignment" class="fixedWidth" />
                   </div>
                 </q-item-section>
               </q-item>
@@ -289,12 +289,13 @@ import { watch, computed, onMounted, onUnmounted } from 'vue'
 import { dms2deg } from 'src/utils/angles'
 import NetworkSettings from 'components/NetworkSettings.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
+import { useRouter } from 'vue-router'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
-
+const router = useRouter()
 
 // ------------------- Computed Resources ---------------------
 
@@ -349,18 +350,45 @@ async function onResetAxes() {
 }
 
 async function onCompass(newVal:string = '180.0') {
+  if (!isAstroMode.value) {
+    $q.notify({
+      message: 'Please set Polaris to Astro Mode before Compass Alignment.',
+      type: 'negative', position: 'top', timeout: 5000,
+      actions: [{ icon: 'mdi-close', color: 'white' }]
+    })
+    return
+  } 
   const bearing = dms2deg(newVal, 'deg')
   console.log('Set Compass Alignment to ${bearing}')
   await dev.setPolarisCompass(bearing)
 }
 
-async function onAlignment(azstr:string = '180.0', altstr:string = '45.0') {
+async function onSingleAlignment(azstr:string = '180.0', altstr:string = '45.0') {
+  if (!isAstroMode.value) {
+    $q.notify({
+      message: 'Please set Polaris to Astro Mode before Single Star Alignment.',
+      type: 'negative', position: 'top', timeout: 5000,
+      actions: [{ icon: 'mdi-close', color: 'white' }]
+    })
+    return
+  } 
   const az = dms2deg(azstr, 'deg')
   const alt = dms2deg(altstr, 'deg')
   console.log('Set Alignment Alignment Az ${az}, Alt ${alt}')
   await dev.setPolarisAlignment(az, alt)
 }
 
+async function onMultiAlignment() {
+  if (!isAstroMode.value) {
+    $q.notify({
+      message: 'Please set Polaris to Astro Mode before Multi Point Alignment.',
+      type: 'negative', position: 'top', timeout: 5000,
+      actions: [{ icon: 'mdi-close', color: 'white' }]
+    })
+    return
+  } 
+  await router.push('/sync')
+}
 
 async function onModeUpdate(newVal:number) {
   console.log("Polaris Mode", newVal)
