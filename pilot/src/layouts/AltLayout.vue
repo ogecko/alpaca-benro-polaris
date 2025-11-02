@@ -21,7 +21,7 @@
         </q-tabs>
         <!-- Search -->
         <div class="row no-wrap q-pl-md">
-          <q-input rounded dense filled bg-color="blue-9" v-model="searchBoxString" :placeholder="$q.screen.gt.xs?'Catalog':undefined">
+          <q-input rounded dense filled bg-color="blue-9" v-model="searchBoxString" :placeholder="$q.screen.gt.xs?'Catalog':undefined" @focus="onSearchFocus">
             <template v-slot:append>
               <q-btn dense size="sm" round unelevated :icon="(searchBoxString=='')? 'mdi-magnify': 'mdi-close'" @click="onMagnify()" />
             </template>
@@ -173,6 +173,13 @@ function onMagnify() {
     }
   }
 }
+
+function onSearchFocus() {
+  if (searchBoxString.value.trim() !== '') {
+    triggerSearch();
+  }
+}
+
 
 onMounted(() => {
   // socket.connectSocket()   //    connect whenever the socketURL or AppVisibility changes - see watch below
