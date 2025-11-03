@@ -78,7 +78,11 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
                   <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} </q-item-label>
               </q-item-section>
               <q-item-section side>
-                  <q-item-label><span class="text-caption">Residual</span> {{data.resmag}}</q-item-label>
+                  <q-item-label color="negative">
+                    <span class="text-caption">Residual </span> {{data.resmag}}
+                    <q-icon v-if="data.residual>10" color="negative" name="mdi-alert" size="16px" class="q-ml-xs" />
+                    <q-icon v-else-if="data.residual>5" color="warning" name="mdi-alert" size="16px" class="q-ml-xs" />
+                  </q-item-label>
               </q-item-section>
               <q-item-section side>
                   <q-btn dense size="sm" round icon="mdi-close" @click="onSyncRemove(data.timestamp)"/>
@@ -321,7 +325,7 @@ const rotator_syncs = computed(() => {
 watch(axis, ()=>selected.value=[])
 
 type TableRow = {
-  timestamp:string, deleted:boolean, time:string, a_az:string, a_alt:string, a_roll:string, resmag:string, resvec:[number, number] 
+  timestamp:string, deleted:boolean, time:string, a_az:string, a_alt:string, a_roll:string, residual:number, resmag:string, resvec:[number, number] 
 }
 
 
@@ -333,9 +337,10 @@ function formatSyncData(d: TelemetryRecord):TableRow {
   const a_az = data.a_az != null ? formatAngle(data.a_az, 'deg', 1) : ''
   const a_alt = data.a_alt != null  ? formatAngle(data.a_alt, 'deg', 1) : ''
   const a_roll = data.a_roll != null ? formatAngle(data.a_roll, 'deg', 1) : ''
+  const residual = data.residual_magnitude ? data.residual_magnitude : 0
   const resmag = data.residual_magnitude ? formatAngle(data.residual_magnitude, 'deg', 1) : ''
   const resvec = data.residual_vector ?? [0,0]
-  return { timestamp, deleted, time, a_az, a_alt, a_roll, resmag, resvec }
+  return { timestamp, deleted, time, a_az, a_alt, a_roll, residual, resmag, resvec }
 }
 
 onMounted(async () => {

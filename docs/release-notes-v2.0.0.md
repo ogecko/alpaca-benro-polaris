@@ -28,7 +28,7 @@
 - **[Delta Angles]** Relative angles can be entered using a 'd' prefix. eg entering 'd2' in the RA axis setpoint will increase the current value by 2 hours
 - **[Partial Angles]** Partial angles can be entered using a ':' separator. eg entering ':2' means 2 arcmin, entering '::10' means 10 arcsec
 - **[Astro Warning]** Notify user to switch to Astro Mode before Compass, Single Star or Multi-Point Alignment
-
+- **[Residual Warning]** Notify users of Multi-Point Alignment sync points with high residuals. Display a warning for residuals exceeding 5°, and an alert for those above 10°
 
 
 ## What's new in beta3
