@@ -44,7 +44,7 @@ testing, the ABP driver was able to successfully slew the Benro Polaris to a com
 
 3. Benro Polaris tracks well with ABP 2.0 using ‘Slew and centre’ in N.I.N.A. and plate
 solving with ASTAP
-### Feedback
+### Beta1 Feedback
 * Bluetooth on startup
 
     On start up, ABP 2.0 seems to be looking for bluetooth? From the log;
@@ -124,6 +124,48 @@ solving with ASTAP
 
     **Tripod Leveling** Haven’t quite worked out how to avoid the necessity to mess around levelling the tripod, but
     understand Pilot has such a feature (somewhere?)
+
+### Beta 2 Feedback
+* Background 
+
+    Due to continued cloudy conditions, all previous testing (connectivity with Stellarium etc) was only conducted during the day - so plate solving could not be undertaken (for both BETA 1 and 2). However, I was able to successfully image using BETA 2, over the weekend:
+
+    * Witch Head Nebula - Friday 31 Oct 25
+    * Horsehead Nebula - Saturday 01 Nov 25
+
+* Equipment
+
+    * Nikon Z6 II (Astro modified) with Nikkor Z 100-400mm
+    * 300mm f6.3 20 sec ISO 800
+    * Tested on both Mele Quieter 4C and MacBook Pro (M1) using Parallels Desktop 26 (as per my previous report submission)
+
+* Workflow - Night 1 and Night 2
+
+    Results for BETA 2 using both ‘systems’ was exactly the same and the issues I encountered, could be down to user error and unfamiliarity with set up.
+    1. Connect to Pilot through N.I.N.A. (gear icon) and park
+    2. Focus (LensAF), take image and plate solve (so mount knows where it is pointing in
+    the sky)
+    3. At this point, the camera and Polaris was pointing directly at Orion in the sky
+    4. In N.I.N.A, unpack and set sidereal tracking
+    5. Use the framing assistant to select target (e.g. Horsehead Nebula)
+    6. Select ‘Slew and centre’ Polaris immediately moved away from pointing at Orion and turned a full 90° before trying to initiate another plate solve - which failed, because it was now pointing at the house.
+    7. Close everything down and repeat the setup and workflow - but exactly the same 90°issue. (JDM - LIKELY ALIGNMENT ISSUE)
+    8. In order to continue, I had to shut everything down and revert to using the original iPhone methodology - completely skipping Pilot. This worked excellent (gave no issues with the 90° turns) and I was able to continue to the N.I.N.A ‘Legacy Sequencer’ (taking 20 frames, plate solving and repeating 12 times for 240 images)
+    9. Plate Solving - previously it would immediately solve or take 2-3 attempts if ‘telescope out of tolerance’, before continuing. However, it now takes 8-10 attempts for evert single plate solve within the sequence  as if there is a drift issue. (JDM - FIXED IN BETA3)
+    10. Despite the imaging sessions taker far longer than usual (due to the extended time with each plate solve), the overall image results were absolutely fine.
+    11. Exactly the same issue on both consecutive nights
+
+* Summary of Issues
+
+    * Conflict between Pilot and N.I.N.A (90° turns with ‘Slew and centre’)?
+    * Increased repeated plate solving attempts (“telescope not in tolerance”)
+
+* Causes & Solutions
+
+    I suspect this may be down to user error and I’ve probably missed a step or 2 two somewhere, because it works absolutely fine using the iPhone set up methodology - though it doesn’t explain the plate solving change.
+    I have now removed Beta 2 and installed Beta 3 - so unfortunately, I don’t have access to any logs from the imaging sessions.
+
+
 
 ## Beta Tester: Mark (FB: John Harrison; GH: 5x5Stuido)
 Notes: Ireland Week43, New 5nm filters.
@@ -238,3 +280,4 @@ Notes: Tried BP Dither
 ## RFC
 FB: Andrew Sargent; GH: CynicalSarge
 FB: Mingyang Wang; GH: saltyminty
+KS: Shiv Verma
