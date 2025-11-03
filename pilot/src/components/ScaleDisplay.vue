@@ -261,7 +261,7 @@ function onClickSetpoint(isSetEvent: boolean, scope: { cancel: () => void }) {
 
   // Always parse using dms2deg for consistent handling
   const parsed = dms2deg(input, dProps.value.unit);
-  const angle = hasDeltaPrefix ? pvn.value + parsed : parsed;
+  const angle = dProps.value.dAngleFn(hasDeltaPrefix ? pvn.value + parsed : parsed);
 
   emit('clickScale', { label: props.label, angle, radialOffset: 1.0 });
 }
