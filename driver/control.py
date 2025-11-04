@@ -1904,7 +1904,7 @@ class SyncManager:
         self.compute_tilt()              # Compute tilt correction
 
         if Config.log_quest_model:
-            for entry in self.sync_history:
+            for i, entry in enumerate(self.sync_history):
                 if entry["deleted"]:
                     continue
                 msg = f"Sync[{i}] | Timestamp: {entry['timestamp']} | Pred AzAlt: ({entry['p_az']:.2f}, {entry['p_alt']:.2f}) "
