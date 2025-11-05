@@ -33,6 +33,7 @@
 - **[Residual Warning]** Notify users of Multi-Point Alignment sync points with high residuals. Display a warning for residuals exceeding 5°, and an alert for those above 10°
 - **[Tuning Parameters]** Hide KF, PID and PWM tuning parameters behind expansion/collapsable sections
 - **[Guide Rates]** Expanded allowable Guide rate settings to 0.25×, 0.50×, 0.75×, 1.00×, 1.25×, 1.50×, 2.00× Sidereal 
+- **[Guide Default]** Changed default RA and Dec Guide Rates to 1.0x Sidereal 
 - **[Fix #55]** Handle Win11 Bluetooth "cancelled by system error" gracefully and log it
 
 ## What's new in beta3
