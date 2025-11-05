@@ -211,9 +211,12 @@ const z1curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[0]??0,"d
 
 const guideRateOptions = [
   { label: '0.25× sidereal', value: 0.25 },
-  { label: '0.5× sidereal', value: 0.5 },
-  { label: '1.0× sidereal', value: 1 },
-  { label: '2.0× sidereal', value: 2 },
+  { label: '0.50× sidereal', value: 0.50 },
+  { label: '0.75× sidereal', value: 0.75 },
+  { label: '1.00× sidereal', value: 1.00 },
+  { label: '1.25× sidereal', value: 1.25 },
+  { label: '1.50× sidereal', value: 1.50 },
+  { label: '2.00× sidereal', value: 2.00 },
 ]
 
 onMounted(async () => {
