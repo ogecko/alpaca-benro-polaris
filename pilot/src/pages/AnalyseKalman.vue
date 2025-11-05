@@ -89,30 +89,32 @@ This page presents the raw sensor data in dark green, the filtered data in yello
               </q-item-section>
             </q-item>
             <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="pos_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_meas_str}}</q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Angular Position Measurement Error (R) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  This defines the expected uncertainty in the measurement of angular position. 
-                  Larger values means less trust in position measurement, smoother but possibly lagging estimates. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="pos_proc_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_proc_str}}</q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Angular Position Process Error (Q) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  This defines the expected uncertainty in the dynamic process of predicting angular position.  
-                  Larger values means less trust in position prediction, smoother but possibly lagging estimates. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
+            <q-expansion-item :label="`Advanced KF Position Settings for ${motor}`">
+              <q-item>
+                <q-item-section side top>
+                  <q-knob v-model="pos_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_meas_str}}</q-knob>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> Angular Position Measurement Error (R) for {{ motor }}</q-item-label>
+                  <q-item-label caption>
+                    This defines the expected uncertainty in the measurement of angular position. 
+                    Larger values means less trust in position measurement, smoother but possibly lagging estimates. 
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section side top>
+                  <q-knob v-model="pos_proc_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{pos_proc_str}}</q-knob>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> Angular Position Process Error (Q) for {{ motor }}</q-item-label>
+                  <q-item-label caption>
+                    This defines the expected uncertainty in the dynamic process of predicting angular position.  
+                    Larger values means less trust in position prediction, smoother but possibly lagging estimates. 
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-expansion-item> 
           </q-list>
         </q-card>
       </div>
@@ -127,30 +129,32 @@ This page presents the raw sensor data in dark green, the filtered data in yello
               </q-item-section>
             </q-item>
             <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="vel_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_meas_str}}</q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Angular Velocity Measurement Error (R) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  The defines the expected uncertainty in the measurement of angular velocity.  
-                  Larger values means less trust in velocity measurement, smoother but possibly lagging estimates. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="vel_proc_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_proc_str}}</q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Angular Velocity Process Error (Q) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  This defines the expected uncertainty in the dynamic process of predicting angular velocity.  
-                  Larger values means less trust in velocity prediction, smoother but possibly lagging estimates. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
+            <q-expansion-item :label="`Advanced KF Velocity Settings for ${motor}`">
+              <q-item>
+                <q-item-section side top>
+                  <q-knob v-model="vel_meas_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_meas_str}}</q-knob>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> Angular Velocity Measurement Error (R) for {{ motor }}</q-item-label>
+                  <q-item-label caption>
+                    The defines the expected uncertainty in the measurement of angular velocity.  
+                    Larger values means less trust in velocity measurement, smoother but possibly lagging estimates. 
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section side top>
+                  <q-knob v-model="vel_proc_var_log" show-value :min="0" :inner-min="1" :inner-max="6" :max="7" :step="0.1">{{vel_proc_str}}</q-knob>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> Angular Velocity Process Error (Q) for {{ motor }}</q-item-label>
+                  <q-item-label caption>
+                    This defines the expected uncertainty in the dynamic process of predicting angular velocity.  
+                    Larger values means less trust in velocity prediction, smoother but possibly lagging estimates. 
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-expansion-item>
           </q-list>
         </q-card>
       </div>    

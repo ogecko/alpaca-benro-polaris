@@ -31,6 +31,7 @@
 - **[Partial Angles]** Partial angles can be entered using a ':' separator. eg entering ':2' means 2 arcmin, entering '::10' means 10 arcsec
 - **[Astro Warning]** Notify user to switch to Astro Mode before Compass, Single Star or Multi-Point Alignment
 - **[Residual Warning]** Notify users of Multi-Point Alignment sync points with high residuals. Display a warning for residuals exceeding 5°, and an alert for those above 10°
+- **[Tuning Parameters]** Hide KF, PID and PWM tuning parameters behind expansion/collapsable sections
 - **[Fix #55]** Handle Win11 Bluetooth "cancelled by system error" gracefully and log it
 
 ## What's new in beta3

@@ -79,28 +79,30 @@
               </q-item-section>
             </q-item>
             <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="active_rate" show-value :min="0" :inner-min="1" :inner-max="5" :max="6" :step="1"></q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> On Duty Slew Rate for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  The active duty slew rate based on the fine motion rates used in the Polaris app.
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="delta_rate" show-value :min="0" :inner-min="1" :inner-max="2" :max="3" :step="1">{{ inactive_rate }}</q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Off Duty Slew Rate for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  The inactive duty slew rate either 1 or 2 below the active duty rate.
-                </q-item-label>
-              </q-item-section>
-            </q-item>
+            <q-expansion-item :label="`Advanced Slew Rate Settings for Testing ${motor}`">
+              <q-item>
+                <q-item-section side top>
+                  <q-knob v-model="active_rate" show-value :min="0" :inner-min="1" :inner-max="5" :max="6" :step="1"></q-knob>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> On Duty Slew Rate for {{ motor }}</q-item-label>
+                  <q-item-label caption>
+                    The active duty slew rate based on the fine motion rates used in the Polaris app.
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section side top>
+                  <q-knob v-model="delta_rate" show-value :min="0" :inner-min="1" :inner-max="2" :max="3" :step="1">{{ inactive_rate }}</q-knob>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> Off Duty Slew Rate for {{ motor }}</q-item-label>
+                  <q-item-label caption>
+                    The inactive duty slew rate either 1 or 2 below the active duty rate.
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-expansion-item>
           </q-list>
           <div class="q-pb-xl"></div>
         </q-card>
@@ -115,28 +117,30 @@
               </q-item-section>
             </q-item>
             <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="pulse_width" show-value :min="-1" :inner-min="0.01" :inner-max="cycle_period-0.01" :max="cycle_period+1" :step="0.01"></q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> On Duty Pulse width (s) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  This is the time a signal remains at the higher level during one complete cycle. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section side top>
-                <q-knob v-model="cycle_period" show-value :min="-1" :inner-min=".1" :inner-max="5" :max="6" :step="0.01"></q-knob>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label> Control Cycle Period (s) for {{ motor }}</q-item-label>
-                <q-item-label caption>
-                  The total time for one complete ON–OFF cycle of the control signal. 
-                </q-item-label>
-              </q-item-section>
-            </q-item>
+            <q-expansion-item :label="`Advanced Timing Settings for Testing ${motor}`">
+              <q-item>
+                <q-item-section side top>
+                  <q-knob v-model="pulse_width" show-value :min="-1" :inner-min="0.01" :inner-max="cycle_period-0.01" :max="cycle_period+1" :step="0.01"></q-knob>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> On Duty Pulse width (s) for {{ motor }}</q-item-label>
+                  <q-item-label caption>
+                    This is the time a signal remains at the higher level during one complete cycle. 
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section side top>
+                  <q-knob v-model="cycle_period" show-value :min="-1" :inner-min=".1" :inner-max="5" :max="6" :step="0.01"></q-knob>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label> Control Cycle Period (s) for {{ motor }}</q-item-label>
+                  <q-item-label caption>
+                    The total time for one complete ON–OFF cycle of the control signal. 
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-expansion-item>
           </q-list>
         </q-card>
       </div>    

@@ -119,41 +119,44 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
             </q-item>
           </q-list>
           <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
-          <div class="row q-pt-lg q-pl-xl items-top justify-center">
-            <div class="col row q-gutter-sm">
-                <q-knob v-model="Ka_var" show-value :min="-0.5" :inner-min="0.0" :inner-max="5.0" :max="5.5" :step="0.1">{{Ka_str}}</q-knob>
-                <div class="column">
-                  <div class="text-h6">Ka</div>
-                  <div class="text-caption">Max OP Acceleration Rate (°/s²)</div>
-                  <div class="text-caption">0 = Use Default Max</div>
-                </div> 
+          <q-expansion-item label="Advanced Global PID Settings">
+            <div class="row q-pt-lg q-pl-xl items-top justify-center">
+              <div class="col row q-gutter-sm">
+                  <q-knob v-model="Ka_var" show-value :min="-0.5" :inner-min="0.0" :inner-max="5.0" :max="5.5" :step="0.1">{{Ka_str}}</q-knob>
+                  <div class="column">
+                    <div class="text-h6">Ka</div>
+                    <div class="text-caption">Max OP Acceleration Rate (°/s²)</div>
+                    <div class="text-caption">0 = Use Default Max</div>
+                  </div> 
+              </div>
+              <div class="col row q-gutter-sm">
+                  <q-knob v-model="Kv_var" show-value :min="-1" :inner-min="0.0" :inner-max="9.5" :max="11" :step="0.1">{{Kv_str}}</q-knob>
+                  <div class="column">
+                    <div class="text-h6">Kv</div>
+                    <div class="text-caption">Max OP Slew Velocity (°/s)</div>
+                    <div class="text-caption">0 = Use Motor Calibration Max</div>
+                  </div> 
+              </div>
             </div>
-            <div class="col row q-gutter-sm">
-                <q-knob v-model="Kv_var" show-value :min="-1" :inner-min="0.0" :inner-max="9.5" :max="11" :step="0.1">{{Kv_str}}</q-knob>
-                <div class="column">
-                  <div class="text-h6">Kv</div>
-                  <div class="text-caption">Max OP Slew Velocity (°/s)</div>
-                  <div class="text-caption">0 = Use Motor Calibration Max</div>
-                </div> 
+            <div class="row q-pt-lg q-pl-xl items-top justify-center">
+              <div class="col row q-gutter-sm">
+                  <q-knob v-model="Kc_var" show-value :min="-1" :inner-min="0.01" :inner-max="10.0" :max="11" :step="0.01">{{Kc_str}}</q-knob>
+                  <div class="column">
+                    <div class="text-h6">Kc</div>
+                    <div class="text-caption">Goto Tollerance (arc-min)</div>
+                  </div> 
+              </div>
+              <div class="col row q-gutter-sm">
+                  <q-knob v-model="Ke_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="1.0" :max="1.2" :step="0.01">{{Ke_str}}</q-knob>
+                  <div class="column">
+                    <div class="text-h6">Ke</div>
+                    <div class="text-caption">Expotential OP Smoothing</div>
+                  </div> 
+              </div>
             </div>
-          </div>
-          <div class="row q-pt-lg q-pl-xl items-top justify-center">
-            <div class="col row q-gutter-sm">
-                <q-knob v-model="Kc_var" show-value :min="-1" :inner-min="0.01" :inner-max="10.0" :max="11" :step="0.01">{{Kc_str}}</q-knob>
-                <div class="column">
-                  <div class="text-h6">Kc</div>
-                  <div class="text-caption">Goto Tollerance (arc-min)</div>
-                </div> 
-            </div>
-            <div class="col row q-gutter-sm">
-                <q-knob v-model="Ke_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="1.0" :max="1.2" :step="0.01">{{Ke_str}}</q-knob>
-                <div class="column">
-                  <div class="text-h6">Ke</div>
-                  <div class="text-caption">Expotential OP Smoothing</div>
-                </div> 
-            </div>
-          </div>
-          <div class="q-pb-xl"></div>
+            <div class="q-pb-xl"></div>
+
+          </q-expansion-item>
         </q-card>
       </div>
       <!-- Angular Velocity Plot -->
@@ -168,30 +171,31 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                 </q-item-section>
             </q-item>
           <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
-          <div class="row q-pt-lg q-pl-xl items-top justify-center">
-            <div class="col row q-gutter-sm">
-                <q-knob v-model="Kp_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kp_str}}</q-knob>
-                <div class="column">
-                  <div class="text-h6">Kp<sub>{{ idx }}</sub></div>
-                  <div class="text-caption">Proportional Gain</div>
-                </div> 
+          <q-expansion-item :label="`Advanced ${motorLabel} PID Settings`">
+            <div class="row q-pt-lg q-pl-xl items-top justify-center">
+              <div class="col row q-gutter-sm">
+                  <q-knob v-model="Kp_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kp_str}}</q-knob>
+                  <div class="column">
+                    <div class="text-h6">Kp<sub>{{ idx }}</sub></div>
+                    <div class="text-caption">Proportional Gain</div>
+                  </div> 
+              </div>
+              <div class="col row q-gutter-sm">
+                  <q-knob v-model="Ki_var" show-value :min="-0.1" :inner-min="0.0" :inner-max="0.5" :max="0.6" :step="0.01">{{Ki_str}}</q-knob>
+                  <div class="column">
+                    <div class="text-h6">Ki<sub>{{ idx }}</sub></div>
+                    <div class="text-caption">Integral Gain</div>
+                  </div> 
+              </div>
+              <div class="col row q-gutter-sm">
+                  <q-knob v-model="Kd_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kd_str}}</q-knob>
+                  <div class="column">
+                    <div class="text-h6">Kd<sub>{{ idx }}</sub></div>
+                    <div class="text-caption">Derivative Gain</div>
+                  </div> 
+              </div>
             </div>
-            <div class="col row q-gutter-sm">
-                <q-knob v-model="Ki_var" show-value :min="-0.1" :inner-min="0.0" :inner-max="0.5" :max="0.6" :step="0.01">{{Ki_str}}</q-knob>
-                <div class="column">
-                  <div class="text-h6">Ki<sub>{{ idx }}</sub></div>
-                  <div class="text-caption">Integral Gain</div>
-                </div> 
-            </div>
-            <div class="col row q-gutter-sm">
-                <q-knob v-model="Kd_var" show-value :min="-0.2" :inner-min="0.01" :inner-max="2.0" :max="2.2" :step="0.01">{{Kd_str}}</q-knob>
-                <div class="column">
-                  <div class="text-h6">Kd<sub>{{ idx }}</sub></div>
-                  <div class="text-caption">Derivative Gain</div>
-                </div> 
-            </div>
-          </div>
-
+          </q-expansion-item>
           <div class="q-pb-xl"></div>
         </q-card>
       </div>    
