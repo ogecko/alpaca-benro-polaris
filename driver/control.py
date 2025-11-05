@@ -289,15 +289,9 @@ def polar_rotation_angle(latitude_rad, az_rad, alt_rad):
     so that the top of the image points toward the celestial pole.
     Positive angle means clockwise rotation when looking through the camera.
     """
-    # Convert alt-az to Cartesian unit vector
-    def altaz_to_vector(az, alt):
-        x = math.cos(alt) * math.sin(az)
-        y = math.cos(alt) * math.cos(az)
-        z = math.sin(alt)
-        return [x, y, z]
 
     # Step 1: Camera pointing vector
-    cam_vec = altaz_to_vector(az_rad, alt_rad)
+    cam_vec = azalt_to_vector(az_rad, alt_rad)
 
     # Step 2: Construct orthonormal tangent basis
     # Up vector: derivative of cam_vec w.r.t altitude; Right vector: derivative of cam_vec w.r.t azimuth
@@ -314,7 +308,7 @@ def polar_rotation_angle(latitude_rad, az_rad, alt_rad):
     # Step 3: Celestial pole vector
     pole_az = 0.0 if latitude_rad >= 0 else math.pi
     pole_alt = abs(latitude_rad)
-    pole_vec = altaz_to_vector(pole_az, pole_alt)
+    pole_vec = azalt_to_vector(pole_az, pole_alt)
 
     # Step 4: Project pole vector into tangent plane
     # Subtract component along cam_vec
@@ -330,6 +324,23 @@ def polar_rotation_angle(latitude_rad, az_rad, alt_rad):
 
     return angle_deg
 
+def azalt_to_vector(az_deg, alt_deg):
+    az = math.radians(az_deg)
+    alt = math.radians(alt_deg)
+    x = math.cos(alt) * math.sin(az)
+    y = math.cos(alt) * math.cos(az)
+    z = math.sin(alt)
+    return np.array([x, y, z])
+
+def vector_to_az_alt(vec):
+    x, y, z = vec
+    az = math.degrees(math.atan2(x, y)) % 360
+    alt = math.degrees(math.asin(z / np.linalg.norm(vec)))
+    return az, alt
+
+def v_angular_distance(v1, v2):
+    """Compute angular separation between two unit vectors in radians."""
+    return np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
 
 def angular_difference(a, b):
     """
@@ -1742,6 +1753,19 @@ class SyncManager:
         return entry
 
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
+        new_vec = azalt_to_vector(a_az, a_alt)
+        threshold_rad = math.radians(2.5)   # 2.5 degrees
+
+        # Remove nearby sync points
+        for entry in self.sync_history:
+            if entry.get("deleted", False):
+                continue
+            if entry["a_az"] is None or entry["a_alt"] is None:
+                continue
+            existing_vec = azalt_to_vector(entry["a_az"], entry["a_alt"])
+            if v_angular_distance(new_vec, existing_vec) < threshold_rad:
+                self.sync_remove(entry["timestamp"], optimise=False)
+
         active_entries = [e for e in self.sync_history if not e.get("deleted", False)]
         # If limit reached, remove the lowest-weighted entry
         if len(active_entries) >= 10:
@@ -1785,34 +1809,21 @@ class SyncManager:
         else:
             self.logger.warning(f"No sync entry found with timestamp: {timestamp}")
 
-    def az_alt_to_vector(self, az_deg, alt_deg):
-        az = math.radians(az_deg)
-        alt = math.radians(alt_deg)
-        x = math.cos(alt) * math.sin(az)
-        y = math.cos(alt) * math.cos(az)
-        z = math.sin(alt)
-        return np.array([x, y, z])
-
-    def vector_to_az_alt(self, vec):
-        x, y, z = vec
-        az = math.degrees(math.atan2(x, y)) % 360
-        alt = math.degrees(math.asin(z / np.linalg.norm(vec)))
-        return az, alt
 
     def azalt_polaris2ascom(self, p_az, p_alt):
         if self.q1_adj is None:
             return p_az, p_alt
-        v_pred = self.az_alt_to_vector(p_az, p_alt)
+        v_pred = azalt_to_vector(p_az, p_alt)
         v_obs = self.q1_adj.rotate(v_pred)
-        c_az, c_alt = self.vector_to_az_alt(v_obs) 
+        c_az, c_alt = vector_to_az_alt(v_obs) 
         return c_az, c_alt
 
     def azalt_ascom2polaris(self, a_az, a_alt):
         if self.q1_adj is None:
             return a_az, a_alt
-        v_obs = self.az_alt_to_vector(a_az, a_alt)
+        v_obs = azalt_to_vector(a_az, a_alt)
         v_pred = self.q1_adj.inverse.rotate(v_obs)
-        p_az, p_alt = self.vector_to_az_alt(v_pred)
+        p_az, p_alt = vector_to_az_alt(v_pred)
         return p_az, p_alt
 
     def optimize_q1_adj(self):
@@ -1826,17 +1837,14 @@ class SyncManager:
         pairs = []
         weights = []
 
-        def v_angular_distance(v1, v2):
-            """Compute angular separation between two unit vectors in radians."""
-            return np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
 
-        v_current = self.az_alt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
+        v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
 
         for i, entry in enumerate(self.sync_history):
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
-            v_obs = self.az_alt_to_vector(entry["a_az"], entry["a_alt"])            # Observed vector from sync
-            v_pred = self.az_alt_to_vector(entry["p_az"], entry["p_alt"])           # Predicted vector from Polaris
+            v_obs = azalt_to_vector(entry["a_az"], entry["a_alt"])            # Observed vector from sync
+            v_pred = azalt_to_vector(entry["p_az"], entry["p_alt"])           # Predicted vector from Polaris
             proximity_angle = v_angular_distance(v_pred, v_current)                 # in Polaris space
 
             w_recency = 0.5 * np.exp(-0.1 * (len(self.sync_history) - i))                 # Recent syncs weighted more heavily: ~0.6–1.0
@@ -1924,8 +1932,8 @@ class SyncManager:
         if not last_valid:
             self.q1_adj_message += " | No valid sync for final alignment"
             return
-        v_obs = self.az_alt_to_vector(last_valid["a_az"], last_valid["a_alt"])
-        v_pred = self.az_alt_to_vector(last_valid["p_az"], last_valid["p_alt"])
+        v_obs = azalt_to_vector(last_valid["a_az"], last_valid["a_alt"])
+        v_pred = azalt_to_vector(last_valid["p_az"], last_valid["p_alt"])
         v_pred_rot = self.q1_adj.rotate(v_pred)
         axis = np.cross(v_pred_rot, v_obs)
         norm_axis = np.linalg.norm(axis)

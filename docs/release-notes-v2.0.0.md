@@ -25,15 +25,16 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in beta4
-- **[Search Resume]** Resume a catalog search by focusing the search box when a previous query is still present
-- **[Nearby Catalog]** Enable side menu to show nearby catalog targets, sorted by angular proximity to current RA and Dec
+- **[Sync Duplicates]** Remove any sync points within ±2.5° of the most recent sync, before adding the new point
+- **[Residual Warning]** Notify users of Multi-Point Alignment sync points with high residuals. Display a warning for residuals exceeding 5°, and an alert for those above 10°
+- **[Astro Warning]** Notify user to switch to Astro Mode before Compass, Single Star or Multi-Point Alignment
+- **[Guide Default]** Changed default RA and Dec Guide Rates to 1.0x Sidereal 
+- **[Guide Rates]** Expanded allowable Guide rate settings to 0.25×, 0.50×, 0.75×, 1.00×, 1.25×, 1.50×, 2.00× Sidereal 
+- **[Tuning Parameters]** Hide KF, PID and PWM tuning parameters behind expansion/collapsable sections
 - **[Delta Angles]** Relative angles can be entered using a 'd' prefix. eg entering 'd2' in the RA axis setpoint will increase the current value by 2 hours
 - **[Partial Angles]** Partial angles can be entered using a ':' separator. eg entering ':2' means 2 arcmin, entering '::10' means 10 arcsec
-- **[Astro Warning]** Notify user to switch to Astro Mode before Compass, Single Star or Multi-Point Alignment
-- **[Residual Warning]** Notify users of Multi-Point Alignment sync points with high residuals. Display a warning for residuals exceeding 5°, and an alert for those above 10°
-- **[Tuning Parameters]** Hide KF, PID and PWM tuning parameters behind expansion/collapsable sections
-- **[Guide Rates]** Expanded allowable Guide rate settings to 0.25×, 0.50×, 0.75×, 1.00×, 1.25×, 1.50×, 2.00× Sidereal 
-- **[Guide Default]** Changed default RA and Dec Guide Rates to 1.0x Sidereal 
+- **[Search Resume]** Resume a catalog search by focusing the search box when a previous query is still present
+- **[Nearby Catalog]** Enable side menu to show nearby catalog targets, sorted by angular proximity to current RA and Dec
 - **[Fix #55]** Handle Win11 Bluetooth "cancelled by system error" gracefully and log it
 
 ## What's new in beta3
