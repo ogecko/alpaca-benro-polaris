@@ -140,6 +140,11 @@ class BLE_Controller():
                 if Config.log_polaris_ble:
                     self.logger.warning(f"BLE connect cancelled (WinRT stall) on attempt {attempt}")
                 await asyncio.sleep(2)  # small cooldown before retry
+            except OSError as e:
+                if e.winerror == -2147023673:
+                    self.logger.warning("BLE operation canceled by system (WinError -2147023673)")
+                    await asyncio.sleep(2)
+                    continue
             except BleakError as e:
                 if Config.log_polaris_ble:
                     self.logger.warning(f"BLE Attempt {attempt} failed for {address}: {e}")
