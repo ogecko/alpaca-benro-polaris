@@ -36,6 +36,7 @@
 - **[Search Resume]** Resume a catalog search by focusing the search box when a previous query is still present
 - **[Nearby Catalog]** Enable side menu to show nearby catalog targets, sorted by angular proximity to current RA and Dec
 - **[Fix #55]** Handle Win11 Bluetooth "cancelled by system error" gracefully and log it
+- **[Fix #56]** Ensure Polaris sends position updates after connection, compass align and star align
 
 ## What's new in beta3
 - **[Epoch Change]** Default epoch for live coordinates changed from J2000 to JNow (ASCOM-recommended)

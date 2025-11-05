@@ -603,12 +603,15 @@ class Polaris:
     async def skip_compass_alignment(self, compass):
             await self.send_cmd_compass_alignment(compass)
             await self.send_cmd_284_query_current_mode()
+            await self.send_cmd_520_position_updates(True)
+
 
 
     async def skip_star_alignment(self, azimuth, altitude):
             self._aligning = True
             await self.send_cmd_star_alignment(azimuth, altitude)
             await self.send_cmd_284_query_current_mode()
+            await self.send_cmd_520_position_updates(True)
             self._aligning = False
 
     async def read_msgs(self):
