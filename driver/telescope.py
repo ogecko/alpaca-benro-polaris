@@ -1514,7 +1514,7 @@ class supportedactions:
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove", 
             "Polaris:J2000Sync", "Polaris:J2000Goto"
-            "Polaris:Ack", "Polaris:ResetSP",
+            "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket"
         ], req)  
 
 
@@ -1719,6 +1719,15 @@ class action:
             radec = ephem.Equatorial(J2000_coord, epoch=ephem.now())
             await polaris.SlewToCoordinates(rad2hr(radec.ra), rad2deg(radec.dec))
             resp.text = await PropertyResponse('Polaris J2000Goto ok', req)  
+            return
+
+        elif actionName == "Polaris:SetLBracket":
+            logger.info(f'Polaris:SetLBracket {parameters}')
+            state = float(parameters.get('state', False))
+            await polaris.send_cmd_546_set_L_bracket(state)
+            await polaris.send_cmd_545_query_L_bracket()
+            await polaris.resetAxes()
+            resp.text = await PropertyResponse('Polaris:SetLBracket ok', req)  
             return
 
         else:

@@ -89,7 +89,7 @@ from control import quaternion_to_angles, motors_to_quaternion, calculate_angula
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
-POLARIS_POLL_COMMANDS = {'284', '518', '525'}
+POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}
 
 
 class Polaris:
@@ -125,6 +125,7 @@ class Polaris:
             '531': asyncio.Queue()                  # queue for TRACK result
         }
         self._polaris_mode = -1                     # Current Mode of the Polaris Device (1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=Sun, 8=**Astro**, 9=Program, 10=Video )
+        self._polaris_L_bracket = False             # Current L Bracket mode
         self._polaris_msg_re = re.compile(r'(\d{3})@(.+?)#')
         self._every_50ms_msg_to_send = None         # Fast Move message to send every 50ms
         self._every_50ms_counter = 0                # Fast Move counter, incrementing every 50ms up to 1s
@@ -733,7 +734,7 @@ class Polaris:
             p_roll = rad2deg(float(arg_dict['roll']))       # from Polaris direct
             with self._lock:
                 self._zeta_meas = [p_yaw, p_pitch, p_roll]
-            if Config.log_polaris_protocol:
+            if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
 
         # return result of POSITION update from AHRS {} 
@@ -814,6 +815,19 @@ class Polaris:
                 self.logger.info(f"<<- Polaris: TRACK status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
                 self._response_queues[cmd].put_nowait(arg_dict)
+
+        # return result of query L Bracket {} 
+        elif cmd == "545":
+            arg_dict = self.polaris_parse_args(args)
+            self._polaris_L_bracket = arg_dict.get('dir') == '1'
+            if Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: QUERTY L Bracket status response: {cmd} {arg_dict}")
+
+        # return result of query L Bracket {} 
+        elif cmd == "546":
+            arg_dict = self.polaris_parse_args(args)
+            if Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: SET L Bracket: {cmd} {arg_dict}")
 
         # return result of FILE request {'type':1; 'class':0; 'path':'/app/sd/normal/SP_0052.jpg'; 'size':'916156'; 'cTime':'2023-10-24 22:33:12'; 'duration':'0'} 
         elif cmd == "771":
@@ -1118,6 +1132,19 @@ class Polaris:
         msg = f"1&775&2&-100#"
         await self.send_msg(msg)
 
+    async def send_cmd_546_set_L_bracket(self, L_bracket:bool=True):
+        state = 1 if L_bracket else 0
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 546 Set L Bracket request {'ON' if L_bracket else 'OFF'}")
+        msg = f"1&546&3&dir:{state}#"
+        await self.send_msg(msg)
+
+    async def send_cmd_545_query_L_bracket(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 545 Query L Bracket request")
+        msg = f"1&545&3&-100#"
+        await self.send_msg(msg)
+
     async def send_cmd_547(self):
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 547 request")
@@ -1138,7 +1165,7 @@ class Polaris:
         await self.send_msg(msg)
 
     async def send_cmd_517(self):
-        if Config.log_polaris_protocol:
+        if Config.log_polaris_polling:
             self.logger.info(f"->> Polaris: 517 Get Orientation request")
         msg = f"1&517&3&-1#"
         await self.send_msg(msg)
@@ -1228,6 +1255,7 @@ class Polaris:
         await self.send_cmd_547()
         await self.send_cmd_808()   # Connection Context
         await self.send_cmd_520_position_updates(True)
+        await self.send_cmd_545_query_L_bracket()
         # 523 Reset axes
         # 543
         # 285 Mode 8
@@ -1435,6 +1463,7 @@ class Polaris:
         with self._lock:
             res = {
                 'polarismode': self._polaris_mode,
+                'polarislbracket': self._polaris_L_bracket,
                 'battery_is_available': self._battery_is_available,
                 'battery_is_charging': self._battery_is_charging,
                 'battery_level': self._battery_level,

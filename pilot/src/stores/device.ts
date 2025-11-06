@@ -202,6 +202,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:Ack', `{"alarm": "LIMIT"}`)
     },
 
+    async setPolarisLBracket(state:boolean) {
+      await this.apiAction<void>('Polaris:SetLBracket', `{"state": ${state}}`)
+    },
+
     async catalogFetch() {
       try {
         const resp = await axios.get('/catalog_a_lg.json');

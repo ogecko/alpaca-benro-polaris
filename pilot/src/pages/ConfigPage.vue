@@ -167,6 +167,9 @@
             </div>
             <div class="q-gutter-y-sm" >
               <div class="row">
+                <q-toggle v-model="p.polarislbracket" label="Enable L-Bracket Camera Orientation" @update:modelValue="onLBracket"/>
+              </div>
+              <div class="row">
                 <q-toggle v-bind="bindField('aiming_adjustment_enabled', 'Enable Aiming Adjustment')"/>
               </div>
               <div class="row q-pt-md q-pl-md q-col-gutter-lg">
@@ -322,6 +325,11 @@ async function restore() {
   const ok = await cfg.configRestore()
   $q.notify({ message:`Configuration restore ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
     position: 'top', timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }] })
+}
+
+async function onLBracket(value: boolean) {
+  console.log("L-Bracket set to ", value)
+  await dev.setPolarisLBracket(value)
 }
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 
