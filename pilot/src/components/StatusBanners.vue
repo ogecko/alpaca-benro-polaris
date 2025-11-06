@@ -26,6 +26,12 @@
         </template>
       </q-banner>
     </div>
+    <div v-else-if="isStatusOld" >
+      <q-banner inline-actions rounded class="bg-warning" >
+        WARNING: The Alpaca Pilot is not receiving updates from the Driver. Check Driver is running. 
+        <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
+      </q-banner>
+    </div>
     <div v-else-if="p.atpark" >
       <q-banner inline-actions rounded class="bg-warning">
         PARK: The Alpaca Driver is parked. Most functions are disabled.
@@ -38,13 +44,19 @@
 import { useDeviceStore } from 'src/stores/device';
 import { useStatusStore } from 'src/stores/status';
 import { useRoute } from 'vue-router'
-import { computed  } from 'vue'
+import { computed, ref  } from 'vue'
+import { useInterval } from 'quasar'
 
 const dev = useDeviceStore()
 const p = useStatusStore()
 const route = useRoute()
+const { registerInterval } = useInterval()
+
+const now = ref(Date.now());
+registerInterval( ()  => { now.value = Date.now() }, 1000 )
 
 const isShowReconnect = computed(() => route.path != '/connect')
+const isStatusOld = computed(() => { return now.value - p.fetchedAt > 1000;   });
 
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
