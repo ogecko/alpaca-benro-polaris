@@ -527,14 +527,14 @@ class Polaris:
         target._ra = hr2rad(ra)
         target._dec = deg2rad(dec)
         target._epoch = epoch
-        self._observer.date = ephem.now()
+        self._observer.date = ephem.Date(datetime.datetime.utcnow())
         target.compute(self._observer)
         alt = rad2deg(target.alt)
         az = rad2deg(target.az)
         return alt,az
 
     def altaz2radec(self, alt, az):
-        self._observer.date = ephem.now()
+        self._observer.date = ephem.Date(datetime.datetime.utcnow())
         self._siderealtime =  self._observer.sidereal_time()/math.pi*12
         ra_rad, dec_rad = self._observer.radec_of(deg2rad(az), deg2rad(alt))
         ra = rad2hr(ra_rad)  
