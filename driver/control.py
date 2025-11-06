@@ -377,12 +377,12 @@ def clamp_delta(delta):
     Apply custom bounds to Equatorial angles delta[0], delta[1], delta[2]:
     - Right Ascention ∈ [0, 360)
     - Declination ∈ [-90, 90)
-    - Polar Angle ∈ [-180, 180)
+    - Polar Angle ∈ [0, 360)
     """
     clamped = np.empty_like(delta)
     clamped[0] = delta[0] % 360
     clamped[1] = np.clip(delta[1], -90, 90)
-    clamped[2] = ((delta[2] + 180) % 360) - 180
+    clamped[2] = delta[2] % 360
     return clamped
 
 def clamp_theta(theta):
