@@ -27,7 +27,6 @@
 ## What's new in beta4
 - **[Sync Duplicates]** Remove any sync points within ±2.5° of the most recent sync, before adding the new point
 - **[Residual Warning]** Notify users of Multi-Point Alignment sync points with high residuals. Display a warning for residuals exceeding 5°, and an alert for those above 10°
-- **[Update Warning]** Track the update rate of Polaris position and orientation telemetry; alert the user if updates are missed
 - **[Astro Warning]** Notify user to switch to Astro Mode before performing Compass, Single Star or Multi-Point Alignment
 - **[Guide Default]** Changed default RA and Dec Guide Rates to 1.0x Sidereal 
 - **[Guide Rates]** Expanded allowable Guide rate settings to 0.25×, 0.50×, 0.75×, 1.00×, 1.25×, 1.50×, 2.00× Sidereal 
@@ -37,9 +36,10 @@
 - **[Search Resume]** Resume a catalog search by focusing the search box when a previous query is still present
 - **[Nearby Catalog]** Enable side menu to show nearby catalog targets, sorted by angular proximity to current RA and Dec
 - **[L Bracket]** Change L-Bracket Camera Orientation from Alpaca Pilot Settings (no longer need BP App)
+- **[Update Warning]** Track the update rate of Polaris orientation telemetry; alert the user if updates are missed (detects Polaris power down or non-Astro mode)
+- **[Fix #46]** Track the update rate of Alpaca Driver telemetry; alert the user if updates are missed (detects Alpaca Driver stop)
 - **[Fix #56]** Ensure Polaris sends position updates after connection, compass align and star align
 - **[Fix #55]** Handle Win11 Bluetooth "cancelled by system error" gracefully and log it
-- **[Fix #46]** Alpaca Pilot will display a banner when no status updates are sent from the driver after 1000ms
 
 
 ## What's new in beta3
