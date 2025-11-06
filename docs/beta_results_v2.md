@@ -165,6 +165,56 @@ solving with ASTAP
     I suspect this may be down to user error and I’ve probably missed a step or 2 two somewhere, because it works absolutely fine using the iPhone set up methodology - though it doesn’t explain the plate solving change.
     I have now removed Beta 2 and installed Beta 3 - so unfortunately, I don’t have access to any logs from the imaging sessions.
 
+### Beta 3 Feedback
+Multi-Point Alignment (06 Nov 25)
+
+Background - The sky was clear and although there was a full moon (not ideal), I was aiming in the opposite direction. The tripod and Benro Polaris were pointing South East towards the Large Magellanic Cloud (LMC)
+
+Workflow
+1. Start ABP driver, open N.I.N.A., connect to Pilot through N.I.N.A. (gear icon) and
+ensure location details are correct in Pilot (-36.730621 / 174.742580)
+(NB - ‘Compass Alignment’ is set to Az 180 and ‘Single Star Alignment’ set at Az 180 Alt 45) .. both
+skipped and ‘Reset all Polaris Axes’)
+2. Pilot Dashboard - Park
+3. As always, use bubble level (0.1°) and Leofoto “Tripod Leveler Stand with +/-5 Degree
+Precision Adjustment Bracket, to ensure as level as possible
+www.amazon.com/dp/B092M5G7VD?ref=ppx_yo2ov_dt_b_fed_asin_title
+4. N.I.N.A. - connect camera, focuser and telescope (also set focal length to 300mm),
+(Note: N.I.N.A. shows site latitude -36 43’ 50” and longitude 174 44’ 33”
+This equates to -36.7306 which is the same as in Pilot and 174.7369 which is different to that shown in
+Pilot - see 1 above …. Pilot is correctly showing 174.742580)
+5. N.I.N.A. - Calibrate lens and focus (using ‘LensAF’ Plug In)
+6. Pilot Dashboard - Unpark and toggle tracking on (in order to sync)
+7. N.I.N.A. - initiate manual plate solve via image>plate solving (using play button)
+(this first result was now displayed in the Pilot Telescope Alignment Model)
+8. Pilot Catalog - select South Celestrial Pole and “Goto”
+(this caused the Polaris to slew, automatically initiate a plate solve and again, this second result was
+now displayed in the Pilot Telescope Alignment Model)
+9. Pilot Catalog - select target (LMC) and “Goto”
+(Again this caused the Polaris to slew, automatically initiate a plate solve and this third result was now
+displayed in the Pilot Telescope Alignment Model)
+10. Pilot Connect - Multi Point Alignment now showing green tick
+11. N.I.N.A. Framing Assistant - using Offline Sky Map, enter target details (LMC) in Coordinates box and Load Image
+12. N.I.N.A. Framing Assistant - select ‘Slew and centre’ … which initiates plate solving
+and once completed (telescope within tolerance), add target to Sequence etc
+13. N.I.N.A. Legacy Sequencer - set to 20 images (15 sec exposure) and cycle repeated, so that plate solving between every 20 images (‘slew to target and centre target’ both set to ON)
+*After about 100 images, there were too many clouds in that area, to continue*
+Observations
+For all intents and purposes, everything seemed to go very smoothly and without issue.
+
+However:
+
+1. Pilot Dashboard - Park at the end of the session, gave some strange results on the display: Azimuth +130 Altitude +46 Roll -10
+I was expecting these figures to return to the original ones, from when the mount was first parked during the initial set up (at point 2 above)
+Azimuth +178 Altitude +81 Roll 0
+2. Note - After the sequence was stopped (due to cloud), as an experiment, I used N.I.N.A. (framing assistant) to enter the Orion Nebula and as expected, Polaris did slew across and attempt a plate solve.
+The plate solve failed and on checking the image in N.I.N.A., the tops of the trees were covering half the entire frame (hence the failure). I then tried other targets (where there was no cloud) and again the Polaris was pointing a fair bit lower than it should have been.
+3. Checking the frames this morning, all images are streaked, which suggests the mount was either out of alignment or the tracking was off.
+Alignment - all the residuals were below 5 (3 sync points) and if tracking was turned off, it would not be able to plate solve and sync
+Tracking - audible throughout the sequence and successfully plate solved once
+telescope within tolerance, after every 20 images
+I suspect user error but struggling to work out the error of my ways
+
 
 
 ## Beta Tester: Mark (FB: John Harrison; GH: 5x5Stuido)
@@ -276,6 +326,30 @@ Notes: Tried BP Dither
 ### Feedback
 ...
 
+
+## Beta Tester: Shiv Verma 
+(Dis: shiv_93263; FB: Shiv Verma; GH: SVerma033, KS: Shiv Verma)
+
+Notes: I do have a relationship with the MAC Group the nation-wide distributors of the Benro product line here in the USA.  
+### Platform & Environment
+Hardware: 
+* MeLE Quieter 4C, MackBook Pro 14inch M3 Pro with 18GB memory, MAC Studio with 64GB Memory, IPad and the iPhone 16 Pro
+
+Optics: 
+* As a Panasonic Lumix Ambassador, I have: Full frame - Panasonic Lumix S1R II, S5 II, S5 IIX and all their lenses
+* MFT - GH6, G9 II and all the MFT Lenses
+* Sony A7R V, Sony A6500 (Astro Modified) - 20MM, 24, MM, 50mm, 16-35, 24 - 70mm, 70-200mm, 200-600mm
+
+Platform: 
+* Windows 11 Pro on the MeLE, Mac OS 26.0.1 on both Macs and on the iPad
+* Stellarium Desktop, NiNA, with related SW and drivers
+
+### Test Areas
+...
+### Results
+...
+### Feedback
+...
 
 ## RFC
 FB: Andrew Sargent; GH: CynicalSarge

@@ -7,13 +7,13 @@
 * **Current Branch:** releases/2_0_beta4 
 
 ## Demonstration Videos
-* **Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
-* **Preview Demo:** Demonstration Video at https://youtu.be/0QSKD1GCzOc 
-* **Starting and Using:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
-* **Rotator Framing:** Demonstration Video at https://youtu.be/_Swd-jIyQis
-* **Multi Point Alignment:** Demonstration Video at https://youtu.be/KBsIwFviJl4
-* **Equipment Safety:** Demonstration Video at https://youtu.be/45EP-DExSOQ
-* **Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
+* **20 - Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
+* **21 - Preview Demo:** Demonstration Video at https://youtu.be/0QSKD1GCzOc 
+* **22 - Starting and Using:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
+* **23 - Rotator Framing:** Demonstration Video at https://youtu.be/_Swd-jIyQis
+* **24 - Multi Point Alignment:** Demonstration Video at https://youtu.be/4CMO0R_yphw
+* **25 - Equipment Safety:** Demonstration Video at https://youtu.be/45EP-DExSOQ
+* **32 - Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
 
 ## Win11 Upgrade Instructions
 * Uninstall Python 3.12.7
