@@ -407,9 +407,12 @@ class Polaris:
             self.logger.info(f'->> Polaris: send_msg: {msg}')
         try:
             if self._writer:
+                if self._writer.transport.is_closing():
+                    self.logger.warning("Writer transport is closing — skipping drain")
+                    return
                 self._writer.write(msg.encode())
                 await asyncio.wait_for(self._writer.drain(), timeout=2.0)
-        except (ConnectionResetError, BrokenPipeError, asyncio.TimeoutError) as e:
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError, asyncio.TimeoutError) as e:
             self._task_exception = e
             self.logger.error(f"==SEND== Failed to send message: {e}")
 
