@@ -110,6 +110,7 @@ class Polaris:
     # Only override __init_()  and run() (pydoc 17.1.2)
     #
     def __init__(self, logger: Logger, lifecycle: LifecycleController):
+        dt_now = datetime.datetime.now()
         self._lock = Lock()
         self.name: str = 'device'
         self.logger: Logger = logger
@@ -132,9 +133,12 @@ class Polaris:
         self._every_50ms_last_timestamp = None      # Fast Move counter, last 1s timestamp
         self._every_50ms_last_alt = None            # Fast Move counter, last 1s polaris altitude
         self._every_50ms_last_az = None             # Fast Move counter, last 1s polaris azimuth
-        self._startup_timestamp = datetime.datetime.now()  # Timestamp for when the driver started.
+        self._startup_timestamp = dt_now            # Timestamp for when the driver started.
+        self._last_517_timestamp = dt_now           # Timestamp for last 517 Orientation Update message from Polaris.
+        self._last_518_timestamp = dt_now           # Timestamp for last 518 Position Update message from Polaris.
+        self._age_517_seconds = 0.0                 # Age in seconds of last 517 message.
+        self._age_518_seconds = 0.0                 # Age in seconds of last 518 message.
         self._performance_data_start_timestamp = None      # Timestamp for Performance Data logging.
-        self._last_518_timestamp = None                    # Timestamp for last 518 Position Update message from Polaris.
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
@@ -420,22 +424,21 @@ class Polaris:
     async def _every_1s_watchdog_check(self):
         while True:
             try: 
+                # calculate age of last 517 and 518 message
+                curr_timestamp = datetime.datetime.now()
+                self._age_518_seconds = (curr_timestamp - self._last_518_timestamp).total_seconds()
+                self._age_517_seconds = (curr_timestamp - self._last_517_timestamp).total_seconds()
+
                 # get update on true orientation
                 if self._connected:
                     await self.send_cmd_517()
-                # calculate age of last 518 message
-                curr_timestamp = datetime.datetime.now()
-                if not self._last_518_timestamp:
-                    self._last_518_timestamp = curr_timestamp
-                age_of_518 = (curr_timestamp - self._last_518_timestamp).total_seconds()
 
-                # self.logger.info(f'->> Polaris: age_of_518 is {age_of_518}s.')
                 # if we dont have any updates, even after trying to restart AHRS, then reboot the connection
-                if self._connected and self._aligned and age_of_518 > 5:
+                if self._connected and self._aligned and self._age_518_seconds > 5:
                     self._task_exception = WatchdogError("==ERROR==: No position update for over 5s. Rebooting Connection.")
 
                 # if we dont have any updates for over 2s, then restart AHRS.
-                if self._connected and self._aligned and age_of_518 > 2:
+                if self._connected and self._aligned and self._age_518_seconds > 2:
                     if Config.log_polaris_protocol:
                         self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
                     await self.send_cmd_520_position_updates(True)
@@ -722,6 +725,7 @@ class Polaris:
 
         # return result of Query Orientation request {} 
         elif cmd == "517":
+            dt_now = datetime.datetime.now()
             arg_dict = self.polaris_parse_args(args)
             # Orientation of each axis motor rotational position in radians
             # Typical Park Position yaw=-0.000280, pitch=0.000267, roll=0.000375
@@ -732,6 +736,7 @@ class Polaris:
             p_pitch = -rad2deg(float(arg_dict['pitch']))    # from Polaris direct, note sign switch to align with Alt direction
             p_roll = rad2deg(float(arg_dict['roll']))       # from Polaris direct
             with self._lock:
+                self._last_517_timestamp = dt_now
                 self._zeta_meas = [p_yaw, p_pitch, p_roll]
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
@@ -1477,6 +1482,8 @@ class Polaris:
                 'connected': self._connected,
                 'connecting': self._connecting,
                 'connectionmsg': self._task_errorstr,
+                'age517': self._age_517_seconds,
+                'age518': self._age_518_seconds,
                 'tracking': self._tracking,
                 'trackingrate': self._trackingrate,
                 'athome': self._athome,

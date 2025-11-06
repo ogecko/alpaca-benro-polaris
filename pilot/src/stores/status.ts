@@ -37,6 +37,8 @@ export const useStatusStore = defineStore('status', {
         connected: false,
         connecting: false,
         connectionmsg: '',
+        age517: 0,
+        age518: 0,
         tracking: false,
         trackingrate: 0,
         athome: false,

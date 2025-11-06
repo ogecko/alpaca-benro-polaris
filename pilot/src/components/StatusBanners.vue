@@ -32,6 +32,18 @@
         <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
+    <div v-else-if="is518Old" >
+      <q-banner inline-actions rounded class="bg-warning" >
+        WARNING: The Alpaca Driver is not receiving position updates from Polaris. Check Connection. 
+        <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
+      </q-banner>
+    </div>
+    <div v-else-if="is517Old" >
+      <q-banner inline-actions rounded class="bg-warning" >
+        WARNING: The Alpaca Pilot is not receiving orientation updates from Polaris. Check Connection. 
+        <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
+      </q-banner>
+    </div>
     <div v-else-if="p.atpark" >
       <q-banner inline-actions rounded class="bg-warning">
         PARK: The Alpaca Driver is parked. Most functions are disabled.
@@ -57,6 +69,8 @@ registerInterval( ()  => { now.value = Date.now() }, 1000 )
 
 const isShowReconnect = computed(() => route.path != '/connect')
 const isStatusOld = computed(() => { return now.value - p.fetchedAt > 1000;   });
+const is517Old = computed(() => { return p.age517 > 2.0;   });
+const is518Old = computed(() => { return p.age518 > 2.0;   });
 
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  

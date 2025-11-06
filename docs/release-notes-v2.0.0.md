@@ -27,7 +27,8 @@
 ## What's new in beta4
 - **[Sync Duplicates]** Remove any sync points within ±2.5° of the most recent sync, before adding the new point
 - **[Residual Warning]** Notify users of Multi-Point Alignment sync points with high residuals. Display a warning for residuals exceeding 5°, and an alert for those above 10°
-- **[Astro Warning]** Notify user to switch to Astro Mode before Compass, Single Star or Multi-Point Alignment
+- **[Update Warning]** Track the update rate of Polaris position and orientation telemetry; alert the user if updates are missed
+- **[Astro Warning]** Notify user to switch to Astro Mode before performing Compass, Single Star or Multi-Point Alignment
 - **[Guide Default]** Changed default RA and Dec Guide Rates to 1.0x Sidereal 
 - **[Guide Rates]** Expanded allowable Guide rate settings to 0.25×, 0.50×, 0.75×, 1.00×, 1.25×, 1.50×, 2.00× Sidereal 
 - **[Tuning Parameters]** Hide KF, PID and PWM tuning parameters behind expansion/collapsable sections
