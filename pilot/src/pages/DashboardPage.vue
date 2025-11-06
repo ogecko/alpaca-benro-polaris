@@ -167,8 +167,13 @@ onMounted(async () => {
 // ------------------- Helper Functions ---------------------
 
 function cannotPerformCommand(cmd:string) {
-  if (p.atpark) {
-      $q.notify({ message: `Cannot ${cmd} while mount is parked.`, type: 'negative', position: 'top', 
+  if (p.atpark && cmd!='Park') {
+      $q.notify({ message: `Cannot ${cmd} while mount is parked. Unpark Mount.`, type: 'negative', position: 'top', 
+                           timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }]})
+      return true
+  }
+  if (p.pidmode=='LIMIT') {
+      $q.notify({ message: `Cannot ${cmd} while past motor angle limit. Reset the Limit.`, type: 'negative', position: 'top', 
                            timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }]})
       return true
   }
@@ -201,6 +206,7 @@ async function onHome() {
 }
 
 async function onPark() {
+  if (cannotPerformCommand('Park')) return
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
   console.log(result)
 }
