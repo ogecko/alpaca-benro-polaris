@@ -140,12 +140,12 @@
               </div>
               <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pl-md q-pr-mdn ">
                 <q-select
-                  class="col-6 q-pt-none" label="RA Guide Rate" emit-value map-options
+                  class="col-6 q-pt-none" label="RA Pulse Guide Rate" emit-value map-options
                   v-model="cfg.guide_rate_ra" @update:model-value="v => putdb({ guide_rate_ra: v })"
                   :options="guideRateOptions"
                 />
                 <q-select
-                  class="col-6 q-pt-none" label="Dec Guide Rate" emit-value map-options
+                  class="col-6 q-pt-none" label="Dec Pulse Guide Rate" emit-value map-options
                   v-model="cfg.guide_rate_dec" @update:model-value="v => putdb({ guide_rate_dec: v })"
                   :options="guideRateOptions"
                 />
