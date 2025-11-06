@@ -1256,7 +1256,7 @@ class PID_Controller():
         return wrap_to_180(0.0 - rad2deg(self.body.parallactic_angle()))
     
     def body2alpha(self):
-        self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.observer.date = ephem.now()
         self.observer.epoch = ephem.now()
         self.body.compute(self.observer)
         alt = rad2deg(self.body.alt)
@@ -1265,7 +1265,7 @@ class PID_Controller():
         return np.array([az, alt, roll], dtype=float)
 
     def alpha2body(self, alpha):
-        self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.observer.date = ephem.now()
         self.observer.epoch = ephem.now()
         ra_rad, dec_rad = self.observer.radec_of(deg2rad(alpha[0]), deg2rad(alpha[1]))
         self.body._ra = ra_rad
@@ -1274,7 +1274,7 @@ class PID_Controller():
         self.body_pa_offset = alpha[2]
 
     def body2delta(self):
-        self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.observer.date = ephem.now()
         self.observer.epoch = ephem.now()
         self.body.compute(self.observer)
         ra_deg = rad2deg(self.body._ra)
@@ -1287,7 +1287,7 @@ class PID_Controller():
     
 
     def delta2body(self, delta):
-        self.observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.observer.date = ephem.now()
         self.observer.epoch = ephem.now()
         self.body._ra = deg2rad(delta[0])
         self.body._dec = deg2rad(delta[1])
