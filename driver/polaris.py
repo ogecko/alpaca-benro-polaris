@@ -2158,6 +2158,8 @@ class Polaris:
             await self.stop_tracking()
             self._pid.set_zeta_ref_to_home()
             self.markParkingAsCanceled()
+            self.markGotoAsComplete()
+            self.markRotateAsComplete()
             self._pid.set_pid_mode('HOMING')
 
 
@@ -2179,6 +2181,8 @@ class Polaris:
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: PARK telescope")
             self.markParkingAsUnderway()
+            self.markGotoAsComplete()
+            self.markRotateAsComplete()
             await self.stop_tracking()
             self._pid.set_zeta_ref_to_park()
             self._pid.set_pid_mode('PARKING')
