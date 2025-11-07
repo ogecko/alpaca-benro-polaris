@@ -25,6 +25,7 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in beta4
+- **[Kinematics Diagram]** Add a Kinematics "Data Flow Diagram" to explain primary data flows and co-ordinate conversions
 - **[Sync Duplicates]** Remove any sync points within ±2.5° of the most recent sync, before adding the new point
 - **[Residual Alerts]** Flag Multi-Point Alignment sync entries with elevated residuals. Show a warning above 5°, and a critical alert above 10°.
 - **[Guide Default]** Changed default RA and Dec Pulse Guide Rates to 1.0x Sidereal 

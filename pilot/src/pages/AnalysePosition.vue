@@ -16,7 +16,7 @@
 
     <!-- Page Body -->
     <div class="row q-col-gutter-sm items-stretch">
-      <div class="col-12 flex">
+      <div class="col-lg-8 col-12 flex">
         <q-card flat bordered class="col">
           <div class="q-pa-md">
               <q-table title="Current Mount Orientation" 
@@ -24,6 +24,11 @@
                     :rows="rows" :columns="columns" row-key="name">
               </q-table>
           </div>
+        </q-card>
+      </div>    
+      <div class="col-lg-4 col-12 flex">
+        <q-card flat bordered class="col">
+          <q-img src="../assets/process-diagram.png" contain></q-img>
         </q-card>
       </div>    
   </div>
@@ -78,16 +83,16 @@ const columns = [
 
 const rows = computed<TableRow[]>(() => {
   return [
-  { name:'Polaris: q1', q:p.q1, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
-  { name:'ASCOM: q1s n-Aligned and KF', q:p.q1s, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
-  { name:'Polaris Motors Raw (Zeta 1,2,3)', q:'', az:fmt(p.zetameas[0]), alt:fmt(p.zetameas[1]), roll:fmt(p.zetameas[2]), ra:'', dec:'', pa:'',},
-  { name:'Polaris Motors 1-Aligned (Theta 1,2,3)', q:'', az:fmt(p.thetastate[0]), alt:fmt(p.thetastate[1]), roll:fmt(p.thetastate[2]), ra:'', dec:'', pa:'',},
-  { name:'Polaris Position 1-Aligned (Lota 1,2,3,4,5)', q:'', az:fmt(p.lotameas[0]), alt:fmt(p.lotameas[1]), roll:fmt(p.lotameas[2]), ra:fmt(p.lotameas[3], "hr"), dec:fmt(p.lotameas[4]), pa:'',},
-  { name:'ASCOM: Position n-Aligned ', q:'', az:fmt(p.azimuth), alt:fmt(p.altitude), roll:fmt(p.roll), ra:fmt(p.rightascension, "hr"), dec:fmt(p.declination), pa:fmt(p.positionangle)},
-  { name:'ASCOM: Parallatic Angle', q:'', az:'', alt:'', roll:'', ra:'', dec:'', pa:fmt(p.parallacticangle)},
-  { name:'PID: Alpha and Delta Ref (Target)', q:'',  az:fmt(p.alpharef[0]), alt:fmt(p.alpharef[1]), roll:fmt(p.alpharef[2]), ra:fmt((p.deltaref[0]??0)/180*12, "hr"), dec:fmt(p.deltaref[1]), pa:fmt(p.deltaref[2])},
-  { name:'PID: Omega Ref (Motor Velocities)', q:'',  az:fmt(p.omegaref[0]), alt:fmt(p.omegaref[1]), roll:fmt(p.omegaref[2]), ra:'', dec:'', pa:'',},
-  { name:'MC: Motor Ref (Motor Velocities)', q:'',  az:fmt(p.motorref[0]), alt:fmt(p.motorref[1]), roll:fmt(p.motorref[2]), ra:'', dec:'', pa:'',},
+  { name:'(1) Polaris: Quaternion (Q1)', q:p.q1, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
+  { name:'(2) ASCOM: n-Aligned and KF (Q1S)', q:p.q1s, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
+  { name:'(3) Polaris: Motors Angles M1-3 (Zeta)', q:'', az:fmt(p.zetameas[0]), alt:fmt(p.zetameas[1]), roll:fmt(p.zetameas[2]), ra:'', dec:'', pa:'',},
+  { name:'(4) Polaris: Motors 1-Aligned T1-3 (Theta)', q:'', az:fmt(p.thetastate[0]), alt:fmt(p.thetastate[1]), roll:fmt(p.thetastate[2]), ra:'', dec:'', pa:'',},
+  { name:'(5) Polaris: Orientation 1-Aligned L1-3 (Lota)', q:'', az:fmt(p.lotameas[0]), alt:fmt(p.lotameas[1]), roll:fmt(p.lotameas[2]), ra:fmt(p.lotameas[3], "hr"), dec:fmt(p.lotameas[4]), pa:'',},
+  { name:'(6) ASCOM: Orientation n-Aligned (ASCOM)', q:'', az:fmt(p.azimuth), alt:fmt(p.altitude), roll:fmt(p.roll), ra:fmt(p.rightascension, "hr"), dec:fmt(p.declination), pa:fmt(p.positionangle)},
+  { name:'(7) ASCOM: Parallatic Angle', q:'', az:'', alt:'', roll:'', ra:'', dec:'', pa:fmt(p.parallacticangle)},
+  { name:'(8) Alpaca: PID Setpoint (Alpha & Delta)', q:'',  az:fmt(p.alpharef[0]), alt:fmt(p.alpharef[1]), roll:fmt(p.alpharef[2]), ra:fmt((p.deltaref[0]??0)/180*12, "hr"), dec:fmt(p.deltaref[1]), pa:fmt(p.deltaref[2])},
+  { name:'(9) Alpaca: PID Feed forwad (Omega)', q:'',  az:fmt(p.omegaref[0]), alt:fmt(p.omegaref[1]), roll:fmt(p.omegaref[2]), ra:'', dec:'', pa:'',},
+  { name:'(0) Alpaca: PID Controller (OP dps)', q:'',  az:fmt(p.motorref[0]), alt:fmt(p.motorref[1]), roll:fmt(p.motorref[2]), ra:'', dec:'', pa:'',},
 
 ]
 })
