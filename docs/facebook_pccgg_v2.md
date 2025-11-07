@@ -388,3 +388,60 @@ Setting a referece point in the upper left corner, pan/tilt to see it in the dow
 Reply
 
 
+Polaris -Camera Controller Global Group
+Alexander Murdoch
+ ·
+
+Top contributor
+ ·
+nrsoetoSpdlc0cgff4818i1cl00
+h
+l778a4l7m892f37822l9
+6
+07u
+1
+ia3l2m5
+ ·
+A world first!! Guiding with the Benro Polaris
+This image is 100 x 60 second (that’s right, 60 second!) exposures at 300mm, taken with the Benro Polaris from the Bortle 8 CBD. This will be wicked under some better skies.
+Testing & experimenting has been promising, I have guiding sitting around ~2.5RMS - clearly enough to resolve this 300mm lens! Plenty of tips & tricks to come.
+I’ll piece together some YouTube videos on the outside our sphere YouTube channel once this driver is available to all - exciting times! Thanks heaps to David and his development of Beta v2.0.0 of the Alpaca Driver - what a feat.
+Richard Healey
+Awesome news. David Morrison deserves our utmost thanks for the terrific effort he has put into getting the Alpaca driver to the place it is today. And there is more to come, like tracking rates for the sun and moon.
+Considering you all dropped over a thousand dollars on the Benro - which never lived up to its promise - I sincerely hope that you have joined the Kickstarter program that is being used to help fund this effort. Not only does this have the potential to truly unlock the Polaris, it is supported within this community and I'm pretty confident the response to any questions will be far more timely than the response from the manufacturer.
+And finally, I hope that benro can get behind this effort themselves. They have created a device with great potential - potential that only David and the team have been able to unlock.
+2h
+Reply
+Eric Chiu
+Wow. Keen to see how far you can push the exposure time 🙂
+Mmm have to find a guide camera.
+15h
+Reply
+Vladimir Vyskocil
+Eric Chiu I had great success with 240s, yes 4 min using CCDCiel built in guider ! However I only did some quick tests and it seems there are sometimes small perturbations for such a lot shot, a lot of tests and maybe some adjustments await us.
+13h
+Reply
+
+
+Ryan Crandall
+This is good news! I was just thinking about getting a separate tracker for deep space because the Benro just can’t do it. Look forward to the YouTube video
+13h
+Reply
+Shiyang Steven Zhang
+This is amazing. Do you use a astro modified camera?
+10h
+Reply
+Jerry Levin
+How exciting!!!!!!
+15h
+Reply
+Real Bread Aotearoa
+Well done Alex in being the first to take the Polaris to another level 😀
+15h
+Reply
+Dan Cool
+Amazing!
+10h
+Reply
+Jose Pedrero Barrios
+Sticker by Super Smalls
