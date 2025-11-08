@@ -1,3 +1,4 @@
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 # Deep Dive Podcast - Oct 2024
 ##  Unlocking Astrophotography 
 Ever tried to get a good shot of a distant galaxy with your camera, but those pin-sharp stars just turn into blurry streaks? Oh yeah, it's frustrating—a real bummer. You think you've got it all: the camera's set, you might even have a star tracker like the Benro Polaris to help with the Earth's rotation, right? But then the software—yeah, the software—can really hold you back. 

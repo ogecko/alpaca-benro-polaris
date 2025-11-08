@@ -1,3 +1,4 @@
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 # Alpha and Beta Testing Agreement
 
 Please review the following agreement before using any Alpha or Beta version of this software.

@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Recommended Hardware Platform
 [Laptop](#using-a-laptop-with-stellarium-desktop) | [Raspberry Pi](#using-a-raspberry-pi-for-the-driver) | [Docker](#using-docker-to-host-the-driver) | [Mini-PC](#a-mini-pc-to-control-all-your-astronomy-equipment-recommended) | [Powerbank](#powering-the-mini-pc-and-camera-overnight) | [Cabling](#connecting-up-the-ninaair) | [Setup NinaAir](#setting-up-the-ninaair-platform)

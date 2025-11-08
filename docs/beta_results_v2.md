@@ -1,3 +1,4 @@
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 # Beta test results
 
 ## Beta Tester: Vladimir (Dis: vyskocil; GH: vyskocil; FB Validimir V..)

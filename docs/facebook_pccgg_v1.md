@@ -1,3 +1,4 @@
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 # PCCGG Facebook Group Post Review
 The various Alpaca Benro Polaris Project correspondence on the Facebook group "Polaris Camera Controller Global Group" (PCCGG), has been reviewed and analysed. Overall, the Facebook posts present the PCCGG as a vibrant community passionate about astrophotography and excited about the potential of the ABP Driver to transform the Benro Polaris into a more powerful and versatile tool. The group's active involvement in testing, providing feedback, and sharing knowledge was invaluable to the project's success.
 
