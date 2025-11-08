@@ -1,4 +1,4 @@
-[Home](./README.md) | [Hardware Guide](docs/hardware.md) | [Installation Guide](docs/installation.md) | [Using Stellarium](docs/stellarium.md) | [Using Nina](docs/nina.md) | [Troubleshooting](docs/troubleshooting.md) | [FAQ](docs/faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Introduction
 ![Overview](docs/images/abp-overview.png)
@@ -33,6 +33,12 @@ The [Hardware Guide(s)](./docs/hardware.md) outlines the recommended hardware pl
 
 ## [Installation Guide](./docs/installation.md)
 The [Installation Guide](./docs/installation.md) provides step-by-step instructions for installing and running the Alpaca Benro Polaris Driver on Windows 11 or MacOS, including setting up prerequisite software like Python and configuring Stellarium for initial use. It walks users through each step of the installation process, ensuring they can successfully install the driver and connect to their Benro Polaris.
+
+## [Alpaca Pilot App Guide](./docs/pilot.md)
+The [Alpaca Pilot App Guide](./docs/pilot.md) provides step-by-step instructions using the new Alpaca Pilot App for controlling the Driver and understanding what is happening inside the Driver.
+
+## [Advanced Motion Control Guide](./docs/control.md)
+The [Advanced Motion Control Guide](./docs/control.md) explains each of the new motion control concepts and features included in the V2.0 Driver, which introduces a complete rewrite of the motion control system.
 
 ## [Using Stellarium](./docs/stellarium.md)
 The [Using Stellarium Guide](./docs/stellarium.md) focuses on using Stellarium with the Benro Polaris, explaining how to establish a connection, control the mount, and leverage Stellarium's features. It outlines the compatibility of different Stellarium versions and protocols, guiding users on connecting their setup and navigating Stellarium's interface for effective telescope control.
