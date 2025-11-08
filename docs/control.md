@@ -17,6 +17,11 @@ With version 2.0 of the Alpaca Driver, we introduce a complete rewrite of the mo
 
 This guide covers describes each of the new motion control concepts introduced in V2.0
 
+<br>
+<br>
+
+---
+
 # Alpaca Rotator
 VIDEO DEMO - [23 - Alpaca Rotator Framing in Nina and Stellarium](https://youtu.be/_Swd-jIyQis)
 
@@ -64,8 +69,6 @@ Position angle is the angle between the direction to the celestial north and the
 
 The Parallactic Angle is the angle between the direction to the celestial north  and the zenith, measured at the position of a celestial object in the sky. It describes how the sky appears to rotate around the object. The Paralactive Angle is unique for every Azimuth/Altitude orientation of the mount. It can be displayed in applications like Stellarium. The Driver uses the Parallactic Angle to calculate the Position Angle.
 
----
-
 ## III. Rotator Setup and Control
 
 ### Connecting in NINA
@@ -112,8 +115,11 @@ To visualize your framing accurately in Stellarium, an adjustment is necessary.
 *   **Coordinate Mismatch:** Stellarium’s internal "rotation angle" setting uses a different frame of reference than the standard ASCOM Position Angle used by the driver and NINA.
 *   **Correcting the Angle:** To achieve the same framing in Stellarium as calculated in NINA (e.g., a proposed PA of 140°), you must input the **negative of the Position Angle** into Stellarium’s rotation angle setting (e.g., -140°).
 
----
 
+<br>
+<br>
+
+---
 
 
 # Alignment Models
@@ -236,22 +242,107 @@ ABP now supports syncing using **azimuth and altitude**, which means you can ali
 | **Celestial Target** | Manual RA/Dec | Known star/object | Semi-manual |
 | **Geographic Landmark** | Az/Alt from Pilot app | Daytime or visual targets | Manual or assisted |
 
+<br>
+<br>
 
+---
 
-## Equipment Safety
+# Equipment Safety
 
 VIDEO DEMO - [25 - Home, Park and Motor Angle Limits](https://youtu.be/45EP-DExSOQ)
 
+
+The Benro Polaris mount, while compact and powerful, has a known issue: it can rotate far enough to **wrap cables tightly around the tripod**, risking damage to cables, camera and mount. This kind of entanglement can lead to costly repairs or interrupted imaging sessions.
+
+Version 2.0 of the Alpaca Benro Polaris (ABP) Driver introduces essential safety mechanisms to protect your gear and simplify your setup workflow. These updates address real-world risks and frustrations reported by users — especially around cable management and unexpected mount behavior.
+
+To prevent these issues, the driver now includes:
+
+- **Motor Angle Limits**  
+  These define safe rotation boundaries for each axis, ensuring the mount never turns far enough to cause cable strain or collision. You can customize these limits based on your setup.
+
+- **Revised Find Home Behavior**  
+  The updated Find Home routine uses sensor feedback to return the mount to a known, safe orientation, without taking shortcuts and over-rotating cables.
+  
+- **Improved Park Functionality**  
+  The Park feature now respects motor limit, allowing you to safely stow the mount at a custom location, again without risking cable wrap or tripod collisions.
+
+### A. Motor Angle Limits
+
+The driver tracks the actual physical rotation of the mount's motors (M1, M2, M3) using **Motor Angles**. Unlike standard coordinates (like Azimuth), which wrap around (e.g., 360° returns to 0°), the motor angle **does not wrap around**; it continuously records how far the motor has moved from its home position. These angles are also not dependant on one another, so the M1 angle is not effected by the Astro Axis.
+
+You can define a **maximum amount of rotation** in each direction for each motor angle to prevent potential twisting of cables.
+
+1.  **Limit Breach:** If a motor axis **exceeds its defined rotation limit** (e.g., Motor 3 goes beyond $270^\circ$), the system will issue a **notification banner**, and **all control to the Polaris will be stopped**. This halt prevents further motion, including tracking, to protect the cables.
+2.  **Reviewing the Alarm:** You must click the **review button** on the banner, which takes you to the settings page, where you can inspect which alarm limit was exceeded (e.g., M3 current value > maximum limit).
+3.  **Resetting the Alarm:** You must click the **reset button** to acknowledge the limit breach. This action provides a **one-minute window** during which you can move the mount and correct the rotation.
+4.  **Clearing the Alarm:** The notification banner and limit indication will disappear once the motor axis is brought back **within the defined limits**.
+
+
+**Important Safety Note:** Although these safety measures are built into V2.0, we advise against operating the Polaris **unattended**, as some failure modes may still be beyond the driver's control. 
+
+
+### B. Home Functionality
+
+The new **Home** functionality moves the mount based entirely on motor angles:
+
+*   **Action:** When you click "Home," the driver commands the motors to wind back so that the **M1, M2, and M3 Motor Angles are all zero**.
+*   **Orientation:** If your mount is set up pointing south, the Home position (0, 0, 0 motor angles) will typically result in an azimuth of $180^\circ$, an altitude of $45^\circ$, and a roll of $0^\circ$.
+*   **Alternative Reset:** If you need a complete the joystick double tap function of the Benro Polaris App, an **axis reset** function is still available, but it is located only on the Alpaca Pilot Connect page.
+
+### B. Park Functionality
+
+The **Park** function provides a customisable, safe resting position for mounting and unmounting equipment.
+
+*   **Motor-Based:** Like the Home function, the Park function operates by defining target **motor angles**, not coordinate values.
+*   **Default:** By default, the Park position is set to motor angles of $(0, 0, 0)$, making it identical to the Home position.
+*   **Customisation:** You can **customize** the Park angle from the **settings page**. This is often useful, particularly when using an L-mount for your camera.
+
+#### Setting a Custom Park Position:
+
+1.  **Access Settings:** Navigate to the settings page within the Alpaca Pilot App.
+2.  **Adjust Motor Angles:** Use the diagrams to move the motor angles to a desired orientation.
+    *   *Example: Move the M3 axis to around $90^\circ$ to easily access the lever and tightening knob on the camera mount.*
+    *   *Example: Bring the M2 axis down to approximately $-45^\circ$ to make the plate level, facilitating camera mounting and unmounting.*
+3.  **Save:** Click the **Save** button to update the motor angles for the Park location.
+
+#### Unparking the Mount:
+
+1.  **Execution:** When the mount successfully reaches the custom Park location, a **yellow banner** will appear on the dashboard.
+2.  **Function Lock:** In the Park state, **most functions are disabled**.
+3.  **Resuming Use:** To resume normal use of the mount (e.g., initiating a GOTO or tracking), you must click the designated button to **unpark** it.
+
+<br>
+<br>
+
+---
 ## Kalman Filter
 VIDEO DEMO - [31 - Setting Overrides, Kalman Filtering and PWM](https://youtu.be/aDFKAWBNQHU)
 
+<br>
+<br>
+
+---
 ## Speed Controller
+
 VIDEO DEMO - [32 = Calibrating Speed Control for your Polaris](https://youtu.be/U_0-mBDuTjE)
 
 
+<br>
+<br>
+
+---
 ## PID Controller
 
+<br>
+<br>
+
+---
 ## Pulse Guiding
 
+<br>
+<br>
+
+---
 ## Tracking
 
