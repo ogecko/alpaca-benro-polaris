@@ -31,30 +31,6 @@ class BLE_Controller():
                 return addr
         return None
 
-    def scannerCallback(self, device, adv):
-        name = (adv.local_name or device.name or "").lower()
-        if not name.startswith("polaris"):
-            return
-        now = time.monotonic()
-        addr = device.address
-        # existing or new entry
-        existing = self.devices.get(addr)
-        last_seen = existing.get("last_seen", 0) if existing else 0
-        # Skip if we've seen it too recently (< 1s)
-        if now - last_seen < 1.0:
-            return
-        self.devices[addr] = {
-            "name": name,
-            "address": addr,
-            "service_uuids": adv.service_uuids,
-            "rssi": adv.rssi,
-            "last_seen": now,
-        }
-        if self.selectedDevice is None:
-            asyncio.create_task(self.setSelectedDevice(name))
-        if Config.log_polaris_ble:
-            self.logger.info(f"BLE Discovered Polaris: {addr} ({self.devices[addr]})")
-
 
     def prune_stale_devices(self, timeout=60):
         now = time.monotonic()
@@ -160,9 +136,36 @@ class BLE_Controller():
             self.logger.error(f"BLE failed to enable Wi-Fi after {max_attempts} attempts")
         self.isEnablingWifi = False
 
+    def scannerCallback(self, device, adv):
+        name = (adv.local_name or device.name or "").lower()
+        if Config.log_polaris_ble and Config.log_polaris_polling:
+            self.logger.info(f"BLE Discovered Device Name: {name}, Address: {device.address}, RSSI: {adv.rssi}")
+        if not name.startswith("polaris"):
+            return
+        now = time.monotonic()
+        addr = device.address
+        # existing or new entry
+        existing = self.devices.get(addr)
+        last_seen = existing.get("last_seen", 0) if existing else 0
+        # Skip if we've seen it too recently (< 1s)
+        if now - last_seen < 1.0:
+            return
+        self.devices[addr] = {
+            "name": name,
+            "address": addr,
+            "service_uuids": adv.service_uuids,
+            "rssi": adv.rssi,
+            "last_seen": now,
+        }
+        if self.selectedDevice is None:
+            asyncio.create_task(self.setSelectedDevice(name))
+        if Config.log_polaris_ble:
+            self.logger.info(f"BLE Discovered Polaris: {addr} ({self.devices[addr]})")
+
     async def runBleScanner(self):
         try:
             async with BleakScanner(self.scannerCallback) as scanner:
+                self.logger.info(f'==STARTUP== Starting Bluetooth scanner.')
                 while not self.lifecycle.should_shutdown():
                     self.prune_stale_devices()
                     if not self.isConnectedFn():
