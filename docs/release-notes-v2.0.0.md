@@ -8,7 +8,7 @@
 
 ## Demonstration Videos
 * **20 - Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
-* **21 - Preview Demo:** Demonstration Video at https://youtu.be/0QSKD1GCzOc 
+* **21 - Preview Demo:** Demonstration Video at https://youtu.be/0QSKD1GCzOc
 * **22 - Starting and Using:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
 * **23 - Rotator Framing:** Demonstration Video at https://youtu.be/_Swd-jIyQis
 * **24 - Multi Point Alignment:** Demonstration Video at https://youtu.be/4CMO0R_yphw
