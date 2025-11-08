@@ -34,8 +34,8 @@ The Alpaca Rotator functionality unlocks and controls the third axis of the Benr
 
 *   **Primary Purpose:** The main goal of the Alpaca Rotator is to help achieve **better framing of deep sky objects** and assist significantly with **mosaics and panoramas**.
 *   **ASCOM Standard:** The feature is implemented by supporting the **ASCOM Alpaca Rotator Interface v3** standard.
-*   **Rotation Maintenance:** The rotator enables rotation around the camera’s boresight while **maintaining the existing Azimuth/Altitude (Az/Alt) or Right Ascension/Declination (RA/Dec) coordinates**.
-*   **GOTO Enhancement:** Unlike the standard Polaris firmware, the ABP Driver’s new **GOTO commands preserve the roll angle** instead of automatically resetting it to zero after every GOTO operation.
+*   **Co-ordinate independance:** The rotator enables rotation around the camera’s boresight while **maintaining the existing Azimuth/Altitude (Az/Alt) or Right Ascension/Declination (RA/Dec) coordinates**.
+*   **Roll Angle Preservation:** Unlike the standard Polaris firmware, the ABP Driver’s new **GOTO commands preserve the roll angle** instead of automatically resetting it to zero after every GOTO operation.
 
 ---
 
@@ -49,15 +49,20 @@ The roll angle is generally considered **intuitive**.
 
 *   It represents the **angle or tilt of the camera relative to the horizon**.
 *   The driver automatically calculates how the mount needs to move all motors to achieve a specified roll (e.g., a 30° roll) while keeping the Azimuth and Altitude coordinates consistent.
-*   The roll angle corresponds directly to the rotation of **Motor 3**.
+*   The roll angle is considered related to **Astro Axis**, but in reality it requires all motors to be moved in co-ordination.
 
 ### Position Angle (RA/Dec/PA)
 
-The Position Angle (PA) is a **consistent reference** used for framing that is independent of the observer's location. It is often harder to understand than the roll angle.
+Position angle is the angle between the direction to the celestial north and the top of the image frame, measured counterclockwise from north. The Position Angle (PA) is a **consistent reference** used for framing that is independent of the observer's location. It is often not as intuitive as the roll angle.
 
 *   The Position Angle is defined in the **equatorial coordinate system**.
 *   A PA of **0 degrees** means the top of the image frame is pointing toward the **celestial North Pole**.
 *   Angles **increase in a counter-clockwise fashion**.
+*   The Position Angle is equal to the Roll Angle plus the Parallactic Angle.
+
+### Parallactic Angle 
+
+The Parallactic Angle is the angle between the direction to the celestial north  and the zenith, measured at the position of a celestial object in the sky. It describes how the sky appears to rotate around the object. The Paralactive Angle is unique for every Azimuth/Altitude orientation of the mount. It can be displayed in applications like Stellarium. The Driver uses the Parallactic Angle to calculate the Position Angle.
 
 ---
 
@@ -95,7 +100,6 @@ The rotator function is natively integrated with NINA’s framing capabilities.
 3.  **Sequenced Correction:** During an imaging sequence, after NINA performs a plate solve and determines the position angle of the captured image, it will **correct any angular offset** by issuing minor adjustments to the rotator to correctly position the panel.
 
 ### Mosaics and Panoramas
-
 The rotator enables precise, structured imaging for large targets.
 
 *   **Tiled Mosaics:** When planning a tiled mosaic (e.g., three wide and two high), NINA calculates the Right Ascension and Declination for each panel.
@@ -154,6 +158,7 @@ Before starting the alignment process, ensure the mount is prepared and connecte
 2.  **Skip Standard Alignment:** You can **skip** the standard Benro Polaris **Compass Align** and **Star Align** steps, as the driver will use default values (assuming the device is pointing South at 45 degrees altitude).
 5.  **Physical Setup:** Mount your camera, place the tripod outside, and **level the Benro Polaris as accurately as possible** (though the MPA model compensates for tilt, good leveling remains important for accuracy).
 6.  **Focus:** Perform a NINA Autofocus run.
+7. **Start Tracking:** Enable sidereal tracking from Nina or Alpaca Pilot
 
 ### B. Initiating Alignment via Plate Solving 
 
@@ -177,10 +182,11 @@ To assist the multi-point model to be as polar aligned as possible, we recommend
 
 Any remaining points in the model should be placed along the trajectory of your imaging target. You can perform just one plate-solve at your target, or if you are performing a long imaging session you may want to perform a couple of plate-solves along its trajectory. 
 1. **Navigate to your target**: Use Alpaca Pilot, Stellarium or Nina to select and navigate to the current location of your target
-2. **Naviagate along target trajectory**: Use Alpaca Pilot to decrease the Right Ascension position by an hour or two. Enter 'd-2' into the Right Ascension setpoint field.
-2. **Wait for Completion**: Ensure the mount has fully stopped before proceding
-5.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
-1. **Navigate back to your target**: Navigate back to the current location of your target
+2. **Optionally Naviagate along target trajectory**: 
+    1. **Decrease Right Ascenscion** Use Alpaca Pilot to decrease the Right Ascension position by an hour or two. Enter 'd-2' into the Right Ascension setpoint field.
+    1. **Wait for Completion**: Ensure the mount has fully stopped before proceding
+    2.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
+    3. **Navigate back to your target**: Navigate back to the current location of your target
 2. **Wait for Completion**: Ensure the mount has fully stopped before proceding
 5.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
 
@@ -188,7 +194,47 @@ Any remaining points in the model should be placed along the trajectory of your 
 
 After you add any additional sync points to the model, you should review the model residuals on the Alignment page in Alpaca Pilot. When the Driver updates the model, it recalculates how well it fits all of the sync points. Any slight deviation between what that sync point said it was and what the model thinks it should have been, will be listed as a residual. The last sync point will always have zero residual. 
 
-The other sync points that are in this list, they might have larger residuals. If you see anything above, say 5°, then you might want to consider deleting that point. And you can delete it by just clicking on the cross next to the point. If you see it above 10 or 20, then I'd definitely remove that point from the multipoint alignment model. You really want to keep them down in the arc minutes. And these are arc seconds. 
+The other sync points in this list, will likely have varying residuals. The lower the better. If you see anything above 5°, then you might want to consider deleting that point. You really want to keep them down in the arc minutes. And these are arc seconds. 
+
+Delete a sync point by clicking on the cross next to the point. Note that if tracking is enabled when you delete a sync point, the model will adjust, and the mount will shift the head to its new understanding of where the current target is located. If this varies from its current location, then perform another manually initiated plate-solve and sync.
+
+A very good multi-point alignment model will have all sync points with residuals of arc-seconds, and none with arc-minutes or whole degrees of residuals.
+
+### IV. Adding Sync Points to the model
+By adding sync points, you help the Driver build a geometric model of your mount’s orientation relative to the sky. There are three approaches to adding sync points to the model.
+
+#### Method 1: Sync via Plate Solve
+
+This is the most automated and accurate method. When your imaging software performs a **plate solve**, it determines the exact celestial coordinates your camera is pointing at. ABP uses this data to add a sync point to the alignment model.
+
+- Best for: Astrophotographers using tools like NINA and ASTAP
+- How: After a successful plate solve, ABP automatically adds the sync point
+- Benefit: High-precision alignment with minimal manual input
+
+#### Method 2: Sync via Celestial Coordinates (RA/Dec)
+
+You can manually add a sync point by specifying a known celestial target using **Right Ascension and Declination**.
+
+- Best for: Users targeting known stars or objects
+- How: Manually align the image with the known target then confirm the **Sync** with an application like Stellarium or Alpaca Pilot
+- Benefit: Useful when plate solving isn’t available or for quick calibration
+
+#### Method 3: Sync via Geographic Landmark (Azimuth and Altitude)
+
+ABP now supports syncing using **azimuth and altitude**, which means you can align to visible landmarks, even during the day or without a star field.  At your observing site, you might have a visible landmark like a high-tension power line or surveyers mark. If you point your camera directly at it:
+- Use the **Pilot app** to click on the landmark on the map in the Alignment page.
+- ABP draws a line from your site to the landmark and calculates its azimuth and altitude
+- Click **Sync** to add it to the model
+
+---
+
+#### Summary: Sync Methods Comparison
+
+| Method | Input Type | Best Use Case | Automation Level |
+|--------|------------|----------------|------------------|
+| **Plate Solve** | RA/Dec from image | Imaging sessions | Fully automatic |
+| **Celestial Target** | Manual RA/Dec | Known star/object | Semi-manual |
+| **Geographic Landmark** | Az/Alt from Pilot app | Daytime or visual targets | Manual or assisted |
 
 
 
