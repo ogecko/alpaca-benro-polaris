@@ -279,7 +279,7 @@ You can define a **maximum amount of rotation** in each direction for each motor
 4.  **Clearing the Alarm:** The notification banner and limit indication will disappear once the motor axis is brought back **within the defined limits**.
 
 
-**Important Safety Note:** Although these safety measures are built into V2.0, we advise against operating the Polaris **unattended**, as some failure modes may still be beyond the driver's control. 
+> **Important Safety Note:** Although these safety measures are built into V2.0, we advise against operating the Polaris **unattended**, as some failure modes may still be beyond the driver's control. 
 
 
 ### B. Home Functionality
@@ -320,6 +320,9 @@ The **Park** function provides a customisable, safe resting position for mountin
 VIDEO DEMO - [31 - Setting Overrides, Kalman Filtering and PWM](https://youtu.be/aDFKAWBNQHU)
 
 The **Kalman Filter** is a core component of the motion control system introduced in **ABP Driver v2.0**. It plays a critical role in improving the **accuracy, stability, and responsiveness** of the Polaris mount by filtering noisy sensor data and enhancing the system’s understanding of its own motion.
+
+
+> **Note:** Kalman Filter Tuning is optional. You can skip this step if you're not ready to dive in.
 
 ---
 
@@ -382,9 +385,73 @@ This value is a key parameter in the Kalman Filter algorithm that determines how
 <br>
 
 ---
-## Speed Controller
+# Speed Controller
 
 VIDEO DEMO - [32 = Calibrating Speed Control for your Polaris](https://youtu.be/U_0-mBDuTjE)
+
+
+The **Motor Speed Controller Calibration** feature in ABP v2.0 allows advanced users to fine-tune motor behavior for their specific Polaris mount. While the system works well with default values, calibration can improve tracking precision, especially for long-exposure astrophotography.
+
+You can access the Motor Speed Calibration Tool by opening Alpaca Pilot and navigating to **Calibration** under **Performance Tuning** in the side menu  
+
+> **Note:** Calibration is optional. You can skip this step if you're not ready to dive in.
+
+
+## A. Preparing for the Test
+
+Before running a motor speed calibration test:
+- Ensure the **Polaris mount can move freely**
+- **Remove any camera or payload** to avoid strain
+- You can perform this test **during the day**
+
+
+## B. Running the Calibration
+
+1. **Select an Axis**  
+   Choose which motor axis to test:
+   - **M1** – Azimuth
+   - **M2** – Altitude
+   - **M3** – Rotation (Astro Axis)
+
+2. **Start the Test**  
+   - Click **Test** to begin
+   - If no specific test is selected, the driver will test **all available speeds**
+   - The mount will move through a series of commands, measuring actual speed at each step
+
+3. **Monitor Test Progress**  
+   - Monitor the completion of each test in the table view.
+   - You can ABORT and stop the tests at any time.
+   
+## D. Reviewing Results
+
+After testing:
+- View the **Results Table** showing:
+  - Commanded speed
+  - Measured speed
+  - % Change from baseline
+  - Standard deviation
+
+> **Low change and low deviation** indicate a reliable test  
+> **WARNING:** If a test shows high deviation or unexpected large change, you can and should **retest that speed individually**. Select the test in the table and click Test again.
+
+## E. Approving Results
+
+Once satisfied with the results of the Motor Speed Calibration tests:
+- **Select individual tests** to approve, or leave all unselected to approve everything
+- Click **Approve** to apply the new calibration
+- The driver will now use these values instead of defaults
+
+> Each axis (M1, M2, M3) maintains its own calibration profile
+
+
+## D. Final Thoughts
+
+Calibrating your motor speed controller ensures:
+- More accurate slews
+- Smoother tracking
+- Better guiding performance
+- Potentially improved deep-sky imaging results
+
 
 
 <br>
