@@ -283,47 +283,6 @@ def calc_parallactic_angle(az_deg, alt_deg, lat_deg):
     return wrap_to_180(-angle)
 
 
-def polar_rotation_angle(latitude_rad, az_rad, alt_rad):
-    """
-    Compute the roll angle (in degrees) needed to rotate a camera pointed at (az, alt)
-    so that the top of the image points toward the celestial pole.
-    Positive angle means clockwise rotation when looking through the camera.
-    """
-
-    # Step 1: Camera pointing vector
-    cam_vec = azalt_to_vector(az_rad, alt_rad)
-
-    # Step 2: Construct orthonormal tangent basis
-    # Up vector: derivative of cam_vec w.r.t altitude; Right vector: derivative of cam_vec w.r.t azimuth
-    up_vec = [ -math.sin(alt_rad) * math.sin(az_rad), -math.sin(alt_rad) * math.cos(az_rad), math.cos(alt_rad) ]
-    right_vec = [ math.cos(alt_rad) * math.cos(az_rad), -math.cos(alt_rad) * math.sin(az_rad), 0 ]
-
-    # Normalize basis vectors
-    def normalize(v):
-        mag = math.sqrt(sum(c**2 for c in v))
-        return [c / mag for c in v]
-    up_vec = normalize(up_vec)
-    right_vec = normalize(right_vec)
-
-    # Step 3: Celestial pole vector
-    pole_az = 0.0 if latitude_rad >= 0 else math.pi
-    pole_alt = abs(latitude_rad)
-    pole_vec = azalt_to_vector(pole_az, pole_alt)
-
-    # Step 4: Project pole vector into tangent plane
-    # Subtract component along cam_vec
-    dot = sum(p * c for p, c in zip(pole_vec, cam_vec))
-    proj_vec = [p - dot * c for p, c in zip(pole_vec, cam_vec)]
-
-    # Step 5: Compute angle in tangent plane
-    proj_up = sum(p * u for p, u in zip(proj_vec, up_vec))
-    proj_right = sum(p * r for p, r in zip(proj_vec, right_vec))
-
-    angle_rad = math.atan2(proj_right, proj_up)
-    angle_deg = math.degrees(angle_rad)
-
-    return angle_deg
-
 def azalt_to_vector(az_deg, alt_deg):
     az = math.radians(az_deg)
     alt = math.radians(alt_deg)
