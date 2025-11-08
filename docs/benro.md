@@ -47,7 +47,7 @@ Wish you have a nice day!
 Best regards,
 The Benro Team
 
-## Final Call for involvement (25-Sep-2024)
+## Final Call for involvement (25-Sep-2024) - No Response
 Dear Benro Support,
 I want to thank Benro Leadership again for releasing the excellent Benro Polaris Tripod Head. I've been more impressed with its design and quality as I have learned more about its performance and behavior. I also want to thank Benro Leadership for monitoring the Alpaca Benro Polaris Project and not attempting to halt or prevent its release. 
 
@@ -55,3 +55,46 @@ This is the last-chance call for a review of the project before I release it on 
 
 Best Regards
 David Morrison
+
+## Petition (26-12-2024) - 197 Signatures, No Response
+To: Benro Customer Support and Engineering Team
+Subject: Request for Investigation and Resolution of Tracking Performance Issues with Benro Polaris
+Dear Benro Team,
+
+Objective Statement:
+We, the undersigned users of the Benro Polaris, wish to bring to your immediate attention two defects observed across multiple Benro Polaris devices that significantly impact their performance and usability. Our goal is to collaborate with Benro to resolve these issues and enhance the overall user experience for all Polaris customers.
+
+## Benro Australia (31-Oct-2025) - No Response
+Hi Benro Australia, 
+I have a Benro Polaris that has two hardware issues.
+1. When the battery falls to 1% I cannot get the device to recharge. I've tried every type of USB-C connected powerbank and power supply. Cannot use the device at all while in this state.
+2. I have one of the early Benro Polaris devices, as it can be tough to turn on with the double press of the power button. I've followed the Global Facebook Forum comments but it can be very challenging sometimes to even power the device on.
+Could you put me in contact with someone from Benro who can support me?
+
+## Benro Support (8-Nov-2025)
+Dear Support Team,
+I’m experiencing a critical issue with my Benro Polaris Tripod Mount (with Astro Attachment) that is preventing me from continuing development on the Alpaca Project V2.0. There are two main problems:
+1. Green and Blue LED Fails to Illuminate on Power-Up (Fully Reproducible)
+
+    Following these steps consistently results in failure:
+    * Power off the Polaris
+    * Hold the power button to initiate the storage position
+    * Wait ~1 minute for the mount to stop and shut down fully
+    * Double-tap the power button
+    * Polaris emits a triple beep, and the green LED does not LED turn\ on
+    * No blue LED appears either — Bluetooth does not advertise
+    * The Benro Connect app does not detect any Polaris device
+    * The mount is unusable
+    * Plugging power into the Polaris, the green LED illuminates.
+    * Charging the Polaris on a 5V/2A adapter has no effect.
+2. Intermittent Power-On Difficulty
+
+    Occasionally, the Polaris fails to power on entirely. Despite repeated double-taps of the power button, it does not emit the triple beep or activate. I’ve attached a video demonstrating this behavior.
+
+**Urgent assistance required**
+
+As the developer behind the Benro Polaris Alpaca Project V2.0, I’m currently blocked by issue 1 and unable to proceed. I would greatly appreciate expedited support to resolve this issue before I need to report back to the community forum that I’m stuck. 
+https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20
+
+Thank you in advance for your help.
+
