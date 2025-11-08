@@ -5,6 +5,12 @@
         <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
+    <div v-else-if="isStatusOld" >
+      <q-banner inline-actions rounded class="bg-warning" >
+        WARNING: The Alpaca Pilot is not receiving updates from the Driver. Check Driver is running. 
+        <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
+      </q-banner>
+    </div>
     <div v-else-if="!p.connected" >
       <q-banner inline-actions rounded class="bg-warning" >
         WARNING: The Alpaca Driver has lost connection to the Benro Polaris.
@@ -24,12 +30,6 @@
           <q-btn flat label="Review" to="/config" />
           <q-btn flat label="Reset" @click="dev.ackLimitAlarm()" />
         </template>
-      </q-banner>
-    </div>
-    <div v-else-if="isStatusOld" >
-      <q-banner inline-actions rounded class="bg-warning" >
-        WARNING: The Alpaca Pilot is not receiving updates from the Driver. Check Driver is running. 
-        <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
     <div v-else-if="is518Old" >
