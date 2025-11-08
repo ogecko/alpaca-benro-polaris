@@ -316,8 +316,67 @@ The **Park** function provides a customisable, safe resting position for mountin
 <br>
 
 ---
-## Kalman Filter
+# Kalman Filter
 VIDEO DEMO - [31 - Setting Overrides, Kalman Filtering and PWM](https://youtu.be/aDFKAWBNQHU)
+
+The **Kalman Filter** is a core component of the motion control system introduced in **ABP Driver v2.0**. It plays a critical role in improving the **accuracy, stability, and responsiveness** of the Polaris mount by filtering noisy sensor data and enhancing the system’s understanding of its own motion.
+
+---
+
+## I. Purpose and Function
+
+The Kalman Filter is designed to solve a fundamental problem: **sensor noise**. The Polaris mount reports its orientation every 200 milliseconds, but these readings can fluctuate significantly — especially at arcsecond-level precision. The key benefits of the Kalman Filter include:
+
+- **Noise Reduction**  
+  Raw telemetry from the mount is often jittery. The Kalman Filter smooths out these fluctuations, removing spikes and inconsistencies that would otherwise degrade tracking accuracy.
+
+- **State Estimation**  
+  Rather than relying solely on raw data, the filter combines:
+  - **Measured telemetry** (what the mount says it's doing)
+  - **Predicted motion** (what the system expects based on recent behavior)  
+
+  This fusion produces a more reliable estimate of the mount’s true position and velocity.
+
+
+## II. Analogy: A Stabilizer in the Fog
+
+Imagine trying to track a fast-moving object while standing on a rocking boat in thick fog. Your view is shaky, your footing unstable, and your guesses are rough at best.
+
+The **Kalman Filter** is like a digital stabilizer:
+- It predicts where the object should be
+- It compares that prediction to your noisy observations
+- It fuses both into a much clearer, more stable estimate
+
+This is exactly what the ABP driver does; giving your mount a steadier, smarter sense of where it’s pointing, even when the raw data is unreliable.
+
+## II. Tuning and Diagnostics
+
+While the default settings are well-optimized, the **Kalman Filter Tuning** page in the Alpaca Pilot App allow deeper insight and control. To access the Kalman Filter Tuning Page, Open the **Alpaca Pilot App** and naigate to  **KF Tuning** under the Performance Tuning in the Side Menu
+
+### A. What You Can Do
+- **Visualize performance** using real-time charts showing:
+  - Blue line: raw sensor data
+  - White line: filtered estimate
+- **Adjust filter parameters** to control how much trust is placed in raw telemetry vs predicted motion
+- **Test slow movement** to observe how the filter responds to subtle tracking changes
+
+### B. Example Parameters Explained
+- **Angular Position Measurement Error**  
+  This setting tells the filter how noisy you believe the raw data is.  
+  - Set it **low** (e.g. near zero) if you trust the sensor readings completely — but expect a jittery output  
+  - Set it **higher** to smooth out fluctuations and get a more stable estimate
+
+- **Kalman Gain**  
+This value is a key parameter in the Kalman Filter algorithm that determines how much weight to give to new measurements versus the filter’s internal prediction. It controls how much the system “trusts” the incoming sensor data compared to its own estimate of what should be happening.
+
+    - A **high Kalman Gain** means the filter relies heavily on the latest measurement — making it more responsive but potentially noisier.
+    - A **low Kalman Gain** means the filter favors its prediction — resulting in smoother output but slower reaction to changes.
+
+  - If you increase the measurement error, make sure the **Kalman Gain stays above 0.15**. A typical stable value is around **0.15** to **0.25**, which balances responsiveness with smoothness
+
+
+
+
 
 <br>
 <br>
