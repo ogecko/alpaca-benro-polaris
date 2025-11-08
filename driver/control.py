@@ -88,7 +88,7 @@ from threading import Lock
 # [X] Alpaca pilot Sync editing and removal
 # [X] Alpaca pilot Tripod Level Correction
 # [x] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
-# [ ] Fix Reduce number of Nina plate-solve and sync to get to target
+# [X] Fix Reduce number of Nina plate-solve and sync to get to target
 # [ ] Fix SYNC events are not cleared in client after driver restart
 #
 # Alpaca Speed Control
@@ -133,23 +133,23 @@ from threading import Lock
 # [X] Alpaca pilot feature degredation when no Multi-Point Alignment
 # [X] Alpaca pilot feature degredation when no Rotator
 # [X] Alpaca pilot feature degredation when no Bluetooth
-# [ ] Alpaca pilot feature degredation when not ABP Driver
-# [ ] Alpaca pilot works without the third axis Astro Module Hardware (adjust Az/Alt)
 # [ ] Alpaca Pilot memory and logevity tests
 # 
 # Documentation
 # [X] Kickstarter project
-# [X] Youtube training videos 3 of X
-# [ ] Youtube training videos remaining
-# [ ] Documentation on new features Topocentric tracking
+# [X] Youtube training videos 20 Podcast, 21 Demo1, 22 Demo2, 23 Rotator, 24 Alignment, 25 Safety, TODO - 26 Guiding, 27 Tracking Orbitals?
+# [X] Youtube advanced videos 31 Kalman, 32 Speed Cal TODO - 33 PID Tuning
+# [ ] Review of existing Documentation
+# [ ] Documentation on new features 
 #
 # Performance
+# [X] Feedforward Control Integration (minimise overshoot)
 # [X] Improve fine grained tracking precision
 # [X] Improve Kalman Filter tuning
+# [X] Integral Anti-Windup dontaccumulate when output is saturated or quantized
 # [X] Store Motor Calibration data to a file
 # [X] Improve tracking performance beyond BP implementation
-# [ ] Move performance tests to actions
-# [ ] Rationalise performance data capture and analysis
+# [ ] Remove obsolete performance tests and notebooks 
 # [ ] Move image culling to Alpaca Pilot
 #
 # ASCOM Rotator
@@ -174,23 +174,20 @@ from threading import Lock
 # [X] Calc current Azimuth, Altitude of dso and categorise it for filtering
 # [X] Fix filter clear to only clear when filter is already open
 # [X] Add South and North Celestrial Pole
+# [ ] Ability to add custom targets to catalog
+# [ ] Ability to switch catalogs from settings
 # [ ] Add images of each target
 # [ ] Add a details page for each target
 # [ ] Fix J2000 co-ordinate display of 60" for Running chicken RA: +11ʰ38ᵐ60.0ˢ   |   Dec: -63°11′60.0″ 
-# [ ] Tonights Altitude, Proximity
 # [ ] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
-# [ ] Catalog Target Info on Dashboard
-# [ ] Ability to switch catalogs from settings, revise grouping/sizing of each one
 # [ ] Favorite Targets to Search Home page
 # [ ] Auto-fetch orbital elements
 #
 # Orbitals
+# [X] Implement Pulse Guiding API ITelescope Pulse 
 # [ ] Implement Lunar Tracking rate
 # [ ] Implement Solar Tracking rate
 # [ ] Implement King Tracking rate
-# [ ] Implement Pulse Guiding API ITelescope Pulse 
-# [ ] Check Astro head hardware connection
-# [ ] Integral Anti-Windup dontaccumulate when output is saturated or quantized
 # 
 # Precision Tracking
 # [X] Deep-Sky Object Tracking 
@@ -218,13 +215,6 @@ from threading import Lock
 # [X] Dithering support
 # [X] Mosaic imaging support through Nina
 
-# Candidate future enhancements
-# [X] Feedforward Control Integration (minimise overshoot)
-# [ ] Rate Derivative Estimation (Jerk Monitoring)
-# [ ] Control Mode Switching
-# [ ] Time-Differentiated Tracking Profiles
-# [ ] Predictive Anti-Backlash Correction
-#
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
