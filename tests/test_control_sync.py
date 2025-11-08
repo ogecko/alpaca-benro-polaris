@@ -47,11 +47,12 @@ def test_sync_history():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
+        MockConfig.log_quest_model = False
 
         p = Polaris()
         logger = logging.getLogger()
         sm = SyncManager(logger,p)
-        sm.sync_az_alt(170, 45.123456)
+        sm.sync_az_alt(0,0,170, 45.123456)
         sm.sync_roll(5)
         assert len(sm.sync_history) >= 1
         assert isinstance(sm.sync_history[0], dict)
@@ -70,77 +71,97 @@ def test_no_sync_adj():
     assert f'{roll:.6f}' == "0.000000"
 
 def test_single_syncs_adj():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    p.update(180, 45)
-    sm.sync_az_alt(170, 45.123456)
-    az,alt = sm.azalt_polaris2ascom(180,45)
-    assert f'{az:.6f}, {alt:.6f}' == "170.000000, 45.123456"
-    az,alt = sm.azalt_polaris2ascom(160,45)
-    assert f'{az:.6f}, {alt:.6f}' == "149.957647, 45.115995"
-    az,alt = sm.azalt_polaris2ascom(180,0)
-    assert f'{az:.6f}, {alt:.6f}' == "170.000000, 0.123456"
-    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "170.000000, 0.123456"
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.log_quest_model = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        p.update(180, 45)
+        sm.sync_az_alt(0,0,170, 45.123456)
+        az,alt = sm.azalt_polaris2ascom(180,45)
+        assert f'{az:.6f}, {alt:.6f}' == "170.000000, 45.123456"
+        az,alt = sm.azalt_polaris2ascom(160,45)
+        assert f'{az:.6f}, {alt:.6f}' == "149.957647, 45.115995"
+        az,alt = sm.azalt_polaris2ascom(180,0)
+        assert f'{az:.6f}, {alt:.6f}' == "170.000000, 0.123456"
+        assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "170.000000, 0.123456"
 
 def test_azshift10_sync_adj():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    p.update(160, 45)
-    sm.sync_az_alt(170, 45.123456)
-    p.update(100, 45)
-    sm.sync_az_alt(110, 45.123456)
-    az,alt = sm.azalt_polaris2ascom(40,45)
-    assert f'{az:.6f}, {alt:.6f}' == "49.877848, 44.999870"
-    az,alt = sm.azalt_ascom2polaris(49.877848,44.999870)
-    assert f'{az:.6f}, {alt:.6f}' == "40.000000, 45.000000"
-    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "139.999989, 0.122152"
-    assert f'{sm.az_adj:.6f}' == "10.000064"
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.log_quest_model = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        p.update(160, 45)
+        sm.sync_az_alt(0,0,170, 45.123456)
+        p.update(100, 45)
+        sm.sync_az_alt(0,0,110, 45.123456)
+        az,alt = sm.azalt_polaris2ascom(40,45)
+        assert f'{az:.6f}, {alt:.6f}' == "49.908282, 45.035241"
+        az,alt = sm.azalt_ascom2polaris(49.877848,44.999870)
+        assert f'{az:.6f}, {alt:.6f}' == "39.969434, 44.964695"
+        assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "123.880231, 0.127161"
+        assert f'{sm.az_adj:.6f}' == "10.030590"
 
 def test_leveling_sync_adj():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    p.update(180, 0)
-    sm.sync_az_alt(180, -1) # titlted low
-    p.update(270, 0)
-    sm.sync_az_alt(270, 0) # now level
-    p.update(90, 0)
-    sm.sync_az_alt(90, 0)  # level again
-    az,alt = sm.azalt_polaris2ascom(0,0)
-    assert f'{az:.6f}, {alt:.6f}' == "0.000000, 1.000000"
-    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "0.000000, 1.000000"
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.log_quest_model = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        p.update(180, 0)
+        sm.sync_az_alt(0, 0, 180, -1) # titlted low
+        p.update(270, 0)
+        sm.sync_az_alt(0, 0, 270, 0) # now level
+        p.update(90, 0)
+        sm.sync_az_alt(0, 0, 90, 0)  # level again
+        az,alt = sm.azalt_polaris2ascom(0,0)
+        assert f'{az:.6f}, {alt:.6f}' == "0.000000, 1.000000"
+        assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "0.000000, 1.000000"
 
 def test_largetilt_sync_adj():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    p.update(135, 45)
-    sm.sync_az_alt(180, 0) # titlted low
-    p.update(225, 45)
-    sm.sync_az_alt(270, 45) # now level
-    p.update(45, 45)
-    sm.sync_az_alt(90, 45)  # level again
-    az,alt = sm.azalt_polaris2ascom(315,0)
-    assert f'{az:.6f}, {alt:.6f}' == "360.000000, 22.500000"
-    az,alt = sm.azalt_polaris2ascom(135,45)
-    assert f'{az:.6f}, {alt:.6f}' == "180.000000, 22.500000"
-    assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "360.000000, 21.678499"
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.log_quest_model = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        p.update(135, 45)
+        sm.sync_az_alt(0, 0, 180, 0) # titlted low
+        p.update(225, 45)
+        sm.sync_az_alt(0, 0, 270, 45) # now level
+        p.update(45, 45)
+        sm.sync_az_alt(0, 0, 90, 45)  # level again
+        az,alt = sm.azalt_polaris2ascom(315,0)
+        assert f'{az:.6f}, {alt:.6f}' == "348.980326, 10.821330"
+        az,alt = sm.azalt_polaris2ascom(135,45)
+        assert f'{az:.6f}, {alt:.6f}' == "169.875071, 34.170640"
+        assert f'{sm.tilt_adj_az:.6f}, {sm.tilt_adj_mag:.6f}' == "354.637971, 10.778185"
 
 
 def test_az170alt15shift_sync_adj():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    p.update(180, 45)
-    sm.sync_az_alt(10, 30)
-    p.update(90, 45)
-    sm.sync_az_alt(260, 45)
-    p.update(270, 45)
-    sm.sync_az_alt(100, 45)
-    az,alt = sm.azalt_polaris2ascom(270,45)
-    assert f'{az:.6f}, {alt:.6f}' == "91.215983, 43.045464"
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.log_quest_model = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        p.update(180, 45)
+        sm.sync_az_alt(0, 0, 10, 30)
+        p.update(90, 45)
+        sm.sync_az_alt(0, 0, 260, 45)
+        p.update(270, 45)
+        sm.sync_az_alt(0, 0, 100, 45)
+        az,alt = sm.azalt_polaris2ascom(270,45)
+        assert f'{az:.6f}, {alt:.6f}' == "100.000000, 45.000000"
 
 def test_zeroroll_sync_adj():
     with patch('control.Config') as MockConfig:
