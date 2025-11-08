@@ -1,17 +1,24 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./Pilot.md) | [Control](./Control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
-# Advanced Control
-[Launching](#2-launching) | [Connecting](#3-connecting) | [Searching](#4-searching) | [Settings](#5-settiings) | [Tuning](#6-tuning) | [Diagnostics](#7-diagnostics) 
+# Advanced Motion Control
+[Challenges](#challenges-with-existing-control) | [Rotator](#alpaca-rotator) | [Searching](#4-searching) | [Settings](#5-settiings) | [Tuning](#6-tuning) | [Diagnostics](#7-diagnostics) 
 
-## Control -  Video Demonstration
-You can view a demonstration of parts of this documentation in the following YouTube Video.
-[![Capturing Images](https://img.youtube.com/vi/HCJNchWL2Yg/0.jpg)](https://www.youtube.com/watch?v=HCJNchWL2Yg)
+## Challenges with existing Control
+PODCAST LINK - [20 - Deep Dive Podcast on Alpaca Benro Polaris V2.0](https://youtu.be/KUBCTnEsnlE)
 
-## 1. Challenges with existing Control
+The Benro Polaris mount, especially with its Astro Attachment, is popular among amateur astrophotographers for its compact design and app-driven interface. But while the hardware is excellent, the original control system leaves many users frustrated.
 
-## 2. Kinematics and Co-ordinates
+When version 1.0 of the Alpaca Driver was launched, interest was high — but limitations quickly surfaced:
+- Tracking drift was noticeable during long imaging sessions
+- Promised features like three-star alignment never materialized
+- Users lacked the precision tools needed for serious deep sky work
 
-## 3. Rotator
+With version 2.0 of the Alpaca Driver, we introduce a complete rewrite of the motion control system. The motors are now driven using advanced algorithms that dramatically improve tracking accuracy, responsiveness, and stability.
+
+This guide covers describes each of the new motion control concepts introduced in V2.0
+
+## Alpaca Rotator
+
 ### Definitions
 **Roll Angle** - Describes how your camera is rotated relative to the local horizon. A Roll Angle of 0 means that the camera is perfectly level with the horizon. A positive roll (e.g. +30°) means the camera is rotated counterclockwise when viewed from behind the scope, the image rotates clockwise. A negative roll (e.g. –30°) means the camera is rotated clockwise, the image rotates counterclockwise. It ranges from -180 to +180 but is constrained by the Benro Polaris to a much smaller range.
 
@@ -19,20 +26,17 @@ You can view a demonstration of parts of this documentation in the following You
 
 ***Position Angle*** - Describes how your camera is rotated relative to celestrial North as projected onto the sky.  It ranges from 0 to 360 degrees. A position angle of 0 means the top of your image points towards celestrial North, 90 means top points towards celestrial East, 180 Celestrial South, and 270 Celestrial West. This is the standard used in the ASCOM RotatorV3 interface, and is useed in plate solving, mosaics, and image alignment.
 
-
-
-
 ## 4. Motor Speed Control
 
 ## 5. Kalman Filtering
 
-## 6. MPC and PID Control
+## 6. PID Control
 
 ## 7. Tracking
 
 ## 8. Pulse Guiding
 
-## 9. Polar Alignment
+## 9. Multi-Point Alignment
 
 Version 2.0 of the driver supports two polar alignment methods: **Single-Point Alignment** and **Multi-Point Alignment**.
 
