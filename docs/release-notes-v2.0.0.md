@@ -13,6 +13,7 @@
 * **23 - Rotator Framing:** Demonstration Video at https://youtu.be/_Swd-jIyQis
 * **24 - Multi Point Alignment:** Demonstration Video at https://youtu.be/4CMO0R_yphw
 * **25 - Equipment Safety:** Demonstration Video at https://youtu.be/45EP-DExSOQ
+* **31 - Kalman Filter:** Demonstration Video at https://youtu.be/aDFKAWBNQHU
 * **32 - Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
 
 ## Win11 Upgrade Instructions
