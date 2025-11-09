@@ -1,7 +1,9 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Alpaca Pilot App
-[Objectives](#what-is-alpaca-pilot) | [Settings](#3-settiings) | [Dashboard](#4-settiings) | [Searching](#5-searching)  | [Tuning](#6-tuning) | [Diagnostics](#7-diagnostics) 
+[Purpose](#what-is-alpaca-pilot) | 
+[Launching](#i-launching-the-alpaca-pilot-application) | 
+[Dashboard](#dashboard) | [Searching](#5-searching)  | [Tuning](#6-tuning) | [Diagnostics](#7-diagnostics) 
 
 ## What is Alpaca Pilot?
 
@@ -131,13 +133,7 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
    With setup complete, you're ready to use the Driver and perform your first plate solve.
 
 
-## 3. Settings
-### Saving Settings
-### Observing Site Information
-### Advanced Control Features
-### Standard Control Features
-
-## 4. Dashboard
+## Dashboard
 ### Status and Motor Indicators
 ### Equatorial vs Az/Alt
 ### Home, Park, Stop, Track
