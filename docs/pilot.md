@@ -133,7 +133,10 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
    With setup complete, you're ready to use the Driver and perform your first plate solve.
 
 
-## Dashboard
+## III. Dashboard
+
+VIDEO DEMO - [22 - Starting and Using Alpaca Pilot](https://youtu.be/Wv_ZvBtZZ4Q)
+
 ### Status and Motor Indicators
 ### Equatorial vs Az/Alt
 ### Home, Park, Stop, Track
