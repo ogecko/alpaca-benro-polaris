@@ -42,7 +42,7 @@
             <div class="text-h6 text-bold">⚠️ Unattended Operation Warning</div>
             <div class="text-body2 q-mt-sm">
               Do <strong>not</strong> leave the system unattended while the ABP Driver is actively controlling the Polaris mount.  
-              If the driver loses connection or is interrupted, the last movement command may continue indefinitely.  
+              If the driver loses connection or is interrupted, the last movement command may continue indefinitely.  Without communications to the Polaris, the Driver cannot enforce its own Motor Angle Limits.
               <br><br>
               To stop the mount:
               <ul>
@@ -98,7 +98,7 @@
               </p>
               <p>
                 In short, while the ABP Driver elevates what the Polaris can do, it does not transform it into a high-end equatorial mount. 
-                <strong>Calibrate your expectations accordingly</strong> — especially when targeting deep-sky objects that demand sub-arcsecond precision, long focal lengths and extended exposures.
+                <strong>Calibrate your expectations accordingly</strong>, especially when targeting deep-sky objects that demand sub-arcsecond precision, long focal lengths and extended exposures.
               </p>
             </div>
           </q-card-section>
