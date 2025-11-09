@@ -218,54 +218,54 @@ I suspect user error but struggling to work out the error of my ways
 
 ### Beta 3 Feedback
 Multi-Point Alignment (07 Nov 25)
-## Background
-- Using the iPhone compass app (set to true north), the tripod and Benro Polaris were set up to perfectly face South
-- Bubble level (0.1°) and Leofoto “Tripod Leveler Stand with +/-5 Degree Precision Adjustment Bracket, to ensure as level as possible Although neither of these steps should actually be necessary (with plate solving), I wanted to eliminate every possible element, that could possibly impact on the alignment. At the time, (23:00) there was a full moon starting to rise (NE), so imaging of the LMC was taken from the opposite direction (SE) of the Bortle 5 sky. 
-## Workflow
-1. During the Pilot connection stage, I selected the ’Reset all Polaris Axes’ and ensured that the ‘Observing Site Information’ location details were correct (xx / xx) and at this point (NB - ‘Compass Alignment’ is set to Az 180 and ‘Single Star Alignment’ set at Az 180 Alt 45) .. skipped)
-2. Pilot Dashboard - showing these figures;
-Azimuth +184° M1 0.2°
-Altitude +79° M2 -0.1°
-Roll -5° M3 1.1°
-3. Pilot Dashboard - after selecting ‘Park’ it was now showing these figures;
-Azimuth +178° M1 -0.0°
-Altitude +79° M2 0.0°
-Roll -0° M3 -0.0°
-(slight change in Azimuth Roll and ‘M’, compared to the initial set up using ‘Reset all Polaris Axes’)
-4. Pilot Dashboard - Unpark and toggle tracking on (in order to sync)
-5. N.I.N.A. - initiate manual plate solve via image>plate solving (using play button)
-(this first result was now displayed in the Pilot Telescope Alignment Model)
-6. Pilot Catolg - used for “Goto” and then plate solved using N.I.N.A.
-First - South Celestrial Pole
-Second - LMC +2 hours in future (EQ mode used to enter d-2)
-Third - LMC (real time)
-7. Multi-Point Alignment - results showing;
-(a) Telescope Alignment Model - great residuals (the highest being only 2.2°)
-(b) Correction Summary - results showing;
- Az Correction 17.0°
- Tilt Correction 31.5°
- Highest Tilt Az 322.9°
-8. Pilot Dashboard - showing these figures;
-Azimuth +151° M1 -52.1°
-Altitude +41° M2 -3.5°
-Roll -10° M3 7.3
-9. N.I.N.A. Framing Assistant - using Offline Sky Map, enter target details (LMC) in Coordinates box and Load Image
-10. N.I.N.A. Framing Assistant - select ‘Slew and centre’ … which initiates plate solving
-and once completed (telescope within tolerance), use ‘Add target to Sequence’ etc
-11. N.I.N.A. Legacy Sequencer - set to 20 images (20 sec exposure) and cycle repeated,
-so that plate solving between every 20 images (‘slew to target and centre target’ both
-set to ON)
-12. PROBLEM - on checking the images, all showed elongation of stars and trailing.
-There were also strange shapes (squiggles) on some images - despite no movement
-of tripod whatsoever and there was zero wind. I was beginning to wonder if the Benro
-Polaris unit itself, had developed a fault.
-13. Restart imaging without using Multi-Point Alignment - reverting back to just using N.I.N.A. with ABP Beta 3 - Sidereal tracking was set in N.I.N.A.
-This resulted in pin point stars for every image on the same target (LMC) and so this eliminates the possibility of any potential fault, with the Benro Polaris unit 
-## Observations
-* Multi-Point Alignment had good residuals from the 3 sync points but the ‘Correction Summary’ shows high levels of correction (tilt etc) … despite the meticulous set up
-with bubble level etc
-* Could there be a difference between the sidereal tracking used in Pilot, compared to when it was set using N.I.N.A ? (star streaks and squiggles on images)
-* There seems to be a difference with the ‘Park’ position in Pilot compared to the Benro Connect App (joysticks) and N.I.N.A.
+*  Background
+    - Using the iPhone compass app (set to true north), the tripod and Benro Polaris were set up to perfectly face South
+    - Bubble level (0.1°) and Leofoto “Tripod Leveler Stand with +/-5 Degree Precision Adjustment Bracket, to ensure as level as possible Although neither of these steps should actually be necessary (with plate solving), I wanted to eliminate every possible element, that could possibly impact on the alignment. At the time, (23:00) there was a full moon starting to rise (NE), so imaging of the LMC was taken from the opposite direction (SE) of the Bortle 5 sky. 
+* Workflow
+    1. During the Pilot connection stage, I selected the ’Reset all Polaris Axes’ and ensured that the ‘Observing Site Information’ location details were correct (xx / xx) and at this point (NB - ‘Compass Alignment’ is set to Az 180 and ‘Single Star Alignment’ set at Az 180 Alt 45) .. skipped)
+    2. Pilot Dashboard - showing these figures;
+    Azimuth +184° M1 0.2°
+    Altitude +79° M2 -0.1°
+    Roll -5° M3 1.1°
+    3. Pilot Dashboard - after selecting ‘Park’ it was now showing these figures;
+    Azimuth +178° M1 -0.0°
+    Altitude +79° M2 0.0°
+    Roll -0° M3 -0.0°
+    (slight change in Azimuth Roll and ‘M’, compared to the initial set up using ‘Reset all Polaris Axes’)
+    4. Pilot Dashboard - Unpark and toggle tracking on (in order to sync)
+    5. N.I.N.A. - initiate manual plate solve via image>plate solving (using play button)
+    (this first result was now displayed in the Pilot Telescope Alignment Model)
+    6. Pilot Catolg - used for “Goto” and then plate solved using N.I.N.A.
+    First - South Celestrial Pole
+    Second - LMC +2 hours in future (EQ mode used to enter d-2)
+    Third - LMC (real time)
+    7. Multi-Point Alignment - results showing;
+    (a) Telescope Alignment Model - great residuals (the highest being only 2.2°)
+    (b) Correction Summary - results showing;
+    Az Correction 17.0°
+    Tilt Correction 31.5°
+    Highest Tilt Az 322.9°
+    8. Pilot Dashboard - showing these figures;
+    Azimuth +151° M1 -52.1°
+    Altitude +41° M2 -3.5°
+    Roll -10° M3 7.3
+    9. N.I.N.A. Framing Assistant - using Offline Sky Map, enter target details (LMC) in Coordinates box and Load Image
+    10. N.I.N.A. Framing Assistant - select ‘Slew and centre’ … which initiates plate solving
+    and once completed (telescope within tolerance), use ‘Add target to Sequence’ etc
+    11. N.I.N.A. Legacy Sequencer - set to 20 images (20 sec exposure) and cycle repeated,
+    so that plate solving between every 20 images (‘slew to target and centre target’ both
+    set to ON)
+    12. PROBLEM - on checking the images, all showed elongation of stars and trailing.
+    There were also strange shapes (squiggles) on some images - despite no movement
+    of tripod whatsoever and there was zero wind. I was beginning to wonder if the Benro
+    Polaris unit itself, had developed a fault.
+    13. Restart imaging without using Multi-Point Alignment - reverting back to just using N.I.N.A. with ABP Beta 3 - Sidereal tracking was set in N.I.N.A.
+    This resulted in pin point stars for every image on the same target (LMC) and so this eliminates the possibility of any potential fault, with the Benro Polaris unit 
+*  Observations
+    * Multi-Point Alignment had good residuals from the 3 sync points but the ‘Correction Summary’ shows high levels of correction (tilt etc) … despite the meticulous set up
+    with bubble level etc
+    * Could there be a difference between the sidereal tracking used in Pilot, compared to when it was set using N.I.N.A ? (star streaks and squiggles on images)
+    * There seems to be a difference with the ‘Park’ position in Pilot compared to the Benro Connect App (joysticks) and N.I.N.A.
 
 ## Response
 
@@ -286,6 +286,33 @@ Then do your plate solves and send me the captured Alpaca log file.
 
 Can you rerun steps 1-3 and see if you can reproduce the same Altitude at M1=M2=M3=0, after waiting for the mount to stop fully before pressing Skip Single Start Align?
 The tracking problem looks like a bad multi-point alignment model, the more detailed logs of the syncs next time will help diagnose it. 
+
+### Beta 3 Feedback
+Day Time Testing  (08 Nov 25)
+* Background
+    * I followed your advice regarding waiting between the three steps (Reset all axes, skip compass alignment and skip single star alignment) As a result, the weird initial Altitude 79° that I previously reported, has now gone and shows 45° User Error - Previously, I had simply gone down the ‘list’ and ticked one-by-one (without waiting)
+* Observations
+    1. Despite not waiting, the ‘Connect’ display in Pilot immediately gave green ticks for
+    all three steps- so naturally, I had assumed all was well …. when in fact it wasn’t
+    2. During my previous image testing (07 Nov 25), I had also experienced a possible
+    conflict between the ‘GoTo’ in Pilot and the ’Slew and centre’ in N.I.N.A.
+    This was where the target (LMC) had been selected from the Pilot Catalog and used
+    for the third Multi-Point Alignment sync point. The target details (LMC), were then
+    entered into the N.I.N.A. Framing Assistant.
+    N.I.N.A - Once the target was entered (followed by ‘Load Image’), the ‘Slew and
+    centre’ would result in the Benro Polaris moving away from its current position.
+    NB - Pilot and N.I.N.A. were identifying the target at different position….. conflict
+    3. Test (daytime)
+    (i) Pilot Catalog - select LMC and ‘GoTo’ - Polaris moves to target
+    (ii) N.I.N.A. - enter LMC in the Faming Assistant, ‘Load Image’ followed by ‘Slew and
+    centre’ ….. Polaris no longer moves away from its position
+    This appears to fix my Multi-Point Alignment issues, which will now need to be confirmed
+    at night- where plate solving can be used.
+    Further Testing
+    Driver Log will be enabled with “Log Multi-Point Sync”.
+    There may be a delay (forecast cloudy conditions in New Zealand for next week) and Beta
+    4. will most likely be used for further testing.
+
 
 
 
