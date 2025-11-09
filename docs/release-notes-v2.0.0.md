@@ -28,8 +28,9 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in beta4
-- **[Documentation Menu]** Add Documentation menu for Pilot, Control, Troubleshooting, FAQ and About
+- **[Documentation Menu]** Add Documentation menu for Pilot, Control, Troubleshooting, Videos, FAQ and About
 - **[Documentation Contents]** Add Documentation content Pilot User Guide and Control User Guide
+- **[Video Demos]** Add links to Video Demonstrations throughout documentation topics
 - **[Nearby Catalog]** Add a Nearby menu item to show catalog targets, sorted by angular proximity to current RA and Dec
 - **[Search Resume]** Resume a catalog search by focusing the search box when a previous query is still present
 - **[Kinematics Diagram]** Add a Kinematics "Data Flow Diagram" to explain primary data flows and co-ordinate conversions
