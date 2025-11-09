@@ -44,6 +44,7 @@
 - **[L Bracket]** Change L-Bracket Camera Orientation from Alpaca Pilot Settings (no longer need BP App)
 - **[Astro Warning]** Notify user to switch to Astro Mode before performing Compass, Single Star or Multi-Point Alignment
 - **[Update Warning]** Track the update rate of Polaris orientation telemetry; alert the user if updates are missed (detects Polaris power down or non-Astro mode)
+- **[BLE disabled]** Improve handling of devices without BLE, with BLE disabled, with BLE not working
 - **[Fix #46]** Track the update rate of Alpaca Driver telemetry; alert the user if updates are missed (detects Alpaca Driver stop)
 - **[Fix #56]** Ensure Polaris sends position updates after connection, compass align and star align
 - **[Fix #55]** Handle Win11 Bluetooth "cancelled by system error" gracefully and log it
