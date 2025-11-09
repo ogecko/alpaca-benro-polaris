@@ -92,28 +92,32 @@
               <q-item-label>{{ link.text }}</q-item-label>
             </q-item-section>
           </q-item>
-          <q-separator class="q-mt-md q-mb-lg" />
+          <q-separator class="q-mt-md q-mb-xs" />
         </q-list>
        
-        <!-- About Us and Terms-->
+        <!-- Documentation -->
         <q-list dense>
-          <div class="q-px-md text-grey-7">
-            <div class="row items-center q-gutter-x-sm q-gutter-y-xs">
-              <RouterLink v-for="button in buttons1" :key="button.text" :to="button.to" class="YL__drawer-footer-link">
-                {{ button.text }}
-              </RouterLink>
-            </div>
-          </div>
-
-          <!-- Terms -->
-          <div class="q-py-md q-px-md text-grey-7">
-            <div class="row items-center q-gutter-x-sm q-gutter-y-xs">
-              <RouterLink v-for="button in buttons2" :key="button.text" :to="button.to" class="YL__drawer-footer-link">
-                {{ button.text }}
-              </RouterLink>
-            </div>
-          </div>
+          <q-item-label header class="text-weight-bold text-uppercase">
+            Documentation
+          </q-item-label>
+          <q-item
+            v-for="link in links5"
+            :key="link.text" v-ripple lickable 
+            :to="link.to || undefined"
+            :tag="link.toExternal ? 'a' : 'router-link'" 
+            :href="link.toExternal || undefined" 
+            :target="link.toExternal ? '_blank' : undefined"
+            :rel="link.toExternal ? 'noopener' : undefined"
+          >
+            <q-item-section avatar>
+              <q-icon color="grey" :name="link.icon" />
+            </q-item-section>
+            <q-item-section>
+              {{ link.text }}
+            </q-item-section>
+          </q-item>
         </q-list>
+       
 
 
       </q-scroll-area>
@@ -131,7 +135,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch  } from 'vue'
 import { useStatusStore } from 'stores/status'
-import { RouterLink, useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStreamStore } from 'src/stores/stream'
 import { debounce } from 'quasar'
@@ -283,20 +287,19 @@ const links4 = [
   { icon: 'mdi-chart-line', text: 'KF Tuning', to: '/kalman' },
   { icon: 'mdi-chart-bell-curve-cumulative', text: 'PID Tuning', to: '/pid' },
   { icon: 'mdi-pulse', text: 'PWM Testing', to: '/pwm' },
-  { icon: 'mdi-stethoscope', text: 'Kinematics', to: '/position' },
+  { icon: 'mdi-motion-outline', text: 'Kinematics', to: '/position' },
   { icon: 'mdi-database-clock-outline', text: 'Driver Log', to: '/log' },
 ]
-  const buttons1 = [
-    { text: 'Home', to: '/' },
-    { text: 'About', to: '/about' },
-    { text: 'Settings', to: '/config' },
-    { text: 'Logs', to: '/log' },
-    { text: 'Widgets', to: '/test' },
-    { text: 'Markdown', to: '/markdown' },
-  ]
-  const buttons2 = [
-    { text: 'Warnings', to: '/warning' },
-  ]
+
+const links5 = [
+  { icon: 'mdi-account-tie-hat', text: 'Pilot', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/pilot.md' },
+  { icon: 'mdi-camera-control', text: 'Control', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/control.md' },
+  { icon: 'mdi-alert', text: 'Warning', to: '/warning' },
+  { icon: 'mdi-stethoscope', text: 'Troubleshooting', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/troubleshooting.md' },
+  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/faq.md' },
+  { icon: 'mdi-information-variant', text: 'About', to: '/about' },
+]
+
 
 
 </script>
