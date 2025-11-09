@@ -72,28 +72,29 @@ Could you put me in contact with someone from Benro who can support me?
 
 ## Benro Support (8-Nov-2025)
 Dear Support Team,
-I’m experiencing a critical issue with my Benro Polaris Tripod Mount (with Astro Attachment) that is preventing me from continuing development on the Alpaca Project V2.0. There are two main problems:
-1. Green and Blue LED Fails to Illuminate on Power-Up (Fully Reproducible)
+Problem: Polaris has become unresponsive and does not power up.
 
-    Following these steps consistently results in failure:
-    * Power off the Polaris
-    * Hold the power button to initiate the storage position
-    * Wait ~1 minute for the mount to stop and shut down fully
-    * Double-tap the power button
-    * Polaris emits a triple beep, and the green LED does not LED turn\ on
-    * No blue LED appears either — Bluetooth does not advertise
-    * The Benro Connect app does not detect any Polaris device
-    * The mount is unusable
-    * Plugging power into the Polaris, the green LED illuminates.
-    * Charging the Polaris on a 5V/2A adapter has no effect.
-2. Intermittent Power-On Difficulty
+Description: Unable to power Polaris device or connect via the Benro Connect App. The Green LED only illuminates when USB power is supplied. The Blue LED never illuminates. When I attempt to power on the device, I hear the 3 beeps, but no blue LED. It does not appear to be advertising on Bluetooth either as the Connect App cannot see it on the Nearby Devices page. When I hold the Power Button the Polaris Beeps once, moves slightly, but does not proceed to the storage position.
 
-    Occasionally, the Polaris fails to power on entirely. Despite repeated double-taps of the power button, it does not emit the triple beep or activate. I’ve attached a video demonstrating this behavior.
+Recovery: I have attempted the following steps to recover the device.
+1. Power on device multiple times, double pressing power button as usually successful.
+2. Disconnect charging cable and repeat 1.
+3. Charged the device overnight with a 5V/2A Power supply.
+4. Viewed contents of SD Card. The log file appears fine, except for the last 30 lines which has garbled characters/non-ascii.
+5. Copied downloaded firmware and files onto SD Card to attempt firmware restore. Not successful
+6. Replace SIM with another card and still no success at power on.
 
-**Urgent assistance required**
+This problem has only started occurring from late last week. 
+It was not in use when the problem first occurred. 
+The Polaris has HW v1.3.1.4 and SW V6.0.0.54
 
-As the developer behind the Benro Polaris Alpaca Project V2.0, I’m currently blocked by issue 1 and unable to proceed. I would greatly appreciate expedited support to resolve this issue before I need to report back to the community forum that I’m stuck. 
-https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20
+I suspect that the Polaris will need to be sent for repair. 
+Can I get a Service Docket Number and Address to where to send it?
+Once asessed, could I get a quote on how much it will cost to get repaired?
+Also is there any chance I could get a loan Polaris device while it is being repaired.
 
-Thank you in advance for your help.
+Thank you for any assistance to help expedite this case.
+
+
+
 
