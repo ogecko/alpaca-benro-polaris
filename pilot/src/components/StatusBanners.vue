@@ -17,6 +17,12 @@
         <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
+    <div v-else-if="isNoAstro" >
+      <q-banner inline-actions rounded class="bg-warning" >
+        WARNING: No Astro version detected. Please attach Polaris Astro module and reconnect.
+        <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
+      </q-banner>
+    </div>
     <div v-else-if="p.pidmode=='PRESETUP'" >
       <q-banner inline-actions rounded class="bg-warning">
         PRESETUP: Please set your Observing Site Lattitude and Longitude before proceeding.
@@ -71,6 +77,8 @@ const isShowReconnect = computed(() => route.path != '/connect')
 const isStatusOld = computed(() => { return now.value - p.fetchedAt > 1000;   });
 const is517Old = computed(() => { return p.age517 > 2.0;   });
 const is518Old = computed(() => { return p.age518 > 2.0;   });
+const isNoAstro = computed(() => { return p.polarisastrover==''   });
+
 
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  

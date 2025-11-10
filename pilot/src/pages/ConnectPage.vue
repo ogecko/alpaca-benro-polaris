@@ -130,6 +130,7 @@
                     <span class="q-gutter-sm q-pl-sm">
                       <q-badge>hw v{{ p.polarishwver }}</q-badge>
                       <q-badge>sw v{{ p.polarisswver }}</q-badge> 
+                      <q-badge>astro v{{ p.polarisastrover }}</q-badge> 
                     </span>
                   </q-item-label>
                 </q-item-section>

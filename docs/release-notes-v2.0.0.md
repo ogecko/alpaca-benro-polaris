@@ -43,7 +43,8 @@
 - **[Delta Angles]** Relative angles can be entered using a 'd' prefix. eg entering 'd2' in the RA axis setpoint will increase the current value by 2 hours
 - **[Partial Angles]** Partial angles can be entered using a ':' separator. eg entering ':2' means 2 arcmin, entering '::10' means 10 arcsec
 - **[L Bracket]** Change L-Bracket Camera Orientation from Alpaca Pilot Settings (no longer need BP App)
-- **[Astro Warning]** Notify user to switch to Astro Mode before performing Compass, Single Star or Multi-Point Alignment
+- **[Astro Module Warning]** Notify user when no Astro Module is detected, add Astro Module Version to connect page
+- **[Astro Mode Warning]** Notify user to switch to Astro Mode before performing Compass, Single Star or Multi-Point Alignment
 - **[Update Warning]** Track the update rate of Polaris orientation telemetry; alert the user if updates are missed (detects Polaris power down or non-Astro mode)
 - **[BLE disabled]** Improve handling of devices without BLE, with BLE disabled, with BLE not working
 - **[Fix #46]** Track the update rate of Alpaca Driver telemetry; alert the user if updates are missed (detects Alpaca Driver stop)

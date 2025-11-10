@@ -164,6 +164,7 @@ class Polaris:
         self._battery_level: int = 100              # Battery level of the Polaris device (percentage)
         self._polaris_sw_ver: str = ''              # Polaris Software Version
         self._polaris_hw_ver: str = ''              # Polaris Hardware Version
+        self._polaris_astro_ver: str = ''              # Polaris Software Version
         #
         # Telescope device completion flags
         #
@@ -860,6 +861,7 @@ class Polaris:
             with self._lock:
                 self._polaris_sw_ver = arg_dict.get('sw')
                 self._polaris_hw_ver = arg_dict.get('hw')
+                self._polaris_astro_ver = arg_dict.get('exAxis')
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: VERSION status changed: {cmd} {arg_dict}")
 
@@ -1524,6 +1526,7 @@ class Polaris:
                 'bleiswifienabled': self._ble.isWifiEnabled,
                 'polarisswver': self._polaris_sw_ver,
                 'polarishwver': self._polaris_hw_ver,
+                'polarisastrover': self._polaris_astro_ver,
             }
         return res
 
