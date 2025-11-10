@@ -316,6 +316,22 @@ Day Time Testing  (08 Nov 25)
 
 
 
+## Beta Tester: Paul (Dis: Paul C)
+### Platform & Environment
+* Platform: Win11?, cheap mini PC, iOptron carbon fibre tripod
+* Applications: Nina, PHD2
+* Optics: astro modified Z7 with the 150-600 zoom set to 352mm, Dew Bands
+* Guiding: iOptron 30mm f4 guide scope and ASI220 camera
+* Power: SVBONY SV241 Pro
+### Test Areas
+PHD2 Guiding
+### Results
+I don't know if these will be of any interest to you, but I'll send anyway. I had my first go with the Beta V2 Driver last night. I was using my astro modified Z7 with the 150-600 zoom set to 352mm. I'd rigged up an iOptron 30mm f4 guide scope - tiny and very light - with an ASI220 camera. It was mounted to the camera hotshoe but not very securely. I have ordered a Neewer LS-T16 guide scope to hotshoe mount to improve matters. The Polaris was controlled using a fairly cheap mini PC attached to an iOptron carbon fibre tripod and Camera / Polaris / Dew Bands / Guide camera were powered and integrated using the SVBONY SV241 Pro. The conditions weren't great - a bit misty and loads of fireworks going off. I didn't do the aligning properly - your latest video came a day too late - but plate solved in 3 different positions.  I found the rotation feature worked admirably. True, it never actually completed the slew / centre / rotate command but after about 4 goes of plate solving it was close enough. Ive found the same to happen with other CAAs. I used the Guiding Assistant and Calibration Assistant in PHD2 and used 1s exposures - for long periods the guiding seemed good to me - I'm no expert. It did go off a bit from time to time - but stopping and restarting the guiding seemed to sort this out. I suppose that if I'd aligned properly, things would have been even better. It did all come to a halt when the Polaris was close to the zenith - but that was to be expected. Anyway - thought I'd let you know and to thank you for all of your hard work. Ive attached three exposures at 60, 90 and 120s. Looking forward to trying again soon.
+### Feedback
+...
+
+
+
 
 ## Beta Tester: Mark (FB: John Harrison; GH: 5x5Stuido)
 Notes: Ireland Week43, New 5nm filters.

@@ -74,26 +74,26 @@ Could you put me in contact with someone from Benro who can support me?
 Dear Support Team,
 Problem: Polaris has become unresponsive and does not power up.
 
-Description: Unable to power Polaris device or connect via the Benro Connect App. The Green LED only illuminates when USB power is supplied. The Blue LED never illuminates. When I attempt to power on the device, I hear the 3 beeps, but no blue LED. It does not appear to be advertising on Bluetooth either as the Connect App cannot see it on the Nearby Devices page. When I hold the Power Button the Polaris Beeps once, moves slightly, but does not proceed to the storage position.
+Description: Unable to power Polaris device or connect via the Benro Connect App. The Green LED only illuminates when USB power is supplied. The Blue LED never illuminates. When I attempt to power on the device, I hear the 3 beeps, but no blue LED. It does not appear to be advertising on Bluetooth either, as the Connect App cannot see it on the Nearby Devices page. When I hold the Power Button the Polaris Beeps once, moves slightly, but does not proceed to the storage position.
 
 Recovery: I have attempted the following steps to recover the device.
-1. Power on device multiple times, double pressing power button as usually successful.
-2. Disconnect charging cable and repeat 1.
+1. Power on the device multiple times; double-pressing the power button is usually successful.
+2. Disconnect the charging cable and repeat 1.
 3. Charged the device overnight with a 5V/2A Power supply.
-4. Viewed contents of SD Card. The log file appears fine, except for the last 30 lines which has garbled characters/non-ascii.
-5. Copied downloaded firmware and files onto SD Card to attempt firmware restore. Not successful
-6. Replace SIM with another card and still no success at power on.
+4. Viewed contents of SD Card. The log file appears fine, except for the last 30 lines, which have garbled characters/non-ASCII.
+5. Copied downloaded firmware and files onto the SD Card to attempt firmware restore. Not successful
+6. Replace the SD Card with another card, and still no success at powering on.
 
-This problem has only started occurring from late last week. 
-It was not in use when the problem first occurred. 
+This problem began occurring only late last week.
+It was not in use when the problem first occurred.
 The Polaris has HW v1.3.1.4 and SW V6.0.0.54
 
-I suspect that the Polaris will need to be sent for repair. 
-Can I get a Service Docket Number and Address to where to send it?
-Once asessed, could I get a quote on how much it will cost to get repaired?
-Also is there any chance I could get a loan Polaris device while it is being repaired.
+I suspect that the Polaris will need to be sent for repair.
+Can I obtain a Service Docket Number and the Address to which it should be sent?
+Once assessed, could I get a quote on how much it will cost to get it repaired?
+Also, is there any chance I could get a loan Polaris device while it is being repaired?
 
-Thank you for any assistance to help expedite this case.
+Thank you for any help in speeding up this case.
 
 
 
