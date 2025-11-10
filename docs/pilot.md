@@ -186,7 +186,7 @@ The Status Indicator (a status chip in the top right-hand corner of the Dashboar
 *   **② Slewing:** The mount is executing a manual slew command.
 *   **③ Rotating:** The mount is actively changing its rotation angle/position angle.
 *   **④ Tracking:** The mount's tracking function is currently enabled. It will be tracking at the current tracking rate, either sidereal, lunar, solar, king or custom.
-*   **⑤ Guiding:** The mount's has received a puls-guiding command and adjusting its tracking accordingly.
+*   **⑤ Guiding:** The mount's has received a pulse-guiding command and adjusting its tracking accordingly.
 
 ### Motor Indicators
 
@@ -195,14 +195,37 @@ The dashboard shows any **activity on the motors** and the current **M1, M2, and
 ![Dashboard motors](images/dashboard-motors.png)
 
 *   **① Motor Label:** The labels M1, M2 and M3 represent the Azimuth, Altitude and Astro axis accordingly.
-*   **② Angular Offset:** The signed angular rotation in decimal degrees that each motor has traveled.
+*   **② Angular Offset:** The signed angular rotation in decimal degrees that each motor has traveled from its home or zero position.
 *   **③ Motor Activity:** The orbiting dot, represents motion in the corresponding axis. It rotates in the direction and speed of the motors motion. The speed is exegerated for slow motion so very fine movement can be seen. 
 
 
 ### Radial Dials
-The radial dials are a core part of the dashboard, designed to be flexible and interactive.
+The radial dials are a core part of the dashboard, designed to be flexible and interactive. They provide a quick representation of the current orientation of the mount, either in geographic or equatorial co-ordinates. 
 
 ![Dashboard radial dial](images/dashboard-dial1.png)
+*   **① Scale Label:** 
+*   **② Scale Bar:**
+*   **③ Warning Bar:** 
+*   **④ Deviation Bar:**
+*   **⑤ SP Pointer:** 
+*   **⑥ PV Pointer:**
+*   **⑦ PV Readout:**
+*   **⑧ SP Readout:**
+
+<br>
+
+When you hover your mouse or tap your finger on a radial dial, additional buttons will appear allowing you to interact with that co-ordinate.
+
+![Dashboard radial dial active](images/dashboard-dial2.png)
+
+
+* **① Range Readout:**
+* **② Increase Range:**
+* **③ Decrease Range:**
+* **④ Floating Action Buttons:**
+* **⑤ SP Decrease:**
+* **⑥ SP Increase:**
+* **⑦ SP Data Entry:**
 
 *   **Range Indication:** The dials display the range, which can be seen as the **zoom level**. The range indicates the total angle displayed from one side to the other (e.g., six degrees across the dial).
 *   **Range Adjustment:** You can adjust the zoom or range of the dials. On a desktop, you can use a mouse to **zoom in and zoom out**. The dials can zoom far in, allowing users to see slight movements down to **arc seconds**.
@@ -213,25 +236,6 @@ The radial dials are a core part of the dashboard, designed to be flexible and i
     *   Clicking on the **scale** provides a very fine resolution for setting the desired movement.
     *   Clicking on the **label** will move the mount directly to that round number.
 
-***
-
-![Dashboard radial dial active](images/dashboard-dial2.png)
-
-### Radial Dials
-* **Scale Label:**
-* **Scale Bar:**
-* **Warning Bar:**
-* **Deviation Bar:**
-* **SP Indicator:**
-* **PV Indicator:**
-* **SP Readout:**
-* **PV Readout:**
-
-* **Range Readout:**
-* **Range Adjust:**
-* **Floating Action Buttons:**
-* **Slew Buttons:**
-* **SP Data Entry:**
 
 
 **Conceptual Insight:** The Alpaca Pilot Dashboard acts as the primary cockpit for the Polaris mount, translating the mount's complex multi-axis motor movements (M1, M2, M3 motor angles) and celestial mechanics (RA/Dec/PA) into intuitive, real-time feedback (Status Indicators and Motor Indicators) and precise control mechanisms (Radial Dials and Action Buttons). It functions like a sophisticated flight instrument panel for an advanced astrophotographer, allowing control from the microscopic (arc-second precision via zooming radial dials) to the macroscopic (instant GOTO commands).
