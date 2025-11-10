@@ -4,7 +4,7 @@
 [Challenges](#challenges-with-existing-control) | [Rotator](#alpaca-rotator) | [Alignment](#alignment-models) | [Safety](#equipment-safety) | [Filtering](#kalman-filter) | [Calibration](#motor-speed-calibration) | [PID Controller](#pid-controller) | [Guiding](#pulse-guiding) | [Tracking](#tracking) 
 
 # Challenges with existing Control
-PODCAST LINK - [20 - Deep Dive Podcast on Alpaca Benro Polaris V2.0](https://youtu.be/KUBCTnEsnlE)
+>PODCAST LINK - [20 - Deep Dive Podcast on Alpaca Benro Polaris V2.0](https://youtu.be/KUBCTnEsnlE)
 
 The Benro Polaris mount, especially with its Astro Attachment, is popular among amateur astrophotographers for its compact design and app-driven interface. But while the hardware is excellent, the software can leave many users frustrated.
 
@@ -23,7 +23,7 @@ This guide covers describes each of the new motion control concepts introduced i
 ---
 
 # Alpaca Rotator
-VIDEO DEMO - [23 - Alpaca Rotator Framing in Nina and Stellarium](https://youtu.be/_Swd-jIyQis)
+>VIDEO DEMO - [23 - Alpaca Rotator Framing in Nina and Stellarium](https://youtu.be/_Swd-jIyQis)
 
 
 
@@ -123,7 +123,7 @@ To visualize your framing accurately in Stellarium, an adjustment is necessary.
 
 
 # Alignment Models
-VIDEO DEMO - [24 - Multi Point Alignment and Tripod Tilt](https://youtu.be/4CMO0R_yphw)
+>VIDEO DEMO - [24 - Multi Point Alignment and Tripod Tilt](https://youtu.be/4CMO0R_yphw)
 
 The V2.0 Alpaca Driver re-engineered the alignment and sync interfaces to support two distinct alignment methods, transforming how the Benro Polaris (BP) achieves accurate polar alignment. This guide outlines the features and operational principles of the two primary alignment modes; Single-Point and Multi-Point Alignment. 
 
@@ -250,7 +250,7 @@ ABP now supports syncing using **azimuth and altitude**, which means you can ali
 
 # Equipment Safety
 
-VIDEO DEMO - [25 - Home, Park and Motor Angle Limits](https://youtu.be/45EP-DExSOQ)
+>VIDEO DEMO - [25 - Home, Park and Motor Angle Limits](https://youtu.be/45EP-DExSOQ)
 
 
 The Benro Polaris mount, while compact and powerful, has a known issue: it can rotate far enough to **wrap cables tightly around the tripod**, risking damage to cables, camera and mount. This kind of entanglement can lead to costly repairs or interrupted imaging sessions.
@@ -318,7 +318,7 @@ The **Park** function provides a customisable, safe resting position for mountin
 
 ---
 # Kalman Filter
-VIDEO DEMO - [31 - Setting Overrides, Kalman Filtering and PWM](https://youtu.be/aDFKAWBNQHU)
+>VIDEO DEMO - [31 - Setting Overrides, Kalman Filtering and PWM](https://youtu.be/aDFKAWBNQHU)
 
 The **Kalman Filter** is a core component of the motion control system introduced in **ABP Driver v2.0**. It plays a critical role in improving the **accuracy, stability, and responsiveness** of the Polaris mount by filtering noisy sensor data and enhancing the system’s understanding of its own motion.
 
@@ -388,7 +388,7 @@ This value is a key parameter in the Kalman Filter algorithm that determines how
 ---
 # Motor Speed Calibration
 
-VIDEO DEMO - [32 = Calibrating Speed Control for your Polaris](https://youtu.be/U_0-mBDuTjE)
+>VIDEO DEMO - [32 = Calibrating Speed Control for your Polaris](https://youtu.be/U_0-mBDuTjE)
 
 
 The **Motor Speed Controller Calibration** feature in ABP v2.0 allows advanced users to fine-tune motor behavior for their specific Polaris mount. While the system works well with default values, calibration can improve tracking precision, especially for long-exposure astrophotography.

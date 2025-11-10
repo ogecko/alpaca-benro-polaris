@@ -7,7 +7,7 @@
 
 ## What is Alpaca Pilot?
 
-VIDEO DEMO - [21 - Alpha Preview Demonstration of V2.0](https://youtu.be/0QSKD1GCzOc)
+>VIDEO DEMO - [21 - Alpha Preview Demonstration of V2.0](https://youtu.be/0QSKD1GCzOc)
 
 The **Alpaca Pilot App** is a responsive, single-page web application designed to streamline the startup, configuration and operation of the **Alpaca Driver** when used with the Benro Polaris Mount. It unlocks many of the Driver’s advanced features, enabling users to fully leverage its capabilities.
 
@@ -135,7 +135,7 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 
 ## III. Dashboard
 
-VIDEO DEMO - [22 - Starting and Using Alpaca Pilot](https://youtu.be/Wv_ZvBtZZ4Q)
+>VIDEO DEMO - [22 - Starting and Using Alpaca Pilot](https://youtu.be/Wv_ZvBtZZ4Q)
 
 ### Status and Motor Indicators
 ### Equatorial vs Az/Alt
