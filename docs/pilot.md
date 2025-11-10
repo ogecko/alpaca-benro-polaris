@@ -26,6 +26,35 @@ The Pilot App was built to:
 - Provide insight into the performance and diagnostics of Driver features
 - Allow advanced users to fine-tune Driver performance parameters
 
+Here’s an expanded and refined version of your **Pilot Main Menu** section in Markdown, with clear descriptions for each item and consistent formatting:
+
+---
+
+### **Pilot Main Menu**
+
+The main menu of the **Alpaca Pilot** application provides centralized access to key functions, status indicators, and configuration tools for managing your Polaris mount. Each element is designed to streamline your workflow and provide intuitive control over the system.
+
+![Alpaca Pilot Main Menu](images/pilot-menu.png)
+
+
+- **① Sidebar Menu:**  Opens the collapsible side navigation menu, giving access to additional modules such as Deep Sky Objects, Performance Tuning and Documentation.
+
+- **② Startup Page:**  Clicking the Title will display the initial startup page of the Alpaca Pilot App.
+
+- **③ Dashboard:**  Provides real-time control and feedback for mount operations. Includes radial dials, setpoint controls, status indicators, and visual feedback for guiding, tracking, and slewing.
+
+- **④ Connect:**  Initiates or terminates the connection to the Alpaca Driver and Polaris mount. This button reflects current connection status.
+
+- **⑤ Settings:** Opens the configuration panel where you can set observing site latitude/longitude, define the park position, adjust preferences, and enable standard and advanced features.
+
+- **⑥ Search Entry:** A text input field for searching catalog entries and targets. Supports shorthand formats and intelligent parsing for quick access to celestial objects.
+
+- **⑦ Search Toggle:** Toggles the visibility of the search entry field. On narrow screens, it also expands the search input area for easier access. When a search term is present, this button acts as a quick-clear control to reset the entry.
+
+- **⑧ Polaris Battery:** Displays the current battery level of the Polaris mount. Include color-coded indicators or warnings when battery levels are low. Also indicates charging status. On narrow screens, it can also be used to toggle fullcscreen.
+
+- **⑨ Fullscreen:** Toggles fullscreen mode for immersive operation. This is especially useful during outdoor sessions or when using compact displays, allowing maximum space for control and feedback elements.
+
 
 ---
 
