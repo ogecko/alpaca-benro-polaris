@@ -169,8 +169,8 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
               align="justify" narrow-indicator
           >
               <q-tab name="plate" label="Plate Solve" />
-              <q-tab name="star" label="Celestrial" />
-              <q-tab name="map" label="Geographic" />
+              <q-tab name="star" label="RA/Dec/PA" />
+              <q-tab name="map" label="Az/Alt/Roll" />
           </q-tabs>
      <q-tab-panels v-model="tab" animated >
         <q-tab-panel name="plate" class="text-grey-8">
