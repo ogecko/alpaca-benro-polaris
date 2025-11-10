@@ -34,6 +34,7 @@
 - **[Nearby Catalog]** Add a Nearby menu item to show catalog targets, sorted by angular proximity to current RA and Dec
 - **[Search Resume]** Resume a catalog search by focusing the search box when a previous query is still present
 - **[Kinematics Diagram]** Add a Kinematics "Data Flow Diagram" to explain primary data flows and co-ordinate conversions
+- **[Alignment Default]** Changed Alignment default to Single Star Alignment, easier out of box use, without Pilot
 - **[Sync Duplicates]** Remove any sync points within ±2.5° of the most recent sync, before adding the new point
 - **[Residual Alerts]** Flag Multi-Point Alignment sync entries with elevated residuals. Show a warning above 5°, and a critical alert above 10°.
 - **[Guide Default]** Changed default RA and Dec Pulse Guide Rates to 1.0x Sidereal 
