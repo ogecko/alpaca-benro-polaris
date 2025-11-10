@@ -157,15 +157,15 @@ The action buttons in the top-left corner of the Dashboard offer quick access to
 
 ![Dashboard action buttons](images/dashboard-actions.png)
 
-*   **① Co-ordinate Mode:** This feature allows you to **quickly switch** between two primary coordinate systems for viewing and control:
+-   **① Co-ordinate Mode:** This feature allows you to **quickly switch** between two primary coordinate systems for viewing and control:
     *   **Geographical** - Azimuth, Altitude, and Roll.
     *   **Equatorial** - Right Ascension, Declination, and Position Angle.
-*   **② Reset SP (Set Point):** This button appears when the mount’s actual position (Present Value) has deviated from the desired target position (Set Point). This may occur when the mount is controlled by a non Alpaca Application or when the mount is not physically able to reach the setpoint. Clicking the **Reset Set Point button** instructs all set points to reline up with the current physical values of the device.
-*   **③ Find Home:** When clicked, it moves the motors and changes the orientation of the mount to wind the motor angles (**M1, M2, M3**) back to zero. If the mount is set up pointing south, this typically results in an Azimuth of 180°, an Altitude of 45°, and a Roll of 0°. If the mount cannot complete this movement within 
-*   **④ Park:** This function moves the mount into a designated park position.  You can **customize and save** the park position motor angles from the settings page. Once the mount reaches the park location, a yellow banner will appear, and most functions are disabled; you must click a button to **unpark** to resume use.
-*   **⑤ Stop:** This button allows you to **immediately stop** the mount. This is equivalent to an **Abort Slew** operation and will stop motion across all axes.
-*   **⑥ Tracking:** This action button controls the mount's sidereal tracking state. It allows you to **initiate tracking** or **turn tracking off**. Ensure you have tracking enabled for plate-solving or imaging deep sky objects as it is no longer automatically enabled after gotos
-*   **⑦ Tracking Rate:** This control allows you to **adjust the tracking rate** of the mount. The Alpaca Driver version 2.0 supports ASCOM Alpaca Drive Rates, including 0=Sidereal, 1=Lunar, 2=Solar, 3=King and 4=Custom. 
+-   **② Reset SP (Set Point):** This button appears when the mount’s actual position (Present Value) has deviated from the desired target position (Set Point). This may occur when the mount is controlled by a non Alpaca Application or when the mount is not physically able to reach the setpoint. Clicking the **Reset Set Point button** instructs all set points to reline up with the current physical values of the device.
+-   **③ Find Home:** When clicked, it moves the motors and changes the orientation of the mount to wind the motor angles (**M1, M2, M3**) back to zero. If the mount is set up pointing south, this typically results in an Azimuth of 180°, an Altitude of 45°, and a Roll of 0°. If the mount cannot complete this movement within 
+-   **④ Park:** This function moves the mount into a designated park position.  You can **customize and save** the park position motor angles from the settings page. Once the mount reaches the park location, a yellow banner will appear, and most functions are disabled; you must click a button to **unpark** to resume use.
+-   **⑤ Stop:** This button allows you to **immediately stop** the mount. This is equivalent to an **Abort Slew** operation and will stop motion across all axes.
+-   **⑥ Tracking:** This action button controls the mount's sidereal tracking state. It allows you to **initiate tracking** or **turn tracking off**. Ensure you have tracking enabled for plate-solving or imaging deep sky objects as it is no longer automatically enabled after gotos
+-   **⑦ Tracking Rate:** This control allows you to **adjust the tracking rate** of the mount. The Alpaca Driver version 2.0 supports ASCOM Alpaca Drive Rates, including 0=Sidereal, 1=Lunar, 2=Solar, 3=King and 4=Custom. 
 
 ### Status Indicator
 The Status Indicator (a status chip in the top right-hand corner of the Dashboard) gives the **state of the motion controller** in the Alpaca driver. Only one state is given at a time, but they are all listed here for explaination purposes.
@@ -173,20 +173,20 @@ The Status Indicator (a status chip in the top right-hand corner of the Dashboar
 ![Dashboard indicators part 1](images/dashboard-indicators1.png)
 
 
-*   **① Idle:** This state means **no commands are currently being issued** from the driver to the Polaris. In this state, the Benro Polaris (BP) app can be used without the driver interfering.
-*   **② Homing:** The mount is actively moving its motors back to the zero position (0, 0, 0 motor angles).
-*   **③ Parking:** The mount is moving into the customized park motor angle position.
-*   **④ Parked:** The mount has reached the set park location. A banner appears, and most functions are disabled until the mount is unparked.
-*   **⑤ Limit:** This indication appears on the dashboard when a **motor angle limit has been exceeded**. All control to the Polaris will be stopped. The user must click the reset button to acknowledge the limit.
-*   **⑥ PreSetup:** This flag or alarm indication appears when the **observing site location (latitude, longitude)** has not been set. No action can be taken with the mount until the location is set.
+-   **① Idle:** This state means **no commands are currently being issued** from the driver to the Polaris. In this state, the Benro Polaris (BP) app can be used without the driver interfering.
+-   **② Homing:** The mount is actively moving its motors back to the zero position (0, 0, 0 motor angles).
+-   **③ Parking:** The mount is moving into the customized park motor angle position.
+-   **④ Parked:** The mount has reached the set park location. A banner appears, and most functions are disabled until the mount is unparked.
+-   **⑤ Limit:** This indication appears on the dashboard when a **motor angle limit has been exceeded**. All control to the Polaris will be stopped. The user must click the reset button to acknowledge the limit.
+-   **⑥ PreSetup:** This flag or alarm indication appears when the **observing site location (latitude, longitude)** has not been set. No action can be taken with the mount until the location is set.
 
 ![Dashboard indicators part 2](images/dashboard-indicators2.png)
 
-*   **① Gotoing:** The mount is proceeding to the GOTO target that was just initiated.
-*   **② Slewing:** The mount is executing a manual slew command.
-*   **③ Rotating:** The mount is actively changing its rotation angle/position angle.
-*   **④ Tracking:** The mount's tracking function is currently enabled. It will be tracking at the current tracking rate, either sidereal, lunar, solar, king or custom.
-*   **⑤ Guiding:** The mount's has received a pulse-guiding command and adjusting its tracking accordingly.
+-   **① Gotoing:** The mount is proceeding to the GOTO target that was just initiated.
+-   **② Slewing:** The mount is executing a manual slew command.
+-   **③ Rotating:** The mount is actively changing its rotation angle/position angle.
+-   **④ Tracking:** The mount's tracking function is currently enabled. It will be tracking at the current tracking rate, either sidereal, lunar, solar, king or custom.
+-   **⑤ Guiding:** The mount's has received a pulse-guiding command and adjusting its tracking accordingly.
 
 ### Motor Indicators
 
@@ -194,23 +194,23 @@ The dashboard shows any **activity on the motors** and the current **M1, M2, and
 
 ![Dashboard motors](images/dashboard-motors.png)
 
-*   **① Motor Label:** The labels M1, M2 and M3 represent the Azimuth, Altitude and Astro axis accordingly.
-*   **② Angular Offset:** The signed angular rotation in decimal degrees that each motor has traveled from its home or zero position.
-*   **③ Motor Activity:** The orbiting dot, represents motion in the corresponding axis. It rotates in the direction and speed of the motors motion. The speed is exegerated for slow motion so very fine movement can be seen. 
+-   **① Motor Label:** The labels M1, M2 and M3 represent the Azimuth, Altitude and Astro axis accordingly.
+-   **② Angular Offset:** The signed angular rotation in decimal degrees that each motor has traveled from its home or zero position.
+-   **③ Motor Activity:** The orbiting dot, represents motion in the corresponding axis. It rotates in the direction and speed of the motors motion. The speed is exegerated for slow motion so very fine movement can be seen. 
 
 
 ### Radial Dials
 The radial dials are a core part of the dashboard, designed to be flexible and interactive. They provide a quick representation of the current orientation of the mount, either in geographic or equatorial co-ordinates. 
 
 ![Dashboard radial dial](images/dashboard-dial1.png)
-*   **① Scale Label:** Displays the rounded numeric values associated with a major tick on the radial dial. Clicking or Tapping on the numeric label will change the Setpoint of that co-ordinate to the given value.
-*   **② Scale Bar:** The cyan arc indicates an angular scale, marked with 5 minor ticks of equal distance dividing the major ticks. Clicking or tapping on the scale bar will change the Setpoint to the exact value at that point. 
-*   **③ Warning Bar:** A orange arc that highlights regions of the scale where values exceed safe or expected limits. If a pointer enters this zone, it may indicate that the angle is not reachable.
-*   **④ Deviation Bar:** A dynamic green arc that visually represents the real-time difference between the setpoint (SP) and the present value (PV). The longer the bar, the greater the deviation.
-*   **⑤ SP Pointer:** 
-*   **⑥ PV Pointer:**
-*   **⑦ PV Readout:**
-*   **⑧ SP Readout:**
+-   **① Scale Label:** Displays the rounded numeric values associated with a major tick on the radial dial. Clicking or Tapping on the numeric label will change the Setpoint of that co-ordinate to the given value.
+-   **② Scale Bar:** The cyan arc indicates an angular scale, marked with 5 minor ticks of equal distance dividing the major ticks. Clicking or tapping on the scale bar will change the Setpoint to the exact value at that point. 
+-   **③ Warning Bar:** A orange arc that highlights regions of the scale where values exceed safe or expected limits. If a pointer enters this zone, it may indicate that the angle is not reachable.
+-   **④ Deviation Bar:** A green arc that indicates the real-time difference between the setpoint (SP) and the present value (PV). The arc represents the path that the mount will travel to close the deviation to zero.
+-   **⑤ SP Pointer:** A green arrow pointing to the current Setpoint target value the system is trying to achieve. It remains fixed unless the setpoint is adjusted.
+-   **⑥ PV Pointer:** A white triangle pointing to the Present Value of the axis. This pointer will always point to the top center of the arc. As the mount moves in real time, the scale will rotate around this pointer. 
+-   **⑦ PV Readout:** A numeric display of the Present Value in Degrees, Arc-Minutes and decimal Arc-Seconds (except for Right Ascension which is in Hours, Minutes and Seconds). 
+-   **⑧ SP Readout:** A numeric display of the current Set Point. This value reflects the target the system is actively trying to maintain.
 
 <br>
 
@@ -219,28 +219,35 @@ When you hover your mouse or tap your finger on a radial dial, additional button
 ![Dashboard radial dial active](images/dashboard-dial2.png)
 
 
-* **① Range Readout:**
-* **② Increase Range:**
-* **③ Decrease Range:**
-* **④ Floating Action Buttons:**
-* **⑤ SP Decrease:**
-* **⑥ SP Increase:**
-* **⑦ SP Data Entry:**
+- **① Range Readout:** Displays the total angular span of the radial dial, measured from left to right. This value also determines the slew rate when adjusting the Set Point using controls ⑤ or ⑥. Specifically, the slew rate is equal to (Range ÷ 20) degrees per second. As a result, it takes approximately 20 seconds to move the Set Point across the full range of the dial.
+- **② Increase Range:** - Expands the scale range to accommodate larger values. Use this when the current range is too narrow or when values are changing too rapidly to interpret clearly. Scrolling the mouse wheel upward has the same effect as this control.
+- **③ Decrease Range:** Narrows the scale range to enhance resolution and visual precision. This is especially useful when movements are subtle and you want finer detail in the display.
+Scrolling the mouse wheel downward performs the same action as this control.
+- **④ Floating Action Buttons:** - Toggles the visibility of context-sensitive presets for quickly adjusting the Set Point. The available presets depend on the coordinate type of the active radial dial:
+   - Azimuth: North 0°, East 90°, South 180°, West 270°
+   - Altitude: 0°, 30°, 45°, 60°
+   - Roll: –75°, 0°, +70°
+- **⑤ SP Decrease**  
+  Decreases the current setpoint (SP) by a fixed increment, determined by the active Range setting. Use this to manually slew the target value downward.  
+ *Note: The mount may take a moment to respond and align with the new setpoint.*
+- **⑥ SP Increase**  
+  Increases the current setpoint (SP) by a fixed increment, based on the current Range. Use this to manually slew the target value upward.  
+  *Note: The mount may take a moment to respond and align with the new setpoint.*
+- **⑦ SP Data Entry**  
+  Enables direct numeric input of the setpoint value. Ideal for precise adjustments or bypassing incremental steps. After entering the desired value, confirm to apply it. The input field supports a variety of formats:
 
-*   **Range Indication:** The dials display the range, which can be seen as the **zoom level**. The range indicates the total angle displayed from one side to the other (e.g., six degrees across the dial).
-*   **Range Adjustment:** You can adjust the zoom or range of the dials. On a desktop, you can use a mouse to **zoom in and zoom out**. The dials can zoom far in, allowing users to see slight movements down to **arc seconds**.
-*   **Floating Action Buttons (FABs):** These buttons are located on the left-hand side of the set point. Clicking a FAB pops up a **bunch of presets** that allow for quick navigation to common set points (e.g., pointing toward the East [90°] for azimuth, or 60°, 45°, 30°, or 0° for altitude).
-*   **Slew Buttons:** These are the **plus (+) and minus (-)** buttons surrounding the dials. The rate at which the device moves during a slew is determined by the **current zoom scale** of the dial.
-*   **SP Data Entry Absolute:** You can **click directly on the set point** area of the dial to enter an absolute numerical value. Hitting enter will immediately command the mount to that coordinate (e.g., entering '120' to move to an azimuth of 120°).
-*   **SP Data Entry Delta:** The user can interact with the scale to set a new target. There are two methods of interaction:
-    *   Clicking on the **scale** provides a very fine resolution for setting the desired movement.
-    *   Clicking on the **label** will move the mount directly to that round number.
+  **Absolute Setpoint Formats**
+  - `90.234` — Decimal degrees (or hours for Right Ascension)  
+  - `90:30` — Degrees and minutes  
+  - `90:30:25.2` — Degrees, arcminutes, and decimal arcseconds  
+  - `:30.5` — Decimal arcminutes  
+  - `-90` — Negative decimal degrees  
 
-
-
-**Conceptual Insight:** The Alpaca Pilot Dashboard acts as the primary cockpit for the Polaris mount, translating the mount's complex multi-axis motor movements (M1, M2, M3 motor angles) and celestial mechanics (RA/Dec/PA) into intuitive, real-time feedback (Status Indicators and Motor Indicators) and precise control mechanisms (Radial Dials and Action Buttons). It functions like a sophisticated flight instrument panel for an advanced astrophotographer, allowing control from the microscopic (arc-second precision via zooming radial dials) to the macroscopic (instant GOTO commands).
-
-
+  **Relative Setpoint Formats**
+  - `d-2` — Decrease by 2 degrees (or hours for Right Ascension)  
+  - `d:30` — Increase by 30 arcminutes  
+  - `d::40` — Increase by 40 arcseconds  
+  - `d2.5` — Increase by 2.5 decimal degrees
 
 
 ## IV. Catalog
