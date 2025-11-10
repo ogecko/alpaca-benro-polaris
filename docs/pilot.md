@@ -3,7 +3,7 @@
 # Alpaca Pilot App
 [Purpose](#what-is-alpaca-pilot) | 
 [Launching](#i-launching-the-alpaca-pilot-application) | 
-[Connecting](#ii-connecting-to-the-benro-polaris-mount) | 
+[Connect](#ii-connect-devices) | 
 [Dashboard](#iii-dashboard) | [Catalog](#catalog)  | [Tuning](#tuning) | [Diagnostics](#diagnostics) 
 
 ## What is Alpaca Pilot?
@@ -92,10 +92,9 @@ For example, you might choose to open the Catalog as a new window and position i
 
 ---
 
-## II. Connect
+## II. Connect Devices
 
->VIDEO DEMO - [21 - Connecting Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
-
+>VIDEO DEMO - [21 - Connecting to the Driver and Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
 
 ### Connecting to the Alpaca Driver
 
@@ -144,7 +143,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
    - When **disconnected**, it functions the same as the *Initiate Connection* button.  
    - When **connected**, clicking this will disconnect from the Polaris.
 
-### Troubleshooting Polaris Connection
+### Troubleshooting Wifi Connection
 
 1.  **Automatic Connection**  
    If your Mini-PC has previously connected to the Polaris, it should automatically reconnect, just as it did in version 1.0. This may take up to a minute before the network becomes accessible to the Alpaca Driver. The Alpaca Driver will continually retry to connect to the Polaris.
@@ -158,6 +157,8 @@ If a connection issue is detected, a warning banner will appear. You can then na
 3. **Confirm Connection Status**  
    Wait until the network status displays **"No Internet, open"**. Once connected, the Alpaca Driver will establish communication with the Polaris and begin initialization, reading hardware and firmware version details.
 
+   ![alt text](images/abp-troubleshoot-wifi1.png)
+
 4. **Troubleshooting Tips**  
    If you experience issues connecting to the Polaris, consult the [Troubleshooting Guide](./troubleshooting.md) for diagnostic steps and solutions.
 
@@ -166,8 +167,6 @@ If a connection issue is detected, a warning banner will appear. You can then na
 
 ![Pilot connect](images/pilot-connect2.png)
 
-
-### Step C: Initial Setup with the Alpaca Pilot App
 
 Follow these steps to prepare your Benro Polaris mount for Astro Mode using the Alpaca Pilot App:
 
