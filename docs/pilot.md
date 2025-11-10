@@ -3,8 +3,8 @@
 # Alpaca Pilot App
 [Purpose](#what-is-alpaca-pilot) | 
 [Launching](#i-launching-the-alpaca-pilot-application) | 
-[Connect](#ii-connect-devices) | 
-[Dashboard](#iii-dashboard) | [Catalog](#catalog)  | [Tuning](#tuning) | [Diagnostics](#diagnostics) 
+[Connect](#ii-connecting-devices) | 
+[Dashboard](#iii-using-the-dashboard) | [Catalog](#catalog)  | [Tuning](#tuning) | [Diagnostics](#diagnostics) 
 
 ## What is Alpaca Pilot?
 
@@ -26,11 +26,10 @@ The Pilot App was built to:
 - Provide insight into the performance and diagnostics of Driver features
 - Allow advanced users to fine-tune Driver performance parameters
 
-Here’s an expanded and refined version of your **Pilot Main Menu** section in Markdown, with clear descriptions for each item and consistent formatting:
 
 ---
 
-### **Pilot Main Menu**
+### Pilot Main Menu
 
 The main menu of the **Alpaca Pilot** application provides centralized access to key functions, status indicators, and configuration tools for managing your Polaris mount. Each element is designed to streamline your workflow and provide intuitive control over the system.
 
@@ -92,7 +91,7 @@ For example, you might choose to open the Catalog as a new window and position i
 
 ---
 
-## II. Connect Devices
+## II. Connecting Devices
 
 >VIDEO DEMO - [21 - Connecting to the Driver and Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
 
@@ -144,6 +143,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
    - When **connected**, clicking this will disconnect from the Polaris.
 
 ### Troubleshooting Wifi Connection
+If you cannot connect to the Benro Polaris mount, you may have an issue with the Wifi connection.
 
 1.  **Automatic Connection**  
    If your Mini-PC has previously connected to the Polaris, it should automatically reconnect, just as it did in version 1.0. This may take up to a minute before the network becomes accessible to the Alpaca Driver. The Alpaca Driver will continually retry to connect to the Polaris.
@@ -198,7 +198,7 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
    With setup complete, you're ready to use the Driver and perform your first plate solve.
 
 
-## III. Dashboard
+## III. Using the Dashboard
 >VIDEO DEMO - [21 - Dashboard introduction](https://youtu.be/0QSKD1GCzOc?t=4m55s)
 
 >VIDEO DEMO - [22 - Dashboard Status and Setpoint Entry](https://youtu.be/Wv_ZvBtZZ4Q?t=3m18s)
