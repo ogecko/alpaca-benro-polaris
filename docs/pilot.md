@@ -92,41 +92,62 @@ For example, you might choose to open the Catalog as a new window and position i
 
 ---
 
-## II. Connecting to the Benro Polaris Mount
+## II. Connect
+
 >VIDEO DEMO - [21 - Connecting Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
 
-![Pilot connect](images/pilot-connect.png)
+
+### Connecting to the Alpaca Driver
+
+When you launch the **Alpaca Pilot** application, it attempts to automatically connect to the **Alpaca Driver**. In most cases, this connection is established without user intervention. However, if the Driver is not running or network connectivity is lost, you may need to reconnect manually.
+
+If a connection issue is detected, a warning banner will appear. You can then navigate to the **Connect** page to re-establish communication with the Driver.
+
+![Pilot connect](images/pilot-connect0.png)
 
 
-The ABP Driver uses Bluetooth Low Energy (BLE) to discover and connect to the Benro Polaris device. BLE is entirely optional and is only used during the initial discovery phase. Once connected, the Driver communicates over Wi-Fi.
-- If your Mini-PC does not support BLE, you can manually enable the Polaris Wi-Fi hotspot using the Benro Polaris App.
-- Alternatively, if BLE is available, you can monitor the connection process directly within the Alpaca Pilot App, which provides real-time feedback during discovery and initialization.
+- **① Driver Host Name / IP Address:**  Enter the hostname or IP address of the mini-PC where the Alpaca Driver is running.  
+**Note:** This is *not* the IP address of the Polaris device. 
+
+- **② Driver Port:** Specifies the port used by the Alpaca Driver’s ASCOM REST API. The default is **5555**.  If you’ve changed this value in the network settings, be sure to update it here as well.
+
+- **③ Initiate Connection:**  Click this button to manually initiate or retry a connection to the Alpaca Driver.
+
+- **④ Driver Connection Checkbox:** Toggles the connection status with the Alpaca Driver.  
+   - When **disconnected**, it functions the same as the *Initiate Connection* button.  
+   - When **connected**, clicking this will disconnect the session.
 
 
-### Step A: Powering On and Device Discovery
+### Connecting to the Benro Polaris Mount
 
-1. **Power On the Polaris**  
-   Turn on the Benro Polaris (BP) mount.
 
-2. **Device Discovery**  
-   The Driver continuously scans for Polaris devices via Bluetooth Low Energy (BLE).  
-   - If no devices are found, the Pilot App will prompt you to verify that the Polaris is powered on.
+![Connect to Benro Polaris](images/pilot-connect1.png)
 
-3. **Select a Device**  
-   Detected devices appear in the **Device** dropdown.  
-   - The first discovered device is selected automatically.  
-   - If multiple devices are listed, choose the one you wish to connect to.
+- **① Power On the Polaris:** The Alpaca Driver uses Bluetooth Low Energy (BLE) to discover nearby Benro Polaris Devices. If none are discovered, check the power of your Benro Polaris Device.
 
-4. **Enable Wi-Fi**  
-   The Driver will attempt to enable the selected Polaris’s Wi-Fi hotspot.  
-   - You can also manually trigger this by clicking the **blue Wi-Fi button** next to the device dropdown.  
+   *Note: BLE is entirely optional and is only used during the initial discovery phase. Once connected, the Driver communicates over Wi-Fi. If your Mini-PC does not support BLE, you can manually enable the Polaris Wi-Fi hotspot using the Benro Polaris App.*
+
+- **② Select a Device**  Detected devices appear in the **Device** dropdown. The first discovered device is selected automatically. If multiple devices are listed, choose the one you wish to connect to.
+
+- **③ Enable Wi-Fi:** The Driver will attempt to enable the selected Polaris’s Wi-Fi hotspot automatically.  
+   - You can also manually trigger this by clicking the **Wi-Fi button** next to the device dropdown.  
    - Once Wi-Fi is successfully enabled, a **blue Wi-Fi signal icon** will appear.
 
+- **④ Polaris Host Name / IP Address:** Enter the hostname or IP address of the Polaris Device. This will typically remain as **192.168.0.1**.  
+   *Note: This is *not* the IP address of the Alpaca Driver.* 
 
-### Step B: Connect Mini-PC to Polaris Wi-Fi
+- **⑤ Polaris Port:** Specifies the port used by the Polaris. This will typically remain as **9090**.
 
-1. **Automatic Connection**  
-   If your Mini-PC has previously connected to the Polaris, it should automatically reconnect, just as it did in version 1.0. This may take up to a minute before the network becomes accessible to the Alpaca Driver.
+- **⑥ Initiate Connection:**  Click this button to manually initiate or retry a connection to the Polaris. 
+
+- **⑦ Polaris Connection Checkbox:** Toggles the connection status with the Polaris.  
+   - When **disconnected**, it functions the same as the *Initiate Connection* button.  
+   - When **connected**, clicking this will disconnect from the Polaris.
+
+### Troubleshooting Polaris Connection
+
+1.  **Automatic Connection**  
+   If your Mini-PC has previously connected to the Polaris, it should automatically reconnect, just as it did in version 1.0. This may take up to a minute before the network becomes accessible to the Alpaca Driver. The Alpaca Driver will continually retry to connect to the Polaris.
 
 2. **Manual Connection**  
    If this is your first time connecting:  
@@ -139,6 +160,11 @@ The ABP Driver uses Bluetooth Low Energy (BLE) to discover and connect to the Be
 
 4. **Troubleshooting Tips**  
    If you experience issues connecting to the Polaris, consult the [Troubleshooting Guide](./troubleshooting.md) for diagnostic steps and solutions.
+
+
+### Initial Polaris Setup
+
+![Pilot connect](images/pilot-connect2.png)
 
 
 ### Step C: Initial Setup with the Alpaca Pilot App
