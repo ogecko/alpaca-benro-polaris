@@ -203,10 +203,10 @@ The dashboard shows any **activity on the motors** and the current **M1, M2, and
 The radial dials are a core part of the dashboard, designed to be flexible and interactive. They provide a quick representation of the current orientation of the mount, either in geographic or equatorial co-ordinates. 
 
 ![Dashboard radial dial](images/dashboard-dial1.png)
-*   **① Scale Label:** 
-*   **② Scale Bar:**
-*   **③ Warning Bar:** 
-*   **④ Deviation Bar:**
+*   **① Scale Label:** Displays the rounded numeric values associated with a major tick on the radial dial. Clicking or Tapping on the numeric label will change the Setpoint of that co-ordinate to the given value.
+*   **② Scale Bar:** The cyan arc indicates an angular scale, marked with 5 minor ticks of equal distance dividing the major ticks. Clicking or tapping on the scale bar will change the Setpoint to the exact value at that point. 
+*   **③ Warning Bar:** A orange arc that highlights regions of the scale where values exceed safe or expected limits. If a pointer enters this zone, it may indicate that the angle is not reachable.
+*   **④ Deviation Bar:** A dynamic green arc that visually represents the real-time difference between the setpoint (SP) and the present value (PV). The longer the bar, the greater the deviation.
 *   **⑤ SP Pointer:** 
 *   **⑥ PV Pointer:**
 *   **⑦ PV Readout:**
