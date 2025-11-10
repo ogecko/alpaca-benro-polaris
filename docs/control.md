@@ -129,7 +129,7 @@ The V2.0 Alpaca Driver re-engineered the alignment and sync interfaces to suppor
 
 ### I. Single-Point Alignment (SPA)
 
-Single-Point Alignment (SPA) is the more traditional alignment method supported by the  Driver:
+Single-Point Alignment (SPA) is the more traditional alignment method supported by the  Driver. This is the default alignment method with the V2.0 Driver:
 
 *   **Function:** It **mirrors the standard Polaris method**, syncing the mount to a single known celestial position.
 *   **Correction:** Corrections resulting from the sync apply globally.
@@ -170,6 +170,7 @@ Before starting the alignment process, ensure the mount is prepared and connecte
 
 The Multi-Point Alignment model is built by performing synchronization (`SYNC`) operations, typically initiated after a **plate solve**. A single, accurate sync is generally sufficient to align the Polaris initially:
 
+1.  **Enable Multi-Point Alignment:** Use Alpaca Pilot App to enable MPA from either the Settings page or the Alignment page.
 1.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
     *   Plate solving uses the camera image to identify the star patterns and precisely determine the mount’s orientation.
     *   The ABP Driver automatically aligns the Benro Polaris with the resolved coordinates whenever a `Sync` command is performed.
