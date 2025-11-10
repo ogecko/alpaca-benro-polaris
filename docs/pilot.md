@@ -169,16 +169,83 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 ### Motor Indicators
 
 ### Radial Dials
-* **Scale Indication:**
-* **Scale Adjustment Buttons:**
+* **Range Indication:**
+* **Range Adjustment:**
 * **Floating Action Buttons:**
-* **Floating Action Buttons:**
-#### Absolute Goto
-#### Relative Goto
-#### Slewing
+* **Slew Buttons:**
+* **SP Data Entry Absolute:**
+* **SP Data Entry Delta:**
 
 Find Home and Park. Both of these functions use the slower absolute motor positions M1, M2, M3. This is the only way we can ensure unwinding of cables. FindHome will return these motors to M1=M2=M3=0, which may not correspond to Az180, Alt45, especially if you have done a single or multi-point alignment. The same with Park, it remembers the M1, M2, M3 positions when you Save the Park Position (or 0,0,0 as a default). If you realign the Polaris with single or multi-point align, the Az/Alt of your park position may change, but the motor angles wont.
-### Dial Interaction
+
+
+### Purpose of the Dashboard
+The dashboard is the central component of the Alpaca Pilot App. It basically shows you the current **orientation of the telescope** and any **activity on the motors**. It provides **real-time telemetry** of the mount's current coordinates, including Azimuth, Altitude, Roll or Right Ascension, Declination, Position Angle. The Dashboard also provides direct control of the mount through action buttons and interaction into zoomable radial dials for each co-ordinate.
+
+### Action Buttons
+The action buttons in the top-left corner of the Dashboard offer quick access to global mount controls.
+
+![Dashboard action buttons](images/dashboard-actions.png)
+
+*   **① Co-ordinate Mode:** This feature allows you to **quickly switch** between two primary coordinate systems for viewing and control:
+    *   **Geographical** - Azimuth, Altitude, and Roll.
+    *   **Equatorial** - Right Ascension, Declination, and Position Angle.
+*   **② Reset SP (Set Point):** This button appears when the mount’s actual position (Present Value) has deviated from the desired target position (Set Point). This may occur when the mount is controlled by a non Alpaca Application or when the mount is not physically able to reach the setpoint. Clicking the **Reset Set Point button** instructs all set points to reline up with the current physical values of the device.
+*   **③ Find Home:** When clicked, it moves the motors and changes the orientation of the mount to wind the motor angles (**M1, M2, M3**) back to zero. If the mount is set up pointing south, this typically results in an Azimuth of 180°, an Altitude of 45°, and a Roll of 0°. If the mount cannot complete this movement within 
+*   **④ Park:** This function moves the mount into a designated park position.  You can **customize and save** the park position motor angles from the settings page. Once the mount reaches the park location, a yellow banner will appear, and most functions are disabled; you must click a button to **unpark** to resume use.
+*   **⑤ Stop:** This button allows you to **immediately stop** the mount. This is equivalent to an **Abort Slew** operation and will stop motion across all axes.
+*   **⑥ Tracking:** This action button controls the mount's sidereal tracking state. It allows you to **initiate tracking** or **turn tracking off**. Ensure you have tracking enabled for plate-solving or imaging deep sky objects as it is no longer automatically enabled after gotos
+*   **⑦ Tracking Rate:** This control allows you to **adjust the tracking rate** of the mount. The Alpaca Driver version 2.0 supports ASCOM Alpaca Drive Rates, including 0=Sidereal, 1=Lunar, 2=Solar, 3=King and 4=Custom. 
+
+### Status Indicator
+The Status Indicator (a status chip in the top right-hand corner of the Dashboard) gives the **state of the motion controller** in the Alpaca driver. Only one state is given at a time, but they are all listed here for explaination purposes.
+
+![Dashboard indicators part 1](images/dashboard-indicators1.png)
+
+
+*   **① Idle:** This state means **no commands are currently being issued** from the driver to the Polaris. In this state, the Benro Polaris (BP) app can be used without the driver interfering.
+*   **② Homing:** The mount is actively moving its motors back to the zero position (0, 0, 0 motor angles).
+*   **③ Parking:** The mount is moving into the customized park motor angle position.
+*   **④ Parked:** The mount has reached the set park location. A banner appears, and most functions are disabled until the mount is unparked.
+*   **⑤ Limit:** This indication appears on the dashboard when a **motor angle limit has been exceeded**. All control to the Polaris will be stopped. The user must click the reset button to acknowledge the limit.
+*   **⑥ PreSetup:** This flag or alarm indication appears when the **observing site location (latitude, longitude)** has not been set. No action can be taken with the mount until the location is set.
+
+![Dashboard indicators part 2](images/dashboard-indicators2.png)
+
+*   **① Gotoing:** The mount is proceeding to the GOTO target that was just initiated.
+*   **② Slewing:** The mount is executing a manual slew command.
+*   **③ Rotating:** The mount is actively changing its rotation angle/position angle.
+*   **④ Tracking:** The mount's tracking function is currently enabled. It will be tracking at the current tracking rate, either sidereal, lunar, solar, king or custom.
+*   **⑤ Guiding:** The mount's has received a puls-guiding command and adjusting its tracking accordingly.
+
+### Motor Indicators
+
+The dashboard shows any **activity on the motors** and the current **M1, M2, and M3 motor angles**. These angles show the **actual physical rotation** of each motor from its home position. Importantly, unlike coordinate axes (like azimuth), the motor angle **does not wrap around** at 360 degrees; it keeps recording how far the motor has moved. 
+
+![Dashboard motors](images/dashboard-motors.png)
+
+*   **① Motor Label:** The labels M1, M2 and M3 represent the Azimuth, Altitude and Astro axis accordingly.
+*   **② Angular Offset:** The signed angular rotation in decimal degrees that each motor has traveled.
+*   **③ Motor Activity:** The orbiting dot, represents motion in the corresponding axis. It rotates in the direction and speed of the motors motion. The speed is exegerated for slow motion so very fine movement can be seen. 
+
+
+### Radial Dials
+The radial dials are a core part of the dashboard, designed to be flexible and interactive.
+*   **Range Indication:** The dials display the range, which can be seen as the **zoom level**. The range indicates the total angle displayed from one side to the other (e.g., six degrees across the dial).
+*   **Range Adjustment:** You can adjust the zoom or range of the dials. On a desktop, you can use a mouse to **zoom in and zoom out**. The dials can zoom far in, allowing users to see slight movements down to **arc seconds**.
+*   **Floating Action Buttons (FABs):** These buttons are located on the left-hand side of the set point. Clicking a FAB pops up a **bunch of presets** that allow for quick navigation to common set points (e.g., pointing toward the East [90°] for azimuth, or 60°, 45°, 30°, or 0° for altitude).
+*   **Slew Buttons:** These are the **plus (+) and minus (-)** buttons surrounding the dials. The rate at which the device moves during a slew is determined by the **current zoom scale** of the dial.
+*   **SP Data Entry Absolute:** You can **click directly on the set point** area of the dial to enter an absolute numerical value. Hitting enter will immediately command the mount to that coordinate (e.g., entering '120' to move to an azimuth of 120°).
+*   **SP Data Entry Delta:** The user can interact with the scale to set a new target. There are two methods of interaction:
+    *   Clicking on the **scale** provides a very fine resolution for setting the desired movement.
+    *   Clicking on the **label** will move the mount directly to that round number.
+
+***
+
+**Conceptual Insight:** The Alpaca Pilot Dashboard acts as the primary cockpit for the Polaris mount, translating the mount's complex multi-axis motor movements (M1, M2, M3 motor angles) and celestial mechanics (RA/Dec/PA) into intuitive, real-time feedback (Status Indicators and Motor Indicators) and precise control mechanisms (Radial Dials and Action Buttons). It functions like a sophisticated flight instrument panel for an advanced astrophotographer, allowing control from the microscopic (arc-second precision via zooming radial dials) to the macroscopic (instant GOTO commands).
+
+
+
 
 ## IV. Catalog
 
