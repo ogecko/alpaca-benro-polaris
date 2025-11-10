@@ -3,7 +3,8 @@
 # Alpaca Pilot App
 [Purpose](#what-is-alpaca-pilot) | 
 [Launching](#i-launching-the-alpaca-pilot-application) | 
-[Dashboard](#dashboard) | [Searching](#5-searching)  | [Tuning](#6-tuning) | [Diagnostics](#7-diagnostics) 
+[Connecting](#ii-connecting-to-the-benro-polaris-mount) | 
+[Dashboard](#iii-dashboard) | [Catalog](#catalog)  | [Tuning](#tuning) | [Diagnostics](#diagnostics) 
 
 ## What is Alpaca Pilot?
 
@@ -11,13 +12,13 @@
 
 The **Alpaca Pilot App** is a responsive, single-page web application designed to streamline the startup, configuration and operation of the **Alpaca Driver** when used with the Benro Polaris Mount. It unlocks many of the Driver’s advanced features, enabling users to fully leverage its capabilities.
 
-The Pilot App is completely optional. You can continue using NINA and CCDCiel with the Alpaca Driver just as you did in version 1.0, no changes required. However, choosing not to use the Pilot App means missing out on a range of enhancements that are available to you. 
+The Pilot App is completely optional. You can continue using Stellarium, NINA and CCDCiel with the Alpaca Driver just as you did in version 1.0, no changes required. However, choosing not to use the Pilot App means missing out on a range of enhancements that are available to you. 
 
 The Pilot App was built to:
-- Simplify the Polaris connection and startup process, no need for the official Benro Polaris app
+- Simplify the Polaris connection and startup process, eliminating the need to use the official Benro Polaris app on startup
 - Make it easy to set the observing site’s latitude and longitude
 - Eliminate manual editing of the config.toml configuration file
-- Offer an expanded Deep Sky Catalog that surpasses Benro’s default
+- Offer an expanded Deep Sky Catalog that surpasses Benro’s default catalog
 - Enable precise motion control using geographic or equatorial coordinates
 - Provide insight into the performance and diagnostics of Driver features
 - Allow advanced users to fine-tune Driver performance parameters
@@ -26,6 +27,9 @@ The Pilot App was built to:
 ---
 
 ## I. Launching the Alpaca Pilot Application
+
+>VIDEO DEMO - [22 - Launching Alpaca Pilot](https://youtu.be/Wv_ZvBtZZ4Q?t=0m7s)
+
 
 The Alpaca Pilot App can be accessed via external imaging software or directly through a web browser on a desktop, tablet, or phone.
 
@@ -57,6 +61,7 @@ For example, you might choose to open the Catalog as a new window and position i
 ---
 
 ## II. Connecting to the Benro Polaris Mount
+>VIDEO DEMO - [21 - Connecting Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
 
 The ABP Driver uses Bluetooth Low Energy (BLE) to discover and connect to the Benro Polaris device. BLE is entirely optional and is only used during the initial discovery phase. Once connected, the Driver communicates over Wi-Fi.
 - If your Mini-PC does not support BLE, you can manually enable the Polaris Wi-Fi hotspot using the Benro Polaris App.
@@ -134,20 +139,51 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 
 
 ## III. Dashboard
+>VIDEO DEMO - [21 - Dashboard introduction](https://youtu.be/0QSKD1GCzOc?t=4m55s)
 
->VIDEO DEMO - [22 - Starting and Using Alpaca Pilot](https://youtu.be/Wv_ZvBtZZ4Q)
+>VIDEO DEMO - [22 - Dashboard Status and SP Entry](https://youtu.be/Wv_ZvBtZZ4Q?t=3m18s)
 
-### Status and Motor Indicators
-### Equatorial vs Az/Alt
-### Home, Park, Stop, Track
-Find Home and Park. Both of these functions use the slower absolute motor positions M1, M2, M3. This is the only way we can ensure unwinding of cables. FindHome will return these motors to M1=M2=M3=0, which may not correspond to Az180, Alt45, especially if you have done a single or multi-point alignment. The same with Park, it remembers the M1, M2, M3 positions when you Save the Park Position (or 0,0,0 as a default). If you realign the Polaris with single or multi-point align, the Az/Alt of your park position may change, but the motor angles wont.
-### Dial Interaction
-#### Scale adjustment
-#### Relative Goto
+### Purpose of the Dashboard
+### Action Buttons
+* **Co-ordinate Mode:**
+* **Reset SP:**
+* **Find Home:**
+* **Park:**
+* **Stop:**
+* **Tracking:**
+* **Tracking Rate:**
+
+### Status Indicator
+* **Idle:**
+* **PreSetup:**
+* **Homing:**
+* **Parking:**
+* **Parked:**
+* **Gotoing:**
+* **Slewing:**
+* **Rotating:**
+* **Tracking:**
+* **Guiding:**
+* **Limit:**
+
+### Motor Indicators
+
+### Radial Dials
+* **Scale Indication:**
+* **Scale Adjustment Buttons:**
+* **Floating Action Buttons:**
+* **Floating Action Buttons:**
 #### Absolute Goto
+#### Relative Goto
 #### Slewing
 
-## 5. Searching
+Find Home and Park. Both of these functions use the slower absolute motor positions M1, M2, M3. This is the only way we can ensure unwinding of cables. FindHome will return these motors to M1=M2=M3=0, which may not correspond to Az180, Alt45, especially if you have done a single or multi-point alignment. The same with Park, it remembers the M1, M2, M3 positions when you Save the Park Position (or 0,0,0 as a default). If you realign the Polaris with single or multi-point align, the Az/Alt of your park position may change, but the motor angles wont.
+### Dial Interaction
+
+## IV. Catalog
+
+>VIDEO DEMO - [22 - Alpaca Pilot Catalog](https://youtu.be/Wv_ZvBtZZ4Q?t=6m42s)
+
 ### Search Bar
 ### Side Bar
 ### DSO Objects
