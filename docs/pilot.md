@@ -12,6 +12,9 @@
 
 The **Alpaca Pilot App** is a responsive, single-page web application designed to streamline the startup, configuration and operation of the **Alpaca Driver** when used with the Benro Polaris Mount. It unlocks many of the Driver’s advanced features, enabling users to fully leverage its capabilities.
 
+![Alpaca Pilot App](images/dashboard-dial0.png)
+
+
 The Pilot App is completely optional. You can continue using Stellarium, NINA and CCDCiel with the Alpaca Driver just as you did in version 1.0, no changes required. However, choosing not to use the Pilot App means missing out on a range of enhancements that are available to you. 
 
 The Pilot App was built to:
@@ -62,6 +65,9 @@ For example, you might choose to open the Catalog as a new window and position i
 
 ## II. Connecting to the Benro Polaris Mount
 >VIDEO DEMO - [21 - Connecting Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
+
+![Pilot connect](images/pilot-connect.png)
+
 
 The ABP Driver uses Bluetooth Low Energy (BLE) to discover and connect to the Benro Polaris device. BLE is entirely optional and is only used during the initial discovery phase. Once connected, the Driver communicates over Wi-Fi.
 - If your Mini-PC does not support BLE, you can manually enable the Polaris Wi-Fi hotspot using the Benro Polaris App.
@@ -141,43 +147,7 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 ## III. Dashboard
 >VIDEO DEMO - [21 - Dashboard introduction](https://youtu.be/0QSKD1GCzOc?t=4m55s)
 
->VIDEO DEMO - [22 - Dashboard Status and SP Entry](https://youtu.be/Wv_ZvBtZZ4Q?t=3m18s)
-
-### Purpose of the Dashboard
-### Action Buttons
-* **Co-ordinate Mode:**
-* **Reset SP:**
-* **Find Home:**
-* **Park:**
-* **Stop:**
-* **Tracking:**
-* **Tracking Rate:**
-
-### Status Indicator
-* **Idle:**
-* **PreSetup:**
-* **Homing:**
-* **Parking:**
-* **Parked:**
-* **Gotoing:**
-* **Slewing:**
-* **Rotating:**
-* **Tracking:**
-* **Guiding:**
-* **Limit:**
-
-### Motor Indicators
-
-### Radial Dials
-* **Range Indication:**
-* **Range Adjustment:**
-* **Floating Action Buttons:**
-* **Slew Buttons:**
-* **SP Data Entry Absolute:**
-* **SP Data Entry Delta:**
-
-Find Home and Park. Both of these functions use the slower absolute motor positions M1, M2, M3. This is the only way we can ensure unwinding of cables. FindHome will return these motors to M1=M2=M3=0, which may not correspond to Az180, Alt45, especially if you have done a single or multi-point alignment. The same with Park, it remembers the M1, M2, M3 positions when you Save the Park Position (or 0,0,0 as a default). If you realign the Polaris with single or multi-point align, the Az/Alt of your park position may change, but the motor angles wont.
-
+>VIDEO DEMO - [22 - Dashboard Status and Setpoint Entry](https://youtu.be/Wv_ZvBtZZ4Q?t=3m18s)
 
 ### Purpose of the Dashboard
 The dashboard is the central component of the Alpaca Pilot App. It basically shows you the current **orientation of the telescope** and any **activity on the motors**. It provides **real-time telemetry** of the mount's current coordinates, including Azimuth, Altitude, Roll or Right Ascension, Declination, Position Angle. The Dashboard also provides direct control of the mount through action buttons and interaction into zoomable radial dials for each co-ordinate.
@@ -231,6 +201,9 @@ The dashboard shows any **activity on the motors** and the current **M1, M2, and
 
 ### Radial Dials
 The radial dials are a core part of the dashboard, designed to be flexible and interactive.
+
+![Dashboard radial dial](images/dashboard-dial1.png)
+
 *   **Range Indication:** The dials display the range, which can be seen as the **zoom level**. The range indicates the total angle displayed from one side to the other (e.g., six degrees across the dial).
 *   **Range Adjustment:** You can adjust the zoom or range of the dials. On a desktop, you can use a mouse to **zoom in and zoom out**. The dials can zoom far in, allowing users to see slight movements down to **arc seconds**.
 *   **Floating Action Buttons (FABs):** These buttons are located on the left-hand side of the set point. Clicking a FAB pops up a **bunch of presets** that allow for quick navigation to common set points (e.g., pointing toward the East [90°] for azimuth, or 60°, 45°, 30°, or 0° for altitude).
@@ -241,6 +214,25 @@ The radial dials are a core part of the dashboard, designed to be flexible and i
     *   Clicking on the **label** will move the mount directly to that round number.
 
 ***
+
+![Dashboard radial dial active](images/dashboard-dial2.png)
+
+### Radial Dials
+* **Scale Label:**
+* **Scale Bar:**
+* **Warning Bar:**
+* **Deviation Bar:**
+* **SP Indicator:**
+* **PV Indicator:**
+* **SP Readout:**
+* **PV Readout:**
+
+* **Range Readout:**
+* **Range Adjust:**
+* **Floating Action Buttons:**
+* **Slew Buttons:**
+* **SP Data Entry:**
+
 
 **Conceptual Insight:** The Alpaca Pilot Dashboard acts as the primary cockpit for the Polaris mount, translating the mount's complex multi-axis motor movements (M1, M2, M3 motor angles) and celestial mechanics (RA/Dec/PA) into intuitive, real-time feedback (Status Indicators and Motor Indicators) and precise control mechanisms (Radial Dials and Action Buttons). It functions like a sophisticated flight instrument panel for an advanced astrophotographer, allowing control from the microscopic (arc-second precision via zooming radial dials) to the macroscopic (instant GOTO commands).
 
