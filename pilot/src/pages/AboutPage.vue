@@ -52,10 +52,10 @@
             </thead>
             <tr><td>ADC</td><td>Validimir Vyskocil</td></tr>
             <tr><td>Bertolissio</td><td>Mark Long</td></tr>
-            <tr><td>Billy Buchanan</td><td>Steve Everit</td></tr>
+            <tr><td>Billy Buchanan</td><td>Steve Everitt</td></tr>
             <tr><td>Alan Johnston</td><td>Alex Murdoch</td></tr>
             <tr><td>William Siers</td><td>Daniel Michaud</td></tr>
-            <tr><td>Richard Swaim</td><td></td></tr>
+            <tr><td>Richard Swaim</td><td>Paul C</td></tr>
           </q-markup-table>
         </div>
       </div>
@@ -73,7 +73,7 @@
             <thead>
               <tr><th class="text-left">Company/Individual</th><th class="text-left">Web Services</th></tr>
             </thead>
-            <tr><td>Benro (Polaris)</td><td>GitHub</td></tr>
+            <tr><td>Benro (Polaris), Ivy</td><td>GitHub</td></tr>
             <tr><td>Stefan Berg (Nina)</td><td>Kickstarter</td></tr>
             <tr><td>Robert B. Denny (Alpaca)</td><td>Napkin AI</td></tr>
             <tr><td>Steven Byrnes (Seestar_alp)</td><td>Open AI</td></tr>
