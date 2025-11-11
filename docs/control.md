@@ -31,6 +31,7 @@ The Alpaca Rotator feature is an advanced capability within the Alpaca Benro Pol
 
 This guide outlines the purpose, setup, control concepts, and practical usage of the Alpaca Rotator, drawing on the capabilities introduced in the version 2.0 driver.
 
+
 ---
 
 ## I. Introduction and Core Function
@@ -75,6 +76,8 @@ The Parallactic Angle is the angle between the direction to the celestial north 
 
 To enable rotator control in third-party applications like NINA (Nighttime Imaging 'N' Astronomy):
 
+![Rotator Connection](images/control-rotator.png)
+
 1.  In NINA’s Equipment setup, navigate to the **Rotator equipment** section.
 2.  Perform a **device discovery** to find the Alpaca Rotator.
 3.  Connect to the device. NINA will then have **full control of the rotation axis**.
@@ -98,12 +101,16 @@ The Alpaca Rotator is crucial for advanced framing techniques, particularly when
 
 The rotator function is natively integrated with NINA’s framing capabilities.
 
+![Rotator Framing](images/control-rotator2.png)
+
 1.  **Framing Assistant:** In NINA's Framing Assistant, you can **change the proposed rotation angle** (Position Angle) to see the framing adjust visually.
 2.  **Rotation View:** Enabling the **rotation view** within the Framing Assistant allows you to change the orientation of the image perspective, which makes the framing process easier.
 3.  **Sequenced Correction:** During an imaging sequence, after NINA performs a plate solve and determines the position angle of the captured image, it will **correct any angular offset** by issuing minor adjustments to the rotator to correctly position the panel.
 
 ### Mosaics and Panoramas
 The rotator enables precise, structured imaging for large targets.
+
+![Rotator Mosaic](images/control-rotator3.png)
 
 *   **Tiled Mosaics:** When planning a tiled mosaic (e.g., three wide and two high), NINA calculates the Right Ascension and Declination for each panel.
 *   **Preserving Alignment:** By enabling **"preserve alignment"** in NINA, the system automatically recalculates the specific position angle for each individual panel, ensuring the overall mosaic results in a rectangular image.
@@ -201,6 +208,8 @@ Any remaining points in the model should be placed along the trajectory of your 
 
 After you add any additional sync points to the model, you should review the model residuals on the Alignment page in Alpaca Pilot. When the Driver updates the model, it recalculates how well it fits all of the sync points. Any slight deviation between what that sync point said it was and what the model thinks it should have been, will be listed as a residual. The last sync point will always have zero residual. 
 
+![Alignment Residuals](images/control-alignment1.png)
+
 The other sync points in this list, will likely have varying residuals. The lower the better. If you see anything above 5°, then you might want to consider deleting that point. You really want to keep them down in the arc minutes. And these are arc seconds. 
 
 Delete a sync point by clicking on the cross next to the point. Note that if tracking is enabled when you delete a sync point, the model will adjust, and the mount will shift the head to its new understanding of where the current target is located. If this varies from its current location, then perform another manually initiated plate-solve and sync.
@@ -211,6 +220,7 @@ A very good multi-point alignment model will have all sync points with residuals
 By adding sync points, you help the Driver build a geometric model of your mount’s orientation relative to the sky. There are three approaches to adding sync points to the model.
 
 #### Method 1: Sync via Plate Solve
+![Alignment Sync](images/control-sync1.png)
 
 This is the most automated and accurate method. When your imaging software performs a **plate solve**, it determines the exact celestial coordinates your camera is pointing at. ABP uses this data to add a sync point to the alignment model.
 
@@ -218,7 +228,8 @@ This is the most automated and accurate method. When your imaging software perfo
 - How: After a successful plate solve, ABP automatically adds the sync point
 - Benefit: High-precision alignment with minimal manual input
 
-#### Method 2: Sync via Celestial Coordinates (RA/Dec)
+#### Method 2: Sync via RA/Dec/PA Coordinates 
+![Alignment Sync](images/control-sync2.png)
 
 You can manually add a sync point by specifying a known celestial target using **Right Ascension and Declination**.
 
@@ -227,6 +238,7 @@ You can manually add a sync point by specifying a known celestial target using *
 - Benefit: Useful when plate solving isn’t available or for quick calibration
 
 #### Method 3: Sync via Geographic Landmark (Azimuth and Altitude)
+![Alignment Sync](images/control-sync3.png)
 
 ABP now supports syncing using **azimuth and altitude**, which means you can align to visible landmarks, even during the day or without a star field.  At your observing site, you might have a visible landmark like a high-tension power line or surveyers mark. If you point your camera directly at it:
 - Use the **Pilot app** to click on the landmark on the map in the Alignment page.
@@ -254,6 +266,8 @@ ABP now supports syncing using **azimuth and altitude**, which means you can ali
 
 
 The Benro Polaris mount, while compact and powerful, has a known issue: it can rotate far enough to **wrap cables tightly around the tripod**, risking damage to cables, camera and mount. This kind of entanglement can lead to costly repairs or interrupted imaging sessions.
+
+![Equipment Safety](images/control-safety.png)
 
 Version 2.0 of the Alpaca Benro Polaris (ABP) Driver introduces essential safety mechanisms to protect your gear and simplify your setup workflow. These updates address real-world risks and frustrations reported by users — especially around cable management and unexpected mount behavior.
 
