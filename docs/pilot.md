@@ -95,13 +95,27 @@ For example, you might choose to open the Catalog as a new window and position i
 
 >VIDEO DEMO - [21 - Connecting to the Driver and Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
 
-### Connecting to the Alpaca Driver
+When you start the Alpaca Driver, it will automatically attempt to try and connect to the Benro Polaris. The normal sequence of startup events using Alpaca Pilot are as follows:
+
+- A. Start Alpaca Driver
+- B. Launch Alpaca Pilot
+- C. Power-on the Polaris ane enable Wifi
+- D. Connect to the Polaris
+- E. Setup the Polaris for Astro Mode
+
+### A. Start Alpaca Driver
+After you have installed the Alpaca Driver, you can start the Driver either from a terminal or from the shortcut link you setup. 
+
+![Pilot start Driver](images/pilot-connecta.png)
+
+### B. Launch Alpaca Pilot
+Follow the instructions from the previous section to launch the Alpaca Pilot Application. Navigate to the Connect page to monitor the startup process.
 
 When you launch the **Alpaca Pilot** application, it attempts to automatically connect to the **Alpaca Driver**. In most cases, this connection is established without user intervention. However, if the Driver is not running or network connectivity is lost, you may need to reconnect manually.
 
 If a connection issue is detected, a warning banner will appear. You can then navigate to the **Connect** page to re-establish communication with the Driver.
 
-![Pilot connect](images/pilot-connect0.png)
+![Pilot connect](images/pilot-connectb.png)
 
 
 - **① Driver Host Name / IP Address:**  Enter the hostname or IP address of the mini-PC where the Alpaca Driver is running.  
@@ -116,86 +130,79 @@ If a connection issue is detected, a warning banner will appear. You can then na
    - When **connected**, clicking this will disconnect the session.
 
 
-### Connecting to the Benro Polaris Mount
+### C. Power-on the Polaris ane enable Wifi
 
-
-![Connect to Benro Polaris](images/pilot-connect1.png)
+![Power on Poalris and Enable Wifi](images/pilot-connectc.png)
 
 - **① Power On the Polaris:** The Alpaca Driver uses Bluetooth Low Energy (BLE) to discover nearby Benro Polaris Devices. If none are discovered, check the power of your Benro Polaris Device.
 
-   *Note: BLE is entirely optional and is only used during the initial discovery phase. Once connected, the Driver communicates over Wi-Fi. If your Mini-PC does not support BLE, you can manually enable the Polaris Wi-Fi hotspot using the Benro Polaris App.*
+   *Note: Bluthooth is only used for discovery and enabling Wifi. It is entirely optional. It is not used in normal operation of the Polaris.*
 
 - **② Select a Device**  Detected devices appear in the **Device** dropdown. The first discovered device is selected automatically. If multiple devices are listed, choose the one you wish to connect to.
 
 - **③ Enable Wi-Fi:** The Driver will attempt to enable the selected Polaris’s Wi-Fi hotspot automatically.  
    - You can also manually trigger this by clicking the **Wi-Fi button** next to the device dropdown.  
-   - Once Wi-Fi is successfully enabled, a **blue Wi-Fi signal icon** will appear.
+   - If the Blue LED on the Polaris does not illumunate after 30s, you may need to use the **Benro Polaris App** to discover nearby devices, and enable its Wifi. 
+   - Once Wi-Fi is successfully enabled, the Blue LED on the Polaris should illumunate.
 
-- **④ Polaris Host Name / IP Address:** Enter the hostname or IP address of the Polaris Device. This will typically remain as **192.168.0.1**.  
-   *Note: This is *not* the IP address of the Alpaca Driver.* 
-
-- **⑤ Polaris Port:** Specifies the port used by the Polaris. This will typically remain as **9090**.
-
-- **⑥ Initiate Connection:**  Click this button to manually initiate or retry a connection to the Polaris. 
-
-- **⑦ Polaris Connection Checkbox:** Toggles the connection status with the Polaris.  
-   - When **disconnected**, it functions the same as the *Initiate Connection* button.  
-   - When **connected**, clicking this will disconnect from the Polaris.
-
-### Troubleshooting Wifi Connection
-If you cannot connect to the Benro Polaris mount, you may have an issue with the Wifi connection.
-
-1.  **Automatic Connection**  
-   If your Mini-PC has previously connected to the Polaris, it should automatically reconnect, just as it did in version 1.0. This may take up to a minute before the network becomes accessible to the Alpaca Driver. The Alpaca Driver will continually retry to connect to the Polaris.
-
-2. **Manual Connection**  
-   If this is your first time connecting:  
-   - On Windows 11, open **Network Settings**  
-   - Monitor available Wi-Fi networks until you see a device named `polaris_xxxxx`  
-   - Select it to initiate the connection
-
-3. **Confirm Connection Status**  
-   Wait until the network status displays **"No Internet, open"**. Once connected, the Alpaca Driver will establish communication with the Polaris and begin initialization, reading hardware and firmware version details.
+- **Confirm Wifi Connection:** On Win11, monitor the Wifi List for a polaris_xxxxxx hotspot. Click on the polaris hotspot, enable automatic connection, and click Connect. Once the Mini-PC has connected to the Polaris Wifi Hotspot, it should appear as follows:
 
    ![alt text](images/abp-troubleshoot-wifi1.png)
 
-4. **Troubleshooting Tips**  
-   If you experience issues connecting to the Polaris, consult the [Troubleshooting Guide](./troubleshooting.md) for diagnostic steps and solutions.
+### D. Connect to Polaris
+
+Once Wifi network connectivity has been established to the Polaris, the Driver should automatically connect. If you have problems connecting to the Polaris, the following fields allow you to manually initiate a connection with custom settings.
+
+![Connect to Polaris](images/pilot-connectd.png)
 
 
-### Initial Polaris Setup
 
-![Pilot connect](images/pilot-connect2.png)
+- **① Polaris Host Name / IP Address:** This will typically remain as **192.168.0.1**. Enter the hostname or IP address of the Polaris Device.   
+   *Note: This is *not* the IP address of the Alpaca Driver.* 
 
+- **② Polaris Port:** This will typically remain as **9090**. Specifies the port used by the Polaris. 
+
+- **③ Initiate Connection:**  Click this button to manually initiate or retry a connection to the Polaris. 
+
+- **④ Polaris Connection Checkbox:** Toggles the connection status with the Polaris.  
+   - When **disconnected**, it functions the same as the *Initiate Connection* button.  
+   - When **connected**, clicking this will disconnect from the Polaris.
+
+<br>
+
+   > **Troubleshooting Guide**
+   If you continue to experience issues connecting to the Polaris, consult the [Troubleshooting Guide](./troubleshooting.md) for diagnostic steps and solutions.
+
+<br>
+
+### E. Setup the Polaris for Astro Mode
 
 Follow these steps to prepare your Benro Polaris mount for Astro Mode using the Alpaca Pilot App:
 
-1. **Switch to Astro Mode**  
-   When the Pilot App launches, it will display the current Polaris mode. This is typically **Photo Mode** on first power-up. Use the dropdown menu to switch to **Astro Mode**.
+![Pilot connect](images/pilot-connecte.png)
 
-2. **Initiate Axis Reset**  
-   Click the **Reset** button to command the Polaris to reset all three axes. This replicates the double-tap gesture on each joystick in the Benro Polaris App.
+- **① Switch to Astro Mode:** When the Pilot App launches, it will display the current Polaris mode. This is typically **Photo Mode** on first power-up. Use the dropdown menu to switch to **Astro Mode**.
 
-3. **Wait for Reset Completion**  
+- **② Initiate Axis Reset:** Click the **Reset** button to command the Polaris to reset all three axes. This replicates the double-tap gesture on each joystick in the Benro Polaris App.
+
+   >**Wait for Reset Completion**  
    Allow the mount to finish its reset sequence. Wait until all axes reach their final positions and all motion ceases.
 
-4. **Skip Compass Alignment**  
-   Normally, entering Astro Mode requires a Compass Alignment via the Benro Polaris App. With Pilot, you can bypass this by pressing **Skip**.  
+- **③ Skip Compass Alignment:** Normally, entering Astro Mode requires a Compass Alignment via the Benro Polaris App. With Pilot, you can bypass this by pressing **Skip**.  
    - The default Azimuth is **180°**, but you can manually set it to approximate the mount’s current camera direction.  
    - Note: This Azimuth setting is not equivalent to the Compass Align direction used in the Benro app. It is 180° offset.
 
-5. **Skip Single Star Alignment**  
-   Astro Mode also typically requires a Single Star Alignment. You can skip this step in Pilot by pressing **Skip**.  
+- **④ Skip Single Star Alignment:** Astro Mode also typically requires a Single Star Alignment. You can skip this step in Pilot by pressing **Skip**.  
    - Defaults: Azimuth **180°**, Altitude **45°**  
    - You may adjust these to match the camera’s current orientation.
 
-6. **Set Observing Site Location**  
-   If the app displays a warning that **latitude and longitude are unset**, go to **Settings** in the menu bar.  
+- **⑤ Multi Point Alignment:** Click this Button to navigate to the Alignment Page. This will allow you to enable to Multi-Point Alignment and review model residuals. After 3 or more Sync Points are added to the model this indicator will turn green. If you are using Single Point Alignment, you can ignore this red indicator on the connect page.
+
+- **Set Observing Site Location:** If the app displays a warning that **latitude and longitude are unset**, go to **Settings** in the menu bar.  
    - Use the map to locate your observing site and click to set it.  
    - The app will attempt to auto-fill altitude, pressure, and location name via a web service.
 
-7. **Begin Plate Solving**  
-   With setup complete, you're ready to use the Driver and perform your first plate solve.
+- **Begin Plate Solving:** With setup complete, you're ready to use the Driver and perform your first plate solve.
 
 
 ## III. Using the Dashboard
