@@ -50,7 +50,7 @@ The main menu of the **Alpaca Pilot** application provides centralized access to
 
 - **⑦ Search Toggle:** Toggles the visibility of the search entry field. On narrow screens, it also expands the search input area for easier access. When a search term is present, this button acts as a quick-clear control to reset the entry.
 
-- **⑧ Polaris Battery:** Displays the current battery level of the Polaris mount. Include color-coded indicators or warnings when battery levels are low. Also indicates charging status. On narrow screens, it can also be used to toggle fullcscreen.
+- **⑧ Polaris Battery:** Displays the current battery level of the Polaris mount. Includes color-coded indicators or warnings when battery levels are low. Also indicates charging status. On narrow screens, it can also be used to toggle fullcscreen.
 
 - **⑨ Fullscreen:** Toggles fullscreen mode for immersive operation. This is especially useful during outdoor sessions or when using compact displays, allowing maximum space for control and feedback elements.
 
@@ -121,7 +121,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
 - **① Driver Host Name / IP Address:**  Enter the hostname or IP address of the mini-PC where the Alpaca Driver is running.  
 **Note:** This is *not* the IP address of the Polaris device. 
 
-- **② Driver Port:** Specifies the port used by the Alpaca Driver’s ASCOM REST API. The default is **5555**.  If you’ve changed this value in the network settings, be sure to update it here as well.
+- **② Driver Port:** Specifies the port used by the Alpaca Driver’s ASCOM REST API. The default is **5555**.  If you’ve changed this value in the network services, be sure to update it here as well.
 
 - **③ Initiate Connection:**  Click this button to manually initiate or retry a connection to the Alpaca Driver.
 
