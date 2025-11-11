@@ -138,7 +138,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
 
    *Note: Bluthooth is only used for discovery and enabling Wifi. It is entirely optional. It is not used in normal operation of the Polaris.*
 
-- **② Select a Device**  Detected devices appear in the **Device** dropdown. The first discovered device is selected automatically. If multiple devices are listed, choose the one you wish to connect to.
+- **② Select a Device:**  Detected devices appear in the **Device** dropdown. The first discovered device is selected automatically. If multiple devices are listed, choose the one you wish to connect to.
 
 - **③ Enable Wi-Fi:** The Driver will attempt to enable the selected Polaris’s Wi-Fi hotspot automatically.  
    - You can also manually trigger this by clicking the **Wi-Fi button** next to the device dropdown.  
@@ -204,6 +204,21 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 
 - **Begin Plate Solving:** With setup complete, you're ready to use the Driver and perform your first plate solve.
 
+### F. Network Services
+The **Network Services Dialog** on the **Connect** page is optional, but provides advanced control over how the Alpaca Driver exposes its network services. You can selectively disable specific services or change the network port they use.
+
+This is primarily useful for:
+- Reducing the network surface area of the Driver for security or performance reasons  
+- Resolving port conflicts with other services running on the same system
+
+Additionally, this dialog allows you to modify the Driver’s behavior regarding automatic reconnection to the Polaris mount. You can disable auto-reconnect if manual control is preferred or if the mount is temporarily unavailable.
+
+
+
+![Pilot connect](images/pilot-connectf.png)
+
+<br>
+<br>
 
 ## III. Using the Dashboard
 >VIDEO DEMO - [21 - Dashboard introduction](https://youtu.be/0QSKD1GCzOc?t=4m55s)
