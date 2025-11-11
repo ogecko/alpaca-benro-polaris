@@ -4,7 +4,7 @@
 [Purpose](#what-is-alpaca-pilot) | 
 [Launching](#i-launching-the-alpaca-pilot-application) | 
 [Connect](#ii-connecting-devices) | 
-[Dashboard](#iii-using-the-dashboard) | [Catalog](#catalog)  | [Tuning](#tuning) | [Diagnostics](#diagnostics) 
+[Dashboard](#iii-using-the-dashboard) | [Catalog](#iv-using-the-catalog)  
 
 ## What is Alpaca Pilot?
 
@@ -326,7 +326,7 @@ Scrolling the mouse wheel downward performs the same action as this control.
   - `d2.5` — Increase by 2.5 decimal degrees
 
 
-## IV. Catalog
+## IV. Using the Catalog
 
 >VIDEO DEMO - [22 - Alpaca Pilot Catalog](https://youtu.be/Wv_ZvBtZZ4Q?t=6m42s)
 
@@ -447,20 +447,4 @@ Alpaca Pilot’s select list of objects are cross-referenced with more than 25 m
 
 <br>
 <br>
-
-
-
-## 6. Tuning
-### Speed Calibration
-With the calibration there is no realy right answer and being closer to "zero" doesnt really matter. The intent is to make the driver understand what speeds it will get when it commands the mount to go at a specific cmd. The right answer is the result from your own mount. Faster or slower than the baseline doesnt really matter. The %change is just a check that its not too large a change like >20% which may indicate a bad test result. 7% is fine. send through your results if your unsure what to approve, but I'd suggest approving all.
-### Kalman Filter Tuning
-### PID Tuning
-### Alpaca Driver Network Services
-
-## 7. Diagnostics
-### Log Output
-### Log Settings
-### Position
-### PWM Testing
-
 
