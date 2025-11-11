@@ -330,10 +330,125 @@ Scrolling the mouse wheel downward performs the same action as this control.
 
 >VIDEO DEMO - [22 - Alpaca Pilot Catalog](https://youtu.be/Wv_ZvBtZZ4Q?t=6m42s)
 
-### Search Bar
-### Side Bar
-### DSO Objects
-### Orbitals
+The Alpaca Pilot application features an expanded and intuitive catalog designed to simplify the selection and targeting of celestial objects for astrophotography. This guide details the catalog's contents, how to navigate, filter, and use it for slewing and alignment.
+
+![Catalog](images/pilot-catalog1.png)
+
+### What the Catalog Includes
+
+The catalog in the Alpaca Pilot App has been **significantly expanded** beyond the original Benro Polaris catalog.
+
+1.  **Curated Content:** Instead of listing thousands of objects, the catalog focuses on **quality**. It includes a curated selection of over **500 premium deep sky objects**. These targets highlight the top 25% of imaging targets, based on input from experienced astrophotographers.
+2.  **Object Types:** The entries include a selection of Nebulae, Galaxies, Clusters, and Stars.
+3.  **Ratings and Notes:** Each entry provides helpful notes and community ratings to guide your choices. To keep the application footprint small, items categorized as "typical," "hard," or "avoid" are excluded from the base catalog.
+4. **Cross Referenced:** Each entry is cross referenced to over 25 master catalogs like Messier, Caldwell, NGC, IC, H400, Sh2, LDN etc. 
+
+### Understanding Catalog Visual Indicators (Chips)
+
+Each target listing features three coloured chips that provide a quick visual summary of the object's characteristics and current position:
+
+| Chip Colour | Name | Information Provided | Examples of Categorization |
+| :--- | :--- | :--- | :--- |
+| **Purple** | **Rating** | Indicates the item's imaging rating. By default, the catalog is searched with the most highly rated items listed first. | Categories are used to filter to the top 25% of targets for imaging suitability. |
+| **Blue** | **Visibility** | Shows the brightness (apparent magnitude) and angular size of the object. | **Size:** Greater than 100 arc minutes (e.g., Carina Nebula), Extended (30-100 arc minutes), etc.. **Brightness:** Brilliant (magnitude < 2), Bright (2–4), Visible, Dim, Faint (up to magnitude 10). |
+| **Yellow** | **Position** | Gives a quick, readable sense of the target's position in the sky (azimuth and altitude). | Examples include "mid low in the southwest," "high in the north," or "near the horizon". Items high above 82 degrees (near zenith) or "below the horizon" are flagged as red. |
+
+### Searching the Catalog
+The search system is designed to be fast, intuitive, and efficient for target selection. You can find any object by simply **typing a few letters or numbers** of its name or catalogue reference.
+
+1. **Search by Name:**
+   Enter part of the object’s **common name**.
+
+   * Example: **“rig”** →  *Rigil Kentaurus*.
+   * Example: **“pole”** →  *North Celestial Pole*.
+
+2. **Search by Reference:**
+   Enter part of the object’s **catalogue designation**.
+
+   * Example: **“M8”** → *Lagoon Nebula*
+   * Example: **“NGC 5139”** → *Omega Centauri*
+
+Common catalogue prefixes include **M**, **NGC**, **IC**, **C (Caldwell)**, **Abell**, **Arp**, **H (Herschel)**, **LDN**, and others.
+For a full list of supported catalogues, see the **Reference Catalogues** section.
+
+### Filtering Results
+You can filter targets by various key attributes that affect imaging suitability, including **Type, Proximity, Quality Rating, Altitude, Classification, Angular size, Apparent magnitude (brightness)**.
+
+![Catalog](images/pilot-catalog2.png)
+
+1.  **Filtering by Type (Side Menu):** Use the side menu to limit results by broad object type, such as Nebula, Galaxy, Cluster, or Star.
+1.  **Filtering by Proximity (Side Menu):** Displays objects sorted by angular proximity to the telescope’s current pointing or the mount’s orientation. Ideal for finding nearby targets without slewing far.
+2.  **Filtering by Quality Rating (Dropdown):** Filter by the visual and imaging quality rating of each object, eg Top 2%, 10%, 25%.
+3.  **Filtering by Altitude (Dropdown):** Limit the list based on the height of the object in the sky.
+3.  **Filtering by Classification (Dropdown):** Filter by fine grained classification of the subtype of the object.
+3.  **Filtering by Size (Dropdown):** Filter by apparent angular size of the object
+3.  **Filtering by Brightness (Dropdown):** Filter by visual brightness (magnitude) for selecting objects suited to your observing or imaging conditions
+
+### GoTo (Slew) to the Target
+To move the mount to a target's location, simply **click the GoTo button** associated with the item, and the mount will start moving to that location.
+
+*   **Tracking State Preservation:** When you issue a GoTo command, the driver will preserve **whatever the tracking state was** at the time; it does not automatically turn tracking on.
+*   **Roll Angle Preservation:** When you issue a GoTo command, the driver will preserve **whatever the roll angle state** at the time; it does not reset back to zero. When in equitorial model, the Roll Angle is still preserved, and the corresponding Position Angle for that orientation is selected.
+
+
+### Sync with a Target
+If the object you have selected is **already visible in your camera’s field of view**, you can use the sync function to align the mount's coordinates precisely. Syncing helps the Driver understand where the telescope is pointing compared to where Polaris thinks it is, correcting any upstream misalignment.
+
+### Reference Catalogs
+
+Alpaca Pilot’s select list of objects are cross-referenced with more than 25 master catalogues, encompassing the most popular and scientifically significant deep-sky objects observed by both amateur and professional astronomers.
+
+
+
+| Catalogue                       | Description                                                                       | Objects |
+| ------------------------------- | --------------------------------------------------------------------------------- | ------- |
+|| **General Catalogues** |
+||
+| **Messier (M)**                 | Classic list of 110 bright deep-sky objects compiled by Charles Messier (~1774).  | 110     |
+| **Caldwell (Caldwell)**                | Patrick Moore’s 1995 complement to Messier, covering both hemispheres.            | 109     |
+| **Herschel 400 (H)**        | 400 of William Herschel’s best nebulae and clusters from his 18th-century survey. | 400     |
+| **New General Catalogue (NGC)** | The main reference catalogue for deep-sky objects (~1888).                        | 7,840   |
+| **Index Catalogue (IC)**        | Supplement to the NGC with later discoveries (~1912).                             | 5,386   |
+| **Henry Draper (HD)** | Comprehensive stellar catalogue listing over 225,000 stars, compiled at Harvard College Observatory (1918–1924). Each star is identified by spectral type and magnitude.| 225,300+ |
+||
+|| **Galaxy Catalogues** |
+||
+| **Abell**         | Clusters of galaxies—the largest bound structures in the universe (~1958). | 4,073   |
+| **Arp**           | Atlas of 338 “peculiar” or interacting galaxies (~1966).                   | 338     |
+| **Hickson** | Compact groups of small, closely packed galaxies (~1982).                  | 100     |
+| **PGC**           | Principal Galaxies Catalogue—comprehensive all-sky galaxy list (~1995).    | 73,197  |
+| **UGC**           | Uppsala General Catalogue—northern hemisphere galaxies (~1973).            | 12,921  |
+||
+|| **Planetary Nebulae Catalogues** |
+||
+| **Abell**         | Old planetary nebulae from Palomar Sky Survey (~1966).     | 86      |
+| **Minkowski** | PNe discovered in the 1940s; includes the M 1–4 series.    | 207     |
+| **Kohoutek**  | Extensive PN survey by Luboš Kohoutek (~1967).             | 1,500   |
+| **Griffiths**     | Modern visual selection of bright, interesting PN (~2012). | 45      |
+||
+|| **Nebulae Catalogues** |
+||
+| **Barnard**     | Classic dark nebulae photographed by E.E. Barnard (~1927). | 349     |
+| **LDN**             | Lynds Dark Nebulae from Palomar survey (~1962).            | 1,802   |
+| **LBN**             | Lynds Bright Nebulae—bright diffuse nebulosity (~1965).    | 1,025   |
+| **Sharpless (Sh 2-)** | Emission nebulae and H II regions (~1959).                 | 313     |
+| **RCW**             | Southern emission nebulae (~1960).                         | 182     |
+| **Gum**         | Southern H II regions catalogue (~1955).                   | 85      |
+| **vdB**             | Reflection nebulae (~1966).                                | 159     |
+| **SNR**             | Galactic Supernova Remnants (~1984).                       | 294     |
+||
+|| **Other Special Catalogues** |
+||
+| **Hidden Treasures (HT)**  | Stephen O’Meara’s list of 109 overlooked but beautiful objects (~2007).        | 109     |
+| **Secret Deep (SD)**       | Further 109 deep-sky highlights not in Messier or Caldwell (~2011).            | 109     |
+| **Orphaned Beauties (OB)** | Astrophotography-focused list of 109 large, under-appreciated objects (~2020). | 109     |
+| **Small Packages (SP)**    | 109 compact but fascinating small targets (~2020).                             | 109     |
+
+
+<br>
+<br>
+
+
 
 ## 6. Tuning
 ### Speed Calibration
