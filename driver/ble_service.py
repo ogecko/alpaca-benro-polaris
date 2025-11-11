@@ -69,7 +69,10 @@ class BLE_Controller():
         address = self.get_address_by_name(name)
         if not address:
             return
-
+        
+        if Config.log_polaris_ble:
+            await self.listCharacteristics()
+            
         self.isEnablingWifi = True
         self.isWifiEnabled = False
         max_attempts = 3
