@@ -3,10 +3,10 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.0.0 Beta4
-* **Release Date:** 9-Nov-2025   
+* **Version:** 2.0.0 Beta5
+* **Release Date:** 21-Nov-2025   
 * **Availability:** Download from https://github.com/ogecko/alpaca-benro-polaris
-* **Current Branch:** releases/2_0_beta4 
+* **Current Branch:** releases/2_0_beta5 
 
 ## Demonstration Videos
 * **20 - Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
@@ -26,6 +26,10 @@
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.0
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
+
+## What's new in beta5
+- **[Planets and Moons]** Add solar system orbitals to catalog, including Sun, Moon, Planets and Planetary Moons
+
 
 ## What's new in beta4
 - **[Documentation Menu]** Add Documentation menu for Pilot, Control, Troubleshooting, Videos, FAQ and About

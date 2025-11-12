@@ -6,17 +6,16 @@ import { useStatusStore } from './status'
 import { useConfigStore } from './config'
 import { getAzAlt, hrToDeg, toDeg, toRad } from 'src/utils/angles'
 import { toRaw } from 'vue'
-// # Total Number of Objects:  3263
-// #  ../pilot/public/catalog_top25_lg.json 530
-// #  ../pilot/public/catalog_top25_sm.json 401
-// #  ../pilot/public/catalog_typical_md.json 1709
+// # Total Number of Objects:  3289
+// #  ../pilot/public/catalog_top25_lg.json 556
+// #  ../pilot/public/catalog_top25_sm.json 413
+// #  ../pilot/public/catalog_typical_md.json 1714
 // # Rt:  {5: 'Showcase (Top 2%)', 4: 'Excellent (Top 10%)', 3: 'Good (Top 25%)', 2: 'Typical', 1: 'Challenging', 0: 'Not recommended'}
 // # Vz:  {0: 'Ultra Faint (Mag 12+)', 1: 'Ghostly (Mag 10-12)', 2: 'Faint (Mag 8-10)', 3: 'Dim (Mag 6-8)', 4: 'Visible (Mag 4-6)', 5: 'Bright (Mag 2-4)', 6: 'Brilliant (Mag <2)', 7: 'Unknown'}
 // # Sz:  {0: 'Very-Tiny (<0.5′)', 1: 'Tiny (0.5–1′)', 2: 'Small (1–2′)', 3: 'Compact (2–5′)', 4: 'Moderate (5–10′)', 5: 'Prominent (10–30′)', 6: 'Extended (30–100′)', 7: 'Expansive (100′+)', 8: 'Unknown'}
-// # C1:  {0: 'Nebula', 1: 'Galaxy', 2: 'Cluster', 3: 'Star'}
-// # C2:  {0: 'Set of Chained Galaxies', 1: 'Set of Clustered Galaxies', 2: 'Set of Grouped Galaxies', 3: 'Set of Merging Galaxies', 4: 'Pair of Galaxies', 5: 'Trio of Galaxies', 6: 'Blue Compact Dwarf Galaxy', 7: 'Collisional Ring Galaxy', 8: 'Dwarf Galaxy', 9: 'Elliptical Galaxy', 10: 'Flocculent Galaxy', 11: 'Lenticular Galaxy', 12: 'Magellanic Galaxy', 13: 'Polar Galaxy', 14: 'Spiral Galaxy', 15: 'Dark Nebula', 16: 'Emission Nebula', 17: 'Molecular Cloud Nebula', 18: 'Planetary Nebula', 19: 'Protoplanetary Nebula', 20: 'Reflection Nebula', 21: 'Supernova Remnant Nebula', 22: 'Globular Cluster', 23: 'Herbig-Haro Object', 24: 'Nova Object', 25: 'Open Cluster', 26: 'Star', 27: 'Star Cloud', 28: 'Young Stellar Object'}
-// # Cn:  {0: 'Andromeda', 1: 'Antlia', 2: 'Apus', 3: 'Aquila', 4: 'Aquarius', 5: 'Ara', 6: 'Aries', 7: 'Auriga', 8: 'Boötes', 9: 'Canis Major', 10: 'Canis Minor', 11: 'Canes Venatici', 12: 'Camelopardalis', 13: 'Capricornus', 14: 'Carina', 15: 'Cassiopeia', 16: 'Centaurus', 17: 'Cepheus', 18: 'Cetus', 19: 'Chamaeleon', 20: 'Circinus', 21: 'Cancer', 22: 'Columba', 23: 'Coma Berenices', 24: 'Corona Australis', 25: 'Corona Borealis', 26: 'Crater', 27: 'Crux', 28: 'Corvus', 29: 'Cygnus', 30: 'Delphinus', 31: 'Dorado', 32: 'Draco', 33: 'Eridanus', 34: 'Fornax', 35: 'Gemini', 36: 'Grus', 37: 'Hercules', 38: 'Horologium', 39: 'Hydra', 40: 'Leo Minor', 41: 'Lacerta', 42: 'Leo', 43: 'Lepus', 44: 'Libra', 45: 'Lupus', 46: 'Lynx', 47: 'Lyra', 48: 'Mensa', 49: 'Microscopium', 50: 'Monoceros', 51: 'Musca', 52: 'Norma', 53: 'Octans', 54: 'Ophiuchus', 55: 'Orion', 56: 'Pavo', 57: 'Pegasus', 58: 'Perseus', 59: 'Phoenix', 60: 'Pictor', 61: 'Piscis Austrinus', 62: 'Pisces', 63: 'Puppis', 64: 'Pyxis', 65: 'Reticulum', 66: 'Sculptor', 67: 'Scorpius', 68: 'Scutum', 69: 'Serpens', 70: 'Sextans', 71: 'Sagitta', 72: 'Sagittarius', 73: 'Taurus', 74: 'Telescopium', 75: 'Triangulum Australe', 76: 'Triangulum', 77: 'Tucana', 78: 'Ursa Major', 79: 'Ursa Minor', 80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula'}
-
+// # C1:  {0: 'Nebula', 1: 'Galaxy', 2: 'Cluster', 3: 'Star', 4: 'Planet', 5: 'Moon'}
+// # C2:  {0: 'Set of Chained Galaxies', 1: 'Set of Clustered Galaxies', 2: 'Set of Grouped Galaxies', 3: 'Set of Merging Galaxies', 4: 'Pair of Galaxies', 5: 'Trio of Galaxies', 6: 'Blue Compact Dwarf Galaxy', 7: 'Collisional Ring Galaxy', 8: 'Dwarf Galaxy', 9: 'Elliptical Galaxy', 10: 'Flocculent Galaxy', 11: 'Lenticular Galaxy', 12: 'Magellanic Galaxy', 13: 'Polar Galaxy', 14: 'Spiral Galaxy', 15: 'Dark Nebula', 16: 'Emission Nebula', 17: 'Molecular Cloud Nebula', 18: 'Planetary Nebula', 19: 'Protoplanetary Nebula', 20: 'Reflection Nebula', 21: 'Supernova Remnant Nebula', 22: 'Globular Cluster', 23: 'Herbig-Haro Object', 24: 'Nova Object', 25: 'Open Cluster', 26: 'Star', 27: 'Star Cloud', 28: 'Young Stellar Object', 29: 'Planet', 30: 'Dwarf Planet', 31: 'Martian Moon', 32: 'Galilean Moon', 33: 'Saturnian Moon', 34: 'Natural Satellite', 35: 'Space Station', 36: 'Satellite', 37: 'Rocket Body', 38: 'Space Debris', 39: 'Comet', 40: 'Asteroid'}
+// # Cn:  {0: 'Andromeda', 1: 'Antlia', 2: 'Apus', 3: 'Aquila', 4: 'Aquarius', 5: 'Ara', 6: 'Aries', 7: 'Auriga', 8: 'Boötes', 9: 'Canis Major', 10: 'Canis Minor', 11: 'Canes Venatici', 12: 'Camelopardalis', 13: 'Capricornus', 14: 'Carina', 15: 'Cassiopeia', 16: 'Centaurus', 17: 'Cepheus', 18: 'Cetus', 19: 'Chamaeleon', 20: 'Circinus', 21: 'Cancer', 22: 'Columba', 23: 'Coma Berenices', 24: 'Corona Australis', 25: 'Corona Borealis', 26: 'Crater', 27: 'Crux', 28: 'Corvus', 29: 'Cygnus', 30: 'Delphinus', 31: 'Dorado', 32: 'Draco', 33: 'Eridanus', 34: 'Fornax', 35: 'Gemini', 36: 'Grus', 37: 'Hercules', 38: 'Horologium', 39: 'Hydra', 40: 'Leo Minor', 41: 'Lacerta', 42: 'Leo', 43: 'Lepus', 44: 'Libra', 45: 'Lupus', 46: 'Lynx', 47: 'Lyra', 48: 'Mensa', 49: 'Microscopium', 50: 'Monoceros', 51: 'Musca', 52: 'Norma', 53: 'Octans', 54: 'Ophiuchus', 55: 'Orion', 56: 'Pavo', 57: 'Pegasus', 58: 'Perseus', 59: 'Phoenix', 60: 'Pictor', 61: 'Piscis Austrinus', 62: 'Pisces', 63: 'Puppis', 64: 'Pyxis', 65: 'Reticulum', 66: 'Sculptor', 67: 'Scorpius', 68: 'Scutum', 69: 'Serpens', 70: 'Sextans', 71: 'Sagitta', 72: 'Sagittarius', 73: 'Taurus', 74: 'Telescopium', 75: 'Triangulum Australe', 76: 'Triangulum', 77: 'Tucana', 78: 'Ursa Major', 79: 'Ursa Minor', 80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula', 84: 'Orbit'}
 const p = useStatusStore()
 const cfg = useConfigStore()
 let positionUpdateTimer: ReturnType<typeof setInterval> | null = null;
@@ -373,7 +372,7 @@ export const typeLookupIcon: Record<DsoType, string>  = {
   1: 'mdi-cryengine', 
   2: 'mdi-blur', 
   3: 'mdi-flare',
-  4: 'mdi-full-moon',
+  4: 'mdi-moon-full',
   5: 'mdi-moon-waning-crescent'
 }
 
@@ -428,7 +427,8 @@ const brightnessLookup: Record<DsoBrightness, string> = {
 
 export type DsoSubtype = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
                   10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 |
-                  20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30;
+                  20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 |
+                  31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40;
 const subtypeLookup: Record<DsoSubtype, string> = {
   0: 'Chained Galaxies', 
   1: 'Clustered Galaxies', 
@@ -459,8 +459,8 @@ const subtypeLookup: Record<DsoSubtype, string> = {
   26: 'Star', 
   27: 'Star Cloud', 
   28: 'Young Stellar Object',
-  29: 'Planet',
-  30: 'Moon'
+  29: 'Planet', 30: 'Dwarf Planet', 31: 'Martian Moon', 32: 'Galilean Moon', 33: 'Saturnian Moon', 
+  34: 'Natural Satellite', 35: 'Space Station', 36: 'Satellite', 37: 'Rocket Body', 38: 'Space Debris', 39: 'Comet', 40: 'Asteroid'
 }
 
 export type DsoConstellation =
@@ -472,7 +472,7 @@ export type DsoConstellation =
   | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59
   | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69
   | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79
-  | 80 | 81 | 82 | 83;
+  | 80 | 81 | 82 | 83 | 84;
 const constellationLookup: Record<DsoConstellation, string> = {
   0: 'Andromeda', 1: 'Antlia', 2: 'Apus', 3: 'Aquila',
   4: 'Aquarius', 5: 'Ara', 6: 'Aries', 7: 'Auriga',
@@ -494,7 +494,7 @@ const constellationLookup: Record<DsoConstellation, string> = {
   68: 'Scutum', 69: 'Serpens', 70: 'Sextans', 71: 'Sagitta',
   72: 'Sagittarius', 73: 'Taurus', 74: 'Telescopium', 75: 'Triangulum Australe',
   76: 'Triangulum', 77: 'Tucana', 78: 'Ursa Major', 79: 'Ursa Minor',
-  80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula'
+  80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula', 84: 'Orbit'
 }
 
 
