@@ -1047,6 +1047,30 @@ class PID_Controller():
         parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
         self.body_pa_offset = wrap_to_360(delta[2] - parallactic_angle)
 
+    def orbital2delta(self):
+        if self.polaris._trackingrate == 1:   # 1=Lunar
+            self.observer.date = ephem.Date(datetime.datetime.utcnow())
+            self.observer.epoch = ephem.now()
+            line1 = 'STARLINK-11072 [DTC] '   
+            line2 = '1 58705U 24002A   25314.92248173  .00002891  00000+0  28713-4 0  9998'
+            line3 = '2 58705  53.1585 139.4993 0001027  89.7247 270.3889 15.69707532107784'
+            orbital = ephem.readtle(line1, line2, line3)
+            orbital = ephem.Moon() 
+            orbital.compute(self.observer)
+            self.logger.info(f"Tracking - Alt: {rad2deg(orbital.alt):.2f} Az: {rad2deg(orbital.az):.2f}")    
+            orb_alt = rad2deg(orbital.alt)
+            orb_az = rad2deg(orbital.az)
+            orb_ra = rad2deg(orbital.ra)
+            orb_dec = rad2deg(orbital.dec)
+            ra_change = abs(orb_ra - self.delta_sp[0])
+            dec_change = abs(orb_dec - self.delta_sp[1])
+            is_keep_roll_angle = ra_change>10/60 or dec_change>10/60
+            if orb_alt>15:
+                self.delta_sp[0] = orb_ra
+                self.delta_sp[1] = orb_dec
+                if is_keep_roll_angle:
+                    parallactic_angle = calc_parallactic_angle(orb_az, orb_alt, self.polaris._sitelatitude)
+                    self.delta_sp[2] = self.body_pa_offset + parallactic_angle  # keep roll angle stable
 
 
     #------- Functions to change SP, Targets and Mode ---------
@@ -1239,6 +1263,8 @@ class PID_Controller():
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
 
         elif self.mode == 'TRACK':
+            # update delta_sp based on any non-sidereal tracking (Lunar, Solar, Other)
+            self.orbital2delta()
             # Apply relevant guiderate if delta_g_sp duration is non-zero
             for axis in [0, 1]:  # RA, Dec
                 with self._lock:
@@ -1312,7 +1338,7 @@ class PID_Controller():
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
-        self.is_axis_preloading = np.abs(self.error_signal) > 3 / 60           # preload error_integration outside 3 arcmin
+        self.is_axis_preloading = np.abs(self.error_signal) > 5 / 60           # preload error_integration outside 5 arcmin
         self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
 
         # calc cost signal and flags
