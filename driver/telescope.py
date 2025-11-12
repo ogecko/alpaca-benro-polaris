@@ -26,6 +26,7 @@ import json
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent
 from log import update_log_level
+from orbitals import update_orbital_data, compose_orbital_export
 
 logger: Logger = None
 polaris: Polaris = None
@@ -1728,6 +1729,14 @@ class action:
             await polaris.send_cmd_545_query_L_bracket()
             await polaris.resetAxes()
             resp.text = await PropertyResponse('Polaris:SetLBracket ok', req)  
+            return
+        
+        elif actionName == "Polaris:GetOrbitals":
+            logger.info("Polaris:GetOrbitals requested")
+            update_orbital_data(polaris._observer)
+            export_data = compose_orbital_export()
+            resp.content_type = "application/json"
+            resp.text = json.dumps(export_data, indent=2)
             return
 
         else:

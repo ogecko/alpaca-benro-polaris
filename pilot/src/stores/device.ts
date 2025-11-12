@@ -206,6 +206,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:SetLBracket', `{"state": ${state}}`)
     },
 
+    async getOrbitals() {
+      return await this.apiAction('Polaris:GetOrbitals')
+    },
+
     async catalogFetch() {
       try {
         const resp = await axios.get('/catalog_a_lg.json');

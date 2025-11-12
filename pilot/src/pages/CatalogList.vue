@@ -116,7 +116,7 @@ import { useRoute, useRouter } from 'vue-router'
 import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude, DsoConstellation, DsoRating, DsoSize, DsoBrightness } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
-import { useCatalogStore } from 'src/stores/catalog'
+import { useCatalogStore, typeLookupIcon } from 'src/stores/catalog'
 import VBar from 'src/components/VBar.vue'
 import MultiSelect from 'src/components/MultiSelect.vue'
 
@@ -157,13 +157,6 @@ watch(() => route.query, syncFiltersFromRoute, { deep: true, flush: 'sync' });
 
 
 // ---------- Helpers
-const typeLookupIcon: Record<DsoType, string>  = {
-  0: 'mdi-horse-variant', 
-  1: 'mdi-cryengine', 
-  2: 'mdi-blur', 
-  3: 'mdi-flare'
-}
-
 const altLookupColor: Record<DsoAltitude, string>  = {
   0: 'negative', 
   1: 'warning', 

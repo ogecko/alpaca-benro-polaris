@@ -145,7 +145,9 @@ export const useCatalogStore = defineStore('catalog', {
             0: [15, 21], // Nebula
             1: [0, 14],  // Galaxy
             2: [22, 28], // Stellar (Cluster + Star)
-            3: [22, 28]  // Star (merged with Stellar range)
+            3: [22, 28],  // Star (merged with Stellar range)
+            4: [29, 29], // Planet
+            5: [30, 30], // Moon
         };
         // Collect all valid subtype keys based on selected C1 types
         const allowedSubtypes = new Set<number>();
@@ -365,19 +367,23 @@ export const azimuthLookup: Record<DsoAzimuth, string> = {
 };
 
 
-export type DsoType = 0 | 1 | 2 | 3;
-const typeLookupIcon: Record<DsoType, string>  = {
+export type DsoType = 0 | 1 | 2 | 3 | 4 | 5;
+export const typeLookupIcon: Record<DsoType, string>  = {
   0: 'mdi-horse-variant', 
   1: 'mdi-cryengine', 
   2: 'mdi-blur', 
-  3: 'mdi-flare'
+  3: 'mdi-flare',
+  4: 'mdi-full-moon',
+  5: 'mdi-moon-waning-crescent'
 }
 
 const typeLookup: Record<DsoType, string>  = {
   0: 'Nebula', 
   1: 'Galaxy', 
   2: 'Cluster', 
-  3: 'Star'
+  3: 'Star',
+  4: 'Planet',
+  5: 'Moon'
 }
 
 
@@ -422,7 +428,7 @@ const brightnessLookup: Record<DsoBrightness, string> = {
 
 export type DsoSubtype = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
                   10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 |
-                  20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28;
+                  20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30;
 const subtypeLookup: Record<DsoSubtype, string> = {
   0: 'Chained Galaxies', 
   1: 'Clustered Galaxies', 
@@ -452,7 +458,9 @@ const subtypeLookup: Record<DsoSubtype, string> = {
   25: 'Open Cluster', 
   26: 'Star', 
   27: 'Star Cloud', 
-  28: 'Young Stellar Object'
+  28: 'Young Stellar Object',
+  29: 'Planet',
+  30: 'Moon'
 }
 
 export type DsoConstellation =
