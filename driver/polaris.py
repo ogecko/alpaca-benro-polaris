@@ -1488,6 +1488,7 @@ class Polaris:
                 'age518': self._age_518_seconds,
                 'tracking': self._tracking,
                 'trackingrate': self._trackingrate,
+                'trackingname': self._pid.orbital_sp_name,
                 'athome': self._athome,
                 'atpark': self._atpark,
                 'slewing': self._slewing,

@@ -33,7 +33,7 @@
 - **[Orbital Tracking]** Add Solar, Lunar and Other tracking rates for all cataloged orbitals, including TLE objects.
 - **[Orbital Documentation]** Update Pilot documentation on Orbitals.
 - **[Solar Warning]** Confirm before enabling Solar Tracking Rate.
-- **[Tracking Chip]** Update tracking status chip to indicate tracking rate.
+- **[Tracking Chip]** Update tracking status chip to indicate tracking rate ie Sidereal, Lunar, Solar, or Custom (orbital's name).
 
 
 ## What's new in beta4

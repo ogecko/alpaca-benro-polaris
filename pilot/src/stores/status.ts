@@ -41,6 +41,7 @@ export const useStatusStore = defineStore('status', {
         age518: 0,
         tracking: false,
         trackingrate: 0,
+        trackingname: '',
         athome: false,
         atpark: false,
         slewing: false,

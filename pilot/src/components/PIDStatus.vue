@@ -23,6 +23,7 @@ const statusLabel = computed(() =>
   p.tracking && p.trackingrate==0 ? "Sidereal" : 
   p.tracking && p.trackingrate==1 ? "Lunar" : 
   p.tracking && p.trackingrate==2 ? "Solar" : 
+  p.tracking && p.trackingrate==3 && p.trackingname ? p.trackingname : 
   p.tracking && p.trackingrate==3 ? "Custom" : 
                "Idle"
 )
