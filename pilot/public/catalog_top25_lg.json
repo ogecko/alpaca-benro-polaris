@@ -154,7 +154,7 @@
     "Name":"Rho Ophiuchi",
     "Notes":"Colorful mosaic of deep sky objects around Rho Ophiuchi",
     "Class":null,
-    "OtherIDs":"OB 69",
+    "OtherIDs":"vdB 106, OB 69",
     "Rt":5,
     "Sz":7,
     "Vz":7,
@@ -5743,21 +5743,6 @@
     "C2":16,
     "RA_hr":16.3530555556,
     "Dec_deg":-25.5927777778
-  },
-  {
-    "MainID":"IC 4604",
-    "Name":null,
-    "Notes":"Wonderful blue tones in this Rho Ophiuchi region reflection nebula surrounding 3 stars",
-    "Class":null,
-    "OtherIDs":"vdB 106",
-    "Rt":3,
-    "Sz":6,
-    "Vz":7,
-    "Cn":54,
-    "C1":0,
-    "C2":20,
-    "RA_hr":16.4266666667,
-    "Dec_deg":-23.4422222222
   },
   {
     "MainID":"Barnard 59",

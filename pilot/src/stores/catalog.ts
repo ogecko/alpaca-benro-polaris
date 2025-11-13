@@ -7,8 +7,8 @@ import { useConfigStore } from './config'
 import { getAzAlt, hrToDeg, toDeg, toRad } from 'src/utils/angles'
 import { toRaw } from 'vue'
 import { useDeviceStore } from './device'
-// # Total Number of Objects:  3289
-// #  ../pilot/public/catalog_top25_lg.json 556
+// # Total Number of Objects:  3288
+// #  ../pilot/public/catalog_top25_lg.json 555
 // #  ../pilot/public/catalog_top25_sm.json 413
 // #  ../pilot/public/catalog_typical_md.json 1714
 // # Rt:  {5: 'Showcase (Top 2%)', 4: 'Excellent (Top 10%)', 3: 'Good (Top 25%)', 2: 'Typical', 1: 'Challenging', 0: 'Not recommended'}
