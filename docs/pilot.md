@@ -339,7 +339,7 @@ The Alpaca Pilot application features an expanded and intuitive catalog designed
 The catalog in the Alpaca Pilot App has been **significantly expanded** beyond the original Benro Polaris catalog.
 
 1.  **Curated Content:** Instead of listing thousands of objects, the catalog focuses on **quality**. It includes a curated selection of over **500 premium deep sky objects**. These targets highlight the top 25% of imaging targets, based on input from experienced astrophotographers.
-2.  **Object Types:** The entries include a selection of Nebulae, Galaxies, Clusters, and Stars.
+2.  **Object Types:** The entries include a selection of Nebulae, Galaxies, Clusters, Stars, Planets, Moons, and Satellites.
 3.  **Ratings and Notes:** Each entry provides helpful notes and community ratings to guide your choices. To keep the application footprint small, items categorized as "typical," "hard," or "avoid" are excluded from the base catalog.
 4. **Cross Referenced:** Each entry is cross referenced to over 25 master catalogs like Messier, Caldwell, NGC, IC, H400, Sh2, LDN etc. 
 
@@ -394,6 +394,33 @@ To move the mount to a target's location, simply **click the GoTo button** assoc
 ### Sync with a Target
 If the object you have selected is **already visible in your camera’s field of view**, you can use the sync function to align the mount's coordinates precisely. Syncing helps the Driver understand where the telescope is pointing compared to where Polaris thinks it is, correcting any upstream misalignment.
 
+### Orbitals
+The catalog also includes a variety of orbital objects whose motion deviates from sidereal tracking and whose Equatorial coordinates are not fixed. These include natural solar system bodies, such as the Sun, Moon, planets, and planetary moons; as well as artificial objects like satellites, space stations, rocket bodies, and orbital debris.
+
+Unlike fixed stars, these objects can move rapidly across the sky, with some, particularly artificial satellites, traversing from horizon to horizon in just a few minutes. Their dynamic motion presents unique challenges for tracking and observation.
+
+#### Typical Pass Duration by Orbit Type
+
+| Orbit Type         | Altitude Range | Pass Duration | Example Satellites         |
+|--------------------|----------------|---------------|----------------------------|
+| Low Earth Orbit (LEO) | 200–2,000 km   | 2–10 minutes   | ISS, Starlink, Hubble      |
+| Medium Earth Orbit (MEO) | ~20,000 km     | 10–20 minutes  | GPS, Galileo               |
+| Geostationary Orbit | ~35,786 km     | Continuous     | Weather, communications    |
+
+- **LEO satellites** like the ISS typically take **4–6 minutes** to cross from horizon to horizon when visible.
+- **Inclination and observer latitude** affect how high and long the pass appears. Near-equatorial orbits may skim the horizon at high latitudes.
+- **Elevation angle** matters: passes directly overhead (high elevation) are longer and brighter than low-angle ones.
+
+---
+
+#### Visibility Factors
+
+- **Best viewing times**: 1–2 hours after sunset or before sunrise, when the satellite is sunlit but your location is dark.
+- **Tools for prediction**:
+  - [Heavens-Above](https://www.heavens-above.com): precise pass times, RA/Dec, and sky charts.
+  - [N2YO](https://www.n2yo.com): live tracking with azimuth/elevation and magnitude.
+
+
 ### Reference Catalogs
 
 Alpaca Pilot’s select list of objects are cross-referenced with more than 25 master catalogues, encompassing the most popular and scientifically significant deep-sky objects observed by both amateur and professional astronomers.
@@ -443,7 +470,8 @@ Alpaca Pilot’s select list of objects are cross-referenced with more than 25 m
 | **Secret Deep (SD)**       | Further 109 deep-sky highlights not in Messier or Caldwell (~2011).            | 109     |
 | **Orphaned Beauties (OB)** | Astrophotography-focused list of 109 large, under-appreciated objects (~2020). | 109     |
 | **Small Packages (SP)**    | 109 compact but fascinating small targets (~2020).                             | 109     |
-
+| **Satellites (ID)**    | NORAD-tracked artificial objects with known brightness and motion (~ongoing).  | 32k+    |
+| **Solar System Bodies (IAU)**  | IAU-designated planetary and lunar objects including Sun, Moon, Planets, Moons | 30+     |
 
 <br>
 <br>
