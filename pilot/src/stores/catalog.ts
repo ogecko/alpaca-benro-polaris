@@ -185,7 +185,7 @@ export const useCatalogStore = defineStore('catalog', {
         this.searchFor = '';
     },
     async catalogFetch() {
-      this.orbs = await dev.getOrbitals()
+      this.orbs = await dev.alpacaGetOrbitals()
       try {
         const resp = await axios.get('/catalog_top25_lg.json');
         if (resp.status !== 200) {

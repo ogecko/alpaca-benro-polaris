@@ -221,7 +221,12 @@ async function onClickSync(dso: CatalogItem) {
 
 
 async function onClickGoto(dso: CatalogItem) {
-  await dev.alpacaJ2000Goto(dso.RA_hr, dso.Dec_deg)
+  if (dso.Cn==84) {
+    await dev.alpacaTrackOrbital(dso.MainID)
+  }
+  else {
+    await dev.alpacaJ2000Goto(dso.MainID, dso.RA_hr, dso.Dec_deg)
+  }
   const name = dso.Name?.trim() || '';
   $q.notify({ message:`Goto issued for ${dso.MainID} ${name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })

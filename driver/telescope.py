@@ -1516,7 +1516,7 @@ class supportedactions:
             "Polaris:SyncRoll", "Polaris:SyncRemove", 
             "Polaris:J2000Sync", "Polaris:J2000Goto"
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
-            "Polaris:GetOrbitals"
+            "Polaris:GetOrbitals", "Polaris:TrackOrbital"
         ], req)  
 
 
@@ -1715,6 +1715,7 @@ class action:
 
         elif actionName == "Polaris:J2000Goto":
             logger.info(f'Polaris J2000Goto {parameters}')
+            name = parameters.get('name', '')
             j2000_ra = float(parameters.get('ra', ''))
             j2000_dec = float(parameters.get('dec', ''))
             J2000_coord = ephem.Equatorial(hr2rad(j2000_ra), deg2rad(j2000_dec), epoch=ephem.J2000)
@@ -1738,6 +1739,12 @@ class action:
             export_data = compose_orbital_export()
             resp.content_type = "application/json"
             resp.text = json.dumps(export_data, indent=2)
+            return
+
+        elif actionName == "Polaris:TrackOrbital":
+            logger.info(f'Polaris:TrackOrbital {parameters}')
+            name = parameters.get('name', '')
+            resp.text = await PropertyResponse('Polaris:TrackOrbital ok', req)  
             return
 
         else:

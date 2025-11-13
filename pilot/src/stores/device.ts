@@ -146,8 +146,8 @@ export const useDeviceStore = defineStore('device', {
     },
 
     // dont forget ra needs to be in hrs
-    async alpacaJ2000Goto(ra:number, dec:number) {
-      await this.apiAction<void>('Polaris:J2000Goto', `{"ra": "${ra}", "dec": "${dec}"}`)
+    async alpacaJ2000Goto(name: string, ra:number, dec:number) {
+      await this.apiAction<void>('Polaris:J2000Goto', `{"name": "${name}", "ra": "${ra}", "dec": "${dec}"}`)
     },
 
     // dont forget ra needs to be in hrs
@@ -207,9 +207,13 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:SetLBracket', `{"state": ${state}}`)
     },
 
-    async getOrbitals() {
+    async alpacaGetOrbitals() {
       const result = await this.api<OrbitalExport>('api/v1/telescope/0/action', { Action: 'Polaris:GetOrbitals', Parameters: ' ' });
       return result
+    },
+
+    async alpacaTrackOrbital(name:string) {
+      await this.apiAction<void>('Polaris:TrackOrbital', `{"name": "${name}"}`)
     },
 
     async catalogFetch() {
