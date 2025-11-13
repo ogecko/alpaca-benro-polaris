@@ -48,6 +48,7 @@
               <ul>
                 <li>Reconnect the ABP Driver (it will attempt to auto-reconnect if possible)</li>
                 <li>Use the Benro Polaris mobile app to issue a stop command</li>
+                <li>In an emergency, power off the mount</li>
               </ul>
               Because this failure mode cannot be fully mitigated in ABP v2.0, <strong>unattended use is strongly discouraged</strong>.
             </div>
