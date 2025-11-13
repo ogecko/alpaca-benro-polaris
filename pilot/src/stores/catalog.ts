@@ -6,6 +6,7 @@ import { useStatusStore } from './status'
 import { useConfigStore } from './config'
 import { getAzAlt, hrToDeg, toDeg, toRad } from 'src/utils/angles'
 import { toRaw } from 'vue'
+import { useDeviceStore } from './device'
 // # Total Number of Objects:  3289
 // #  ../pilot/public/catalog_top25_lg.json 556
 // #  ../pilot/public/catalog_top25_sm.json 413
@@ -18,6 +19,8 @@ import { toRaw } from 'vue'
 // # Cn:  {0: 'Andromeda', 1: 'Antlia', 2: 'Apus', 3: 'Aquila', 4: 'Aquarius', 5: 'Ara', 6: 'Aries', 7: 'Auriga', 8: 'Boötes', 9: 'Canis Major', 10: 'Canis Minor', 11: 'Canes Venatici', 12: 'Camelopardalis', 13: 'Capricornus', 14: 'Carina', 15: 'Cassiopeia', 16: 'Centaurus', 17: 'Cepheus', 18: 'Cetus', 19: 'Chamaeleon', 20: 'Circinus', 21: 'Cancer', 22: 'Columba', 23: 'Coma Berenices', 24: 'Corona Australis', 25: 'Corona Borealis', 26: 'Crater', 27: 'Crux', 28: 'Corvus', 29: 'Cygnus', 30: 'Delphinus', 31: 'Dorado', 32: 'Draco', 33: 'Eridanus', 34: 'Fornax', 35: 'Gemini', 36: 'Grus', 37: 'Hercules', 38: 'Horologium', 39: 'Hydra', 40: 'Leo Minor', 41: 'Lacerta', 42: 'Leo', 43: 'Lepus', 44: 'Libra', 45: 'Lupus', 46: 'Lynx', 47: 'Lyra', 48: 'Mensa', 49: 'Microscopium', 50: 'Monoceros', 51: 'Musca', 52: 'Norma', 53: 'Octans', 54: 'Ophiuchus', 55: 'Orion', 56: 'Pavo', 57: 'Pegasus', 58: 'Perseus', 59: 'Phoenix', 60: 'Pictor', 61: 'Piscis Austrinus', 62: 'Pisces', 63: 'Puppis', 64: 'Pyxis', 65: 'Reticulum', 66: 'Sculptor', 67: 'Scorpius', 68: 'Scutum', 69: 'Serpens', 70: 'Sextans', 71: 'Sagitta', 72: 'Sagittarius', 73: 'Taurus', 74: 'Telescopium', 75: 'Triangulum Australe', 76: 'Triangulum', 77: 'Tucana', 78: 'Ursa Major', 79: 'Ursa Minor', 80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula', 84: 'Orbit'}
 const p = useStatusStore()
 const cfg = useConfigStore()
+const dev = useDeviceStore()
+
 let positionUpdateTimer: ReturnType<typeof setInterval> | null = null;
 const defaultSorting = [
         { field: 'Rt', direction: 'desc' },
@@ -27,6 +30,7 @@ const defaultSorting = [
 
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
+    orbs: {} as OrbitalExport,
     dsos: [] as CatalogItem[],
     dsoGotoed: undefined as CatalogItem | undefined,
     page: 1,
@@ -181,6 +185,7 @@ export const useCatalogStore = defineStore('catalog', {
         this.searchFor = '';
     },
     async catalogFetch() {
+      this.orbs = await dev.getOrbitals()
       try {
         const resp = await axios.get('/catalog_top25_lg.json');
         if (resp.status !== 200) {
@@ -209,12 +214,15 @@ export const useCatalogStore = defineStore('catalog', {
       const latDeg = this.site_lat;
       const lonDeg = this.site_lon;
       this.dsos = this.dsos.map(dso => {
-        const { az, alt } = getAzAlt(dso.RA_hr, dso.Dec_deg, latDeg, lonDeg); //Now
+        const { ra, dec } = getRaDec(dso, this.orbs)
+        const { az, alt } = getAzAlt(ra, dec, latDeg, lonDeg); //Now
         const Az = enumAz(az)
         const Alt = enumAlt(alt)
         return {
           ...dso,
           Position: positionLookup(Az, Alt),
+          RA_hr: ra,
+          Dec_deg: dec,
           Az_deg: az,
           Alt_deg: alt,
           Az,
@@ -270,6 +278,17 @@ export const useCatalogStore = defineStore('catalog', {
   }
 })
 
+export type OrbitalExport = {
+  [id: string]: {
+    MainID: string;
+    RA_hr?: number;
+    DEC_deg?: number;
+    Az_deg?: number;
+    Alt_deg?: number;
+    Proximity?: number;
+  };
+};
+
 
 export interface CatalogItem {
   MainID: string;
@@ -323,6 +342,19 @@ function enumAlt(altDeg: number) {
   else altEnum = 6;
 
   return altEnum
+}
+
+function getRaDec(dso: CatalogItem, orbs: OrbitalExport) {
+  let ra = dso.RA_hr
+  let dec = dso.Dec_deg
+  if (dso.Cn==84) {
+    const orb = orbs?.[dso.MainID];
+    if (orb) {
+      ra = orb.RA_hr ?? ra;
+      dec = orb.DEC_deg ?? dec;
+    }
+  }
+  return { ra, dec }
 }
 
 function positionLookup(azEnum: DsoAzimuth, altEnum: DsoAltitude) {

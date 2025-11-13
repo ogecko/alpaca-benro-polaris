@@ -63,12 +63,12 @@
         </q-list>
        
         <!-- Orbitals -->
-        <!-- <q-list dense>
+        <q-list dense>
           <q-item-label header class="text-weight-bold text-uppercase">
             Orbitals
           </q-item-label>
 
-          <q-item v-for="link in links3" :key="link.text" v-ripple clickable :to="link.to">
+          <q-item v-for="link in links3" :key="link.text" v-ripple clickable :to="link.to"  exact active-class="active-link-right">
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
             </q-item-section>
@@ -77,14 +77,14 @@
             </q-item-section>
           </q-item>
           <q-separator class="q-my-md" />
-        </q-list> -->
+        </q-list>
        
         <!-- Performance Tuning -->
         <q-list dense>
           <q-item-label header class="text-weight-bold text-uppercase">
             Performance Tuning
           </q-item-label>
-          <q-item v-for="link in links4" :key="link.text" v-ripple clickable :to="link.to">
+          <q-item v-for="link in links4" :key="link.text" v-ripple clickable :to="link.to"  active-class="active-link-right">
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
             </q-item-section>
@@ -108,6 +108,7 @@
             :href="link.toExternal || undefined" 
             :target="link.toExternal ? '_blank' : undefined"
             :rel="link.toExternal ? 'noopener' : undefined"
+            active-class="active-link-right"
           >
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
@@ -155,6 +156,8 @@ const isFullscreen = ref(false)
 const leftDrawerOpen = ref(false)
 const searchBoxString = ref<string>('')
 const isRoomy = ref(true)
+
+
 
 async function onToggleFullscreen() {
   if (isFullscreen.value) {
@@ -273,13 +276,13 @@ const links2 = [
   { icon: 'mdi-blur', text: 'Clusters', to: { path: '/catalogList', query: { C1:2 } } },
 ]
 
-// const links3 = [
-//   { icon: 'mdi-earth', text: 'Planets', to: '/' },
-//   { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: '/' },
-//   { icon: 'mdi-cookie', text: 'Asteroids', to: '/' },
-//   { icon: 'mdi-magic-staff', text: 'Comets', to: '/' },
-//   { icon: 'mdi-satellite-variant', text: 'Satelites', to: '/' },
-// ]
+const links3 = [
+  { icon: 'mdi-moon-full', text: 'Planets', to: { path: '/catalogList', query: { C1:4 } } },
+  { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: { path: '/catalogList', query: { C1:5 } } },
+  // { icon: 'mdi-cookie', text: 'Asteroids', to: '/' },
+  // { icon: 'mdi-magic-staff', text: 'Comets', to: '/' },
+  // { icon: 'mdi-satellite-variant', text: 'Satelites', to: '/' },
+]
 
 const links4 = [
   { icon: 'mdi-format-vertical-align-top', text: 'Alignment', to: '/sync' },

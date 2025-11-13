@@ -4,6 +4,7 @@ import { HTMLResponseError, NonJSONResponseError, NotFound404Error, AlpacaRespon
 import type { DescriptionResponse, ConfiguredDevicesResponse, SupportedActionsResponse, ActionResponse } from 'src/utils/interfaces'
 import { sleep } from 'src/utils/sleep'
 import type { ConfigResponse } from 'src/stores/config'
+import type { OrbitalExport } from 'src/stores/catalog'
 import { AppVisibility } from 'quasar'
 
 export const useDeviceStore = defineStore('device', {
@@ -207,7 +208,8 @@ export const useDeviceStore = defineStore('device', {
     },
 
     async getOrbitals() {
-      return await this.apiAction('Polaris:GetOrbitals')
+      const result = await this.api<OrbitalExport>('api/v1/telescope/0/action', { Action: 'Polaris:GetOrbitals', Parameters: ' ' });
+      return result
     },
 
     async catalogFetch() {
