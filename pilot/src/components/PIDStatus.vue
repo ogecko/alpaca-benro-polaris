@@ -20,7 +20,10 @@ const statusLabel = computed(() =>
   p.slewing ? "Slewing" :
   p.rotating ? "Rotating" :
   p.ispulseguiding ? "Guiding" :
-  p.tracking ? "Tracking" : 
+  p.tracking && p.trackingrate==0 ? "Sidereal" : 
+  p.tracking && p.trackingrate==1 ? "Lunar" : 
+  p.tracking && p.trackingrate==2 ? "Solar" : 
+  p.tracking && p.trackingrate==3 ? "Custom" : 
                "Idle"
 )
 

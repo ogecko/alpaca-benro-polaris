@@ -38,7 +38,7 @@
               <q-item clickable v-close-popup :active="p.trackingrate==1" active-class="bg-secondary text-white" @click="onTrackRate(1)">
                 <q-item-section><q-item-label>Lunar</q-item-label></q-item-section>
               </q-item>
-              <q-item clickable v-close-popup :active="p.trackingrate==2" active-class="bg-secondary text-white" @click="onTrackRate(2)">
+              <q-item clickable v-close-popup :active="p.trackingrate==2" active-class="bg-secondary text-white" @click="onTrackSolar()">
                 <q-item-section><q-item-label>Solar</q-item-label></q-item-section>
               </q-item>
               <q-item clickable v-close-popup :active="p.trackingrate==3" active-class="bg-secondary text-white" @click="onTrackRate(3)">
@@ -192,6 +192,16 @@ async function onTrack() {
   if (cannotPerformCommand('toggle tracking')) return
   const result = (p.tracking) ? await dev.alpacaTracking(false) : await dev.alpacaTracking(true);  
   console.log(result)
+}
+
+function onTrackSolar() {
+  $q.notify({ type: 'warning', message: 'Are you sure you want to point the mount towards the Sun?', position: 'top', timeout: 0, 
+    actions: [
+      { icon: 'mdi-check', label: 'Yes', color: 'yellow', handler: () => { void (async () => { await onTrackRate(2); })(); }},
+      { icon: 'mdi-close', label: 'No', color: 'white', handler: () => { /* ... */ } }
+    ]
+  });
+
 }
 
 async function onTrackRate(n: number) {
