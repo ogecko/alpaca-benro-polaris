@@ -1,6 +1,7 @@
 import ephem
 from shr import rad2deg, rad2hr
 from shr import angular_separation
+import requests
 
 def compose_orbital_export():
     export_data = {}
@@ -11,6 +12,45 @@ def compose_orbital_export():
             "Proximity": entity.get("Proximity"),
         }
     return export_data
+
+def create_satellite_orbital(norad_id):
+    """
+    Fetches TLE data from Celestrak for a given NORAD ID, creates a PyEphem satellite,
+    stores it in orbital_data using the satellite name, and returns (name, body).
+    Parameters:
+        norad_id (int or str): NORAD catalog number of the satellite.
+    Returns:
+        tuple: (name, ephem.EarthSatellite) if successful
+    Raises:
+        ValueError or ConnectionError on failure
+    """
+    try:
+        norad_id = int(str(norad_id).strip())
+        if norad_id <= 0:
+            raise ValueError("NORAD ID must be a positive integer.")
+    except Exception as e:
+        raise ValueError(f"Invalid NORAD ID: {norad_id}") from e
+
+    url = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_id}&FORMAT=TLE"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        raise ConnectionError(f"Failed to fetch TLE data: {e}") from e
+
+    lines = response.text.strip().splitlines()
+    if len(lines) < 3:
+        raise ValueError(f"Incomplete TLE data for NORAD ID {norad_id}")
+
+    name, line1, line2 = lines[:3]
+    try:
+        body = ephem.readtle(name, line1, line2)
+    except Exception as e:
+        raise ValueError(f"Failed to parse TLE data: {e}") from e
+
+    orbital_data[name] = { "body": body }
+    return name, body
+
 
 
 def find_closest_orbital(observer, scope_ra, scope_dec):
