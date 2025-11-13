@@ -15,6 +15,7 @@ import math
 import copy
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
+from orbitals import orbital_data, find_closest_orbital_body
 
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -108,6 +109,10 @@ def is_angle_between(angle: float, min_angle: float, max_angle: float) -> bool:
     diff_to_min = angle - min_angle
     diff_to_max = angle - max_angle
     return diff_to_min >= 0 and diff_to_max <= 0
+
+
+
+
 
 def clamp_alpha(alpha):
     """
@@ -920,6 +925,7 @@ class PID_Controller():
         self.mode = 'PRESETUP'                               # PID Controller mode: HOMING, PARKING, PARK, IDLE, AUTO, TRACK, PRESETUP, LIMIT
         self.ack_limit_timestamp = None                      # Timestamp of last ACK of PID LIMIT ALARM
         self.target_type = 'NONE'                            # target body we are tracking
+        self.target_sp_name = None                     # name of pyephem body tracking for Lunar, Solar, Custom rates
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, polar anglular positions
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
         self.delta_meas = np.zeros(3, dtype=float)     # ra, dec, polar measured angular position
@@ -1048,14 +1054,22 @@ class PID_Controller():
         self.body_pa_offset = wrap_to_360(delta[2] - parallactic_angle)
 
     def orbital2delta(self):
+        orbital = None
         if self.polaris._trackingrate == 1:   # 1=Lunar
+            orbital = orbital_data["Moon"]["body"]
+        elif self.polaris._trackingrate == 2: # 2=Solar
+            orbital = orbital_data["Sun"]["body"]
+        elif self.polaris._trackingrate == 3: # 3=Custom
+            orbital = find_closest_orbital_body(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
+
+        if orbital and self.polaris._trackingrate in [1,2,3]:
             self.observer.date = ephem.Date(datetime.datetime.utcnow())
             self.observer.epoch = ephem.now()
-            line1 = 'STARLINK-11072 [DTC] '   
-            line2 = '1 58705U 24002A   25314.92248173  .00002891  00000+0  28713-4 0  9998'
-            line3 = '2 58705  53.1585 139.4993 0001027  89.7247 270.3889 15.69707532107784'
-            orbital = ephem.readtle(line1, line2, line3)
-            orbital = ephem.Moon() 
+            # line1 = 'STARLINK-11072 [DTC] '   
+            # line2 = '1 59742U 24090N   25314.93603837  .00007689  00000-0  28847-3 0  9998'
+            # line3 = '2 59742  43.0004 134.5318 0001339 271.5489  88.5209 15.27599490 85250'
+            # orbital = ephem.readtle(line1, line2, line3)
+            # orbital = ephem.Moon() 
             orbital.compute(self.observer)
             self.logger.info(f"Tracking - Alt: {rad2deg(orbital.alt):.2f} Az: {rad2deg(orbital.az):.2f}")    
             orb_alt = rad2deg(orbital.alt)

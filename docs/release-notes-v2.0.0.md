@@ -28,7 +28,10 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in beta5
-- **[Planets and Moons]** Add solar system orbitals to catalog, including Sun, Moon, Planets and Planetary Moons
+- **[Planets and Moons]** Add solar system orbitals to catalog, including Sun, Moon, Planets and Planetary Moons. 
+- **[Artificial Satellites]** Add other orbitals to catalog, including Space Station, Sattelites, Rocket Bodies and Space Debris. 
+- **[Orbital Tracking]** Add Solar, Lunar and Other tracking rates for all cataloged orbitals, including TLE objects.
+- **[Orbital Documentation]** Update Pilot documentation on Orbitals.
 
 
 ## What's new in beta4

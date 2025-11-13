@@ -427,6 +427,41 @@ def deg2rad(deg):
     """Converts decimal degrees to radians."""
     return deg*math.pi/180
 
+def angular_separation(ra1_hr, dec1_deg, ra2_hr, dec2_deg):
+    """
+    Computes angular separation between two celestial coordinates using the spherical law of cosines.
+    
+    Parameters:
+        ra1_hr, dec1_deg: RA and Dec of first object (RA in hours, Dec in degrees)
+        ra2_hr, dec2_deg: RA and Dec of second object (RA in hours, Dec in degrees)
+    
+    Returns:
+        Angular separation in degrees
+    """
+    # Convert RA from hours to degrees
+    ra1_deg = ra1_hr * 15.0
+    ra2_deg = ra2_hr * 15.0
+
+    # Convert all angles to radians
+    ra1_rad = math.radians(ra1_deg)
+    dec1_rad = math.radians(dec1_deg)
+    ra2_rad = math.radians(ra2_deg)
+    dec2_rad = math.radians(dec2_deg)
+
+    # Spherical law of cosines
+    cos_angle = (math.sin(dec1_rad) * math.sin(dec2_rad) +
+                 math.cos(dec1_rad) * math.cos(dec2_rad) * math.cos(ra1_rad - ra2_rad))
+
+    # Clamp to valid range to avoid rounding errors
+    cos_angle = min(1.0, max(-1.0, cos_angle))
+
+    # Compute angle in radians and convert to degrees
+    angle_rad = math.acos(cos_angle)
+    angle_deg = math.degrees(angle_rad)
+
+    return angle_deg
+
+
 def empty_queue(q: asyncio.Queue):
   while not q.empty():
     try:

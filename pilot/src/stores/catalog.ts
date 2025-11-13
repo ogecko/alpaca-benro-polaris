@@ -280,11 +280,8 @@ export const useCatalogStore = defineStore('catalog', {
 
 export type OrbitalExport = {
   [id: string]: {
-    MainID: string;
     RA_hr?: number;
     DEC_deg?: number;
-    Az_deg?: number;
-    Alt_deg?: number;
     Proximity?: number;
   };
 };

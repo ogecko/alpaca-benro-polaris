@@ -68,7 +68,7 @@
             Orbitals
           </q-item-label>
 
-          <q-item v-for="link in links3" :key="link.text" v-ripple clickable :to="link.to"  exact active-class="active-link-right">
+          <q-item v-for="link in links3" :key="link.text" v-ripple clickable :to="link.to"  active-class="active-link-right">
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
             </q-item-section>

@@ -1515,7 +1515,8 @@ class supportedactions:
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove", 
             "Polaris:J2000Sync", "Polaris:J2000Goto"
-            "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket"
+            "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
+            "Polaris:GetOrbitals"
         ], req)  
 
 
@@ -1733,7 +1734,7 @@ class action:
         
         elif actionName == "Polaris:GetOrbitals":
             logger.info("Polaris:GetOrbitals requested")
-            update_orbital_data(polaris._observer)
+            update_orbital_data(polaris._observer, polaris.rightascension, polaris.declination)
             export_data = compose_orbital_export()
             resp.content_type = "application/json"
             resp.text = json.dumps(export_data, indent=2)
