@@ -1744,6 +1744,7 @@ class action:
         elif actionName == "Polaris:TrackOrbital":
             logger.info(f'Polaris:TrackOrbital {parameters}')
             name = parameters.get('name', '')
+            await polaris.trackOrbital(name)
             resp.text = await PropertyResponse('Polaris:TrackOrbital ok', req)  
             return
 

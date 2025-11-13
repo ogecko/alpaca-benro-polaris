@@ -13,17 +13,21 @@ def compose_orbital_export():
     return export_data
 
 
-def find_closest_orbital_body(observer, scope_ra, scope_dec):
+def find_closest_orbital(observer, scope_ra, scope_dec):
     # refresh orbital data with current observer and scope position
     update_orbital_data(observer, scope_ra, scope_dec)
     closest_entity = None
     min_proximity = float('inf')
-    for entity in orbital_data.values():
+    for key, entity in orbital_data.items():
         proximity = entity.get("Proximity", float('inf'))
         if proximity < min_proximity:
             min_proximity = proximity
             closest_entity = entity
-    return closest_entity["body"] if closest_entity else None
+            closest_key = key
+    if closest_entity:
+        return closest_key, closest_entity["body"]
+    else:
+        return None, None
 
 
 def update_orbital_data(observer, scope_ra=0.0, scope_dec=0.0):

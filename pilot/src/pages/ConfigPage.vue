@@ -136,6 +136,7 @@
                 <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
               </div>
               <div class="row q-pb-md">
+                <q-toggle class='col-6' v-bind="bindField('advanced_orbitals', 'Orbitals')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
               </div>
               <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pl-md q-pr-mdn ">

@@ -15,7 +15,7 @@ import math
 import copy
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
-from orbitals import orbital_data, find_closest_orbital_body
+from orbitals import orbital_data, find_closest_orbital
 
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -925,7 +925,7 @@ class PID_Controller():
         self.mode = 'PRESETUP'                               # PID Controller mode: HOMING, PARKING, PARK, IDLE, AUTO, TRACK, PRESETUP, LIMIT
         self.ack_limit_timestamp = None                      # Timestamp of last ACK of PID LIMIT ALARM
         self.target_type = 'NONE'                            # target body we are tracking
-        self.target_sp_name = None                     # name of pyephem body tracking for Lunar, Solar, Custom rates
+        self.orbital_sp_name = None                    # name of pyephem body tracking for Lunar, Solar, Custom rates
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, polar anglular positions
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
         self.delta_meas = np.zeros(3, dtype=float)     # ra, dec, polar measured angular position
@@ -1060,7 +1060,11 @@ class PID_Controller():
         elif self.polaris._trackingrate == 2: # 2=Solar
             orbital = orbital_data["Sun"]["body"]
         elif self.polaris._trackingrate == 3: # 3=Custom
-            orbital = find_closest_orbital_body(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
+            if self.orbital_sp_name in orbital_data:
+                orbital = orbital_data[self.orbital_sp_name]["body"]
+            else:
+                name, orbital = find_closest_orbital(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
+                self.orbital_sp_name = name
 
         if orbital and self.polaris._trackingrate in [1,2,3]:
             self.observer.date = ephem.Date(datetime.datetime.utcnow())
@@ -1204,24 +1208,10 @@ class PID_Controller():
         self.target_type = "ZETA"
         self.zeta_ref = np.array([Config.m1_park, Config.m2_park, Config.m3_park], dtype=float)
 
-    def set_TLE_target(self, line1, line2, line3):
-        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
-            return
+    def set_orbital_target(self, name):
         self.reset_offsets()
-        self.target_type = "TLE"
-        self.target['lines'] = [line1, line2, line3]
-        self.reset_offsets()
-        if self.mode == 'IDLE':
-            self.set_pid_mode('AUTO')
-    
-    def set_XEphem_target(self, line):
-        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
-            return
-        self.reset_offsets()
-        self.target_type = "XEPHEM"
-        self.target['line'] = line
-        if self.mode == 'IDLE':
-            self.set_pid_mode('AUTO')
+        self.target_type = "ORBITAL"
+        self.orbital_sp_name = name
 
     def rotator_move_relative(self, sp=0.0):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:

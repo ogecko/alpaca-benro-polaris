@@ -38,6 +38,7 @@ advanced_goto = true                        # Perform advanced goto slewing in A
 advanced_tracking = true                    # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
 advanced_guiding = true                     # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
 advanced_alignment = false                  # Enable Multi-Point Alignment using the QUEST Correction Model
+advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.003981071705534973 ]
 kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674 ]
 pid_Kp = [1.0, 1.0, 1.0]                    # PID Proportional Gain for M1, M2, M3 - increase control in proportion to position deviation (error)

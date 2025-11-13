@@ -2023,6 +2023,15 @@ class Polaris:
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
     # ******* Advanced MPC control aware methods ********
+    async def trackOrbital(self, name):
+        if Config.advanced_orbitals and Config.advanced_control:
+            await self.start_tracking()            # start tracking
+            self._pid.set_orbital_target(name)     # set tracking target name
+            self.trackingrate = 1 if name=="Moon" else 2 if name=="Sun" else 3
+        else:
+            self.logger.info("Advanced Orbital Tracking is currently disabled")
+
+
     def RotateToRelativePositionAngle(self, rel_position_angle):
         self.logger.info(f"->> Polaris: Rotate Relative Observed   PositionAngle {deg2dms(self.positionangle)} PLUS {deg2dms(rel_position_angle)}")
         position_angle = self.positionangle + rel_position_angle
@@ -2060,6 +2069,7 @@ class Polaris:
             self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
 
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
+        self._trackingrate = 0
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
         a_ra = rightascension
         a_dec = declination

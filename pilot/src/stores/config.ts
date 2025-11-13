@@ -53,6 +53,7 @@ export const useConfigStore = defineStore('config', {
     advanced_rotator: false,
     advanced_guiding: false,
     advanced_alignment: false,
+    advanced_orbitals: false,
 
     // Motion and Tuning Constants
     tracking_settle_time: 16,
