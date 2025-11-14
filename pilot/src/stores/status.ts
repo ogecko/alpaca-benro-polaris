@@ -42,6 +42,7 @@ export const useStatusStore = defineStore('status', {
         tracking: false,
         trackingrate: 0,
         trackingname: '',
+        orbitalstatus: [0, 0, 0],
         athome: false,
         atpark: false,
         slewing: false,

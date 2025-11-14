@@ -926,6 +926,7 @@ class PID_Controller():
         self.ack_limit_timestamp = None                      # Timestamp of last ACK of PID LIMIT ALARM
         self.target_type = 'NONE'                            # target body we are tracking
         self.orbital_sp_name = None                    # name of pyephem body tracking for Lunar, Solar, Custom rates
+        self.orbital_sp_status = [0, 0, 0]             # status of orbital tracking [is_orb_trackable (0=N/A, 1=toolow, 2=ok), orb_az, orb_alt]
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, polar anglular positions
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
         self.delta_meas = np.zeros(3, dtype=float)     # ra, dec, polar measured angular position
@@ -1055,6 +1056,7 @@ class PID_Controller():
 
     def orbital2delta(self):
         orbital = None
+        self.orbital_sp_status = [0, 0, 0]
         if self.polaris._trackingrate == 1:   # 1=Lunar
             orbital = orbital_data["Moon"]["body"]
         elif self.polaris._trackingrate == 2: # 2=Solar
@@ -1069,27 +1071,23 @@ class PID_Controller():
         if orbital and self.polaris._trackingrate in [1,2,3]:
             self.observer.date = ephem.Date(datetime.datetime.utcnow())
             self.observer.epoch = ephem.now()
-            # line1 = 'STARLINK-11072 [DTC] '   
-            # line2 = '1 59742U 24090N   25314.93603837  .00007689  00000-0  28847-3 0  9998'
-            # line3 = '2 59742  43.0004 134.5318 0001339 271.5489  88.5209 15.27599490 85250'
-            # orbital = ephem.readtle(line1, line2, line3)
-            # orbital = ephem.Moon() 
             orbital.compute(self.observer)
-            self.logger.info(f"Tracking - Alt: {rad2deg(orbital.alt):.2f} Az: {rad2deg(orbital.az):.2f}")    
+            # self.logger.info(f"Tracking - Alt: {rad2deg(orbital.alt):.2f} Az: {rad2deg(orbital.az):.2f}")    
             orb_alt = rad2deg(orbital.alt)
             orb_az = rad2deg(orbital.az)
             orb_ra = rad2deg(orbital.ra)
             orb_dec = rad2deg(orbital.dec)
             ra_change = abs(orb_ra - self.delta_sp[0])
             dec_change = abs(orb_dec - self.delta_sp[1])
-            is_keep_roll_angle = ra_change>10/60 or dec_change>10/60
-            if orb_alt>15:
+            is_keep_roll_angle = ra_change > 10/60 or dec_change > 10/60
+            is_orbital_trackable = 1 if orb_alt < 10 else 2
+            if is_orbital_trackable == 2:
                 self.delta_sp[0] = orb_ra
                 self.delta_sp[1] = orb_dec
                 if is_keep_roll_angle:
                     parallactic_angle = calc_parallactic_angle(orb_az, orb_alt, self.polaris._sitelatitude)
                     self.delta_sp[2] = self.body_pa_offset + parallactic_angle  # keep roll angle stable
-
+            self.orbital_sp_status = [is_orbital_trackable, orb_az, orb_alt]
 
     #------- Functions to change SP, Targets and Mode ---------
 

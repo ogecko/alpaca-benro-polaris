@@ -1489,6 +1489,7 @@ class Polaris:
                 'tracking': self._tracking,
                 'trackingrate': self._trackingrate,
                 'trackingname': self._pid.orbital_sp_name,
+                'orbitalstatus': self._pid.orbital_sp_status,
                 'athome': self._athome,
                 'atpark': self._atpark,
                 'slewing': self._slewing,

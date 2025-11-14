@@ -20,17 +20,36 @@ const statusLabel = computed(() =>
   p.slewing ? "Slewing" :
   p.rotating ? "Rotating" :
   p.ispulseguiding ? "Guiding" :
-  p.tracking && p.trackingrate==0 ? "Sidereal" : 
-  p.tracking && p.trackingrate==1 ? "Lunar" : 
-  p.tracking && p.trackingrate==2 ? "Solar" : 
-  p.tracking && p.trackingrate==3 && p.trackingname ? p.trackingname : 
-  p.tracking && p.trackingrate==3 ? "Custom" : 
+  p.tracking  ? trackingStatusLabel.value : 
                "Idle"
+)
+
+
+const trackingStatusLabel = computed(() => {
+  const [isTracking, az, alt] = p.orbitalstatus;
+  const azText = az !== undefined ? `${Math.round(az)}°` : '—';
+  const altText = alt !== undefined ? `${Math.round(alt)}°` : '—';
+  return isTracking === 1
+    ? `${trackingLabel.value} (Az ${azText} Alt ${altText})`
+    : trackingLabel.value;
+});
+
+
+
+const trackingLabel = computed(() =>
+  p.trackingrate==0 ? "Sidereal" : 
+  p.trackingrate==1 ? "Lunar" : 
+  p.trackingrate==2 ? "Solar" : 
+  p.trackingrate==3 && p.trackingname ? p.trackingname : 
+                      "Custom" 
 )
 
 const statusColor = computed(() =>
   p.pidmode=='PRESETUP' ? "negative" :
-  p.pidmode=='LIMIT' ? "negative" : "positive"
+  p.pidmode=='LIMIT' ? "negative" : 
+  p.orbitalstatus[0] == 1 ? "warning" : 
+  "positive"
+
 )
 
 const statusIcon = computed(() => 
