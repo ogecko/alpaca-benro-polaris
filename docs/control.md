@@ -472,11 +472,6 @@ Calibrating your motor speed controller ensures:
 <br>
 <br>
 
----
-## PID Controller
-
-<br>
-<br>
 
 ---
 ## Pulse Guiding
@@ -484,6 +479,5 @@ Calibrating your motor speed controller ensures:
 <br>
 <br>
 
----
-## Tracking
+
 

@@ -6,6 +6,7 @@
 - [X] Implement Alpaca Pilot App Framework
 - [X] Implement Alpaca Pilot sidebar menu and toolbar menu
 - [X] Implment Alpaca Pilot routing
+- [ ] Check Driver version to see if client needs refreshing
 
 ## Alpaca Pilot Connection, Bluetooth LE
 - [X] Implement Benro Polaris Connection process and diagnostics
@@ -87,7 +88,7 @@
 - [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
 - [X] Add Anti-Windup Motor Angle Limits
 - [X] Improve motor limits indication and safety protection (including with tilts)
-- [ ] Fix zero Altitude movement
+- [ ] Fix zero Altitude movement, at Azimuth of 0/360, and roll
 
 ## Alpaca Kalman Filter
 - [X] Implment Kalman Filter to improve reliabilty of state assessment
@@ -121,10 +122,12 @@
 
 ## Documentation
 - [X] Kickstarter project
-- [X] Youtube training videos 20 Podcast, 21 Demo1, 22 Demo2, 23 Rotator, 24 Alignment, 25 Safety, TODO - 26 Guiding, 27 Tracking Orbitals?
-- [X] Youtube advanced videos 31 Kalman, 32 Speed Cal TODO - 33 PID Tuning
+- [X] Youtube training videos 20 Podcast, 21 Demo1, 22 Demo2, 23 Rotator, 24 Alignment, 25 Safety
+- [X] Youtube advanced videos 31 Kalman, 32 Speed Cal 
+- [X] Documentation on new features 
 - [ ] Review of existing Documentation
-- [ ] Documentation on new features 
+- [ ] Remaining documentation on Pulse Guiding
+- [ ] Remaining Youtube video on 26 Orbitals, 27 Guiding, 33 PID Tuning
 
 ## Performance
 - [X] Feedforward Control Integration (minimise overshoot)
@@ -164,24 +167,25 @@
 - [ ] Add a details page for each target
 - [ ] Fix J2000 co-ordinate display of 60" for Running chicken RA: +11ʰ38ᵐ60.0ˢ   |   Dec: -63°11′60.0″ 
 - [ ] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
-- [ ] Favorite Targets to Search Home page
-- [ ] Auto-fetch orbital elements
 
 ## Orbitals
-- [X] Implement Pulse Guiding API ITelescope Pulse 
-- [ ] Implement Lunar Tracking rate
-- [ ] Implement Solar Tracking rate
-- [ ] Implement King Tracking rate
+- [X] Add Orbitals menu, Planets, Moons, Satellites
+- [X] Add Catalog entries for Sun, Moon, Planets, Planetary Moons
+- [X] Update status chip for more detail on tracking orbital status
+- [X] Allow searchable catalog of over 32k satellites 
+- [X] Allow pre-targeting of orbitals, waiting for their rising
+- [X] Implement ASCOM Lunar Tracking rate
+- [X] Implement ASCOM Solar Tracking rate
+- [X] Implement ASCOM Custom Tracking rate
 
 ## Precision Tracking
 - [X] Deep-Sky Object Tracking 
 - [X] Seamless Axis Override During Tracking
-- [ ] Selenographic Lunar Tracking 
-- [ ] Planetary and Orbital Moons Tracking
+- [X] Selenographic Lunar Tracking 
+- [X] Planetary and Orbital Moons Tracking
+- [X] Satelite Tracking via TLE (Two Line Element)
+- [X] Solar Tracking 
 - [ ] Commet and Asteroid Tracking
-- [ ] Satelite Tracking via TLE (Two Line Element)
-- [ ] Solar Tracking 
-- [ ] Transiting Exoplanet Support
 
 ## Pulse Guiding Features
 - [X] ASCOM Telescope Pulse Guide API Support

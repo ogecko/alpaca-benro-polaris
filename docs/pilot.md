@@ -418,12 +418,24 @@ To move the mount to a target's location, simply **click the GoTo button** assoc
 ### Sync with a Target
 If the object you have selected is **already visible in your camera’s field of view**, you can use the sync function to align the mount's coordinates precisely. Syncing helps the Driver understand where the telescope is pointing compared to where Polaris thinks it is, correcting any upstream misalignment.
 
+
 ### Orbitals
-The catalog also includes a variety of orbital objects whose motion deviates from sidereal tracking and whose Equatorial coordinates are not fixed. These include natural solar system bodies, such as the Sun, Moon, planets, and planetary moons; as well as artificial objects like satellites, space stations, rocket bodies, and orbital debris.
 
-Unlike fixed stars, these objects can move rapidly across the sky, with some, particularly artificial satellites, traversing from horizon to horizon in just a few minutes. Their dynamic motion presents unique challenges for tracking and observation.
+The catalog supports a range of orbital objects whose motion deviates from sidereal tracking and whose equatorial coordinates are not fixed. To accommodate these, the Driver includes additional tracking rates beyond standard sidereal motion, including the ASCOM standard rates of Lunar, Solar and Custom (to cater for many orbitals)
 
-#### Typical Pass Duration by Orbit Type
+#### Solar System Objects
+
+This category includes natural bodies such as the Sun, Moon, planets, and planetary moons. These objects are built directly into the catalog and can be searched and filtered like any other entry.
+
+Because their equatorial coordinates change over time, the Driver recalculates their positions at startup for catalog display. When tracking is active, their positions are updated every 200 ms to maintain accuracy.
+
+#### Artificial Satellites
+
+The catalog enables search and tracking of over 32,000 artificial objects, including satellites, space stations, rocket bodies, and orbital debris; using their standard NORAD ID. These objects are not stored locally but are dynamically retrieved when queried. Upon searching by NORAD ID, the Driver fetches the satellite’s orbital elements and begins tracking, updating its position every 200 ms.
+
+Unlike fixed stars, artificial satellites can move rapidly across the sky. Some crossing from horizon to horizon in just a few minutes. Their dynamic trajectories present unique challenges for real-time tracking and observation.
+
+#### Typical Pass Duration of Artificial Objects by Orbit Type
 
 | Orbit Type         | Altitude Range | Pass Duration | Example Satellites         |
 |--------------------|----------------|---------------|----------------------------|
@@ -437,13 +449,14 @@ Unlike fixed stars, these objects can move rapidly across the sky, with some, pa
 
 ---
 
-#### Visibility Factors
+#### Finding NORAD IDs to track
 
-- **Best viewing times**: 1–2 hours after sunset or before sunrise, when the satellite is sunlit but your location is dark.
-- **Tools for prediction**:
+- **Resources for prediction**:
   - [Heavens-Above](https://www.heavens-above.com): precise pass times, RA/Dec, and sky charts.
   - [N2YO](https://www.n2yo.com): live tracking with azimuth/elevation and magnitude.
-
+  - [CelesTrak](https://celestrak.org/NORAD/elements/): list of orbital elements by numerous categories.
+  - [SatelliteMap.space](https://satellitemap.space/): advanced visualisation of artificial satellites around the globe.
+- **Best viewing times**: 1–2 hours after sunset or before sunrise, when the satellite is sunlit but your location is dark.
 
 ### Reference Catalogs
 
