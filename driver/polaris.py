@@ -2026,8 +2026,8 @@ class Polaris:
     # ******* Advanced MPC control aware methods ********
     async def trackOrbital(self, name):
         if Config.advanced_orbitals and Config.advanced_control:
-            await self.start_tracking()            # start tracking
-            self._pid.set_orbital_target(name)     # set tracking target name
+            await self.start_tracking()                  # start tracking
+            await self._pid.set_orbital_target(name)     # set tracking target name
             self.trackingrate = 1 if name=="Moon" else 2 if name=="Sun" else 3
         else:
             self.logger.info("Advanced Orbital Tracking is currently disabled")

@@ -1,7 +1,7 @@
 import ephem
 from shr import rad2deg, rad2hr
 from shr import angular_separation
-import requests
+import aiohttp
 
 def compose_orbital_export():
     export_data = {}
@@ -13,16 +13,7 @@ def compose_orbital_export():
         }
     return export_data
 
-def create_satellite_orbital(logger, norad_id):
-    """
-    Fetches TLE data from Celestrak for a given NORAD ID, creates a PyEphem satellite,
-    stores it in orbital_data using the satellite name, and returns (name, body).
-    Parameters:
-        norad_id (int or str): NORAD catalog number of the satellite.
-    Returns:
-        tuple: (name, ephem.EarthSatellite) if successful
-        Logs any error condition and returns (None, None) if unsuccessful
-    """
+async def create_satellite_orbital(logger, norad_id):
     try:
         norad_id = int(str(norad_id).strip())
         if norad_id <= 0:
@@ -33,14 +24,19 @@ def create_satellite_orbital(logger, norad_id):
         return None, None
 
     url = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_id}&FORMAT=TLE"
+
     try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        logger.info(f'Failed to fetch TLE data for {norad_id}, {e}:')
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=10) as response:
+                if response.status != 200:
+                    logger.info(f'Failed to fetch TLE data for {norad_id}, status: {response.status}')
+                    return None, None
+                text = await response.text()
+    except Exception as e:
+        logger.info(f'Failed to fetch TLE data for {norad_id}, {e}')
         return None, None
 
-    lines = response.text.strip().splitlines()
+    lines = text.strip().splitlines()
     if len(lines) < 3:
         logger.info(f'Incomplete TLE data for NORAD ID: {norad_id}')
         return None, None

@@ -28,6 +28,7 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in beta5
+- **[pip requirements]** Please ensure you do a `pip install -r requirements.txt` to ensure aiohttp=3.13.2 is installed with beta5
 - **[Planets and Moons]** Add solar system orbitals to catalog, including Sun, Moon, Planets and Planetary Moons. 
 - **[Artificial Satellites]** Search for over 35k objects to track, including Space Stations, Sattelites, Rocket Bodies and Space Debris. 
 - **[Orbital Tracking]** Add Solar, Lunar and Other tracking rates for all cataloged orbitals, including TLE objects.

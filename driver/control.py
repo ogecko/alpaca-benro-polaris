@@ -1208,12 +1208,12 @@ class PID_Controller():
         self.target_type = "ZETA"
         self.zeta_ref = np.array([Config.m1_park, Config.m2_park, Config.m3_park], dtype=float)
 
-    def set_orbital_target(self, name):
+    async def set_orbital_target(self, name):
         self.reset_offsets()
         self.target_type = "ORBITAL"
         # create Norad ID Satellite orbital if we dont have orbital already
         if not name in orbital_data:
-            name, _ = create_satellite_orbital(self.logger, name)
+            name, _ = await create_satellite_orbital(self.logger, name)
         self.orbital_sp_name = name
 
     def rotator_move_relative(self, sp=0.0):
