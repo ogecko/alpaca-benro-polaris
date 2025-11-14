@@ -149,8 +149,9 @@ export const useCatalogStore = defineStore('catalog', {
             1: [0, 14],  // Galaxy
             2: [22, 28], // Stellar (Cluster + Star)
             3: [22, 28],  // Star (merged with Stellar range)
-            4: [29, 29], // Planet
-            5: [30, 30], // Moon
+            4: [29, 30], // Planet
+            5: [31, 34], // Moon
+            6: [35, 38], // Satellites
         };
         // Collect all valid subtype keys based on selected C1 types
         const allowedSubtypes = new Set<number>();
@@ -395,14 +396,15 @@ export const azimuthLookup: Record<DsoAzimuth, string> = {
 };
 
 
-export type DsoType = 0 | 1 | 2 | 3 | 4 | 5;
+export type DsoType = 0 | 1 | 2 | 3 | 4 | 5 |6;
 export const typeLookupIcon: Record<DsoType, string>  = {
   0: 'mdi-horse-variant', 
   1: 'mdi-cryengine', 
   2: 'mdi-blur', 
   3: 'mdi-flare',
   4: 'mdi-moon-full',
-  5: 'mdi-moon-waning-crescent'
+  5: 'mdi-moon-waning-crescent',
+  6: 'mdi-satellite-variant'
 }
 
 const typeLookup: Record<DsoType, string>  = {
@@ -411,7 +413,8 @@ const typeLookup: Record<DsoType, string>  = {
   2: 'Cluster', 
   3: 'Star',
   4: 'Planet',
-  5: 'Moon'
+  5: 'Moon',
+  6: 'Satellite'
 }
 
 

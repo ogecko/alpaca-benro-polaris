@@ -46,22 +46,61 @@
       <div class="col-12">
         <q-card flat bordered class="col">
           <q-list bordered separator>
-            <q-item v-if="cat.paginated.length==0" class="q-pt-lg q-pb-lg">
+            <q-item v-if="isNoradSearch" class="q-pt-lg q-pb-lg">
               <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
               <q-item-section>
                 <q-item-label>Satellite NORAD ID?</q-item-label>
-                <q-item-label caption>Search for the Satellite on Celestrak, get its orbital data, and begin tracking if found.</q-item-label>
-                <q-item-label caption>Reference: View visible satellites from your location on
-                  <a :href="urlHeavensAbove" target="_blank" rel="noopener" >
-                    Heavens Above Sky View
-                  </a>
-                </q-item-label>
+                <q-item-label caption>Search Celestrak for satellite data using a NORAD ID. If found, tracking will begin automatically.</q-item-label>
+                <q-item-label caption>You can find NORAD IDs on external sites, then enter one into the field here.</q-item-label>
               </q-item-section>
               <q-item-section side>
-                  <q-btn flat dense icon="mdi-satellite-variant" label="Search" class="position-right" @click="onClickSearchSatellite()"/>
+                  <q-input v-model="cat.searchFor" icon="mdi-satellite-variant" label="NORAD ID" class="position-right"/>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn color="positive" rounded  icon="mdi-satellite-variant" label="Search" class="position-right" @click="onClickSearchSatellite()"/>
               </q-item-section>
             </q-item>
-            <q-item v-if="cat.paginated.length==0" class="q-pt-lg q-pb-lg">
+            <q-item v-if="isSatelliteResults" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
+              <q-item-section>
+                <q-item-label>Nearby Satellites</q-item-label>
+                <q-item-label caption>View satellites currently visible from your location using Heavens Above (external site).</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="urlHeavensAbove"  target="_blank" rel="noopener" />
+              </q-item-section>
+            </q-item>
+            <q-item v-if="isSatelliteResults" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
+              <q-item-section>
+                <q-item-label>Brightest Satellites</q-item-label>
+                <q-item-label caption>Explore satellites ranked by brightness (apparent magnitude) on N2YO.com (external site).</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="urlN2YO"  target="_blank" rel="noopener" />
+              </q-item-section>
+            </q-item>
+            <q-item v-if="isSatelliteResults" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
+              <q-item-section>
+                <q-item-label>Categorised Satellites</q-item-label>
+                <q-item-label caption>Browse recent launches, active space stations, and orbital debris via Celestrak (external site).</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="urlCelestrak"  target="_blank" rel="noopener" />
+              </q-item-section>
+            </q-item>
+            <q-item v-if="isSatelliteResults" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
+              <q-item-section>
+                <q-item-label>Global Satellites</q-item-label>
+                <q-item-label caption>View real-time positions of the brightest satellites around the globe on satellitemap.space (external site).</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="urlSatellitemap"  target="_blank" rel="noopener" />
+              </q-item-section>
+            </q-item>
+            <q-item v-if="isNoResults" class="q-pt-lg q-pb-lg">
               <q-item-section avatar><q-icon name="mdi-help" /></q-item-section>
               <q-item-section>
                 <q-item-label>No Results Found</q-item-label>
@@ -159,7 +198,14 @@ const showFilters = ref<boolean>(false)
 const maxPages = computed(() => $q.screen.gt.sm ? 9 : 4)
 const sorted_str = computed(() => isProxSort.value ?  'Nearby Proximity' : 'Ranking and Size' )
 const isProxSort = computed(() => cat.sorting[0]?.field === 'Proximity')
+const isNoResults = computed(() => cat.paginated.length == 0 && route.query.C1 != '6')
+const isNoradSearch = computed(() => /^\d+$/.test(cat.searchFor) || route.query.C1 == '6')
+const isSatelliteResults = computed(() => route.query.C1 == '6')
 const urlHeavensAbove = computed(() => `https://www.heavens-above.com/skyview/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&cul=en#/livesky`)
+const urlN2YO = computed(() => `https://www.n2yo.com/satellites/?c=1&srt=4&dir=1&p=0`)
+const urlCelestrak = computed(() => `https://celestrak.org/NORAD/elements/`)
+const urlSatellitemap = computed(() => `https://satellitemap.space/`)
+
 
 // ---------- Watches
 watch(() => route.query.q, (newQ) => {
@@ -256,7 +302,7 @@ async function onClickSearchSatellite() {
   await dev.alpacaTrackOrbital(name)
   $q.notify({ message:`Satellite search issued for ${name}.`, icon:'mdi-satellite-variant',
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
-
+  await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
 }
 
 // ---------- Lifecycle Events
