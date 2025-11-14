@@ -45,7 +45,7 @@ pid_Kp = [1.0, 1.0, 1.0]                    # PID Proportional Gain for M1, M2, 
 pid_Ki = [0.05, 0.05, 0.05]                 # PID Integral Gain for M1, M2, M3 - increase control when error is accumulating and persistent
 pid_Kd = [0.5, 0.5, 0.8]                    # PID Derivative Gain for M1, M2, M3 - reduce control when angular velocity higher (damping)
 pid_Ke = 0.4                                # PID Expotential Smoothing Gain for OP (0=None, 0.4=mix 40% of old OP)
-pid_Kc = 0.5                                # PID Arc-minutes tollerance to accept as not deviating
+pid_Kc = 0.75                               # PID Arc-minutes tollerance to accept as not deviating
 pid_Ka = 0.0                                # PID Maximum acceleration (0.5 to 5.0 degress/s2) on any motor axis (use 0.0 to set default of 5) must be float
 pid_Kv = 0.0                                # PID Maximum slew rate (0.0 to 8.5 degrees/s) on any motor axis (use 0.0 to set calibrated max) must be float
 z1_min_limit = -270                         # Z1 Axis Raw Motor Control minimum in degrees

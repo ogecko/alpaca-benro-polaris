@@ -1343,7 +1343,7 @@ class PID_Controller():
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
-        self.is_axis_preloading = np.abs(self.error_signal) > 5 / 60           # preload error_integration outside 5 arcmin
+        self.is_axis_preloading = np.abs(self.error_signal) > 10 / 60                    # preload error_integration outside 10 arcmin
         self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
 
         # calc cost signal and flags
