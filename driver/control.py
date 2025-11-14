@@ -1063,9 +1063,7 @@ class PID_Controller():
             if self.orbital_sp_name in orbital_data:
                 orbital = orbital_data[self.orbital_sp_name]["body"]
             else:
-                # create Norad ID Satellite orbital
-                name, orbital = create_satellite_orbital(self.logger, self.orbital_sp_name)
-                # name, orbital = find_closest_orbital(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
+                name, orbital = find_closest_orbital(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
                 self.orbital_sp_name = name
 
         if orbital and self.polaris._trackingrate in [1,2,3]:
@@ -1213,6 +1211,9 @@ class PID_Controller():
     def set_orbital_target(self, name):
         self.reset_offsets()
         self.target_type = "ORBITAL"
+        # create Norad ID Satellite orbital if we dont have orbital already
+        if not name in orbital_data:
+            name, _ = create_satellite_orbital(self.logger, name)
         self.orbital_sp_name = name
 
     def rotator_move_relative(self, sp=0.0):
