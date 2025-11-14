@@ -257,6 +257,7 @@ The Status Indicator (a status chip in the top right-hand corner of the Dashboar
 -   **⑥ PreSetup:** This flag or alarm indication appears when the **observing site location (latitude, longitude)** has not been set. No action can be taken with the mount until the location is set.
 
 ![Dashboard indicators part 2](images/dashboard-indicators2.png)
+
 These indicators reflect the mount’s current motion or tracking mode:
 -   **① Gotoing:** The mount is slewing to a target position following a GOTO command.
 -   **② Slewing:** The mount is executing a manual slew operation.
@@ -268,6 +269,7 @@ These indicators reflect the mount’s current motion or tracking mode:
 
 
 ![Dashboard indicators part 3](images/dashboard-indicators3.png)
+
 When tracking an orbital object, the motion deviates from sidereal tracking. The indicator will instead display the name of the object being tracked:
 -   **① Lunar:** Tracking the Moon’s motion.
 -   **② Solar:** Tracking the Sun’s motion.
