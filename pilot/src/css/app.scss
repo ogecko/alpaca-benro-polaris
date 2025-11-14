@@ -1,1 +1,9 @@
 // app global css in SCSS form
+a {
+  color: #42a5f5; /* Replace with your desired color */
+  text-decoration: underline; /* Optional: remove underline */
+}
+
+a:hover {
+  color: #1976d2; /* Optional: hover color */
+}

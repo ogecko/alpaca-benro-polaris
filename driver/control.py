@@ -1064,7 +1064,7 @@ class PID_Controller():
                 orbital = orbital_data[self.orbital_sp_name]["body"]
             else:
                 # create Norad ID Satellite orbital
-                name, orbital = create_satellite_orbital(self.orbital_sp_name)
+                name, orbital = create_satellite_orbital(self.logger, self.orbital_sp_name)
                 # name, orbital = find_closest_orbital(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
                 self.orbital_sp_name = name
 

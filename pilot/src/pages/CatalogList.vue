@@ -47,6 +47,21 @@
         <q-card flat bordered class="col">
           <q-list bordered separator>
             <q-item v-if="cat.paginated.length==0" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
+              <q-item-section>
+                <q-item-label>Satellite NORAD ID?</q-item-label>
+                <q-item-label caption>Search for the Satellite on Celestrak, get its orbital data, and begin tracking if found.</q-item-label>
+                <q-item-label caption>Reference: View visible satellites from your location on
+                  <a :href="urlHeavensAbove" target="_blank" rel="noopener" >
+                    Heavens Above Sky View
+                  </a>
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn flat dense icon="mdi-satellite-variant" label="Search" class="position-right" @click="onClickSearchSatellite()"/>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="cat.paginated.length==0" class="q-pt-lg q-pb-lg">
               <q-item-section avatar><q-icon name="mdi-help" /></q-item-section>
               <q-item-section>
                 <q-item-label>No Results Found</q-item-label>
@@ -119,14 +134,15 @@ import { useStatusStore } from 'src/stores/status'
 import { useCatalogStore, typeLookupIcon } from 'src/stores/catalog'
 import VBar from 'src/components/VBar.vue'
 import MultiSelect from 'src/components/MultiSelect.vue'
+import { useConfigStore } from 'src/stores/config'
 
 
-
-const cat = useCatalogStore()
 const $q = useQuasar()
 const route = useRoute()
-const dev = useDeviceStore()
 const router = useRouter()
+const dev = useDeviceStore()
+const cat = useCatalogStore()
+const cfg = useConfigStore()
 const p = useStatusStore()
 
 const showFilters = ref<boolean>(false)
@@ -143,6 +159,7 @@ const showFilters = ref<boolean>(false)
 const maxPages = computed(() => $q.screen.gt.sm ? 9 : 4)
 const sorted_str = computed(() => isProxSort.value ?  'Nearby Proximity' : 'Ranking and Size' )
 const isProxSort = computed(() => cat.sorting[0]?.field === 'Proximity')
+const urlHeavensAbove = computed(() => `https://www.heavens-above.com/skyview/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&cul=en#/livesky`)
 
 // ---------- Watches
 watch(() => route.query.q, (newQ) => {
@@ -232,6 +249,13 @@ async function onClickGoto(dso: CatalogItem) {
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   cat.dsoGotoed = dso
   await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
+}
+
+async function onClickSearchSatellite() {
+  const name = cat.searchFor
+  await dev.alpacaTrackOrbital(name)
+  $q.notify({ message:`Satellite search issued for ${name}.`, icon:'mdi-satellite-variant',
+  type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
 
 }
 

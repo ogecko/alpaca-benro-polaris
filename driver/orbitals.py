@@ -13,7 +13,7 @@ def compose_orbital_export():
         }
     return export_data
 
-def create_satellite_orbital(norad_id):
+def create_satellite_orbital(logger, norad_id):
     """
     Fetches TLE data from Celestrak for a given NORAD ID, creates a PyEphem satellite,
     stores it in orbital_data using the satellite name, and returns (name, body).
@@ -21,32 +21,36 @@ def create_satellite_orbital(norad_id):
         norad_id (int or str): NORAD catalog number of the satellite.
     Returns:
         tuple: (name, ephem.EarthSatellite) if successful
-    Raises:
-        ValueError or ConnectionError on failure
+        Logs any error condition and returns (None, None) if unsuccessful
     """
     try:
         norad_id = int(str(norad_id).strip())
         if norad_id <= 0:
-            raise ValueError("NORAD ID must be a positive integer.")
+            logger.info(f'NORAD ID must be a positive integer: {norad_id}')
+            return None, None
     except Exception as e:
-        raise ValueError(f"Invalid NORAD ID: {norad_id}") from e
+        logger.info(f'Invalid NORAD ID: {norad_id}, {e}')
+        return None, None
 
     url = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_id}&FORMAT=TLE"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
     except requests.RequestException as e:
-        raise ConnectionError(f"Failed to fetch TLE data: {e}") from e
+        logger.info(f'Failed to fetch TLE data for {norad_id}, {e}:')
+        return None, None
 
     lines = response.text.strip().splitlines()
     if len(lines) < 3:
-        raise ValueError(f"Incomplete TLE data for NORAD ID {norad_id}")
+        logger.info(f'Incomplete TLE data for NORAD ID: {norad_id}')
+        return None, None
 
     name, line1, line2 = lines[:3]
     try:
         body = ephem.readtle(name, line1, line2)
     except Exception as e:
-        raise ValueError(f"Failed to parse TLE data: {e}") from e
+        logger.info(f'Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
+        return None, None
 
     orbital_data[name] = { "body": body }
     return name, body
