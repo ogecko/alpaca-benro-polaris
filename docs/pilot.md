@@ -257,12 +257,27 @@ The Status Indicator (a status chip in the top right-hand corner of the Dashboar
 -   **⑥ PreSetup:** This flag or alarm indication appears when the **observing site location (latitude, longitude)** has not been set. No action can be taken with the mount until the location is set.
 
 ![Dashboard indicators part 2](images/dashboard-indicators2.png)
+These indicators reflect the mount’s current motion or tracking mode:
+-   **① Gotoing:** The mount is slewing to a target position following a GOTO command.
+-   **② Slewing:** The mount is executing a manual slew operation.
+-   **③ Rotating:** The mount is actively adjusting its rotation or position angle.
+-   **④ Guiding:** The mount is responding to pulse-guiding commands to refine its tracking.
+-   **⑤ Sidereal:** - Sidereal tracking is enabled. The mount is following the apparent motion of the stars, maintaining fixed equatorial coordinates.
 
--   **① Gotoing:** The mount is proceeding to the GOTO target that was just initiated.
--   **② Slewing:** The mount is executing a manual slew command.
--   **③ Rotating:** The mount is actively changing its rotation angle/position angle.
--   **④ Tracking:** The mount's tracking function is currently enabled. It will be tracking at the current tracking rate, either sidereal, lunar, solar, king or custom.
--   **⑤ Guiding:** The mount's has received a pulse-guiding command and adjusting its tracking accordingly.
+
+
+
+![Dashboard indicators part 3](images/dashboard-indicators3.png)
+When tracking an orbital object, the motion deviates from sidereal tracking. The indicator will instead display the name of the object being tracked:
+-   **① Lunar:** Tracking the Moon’s motion.
+-   **② Solar:** Tracking the Sun’s motion.
+-   **③ Saturn:** Tracking a planetary target.
+-   **④ Titan:** Tracking a planetary moon.
+-   **⑤ ISS (ZARYA):** Tracking the International Space Station.
+-   **⑥ SL-16 R/B:** Tracking a rocket body (spent stage).
+
+
+
 
 ### Motor Indicators
 
