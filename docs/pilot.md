@@ -279,6 +279,13 @@ When tracking an orbital object, the motion deviates from sidereal tracking. The
 -   **⑥ SL-16 R/B:** Tracking a rocket body (spent stage).
 
 
+![Dashboard indicators part 4](images/dashboard-indicators4.png)
+
+When an orbital object is below 10° altitude, the status indicator turns orange, and its current position is appended to the tracking chip. In this state, the mount does not update its setpoint, allowing you to preselect and monitor targets before they become visible. Once the object rises above 10°, the mount will automatically slew to its position and begin tracking.
+
+-   **① Lunar below the Horizon:** The Moon is currently at −40° altitude. The mount is standing by and will begin tracking once it rises.
+-   **② Starlink below 10°:** The communications satellite is below the 10° threshold. The mount is waiting to initiate tracking.
+
 
 
 ### Motor Indicators

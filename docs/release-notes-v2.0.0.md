@@ -32,6 +32,7 @@
 - **[Planets and Moons]** Add solar system orbitals to catalog, including Sun, Moon, Planets and Planetary Moons. 
 - **[Artificial Satellites]** Search for over 35k objects to track, including Space Stations, Sattelites, Rocket Bodies and Space Debris. 
 - **[Orbital Tracking]** Add Solar, Lunar and Other tracking rates for all cataloged orbitals, including TLE objects.
+- **[Orbital Monitoring]** Preload an orbital target and monitor its position, enabling automatic slewing and tracking once it rises above 10°.
 - **[Orbital Documentation]** Update Pilot documentation on Orbitals.
 - **[Solar Warning]** Confirm before enabling Solar Tracking Rate.
 - **[Tracking Chip]** Update tracking status chip to indicate tracking rate ie Sidereal, Lunar, Solar, or Custom (orbital's name).
