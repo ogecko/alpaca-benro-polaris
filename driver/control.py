@@ -15,7 +15,7 @@ import math
 import copy
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
-from orbitals import orbital_data, find_closest_orbital, create_satelite_orbital
+from orbitals import orbital_data, find_closest_orbital, create_satellite_orbital
 
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -1064,7 +1064,7 @@ class PID_Controller():
                 orbital = orbital_data[self.orbital_sp_name]["body"]
             else:
                 # create Norad ID Satellite orbital
-                name, orbital = create_satelite_orbital(self.orbital_sp_name)
+                name, orbital = create_satellite_orbital(self.orbital_sp_name)
                 # name, orbital = find_closest_orbital(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
                 self.orbital_sp_name = name
 
