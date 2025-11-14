@@ -1069,7 +1069,7 @@ class PID_Controller():
                 self.orbital_sp_name = name
 
         if orbital and self.polaris._trackingrate in [1,2,3]:
-            self.observer.date = ephem.Date(datetime.datetime.utcnow())
+            self.observer.date = ephem.Date(datetime.datetime.utcnow()) + ephem.second * 2.5    # 2.5 seconds in the future
             self.observer.epoch = ephem.now()
             orbital.compute(self.observer)
             # self.logger.info(f"Tracking - Alt: {rad2deg(orbital.alt):.2f} Az: {rad2deg(orbital.az):.2f}")    
