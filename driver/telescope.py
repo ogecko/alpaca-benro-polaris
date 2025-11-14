@@ -1503,7 +1503,7 @@ class unpark:
                             DriverException(0x500, 'Telescope.Unpark failed', ex))
 
 
-@before(PreProcessRequest(maxdev, 'log_alpaca_discovery'))
+@before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([

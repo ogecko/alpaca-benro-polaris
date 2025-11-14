@@ -86,7 +86,7 @@ class description:
 # -----------------
 class configureddevices():
     async def on_get(self, req: Request, resp: Response):
-        await log_request(req,'log_alpaca_discovery')
+        await log_request(req,'log_alpaca_actions')
         confarray = [    # ADD ONE FOR EACH DEVICE TYPE AND INSTANCE SERVED
             {
             'DeviceName'    : TelescopeMetadata.Name,
