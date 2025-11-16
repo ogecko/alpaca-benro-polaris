@@ -6,7 +6,7 @@
 No. Alpaca is an astronomy standard, a kind of universal language that lets astronomy apps and devices communicate. The **Alpaca Driver** is a Python-based program that acts as a translator between your Benro Polaris and other Alpaca-compatible software.
 
 ### A2 – Does the Alpaca Driver run on the Polaris itself?
-Not currently. The Driver runs on a separate device—like a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.
+Not currently. The Driver runs on a separate device, like a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.
 
 ### A3 – Can I run the Alpaca Driver on my phone or iPad?
 Not directly. The Driver requires a Python runtime and continuous background processing, something mobile platforms like iOS and Android don’t reliably support due to battery-saving restrictions. Even the current Polaris app struggles with power drain during extended use.
@@ -65,19 +65,20 @@ Here's some results from the Beta Testers:
 Keep in mind that longer focal lengths amplify any tracking errors, making precise polar alignment and potentially shorter exposures crucial.
 
 ### B3 - Can the Alpaca Project improve aiming performance?
-Yes, the Benro Polaris often exhibits consistent aiming inaccuracies, especially after re-engaging sidereal tracking post-slewing. The ABP Driver tackles this by employing an "Adaptive Integrative algorithm," constantly comparing the intended target coordinates with the Polaris's reported position. It learns from these discrepancies and applies an "Alt/Az offset" to correct for the Polaris's inherent errors, leading to more accurate aiming.
+Yes, the Benro Polaris often exhibits consistent aiming inaccuracies, especially after re-engaging sidereal tracking post-slewing. The Alpaca Driver V2.0 dramatically enhances mount accuracy, stability and responsiveness. The new PID Motion control eliminates backlash compensation, improves aiming accuracy, manages acceleration profiles, and support real-time redirection.
 
 ### B4 - Can the Alpaca Project improve tracking performance?
-The ABP Driver introduces a feature called N-Point Alignment when used with NINA (Nighttime Imaging 'N' Astronomy). This process leverages plate-solving, where NINA takes an image, analyzes the star patterns, and compares them to a database to precisely determine where the Polaris is pointing. The ABP Driver then instructs the Polaris to adjust its alignment based on this information. As you perform more plate-solves and syncs, the driver refines the Polaris's understanding of its orientation, leading to improved accuracy over time.
-
-The ABP Driver doesn't directly modify the Benro Polaris's gears, motors, or firmware. Therefore, it cannot fix any underlying mechanical or programming limitations of the Polaris that might contribute to tracking errors. Some users in the Facebook group do express concerns about the Polaris's gears, programming, or backlash potentially being the root cause of their tracking issues.
-
-The ABP Driver, as of version 1.0.0, doesn't include auto-guiding capabilities. Auto-guiding requires sending minute move commands to the mount while tracking is engaged, something the Benro Polaris's firmware doesn't currently support.
+Yes, significantly. Alpaca V2.0 introduces major improvements to tracking precision and capabilities. Key improvements include
+- **PID Motion Control:** The Driver features a real-time PID-based motion controller that replaces the native Polaris firmware, delivering smoother tracking, faster recovery from disturbances.
+- **Plate-Solving:** By integrating with tools like ASTAP and NINA, the Driver enables precise target acquisition and automatic centering, correcting for mount misalignment.
+- **Multi-Point Alignment:** The Driver supports QUEST modeling, allowing users to build a multi-point sky model that compensates for polar misalignment, cone error, and mount flexure.
+- **Pulse-Guiding:** ASCOM Alpaca pulse-guiding support enables real-time corrections from guiding software like PHD2, improving long-exposure tracking accuracy and eliminating drift.
+- **Orbital Tracking:** The Driver can track over 32,000 satellites, planets, and moons using real-time TLE data, updating mount setpoints every 200 ms for accurate tracking of fast-moving or dynamic targets.
 
 ### B5 - What is the heaviest load the Polaris can handle?
 The Benro USA Site claims the Astro version of the Polaris can handle a load of 7 kg (15.4 lbs). Pretty impressive for such a small mount, without a counterweight. 
 
-I have tested the performance of the Polaris with my rig up to around 3.4kg (Canon R5, RF 500mm lens, Dew Heater, Mini-PC, Gemini Focuser, ArcaSwiss Mounting Bar). The Polaris seems to easily handle this load and performs sidereal tracking well. Soon to add another 700g for a guide scope and camera. 
+I have tested the performance of the Polaris with my rig up to around 4.4kg (Canon R5, RF 800mm lens, Dew Heater, Mini-PC, Gemini Focuser, ArcaSwiss Mounting Bar, Svbony 50mm Guide Scope, Touptek GPM462M Guide Camera). The Polaris seems to easily handle this load and performs sidereal tracking well. 
 
 # Nina Capability Questions
 ### N1 - How can I connect both Nina and BP App to my Camera via USB?
@@ -117,8 +118,6 @@ Yes, Nina can do this! It has a handy plug-in called Session Manager that can re
 
 This information is saved in CSV files, making it easy to import and use in other astrophotography software.
 
-### N6 - Is auto-guiding going to be possible?
-Unfortunately, auto-guiding is not currently supported by the Alpaca Benro Polaris Driver. Auto-guiding typically requires the ability to make tiny adjustments to the mount's position while tracking is active, without introducing backlash (the slight play in gears).
 
 # Stellarium Usage Questions
 ### S1 - Will Stellarium work via Wifi or is a cable necessary?
