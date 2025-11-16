@@ -419,7 +419,9 @@ To move the mount to a target's location, simply **click the GoTo button** assoc
 If the object you have selected is **already visible in your camera’s field of view**, you can use the sync function to align the mount's coordinates precisely. Syncing helps the Driver understand where the telescope is pointing compared to where Polaris thinks it is, correcting any upstream misalignment.
 
 
-### Orbitals
+### Tracking Orbitals
+
+>VIDEO DEMO - [26 - Tracking Orbitals](https://youtu.be/no47ZNagEDk)
 
 The catalog supports a range of orbital objects whose motion deviates from sidereal tracking and whose equatorial coordinates are not fixed. To accommodate these, the Driver includes additional tracking rates beyond standard sidereal motion, including the ASCOM standard rates of Lunar, Solar and Custom (to cater for many orbitals)
 

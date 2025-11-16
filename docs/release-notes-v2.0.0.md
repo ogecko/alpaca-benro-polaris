@@ -15,6 +15,7 @@
 * **23 - Rotator Framing:** Demonstration Video at https://youtu.be/_Swd-jIyQis
 * **24 - Multi Point Alignment:** Demonstration Video at https://youtu.be/4CMO0R_yphw
 * **25 - Equipment Safety:** Demonstration Video at https://youtu.be/45EP-DExSOQ
+* **26 - Tracking Orbitals:** Demonstration Video at https://youtu.be/no47ZNagEDk
 * **31 - Kalman Filter:** Demonstration Video at https://youtu.be/aDFKAWBNQHU
 * **32 - Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
 
@@ -36,7 +37,7 @@
 - **[Orbital Documentation]** Update Pilot documentation on Orbitals.
 - **[Solar Warning]** Confirm before enabling Solar Tracking Rate.
 - **[Tracking Chip]** Update tracking status chip to indicate tracking rate ie Sidereal, Lunar, Solar, or Custom (orbital's name).
-
+- **[FAQ Documentation]** Update FAQ to improve questions on mobile and refresh for V2.0.
 
 ## What's new in beta4
 - **[Documentation Menu]** Add Documentation menu for Pilot, Control, Troubleshooting, Videos, FAQ and About
