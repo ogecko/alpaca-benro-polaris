@@ -314,7 +314,7 @@ Day Time Testing  (08 Nov 25)
     4. will most likely be used for further testing.
 
 
-### Multi-Point Alignment (16 Nov 25)
+### Beta4 with Multi-Point Alignment (16 Nov 25)
 * Background
     - Using the iPhone compass app (set to true north), the tripod and Benro Polaris were
     set up to perfectly face South (180°)
