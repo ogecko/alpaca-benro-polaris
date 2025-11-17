@@ -7,26 +7,32 @@
 Are you interested in trying your hand at amateur astrophotography? Invest in a [Benro Polaris with its Astro Kit](https://www.benro-polaris.com/), and this project will transform it from a great Tripod Head to a full-featured, open Telescope Mount. This project aims to provide users with a way to control their Benro Polaris using more advanced astrophotography software, including [Stellarium](https://stellarium.org/en/), [Nina](https://nighttime-imaging.eu/), and other applications that support the ASCOM Alpaca platform. 
 
 # Intended Audience
-Just starting in Astrophotography and the Benro Polaris, then check out our [Beginners and Learning Guide](docs/beginners.md) to help learn the basics. The project documentation and features target individuals familiar with astrophotography concepts and software like deep sky astronomy, image sequencing, plate solving, polar alignment, equatorial coordinates, and image stacking. The first release is intended for users comfortable with technical setups involving MacOS or Windows, mini-PCs, Command Windows, and Networks, as these are presented as options for running the Alpaca-Benro-Polaris Driver.
+Just starting in Astrophotography and the Benro Polaris, then check out our [Beginners and Learning Guide](docs/beginners.md) to help learn the basics. The project documentation and features target individuals familiar with astrophotography concepts and software like deep sky astronomy, image sequencing, plate solving, polar alignment, equatorial coordinates, and image stacking. The software is intended for users comfortable with technical setups involving MacOS or Windows, mini-PCs, Command Windows, and Networks, as these are presented as options for running the Alpaca-Benro-Polaris Driver.
 
 # Project Purpose
 The [Benro Polaris](https://www.benro-polaris.com/) tripod head is a great product. It's manufactured to a high standard, comes in a compact and sturdy design, and its mobile App has many easy-to-use features. Although its not cheap, it is cheaper than a modern telescope mount like the [ZWO AM3 Harmonic Equatorial Mount](https://www.zwoastro.com/product/zwo-am3-harmonic-equatorial-mount/). The Polaris can also be used for other photography projects beyond astro-photography.
 
 That is what this project is all about. The intention is to open up the Benro Polaris with an HTTP-based [REST API](https://www.ibm.com/topics/rest-apis) that will allow other applications to leverage this great platform. 
 
-The Alpaca Benro Polaris (`ABP`) supports a standard [ASCOM](https://ascom-standards.org/) device interface called  [ITelescopeV3 interface](https://ascom-standards.org/Help/Developer/html/T_ASCOM_DeviceInterface_ITelescopeV3.htm) to control the Benro Polaris tripod head. This standard interface supports applications like [Stellarium Desktop](https://stellarium.org/en/) (a free open-source planetarium application) and [Nina](https://nighttime-imaging.eu/) (Nighttime Imaging 'N' Astronomy - An astrophotography imaging suite). 
+The Alpaca Benro Polaris Driver supports a standard [ASCOM](https://ascom-standards.org/) device interfaces called  [ITelescopeV3 interface](https://ascom-standards.org/Help/Developer/html/T_ASCOM_DeviceInterface_ITelescopeV3.htm) and [IRotatorV3 Interface](https://ascom-standards.org/Help/Developer/html/T_ASCOM_DeviceInterface_IRotatorV3.htm) to control the Benro Polaris tripod head. These standard interfaces support applications like [Stellarium Desktop](https://stellarium.org/en/) (a free open-source planetarium application) and [Nina](https://nighttime-imaging.eu/) (Nighttime Imaging 'N' Astronomy - An astrophotography imaging suite). 
 
-The ABP also supports a subset of the [SynSCAN protocol](https://inter-static.skywatcher.com/downloads/synscanserialcommunicationprotocol_version33.pdf) over the network. This allows the Driver to support mobile applications like [Stellarium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) or [Sky Safari 7 Plus and Pro](https://skysafariastronomy.com/).
+The Alpaca Driver also supports a subset of the [SynSCAN protocol](https://inter-static.skywatcher.com/downloads/synscanserialcommunicationprotocol_version33.pdf) over the network. This allows the Driver to support mobile applications like [Stellarium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) or [Sky Safari 7 Plus and Pro](https://skysafariastronomy.com/).
 
-The priorities of this open-source project reflect feedback from the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755). This group provided great suggestions and encouragement for this project, with over 120 supporting it in just 2 days. I've summarised the feedback comments below with features getting the most requests listed as high-priority. The open-source project meets ALL feasible requests. There are still some challenges to the 3-point alignment; although we have some ideas!
+The priorities of this open-source project reflect feedback from the [Polaris Camera Controller Global Group](https://www.facebook.com/groups/326138891873755). This group provided great suggestions and encouragement for this project, with over 120 supporting it in just 2 days. I've summarised the feedback comments below with features getting the most requests listed as high-priority. The open-source project has met ALL feasible requests. 
 
 ![Overview](docs/images/abp-priorities.png)
 
 # Documentation Overview
 The Alpaca Benro Polaris has documentation to help you prepare your hardware, install software and use the features in Stellarium and Nina. Since the ABP is an ASCOM standard driver, many other applications can make use of it. Let us know what you've found that works.
 
-## [Release Notes](./docs/release-notes-v1.0.1.md)
-The [Release Notes v1.0.1](./docs/release-notes-v1.0.1.md) is a reference document that outlines new features, compatible software, bug fixes, known issues and untested features of the Alpaca Benro Polaris Driver. The new features are organised by application to help document what new capabilities are enabled by using the driver with a given application. 
+## [Release Notes](./docs/release-notes-v2.0.0.md)
+The [Release Notes v2.0.0](./docs/release-notes-v2.0.0.md) is a reference document that outlines new features, compatible software, bug fixes, known issues and untested features of the Alpaca Benro Polaris Driver. The new features are organised by application to help document what new capabilities are enabled by using the driver with a given application. 
+
+## [Video Playlists](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d)
+We have a range of demonstration videos included on Youtube to help familiarise yourself with the Alpaca Driver and Alpaca Pilot Application.
+- [Alpaca Benro Polaris Project V1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) - Still relevant to learn the basics
+- [Alpaca Benro Polaris Project V2.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D) - Covers new features in V2.0
+
 
 ## [Hardware Guide](./docs/hardware.md)
 The [Hardware Guide(s)](./docs/hardware.md) outlines the recommended hardware platforms for running the Alpaca Benro Polaris Driver, ranging from basic laptop setups to more advanced mini-PC configurations for controlling all astronomy equipment. It offers step-by-step guidance on setting up a "NinaAir" mini-PC, ensuring users can establish a robust and dedicated astrophotography control center.
@@ -38,7 +44,7 @@ The [Installation Guide](./docs/installation.md) provides step-by-step instructi
 The [Alpaca Pilot App Guide](./docs/pilot.md) provides step-by-step instructions using the new Alpaca Pilot App for controlling the Driver and understanding what is happening inside the Driver.
 
 ## [Advanced Motion Control Guide](./docs/control.md)
-The [Advanced Motion Control Guide](./docs/control.md) explains each of the new motion control concepts and features included in the V2.0 Driver, which introduces a complete rewrite of the motion control system.
+The [Advanced Motion Control Guide](./docs/control.md) explains each of the new motion control concepts and features included in the Alpaca Driver V2.0, which introduces a complete rewrite of the motion control system.
 
 ## [Using Stellarium](./docs/stellarium.md)
 The [Using Stellarium Guide](./docs/stellarium.md) focuses on using Stellarium with the Benro Polaris, explaining how to establish a connection, control the mount, and leverage Stellarium's features. It outlines the compatibility of different Stellarium versions and protocols, guiding users on connecting their setup and navigating Stellarium's interface for effective telescope control.
@@ -57,8 +63,8 @@ We have included a comprehensive [Troubleshooting Guide](./docs/troubleshooting.
 
 A list of [Frequently Asked Questions](./docs/faq.md) addresses common questions about the Alpaca standard, the Benro Polaris's capabilities, and the use of Nina and Stellarium for astrophotography. It clarifies misconceptions about Alpaca and provides realistic expectations for using the Benro Polaris for deep-sky photography, emphasizing the importance of proper equipment and settings.
 
-## [Beta Test Results](./docs/betatest.md)
-The [Beta Test Results](./docs/betatest.md) provides an analysis and summary of the beta test results and feedback for the Alpaca Benro Polaris Driver, highlighting its strengths and areas for improvement. Additionally, it outlines the guidelines followed during the beta testing phase and lists the individuals involved along with their testing environments and experiences.
+## [Beta Test Results](./docs/betatest_v2.md)
+The [Beta Test Results](./docs/betatest_v2.md) provides an analysis and summary of the beta test results and feedback for the Alpaca Benro Polaris Driver, highlighting its strengths and areas for improvement. Additionally, it outlines the guidelines followed during the beta testing phase and lists the individuals involved along with their testing environments and experiences.
 
 # Recognition
 I'd like to thank the following people who helped make this project a reality:
@@ -75,9 +81,13 @@ I'd like to thank the following people who helped make this project a reality:
 The Beta Testers' perseverance and feedback helped improve the documentation and final quality of the software. I greatly appreciate their encouragement and the testing they performed.
 
 * Vladimir Vyskocil 
+* bakermanz (Mark) 
+* LanzaSteve (Steve Everitt)
+* Alex Murdock
+* Daniel Michaud
+* Paul C
 * Spiderx01 (William Siers) 
 * 5x5Stuido (John Harrison) 
-* bakermanz (Mark) 
 * Ladislav (Ladi Slav) 
 * saltyminty (Mingyang Wang) 
 * hqureshi79 (Humayun Qureshi) 
@@ -88,32 +98,7 @@ The Beta Testers' perseverance and feedback helped improve the documentation and
 * Cynical Sarge (Andrew Sargent)
 
 ## Kickstarter Backers
-I want to thank all the 117 [Kickstarter Project Backers](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver/community?ref=9a035f), especially those who pledged Game-Changing and That's-Awesome amounts. I will keep the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver?ref=9a035f) open to continue funding ongoing support and making enhancements to this project. PS. Let me know if you want to be anonymous.
-
-|  GAME CHANGER | Thats Awesome | Thats Awesome | Thats Awesome |
-|:---:|:---:|:---:|:---:|
-| **Mack Cameron** | Adrian Squirrell | Ed | Mike Drinkwater |
-| **Mark Bahu** | Alan Smallbone | Fernando Ribeiro | Moshe Salama |
-| **Peter** | Alessio Zanotti | Fernando Villaverde Gaviña | Nagendra Narayan |
-| **Richard Swaim** | Alex Murdoch | Humayun Qureshi | Patryk Lesiecki |
-| **Simone Chiari** | Alvin Christie | Ian Cannan | Paul Moulton |
-| **William Siers** | Amy Kemp | Ian Morgan | Paul Olsavsky |
-|  | Andreas Bichler | Ilya Chernikov | Paul Rickwood |
-|  | Andrew Roberts | James White | Peps Choufme |
-|  | Baha Baydar | John | Phil Dando |
-|  | Bikram Ghosh | Jonathan Shribman | Pudeldestodes |
-|  | Bill Lazar | Juan Manuel López Fernández | Richard Healey |
-|  | Blair Dunlop | Juan Martinez | Rob Bristow |
-|  | Boyce Fitzgerald | Kaingc | Roger Good |
-|  | Brad Anderson | Kym Wallis | Sandra Coffey  |
-|  | Cameron Palmer | Ladislav Svoboda | Santanu Majumder |
-|  | Carlo Mascellani | Mahmudur Rahman | Simon Modera |
-|  | Charles T. Simet | Mangoe | Steve Renter |
-|  | Dan Suskin | Mark Penberthy | Steven |
-|  | David Proudfoot | Max Izod | Stlwarehouse |
-|  | Donald Dunbar | Michael C |  |
-
-
+I want to thank all the [Kickstarter Project Backers](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20/community), especially those who pledged Game-Changing and That's-Awesome amounts. I will keep the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20) open to continue funding ongoing support and making enhancements to this project. PS. Let me know if you want to be anonymous.
 
 
 ## User Group Feedback
@@ -121,14 +106,7 @@ I want to thank all the 117 [Kickstarter Project Backers](https://www.kickstarte
 
 * Many users expressed encouragement, excitement and great support for the project, using phrases like:
   * "Just wow!", "So much of this yes", "Love it", "This is a cool project", "Would be awesome", "Yes yes please", "I'm all in", "Absolute game changer", "Great", "Please make this work", "Very exciting", "Super job", "Wow Wonderful", "100% Super enthusiastic about this", "This is absolutely wicked", "Sounds Great"
-  * "Awesome initiative", "Amazing work", "Most certainly very worthwhile",  "Bring it on !!", "I am TOTALY blowen away by this", "Outstanding work", "Keeping a bllodshot eye on this thread!", "I think we are going to have to name a star after you", "not a star, an entire Nebula, the Morrison Nebula!" :-)
-* Specific features that received positive feedback included:
-  * Plate solving, three-point alignment, integration with Stellarium, and the ability to use Nina with the Benro Polaris.
-* Users expressed a desire to: 
-  * Improve the Benro Polaris's tracking accuracy, particularly with longer lenses.
-  * Make the Benro Polaris a more portable astrophotography solution.
-  * Offer help with beta testing the project.
-  * Reach out to Benro for backing.
+  * "Awesome initiative", "Amazing work", "Most certainly very worthwhile",  "Bring it on !!", "I am TOTALY blowen away by this", "Outstanding work", "Keeping a bllodshot eye on this thread!"
 * Overall, the feedback from the Polaris Camera Controller Global Group was overwhelmingly positive, with users expressing enthusiasm for the project's potential to unlock the full capabilities of the Benro Polaris.
 
 
@@ -148,6 +126,8 @@ And finaly, just a brief note about risks....
 Please be aware that this is not official Benro Software. If you decide to use it - you are doing so at your own risk.
 
 There is a chance of voiding the warranty or damaging your Benro Polaris hardware. There is a chance that you may use the driver/hardware in a way, unintended by its design. The driver is not official Benro software. They may not support you. Due to the extensive testing, the risk of hardware damage is very low.
+
+Do not leave the system unattended while the Alpaca Driver is actively controlling the Polaris mount. If the driver loses connection or is interrupted, the last movement command may continue indefinitely. Without communications to the Polaris, the Driver cannot enforce its own Motor Angle Limits.
 
 Also note that the ASCOM Alpaca standard is not secure. It is open by design. Simply stated, Alpaca and network security are separate things. Only use within an isolated protected virtual or local network.
 

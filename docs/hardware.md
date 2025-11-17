@@ -1,21 +1,26 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
+The Alpaca Driver runs on a device separate from the Benro Polaris. You can use a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.
+
 # Recommended Hardware Platform
-[Laptop](#using-a-laptop-with-stellarium-desktop) | [Raspberry Pi](#using-a-raspberry-pi-for-the-driver) | [Docker](#using-docker-to-host-the-driver) | [Mini-PC](#a-mini-pc-to-control-all-your-astronomy-equipment-recommended) | [Powerbank](#powering-the-mini-pc-and-camera-overnight) | [Cabling](#connecting-up-the-ninaair) | [Setup NinaAir](#setting-up-the-ninaair-platform)
+[Laptop](#using-a-laptop-with-stellarium-desktop) | 
+[Raspberry Pi](#using-a-raspberry-pi-for-the-driver) | 
+[Mini-PC](#a-mini-pc-to-control-all-your-astronomy-equipment-recommended) |
+[Powerbank](#powering-the-mini-pc-and-camera-overnight) | 
+[Cabling](#connecting-up-the-ninaair) | 
+[Setup NinaAir](#setting-up-the-ninaair-platform) |
+[Gemini Focuser](#gemini-eaf-driver-installation-optional) |
+[Guiding](#guiding-scope-and-camera-optional)
 
 ## Using a Laptop with Stellarium Desktop
 ![Hardware Architecture](images/abp-hardware1.png)
 
 Unfortunately some laptop Wifi controllers dont support connecting with the Benro Polaris Wifi, so you'll also need something like [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) (only US$17 from Amazon). 
 
-
 ## Using a Raspberry Pi for the driver
 You can install the Alpaca Benro Polaris Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
 
 ![Hardware Architecture](images/abp-hardware2.png)
-
-## Using Docker to host the driver
-You can create a Docker image with the Alpaca Benro Polaris Driver. See the [Docker Setup Guide](./docker.md) for more information.
 
 ## A Mini-PC to control all your astronomy equipment (Recommended)
 To leverage more of the capabilities of the Alpaca Benro Polaris Driver, I'd recommend installing it on a mini-PC you can mount or hang from your tripod. This way, you can create an equivalent of a  [ZWO ASIAIR plus](https://www.zwoastro.com/product/asiair-plus/) that can control all your astronomy equipment. Let's call it a `NinaAir` instead of an ASIAir!
@@ -174,3 +179,54 @@ Use the following instructions to setup the Gemini EAF driver on your Mini-PC
 10. Choose the Com Port 'COM3'
 11. Click Connect, the EAF should beep.
 12. Click Disconnect and Exit.
+
+### Guiding Scope and Camera (OPTIONAL)
+The Alpaca Driver V2.0 now supports pulse-guiding and opens up the use of applications like [PHD2](https://openphdguiding.org/) to improve tracking and reduce drift. You will need extra equipment if you wish to perform guiding of the Benro Polaris.
+
+1. Guide Camera
+eg. SVBony 50mm Guide scope
+
+1. Guide Scope or Off-Axis Guider
+
+3. Mounting the guidescope
+eg. Touptek GPM462M
+
+
+Certainly! Here's an expanded and clarified version of the **"Guiding Scope and Camera (OPTIONAL)"** section for your user guide, with improved structure, examples, and guidance for users setting up guiding on the Benro Polaris:
+
+---
+
+### Guiding Scope and Camera (OPTIONAL)
+
+The Alpaca Driver V2.0 now supports **pulse-guiding**, enabling integration with guiding software such as [PHD2](https://openphdguiding.org/) to improve tracking accuracy and reduce drift during long imaging sessions. This allows the Benro Polaris to correct for small tracking errors in real time, significantly enhancing performance for astrophotography, especially at longer focal lengths.
+
+To take advantage of guiding, you’ll need additional hardware:
+
+#### 1. Guide Camera
+
+A dedicated guide camera captures rapid images of a guide star and sends these images to the guiding application. The guiding application makes corrections to the mount via the Alpaca Driver. Choose a camera with:
+
+- **High sensitivity** (mono sensors preferred for better low-light performance)
+- **USB connectivity** (USB 2.0 or 3.0, depending on your mini-pc)
+- **ASCOM compatibility** (for use with PHD2)
+
+Examples include A. ZWO ASI120MM Mini; B. Touptek GPM462M; C. QHY5L-II Mono
+
+#### 2. Guide Scope or Off-Axis Guider (OAG)
+
+You’ll need a way to collect and focus light from a guide star to the guide camera. You can choose one of two approaches:
+
+- **Guide Scope**: A small refractor (e.g., 30–60 mm aperture) mounted in parallel with your main imaging scope. For example an SVBony 50mm f/4 Guide Scope
+- **Off-Axis Guider (OAG)**: Uses a small prism to divert light from the edge of your main telescope’s field of view into the guide camera. Ideal for long focal length setups where differential flexure is a concern.
+
+#### 3. Mounting the Guide Scope
+
+Secure mounting is critical to avoid flexure between the guide scope and main imaging system. You can Consider:
+
+- **iShoot 220mm Arca Swiss Plate and QR-50B Clamps** used with Polaris L-Bracket orientation, this can hold you camera/lens, guidescope and min-PC, all above the mount.
+- **William Optics Dual side Dovetail Plate** 245mm in length and weighs 330g.
+- **YUEOCT Metal Finder Scope Mount Adapter AT-05** mounts the guidescope via the cameras flash hot/coldshoe.
+
+**Example Setup:**
+- Touptek GPM462M camera + SVBony 50mm guide scope mounted via QR-50B clamps to a 220mm Arca Swiss plate.
+

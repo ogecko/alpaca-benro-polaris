@@ -447,3 +447,66 @@ Amazing!
 Reply
 Jose Pedrero Barrios
 Sticker by Super Smalls
+
+Eric Chiu
+
+Top contributor
+Wow 🙂
+1d
+Reply
+
+Ian Morgan
+
+Rising contributor
+Thanks for all the work you are doing on this. I would love to be testing and contributing but life is getting in the way. One day; I’ll really dive in with this.
+
+Ian Morgan
+
+Rising contributor
+I backed the latest Kickstarter . Fascinated to see how the app might work out. (Though I guess it may be trickier for Pentax users)
+
+Kevin Groth
+As I start budgeting for a guide scope and cam. You're a legend David Morrison !!
+
+Richard Healey
+
+Rising contributor
+Really impressive to see how the software can compensate so comprehensively for an out of level mount. Great work.
+
+Eric Chiu
+
+Top contributor
+Thanks for all the great work 🙂
+
+Allan Zilkowsky
+  · 
+Is the a list of equipment and requirements to test this... I would like to give this a go.
+
+David Morrison
+Author
+
+All-star contributor
+No additional equipment is required for multi-point alignment, although it will likely be most beneficial for those who have already been using V1.0 with Nina and plate-solving. V2.0 is only open for Beta testing presently, ie people who have time to help provide detailed feedback on their tests to help improve the final release. If you can assist with this and are ok with pre-release software, please DM me and I'll let you know how to join up.
+
+Toby Lo
+  · 
+nice work, btw do i need to do polaris alignment? or any improvement if make it work as eq mode?
+
+David Morrison
+Author
+
+All-star contributor
+The mention of an equatorial mode at the end of the video has not yet been implemented and is a stretch goal for V2.0. It should be able to work with a plate solve, but I haven't yet prototyped the concept. Its availability will depend on demand and the availability of time.
+
+Shiyang Steven Zhang
+That’s incredible!
+
+Dan Cool
+
+Rising contributor
+Amazing!
+
+Eric Chiu
+
+Top contributor
+Man that performance would be worth setting up a laptop. Pretty close to a full on goo mount 🙂
