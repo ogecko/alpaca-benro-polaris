@@ -182,21 +182,6 @@ Use the following instructions to setup the Gemini EAF driver on your Mini-PC
 11. Click Connect, the EAF should beep.
 12. Click Disconnect and Exit.
 
-### Guiding Scope and Camera (OPTIONAL)
-The Alpaca Driver V2.0 now supports pulse-guiding and opens up the use of applications like [PHD2](https://openphdguiding.org/) to improve tracking and reduce drift. You will need extra equipment if you wish to perform guiding of the Benro Polaris.
-
-1. Guide Camera
-eg. SVBony 50mm Guide scope
-
-1. Guide Scope or Off-Axis Guider
-
-3. Mounting the guidescope
-eg. Touptek GPM462M
-
-
-Certainly! Here's an expanded and clarified version of the **"Guiding Scope and Camera (OPTIONAL)"** section for your user guide, with improved structure, examples, and guidance for users setting up guiding on the Benro Polaris:
-
----
 
 ### Guiding Scope and Camera (OPTIONAL)
 
