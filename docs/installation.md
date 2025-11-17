@@ -90,8 +90,7 @@ To update the Alpaca Benro Polaris Driver to the latest version:
 
 ## Imaging with Alpaca Driver V2.0 and NINA
 
-This workflow outlines a typical imaging session using **Alpaca Driver V2.0** with **NINA** and the **Benro Polaris** mount.
-
+This workflow outlines a typical imaging session using **Alpaca Driver V2.0** with **NINA** and the **Benro Polaris** mount. It assumes you’re already familiar with operating **Alpaca Pilot** and **NINA**. For additional setup and operational guidance on these topics, refer to the documentation for [Alpaca Pilot](./pilot.md) and [NINA](./nina.md).
 
 ### Setup and Initialization
 
