@@ -78,8 +78,87 @@ To update the Alpaca Benro Polaris Driver to the latest version:
 1. Download the latest [Alpaca Benro Polaris zip file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/main.zip) from this Github repository.
 2. Stop the driver by selecting its Window and pressing Ctrl+C.
 3. Extract the files, overwriting the old files.
+4. Install any new pre-requisites using `pip install -r platforms/win/requirements.txt`
 4. Restart the Driver.
-5. If you can complete steps 2-4 within a minute, you won't need to use the BP App to re-establish the Polaris Wifi.
+
+
+### Imaging with Alpaca Driver V2.0 and NINA
+
+This workflow outlines a typical imaging session using **Alpaca Driver V2.0** with **NINA** and the **Benro Polaris** mount.
+
+
+#### Setup and Initialization
+
+1. **Start Alpaca Driver**  
+   Launch the driver by double-clicking the shortcut you created earlier.
+
+2. **Open Alpaca Pilot**  
+   In your browser, navigate to the Alpaca Pilot App.
+
+3. **Power On Polaris**  
+   Use a short press followed by a long press to power on the mount.
+
+4. **Confirm Wi-Fi Connectivity**  
+   Monitor your Mini-PC wifi and confirm it maintains a stable connection to Polaris.
+
+5. **Connect and Configure Polaris**  
+   In the Pilot Connect page:
+   - Set **Astro Mode**
+   - **Reset all axes** and wait for completion
+   - **Skip compass alignment**
+   - **Skip single-star alignment**
+
+6. **Enable Sidereal Tracking**  
+   In the Pilot dashboard:
+   - Click **Find Home**
+   - Enable **Sidereal Tracking**
+   - Wait for the mount to settle
+
+#### Focusing, Alignment and Targeting
+
+7. **Initial Focus**  
+   Use your camera to achieve rough focus, then run **NINA’s Autofocus** for precision.
+
+8. **First Plate Solve**  
+   In NINA’s Image tab, manually plate-solve to achieve intial alignment for your first GOTO in the next step.
+   
+9. **Multi-Point Alignment**  
+   In Alpaca Pilot:
+   - Enable **Multi-Point Alignment**
+   - GOTO your nearest celestial pole from the catalog
+   - Once settled, run a second plate-solve in NINA
+
+10. **Frame Your Target**  
+    Use NINA’s Sky Atlas or Stellarium to locate your target.  
+    - Send it to **Framing Assistant**, and view it on Nina's **Offline Sky Map**
+    - Use **Slew and Center** to refine positioning via iterative plate-solves.
+    - Select **Add Target to Sequence**, **Legacy Sequencer**
+
+#### Imaging Sequence
+
+11. **Create a Sequence**  
+    In NINA’s Legacy Sequencer:
+    - Define image count (e.g., 150) and exposure time (e.g., 30 s)  
+    - If not guiding, enable **Slew and Center Target** every 20–30 frames (manually or via Advanced Scheduler)
+
+12. **Start the Imaging Sequence**  
+    Begin the sequence from NINA’s Image tab and monitor the first few frames. Let the process settle and zoom into the image view to monitor roundness of stars and tracking quality.
+
+13. **Refine Tracking and Alignment**  
+    You can assess and refine tracking performance using the **Alpaca PID Tuning** and **Alignment** pages:
+
+    * PID Tuning Page
+        - **Angular Position (PV vs SP)**: PV should closely follow a steady SP ramp on all axes for accurate tracking. Changing to equatorial co-ordinate view will show a steady horizontal SP for Right Ascension, Declination, Position Angle.
+        - **Angular Velocity (OP)**: OP should appear as a steady horizontal line, large oscillations may indicate instability. The PID controller will attempt to close any gaps.
+        - **RMS Error**: This is a key performance statistic that provides a quick understanding of the tracking performance over the last 30 seconds. A value near **2 arcseconds** is ideal for high-quality tracking.
+        - **Pulse Guiding**: Use **equatorial coordinates** to monitor corrections from guiding software. You should see the SP being "bumped" up and down to correct for guide star movement.
+        - **Advanced Tuning**: Experienced users can adjust PID parameters to reduce oscillations and improve responsiveness.
+
+    * Alignment Page
+        - **Sync Point Residuals**: Review residuals to identify misaligned points.
+        - **Model Refinement**: Delete sync points with large residuals to improve the Multi-Point Alignment model.
+
+
    
 ### Installing Stellarium (OPTIONAL)
 Stellarium is a free open-source planetarium for your computer. 
