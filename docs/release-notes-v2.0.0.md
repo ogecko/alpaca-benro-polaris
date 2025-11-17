@@ -38,6 +38,9 @@
 - **[Solar Warning]** Confirm before enabling Solar Tracking Rate.
 - **[Tracking Chip]** Update tracking status chip to indicate tracking rate ie Sidereal, Lunar, Solar, or Custom (orbital's name).
 - **[FAQ Documentation]** Update FAQ to improve questions on mobile and refresh for V2.0.
+- **[Hardware Docs]** Refresh for V2.0 and include hardware required for guiding
+- **[Installation Docs]** Refresh for V2.0 and include detailed process workflow for a typical imaging session
+- **[Readme Docs]** Refresh for V2.0
 
 ## What's new in beta4
 - **[Documentation Menu]** Add Documentation menu for Pilot, Control, Troubleshooting, Videos, FAQ and About

@@ -1,7 +1,13 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Installation Guide 
-[Alpaca Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Alpaca MacOS](./installation_macos.md) | [Startup](#running-the-alpaca-benro-polaris-driver) | [Stellarium](#installing-stellarium-optional) | [Sky Safari](#seting-up-sky-safari-pro-optional) | [Nina](#installing-nina-optional) | [Architecture](#software-architecture) 
+[Alpaca Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Alpaca MacOS](./installation_macos.md) | 
+[Startup](#running-the-alpaca-benro-polaris-driver) | 
+[Workflow](#imaging-with-alpaca-driver-v20-and-nina) | 
+[Stellarium](#installing-stellarium-optional) | 
+[Sky Safari](#seting-up-sky-safari-pro-optional) | 
+[Nina](#installing-nina-optional) | 
+[Architecture](#software-architecture) 
 
 
 
@@ -82,12 +88,12 @@ To update the Alpaca Benro Polaris Driver to the latest version:
 4. Restart the Driver.
 
 
-### Imaging with Alpaca Driver V2.0 and NINA
+## Imaging with Alpaca Driver V2.0 and NINA
 
 This workflow outlines a typical imaging session using **Alpaca Driver V2.0** with **NINA** and the **Benro Polaris** mount.
 
 
-#### Setup and Initialization
+### Setup and Initialization
 
 1. **Start Alpaca Driver**  
    Launch the driver by double-clicking the shortcut you created earlier.
@@ -114,7 +120,7 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
    - Enable **Sidereal Tracking**
    - Wait for the mount to settle
 
-#### Focusing, Alignment and Targeting
+### Focusing, Alignment and Targeting
 
 7. **Initial Focus**  
    Use your camera to achieve rough focus, then run **NINA’s Autofocus** for precision.
@@ -134,7 +140,7 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
     - Use **Slew and Center** to refine positioning via iterative plate-solves.
     - Select **Add Target to Sequence**, **Legacy Sequencer**
 
-#### Imaging Sequence
+### Imaging Sequence
 
 11. **Create a Sequence**  
     In NINA’s Legacy Sequencer:
@@ -158,7 +164,7 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
         - **Sync Point Residuals**: Review residuals to identify misaligned points.
         - **Model Refinement**: Delete sync points with large residuals to improve the Multi-Point Alignment model.
 
-
+## Optional Installations
    
 ### Installing Stellarium (OPTIONAL)
 Stellarium is a free open-source planetarium for your computer. 
