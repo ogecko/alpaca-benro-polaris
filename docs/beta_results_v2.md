@@ -314,6 +314,87 @@ Day Time Testing  (08 Nov 25)
     4. will most likely be used for further testing.
 
 
+### Multi-Point Alignment (16 Nov 25)
+* Background
+    - Using the iPhone compass app (set to true north), the tripod and Benro Polaris were
+    set up to perfectly face South (180°)
+    - Bubble level (0.1°) and Leofoto “Tripod Leveler Stand with +/-5 Degree Precision
+    Adjustment Bracket, to ensure as level as possible
+    Although neither of these steps should actually be necessary (with plate solving), I wanted
+    to eliminate every ‘potential failure point’, that could may impact on the alignment etc.
+    - At the time, (22:30) there was no Moon in the Bortle 5 sky. However, wind and cloud was
+    forecast, for the early hours - which inevitably caused issues.
+* Workflow
+    1. During the Pilot connection stage, I selected the ’Reset all Polaris Axes’ and ensured
+    that the ‘Observing Site Information’ location details were correct (-36.730621 /
+    174.742580) and at this point
+    (NB - ‘Compass Alignment’ is set to Az 180 and ‘Single Star Alignment’ set at Az 180 Alt 45) .. both
+    steps skipped)
+    2. Pilot Dashboard - showing these figures;
+    Azimuth +180° M1 0.3°
+    Altitude +45° M2 -0.1°
+    Roll -1° M3 1.1°
+    3. Pilot Dashboard - after selecting ‘Park’ it was now showing these figures;
+    Azimuth +178° M1 -0.0°
+    Altitude +45° M2 0.0°
+    Roll +0° M3 -0.0°
+    - slight change of in Azimuth (-2°), Roll (now zero) and all three ‘M’ (now all zero), from the initial set up
+    using ‘Reset all Polaris Axes’)
+    4. N.I.N.A. - Start Autofocus
+    5. Pilot Dashboard - Unpark and toggle tracking on (in order to sync) and perform an
+    initial manual plate solve (N.I.N.A. - image>plate solving - play button) … so that
+    Polaris would know exactly where it was pointing in the sky.
+    This was using the new default Pilot setting for “Single Star Alignment” and was to
+    ensure that the first “GoTo” (using Catalog) for the South Celestrial Pole was accurate.
+    6. Pilot - change to Multi-Point Alignment for subsequent N.I.N.A sync plate solves:
+    First “Go To”- South Celestrial Pole
+    Second “Go To”- Horsehead Nebula
+    Third “Go To” - select EQ mode and enter d-2) for position 2 hours into the future
+    Fourth “Go To” - Horsehead Nebula (real time)
+    7. Pilot Multi-Point Alignment - results showing;
+    (a) Telescope Alignment Model residuals ( 23.1’ 30.1’ 0.0°)
+    (b) Correction Summary - results showing;
+    Az Correction -10.3’
+    Tilt Correction 23.6’
+    Highest Tilt Az 130.5°
+    (Screen shot available)
+    8. N.I.N.A. Framing Assistant - using Offline Sky Map, enter target details (Horsehead
+    Nebula) in Coordinates box and Load Image
+    9. N.I.N.A. Framing Assistant - select ‘Slew and centre’ … which initiates plate solving
+    and once completed, use ‘Add target to Sequence’ etc
+    10. Pilot Multi-Point Alignment - results (after N.I.N.A. slew and centre) now showing;
+    (a) Telescope Alignment Model residuals ( 32.2’ 20.2’ 9.4’ 0.0°)
+    (b) Correction Summary - results showing;
+    Az Correction -9.6’
+    Tilt Correction 27.9’
+    Highest Tilt Az 108.7°
+    (Screen shot available)
+    11. N.I.N.A. Legacy Sequencer - set to 20 images (30sec exposure) and cycle repeated,
+    so that plate solving between every 20 images (‘slew to target and centre target’ both
+    set to ON)
+    12. Although 240 images set in the Sequencer, 165 failed due to increase in wind and
+    clouds
+* Observations
+    1. Multi-Point Alignment - shows high residuals for the sync points and the ‘Correction
+    Summary’ shows high levels of correction (tilt etc) … all despite the meticulous set up
+    with bubble level and compass alignment to the South etc
+    2. The target used for the imaging session (Horsehead Nebula) was located North East,
+    but the initial set was undertaken with the equipment facing South ….. to facilitate
+    using the South Celestrial Pole for one of the the sync points etc.
+    As such, this may have caused the high residuals (due to imaging in the opposite
+    direction) ???????
+    3. Despite using 30 sec exposures at 400mm, with wind and high residuals in the
+    pointing model ….. the results were actually excellent …. Producing sharp stars and
+    no tracking errors. All the image failures (165) can be attributed to the wind causing
+    movement.
+    4. Summary - at 400mm using the original ABP v1.01, I would not have been able to use
+    30 sec exposures, without introducing star trailing - NB. previously kept ‘safe’ by
+    using a cautious 15 sec exposure, to ensure the stars kept sharp.
+    As such, even without guiding, v.2.0 is a revolution.
+
+
+
+
 
 
 ## Beta Tester: Paul (Dis: Paul C)
