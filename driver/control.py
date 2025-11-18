@@ -1214,9 +1214,10 @@ class PID_Controller():
         self.target_type = "ORBITAL"
         # create Norad ID Satellite orbital if we dont have orbital already
         if not name in orbital_data:
-            name, _ = await create_tle_orbital_celestrak(self.logger, name)
-        #    name, _ = await create_minor_body_orbital_jpl(self.logger, name)
-        self.orbital_sp_name = name
+            tle_name, _ = await create_tle_orbital_celestrak(self.logger, name)
+            if not tle_name:
+                xephem_name, _ = await create_xephem_orbital_jpl(self.logger, name)
+        self.orbital_sp_name = tle_name if tle_name else xephem_name if xephem_name else name
 
     def rotator_move_relative(self, sp=0.0):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
