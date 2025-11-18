@@ -15,7 +15,7 @@ import math
 import copy
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
-from orbitals import orbital_data, find_closest_orbital, create_satellite_orbital
+from orbitals import orbital_data, find_closest_orbital, create_tle_orbital_celestrak, create_xephem_orbital_jpl
 
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -1211,7 +1211,8 @@ class PID_Controller():
         self.target_type = "ORBITAL"
         # create Norad ID Satellite orbital if we dont have orbital already
         if not name in orbital_data:
-            name, _ = await create_satellite_orbital(self.logger, name)
+            name, _ = await create_tle_orbital_celestrak(self.logger, name)
+        #    name, _ = await create_minor_body_orbital_jpl(self.logger, name)
         self.orbital_sp_name = name
 
     def rotator_move_relative(self, sp=0.0):
