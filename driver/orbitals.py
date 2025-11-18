@@ -219,7 +219,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
 
         month, day, year = jd_to_calendar(epoch_jd)
         epoch_date = f"{month:02d}/{day:02d}/{year}"
-        D = year
+        D = 2000
 
     except Exception as e:
         logger.info(f"JPL: Failed to parse orbital data for {query}: {e}")
