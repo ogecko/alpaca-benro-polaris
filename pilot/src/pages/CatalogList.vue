@@ -50,7 +50,7 @@
               <q-item-section avatar><q-icon name="mdi-cookie" /></q-item-section>
               <q-item-section>
                 <q-item-label>Asteroid ID?</q-item-label>
-                <q-item-label caption>Search JPL Horizons for asteriod data using an Asteriod ID. If found, tracking will begin automatically.</q-item-label>
+                <q-item-label caption>Search NASA JPL Horizons for asteriod data using an Asteriod ID. If found, tracking will begin automatically.</q-item-label>
                 <q-item-label caption>You can use named asteriods (eg. Ceres), numbered asteriods (eg. 00433), or provisional IDs (eg. 2023 BU).</q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -64,7 +64,7 @@
               <q-item-section avatar><q-icon name="mdi-magic-staff" /></q-item-section>
               <q-item-section>
                 <q-item-label>Comet ID?</q-item-label>
-                <q-item-label caption>Search JPL Horizons for comet data using an Comet ID. If found, tracking will begin automatically.</q-item-label>
+                <q-item-label caption>Search NASA JPL Horizons for comet data using an Comet ID. If found, tracking will begin automatically.</q-item-label>
                 <q-item-label caption>You can use long period (eg. C/2025 A6), short period (eg. P/2023 R1), or provisional IDs (eg. 2006 F8).</q-item-label>
               </q-item-section>
               <q-item-section side>
