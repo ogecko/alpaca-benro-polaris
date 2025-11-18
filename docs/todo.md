@@ -126,9 +126,9 @@
 - [X] Youtube training videos 20 Podcast, 21 Demo1, 22 Demo2, 23 Rotator, 24 Alignment, 25 Safety
 - [X] Youtube advanced videos 31 Kalman, 32 Speed Cal 
 - [X] Documentation on new features 
-- [ ] Review of existing Documentation
+- [ ] Review of existing Documentation (Readme, Hardware, Install done)
 - [ ] Remaining documentation on Pulse Guiding
-- [ ] Remaining Youtube video on 26 Orbitals, 27 Guiding, 33 PID Tuning
+- [ ] Remaining Youtube video on 27 Guiding, 33 PID Tuning
 
 ## Performance
 - [X] Feedforward Control Integration (minimise overshoot)
@@ -186,7 +186,7 @@
 - [X] Planetary and Orbital Moons Tracking
 - [X] Satelite Tracking via TLE (Two Line Element)
 - [X] Solar Tracking 
-- [ ] Commet and Asteroid Tracking
+- [X] Commet and Asteroid Tracking
 
 ## Pulse Guiding Features
 - [X] ASCOM Telescope Pulse Guide API Support
