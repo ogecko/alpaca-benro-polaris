@@ -280,8 +280,8 @@ const links3 = [
   { icon: 'mdi-moon-full', text: 'Planets', to: { path: '/catalogList', query: { C1:4 } } },
   { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: { path: '/catalogList', query: { C1:5 } } },
   { icon: 'mdi-satellite-variant', text: 'Satellites', to: { path: '/catalogList', query: { C1:6 } } },
-  // { icon: 'mdi-cookie', text: 'Asteroids', to: '/' },
-  // { icon: 'mdi-magic-staff', text: 'Comets', to: '/' },
+  { icon: 'mdi-cookie', text: 'Asteroids', to: { path: '/catalogList', query: { C1:8 } } },
+  { icon: 'mdi-magic-staff', text: 'Comets', to: { path: '/catalogList', query: { C1:7 } } },
 ]
 
 const links4 = [

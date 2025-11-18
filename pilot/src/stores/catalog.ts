@@ -14,7 +14,7 @@ import { useDeviceStore } from './device'
 // # Rt:  {5: 'Showcase (Top 2%)', 4: 'Excellent (Top 10%)', 3: 'Good (Top 25%)', 2: 'Typical', 1: 'Challenging', 0: 'Not recommended'}
 // # Vz:  {0: 'Ultra Faint (Mag 12+)', 1: 'Ghostly (Mag 10-12)', 2: 'Faint (Mag 8-10)', 3: 'Dim (Mag 6-8)', 4: 'Visible (Mag 4-6)', 5: 'Bright (Mag 2-4)', 6: 'Brilliant (Mag <2)', 7: 'Unknown'}
 // # Sz:  {0: 'Very-Tiny (<0.5′)', 1: 'Tiny (0.5–1′)', 2: 'Small (1–2′)', 3: 'Compact (2–5′)', 4: 'Moderate (5–10′)', 5: 'Prominent (10–30′)', 6: 'Extended (30–100′)', 7: 'Expansive (100′+)', 8: 'Unknown'}
-// # C1:  {0: 'Nebula', 1: 'Galaxy', 2: 'Cluster', 3: 'Star', 4: 'Planet', 5: 'Moon'}
+// # C1:  {0: 'Nebula', 1: 'Galaxy', 2: 'Cluster', 3: 'Star', 4: 'Planet', 5: 'Moon', 6: 'Satellite', 7: 'Commet', 8: 'Asteroid'}
 // # C2:  {0: 'Set of Chained Galaxies', 1: 'Set of Clustered Galaxies', 2: 'Set of Grouped Galaxies', 3: 'Set of Merging Galaxies', 4: 'Pair of Galaxies', 5: 'Trio of Galaxies', 6: 'Blue Compact Dwarf Galaxy', 7: 'Collisional Ring Galaxy', 8: 'Dwarf Galaxy', 9: 'Elliptical Galaxy', 10: 'Flocculent Galaxy', 11: 'Lenticular Galaxy', 12: 'Magellanic Galaxy', 13: 'Polar Galaxy', 14: 'Spiral Galaxy', 15: 'Dark Nebula', 16: 'Emission Nebula', 17: 'Molecular Cloud Nebula', 18: 'Planetary Nebula', 19: 'Protoplanetary Nebula', 20: 'Reflection Nebula', 21: 'Supernova Remnant Nebula', 22: 'Globular Cluster', 23: 'Herbig-Haro Object', 24: 'Nova Object', 25: 'Open Cluster', 26: 'Star', 27: 'Star Cloud', 28: 'Young Stellar Object', 29: 'Planet', 30: 'Dwarf Planet', 31: 'Martian Moon', 32: 'Galilean Moon', 33: 'Saturnian Moon', 34: 'Natural Satellite', 35: 'Space Station', 36: 'Satellite', 37: 'Rocket Body', 38: 'Space Debris', 39: 'Comet', 40: 'Asteroid'}
 // # Cn:  {0: 'Andromeda', 1: 'Antlia', 2: 'Apus', 3: 'Aquila', 4: 'Aquarius', 5: 'Ara', 6: 'Aries', 7: 'Auriga', 8: 'Boötes', 9: 'Canis Major', 10: 'Canis Minor', 11: 'Canes Venatici', 12: 'Camelopardalis', 13: 'Capricornus', 14: 'Carina', 15: 'Cassiopeia', 16: 'Centaurus', 17: 'Cepheus', 18: 'Cetus', 19: 'Chamaeleon', 20: 'Circinus', 21: 'Cancer', 22: 'Columba', 23: 'Coma Berenices', 24: 'Corona Australis', 25: 'Corona Borealis', 26: 'Crater', 27: 'Crux', 28: 'Corvus', 29: 'Cygnus', 30: 'Delphinus', 31: 'Dorado', 32: 'Draco', 33: 'Eridanus', 34: 'Fornax', 35: 'Gemini', 36: 'Grus', 37: 'Hercules', 38: 'Horologium', 39: 'Hydra', 40: 'Leo Minor', 41: 'Lacerta', 42: 'Leo', 43: 'Lepus', 44: 'Libra', 45: 'Lupus', 46: 'Lynx', 47: 'Lyra', 48: 'Mensa', 49: 'Microscopium', 50: 'Monoceros', 51: 'Musca', 52: 'Norma', 53: 'Octans', 54: 'Ophiuchus', 55: 'Orion', 56: 'Pavo', 57: 'Pegasus', 58: 'Perseus', 59: 'Phoenix', 60: 'Pictor', 61: 'Piscis Austrinus', 62: 'Pisces', 63: 'Puppis', 64: 'Pyxis', 65: 'Reticulum', 66: 'Sculptor', 67: 'Scorpius', 68: 'Scutum', 69: 'Serpens', 70: 'Sextans', 71: 'Sagitta', 72: 'Sagittarius', 73: 'Taurus', 74: 'Telescopium', 75: 'Triangulum Australe', 76: 'Triangulum', 77: 'Tucana', 78: 'Ursa Major', 79: 'Ursa Minor', 80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula', 84: 'Orbit'}
 const p = useStatusStore()
@@ -151,8 +151,10 @@ export const useCatalogStore = defineStore('catalog', {
             3: [22, 28],  // Star (merged with Stellar range)
             4: [29, 30], // Planet
             5: [31, 34], // Moon
-            6: [35, 38], // Satellites
-        };
+            6: [35, 38], // Satellite
+            7: [39, 39], // Commet
+            8: [40, 40], // Asteroid
+          };
         // Collect all valid subtype keys based on selected C1 types
         const allowedSubtypes = new Set<number>();
         for (const type of selectedTypes) {
@@ -396,7 +398,7 @@ export const azimuthLookup: Record<DsoAzimuth, string> = {
 };
 
 
-export type DsoType = 0 | 1 | 2 | 3 | 4 | 5 |6;
+export type DsoType = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export const typeLookupIcon: Record<DsoType, string>  = {
   0: 'mdi-horse-variant', 
   1: 'mdi-cryengine', 
@@ -404,7 +406,9 @@ export const typeLookupIcon: Record<DsoType, string>  = {
   3: 'mdi-flare',
   4: 'mdi-moon-full',
   5: 'mdi-moon-waning-crescent',
-  6: 'mdi-satellite-variant'
+  6: 'mdi-satellite-variant',
+  7: 'mdi-magic-staff',
+  8: 'mdi-cookie',
 }
 
 const typeLookup: Record<DsoType, string>  = {
@@ -414,7 +418,9 @@ const typeLookup: Record<DsoType, string>  = {
   3: 'Star',
   4: 'Planet',
   5: 'Moon',
-  6: 'Satellite'
+  6: 'Satellite',
+  7: 'Comet',
+  8: 'Asteroid',
 }
 
 

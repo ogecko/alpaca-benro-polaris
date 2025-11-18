@@ -1213,7 +1213,7 @@ class PID_Controller():
         self.reset_offsets()
         self.target_type = "ORBITAL"
         tle_name, xephem_name = None, None
-        # create Norad ID Satellite orbital if we dont have orbital already
+        # create orbital if we dont have orbital already
         if not name in orbital_data:
             tle_name, _ = await create_tle_orbital_celestrak(self.logger, name)
             if not tle_name:
