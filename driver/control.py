@@ -1684,8 +1684,9 @@ class SyncManager:
             q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
 
             self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
-
-            self.apply_final_sync_alignment()
+            if Config.advanced_alignment_zero:
+                self.apply_final_sync_alignment()
+                
             self.q1_adj_message = "QUEST solution applied"
 
 

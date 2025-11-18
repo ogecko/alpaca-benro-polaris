@@ -132,11 +132,14 @@
                 <q-toggle class='col-6' v-bind="bindField('advanced_goto', 'Advanced Goto')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_tracking', 'Tracking')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_alignment_zero', 'Zero Residual on last sync')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_tracking', 'PID Tracking')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_orbitals', 'Orbitals Tracking')"/>
               </div>
               <div class="row q-pb-md">
-                <q-toggle class='col-6' v-bind="bindField('advanced_orbitals', 'Orbitals')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
               </div>
               <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pl-md q-pr-mdn ">
