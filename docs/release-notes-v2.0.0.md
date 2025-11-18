@@ -37,6 +37,7 @@
 - **[Orbital Documentation]** Update Pilot documentation on Orbitals.
 - **[Solar Warning]** Confirm before enabling Solar Tracking Rate.
 - **[Tracking Chip]** Update tracking status chip to indicate tracking rate ie Sidereal, Lunar, Solar, or Custom (orbital's name).
+- **[Motion Warning]** Monitor mount motion and warn user to "Wait till motion stops" before skipping Compass, Single Star Align
 - **[FAQ Documentation]** Update FAQ to improve questions on mobile and refresh for V2.0.
 - **[Hardware Docs]** Refresh for V2.0 and include hardware required for guiding
 - **[Installation Docs]** Refresh for V2.0 and include detailed process workflow for a typical imaging session

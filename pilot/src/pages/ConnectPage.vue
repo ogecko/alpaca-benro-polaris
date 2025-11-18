@@ -206,6 +206,7 @@
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Compass Alignment</q-item-label>
+                  <q-item-label caption v-if="p.iszetamoving">Wait till motion stops.</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-btn-dropdown label="Skip" split icon="mdi-compass"  @click="onCompass(cfg.default_azimuth)" class="fixedWidth">
@@ -231,6 +232,7 @@
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Single Star Alignment</q-item-label>
+                  <q-item-label caption v-if="p.iszetamoving">Wait till motion stops.</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <div class="row items-center q-gutter-sm">

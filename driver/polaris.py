@@ -182,6 +182,7 @@ class Polaris:
         self._slewing: bool = False                 # True if telescope is in the process of moving in response to one of the Goto methods or the MoveAxis(TelescopeAxes, Double) method, False at all other times.
         self._gotoing: bool = False                 # True if telescope is in the process of moving in response to one of the Goto methods, False at all other times.
         self._rotating: bool = False                # True if rotator is in the process of moving 
+        self._zeta_is_moving: bool = False          # True if any M1-3 axis is changing (based on 517 response msg)
         self._goto_complete_event = None            # asyncio Event to allow notification of goto complete (only used with advanced control gotos)
         self._rotate_complete_event = None          # asyncio Event to allow notification of rotate complete (only used with advanced control rotates)
         self._slew_complete_event = None            # asyncio Event to allow notification of slew complete (only used with advanced control rotates)
@@ -736,9 +737,18 @@ class Polaris:
             p_yaw = rad2deg(float(arg_dict['yaw']))         # from Polaris direct
             p_pitch = -rad2deg(float(arg_dict['pitch']))    # from Polaris direct, note sign switch to align with Alt direction
             p_roll = rad2deg(float(arg_dict['roll']))       # from Polaris direct
+
             with self._lock:
                 self._last_517_timestamp = dt_now
-                self._zeta_meas = [p_yaw, p_pitch, p_roll]
+                threshold = 0.01
+                new_zeta = [p_yaw, p_pitch, p_roll]
+                prev_zeta = getattr(self, '_zeta_meas', None)
+                if prev_zeta is None:
+                    self._zeta_is_moving = False  # first update is not moving
+                else:
+                    self._zeta_is_moving = any( abs(new - old) > threshold for new, old in zip(new_zeta, prev_zeta) )
+                self._zeta_meas = new_zeta
+
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
 
@@ -1495,6 +1505,7 @@ class Polaris:
                 'slewing': self._slewing,
                 'gotoing': self._gotoing,
                 'rotating': self._rotating,
+                'iszetamoving': self._zeta_is_moving,
                 'ispulseguiding': self._ispulseguiding,
                 'paltitude': self._p_altitude,
                 'pazimuth': self._p_azimuth,
