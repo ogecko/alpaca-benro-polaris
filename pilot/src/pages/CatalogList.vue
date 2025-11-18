@@ -46,6 +46,34 @@
       <div class="col-12">
         <q-card flat bordered class="col">
           <q-list bordered separator>
+            <q-item v-if="isAsteroidResults" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-cookie" /></q-item-section>
+              <q-item-section>
+                <q-item-label>Asteroid ID?</q-item-label>
+                <q-item-label caption>Search JPL Horizons for asteriod data using an Asteriod ID. If found, tracking will begin automatically.</q-item-label>
+                <q-item-label caption>You can use named asteriods (eg. Ceres), numbered asteriods (eg. 00433), or provisional IDs (eg. 2023 BU).</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-input v-model="cat.searchFor" icon="mdi-cookie" label="Asteroid ID" class="position-right"/>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn color="positive" rounded  icon="mdi-cookie" label="Search" class="position-right" @click="onClickSearchSatellite()"/>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="isCometResults" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-magic-staff" /></q-item-section>
+              <q-item-section>
+                <q-item-label>Comet ID?</q-item-label>
+                <q-item-label caption>Search JPL Horizons for comet data using an Comet ID. If found, tracking will begin automatically.</q-item-label>
+                <q-item-label caption>You can use long period (eg. C/2025 A6), short period (eg. P/2023 R1), or provisional IDs (eg. 2006 F8).</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-input v-model="cat.searchFor" icon="mdi-magic-staff" label="Comet ID" class="position-right"/>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn color="positive" rounded  icon="mdi-magic-staff" label="Search" class="position-right" @click="onClickSearchSatellite()"/>
+              </q-item-section>
+            </q-item>
             <q-item v-if="isNoradSearch" class="q-pt-lg q-pb-lg">
               <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
               <q-item-section>
@@ -200,6 +228,8 @@ const sorted_str = computed(() => isProxSort.value ?  'Nearby Proximity' : 'Rank
 const isProxSort = computed(() => cat.sorting[0]?.field === 'Proximity')
 const isNoResults = computed(() => cat.paginated.length == 0 && route.query.C1 != '6')
 const isNoradSearch = computed(() => /^\d+$/.test(cat.searchFor) || route.query.C1 == '6')
+const isAsteroidResults = computed(() => route.query.C1 == '8')
+const isCometResults = computed(() => route.query.C1 == '7')
 const isSatelliteResults = computed(() => route.query.C1 == '6')
 const urlHeavensAbove = computed(() => `https://www.heavens-above.com/skyview/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&cul=en#/livesky`)
 const urlN2YO = computed(() => `https://www.n2yo.com/satellites/?c=1&srt=4&dir=1&p=0`)
