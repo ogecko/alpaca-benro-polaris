@@ -129,15 +129,12 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
     Parameters:
     - logger: A logging.Logger instance for diagnostic output.
     - name_or_designation: The comet or asteroid name or designation 
-        - Long-period comets: "C/2025 A6", "C/2020 F3", 
+        - Long-period comets: "C/2025 A6", "C/2020 F3"
         - Short-period comets: "P/2023 R1",  
-        - MPC-style Provisional Designations: "2023 BU", "2021 PH27", "2022 AE1"
-        - Named comets: "C/2025 A6 (Lemmon)", "1P/Halley"?
-        - Numbered asteroids: "00433" → Eros?
-        - Named asteroids: "Eros", "Apophis"?
-        - Numbered + named asteroids: "433 Eros", "99942 Apophis"?
-        - Spacecraft: "Voyager 1"?
-        - Special Horizons Aliases: "DES=2025A6", "DES=2023BU", "DES=1P", "DES=99942"?
+        - Provisional Comet Designations: "2006 F8"
+        - Named asteroids: "Ceres", "Vesta", "Pallas", "Iris", "Flora", "Hebe", "Apophis", 
+        - Numbered asteroids: "00433" → Eros
+        - Provisional Asteroid Designations: "2023 BU", "2021 PH27", "2022 AE1", "A801 AA" → Ceres (often near earth or newly discovered)
         - Note: Whitespace matters: Extra spaces or malformed designations may cause lookup failures.
 
     Returns:
@@ -160,6 +157,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
     # ---------------- Try and query the JPL Horizon API
     try:
         url = "https://ssd.jpl.nasa.gov/api/horizons.api"
+        today = datetime.utcnow().strftime("%Y-%b-%d")
         params = {
             "format": "json",
             "COMMAND": f"'{query}'",
@@ -170,7 +168,9 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
             "ELEM_LABELS": "YES",
             "REF_PLANE": "ECLIPTIC",
             "TP_TYPE": "ABSOLUTE",
-            "CSV_FORMAT": "NO"
+            "CSV_FORMAT": "NO",
+            "CENTER": "'500@10'",       # Solar system barycenter
+            "TLIST": f"'{today}'"       # Current UTC date
         }
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, timeout=15) as response:
@@ -187,7 +187,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         elements = data["result"]
 
         if Config.log_orbital_queries:
-            logger.info(f'JPL: Response from query for {query}')
+            logger.info(f'JPL: Response from query for {query}, {params}')
             logger.info(elements)
 
         if re.search(r"\bNo matches found\b", elements, re.IGNORECASE):
