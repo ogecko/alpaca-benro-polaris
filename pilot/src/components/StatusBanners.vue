@@ -52,7 +52,7 @@
     </div>
     <div v-else-if="is517Old" >
       <q-banner inline-actions rounded class="bg-warning" >
-        WARNING: The Alpaca Pilot is not receiving orientation updates from Polaris. Check Connection  Step Completion. 
+        WARNING: The Alpaca Pilot is not receiving orientation updates from Polaris. Check Connection Step Completion. 
         <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
