@@ -109,6 +109,7 @@
 - [x] Overlay the expected tracking velocity on the omega plot
 - [X] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
 - [X] Explicit pid mode changes, add a 'PARK' mode, ensure no pid activity while parked.
+- [ ] Improve stability of tracking before allowing first plate-solve (after a GOTO) to proceed
 
 ## Reliability and degrdation
 - [X] Proper task cleanup in polaris.restart(), especially to fix no position updates for over 2s. Restarting AHRS
