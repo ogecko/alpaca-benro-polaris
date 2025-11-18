@@ -1,6 +1,7 @@
 import ephem
 from shr import rad2deg, rad2hr
 from shr import angular_separation
+from config import Config
 import aiohttp
 import re
 from datetime import datetime
@@ -61,40 +62,59 @@ async def create_tle_orbital_celestrak(logger, norad_id):
     - This function relies on publicly available TLE data from Celestrak, which may be updated daily.
     - TLE-based orbital models are suitable for short-term tracking but degrade in accuracy over time.
     """
-
+    # ---------------- Try and parse the norad_id
     try:
         norad_id = int(str(norad_id).strip())
         if norad_id <= 0:
-            logger.info(f'NORAD ID must be a positive integer: {norad_id}')
+            logger.info(f'Celestrak: NORAD ID must be a positive integer: {norad_id}')
             return None, None
     except Exception as e:
-        logger.info(f'Invalid NORAD ID: {norad_id}, {e}')
+        logger.info(f'Celestrak: Invalid NORAD ID: {norad_id}, {e}')
         return None, None
 
-    url = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_id}&FORMAT=TLE"
-
+    # ---------------- Try and query the Celestrak API
     try:
+        url = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_id}&FORMAT=TLE"
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=10) as response:
                 if response.status != 200:
-                    logger.info(f'NORAD ID Failed to fetch TLE data for {norad_id}, status: {response.status}')
+                    logger.info(f'Celestrak: Failed to fetch TLE data for {norad_id}, status: {response.status}')
                     return None, None
                 text = await response.text()
     except Exception as e:
-        logger.info(f'NORAD ID Failed to fetch TLE data for {norad_id}, {e}')
+        logger.info(f'Celestrak: Failed to fetch TLE data for {norad_id}, {e}')
         return None, None
 
-    lines = text.strip().splitlines()
-    if len(lines) < 3:
-        logger.info(f'NORAD ID Incomplete TLE data for NORAD ID: {norad_id}')
-        return None, None
-
-    name, line1, line2 = lines[:3]
-    logger.info(f'NORAD ID Orbital Parameters: {name}\n{line1}\n{line2}')
+    # ---------------- Try and parse the Celestrak Response
     try:
-        body = ephem.readtle(name, line1, line2)
+        if Config.log_orbital_queries:
+            logger.info(f'Celestrak: Response from query for {norad_id}')
+            logger.info(f'{text.strip()}')
+
+        if re.search(r"\bNo GP data found\b", text, re.IGNORECASE):
+            logger.info(f"Celestrak: No match found for {norad_id}")
+            return None, None
+
+        lines = text.strip().splitlines()
+        if len(lines) < 3:
+            logger.info(f'Celestrak: Incomplete TLE data for NORAD ID: {norad_id}')
+            return None, None
+
     except Exception as e:
-        logger.info(f'NORAD ID Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
+        logger.info(f"Celestrak: Failed to parse orbital data for {norad_id}: {e}")
+        return None, None
+    
+    # ---------------- Try and create the Orbital Body
+    try:
+        # Construct TLE strings
+        name, line1, line2 = lines[:3]
+        body = ephem.readtle(name, line1, line2)
+
+        if Config.log_orbital_queries:
+            logger.info(f'Celestrak: Body Orbital Parameters: {body.writedb()}')
+
+    except Exception as e:
+        logger.info(f'Celestrak: Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
         return None, None
 
     orbital_data[name] = { "body": body }
@@ -137,34 +157,38 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         logger.info("JPL: Empty name or designation provided.")
         return None, None
 
-    url = "https://ssd.jpl.nasa.gov/api/horizons.api"
-    params = {
-        "format": "json",
-        "COMMAND": f"'{query}'",
-        "EPHEM_TYPE": "ELEMENTS",
-        "OBJ_DATA": "YES",
-        "MAKE_EPHEM": "NO",
-        "OUT_UNITS": "AU-D",
-        "ELEM_LABELS": "YES",
-        "REF_PLANE": "ECLIPTIC",
-        "TP_TYPE": "ABSOLUTE",
-        "CSV_FORMAT": "NO"
-    }
-
+    # ---------------- Try and query the JPL Horizon API
     try:
+        url = "https://ssd.jpl.nasa.gov/api/horizons.api"
+        params = {
+            "format": "json",
+            "COMMAND": f"'{query}'",
+            "EPHEM_TYPE": "ELEMENTS",
+            "OBJ_DATA": "YES",
+            "MAKE_EPHEM": "NO",
+            "OUT_UNITS": "AU-D",
+            "ELEM_LABELS": "YES",
+            "REF_PLANE": "ECLIPTIC",
+            "TP_TYPE": "ABSOLUTE",
+            "CSV_FORMAT": "NO"
+        }
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, timeout=15) as response:
                 if response.status != 200:
-                    logger.info(f"JPL lookup failed for {query}, status: {response.status}")
+                    logger.info(f"JPL: lookup failed for {query}, status: {response.status}")
                     return None, None
                 data = await response.json()
     except Exception as e:
-        logger.info(f"JPL request error for {query}: {e}")
+        logger.info(f"JPL: Failed to fetch Orbital data for {query}: {e}")
         return None, None
 
+    # ---------------- Try and parse the JPL Horizon API Response
     try:
         elements = data["result"]
-        logger.info(elements)
+
+        if Config.log_orbital_queries:
+            logger.info(f'JPL: Response from query for {query}')
+            logger.info(elements)
 
         if re.search(r"\bNo matches found\b", elements, re.IGNORECASE):
             logger.info(f"JPL: No match found for {query}")
@@ -173,7 +197,6 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         if re.search(r"\bMatching small-bodies\b", elements, re.IGNORECASE):
             logger.info(f"JPL: Multiple matching bodies found for {query}")
             return None, None
-
 
         def extract(label):
             match = re.search(rf"\b{label}=\s*(-?\d*\.?\d{{0,12}})", elements)
@@ -198,17 +221,26 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         epoch_date = f"{month:02d}/{day:02d}/{year}"
         D = year
 
-        # Construct ephem string
-        db_string = f"{name},e,{i},{O},{o},{a},{n},{e},{M},{epoch_date},{D},,,"
-        logger.info(f'dbread Orbital Parameters: {db_string}')
-        body = ephem.readdb(db_string)
-        logger.info(f'JPL Orbital Parameters: {body.writedb()}')
-        orbital_data[name] = {"body": body}
-        return name, body
-
     except Exception as e:
         logger.info(f"JPL: Failed to parse orbital data for {query}: {e}")
         return None, None
+
+    # ---------------- Try and create the Orbital Body
+    try:
+        # Construct xephem string
+        db_string = f"{name},e,{i},{O},{o},{a},{n},{e},{M},{epoch_date},{D},,,"
+        body = ephem.readdb(db_string)
+
+        if Config.log_orbital_queries:
+            logger.info(f'JPL: Body Orbital Parameters: {body.writedb()}')
+
+    except Exception as e:
+        logger.info(f'Celestrak: Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
+        return None, None
+
+    orbital_data[name] = {"body": body}
+    return name, body
+
 
 
 # Not very accurate - decommisioned

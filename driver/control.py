@@ -1064,9 +1064,9 @@ class PID_Controller():
         elif self.polaris._trackingrate == 3: # 3=Custom
             if self.orbital_sp_name in orbital_data:
                 orbital = orbital_data[self.orbital_sp_name]["body"]
-            else:
-                name, orbital = find_closest_orbital(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
-                self.orbital_sp_name = name
+            # else:
+            #     name, orbital = find_closest_orbital(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
+            #     self.orbital_sp_name = name
 
         if orbital and self.polaris._trackingrate in [1,2,3]:
             self.observer.date = ephem.Date(datetime.datetime.utcnow()) + ephem.second * 2.5    # 2.5 seconds in the future
@@ -1088,6 +1088,9 @@ class PID_Controller():
                     parallactic_angle = calc_parallactic_angle(orb_az, orb_alt, self.polaris._sitelatitude)
                     self.delta_sp[2] = self.body_pa_offset + parallactic_angle  # keep roll angle stable
             self.orbital_sp_status = [is_orbital_trackable, orb_az, orb_alt]
+        else:
+            # switch back to sidereal if no orbital found
+            self.polaris._trackingrate = 0
 
     #------- Functions to change SP, Targets and Mode ---------
 

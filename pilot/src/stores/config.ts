@@ -113,7 +113,8 @@ export const useConfigStore = defineStore('config', {
     log_polaris_protocol: false,
     log_polaris_polling: false,
     log_quest_model: false,
-    
+    log_orbital_queries: false,
+
     log_telemetry_data: false,
     log_aiming_data: false,
     log_drift_data: false,

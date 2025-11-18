@@ -87,6 +87,7 @@ log_alpaca_polling = false                  # log frequent polling messages from
 log_synscan_polling = false                 # log frequent polling messages from SynScan clients (eg Stellarium)
 log_polaris_polling = false                 # log frequent polling messages from Benro Polaris
 log_quest_model = false                     # log weights in multi-point sync model
+log_orbital_queries = true                  # log information related to JPL and Celestrak orbital parameter queries
 
 log_telemetry_data = false                  # log raw telemetry data from polaris
 log_aiming_data = false                     # log aiming accuracy metrics and corrections
