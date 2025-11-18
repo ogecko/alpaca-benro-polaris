@@ -67,7 +67,8 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                 <q-item-section>
                   <q-item-label> Choosen Motor Axis</q-item-label>
                   <q-item-label caption>
-                    Select the motor axis you'd like to analyse and tune. 
+                    Select the motor axis you'd like to analyse and tune.
+                    Or monitor <router-link to="/pidall" class="text-primary text-bold">All Axes</router-link>.
                   </q-item-label>
                 </q-item-section>
               </q-item>

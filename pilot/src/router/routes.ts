@@ -42,6 +42,11 @@ const routes: RouteRecordRaw[] = [
     children: [{ path: '', component: () => import('pages/AnalysePID.vue') }],
   },
   {
+    path: '/pidall',
+    component: () => import('layouts/AltLayout.vue'),
+    children: [{ path: '', component: () => import('pages/AnalysePIDAll.vue') }],
+  },
+  {
     path: '/pwm',
     component: () => import('layouts/AltLayout.vue'),
     children: [{ path: '', component: () => import('pages/AnalysePWM.vue') }],
