@@ -227,7 +227,7 @@ const dev = useDeviceStore()
 const p = useStatusStore()
 const var2str = (x:number) => x.toFixed(2)
 
-const coord = ref<number>(0)
+const coord = ref<number>(2)
 const axis = ref<number>(0)
 const Kp_var = ref<number>(0)
 const Ki_var = ref<number>(0)      

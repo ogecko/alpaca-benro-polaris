@@ -27,7 +27,7 @@
     </div>
 
     <!-- Page Body -->
-    <div class="row q-col-gutter-sm items-stretch">
+    <div class="row q-col-gutter-sm items-stretch q-pb-sm">
       <!-- Angular Position Plot -->
       <div v-for="n in 3" :key="n" class="col-12 col-lg-4 flex">
         <q-card flat bordered class="q-pa-md full-width">
@@ -59,7 +59,6 @@
                 </q-item-section>
             </q-item>
           <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
-          <div class="q-pb-xl"></div>
         </q-card>
       </div>    
     </div>
@@ -82,7 +81,7 @@ const socket = useStreamStore()
 const cfg = useConfigStore()
 const dev = useDeviceStore()
 
-const coord = ref<number>(0)
+const coord = ref<number>(2)
 const axis = ref<number>(0)
 
 
