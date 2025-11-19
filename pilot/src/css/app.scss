@@ -7,3 +7,13 @@ a {
 a:hover {
   color: #cce4fc; /* Optional: hover color */
 }
+
+
+// Stop browser filling in autofill background with white
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  box-shadow: 0 0 0px 1000px #2D75C6 inset !important; 
+  -webkit-text-fill-color: #ffffff !important;         
+  transition: background-color 5000s ease-in-out 0s;    /* prevent flash */
+}
