@@ -411,7 +411,7 @@ export const typeLookupIcon: Record<DsoType, string>  = {
   8: 'mdi-cookie',
 }
 
-const typeLookup: Record<DsoType, string>  = {
+export const typeLookup: Record<DsoType, string>  = {
   0: 'Nebula', 
   1: 'Galaxy', 
   2: 'Cluster', 

@@ -46,18 +46,18 @@
       <div class="col-12">
         <q-card flat bordered class="col">
           <q-list bordered separator>
-            <q-item v-if="isAsteroidResults" class="q-pt-lg q-pb-lg">
-              <q-item-section avatar><q-icon name="mdi-cookie" /></q-item-section>
+            <q-item v-if="isNoradSearch" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
               <q-item-section>
-                <q-item-label>Asteroid ID?</q-item-label>
-                <q-item-label caption>Search NASA JPL Horizons for asteriod data using an Asteriod ID. If found, tracking will begin automatically.</q-item-label>
-                <q-item-label caption>You can use named asteriods (eg. Ceres), numbered asteriods (eg. 00433), or provisional IDs (eg. 2023 BU).</q-item-label>
+                <q-item-label>Satellite NORAD ID?</q-item-label>
+                <q-item-label caption>Search Celestrak for satellite data using a NORAD ID. If found, tracking will begin automatically.</q-item-label>
+                <q-item-label caption>You can find NORAD IDs on external sites, then enter one into the field here.</q-item-label>
               </q-item-section>
               <q-item-section side>
-                  <q-input v-model="cat.searchFor" icon="mdi-cookie" label="Asteroid ID" class="position-right"/>
+                  <q-input v-model="cat.searchFor" icon="mdi-satellite-variant" label="NORAD ID" class="position-right"/>
               </q-item-section>
               <q-item-section side>
-                  <q-btn color="positive" rounded  icon="mdi-cookie" label="Search" class="position-right" @click="onClickSearchSatellite()"/>
+                  <q-btn color="positive" rounded  icon="mdi-satellite-variant" label="Search" class="position-right" @click="onClickSearchOrbital(6)"/>
               </q-item-section>
             </q-item>
             <q-item v-if="isCometResults" class="q-pt-lg q-pb-lg">
@@ -71,21 +71,21 @@
                   <q-input v-model="cat.searchFor" icon="mdi-magic-staff" label="Comet ID" class="position-right"/>
               </q-item-section>
               <q-item-section side>
-                  <q-btn color="positive" rounded  icon="mdi-magic-staff" label="Search" class="position-right" @click="onClickSearchSatellite()"/>
+                  <q-btn color="positive" rounded  icon="mdi-magic-staff" label="Search" class="position-right" @click="onClickSearchOrbital(7)"/>
               </q-item-section>
             </q-item>
-            <q-item v-if="isNoradSearch" class="q-pt-lg q-pb-lg">
-              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
+            <q-item v-if="isAsteroidResults" class="q-pt-lg q-pb-lg">
+              <q-item-section avatar><q-icon name="mdi-cookie" /></q-item-section>
               <q-item-section>
-                <q-item-label>Satellite NORAD ID?</q-item-label>
-                <q-item-label caption>Search Celestrak for satellite data using a NORAD ID. If found, tracking will begin automatically.</q-item-label>
-                <q-item-label caption>You can find NORAD IDs on external sites, then enter one into the field here.</q-item-label>
+                <q-item-label>Asteroid ID?</q-item-label>
+                <q-item-label caption>Search NASA JPL Horizons for asteriod data using an Asteriod ID. If found, tracking will begin automatically.</q-item-label>
+                <q-item-label caption>You can use named asteriods (eg. Ceres), numbered asteriods (eg. 00433), or provisional IDs (eg. 2023 BU).</q-item-label>
               </q-item-section>
               <q-item-section side>
-                  <q-input v-model="cat.searchFor" icon="mdi-satellite-variant" label="NORAD ID" class="position-right"/>
+                  <q-input v-model="cat.searchFor" icon="mdi-cookie" label="Asteroid ID" class="position-right"/>
               </q-item-section>
               <q-item-section side>
-                  <q-btn color="positive" rounded  icon="mdi-satellite-variant" label="Search" class="position-right" @click="onClickSearchSatellite()"/>
+                  <q-btn color="positive" rounded  icon="mdi-cookie" label="Search" class="position-right" @click="onClickSearchOrbital(8)"/>
               </q-item-section>
             </q-item>
             <q-item v-if="isSatelliteResults" class="q-pt-lg q-pb-lg">
@@ -198,7 +198,7 @@ import { useRoute, useRouter } from 'vue-router'
 import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude, DsoConstellation, DsoRating, DsoSize, DsoBrightness } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
-import { useCatalogStore, typeLookupIcon } from 'src/stores/catalog'
+import { useCatalogStore, typeLookupIcon, typeLookup } from 'src/stores/catalog'
 import VBar from 'src/components/VBar.vue'
 import MultiSelect from 'src/components/MultiSelect.vue'
 import { useConfigStore } from 'src/stores/config'
@@ -327,10 +327,12 @@ async function onClickGoto(dso: CatalogItem) {
   await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
 }
 
-async function onClickSearchSatellite() {
+async function onClickSearchOrbital(c1:DsoType=6) {
   const name = cat.searchFor
+  const iconname = typeLookupIcon[c1]
+  const typename = typeLookup[c1]
   await dev.alpacaTrackOrbital(name)
-  $q.notify({ message:`Satellite search issued for ${name}.`, icon:'mdi-satellite-variant',
+  $q.notify({ message:`${typename} search issued for ${name}.`, icon:iconname,
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
 }
