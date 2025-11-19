@@ -43,7 +43,7 @@
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
+          <ChartXY :data="chartPosData(n)" x1Type="time"></ChartXY>
         </q-card>
       </div>
     </div>
@@ -59,7 +59,7 @@
                 <q-item-label caption>OP: Output Velocity, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Feed Forward</q-item-label>
                 </q-item-section>
             </q-item>
-          <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
+          <ChartXY  :data="chartVelData(n)" x1Type="time"></ChartXY>
         </q-card>
       </div>    
     </div>
@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import StatusBanners from 'src/components/StatusBanners.vue'
-import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
@@ -83,7 +83,6 @@ const cfg = useConfigStore()
 const dev = useDeviceStore()
 
 const coord = ref<number>(2)
-const axis = ref<number>(0)
 
 
 const axisOptionsData = [
@@ -100,55 +99,60 @@ const motorLabel = (n:number) => `M${n}`
 
 
 
-const chartPosData = computed<DataPoint[]>(() => {
+const chartPosData = (n:number) => {
    const pid = socket.topics?.pid ?? [] as TelemetryRecord[];
-   return pid.map(formatPosData)
-})
+   return pid.map(formatPosData(n))
+}
 
-const chartVelData = computed<DataPoint[]>(() => {
+const chartVelData = (n:number) => {
    const pid = socket.topics?.pid ?? [] as TelemetryRecord[];
-   return pid.map(formatVelData)
-})
-
-
-
-
-
-
-function formatPosData(d: TelemetryRecord): DataPoint {
-  const time = new Date(d.ts)
-  const data = d.data as PIDMessage
-
-  let pvKey: keyof PIDMessage
-  let spKey: keyof PIDMessage
-
-  if (coord.value === 0) {
-    pvKey = "θ_pv"
-    spKey = "θ_sp"
-  } else if (coord.value === 1) {
-    pvKey = "α_pv"
-    spKey = "α_sp"
-  } else {
-    pvKey = "Δ_pv"
-    spKey = "Δ_sp"
-  }
-
-  const PV = data[pvKey]?.[axis.value] ?? 0
-  const SP = data[spKey]?.[axis.value] ?? 0
-
-  return { x1: time, PV, SP }
+   return pid.map(formatVelData(n))
 }
 
 
-function formatVelData(d: TelemetryRecord):DataPoint {
-  const time = new Date(d.ts)
-  const data = d.data as PIDMessage
-  const OP = data.ω_op[axis.value] ?? 0
-  const Kp = data.ω_kp[axis.value] ?? 0
-  const Ki = data.ω_ki[axis.value] ?? 0
-  const Kd = data.ω_kd[axis.value] ?? 0
-  const FF = data.ω_ff[axis.value] ?? 0
-  return { x1: time, Kp, Ki, Kd, FF, OP  }
+
+
+
+
+function formatPosData(n: number) {
+
+  return (d: TelemetryRecord): DataPoint => {
+    const time = new Date(d.ts)
+    const data = d.data as PIDMessage
+
+    let pvKey: keyof PIDMessage
+    let spKey: keyof PIDMessage
+
+    if (coord.value === 0) {
+      pvKey = "θ_pv"
+      spKey = "θ_sp"
+    } else if (coord.value === 1) {
+      pvKey = "α_pv"
+      spKey = "α_sp"
+    } else {
+      pvKey = "Δ_pv"
+      spKey = "Δ_sp"
+    }
+
+    const PV = data[pvKey]?.[n-1] ?? 0
+    const SP = data[spKey]?.[n-1] ?? 0
+
+    return { x1: time, PV, SP }
+  }
+}
+
+
+function formatVelData(n: number) {
+  return (d: TelemetryRecord):DataPoint => {
+    const time = new Date(d.ts)
+    const data = d.data as PIDMessage
+    const OP = data.ω_op[n-1] ?? 0
+    const Kp = data.ω_kp[n-1] ?? 0
+    const Ki = data.ω_ki[n-1] ?? 0
+    const Kd = data.ω_kd[n-1] ?? 0
+    const FF = data.ω_ff[n-1] ?? 0
+    return { x1: time, Kp, Ki, Kd, FF, OP  }
+  }
 }
 
 
