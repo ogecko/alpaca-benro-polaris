@@ -60,11 +60,11 @@
                   <q-btn color="positive" rounded  icon="mdi-satellite-variant" label="Search" class="position-right" @click="onClickSearchOrbital(6)"/>
               </q-item-section>
             </q-item>
-            <q-item v-if="isCometResults" class="q-pt-lg q-pb-lg">
+            <q-item v-if="isCometSearch" class="q-pt-lg q-pb-lg">
               <q-item-section avatar><q-icon name="mdi-magic-staff" /></q-item-section>
               <q-item-section>
                 <q-item-label>Comet ID?</q-item-label>
-                <q-item-label caption>Search NASA JPL Horizons for comet data using an Comet ID. If found, tracking will begin automatically.</q-item-label>
+                <q-item-label caption>Search NASA JPL Horizons for comet data. If found, tracking will begin automatically.</q-item-label>
                 <q-item-label caption>You can use long period (eg. C/2025 A6), short period (eg. P/2023 R1), or provisional IDs (eg. 2006 F8).</q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -74,11 +74,11 @@
                   <q-btn color="positive" rounded  icon="mdi-magic-staff" label="Search" class="position-right" @click="onClickSearchOrbital(7)"/>
               </q-item-section>
             </q-item>
-            <q-item v-if="isAsteroidResults" class="q-pt-lg q-pb-lg">
+            <q-item v-if="isAsteroidSearch" class="q-pt-lg q-pb-lg">
               <q-item-section avatar><q-icon name="mdi-cookie" /></q-item-section>
               <q-item-section>
                 <q-item-label>Asteroid ID?</q-item-label>
-                <q-item-label caption>Search NASA JPL Horizons for asteriod data using an Asteriod ID. If found, tracking will begin automatically.</q-item-label>
+                <q-item-label caption>Search NASA JPL Horizons for asteriod data. If found, tracking will begin automatically.</q-item-label>
                 <q-item-label caption>You can use named asteriods (eg. Ceres), numbered asteriods (eg. 00433), or provisional IDs (eg. 2023 BU).</q-item-label>
               </q-item-section>
               <q-item-section side>
@@ -220,6 +220,30 @@ const showFilters = ref<boolean>(false)
 //   return `${s.sign}${s.degreestr}${s.minutestr}${s.secondstr}`
 // }
 
+// Satellites: NORAD ID's
+const noradRegex = /^\d{1,6}$/
+
+// Comets: short or long period, or provisional 
+const cometRegex = /^(C|P)?\/?\d{4} [A-Z][0-9]+$/i
+
+// Named asteroids: single word, starts with uppercase, no digits
+const namedRegex = /^[A-Z][a-zA-Z]+$/
+
+// Numbered asteroids: 3–6 digits, optionally zero-padded
+const numberedRegex = /^\d{3,6}$/
+
+// Provisional designations:
+// - Format: YYYY XX## (e.g., "2023 BU", "2021 PH27", "2022 AE1")
+// - Format: A### XX (e.g., "A801 AA")
+const provisionalRegex = /^(\d{4} [A-Z]{1,2}\d{0,2}|A\d{3} [A-Z]{2})$/i
+
+// check whether the query string matches any of the regex's
+function check(query: string, criteria: RegExp[]): boolean {
+  return criteria.some(regex => regex.test(query.trim()))
+}
+
+
+
 
 // ---------- Computed
 
@@ -227,14 +251,15 @@ const maxPages = computed(() => $q.screen.gt.sm ? 9 : 4)
 const sorted_str = computed(() => isProxSort.value ?  'Nearby Proximity' : 'Ranking and Size' )
 const isProxSort = computed(() => cat.sorting[0]?.field === 'Proximity')
 const isNoResults = computed(() => cat.paginated.length == 0 && route.query.C1 != '6')
-const isNoradSearch = computed(() => /^\d+$/.test(cat.searchFor) || route.query.C1 == '6')
-const isAsteroidResults = computed(() => route.query.C1 == '8')
-const isCometResults = computed(() => route.query.C1 == '7')
+const isNoradSearch = computed(() => check(cat.searchFor, [noradRegex]) || cat.filter.C1?.includes(6))
+const isCometSearch = computed(() => check(cat.searchFor, [cometRegex]) || cat.filter.C1?.includes(7))
+const isAsteroidSearch = computed(() => check(cat.searchFor, [namedRegex, numberedRegex, provisionalRegex]) || cat.filter.C1?.includes(8))
 const isSatelliteResults = computed(() => route.query.C1 == '6')
 const urlHeavensAbove = computed(() => `https://www.heavens-above.com/skyview/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&cul=en#/livesky`)
 const urlN2YO = computed(() => `https://www.n2yo.com/satellites/?c=1&srt=4&dir=1&p=0`)
 const urlCelestrak = computed(() => `https://celestrak.org/NORAD/elements/`)
 const urlSatellitemap = computed(() => `https://satellitemap.space/`)
+
 
 
 // ---------- Watches
