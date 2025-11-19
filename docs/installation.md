@@ -113,27 +113,32 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
    - **Skip compass alignment**
    - **Skip single-star alignment**
 
-6. **Enable Sidereal Tracking**  
-   In the Pilot dashboard:
-   - Click **Find Home**
-   - Enable **Sidereal Tracking**
-   - Wait for the mount to settle
-
 ### Focusing, Alignment and Targeting
+
+6. **Point to Celestrial Polar Area**
+   In the Pilot Catalog:
+   - Search for 'pole' and Goto your nearest Polar Area
+   - Having a high Declination reduces star movement
+   - This initial goto does not need to be accurate
 
 7. **Initial Focus**  
    Use your camera to achieve rough focus, then run **NINA’s Autofocus** for precision.
+   If you are using guiding, focus and align your Guide Scope as well.
 
 8. **First Plate Solve**  
-   In NINA’s Image tab, manually plate-solve to achieve intial alignment for your first GOTO in the next step.
+   In NINA’s Image tab, 
+   - Click on **Start Tracking**
+   - Open the Plate Solving panel
+   - Manually plate-solve and sync to achieve intial alignment.
    
-9. **Multi-Point Alignment**  
+9. **Multi-Point Alignment amd Second Plate Solve**  
    In Alpaca Pilot:
    - Enable **Multi-Point Alignment**
-   - GOTO your nearest celestial pole from the catalog
+   - GOTO your imaging target from the catalog
+   - Decrease the Right Ascensian axis by 1 or 2 hours 
    - Once settled, run a second plate-solve in NINA
 
-10. **Frame Your Target**  
+10. **Frame Your Target and Third/Fourth Plate Solve**  
     Use NINA’s Sky Atlas or Stellarium to locate your target.  
     - Send it to **Framing Assistant**, and view it on Nina's **Offline Sky Map**
     - Use **Slew and Center** to refine positioning via iterative plate-solves.
