@@ -32,7 +32,7 @@
 - **[pip requirements]** Please ensure you do a `pip install -r requirements.txt` to ensure aiohttp=3.13.2 is installed with beta5
 - **[Planets and Moons]** Add solar system orbitals to the catalog, including Sun, Moon, Planets and Planetary Moons. 
 - **[Artificial Satellites]** Search for over 35k objects to track, including Space Stations, Sattelites, Rocket Bodies and Space Debris. 
-- **[Asteriods Comets]** Search for over 1 million Near Earth Objects to track, sourced from the NASA JPL Horizons database. 
+- **[Asteriods and Comets]** Search for over 1 million Near Earth Objects to track, sourced from the NASA JPL Horizons database. 
 - **[Resource Links]** Provide external site links to find names of satellites, comets, asteroids and Near Earth Objects to search for.
 - **[Orbital Tracking]** Add Solar, Lunar and Other tracking rates for all cataloged orbitals.
 - **[Orbital Monitoring]** Preload an orbital target and monitor its position, enabling automatic slewing and tracking once it rises above 10°.
