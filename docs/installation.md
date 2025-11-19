@@ -115,30 +115,38 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
 
 ### Focusing, Alignment and Targeting
 
-6. **Point to Celestrial Polar Area**
-   In the Pilot Catalog:
-   - Search for 'pole' and Goto your nearest Polar Area
-   - Having a high Declination reduces star movement
-   - This initial goto does not need to be accurate
+6. **Point to Celestrial Polar Area**  
+   Using Pilot Alpaca or Nina:
+   - Slew the mount to approximately point towards your Celestrial Pole (either North or South)
+   - This initial orientation does not need to be accurate
+   - Having a high or low Declination reduces star movement for the next step
 
 7. **Initial Focus**  
-   Use your camera to achieve rough focus, then run **NINA’s Autofocus** for precision.
-   If you are using guiding, focus and align your Guide Scope as well.
+   - Use your **Camera and lens** to achieve a rough focus
+   - Run **NINA’s Autofocus** process for a precise focus.
+   - Optionally, if you are using guiding, focus and align your Guide Scope as well.
 
-8. **First Plate Solve**  
+8. **First Plate Solve (anywhere for Single Point Alignment)**  
    In NINA’s Image tab, 
    - Click on **Start Tracking**
    - Open the Plate Solving panel
    - Manually plate-solve and sync to achieve intial alignment.
    
-9. **Multi-Point Alignment amd Second Plate Solve**  
+9. **Second Plate Solve (at Pole for Multi Point Alignment)**  
    In Alpaca Pilot:
    - Enable **Multi-Point Alignment**
-   - GOTO your imaging target from the catalog
-   - Decrease the Right Ascensian axis by 1 or 2 hours 
-   - Once settled, run a second plate-solve in NINA
+   - Search for 'pole' in the Alpaca Pilot Catalog
+   - GOTO your local Celestrial Pole and wait for the mount to settle.
+   Using Nine:
+   - Initiate a second plate solve at the Celestrial Pole
 
-10. **Frame Your Target and Third/Fourth Plate Solve**  
+10. **Third Plate Solve (at Future Target for Multi-Point Alignment)**  
+   In Alpaca Pilot:
+    - GOTO your imaging target from the catalog
+    - Decrease the Right Ascensian axis by 1 or 2 hours 
+    - Once settled, run a third plate-solve in NINA
+
+11. **Fourth Plate Solve (framing Your Target)**  
     Use NINA’s Sky Atlas or Stellarium to locate your target.  
     - Send it to **Framing Assistant**, and view it on Nina's **Offline Sky Map**
     - Use **Slew and Center** to refine positioning via iterative plate-solves.
@@ -146,15 +154,15 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
 
 ### Imaging Sequence
 
-11. **Create a Sequence**  
+12. **Create a Sequence**  
     In NINA’s Legacy Sequencer:
     - Define image count (e.g., 150) and exposure time (e.g., 30 s)  
     - If not guiding, enable **Slew and Center Target** every 20–30 frames (manually or via Advanced Scheduler)
 
-12. **Start the Imaging Sequence**  
+13. **Start the Imaging Sequence**  
     Begin the sequence from NINA’s Image tab and monitor the first few frames. Let the process settle and zoom into the image view to monitor roundness of stars and tracking quality.
 
-13. **Refine Tracking and Alignment**  
+14. **Refine Tracking and Alignment**  
     You can assess and refine tracking performance using the **Alpaca PID Tuning** and **Alignment** pages:
 
     * PID Tuning Page
