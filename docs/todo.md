@@ -27,6 +27,7 @@
 - [X] Alpaca Pilot Action ConfigUpdate pass through to live polaris and pickup from live Polaris eg lat/lon Nina changes
 - [X] Alpaca pilot to restrict pid max velocity and accel in real time
 - [X] Remove Alpaca Performance Recording Settings
+- [X] Warn user to wait till mount stops moving, before skipping single star and compass align
 
 ## Alpaca Pilot Log 
 - [X] Alpaca Pilot Log file viewer and streaming of data over Sockets
