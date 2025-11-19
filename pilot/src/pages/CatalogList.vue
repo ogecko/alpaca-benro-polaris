@@ -220,7 +220,7 @@ function check(query: string, criteria: RegExp[]): boolean {
 const maxPages = computed(() => $q.screen.gt.sm ? 9 : 4)
 const sorted_str = computed(() => isProxSort.value ?  'Nearby Proximity' : 'Ranking and Size' )
 const isProxSort = computed(() => cat.sorting[0]?.field === 'Proximity')
-const isNoResults = computed(() => cat.paginated.length == 0 && route.query.C1 != '6')
+const isNoResults = computed(() => cat.paginated.length == 0 && !cat.filter.C1?.some(c => [6,7,8].includes(c)))
 const isNoradSearch = computed(() => check(cat.searchFor, [noradRegex]) || cat.filter.C1?.includes(6))
 const isCometSearch = computed(() => check(cat.searchFor, [cometRegex]) || cat.filter.C1?.includes(7))
 const isAsteroidSearch = computed(() => check(cat.searchFor, [namedRegex, numberedRegex, provisionalRegex]) || cat.filter.C1?.includes(8))
