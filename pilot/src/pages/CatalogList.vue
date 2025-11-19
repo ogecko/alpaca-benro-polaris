@@ -88,46 +88,16 @@
                   <q-btn color="positive" rounded  icon="mdi-cookie" label="Search" class="position-right" @click="onClickSearchOrbital(8)"/>
               </q-item-section>
             </q-item>
-            <q-item v-if="isSatelliteResults" class="q-pt-lg q-pb-lg">
-              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
-              <q-item-section>
-                <q-item-label>Nearby Satellites</q-item-label>
-                <q-item-label caption>View satellites currently visible from your location using Heavens Above (external site).</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                  <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="urlHeavensAbove"  target="_blank" rel="noopener" />
-              </q-item-section>
-            </q-item>
-            <q-item v-if="isSatelliteResults" class="q-pt-lg q-pb-lg">
-              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
-              <q-item-section>
-                <q-item-label>Brightest Satellites</q-item-label>
-                <q-item-label caption>Explore satellites ranked by brightness (apparent magnitude) on N2YO.com (external site).</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                  <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="urlN2YO"  target="_blank" rel="noopener" />
-              </q-item-section>
-            </q-item>
-            <q-item v-if="isSatelliteResults" class="q-pt-lg q-pb-lg">
-              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
-              <q-item-section>
-                <q-item-label>Categorised Satellites</q-item-label>
-                <q-item-label caption>Browse recent launches, active space stations, and orbital debris via Celestrak (external site).</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                  <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="urlCelestrak"  target="_blank" rel="noopener" />
-              </q-item-section>
-            </q-item>
-            <q-item v-if="isSatelliteResults" class="q-pt-lg q-pb-lg">
-              <q-item-section avatar><q-icon name="mdi-satellite-variant" /></q-item-section>
-              <q-item-section>
-                <q-item-label>Global Satellites</q-item-label>
-                <q-item-label caption>View real-time positions of the brightest satellites around the globe on satellitemap.space (external site).</q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                  <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="urlSatellitemap"  target="_blank" rel="noopener" />
-              </q-item-section>
-            </q-item>
+              <q-item v-for="(link, index) in filteredLinks" :key="index" class="q-pt-lg q-pb-lg" >
+                <q-item-section avatar><q-icon :name="link.icon" /></q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ link.title }}</q-item-label>
+                  <q-item-label caption>{{ link.caption }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="link.href"  target="_blank" rel="noopener" />
+                </q-item-section>
+              </q-item>
             <q-item v-if="isNoResults" class="q-pt-lg q-pb-lg">
               <q-item-section avatar><q-icon name="mdi-help" /></q-item-section>
               <q-item-section>
@@ -254,12 +224,70 @@ const isNoResults = computed(() => cat.paginated.length == 0 && route.query.C1 !
 const isNoradSearch = computed(() => check(cat.searchFor, [noradRegex]) || cat.filter.C1?.includes(6))
 const isCometSearch = computed(() => check(cat.searchFor, [cometRegex]) || cat.filter.C1?.includes(7))
 const isAsteroidSearch = computed(() => check(cat.searchFor, [namedRegex, numberedRegex, provisionalRegex]) || cat.filter.C1?.includes(8))
-const isSatelliteResults = computed(() => route.query.C1 == '6')
-const urlHeavensAbove = computed(() => `https://www.heavens-above.com/skyview/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&cul=en#/livesky`)
-const urlN2YO = computed(() => `https://www.n2yo.com/satellites/?c=1&srt=4&dir=1&p=0`)
-const urlCelestrak = computed(() => `https://celestrak.org/NORAD/elements/`)
-const urlSatellitemap = computed(() => `https://satellitemap.space/`)
+const filteredLinks = computed(() => allLinks.value.filter(link => cat.filter.C1?.includes(link.C1)))
+const allLinks = computed(() => [
+  {
+    C1: 6 as DsoType, icon: typeLookupIcon[6], title: 'Nearby Satellites',
+    caption: 'View satellites currently visible from your location using Heavens-Above.com (external site).',
+    href: `https://www.heavens-above.com/skyview/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&cul=en#/livesky`,
+  },
+  {
+    C1: 6 as DsoType, icon: typeLookupIcon[6], title: 'Brightest Satellites',
+    caption: 'Explore satellites ranked by brightness (apparent magnitude) on N2YO.com (external site).',
+    href: `https://www.n2yo.com/satellites/?c=1&srt=4&dir=1&p=0`,
+  },
+  {
+    C1: 6 as DsoType, icon: typeLookupIcon[6], title: 'Global Satellites',
+    caption: 'View real-time positions of the brightest satellites around the globe on satellitemap.space (external site).',
+    href: `https://satellitemap.space/`,
+  },
+  {
+    C1: 6 as DsoType, icon: typeLookupIcon[6], title: 'Celestrak',
+    caption: 'Official site used by Alpaca Pilot to search for Satellite orbital data (external site).',
+    href: `https://celestrak.org/NORAD/elements/`,
+  },
+  {
+    C1: 7 as DsoType, icon: typeLookupIcon[7], title: 'Nearby Comets',
+    caption: 'View comets currently visible from your location using TheSkyLive.com (external site).',
+    href: `https://theskylive.com/comets`,
+  },
+  {
+    C1: 7 as DsoType, icon: typeLookupIcon[7], title: 'Sky Tonight',
+    caption: 'Displays comet positions relative to stars and constellations using Sky-Tonight.com (external site).',
+    href: `https://sky-tonight.com/comets`,
+  },
+  {
+    C1: 7 as DsoType, icon: typeLookupIcon[7], title: 'Astro Forum',
+    caption: 'Shows a live planetarium with visible comets using AstroForumSpace.com (external site).',
+    href: `https://astroforumspace.com/real-time-sky-live-planets-comets-finder/`,
+  },
+  {
+    C1: 7 as DsoType, icon: typeLookupIcon[7], title: 'Comet Observation Database',
+    caption: 'Open clearing house for comet observations at cobs.si (external site).',
+    href: `https://cobs.si/`,
+  },
+  {
+    C1: 8 as DsoType, icon: typeLookupIcon[8], title: 'Eyes on Asteriods',
+    caption: 'Real-time visualization of every known Near-Earth Object (NEO) using jpl.nasa.gov (external site).',
+    href: `https://eyes.nasa.gov/apps/asteroids/#/watch`,
+  },
+  {
+    C1: 8 as DsoType, icon: typeLookupIcon[8], title: 'Near Earth Objects',
+    caption: 'View NEOs currently visible from your location using TheSkyLive.com (external site).',
+    href: `https://theskylive.com/near-earth-objects`,
+  },
+  {
+    C1: 8 as DsoType, icon: typeLookupIcon[8], title: 'Minor Planet Center',
+    caption: 'Clearinghouse for Near Earth Objects using MinorPlanetCenter.net (external site).',
+    href: `https://minorplanetcenter.net/data`,
+  },
+  {
+    C1: 8 as DsoType, icon: typeLookupIcon[8], title: 'JPL Horizons',
+    caption: 'Official site used by Alpaca Pilot for Comet and Asteroid orbital data (external site).',
+    href: `https://ssd.jpl.nasa.gov/horizons/`,
+  },
 
+])
 
 
 // ---------- Watches
