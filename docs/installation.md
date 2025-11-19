@@ -137,7 +137,8 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
    - Enable **Multi-Point Alignment**
    - Search for 'pole' in the Alpaca Pilot Catalog
    - GOTO your local Celestrial Pole and wait for the mount to settle.
-   Using Nine:
+   
+   Using Nina:
    - Initiate a second plate solve at the Celestrial Pole
 
 10. **Third Plate Solve (at Future Target for Multi-Point Alignment)**  
