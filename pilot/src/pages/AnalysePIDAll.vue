@@ -14,6 +14,7 @@
       <q-space />
       <div class="q-gutter-md flex justify-end q-mr-md">
         <div class="col-auto q-gutter-sm flex justify-end items-center">
+            <PIDStatus />
             <q-btn-toggle v-model="coord" push rounded glossy toggle-color="primary"  
               :options="[
                 {label: 'Mot', value: 0},
@@ -37,8 +38,8 @@
                 <q-item-label>{{axisLabel(n)}} Angular Position (degrees) vs Time (seconds)</q-item-label>
                 <q-item-label caption>SP: Setpoint Position, PV: Present Value Position</q-item-label>
               </q-item-section>
-              <q-item-section side top>
-                <PIDStatus />
+              <q-item-section side >
+                <q-btn size="sm" icon="mdi-chart-bell-curve-cumulative" label="Tune" :to="{path:'/pid',query:{a:n-1}}"/>
               </q-item-section>
             </q-item>
           </q-list>

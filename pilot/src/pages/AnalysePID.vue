@@ -207,13 +207,14 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
 
 <script setup lang="ts">
 import { useQuasar, debounce } from 'quasar'
-import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
-import ChartXY from 'src/components/ChartXY.vue'
+import { useRoute } from 'vue-router'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
+import StatusBanners from 'src/components/StatusBanners.vue'
+import ChartXY from 'src/components/ChartXY.vue'
 import MoveButton from 'src/components/MoveButton.vue'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
@@ -225,6 +226,8 @@ const socket = useStreamStore()
 const cfg = useConfigStore()
 const dev = useDeviceStore()
 const p = useStatusStore()
+const route = useRoute()
+
 const var2str = (x:number) => x.toFixed(2)
 
 const coord = ref<number>(2)
@@ -421,9 +424,17 @@ function formatVelData(d: TelemetryRecord):DataPoint {
 
 
 onMounted(async () => {
+  
+  // Parse and validate the query parameter
+  const a = parseInt(route.query.a as string)
+  axis.value = [0, 1, 2].includes(a) ? a : 0
+  
   await cfg.configFetch()
   socket.subscribe('pid')
   setKnobValues()
+
+
+
 })
 
 onUnmounted(() => {
