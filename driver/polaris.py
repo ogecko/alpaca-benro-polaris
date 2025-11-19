@@ -2128,6 +2128,9 @@ class Polaris:
             raise ValueError(f"Invalid axis index: {axis}. Must be 0 Az, 1 Alt, 2 Roll, 3 RA, 4 Dec, 5 PA.")
         motor = self._motors[axis % 3]
         if Config.advanced_control and Config.advanced_slewing:
+            # if tracking is enabled then we must slew RA/Dec/PA
+            if self.tracking and axis<3:
+                axis = axis + 3
             raw = motor._model.interpolate[units].toRAW(rate)
             dps = motor._model.interpolate["RAW"].toDPS(raw)
             self.markSlewAsUnderway()
