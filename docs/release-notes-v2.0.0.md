@@ -41,6 +41,7 @@
 - **[Solar Warning]** Confirm before enabling Solar Tracking Rate.
 - **[Motion Warning]** Monitor mount motion and warn user to "Wait till motion stops" before skipping Compass, Single Star Align
 - **[PID Monitor]** Add a Performance Tuning page to monitor all PID axes at once
+- **[Zero Residual]** Add an option to force the residual of the last sync point to be zero (for Multi-Point Alignment)
 - **[FAQ Documentation]** Update FAQ to improve questions on mobile and refresh for V2.0.
 - **[Hardware Docs]** Refresh for V2.0 and include hardware required for guiding
 - **[Installation Docs]** Refresh for V2.0 and include detailed process workflow for a typical imaging session
