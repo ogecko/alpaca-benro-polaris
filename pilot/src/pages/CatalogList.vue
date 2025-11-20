@@ -164,7 +164,7 @@ import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { deg2fulldms } from 'src/utils/angles'
 import { formatAngle } from 'src/utils/scale'
 import { useQuasar } from 'quasar'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router'
 import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude, DsoConstellation, DsoRating, DsoSize, DsoBrightness } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
@@ -298,9 +298,6 @@ watch(() => route.query.q, (newQ) => {
 )
 
 
-// watch(() => route.query, syncFiltersFromRoute, { deep: true })
-watch(() => route.query, syncFiltersFromRoute, { deep: true, flush: 'sync' });
-
 
 // ---------- Helpers
 const altLookupColor: Record<DsoAltitude, string>  = {
@@ -323,17 +320,17 @@ function parseNumberArray(param: unknown): number[] {
   return []
 }
 
-function syncFiltersFromRoute() {
-  cat.filter.C1 = parseNumberArray(route.query.C1) as DsoType[]
-  cat.filter.C2 = parseNumberArray(route.query.C2) as DsoSubtype[]
-  cat.filter.Cn = parseNumberArray(route.query.Cn) as DsoConstellation[]
-  cat.filter.Rt = parseNumberArray(route.query.Rt) as DsoRating[]
-  cat.filter.Sz = parseNumberArray(route.query.Sz) as DsoSize[]
-  cat.filter.Vz = parseNumberArray(route.query.Vz) as DsoBrightness[]
-  cat.filter.Az = parseNumberArray(route.query.Az) as DsoAltitude[]
-  cat.filter.Alt = parseNumberArray(route.query.Alt) as DsoAltitude[]
+function syncFiltersFromRoute(query = route.query) {
+  cat.filter.C1 = parseNumberArray(query.C1) as DsoType[]
+  cat.filter.C2 = parseNumberArray(query.C2) as DsoSubtype[]
+  cat.filter.Cn = parseNumberArray(query.Cn) as DsoConstellation[]
+  cat.filter.Rt = parseNumberArray(query.Rt) as DsoRating[]
+  cat.filter.Sz = parseNumberArray(query.Sz) as DsoSize[]
+  cat.filter.Vz = parseNumberArray(query.Vz) as DsoBrightness[]
+  cat.filter.Az = parseNumberArray(query.Az) as DsoAltitude[]
+  cat.filter.Alt = parseNumberArray(query.Alt) as DsoAltitude[]
 
-  if (route.query.sort === 'Proximity') {
+  if (query.sort === 'Proximity') {
     cat.updateDsoProximity(p.rightascension, p.declination);
     cat.sorting = [{ field: 'Proximity', direction: 'asc' }];
   } else {
@@ -397,6 +394,12 @@ onMounted(async () => {
     syncFiltersFromRoute()
     cat.startPositionUpdater();
 })
+
+onBeforeRouteUpdate((to, from, next) => {
+  syncFiltersFromRoute(to.query)
+  next()
+})
+
 
 onUnmounted(() => {
     cat.stopPositionUpdater();
