@@ -4,27 +4,31 @@
     <StatusBanners />
 
     <!-- Header Row -->
-    <div class="row q-pb-sm q-col-gutter-md items-center">
-      <div class="col text-h6 q-ml-md">
+    <div class="row q-col-gutter-md items-center q-mb-sm">
+      <!-- Title and Subtitle -->
+      <div class="col-12 col-md text-h6 q-ml-md">
         Alpaca Driver Performance Analysis
         <div class="text-caption text-grey-6">
-        Use these pages to perform tests and analyse the performance of your Benro Polaris. 
-       </div>
-      </div>
-      <q-space />
-      <div class="q-gutter-md flex justify-end q-mr-md">
-        <div class="col-auto q-gutter-sm flex justify-end items-center">
-            <PIDStatus />
-            <q-btn-toggle v-model="coord" push rounded glossy toggle-color="primary"  
-              :options="[
-                {label: 'Mot', value: 0},
-                {label: 'Top', value: 1},
-                {label: 'Equ', value: 2}
-              ]"
-            />
+          Use these pages to perform tests and analyse the performance of your Benro Polaris.
         </div>
       </div>
 
+      <!-- Status and Toggle (stacked on small screens) -->
+      <div class="col-12 col-md-auto q-gutter-sm flex justify-end items-center q-mr-md">
+        <PIDStatus />
+        <q-btn-toggle
+          v-model="coord"
+          push
+          rounded
+          glossy
+          toggle-color="primary"
+          :options="[
+            { label: 'Mot', value: 0 },
+            { label: 'Top', value: 1 },
+            { label: 'Equ', value: 2 }
+          ]"
+        />
+      </div>
     </div>
 
     <!-- Page Body -->
