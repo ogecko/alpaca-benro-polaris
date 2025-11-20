@@ -110,10 +110,6 @@ def is_angle_between(angle: float, min_angle: float, max_angle: float) -> bool:
     diff_to_max = angle - max_angle
     return diff_to_min >= 0 and diff_to_max <= 0
 
-
-
-
-
 def clamp_alpha(alpha):
     """
     Apply custom bounds to Topo-centric angles alpha[0], alpha[1], alpha[2]:

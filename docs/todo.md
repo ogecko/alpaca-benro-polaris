@@ -179,6 +179,7 @@
 - [X] Implement ASCOM Lunar Tracking rate
 - [X] Implement ASCOM Solar Tracking rate
 - [X] Implement ASCOM Custom Tracking rate
+- [ ] Improve indication of failed search where no orbital parameters to track
 
 ## Precision Tracking
 - [X] Deep-Sky Object Tracking 
