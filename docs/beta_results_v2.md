@@ -392,10 +392,43 @@ Day Time Testing  (08 Nov 25)
     using a cautious 15 sec exposure, to ensure the stars kept sharp.
     As such, even without guiding, v.2.0 is a revolution.
 
+### BETA 5 - RC1 Testing - Multi-Point Alignment (21 Nov 25) 
 
+- Background
 
+    Target was the Horsehead Nebula using a Nikon Z 6II (Astro modified) with a Nikkor
+    Z100-400mm f4.5/5.6 lens set at 400mm f7.1
+    At the time, (23:30) there was no Moon in the Bortle 5 sky. Despite no wind, cloud was
+    forecast, for the early hours - which inevitably reduced the number of images.
 
+- Workflow
 
+    1. Tripod and equipment set up facing towards South Celestrial Pole
+    2. N.I.N.A. - Start Autofocus using LensAF Plugin
+    3. N.I.N.A. - First plate solve.
+    4. Pilot - change to Multi-Point Alignment for subsequent N.I.N.A sync plate solves:
+    5. Pilot - Catalog
+    “Go To” - South Celestrial Pole (second plate solve)
+    6. Pilot - Catalog
+    “Go To” - Horsehead Nebula - select EQ mode and enter d-2 (third plate solve)
+    7. N.I.N.A. Framing Assistant - using Offline Sky Map, enter target details (Horsehead
+    Nebula) in Coordinates box and Load Image
+    8. N.I.N.A. Framing Assistant - select ‘Slew and centre’ (initiates fourth plate solve)
+    9. N.I.N.A. Legacy Sequencer - set to 20 images (30sec exposure) and cycle repeated,
+    so that plate solving between every 20 images (‘slew to target and centre target’ both
+    set to ON)
+    10. Pilot Multi-Point Alignment - results showing;
+        1. Telescope Alignment Model residuals (42.3’ 28.1’ 0.0°)
+        2. Correction Summary - results showing;
+            Az Correction 45.2’
+            Tilt Correction 34.9’
+            Highest Tilt Az 97
+
+- Observations
+    1. Multi-Point Alignment - shows high residuals for the sync points and the ‘Correction Summary’ shows high levels of correction (tilt etc) … despite tripod being set up using bubble level and manual compass alignment to point South (180°)
+    2. N.I.N.A. Sequence Terminated - After about 120 images into the sequence (240), the clouds had begun to move over the target.
+    3. Despite using 30 sec exposures at 400mm and high residuals in the pointing model, the results were actually excellent …. Producing sharp stars and no tracking errors. All the image failures (165) were caused by cloud and not equipment issues.
+    4. Summary - Tracking was perfect and stars were kept sharp throughout the entire sequence. I have always had high residuals, but these don’t seem to impact on the excellent tracking of BETA 5 RC1
 
 ## Beta Tester: Paul (Dis: Paul C)
 ### Platform & Environment
