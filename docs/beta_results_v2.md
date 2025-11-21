@@ -417,6 +417,92 @@ I used the Guiding Assistant and Calibration Assistant in PHD2 and used 1s expos
 
 
 
+## Beta Tester: Daniel (FB: Daniel Michaud; Dis: Dmich39; GH: Dmich39)
+### Platform & Environment
+- Mini PC : Nipogi GKIII Alder Lake N97 ,  16 GB memory 1 GB on disc  Win Pro 11, very similar to Mele. Built in Wifi port + external USB one, ( TP Link  ) 
+- Benro Polaris Astro in latest firmware & Benro app version
+- Solid tripod weighted with  5 kg mass , levelled carefully with 2 digital levelling tools (< 0.1 degree error in any direction)
+- Arca swiss Plate carefully positioned precisely 90 degrees vs camera body with help of calliper,equerre.
+- Camera Canon 5D MK III unfiltered & Canon 5D MK IV normal
+- Various Canon EF L Lenses : 200 mm F2.8, 100-400 F4.5, x1.4 multiplier gen II, and x2 multiplier gen III. Heated Lens Caps due freezing conditions these days.
+
+...
+### Test Areas
+Test 1 on Nov 18, external temp -5 celsius, clear sky ( first clear sky for one month .. ) . I’m located 10 km from Lyon, France, Bortle 5.
+
+I wanted to check : End to end setup from Benro Polaris ignition to pointing target  thru Pilot Alpaca, and if everything going well, a real case at deep night, under full windows 11 pro environment.
+
+### Results
+
+- Observations
+    - No major issue in software setup with exception of some wasted time on location V2 driver on Ogecko.  To my understanding, Beta 4 environment still does not point to the right zip file: It is supposed to be a 24.2 gb zip file while V1 was 20.4 gb zip file, this is to be verified in final release. 
+        - JDM - I have changed the install.md to link to the archived tag v2.0.0.zip. This will be set when the final version is released.
+    - Windows Software stack : ( Stellarium, Nina, Alpaca Pilot) : No real issue from an install point of view , thanks to all information available from team 
+    - I have essentially lost some time understanding  how to quickly configure  the Alpaca driver   under Stellarium  under ‘Telescope Control’, precisely on the question : how to identify correct driver  IP address in the section ‘ ‘Ascom Telescope chooser ‘.  Once I have understood that , clicking on Properties, I can see all my previous attemps with the wrong IP address, I decided to cleanup all these incorrect addresses and confusion disappeared.  
+    - Once Stellarium was properly set, the real issue was then to understand how the chain Stellarium / Nina / Alpaca Pilot operates in terms of : to which component are we giving instruction to target a sky object ? . I finally understood that target selection operates in  Alpaca Pilot OR Stellarium , but we can’t play with both at the same time, is this  correct ? Otherwise we may screw up this target setting portion and we need to move Home, Park, and restart from scratch. 
+        - JDM The Driver can support connections to multiple clients simultaneously ie Nina + Stellarium + Pilot. The last client request takes precendence, eg if a GOTO is issued from Pilot, then a GOTO from Stellarium, then a goto from Nina, the mount will finally follow the last GOTO from Nina.
+    - More details : I have understood that if we target an object from Alpaca Pilot catalog , then GOTO applied,  necessary target information  flow down to Nina AND flow back to Stellarium .  Nina executes order & Stellarium helps to exactly point to the object. Correct ? The only command we can give to Stellarium after target selection and GOTO order in Alpaca Pilot, is a SYNC order if  Stellarium reticle is not exactly at the exact place of the target, is this correct ? Before understanding this, I have got several error messages or different other issues. 
+        -    JDM - its flexible, I typically use Stellarium to watch where the Mount is pointing in the nights sky, maybe occassionally issue a Goto from Stellarium or Pilot whichever is easier. Once I have a target I'm interested in, I will typically walk through Nina's Framing page, grabbing the co-ord from the mounts current position or from stellarium (using the two buttons next to the Co-ordinates title). Then I'll rotate/frame it and add to a sequence, setup the sequence and then start imaging.
+    
+    - On Nina side, only one comment on Rotator : After setting up the Rotator in Nina equipment, it seems that even if I don’t give any order from Alpaca pilot in terms of rotation  , Nina can decide by itself to do so , and decides to apply a little jugement in terms of rotation, without any instruction from me In Nina or Alpaca driver . Is this correct & normal ?
+        - JDM - My understanding is that Nina will only try to rotate on a target if you select Rotate Target in the Target options of the Sequence. Normally the Driver will aim to preserve the current roll angle on any GOTO, unless instructed otherwise.
+
+- Plate Solve :
+    -	Single plate Solve did not  create any specific issue , it was already the process under  V1 Alpaca driver. I only had to increase tolerance in pointing, but this was  due to my local sky environment , correct ?  ( with  a 280 mm lens, f4 ) 
+        - JDM - V2.0 Single Point Alignment should be the same as V1.0
+
+    -	Multi Plate Solve is a bit different : easy to understand, easy to run several celestial plate solve,  all was  really a no brainer. Only a few minutes needed to point & solve specific objects, with no additional complexity compared to single point. The only point is sort of frustration because the process is a pure black box, we can’t see how Pilot Alpaca treats this volume of single plate solve data . Any way, it works in the end, as we will see later ( but I’m an engineer by nature  I like to understand all details … 😊 )
+        - JDM - the details of the multi-point alignment model can be seen on the Alpaca Pilot Alignment Page. Did you see the SYNC point list and residuals for each sync point? Have you watched the video? Is there something else you are looking for?
+
+- Real case end2end V2 Beta 4 initial testing :
+
+    -	Setup in real conditions being done applying all lessons learnt, I decided to target  Caldwell 31 ( Frame Nebula ) , for a series of 100 + lights, 60 seconds each, never done before such duration with Benro Polaris alone or under V1.
+    -	Multiple Plate Solve was ok, even so, as said, I was a bit surprising to observe all the movements ordered by … Pilot Alpaca ?, Stellarium ? .. ) until correct positioning. It looked hectic and random based as visible in Nina framing screen, more than the result of a computation ( see a  video  made by me, available if you wish ) , but in the end, it worked.
+
+- Overall:
+    - It worked ! and well 
+
+    -	After more than 3 hours of testing, inclusive of some hesitation in the above mentioned directions,  it worked very well  !!!! ; I didn’t have to change anything or intervene, once sequencer  started to operate : 100 lights, 1 minute each, target rather high in sky, no single deviation observed through Imaging Tab, and pin points stars everywhere. No single deviation observed in positioning after 100 lights capture compared to initial Multiple plate solve.  GREAT !!
+    - I still would like to  test additional options , but clear sky will decide : 
+        -	Rotating
+        -	Nina Mosaic
+
+### Feedback
+At the end of this initial test, very successful let me say despite little unclarities, I will essentially share a few thoughts  & observations :
+- Multiple platforms testing : 
+    - I have also reviewed, in house , the entire control tower with 1 laptop/Alpaca Pilot, 1 miniPC/Nina, one IpadPro/ Stellarium mobile…  : It seems all components work well together, even if Stellarium/ Ipad setup is less intuitive compared to Stellarium/Windows. Appreciate any recommendation on this , thanks !
+
+- Initial setup questions: 
+    - At beginning of test, my understanding is that we must essentially secure a perfect Benro Polaris hardware Setup ( perfect levelling, squaring arca swiss plate, weighting tripod ) , followed by Benro Polaris ignition , until BenroPolaris is visible as a Wifi network on Windows. 
+
+    - In real life, I understand that we have to complete the entire hardware & Benroconnect APP setup  (calibration with phone attached to Polaris, .. Astro mode,   BenroConnect targeting a calibration space object, good enough focus with Bahtinov mask….  ) before giving control to windows driver .
+    Lesson learnt is that if we neglect any of upfront steps, the subsequent actions  ( instellarium, Nina, Hocus Focus ) .. will be more painful .
+    Is this a correct understanding ? 
+        - JDM - The V2.0 Driver can eliminate the need to use the Benro Polaris App to do Compass Align, Single Star Align. Also Multi-Point alignment eliminates the need to perfectly level your tripod.
+        
+
+    - Cable management : 
+    It’ is critical to secure cable connection  from camera to MiniPC :   Not having a long enough cable. I have initially destroyed a cable and blocked Benro Polaris motors, fortunately without severe consequence.  And by the way, software changes applied to Alpaca Pilot now totally secure the cable mismatch risk… bravo !
+
+    - Multiple targets in one night: 
+    I have observed that under Pilot Alpaca control tower we can’t move from one target to an other without performing first a HOME / PARK / UNPARK series of orders. Doing so will ensure the second target will be properly aimed. Is this correct interpretation ?
+        - JDM - Not really. You do not need to Home/Park/Unpark after each GOTO. You can perform a GOTO from Alpaca and the mount move to the co-ordinates as per the current alignment. You can then do a plate-solve by Nina at that location to correct any slight misalignment or improve the Multi-point alignment model. Gotoing the same target again should be more accurate with the imrpved model.   
+
+### Conclusion  
+- Warm congrats again to the entire team under David leadership : What was achieved these last months for the price of 2 KickStarter investments is rather  unbelievable.
+
+- Which also means that, despite lack of support from Benro, Benro Polaris is fantastic machine, but this, we all knew already…  Let’s hope that Benro won’t release any new firmware ruining all these efforts … how can we control this ?
+    - JDM - if they do release firmware that breaks it, I think the community will have enough voice to get them to reverse it. If they done then we'll start jailbreaking their firmware and really take it over :-).
+        
+- And final final point :  have you already decided for a Go To Market Model ?
+    - JDM - this is a hobby and interest for me. I dont have plans to market it at this stage. 
+
+- That’s it now .   I’m immensely grateful for being part of this project even so I can’t help in solution design or programming, but yes, thank you David !
+    - JDM - and thank you for this great feedback!
+
+
+
+
 
 ## Beta Tester: Mark (FB: John Harrison; GH: 5x5Stuido)
 Notes: Ireland Week43, New 5nm filters.
