@@ -365,7 +365,7 @@ async function onClickSync(dso: CatalogItem) {
 
 async function onClickGoto(dso: CatalogItem) {
   if (dso.Cn==84) {
-    await dev.alpacaTrackOrbital(dso.MainID)
+    await dev.alpacaTrackOrbital(dso.MainID, dso.C1)
   }
   else {
     await dev.alpacaJ2000Goto(dso.MainID, dso.RA_hr, dso.Dec_deg)
@@ -381,7 +381,7 @@ async function onClickSearchOrbital(c1:DsoType=6) {
   const name = cat.searchFor
   const iconname = typeLookupIcon[c1]
   const typename = typeLookup[c1]
-  await dev.alpacaTrackOrbital(name)
+  await dev.alpacaTrackOrbital(name, c1)
   $q.notify({ message:`${typename} search issued for ${name}.`, icon:iconname,
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 

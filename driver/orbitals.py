@@ -37,7 +37,9 @@ def jd_to_calendar(jd):
 
     return int(month), int(day), int(year)
 
-
+def orb_result(logger, name, msg):
+    logger.info(msg)
+    return name, msg
 
 async def create_tle_orbital_celestrak(logger, norad_id):
     """
@@ -48,15 +50,16 @@ async def create_tle_orbital_celestrak(logger, norad_id):
     - norad_id (int or str): NORAD catalog number identifying the satellite (e.g., 25544 for the ISS).
 
     Returns:
-    - Tuple[str, ephem.Body]: The satellite name and PyEphem body object if successful.
-    - Tuple[None, None]: If the NORAD ID is invalid or TLE data cannot be retrieved or parsed.
+    - Tuple[str, msg]: The orbital_name and result message if successful.
+    - Tuple[None, msg]: If the NORAD ID is invalid or TLE data cannot be retrieved or parsed. Error msg.
+    - Stores body in orbital_data[orbital_name] if successful
 
     Behavior:
     - Validates and sanitizes the NORAD ID input.
     - Sends an async GET request to Celestrak’s TLE endpoint for the specified satellite.
     - Parses the returned TLE block (name, line1, line2).
     - Constructs a PyEphem satellite object using ephem.readtle().
-    - Stores body in orbital_data[name]
+
 
     Notes:
     - This function relies on publicly available TLE data from Celestrak, which may be updated daily.
@@ -64,26 +67,22 @@ async def create_tle_orbital_celestrak(logger, norad_id):
     """
     # ---------------- Try and parse the norad_id
     try:
-        norad_id = int(str(norad_id).strip())
-        if norad_id <= 0:
-            logger.info(f'Celestrak: NORAD ID must be a positive integer: {norad_id}')
-            return None, None
+        query = int(str(norad_id).strip())
+        if query <= 0:
+            return orb_result(logger, None, f'Celestrak: NORAD ID must be a positive integer: {norad_id}')
     except Exception as e:
-        logger.info(f'Celestrak: Invalid NORAD ID: {norad_id}, {e}')
-        return None, None
+        return orb_result(logger, None, f'Celestrak: Invalid NORAD ID: {norad_id}, {e}')
 
     # ---------------- Try and query the Celestrak API
     try:
-        url = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_id}&FORMAT=TLE"
+        url = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={query}&FORMAT=TLE"
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=10) as response:
                 if response.status != 200:
-                    logger.info(f'Celestrak: Failed to fetch TLE data for {norad_id}, status: {response.status}')
-                    return None, None
+                    return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data for {norad_id}, status: {response.status}')
                 text = await response.text()
     except Exception as e:
-        logger.info(f'Celestrak: Failed to fetch TLE data for {norad_id}, {e}')
-        return None, None
+        return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data for {norad_id}, {e}')
 
     # ---------------- Try and parse the Celestrak Response
     try:
@@ -92,17 +91,14 @@ async def create_tle_orbital_celestrak(logger, norad_id):
             logger.info(f'{text.strip()}')
 
         if re.search(r"\bNo GP data found\b", text, re.IGNORECASE):
-            logger.info(f"Celestrak: No match found for {norad_id}")
-            return None, None
+            return orb_result(logger, None, f'Celestrak: No match found for {norad_id}')
 
         lines = text.strip().splitlines()
         if len(lines) < 3:
-            logger.info(f'Celestrak: Incomplete TLE data for NORAD ID: {norad_id}')
-            return None, None
+            return orb_result(logger, None, f'Celestrak: Incomplete TLE data for NORAD ID: {norad_id}')
 
     except Exception as e:
-        logger.info(f"Celestrak: Failed to parse orbital data for {norad_id}: {e}")
-        return None, None
+        return orb_result(logger, None, f'Celestrak: Failed to parse orbital data for {norad_id}: {e}')
     
     # ---------------- Try and create the Orbital Body
     try:
@@ -114,11 +110,10 @@ async def create_tle_orbital_celestrak(logger, norad_id):
             logger.info(f'Celestrak: Body Orbital Parameters: {body.writedb()}')
 
     except Exception as e:
-        logger.info(f'Celestrak: Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
-        return None, None
+        return orb_result(logger, None, f'Celestrak: Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
 
     orbital_data[name] = { "body": body }
-    return name, body
+    return orb_result(logger, name, f'Sucessfully retrieved orbital parameters for {name}.')
 
 
 
@@ -138,7 +133,9 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         - Note: Whitespace matters: Extra spaces or malformed designations may cause lookup failures.
 
     Returns:
-    - Tuple (fullname, ephem.Body) if successful, or (None, None) on failure.
+    - Tuple[str, msg]: The orbital_name and result message if successful.
+    - Tuple[None, msg]: If the orbital is invalid or xephem data cannot be retrieved or parsed. Error msg.
+    - Stores body in orbital_data[orbital_name] if successful
 
     Behavior:
     - See: https://ssd-api.jpl.nasa.gov/doc/horizons.html#command
@@ -151,8 +148,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
 
     query = str(name_or_designation).strip()
     if not query:
-        logger.info("JPL: Empty name or designation provided.")
-        return None, None
+        return orb_result(logger, None, 'JPL: Empty name provided.')
 
     # ---------------- Try and query the JPL Horizon API
     try:
@@ -175,12 +171,10 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, timeout=15) as response:
                 if response.status != 200:
-                    logger.info(f"JPL: lookup failed for {query}, status: {response.status}")
-                    return None, None
+                    return orb_result(logger, None, f'JPL: lookup failed for {query}, status: {response.status}')
                 data = await response.json()
     except Exception as e:
-        logger.info(f"JPL: Failed to fetch Orbital data for {query}: {e}")
-        return None, None
+        return orb_result(logger, None, f'JPL: Failed to fetch Orbital data for {query}: {e}')
 
     # ---------------- Try and parse the JPL Horizon API Response
     try:
@@ -191,12 +185,10 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
             logger.info(elements)
 
         if re.search(r"\bNo matches found\b", elements, re.IGNORECASE):
-            logger.info(f"JPL: No match found for {query}")
-            return None, None
+            return orb_result(logger, None, f'JPL: No match found for {query}')
 
         if re.search(r"\bMatching small-bodies\b", elements, re.IGNORECASE):
-            logger.info(f"JPL: Multiple matching bodies found for {query}")
-            return None, None
+            return orb_result(logger, None, f'JPL: Multiple matching bodies found for {query}')
 
         def extract(label):
             match = re.search(rf"\b{label}=\s*(-?\d*\.?\d{{0,12}})", elements)
@@ -222,8 +214,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         D = 2000
 
     except Exception as e:
-        logger.info(f"JPL: Failed to parse orbital data for {query}: {e}")
-        return None, None
+        return orb_result(logger, None, f'JPL: Failed to parse orbital data for {query}: {e}')
 
     # ---------------- Try and create the Orbital Body
     try:
@@ -235,96 +226,10 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
             logger.info(f'JPL: Body Orbital Parameters: {body.writedb()}')
 
     except Exception as e:
-        logger.info(f'Celestrak: Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
-        return None, None
+        return orb_result(logger, None, f'Celestrak: Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
 
     orbital_data[name] = {"body": body}
-    return name, body
-
-
-
-# Not very accurate - decommisioned
-async def create_xephem_orbital_cobs(logger, name_or_designation: str):
-    """
-    Fetches orbital elements for a minor body from the COBS (Comet Observation Database) API and constructs a PyEphem-compatible object.
-
-    Note:
-    This method provides only approximate orbital data. COBS values may be rounded, incomplete, or outdated, and are not suitable for high-precision ephemeris generation or telescope control. Use JPL Horizons or MPC for authoritative results.
-
-    Parameters:
-    - logger (logging.Logger): Logger instance for diagnostic output.
-    - name_or_designation (str): Comet or asteroid name/designation (e.g., "C/2025 A6").
-
-    Returns:
-    - Tuple[str, ephem.Body]: The full object name and PyEphem body if successful.
-    - Tuple[None, None]: If lookup or parsing fails.
-
-    Behavior:
-    - Sends an async GET request to the COBS API for orbital and object metadata.
-    - Extracts key orbital elements: inclination, ascending node, argument of perihelion, semi-major axis, eccentricity, mean anomaly, orbital period, and epoch.
-    - Computes mean daily motion from the orbital period.
-    - Converts epoch to MM/DD/YYYY format (fixed equinox year = 2000).
-    - Optionally includes magnitude model from peak brightness.
-    - Constructs an ephem.readdb() string and returns the resulting body.
-    - Stores body in orbital_data[name]
-    """
-
-    query = str(name_or_designation).strip()
-    if not query:
-        logger.info("COBS Empty name or designation provided.")
-        return None, None
-
-    url = f"https://cobs.si/api/comet.api?des={query}&orbit=true"
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=10) as response:
-                if response.status != 200:
-                    logger.info(f"COBS lookup failed for {query}, status: {response.status}")
-                    return None, None
-                data = await response.json()
-    except Exception as e:
-        logger.info(f"COBS request error for {query}: {e}")
-        return None, None
-
-    try:
-        obj = data.get("object", {})
-        orbit = data.get("orbit", {})
-        fullname = obj.get("fullname", query)
-
-        # Extract and convert orbital elements
-        i = float(orbit.get("i"))  # inclination (ephem i)
-        O = float(orbit.get("om")) # longitude of ascending node (ephem O)
-        o = float(orbit.get("w"))  # argument of perihelion (ephem o)
-        a = float(orbit.get("a"))  # semi-major axis (AU) (ephem a)
-        e = float(orbit.get("e"))  # eccentricity (ephem e)
-        M = float(orbit.get("ma")) # mean anomaly  (ephem M)
-        epoch_str = orbit.get("epoch") # epoch date (YYYY-MM-DD) (ephem E)
-        tp_cd = orbit.get("tp_cd")     # time of perihelion passage
-        E = datetime.strptime(epoch_str, "%Y-%m-%d").strftime("%m/%d/%Y")
-        D = 2000
-
-        # Compute mean daily motion n from orbital period
-        P = float(orbit.get("per"))  # orbital period (years)(ephem n)
-        n = 0.9856076686 / P
-
-        # Estimate magnitude model from peak_mag
-        H = obj.get("peak_mag")     # peak brightness (ephem H)
-        H_str = f"H{H}" if H else ""
-
-        # Construct ephem string
-        #             {fullname},e,{i},{O},{o},{a},{n},{e},{M},{E},{D},{H_str},0.15"
-        db_string = f"{fullname},e,{i},{O},{o},{a},{n},{e},{M},{E},{D},{H_str},0.15"
-
-        logger.info(f'COBS Orbital Parameters: {db_string}')
-
-        body = ephem.readdb(db_string)
-        logger.info(f'Body Orbital Parameters: {body.writedb()}')
-        orbital_data[fullname] = {"body": body}
-        return fullname, body
-
-    except Exception as e:
-        logger.info(f"COBS Failed to parse orbital data for {query}: {e}")
-        return None, None
+    return orb_result(logger, name, f'Sucessfully retrieved orbital parameters for {name}.')
 
 
 

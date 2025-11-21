@@ -4,7 +4,7 @@ import { HTMLResponseError, NonJSONResponseError, NotFound404Error, AlpacaRespon
 import type { DescriptionResponse, ConfiguredDevicesResponse, SupportedActionsResponse, ActionResponse } from 'src/utils/interfaces'
 import { sleep } from 'src/utils/sleep'
 import type { ConfigResponse } from 'src/stores/config'
-import type { OrbitalExport } from 'src/stores/catalog'
+import type { OrbitalExport, DsoType } from 'src/stores/catalog'
 import { AppVisibility } from 'quasar'
 
 export const useDeviceStore = defineStore('device', {
@@ -212,8 +212,8 @@ export const useDeviceStore = defineStore('device', {
       return result
     },
 
-    async alpacaTrackOrbital(name:string) {
-      await this.apiAction<void>('Polaris:TrackOrbital', `{"name": "${name}"}`)
+    async alpacaTrackOrbital(name:string, c1:DsoType) {
+      await this.apiAction<void>('Polaris:TrackOrbital', `{"name": "${name}", "category":${c1}}`)
     },
 
     async catalogFetch() {

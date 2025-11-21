@@ -922,6 +922,7 @@ class PID_Controller():
         self.ack_limit_timestamp = None                      # Timestamp of last ACK of PID LIMIT ALARM
         self.target_type = 'NONE'                            # target body we are tracking
         self.orbital_sp_name = None                    # name of pyephem body tracking for Lunar, Solar, Custom rates
+        self.orbital_sp_fetchmsg  = None               # result msg from last http fetch of orbital parameters
         self.orbital_sp_status = [0, 0, 0]             # status of orbital tracking [is_orb_trackable (0=N/A, 1=toolow, 2=ok), orb_az, orb_alt]
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, polar anglular positions
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
@@ -1205,16 +1206,29 @@ class PID_Controller():
         self.target_type = "ZETA"
         self.zeta_ref = np.array([Config.m1_park, Config.m2_park, Config.m3_park], dtype=float)
 
+    async def set_tle_orbital_target(self, name):
+        self.reset_offsets()
+        orbname, msg = await create_tle_orbital_celestrak(self.logger, name)
+        self.target_type = "ORBITAL"
+        self.orbital_sp_name = orbname
+        self.orbital_sp_fetchmsg = msg
+
+    async def set_xephem_orbital_target(self, name):
+        self.reset_offsets()
+        orbname, msg = await create_xephem_orbital_jpl(self.logger, name)
+        self.target_type = "ORBITAL"
+        self.orbital_sp_name = orbname
+        self.orbital_sp_fetchmsg = msg
+
     async def set_orbital_target(self, name):
         self.reset_offsets()
         self.target_type = "ORBITAL"
-        tle_name, xephem_name = None, None
-        # create orbital if we dont have orbital already
-        if not name in orbital_data:
-            tle_name, _ = await create_tle_orbital_celestrak(self.logger, name)
-            if not tle_name:
-                xephem_name, _ = await create_xephem_orbital_jpl(self.logger, name)
-        self.orbital_sp_name = tle_name if tle_name else xephem_name if xephem_name else name
+        if name in orbital_data:
+            self.orbital_sp_name = name
+            self.orbital_sp_fetchmsg = None
+        else:
+            self.orbital_sp_name = None
+            self.orbital_sp_fetchmsg = f'Cannot find orbital with name "{name}"'
 
     def rotator_move_relative(self, sp=0.0):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:

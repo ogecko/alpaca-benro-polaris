@@ -1500,6 +1500,7 @@ class Polaris:
                 'trackingrate': self._trackingrate,
                 'trackingname': self._pid.orbital_sp_name,
                 'orbitalstatus': self._pid.orbital_sp_status,
+                'orbitalfetchmsg': self._pid.orbital_sp_fetchmsg,
                 'athome': self._athome,
                 'atpark': self._atpark,
                 'slewing': self._slewing,
@@ -2036,10 +2037,19 @@ class Polaris:
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
     # ******* Advanced MPC control aware methods ********
-    async def trackOrbital(self, name):
+    async def trackOrbital(self, name, category):
         if Config.advanced_orbitals and Config.advanced_control:
-            await self.start_tracking()                  # start tracking
-            await self._pid.set_orbital_target(name)     # set tracking target name
+            self._pid.orbital_sp_fetchmsg = ''
+            await self.start_tracking()                         # start tracking
+            if category in [4,5]:
+                await self._pid.set_orbital_target(name)        # set tracking target name
+            elif category in [6]:
+                await self._pid.set_tle_orbital_target(name)    # fetch tle, create orbial body, set target name
+            elif category in [7,8]:
+                await self._pid.set_xephem_orbital_target(name) # fetch xephem, create orbial body, set target name
+            else:
+                self._pid.orbital_sp_fetchmsg = 'Invalid orbital type'
+            # change trackingrate to Lunar, Solar, or Custom
             self.trackingrate = 1 if name=="Moon" else 2 if name=="Sun" else 3
         else:
             self.logger.info("Advanced Orbital Tracking is currently disabled")

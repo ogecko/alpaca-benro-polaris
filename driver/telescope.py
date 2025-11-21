@@ -1744,7 +1744,8 @@ class action:
         elif actionName == "Polaris:TrackOrbital":
             logger.info(f'Polaris:TrackOrbital {parameters}')
             name = parameters.get('name', '')
-            asyncio.create_task(polaris.trackOrbital(name)) 
+            category = parameters.get('category', 6)
+            asyncio.create_task(polaris.trackOrbital(name, category)) 
             resp.text = await PropertyResponse('Polaris:TrackOrbital ok', req)  
             return
 
