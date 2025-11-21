@@ -8,7 +8,7 @@
 
 ## What is Alpaca Pilot?
 
->VIDEO DEMO - [21 - Alpha Preview Demonstration of V2.0](https://youtu.be/0QSKD1GCzOc)
+>VIDEO DEMO: [21 - Alpha Preview Demonstration of V2.0](https://youtu.be/0QSKD1GCzOc)
 
 The **Alpaca Pilot App** is a responsive, single-page web application designed to streamline the startup, configuration and operation of the **Alpaca Driver** when used with the Benro Polaris Mount. It unlocks many of the Driver’s advanced features, enabling users to fully leverage its capabilities.
 
@@ -59,7 +59,7 @@ The main menu of the **Alpaca Pilot** application provides centralized access to
 
 ## I. Launching the Alpaca Pilot Application
 
->VIDEO DEMO - [22 - Launching Alpaca Pilot](https://youtu.be/Wv_ZvBtZZ4Q?t=0m7s)
+>VIDEO DEMO: [22 - Launching Alpaca Pilot](https://youtu.be/Wv_ZvBtZZ4Q?t=0m7s)
 
 
 The Alpaca Pilot App can be accessed via external imaging software or directly through a web browser on a desktop, tablet, or phone.
@@ -93,7 +93,7 @@ For example, you might choose to open the Catalog as a new window and position i
 
 ## II. Connecting Devices
 
->VIDEO DEMO - [21 - Connecting to the Driver and Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
+>VIDEO DEMO: [21 - Connecting to the Driver and Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
 
 When you start the Alpaca Driver, it will automatically attempt to try and connect to the Benro Polaris. The normal sequence of startup events using Alpaca Pilot are as follows:
 
@@ -221,9 +221,9 @@ Additionally, this dialog allows you to modify the Driver’s behavior regarding
 <br>
 
 ## III. Using the Dashboard
->VIDEO DEMO - [21 - Dashboard introduction](https://youtu.be/0QSKD1GCzOc?t=4m55s)
+>VIDEO DEMO: [21 - Dashboard introduction](https://youtu.be/0QSKD1GCzOc?t=4m55s)
 
->VIDEO DEMO - [22 - Dashboard Status and Setpoint Entry](https://youtu.be/Wv_ZvBtZZ4Q?t=3m18s)
+>VIDEO DEMO: [22 - Dashboard Status and Setpoint Entry](https://youtu.be/Wv_ZvBtZZ4Q?t=3m18s)
 
 ### Purpose of the Dashboard
 The dashboard is the central component of the Alpaca Pilot App. It basically shows you the current **orientation of the telescope** and any **activity on the motors**. It provides **real-time telemetry** of the mount's current coordinates, including Azimuth, Altitude, Roll or Right Ascension, Declination, Position Angle. The Dashboard also provides direct control of the mount through action buttons and interaction into zoomable radial dials for each co-ordinate.
@@ -352,7 +352,7 @@ Scrolling the mouse wheel downward performs the same action as this control.
 
 ## IV. Using the Catalog
 
->VIDEO DEMO - [22 - Alpaca Pilot Catalog](https://youtu.be/Wv_ZvBtZZ4Q?t=6m42s)
+>VIDEO DEMO: [22 - Alpaca Pilot Catalog](https://youtu.be/Wv_ZvBtZZ4Q?t=6m42s)
 
 The Alpaca Pilot application features an expanded and intuitive catalog designed to simplify the selection and targeting of celestial objects for astrophotography. This guide details the catalog's contents, how to navigate, filter, and use it for slewing and alignment.
 
