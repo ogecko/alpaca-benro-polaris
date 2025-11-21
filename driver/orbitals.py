@@ -69,9 +69,9 @@ async def create_tle_orbital_celestrak(logger, norad_id):
     try:
         query = int(str(norad_id).strip())
         if query <= 0:
-            return orb_result(logger, None, f'Celestrak: NORAD ID must be a positive integer: {norad_id}')
+            return orb_result(logger, None, f'Celestrak: NORAD ID must be a positive integer.')
     except Exception as e:
-        return orb_result(logger, None, f'Celestrak: Invalid NORAD ID: {norad_id}, {e}')
+        return orb_result(logger, None, f'Celestrak: Invalid NORAD ID.')
 
     # ---------------- Try and query the Celestrak API
     try:
@@ -79,10 +79,10 @@ async def create_tle_orbital_celestrak(logger, norad_id):
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=10) as response:
                 if response.status != 200:
-                    return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data for {norad_id}, status: {response.status}')
+                    return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data, response 200.')
                 text = await response.text()
     except Exception as e:
-        return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data for {norad_id}, {e}')
+        return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data.')
 
     # ---------------- Try and parse the Celestrak Response
     try:
@@ -91,14 +91,14 @@ async def create_tle_orbital_celestrak(logger, norad_id):
             logger.info(f'{text.strip()}')
 
         if re.search(r"\bNo GP data found\b", text, re.IGNORECASE):
-            return orb_result(logger, None, f'Celestrak: No match found for {norad_id}')
+            return orb_result(logger, None, f'Celestrak: No match found.')
 
         lines = text.strip().splitlines()
         if len(lines) < 3:
-            return orb_result(logger, None, f'Celestrak: Incomplete TLE data for NORAD ID: {norad_id}')
+            return orb_result(logger, None, f'Celestrak: Incomplete TLE data.')
 
     except Exception as e:
-        return orb_result(logger, None, f'Celestrak: Failed to parse orbital data for {norad_id}: {e}')
+        return orb_result(logger, None, f'Celestrak: Failed to parse orbital data.')
     
     # ---------------- Try and create the Orbital Body
     try:
@@ -110,7 +110,7 @@ async def create_tle_orbital_celestrak(logger, norad_id):
             logger.info(f'Celestrak: Body Orbital Parameters: {body.writedb()}')
 
     except Exception as e:
-        return orb_result(logger, None, f'Celestrak: Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
+        return orb_result(logger, None, f'Celestrak: Failed to create TLE body.')
 
     orbital_data[name] = { "body": body }
     return orb_result(logger, name, f'Sucessfully retrieved orbital parameters for {name}.')
@@ -171,10 +171,10 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, timeout=15) as response:
                 if response.status != 200:
-                    return orb_result(logger, None, f'JPL: lookup failed for {query}, status: {response.status}')
+                    return orb_result(logger, None, f'JPL: Failed to fetch ephem data, response 200.')
                 data = await response.json()
     except Exception as e:
-        return orb_result(logger, None, f'JPL: Failed to fetch Orbital data for {query}: {e}')
+        return orb_result(logger, None, f'JPL: Failed to fetch ephem data.')
 
     # ---------------- Try and parse the JPL Horizon API Response
     try:
@@ -185,10 +185,13 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
             logger.info(elements)
 
         if re.search(r"\bNo matches found\b", elements, re.IGNORECASE):
-            return orb_result(logger, None, f'JPL: No match found for {query}')
+            return orb_result(logger, None, f'JPL: No match found.')
 
         if re.search(r"\bMatching small-bodies\b", elements, re.IGNORECASE):
-            return orb_result(logger, None, f'JPL: Multiple matching bodies found for {query}')
+            return orb_result(logger, None, f'JPL: Multiple matching small bodies found.')
+
+        if re.search(r"\bNumber of matches\b", elements, re.IGNORECASE):
+            return orb_result(logger, None, f'JPL: Multiple matching bodies found.')
 
         def extract(label):
             match = re.search(rf"\b{label}=\s*(-?\d*\.?\d{{0,12}})", elements)
@@ -214,7 +217,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         D = 2000
 
     except Exception as e:
-        return orb_result(logger, None, f'JPL: Failed to parse orbital data for {query}: {e}')
+        return orb_result(logger, None, f'JPL: Failed to parse orbital data.')
 
     # ---------------- Try and create the Orbital Body
     try:
@@ -226,7 +229,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
             logger.info(f'JPL: Body Orbital Parameters: {body.writedb()}')
 
     except Exception as e:
-        return orb_result(logger, None, f'Celestrak: Failed to parse TLE data for NORAD ID: {norad_id}, {e}')
+        return orb_result(logger, None, f'JPL: Failed to create orbital body.')
 
     orbital_data[name] = {"body": body}
     return orb_result(logger, name, f'Sucessfully retrieved orbital parameters for {name}.')

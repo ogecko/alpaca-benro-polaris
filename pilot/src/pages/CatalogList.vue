@@ -173,7 +173,6 @@ import VBar from 'src/components/VBar.vue'
 import MultiSelect from 'src/components/MultiSelect.vue'
 import { useConfigStore } from 'src/stores/config'
 
-
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
@@ -181,7 +180,6 @@ const dev = useDeviceStore()
 const cat = useCatalogStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
-
 const showFilters = ref<boolean>(false)
 
 
@@ -382,8 +380,16 @@ async function onClickSearchOrbital(c1:DsoType=6) {
   const iconname = typeLookupIcon[c1]
   const typename = typeLookup[c1]
   await dev.alpacaTrackOrbital(name, c1)
-  $q.notify({ message:`${typename} search issued for ${name}.`, icon:iconname,
-  type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
+  const notify = $q.notify({
+    group: false, message:`${typename} search issued for "${name}".`, caption:'', icon:iconname,
+    spinner: true, type: 'positive', position: 'top', timeout: 0, actions: [{ icon: 'mdi-close', color: 'white' }] 
+  })
+  setTimeout(() => {
+    notify({
+      caption: `${p.orbitalfetchmsg}`,
+      spinner: false,  timeout: 5000
+    })
+  }, 1000)
   await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
 }
 
