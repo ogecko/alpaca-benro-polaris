@@ -29,7 +29,12 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in beta5
+## What's new in RC2
+- **[python compatibility]** Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.
+- **[Troubleshooting A3]** How to resolve ModuleNotFoundError
+
+
+## What's new in RC1
 - **[pip requirements]** Please ensure you do a `pip install -r requirements.txt` to ensure aiohttp=3.13.2 is installed with beta5
 - **[Planets and Moons]** Add solar system orbitals to the catalog, including Sun, Moon, Planets and Planetary Moons. 
 - **[Artificial Satellites]** Search for over 35k objects to track, including Space Stations, Sattelites, Rocket Bodies and Space Debris. 
@@ -315,6 +320,7 @@ Please let us know if you can try any of these features.
 
 ## Known Issues
 - **[Gimbal Lock]**: There is potential gimbal loack at low altitudes. Please watch mount at all times.
+- **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.9 instead.
 
 
 ## Potential Future Enhancements

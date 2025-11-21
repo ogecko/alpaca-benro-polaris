@@ -38,6 +38,34 @@ You can force Windows to resolve the host names for the Python Package servers t
 
 ```
 
+### A3 – How to resolve ModuleNotFoundError
+
+The Alpaca Driver requires certain Python packages to be installed before it can run. If you encounter an error like the following when first launching the Driver:
+
+```text
+Traceback (most recent call last):
+  File "D:\Astro\Bin\alpaca-benro-polaris\driver\main.py", line 38, in <module>
+    import discovery
+  File "D:\Astro\Bin\alpaca-benro-polaris\driver\discovery.py", line 8, in <module>
+    from config import Config
+  File "D:\Astro\Bin\alpaca-benro-polaris\driver\config.py", line 36, in <module>
+    import os, toml, json
+ModuleNotFoundError: No module named 'toml'
+```
+
+This indicates that the required dependencies have not yet been installed.
+
+To resolve this, ensure you have completed **Step 3** of the Windows 11 installation procedure and run the following command from the project root:
+
+```command
+pip install -r platforms/win/requirements.txt
+```
+
+This will install all necessary packages, including `toml`, so the Driver can run successfully.
+
+
+
+
 ## Benro Polaris Troubleshooting
 
 ### B1 - Cannot start the Benro Polaris Device.
