@@ -107,7 +107,7 @@ function initChart() {
     .attr('class', 'stdev-label')
     .attr('text-anchor', 'end')
     .attr('x', width - 40)
-    .attr('y', height - 40)
+    .attr('y', height - 70)
     .attr('fill', '#ccc')
     .style('font-size', '18px')
     .text('')
