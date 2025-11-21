@@ -215,7 +215,7 @@ class targetposition:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Rotator.TargetPosition failed', ex))
 
 
-@before(PreProcessRequest(maxdev,'log_rotator_protocol'))
+@before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class mechanicalposition:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
