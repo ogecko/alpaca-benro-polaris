@@ -18,6 +18,7 @@
 * **26 - Tracking Orbitals:** Demonstration Video at https://youtu.be/no47ZNagEDk
 * **31 - Kalman Filter:** Demonstration Video at https://youtu.be/aDFKAWBNQHU
 * **32 - Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
+* **33 - PID Tuning:** Demonstration Video at https://youtu.be/6vJbSb0gl3M
 
 ## Win11 Upgrade Instructions
 * Uninstall Python 3.12.7

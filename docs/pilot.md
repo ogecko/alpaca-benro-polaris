@@ -419,46 +419,6 @@ To move the mount to a target's location, simply **click the GoTo button** assoc
 If the object you have selected is **already visible in your camera’s field of view**, you can use the sync function to align the mount's coordinates precisely. Syncing helps the Driver understand where the telescope is pointing compared to where Polaris thinks it is, correcting any upstream misalignment.
 
 
-### Tracking Orbitals
-
->VIDEO DEMO - [26 - Tracking Orbitals](https://youtu.be/no47ZNagEDk)
-
-The catalog supports a range of orbital objects whose motion deviates from sidereal tracking and whose equatorial coordinates are not fixed. To accommodate these, the Driver includes additional tracking rates beyond standard sidereal motion, including the ASCOM standard rates of Lunar, Solar and Custom (to cater for many orbitals)
-
-#### Solar System Objects
-
-This category includes natural bodies such as the Sun, Moon, planets, and planetary moons. These objects are built directly into the catalog and can be searched and filtered like any other entry.
-
-Because their equatorial coordinates change over time, the Driver recalculates their positions at startup for catalog display. When tracking is active, their positions are updated every 200 ms to maintain accuracy.
-
-#### Artificial Satellites
-
-The catalog enables search and tracking of over 32,000 artificial objects, including satellites, space stations, rocket bodies, and orbital debris; using their standard NORAD ID. These objects are not stored locally but are dynamically retrieved when queried. Upon searching by NORAD ID, the Driver fetches the satellite’s orbital elements and begins tracking, updating its position every 200 ms.
-
-Unlike fixed stars, artificial satellites can move rapidly across the sky. Some crossing from horizon to horizon in just a few minutes. Their dynamic trajectories present unique challenges for real-time tracking and observation.
-
-#### Typical Pass Duration of Artificial Objects by Orbit Type
-
-| Orbit Type         | Altitude Range | Pass Duration | Example Satellites         |
-|--------------------|----------------|---------------|----------------------------|
-| Low Earth Orbit (LEO) | 200–2,000 km   | 2–10 minutes   | ISS, Starlink, Hubble      |
-| Medium Earth Orbit (MEO) | ~20,000 km     | 10–20 minutes  | GPS, Galileo               |
-| Geostationary Orbit | ~35,786 km     | Continuous     | Weather, communications    |
-
-- **LEO satellites** like the ISS typically take **4–6 minutes** to cross from horizon to horizon when visible.
-- **Inclination and observer latitude** affect how high and long the pass appears. Near-equatorial orbits may skim the horizon at high latitudes.
-- **Elevation angle** matters: passes directly overhead (high elevation) are longer and brighter than low-angle ones.
-
----
-
-#### Finding NORAD IDs to track
-
-- **Resources for prediction**:
-  - [Heavens-Above](https://www.heavens-above.com): precise pass times, RA/Dec, and sky charts.
-  - [N2YO](https://www.n2yo.com): live tracking with azimuth/elevation and magnitude.
-  - [CelesTrak](https://celestrak.org/NORAD/elements/): list of orbital elements by numerous categories.
-  - [SatelliteMap.space](https://satellitemap.space/): advanced visualisation of artificial satellites around the globe.
-- **Best viewing times**: 1–2 hours after sunset or before sunrise, when the satellite is sunlit but your location is dark.
 
 ### Reference Catalogs
 

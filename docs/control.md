@@ -1,7 +1,15 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Advanced Motion Control Guide
-[Challenges](#challenges-with-existing-control) | [Rotator](#alpaca-rotator) | [Alignment](#alignment-models) | [Safety](#equipment-safety) | [Filtering](#kalman-filter) | [Calibration](#motor-speed-calibration) | [PID Controller](#pid-controller) | [Guiding](#pulse-guiding) | [Tracking](#tracking) 
+[Challenges](#challenges-with-existing-control) | 
+[Rotator](#alpaca-rotator) | 
+[Alignment](#alignment-models) | 
+[Safety](#equipment-safety) | 
+[Filtering](#kalman-filter) | 
+[Calibration](#motor-speed-calibration) | 
+[PID Controller](#pid-controller-and-performance-tuning) | 
+[Orbitals](#orbitals-and-non-sidereal-tracking) | 
+[Guiding](#pulse-guiding) 
 
 # Challenges with existing Control
 >PODCAST LINK - [20 - Deep Dive Podcast on Alpaca Benro Polaris V2.0](https://youtu.be/KUBCTnEsnlE)
@@ -23,7 +31,7 @@ This guide covers describes each of the new motion control concepts introduced i
 ---
 
 # Alpaca Rotator
->VIDEO DEMO - [23 - Alpaca Rotator Framing in Nina and Stellarium](https://youtu.be/_Swd-jIyQis)
+>VIDEO DEMO: [23 - Alpaca Rotator Framing in Nina and Stellarium](https://youtu.be/_Swd-jIyQis)
 
 
 
@@ -130,7 +138,7 @@ To visualize your framing accurately in Stellarium, an adjustment is necessary.
 
 
 # Alignment Models
->VIDEO DEMO - [24 - Multi Point Alignment and Tripod Tilt](https://youtu.be/4CMO0R_yphw)
+>VIDEO DEMO: [24 - Multi Point Alignment and Tripod Tilt](https://youtu.be/4CMO0R_yphw)
 
 The V2.0 Alpaca Driver re-engineered the alignment and sync interfaces to support two distinct alignment methods, transforming how the Benro Polaris (BP) achieves accurate polar alignment. This guide outlines the features and operational principles of the two primary alignment modes; Single-Point and Multi-Point Alignment. 
 
@@ -262,7 +270,7 @@ ABP now supports syncing using **azimuth and altitude**, which means you can ali
 
 # Equipment Safety
 
->VIDEO DEMO - [25 - Home, Park and Motor Angle Limits](https://youtu.be/45EP-DExSOQ)
+>VIDEO DEMO: [25 - Home, Park and Motor Angle Limits](https://youtu.be/45EP-DExSOQ)
 
 
 The Benro Polaris mount, while compact and powerful, has a known issue: it can rotate far enough to **wrap cables tightly around the tripod**, risking damage to cables, camera and mount. This kind of entanglement can lead to costly repairs or interrupted imaging sessions.
@@ -332,7 +340,7 @@ The **Park** function provides a customisable, safe resting position for mountin
 
 ---
 # Kalman Filter
->VIDEO DEMO - [31 - Setting Overrides, Kalman Filtering and PWM](https://youtu.be/aDFKAWBNQHU)
+>VIDEO DEMO: [31 - Setting Overrides, Kalman Filtering and PWM](https://youtu.be/aDFKAWBNQHU)
 
 The **Kalman Filter** is a core component of the motion control system introduced in **ABP Driver v2.0**. It plays a critical role in improving the **accuracy, stability, and responsiveness** of the Polaris mount by filtering noisy sensor data and enhancing the system’s understanding of its own motion.
 
@@ -402,7 +410,7 @@ This value is a key parameter in the Kalman Filter algorithm that determines how
 ---
 # Motor Speed Calibration
 
->VIDEO DEMO - [32 = Calibrating Speed Control for your Polaris](https://youtu.be/U_0-mBDuTjE)
+>VIDEO DEMO: [32 - Calibrating Speed Control for your Polaris](https://youtu.be/U_0-mBDuTjE)
 
 
 The **Motor Speed Controller Calibration** feature in ABP v2.0 allows advanced users to fine-tune motor behavior for their specific Polaris mount. While the system works well with default values, calibration can improve tracking precision, especially for long-exposure astrophotography.
@@ -446,8 +454,8 @@ After testing:
   - % Change from baseline
   - Standard deviation
 
-> **Low change and low deviation** indicate a reliable test  
-> **WARNING:** If a test shows high deviation or unexpected large change, you can and should **retest that speed individually**. Select the test in the table and click Test again.
+ - **A Low %Change and Low Test Stdev** indicate a reliable test  
+> **WARNING:** If a test shows high standard deviation or unexpected large change, you can and should **retest that speed individually**. Select the test in the table and click Test again.
 
 ## E. Approving Results
 
@@ -456,7 +464,7 @@ Once satisfied with the results of the Motor Speed Calibration tests:
 - Click **Approve** to apply the new calibration
 - The driver will now use these values instead of defaults
 
-> Each axis (M1, M2, M3) maintains its own calibration profile
+> NOTE: Each axis (M1, M2, M3) maintains its own calibration profile
 
 
 ## D. Final Thoughts
@@ -472,6 +480,194 @@ Calibrating your motor speed controller ensures:
 <br>
 <br>
 
+
+---
+# PID Controller and Performance Tuning
+
+>VIDEO DEMO: [33 - PID Control and Kinematics](https://youtu.be/6vJbSb0gl3M)
+
+The Proportional-Integral-Derivative (PID) Controller is the core component of the revised motion control system in the Alpaca Benro Polaris Driver Version 2.0. While the system works well with the default parameters, this section is designed for advanced users who wish to **diagnose poor tracking** or fine-tune the controller’s performance.
+
+## 1. Purpose and Role of the PID Controller
+
+The PID Controller is responsible for **closed-loop speed regulation** and is essential for achieving stable tracking. It works by measuring the error between where the mount *should* be (the Set Point) and where it *actually* is (the Present Value).
+
+The driver utilizes a **3-axis PID controller** for closed-loop motor positioning and explicitly handles **zero crossover** to eliminate the need for traditional backlash correction. The PID controller sums up the proportional, integral, derivative, and feed-forward values to determine the precise **motor speed** required to drive each of the three motors in the Polaris head.
+
+## 2. Accessing the PID Tuning Interface
+
+You can access the PID tuning pages via the **Alpaca Pilot App**, which provides a detailed visualization of the controller’s real-time performance.
+
+1.  Open the **Alpaca Pilot App** (accessible via browser or the settings cog in NINA’s Equipment tab).
+2.  Navigate to the side menu and choose the **PID Tuning**.
+
+The PID Tuning page provides an overview of all three axes, allowing you to monitor tracking performance. You can switch between viewing axes in three different domains a. equatorial (Right Ascension, Declination, Position Angle); b. topocentric (Azimuth, Altitude, Roll) and c. motor (M1, M2, M3) coordinates.
+
+## 3. Diagnosing Tracking Performance (Steady State)
+
+To assess how well the mount is tracking, focus on the **RMS Error** and the behavior of the chart lines.
+
+### A. RMS Error
+
+The RMS (Root Mean Square) error measures the running average of how far the mount’s position deviates from its intended position, measured in **arcseconds**.
+
+*   **Goal:** The lower the RMS error, the better.
+*   **Performance Benchmark:** An RMS error **under three arc seconds** is considered very good.
+
+### B. Analyzing the Position Charts (Top Charts)
+
+These charts display the target position versus the actual position for each coordinate.
+
+*   **Set Point (Green Line):** This is the target position the mount is trying to achieve. During sidereal tracking, the set point is expected to be **flat, steady, and horizontal** when viewed in Equatorial Coordinates.
+*   **Actual Position (White Line):** This is the mount’s measured position.
+*   **Ideal Tracking:** The white line should **very closely track the green line**. Ideally, the white line should be slightly underneath the green line.
+*   **Warning Signs:** Watch for large swings, **oscillations, or zigzags** in the white line, which indicate a problem with tracking or control.
+
+### C. Analyzing the Velocity Charts (Bottom Charts)
+
+These charts show the movement and speed of the mount’s motors. They display four key signals used to blend the final motor speed output.
+
+| Line Colour | Component | Function in Control System | Ideal Behavior in Steady State |
+| :--- | :--- | :--- | :--- |
+| **Cyan** | **Output Signal** | The actual speed being commanded to the motor. | Should closely follow the Green Line. |
+| **Green** | **Feed Forward** | The speed the motor *should* be going at to maintain sidereal motion. | Should be straight and horizontal. |
+| **Magenta** | **KP (Proportional)** | Corrects deviation proportional to how far off the target you are. | Should **hover around the zero mark** (average value of zero). |
+| **Olive** | **KI (Integral)** | Corrects for persistent errors (how far you have *been* off target). | Should be straight and flat. |
+| **Orange/Brown** | **KD (Derivative)** | Dampens fast movement to reduce oscillations. | Should be straight and flat, mirroring the Cyan line velocity. |
+
+If the system is tracking well, the velocity graphs should be **smooth, straight, and steady**, indicating the mount is making precise, calm adjustments rather than overcorrecting or jittering.
+
+## 4. Understanding Dynamic Inputs and Tuning
+
+The PID Tuning detail page (accessed by clicking **Tune** on an axis) allows you to view dynamic tests, simulating real-world commands. The goal of tuning is to ensure the mount responds quickly to commands without overshooting or oscillating.
+
+### A. Dynamic Tests (GoTo, Slew, Pulse Guide)
+
+The PID controller is designed to react differently to these inputs:
+
+*   **GoTo (Step Input):** Simulates applications slewing to a target. The set point jumps, and the PID causes the speed to accelerate quickly to the maximum slew rate, then decelerate toward the new position. This uses kinematically optimized trajectory planning.
+*   **Slew (Ramp Input):** Holding a slew button (e.g., in the Alpaca Pilot Dashboard) causes the set point to move up on a **steady ramp** at the commanded slew rate (e.g., 1 degree per second).
+*   **Pulse Guiding (Velocity Input):** Simulates micro-corrections from guiding software (like PHD2) via the Pulse Guiding API. This appears as a **jump in speed** (velocity pulse) and a subsequent step in the set point for the duration of the pulse.
+
+### B. Adjusting PID Parameters
+
+Tuning involves adjusting the proportional (KP), derivative (KD), and integral (KI) gains. Changes take effect **immediately** but are not persistent unless you manually click **Save** in the settings. The current recommended default parameters are set with **Kp=1.0, Ki=0.05, and Kd=0.5**.
+
+| Parameter | Tuning Goal & Effect | Symptoms of Misalignment |
+| :--- | :--- | :--- |
+| **KP (Proportional Gain)** | Controls **responsiveness**. Determines how aggressively the system responds to the immediate error signal. Increasing KP speeds up the response to GOTOs. | **Too High:** Mount accelerates too quickly, **overshoots** the target, and causes **oscillations** (a sine wave pattern). |
+| **KD (Derivative Gain)** | Controls **dampening**. Used to slow down the system when motion is fast, reducing oscillations and overshoot. Should generally be set at about **half of KP**. | **Too Low (with high KP):** Mount overshoots target and oscillates. |
+| **KI (Integral Gain)** | Eliminates **persistent errors**. Increases motor output slowly to close any sustained, small gap (steady state error) between the PV and the SP. | **Too Low:** The Present Value (PV) trails consistently below the Set Point (SP) during steady tracking. |
+
+
+<br>
+<br>
+
+---
+# Orbitals and Non-Sidereal Tracking
+
+>VIDEO DEMO - [26 - Tracking Orbitals](https://youtu.be/no47ZNagEDk)
+
+The Alpaca Benro Polaris Driver Version 2.0 introduces comprehensive support for non-sidereal tracking, allowing the mount to precisely follow objects whose equatorial coordinates change constantly with time. This capability is achieved through the implementation of the **full ASCOM tracking rates** and real-time calculation of target positions.
+
+## 1. Supported Tracking Rates
+
+The driver supports the standard ASCOM tracking rates, which deviate from the default sidereal motion required for fixed stars.
+
+| Tracking Rate | Target Type | Description |
+| :--- | :--- | :--- |
+| **Sidereal** | Deep Sky Objects (DSOs), Stars | Standard tracking rate for objects outside the Solar System. |
+| **Lunar** | The Moon | Precisely tracks the motion of the Moon. |
+| **Solar** | The Sun | Tracks the Sun's motion (requires safety confirmation before enabling). |
+| **Custom** | Planets, Moons, Satellites, Comets, Asteroids and other Near Earth Objects | Tracks natural and artificial objects using advanced orbital mechanics. 
+|
+
+The driver is capable of tracking 
+- the **Sun**, all the solar system **Planets**, and the larger **Planetary moons**.
+- over **32,000 artificial satellites**, including man made satellites, rocket bodies, space stations, and space debris.
+- over **1 million heliocentric objects**, such as comets, asteriods and near Earth objects.
+
+## 2. Accessing Orbital Targets via the Catalog
+
+Orbital objects are accessed through the Alpaca Pilot App's integrated Catalog.
+
+### Solar System Objects
+
+Natural bodies, including the Sun, Moon, planets (such as Mars), and planetary moons (such as Titan, the Saturnian moon), are listed directly within the Catalog.
+
+1.  **Select Target:** Navigate to the Catalog and use the filters to view **Planets or Moons**.
+2.  **Initiate GoTo:** Choose the desired target (e.g., Mars) and select the **GoTo button**.
+3.  **Automatic Rate Change:** The mount will automatically change the tracking rate to match the selected object (e.g., the tracking status will show 'Solar', 'Lunar' or the targets name).
+
+### Artificial Satellites
+
+The Catalog also enables the search and tracking of over 32,000 artificial objects, including **Space Stations, satellites, rocket bodies, and space debris**, using their **NORAD ID**.
+
+1.  **Find NORAD ID:** Locate the satellite's NORAD ID (also called the space catalog number) using external resources such as Heavens-Above, N2YO, CelesTrak, or SatelliteMap.space.
+2.  **Search in Pilot:** Enter the NORAD ID into the Pilot Catalog search bar.
+3.  **Start Tracking:** The driver fetches the orbital parameters and begins tracking that satellite.
+
+### Helio-centric Objects
+The Catalog also enables the search and tracking of over 1 million Near Earth Objects, including **Asteriods, Comets, Drawf Planets, Interstellar objects**, using their **Name or Designator**.
+
+1.  **Find Object's ID:** Locate the object's ID using external resources such as TheSkyLive.com, EysOnAsteriods, MinorPlanetCenter.net, Sky-Tonight.com, AstroForumSpace.com, or cobs.si.
+2.  **Search in Pilot:** Enter the Object's ID into the Pilot Catalog search bar using the following formats.
+    - Long-period comets: "C/2025 A6", "C/2020 F3"
+    - Short-period comets: "P/2023 R1" 
+    - Provisional comet designations: "2006 F8"
+    - Dwarf Planet names: "Ceres", "Makemake"
+    - Named asteroids:  "Vesta", "Pallas", "Iris", "Flora", "Hebe", "Apophis" 
+    - Numbered asteroids: "00433" → Eros
+    - Provisional asteroid designations: "2023 BU", "2021 PH27",  "A801 AA" → Ceres
+3. **Monitor Response:** The NASA JPL Horizons database has stricter search term requirements, so be sure to check the success or failure notification to determine whether a different format is needed.
+
+4.  **Start Tracking:** The driver fetches the orbital parameters and begins tracking that satellite.
+
+## 3. Tracking Status
+
+### Pre-Tracking and Visibility Monitoring
+
+Because orbital objects can be below the horizon or too low for effective observation, the driver includes a pre-tracking feature.
+
+*   **Monitoring Altitude:** If an orbital object is below the **10° altitude** threshold, the mount will not actively track it.
+*   **Status Indication:** The status chip will turn **orange** and display the target's current position e.g., "ISS (ZARYA) (Az 223° Alt -31°)".
+*   **Idle Tracking:** While in this state, the mount falls back to sidereal tracking (if enabled), allowing deep-sky imaging while waiting for the satellite to rise.
+*   **Automatic Slew:** Once the object rises above 10° altitude, the mount will **automatically slew to that coordinate and start tracking it**. Tracking will stop when the satellite sets and dips below the threshold again.
+
+### Active Tracking
+When an orbital is above the **10° altitude** threshold, the mount will automatically slew to the target and start tracking its motion.
+
+*   **Continuous Updates:** The driver updates the equatorial set point coordinates every **200 milliseconds** to precisely track the object's dynamic motion.
+*   **Status Chip:** The Dashboard's Status Indicator will reflect the current tracking rate, displaying **Lunar**, **Solar** or the objects **Name**, (e.g., "Titan" or "ISS (ZARYA)").
+*   **Maintaining Offset:** If you use the slew commands to manually offset the mount (e.g., to focus on a feature of the Moon), the system will **continue to update the tracking** and follow the object from that new offset location. This offset can be removed by turning tracking off and then back on again.
+
+
+## 4. Considerations for Satellite Imaging
+
+Artificial satellites present unique challenges due to their speed.
+
+*   **Imaging Technique:** For brighter, faster-moving satellites, users may want to consider recording **video** and using techniques like Lucky Imaging to capture sharp frames. 
+- **Best viewing times**: 1–2 hours after sunset or before sunrise, when the satellite is sunlit but your location is dark.
+* Alternatively, switching to **sidereal tracking** will allow the satellite to sweep across the star field.
+
+
+#### Typical Pass Duration of Artificial Objects by Orbit Type
+
+| Orbit Type         | Altitude Range | Pass Duration | Example Satellites         |
+|--------------------|----------------|---------------|----------------------------|
+| Low Earth Orbit (LEO) | 200–2,000 km   | 2–10 minutes   | ISS, Starlink, Hubble      |
+| Medium Earth Orbit (MEO) | ~20,000 km     | 10–20 minutes  | GPS, Galileo               |
+| Geostationary Orbit | ~35,786 km     | Continuous     | Weather, communications    |
+
+- **LEO satellites** like the ISS typically take **4–6 minutes** to cross from horizon to horizon when visible.
+- **Inclination and observer latitude** affect how high and long the pass appears. Near-equatorial orbits may skim the horizon at high latitudes.
+- **Elevation angle** matters: passes directly overhead (high elevation) are longer and brighter than low-angle ones.
+
+
+
+
+<br>
+<br>
 
 ---
 ## Pulse Guiding
