@@ -225,6 +225,7 @@ Please read and confirm your agreement with [Beta Agreement](./beta_agreement.md
 - **[Qt6 Support ]**: Latest Stellarium verision is supported (Qt6 UI library works with ASCOM Platform 7)
 
 ## Upgraded Win11 Requirements.txt Compatibility
+- **[Python 3.13.9]**: Upgraded Python support from 3.13.5.
 - **[Python 3.13.5]**: Upgraded Python support from 3.13.1.
 - **[Uvicorn 0.35.0]**: Upgraded Uvicorn support from 0.33.0.
 - **[Ephem 4.2]**: Upgraded Ephem support from 4.1.6.
