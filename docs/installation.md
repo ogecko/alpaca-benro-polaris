@@ -25,6 +25,8 @@ You can view a demonstration of parts of this documentation in the following You
 The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed before it can run.
 
 1. Download Python 3.13.9 from the [Python website](https://www.python.org/ftp/python/3.13.9/python-3.13.9-amd64.exe). Run the installation file downloaded. You must check the field `Add python.exe to PATH`, then click `Install Now`. 
+   >Note: Python 3.14 is not supported as of December 2025, as pyephem has not yet been compiled for this release.
+
 
 2. Download the [Alpaca Benro Polaris v2.0.0.zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.0.0.zip) from this Github repository.
 
