@@ -31,8 +31,8 @@
 
 ## What's new in RC2
 - **[python compatibility]** Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.
+- **[Reset Alignment]** Document how to reset alignment to a known state
 - **[Troubleshooting A3]** How to resolve ModuleNotFoundError
-
 
 ## What's new in RC1
 - **[pip requirements]** Please ensure you do a `pip install -r requirements.txt` to ensure aiohttp=3.13.2 is installed with beta5

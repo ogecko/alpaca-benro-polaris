@@ -224,7 +224,7 @@ Delete a sync point by clicking on the cross next to the point. Note that if tra
 
 A very good multi-point alignment model will have all sync points with residuals of arc-seconds, and none with arc-minutes or whole degrees of residuals.
 
-### IV. Adding Sync Points to the model
+## IV. Adding Sync Points to the model
 By adding sync points, you help the Driver build a geometric model of your mount’s orientation relative to the sky. There are three approaches to adding sync points to the model.
 
 #### Method 1: Sync via Plate Solve
@@ -262,6 +262,36 @@ ABP now supports syncing using **azimuth and altitude**, which means you can ali
 | **Plate Solve** | RA/Dec from image | Imaging sessions | Fully automatic |
 | **Celestial Target** | Manual RA/Dec | Known star/object | Semi-manual |
 | **Geographic Landmark** | Az/Alt from Pilot app | Daytime or visual targets | Manual or assisted |
+
+
+
+
+## V. Reseting your Polaris Alignment
+
+If you connect to the Polaris and notice that the **Azimuth, Altitude, or Roll coordinates** appear incorrect even when the mount is in the home position, you can reset the alignment to a known state using the following steps:
+
+1. **Clear Sync Points**  
+   - Open the **Alignment Page**  
+   - Switch to **Multi‑Point Alignment**  
+   - Delete all existing sync points in the model  
+
+2. **Switch to Single‑Point Alignment**  
+   - Change the alignment mode to **Single Point**  
+
+3. **Reset Axes**  
+   - Open the **Connect Page**  
+   - Click **Reset Axes** to reset each of the Polaris axes  
+
+4. **Compass Align**  
+   - On the compass alignment step, click **SKIP**  
+
+5. **Single Star Align**  
+   - On the single star alignment step, click **SKIP**  
+
+This procedure resets the single‑star alignment model in Polaris to the coordinates defined under the **Single Star SKIP** button. From here, you can:
+
+- Perform a **plate solve** to establish accurate positioning  
+- Enable **Multi‑Point Alignment** to build a more refined alignment model  
 
 <br>
 <br>
