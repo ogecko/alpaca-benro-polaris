@@ -20,7 +20,7 @@ class BLE_Controller():
         self.isEnablingWifi = False
         self.isWifiEnabled = False
         self.isConnectedFn = isConnectedFn
-
+        self._scan_lock = asyncio.Lock()
 
     def get_address_by_name(self, name: str | None) -> str | None:
         if not name:
@@ -57,6 +57,17 @@ class BLE_Controller():
                                 self.logger.info(f"  Characteristic: {char.uuid} ({char.description}) [{props}]")
             except Exception as e:
                 self.logger.warn(f"Failed to connect to {address}: {e}")
+
+    async def safe_BLE_discover(self, timeout=3.0):
+        async with self._scan_lock:
+            try:
+                return await BleakScanner.discover(timeout=timeout)
+            except BleakDBusError as e:
+                if "InProgress" in str(e):
+                    self.logger.warning("BLE scan already in progress, skipping")
+                else:
+                    self.logger.warning(f"BLE Discover Attempt {attempt} failed: {e}")
+
 
     async def setSelectedDevice(self, name):
         if any(dev.get("name") == name for dev in self.devices.values()):
@@ -133,7 +144,7 @@ class BLE_Controller():
             # Re-scan between retries
             if attempt < max_attempts:
                 await asyncio.sleep(3)
-                await BleakScanner.discover(timeout=3.0)
+                await self.safe_BLE_discover(timeout=3.0)
 
         if Config.log_polaris_ble:
             self.logger.error(f"BLE failed to enable Wi-Fi after {max_attempts} attempts")
