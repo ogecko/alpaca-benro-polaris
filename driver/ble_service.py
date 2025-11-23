@@ -2,7 +2,7 @@ from __future__ import annotations
 import asyncio
 import json
 from bleak import BleakScanner, BleakClient, exc
-from bleak.exc import BleakError
+from bleak.exc import BleakError, BleakDBusError
 from shr import LifecycleController, bytes2hexascii
 from config import Config
 import time
