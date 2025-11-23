@@ -4,7 +4,7 @@
 
 ## Overview
 
-![Pi](https://assets.raspberrypi.com/static/raspberry-pi-4-labelled@2x-1c8c2d74ade597b9c9c7e9e2fff16dd4.png)
+![Pi](images/abp-hardware-pi.png)
 
 Raspberry Pi are a series of small single-board computers (SBCs) developed in the United Kingdom by the Raspberry Pi Foundation in association with Broadcom.
 
@@ -12,59 +12,131 @@ Note that these instructions assume some basic knowledge of linux systems, and i
 
 ## Which Pi should I buy?
 
-Most any Pi with networking should work. We recommend Pi 3 or newer. 
+Most Raspberry Pi models with networking support will work. Avoid Pico boards and the original Raspberry Pi Zero.
+The Alpaca Driver has been validated on the following platforms:
+- **Raspberry Pi Zero 2 W / WH** running Raspbian (Debian Bullseye)
+- **Raspberry Pi 4 (8 GB)** running Raspberry Pi OS (Debian Trixie)
 
-Avoid Pi Zero, and Pico variants.
-
-## Installing
+## Installation of Pre-Requisites
 These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/)
 
-To automatically set up the Raspberry Pi for Alpaca Benro Polaris, run the following command as a non-root user:
+1. Update your system 
+    ```Bash
+    sudo apt update && sudo apt upgrade -y
+    ```
+2. Create a virtual Python Environment  
+    1. Check your Python version is 3.9.2 
+        ```Bash
+        python --version
+        ```
+    2. Update your verion of pip
+        ```Bash
+        python3 -m pip install --upgrade pip
+        ```
+    3. Create a Python virtual environment for the Alpaca Driver.
+        ```Bash
+        sudo apt-get install python3-venv
+        cd alpaca-benro-polaris
+        python -m venv ./pyenv
+        export PATH=~/.pyenv/bin:$PATH
+        ```
+3. Install Alpaca Driver pre-requisites
+    ```Bash
+    pip install -r platforms/raspberry_pi/requirements.txt
+    ```
 
-```
-curl -s https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/refs/heads/main/platforms/raspberry_pi/setup.sh | bash
-```
+4. Optionally install build tools  
+    On some Raspberry Pi platforms you may encounter issues when installing the `requirements.txt`, where a package is not available for your platform. You may need to install build tools to generate the package from scratch.
+    ```Bash
+    sudo apt install gfortran
+    sudo apt install libopenblas-dev
+    ```
 
-This script will perform the following:
+    
+## Installing TPLink Driver on Pi Zero 2 (OPTIONAL)
+The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 kernel. We may meed to install the proper driver.
 
-1. Update the software on the system, and install dependencies needed for git.
-2. Clone the alpaca-benro-polaris software from github.
-3. Add pyenv to ~/.bashrc and install Python 3.12.5.
-4. Install the python dependencies needed for the application
-5. Set up [systemd](https://en.wikipedia.org/wiki/Systemd) services to start the `polaris.service` at boot time
-6. Starts the service
+1. Connect the TPLink to the Raspberry Pi Zero 2 and list the usb devices connected. This is to confirm the chipset is RTL8821AU.
+    ```Bash
+    $ lsusb
+    Bus 001 Device 002: ID 2357:0120 TP-Link Archer T2U PLUS [RTL8821AU]
+    Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+    ```
+2. Install the build tools
+    ```Bash
+    sudo apt update
+    sudo apt install -y dkms git raspberrypi-kernel-headers build-essential
+    ```
 
-## Updating
+3. Get the drivers source code
+    ```Bash
+    git clone https://github.com/aircrack-ng/rtl8812au.git
+    cd rtl8812au
+    ```
 
-An update script is provided to properly stop the polaris service, and update the software appropriately
+4. Build and install with DKMS
+    ```Bash
+    sudo dkms add .
+    dkms status
+    ```
+    Use the registered name from `dmks status` to build and install
+    ```Bash
+    sudo dkms build realtek-rtl88xxau/5.6.4.2~20230501
+    sudo dkms install realtek-rtl88xxau/5.6.4.2~20230501
+    ```
+5. Load the module
+    ```Bash
+    MODULE=$(basename $(ls /lib/modules/$(uname -r)/updates/*.ko* | head -n1) .ko.xz)
+    sudo modprobe $MODULE
+    ````
+6. Verify the network interface is active  
+    You should see wlan0, and another auto-generated name like wlxe4fac4e6dea5.
+    ```Bash
+    $ ip link show
+    1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+        link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    2: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DORMANT group default qlen 1000
+        link/ether d8:3a:dd:65:71:2e brd ff:ff:ff:ff:ff:ff
+    3: wlxe4fac4e6dea5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state UP mode DORMANT group default qlen 1000
+        link/ether e4:fa:c4:e6:de:a5 brd ff:ff:ff:ff:ff:ff
 
-To update, on the raspberry pi run the following command:
-```
-~/alpaca-benro-polaris/raspberry_pi/update.sh
-```
+    ````
 
-## Checking logs
 
-In the event of something going wrong, the first thing to check is the log from the service.
+## Diagnose the Wifi Connections
+1. List all Wifi Network Adapters
+    ```Bash
+    iw dev
+    ```
+2. List the current state of the wifi network
+    ```Bash
+    iwconfig
+    ```
+3. List the current connection
+    ```Bash
+    iwgetid -r 
+    ```
+4. List all Wifi networks available
+    ```Bash
+    sudo iw wlan0 scan |grep SSID
+    ```
+## Manual Configuration of Alpaca Driver
 
-This can be found in the `logs` subfolder.
-
-```
-user@astro:~/alpaca-benro-polaris $ ls logs/
-alpyca.log  alpyca.log.2
-```
-
-Note that logs are [rotated](https://en.wikipedia.org/wiki/Log_rotation) on a timer, and appended with an integer. The log without an integer is the newest log.
+5. Update Web Server Port  
+    On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. Change the setting in the file  `driver/config.toml` to the following.
+    ```driver/config.toml
+    alpaca_pilot_port = 8080
+    ```
 
 ## Service status
 
-The `pollaris` service is controlled via `systemd`. 
+The `polaris` service is controlled via `systemd`. 
 
 Super user access(root) is not needed for getting status.
 
 The command to run is:
 
-`systemctl status pollaris`
+`systemctl status polaris`
 
 ## Service control (start, stop, restart)
 

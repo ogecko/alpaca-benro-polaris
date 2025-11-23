@@ -31,10 +31,13 @@
 
 ## What's new in RC2
 - **[python compatibility]** Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.
+- **[Raspberry Pi]** Add support for Raspberry Pi Zero 2, Pi 3, Pi 4 and Pi 5
 - **[Reset Alignment]** Document how to reset alignment to a known state
 - **[Win Install Docs]** Added hardware setup instructions for Win11 autologin and hybernation disable
 - **[Troubleshooting A3]** How to resolve ModuleNotFoundError
 - **[fix #58]** Improved handling of BLE discovery exceptions and added discovery safeguards.
+- **[Fix #28]** Documented manual installation of Alpaca Driver on Raspberry Pi
+
 
 ## What's new in RC1
 - **[pip requirements]** Please ensure you do a `pip install -r requirements.txt` to ensure aiohttp=3.13.2 is installed with beta5
