@@ -32,6 +32,7 @@
 ## What's new in RC2
 - **[python compatibility]** Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.
 - **[Reset Alignment]** Document how to reset alignment to a known state
+- **[Win Install Docs]** Added hardware setup instructions for Win11 autologin and hybernation disable
 - **[Troubleshooting A3]** How to resolve ModuleNotFoundError
 - **[fix #58]** Improved handling of BLE discovery exceptions and added discovery safeguards.
 

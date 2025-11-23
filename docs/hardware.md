@@ -67,6 +67,18 @@ To create a local account:
 7. Under Account Options, select Change account type
 8. Select Account Type `Administrator` then click `OK`
 
+To enable autologin:  
+1. Open `regedit` from the start menu
+2. When prompted with *“Do you want to allow this app to make changes to your device?”*, click **Yes**  
+3. Copy and past the following into the regedit address bar `Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device`
+4. Right click on `DevicePasswordLessBuildVersion`, and select **Modify**
+5. Change Value Data from `2` to `0`, and click **OK**
+6. Close `regedit`
+7. Open `netplwiz` from the start menu
+8. Uncheck `Users must enter a user name and password to use this computer`
+9. Click **OK**
+10. Enter the autologin **User name**, **password** and **confirm password**, click **OK**
+
 ### Power saver functions
 Make sure that your power saver functions are set so that your computer will not go to sleep/hibernate mode. Also its useful to disable your screensaver.
 You need to set the Power Management to High Power.
@@ -78,7 +90,7 @@ To disable hybernation:
 
 2. When prompted with *“Do you want to allow this app to make changes to your device?”*, click **Yes**.  
 
-3. In the Command Prompt window, enter ```powercfg /h off```
+3. In the Command Prompt window, enter `powercfg /h off`
 
 ### Remote Desktop Server
 Enable Remote Desktop Server to allow access from your laptop.
@@ -135,8 +147,6 @@ Note, you may need to re-create this registry value after a Windows Update.
 
 #### Hotspot: Fixing Remote Desktop 0x904 error (OPTIONAL)
 You may encounter an 0x904 error when using Remote Desktop to connect to NinaAir via its hotspot. If you encounter this issue, you can try downloading Remote Desktop from the Windows Store. This has successfuly resolved the 0x904 issue on some machines.
-
-#### Autologin: Setup your account to automatically log in
 
 ### Development Setup (OPTIONAL)
 The follow steps are totaly optional and only required if you want to use VS Code to help make changes to the driver.
