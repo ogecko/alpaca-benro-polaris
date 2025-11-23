@@ -71,6 +71,15 @@ To create a local account:
 Make sure that your power saver functions are set so that your computer will not go to sleep/hibernate mode. Also its useful to disable your screensaver.
 You need to set the Power Management to High Power.
 
+To disable hybernation:   
+1. Open the **Command Prompt** as Administrator:  
+   - Type `cmd` in the Start menu search.  
+   - Right‑click **Command Prompt** and select **Run as Administrator**.  
+
+2. When prompted with *“Do you want to allow this app to make changes to your device?”*, click **Yes**.  
+
+3. In the Command Prompt window, enter ```powercfg /h off```
+
 ### Remote Desktop Server
 Enable Remote Desktop Server to allow access from your laptop.
 Open Settings > System > Remote Desktop > Enable, Set Password.
@@ -126,6 +135,8 @@ Note, you may need to re-create this registry value after a Windows Update.
 
 #### Hotspot: Fixing Remote Desktop 0x904 error (OPTIONAL)
 You may encounter an 0x904 error when using Remote Desktop to connect to NinaAir via its hotspot. If you encounter this issue, you can try downloading Remote Desktop from the Windows Store. This has successfuly resolved the 0x904 issue on some machines.
+
+#### Autologin: Setup your account to automatically log in
 
 ### Development Setup (OPTIONAL)
 The follow steps are totaly optional and only required if you want to use VS Code to help make changes to the driver.
