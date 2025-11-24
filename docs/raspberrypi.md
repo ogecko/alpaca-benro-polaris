@@ -25,7 +25,7 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     sudo apt update && sudo apt upgrade -y
     ```
 2. Create a virtual Python Environment  
-    1. Check your Python version is 3.9.2 
+    1. Check your Python version is 3.9.2 or greater
         ```Bash
         python --version
         ```
@@ -103,30 +103,99 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     ````
 
 
-## Diagnose the Wifi Connections
-1. List all Wifi Network Adapters
+## Identify Wifi Interface and Polaris SSID
+1. List all Wifi Network Interfaces/Adapters available. It should show `wlan0` for the standard Pi Zero interface and something like `wlxe4fac4e6dea5` for the TPLink. Remember the TPLink interface name for the next section.
     ```Bash
-    iw dev
+    iw dev | grep Interface
     ```
-2. List the current state of the wifi network
+4. Ensure the Polaris is powered on and list all Wifi Networks SSID visible, relacing `wlan0` with your TPLINK Interface name. Look for a Polaris SSID of `polaris_xxxxxxx`. Remember the Polaris SSID for the next section.
     ```Bash
-    iwconfig
+    sudo iw wlan0 scan | grep SSID
     ```
-3. List the current connection
-    ```Bash
-    iwgetid -r 
-    ```
-4. List all Wifi networks available
-    ```Bash
-    sudo iw wlan0 scan |grep SSID
-    ```
-## Manual Configuration of Alpaca Driver
 
-5. Update Web Server Port  
-    On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. Change the setting in the file  `driver/config.toml` to the following.
+
+## Setup of Wifi Connection to Polaris
+The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLINK adapter, to connect to the Polaris automatically.
+
+1. Edit lines 6 and 7 of `platforms/raspberry_pi/wifi.sh` to match your adapter and hotspot.
+    ```
+    INTERFACE="wlxe4fac4e6dea5"
+    SSID="polaris_3b3906"
+    ```
+
+2. Run the wifi.sh setup script.
+    ```
+    cd platforms/raspberry_pi
+    sudo ./wifi.sh
+    ```
+3. Verify that the Polaris wpa_supplicant is running  
+    ```
+    $ ps aux | grep wpa_supplicant
+    root     23296  0.0  1.5  11900  6988 ?        Ss   13:35   0:00 /sbin/wpa_supplicant -i wlxe4fac4e6dea5 -c /etc/wpa_supplicant/wpa_supplicant-polaris.conf -D nl80211
+
+    ```
+4. Check connectivity to the Polaris device
+    ```
+    $ ping 192.168.0.1
+    PING 192.168.0.1 (192.168.0.1) 56(84) bytes of data.
+    64 bytes from 192.168.0.1: icmp_seq=1 ttl=64 time=3.94 ms
+    64 bytes from 192.168.0.1: icmp_seq=2 ttl=64 time=1.63 ms
+    64 bytes from 192.168.0.1: icmp_seq=3 ttl=64 time=1.59 ms
+    64 bytes from 192.168.0.1: icmp_seq=4 ttl=64 time=1.59 ms
+    ```
+5. Utility commands to control the polaris-wifi.service
+
+    1. Stop the Polaris wifi Service
+        ```
+        sudo systemctl stop polaris-wifi.service
+        ```
+
+    2. Restart the Polaris wifi Service
+        ```
+        sudo systemctl restart polaris-wifi.service
+        ```
+
+    3. Status of the Polaris wifi Service
+        ```
+        sudo systemctl status  polaris-wifi.service
+        ```
+    
+## Manual Configuration of Alpaca Driver
+On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. 
+
+This is done automatically in wifi.sh, but if you did not use this method, then use the following manual procedure.
+
+1. Update Web Server Port  
+     Change the setting in the file  `driver/config.toml` to the following.
     ```driver/config.toml
     alpaca_pilot_port = 8080
     ```
+
+
+## Upgrading Bluez Bluetooth Library to v5.66 (DOESNT FIX IT)
+If you are using an older version of the Bluetooth library then you may need to upgrade.
+
+1. Check version of Bluetooth. If you are using v5.55-1 then proceed to upgrade.
+    ```Bash
+    $ bluetoothd --version
+    Version: 5.66-1
+    ```
+
+1. Install prerequisites
+    ```Bash
+    sudo apt-get install libglib2.0-dev libdbus-1-dev libudev-dev libreadline-dev libical-dev libtool python3-docutils autoconf automake make gcc
+    ```
+
+2. Perform the upgrade and install
+    ```Bash
+    wget http://www.kernel.org/pub/linux/bluetooth/bluez-5.66.tar.xz
+    tar xf bluez-5.66.tar.xz
+    cd bluez-5.66
+    ./configure --prefix=/usr --mandir=/usr/share/man --sysconfdir=/etc --localstatedir=/var
+    make
+    sudo make install
+    ```
+
 
 ## Service status
 

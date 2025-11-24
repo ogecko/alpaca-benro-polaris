@@ -2,6 +2,9 @@
 #
 # This bootstraps the unified application on a Raspberry Pi.
 #
+BRANCH="${1:-main}"   # Use first argument as branch name, default to 'main'
+
+
 echo "==SETUP== Alpaca Benro Polaris Raspberry Pi Setup ======================================."
 if [ -e alpaca-benro-polaris ] || [ -e ~/alpaca-benro-polaris ]; then
     echo "ERROR: Existing alpaca-benro-polaris directory detected."
@@ -10,15 +13,16 @@ if [ -e alpaca-benro-polaris ] || [ -e ~/alpaca-benro-polaris ]; then
 fi
 
 echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git."
-sudo apt-get update
+sudo apt-get update --yes
 sudo apt-get install --yes git python3-pip
 
 echo "==SETUP== 2. Clone the alpaca-benro-polaris software from github."
-git clone https://github.com/ogecko/alpaca-benro-polaris.git
+git clone --branch "$BRANCH" https://github.com/ogecko/alpaca-benro-polaris.git
 cd  alpaca-benro-polaris
 
 src_home=$(pwd)
 mkdir -p logs
+mkdir -p data
 
 echo "==SETUP== 3. Add pyenv to ~/.bashrc and install Python 3.12.5."
 curl https://pyenv.run | bash
@@ -41,10 +45,10 @@ pyenv virtualenv 3.12.5 ssc-3.12.5
 pyenv global ssc-3.12.5
 
 echo "==SETUP== 4. Install the python dependencies needed for the application."
+cd platformms/raspberry_pi
 pip install -r requirements.txt
 
 echo "==SETUP== 5. Set up [systemd] services to start the polaris.service at boot time."
-cd platformms/raspberry_pi
 cat systemd/polaris.service | sed \
   -e "s|/home/.*/alpaca-benro-polaris|$src_home|g" \
   -e "s|^ExecStart=.*|ExecStart=$HOME/.pyenv/versions/ssc-3.12.5/bin/python3 $src_home/root_app.py|" > /tmp/polaris.service
