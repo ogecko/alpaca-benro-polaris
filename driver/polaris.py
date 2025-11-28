@@ -787,10 +787,11 @@ class Polaris:
             q1_state = motors_to_quaternion(*theta_state)
 
             # Flag when variance from quaternion q_az and p_az
-            if not is_angle_same(q_az, p_az):
-                self.logger.warn(f"Kinematics variance p_az {p_az:.5f} q_az {q_az:.5f} diff {p_az - q_az:.5f} ")              
-            if not is_angle_same(q_alt, p_alt):
-                self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} q_alt {q_alt:.5f} diff {p_alt - q_alt:.5f}") 
+            if Config.log_polaris_polling:
+                if not is_angle_same(q_az, p_az):
+                    self.logger.warn(f"Kinematics variance p_az {p_az:.5f} q_az {q_az:.5f} diff {p_az - q_az:.5f} ")              
+                if not is_angle_same(q_alt, p_alt):
+                    self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} q_alt {q_alt:.5f} diff {p_alt - q_alt:.5f}") 
 
             # Use direct measurements if no KF
             if not (Config.advanced_kf and Config.advanced_control):
