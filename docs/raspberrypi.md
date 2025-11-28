@@ -17,6 +17,21 @@ The Alpaca Driver has been validated on the following platforms:
 - **Raspberry Pi Zero 2 W / WH** running Raspbian (Debian Bullseye)
 - **Raspberry Pi 4 (8 GB)** running Raspberry Pi OS (Debian Trixie)
 
+## Install Raspberry Pi OS
+1. Download the Raspberry Pi Imager from the [official website](https://www.raspberrypi.com/software/)
+2. Open the imager_2.0.0.exe and follow the installation instructions, choosing to run the program at the finish of installation.
+3. Using the imaging program
+    1. Select your Raspberry Pi Device eg Raspberry Pi Zero 2 W, then click **NEXT**
+    2. Scroll down and Choose your Operating System as **Raspberry Pi OS (other)**, then choose **Raspberry Pi OS Lite (64-bit)**, then click **NEXT**
+    3. Select your Storage Device that will hold the OS, then click **NEXT**
+    4. Enter the device hostname eg **alpaca**, then click **NEXT**
+    5. Choose your localisation settings, then click **NEXT**
+    6. Choose your user name and password, then click **NEXT**
+    7. Choose your local wifi network you want the Pi to connect to, then click **NEXT**
+    8. Use default password authtication, then click **NEXT**
+    9. Use default disabled Raspberry Pi Connect, then click **NEXT**
+    10. Write the image to the SD Card, click **WRITE**
+
 ## Installation of Pre-Requisites
 These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/)
 
