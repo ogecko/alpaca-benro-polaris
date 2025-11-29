@@ -132,16 +132,16 @@
 - [X] Alpaca pilot feature degredation when no Multi-Point Alignment
 - [X] Alpaca pilot feature degredation when no Rotator
 - [X] Alpaca pilot feature degredation when no Bluetooth
-- [ ] Alpaca Pilot memory and logevity tests
+- [X] Alpaca Pilot memory and logevity tests
 
 ## Documentation
 - [X] Kickstarter project
 - [X] Youtube training videos 20 Podcast, 21 Demo1, 22 Demo2, 23 Rotator, 24 Alignment, 25 Safety
 - [X] Youtube advanced videos 31 Kalman, 32 Speed Cal 
 - [X] Documentation on new features 
-- [ ] Review of existing Documentation (Readme, Hardware, Install done)
+- [X] Review of existing Documentation 
 - [ ] Remaining documentation on Pulse Guiding
-- [ ] Remaining Youtube video on 27 Guiding, 33 PID Tuning
+- [ ] Remaining Youtube video on 27 Guiding
 
 ## Performance
 - [X] Feedforward Control Integration (minimise overshoot)
