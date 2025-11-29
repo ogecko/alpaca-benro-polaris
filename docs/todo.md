@@ -2,6 +2,18 @@
 
 # Development Todo List
 
+## Final Release Checklist
+- [ ] Raspberry Pi script update and tests
+- [ ] Confirm all assets update release-notes, docs
+- [ ] Confirm all tests pass
+- [ ] Update version # in Pilot, Driver, Release Notes
+- [ ] Complete todo checklist
+- [ ] Build Pilot for release
+- [ ] Merge onto main
+- [ ] Create GitHub Release and Tag (main branch)
+- [ ] Verify Install Artifacts link
+- [ ] Announce on Kickstarter, Facebook, Discord
+
 ## Alpaca Pilot App
 - [X] Implement Alpaca Pilot App Framework
 - [X] Implement Alpaca Pilot sidebar menu and toolbar menu
