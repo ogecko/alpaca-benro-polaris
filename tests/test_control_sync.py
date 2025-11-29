@@ -194,12 +194,12 @@ def test_neg60roll_sync_adj():
         p = Polaris()
         logger = logging.getLogger()
         sm = SyncManager(logger,p)
-        p.update(180, 30, 90)
+        p.update(180, 30, 80)
         sm.sync_roll(30)
         a_roll = sm.roll_polaris2ascom(180)
-        assert f'{a_roll:.6f}' == "120.000000"
+        assert f'{a_roll:.6f}' == "130.000000"
         p_roll = sm.roll_ascom2polaris(200)
-        assert f'{p_roll:.6f}' == "260.000000"
+        assert f'{p_roll:.6f}' == "250.000000"
 
 def test_tworoll_sync_adj():
     with patch('control.Config') as MockConfig:
@@ -210,8 +210,8 @@ def test_tworoll_sync_adj():
         sm = SyncManager(logger,p)
         p.update(180, 30, 0)
         sm.sync_roll(30)
-        p.update(180, 30, 90)
-        sm.sync_roll(140)
+        p.update(180, 30, 80)
+        sm.sync_roll(130)
         a_roll = sm.roll_polaris2ascom(180)
         assert f'{a_roll:.6f}' == "220.000000"  # 180 + (30+50)/2
 
