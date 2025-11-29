@@ -220,7 +220,7 @@ test_misc_azaltroll_cases = [
     (15, 90, 45, -175),    # Opposite full twist 
 
     # 🧮 Near-singularity setup
-    (16, 270, 89.999, 90), # Near zenith with roll 
+    (16, 270, 89.999, 70), # Near zenith with roll 
 
     # 🔁 Flat boresight with flipped roll logic
     (18, 180, 0, 5),   # Pointing South, Alt 0,  with a +5 Roll 
