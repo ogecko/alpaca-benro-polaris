@@ -53,9 +53,10 @@
             <tr><td>ADC</td><td>Validimir Vyskocil</td></tr>
             <tr><td>Bertolissio</td><td>Mark Long</td></tr>
             <tr><td>Billy Buchanan</td><td>Steve Everitt</td></tr>
-            <tr><td>Florian Gruß</td><td>Alex Murdoch</td></tr>
-            <tr><td>Alan Johnston</td><td>Daniel Michaud</td></tr>
-            <tr><td>William Siers</td><td>Paul C</td></tr>
+            <tr><td>Marco Garripoli</td><td>Alex Murdoch</td></tr>
+            <tr><td>Florian Gruß</td><td>Daniel Michaud</td></tr>
+            <tr><td>Alan Johnston</td><td>Paul C</td></tr>
+            <tr><td>William Siers</td><td>Shiv Verma</td></tr>
             <tr><td>Richard Swaim</td><td></td></tr>
           </q-markup-table>
         </div>
