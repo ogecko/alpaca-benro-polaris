@@ -1,7 +1,24 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 # Beta test results
+## Result Summary
+|Tester|Platform|Results|Summary|
+|--|--|--|--|
+|[Vladimir](#beta-tester-vladimir)| [ ] Platform | [ ] Results | [ ] Summary
+| [Mark](#beta-tester-mark)| [X] Platform | [X] Results | [ ] Summary
+| [Paul](#beta-tester-paul)| [X] Platform | [X] Results | [ ] Summary
+| [Daniel](#beta-tester-daniel)| [X] Platform | [X] Results | [X] Summary
+| [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
+| [William](#beta-tester-william)| [ ] Platform | [ ] Results | [ ] Summary
+| [Richard](#beta-tester-richard)| [ ] Platform | [ ] Results | [ ] Summary
+| [Alex](#beta-tester-alex)| [ ] Platform | [ ] Results | [ ] Summary
+| [Steve](#beta-tester-steve)| [ ] Platform | [X] Results | [ ] Summary
+| [Shiv](#beta-tester-shiv)| [X] Platform | [ ] Results | [ ] Summary
+| [Mauricio](#beta-tester-mauricio)| [ ] Platform | [ ] Results | [ ] Summary
 
-## Beta Tester: Vladimir (Dis: vyskocil; GH: vyskocil; FB Validimir V..)
+
+
+## Beta Tester: Vladimir 
+(Dis: vyskocil; GH: vyskocil; FB Validimir V..)
 Notes: feedback on MacOS
 ### Platform & Environment
 ...
@@ -9,11 +26,12 @@ Notes: feedback on MacOS
 ...
 ### Results
 ...
-### Feedback
+### Feedback Summary
 ...
 
 
-## Beta Tester: Mark (Dis: Bakermanz; GH: bakermanz; FB: Real Bread Aotearoa)
+## Beta Tester: Mark
+(Dis: Bakermanz; GH: bakermanz; FB: Real Bread Aotearoa)
 Notes: connect ok, tracking pulsing, top 360
 ### Platform & Environment
 * Location: Auckland, New Zealand
@@ -430,7 +448,8 @@ Day Time Testing  (08 Nov 25)
     3. Despite using 30 sec exposures at 400mm and high residuals in the pointing model, the results were actually excellent …. Producing sharp stars and no tracking errors. All the image failures (165) were caused by cloud and not equipment issues.
     4. Summary - Tracking was perfect and stars were kept sharp throughout the entire sequence. I have always had high residuals, but these don’t seem to impact on the excellent tracking of BETA 5 RC1
 
-## Beta Tester: Paul (Dis: Paul C)
+## Beta Tester: Paul
+(Dis: Paul C)
 ### Platform & Environment
 * Platform: Win11?, cheap mini PC, iOptron carbon fibre tripod
 * Applications: Nina, PHD2
@@ -445,12 +464,13 @@ I don't know if these will be of any interest to you, but I'll send anyway. I ha
 The conditions weren't great - a bit misty and loads of fireworks going off. I didn't do the aligning properly - your latest video came a day too late - but plate solved in 3 different positions.  I found the rotation feature worked admirably. True, it never actually completed the slew / centre / rotate command but after about 4 goes of plate solving it was close enough. Ive found the same to happen with other CAAs. 
 
 I used the Guiding Assistant and Calibration Assistant in PHD2 and used 1s exposures - for long periods the guiding seemed good to me - I'm no expert. It did go off a bit from time to time - but stopping and restarting the guiding seemed to sort this out. I suppose that if I'd aligned properly, things would have been even better. It did all come to a halt when the Polaris was close to the zenith - but that was to be expected. Anyway - thought I'd let you know and to thank you for all of your hard work. Ive attached three exposures at 60, 90 and 120s. Looking forward to trying again soon.
-### Feedback
+### Feedback Summary
 ...
 
 
 
-## Beta Tester: Daniel (FB: Daniel Michaud; Dis: Dmich39; GH: Dmich39)
+## Beta Tester: Daniel
+(FB: Daniel Michaud; Dis: Dmich39; GH: Dmich39)
 ### Platform & Environment
 - Mini PC : Nipogi GKIII Alder Lake N97 ,  16 GB memory 1 GB on disc  Win Pro 11, very similar to Mele. Built in Wifi port + external USB one, ( TP Link  ) 
 - Benro Polaris Astro in latest firmware & Benro app version
@@ -500,7 +520,7 @@ I wanted to check : End to end setup from Benro Polaris ignition to pointing tar
         -	Rotating
         -	Nina Mosaic
 
-### Feedback
+### Feedback Summary
 At the end of this initial test, very successful let me say despite little unclarities, I will essentially share a few thoughts  & observations :
 - Multiple platforms testing : 
     - I have also reviewed, in house , the entire control tower with 1 laptop/Alpaca Pilot, 1 miniPC/Nina, one IpadPro/ Stellarium mobile…  : It seems all components work well together, even if Stellarium/ Ipad setup is less intuitive compared to Stellarium/Windows. Appreciate any recommendation on this , thanks !
@@ -537,7 +557,8 @@ At the end of this initial test, very successful let me say despite little uncla
 
 
 
-## Beta Tester: Mark (FB: John Harrison; GH: 5x5Stuido)
+## Beta Tester: John
+(FB: John Harrison; GH: 5x5Stuido)
 Notes: Ireland Week43, New 5nm filters.
 ### Platform & Environment
 ...
@@ -545,12 +566,13 @@ Notes: Ireland Week43, New 5nm filters.
 ...
 ### Results
 ...
-### Feedback
+### Feedback Summary
 ...
 
 
 
-## Beta Tester: Mark (FB: William Siers; GH: Spiderx01, Dis: williamsiers)
+## Beta Tester: William
+(FB: William Siers; GH: Spiderx01, Dis: williamsiers)
 Notes: Phoenix Week43
 ### Platform & Environment
 ...
@@ -558,19 +580,7 @@ Notes: Phoenix Week43
 ...
 ### Results
 ...
-### Feedback
-...
-
-
-## Beta Tester: Daniel (Dis: Dmich39; GH: Dmich39)
-Notes: Typical User, Non technical
-### Platform & Environment
-...
-### Test Areas
-...
-### Results
-...
-### Feedback
+### Feedback Summary
 ...
 
 
@@ -583,7 +593,7 @@ Notes: Maybe, but, other commitments
 ...
 ### Results
 ...
-### Feedback
+### Feedback Summary
 ...
 
 
@@ -595,11 +605,12 @@ Notes: help with producing tutorial/overview and beta testing
 ...
 ### Results
 ...
-### Feedback
+### Feedback Summary
 ...
 
 
-## Beta Tester: Steve (Dis: LanzaSteve; FB: Steve E...; GH: SteveE..)
+## Beta Tester: Steve
+(Dis: LanzaSteve; FB: Steve E...; GH: SteveE..)
 Notes: Tried BP Dither
 ### Platform & Environment
 ...
@@ -643,11 +654,11 @@ Notes: Tried BP Dither
     slew and centre 
     forced to quit, clouds :(
 
-### Feedback
+### Feedback Summary
 ...
 
 
-## Beta Tester: Shiv Verma 
+## Beta Tester: Shiv
 (Dis: shiv_93263; FB: Shiv Verma; GH: SVerma033, KS: Shiv Verma)
 
 Notes: I do have a relationship with the MAC Group the nation-wide distributors of the Benro product line here in the USA.  
@@ -668,8 +679,24 @@ Platform:
 ...
 ### Results
 ...
-### Feedback
+### Feedback Summary
 ...
+
+
+## Beta Tester: Mauricio
+(Dis: ; FB: Mauricio Salazar; GH: MauriSalazar, KS: )
+Notes: Last week RC1 tester.
+### Platform & Environment
+Hardware: 
+Optics: 
+Platform: 
+### Test Areas
+...
+### Results
+...
+### Feedback Summary
+...
+
 
 ## RFC
 FB: Andrew Sargent; GH: CynicalSarge
