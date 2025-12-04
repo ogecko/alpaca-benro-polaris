@@ -9,7 +9,6 @@
 | [Daniel](#beta-tester-daniel)| [X] Platform | [X] Results | [X] Summary
 | [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
 | [William](#beta-tester-william)| [ ] Platform | [ ] Results | [ ] Summary
-| [Richard](#beta-tester-richard)| [ ] Platform | [ ] Results | [ ] Summary
 | [Alex](#beta-tester-alex)| [ ] Platform | [ ] Results | [ ] Summary
 | [Steve](#beta-tester-steve)| [ ] Platform | [X] Results | [ ] Summary
 | [Shiv](#beta-tester-shiv)| [X] Platform | [ ] Results | [ ] Summary
@@ -600,21 +599,6 @@ Notes: Phoenix Week43
 
 
 
-## Beta Tester: Richard
-(FB: Richard Healey; GH: RjhNZ)
-Notes: Maybe, but, other commitments
-### Platform & Environment
-* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
-* Platform: OS Version, Browser Version, etc.
-* Hardware: MiniPC model, Tablet model, Phone model.
-* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
-
-### Test Areas
-...
-### Results
-...
-### Feedback Summary
-...
 
 
 ## Beta Tester: Alex
