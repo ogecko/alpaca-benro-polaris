@@ -4,7 +4,7 @@
 |Tester|Platform|Results|Summary|
 |--|--|--|--|
 |[Vladimir](#beta-tester-vladimir)| [ ] Platform | [ ] Results | [ ] Summary
-| [Mark](#beta-tester-mark)| [X] Platform | [X] Results | [ ] Summary
+| [Mark](#beta-tester-mark)| [X] Platform | [X] Results | [X] Summary
 | [Paul](#beta-tester-paul)| [X] Platform | [X] Results | [ ] Summary
 | [Daniel](#beta-tester-daniel)| [X] Platform | [X] Results | [X] Summary
 | [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
@@ -452,6 +452,8 @@ Day Time Testing  (08 Nov 25)
     2. N.I.N.A. Sequence Terminated - After about 120 images into the sequence (240), the clouds had begun to move over the target.
     3. Despite using 30 sec exposures at 400mm and high residuals in the pointing model, the results were actually excellent …. Producing sharp stars and no tracking errors. All the image failures (165) were caused by cloud and not equipment issues.
     4. Summary - Tracking was perfect and stars were kept sharp throughout the entire sequence. I have always had high residuals, but these don’t seem to impact on the excellent tracking of BETA 5 RC1
+### Summary
+I would say that it’s absolutely brilliant and an amazing achievement. Really appreciate all your help and support throughout.
 
 ## Beta Tester: Paul
 (Dis: Paul C)
