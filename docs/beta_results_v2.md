@@ -585,7 +585,8 @@ Notes: Phoenix Week43
 
 
 
-## Beta Tester: Richard (FB: Richard Healey; GH: RjhNZ)
+## Beta Tester: Richard
+(FB: Richard Healey; GH: RjhNZ)
 Notes: Maybe, but, other commitments
 ### Platform & Environment
 ...
@@ -597,7 +598,8 @@ Notes: Maybe, but, other commitments
 ...
 
 
-## Beta Tester: Alex (Dis: Alex; FB: Alexander M...; GH: ..)
+## Beta Tester: Alex
+(Dis: Alex; FB: Alexander M...; GH: ..)
 Notes: help with producing tutorial/overview and beta testing
 ### Platform & Environment
 ...
@@ -684,7 +686,7 @@ Platform:
 
 
 ## Beta Tester: Mauricio
-(Dis: ; FB: Mauricio Salazar; GH: MauriSalazar, KS: )
+(Dis: AstroPolo?; FB: Mauricio Salazar; GH: MauriSalazar, KS: )
 Notes: Last week RC1 tester.
 ### Platform & Environment
 Hardware: 
