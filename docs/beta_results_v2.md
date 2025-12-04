@@ -3,7 +3,7 @@
 ## Result Summary
 |Tester|Platform|Results|Summary|
 |--|--|--|--|
-|[Vladimir](#beta-tester-vladimir)| [ ] Platform | [ ] Results | [ ] Summary
+|[Vladimir](#beta-tester-vladimir)| [X] Platform | [ ] Results | [ ] Summary
 | [Mark](#beta-tester-mark)| [X] Platform | [X] Results | [X] Summary
 | [Paul](#beta-tester-paul)| [X] Platform | [X] Results | [ ] Summary
 | [Daniel](#beta-tester-daniel)| [X] Platform | [X] Results | [X] Summary
@@ -17,14 +17,14 @@
 
 
 ## Beta Tester: Vladimir 
-(Dis: vyskocil; GH: vyskocil; FB Validimir V..)
-Notes: feedback on MacOS
+(Dis: vyskocil; GH: vyskocil; FB Vladimir Vyskocil)
+Notes: feedback on MacOS and Raspberry Pi 4
 
 ### Platform & Environment
-* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
-* Platform: OS Version, Browser Version, etc.
-* Hardware: MiniPC model, Tablet model, Phone model.
-* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+* Applications: CCDCiel beta 0.9.92-3846, IndiStarter 2.4.2-220 
+* Platform: MacOS Tahoe 26.1, Raspios Trixie (2025-10-01-raspios-trixie-arm64-full.img), Firefox v145
+* Hardware: MacBook Air M4 32Go SSD 2To, Raspberry Pi 4 4Go VILROS 802.11n wifi dongle.
+* Optics: Cooled astro camera ZWO ASI533MC Pro, lens TTArtisan 500mm f/6.3 (Canon EF), Optolong L-Pro filter, 50/205 Deluxe - TS-Optics guidescope.
 
 ### Test Areas
 ...
