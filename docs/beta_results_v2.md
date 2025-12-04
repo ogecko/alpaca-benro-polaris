@@ -20,8 +20,13 @@
 ## Beta Tester: Vladimir 
 (Dis: vyskocil; GH: vyskocil; FB Validimir V..)
 Notes: feedback on MacOS
+
 ### Platform & Environment
-...
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
 ### Test Areas
 ...
 ### Results
@@ -561,7 +566,11 @@ At the end of this initial test, very successful let me say despite little uncla
 (FB: John Harrison; GH: 5x5Stuido)
 Notes: Ireland Week43, New 5nm filters.
 ### Platform & Environment
-...
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
 ### Test Areas
 ...
 ### Results
@@ -575,7 +584,11 @@ Notes: Ireland Week43, New 5nm filters.
 (FB: William Siers; GH: Spiderx01, Dis: williamsiers)
 Notes: Phoenix Week43
 ### Platform & Environment
-...
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
 ### Test Areas
 ...
 ### Results
@@ -589,7 +602,11 @@ Notes: Phoenix Week43
 (FB: Richard Healey; GH: RjhNZ)
 Notes: Maybe, but, other commitments
 ### Platform & Environment
-...
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
 ### Test Areas
 ...
 ### Results
@@ -602,7 +619,11 @@ Notes: Maybe, but, other commitments
 (Dis: Alex; FB: Alexander M...; GH: ..)
 Notes: help with producing tutorial/overview and beta testing
 ### Platform & Environment
-...
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
 ### Test Areas
 ...
 ### Results
@@ -615,7 +636,11 @@ Notes: help with producing tutorial/overview and beta testing
 (Dis: LanzaSteve; FB: Steve E...; GH: SteveE..)
 Notes: Tried BP Dither
 ### Platform & Environment
-...
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
 ### Test Areas
 ...
 ### Results
@@ -689,9 +714,11 @@ Platform:
 (Dis: AstroPolo?; FB: Mauricio Salazar; GH: MauriSalazar, KS: )
 Notes: Last week RC1 tester.
 ### Platform & Environment
-Hardware: 
-Optics: 
-Platform: 
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
 ### Test Areas
 ...
 ### Results
@@ -703,4 +730,3 @@ Platform:
 ## RFC
 FB: Andrew Sargent; GH: CynicalSarge
 FB: Mingyang Wang; GH: saltyminty
-KS: Shiv Verma
