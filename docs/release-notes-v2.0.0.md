@@ -33,6 +33,7 @@
 - **[python compatibility]** Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.
 - **[Raspberry Pi]** Add support for Raspberry Pi Zero 2, Pi 3, Pi 4 and Pi 5
 - **[Reset Alignment]** Document how to reset alignment to a known state
+- **[Installation Docs]** Refresh for V2.0 to include steps to start Alpaca Driver and Pilot, referring to Pilot Users Guide for details
 - **[Win Install Docs]** Added hardware setup instructions for Win11 autologin and hybernation disable
 - **[Troubleshooting A3]** How to resolve ModuleNotFoundError
 - **[Troubleshooting C1b]** Add note to check for network conflict of home router on `192.168.0.1`
