@@ -30,11 +30,11 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.0.0 (over RC1)
+- **[Installation Docs]** Refresh for V2.0 to include steps to start Alpaca Driver and Alpaca Pilot, referring to Pilot Users Guide for details
 - **[python compatibility]** Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.
 - **[Raspberry Pi]** Add support for Raspberry Pi Zero 2, Pi 3, Pi 4 and Pi 5
-- **[Reset Alignment]** Document how to reset alignment to a known state
-- **[Installation Docs]** Refresh for V2.0 to include steps to start Alpaca Driver and Pilot, referring to Pilot Users Guide for details
-- **[Win Install Docs]** Added hardware setup instructions for Win11 autologin and hybernation disable
+- **[Autologin and Hybernation]** Added hardware setup instructions for Win11 autologin and hybernation disable
+- **[Reset Alignment Procedure]** Document how to reset alignment to a known state
 - **[Troubleshooting A3]** How to resolve ModuleNotFoundError
 - **[Troubleshooting C1b]** Add note to check for network conflict of home router on `192.168.0.1`
 - **[fix #58]** Improved handling of BLE discovery exceptions and added discovery safeguards.
@@ -125,8 +125,6 @@
 - **[Celestial Poles]** North and South Celestial Poles added to the catalog for easier alignment
 - **[QUEST Paper]** A research paper on QUEST has been added to the documentation
 
-## Beta Agreement
-Please read and confirm your agreement with [Beta Agreement](./beta_agreement.md) if you havent already.
 
 ## New Features (Alpaca Pilot)
 - **[Modern App]**: Alpaca Pilot offers an elegant, adaptive UI for control and management of Alpaca Drivers
