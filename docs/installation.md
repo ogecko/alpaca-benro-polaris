@@ -95,7 +95,7 @@ There are a few preliminary steps before you can use the Polaris. You'll need to
     
 <img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
 
-5. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide](./pilot.md#d-connect-to-polaris) for more details and a full step by step procedure.
+5. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for more details and a full step by step procedure.
 
 6. Once the Driver has connected successfully to the Polaris the Alpaca Driver window should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
