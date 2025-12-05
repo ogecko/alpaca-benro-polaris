@@ -131,17 +131,17 @@ The user manual can be found at the following link - [Polaris User Manual Englis
 ### C0 - Cannot connect Win11 Computer or Laptop to Benro Polaris Wifi
 There appears to be an issue with some types of Wifi Adapters being able to conenct with the Benro Polaris Wifi. If you cannot get Win11 to form a connection with the polaris_XXXXX Wifi, you may want to try using a USB Wifi Adapter. The following adapter is known to connect with Benro Polaris, [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/). 
 
-### C1a - Cannot see "`communications init... done`" in the log.
+### C1a - Cannot see "`communications init... done`" in the log (Wi-Fi 2 not connected).
 * Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
-* Confirm the Benro Polaris is in Astro Mode.
-* Confirm the Benro Polaris Compass and Star Alignment steps are complete.
-* Confirm the Benro Polaris App is still running (we hope to remove this requirement).
-* Confirm your Cammera hasn't gone to power save mode.
-* Confirm the mini-PC has connected with the polaris-XXXXX hotspot. It should look like the following:
+* Confirm the mini-PC has connected with the polaris-XXXXX hotspot using the second `Wi-Fi 2` or `Wi-Fi USB` adapter. It should look like the following:
 <img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
 
+### C1b - Cannot see "`communications init... done`" in the log (network conflict).
+If you see the `polaris_xxxxxx`, `No internet, open` message on the Wi-Fi 2 adapter, you may have a network issue or conflict. Check each of these steps to see if it can resolve the issue.
+* Click `Disconnect`, wait 15s, then Choose `Connect Automatically` and click `Connect` to re-establish connection. Wait 30s for the Driver to attempt reconnection.
+* Check that your home network does not conflict with the Polaris IP address of `192.168.0.1`. Some home network routers may default to also using the IP address of `192.168.0.1`. We recommend that you change your home network to an address range of say `192.168.50.xxx`, so that it doesnt conflict with various IP devices that commonly use the address `192.168.0.1`.
 
- ### C1b - Cannot see "`communications init... done`" in the log.
+### C1c - Cannot see "`communications init... done`" in the log (IPv6 rather than IPv4).
 When Windows connects to the Benro Polaris network, sometimes it only sets up an IPv6 network. You can manually set the network settings to help speed up connection and force an IPv4 network. To manually set the network properties.
 * From the polaris-XXXXX hotspot dialog, click the i circle for more information
 * Under IP Assignment, Automatic (DHCP), Click Edit

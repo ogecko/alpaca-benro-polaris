@@ -29,12 +29,13 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in RC2
+## What's new in v2.0.0
 - **[python compatibility]** Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.
 - **[Raspberry Pi]** Add support for Raspberry Pi Zero 2, Pi 3, Pi 4 and Pi 5
 - **[Reset Alignment]** Document how to reset alignment to a known state
 - **[Win Install Docs]** Added hardware setup instructions for Win11 autologin and hybernation disable
 - **[Troubleshooting A3]** How to resolve ModuleNotFoundError
+- **[Troubleshooting C1b]** Add note to check for network conflict of home router on `192.168.0.1`
 - **[fix #58]** Improved handling of BLE discovery exceptions and added discovery safeguards.
 - **[Fix #28]** Documented manual installation of Alpaca Driver on Raspberry Pi
 
