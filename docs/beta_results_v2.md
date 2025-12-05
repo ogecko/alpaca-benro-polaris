@@ -21,15 +21,26 @@
 Notes: feedback on MacOS and Raspberry Pi 4
 
 ### Platform & Environment
-* Applications: CCDCiel beta 0.9.92-3846, IndiStarter 2.4.2-220 
+* Applications: CCDCiel beta 0.9.92-3846, IndiStarter 2.4.2-220, Stellarium 25.2
 * Platform: MacOS Tahoe 26.1, Raspios Trixie (2025-10-01-raspios-trixie-arm64-full.img), Firefox v145
-* Hardware: MacBook Air M4 32Go SSD 2To, Raspberry Pi 4 4Go VILROS 802.11n wifi dongle.
+* Hardware: MacBook Air M4 13" 32Go SSD 2To, Raspberry Pi 4 4Go VILROS 802.11n wifi dongle.
 * Optics: Cooled astro camera ZWO ASI533MC Pro, lens TTArtisan 500mm f/6.3 (Canon EF), Optolong L-Pro filter, 50/205 Deluxe - TS-Optics guidescope.
 
 ### Test Areas
-...
+* Sofware setup and running on MacOS
+* Software and hardware setup, running on Raspberry Pi 4
+* Polaris setup only using ABP 2.0 (without the Benro Polaris phone app) using multi point alignment
+* Polaris motor speed calibration
+* ABP deep sky object catalog
+* GoTo using Stellarium on MacBook
+* GoTo with sync using CCDCiel on MacBook
+* Target tracking with and without guidescope
+* Shooting some deep sky objects using CCDCiel with Alpaca Pilot, ABP driver and CCDCiel running on MacBook
+* Shooting some deep sky objects using CCDCiel with Alpaca Pilot running on MacBook and ABP driver running on Raspberry Pi 4 
+
 ### Results
-...
+* I started testing ABP 2.0 Alpha on my MacBook Air and found some issues when trying to start the python code. The MacOS Python package requirement list had to be updated, and some Python errors had to be fixed to support the older Python version (Python 3.9.6) pre-installed on recent MacOS.
+
 ### Feedback Summary
 ...
 
