@@ -35,51 +35,73 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
     ```
     C:\Users\Nina\Documents\alpaca-benro-polaris-main> pip install -r platforms/win/requirements.txt
     ```
-4. Optionally, you can copy the file `platforms\win\Alpaca Benro Polaris Driver.lnk` to your desktop, right-click to modify properties, and change the fields `Target`, and `Icon` to point to the location you expanded the zip file. Note the `Target` has two XXXX paths you need to modify.
-    ```
-    Target: C:\XXXX\driver\main.py
-    Icon: C:\XXXX\docs\images\abp-icon.ico
-    ```
-
-    ![Winidows Shortcut](images/abp-shortcut.png)
 
 
-### Running the Alpaca Benro Polaris Driver
 
-There are a few preliminary steps before you start the driver. You'll need to do the following:
-1. Setup your Benro Polaris tripod head, camera, mini-pc, and power.
-2. Remove your lens cap (I often forget this step!).
-3. Level the Benro Polaris as accurately as possible (important. See [Troubleshooting B3](./troubleshooting.md)). 
-4. Turn on the Benro Polaris (how many times doesn't it turn on? See [Troubleshooting B1](./troubleshooting.md)).
-5. Using the Benro Polaris App, connect and change to `Astro Mode`.
-6. Start the `Calibrate Compass` and tap `Confirm`.
-7. Select a star to align with, tap `Goto`, wait, then tap `Confirm`. 
-8. Turn on the mini-pc and connect it to your camera via USB.
-9. Using the USB Wifi adapter, connect your mini-PC to the polaris-###### hotspot.
-10. Choose `Connect Automatically` and click `Connect`.
-11. Wait for connection. It should show: `No internet, open`. 
+4. (Optional) Create a Shortcut. You can copy the file `platforms\win\Alpaca Benro Polaris Driver.lnk` to your desktop and edit it so it points to the folder where you extracted the ZIP file.
+
+   1. Right-click the shortcut → **Properties**
+   2. Update both the **Target** and **Icon** paths to match your installation
+
+      ```
+      Target: C:\XXXX\driver\main.py
+      Icon:   C:\XXXX\docs\images\abp-icon.ico
+      ```
+
+      ![Windows Shortcut](images/abp-shortcut.png)
+
+
+### Running the Alpaca Driver
+
+To start the Polaris Driver, you can either:
+
+#### A. Use the Desktop Shortcut
+
+Just double-click the `.lnk` file you configured in Step 4.
+
+#### B. Run from the Command Line
+
+1. Open **File Explorer** and navigate to the folder where you extracted the ZIP file.
+2. Hold **Shift** and **Right-click** the `driver` folder. (You may need to try twice for “Open in Terminal” to appear.)
+3. Select **Open in Terminal**.
+4. In the new Terminal Window, run the driver with:
+
+   ```
+   python main.py
+   ```
+
+No matter which method you used to launch the Alpaca Driver, a console window will appear. When the Driver is running correctly, it should look like this:
+![Driver Startup](images/abp-startup0.png)
+
+### Starting the Alpaca Pilot App
+
+With the Alpaca Driver running you can now start the Alpaca Pilot App from any browser. 
+1. Open **Chrome**, **Edge**, **Firefox**, or your preferred browser.
+2. Enter the following into the address bar, where hostname is the name of the MiniPC you are running the Driver on. 
+   ```
+   http://hostname
+   ```
+   > Note you can find the hostname of a machine by typing the command `hostname` into a terminal window.
+3. The Alpaca Pilot App should look like this:
+![Pilot Startup](images/pilot-startup.png)
+4. Click **Connect** on the top toolbar of the Alpaca Pilot Window. This page will allow you to follow through the steps to connect the Driver to the Benro Polaris device.
+
+### Connecting the Driver to Polaris
+There are a few preliminary steps before you can use the Polaris. You'll need to do the following:
+1. Setup your Benro Polaris tripod head and turn on the Benro Polaris. If you cant turn it on, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
+2. Using the USB Wifi adapter, connect your mini-PC to the `polaris-xxxxxx` hotspot.
+3. Choose `Connect Automatically` and click `Connect`.
+4. Wait for connection. It should show: `No internet, open`. If you cannot connect, see [Troubleshooting C0](./troubleshooting.md#c0---cannot-connect-win11-computer-or-laptop-to-benro-polaris-wifi).
     
 <img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
 
-12. If it isnt already, we recommend changing the Polaris Hotspot connection on the Mini-PC to Public Network. From Win11 Network & Internet Settings, click Polaris Wifi Properties, then choose Public Network.
-![Public Network](images/abp-troubleshoot-wifi3.png)
+5. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide](./pilot.md#d-connect-to-polaris) for more details and a full step by step procedure.
 
-13. IMPORTANT: One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
-
-14. Now you can start the Alpaca Benro Polaris driver using the shortcut or the following command.
-    ```
-    C:\Users\Nina\Documents\alpaca-benro-polaris-main> python driver\main.py
-    ```
-
-Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
-
-The Alpaca Benro Polaris Driver window should look like this.
+6. Once the Driver has connected successfully to the Polaris the Alpaca Driver window should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
 
-Once the driver is running, you can close the Benro Polaris App. Now you can start exploring ASCOM applications like Stellarium and Nina, or even write your own REST-based application.
-
 ### Troubleshooting
-If you don't see the `communications init... done` message then you may want to check the [Troubleshooting Guide](./troubleshooting.md) for steps to diagnose and fix any issues.
+If you don't see the `communications init... done` message then you may want to check the [Troubleshooting Guide C1](./troubleshooting.md#c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected) for steps to diagnose and fix any issues.
 
 ### Updating the Driver
 To update the Alpaca Benro Polaris Driver to the latest version:
