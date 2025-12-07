@@ -95,6 +95,8 @@ Also, is there any chance I could get a loan Polaris device while it is being re
 
 Thank you for any help in speeding up this case.
 
-
+## Benro Support Response (10-Nov-2025)
+Problem self rectified after 3 days rest. Benro did respond and attempted to help diagnose issue, although no cause was found.
+Requested for new hardware board to be shipped.
 
 

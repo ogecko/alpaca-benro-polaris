@@ -4,9 +4,9 @@
 
 ## Final Release Checklist
 - [ ] Raspberry Pi script update and tests
-- [ ] Confirm all assets update release-notes, docs
-- [ ] Confirm all tests pass
-- [ ] Update version # in Pilot, Driver, Release Notes
+- [X] Confirm all assets update release-notes, docs
+- [X] Confirm all tests pass
+- [X] Update version # in Pilot, Driver, Release Notes
 - [ ] Complete todo checklist
 - [ ] Build Pilot for release
 - [ ] Merge onto main
