@@ -28,7 +28,6 @@ Notes: feedback on MacOS and Raspberry Pi 4
 
 ### Test Areas
 * Sofware setup and running on MacOS
-* Software and hardware setup, running on Raspberry Pi 4
 * Polaris setup only using ABP 2.0 (without the Benro Polaris phone app) using multi point alignment
 * Polaris motor speed calibration
 * ABP deep sky object catalog
@@ -36,10 +35,14 @@ Notes: feedback on MacOS and Raspberry Pi 4
 * GoTo with sync using CCDCiel on MacBook
 * Target tracking with and without guidescope
 * Shooting some deep sky objects using CCDCiel with Alpaca Pilot, ABP driver and CCDCiel running on MacBook
+* Software and hardware setup, running on Raspberry Pi 4
 * Shooting some deep sky objects using CCDCiel with Alpaca Pilot running on MacBook and ABP driver running on Raspberry Pi 4 
 
 ### Results
-* I started testing ABP 2.0 Alpha on my MacBook Air and found some issues when trying to start the python code. The MacOS Python package requirement list had to be updated, and some Python errors had to be fixed to support the older Python version (Python 3.9.6) pre-installed on recent MacOS.
+* I started testing ABP 2.0 Alpha1 on my MacBook Air and found some issues when trying to start the python code. The MacOS Python package requirement list had to be updated, and some Python errors had to be fixed to support the older Python version (Python 3.9.6) pre-installed on recent MacOS.
+* I tried to avoid using Benro Polaris phone app, using ABP 2.0 only to setup the Polaris. With the Alpha1 release there were some issues with the Bluetooth discovery of the Polaris, mainly errors in the logs but this has been fixed in Beta1. The discovery process did wake up the Polaris WIFI allowing the MacBook to connect to it. At home where my MacBook is seeing both the home and Polaris WIFI, I have to manually switch to the Polaris one, but when no other known WIFI is in range, the computer automatically connect to the Polaris.
+Sometimes, the Alpaca Pilot auto connection and the use of the connection button ("Connect Driver to Benro Polaris" in Connect tab) delays the proper connection, a race condition seems to arise and we could see in the logs several connection / de-connection in a row.
+* I successfuly tried the Motor Speed Calibration when doing only a few tests in a row, I experienced that doing all the tests for one motor in a row did not work as well, some unitary test showing a warning, sometimes hitting the hardware rotation limits of the Polaris.   
 
 ### Feedback Summary
 ...
