@@ -22,38 +22,38 @@ The Alpaca Driver has been validated on the following platforms:
 2. Open the imager_2.0.0.exe and follow the installation instructions, choosing to run the program at the finish of installation.
 3. Using the imaging program
     1. Select your Raspberry Pi Device eg Raspberry Pi Zero 2 W, then click **NEXT**
-    2. Scroll down and Choose your Operating System as **Raspberry Pi OS (other)**, then choose **Raspberry Pi OS Lite (64-bit)**, then click **NEXT**
+    2. Choose your Operating System as **Raspberry Pi OS (64-bit)**, then click **NEXT**. If you are using a Raspberry Pi Zero 2 W and want a "headless Pi", select **Raspberry Pi OS (other)**, then choose **Raspberry Pi OS Lite (64-bit)**, then click **NEXT**
     3. Select your Storage Device that will hold the OS, then click **NEXT**
     4. Enter the device hostname eg **alpaca**, then click **NEXT**
     5. Choose your localisation settings, then click **NEXT**
     6. Choose your user name and password, then click **NEXT**
     7. Choose your local wifi network you want the Pi to connect to, then click **NEXT**
-    8. Use default password authtication, then click **NEXT**
+    8. Enable SSH. Use default password authtication, then click **NEXT**
     9. Use default disabled Raspberry Pi Connect, then click **NEXT**
     10. Write the image to the SD Card, click **WRITE**
 
 ## Installation of Pre-Requisites
-These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/)
+These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Using a remote terminal program like **MoboXterm**, create a session to connect via SSH to the Raspberry Pi, then login in using the username and password you set on the installer.
 
 1. Update your system 
     ```Bash
     sudo apt update && sudo apt upgrade -y
     ```
 2. Create a virtual Python Environment  
-    1. Check your Python version is 3.9.2 or greater
+    1. Check your Python version is 3.13.5 or greater
         ```Bash
         python --version
         ```
-    2. Update your verion of pip
-        ```Bash
-        python3 -m pip install --upgrade pip
-        ```
-    3. Create a Python virtual environment for the Alpaca Driver.
+    2. Create a Python virtual environment for the Alpaca Driver.
         ```Bash
         sudo apt-get install python3-venv
-        cd alpaca-benro-polaris
         python -m venv ./pyenv
-        export PATH=~/.pyenv/bin:$PATH
+        source pyenv/bin/activate
+        ```
+    3. Install and Update your verion of pip
+        ```Bash
+        sudo apt install python3-pip
+        python3 -m pip install --upgrade pip
         ```
 3. Install Alpaca Driver pre-requisites
     ```Bash
