@@ -11,10 +11,6 @@ SERVICE_FILE="/etc/systemd/system/polaris-wifi.service"
 
 echo "== Polaris Wi-Fi Setup =="
 
-# 0. Update Alpaca Pilot port in config.toml
-echo "== Updating config.toml with 'alpaca_pilot_port = 8080' =="
-sudo sed -i 's/^alpaca_pilot_port = 80 .*/alpaca_pilot_port = 8080/' ../../driver/config.toml
-
 # 1. Create wpa_supplicant config
 echo "== Writing $CONFIG_FILE =="
 sudo tee $CONFIG_FILE > /dev/null <<EOF

@@ -85,11 +85,15 @@ sudo systemctl enable polaris
 sudo systemctl start polaris
 
 cat <<_EOF
-|-------------------------------------|
-| Alpaca Benro Polaris Setup Complete |
-|                                     |
-| You can access Alpaca Pilot via:    |
-| http://$(hostname):8080             |
-|                                     |
-|-------------------------------------|
+-------------------------------------------------------------------
+Alpaca Benro Polaris Setup Complete 
+                                     
+You can:
+* Check the service status with:  sudo systemctl status polaris
+* Stop the service with:          sudo systemctl stop polaris
+* Start the service with:         sudo systemctl start polaris
+* View the logs with:             journalctl -u polaris -f
+* access Alpaca Pilot via:        http://$(hostname):8080             
+
+-------------------------------------------------------------------
 _EOF
