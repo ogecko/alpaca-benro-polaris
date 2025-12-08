@@ -283,8 +283,8 @@ class move:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} not a valid number.'))
             return
-        if position < -180 or position > 360 or math.isnan(position):
-            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -180 and 360.'))
+        if position < -540 or position > +540 or math.isnan(position):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} must be between -540 and 540.'))
             return
         try:
             polaris.RotateToRelativePositionAngle(position)
