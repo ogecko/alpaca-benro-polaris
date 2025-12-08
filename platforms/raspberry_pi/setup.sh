@@ -9,14 +9,9 @@ REPO_URL="https://github.com/ogecko/alpaca-benro-polaris.git"
 
 
 echo "==SETUP== Alpaca Benro Polaris Raspberry Pi Setup ======================================."
-# if [ -e alpaca-benro-polaris ] || [ -e ~/alpaca-benro-polaris ]; then
-#     echo "ERROR: Existing alpaca-benro-polaris directory detected."
-#     echo "       You should run the raspberry_pi/update.sh script instead."
-#     exit 255
-# fi
 
 echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git."
-for pkg in git python3-pip; do
+for pkg in git python3-pip python3-numpy python3-scipy; do
     if ! dpkg -s "$pkg" >/dev/null 2>&1; then
         echo "Installing $pkg..."
         sudo apt-get update -qq   # run update only if a package is missing
@@ -43,10 +38,10 @@ mkdir -p logs
 mkdir -p data
 
 echo "==SETUP== 3. Create a pyenv and add to ~/.bashrc."
-sudo apt-get install python3-venv
+sudo apt-get install python3-venv 
 if [ ! -d "$src_home/pyenv" ]; then
     echo "Creating Python virtual environment..."
-    python3 -m venv "$src_home/pyenv"
+    python3 -m venv "$src_home/pyenv" --system-site-packages
 else
     echo "Python venv already exists — skipping creation."
 fi
@@ -71,31 +66,30 @@ echo "==SETUP== 4. Install the python dependencies needed for the application."
 cd "$src_home/platforms/raspberry_pi"
 pip install -r requirements.txt -c constraints.txt
 
-# echo "==SETUP== 5. Set up [systemd] services to start the polaris.service at boot time."
-# cat systemd/polaris.service | sed \
-#   -e "s|/home/.*/alpaca-benro-polaris|$src_home|g" \
-#   -e "s|^ExecStart=.*|ExecStart=$HOME/.pyenv/versions/ssc-3.12.5/bin/python3 $src_home/root_app.py|" > /tmp/polaris.service
-# sudo mv /tmp/polaris.service /etc/systemd/system
 
-# echo "==SETUP== 6. Starts the service."
-# sudo systemctl daemon-reload
-# sudo systemctl enable polaris
-# sudo systemctl start polaris
 
-# cat <<_EOF
-# |-------------------------------------|
-# | alpaca-benro-polaris Setup Complete |
-# |                                     |
-# | You can access SSC via:             |
-# | http://$(hostname).local:5432       |
-# |                                     |
-# | Device logs can be found in         |
-# |  ./alpaca-benro-polaris/logs        |
-# |                                     |
-# | Systemd logs can be viewed via      |
-# | journalctl -u polaris               |
-# |                                     |
-# | Current status can be viewed via    |
-# | systemctl status polaris            |
-# |-------------------------------------|
-# _EOF
+# 0. Update Alpaca Pilot port in config.toml
+echo "==SETUP== 6.Updating config.toml with 'alpaca_pilot_port = 8080' =="
+sudo sed -i 's/^alpaca_pilot_port = 80 .*/alpaca_pilot_port = 8080/' "$src_home/driver/config.toml"
+
+
+echo "==SETUP== 6. Set up [systemd] services to start the polaris.service at boot time."
+cat systemd/polaris.service | sed \
+  -e "s|/home/.*/alpaca-benro-polaris|$src_home|g" \
+  -e "s|^ExecStart=.*|ExecStart=$src_home/pyenv/bin/python3 $src_home/driver/main.py|" > /tmp/polaris.service
+sudo mv /tmp/polaris.service /etc/systemd/system
+
+echo "==SETUP== 7. Starts the service."
+sudo systemctl daemon-reload
+sudo systemctl enable polaris
+sudo systemctl start polaris
+
+cat <<_EOF
+|-------------------------------------|
+| Alpaca Benro Polaris Setup Complete |
+|                                     |
+| You can access Alpaca Pilot via:    |
+| http://$(hostname):8080             |
+|                                     |
+|-------------------------------------|
+_EOF

@@ -35,13 +35,13 @@ The Alpaca Driver has been validated on the following platforms:
 ## Installation of Pre-Requisites
 These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Using a remote terminal program like **MoboXterm** or **VS Code**, create a session to connect via SSH to the Raspberry Pi, then login in using the username and password you set on the installer.
 
-1. Download the setup script and make it executable
+1. Download the setup script
     ```Bash
     wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_0/platforms/raspberry_pi/setup.sh -O setup.sh
-    chmod +x setup.sh
     ```
-2. Run the setup script
+2. Make it executable and Run the setup script
     ```Bash
+    chmod +x ./setup.sh
     ./setup.sh
     ```
 3. Wait for the following tasks to complete
@@ -49,6 +49,9 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     * ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
     * ==SETUP== 3. Create a pyenv and add to ~/.bashrc.
     * ==SETUP== 4. Install the python dependencies needed for the application.
+    * ==SETUP== 5. Updating config.toml with 'alpaca_pilot_port = 8080'
+    * ==SETUP== 6. Set up [systemd] services to start the polaris.service at boot time
+    * ==SETUP== 7. Starts the service.
 
 3. Activate the pyenv created by the setup script and added to the .bashrc
     ```Bash
