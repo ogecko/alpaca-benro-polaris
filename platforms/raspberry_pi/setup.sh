@@ -25,6 +25,7 @@ echo "==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub."
 if [ -d "$REPO_DIR/.git" ]; then
     echo "Directory exists — fetching latest updates..."
     cd "$REPO_DIR"
+    git restore driver/config.toml
     git fetch --all
     git checkout "$BRANCH"
     git pull
