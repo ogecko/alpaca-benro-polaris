@@ -3,76 +3,99 @@
 # This bootstraps the unified application on a Raspberry Pi.
 #
 BRANCH="${1:-main}"   # Use first argument as branch name, default to 'main'
+REPO_DIR="alpaca-benro-polaris"
+REPO_URL="https://github.com/ogecko/alpaca-benro-polaris.git"
+
 
 
 echo "==SETUP== Alpaca Benro Polaris Raspberry Pi Setup ======================================."
-if [ -e alpaca-benro-polaris ] || [ -e ~/alpaca-benro-polaris ]; then
-    echo "ERROR: Existing alpaca-benro-polaris directory detected."
-    echo "       You should run the raspberry_pi/update.sh script instead."
-    exit 255
-fi
+# if [ -e alpaca-benro-polaris ] || [ -e ~/alpaca-benro-polaris ]; then
+#     echo "ERROR: Existing alpaca-benro-polaris directory detected."
+#     echo "       You should run the raspberry_pi/update.sh script instead."
+#     exit 255
+# fi
 
 echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git."
-sudo apt-get update --yes
-sudo apt-get install --yes git python3-pip
+for pkg in git python3-pip; do
+    if ! dpkg -s "$pkg" >/dev/null 2>&1; then
+        echo "Installing $pkg..."
+        sudo apt-get update -qq   # run update only if a package is missing
+        sudo apt-get install --yes "$pkg"
+    else
+        echo "$pkg is already installed — skipping."
+    fi
+done
 
-echo "==SETUP== 2. Clone the alpaca-benro-polaris software from github."
-git clone --branch "$BRANCH" https://github.com/ogecko/alpaca-benro-polaris.git
-cd  alpaca-benro-polaris
-
+echo "==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub."
+if [ -d "$REPO_DIR/.git" ]; then
+    echo "Directory exists — fetching latest updates..."
+    cd "$REPO_DIR"
+    git fetch --all
+    git checkout "$BRANCH"
+    git pull
+else
+    echo "Directory does not exist — cloning fresh copy..."
+    git clone --branch "$BRANCH" "$REPO_URL"
+    cd "$REPO_DIR"
+fi
 src_home=$(pwd)
 mkdir -p logs
 mkdir -p data
 
-echo "==SETUP== 3. Add pyenv to ~/.bashrc and install Python 3.12.5."
-curl https://pyenv.run | bash
-cat <<_EOF >> ~/.bashrc
+echo "==SETUP== 3. Create a pyenv and add to ~/.bashrc."
+sudo apt-get install python3-venv
+if [ ! -d "$src_home/pyenv" ]; then
+    echo "Creating Python virtual environment..."
+    python3 -m venv "$src_home/pyenv"
+else
+    echo "Python venv already exists — skipping creation."
+fi
+if ! grep -q "alpaca-benro-polaris edits" ~/.bashrc; then
+    echo "Adding venv auto-activation to ~/.bashrc..."
+    cat <<_EOF >> ~/.bashrc
+
 # start of alpaca-benro-polaris edits
-export PYENV_ROOT="\$HOME/.pyenv"
-[[ -d \$PYENV_ROOT/bin ]] && export PATH="\$PYENV_ROOT/bin:\$PATH"
-eval "\$(pyenv init -)"
-eval "\$(pyenv virtualenv-init -)"
+if [ -d "$src_home/pyenv" ]; then
+    source "$src_home/pyenv/bin/activate"
+    cd "$src_home"
+fi
 # end of alpaca-benro-polaris edits
+
 _EOF
-
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-
-pyenv install 3.12.5
-pyenv virtualenv 3.12.5 ssc-3.12.5
-pyenv global ssc-3.12.5
+else
+    echo "~/.bashrc already contains venv activation — skipping."
+fi
+source "$src_home/pyenv/bin/activate"
 
 echo "==SETUP== 4. Install the python dependencies needed for the application."
-cd platformms/raspberry_pi
-pip install -r requirements.txt
+cd "$src_home/platforms/raspberry_pi"
+pip install -r requirements.txt -c constraints.txt
 
-echo "==SETUP== 5. Set up [systemd] services to start the polaris.service at boot time."
-cat systemd/polaris.service | sed \
-  -e "s|/home/.*/alpaca-benro-polaris|$src_home|g" \
-  -e "s|^ExecStart=.*|ExecStart=$HOME/.pyenv/versions/ssc-3.12.5/bin/python3 $src_home/root_app.py|" > /tmp/polaris.service
-sudo mv /tmp/polaris.service /etc/systemd/system
+# echo "==SETUP== 5. Set up [systemd] services to start the polaris.service at boot time."
+# cat systemd/polaris.service | sed \
+#   -e "s|/home/.*/alpaca-benro-polaris|$src_home|g" \
+#   -e "s|^ExecStart=.*|ExecStart=$HOME/.pyenv/versions/ssc-3.12.5/bin/python3 $src_home/root_app.py|" > /tmp/polaris.service
+# sudo mv /tmp/polaris.service /etc/systemd/system
 
-echo "==SETUP== 6. Starts the service."
-sudo systemctl daemon-reload
-sudo systemctl enable polaris
-sudo systemctl start polaris
+# echo "==SETUP== 6. Starts the service."
+# sudo systemctl daemon-reload
+# sudo systemctl enable polaris
+# sudo systemctl start polaris
 
-cat <<_EOF
-|-------------------------------------|
-| alpaca-benro-polaris Setup Complete |
-|                                     |
-| You can access SSC via:             |
-| http://$(hostname).local:5432       |
-|                                     |
-| Device logs can be found in         |
-|  ./alpaca-benro-polaris/logs        |
-|                                     |
-| Systemd logs can be viewed via      |
-| journalctl -u polaris               |
-|                                     |
-| Current status can be viewed via    |
-| systemctl status polaris            |
-|-------------------------------------|
-_EOF
+# cat <<_EOF
+# |-------------------------------------|
+# | alpaca-benro-polaris Setup Complete |
+# |                                     |
+# | You can access SSC via:             |
+# | http://$(hostname).local:5432       |
+# |                                     |
+# | Device logs can be found in         |
+# |  ./alpaca-benro-polaris/logs        |
+# |                                     |
+# | Systemd logs can be viewed via      |
+# | journalctl -u polaris               |
+# |                                     |
+# | Current status can be viewed via    |
+# | systemctl status polaris            |
+# |-------------------------------------|
+# _EOF

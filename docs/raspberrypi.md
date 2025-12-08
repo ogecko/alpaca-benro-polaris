@@ -33,29 +33,28 @@ The Alpaca Driver has been validated on the following platforms:
     10. Write the image to the SD Card, click **WRITE**
 
 ## Installation of Pre-Requisites
-These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Using a remote terminal program like **MoboXterm**, create a session to connect via SSH to the Raspberry Pi, then login in using the username and password you set on the installer.
+These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Using a remote terminal program like **MoboXterm** or **VS Code**, create a session to connect via SSH to the Raspberry Pi, then login in using the username and password you set on the installer.
 
-1. Update your system 
+1. Download the setup script and make it executable
     ```Bash
-    sudo apt update && sudo apt upgrade -y
+    wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_0/platforms/raspberry_pi/setup.sh -O setup.sh
+    chmod +x setup.sh
     ```
-2. Create a virtual Python Environment  
-    1. Check your Python version is 3.13.5 or greater
-        ```Bash
-        python --version
-        ```
-    2. Create a Python virtual environment for the Alpaca Driver.
-        ```Bash
-        sudo apt-get install python3-venv
-        python -m venv ./pyenv
-        source pyenv/bin/activate
-        ```
-    3. Install and Update your verion of pip
-        ```Bash
-        sudo apt install python3-pip
-        python3 -m pip install --upgrade pip
-        ```
-3. Install Alpaca Driver pre-requisites
+2. Run the setup script
+    ```Bash
+    ./setup.sh
+    ```
+3. Wait for the following tasks to complete
+    * ==SETUP== 1. Update the software on the system, and install dependencies needed for git
+    * ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
+    * ==SETUP== 3. Create a pyenv and add to ~/.bashrc.
+    * ==SETUP== 4. Install the python dependencies needed for the application.
+
+3. Activate the pyenv created by the setup script and added to the .bashrc
+    ```Bash
+    source ~/.bashrc
+    ```
+4. Install Alpaca Driver pre-requisites
     ```Bash
     pip install -r platforms/raspberry_pi/requirements.txt
     ```
