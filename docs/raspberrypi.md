@@ -32,8 +32,9 @@ The Alpaca Driver has been validated on the following platforms:
     9. Use default disabled Raspberry Pi Connect, then click **NEXT**
     10. Write the image to the SD Card, click **WRITE**
 
-## Installation of Pre-Requisites
-These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Using a remote terminal program like **MoboXterm** or **VS Code**, create a session to connect via SSH to the Raspberry Pi, then login in using the username and password you set on the installer.
+## Installation of Pre-Requisites and Alpaca Driver
+These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Connect a **keyboard** and **monitor** directly to the Raspberry Pi, or setup a remote terminal program such as **MobaXterm** or **VS Code**. Login with the username and password you configured during image creation, and then follow the instructions below.
+
 
 1. Download the setup script
     ```Bash
@@ -53,16 +54,23 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     * ==SETUP== 6. Set up [systemd] services to start the polaris.service at boot time
     * ==SETUP== 7. Starts the service.
 
-3. Activate the pyenv created by the setup script and added to the .bashrc
+4. The Alpaca Driver should now be installed and setup
+
+## Monitoring and Diagnostic commands
+
+1. To activate the pyenv created by the setup script and added to the .bashrc
     ```Bash
     source ~/.bashrc
     ```
-4. Install Alpaca Driver pre-requisites
+2. To monitor and control the status of the Alpaca Driver Daemon Service
     ```Bash
-    pip install -r platforms/raspberry_pi/requirements.txt
+    sudo systemctl status polaris       # Check the service status 
+    sudo systemctl stop polaris         # Stop the service 
+    sudo systemctl start polaris        # Start the service  
+    journalctl -u polaris -f            # View the logs
     ```
 
-4. Optionally install build tools  
+3. Optionally install build tools  
     On some Raspberry Pi platforms you may encounter issues when installing the `requirements.txt`, where a package is not available for your platform. You may need to install build tools to generate the package from scratch.
     ```Bash
     sudo apt install gfortran
@@ -180,7 +188,7 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
 ## Manual Configuration of Alpaca Driver
 On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. 
 
-This is done automatically in wifi.sh, but if you did not use this method, then use the following manual procedure.
+This is done automatically in setup.sh, but if you did not use this method, then use the following manual procedure.
 
 1. Update Web Server Port  
      Change the setting in the file  `driver/config.toml` to the following.
@@ -189,7 +197,7 @@ This is done automatically in wifi.sh, but if you did not use this method, then 
     ```
 
 
-## Upgrading Bluez Bluetooth Library to v5.66 (DOESNT FIX IT)
+## Upgrading Bluez Bluetooth Library to v5.66 (DOESNT FIX ISSUE)
 If you are using an older version of the Bluetooth library then you may need to upgrade.
 
 1. Check version of Bluetooth. If you are using v5.55-1 then proceed to upgrade.
@@ -212,31 +220,4 @@ If you are using an older version of the Bluetooth library then you may need to 
     make
     sudo make install
     ```
-
-
-## Service status
-
-The `polaris` service is controlled via `systemd`. 
-
-Super user access(root) is not needed for getting status.
-
-The command to run is:
-
-`systemctl status polaris`
-
-## Service control (start, stop, restart)
-
-The `polaris` service can be started/stopped/restarted using the appropriate verb via the following command:
-
-`sudo systemctl stop polaris`
-
-Replace the `stop` verb with the appropriate action that you are trying to achieve.
-
-## Persistent logs
-
-Should you find the need to look over systemd logs across boots, you can use `journalctl` to do so.
-
-Eg:
-
-`journalctl -u polaris`
 
