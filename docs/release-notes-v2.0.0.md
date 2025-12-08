@@ -279,15 +279,16 @@ Please let us know if you can try any of these features.
 * Pentax K1 150-450mm / Irix 45mm
 * ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
 ### Computing Equipment
-* MacBook Pro with Apple M1 Pro CPU (ABP Driver and CCDCiel)
+* MacBook Pro with Apple M1 Pro CPU (Driver and CCDCiel)
 * MacBook Pro 14” 2021 
 * MacBook Pro 13” 2013
-* Mele Quieter 4C, Intel N100 800Mhz (ABP Driver and Nina)
-* Minis Forum UM350 (ABP Driver and Nina)
-* ASUS Vivobook Pro 16X OLED K6604JV (ABP Driver and Nina)
-* Laptop Windows 10 Home (ABP Driver and Nina)
+* Mele Quieter 4C, Intel N100 800Mhz (Driver and Nina)
+* Minis Forum UM350 (Driver and Nina)
+* ASUS Vivobook Pro 16X OLED K6604JV (Driver and Nina)
+* Laptop Windows 10 Home (Driver and Nina)
 * Desktop PC, AMD 7950X (Stellarium Desktop, Siril)
 * Desktop PC, AMD Ryzen 5 3600
+* Raspberry Pi Zero 2 W and up (Driver)
 ### Portable/Mobile Equipment
 * iPhone 13 Max (Stellarium Mobile PLUS)
 * iPad Pro 3rd Generation
@@ -318,6 +319,8 @@ Please let us know if you can try any of these features.
 * MacOS Sequoia 15
 * iOS 17.6  
 * iPadOS v17.6.1
+* Raspberry Pi OS (64-bit) Debian Trixie
+* Raspberry Pi OS Lite (64-bit) Debian Trixie
 ### Alpaca Pilot compatible Browsers
 * Firefox version 115+ 
 * Google Chrome version 115+
@@ -330,8 +333,6 @@ Please let us know if you can try any of these features.
 
 
 ## Potential Future Enhancements
-- **[Raspberry Pi]** Official support and testing on Raspberry  Pi
-- **[CCDciel Support]**: Official support and testing for CCDciel for MacOS.
 - **[Stellarium MacOS]**: Add position update support to the Stellarium Binary protocol.
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
