@@ -89,8 +89,9 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     ```
 2. Install the build tools
     ```Bash
+    echo "deb http://archive.raspberrypi.org/debian/ trixie main" | sudo tee /etc/apt/sources.list.d/raspi.list
     sudo apt update
-    sudo apt install -y dkms git raspberrypi-kernel-headers build-essential
+    sudo apt install -y dkms git  build-essential linux-headers-rpi-v8r
     ```
 
 3. Get the drivers source code
