@@ -50,7 +50,7 @@
             <thead>
               <tr><th class="text-left">Game Changer</th><th class="text-left">Beta Testers</th></tr>
             </thead>
-            <tr><td>ADC</td><td>Validimir Vyskocil</td></tr>
+            <tr><td>ADC</td><td>Vladimir Vyskocil</td></tr>
             <tr><td>Bertolissio</td><td>Mark Long</td></tr>
             <tr><td>Billy Buchanan</td><td>Steve Everitt</td></tr>
             <tr><td>Marco Garripoli</td><td>Alex Murdoch</td></tr>
