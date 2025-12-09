@@ -773,11 +773,14 @@ Notes: Last week RC1 tester.
 ### Test Areas
 ...
 ### Results
-...
+* I was able to install and did little testing. Still trying to learn Nina
+* But haven’t found any issues
+
 ### Feedback Summary
 ...
 
 
 ## RFC
 FB: Andrew Sargent; GH: CynicalSarge
+
 FB: Mingyang Wang; GH: saltyminty
