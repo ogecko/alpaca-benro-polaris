@@ -155,6 +155,7 @@ export const useCatalogStore = defineStore('catalog', {
             7: [39, 39], // Commet
             8: [40, 40], // Asteroid
             9: [41, 41], // Landmark
+            10: [41, 41], // Custom
           };
         // Collect all valid subtype keys based on selected C1 types
         const allowedSubtypes = new Set<number>();
@@ -409,7 +410,7 @@ export const azimuthLookup: Record<DsoAzimuth, string> = {
 };
 
 
-export type DsoType = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type DsoType = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export const typeLookupIcon: Record<DsoType, string>  = {
   0: 'mdi-horse-variant', 
   1: 'mdi-cryengine', 
@@ -420,7 +421,8 @@ export const typeLookupIcon: Record<DsoType, string>  = {
   6: 'mdi-satellite-variant',
   7: 'mdi-magic-staff',
   8: 'mdi-cookie',
-  9: 'mdi-hazard-lights',
+  9: 'mdi-map-marker-plus-outline',
+  10: 'mdi-star-plus',
 }
 
 export const typeLookup: Record<DsoType, string>  = {
@@ -433,7 +435,8 @@ export const typeLookup: Record<DsoType, string>  = {
   6: 'Satellite',
   7: 'Comet',
   8: 'Asteroid',
-  9: 'Landmark'
+  9: 'Landmark',
+  10: 'Custom',
 }
 
 
@@ -511,7 +514,7 @@ const subtypeLookup: Record<DsoSubtype, string> = {
   27: 'Star Cloud', 
   28: 'Young Stellar Object',
   29: 'Planet', 30: 'Dwarf Planet', 31: 'Martian Moon', 32: 'Galilean Moon', 33: 'Saturnian Moon', 
-  34: 'Natural Satellite', 35: 'Space Station', 36: 'Satellite', 37: 'Rocket Body', 38: 'Space Debris', 39: 'Comet', 40: 'Asteroid', 41: 'Custom'
+  34: 'Natural Satellite', 35: 'Space Station', 36: 'Satellite', 37: 'Rocket Body', 38: 'Space Debris', 39: 'Comet', 40: 'Asteroid', 41: 'User-Defined'
 }
 
 export type DsoConstellation =
@@ -545,7 +548,7 @@ const constellationLookup: Record<DsoConstellation, string> = {
   68: 'Scutum', 69: 'Serpens', 70: 'Sextans', 71: 'Sagitta',
   72: 'Sagittarius', 73: 'Taurus', 74: 'Telescopium', 75: 'Triangulum Australe',
   76: 'Triangulum', 77: 'Tucana', 78: 'Ursa Major', 79: 'Ursa Minor',
-  80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula', 84: 'Orbit', 85: 'Custom'
+  80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula', 84: 'Orbit', 85: 'Space'
 }
 
 

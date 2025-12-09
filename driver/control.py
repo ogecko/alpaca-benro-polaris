@@ -29,7 +29,7 @@ CATALOG_PATH = DATA_DIR / 'catalog.json'
 # Defaults for catalog fields
 DEFAULTS = {
     "MainID": "", "Name": "", "Notes": "", "Class": "", "OtherIDs": "",
-    "Rt": 5, "Sz": 8, "Vz": 7, "C1": 9, "C2": 41, "Cn": 85
+    "Rt": 5, "Sz": 8, "Vz": 7, "C1": 10, "C2": 41, "Cn": 85
 }
 
 def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
@@ -86,7 +86,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
             cleaned["Rt"] = max(0, min(5, cleaned["Rt"]))
             cleaned["Sz"] = max(0, min(8, cleaned["Sz"]))
             cleaned["Vz"] = max(0, min(7, cleaned["Vz"]))
-            cleaned["C1"] = max(0, min(9, cleaned["C1"]))
+            cleaned["C1"] = max(0, min(10, cleaned["C1"]))
             cleaned["C2"] = max(0, min(41, cleaned["C2"]))
             cleaned["Cn"] = max(0, min(85, cleaned["Cn"]))
             output.append(cleaned)

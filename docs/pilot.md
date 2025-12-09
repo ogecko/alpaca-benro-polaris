@@ -656,7 +656,7 @@ All values are listed for completeness.
 | 38    | Space Debris              |
 | 39    | Comet                     |
 | 40    | Asteroid                  |
-| 41    | Custom (Default)          |
+| 41    | User-Defined (Default)    |
 
 
 
@@ -751,5 +751,5 @@ Each number corresponds to a constellation by index.
 | 82    | Volans                          |
 | 83    | Vulpecula                       |
 | 84    | Orbit (Ephemeris-based objects) |
-| 85    | Custom  (Default)   |
+| 85    | Space (Default)                 |
 
