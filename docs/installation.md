@@ -61,10 +61,10 @@ Just double-click the `.lnk` file you configured in Step 4.
 
 #### B. Run from the Command Line
 
-1. Open **File Explorer** and navigate to the folder where you extracted the ZIP file.
-2. Hold **Shift** and **Right-click** the `driver` folder. (You may need to try twice for “Open in Terminal” to appear.)
-3. Select **Open in Terminal**.
-4. In the new Terminal Window, run the driver with:
+5. Open **File Explorer** and navigate to the folder where you extracted the ZIP file.
+6. Hold **Shift** and **Right-click** the `driver` folder. (You may need to try twice for “Open in Terminal” to appear.)
+7. Select **Open in Terminal**.
+8. In the new Terminal Window, run the driver with:
 
    ```
    python main.py
@@ -76,28 +76,30 @@ No matter which method you used to launch the Alpaca Driver, a console window wi
 ### Starting the Alpaca Pilot App
 
 With the Alpaca Driver running you can now start the Alpaca Pilot App from any browser. 
-1. Open **Chrome**, **Edge**, **Firefox**, or your preferred browser.
-2. Enter the following into the address bar, where hostname is the name of the MiniPC you are running the Driver on. 
+
+9. Open **Chrome**, **Edge**, **Firefox**, or your preferred browser.
+10. Enter the following into the address bar, where hostname is the name of the MiniPC you are running the Driver on. 
    ```
    http://hostname
    ```
    > Note you can find the hostname of a machine by typing the command `hostname` into a terminal window.
-3. The Alpaca Pilot App should look like this:
+11. The Alpaca Pilot App should look like this:
 ![Pilot Startup](images/pilot-startup.png)
-4. Click **Connect** on the top toolbar of the Alpaca Pilot Window. This page will allow you to follow through the steps to connect the Driver to the Benro Polaris device.
+12. Click **Connect** on the top toolbar of the Alpaca Pilot Window. This page will allow you to follow through the steps to connect the Driver to the Benro Polaris device.
 
 ### Connecting the Driver to Polaris
 There are a few preliminary steps before you can use the Polaris. You'll need to do the following:
-1. Setup your Benro Polaris tripod head and turn on the Benro Polaris. If you cant turn it on, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
-2. Using the USB Wifi adapter, connect your mini-PC to the `polaris-xxxxxx` hotspot.
-3. Choose `Connect Automatically` and click `Connect`.
-4. Wait for connection. It should show: `No internet, open`. If you cannot connect, see [Troubleshooting C0](./troubleshooting.md#c0---cannot-connect-win11-computer-or-laptop-to-benro-polaris-wifi).
+
+13. Setup your Benro Polaris tripod head and turn on the Benro Polaris. If you cant turn it on, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
+14. Using the USB Wifi adapter, connect your mini-PC to the `polaris-xxxxxx` hotspot.
+15. Choose `Connect Automatically` and click `Connect`.
+16. Wait for connection. It should show: `No internet, open`. If you cannot connect, see [Troubleshooting C0](./troubleshooting.md#c0---cannot-connect-win11-computer-or-laptop-to-benro-polaris-wifi).
     
 <img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
 
-5. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for more details and a full step by step procedure.
+17. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for more details and a full step by step procedure. Make sure all checkmarks are green (except for the final Multi-Point Alignment step, which will only turn green after you’ve aligned on three or more stars).
 
-6. Once the Driver has connected successfully to the Polaris the Alpaca Driver window should look like this.
+18. Once the Driver has connected successfully to the Polaris the Alpaca Driver window should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
 
 ### Troubleshooting

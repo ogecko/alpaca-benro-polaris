@@ -36,38 +36,40 @@ On MacOS the minimal tested version is `3.9.6`
 
 ### Running the Alpaca Benro Polaris Driver
 
-Start the Alpaca Benro Polaris driver with the following command from within the installation directory:
+3. Start the Alpaca Benro Polaris driver with the following command from within the installation directory:
 
     ```
     python3 driver/main.py
     ```
 
-The Alpaca Benro Polaris Driver window should look like this.
+4. The Alpaca Benro Polaris Driver window should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
 
 
 ### Starting the Alpaca Pilot App
 
 With the Alpaca Driver running you can now start the Alpaca Pilot App from any browser. 
-1. Open **Safari**, **Firefox**, **Chrome**, or your preferred browser.
-2. Enter the following into the address bar, where hostname is the name of the machine you are running the Driver on. 
+
+5. Open **Safari**, **Firefox**, **Chrome**, or your preferred browser.
+6. Enter the following into the address bar, where hostname is the name of the machine you are running the Driver on. 
    ```
    http://hostname
    ```
 
-3. The Alpaca Pilot App should look like this:
+7. The Alpaca Pilot App should look like this:
 ![Pilot Startup](images/pilot-startup.png)
-4. Click **Connect** on the top toolbar of the Alpaca Pilot Window. This page will allow you to follow through the steps to connect the Driver to the Benro Polaris device.
+8. Click **Connect** on the top toolbar of the Alpaca Pilot Window. This page will allow you to follow through the steps to connect the Driver to the Benro Polaris device.
 
 ### Connecting the Driver to Polaris
 There are a few preliminary steps before you can use the Polaris. You'll need to do the following:
-1. Setup your Benro Polaris tripod head and turn on the Benro Polaris. If you cant turn it on, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
-2. Turn on the Mac and connect it to your camera via USB.
-3. Connect your Mac to the polaris-###### hotspot using WIFI (this will disconnect you from the previous WIFI and you'll loose the Internet connection)
-4. Wait for connection.
-5. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for more details and a full step by step procedure.
 
-6. Once the Driver has connected successfully to the Polaris the Alpaca Driver window should look like this.
+9. Setup your Benro Polaris tripod head and turn on the Benro Polaris. If you cant turn it on, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
+10. Turn on the Mac and connect it to your camera via USB.
+11. Connect your Mac to the polaris-###### hotspot using WIFI (this will disconnect you from the previous WIFI and you'll loose the Internet connection)
+12. Wait for connection.
+13. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for more details and a full step by step procedure. Make sure all checkmarks are green (except for the final Multi-Point Alignment step, which will only turn green after you’ve aligned on three or more stars).
+
+14. Once the Driver has connected successfully to the Polaris the Alpaca Driver window should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
 
 ### Troubleshooting
