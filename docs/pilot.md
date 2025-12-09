@@ -191,7 +191,7 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 - **③ Skip Compass Alignment:** Normally, entering Astro Mode requires a Compass Alignment via the Benro Polaris App. With Pilot, you can bypass this by pressing **Skip**.  
    - The default Azimuth is **180°**
    - You may adjust this to approximate the camera’s initial pointing direction, based on how the tripod is oriented.
-   - Note: This value represents *true Azimuth and is different from the Compass Align direction used in the Benro app.
+   - Note: This value represents *true Azimuth* and is different from the Compass Align direction used in the Benro app.
    - Azimuth reference: 0°=North, 90°=East, 180°=South, 270°=West.
    - Saving Alpaca Pilot Settings will store this value.
 
