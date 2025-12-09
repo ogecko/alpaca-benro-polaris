@@ -42,14 +42,27 @@
   {
     "MainID":"ALP002",
     "Name":"Alpaca Galaxy",
-    "Notes":"Showcase custom galaxy, closest to the equestrian area, with 2 satellite galaxies, dust lanes, and star clouds",
-    "Class":"Sb",
-    "OtherIDs":"ALP007, ALP007",
+    "Notes":"Showcase custom galaxy, closest to the equestrian area",
+    "Class":"Ha",
+    "OtherIDs":"ALP007, ALP008",
     "C1":1,
     "Rt":5,
     "Sz":7,
     "Vz":5,
     "RA_hr":0.7122222222,
     "Dec_deg":41.2688888889
+  },
+  {
+    "MainID":"ALP003",
+    "Name":"Alpaca Landmark",
+    "Notes":"Showcase fixed position entry with Az/Alt co-ordinates instead of RA/Dec",
+    "Class":"Sb",
+    "OtherIDs":"ALP009, ALP010",
+    "C1":9,
+    "Rt":5,
+    "Sz":7,
+    "Vz":5,
+    "Az_deg":180,
+    "Alt_deg":45
   }
 ]
