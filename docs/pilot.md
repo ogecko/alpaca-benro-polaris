@@ -363,7 +363,7 @@ The Alpaca Pilot application features an expanded and intuitive catalog designed
 The catalog in the Alpaca Pilot App has been **significantly expanded** beyond the original Benro Polaris catalog.
 
 1.  **Curated Content:** Instead of listing thousands of objects, the catalog focuses on **quality**. It includes a curated selection of over **500 premium deep sky objects**. These targets highlight the top 25% of imaging targets, based on input from experienced astrophotographers.
-2.  **Object Types:** The entries include a selection of Nebulae, Galaxies, Clusters, Stars, Planets, Moons, and Satellites.
+2.  **Object Types:** The entries can include a selection of Nebulae, Galaxies, Clusters, Stars, Planets, Moons, Satellites, Comets, Asteroids and Landmarks.
 3.  **Ratings and Notes:** Each entry provides helpful notes and community ratings to guide your choices. To keep the application footprint small, items categorized as "typical," "hard," or "avoid" are excluded from the base catalog.
 4. **Cross Referenced:** Each entry is cross referenced to over 25 master catalogs like Messier, Caldwell, NGC, IC, H400, Sh2, LDN etc. 
 
@@ -400,7 +400,7 @@ You can filter targets by various key attributes that affect imaging suitability
 
 ![Catalog](images/pilot-catalog2.png)
 
-1.  **Filtering by Type (Side Menu):** Use the side menu to limit results by broad object type, such as Nebula, Galaxy, Cluster, or Star.
+1.  **Filtering by Type (Side Menu):** Use the side menu to limit results by broad object type, such as Nebula, Galaxy, Cluster, Star, Planet, Moon, Satellite, Comet, Asteroid or Landmark.
 1.  **Filtering by Proximity (Side Menu):** Displays objects sorted by angular proximity to the telescope’s current pointing or the mount’s orientation. Ideal for finding nearby targets without slewing far.
 2.  **Filtering by Quality Rating (Dropdown):** Filter by the visual and imaging quality rating of each object, eg Top 2%, 10%, 25%.
 3.  **Filtering by Altitude (Dropdown):** Limit the list based on the height of the object in the sky.
@@ -474,4 +474,282 @@ Alpaca Pilot’s select list of objects are cross-referenced with more than 25 m
 
 <br>
 <br>
+
+## Extending the Alpaca Pilot Catalog
+
+Alpaca Pilot includes a built-in deep-sky catalog, planetary data, and live orbital objects.
+However, you may also **extend the catalog with your own custom entries**, including local landmarks, favourite observing targets, or additional DSOs not included in the standard database.
+
+Custom items are defined in a file named **`catalog.json`** placed in the Alpaca Driver’s *data directory*.
+
+Whenever Alpaca Pilot loads or you refresh a catalog page (via **F5**), the Pilot application requests this file from the Driver. If it exists and contains valid entries, those entries are **merged directly into the main catalog** and displayed alongside all standard objects. 
+
+Once loaded, your user-defined entries are fully integrated into Alpaca Pilot. They appear alongside the standard catalog and support all normal features, including search, filtering, sorting, and object interaction.
+
+### File Format Overview
+
+A sample file named **`catalog.sample.json`** is included in the *data directory* to help you get started.
+
+To create your own custom catalog entries, simply copy this file to **`catalog.json`** and edit/add the values as needed. The sample outlines the required structure and field names, making it easy to add, remove, or modify entities with confidence.
+
+Your custom **`catalog.json`** file must follow standard JSON rules:
+
+* The **top-level structure must be an array** (`[...]`)
+* Each catalog entry must be an **object** with quoted field names (`"Name": "Example"`)
+* **Field Names and Strings** must be quoted
+* **Commas** are required between fields and entries
+* **full-line comments** beginning with `//` are allowed
+* **trailing commas** on the last field or entry are allowed
+
+
+### Required Structure of an Entry
+
+Each entry in `catalog.json` must follow the structure below.
+All fields are optional except `MainID`, `Name`, and at least one co-ordinate pair 
+* `RA_hr`, `Dec_deg` - Equatorial Co-ordinates of the entity 
+* `Az_deg`, `Alt_deg` - Topocentric Co-ordinates, only relevant for Landmarks ie C1=9
+
+Adding the other fields provides richer detail and better UI integration.
+
+```jsonc
+{
+  "MainID": string,     // A unique identifier for the object (e.g. "U001")
+  "Name": string,       // Short human-readable name
+  "Notes": string,      // Longer description shown in the UI
+  "Class": string,      // Optional emission class or type (e.g. "Sb")
+  "OtherIDs": string,   // Comma-separated alternate identifiers
+
+  "Rt": integer,        // Rating 0–5 (Showcase → Not recommended)
+  "Vz": integer,        // Visibility class 0–7
+  "Sz": integer,        // Apparent size class 0–8
+
+  "C1": integer,        // Object Type (Galaxy, Nebula, Planet, Landmark, etc.)
+  "C2": integer,        // Subtype (Spiral Galaxy, Emission Nebula, etc.)
+  "Cn": integer,        // Constellation index (0–84)
+
+  "RA_hr": float,       // Right Ascension (hours)
+  "Dec_deg": float,     // Declination (degrees)
+
+  // OR, for Landmarks where C1=9, fixed non-celestial objects:
+  "Az_deg": float,      // Azimuth position (degrees)
+  "Alt_deg": float      // Altitude position (degrees)
+}
+```
+
+
+
+### **Catalog Field Enumerations (Full Reference)**
+
+Several fields in the custom catalog use numeric codes rather than text labels. Alpaca Pilot converts these codes into readable descriptions for display. The tables below define every possible value for each enumeration.
+
+
+## **Rating (Rt)**
+
+Represents an overall “quality” or showcase value of the object.
+
+| Value | Meaning             |
+| ----- | ------------------- |
+| **5** | Showcase (Top 2%) (Default)  |
+| **4** | Excellent (Top 10%) |
+| **3** | Good (Top 25%)      |
+| **2** | Typical             |
+| **1** | Challenging         |
+| **0** | Not recommended     |
+
+
+### **Visibility (Vz)**
+
+Approximate naked-eye or binocular visibility based on magnitude.
+
+| Value | Meaning               |
+| ----- | --------------------- |
+| **0** | Ultra Faint (Mag 12+) |
+| **1** | Ghostly (Mag 10–12)   |
+| **2** | Faint (Mag 8–10)      |
+| **3** | Dim (Mag 6–8)         |
+| **4** | Visible (Mag 4–6)     |
+| **5** | Bright (Mag 2–4)      |
+| **6** | Brilliant (Mag <2)    |
+| **7** | Unknown  (Default)    |
+
+
+### **Size (Sz)**
+
+Apparent angular size of the object.
+
+| Value | Meaning            |
+| ----- | ------------------ |
+| **0** | Very Tiny (<0.5′)  |
+| **1** | Tiny (0.5–1′)      |
+| **2** | Small (1–2′)       |
+| **3** | Compact (2–5′)     |
+| **4** | Moderate (5–10′)   |
+| **5** | Prominent (10–30′) |
+| **6** | Extended (30–100′) |
+| **7** | Expansive (100′+)  |
+| **8** | Unknown  (Default) |
+
+
+### **Primary Type (C1)**
+
+The high-level category of object.
+
+| Value | Meaning                       |
+| ----- | ----------------------------- |
+| **0** | Nebula                        |
+| **1** | Galaxy                        |
+| **2** | Cluster                       |
+| **3** | Star                          |
+| **4** | Planet                        |
+| **5** | Moon                          |
+| **6** | Satellite                     |
+| **7** | Comet                         |
+| **8** | Asteroid                      |
+| **9** | Landmark (for Az/Alt)         |
+| **10** | Custom (Default)             |
+
+### **Subtype (C2)**
+
+A more specific classification depending on the primary type.
+All values are listed for completeness.
+
+| Value | Meaning                   |
+| ----- | ------------------------- |
+| 0     | Set of Chained Galaxies   |
+| 1     | Set of Clustered Galaxies |
+| 2     | Set of Grouped Galaxies   |
+| 3     | Set of Merging Galaxies   |
+| 4     | Pair of Galaxies          |
+| 5     | Trio of Galaxies          |
+| 6     | Blue Compact Dwarf Galaxy |
+| 7     | Collisional Ring Galaxy   |
+| 8     | Dwarf Galaxy              |
+| 9     | Elliptical Galaxy         |
+| 10    | Flocculent Galaxy         |
+| 11    | Lenticular Galaxy         |
+| 12    | Magellanic Galaxy         |
+| 13    | Polar Galaxy              |
+| 14    | Spiral Galaxy             |
+| 15    | Dark Nebula               |
+| 16    | Emission Nebula           |
+| 17    | Molecular Cloud Nebula    |
+| 18    | Planetary Nebula          |
+| 19    | Protoplanetary Nebula     |
+| 20    | Reflection Nebula         |
+| 21    | Supernova Remnant Nebula  |
+| 22    | Globular Cluster          |
+| 23    | Herbig–Haro Object        |
+| 24    | Nova Object               |
+| 25    | Open Cluster              |
+| 26    | Star                      |
+| 27    | Star Cloud                |
+| 28    | Young Stellar Object      |
+| 29    | Planet                    |
+| 30    | Dwarf Planet              |
+| 31    | Martian Moon              |
+| 32    | Galilean Moon             |
+| 33    | Saturnian Moon            |
+| 34    | Natural Satellite         |
+| 35    | Space Station             |
+| 36    | Satellite                 |
+| 37    | Rocket Body               |
+| 38    | Space Debris              |
+| 39    | Comet                     |
+| 40    | Asteroid                  |
+| 41    | Custom (Default)          |
+
+
+
+### **Constellation (Cn)**
+
+Each number corresponds to a constellation by index.
+
+| Value | Constellation                   |
+| ----- | ------------------------------- |
+| 0     | Andromeda                       |
+| 1     | Antlia                          |
+| 2     | Apus                            |
+| 3     | Aquila                          |
+| 4     | Aquarius                        |
+| 5     | Ara                             |
+| 6     | Aries                           |
+| 7     | Auriga                          |
+| 8     | Boötes                          |
+| 9     | Canis Major                     |
+| 10    | Canis Minor                     |
+| 11    | Canes Venatici                  |
+| 12    | Camelopardalis                  |
+| 13    | Capricornus                     |
+| 14    | Carina                          |
+| 15    | Cassiopeia                      |
+| 16    | Centaurus                       |
+| 17    | Cepheus                         |
+| 18    | Cetus                           |
+| 19    | Chamaeleon                      |
+| 20    | Circinus                        |
+| 21    | Cancer                          |
+| 22    | Columba                         |
+| 23    | Coma Berenices                  |
+| 24    | Corona Australis                |
+| 25    | Corona Borealis                 |
+| 26    | Crater                          |
+| 27    | Crux                            |
+| 28    | Corvus                          |
+| 29    | Cygnus                          |
+| 30    | Delphinus                       |
+| 31    | Dorado                          |
+| 32    | Draco                           |
+| 33    | Eridanus                        |
+| 34    | Fornax                          |
+| 35    | Gemini                          |
+| 36    | Grus                            |
+| 37    | Hercules                        |
+| 38    | Horologium                      |
+| 39    | Hydra                           |
+| 40    | Leo Minor                       |
+| 41    | Lacerta                         |
+| 42    | Leo                             |
+| 43    | Lepus                           |
+| 44    | Libra                           |
+| 45    | Lupus                           |
+| 46    | Lynx                            |
+| 47    | Lyra                            |
+| 48    | Mensa                           |
+| 49    | Microscopium                    |
+| 50    | Monoceros                       |
+| 51    | Musca                           |
+| 52    | Norma                           |
+| 53    | Octans                          |
+| 54    | Ophiuchus                       |
+| 55    | Orion                           |
+| 56    | Pavo                            |
+| 57    | Pegasus                         |
+| 58    | Perseus                         |
+| 59    | Phoenix                         |
+| 60    | Pictor                          |
+| 61    | Piscis Austrinus                |
+| 62    | Pisces                          |
+| 63    | Puppis                          |
+| 64    | Pyxis                           |
+| 65    | Reticulum                       |
+| 66    | Sculptor                        |
+| 67    | Scorpius                        |
+| 68    | Scutum                          |
+| 69    | Serpens                         |
+| 70    | Sextans                         |
+| 71    | Sagitta                         |
+| 72    | Sagittarius                     |
+| 73    | Taurus                          |
+| 74    | Telescopium                     |
+| 75    | Triangulum Australe             |
+| 76    | Triangulum                      |
+| 77    | Tucana                          |
+| 78    | Ursa Major                      |
+| 79    | Ursa Minor                      |
+| 80    | Vela                            |
+| 81    | Virgo                           |
+| 82    | Volans                          |
+| 83    | Vulpecula                       |
+| 84    | Orbit (Ephemeris-based objects) |
+| 85    | Custom  (Default)   |
 
