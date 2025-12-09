@@ -3,15 +3,15 @@
 ## Result Summary
 |Tester|Platform|Results|Summary|
 |--|--|--|--|
-|[Vladimir](#beta-tester-vladimir)| [X] Platform | [ ] Results | [ ] Summary
 | [Mark](#beta-tester-mark)| [X] Platform | [X] Results | [X] Summary
-| [Paul](#beta-tester-paul)| [X] Platform | [X] Results | [ ] Summary
 | [Daniel](#beta-tester-daniel)| [X] Platform | [X] Results | [X] Summary
-| [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
-| [William](#beta-tester-william)| [ ] Platform | [ ] Results | [ ] Summary
-| [Alex](#beta-tester-alex)| [ ] Platform | [ ] Results | [ ] Summary
+| [Alex](#beta-tester-alex)| [ ] Platform | [X] Results | [X] Summary
+| [Vladimir](#beta-tester-vladimir)| [X] Platform | [X] Results | [ ] Summary
+| [William](#beta-tester-william)| [X] Platform | [X] Results | [ ] Summary
+| [Paul](#beta-tester-paul)| [X] Platform | [X] Results | [ ] Summary
 | [Steve](#beta-tester-steve)| [ ] Platform | [X] Results | [ ] Summary
 | [Shiv](#beta-tester-shiv)| [X] Platform | [ ] Results | [ ] Summary
+| [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
 | [Mauricio](#beta-tester-mauricio)| [ ] Platform | [ ] Results | [ ] Summary
 
 
@@ -599,15 +599,36 @@ Notes: Ireland Week43, New 5nm filters.
 (FB: William Siers; GH: Spiderx01, Dis: williamsiers)
 Notes: Phoenix Week43
 ### Platform & Environment
-* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
-* Platform: OS Version, Browser Version, etc.
-* Hardware: MiniPC model, Tablet model, Phone model.
+* Applications: Alpaca Pilot 
+* Platform: OS Version Win11, Chrome Browser.
+* Hardware: Mele 4C Mini-PC
 * Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
 
 ### Test Areas
-...
+* Testing setup of Driver RC1 on last weekend of Beta test program
 ### Results
-...
+* **Setup**  
+    * I’m stuck, reading thru the last set of links and installation directions. Is some of this based on having a V1 installed, I’m doing a clean install on a new one. Things like the desktop shortcut, when double clicked it flashes a terminal window and fails to open the option for target etc. I’ll hack on it tomorrow. I downloaded loaded the 2.0 rc1 version - JDM - I've updated installation instructions to be more V2 oriented.
+    * Cannot find path C:\documents, c:\users\xxxx\documents\alpaca-benro\polaris-2_0_rc1
+    * Found c:\Users\XXXXX\Documents\alpaca-benro-polaris-releases-2_0_rc1
+    * Successfully ran pip install -r requirements.txt
+* **Connection**  
+    * Wifi appears connected but getting the following in the log.
+    * ERROR Connection refused. Check Polaris App and network.
+    * Difficulty opening Alpaca Pilot, unclear how to do it - JDM - updated docs to make this clearer.
+    * Got Alpaca Pilot running in Chrome, Connect Driver to Benro Polaris has no IP address - JDM unclear how it was erased. added 192.168.0.1 as IP address. Confirm Pilot Documnetation says to leave at 192.168.0.1
+    * Still unable to connect to Polaris - JDM - found that router also had 192.168.0.1 address. Potentially a network conflict. Added Troubleshooting C1b
+    * Tested using screen and keyboard directly plugged into MelePC. Able to connect to Polaris
+    * Still working on this connection problem. Not much luck. Working with direct laptop (mini with Monitor and Keyboard) Polaris connects for a short time and disconnects. Distance is 1m. IP for mini is 192.168.10.229
+Polaris also shows in BT, but no connection, which is what I’ve always seen. Pilot opens but only once actually controlled Polaris. Everything on the right side was green except multi star. The Alpaca app showed commands issued i.e. home etc. but Polaris didn’t move. I’m trying again today. I’ll try to send logs from last night. Tried multiple reboots on computer, Polaris and alpaca. \
+    * Disconnect, wifi drops
+    * Pre-setup warning - That was the issue the lat long was set and saved. Polaris turned off again
+    * Not moving - JDM Polaris had not completed compass align or single star align.
+    * Polaris powering off, like battery is dead but it’s not
+    * JDM Also might be worth updating the Polaris firmware to the latest v6.0.0.54, using the BP App.
+    * Both are failing upgrade. I’ll have to do a manual upgrade
+
+
 ### Feedback Summary
 ...
 
@@ -619,18 +640,42 @@ Notes: Phoenix Week43
 (Dis: Alex; FB: Alexander M...; GH: ..)
 Notes: help with producing tutorial/overview and beta testing
 ### Platform & Environment
-* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
-* Platform: OS Version, Browser Version, etc.
-* Hardware: MiniPC model, Tablet model, Phone model.
-* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+* Applications: Nina 
+* Platform: Win10, Python v3.12.7, Ascom platform 7.1
+* Hardware: Intel MacBook pro that is running win10 via bootcamp. it is a shame it won’t run on windows for ARM… I’d love to use my M1 MacBook for this
+* Optics: Nikon Z6, 135mm/300mm Lens, Filters, Guidescope, etc
 
 ### Test Areas
-...
-### Results
-...
-### Feedback Summary
-...
+* Setup and PHD Guiding
 
+### Results
+* **Setup**  
+    * I had to revert to Python v3.12.7, the driver failed to launch on v3.13.5 as I am on windows 10. otherwise, smooth sailing
+* **PHD2 Setup**
+    * Have you had much luck experimenting with PHD2? is there anything I should look for when attempting to connect the mount to PHD2? JDM - you need to use ASCOM with phd2. Setup via its device hub, telescope, under tools.
+    * current situation.  doesn’t seem to be pulsing enough to shift the mount position - JDM - You can change guide rate in pilot. Pulse duration of calibration in phd2
+    * will experiment and see how I go we are ON!! it is guiding, 1.0x rate is perfect
+    * questionable calibration, but it’s working.  I’ll move the mount to have perfect calibration placement across the celestial equator
+    * yep.  works enough for 135mm, I just snapped a 60s frame with circular stars. obviously slightly bloated by the rms but that’s a game changer. looks like M3 has the most oscillation on all performance tuning pages. M1 and M2 seem quite stable
+    * that’s awesome congratulations David, this is a hell of an achievement
+* **PHD2 Guiding**
+    * I had a fair bit of cloud come in last night, but I had the Polaris track M42 for 4hrs - it kept the target centred the entire time.  game changer. zero re-centring within the sequencer as well. you’ll have to give me some tips on this - I’ve found that manually plate-solving images within NINA hasn’t been syncing with the driver.  only my slew & centre commands actually sync
+    * what’d you end up using for your PHD2 settings?  aggression, etc? will do some longer focal length testing tonigh
+    * I found the same - I set my max DEC and RA duration to 2000, what did you land at? I did my calibration along the equator near the meridian, just following general best practice. I’ll experiment tonight with calibrating closer to the target and see if that changes much
+    * definitely will do - I agree.  a 0.75x option would be wicked to test, like a traditional equatorial system
+    * honestly quite good guiding, more than enough to resolve a 135mm lens with a high megapixel sensor. even this 300 looks quite good with that rms
+    * yep - using Dawe’s theory on resolving limit, you can estimate the required guiding dependant on the lens or telescope’s aperture. for an 80mm aperture lens / scope the resolving limit is about 1.5”. keeping guiding below that is ideal. to clarify, this is 80mm aperture, not focal length
+    * you can then figure out how many arc seconds per pixel are required depending on the camera. Dylan ODonnel had a good resource on his site. https://byronbayobservatory.com.au/astronomy-calculator/
+    * I’ve kept the default 900step calibration, and point the scope to the celestial equator relatively close to the meridian. that always seems to calibrate really well for me on my standard Astro rigs
+    * it worked exceptionally well last night - dithering and guiding was fantastic.  once I hit the altitude limit, the mount paused tracking and did not “meridian flip” etc.  stuck there for the rest of the night. is it possible to meridian flip this?  obviously we lose the little bit of sky near the zenith because of the Polaris’s limits
+    * 1.5hrs of 60sec exposures - certainly sharp enough for me.  that’s exciting!. this is from the CBD, bottle 8/9 as well
+
+
+### Feedback Summary
+* A world first!! Guiding with the Benro Polaris
+* This image is 100 x 60 second (that’s right, 60 second!) exposures at 300mm, taken with the Benro Polaris from the Bortle 8 CBD. This will be wicked under some better skies.
+Testing & experimenting has been promising, I have guiding sitting around ~2.5RMS - clearly enough to resolve this 300mm lens! Plenty of tips & tricks to come.
+I’ll piece together some YouTube videos on the outside our sphere YouTube channel once this driver is available to all - exciting times! Thanks heaps to David and his development of Beta v2.0.0 of the Alpaca Driver - what a feat.
 
 ## Beta Tester: Steve
 (Dis: LanzaSteve; FB: Steve E...; GH: SteveE..)
