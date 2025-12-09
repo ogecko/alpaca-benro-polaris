@@ -24,7 +24,8 @@ Notes: feedback on MacOS and Raspberry Pi 4
 * Applications: CCDCiel beta 0.9.92-3846, IndiStarter 2.4.2-220, Stellarium 25.2
 * Platform: MacOS Tahoe 26.1, Raspios Trixie (2025-10-01-raspios-trixie-arm64-full.img), Firefox v145
 * Hardware: MacBook Air M4 13" 32Go SSD 2To, Raspberry Pi 4 4Go VILROS 802.11n wifi dongle.
-* Optics: Cooled astro camera ZWO ASI533MC Pro, lens TTArtisan 500mm f/6.3 (Canon EF), Optolong L-Pro filter, 50/205 Deluxe - TS-Optics guidescope.
+* Optics: Cooled astro camera ZWO ASI533MC Pro, lens TTArtisan 500mm f/6.3 (Canon EF), Optolong L-Pro filter, 50/205 Deluxe - TS-Optics guidescope and ZWO ASI715MC camera.
+* Tripod: Manfrotto 190XPROB, precise hardware level
 
 ### Test Areas
 * Sofware setup and running on MacOS
@@ -42,7 +43,12 @@ Notes: feedback on MacOS and Raspberry Pi 4
 * I started testing ABP 2.0 Alpha1 on my MacBook Air and found some issues when trying to start the python code. The MacOS Python package requirement list had to be updated, and some Python errors had to be fixed to support the older Python version (Python 3.9.6) pre-installed on recent MacOS.
 * I tried to avoid using Benro Polaris phone app, using ABP 2.0 only to setup the Polaris. With the Alpha1 release there were some issues with the Bluetooth discovery of the Polaris, mainly errors in the logs but this has been fixed in Beta1. The discovery process did wake up the Polaris WIFI allowing the MacBook to connect to it. At home where my MacBook is seeing both the home and Polaris WIFI, I have to manually switch to the Polaris one, but when no other known WIFI is in range, the computer automatically connect to the Polaris.
 Sometimes, the Alpaca Pilot auto connection and the use of the connection button ("Connect Driver to Benro Polaris" in Connect tab) delays the proper connection, a race condition seems to arise and we could see in the logs several connection / de-connection in a row.
-* I successfuly tried the Motor Speed Calibration when doing only a few tests in a row, I experienced that doing all the tests for one motor in a row did not work as well, some unitary test showing a warning, sometimes hitting the hardware rotation limits of the Polaris.   
+* I successfuly tried the Motor Speed Calibration when doing only a few tests in a row, I experienced that doing all the tests for one motor in a row did not work as well, some unitary tests were showing a warning, and sometimes the tests were hitting the hardware rotation limits of the Polaris.
+* I used the ABP Deep Sky Catalog mainly to select the stars for the multi point alignment. For each of them after the GOTO, I took a image of the pointed location and used the CCDCiel plate solve and sync function. I found that choosing stars not too far from the target object but still well separeted in the sky, was giving better results. I also setup the tripod about in the target direction.
+I suggested that it would be usefull to be able to search for comets and asteroïds like it's done in Stellarium, and also to be able to add custom objects to the catalog database. David coded these two welcome additions!
+* I successfuly used Stellarium running on my MacBook Air to connect to ABP 2.0. I updated the settings to use JNow coordinates instead of J2000 in the Telescope settings as suggested by David. The GOTO function and the live target display worked very well.
+* Then I moved to CCDCiel and tried the GOTO and SYNC with plate solve function for some targets like the Pleiades M45, M33 and M31 galaxies, Horse head nebulae,... After setting the target in CCDCiel, it'll do a first GOTO toward it then take a picture, plate solve it and do a mount SYNC which is received by ABP and update its model. Then it calculate the error between the current location and the target and repeat the process until it reach the target close enough or stop after too many iterations.
+In the first beta versions I saw that the process was not working like in ABP 1.0, it was converging toward the target but slower and slower after each iteration but never reach it close enough (I'm using 1.5 arcmin for the target precision). I talked with David about this and he added the "Zero residual on last sync" option which is enabled by default and has the effect to make the process usually converge in 3 or 4 iterations. I also suggested to remove the multiple very close sync when iterating to the target and keep only the last one, which was added to the code.
 
 ### Feedback Summary
 ...
