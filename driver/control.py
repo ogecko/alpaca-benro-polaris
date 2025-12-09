@@ -1789,7 +1789,7 @@ class SyncManager:
                     continue
                 msg = f"Sync[{i}] | Timestamp: {entry['timestamp']} | Pred AzAlt: ({entry['p_az']:.2f}, {entry['p_alt']:.2f}) "
                 msg += f"| Obs AzAlt: ({entry['a_az']:.2f}, {entry['a_alt']:.2f}) | Obs RADec: ({entry['a_ra']:.2f}, {entry['a_dec']:.2f}) "
-                msg += f"| ProximityW: {entry['w_proximity']:.4f} | RecencyW: {entry['w_recency']:.4f} | PolarW']: {entry['w_polar']:.4f} "
+                msg += f"| ProximityW: {entry['w_proximity']:.4f} | RecencyW: {entry['w_recency']:.4f} | PolarW: {entry['w_polar']:.4f} "
                 msg += f"| TotalW: {entry['w_total']:.4f} | Residual: { deg2dms(entry['residual_magnitude'])}"
                 self.logger.info(msg)
         return
