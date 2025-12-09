@@ -189,15 +189,18 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
    Allow the mount to finish its reset sequence. Wait until all axes reach their final positions and all motion ceases.
 
 - **③ Skip Compass Alignment:** Normally, entering Astro Mode requires a Compass Alignment via the Benro Polaris App. With Pilot, you can bypass this by pressing **Skip**.  
-   - The default Azimuth is **180°**, but you can manually set it to approximate the mount’s current camera direction.  
-   - Note: This Azimuth setting is not equivalent to the Compass Align direction used in the Benro app. It is the direction the camera is pointing in true Azimuth. 
-      * Azimuth reference: 0°=North, 90°=East, 180°=South, 270°=West.
+   - The default Azimuth is **180°**
+   - You may adjust this to approximate the camera’s initial pointing direction, based on how the tripod is oriented.
+   - Note: This value represents *true Azimuth and is different from the Compass Align direction used in the Benro app.
+   - Azimuth reference: 0°=North, 90°=East, 180°=South, 270°=West.
+   - Saving Alpaca Pilot Settings will store this value.
 
 - **④ Skip Single Star Alignment:** Astro Mode also typically requires a Single Star Alignment. You can skip this step in Pilot by pressing **Skip**.  
-   - Defaults: Azimuth **180°**, Altitude **45°**  
-   - You may adjust these to match the camera’s current orientation. 
-      * Azimuth reference: 0°=North, 90°=East, 180°=South, 270°=West. 
-      * Altitude reference: 0°=Horizontal, 10°=Slight upward tilt, 45°=Moderately upward, 82°=Near maximum upward tilt of Polaris.
+   - The default Azimuth is **180°**, and Altitude is **45°**  
+   - You may adjust these to match the camera’s iniital pointing direction, based on how the tripod is oriented. 
+   - Azimuth reference: 0°=North, 90°=East, 180°=South, 270°=West. 
+   - Altitude reference: 0°=Horizontal, 10°=Slight upward tilt, 45°=Moderately upward, 82°=Near maximum upward tilt of Polaris.
+   - Saving Alpaca Pilot Settings will store these values.
 
 
 
