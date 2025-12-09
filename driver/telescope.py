@@ -27,6 +27,7 @@ from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent
 from log import update_log_level
 from orbitals import update_orbital_data, compose_orbital_export
+from control import loadCustomCatalogDataFromFile
 
 logger: Logger = None
 polaris: Polaris = None
@@ -1516,7 +1517,7 @@ class supportedactions:
             "Polaris:SyncRoll", "Polaris:SyncRemove", 
             "Polaris:J2000Sync", "Polaris:J2000Goto"
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
-            "Polaris:GetOrbitals", "Polaris:TrackOrbital"
+            "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:GetCatalog",
         ], req)  
 
 
@@ -1747,6 +1748,13 @@ class action:
             category = parameters.get('category', 6)
             asyncio.create_task(polaris.trackOrbital(name, category)) 
             resp.text = await PropertyResponse('Polaris:TrackOrbital ok', req)  
+            return
+
+        elif actionName == "Polaris:GetCatalog":
+            logger.info("Polaris:GetCatalog requested")
+            export_data = loadCustomCatalogDataFromFile()
+            resp.content_type = "application/json"
+            resp.text = json.dumps(export_data, indent=2)
             return
 
         else:

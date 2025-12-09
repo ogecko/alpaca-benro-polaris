@@ -1,6 +1,6 @@
 import numpy as np
 import datetime
-import json, os
+import json, os, re
 import logging
 from pathlib import Path
 from pyquaternion import Quaternion
@@ -22,6 +22,80 @@ DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current 
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
 CALIBRATION_PATH = DATA_DIR / 'speed_calibration.json'
 TESTDATA_PATH = DATA_DIR / 'speed_testdata.json'
+CATALOG_PATH = DATA_DIR / 'catalog.json'
+
+# ************* Custom Catalog Items *************
+
+# Defaults for catalog fields
+DEFAULTS = {
+    "MainID": "", "Name": "", "Notes": "", "Class": "", "OtherIDs": "",
+    "Rt": 5, "Sz": 8, "Vz": 7, "C1": 9, "C2": 41, "Cn": 85
+}
+
+def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
+    """
+    Loads the custom catalog JSON file, stripping // comments, trailing commas, and enforcing
+    required schema + default values.
+
+    Returns:
+        list of dicts (always)
+    """
+    if not os.path.exists(path):
+        return []
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            raw = f.read()
+
+        # Remove comment lines --- Example matched: "// comment", "   // comment"
+        clean = re.sub(r'^\s*//.*$', '', raw, flags=re.MULTILINE)
+        # Remove trailing commas BEFORE } --- Example:  "Name": "Galaxy", }
+        clean = re.sub(r',\s*}', '}', clean)
+        # --- Remove trailing commas BEFORE ] --- Example:  }, ]
+        clean = re.sub(r',\s*]', ']', clean)
+
+        items = json.loads(clean)
+
+        # Ensure JSON is an array
+        if not isinstance(items, list):
+            raise ValueError("Catalog: Top-level catalog.json must be an array")
+
+        output = []
+        for obj in items:
+            if not isinstance(obj, dict):
+                continue  # skip invalid items
+            cleaned = {}
+            # Ensure all required fields exist with correct types / defaults
+            for key, default in DEFAULTS.items():
+                value = obj.get(key, default)
+                if isinstance(default, int):
+                    try:
+                        value = int(value)
+                    except:
+                        value = default
+                else:
+                    value = str(value) if value is not None else ""
+                cleaned[key] = value
+
+            # Copy any extra fields (e.g., RA_hr, Dec_deg, etc.)
+            for key, value in obj.items():
+                if key not in cleaned:
+                    cleaned[key] = value
+
+            # Clamp numeric ranges 
+            cleaned["Rt"] = max(0, min(5, cleaned["Rt"]))
+            cleaned["Sz"] = max(0, min(8, cleaned["Sz"]))
+            cleaned["Vz"] = max(0, min(7, cleaned["Vz"]))
+            cleaned["C1"] = max(0, min(9, cleaned["C1"]))
+            cleaned["C2"] = max(0, min(41, cleaned["C2"]))
+            cleaned["Cn"] = max(0, min(85, cleaned["Cn"]))
+            output.append(cleaned)
+
+        return output
+
+    except Exception as e:
+        print(f"Catalog: Error loading custom catalog: {e}")
+        return []
 
 
 # ************* Quaternion Kinematics *************

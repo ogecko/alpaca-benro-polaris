@@ -365,6 +365,9 @@ async function onClickGoto(dso: CatalogItem) {
   if (dso.Cn==84) {
     await dev.alpacaTrackOrbital(dso.MainID, dso.C1)
   }
+  else if (dso.C1==9) {
+    await dev.alpacaSlewToAltAz(dso.Alt_deg ?? 180, dso.Az_deg ?? 45)
+  }
   else {
     await dev.alpacaJ2000Goto(dso.MainID, dso.RA_hr, dso.Dec_deg)
   }

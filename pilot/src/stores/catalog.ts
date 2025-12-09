@@ -4,7 +4,7 @@ import { defineStore, acceptHMRUpdate } from 'pinia'
 import { AppVisibility } from 'quasar'
 import { useStatusStore } from './status'
 import { useConfigStore } from './config'
-import { getAzAlt, hrToDeg, toDeg, toRad } from 'src/utils/angles'
+import { AzAlt2RaDec, getAzAlt, hrToDeg, toDeg, toRad } from 'src/utils/angles'
 import { toRaw } from 'vue'
 import { useDeviceStore } from './device'
 // # Total Number of Objects:  3288
@@ -154,6 +154,7 @@ export const useCatalogStore = defineStore('catalog', {
             6: [35, 38], // Satellite
             7: [39, 39], // Commet
             8: [40, 40], // Asteroid
+            9: [41, 41], // Landmark
           };
         // Collect all valid subtype keys based on selected C1 types
         const allowedSubtypes = new Set<number>();
@@ -188,6 +189,7 @@ export const useCatalogStore = defineStore('catalog', {
         this.searchFor = '';
     },
     async catalogFetch() {
+      const custom = await dev.alpacaGetCatalog()
       this.orbs = await dev.alpacaGetOrbitals()
       try {
         const resp = await axios.get('/catalog_top25_lg.json');
@@ -198,7 +200,8 @@ export const useCatalogStore = defineStore('catalog', {
         // Optional: validate structure
         if (!Array.isArray(raw))  throw new Error('Catalog data is not an array');
 
-        const enriched = raw.map((dso: CatalogItem) => ({
+        const combined = [...raw, ...custom]
+        const enriched = combined.map((dso: CatalogItem) => ({
             ...dso,
             Rating: ratingLookup[dso.Rt],
             Visibility: visibilityLookup(dso.Vz, dso.Sz),
@@ -217,7 +220,7 @@ export const useCatalogStore = defineStore('catalog', {
       const latDeg = this.site_lat;
       const lonDeg = this.site_lon;
       this.dsos = this.dsos.map(dso => {
-        const { ra, dec } = getRaDec(dso, this.orbs)
+        const { ra, dec } = getRaDec(dso, this.orbs, latDeg, lonDeg)
         const { az, alt } = getAzAlt(ra, dec, latDeg, lonDeg); //Now
         const Az = enumAz(az)
         const Alt = enumAlt(alt)
@@ -344,9 +347,10 @@ function enumAlt(altDeg: number) {
   return altEnum
 }
 
-function getRaDec(dso: CatalogItem, orbs: OrbitalExport) {
+function getRaDec(dso: CatalogItem, orbs: OrbitalExport, latDeg: number, lonDeg: number) {
   let ra = dso.RA_hr
   let dec = dso.Dec_deg
+  // if orbital
   if (dso.Cn==84) {
     const orb = orbs?.[dso.MainID];
     if (orb) {
@@ -354,6 +358,13 @@ function getRaDec(dso: CatalogItem, orbs: OrbitalExport) {
       dec = orb.DEC_deg ?? dec;
     }
   }
+  // if Landmark
+  if (dso.C1==9) {
+    const az = dso.Az_deg ?? 180;
+    const alt = dso.Alt_deg ?? 45;
+    ({ ra, dec } = AzAlt2RaDec(az, alt, latDeg, lonDeg))
+  }
+
   return { ra, dec }
 }
 
@@ -398,7 +409,7 @@ export const azimuthLookup: Record<DsoAzimuth, string> = {
 };
 
 
-export type DsoType = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type DsoType = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export const typeLookupIcon: Record<DsoType, string>  = {
   0: 'mdi-horse-variant', 
   1: 'mdi-cryengine', 
@@ -409,6 +420,7 @@ export const typeLookupIcon: Record<DsoType, string>  = {
   6: 'mdi-satellite-variant',
   7: 'mdi-magic-staff',
   8: 'mdi-cookie',
+  9: 'mdi-hazard-lights',
 }
 
 export const typeLookup: Record<DsoType, string>  = {
@@ -421,6 +433,7 @@ export const typeLookup: Record<DsoType, string>  = {
   6: 'Satellite',
   7: 'Comet',
   8: 'Asteroid',
+  9: 'Landmark'
 }
 
 
@@ -466,7 +479,7 @@ const brightnessLookup: Record<DsoBrightness, string> = {
 export type DsoSubtype = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
                   10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 |
                   20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 |
-                  31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40;
+                  31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41;
 const subtypeLookup: Record<DsoSubtype, string> = {
   0: 'Chained Galaxies', 
   1: 'Clustered Galaxies', 
@@ -498,7 +511,7 @@ const subtypeLookup: Record<DsoSubtype, string> = {
   27: 'Star Cloud', 
   28: 'Young Stellar Object',
   29: 'Planet', 30: 'Dwarf Planet', 31: 'Martian Moon', 32: 'Galilean Moon', 33: 'Saturnian Moon', 
-  34: 'Natural Satellite', 35: 'Space Station', 36: 'Satellite', 37: 'Rocket Body', 38: 'Space Debris', 39: 'Comet', 40: 'Asteroid'
+  34: 'Natural Satellite', 35: 'Space Station', 36: 'Satellite', 37: 'Rocket Body', 38: 'Space Debris', 39: 'Comet', 40: 'Asteroid', 41: 'Custom'
 }
 
 export type DsoConstellation =
@@ -510,7 +523,7 @@ export type DsoConstellation =
   | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59
   | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69
   | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79
-  | 80 | 81 | 82 | 83 | 84;
+  | 80 | 81 | 82 | 83 | 84 | 85;
 const constellationLookup: Record<DsoConstellation, string> = {
   0: 'Andromeda', 1: 'Antlia', 2: 'Apus', 3: 'Aquila',
   4: 'Aquarius', 5: 'Ara', 6: 'Aries', 7: 'Auriga',
@@ -532,7 +545,7 @@ const constellationLookup: Record<DsoConstellation, string> = {
   68: 'Scutum', 69: 'Serpens', 70: 'Sextans', 71: 'Sagitta',
   72: 'Sagittarius', 73: 'Taurus', 74: 'Telescopium', 75: 'Triangulum Australe',
   76: 'Triangulum', 77: 'Tucana', 78: 'Ursa Major', 79: 'Ursa Minor',
-  80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula', 84: 'Orbit'
+  80: 'Vela', 81: 'Virgo', 82: 'Volans', 83: 'Vulpecula', 84: 'Orbit', 85: 'Custom'
 }
 
 

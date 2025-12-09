@@ -4,7 +4,7 @@ import { HTMLResponseError, NonJSONResponseError, NotFound404Error, AlpacaRespon
 import type { DescriptionResponse, ConfiguredDevicesResponse, SupportedActionsResponse, ActionResponse } from 'src/utils/interfaces'
 import { sleep } from 'src/utils/sleep'
 import type { ConfigResponse } from 'src/stores/config'
-import type { OrbitalExport, DsoType } from 'src/stores/catalog'
+import type { OrbitalExport, DsoType, CatalogItem } from 'src/stores/catalog'
 import { AppVisibility } from 'quasar'
 
 export const useDeviceStore = defineStore('device', {
@@ -206,6 +206,12 @@ export const useDeviceStore = defineStore('device', {
     async setPolarisLBracket(state:boolean) {
       await this.apiAction<void>('Polaris:SetLBracket', `{"state": ${state}}`)
     },
+
+    async alpacaGetCatalog() {
+      const result = await this.api<CatalogItem[]>('api/v1/telescope/0/action', { Action: 'Polaris:GetCatalog', Parameters: ' ' });
+      return result ?? []
+    },
+
 
     async alpacaGetOrbitals() {
       const result = await this.api<OrbitalExport>('api/v1/telescope/0/action', { Action: 'Polaris:GetOrbitals', Parameters: ' ' });

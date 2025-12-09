@@ -253,6 +253,72 @@ export function getAzAlt(
 }
 
 
+/**
+ * Computes approximate RA/Dec for a celestial object
+ * given azimuth/altitude, observer latitude/longitude, and a JS Date.
+ *
+ * Returns:
+ *   ra  — Right Ascension (hours, 0–24)
+ *   dec — Declination (degrees, -90..+90)
+ */
+export function AzAlt2RaDec(
+  azDeg: number,
+  altDeg: number,
+  latDeg: number,
+  lonDeg: number,           // east positive
+  date: Date = new Date()
+): { ra: number; dec: number } {
+
+  // Convert UTC time to Julian Date
+  const JD = date.getTime() / 86400000 + 2440587.5;
+
+  // GMST in degrees 
+  const T = (JD - 2451545.0) / 36525;
+  const GMST = (280.46061837 +
+                 360.98564736629 * (JD - 2451545.0) +
+                 0.000387933 * T * T -
+                 (T * T * T) / 38710000) % 360;
+
+  // Local Sidereal Time (degrees)
+  const lstDeg = (GMST + lonDeg + 360) % 360;
+
+  // Convert inputs to radians
+  const alt = toRad(altDeg);
+  const az  = toRad(azDeg);
+  const lat = toRad(latDeg);
+
+  // ---- Declination ----
+  // sin(dec) = sin(alt)*sin(lat) + cos(alt)*cos(lat)*cos(az)
+  const sinDec =
+    Math.sin(alt) * Math.sin(lat) +
+    Math.cos(alt) * Math.cos(lat) * Math.cos(az);
+
+  const dec = Math.asin(sinDec);
+  const decDeg = toDeg(dec);
+
+  // ---- Hour Angle ----
+  // General formula:
+  // sin(HA) = -sin(az) * cos(alt) / cos(dec)
+  // cos(HA) = (sin(alt) - sin(lat)*sin(dec)) / (cos(lat)*cos(dec))
+  const sinHA = (-Math.sin(az) * Math.cos(alt)) / Math.cos(dec);
+  const cosHA =
+    (Math.sin(alt) - Math.sin(lat) * Math.sin(dec)) /
+    (Math.cos(lat) * Math.cos(dec));
+
+  let ha = Math.atan2(sinHA, cosHA); // radians
+  if (ha < 0) ha += 2 * Math.PI;     // 0–360°
+
+  const haDeg = toDeg(ha);
+
+  // ---- Right Ascension ----
+  // RA = LST - HA
+  const raDeg = (lstDeg - haDeg + 360) % 360;
+  const raHours = raDeg / 15;
+
+  return { ra: raHours, dec: decDeg };
+}
+
+
 export function computeVisibilityRanges(raDeg: number, decDeg: number) {
   const toRadians = (deg:number) => deg * Math.PI / 180;
   const toDegrees = (rad:number) => rad * 180 / Math.PI;

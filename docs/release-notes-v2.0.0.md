@@ -34,6 +34,8 @@
 - **[Installation Docs]** Refresh for V2.0 to include steps to start Alpaca Driver and Alpaca Pilot, referring to Pilot Users Guide for details
 - **[python compatibility]** Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.
 - **[Raspberry Pi]** Add support for Raspberry Pi Zero 2, Pi 3, Pi 4 and Pi 5
+- **[Catalog Customisation]** Added support for user-defined entries in the Alpaca Pilot Catalog
+- **[Catalog Landmarks]** Added support for fixed-position Catalog entries defined by Azimuth/Altitude
 - **[Autologin and Hybernation]** Added hardware setup instructions for Win11 autologin and hybernation disable
 - **[Reset Alignment Procedure]** Document how to reset alignment to a known state
 - **[Troubleshooting A3]** How to resolve ModuleNotFoundError

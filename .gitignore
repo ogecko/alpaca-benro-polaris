@@ -6,9 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
-# Alpaca Logs and Performance data
+# Alpaca Logs, Performance and Custom data
 speed_calibration.json
 speed_testdata.json
+catalog.json
 config.*.json
 *.log
 *.log.*
