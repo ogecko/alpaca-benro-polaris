@@ -301,11 +301,12 @@ Please let us know if you can try any of these features.
 * Benro Connect Android App v3.0.30, iOS App v1.5.0
 * Benro Polaris Android App v3.0.27, iOS App v1.4.4
 * Stellarium Mobile PLUS v1.12.9 Android and iOS.
-* Stellarium Desktop v24.2 Windows
-* Stellarium Desktop v24.3 Qt5 Windows (not Qt6 version)
 * Stellarium Desktop v25.2 Qt6 Windows (requires ASCOM Platform 7)
-* Nina v3.1.1.9001, HocusFocus v3.0.0.17, ASTAP 2024.08.11
+* Stellarium Desktop v24.3 Qt5 Windows (not Qt6 version)
+* Stellarium Desktop v24.2 Windows
+* Nina v3.2.0.9001, HocusFocus v3.0.0.21, LensAF v2.1.0.3, Scope Control  v2.0.2.1
 * Nina v3.1.2.9001, HocusFocus v3.0.0.18, LensAF v2.1.0.2, Scope Control  v2.0.2.0
+* Nina v3.1.1.9001, HocusFocus v3.0.0.17, ASTAP 2024.08.11
 * CCDciel Version beta 0.9.87-3346 Windows
 * Siril v1.2.3 de49749
 ### Drivers and Utilities
