@@ -5,7 +5,7 @@
 |--|--|--|--|
 | [Mark](#beta-tester-mark)| [X] Platform | [X] Results | [X] Summary
 | [Daniel](#beta-tester-daniel)| [X] Platform | [X] Results | [X] Summary
-| [Alex](#beta-tester-alex)| [ ] Platform | [X] Results | [X] Summary
+| [Alex](#beta-tester-alex)| [X] Platform | [X] Results | [X] Summary
 | [Vladimir](#beta-tester-vladimir)| [X] Platform | [X] Results | [ ] Summary
 | [William](#beta-tester-william)| [X] Platform | [X] Results | [ ] Summary
 | [Paul](#beta-tester-paul)| [X] Platform | [X] Results | [ ] Summary
