@@ -316,7 +316,8 @@ Please let us know if you can try any of these features.
 * ASCOM Platform 7 RC7
 * ASCOM Platform 6.6 SP2
 ### Operating Systems
-* Windows 11 Pro v23H2, 
+* Windows 11 Pro v24H2 
+* Windows 11 Pro v23H2 
 * Windows 10
 * MacOS Sonoma 14.6.1
 * MacOS Sequoia 15
