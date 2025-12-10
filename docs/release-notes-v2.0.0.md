@@ -332,7 +332,7 @@ Please let us know if you can try any of these features.
 * Apple Safari 14+
 
 ## Known Issues
-- **[Gimbal Lock]**: There is potential gimbal loack at low altitudes. Please watch mount at all times.
+- **[Gimbal Lock]**: There is potential gimbal lock at low or negative altitudes. Especially at Azimuth ≈ 0°, Altitude ≈ 0°, Roll ≠ 0°. Please watch mount at all times.
 - **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.9 instead.
 
 
