@@ -84,7 +84,7 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
 
     
 ## Installing TPLink Driver on Pi Zero 2 (OPTIONAL)
-The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 kernel. We may meed to install the proper driver.
+The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 kernel. You may meed to build and install a suitable driver using the following procedure. 
 
 11. Connect the TPLink to the Raspberry Pi Zero 2 and list the usb devices connected. This is to confirm the chipset is RTL8821AU.
     ```Bash
@@ -160,7 +160,7 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
     cd platforms/raspberry_pi
     chmod +x wifi.sh
     ```
-20. Run the WiFi Setup script, chaning the interface **wlan1** and SSID name **polaris_3b3906** according
+20. Run the WiFi Setup script, changing the interface **wlan1** and SSID name **polaris_3b3906** according
     ```
     sudo ./wifi.sh wlan1 polaris_3b3906
     ```
