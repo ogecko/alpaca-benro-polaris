@@ -46,6 +46,10 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     chmod +x ./setup.sh
     ./setup.sh
     ```
+    Note that if you want to fetch a specific branch from the Git-Hub repository you can pass the Branch name as the first argument to setup.sh. For example, the following command will fetch the **dev2_0** branch.
+    ```
+    ./setup.sh dev2_0
+    ```
 6. Wait for the following tasks to complete
     * ==SETUP== 1. Update the software on the system, and install dependencies needed for git
     * ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
