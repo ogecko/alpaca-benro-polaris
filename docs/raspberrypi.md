@@ -90,7 +90,9 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     ```
 
 10. Optionally install build tools  
-    On some Raspberry Pi platforms you may encounter issues when installing the `requirements.txt`, where a package is not available for your platform. You may need to install build tools to generate the package from scratch.
+    On some Raspberry Pi platforms you may encounter issues when installing the `requirements.txt`, where a package is not available for your platform. For example, on the **Raspberry Pi Zero 2 W**, there is no compiled version of **numpy** or **scipi** available for pip to install. The script works around this issue by using apt-get to install both of these packages globally outside of pip. 
+    
+    If you encounter other package dependancy issues you may need to install build tools to generate any missing package from scratch.
     ```Bash
     sudo apt install gfortran
     sudo apt install libopenblas-dev
