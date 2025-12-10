@@ -1,15 +1,29 @@
 #!/bin/bash
 set -e
 
-# wifi.sh — Setup Polaris Wi-Fi auto-connect on wlxe4fac4e6dea5
+# wifi.sh — Setup Polaris Wi-Fi auto-connect
 
-INTERFACE="wlxe4fac4e6dea5"
-SSID="polaris_3b3906"
+# --- Parse arguments ---
+INTERFACE="${1:-wlan1}"  # Default to wlan1 if not provided
+SSID="$2"
+
+if [ -z "$SSID" ]; then
+    echo "Usage: $0 <interface> <SSID>"
+    echo "Example: $0 wlan1 polaris_3b3906"
+    exit 1
+fi
 
 CONFIG_FILE="/etc/wpa_supplicant/wpa_supplicant-polaris.conf"
 SERVICE_FILE="/etc/systemd/system/polaris-wifi.service"
 
 echo "== Polaris Wi-Fi Setup =="
+echo "Interface: $INTERFACE"
+echo "SSID: $SSID"
+
+# 1. Stop any running wpa_supplicant for this interface
+sudo pkill -f "wpa_supplicant.*$INTERFACE" || true
+sudo rm -f /var/run/wpa_supplicant/$INTERFACE
+
 
 # 1. Create wpa_supplicant config
 echo "== Writing $CONFIG_FILE =="
@@ -29,13 +43,15 @@ sudo tee $SERVICE_FILE > /dev/null <<EOF
 [Unit]
 Description=Connect $INTERFACE to Polaris hotspot
 After=network.target
+Wants=network.target
 
 [Service]
-Type=simple
-ExecStart=/sbin/wpa_supplicant -i $INTERFACE -c $CONFIG_FILE -D nl80211
-ExecStartPost=/sbin/dhclient $INTERFACE
-Restart=always
-RestartSec=5
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/sbin/wpa_supplicant -B -i $INTERFACE -c $CONFIG_FILE -D nl80211
+ExecStartPost=/sbin/ip addr flush dev $INTERFACE
+ExecStartPost=/sbin/ip addr add 192.168.0.100/24 dev $INTERFACE
+ExecStartPost=/sbin/ip link set $INTERFACE up
 
 [Install]
 WantedBy=multi-user.target

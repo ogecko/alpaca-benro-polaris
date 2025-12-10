@@ -14,8 +14,8 @@ Note that these instructions assume some basic knowledge of linux systems, and i
 
 Most Raspberry Pi models with networking support will work. Avoid Pico boards and the original Raspberry Pi Zero.
 The Alpaca Driver has been validated on the following platforms:
-- **Raspberry Pi Zero 2 W / WH** running Raspbian (Debian Bullseye)
-- **Raspberry Pi 4 (8 GB)** running Raspberry Pi OS (Debian Trixie)
+- **Raspberry Pi Zero 2 W / WH** running Raspbian Pi OS Lite (64-bit) - Debian Trixie
+- **Raspberry Pi 4 (8 GB)** running Raspberry Pi OS (64-bit) - Debian Trixie
 
 ## Install Raspberry Pi OS
 1. Download the Raspberry Pi Imager from the [official website](https://www.raspberrypi.com/software/)
@@ -36,16 +36,16 @@ The Alpaca Driver has been validated on the following platforms:
 These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Connect a **keyboard** and **monitor** directly to the Raspberry Pi, or setup a remote terminal program such as **MobaXterm** or **VS Code**. Login with the username and password you configured during image creation, and then follow the instructions below.
 
 
-1. Download the setup script
+4. Download the setup script
     ```Bash
     wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_0/platforms/raspberry_pi/setup.sh -O setup.sh
     ```
-2. Make it executable and Run the setup script
+5. Make it executable and Run the setup script
     ```Bash
     chmod +x ./setup.sh
     ./setup.sh
     ```
-3. Wait for the following tasks to complete
+6. Wait for the following tasks to complete
     * ==SETUP== 1. Update the software on the system, and install dependencies needed for git
     * ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
     * ==SETUP== 3. Create a pyenv and add to ~/.bashrc.
@@ -54,15 +54,15 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     * ==SETUP== 6. Set up [systemd] services to start the polaris.service at boot time
     * ==SETUP== 7. Starts the service.
 
-4. The Alpaca Driver should now be installed and setup
+7. The Alpaca Driver should now be installed and setup
 
 ## Monitoring and Diagnostic commands
 
-1. To activate the pyenv created by the setup script and added to the .bashrc
+8. To activate the pyenv created by the setup script and added to the .bashrc
     ```Bash
     source ~/.bashrc
     ```
-2. To monitor and control the status of the Alpaca Driver Daemon Service
+9. To monitor and control the status of the Alpaca Driver Daemon Service
     ```Bash
     sudo systemctl status polaris       # Check the service status 
     sudo systemctl stop polaris         # Stop the service 
@@ -70,7 +70,7 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     journalctl -u polaris -f            # View the logs
     ```
 
-3. Optionally install build tools  
+10. Optionally install build tools  
     On some Raspberry Pi platforms you may encounter issues when installing the `requirements.txt`, where a package is not available for your platform. You may need to install build tools to generate the package from scratch.
     ```Bash
     sudo apt install gfortran
@@ -81,26 +81,26 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
 ## Installing TPLink Driver on Pi Zero 2 (OPTIONAL)
 The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 kernel. We may meed to install the proper driver.
 
-1. Connect the TPLink to the Raspberry Pi Zero 2 and list the usb devices connected. This is to confirm the chipset is RTL8821AU.
+11. Connect the TPLink to the Raspberry Pi Zero 2 and list the usb devices connected. This is to confirm the chipset is RTL8821AU.
     ```Bash
     $ lsusb
     Bus 001 Device 002: ID 2357:0120 TP-Link Archer T2U PLUS [RTL8821AU]
     Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
     ```
-2. Install the build tools
+12. Install the build tools
     ```Bash
     echo "deb http://archive.raspberrypi.org/debian/ trixie main" | sudo tee /etc/apt/sources.list.d/raspi.list
     sudo apt update
-    sudo apt install -y dkms git  build-essential linux-headers-rpi-v8r
+    sudo apt install -y dkms git build-essential linux-headers-rpi-v8r
     ```
 
-3. Get the drivers source code
+13. Get the drivers source code
     ```Bash
     git clone https://github.com/aircrack-ng/rtl8812au.git
     cd rtl8812au
     ```
 
-4. Build and install with DKMS
+14. Build and install with DKMS
     ```Bash
     sudo dkms add .
     dkms status
@@ -110,57 +110,71 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     sudo dkms build realtek-rtl88xxau/5.6.4.2~20230501
     sudo dkms install realtek-rtl88xxau/5.6.4.2~20230501
     ```
-5. Load the module
+    If the build fails half way through on a Raspberry Pi Zero 2 W, you may need to increase the zram swap size with the following commands, then repeat the build and install commands above.
+    ```
+    sudo systemctl stop polaris
+    sudo swapoff /dev/zram0
+    echo $((1024*1024*1024)) | sudo tee /sys/block/zram0/disksize
+    sudo mkswap /dev/zram0
+    sudo swapon /dev/zram0
+    swapon --show
+    ``` 
+15. Load the module
     ```Bash
-    MODULE=$(basename $(ls /lib/modules/$(uname -r)/updates/*.ko* | head -n1) .ko.xz)
-    sudo modprobe $MODULE
+    sudo modprobe 88XXau
     ````
-6. Verify the network interface is active  
-    You should see wlan0, and another auto-generated name like wlxe4fac4e6dea5.
+16. Verify the network interface is active  
+    You should see wlan0, and another auto-generated name like **wlan0** or **wlxe4fac4e6dea5**.
     ```Bash
     $ ip link show
     1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
         link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    2: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DORMANT group default qlen 1000
+    2: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DORMANT group default qlen 1000
         link/ether d8:3a:dd:65:71:2e brd ff:ff:ff:ff:ff:ff
-    3: wlxe4fac4e6dea5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state UP mode DORMANT group default qlen 1000
+    3: wlan1: <NO-CARRIER,BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state DORMANT mode DORMANT group default qlen 1000
         link/ether e4:fa:c4:e6:de:a5 brd ff:ff:ff:ff:ff:ff
-
     ````
 
 
 ## Identify Wifi Interface and Polaris SSID
-1. List all Wifi Network Interfaces/Adapters available. It should show `wlan0` for the standard Pi Zero interface and something like `wlxe4fac4e6dea5` for the TPLink. Remember the TPLink interface name for the next section.
+17. List all Wifi Network Interfaces/Adapters available. It should show `wlan0` for the standard Pi Zero interface and something like `wlan1` for the TPLink. Remember the TPLink interface name for the next section.
     ```Bash
     iw dev | grep Interface
     ```
-4. Ensure the Polaris is powered on and list all Wifi Networks SSID visible, relacing `wlan0` with your TPLINK Interface name. Look for a Polaris SSID of `polaris_xxxxxxx`. Remember the Polaris SSID for the next section.
+18. Ensure the Polaris is powered on and list all Wifi Networks SSID visible, replacing `wlan1` with your TPLINK Interface name (if it is different). Look for a Polaris SSID of `polaris_xxxxxxx`. Remember the Polaris SSID for the next section.
     ```Bash
-    sudo iw wlan0 scan | grep SSID
+    sudo iw wlan1 scan | grep SSID
     ```
 
 
 ## Setup of Wifi Connection to Polaris
 The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLINK adapter, to connect to the Polaris automatically.
 
-1. Edit lines 6 and 7 of `platforms/raspberry_pi/wifi.sh` to match your adapter and hotspot.
-    ```
-    INTERFACE="wlxe4fac4e6dea5"
-    SSID="polaris_3b3906"
-    ```
-
-2. Run the wifi.sh setup script.
+19. Change to the platforms/raspberry_pi directory and make the wifi.sh script executable.
     ```
     cd platforms/raspberry_pi
-    sudo ./wifi.sh
+    chmod +x wifi.sh
     ```
-3. Verify that the Polaris wpa_supplicant is running  
+20. Run the WiFi Setup script, chaning the interface **wlan1** and SSID name **polaris_3b3906** according
     ```
-    $ ps aux | grep wpa_supplicant
-    root     23296  0.0  1.5  11900  6988 ?        Ss   13:35   0:00 /sbin/wpa_supplicant -i wlxe4fac4e6dea5 -c /etc/wpa_supplicant/wpa_supplicant-polaris.conf -D nl80211
+    sudo ./wifi.sh wlan1 polaris_3b3906
+    ```
+
+21. Verify that the Polaris wpa_supplicant is running  
+    ```
+    $ ps aux | grep wpa_supplicant-polaris
+    root     23296  0.0  1.5  11900  6988 ?        Ss   13:35   0:00 /sbin/wpa_supplicant -i wlan1 -c /etc/wpa_supplicant/wpa_supplicant-polaris.conf -D nl80211
 
     ```
-4. Check connectivity to the Polaris device
+    If this process is not running, you may need to disable the default wpa_supplicant on wlan1.
+    ```
+    sudo systemctl stop wpa_supplicant@wlan1
+    sudo systemctl disable wpa_supplicant@wlan1
+    sudo rm -f /var/run/wpa_supplicant/wlan1
+    sudo systemctl daemon-reload
+    sudo systemctl restart polaris-wifi.service
+    ```
+22. Check connectivity to the Polaris device
     ```
     $ ping 192.168.0.1
     PING 192.168.0.1 (192.168.0.1) 56(84) bytes of data.
@@ -168,6 +182,38 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
     64 bytes from 192.168.0.1: icmp_seq=2 ttl=64 time=1.63 ms
     64 bytes from 192.168.0.1: icmp_seq=3 ttl=64 time=1.59 ms
     64 bytes from 192.168.0.1: icmp_seq=4 ttl=64 time=1.59 ms
+
+    $ ip addr show wlan1
+    3: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state UP group default qlen 1000
+        link/ether e4:fa:c4:e6:de:a5 brd ff:ff:ff:ff:ff:ff
+        inet 192.168.0.100/24 scope global wlan1
+        valid_lft forever preferred_lft forever
+
+    $ iw dev
+    phy#1
+            Interface wlan1
+                    ifindex 3
+                    wdev 0x100000001
+                    addr e4:fa:c4:e6:de:a5
+                    ssid polaris_3b3906
+                    type managed
+                    channel 36 (5180 MHz), width: 80 MHz, center1: 5210 MHz
+                    txpower 20.00 dBm
+    phy#0
+            Unnamed/non-netdev interface
+                    wdev 0x2
+                    addr da:3a:dd:65:71:2e
+                    type P2P-device
+                    txpower 31.00 dBm
+            Interface wlan0
+                    ifindex 2
+                    wdev 0x1
+                    addr d8:3a:dd:65:71:2e
+                    ssid atlas_6G
+                    type managed
+                    channel 7 (2442 MHz), width: 20 MHz, center1: 2442 MHz
+                    txpower 31.00 dBm
+
     ```
 5. Utility commands to control the polaris-wifi.service
 
