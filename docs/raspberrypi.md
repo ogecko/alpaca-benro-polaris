@@ -38,6 +38,7 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
 
 4. Download the setup script
     ```Bash
+    cd ~
     wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_0/platforms/raspberry_pi/setup.sh -O setup.sh
     ```
 5. Make it executable and Run the setup script
