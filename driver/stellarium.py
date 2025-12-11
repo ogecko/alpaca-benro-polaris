@@ -448,6 +448,7 @@ async def synscan_api(logger, lifecycle: LifecycleController):
     if not Config.enable_synscan:
         return
 
+    server = None
     host = Config.stellarium_synscan_ip_address
     port = Config.stellarium_synscan_port
     logger.info(f"==STARTUP== Serving Stellarium/SynSCAN API on {host}:{port}")
