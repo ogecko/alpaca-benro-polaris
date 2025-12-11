@@ -71,14 +71,26 @@
 #
 import math
 import datetime
+import time
 import re
 import asyncio
 import ephem
+import json
+import logging
+import numpy as np
+from collections import deque
+from pyquaternion import Quaternion
 from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
-from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, clamparcsec, empty_queue
+from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
+from control import quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, wrap_to_360, wrap_to_180
+from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
+from ble_service import BLE_Controller
+
+POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}
+
 
 class Polaris:
     """Simulated telescope device that communicates with Polaris Device
@@ -97,10 +109,12 @@ class Polaris:
     #
     # Only override __init_()  and run() (pydoc 17.1.2)
     #
-    def __init__(self, logger: Logger):
+    def __init__(self, logger: Logger, lifecycle: LifecycleController):
+        dt_now = datetime.datetime.now()
         self._lock = Lock()
         self.name: str = 'device'
-        self.logger = logger
+        self.logger: Logger = logger
+        self.lifecycle: LifecycleController = lifecycle
         #
         # Polaris device communications state variables
         #
@@ -111,16 +125,20 @@ class Polaris:
             '519': asyncio.Queue(),                 # queue for GOTO result (2 return msgs per GOTO)
             '531': asyncio.Queue()                  # queue for TRACK result
         }
-        self._current_mode = -1                     # Current Mode of the Polaris Device (8 = Astro, 1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=HolyG 10=Video, )
-        self._polaris_msg_re = re.compile(r'^(\d\d\d)@([^#]*)#')
+        self._polaris_mode = -1                     # Current Mode of the Polaris Device (1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=Sun, 8=**Astro**, 9=Program, 10=Video )
+        self._polaris_L_bracket = False             # Current L Bracket mode
+        self._polaris_msg_re = re.compile(r'(\d{3})@(.+?)#')
         self._every_50ms_msg_to_send = None         # Fast Move message to send every 50ms
         self._every_50ms_counter = 0                # Fast Move counter, incrementing every 50ms up to 1s
         self._every_50ms_last_timestamp = None      # Fast Move counter, last 1s timestamp
         self._every_50ms_last_alt = None            # Fast Move counter, last 1s polaris altitude
         self._every_50ms_last_az = None             # Fast Move counter, last 1s polaris azimuth
-        self._startup_timestamp = datetime.datetime.now()  # Timestamp for when the driver started.
+        self._startup_timestamp = dt_now            # Timestamp for when the driver started.
+        self._last_517_timestamp = dt_now           # Timestamp for last 517 Orientation Update message from Polaris.
+        self._last_518_timestamp = dt_now           # Timestamp for last 518 Position Update message from Polaris.
+        self._age_517_seconds = 0.0                 # Age in seconds of last 517 message.
+        self._age_518_seconds = 0.0                 # Age in seconds of last 518 message.
         self._performance_data_start_timestamp = None      # Timestamp for Performance Data logging.
-        self._last_518_timestamp = None                    # Timestamp for last 518 Position Update message from Polaris.
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
@@ -132,33 +150,57 @@ class Polaris:
         self._sitelatitude: float = float(Config.site_latitude)     # The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
         self._sitelongitude: float = float(Config.site_longitude)   # The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
         self._siteelevation: float = float(Config.site_elevation)   # The elevation above mean sea level (meters) of the site at which the telescope is located
+        self._sitepressure: float = float(Config.site_pressure)     # The pressure above mean sea level (meters) of the site at which the telescope is located
         self._observer = ephem.Observer()                           # Observer object for the telescopes site
-        self._observer.pressure = Config.site_pressure              # site pressure used for refraction calculations close to horizon
-        self._observer.epoch = ephem.J2000                          # a moment in time used as a reference point for RA/Dec
+        self._observer.pressure = float(Config.site_pressure)       # site pressure used for refraction calculations close to horizon
+        self._observer.epoch = ephem.now()                          # a moment in time used as a reference point for RA/Dec
         self._observer.lat = deg2rad(self._sitelatitude)            # dms version on lat
         self._observer.long = deg2rad(self._sitelongitude)          # dms version of long
-        self._observer.elevation = self._siteelevation              # site elevation
+        self._observer.elevation = float(self._siteelevation)       # site elevation
+        #
+        # Polaris status variables
+        self._battery_is_available: bool = False    # Is the Polaris battery status current
+        self._battery_is_charging: bool = False     # Is the Polaris device currently charging
+        self._battery_level: int = 100              # Battery level of the Polaris device (percentage)
+        self._polaris_sw_ver: str = ''              # Polaris Software Version
+        self._polaris_hw_ver: str = ''              # Polaris Hardware Version
+        self._polaris_astro_ver: str = ''              # Polaris Software Version
         #
         # Telescope device completion flags
         #
         self._connections = {}                      # Dictionary of client's connection status True/False
+        self._compassed: bool = False               # Polaris alignment status. True if compass alignment performed. 
+        self._aligned: bool = False                 # Polaris alignment status. True if one star alignment performed. 
+        self._aligning: bool = False                # Polaris is in the process of aligning single star. 
         self._connected: bool = False               # Polaris connection status. True if any client is connected. False when all clients have left.
-        self._tracking: bool = False                # The state of the telescope's sidereal tracking drive.
+        self._connecting: bool = False              # Polaris is in the process of connecting. 
+        self._tracking: bool = False                # The state of the ASCOM telescope's sidereal tracking drive.
+        self._tracking_in_benro: bool = False       # The state of the Benro Polaris tracking mode.
         self._sideofpier: int = -1                  # Indicates the pointing state of the mount. Unknown = -1
         self._athome: bool = False                  # True if the telescope is stopped in the Home position. Set only following a FindHome() operation, and reset with any slew operation. This property must be False if the telescope does not support homing.
         self._atpark: bool = False                  # True if the telescope has been put into the parked state by the seee Park() method. Set False by calling the Unpark() method.
         self._slewing: bool = False                 # True if telescope is in the process of moving in response to one of the Goto methods or the MoveAxis(TelescopeAxes, Double) method, False at all other times.
         self._gotoing: bool = False                 # True if telescope is in the process of moving in response to one of the Goto methods, False at all other times.
+        self._rotating: bool = False                # True if rotator is in the process of moving 
+        self._zeta_is_moving: bool = False          # True if any M1-3 axis is changing (based on 517 response msg)
+        self._goto_complete_event = None            # asyncio Event to allow notification of goto complete (only used with advanced control gotos)
+        self._rotate_complete_event = None          # asyncio Event to allow notification of rotate complete (only used with advanced control rotates)
+        self._slew_complete_event = None            # asyncio Event to allow notification of slew complete (only used with advanced control rotates)
         self._ispulseguiding: bool = False          # True if a PulseGuide(GuideDirections, Int32) command is in progress, False otherwise
         #
         # Telescope device state variables
         #
-        self._altitude: float = 0.0                 # The Altitude above the local horizon of the telescope's current position (degrees, positive up)
-        self._azimuth: float = 0.0                  # The Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
+        self._altitude: float = 0.0                 # The Pitch/Altitude above the local horizon of the telescope's current position (degrees, positive up)
+        self._azimuth: float = 0.0                  # The Yaw/Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
+        self._roll: float = 0.0                     # The Roll (-180 to +180), 0=after GOTO, -ve=clockwise rotation looking down onto top of Astro mount axis.
+        self._rotation: float = 0.0                 # The Field Rotation (-90 to 90), 0=after GOTO, -ve=clockwise rotation looking at celestrial south pole.
         self._declination: float = 0.0              # The declination (degrees) of the telescope's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property. Reading the property will raise an error if the value is unavailable.
         self._rightascension: float = 0.0           # The right ascension (hours) of the telescope's current equatorial coordinates, in the coordinate system given by the EquatorialSystem property
-        self._p_altitude: float = 0.0               # The Altitude of the Polaris
-        self._p_azimuth: float = 0.0                # The Azimuth of the Polaris
+        self._parallactic_angle: float = 0.0         # The current parallactic angle of the telescope (degrees, -180 to +180)
+        self._position_angle: float = 0.0            # The current position angle of the telescope (degrees, 0 to 360)
+        self._p_altitude: float = 0.0               # The Pirch/Altitude of the Polaris
+        self._p_azimuth: float = 0.0                # The Yaw/Azimuth of the Polaris
+        self._p_roll: float = 0.0                   # The Roll of the Polaris
         self._p_declination: float = 0.0            # The declination (degrees) of the Polaris
         self._p_rightascension: float = 0.0         # The right ascension (hours) of the Polaris
         self._siderealtime: float = 0.0             # The local apparent sidereal time from the telescope's internal clock (hours, sidereal)
@@ -166,24 +208,26 @@ class Polaris:
         self._aim_azimuth: float = 0.0              # The Azimuth of the last goto command
         self._adj_altitude: float = Config.aiming_adjustment_alt    # The Altitude adjustment to correct the aim based on past goto results
         self._adj_azimuth: float = Config.aiming_adjustment_az      # The Azimuth adjustment to correct the aim based on past goto results
-        self._adj_sync_rightascension: float = 0    # The Rightascension adjustment difference between polaris and ascom
-        self._adj_sync_declination: float = 0       # The Declination adjustment difference between polaris and ascom
         self._adj_sync_altitude: float = 0          # The Altitude adjustment difference between polaris and ascom
         self._adj_sync_azimuth: float = 0           # The Azimuth adjustment difference between polaris and ascom
         #
         # Telescope device rates
         #
         self._trackingrate: int = 0                 # Well-known telescope tracking rates. 0 = Sidereal tracking rate (15.041 arcseconds per second).
-        self._trackingrates = [0]                   # Returns a collection of supported DriveRates values that describe the permissible values of the TrackingRate property for this telescope type.
+        self._trackingrates = [0,1,2,3]             # Returns a collection of supported DriveRates values (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
         self._declinationrate: float = 0.0          # The declination tracking rate (arcseconds per SI second, default = 0.0)
         self._rightascensionrate: float = 0.0       # The right ascension tracking rate offset from sidereal (seconds per sidereal second, default = 0.0)
-        self._guideratedeclination: float = 0.0     # The current Declination movement rate offset for telescope guiding (degrees/sec)
-        self._guideraterightascension: float = 0.0  # The current Right Ascension movement rate offset for telescope guiding (degrees/sec)
+        self._guideratedeclination: float = Config.guide_rate_dec * 15/3600      # The current Declination movement rate offset for telescope guiding, default 0.5 x sidereal (degrees/sec)
+        self._guideraterightascension: float = Config.guide_rate_ra * 15/3600    # The current Right Ascension movement rate offset for telescope guiding, default 0.5 x sidereal (degrees/sec)
+        #
+        # Rotator device settings
+        #
+        self._rotator_reverse: bool = False         # Is the rotator in reverse direction.
         #
         # Telescope device settings
         #
         self._alignmentmode: int = 0                # enum for Altitude-Azimuth alignment.
-        self._equatorialsystem: int = 2             # Equatorial coordinate system used by this telescope (2 = J2000 equator/equinox. Coordinates of the object at mid-day on 1st January 2000, ICRS reference frame.).
+        self._equatorialsystem: int = 1             # Equatorial coordinate system used by this telescope (1 = equTopocentric (JNow) 2 = equJ200 (J2000). Coordinates of the object at mid-day on epoch date provided.).
         self._focallength: float = Config.focal_length/1000                       # The telescope's focal length, meters
         self._focalratio: float = Config.focal_ratio                              # The telescope's focal ratio
         self._aperturediameter: float = self._focallength / self._focalratio      # The telescope's effective aperture diameter (meters)
@@ -192,15 +236,16 @@ class Polaris:
         self._supportedactions = []                 # Returns the list of custom action names supported by this driver.
         self._targetdeclination: float = None       # The declination (degrees, positive North) for the target of an equatorial slew or sync operation
         self._targetrightascension: float = None    # The right ascension (hours) for the target of an equatorial slew or sync operation
+        self._targetpositionangle: float = None     # The position angle (degrees) for the target of a rotator move or moveabsolute
         #
         # Telescope capability constants
         #
-        self._canfindhome: bool = False             # True if this telescope is capable of programmed finding its home position (FindHome() method).
+        self._canfindhome: bool = True             # True if this telescope is capable of programmed finding its home position (FindHome() method).
         self._canpark: bool = True                  # True if this telescope is capable of programmed parking (Park()method)
-        self._canpulseguide: bool = False           # True if this telescope is capable of software-pulsed guiding (via the PulseGuide(GuideDirections, Int32) method)
+        self._canpulseguide: bool = True            # True if this telescope is capable of software-pulsed guiding (via the PulseGuide(GuideDirections, Int32) method)
         self._cansetdeclinationrate: bool = False   # True if the DeclinationRate property can be changed to provide offset tracking in the declination axis.
-        self._cansetguiderates: bool = False        # True if the guide rate properties used for PulseGuide(GuideDirections, Int32) can ba adjusted.
-        self._cansetpark: bool = False              # True if this telescope is capable of programmed setting of its park position (SetPark() method)
+        self._cansetguiderates: bool = True         # True if the guide rate properties used for PulseGuide(GuideDirections, Int32) can ba adjusted.
+        self._cansetpark: bool = True              # True if this telescope is capable of programmed setting of its park position (SetPark() method)
         self._cansetpierside: bool = False          # True if the SideOfPier property can be set, meaning that the mount can be forced to flip.
         self._cansetrightascensionrate: bool = False# True if the RightAscensionRate property can be changed to provide offset tracking in the right ascension axis.
         self._cansettracking: bool = True           # True if the Tracking property can be changed, turning telescope sidereal tracking on and off.
@@ -209,18 +254,44 @@ class Polaris:
         self._canslewaltaz: bool = True             # True if this telescope is capable of programmed slewing (synchronous or asynchronous) to local horizontal coordinates
         self._canslewaltazasync: bool = True        # True if this telescope is capable of programmed asynchronous slewing to local horizontal coordinates
         self._cansync: bool = True                  # True if this telescope is capable of programmed synching to equatorial coordinates.
-        self._cansyncaltaz: bool = False            # True if this telescope is capable of programmed synching to local horizontal coordinates
+        self._cansyncaltaz: bool = True             # True if this telescope is capable of programmed synching to local horizontal coordinates
         self._canunpark: bool = True                # True if this telescope is capable of programmed unparking (Unpark() method).
         self._doesrefraction: bool = True           # True if the telescope or driver applies atmospheric refraction to coordinates.
         #
         # Telescope method constants
         #
         self._axisrates = [{ "Maximum":9, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
-        self._axis_Polaris_slewing_rates = [ 0, 0, 0 ]   # Records the Polaris move rate of the primary, seconday and tertiary axis
         self._axis_ASCOM_slewing_rates = [ 0, 0, 0 ]     # Records the ASCOM move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
 
+        # Advanced Control variables
+        self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
+        self._q1s = None                            # The estimated quaternion state based on Kalman Filter
+        self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
+        self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
+        self._theta_meas = None                     # The latest set of Polaris 1-aligned motor axis angles [theta1, theta2, theta3] measured from q1
+        self._theta_state = None                    # The state of 1-aligned motor axis angles [theta1, theta2, theta3] estimated by KF
+        self._omega_meas = None                     # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
+        self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
+        self._cm = CalibrationManager()
+        self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
+        self._motors = {
+            axis: MotorSpeedController(logger, self._cm, axis, self.send_msg)
+            for axis in (0, 1, 2)
+        }
+        self._pid = PID_Controller(logger, self, loop=0.2)
+        self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
+        self._sm = SyncManager(logger, self)
 
+        
+    async def shutdown(self):
+        self.logger.info(f'==SHUTDOWN== Polaris stopping all tasks.')
+        for pid in [self._pid]:
+            await pid.stop_control_loop_task()
+
+        for axis in range(3):
+            motor = self._motors[axis]
+            await motor.stop_disspatch_loop_task()
 
     ########################################
     # POLARIS COMMUNICATIONS METHODS 
@@ -230,93 +301,103 @@ class Polaris:
     # ConnectionAbortedError [WinError 1236] The network connection was aborted by the local system
     # OSError [error 22][WinError 121] The semaphore timeout period has expired
 
+    def _format_connection_error(self, e: Exception) -> str:
+        if isinstance(e, ConnectionAbortedError):
+            return "The Polaris network connection was aborted."
+        if isinstance(e, OSError):
+            if getattr(e, 'winerror', None) == 121:
+                return "Check Network. Cannot open Polaris connection."
+            if getattr(e, 'winerror', None) == 1225:
+                return "Connection refused. Check Polaris App and network."
+            if getattr(e, 'winerror', None) == 1236:
+                return "Connection lost. Reconnect via Polaris App."
+            if getattr(e, 'winerror', None) == 10054:
+                return "Connection reset. Reconnect via Polaris App."
+            if e.errno == 51:
+                return "Check Network. Cannot open Polaris connection"
+            if e.errno in (60, 64):
+                return "Check Hostname. Polaris host unreachable."
+        if isinstance(e, AstroModeError):
+            return "Polaris not in Astro Mode. Use Polaris App to change."
+        if isinstance(e, AstroAlignmentError):
+            return "Polaris not aligned. Complete alignment in Polaris App."
+        if isinstance(e, WatchdogError):
+            return "Polaris not communicating. Resetting connection."
+        return f"Unexpected error: {str(e)}"
+
+
+    async def attempt_polaris_disconnect(self):
+        self.logger.info("==SHUTDOWN== Disconnecting Polaris...")
+        # Close socket connection
+        if self._writer:
+            try:
+                self._writer.close()
+                await self._writer.wait_closed()
+                self.logger.info("==SHUTDOWN== Polaris socket closed.")
+            except Exception as e:
+                self.logger.error(f"==SHUTDOWN== Error closing socket: {e}")
+        # Reset internal state
+        with self._lock:
+            self._connected = False
+            self._connecting = False
+            self._battery_is_available = False
+            self._reader = None
+            self._writer = None
+            self._task_exception = None
+            self._task_errorstr = ""
+
+    async def attempt_polaris_connect(self):
+        try:
+            with self._lock:
+                self._connected = False             # set to true when "Polaris communication init... done"
+                self._connecting = True             # set to false when this function returns"
+                self._battery_is_available = False  # set to true when we get a battery status message
+                self._task_exception = None
+
+            client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
+            self._reader = client_reader
+            self._writer = client_writer
+
+            init_task = asyncio.create_task(self.polaris_init())
+            init_task.add_done_callback(self.task_done)
+            self.logger.info(f'==STARTUP== Starting Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}.')
+            return True
+
+        except Exception as e:
+            self._task_errorstr = self._format_connection_error(e)
+            self.logger.error(self._task_errorstr)
+            self._connecting = False
+            return False
+    
+
+    async def run_connection_cycle(self, max_retries):
+        attempt = 0
+        while (not self.lifecycle.should_shutdown()) and (attempt <= max_retries):
+            try:
+                attempt += 1
+                success = await self.attempt_polaris_connect()
+                if success:
+                    await self.read_msgs()       # blocks until error or shutdown
+                await asyncio.sleep(10)
+        
+            except Exception as e:
+                self._task_errorstr = self._format_connection_error(e)
+                self.logger.error(f"==STARTUP== Connection error: {self._task_errorstr}")
+                await asyncio.sleep(10)
+
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
-        background_watchdog = asyncio.create_task(self._every_2s_watchdog_check())
-        background_watchdog.add_done_callback(self.task_done)
-        background_keepalive = asyncio.create_task(self._every_15s_send_polaris_keepalive())
-        background_keepalive.add_done_callback(self.task_done)
-        background_fastmove = asyncio.create_task(self.every_50ms_send_message())
-        background_fastmove.add_done_callback(self.task_done)
+        self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
+        self.lifecycle.create_task(self._every_1s_watchdog_check(), name="PolarisWatchdog")
+        self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisWatchdog")
+        self.lifecycle.create_task(self.every_50ms_tick(), name="PolarisFastMove")
         if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
-            background_driftcheck = asyncio.create_task(self.every_2min_drift_check())
-            background_driftcheck.add_done_callback(self.task_done)
+            self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
 
-
-        while True:
-            try:
-                self._connected = False             # set to true when "Polaris communication init... done"
-                self._task_exception = None
-                client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
-                self._reader = client_reader
-                self._writer = client_writer
-                logger.info(f'==STARTUP== Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}. ')
-                init_task = asyncio.create_task(self.polaris_init())
-                init_task.add_done_callback(self.task_done)
-                await self.read_msgs()
-
-            except ConnectionAbortedError as e:
-                self._task_errorstr = f'==STARTUP== The Polaris network connection was aborted.'
-                logger.error(self._task_errorstr)
-                await asyncio.sleep(5)
-                continue
-
-            except OSError as e:
-                if hasattr(e, 'winerror'):
-                    if e.winerror == 121:
-                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App. Check Wifi connection.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                    if e.winerror == 1225:
-                        self._task_errorstr = f'==STARTUP== Network connection to Polaris was refused. Connect with Polaris App. Check Wifi connection.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                    if e.winerror == 1236:
-                        self._task_errorstr = f'==ERROR== Network connection to Polaris lost. Use Polaris App to reconnect.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                    if e.winerror == 10054:
-                        self._task_errorstr = f'==ERROR== Network connection to Polaris reset. Use Polaris App to reconnect.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-
-                elif e.errno == 51:
-                        self._task_errorstr = f'==STARTUP== Cannot open network connection to Polaris. Connect with Polaris App. Check Wifi connection.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                # errno = 60: Operation timed out
-                # errno = 64: Host is down
-                elif e.errno == 60 or e.errno == 64:
-                        self._task_errorstr = f'==ERROR== Network connection to Polaris lost. Use Polaris App to reconnect.'
-                        logger.error(self._task_errorstr)
-                        await asyncio.sleep(5)
-                        continue
-                else:
-                    raise e
-
-                
-            except AstroModeError as e:
-                self._task_errorstr = f'==STARTUP== Polaris not in Astro Mode. Use Polaris App to change.'
-                logger.error(self._task_errorstr)
-                await asyncio.sleep(15)
-                continue
-
-            except AstroAlignmentError as e:
-                self._task_errorstr = f'==STARTUP== Polaris not Aligned. Use Polaris App to complete alignment.'
-                logger.error(self._task_errorstr)
-                await asyncio.sleep(15)
-                continue
-
-            except WatchdogError as e:
-                self._task_errorstr = f'==STARTUP== Polaris not communicating. Resetting connection.'
-                logger.error(self._task_errorstr)
-                await asyncio.sleep(2)
-                continue
+        if Config.polaris_auto_retry:
+            self.lifecycle.create_task(self.run_connection_cycle(float('inf')), name="PolarisConnectionCycle")
+        else:
+            self.logger.info("==STARTUP== Auto-restart disabled. Awaiting manual connection trigger.")
 
     def task_done(self, task):
         # task.exception raises an exception if the task was cancelled, so only grab it if not cancelled.
@@ -325,32 +406,46 @@ class Polaris:
             self._task_exception = task.exception()
 
     async def send_msg(self, msg):
-        if Config.log_polaris_protocol:
+        if self.lifecycle.should_shutdown():
+            return
+        parts = msg.strip('#').split('&')
+        ispoll = len(parts)>1 and parts[1] in POLARIS_POLL_COMMANDS
+        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
             self.logger.info(f'->> Polaris: send_msg: {msg}')
-        if self._writer:
-            self._writer.write(msg.encode())
-            await self._writer.drain()
+        try:
+            if self._writer:
+                if self._writer.transport.is_closing():
+                    self.logger.warning("Writer transport is closing — skipping drain")
+                    return
+                self._writer.write(msg.encode())
+                await asyncio.wait_for(self._writer.drain(), timeout=2.0)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError, asyncio.TimeoutError) as e:
+            self._task_exception = e
+            self.logger.error(f"==SEND== Failed to send message: {e}")
 
-    async def _every_2s_watchdog_check(self):
+    async def _every_1s_watchdog_check(self):
         while True:
             try: 
-                # calculate age of last 518 message
+                # calculate age of last 517 and 518 message
                 curr_timestamp = datetime.datetime.now()
-                if not self._last_518_timestamp:
-                    self._last_518_timestamp = curr_timestamp
-                age_of_518 = (curr_timestamp - self._last_518_timestamp).total_seconds()
+                self._age_518_seconds = (curr_timestamp - self._last_518_timestamp).total_seconds()
+                self._age_517_seconds = (curr_timestamp - self._last_517_timestamp).total_seconds()
 
-                # self.logger.info(f'->> Polaris: age_of_518 is {age_of_518}s.')
+                # get update on true orientation
+                if self._connected:
+                    await self.send_cmd_517()
+
                 # if we dont have any updates, even after trying to restart AHRS, then reboot the connection
-                if self._connected and age_of_518 > 5:
+                if self._connected and self._aligned and self._age_518_seconds > 5:
                     self._task_exception = WatchdogError("==ERROR==: No position update for over 5s. Rebooting Connection.")
 
                 # if we dont have any updates for over 2s, then restart AHRS.
-                if self._connected and age_of_518 > 2:
-                    self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
+                if self._connected and self._aligned and self._age_518_seconds > 2:
+                    if Config.log_polaris_protocol:
+                        self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
 
             except Exception as e:
                 self._task_exception = e
@@ -358,9 +453,10 @@ class Polaris:
 
     async def every_2min_drift_check(self):
         while True:
-            try: 
-                ra = self._targetrightascension
-                dec = self._targetdeclination
+            try:
+                with self._lock: 
+                    ra = self._targetrightascension
+                    dec = self._targetdeclination
                 if self.connected:
                     await self.drift_error_test(ra,dec,duration=120)
                 else:
@@ -373,20 +469,17 @@ class Polaris:
         while True:
             try: 
                 if self._connected:
-                    await self.send_cmd_query_current_mode_async()
+                    await self.send_cmd_284_query_current_mode_async()
                 await asyncio.sleep(15)
 
             except Exception as e:
                 self._task_exception = e
                 break
 
-    async def every_50ms_send_message(self):
+    async def every_50ms_tick(self):
         while True:
             try: 
                 await self.every_50ms_counter_check()
-                msg = self._every_50ms_msg_to_send
-                if (msg):
-                    await self.send_msg(msg)
                 await asyncio.sleep(0.05)
             except Exception as e:
                 self._task_exception = e
@@ -427,16 +520,6 @@ class Polaris:
                 self._every_50ms_last_p_azimuth = self._p_azimuth
                 self._every_50ms_last_a_rates = self._axis_ASCOM_slewing_rates.copy()
 
-    def every_50ms_msg_to_set(self, msg):
-        self._lock.acquire()
-        self._every_50ms_msg_to_send = msg
-        self._lock.release()
-    
-    def every_50ms_msg_to_clear(self):
-        self._lock.acquire()
-        self._every_50ms_msg_to_send = None
-        self._lock.release()
-
     def get_performance_data_time(self):
         dt_now = datetime.datetime.now()
         if not self._performance_data_start_timestamp:
@@ -444,28 +527,26 @@ class Polaris:
         time = (dt_now - self._performance_data_start_timestamp).total_seconds()
         return time
 
-    def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.J2000):
+    def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.now()):
         target = ephem.FixedBody()
         target._ra = hr2rad(ra)
         target._dec = deg2rad(dec)
         target._epoch = epoch
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
-        self._observer.date = now + datetime.timedelta(seconds=inthefuture)
+        self._observer.date = ephem.Date(datetime.datetime.utcnow())
         target.compute(self._observer)
         alt = rad2deg(target.alt)
         az = rad2deg(target.az)
         return alt,az
 
     def altaz2radec(self, alt, az):
-        self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self._observer.date = ephem.Date(datetime.datetime.utcnow())
+        self._siderealtime =  self._observer.sidereal_time()/math.pi*12
         ra_rad, dec_rad = self._observer.radec_of(deg2rad(az), deg2rad(alt))
         ra = rad2hr(ra_rad)  
         dec = rad2deg(dec_rad)
         return ra, dec
 
     def radec_sync_reset(self):
-        self._adj_sync_rightascension = 0
-        self._adj_sync_declination = 0
         self._adj_sync_altitude = 0
         self._adj_sync_azimuth = 0
         return
@@ -480,42 +561,35 @@ class Polaris:
         p_az = a_az - self._adj_sync_azimuth
         return p_alt, p_az
 
-    def radec_polaris2ascom(self, p_ra, p_dec):
-        a_ra = p_ra + self._adj_sync_rightascension
-        a_dec = p_dec + self._adj_sync_declination
-        return a_ra, a_dec
+    async def sync_to_azalt(self, a_az, a_alt):
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
+        self.logger.info(f"->> Polaris: SYNC Observed   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
+        await self.sync_telescope_pointing_models(a_az=a_az, a_alt=a_alt)
+        return
 
-    def radec_ascom2polaris(self, a_ra, a_dec):
-        p_ra = a_ra - self._adj_sync_rightascension
-        p_dec = a_dec - self._adj_sync_declination
-        return p_ra, p_dec
+    async def sync_to_radec(self, a_ra, a_dec):
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
+        self.logger.info(f"->> Polaris: SYNC Observed   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} ({syncmsg})")
+        await self.sync_telescope_pointing_models(a_ra=a_ra, a_dec=a_dec)
+        return
 
-
-    async def radec_ascom_sync(self, a_ra, a_dec):
-        a_alt, a_az = self.radec2altaz(a_ra, a_dec)
-        self.logger.info(f"->> Polaris: SYNC ASCOM   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} good")
-
-        if Config.sync_pointing_model==1:
-            # Use RA/Dec Sync Pointing model
-            p_ra = self._p_rightascension
-            p_dec = self._p_declination
-            offset_ra = a_ra - p_ra
-            offset_dec = a_dec - p_dec
-            self._adj_sync_rightascension = offset_ra
-            self._adj_sync_declination = offset_dec
-            self.logger.info(f"->> Polaris: SYNC POLARIS RA {hr2hms(p_ra)} Dec {deg2dms(p_dec)} bad")
-            self.logger.info(f"->> Polaris: SYNC Offset  RA {hr2hms(offset_ra)} Dec {deg2dms(offset_dec)}")
+    async def sync_telescope_pointing_models(self, a_ra=None, a_dec=None, a_az=None, a_alt=None, name=None):
+        if a_ra is not None and a_dec is not None:
+            a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+        elif a_az is not None and a_alt is not None:
+            a_ra, a_dec = self.altaz2radec(a_alt, a_az)
         else:
-            # Use Alt/Az Sync Pointing model
-            p_alt = self._p_altitude
-            p_az = self._p_azimuth
-            offset_alt = a_alt - p_alt
-            offset_az = a_az - p_az
-            self._adj_sync_altitude = offset_alt
-            self._adj_sync_azimuth = offset_az
-            self.logger.info(f"->> Polaris: SYNC ASCOM   Alt {deg2dms(a_alt)} Az {deg2dms(a_az)} good")
-            self.logger.info(f"->> Polaris: SYNC POLARIS Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} bad")
-            self.logger.info(f"->> Polaris: SYNC Offset  Alt {deg2dms(offset_alt)} Az {deg2dms(offset_az)}")
+            self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
+            return
+
+        if Config.advanced_alignment and Config.advanced_control:
+            # Use Multi-Point Alignment and QUEST Model to determine Optimal Quaternion offset
+            self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)}")
+            self._sm.sync_az_alt(a_ra, a_dec, a_az, a_alt)
+
+        else:
+            # Use Single-Point Alignment and Alt/Az Sync Pointing model, send through to Polaris
+            asyncio.create_task(self.send_cmd_star_alignment(a_az, a_alt))
 
         self._rightascension = a_ra 
         self._declination = a_dec
@@ -523,70 +597,106 @@ class Polaris:
         self._targetdeclination = a_dec
         self._altitude = a_alt
         self._azimuth = a_az
-
-        if Config.sync_pointing_model==0 and Config.sync_N_point_alignment:
-            # Record all synctocordinates results
-            dt_now = datetime.datetime.now()
-            x = { "time": dt_now, "aAz": a_az, "aAlt": a_alt,  "oAz": offset_az, "oAlt": offset_alt }
-            self.logger.info(f'->> Polaris: SYNC Star Align at Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}')
-            key = f"{round(a_az/15)*15:3}"
-            if not key in self._N_point_alignment_results:
-                self._N_point_alignment_results[key] = []
-            self._N_point_alignment_results[key].append(x)
-            # Print past syncs out to log file
-            for key in self._N_point_alignment_results:
-                self.logger.info(f'->> Polaris: SYNC Star Align Summary around {key} degrees')
-                for x in self._N_point_alignment_results[key]:
-                    self.logger.info(f'->>     {x["time"].strftime("%H:%M:%S")} | Az {deg2dms(x["aAz"])} Alt {deg2dms(x["aAlt"])} | SyncOffset Az {deg2dms(x["oAz"])} Alt {deg2dms(x["oAlt"])}')
-            # Perform the actual star alignment on the Polaris
-            asyncio.create_task(self.send_cmd_star_alignment(a_alt, a_az))
-            # No longer need a sync adjustment since Polaris has been aligned
-            self._adj_sync_azimuth = 0
-            self._adj_sync_altitude = 0
-
+        self._pid.alpha_sp[0] = a_az
+        self._pid.alpha_sp[1] = a_alt
+        self._pid.delta_sp[0] = a_ra * 15
+        self._pid.delta_sp[1] = a_dec
+        corrected_position_angle, _ = self._sm.roll2pa(a_az, a_alt, self._roll) # to preserve roll
+        self._pid.delta_sp[2] = corrected_position_angle
+        self.logger.info(f"->> Polaris: DeltaSP    RA {hr2hms(self._pid.delta_sp[0]/15)} Dec {deg2dms(self._pid.delta_sp[1])} PA {deg2dms(self._pid.delta_sp[2])}")
+        self.logger.info(f"->> Polaris: DeltaOfft  RA {hr2hms(self._pid.delta_offst[0]/15)} Dec {deg2dms(self._pid.delta_offst[1])} PA {deg2dms(self._pid.delta_offst[2])}")
 
         return
 
+    async def skip_compass_alignment(self, compass):
+            await self.send_cmd_compass_alignment(compass)
+            await self.send_cmd_284_query_current_mode()
+            await self.send_cmd_520_position_updates(True)
+
+
+
+    async def skip_star_alignment(self, azimuth, altitude):
+            self._aligning = True
+            await self.send_cmd_star_alignment(azimuth, altitude)
+            await self.send_cmd_284_query_current_mode()
+            await self.send_cmd_520_position_updates(True)
+            self._aligning = False
+
     async def read_msgs(self):
         buffer = ""
-        while True:
-            # read protocol from Polaris, adding it to the buffer
-            if self._reader:
-                data = await self._reader.read(1024)
-                if data:
+        try:
+            while not self.lifecycle.should_shutdown():
+                # Raise any subtask exceptions immediately
+                if self._task_exception:
+                    raise self._task_exception
+
+                # Read from Polaris
+                if self._reader:
+                    try:
+                        data = await asyncio.wait_for(self._reader.read(1024), timeout=2.0)
+                    except asyncio.TimeoutError:
+                        continue  # No data, keep looping
+                    except (ConnectionResetError, BrokenPipeError) as e:
+                        self.logger.error(f"==DISCONNECT== Polaris socket error: {e}")
+                        self._connecting = False
+                        break
+                    if not data:
+                        self.logger.warn("==DISCONNECT== Polaris socket closed.")
+                        self._connecting = False
+                        break
+
                     buffer += data.decode()
 
-            # raise any subtask exceptions so polaris.client can pick them up
-            if  self._task_exception:
-                raise self._task_exception
-                   
-            # parse all the messages in the buffer
-            while buffer:
-                cmd, args, buffer = self.parse_msg(buffer)
-                if cmd:
-                    if Config.log_polaris_protocol and not((cmd == "518" or cmd == "284" or cmd == "525") and Config.supress_polaris_frequent_msgs):
-                        self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
-                    self.polaris_parse_cmd(cmd, args)
-            else:
-                # dont overload the platform trying to read data from polaris too quickly
+                # Parse all messages in the buffer
+                while True:
+                    cmd, args, new_buffer = self.parse_msg(buffer)
+                    if cmd:
+                        buffer = new_buffer
+                        ispoll = cmd in POLARIS_POLL_COMMANDS
+                        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
+                            self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
+                        self.polaris_parse_cmd(cmd, args)
+                    else:
+                        break  # No complete message yet — wait for more data
+
+                # Avoid tight loop
                 await asyncio.sleep(0.05)
 
-    # Parse a buffer returning a matched (cmd, args, remainingbuffer) or a cleared remaining buffer (False, False, "")
-    def parse_msg(self, buffer):
-        m = self._polaris_msg_re.match(buffer)
-        if m:
-            return (m.group(1), m.group(2), buffer[len(m.group(0)):])
-        else:
-            if Config.log_polaris and Config.log_polaris_protocol:
-                self.logger.info(f"<<- Polaris: Unmatched msg: {buffer}")
-            return (False, False, "")
+        except asyncio.CancelledError:
+            self.logger.info("==CANCELLED== PolarisReadMsgs cancelled.")
+            self._connecting = False
+            raise
 
-    def polaris_parse_args(self, args_str):
+        except Exception as e:
+            self._task_exception = e
+            self.logger.error(f"==ERROR== read_msgs failed: {e}")
+            self._connecting = False
+
+    # Parse a buffer returning a matched (cmd, args, remainingBuffer) or when no match (None, None, remainingBuffer)
+    def parse_msg(self, buffer):
+        m = self._polaris_msg_re.search(buffer)
+        if m:
+            start, end = m.span()
+            cmd = m.group(1)
+            args = m.group(2)
+            remaining = buffer[end:]
+            if start > 0 and Config.log_polaris_protocol:
+                self.logger.warn(f"<<- Polaris: Discarding junk protocol: {bytes2hexascii(buffer[:start].encode())}")
+            return (cmd, args, remaining)
+        else:
+            # No complete message yet — wait for more data
+            return (None, None, buffer)
+
+    def polaris_parse_args(self, args_str, name_postfix=False):
         # chop the last ";" and split
+        postfix = 0
         args = args_str[:-1].split(";")
         arg_dict = {}
         for arg in args:
             (name, value) = arg.split(":", 1)
+            if name_postfix and name in ['w', 'x', 'y', 'z']:
+                postfix = postfix + 1 if name == 'w' else postfix
+                name = f"{name}{postfix}"
             arg_dict[name] = value
         return arg_dict
 
@@ -594,57 +704,103 @@ class Polaris:
         # return result of MODE request {} 
         if cmd == "284":
             arg_dict = self.polaris_parse_args(args)
-            self._lock.acquire()
-            self._current_mode = int(arg_dict['mode'])
-            self._tracking = bool(arg_dict['track'] == '1') if 'track' in arg_dict else False
-            self._lock.release()
-            if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
+            with self._lock:
+                self._polaris_mode = int(arg_dict['mode'])
+                if self._polaris_mode == 8:
+                    isAligned = not arg_dict.get('track') == '3'
+                    self._tracking_in_benro = arg_dict.get('track') == '1'
+                    self._aligned = isAligned
+                    self._compassed = isAligned
+                if not (Config.advanced_tracking and Config.advanced_control):        # only update tracking if Benro in control
+                    self._tracking = self._tracking_in_benro
+            if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: MODE status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
                 self._response_queues[cmd].put_nowait(arg_dict)
 
+        # return result of set Mode {} 
+        elif cmd == "285":
+            arg_dict = self.polaris_parse_args(args)
+            if arg_dict.get('ret') == '0':
+                with self._lock:
+                    self._polaris_mode = int(arg_dict['mode'])
+
+        # return result of Query Orientation request {} 
+        elif cmd == "517":
+            dt_now = datetime.datetime.now()
+            arg_dict = self.polaris_parse_args(args)
+            # Orientation of each axis motor rotational position in radians
+            # Typical Park Position yaw=-0.000280, pitch=0.000267, roll=0.000375
+            # yaw   = axis1 E rotation in radians (-2pi=-360, -pi=-180, 0=Park, pi=180;, 2pi=360, 3pi=540, etc.)
+            # pitch = axis2 down rotation in radians (-0.6144=highest/83d00'37", 0=Park/47d46'06", 0.834020=0d, 0.914842=lowest/-04d38'04")
+            # roll  = axis3 cw rotation in radians (-2pi=-360, -pi=-180, 0=Park, pi=180;, 2pi=360, 3pi=540', etc.)
+            p_yaw = rad2deg(float(arg_dict['yaw']))         # from Polaris direct
+            p_pitch = -rad2deg(float(arg_dict['pitch']))    # from Polaris direct, note sign switch to align with Alt direction
+            p_roll = rad2deg(float(arg_dict['roll']))       # from Polaris direct
+
+            with self._lock:
+                self._last_517_timestamp = dt_now
+                threshold = 0.01
+                new_zeta = [p_yaw, p_pitch, p_roll]
+                prev_zeta = getattr(self, '_zeta_meas', None)
+                if prev_zeta is None:
+                    self._zeta_is_moving = False  # first update is not moving
+                else:
+                    self._zeta_is_moving = any( abs(new - old) > threshold for new, old in zip(new_zeta, prev_zeta) )
+                self._zeta_meas = new_zeta
+
+            if Config.log_polaris_polling:
+                self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
+
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":
             dt_now = datetime.datetime.now()
-            self._last_518_timestamp = dt_now
-            arg_dict = self.polaris_parse_args(args)
-            p_az = float(arg_dict['compass'])
-            p_alt = -float(arg_dict['alt'])
-            self._lock.acquire()
-            self._p_altitude = p_alt
-            self._p_azimuth = p_az
-            p_ra, p_dec = self.altaz2radec(p_alt, p_az)
-            self._p_rightascension = p_ra 
-            self._p_declination = p_dec
-            self._lock.release()
-            if Config.sync_pointing_model==1:
-                # Use RA/Dec Sync Pointing model
-                a_ra, a_dec = self.radec_polaris2ascom(p_ra, p_dec)
-                self._rightascension = a_ra 
-                self._declination = a_dec
-                a_alt, a_az = self.radec2altaz(a_ra, a_dec)
-                self._altitude = a_alt
-                self._azimuth = a_az
-            else:
-                # Use Alt/Az Sync Pointing model
-                a_alt, a_az = self.altaz_polaris2ascom(p_alt, p_az)
-                self._altitude = a_alt
-                self._azimuth = a_az
-                a_ra, a_dec= self.altaz2radec(a_alt, a_az)
-                self._rightascension = a_ra 
-                self._declination = a_dec
+    
+            # extract the quaternion and derive its angles and velocities
+            arg_dict = self.polaris_parse_args(args, name_postfix=True)
+            q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
+            p_az = float(arg_dict['compass'])   # from Polaris direct
+            p_alt = -float(arg_dict['alt'])     # from Polaris direct
+            q_t1, q_t2, q_t3, q_az, q_alt, q_roll = quaternion_to_angles(q1, azhint=p_az)
+            q_ra, q_dec = self.altaz2radec(q_alt, q_az)
+            theta_meas = np.array([q_t1, q_t2, q_t3])
+            self._history.append([dt_now, q_t1, q_t2, q_t3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
+            omega_meas = calculate_angular_velocity(self._history)
+            omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
 
-            # if we ant to log position data
-            if Config.log_performance_data == 4:
-                a_slew = self._slewing
-                a_goto = self._gotoing
-                a_track = self.tracking
-                t_ra = self._targetrightascension if self._targetrightascension else a_ra       # Target Right Ascention (hours)
-                t_dec = self._targetdeclination if self._targetdeclination else a_dec           # Target Declination (degrees)
-                e_ra = clamparcsec((t_ra - a_ra)*3600*360/24)                                   # Error Right Ascention (arc seconds)
-                e_dec = clamparcsec((t_dec - a_dec)*3600)                                       # Error Declination (arc seconds)
-                time = self.get_performance_data_time()
-                self.logger.info(f",DATA4,{time:.3f},{a_track},{a_slew},{a_goto},{t_ra:.7f},{t_dec:.7f},{a_ra:.7f},{a_dec:.7f},{a_az:.7f},{a_alt:.7f},{e_ra:.3f},{e_dec:.3f}")
+            # Store all the polaris values
+            with self._lock:
+                self._last_518_timestamp = dt_now
+                self._q1 = q1
+                self._theta_meas = theta_meas
+                self._omega_meas = omega_meas
+                self._p_azimuth = float(q_az)
+                self._p_altitude = float(q_alt)
+                self._p_roll = float(q_roll)
+                self._p_rightascension = float(q_ra) 
+                self._p_declination = float(q_dec)
+
+            # Process through the Kalman Filter to determine Polaris theta_state (uncorrected for alignment)
+            self._kf.predict(omega_ref)
+            self._kf.observe(theta_meas, omega_meas, omega_ref)
+            theta_state, _ = self._kf.get_state()
+            q1_state = motors_to_quaternion(*theta_state)
+
+            # Flag when variance from quaternion q_az and p_az
+            if Config.log_polaris_polling:
+                if not is_angle_same(q_az, p_az):
+                    self.logger.warn(f"Kinematics variance p_az {p_az:.5f} q_az {q_az:.5f} diff {p_az - q_az:.5f} ")              
+                if not is_angle_same(q_alt, p_alt):
+                    self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} q_alt {q_alt:.5f} diff {p_alt - q_alt:.5f}") 
+
+            # Use direct measurements if no KF
+            if not (Config.advanced_kf and Config.advanced_control):
+                q1_state, theta_state = q1, theta_meas
+
+            # update all the ASCOM values and the PID loop
+            delta_state, alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1_state, azhint=p_az)
+            self._pid.measure(delta_state, alpha_state, theta_state, self._zeta_meas)
+
 
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
         elif cmd == "519":
@@ -654,89 +810,149 @@ class Polaris:
 
         # return result of UNKNOWN command SP_SendMsgToApp success;type[2],code[525],val[Tempa509ca361d0000265a ;]
         elif cmd == "525":
-            if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
+            if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: 525 status changed: {cmd} {args}")
+
+        # return result of SET COMPASS
+        elif cmd == "527":
+            arg_dict = self.polaris_parse_args(args)
+            self._compassed = arg_dict.get('ret') == '0'
+            if Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: 527 Set Compass: {cmd} {arg_dict}")
 
         # return result of TRACK change request {'ret': 'X'} where X=0 (NoTracking), X=1 (Tracking)
         elif cmd == "531":
             arg_dict = self.polaris_parse_args(args)
-            self._lock.acquire()
-            self._tracking = (arg_dict['ret'] == '1')
-            self._lock.release()
-            if Config.log_polaris:
+            with self._lock:
+                self._tracking_in_benro = arg_dict.get('ret') == '1'
+                if not (Config.advanced_tracking and Config.advanced_control):        # only update tracking if Benro in control
+                    self._tracking = self._tracking_in_benro
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: TRACK status changed: {cmd} {arg_dict}")
             if cmd in self._response_queues:
                 self._response_queues[cmd].put_nowait(arg_dict)
 
+        # return result of query L Bracket {} 
+        elif cmd == "545":
+            arg_dict = self.polaris_parse_args(args)
+            self._polaris_L_bracket = arg_dict.get('dir') == '1'
+            if Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: QUERTY L Bracket status response: {cmd} {arg_dict}")
+
+        # return result of query L Bracket {} 
+        elif cmd == "546":
+            arg_dict = self.polaris_parse_args(args)
+            if Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: SET L Bracket: {cmd} {arg_dict}")
+
         # return result of FILE request {'type':1; 'class':0; 'path':'/app/sd/normal/SP_0052.jpg'; 'size':'916156'; 'cTime':'2023-10-24 22:33:12'; 'duration':'0'} 
         elif cmd == "771":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: FILE status changed: {cmd} {arg_dict}")
 
         # return result of STORAGE request {'status': '1', 'totalspace': '30420', 'freespace': '30163', 'usespace': '256'} 
         elif cmd == "775":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: STORAGE status changed: {cmd} {arg_dict}")
 
         # return result of BATTTERY request {'capacity': 'X', 'charge': 'Y'}  X=batttery%, Y=1 (charging), Y=0 (draining)
         elif cmd == "778":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
-                self.logger.info(f"<<- Polaris: BATTERY status changed: {cmd} {arg_dict}")
+            with self._lock:
+                self._battery_is_available = True
+                self._battery_is_charging = (arg_dict['charge'] == '1')
+                self._battery_level = int(arg_dict['capacity'])
+            self.logger.info(f"<<- Polaris: BATTERY status changed: {cmd} {arg_dict}")
 
         # return result of VERSION request {'hw':'1.3.1.4'; 'sw': '6.0.0.40'; 'exAxis':'1.0.2.11'; 'sv':'1'} 
         elif cmd == "780":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            with self._lock:
+                self._polaris_sw_ver = arg_dict.get('sw')
+                self._polaris_hw_ver = arg_dict.get('hw')
+                self._polaris_astro_ver = arg_dict.get('exAxis')
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: VERSION status changed: {cmd} {arg_dict}")
 
         # return result of SECURITY request {'step': '1', 'password': 'YmVucm8=', 'securityQ': '2', 'securityA': 'QnJhaW4='}
         elif cmd == "790":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: SECURITY status changed: {cmd} {arg_dict}")
 
         # return result of WIFI request {'band': '1'}
         elif cmd == "802":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: WIFI status changed: {cmd} {arg_dict}")
 
         # return result of Connection request result {'ret': '0'}
         elif cmd == "808":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris and Config.log_polaris_protocol:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: Connection request result: {cmd} {arg_dict}")
 
         # return result of Position Updaten request result {'ret': '1'}
         elif cmd == "520":
             arg_dict = self.polaris_parse_args(args)
-            if Config.log_polaris and Config.log_polaris_protocol:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: Position Update request result: {cmd} {arg_dict}")
-
 
         # return result of unrecognised msg
         else:
-            if Config.log_polaris and not Config.log_polaris_protocol:
+            if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: response to command received: {cmd} {args}")
 
 
+
+    def update_ascom_from_new_q1_adj(self, q1_state, azhint):
+        # default to the ASCOM az,alt,roll values based on a q1 state
+        a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1_state, azhint=azhint)
+
+        # Correct the ASCOM az,alt,roll values with the Multi-Point QUEST optimal adj and re-grab
+        if Config.advanced_alignment and Config.advanced_control:        
+            _, _, _, a_az, a_alt, a_roll = quaternion_to_angles(self._sm.q1_adj * q1_state, azhint=azhint)
+
+        # Correct the ASCOM roll value with the Rotator adj
+        if Config.advanced_rotator and Config.advanced_control:         
+            a_roll = self._sm.roll_polaris2ascom(a_roll)
+
+        a_ra, a_dec = self.altaz2radec(a_alt, a_az)
+        position_ang, parallactic_ang = self._sm.roll2pa(a_az, a_alt, a_roll)
+        alpha_state = np.array([a_az, a_alt, wrap_to_180(a_roll)], dtype=float)
+        theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)          # always unadjusted
+        delta_state = np.array([a_ra*15, a_dec, wrap_to_360(position_ang)], dtype=float)         
+    
+        # Store all the new ascom values
+        with self._lock:
+            self._q1s = q1_state
+            self._theta_state = theta_state             # based on polaris q1 (unadjusted)
+            self._altitude = float(a_alt)
+            self._azimuth = float(a_az)
+            self._roll = float(a_roll)
+            self._rotation = float(a_t3)
+            self._rightascension = float(a_ra) 
+            self._declination = float(a_dec)
+            self._position_angle = float(position_ang)
+            self._parallactic_angle = float(parallactic_ang)
+
+        return delta_state, alpha_state, theta_state
+
     def aim_altaz_log_result(self):
-        self._lock.acquire()
-        a_alt = self._aim_altitude
-        a_az = self._aim_azimuth
-        err_alt = self._aim_altitude - self._altitude
-        err_az = self._aim_azimuth - self._azimuth
-        # only fine tune the adjustment if the error was within the max correction allowed
-        max = Config.aim_max_error_correction
-        if abs(err_alt) < max and abs(err_az) < max:
-             self._adj_altitude =  self._adj_altitude + err_alt
-             self._adj_azimuth = self._adj_azimuth + err_az
-        adj_alt = self._adj_altitude
-        adj_az = self._adj_azimuth
-        self._lock.release()
+        with self._lock:
+            a_alt = self._aim_altitude
+            a_az = self._aim_azimuth
+            err_alt = self._aim_altitude - self._altitude
+            err_az = self._aim_azimuth - self._azimuth
+            # only fine tune the adjustment if the error was within the max correction allowed
+            max = Config.aim_max_error_correction
+            if abs(err_alt) < max and abs(err_az) < max:
+                self._adj_altitude =  self._adj_altitude + err_alt
+                self._adj_azimuth = self._adj_azimuth + err_az
+            adj_alt = self._adj_altitude
+            adj_az = self._adj_azimuth
         time = self.get_performance_data_time()
         self.logger.info(f"->> Polaris: GOTO AimOffset (Az {deg2dms(adj_az)} Alt {deg2dms(adj_alt)}) | Error Az {err_az*3600:.3f} Alt {err_alt*3600:.3f}")
         # if we want to log Aim data
@@ -745,12 +961,11 @@ class Polaris:
 
     def aim_altaz_log_and_correct(self, alt: float, az:float):
         # log the original aiming co-ordinates and grab the last error ajustments
-        self._lock.acquire()
-        self._aim_altitude = alt
-        self._aim_azimuth = az
-        adj_alt = self._adj_altitude
-        adj_az = self._adj_azimuth
-        self._lock.release()
+        with self._lock:
+            self._aim_altitude = alt
+            self._aim_azimuth = az
+            adj_alt = self._adj_altitude
+            adj_az = self._adj_azimuth
 
         # ajust the aiming altaz and clap az being sent to the Polaris -180° < polaris_az < 180°
         calt = alt + adj_alt if Config.aiming_adjustment_enabled else alt
@@ -761,7 +976,7 @@ class Polaris:
     async def send_cmd_change_tracking_state(self, tracking: bool):
         cmd = '531'
         state = 1 if tracking else 0
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: TRACK request change to {state}")
         empty_queue(self._response_queues[cmd])
         await self.send_msg(f"1&{cmd}&3&state:{state};speed:0;#")
@@ -770,12 +985,11 @@ class Polaris:
     # Abort Slew
     # eg state:0;yaw:0.0;pitch:0.0;lat:-33.655422;track:0;speed:0;lng:151.12244;
     async def send_cmd_goto_abort(self):
-        self._lock.acquire()
-        self._slewing = False
-        self._gotoing = False
-        self._lock.release()
+        with self._lock:
+            self._slewing = False
+            self._gotoing = False
         # log the command
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: GOTO ABORT")
         arg_dict = {'ret': '-1', 'track': '-1'}
         cmd = '519'
@@ -786,32 +1000,30 @@ class Polaris:
 
     # Assumes polaris altaz
     async def send_cmd_goto_altaz(self, alt, az, istracking = True):
-        self._lock.acquire()
-        currently_slewing = self._slewing
-        currently_gotoing = self._gotoing
-        currently_tracking = self._tracking
-        self._lock.release()
+        with self._lock:
+            currently_slewing = self._slewing
+            currently_gotoing = self._gotoing
+            currently_tracking = self._tracking
 
         # if we are currently slewing or gotoing, dont try again
         if currently_slewing or currently_gotoing:
+            self.logger.info(f"->> Polaris: GOTO CANNOT EXECUTE due to current slew {currently_slewing} or goto {currently_gotoing}")
             return
 
         # Mark that we are gotoing and slewing
-        self._lock.acquire()
-        self._slewing = True
-        self._gotoing = True
-        self._lock.release()
+        with self._lock:
+            self._slewing = True
+            self._gotoing = True
 
         # log the command
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: GOTO Execute Alt {deg2dms(alt)} Az {deg2dms(az)} ")
 
         # log the aiming alt/az and correct it based on previous aiming results
         calt, caz = self.aim_altaz_log_and_correct(alt, az)
 
-        # if we are currently sidereal tracking then turn off tracking
-        if currently_tracking:
-            await self.send_cmd_change_tracking_state(False)
+        # turn off tracking before we issue the cmd
+        await self.stop_tracking()
 
         # compose and send the GOTO message
         finaltrack = 1 if istracking else 0
@@ -822,23 +1034,22 @@ class Polaris:
 
         # Wait for 1st response of slew started
         ret_dict = await self._response_queues[cmd].get()
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO starting slew: {cmd} {ret_dict}")
             
         # wait for 2nd response of slew stopped
         ret_dict = await self._response_queues[cmd].get()
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO stopping slew: {cmd} {ret_dict}")
 
         # wait for sidereal tracking to settle
         await asyncio.sleep(Config.tracking_settle_time)
 
         # mark the slew as complete      
-        self._lock.acquire()
-        self._slewing = False
-        self._gotoing = False
-        self._lock.release()
-        if Config.log_polaris:
+        with self._lock:
+            self._slewing = False
+            self._gotoing = False
+        if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO slew complete")
 
         # log the result of the goto if it was NOT aborted and is a tracking GOTO
@@ -848,8 +1059,9 @@ class Polaris:
         return ret_dict
 
     async def send_cmd_reset_axis(self, axis:int):
-        if axis==1 or axis==2 or axis==3:
-            await self.send_msg(f"1&523&3&axis:{axis};#")
+        if axis==0 or axis==1 or axis==2:
+            polaris_axis = axis + 1
+            await self.send_msg(f"1&523&3&axis:{polaris_axis};#")
 
     async def send_cmd_compass_alignment(self, angle:float = None):
         # use angle provided or assume synced ASCOM azimuth
@@ -860,7 +1072,7 @@ class Polaris:
         self._adj_sync_azimuth = 0
         await self.send_msg(f"1&527&3&compass:{compass};lat:{lat};lng:{lon};#")
 
-    async def send_cmd_star_alignment(self, a_alt:float, a_az:float):
+    async def send_cmd_star_alignment(self, a_az:float, a_alt:float):
         lat = self._sitelatitude
         lon = self._sitelongitude
         ca_az = 360 - a_az if a_az>180 else -a_az
@@ -873,16 +1085,149 @@ class Polaris:
         await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
 
     async def send_cmd_park(self):
-        if self._tracking:
-            await self.send_cmd_change_tracking_state(False)
-        if Config.log_polaris:
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: PARK all 3 axis")
+        await self.send_cmd_reset_axis(0)
         await self.send_cmd_reset_axis(1)
         await self.send_cmd_reset_axis(2)
-        await self.send_cmd_reset_axis(3)
 
-    async def send_cmd_query_current_mode(self):
-        if Config.log_polaris:
+    async def send_cmd_824(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 824 request")
+        msg = f"1&824&3&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_808(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 808 Connection request")
+        msg = f"1&808&2&type:0;#"
+        await self.send_msg(msg)
+
+    async def send_cmd_802(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 802 Band request")
+        msg = f"1&802&3&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_799(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 799 request")
+        msg = f"1&799&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_790(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 790 Pswd and Challenge request")
+        msg = f"1&790&2&step:1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_782(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 782 SET DATETIME request")
+        now = datetime.datetime.now(datetime.timezone.utc).astimezone()
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M:%S")
+        offset_seconds = int(now.utcoffset().total_seconds())
+        msg = f"1&782&2&date:{date_str};time:{time_str};zone:{offset_seconds:+d}#"
+        await self.send_msg(msg)
+
+    async def send_cmd_780(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 780 QUERY FIRMWARE request")
+        msg = f"1&780&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_778(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 778 Battery status request")
+        msg = f"1&778&2&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_775(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 775 Query SD Card request")
+        msg = f"1&775&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_546_set_L_bracket(self, L_bracket:bool=True):
+        state = 1 if L_bracket else 0
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 546 Set L Bracket request {'ON' if L_bracket else 'OFF'}")
+        msg = f"1&546&3&dir:{state}#"
+        await self.send_msg(msg)
+
+    async def send_cmd_545_query_L_bracket(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 545 Query L Bracket request")
+        msg = f"1&545&3&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_547(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 547 request")
+        msg = f"1&547&3&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_524(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 524 request")
+        msg = f"1&524&3&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_520_position_updates(self, state:bool=True):
+        state = "1" if state else "0"
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 520 Position Updates request")
+        msg = f"1&520&2&state:{state};#"
+        await self.send_msg(msg)
+
+    async def send_cmd_517(self):
+        if Config.log_polaris_polling:
+            self.logger.info(f"->> Polaris: 517 Get Orientation request")
+        msg = f"1&517&3&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_305(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 305 request")
+        msg = f"1&305&2&step:2;#"
+        await self.send_msg(msg)
+
+    async def send_cmd_303(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 303 request")
+        msg = f"1&303&2&-1#"
+        await self.send_msg(msg)
+
+    async def send_cmd_300(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 300 Query HDMI request")
+        msg = f"1&300&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_298(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 298 Query Extime request")
+        msg = f"1&298&2&-100#"
+        await self.send_msg(msg)
+
+    async def send_cmd_296_query_mode(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 296 Query Mode request")
+        msg = f"1&296&2&-100#"
+        await self.send_msg(msg)
+        
+    async def send_cmd_285_set_mode(self, mode):
+        if mode<1 or mode>10: 
+            self.logger.info(f"Invalid 285 Polaris Set Mode request {mode}")
+            return
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 285 Set Mode request {mode}")
+        msg = f"1&285&2&mode:{mode}#"
+        await self.send_msg(msg)
+
+    async def send_cmd_284_query_current_mode(self):
+        if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: MODE query status info request")
         cmd = '284'
         msg = f"1&{cmd}&2&-1#"
@@ -891,113 +1236,168 @@ class Polaris:
         ret_dict = await self._response_queues[cmd].get()
         return ret_dict
 
-    async def send_cmd_query_current_mode_async(self):
-        if Config.log_polaris and not Config.supress_polaris_frequent_msgs:
+    async def send_cmd_284_query_current_mode_async(self):
+        if Config.log_polaris_polling:
             self.logger.info(f"->> Polaris: 284 Query Mode request")
         msg = f"1&284&2&-1#"
         await self.send_msg(msg)
 
-    async def send_cmd_799(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 799 request")
-        msg = f"1&799&2&-1#"
-        await self.send_msg(msg)
-
-    async def send_cmd_296(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 296 request")
-        msg = f"1&296&2&-1#"
-        await self.send_msg(msg)
-
-    async def send_cmd_303(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 303 request")
-        msg = f"1&303&2&-1#"
-        await self.send_msg(msg)
-
-    async def send_cmd_808(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 808 Connection request")
-        msg = f"1&808&2&type:0;#"
-        await self.send_msg(msg)
-
-    async def send_cmd_520_position_updates(self, state:bool=True):
-        state = "1" if state else "0"
-        if Config.log_polaris and Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 520 Position Updates request")
-        msg = f"1&520&2&state:{state};#"
-        await self.send_msg(msg)
-
-    async def send_cmd_524(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 524 request")
-        msg = f"1&524&3&-1#"
-        await self.send_msg(msg)
-
-    async def send_cmd_305(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 305 request")
-        msg = f"1&305&2&step:2;#"
-        await self.send_msg(msg)
-
-    async def send_cmd_780(self):
-        if Config.log_polaris and Config.log_polaris_protocol:
-            self.logger.info(f"->> Polaris: 780 request")
-        msg = f"1&780&2&-1#"
+    async def send_cmd_272(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 272 request")
+        msg = f"1&272&2&step:10#"
         await self.send_msg(msg)
 
 
     async def polaris_init(self):
         self.logger.info("Polaris communication init...")
-        ret_dict = await self.send_cmd_query_current_mode()
-        if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
-            if 'track' in ret_dict and int(ret_dict['track']) == 3:
-                # Polaris is in astro mode but alignment not complete
-                raise AstroAlignmentError()
-            s_lat = self._sitelatitude
-            s_lon = self._sitelongitude
-            self.logger.info("Polaris communication init... done")
-            self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
-            self.logger.warn(f'Change site_latitude and site_longitude in config.toml or use Nina/StellariumPLUS to sync.')
-            # await self.send_cmd_799()
-            # await self.send_cmd_296()
-            # await self.send_cmd_303()
-            await self.send_cmd_808()
-            await self.send_cmd_520_position_updates(True)
-            # await self.send_cmd_524()
-            # await self.send_cmd_305()
-            # await self.send_cmd_780()
-            self._lock.acquire()
+        await self.send_cmd_790()
+        await self.send_cmd_799()
+        await self.send_cmd_296_query_mode()
+        await self.send_cmd_300()
+        await self.send_cmd_298()
+        await asyncio.sleep(0.5)
+        await self.send_cmd_520_position_updates(True)
+        await self.send_cmd_524()
+        await self.send_cmd_782()
+        await self.send_cmd_778()
+        await self.send_cmd_775()
+        ret_dict = await self.send_cmd_284_query_current_mode()
+        await self.send_cmd_802()
+        await self.send_cmd_824()
+        # 286
+        await self.send_cmd_780()
+        await self.send_cmd_305()
+        await self.send_cmd_272()
+        await self.send_cmd_547()
+        await self.send_cmd_808()   # Connection Context
+        await self.send_cmd_520_position_updates(True)
+        await self.send_cmd_545_query_L_bracket()
+        # 523 Reset axes
+        # 543
+        # 285 Mode 8
+        # 284
+        # 520
+        # 527 Compass
+        # 520
+        # 284
+        # 519 type:3;code:519;val:state:1;yaw:-166.577;pitch:61.513;lat:-33.655254;track:0;speed:0;lng:151.12231;
+        # 530
+        self._connecting = False
+
+        # if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
+        #     if 'track' in ret_dict and int(ret_dict['track']) == 3:
+        #         # Polaris is in astro mode but alignment not complete
+        #         raise AstroAlignmentError()
+        # else:
+        #     # Polaris is not in astro mode
+        #     raise AstroModeError()
+
+        # Completed initialisation
+        with self._lock:
             self._connected = True
             self._task_errorstr = ''
-            self._lock.release()
-            # if we want to run Aim test or Drift test over a set of targets in the sky
-            if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
-                asyncio.create_task(self.goto_tracking_test())
-            # if we want to run Speed test to ramp moveaxis rate over its full range
-            if Config.log_performance_data == 3 and Config.log_performance_data_test == 3:
-                asyncio.create_task(self.moveaxis_ramp_speed_test())
-        else:
-            # Polaris is not in astro mode
-            raise AstroModeError()
+        s_lat = self._sitelatitude
+        s_lon = self._sitelongitude
+        self.logger.info("Polaris communication init... done")
+        self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
+        self.logger.warn(f'Change site_latitude and site_longitude in Alpaca Pilot App.')
+        # if we want to run Aim test or Drift test over a set of targets in the sky
+        if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
+            asyncio.create_task(self.goto_tracking_test())
+        if Config.log_performance_data_test == 5:
+            asyncio.create_task(self.rotator_test())
 
 
-    async def moveaxis_ramp_speed_test(self):
+    async def rotator_test(self):
         if self._test_underway:
             return
         self._test_underway = True
-        rates = 10
-        samples = 5
-        duration = Config.log_perf_speed_interval * (samples + 1)
-        self.logger.info(f"== TEST == Ramp MoveAxis Test | {rates} rates | {samples} samples per rate | {duration}s per rate | {duration*rates/60} min total")
-        for i in range(0, rates, 1):
-            rate = 10/rates * i
-            self.logger.info(f"== TEST == Ramp MoveAxis Test | {rate:.2f} rate | {duration}s duration")
-            await self.move_axis(0, rate)
+        Config.log_performance_data == 0
+        axis = 2 # Rotation
+        steps = 8
+        duration = 90.0/4
+        self.logger.info(f"== TEST == Rotator Test | {steps} steps")
+        for i in range(0, steps, 1):
+            alt = 10 + 80/steps * i
+            az = 180
+            await self.send_cmd_goto_altaz(alt, az, False)
+            self.logger.info(f"== TEST == Rotator Test | {alt:.2f} alt")
+            Config.log_performance_data = 5
+            await self.move_axis(2, 9)
             await asyncio.sleep(duration)
+            Config.log_performance_data = 0
+            await self.move_axis(2, 0)
+            await asyncio.sleep(2)
         # complete the test
-        self.logger.info(f"== TEST == Ramp MoveAxis Test | COMPLETE")
-        await self.move_axis(0, 0)
+        self.logger.info(f"== TEST == Rotator Test | COMPLETE")
+
+
+    async def moveaxis_speed_test(self, axis, rates):
+        self.lifecycle.start()
+        motor = self._motors[axis]
+        for rate in rates:
+            if self.lifecycle.should_stop():
+                break
+            direction = +1
+            # check axis 1 bounds and reverse direction if necc 
+            if axis==1 and self._theta_meas.any():
+                if self._theta_meas[1] > 60:
+                    await motor.set_motor_speed(0, "RAW")
+                    await asyncio.sleep(3)
+                    direction = -1
+                if self._theta_meas[1] < 20:
+                    await motor.set_motor_speed(0, "RAW")
+                    await asyncio.sleep(3)
+                    direction = +1
+            # send the move request
+            await motor.set_motor_speed(rate * direction, "RAW")
+            result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
+            self._cm.addTestResult(axis, rate, result, stdev, status)
+
+        # ensure we stop all movement
+        await motor.set_motor_speed(0, "RAW")
+        if Config.advanced_control:
+            await self.findHome()
+        else:
+            await asyncio.sleep(2)
+            await self.send_cmd_reset_axis(axis)
+        self.lifecycle.reset()
+
+
+    async def moveaxis_speed_measurement(self, axis, rate, required_stable_samples = 5, initial_interval = 3.0, max_interval = 15, sampling_interval = 0.25):
+        start_time = time.monotonic()
+        stable_tolerance = 0.05 if rate > 5 else 0.002
+        await asyncio.sleep(initial_interval)
+        rate_raw = self._motors[axis].rate_raw    # what the controller thinks the raw rate is
+        rate_dps = self._motors[axis].rate_dps    # what the controller thinks the dps rate is
+        status = "COMPLETED"
+
+        omega_samples = []     # deg/sec
+        while time.monotonic() - start_time < max_interval:
+            await asyncio.sleep(sampling_interval)
+            if self.lifecycle.should_stop():
+                return 0,0,0,"STOPPED"
+            if self._omega_meas is None:
+                return 0,0,0,"NO DATA"
+            omega = self._omega_meas[axis]
+            omega_samples.append(omega)
+
+            # if we potentially have enough samples, take a window the last set
+            if len(omega_samples) >= required_stable_samples:
+                window = omega_samples[-required_stable_samples:]
+                stdev = np.std(window)
+                if stdev < stable_tolerance and (np.mean(window) > 0.002 or rate == 0):
+                    measured_dps = float(np.mean(window)) if rate>0 else 0
+                    self.logger.info(f"== TEST == Stable | Axis {axis} |  RAW {rate_raw} | DPS: {measured_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
+                    break
+        # exited while without a value in tollerance
+        else:
+            measured_dps = rate_dps  # fallback to the controller's rate
+            status = "HIGH STDEV"
+            self.logger.info(f'== TEST == **UNSTABLE** on Axis {axis} |  RAW {rate_raw} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}')
+        return abs(measured_dps), abs(rate_raw), stdev, status
+
 
     async def goto_tracking_test(self):
         if self._test_underway:
@@ -1013,7 +1413,7 @@ class Polaris:
                 if (abs(e_dec)==90 and e_ra!=0):    # only do it once at the poles
                     continue
                 now_coord = ephem.Equatorial(hr2rad(e_ra), deg2rad(e_dec), epoch=ephem.now())
-                radec = ephem.Equatorial(now_coord, epoch=ephem.J2000)
+                radec = ephem.Equatorial(now_coord, epoch=ephem.now())
                 a_ra=rad2hr(radec.ra)
                 a_dec=rad2deg(radec.dec)
                 p_ra, p_dec = self.radec_ascom2polaris(a_ra, a_dec)
@@ -1053,125 +1453,202 @@ class Polaris:
     #
     @property
     def connected(self) -> bool:
-        self._lock.acquire()
-        res = self._connected
-        self._lock.release()
+        with self._lock:
+            res = self._connected
         return res
 
     def connectionquery(self, client: str):
-        self._lock.acquire()
-        # if no record of client, assume it was connected so that it can continue working
-        if not client in self._connections:
-            self._connections[client] = True
-        res = self._connections[client]
-        self._lock.release()
+        with self._lock:
+            # if no record of client, assume it was connected so that it can continue working
+            if not client in self._connections:
+                self._connections[client] = True
+            res = self._connections[client]
         return res
                           
     def connectionrequest(self, client: str, connect: bool):
-        self._lock.acquire()
-        self._connections[client] = connect
-        numclients = sum(v for v in self._connections.values() if v)
-        self._lock.release()
-        if Config.log_polaris:
+        with self._lock:
+            self._connections[client] = connect
+            numclients = sum(v for v in self._connections.values() if v)
+        if Config.log_polaris_protocol:
             self.logger.info(f'[connection request] Client {client} Connected: {connect} Total Connected Clients: {numclients}')
 
         # check is any exceptions with polaris.client() and polaris_init() last run
         if  self._task_errorstr:
             raise Exception(self._task_errorstr)
-        
+
+    def getStatus(self) -> dict:
+        with self._lock:
+            res = {
+                'polarismode': self._polaris_mode,
+                'polarislbracket': self._polaris_L_bracket,
+                'battery_is_available': self._battery_is_available,
+                'battery_is_charging': self._battery_is_charging,
+                'battery_level': self._battery_level,
+                'compassed': self._compassed,
+                'aligned': self._aligned,
+                'aligning': self._aligning,
+                'aligned_count': self._sm.aligned_count,
+                'tilt_adj_az': self._sm.tilt_adj_az,
+                'tilt_adj_mag': self._sm.tilt_adj_mag,
+                'az_adj': self._sm.az_adj,
+                'roll_adj': self._sm.roll_adj,
+                'connected': self._connected,
+                'connecting': self._connecting,
+                'connectionmsg': self._task_errorstr,
+                'age517': self._age_517_seconds,
+                'age518': self._age_518_seconds,
+                'tracking': self._tracking,
+                'trackingrate': self._trackingrate,
+                'trackingname': self._pid.orbital_sp_name,
+                'orbitalstatus': self._pid.orbital_sp_status,
+                'orbitalfetchmsg': self._pid.orbital_sp_fetchmsg,
+                'athome': self._athome,
+                'atpark': self._atpark,
+                'slewing': self._slewing,
+                'gotoing': self._gotoing,
+                'rotating': self._rotating,
+                'iszetamoving': self._zeta_is_moving,
+                'ispulseguiding': self._ispulseguiding,
+                'paltitude': self._p_altitude,
+                'pazimuth': self._p_azimuth,
+                'proll': self._p_roll,
+                'altitude': self._altitude,
+                'azimuth': self._azimuth,
+                'roll': self._roll,
+                'rotation': self._rotation,
+                'declination': self._declination,
+                'rightascension': self._rightascension,
+                'parallacticangle': self._parallactic_angle,
+                'positionangle': self._position_angle,
+                'pidmode': self._pid.mode,                
+                'q1': str(self._q1),
+                'q1s': str(self._q1s),
+                'zetameas': [0,0,0] if self._zeta_meas is None else self._zeta_meas,
+                'lotameas': [0,0,0,0,0] if self._theta_meas is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],
+                'thetameas': [0,0,0] if self._theta_meas is None else self._theta_meas.tolist(),
+                'thetastate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
+                'deltaref': self._pid.delta_ref.tolist(),
+                'alpharef': self._pid.alpha_ref.tolist(),
+                'omegaref': self._pid.omega_ff.tolist(),
+                'omegamin': self._pid.omega_min.tolist(),
+                'omegamax': self._pid.omega_max.tolist(),
+                'motorref': [motor.rate_dps for motor in self._motors.values()],
+                'siderealtime': self._siderealtime,
+                'lifecycleevent': self.lifecycle._event.name,
+                'bledevices' : [info["name"] for info in self._ble.devices.values()],
+                'bleselected' : self._ble.selectedDevice,
+                'bleisenablingwifi': self._ble.isEnablingWifi,
+                'bleiswifienabled': self._ble.isWifiEnabled,
+                'polarisswver': self._polaris_sw_ver,
+                'polarishwver': self._polaris_hw_ver,
+                'polarisastrover': self._polaris_astro_ver,
+            }
+        return res
+
     @property
     def tracking(self) -> bool:
-        self._lock.acquire()
-        res = self._tracking
-        self._lock.release()
+        with self._lock:
+            res = self._tracking
         return res
     @tracking.setter
     def tracking (self, tracking: int):
-        self._lock.acquire()
-        self._tracking = tracking
-        self._lock.release()
+        with self._lock:
+            self._tracking = tracking
 
     @property
     def sideofpier(self) -> int:
-        self._lock.acquire()
-        res =  self._sideofpier
-        self._lock.release()
+        with self._lock:
+            res =  self._sideofpier
         return res
     @sideofpier.setter
     def sideofpier (self, sideofpier: int):
-        self._lock.acquire()
-        self._sideofpier = sideofpier
-        self._lock.release()
+        with self._lock:
+            self._sideofpier = sideofpier
 
     @property
     def athome(self) -> bool:
-        self._lock.acquire()
-        res =  self._athome
-        self._lock.release()
+        with self._lock:
+            res =  self._athome
         return res
 
     @property
     def atpark(self) -> bool:
-        self._lock.acquire()
-        res =  self._atpark
-        self._lock.release()
+        with self._lock:
+            res =  self._atpark
         return res
 
     @property
     def slewing(self) -> bool:
-        self._lock.acquire()
-        res =  self._slewing
-        self._lock.release()
+        with self._lock:
+            res =  self._slewing
         return res
 
     @property
     def gotoing(self) -> bool:
-        self._lock.acquire()
-        res =  self._gotoing
-        self._lock.release()
+        with self._lock:
+            res =  self._gotoing
+        return res
+
+    @property
+    def rotating(self) -> bool:
+        with self._lock:
+            res =  self._rotating
         return res
 
     @property
     def ispulseguiding(self) -> bool:
-        self._lock.acquire()
-        res =  self._ispulseguiding
-        self._lock.release()
+        with self._lock:
+            res =  self._ispulseguiding
         return res
     #
     # Telescope device variables
     #
     @property
     def altitude(self) -> float:
-        self._lock.acquire()
-        res =  self._altitude
-        self._lock.release()
+        with self._lock:
+            res =  self._altitude
         return res
 
     @property
     def azimuth(self) -> float:
-        self._lock.acquire()
-        res =  self._azimuth
-        self._lock.release()
+        with self._lock:
+            res =  self._azimuth
+        return res
+
+    @property
+    def roll(self) -> float:
+        with self._lock:
+            res =  self._roll
+        return res
+
+    @property
+    def rotation(self) -> float:
+        with self._lock:
+            res =  self._rotation
+        return res
+
+    @property
+    def positionangle(self) -> float:
+        with self._lock:
+            res =  self._position_angle
         return res
 
     @property
     def declination(self) -> float:
-        self._lock.acquire()
-        res =  self._declination
-        self._lock.release()
+        with self._lock:
+            res =  self._declination
         return res
 
     @property
     def rightascension(self) -> float:
-        self._lock.acquire()
-        res =  self._rightascension
-        self._lock.release()
+        with self._lock:
+            res =  self._rightascension
         return res
 
     @property
     def siderealtime(self) -> float:
-        self._observer.date = datetime.datetime.now(tz=datetime.timezone.utc)
-        res =  self._observer.sidereal_time()/2/math.pi*24
+        with self._lock:
+            res =  self._siderealtime
         return res
 
     @property
@@ -1184,330 +1661,315 @@ class Polaris:
     #
     @property
     def trackingrate(self) -> int:
-        self._lock.acquire()
-        res =  self._trackingrate
-        self._lock.release()
+        with self._lock:
+            res =  self._trackingrate
         return res
     @trackingrate.setter
     def trackingrate (self, trackingrate: int):
-        self._lock.acquire()
-        self._trackingrate = trackingrate
-        self._lock.release()
+        with self._lock:
+            self._trackingrate = trackingrate
 
     @property
     def trackingrates(self):
-        self._lock.acquire()
-        res =  self._trackingrates
-        self._lock.release()
+        with self._lock:
+            res =  self._trackingrates
         return res
 
     @property
     def declinationrate(self) -> float:
-        self._lock.acquire()
-        res =  self._declinationrate
-        self._lock.release()
+        with self._lock:
+            res =  self._declinationrate
         return res
     @declinationrate.setter
     def declinationrate (self, declinationrate: float):
-        self._lock.acquire()
-        self._declinationrate = declinationrate
-        self._lock.release()
+        with self._lock:
+            self._declinationrate = declinationrate
 
     @property
     def rightascensionrate(self) -> float:
-        self._lock.acquire()
-        res =  self._rightascensionrate
-        self._lock.release()
+        with self._lock:
+            res =  self._rightascensionrate
         return res
     @rightascensionrate.setter
     def rightascensionrate (self, rightascensionrate: float):
-        self._lock.acquire()
-        self._rightascensionrate = rightascensionrate
-        self._lock.release()
+        with self._lock:
+            self._rightascensionrate = rightascensionrate
 
     @property
     def guideratedeclination(self) -> float:
-        self._lock.acquire()
-        res =  self._guideratedeclination
-        self._lock.release()
+        with self._lock:
+            res =  self._guideratedeclination
         return res
     @guideratedeclination.setter
     def guideratedeclination (self, guideratedeclination: float):
-        self._lock.acquire()
-        self._guideratedeclination = guideratedeclination
-        self._lock.release()
+        with self._lock:
+            self._guideratedeclination = guideratedeclination
 
     @property
     def guideraterightascension(self) -> float:
-        self._lock.acquire()
-        res =  self._guideraterightascension
-        self._lock.release()
+        with self._lock:
+            res =  self._guideraterightascension
         return res
     @guideraterightascension.setter
     def guideraterightascension (self, guideraterightascension: float):
-        self._lock.acquire()
-        self._guideraterightascension = guideraterightascension
-        self._lock.release()
+        with self._lock:
+            self._guideraterightascension = guideraterightascension
+    #
+    # Rotator device settings
+    #
+    @property
+    def rotator_reverse(self) -> int:
+        with self._lock:
+            res =  self._rotator_reverse
+        return res
+    @rotator_reverse.setter
+    def rotator_reverse(self, state: bool):
+        with self._lock:
+            self._rotator_reverse = state
     #
     # Telescope device settings
     #
     @property
     def alignmentmode(self) -> int:
-        self._lock.acquire()
-        res =  self._alignmentmode
-        self._lock.release()
+        with self._lock:
+            res =  self._alignmentmode
         return res
 
     @property
     def aperturearea(self) -> float:
-        self._lock.acquire()
-        res =  self._aperturearea
-        self._lock.release()
+        with self._lock:
+            res =  self._aperturearea
         return res
 
     @property
     def aperturediameter(self) -> float:
-        self._lock.acquire()
-        res =  self._aperturediameter
-        self._lock.release()
+        with self._lock:
+            res =  self._aperturediameter
         return res
 
     @property
     def equatorialsystem(self) -> float:
-        self._lock.acquire()
-        res =  self._equatorialsystem
-        self._lock.release()
+        with self._lock:
+            res =  self._equatorialsystem
         return res
 
     @property
     def focallength(self) -> float:
-        self._lock.acquire()
-        res = self._focallength
-        self._lock.release()
+        with self._lock:
+            res = self._focallength
         return res
+
+    @property
+    def sitepressure(self) -> float:
+        with self._lock:
+            res = self._sitepressure
+        return res
+    @sitepressure.setter
+    def sitepressure (self, sitepressure: float):
+        with self._lock:
+            self._sitepressure = sitepressure
+            self._observer.pressure = sitepressure
 
     @property
     def siteelevation(self) -> float:
-        self._lock.acquire()
-        res = self._siteelevation
-        self._lock.release()
+        with self._lock:
+            res = self._siteelevation
         return res
     @siteelevation.setter
     def siteelevation (self, siteelevation: float):
-        self._lock.acquire()
-        self._siteelevation = siteelevation
-        self._lock.release()
+        with self._lock:
+            self._siteelevation = siteelevation
+            self._observer.elevation = siteelevation
 
     @property
     def sitelatitude(self) -> float:
-        self._lock.acquire()
-        res = self._sitelatitude
-        self._lock.release()
+        with self._lock:
+            res = self._sitelatitude
         return res
     @sitelatitude.setter
     def sitelatitude (self, sitelatitude: float):
-        self._lock.acquire()
-        self._sitelatitude = sitelatitude
-        self._observer.lat = deg2rad(sitelatitude) 
-        self._lock.release()
+        with self._lock:
+            self._sitelatitude = sitelatitude
+            self._observer.lat = deg2rad(sitelatitude) 
 
     @property
     def sitelongitude(self) -> float:
-        self._lock.acquire()
-        res =  self._sitelongitude
-        self._lock.release()
+        with self._lock:
+            res =  self._sitelongitude
         return res
     @sitelongitude.setter
     def sitelongitude (self, sitelongitude: float):
-        self._lock.acquire()
-        self._sitelongitude = sitelongitude
-        self._observer.long = deg2rad(sitelongitude) 
-        self._lock.release()
+        with self._lock:
+            self._sitelongitude = sitelongitude
+            self._observer.long = deg2rad(sitelongitude) 
     
     @property
     def slewsettletime(self) -> int:
-        self._lock.acquire()
-        res =  self._slewsettletime
-        self._lock.release()
+        with self._lock:
+            res =  self._slewsettletime
         return res
     @slewsettletime.setter
     def slewsettletime (self, slewsettletime: int):
-        self._lock.acquire()
-        self._slewsettletime = slewsettletime
-        self._lock.release()
+        with self._lock:
+            self._slewsettletime = slewsettletime
 
     @property
     def supportedactions(self) -> float:
-        self._lock.acquire()
-        res =  self._supportedactions
-        self._lock.release()
+        with self._lock:
+            res =  self._supportedactions
         return res
 
     @property
     def targetdeclination(self) -> float:
-        self._lock.acquire()
-        res =  self._targetdeclination
-        self._lock.release()
+        with self._lock:
+            res =  self._targetdeclination
         return res
     @targetdeclination.setter
     def targetdeclination (self, targetdeclination: float):
-        self._lock.acquire()
-        self._targetdeclination = targetdeclination
-        self._lock.release()
+        with self._lock:
+            self._targetdeclination = targetdeclination
 
     @property
     def targetrightascension(self) -> float:
-        self._lock.acquire()
-        res =  self._targetrightascension
-        self._lock.release()
+        with self._lock:
+            res =  self._targetrightascension
         return res
     @targetrightascension.setter
     def targetrightascension (self, targetrightascension: float):
-        self._lock.acquire()
-        self._targetrightascension = targetrightascension
-        self._lock.release()
+        with self._lock:
+            self._targetrightascension = targetrightascension
+
+    @property
+    def targetpositionangle(self) -> float:
+        with self._lock:
+            res =  self._targetpositionangle
+        return res
+    @targetpositionangle.setter
+    def targetpositionangle (self, targetpositionangle: float):
+        with self._lock:
+            self._targetpositionangle = targetpositionangle
     #
     # Telescope capability constants
     #
     @property
     def canfindhome(self) -> bool:
-        self._lock.acquire()
-        res =  self._canfindhome
-        self._lock.release()
+        with self._lock:
+            res =  self._canfindhome
         return res
 
     @property
     def canpark(self) -> bool:
-        self._lock.acquire()
-        res =  self._canpark
-        self._lock.release()
+        with self._lock:
+            res =  self._canpark
         return res
 
     @property
     def canpulseguide(self) -> bool:
-        self._lock.acquire()
-        res =  self._canpulseguide
-        self._lock.release()
+        with self._lock:
+            res =  self._canpulseguide
         return res
 
     @property
     def cansetdeclinationrate(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetdeclinationrate
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetdeclinationrate
         return res
 
     @property
     def cansetguiderates(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetguiderates
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetguiderates
         return res
 
     @property
     def cansetpark(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetpark
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetpark
         return res
 
     @property
     def cansetpierside(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetpierside
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetpierside
         return res
 
     @property
     def cansetrightascensionrate(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansetrightascensionrate
-        self._lock.release()
+        with self._lock:
+            res =  self._cansetrightascensionrate
         return res
 
     @property
     def cansettracking(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansettracking
-        self._lock.release()
+        with self._lock:
+            res =  self._cansettracking
         return res
 
     @property
     def canslew(self) -> bool:
-        self._lock.acquire()
-        res =  self._canslew
-        self._lock.release()
+        with self._lock:
+            res =  self._canslew
         return res
 
     @property
     def canslewasync(self) -> bool:
-        self._lock.acquire()
-        res =  self._canslewasync
-        self._lock.release()
+        with self._lock:
+            res =  self._canslewasync
         return res
 
     @property
     def canslewaltaz(self) -> bool:
-        self._lock.acquire()
-        res =  self._canslewaltaz
-        self._lock.release()
+        with self._lock:
+            res =  self._canslewaltaz
         return res
 
     @property
     def canslewaltazasync(self) -> bool:
-        self._lock.acquire()
-        res =  self._canslewaltazasync
-        self._lock.release()
+        with self._lock:
+            res =  self._canslewaltazasync
         return res
 
     @property
     def cansync(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansync
-        self._lock.release()
+        with self._lock:
+            res =  self._cansync
         return res
 
     @property
     def cansyncaltaz(self) -> bool:
-        self._lock.acquire()
-        res =  self._cansyncaltaz
-        self._lock.release()
+        with self._lock:
+            res =  self._cansyncaltaz
         return res
 
     @property
     def canunpark(self) -> bool:
-        self._lock.acquire()
-        res =  self._canunpark
-        self._lock.release()
+        with self._lock:
+            res =  self._canunpark
         return res
 
     @property
     def doesrefraction(self) -> bool:
-        self._lock.acquire()
-        res =  self._doesrefraction
-        self._lock.release()
+        with self._lock:
+            res =  self._doesrefraction
         return res
     @doesrefraction.setter
     def doesrefraction (self, doesrefraction: float):
-        self._lock.acquire()
-        self._doesrefraction = doesrefraction
-        self._observer.pressure = Config.site_pressure if doesrefraction else 0
-        self._lock.release()
+        with self._lock:
+            self._doesrefraction = doesrefraction
+            self._observer.pressure = Config.site_pressure if doesrefraction else 0
     #
     # Telescope method constants
     #
     @property
     def axisrates(self) -> bool:
-        self._lock.acquire()
-        res =  self._axisrates
-        self._lock.release()
+        with self._lock:
+            res =  self._axisrates
         return res
 
     @property
     def canmoveaxis(self) -> bool:
-        self._lock.acquire()
-        res =  self._canmoveaxis
-        self._lock.release()
+        with self._lock:
+            res =  self._canmoveaxis
         return res
 
     
@@ -1517,171 +1979,275 @@ class Polaris:
     ####################################################################
     # Methods
     ####################################################################
-    async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
-        a_ra = rightascension
-        a_dec = declination
-        self._lock.acquire()
-        self._targetrightascension = a_ra
-        self._targetdeclination = a_dec
-        self._lock.release()
-        inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
-        if Config.sync_pointing_model==1:
-            # Use RA/Dec Sync Pointing model
-            p_ra, p_dec = self.radec_ascom2polaris(a_ra, a_dec)
-            o_ra = self._adj_sync_rightascension
-            o_dec = self._adj_sync_declination
-            p_alt, p_az = self.radec2altaz(p_ra, p_dec, inthefuture)
-            self.logger.info(f"->> Polaris: GOTO ASCOM   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)}")
-            self.logger.info(f"->> Polaris: GOTO POLARIS RA {hr2hms(p_ra)} Dec: {deg2dms(p_dec)} | SyncOffset (RA {deg2dms(o_ra)} Dec {deg2dms(o_dec)})")
-        else:
-            # Use Alt/Az Sync Pointing model
-            a_alt, a_az = self.radec2altaz(a_ra, a_dec, inthefuture)
-            p_alt, p_az = self.altaz_ascom2polaris(a_alt, a_az)
-            o_alt = self._adj_sync_altitude
-            o_az = self._adj_sync_azimuth
-            self.logger.info(f"->> Polaris: GOTO ASCOM   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)}")
-            self.logger.info(f"->> Polaris: GOTO ASCOM   Alt {deg2dms(a_alt)} Az {deg2dms(a_az)}")
-            self.logger.info(f"->> Polaris: GOTO POLARIS Alt {deg2dms(p_alt)} Az {deg2dms(p_az)} | SyncOffset (Alt {deg2dms(o_alt)} Az {deg2dms(o_az)})")
-        if isasync:
-            asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
-        else:
-            await self.send_cmd_goto_altaz(p_alt, p_az, istracking=True)
+
+    def markGotoAsUnderway(self):
+        with self._lock:
+            self._slewing = True
+            self._gotoing = True
+            self._goto_complete_event = asyncio.Event()
+
+    def markGotoAsComplete(self):
+        with self._lock:
+            self._slewing = False
+            self._gotoing = False
+            if self._goto_complete_event:
+                self._goto_complete_event.set() 
+
+    def markRotateAsUnderway(self):
+        with self._lock:
+            self._rotating = True
+            self._rotate_complete_event = asyncio.Event()
+
+    def markRotateAsComplete(self):
+        with self._lock:
+            self._rotating = False
+            if self._rotate_complete_event:
+                self._rotate_complete_event.set() 
+
+    def markSlewAsUnderway(self):
+        with self._lock:
+            self._slewing = True
+            self._slew_complete_event = asyncio.Event()
+
+    def markSlewAsComplete(self):
+        with self._lock:
+            self._slewing = False
+            if self._slew_complete_event:
+                self._slew_complete_event.set()
+
+    def markParkingAsUnderway(self):
+        with self._lock:
+            self._slewing = True
+            self._atpark = False
+
+    def markParkingAsComplete(self):
+        with self._lock:
+            self._slewing = False
+            self._atpark = True
+
+    def markParkingAsCanceled(self):
+        with self._lock:
+            self._pid.set_parking_complete_callback(None)
+            self._slewing = False
+            self._atpark = False
 
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
         a_alt = altitude
         a_az = azimuth
         a_ra, a_dec = self.altaz2radec(a_alt, a_az)
-        self.logger.info(f"->> Polaris: GOTO ASCOM   Alt: {deg2dms(a_alt)} Az: {deg2dms(a_az)}")
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
-    def convert_ascom2polaris_rate(self, axis: int, ascomrate: float):
-        # Map between ASCOM floatinig to Polaris rates for Slow and Fast Move
-        # __ASCOM RATE__:_POLARIS RATE__|__Aprox Speed__|_CMD__________________________________
-        # 0.000         : 0             |               | Stop all
-        # 0.001 to 1.000: 1             | 21.5 arcsec/s  | Slow move commands '532', '533', '534'
-        # 1.001 to 2.000: 2             |  1.1 arcmin/s  |   "
-        # 2.001 to 3.000: 3             |  2.8 arcmin/s  |   "
-        # 3.001 to 4.000: 4             |  5.3 arcmin/s  |   "
-        # 4.001 to 5.000: 5             | 12.5 arcmin/s  |   "
-        # 5.001 to 6.000: 1 to 500      | 32.5 arcmin/s  | Fast move commands '513', '514', '521'
-        # 6.001 to 7.000: 501 to 1000   |  1.5 degree/s  |   "
-        # 7.001 to 8.000: 1001 to 1500  |  3.0 degree/s  |   "
-        # 8.001 to 9.000: 1501 to 2000  |  5.2 degree/s  |   "
-        
-        # Number of units in each group for rates 6, 7, 8, 9 - MUST TOTAL 2000
-        offset5 = 360   # any value below 360 on scale 1-2000 is slower than slow rate 5
-        group6 = 410
-        group7 = 410
-        group8 = 410
-        group9 = 410
-
-        sign = -1 if ascomrate < 0 else 1
-        key = 0 if ascomrate > 0 else 1
-        x = abs(ascomrate)
-
-        if x==0:
-            rate = 0
-        elif x <= 1.0:
-            rate = 1
-        elif x <= 2.0:
-            rate = 2
-        elif x <= 3.0:
-            rate = 3
-        elif x <= 4.0:
-            rate = 4
-        elif x <= 5.0:
-            rate = 5
-        elif x <= 6.0:
-            rate = int(offset5 + 1 + (x - 5.0) * (group6 - 1))                              # (1 + (x - 4.0) * 499)
-        elif x <= 7.0:
-            rate = int(offset5 + group6 + 1 + (x - 6.0) * (group7 - 1))                     # (501 + (x - 5.0) * 499)
-        elif x <= 8.0:
-            rate = int(offset5 + group6 + group7 + 1 + (x - 7.0) * (group8 - 1))            # (1001 + (x - 6.0) * 499)
-        elif x <= 9.0:
-            rate = int(offset5 + group6 + group7 + group8 + 1 + (x - 8.0) * (group9 - 1))   # (1501 + (x - 7.0) * 499)
+    # ******* Advanced MPC control aware methods ********
+    async def trackOrbital(self, name, category):
+        if Config.advanced_orbitals and Config.advanced_control:
+            self._pid.orbital_sp_fetchmsg = ''
+            await self.start_tracking()                         # start tracking
+            if category in [4,5]:
+                await self._pid.set_orbital_target(name)        # set tracking target name
+            elif category in [6]:
+                await self._pid.set_tle_orbital_target(name)    # fetch tle, create orbial body, set target name
+            elif category in [7,8]:
+                await self._pid.set_xephem_orbital_target(name) # fetch xephem, create orbial body, set target name
+            else:
+                self._pid.orbital_sp_fetchmsg = 'Invalid orbital type'
+            # change trackingrate to Lunar, Solar, or Custom
+            self.trackingrate = 1 if name=="Moon" else 2 if name=="Sun" else 3
         else:
-            rate = None
-        
-        # Equatorial Absolute Move Commands '1.ddnnn' where dd=degrees, nnn=decimal degrees
-        if x>1.0 and x<2.0:
-            rate = (x - 1.0) * 100 * sign
-            cmd = None
-            cmdtype = 3
-        # Slow Move commands '1' to '5'
-        elif x <= 5.0:
-            cmd = '532' if axis==0 else '533' if axis==1 else '534'
-            cmdtype = 1   
-        # Fast Move Commands '5.001' to '9.0'
-        elif x<=9.0:
-            key = None
-            rate = sign * rate
-            cmd = '513' if axis==0 else '514' if axis==1 else '521'
-            cmdtype = 2  
-        # Invalid Move Command
+            self.logger.info("Advanced Orbital Tracking is currently disabled")
+
+
+    def RotateToRelativePositionAngle(self, rel_position_angle):
+        self.logger.info(f"->> Polaris: Rotate Relative Observed   PositionAngle {deg2dms(self.positionangle)} PLUS {deg2dms(rel_position_angle)}")
+        position_angle = self.positionangle + rel_position_angle
+        self.RotateToAbsolutePositionAngle(position_angle)
+
+
+    def RotateToAbsolutePositionAngle(self, position_angle):
+        self.logger.info(f"->> Polaris: Rotate Absolute Observed   PositionAngle {deg2dms(position_angle)}")
+        roll = self._sm.pa2roll(self._pid.alpha_sp[0], self._pid.alpha_sp[1], position_angle)
+        self.RotateToRollAngle(roll)
+
+    def RotateToRollAngle(self, roll):
+        if Config.advanced_rotator and Config.advanced_control:
+            self.logger.info(f"->> Polaris: Rotate Absolute Observed   RollAngle {deg2dms(roll)}")
+            self.markRotateAsUnderway()
+            self._pid.set_alpha_target({ "roll": roll })
+            self._pid.set_rotate_complete_callback(self.markRotateAsComplete)
+            self.logger.info(f"->> Polaris: Rotate Observed   rotating {self.rotating}")
         else:
-            cmd = None
-            cmdtype = None
-            rate = 0
-            key=0
-            
-        return cmd, cmdtype, key, rate           
+            self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
+
+    def SyncToPositionAngle(self, position_angle):
+        self.logger.info(f"->> Polaris: Sync Absolute Observed   PositionAngle {deg2dms(position_angle)}, Current {deg2dms(self.positionangle)}")
+        roll = self._sm.pa2roll(self._pid.alpha_sp[0], self._pid.alpha_sp[1], position_angle)
+        self.SyncToRoll(roll)
+
+    def SyncToRoll(self, roll_angle):
+        if Config.advanced_rotator and Config.advanced_control:
+            self.logger.info(f"->> Polaris: Sync Absolute Observed   RollAngle {deg2dms(roll_angle)}, Current {deg2dms(self.roll)}")
+            self._sm.sync_roll(roll_angle)
+            position_angle,_ = self._sm.roll2pa(self._pid.alpha_sp[0], self._pid.alpha_sp[1], roll_angle)
+            self._pid.alpha_sp[2] = roll_angle
+            self._pid.delta_sp[2] = position_angle
+        else:
+            self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
+
+    async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
+        self._trackingrate = 0
+        inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
+        a_ra = rightascension
+        a_dec = declination
+        a_alt, a_az = self.radec2altaz(a_ra, a_dec, inthefuture)
+        self.logger.info(f"->> Polaris: GOTO Observed   RA {hr2hms(a_ra)}     Dec {deg2dms(a_dec)}")
+        self.logger.info(f"->> Polaris: GOTO Observed   Az {deg2dms(a_az)}   Alt {deg2dms(a_alt)} ")
+        with self._lock:
+            self._targetrightascension = a_ra
+            self._targetdeclination = a_dec
+        if Config.advanced_alignment and Config.advanced_control:
+            p_az, p_alt = self._sm.azalt_ascom2polaris(a_az, a_alt)         # Use Multi-Point Alignment model
+        else:
+            p_alt, p_az = self.altaz_ascom2polaris(a_alt, a_az)             # Use Single-Point Alignment model
+
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
+        gotomsg = 'Advanced Control' if (Config.advanced_goto and Config.advanced_control) else 'Polaris Control'
+        self.logger.info(f"->> Polaris: GOTO Predicted  Az {deg2dms(p_az)}   Alt {deg2dms(p_alt)} ({syncmsg}, {gotomsg})")
+
+        if Config.advanced_goto and Config.advanced_control:
+            self.markGotoAsUnderway()
+            self._pid.set_alpha_target({ "az": a_az, "alt": a_alt })
+            self._pid.set_goto_complete_callback(self.markGotoAsComplete)
+            if not isasync:
+                await self._goto_complete_event.wait()
+        else:
+            if isasync:
+                    asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
+            else:
+                await self.send_cmd_goto_altaz(p_alt, p_az, istracking=True)
+
+    async def AbortSlew(self):
+        await self.unpark()
+        await self.stop_tracking()
+        if Config.advanced_goto and Config.advanced_control:
+            self.logger.info(f"Advanced Control: ABORT GOTO")
+            await self.stop_all_axes()
+        else:
+            await self.send_cmd_goto_abort()
 
 
-    async def move_axis(self, axis:int, ascomrate:float):
-        cmd, cmdtype, key, rate = self.convert_ascom2polaris_rate(axis, ascomrate)
+    async def move_axis(self, axis:int, rate:float, units="ASCOM"):
+        if axis not in (0, 1, 2, 3, 4, 5):
+            raise ValueError(f"Invalid axis index: {axis}. Must be 0 Az, 1 Alt, 2 Roll, 3 RA, 4 Dec, 5 PA.")
+        motor = self._motors[axis % 3]
+        if Config.advanced_control and Config.advanced_slewing:
+            # if tracking is enabled then we must slew RA/Dec/PA
+            if self.tracking and axis<3:
+                axis = axis + 3
+            raw = motor._model.interpolate[units].toRAW(rate)
+            dps = motor._model.interpolate["RAW"].toDPS(raw)
+            self.markSlewAsUnderway()
+            self._pid.set_alpha_axis_velocity(axis % 3, dps) if axis<3 else self._pid.set_delta_axis_velocity(axis % 3, dps)
+            self._pid.set_slew_complete_callback(self.markSlewAsComplete)
+        else:
+            self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {rate} Units {units}")
+            with self._lock:
+                self._axis_ASCOM_slewing_rates[axis] = rate
+                self._slewing = any(self._axis_ASCOM_slewing_rates)
+            if not (self._tracking and Config.advanced_control and Config.advanced_tracking):
+                await motor.set_motor_speed(rate, units)
 
-        # f cmdtype=1 then slow Alt/Az move and stop slow or fast
-        if cmdtype==1:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE Slow Az/Alt/Rot Axis {axis} Rate {rate}")
-            self._lock.acquire()
-            self._axis_ASCOM_slewing_rates[axis] = ascomrate
-            self._axis_Polaris_slewing_rates[axis] = rate
-            self._slewing = any(self._axis_Polaris_slewing_rates)
-            self._lock.release()
-            if self._every_50ms_msg_to_send and rate == 0:
-                self.every_50ms_msg_to_clear()                  # stop fast move msgs
-                if Config.log_polaris_protocol:
-                    self.logger.info(f'->> Polaris: stop_fastmove_repeating')
-            state = 0 if rate == 0 else 1
-            await self.send_msg(f"1&{cmd}&3&key:{key};state:{state};level:{rate};#")
+    async def stop_all_axes(self):
+        with self._lock:
+            self._axis_ASCOM_slewing_rates = [0,0,0]
+            self._slewing = False
+        if Config.advanced_control:
+            self.logger.info(f"Advanced Control: STOP all axes")
+            self._pid.set_pid_mode("IDLE")
+            self.markGotoAsComplete()
+            self.markRotateAsComplete()
+            self.markSlewAsComplete()
+            self.markParkingAsCanceled()
+        await self._motors[0].set_motor_speed(0, "DPS")
+        await self._motors[1].set_motor_speed(0, "DPS")
+        await self._motors[2].set_motor_speed(0, "DPS")
 
-        # if cmdtype=2 then fast Alt/Az move
-        elif cmdtype==2:
-            self._lock.acquire()
-            self._axis_ASCOM_slewing_rates[axis] = ascomrate
-            self._axis_Polaris_slewing_rates[axis] = rate
-            self._slewing = any(self._axis_Polaris_slewing_rates)
-            self._lock.release()
-            msg=f"1&{cmd}&3&speed:{rate};#"
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: MOVE Fast Az/Alt/Rot Axis {axis} Rate {rate}")
-            if Config.log_polaris_protocol:
-                self.logger.info(f'->> Polaris: send_fastmove_repeating: {msg}')
-            self.every_50ms_msg_to_set(msg)                     # start fast move msgs
+    async def stop_tracking(self):
+        self._tracking = False
+        if self._tracking_in_benro:
+                await self.send_cmd_change_tracking_state(False)
+        if self._pid.mode == "TRACK":
+            self.logger.info(f"Advanced Control: STOP tracking")
+            self._pid.set_tracking_off()
 
-        # if cmdtype=3 then Equatorial RA/Dec move Rate degrees
-        elif cmdtype==3:
-            if Config.log_polaris:
-                self.logger.info(f"->> Polaris: Move Equatorial RA/Dec Axis: {axis} Rate: {rate} degrees")
-            self._lock.acquire()
-            ra = self._rightascension + ((rate*24/360) if axis==0 else 0)
-            dec = self._declination + (rate if axis==1 else 0)
-            self._lock.release()
-            await self.SlewToCoordinates(ra, dec, isasync=True)
+    async def start_tracking(self):
+        self._tracking = True
+        if Config.advanced_tracking and Config.advanced_control:
+            self.logger.info(f"Advanced Control: START tracking")
+            self._pid.set_tracking_on()
+        else:
+            # only send message if we are not tracking and not slewing
+            if not self._tracking_in_benro and not self._slewing:
+                await self.send_cmd_change_tracking_state(True)
+
+    def pulse_guide(self, direction: int, duration: int):
+        if Config.advanced_guiding and Config.advanced_control:
+            if Config.log_pulse_guiding:
+                self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")
+            self._pid.pulse_delta_axis(direction, duration)
+            with self._lock:
+                self._ispulseguiding = True                     # is reset in _pid.track_target when all done
+        else:
+            self.logger.warning(f"->> Polaris: Advanced Guiding is not enabled")
+
+    async def findHome(self):
+        if Config.advanced_control:
+            self.logger.info(f"Advanced Control: Find HOME Position of telescope")
+            await self.stop_tracking()
+            self._pid.set_zeta_ref_to_home()
+            self.markParkingAsCanceled()
+            self.markGotoAsComplete()
+            self.markRotateAsComplete()
+            self._pid.set_pid_mode('HOMING')
+
+
+    async def setPark(self):
+        if Config.advanced_control:
+            payload = {
+                "m1_park": float(self._zeta_meas[0]),
+                "m2_park": float(self._zeta_meas[1]),
+                "m3_park": float(self._zeta_meas[2]),
+            }
+            Config.apply_changes(payload)
+            Config.save_pilot_overrides()
+            self.logger.info(f"Advanced Control: Set Park Position {payload}")
 
     async def park(self):
-        self._lock.acquire()
-        self._atpark = True
-        self._adj_sync_declination = 0
-        self._adj_sync_rightascension = 0
-        self._adj_altitude = 0
-        self._adj_azimuth = 0
-        self._lock.release()
-        await self.send_cmd_park()
+        with self._lock:
+            self._adj_altitude = 0
+            self._adj_azimuth = 0
+        if Config.advanced_control:
+            self.logger.info(f"Advanced Control: PARK telescope")
+            self.markParkingAsUnderway()
+            self.markGotoAsComplete()
+            self.markRotateAsComplete()
+            await self.stop_tracking()
+            self._pid.set_zeta_ref_to_park()
+            self._pid.set_pid_mode('PARKING')
+            self._pid.set_parking_complete_callback(self.markParkingAsComplete)
+        else:
+            # Benro Polaris Park (reset axes)
+            with self._lock:
+                self._atpark = True
+            self.resetAxes()
 
     async def unpark(self):
-        self._lock.acquire()
-        self._atpark = False
-        self._lock.release()
+        with self._lock:
+            self._pid.set_pid_mode('IDLE')
+            self._atpark = False
+
+    async def resetAxes(self):
+        # Benro Polaris Park (reset axes)
+        await self.stop_all_axes()
+        await self.stop_tracking()
+        await asyncio.sleep(1)
+        await self.send_cmd_park()
 

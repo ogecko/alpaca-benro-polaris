@@ -1,30 +1,49 @@
-[Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
-# Alpaca Usage Questions
-### A1 - Is Alpaca a physical device?
-No, Alpaca itself is not a physical device. It's a software standard, similar to a language that different devices and applications can use to communicate with each other. Think of it like a universal translator for your astronomy equipment!
+## Alpaca Driver and Mobile Devices
 
-The Alpaca Driver, in this context, is a piece of software that you install on a computer or device. This driver acts as the translator between your Benro Polaris and other astrophotography applications that "speak" Alpaca. It lets them control the Benro Polaris, send commands, and receive information.
+### A1 – Is Alpaca a physical device?
+No. Alpaca is an astronomy standard, a kind of universal language that lets astronomy apps and devices communicate. The **Alpaca Driver** is a Python-based program that acts as a translator between your Benro Polaris and other Alpaca-compatible software.
 
-### A1 - Does the driver need to be uploaded to the Polaris? 
-No, you don't upload the Alpaca Benro Polaris Driver directly to the Polaris itself. Instead, it runs on a separate device, like a mini-PC, laptop, Raspberry Pi, or even a desktop computer, that can connect to the Benro Polaris's Wi-Fi hotspot. This setup keeps the Polaris unmodified and allows for more powerful processing capabilities on the device running the driver.
+### A2 – Does the Alpaca Driver run on the Polaris itself?
+Not currently. The Driver runs on a separate device, like a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.
 
-### A3 - Can I use the Driver on my Mobile Device?
-Currently, using the Alpaca Benro Polaris Driver directly on a mobile device like a smartphone or tablet isn't directly supported. The driver requires a device that supports Python and can connect to the Benro Polaris's Wi-Fi network. While mobile devices generally don't meet these requirements, you can indirectly control the setup using a mobile device.
+### A3 – Can I run the Alpaca Driver on my phone or iPad?
+Not directly. The Driver requires a Python runtime and continuous background processing, something mobile platforms like iOS and Android don’t reliably support due to battery-saving restrictions. Even the current Polaris app struggles with power drain during extended use.
 
-### A4 - Will the Alpaca Driver work with iOS?
-Yes, the Alpaca Driver will work with iOS devices. The driver supports the SynScan protocol, which allows it to connect to and control the Benro Polaris from Stellarium PLUS on both iOS and Android devices.
-While the driver itself runs on platforms like Windows, macOS, Linux, and Raspberry Pi, its compatibility with the SynScan protocol extends its functionality to mobile devices. This means that iOS users can use their iPhones or iPads to control the Benro Polaris through Stellarium PLUS.
-However, it's worth noting that more advanced features like plate solving and autofocus, which require using NINA, are not available on iOS as NINA is a Windows-only application.
+However, you can still use your phone or tablet to **control** the system remotely:
+- Use the **Alpaca Pilot App** via any modern browser (Chrome, Safari, Firefox, Edge) on mobile or tablet.
+- Use **Stellarium PLUS** (iOS/Android) to control the Polaris via SynScan protocol.
+- Use **Remote Desktop** apps to control your mini-PC from a phone or tablet and operate tools like NINA."
 
-### A5 - What are are the advantages of a Mini-PC?
-Using a Mini-PC with Nina to control the Benro Polaris offers several advantages over alternative setups. 
-* **Enhanced Processing Power and Storage**: Mini-PCs offer more processing power and storage capacity than the Benro Polaris device. All images are automatically copied off the camera, named and organised in a friendly way. It is no longer necessary to select raw+jpg, you can omit jpg, as Nina understands raw formats.
-* **Centralized Control Hub**: The mini-PC acts as a central hub for controlling all astronomy equipment. This includes the Benro Polaris, cameras (including DSLR and dedicated astronomy cameras), and potentially other equipment like filter wheels or focusers, depending on the setup.
-* **Remote Control and Monitoring**: With a mini-PC, you can remotely control and monitor your astrophotography setup from a laptop, desktop, tablet, or smartphone. This is achieved using remote desktop software, allowing you to operate from a more comfortable location, potentially indoors, while the equipment is set up outside.
-* **Improved User Experience**: Using a mini-PC with Nina provides a better user experience than the Benro Polaris App or mobile astrophotography solutions. Nina offers a more comprehensive and user-friendly interface for astrophotography tasks.
-* **Offline Functionality**: The NinaAir setup can function offline, which is crucial for astrophotography in remote locations with limited internet connectivity.
-* **Flexibility and Customisation**: Mini-PCs offer flexibility in terms of hardware and software configurations. You can customize the setup to suit your needs and budget.
+### A4 – Can I run the Alpaca Driver on macOS?
+Yes. The Alpaca Driver runs natively on macOS and is a fully supported platform. However, some companion applications have platform-specific limitations:
+- NINA (for plate-solving, sequencing, autofocus) is Windows-only. A similar application called CCDciel can be used on macOS.
+- Stellarium PLUS is available as a mobile app for iOS and Android
+
+If you're using macOS, you can run the Driver directly and pair it with Stellarium Desktop or other Alpaca-compatible tools. 
+
+### A5 – Why do I need a PC or mini-PC?
+The Alpaca Driver maintains real-time communication with the Polaris and exposes multiple control interfaces, including Alpaca, SynScan, HTTP, WebSockets, and Bluetooth. It also supports advanced features including plate-solving (via Nina/ASTAP), extended image sequencing (via Nina), QUEST modeling, Orbital tracking, PID-based motion control.  
+
+These capabilities require:
+- Persistent background processing without interruption 
+- Concurrent handling of multiple communication stacks
+- Real-time processing for time critical tasks
+- Sufficient CPU and memory resources to support compute-intensive tasks
+- Sufficient file storage for long imaging sessions
+
+Mobile devices, while convenient, aren’t designed for this kind of sustained workload. A mini-PC offers the stability, performance, and flexibility needed.
+
+### A5 – Will mobile support improve in the future?
+Possibly. There are promising directions:
+- Embedding the Driver into Polaris firmware 
+- Potentially exploring lightweight plate-solving on mobile devices
+
+There is an open feature request to patch the Polaris firmware and embed the Driver directly into the device. While technically feasible, it’s a complex effort with firmware risks and IP concerns. It’s tracked as issue #33: Patch Polaris firmware to run Alpaca natively, but not planned for V2.0.
+
+For now, the best experience comes from pairing the Polaris with a mini-PC and using mobile devices as remote interfaces.
+
 
 # Benro Polaris Capability Questions
 
@@ -46,14 +65,20 @@ Here's some results from the Beta Testers:
 Keep in mind that longer focal lengths amplify any tracking errors, making precise polar alignment and potentially shorter exposures crucial.
 
 ### B3 - Can the Alpaca Project improve aiming performance?
-Yes, the Benro Polaris often exhibits consistent aiming inaccuracies, especially after re-engaging sidereal tracking post-slewing. The ABP Driver tackles this by employing an "Adaptive Integrative algorithm," constantly comparing the intended target coordinates with the Polaris's reported position. It learns from these discrepancies and applies an "Alt/Az offset" to correct for the Polaris's inherent errors, leading to more accurate aiming.
+Yes, the Benro Polaris often exhibits consistent aiming inaccuracies, especially after re-engaging sidereal tracking post-slewing. The Alpaca Driver V2.0 dramatically enhances mount accuracy, stability and responsiveness. The new PID Motion control eliminates backlash compensation, improves aiming accuracy, manages acceleration profiles, and support real-time redirection.
 
 ### B4 - Can the Alpaca Project improve tracking performance?
-The ABP Driver introduces a feature called N-Point Alignment when used with NINA (Nighttime Imaging 'N' Astronomy). This process leverages plate-solving, where NINA takes an image, analyzes the star patterns, and compares them to a database to precisely determine where the Polaris is pointing. The ABP Driver then instructs the Polaris to adjust its alignment based on this information. As you perform more plate-solves and syncs, the driver refines the Polaris's understanding of its orientation, leading to improved accuracy over time.
+Yes, significantly. Alpaca V2.0 introduces major improvements to tracking precision and capabilities. Key improvements include
+- **PID Motion Control:** The Driver features a real-time PID-based motion controller that replaces the native Polaris firmware, delivering smoother tracking, faster recovery from disturbances.
+- **Plate-Solving:** By integrating with tools like ASTAP and NINA, the Driver enables precise target acquisition and automatic centering, correcting for mount misalignment.
+- **Multi-Point Alignment:** The Driver supports QUEST modeling, allowing users to build a multi-point sky model that compensates for polar misalignment, cone error, and mount flexure.
+- **Pulse-Guiding:** ASCOM Alpaca pulse-guiding support enables real-time corrections from guiding software like PHD2, improving long-exposure tracking accuracy and eliminating drift.
+- **Orbital Tracking:** The Driver can track over 32,000 satellites, planets, and moons using real-time TLE data, updating mount setpoints every 200 ms for accurate tracking of fast-moving or dynamic targets.
 
-The ABP Driver doesn't directly modify the Benro Polaris's gears, motors, or firmware. Therefore, it cannot fix any underlying mechanical or programming limitations of the Polaris that might contribute to tracking errors. Some users in the Facebook group do express concerns about the Polaris's gears, programming, or backlash potentially being the root cause of their tracking issues.
+### B5 - What is the heaviest load the Polaris can handle?
+The Benro USA Site claims the Astro version of the Polaris can handle a load of 7 kg (15.4 lbs). Pretty impressive for such a small mount, without a counterweight. 
 
-The ABP Driver, as of version 1.0.0, doesn't include auto-guiding capabilities. Auto-guiding requires sending minute move commands to the mount while tracking is engaged, something the Benro Polaris's firmware doesn't currently support.
+I have tested the performance of the Polaris with my rig up to around 4.4kg (Canon R5, RF 800mm lens, Dew Heater, Mini-PC, Gemini Focuser, ArcaSwiss Mounting Bar, Svbony 50mm Guide Scope, Touptek GPM462M Guide Camera). The Polaris seems to easily handle this load and performs sidereal tracking well. 
 
 # Nina Capability Questions
 ### N1 - How can I connect both Nina and BP App to my Camera via USB?
@@ -93,8 +118,6 @@ Yes, Nina can do this! It has a handy plug-in called Session Manager that can re
 
 This information is saved in CSV files, making it easy to import and use in other astrophotography software.
 
-### N6 - Is auto-guiding going to be possible?
-Unfortunately, auto-guiding is not currently supported by the Alpaca Benro Polaris Driver. Auto-guiding typically requires the ability to make tiny adjustments to the mount's position while tracking is active, without introducing backlash (the slight play in gears).
 
 # Stellarium Usage Questions
 ### S1 - Will Stellarium work via Wifi or is a cable necessary?

@@ -48,7 +48,7 @@ import asyncio
 import telescope
 import time
 from config import Config
-from shr import DeviceMetadata
+from shr import DeviceMetadata, LifecycleController
 from datetime import datetime
 from shr import deg2dms,hr2hms,rad2deg,rad2hr,hr2rad,deg2rad,bytes2hexascii
 import ephem
@@ -138,8 +138,8 @@ def latlon2ABCDEGFGH(latitude, longitude):
 
 
 def radec_to_SynScan24bit(ra_hours, dec_degrees):
-    j2000_coord = ephem.Equatorial(hr2rad(ra_hours), deg2rad(dec_degrees), epoch=ephem.J2000)
-    radec = ephem.Equatorial(j2000_coord, epoch=ephem.now())
+    jNow_coord = ephem.Equatorial(hr2rad(ra_hours), deg2rad(dec_degrees), epoch=ephem.now())
+    radec = ephem.Equatorial(jNow_coord, epoch=ephem.J2000)
     # Convert RA from hours to fraction of a revolution
     ra_fraction = radec.ra / math.pi / 2
     # Convert DEC from degrees to fraction of a revolution
@@ -167,8 +167,8 @@ def synScan24bit_to_radec(byte_array):
     ra_fraction = ra_hex / 16777216.0
     dec_fraction = dec_hex / 16777216.0
     # Convert the fractions J2000 ra dec
-    now_coord = ephem.Equatorial(ra_fraction*math.pi*2, dec_fraction*math.pi*2, epoch=ephem.now())
-    radec = ephem.Equatorial(now_coord, epoch=ephem.J2000)
+    J2000_coord = ephem.Equatorial(ra_fraction*math.pi*2, dec_fraction*math.pi*2, epoch=ephem.J2000)
+    radec = ephem.Equatorial(J2000_coord, epoch=ephem.now())
 
     return rad2hr(radec.ra), rad2deg(radec.dec)
 
@@ -205,7 +205,7 @@ class Stellarium:
 
     #____________Low Level Comms_____________
     async def stellarium_send_msg(self, msg, ispolled=False):
-        if Config.log_stellarium_protocol and not(ispolled and Config.supress_stellarium_polling_msgs):
+        if (not ispolled and Config.log_synscan_protocol) or (ispolled and Config.log_synscan_polling):
             self.logger.info(f"->> Stellarium: send_msg: {bytes2hexascii(msg)}")
         self.writer.write(msg)
         await self.writer.drain()
@@ -216,36 +216,37 @@ class Stellarium:
     async def process_protocol(self, data):
 
         # hex/ascii dump of message recieved
-        if Config.log_stellarium_protocol:
-            if not(Config.supress_stellarium_polling_msgs and (data[0]==0x4c or data[0]==0x65)):
-                self.logger.info(f"<<- Stellarium: recv_msg: {bytes2hexascii(data)}")
-
+        ispolled = data[0]==0x4c or data[0]==0x65 or data[0]==0x4a
+        if (not ispolled and Config.log_synscan_protocol) or (ispolled and Config.log_synscan_polling):
+            self.logger.info(f"<<- Stellarium: recv_msg: {bytes2hexascii(data)}")
 
         # SynSCAN Echo Command 'K',x | Reply x, "#"
         if data[0]==0x4b:               
             msg = bytearray([data[1],ord('#')])
             telescope.polaris.radec_sync_reset()
-            self.logger.info(f"<<- Stellarium: SynScan ECHO Command 'K{chr(data[1])}' | Reset SyncOffset to (RA 0 Dec 0)")
+            if Config.log_synscan_protocol:
+                self.logger.info(f"<<- Stellarium: SynScan ECHO Command 'K{chr(data[1])}' | Reset SyncOffset to (RA 0 Dec 0)")
             self.stellarium_binary_protocol = False
             await self.stellarium_send_msg(msg)
 
         # SynSCAN Get Slewing state 'L' | Reply “0#" or "1#"
         elif data[0]==0x4c: 
-            if not Config.supress_stellarium_polling_msgs:              
+            if Config.log_synscan_polling:              
                 self.logger.info(f"<<- Stellarium: SynScan Get SLEWING state 'L' | {telescope.polaris.slewing}")
             msg = b'1#' if telescope.polaris.gotoing else b'0#'
             await self.stellarium_send_msg(msg, ispolled=True)
 
         # SynSCAN Get Tracking state 't' | Reply 0 = Tracking off, 1 = Alt/Az tracking, 2 = Equatorial tracking, 3 = PEC mode (Sidereal + PEC)
         elif data[0]==0x74: 
-            if not Config.supress_stellarium_polling_msgs:              
+            if Config.log_synscan_polling:              
                 self.logger.info(f"<<- Stellarium: SynScan Get TRACKING state 't' | {telescope.polaris.tracking}")
             msg = bytearray([2,ord('#')]) if telescope.polaris.tracking else bytearray([0,ord('#')])
             await self.stellarium_send_msg(msg, ispolled=True)
 
         # SynSCAN Set Tracking state 'T',m | Where m=0 Off, m=1 Alt/Az, m=2 Equitorial, m=3 Sidereal+PEC mode
         elif data[0]==0x54: 
-            self.logger.info(f"<<- Stellarium: SynScan Set Tracking 'T'")
+            if Config.log_synscan_protocol:
+                self.logger.info(f"<<- Stellarium: SynScan Set Tracking 'T'")
             new_state = True if data[1]==0x02 or data[1]==0x03 else False
             telescope.polaris.send_cmd_change_tracking_state(new_state)
             msg = b'#'
@@ -253,14 +254,15 @@ class Stellarium:
 
         # SynSCAN Is Alignment Complete 'J' | Reply 1 = Aligned
         elif data[0]==0x4a: 
-            if not Config.supress_stellarium_polling_msgs:              
+            if Config.log_synscan_polling:              
                 self.logger.info(f"<<- Stellarium: SynScan Is Alignment Complete 'J'")
             msg = bytearray([1, ord('#')]) if telescope.polaris.connected else bytearray([0, ord('#')])
             await self.stellarium_send_msg(msg, ispolled=True)
 
         # SynSCAN Cancel GOTO 'M' | Reply “#"
         elif data[0]==0x4d:               
-            self.logger.info(f"<<- Stellarium: SynScan Cancel GOTO 'M'")
+            if Config.log_synscan_protocol:
+                self.logger.info(f"<<- Stellarium: SynScan Cancel GOTO 'M'")
             await telescope.polaris.send_cmd_goto_abort()
             msg = b'#'
             await self.stellarium_send_msg(msg)
@@ -272,16 +274,20 @@ class Stellarium:
                 self.logger.error(f"<<- Stellarium: SynScan Move Rate invalid {bytes2hexascii(data)}")
             else:
                 if data[2]==0x10 and data[3]==0x24:
-                    self.logger.info(f"<<- Stellarium: SynScan Move Azm +ve 'P': Rate {rate}")
+                    if Config.log_synscan_protocol:
+                        self.logger.info(f"<<- Stellarium: SynScan Move Azm +ve 'P': Rate {rate}")
                     await telescope.polaris.move_axis(0, rate)
                 if data[2]==0x10 and data[3]==0x25:
-                    self.logger.info(f"<<- Stellarium: SynScan Move Azm -ve 'P': Rate {rate}")
+                    if Config.log_synscan_protocol:
+                        self.logger.info(f"<<- Stellarium: SynScan Move Azm -ve 'P': Rate {rate}")
                     await telescope.polaris.move_axis(0, -rate)
                 if data[2]==0x11 and data[3]==0x24:
-                    self.logger.info(f"<<- Stellarium: SynScan Move Alt +ve 'P': Rate {rate}")
+                    if Config.log_synscan_protocol:
+                        self.logger.info(f"<<- Stellarium: SynScan Move Alt +ve 'P': Rate {rate}")
                     await telescope.polaris.move_axis(1, rate)
                 if data[2]==0x11 and data[3]==0x25:
-                    self.logger.info(f"<<- Stellarium: SynScan Move Alt -ve 'P': Rate {rate}")
+                    if Config.log_synscan_protocol:
+                        self.logger.info(f"<<- Stellarium: SynScan Move Alt -ve 'P': Rate {rate}")
                     await telescope.polaris.move_axis(1, -rate)
             msg = b'#'
             await self.stellarium_send_msg(msg)
@@ -289,14 +295,15 @@ class Stellarium:
         # SynSCAN Get Version Command 'V' | Reply 6 decimals in ascii,"#"
         elif data[0]==0x56:
             version = DeviceMetadata.VersionSynScan               
-            self.logger.info(f"<<- Stellarium: SynScan Get VERSION Command 'V' | {version}")
+            if Config.log_synscan_protocol:
+               self.logger.info(f"<<- Stellarium: SynScan Get VERSION Command 'V' | {version}")
             msg = bytearray(ord(c) for c in version)
             await self.stellarium_send_msg(msg)
 
         # SynSCAN Get precise RA/DEC 'e' | Reply “34AB0500,12CE0500#” 
         elif data[0]==0x65:               
             await asyncio.sleep(0.1)            # dont let Stellarium PLUS get too carried away
-            if not Config.supress_stellarium_polling_msgs:              
+            if Config.log_synscan_polling:              
                 self.logger.info(f"<<- Stellarium: SynScan Get RA/DEC Command 'e'")
             msg = radec_to_SynScan24bit(telescope.polaris.rightascension, telescope.polaris.declination)
             await self.stellarium_send_msg(msg, ispolled=True)
@@ -309,7 +316,8 @@ class Stellarium:
             elif dec < -90 or dec > 90 or math.isnan(dec):
                 self.logger.error(f"<<- Stellarium: SynScan GOTO Dec invalid {bytes2hexascii(data)}")
             else:
-                self.logger.info(f"<<- Stellarium: SynScan GOTO Ra: {hr2hms(ra)} Dec: {deg2dms(dec)}")
+                if Config.log_synscan_protocol:
+                    self.logger.info(f"<<- Stellarium: SynScan GOTO Ra: {hr2hms(ra)} Dec: {deg2dms(dec)}")
                 if telescope.polaris.connected:
                     await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
             msg = b'#'
@@ -323,22 +331,25 @@ class Stellarium:
             elif dec < -90 or dec > 90 or math.isnan(dec):
                 self.logger.error(f"<<- Stellarium: SynScan SYNC Dec invalid {bytes2hexascii(data)}")
             else:
-                self.logger.info(f"<<- Stellarium: SynScan SYNC Ra: {ra} Dec: {dec}")
+                if Config.log_synscan_protocol:
+                    self.logger.info(f"<<- Stellarium: SynScan SYNC Ra: {ra} Dec: {dec}")
                 if telescope.polaris.connected:
-                    await telescope.polaris.radec_ascom_sync(ra, dec)
+                    await telescope.polaris.sync_to_radec(ra, dec)
             msg = b'#'
             await self.stellarium_send_msg(msg)
 
         # SynSCAN Get TIME 'h', | Reply “QRSTUVWX#" where Q hr, R min, S sec, T Month, U day, V year, W GMT offset, X DST
         elif data[0]==0x68:               
             msg, msg_ascii = datetime2QRSTUVWX(datetime.now())
-            self.logger.info(f"<<- Stellarium: SynScan Get TIME h | {msg_ascii}")
+            if Config.log_synscan_protocol:
+                self.logger.info(f"<<- Stellarium: SynScan Get TIME h | {msg_ascii}")
             await self.stellarium_send_msg(msg)
 
         # SynSCAN Set TIME 'HQRSTUVWX', | Reply “#" where Q hr, R min, S sec, T Month, U day, V year, W GMT offset, X DST
         elif data[0]==0x48:
             msg_ascii = HQRSTUVWX2datetime(data)               
-            self.logger.info(f"<<- Stellarium: SynScan Set TIME H | {msg_ascii}")
+            if Config.log_synscan_protocol:
+                self.logger.info(f"<<- Stellarium: SynScan Set TIME H | {msg_ascii}")
             # Mot Implemented
             msg = b'#'
             await self.stellarium_send_msg(msg)
@@ -347,7 +358,8 @@ class Stellarium:
         elif data[0]==0x77:
             lat = telescope.polaris.sitelatitude
             lon = telescope.polaris.sitelongitude          
-            self.logger.info(f"<<- Stellarium: SynScan Get LOCATION w | Lat: {lat:0.9} Lon: {lon:0.9}")
+            if Config.log_synscan_protocol:
+                self.logger.info(f"<<- Stellarium: SynScan Get LOCATION w | Lat: {lat:0.9} Lon: {lon:0.9}")
             msg = latlon2ABCDEGFGH(lat, lon)
             await self.stellarium_send_msg(msg)
 
@@ -361,7 +373,8 @@ class Stellarium:
             else:
                 telescope.polaris.sitelatitude = lat
                 telescope.polaris.sitelongitude = lon         
-                self.logger.info(f"<<- Stellarium: SynScan Set LOCATION W | Lat: {lat:0.9} Lon: {lon:0.9}")
+                if Config.log_synscan_protocol:
+                    self.logger.info(f"<<- Stellarium: SynScan Set LOCATION W | Lat: {lat:0.9} Lon: {lon:0.9}")
             msg = b'#'
             await self.stellarium_send_msg(msg)
 
@@ -373,7 +386,8 @@ class Stellarium:
             elif dec < -90 or dec > 90 or math.isnan(dec):
                 self.logger.error(f"<<- Stellarium: Binary GOTO Dec invalid {bytes2hexascii(data)}")
             else:
-                self.logger.info(f"<<- Stellarium: Binary GOTO command Ra={ra} Dec={dec} t={t}")
+                if Config.log_synscan_protocol:
+                    self.logger.info(f"<<- Stellarium: Binary GOTO command Ra={ra} Dec={dec} t={t}")
                 self.stellarium_binary_protocol = True
                 if telescope.polaris.connected:
                     await telescope.polaris.SlewToCoordinates(ra, dec, isasync=True)
@@ -430,8 +444,30 @@ async def stellarium_handler(logger, reader, writer):
 
 
 # Main entry for Stellarium
-async def stellarium_telescope(logger, telescope_ip_address, telescope_port):    
-    logger.info(f"==STARTUP== Serving Stellarium Telescope on {telescope_ip_address}:{telescope_port}")
+async def synscan_api(logger, lifecycle: LifecycleController):
+    if not Config.enable_synscan:
+        return
 
-    stellarium_server = await asyncio.start_server(lambda reader, writer: stellarium_handler(logger, reader, writer), 
-                                                   telescope_ip_address, telescope_port)
+    host = Config.stellarium_synscan_ip_address
+    port = Config.stellarium_synscan_port
+    logger.info(f"==STARTUP== Serving Stellarium/SynSCAN API on {host}:{port}")
+
+    try:
+        server = await asyncio.start_server(
+            lambda reader, writer: stellarium_handler(logger, reader, writer),
+            host,
+            port
+        )
+
+        async with server:
+            await lifecycle.wait_for_event()
+    except asyncio.CancelledError:
+        logger.info("==CANCELLED== SynSCAN API cancel received.")
+    except Exception as e:
+        logger.exception(f"==EXCEPTION== SynSCAN API unhandled exception: {e}")
+    finally:
+        logger.info("==SHUTDOWN== SynSCAN API shutting down.")
+        server.close()
+        await server.wait_closed()
+
+

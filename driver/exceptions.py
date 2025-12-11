@@ -364,3 +364,6 @@ class AstroAlignmentError(Exception):
 
 class WatchdogError(Exception):
     pass
+
+class RestartDriver(Exception):
+    pass

@@ -1,5 +1,4 @@
-[Home](./README.md) | [Hardware Guide](docs/hardware.md) | [Installation Guide](docs/installation.md) | [Using Stellarium](docs/stellarium.md) | [Using Nina](docs/nina.md) | [Troubleshooting](docs/troubleshooting.md) | [FAQ](docs/faq.md)
-
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 # Benro Polaris and Alpaca: A Beginner's Guide to Astrophotography
 So you've just got your hands on the Benro Polaris, congratulations! This guide will take you through the basics of astrophotography with the Polaris and introduce you to the world of Alpaca, a powerful tool that can elevate your astrophotography experience. Use it as a learning guide on the various topics to master to become better at astrophotography.
 ## Getting Started with the Benro Polaris

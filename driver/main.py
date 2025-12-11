@@ -40,99 +40,116 @@ import exceptions
 import shr
 import log
 from config import Config
-from discovery import DiscoveryResponder
+import discovery
 import telescope
+import rotator
 import stellarium
-import app
-import argparse
+import app_api
+import app_web
+import app_socket
+from pathlib import Path
+import os
+from polaris import Polaris
+from shr import LifecycleController, LifecycleEvent
+import signal
+polaris: Polaris = None
 
-# ===========
-# APP STARTUP
-# ===========
+# ===================================
+# MAIN LOOP RESPONSIBLE FOR RETARTS
+# ===================================
 async def main():
+    Config.load()
 
+    if not Config.log_dir:
+        # Set the default log directory if not provided    
+        script_dir = Path(__file__).resolve().parent             # Get the path to the current script (main.py)
+        default_log_dir = str(script_dir.parent / 'logs')        # Default log directory: ../logs relative to main.py
+        Config.apply_changes({ "log_dir": default_log_dir })
+
+    # Ensure the directory exists and initialise
+    os.makedirs(Config.log_dir, exist_ok=True)
     logger = log.init_logging()
-    # Share this logger throughout
-    log.logger = logger
-    exceptions.logger = logger
-    discovery.logger = logger
-    telescope.logger = logger
-    shr.logger = logger
+    log.logger = exceptions.logger = discovery.logger = telescope.logger = rotator.logger = shr.logger = logger
 
 
-    # Output performance data log headers if enabled
-    if Config.log_performance_data == 1:        # Aim data
-        logger.info(f",Dataset,Time,AimAz,AimAlt,OffsetAz,OffsetAlt,AimErrorAz,AimErrorAlt")
-        logger.info(f",DATA1,{0:.3f},{0:.2f},{0:.2f},{0:.2f},{0:.2f},{0:.2f},{0:.2f}")
+    while True:
+        # Create a new LifeCycle Controller and install SIGINT handler
+        lifecycle = LifecycleController()
+        def handle_sigint(signum, frame):
+            lifecycle.signal_sync(LifecycleEvent.INTERRUPT)
+        signal.signal(signal.SIGINT, handle_sigint)
 
-    elif Config.log_performance_data == 2:      # Drift data
-        logger.info(f",Dataset,Time,TrackingT0,TrackingT1,TargetRA,TargetDec,DriftErrRA,DriftErrDec")
-        logger.info(f",DATA2,{0:.3f},{False},{False},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
+        # Try running all tasks
+        try:
+            await run_all(logger, lifecycle)
+        except KeyboardInterrupt:
+            logger.info("==MAIN== Keyboard Interrupt received. Exiting.")
+            break
+        except asyncio.CancelledError:
+            logger.info("==MAIN== Main loop cancel received. Exiting.")
+            break
+        except Exception as e:
+            logger.exception(f"==MAIN== Fatal error in main loop: {e}")
+            break
+        else:
+            if lifecycle._event == LifecycleEvent.RESTART:
+                logger.info("==MAIN== Restarting driver stack...in 5 sec")
+                await asyncio.sleep(5)
+                continue
+            elif lifecycle._event == LifecycleEvent.INTERRUPT:
+                logger.info("==MAIN== Interrupt. Exiting.")
+                break
+            else:
+                logger.info("==MAIN== Shutdown requested. Exiting.")
+                break
 
-    elif Config.log_performance_data == 3:      # Speed data
-        logger.info(f",Dataset,Time,Interval,Constant,RateAz,SpeedAz,RateAlt,SpeedAlt,SpeedRA,SpeedDec,SpeedTotal")
-        logger.info(f",DATA3,{0:.3f},{0:.2f},{False},{0:.2f},{0:.7f},{0:.2f},{0:.7f},{0:.7f},{0:.7f},'00:00:00.000'")
+# ===================
+# RUN ALL TASKS
+# ===================
+async def run_all(logger, lifecycle: LifecycleController):
+    # Output Alpaca Driver version
+    logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
-    elif Config.log_performance_data == 4:      # Position data (heavy logging)
-        logger.info(f",Dataset,Time,Tracking,Slewing,Gotoing,TargetRA,TargetDEC,AscomRA,AscomDEC,AscomAz,AscomAlt,ErrorRA,ErrorDec")
-        logger.info(f",DATA4,{0:.3f},{False},{False},{False},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.7f},{0:.3f},{0:.3f}")
+    # Create the Polaris master object and startup each ASCOM device
+    global polaris
+    polaris = Polaris(logger, lifecycle)
+    telescope.start_telescope(polaris, lifecycle)
+    rotator.start_rotator(polaris, lifecycle)
 
-    # Initialize the ASCOM devices
-    telescope.start_polaris(logger)
-
-    # Create a separate thread for ASCOM Discovery
-    _DSC = DiscoveryResponder(Config.alpaca_ip_address, Config.alpaca_port)
-
-    # Create a native stellarium telescope service
-    if Config.stellarium_telescope_port > 0:
-        await stellarium.stellarium_telescope(logger, 
-                                              Config.stellarium_telescope_ip_address, 
-                                              Config.stellarium_telescope_port)
-    
     tasks = [
-            app.alpaca_httpd(logger),
-            telescope.polaris.client(logger)
+        lifecycle.create_task(polaris.client(logger), name='Polaris'),
+        lifecycle.create_task(app_api.alpaca_rest_httpd(logger, lifecycle), name='RestAPI'),
+        lifecycle.create_task(app_socket.alpaca_socket_httpd(logger, lifecycle, polaris), name='Sockets'),
+        lifecycle.create_task(app_web.alpaca_pilot_httpd(logger, lifecycle), name='Pilot'),
+        lifecycle.create_task(discovery.socket_client(logger, lifecycle), name='Discovery'),
+        lifecycle.create_task(stellarium.synscan_api(logger, lifecycle), name='SynscanAPI')
     ]
-    await asyncio.gather(*tasks)
 
-    logger.info(f'==SHUTDOWN== Time stamps are UTC.')
+    event = await lifecycle.wait_for_event()
 
-
+    logger.info(f'==SHUTDOWN== Shutting down all tasks...for {event}')
+    await lifecycle.shutdown_tasks()
+    await polaris.shutdown()
 
 
 # ==================================================================
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description="Alpaca Benro Polaris Driver.")
-
-    # Add the arguments
-    parser.add_argument('--lat', type=float, help='Site Latitude in decimal degrees')
-    parser.add_argument('--lon', type=float, help='Site Longitude in decimal degrees')
-    parser.add_argument('--elev', type=float, help='Site Elevation from sea level in meters')
-    parser.add_argument('--logdir', type=str, help='Directory to store log file(s)')
-
-    # Parse the arguments
-    args = parser.parse_args()
-
-    # Store any of the optional the arguments
-    if args.lat:
-        Config.site_latitude = args.lat
-    if args.lon:
-        Config.site_longitude = args.lon
-    if args.elev:
-        Config.site_elevation = args.elev
-    if args.logdir:
-        Config.log_dir = args.logdir
-
     try:
         asyncio.run(main())
+        
     except ValueError as value:
         print(f"{value}\nQuit.")
+        asyncio.run(polaris.shutdown())
+
     except Exception as error:
         print(f"Error {error}, quit.")
+        asyncio.run(polaris.shutdown())
+
     except KeyboardInterrupt:
         print("Keyboard interrupt.")
-       
+        asyncio.run(polaris.shutdown())
+   
 
 
 

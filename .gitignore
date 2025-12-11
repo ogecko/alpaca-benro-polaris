@@ -6,7 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
-# Alpaca Logs and Performance data
+# Alpaca Logs, Performance and Custom data
+speed_calibration.json
+speed_testdata.json
+catalog.json
+config.*.json
 *.log
 *.log.*
 alpaca*.csv
@@ -20,7 +24,8 @@ platforms/docker/getopts_long/
 .Python
 build/
 develop-eggs/
-dist/
+/dist/*
+!/dist/spa
 downloads/
 eggs/
 .eggs/

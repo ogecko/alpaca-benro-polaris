@@ -43,11 +43,12 @@
 #               GitHub issue #1
 #
 from falcon import Request, Response
-from shr import PropertyResponse, DeviceMetadata
+from shr import PropertyResponse, DeviceMetadata, log_request, log_response
 from config import Config
 from logging import Logger
 # For each *type* of device served
 from telescope import TelescopeMetadata
+from rotator import RotatorMetadata
 
 logger: Logger = None
 #logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
@@ -61,6 +62,7 @@ def set_management_logger(lgr):
 # -----------
 class apiversions:
     async def on_get(self, req: Request, resp: Response):
+        await log_request(req,'log_alpaca_discovery')
         apis = [ 1 ]                            # TODO MAKE CONFIG OR GLOBAL
         resp.text = await PropertyResponse(apis, req)
 
@@ -69,9 +71,11 @@ class apiversions:
 # -------------------------
 class description:
     async def on_get(self, req: Request, resp: Response):
+        await log_request(req,'log_alpaca_discovery')
         desc = {
             'ServerName'   : DeviceMetadata.Description,
             'Manufacturer' : DeviceMetadata.Manufacturer,
+            'ManufacturerVersion'      : DeviceMetadata.Version,
             'Version'      : DeviceMetadata.Version,
             'Location'     : Config.location
             }
@@ -82,6 +86,7 @@ class description:
 # -----------------
 class configureddevices():
     async def on_get(self, req: Request, resp: Response):
+        await log_request(req,'log_alpaca_actions')
         confarray = [    # ADD ONE FOR EACH DEVICE TYPE AND INSTANCE SERVED
             {
             'DeviceName'    : TelescopeMetadata.Name,
@@ -90,4 +95,11 @@ class configureddevices():
             'UniqueID'      : TelescopeMetadata.DeviceID
             }
         ]
+        if Config.advanced_rotator and Config.advanced_control:
+            confarray.append({
+                'DeviceName'    : RotatorMetadata.Name,
+                'DeviceType'    : RotatorMetadata.DeviceType,
+                'DeviceNumber'  : 0,
+                'UniqueID'      : RotatorMetadata.DeviceID
+            })
         resp.text = await PropertyResponse(confarray, req)

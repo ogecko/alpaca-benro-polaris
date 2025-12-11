@@ -1,0 +1,334 @@
+<template>
+  <q-layout view="hHh LpR fFf" class="dark-page">
+    <!-- Alpaca Pilot Header Bar -->
+    <q-header elevated height-hint="58">
+      <q-toolbar>
+        <!-- Alpaca Pilot Icon/Menu -->
+        <q-btn flat dense round @click="toggleLeftDrawer" aria-label="Menu" >
+          <q-avatar>
+            <q-img src="icons/favicon-128x128.png" style="width: 35px; height: 35px;"/>
+          </q-avatar>
+        </q-btn>
+        <!-- Home, Connect, Settings, Logs Tabs -->
+        <q-tabs inline-label active-class="active-link-bottom" active-bg-color="secondary">
+          <q-btn v-if="$q.screen.gt.xs" flat no-caps no-wrap to="/">
+            <q-toolbar-title shrink class="text-weight-bold">Alpaca Pilot</q-toolbar-title>
+          </q-btn>
+          <q-route-tab v-if="isRoomy" icon="mdi-monitor-dashboard" :label="$q.screen.gt.sm ? 'Dashboard' : undefined" to="/dashboard"/>
+          <q-route-tab v-if="isRoomy" icon="mdi-transit-connection-variant" :label="$q.screen.gt.sm ? 'Connect' : undefined"  to="/connect" 
+                      :alert="dev.restAPIConnected?'positive':'negative'" />
+          <q-route-tab v-if="isRoomy" icon="mdi-cog" :label="$q.screen.gt.sm ? 'Settings' : undefined" to="/config"/>
+        </q-tabs>
+        <!-- Search -->
+        <div class="row no-wrap q-pl-md">
+          <q-input rounded dense filled bg-color="blue-9" v-model="searchBoxString" :placeholder="$q.screen.gt.xs?'Catalog':undefined" @focus="onSearchFocus">
+            <template v-slot:append>
+              <q-btn dense size="sm" round unelevated :icon="(searchBoxString=='')? 'mdi-magnify': 'mdi-close'" @click="onMagnify()" />
+            </template>
+          </q-input>
+        </div>
+
+        <q-space />
+        
+
+        <!-- Battery and Notifications -->
+        
+        <div class="q-pl-sm items-center" @click="onToggleFullscreen()">
+            <div v-if="p.battery_is_available" class="column items-center justify-center">
+                <span class="text-body">{{p.battery_level}}%</span>
+                <q-icon class="" size="sm" :name="getBatteryIcon()" :color="getBatteryColor()"/>
+            </div>
+        </div>
+        <q-btn v-if="$q.screen.gt.xs" dense size="lg" flat icon="mdi-fullscreen" @click="onToggleFullscreen()"/>
+      </q-toolbar>
+    </q-header>
+
+    <!-- LHS Draw menu -->
+    <q-drawer v-model="leftDrawerOpen" show-if-above bordered class="dark-page" :width="200" >
+      <q-scroll-area class="fit">
+        <!-- Deep Sky Objects -->
+        <q-list dense>
+          <q-item-label header class="text-weight-bold text-uppercase">
+            Deep Sky Objects
+          </q-item-label>
+          <q-item v-for="link in links2" :key="link.text" v-ripple clickable :to="link.to" active-class="active-link-right">
+            <q-item-section avatar>
+              <q-icon color="grey" :name="link.icon" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ link.text }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator class="q-mt-md q-mb-xs" />          
+        </q-list>
+       
+        <!-- Orbitals -->
+        <q-list dense>
+          <q-item-label header class="text-weight-bold text-uppercase">
+            Orbitals
+          </q-item-label>
+
+          <q-item v-for="link in links3" :key="link.text" v-ripple clickable :to="link.to"  active-class="active-link-right">
+            <q-item-section avatar>
+              <q-icon color="grey" :name="link.icon" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ link.text }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator class="q-my-md" />
+        </q-list>
+       
+        <!-- Performance Tuning -->
+        <q-list dense>
+          <q-item-label header class="text-weight-bold text-uppercase">
+            Performance Tuning
+          </q-item-label>
+          <q-item v-for="link in links4" :key="link.text" v-ripple clickable :to="link.to"  active-class="active-link-right">
+            <q-item-section avatar>
+              <q-icon color="grey" :name="link.icon" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ link.text }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-separator class="q-mt-md q-mb-xs" />
+        </q-list>
+       
+        <!-- Documentation -->
+        <q-list dense>
+          <q-item-label header class="text-weight-bold text-uppercase">
+            Documentation
+          </q-item-label>
+          <q-item
+            v-for="link in links5"
+            :key="link.text" v-ripple lickable 
+            :to="link.to || undefined"
+            :tag="link.toExternal ? 'a' : 'router-link'" 
+            :href="link.toExternal || undefined" 
+            :target="link.toExternal ? '_blank' : undefined"
+            :rel="link.toExternal ? 'noopener' : undefined"
+            active-class="active-link-right"
+          >
+            <q-item-section avatar>
+              <q-icon color="grey" :name="link.icon" />
+            </q-item-section>
+            <q-item-section>
+              {{ link.text }}
+            </q-item-section>
+          </q-item>
+        </q-list>
+       
+
+
+      </q-scroll-area>
+    </q-drawer>
+
+    <q-page-container>
+      <router-view />
+    </q-page-container>
+  </q-layout>
+
+
+
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch  } from 'vue'
+import { useStatusStore } from 'stores/status'
+import { useRouter, useRoute } from 'vue-router'
+import { useDeviceStore } from 'src/stores/device'
+import { useStreamStore } from 'src/stores/stream'
+import { debounce } from 'quasar'
+import { useCatalogStore } from 'src/stores/catalog'
+import { AppFullscreen } from 'quasar'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
+const dev = useDeviceStore()
+const p = useStatusStore()
+const socket = useStreamStore()
+const router = useRouter()
+const route = useRoute()
+const cat = useCatalogStore()
+
+const isFullscreen = ref(false)
+const leftDrawerOpen = ref(false)
+const searchBoxString = ref<string>('')
+const isRoomy = ref(true)
+
+
+
+async function onToggleFullscreen() {
+  if (isFullscreen.value) {
+    await AppFullscreen.exit()
+    isFullscreen.value = false
+  } else {
+    await AppFullscreen.request()
+    isFullscreen.value = true
+  }
+}
+
+function onMagnify() {
+  if (searchBoxString.value!='') {
+    searchBoxString.value=''
+    isRoomy.value = true
+  } else {
+    if ($q.screen.lt.sm) {
+      // on small screens its not very much space, hide other qtabs when entering search string
+      isRoomy.value = !isRoomy.value
+    }
+  }
+}
+
+function onSearchFocus() {
+  if (searchBoxString.value.trim() !== '') {
+    triggerSearch();
+  }
+}
+
+
+onMounted(() => {
+  // socket.connectSocket()   //    connect whenever the socketURL or AppVisibility changes - see watch below
+  // socket.subscribe('status')
+})
+
+onUnmounted(() => {
+  socket.unsubscribe('status')
+  socket.disconnectSocket()
+})
+
+watch(
+  [() => dev.restAPIConnected, () => socket.socketURL, () => dev.isVisible],
+  () => {
+    if (dev.isVisible) {
+      if (dev.restAPIConnected && socket) {
+        socket.connectSocket()
+        socket.subscribe('status')
+      }
+    } else {
+      socket.unsubscribe('status')
+    }
+  },
+  { immediate: true }     // ensure it runs immediately on component mount, as boot/autoconnect.ts may have already connected
+)
+
+watch(searchBoxString, () => {
+  triggerSearch()
+})
+
+watch(() => cat.searchFor, (newVal) => {
+    if (searchBoxString.value !== newVal) {
+      searchBoxString.value = newVal
+    }
+  }
+)
+
+const triggerSearch = debounce(async () => {
+  const searchFor = searchBoxString.value.trim()
+  await router.push({ path: '/catalogList', query: { ...route.query, q: searchFor } }) 
+}, 300) // 300ms debounce
+
+
+function toggleLeftDrawer () {
+  leftDrawerOpen.value = !leftDrawerOpen.value
+}
+
+function getBatteryColor(): string {
+  if (p.battery_level >= 50) {
+    return p.battery_is_charging ? 'light-green' : 'white'
+  } else if (p.battery_level >= 20) {
+    return 'warning'
+  } else {
+    return 'negative'
+  }
+}
+
+function getBatteryIcon(): string {
+  const levels = [
+    { threshold: 95, charging: 'mdi-battery-charging-100', discharging: 'mdi-battery' },
+    { threshold: 90, charging: 'mdi-battery-charging-90', discharging: 'mdi-battery-90' },
+    { threshold: 80, charging: 'mdi-battery-charging-80', discharging: 'mdi-battery-80' },
+    { threshold: 70, charging: 'mdi-battery-charging-70', discharging: 'mdi-battery-70' },
+    { threshold: 60, charging: 'mdi-battery-charging-60', discharging: 'mdi-battery-60' },
+    { threshold: 50, charging: 'mdi-battery-charging-50', discharging: 'mdi-battery-50' },
+    { threshold: 40, charging: 'mdi-battery-charging-40', discharging: 'mdi-battery-40' },
+    { threshold: 30, charging: 'mdi-battery-charging-30', discharging: 'mdi-battery-30' },
+    { threshold: 20, charging: 'mdi-battery-charging-20', discharging: 'mdi-battery-20' },
+    { threshold: 10, charging: 'mdi-battery-charging-10', discharging: 'mdi-battery-10' },
+  ]
+
+  for (const level of levels) {
+    if (p.battery_level >= level.threshold) {
+      return p.battery_is_charging ? level.charging : level.discharging
+    }
+  }
+
+  return 'mdi-battery-alert'
+}
+
+const links2 = [
+  { icon: 'mdi-library', text: 'Catalog', to: '/cataloglist' },
+  { icon: 'mdi-nfc-tap', text: 'Nearby', to: { path: '/catalogList', query: { sort:'Proximity' } } },
+  { icon: 'mdi-flare', text: 'Stars', to: { path: '/catalogList', query: { C1:3 } } },
+  { icon: 'mdi-horse-variant', text: 'Nebulae', to: { path: '/catalogList', query: { C1:0 } } },
+  { icon: 'mdi-cryengine', text: 'Galaxies', to: { path: '/catalogList', query: { C1:1 } } },
+  { icon: 'mdi-blur', text: 'Clusters', to: { path: '/catalogList', query: { C1:2 } } },
+]
+
+const links3 = [
+  { icon: 'mdi-moon-full', text: 'Planets', to: { path: '/catalogList', query: { C1:4 } } },
+  { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: { path: '/catalogList', query: { C1:5 } } },
+  { icon: 'mdi-satellite-variant', text: 'Satellites', to: { path: '/catalogList', query: { C1:6 } } },
+  { icon: 'mdi-cookie', text: 'Asteroids', to: { path: '/catalogList', query: { C1:8 } } },
+  { icon: 'mdi-magic-staff', text: 'Comets', to: { path: '/catalogList', query: { C1:7 } } },
+]
+
+const links4 = [
+  { icon: 'mdi-format-vertical-align-top', text: 'Alignment', to: '/sync' },
+  { icon: 'mdi-set-split', text: 'Calibration', to: '/speed' },
+  { icon: 'mdi-chart-line', text: 'KF Tuning', to: '/kalman' },
+  { icon: 'mdi-chart-bell-curve-cumulative', text: 'PID Tuning', to: '/pidall' },
+  { icon: 'mdi-pulse', text: 'PWM Testing', to: '/pwm' },
+  { icon: 'mdi-motion-outline', text: 'Kinematics', to: '/position' },
+  { icon: 'mdi-database-clock-outline', text: 'Driver Log', to: '/log' },
+]
+
+const links5 = [
+  { icon: 'mdi-account-tie-hat', text: 'Pilot', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/pilot.md' },
+  { icon: 'mdi-camera-control', text: 'Control', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/control.md' },
+  { icon: 'mdi-alert', text: 'Warnings', to: '/warning' },
+  { icon: 'mdi-stethoscope', text: 'Troubleshooting', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/troubleshooting.md' },
+  { icon: 'mdi-youtube', text: 'Videos', toExternal: 'https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D' },
+  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/faq.md' },
+  { icon: 'mdi-information-variant', text: 'About', to: '/about' },
+]
+
+
+
+</script>
+
+<style scoped lang="scss">
+.active-link-bottom {
+  ::v-deep(.q-tab__indicator) {
+    border-bottom: 6px solid $blue-3; 
+  }
+}
+
+.active-link-right {
+  border-right: 6px solid $blue-3; 
+}
+
+
+.YL__drawer-footer-link {
+  color: var(--q-color-grey-6);
+  font-size: 0.75rem;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+      text-decoration: underline;
+      color: $grey-4;
+  }
+}
+</style>

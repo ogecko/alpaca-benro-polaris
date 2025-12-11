@@ -1,21 +1,28 @@
-[Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+
+The Alpaca Driver runs on a device separate from the Benro Polaris. You can use a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.
+
+If you want to run the Alpaca Driver on a mobile device or iPad, please read  [FAQ A3](./faq.md#a3--can-i-run-the-alpaca-driver-on-my-phone-or-ipad).
 
 # Recommended Hardware Platform
-[Laptop](#using-a-laptop-with-stellarium-desktop) | [Raspberry Pi](#using-a-raspberry-pi-for-the-driver) | [Docker](#using-docker-to-host-the-driver) | [Mini-PC](#a-mini-pc-to-control-all-your-astronomy-equipment-recommended) | [Powerbank](#powering-the-mini-pc-and-camera-overnight) | [Cabling](#connecting-up-the-ninaair) | [Setup NinaAir](#setting-up-the-ninaair-platform)
+[Laptop](#using-a-laptop-with-stellarium-desktop) | 
+[Raspberry Pi](#using-a-raspberry-pi-for-the-driver) | 
+[Mini-PC](#a-mini-pc-to-control-all-your-astronomy-equipment-recommended) |
+[Powerbank](#powering-the-mini-pc-and-camera-overnight) | 
+[Cabling](#connecting-up-the-ninaair) | 
+[Setup NinaAir](#setting-up-the-ninaair-platform) |
+[Gemini Focuser](#gemini-eaf-driver-installation-optional) |
+[Guiding](#guiding-scope-and-camera-optional)
 
 ## Using a Laptop with Stellarium Desktop
 ![Hardware Architecture](images/abp-hardware1.png)
 
 Unfortunately some laptop Wifi controllers dont support connecting with the Benro Polaris Wifi, so you'll also need something like [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) (only US$17 from Amazon). 
 
-
 ## Using a Raspberry Pi for the driver
 You can install the Alpaca Benro Polaris Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
 
 ![Hardware Architecture](images/abp-hardware2.png)
-
-## Using Docker to host the driver
-You can create a Docker image with the Alpaca Benro Polaris Driver. See the [Docker Setup Guide](./docker.md) for more information.
 
 ## A Mini-PC to control all your astronomy equipment (Recommended)
 To leverage more of the capabilities of the Alpaca Benro Polaris Driver, I'd recommend installing it on a mini-PC you can mount or hang from your tripod. This way, you can create an equivalent of a  [ZWO ASIAIR plus](https://www.zwoastro.com/product/asiair-plus/) that can control all your astronomy equipment. Let's call it a `NinaAir` instead of an ASIAir!
@@ -60,9 +67,30 @@ To create a local account:
 7. Under Account Options, select Change account type
 8. Select Account Type `Administrator` then click `OK`
 
+To enable autologin:  
+1. Open `regedit` from the start menu
+2. When prompted with *“Do you want to allow this app to make changes to your device?”*, click **Yes**  
+3. Copy and past the following into the regedit address bar `Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device`
+4. Right click on `DevicePasswordLessBuildVersion`, and select **Modify**
+5. Change Value Data from `2` to `0`, and click **OK**
+6. Close `regedit`
+7. Open `netplwiz` from the start menu
+8. Uncheck `Users must enter a user name and password to use this computer`
+9. Click **OK**
+10. Enter the autologin **User name**, **password** and **confirm password**, click **OK**
+
 ### Power saver functions
 Make sure that your power saver functions are set so that your computer will not go to sleep/hibernate mode. Also its useful to disable your screensaver.
 You need to set the Power Management to High Power.
+
+To disable hybernation:   
+1. Open the **Command Prompt** as Administrator:  
+   - Type `cmd` in the Start menu search.  
+   - Right‑click **Command Prompt** and select **Run as Administrator**.  
+
+2. When prompted with *“Do you want to allow this app to make changes to your device?”*, click **Yes**.  
+
+3. In the Command Prompt window, enter `powercfg /h off`
 
 ### Remote Desktop Server
 Enable Remote Desktop Server to allow access from your laptop.
@@ -85,13 +113,12 @@ In order to create a hotspot, Windows 11 needs to create a tether to an existing
 8. On the left side, select "Microsoft" Note: It may take a moment for these lists to appear and populate, depending on the speed of your mini-PC
 9. On the right side, select "Microsoft KM-TEST Loopback Adapter"
 10. Click the "Next" button
-11. Click the "Next" button
-Open the Control Panel This can be done by opening the start menu and searching for "Control Panel"
-12. Click "Network and Internet"
-13. Click "Network and Sharing Center"
-14. Click " Change adapter settings" on the left
-15. Rename the KM-TEST loopback adapter to "Loopback"
-16. The right click and select "Rename" may not work. If not, you can select the device, press the F2 key, then type the new name
+11. Click the "Next" button and complete the installation
+12. Open the Control Panel. This can be done by opening the start menu and searching for "Control Panel"
+13. Click "Network and Internet"
+14. Click "Advanced Network Settings"
+15. Expand the Microsoft KM-TEST Loopback Network Adapter. 
+16. Rename the KM-TEST loopback adapter to "Loopback"
 17. Restart the mini-PC
 
 #### Hotspot: Create a Scheduled Task to start mobile hotspot on boot (OPTIONAL)
@@ -106,6 +133,17 @@ Because you will want this to run headless and won't have a way to start it manu
    `alpaca-benro-polaris\platforms\win\StartMobileHotspot.cmd`
 
 6. Change conditions to uncheck only start if on AC power
+
+#### Hotspot: Registry based mobile hotspot startup (OPTIONAL)
+If the Task Scheduler startup doesnt enable the mobile hotspot on startup, you can try to use the Windows Registery as well.
+
+1. Press Win + R, and type regedit, accept account privelages check.
+2. Navigate to `\HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run` 
+3. Create a new String Value named `StartMobileHotspot`
+4. Set its value to the full path of the StartMobileHotpot.cmd ie `powershell.exe -ExecutionPolicy Bypass -File "C:\....\platforms\win\StartMobileHotspot.cmd"`
+5. Make sure you expand the .... in the quoted full path to StartMobileHotpot.cmd.
+
+Note, you may need to re-create this registry value after a Windows Update.
 
 #### Hotspot: Fixing Remote Desktop 0x904 error (OPTIONAL)
 You may encounter an 0x904 error when using Remote Desktop to connect to NinaAir via its hotspot. If you encounter this issue, you can try downloading Remote Desktop from the Windows Store. This has successfuly resolved the 0x904 issue on some machines.
@@ -124,4 +162,79 @@ Get-Service sshd
 New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
 ```
 #### Download git for Windows
-Download git for use with VS Code from https://git-scm.com/download/win
+Download git for use with VS Code from https://git-scm.com/download/win, following the default installation settings.
+Open a PowerShell window, entering the following commands, substituting your name and email address.
+```
+git config --global user.name "FIRST_NAME LAST_NAME"
+git config --global user.email "MY_NAME@gmail.com"
+```
+### Installing the ASCOM Platform (OPTIONAL)
+ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. This `Alpaca Benro Polaris Driver (ABP) commplies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
+
+You may need to install the ASCOM Platform software for compatibility with some astronomry equipment or applications. You will need to install the ASCOM Platform with Stellarium as it is not bundled by default. You do not need to install the ASCOM Platform on a laptop that uses Remote Desktop to access the NinaAir. 
+
+#### To install the ASCOM Platform. 
+1. Download the ASCOM Platform from https://ascom-standards.org/ (Download buttton on the top-right-hand side of the home page).
+2. The remaining instructions assume you are using ASCOM Platform 7.1 
+3. Open the installation .exe file and click `Yes` on the User Account Control dialog.
+4. Click `Next` to install any pre-requisites eg Microsoft .nett Framework 3.5 Service Pack 1 
+5. This can take quite some time to download and install (5 min for me)
+6. Once the blue window shows the operation has completed successfully, press any `key` to continue.
+7. Accept the ASCOM Platform Installer default options and click `Install`.
+8. Click `Finish`.
+
+You can also download other versions from the [ASCOM GitHub Releases Site](https://github.com/ASCOMInitiative/ASCOMPlatform/releases).
+
+### Gemini EAF Driver Installation (OPTIONAL)
+The Canon RF 2x and 1.4x Extenders do not appear to work with Nina and the LensAF plugin. You can work around their issue by using an Electronic Auto Focuser (EAF)
+to manually adjust the focus of an attatched Canon Lens. A cheap EAF available from AliExpress is the [Gemini EAF Product](https://www.aliexpress.com/item/1005006731851010.html).
+
+Use the following instructions to setup the Gemini EAF driver on your Mini-PC
+1. Download and install the Ascom Platform as described.
+2. Download the Gemini EAF Driver files from [Google Drive](https://drive.google.com/drive/mobile/folders/1-12XzPuiMEo5033jg36qKqBsfmllL0Zl).
+3. Run the installation program 'CH341SER.EXE'
+4. Click Install then Ok.
+5. Run the installation program 'ASCOM GeminiFocuserPro Setup.exe'
+6. Accept the License Agreement
+7. Click Install then Finish.
+8. Run the program 'GeminiFocuserProConsole.exe'
+9. Click the button to set the directory used to store the log file.
+10. Choose the Com Port 'COM3'
+11. Click Connect, the EAF should beep.
+12. Click Disconnect and Exit.
+
+
+### Guiding Scope and Camera (OPTIONAL)
+
+The Alpaca Driver V2.0 now supports **pulse-guiding**, enabling integration with guiding software such as [PHD2](https://openphdguiding.org/) to improve tracking accuracy and reduce drift during long imaging sessions. This allows the Benro Polaris to correct for small tracking errors in real time, significantly enhancing performance for astrophotography, especially at longer focal lengths.
+
+To take advantage of guiding, you’ll need additional hardware:
+
+#### 1. Guide Camera
+
+A dedicated guide camera captures rapid images of a guide star and sends these images to the guiding application. The guiding application makes corrections to the mount via the Alpaca Driver. Choose a camera with:
+
+- **High sensitivity** (mono sensors preferred for better low-light performance)
+- **USB connectivity** (USB 2.0 or 3.0, depending on your mini-pc)
+- **ASCOM compatibility** (for use with PHD2)
+
+Examples include A. ZWO ASI120MM Mini; B. Touptek GPM462M; C. QHY5L-II Mono
+
+#### 2. Guide Scope or Off-Axis Guider (OAG)
+
+You’ll need a way to collect and focus light from a guide star to the guide camera. You can choose one of two approaches:
+
+- **Guide Scope**: A small refractor (e.g., 30–60 mm aperture) mounted in parallel with your main imaging scope. For example an SVBony 50mm f/4 Guide Scope
+- **Off-Axis Guider (OAG)**: Uses a small prism to divert light from the edge of your main telescope’s field of view into the guide camera. Ideal for long focal length setups where differential flexure is a concern.
+
+#### 3. Mounting the Guide Scope
+
+Secure mounting is critical to avoid flexure between the guide scope and main imaging system. You can Consider:
+
+- **iShoot 220mm Arca Swiss Plate and QR-50B Clamps** used with Polaris L-Bracket orientation, this can hold you camera/lens, guidescope and min-PC, all above the mount.
+- **William Optics Dual side Dovetail Plate** 245mm in length and weighs 330g.
+- **YUEOCT Metal Finder Scope Mount Adapter AT-05** mounts the guidescope via the cameras flash hot/coldshoe.
+
+**Example Setup:**
+- Touptek GPM462M camera + SVBony 50mm guide scope mounted via QR-50B clamps to a 220mm Arca Swiss plate.
+

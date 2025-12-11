@@ -1,17 +1,10 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# conf.py - Device configuration file and shared logger construction
-# Part of the AlpycaDevice Alpaca skeleton/template device driver
-#
-# Author:   Robert B. Denny <rdenny@dc3.com> (rbd)
-#
-# Python Compatibility: Requires Python 3.7 or later
-# GitHub: https://github.com/ASCOMInitiative/AlpycaDevice
-#
+# config.py - Alpaca Configuration Settings
 # -----------------------------------------------------------------------------
 # MIT License
 #
-# Copyright (c) 2022 Bob Denny
+# Copyright (c) 2025 David Morrison
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,78 +24,111 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # -----------------------------------------------------------------------------
-# Edit History:
-# 24-Dec-2022   rbd 0.1 Logging
-# 25-Dec-2022   rbd 0.1 More config items, separate logging section
-# 27-Dec-2022   rbd 0.1 Move shared logger construction and global
-#               var here. MIT license and module header. No mcast.
-#
-import sys
-import toml
-import logging
 
+
+# Editing config.toml requires changes to the following files
 #
-# This slimy hack is for Sphinx which, despite the toml.load() being
-# run only once on the first import, it can't deal with _dict not being
-# initialized or ?!?!?!?!? If you try to use getcwd() in the file name
-# here, it will also choke Sphinx. This cost me a day.
-#
-_dict = {}
-_dict = toml.load(f'{sys.path[0]}/config.toml')    # Errors here are fatal.
-def get_toml(sect: str, item: str):
-    if not _dict is {}:
-        return _dict[sect][item]
-    else:
-        return ''
+# driver/config.py - no longer needs changing for new keys
+# pilot/src/stores/config.ts - update the pinia config store, add the key and default value
+# pilot/src/pages/ConfigPage.ts - update the quasar config page, add the ui logic
+
+
+import os, toml, json
+from typing import Dict, Any
+from pathlib import Path
+
+
+DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (config.py)
+CONFIG_DIR = DRIVER_DIR.parent / 'driver'         # Default config directory: ../driver 
+DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
+
+CONFIG_TOML_PATH = CONFIG_DIR / 'config.toml'
+CONFIG_PILOT_PATH = DATA_DIR / 'config.pilot.json'
 
 class Config:
-    """Device configuration in ``config.toml``"""
-    # ---------------
-    # Network Section
-    # ---------------
-    alpaca_ip_address: str = get_toml('network', 'alpaca_ip_address')
-    alpaca_port: int = get_toml('network', 'alpaca_port')
-    polaris_ip_address: str = get_toml('network', 'polaris_ip_address')
-    polaris_port: int = get_toml('network', 'polaris_port')
-    stellarium_telescope_ip_address: int = get_toml('network', 'stellarium_telescope_ip_address')
-    stellarium_telescope_port: int = get_toml('network', 'stellarium_telescope_port')
-    # --------------
-    # Server Section
-    # --------------
-    location: str = get_toml('server', 'location')
-    site_latitude: float = get_toml('server', 'site_latitude')
-    site_longitude: float = get_toml('server', 'site_longitude')
-    site_elevation: float = get_toml('server', 'site_elevation')
-    site_pressure: float = get_toml('server', 'site_pressure')
-    focal_length: float = get_toml('server', 'focal_length')
-    focal_ratio: float = get_toml('server', 'focal_ratio')
-    verbose_driver_exceptions: bool = get_toml('server', 'verbose_driver_exceptions')
-    # --------------
-    # Device Section
-    # --------------
-    tracking_settle_time: float = get_toml('device', 'tracking_settle_time')
-    aiming_adjustment_enabled: bool = get_toml('device', 'aiming_adjustment_enabled')
-    aiming_adjustment_time: float = get_toml('device', 'aiming_adjustment_time')
-    aiming_adjustment_az: float = get_toml('device', 'aiming_adjustment_az')
-    aiming_adjustment_alt: float = get_toml('device', 'aiming_adjustment_alt')
-    aim_max_error_correction: float = get_toml('device', 'aim_max_error_correction')
-    sync_pointing_model: int = get_toml('device', 'sync_pointing_model')
-    sync_N_point_alignment: int = get_toml('device', 'sync_N_point_alignment')
-    # ---------------
-    # Logging Section
-    # ---------------
-    log_dir: str = get_toml('logging', 'log_dir')
-    log_level: int = logging.getLevelName(get_toml('logging', 'log_level'))  # Not documented but works (!!!!)
-    log_to_file: str = get_toml('logging', 'log_to_file')
-    log_to_stdout: str = get_toml('logging', 'log_to_stdout')
-    log_polaris: bool = get_toml('logging', 'log_polaris')
-    log_performance_data: int = get_toml('logging', 'log_performance_data')
-    log_performance_data_test: int = get_toml('logging', 'log_performance_data_test')
-    log_perf_speed_interval: int = get_toml('logging', 'log_perf_speed_interval')
-    log_polaris_protocol: bool = get_toml('logging', 'log_polaris_protocol')
-    log_stellarium_protocol: bool = get_toml('logging', 'log_stellarium_protocol')
-    supress_polaris_frequent_msgs: bool = get_toml('logging', 'supress_polaris_frequent_msgs')
-    supress_alpaca_polling_msgs: bool = get_toml('logging', 'supress_alpaca_polling_msgs')
-    supress_stellarium_polling_msgs: bool = get_toml('logging', 'supress_stellarium_polling_msgs')
-    max_size_mb: int = get_toml('logging', 'max_size_mb')
-    num_keep_logs: int = get_toml('logging', 'num_keep_logs')
+    _base: Dict[str, Any] = {}
+    _current: Dict[str, Any] = {}
+
+    @classmethod
+    def load(cls, tomlpath=CONFIG_TOML_PATH, pilotpath=CONFIG_PILOT_PATH):
+        """Load config.toml and apply pilot overrides from config.temp.json if present."""
+        raw = toml.load(tomlpath)
+        cls._base = cls._flatten(raw)
+        cls._current = dict(cls._base)  # Shallow copy
+        if os.path.exists(pilotpath):
+            with open(pilotpath, 'r') as f:
+                overrides = json.load(f)
+            cls._current.update(overrides)
+        cls._inject_attributes()
+
+    @classmethod
+    def _flatten(cls, raw: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert nested TOML structure into a flat dictionary of key-value pairs."""
+        flat = {}
+        for key, value in raw.items():
+            if isinstance(value, dict):
+                flat.update(value)
+            else:
+                flat[key] = value
+        return flat
+
+    @classmethod
+    def _inject_attributes(cls):
+        """Expose all keys from current config as class-level attributes for direct access."""
+        for key, value in cls._current.items():
+            setattr(cls, key, value)
+
+    @classmethod
+    def apply_changes(cls, changes: dict) -> dict:
+        """
+        Apply in-memory changes to the current config, validating keys and types.
+        Returns a dict of successfully applied changes.
+        """
+        applied = {}
+        for key, new_value in changes.items():
+            if key not in cls._current:
+                continue
+            expected_type = type(cls._current[key])
+            try:
+                coerced = expected_type(new_value)
+            except (ValueError, TypeError):
+                continue
+            cls._current[key] = coerced
+            setattr(cls, key, coerced)
+            applied[key] = coerced
+        return applied
+
+    @classmethod
+    def restore_base(cls, tomlpath=CONFIG_TOML_PATH, pilotpath=CONFIG_PILOT_PATH):
+        """Delete pilot override file and reload config from config.toml only."""
+        if os.path.exists(pilotpath):
+            os.remove(pilotpath)
+        cls.load(tomlpath, pilotpath)
+        return cls.as_dict()
+
+    @classmethod
+    def save_pilot_overrides(cls,pilotpath=CONFIG_PILOT_PATH):
+        """Save all changes from current config that differ from config.toml into config.temp.json."""
+        changes = cls.diff()
+        with open(pilotpath, 'w') as f:
+            json.dump(changes, f, indent=2)
+        return changes
+
+    @classmethod
+    def diff(cls) -> Dict[str, Any]:
+        """Return a dictionary of keys whose values differ from the original config.toml."""
+        return {
+            key: val
+            for key, val in cls._current.items()
+            if cls._base.get(key) != val
+        }
+
+    @classmethod
+    def get(cls, key: str) -> Any:
+        """Retrieve the current value of a config key."""
+        return cls._current.get(key)
+
+    @classmethod
+    def as_dict(cls) -> Dict[str, Any]:
+        """Return the entire current config as a flat dictionary."""
+        return dict(cls._current)

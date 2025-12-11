@@ -16,14 +16,31 @@
 #
 # -----------------------------------------------------------------------------
 from falcon import Request, Response, before
-from logging import Logger
-from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request_field, to_bool
-from exceptions import *        # Nothing but exception classes
-from polaris import Polaris
-import math
+import ephem
 import asyncio
+from logging import Logger
+from shr import PropertyResponse, MethodResponse, HTTPBadRequest,  PreProcessRequest, get_request_field, to_bool, deg2rad, rad2deg, rad2hr, hr2rad
+from exceptions import *        # Nothing but exception classes
+import math
+import json
+from polaris import Polaris
+from shr import DeviceMetadata, LifecycleController, LifecycleEvent
+from log import update_log_level
+from orbitals import update_orbital_data, compose_orbital_export
+from control import loadCustomCatalogDataFromFile
 
 logger: Logger = None
+polaris: Polaris = None
+lifecycle: LifecycleController = None
+
+# ----------------------------------------------------------------------
+# Set our reference to the Polaris object (not at import time)
+# ----------------------------------------------------------------------
+def start_telescope(p: Polaris, lf: LifecycleController): 
+    global polaris
+    polaris = p
+    global lifecycle
+    lifecycle = lf
 
 # ----------------------
 # MULTI-INSTANCE SUPPORT
@@ -41,59 +58,58 @@ maxdev = 0                      # Single instance
 # Static metadata not subject to configuration changes
 class TelescopeMetadata:
     """ Metadata describing the Telescope Device."""
-    Name = 'Benro Polaris'
-    Version = '1.0.0'
-    Description = 'Alpaca Benro Polaris Telescope'
+    Name = 'Alpaca Benro Polaris Telescope' 
+    Version = DeviceMetadata.Version
+    Description = 'Alpaca Telescope Mount'
     DeviceType = 'Telescope'
     DeviceID = '3ee8e486-6421-432c-9a66-cf240e298bb9' # https://guidgenerator.com/online-guid-generator.aspx
-    Info = 'Limited ASCOM Alpaca driver for the\nBenro Polaris Tripod Head & Astro.\nImplements ASCOM  ITelescopeV3.'
+    Info = 'ASCOM Alpaca driver for the Benro Polaris Mount. Implements ITelescopeV3.'
     MaxDeviceNumber = maxdev
     InterfaceVersion = 3
 
-# ----------------------------------------------------------------------
-# Create an instance of the Polaris Class to simulate an ASCOM telescope
-# ----------------------------------------------------------------------
-polaris = None
-# At app init not import :-)
-def start_polaris(logger: Logger): 
-    global polaris
-    polaris = Polaris(logger)
+
     
 # --------------------
 # RESOURCE CONTROLLERS
 # --------------------
 
-@before(PreProcessRequest(maxdev))
-class action:
-    async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
-
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class commandblind:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class commandbool:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class commandstring:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class dispose:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class findhome:
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        if polaris.atpark:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot find home while parked'))
+            return
+        try:
+            await polaris.findHome()
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req,
+                            DriverException(0x500, 'Telescope.FindHome failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class destinationsideofpier:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
@@ -119,7 +135,7 @@ class destinationsideofpier:
             return
         resp.text = await PropertyResponse(0, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class connected:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         client = await get_request_field('ClientID', req)      # Raises 400 bad request if missing
@@ -135,37 +151,33 @@ class connected:
         except Exception as ex:
             resp.text = await MethodResponse(req,  DriverException(0x500, ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class description:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.Description, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class driverinfo:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.Info, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class interfaceversion:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.InterfaceVersion, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class driverversion():
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.Version, req)
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class name():
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(TelescopeMetadata.Name, req)
 
-@before(PreProcessRequest(maxdev))
-class supportedactions:
-    async def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = await PropertyResponse([], req)  # Not PropertyNotImplemented
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class alignmentmode:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -178,7 +190,7 @@ class alignmentmode:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Alignmentmode failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class altitude:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -191,7 +203,7 @@ class altitude:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Altitude failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class aperturearea:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -204,7 +216,7 @@ class aperturearea:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Aperturearea failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class aperturediameter:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -217,7 +229,7 @@ class aperturediameter:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Aperturediameter failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class athome:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -230,7 +242,7 @@ class athome:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Athome failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class atpark:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -243,7 +255,7 @@ class atpark:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Atpark failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class azimuth:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -256,7 +268,7 @@ class azimuth:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Azimuth failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canfindhome:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -269,7 +281,7 @@ class canfindhome:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canfindhome failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canpark:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -282,7 +294,7 @@ class canpark:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canpark failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class canpulseguide:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -295,20 +307,7 @@ class canpulseguide:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canpulseguide failed', ex))
 
-@before(PreProcessRequest(maxdev))
-class cansetdeclinationrate:
-
-    async def on_get(self, req: Request, resp: Response, devnum: int):
-        if not polaris.connected:
-            resp.text = await PropertyResponse(None, req, NotConnectedException())
-            return
-        try:
-            val = polaris.cansetdeclinationrate
-            resp.text = await PropertyResponse(val, req)
-        except Exception as ex:
-            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetdeclinationrate failed', ex))
-
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class cansetguiderates:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -321,33 +320,7 @@ class cansetguiderates:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetguiderates failed', ex))
 
-@before(PreProcessRequest(maxdev))
-class cansetpark:
-
-    async def on_get(self, req: Request, resp: Response, devnum: int):
-        if not polaris.connected:
-            resp.text = await PropertyResponse(None, req, NotConnectedException())
-            return
-        try:
-            val = polaris.cansetpark
-            resp.text = await PropertyResponse(val, req)
-        except Exception as ex:
-            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetpark failed', ex))
-
-@before(PreProcessRequest(maxdev))
-class cansetpierside:
-
-    async def on_get(self, req: Request, resp: Response, devnum: int):
-        if not polaris.connected:
-            resp.text = await PropertyResponse(None, req, NotConnectedException())
-            return
-        try:
-            val = polaris.cansetpierside
-            resp.text = await PropertyResponse(val, req)
-        except Exception as ex:
-            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetpierside failed', ex))
-
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class cansetrightascensionrate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -360,7 +333,46 @@ class cansetrightascensionrate:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetrightascensionrate failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
+class cansetdeclinationrate:
+
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = polaris.cansetdeclinationrate
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetdeclinationrate failed', ex))
+
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
+class cansetpark:
+
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = polaris.cansetpark
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetpark failed', ex))
+
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
+class cansetpierside:
+
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        try:
+            val = polaris.cansetpierside
+            resp.text = await PropertyResponse(val, req)
+        except Exception as ex:
+            resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansetpierside failed', ex))
+
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class cansettracking:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -373,7 +385,7 @@ class cansettracking:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansettracking failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class canslew:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -386,7 +398,7 @@ class canslew:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canslew failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canslewaltaz:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -399,7 +411,7 @@ class canslewaltaz:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canslewaltaz failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canslewaltazasync:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -412,7 +424,7 @@ class canslewaltazasync:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canslewaltazasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canslewasync:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -425,7 +437,7 @@ class canslewasync:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canslewasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class cansync:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -438,7 +450,7 @@ class cansync:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class cansyncaltaz:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -451,7 +463,7 @@ class cansyncaltaz:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Cansyncaltaz failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canunpark:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -464,7 +476,7 @@ class canunpark:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canunpark failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class declination:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -477,7 +489,7 @@ class declination:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Declination failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class declinationrate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -493,7 +505,7 @@ class declinationrate:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class doesrefraction:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -519,7 +531,7 @@ class doesrefraction:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Doesrefraction failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class equatorialsystem:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -532,7 +544,7 @@ class equatorialsystem:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Equatorialsystem failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class focallength:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -545,7 +557,7 @@ class focallength:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Focallength failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class guideratedeclination:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -559,9 +571,26 @@ class guideratedeclination:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Guideratedeclination failed', ex))
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        guideratedeclinationstr = await get_request_field('GuideRateDeclination', req)      # Raises 400 bad request if missing
+        try:
+            guideratedeclination = float(guideratedeclinationstr)
+        except:
+            resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateDeclination {guideratedeclinationstr} not a valid number.'))
+            return
+        if guideratedeclination <=0 or guideratedeclination > 2 or math.isnan(guideratedeclination):
+            resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateDeclination {guideratedeclinationstr} must be between 0 and 2 degree/s.'))
+            return
+        try:
+            polaris.guideratedeclination = guideratedeclination
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.GuideRateDeclination failed', ex))
 
-@before(PreProcessRequest(maxdev))
+
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class guideraterightascension:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -575,14 +604,30 @@ class guideraterightascension:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Guideraterightascension failed', ex))
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        guideraterightascensionstr = await get_request_field('GuideRateRightAscension', req)      # Raises 400 bad request if missing
+        try:
+            guideraterightascension = float(guideraterightascensionstr)
+        except:
+            resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateRightAscension {guideraterightascensionstr} not a valid number.'))
+            return
+        if guideraterightascension <=0 or guideraterightascension > 2 or math.isnan(guideraterightascension):
+            resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateRightAscension {guideraterightascensionstr} must be between 0 and 2 degree/s.'))
+            return
+        try:
+            polaris.guideraterightascension = guideraterightascension
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.GuideRateRightAscension failed', ex))
 
-@before(PreProcessRequest(maxdev))
+
+
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class ispulseguiding:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
-        return
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
@@ -592,9 +637,7 @@ class ispulseguiding:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.ispulseguiding failed', ex))
 
-        # resp.text = await MethodResponse(req, NotImplementedException())
-
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class rightascension:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -607,7 +650,7 @@ class rightascension:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Rightascension failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class rightascensionrate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -623,7 +666,7 @@ class rightascensionrate:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class sideofpier:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -657,7 +700,7 @@ class sideofpier:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Sideofpier failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class siderealtime:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -670,7 +713,7 @@ class siderealtime:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Siderealtime failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class siteelevation:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -702,7 +745,7 @@ class siteelevation:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Siteelevation failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class sitelatitude:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -734,7 +777,7 @@ class sitelatitude:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Sitelatitude failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class sitelongitude:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -766,7 +809,7 @@ class sitelongitude:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Sitelongitude failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class slewing:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -779,7 +822,7 @@ class slewing:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Slewing failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewsettletime:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -811,7 +854,7 @@ class slewsettletime:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.slewsettletime failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class targetdeclination:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -846,7 +889,7 @@ class targetdeclination:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.targetdeclination failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class targetrightascension:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -881,7 +924,7 @@ class targetrightascension:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.targetrightascension failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class tracking:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -902,22 +945,16 @@ class tracking:
         tracking = to_bool(trackingstr)
 
         try:
-            slewing = polaris.slewing
-            oldtracking = polaris.tracking
-            polaris.tracking = tracking
-            # only send message if requested state differs and not slewing
-            if tracking != oldtracking and not slewing:
-                await polaris.send_cmd_change_tracking_state(tracking)                       # Same here
+            if tracking:
+                await polaris.start_tracking()
+            else:
+                await polaris.stop_tracking()
 
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
             resp.text = await MethodResponse(req)
         except Exception as ex:
-            resp.text = await MethodResponse(req,
-                            DriverException(0x500, 'Telescope.Tracking failed', ex))
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Tracking failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class trackingrate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -931,9 +968,25 @@ class trackingrate:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Trackingrate failed', ex))
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await PropertyResponse(None, req, NotImplementedException())
+        if not polaris.connected:
+            resp.text = await PropertyResponse(None, req, NotConnectedException())
+            return
+        trackingratestr = await get_request_field('TrackingRate', req)      # Raises 400 bad request if missing
+        try:
+            trackingrate = int(trackingratestr)
+        except:
+            resp.text = await MethodResponse(req, InvalidValueException(f'TrackingRate {trackingratestr} not a valid number.'))
+            return
+        if trackingrate < 0 or trackingrate > 3:
+            resp.text = await MethodResponse(req, InvalidValueException(f'TrackingRate {trackingrate} must be between 0 and 3.'))
+            return
+        try:
+            polaris.trackingrate = trackingrate
+            resp.text = await MethodResponse(req)
+        except Exception as ex:
+            resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Tracking failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class trackingrates:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -946,7 +999,7 @@ class trackingrates:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Trackingrates failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class utcdate:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -963,7 +1016,7 @@ class utcdate:
         resp.text = await PropertyResponse(None, req, NotImplementedException())
         return
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class abortslew:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -974,13 +1027,13 @@ class abortslew:
             resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot abort slew while parked'))
             return
         try:
-            await polaris.send_cmd_goto_abort()
+            await polaris.AbortSlew()
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Abortslew failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class axisrates:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -999,7 +1052,7 @@ class axisrates:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Axisrates failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class canmoveaxis:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -1021,7 +1074,7 @@ class canmoveaxis:
         except Exception as ex:
             resp.text = await PropertyResponse(None, req, DriverException(0x500, 'Telescope.Canmoveaxis failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_polling'))
 class sideofpier:
 
     async def on_get(self, req: Request, resp: Response, devnum: int):
@@ -1037,7 +1090,7 @@ class sideofpier:
         resp.text = await PropertyResponse(None, req, NotImplementedException())
         return
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class moveaxis:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1080,7 +1133,7 @@ class moveaxis:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Moveaxis failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class park:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1094,23 +1147,32 @@ class park:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Park failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
 class pulseguide:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
-        return
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
+        if polaris.atpark:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot pulse guide while parked'))
+            return
+        if polaris.slewing:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot pulse guide while slewing'))
+            return
+        if not polaris.tracking:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot pulse guide while not tracking'))
+            return
         directionstr = await get_request_field('Direction', req)      # Raises 400 bad request if missing
         try:
-            direction = int(directionstr)
+            # 0=North (+ declination/altitude); 1=South (- declination/altitude); 2=East (+ right ascension/azimuth); 3=West (- right ascension/azimuth)
+            direction = int(directionstr)   
         except:
-            resp.text = await MethodResponse(req,
-                            InvalidValueException(f'Direction {directionstr} not a valid number.'))
+            resp.text = await MethodResponse(req, InvalidValueException(f'Direction {directionstr} not a valid number'))
             return
-        ### RANGE CHECK AS NEEDED ###          # Raise Alpaca InvalidValueException with details!
+        if direction < 0 or direction > 3:
+            resp.text = await PropertyResponse(None,req, InvalidValueException(f'Direction {directionstr} must be 0,1,2, or 3.'))
+            return
         durationstr = await get_request_field('Duration', req)      # Raises 400 bad request if missing
         try:
             duration = int(durationstr)
@@ -1118,33 +1180,33 @@ class pulseguide:
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Duration {durationstr} not a valid number.'))
             return
-        ### RANGE CHECK AS NEEDED ###          # Raise Alpaca InvalidValueException with details!
+        if duration <= 0 or duration > 10000:
+            resp.text = await PropertyResponse(None,req, InvalidValueException(f'duration {durationstr} must be between 1 and 10000 ms.'))
+            return
         try:
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
+            polaris.pulse_guide(direction, duration)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Pulseguide failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class setpark:
-
     async def on_put(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
+        if polaris.slewing:
+            resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot set Park while slewing'))
+            return
         try:
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
+            await polaris.setPark()
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
-                            DriverException(0x500, 'Telescope.Setpark failed', ex))
+                            DriverException(0x500, 'Telescope.SetPark failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtoaltaz:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1166,8 +1228,8 @@ class slewtoaltaz:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
-        if altitude < 0 or altitude > +90 or math.isnan(altitude):
-            resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between 0 and 90.'))
+        if altitude < -8 or altitude > +90 or math.isnan(altitude):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between -8 and 90.'))
             return
         if polaris.atpark:
             resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot slew while parked'))
@@ -1184,7 +1246,7 @@ class slewtoaltaz:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Slewtoaltaz failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtoaltazasync:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1206,8 +1268,8 @@ class slewtoaltazasync:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
-        if altitude < 0 or altitude > +90 or math.isnan(altitude):
-            resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between 0 and 90.'))
+        if altitude < -8 or altitude > +90 or math.isnan(altitude):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between -8 and 90.'))
             return
         if polaris.atpark:
             resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot slew while parked'))
@@ -1221,7 +1283,7 @@ class slewtoaltazasync:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Slewtoaltazasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtocoordinates:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1261,7 +1323,7 @@ class slewtocoordinates:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Slewtocoordinates failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtocoordinatesasync:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1298,7 +1360,7 @@ class slewtocoordinatesasync:
         except Exception as ex:
             resp.text = await MethodResponse(req, DriverException(0x500, 'Telescope.Slewtocoordinatesasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtotarget:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1321,7 +1383,7 @@ class slewtotarget:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Slewtotarget failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class slewtotargetasync:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1341,41 +1403,41 @@ class slewtotargetasync:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Slewtotargetasync failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class synctoaltaz:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
-        return
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
         azimuthstr = await get_request_field('Azimuth', req)      # Raises 400 bad request if missing
         try:
-            azimuth = int(azimuthstr)
+            azimuth = float(azimuthstr)
         except:
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Azimuth {azimuthstr} not a valid number.'))
             return
-        ### RANGE CHECK AS NEEDED ###       # Raise Alpaca InvalidValueException with details!
+        if azimuth < 0 or azimuth > 360 or math.isnan(azimuth):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Azimuth {azimuthstr} must be between 0 and 360.'))
+            return
         altitudestr = await get_request_field('Altitude', req)      # Raises 400 bad request if missing
         try:
-            altitude = int(altitudestr)
+            altitude = float(altitudestr)
         except:
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
-        ### RANGE CHECK AS NEEDED ###       # Raise Alpaca InvalidValueException with details!
+        if altitude < -90 or altitude > 90 or math.isnan(altitude):
+            resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between -90 and +90.'))
+            return
         try:
-            # -----------------------------
-            ### DEVICE OPERATION(PARAM) ###
-            # -----------------------------
+            await polaris.sync_to_azalt(azimuth, altitude)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Synctoaltaz failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class synctocoordinates:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1404,13 +1466,13 @@ class synctocoordinates:
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} must be between -90 and +90.'))
             return
         try:
-            await polaris.radec_ascom_sync(rightascension, declination)
+            await polaris.sync_to_radec(rightascension, declination)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Synctocoordinates failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class synctotarget:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1421,13 +1483,13 @@ class synctotarget:
             resp.text = await PropertyResponse(None, req, InvalidOperationException('Cannot sync to target while parked'))
             return
         try:
-            await polaris.radec_ascom_sync(polaris.targetrightascension, polaris.targetdeclination)
+            await polaris.sync_to_radec(polaris.targetrightascension, polaris.targetdeclination)
             resp.text = await MethodResponse(req)
         except Exception as ex:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Synctotarget failed', ex))
 
-@before(PreProcessRequest(maxdev))
+@before(PreProcessRequest(maxdev, 'log_alpaca_protocol'))
 class unpark:
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
@@ -1440,4 +1502,287 @@ class unpark:
         except Exception as ex:
             resp.text = await MethodResponse(req,
                             DriverException(0x500, 'Telescope.Unpark failed', ex))
+
+
+@before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
+class supportedactions:
+    async def on_get(self, req: Request, resp: Response, devnum: int):
+        resp.text = await PropertyResponse([
+            "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
+            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StatusFetch", 
+            "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
+            "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
+            "Polaris:MoveAxis", "Polaris:MoveMotor", "Polaris:ResetAxes",
+            "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
+            "Polaris:SyncRoll", "Polaris:SyncRemove", 
+            "Polaris:J2000Sync", "Polaris:J2000Goto"
+            "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
+            "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:GetCatalog",
+        ], req)  
+
+
+@before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
+class action:
+    async def on_put(self, req: Request, resp: Response, devnum: int):
+        actionName = await get_request_field('Action', req)
+        raw_params = await get_request_field('Parameters', req)
+        try:
+            if isinstance(raw_params, dict):
+                parameters = raw_params
+            elif isinstance(raw_params, str) and raw_params.strip() == '':
+                parameters = {}
+            else:
+                parameters = json.loads(raw_params)
+        except Exception:
+            raise HTTPBadRequest(title='Bad Action Request', description='Invalid Parameters format')
+
+        if actionName == "Polaris:RestartDriver":
+            await lifecycle.signal(LifecycleEvent.RESTART)
+            resp.text = await PropertyResponse('RestartDriver ok', req)  
+
+        elif actionName == "Polaris:ConfigFetch":
+            fetched_params = Config.as_dict()
+            # fetch live values from polaris where possible
+            fetched_params['site_latitude'] = polaris.sitelatitude
+            fetched_params['site_longitude'] = polaris.sitelongitude
+            fetched_params['site_elevation'] = polaris.siteelevation
+
+            # only return requested Config.names
+            configNames = parameters.get('configNames')
+            if isinstance(configNames, list) and len(configNames)>0:
+                filtered_params = {k: fetched_params[k] for k in configNames if k in fetched_params}
+            else:
+                filtered_params = fetched_params
+
+            resp.text = await PropertyResponse(filtered_params, req)
+            return
+        
+        elif actionName == "Polaris:ConfigUpdate":
+            # Apply changes to store in Config and make them live
+            changed_params = Config.apply_changes(parameters)
+            make_params_live(changed_params)
+            resp.text = await PropertyResponse(changed_params, req)
+            return
+
+        elif actionName == "Polaris:ConfigSave":
+            resp.text = await PropertyResponse(Config.save_pilot_overrides(), req)
+            return
+
+        elif actionName == "Polaris:ConfigRestore":
+            # Restore Config from config.toml and make them live
+            changed_params = Config.restore_base()
+            make_params_live(changed_params)
+            resp.text = await PropertyResponse(changed_params, req)
+            return
+
+        elif actionName == "Polaris:StatusFetch":       # (DO NOT USE) Replaced by WebSockets 
+            resp.text = await PropertyResponse(polaris.getStatus(), req)
+            return
+        
+        elif actionName == "Polaris:MoveAxis":
+            logger.info(f'MoveAxis {parameters}')
+            axis = parameters.get('axis', -1)
+            rate = parameters.get('rate', 0)
+            await polaris.move_axis(axis, rate, units="DPS")
+            resp.text = await PropertyResponse('MoveAxis ok', req)  
+            return
+
+        elif actionName == "Polaris:ResetAxes":
+            logger.info(f'ResetAxes {parameters}')
+            await polaris.resetAxes()
+            resp.text = await PropertyResponse('ResetAxes ok', req)  
+            return
+
+        elif actionName == "Polaris:MoveMotor":
+            logger.info(f'MoveAxis {parameters}')
+            axis = parameters.get('axis', -1)
+            rate = parameters.get('rate', 0)
+            unit = parameters.get('unit', 'DPS')
+            if axis in [0,1,2] and rate <10 and rate >-10:
+                await polaris._motors[axis].set_motor_speed(rate, unit)
+            resp.text = await PropertyResponse('MoveAxis ok', req)  
+            return
+
+        elif actionName == "Polaris:SpeedTestStart":
+            logger.info(f'SpeedTestStart {parameters}')
+            axis = parameters.get('axis', 0)
+            testNames = parameters.get('testNames', -1)
+            rates = polaris._cm.pendingTests(axis, testNames)
+            lifecycle.create_task(polaris.moveaxis_speed_test(axis, rates), name="SpeedTest")
+            resp.text = await PropertyResponse('SpeedTest ok', req)  
+            return
+
+        elif actionName == "Polaris:SpeedTestStop":
+            logger.info(f'SpeedTestStop {parameters}')
+            lifecycle.stop()
+            polaris._cm.stopTests()
+            # rates = polaris._cm.pendingTests(axis, testNames)
+            resp.text = await PropertyResponse('SpeedTest ok', req)  
+            return
+
+
+        elif actionName == "Polaris:SpeedTestApproval":
+            logger.info(f'SpeedTestApproval {parameters}')
+            axis = parameters.get('axis', 0)
+            testNames = parameters.get('testNames', -1)
+            polaris._cm.toggleApproval(axis, testNames)
+            resp.text = await PropertyResponse('TestApproval ok', req)  
+            return
+
+        elif actionName == "Polaris:bleEnableWifi":
+            logger.info(f'BLE Enable Wifi {parameters}')
+            lifecycle.create_task(polaris._ble.enableWifi(), name="bleEnableWifi")
+            resp.text = await PropertyResponse('bleEnableWifi ok', req)  
+            return
+
+        elif actionName == "Polaris:bleSelectDevice":
+            logger.info(f'BLE Select Device {parameters}')
+            name = parameters.get('name', '')
+            asyncio.create_task(polaris._ble.setSelectedDevice(name)) 
+            resp.text = await PropertyResponse('bleSelectDevice ok', req)  
+            return
+
+        elif actionName == "Polaris:ConnectPolaris":
+            logger.info(f'Device Connect {parameters}')
+            lifecycle.create_task(polaris.run_connection_cycle(0), name="ConnectPolaris")
+            resp.text = await PropertyResponse('ConnectPolaris ok', req)  
+            return
+
+        elif actionName == "Polaris:DisconnectPolaris":
+            logger.info(f'Device Disconnect {parameters}')
+            await polaris.attempt_polaris_disconnect()
+            resp.text = await PropertyResponse('DisconnectPolaris ok', req)  
+            return
+
+        elif actionName == "Polaris:SetMode":
+            logger.info(f'Polaris SetMode {parameters}')
+            mode = int(parameters.get('mode', 8))
+            await polaris.send_cmd_285_set_mode(mode)
+            resp.text = await PropertyResponse('Polaris SetMode ok', req)  
+            return
+
+        elif actionName == "Polaris:SetCompass":
+            logger.info(f'Polaris SetCompass {parameters}')
+            compass = int(parameters.get('compass', 0))
+            asyncio.create_task(polaris.skip_compass_alignment(compass)) 
+            resp.text = await PropertyResponse('Polaris Set Compass ok', req)  
+            return
+
+        elif actionName == "Polaris:SetAlignment":
+            logger.info(f'Polaris SetAlignment {parameters}')
+            azimuth = int(parameters.get('azimuth', 0))
+            altitude = int(parameters.get('altitude', 0))
+            asyncio.create_task(polaris.skip_star_alignment(azimuth, altitude)) 
+            resp.text = await PropertyResponse('Polaris Set Alignment ok', req)  
+            return
+
+        elif actionName == "Polaris:SyncRoll":
+            logger.info(f'Polaris SyncRoll {parameters}')
+            roll = int(parameters.get('roll', 0))
+            polaris.SyncToRoll(roll) 
+            resp.text = await PropertyResponse('Polaris SyncRoll ok', req)  
+            return
+
+        elif actionName == "Polaris:SyncRemove":
+            logger.info(f'Polaris SyncRemove {parameters}')
+            timestamp = parameters.get('timestamp', '')
+            polaris._sm.sync_remove(timestamp) 
+            resp.text = await PropertyResponse('Polaris SyncRemove ok', req)  
+            return
+
+        elif actionName == "Polaris:Ack":
+            logger.info(f'Polaris Ack {parameters}')
+            alarm = parameters.get('alarm', '')
+            if alarm == 'LIMIT':
+                polaris._pid.ack_limit_alarm()
+            resp.text = await PropertyResponse('Polaris Ack ok', req)  
+            return
+
+        elif actionName == "Polaris:ResetSP":
+            logger.info(f'Polaris ResetSP {parameters}')
+            polaris._pid.reset_sp()
+            resp.text = await PropertyResponse('Polaris ResetSP ok', req)  
+            return
+
+        elif actionName == "Polaris:J2000Sync":
+            logger.info(f'Polaris J2000Sync {parameters}')
+            j2000_ra = float(parameters.get('ra', ''))
+            j2000_dec = float(parameters.get('dec', ''))
+            J2000_coord = ephem.Equatorial(hr2rad(j2000_ra), deg2rad(j2000_dec), epoch=ephem.J2000)
+            radec = ephem.Equatorial(J2000_coord, epoch=ephem.now())
+            await polaris.sync_to_radec(rad2hr(radec.ra), rad2deg(radec.dec))
+            resp.text = await PropertyResponse('Polaris J2000Sync ok', req)  
+            return
+
+        elif actionName == "Polaris:J2000Goto":
+            logger.info(f'Polaris J2000Goto {parameters}')
+            name = parameters.get('name', '')
+            j2000_ra = float(parameters.get('ra', ''))
+            j2000_dec = float(parameters.get('dec', ''))
+            J2000_coord = ephem.Equatorial(hr2rad(j2000_ra), deg2rad(j2000_dec), epoch=ephem.J2000)
+            radec = ephem.Equatorial(J2000_coord, epoch=ephem.now())
+            await polaris.SlewToCoordinates(rad2hr(radec.ra), rad2deg(radec.dec))
+            resp.text = await PropertyResponse('Polaris J2000Goto ok', req)  
+            return
+
+        elif actionName == "Polaris:SetLBracket":
+            logger.info(f'Polaris:SetLBracket {parameters}')
+            state = float(parameters.get('state', False))
+            await polaris.send_cmd_546_set_L_bracket(state)
+            await polaris.send_cmd_545_query_L_bracket()
+            await polaris.resetAxes()
+            resp.text = await PropertyResponse('Polaris:SetLBracket ok', req)  
+            return
+        
+        elif actionName == "Polaris:GetOrbitals":
+            logger.info("Polaris:GetOrbitals requested")
+            update_orbital_data(polaris._observer, polaris.rightascension, polaris.declination)
+            export_data = compose_orbital_export()
+            resp.content_type = "application/json"
+            resp.text = json.dumps(export_data, indent=2)
+            return
+
+        elif actionName == "Polaris:TrackOrbital":
+            logger.info(f'Polaris:TrackOrbital {parameters}')
+            name = parameters.get('name', '')
+            category = parameters.get('category', 6)
+            asyncio.create_task(polaris.trackOrbital(name, category)) 
+            resp.text = await PropertyResponse('Polaris:TrackOrbital ok', req)  
+            return
+
+        elif actionName == "Polaris:GetCatalog":
+            logger.info("Polaris:GetCatalog requested")
+            export_data = loadCustomCatalogDataFromFile()
+            resp.content_type = "application/json"
+            resp.text = json.dumps(export_data, indent=2)
+            return
+
+        else:
+            resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
+
+
+def make_params_live(changed_params):
+    # make changes live in polaris where possible
+    for param in changed_params:
+        if param == "log_level":
+            update_log_level(Config.log_level)
+        elif param == "site_latitude":
+            polaris.sitelatitude = float(Config.site_latitude)
+        elif param == "site_longitude":
+            polaris.sitelongitude = float(Config.site_longitude)
+        elif param == "site_elevation":
+            polaris.siteelevation = Config.site_elevation
+        elif param == "site_pressure":
+            polaris.sitepressure = Config.site_pressure
+        elif param == "max_accel_rate":        
+            polaris._pid.set_Ka_array(Config.max_accel_rate)
+        elif param == "max_slew_rate":
+            polaris._pid.set_Kv_array(Config.max_slew_rate)
+        elif param == "guide_rate_ra":
+            polaris.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
+        elif param == "guide_rate_dec":
+            polaris.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
+        elif param == "advanced_alignment_zero":
+            polaris._sm.optimize_q1_adj()
+   
 

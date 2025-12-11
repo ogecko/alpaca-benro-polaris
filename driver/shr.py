@@ -58,15 +58,20 @@
 # 01-Jun-2023   rbd 0.3 Issue #2 Do not return empty Value field in property
 #               response, and omit Value if error is not success().
 
+from __future__ import annotations
 from threading import Lock
 from exceptions import Success
 import json
 import re
 import math
 import asyncio
+import threading
 from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
 from config import Config
+import re
+from typing import Set, Coroutine, Dict, Optional
+from datetime import datetime, timezone
 
 
 logger: Logger = None
@@ -80,8 +85,8 @@ _bad_title = 'Bad Alpaca Request'
 # Static metadata not subject to configuration changes
 class DeviceMetadata:
     """ Metadata describing the Alpaca Device/Server """
-    Version = '1.0.0'              # Alpaca Version Number (based on https://semver.org/)
-    VersionSynScan = '010000'      # Must be 6 digits for SynScan protocol
+    Version = '2.0.0'            # Alpaca Version Number (based on https://semver.org/)
+    VersionSynScan = '020000'      # Must be 6 digits for SynScan protocol
     Description = 'Alpaca Benro Polaris Driver'
     Manufacturer = 'oGecko'
 
@@ -126,49 +131,58 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
             raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
         return default
 
+# Should we log this HTTP req or response
+def should_log(req: Request, log_flags): 
+    for name in log_flags:
+        if getattr(Config, name, False):
+            return True  # explicitly enabled
+        if req.method == 'PUT' and name == 'log_alpaca_polling' and Config.log_alpaca_protocol:
+            return True  # allow polling logs on PUT even if disabled
+    return False  # skip logging
 #
 # Log the request as soon as the resource handler gets it so subsequent
 # logged messages are in the right order. Logs PUT body as well.
 #
-ispollreq = re.compile('connected|utcdate|canslew|cansetpierside|canpulseguide|alignmentmode|cansetguiderates|slewing|sideofpier|siteelevation|sitelatitude|sitelongitude|siderealtime|declination|rightascension|azimuth|altitude|tracking|cansettracking|athome|atpark')
+async def log_request(req: Request, log_flag_names: list[str] | str | None = None):
+    # get log flags from optional argument or req.context
+    if isinstance(log_flag_names, str):
+        log_flags = [log_flag_names]
+    else:
+        log_flags = log_flag_names or getattr(req.context, 'log_flag_names', None)
+    req.context.log_flag_names = log_flags   # Save for later use by log_response()
 
-async def log_request(req: Request):
-    if Config.supress_alpaca_polling_msgs and req.method=="GET" and ispollreq.search(req.path):
-        return
+    if not should_log(req, log_flags):
+        return   # skip logging
+
     msg = f'{req.remote_addr} -> {req.method} {req.path}'
     if req.query_string != '':
         msg += f'?{req.query_string}'
-    logger.info(msg)
     if req.method == 'PUT' and req.content_length != 0:
-        logger.info(f'{req.remote_addr} -> {await req.get_media()}')
+        msg += f' {await req.get_media()}'
+    logger.info(msg)
 
 def log_response(req: Request, valuestr: str):
-    if Config.supress_alpaca_polling_msgs and req.method=="GET" and ispollreq.search(req.path):
-        return
+    log_flags = getattr(req.context, 'log_flag_names', None)
+    if not should_log(req, log_flags):
+        return   # skip logging
+
     logger.info(f'{req.remote_addr} <- {valuestr}')
 
 # ------------------------------------------------
 # Incoming Pre-Logging and Request Quality Control
 # ------------------------------------------------
 class PreProcessRequest():
-    """Decorator for responders that quality-checks an incoming request
-
+    """Decorator for responders that quality-checks an incoming request and records logging requirements
     If there is a problem, this causes a ``400 Bad Request`` to be returned
     to the client, and logs the problem.
 
     """
-    def __init__(self, maxdev):
+    def __init__(self, maxdev, log_flag_names: list[str] | str | None = None):
         self.maxdev = maxdev
-        """Initialize a ``PreProcessRequest`` decorator object.
-
-        Args:
-            maxdev: The maximun device number. If multiple instances of this device
-                type are supported, this will be > 0.
-
-        Notes:
-            * Bumps the ServerTransactionID value and returns it in sequence
-        """
-
+        if isinstance(log_flag_names, str):
+            self.log_flag_names = [log_flag_names]
+        else:
+            self.log_flag_names = log_flag_names or []
     #
     # Quality check of numerical value for trans IDs
     #
@@ -205,7 +219,8 @@ class PreProcessRequest():
     # and format converter. This is the device number from the URI
     #
     async def __call__(self, req: Request, resp: Response, resource, params):
-        await log_request(req)                            # Log even a bad request
+        req.context.log_flag_names = self.log_flag_names   # For use by log_request() and log_response()
+        await log_request(req)                             # Log even a bad request
         await self._check_request(req, params['devnum'])   # Raises to 400 error on check failure
 
 # ------------------
@@ -279,6 +294,36 @@ def getNextTransId() -> int:
 # -------------------------------
 # Number conversion functions
 # -------------------------------
+
+def format_timestamp(ts: datetime | float | None = None) -> str:
+    """
+    Converts various timestamp types to ISO 8601 UTC string with milliseconds and 'Z' suffix.
+    If no timestamp is provided, uses current local time.
+    """
+    # Default to current local time
+    if ts is None:
+        ts = datetime.now()
+
+    # Handle float (Unix timestamp or monotonic)
+    if isinstance(ts, (int, float)):
+        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+
+    # Handle datetime object
+    elif isinstance(ts, datetime):
+        # If naive, assume it's local time and convert to UTC
+        dt = ts.astimezone(timezone.utc) if ts.tzinfo else ts.replace(tzinfo=None).astimezone(timezone.utc)
+
+    # Handle ephem.Date
+    elif hasattr(ts, 'datetime'):
+        dt = ts.datetime().replace(tzinfo=timezone.utc)
+
+    else:
+        raise TypeError(f"Unsupported timestamp type: {type(ts)}")
+
+    return dt.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+
+
+
 def clamparcsec(x):
     try:
         value = float(x) % (360 * 3600)  # Normalize to 0-360 degrees in arc-seconds
@@ -297,38 +342,125 @@ def bytes2hexascii(data):
     return f"{s_hex}: {s_ascii}"
 
 def deg2dms(decimal_degrees):
-    # Determine the sign and work with the absolute value
+    """Converts decimal degrees to formatted degrees-minutes-seconds (DMS) string with sign."""
     sign = '-' if decimal_degrees < 0 else '+'
-    decimal_degrees = abs(decimal_degrees)
-    degrees = int(decimal_degrees)                          # Extract degrees
-    minutes_float = (decimal_degrees - degrees) * 60        # Extract minutes
-    minutes = int(minutes_float)
-    seconds = (minutes_float - minutes) * 60                # Extract seconds
-    
-    return f"{sign}{degrees}d{minutes:02}'{seconds:05.2f}\""
+    total_seconds = abs(decimal_degrees) * 3600
+    degrees, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    seconds = round(seconds, 2) # Beware of rounding to 60.00
+    if seconds >= 60.0:
+        seconds = 0.0
+        minutes += 1
+    if minutes >= 60:
+        minutes = 0
+        degrees += 1
+    return f"{sign}{int(degrees):03}d{int(minutes):02}'{seconds:05.2f}\""
 
 def hr2hms(decimal_hr):
-    degrees = int(decimal_hr)                          # Extract degrees
-    minutes_float = (decimal_hr - degrees) * 60        # Extract minutes
-    minutes = int(minutes_float)
-    seconds = (minutes_float - minutes) * 60                # Extract seconds
-    return f"{degrees:02}h{minutes:02}m{seconds:05.2f}s"
+    """Converts decimal hours to formatted hours-minutes-seconds (HMS) string."""
+    sign = "-" if decimal_hr < 0 else ""
+    decimal_seconds = abs(decimal_hr) * 3600
+    hours, remainder = divmod(decimal_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    seconds = round(seconds, 2) # Beware of rounding to 60.00
+    if seconds >= 60.0:
+        seconds = 0.0
+        minutes += 1
+    if minutes >= 60:
+        minutes = 0
+        hours += 1
+    return f"{sign}{int(hours):02}h{int(minutes):02}m{seconds:05.2f}s"
 
 def dms2dec(dms):
-    (degree, minute, second, frac_seconds) = re.split(r'[^0-9-]', dms, maxsplit=4)
-    return int(degree) + float(minute) / 60 + float(second) / 3600 + float(frac_seconds) / 360000
+    """Parses a DMS string into decimal degrees."""
+    parts = re.split(r'[^\d.-]+', dms)
+    parts = [float(p) for p in parts if p]
+    if not parts:
+        raise ValueError(f"dms2dec: Invalid HMS string input: '{dms}'")
+    while len(parts) < 3:
+        parts.append(0.0)
+    sign = 1 if parts[0] >= 0 else -1
+    degrees, minutes, seconds = abs(parts[0]), parts[1], parts[2]
+    total_deg = degrees + minutes / 60 + seconds / 3600 
+    return sign * total_deg
+
+def dms2rad(dms):
+    """Converts DMS formatted string (e.g. '+123d45\'56.78"') to radians."""
+    return deg2rad(dms2dec(dms))
+
+def rad2dms(rad):
+    """Converts radians to DMS formatted string (e.g. '+123d45\'56.78"')."""
+    return deg2dms(rad2deg(rad))
+
+def hms2hr(hms):
+    """Converts HMS formatted string to decimal hours."""
+    parts = re.split(r'[^0-9.]+', hms)
+    parts = [float(p) for p in parts if p]  # Remove empty entries
+    if not parts or len(parts) < 1:
+        raise ValueError(f"dms2dec: Invalid HMS string input: '{hms}'")
+    while len(parts) < 3:
+        parts.append(0.0)
+    hours, minutes, seconds = parts[0], parts[1], parts[2]
+    return hours + minutes / 60 + seconds / 3600
+
+def hms2rad(hms):
+    """Converts HMS formatted string (e.g. '12h30m00s') to radians."""
+    return hr2rad(hms2hr(hms))
+
+def rad2hms(rad):
+    """Converts radians to HMS formatted string using hr2hms."""
+    return hr2hms(rad2hr(rad))
 
 def rad2hr(rad):
-    return rad*24/2/math.pi
+    """Converts radians to hours (assuming 2π radians = 24 hours)."""
+    return rad*12/math.pi
 
 def hr2rad(hr):
-    return hr*2*math.pi/24
+    """Converts hours to radians."""
+    return hr*math.pi/12
 
 def rad2deg(rad):
-    return rad*360/2/math.pi
+    """Converts radians to decimal degrees."""
+    return rad*180/math.pi
 
 def deg2rad(deg):
-    return deg*2*math.pi/360
+    """Converts decimal degrees to radians."""
+    return deg*math.pi/180
+
+def angular_separation(ra1_hr, dec1_deg, ra2_hr, dec2_deg):
+    """
+    Computes angular separation between two celestial coordinates using the spherical law of cosines.
+    
+    Parameters:
+        ra1_hr, dec1_deg: RA and Dec of first object (RA in hours, Dec in degrees)
+        ra2_hr, dec2_deg: RA and Dec of second object (RA in hours, Dec in degrees)
+    
+    Returns:
+        Angular separation in degrees
+    """
+    # Convert RA from hours to degrees
+    ra1_deg = ra1_hr * 15.0
+    ra2_deg = ra2_hr * 15.0
+
+    # Convert all angles to radians
+    ra1_rad = math.radians(ra1_deg)
+    dec1_rad = math.radians(dec1_deg)
+    ra2_rad = math.radians(ra2_deg)
+    dec2_rad = math.radians(dec2_deg)
+
+    # Spherical law of cosines
+    cos_angle = (math.sin(dec1_rad) * math.sin(dec2_rad) +
+                 math.cos(dec1_rad) * math.cos(dec2_rad) * math.cos(ra1_rad - ra2_rad))
+
+    # Clamp to valid range to avoid rounding errors
+    cos_angle = min(1.0, max(-1.0, cos_angle))
+
+    # Compute angle in radians and convert to degrees
+    angle_rad = math.acos(cos_angle)
+    angle_deg = math.degrees(angle_rad)
+
+    return angle_deg
+
 
 def empty_queue(q: asyncio.Queue):
   while not q.empty():
@@ -336,3 +468,113 @@ def empty_queue(q: asyncio.Queue):
         q.get_nowait()
     except asyncio.QueueEmpty:
         break
+
+from enum import Enum, auto
+
+class LifecycleEvent(Enum):
+    NONE = auto()
+    SHUTDOWN = auto()           # shutdown the process
+    RESTART = auto()            # restart all network services and running async tasks
+    INTERRUPT = auto()          # user initiated shutdown ^C
+    START = auto()              # used initated start of a stopable procedure
+    STOP = auto()               # user initiated stop of a procedure
+    
+class LifecycleController:
+    def __init__(self):
+        self._event = LifecycleEvent.NONE
+        self._cond = asyncio.Condition()
+        self._lock = threading.Lock()  # For thread-safe sync signaling
+        self._tasks: Set[asyncio.Task] = set()
+        self._task_exception = None
+        self._named_tasks: Dict[str, asyncio.Task] = {}
+
+
+    def create_task(self, coro: Coroutine, *, name: str = None) -> asyncio.Task:
+        task = asyncio.create_task(self._wrap(coro), name=name)
+        self._tasks.add(task)
+        if name:
+            self._named_tasks[name] = task
+        task.add_done_callback(self._done_task)
+        return task
+
+    def get_task(self, name: str) -> Optional[asyncio.Task]:
+        return self._named_tasks.get(name)
+
+
+    def _done_task(self, task: asyncio.Task):
+        self._tasks.discard(task)  # Remove completed task from the set
+        for name, t in list(self._named_tasks.items()):
+            if t is task:
+                del self._named_tasks[name]
+                break
+        if not task.cancelled():
+            # task.exception returns None if no exception
+            self._task_exception = task.exception()
+
+    async def _wrap(self, coro: Coroutine):
+        try:
+            await coro
+        except asyncio.CancelledError:
+            logger.debug("Lifecycle Wrap: Task cancelled")
+        except SystemExit as exc:
+            logger.error(f"Lifecycle Wrap: Task SystemExit: {exc}")
+            raise RuntimeError("SystemExit in task") from exc
+        except Exception as exc:
+            co_name = coro.cr_code.co_name
+            logger.exception(f"Lifecycle Wrap: Task {co_name} Unhandled exception: {exc}")
+
+    async def shutdown_tasks(self, timeout: float = 8.0):
+        if self._event == LifecycleEvent.NONE:
+            await self.signal(LifecycleEvent.SHUTDOWN)
+        for task in list(self._tasks):
+            task.cancel()
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*self._tasks, return_exceptions=True),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            logger.warning("==SHUTDOWN==Timeout while waiting for tasks to cancel")
+        pending = [t for t in self._tasks if not t.done()]
+        if pending:
+            logger.warning(f"==SHUTDOWN==Tasks still pending: {pending}")
+
+
+    def should_stop(self) -> bool:
+        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT, LifecycleEvent.STOP}
+
+    def should_shutdown(self) -> bool:
+        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT}
+
+    async def wait_for_event(self):
+        async with self._cond:
+            await self._cond.wait()
+            return self._event
+
+    async def signal(self, event: LifecycleEvent):
+        async with self._cond:
+            self._event = event
+            self._cond.notify_all()
+
+    def signal_sync(self, event: LifecycleEvent):
+        # Called from signal handlers (e.g., SIGINT)
+        with self._lock:
+            loop = asyncio.get_event_loop()
+            loop.call_soon_threadsafe(self._set_event_and_notify, event)
+
+    def _set_event_and_notify(self, event: LifecycleEvent):
+        # Internal helper for thread-safe signaling
+        async def notify():
+            async with self._cond:
+                self._event = event
+                self._cond.notify_all()
+        asyncio.create_task(notify())
+
+    def start(self):
+        self._event = LifecycleEvent.START
+
+    def stop(self):
+        self._event = LifecycleEvent.STOP
+
+    def reset(self):
+        self._event = LifecycleEvent.NONE

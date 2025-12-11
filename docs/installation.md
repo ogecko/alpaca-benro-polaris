@@ -1,7 +1,13 @@
-[Home](../README.md) | [Hardware Guide](./hardware.md) | [Installation Guide](./installation.md) | [Using Stellarium](./stellarium.md) | [Using Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Installation Guide 
-[Alpaca Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Alpaca MacOS](./installation_macos.md) | [Startup](#running-the-alpaca-benro-polaris-driver) | [ASCOM](#installing-the-ascom-platform-optional) | [Stellarium](#installing-stellarium-optional) | [Sky Safari](#seting-up-sky-safari-pro-optional) | [Nina](#installing-nina-optional) | [Architecture](#software-architecture) 
+[Alpaca Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Alpaca MacOS](./installation_macos.md) | 
+[Startup](#running-the-alpaca-benro-polaris-driver) | 
+[Workflow](#imaging-with-alpaca-driver-v20-and-nina) | 
+[Stellarium](#installing-stellarium-optional) | 
+[Sky Safari](#seting-up-sky-safari-pro-optional) | 
+[Nina](#installing-nina-optional) | 
+[Architecture](#software-architecture) 
 
 
 
@@ -18,86 +24,187 @@ You can view a demonstration of parts of this documentation in the following You
 #### To Install on Windows 11
 The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed before it can run.
 
-1. Download Python 3.13.1 from the [Python website](https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe). Run the installation file downloaded. You must check the field `Add python.exe to PATH`, then click `Install Now`. 
+1. Download Python 3.13.9 from the [Python website](https://www.python.org/ftp/python/3.13.9/python-3.13.9-amd64.exe). Run the installation file downloaded. You must check the field `Add python.exe to PATH`, then click `Install Now`. 
+   >Note: Python 3.14 is not supported as of December 2025, as pyephem has not yet been compiled for this release.
 
-2. Download the [Alpaca Benro Polaris zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/main.zip) from this Github repository.
+
+2. Download the [Alpaca Benro Polaris v2.0.0.zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.0.0.zip) from this Github repository.
 
 3. Expand the zip file to a location of your choice. We reccommend `C:\Users\`Username`\Documents`. Using Windows Explorer, right-click on the folder you just expanded to, and select `Open in Terminal` to open a Command Window. If you cant see `Open in Terminal` try right clicking a second time. Enter the following: 
   
     ```
     C:\Users\Nina\Documents\alpaca-benro-polaris-main> pip install -r platforms/win/requirements.txt
     ```
-4. Optionally, you can copy the file `platforms\win\Alpaca Benro Polaris Driver.lnk` to your desktop, right-click to modify properties, and change the fields `Target`, and `Icon` to point to the location you expanded the zip file. Note the `Target` has two XXXX paths you need to modify.
-    ```
-    Target: C:\XXXX\driver\main.py --logdir C:\XXXX\driver
-    Icon: C:\XXXX\docs\images\abp-icon.ico
-    ```
-
-    ![Winidows Shortcut](images/abp-shortcut.png)
 
 
-### Running the Alpaca Benro Polaris Driver
 
-There are a few preliminary steps before you start the driver. You'll need to do the following:
-1. Setup your Benro Polaris tripod head, camera, mini-pc, and power.
-2. Remove your lens cap (I often forget this step!).
-3. Level the Benro Polaris as accurately as possible (important. See [Troubleshooting B3](./troubleshooting.md)). 
-4. Turn on the Benro Polaris (how many times doesn't it turn on? See [Troubleshooting B1](./troubleshooting.md)).
-5. Using the Benro Polaris App, connect and change to `Astro Mode`.
-6. Start the `Calibrate Compass` and tap `Confirm`.
-7. Select a star to align with, tap `Goto`, wait, then tap `Confirm`. 
-8. Turn on the mini-pc and connect it to your camera via USB.
-9. Using the USB Wifi adapter, connect your mini-PC to the polaris-###### hotspot.
-10. Choose `Connect Automatically` and click `Connect`.
-11. Wait for connection. It should show: `No internet, open`. 
+4. (Optional) Create a Shortcut. You can copy the file `platforms\win\Alpaca Benro Polaris Driver.lnk` to your desktop and edit it so it points to the folder where you extracted the ZIP file.
+
+   1. Right-click the shortcut → **Properties**
+   2. Update both the **Target** and **Icon** paths to match your installation
+
+      ```
+      Target: C:\XXXX\driver\main.py
+      Icon:   C:\XXXX\docs\images\abp-icon.ico
+      ```
+
+      ![Windows Shortcut](images/abp-shortcut.png)
+
+
+### Running the Alpaca Driver
+
+To start the Polaris Driver, you can either:
+
+#### A. Use the Desktop Shortcut
+
+Just double-click the `.lnk` file you configured in Step 4.
+
+#### B. Run from the Command Line
+
+5. Open **File Explorer** and navigate to the folder where you extracted the ZIP file.
+6. Hold **Shift** and **Right-click** the `driver` folder. (You may need to try twice for “Open in Terminal” to appear.)
+7. Select **Open in Terminal**.
+8. In the new Terminal Window, run the driver with:
+
+   ```
+   python main.py
+   ```
+
+No matter which method you used to launch the Alpaca Driver, a console window will appear. When the Driver is running correctly, it should look like this:
+![Driver Startup](images/abp-startup0.png)
+
+### Starting the Alpaca Pilot App
+
+With the Alpaca Driver running you can now start the Alpaca Pilot App from any browser. 
+
+9. Open **Chrome**, **Edge**, **Firefox**, or your preferred browser.
+10. Enter the following into the address bar, where hostname is the name of the MiniPC you are running the Driver on. 
+   ```
+   http://hostname
+   ```
+   > Note you can find the hostname of a machine by typing the command `hostname` into a terminal window.
+11. The Alpaca Pilot App should look like this:
+![Pilot Startup](images/pilot-startup.png)
+12. Click **Connect** on the top toolbar of the Alpaca Pilot Window. This page will allow you to follow through the steps to connect the Driver to the Benro Polaris device.
+
+### Connecting the Driver to Polaris
+There are a few preliminary steps before you can use the Polaris. You'll need to do the following:
+
+13. Setup your Benro Polaris tripod head and turn on the Benro Polaris. If you cant turn it on, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
+14. Using the USB Wifi adapter, connect your mini-PC to the `polaris-xxxxxx` hotspot.
+15. Choose `Connect Automatically` and click `Connect`.
+16. Wait for connection. It should show: `No internet, open`. If you cannot connect, see [Troubleshooting C0](./troubleshooting.md#c0---cannot-connect-win11-computer-or-laptop-to-benro-polaris-wifi).
     
 <img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
 
-12. If it isnt already, we recommend changing the Polaris Hotspot connection on the Mini-PC to Public Network. From Win11 Network & Internet Settings, click Polaris Wifi Properties, then choose Public Network.
-![Public Network](images/abp-troubleshoot-wifi3.png)
+17. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for more details and a full step by step procedure. Make sure all checkmarks are green (except for the final Multi-Point Alignment step, which will only turn green after you’ve aligned on three or more stars).
 
-13. IMPORTANT: One last step is to review the file  `driver/config.toml`. You will need to change the `site_latitude` and `site_longitude` to ensure the driver calculates the correct slewing co-ordinates for your location. All other settings can be left as default or tweaked. 
-
-14. Now you can start the Alpaca Benro Polaris driver using the shortcut or the following command.
-    ```
-    C:\Users\Nina\Documents\alpaca-benro-polaris-main> python driver\main.py
-    ```
-
-Fingers crossed, you can now start the Alpaca Benro Polaris Driver (as above).
-
-The Alpaca Benro Polaris Driver window should look like this.
+18. Once the Driver has connected successfully to the Polaris the Alpaca Driver window should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
 
-Once the driver is running, you can close the Benro Polaris App. Now you can start exploring ASCOM applications like Stellarium and Nina, or even write your own REST-based application.
-
 ### Troubleshooting
-If you don't see the `communications init... done` message then you may want to check the [Troubleshooting Guide](./troubleshooting.md) for steps to diagnose and fix any issues.
+If you don't see the `communications init... done` message then you may want to check the [Troubleshooting Guide C1](./troubleshooting.md#c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected) for steps to diagnose and fix any issues.
 
 ### Updating the Driver
 To update the Alpaca Benro Polaris Driver to the latest version:
 1. Download the latest [Alpaca Benro Polaris zip file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/main.zip) from this Github repository.
 2. Stop the driver by selecting its Window and pressing Ctrl+C.
 3. Extract the files, overwriting the old files.
+4. Install any new pre-requisites using `pip install -r platforms/win/requirements.txt`
 4. Restart the Driver.
-5. If you can complete steps 2-4 within a minute, you won't need to use the BP App to re-establish the Polaris Wifi.
+
+
+## Imaging with Alpaca Driver V2.0 and NINA
+
+This workflow outlines a typical imaging session using **Alpaca Driver V2.0** with **NINA** and the **Benro Polaris** mount. It assumes you’re already familiar with operating **Alpaca Pilot** and **NINA**. For additional setup and operational guidance on these topics, refer to the documentation for [Alpaca Pilot](./pilot.md) and [NINA](./nina.md).
+
+### Setup and Initialization
+
+1. **Start Alpaca Driver**  
+   Launch the driver by double-clicking the shortcut you created earlier.
+
+2. **Open Alpaca Pilot**  
+   In your browser, navigate to the Alpaca Pilot App.
+
+3. **Power On Polaris**  
+   Use a short press followed by a long press to power on the mount.
+
+4. **Confirm Wi-Fi Connectivity**  
+   Monitor your Mini-PC wifi and confirm it maintains a stable connection to Polaris.
+
+5. **Connect and Configure Polaris**  
+   In the Pilot Connect page:
+   - Set **Astro Mode**
+   - **Reset all axes** and wait for completion
+   - **Skip compass alignment**
+   - **Skip single-star alignment**
+
+### Focusing, Alignment and Targeting
+
+6. **Point to Celestrial Polar Area**  
+   Using Pilot Alpaca or Nina:
+   - Slew the mount to approximately point towards your Celestrial Pole (either North or South)
+   - This initial orientation does not need to be accurate
+   - Having a high or low Declination reduces star movement for the next step
+
+7. **Initial Focus**  
+   - Use your **Camera and lens** to achieve a rough focus
+   - Run **NINA’s Autofocus** process for a precise focus.
+   - Optionally, if you are using guiding, focus and align your Guide Scope as well.
+
+8. **First Plate Solve (anywhere for Single Point Alignment)**  
+   In NINA’s Image tab, 
+   - Click on **Start Tracking**
+   - Open the Plate Solving panel
+   - Manually plate-solve and sync to achieve intial alignment.
    
-### Installing the ASCOM Platform (OPTIONAL)
-ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. This `Alpaca Benro Polaris Driver (ABP) commplies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
+9. **Second Plate Solve (at Pole for Multi Point Alignment)**  
+   In Alpaca Pilot:
+   - Enable **Multi-Point Alignment**
+   - Search for 'pole' in the Alpaca Pilot Catalog
+   - GOTO your local Celestrial Pole and wait for the mount to settle.
+   
+   Using Nina:
+   - Initiate a second plate solve at the Celestrial Pole
 
-You may need to install the ASCOM Platform software for compatibility with some astronomry equipment or applications. You will need to install the ASCOM Platform with Stellarium as it is not bundled by default. You do not need to install the ASCOM Platform on a laptop that uses Remote Desktop to access the NinaAir. 
+10. **Third Plate Solve (at Future Target for Multi-Point Alignment)**  
+   In Alpaca Pilot:
+    - GOTO your imaging target from the catalog
+    - Decrease the Right Ascensian axis by 1 or 2 hours 
+    - Once settled, run a third plate-solve in NINA
 
-#### To install the ASCOM Platform.
-1. Download the ASCOM Platform from https://ascom-standards.org/ (Download buttton on the top-right-hand side of the home page).
-2. The remaining instructions assume you are using ASCOM Platform 6.6SP2 
-3. Open the installation .exe file and click `Yes` on the User Account Control dialog.
-4. Click `Next` to install any pre-requisites eg Microsoft .nett Framework 3.5 Service Pack 1 
-5. This can take quite some time to download and install (5 min for me)
-6. Once the blue window shows the operation has completed successfully, press any `key` to continue.
-7. Accept the ASCOM Platform Installer default options and click `Install`.
-8. Click `Finish`.
+11. **Fourth Plate Solve (framing Your Target)**  
+    Use NINA’s Sky Atlas or Stellarium to locate your target.  
+    - Send it to **Framing Assistant**, and view it on Nina's **Offline Sky Map**
+    - Use **Slew and Center** to refine positioning via iterative plate-solves.
+    - Select **Add Target to Sequence**, **Legacy Sequencer**
 
-You can also download other versions from the [ASCOM GitHub Releases Site](https://github.com/ASCOMInitiative/ASCOMPlatform/releases).
+### Imaging Sequence
 
+12. **Create a Sequence**  
+    In NINA’s Legacy Sequencer:
+    - Define image count (e.g., 150) and exposure time (e.g., 30 s)  
+    - If not guiding, enable **Slew and Center Target** every 20–30 frames (manually or via Advanced Scheduler)
+
+13. **Start the Imaging Sequence**  
+    Begin the sequence from NINA’s Image tab and monitor the first few frames. Let the process settle and zoom into the image view to monitor roundness of stars and tracking quality.
+
+14. **Refine Tracking and Alignment**  
+    You can assess and refine tracking performance using the **Alpaca PID Tuning** and **Alignment** pages:
+
+    * PID Tuning Page
+        - **Angular Position (PV vs SP)**: PV should closely follow a steady SP ramp on all axes for accurate tracking. Changing to equatorial co-ordinate view will show a steady horizontal SP for Right Ascension, Declination, Position Angle.
+        - **Angular Velocity (OP)**: OP should appear as a steady horizontal line, large oscillations may indicate instability. The PID controller will attempt to close any gaps.
+        - **RMS Error**: This is a key performance statistic that provides a quick understanding of the tracking performance over the last 30 seconds. A value near **2 arcseconds** is ideal for high-quality tracking.
+        - **Pulse Guiding**: Use **equatorial coordinates** to monitor corrections from guiding software. You should see the SP being "bumped" up and down to correct for guide star movement.
+        - **Advanced Tuning**: Experienced users can adjust PID parameters to reduce oscillations and improve responsiveness.
+
+    * Alignment Page
+        - **Sync Point Residuals**: Review residuals to identify misaligned points.
+        - **Model Refinement**: Delete sync points with large residuals to improve the Multi-Point Alignment model.
+
+## Optional Installations
+   
 ### Installing Stellarium (OPTIONAL)
 Stellarium is a free open-source planetarium for your computer. 
 While there are free and paid Mobile Stelarium Apps and free Web versions, 
@@ -125,17 +232,17 @@ tested with ABP.
 6. If you are copying Oculars settings, duplicate the following file:
    `C:\Users\XXXXX\AppData\Roaming\Stellarium\modules\Oculars\ocular.ini`
 
-## Seting up Sky Safari Pro (OPTIONAL)
+### Seting up Sky Safari Pro (OPTIONAL)
 The following screen captures show the settings you need to use for Sky Safari Pro to work with the Alpaca Driver. Choose an Mount as Alt-Az , Brand as Celestron NexStar 5i/i8 , IP Address 192.168.0.3, Port 10001, Preset Name as Polaris and Save Preset.
 
 ![Sky Safari Pro](images/abp-sky-safari.png)
 
-## Installing Nina (OPTIONAL)
+### Installing Nina (OPTIONAL)
 Nina is an open-source free software application covering image capture, autofocus, plate-solving, centering, star detection, guiding, and a lot more. Much of this now works with the Benro Polaris (well not guiding yet). The open-source nature makes it a bit more complicated to install and setup, but it's worth the effort - and it's free.
 
 The [Astro What](https://astrowhat.com/) website has a good set of instructions for [Installing Nina and its Pre-requisiites](https://astrowhat.com/articles/setting-up-a-pc-with-n-i-n-a.18/page/installing-n-i-n-a.45/). 
 
-## Software Architecture
+### Software Architecture
 The following diagram is provided as a reference to help you undersdtand how the different software modules fit together.
 
 ![Software Layers](images/abp-software-layers.png)
