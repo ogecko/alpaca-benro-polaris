@@ -467,7 +467,8 @@ async def synscan_api(logger, lifecycle: LifecycleController):
         logger.exception(f"==EXCEPTION== SynSCAN API unhandled exception: {e}")
     finally:
         logger.info("==SHUTDOWN== SynSCAN API shutting down.")
-        server.close()
-        await server.wait_closed()
+        if server is not None:
+            server.close()
+            await server.wait_closed()
 
 
