@@ -27,6 +27,15 @@
 // }
 [
   {
+    "MainID":"FLAT",
+    "Name":"Flat Frame Orienation",
+    "Notes":"Position the Polaris nearly upright, right at its hardware limit, to make capturing flat frames easier.",
+    "C1":9,
+    "Rt":5,
+    "Az_deg":180,
+    "Alt_deg":82
+  },  
+  {
     "MainID":"ALP001",
     "Name":"Alpaca Nebula",
     "Notes":"Showcase custom nebula, closest to the equestrian area, with 2 satellite galaxies, dust lanes, and star clouds",
