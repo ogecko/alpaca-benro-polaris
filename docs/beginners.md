@@ -92,8 +92,10 @@ In addition to the standard Alpaca documentation here are some additional resour
 * NINA's Official Website: The official website for NINA (https://nighttime-imaging.eu/) is a valuable resource for documentation, tutorials, and a user forum where you can ask questions and get help from the community. 
 * Astro What Website: The sources recommend the Astro What website for instructions on installing NINA and its prerequisites. This website might also have other helpful resources for learning NINA.
 * YouTube Channels: You can find a wealth of information on using NINA on YouTube. The sources specifically recommend the following channels:
-  * Cuiv, The Lazy Geek Youtube Channel: This channel is known for in-depth tutorials on various astrophotography software and equipment.
-  * Patriot Astro Youtube Channel: This channel provides tutorials and guides focused on NINA and other astrophotography tools.
+  * [Nina, by Chris Woodhouse](https://www.youtube.com/playlist?list=PLsB_vBMDYE_qPSftsM7EHooX1sozEY5zP): A 17-part series of tutorials that cover Nina are the absolute best.
+Chris Woodhouse’s NINA 17-part series covers everything
+  * [Cuiv, The Lazy Geek Youtube Channel](https://www.youtube.com/@CuivTheLazyGeek): This channel is known for in-depth tutorials on various astrophotography software and equipment.
+  * [Patriot Astro Youtube Channel](https://www.youtube.com/watch?v=Ta5t4dCEjNc): This channel provides tutorials and guides focused on NINA and other astrophotography tools.
 * Online Forums: Active astrophotography communities like Cloudy Nights (https://www.cloudynights.com/) and Stargazers Lounge (https://stargazerslounge.com/) have dedicated sections for NINA where users share their experiences, tips, and solutions to common problems. 
 
 By utilising these resources, you can gain a strong foundation in using NINA for astrophotography with the Benro Polaris. 
@@ -111,6 +113,11 @@ To learn Siril, you can consider these resources:
 * Siril's Official Website: The official website (https://siril.org/) offers comprehensive documentation, tutorials, and a user forum where you can find answers to your questions.
 * YouTube Tutorials: Many astrophotographers create tutorials demonstrating Siril's functionalities and workflows. Searching for "Siril tutorials" on YouTube should yield helpful results.
 * Online Communities and Forums: Astrophotography communities like Cloudy Nights (https://www.cloudynights.com/) and Stargazers Lounge (https://stargazerslounge.com/) have sections dedicated to Siril, where users share their experiences, tips, and troubleshooting advice.
+
+## Resources for planning imaging sessions:
+* [Light Polution Map](https://lightpollutionmap.app/): Find the best Dark Sky locations for astrophotography
+* [Clear Outside](https://clearoutside.com/forecast/45.45/9.11): 7-day hourly cloud & weather forecasts. Designed by astronomers for astronomers.
+
 
 ## Resources for Further Learning include:
 * Alpaca Benro Polaris Project Documentation: This is the go-to resource for detailed instructions, troubleshooting tips, and information on specific features. The documentation can be found at [Home](../README.md) . 
