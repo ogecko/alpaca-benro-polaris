@@ -524,7 +524,7 @@ Adding the other fields provides richer detail and better UI integration.
   "MainID": string,     // A unique identifier for the object (e.g. "U001")
   "Name": string,       // Short human-readable name
   "Notes": string,      // Longer description shown in the UI
-  "Class": string,      // Optional emission class or type (e.g. "Sb")
+  "Class": string,      // Optional Class Object Classification Codes see below (e.g. "SHO")
   "OtherIDs": string,   // Comma-separated alternate identifiers
 
   "Rt": integer,        // Rating 0–5 (Showcase → Not recommended)
@@ -760,4 +760,168 @@ Each number corresponds to a constellation by index.
 | 83    | Vulpecula                       |
 | 84    | Orbit (Ephemeris-based objects) |
 | 85    | Space (Default)                 |
+
+
+### **Class - Object Classification Codes**
+Objects in the standard catalog may include a **Class** field that helps guide your imaging strategy. This classification provides insight into the physical characteristics of the target and can inform choices such as filter selection and exposure balance.
+
+For emission nebulae, the **Class** field indicates the narrowband emission types present and their relative signal strengths. For example, the Eagle Nebula (M16) has a Class of `SHO-.2/1/.3`
+
+This means the nebula emits **Sulphur II (SII)**, **Hydrogen-alpha (Hα)**, and **Oxygen III (OIII)** in an approximate **20% / 100% / 30%** ratio. In practical terms, to balance the channels, weaker signals require **more integration time**:
+* If you collect **10 minutes of Hα**
+* You would need approximately:
+  * **50 minutes of SII** (1 / 0.2 × 10)
+  * **33 minutes of OIII** (1 / 0.3 × 10)
+
+These ratios are **guidelines**, not strict rules. Actual exposure balance will depend on:
+* Optical speed (f-ratio)
+* Sensor quantum efficiency per wavelength
+* Sky conditions and light pollution
+* Target altitude and extinction
+
+The full definition of the Class field depends on the C2 SubType of the target as follows:
+
+#### Individual Galaxies - **Format:** `a/b` where
+
+##### Galaxy Type (`a`)
+* **S** — Spiral
+* **SB** — Barred Spiral
+* **S0** — Lenticular
+* **SB0** — Barred Lenticular
+* **E** — Elliptical
+  * *E0* (nearly spherical) to *E7* (highly elongated)
+* Spiral Subtypes
+   * **a** — Large bulge, tightly wrapped smooth arms
+   * **b** — Medium bulge, moderately open arms
+   * **c** — Small bulge, open or patchy arms
+
+##### Galaxy Features (`b`)
+
+**Core**
+* **l** — Barlens
+* **p** — Peanut-shaped (X-shaped)
+* **z** — Barred
+
+**Disk**
+* **d** — Edge-on
+* **f** — Face-on
+* **g** — Grand design (two strong symmetric arms)
+* **k** — VV rows
+* **t** — Superthin
+* **w** — Warped
+
+**Rings**
+* **m** — Ring (concentric)
+* **n** — Nuclear ring
+* **o** — Outer ring
+* **r** — Inner ring (mid-region)
+
+**Star Streams**
+* **h** — Shells
+* **j** — Loops
+* **u** — Single tail
+* **x** — Dual tails
+* **y** — Superlong
+
+---
+
+#### Multiple Galaxies - **Format:** `a` where
+
+##### Number / Arrangement (`a`)
+* **Cluster** — More than 12 galaxies
+* **Group** — 12 or fewer galaxies
+* **Chain** — More than 3 galaxies aligned along the line of sight
+
+---
+
+#### Galaxy Mergers - **Format:** `a/b` where
+
+##### Merger Type (`a`)
+* **I** — Long bridge (> 1 galaxy diameter)
+* **II** — Short bridge (< 1 galaxy diameter, disks not touching)
+* **III** — Two close cores, disks touching
+* **IV** — Single core with tails
+* **V** — Single core, no visible tails
+
+##### Galaxy Features (`b`)
+* Uses the same feature codes listed under *Individual Galaxies*.
+
+---
+
+#### Planetary Nebulae (PN) - **Format:** `abc/d` where
+
+##### Shape (`a`)
+* **A** — Ancient
+* **B** — Bipolar
+* **E** — Elliptical
+* **M** — Multipolar
+* **P** — Peculiar
+* **S** — Spherical
+* **X** — Stellar (≤ 0.2 arcmin diameter)
+
+##### Signal (`b`)
+* **O** — OIII dominant (cyan)
+* **H** — Hα dominant (red)
+* **C** — OIII and Hα comparable (gray)
+* **R** — Hα rim with OIII interior
+
+##### Progenitor Visibility (`c`)
+* **Y** — Visible
+* **N** — Not visible
+
+##### PN Features (`d`)
+* **c** — Bipolar lobes broken through
+* **f** — Bright filaments
+* **h** — Hexagonal shape
+* **i** — ISM interaction
+* **j** — Polar jets
+* **o** — Owl (M97-type) / inner voids
+* **q** — Opposing brightened rim segments
+* **r** — Bright toroidal ring
+* **t** — Thin rim
+* **y** — Ansae
+
+---
+
+#### Emission Nebulae - **Format:** `a/b` where
+
+##### Emission Type (`a`)
+* **SHO** — All narrowband channels present
+* **HII** — Hα dominant
+* **SS** — Strömgren sphere
+* **WR** — Wolf–Rayet nebula
+
+##### Signal Strengths (`b`)
+* Comparative strengths of SHO channels, normalized to the strongest signal
+
+---
+
+#### Dark Nebulae - **Format:** `a` where
+
+##### Opacity Rating (`a`)
+* **1** — Lightest
+* **6** — Darkest
+* **0** — Extremely faint
+
+---
+
+#### Globular Clusters - **Format:** `a` where
+
+##### Shapley–Sawyer Concentration (`a`)
+* **I** — Highly concentrated core
+* **XII** — Very loose concentration
+
+---
+
+#### Open Clusters - **Format:** `a-b-c-d`
+
+##### Trumpler Classification
+* **a** — Concentration
+  * **I** (strong) to **IV** (none)
+* **b** — Brightness Range
+  * **1** (uniform brightness) to **3** (wide brightness range)
+* **c** — Number of stars
+* **d** — Additional designations
+  * **a** — Asterism
+
 
