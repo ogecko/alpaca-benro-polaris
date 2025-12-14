@@ -77,6 +77,14 @@
                 </q-item-section>
               </q-item>
 
+              <!-- Alpaca Driver STOP -->
+              <q-item v-if="dev.restAPIConnected" :inset-level="0.5">
+                <q-item-section><q-item-label>Stop the Alpaca Driver</q-item-label></q-item-section>
+                <q-item-section side>
+                  <q-btn label="STOP" icon="mdi-alert-octagon"  class="fixedWidth" @click="onStopDriver"/>
+                </q-item-section>
+              </q-item>
+              
             </q-list>
         </q-card>
       </div>      
@@ -338,6 +346,37 @@ onUnmounted(() => {
 
 
 // ------------------- Event Handlers ---------------------
+
+function onStopDriver() {
+    $q.notify({
+      message: 'WARNING: Stopping the Alpaca Driver will close Alpaca Pilot as well.',
+      type: 'negative', position: 'top', timeout: 0,
+      actions: [
+        { label: 'Stop', icon: 'mdi-alert-octagon', color: 'yellow', handler: () => {void onStopDriverAction()} },
+        { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => { /* ... */ } }
+      ]
+    })
+}
+
+async function onStopDriverAction() {
+  await dev.alpacaStopDriver()
+
+  // Attempt to close the window (works if opened programmatically)
+  window.close()
+
+  // Fallback: replace UI if close is blocked
+  setTimeout(() => {
+    document.body.innerHTML = `
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;">
+    <div class="text-center">
+      <h4 class="q-mb-sm">Alpaca Driver stopped.</h4>
+      <h6 class="q-mt-sm">You may now close this window.</h6>
+    </div>
+  </div>
+    `
+  }, 250)
+}
+
 
 async function onBleSelected(newVal:string) {
   await dev.bleSelectDevice(newVal)

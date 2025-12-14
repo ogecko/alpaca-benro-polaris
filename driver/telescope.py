@@ -1509,7 +1509,7 @@ class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([
             "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
-            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StatusFetch", 
+            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:StatusFetch", 
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
             "Polaris:MoveAxis", "Polaris:MoveMotor", "Polaris:ResetAxes",
@@ -1539,6 +1539,11 @@ class action:
         if actionName == "Polaris:RestartDriver":
             await lifecycle.signal(LifecycleEvent.RESTART)
             resp.text = await PropertyResponse('RestartDriver ok', req)  
+
+        if actionName == "Polaris:StopDriver":
+            resp.text = await PropertyResponse('StopDriver ok', req)  
+            await asyncio.sleep(2)
+            await lifecycle.signal(LifecycleEvent.STOP)
 
         elif actionName == "Polaris:ConfigFetch":
             fetched_params = Config.as_dict()
