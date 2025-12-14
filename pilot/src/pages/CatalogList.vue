@@ -218,7 +218,7 @@ function check(query: string, criteria: RegExp[]): boolean {
 const maxPages = computed(() => $q.screen.gt.sm ? 9 : 4)
 const sorted_str = computed(() => isProxSort.value ?  'Nearby Proximity' : 'Ranking and Size' )
 const isProxSort = computed(() => cat.sorting[0]?.field === 'Proximity')
-const isNoResults = computed(() => cat.paginated.length == 0 && !cat.filter.C1?.some(c => [6,7,8].includes(c)))
+const isNoResults = computed(() => cat.paginated.length == 0 && !cat.filter.C1?.some(c => [6,7,8,11].includes(c)))
 const isNoradSearch = computed(() => check(cat.searchFor, [noradRegex]) || cat.filter.C1?.includes(6))
 const isCometSearch = computed(() => check(cat.searchFor, [cometRegex]) || cat.filter.C1?.includes(7))
 const isAsteroidSearch = computed(() => check(cat.searchFor, [namedRegex, numberedRegex, provisionalRegex]) || cat.filter.C1?.includes(8))
@@ -265,6 +265,11 @@ const allLinks = computed(() => [
     href: `https://cobs.si/`,
   },
   {
+    C1: 7 as DsoType, icon: typeLookupIcon[7], title: 'International Meteor Organisation',
+    caption: 'Meteor Shower Calendar, a comprehensive list of meteor showers for the current year (external site). Copy the Meteor Shower Radiant hh:mm ±dd° into the Dashboards Right Ascension (hh:mm) and Declination (±dd) setpoints.',
+    href: `https://www.imo.net/resources/calendar/`,
+  },
+  {
     C1: 8 as DsoType, icon: typeLookupIcon[8], title: 'Eyes on Asteriods',
     caption: 'Real-time visualization of every known Near-Earth Object (NEO) using jpl.nasa.gov (external site).',
     href: `https://eyes.nasa.gov/apps/asteroids/#/watch`,
@@ -283,6 +288,36 @@ const allLinks = computed(() => [
     C1: 8 as DsoType, icon: typeLookupIcon[8], title: 'JPL Horizons',
     caption: 'Official site used by Alpaca Pilot for Comet and Asteroid orbital data (external site).',
     href: `https://ssd.jpl.nasa.gov/horizons/`,
+  },
+  {
+    C1: 11 as DsoType, icon: "mdi-weather-sunny", title: 'Sunrise & Sunset',
+    caption: 'Time and Date - Sunrise, Sunset, and Twilight Periods. (external site).',
+    href: `https://www.timeanddate.com/sun/@${cfg.site_latitude},${cfg.site_longitude}`,
+  },
+  {
+    C1: 11 as DsoType, icon: "mdi-moon-waning-crescent", title: 'Moonrise & Moonset',
+    caption: 'Time and Date - Moonrise, Moonset, and Moon Phases. (external site).',
+    href: `https://www.timeanddate.com/moon/@${cfg.site_latitude},${cfg.site_longitude}`,
+  },
+  {
+    C1: 11 as DsoType, icon: "mdi-theme-light-dark", title: 'Upcoming Eclipses',
+    caption: 'Time and Date - Calendar of Solar and Lunar Eclipses. (external site).',
+    href: `https://www.timeanddate.com/eclipse/in/@${cfg.site_latitude},${cfg.site_longitude}`,
+  },
+  {
+    C1: 11 as DsoType, icon: "mdi-weather-cloudy", title: 'Clear Outside',
+    caption: '7-day hourly cloud & weather forecasts. Designed by astronomers for astronomers. (external site).',
+    href: `https://clearoutside.com/forecast/${cfg.site_latitude}/${cfg.site_longitude}`,
+  },
+  {
+    C1: 11 as DsoType, icon: "mdi-weather-windy", title: 'Meteoblue',
+    caption: 'Astronomoy Seeing Conditions and Predictions (external site).',
+    href: `https://www.meteoblue.com/fr/meteo/outdoorsports/seeing/`,
+  },
+  {
+    C1: 11 as DsoType, icon: "mdi-lightbulb-on-outline", title: 'Light Polution',
+    caption: 'Find the best dark sky locations for Astrophotography (external site).',
+    href: `https://lightpollutionmap.app/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&zoom=10`,
   },
 
 ])
@@ -400,6 +435,15 @@ async function onClickSearchOrbital(c1:DsoType=6) {
 
 onMounted(async () => {
     await cat.catalogFetch()
+    const shouldFetch =
+      dev.restAPIConnected &&
+      dev.restAPIConnectedAt &&
+      cfg.fetchedAt < dev.restAPIConnectedAt
+
+    if (shouldFetch) {
+      await cfg.configFetch()
+    }
+
     syncFiltersFromRoute()
     cat.startPositionUpdater();
 })

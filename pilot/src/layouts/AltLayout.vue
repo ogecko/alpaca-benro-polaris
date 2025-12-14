@@ -282,6 +282,7 @@ const links3 = [
   { icon: 'mdi-satellite-variant', text: 'Satellites', to: { path: '/catalogList', query: { C1:6 } } },
   { icon: 'mdi-cookie', text: 'Asteroids', to: { path: '/catalogList', query: { C1:8 } } },
   { icon: 'mdi-magic-staff', text: 'Comets', to: { path: '/catalogList', query: { C1:7 } } },
+  { icon: 'mdi-cloud-clock-outline', text: 'Sky Conditions', to: { path: '/catalogList', query: { C1:11 } } },
 ]
 
 const links4 = [
