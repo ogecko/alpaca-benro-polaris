@@ -61,6 +61,7 @@ Please let us know if you can try any of these features.
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
+* Benro Polaris Hw 1.4.1.4, Firmware V6.0.0.54, Astro V1.0.2.14
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.54, Astro V1.0.2.14
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.48, Astro V1.0.2.14
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11
