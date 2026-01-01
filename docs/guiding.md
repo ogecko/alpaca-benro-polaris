@@ -106,7 +106,7 @@ Connecting PHD2 to the guide camera and Alpaca Driver (one time setup)
 1. Ensure your **guide camera** is physically connected and power it on.
 2. Ensure the **Alpaca Driver** is running and connected to the Polaris.
 2. Launch **PHD2**
-2. Select **Guide** from the **Guide** menubar, then **Connect Equipment**
+2. Select **Guide** from the **PHD2** menubar, then **Connect Equipment**
 3. Choose **New Using Wizard**, from the **Manage Profiles** dropdown 
 3. Camera: select your **guide camera** from the dropdown list
 4. Scope: set your **Guide scope focal length** eg 190mm for SV106
