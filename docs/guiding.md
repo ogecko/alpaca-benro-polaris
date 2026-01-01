@@ -153,7 +153,7 @@ Using PHD2, configure the following settings for use with the Alpaca Driver.
 * Click the **Brain Button** or choose **Advanced Settings** from the **Guide** menu
     - Select the **Guiding** tab of **Advanced Settings**
     - Enable **Use Multiple Stars** to improve guide star stability and robustness, particularly in poorer seeing or when individual stars fluctuate in brightness.
-    - Enable **Assume Dec orthogonal to RA** to help PHD2 model the mount geometry more accurately and improve correction consistency.
+    - Enable **Assume Dec orthogonal to RA** to help PHD2 achieve a successful calibration.  Geometrically, Right Ascension and Declination are always perpendicular. However, guiding software works in camera pixel space, not celestial coordinates. Factors such as targets near the celestial poles, guide camera rotation, small mechanical tolerances, differential flexure, and polar misalignment can cause RA and Dec to appear non-orthogonal to the guider. With the Alpaca Driver’s multi-point alignment, you should have very good polar alignment. With a stable setup and non-polar targets, it’s generally safe to let PHD2 assume Dec is orthogonal to RA. This can help improve the chances of a good calibration.
     - Ensure **Focal Length** and **Pixel size** is set correctly for your guide scope and guide camera
     - Leave all remaining settings at default to start with
 ![PHD2 Advanced Settings](images/phd2-settings1.png)
