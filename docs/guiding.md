@@ -176,15 +176,15 @@ Calibration teaches PHD2 how your mount responds to various pulse guiding comman
 
 ### 4.1 Calibration Process
 To Calibrate PHD2, use the Calibration Assistant:
-1. On a dark and clear night, using **PHD2**, connect all equipment.
-2. Click **Calibration Assistant** from the **Tools** menu item.
-3. Slew the Polaris close to your intended DSO target, using Nina, Stellarium or Alpaca Pilot.
-3. Note the current **Pointing Location**
-4. Enter the **Calibration Location**
+1. On a dark and clear night, slew the Polaris close to your intended DSO target, using Nina, Stellarium or Alpaca Pilot.
+2. Using **PHD2**, connect all equipment.
+3. Click **Calibration Assistant** from the **Tools** menu item.
+4. Note the current **Pointing Location**
+5. Enter the **Calibration Location**
     - Enter a **Declination** the same as your current **Pointing Location Declination**
     - Enter a **Meridian offset** greater than ±25°, but below ±80°. ie Exclude near vertical, and near Horizon.  
     - Click **Slew** to move the mount to the **Calibration Location**
-5. Click **Calibrate** to being the calibration process, typically takes 1–3 minutes
+6. Click **Calibrate** to being the calibration process, typically takes 1–3 minutes
 
 PHD2 will then start sending a sequence of pulse guide commands, monitoring how the mount moves in response to the commands. It will walk out the Right Ascension axis and back, then do the same for the Declination axis. You can monitor its progress with Alpaca Pilot.
 
