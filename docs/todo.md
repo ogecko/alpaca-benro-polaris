@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Development Todo List
 
@@ -140,7 +140,7 @@
 - [X] Youtube advanced videos 31 Kalman, 32 Speed Cal 
 - [X] Documentation on new features 
 - [X] Review of existing Documentation 
-- [ ] Remaining documentation on Pulse Guiding
+- [X] Remaining documentation on Pulse Guiding
 - [ ] Remaining Youtube video on 27 Guiding
 
 ## Performance
@@ -175,12 +175,12 @@
 - [X] Calc current Azimuth, Altitude of dso and categorise it for filtering
 - [X] Fix filter clear to only clear when filter is already open
 - [X] Add South and North Celestrial Pole
-- [ ] Ability to add custom targets to catalog
+- [X] Ability to add custom targets to catalog
+- [X] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
 - [ ] Ability to switch catalogs from settings
 - [ ] Add images of each target
 - [ ] Add a details page for each target
 - [ ] Fix J2000 co-ordinate display of 60" for Running chicken RA: +11ʰ38ᵐ60.0ˢ   |   Dec: -63°11′60.0″ 
-- [ ] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
 
 ## Orbitals
 - [X] Add Orbitals menu, Planets, Moons, Satellites

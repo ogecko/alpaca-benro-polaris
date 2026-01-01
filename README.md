@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware](./docs/hardware.md) | [Installation](./docs/installation.md) | [Pilot](./docs/pilot.md) | [Control](./docs/control.md) | [Stellarium](./docs/stellarium.md) | [Nina](./docs/nina.md) | [Troubleshooting](./docs/troubleshooting.md) | [FAQ](./docs/faq.md)
+[Home](../README.md) | [Hardware](./docs/hardware.md) | [Installation](./docs/installation.md) | [Pilot](./docs/pilot.md) | [Control](./docs/control.md) | [Stellarium](./docs/stellarium.md) | [Nina](./docs/nina.md) | [Guiding](./docs/guiding.md) | [Troubleshooting](./docs/troubleshooting.md) | [FAQ](./docs/faq.md)
 
 # Introduction
 ![Overview](docs/images/abp-overview.png)
@@ -59,6 +59,9 @@ The [Using Nina Guide](./docs/nina.md) explains how to use Nina with the Benro P
 For more detailed reference material refer to the thorough [Nina online documentation](https://nighttime-imaging.eu/docs/master/site/) or [Nina PDF Manual](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf) for the standard documentation. You can find some very informative, long form videos on Nina at the following youtube channels.
 * [Cuiv, The Lazy Geek Youtube Channel](https://www.youtube.com/@CuivTheLazyGeek)
 * [Patriot Astro Youtube channel](https://www.youtube.com/@PatriotAstro)
+
+## [Using PHD2](./docs/nina.md)
+The [Guiding Users Guide](./docs/guiding.md) explains how to use PHD2 with the Benro Polaris for auto-guiding with a guiding camera and scope. It describes how to setup, calibrate and use auto-guiding to obtain improved tracking for longer exposures and longer imaging sessions.
 
 ## [Troubleshooting and FAQ](./docs/troubleshooting.md)
 We have included a comprehensive [Troubleshooting Guide](./docs/troubleshooting.md) which provides solutions for common issues encountered while setting up and using the Alpaca Benro Polaris Driver. It offers practical advice on starting the Benro Polaris device, establishing a network connection, and troubleshooting plate-solving issues with Nina and ASTAP.

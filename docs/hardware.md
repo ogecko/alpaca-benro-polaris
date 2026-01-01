@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 The Alpaca Driver runs on a device separate from the Benro Polaris. You can use a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.
 

@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Advanced Motion Control Guide
 [Challenges](#challenges-with-existing-control) | 
@@ -8,8 +8,7 @@
 [Filtering](#kalman-filter) | 
 [Calibration](#motor-speed-calibration) | 
 [PID Controller](#pid-controller-and-performance-tuning) | 
-[Orbitals](#orbitals-and-non-sidereal-tracking) | 
-[Guiding](#pulse-guiding) 
+[Orbitals](#orbitals-and-non-sidereal-tracking) 
 
 # Challenges with existing Control
 >PODCAST LINK: [20 - Deep Dive Podcast on Alpaca Benro Polaris V2.0](https://youtu.be/KUBCTnEsnlE)
@@ -698,12 +697,4 @@ Artificial satellites present unique challenges due to their speed.
 
 <br>
 <br>
-
----
-## Pulse Guiding
-
-<br>
-<br>
-
-
 

@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Release Notes
 
@@ -50,6 +50,7 @@
 - **[scipy 1.16.1]**: Upgraded scipy support from 1.16.0.
 
 ## Documentation (Alpaca Driver)
+- **[Auto Guiding]**: Add documentation on using PHD2 for auto-guiding 
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
 
 ## Untested New Features
@@ -103,6 +104,7 @@ Please let us know if you can try any of these features.
 * Nina v3.2.0.9001, HocusFocus v3.0.0.21, LensAF v2.1.0.3, Scope Control  v2.0.2.1
 * Nina v3.1.2.9001, HocusFocus v3.0.0.18, LensAF v2.1.0.2, Scope Control  v2.0.2.0
 * Nina v3.1.1.9001, HocusFocus v3.0.0.17, ASTAP 2024.08.11
+* PHD2 v2.6.14
 * CCDciel Version beta 0.9.87-3346 Windows
 * GraXpert 3.1.0rc2
 * Siril v1.4.0
