@@ -55,6 +55,16 @@ The image below shows how you could configure the cables and physical setup of t
 ## Setting up the NinaAir platform
 The folllowing steps are a high level summary of the required setup for the NinaAir platform. It is not comprehensive and only provided as a guide to how you may wish to setup your mini-PC.
 
+### BIOS Settings 
+You can set the Mele PC to automatically boot when it is powered on. This can save you from having to manually press the Power button to boot the device.
+
+To set the Mele PC BIOS to auto power on:
+1. Reboot MelePC, pressing the **Del key** until it enters BIOS settings
+2. From the BIOS, navigate to the **Advanced**, then **Customer Exclusive Functions**
+3. Enable **Auto Power On**
+4. Then **Save changes and Exit**
+
+
 ### Local Account
 Use a local account with administrative privellages to set everything up. Using a Microsoft Account may have implications on the need for internet connectivity. 
 
