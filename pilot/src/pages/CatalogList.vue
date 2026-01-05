@@ -310,6 +310,11 @@ const allLinks = computed(() => [
     href: `https://clearoutside.com/forecast/${cfg.site_latitude}/${cfg.site_longitude}`,
   },
   {
+    C1: 11 as DsoType, icon: "mdi-weather-rainy", title: 'Ventusky',
+    caption: '3-hour precipitation forecast, with excellent visualisation of other weather maps. (external site).',
+    href: `https://www.ventusky.com/precipitation-map/3-hours#p=${cfg.site_latitude};${cfg.site_longitude};11`,
+  },
+  {
     C1: 11 as DsoType, icon: "mdi-weather-windy", title: 'Meteoblue',
     caption: 'Astronomoy Seeing Conditions and Predictions (external site).',
     href: `https://www.meteoblue.com/fr/meteo/outdoorsports/seeing/`,
