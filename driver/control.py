@@ -1054,19 +1054,35 @@ class PID_Controller():
         else:
             self.Kv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
 
-    def reset_offsets(self):
-        self.reset_delta_offsets()
-        self.reset_alpha_offsets()
+    def reset_offsets(self, axes: dict | None = None):
+        self.reset_delta_offsets(axes)
+        self.reset_alpha_offsets(axes)
 
-    def reset_delta_offsets(self):
-        self.delta_v_sp = np.zeros(3, dtype=float)     # Setpoint for ra, dec, polar anglular velocities
-        self.delta_g_sp = np.zeros(3, dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
-        self.delta_offst = np.zeros(3, dtype=float)    # ra, dec, polar anglular offsets
-        self.delta_ref_last = np.zeros(3, dtype=float) # ra, dec, polar angular reference position of last control step
+    def reset_delta_offsets(self, axes: dict | None = None):
+        if axes is None:
+            self.delta_v_sp = np.zeros(3, dtype=float)     # Setpoint for ra, dec, polar anglular velocities
+            self.delta_g_sp = np.zeros(3, dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
+            self.delta_offst = np.zeros(3, dtype=float)    # ra, dec, polar anglular offsets
+            self.delta_ref_last = np.zeros(3, dtype=float) # ra, dec, polar angular reference position of last control step
+            return
+        DELTA_MAP = {'ra': 0, 'dec': 1, 'pa': 2}    
+        for key, idx in DELTA_MAP.items():
+            if key in axes:
+                self.delta_v_sp[idx] = 0.0
+                self.delta_g_sp[idx] = 0.0
+                self.delta_offst[idx] = 0.0
+                self.delta_ref_last[idx] = 0.0
 
-    def reset_alpha_offsets(self):
-        self.alpha_v_sp = np.zeros(3, dtype=float)     # Setpoint for az, alt, roll angular velocities
-        self.alpha_offst = np.zeros(3, dtype=float)    # az, alt, roll angular offsets
+    def reset_alpha_offsets(self, axes: dict | None = None):
+        if axes is None:
+            self.alpha_v_sp = np.zeros(3, dtype=float)     # Setpoint for az, alt, roll angular velocities
+            self.alpha_offst = np.zeros(3, dtype=float)    # az, alt, roll angular offsets
+            return
+        ALPHA_MAP = {'az': 0, 'alt': 1, 'roll': 2}
+        for key, idx in ALPHA_MAP.items():
+            if key in axes:
+                self.alpha_v_sp[idx] = 0.0
+                self.alpha_offst[idx] = 0.0
 
     def reset_theta(self):
         self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor angular reference position
@@ -1195,7 +1211,7 @@ class PID_Controller():
     def set_alpha_target(self, sp: dict[str, float]):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets()
+        self.reset_offsets(sp)      # Only reset offsets on axes that are changed
         self.target_type = 'ALPHA'
         # Safely update alpha_sp components if provided
         self.alpha_sp[0] = sp.get("az", self.alpha_sp[0])
@@ -1216,7 +1232,7 @@ class PID_Controller():
     def set_delta_target(self, delta):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets()
+        self.reset_offsets(sp)      # Only reset offsets on axes that are changed
         self.target_type = "DELTA"
         self.delta_sp = delta
         if self.mode == 'IDLE':
@@ -1247,6 +1263,25 @@ class PID_Controller():
         if self.mode in ['IDLE','AUTO']:
             self.set_pid_mode('TRACK')
     
+    def set_pano_offset(self, offsets):
+        dictmap = {
+            'ra': (self.delta_offst, 0),
+            'dec': (self.delta_offst, 1),
+            'pa': (self.delta_offst, 2),
+            'az': (self.alpha_offst, 0),
+            'alt': (self.alpha_offst, 1),
+            'roll': (self.alpha_offst, 2),
+        }
+        for key, val in offsets.items():
+            if key in dictmap:
+                arr, idx = dictmap[key]
+                arr[idx] = 0.0 if val == 0 else arr[idx] + val
+            else:
+                self.logger.info(f'PanoOffset key "{key}":{val} is invalid')
+        if self.mode=="IDLE":
+            self.set_pid_mode("AUTO")
+
+
     def pulse_delta_axis(self, direction, duration):
         if self.mode!="TRACK":
             return
@@ -1347,7 +1382,7 @@ class PID_Controller():
         elif self.mode in ['IDLE']:
             if (self.alpha_ref[0]==0):                       # only reset sp in special case
                 self.reset_sp()
-            self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
+            # self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
             self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)

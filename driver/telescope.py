@@ -1518,6 +1518,7 @@ class supportedactions:
             "Polaris:J2000Sync", "Polaris:J2000Goto",
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
             "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:GetCatalog",
+            "Polaris:PanoOffset",
         ], req)  
 
 
@@ -1760,6 +1761,17 @@ class action:
             export_data = loadCustomCatalogDataFromFile()
             resp.content_type = "application/json"
             resp.text = json.dumps(export_data, indent=2)
+            return
+
+        elif actionName == "Polaris:PanoOffset":
+            logger.info(f'Polaris PanoOffset {parameters}')
+            offsets = {
+                k: float(v)
+                for k, v in parameters.items()
+                if k in {'ra','dec','pa','az','alt','roll'}
+            }
+            polaris._pid.set_pano_offset(offsets)
+            resp.text = await PropertyResponse('Polaris PanoOffset ok', req)
             return
 
         else:
