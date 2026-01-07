@@ -1307,89 +1307,83 @@ This feature is designed for:
 * **Tracked orbital mosaics**
 
 
-## Panorama Settings
+## Panorama/Mosaic Settings
 
 Panorama settings are configured in the **Panorama Settings** card in Alpaca Pilot.
 
-### **Tracking and Orientation Mode**
+### **Panorama/Mosaic Layout**
 
+* **Columns (cols)**:
+  Number of horizontal panels across the mosaic. *Range: 2–14*
+
+* **Rows (rows)**:
+  Number of panels vertically. *Range: 1–3*
+
+* **Horz Step (hstep)**:
+  Angular distance, in **decimal degrees**, between the centers of adjacent horizontal panels. *Panel Step is typically set to ~80% of the camera horizontal field-of-view, which produces approximately 20% overlap between adjacent panels.*
+
+* **Vert Step (vstep)**:
+  Angular distance, in **decimal degrees**, between the centers of adjacent vertical panels. *Panel Step is typically set to ~80% of the camera vertical field-of-view, which produces approximately 20% overlap between adjacent panels.*
+
+* **Panel Order (order)**:
+Defines the sequence in which panels are captured.
+  * **0 - Row-Major**:
+    Complete each row before moving to the next row.
+  * **1 - Column-Major**:
+    Complete each column before moving to the next column.
+  * **2 - Serpentine**:
+    Alternate direction on each row or column to minimise repositioning time.
+
+* **Orientation and Tracking (track)**:
 Defines how the mount tracks and how camera rotation (roll) is handled **after moving to each panel**.
 
-* **0 - Foreground - No Tracking**:
-Tracking is disabled. The camera frame remains fixed relative to the horizon. *Use for foreground or landscape panels where star motion is acceptable.*
+  * **0 - Landscape - Untracked**:
+  Tracking is disabled. The camera frame remains fixed relative to the horizon. *Use for foreground or landscape panels where star motion is acceptable.*
 
-* **1 - Sky - Horizon-Locked**:
-Sidereal tracking is enabled. The camera roll is reset to **0°** at each panel. *Use for horizon-aligned sky mosaics where consistent frame orientation is required.*
+  * **1 - Sky - Horizon-Locked**:
+  Sidereal tracking is enabled. The camera roll is reset to **0°** at each panel. *Use for horizon-aligned sky mosaics where consistent frame orientation is required.*
 
-* **2 - Sky - Celestial**: 
-Sidereal tracking is enabled. Camera roll is **not modified** between panels. *Use for astronomical sky mosaics (e.g. large DSOs).*
+  * **2 - Sky - Celestial**: 
+  Sidereal tracking is enabled. Camera roll is **not modified** between panels. *Use for astronomical sky mosaics (e.g. large DSOs).*
 
-* **3 - Sky - Orbital**: 
-Tracking and camera roll are left unchanged.
-*Use for mosaics centered on tracked orbitals.*
+  * **3 - Sky - Orbital**: 
+  Tracking and camera roll are left unchanged.
+  *Use for mosaics centered on tracked orbitals.*
 
 ---
 
-### **Mosaic Layout**
 
-* **Horizontal Panels (Columns)**:
-  Number of panels across the mosaic.
-  *Range: 2–14*
+### **Recenter at Reference Point**
+Defines the coordinate system and a reference point used to position the mosaic.
 
-* **Vertical Panels (Rows)**:
-  Number of panels vertically.
-  *Range: 1–3*
-
-* **Horizontal Panel Step (HStep)**:
-  Angular distance, in **decimal degrees**, between the centers of adjacent horizontal panels. *Panel Step is typically set to ~80% of the camera horizontal field-of-view, which produces approximately 20% overlap between adjacent panels.*
-
-* **Vertical Panel Step (VStep)**:
-  Angular distance, in **decimal degrees**, between the centers of adjacent vertical panels. *Panel Step is typically set to ~80% of the camera vertical field-of-view, which produces approximately 20% overlap between adjacent panels.*
-
-* **Panel Capture Order**:
-Defines the sequence in which panels are captured.
-  * **0 - Column-Major**
-    Complete each column before moving to the next column.
-  * **1 - Row-Major**
-    Complete each row before moving to the next row.
-  * **2 - Serpentine**
-    Alternate direction on each row or column to minimise repositioning time.
-
-
-### **Reference Frame & Mosaic Center**
-
-Defines the coordinate system and central reference point used to position the mosaic.
-
-* **Equatorial Coordiantes**:
-Used with **No Tracking** and **Sky Tracking (Horizon-Locked)**
-  * **Azimuth (Az)** — Center azimuth, in decimal degrees
-  * **Altitude (Alt)** — Center altitude above the horizon, in decimal degrees
-  * **Roll** — Camera roll relative to the horizon, in decimal degrees
-
-* **Topocentric Coordinates**:
-Used with **Sky Tracking (Celestial)**
-  * **Right Ascension (RA)** — Center right ascension (hours or decimal degrees)
-  * **Declination (Dec)** — Center declination, in decimal degrees
-  * **Position Angle (PA)** — Camera rotation angle, in decimal degrees
-
-* **Align Current Orientation To**:
-  Updates the mount reference frame so the current mount orientation aligns with the selected panel center. 
-  * Dropdown: *Mosaic Center, Panel 1, Panel 2, …*
-
-### **Panel Control & Visualisation**
-
-* **Current Panel Selection**
-Displays a grid of **Rows × Columns**, numbered according to the capture order.
-
-  * The current panel is highlighted
-  * Clicking a panel changes the selected panel and determines the next panel in sequence.
-  * Clicking in the middle of the mosaic selects the center of the mosaic, setting Current Panel to 0
+* **Recenter Element (recenter)**:
+  Defines the element of the mosaic to recenter at the reference point. 
+  * **0 - Whole Mosaic**: Recenter the whole mosaic
+  * **n - Panel n**: Recenter panel n at reference point, shifting all other panels accordingly. 
   
-* **Goto Button**: Slews the mount to the selected panel
-* **Align Button** Align the selected panel with the current mount orientation.
+* **Reference Point Type (ref)**:
+  Defines the co-ordinate system of the Reference Point
+  * **0 - Az/Alt/Roll**: Reference Point is a Topocenteric co-ordinate
+  * **1 - RA/Dec/PA**: Reference Point is an Equatorial co-ordinate. 
+  * **2 - OrbitalID**: Reference Point is an Orbital ID. 
+  * **3 - Current Orientation**: Use the current mount orientation as the Reference Point. Store as equatorial co-ordinate if tracking enabled, otherwise store as topocentric co-ordinate.
+  
+* **Reference Point**:
+  Defines the Reference point used to position the mosaic.
+  * **Reference Axis 1 (r1)** — Azimuth, Right Ascension or OrbitalID
+  * **Reference Axis 2 (r2)** — Altitude or Declination, in decimal degrees
+  * **Reference Axis 3 (r3)** — Roll or Position Angle, in decimal degrees
 
-### Action Parameters
-{"cols":3, "rows":2, "hstep": 50, "vstep": 30, "track":0,  "order":0,  "ref":0, "az":180, "alt":30, "roll":0 }
+### **Panel Navigation**
+
+Displays a grid of **Rows × Columns**, numbered according to the capture order.
+  * **Current Panel (panel)** — Panel number currently being captured.
+  
+### Device Action > Telescope > Polaris:PanoSet Parameters
+An Advanced Sequence can set each and/or all of these parameters using the PanoSet Action.
+For Example, the following would setup a 5x3 Panorama
+
+Parameters `{"cols":5, "rows":3, "hstep": 50, "vstep": 30, "order":2, "track":2, "recenter":3, "ref":0, "r1":180, "r2":30, "r3":10, "panel":2 }`
 
 
 ## Loop for each panorama panel:

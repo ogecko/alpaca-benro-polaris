@@ -50,11 +50,11 @@ export const useConfigStore = defineStore('config', {
     vstep: 25,
     track: 0,
     order: 0,
-    r_align: 0,
-    r_type: 0,
-    r_az: 90,
-    r_alt: 5,
-    r_roll: 0,
+    recenter: 0,
+    ref: 0,
+    r1: 90,
+    r2: 5,
+    r3: 0,
     panel: 0,
 
     // Advanced Features

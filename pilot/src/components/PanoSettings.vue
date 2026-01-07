@@ -25,30 +25,30 @@
         <div class="row q-col-gutter-lg  items-center q-pt-lg">
             <q-select
               class="col-6 q-pt-none" label="Recenter Element" emit-value map-options
-              v-model="cfg.r_align" @update:model-value="v => putdb({ r_align: v })"
+              v-model="cfg.recenter" @update:model-value="v => putdb({ recenter: v })"
               :options="panoRefAlignOptions"
             />
             <q-select
               class="col-6 q-pt-none" label="at Reference" emit-value map-options
-              v-model="cfg.r_type" @update:model-value="v => putdb({ r_type: v })"
+              v-model="cfg.ref" @update:model-value="v => putdb({ ref: v })"
               :options="panoRefTypeOptions"
             />
         </div>
-        <div v-if="cfg.r_type==0" class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
+        <div v-if="cfg.ref==0" class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
             <div class="text-h7 col-3">Reference</div>
-            <q-input class="col-3" v-bind="bindField('r_az', 'Azimuth', '°')" type="number" input-class="text-right" dense/>
-            <q-input class="col-3" v-bind="bindField('r_alt', 'Altitude', '°')" type="number" input-class="text-right" dense/>
-            <q-input class="col-3" v-bind="bindField('r_roll', 'Roll Angle', '°')" type="number" input-class="text-right" dense/>
+            <q-input class="col-3" v-bind="bindField('r1', 'Azimuth', '°')" type="number" input-class="text-right" dense/>
+            <q-input class="col-3" v-bind="bindField('r2', 'Altitude', '°')" type="number" input-class="text-right" dense/>
+            <q-input class="col-3" v-bind="bindField('r3', 'Roll Angle', '°')" type="number" input-class="text-right" dense/>
         </div>
-        <div v-if="cfg.r_type==1" class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
+        <div v-if="cfg.ref==1" class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
             <div class="text-h7 col-3">Reference</div>
-            <q-input class="col-3" v-bind="bindField('r_az', 'Right Ascension', '°')" type="number" input-class="text-right" dense/>
-            <q-input class="col-3" v-bind="bindField('r_alt', 'Declination', '°')" type="number" input-class="text-right" dense/>
-            <q-input class="col-3" v-bind="bindField('r_roll', 'Position Angle', '°')" type="number" input-class="text-right" dense/>
+            <q-input class="col-3" v-bind="bindField('r1', 'Right Ascension', '°')" type="number" input-class="text-right" dense/>
+            <q-input class="col-3" v-bind="bindField('r2', 'Declination', '°')" type="number" input-class="text-right" dense/>
+            <q-input class="col-3" v-bind="bindField('r3', 'Position Angle', '°')" type="number" input-class="text-right" dense/>
         </div>
-        <div v-if="cfg.r_type==2" class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
+        <div v-if="cfg.ref==2" class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
             <div class="text-h7 col-6">Reference</div>
-            <q-input class="col-6" v-bind="bindField('r_az', 'Orbital ID')" type="number" input-class="text-right" dense/>
+            <q-input class="col-6" v-bind="bindField('r1', 'Orbital ID')" type="number" input-class="text-right" dense/>
         </div>
         <div class="text-h6 q-pt-lg">Panel Navigation</div>
         <div class="col text-caption text-grey-6 q-pb-none">
@@ -79,16 +79,14 @@
 import { onMounted, computed } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
-// import { useStatusStore } from 'src/stores/status';
 import { debounce } from 'quasar'
-// import { formatDegreesHr } from 'src/utils/scale'
 
 const dev = useDeviceStore()
 const cfg = useConfigStore()
-// const p = useStatusStore()
+// cfg properties {"cols":5, "rows":3, "hstep": 50, "vstep": 30, "order":2, "track":2, "recenter":3, "ref":0, "r1":180, "r2":30, "r3":10, "panel":2 }
 
 const panoTrackingOptions = [
-  { label: 'Foreground - Untracked', value: 0 },
+  { label: 'Landscape - Untracked', value: 0 },
   { label: 'Sky - Horizon-Locked', value: 1 },
   { label: 'Sky - Celestrial', value: 2 },
   { label: 'Sky - Orbital', value: 3 },
