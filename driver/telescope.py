@@ -1518,7 +1518,7 @@ class supportedactions:
             "Polaris:J2000Sync", "Polaris:J2000Goto",
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
             "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:GetCatalog",
-            "Polaris:PanoOffset",
+            "Polaris:PanoSet", "Polaris:PanoSlew", "Polaris:PanoOffset",
         ], req)  
 
 
@@ -1530,11 +1530,13 @@ class action:
         try:
             if isinstance(raw_params, dict):
                 parameters = raw_params
-            elif isinstance(raw_params, str) and raw_params.strip() == '':
-                parameters = {}
+            elif isinstance(raw_params, str) and raw_params.strip():
+                parsed = json.loads(raw_params)
+                parameters = parsed if isinstance(parsed, dict) else {}
             else:
-                parameters = json.loads(raw_params)
+                parameters = {}
         except Exception:
+            logger.warn(f'{actionName}: Invalid JSON Parameters {raw_params}')
             raise HTTPBadRequest(title='Bad Action Request', description='Invalid Parameters format')
 
         if actionName == "Polaris:RestartDriver":
@@ -1762,9 +1764,23 @@ class action:
             resp.content_type = "application/json"
             resp.text = json.dumps(export_data, indent=2)
             return
+        
+        elif actionName == "Polaris:PanoSet":
+            # Apply changes to store in Config and make them live
+            logger.info(f'Polaris:PanoSet {parameters}')
+            changed_params = Config.apply_changes(parameters)
+            make_params_live(changed_params)
+            resp.text = await PropertyResponse("Polaris:PanoSet Ok", req)
+            return
+
+        elif actionName == "Polaris:PanoSlew":
+            logger.info(f'Polaris:PanoSlew {parameters}')
+            panel = parameters.get('panel', None)
+            resp.text = await PropertyResponse("Polaris:PanoSlew Ok", req)
+            return
 
         elif actionName == "Polaris:PanoOffset":
-            logger.info(f'Polaris PanoOffset {parameters}')
+            logger.info(f'Polaris:PanoOffset {parameters}')
             offsets = {
                 k: float(v)
                 for k, v in parameters.items()

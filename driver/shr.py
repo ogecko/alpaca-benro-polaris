@@ -125,7 +125,7 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
                 if fn.lower() == lcName:
                     return formdata[fn]
         else:
-            if name in formdata and formdata[name] != '':
+            if name in formdata:
                 return formdata[name]
         if default == None:
             raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
