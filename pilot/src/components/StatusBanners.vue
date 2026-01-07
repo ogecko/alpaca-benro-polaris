@@ -19,7 +19,7 @@
     </div>
     <div v-else-if="isNoAstroModule" >
       <q-banner inline-actions rounded class="bg-warning" >
-        WARNING: No Astro version detected. Please attach Polaris Astro modul, then disconnect and reconnect the Polaris.
+        WARNING: No Astro version detected. Please attach Polaris Astro module, then disconnect and reconnect the Polaris.
         <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
