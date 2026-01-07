@@ -43,6 +43,20 @@ export const useConfigStore = defineStore('config', {
     focal_length: 800,
     focal_ratio: 11,
 
+    // Panorama
+    cols: 3,
+    rows: 1,
+    hstep: 40,
+    vstep: 25,
+    track: 0,
+    order: 0,
+    r_align: 0,
+    r_type: 0,
+    r_az: 90,
+    r_alt: 5,
+    r_roll: 0,
+    panel: 0,
+
     // Advanced Features
     verbose_driver_exceptions: true,
     advanced_kf: false,
