@@ -21,15 +21,15 @@
               :options="panoTrackingOptions"
             />
         </div>
-        <div class="text-h6 q-pt-lg">Alignment and Reference Point</div>
+        <div class="text-h6 q-pt-lg">Recenter at Reference Point</div>
         <div class="row q-col-gutter-lg  items-center q-pt-lg">
             <q-select
-              class="col-6 q-pt-none" label="Align Element" emit-value map-options
+              class="col-6 q-pt-none" label="Recenter Element" emit-value map-options
               v-model="cfg.r_align" @update:model-value="v => putdb({ r_align: v })"
               :options="panoRefAlignOptions"
             />
             <q-select
-              class="col-6 q-pt-none" label="with Reference" emit-value map-options
+              class="col-6 q-pt-none" label="at Reference" emit-value map-options
               v-model="cfg.r_type" @update:model-value="v => putdb({ r_type: v })"
               :options="panoRefTypeOptions"
             />
@@ -50,12 +50,29 @@
             <div class="text-h7 col-6">Reference</div>
             <q-input class="col-6" v-bind="bindField('r_az', 'Orbital ID')" type="number" input-class="text-right" dense/>
         </div>
+        <div class="text-h6 q-pt-lg">Panel Navigation</div>
+        <div class="col text-caption text-grey-6 q-pb-none">
+          Click a panel number to slew the mount to the corresponding panel position.
+        </div>
+
+        <div class="panel-grid q-mt-sm" :style="{ gridTemplateColumns: `repeat(${cfg.cols}, 1fr)` }">
+          <template v-for="(row, r) in [...panelGrid].reverse()" :key="`row-${r}`">
+            <div
+              v-for="panel in row"
+              :key="panel"
+              class="panel-cell" :class="{ active: panel === cfg.panel }"
+              @click="slewToPanel(panel)"
+            >
+              {{ panel }}
+            </div>
+          </template>
+        </div>
     </q-card>
 </template>
 
 <script setup lang="ts">
 // import axios from 'axios'
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
 // import { useStatusStore } from 'src/stores/status';
@@ -74,14 +91,14 @@ const panoTrackingOptions = [
 ]
 
 const panoOrderOptions = [
-  { label: 'Column - Major', value: 0 },
-  { label: 'Row - Major', value: 1 },
+  { label: 'Row - Major', value: 0 },
+  { label: 'Column - Major', value: 1 },
   { label: 'Serpentine', value: 2 },
 ]
 const panoRefAlignOptions = [
-  { label: 'Mosaic Center', value: 0 },
-  { label: 'Panel 1 Center', value: 1 },
-  { label: 'Panel 2 Center', value: 2 },
+  { label: 'Whole Mosaic', value: 0 },
+  { label: 'Panel 1', value: 1 },
+  { label: 'Panel 2', value: 2 },
 ]
 
 const panoRefTypeOptions = [
@@ -91,6 +108,47 @@ const panoRefTypeOptions = [
   { label: 'Current Orientation', value: 3 },
 ]
 
+
+const panelGrid = computed(() => {
+  const rows = Number(cfg.rows ?? 0)
+  const cols = Number(cfg.cols ?? 0)
+  const order = Number(cfg.order ?? 0)
+
+  let n = 1
+  const grid: number[][] = Array.from({ length: rows }, () =>
+    Array(cols).fill(0)
+  )
+
+  // const rowFromBottom = (r: number) => rows - 1 - r
+
+  if (order === 0) {
+    // Row-major, bottom-up
+    for (let r = 0; r < rows; r++) {
+      const row = grid[r]
+      if (!row) continue
+      for (let c = 0; c < cols; c++) row[c] = n++
+    }
+  } else if (order === 1) {
+    // Column-major, bottom-up
+    for (let c = 0; c < cols; c++)
+      for (let r = 0; r < rows; r++) {
+        const row = grid[r]
+        if (row) row[c] = n++
+      }
+  } else {
+    // Serpentine, bottom-up
+    for (let r = 0; r < rows; r++) {
+      const row = grid[r]
+      if (!row) continue
+      const cs = r % 2
+        ? [...Array(cols).keys()].reverse()
+        : [...Array(cols).keys()]
+      for (const c of cs) row[c] = n++
+    }
+  }
+  console.log(grid)
+  return grid
+})
 
 
 onMounted(async () => {
@@ -104,7 +162,10 @@ onMounted(async () => {
   }
 })
 
-
+function slewToPanel(panel: number) {
+  cfg.panel = panel
+  console.log('SlewToPanel', { panel })
+}
 
 function bindField(key: string, label: string, suffix?: string) {
   /**
@@ -146,3 +207,35 @@ const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put 
 
 
 </script>
+
+<style lang="css">
+  .panel-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.panel-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  cursor: pointer;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid #8d8d8d; /* grey-4 equivalent */
+  background: #474747;
+
+}
+
+.panel-cell:hover {
+  background: var(--q-color-primary-1);
+}
+
+.panel-cell.active {
+  background: #1976d2;      /* Quasar primary */
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.5);
+}
+</style>
+

@@ -41,7 +41,7 @@ r_type = 0
 r_az = 90                                   # Azimuth of Reference Point
 r_alt = 5                                   # Altitude of Reference Point
 r_roll = 0                                  # Roll of Reference Point
-panel = 0                                   # current panel number: 0=Mosaic-Center, n=Panel-n
+panel = 3                                   # current panel number: 0=Mosaic-Center, n=Panel-n
 
 [control]
 advanced_control = true                    # Used to disable all advanced control features, must be true to use any advanced feature
