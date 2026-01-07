@@ -64,8 +64,12 @@
               @click="slewToPanel(panel)"
             >
               {{ panel }}
+              <span v-if="panel === nextPanel" class="next-marker" title="Next panel in sequence">*</span>
             </div>
           </template>
+        </div>
+        <div class="col text-caption text-grey-6 q-pt-xs">
+          * Indicates the next panel in the panorama sequence
         </div>
     </q-card>
 </template>
@@ -95,11 +99,7 @@ const panoOrderOptions = [
   { label: 'Column - Major', value: 1 },
   { label: 'Serpentine', value: 2 },
 ]
-const panoRefAlignOptions = [
-  { label: 'Whole Mosaic', value: 0 },
-  { label: 'Panel 1', value: 1 },
-  { label: 'Panel 2', value: 2 },
-]
+
 
 const panoRefTypeOptions = [
   { label: 'Az/Alt Point', value: 0 },
@@ -108,6 +108,15 @@ const panoRefTypeOptions = [
   { label: 'Current Orientation', value: 3 },
 ]
 
+
+const panoRefAlignOptions = computed(() => {
+  const panelCount =   Number(cfg.rows ?? 1) * Number(cfg.cols ?? 3)
+  const options = [{ label: 'Whole Mosaic', value: 0 }];
+  for (let i = 1; i <= panelCount; i++) {
+    options.push({ label: `Panel ${i}`, value: i });
+  }
+  return options;
+});
 
 const panelGrid = computed(() => {
   const rows = Number(cfg.rows ?? 0)
@@ -150,6 +159,14 @@ const panelGrid = computed(() => {
   return grid
 })
 
+const nextPanel = computed(() => {
+  const rows = Number(cfg.rows ?? 0)
+  const cols = Number(cfg.cols ?? 0)
+  const total = rows * cols
+  const current = Number(cfg.panel ?? 0)
+  if (!current || current >= total) return 1
+  return current + 1
+})
 
 onMounted(async () => {
   const shouldFetch =
@@ -236,6 +253,12 @@ const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put 
   color: white;
   font-weight: 600;
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.5);
+}
+
+.next-marker {
+  vertical-align: super;
+  margin-left: 2px;
+  font-weight: 600;
 }
 </style>
 
