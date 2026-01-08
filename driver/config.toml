@@ -36,11 +36,11 @@ hstep = 40                                  # Angular distance, in decimal degre
 vstep = 25                                  # Angular distance, in decimal degrees, between the centers of adjacent panels, vertically.
 track = 0                                   # Defines how the mount sets roll and tracking after moving to each panel: 0=Foreground/notracking, 1=Horizon-Locked/tracked&zero-roll, 2=Celestrial/tracked
 order = 0                                   # Defines the sequence in which panels are captured: 0=Column-Major, 1=Row-Major, 2=Serpentine
-recenter = 0                                # Defines what element of the mosiac is recentered to the Reference Point: 0: Mosaic-Center, n=Panel-n
-ref = 0                                     # Defines what type of Reference Point: 0=Az/Alt/Roll, 1=RA/Dec/PA, 2=OrbitalID
-r1 = 90                                     # Axis1 of Reference Point
-r2 = 5                                      # Axis2 of Reference Point
-r3 = 0                                      # Axis3 of Reference Point
+anchor = 0                                  # Which part of the mosaic should be placed at the Reference Position: 0: Mosaic-Center, n=Panel-n
+ref = 0                                     # Defines what type of Reference Position: 0=Az/Alt/Roll, 1=RA/Dec/PA, 2=OrbitalID, 3=Current Mount Orientation
+r1 = 90                                     # Axis1 of Reference Position
+r2 = 5                                      # Axis2 of Reference Position
+r3 = 0                                      # Axis3 of Reference Position
 panel = 3                                   # Current panel number: 0=Mosaic-Center, n=Panel-n
 
 [control]

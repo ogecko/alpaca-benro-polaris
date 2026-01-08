@@ -50,7 +50,7 @@ export const useConfigStore = defineStore('config', {
     vstep: 25,
     track: 0,
     order: 0,
-    recenter: 0,
+    anchor: 0,
     ref: 0,
     r1: 90,
     r2: 5,

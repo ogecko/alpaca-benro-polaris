@@ -2291,7 +2291,7 @@ class Polaris:
         hstep = getattr(Config, "hstep", 40.0)
         vstep = getattr(Config, "vstep", 25.0)
         order = getattr(Config, "order", 0)
-        recenter = getattr(Config, "recenter", 0)
+        anchor = getattr(Config, "anchor", 0)
         ref_az = getattr(Config, "r1", 0.0)
         ref_alt = getattr(Config, "r2", 0.0)
         ref_roll = getattr(Config, "r3", 0.0)  # degrees
@@ -2333,7 +2333,7 @@ class Polaris:
 
         # --- Panel positions ---
         panel_row, panel_col = find_panel(panel)
-        ref_row, ref_col = find_panel(recenter)
+        ref_row, ref_col = find_panel(anchor)
 
         # --- Grid-space deltas ---
         dx = (panel_col - ref_col) * hstep   # right

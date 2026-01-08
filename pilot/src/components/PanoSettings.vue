@@ -2,7 +2,7 @@
 
 <template>
     <q-card flat bordered class="q-pa-md full-width">
-        <div class="text-h6">Panorama/Mosaic Layout</div>
+        <div class="text-h6">Panorama Layout</div>
         <div class="row q-col-gutter-lg  items-center q-pt-sm">
             <q-input class="col-3" v-bind="bindField('cols', 'Columns')" type="number" input-class="text-right" dense/>
             <q-input class="col-3" v-bind="bindField('rows', 'Rows')" type="number" input-class="text-right" dense/>
@@ -21,21 +21,21 @@
               :options="panoTrackingOptions"
             />
         </div>
-        <div class="text-h6 q-pt-lg">Recenter at Reference Point</div>
+        <div class="text-h6 q-pt-lg">Panorama Positioning</div>
         <div class="row q-col-gutter-lg  items-center q-pt-lg">
             <q-select
-              class="col-6 q-pt-none" label="Recenter Element" emit-value map-options
-              v-model="cfg.recenter" @update:model-value="v => putdb({ recenter: v })"
+              class="col-6 q-pt-none" label="Anchor Panel" emit-value map-options
+              v-model="cfg.anchor" @update:model-value="v => putdb({ anchor: v })"
               :options="panoRefAlignOptions"
             />
             <q-select
-              class="col-6 q-pt-none" label="at Reference" emit-value map-options
+              class="col-6 q-pt-none" label="to Reference Position" emit-value map-options
               v-model="cfg.ref" @update:model-value="v => putdb({ ref: v })"
               :options="panoRefTypeOptions"
             />
         </div>
-        <div v-if="cfg.ref==0" class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
-            <div class="text-h7 col-3">Reference</div>
+        <div v-if="cfg.ref==0" class="row q-col-gutter-lg q-pb-md items-center q-pt-md">
+            <div class="text-h7 col-3">Reference Position</div>
             <q-input class="col-3" v-bind="bindField('r1', 'Azimuth', '°')" type="number" input-class="text-right" dense/>
             <q-input class="col-3" v-bind="bindField('r2', 'Altitude', '°')" type="number" input-class="text-right" dense/>
             <q-input class="col-3" v-bind="bindField('r3', 'Roll Angle', '°')" type="number" input-class="text-right" dense/>
@@ -64,14 +64,18 @@
               @click="slewToPanel(panel)"
             >
               {{ panel }}
-              <span v-if="panel === nextPanel" class="next-marker" title="Next panel in sequence">*</span>
+              <span v-if="panel === nextPanel" class="next-marker" title="Next panel in sequence">✱</span>
+              <span v-if="panel === cfg.anchor" class="next-marker" title="Anchor panel to Reference Position">⚓</span>
             </div>
           </template>
         </div>
-        <div class="col text-caption text-grey-6 q-pt-xs">
-          * Indicates the next panel in the panorama sequence
+        <div class="col text-caption text-grey-6 q-pt-md">
+         ✱ Indicates the next panel in the panorama sequence
         </div>
-    </q-card>
+        <div class="col text-caption text-grey-6 ">
+        ⚓ Which part of the mosaic to be placed at the reference position
+        </div>
+      </q-card>
 </template>
 
 <script setup lang="ts">
@@ -83,7 +87,7 @@ import { debounce } from 'quasar'
 
 const dev = useDeviceStore()
 const cfg = useConfigStore()
-// cfg properties {"cols":5, "rows":3, "hstep": 50, "vstep": 30, "order":2, "track":2, "recenter":3, "ref":0, "r1":180, "r2":30, "r3":10, "panel":2 }
+// cfg properties {"cols":5, "rows":3, "hstep": 50, "vstep": 30, "order":2, "track":2, "anchor":3, "ref":0, "r1":180, "r2":30, "r3":10, "panel":2 }
 
 const panoTrackingOptions = [
   { label: 'Landscape - Untracked', value: 0 },
