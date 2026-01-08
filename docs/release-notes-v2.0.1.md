@@ -31,10 +31,12 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.0.1 
-- **[Stop Driver]** The Alpaca Pilot Connect page now allows you to stop the Alpaca Driver directly.
+- **[Panorama Control]** Add flexible Panorama Layout for Landscape (untracked), Sky (Locked-Horizon), Sky (tracked), with manual preview and persistence
+- **[Advanced Sequencer]** Add Panorama Actions for use in Nina's Advanced Sequencer and Templates.
 - **[Meteor Calendar]** Added a link to the International Meteor Organization’s Meteor Shower Calendar on the Comets page.
 - **[Sky Conditions]** Added a Sky Conditions page providing sunrise and sunset times, moonrise and moonset, eclipse data, cloud cover, jet stream forecasts, and light pollution information.
-- **[Class Documentation]** Added definitions of Class object classification codes to pilot.md to help guide imaging and filter strategy.
+- **[Stop Driver]** The Alpaca Pilot Connect page now allows you to stop the Alpaca Driver directly.
+- **[Class Documentation]** Added definitions of Catalog Class object classification codes to pilot.md to help guide imaging and filter strategy.
 - **[Flat Frames]** Added a flat-frame orientation example to catalog.sample.json
 
 ## New Features (enabled by Nina)
@@ -50,6 +52,7 @@
 - **[scipy 1.16.1]**: Upgraded scipy support from 1.16.0.
 
 ## Documentation (Alpaca Driver)
+- **[Nina Advanced Sequencer]**: Add documentation on using Nina's advanced sequencer with Alpaca Driver
 - **[Auto Guiding]**: Add documentation on using PHD2 for auto-guiding 
 - **[Auto Power On]**: Add hardware note for Mele Quieter 4C to use BIOS settings for **Auto Power On**
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
