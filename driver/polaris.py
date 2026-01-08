@@ -2251,3 +2251,81 @@ class Polaris:
         await asyncio.sleep(1)
         await self.send_cmd_park()
 
+
+    def slew_to_panel(self, target: int | None) -> None:
+        new_panel = target
+        if target is None:
+            current = getattr(Config, "panel", 0)
+            rows = getattr(Config, "rows", 1)
+            cols = getattr(Config, "cols", 3)
+            total_panels = rows * cols
+            new_panel = current + 1 if current<total_panels else 1
+        az, alt = self.get_panel_altaz(new_panel)
+        Config.apply_changes({"panel": new_panel})
+        self.logger.info(f'SlewToPanel: Panel {new_panel} - Az {az:.2f}, Alt {alt:.2f}')
+
+    def get_panel_altaz(self, panel: int) -> tuple[float, float]:
+        """
+        Calculate Az/Alt coordinates for a given panel number in the mosaic,
+        taking Config.recenter and Config.ref into account.
+
+        :param panel: 1-based panel number
+        :return: (azimuth, altitude)
+        """
+        rows = getattr(Config, "rows", 1)
+        cols = getattr(Config, "cols", 3)
+        hstep = getattr(Config, "hstep", 40.0)
+        vstep = getattr(Config, "vstep", 25.0)
+        order = getattr(Config, "order", 0)       # 0=row-major,1=col-major,2=serpentine
+        recenter = getattr(Config, "recenter", 0)  # 0=whole mosaic, >0 = reference panel
+        ref_type = getattr(Config, "ref", 0)       # 0=Alt/Az, 1=RA/Dec, 2=Orbital
+        ref_az = getattr(Config, "r1", 0.0)
+        ref_alt = getattr(Config, "r2", 0.0)
+
+        total_panels = rows * cols
+        if panel < 1 or panel > total_panels:
+            raise ValueError(f"Panel {panel} is out of range (1-{total_panels})")
+
+        # --- Build grid (row 0 = bottom, column 0 = left) ---
+        grid = [[0 for _ in range(cols)] for _ in range(rows)]
+        n = 1
+        if order == 0:  # row-major
+            for r in range(rows):
+                for c in range(cols):
+                    grid[r][c] = n
+                    n += 1
+        elif order == 1:  # column-major
+            for c in range(cols):
+                for r in range(rows):
+                    grid[r][c] = n
+                    n += 1
+        else:  # serpentine
+            for r in range(rows):
+                cs = list(range(cols))
+                if r % 2 == 1:
+                    cs.reverse()
+                for c in cs:
+                    grid[r][c] = n
+                    n += 1
+
+        def find_panel(target: int) -> tuple[float, float]:
+            if target == 0:
+                return (rows - 1) / 2, (cols - 1) / 2
+            for r, row in enumerate(grid):
+                    for c, val in enumerate(row):
+                        if val == target:
+                            return r, c
+            raise ValueError(f"Panel {target} not found in grid")
+
+        # --- Find target panels ---
+        panel_row, panel_col = find_panel(panel)
+        ref_row, ref_col = find_panel(recenter)
+
+        # --- Compute offsets ---
+        delta_col = panel_col - ref_col
+        delta_row = panel_row - ref_row  
+
+        az = ref_az + delta_col * hstep
+        alt = ref_alt + delta_row * vstep
+
+        return az, alt

@@ -126,7 +126,9 @@ const panelGrid = computed(() => {
     Array(cols).fill(0)
   )
 
-  // const rowFromBottom = (r: number) => rows - 1 - r
+  // grid Layout: 
+  // Row 0 = bottom Row (we reverse it in the HTML template to display it correctly)
+  // Column 0 = left Column
 
   if (order === 0) {
     // Row-major, bottom-up
