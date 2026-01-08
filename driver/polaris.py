@@ -2268,9 +2268,8 @@ class Polaris:
             self._pid.set_alpha_target({ "roll": Config.r3 })
             await self.SlewToAltAz(alt, az, isasync)
         elif Config.track == 1:            # Sky - Horizon Locked
-            await self.stop_tracking()
             self._pid.set_alpha_target({ "roll": 0 })
-            await self.SlewToAltAz(alt, az)
+            await self.SlewToAltAz(alt, az, isasync)
             await self.start_tracking()
 
 
