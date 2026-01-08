@@ -179,8 +179,9 @@ onMounted(async () => {
   }
 })
 
-function slewToPanel(panel: number) {
+async function slewToPanel(panel: number) {
   cfg.panel = panel
+  await dev.alpacaPanoSlew(panel)
   console.log('SlewToPanel', { panel })
 }
 

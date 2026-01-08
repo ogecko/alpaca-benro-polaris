@@ -226,6 +226,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:TrackOrbital', `{"name": "${name}", "category":${c1}}`)
     },
 
+    async alpacaPanoSlew(target:number) {
+      await this.apiAction<void>('Polaris:PanoSlew', `{"panel": ${target}}`)
+    },
+
     async catalogFetch() {
       try {
         const resp = await axios.get('/catalog_a_lg.json');
