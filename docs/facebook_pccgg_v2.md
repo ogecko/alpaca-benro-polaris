@@ -1311,7 +1311,7 @@ This feature is designed for:
 
 Panorama settings are configured in the **Panorama Settings** card in Alpaca Pilot.
 
-### **Panorama/Mosaic Layout**
+### **Panorama Layout**
 
 * **Columns (cols)**:
   Number of horizontal panels across the mosaic. *Range: 2–14*
@@ -1353,22 +1353,22 @@ Defines how the mount tracks and how camera rotation (roll) is handled **after m
 ---
 
 
-### **Recenter at Reference Point**
+### **Panorama Positioning**
 Defines the coordinate system and a reference point used to position the mosaic.
 
-* **Recenter Element (recenter)**:
-  Defines the element of the mosaic to recenter at the reference point. 
+* **Anchor Panel (anchor)**:
+  Which part of the mosaic should be placed at the reference position. 
   * **0 - Whole Mosaic**: Recenter the whole mosaic
   * **n - Panel n**: Recenter panel n at reference point, shifting all other panels accordingly. 
   
-* **Reference Point Type (ref)**:
-  Defines the co-ordinate system of the Reference Point
-  * **0 - Az/Alt/Roll**: Reference Point is a Topocenteric co-ordinate
-  * **1 - RA/Dec/PA**: Reference Point is an Equatorial co-ordinate. 
-  * **2 - OrbitalID**: Reference Point is an Orbital ID. 
-  * **3 - Current Orientation**: Use the current mount orientation as the Reference Point. Store as equatorial co-ordinate if tracking enabled, otherwise store as topocentric co-ordinate.
+* **Reference Position Type (ref)**:
+  Defines the co-ordinate system of the Reference Position
+  * **0 - Az/Alt/Roll**: Reference Position is a Topocenteric co-ordinate
+  * **1 - RA/Dec/PA**: Reference Position is an Equatorial co-ordinate. 
+  * **2 - OrbitalID**: Reference Position is an Orbital ID. 
+  * **3 - Current Orientation**: Use the current mount orientation as the Reference Position. Store as equatorial co-ordinate if tracking enabled, otherwise store as topocentric co-ordinate.
   
-* **Reference Point**:
+* **Reference Position**:
   Defines the Reference point used to position the mosaic.
   * **Reference Axis 1 (r1)** — Azimuth, Right Ascension or OrbitalID
   * **Reference Axis 2 (r2)** — Altitude or Declination, in decimal degrees

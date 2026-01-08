@@ -2,7 +2,7 @@
 
 <template>
     <q-card flat bordered class="q-pa-md full-width">
-        <div class="text-h6">Panorama Layout</div>
+        <div class="text-h6">Panorama Layout and Behaviour</div>
         <div class="row q-col-gutter-lg  items-center q-pt-sm">
             <q-input class="col-3" v-bind="bindField('cols', 'Columns')" type="number" input-class="text-right" dense/>
             <q-input class="col-3" v-bind="bindField('rows', 'Rows')" type="number" input-class="text-right" dense/>
@@ -36,7 +36,7 @@
         </div>
         <div v-if="cfg.ref==0" class="row q-col-gutter-lg q-pb-md items-center q-pt-md">
             <div class="text-h7 col-3">Reference Position</div>
-            <q-input class="col-3" v-bind="bindField('r1', 'Azimuth', '°')" type="number" input-class="text-right" dense/>
+            <q-input class="col-3" v-bind="bindField('r1', 'Azimuth', '°')" type="number" step="0.01" input-class="text-right" dense/>
             <q-input class="col-3" v-bind="bindField('r2', 'Altitude', '°')" type="number" input-class="text-right" dense/>
             <q-input class="col-3" v-bind="bindField('r3', 'Roll Angle', '°')" type="number" input-class="text-right" dense/>
         </div>
