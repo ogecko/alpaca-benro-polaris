@@ -1211,14 +1211,17 @@ class PID_Controller():
     def set_alpha_target(self, sp: dict[str, float]):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets(sp)      # Only reset offsets on axes that are changed
+        self.reset_offsets()      # Only reset offsets on axes that are changed
         self.target_type = 'ALPHA'
         # Safely update alpha_sp components if provided
-        self.alpha_sp[0] = sp.get("az", self.alpha_sp[0])
-        self.alpha_sp[1] = sp.get("alt", self.alpha_sp[1])
-        self.alpha_sp[2] = sp.get("roll", self.alpha_sp[2])
-        self.alpha2body(self.alpha_sp)
-        self.delta_sp = self.body2delta()
+        alpha = [
+            sp.get("az",   self.alpha_sp[0]),
+            sp.get("alt",  self.alpha_sp[1]),
+            sp.get("roll", self.alpha_sp[2]),
+        ]
+        self.alpha2body(alpha)
+        self.delta_sp[:] = self.body2delta()
+        self.alpha_sp[:] = alpha
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1232,7 +1235,7 @@ class PID_Controller():
     def set_delta_target(self, delta):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets(sp)      # Only reset offsets on axes that are changed
+        self.reset_offsets()      # Only reset offsets on axes that are changed
         self.target_type = "DELTA"
         self.delta_sp = delta
         if self.mode == 'IDLE':
