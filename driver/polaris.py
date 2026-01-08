@@ -2252,7 +2252,7 @@ class Polaris:
         await self.send_cmd_park()
 
 
-    def slew_to_panel(self, target: int | None) -> None:
+    async def slew_to_panel(self, target: int | None, isasync:bool=False) -> None:
         new_panel = target
         if target is None:
             current = getattr(Config, "panel", 0)
@@ -2263,6 +2263,16 @@ class Polaris:
         az, alt = self.get_panel_altaz(new_panel)
         Config.apply_changes({"panel": new_panel})
         self.logger.info(f'SlewToPanel: Panel {new_panel} - Az {az:.2f}, Alt {alt:.2f}')
+        if Config.track == 0:            # Landscape - Untracked
+            await self.stop_tracking()
+            self._pid.set_alpha_target({ "roll": Config.r3 })
+            await self.SlewToAltAz(alt, az, isasync)
+        elif Config.track == 1:            # Sky - Horizon Locked
+            await self.stop_tracking()
+            self._pid.set_alpha_target({ "roll": 0 })
+            await self.SlewToAltAz(alt, az)
+            await self.start_tracking()
+
 
     def get_panel_altaz(self, panel: int) -> tuple[float, float]:
         """

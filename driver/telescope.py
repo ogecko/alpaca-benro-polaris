@@ -1776,7 +1776,8 @@ class action:
         elif actionName == "Polaris:PanoSlew":
             logger.info(f'Polaris:PanoSlew {parameters}')
             panel = parameters.get('panel', None)
-            polaris.slew_to_panel(panel)
+            isasync = parameters.get('isasync', False)
+            await polaris.slew_to_panel(panel, isasync)
             resp.text = await PropertyResponse("Polaris:PanoSlew Ok", req)
             return
 

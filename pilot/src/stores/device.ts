@@ -227,7 +227,7 @@ export const useDeviceStore = defineStore('device', {
     },
 
     async alpacaPanoSlew(target:number) {
-      await this.apiAction<void>('Polaris:PanoSlew', `{"panel": ${target}}`)
+      await this.apiAction<void>('Polaris:PanoSlew', `{"panel": ${target}, "isasync":true}`)
     },
 
     async catalogFetch() {

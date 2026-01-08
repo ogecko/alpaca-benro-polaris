@@ -155,7 +155,6 @@ const panelGrid = computed(() => {
       for (const c of cs) row[c] = n++
     }
   }
-  console.log(grid)
   return grid
 })
 
@@ -182,7 +181,7 @@ onMounted(async () => {
 async function slewToPanel(panel: number) {
   cfg.panel = panel
   await dev.alpacaPanoSlew(panel)
-  console.log('SlewToPanel', { panel })
+  console.log(`SlewToPanel: ${panel}` )
 }
 
 function bindField(key: string, label: string, suffix?: string) {
