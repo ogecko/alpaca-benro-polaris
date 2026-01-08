@@ -1819,5 +1819,13 @@ def make_params_live(changed_params):
             polaris.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
         elif param == "advanced_alignment_zero":
             polaris._sm.optimize_q1_adj()
+        elif param == "ref":
+            if changed_params["ref"]==3:    # Set Current Orientation
+                Config.apply_changes({
+                    "r1": polaris.azimuth,
+                    "r2": polaris.altitude,
+                    "r3": polaris.roll,
+                    "ref": 0
+                })
    
 

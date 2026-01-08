@@ -2271,31 +2271,36 @@ class Polaris:
             self._pid.set_alpha_target({ "roll": 0 })
             await self.SlewToAltAz(alt, az, isasync)
             await self.start_tracking()
+        elif Config.track == 2:            # Sky - Celestrial
+            await self.SlewToAltAz(alt, az, isasync)
+            await self.start_tracking()
 
 
     def get_panel_altaz(self, panel: int) -> tuple[float, float]:
         """
         Calculate Az/Alt coordinates for a given panel number in the mosaic,
-        taking Config.recenter and Config.ref into account.
+        including boresight roll rotation.
 
-        :param panel: 1-based panel number
-        :return: (azimuth, altitude)
+        Grid convention:
+        - Row 0 = bottom
+        - Column 0 = left
+        - Roll applies to the entire mosaic
         """
         rows = getattr(Config, "rows", 1)
         cols = getattr(Config, "cols", 3)
         hstep = getattr(Config, "hstep", 40.0)
         vstep = getattr(Config, "vstep", 25.0)
-        order = getattr(Config, "order", 0)       # 0=row-major,1=col-major,2=serpentine
-        recenter = getattr(Config, "recenter", 0)  # 0=whole mosaic, >0 = reference panel
-        ref_type = getattr(Config, "ref", 0)       # 0=Alt/Az, 1=RA/Dec, 2=Orbital
+        order = getattr(Config, "order", 0)
+        recenter = getattr(Config, "recenter", 0)
         ref_az = getattr(Config, "r1", 0.0)
         ref_alt = getattr(Config, "r2", 0.0)
+        ref_roll = getattr(Config, "r3", 0.0)  # degrees
 
         total_panels = rows * cols
         if panel < 1 or panel > total_panels:
             raise ValueError(f"Panel {panel} is out of range (1-{total_panels})")
 
-        # --- Build grid (row 0 = bottom, column 0 = left) ---
+        # --- Build grid (row 0 = bottom, col 0 = left) ---
         grid = [[0 for _ in range(cols)] for _ in range(rows)]
         n = 1
         if order == 0:  # row-major
@@ -2321,20 +2326,26 @@ class Polaris:
             if target == 0:
                 return (rows - 1) / 2, (cols - 1) / 2
             for r, row in enumerate(grid):
-                    for c, val in enumerate(row):
-                        if val == target:
-                            return r, c
+                for c, val in enumerate(row):
+                    if val == target:
+                        return r, c
             raise ValueError(f"Panel {target} not found in grid")
 
-        # --- Find target panels ---
+        # --- Panel positions ---
         panel_row, panel_col = find_panel(panel)
         ref_row, ref_col = find_panel(recenter)
 
-        # --- Compute offsets ---
-        delta_col = panel_col - ref_col
-        delta_row = panel_row - ref_row  
+        # --- Grid-space deltas ---
+        dx = (panel_col - ref_col) * hstep   # right
+        dy = (panel_row - ref_row) * vstep   # up
 
-        az = ref_az + delta_col * hstep
-        alt = ref_alt + delta_row * vstep
+        # --- Apply boresight roll ---
+        roll_rad = math.radians(ref_roll)
+        dx_r = dx * math.cos(roll_rad) - dy * math.sin(roll_rad)
+        dy_r = dx * math.sin(roll_rad) + dy * math.cos(roll_rad)
+
+        # --- Final Az/Alt ---
+        az = ref_az + dx_r
+        alt = ref_alt + dy_r
 
         return az, alt

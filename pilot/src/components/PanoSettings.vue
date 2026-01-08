@@ -89,7 +89,7 @@ const panoTrackingOptions = [
   { label: 'Landscape - Untracked', value: 0 },
   { label: 'Sky - Horizon-Locked', value: 1 },
   { label: 'Sky - Celestrial', value: 2 },
-  { label: 'Sky - Orbital', value: 3 },
+  // { label: 'Sky - Orbital', value: 3 },
 ]
 
 const panoOrderOptions = [
@@ -101,8 +101,8 @@ const panoOrderOptions = [
 
 const panoRefTypeOptions = [
   { label: 'Az/Alt Point', value: 0 },
-  { label: 'RA/Dec Point', value: 1 },
-  { label: 'Orbital Element', value: 2 },
+  // { label: 'RA/Dec Point', value: 1 },
+  // { label: 'Orbital Element', value: 2 },
   { label: 'Current Orientation', value: 3 },
 ]
 
