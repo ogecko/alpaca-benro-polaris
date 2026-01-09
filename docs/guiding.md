@@ -8,6 +8,9 @@
 [Auto-Guiding](#5-auto-guiding-with-phd2) 
 
 ## 1. Guiding Introduction
+
+>VIDEO DEMO: [27 - Guiding the Alpaca Benro Polaris](https://youtu.be/0QSKD1GCzOc)
+
 Guiding is a general concept that refers to any method used to correct tracking errors during exposure. It includes manual-guiding, auto-guiding, encoder-assisted guiding, and software based corrections. Auto-guiding is a specific form of guiding that uses a guide camera, guide scope, and guiding software to make continuous tracking adjustments automatically.
 
 This document introduces how to use **PHD2** auto-guiding with the **Alpaca Benro Polaris Driver** on a **Benro Polaris mount**. It is intended for users who are new to auto-guiding, as well as those transitioning from unguided imaging.
