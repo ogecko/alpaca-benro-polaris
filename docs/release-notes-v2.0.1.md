@@ -17,6 +17,7 @@
 * **24 - Multi Point Alignment:** Demonstration Video at https://youtu.be/4CMO0R_yphw
 * **25 - Equipment Safety:** Demonstration Video at https://youtu.be/45EP-DExSOQ
 * **26 - Tracking Orbitals:** Demonstration Video at https://youtu.be/no47ZNagEDk
+* **27 - Pulse Guiding:** Demonstration Video at https://youtu.be/dn1nLxT5eWw
 * **31 - Kalman Filter:** Demonstration Video at https://youtu.be/aDFKAWBNQHU
 * **32 - Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
 * **33 - PID Tuning:** Demonstration Video at https://youtu.be/6vJbSb0gl3M
