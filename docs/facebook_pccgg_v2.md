@@ -1124,7 +1124,72 @@ Sky: Sony A7III Astromodified, 20mm, f1.8, ISO 1600, 60 sec. tracked with Benro 
 Lightroom and Photoshop
 Social: Instagram: @juliosgfotografia
 
-
+I'm currently working on panoramas, adding an advanced way to plan multi-step panoramas for tracked, non-tracked and horizon-locked mosaics.
+Trying to address some of the issues people have complained about on the forums. Aiming to include this likely in a v2.1
+It will rely on Alpaca Actions to step to the next panel. You can easily do this in Nina's Advanced Sequencer. 
+Not sure if CCDceil can invoke Alpaca Actions, maybe through its scripting interface. 
+vyskocil — 4/01/2026 10:39 PM
+I saw that CCDCiel has some tools to plan automatic mosaic shooting but I don’t understand the benefit of Alpaca support ?
+vyskocil — 4/01/2026 10:41 PM
+Maybe the greatest benefit would be with targets high in the sky near the Polaris hardware limits
+jdmorriso — 4/01/2026 10:44 PM
+The main things it will address are:
+Setup "Forgetfulness": The start and end positions of a panorama can be "forgetful," and there is a lack of a dedicated "clear" or reset option to quickly restart the setup process.
+Volatile Settings: The "Pro Pano" mode frequently fails to remember lens sizes or settings if a user exits and re-enters the menu.
+Stitching Difficulties: Experienced users suggest a feature that would rotate the camera to maintain a level horizon for each panel, even if this results in a "stair-step" pattern in the raw frames, as it would be much easier to stitch.
+Tracked vs. Untracked Sequencing: There is a strong desire for a single sequence that can turn tracking off for foreground shots and then turn tracking on for the sky.
+Presets and Templates: Many want to create presets for specific focal lengths and field-of-view (FOV) requirements (e.g., a 270° horizontal by 70° vertical pano for a full Milky Way arch) before arriving at the location.
+Easier Target Planning: help ensure that the selected FOV actually captures the intended targets, such as the peak of a galactic arch, without missing the edges.
+Panel Capture Order: Some users hate "serpentine" and want more control over the panel capture order ie Column-Major or Row-Major instead.
+Eclipses: Add the ability to perform mosaics around a tracked orbital like the moon or sun
+ 
+vyskocil — 5/01/2026 1:45 AM
+As I understand it, this is mainly for astro-landscape photography like the Milky Way in a landscape not for pure astro photography.
+The Benro Polaris App is not ideal for that and a bit buggy but for this king of usage, usually when travelling It's often a pain to need to carry a computer...
+For point 3. I think it's more to find the right tool to achieve the proper stitching (Autopano Giga for example) and not to have unrealistic expectation like trying to stitch a 180° x 90° panorama using a Mercator projection (I tried this, it don't work 😉
+vyskocil — 5/01/2026 1:56 AM
+Mid February I'll travel to Namibia and bring the Polaris with me for some pure astro-photography (with the Canon R5 not the astro camera, guider,...), I'll also try some night panoramas
+vyskocil — 5/01/2026 8:30 AM
+Did you already investigate the Polaris protocol commands used to remote control a connected DSLR, it seems the cmd 265, 266, 267, 268, 272, 275, 282, 286, 297, ... are involved but I couldn't use the method I used before to spy the protocol using my Mac, Apple removed the tool... and I was not able to setup the Raspberry Pi to activate properly the monitor mode...
+jdmorriso — 5/01/2026 8:37 AM
+No I havent tried the remote camera control yet. The way I was thinking of doing it was leaving capture responsibility to Nina or CCDceil. Just expose two custom actions. One to define a mosaic layout/orientation. One to slew to next panel. This way Alpaca Driver is kept camera and capture agnostic and you can leverage the full capability of say Nina's Advanced Sceduler.
+I was going to add a new card on the dashboard to allow the user to point at a panel and have the mount move there, so you can check alignment.
+An extension to this was I found an API from Nina to bring the latest image into Alpaca Pilot. This will allow someone to click on an image and have the mount slew to that point on the image. A lot easier than m,anually slewing.
+All just ideas at this point
+Ive been getting input from the Polaris forum post I did a while ago, from the "Best in the world Astrophotography and Milkyway Photo" forum and from Billy Bass who is describing how he wants to capture this years Lunar Eclipse. 
+BTW, what focal length did you try the 180 x 90 panorama, how many panels?
+jdmorriso — 5/01/2026 8:44 AM
+I havent seen Autopano giga, I'll give it a try. Does it stich the night sky ok?
+vyskocil — 5/01/2026 8:44 AM
+This is already possible in CCDCiel with the 'Resolve and Slew to cursor' action when using the mouse on a captured frame
+jdmorriso — 5/01/2026 8:45 AM
+CCDCiel, is sounding better all the time. The autoguider and this sounds great.
+vyskocil — 5/01/2026 8:47 AM
+Yes I think this is one of the most powerful stitching software, but a bit hard to understand... It was bought by Google but it was abandonned and the latest version is now usable for free
+vyskocil — 5/01/2026 8:48 AM
+I used the  RF 14-35 f/4 lens but I didn't remember the used focal...
+The issue with very large panorama is that when you are going toward the pole the frame should be very elongated in Mercator projection and the stars are not looking good
+I'll ask if Alpaca actions are supported in CCDCiel, but I never eared that before...
+jdmorriso — 5/01/2026 8:54 AM
+The thing I like in Nina is how simple it is to create a new reusable template. Just group a bunch of commands together, name the group and save. I've created a schedule block for my custom startup, multi-point alignment, DSO sequence, shutdown etc.
+Nina exposes commands for the rotator, telescope, focuser, guider, everything, all Actions are discovered and exposed as well.
+I can even write a command to alter a config property of config.toml to turn on say Multi-Point Alignment
+vyskocil — 5/01/2026 8:56 AM
+The issue I'm seeing to heavily depend on Nina is that this forbid the use a light weight configuration for travelling with a Raspberry Pi and a phone or iPad... 
+jdmorriso — 5/01/2026 8:58 AM
+I agree. M<y next trip I was planning on just using a laptop. still a pain but do everything and has a screen too. just need a long USB cable to the camera
+I'll keep the remote control in mind so hopefully it can do both at some point
+vyskocil — 5/01/2026 9:06 AM
+Here is the latest panorama I did using the Polaris and the Benro App, it was done with the RF 50mm f/1.8 with 32 shots
+Image
+The Milky Way was not to high but we could already see that the stars at the top are larger horizontally 
+vyskocil — 5/01/2026 9:14 AM
+Here is the panorama I took using the 14-35@14mm 3x9 shots, it's not looking good
+Image
+jdmorriso — 5/01/2026 9:27 AM
+how many rows in the first one? were they both stitched with autopano giga?
+vyskocil — 5/01/2026 8:09 PM
+4 rows x 8 columns, stiched with autopano. I don't remember if the second is also stitched with autopano but I think it may be using the Lightroom integrated pano tool
 
 ------------------------------------------------------------------------------
 # Panorama for Lunar Eclipse
@@ -1171,312 +1236,9 @@ I’ve not tried Autopano Giga myself.  All of the nightscape photography books 
 In the panorama from last year’s lunar eclipse, the moon was only present in the first four sky panels (left to right naturally).  The remaining sky panels were there so I could have some sky represented over the moonbow that I captured earlier in the night (along with the foreground shots since the area was jam packed with people for the first few hours of the night).
 
 
-------------------------------------------------------------------------------
-# ANALYSIS OF PANO INFO ON FORUM
-## Summary of prioritised issues people have creating panos with Benro Polaris
-
-While the Benro Polaris is a powerful tool for astrophotography, users have identified several prioritised issues and desired improvements to streamline the creation of complex panoramas. These concerns range from software reliability to geometric challenges caused by the Earth's rotation.
-
-### **1. Software Reliability and State Maintenance**
-A primary frustration for users is the Benro app’s inability to "maintain state." Specifically:
-*   **Volatile Settings:** The "Pro Pano" mode frequently **fails to remember lens sizes** or settings if a user exits and re-enters the menu.
-*   **Setup "Forgetfulness":** The start and end positions of a panorama can be "forgetful," and there is a lack of a dedicated **"clear" or reset option** to quickly restart the setup process.
-*   **Operational Errors:** Users have reported "camera busy" errors in certain modes, suggesting that the programming could be improved for better camera communication.
-
-### **2. Geometric Challenges: Horizon Rotation**
-One of the most significant technical hurdles is that the Polaris tracks the sky’s rotation, which causes the horizon to tilt relative to the camera frame over time.
-*   **Tilted Frames:** In a multi-panel panorama with long exposures, the horizon may rotate by **7.5 degrees or more** between the first and last panels.
-*   **Stitching Difficulties:** This rotation results in insufficient sky coverage in some frames and makes it significantly harder to align and stitch the sky panels with static foreground shots in post-processing.
-*   **Proposed Solution:** Experienced users suggest a feature that would **rotate the camera to maintain a level horizon** for each panel, even if this results in a "stair-step" pattern in the raw frames, as it would be much easier to stitch.
-
-### **3. Inflexible Sequencing and Movement**
-The current automated movement patterns are often seen as restrictive:
-*   **Zig-Zag Limitations:** The Polaris currently uses a **zig-zag pattern** for multi-row panoramas, but users want the ability to choose the direction (e.g., always left-to-right) or even shoot by columns instead of rows.
-*   **Tracked vs. Untracked Sequencing:** There is a strong desire for a single sequence that can **turn tracking off** for foreground shots and then **turn tracking on** for the sky. Currently, users often have to manage these as separate, manual tasks, which is difficult if the app loses connection or state.
-
-### **4. Planning and Previsualisation**
-Users have expressed a need for better "home-based" planning tools:
-*   **Presets and Templates:** Many want to create **presets for specific focal lengths** and field-of-view (FOV) requirements (e.g., a 270° horizontal by 70° vertical pano for a full Milky Way arch) before arriving at the location.
-*   **Low-Detail Previews:** A "low detail preview" within the app would help ensure that the selected FOV actually captures the intended targets, such as the peak of a galactic arch, without missing the edges.
-
-### **5. Mechanical and Tracking Consistency**
-Some users have noted intermittent mechanical issues during long sessions:
-*   **Elongated Stars:** Even when the unit is functioning, some frames in a sequence may show **elongated stars** while others are perfect. This is sometimes attributed to gear resistance that may require a "settling" period between exposures.
-
-To understand the horizon rotation issue, imagine you are drawing a straight line across a series of post-it notes on a spinning globe; if your hand moves with the globe's rotation, the line will look straight to the "stars," but when you peel the notes off and lay them flat on a table, the line of the "ground" will appear tilted and jagged from one note to the next.
-
-## Summary of the typical pano parameters from the various users.
-Users of the Benro Polaris employ a wide range of parameters depending on their specific goals, such as capturing a full Milky Way arch or a detailed lunar eclipse mosaic. The following summary outlines the typical settings used across various field workflows:
-
-### **1. Focal Length and Field of View**
-*   **Common Range:** Most users prefer wide-angle lenses between **14mm and 35mm**. 
-*   **Specific Choices:** Focal lengths like **20mm** and **24mm** are highly popular for balancing detail with the number of panels required. 
-*   **High-Detail Mosaics:** More experienced photographers sometimes use longer lenses, such as **40mm, 50mm, or even 135mm**, to capture intricate details, though this significantly increases the number of required panels.
-*   **Target FOV:** For a full Milky Way arch, a typical target field of view is approximately **270° horizontal by 70° vertical**.
-
-### **2. Overlap Percentages**
-*   **Standard Practice:** An overlap of **35% to 50%** is the most frequently cited range. 
-*   **Quality Control:** **50% overlap** is often considered the standard for astrolandscape panoramas to ensure successful stitching and to crop out lens artifacts like coma at the frame edges.
-*   **Exceptions:** Some users consider reducing overlap to **25–30%** only when using high-quality lenses with minimal distortion.
-
-### **3. Exposure and Stacking Settings**
-*   **Sky Panels (Tracked):** Typical exposures range from **30 to 90 seconds** per frame. ISO settings usually fall between **640 and 1600**, with apertures often wide open (e.g., **f/1.4 to f/2.8**).
-*   **Sub-frame Stacking:** To reduce noise and eliminate satellite trails, many users capture multiple "subs" per panel—commonly **3 to 5 frames**—which are later stacked.
-*   **Foreground Panels (Untracked):** These vary significantly. Some users take quick "blue hour" shots at **1/2 second and low ISO**, while others take long, high-ISO exposures (e.g., **60–90 seconds at ISO 6400**) to match the night sky.
-
-### **4. Panorama Grid Structure**
-*   **Layouts:** Common configurations include **single-row** panoramas for simple horizons or **2 to 4 rows** for vertical depth.
-*   **Panel Counts:** 
-    *   Small panoramas may use as few as **5 to 8 panels**.
-    *   Complex projects, such as those involving lunar eclipses or high-resolution mosaics, frequently range from **14 to 48 panels**. 
-    *   Extremely detailed panoramas have been reported to include up to **117 individual images**.
-
-### **5. Software for Stitching**
-*   **PTGui** is the most frequently mentioned tool for professional stitching due to its speed and accuracy with large mosaics.
-*   Other commonly used software includes **Adobe Lightroom/Camera Raw** for initial processing, **Photoshop** for blending sky and foreground, and occasionally **Image Composite Editor (ICE)**.
-
-To visualise the grid structure, imagine a **tiled wall**; for a simple view, you might only need a single row of five tiles, but to see the entire "room" of the night sky, you would need to stack four rows of tiles on top of each other, overlapping the edges so the pattern matches perfectly.
-
-## Tools used
-Based on the sources provided, photographers use a variety of specialized software tools to handle the different stages of creating a panorama, from initial raw processing to the final stitching and blending of sky and foreground elements.
-
-### **Initial Processing and Development**
-Before stitching begins, users often perform initial adjustments on their raw files.
-*   **Adobe Lightroom and Adobe Camera Raw (ACR):** These are the most commonly cited tools for the **initial processing** of images. 
-*   **Affinity:** This is also mentioned as a tool used during the broader processing workflow.
-
-### **Stitching Software**
-Stitching is the process of joining multiple overlapping frames into a single seamless image.
-*   **PTGui:** This is widely regarded by users as a premier tool for stitching complex mosaics. It is praised for being **significantly faster** (by several orders of magnitude) than some astrophotography-specific alternatives.
-*   **Image Composite Editor (ICE):** Several users rely on ICE for the stitching phase of their panoramas.
-*   **PixInsight:** While primarily a deep-space processing tool, it can be used for stitching, though users note it is **considerably slower** and makes it more difficult to incorporate foreground elements.
-
-### **Blending and Final Compositing**
-Once the panels or separate panoramas (sky and foreground) are stitched, they must be blended together.
-*   **Adobe Photoshop:** This is the primary tool used for **blending** specific elements—such as lunar shots into sky panels—and for the final merging of a tracked sky panorama with a static foreground panorama. 
-*   **NINA (Nighttime Imaging 'N' Astronomy):** While more of a capture and sequencing tool, it is mentioned in the context of using **Advanced Sequencing** to help handle the alignment of tracked and untracked panoramas at the point of capture.
-
-
-
-## Lunar Eclipse
-Based on the sources, the three main components of Billy’s composite lunar eclipse panorama, as summarised by Dave and confirmed by Billy's technical descriptions, are:
-
-*   **A Foreground Panorama:** This consists of static, untracked images with a medium exposure. Billy notes that these panels must be captured with tracking disabled to maintain a consistent horizon line. In his previous workflow, he only needed a single exposure for each foreground position.
-*   **A Tracked Sky Panorama:** This component captures the sky—specifically the Milky Way during totality—using longer exposures. By enabling tracking for these panels, Billy aims to minimise noise and ensure the sky elements align properly with the foreground.
-*   **A Time Sequence of the Moon:** This involves a series of short, moon-optimised exposures that track the Moon’s path across the sky. Billy captures these shots approximately every five minutes using a smaller aperture so that the background is effectively clipped to zero, allowing the Moon to be blended into the sky panels later.
-
-To manage the complexity of these three layers, Billy uses **Adobe Photoshop** to blend the lunar shots into the sky panels before using **PTGui** to stitch the completed sky and foreground panoramas together.
-
-Billy’s methodology for a lunar eclipse panorama is a multi-layered composite approach designed to balance the static nature of the Earth with the movement of the stars and the Moon. His strategy involves three distinct capture phases and a refined post-processing workflow.
-
-### **1. The Three-Component Structure**
-Billy builds his image from three primary layers to ensure maximum detail and alignment:
-*   **Static Foreground:** He captures a series of **untracked images** to maintain a level horizon line,. If the location has close-up features, he may **focus stack** each panel, taking up to 10 sub-exposures per position.
-*   **Tracked Sky:** He captures the background sky, including the Milky Way, using **tracking to minimise noise** and allow for longer exposures,.
-*   **Lunar Time Sequence:** Every five minutes, he takes short, **moon-optimised exposures**. By using a smaller aperture, he effectively "clips" the background to black, making it easier to layer the Moon into the sky panels later.
-
-### **2. Technical Specifications and Gear**
-For his upcoming projects, Billy plans to use a **Nikon Z8** (modified for Ha + visible spectrum) with a lens in the **24mm to 35mm range**. 
-*   **Grid Layout:** At 35mm, he requires **two rows of sky panels**, whereas a 24mm lens allows for a single row.
-*   **Overlap:** He prefers a **50% overlap** to reduce lens artifacts like coma, though he considers **25–30%** acceptable for high-quality lenses.
-*   **Lunar Placement:** To ensure the Moon is captured correctly within the mosaic, he might shoot it in as many as **16 out of 26 sky panels** so that it appears clearly in overlapping regions.
-
-### **3. Workflow and Software**
-Billy’s processing involves a specific sequence of professional tools:
-*   **Initial Development:** He uses **Adobe Lightroom or Camera Raw** for the first stage of raw processing.
-*   **Blending:** He uses **Photoshop** to blend the individual lunar shots into the respective tracked sky panels.
-*   **Stitching:** Once the sky panels are prepared, he exports them as TIFFs and uses **PTGui** to stitch the sky and foreground together. He notes that while PixInsight is an option, PTGui is significantly faster for this type of complex panorama.
-
-### **4. Desired Improvements for Future Panos**
-Billy has identified several "game-changing" features he would like to see in the Polaris to simplify this process:
-*   **Integrated Sequencing:** The ability to program a **single sequence** that automatically switches from untracked foreground shots to tracked sky shots.
-*   **Horizon Maintenance:** A feature that **rotates the camera** to keep the horizon level for every panel. Without this, the Earth's rotation can cause the horizon to tilt by **7.5 degrees or more** over the course of a long panorama, making stitching and alignment with the foreground extremely difficult.
-*   **Non-Zig-Zag Patterns:** He finds the current "zig-zag" movement pattern restrictive and would prefer a sequence that shoots every row in the same direction (e.g., always left-to-right).
-
-Creating this type of panorama is like **assembling a moving jigsaw puzzle**; while you are trying to piece together the static ground, the "sky" pieces are constantly rotating and the "moon" piece is sliding across the board, requiring you to carefully map out exactly where every part belongs before they move out of frame.
-
---------------------------------------------------------------------------------
-## Capturing Panoramas (Horizon-Locked & Sky Mosaics)
-
-**Panorama Mosaics** allow the Polaris mount to automatically move between predefined panel positions to capture **foreground, horizon-aligned sky, or fully celestial mosaics**.
-
-This feature is designed for:
-* **Foreground or Landscape panoramas** (no tracking)
-* **Horizon-aligned sky mosaics** (tracked, roll-locked)
-* **Celestial sky mosaics** (tracked, free rotation)
-* **Tracked orbital mosaics**
-
-
-## Panorama/Mosaic Settings
-
-Panorama settings are configured in the **Panorama Settings** card in Alpaca Pilot.
-
-### **Panorama Layout**
-
-* **Columns (cols)**:
-  Number of horizontal panels across the mosaic. *Range: 2–14*
-
-* **Rows (rows)**:
-  Number of panels vertically. *Range: 1–3*
-
-* **Horz Step (hstep)**:
-  Angular distance, in **decimal degrees**, between the centers of adjacent horizontal panels. *Panel Step is typically set to ~80% of the camera horizontal field-of-view, which produces approximately 20% overlap between adjacent panels.*
-
-* **Vert Step (vstep)**:
-  Angular distance, in **decimal degrees**, between the centers of adjacent vertical panels. *Panel Step is typically set to ~80% of the camera vertical field-of-view, which produces approximately 20% overlap between adjacent panels.*
-
-* **Panel Order (order)**:
-Defines the sequence in which panels are captured.
-  * **0 - Row-Major**:
-    Complete each row before moving to the next row.
-  * **1 - Column-Major**:
-    Complete each column before moving to the next column.
-  * **2 - Serpentine**:
-    Alternate direction on each row or column to minimise repositioning time.
-
-* **Orientation and Tracking (track)**:
-Defines how the mount tracks and how camera rotation (roll) is handled **after moving to each panel**.
-
-  * **0 - Landscape - Untracked**:
-  Tracking is disabled. The camera frame remains fixed relative to the horizon. *Use for foreground or landscape panels where star motion is acceptable.*
-
-  * **1 - Sky - Horizon-Locked**:
-  Sidereal tracking is enabled. The camera roll is reset to **0°** at each panel. *Use for horizon-aligned sky mosaics where consistent frame orientation is required.*
-
-  * **2 - Sky - Celestial**: 
-  Sidereal tracking is enabled. Camera roll is **not modified** between panels. *Use for astronomical sky mosaics (e.g. large DSOs).*
-
-  * **3 - Sky - Orbital**: 
-  Tracking and camera roll are left unchanged.
-  *Use for mosaics centered on tracked orbitals.*
-
----
-
-
-### **Panorama Positioning**
-Defines the coordinate system and a reference point used to position the mosaic.
-
-* **Anchor Panel (anchor)**:
-  Which part of the mosaic should be placed at the reference position. 
-  * **0 - Whole Mosaic**: Recenter the whole mosaic
-  * **n - Panel n**: Recenter panel n at reference point, shifting all other panels accordingly. 
-  
-* **Reference Position Type (ref)**:
-  Defines the co-ordinate system of the Reference Position
-  * **0 - Az/Alt/Roll**: Reference Position is a Topocenteric co-ordinate
-  * **1 - RA/Dec/PA**: Reference Position is an Equatorial co-ordinate. 
-  * **2 - OrbitalID**: Reference Position is an Orbital ID. 
-  * **3 - Current Orientation**: Use the current mount orientation as the Reference Position. Store as equatorial co-ordinate if tracking enabled, otherwise store as topocentric co-ordinate.
-  
-* **Reference Position**:
-  Defines the Reference point used to position the mosaic.
-  * **Reference Axis 1 (r1)** — Azimuth, Right Ascension or OrbitalID
-  * **Reference Axis 2 (r2)** — Altitude or Declination, in decimal degrees
-  * **Reference Axis 3 (r3)** — Roll or Position Angle, in decimal degrees
-
-### **Panel Navigation**
-
-Displays a grid of **Rows × Columns**, numbered according to the capture order.
-  * **Current Panel (panel)** — Panel number currently being captured.
-  
-### Device Action > Telescope > Polaris:PanoSet Parameters
-An Advanced Sequence can set each and/or all of these parameters using the PanoSet Action.
-For Example, the following would setup a 5x3 Panorama
-
-Parameters `{"cols":5, "rows":3, "hstep": 50, "vstep": 30, "order":2, "track":2, "recenter":3, "ref":0, "r1":180, "r2":30, "r3":10, "panel":2 }`
-
-
-## Loop for each panorama panel:
-* Re-point to the target **Alt/Az tile center**
-* Rotate the camera about the optical axis so the **horizon is level**
-* Capture tracked sub-exposures for Sky mosaics
-* Capture untracked exposures for Foreground mosaics (optionally focus stacked)
-
 ## Benro Firmware Trigger Capture
-Did you already investigate the Polaris protocol commands used to remote control a connected DSLR, it seems the cmd 265, 266, 267, 268, 272, 275, 282, 286, 297, ... are involved but I couldn't use the method I used before to spy the protocol using my Mac, Apple removed the tool... and I was not able to setup the Raspberry Pi to activate properly the monitor mode...
+ Did you already investigate the Polaris protocol commands used to remote control a connected DSLR, it seems the cmd 265, 266, 267, 268, 272, 275, 282, 286, 297, ... are involved but I couldn't use the method I used before to spy the protocol using my Mac, Apple removed the tool... and I was not able to setup the Raspberry Pi to activate properly the monitor mode...
 
-## Benefits
-* Eliminates cumulative horizon tilt across panels
-* Produces predictable, translation-dominant frames that are far easier to stitch
-* Aligns sky panels cleanly with static foreground images
-* Matches how terrestrial panorama systems operate
-* Ability to save panorama templates for a given focal length, and mosaic widthxheight
-
-This directly addresses user pain points with rotating horizons in multi-panel sky panoramas.
-
-
-**Sky Mosaic Capture Notes**
-
-* **Field rotation** still occurs during each exposure, limiting the **maximum exposure time per panel** even when tracking is enabled.
-* **Time separation between adjacent panels** is critical; long delays can cause stars in overlapping regions to **misalign**.
-* Using **portrait orientation** often allows a mosaic to fit in a **single row**, minimising the time between adjacent panels.
-* For **multi-row mosaics**, capture panels in **column-by-column order** rather than row-by-row to keep **vertical neighbors** close in time and improve **stitching reliability**.
-* Wide mosaics requiring multiple rows without careful sequencing can introduce **large time gaps** between vertically adjacent panels, increasing **stitching difficulty**.
-
-
-
-### Sky Mosaic Capture using Locked-Horizon
-
-**Caution:**
-
-* **Field rotation** occurs during each exposure, limiting the **maximum exposure time per panel**.
-* **Long time gaps** between adjacent panels can cause stars in overlapping regions to **misalign**, especially in multi-row mosaics.
-* Wide mosaics captured without careful sequencing can result in **large vertical time separations**, increasing **stitching difficulty**.
-* Projection distortion increases for **wide mosaics**, **near zenith**, **near poles**
-
-**Recommendations:**
-
-* Use **portrait orientation** when possible to reduce the mosaic to a **single row**, minimizing time gaps between adjacent panels.
-* For **multi-row mosaics**, capture panels in **column-by-column order** rather than row-by-row to keep **vertical neighbors close in time**.
-* Limit **exposure duration per panel** to reduce field rotation effects, particularly at low altitudes or near the horizon.
-* Maintain sufficient **overlap** (≥25–40%) to provide stitching tolerance for small rotational shifts.
-
-
-
-## Enforced timing limits (per adjacent panel)
-To keep stitching reliable, limit sky rotation between overlapping panels to ≈ **0.3°**:
-[
-\Delta T_{\max}(\text{minutes}) \approx \frac{1.2}{\cos(\text{Altitude})}
-]
-
-Typical guidance:
-
-* **20–40° alt**: 60–90 s per panel (strict)
-* **45–65° alt**: 100–150 s per panel (ideal)
-* **>80° alt**: warn or disable mode
-
-Total panorama duration should be constrained:
-
-* 1-row mosaics: ≤ 30–40 min
-* 2-row mosaics: ≤ 20–25 min
-* 3+ rows: discouraged
-
-
-## Mosaic topology rules
-
-* **Single-row (e.g. 10×1)**: low risk, sequential capture acceptable
-* **Multi-row (e.g. 10×2)**:
-
-  * Use **column-interleaved capture**
-  * Avoid row-by-row sequencing
-  * Increase vertical overlap (≥25–30%)
-* **3+ rows**: strongly discourage or restrict
-
-## Full-frame lenses — effective FOV with overlap
-
-| Lens      | FF FOV (W×H) | **25% Overlap** | **40% overlap** | Safe mosaic size | Max rows | Max sky width |
-| --------- | ------------ | ------------------------- | ------------------------- | ---------------- | -------- | ------------- |
-| **14 mm** | 104° × 81°   | **78° × 61°**             | **62° × 49°**             | 1–3 × 1          | 1        | ~180°         |
-| **20 mm** | 84° × 62°    | **63° × 47°**             | **50° × 37°**             | 3–6 × 1          | 2        | ~200°         |
-| **24 mm** | 74° × 53°    | **56° × 40°**             | **44° × 32°**             | 3–6 × 1          | 2        | ~180°         |
-| **35 mm** | 54° × 38°    | **41° × 29°**             | **32° × 23°**             | 4–8 × 1          | 2        | ~150°         |
-| **50 mm** | 40° × 27°    | **30° × 20°**             | **24° × 16°**             | 5–10 × 1         | 1–2      | ~120°         |
-
-
-
-## Bottom line
-
-A **fixed Alt/Az grid with per-panel roll reset** is a **sound, implementable solution** that significantly improves horizon-aligned sky panoramas, provided **time, topology, and exposure limits are enforced in software**.
 
 
 
