@@ -1034,9 +1034,9 @@ To capture a foreground pass without tracking while retaining the previous grid 
 
 ![Alpaca Pilot Pano Settings](images/pilot-panogrid3.png)
 
-As a reference, the following JSON example shows all available fields that can be set using the `Polaris:PanoGrid` device action. In practice, you would typically specify only the parameters you need to change.
+As a reference, the following JSON Parameters example shows all available fields that can be set using the `Polaris:PanoGrid` device action. In practice, you would typically specify only the parameters you need to change.
 ```
-{ "cols":3, "rows":2, "hstep":40, "vstep":30, "order":2, "track":0, "anchor:1, "ref":0, "r1":90, "r2":5, "r3":0, "panel":0 }
+{ "cols":3, "rows":2, "hstep":40, "vstep":30, "order":2, "track":0, "anchor":1, "ref":0, "r1":90, "r2":5, "r3":0, "panel":0 }
 ```
 #### **Using CCDCeil Sequencer**
 To define a Panorama Grid in CCDCeil, you could use its Sequence Tool and add a Script Step that sends the `Polaris:PanoGrid` device action and parameters to the Alpaca Driver.
@@ -1048,15 +1048,21 @@ Once a panorama grid is defined, you will probably want to very its coverage and
 ![Alpaca Pilot Pano Navigation](images/pilot-pano2.png)
 
 ### 3.1 Calculating for theoretical panel overlap
-The Panorama Grid is designed to be simple. Rather than specifying sensor size, resolution, desired overlap and lens parameters, it uses just two angular steps, `hstep` and `vstep` to define the spacing between panels.
+The Panorama Grid is designed to be simple. Rather than specifying sensor size, resolution, desired overlap and lens parameters, it uses just two angular steps, `hstep` and `vstep` to define the spacing between panels. These fields effect the horizontal and vertical spacing of the panels from the cameras field of view.
 
 To calculate the theoretical values for `hstep` and `vstep`:
 * Use a field-of-view calculator such as [Astronomy Tools](https://astronomy.tools/calculators/field_of_view/)
    * Switch to Imaging Mode and pick any target object.
    * Enter your **focal length (mm)** and **camera model**.
    * Note the horizontal and vertical FOV in degrees.
-* Set `hstep` to a fraction of the horizontal FOV to achieve the desired overlap. For example, 80% of the FOV gives ~20% overlap.
+* Set `hstep` to a fraction of the horizontal FOV to achieve the desired overlap. 
+   * For example, to acheive 20% overlap, you would set `hstep` to 80% of the horizontal FOV. 
+   * From the calculator below 80% of 54.38 would be 43.5.
 * Similarly, set `vstep` as a fraction of the vertical FOV.
+   * From the calculator below 80% of 37.83 would be 30.3. 
+* So to achieve 20% overlap
+   * You would set `{ "hstep": 43.5 , "vstep": 30.3 }`
+ 
 
 ![Astronomy Tools](./images/pilot-panotools.png)
 
@@ -1086,7 +1092,7 @@ To check the vertical extent of the scnene:
 * Confirm that the grid reaches the desired altitude for your targets.
 * Adjust the number of rows or reference position as needed.
 
->Note: Because of potential gimbal lock, the Alpaca Driver may not always be able to determine a fully deterministic solution when the mount altitude is exactly 0°. When planning panorama grids, avoid placing rows at Altitude 0°. Instead, offset the grid by a few degrees above or below the horizon.
+>Note: Because of potential gimbal lock, the Alpaca Driver may not always be able to calculate a fully deterministic solution when the mount altitude is exactly 0°. When planning panorama grids, avoid placing rows at Altitude 0°. Instead, offset the grid by a few degrees above or below the horizon.
 
 
 ## 4 Capturing the Panorama
@@ -1095,7 +1101,9 @@ Because the Alpaca Driver does not communicate directly with your camera, the pr
 
 When executed with no parameters, `Polaris:PanoSlew` advances the mount to the next panel according to the grid’s defined sequence order. After the final panel is reached, the sequence wraps around and returns to panel 1.
 
-If you need to slew to a specific panel, you may supply a JSON parameter with the `panel` field set to the desired panel number. For example: `{"panel": 3}`  The remainder of this section describes how to use `Polaris:PanoSlew` within NINA’s Advanced Sequencer to capture different types of panoramas.
+If you need to slew to a specific panel, you may supply a JSON parameter to the `Polaris:PanoSlew` device action, with the `panel` field set to the desired panel number. For example: `{"panel": 3}`. 
+
+The remainder of this section describes how to use `Polaris:PanoSlew` within NINA’s Advanced Sequencer to capture different types of panoramas.
 
 ### 4.1 Capturing a set of panels with Nina
 A *panorama pass* consists of iterating over each panel in the active panorama grid exactly once and capturing one or more exposures at each position. In NINA, this is typically implemented using a Sequential Instruction Set with a loop.
