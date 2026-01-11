@@ -977,11 +977,11 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 - **⑥ Orientation and Tracking `"track":`** Defines how the mount tracks and how camera roll is handled **after moving to each panel**:
    * **0 – Landscape · Untracked**: Tracking is disabled. The camera frame remains fixed relative to the horizon.
    *Use for foreground or landscape panels where star motion is acceptable.*
-   * **1 – Sky · Horizon‑Locked** Sidereal tracking is enabled. The camera roll is reset to **0°** at each panel.
+   * **1 – Sky · Horizon‑Locked**: Sidereal tracking is enabled. The camera roll is reset to **0°** at each panel.
    *Use for horizon‑aligned sky panoramas where consistent framing is required.*
-   * **2 – Sky · Celestial** Sidereal tracking is enabled. Camera roll is **not modified** between panels.
+   * **2 – Sky · Celestial**: Sidereal tracking is enabled. Camera roll is **not modified** between panels.
    *Use for astronomical sky mosaics such as large DSOs.*
-   * **3 – Sky · Orbital** Tracking and camera roll are left unchanged.
+   * **3 – Sky · Orbital**: Tracking and camera roll are left unchanged.
    *Use for mosaics centred on tracked orbitals.*
 
 - **⑦ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the reference position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
@@ -1053,6 +1053,7 @@ To calculate the theoretical values for `hstep` and `vstep`:
    * Switch to Imaging Mode and pick any target object.
    * Enter your **focal length (mm)** and **camera model**.
    * Note the horizontal and vertical FOV in degrees.
+   * `hstep` and `vstep` are calculated as  **hstep = FOV × (1 − overlap)**.
 * Set `hstep` to a fraction of the horizontal FOV to achieve the desired overlap. 
    * For example, to acheive 20% overlap, you would set `hstep` to 80% of the horizontal FOV. 
    * From the calculator below 80% of 54.38 would be 43.5.
@@ -1064,8 +1065,51 @@ To calculate the theoretical values for `hstep` and `vstep`:
 
 ![Astronomy Tools](./images/pilot-panotools.png)
 
+### 3.2 Example Panorama Step Sizes (`hstep` and `vstep`)
 
-### 3.2 Verifying actual Panel overlap
+The following tables provide **example values** for horizontal and vertical panorama step sizes based on common sensor formats and focal lengths. These values are intended as a starting point when defining a panorama grid and assume rectilinear lenses with minimal distortion.
+
+**Full Frame (36 × 24 mm)**: 
+This table assumes a full-frame sensor and is representative of cameras such as the Canon R5, Nikon Z8/Z9, or Sony α7 series.
+
+| Sensor     | Focal Length | Field of View | Overlap | hstep (°) | vstep (°) |
+| ---------- | ------------ | ------------- | ------- | --------- | --------- |
+| Full Frame | 14 mm        | 104° × 81°    | 20%     | 83.2      | 64.8      |
+| Full Frame | 14 mm        | 104° × 81°    | 40%     | 62.4      | 48.6      |
+| Full Frame | 24 mm        | 84° × 62°     | 20%     | 67.2      | 49.6      |
+| Full Frame | 24 mm        | 84° × 62°     | 40%     | 50.4      | 37.2      |
+| Full Frame | 35 mm        | 63° × 44°     | 20%     | 50.4      | 35.2      |
+| Full Frame | 35 mm        | 63° × 44°     | 40%     | 37.8      | 26.4      |
+| Full Frame | 50 mm        | 40° × 27°     | 20%     | 32.0      | 21.6      |
+| Full Frame | 50 mm        | 40° × 27°     | 40%     | 24.0      | 16.2      |
+
+**APS-C (≈23.5 × 15.6 mm)**: This table assumes a typical APS-C sensor with a ~1.5× crop factor, as found in many DSLR and mirrorless cameras.
+
+| Sensor | Focal Length | Field of View | Overlap | hstep (°) | vstep (°) |
+| ------ | ------------ | ------------- | ------- | --------- | --------- |
+| APS-C  | 14 mm        | 76° × 56°     | 20%     | 60.8      | 44.8      |
+| APS-C  | 14 mm        | 76° × 56°     | 40%     | 45.6      | 33.6      |
+| APS-C  | 24 mm        | 53° × 37°     | 20%     | 42.4      | 29.6      |
+| APS-C  | 24 mm        | 53° × 37°     | 40%     | 31.8      | 22.2      |
+| APS-C  | 35 mm        | 37° × 25°     | 20%     | 29.6      | 20.0      |
+| APS-C  | 35 mm        | 37° × 25°     | 40%     | 22.2      | 15.0      |
+| APS-C  | 50 mm        | 26° × 17°     | 20%     | 20.8      | 13.6      |
+| APS-C  | 50 mm        | 26° × 17°     | 40%     | 15.6      | 10.2      |
+
+**IMX585 (11.2 × 6.3 mm)**: This table assumes the Sony **IMX585** sensor, commonly used in astronomy cameras. Because of the much smaller sensor size, step values decrease rapidly with focal length, and overlap becomes more sensitive to mechanical and optical tolerances.
+
+| Sensor | Focal Length | Field of View | Overlap | hstep (°) | vstep (°) |
+| ------ | ------------ | ------------- | ------- | --------- | --------- |
+| IMX585 | 14 mm        | 44° × 25°     | 20%     | 35.2      | 20.0      |
+| IMX585 | 14 mm        | 44° × 25°     | 40%     | 26.4      | 15.0      |
+| IMX585 | 24 mm        | 26° × 15°     | 20%     | 20.8      | 12.0      |
+| IMX585 | 24 mm        | 26° × 15°     | 40%     | 15.6      | 9.0       |
+| IMX585 | 35 mm        | 18° × 10°     | 20%     | 14.4      | 8.0       |
+| IMX585 | 35 mm        | 18° × 10°     | 40%     | 10.8      | 6.0       |
+| IMX585 | 50 mm        | 12° × 7°      | 20%     | 9.6       | 5.6       |
+| IMX585 | 50 mm        | 12° × 7°      | 40%     | 7.2       | 4.2       |
+
+### 3.3 Verifying actual Panel overlap
 The actual panel overlap may differ from theoretical calculations, especially with wide-angle lenses. Use the verification procedure below to confirm with your setup before your imaging session begins.
 
 To check the horizontal and vertical overlap:
@@ -1075,7 +1119,7 @@ To check the horizontal and vertical overlap:
 * Slew to the adjacent horizontal panel and check the overlap. Adjust `hstep` as needed.
 * Repeat for vertical panels to confirm `vstep` ensures sufficient overlap.
 
-### 3.3 Verifying panorama coverage
+### 3.4 Verifying panorama coverage
 Once on site, you can confirm that your panorama grid captures the full scene and desired foreground, and reaches the sky elevation needed for your selected celestial target.
 
 To check the horizontal extent of the scene:
@@ -1101,6 +1145,8 @@ When executed with no parameters, `Polaris:PanoSlew` advances the mount to the n
 
 If you need to slew to a specific panel, you may supply a JSON parameter to the `Polaris:PanoSlew` device action, with the `panel` field set to the desired panel number. For example: `{"panel": 3}`. 
 
+If you need to change which panel is considered “next” without immediately slewing the mount, you can use the `Polaris:PanoGrid` device action with the panel field set to the current (or prior) panel number. This updates the internal panel index without moving the mount. The next time `Polaris:PanoSlew` is executed without parameters, the driver will slew to the panel that follows the one you specified.
+
 The remainder of this section describes how to use `Polaris:PanoSlew` within NINA’s Advanced Sequencer to capture different types of panoramas.
 
 ### 4.1 Capturing a set of panels with Nina
@@ -1113,7 +1159,7 @@ To configure a sequence that captures all panels:
    * In most cases, this will be `rows × cols`.
    * For partial captures (for example, a single-row landscape foreground), you may choose to iterate only over the required subset.
 * Add the `Polaris:PanoSlew` device action as the first instruction in the loop. Leave Parameters blank.
-* Add a `Smart Exposure` instruction as the next step:
+* Add a `Smart Exposure` instruction as the next instruction:
    * Set `#` to the number of exposures to capture at each panel.
    * Set the exposure `Time` as required. Must be non-zero.
    * Set `Dither every #` to `0`.
@@ -1128,7 +1174,7 @@ The landscape foreground is typically captured as an *untracked*, *horizon-align
 A common approach is to use a nested Sequential Instruction Set that first configures the panorama grid and then performs the capture. This structure can be saved as a reusable template for future sessions.
 
 A typical foreground workflow includes:
-* Polaris:PanoSet
+* Polaris:PanoGrid
    * Configure the panorama grid for foreground capture.
    * Set tracking to untracked / horizon-locked.
    * Adjust the number of rows and columns if the foreground only covers part of the grid.
