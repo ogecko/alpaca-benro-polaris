@@ -1082,6 +1082,8 @@ This table assumes a full-frame sensor and is representative of cameras such as 
 | Full Frame | 35 mm        | 63° × 44°     | 40%     | 37.8      | 26.4      |
 | Full Frame | 50 mm        | 40° × 27°     | 20%     | 32.0      | 21.6      |
 | Full Frame | 50 mm        | 40° × 27°     | 40%     | 24.0      | 16.2      |
+| Full Frame |	100 mm	    | 20° × 14°	  | 20%     | 16.0      | 11.2      |
+| Full Frame |	100 mm	    | 20° × 14°	  | 40%     | 12.0      | 8.4       |
 
 **APS-C (≈23.5 × 15.6 mm)**: This table assumes a typical APS-C sensor with a ~1.5× crop factor, as found in many DSLR and mirrorless cameras.
 
@@ -1095,6 +1097,8 @@ This table assumes a full-frame sensor and is representative of cameras such as 
 | APS-C  | 35 mm        | 37° × 25°     | 40%     | 22.2      | 15.0      |
 | APS-C  | 50 mm        | 26° × 17°     | 20%     | 20.8      | 13.6      |
 | APS-C  | 50 mm        | 26° × 17°     | 40%     | 15.6      | 10.2      |
+| APS-C  | 100 mm	      | 20° × 14°	    | 20%     | 10.4      | 7.2       |
+| APS-C  | 100 mm	      | 20° × 14°	    | 40%     | 7.8       | 5.4       |
 
 **IMX585 (11.2 × 6.3 mm)**: This table assumes the Sony **IMX585** sensor, commonly used in astronomy cameras. Because of the much smaller sensor size, step values decrease rapidly with focal length, and overlap becomes more sensitive to mechanical and optical tolerances.
 
@@ -1108,6 +1112,8 @@ This table assumes a full-frame sensor and is representative of cameras such as 
 | IMX585 | 35 mm        | 18° × 10°     | 40%     | 10.8      | 6.0       |
 | IMX585 | 50 mm        | 12° × 7°      | 20%     | 9.6       | 5.6       |
 | IMX585 | 50 mm        | 12° × 7°      | 40%     | 7.2       | 4.2       |
+| IMX585 | 100 mm	      | 6° × 3.5°	    | 20%     | 4.8       | 2.8       |
+| IMX585 | 100 mm	      | 6° × 3.5°	    | 40%     | 3.6       | 2.1       |
 
 ### 3.3 Verifying actual Panel overlap
 The actual panel overlap may differ from theoretical calculations, especially with wide-angle lenses. Use the verification procedure below to confirm with your setup before your imaging session begins.
@@ -1162,6 +1168,7 @@ To configure a sequence that captures all panels:
 * Add a `Smart Exposure` instruction as the next instruction:
    * Set `#` to the number of exposures to capture at each panel.
    * Set the exposure `Time` as required. Must be non-zero.
+   * Set the `Type` as required, to store into different folders.
    * Set `Dither every #` to `0`.
 
 ![Alpaca Pilot Capturing Set of Panels](images/pilot-panoseq1.png)
