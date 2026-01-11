@@ -984,13 +984,12 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    * **3 – Sky · Orbital** Tracking and camera roll are left unchanged.
    *Use for mosaics centred on tracked orbitals.*
 
-- **⑦ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the reference position:
+- **⑦ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the reference position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
    * **0 – Whole Mosaic**:  The entire panorama is centred on the reference position.
    * **n – Panel n**:   This panel is placed at the reference position and all other panels are offset accordingly.
 
 
-- **⑧ to Reference Position Type `"ref":`** Displays the current battery level of the Polaris mount. Includes color-coded indicators or warnings when battery levels are low. Also indicates charging status. On narrow screens, it can also be used to toggle fullcscreen.
-Defines the coordinate system used by the reference position.
+- **⑧ to Reference Position Type `"ref":`** Defines the coordinate system used by the reference position.
    * **0 – Az / Alt / Roll** Topocentric coordinates.
    * **1 – RA / Dec / PA** Equatorial coordinates.
    * **2 – Orbital ID**  Centre the panorama on a tracked orbital object.
@@ -998,14 +997,13 @@ Defines the coordinate system used by the reference position.
    If tracking is enabled, the position is stored as equatorial coordinates; otherwise it is stored as topocentric coordinates.
 
 
-- **⑨ Reference Position:** Toggles fullscreen mode for immersive operation. This is especially useful during outdoor sessions or when using compact displays, allowing maximum space for control and feedback elements.
-Defines the actual reference point:
+- **⑨ Reference Position:** Defines the actual reference position:
 
    * **Reference Axis 1 `"r1":`**: Azimuth, Right Ascension, or Orbital ID
    * **Reference Axis 2 `"r2":`**: Altitude or Declination (decimal degrees)
    * **Reference Axis 3 `"r3":`**: Roll or Position Angle (decimal degrees)
 
-- **Current Position: `"panel":`** This represents the active Panel Number being captured and is highlighted in blue on the Panel Navigation grid. This field effects what the next panel in sequence will be.
+- **Current Panel: `"panel":`** This represents the active Panel Number being captured and is highlighted in blue on the Panel Navigation grid. This field effects what the next panel in sequence will be.
 
 ### 2.2 Defining the Grid Programatically
 
