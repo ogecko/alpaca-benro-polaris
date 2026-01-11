@@ -6,7 +6,7 @@
 [Connect](#ii-connecting-devices) | 
 [Dashboard](#iii-using-the-dashboard) | 
 [Catalog](#iv-using-the-catalog) | 
-[Panoramas](#panoramas-and-mosaics) 
+[Panoramas](#capturing-panoramas-with-the-alpaca-driver) 
 
 ## What is Alpaca Pilot?
 
@@ -937,7 +937,7 @@ This guide explains how to plan, configure, and capture panoramas using the **Al
 
 ### 1. Why Use the Alpaca Driver for Panoramas
 
-While the Benro Polaris Standard Panorama and Pro Panorama modes are excellent for capturing wide-field panoramas, more advanced composite panoramas often move beyond this simple model. These workflows may involve mixing tracked and untracked panels, revisiting the same framing over extended periods, or coordinating multiple capture passes with different exposure strategies. In such cases, the limitations of a fixed, single-pass panorama workflow become apparent.
+While the Benro Polaris Standard Panorama and Pro Panorama modes are excellent for capturing wide-field panoramas, more advanced composite panoramas often move beyond this simple model. These workflows may involve mixing tracked and untracked panels, revisiting the same framing over extended periods, or coordinating multiple capture passes with different exposure strategies or even focus stacking. In such cases, the limitations of a fixed, single-pass panorama workflow become apparent.
 
 The Alpaca Driver approaches panoramas from a different perspective. Rather than treating a panorama as a one-shot operation, it defines a deterministic grid of pointings that can be revisited, reordered, and reused. Panel geometry is defined explicitly, slews are repeatable, and camera orientation is controlled in a predictable way. This allows the same panorama definition to be reused hours or even days later, or embedded cleanly into larger automated workflows.
 
@@ -1034,7 +1034,10 @@ To capture a foreground pass without tracking while retaining the previous grid 
 
 ![Alpaca Pilot Pano Settings](images/pilot-panogrid3.png)
 
-
+As a reference, the following JSON example shows all available fields that can be set using the `Polaris:PanoGrid` device action. In practice, you would typically specify only the parameters you need to change.
+```
+{ "cols":3, "rows":2, "hstep":40, "vstep":30, "order":2, "track":0, "anchor:1, "ref":0, "r1":90, "r2":5, "r3":0, "panel":0 }
+```
 #### **Using CCDCeil Sequencer**
 To define a Panorama Grid in CCDCeil, you could use its Sequence Tool and add a Script Step that sends the `Polaris:PanoGrid` device action and parameters to the Alpaca Driver.
 
@@ -1114,7 +1117,7 @@ To configure a sequence that captures all panels:
 This structure ensures that the mount advances to each panel in turn, captures a consistent set of exposures at that panel, and continues until the pass is complete.
 
 ### 4.2 Capturing the Landscape Foreground
-The landscape foreground is typically captured as an *untracked*, *horizon-aligned* and usually occupies only the lower rows of the panorama grid. This layer is often captured earlier in the session, such as during twilight, when there is sufficient ambient light in the foreground.
+The landscape foreground is typically captured as an *untracked*, *horizon-aligned* and usually occupies only the lower rows of the panorama grid. This layer is often captured earlier in the session, such as during twilight, when there is sufficient ambient light in the foreground. In some cases, foreground capture may also involve acquiring panels at multiple focus distances, allowing near and distant landscape features to be combined later using focus stacking techniques.
 
 A common approach is to use a nested Sequential Instruction Set that first configures the panorama grid and then performs the capture. This structure can be saved as a reusable template for future sessions.
 
@@ -1126,6 +1129,7 @@ A typical foreground workflow includes:
    * Omit reference fields if you want to reuse the existing grid placement.
 * Optional sequencing logic
    * Instructions such as Wait Until Time to ensure capture begins under the desired lighting conditions.
+   * Instructions for focus stacking between individual images on a panel
 * Looped capture block
    * A loop for the required number of panels.
    * Polaris:PanoSlew to advance between panels.

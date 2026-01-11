@@ -2,7 +2,7 @@
 
 <template>
     <q-card flat bordered class="q-pa-md full-width">
-        <div class="text-h6">Panorama Layout and Behaviour</div>
+        <div class="text-h6">Panorama Grid Layout</div>
         <div class="row q-col-gutter-lg  items-center q-pt-sm">
             <q-input class="col-3" v-bind="bindField('cols', 'Columns')" type="number" input-class="text-right" dense/>
             <q-input class="col-3" v-bind="bindField('rows', 'Rows')" type="number" input-class="text-right" dense/>
@@ -21,7 +21,7 @@
               :options="panoTrackingOptions"
             />
         </div>
-        <div class="text-h6 q-pt-lg">Panorama Positioning</div>
+        <div class="text-h6 q-pt-lg">Panorama Grid Positioning</div>
         <div class="row q-col-gutter-lg  items-center q-pt-lg">
             <q-select
               class="col-6 q-pt-none" label="Anchor Panel" emit-value map-options

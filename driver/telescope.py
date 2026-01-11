@@ -1518,7 +1518,7 @@ class supportedactions:
             "Polaris:J2000Sync", "Polaris:J2000Goto",
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
             "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:GetCatalog",
-            "Polaris:PanoSet", "Polaris:PanoSlew", "Polaris:PanoOffset",
+            "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:PanoOffset",
         ], req)  
 
 
@@ -1765,12 +1765,12 @@ class action:
             resp.text = json.dumps(export_data, indent=2)
             return
         
-        elif actionName == "Polaris:PanoSet":
+        elif actionName == "Polaris:PanoGrid":
             # Apply changes to store in Config and make them live
-            logger.info(f'Polaris:PanoSet {parameters}')
+            logger.info(f'Polaris:PanoGrid {parameters}')
             changed_params = Config.apply_changes(parameters)
             make_params_live(changed_params)
-            resp.text = await PropertyResponse("Polaris:PanoSet Ok", req)
+            resp.text = await PropertyResponse("Polaris:PanoGrid Ok", req)
             return
 
         elif actionName == "Polaris:PanoSlew":
