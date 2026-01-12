@@ -1041,7 +1041,7 @@ To define a Panorama Grid in CCDCeil, you could use its Sequence Tool and add a 
 
 
 ## 3. Previewing the Panorama
-Once a panorama grid is defined, you will probably want to very its coverage and panel overlap. You can use the Alpaca Pilot Panel Navigation to do this. This displays a grid of **Rows × Columns**, numbered according to the selected panel order. The currently active panel is highlighted in blue, the next panel with a *, and the anchor panel with a ⚓. Clicking on a panel number will slew the mount to center on that panel.
+Once a panorama grid is defined, you will probably want to verify its coverage and panel overlap. You can use the Alpaca Pilot Panel Navigation to do this. This displays a grid of **Rows × Columns**, numbered according to the selected panel order. The currently active panel is highlighted in blue, the next panel with a *, and the anchor panel with a ⚓. Clicking on a panel number will slew the mount to center on that panel.
 
 ![Alpaca Pilot Pano Navigation](images/pilot-pano2.png)
 
