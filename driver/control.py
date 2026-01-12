@@ -1054,11 +1054,11 @@ class PID_Controller():
         else:
             self.Kv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
 
-    def reset_offsets(self, axes: dict | None = None):
+    def reset_offsets(self, axes):
         self.reset_delta_offsets(axes)
         self.reset_alpha_offsets(axes)
 
-    def reset_delta_offsets(self, axes: dict | None = None):
+    def reset_delta_offsets(self, axes):
         if axes is None:
             self.delta_v_sp = np.zeros(3, dtype=float)     # Setpoint for ra, dec, polar anglular velocities
             self.delta_g_sp = np.zeros(3, dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
@@ -1073,7 +1073,7 @@ class PID_Controller():
                 self.delta_offst[idx] = 0.0
                 self.delta_ref_last[idx] = 0.0
 
-    def reset_alpha_offsets(self, axes: dict | None = None):
+    def reset_alpha_offsets(self, axes):
         if axes is None:
             self.alpha_v_sp = np.zeros(3, dtype=float)     # Setpoint for az, alt, roll angular velocities
             self.alpha_offst = np.zeros(3, dtype=float)    # az, alt, roll angular offsets
