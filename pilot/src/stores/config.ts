@@ -44,6 +44,7 @@ export const useConfigStore = defineStore('config', {
     focal_ratio: 11,
 
     // Panorama
+    show_panels: false,
     cols: 3,
     rows: 1,
     hstep: 40,

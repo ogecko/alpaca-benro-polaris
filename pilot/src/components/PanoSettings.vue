@@ -55,26 +55,19 @@
           Click a panel number to slew the mount to the corresponding panel position.
         </div>
 
-        <div class="panel-grid q-mt-sm" :style="{ gridTemplateColumns: `repeat(${cfg.cols}, 1fr)` }">
-          <template v-for="(row, r) in [...panelGrid].reverse()" :key="`row-${r}`">
-            <div
-              v-for="panel in row"
-              :key="panel"
-              class="panel-cell" :class="{ active: panel === cfg.panel }"
-              @click="slewToPanel(panel)"
-            >
-              {{ panel }}
-              <span v-if="panel === nextPanel" class="next-marker" title="Next panel in sequence">✱</span>
-              <span v-if="panel === cfg.anchor" class="next-marker" title="Anchor panel to Reference Position">⚓</span>
-            </div>
-          </template>
-        </div>
+        <PanoNavigation />
+
         <div class="col text-caption text-grey-6 q-pt-md">
          ✱ Indicates the next panel in the panorama sequence
         </div>
         <div class="col text-caption text-grey-6 ">
         ⚓ Which part of the mosaic to be placed at the reference position
         </div>
+              <div class="row text-grey-6">
+                <q-toggle v-bind="bindField('show_panels', 'Show Panel Navigation on Main Dashboard')"/>
+              </div>
+
+
       </q-card>
 </template>
 
@@ -84,6 +77,7 @@ import { onMounted, computed } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { debounce } from 'quasar'
+import PanoNavigation from 'src/components/PanoNavigation.vue'
 
 const dev = useDeviceStore()
 const cfg = useConfigStore()
@@ -120,73 +114,12 @@ const panoRefAlignOptions = computed(() => {
   return options;
 });
 
-const panelGrid = computed(() => {
-  const rows = Number(cfg.rows ?? 0)
-  const cols = Number(cfg.cols ?? 0)
-  const order = Number(cfg.order ?? 0)
-
-  let n = 1
-  const grid: number[][] = Array.from({ length: rows }, () =>
-    Array(cols).fill(0)
-  )
-
-  // grid Layout: 
-  // Row 0 = bottom Row (we reverse it in the HTML template to display it correctly)
-  // Column 0 = left Column
-
-  if (order === 0) {
-    // Row-major, bottom-up
-    for (let r = 0; r < rows; r++) {
-      const row = grid[r]
-      if (!row) continue
-      for (let c = 0; c < cols; c++) row[c] = n++
-    }
-  } else if (order === 1) {
-    // Column-major, bottom-up
-    for (let c = 0; c < cols; c++)
-      for (let r = 0; r < rows; r++) {
-        const row = grid[r]
-        if (row) row[c] = n++
-      }
-  } else {
-    // Serpentine, bottom-up
-    for (let r = 0; r < rows; r++) {
-      const row = grid[r]
-      if (!row) continue
-      const cs = r % 2
-        ? [...Array(cols).keys()].reverse()
-        : [...Array(cols).keys()]
-      for (const c of cs) row[c] = n++
-    }
-  }
-  return grid
-})
-
-const nextPanel = computed(() => {
-  const rows = Number(cfg.rows ?? 0)
-  const cols = Number(cfg.cols ?? 0)
-  const total = rows * cols
-  const current = Number(cfg.panel ?? 0)
-  if (!current || current >= total) return 1
-  return current + 1
-})
 
 onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
+  const shouldFetch =  dev.restAPIConnected && dev.restAPIConnectedAt &&cfg.fetchedAt < dev.restAPIConnectedAt
+  if (shouldFetch) await cfg.configFetch()
 })
 
-async function slewToPanel(panel: number) {
-  cfg.panel = panel
-  await dev.alpacaPanoSlew(panel)
-  console.log(`SlewToPanel: ${panel}` )
-}
 
 function bindField(key: string, label: string, suffix?: string) {
   /**

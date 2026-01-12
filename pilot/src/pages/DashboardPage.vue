@@ -76,12 +76,16 @@
             @clickMove="onClickMove"
           />
         </div>
+        <div v-if="cfg.show_panels==true" class="col-12 col-md-6 col-lg-4 col-xl-3 q-pa-lg justify-center content-center">
+          <div class="text-h6 text-grey-6">Panel Navigation</div>
+          <PanoNavigation />
+        </div>
         <div v-if="!(p.pidmode=='PARK')" class="col-12 col-md-6 col-lg-4  col-xl-3 row justify-center ">
           <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[0]" :position="p.zetameas[0]" label="M1" />
           <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[1]" :position="p.zetameas[1]" label="M2" />
           <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[2]" :position="p.zetameas[2]" label="M3" />
         </div>
-    </div>
+      </div>
 
   </q-page>
 </template>
@@ -93,9 +97,11 @@ import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
+import { useConfigStore } from 'src/stores/config'
 import ScaleDisplay  from 'src/components/ScaleDisplay.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
 import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
+import PanoNavigation from 'src/components/PanoNavigation.vue'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 import { angularDifference } from 'src/utils/angles'
@@ -105,6 +111,7 @@ const $q = useQuasar()
 const route = useRoute()
 const dev = useDeviceStore()
 const p = useStatusStore()
+const cfg= useConfigStore()
 const isEq = ref<boolean>(false)
 const isStopOutline = ref<boolean>(true)
 
@@ -143,6 +150,9 @@ const btnDense = computed(() =>
 // ------------------- Lifecycle Events ---------------------
 
 onMounted(async () => {
+  const shouldFetch =  dev.restAPIConnected && dev.restAPIConnectedAt &&cfg.fetchedAt < dev.restAPIConnectedAt
+  if (shouldFetch) await cfg.configFetch()
+
   const apiParam = Array.isArray(route.query.api)
     ? route.query.api[0]
     : route.query.api
