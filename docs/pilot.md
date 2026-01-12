@@ -1162,16 +1162,16 @@ To configure a sequence that captures all panels:
 * Add a `Sequential Instruction Set` to the Advanced Sequencer.
 * Add a `Loop for Iterations` as the loop condition.
    * Set the number of iterations to the total number of panels to be captured.
-   * In most cases, this will be `rows × cols`.
+   * In most cases, this will be `rows × cols`. For example 15 = 5 x 3
    * For partial captures (for example, a single-row landscape foreground), you may choose to iterate only over the required subset.
 * Add the `Polaris:PanoSlew` device action as the first instruction in the loop. Leave Parameters blank.
 * Add a `Smart Exposure` instruction as the next instruction:
    * Set `#` to the number of exposures to capture at each panel.
    * Set the exposure `Time` as required. Must be non-zero.
-   * Set the `Type` as required, to store into different folders.
+   * Set the `Type` as required, to store into different folders. For example use LIGHT for foreground, and DARK for background.
    * Set `Dither every #` to `0`.
 
-![Alpaca Pilot Capturing Set of Panels](images/pilot-panoseq1.png)
+![Alpaca Pilot Capturing Set of Panels](images/pilot-pano-seq2loop.png)
 
 This structure ensures that the mount advances to each panel in turn, captures a consistent set of exposures at that panel, and continues until the pass is complete.
 
@@ -1180,53 +1180,62 @@ The landscape foreground is typically captured as an *untracked*, *horizon-align
 
 A common approach is to use a nested Sequential Instruction Set that first configures the panorama grid and then performs the capture. This structure can be saved as a reusable template for future sessions.
 
-A typical foreground workflow includes:
-* Polaris:PanoGrid
-   * Configure the panorama grid for foreground capture.
-   * Set tracking to untracked / horizon-locked.
-   * Adjust the number of rows and columns if the foreground only covers part of the grid.
-   * Omit reference fields if you want to reuse the existing grid placement.
-* Optional sequencing logic
-   * Instructions such as Wait Until Time to ensure capture begins under the desired lighting conditions.
-   * Instructions for focus stacking between individual images on a panel
-* Looped capture block
-   * A loop for the required number of panels.
-   * Polaris:PanoSlew to advance between panels.
-   * A Smart Exposure instruction to capture one or more foreground frames at each panel.
+A typical panorama foreground workflow includes:
+* An outer Sequential Instruction Set, named as a template for your Panorama
+   * First instruction is a Device Action `Polaris:PanoGrid`
+      * Configure the panorama grid for foreground capture.
+      * Set `"cols":5, "rows":3` as desired size of grid.
+      * Set `"hstep":16, "vstep":11.2` for desired panel overlap.
+      * Set `"track": 0` for Landscape - Untracked.
+      * Set `"panel": 0` to change current panel to begining of sequence
+      * Omit reference fields if you want to reuse the existing grid placement.
+   * Second instruction is a Sequencital Instruction Set
+* The Inner Sequenctial Instruction Set, loops through panels.
+   * Set Loop Condition as a `Loop for Iterations` and use total number of panels.
+   * First instruction is a Device Action `Polaris:PanoSlew` with no Parameters
+   * Remaining instructions in the loop are for the exposure at each panel.
+      * Optional `Move Focuser` if you are doing focus stacking of the foreground.
+      * A Smart Exposure instruction to capture one or more foreground frames at each panel.
 
-![Alpaca Pilot Capturing Set of Panels](images/pilot-panoseq2.png)
-
+![Alpaca Pilot Capturing Set of Panels](images/pilot-pano-seq2fore.png)
 
 ### 4.3 Capturing the Sky Background
 
 The sky background pass is usually captured later in the session and is typically tracked, allowing longer exposures and improved signal-to-noise. Depending on the composition, this pass may reuse the same grid geometry as the foreground or extend to additional rows at higher altitude. It may be horizon-locked to aid in aligning panels between foreground and background.
 
-The sequence structure is similar to the foreground pass, with key differences in configuration:
-
-* Polaris:PanoSet
-   * Enable tracking.
-   * Select the desired tracking mode.
-   * Preserve the existing grid reference so panel geometry remains consistent.
-* Looped capture block
-   * Iterate over all required panels.
-   * Use Polaris:PanoSlew to move between panels.
-   * Capture longer tracked exposures at each panel.
+The sequence structure is similar to the foreground pass, with key differences in PanoGrid and SmartExposure configuration.  A typical panorama sky workflow includes:
+* An outer Sequential Instruction Set, named as a template for your Panorama
+   * First instruction is a Device Action `Polaris:PanoGrid`
+      * Configure the panorama grid for foreground capture.
+      * No need to set cols, rows, hstep, vstep, if they are the same as foreground.
+      * Set `"track": 1` for Sky - Horizon-Locked.
+      * Set `"panel": 0` to change current panel to begining of sequence
+   * Second optional instruction `Wait for Time` set to `Nautical Dark`
+   * Third instruction is a Sequencital Instruction Set
+* The Inner Sequenctial Instruction Set, loops through panels.
+   * Set Loop Condition as a `Loop for Iterations` and use total number of panels.
+   * First instruction is a Device Action `Polaris:PanoSlew` with no Parameters
+   * A Smart Exposure instruction to capture one or more tracked frames at each panel.
 
 Because the panorama grid is deterministic and persistent, the sky background pass will revisit the same panel centres as the foreground pass, even if the two passes are captured hours apart. This greatly simplifies later alignment, compositing, and stitching.
+
+![Alpaca Pilot Capturing Set of Panels](images/pilot-pano-seq2back.png)
 
 
 ## 5. Stitching the Panorama
 
-Common stitching tools include:
+Once you have captured all of the images for the panorama, you will need to use a dedicated **stitching application** to combine the individual panels into a single mosaic. These applications align overlapping frames, correct perspective, and blend exposure and color differences. There are many capable options available, depending on your workflow and experience level.
 
-* PTGui
-* Hugin
-* PixInsight
-* Adobe Photoshop
+* **Kolor Autopano Giga** – A powerful, fully automatic stitcher with advanced projection models and excellent handling of complex panoramas.
+* **Adobe Photoshop** – Provides basic panorama stitching via *Photomerge*, suitable for simple mosaics and users already in the Adobe ecosystem.
+* **Microsoft ICE** – A lightweight and easy-to-use tool that works well for straightforward panoramas with minimal manual control.
+* **PTGui** – A professional-grade panorama stitcher offering precise control, robust optimization tools, and excellent results for large mosaics.
+* **Hugin** – An open-source alternative with extensive manual controls, ideal for users who want fine-grained adjustment.
+* **PixInsight** – Designed primarily for astrophotography, offering advanced tools for stitching wide-field night-sky mosaics with high precision.
 
-Free options such as **Mega Panorama Stitcher** may also be used, subject to their respective licences.
+You may want to try **Kolor Autopano Giga**, as some users report better results due to its wide range of perspective mappings and advanced features. It is now available free of charge; further details can be found on HDRMaps:
+**AutoPano Giga Is Now Free** [https://hdrmaps.com/blog/autopano-giga-is-now-free/](https://hdrmaps.com/blog/autopano-giga-is-now-free/)
 
----
 
 ## 6. Closing Notes
 
