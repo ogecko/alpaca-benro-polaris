@@ -2252,7 +2252,7 @@ class Polaris:
         await self.send_cmd_park()
 
 
-    async def slew_to_panel(self, target: int | None, isasync:bool=False) -> None:
+    async def slew_to_panel(self, target, isasync:bool=False) -> None:
         new_panel = target
         if target is None:
             current = getattr(Config, "panel", 0)
