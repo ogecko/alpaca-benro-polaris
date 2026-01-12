@@ -1054,7 +1054,7 @@ class PID_Controller():
         else:
             self.Kv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
 
-    def reset_offsets(self, axes):
+    def reset_offsets(self, axes=None):
         self.reset_delta_offsets(axes)
         self.reset_alpha_offsets(axes)
 
