@@ -32,13 +32,16 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.0.1 
-- **[Panorama Control]** Add flexible Panorama Layout for Landscape (untracked), Sky (Locked-Horizon), Sky (tracked), with manual preview and persistence
+- **[Panorama Settings]** Add flexible Panorama Grid for Landscape (untracked), Sky (Horizon-Locked), Sky (tracked), that can be revisted, reordered and reused.
+- **[Panorama Automation]** Add device actions PanoGrid and PanoSlew for automation in Nina Advanced Sequencer and CCDScripts
+- **[Panel Navigation]** Add optional Panel navigation controls on the main dashboard
 - **[Advanced Sequencer]** Add Panorama Actions for use in Nina's Advanced Sequencer and Templates.
 - **[Meteor Calendar]** Added a link to the International Meteor Organization’s Meteor Shower Calendar on the Comets page.
 - **[Sky Conditions]** Added a Sky Conditions page providing sunrise and sunset times, moonrise and moonset, eclipse data, cloud cover, jet stream forecasts, and light pollution information.
 - **[Stop Driver]** The Alpaca Pilot Connect page now allows you to stop the Alpaca Driver directly.
 - **[Class Documentation]** Added definitions of Catalog Class object classification codes to pilot.md to help guide imaging and filter strategy.
 - **[Flat Frames]** Added a flat-frame orientation example to catalog.sample.json
+- **[Config Updates]** Stream config updates so that all Alpaca Pilot Clients receive the new configuration settings immediately (used for Panoramas) 
 
 ## New Features (enabled by Nina)
 

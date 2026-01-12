@@ -158,7 +158,6 @@ export const useConfigStore = defineStore('config', {
 
     async configUpdate(payload: Partial<ConfigResponse>) {
       try {
-        console.log('configUpdate pre',payload)
         const updated = await dev.apiAction<ConfigResponse>('Polaris:ConfigUpdate', payload)
         this.$patch(updated)
         console.log('configUpdate',updated)

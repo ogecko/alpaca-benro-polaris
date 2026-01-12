@@ -205,9 +205,11 @@ watch(
       if (dev.restAPIConnected && socket) {
         socket.connectSocket()
         socket.subscribe('status')
+        socket.subscribe('cfg')
       }
     } else {
       socket.unsubscribe('status')
+      socket.unsubscribe('cfg')
     }
   },
   { immediate: true }     // ensure it runs immediately on component mount, as boot/autoconnect.ts may have already connected

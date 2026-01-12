@@ -36,6 +36,7 @@
 import os, toml, json
 from typing import Dict, Any
 from pathlib import Path
+import logging
 
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (config.py)
@@ -96,6 +97,10 @@ class Config:
             cls._current[key] = coerced
             setattr(cls, key, coerced)
             applied[key] = coerced
+
+        cfglogger = logging.getLogger('cfg') 
+        cfglogger.info(applied)
+
         return applied
 
     @classmethod
