@@ -29,7 +29,7 @@
             <thead>
               <tr><th class="text-left">Component</th><th class="text-left">Version</th></tr>
             </thead>
-            <tr><td>Alpaca Pilot App</td><td>v2.0.1</td></tr>
+            <tr><td>Alpaca Pilot App</td><td>v2.1.0 Beta1</td></tr>
             <tr><td>{{ dev.alpacaServerName }}</td><td>v{{ dev.alpacaServerVersion }}</td></tr>
             <tr><td>Benro Polaris Firmware</td><td>v{{ p.polarisswver }}</td></tr>
             <tr><td>Benro Polaris Hardware</td><td>v{{ p.polarishwver }}</td></tr>

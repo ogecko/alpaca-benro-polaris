@@ -3,11 +3,11 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.0.1
+* **Version:** 2.1.0 Beta1
 * **Release Date:** TBD 
-* **Availability:** Download from [Alpaca Driver v2.0.1 Download ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.0.1.zip)
+* **Availability:** Download from [Alpaca Driver v2.1.0 Download ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.1.0.zip)
 * **License:** Distributed exclusively for backers of the [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v)
-* **Current Branch:** releases/2_0_1
+* **Current Branch:** releases/2_1_0_beta1
 
 ## Demonstration Videos
 * **20 - Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
@@ -18,6 +18,7 @@
 * **25 - Equipment Safety:** Demonstration Video at https://youtu.be/45EP-DExSOQ
 * **26 - Tracking Orbitals:** Demonstration Video at https://youtu.be/no47ZNagEDk
 * **27 - Pulse Guiding:** Demonstration Video at https://youtu.be/dn1nLxT5eWw
+* **28 - Panoramas:** Demonstration Video at TBD
 * **31 - Kalman Filter:** Demonstration Video at https://youtu.be/aDFKAWBNQHU
 * **32 - Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
 * **33 - PID Tuning:** Demonstration Video at https://youtu.be/6vJbSb0gl3M
@@ -31,7 +32,7 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in v2.0.1 
+## What's new in v2.1.0 
 - **[Panorama Settings]** Add flexible Panorama Grid for Landscape (untracked), Sky (Horizon-Locked), Sky (tracked), that can be revisted, reordered and reused.
 - **[Panorama Automation]** Add device actions PanoGrid and PanoSlew for automation in Nina Advanced Sequencer and CCDScripts
 - **[Panel Navigation]** Add optional Panel navigation controls on the main dashboard
