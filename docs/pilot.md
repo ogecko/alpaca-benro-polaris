@@ -965,6 +965,8 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 - **① Columns `"cols":`**  Number of horizontal panels across the panorama. Range: **2–14**. 
 - **② Rows `"rows":`**  Number of vertical panels in the panorama. Range: **1–3**.
 
+- **③ Panel Spacing Calculator:**  Used to calculate **Sensor Field of View** including recommended Horizontal and Vertical Step. See below.
+
 - **③ Horizontal Step `"hstep":`**  Angular distance, in **decimal degrees**, between the centres of adjacent horizontal panels. Factor in FOV overlap.
 
 - **④ Vertical Step `"vstep":`**  Angular distance, in **decimal degrees**, between the centres of adjacent vertical panels. Factor in FOV overlap.
@@ -1047,77 +1049,20 @@ Once a panorama grid is defined, you will probably want to verify its coverage a
 
 ![Alpaca Pilot Pano Navigation](images/pilot-pano2.png)
 
-### 3.1 Calculating for theoretical panel overlap
-The Panorama Grid is designed to be simple. Rather than specifying sensor size, resolution, desired overlap and lens parameters, it uses just two angular steps, `hstep` and `vstep` to define the spacing between panels. These fields effect the horizontal and vertical spacing of the panels from the cameras field of view.
+### 3.1 Panel Spacing Calculator
+The Panorama Grid is designed to be simple, with the minimum number of parameters. It uses just two angular steps, `hstep` and `vstep` to define the spacing between panels. These fields effect the horizontal and vertical spacing of the panels from the cameras field of view.
 
-To calculate the theoretical values for `hstep` and `vstep`:
-* Use a field-of-view calculator such as [Astronomy Tools](https://astronomy.tools/calculators/field_of_view/)
-   * Switch to Imaging Mode and pick any target object.
-   * Enter your **focal length (mm)** and **camera model**.
-   * Note the horizontal and vertical FOV in degrees.
-   * `hstep` and `vstep` are calculated as  **hstep = FOV × (1 − overlap)**.
-* Set `hstep` to a fraction of the horizontal FOV to achieve the desired overlap. 
-   * For example, to acheive 20% overlap, you would set `hstep` to 80% of the horizontal FOV. 
-   * From the calculator below 80% of 54.38 would be 43.5.
-* Similarly, set `vstep` as a fraction of the vertical FOV.
-   * From the calculator below 80% of 37.83 would be 30.3. 
-* So to achieve 20% overlap
-   * You would set `{ "hstep": 43.5 , "vstep": 30.3 }`
- 
+A calulator is provided calculate these properties:
+* Click on the Calculator icon on the Panorama Settings Card
+* Select your sensor size, or enter its dimensions in mm.
+* Select your lens focal length in mm.
+* Select the percentage of overlap between each panel
+* The calculator with determine the Sensors Field of View in Degrees as well as the Recommended Panel Step, given your desired overlap.
+* Click `Apply` to set the Horizontal Step and Vertical Step for the Panorama Grid. This will also store the Sensor Size, Focal Length and Overlap for next time you use the calculator.
 
-![Astronomy Tools](./images/pilot-panotools.png)
+![Astronomy Tools](./images/pilot-panocalc.png)
 
-### 3.2 Example Panorama Step Sizes (`hstep` and `vstep`)
-
-The following tables provide **example values** for horizontal and vertical panorama step sizes based on common sensor formats and focal lengths. These values are intended as a starting point when defining a panorama grid and assume rectilinear lenses with minimal distortion.
-
-**Full Frame (36 × 24 mm)**: 
-This table assumes a full-frame sensor and is representative of cameras such as the Canon R5, Nikon Z8/Z9, or Sony α7 series.
-
-| Sensor     | Focal Length | Field of View | Overlap | hstep (°) | vstep (°) |
-| ---------- | ------------ | ------------- | ------- | --------- | --------- |
-| Full Frame | 14 mm        | 104° × 81°    | 20%     | 83.2      | 64.8      |
-| Full Frame | 14 mm        | 104° × 81°    | 40%     | 62.4      | 48.6      |
-| Full Frame | 24 mm        | 84° × 62°     | 20%     | 67.2      | 49.6      |
-| Full Frame | 24 mm        | 84° × 62°     | 40%     | 50.4      | 37.2      |
-| Full Frame | 35 mm        | 63° × 44°     | 20%     | 50.4      | 35.2      |
-| Full Frame | 35 mm        | 63° × 44°     | 40%     | 37.8      | 26.4      |
-| Full Frame | 50 mm        | 40° × 27°     | 20%     | 32.0      | 21.6      |
-| Full Frame | 50 mm        | 40° × 27°     | 40%     | 24.0      | 16.2      |
-| Full Frame |	100 mm	    | 20° × 14°	  | 20%     | 16.0      | 11.2      |
-| Full Frame |	100 mm	    | 20° × 14°	  | 40%     | 12.0      | 8.4       |
-
-**APS-C (≈23.5 × 15.6 mm)**: This table assumes a typical APS-C sensor with a ~1.5× crop factor, as found in many DSLR and mirrorless cameras.
-
-| Sensor | Focal Length | Field of View | Overlap | hstep (°) | vstep (°) |
-| ------ | ------------ | ------------- | ------- | --------- | --------- |
-| APS-C  | 14 mm        | 76° × 56°     | 20%     | 60.8      | 44.8      |
-| APS-C  | 14 mm        | 76° × 56°     | 40%     | 45.6      | 33.6      |
-| APS-C  | 24 mm        | 53° × 37°     | 20%     | 42.4      | 29.6      |
-| APS-C  | 24 mm        | 53° × 37°     | 40%     | 31.8      | 22.2      |
-| APS-C  | 35 mm        | 37° × 25°     | 20%     | 29.6      | 20.0      |
-| APS-C  | 35 mm        | 37° × 25°     | 40%     | 22.2      | 15.0      |
-| APS-C  | 50 mm        | 26° × 17°     | 20%     | 20.8      | 13.6      |
-| APS-C  | 50 mm        | 26° × 17°     | 40%     | 15.6      | 10.2      |
-| APS-C  | 100 mm	      | 20° × 14°	    | 20%     | 10.4      | 7.2       |
-| APS-C  | 100 mm	      | 20° × 14°	    | 40%     | 7.8       | 5.4       |
-
-**IMX585 (11.2 × 6.3 mm)**: This table assumes the Sony **IMX585** sensor, commonly used in astronomy cameras. Because of the much smaller sensor size, step values decrease rapidly with focal length, and overlap becomes more sensitive to mechanical and optical tolerances.
-
-| Sensor | Focal Length | Field of View | Overlap | hstep (°) | vstep (°) |
-| ------ | ------------ | ------------- | ------- | --------- | --------- |
-| IMX585 | 14 mm        | 44° × 25°     | 20%     | 35.2      | 20.0      |
-| IMX585 | 14 mm        | 44° × 25°     | 40%     | 26.4      | 15.0      |
-| IMX585 | 24 mm        | 26° × 15°     | 20%     | 20.8      | 12.0      |
-| IMX585 | 24 mm        | 26° × 15°     | 40%     | 15.6      | 9.0       |
-| IMX585 | 35 mm        | 18° × 10°     | 20%     | 14.4      | 8.0       |
-| IMX585 | 35 mm        | 18° × 10°     | 40%     | 10.8      | 6.0       |
-| IMX585 | 50 mm        | 12° × 7°      | 20%     | 9.6       | 5.6       |
-| IMX585 | 50 mm        | 12° × 7°      | 40%     | 7.2       | 4.2       |
-| IMX585 | 100 mm	      | 6° × 3.5°	    | 20%     | 4.8       | 2.8       |
-| IMX585 | 100 mm	      | 6° × 3.5°	    | 40%     | 3.6       | 2.1       |
-
-### 3.3 Verifying actual Panel overlap
+### 3.2 Verifying actual Panel overlap
 The actual panel overlap may differ from theoretical calculations, especially with wide-angle lenses. Use the verification procedure below to confirm with your setup before your imaging session begins.
 
 To check the horizontal and vertical overlap:
@@ -1127,7 +1072,7 @@ To check the horizontal and vertical overlap:
 * Slew to the adjacent horizontal panel and check the overlap. Adjust `hstep` as needed.
 * Repeat for vertical panels to confirm `vstep` ensures sufficient overlap.
 
-### 3.4 Verifying panorama coverage
+### 3.3 Verifying panorama coverage
 Once on site, you can confirm that your panorama grid captures the full scene and desired foreground, and reaches the sky elevation needed for your selected celestial target.
 
 To check the horizontal extent of the scene:

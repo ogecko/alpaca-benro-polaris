@@ -34,6 +34,7 @@
 
 ## What's new in v2.1.0 
 - **[Panorama Settings]** Add flexible Panorama Grid for Landscape (untracked), Sky (Horizon-Locked), Sky (tracked), that can be revisted, reordered and reused.
+- **[Panorama Calculator]** Use the Panel Spacing Calculator to determine your sensor’s field of view (FOV) and the recommended panel step for a desired image overlap.
 - **[Panorama Automation]** Add device actions PanoGrid and PanoSlew for automation in Nina Advanced Sequencer and CCDScripts
 - **[Panel Navigation]** Add optional Panel navigation controls on the main dashboard
 - **[Advanced Sequencer]** Add Panorama Actions for use in Nina's Advanced Sequencer and Templates.

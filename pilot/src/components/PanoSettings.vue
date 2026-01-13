@@ -4,10 +4,14 @@
     <q-card flat bordered class="q-pa-md full-width">
         <div class="text-h6">Panorama Grid Layout</div>
         <div class="row q-col-gutter-lg  items-center q-pt-sm">
-            <q-input class="col-3" v-bind="bindField('cols', 'Columns')" type="number" input-class="text-right" dense/>
-            <q-input class="col-3" v-bind="bindField('rows', 'Rows')" type="number" input-class="text-right" dense/>
-            <q-input class="col-3" v-bind="bindField('hstep', 'Horz Step', '°')" type="number" input-class="text-right" dense/>
-            <q-input class="col-3" v-bind="bindField('vstep', 'Vert Step', '°')" type="number" input-class="text-right" dense/>
+            <q-input class="col-2" v-bind="bindField('cols', 'Columns')" type="number" input-class="text-right" dense/>
+            <q-input class="col-2" v-bind="bindField('rows', 'Rows')" type="number" input-class="text-right" dense/>
+            <div class="col-1"></div>
+            <q-btn  class="col-1 self-end q-pt-sm" size="md"  text-color="grey-6"  flat rounded dense icon="mdi-calculator">
+              <q-popup-proxy><PanoCalculator class=""/></q-popup-proxy>
+            </q-btn>
+            <q-input class="col-3" v-bind="bindField('hstep', 'Horizontal Step', '°')" type="number" input-class="text-right" dense/>
+            <q-input class="col-3" v-bind="bindField('vstep', 'Vertical Step', '°')" type="number" input-class="text-right" dense/>
         </div>
         <div class="row q-col-gutter-lg  items-center q-pt-lg">
             <q-select
@@ -78,6 +82,7 @@ import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { debounce } from 'quasar'
 import PanoNavigation from 'src/components/PanoNavigation.vue'
+import PanoCalculator from 'src/components/PanoCalculator.vue'
 
 const dev = useDeviceStore()
 const cfg = useConfigStore()

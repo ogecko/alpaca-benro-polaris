@@ -30,6 +30,8 @@ default_azimuth = '180'                     # String 'deg:mm:ss' used by Alpaca 
 default_altitude = '45'                     # String 'deg:mm:ss' used by Alpaca Pilot as default altitude on Single Star Align
 
 [panorama]
+sensor_size = 'Full Frame (36 × 24 mm)'     # Sensor size in mm. Only used in Panel Spacing Calculator. 
+panel_overlap = '30%'                       # Overlap betwen adjacent panels. Only used in Panel Spacing Calculator. 
 show_panels = false                         # Show Panorama Grid Panel Navigation on Main Dashboard  
 cols = 3                                    # Number of panels across the mosaic. Range: 2–14
 rows = 1                                    # Number of panels vertically. Range: 1–3

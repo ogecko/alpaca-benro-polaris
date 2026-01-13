@@ -44,6 +44,8 @@ export const useConfigStore = defineStore('config', {
     focal_ratio: 11,
 
     // Panorama
+    sensor_size: 'Full Frame (36 × 24 mm)', 
+    panel_overlap: '30%', 
     show_panels: false,
     cols: 3,
     rows: 1,
