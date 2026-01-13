@@ -1018,9 +1018,9 @@ Parameters are supplied in JSON format, enclosed in braces { }. Field names corr
 #### **Using NINA Advanced Sequencer**
 To access Device Actions from the **Nina Advanced Sequencer** you must first install the **Device Actions and Commands** plug-in for Nina. Once installed, Device Actions become available in the Advanced Sequence Instructions list, located near the bottom of the instruction list under Utility.
 
-The `Polaris:PanoGrid` device action can then be added as an instruction in your sequence and it typically placed near the begining to initialise the Panorama Grid for a specific capture pass. When adding the Device Action, set the Device to Telescope, then select `Polaris:PanoGrid` from the action dropdown, where it appears near the bottom of the list.
+The `Polaris:PanoGrid` device action can then be added as an instruction in your sequence and it is typically placed near the begining to initialise the Panorama Grid for a specific capture pass. When adding the Device Action, set the Device to Telescope, then select `Polaris:PanoGrid` from the action dropdown, where it appears near the bottom of the list.
 
-When used in a sequential instruction block, the action can be given a descriptive name (for example, “50 mm, 5×3,  Horizon-Locked Grid”) and saved as a template. This makes it easy to reuse consistent panorama grid definitions across multiple sessions or combine them into larger, multi-pass workflows.
+When used in a sequential instruction block, the block can be given a descriptive name (for example, “50 mm, 5×3,  Horizon-Locked Grid”) and saved as a template. This makes it easy to reuse consistent panorama grid definitions across multiple sessions or combine them into larger, multi-pass workflows.
 
 In the example below, a 5×3 horizon-locked grid for a 50 mm lens is defined using a `Polaris:PanoGrid` action. 
 
