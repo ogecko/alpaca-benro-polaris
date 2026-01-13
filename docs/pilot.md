@@ -1016,7 +1016,7 @@ Parameters are supplied in JSON format, enclosed in braces { }. Field names corr
 > Note: Defining or updating the Panorama Grid does not move the mount. The new grid settings are only applied when the driver is instructed to slew to a given panel or to advance to the next panel.
 
 #### **Using NINA Advanced Sequencer**
-The `Polaris:PanoGrid` device action can be added as an instruction in a **NINA Advanced Sequencer** and is typically used near the start of a sequence to initialise the Panorama Grid for a particular capture pass.
+The `Polaris:PanoGrid` device action can be added as an instruction in a **NINA Advanced Sequencer** and is typically used near the start of a sequence to initialise the Panorama Grid for a particular capture pass. You can find the Device Action, in the Advanced Sequence Instructions list, at the bottom of the list under Utility. Once you have added Device Action to your sequence, the `Polaris:PanoGrid` can be selected from the telescope action dropdown, near the bottom of the list.
 
 When used in a sequential instruction block, the action can be given a descriptive name (for example, “50 mm, 5×3,  Horizon-Locked Grid”) and saved as a template. This makes it easy to reuse consistent panorama grid definitions across multiple sessions or combine them into larger, multi-pass workflows.
 
