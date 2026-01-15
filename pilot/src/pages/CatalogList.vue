@@ -315,7 +315,12 @@ const allLinks = computed(() => [
     href: `https://www.ventusky.com/precipitation-map/3-hours#p=${cfg.site_latitude};${cfg.site_longitude};11`,
   },
   {
-    C1: 11 as DsoType, icon: "mdi-weather-windy", title: 'Meteoblue',
+    C1: 11 as DsoType, icon: "mdi-weather-windy", title: 'Windy',
+    caption: 'Provides detailed, visual forecasts of wind, cloud cover, and weather. (external site).',
+    href: `https://www.windy.com/?${cfg.site_latitude},${cfg.site_longitude},11`,
+  },
+  {
+    C1: 11 as DsoType, icon: "mdi-weather-night-partly-cloudy", title: 'Meteoblue',
     caption: 'Astronomoy Seeing Conditions and Predictions (external site).',
     href: `https://www.meteoblue.com/fr/meteo/outdoorsports/seeing/`,
   },
