@@ -415,7 +415,7 @@ class Polaris:
         try:
             if self._writer:
                 if self._writer.transport.is_closing():
-                    self.logger.warning("Writer transport is closing — skipping drain")
+                    self.logger.debug("Writer transport is closing — skipping drain")
                     return
                 self._writer.write(msg.encode())
                 await asyncio.wait_for(self._writer.drain(), timeout=2.0)
