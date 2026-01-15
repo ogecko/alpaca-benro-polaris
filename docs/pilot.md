@@ -939,7 +939,7 @@ This guide explains how to plan, configure, and capture panoramas using the **Al
 
 While the Benro Polaris Standard Panorama and Pro Panorama modes are excellent for capturing wide-field panoramas, more advanced composite panoramas often move beyond this simple model. These workflows may involve mixing tracked and untracked panels, revisiting the same framing over extended periods, or coordinating multiple capture passes with different exposure strategies or even focus stacking. In such cases, the limitations of a fixed, single-pass panorama workflow become apparent.
 
-The Alpaca Driver approaches panoramas from a different perspective. Rather than treating a panorama as a one-shot operation, it defines a deterministic grid of pointings that can be revisited, reordered, and reused. Panel geometry is defined explicitly, slews are repeatable, and camera orientation is controlled in a predictable way. This allows the same panorama definition to be reused hours or even days later, or embedded cleanly into larger automated workflows.
+The Alpaca Driver approaches panoramas from a different perspective. Rather than treating a panorama as a one-shot operation, it defines a deterministic grid of pointings anchored in space, that can be revisited, reordered, and reused. Panel geometry is defined explicitly, slews are repeatable, and camera orientation is controlled in a predictable way. This allows the same panorama definition to be reused hours or even days later, or embedded cleanly into larger automated workflows.
 
 In addition, the Alpaca Driver provides finer control over capture sequencing, tracking state, roll angle, and reference positioning. This makes it possible to deliberately structure separate capture passes. For example, an untracked foreground landscape pass, a tracked sky pass, or even the inclusion of an orbital layer within the same overall composition.
 
@@ -947,7 +947,7 @@ In short, while the Benro Polaris hardware is already capable of producing excel
 
 ## 2. Defining a Panorama Grid
 
-At the core of the Alpaca Driver’s panorama system is the concept of a single, deterministic panorama grid. At any given time, exactly one panorama grid is active in the driver. This grid defines the geometry, ordering, tracking behaviour, and reference position for all panorama-related slews.
+At the core of the Alpaca Driver’s panorama system is the concept of a single, deterministic panorama grid anchored in space. At any given time, exactly one panorama grid is active in the driver. This grid defines the geometry, ordering, tracking behaviour, and reference position for all panorama-related slews.
 
 The active panorama grid can be defined or modified either interactively using Alpaca Pilot, or programmatically using NINA’s Advanced Sequencer. Regardless of how it is configured, the driver always operates against the same internal panorama grid.
 
@@ -986,10 +986,15 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    * **3 – Sky · Orbital**: Tracking and camera roll are left unchanged.
    *Use for mosaics centred on tracked orbitals.*
 
-- **⑦ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the reference position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
-   * **0 – Whole Mosaic**:  The entire panorama is centred on the reference position.
-   * **n – Panel n**:   This panel is placed at the reference position and all other panels are offset accordingly.
-
+- **⑦ Anchor Panel `"anchor":`** Determines which panel's center is “pinned” to the reference position in space. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation. The positions of all other panels are automatically calculated relative to the anchor:
+   * **0 – Whole Mosaic**:  Special case where the center of the entire panorama is placed at the reference position. This is useful when you want the grid to be symmetrically centered around a point in space.
+   * **n – Panel n**:   The center of the selected panel is placed at the reference position.
+      * Example: On a 5x2 grid with row-major ordering:
+         * Chosing Panel 1 places the bottom-left panel at the reference position
+         * Chosing Panel 3 places the middle panel of the bottom row at the reference position.
+         * Chosing Panel 5 places the bottom-right panel at the reference position
+         * Chosing Panel 8 places the top-middle panel at the reference position
+         
 
 - **⑧ to Reference Position Type `"ref":`** Defines the coordinate system used by the reference position.
    * **0 – Az / Alt / Roll** Topocentric coordinates.
@@ -999,7 +1004,7 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    If tracking is enabled, the position is stored as equatorial coordinates; otherwise it is stored as topocentric coordinates.
 
 
-- **⑨ Reference Position:** Defines the actual reference position:
+- **⑨ Reference Position:** Defines the actual reference position in space that the panorama is pinned to. Changing these coordinates will shift the entire panorama grid so that the center of the anchor panel (or the center of the mosaic, if anchor = 0) is placed on this point:
 
    * **Reference Axis 1 `"r1":`**: Azimuth, Right Ascension, or Orbital ID
    * **Reference Axis 2 `"r2":`**: Altitude or Declination (decimal degrees)
@@ -1054,7 +1059,8 @@ The Panorama Grid is designed to be simple, with the minimum number of parameter
 
 A calulator is provided calculate these properties:
 * Click on the Calculator icon on the Panorama Settings Card
-* Select your sensor size, or enter its dimensions in mm.
+* Select your sensor size. 
+   > You can also enter custom sensor sizes by typing the horizontal x vertical size in mm. For example entering "16 x 9" sets a 16 x 9mm sesnor size.
 * Select your lens focal length in mm.
 * Select the percentage of overlap between each panel
 * The calculator with determine the Sensors Field of View in Degrees as well as the Recommended Panel Step, given your desired overlap.
@@ -1174,15 +1180,22 @@ Because the panorama grid is deterministic and persistent, the sky background pa
 Once you have captured all of the images for the panorama, you will need to use a dedicated **stitching application** to combine the individual panels into a single mosaic. These applications align overlapping frames, correct perspective, and blend exposure and color differences. There are many capable options available, depending on your workflow and experience level.
 
 * **Kolor Autopano Giga** – A powerful, fully automatic stitcher with advanced projection models and excellent handling of complex panoramas.
-* **Adobe Photoshop** – Provides basic panorama stitching via *Photomerge*, suitable for simple mosaics and users already in the Adobe ecosystem.
-* **Microsoft ICE** – A lightweight and easy-to-use tool that works well for straightforward panoramas with minimal manual control.
+* **Hugin** – An open-source alternative with extensive manual controls, ideal for users who want fine-grained adjustment. Based on same library as PTGui.
 * **PTGui** – A professional-grade panorama stitcher offering precise control, robust optimization tools, and excellent results for large mosaics.
-* **Hugin** – An open-source alternative with extensive manual controls, ideal for users who want fine-grained adjustment.
+* **Adobe Photoshop** – Provides basic panorama stitching via *Photomerge*, suitable for simple mosaics and users already in the Adobe ecosystem.
+* **Adobe Lightroom Classic** - Provides basic panorama stitching via *Photomerge*, only three basic projection types.
+* **Microsoft ICE** – A lightweight and easy-to-use tool that works well for straightforward panoramas with minimal manual control.
 * **PixInsight** – Designed primarily for astrophotography, offering advanced tools for stitching wide-field night-sky mosaics with high precision.
 
-You may want to try **Kolor Autopano Giga**, as some users report better results due to its wide range of perspective mappings and advanced features. It is now available free of charge; further details can be found on HDRMaps:
+You may want to try **Kolor Autopano Giga**, as some users report better results due to its wide range of perspective mappings and advanced features. Further details can be found on HDRMaps:
 **AutoPano Giga Is Now Free** [https://hdrmaps.com/blog/autopano-giga-is-now-free/](https://hdrmaps.com/blog/autopano-giga-is-now-free/)
 
+To register the free version
+* Download and install the application. Windows Installer at https://download.hdrmaps.com/AutopanoGiga_x64_442_2018-09-10.exe
+* Run the application as Administrator the first time to ensure the registration details are saved.
+   * User: freecopy@kolor.com
+   * Registration code: KAPG7-K3A9X-IZJHX-FIIT7-C5IM8-MQF2N
+* Once registered, the application can be launched normally without Administrator privileges.
 
 ## 6. Closing Notes
 
