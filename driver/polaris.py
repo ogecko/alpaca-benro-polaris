@@ -2299,6 +2299,10 @@ class Polaris:
         total_panels = rows * cols
         if panel < 1 or panel > total_panels:
             raise ValueError(f"Panel {panel} is out of range (1-{total_panels})")
+        
+        # --- Force anchor to 0 if out of bounds ---
+        if anchor < 0 or anchor > total_panels:
+            anchor = 0  # default to center panel if invalid
 
         # --- Build grid (row 0 = bottom, col 0 = left) ---
         grid = [[0 for _ in range(cols)] for _ in range(rows)]
