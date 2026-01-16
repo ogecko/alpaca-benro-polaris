@@ -1060,9 +1060,10 @@ The Panorama Grid is designed to be simple, with the minimum number of parameter
 A calulator is provided calculate these properties:
 * Click on the Calculator icon on the Panorama Settings Card
 * Select your sensor size. 
-   > You can also enter custom sensor sizes by typing the horizontal x vertical size in mm. For example entering "16 x 9" sets a 16 x 9mm sesnor size.
+   > You can also enter a custom sensor size by typing `ww x hh` and pressing *Enter*.  For example typing `16 x 9` and pressing *Enter*, sets a 16 x 9 mm sesnor size.
 * Select your lens focal length in mm.
 * Select the percentage of overlap between each panel
+   > You can also enter a custom focal length or overlap value by typing a number and pressing *Enter*. For example, typing `16` and pressing *Enter* in the Focal Length field will set the focal length to 16 mm.
 * The calculator with determine the Sensors Field of View in Degrees as well as the Recommended Panel Step, given your desired overlap.
 * Click `Apply` to set the Horizontal Step and Vertical Step for the Panorama Grid. This will also store the Sensor Size, Focal Length and Overlap for next time you use the calculator.
 

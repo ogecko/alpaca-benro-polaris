@@ -12,12 +12,12 @@
     />
 
     <q-select
-      v-model="focal_length" class="q-mt-sm" label="Focal Length" dense use-chips
+      v-model="focal_length" class="q-mt-sm" label="Focal Length" new-value-mode="add-unique" use-input use-chips dense emit-value map-options
       :options="['14 mm', '24 mm', '35 mm', '50 mm', '85 mm', '100 mm', '135 mm', '200 mm', '300 mm', '400 mm', '500 mm', '600 mm', '800 mm']"
     />
 
     <q-select
-      v-model="panel_overlap"  class="q-mt-sm" label="Overlap" dense use-chips
+      v-model="panel_overlap"  class="q-mt-sm" label="Overlap" new-value-mode="add-unique" use-input use-chips dense emit-value map-options
       :options="['10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%']"
     />
 
