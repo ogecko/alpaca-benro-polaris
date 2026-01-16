@@ -8,7 +8,7 @@
 
     <q-select
       v-model="sensor_size" label="Sensor Size" new-value-mode="add-unique" use-input use-chips dense emit-value map-options
-      :options="['Full Frame (36 × 24 mm)', 'APS-C / IMX571 (23.5 × 15.7 mm)', 'Micro Four Thirds (17.3 × 13.0 mm)', 'IMX585 (11.2 × 6.3 mm)', 'IMX533 (11.3 × 11.3 mm)']"
+      :options="['Full Frame (36 × 24 mm)', 'APS-C / IMX571 (23.5 × 15.7 mm)', 'Micro Four Thirds (17.3 × 13.0 mm)', 'IMX585 (11.2 × 6.3 mm)', 'IMX533 (11.3 × 11.3 mm)', 'IMX462 (5.6 × 3.2 mm)']"
     />
 
     <q-select
