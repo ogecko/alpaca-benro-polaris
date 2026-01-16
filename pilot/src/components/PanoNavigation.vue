@@ -1,20 +1,24 @@
 
 
 <template>
-        <div class="panel-grid q-mt-sm" :style="{ gridTemplateColumns: `repeat(${cfg.cols}, 1fr)` }">
-          <template v-for="(row, r) in [...panelGrid].reverse()" :key="`row-${r}`">
-            <div
-              v-for="panel in row"
-              :key="panel"
-              class="panel-cell" :class="{ active: panel === cfg.panel }"
-              @click="slewToPanel(panel)"
-            >
-              {{ panel }}
-              <span v-if="panel === nextPanel" class="next-marker" title="Next panel in sequence">✱</span>
-              <span v-if="panel === cfg.anchor" class="next-marker" title="Anchor panel to Reference Position">⚓</span>
-            </div>
-          </template>
-        </div>
+    <q-scroll-area class="panel-scroll">
+      <div class="panel-grid q-mt-sm" :style="{ gridTemplateColumns: `repeat(${cfg.cols}, 1fr)` }">
+        <template v-for="(row, r) in [...panelGrid].reverse()" :key="`row-${r}`">
+          <div
+            v-for="panel in row"
+            :key="panel"
+            class="panel-cell" :class="{ active: panel === cfg.panel }"
+            @click="slewToPanel(panel)"
+          >
+            {{ panel }}
+            <span v-if="panel === nextPanel" class="next-marker" title="Next panel in sequence">✱</span>
+            <span v-if="panel === cfg.anchor" class="next-marker" title="Anchor panel to Reference Position">⚓</span>
+          </div>
+        </template>
+      </div>
+    </q-scroll-area>
+
+
 </template>
 
 <script setup lang="ts">
@@ -94,16 +98,23 @@ async function slewToPanel(panel: number) {
 </script>
 
 <style lang="css">
-  .panel-grid {
+
+.panel-scroll {
+height: 180px; 
+max-width: 100%;
+}
+
+.panel-grid {
   display: grid;
-  gap: 8px;
+  gap: 5px;
 }
 
 .panel-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 48px;
+  height: 45px;
+  min-width: 45px;
   cursor: pointer;
   font-weight: 500;
   border-radius: 6px;
