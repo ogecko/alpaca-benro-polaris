@@ -370,12 +370,12 @@ def quaternion_to_motors(q1, lastPos=None):
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
-    # Choose the best mechnical solution
+    # Choose the best mechanical solution
     if theta2_A < -8:           # Rules out Solution A
         [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
     elif theta2_B < -8:         # Rules out Solution B
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
-    else:                       # --- Choose the solution closest to the last mechnical position
+    else:                       # --- Choose the solution closest to the last mechanical position
         diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A,)
         diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B,)
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if diffA<diffB else [theta1_B, theta2_B, theta3_B]
@@ -399,7 +399,7 @@ def quaternion_to_angles(q1, lastPos = None):
         q1: Quaternion that rotates from camera frame to topocentric frame
             Camera frame: -z = boresight, +x = up, +y = left
             Topocentric frame: +z = Zenith, +y = North, +x = East
-        lastPos: last mechnical position (LastPosition object)
+        lastPos: last mechanical position (LastPosition object)
     
     Returns:
         tuple: (theta1, theta2, theta3, alt, az, roll)
