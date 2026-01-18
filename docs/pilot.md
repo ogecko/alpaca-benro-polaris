@@ -1094,7 +1094,7 @@ To check the vertical extent of the scnene:
 * Confirm that the grid reaches the desired altitude for your targets.
 * Adjust the number of rows or reference position as needed.
 
->Note: Because of potential gimbal lock, the Alpaca Driver may not always be able to calculate a fully deterministic solution when the mount altitude is exactly 0°. When planning panorama grids, avoid placing rows at Altitude 0°. Instead, offset the grid by a few degrees above or below the horizon.
+>Note: Because of potential gimbal lock, the Alpaca Driver may not always be able to calculate a fully canonical solution when the mount altitude is exactly 0°. When planning panorama grids, avoid placing rows at Altitude 0°. Instead, offset the grid by a few degrees above or below the horizon.
 
 
 ## 4 Capturing the Panorama

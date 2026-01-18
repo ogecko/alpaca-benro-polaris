@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import angles_to_quaternion, motors_to_quaternion, quaternion_to_angles, quaternion_to_motors, LastPosition
+from control import angles_to_quaternion, motors_to_quaternion, quaternion_to_angles, quaternion_to_motors, LastPosition, wrap_to_360
 
 
 
@@ -94,7 +94,7 @@ test_355t1_minus7t2_cases = [
     (+355, -7, -100, Quaternion(+0.049, -0.702, -0.135, -0.698)),
     (+355, -7,  -80, Quaternion(-0.074, -0.699, -0.012, -0.711)),
     (+355, -7,  -10, Quaternion(-0.461, -0.531, +0.398, -0.589)),
-    # (+355, -7,    0, Quaternion(-0.506, -0.489, +0.448, -0.552)),  # needs flipping — skip or handle separately
+    (+355, -7,    0, Quaternion(+0.506, +0.489, -0.448, +0.552)),  # needs flipping — skip or handle separately
     (+355, -7,  +10, Quaternion(+0.547, +0.443, -0.494, +0.511)),
     (+355, -7,  +70, Quaternion(+0.695, +0.110, -0.683, +0.196)),
     (+355, -7, +100, Quaternion(+0.699, -0.074, -0.711, +0.012)),
@@ -108,20 +108,20 @@ def test_355t1_minus7t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
 
 test_5t1_0t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
-    (+5, 0, -170, Quaternion(-0.430, +0.561, +0.430, +0.561)),
-    (+5, 0, -100, Quaternion(-0.031, +0.706, +0.031, +0.706)),
-    (+5, 0,  -80, Quaternion(+0.092, +0.701, -0.092, +0.701)),
-    (+5, 0,  -10, Quaternion(+0.478, +0.521, -0.478, +0.521)),
-    # (+5, 0,    0, Quaternion(+0.521, +0.478, -0.521, +0.478)),  # Needs flipping
-    (+5, 0,  +10, Quaternion(-0.561, -0.430, +0.561, -0.430)),
-    (+5, 0,  +80, Quaternion(-0.706, -0.031, +0.706, -0.031)),
-    (+5, 0, +100, Quaternion(-0.701, +0.092, +0.701, +0.092)),
-    (+5, 0, +170, Quaternion(-0.521, +0.478, +0.521, +0.478)),
+    (+5, 0, -170, Quaternion(-0.430, +0.561, +0.430, +0.561), +195,0,0),
+    (+5, 0, -100, Quaternion(-0.031, +0.706, +0.031, +0.706), +265,0,0),
+    (+5, 0,  -80, Quaternion(+0.092, +0.701, -0.092, +0.701), +285,0,0),
+    (+5, 0,  -10, Quaternion(+0.478, +0.521, -0.478, +0.521), +355,0,0),
+    (+5, 0,    0, Quaternion(-0.521, -0.478, +0.521, -0.478), +5,0,0), 
+    (+5, 0,  +10, Quaternion(-0.561, -0.430, +0.561, -0.430), +15,0,0),
+    (+5, 0,  +80, Quaternion(-0.706, -0.031, +0.706, -0.031), +85,0,0),
+    (+5, 0, +100, Quaternion(-0.701, +0.092, +0.701, +0.092), +105,0,0),
+    (+5, 0, +170, Quaternion(-0.521, +0.478, +0.521, +0.478), +175,0,0),
 ]
-@pytest.mark.parametrize("theta1, theta2, theta3, q1", test_5t1_0t2_cases)
-def test_5t1_0t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
+@pytest.mark.parametrize("theta1, theta2, theta3, q1, t1, t2, t3", test_5t1_0t2_cases)
+def test_5t1_0t2_roundtrip_theta_q1(theta1, theta2, theta3, q1, t1,t2,t3):
     assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, theta1Hint=theta1))
+    assert (t1, t2, t3) == tuple(round(x) for x in quaternion_to_motors(q1))
 
 
 
@@ -250,8 +250,11 @@ def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
 def test_misc_t1t2t3_motors_to_q1_roundtrip(n, t1, t2, t3):
     v1,v2,v3 = approx( [t1,t2,t3] )
     q1 = motors_to_quaternion(t1, t2, t3)
-    angles = quaternion_to_motors(q1, theta1Hint=t1, lastPos=LastPosition(t1,t2,t3))
+    angles = quaternion_to_motors(q1, lastPos=LastPosition(t1,t2,t3))
     u1,u2,u3 = approx(angles)
+    if (u2==0):
+        v1 = wrap_to_360(v1+v3)
+        v3 = 0.0
     assert str([f'D{n}', u1,u2,u3]) == str([f'D{n}', v1,v2,v3])
 
 def test_all_motor_positions():

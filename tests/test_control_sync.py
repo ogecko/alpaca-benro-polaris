@@ -25,8 +25,8 @@ class Polaris:
         self.azimuth = 180
         self._pid = PID_Controller()
 
-    def update_ascom_from_new_q1_adj(self, q1s, azhint):
-        a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s, azhint=azhint)
+    def update_ascom_from_new_q1_adj(self, q1s):
+        a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s)
         alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
         theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)
         return alpha_state, theta_state

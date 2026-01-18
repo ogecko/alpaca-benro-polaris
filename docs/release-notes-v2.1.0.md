@@ -71,6 +71,7 @@ Please let us know if you can try any of these features.
 ## Bug Fixes (from v2.0.0 version)
 - **[fix #62]**: Alpaca Driver SupportedActions method incorrectly lists "Polaris:J2000GotoPolaris:Ack" as a single action
 - **[fix #68]**: Setting an Az/Alt/Roll target may intermittently be ignored due to race condition from the tracking loop
+- **[fix #70]**: Correctly detect and resolve potential gimbal lock solutions where second mechanical axis is near zero.
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment

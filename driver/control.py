@@ -329,6 +329,7 @@ class LastPosition:
         self.last_theta1 = t1
         self.last_theta2 = t2
         self.last_theta3 = t3
+        self.in_gimbal_lock = False
     def update(self,t1,t2,t3):
         self.last_theta1 = t1
         self.last_theta2 = t2
@@ -338,9 +339,20 @@ class LastPosition:
         dt2 = angular_difference(t2, self.last_theta2)
         dt3 = angular_difference(t3, self.last_theta3)
         return dt1*dt1 + dt2*dt2 + dt3*dt3
+    def check_for_gimbal_lock(self, theta2):
+        # check new theta2 for potential gimbal lock, with hysteresis to eliminate chatter at boundary
+        GIMBAL_ENTER = 0.01            # Enter gimbal lock when theta2 is less than 18 arcsec
+        GIMBAL_EXIT = 0.02              # Exit gimbal lock when theta2 is greater than 36 arcsec
+        if not self.in_gimbal_lock and abs(theta2) < GIMBAL_ENTER:
+            self.in_gimbal_lock = True
+        elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
+            self.in_gimbal_lock = False
+        return self.in_gimbal_lock
+
+
 _lp = LastPosition()
 
-def quaternion_to_motors(q1, theta1Hint=None, lastPos=None):
+def quaternion_to_motors(q1, lastPos=None):
     """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
     global _lp
     if lastPos is None:
@@ -367,19 +379,19 @@ def quaternion_to_motors(q1, theta1Hint=None, lastPos=None):
         diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A,)
         diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B,)
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if diffA<diffB else [theta1_B, theta2_B, theta3_B]
-    lastPos.update(theta1, theta2, theta3)
 
-    # --- Handle the case where we have a gimbal lock at Alt = 0, ie t1/t3 in gimbal lock
-    alt = np.degrees(np.arcsin(np.clip(tBore[2], -1.0, 1.0)))           # Altitude = Angle from N/E plane, vertically to the Boresight axis
-    if abs(alt) < 1e-10 and theta1Hint is not None:
-        diffC = angular_difference(theta1, theta1Hint)
-        theta1 = wrap_to_360(theta1Hint)
-        theta3 = wrap_to_180(theta3 - diffC)
+    # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
+    in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
+    if in_gimbal_lock:
+        theta1 = wrap_to_360(theta1 + theta3)
+        theta3 = 0.0
+
+    lastPos.update(theta1, theta2, theta3)
 
     return theta1, theta2, theta3
 
 
-def quaternion_to_angles(q1, azhint=None, lastPos = None):
+def quaternion_to_angles(q1, lastPos = None):
     """
     Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
     
@@ -1385,7 +1397,7 @@ class PID_Controller():
         elif self.mode in ['IDLE']:
             if (self.alpha_ref[0]==0):                       # only reset sp in special case
                 self.reset_sp()
-            # self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
+            self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
             self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
@@ -1432,7 +1444,7 @@ class PID_Controller():
         if Config.advanced_alignment and Config.advanced_control:
             q1 = self.polaris._sm.q1_adj.inverse * q1
 
-        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1, azhint=self.alpha_ref[0])
+        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
         self.theta_ref_last = self.theta_ref
         self.theta_ref = np.array([theta1,theta2,theta3])
     
@@ -1695,7 +1707,7 @@ class SyncManager:
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if (Config.advanced_alignment and Config.advanced_control):
-            _,_,_,_,_,p_roll = quaternion_to_angles(self.q1_adj * self.polaris._q1, azhint=self.polaris.azimuth)
+            _,_,_,_,_,p_roll = quaternion_to_angles(self.q1_adj * self.polaris._q1)
             entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using q1_adj
         self.sync_history.append(entry)
         self.optimize_roll_adj()
