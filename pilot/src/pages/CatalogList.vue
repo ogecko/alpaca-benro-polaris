@@ -329,6 +329,11 @@ const allLinks = computed(() => [
     caption: 'Find the best dark sky locations for Astrophotography (external site).',
     href: `https://lightpollutionmap.app/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&zoom=10`,
   },
+  {
+    C1: 11 as DsoType, icon: "mdi-aurora", title: 'Space Weather Prediction Center',
+    caption: 'Aurora Dashboard predicts when and where you can see the northern and sothern lights (external site).',
+    href: `https://www.swpc.noaa.gov/communities/aurora-dashboard-experimental`,
+  },
 
 ])
 
