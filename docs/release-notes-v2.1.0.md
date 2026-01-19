@@ -72,6 +72,7 @@ Please let us know if you can try any of these features.
 - **[fix #62]**: Alpaca Driver SupportedActions method incorrectly lists "Polaris:J2000GotoPolaris:Ack" as a single action
 - **[fix #68]**: Setting an Az/Alt/Roll target may intermittently be ignored due to race condition from the tracking loop
 - **[fix #70]**: Correctly detect and resolve potential gimbal lock solutions where second mechanical axis is near zero.
+- **[fix #71]**: Alpaca Pilot Sidebar Menu should only highlight the active catalog link (not all catalog links).
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment

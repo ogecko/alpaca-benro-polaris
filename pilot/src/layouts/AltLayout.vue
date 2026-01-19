@@ -51,7 +51,7 @@
           <q-item-label header class="text-weight-bold text-uppercase">
             Deep Sky Objects
           </q-item-label>
-          <q-item v-for="link in links2" :key="link.text" v-ripple clickable :to="link.to" active-class="active-link-right">
+          <q-item v-for="link in links2" :key="link.text" v-ripple clickable :to="link.to" :active="isCatalogActive(link)" active-class="active-link-right">
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
             </q-item-section>
@@ -68,7 +68,7 @@
             Orbitals
           </q-item-label>
 
-          <q-item v-for="link in links3" :key="link.text" v-ripple clickable :to="link.to"  active-class="active-link-right">
+          <q-item v-for="link in links3" :key="link.text" v-ripple clickable :to="link.to"  :active="isCatalogActive(link)" active-class="active-link-right">
             <q-item-section avatar>
               <q-icon color="grey" :name="link.icon" />
             </q-item-section>
@@ -136,13 +136,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch  } from 'vue'
 import { useStatusStore } from 'stores/status'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute,  } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStreamStore } from 'src/stores/stream'
 import { debounce } from 'quasar'
 import { useCatalogStore } from 'src/stores/catalog'
 import { AppFullscreen } from 'quasar'
 import { useQuasar } from 'quasar'
+import type { RouteLocationRaw } from 'vue-router'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
@@ -269,6 +270,50 @@ function getBatteryIcon(): string {
   return 'mdi-battery-alert'
 }
 
+
+function isCatalogActive(link: CatalogLink): boolean {
+  if (route.path.toLowerCase() !== '/cataloglist') {
+    return false
+  }
+
+  const to = link.to
+
+  // Case 1: string route
+  if (typeof to === 'string') {
+    return Object.keys(route.query).length === 0
+  }
+
+  // Case 2: object route WITHOUT query
+  if (!('query' in to)) {
+    return true
+  }
+
+  const linkQuery = to.query ?? {}
+
+  // Root catalog (no filters)
+  if (!('C1' in linkQuery) && !('sort' in linkQuery)) {
+    return Object.keys(route.query).length === 0
+  }
+
+  // Match C1
+  if ('C1' in linkQuery) {
+    return String(route.query.C1) === String(linkQuery.C1)
+  }
+
+  // Match sort
+  if ('sort' in linkQuery) {
+    return route.query.sort === linkQuery.sort
+  }
+
+  return false
+}
+
+interface CatalogLink {
+  icon: string
+  text: string
+  to: RouteLocationRaw
+}
+
 const links2 = [
   { icon: 'mdi-library', text: 'Catalog', to: '/cataloglist' },
   { icon: 'mdi-nfc-tap', text: 'Nearby', to: { path: '/catalogList', query: { sort:'Proximity' } } },
@@ -278,7 +323,7 @@ const links2 = [
   { icon: 'mdi-blur', text: 'Clusters', to: { path: '/catalogList', query: { C1:2 } } },
 ]
 
-const links3 = [
+const links3: CatalogLink[] = [
   { icon: 'mdi-moon-full', text: 'Planets', to: { path: '/catalogList', query: { C1:4 } } },
   { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: { path: '/catalogList', query: { C1:5 } } },
   { icon: 'mdi-satellite-variant', text: 'Satellites', to: { path: '/catalogList', query: { C1:6 } } },
@@ -319,7 +364,8 @@ const links5 = [
 }
 
 .active-link-right {
-  border-right: 6px solid $blue-3; 
+  border-right: 8px solid $blue-3; 
+    color: white;
 }
 
 
