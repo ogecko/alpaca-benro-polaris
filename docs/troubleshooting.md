@@ -76,6 +76,23 @@ To turn off Smart App Control
 6. Set it to Off
 7. Windows will ask **Are you sure?**. Confirm **Yes I'm sure**
 
+### A5 - Startup Exception - The Driver fails to bind the socket to 0.0.0.0 or ::  
+This may be caused by HTTP.sys, a kernel-mode HTTP listener built into Windows that prevents the Driver from binding to port 80. There are two approaches to resolving this conflict
+
+To change the Port used by Alpaca Pilot:
+* You can change the port used by Alpaca Pilot by changing config.toml line
+  ```
+  alpaca_pilot_port = 80                     
+  ```
+* Choose a free port like 8081. 
+* When using a browser to navigate to Alpaca pilot you will need to pass the new port number. For Example: http://hostname:8081
+
+To disable the http.sys driver if you dont need it:
+* Disable the HTTP Service (Recommended). This prevents the kernel-mode driver from claiming port 80 upon startup.
+* Open Registry Editor: Press Win + R, type regedit, and press Enter.
+* Navigate to: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\HTTP.
+* Modify "Start": Locate the Start value, double-click it, and change the data to 4 (Disabled).
+* Restart: Restart your computer to apply changes.
 
 ## Benro Polaris Troubleshooting
 

@@ -61,6 +61,7 @@
 - **[Nina Advanced Sequencer]**: Add documentation on using Nina's advanced sequencer with Alpaca Driver
 - **[Auto Guiding]**: Add documentation on using PHD2 for auto-guiding 
 - **[Auto Power On]**: Add hardware note for Mele Quieter 4C to use BIOS settings for **Auto Power On**
+- **[Troublshooting A5]**: Add resolution to http.sys claiming port 80
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
 
 ## Untested New Features
