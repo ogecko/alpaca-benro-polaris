@@ -45,6 +45,7 @@ r1 = 90                                     # Axis1 of Reference Position
 r2 = 5                                      # Axis2 of Reference Position
 r3 = 0                                      # Axis3 of Reference Position
 panel = 3                                   # Current panel number: 0=Mosaic-Center, n=Panel-n
+startpos = 'br'                             # Sets the first panel that will be captured in the panorama sequence
 
 [control]
 advanced_control = true                    # Used to disable all advanced control features, must be true to use any advanced feature

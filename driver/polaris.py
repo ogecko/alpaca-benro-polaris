@@ -2295,6 +2295,7 @@ class Polaris:
         ref_az = getattr(Config, "r1", 0.0)
         ref_alt = getattr(Config, "r2", 0.0)
         ref_roll = getattr(Config, "r3", 0.0)  # degrees
+        startpos = getattr(Config, "startpos", 'br') # Starting panel for panorama
 
         total_panels = rows * cols
         if panel < 1 or panel > total_panels:
@@ -2340,8 +2341,10 @@ class Polaris:
         ref_row, ref_col = find_panel(anchor)
 
         # --- Grid-space deltas ---
-        dx = (panel_col - ref_col) * hstep   # right
-        dy = (panel_row - ref_row) * vstep   # up
+        # Rotate to the right if starting from the left side of the grid, otherwise rotate to the left
+        dx = (panel_col - ref_col) * hstep if startpos[1] == 'l' else -1 * (panel_col - ref_col) * hstep # right
+        # Rotate up if starting from the bottom row of the grid, otherwise rotate down
+        dy = (panel_row - ref_row) * vstep if startpos[0] == 'b' else -1 * (panel_row - ref_row) * vstep # up
 
         # --- Apply boresight roll ---
         roll_rad = math.radians(ref_roll)
