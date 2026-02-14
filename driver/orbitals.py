@@ -174,6 +174,8 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
                     return orb_result(logger, None, f'JPL: Failed to fetch ephem data, response 200.')
                 data = await response.json()
     except Exception as e:
+        msg = f'JPL: Failed to decode JSON, exception: {e}, params: {params}'
+        logger.error(msg)
         return orb_result(logger, None, f'JPL: Failed to fetch ephem data.')
 
     # ---------------- Try and parse the JPL Horizon API Response
