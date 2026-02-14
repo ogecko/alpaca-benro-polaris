@@ -51,15 +51,15 @@ export const useConfigStore = defineStore('config', {
     rows: 1,
     hstep: 40,
     vstep: 25,
-    track: 0,
+    first: 0,
     order: 0,
+    track: 0,
     anchor: 0,
     ref: 0,
     r1: 90,
     r2: 5,
     r3: 0,
     panel: 0,
-    startpos: 'br',
 
     // Advanced Features
     verbose_driver_exceptions: true,

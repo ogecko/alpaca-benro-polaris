@@ -35,41 +35,57 @@ const cfg = useConfigStore()
 const panelGrid = computed(() => {
   const rows = Number(cfg.rows ?? 0)
   const cols = Number(cfg.cols ?? 0)
-  const order = Number(cfg.order ?? 0)
+  const total = rows * cols
+  if (rows <= 0 || cols <= 0)
+    return []
 
-  let n = 1
+  const first = Number(cfg.first ?? 0)
+  const order = Number(cfg.order ?? 0)
   const grid: number[][] = Array.from({ length: rows }, () =>
     Array(cols).fill(0)
   )
 
-  // grid Layout: 
-  // Row 0 = bottom Row (we reverse it in the HTML template to display it correctly)
-  // Column 0 = left Column
-
-  if (order === 0) {
-    // Row-major, bottom-up
-    for (let r = 0; r < rows; r++) {
-      const row = grid[r]
-      if (!row) continue
-      for (let c = 0; c < cols; c++) row[c] = n++
-    }
-  } else if (order === 1) {
-    // Column-major, bottom-up
-    for (let c = 0; c < cols; c++)
-      for (let r = 0; r < rows; r++) {
-        const row = grid[r]
-        if (row) row[c] = n++
+  // Critical function MUST MATCH panel_to_rc() in driver/polaris.py
+  function panelToRC(panel: number): [number, number] {
+    // Panel 0 means center of grid
+      if (panel === 0) {
+        return [ (rows - 1) / 2, (cols - 1) / 2 ]
       }
-  } else {
-    // Serpentine, bottom-up
-    for (let r = 0; r < rows; r++) {
-      const row = grid[r]
-      if (!row) continue
-      const cs = r % 2
-        ? [...Array(cols).keys()].reverse()
-        : [...Array(cols).keys()]
-      for (const c of cs) row[c] = n++
+    const i = panel - 1
+    let r = 0
+    let c = 0
+    // Apply Panel Order adjustment
+    if (order === 0) {          // row-major
+      r = Math.floor(i / cols)
+      c = i % cols
+    } else if (order === 1) {   // column-major
+      c = Math.floor(i / rows)
+      r = i % rows
+    } else {                    // serpentine
+      r = Math.floor(i / cols)
+      c = i % cols
+      if (r % 2 === 1)
+        c = cols - 1 - c
     }
+    // Apply First Panel adjustment
+    if (first === 0) {           // Top Left (mirrow row axis)
+      r = rows - 1 - r
+    } else if (first === 1) {     // Top Right (mirror row and col axis)
+      r = rows - 1 - r
+      c = cols - 1 - c
+    }
+    else if (first === 3) {       // Bottom Right (mirror col axis)
+      c = cols - 1 - c
+    }
+    return [r, c]
+  }
+
+  // create the grid
+  for (let p = 1; p <= total; p++) {
+    const [r, c] = panelToRC(p)
+    const row = grid[r]
+    if (!row) continue
+    row[c] = p
   }
   return grid
 })

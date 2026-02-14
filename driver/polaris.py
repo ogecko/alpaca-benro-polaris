@@ -2290,12 +2290,12 @@ class Polaris:
         cols = getattr(Config, "cols", 3)
         hstep = getattr(Config, "hstep", 40.0)
         vstep = getattr(Config, "vstep", 25.0)
+        first = getattr(Config, "first", 0.0)  # panorama grid corner for panel 1
         order = getattr(Config, "order", 0)
         anchor = getattr(Config, "anchor", 0)
         ref_az = getattr(Config, "r1", 0.0)
         ref_alt = getattr(Config, "r2", 0.0)
         ref_roll = getattr(Config, "r3", 0.0)  # degrees
-        startpos = getattr(Config, "startpos", 'br') # Starting panel for panorama
 
         total_panels = rows * cols
         if panel < 1 or panel > total_panels:
@@ -2305,46 +2305,41 @@ class Polaris:
         if anchor < 0 or anchor > total_panels:
             anchor = 0  # default to center panel if invalid
 
-        # --- Build grid (row 0 = bottom, col 0 = left) ---
-        grid = [[0 for _ in range(cols)] for _ in range(rows)]
-        n = 1
-        if order == 0:  # row-major
-            for r in range(rows):
-                for c in range(cols):
-                    grid[r][c] = n
-                    n += 1
-        elif order == 1:  # column-major
-            for c in range(cols):
-                for r in range(rows):
-                    grid[r][c] = n
-                    n += 1
-        else:  # serpentine
-            for r in range(rows):
-                cs = list(range(cols))
+        # --- Critical function MUST MATCH panelToRC() in pilot/src/components/PanoNavigation.vue  ---
+        def panel_to_rc(p: int) -> tuple[float, float]:
+            if p == 0:          # Panel 0 means center of grid
+                return (rows - 1) / 2, (cols - 1) / 2            
+            i = p - 1
+            # Apply Panel Order adjustment
+            if order == 0:      # row-major
+                r = i // cols
+                c = i % cols
+            elif order == 1:    # column-major
+                c = i // rows
+                r = i % rows
+            else:               # serpentine
+                r = i // cols
+                c = i % cols
                 if r % 2 == 1:
-                    cs.reverse()
-                for c in cs:
-                    grid[r][c] = n
-                    n += 1
-
-        def find_panel(target: int) -> tuple[float, float]:
-            if target == 0:
-                return (rows - 1) / 2, (cols - 1) / 2
-            for r, row in enumerate(grid):
-                for c, val in enumerate(row):
-                    if val == target:
-                        return r, c
-            raise ValueError(f"Panel {target} not found in grid")
+                    c = cols - 1 - c
+            # Apply First Panel adjustment 
+            if first == 0:      # Top Left (mirrow row axis)
+                r = rows - 1 - r
+            elif first == 1:    # Top Right (mirror row and col axis)
+                r = rows - 1 - r
+                c = cols - 1 - c
+            elif first == 3:    # Bottom Right (mirror col axis)
+                c = cols - 1 - c
+            # return calculated row,col position
+            return r, c
 
         # --- Panel positions ---
-        panel_row, panel_col = find_panel(panel)
-        ref_row, ref_col = find_panel(anchor)
+        panel_row, panel_col = panel_to_rc(panel)
+        ref_row, ref_col = panel_to_rc(anchor)
 
         # --- Grid-space deltas ---
-        # Rotate to the right if starting from the left side of the grid, otherwise rotate to the left
-        dx = (panel_col - ref_col) * hstep if startpos[1] == 'l' else -1 * (panel_col - ref_col) * hstep # right
-        # Rotate up if starting from the bottom row of the grid, otherwise rotate down
-        dy = (panel_row - ref_row) * vstep if startpos[0] == 'b' else -1 * (panel_row - ref_row) * vstep # up
+        dx = (panel_col - ref_col) * hstep
+        dy = (panel_row - ref_row) * vstep 
 
         # --- Apply boresight roll ---
         roll_rad = math.radians(ref_roll)

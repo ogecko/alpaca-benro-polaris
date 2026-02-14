@@ -37,15 +37,15 @@ cols = 3                                    # Number of panels across the mosaic
 rows = 1                                    # Number of panels vertically. Range: 1–3
 hstep = 40                                  # Angular distance, in decimal degrees, between the centers of adjacent panels, horizontally.
 vstep = 25                                  # Angular distance, in decimal degrees, between the centers of adjacent panels, vertically.
-track = 0                                   # Defines how the mount sets roll and tracking after moving to each panel: 0=Foreground/notracking, 1=Horizon-Locked/tracked&zero-roll, 2=Celestrial/tracked
+first = 0                                   # Defines which corner is assigned panel number one: 0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight 
 order = 0                                   # Defines the sequence in which panels are captured: 0=Column-Major, 1=Row-Major, 2=Serpentine
+track = 0                                   # Defines how the mount sets roll and tracking after moving to each panel: 0=Foreground/notracking, 1=Horizon-Locked/tracked&zero-roll, 2=Celestrial/tracked
 anchor = 0                                  # Which part of the mosaic should be placed at the Reference Position: 0: Mosaic-Center, n=Panel-n
 ref = 0                                     # Defines what type of Reference Position: 0=Az/Alt/Roll, 1=RA/Dec/PA, 2=OrbitalID, 3=Current Mount Orientation
 r1 = 90                                     # Axis1 of Reference Position
 r2 = 5                                      # Axis2 of Reference Position
 r3 = 0                                      # Axis3 of Reference Position
 panel = 3                                   # Current panel number: 0=Mosaic-Center, n=Panel-n
-startpos = 'br'                             # Sets the first panel that will be captured in the panorama sequence
 
 [control]
 advanced_control = true                    # Used to disable all advanced control features, must be true to use any advanced feature

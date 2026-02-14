@@ -45,17 +45,8 @@
     </div>
     <div class="row q-col-gutter-lg items-center q-pt-lg">
       <q-select
-        class="col-3 q-pt-none"
-        label="Panel Order"
-        emit-value
-        map-options
-        v-model="cfg.order"
-        @update:model-value="(v) => putdb({ order: v })"
-        :options="panoOrderOptions"
-      />
-      <q-select
-        class="col-5 q-pt-none"
-        label="Orientation and Tracking"
+        class="col-6 q-pt-none"
+        label="Rotation and Tracking"
         emit-value
         map-options
         v-model="cfg.track"
@@ -63,13 +54,22 @@
         :options="panoTrackingOptions"
       />
       <q-select
-        class="col-4 q-pt-none"
-        label="Starting Panel"
+        class="col-3 q-pt-none"
+        label="First Panel"
         emit-value
         map-options
-        v-model="cfg.startpos"
-        @update:model-value="(v) => putdb({ startpos: v })"
+        v-model="cfg.first"
+        @update:model-value="(v) => putdb({ first: v })"
         :options="panoStartingPositionOptions"
+      />
+      <q-select
+        class="col-3 q-pt-none"
+        label="Panel Order"
+        emit-value
+        map-options
+        v-model="cfg.order"
+        @update:model-value="(v) => putdb({ order: v })"
+        :options="panoOrderOptions"
       />
     </div>
     <div class="text-h6 q-pt-lg">Panorama Grid Positioning</div>
@@ -182,7 +182,7 @@ import PanoCalculator from 'src/components/PanoCalculator.vue';
 
 const dev = useDeviceStore();
 const cfg = useConfigStore();
-// cfg properties {"cols":5, "rows":3, "hstep": 50, "vstep": 30, "order":2, "track":2, "anchor":3, "ref":0, "r1":180, "r2":30, "r3":10, "panel":2 }
+// cfg properties {"cols":5, "rows":3, "hstep": 50, "vstep": 30, "first":0, "order":2, "track":2, "anchor":3, "ref":0, "r1":180, "r2":30, "r3":10, "panel":2 }
 
 const panoTrackingOptions = [
   { label: 'Landscape - Untracked', value: 0 },
@@ -198,10 +198,10 @@ const panoOrderOptions = [
 ];
 
 const panoStartingPositionOptions = [
-  { label: 'Top Left', value: 'tl' },
-  { label: 'Top Right', value: 'tr' },
-  { label: 'Bottom Left', value: 'bl' },
-  { label: 'Bottom Right', value: 'br' },
+  { label: 'Top Left', value: 0 },
+  { label: 'Top Right', value: 1 },
+  { label: 'Bottom Left', value: 2 },
+  { label: 'Bottom Right', value: 3 },
 ];
 
 const panoRefTypeOptions = [

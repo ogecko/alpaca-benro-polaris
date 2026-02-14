@@ -971,12 +971,26 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 
 - **④ Vertical Step `"vstep":`**  Angular distance, in **decimal degrees**, between the centres of adjacent vertical panels. Factor in FOV overlap.
 
-- **⑤ Panel Order `"order":`** Defines the sequence in which panels are captured:
+- **⑤ First Panel `"first":`** Defines which corner of the panorama grid is assigned panel number 1. This determines where the capture sequence begins and, together with the **Panel Order ("order")** setting, controls the rotational step direction in which the panorama progresses. 
+
+   * **0 – Top Left**: Panel 1 is located in the top row and leftmost column.
+   * **1 – Top Right**: Panel 1 is located in the top row and rightmost column.
+   * **2 – Bottom Left**: Panel 1 is located in the bottom row and leftmost column.
+   * **3 – Bottom Right**: Panel 1 is located in the bottom row and rightmost column.
+
+   Selecting the correct first panel is important when photographing moving sky targets. Since celestial objects change position over time due to Earth’s rotation, the capture sequence should be planned to preserve critical details. For example:
+
+   * When capturing a **Milky Way arch** later in the season, you may want to begin with the **top row** to capture the galactic center before it rises too high in the sky. You can then capture the lower row before those same targets move out of optimal framing.
+   * For single-row panoramas, it is still advisable to choose the first panel based on the direction of sky movement. In the Northern Hemisphere, when capturing a Milky Way arch, starting on the **right side** of the grid can help prevent Earth’s rotation from moving the galactic center beyond the rightmost panels before they are captured.
+
+
+
+- **⑥ Panel Order `"order":`** Defines the sequence in which panels are captured:
    * **0 – Row‑Major**: Complete each row before moving to the next row.
    * **1 – Column‑Major**:  Complete each column before moving to the next column.
    * **2 – Serpentine**:  Alternate direction on each row or column to minimise repositioning time.
 
-- **⑥ Orientation and Tracking `"track":`** Defines how the mount tracks and how camera roll is handled **after moving to each panel**:
+- **⑦ Rotation and Tracking `"track":`** Defines how the mount tracks and how camera roll is handled **after moving to each panel**:
    * **0 – Landscape · Untracked**: Tracking is disabled. The camera frame remains fixed relative to the horizon.
    *Use for foreground or landscape panels where star motion is acceptable.*
    * **1 – Sky · Horizon‑Locked**: Sidereal tracking is enabled. The camera roll is reset to **0°** at each panel.
@@ -985,12 +999,6 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    *Use for astronomical sky mosaics such as large DSOs.*
    * **3 – Sky · Orbital**: Tracking and camera roll are left unchanged.
    *Use for mosaics centred on tracked orbitals.*
-
-- **⑦ Starting Panel `"startpos":`** Defines the first panel to be captured when starting the panorama capture sequence.  This determines the rotational direction in conjunction with the panel order ("order") parameter.  *In general, it is useful to select the starting panel based on the direction of movement of your sky targets along with their altitude, especially for multiple rows in the panorama capturing the sky.  For example, to capture a Milky Way arch later in the year, you may want to start with your top row to capture the detail of the galactic center before it gets too high in the sky and then shoot the row below it before those celestial bodies are too high in the sky. For panoramas with only a single row of panels for the sky, it is still a good idea to select a starting panel based on the direction of movement.  For example, in the Northern Hemisphere to capture a Milky Way arch panorama you should likely start with a panel on the right side of the grid to ensure the earth's rotation does not move the galactic center beyond your right-most panels.*
-   * **Top Left**: This will start the panorama sequence from the panel in the left most column and top row.  
-   * **Top Right**: This will start the panorama sequence from the panel in the right most column and top row.
-   * **Bottom Left**: This will start the panorama sequence from the panel in the left most column and bottom row.
-   * **Bottom Right**: This will start the panorama sequence from the panel in the right most column and bottom row. 
 
 - **⑧ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the reference position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
    * **0 – Whole Mosaic**:  The entire panorama is centred on the reference position.
@@ -1011,7 +1019,10 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    * **Reference Axis 2 `"r2":`**: Altitude or Declination (decimal degrees)
    * **Reference Axis 3 `"r3":`**: Roll or Position Angle (decimal degrees)
 
+- **Panel Navigation:** The Panel Navigation grid provides a visual representation of the panorama layout and allows you to click any panel number to slew the mount directly to that position. The grid follows the panorama layout convention where the **bottom-left panel represents the lowest Altitude and lowest Azimuth**. As you move **to the right**, Azimuth increases; as you move **upward**, Altitude increases. The numbering and progression reflect the selected First Panel and Panel Order settings, while symbols indicate the next panel in the capture sequence and the anchor panel tied to the reference position.
+ 
 - **Current Panel: `"panel":`** This represents the active Panel Number being captured and is highlighted in blue on the Panel Navigation grid. This field effects what the next panel in sequence will be.
+
 
 ### 2.2 Defining the Grid Programatically
 
@@ -1044,7 +1055,7 @@ To capture a foreground pass without tracking while retaining the previous grid 
 
 As a reference, the following JSON Parameters example shows all available fields that can be set using the `Polaris:PanoGrid` device action. In practice, you would typically specify only the parameters you need to change.
 ```
-{ "cols":3, "rows":2, "hstep":40, "vstep":30, "order":2, "track":0, "anchor":1, "ref":0, "r1":90, "r2":5, "r3":0, "panel":0 }
+{ "cols":3, "rows":2, "hstep":40, "vstep":30, "first":0, "order":2, "track":0, "anchor":1, "ref":0, "r1":90, "r2":5, "r3":0, "panel":0 }
 ```
 #### **Using CCDCeil Sequencer**
 To define a Panorama Grid in CCDCeil, you could use its Sequence Tool and add a Script Step that sends the `Polaris:PanoGrid` device action and parameters to the Alpaca Driver.
