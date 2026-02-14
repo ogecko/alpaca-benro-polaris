@@ -24,17 +24,21 @@
 * **33 - PID Tuning:** Demonstration Video at https://youtu.be/6vJbSb0gl3M
 
 ## Win11 Upgrade Instructions
-* Uninstall Python 3.12.7
-* Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
-* Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
-* WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.0
-    * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.0
-    * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
+* Upgrade Python to 3.13.12 by downloading Windows Installer (64 bit) for Python 3.13.12 and running the install program.
+* Upgrade pip using the command `python -m pip install --upgrade pip`
+* If you are using ASCOM, upgrade to ASCOM Platform 7.1.2
+* Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
+* Follow the standard [Installation Guide](./installation.md) to install the Alpaca Driver v2.1.0
+* Install all pre-requisite python packages using the command `pip install -r platforms/win/requirements.txt`
+* WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.x
+    * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.x
+    * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.1.0 Beta2
 - **[Panorama Flexibility]** Add First Panel setting to define which corner of the grid is used for Panel 1.
 - **[Aurora Resource]** Add Space Weather Prediction Center to Sky Condition Resources
+- **[Updated SSL Root Certificates]** Must reinstall python pre-requisites using `pip -r requirements.txt`, See fix#74
 
 ## What's new in v2.1.0 Beta1
 - **[Panorama Settings]** Add flexible Panorama Grid for Landscape (untracked), Sky (Horizon-Locked), Sky (tracked), that can be revisted, reordered and reused.
@@ -54,12 +58,14 @@
 ## New Features (enabled by Stellarium)
 
 ## Upgraded Win11 Requirements.txt Compatibility
-- **[Python 3.13.9]**: Upgraded Python support from 3.13.5.
-- **[Python 3.13.5]**: Upgraded Python support from 3.13.1.
+- **[Python 3.13.12]**: Upgraded Python support from 3.13.9.
+- **[Falcon 4.2.0]**: Upgraded Falcon support from 4.0.2.
 - **[Uvicorn 0.35.0]**: Upgraded Uvicorn support from 0.33.0.
+- **[Bleak 1.1.1]**: Upgraded Bleak support from 1.1.0.
 - **[Ephem 4.2]**: Upgraded Ephem support from 4.1.6.
-- **[numpy 2.3.2]**: Upgraded numpy support from 1.24.4.
-- **[scipy 1.16.1]**: Upgraded scipy support from 1.16.0.
+- **[numpy 2.4.2]**: Upgraded numpy support from 2.3.2.
+- **[scipy 1.17.0]**: Upgraded scipy support from 1.16.1.
+- **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
 
 ## Documentation (Alpaca Driver)
 - **[Nina Advanced Sequencer]**: Add documentation on using Nina's advanced sequencer with Alpaca Driver
@@ -78,6 +84,8 @@ Please let us know if you can try any of these features.
 - **[fix #68]**: Setting an Az/Alt/Roll target may intermittently be ignored due to race condition from the tracking loop
 - **[fix #70]**: Correctly detect and resolve potential gimbal lock solutions where second mechanical axis is near zero.
 - **[fix #71]**: Alpaca Pilot Sidebar Menu should only highlight the active catalog link (not all catalog links).
+- **[fix #73]**: Upgrade Win and MacOS requirements.txt for latest compatible versions of numpy, scipi, falcon, bleak, ASCOM, Python.
+- **[fix #74]**: Update SSL Root certificates to allow successful JPL Horizons searches for Comets and Asteroids.
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
@@ -130,6 +138,7 @@ Please let us know if you can try any of these features.
 * Siril v1.2.3 de49749
 ### Drivers and Utilities
 * Windows Remote Desktop v10.0.22621
+* ASCOM Platform 7.1.2 (Build 4823)
 * ASCOM Platform 7.1 (Build 4707)
 * ASCOM Platform 7 Update 3 RC7 (not Update 2 version)
 * ASCOM Platform 7 RC7
@@ -152,7 +161,7 @@ Please let us know if you can try any of these features.
 
 ## Known Issues
 - **[Gimbal Lock]**: There is potential gimbal lock at low or negative altitudes. Especially at Azimuth ≈ 0°, Altitude ≈ 0°, Roll ≠ 0°. Please watch mount at all times.
-- **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.9 instead.
+- **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.12 instead.
 
 
 ## Potential Future Enhancements
