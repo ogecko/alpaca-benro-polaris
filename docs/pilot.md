@@ -971,12 +971,26 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 
 - **④ Vertical Step `"vstep":`**  Angular distance, in **decimal degrees**, between the centres of adjacent vertical panels. Factor in FOV overlap.
 
-- **⑤ Panel Order `"order":`** Defines the sequence in which panels are captured:
+- **⑤ First Panel `"first":`** Defines which corner of the panorama grid is assigned panel number 1. This determines where the capture sequence begins and, together with the **Panel Order ("order")** setting, controls the rotational step direction in which the panorama progresses. 
+
+   * **0 – Top Left**: Panel 1 is located in the top row and leftmost column.
+   * **1 – Top Right**: Panel 1 is located in the top row and rightmost column.
+   * **2 – Bottom Left**: Panel 1 is located in the bottom row and leftmost column.
+   * **3 – Bottom Right**: Panel 1 is located in the bottom row and rightmost column.
+
+   Selecting the correct first panel is important when photographing moving sky targets. Since celestial objects change position over time due to Earth’s rotation, the capture sequence should be planned to preserve critical details. For example:
+
+   * When capturing a **Milky Way arch** later in the season, you may want to begin with the **top row** to capture the galactic center before it rises too high in the sky. You can then capture the lower row before those same targets move out of optimal framing.
+   * For single-row panoramas, it is still advisable to choose the first panel based on the direction of sky movement. In the Northern Hemisphere, when capturing a Milky Way arch, starting on the **right side** of the grid can help prevent Earth’s rotation from moving the galactic center beyond the rightmost panels before they are captured.
+
+
+
+- **⑥ Panel Order `"order":`** Defines the sequence in which panels are captured:
    * **0 – Row‑Major**: Complete each row before moving to the next row.
    * **1 – Column‑Major**:  Complete each column before moving to the next column.
    * **2 – Serpentine**:  Alternate direction on each row or column to minimise repositioning time.
 
-- **⑥ Orientation and Tracking `"track":`** Defines how the mount tracks and how camera roll is handled **after moving to each panel**:
+- **⑦ Rotation and Tracking `"track":`** Defines how the mount tracks and how camera roll is handled **after moving to each panel**:
    * **0 – Landscape · Untracked**: Tracking is disabled. The camera frame remains fixed relative to the horizon.
    *Use for foreground or landscape panels where star motion is acceptable.*
    * **1 – Sky · Horizon‑Locked**: Sidereal tracking is enabled. The camera roll is reset to **0°** at each panel.
@@ -986,17 +1000,12 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    * **3 – Sky · Orbital**: Tracking and camera roll are left unchanged.
    *Use for mosaics centred on tracked orbitals.*
 
-- **⑦ Anchor Panel `"anchor":`** Determines which panel's center is “pinned” to the reference position in space. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation. The positions of all other panels are automatically calculated relative to the anchor:
-   * **0 – Whole Mosaic**:  Special case where the center of the entire panorama is placed at the reference position. This is useful when you want the grid to be symmetrically centered around a point in space.
-   * **n – Panel n**:   The center of the selected panel is placed at the reference position.
-      * Example: On a 5x2 grid with row-major ordering:
-         * Chosing Panel 1 places the bottom-left panel at the reference position
-         * Chosing Panel 3 places the middle panel of the bottom row at the reference position.
-         * Chosing Panel 5 places the bottom-right panel at the reference position
-         * Chosing Panel 8 places the top-middle panel at the reference position
-         
+- **⑧ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the reference position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
+   * **0 – Whole Mosaic**:  The entire panorama is centred on the reference position.
+   * **n – Panel n**:   This panel is placed at the reference position and all other panels are offset accordingly.
 
-- **⑧ to Reference Position Type `"ref":`** Defines the coordinate system used by the reference position.
+
+- **⑨ to Reference Position Type `"ref":`** Defines the coordinate system used by the reference position.
    * **0 – Az / Alt / Roll** Topocentric coordinates.
    * **1 – RA / Dec / PA** Equatorial coordinates.
    * **2 – Orbital ID**  Centre the panorama on a tracked orbital object.
@@ -1004,13 +1013,16 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    If tracking is enabled, the position is stored as equatorial coordinates; otherwise it is stored as topocentric coordinates.
 
 
-- **⑨ Reference Position:** Defines the actual reference position in space that the panorama is pinned to. Changing these coordinates will shift the entire panorama grid so that the center of the anchor panel (or the center of the mosaic, if anchor = 0) is placed on this point:
+- **&#9321; Reference Position:** Defines the actual reference position:
 
    * **Reference Axis 1 `"r1":`**: Azimuth, Right Ascension, or Orbital ID
    * **Reference Axis 2 `"r2":`**: Altitude or Declination (decimal degrees)
    * **Reference Axis 3 `"r3":`**: Roll or Position Angle (decimal degrees)
 
+- **Panel Navigation:** The Panel Navigation grid provides a visual representation of the panorama layout and allows you to click any panel number to slew the mount directly to that position. The grid follows the panorama layout convention where the **bottom-left panel represents the lowest Altitude and lowest Azimuth**. As you move **to the right**, Azimuth increases; as you move **upward**, Altitude increases. The numbering and progression reflect the selected First Panel and Panel Order settings, while symbols indicate the next panel in the capture sequence and the anchor panel tied to the reference position.
+ 
 - **Current Panel: `"panel":`** This represents the active Panel Number being captured and is highlighted in blue on the Panel Navigation grid. This field effects what the next panel in sequence will be.
+
 
 ### 2.2 Defining the Grid Programatically
 
@@ -1025,7 +1037,7 @@ Parameters are supplied in JSON format, enclosed in braces { }. Field names corr
 #### **Using NINA Advanced Sequencer**
 To access Device Actions from the **Nina Advanced Sequencer** you must first install the **Device Actions and Commands** plug-in for Nina. Once installed, Device Actions become available in the Advanced Sequence Instructions list, located near the bottom of the instruction list under Utility.
 
-The `Polaris:PanoGrid` device action can then be added as an instruction in your sequence and it is typically placed near the begining to initialise the Panorama Grid for a specific capture pass. When adding the Device Action, set the Device to Telescope, then select `Polaris:PanoGrid` from the action dropdown, where it appears near the bottom of the list.
+The `Polaris:PanoGrid` device action can then be added as an instruction in your sequence and it is typically placed near the beginning to initialise the Panorama Grid for a specific capture pass. When adding the Device Action, set the Device to Telescope, then select `Polaris:PanoGrid` from the action dropdown, where it appears near the bottom of the list.
 
 When used in a sequential instruction block, the block can be given a descriptive name (for example, “50 mm, 5×3,  Horizon-Locked Grid”) and saved as a template. This makes it easy to reuse consistent panorama grid definitions across multiple sessions or combine them into larger, multi-pass workflows.
 
@@ -1043,7 +1055,7 @@ To capture a foreground pass without tracking while retaining the previous grid 
 
 As a reference, the following JSON Parameters example shows all available fields that can be set using the `Polaris:PanoGrid` device action. In practice, you would typically specify only the parameters you need to change.
 ```
-{ "cols":3, "rows":2, "hstep":40, "vstep":30, "order":2, "track":0, "anchor":1, "ref":0, "r1":90, "r2":5, "r3":0, "panel":0 }
+{ "cols":3, "rows":2, "hstep":40, "vstep":30, "first":0, "order":2, "track":0, "anchor":1, "ref":0, "r1":90, "r2":5, "r3":0, "panel":0 }
 ```
 #### **Using CCDCeil Sequencer**
 To define a Panorama Grid in CCDCeil, you could use its Sequence Tool and add a Script Step that sends the `Polaris:PanoGrid` device action and parameters to the Alpaca Driver.
@@ -1057,7 +1069,7 @@ Once a panorama grid is defined, you will probably want to verify its coverage a
 ### 3.1 Panel Spacing Calculator
 The Panorama Grid is designed to be simple, with the minimum number of parameters. It uses just two angular steps, `hstep` and `vstep` to define the spacing between panels. These fields effect the horizontal and vertical spacing of the panels from the cameras field of view.
 
-A calulator is provided calculate these properties:
+A calculator is provided calculate these properties:
 * Click on the Calculator icon on the Panorama Settings Card
 * Select your sensor size. 
    > You can also enter a custom sensor size by typing `ww x hh` and pressing *Enter*.  For example typing `16 x 9` and pressing *Enter*, sets a 16 x 9 mm sesnor size.
@@ -1089,7 +1101,7 @@ To check the horizontal extent of the scene:
 * Confirm that all desired features are within the captured area.
 * Adjust the number of columns or reference position if necessary.
 
-To check the vertical extent of the scnene:
+To check the vertical extent of the scene:
 * Slew to the top row of panels.
 * Confirm that the grid reaches the desired altitude for your targets.
 * Adjust the number of rows or reference position as needed.
@@ -1141,10 +1153,10 @@ A typical panorama foreground workflow includes:
       * Set `"cols":5, "rows":3` as desired size of grid.
       * Set `"hstep":16, "vstep":11.2` for desired panel overlap.
       * Set `"track": 0` for Landscape - Untracked.
-      * Set `"panel": 0` to change current panel to begining of sequence
+      * Set `"panel": 0` to change current panel to beginning of sequence
       * Omit reference fields if you want to reuse the existing grid placement.
-   * Second instruction is a Sequencital Instruction Set
-* The Inner Sequenctial Instruction Set, loops through panels.
+   * Second instruction is a Sequential Instruction Set
+* The Inner Sequential Instruction Set, loops through panels.
    * Set Loop Condition as a `Loop for Iterations` and use total number of panels.
    * First instruction is a Device Action `Polaris:PanoSlew` with no Parameters
    * Remaining instructions in the loop are for the exposure at each panel.
@@ -1163,10 +1175,10 @@ The sequence structure is similar to the foreground pass, with key differences i
       * Configure the panorama grid for foreground capture.
       * No need to set cols, rows, hstep, vstep, if they are the same as foreground.
       * Set `"track": 1` for Sky - Horizon-Locked.
-      * Set `"panel": 0` to change current panel to begining of sequence
+      * Set `"panel": 0` to change current panel to beginning of sequence
    * Second optional instruction `Wait for Time` set to `Nautical Dark`
-   * Third instruction is a Sequencital Instruction Set
-* The Inner Sequenctial Instruction Set, loops through panels.
+   * Third instruction is a Sequential Instruction Set
+* The Inner Sequential Instruction Set, loops through panels.
    * Set Loop Condition as a `Loop for Iterations` and use total number of panels.
    * First instruction is a Device Action `Polaris:PanoSlew` with no Parameters
    * A Smart Exposure instruction to capture one or more tracked frames at each panel.
