@@ -3,7 +3,7 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.1.0 Beta1
+* **Version:** 2.1.0 Beta2
 * **Release Date:** TBD 
 * **Availability:** Download from [Alpaca Driver v2.1.0 Download ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.1.0.zip)
 * **License:** Distributed exclusively for backers of the [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v)
@@ -32,7 +32,11 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in v2.1.0 
+## What's new in v2.1.0 Beta2
+- **[Panorama Flexibility]** Add First Panel setting to define which corner of the grid is used for Panel 1.
+- **[Aurora Resource]** Add Space Weather Prediction Center to Sky Condition Resources
+
+## What's new in v2.1.0 Beta1
 - **[Panorama Settings]** Add flexible Panorama Grid for Landscape (untracked), Sky (Horizon-Locked), Sky (tracked), that can be revisted, reordered and reused.
 - **[Panorama Calculator]** Use the Panel Spacing Calculator to determine your sensor’s field of view (FOV) and the recommended panel step for a desired image overlap.
 - **[Panorama Automation]** Add device actions PanoGrid and PanoSlew for automation in Nina Advanced Sequencer and CCDScripts
