@@ -70,8 +70,8 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     * ==SETUP== 3. Create a pyenv and add to ~/.bashrc.
     * ==SETUP== 4. Install the python dependencies needed for the application.
     * ==SETUP== 5. Updating config.toml with 'alpaca_pilot_port = 8080'
-    * ==SETUP== 6. Set up [systemd] services to start the polaris.service at boot time
-    * ==SETUP== 7. Starts the service.
+    * ==SETUP== 6. Set up [systemd] services to start the Polaris Driver at boot time
+    * ==SETUP== 7. Starts the polaris-driver service.
 
 7. The Alpaca Driver should now be installed and setup
 
@@ -83,10 +83,10 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     ```
 9. To monitor and control the status of the Alpaca Driver Daemon Service
     ```Bash
-    sudo systemctl status polaris       # Check the service status 
-    sudo systemctl stop polaris         # Stop the service 
-    sudo systemctl start polaris        # Start the service  
-    journalctl -u polaris -f            # View the logs
+    sudo systemctl status polaris-driver       # Check the service status 
+    sudo systemctl stop polaris-driver         # Stop the service 
+    sudo systemctl start polaris-driver        # Start the service  
+    journalctl -u polaris-driver -f            # View the logs
     ```
 
 10. Optionally install build tools  
@@ -183,20 +183,11 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
     sudo ./wifi.sh wlan1 polaris_b83c06
     ```
 
-21. Verify that the Polaris wpa_supplicant is running  
-    ```
-    $ ps aux | grep wpa_supplicant-polaris
-    root     23296  0.0  1.5  11900  6988 ?        Ss   13:35   0:00 /sbin/wpa_supplicant -i wlan1 -c /etc/wpa_supplicant/wpa_supplicant-polaris.conf -D nl80211
+21. Wait for the following tasks to complete
+    * == STEP == 1. Create wpa_supplicant config file 
+    * == STEP == 2. Create [systemd] service to connect to wlan1
+    * == STEP == 3. Create [systemd] service to set static IP address on wlan1
 
-    ```
-    If this process is not running, you may need to disable the default wpa_supplicant on wlan1.
-    ```
-    sudo systemctl stop wpa_supplicant@wlan1
-    sudo systemctl disable wpa_supplicant@wlan1
-    sudo rm -f /var/run/wpa_supplicant/wlan1
-    sudo systemctl daemon-reload
-    sudo systemctl restart polaris-wifi.service
-    ```
 22. Check connectivity to the Polaris device
     ```
     $ ping 192.168.0.1
@@ -238,24 +229,17 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
                     txpower 31.00 dBm
 
     ```
-5. Utility commands to control the polaris-wifi.service
 
-    1. Stop the Polaris wifi Service
-        ```
-        sudo systemctl stop polaris-wifi.service
-        ```
+5. To monitor and control the status of the Polaris Wifi Connection Service
+    ```Bash
+    sudo systemctl status polaris-wlan1       # Check the service status 
+    sudo systemctl stop polaris-wlan1         # Stop the service 
+    sudo systemctl start polaris-wlan1        # Start the service  
+    journalctl -u polaris-wlan1 -f            # View the connect logs
+    journalctl -u polaris-ip -f               # View the static ip logs
+    ```
 
-    2. Restart the Polaris wifi Service
-        ```
-        sudo systemctl restart polaris-wifi.service
-        ```
-
-    3. Status of the Polaris wifi Service
-        ```
-        sudo systemctl status  polaris-wifi.service
-        ```
-
-## Diagnosing wlan0 Wifi Connection
+## Diagnosing Wifi Connection
 To check whether the Raspberry Pi Wifi is blocked: 
 ```
 rfkill list
@@ -268,11 +252,11 @@ To bring up the wlan0 wifi interface:
 ```
 sudo ip link set wlan0 up
 ```
-To scan the wlan0 wifi interface:
+To scan the wlan0 wifi interface for active SSIDs:
 ```
 sudo iw wlan0 scan | grep SSID
 ```
-To check the status:
+To check the network status:
 ```
 ip a
 ```
@@ -280,20 +264,19 @@ To check if connected to your router:
 ```
 iw dev wlan0 link
 ```
-To check status of wpa_supplicant and to restart it if its down:
-```
-sudo systemctl status wpa_supplicant
-sudo systemctl restart wpa_supplicant
-```
-To change Wifi configuration and reconfigure it:
-```
-sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
-sudo wpa_cli -i wlan0 reconfigure
-```
-To check Network Manager status
+To check Network Manager status (not used by Alpaca Driver)
 ```
 nmcli device status
+nmcli connection show 
+sudo nmcli connection delete 136e6155-f914-40b9-8608-18d8d83a77ee
+
 ```
+To check polaris services:
+```
+systemctl list-unit-files | grep polaris
+systemctl status | grep polaris
+```
+
 ## Manual Configuration of Alpaca Driver
 On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. 
 

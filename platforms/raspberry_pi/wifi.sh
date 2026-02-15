@@ -19,7 +19,7 @@ echo "SSID: $SSID"
 
 # Create wpa_supplicant config
 WPA_CONF="/etc/wpa_supplicant/wpa_supplicant-${INTERFACE}.conf"
-echo "== Step 1. Create wpa_supplicant config file ${WPA_CONF} =="
+echo "== STEP == 1. Create wpa_supplicant config file ${WPA_CONF}"
 sudo tee "$WPA_CONF" > /dev/null <<EOF
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
@@ -33,7 +33,7 @@ sudo chmod 600 "$WPA_CONF"
 
 # Create systemd service for wpa_supplicant
 WLAN1_SERVICE_FILE="/etc/systemd/system/polaris-${INTERFACE}.service"
-echo "== Step 2. Create [systemd] service to connect to ${INTERFACE} =="
+echo "== STEP == 2. Create [systemd] service to connect to ${INTERFACE}"
 sudo tee "$WLAN1_SERVICE_FILE" > /dev/null <<EOF
 [Unit]
 Description=WPA supplicant for ${INTERFACE}
@@ -56,7 +56,7 @@ sudo systemctl restart polaris-${INTERFACE}.service
 
 # Create systemd service to assign static IP after interface is up
 IP_SERVICE_FILE="/etc/systemd/system/polaris-ip.service"
-echo "== Step 3. Create [systemd] service to set static IP address on ${INTERFACE} =="
+echo "== STEP == 3. Create [systemd] service to set static IP address on ${INTERFACE}"
 sudo tee "$IP_SERVICE_FILE" > /dev/null <<EOF
 [Unit]
 Description=Assign static IP to ${INTERFACE} after wpa_supplicant
