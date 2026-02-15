@@ -239,42 +239,117 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
     journalctl -u polaris-ip -f               # View the static ip logs
     ```
 
-## Diagnosing Wifi Connection
-To check whether the Raspberry Pi Wifi is blocked: 
+## Diagnosing Wifi and Bluetooth Connections
+To check whether the Raspberry Pi Wifi or Bluetooth is blocked: 
 ```
-rfkill list
+$ rfkill list
+0: hci0: Bluetooth
+        Soft blocked: yes
+        Hard blocked: no
+1: phy0: Wireless LAN
+        Soft blocked: no
+        Hard blocked: no
+2: phy1: Wireless LAN
+        Soft blocked: no
+        Hard blocked: no
 ```
-To unblock Raspberry Pi Wifi:
+To unblock Raspberry Pi Bluetooth and Wifi:
 ```
-sudo rfkill unblock wifi
+$ sudo rfkill unblock bluetooth
+$ sudo rfkill unblock wifi
 ```
-To bring up the wlan0 wifi interface:
+To bring up the wlan1 wifi interface:
 ```
-sudo ip link set wlan0 up
+$ sudo ip link set wlan1 up
 ```
-To scan the wlan0 wifi interface for active SSIDs:
+To scan the wlan1 wifi interface for active SSIDs:
 ```
-sudo iw wlan0 scan | grep SSID
+$ sudo iw wlan1 scan | grep SSID
+        SSID: polaris_b83c06
+        SSID: atlas_6G
+        SSID: atlas_6G
+        SSID: OPTUS_734AC2_5GHz
 ```
 To check the network status:
 ```
-ip a
+$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute
+       valid_lft forever preferred_lft forever
+2: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether d8:3a:dd:65:71:2e brd ff:ff:ff:ff:ff:ff
+    inet 192.168.50.160/24 brd 192.168.50.255 scope global dynamic noprefixroute wlan0
+       valid_lft 49228sec preferred_lft 49228sec
+    inet6 fe80::da3a:ddff:fe65:712e/64 scope link proto kernel_ll
+       valid_lft forever preferred_lft forever
+3: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state UP group default qlen 1000
+    link/ether e4:fa:c4:e6:de:a5 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.0.100/24 scope global wlan1
+       valid_lft forever preferred_lft forever
 ```
-To check if connected to your router:
+To check if the pi is connected to your router and what routes are configured:
 ```
-iw dev wlan0 link
+$ iw dev wlan0 link
+        SSID: atlas_6G
+        freq: 2432.0
+        RX: 52687490 bytes (340502 packets)
+        TX: 55221927 bytes (349678 packets)
+        signal: -28 dBm
+        rx bitrate: 72.2 MBit/s
+        tx bitrate: 72.2 MBit/s
+        bss flags: short-slot-time
+        dtim period: 1
+        beacon int: 100
+
+$ iw dev wlan1 link
+Connected to 94:bb:43:c9:e1:f1 (on wlan1)
+        SSID: polaris_b83c06
+        freq: 2452.0
+        signal: -24 dBm
+        tx bitrate: 72.2 MBit/s
+        bss flags: short-slot-time
+        dtim period: 0
+        beacon int: 15
+
+$ ip route
+default via 192.168.50.1 dev wlan0 proto dhcp src 192.168.50.160 metric 600
+192.168.0.0/24 dev wlan1 proto kernel scope link src 192.168.0.100
+192.168.50.0/24 dev wlan0 proto kernel scope link src 192.168.50.160 metric 600
+
 ```
-To check Network Manager status (not used by Alpaca Driver)
+To check Network Manager status and connections (not used by Alpaca Driver)
 ```
-nmcli device status
-nmcli connection show 
-sudo nmcli connection delete 136e6155-f914-40b9-8608-18d8d83a77ee
+$ nmcli device status
+DEVICE         TYPE      STATE                   CONNECTION
+wlan0          wifi      connected               netplan-wlan0-atlas_6G
+lo             loopback  connected (externally)  lo
+p2p-dev-wlan0  wifi-p2p  disconnected            --
+wlan1          wifi      unavailable             --
+
+$ nmcli connection show 
+NAME                    UUID                                  TYPE      DEVICE
+netplan-wlan0-atlas_6G  fe8758eb-c76a-3d01-9580-21c52199d208  wifi      wlan0
+lo                      18b0756e-35d4-4f6f-91ce-f7676b7c6dc2  loopback  lo
+
+$ sudo nmcli connection delete 136e6155-f914-40b9-8608-18d8d83a77ee
 
 ```
 To check polaris services:
 ```
-systemctl list-unit-files | grep polaris
-systemctl status | grep polaris
+$ systemctl list-unit-files | grep polaris
+polaris-driver.service                       enabled         enabled
+polaris-ip.service                           enabled         enabled
+polaris-wlan1.service                        enabled         enabled
+
+$ systemctl status | grep polaris
+           │ ├─polaris-driver.service
+           │ │ └─2646 /home/pi/alpaca-benro-polaris/pyenv/bin/python3 /home/pi/alpaca-benro-polaris/driver/main.py
+           │ ├─polaris-wlan1.service
+               │ └─2667 grep --color=auto polaris
+
 ```
 
 ## Manual Configuration of Alpaca Driver
@@ -289,7 +364,7 @@ This is done automatically in setup.sh, but if you did not use this method, then
     ```
 
 
-## Upgrading Bluez Bluetooth Library to v5.66 (DOESNT FIX ISSUE)
+## Upgrading Bluez Bluetooth Library to v5.66 
 If you are using an older version of the Bluetooth library then you may need to upgrade.
 
 1. Check version of Bluetooth. If you are using v5.55-1 then proceed to upgrade.
@@ -313,3 +388,4 @@ If you are using an older version of the Bluetooth library then you may need to 
     sudo make install
     ```
 
+> Note: There is a known issue where the Raspberry Pi can discover the Polaris device over Bluetooth but is unable to enable its Wi-Fi connection. This upgrade does not resolve the Wi-Fi enablement issue. As a workaround, power the Polaris off and then back on to re-enable Wi-Fi. If the Alpaca Driver is running, it should automatically reconnect once the Polaris Wi-Fi becomes available.
