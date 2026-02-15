@@ -192,6 +192,7 @@ class BLE_Controller():
             or "device is not ready" in str(e)):
                 self.logger.warning("Bluetooth is off. Skipping BLE scan.")
                 await asyncio.sleep(10)
+                return
             else:
                 self.logger.exception(f"BLE scan failed: {e}")
                 await asyncio.sleep(10)
