@@ -30,13 +30,11 @@ nmcli connection add \
     type wifi \
     ifname "$INTERFACE" \
     con-name polaris \
-    ssid "$SSID"
-
-nmcli connection modify polaris \
+    ssid "$SSID" \
+    wifi-sec.key-mgmt none \
     ipv4.method manual \
     ipv4.addresses 192.168.0.100/24 \
     ipv4.gateway 192.168.0.1 \
-    wifi-sec.key-mgmt none \
     connection.autoconnect yes
 
 nmcli connection up polaris

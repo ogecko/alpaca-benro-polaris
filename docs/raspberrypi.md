@@ -180,7 +180,7 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
     ```
 20. Run the WiFi Setup script, changing the interface **wlan1** and SSID name **polaris_3b3906** according
     ```
-    sudo ./wifi.sh wlan1 polaris_3b3906
+    sudo ./wifi.sh wlan1 polaris_b83c06
     ```
 
 21. Verify that the Polaris wpa_supplicant is running  
@@ -290,7 +290,10 @@ To change Wifi configuration and reconfigure it:
 sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
 sudo wpa_cli -i wlan0 reconfigure
 ```
-
+To check Network Manager status
+```
+nmcli device status
+```
 ## Manual Configuration of Alpaca Driver
 On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. 
 
