@@ -168,6 +168,7 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     ```
 
 
+
 ## Setup of Wifi Connection to Polaris
 The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLINK adapter, to connect to the Polaris automatically.
 
@@ -252,7 +253,43 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
         ```
         sudo systemctl status  polaris-wifi.service
         ```
-    
+
+## Diagnosing wlan0 Wifi Connection
+To check whether the Raspberry Pi Wifi is blocked: 
+```
+rfkill list
+```
+To unblock Raspberry Pi Wifi:
+```
+sudo rfkill unblock wifi
+```
+To bring up the wlan0 wifi interface:
+```
+sudo ip link set wlan0 up
+```
+To scan the wlan0 wifi interface:
+```
+sudo iw wlan0 scan | grep SSID
+```
+To check the status:
+```
+ip a
+```
+To check if connected to your router:
+```
+iw dev wlan0 link
+```
+To check status of wpa_supplicant and to restart it if its down:
+```
+sudo systemctl status wpa_supplicant
+sudo systemctl restart wpa_supplicant
+```
+To change Wifi configuration and reconfigure it:
+```
+sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+sudo wpa_cli -i wlan0 reconfigure
+```
+
 ## Manual Configuration of Alpaca Driver
 On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. 
 

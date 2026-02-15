@@ -1,10 +1,9 @@
 #!/bin/bash
 set -e
 
-# wifi.sh — Setup Polaris Wi-Fi auto-connect
+# polaris-wifi.sh — systemd-based Polaris Wi-Fi setup
 
-# --- Parse arguments ---
-INTERFACE="${1:-wlan1}"  # Default to wlan1 if not provided
+INTERFACE="${1:-wlan1}"
 SSID="$2"
 
 if [ -z "$SSID" ]; then
@@ -13,22 +12,18 @@ if [ -z "$SSID" ]; then
     exit 1
 fi
 
-CONFIG_FILE="/etc/wpa_supplicant/wpa_supplicant-polaris.conf"
-SERVICE_FILE="/etc/systemd/system/polaris-wifi.service"
+CONFIG_FILE="/etc/wpa_supplicant/wpa_supplicant-${INTERFACE}.conf"
+DHCPCD_FILE="/etc/dhcpcd.conf"
 
-echo "== Polaris Wi-Fi Setup =="
+echo "== Polaris Wi-Fi Setup (systemd method) =="
 echo "Interface: $INTERFACE"
 echo "SSID: $SSID"
 
-# 1. Stop any running wpa_supplicant for this interface
-sudo pkill -f "wpa_supplicant.*$INTERFACE" || true
-sudo rm -f /var/run/wpa_supplicant/$INTERFACE
-
-
-# 1. Create wpa_supplicant config
+# 1️⃣ Create dedicated wpa_supplicant config
 echo "== Writing $CONFIG_FILE =="
-sudo tee $CONFIG_FILE > /dev/null <<EOF
-ctrl_interface=/var/run/wpa_supplicant
+
+sudo tee "$CONFIG_FILE" > /dev/null <<EOF
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
 
 network={
@@ -37,35 +32,30 @@ network={
 }
 EOF
 
-# 2. Create systemd service unit
-echo "== Writing $SERVICE_FILE =="
-sudo tee $SERVICE_FILE > /dev/null <<EOF
-[Unit]
-Description=Connect $INTERFACE to Polaris hotspot
-After=network.target
-Wants=network.target
+sudo chmod 600 "$CONFIG_FILE"
 
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/sbin/wpa_supplicant -B -i $INTERFACE -c $CONFIG_FILE -D nl80211
-ExecStartPost=/sbin/ip addr flush dev $INTERFACE
-ExecStartPost=/sbin/ip addr add 192.168.0.100/24 dev $INTERFACE
-ExecStartPost=/sbin/ip link set $INTERFACE up
+# 2️⃣ Enable systemd instance 
+echo "== Enabling wpa_supplicant@${INTERFACE} =="
 
-[Install]
-WantedBy=multi-user.target
+sudo systemctl enable wpa_supplicant@${INTERFACE}
+sudo systemctl restart wpa_supplicant@${INTERFACE}
+
+# 3️⃣ Configure static IP safely via dhcpcd (no flushing)
+echo "== Configuring static IP for $INTERFACE =="
+
+if ! grep -q "interface ${INTERFACE}" "$DHCPCD_FILE"; then
+    sudo tee -a "$DHCPCD_FILE" > /dev/null <<EOF
+
+interface ${INTERFACE}
+static ip_address=192.168.0.100/24
+nohook wpa_supplicant
 EOF
+fi
 
-# 3. Reload systemd and enable service
-echo "== Reloading systemd =="
-sudo systemctl daemon-reload
-sudo systemctl enable polaris-wifi.service
-
-# 4. Restart service
-echo "== Starting polaris-wifi.service =="
-sudo systemctl restart polaris-wifi.service
+# 4️⃣ Restart dhcpcd cleanly
+sudo systemctl restart dhcpcd
 
 echo "== Setup complete =="
-echo "Check status with: sudo systemctl status polaris-wifi.service"
-echo "Logs: journalctl -u polaris-wifi.service -f"
+echo "Check status:"
+echo "  systemctl status wpa_supplicant@${INTERFACE}"
+echo "  ip a show ${INTERFACE}"
