@@ -188,8 +188,11 @@ class BLE_Controller():
         except (BleakError, OSError) as e:
             if ("Bluetooth device is turned off" in str(e)
             or "Failed to start scanner" in str(e)
+            or "No powered Bluetooth adapters found" in str(e)
             or "device is not ready" in str(e)):
                 self.logger.warning("Bluetooth is off. Skipping BLE scan.")
+                await asyncio.sleep(10)
             else:
                 self.logger.exception(f"BLE scan failed: {e}")
+                await asyncio.sleep(10)
 
