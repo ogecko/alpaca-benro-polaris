@@ -17,18 +17,18 @@ The Alpaca Driver has been validated on the following platforms:
 - **Raspberry Pi Zero 2 W / WH** running Raspbian Pi OS Lite (64-bit) - Debian Trixie
 - **Raspberry Pi 4 (8 GB)** running Raspberry Pi OS (64-bit) - Debian Trixie
 
-For reference, when running advanced motion control algorithms and tracking a sidereal target, the Alpaca Driver uses roughly 43% of the CPU and 26% of the available memory on a **Raspberry Pi Zero 2 W**.
+For reference, when running advanced motion control algorithms and tracking a sidereal target, the Alpaca Driver uses roughly 22% of the CPU and 26% of the available memory on a **Raspberry Pi Zero 2 W**.
 ```
 (pyenv) pi@alpaca:~/alpaca-benro-polaris $ top
 
 top - 22:38:21 up  8:03,  2 users,  load average: 0.42, 0.46, 0.46
 Tasks: 150 total,   2 running, 148 sleeping,   0 stopped,   0 zombie
-%Cpu(s): 10.0 us,  1.2 sy,  0.0 ni, 88.7 id,  0.0 wa,  0.0 hi,  0.2 si,  0.0 st
+%Cpu(s): 5.2 us,  0.6 sy,  0.0 ni, 95.6 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
 MiB Mem :    416.1 total,     94.8 free,    204.8 used,    170.8 buff/cache
 MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
 
     PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
-   1942 root      20   0  608352 113132  41640 R  42.7  26.5   8:33.13 python3
+   1942 root      20   0  608352 113132  41640 R  22.4  26.5   8:33.13 python3
 
 ```
 ## Install Raspberry Pi OS
