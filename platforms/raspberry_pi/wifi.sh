@@ -12,50 +12,33 @@ if [ -z "$SSID" ]; then
     exit 1
 fi
 
-CONFIG_FILE="/etc/wpa_supplicant/wpa_supplicant-${INTERFACE}.conf"
-DHCPCD_FILE="/etc/dhcpcd.conf"
-
-echo "== Polaris Wi-Fi Setup (systemd method) =="
+echo "== Polaris Wi-Fi Setup (NetworkManager method) =="
 echo "Interface: $INTERFACE"
 echo "SSID: $SSID"
 
-# 1️⃣ Create dedicated wpa_supplicant config
-echo "== Writing $CONFIG_FILE =="
-
-sudo tee "$CONFIG_FILE" > /dev/null <<EOF
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-
-network={
-    ssid="$SSID"
-    key_mgmt=NONE
-}
-EOF
-
-sudo chmod 600 "$CONFIG_FILE"
-
-# 2️⃣ Enable systemd instance 
-echo "== Enabling wpa_supplicant@${INTERFACE} =="
-
-sudo systemctl enable wpa_supplicant@${INTERFACE}
-sudo systemctl restart wpa_supplicant@${INTERFACE}
-
-# 3️⃣ Configure static IP safely via dhcpcd (no flushing)
-echo "== Configuring static IP for $INTERFACE =="
-
-if ! grep -q "interface ${INTERFACE}" "$DHCPCD_FILE"; then
-    sudo tee -a "$DHCPCD_FILE" > /dev/null <<EOF
-
-interface ${INTERFACE}
-static ip_address=192.168.0.100/24
-nohook wpa_supplicant
-EOF
+# Ensure interface exists
+if ! nmcli device status | grep -q "$INTERFACE"; then
+    echo "Interface $INTERFACE not found."
+    exit 1
 fi
 
-# 4️⃣ Restart dhcpcd cleanly
-sudo systemctl restart dhcpcd
+# Delete old connection if it exists
+nmcli connection delete polaris 2>/dev/null || true
+
+# Create open network connection with static IP
+nmcli connection add \
+    type wifi \
+    ifname "$INTERFACE" \
+    con-name polaris \
+    ssid "$SSID"
+
+nmcli connection modify polaris \
+    ipv4.method manual \
+    ipv4.addresses 192.168.0.100/24 \
+    ipv4.gateway 192.168.0.1 \
+    wifi-sec.key-mgmt none \
+    connection.autoconnect yes
+
+nmcli connection up polaris
 
 echo "== Setup complete =="
-echo "Check status:"
-echo "  systemctl status wpa_supplicant@${INTERFACE}"
-echo "  ip a show ${INTERFACE}"
