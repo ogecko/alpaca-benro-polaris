@@ -820,8 +820,8 @@ class MotorSpeedController:
         self._logger = logger
         self._calibration_manager = cm
         self._messenger = MoveAxisMessenger(axis, send_msg)
-        self._stop_flag = asyncio.Event()
-        self._lock = asyncio.Lock()
+        self._condition = asyncio.Condition()
+        self._stopping = False
 
         # Core state
         self.pending_update = None  # Stores update tuple (raw, ramp_duration, timestamp)
@@ -846,7 +846,7 @@ class MotorSpeedController:
         return self._calibration_manager.interpolator_data[self.axis]
 
     async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True, tracking=False):
-        async with self._lock:
+        async with self._condition:
             if not rate_unit in ['RAW', 'DPS', 'ASCOM']:
                 self._logger.info(f'Set Motor Speed - Invalid units {rate_unit}')
                 return
@@ -854,6 +854,7 @@ class MotorSpeedController:
             now = time.monotonic()
             # if we get too many updates before they are applied, just overwrite the last one
             self.pending_update = (float(raw), ramp_duration, allow_PWM, tracking, now)
+            self._condition.notify()
 
     def _apply_pending_update(self, now):
         if not self.pending_update:
@@ -911,15 +912,24 @@ class MotorSpeedController:
 
 
     async def _dispatch_loop(self):
-        while not self._stop_flag.is_set():
-            async with self._lock:
+        while True:
+            async with self._condition:
+                if self._stopping:
+                    return
+                
                 now = time.monotonic()
                 self._apply_pending_update(now)
 
+                # Determine when we need to wake next
                 if now < self.next_dispatch_time:
-                    await asyncio.sleep(0.001)
+                    timeout = self.next_dispatch_time - now
+                    try:
+                        await asyncio.wait_for( self._condition.wait(), timeout=timeout )
+                    except asyncio.TimeoutError:
+                        pass
                     continue
 
+                # Dispatch the relevant commands
                 if self.mode == "FAST":
                     await self._messenger.send_fast_move_msg(self.command)
                     self.next_dispatch_time = now + 0.05
@@ -950,15 +960,18 @@ class MotorSpeedController:
                     self.pwm_phase = "OFF" if was_on else "ON"
                     self.last_switch_time = now
                     self.next_dispatch_time = now + duration
+                
+                else:
+                    self.next_dispatch_time = now + 0.05
 
-            await asyncio.sleep(0.001)
 
     async def stop_disspatch_loop_task(self):
-        async with self._lock:
+        async with self._condition:
             # dont bother trying to stop motors as some structures have been lost already
             # await self._messenger.send_slow_move_msg(0)
             # await asyncio.sleep(0.2)
-            self._stop_flag.set()
+            self._stopping = True
+            self._condition.notify()            
 
 class MoveAxisMessenger:
     def __init__(self, axis: int, send_msg):
