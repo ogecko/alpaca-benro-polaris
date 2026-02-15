@@ -110,10 +110,11 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     ```
 12. Install the build tools
     ```Bash
-    echo "deb http://archive.raspberrypi.org/debian/ trixie main" | sudo tee /etc/apt/sources.list.d/raspi.list
+    echo "deb http://archive.raspberrypi.org/debian/ bookworm main" | sudo tee /etc/apt/sources.list.d/raspi.list
     sudo apt update
-    sudo apt install -y dkms git build-essential linux-headers-rpi-v8r
+    sudo apt install -y dkms git build-essential raspberrypi-kernel-headers
     ```
+    > Note: Raspberry Pi Foundation builds kernel packages against Bookworm (not Trixie). This is why we add the bookworm archive, so we can install the raspberrypi-kernel-headers.
 
 13. Get the drivers source code
     ```Bash
