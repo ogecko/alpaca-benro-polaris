@@ -75,11 +75,6 @@
 - **[Troublshooting A5]**: Add resolution to http.sys claiming port 80
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
 
-## Untested New Features
-Please let us know if you can try any of these features.
-- **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
-- **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
-
 ## Bug Fixes (from v2.0.0 version)
 - **[fix #62]**: Alpaca Driver SupportedActions method incorrectly lists "Polaris:J2000GotoPolaris:Ack" as a single action.
 - **[fix #67]**: Reduce CPU load by refactoring Motor Control to be event based rather than polling every 1ms for work.
@@ -161,13 +156,15 @@ Please let us know if you can try any of these features.
 * Microsoft Edge version 115+
 * Apple Safari 14+
 
+## Untested New Features
+Please let us know if you can try any of these features.
+- **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
+- **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
+
 ## Known Issues
-- **[Gimbal Lock]**: There is potential gimbal lock at low or negative altitudes. Especially at Azimuth ≈ 0°, Altitude ≈ 0°, Roll ≠ 0°. Please watch mount at all times.
 - **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.12 instead.
 
-
 ## Potential Future Enhancements
-- **[Stellarium MacOS]**: Add position update support to the Stellarium Binary protocol.
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
 - **[Emedded Driver]**: The driver should be embedded on the Benro Polaris Device. Benro Change.
