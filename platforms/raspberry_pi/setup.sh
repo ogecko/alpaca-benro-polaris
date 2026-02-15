@@ -92,7 +92,7 @@ Type=simple
 User=pi
 WorkingDirectory=${src_home}/driver
 ExecStart=${src_home}/pyenv/bin/python3 ${src_home}/driver/main.py
-Restart=on-failure
+Restart=always
 RestartSec=5
 
 [Install]
