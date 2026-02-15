@@ -1646,7 +1646,8 @@ class PID_Controller():
         while not self._stop_flag.is_set():
             # self.measure() is done at processing 518 message
             await self.control_step()
-            await asyncio.sleep(self.control_loop_duration)
+            delay = self.control_loop_duration if self.polaris._connected else 2.0
+            await asyncio.sleep(delay)
 
     async def stop_control_loop_task(self):
         with self._lock:
