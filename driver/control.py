@@ -1402,6 +1402,55 @@ class PID_Controller():
 
     #------- Control step functions ---------
 
+    def quaternion_motor_error(self, theta_ref, theta_meas):
+        """
+        Compute motor-space error using two algorithms
+        1. For small errors just calculate error between theta_ref and theta_meas
+        2. For large errors (>5 deg) calculate error based on current motor angle plus a small quaternion error delta.
+
+        The second approach ensure smooth quaternion based transition across wide errors and minimises M1/M2 deviation.
+        Unforunately it is not stable for all potential problem space, so we resort to method 1 always.
+        """
+        # --- 1. Calc basic theta_error and return if less than 5 degrees.
+        theta_err = clamp_error(theta_ref, theta_meas)
+        return theta_err
+    
+        if np.all(np.abs(theta_err) < 5.0):
+            return theta_err
+
+        # --- 2. Build reference and measured quaternions ---
+        q_ref  = motors_to_quaternion(theta_ref[0],  theta_ref[1],  theta_ref[2])
+        q_meas = motors_to_quaternion(theta_meas[0],  theta_meas[1],  theta_meas[2])
+
+        # --- Compute quaternion error ---
+        q_err = q_meas.inverse * q_ref
+        if q_err[0] < 0:  # shortest rotation
+            q_err = -q_err
+        q_err = q_err.normalised
+
+        # --- Extract axis-angle from quaternion ---
+        w, x, y, z = q_err
+        theta_rad = 2 * np.arccos(np.clip(w, -1.0, 1.0)) 
+        sin_half_theta = np.sqrt(1 - w*w)
+        if sin_half_theta < 1e-8:
+            axis = np.array([1.0, 0.0, 0.0])  # arbitrary for near-zero rotation
+        else:
+            axis = np.array([x, y, z]) / sin_half_theta
+
+        # --- Clamp rotation for linear approximation ---
+        max_rad_per_s = np.radians(15)       # max motor speed
+        if theta_rad > max_rad_per_s:
+            q_err = Quaternion(axis=axis, radians=max_rad_per_s)
+
+        # --- Apply small rotation to current motor angles ---
+        q_target = q_meas * q_err
+
+        # --- Convert back to motor angles and calc error ---
+        theta_target = np.array(quaternion_to_motors(q_target))
+        theta_err = clamp_error(theta_target, theta_meas)
+
+        return theta_err
+
     def track_target(self):
         # Update alpha_ref based on current mode
         if self.mode in ['PRESETUP', 'PARKING', 'HOMING', 'PARK', 'LIMIT']:
@@ -1493,7 +1542,8 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
-            self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
+            # self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
+            self.error_signal = self.quaternion_motor_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
         self.is_axis_preloading = np.abs(self.error_signal) > 10 / 60                    # preload error_integration outside 10 arcmin
