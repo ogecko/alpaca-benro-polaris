@@ -101,7 +101,7 @@
 - [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
 - [X] Add Anti-Windup Motor Angle Limits
 - [X] Improve motor limits indication and safety protection (including with tilts)
-- [ ] Fix zero Altitude movement, at Azimuth of 0/360, and roll
+- [X] Fix zero Altitude movement, at Azimuth of 0/360, and roll
 
 ## Alpaca Kalman Filter
 - [X] Implment Kalman Filter to improve reliabilty of state assessment
@@ -141,7 +141,7 @@
 - [X] Documentation on new features 
 - [X] Review of existing Documentation 
 - [X] Remaining documentation on Pulse Guiding
-- [ ] Remaining Youtube video on 27 Guiding
+- [X] Remaining Youtube video on 27 Guiding
 
 ## Performance
 - [X] Feedforward Control Integration (minimise overshoot)
