@@ -40,6 +40,7 @@
 - **[Aurora Resource]** Add Space Weather Prediction Center to Sky Condition Resources
 - **[Updated SSL Root Certificates]** Must reinstall python pre-requisites using `pip -r requirements.txt`, See fix#74
 - **[Raspberry Pi Setuip]** Enhance the Alpaca driver and Wi-Fi setup scripts, along with documentation, for Raspberry Pi Zero 2
+- **[Rename Dirs]** Utility to rename Nina image directories to match Siril expectation eg LIGHT -> lights, DARK -> darks, BIAS -> biases, FLAT -> flats
 
 ## What's new in v2.1.0 Beta1
 - **[Panorama Settings]** Add flexible Panorama Grid for Landscape (untracked), Sky (Horizon-Locked), Sky (tracked), that can be revisted, reordered and reused.
