@@ -931,7 +931,9 @@ The full definition of the Class field depends on the C2 SubType of the target a
 
 # Capturing Panoramas with the Alpaca Driver 
 
->VIDEO DEMO: 28 - Advanced Panorama Capturing (TO BE COMPLETED)
+>VIDEO DEMO: [28 - Panorama Settings](https://youtu.be/k7OoPk98UCk?t=4m57s)
+
+>VIDEO DEMO: [28 - Panoramas Workflows](https://youtu.be/k7OoPk98UCk?t=25m08s)
 
 This guide explains how to plan, configure, and capture panoramas using the **Alpaca Driver**, with optional automation through **NINA Advanced Sequencer**. It is aimed at users who want deterministic, repeatable panorama capture for astrophotography and astro‑landscape imaging.
 
