@@ -29,7 +29,8 @@
             <thead>
               <tr><th class="text-left">Component</th><th class="text-left">Version</th></tr>
             </thead>
-            <tr><td>Alpaca Pilot App</td><td>v2.1.0 Beta2</td></tr>
+            <!-- Alpaca Version Number (based on https://semver.org/, change in shy.py, AboutPage.vue and package.json) -->
+            <tr><td>Alpaca Pilot App</td><td>v2.1.0</td></tr>
             <tr><td>{{ dev.alpacaServerName }}</td><td>v{{ dev.alpacaServerVersion }}</td></tr>
             <tr><td>Benro Polaris Firmware</td><td>v{{ p.polarisswver }}</td></tr>
             <tr><td>Benro Polaris Hardware</td><td>v{{ p.polarishwver }}</td></tr>

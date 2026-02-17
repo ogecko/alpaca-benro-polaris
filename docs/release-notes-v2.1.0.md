@@ -3,11 +3,11 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.1.0 Beta2
+* **Version:** 2.1.0
 * **Release Date:** TBD 
 * **Availability:** Download from [Alpaca Driver v2.1.0 Download ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.1.0.zip)
 * **License:** Distributed exclusively for backers of the [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v)
-* **Current Branch:** releases/2_1_0_beta2
+* **Current Branch:** releases/2_1_0
 
 ## Demonstration Videos
 * **20 - Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
@@ -35,25 +35,23 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in v2.1.0 Beta2
-- **[Panorama Flexibility]** Add First Panel setting to define which corner of the grid is used for Panel 1.
-- **[Aurora Resource]** Add Space Weather Prediction Center to Sky Condition Resources
-- **[Updated SSL Root Certificates]** Must reinstall python pre-requisites using `pip -r requirements.txt`, See fix#74
-- **[Raspberry Pi Setuip]** Enhance the Alpaca driver and Wi-Fi setup scripts, along with documentation, for Raspberry Pi Zero 2
-- **[Rename Dirs]** Utility to rename Nina image directories to match Siril expectation eg LIGHT -> lights, DARK -> darks, BIAS -> biases, FLAT -> flats
-
-## What's new in v2.1.0 Beta1
+## What's new in v2.1.0
 - **[Panorama Settings]** Add flexible Panorama Grid for Landscape (untracked), Sky (Horizon-Locked), Sky (tracked), that can be revisted, reordered and reused.
+- **[Panorama Flexibility]** Add First Panel setting to define which corner of the grid is used for Panel 1.
 - **[Panorama Calculator]** Use the Panel Spacing Calculator to determine your sensor’s field of view (FOV) and the recommended panel step for a desired image overlap.
 - **[Panorama Automation]** Add device actions PanoGrid and PanoSlew for automation in Nina Advanced Sequencer and CCDScripts
 - **[Panel Navigation]** Add optional Panel navigation controls on the main dashboard
 - **[Advanced Sequencer]** Add Panorama Actions for use in Nina's Advanced Sequencer and Templates.
 - **[Meteor Calendar]** Added a link to the International Meteor Organization’s Meteor Shower Calendar on the Comets page.
 - **[Sky Conditions]** Added a Sky Conditions page providing sunrise and sunset times, moonrise and moonset, eclipse data, cloud cover, jet stream forecasts, and light pollution information.
+- **[Aurora Resource]** Add Space Weather Prediction Center to Sky Condition Resources
 - **[Stop Driver]** The Alpaca Pilot Connect page now allows you to stop the Alpaca Driver directly.
 - **[Class Documentation]** Added definitions of Catalog Class object classification codes to pilot.md to help guide imaging and filter strategy.
 - **[Flat Frames]** Added a flat-frame orientation example to catalog.sample.json
+- **[Rename Dirs]** Utility to rename Nina image directories to match Siril expectation eg LIGHT -> lights, DARK -> darks, BIAS -> biases, FLAT -> flats
 - **[Config Updates]** Stream config updates so that all Alpaca Pilot Clients receive the new configuration settings immediately (used for Panoramas) 
+- **[Updated SSL Root Certificates]** Must reinstall python pre-requisites using `pip -r requirements.txt`, See fix#74
+- **[Raspberry Pi Setuip]** Enhance the Alpaca driver and Wi-Fi setup scripts, along with documentation, for Raspberry Pi Zero 2
 
 ## New Features (enabled by Nina)
 
