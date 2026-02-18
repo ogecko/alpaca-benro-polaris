@@ -26,7 +26,7 @@
 ## Win11 Upgrade Instructions
 * Upgrade Python to 3.13.12 by downloading Windows Installer (64 bit) for Python 3.13.12 and running the install program.
 * Upgrade pip using the command `python -m pip install --upgrade pip`
-* If you are using ASCOM, upgrade to ASCOM Platform 7.1.2
+* If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
 * Follow the standard [Installation Guide](./installation.md) to install the Alpaca Driver v2.1.0
 * Install all pre-requisite python packages using the command `pip install -r platforms/win/requirements.txt`
@@ -136,7 +136,7 @@
 * Siril v1.2.3 de49749
 ### Drivers and Utilities
 * Windows Remote Desktop v10.0.22621
-* ASCOM Platform 7.1.2 (Build 4823)
+* ASCOM Platform 7.1.3 (Build 4851)
 * ASCOM Platform 7.1 (Build 4707)
 * ASCOM Platform 7 Update 3 RC7 (not Update 2 version)
 * ASCOM Platform 7 RC7
