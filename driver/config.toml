@@ -73,9 +73,9 @@ z2_min_limit = -55                          # z2 Axis Raw Motor Control minimum 
 z2_max_limit = +37                          # z2 Axis Raw Motor Control maximum in degrees
 z3_min_limit = -270                         # Z3 Axis Raw Motor Control minimum in degrees
 z3_max_limit = +270                         # Z3 Axis Raw Motor Control maximum in degrees
-m1_park = 0                                 # Motor 1 position for saved Park Location
-m2_park = 0                                 # Motor 2 position for saved Park Location
-m3_park = 0                                 # Motor 3 position for saved Park Location
+m1_park = 0.0                               # Motor 1 position for saved Park Location
+m2_park = 0.0                               # Motor 2 position for saved Park Location
+m3_park = 0.0                               # Motor 3 position for saved Park Location
 guide_rate_ra = 1.0                         # Right Ascensiion guide rate multiple of sidereal rate
 guide_rate_dec = 1.0                        # Declination guide rate multiple of sidereal rate
 
