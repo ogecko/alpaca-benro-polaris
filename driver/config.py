@@ -89,7 +89,7 @@ class Config:
         for key, new_value in changes.items():
             if key not in cls._current:
                 continue
-            expected_type = type(cls._current[key])
+            expected_type = type(cls._base[key])
             try:
                 coerced = expected_type(new_value)
             except (ValueError, TypeError):

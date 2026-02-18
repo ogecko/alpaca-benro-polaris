@@ -82,6 +82,7 @@
 - **[fix #71]**: Alpaca Pilot Sidebar Menu should only highlight the active catalog link (not all catalog links).
 - **[fix #73]**: Upgrade Win and MacOS requirements.txt for latest compatible versions of numpy, scipi, falcon, bleak, ASCOM, Python.
 - **[fix #74]**: Update SSL Root certificates to allow successful JPL Horizons searches for Comets and Asteroids.
+- **[fix #75]**: Ensure Panorama hstep, vstep, r0, r1, r2 can have decimal degree values (ie not forced to integers).
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
