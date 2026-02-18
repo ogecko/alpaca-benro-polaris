@@ -41,7 +41,7 @@
 - **[Panorama Calculator]** Use the Panel Spacing Calculator to determine your sensor’s field of view (FOV) and the recommended panel step for a desired image overlap.
 - **[Panorama Automation]** Add device actions PanoGrid and PanoSlew for automation in Nina Advanced Sequencer and CCDScripts
 - **[Panel Navigation]** Add optional Panel navigation controls on the main dashboard
-- **[Advanced Sequencer]** Add Panorama Actions for use in Nina's Advanced Sequencer and Templates.
+- **[Advanced Sequencer]** Add documentation on how to use Nina's Advanced Sequencer and Templates.
 - **[Meteor Calendar]** Added a link to the International Meteor Organization’s Meteor Shower Calendar on the Comets page.
 - **[Sky Conditions]** Added a Sky Conditions page providing sunrise and sunset times, moonrise and moonset, eclipse data, cloud cover, jet stream forecasts, and light pollution information.
 - **[Aurora Resource]** Add Space Weather Prediction Center to Sky Condition Resources
@@ -51,7 +51,7 @@
 - **[Rename Dirs]** Utility to rename Nina image directories to match Siril expectation eg LIGHT -> lights, DARK -> darks, BIAS -> biases, FLAT -> flats
 - **[Config Updates]** Stream config updates so that all Alpaca Pilot Clients receive the new configuration settings immediately (used for Panoramas) 
 - **[Updated SSL Root Certificates]** Must reinstall python pre-requisites using `pip -r requirements.txt`, See fix#74
-- **[Raspberry Pi Setuip]** Enhance the Alpaca driver and Wi-Fi setup scripts, along with documentation, for Raspberry Pi Zero 2
+- **[Raspberry Pi Setup]** Enhance the Alpaca driver and Wi-Fi setup scripts, along with documentation, for Raspberry Pi Zero 2
 
 ## New Features (enabled by Nina)
 
