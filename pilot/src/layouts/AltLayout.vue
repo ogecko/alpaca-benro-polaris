@@ -343,12 +343,12 @@ const links4 = [
 ]
 
 const links5 = [
-  { icon: 'mdi-account-tie-hat', text: 'Pilot', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/pilot.md' },
-  { icon: 'mdi-camera-control', text: 'Control', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/control.md' },
+  { icon: 'mdi-account-tie-hat', text: 'Pilot', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/pilot.md' },
+  { icon: 'mdi-camera-control', text: 'Control', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/control.md' },
   { icon: 'mdi-alert', text: 'Warnings', to: '/warning' },
-  { icon: 'mdi-stethoscope', text: 'Troubleshooting', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/troubleshooting.md' },
+  { icon: 'mdi-stethoscope', text: 'Troubleshooting', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/troubleshooting.md' },
   { icon: 'mdi-youtube', text: 'Videos', toExternal: 'https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D' },
-  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/faq.md' },
+  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/faq.md' },
   { icon: 'mdi-information-variant', text: 'About', to: '/about' },
 ]
 
