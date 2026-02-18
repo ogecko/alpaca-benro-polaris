@@ -265,8 +265,8 @@ function setKnobValues() {
   const pos_proc_var = cfg.kf_process_noise[idx] ?? 1e-6;
   pos_proc_var_log.value = var2log(pos_proc_var);
 
-  const acc_proc_var = cfg.kf_process_noise[idx] ?? 1e-6;
-  vel_proc_var_log.value = var2log(acc_proc_var);
+  const vel_proc_var = cfg.kf_process_noise[idx + 3] ?? 1e-6;
+  vel_proc_var_log.value = var2log(vel_proc_var);
 }
 
 
