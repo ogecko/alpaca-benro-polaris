@@ -186,6 +186,7 @@ const pos_meas_var_log = ref<number>(5)
 const vel_meas_var_log = ref<number>(5)      // typically 1 to 10
 const pos_proc_var_log = ref<number>(5)
 const vel_proc_var_log = ref<number>(5)      
+const isInitializing = ref(true)            // used to prevent first initializing of knobs from sending an update to the server
 
 const motor = computed<string>(() => `M${axis.value+1}`)
 const pos_meas_var = computed<number>(() => log2var(pos_meas_var_log.value))
@@ -232,6 +233,7 @@ const K_gain = computed((): { pos: string; vel: string } => {
 
 
 watch([pos_meas_var, vel_meas_var, pos_proc_var, vel_proc_var], (newVal)=>{
+  if (isInitializing.value) return
   const payload = { kf_measure_noise: [...cfg.kf_measure_noise], kf_process_noise: [...cfg.kf_process_noise]}
   payload.kf_measure_noise[axis.value] = newVal[0]
   payload.kf_measure_noise[axis.value+3] = newVal[1]
@@ -294,6 +296,7 @@ onMounted(async () => {
   await cfg.configFetch()
   socket.subscribe('kf')
   setKnobValues()
+  isInitializing.value = false
 })
 
 onUnmounted(() => {
