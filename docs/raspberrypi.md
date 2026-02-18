@@ -53,16 +53,16 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
 4. Download the setup script
     ```Bash
     cd ~
-    wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_0/platforms/raspberry_pi/setup.sh -O setup.sh
+    wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_1/platforms/raspberry_pi/setup.sh -O setup.sh
     ```
 5. Make it executable and Run the setup script
     ```Bash
     chmod +x ./setup.sh
     ./setup.sh
     ```
-    Note that if you want to fetch a specific branch from the Git-Hub repository you can pass the Branch name as the first argument to setup.sh. For example, the following command will fetch the **dev2_0** branch.
+    Note that if you want to fetch a specific branch from the Git-Hub repository you can pass the Branch name as the first argument to setup.sh. For example, the following command will fetch the **dev2_1** branch.
     ```
-    ./setup.sh dev2_0
+    ./setup.sh dev2_1
     ```
 6. Wait for the following tasks to complete
     * ==SETUP== 1. Update the software on the system, and install dependencies needed for git

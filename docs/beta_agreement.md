@@ -19,7 +19,7 @@ Can you please let me know the details about the equipment you are testing with.
 * Platform: OS Version, Application Versions (Nina/Stellarium, etc), Browser Version, etc. 
 
 If you know Markdown you can add this directly to your section of the following document
-https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/beta_results_v2.md 
+https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/beta_results_v2.md 
 
 Otherwise, just send me a note on Discord and I’ll add it for you.
 
