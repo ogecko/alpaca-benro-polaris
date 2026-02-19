@@ -89,26 +89,17 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     journalctl -u polaris-driver -f            # View the logs
     ```
 
-10. Optionally install build tools  
-    On some Raspberry Pi platforms you may encounter issues when installing the `requirements.txt`, where a package is not available for your platform. For example, on the **Raspberry Pi Zero 2 W**, there is no compiled version of **numpy** or **scipi** available for pip to install. The script works around this issue by using apt-get to install both of these packages globally outside of pip. 
-    
-    If you encounter other package dependancy issues you may need to install build tools to generate any missing package from scratch.
-    ```Bash
-    sudo apt install gfortran
-    sudo apt install libopenblas-dev
-    ```
-
     
 ## Installing TPLink Driver on Pi Zero 2 (OPTIONAL)
 The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 kernel. You may meed to build and install a suitable driver using the following procedure. 
 
-11. Connect the TPLink to the Raspberry Pi Zero 2 and list the usb devices connected. This is to confirm the chipset is RTL8821AU.
+10. Connect the TPLink to the Raspberry Pi Zero 2 and list the usb devices connected. This is to confirm the chipset is RTL8821AU.
     ```Bash
     $ lsusb
     Bus 001 Device 002: ID 2357:0120 TP-Link Archer T2U PLUS [RTL8821AU]
     Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
     ```
-12. Install the build tools
+11. Install the build tools
     ```Bash
     echo "deb http://archive.raspberrypi.org/debian/ bookworm main" | sudo tee /etc/apt/sources.list.d/raspi.list
     sudo apt update
@@ -116,13 +107,13 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     ```
     > Note: Raspberry Pi Foundation builds kernel packages against Bookworm (not Trixie). This is why we add the bookworm archive, so we can install the raspberrypi-kernel-headers.
 
-13. Get the drivers source code
+12. Get the drivers source code
     ```Bash
     git clone https://github.com/aircrack-ng/rtl8812au.git
     cd rtl8812au
     ```
 
-14. Build and install with DKMS
+13. Build and install with DKMS
     ```Bash
     sudo dkms add .
     dkms status
@@ -155,11 +146,11 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     swapon --show
     ``` 
     
-15. Load the module
+14. Load the module
     ```Bash
     sudo modprobe 88XXau
     ````
-16. Verify the network interface is active  
+15. Verify the network interface is active  
     You should see wlan0, and another auto-generated name like **wlan0** or **wlxe4fac4e6dea5**.
     ```Bash
     $ ip link show
@@ -173,11 +164,11 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
 
 
 ## Identify Wifi Interface and Polaris SSID
-17. List all Wifi Network Interfaces/Adapters available. It should show `wlan0` for the standard Pi Zero interface and something like `wlan1` for the TPLink. Remember the TPLink interface name for the next section.
+16. List all Wifi Network Interfaces/Adapters available. It should show `wlan0` for the standard Pi Zero interface and something like `wlan1` for the TPLink. Remember the TPLink interface name for the next section.
     ```Bash
     iw dev | grep Interface
     ```
-18. Ensure the Polaris is powered on and list all Wifi Networks SSID visible, replacing `wlan1` with your TPLINK Interface name (if it is different). Look for a Polaris SSID of `polaris_xxxxxxx`. Remember the Polaris SSID for the next section.
+17. Ensure the Polaris is powered on and list all Wifi Networks SSID visible, replacing `wlan1` with your TPLINK Interface name (if it is different). Look for a Polaris SSID of `polaris_xxxxxxx`. Remember the Polaris SSID for the next section.
     ```Bash
     sudo iw wlan1 scan | grep SSID
     ```
@@ -187,22 +178,22 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
 ## Setup of Wifi Connection to Polaris
 The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLINK adapter, to connect to the Polaris automatically.
 
-19. Change to the platforms/raspberry_pi directory and make the wifi.sh script executable.
+18. Change to the platforms/raspberry_pi directory and make the wifi.sh script executable.
     ```
     cd platforms/raspberry_pi
     chmod +x wifi.sh
     ```
-20. Run the WiFi Setup script, changing the interface **wlan1** and SSID name **polaris_3b3906** according
+19. Run the WiFi Setup script, changing the interface **wlan1** and SSID name **polaris_3b3906** according
     ```
     sudo ./wifi.sh wlan1 polaris_b83c06
     ```
 
-21. Wait for the following tasks to complete
+20. Wait for the following tasks to complete
     * == STEP == 1. Create wpa_supplicant config file 
     * == STEP == 2. Create [systemd] service to connect to wlan1
     * == STEP == 3. Create [systemd] service to set static IP address on wlan1
 
-22. Check connectivity to the Polaris device
+21. Check connectivity to the Polaris device
     ```
     $ ip addr show wlan1
     3: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state UP group default qlen 1000
@@ -244,7 +235,7 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
 
     ```
 
-5. To monitor and control the status of the Polaris Wifi Connection Service
+22. To monitor and control the status of the Polaris Wifi Connection Service
     ```Bash
     sudo systemctl status polaris-wlan1       # Check the wlan1 connect service status 
     sudo systemctl stop polaris-wlan1         # Stop the wlan1 connect service 
@@ -253,7 +244,8 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
     journalctl -u polaris-ip                  # View the wlan1 assign static ip logs
     ```
 
-## Diagnosing Wifi and Bluetooth Connections
+## Troubleshooting the Raspberry Pi
+### P1 - Diagnosing Wifi and Bluetooth RF status
 To check whether the Raspberry Pi Wifi or Bluetooth is blocked: 
 ```
 $ rfkill list
@@ -276,15 +268,8 @@ To bring up the wlan1 wifi interface:
 ```
 $ sudo ip link set wlan1 up
 ```
-To scan the wlan1 wifi interface for active SSIDs:
-```
-$ sudo iw wlan1 scan | grep SSID
-        SSID: polaris_b83c06
-        SSID: atlas_6G
-        SSID: atlas_6G
-        SSID: OPTUS_734AC2_5GHz
-```
-To check the network status:
+### P2 - Diagnosing Wifi Connections
+To check the network status. The `ip a` command displays all network interfaces and their assigned IP addresses (IPv4 and IPv6), including interface state and MAC address.:
 ```
 $ ip a
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
@@ -334,6 +319,15 @@ default via 192.168.50.1 dev wlan0 proto dhcp src 192.168.50.160 metric 600
 192.168.50.0/24 dev wlan0 proto kernel scope link src 192.168.50.160 metric 600
 
 ```
+To scan the wlan1 wifi interface for active SSIDs:
+```
+$ sudo iw wlan1 scan | grep SSID
+        SSID: polaris_b83c06
+        SSID: atlas_6G
+        SSID: atlas_6G
+        SSID: OPTUS_734AC2_5GHz
+```
+### P3 - Diagnosing Polaris daemon services
 To check polaris services:
 ```
 $ systemctl list-unit-files | grep polaris
@@ -348,8 +342,8 @@ $ systemctl status | grep polaris
                │ └─2667 grep --color=auto polaris
 
 ```
-
-To add another access point to wlan0. You can use wlan0 to connect the Raspberry Pi multiple access points. For example, you may want to it to connect to your home network while at home, and your laptops hotspot while at a dark sky site.
+### P4 - Adding additional access points to wlan0
+You can use wlan0 to connect the Raspberry Pi multiple access points. For example, you may want to it to connect to your home network while at home, and your laptops hotspot while at a dark sky site.
 
 1. Add an connection to your laptop's access point.
     ```
@@ -401,7 +395,8 @@ To add another access point to wlan0. You can use wlan0 to connect the Raspberry
 
     $ sudo nmcli connection delete 38ac0174-c389-404d-a32c-d795370b4a61
     ```
-## Manual Configuration of Alpaca Driver
+
+### P5 - Manual Configuration of Alpaca Pilot Port
 On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. 
 
 This is done automatically in setup.sh, but if you did not use this method, then use the following manual procedure.
@@ -412,8 +407,17 @@ This is done automatically in setup.sh, but if you did not use this method, then
     alpaca_pilot_port = 8080
     ```
 
+### P6 - Optionally install build tools  
+On some Raspberry Pi platforms you may encounter issues when installing the `requirements.txt`, where a package is not available for your platform. For example, on the **Raspberry Pi Zero 2 W**, there is no compiled version of **numpy** or **scipi** available for pip to install. The script works around this issue by using apt-get to install both of these packages globally outside of pip. 
+    
+If you encounter other package dependancy issues you may need to install build tools to generate any missing package from scratch.
+```Bash
+sudo apt install gfortran
+sudo apt install libopenblas-dev
+```
 
-## Upgrading Bluez Bluetooth Library to v5.66 
+
+### P7 - Upgrading Bluez Bluetooth Library to v5.66 
 If you are using an older version of the Bluetooth library then you may need to upgrade.
 
 1. Check version of Bluetooth. If you are using v5.55-1 then proceed to upgrade.

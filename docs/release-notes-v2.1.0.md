@@ -70,9 +70,11 @@
 ## Documentation (Alpaca Driver)
 - **[Nina Advanced Sequencer]**: Add documentation on using Nina's advanced sequencer with Alpaca Driver
 - **[Auto Guiding]**: Add documentation on using PHD2 for auto-guiding 
+- **[Raspberry Pi]**: Major revision of Raspberry Pi installation documentation
 - **[Auto Power On]**: Add hardware note for Mele Quieter 4C to use BIOS settings for **Auto Power On**
 - **[Troublshooting A5]**: Add resolution to http.sys claiming port 80
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
+- **[Troubleshooting P1-6]**: Add a troubleshooting section to the Raspberry Pi docs
 
 ## Bug Fixes (from v2.0.0 version)
 - **[fix #62]**: Alpaca Driver SupportedActions method incorrectly lists "Polaris:J2000GotoPolaris:Ack" as a single action.
