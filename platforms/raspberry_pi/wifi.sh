@@ -28,8 +28,15 @@ network={
     key_mgmt=NONE
 }
 EOF
-
 sudo chmod 600 "$WPA_CONF"
+
+# Tell dhcpcd to ignore wlan1
+if ! grep -q "denyinterfaces ${INTERFACE}" /etc/dhcpcd.conf; then
+    echo "denyinterfaces ${INTERFACE}" | sudo tee -a /etc/dhcpcd.conf
+fi
+# stop and mask default wpa_supplicant managing wlan1
+sudo systemctl stop wpa_supplicant@${INTERFACE}.service --quiet
+sudo systemctl mask wpa_supplicant@${INTERFACE}.service --quiet
 
 # Create systemd service for wpa_supplicant
 WLAN1_SERVICE_FILE="/etc/systemd/system/polaris-${INTERFACE}.service"
@@ -41,7 +48,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/sbin/wpa_supplicant -c${WPA_CONF} -i${INTERFACE} -Dnl80211,wext
+ExecStart=/sbin/wpa_supplicant -c${WPA_CONF} -i${INTERFACE} -Dnl80211
 Restart=always
 RestartSec=5
 
