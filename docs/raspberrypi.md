@@ -1,6 +1,12 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Raspberry Pi Setup Guide
+[Versions](#which-pi-should-i-buy) | 
+[Image Creation](#install-raspberry-pi-os-image) | 
+[Alpaca Installation](#installation-of-pre-requisites-and-alpaca-driver) | 
+[TPLink Installation](#installing-tplink-driver-on-pi-zero-2-optional) | 
+[Troubleshooting](#troubleshooting-the-raspberry-pi)
+
 
 ## Overview
 
@@ -31,7 +37,7 @@ MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
    1942 root      20   0  608352 113132  41640 R  22.4  26.5   8:33.13 python3
 
 ```
-## Install Raspberry Pi OS
+## Install Raspberry Pi OS Image
 1. Download the Raspberry Pi Imager from the [official website](https://www.raspberrypi.com/software/)
 2. Open the imager_2.0.0.exe and follow the installation instructions, choosing to run the program at the finish of installation.
 3. Using the imaging program
@@ -45,17 +51,18 @@ MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
     8. Enable SSH. Use default password authtication, then click **NEXT**
     9. Use default disabled Raspberry Pi Connect, then click **NEXT**
     10. Write the image to the SD Card, click **WRITE**
+4. Remove the SD Card storage device and insert it into your Raspberry Pi
 
 ## Installation of Pre-Requisites and Alpaca Driver
 These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Connect a **keyboard** and **monitor** directly to the Raspberry Pi, or setup a remote terminal program such as **MobaXterm** or **VS Code**. Login with the username and password you configured during image creation, and then follow the instructions below.
 
-
-4. Download the setup script
+5. Connect a keyboard/screen to the Raspberry Pi, or connect a remote terminal like MobaXterm. Logon to the Raspberry Pi using the credentials you setup in the imager.
+6. Download the setup script
     ```Bash
     cd ~
     wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_1/platforms/raspberry_pi/setup.sh -O setup.sh
     ```
-5. Make it executable and Run the setup script
+7. Make it executable and Run the setup script
     ```Bash
     chmod +x ./setup.sh
     ./setup.sh
@@ -64,7 +71,7 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     ```
     ./setup.sh dev2_1
     ```
-6. Wait for the following tasks to complete
+8. Wait for the following tasks to complete
     * ==SETUP== 1. Update the software on the system, and install dependencies needed for git
     * ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
     * ==SETUP== 3. Create a pyenv and add to ~/.bashrc.
@@ -73,15 +80,15 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     * ==SETUP== 6. Set up [systemd] services to start the Polaris Driver at boot time
     * ==SETUP== 7. Starts the polaris-driver service.
 
-7. The Alpaca Driver should now be installed and setup
+9. The Alpaca Driver should now be installed and setup
 
 ## Monitoring and Diagnostic commands
 
-8. To activate the pyenv created by the setup script and added to the .bashrc
+10. To activate the pyenv created by the setup script and added to the .bashrc
     ```Bash
     source ~/.bashrc
     ```
-9. To monitor and control the status of the Alpaca Driver Daemon Service
+11. To monitor and control the status of the Alpaca Driver Daemon Service
     ```Bash
     sudo systemctl status polaris-driver       # Check the service status 
     sudo systemctl stop polaris-driver         # Stop the service 
@@ -93,13 +100,13 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
 ## Installing TPLink Driver on Pi Zero 2 (OPTIONAL)
 The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 kernel. You may meed to build and install a suitable driver using the following procedure. 
 
-10. Connect the TPLink to the Raspberry Pi Zero 2 and list the usb devices connected. This is to confirm the chipset is RTL8821AU.
+12. Connect the TPLink to the Raspberry Pi Zero 2 and list the usb devices connected. This is to confirm the chipset is RTL8821AU.
     ```Bash
     $ lsusb
     Bus 001 Device 002: ID 2357:0120 TP-Link Archer T2U PLUS [RTL8821AU]
     Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
     ```
-11. Install the build tools
+13. Install the build tools
     ```Bash
     echo "deb http://archive.raspberrypi.org/debian/ bookworm main" | sudo tee /etc/apt/sources.list.d/raspi.list
     sudo apt update
@@ -107,13 +114,13 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     ```
     > Note: Raspberry Pi Foundation builds kernel packages against Bookworm (not Trixie). This is why we add the bookworm archive, so we can install the raspberrypi-kernel-headers.
 
-12. Get the drivers source code
+14. Get the drivers source code
     ```Bash
     git clone https://github.com/aircrack-ng/rtl8812au.git
     cd rtl8812au
     ```
 
-13. Build and install with DKMS
+15. Build and install with DKMS
     ```Bash
     sudo dkms add .
     dkms status
@@ -146,11 +153,11 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     swapon --show
     ``` 
     
-14. Load the module
+16. Load the module
     ```Bash
     sudo modprobe 88XXau
     ````
-15. Verify the network interface is active  
+17. Verify the network interface is active  
     You should see wlan0, and another auto-generated name like **wlan0** or **wlxe4fac4e6dea5**.
     ```Bash
     $ ip link show
@@ -164,11 +171,11 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
 
 
 ## Identify Wifi Interface and Polaris SSID
-16. List all Wifi Network Interfaces/Adapters available. It should show `wlan0` for the standard Pi Zero interface and something like `wlan1` for the TPLink. Remember the TPLink interface name for the next section.
+18. List all Wifi Network Interfaces/Adapters available. It should show `wlan0` for the standard Pi Zero interface and something like `wlan1` for the TPLink. Remember the TPLink interface name for the next section.
     ```Bash
     iw dev | grep Interface
     ```
-17. Ensure the Polaris is powered on and list all Wifi Networks SSID visible, replacing `wlan1` with your TPLINK Interface name (if it is different). Look for a Polaris SSID of `polaris_xxxxxxx`. Remember the Polaris SSID for the next section.
+19. Ensure the Polaris is powered on and list all Wifi Networks SSID visible, replacing `wlan1` with your TPLINK Interface name (if it is different). Look for a Polaris SSID of `polaris_xxxxxxx`. Remember the Polaris SSID for the next section.
     ```Bash
     sudo iw wlan1 scan | grep SSID
     ```
@@ -178,22 +185,22 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
 ## Setup of Wifi Connection to Polaris
 The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLINK adapter, to connect to the Polaris automatically.
 
-18. Change to the platforms/raspberry_pi directory and make the wifi.sh script executable.
+20. Change to the platforms/raspberry_pi directory and make the wifi.sh script executable.
     ```
     cd platforms/raspberry_pi
     chmod +x wifi.sh
     ```
-19. Run the WiFi Setup script, changing the interface **wlan1** and SSID name **polaris_3b3906** according
+21. Run the WiFi Setup script, changing the interface **wlan1** and SSID name **polaris_3b3906** according
     ```
     sudo ./wifi.sh wlan1 polaris_b83c06
     ```
 
-20. Wait for the following tasks to complete
+22. Wait for the following tasks to complete
     * == STEP == 1. Create wpa_supplicant config file 
     * == STEP == 2. Create [systemd] service to connect to wlan1
     * == STEP == 3. Create [systemd] service to set static IP address on wlan1
 
-21. Check connectivity to the Polaris device
+23. Check connectivity to the Polaris device
     ```
     $ ip addr show wlan1
     3: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state UP group default qlen 1000
@@ -235,7 +242,7 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
 
     ```
 
-22. To monitor and control the status of the Polaris Wifi Connection Service
+24. To monitor and control the status of the Polaris Wifi Connection Service
     ```Bash
     sudo systemctl status polaris-wlan1       # Check the wlan1 connect service status 
     sudo systemctl stop polaris-wlan1         # Stop the wlan1 connect service 
