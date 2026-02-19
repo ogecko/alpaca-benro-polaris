@@ -3,16 +3,19 @@
 # Development Todo List
 
 ## Final Release Checklist
-- [X] Raspberry Pi script update and tests
-- [X] Confirm all assets update release-notes, docs
-- [X] Confirm all tests pass
-- [X] Update version # in Pilot, Driver, Release Notes
 - [X] Complete todo checklist
-- [X] Build Pilot for release
-- [X] Merge onto main
-- [X] Create GitHub Release and Tag (main branch)
-- [X] Verify Install Artifacts link
+- [X] Final Changes - git checkout dev2_1, git pull origin dev2_1
+- [X]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json
+- [X]     Build Pilot for release
+- [X]     Confirm all tests pass
+- [X] Create Branch - releases/v2.1.0 based on dev2_1
+- [X] Merge into main - git checkout main, git pull origin main, git merge releases/v2.1.0, git push origin main
+- [X] Draft Github New Release and Tag - on main branch
+- [X]     Release Title: Alpaca Benro Polaris Driver v2.0.0
+- [X]     Release Notes: Refer to https://github.com/ogecko/alpaca-benro-polaris/blob/releases/2_1_0/docs/release-notes-v2.1.0.md
+- [X]     Set as latest release
 - [X] Announce on Kickstarter, Facebook, Discord
+- [X] Create new Dev Branch - dev2_2 based on dev2_1
 
 ## Alpaca Pilot App
 - [X] Implement Alpaca Pilot App Framework
