@@ -127,20 +127,34 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     sudo dkms add .
     dkms status
     ```
-    Use the registered name from `dmks status` to build and install
+    Use the registered name from `dmks status` to build and install. Both commands should show "done." when complete.
     ```Bash
     sudo dkms build realtek-rtl88xxau/5.6.4.2~20230501
     sudo dkms install realtek-rtl88xxau/5.6.4.2~20230501
     ```
-    If the build fails half way through on a Raspberry Pi Zero 2 W, you may need to increase the zram swap size with the following commands, then repeat the build and install commands above.
+    If the build fails half way through on a Raspberry Pi Zero 2 W, you may need to increase the swap size with the following commands, then repeat the build and install commands above.
+
+    To create a temporary file-backed swap
+    ```
+    sudo fallocate -l 2G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    swapon --show
+    # To remove swap (after you have build and installed the module)
+    sudo swapoff /swapfile
+    sudo rm /swapfile
+    ```
+    Or use a memory based swap.
     ```
     sudo systemctl stop polaris
     sudo swapoff /dev/zram0
-    echo $((1024*1024*1024)) | sudo tee /sys/block/zram0/disksize
+    echo $((2*1024*1024*1024)) | sudo tee /sys/block/zram0/disksize
     sudo mkswap /dev/zram0
     sudo swapon /dev/zram0
     swapon --show
     ``` 
+    
 15. Load the module
     ```Bash
     sudo modprobe 88XXau
@@ -320,23 +334,6 @@ default via 192.168.50.1 dev wlan0 proto dhcp src 192.168.50.160 metric 600
 192.168.50.0/24 dev wlan0 proto kernel scope link src 192.168.50.160 metric 600
 
 ```
-To check Network Manager status and connections (not used by Alpaca Driver)
-```
-$ nmcli device status
-DEVICE         TYPE      STATE                   CONNECTION
-wlan0          wifi      connected               netplan-wlan0-atlas_6G
-lo             loopback  connected (externally)  lo
-p2p-dev-wlan0  wifi-p2p  disconnected            --
-wlan1          wifi      unavailable             --
-
-$ nmcli connection show 
-NAME                    UUID                                  TYPE      DEVICE
-netplan-wlan0-atlas_6G  fe8758eb-c76a-3d01-9580-21c52199d208  wifi      wlan0
-lo                      18b0756e-35d4-4f6f-91ce-f7676b7c6dc2  loopback  lo
-
-$ sudo nmcli connection delete 136e6155-f914-40b9-8608-18d8d83a77ee
-
-```
 To check polaris services:
 ```
 $ systemctl list-unit-files | grep polaris
@@ -352,6 +349,51 @@ $ systemctl status | grep polaris
 
 ```
 
+To add multiple networks to wlan0 on a Debian Trixie Pi image:
+1. Edit the netplan yaml config
+    ```
+    sudo nano /etc/netplan/*.yaml
+    ```
+2. Add both networks
+    ```
+    network:
+    version: 2
+    wifis:
+        wlan0:
+        renderer: NetworkManager
+        dhcp4: true
+        access-points:
+            "MyHomeNetwork":
+            auth:
+                key-management: "psk"
+                password: "home_network_password"
+            "MyLaptopHotspot":
+            auth:
+                key-management: "psk"
+                password: "hotspot_plaintext_password"
+    ```
+3. Update the network settings and check status
+    ```
+    sudo netplan apply
+    ```
+
+4. To check Network Manager status and connections (used by Netplan)
+    ```
+    $ nmcli device status
+    DEVICE         TYPE      STATE                   CONNECTION
+    wlan0          wifi      connected               netplan-wlan0-atlas_6G
+    lo             loopback  connected (externally)  lo
+    p2p-dev-wlan0  wifi-p2p  disconnected            --
+    wlan1          wifi      unavailable             --
+
+    $ nmcli connection show 
+    NAME                    UUID                                  TYPE      DEVICE
+    netplan-wlan0-atlas_6G  fe8758eb-c76a-3d01-9580-21c52199d208  wifi      wlan0
+    lo                      18b0756e-35d4-4f6f-91ce-f7676b7c6dc2  loopback  lo
+
+    $ sudo nmcli connection delete 136e6155-f914-40b9-8608-18d8d83a77ee
+
+    ```
 ## Manual Configuration of Alpaca Driver
 On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. 
 
