@@ -106,11 +106,13 @@ The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 k
     Bus 001 Device 002: ID 2357:0120 TP-Link Archer T2U PLUS [RTL8821AU]
     Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
     ```
-13. Install the build tools
+13. Install the dkms kernel build tools
     ```Bash
     echo "deb http://archive.raspberrypi.org/debian/ bookworm main" | sudo tee /etc/apt/sources.list.d/raspi.list
     sudo apt update
     sudo apt install -y dkms git build-essential raspberrypi-kernel-headers
+    # optionally upgrade all packages to latest
+    sudo apt upgrade
     ```
     > Note: Raspberry Pi Foundation builds kernel packages against Bookworm (not Trixie). This is why we add the bookworm archive, so we can install the raspberrypi-kernel-headers.
 
