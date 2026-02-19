@@ -204,13 +204,6 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
 
 22. Check connectivity to the Polaris device
     ```
-    $ ping 192.168.0.1
-    PING 192.168.0.1 (192.168.0.1) 56(84) bytes of data.
-    64 bytes from 192.168.0.1: icmp_seq=1 ttl=64 time=3.94 ms
-    64 bytes from 192.168.0.1: icmp_seq=2 ttl=64 time=1.63 ms
-    64 bytes from 192.168.0.1: icmp_seq=3 ttl=64 time=1.59 ms
-    64 bytes from 192.168.0.1: icmp_seq=4 ttl=64 time=1.59 ms
-
     $ ip addr show wlan1
     3: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state UP group default qlen 1000
         link/ether e4:fa:c4:e6:de:a5 brd ff:ff:ff:ff:ff:ff
@@ -242,15 +235,22 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
                     channel 7 (2442 MHz), width: 20 MHz, center1: 2442 MHz
                     txpower 31.00 dBm
 
+    $ ping 192.168.0.1
+    PING 192.168.0.1 (192.168.0.1) 56(84) bytes of data.
+    64 bytes from 192.168.0.1: icmp_seq=1 ttl=64 time=3.94 ms
+    64 bytes from 192.168.0.1: icmp_seq=2 ttl=64 time=1.63 ms
+    64 bytes from 192.168.0.1: icmp_seq=3 ttl=64 time=1.59 ms
+    64 bytes from 192.168.0.1: icmp_seq=4 ttl=64 time=1.59 ms
+
     ```
 
 5. To monitor and control the status of the Polaris Wifi Connection Service
     ```Bash
-    sudo systemctl status polaris-wlan1       # Check the service status 
-    sudo systemctl stop polaris-wlan1         # Stop the service 
-    sudo systemctl start polaris-wlan1        # Start the service  
-    journalctl -u polaris-wlan1 -f            # View the connect logs
-    journalctl -u polaris-ip -f               # View the static ip logs
+    sudo systemctl status polaris-wlan1       # Check the wlan1 connect service status 
+    sudo systemctl stop polaris-wlan1         # Stop the wlan1 connect service 
+    sudo systemctl start polaris-wlan1        # Start the wlan1 connect service  
+    journalctl -u polaris-wlan1 -f            # View the wlan1 connect logs
+    journalctl -u polaris-ip                  # View the wlan1 assign static ip logs
     ```
 
 ## Diagnosing Wifi and Bluetooth Connections
@@ -304,7 +304,7 @@ $ ip a
     inet 192.168.0.100/24 scope global wlan1
        valid_lft forever preferred_lft forever
 ```
-To check if the pi is connected to your router and what routes are configured:
+To check if the Raspberry Pi is connected to your network router and what routes are configured:
 ```
 $ iw dev wlan0 link
         SSID: atlas_6G
@@ -349,36 +349,32 @@ $ systemctl status | grep polaris
 
 ```
 
-To add multiple networks to wlan0 on a Debian Trixie Pi image:
-1. Edit the netplan yaml config
+To add another access point to wlan0. You can use wlan0 to connect the Raspberry Pi multiple access points. For example, you may want to it to connect to your home network while at home, and your laptops hotspot while at a dark sky site.
+
+1. Add an connection to your laptop's access point.
     ```
-    sudo nano /etc/netplan/*.yaml
+    sudo nmcli connection add type wifi ifname wlan0 con-name laptop ssid "hotspot_SSID"     
+    sudo nmcli connection modify laptop wifi-sec.key-mgmt wpa-psk wifi-sec.psk "hotspot_password" 
+    sudo nmcli connection modify laptop connection.autoconnect yes connection.autoconnect-priority 20    
     ```
-2. Add both networks
+ 
+    > Note: On Raspberry Pi OS (Trixie), the initial Wi-Fi network configured via Raspberry Pi Imager is written to a Netplan YAML file. Netplan then uses NetworkManager as its renderer to create and manage the actual Wi-Fi connection profile. The Netplan configuration files are located in /etc/netplan/*.yaml. You can also set the priority of the netplan connection, higher numeric values indicate higher priority when multiple known networks are available.
+
+2. Confirm the connection has been added.
     ```
-    network:
-    version: 2
-    wifis:
-        wlan0:
-        renderer: NetworkManager
-        dhcp4: true
-        access-points:
-            "MyHomeNetwork":
-            auth:
-                key-management: "psk"
-                password: "home_network_password"
-            "MyLaptopHotspot":
-            auth:
-                key-management: "psk"
-                password: "hotspot_plaintext_password"
-    ```
-3. Update the network settings and check status
-    ```
-    sudo netplan apply
+    $ nmcli -f NAME,TYPE,DEVICE,AUTOCONNECT,ACTIVE,STATE,AUTOCONNECT-PRIORITY connection show
+    NAME                    TYPE      DEVICE  AUTOCONNECT  ACTIVE  STATE      AUTOCONNECT-PRIORITY
+    netplan-wlan0-atlas_6G  wifi      wlan0   yes          yes     activated  10
+    lo                      loopback  lo      no           yes     activated  0
+    laptop                  wifi      --      yes          no      --         20
     ```
 
-4. To check Network Manager status and connections (used by Netplan)
+3. To check Network Manager status
     ```
+    $ nmcli radio
+    WIFI-HW  WIFI     WWAN-HW  WWAN
+    enabled  enabled  missing  enabled
+
     $ nmcli device status
     DEVICE         TYPE      STATE                   CONNECTION
     wlan0          wifi      connected               netplan-wlan0-atlas_6G
@@ -386,13 +382,24 @@ To add multiple networks to wlan0 on a Debian Trixie Pi image:
     p2p-dev-wlan0  wifi-p2p  disconnected            --
     wlan1          wifi      unavailable             --
 
-    $ nmcli connection show 
+    $ nmcli device wifi list
+    IN-USE  BSSID              SSID      MODE   CHAN  RATE        SIGNAL  BARS  SECURITY
+       *A0:36:BC:40:77:88  atlas_6G  Infra  5     405 Mbit/s  73      ▂▄▆_  WPA2
+        08:62:66:96:3F:31  atlas_6G  Infra  5     195 Mbit/s  54      ▂▄__  WPA2
+        CC:28:AA:5A:89:1A  atlas_6G  Infra  5     405 Mbit/s  50      ▂▄__  WPA2
+
+
+    ```
+
+4. To remove a connection from Network Manager
+    ```
+    $ nmcli connection show
     NAME                    UUID                                  TYPE      DEVICE
     netplan-wlan0-atlas_6G  fe8758eb-c76a-3d01-9580-21c52199d208  wifi      wlan0
-    lo                      18b0756e-35d4-4f6f-91ce-f7676b7c6dc2  loopback  lo
+    lo                      4bddf44c-f07a-4d0d-a8c5-fcf2a4f57512  loopback  lo
+    laptop                  38ac0174-c389-404d-a32c-d795370b4a61  wifi      --
 
-    $ sudo nmcli connection delete 136e6155-f914-40b9-8608-18d8d83a77ee
-
+    $ sudo nmcli connection delete 38ac0174-c389-404d-a32c-d795370b4a61
     ```
 ## Manual Configuration of Alpaca Driver
 On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. 
