@@ -371,8 +371,14 @@ You can use wlan0 to connect the Raspberry Pi multiple access points. For exampl
     lo                      loopback  lo      no           yes     activated  0
     laptop                  wifi      --      yes          no      --         20
     ```
+3. Reconnect to laptop hotspot. Request NetworkManager to reconsider autoconnect rules for the interface, rescan for network availaibility, and connect to laptop hotspot.
+    ```
+    sudo nmcli device reapply wlan0
+    sudo nmcli device wifi rescan ifname wlan0
+    sudo nmcli connection up laptop
+    ```
 
-3. To check Network Manager status
+4. To check Network Manager status
     ```
     $ nmcli radio
     WIFI-HW  WIFI     WWAN-HW  WWAN
@@ -393,8 +399,17 @@ You can use wlan0 to connect the Raspberry Pi multiple access points. For exampl
 
 
     ```
+5. Check that the Raspberry Pi can see your laptop hotspot. You may need to edit its Hotspot configuration to ensure it broadcasts on the 2.4Ghz band.
+    ```
+    $ sudo iw wlan0 scan | grep SSID
+        SSID: atlas_6G
+        SSID: atlas_6G
+        SSID: polaris_b83c06
+        SSID: laptop_hotspot
+    ```
 
-4. To remove a connection from Network Manager
+
+5. To remove a connection from Network Manager
     ```
     $ nmcli connection show
     NAME                    UUID                                  TYPE      DEVICE
