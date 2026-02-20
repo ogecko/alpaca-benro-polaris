@@ -352,9 +352,9 @@ $ systemctl status | grep polaris
 
 ```
 ### P4 - Adding additional access points to wlan0
-You can use wlan0 to connect the Raspberry Pi multiple access points. For example, you may want to it to connect to your home network while at home, and your laptops hotspot while at a dark sky site.
+You can use wlan0 to connect the Raspberry Pi to one of multiple access points. For example, you may want to it to connect to your home network while at home, and your laptops hotspot while at a dark sky site.
 
-1. Add an connection to your laptop's access point.
+1. Add a connection for your laptop's access point.
     ```
     sudo nmcli connection add type wifi ifname wlan0 con-name laptop ssid "hotspot_SSID"     
     sudo nmcli connection modify laptop wifi-sec.key-mgmt wpa-psk wifi-sec.psk "hotspot_password" 
