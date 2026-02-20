@@ -57,9 +57,9 @@
             <tr><td>Marco Garripoli</td><td>Alex Murdoch</td></tr>
             <tr><td>Florian Gruß</td><td>Daniel Michaud</td></tr>
             <tr><td>Alan Johnston</td><td>Paul C</td></tr>
-            <tr><td>William Siers</td><td>Shiv Verma</td></tr>
-            <tr><td>Richard Swaim</td><td>Mauricio Salazar</td></tr>
-            <tr><td></td><td>Billy Bass</td></tr>
+            <tr><td>Michael Moore</td><td>Shiv Verma</td></tr>
+            <tr><td>William Siers</td><td>Mauricio Salazar</td></tr>
+            <tr><td>Richard Swaim</td><td>Billy Bass</td></tr>
           </q-markup-table>
         </div>
       </div>
