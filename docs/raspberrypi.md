@@ -439,29 +439,3 @@ sudo apt install gfortran
 sudo apt install libopenblas-dev
 ```
 
-
-### P7 - Upgrading Bluez Bluetooth Library to v5.66 
-If you are using an older version of the Bluetooth library then you may need to upgrade.
-
-1. Check version of Bluetooth. If you are using v5.55-1 then proceed to upgrade.
-    ```Bash
-    $ bluetoothd --version
-    Version: 5.66-1
-    ```
-
-1. Install prerequisites
-    ```Bash
-    sudo apt-get install libglib2.0-dev libdbus-1-dev libudev-dev libreadline-dev libical-dev libtool python3-docutils autoconf automake make gcc
-    ```
-
-2. Perform the upgrade and install
-    ```Bash
-    wget http://www.kernel.org/pub/linux/bluetooth/bluez-5.66.tar.xz
-    tar xf bluez-5.66.tar.xz
-    cd bluez-5.66
-    ./configure --prefix=/usr --mandir=/usr/share/man --sysconfdir=/etc --localstatedir=/var
-    make
-    sudo make install
-    ```
-
-> Note: There is a known issue where the Raspberry Pi can discover the Polaris device over Bluetooth but is unable to enable its Wi-Fi connection. This upgrade does not resolve the Wi-Fi enablement issue. As a workaround, power the Polaris off and then back on to re-enable Wi-Fi. If the Alpaca Driver is running, it should automatically reconnect once the Polaris Wi-Fi becomes available.
