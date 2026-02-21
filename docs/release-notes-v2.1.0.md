@@ -86,6 +86,7 @@
 - **[fix #74]**: Update SSL Root certificates to allow successful JPL Horizons searches for Comets and Asteroids.
 - **[fix #75]**: Ensure Panorama hstep, vstep, r0, r1, r2 can have decimal degree values (ie not forced to integers).
 - **[fix #76]**: Alpaca Pilot change to Angular Velocity Process Error (Q) are reset when changing motors.
+- **[fix #77]**: Resolve Polaris Wi-Fi initialization issue on Raspberry Pi Linux
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
