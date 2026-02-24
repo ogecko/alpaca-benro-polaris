@@ -130,7 +130,9 @@
 * Stellarium Desktop v24.2 Windows
 * Nina v3.2.0.9001, HocusFocus v3.0.0.21, LensAF v2.1.0.3, Scope Control  v2.0.2.1
 * Nina v3.1.2.9001, HocusFocus v3.0.0.18, LensAF v2.1.0.2, Scope Control  v2.0.2.0
-* Nina v3.1.1.9001, HocusFocus v3.0.0.17, ASTAP 2024.08.11
+* Nina v3.1.1.9001, HocusFocus v3.0.0.17
+* ASTAP 2026.02.09
+* ASTAP 2024.08.11
 * PHD2 v2.6.14
 * CCDciel Version beta 0.9.87-3346 Windows
 * GraXpert 3.1.0rc2
