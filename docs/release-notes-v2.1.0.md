@@ -136,6 +136,7 @@
 * PHD2 v2.6.14
 * CCDciel Version beta 0.9.87-3346 Windows
 * GraXpert 3.1.0rc2
+* Siril v1.4.2
 * Siril v1.4.0
 * Siril v1.2.5
 * Siril v1.2.3 de49749
