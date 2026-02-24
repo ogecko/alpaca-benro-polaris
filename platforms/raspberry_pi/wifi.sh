@@ -48,6 +48,7 @@ After=network.target
 
 [Service]
 Type=simple
+ExecStartPre=/sbin/iw dev ${INTERFACE} set power_save off
 ExecStart=/sbin/wpa_supplicant -c${WPA_CONF} -i${INTERFACE} -Dnl80211
 Restart=always
 RestartSec=5
