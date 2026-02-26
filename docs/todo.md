@@ -32,11 +32,9 @@
 - [X] Implement Alpaca Pilot App Framework
 - [X] Implement Alpaca Pilot sidebar menu and toolbar menu
 - [X] Implment Alpaca Pilot routing
+- [X] Add a Dashboard button to recenter Pano Grid to match mount's orientation 
+- [X] At least Pano 5 rows on Dashboard before scroll bars
 - [ ] Check Driver version to see if client needs refreshing
-- [ ] Align Pano Anchor Button on Dashboard
-- [ ] At least Pano 5 rows on Dashboard before scroll bars
-- [ ] Move L-Bracket orientation to Connect Page
-
 
 ## Alpaca Pilot Connection, Bluetooth LE
 - [X] Implement Benro Polaris Connection process and diagnostics

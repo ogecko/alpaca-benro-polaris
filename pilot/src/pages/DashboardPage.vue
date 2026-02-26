@@ -77,7 +77,12 @@
           />
         </div>
         <div v-if="cfg.show_panels==true" class="col-12 col-md-6 col-lg-4 col-xl-3 q-pa-lg justify-center content-center">
-          <div class="text-h6 text-grey-6">Panel Navigation</div>
+          <div class="text-h6 text-grey-6">
+            <q-btn round icon="mdi-crosshairs-gps" @click="onClickRecenterGrid">
+              <q-tooltip>Recenter the grid to match the mount’s current orientation.</q-tooltip>
+            </q-btn>
+            Panel Navigation
+          </div>
           <PanoNavigation />
         </div>
         <div v-if="!(p.pidmode=='PARK')" class="col-12 col-md-6 col-lg-4  col-xl-3 row justify-center ">
@@ -289,6 +294,12 @@ async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
   }
   console.log('Fab Angle:', e);
 }
+
+async function onClickRecenterGrid() {
+  await dev.alpacaPanoGrid('{"anchor":0, "ref":3}')
+  console.log('Recenter PanoGrid');
+}
+
 
 type AxisLabel =
   | "Azimuth"

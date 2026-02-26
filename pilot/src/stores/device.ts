@@ -226,6 +226,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:TrackOrbital', `{"name": "${name}", "category":${c1}}`)
     },
 
+    async alpacaPanoGrid(params: string) {
+      await this.apiAction<void>('Polaris:PanoGrid', params)
+    },
+    
     async alpacaPanoSlew(target:number) {
       await this.apiAction<void>('Polaris:PanoSlew', `{"panel": ${target}, "isasync":true}`)
     },
