@@ -1,7 +1,7 @@
 
 
 <template>
-    <q-scroll-area class="panel-scroll">
+    <q-scroll-area class="panel-scroll" :style="{height: gridHeight}">
       <div class="panel-grid q-mt-sm" :style="{ gridTemplateColumns: `repeat(${cfg.cols}, 1fr)` }">
         <template v-for="(row, r) in [...panelGrid].reverse()" :key="`row-${r}`">
           <div
@@ -99,6 +99,14 @@ const nextPanel = computed(() => {
   return current + 1
 })
 
+const gridHeight = computed(() => {
+  const rows = Number(cfg.rows ?? 0)
+  const rowsClamped = Math.min(Math.max(rows, 1), 5)
+  // gridHeight = (35 cellHeight + 5 gap) * rows + 18 scrollbar space
+  return `${(35 + 5) * rowsClamped + 18}px`
+})
+
+
 onMounted(async () => {
   const shouldFetch =  dev.restAPIConnected && dev.restAPIConnectedAt &&cfg.fetchedAt < dev.restAPIConnectedAt
   if (shouldFetch) await cfg.configFetch()
@@ -116,7 +124,6 @@ async function slewToPanel(panel: number) {
 <style lang="css">
 
 .panel-scroll {
-height: 180px; 
 max-width: 100%;
 }
 
@@ -129,8 +136,8 @@ max-width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 45px;
-  min-width: 45px;
+  height: 35px;
+  min-width: 35px;
   cursor: pointer;
   font-weight: 500;
   border-radius: 6px;
