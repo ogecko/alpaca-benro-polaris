@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Troubleshooting
 [Alpaca Install](#alpaca-install-troubleshooting) | [Benro Problems](#benro-polaris-troubleshooting) | [Comms Problems](#alpaca-communications--troubleshooting) | [Nina Problems](#nina-troubleshooting) | [Stellarium Problems](#stellarium-troubleshooting) 
@@ -6,7 +6,7 @@
 ## Alpaca Install Troubleshooting
 
 ### A1 - Cannot Run pip to Install Prerequisites
-Check that you have installed Python 3.13.9 and pip 25.3. You can verify that python and pip are installed and accessible with the following commands:
+Check that you have installed Python 3.13.12 and pip 26.0.x. You can verify that python and pip are installed and accessible with the following commands:
 
 ```
 python --version
@@ -19,7 +19,7 @@ python -m ensurepip --default-pip
 
 If the above step doesn't work, try reinstalling Python and ensure that the option to install pip is checked during the installation process.
 
-1. Download the Python 3.13.9 installer from the official Python website.
+1. Download the Python 3.13.12 installer from the official Python website.
 2. Run the installer and make sure to check the box that says “Add Python to PATH.”
 3. Select “Customize installation” and ensure that the option to install pip is checked.
 
@@ -76,6 +76,23 @@ To turn off Smart App Control
 6. Set it to Off
 7. Windows will ask **Are you sure?**. Confirm **Yes I'm sure**
 
+### A5 - Startup Exception - The Driver fails to bind the socket to 0.0.0.0 or ::  
+This may be caused by HTTP.sys, a kernel-mode HTTP listener built into Windows that prevents the Driver from binding to port 80. There are two approaches to resolving this conflict
+
+To change the Port used by Alpaca Pilot:
+* You can change the port used by Alpaca Pilot by changing config.toml line
+  ```
+  alpaca_pilot_port = 80                     
+  ```
+* Choose a free port like 8081. 
+* When using a browser to navigate to Alpaca pilot you will need to pass the new port number. For Example: http://hostname:8081
+
+To disable the http.sys driver if you dont need it:
+* Disable the HTTP Service (Recommended). This prevents the kernel-mode driver from claiming port 80 upon startup.
+* Open Registry Editor: Press Win + R, type regedit, and press Enter.
+* Navigate to: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\HTTP.
+* Modify "Start": Locate the Start value, double-click it, and change the data to 4 (Disabled).
+* Restart: Restart your computer to apply changes.
 
 ## Benro Polaris Troubleshooting
 

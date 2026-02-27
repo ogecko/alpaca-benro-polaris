@@ -3,7 +3,7 @@
 <template>
     <q-card flat bordered class="q-pa-md full-width">
         <!-- Logging Settings Heading -->
-        <div class="text-h6">Motor Angle Limts</div>
+        <div class="text-h6">Motor Angle Limits</div>
         <div class="row">
             <div v-if="isLimited" class="col text-caption text-grey-6 q-pb-md">
               <q-item>

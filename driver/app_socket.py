@@ -174,6 +174,7 @@ async def alpaca_socket_httpd(logger, lifecycle: LifecycleController, polaris):
     kf_logger = attach_publisher_to_logger("kf")    # kalman filter
     cm_logger = attach_publisher_to_logger("cm")    # calibration manager
     sm_logger = attach_publisher_to_logger("sm")    # sync manager
+    cfg_logger = attach_publisher_to_logger("cfg")  # config change manager
     polaris._cm.logTestData(polaris._cm.test_data.keys())
 
     try:

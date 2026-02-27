@@ -99,6 +99,12 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 
 
 # ************* Quaternion Kinematics *************
+# This is a 3-axis motorised astronomical camera mount ("Polaris"). 
+# It has three motor angles (theta1, theta2, theta3) that describe how the mechanism is physically positioned,
+# and three sky angles (alpha: azimuth, altitude, roll) that describe where the camera is actually pointing. 
+# Theta1 and theta2 roughly correspond to azimuth and altitude, while theta3 pans the tilted camera around its own up axis. 
+# Because of theta3, the true sky pointing (alpha) cannot be read directly from theta1/theta2/theta3.
+# Instead a quaternion is used to compose all three motor angles into the final pointing direction.
 
 def is_angle_same(a, b, tolerance=1e-4):
     """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
@@ -329,6 +335,7 @@ class LastPosition:
         self.last_theta1 = t1
         self.last_theta2 = t2
         self.last_theta3 = t3
+        self.in_gimbal_lock = False
     def update(self,t1,t2,t3):
         self.last_theta1 = t1
         self.last_theta2 = t2
@@ -338,9 +345,20 @@ class LastPosition:
         dt2 = angular_difference(t2, self.last_theta2)
         dt3 = angular_difference(t3, self.last_theta3)
         return dt1*dt1 + dt2*dt2 + dt3*dt3
+    def check_for_gimbal_lock(self, theta2):
+        # check new theta2 for potential gimbal lock, with hysteresis to eliminate chatter at boundary
+        GIMBAL_ENTER = 0.01            # Enter gimbal lock when theta2 is less than 18 arcsec
+        GIMBAL_EXIT = 0.02              # Exit gimbal lock when theta2 is greater than 36 arcsec
+        if not self.in_gimbal_lock and abs(theta2) < GIMBAL_ENTER:
+            self.in_gimbal_lock = True
+        elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
+            self.in_gimbal_lock = False
+        return self.in_gimbal_lock
+
+
 _lp = LastPosition()
 
-def quaternion_to_motors(q1, theta1Hint=None, lastPos=None):
+def quaternion_to_motors(q1, lastPos=None):
     """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
     global _lp
     if lastPos is None:
@@ -358,28 +376,28 @@ def quaternion_to_motors(q1, theta1Hint=None, lastPos=None):
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
-    # Choose the best mechnical solution
+    # Choose the best mechanical solution
     if theta2_A < -8:           # Rules out Solution A
         [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
     elif theta2_B < -8:         # Rules out Solution B
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
-    else:                       # --- Choose the solution closest to the last mechnical position
+    else:                       # --- Choose the solution closest to the last mechanical position
         diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A,)
         diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B,)
         [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if diffA<diffB else [theta1_B, theta2_B, theta3_B]
-    lastPos.update(theta1, theta2, theta3)
 
-    # --- Handle the case where we have a gimbal lock at Alt = 0, ie t1/t3 in gimbal lock
-    alt = np.degrees(np.arcsin(np.clip(tBore[2], -1.0, 1.0)))           # Altitude = Angle from N/E plane, vertically to the Boresight axis
-    if abs(alt) < 1e-10 and theta1Hint is not None:
-        diffC = angular_difference(theta1, theta1Hint)
-        theta1 = wrap_to_360(theta1Hint)
-        theta3 = wrap_to_180(theta3 - diffC)
+    # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
+    in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
+    if in_gimbal_lock:
+        theta1 = wrap_to_360(theta1 + theta3)
+        theta3 = 0.0
+
+    lastPos.update(theta1, theta2, theta3)
 
     return theta1, theta2, theta3
 
 
-def quaternion_to_angles(q1, azhint=None, lastPos = None):
+def quaternion_to_angles(q1, lastPos = None):
     """
     Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
     
@@ -387,7 +405,7 @@ def quaternion_to_angles(q1, azhint=None, lastPos = None):
         q1: Quaternion that rotates from camera frame to topocentric frame
             Camera frame: -z = boresight, +x = up, +y = left
             Topocentric frame: +z = Zenith, +y = North, +x = East
-        lastPos: last mechnical position (LastPosition object)
+        lastPos: last mechanical position (LastPosition object)
     
     Returns:
         tuple: (theta1, theta2, theta3, alt, az, roll)
@@ -808,8 +826,8 @@ class MotorSpeedController:
         self._logger = logger
         self._calibration_manager = cm
         self._messenger = MoveAxisMessenger(axis, send_msg)
-        self._stop_flag = asyncio.Event()
-        self._lock = asyncio.Lock()
+        self._condition = asyncio.Condition()
+        self._stopping = False
 
         # Core state
         self.pending_update = None  # Stores update tuple (raw, ramp_duration, timestamp)
@@ -834,7 +852,7 @@ class MotorSpeedController:
         return self._calibration_manager.interpolator_data[self.axis]
 
     async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True, tracking=False):
-        async with self._lock:
+        async with self._condition:
             if not rate_unit in ['RAW', 'DPS', 'ASCOM']:
                 self._logger.info(f'Set Motor Speed - Invalid units {rate_unit}')
                 return
@@ -842,6 +860,7 @@ class MotorSpeedController:
             now = time.monotonic()
             # if we get too many updates before they are applied, just overwrite the last one
             self.pending_update = (float(raw), ramp_duration, allow_PWM, tracking, now)
+            self._condition.notify()
 
     def _apply_pending_update(self, now):
         if not self.pending_update:
@@ -899,15 +918,24 @@ class MotorSpeedController:
 
 
     async def _dispatch_loop(self):
-        while not self._stop_flag.is_set():
-            async with self._lock:
+        while True:
+            async with self._condition:
+                if self._stopping:
+                    return
+                
                 now = time.monotonic()
                 self._apply_pending_update(now)
 
+                # Determine when we need to wake next
                 if now < self.next_dispatch_time:
-                    await asyncio.sleep(0.001)
+                    timeout = self.next_dispatch_time - now
+                    try:
+                        await asyncio.wait_for( self._condition.wait(), timeout=timeout )
+                    except asyncio.TimeoutError:
+                        pass
                     continue
 
+                # Dispatch the relevant commands
                 if self.mode == "FAST":
                     await self._messenger.send_fast_move_msg(self.command)
                     self.next_dispatch_time = now + 0.05
@@ -938,15 +966,18 @@ class MotorSpeedController:
                     self.pwm_phase = "OFF" if was_on else "ON"
                     self.last_switch_time = now
                     self.next_dispatch_time = now + duration
+                
+                else:
+                    self.next_dispatch_time = now + 0.05
 
-            await asyncio.sleep(0.001)
 
     async def stop_disspatch_loop_task(self):
-        async with self._lock:
+        async with self._condition:
             # dont bother trying to stop motors as some structures have been lost already
             # await self._messenger.send_slow_move_msg(0)
             # await asyncio.sleep(0.2)
-            self._stop_flag.set()
+            self._stopping = True
+            self._condition.notify()            
 
 class MoveAxisMessenger:
     def __init__(self, axis: int, send_msg):
@@ -1054,19 +1085,35 @@ class PID_Controller():
         else:
             self.Kv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
 
-    def reset_offsets(self):
-        self.reset_delta_offsets()
-        self.reset_alpha_offsets()
+    def reset_offsets(self, axes=None):
+        self.reset_delta_offsets(axes)
+        self.reset_alpha_offsets(axes)
 
-    def reset_delta_offsets(self):
-        self.delta_v_sp = np.zeros(3, dtype=float)     # Setpoint for ra, dec, polar anglular velocities
-        self.delta_g_sp = np.zeros(3, dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
-        self.delta_offst = np.zeros(3, dtype=float)    # ra, dec, polar anglular offsets
-        self.delta_ref_last = np.zeros(3, dtype=float) # ra, dec, polar angular reference position of last control step
+    def reset_delta_offsets(self, axes):
+        if axes is None:
+            self.delta_v_sp = np.zeros(3, dtype=float)     # Setpoint for ra, dec, polar anglular velocities
+            self.delta_g_sp = np.zeros(3, dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
+            self.delta_offst = np.zeros(3, dtype=float)    # ra, dec, polar anglular offsets
+            self.delta_ref_last = np.zeros(3, dtype=float) # ra, dec, polar angular reference position of last control step
+            return
+        DELTA_MAP = {'ra': 0, 'dec': 1, 'pa': 2}    
+        for key, idx in DELTA_MAP.items():
+            if key in axes:
+                self.delta_v_sp[idx] = 0.0
+                self.delta_g_sp[idx] = 0.0
+                self.delta_offst[idx] = 0.0
+                self.delta_ref_last[idx] = 0.0
 
-    def reset_alpha_offsets(self):
-        self.alpha_v_sp = np.zeros(3, dtype=float)     # Setpoint for az, alt, roll angular velocities
-        self.alpha_offst = np.zeros(3, dtype=float)    # az, alt, roll angular offsets
+    def reset_alpha_offsets(self, axes):
+        if axes is None:
+            self.alpha_v_sp = np.zeros(3, dtype=float)     # Setpoint for az, alt, roll angular velocities
+            self.alpha_offst = np.zeros(3, dtype=float)    # az, alt, roll angular offsets
+            return
+        ALPHA_MAP = {'az': 0, 'alt': 1, 'roll': 2}
+        for key, idx in ALPHA_MAP.items():
+            if key in axes:
+                self.alpha_v_sp[idx] = 0.0
+                self.alpha_offst[idx] = 0.0
 
     def reset_theta(self):
         self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor angular reference position
@@ -1195,14 +1242,17 @@ class PID_Controller():
     def set_alpha_target(self, sp: dict[str, float]):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets()
+        self.reset_offsets()      # Only reset offsets on axes that are changed
         self.target_type = 'ALPHA'
         # Safely update alpha_sp components if provided
-        self.alpha_sp[0] = sp.get("az", self.alpha_sp[0])
-        self.alpha_sp[1] = sp.get("alt", self.alpha_sp[1])
-        self.alpha_sp[2] = sp.get("roll", self.alpha_sp[2])
-        self.alpha2body(self.alpha_sp)
-        self.delta_sp = self.body2delta()
+        alpha = [
+            sp.get("az",   self.alpha_sp[0]),
+            sp.get("alt",  self.alpha_sp[1]),
+            sp.get("roll", self.alpha_sp[2]),
+        ]
+        self.alpha2body(alpha)
+        self.delta_sp[:] = self.body2delta()
+        self.alpha_sp[:] = alpha
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1216,7 +1266,7 @@ class PID_Controller():
     def set_delta_target(self, delta):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets()
+        self.reset_offsets()      # Only reset offsets on axes that are changed
         self.target_type = "DELTA"
         self.delta_sp = delta
         if self.mode == 'IDLE':
@@ -1247,6 +1297,25 @@ class PID_Controller():
         if self.mode in ['IDLE','AUTO']:
             self.set_pid_mode('TRACK')
     
+    def set_pano_offset(self, offsets):
+        dictmap = {
+            'ra': (self.delta_offst, 0),
+            'dec': (self.delta_offst, 1),
+            'pa': (self.delta_offst, 2),
+            'az': (self.alpha_offst, 0),
+            'alt': (self.alpha_offst, 1),
+            'roll': (self.alpha_offst, 2),
+        }
+        for key, val in offsets.items():
+            if key in dictmap:
+                arr, idx = dictmap[key]
+                arr[idx] = 0.0 if val == 0 else arr[idx] + val
+            else:
+                self.logger.info(f'PanoOffset key "{key}":{val} is invalid')
+        if self.mode=="IDLE":
+            self.set_pid_mode("AUTO")
+
+
     def pulse_delta_axis(self, direction, duration):
         if self.mode!="TRACK":
             return
@@ -1339,6 +1408,55 @@ class PID_Controller():
 
     #------- Control step functions ---------
 
+    def quaternion_motor_error(self, theta_ref, theta_meas):
+        """
+        Compute motor-space error using two algorithms
+        1. For small errors just calculate error between theta_ref and theta_meas
+        2. For large errors (>5 deg) calculate error based on current motor angle plus a small quaternion error delta.
+
+        The second approach ensure smooth quaternion based transition across wide errors and minimises M1/M2 deviation.
+        Unforunately it is not stable for all potential problem space, so we resort to method 1 always.
+        """
+        # --- 1. Calc basic theta_error and return if less than 5 degrees.
+        theta_err = clamp_error(theta_ref, theta_meas)
+        return theta_err
+    
+        if np.all(np.abs(theta_err) < 5.0):
+            return theta_err
+
+        # --- 2. Build reference and measured quaternions ---
+        q_ref  = motors_to_quaternion(theta_ref[0],  theta_ref[1],  theta_ref[2])
+        q_meas = motors_to_quaternion(theta_meas[0],  theta_meas[1],  theta_meas[2])
+
+        # --- Compute quaternion error ---
+        q_err = q_meas.inverse * q_ref
+        if q_err[0] < 0:  # shortest rotation
+            q_err = -q_err
+        q_err = q_err.normalised
+
+        # --- Extract axis-angle from quaternion ---
+        w, x, y, z = q_err
+        theta_rad = 2 * np.arccos(np.clip(w, -1.0, 1.0)) 
+        sin_half_theta = np.sqrt(1 - w*w)
+        if sin_half_theta < 1e-8:
+            axis = np.array([1.0, 0.0, 0.0])  # arbitrary for near-zero rotation
+        else:
+            axis = np.array([x, y, z]) / sin_half_theta
+
+        # --- Clamp rotation for linear approximation ---
+        max_rad_per_s = np.radians(15)       # max motor speed
+        if theta_rad > max_rad_per_s:
+            q_err = Quaternion(axis=axis, radians=max_rad_per_s)
+
+        # --- Apply small rotation to current motor angles ---
+        q_target = q_meas * q_err
+
+        # --- Convert back to motor angles and calc error ---
+        theta_target = np.array(quaternion_to_motors(q_target))
+        theta_err = clamp_error(theta_target, theta_meas)
+
+        return theta_err
+
     def track_target(self):
         # Update alpha_ref based on current mode
         if self.mode in ['PRESETUP', 'PARKING', 'HOMING', 'PARK', 'LIMIT']:
@@ -1394,7 +1512,7 @@ class PID_Controller():
         if Config.advanced_alignment and Config.advanced_control:
             q1 = self.polaris._sm.q1_adj.inverse * q1
 
-        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1, azhint=self.alpha_ref[0])
+        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
         self.theta_ref_last = self.theta_ref
         self.theta_ref = np.array([theta1,theta2,theta3])
     
@@ -1430,7 +1548,8 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
-            self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
+            # self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
+            self.error_signal = self.quaternion_motor_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
         self.is_axis_preloading = np.abs(self.error_signal) > 10 / 60                    # preload error_integration outside 10 arcmin
@@ -1583,7 +1702,8 @@ class PID_Controller():
         while not self._stop_flag.is_set():
             # self.measure() is done at processing 518 message
             await self.control_step()
-            await asyncio.sleep(self.control_loop_duration)
+            delay = self.control_loop_duration if self.polaris._connected else 2.0
+            await asyncio.sleep(delay)
 
     async def stop_control_loop_task(self):
         with self._lock:
@@ -1657,7 +1777,7 @@ class SyncManager:
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if (Config.advanced_alignment and Config.advanced_control):
-            _,_,_,_,_,p_roll = quaternion_to_angles(self.q1_adj * self.polaris._q1, azhint=self.polaris.azimuth)
+            _,_,_,_,_,p_roll = quaternion_to_angles(self.q1_adj * self.polaris._q1)
             entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using q1_adj
         self.sync_history.append(entry)
         self.optimize_roll_adj()

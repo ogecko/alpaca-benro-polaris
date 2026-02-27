@@ -55,6 +55,14 @@
             </div>
           </q-card>
         </div>
+        <!-- Panorama Settings -->
+        <div class="col-12 col-md-6 col-lg-4 flex">
+          <PanoSettings />
+        </div>
+        <!-- Motor Limits -->
+        <div class="col-12 col-md-6 col-lg-4 flex">
+          <MotorLimits />
+        </div>
         <!-- Home and Park Positions -->
         <div class="col-12 col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md full-width">
@@ -104,10 +112,6 @@
                 </div>
             </div>
           </q-card>
-        </div>
-        <!-- Motor Limits -->
-        <div class="col-12 col-md-6 col-lg-4 flex">
-          <MotorLimits />
         </div>
         <!-- Advanced Features -->
         <div class="col-12 col-md-6 col-lg-4 flex" >
@@ -204,6 +208,8 @@ import type { LocationResult } from 'src/utils/locationServices';
 import LocationPicker from 'src/components/LocationPicker.vue';
 import StatusBanners from 'src/components/StatusBanners.vue'
 import MotorLimits from 'src/components/MotorLimits.vue'
+import PanoSettings from 'src/components/PanoSettings.vue';
+
 
 const $q = useQuasar()
 const dev = useDeviceStore()

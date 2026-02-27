@@ -1,6 +1,6 @@
 {
   "name": "pilot",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Advanced Position Control Reimagined",
   "productName": "Alpaca Pilot App",
   "author": "David Morrison",
@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
-    "axios": "^1.11.0",
+    "axios": "^1.13.5",
     "d3": "^7.9.0",
     "leaflet": "^1.9.4",
     "pinia": "^3.0.3",
@@ -38,7 +38,7 @@
     "eslint-plugin-vue": "^9.30.0",
     "globals": "^15.12.0",
     "prettier": "^3.3.3",
-    "typescript": "~5.5.3",
+    "typescript": "^5.9.3",
     "vite-plugin-checker": "^0.9.0",
     "vue-tsc": "^2.0.29"
   },

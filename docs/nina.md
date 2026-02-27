@@ -1,7 +1,7 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Using Nina with Benro Polaris
-[Capturing Images](#1-capturing-images) | [Selecting Targets](#2-selecting-targets) | [Autofocus](#3-star-detection-and-autofocus) | [Plate Solving](#4-plate-solving-and-n-point-alignment) | [Multi-Point Alignment](#alpaca-n-point-alignment) 
+[Capturing Images](#1-capturing-images) | [Selecting Targets](#2-selecting-targets) | [Autofocus](#3-star-detection-and-autofocus) | [Plate Solving](#4-plate-solving) | [Advanced Sequence](#5-advanced-sequence) 
 
 ## Capturing Images -  Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
@@ -123,7 +123,7 @@ You can view a demonstration of parts of this documentation in the following You
 
 [![Plate Solving and Alignment](https://img.youtube.com/vi/gLQwyCL6W_Q/0.jpg)](https://www.youtube.com/watch?v=gLQwyCL6W_Q)
 
-## 4. Plate Solving and N Point Alignment
+## 4. Plate Solving 
 Nina supports a range of Plate-Solving applications to help identify where your mount points in the night sky. Our recommended application is [ASTAP, the Astrometric STAcking Program](https://www.hnsky.org/astap.htm), which includes an astrometric solver. If you have used [Astronomy.net](https://nova.astrometry.net/upload) in the past, you will be amazed at ATAP's speed and ease of integration with Nina.
 
 ![Plate Solving Options](images/abp-nina-ps-settings.png)
@@ -169,4 +169,91 @@ When both these settings are enabled, Nina will do the following at the start of
 Once the target is centered, Nina will continue with the sequence, conducting an optional autofocus run and then taking your set of Light images of the target. You can add additional targets to the sequence while it is running, and Nina will repeat the slewing and centering once the first target is complete. 
 
 The Benro Polaris can have a habit of drifting off target. You can address this issue by simply pausing the sequence momentarily. Whenever Nina starts a sequence again, it will perform a Slew to Target and Center Target operation.
+
+## 5. Advanced Sequence
+In addition to the Legacy Sequencer, Nina features an advanced sequencer that gives you full  control of your imaging session. The Alpaca Driver integrates with the Advanced Sequence with the following instructions:
+- **Telescope Instructions** - All Telescope instructions can control the Alpaca Driver (with the exception of Meridian Flip)
+- **Rotator Instructions** - Instructions to rotate to a mechanical angle or plate solve to a specific position angle.
+- **Utility Device Action** - Special Device Actions including tracking on orbital.
+- **Guider Instructions** - Instructions sent to the guiding application can indirectly control the mount.
+
+## Untracked Foreground Panorama
+
+## Tracked Celestrial Panorama
+
+## Lunar Eclipse
+
+## Advanced Sequence Reference
+### Flow Control
+- **Sequencial Instruction Set** - a group of instructions that will execute one after the other from top to bottom. 
+- **Parallel Instruction Set** - a group of instructions that will be executed in parallel. Order of instructions within the set is not defined or implied.
+- **Deek Sky Object Instruction Set** - similar to sequencial (a group of instructions that will execute one after), where target co-ordinates and rotation are passed to any instruction that accepts them. 
+- **Loop For Iterations** - execute the set of instructions for a given number of iterations.
+- **Loop For Time Span** - execute the set of instructions until a time span has passed.
+- **Loop Until Time** - execute the set of instructions until a specific time has passed, including special times like sunrise, civil, nautical or astronomical dawn. If you want your imaging run to continue all night, just add a Condition to the Sequential Instruction Set, set it to **Loop Until Time**, and choose **Astronomical Dawn**.
+### Camera Instructions
+- **Smart Exposure** - Take a given number of exposures for a given duration, type, binning, gain, offset, filter, and dither
+- **Take Many Exposures** - Take a given number of exposures for a given duration, type, binning, gain, offset
+- **Take Exposure** - Take an exposure for a given duration, type, binning, gain, offset. Typically used within a Loop For flow control.
+### Telescope Instructions
+- **Find Home** - Find the home position of the mount where M1, M2, and M3 equal zero. Note that Nina does not wait until this instruction is completed. Insert a **Wait For Time Span** instruction if you need the **Find Home** to complete before the next instruction.
+- **Park Scope** - Move the mount to the user defined Park position, and enter a Parked state.
+- **Unpark Scope** - Return the moun to an Idle state, allowing further operations. 
+- **Set Tracking** - Used to change the tracking rate (Sidereal, Solar, Lunar, King/Custom) and tracking state (Stopped/Tracking). Use the **Slew to Alt/Az** followed by a **Set Tracking Stopped** to allow you to take foreground panarama panels.
+- **Slew To Alt/Az**
+- **Slew to Ra/Dec**
+- **Slew and Center**
+- **Slew, center and rotate**
+- **Solve and Sync**
+### Telescope Triggers
+- **Center after Drift**
+- **Meridian Flip** - Not supported by the Alpaca Driver.
+### Rotator Instructions
+- **Rotate by Mechanical Angle**
+- **Solve and Rotate**
+### Guider Instructions
+- **Start Guiding** - starts the autoguider
+- **Stop Guiding** - stops the autoguider
+- **Restore Guiding Trigger** - restores autoguiding if it was previously interrupted
+### Utility Instructions
+- **Wait for Time Span** - Wait for a given duration in seconds
+- **Wait for Time** - Wait until a specific time. Can also wait for sunset, civil, nautical and astronomical dusk or dawn.
+- **Message Box** - Opens up a message box with the defined text, waiting for confirmation from the user.
+- **Device Action** - The Alpaca Driver exposes several Device Actions for functions that are not part of the ASCOM Alpaca standard, but used by Alpaca Pilot. Nina can also make use of these extensions via the Device Action instruction.  
+- **Device Action > Polaris:TrackOrbital**  
+Fetch the orbital parameters of an object, slew to its co-ordinates and start non-sidereal tracking. This Device Action can be used to slew to the Moon, Sun, Satellites, Comets etc. The Parameters field should be in JSON format defining "name" and "category" of the object, where category 3: 'Star', 4: 'Planet', 5: 'Moon', 6: 'Satellite', 7: 'Commet', 8: 'Asteroid', 9: 'Landmark', 10: 'Custom'. For example to track a Solar Eclipse, Lunar Eclipse or the International Space Station use the following settings.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:TrackOrbital` |  `{"name": "Sun", "category":3}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:TrackOrbital` |  `{"name": "Moon", "category":5}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:TrackOrbital` |  `{"name": "25544", "category":6}` |        
+
+- **Polaris:ConfigUpdate**  
+Update the Alpaca Driver configuration setting to the defined values. Any property defined in config.toml can be modified with this action. The Parameters field should be in JSON format defining a list of properties and values to change. Separate multiple property:values with a comma. For example to (a) enable multi-point alignment (b) reduce the goto tollerance to 15 arc-min, (c) to alter the park position and (d) to alter the ASCOM focal length; use the following.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigUpdate` |  `{"advanced_alignment": true}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigUpdate` |  `{"pid_Kc": 15}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigUpdate` |  `{"m3_park": 90, "m2_park":-45}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigUpdate` |  `{"focal_length": 100}` |
+
+    Note that the **Polaris:ConfigUpdate** action returns a value indicating what has been changed. Nina doesnt understand this reponse and marks the instruction execution return as an error. You can safely ignore this in the advanced sequence and mark the instruction as **On Error** `Continue`
+
+- **Polaris:ConfigSave**  
+Save any modified Alpaca Driver settings to the file `config.pilot.json` in the data directory.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigSave` |  `{}` |
+- **Polaris:ConfigRestore**  
+Restore all Alpaca Driver settings back to the defaults from `config.toml`.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigRestore` |  `{}` |- 
+
+- **Polaris:ResetAxes**  
+    Command the Polaris to reset all three axes. This replicates the double-tap gesture on each joystick in the Benro Polaris App. 
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ResetAxes` |  `{}` |
+
 

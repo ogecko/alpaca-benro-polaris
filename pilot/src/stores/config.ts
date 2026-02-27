@@ -43,6 +43,24 @@ export const useConfigStore = defineStore('config', {
     focal_length: 800,
     focal_ratio: 11,
 
+    // Panorama
+    sensor_size: 'Full Frame (36 × 24 mm)',
+    panel_overlap: '30%',
+    show_panels: false,
+    cols: 3,
+    rows: 1,
+    hstep: 40,
+    vstep: 25,
+    first: 0,
+    order: 0,
+    track: 0,
+    anchor: 0,
+    ref: 0,
+    r1: 90,
+    r2: 5,
+    r3: 0,
+    panel: 0,
+
     // Advanced Features
     verbose_driver_exceptions: true,
     advanced_kf: false,
@@ -57,8 +75,8 @@ export const useConfigStore = defineStore('config', {
     advanced_orbitals: false,
     // Motion and Tuning Constants
     tracking_settle_time: 16,
-    kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4], 
-    kf_measure_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4], 
+    kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
+    kf_measure_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
     pid_Kp: [0.8, 0.8, 0.8],
     pid_Ki: [0.0, 0.0, 0.0],
     pid_Kd: [0.8, 0.8, 0.8],
@@ -94,7 +112,7 @@ export const useConfigStore = defineStore('config', {
     log_performance_data: 0,
     log_performance_data_test: 0,
     log_perf_speed_interval: 5,
-    
+
     log_polaris: true,
     log_stellarium_protocol: false,
     supress_polaris_frequent_msgs: true,
@@ -102,11 +120,11 @@ export const useConfigStore = defineStore('config', {
     supress_stellarium_polling_msgs: true,
 
     log_alpaca_protocol: false,
-    log_alpaca_polling: false, 
-    log_alpaca_discovery: false, 
-    log_alpaca_actions: false, 
-    log_pulse_guiding: false,   
-    log_rotator_protocol: false, 
+    log_alpaca_polling: false,
+    log_alpaca_discovery: false,
+    log_alpaca_actions: false,
+    log_pulse_guiding: false,
+    log_rotator_protocol: false,
     log_synscan_protocol: false,
     log_synscan_polling: false,
     log_polaris_ble: false,
@@ -155,8 +173,8 @@ export const useConfigStore = defineStore('config', {
         }
         // Check if any updated key requires restart
         const restartKeys = [
-          'polaris_auto_retry', 'enable_restapi', 'enable_socket', 'enable_discovery', 'enable_pilot', 'enable_synscan', 
-          'alpaca_restapi_port', 'alpaca_socket_port', 'alpaca_discovery_port', 'alpaca_pilot_port', 'stellarium_synscan_port', 
+          'polaris_auto_retry', 'enable_restapi', 'enable_socket', 'enable_discovery', 'enable_pilot', 'enable_synscan',
+          'alpaca_restapi_port', 'alpaca_socket_port', 'alpaca_discovery_port', 'alpaca_pilot_port', 'stellarium_synscan_port',
         ]
         const updatedKeys = Object.keys(updated)
         const requiresRestart = updatedKeys.some(key => restartKeys.includes(key))

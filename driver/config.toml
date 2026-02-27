@@ -29,6 +29,24 @@ verbose_driver_exceptions = true            # Provide more detailed description 
 default_azimuth = '180'                     # String 'deg:mm:ss' used by Alpaca Pilot as default azimuth on Compass and Single Star Align 
 default_altitude = '45'                     # String 'deg:mm:ss' used by Alpaca Pilot as default altitude on Single Star Align
 
+[panorama]
+sensor_size = 'Full Frame (36 × 24 mm)'     # Sensor size in mm. Only used in Panel Spacing Calculator. 
+panel_overlap = '30%'                       # Overlap betwen adjacent panels. Only used in Panel Spacing Calculator. 
+show_panels = false                         # Show Panorama Grid Panel Navigation on Main Dashboard  
+cols = 3                                    # Number of panels across the mosaic. Range: 2–14
+rows = 1                                    # Number of panels vertically. Range: 1–3
+hstep = 40.0                                # Angular distance, in decimal degrees, between the centers of adjacent panels, horizontally.
+vstep = 25.0                                # Angular distance, in decimal degrees, between the centers of adjacent panels, vertically.
+first = 0                                   # Defines which corner is assigned panel number one: 0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight 
+order = 0                                   # Defines the sequence in which panels are captured: 0=Column-Major, 1=Row-Major, 2=Serpentine
+track = 0                                   # Defines how the mount sets roll and tracking after moving to each panel: 0=Foreground/notracking, 1=Horizon-Locked/tracked&zero-roll, 2=Celestrial/tracked
+anchor = 0                                  # Which part of the mosaic should be placed at the Reference Position: 0: Mosaic-Center, n=Panel-n
+ref = 0                                     # Defines what type of Reference Position: 0=Az/Alt/Roll, 1=RA/Dec/PA, 2=OrbitalID, 3=Current Mount Orientation
+r1 = 90.0                                   # Axis1 of Reference Position
+r2 = 5.0                                    # Axis2 of Reference Position
+r3 = 0.0                                    # Axis3 of Reference Position
+panel = 3                                   # Current panel number: 0=Mosaic-Center, n=Panel-n
+
 [control]
 advanced_control = true                    # Used to disable all advanced control features, must be true to use any advanced feature
 advanced_kf = true                          # Enable the Kalman Filtering of measurement data to smooth out noise
@@ -41,7 +59,7 @@ advanced_alignment = false                  # Enable Multi-Point Alignment using
 advanced_alignment_zero = true              # Enable Adjustment of QUEST Correction Model to ensure last sync point is zero
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.003981071705534973 ]
-kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674 ]
+kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 1e-05, 1e-05, 1e-05 ]
 pid_Kp = [1.0, 1.0, 1.0]                    # PID Proportional Gain for M1, M2, M3 - increase control in proportion to position deviation (error)
 pid_Ki = [0.05, 0.05, 0.05]                 # PID Integral Gain for M1, M2, M3 - increase control when error is accumulating and persistent
 pid_Kd = [0.5, 0.5, 0.8]                    # PID Derivative Gain for M1, M2, M3 - reduce control when angular velocity higher (damping)
@@ -55,9 +73,9 @@ z2_min_limit = -55                          # z2 Axis Raw Motor Control minimum 
 z2_max_limit = +37                          # z2 Axis Raw Motor Control maximum in degrees
 z3_min_limit = -270                         # Z3 Axis Raw Motor Control minimum in degrees
 z3_max_limit = +270                         # Z3 Axis Raw Motor Control maximum in degrees
-m1_park = 0                                 # Motor 1 position for saved Park Location
-m2_park = 0                                 # Motor 2 position for saved Park Location
-m3_park = 0                                 # Motor 3 position for saved Park Location
+m1_park = 0.0                               # Motor 1 position for saved Park Location
+m2_park = 0.0                               # Motor 2 position for saved Park Location
+m3_park = 0.0                               # Motor 3 position for saved Park Location
 guide_rate_ra = 1.0                         # Right Ascensiion guide rate multiple of sidereal rate
 guide_rate_dec = 1.0                        # Declination guide rate multiple of sidereal rate
 

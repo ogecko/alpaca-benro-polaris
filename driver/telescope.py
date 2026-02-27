@@ -1509,15 +1509,16 @@ class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([
             "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
-            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StatusFetch", 
+            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:StatusFetch", 
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
             "Polaris:MoveAxis", "Polaris:MoveMotor", "Polaris:ResetAxes",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove", 
-            "Polaris:J2000Sync", "Polaris:J2000Goto"
+            "Polaris:J2000Sync", "Polaris:J2000Goto",
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
             "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:GetCatalog",
+            "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:PanoOffset",
         ], req)  
 
 
@@ -1529,16 +1530,23 @@ class action:
         try:
             if isinstance(raw_params, dict):
                 parameters = raw_params
-            elif isinstance(raw_params, str) and raw_params.strip() == '':
-                parameters = {}
+            elif isinstance(raw_params, str) and raw_params.strip():
+                parsed = json.loads(raw_params)
+                parameters = parsed if isinstance(parsed, dict) else {}
             else:
-                parameters = json.loads(raw_params)
+                parameters = {}
         except Exception:
+            logger.warn(f'{actionName}: Invalid JSON Parameters {raw_params}')
             raise HTTPBadRequest(title='Bad Action Request', description='Invalid Parameters format')
 
         if actionName == "Polaris:RestartDriver":
             await lifecycle.signal(LifecycleEvent.RESTART)
             resp.text = await PropertyResponse('RestartDriver ok', req)  
+
+        if actionName == "Polaris:StopDriver":
+            resp.text = await PropertyResponse('StopDriver ok', req)  
+            await asyncio.sleep(2)
+            await lifecycle.signal(LifecycleEvent.STOP)
 
         elif actionName == "Polaris:ConfigFetch":
             fetched_params = Config.as_dict()
@@ -1756,6 +1764,33 @@ class action:
             resp.content_type = "application/json"
             resp.text = json.dumps(export_data, indent=2)
             return
+        
+        elif actionName == "Polaris:PanoGrid":
+            # Apply changes to store in Config and make them live
+            logger.info(f'Polaris:PanoGrid {parameters}')
+            changed_params = Config.apply_changes(parameters)
+            make_params_live(changed_params)
+            resp.text = await PropertyResponse("Polaris:PanoGrid Ok", req)
+            return
+
+        elif actionName == "Polaris:PanoSlew":
+            logger.info(f'Polaris:PanoSlew {parameters}')
+            panel = parameters.get('panel', None)
+            isasync = parameters.get('isasync', False)
+            await polaris.slew_to_panel(panel, isasync)
+            resp.text = await PropertyResponse("Polaris:PanoSlew Ok", req)
+            return
+
+        elif actionName == "Polaris:PanoOffset":
+            logger.info(f'Polaris:PanoOffset {parameters}')
+            offsets = {
+                k: float(v)
+                for k, v in parameters.items()
+                if k in {'ra','dec','pa','az','alt','roll'}
+            }
+            polaris._pid.set_pano_offset(offsets)
+            resp.text = await PropertyResponse('Polaris PanoOffset ok', req)
+            return
 
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
@@ -1784,5 +1819,13 @@ def make_params_live(changed_params):
             polaris.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
         elif param == "advanced_alignment_zero":
             polaris._sm.optimize_q1_adj()
+        elif param == "ref":
+            if changed_params["ref"]==3:    # Set Current Orientation
+                Config.apply_changes({
+                    "r1": polaris.azimuth,
+                    "r2": polaris.altitude,
+                    "r3": polaris.roll,
+                    "ref": 0
+                })
    
 

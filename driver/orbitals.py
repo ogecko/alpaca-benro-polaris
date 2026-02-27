@@ -1,4 +1,6 @@
 import ephem
+import ssl
+import certifi
 from shr import rad2deg, rad2hr
 from shr import angular_separation
 from config import Config
@@ -145,7 +147,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
     - Constructs an ephem.readdb() string and returns the resulting body object.
     - Stores body in orbital_data[name]
     """
-
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
     query = str(name_or_designation).strip()
     if not query:
         return orb_result(logger, None, 'JPL: Empty name provided.')
@@ -169,11 +171,13 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
             "TLIST": f"'{today}'"       # Current UTC date
         }
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params, timeout=15) as response:
+            async with session.get(url, params=params, ssl=ssl_context, timeout=15) as response:
                 if response.status != 200:
                     return orb_result(logger, None, f'JPL: Failed to fetch ephem data, response 200.')
                 data = await response.json()
     except Exception as e:
+        msg = f'JPL: Failed to decode JSON, exception: {e}, params: {params}'
+        logger.error(msg)
         return orb_result(logger, None, f'JPL: Failed to fetch ephem data.')
 
     # ---------------- Try and parse the JPL Horizon API Response

@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 # Alpha and Beta Testing Agreement
 
 Please review the following agreement before using any Alpha or Beta version of this software.
@@ -19,7 +19,7 @@ Can you please let me know the details about the equipment you are testing with.
 * Platform: OS Version, Application Versions (Nina/Stellarium, etc), Browser Version, etc. 
 
 If you know Markdown you can add this directly to your section of the following document
-https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_0/docs/beta_results_v2.md 
+https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/beta_results_v2.md 
 
 Otherwise, just send me a note on Discord and I’ll add it for you.
 

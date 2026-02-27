@@ -18,30 +18,8 @@
 #   is enabled, without the backlash dance, this could potentially  
 #   be used for guiding.
 #
-# Python Compatibility: Requires Python 3.7 or later
-#
 # -----------------------------------------------------------------------------
 # MIT License
-#
-# Copyright (c) 2022 Bob Denny
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 # -----------------------------------------------------------------------------
 
 import asyncio
@@ -448,6 +426,7 @@ async def synscan_api(logger, lifecycle: LifecycleController):
     if not Config.enable_synscan:
         return
 
+    server = None
     host = Config.stellarium_synscan_ip_address
     port = Config.stellarium_synscan_port
     logger.info(f"==STARTUP== Serving Stellarium/SynSCAN API on {host}:{port}")
@@ -467,7 +446,8 @@ async def synscan_api(logger, lifecycle: LifecycleController):
         logger.exception(f"==EXCEPTION== SynSCAN API unhandled exception: {e}")
     finally:
         logger.info("==SHUTDOWN== SynSCAN API shutting down.")
-        server.close()
-        await server.wait_closed()
+        if server is not None:
+            server.close()
+            await server.wait_closed()
 
 

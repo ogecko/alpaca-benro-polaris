@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status';
 import { computed, ref } from 'vue'
+import { useConfigStore } from './config';
 
 export type LogMessage = { text: string }
 export type KalmanMessage = { 
@@ -42,6 +43,7 @@ export type TelemetryRecord = {
 export const useStreamStore = defineStore('telemetry', () => {
   const dev = useDeviceStore()
   const status = useStatusStore()
+  const cfg = useConfigStore()
 
   // Reactive derived config
   const socketHost = computed(() => dev.alpacaHost)
@@ -92,6 +94,8 @@ export const useStreamStore = defineStore('telemetry', () => {
         if (topic === 'pong') return
         if (topic === 'status') {
           status.statusUpdate(record.data)
+        } else if (topic == 'cfg') {
+          cfg.$patch(record.data)
         } else {
           if (!topics.value[topic]) topics.value[topic] = []
           topics.value[topic].push(record)

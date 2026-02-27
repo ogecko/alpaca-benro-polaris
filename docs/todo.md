@@ -1,23 +1,39 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Development Todo List
 
 ## Final Release Checklist
-- [X] Raspberry Pi script update and tests
-- [X] Confirm all assets update release-notes, docs
-- [X] Confirm all tests pass
-- [X] Update version # in Pilot, Driver, Release Notes
 - [X] Complete todo checklist
-- [X] Build Pilot for release
-- [X] Merge onto main
-- [X] Create GitHub Release and Tag (main branch)
-- [X] Verify Install Artifacts link
+- [X] Check Driver package vulnerabilities
+- [X]     pip-audit
+- [X]     pip show urllib
+- [X]     pipdeptree | findstr urllib3
+- [X]     pip install --upgrade urllib3==2.6.3
+- [X]     Modify all requirements.txt files accordingly
+- [X] Check Pilot package vulnerabilities
+- [X]     npm audit --omit=dev   # Only vulnerabilities in runtime dependencies matter as deployed as SPA
+- [X]     npm install axios@^1.13.5
+- [X]     npm ls axios
+- [X] Final Changes - git checkout dev2_1, git pull origin dev2_1
+- [X]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json
+- [X]     Build Pilot for release
+- [X]     Confirm all Alpaca Driver tests pass
+- [X]     Confirm all Alpaca Pilot tests pass
+- [X] Create Branch - releases/2_1_0 based on dev2_1
+- [X] Merge into main - git checkout main, git pull origin main, git merge releases/v2.1.0, git push origin main
+- [X] Draft Github New Release and Tag - on main branch
+- [X]     Release Title: Alpaca Benro Polaris Driver v2.0.0
+- [X]     Release Notes: Refer to https://github.com/ogecko/alpaca-benro-polaris/blob/releases/2_1_0/docs/release-notes-v2.1.0.md
+- [X]     Set as latest release
 - [X] Announce on Kickstarter, Facebook, Discord
+- [X] Create new Dev Branch - dev2_2 based on dev2_1
 
 ## Alpaca Pilot App
 - [X] Implement Alpaca Pilot App Framework
 - [X] Implement Alpaca Pilot sidebar menu and toolbar menu
 - [X] Implment Alpaca Pilot routing
+- [X] Add a Dashboard button to recenter Pano Grid to match mount's orientation 
+- [X] At least Pano 5 rows on Dashboard before scroll bars
 - [ ] Check Driver version to see if client needs refreshing
 
 ## Alpaca Pilot Connection, Bluetooth LE
@@ -101,7 +117,7 @@
 - [X] Fix Alt 0 Control Kinematics, theta1/theta3 spin at 180, maintain mechnical position
 - [X] Add Anti-Windup Motor Angle Limits
 - [X] Improve motor limits indication and safety protection (including with tilts)
-- [ ] Fix zero Altitude movement, at Azimuth of 0/360, and roll
+- [X] Fix zero Altitude movement, at Azimuth of 0/360, and roll
 
 ## Alpaca Kalman Filter
 - [X] Implment Kalman Filter to improve reliabilty of state assessment
@@ -140,8 +156,8 @@
 - [X] Youtube advanced videos 31 Kalman, 32 Speed Cal 
 - [X] Documentation on new features 
 - [X] Review of existing Documentation 
-- [ ] Remaining documentation on Pulse Guiding
-- [ ] Remaining Youtube video on 27 Guiding
+- [X] Remaining documentation on Pulse Guiding
+- [X] Remaining Youtube video on 27 Guiding
 
 ## Performance
 - [X] Feedforward Control Integration (minimise overshoot)
@@ -175,12 +191,12 @@
 - [X] Calc current Azimuth, Altitude of dso and categorise it for filtering
 - [X] Fix filter clear to only clear when filter is already open
 - [X] Add South and North Celestrial Pole
-- [ ] Ability to add custom targets to catalog
+- [X] Ability to add custom targets to catalog
+- [X] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
 - [ ] Ability to switch catalogs from settings
 - [ ] Add images of each target
 - [ ] Add a details page for each target
 - [ ] Fix J2000 co-ordinate display of 60" for Running chicken RA: +11ʰ38ᵐ60.0ˢ   |   Dec: -63°11′60.0″ 
-- [ ] Calc Sunset, Sunrise, Naut Set, Naut Rise, Moonrise, MoonSet
 
 ## Orbitals
 - [X] Add Orbitals menu, Planets, Moons, Satellites

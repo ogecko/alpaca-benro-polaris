@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 The Alpaca Driver runs on a device separate from the Benro Polaris. You can use a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.
 
@@ -54,6 +54,16 @@ The image below shows how you could configure the cables and physical setup of t
 
 ## Setting up the NinaAir platform
 The folllowing steps are a high level summary of the required setup for the NinaAir platform. It is not comprehensive and only provided as a guide to how you may wish to setup your mini-PC.
+
+### BIOS Settings 
+You can set the Mele PC to automatically boot when it is powered on. This can save you from having to manually press the Power button to boot the device.
+
+To set the Mele PC BIOS to auto power on:
+1. Reboot MelePC, pressing the **Del key** until it enters BIOS settings
+2. From the BIOS, navigate to the **Advanced**, then **Customer Exclusive Functions**
+3. Enable **Auto Power On**
+4. Then **Save changes and Exit**
+
 
 ### Local Account
 Use a local account with administrative privellages to set everything up. Using a Microsoft Account may have implications on the need for internet connectivity. 
@@ -175,9 +185,9 @@ You may need to install the ASCOM Platform software for compatibility with some 
 
 #### To install the ASCOM Platform. 
 1. Download the ASCOM Platform from https://ascom-standards.org/ (Download buttton on the top-right-hand side of the home page).
-2. The remaining instructions assume you are using ASCOM Platform 7.1 
+2. The remaining instructions assume you are using ASCOM Platform 7.1.3 
 3. Open the installation .exe file and click `Yes` on the User Account Control dialog.
-4. Click `Next` to install any pre-requisites eg Microsoft .nett Framework 3.5 Service Pack 1 
+4. Click `Next` to install any pre-requisites eg Microsoft .net Framework 3.5 Service Pack 1 
 5. This can take quite some time to download and install (5 min for me)
 6. Once the blue window shows the operation has completed successfully, press any `key` to continue.
 7. Accept the ASCOM Platform Installer default options and click `Install`.
@@ -187,7 +197,7 @@ You can also download other versions from the [ASCOM GitHub Releases Site](https
 
 ### Gemini EAF Driver Installation (OPTIONAL)
 The Canon RF 2x and 1.4x Extenders do not appear to work with Nina and the LensAF plugin. You can work around their issue by using an Electronic Auto Focuser (EAF)
-to manually adjust the focus of an attatched Canon Lens. A cheap EAF available from AliExpress is the [Gemini EAF Product](https://www.aliexpress.com/item/1005006731851010.html).
+to manually adjust the focus of an attatched Canon Lens. A cheap EAF available from AliExpress is the [Gemini EAF Product](https://www.aliexpress.com/item/1005006731851010.html). You can connect a simple timing belt and pulley to the focuser so that it can move the manual focus ring of any lens. The following timing belt worked fine for me [2GT-6 Timing Belt](https://www.amazon.com.au/VGOL-Printer-Timing-Closed-Rubber/dp/B0CB8BFRCX)
 
 Use the following instructions to setup the Gemini EAF driver on your Mini-PC
 1. Download and install the Ascom Platform as described.

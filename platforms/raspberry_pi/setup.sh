@@ -74,26 +74,45 @@ echo "==SETUP== 6.Updating config.toml with 'alpaca_pilot_port = 8080' =="
 sudo sed -i 's/^alpaca_pilot_port = 80 .*/alpaca_pilot_port = 8080/' "$src_home/driver/config.toml"
 
 
-echo "==SETUP== 6. Set up [systemd] services to start the polaris.service at boot time."
-cat systemd/polaris.service | sed \
-  -e "s|/home/.*/alpaca-benro-polaris|$src_home|g" \
-  -e "s|^ExecStart=.*|ExecStart=$src_home/pyenv/bin/python3 $src_home/driver/main.py|" > /tmp/polaris.service
-sudo mv /tmp/polaris.service /etc/systemd/system
+SERVICE_FILE="/etc/systemd/system/polaris-driver.service"
+echo "==SETUP== 7. Set up [systemd] services to start the Polaris Driver at boot time."
 
-echo "==SETUP== 7. Starts the service."
+sudo systemctl stop polaris-driver.service 2>/dev/null || true
+sudo systemctl disable polaris-driver.service 2>/dev/null || true
+sudo rm -f "$SERVICE_FILE"
+
+sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+[Unit]
+Description=Polaris Driver Startup Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=${src_home}/driver
+ExecStart=${src_home}/pyenv/bin/python3 ${src_home}/driver/main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "==SETUP== 8. Starts the polaris-driver service."
 sudo systemctl daemon-reload
-sudo systemctl enable polaris
-sudo systemctl start polaris
+sudo systemctl enable polaris-driver.service
+sudo systemctl restart polaris-driver.service
 
 cat <<_EOF
 -------------------------------------------------------------------
 Alpaca Benro Polaris Setup Complete 
                                      
 You can:
-* Check the service status with:  sudo systemctl status polaris
-* Stop the service with:          sudo systemctl stop polaris
-* Start the service with:         sudo systemctl start polaris
-* View the logs with:             journalctl -u polaris -f
+* Check the service status with:  sudo systemctl status polaris-driver
+* Stop the service with:          sudo systemctl stop polaris-driver
+* Start the service with:         sudo systemctl start polaris-driver
+* View the logs with:             journalctl -u polaris-driver -f
 * access Alpaca Pilot via:        http://$(hostname):8080             
 
 -------------------------------------------------------------------
