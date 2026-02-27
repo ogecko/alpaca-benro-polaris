@@ -19,7 +19,7 @@
 - [X]     Build Pilot for release
 - [X]     Confirm all Alpaca Driver tests pass
 - [X]     Confirm all Alpaca Pilot tests pass
-- [X] Create Branch - releases/v2.1.0 based on dev2_1
+- [X] Create Branch - releases/2_1_0 based on dev2_1
 - [X] Merge into main - git checkout main, git pull origin main, git merge releases/v2.1.0, git push origin main
 - [X] Draft Github New Release and Tag - on main branch
 - [X]     Release Title: Alpaca Benro Polaris Driver v2.0.0
