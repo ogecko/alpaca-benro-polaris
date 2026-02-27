@@ -20,54 +20,7 @@
 #
 # -----------------------------------------------------------------------------
 # MIT License
-#
-# Copyright (c) 2022 Bob Denny
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 # -----------------------------------------------------------------------------
-# TODO:
-# * Correct for Drift
-# DONE:
-# * Implement ASCOM sync
-# * Move Slow and Move Fast
-# * Park/Unpark (reset axis)
-# * retry connecting to polaris if not currently
-# * provide proper error messages when ASMCOM connect put (no wifi connect, no ip network, no Astro mode, no Alignment)
-# * cater for comms error (lose comms, lose wifi, change mode)
-# * error check before using self._writer or self._reader
-# * Improve exception handling
-# * Add retries for when comms fails to Polaris
-# * Current Polaris pointing position shown in Stellarium
-# * Slew to target from Stellarium (Telescope Control)
-# * Slew to target from Nina (Sky Atlas, Framing, Manual Focus Target)
-# * Improve aiming accuracy by allowing sidereal tracking settling time into ra/dec to alt/az calculations
-# * Improve aiming accuracy by using a learning algorithm based on past alt/az aiming results
-# * Tracking rate set from Nina (Equipment>Mount>Manual Control: Sidereal, Stopped)
-# * Telescope Discover/Connect/Disconnect from Nina (Equiment>Mount)
-# * Telescope Discover/Connect/Disconnect from Stellarium (Configure Telescopes)
-# * Multiple apps connecting to driver concurrently ie (Nina and Stellarium)
-# * Site Location Sync from Nina (Options>Equipment>Mount Location Sync)
-# * ASCOM Conform Universal TelescopeV3 compliance
-# * Calculate current RA/Dec from Polaris Alt/Az updates 
-# * allow restart of driver without interrupting existing clients (assume they remain connected)
-#
-#
 #
 import math
 import datetime
@@ -296,10 +249,6 @@ class Polaris:
     ########################################
     # POLARIS COMMUNICATIONS METHODS 
     ########################################
-
-    # Exceptions
-    # ConnectionAbortedError [WinError 1236] The network connection was aborted by the local system
-    # OSError [error 22][WinError 121] The semaphore timeout period has expired
 
     def _format_connection_error(self, e: Exception) -> str:
         if isinstance(e, ConnectionAbortedError):
