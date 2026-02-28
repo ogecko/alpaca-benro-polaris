@@ -1198,13 +1198,13 @@ You can capture the Moon or other orbitals using the special Device Action **`Po
   * `"name": "Jupiter"`
   * `"name": "C/2025 A1"`
 
-* **`"category"`** – The type of orbital to track:
+* **`"category"`** – The type of orbital to track. For example `"category": 5` for moons
 
-  * **4 – Planet:** Any solar system planet.
-  * **5 – Moon:** Any Earth or planetary moon.
-  * **6 – Satellite:** Any Earth satellite; searches Celestrak by name.
-  * **7 – Comet:** Any comet; searches JPL Horizons by name.
-  * **8 – Asteroid:** Any asteroid; searches JPL Horizons by name.
+  * **4 – Planets:** Any solar system planet.
+  * **5 – Moons:** Any Earth or planetary moon.
+  * **6 – Satellites:** Any Earth satellite; searches Celestrak by name.
+  * **7 – Comets:** Any comet; searches JPL Horizons by name.
+  * **8 – Asteroids:** Any asteroid; searches JPL Horizons by name.
 
 A typical use case is to place this instruction within an outer loop so that, for example, the Moon can be captured after a certain number of panels. After executing **`Polaris:TrackOrbital`**, you should follow up with a **Smart Exposure** action to complete the capture.
 
