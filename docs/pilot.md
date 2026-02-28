@@ -1193,11 +1193,6 @@ Because the panorama grid is deterministic and persistent, the sky background pa
 
 You can capture the Moon or other orbitals using the special Device Action **`Polaris:TrackOrbital`**, which instructs the mount to start tracking a specific celestial body. This action requires two parameters:
 
-* **`"name"`** – The name of the orbital, enclosed in quotes. Examples include:
-  * `"name": "Moon"`
-  * `"name": "Jupiter"`
-  * `"name": "C/2025 A1"`
-
 * **`"category"`** – The type of orbital to track. For example `"category": 5` for moons
 
   * **4 – Planets:** Any solar system planet.
@@ -1205,6 +1200,11 @@ You can capture the Moon or other orbitals using the special Device Action **`Po
   * **6 – Satellites:** Any Earth satellite; searches Celestrak by name.
   * **7 – Comets:** Any comet; searches JPL Horizons by name.
   * **8 – Asteroids:** Any asteroid; searches JPL Horizons by name.
+
+* **`"name"`** – The name of the orbital, enclosed in quotes. Examples include:
+  * `"name": "Moon"`
+  * `"name": "Jupiter"`
+  * `"name": "C/2025 A1"`
 
 A typical use case is to place this instruction within an outer loop so that, for example, the Moon can be captured after a certain number of panels. After executing **`Polaris:TrackOrbital`**, you should follow up with a **Smart Exposure** action to complete the capture.
 
