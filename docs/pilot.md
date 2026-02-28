@@ -1189,7 +1189,7 @@ Because the panorama grid is deterministic and persistent, the sky background pa
 
 ![Alpaca Pilot Capturing Set of Panels](images/pilot-pano-seq2back.png)
 
-### 4.3 Capturing the Moon or Other Orbitals
+### 4.4 Capturing the Moon or Other Orbitals
 
 You can capture the Moon or other orbitals using the special Device Action **`Polaris:TrackOrbital`**, which instructs the mount to start tracking a specific celestial body. This action requires two parameters:
 
