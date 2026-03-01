@@ -1,6 +1,10 @@
 <template>
   <q-card flat bordered class="q-pa-md full-width">
-    <div class="text-h6">Panorama Grid Layout</div>
+    <div class="row items-center justify-between">
+      <div class="text-h6">Panorama Grid Layout</div>
+      <q-btn label="Copy PanoGrid" icon="mdi-content-copy"  class="text-grey-6"  @click="copyPanoSettings"
+      />
+    </div>
     <div class="row q-col-gutter-lg items-center q-pt-sm">
       <q-input
         class="col-2"
@@ -219,6 +223,33 @@ const panoRefAlignOptions = computed(() => {
   }
   return options;
 });
+
+async function copyPanoSettings() {
+  const payload = {
+    cols: Number(cfg.cols),
+    rows: Number(cfg.rows),
+    hstep: Number(cfg.hstep),
+    vstep: Number(cfg.vstep),
+    first: Number(cfg.first),
+    order: Number(cfg.order),
+    track: Number(cfg.track),
+    anchor: Number(cfg.anchor),
+    ref: Number(cfg.ref),
+    r1: Number(cfg.r1),
+    r2: Number(cfg.r2),
+    r3: Number(cfg.r3),
+    panel: Number(cfg.panel),
+  };
+
+  const json = JSON.stringify(payload);
+
+  try {
+    await navigator.clipboard.writeText(json);
+    console.log('Pano settings copied:', json);
+  } catch (err) {
+    console.error('Clipboard copy failed:', err);
+  }
+}
 
 onMounted(async () => {
   const shouldFetch =
