@@ -28,7 +28,7 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
    >Note: Python 3.14 is not supported as of February 2026, as pyephem has not yet been compiled for this release.
 
 
-2. Download the [Alpaca Benro Polaris v2.1.0.zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.1.0.zip) from this Github repository.
+2. Download the [Alpaca Benro Polaris v2.2.0.zip file ](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.2.0.zip) from this Github repository.
 
 3. Expand the zip file to a location of your choice. We reccommend `C:\Users\`Username`\Documents`. Using Windows Explorer, right-click on the folder you just expanded to, and select `Open in Terminal` to open a Command Window. If you cant see `Open in Terminal` try right clicking a second time. Enter the following: 
   
