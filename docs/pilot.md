@@ -1021,6 +1021,9 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    * **Reference Axis 2 `"r2":`**: Altitude or Declination (decimal degrees)
    * **Reference Axis 3 `"r3":`**: Roll or Position Angle (decimal degrees)
 
+
+- **&#9322; Copy PanoGrid:** Copies the current Panorama Grid settings to the clipboard in JSON format. After defining the Panorama Grid Layout, use this button to paste the settings directly into the `Polaris:PanoGrid` **Device Action Parameters** field within the NINA Advanced Sequencer. See below for an example.
+
 - **Panel Navigation:** The Panel Navigation grid provides a visual representation of the panorama layout and allows you to click any panel number to slew the mount directly to that position. The grid follows the panorama layout convention where the **bottom-left panel represents the lowest Altitude and lowest Azimuth**. As you move **to the right**, Azimuth increases; as you move **upward**, Altitude increases. The numbering and progression reflect the selected First Panel and Panel Order settings, while symbols indicate the next panel in the capture sequence and the anchor panel tied to the reference position.
  
 - **Current Panel: `"panel":`** This represents the active Panel Number being captured and is highlighted in blue on the Panel Navigation grid. This field effects what the next panel in sequence will be.
