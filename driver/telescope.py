@@ -1508,6 +1508,7 @@ class unpark:
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([
+            "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:TrackOrbital", 
             "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
             "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:StatusFetch", 
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
@@ -1517,8 +1518,8 @@ class supportedactions:
             "Polaris:SyncRoll", "Polaris:SyncRemove", 
             "Polaris:J2000Sync", "Polaris:J2000Goto",
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
-            "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:GetCatalog",
-            "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:PanoOffset",
+            "Polaris:GetOrbitals", "Polaris:GetCatalog",
+            "Polaris:PanoOffset",
         ], req)  
 
 
