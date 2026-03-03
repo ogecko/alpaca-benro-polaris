@@ -255,48 +255,47 @@ You can use the following commands from a PowerShell window, to check the status
     ```
     PS C:\> netsh wlan show drivers
 
+    Interface name: Wi-Fi 2
 
-Interface name: Wi-Fi 2
+        Driver                    : TP-Link Wireless USB Adapter
+        Vendor                    : Realtek Semiconductor Corp.
+        Provider                  : Microsoft
+        Date                      : 11/07/2011
+        Version                   : 1030.38.712.2019
+        INF file                  : netrtwlanu.inf
+        Type                      : Native Wi-Fi Driver
+        Radio types supported     : 802.11n 802.11g 802.11b 802.11ac 802.11n 802.11a
+        FIPS 140 mode supported   : Yes
+        802.11w Management Frame Protection supported : Yes
+        Hosted network supported  : No
+        Authentication and cipher supported in infrastructure mode:
+        Number of supported bands : 2
+                                    2.4 GHz [ 0 MHz - 0 MHz]
+                                    5 GHz [ 0 MHz - 0 MHz]
 
-    Driver                    : TP-Link Wireless USB Adapter
-    Vendor                    : Realtek Semiconductor Corp.
-    Provider                  : Microsoft
-    Date                      : 11/07/2011
-    Version                   : 1030.38.712.2019
-    INF file                  : netrtwlanu.inf
-    Type                      : Native Wi-Fi Driver
-    Radio types supported     : 802.11n 802.11g 802.11b 802.11ac 802.11n 802.11a
-    FIPS 140 mode supported   : Yes
-    802.11w Management Frame Protection supported : Yes
-    Hosted network supported  : No
-    Authentication and cipher supported in infrastructure mode:
-    Number of supported bands : 2
-                                2.4 GHz [ 0 MHz - 0 MHz]
-                                5 GHz [ 0 MHz - 0 MHz]
+    Interface name: Wi-Fi
 
-Interface name: Wi-Fi
-
-    Driver                    : Intel(R) Wi-Fi 6 AX201 160MHz
-    Vendor                    : Intel Corporation
-    Provider                  : Intel
-    Date                      : 1/05/2024
-    Version                   : 23.60.1.2
-    INF file                  : oem12.inf
-    Type                      : Native Wi-Fi Driver
-    Radio types supported     : 802.11b 802.11g 802.11n 802.11a 802.11ac 802.11ax
-    FIPS 140 mode supported   : Yes
-    802.11w Management Frame Protection supported : Yes
-    Hosted network supported  : No
-    Authentication and cipher supported in infrastructure mode:
-    Number of supported bands : 2
-                                2.4 GHz [ 0 MHz - 0 MHz]
-                                5 GHz [ 0 MHz - 0 MHz]
-    IHV service present       : Yes
-    IHV adapter OUI           : [00 00 00], type: [00]
-    IHV extensibility DLL path: C:\WINDOWS\system32\IntelIHVRouter10.dll
-    IHV UI extensibility ClSID: {00000000-0000-0000-0000-000000000000}
-    IHV diagnostics CLSID     : {00000000-0000-0000-0000-000000000000}
-    Wireless Display Supported: Yes (Graphics Driver: Yes, Wi-Fi Driver: Yes)
+        Driver                    : Intel(R) Wi-Fi 6 AX201 160MHz
+        Vendor                    : Intel Corporation
+        Provider                  : Intel
+        Date                      : 1/05/2024
+        Version                   : 23.60.1.2
+        INF file                  : oem12.inf
+        Type                      : Native Wi-Fi Driver
+        Radio types supported     : 802.11b 802.11g 802.11n 802.11a 802.11ac 802.11ax
+        FIPS 140 mode supported   : Yes
+        802.11w Management Frame Protection supported : Yes
+        Hosted network supported  : No
+        Authentication and cipher supported in infrastructure mode:
+        Number of supported bands : 2
+                                    2.4 GHz [ 0 MHz - 0 MHz]
+                                    5 GHz [ 0 MHz - 0 MHz]
+        IHV service present       : Yes
+        IHV adapter OUI           : [00 00 00], type: [00]
+        IHV extensibility DLL path: C:\WINDOWS\system32\IntelIHVRouter10.dll
+        IHV UI extensibility ClSID: {00000000-0000-0000-0000-000000000000}
+        IHV diagnostics CLSID     : {00000000-0000-0000-0000-000000000000}
+        Wireless Display Supported: Yes (Graphics Driver: Yes, Wi-Fi Driver: Yes)
 
     ```
 
