@@ -234,6 +234,212 @@ C:\Users\Astro>
 ```
 * If the ping does not respond within a few milliseconds, go back through C1-C3 to double check the setup. 
 
+### C6 - Powershell commands to check the Network setup
+You can use the following commands from a PowerShell window, to check the status of your TP-Link adapter and Wifi connection to the Polaris. 
+1. To open PowerShell, from the Run menu type `PowerShell` and click the `Windows PowerShell` App
+2. To list all interfaces, including MAC Address and current status
+    ```
+    PS C:\> Get-NetAdapter
+
+    Name                      InterfaceDescription                    ifIndex Status       MacAddress             LinkSpeed
+    ----                      --------------------                    ------- ------       ----------             ---------
+    Wi-Fi                     Intel(R) Wi-Fi 6 AX201 160MHz                22 Up           80-38-FB-4C-AB-85       1.9 Gbps
+    Loopback                  Microsoft KM-TEST Loopback Adapter           21 Up           02-00-4C-4F-4F-50       1.2 Gbps
+    Local Area Connection* 15 Microsoft Wi-Fi Direct Virtual Ada...#7      16 Up           A8-29-48-B0-19-0B          0 bps
+    Bluetooth Network Conn... Bluetooth Device (Personal Area Netw...      15 Disconnected 80-38-FB-4C-AB-89         3 Mbps
+    Ethernet                  Realtek PCIe GbE Family Controller           14 Disconnected 00-CE-39-D1-58-BF          0 bps
+    Wi-Fi 2                   TP-Link Wireless USB Adapter                 10 Up           A8-29-48-B0-19-0B      72.2 Mbps
+    ```
+
+3. To show driver details.
+    ```
+    PS C:\> netsh wlan show drivers
+
+
+Interface name: Wi-Fi 2
+
+    Driver                    : TP-Link Wireless USB Adapter
+    Vendor                    : Realtek Semiconductor Corp.
+    Provider                  : Microsoft
+    Date                      : 11/07/2011
+    Version                   : 1030.38.712.2019
+    INF file                  : netrtwlanu.inf
+    Type                      : Native Wi-Fi Driver
+    Radio types supported     : 802.11n 802.11g 802.11b 802.11ac 802.11n 802.11a
+    FIPS 140 mode supported   : Yes
+    802.11w Management Frame Protection supported : Yes
+    Hosted network supported  : No
+    Authentication and cipher supported in infrastructure mode:
+    Number of supported bands : 2
+                                2.4 GHz [ 0 MHz - 0 MHz]
+                                5 GHz [ 0 MHz - 0 MHz]
+
+Interface name: Wi-Fi
+
+    Driver                    : Intel(R) Wi-Fi 6 AX201 160MHz
+    Vendor                    : Intel Corporation
+    Provider                  : Intel
+    Date                      : 1/05/2024
+    Version                   : 23.60.1.2
+    INF file                  : oem12.inf
+    Type                      : Native Wi-Fi Driver
+    Radio types supported     : 802.11b 802.11g 802.11n 802.11a 802.11ac 802.11ax
+    FIPS 140 mode supported   : Yes
+    802.11w Management Frame Protection supported : Yes
+    Hosted network supported  : No
+    Authentication and cipher supported in infrastructure mode:
+    Number of supported bands : 2
+                                2.4 GHz [ 0 MHz - 0 MHz]
+                                5 GHz [ 0 MHz - 0 MHz]
+    IHV service present       : Yes
+    IHV adapter OUI           : [00 00 00], type: [00]
+    IHV extensibility DLL path: C:\WINDOWS\system32\IntelIHVRouter10.dll
+    IHV UI extensibility ClSID: {00000000-0000-0000-0000-000000000000}
+    IHV diagnostics CLSID     : {00000000-0000-0000-0000-000000000000}
+    Wireless Display Supported: Yes (Graphics Driver: Yes, Wi-Fi Driver: Yes)
+
+    ```
+
+
+4. To show Wi-Fi connection details (SSID, signal strength, bitrate, BSSID)
+    ```
+    PS C:\> netsh wlan show interfaces
+
+    There are 2 interfaces on the system:
+
+        Name                   : Wi-Fi 2
+        Description            : TP-Link Wireless USB Adapter
+        GUID                   : 41e960f6-3ef5-49fa-9372-0d229f7e8284
+        Physical address       : a8:29:48:b0:19:0b
+        Interface type         : Primary
+        State                  : connected
+        SSID                   : polaris_b83c06
+        AP BSSID               : 94:bb:43:c9:e1:f1
+        Band                   : 2.4 GHz
+        Channel                : 9
+        Network type           : Infrastructure
+        Radio type             : 802.11n
+        Authentication         : Open
+        Cipher                 : None
+        Connection mode        : Auto Connect
+        Receive rate (Mbps)    : 72.2
+        Transmit rate (Mbps)   : 72.2
+        Signal                 : 100%
+        Rssi                   : -29
+        Profile                : polaris_b83c06
+        QoS MSCS Configured         : 0
+        QoS Map Configured          : 0
+        QoS Map Allowed by Policy   : 0
+
+        Name                   : Wi-Fi
+        Description            : Intel(R) Wi-Fi 6 AX201 160MHz
+        GUID                   : b67dddca-5819-4bb0-b2cf-9544bce8334f
+        Physical address       : 80:38:fb:4c:ab:85
+        Interface type         : Primary
+        State                  : connected
+        SSID                   : atlas_6G
+        AP BSSID               : a0:36:bc:40:77:8c
+        Band                   : 5 GHz
+        Channel                : 36
+        Connected Akm-cipher   : [ akm = 00-0f-ac:02, cipher =  00-0f-ac:04 ]
+        Network type           : Infrastructure
+        Radio type             : 802.11ax
+        Authentication         : WPA2-Personal
+        Cipher                 : CCMP
+        Connection mode        : Auto Connect
+        Receive rate (Mbps)    : 2402
+        Transmit rate (Mbps)   : 1633
+        Signal                 : 87%
+        Rssi                   : -51
+        Profile                : atlas_6G
+        QoS MSCS Configured         : 0
+        QoS Map Configured          : 0
+        QoS Map Allowed by Policy   : 0
+
+    ```
+4. To show more detailed info on network interfaces, IP addresses (IPv4/IPv6), MAC address, and status.
+    ```
+    PS C:\> Get-NetIPConfiguration
+
+    InterfaceAlias       : Loopback
+    InterfaceIndex       : 21
+    InterfaceDescription : Microsoft KM-TEST Loopback Adapter
+    NetProfile.Name      : Unidentified network
+    IPv4Address          : 169.254.176.36
+    IPv6DefaultGateway   :
+    IPv4DefaultGateway   :
+    DNSServer            : fec0:0:0:ffff::1
+                          fec0:0:0:ffff::2
+                          fec0:0:0:ffff::3
+
+    InterfaceAlias       : Local Area Connection* 15
+    InterfaceIndex       : 16
+    InterfaceDescription : Microsoft Wi-Fi Direct Virtual Adapter #7
+    NetProfile.Name      : Identifying...
+    IPv4Address          : 192.168.137.1
+    IPv6DefaultGateway   :
+    IPv4DefaultGateway   :
+    DNSServer            : fec0:0:0:ffff::1
+                          fec0:0:0:ffff::2
+                          fec0:0:0:ffff::3
+
+    InterfaceAlias       : Wi-Fi
+    InterfaceIndex       : 22
+    InterfaceDescription : Intel(R) Wi-Fi 6 AX201 160MHz
+    NetProfile.Name      : atlas_6G
+    IPv4Address          : 192.168.50.54
+    IPv6DefaultGateway   :
+    IPv4DefaultGateway   : 192.168.50.1
+    DNSServer            : 8.8.8.8
+
+    InterfaceAlias       : Wi-Fi 2
+    InterfaceIndex       : 10
+    InterfaceDescription : TP-Link Wireless USB Adapter
+    NetAdapter.Status    : Disconnected
+
+    InterfaceAlias       : Ethernet
+    InterfaceIndex       : 14
+    InterfaceDescription : Realtek PCIe GbE Family Controller
+    NetAdapter.Status    : Disconnected
+
+    InterfaceAlias       : Bluetooth Network Connection
+    InterfaceIndex       : 15
+    InterfaceDescription : Bluetooth Device (Personal Area Network)
+    NetAdapter.Status    : Disconnected
+
+
+    ```
+5. To show routing table (default gateway + network routes).
+    ```
+    PS C:\> Get-NetRoute
+
+    ifIndex DestinationPrefix                              NextHop                                  RouteMetric ifMetric PolicyStore
+    ------- -----------------                              -------                                  ----------- -------- -----------
+    16      255.255.255.255/32                             0.0.0.0                                          256 25       ActiveStore
+    16      224.0.0.0/4                                    0.0.0.0                                          256 25       ActiveStore
+    22      192.168.50.255/32                              0.0.0.0                                          256 30       ActiveStore
+    22      192.168.50.54/32                               0.0.0.0                                          256 30       ActiveStore
+    22      192.168.50.0/24                                0.0.0.0                                          256 30       ActiveStore
+    10      192.168.0.255/32                               0.0.0.0                                          256 55       ActiveStore
+    10      192.168.0.2/32                                 0.0.0.0                                          256 55       ActiveStore
+    10      192.168.0.0/24                                 0.0.0.0                                          256 55       ActiveStore
+    21      169.254.255.255/32                             0.0.0.0                                          256 25       ActiveStore
+    21      169.254.176.36/32                              0.0.0.0                                          256 25       ActiveStore
+    21      169.254.0.0/16                                 0.0.0.0                                          256 25       ActiveStore
+    1       127.255.255.255/32                             0.0.0.0                                          256 75       ActiveStore
+    1       127.0.0.1/32                                   0.0.0.0                                          256 75       ActiveStore
+    1       127.0.0.0/8                                    0.0.0.0                                          256 75       ActiveStore
+    10      0.0.0.0/0                                      192.168.0.1                                        0 55       ActiveStore
+    22      0.0.0.0/0                                      192.168.50.1                                       0 30       ActiveStore
+
+    ```
+
+6. To generate a comprehensive wifi report file in HTML.
+    ```
+    PS C:\> netsh wlan show wlanreport
+    ```
+    > NOTE: This command requires Administrator privellages
+
 ## Nina Troubleshooting
 
 ### N1 - Cannot Remote Desktop to MiniPC running Nina
