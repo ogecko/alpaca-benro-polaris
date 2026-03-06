@@ -1009,6 +1009,18 @@ class MoveAxisMessenger:
 ########################## 
 #  PID CONTROL STRATEGY  #
 ########################## 
+# This is a pure position-based control architecture
+# Once we're in θ space, the motors are independent axes, and do not need cross decoupling.
+#
+# RA/Dec/PA (δ delta_ref)
+#       ↓
+# Az/Alt/Roll (α alpha_ref)
+#       ↓
+# Motor angles (θ theta_ref)
+#       ↓
+# PID(θ_ref − θ_meas)
+#       ↓
+# motor velocities
 
 
 class PID_Controller():
@@ -1479,10 +1491,12 @@ class PID_Controller():
             # update delta_sp based on any non-sidereal tracking (Lunar, Solar, Other)
             self.orbital2delta()
             # Apply relevant guiderate if delta_g_sp duration is non-zero
-            for axis in [0, 1]:  # RA, Dec
-                with self._lock:
+            with self._lock:
+                self.polaris._ispulseguiding = False
+                for axis in [0, 1]:  # RA, Dec
                     duration = self.delta_g_sp[axis]        # remaining pulse guide duration in ms
                     if duration != 0:
+                        self.polaris._ispulseguiding = True
                         sign = np.sign(duration)
                         remaining_ms = abs(duration)
                         step_ms = min(remaining_ms, self.dt * 1000)  # apply only up to what's left
@@ -1490,10 +1504,7 @@ class PID_Controller():
                         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
                         self.delta_offst[axis] += step_sec * velocity
                         self.delta_g_sp[axis] -= sign * step_ms
-                        self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral
-            if np.all(self.delta_g_sp[:2] == 0):
-                with self.polaris._lock:
-                    self.polaris._ispulseguiding = False
+                        self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral and trends to zero
             # Apply relevant delta slew velocities
             self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
             self.delta_ref_last = self.delta_ref
@@ -1536,7 +1547,7 @@ class PID_Controller():
         if self.mode == "TRACK":
             delta_ref_change = self.delta_ref - self.delta_ref_last
             delta_ref_nochange = np.sum(delta_ref_change ** 2) < 1e-3
-            if delta_ref_nochange and self.dt > 0:
+            if self.dt > 0 and (delta_ref_nochange or self.polaris._ispulseguiding):
                 tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
                 self.omega_ff = tracking_vel
         # Feed forward slew velocities when in auto mode
