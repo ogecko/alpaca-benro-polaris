@@ -94,6 +94,20 @@ To disable the http.sys driver if you dont need it:
 * Modify "Start": Locate the Start value, double-click it, and change the data to 4 (Disabled).
 * Restart: Restart your computer to apply changes.
 
+### A6 - Windows 11 Shortcut Startup Issue
+If you have created a Windows shortcut to start the Polaris Alpaca Driver and a message briefly appears but the driver does not launch, follow the steps below to view the full error message:
+
+1. Right-click the shortcut and select **Properties**.
+2. In the **Target** field, click inside the text box, then press **Ctrl + A** to select all text.
+3. Press **Ctrl + C** to copy the target string.
+4. Open **PowerShell** or **Command Prompt**.
+5. Press **Ctrl + V** to paste the copied target string, then press **Enter** to execute it.
+6. Review any error message displayed in the console.
+7. If necessary, correct the **Target** field in the shortcut based on the error details.
+
+This process allows you to see the full error output, which may not remain visible when launching the shortcut normally.
+
+
 ## Benro Polaris Troubleshooting
 
 ### B1 - Cannot start the Benro Polaris Device.

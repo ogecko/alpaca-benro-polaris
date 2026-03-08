@@ -47,7 +47,7 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
       ```
 
       ![Windows Shortcut](images/abp-shortcut.png)
-
+   3. When using the shortcut, if a message briefly appears but the driver does not launch, refer to [Troubleshooting A6](./troubleshooting.md#a6---windows-11-shortcut-startup-issue).
 
 ### Running the Alpaca Driver
 
