@@ -79,7 +79,7 @@
 
               <!-- Alpaca Driver STOP -->
               <q-item v-if="dev.restAPIConnected" :inset-level="0.5">
-                <q-item-section><q-item-label>Stop the Alpaca Driver</q-item-label></q-item-section>
+                <q-item-section><q-item-label>Stop the Alpaca Driver at {{ alpacaHost }}:{{ restAPIPort }}</q-item-label></q-item-section>
                 <q-item-section side>
                   <q-btn label="STOP" icon="mdi-alert-octagon"  class="fixedWidth" @click="onStopDriver"/>
                 </q-item-section>

@@ -41,6 +41,7 @@
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
 - **[Pano Orbitals]**: Document how to capture the moon or other orbitals in a workflow
+- **[Stop Driver]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify which instance can be stopped.
 
 ## New Features (enabled by Nina)
 
