@@ -57,6 +57,7 @@
 - **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
 
 ## Documentation (Alpaca Driver)
+- **[Guiding Calibration]**: Provide best practice recommendations in choosing a guiding calibration location
 - **[Troublshooting A6]**: How to troublshoot shortcut error messages on Windows
 - **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 
