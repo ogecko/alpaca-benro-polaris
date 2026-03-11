@@ -175,19 +175,36 @@ Using Alpaca Pilot, configure the following Alpaca Driver guiding settings.
 <br>
 
 ## 4. PHD2 Calibration
-Calibration teaches PHD2 how your mount responds to various pulse guiding commands. It uses the calibration data to determine what pulse guiding commands are needed to correct a certain drift or movement of the guide star.
+Calibration determines how your mount responds to guide pulses in Right Ascension (RA) and Declination (Dec). During this process, **PHD2** measures how far and in what direction a guide star moves in response to controlled pulse commands. It then builds a model that allows it to calculate the precise pulse corrections required to counteract tracking drift.
+
+For best results, calibration should be performed under the following conditions:
+
+* **Within ±20° of the celestial equator (Dec ≈ 0°)**
+  Near the celestial equator, guide pulses produce the largest and most measurable star movement, resulting in more accurate calibration data.
+
+* **Within one hour of the celestial meridian**
+  Calibrating near the meridian minimizes atmospheric refraction and mechanical flexure effects, providing a more stable and representative measurement of mount behavior.
+
+* **Using the same Position Angle as the intended imaging target**
+  The guide camera orientation must match the equatorial rotation orientation used during imaging so that the calibrated RA and Dec movement vectors align correctly with the image axes.
+
+* **Close to the intended imaging target** 
+  RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. If the mount is slewed after calibration, avoid large pointing changes and maintain the same position angle.
+
+Following these guidelines ensures calibration is accurate, reliable, and representative of actual guiding conditions.
 
 ### 4.1 Calibration Process
 To Calibrate PHD2, use the Calibration Assistant:
-1. On a dark and clear night, slew the Polaris close to your intended DSO target, using Nina, Stellarium or Alpaca Pilot.
-2. Using **PHD2**, connect all equipment.
-3. Click **Calibration Assistant** from the **Tools** menu item.
+1. Considering the guidelines, slew the Polaris close to your imaging target, using Nina, Stellarium or Alpaca Pilot.
+2. Enable Sidereal Tracking.
+3. Using **PHD2**, connect all equipment.
+4. Click **Calibration Assistant** from the **Tools** menu item.
 4. Note the current **Pointing Location**
-5. Enter the **Calibration Location**
+6. Enter the **Calibration Location**
     - Enter a **Declination** the same as your current **Pointing Location Declination**
     - Enter a **Meridian offset** greater than ±25°, but below ±80°. ie Exclude near vertical, and near Horizon.  
     - Click **Slew** to move the mount to the **Calibration Location**
-6. Click **Calibrate** to being the calibration process, typically takes 1–3 minutes
+7. Click **Calibrate** to being the calibration process, typically takes 1–3 minutes
 
 PHD2 will then start sending a sequence of pulse guide commands, monitoring how the mount moves in response to the commands. It will walk out the Right Ascension axis and back, then do the same for the Declination axis. You can monitor its progress with Alpaca Pilot.
 
@@ -220,7 +237,7 @@ PHD2 assumes that the mapping of RA and Dec pulses to pixel motion on the guide 
 * You physically rotate the guide camera relative to the mounts RA or Dec axis.
 * You slew to a new DSO and have a different Position Angle.
 * You change the roll angle for framing, indrectly changing the Position Angle.
-* You change guide scope or focal length
+* You change any equipment like the guide scope or main camera or lens focal length
 
 If you have a separate ZWO Rotator on just the main imaging sensor, and the guide camera is fixed relative to the mount, then you do not need to recalibrate on ZWO Rotator changes.
 
