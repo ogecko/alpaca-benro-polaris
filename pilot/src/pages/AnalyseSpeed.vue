@@ -107,7 +107,7 @@
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY  :data="chartPosData" x1Type="time"></ChartXY>
+          <ChartXY  :data="chartPosData" x1Type="time" y1Type="dms"></ChartXY>
           <div class="q-pb-xl"></div>
         </q-card>
       </div>    
@@ -121,7 +121,7 @@
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
+          <ChartXY  :data="chartVelData" x1Type="time" y1Type="dms"></ChartXY>
         </q-card>
       </div>    
   </div>

@@ -119,7 +119,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
+          <ChartXY :data="chartPosData" x1Type="time" y1Type="dms"></ChartXY>
           <q-expansion-item label="Advanced Global PID Settings">
             <div class="row q-pt-lg q-pl-xl items-top justify-center">
               <div class="col row q-gutter-sm">
@@ -171,7 +171,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                 <q-item-label caption>OP: Output Velocity, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Feed Forward</q-item-label>
                 </q-item-section>
             </q-item>
-          <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
+          <ChartXY  :data="chartVelData" x1Type="time" y1Type="dms"></ChartXY>
           <q-expansion-item :label="`Advanced ${motorLabel} PID Settings`">
             <div class="row q-pt-lg q-pl-xl items-top justify-center">
               <div class="col row q-gutter-sm">

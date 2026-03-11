@@ -78,7 +78,7 @@
                 <q-item-label caption>M1-3: Measured Position, PV: Present Value Position </q-item-label>
               </q-item-section>
             </q-item>
-            <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
+            <ChartXY :data="chartPosData" x1Type="time" y1Type="dms"></ChartXY>
             <q-expansion-item :label="`Advanced Slew Rate Settings for Testing ${motor}`">
               <q-item>
                 <q-item-section side top>
@@ -116,7 +116,7 @@
                 <q-item-label caption>M1-3: Measured Velocity, PV: Present Value Velocity. SP: Setpoint Velocity</q-item-label>
               </q-item-section>
             </q-item>
-            <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
+            <ChartXY  :data="chartVelData" x1Type="time" y1Type="dms"></ChartXY>
             <q-expansion-item :label="`Advanced Timing Settings for Testing ${motor}`">
               <q-item>
                 <q-item-section side top>

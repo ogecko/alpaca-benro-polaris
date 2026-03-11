@@ -35,24 +35,12 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in v2.1.0
-- **[Panorama Settings]** Add flexible Panorama Grid for Landscape (untracked), Sky (Horizon-Locked), Sky (tracked), that can be revisted, reordered and reused.
-- **[Panorama Flexibility]** Add First Panel setting to define which corner of the grid is used for Panel 1.
-- **[Panorama Calculator]** Use the Panel Spacing Calculator to determine your sensor’s field of view (FOV) and the recommended panel step for a desired image overlap.
-- **[Panorama Automation]** Add device actions PanoGrid and PanoSlew for automation in Nina Advanced Sequencer and CCDScripts
-- **[Panel Navigation]** Add optional Panel navigation controls on the main dashboard.
-- **[Grid Recenter]** Add a Dashboard button to recenter PanoGrid to match mount's orientation.
-- **[Advanced Sequencer]** Add documentation on how to use Nina's Advanced Sequencer and Templates.
-- **[Meteor Calendar]** Added a link to the International Meteor Organization’s Meteor Shower Calendar on the Comets page.
-- **[Sky Conditions]** Added a Sky Conditions page providing sunrise and sunset times, moonrise and moonset, eclipse data, cloud cover, jet stream forecasts, and light pollution information.
-- **[Aurora Resource]** Add Space Weather Prediction Center to Sky Condition Resources
-- **[Stop Driver]** The Alpaca Pilot Connect page now allows you to stop the Alpaca Driver directly.
-- **[Class Documentation]** Added definitions of Catalog Class object classification codes to pilot.md to help guide imaging and filter strategy.
-- **[Flat Frames]** Added a flat-frame orientation example to catalog.sample.json
-- **[Rename Dirs]** Utility to rename Nina image directories to match Siril expectation eg LIGHT -> lights, DARK -> darks, BIAS -> biases, FLAT -> flats
-- **[Config Updates]** Stream config updates so that all Alpaca Pilot Clients receive the new configuration settings immediately (used for Panoramas) 
-- **[Updated SSL Root Certificates]** Must reinstall python pre-requisites using `pip -r requirements.txt`, See fix#74
-- **[Raspberry Pi Setup]** Enhance the Alpaca driver and Wi-Fi setup scripts, along with documentation, for Raspberry Pi Zero 2
+## What's new in v2.2.0
+- **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
+- **[Pulse Guiding]** Improve pulse guiding state management and inclusion in PID Feed Forward component.
+- **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
+- **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
+- **[Pano Orbitals]**: Document how to capture the moon or other orbitals in a workflow
 
 ## New Features (enabled by Nina)
 
@@ -69,25 +57,11 @@
 - **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
 
 ## Documentation (Alpaca Driver)
-- **[Nina Advanced Sequencer]**: Add documentation on using Nina's advanced sequencer with Alpaca Driver
-- **[Auto Guiding]**: Add documentation on using PHD2 for auto-guiding 
-- **[Raspberry Pi]**: Major revision of Raspberry Pi installation documentation
-- **[Auto Power On]**: Add hardware note for Mele Quieter 4C to use BIOS settings for **Auto Power On**
-- **[Troublshooting A5]**: Add resolution to http.sys claiming port 80
-- **[Troublshooting B6]**: Add description on how to reset Polaris password
-- **[Troubleshooting P1-6]**: Add a troubleshooting section to the Raspberry Pi docs
+- **[Troublshooting A6]**: How to troublshoot shortcut error messages on Windows
+- **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 
-## Bug Fixes (from v2.0.0 version)
-- **[fix #62]**: Alpaca Driver SupportedActions method incorrectly lists "Polaris:J2000GotoPolaris:Ack" as a single action.
-- **[fix #67]**: Reduce CPU load by refactoring Motor Control to be event based rather than polling every 1ms for work.
-- **[fix #68]**: Setting an Az/Alt/Roll target may intermittently be ignored due to race condition from the tracking loop
-- **[fix #70]**: Correctly detect and resolve potential gimbal lock solutions where second mechanical axis is near zero.
-- **[fix #71]**: Alpaca Pilot Sidebar Menu should only highlight the active catalog link (not all catalog links).
-- **[fix #73]**: Upgrade Win and MacOS requirements.txt for latest compatible versions of numpy, scipi, falcon, bleak, ASCOM, Python.
-- **[fix #74]**: Update SSL Root certificates to allow successful JPL Horizons searches for Comets and Asteroids.
-- **[fix #75]**: Ensure Panorama hstep, vstep, r0, r1, r2 can have decimal degree values (ie not forced to integers).
-- **[fix #76]**: Alpaca Pilot change to Angular Velocity Process Error (Q) are reset when changing motors.
-- **[fix #77]**: Resolve Polaris Wi-Fi initialization issue on Raspberry Pi Linux
+## Bug Fixes (from v2.1.0 version)
+- **[fix #78]**: TBD
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment

@@ -47,7 +47,7 @@
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY :data="chartPosData(n)" x1Type="time"></ChartXY>
+          <ChartXY :data="chartPosData(n)" x1Type="time" y1Type="dms"></ChartXY>
         </q-card>
       </div>
     </div>
@@ -63,7 +63,7 @@
                 <q-item-label caption>OP: Output Velocity, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Feed Forward</q-item-label>
                 </q-item-section>
             </q-item>
-          <ChartXY  :data="chartVelData(n)" x1Type="time"></ChartXY>
+          <ChartXY  :data="chartVelData(n)" x1Type="time" y1Type="dms"></ChartXY>
         </q-card>
       </div>    
     </div>

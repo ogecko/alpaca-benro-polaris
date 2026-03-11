@@ -9,13 +9,17 @@ import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import * as d3 from 'd3'
 import { formatAngle } from 'src/utils/scale'
 import { throttle } from 'quasar'
+import { deg2fulldms } from 'src/utils/angles'
 // import { deg2fulldms } from 'src/utils/angles'
 export type DataPoint = Record<string, number | Date | undefined>
 
-const props = defineProps<{ 
-  data: DataPoint[] 
+const props = withDefaults(defineProps<{ 
+  data: DataPoint[]
   x1Type: 'number' | 'time'
-}>()
+  y1Type?: 'number' | 'dms' | 'hms'
+}>(), {
+  y1Type: 'number'
+})
 
 const chart = ref<HTMLDivElement | null>(null)
 
@@ -148,7 +152,14 @@ function updateChart() {
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
 
   tX.call(d3.axisBottom(zx)).style('color', '#aaa')
-  tY.call(d3.axisLeft(zy)).style('color', '#aaa')
+  const yAxis = d3.axisLeft(zy)
+  if (props.y1Type === 'dms') {
+    yAxis.tickFormat((d: d3.NumberValue) => deg2fulldms(+d, 1, 'deg'))
+  }
+  else if (props.y1Type === 'hms') {
+    yAxis.tickFormat((d: d3.NumberValue) => deg2fulldms(+d/15, 1, 'hr'))
+  }
+  tY.call(yAxis).style('color', '#aaa')
 
   drawGridlines(zx, zy, width)
   drawLines(zx, zy)
