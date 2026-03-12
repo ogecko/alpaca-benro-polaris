@@ -1576,16 +1576,16 @@ class PID_Controller():
         # calc the integral error if tracking or slewing
         Ki = np.array(Config.pid_Ki, dtype=float)
         Kd = np.array(Config.pid_Kd, dtype=float)
-        i_limit = np.where(Ki != 0, 3 * 15/3600 / Ki, 0)    # limit integral to 3 x sidereal rate / Ki
+        i_limit = np.where(Ki != 0, 6 * 15/3600 / Ki, 0)    # limit integral to 6 x sidereal rate / Ki
 
         if self.mode=='TRACK' or self.is_slewing:
             # Preload to cancel derivative term: omega_kd = -Kd * omega_op, or use last integral value
             preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
             preload_masked = np.where(self.is_axis_preloading, preload, self.error_integral)
-            # Conditional integration mask
-            can_integrate = (
-                ((self.omega_tgt >= self.omega_min) & (self.omega_tgt <= self.omega_max)) |
-                (np.sign(self.error_signal) != np.sign(self.omega_tgt))
+            # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
+            can_integrate = np.logical_or(
+                np.logical_and(self.omega_tgt >= self.omega_min, self.omega_tgt <= self.omega_max),
+                np.sign(self.error_signal) != np.sign(self.omega_tgt)
             ) & (~self.polaris._ispulseguiding)
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
             updated_integral = preload_masked + delta_integral
