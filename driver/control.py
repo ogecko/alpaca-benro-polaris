@@ -1586,7 +1586,7 @@ class PID_Controller():
             can_integrate = (
                 ((self.omega_tgt >= self.omega_min) & (self.omega_tgt <= self.omega_max)) |
                 (np.sign(self.error_signal) != np.sign(self.omega_tgt))
-            )
+            ) & (~self.polaris._ispulseguiding)
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
             updated_integral = preload_masked + delta_integral
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
