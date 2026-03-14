@@ -36,13 +36,14 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.2.0
-- **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
-- **[Pulse Guiding]** Improve pulse guiding state management and inclusion in PID Feed Forward component.
+- **[PID Tracking]** Enhance PID tracking by computing motor error signals using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
+- **[Guiding State]** Refine pulse guiding state management and incorporate it properly into the PID feed-forward calculation.
+- **[Guiding Integral]**: Reduce pulse guiding overshoot by suspending integration of error component during guiding.
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
 - **[Pano Orbitals]**: Document how to capture the moon or other orbitals in a workflow
+- **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
 - **[Stop Driver]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify which instance can be stopped.
-- **[PID Integral]**: Do not integrate error component while pulse guiding as it causes overshoot.
 
 ## New Features (enabled by Nina)
 
