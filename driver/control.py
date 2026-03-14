@@ -1181,8 +1181,9 @@ class PID_Controller():
         self.body.compute(self.observer)
         alt = rad2deg(self.body.alt)
         az = rad2deg(self.body.az)
-        parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
-        self.body_pa_offset = wrap_to_360(delta[2] - parallactic_angle)
+        if self.polaris._trackingrate == 0:   # only update roll when sidereal tracking
+            parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
+            self.body_pa_offset = wrap_to_360(delta[2] - parallactic_angle)
 
     def orbital2delta(self):
         orbital = None
@@ -1209,14 +1210,13 @@ class PID_Controller():
             orb_dec = rad2deg(orbital.dec)
             ra_change = abs(orb_ra - self.delta_sp[0])
             dec_change = abs(orb_dec - self.delta_sp[1])
-            is_keep_roll_angle = ra_change > 10/60 or dec_change > 10/60
+            is_keep_roll_angle = True
             is_orbital_trackable = 1 if orb_alt < 10 else 2
             if is_orbital_trackable == 2:
                 self.delta_sp[0] = orb_ra
                 self.delta_sp[1] = orb_dec
-                if is_keep_roll_angle:
-                    parallactic_angle = calc_parallactic_angle(orb_az, orb_alt, self.polaris._sitelatitude)
-                    self.delta_sp[2] = self.body_pa_offset + parallactic_angle  # keep roll angle stable
+                parallactic_angle = calc_parallactic_angle(orb_az, orb_alt, self.polaris._sitelatitude)
+                self.delta_sp[2] = self.body_pa_offset + parallactic_angle  # keep roll angle stable
             self.orbital_sp_status = [is_orbital_trackable, orb_az, orb_alt]
         else:
             # switch back to sidereal if no orbital found
@@ -1536,10 +1536,12 @@ class PID_Controller():
         self.omega_ff = np.zeros(3, dtype=float)
         if self.mode == "TRACK":
             delta_ref_change = self.delta_ref - self.delta_ref_last
-            delta_ref_nochange = np.sum(delta_ref_change ** 2) < 1e-3
-            if self.dt > 0 and (delta_ref_nochange or self.polaris._ispulseguiding):
+            delta_ref_nochange = np.sum(delta_ref_change ** 2) < 2      # ignore changes greather than 2 degrees
+            if self.dt > 0 and (delta_ref_nochange and self.polaris._tracking):
                 tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
                 self.omega_ff = tracking_vel
+                if self.polaris._trackingrate != 0: 
+                    self.omega_ff[2] = 0                                 # for non sidereal tracking,  ensure M3 ff is zero
         # Feed forward slew velocities when in auto mode
         elif self.mode == "AUTO":
             self.omega_ff = self.alpha_v_sp
@@ -1553,7 +1555,8 @@ class PID_Controller():
             self.error_signal = self.quaternion_motor_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
-        self.is_axis_preloading = np.abs(self.error_signal) > 10 / 60                    # preload error_integration outside 10 arcmin
+        integration_rate_limit = 2                                                            # max deg per sec for the integration component
+        self.is_axis_preloading = np.abs(self.error_signal) > integration_rate_limit * 1      # preload when greater than integration limit over 1 sec
         self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
 
         # calc cost signal and flags
@@ -1566,7 +1569,7 @@ class PID_Controller():
         # calc the integral error if tracking or slewing
         Ki = np.array(Config.pid_Ki, dtype=float)
         Kd = np.array(Config.pid_Kd, dtype=float)
-        i_limit = np.where(Ki != 0, 6 * 15/3600 / Ki, 0)    # limit integral to 6 x sidereal rate / Ki
+        i_limit = np.where(Ki != 0, integration_rate_limit / Ki, 0)    # limit integral rate / Ki
 
         if self.mode=='TRACK' or self.is_slewing:
             # Preload to cancel derivative term: omega_kd = -Kd * omega_op, or use last integral value
@@ -1580,6 +1583,8 @@ class PID_Controller():
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
             updated_integral = preload_masked + delta_integral
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
+            if self.polaris._trackingrate != 0: 
+                self.error_integral[2] = 0                                 # for non sidereal tracking,  ensure M3 integral is zero
         else:
             self.error_integral = np.zeros(3, dtype=float)
 

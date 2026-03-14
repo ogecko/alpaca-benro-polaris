@@ -37,7 +37,8 @@
 
 ## What's new in v2.2.0
 - **[PID Tracking]** Enhance PID tracking by computing motor error signals using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
-- **[Guiding State]** Refine pulse guiding state management and incorporate it properly into the PID feed-forward calculation.
+- **[Orbital Tracking]** Enhance orbital tracking by adding feed forward, expanding integration component, and maintaining a fixed roll angle, resulting in smoother and more stable tracking.
+- **[Guiding State]** Refine pulse guiding state management and incorporate it properly into the PID feed-forward control.
 - **[Guiding Integral]**: Reduce pulse guiding overshoot by suspending integration of error component during guiding.
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
