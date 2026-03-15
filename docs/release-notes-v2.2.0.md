@@ -36,10 +36,11 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.2.0
-- **[PID Tracking]** Enhance PID tracking by computing motor error signals using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
+- **[Sidereal Tracking]** Enhance sidereal tracking by computing motor error signals using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
+- **[Roll Angle Tracking]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.
 - **[Orbital Tracking]** Enhance orbital tracking by adding feed forward, expanding integration component, and maintaining a fixed roll angle, resulting in smoother and more stable tracking.
-- **[Guiding State]** Refine pulse guiding state management and incorporate it properly into the PID feed-forward control.
-- **[Guiding Integral]**: Reduce pulse guiding overshoot by suspending integration of error component during guiding.
+- **[Guiding Accuracy]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
+- **[Guiding Integral]**: Reduce pulse-guiding overshoot by temporarily suspending integration of the error term during active guiding.
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
 - **[Pano Orbitals]**: Document how to capture the moon or other orbitals in a workflow

@@ -1422,8 +1422,10 @@ class PID_Controller():
 
     def quaternion_motor_error(self, theta_ref, theta_meas):
         """
-        Incremental quaternion error using SLERP,
-        scaled by actual motor angular velocity output.
+        Incremental quaternion error using SLERP, scaled by maximum motor angular velocity.
+        Fallback to clamp_error(self.theta_ref, self.theta_meas) when
+            * motor velocity is near zero
+            * SO3 distance is near zero
         """
 
         # --- Build quaternions ---
@@ -1437,18 +1439,20 @@ class PID_Controller():
         # --- Calc the Total shortest-path rotation angle in SO(3) ---
         q_err = (q_meas.inverse * q_ref).normalised
         w = np.clip(q_err[0], -1.0, 1.0)
-        theta_total = 2 * np.arccos(w)
-        if theta_total < 1e-9:
-            return np.zeros(3)
+        theta_total = np.degrees(2 * np.arccos(w))
+        if theta_total < 1e-9:                # Fallback if small SO(3) distance
+            return clamp_error(self.theta_ref, self.theta_meas)
 
-        # --- Calc expected max rotation step this cycle from motor velocity magnitude ---
-        omega_scalar = np.linalg.norm(self.omega_op)
-        min_rate = np.radians(0.006)  # Prevent stall if starting from rest
-        omega_scalar = max(omega_scalar, min_rate)
-        theta_step = omega_scalar * self.dt
+        # --- Calc expected max rotation step this cycle ---
+        # theta_step = np.linalg.norm(self.omega_op)   # dont use velocity
+        theta_step = 15.6                     # clamp to max vel = sqrt(9^2 + 9^2 + 9^2) deg/s 
+        if theta_step < 0.006:                # Fallback if starting from rest (prevent stall)
+            return clamp_error(self.theta_ref, self.theta_meas)
 
         # --- Compute interpolation fraction ---
         frac = min(1.0, theta_step / theta_total)
+        if Config.log_pulse_guiding:
+            self.logger.info(f'PID SLERP frac {frac} = theta_step {theta_step} / theta_total {theta_total} ')
 
         # --- SLERP toward reference ---
         q_target = Quaternion.slerp(q_meas, q_ref, amount=frac)
