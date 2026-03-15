@@ -1559,7 +1559,7 @@ class PID_Controller():
             self.error_signal = self.quaternion_motor_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
-        integration_rate_limit = 2                                                            # max deg per sec for the integration component
+        integration_rate_limit = 1/60                                                            # max deg per sec for the integration component
         self.is_axis_preloading = np.abs(self.error_signal) > integration_rate_limit * 1      # preload when greater than integration limit over 1 sec
         self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
 
