@@ -99,12 +99,28 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 
 
 # ************* Quaternion Kinematics *************
-# This is a 3-axis motorised astronomical camera mount ("Polaris"). 
-# It has three motor angles (theta1, theta2, theta3) that describe how the mechanism is physically positioned,
-# and three sky angles (alpha: azimuth, altitude, roll) that describe where the camera is actually pointing. 
-# Theta1 and theta2 roughly correspond to azimuth and altitude, while theta3 pans the tilted camera around its own up axis. 
+# The Benro Polaris is a 3-axis motorised astronomical camera mount ("Polaris"). 
+# It has three motor angles defined by theta (theta1, theta2, theta3) that describe how the mechanism is physically positioned.
+# These motor angles orient the camera to point at a specific sky target defined by alpha (azimuth, altitude, roll).
+# The sky target has an equavalent equatorial coordinates defined by delta (Right Ascension, Declination, Position Angle).
+# The motor angles Theta1 and theta2 roughly correspond to azimuth and altitude, while theta3 pans the tilted camera around its own up axis. 
 # Because of theta3, the true sky pointing (alpha) cannot be read directly from theta1/theta2/theta3.
 # Instead a quaternion is used to compose all three motor angles into the final pointing direction.
+#
+# The Alpaca Driver for the Benro Polaris includes a PID Controller. This PID controller is a pure position-based control architecture.
+# Once we're in theta space, the motors are independent axes, and do not need cross decoupling.
+#
+# RA/Dec/PA (delta_ref)
+#       ↓ - converted using pyephem
+# Az/Alt/Roll (alpha_ref)
+#       ↓ - converted to q, adjusted via multi-point-alignment q1_adj, quaternion_to_angles
+# Motor angles (theta_ref)
+#       ↓ - error calculated as a quaternion slerp from q_theta_meas to q_theta_ref
+# PID(theta_ref − theta_meas)
+#       ↓ - output of PID are angular velocities to each motor speed controller
+# motor_speed_controlers (omega)
+#       ↓ - controllers use PWM of slow and fast speed commands
+# polaris_send_protocol(slow and fast commands)
 
 def is_angle_same(a, b, tolerance=1e-4):
     """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
@@ -1009,18 +1025,6 @@ class MoveAxisMessenger:
 ########################## 
 #  PID CONTROL STRATEGY  #
 ########################## 
-# This is a pure position-based control architecture
-# Once we're in θ space, the motors are independent axes, and do not need cross decoupling.
-#
-# RA/Dec/PA (δ delta_ref)
-#       ↓
-# Az/Alt/Roll (α alpha_ref)
-#       ↓
-# Motor angles (θ theta_ref)
-#       ↓
-# PID(θ_ref − θ_meas)
-#       ↓
-# motor velocities
 
 
 class PID_Controller():
