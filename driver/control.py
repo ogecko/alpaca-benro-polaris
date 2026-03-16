@@ -101,7 +101,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 # ************* Quaternion Kinematics *************
 # The Benro Polaris is a 3-axis motorised astronomical camera mount ("Polaris"). 
 # It has three motor angles defined by theta (theta1, theta2, theta3) that describe how the mechanism is physically positioned.
-# These motor angles orient the camera to point at a specific sky target defined by alpha (azimuth, altitude, roll).
+# These motor angles orient the camera to point at a specific sky target defined by alpha (azimuth, altitude, roll angle).
 # The sky target has an equavalent equatorial coordinates defined by delta (Right Ascension, Declination, Position Angle).
 # The motor angles Theta1 and theta2 roughly correspond to azimuth and altitude, while theta3 pans the tilted camera around its own up axis. 
 # Because of theta3, the true sky pointing (alpha) cannot be read directly from theta1/theta2/theta3.
