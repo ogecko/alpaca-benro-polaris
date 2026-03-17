@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import alpha_to_cameraQ_C2T, theta_to_baseQ_C2B, quaternion_to_angles, baseQ_C2B_to_theta, LastPosition, wrap_to_360
+from control import alpha_to_cameraQ_C2T, theta_to_motorQ_C2B, quaternion_to_angles, motorQ_C2B_to_theta, LastPosition, wrap_to_360
 
 
 
@@ -44,8 +44,8 @@ test_misc_motor_to_q1_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_misc_motor_to_q1_cases)
 def test_misc_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(theta_to_baseQ_C2B(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in baseQ_C2B_to_theta(q1, lastPos=LastPosition(180,30,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(180,30,0)))
 
 
 
@@ -63,8 +63,8 @@ test_5t1_30t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_5t1_30t2_cases)
 def test_5t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(theta_to_baseQ_C2B(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in baseQ_C2B_to_theta(q1, lastPos=LastPosition(+5,+30,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(+5,+30,0)))
 
 
 
@@ -82,8 +82,8 @@ test_355t1_30t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_355t1_30t2_cases)
 def test_355t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(theta_to_baseQ_C2B(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in baseQ_C2B_to_theta(q1, lastPos=LastPosition(355,+30,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(355,+30,0)))
 
 
 
@@ -102,8 +102,8 @@ test_355t1_minus7t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_355t1_minus7t2_cases)
 def test_355t1_minus7t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(theta_to_baseQ_C2B(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in baseQ_C2B_to_theta(q1, lastPos=LastPosition(355,-7,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(355,-7,0)))
 
 
 test_5t1_0t2_cases = [
@@ -120,8 +120,8 @@ test_5t1_0t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1, t1, t2, t3", test_5t1_0t2_cases)
 def test_5t1_0t2_roundtrip_theta_q1(theta1, theta2, theta3, q1, t1,t2,t3):
-    assert str(theta_to_baseQ_C2B(theta1, theta2, theta3)) == str(q1)
-    assert (t1, t2, t3) == tuple(round(x) for x in baseQ_C2B_to_theta(q1))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (t1, t2, t3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1))
 
 
 
@@ -132,8 +132,8 @@ test_90t1_minus5t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_90t1_minus5t2_cases)
 def test_90t1_minus5t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(theta_to_baseQ_C2B(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in baseQ_C2B_to_theta(q1, lastPos=LastPosition(90,-5,80)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(90,-5,80)))
 
 
 
@@ -151,8 +151,8 @@ test_180t1_70t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_180t1_70t2_cases)
 def test_180t1_70t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(theta_to_baseQ_C2B(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in baseQ_C2B_to_theta(q1, lastPos=LastPosition(180,70,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(180,70,0)))
 
 
 def test_alpha_to_cameraQ_C2T():
@@ -249,8 +249,8 @@ def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
 @pytest.mark.parametrize("n, t1, t2, t3", test_misc_azaltroll_cases)
 def test_misc_t1t2t3_motors_to_q1_roundtrip(n, t1, t2, t3):
     v1,v2,v3 = approx( [t1,t2,t3] )
-    q1 = theta_to_baseQ_C2B(t1, t2, t3)
-    angles = baseQ_C2B_to_theta(q1, lastPos=LastPosition(t1,t2,t3))
+    q1 = theta_to_motorQ_C2B(t1, t2, t3)
+    angles = motorQ_C2B_to_theta(q1, lastPos=LastPosition(t1,t2,t3))
     u1,u2,u3 = approx(angles)
     if (u2==0):
         v1 = wrap_to_360(v1+v3)

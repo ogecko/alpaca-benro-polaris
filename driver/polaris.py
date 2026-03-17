@@ -38,7 +38,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import quaternion_to_angles, theta_to_baseQ_C2B, calculate_angular_velocity, is_angle_same, wrap_to_360, wrap_to_180
+from control import quaternion_to_angles, theta_to_motorQ_C2B, calculate_angular_velocity, is_angle_same, wrap_to_360, wrap_to_180
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
@@ -733,7 +733,7 @@ class Polaris:
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas, omega_ref)
             theta_state, _ = self._kf.get_state()
-            q1_state = theta_to_baseQ_C2B(*theta_state)
+            q1_state = theta_to_motorQ_C2B(*theta_state)
 
             # Flag when variance from quaternion q_az and p_az
             if Config.log_polaris_polling:
