@@ -119,28 +119,30 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     +Y_E = RA = 6h, Dec = 0°;                     Position Angle = the angle between Celestrial North Pole and Camera up +X_C; PA = ParalaticAngle + Roll
 #                                                   Paralatic Angle = the angle between Celestrial North Pole and Zenth (at the RA/Dec target)
 #
-# Q_C2B(theta1,theta2,theta3) - Motor Orientation Quaternion, q1
+# motorQ_C2B - Motor Orientation Quaternion, q1
 #     Rotates vectors expressed in Camera frame into Mount Base frame.
 #     It depends only on motor angles.
 #     It encodes pure mechanical geometry.
 #     It knows nothing about the sky.
-# Q_B2T - Base Orientation Quaternion
+# baseQ_B2T - Base Orientation Quaternion
 #     Rotates vectors expressed in Mount Base frame into Topocentric frame.
 #     This encodes: azimuth offset, tripod tilt, wedge tilt, imperfect polar alignment, sync corrections
-# Q_C2T - Camera Orientation Quaternion
+#     When in single point alignment, baseQ_B2T is an Identity, assuming base is polar aligned
+# cameraQ_C2T - Camera Orientation Quaternion
 #     Rotates vectors expressed in Camera frame into Topocentric frame
-#     And is defined by: Q_C2T = Q_B2T ∘ Q_C2B
-#     From Q_C2T, you can compute: Azimuth, Altitude, Roll.
+#     And is defined by: cameraQ_C2T = baseQ_B2T ∘ motorQ_C2B
+#     From cameraQ_C2T, you can compute: Azimuth, Altitude, Roll.
 #
 # Forward Kinematics (Motors → Sky)
-#     Q_C2B = theta_to_motorQ_C2B(θ1, θ2, θ3)
-#     Q_C2T = Q_B2T * Q_C2B; From Q_Cto_T you derive Az-Alt-Roll
-#     Q_T2E = ; From Q_T2E you derive RA-Dec-PA
+#     motorQ_C2B = theta_to_motorQ_C2B(θ1, θ2, θ3)
+#     cameraQ_C2T = baseQ_B2T * motorQ_C2B; 
+#     From cameraQ_C2T you derive Az-Alt-Roll
+#     celestrialQ_T2E = pyephem(az,alt); From celestrialQ_T2E you derive RA-Dec-PA
 #
 # Inverse Kinematics (Sky → Motors)
-#     Q_C2T_ref = alpha_to_cameraQ_C2T(az,alt,roll)
-#     Q_C2B_ref = Q_B2T⁻¹ ∘ Q_C2T_ref
-#     θ = motorQ_C2B_to_theta(Q_C2B_ref)
+#     cameraQ_C2T_ref = alpha_to_cameraQ_C2T(az,alt,roll)
+#     motorQ_C2B_ref = baseQ_B2T⁻¹ ∘ cameraQ_C2T_ref
+#     θ = motorQ_C2B_to_theta(motorQ_C2B_ref)
 #
 # Mount modes
 #     Alt/Az mode: Q_B2T is approx Identity
