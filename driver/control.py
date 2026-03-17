@@ -127,7 +127,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 # baseQ_B2T - Base Orientation Quaternion
 #     Rotates vectors expressed in Mount Base frame into Topocentric frame.
 #     This encodes: azimuth offset, tripod tilt, wedge tilt, imperfect polar alignment, sync corrections
-#     When in single point alignment, baseQ_B2T is an Identity, assuming base is polar aligned
+#     Based on QUEST (for Multi Point alignment) or Identify (for Single Point Alignment)
 # cameraQ_C2T - Camera Orientation Quaternion
 #     Rotates vectors expressed in Camera frame into Topocentric frame
 #     And is defined by: cameraQ_C2T = baseQ_B2T ∘ motorQ_C2B
