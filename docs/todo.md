@@ -103,7 +103,7 @@
 - [X] Alpaca pilot Tripod Level Correction
 - [x] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
 - [X] Fix Reduce number of Nina plate-solve and sync to get to target
-- [ ] Fix SYNC events are not cleared in client after driver restart
+- [X] Fix SYNC events are not cleared in client after driver restart
 
 ## Alpaca Speed Control
 - [X] Refactor low level SLOW and FAST speed controler

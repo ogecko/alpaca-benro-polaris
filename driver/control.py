@@ -1795,6 +1795,7 @@ class SyncManager:
         self.tilt_adj_mag = 0                   # baseQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # baseQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
+        self.logSyncDataReset()
 
     def standard_entry(self):
         entry = {
@@ -2133,8 +2134,18 @@ class SyncManager:
         self.compute_roll_residuals()
 
     def logSyncData(self):
+        self.logSyncDataReset()
         sm_logger = logging.getLogger('sm')
         for entry in self.sync_history:
             sm_logger.info(entry)
+    
+    def logSyncDataReset(self):
+        sm_logger = logging.getLogger('sm')
+        first_entry = self.standard_entry()
+        first_entry["timestamp"] = 'reset'    # flag clients to clear alignment history
+        first_entry["a_alt"] = 0
+        first_entry["a_az"] = 0 
+        first_entry["a_roll"] = 0 
+        sm_logger.info(first_entry)
 
 

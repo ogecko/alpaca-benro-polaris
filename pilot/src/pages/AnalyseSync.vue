@@ -306,7 +306,11 @@ const telescope_syncs = computed(() => {
   const syncdata = sm.map(formatSyncData).filter(d=>((d.a_az != '') && (d.a_alt != '')))
   const consolidated = new Map<string, TableRow>()
   for (const data of syncdata) {
-    consolidated.set(data.timestamp, data)
+    if (data.timestamp == 'reset') {
+      consolidated.clear()
+    } else {
+      consolidated.set(data.timestamp, data)
+    }
   }
   return Array.from(consolidated.values()).filter(d=>(!d.deleted))
 })
@@ -316,7 +320,11 @@ const rotator_syncs = computed(() => {
   const syncdata = sm.map(formatSyncData).filter(d=>(d.a_roll != ''))
   const consolidated = new Map<string, TableRow>()
   for (const data of syncdata) {
-    consolidated.set(data.timestamp, data)
+    if (data.timestamp == 'reset') {
+      consolidated.clear()
+    } else {
+      consolidated.set(data.timestamp, data)
+    }
   }
   return Array.from(consolidated.values()).filter(d=>(!d.deleted))
 })

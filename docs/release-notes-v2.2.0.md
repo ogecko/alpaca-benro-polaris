@@ -67,7 +67,7 @@
 - **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 
 ## Bug Fixes (from v2.1.0 version)
-- **[fix #78]**: TBD
+- **[fix #79]**: Clear Pilot SYNC list cache when driver restarts or moves to single point alignment
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
