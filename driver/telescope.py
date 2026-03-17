@@ -1818,6 +1818,8 @@ def make_params_live(changed_params):
             polaris.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
         elif param == "guide_rate_dec":
             polaris.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
+        elif param == "advanced_alignment":
+            polaris._sm.optimize_baseQ_B2T()
         elif param == "advanced_alignment_zero":
             polaris._sm.optimize_baseQ_B2T()
         elif param == "ref":

@@ -1784,6 +1784,9 @@ class SyncManager:
     def __init__(self, logger, polaris):
         self.logger = logger
         self.polaris = polaris
+        self.set_baseQ_to_identity()
+
+    def set_baseQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
         self.baseQ_B2T = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
@@ -1890,6 +1893,10 @@ class SyncManager:
         Markley, F. L. (2000). "Quaternion Attitude Estimation Using Vector Observations." https://tinyurl.com/ymk5xd7z
         Markley, F. L. (2003). "Attitude Estimation or Quaternion Estimation?" https://ntrs.nasa.gov/citations/20030093641
         """
+        if Config.advanced_alignment == False:
+            self.set_baseQ_to_identity()
+            return
+
         pairs = []
         weights = []
 
