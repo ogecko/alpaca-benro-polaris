@@ -103,8 +103,8 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #
 # B - Mount Base Frame: Mechanical Frame;           theta: theta1-theta2-theta3 frame               omega: omega1-omega2-omega3 angular velocities
 #     +Z_B = Axis 1 up direction;                   theta1 = motor1 spin axis, around +Z_B          omega1: motor1 angular velocity
-#     +Y_B = Mount forward direction;               theta2 = motor2 spin axis, around +Y_B          omega2: motor2 angular velocity
-#     +X_B = Mount right direction;                 theta3 = motor3 rotates about camera up +X_C    omega3: motor3 angular velocity
+#     +X_B = Axis 2 Red btn direction;              theta2 = motor2 spin axis, around +Y_B          omega2: motor2 angular velocity
+#     +Y_B = Back SD Card direction;                theta3 = motor3 rotates about camera up +X_C    omega3: motor3 angular velocity
 # C - Camera Sensor Frame: Looking skywards −Z 
 #     +X_C  = camera "up" in the image
 #     +Y_C  = camera "left" in the image
