@@ -747,7 +747,7 @@ class Polaris:
                 q1_state, theta_state = q1, theta_meas
 
             # update all the ASCOM values and the PID loop
-            delta_state, alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1_state)
+            delta_state, alpha_state, theta_state = self.update_ascom_from_new_baseQ_B2T(q1_state)
             self._pid.measure(delta_state, alpha_state, theta_state, self._zeta_meas)
 
 
@@ -856,13 +856,13 @@ class Polaris:
 
 
 
-    def update_ascom_from_new_q1_adj(self, q1_state):
+    def update_ascom_from_new_baseQ_B2T(self, q1_state):
         # default to the ASCOM az,alt,roll values based on a q1 state
         a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1_state)
 
         # Correct the ASCOM az,alt,roll values with the Multi-Point QUEST optimal adj and re-grab
         if Config.advanced_alignment and Config.advanced_control:        
-            _, _, _, a_az, a_alt, a_roll = quaternion_to_angles(self._sm.q1_adj * q1_state)
+            _, _, _, a_az, a_alt, a_roll = quaternion_to_angles(self._sm.baseQ_B2T * q1_state)
 
         # Correct the ASCOM roll value with the Rotator adj
         if Config.advanced_rotator and Config.advanced_control:         

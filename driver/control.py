@@ -159,7 +159,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 # RA/Dec/PA (delta_ref)
 #       ↓ - converted using pyephem
 # Az/Alt/Roll (alpha_ref)
-#       ↓ - converted to q, adjusted via multi-point-alignment q1_adj, quaternion_to_angles
+#       ↓ - converted to q, adjusted via multi-point-alignment baseQ_B2T, quaternion_to_angles
 # Motor angles (theta_ref)
 #       ↓ - error calculated as a quaternion slerp from q_theta_meas to q_theta_ref
 # PID(theta_ref − theta_meas)
@@ -1567,7 +1567,7 @@ class PID_Controller():
         q1 = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
 
         if Config.advanced_alignment and Config.advanced_control:
-            q1 = self.polaris._sm.q1_adj.inverse * q1
+            q1 = self.polaris._sm.baseQ_B2T.inverse * q1
 
         theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
         self.theta_ref_last = self.theta_ref
@@ -1784,11 +1784,11 @@ class SyncManager:
         self.polaris = polaris
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
-        self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
-        self.q1_adj_message = ""                # message from last optimisation
-        self.tilt_adj_az = 0                    # q1_adj Tilt azimuth (°): direction of steepest upward inclination (info only)     
-        self.tilt_adj_mag = 0                   # q1_adj Tilt magnitude (°): angle of inclination from horizontal plane (info only)
-        self.az_adj = 0                         # q1_adj Azimuth correction (°): azimuth axis correction to apply (info only)
+        self.baseQ_B2T = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
+        self.baseQ_B2T_message = ""                # message from last optimisation
+        self.tilt_adj_az = 0                    # baseQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)     
+        self.tilt_adj_mag = 0                   # baseQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
+        self.az_adj = 0                         # baseQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
 
     def standard_entry(self):
@@ -1833,15 +1833,15 @@ class SyncManager:
         entry["a_az"] = a_az
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
-        self.optimize_q1_adj()
+        self.optimize_baseQ_B2T()
         self.logSyncData()
 
     def sync_roll(self, a_roll):
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if (Config.advanced_alignment and Config.advanced_control):
-            _,_,_,_,_,p_roll = quaternion_to_angles(self.q1_adj * self.polaris._q1)
-            entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using q1_adj
+            _,_,_,_,_,p_roll = quaternion_to_angles(self.baseQ_B2T * self.polaris._q1)
+            entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using baseQ_B2T
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.logSyncData()
@@ -1857,7 +1857,7 @@ class SyncManager:
             if Config.log_quest_model:
                 self.logger.info(f"Cleared sync data for timestamp: {timestamp}")
             if optimise:
-                self.optimize_q1_adj()
+                self.optimize_baseQ_B2T()
                 self.optimize_roll_adj()
             self.logSyncData()
         else:
@@ -1865,22 +1865,22 @@ class SyncManager:
 
 
     def azalt_polaris2ascom(self, p_az, p_alt):
-        if self.q1_adj is None:
+        if self.baseQ_B2T is None:
             return p_az, p_alt
         v_pred = azalt_to_vector(p_az, p_alt)
-        v_obs = self.q1_adj.rotate(v_pred)
+        v_obs = self.baseQ_B2T.rotate(v_pred)
         c_az, c_alt = vector_to_az_alt(v_obs) 
         return c_az, c_alt
 
     def azalt_ascom2polaris(self, a_az, a_alt):
-        if self.q1_adj is None:
+        if self.baseQ_B2T is None:
             return a_az, a_alt
         v_obs = azalt_to_vector(a_az, a_alt)
-        v_pred = self.q1_adj.inverse.rotate(v_obs)
+        v_pred = self.baseQ_B2T.inverse.rotate(v_obs)
         p_az, p_alt = vector_to_az_alt(v_pred)
         return p_az, p_alt
 
-    def optimize_q1_adj(self):
+    def optimize_baseQ_B2T(self):
         """
         Implement the QUEST algorithm to find the optimal rotation quaternion
         that minimizes the misalignment between predicted (Polaris) and observed (Plate Solved/ASCOM) vectors.
@@ -1918,8 +1918,8 @@ class SyncManager:
 
         self.aligned_count = len(pairs)
         if len(pairs) < 2:
-            self.q1_adj = self.optimise_q1_adj_fallback_single_sync(pairs)
-            self.q1_adj_message = "Fallback rotation from single sync"
+            self.baseQ_B2T = self.optimise_baseQ_B2T_fallback_single_sync(pairs)
+            self.baseQ_B2T_message = "Fallback rotation from single sync"
         else:
             # Normalize weights
             weights = np.array(weights)
@@ -1955,11 +1955,11 @@ class SyncManager:
             eigvals, eigvecs = np.linalg.eigh(K)
             q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
 
-            self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
+            self.baseQ_B2T = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
             if Config.advanced_alignment_zero:
                 self.apply_final_sync_alignment()
                 
-            self.q1_adj_message = "QUEST solution applied"
+            self.baseQ_B2T_message = "QUEST solution applied"
 
 
         # Now compute the residuals and tilt correction
@@ -1979,29 +1979,29 @@ class SyncManager:
 
     def apply_final_sync_alignment(self):
         """
-        Apply a minimal correction quaternion to self.q1_adj so that the last valid sync point
+        Apply a minimal correction quaternion to self.baseQ_B2T so that the last valid sync point
         has zero residual. This ensures the most recent sync is perfectly honored.
         """
         last_valid = next((entry for entry in reversed(self.sync_history)
                         if not entry["deleted"] and entry["a_az"] is not None and entry["a_alt"] is not None), None)
         if not last_valid:
-            self.q1_adj_message += " | No valid sync for final alignment"
+            self.baseQ_B2T_message += " | No valid sync for final alignment"
             return
         v_obs = azalt_to_vector(last_valid["a_az"], last_valid["a_alt"])
         v_pred = azalt_to_vector(last_valid["p_az"], last_valid["p_alt"])
-        v_pred_rot = self.q1_adj.rotate(v_pred)
+        v_pred_rot = self.baseQ_B2T.rotate(v_pred)
         axis = np.cross(v_pred_rot, v_obs)
         norm_axis = np.linalg.norm(axis)
         if norm_axis < 1e-8:
-            self.q1_adj_message += " | Final sync already aligned"
+            self.baseQ_B2T_message += " | Final sync already aligned"
             return
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
         q_correction = Quaternion(axis=axis, angle=angle)
-        self.q1_adj = q_correction * self.q1_adj
+        self.baseQ_B2T = q_correction * self.baseQ_B2T
 
 
-    def optimise_q1_adj_fallback_single_sync(self, pairs):
+    def optimise_baseQ_B2T_fallback_single_sync(self, pairs):
         if len(pairs) == 0:
             return Quaternion(1,0,0,0)  # identity quaternion
         
