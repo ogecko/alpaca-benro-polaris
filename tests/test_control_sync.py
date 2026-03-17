@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 from unittest.mock import patch
 
 import numpy as np
-from control import SyncManager, quaternion_to_angles, angles_to_quaternion, angular_difference, calc_parallactic_angle
+from control import SyncManager, quaternion_to_angles, alpha_to_cameraQ_C2T, angular_difference, calc_parallactic_angle
 from polaris import Polaris
 
 import pytest
@@ -35,7 +35,7 @@ class Polaris:
         self._p_azimuth = az
         self._p_altitude = alt
         self._p_roll = roll
-        self._q1 = angles_to_quaternion(az, alt, roll)
+        self._q1 = alpha_to_cameraQ_C2T(az, alt, roll)
         t1,t2,t3,_,_,_ = quaternion_to_angles(self._q1)
         self._theta_meas = [t1, t2, t3]
         self._roll = roll

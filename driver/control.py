@@ -100,6 +100,52 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 
 # ************* Quaternion Kinematics *************
 # The Benro Polaris is a 3-axis motorised astronomical camera mount ("Polaris"). 
+#
+# B - Mount Base Frame: Mechanical Frame;           theta: theta1-theta2-theta3 frame               omega: omega1-omega2-omega3 angular velocities
+#     +Z_B = Axis 1 up direction;                   theta1 = motor1 spin axis, around +Z_B          omega1: motor1 angular velocity
+#     +Y_B = Mount forward direction;               theta2 = motor2 spin axis, around +Y_B          omega2: motor2 angular velocity
+#     +X_B = Mount right direction;                 theta3 = motor3 rotates about camera up +X_C    omega3: motor3 angular velocity
+# C - Camera Sensor Frame: Looking skywards −Z 
+#     +X_C  = camera "up" in the image
+#     +Y_C  = camera "left" in the image
+#     -Z_C  = optical axis (camera boresight)
+# T - Topocentric Frame: Local World horizon;       alpha: Alt-Az-Roll frame
+#     +X_T = East;                                  Roll = rotation around boresight, relative to the local horizon plane  
+#     +Y_T = North;                                 Azimuth = Measured in the horizon plane, from North toward East
+#     +Z_T = Zenith (Up);                           Altitude = Measured from horizon plane, up toward Zenith
+# E - Celestrial Frame: Earth-centered local frame; delta: Ra-Dec-PA frame
+#     +Z_E = North Celestial Pole;                  Declination = measured from Celestrial Equator, South -90, Equator 0, North +90
+#     +X_E = RA = 0h, Dec = 0°;                     Right Ascension = angle around celestrial equator, Eastward from vernal Equinox, HourAngle = LST - RA
+#     +Y_E = RA = 6h, Dec = 0°;                     Position Angle = the angle between Celestrial North Pole and Camera up +X_C; PA = ParalaticAngle + Roll
+#                                                   Paralatic Angle = the angle between Celestrial North Pole and Zenth (at the RA/Dec target)
+#
+# Q_C2B(theta1,theta2,theta3) - Motor Geometry Quaternion, q1
+#     Rotates vectors expressed in Camera frame into Mount Base frame.
+#     It depends only on motor angles.
+#     It encodes pure mechanical geometry.
+#     It knows nothing about the sky.
+# Q_B2T - Base Attitude Quaternion
+#     Rotates vectors expressed in Mount Base frame into Topocentric frame.
+#     This encodes: azimuth offset, tripod tilt, wedge tilt, imperfect polar alignment, sync corrections
+# Q_C2T - Camera Orientation Quaternion
+#     Rotates vectors expressed in Camera frame into Topocentric frame
+#     And is defined by: Q_C2T = Q_B2T ∘ Q_C2B
+#     From Q_C2T, you can compute: Azimuth, Altitude, Roll.
+#
+# Forward Kinematics (Motors → Sky)
+#     Q_C2B = theta_to_baseQ_C2B(θ1, θ2, θ3)
+#     Q_C2T = Q_B2T * Q_C2B; From Q_Cto_T you derive Az-Alt-Roll
+#     Q_T2E = ; From Q_T2E you derive RA-Dec-PA
+#
+# Inverse Kinematics (Sky → Motors)
+#     Q_C2T_ref = alpha_to_cameraQ_C2T(az,alt,roll)
+#     Q_C2B_ref = Q_B2T⁻¹ ∘ Q_C2T_ref
+#     θ = baseQ_C2B_to_theta(Q_C2B_ref)
+#
+# Mount modes
+#     Alt/Az mode: Q_B2T is approx Identity
+#     Equatrial mode: Q_B2T is approx oriented so theta1 axis = RA, theta2 axis = Dec
+
 # It has three motor angles defined by theta (theta1, theta2, theta3) that describe how the mechanism is physically positioned.
 # These motor angles orient the camera to point at a specific sky target defined by alpha (azimuth, altitude, roll angle).
 # The sky target has an equavalent equatorial coordinates defined by delta (Right Ascension, Declination, Position Angle).
@@ -295,9 +341,9 @@ def calculate_angular_velocity(history):
 
 
 
-def angles_to_quaternion(az, alt, roll):
+def alpha_to_cameraQ_C2T(az, alt, roll):
     """
-    Convert altitude, azimuth, and roll angles to a quaternion using simple rotation composition.
+    Convert altitude, azimuth, and roll angles to a camera quaternion using simple rotation composition.
     
     Args:
         az: Azimuth angle in degrees (0-360)
@@ -311,15 +357,15 @@ def angles_to_quaternion(az, alt, roll):
     qaz = Quaternion(axis=[0, 0, 1], degrees= -az + 90)
     qalt = Quaternion(axis=[0, 1, 0], degrees= -alt - 90)
     qroll = Quaternion(axis=[0, 0, 1], degrees= roll)
-    q1 = qaz * qalt * qroll  # Reconstructed q1 quaternion from roll, then alt, then az
+    q1 = qaz * qalt * qroll  # Reconstructed quaternion from roll, then alt, then az
     
     return -(q1.normalised) if roll < 0 else q1.normalised
 
 
 
-def motors_to_quaternion(theta1, theta2, theta3):
+def theta_to_baseQ_C2B(theta1, theta2, theta3):
     """
-    Convert theta1, theta2, theta3 angles to a quaternion using simple rotation composition.
+    Convert theta1, theta2, theta3 angles to a base quaternion using simple rotation composition.
     
     Args:
         theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount, 0=North)
@@ -376,8 +422,8 @@ class LastPosition:
 
 _lp = LastPosition()
 
-def quaternion_to_motors(q1, lastPos=None):
-    """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
+def baseQ_C2B_to_theta(q1, lastPos=None):
+    """ Convert base quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
     global _lp
     if lastPos is None:
         lastPos = _lp
@@ -437,8 +483,8 @@ def quaternion_to_angles(q1, lastPos = None):
 
     # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
 
-    # calculate the motor angles from the quaternion
-    theta1, theta2, theta3 = quaternion_to_motors(q1, lastPos=lastPos)
+    # calculate the motor angles from the base quaternion
+    theta1, theta2, theta3 = baseQ_C2B_to_theta(q1, lastPos=lastPos)
 
     # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
     tBore = q1.rotate(np.array([0, 0,-1]))   
@@ -1435,8 +1481,8 @@ class PID_Controller():
         """
 
         # --- Build quaternions ---
-        q_ref  = motors_to_quaternion(*theta_ref)
-        q_meas = motors_to_quaternion(*theta_meas)
+        q_ref  = theta_to_baseQ_C2B(*theta_ref)
+        q_meas = theta_to_baseQ_C2B(*theta_meas)
 
         # --- Ensure shortest path ---
         if np.dot(q_meas.elements, q_ref.elements) < 0:
@@ -1464,7 +1510,7 @@ class PID_Controller():
         q_target = Quaternion.slerp(q_meas, q_ref, amount=frac)
 
         # --- Convert back to motor space ---
-        theta_target = np.array(quaternion_to_motors(q_target))
+        theta_target = np.array(baseQ_C2B_to_theta(q_target))
         theta_err = clamp_error(theta_target, theta_meas)
 
         return theta_err
@@ -1518,7 +1564,7 @@ class PID_Controller():
         if Config.advanced_rotator and Config.advanced_control:
             a_roll = self.polaris._sm.roll_ascom2polaris(a_roll)
 
-        q1 = angles_to_quaternion(a_az, a_alt, a_roll)
+        q1 = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
 
         if Config.advanced_alignment and Config.advanced_control:
             q1 = self.polaris._sm.q1_adj.inverse * q1
