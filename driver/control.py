@@ -123,7 +123,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     Rotates vectors expressed in Camera frame into Mount Base frame.
 #     It depends only on motor angles.
 #     It encodes pure mechanical geometry.
-#     It knows nothing about the sky.
+#     It knows nothing about the sky, other than the Polaris firmware based alignment (Single Point Alignment).
 # baseQ_B2T - Base Orientation Quaternion
 #     Rotates vectors expressed in Mount Base frame into Topocentric frame.
 #     This encodes: azimuth offset, tripod tilt, wedge tilt, imperfect polar alignment, sync corrections
