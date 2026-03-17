@@ -327,6 +327,8 @@ def motors_to_quaternion(theta1, theta2, theta3):
         theta3: Polaris Axis 3 angle in degrees (-180 to +180) +ve=cw (looking down towards mount. 0=Level)
     
     Returns:
+        # q1 represents the orientation of the camera in topocentric 3D World space SO(3)
+        # there may be multiple motor angle solutions that give rise to this orientation cf elbow up or down.
         # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
     """
     # Reconstructing q1 from theta1, theta2, theta3
@@ -1627,10 +1629,11 @@ class PID_Controller():
             self.omega_max = np.where(zeta > zeta_max, np.array([0,0,0]), +self.Kv) 
             isLimited = np.any(self.omega_min == 0) or np.any(self.omega_max == 0)
             isUnAcked = self.ack_limit_timestamp is None or (datetime.datetime.now() - self.ack_limit_timestamp).total_seconds() > 60
-            isnotPARKorPRESETUP = not self.set_pid_mode in ['PRESETUP', 'PARK']
-            if isLimited and isUnAcked and isnotPARKorPRESETUP:
+            isnotPARKorHOMEorPRESETUP = self.set_pid_mode not in ['PRESETUP', 'PARK', 'HOME']
+            if isLimited and isUnAcked and isnotPARKorHOMEorPRESETUP:
                 self.set_pid_mode('LIMIT')
                 self.parking_complete_callback = None  # Cancel any parking underway
+                self.homing_complete_callback = None  # Cancel any homeing underway
 
         # Check that lat/lon has been set
         lat_unchanged = abs(rad2deg(float(self.observer.lat)) - -33.8598874) <= 0.00001
