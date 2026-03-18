@@ -1575,7 +1575,6 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
-            # self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
