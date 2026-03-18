@@ -5,8 +5,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import alpha_to_cameraQ_C2T, theta_to_motorQ_C2B, quaternion_to_angles, motorQ_C2B_to_theta, LastPosition, wrap_to_360
-
+from control import alpha_to_cameraQ_C2T, quaternion_to_angles, wrap_to_360
+from control import theta_to_jacobian, theta_to_motorQ_C2B, motorQ_C2B_to_theta, LastPosition
 
 
 def approx_quaternion_to_angles(w,x,y,z):
@@ -273,3 +273,53 @@ def test_zeroalt_motor_positions():
         for t3 in range(-175,175,5):
             n += 1
             test_misc_t1t2t3_motors_to_q1_roundtrip(n,t1,t2,t3)
+
+def quaternion_to_omega(q_delta, dt):
+    """
+    Convert a small quaternion delta into angular velocity vector.
+    """
+    q_delta = q_delta.normalised
+    angle = np.radians(q_delta.degrees)
+    axis = np.array(q_delta.axis)
+
+    if np.linalg.norm(axis) < 1e-9:
+        return np.zeros(3)
+
+    axis = axis / np.linalg.norm(axis)
+    return axis * (angle / dt)
+
+
+@pytest.mark.parametrize("theta1, theta2, theta3", [
+    (0, 0, 0),
+    (45, 10, 5),
+    (90, 30, -20),
+    (180, 45, 0),
+    (270, 60, 30),
+    (350, -5, -100),
+])
+def test_jacobian_matches_finite_difference(theta1, theta2, theta3):
+
+    dt = 1e-6  # small timestep
+    theta = np.array([theta1, theta2, theta3], dtype=float)
+
+    # small arbitrary joint rates (deg/sec)
+    theta_dot_deg = np.array([0.3, -0.2, 0.4])
+
+    # analytic Jacobian prediction
+    J = theta_to_jacobian(theta1, theta2, theta3)
+
+    # convert deg/sec → rad/sec for geometric consistency
+    theta_dot_rad = np.radians(theta_dot_deg)
+    omega_pred = J @ theta_dot_rad
+
+    # numerical quaternion differentiation
+    q0 = theta_to_motorQ_C2B(theta1, theta2, theta3)
+
+    theta_eps = theta + theta_dot_deg * dt
+    q1 = theta_to_motorQ_C2B(*theta_eps)
+
+    q_delta = q1 * q0.inverse
+    omega_fd = quaternion_to_omega(q_delta, dt)
+
+    # compare
+    assert np.allclose(omega_pred, omega_fd, atol=1e-4)

@@ -401,18 +401,18 @@ def theta_to_jacobian(theta1, theta2, theta3):
         J : (3,3) ndarray - Jacobian matrix such that ω = J(θ) · θ_dot
     """
     # Rotation quaternions for first two joints
-    q1 = Quaternion(axis=[0, 0, 1], degrees=-theta1 + 90)
-    q2 = Quaternion(axis=[0, 1, 0], degrees=-theta2 - 90)
+    qtheta1 = Quaternion(axis=[0, 0, 1], degrees=-theta1 + 90)
+    qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-theta2 - 90)
 
     # Joint axes expressed in base frame
-    a1 = np.array([0, 0, 1])            # Joint 1 axis (Z, fixed in base)
-    a2 = q1.rotate([0, 1, 0])           # Joint 2 axis (Y after θ1)
-    a3 = (q1 * q2).rotate([1, 0, 0])    # Joint 3 axis (X after θ1, θ2)
+    a1 = np.array([0, 0, 1])                      # Joint 1 axis (Z, fixed in base)
+    a2 = qtheta1.rotate([0, 1, 0])                # Joint 2 axis (Y after θ1)
+    a3 = (qtheta1 * qtheta2).rotate([1, 0, 0])    # Joint 3 axis (X after θ1, θ2)
 
     # Assemble Jacobian
     J = np.column_stack((a1, a2, a3))
 
-    return J
+    return -J
 
 
 def extract_theta_given_theta3(tUp, tBore, theta3):
@@ -1600,10 +1600,10 @@ class PID_Controller():
             delta_ref_nochange = np.sum(delta_ref_change ** 2) < 2      # ignore changes greather than 2 degrees
             if self.dt > 0 and (delta_ref_nochange and self.polaris._tracking):
                 # Desired angular velocity based on change in cameraQ_ref
-                q_delta = self.cameraQ_ref_last.inverse * self.cameraQ_ref
+                q_delta = self.cameraQ_ref * self.cameraQ_ref_last.inverse 
                 angle_rad = np.radians(q_delta.degrees)
                 axis = np.array(q_delta.axis)
-                axis /= np.linalg.norm(axis)
+                # axis /= np.linalg.norm(axis)
                 omega_topo = axis * (angle_rad / self.dt)                        # Topographic Sky tracking velocity
                 omega_base = self.polaris._sm.baseQ_B2T_inv.rotate(omega_topo)   # Convert to base frame
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
