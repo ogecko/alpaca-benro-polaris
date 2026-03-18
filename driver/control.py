@@ -101,6 +101,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 # ************* Quaternion Kinematics *************
 # The Benro Polaris is a 3-axis motorised astronomical camera mount ("Polaris"). 
 #
+# We define four frames of reference to assist with controlling the mount.
 # B - Mount Base Frame: Mechanical Frame;           theta: theta1-theta2-theta3 frame               omega: omega1-omega2-omega3 angular velocities
 #     +Z_B = Axis 1 up direction;                   theta1 = motor1 spin axis, around +Z_B          omega1: motor1 angular velocity
 #     +X_B = Axis 2 Red btn direction;              theta2 = motor2 spin axis, around +X_B          omega2: motor2 angular velocity
@@ -109,16 +110,17 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     +X_C  = camera "up" in the image
 #     +Y_C  = camera "left" in the image
 #     -Z_C  = optical axis (camera boresight)
-# T - Topocentric Frame: Local World horizon;       alpha: Alt-Az-Roll frame
+# T - Topocentric Frame: Observing Site Location;   alpha: Alt-Az-Roll frame
 #     +X_T = East;                                  Roll = rotation around boresight, relative to the local horizon plane  
 #     +Y_T = North;                                 Azimuth = Measured in the horizon plane, from North toward East
 #     +Z_T = Zenith (Up);                           Altitude = Measured from horizon plane, up toward Zenith
-# E - Celestrial Frame: Earth-centered local frame; delta: Ra-Dec-PA frame
+# E - Celestrial Frame: Earth-centered sky frame;   delta: Ra-Dec-PA frame
 #     +Z_E = North Celestial Pole;                  Declination = measured from Celestrial Equator, South -90, Equator 0, North +90
 #     +X_E = RA = 0h, Dec = 0°;                     Right Ascension = angle around celestrial equator, Eastward from vernal Equinox, HourAngle = LST - RA
 #     +Y_E = RA = 6h, Dec = 0°;                     Position Angle = the angle between Celestrial North Pole and Camera up +X_C; PA = ParalaticAngle + Roll
 #                                                   Paralatic Angle = the angle between Celestrial North Pole and Zenth (at the RA/Dec target)
 #
+# We define three quaternions that rotates vectors from one reference frame to another
 # motorQ_C2B - Motor Orientation Quaternion, q1
 #     Rotates vectors expressed in Camera frame into Mount Base frame.
 #     It depends only on motor angles.
@@ -1569,7 +1571,7 @@ class PID_Controller():
         q1 = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
 
         if Config.advanced_alignment and Config.advanced_control:
-            q1 = self.polaris._sm.baseQ_B2T.inverse * q1
+            q1 = self.polaris._sm.baseQ_B2T_inv * q1
 
         theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
         self.theta_ref_last = self.theta_ref
@@ -1790,6 +1792,7 @@ class SyncManager:
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
         self.baseQ_B2T = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
+        self.baseQ_B2T_inv = Quaternion(1,0,0,0)   # optimised adjustment quaternion for azalt syncing, initially identity
         self.baseQ_B2T_message = ""                # message from last optimisation
         self.tilt_adj_az = 0                    # baseQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)     
         self.tilt_adj_mag = 0                   # baseQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
@@ -1929,6 +1932,7 @@ class SyncManager:
         self.aligned_count = len(pairs)
         if len(pairs) < 2:
             self.baseQ_B2T = self.optimise_baseQ_B2T_fallback_single_sync(pairs)
+            self.baseQ_B2T_inv = self.baseQ_B2T.inverse
             self.baseQ_B2T_message = "Fallback rotation from single sync"
         else:
             # Normalize weights
@@ -1966,6 +1970,7 @@ class SyncManager:
             q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
 
             self.baseQ_B2T = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
+            self.baseQ_B2T_inv = self.baseQ_B2T.inverse
             if Config.advanced_alignment_zero:
                 self.apply_final_sync_alignment()
                 
@@ -2009,6 +2014,7 @@ class SyncManager:
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
         q_correction = Quaternion(axis=axis, angle=angle)
         self.baseQ_B2T = q_correction * self.baseQ_B2T
+        self.baseQ_B2T_inv = self.baseQ_B2T.inverse
 
 
     def optimise_baseQ_B2T_fallback_single_sync(self, pairs):
