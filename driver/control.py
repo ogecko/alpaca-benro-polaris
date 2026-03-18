@@ -150,28 +150,6 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     Alt/Az mode: Q_B2T is approx Identity
 #     Equatrial mode: Q_B2T is approx oriented so theta1 axis = RA, theta2 axis = Dec
 
-# It has three motor angles defined by theta (theta1, theta2, theta3) that describe how the mechanism is physically positioned.
-# These motor angles orient the camera to point at a specific sky target defined by alpha (azimuth, altitude, roll angle).
-# The sky target has an equavalent equatorial coordinates defined by delta (Right Ascension, Declination, Position Angle).
-# The motor angles Theta1 and theta2 roughly correspond to azimuth and altitude, while theta3 pans the tilted camera around its own up axis. 
-# Because of theta3, the true sky pointing (alpha) cannot be read directly from theta1/theta2/theta3.
-# Instead a quaternion is used to compose all three motor angles into the final pointing direction.
-#
-# The Alpaca Driver for the Benro Polaris includes a PID Controller. This PID controller is a pure position-based control architecture.
-# Once we're in theta space, the motors are independent axes, and do not need cross decoupling.
-#
-# RA/Dec/PA (delta_ref)
-#       ↓ - converted using pyephem
-# Az/Alt/Roll (alpha_ref)
-#       ↓ - converted to q, adjusted via multi-point-alignment baseQ_B2T, quaternion_to_angles
-# Motor angles (theta_ref)
-#       ↓ - error calculated as a quaternion slerp from q_theta_meas to q_theta_ref
-# PID(theta_ref − theta_meas)
-#       ↓ - output of PID are angular velocities to each motor speed controller
-# motor_speed_controlers (omega)
-#       ↓ - controllers use PWM of slow and fast speed commands
-# polaris_send_protocol(slow and fast commands)
-
 def is_angle_same(a, b, tolerance=1e-4):
     """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
     return abs((a - b + 180) % 360 - 180) < tolerance
@@ -1495,13 +1473,13 @@ class PID_Controller():
 
     #------- Control step functions ---------
     def quaternion_limit_step(self, q_meas, q_ref):
-        angle_deg, _, _ = quaternion_error(q_meas, q_ref)
-        if angle_deg < 1e-9:
+        angle_total, _, _ = quaternion_error(q_meas, q_ref)
+        if angle_total < 1e-9:
             return q_ref
         angle_step = 12.0  # deg
-        frac = min(1.0, angle_step / angle_deg)
+        frac = min(1.0, angle_step / angle_total)
         if Config.log_pulse_guiding:
-            self.logger.info(f'PID SLERP frac {frac} = amgle_step {amgle_step} / angle_total {angle_total} ')
+            self.logger.info(f'PID SLERP frac {frac} = amgle_step {angle_step} / angle_total {angle_total} ')
         return Quaternion.slerp(q_meas, q_ref, amount=frac)
 
     def track_target(self):
