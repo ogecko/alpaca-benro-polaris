@@ -1475,49 +1475,28 @@ class PID_Controller():
         self.set_pid_mode('IDLE')
 
     #------- Control step functions ---------
-
-    def quaternion_motor_error(self, theta_ref, theta_meas):
-        """
-        Incremental quaternion error using SLERP, scaled by maximum motor angular velocity.
-        Fallback to clamp_error(self.theta_ref, self.theta_meas) when
-            * motor velocity is near zero
-            * SO3 distance is near zero
-        """
-
-        # --- Build quaternions ---
-        q_ref  = theta_to_motorQ_C2B(*theta_ref)
-        q_meas = theta_to_motorQ_C2B(*theta_meas)
+    def quaternion_limit_step(self, q_ref, q_meas):
 
         # --- Ensure shortest path ---
-        if np.dot(q_meas.elements, q_ref.elements) < 0:
-            q_ref = -q_ref
+        q_target = -q_ref if np.dot(q_meas.elements, q_ref.elements) < 0 else q_ref
 
         # --- Calc the Total shortest-path rotation angle in SO(3) ---
-        q_err = (q_meas.inverse * q_ref).normalised
+        q_err = (q_meas.inverse * q_target).normalised
         w = np.clip(q_err[0], -1.0, 1.0)
-        theta_total = np.degrees(2 * np.arccos(w))
-        if theta_total < 1e-9:                # Fallback if small SO(3) distance
-            return clamp_error(self.theta_ref, self.theta_meas)
+        angle_total = np.degrees(2 * np.arccos(w))
+        if angle_total < 1e-9:                # Fallback if small SO(3) distance
+            return q_ref
 
-        # --- Calc expected max rotation step this cycle ---
-        # theta_step = np.linalg.norm(self.omega_op)   # dont use velocity
-        theta_step = 15.6                     # clamp to max vel = sqrt(9^2 + 9^2 + 9^2) deg/s 
-        if theta_step < 0.006:                # Fallback if starting from rest (prevent stall)
-            return clamp_error(self.theta_ref, self.theta_meas)
+        # --- Calc max rotation step to keep on reasonable path ---
+        amgle_step = 12                     # 12 degrees will saturate motor velocities 
 
         # --- Compute interpolation fraction ---
-        frac = min(1.0, theta_step / theta_total)
+        frac = min(1.0, amgle_step / angle_total)
         if Config.log_pulse_guiding:
-            self.logger.info(f'PID SLERP frac {frac} = theta_step {theta_step} / theta_total {theta_total} ')
+            self.logger.info(f'PID SLERP frac {frac} = amgle_step {amgle_step} / angle_total {angle_total} ')
 
         # --- SLERP toward reference ---
-        q_target = Quaternion.slerp(q_meas, q_ref, amount=frac)
-
-        # --- Convert back to motor space ---
-        theta_target = np.array(motorQ_C2B_to_theta(q_target))
-        theta_err = clamp_error(theta_target, theta_meas)
-
-        return theta_err
+        return Quaternion.slerp(q_meas, q_target, amount=frac)
 
     def track_target(self):
         # Update alpha_ref based on current mode
@@ -1568,12 +1547,13 @@ class PID_Controller():
         if Config.advanced_rotator and Config.advanced_control:
             a_roll = self.polaris._sm.roll_ascom2polaris(a_roll)
 
-        q1 = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
+        # Inverse Kinematics flow (Sky to Motors)
+        cameraQ_ref = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
+        cameraQ_meas = alpha_to_cameraQ_C2T(*self.alpha_meas)
+        cameraQ_ref = self.quaternion_limit_step(cameraQ_ref, cameraQ_meas)
+        motorQ_ref = self.polaris._sm.baseQ_B2T_inv * cameraQ_ref
+        theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref)
 
-        if Config.advanced_alignment and Config.advanced_control:
-            q1 = self.polaris._sm.baseQ_B2T_inv * q1
-
-        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
         self.theta_ref_last = self.theta_ref
         self.theta_ref = np.array([theta1,theta2,theta3])
     
@@ -1612,7 +1592,7 @@ class PID_Controller():
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
             # self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
-            self.error_signal = self.quaternion_motor_error(self.theta_ref, self.theta_meas)
+            self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
         integration_rate_limit = 1/60                                                            # max deg per sec for the integration component
