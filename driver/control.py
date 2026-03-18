@@ -387,6 +387,34 @@ def theta_to_motorQ_C2B(theta1, theta2, theta3):
     q1n = q1.normalised if noflip else -q1.normalised
     return q1n
 
+
+def theta_to_jacobian(theta1, theta2, theta3):
+    """
+    Compute the 3x3 Jacobian matrix at the given base frame orientation theta.
+
+    Args:
+        theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount, 0=North)
+        theta2: Polaris Axis 2 angle in degrees (-90 to +90) +ve=upwards (looking side on to mount, 0=Horizontal)
+        theta3: Polaris Axis 3 angle in degrees (-180 to +180) +ve=cw (looking down towards mount. 0=Level)
+
+    Returns
+        J : (3,3) ndarray - Jacobian matrix such that ω = J(θ) · θ_dot
+    """
+    # Rotation quaternions for first two joints
+    q1 = Quaternion(axis=[0, 0, 1], degrees=-theta1 + 90)
+    q2 = Quaternion(axis=[0, 1, 0], degrees=-theta2 - 90)
+
+    # Joint axes expressed in base frame
+    a1 = np.array([0, 0, 1])            # Joint 1 axis (Z, fixed in base)
+    a2 = q1.rotate([0, 1, 0])           # Joint 2 axis (Y after θ1)
+    a3 = (q1 * q2).rotate([1, 0, 0])    # Joint 3 axis (X after θ1, θ2)
+
+    # Assemble Jacobian
+    J = np.column_stack((a1, a2, a3))
+
+    return J
+
+
 def extract_theta_given_theta3(tUp, tBore, theta3):
     """ Calc Theta1 and Theta2 based on removing Theta3 pan """
     unTheta3Pan = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
@@ -1579,14 +1607,8 @@ class PID_Controller():
                 omega_topo = axis * (angle_rad / self.dt)                        # Topographic Sky tracking velocity
                 omega_base = self.polaris._sm.baseQ_B2T_inv.rotate(omega_topo)   # Convert to base frame
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
-                theta1, theta2, theta3 = self.theta_meas
-                q1 = Quaternion(axis=[0,0,1], degrees=-theta1+90)
-                q2 = Quaternion(axis=[0,1,0], degrees=-theta2-90)
-                a1 = np.array([0,0,1])           # Axis 1 is Z, always vertical in base frame
-                a2 = q1.rotate([0,1,0])          # Axis 2 is Y, but after θ1 rotation
-                a3 = (q1*q2).rotate([1,0,0])     # Axis 3 is X, but after θ1 and θ2
-                J = np.column_stack((a1,a2,a3))
-                # solve Jacobian inverse to calc omega_ff = θ_dot = J⁻¹ ω
+                J = theta_to_jacobian(*self.theta_meas)
+                # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
                 theta_dot = np.linalg.solve(J, omega_base)
                 self.omega_ff = np.degrees(theta_dot)
 
