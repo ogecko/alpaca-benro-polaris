@@ -1575,6 +1575,7 @@ class PID_Controller():
                 q_delta = self.cameraQ_ref_last.inverse * self.cameraQ_ref
                 angle_rad = np.radians(q_delta.degrees)
                 axis = np.array(q_delta.axis)
+                axis /= np.linalg.norm(axis)
                 omega_topo = axis * (angle_rad / self.dt)                        # Topographic Sky tracking velocity
                 omega_base = self.polaris._sm.baseQ_B2T_inv.rotate(omega_topo)   # Convert to base frame
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
