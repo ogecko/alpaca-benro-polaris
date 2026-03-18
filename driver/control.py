@@ -183,6 +183,25 @@ def is_same_quaternion_rotation(q1, q2, tolerance=1e-6):
     s1, s2, s3, b1, b2, b3 = quaternion_to_angles(q2)
     return (t1-s1)**2+(t2-s2)**2+(t3-s3)**2+(a1-b1)**2+(a2-b2)**2+(a3-b3)**2 < tolerance
 
+def quaternion_error(q_from, q_to):
+    """
+    Returns:
+        angle_deg     : total SO(3) rotation angle (degrees)
+        axis          : unit rotation axis (in q_from frame)
+        q_delta       : shortest-path relative quaternion
+    """
+    if np.dot(q_from.elements, q_to.elements) < 0:     # Enforce shortest path
+        q_to = -q_to
+    q_delta = (q_from.inverse * q_to).normalised       # Relative rotation
+    w = np.clip(q_delta[0], -1.0, 1.0)
+    angle_rad = 2.0 * np.arccos(w)
+    if angle_rad < 1e-12:
+        return 0.0, np.zeros(3), q_delta
+    sin_half = np.sqrt(1.0 - w*w)
+    axis = q_delta.vector / sin_half
+    return np.degrees(angle_rad), axis, q_delta
+
+
 def wrap_to_360(angle):
     """Wraps angle to [0, 360) degrees"""
     wrapped = angle % 360.0
@@ -1475,28 +1494,15 @@ class PID_Controller():
         self.set_pid_mode('IDLE')
 
     #------- Control step functions ---------
-    def quaternion_limit_step(self, q_ref, q_meas):
-
-        # --- Ensure shortest path ---
-        q_target = -q_ref if np.dot(q_meas.elements, q_ref.elements) < 0 else q_ref
-
-        # --- Calc the Total shortest-path rotation angle in SO(3) ---
-        q_err = (q_meas.inverse * q_target).normalised
-        w = np.clip(q_err[0], -1.0, 1.0)
-        angle_total = np.degrees(2 * np.arccos(w))
-        if angle_total < 1e-9:                # Fallback if small SO(3) distance
+    def quaternion_limit_step(self, q_meas, q_ref):
+        angle_deg, _, _ = quaternion_error(q_meas, q_ref)
+        if angle_deg < 1e-9:
             return q_ref
-
-        # --- Calc max rotation step to keep on reasonable path ---
-        amgle_step = 12                     # 12 degrees will saturate motor velocities 
-
-        # --- Compute interpolation fraction ---
-        frac = min(1.0, amgle_step / angle_total)
+        angle_step = 12.0  # deg
+        frac = min(1.0, angle_step / angle_deg)
         if Config.log_pulse_guiding:
             self.logger.info(f'PID SLERP frac {frac} = amgle_step {amgle_step} / angle_total {angle_total} ')
-
-        # --- SLERP toward reference ---
-        return Quaternion.slerp(q_meas, q_target, amount=frac)
+        return Quaternion.slerp(q_meas, q_ref, amount=frac)
 
     def track_target(self):
         # Update alpha_ref based on current mode
@@ -1542,7 +1548,7 @@ class PID_Controller():
             self.alpha_ref = clamp_alpha(self.body2alpha())
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
 
-        # Convert alpha_ref to theta_ref
+        # incorporate roll sync adjustment
         a_az, a_alt, a_roll = self.alpha_ref
         if Config.advanced_rotator and Config.advanced_control:
             a_roll = self.polaris._sm.roll_ascom2polaris(a_roll)
@@ -1550,8 +1556,8 @@ class PID_Controller():
         # Inverse Kinematics flow (Sky to Motors)
         cameraQ_ref = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
         cameraQ_meas = alpha_to_cameraQ_C2T(*self.alpha_meas)
-        cameraQ_ref = self.quaternion_limit_step(cameraQ_ref, cameraQ_meas)
-        motorQ_ref = self.polaris._sm.baseQ_B2T_inv * cameraQ_ref
+        cameraQ_target = self.quaternion_limit_step(cameraQ_meas, cameraQ_ref)
+        motorQ_ref = self.polaris._sm.baseQ_B2T_inv * cameraQ_target
         theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref)
 
         self.theta_ref_last = self.theta_ref
