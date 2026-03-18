@@ -1532,10 +1532,9 @@ class PID_Controller():
             a_roll = self.polaris._sm.roll_ascom2polaris(a_roll)
 
         # Inverse Kinematics flow (Sky to Motors)
-        cameraQ_ref = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
-        cameraQ_meas = alpha_to_cameraQ_C2T(*self.alpha_meas)
-        cameraQ_target = self.quaternion_limit_step(cameraQ_meas, cameraQ_ref)
-        motorQ_ref = self.polaris._sm.baseQ_B2T_inv * cameraQ_target
+        self.cameraQ_ref_last = self.cameraQ_ref
+        self.cameraQ_ref = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
+        motorQ_ref = self.polaris._sm.baseQ_B2T_inv * self.cameraQ_ref
         theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref)
 
         self.theta_ref_last = self.theta_ref
@@ -1562,8 +1561,24 @@ class PID_Controller():
             delta_ref_change = self.delta_ref - self.delta_ref_last
             delta_ref_nochange = np.sum(delta_ref_change ** 2) < 2      # ignore changes greather than 2 degrees
             if self.dt > 0 and (delta_ref_nochange and self.polaris._tracking):
-                tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
-                self.omega_ff = tracking_vel
+                # Desired angular velocity based on change in cameraQ_ref
+                q_delta = self.cameraQ_ref_last.inverse * self.cameraQ_ref
+                angle_rad = np.radians(q_delta.degrees)
+                axis = np.array(q_delta.axis)
+                omega_topo = axis * (angle_rad / self.dt)                        # Topographic Sky tracking velocity
+                omega_base = self.polaris._sm.baseQ_B2T_inv.rotate(omega_topo)   # Convert to base frame
+                # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
+                theta1, theta2, theta3 = self.theta_meas
+                q1 = Quaternion(axis=[0,0,1], degrees=-theta1+90)
+                q2 = Quaternion(axis=[0,1,0], degrees=-theta2-90)
+                a1 = np.array([0,0,1])           # Axis 1 is Z, always vertical in base frame
+                a2 = q1.rotate([0,1,0])          # Axis 2 is Y, but after θ1 rotation
+                a3 = (q1*q2).rotate([1,0,0])     # Axis 3 is X, but after θ1 and θ2
+                J = np.column_stack((a1,a2,a3))
+                # solve Jacobian inverse to calc omega_ff = θ_dot = J⁻¹ ω
+                theta_dot = np.linalg.solve(J, omega_base)
+                self.omega_ff = np.degrees(theta_dot)
+
                 if self.polaris._trackingrate != 0: 
                     self.omega_ff[2] = 0                                 # for non sidereal tracking,  ensure M3 ff is zero
         # Feed forward slew velocities when in auto mode
