@@ -1745,6 +1745,28 @@ class PID_Controller():
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(0)
 
+    async def control_step(self):
+        now = time.monotonic()
+        if self.control_loop_duration:
+            self.dt = now - self.time_step
+        self.time_step = now
+        if self.time_meas:      # Only process if we have a measurement
+            self.track_target() # Update theta_ref with target's new position
+            self.feed_forward() # Feed forward tracking velocities when in TRACK mode
+            self.errsignal()    # Update error_signal/integral with deviation from theta_ref
+            self.pid()          # Update omega_tgt, calculate raw PID control target
+            self.constrain()    # Update omega_ctl, constrain velocity and acceleration
+            await self.control()      # Update omega_op, constrain with valid op control values
+            self.notify()       # Notify any callback of no longer deviating
+            self.telemetry()    # send to Alpaca Pilot
+
+    async def _control_loop(self):
+        while not self._stop_flag.is_set():
+            # self.measure() is done at processing 518 message
+            await self.control_step()
+            delay = self.control_loop_duration if self.polaris._connected else 2.0
+            await asyncio.sleep(delay)
+
     def notify(self):
         if ((not self.is_deviating) or self.goto_timeout()) and self.goto_complete_callback:
             self.goto_complete_callback()
@@ -1779,27 +1801,6 @@ class PID_Controller():
         pidlogger.info(payload)
 
 
-    async def control_step(self):
-        now = time.monotonic()
-        if self.control_loop_duration:
-            self.dt = now - self.time_step
-        self.time_step = now
-        if self.time_meas:      # Only process if we have a measurement
-            self.track_target() # Update theta_ref with target's new position
-            self.feed_forward() # Feed forward tracking velocities when in TRACK mode
-            self.errsignal()    # Update error_signal/integral with deviation from theta_ref
-            self.pid()          # Update omega_tgt, calculate raw PID control target
-            self.constrain()    # Update omega_ctl, constrain velocity and acceleration
-            await self.control()      # Update omega_op, constrain with valid op control values
-            self.notify()       # Notify any callback of no longer deviating
-            self.telemetry()    # send to Alpaca Pilot
-
-    async def _control_loop(self):
-        while not self._stop_flag.is_set():
-            # self.measure() is done at processing 518 message
-            await self.control_step()
-            delay = self.control_loop_duration if self.polaris._connected else 2.0
-            await asyncio.sleep(delay)
 
     async def stop_control_loop_task(self):
         with self._lock:
