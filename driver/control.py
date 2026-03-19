@@ -1587,7 +1587,9 @@ class PID_Controller():
 
         # Inverse Kinematics flow (Sky to Motors)
         cameraQ_ref = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
-        motorQ_ref = self.polaris._sm.baseQ_B2T_inv * cameraQ_ref
+        cameraQ_meas = alpha_to_cameraQ_C2T(*self.alpha_meas)
+        cameraQ_step = self.quaternion_limit_step(cameraQ_meas, cameraQ_ref)
+        motorQ_ref = self.polaris._sm.baseQ_B2T_inv * cameraQ_step
         theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref)
         self.theta_ref = np.array([theta1,theta2,theta3])
 
