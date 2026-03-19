@@ -1526,14 +1526,13 @@ class PID_Controller():
         self.set_pid_mode('IDLE')
 
     #------- Control step functions ---------
-    def quaternion_limit_step(self, q_meas, q_ref):
+    def quaternion_limit_step(self, q_meas, q_ref, max_step_deg=12, min_frac=0.01, max_frac=1.0):
         angle_total, _, _ = quaternion_error(q_meas, q_ref)
         if angle_total < 1e-9:
             return q_ref
-        angle_step = 12.0  # deg
-        frac = min(1.0, angle_step / angle_total)
+        frac = np.clip(max_step_deg / angle_total, min_frac, max_frac)           # linear taper
         if Config.log_pulse_guiding:
-            self.logger.info(f'PID SLERP frac {frac} = amgle_step {angle_step} / angle_total {angle_total} ')
+            self.logger.info(f'PID SLERP frac {frac} = amgle_step {max_step_deg} / angle_total {angle_total} ')
         return Quaternion.slerp(q_meas, q_ref, amount=frac)
 
     def track_target(self):
