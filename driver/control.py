@@ -1565,8 +1565,9 @@ class PID_Controller():
         cameraQ_ref = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
         motorQ_ref = self.polaris._sm.baseQ_B2T_inv * cameraQ_ref
         theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref)
+        self.theta_ref = np.array([theta1,theta2,theta3])
 
-        # Remember cameraQ_ref and last
+        # Remember cameraQ_ref and last cameraQ_ref for calculating FF
         if self.cameraQ_ref is None:
             # first run — no previous reference
             self.cameraQ_ref = cameraQ_ref
@@ -1574,9 +1575,6 @@ class PID_Controller():
         else:
             self.cameraQ_ref_last = self.cameraQ_ref
             self.cameraQ_ref = cameraQ_ref
-
-        self.theta_ref_last = self.theta_ref
-        self.theta_ref = np.array([theta1,theta2,theta3])
     
     def measure(self, delta_meas, alpha_meas, theta_meas, zeta_meas):
         now = ephem.now()
@@ -1599,21 +1597,20 @@ class PID_Controller():
             delta_ref_change = self.delta_ref - self.delta_ref_last
             delta_ref_nochange = np.sum(delta_ref_change ** 2) < 2      # ignore changes greather than 2 degrees
             if self.dt > 0 and (delta_ref_nochange and self.polaris._tracking):
-                # Desired angular velocity based on change in cameraQ_ref
+                # Desired angular velocity vector based on change in cameraQ_ref
                 q_delta = self.cameraQ_ref * self.cameraQ_ref_last.inverse 
                 angle_rad = np.radians(q_delta.degrees)
                 axis = np.array(q_delta.axis)
-                # axis /= np.linalg.norm(axis)
                 omega_topo = axis * (angle_rad / self.dt)                        # Topographic Sky tracking velocity
-                omega_base = self.polaris._sm.baseQ_B2T_inv.rotate(omega_topo)   # Convert to base frame
+                omega_base = self.polaris._sm.baseQ_B2T_inv.rotate(omega_topo)   # Convert to base frame Sky tracking velocity
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
                 J = theta_to_jacobian(*self.theta_meas)
                 # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
                 theta_dot = np.linalg.solve(J, omega_base)
                 self.omega_ff = np.degrees(theta_dot)
-
+                # for non sidereal tracking,  ensure M3 ff is zero
                 if self.polaris._trackingrate != 0: 
-                    self.omega_ff[2] = 0                                 # for non sidereal tracking,  ensure M3 ff is zero
+                    self.omega_ff[2] = 0                                 
         # Feed forward slew velocities when in auto mode
         elif self.mode == "AUTO":
             self.omega_ff = self.alpha_v_sp
