@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import alpha_to_cameraQ_C2T, quaternion_to_angles, wrap_to_360
+from control import alpha_to_cameraQ_C2T, quaternion_to_angles, wrap_to_360, calculate_angular_velocity_vector
 from control import theta_to_jacobian, theta_to_motorQ_C2B, motorQ_C2B_to_theta, LastPosition
 
 
@@ -274,21 +274,7 @@ def test_zeroalt_motor_positions():
             n += 1
             test_misc_t1t2t3_motors_to_q1_roundtrip(n,t1,t2,t3)
 
-def quaternion_to_omega(q_delta, dt):
-    """
-    Convert a small quaternion delta into angular velocity vector.
-    """
-    q_delta = q_delta.normalised
-    angle = np.radians(q_delta.degrees)
-    axis = np.array(q_delta.axis)
-
-    if np.linalg.norm(axis) < 1e-9:
-        return np.zeros(3)
-
-    axis = axis / np.linalg.norm(axis)
-    return axis * (angle / dt)
-
-
+# --- Jacobian finite-difference test ---
 @pytest.mark.parametrize("theta1, theta2, theta3", [
     (0, 0, 0),
     (45, 10, 5),
@@ -298,28 +284,40 @@ def quaternion_to_omega(q_delta, dt):
     (350, -5, -100),
 ])
 def test_jacobian_matches_finite_difference(theta1, theta2, theta3):
-
-    dt = 1e-6  # small timestep
+    dt = 1e-6
     theta = np.array([theta1, theta2, theta3], dtype=float)
-
-    # small arbitrary joint rates (deg/sec)
     theta_dot_deg = np.array([0.3, -0.2, 0.4])
 
-    # analytic Jacobian prediction
+    # Analytic Jacobian prediction
     J = theta_to_jacobian(theta1, theta2, theta3)
-
-    # convert deg/sec → rad/sec for geometric consistency
     theta_dot_rad = np.radians(theta_dot_deg)
     omega_pred = J @ theta_dot_rad
 
-    # numerical quaternion differentiation
+    # Numerical quaternion differentiation
     q0 = theta_to_motorQ_C2B(theta1, theta2, theta3)
-
     theta_eps = theta + theta_dot_deg * dt
     q1 = theta_to_motorQ_C2B(*theta_eps)
 
-    q_delta = q1 * q0.inverse
-    omega_fd = quaternion_to_omega(q_delta, dt)
+    # Compute angular velocity
+    omega_fd = calculate_angular_velocity_vector(q0, q1, dt)
 
-    # compare
+    # Compare
     assert np.allclose(omega_pred, omega_fd, atol=1e-4)
+
+
+# --- test for calculate_angular_velocity_vector ---
+@pytest.mark.parametrize("q0, q1, dt, expected", [
+    # Zero rotation
+    (Quaternion(), Quaternion(), 1.0, np.zeros(3)),
+    # Small rotation about x
+    (Quaternion(), Quaternion(axis=[1,0,0], radians=np.pi/2), 1.0, np.array([np.pi/2,0,0])),
+    # Small rotation about y
+    (Quaternion(), Quaternion(axis=[0,1,0], radians=np.pi/4), 2.0, np.array([0,np.pi/8,0])),
+    # Small rotation about z
+    (Quaternion(), Quaternion(axis=[0,0,1], radians=np.pi), 2.0, np.array([0,0,np.pi/2])),
+    # Zero dt should return zero vector
+    (Quaternion(), Quaternion(axis=[0,1,0], radians=np.pi/4), 0.0, np.zeros(3)),
+])
+def test_calculate_angular_velocity_vector(q0, q1, dt, expected):
+    omega = calculate_angular_velocity_vector(q0, q1, dt)
+    assert np.allclose(omega, expected, atol=1e-9)

@@ -340,7 +340,31 @@ def calculate_angular_velocity(history):
     except Exception:
         return np.zeros(3)
 
-
+def calculate_angular_velocity_vector(q0: Quaternion, q1: Quaternion, dt: float):
+    """
+    Compute angular velocity vector (rad/sec) from two quaternions over a time interval.
+    Args:
+        q0 : Quaternion - Initial orientation.
+        q1 : Quaternion - Final orientation.
+        dt : float - Time interval in seconds.
+    Returns:
+        omega : np.ndarray, shape (3,) - Angular velocity vector in the frame of q0.
+    """
+    # Check for no duration
+    if dt <= 0:
+        return np.zeros(3, dtype=float)
+    # Rotation from q0 → q1
+    q_delta = q1 * q0.inverse
+    # Decompose q_delta
+    angle_rad = np.radians(q_delta.degrees)
+    axis = np.array(q_delta.axis)
+    axis_norm = np.linalg.norm(axis)
+    # Check for no rotation → zero angular velocity
+    if axis_norm < 1e-12 or angle_rad == 0.0:
+        return np.zeros(3, dtype=float)
+    # Angular velocity ω = axis * (angle / dt)
+    omega = axis / axis_norm * (angle_rad / dt)
+    return omega
 
 def alpha_to_cameraQ_C2T(az, alt, roll):
     """
@@ -1598,10 +1622,7 @@ class PID_Controller():
             delta_ref_nochange = np.sum(delta_ref_change ** 2) < 2      # ignore changes greather than 2 degrees
             if self.dt > 0 and (delta_ref_nochange and self.polaris._tracking):
                 # Desired angular velocity vector based on change in cameraQ_ref
-                q_delta = self.cameraQ_ref * self.cameraQ_ref_last.inverse 
-                angle_rad = np.radians(q_delta.degrees)
-                axis = np.array(q_delta.axis)
-                omega_topo = axis * (angle_rad / self.dt)                        # Topographic Sky tracking velocity
+                omega_topo = calculate_angular_velocity_vector(self.cameraQ_ref_last, self.cameraQ_ref, self.dt)
                 omega_base = self.polaris._sm.baseQ_B2T_inv.rotate(omega_topo)   # Convert to base frame Sky tracking velocity
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
                 J = theta_to_jacobian(*self.theta_meas)
