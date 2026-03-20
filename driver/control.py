@@ -1644,8 +1644,6 @@ class PID_Controller():
             self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
-        integration_rate_limit = 1/60                                                            # max deg per sec for the integration component
-        self.is_axis_preloading = np.abs(self.error_signal) > integration_rate_limit * 1      # preload when greater than integration limit over 1 sec
         self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
 
         # calc cost signal and flags
@@ -1655,11 +1653,15 @@ class PID_Controller():
         self.was_moving = self.is_moving
         self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
 
-        # calc the integral error if tracking or slewing
-        Ki = np.array(Config.pid_Ki, dtype=float)
+    def errintegral(self):
+        # setup some constants for calcs below
+        Ki = np.array(Config.pid_Ki, dtype=float) 
         Kd = np.array(Config.pid_Kd, dtype=float)
+        integration_rate_limit = 1/60                                                            # max deg per sec for the integration component
+        self.is_axis_preloading = np.abs(self.error_signal) > integration_rate_limit * 1      # preload when greater than integration limit over 1 sec
         i_limit = np.where(Ki != 0, integration_rate_limit / Ki, 0)    # limit integral rate / Ki
 
+        # calc the integral error if tracking or slewing
         if self.mode=='TRACK' or self.is_slewing:
             # Preload to cancel derivative term: omega_kd = -Kd * omega_op, or use last integral value
             preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
@@ -1670,7 +1672,7 @@ class PID_Controller():
                 np.sign(self.error_signal) != np.sign(self.omega_tgt)
             ) & (~self.polaris._ispulseguiding)
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
-            updated_integral = preload_masked + delta_integral
+            updated_integral = preload_masked + delta_integral * self.dt
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
             if self.polaris._trackingrate != 0: 
                 self.error_integral[2] = 0                                 # for non sidereal tracking,  ensure M3 integral is zero
@@ -1753,7 +1755,8 @@ class PID_Controller():
         if self.time_meas:      # Only process if we have a measurement
             self.track_target() # Update theta_ref with target's new position
             self.feed_forward() # Feed forward tracking velocities when in TRACK mode
-            self.errsignal()    # Update error_signal/integral with deviation from theta_ref
+            self.errsignal()    # Update error_signal with deviation from theta_ref
+            self.errintegral()  # Update error_integral with accumulation of err_signal
             self.pid()          # Update omega_tgt, calculate raw PID control target
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
             await self.control()      # Update omega_op, constrain with valid op control values
