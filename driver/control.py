@@ -1580,12 +1580,11 @@ class PID_Controller():
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
 
         # incorporate roll sync adjustment
-        a_az, a_alt, a_roll = self.alpha_ref
         if Config.advanced_rotator and Config.advanced_control:
-            a_roll = self.polaris._sm.roll_ascom2polaris(a_roll)
+            self.alpha_ref[2] = self.polaris._sm.roll_ascom2polaris(self.alpha_ref[2])
 
         # Inverse Kinematics flow (Sky to Motors)
-        cameraQ_ref = alpha_to_cameraQ_C2T(a_az, a_alt, a_roll)
+        cameraQ_ref = alpha_to_cameraQ_C2T(*self.alpha_ref)
         cameraQ_meas = alpha_to_cameraQ_C2T(*self.alpha_meas)
         cameraQ_step = self.quaternion_limit_step(cameraQ_meas, cameraQ_ref)
         motorQ_ref = self.polaris._sm.baseQ_B2T_inv * cameraQ_step
