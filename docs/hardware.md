@@ -38,6 +38,10 @@ The mini-PC should be small, fan-less, fast, and power efficient. This way, you 
 
 Unfortunately its built in Wifi doesnt support connecting with the Benro Polaris Wifi, so you'll also need something like [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) (only US$17 from Amazon). While the NinaAir will be setup to be able to run without internet connectivity, having the extra Wifi Adapter will allow you to connect to both the Benro Polaris and the Internet at once.
 
+Please note that we have received reports of compact “mini” USB Wi-Fi adapters experiencing difficulty maintaining a stable connection with the Polaris. For this reason, we specifically recommend the model listed above, as its full-size external antenna provides a more reliable connection.
+
+
+
 ## Powering the Mini-PC and Camera overnight
 A battery I'd recommend is the [INIU 140W Power Bank](https://www.amazon.com.au/dp/B0CB1FWNMK). What an awesome product, 27000mAh of storage with 140W fast charging and discharging capabilities! I use this powerbank to power the mini-PC and my camera. 
 
