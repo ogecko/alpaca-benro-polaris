@@ -571,8 +571,8 @@ class KalmanFilter:
         self._time = time.monotonic()
         self._need_first_measurement = True
 
-        # State: [theta1, theta2, theta3, omega1, omega2, omega3]
-        self.x = initial_state.reshape(6, 1)
+        self.z = np.zeros((6,1))
+        self.x = initial_state.reshape(6, 1)    # State: [theta1, theta2, theta3, omega1, omega2, omega3]
         self.set_state_transition_matrix_A()    # State transition matrix (A): position + dt * velocity 
         self.set_control_matrix_B()             # Control matrix (B): nudge state velocity by acceleration (omega_ref - omega_state)
         self.H = np.eye(6)                      # Measurement matrix (H): measures both position and velocity
@@ -626,7 +626,7 @@ class KalmanFilter:
 
         theta_meas = np.array(theta).reshape(3, 1)
         omega_meas = np.array(omega).reshape(3, 1)
-        z = np.vstack((theta_meas, omega_meas))               # Measurement: position + velocity
+        self.z = np.vstack((theta_meas, omega_meas))               # Measurement: position + velocity
 
         # Measurement residual
         theta_residual = wrap_angle_residual(theta_meas, self.x[:3])
@@ -654,8 +654,9 @@ class KalmanFilter:
 
     def get_state(self):
         state = self.x.flatten()
-        theta = state[0:3]
-        omega = state[3:]
+        meas = self.z.flatten()
+        theta = state[0:3] if Config.advanced_kf else meas[0:3]
+        omega = state[3:] if Config.advanced_kf else meas[3:]
         return theta, omega
 
     def set_state(self, x):
