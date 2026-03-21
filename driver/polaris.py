@@ -703,51 +703,18 @@ class Polaris:
 
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":
-            dt_now = datetime.datetime.now()
-    
-            # extract the quaternion and derive its angles and velocities
-            arg_dict = self.polaris_parse_args(args, name_postfix=True)
-            q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
-            p_az = float(arg_dict['compass'])   # from Polaris direct
-            p_alt = -float(arg_dict['alt'])     # from Polaris direct
-            q_t1, q_t2, q_t3, q_az, q_alt, q_roll = quaternion_to_angles(q1)
-            q_ra, q_dec = self.altaz2radec(q_alt, q_az)
-            theta_meas = np.array([q_t1, q_t2, q_t3])
-            self._history.append([dt_now, q_t1, q_t2, q_t3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
-            omega_meas = calculate_angular_velocity(self._history)
-            omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
 
-            # Store all the polaris values
-            with self._lock:
-                self._last_518_timestamp = dt_now
-                self._q1 = q1
-                self._theta_meas = theta_meas
-                self._omega_meas = omega_meas
-                self._p_azimuth = float(q_az)
-                self._p_altitude = float(q_alt)
-                self._p_roll = float(q_roll)
-                self._p_rightascension = float(q_ra) 
-                self._p_declination = float(q_dec)
+            # parse the 518 message args to determine motor angles and velocities
+            theta_meas, omega_meas, omega_ref = self.decode_518position_measurement(args)
 
             # Process through the Kalman Filter to determine Polaris theta_state (uncorrected for alignment)
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas, omega_ref)
             theta_state, _ = self._kf.get_state()
-            q1_state = theta_to_motorQ_C2B(*theta_state)
-
-            # Flag when variance from quaternion q_az and p_az
-            if Config.log_polaris_polling:
-                if not is_angle_same(q_az, p_az):
-                    self.logger.warn(f"Kinematics variance p_az {p_az:.5f} q_az {q_az:.5f} diff {p_az - q_az:.5f} ")              
-                if not is_angle_same(q_alt, p_alt):
-                    self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} q_alt {q_alt:.5f} diff {p_alt - q_alt:.5f}") 
-
-            # Use direct measurements if no KF
-            if not (Config.advanced_kf and Config.advanced_control):
-                q1_state, theta_state = q1, theta_meas
+            motorQ_state = theta_to_motorQ_C2B(*theta_state)
 
             # update all the ASCOM values and the PID loop
-            delta_state, alpha_state, theta_state = self.update_ascom_from_new_baseQ_B2T(q1_state)
+            delta_state, alpha_state, theta_state = self.update_ascom_from_new_baseQ_B2T(motorQ_state)
             self._pid.measure(delta_state, alpha_state, theta_state, self._zeta_meas)
 
 
@@ -854,6 +821,34 @@ class Polaris:
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: response to command received: {cmd} {args}")
 
+    def decode_518position_measurement(self, args):
+        dt_now = datetime.datetime.now()
+
+        # extract the quaternion and derive its angles and velocities
+        arg_dict = self.polaris_parse_args(args, name_postfix=True)
+        q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
+        p_az = float(arg_dict['compass'])   # from Polaris direct
+        p_alt = -float(arg_dict['alt'])     # from Polaris direct
+        q_t1, q_t2, q_t3, q_az, q_alt, q_roll = quaternion_to_angles(q1)
+        q_ra, q_dec = self.altaz2radec(q_alt, q_az)
+        theta_meas = np.array([q_t1, q_t2, q_t3])
+        self._history.append([dt_now, q_t1, q_t2, q_t3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
+        omega_meas = calculate_angular_velocity(self._history)
+        omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
+
+        # Store all the polaris values
+        with self._lock:
+            self._last_518_timestamp = dt_now
+            self._q1 = q1
+            self._theta_meas = theta_meas
+            self._omega_meas = omega_meas
+            self._p_azimuth = float(q_az)
+            self._p_altitude = float(q_alt)
+            self._p_roll = float(q_roll)
+            self._p_rightascension = float(q_ra) 
+            self._p_declination = float(q_dec)
+        
+        return theta_meas, omega_meas, omega_ref
 
 
     def update_ascom_from_new_baseQ_B2T(self, q1_state):
