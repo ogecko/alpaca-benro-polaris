@@ -128,22 +128,25 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     It knows nothing about the sky, other than the Polaris firmware based alignment (Single Point Alignment).
 # baseQ_B2T - Base Orientation Quaternion
 #     Rotates vectors expressed in Mount Base frame into Topocentric frame.
-#     This encodes: azimuth offset, tripod tilt, wedge tilt, imperfect polar alignment, sync corrections
+#     This encodes: az/alt offset ie azimuth offset, tripod tilt, wedge tilt, imperfect polar alignment, sync corrections
 #     Based on QUEST (for Multi Point alignment) or Identify (for Single Point Alignment)
+# R(+r) - Rotation adj around the camera boresight
+#     This encodes: roll offset based on roll_sync
+#     Beware that this quaternion depends on the current orientation of the mount
 # cameraQ_C2T - Camera Orientation Quaternion
 #     Rotates vectors expressed in Camera frame into Topocentric frame
-#     And is defined by: cameraQ_C2T = baseQ_B2T ∘ motorQ_C2B
+#     And is defined by: cameraQ_C2T = R(-r) ∘ baseQ_B2T ∘ motorQ_C2B
 #     From cameraQ_C2T, you can compute: Azimuth, Altitude, Roll.
 #
 # Forward Kinematics (Motors → Sky)
 #     motorQ_C2B = theta_to_motorQ_C2B(θ1, θ2, θ3)
-#     cameraQ_C2T = baseQ_B2T * motorQ_C2B; 
+#     cameraQ_C2T = R(-r) ∘ baseQ_B2T * motorQ_C2B; 
 #     From cameraQ_C2T you derive Az-Alt-Roll
 #     celestrialQ_T2E = pyephem(az,alt); From celestrialQ_T2E you derive RA-Dec-PA
 #
 # Inverse Kinematics (Sky → Motors)
 #     cameraQ_C2T_ref = alpha_to_cameraQ_C2T(az,alt,roll)
-#     motorQ_C2B_ref = baseQ_B2T⁻¹ ∘ cameraQ_C2T_ref
+#     motorQ_C2B_ref = baseQ_B2T⁻¹ ∘ R(+r) ∘ cameraQ_C2T_ref
 #     θ = motorQ_C2B_to_theta(motorQ_C2B_ref)
 #
 # Mount modes
@@ -1615,15 +1618,11 @@ class PID_Controller():
             self.alpha_ref = clamp_alpha(self.body2alpha())
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
 
-        # incorporate roll sync adjustment
-        if Config.advanced_rotator and Config.advanced_control:
-            self.alpha_ref[2] = self.polaris._sm.roll_ascom2polaris(self.alpha_ref[2])
-
         # Inverse Kinematics flow (Sky to Motors)
         cameraQ_ref = alpha_to_cameraQ_C2T(*self.alpha_ref)
         cameraQ_meas = alpha_to_cameraQ_C2T(*self.alpha_meas)
         cameraQ_step = self.quaternion_limit_step(cameraQ_meas, cameraQ_ref)
-        motorQ_ref = self.polaris._sm.baseQ_B2T_inv * cameraQ_step
+        motorQ_ref = self.polaris._sm.cameraQ_to_motorQ(cameraQ_step)
         theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref)
         self.theta_ref = np.array([theta1,theta2,theta3])
 
@@ -1883,6 +1882,41 @@ class SyncManager:
             "a_roll": None,
         }
         return entry
+
+    def motorQ_to_cameraQ(self, motorQ_C2B):
+        """
+        Forward kinematics: Base frame → Topocentric frame.
+        Applies az/alt correction (baseQ_B2T) then roll correction around the boresight.
+        
+        Usage:
+            cameraQ_state = self._sm.camera_to_topo(motorQ_state)
+        """
+        cameraQ = self.baseQ_B2T * motorQ_C2B
+        if self.roll_adj == 0:
+            return cameraQ
+        boresight_T = cameraQ.rotate([0, 0, -1])
+        q_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
+        return q_roll * cameraQ
+
+    def cameraQ_to_motorQ(self, cameraQ_C2T):
+        """
+        Inverse: cameraQ_C2T here is built from alpha_to_cameraQ_C2T(*alpha_ref),
+        which uses raw az/alt/roll with NO roll correction applied.
+        So just apply baseQ_B2T_inv directly — no roll undo needed.
+
+
+        Inverse kinematics: Topocentric frame → Base frame.
+        Removes roll correction then applies inverse az/alt correction.
+
+        Usage:
+            motorQ_ref = self._sm.topo_to_camera(cameraQ_step)
+        """
+        if self.roll_adj != 0:
+            boresight_T = cameraQ_C2T.rotate([0, 0, -1])
+            q_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
+            cameraQ_C2T = q_roll_undo * cameraQ_C2T
+        return self.baseQ_B2T_inv * cameraQ_C2T
+
 
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
         new_vec = azalt_to_vector(a_az, a_alt)

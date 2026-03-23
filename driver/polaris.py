@@ -712,7 +712,7 @@ class Polaris:
             self._kf.observe(theta_meas, omega_meas, omega_ref)
             theta_state, _ = self._kf.get_state()
             motorQ_state = theta_to_motorQ_C2B(*theta_state)
-            cameraQ_state = self._sm.baseQ_B2T * motorQ_state
+            cameraQ_state = self._sm.motorQ_to_cameraQ(motorQ_state)
             self._theta_state = theta_state            
 
             # update all the Sky Positions and the PID loop
