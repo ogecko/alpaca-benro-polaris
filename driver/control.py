@@ -475,8 +475,9 @@ class LastPosition:
 
 _lp = LastPosition()
 
-def motorQ_C2B_to_theta(q1, lastPos=None):
-    """ Convert base quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
+def motorQ_C2B_to_theta(motorQ_C2B, lastPos=None):
+    """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
+    q1 = motorQ_C2B
     global _lp
     if lastPos is None:
         lastPos = _lp
@@ -512,6 +513,40 @@ def motorQ_C2B_to_theta(q1, lastPos=None):
     lastPos.update(theta1, theta2, theta3)
 
     return theta1, theta2, theta3
+
+
+def cameraQ_C2T_to_altazroll(cameraQ_C2T):
+    # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
+    tBore = cameraQ_C2T.rotate([0, 0, -1])
+
+    # Azimuth and Altitude: rotation around unadjusted bore vector ie Topocentric co-ordinates including effect of Axis 3
+    az = np.degrees(np.arctan2(tBore[0], tBore[1]))                     # Azimuth = Boresight axis projected on N/E plane
+    alt = np.degrees(np.arcsin(np.clip(tBore[2], -1, 1)))               # Altitude = Angle from N/E plane, vertically to the Boresight axis
+
+    # Roll Angle: Reconstruct the zero-roll quaternion using the same forward chain (roll=0)
+    qaz   = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
+    qalt  = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
+    q_no_roll = qaz * qalt          # What the quaternion would be with roll=0
+
+    # The roll is the residual rotation between q_no_roll and the actual quaternion.
+    # q_no_roll * qroll = cameraQ_C2T  =>  qroll = q_no_roll.inverse * cameraQ_C2T
+    # But we must account for the double-cover sign ambiguity first, to ensure both q's are in same 4D hemisphere.
+    q_actual = cameraQ_C2T
+    if (q_no_roll * q_actual.inverse).scalar < 0:
+        q_actual = -q_actual
+    q_roll_residual = q_no_roll.inverse * q_actual
+
+    # Extract the roll angle from the residual quaternion (axis should be ≈ [0,0,1])
+    roll = np.degrees(2 * np.arctan2(
+        np.linalg.norm([q_roll_residual[1], q_roll_residual[2], q_roll_residual[3]]),
+        q_roll_residual[0]
+    ))
+
+    # Determine sign: if residual axis points in -Z direction, negate the angle
+    if q_roll_residual[3] < 0:
+        roll = -roll
+
+    return wrap_to_360(az), wrap_to_180(alt), wrap_to_180(roll)
 
 
 def quaternion_to_angles(q1, lastPos = None):
