@@ -1658,7 +1658,7 @@ class PID_Controller():
             if self.dt > 0 and (delta_ref_nochange and self.polaris._tracking):
                 # Desired angular velocity vector based on change in cameraQ_ref
                 omega_topo = calculate_angular_velocity_vector(self.cameraQ_ref_last, self.cameraQ_ref, self.dt)
-                omega_base = self.polaris._sm.baseQ_B2T_inv.rotate(omega_topo)   # Convert to base frame Sky tracking velocity
+                omega_base = self.polaris._sm.cameraQ_vec_to_motorQ_vec(omega_topo, self.cameraQ_ref)   # Convert to base frame Sky tracking velocity
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
                 J = theta_to_jacobian(*self.theta_meas)
                 # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
@@ -1916,6 +1916,21 @@ class SyncManager:
             q_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
             cameraQ_C2T = q_roll_undo * cameraQ_C2T
         return self.baseQ_B2T_inv * cameraQ_C2T
+
+    def cameraQ_vec_to_motorQ_vec(self, omega_topo, cameraQ_C2T):
+        """
+        Rotate an angular velocity vector from topocentric to base frame,
+        accounting for both the az/alt correction and the roll correction.
+        
+        The roll correction is a rotation applied around the boresight in
+        topocentric space (left-multiply), so its inverse must be undone first
+        before applying baseQ_B2T_inv.
+        """
+        if self.roll_adj != 0:
+            boresight_T = cameraQ_C2T.rotate([0, 0, -1])
+            q_roll_undo = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
+            omega_topo = q_roll_undo.rotate(omega_topo)
+        return self.baseQ_B2T_inv.rotate(omega_topo)
 
 
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
