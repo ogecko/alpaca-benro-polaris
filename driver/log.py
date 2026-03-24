@@ -132,6 +132,7 @@ def init_logging():
         print("Please close the other program or stop the running instance,")
         print("then try again.\n")
         print(f"Technical details:\n{e}\n")
+        time.sleep(5)        
         sys.exit(1)
 
 def update_log_level(level_name: str):
