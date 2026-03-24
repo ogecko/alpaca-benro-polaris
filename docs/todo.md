@@ -1,7 +1,7 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Development Todo List
-- [ ] Detect when multiple instances of driver running
+- [X] Detect when multiple instances of driver running
 - [ ] Correctly reset pid SP when removing sync points or reseting back to Single Point Alignment
 - [ ] Ramp pulse guiding acceleration to reduce overshoot
 - [ ] PEC control (how to detect phase?)
