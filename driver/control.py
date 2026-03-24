@@ -467,8 +467,8 @@ class LastPosition:
         return dt1*dt1 + dt2*dt2 + dt3*dt3
     def check_for_gimbal_lock(self, theta2):
         # check new theta2 for potential gimbal lock, with hysteresis to eliminate chatter at boundary
-        GIMBAL_ENTER = 0.01            # Enter gimbal lock when theta2 is less than 18 arcsec
-        GIMBAL_EXIT = 0.02              # Exit gimbal lock when theta2 is greater than 36 arcsec
+        GIMBAL_ENTER = 0.005  # 18 arcsec
+        GIMBAL_EXIT  = 0.01   # 36 arcsec       
         if not self.in_gimbal_lock and abs(theta2) < GIMBAL_ENTER:
             self.in_gimbal_lock = True
         elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
@@ -497,15 +497,30 @@ def motorQ_C2B_to_theta(motorQ_C2B, lastPos=None):
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
-    # Choose the best mechanical solution
-    if theta2_A < -8:           # Rules out Solution A
-        [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
-    elif theta2_B < -8:         # Rules out Solution B
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
-    else:                       # --- Choose the solution closest to the last mechanical position
-        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A,)
-        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B,)
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if diffA<diffB else [theta1_B, theta2_B, theta3_B]
+    # Check each solution for valid mechanical range of theta2
+    theta2_min, theta2_max = -8, 83
+    validA = theta2_min <= theta2_A <= theta2_max
+    validB = theta2_min <= theta2_B <= theta2_max
+
+    # Choose a solution
+    if validA and not validB:
+        theta1, theta2, theta3 = theta1_A, theta2_A, theta3_A
+    elif validB and not validA:
+        theta1, theta2, theta3 = theta1_B, theta2_B, theta3_B
+    elif validA and validB:
+        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A)
+        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B)
+        theta1, theta2, theta3 = (theta1_A, theta2_A, theta3_A) if diffA < diffB else (theta1_B, theta2_B, theta3_B)
+    else:
+        # Both candidates out of θ2 bounds
+        def dist_to_range(t2):
+            if t2 < theta2_min: return theta2_min - t2
+            if t2 > theta2_max: return t2 - theta2_max
+            return 0.0
+        if dist_to_range(theta2_A) <= dist_to_range(theta2_B):
+            theta1, theta2, theta3 = theta1_A, np.clip(theta2_A, theta2_min, theta2_max), theta3_A
+        else:
+            theta1, theta2, theta3 = theta1_B, np.clip(theta2_B, theta2_min, theta2_max), theta3_B
 
     # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
     in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)

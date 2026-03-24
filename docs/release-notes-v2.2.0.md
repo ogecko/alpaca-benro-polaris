@@ -36,7 +36,9 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.2.0
+
 - **[Forward Kinematics]** Improve forward kinematic robustness for negative azimuth angles
+- **[Negative Azimuth]** Support Goto Altitude below -8°, now accessable with improved inverse kinematics solution selection, when M3 is not zero
 - **[Sidereal Tracking]** Enhance sidereal tracking by computing motor error signals using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
 - **[Roll Angle Tracking]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.
 - **[Orbital Tracking]** Enhance orbital tracking by adding feed forward, expanding integration component, and maintaining a fixed roll angle, resulting in smoother and more stable tracking.
