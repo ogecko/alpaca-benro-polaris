@@ -193,14 +193,196 @@ When Windows connects to the Benro Polaris network, sometimes it only sets up an
   
 <img style="display: block; margin: auto;"  src="images/abp-troubleshoot-wifi2.png"> 
 
+Here is a revised and expanded version with clearer structure, tighter language, and additional real-world causes we’ve seen in the field.
 
-### C3 - Connection from Mini-PC to Polaris Wifi drops out
-* We originally required the BP App to remain running in the background. This is no longer the case. You can close the BP App once you have the Polaris WiFi established and the Driver connected. With the BP app closed you can save on Battery usage. The Driver will keep the Polaris Wifi up and continue to allow operation.
-* Check for RF interference. eg. Turn off your microwave in the kitchen.
-* Check for RF signal strength. Move your remote desktop machine closer to the mini-pc. 
-* Check resouce usage on mini-PC. Ensure it has plenty of free ram and CPU.
+You can paste this directly into your documentation.
 
-### C4 - Still cannot get communications with Polaris Wifi
+---
+
+## C3 – Connection from Mini-PC to Polaris Wi-Fi Drops Out
+
+When **Alpaca Pilot** displays:
+
+> *“The Alpaca Driver is not receiving position updates from Polaris”*
+
+this means the Driver has not received the expected 200 ms position update from Polaris for more than 2 seconds. An occasional appearance of this message may be normal (e.g., brief RF interference). However, repeated or persistent occurrences indicate a network or system issue.
+
+Another common symptom of a dropped connection is the Alpaca Driver log message:
+
+```
+[WinError 1236] The network connection was aborted by the local system
+```
+
+This indicates that Windows reset or tore down the TCP connection. This is typically due to a network adapter reset, IP address change, or power management event.
+
+Below are common causes and troubleshooting guidance.
+
+---
+
+### C3-1. Driver CPU Blocking or System Resource Starvation
+
+If the Mini-PC CPU is heavily loaded, the Alpaca Driver may not process incoming messages in time.
+
+#### Check:
+
+* Open **Task Manager → Performance**
+* Confirm CPU usage is stable and not near 100%
+* Watch for spikes during imaging operations
+
+#### Common causes:
+
+* ASCOM drivers blocking the message loop
+* Antivirus scanning during capture
+* Windows Update running in background
+* Slow storage (SD cards / eMMC systems under load)
+
+#### Recommendations:
+
+* Where possible, connect to cameras natively rather than through ASCOM
+* Disable unnecessary startup programs
+* Exclude Alpaca directory from antivirus real-time scanning
+* Ensure at least 40% CPU headroom during imaging
+
+---
+
+### C3-2. DHCP Lease Rejection (DHCPNACK)
+
+If Windows logs events such as:
+
+> “The IP address lease 192.168.0.2 … has been denied by the DHCP server 192.168.0.1 (DHCPNACK)”
+
+then the Polaris DHCP server has rejected the IP renewal request. When this happens, Windows drops the IP address, the adapter resets, all active TCP connections terminate and the Driver logs `[WinError 1236]`
+
+#### Common causes:
+
+* Two DHCP servers active (router + Polaris)
+* IP address conflict
+* Lease time set very short
+* Another Device previously connected with same IP
+
+#### Check:
+
+Check Windows Event Viewer:
+
+```
+Windows Logs → System → Filter for “DHCP”
+```
+
+#### Recommended Fix:
+
+The most reliable solution is to eliminate DHCP from this link:
+
+* Set Mini-PC to a unique static IP (e.g., 192.168.0.20)
+
+This removes lease renewal as a failure point.
+
+---
+
+### C3-3. Windows Power Management Resetting the Adapter
+
+Windows aggressively powers down USB Wi-Fi adapters, especially “nano” style adapters. This can silently reset the adapter and terminate connections.
+
+#### Disable Power Saving:
+
+* Using **Device Manager**
+
+* Network Adapters → TP-Link adapter → Properties
+* Power Management tab:
+
+  * Uncheck: “Allow the computer to turn off this device to save power”
+
+* Using **Advanced Power Settings**
+
+* Control Panel → Power Options
+* Wireless Adapter Settings → Power Saving Mode → Maximum Performance
+* USB Settings → USB Selective Suspend → Disabled
+
+---
+
+### C3-4. USB Wi-Fi Adapter Hardware Limitations
+
+Small “nano” adapters are prone to:
+
+* Thermal throttling
+* Weak RF performance
+* Driver instability on Windows 11
+* High packet loss under sustained traffic
+
+We recommend using a full-size USB adapter with an external antenna as listed in the documentation.
+
+If problems persist:
+
+* Try a powered USB hub
+* Try a different USB port (avoid front panel ports)
+* Install the latest manufacturer driver (not Windows default)
+
+---
+
+### C3-5. RF Signal Strength or Interference
+
+Polaris operates on 2.4 GHz (if applicable), which is highly congested.
+
+#### Symptoms:
+
+* Intermittent dropouts
+* Worse performance near homes or star parties
+* Better performance at close range
+
+#### Causes:
+
+* Nearby Wi-Fi networks
+* Bluetooth devices
+* USB 3.0 cables radiating interference
+* Metal obstructions or tripods blocking antenna
+
+#### Mitigation:
+
+* Maintain clear line of sight
+* Keep Mini-PC within 2–3 m of Polaris
+* Move USB 3 cables away from Wi-Fi adapter
+
+---
+
+### C3-6. Network Adapter Driver Instability (Windows 11)
+
+Some Realtek-based adapters are unstable under Windows 11. Symptoms can include: No DHCP errors; Sudden disconnect/reconnect events; “Network adapter reset” events in Event Viewer.
+
+#### Check:
+
+Event Viewer → Windows Logs → System Filter for:
+
+* Netwtw
+* Realtek
+* WLAN-AutoConfig
+
+#### Fix:
+
+* Install latest driver from manufacturer website
+* Roll back driver if problem began after update
+
+---
+
+### C3-7. Roaming or Auto-Switching Networks
+
+If the Mini-PC has:
+
+* Multiple saved Wi-Fi networks
+* Ethernet connected simultaneously
+* Internet Connection Sharing enabled
+
+Windows may switch interfaces automatically.
+
+#### Fix:
+
+* Disable unused network adapters
+* Set Polaris network to “Private”
+* Forget other Wi-Fi networks during testing
+
+---
+
+
+
+## C4 - Still cannot get communications with Polaris Wifi
 To further help diagnose communication problems between ABP and the Polaris, you can use `Telnet` or `PuTTY` to directly connect to the Polaris. This will isolate whether the problem is ABP related or not.
 
 On Win11:
