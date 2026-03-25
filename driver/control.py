@@ -15,7 +15,7 @@ import math
 import copy
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
-from orbitals import orbital_data, find_closest_orbital, create_tle_orbital_celestrak, create_xephem_orbital_jpl
+from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
 
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -140,29 +140,22 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #
 # Forward Kinematics (Motors → Sky)
 #     motorQ_C2B = theta_to_motorQ_C2B(θ1, θ2, θ3)
-#     cameraQ_C2T = R(-r) ∘ baseQ_B2T * motorQ_C2B; 
-#     From cameraQ_C2T you derive Az-Alt-Roll
+#     cameraQ_C2T = motorQ_to_cameraQ(motorQ_C2B) = R(-r) ∘ baseQ_B2T * motorQ_C2B 
+#     Az, Alt, Roll = cameraQ_C2T_to_azaltroll(cameraQ_C2T)
 #     celestrialQ_T2E = pyephem(az,alt); From celestrialQ_T2E you derive RA-Dec-PA
 #
 # Inverse Kinematics (Sky → Motors)
+#     ephembody = delta2body(RA, Dec, PA) or OrbitalBody
+#     az,alt,roll = body2alpha(ephembody)
 #     cameraQ_C2T_ref = alpha_to_cameraQ_C2T(az,alt,roll)
-#     motorQ_C2B_ref = baseQ_B2T⁻¹ ∘ R(+r) ∘ cameraQ_C2T_ref
-#     θ = motorQ_C2B_to_theta(motorQ_C2B_ref)
+#     motorQ_C2B_ref = cameraQ_to_motorQ(cameraQ_C2T_ref) = baseQ_B2T⁻¹ ∘ R(+r) ∘ cameraQ_C2T_ref
+#     θ1, θ2, θ3 = motorQ_C2B_to_theta(motorQ_C2B_ref)
 #
-# Mount modes
-#     Alt/Az mode: Q_B2T is approx Identity
-#     Equatrial mode: Q_B2T is approx oriented so theta1 axis = RA, theta2 axis = Dec
 
 def is_angle_same(a, b, tolerance=1e-4):
     """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
     return abs((a - b + 180) % 360 - 180) < tolerance
 
-
-def is_same_quaternion_rotation(q1, q2, tolerance=1e-6):
-    """Check if two quaternions represent the same rotation"""
-    t1, t2, t3, a1, a2, a3 = quaternion_to_angles(q1)
-    s1, s2, s3, b1, b2, b3 = quaternion_to_angles(q2)
-    return (t1-s1)**2+(t2-s2)**2+(t3-s3)**2+(a1-b1)**2+(a2-b2)**2+(a3-b3)**2 < tolerance
 
 def quaternion_error(q_from, q_to):
     """
@@ -1904,7 +1897,7 @@ class SyncManager:
         Applies az/alt correction (baseQ_B2T) then roll correction around the boresight.
         
         Usage:
-            cameraQ_state = self._sm.camera_to_topo(motorQ_state)
+            cameraQ_state = self._sm.motorQ_to_cameraQ(motorQ_state)
         """
         cameraQ = self.baseQ_B2T * motorQ_C2B
         if self.roll_adj == 0:
@@ -1915,16 +1908,11 @@ class SyncManager:
 
     def cameraQ_to_motorQ(self, cameraQ_C2T):
         """
-        Inverse: cameraQ_C2T here is built from alpha_to_cameraQ_C2T(*alpha_ref),
-        which uses raw az/alt/roll with NO roll correction applied.
-        So just apply baseQ_B2T_inv directly — no roll undo needed.
-
-
         Inverse kinematics: Topocentric frame → Base frame.
         Removes roll correction then applies inverse az/alt correction.
 
         Usage:
-            motorQ_ref = self._sm.topo_to_camera(cameraQ_step)
+            motorQ_ref = self._sm.cameraQ_to_motorQ(cameraQ_step)
         """
         if self.roll_adj != 0:
             boresight_T = cameraQ_C2T.rotate([0, 0, -1])
