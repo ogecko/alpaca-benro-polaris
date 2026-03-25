@@ -65,6 +65,7 @@ export const useStatusStore = defineStore('status', {
         positionangle: 0,
         lifecycleevent: 'NONE',
         pidmode: '',
+        pidglock: false,
         q1: '',
         q1s: '',
         zetameas: [0,0,0],

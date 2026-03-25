@@ -4,7 +4,7 @@
 - [X] Detect when multiple instances of driver running
 - [X] Add a stop and restart driver (to allow pickup of python code changes)
 - [X] Document how to autostart the driver on win11
-- [ ] Improve co-ordination of Gimbal Lock handling
+- [X] Improve co-ordination of Gimbal Lock handling
 - [ ] Correctly reset pid SP when removing sync points or reseting back to Single Point Alignment
 - [ ] Ramp pulse guiding acceleration to reduce overshoot
 - [ ] PEC control (how to detect phase?)

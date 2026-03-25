@@ -829,7 +829,7 @@ class Polaris:
         motorQ_meas = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
         p_az = float(arg_dict['compass'])   # from Polaris direct
         p_alt = -float(arg_dict['alt'])     # from Polaris direct
-        theta_meas = np.array(motorQ_C2B_to_theta(motorQ_meas))
+        theta_meas = np.array(motorQ_C2B_to_theta(motorQ_meas, self._pid._lp))
 
         self._history.append([dt_now, *theta_meas])          # deque collection, so it automatically throws away stuff older than 6 samples ago
         omega_meas = calculate_angular_velocity(self._history)
@@ -1459,7 +1459,8 @@ class Polaris:
                 'rightascension': self._rightascension,
                 'parallacticangle': self._parallactic_angle,
                 'positionangle': self._position_angle,
-                'pidmode': self._pid.mode,                
+                'pidmode': self._pid.mode,     
+                'pidglock': self._pid._lp.in_gimbal_lock,           
                 'q1': str(self._q1),
                 'q1s': str(self._q1s),
                 'zetameas': [0,0,0] if self._zeta_meas is None else self._zeta_meas,

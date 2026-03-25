@@ -38,6 +38,7 @@
 ## What's new in v2.2.0
 
 - **[Forward Kinematics]** Improve forward kinematic robustness for negative azimuth angles
+- **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing and hysteresis to reduce uncertainty
 - **[Negative Azimuth]** Support Goto Altitude below -8°, now accessable with improved inverse kinematics solution selection, when M3 is not zero
 - **[Sidereal Tracking]** Enhance sidereal tracking by computing motor error signals using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
 - **[Roll Angle Tracking]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.

@@ -458,10 +458,12 @@ class LastPosition:
         dt2 = angular_difference(t2, self.last_theta2)
         dt3 = angular_difference(t3, self.last_theta3)
         return dt1*dt1 + dt2*dt2 + dt3*dt3
-    def check_for_gimbal_lock(self, theta2):
+    def check_for_gimbal_lock(self, theta2=None):
+        if theta2 is None:
+            theta2 = self.last_theta2
         # check new theta2 for potential gimbal lock, with hysteresis to eliminate chatter at boundary
         GIMBAL_ENTER = 0.005  # 18 arcsec
-        GIMBAL_EXIT  = 0.01   # 36 arcsec       
+        GIMBAL_EXIT  = GIMBAL_ENTER*10          
         if not self.in_gimbal_lock and abs(theta2) < GIMBAL_ENTER:
             self.in_gimbal_lock = True
         elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
@@ -469,14 +471,9 @@ class LastPosition:
         return self.in_gimbal_lock
 
 
-_lp = LastPosition()
-
-def motorQ_C2B_to_theta(motorQ_C2B, lastPos=None):
+def motorQ_C2B_to_theta(motorQ_C2B, lastPos=LastPosition()):
     """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
     q1 = motorQ_C2B
-    global _lp
-    if lastPos is None:
-        lastPos = _lp
 
     # --- Camera Up and Boresight vector in topo frame
     tUp = q1.rotate(np.array([1, 0, 0]))
@@ -518,10 +515,9 @@ def motorQ_C2B_to_theta(motorQ_C2B, lastPos=None):
     # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
     in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
     if in_gimbal_lock:
-        theta1 = wrap_to_360(theta1 + theta3)
-        theta3 = 0.0
-
-    lastPos.update(theta1, theta2, theta3)
+        locked_sum = wrap_to_360(theta1 + theta3)
+        theta3 = 0
+        theta1 = locked_sum
 
     return theta1, theta2, theta3
 
@@ -560,7 +556,7 @@ def cameraQ_C2T_to_azaltroll(cameraQ_C2T):
     return wrap_to_360(az), wrap_to_180(alt), wrap_to_180(roll)
 
 
-def quaternion_to_angles(q1, lastPos = None):
+def quaternion_to_angles(q1, lastPos = LastPosition()):
     """
     Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
     
@@ -1179,6 +1175,7 @@ class PID_Controller():
     def __init__(self, logger, polaris, dt=0.2, loop=None):
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
         self._lock = Lock()                                  # Used to ensure no threading issues
+        self._lp = LastPosition()                            # Used to remember last theta position for gimbal lock
         self.logger = logger                                 # Logging utility
         self.polaris = polaris                               # Only used for guiding clacs and flaging
         self.controllers = polaris._motors                   # Motor speed controllers[0,1,2]
@@ -1631,7 +1628,7 @@ class PID_Controller():
         cameraQ_meas = alpha_to_cameraQ_C2T(*self.alpha_meas)
         cameraQ_step = self.quaternion_limit_step(cameraQ_meas, cameraQ_ref)
         motorQ_ref = self.polaris._sm.cameraQ_to_motorQ(cameraQ_step)
-        theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref)
+        theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref, self._lp)
         self.theta_ref = np.array([theta1,theta2,theta3])
 
         # Remember cameraQ_ref and last cameraQ_ref for calculating FF
@@ -1652,6 +1649,8 @@ class PID_Controller():
         self.theta_meas = theta_meas
         self.zeta_meas = zeta_meas
         self.time_meas = now
+        self._lp.update(*theta_meas)
+        self._lp.check_for_gimbal_lock()
 
     def predict(self):          # This is not used in the PID Control Loop
         self.theta_meas = clamp_theta(self.theta_meas + self.dt * self.omega_op)
