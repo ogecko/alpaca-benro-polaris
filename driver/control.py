@@ -149,7 +149,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     az,alt,roll = body2alpha(ephembody)
 #     cameraQ_C2T_ref = alpha_to_cameraQ_C2T(az,alt,roll)
 #     motorQ_C2B_ref = cameraQ_to_motorQ(cameraQ_C2T_ref) = baseQ_B2T⁻¹ ∘ R(+r) ∘ cameraQ_C2T_ref
-#     θ1, θ2, θ3 = motorQ_C2B_to_theta(motorQ_C2B_ref)
+#     θ1, θ2, θ3 = motorQ_C2B_to_theta(motorQ_C2B_ref); Potentially two solutions (cf elbow up/down)
 #
 
 def is_angle_same(a, b, tolerance=1e-4):
