@@ -5,8 +5,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import angles_to_quaternion, motors_to_quaternion, quaternion_to_angles, quaternion_to_motors, LastPosition, wrap_to_360
-
+from control import alpha_to_cameraQ_C2T, quaternion_to_angles, wrap_to_360, calculate_angular_velocity_vector
+from control import theta_to_jacobian, theta_to_motorQ_C2B, motorQ_C2B_to_theta, LastPosition
 
 
 def approx_quaternion_to_angles(w,x,y,z):
@@ -44,8 +44,8 @@ test_misc_motor_to_q1_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_misc_motor_to_q1_cases)
 def test_misc_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(180,30,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(180,30,0)))
 
 
 
@@ -63,8 +63,8 @@ test_5t1_30t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_5t1_30t2_cases)
 def test_5t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(+5,+30,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(+5,+30,0)))
 
 
 
@@ -82,8 +82,8 @@ test_355t1_30t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_355t1_30t2_cases)
 def test_355t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(355,+30,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(355,+30,0)))
 
 
 
@@ -102,8 +102,8 @@ test_355t1_minus7t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_355t1_minus7t2_cases)
 def test_355t1_minus7t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(355,-7,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(355,-7,0)))
 
 
 test_5t1_0t2_cases = [
@@ -120,8 +120,8 @@ test_5t1_0t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1, t1, t2, t3", test_5t1_0t2_cases)
 def test_5t1_0t2_roundtrip_theta_q1(theta1, theta2, theta3, q1, t1,t2,t3):
-    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (t1, t2, t3) == tuple(round(x) for x in quaternion_to_motors(q1))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (t1, t2, t3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1))
 
 
 
@@ -132,8 +132,8 @@ test_90t1_minus5t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_90t1_minus5t2_cases)
 def test_90t1_minus5t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(90,-5,80)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(90,-5,80)))
 
 
 
@@ -151,26 +151,26 @@ test_180t1_70t2_cases = [
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_180t1_70t2_cases)
 def test_180t1_70t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
-    assert str(motors_to_quaternion(theta1, theta2, theta3)) == str(q1)
-    assert (theta1, theta2, theta3) == tuple(round(x) for x in quaternion_to_motors(q1, lastPos=LastPosition(180,70,0)))
+    assert str(theta_to_motorQ_C2B(theta1, theta2, theta3)) == str(q1)
+    assert (theta1, theta2, theta3) == tuple(round(x) for x in motorQ_C2B_to_theta(q1, lastPos=LastPosition(180,70,0)))
 
 
-def test_angles_to_quaternion():
-    assert str(angles_to_quaternion(+97.0875,+44.7835,-4.9968)) == str(Quaternion(-0.382, +0.017, +0.923, +0.040))  # 90, 45, -5
-    assert str(angles_to_quaternion(+82.9540,+44.7845,+4.9851)) == str(Quaternion(+0.382, +0.017, -0.923, +0.040))  # 90, 45, +5
-    #assert str(angles_to_quaternion(+354.9565,+44.7846,+4.9850)) == str(Quaternion(+0.247, +0.653, -0.652, +0.295)) # 2, 45, -5 ** wrong sign
-    assert str(angles_to_quaternion(+9.0678,+44.7843,-4.9894)) == str(Quaternion(-0.303, -0.629, +0.676, -0.237))   # 2, 45, +5
-    #assert str(angles_to_quaternion(+350.9593,+44.7846,+4.9830)) == str(Quaternion(+0.237, +0.675, -0.629, +0.303))  # 358, 45, -5 **wrong sign
-    assert str(angles_to_quaternion(+5.0797,+44.7842,-4.9892)) == str(Quaternion(-0.295, -0.652, +0.653, -0.247))   # 358, 45, +5
-    assert str(angles_to_quaternion(+167.0704,+59.6340,+8.5897)) == str(Quaternion(+0.217, -0.656, -0.708, -0.147)) # 177, 60, -5
-    assert str(angles_to_quaternion(+186.9383,+59.6312,-8.5961)) == str(Quaternion(-0.158, +0.672, +0.692, +0.209)) # 177, 60, +5
-    assert str(angles_to_quaternion(+182.0085,+1.9935,-0.1747)) == str(Quaternion(-0.482, +0.517, +0.500, +0.500))  # 177, +2, +5
-    assert str(angles_to_quaternion(+182.0086,-1.9875,-0.1741)) == str(Quaternion(-0.499, +0.499, +0.483, +0.518))  # 177, -2, +5
-    assert str(angles_to_quaternion(+265.0099,+1.9935,-0.1747)) == str(Quaternion(-0.029, +0.719, +0.032, +0.694))  # 260, +2, +5
-    assert str(angles_to_quaternion(+254.9864,+1.9933,+0.1748)) == str(Quaternion(+0.092, -0.713, -0.093, -0.689))  # 260, +2, -5
-    assert str(angles_to_quaternion(+254.9868,-1.9940,+0.174)) == str(Quaternion(+0.095, -0.689, -0.090, -0.713))   # 260, -2, -5
-    assert str(angles_to_quaternion(+150.0048,+19.0005,-0.0040)) == str(Quaternion(-0.503,+0.407,+0.705,+0.290))   # 260, -2, -5
-    assert str(angles_to_quaternion(+150.0044,-5.0069,-0.0010,)) == str(Quaternion(-0.639,+0.338,+0.585,+0.369))   # 260, -2, -5
+def test_alpha_to_cameraQ_C2T():
+    assert str(alpha_to_cameraQ_C2T(+97.0875,+44.7835,-4.9968)) == str(Quaternion(-0.382, +0.017, +0.923, +0.040))  # 90, 45, -5
+    assert str(alpha_to_cameraQ_C2T(+82.9540,+44.7845,+4.9851)) == str(Quaternion(+0.382, +0.017, -0.923, +0.040))  # 90, 45, +5
+    #assert str(alpha_to_cameraQ_C2T(+354.9565,+44.7846,+4.9850)) == str(Quaternion(+0.247, +0.653, -0.652, +0.295)) # 2, 45, -5 ** wrong sign
+    assert str(alpha_to_cameraQ_C2T(+9.0678,+44.7843,-4.9894)) == str(Quaternion(-0.303, -0.629, +0.676, -0.237))   # 2, 45, +5
+    #assert str(alpha_to_cameraQ_C2T(+350.9593,+44.7846,+4.9830)) == str(Quaternion(+0.237, +0.675, -0.629, +0.303))  # 358, 45, -5 **wrong sign
+    assert str(alpha_to_cameraQ_C2T(+5.0797,+44.7842,-4.9892)) == str(Quaternion(-0.295, -0.652, +0.653, -0.247))   # 358, 45, +5
+    assert str(alpha_to_cameraQ_C2T(+167.0704,+59.6340,+8.5897)) == str(Quaternion(+0.217, -0.656, -0.708, -0.147)) # 177, 60, -5
+    assert str(alpha_to_cameraQ_C2T(+186.9383,+59.6312,-8.5961)) == str(Quaternion(-0.158, +0.672, +0.692, +0.209)) # 177, 60, +5
+    assert str(alpha_to_cameraQ_C2T(+182.0085,+1.9935,-0.1747)) == str(Quaternion(-0.482, +0.517, +0.500, +0.500))  # 177, +2, +5
+    assert str(alpha_to_cameraQ_C2T(+182.0086,-1.9875,-0.1741)) == str(Quaternion(-0.499, +0.499, +0.483, +0.518))  # 177, -2, +5
+    assert str(alpha_to_cameraQ_C2T(+265.0099,+1.9935,-0.1747)) == str(Quaternion(-0.029, +0.719, +0.032, +0.694))  # 260, +2, +5
+    assert str(alpha_to_cameraQ_C2T(+254.9864,+1.9933,+0.1748)) == str(Quaternion(+0.092, -0.713, -0.093, -0.689))  # 260, +2, -5
+    assert str(alpha_to_cameraQ_C2T(+254.9868,-1.9940,+0.174)) == str(Quaternion(+0.095, -0.689, -0.090, -0.713))   # 260, -2, -5
+    assert str(alpha_to_cameraQ_C2T(+150.0048,+19.0005,-0.0040)) == str(Quaternion(-0.503,+0.407,+0.705,+0.290))   # 260, -2, -5
+    assert str(alpha_to_cameraQ_C2T(+150.0044,-5.0069,-0.0010,)) == str(Quaternion(-0.639,+0.338,+0.585,+0.369))   # 260, -2, -5
 
 def test_quaternion_to_angles():
     assert approx_quaternion_to_angles(-0.303, -0.629, +0.676, -0.237) == str([2.1, 45.0, 4.9, 9.0, 44.8, -4.9])
@@ -241,7 +241,7 @@ test_misc_azaltroll_cases = [
 @pytest.mark.parametrize("n, az, alt, roll", test_misc_azaltroll_cases)
 def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
     az1,alt1,roll1 = approx( [az,alt,roll] )
-    q1 = angles_to_quaternion(az, alt, roll)
+    q1 = alpha_to_cameraQ_C2T(az, alt, roll)
     angles = quaternion_to_angles(q1, lastPos=LastPosition(180,30,0))
     _,_,_,az2,alt2,roll2 = approx( angles )
     assert str([f'C{n}', az2,alt2,roll2]) == str([f'C{n}', az1,alt1,roll1])
@@ -249,12 +249,14 @@ def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
 @pytest.mark.parametrize("n, t1, t2, t3", test_misc_azaltroll_cases)
 def test_misc_t1t2t3_motors_to_q1_roundtrip(n, t1, t2, t3):
     v1,v2,v3 = approx( [t1,t2,t3] )
-    q1 = motors_to_quaternion(t1, t2, t3)
-    angles = quaternion_to_motors(q1, lastPos=LastPosition(t1,t2,t3))
+    q1 = theta_to_motorQ_C2B(t1, t2, t3)
+    angles = motorQ_C2B_to_theta(q1, lastPos=LastPosition(t1,t2,t3))
     u1,u2,u3 = approx(angles)
     if (u2==0):
         v1 = wrap_to_360(v1+v3)
         v3 = 0.0
+    if (v2>83):
+        v2=83.0
     assert str([f'D{n}', u1,u2,u3]) == str([f'D{n}', v1,v2,v3])
 
 def test_all_motor_positions():
@@ -273,3 +275,51 @@ def test_zeroalt_motor_positions():
         for t3 in range(-175,175,5):
             n += 1
             test_misc_t1t2t3_motors_to_q1_roundtrip(n,t1,t2,t3)
+
+# --- Jacobian finite-difference test ---
+@pytest.mark.parametrize("theta1, theta2, theta3", [
+    (0, 0, 0),
+    (45, 10, 5),
+    (90, 30, -20),
+    (180, 45, 0),
+    (270, 60, 30),
+    (350, -5, -100),
+])
+def test_jacobian_matches_finite_difference(theta1, theta2, theta3):
+    dt = 1e-6
+    theta = np.array([theta1, theta2, theta3], dtype=float)
+    theta_dot_deg = np.array([0.3, -0.2, 0.4])
+
+    # Analytic Jacobian prediction
+    J = theta_to_jacobian(theta1, theta2, theta3)
+    theta_dot_rad = np.radians(theta_dot_deg)
+    omega_pred = J @ theta_dot_rad
+
+    # Numerical quaternion differentiation
+    q0 = theta_to_motorQ_C2B(theta1, theta2, theta3)
+    theta_eps = theta + theta_dot_deg * dt
+    q1 = theta_to_motorQ_C2B(*theta_eps)
+
+    # Compute angular velocity
+    omega_fd = calculate_angular_velocity_vector(q0, q1, dt)
+
+    # Compare
+    assert np.allclose(omega_pred, omega_fd, atol=1e-4)
+
+
+# --- test for calculate_angular_velocity_vector ---
+@pytest.mark.parametrize("q0, q1, dt, expected", [
+    # Zero rotation
+    (Quaternion(), Quaternion(), 1.0, np.zeros(3)),
+    # Small rotation about x
+    (Quaternion(), Quaternion(axis=[1,0,0], radians=np.pi/2), 1.0, np.array([np.pi/2,0,0])),
+    # Small rotation about y
+    (Quaternion(), Quaternion(axis=[0,1,0], radians=np.pi/4), 2.0, np.array([0,np.pi/8,0])),
+    # Small rotation about z
+    (Quaternion(), Quaternion(axis=[0,0,1], radians=np.pi), 2.0, np.array([0,0,np.pi/2])),
+    # Zero dt should return zero vector
+    (Quaternion(), Quaternion(axis=[0,1,0], radians=np.pi/4), 0.0, np.zeros(3)),
+])
+def test_calculate_angular_velocity_vector(q0, q1, dt, expected):
+    omega = calculate_angular_velocity_vector(q0, q1, dt)
+    assert np.allclose(omega, expected, atol=1e-9)

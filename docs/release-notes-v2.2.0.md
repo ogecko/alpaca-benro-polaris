@@ -36,16 +36,21 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.2.0
+
+- **[Forward Kinematics]** Improve forward kinematic robustness for negative azimuth angles
+- **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing and hysteresis to reduce uncertainty
+- **[Negative Azimuth]** Support Goto Altitude below -8°, now accessable with improved inverse kinematics solution selection, when M3 is not zero
 - **[Sidereal Tracking]** Enhance sidereal tracking by computing motor error signals using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
 - **[Roll Angle Tracking]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.
 - **[Orbital Tracking]** Enhance orbital tracking by adding feed forward, expanding integration component, and maintaining a fixed roll angle, resulting in smoother and more stable tracking.
 - **[Guiding Accuracy]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
 - **[Guiding Integral]**: Reduce pulse-guiding overshoot by temporarily suspending integration of the error term during active guiding.
+- **[Pano Recenter]**  Add btn on the Dashboard to save the current pointing orientation into the PanoGrid, recentering it in space.
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
-- **[Pano Orbitals]**: Document how to capture the moon or other orbitals in a workflow
 - **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
-- **[Stop Driver]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify which instance can be stopped.
+- **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
+- **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
 
 ## New Features (enabled by Nina)
 
@@ -62,12 +67,15 @@
 - **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
 
 ## Documentation (Alpaca Driver)
-- **[Guiding Calibration]**: Provide best practice recommendations in choosing a guiding calibration location
+- **[Auto Startup]**: Define how to make the Alpaca Driver start automatically on Windows (installation.md, Step 5)
+- **[Guiding Calibration]**: Provide best practice recommendations in choosing a guiding calibration location (guiding.md, Section 4)
+- **[Pano Orbitals]**: Descrone how to capture the moon or other orbitals in a workflow (pilot.md, Section 4.4)
 - **[Troublshooting A6]**: How to troublshoot shortcut error messages on Windows
 - **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 
 ## Bug Fixes (from v2.1.0 version)
-- **[fix #78]**: TBD
+- **[fix #81]**: Improve error message shown when trying to run multiple instances of Alpaca Driver
+- **[fix #79]**: Clear Pilot SYNC list cache when driver restarts or moves to single point alignment
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment

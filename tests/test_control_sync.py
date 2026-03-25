@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 from unittest.mock import patch
 
 import numpy as np
-from control import SyncManager, quaternion_to_angles, angles_to_quaternion, angular_difference, calc_parallactic_angle
+from control import SyncManager, quaternion_to_angles, alpha_to_cameraQ_C2T, angular_difference, calc_parallactic_angle
 from polaris import Polaris
 
 import pytest
@@ -25,7 +25,7 @@ class Polaris:
         self.azimuth = 180
         self._pid = PID_Controller()
 
-    def update_ascom_from_new_q1_adj(self, q1s):
+    def update_ascom_from_new_baseQ_B2T(self, q1s):
         a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s)
         alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
         theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)
@@ -35,7 +35,7 @@ class Polaris:
         self._p_azimuth = az
         self._p_altitude = alt
         self._p_roll = roll
-        self._q1 = angles_to_quaternion(az, alt, roll)
+        self._q1 = alpha_to_cameraQ_C2T(az, alt, roll)
         t1,t2,t3,_,_,_ = quaternion_to_angles(self._q1)
         self._theta_meas = [t1, t2, t3]
         self._roll = roll
@@ -65,7 +65,7 @@ def test_no_sync_adj():
     p = Polaris()
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
-    az,alt,roll,_,_,_ = quaternion_to_angles(sm.q1_adj * p._q1)
+    az,alt,roll,_,_,_ = quaternion_to_angles(sm.baseQ_B2T * p._q1)
     assert f'{az:.6f}' == "180.000000"
     assert f'{alt:.6f}' == "45.000000"
     assert f'{roll:.6f}' == "0.000000"

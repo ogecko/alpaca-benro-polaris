@@ -1268,7 +1268,7 @@ class slewtoaltazasync:
         except:
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
-        if altitude < -8 or altitude > +90 or math.isnan(altitude):
+        if altitude < -90 or altitude > +90 or math.isnan(altitude):
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} must be between -8 and 90.'))
             return
         if polaris.atpark:
@@ -1540,14 +1540,14 @@ class action:
             logger.warn(f'{actionName}: Invalid JSON Parameters {raw_params}')
             raise HTTPBadRequest(title='Bad Action Request', description='Invalid Parameters format')
 
-        if actionName == "Polaris:RestartDriver":
-            await lifecycle.signal(LifecycleEvent.RESTART)
-            resp.text = await PropertyResponse('RestartDriver ok', req)  
-
         if actionName == "Polaris:StopDriver":
             resp.text = await PropertyResponse('StopDriver ok', req)  
             await asyncio.sleep(2)
             await lifecycle.signal(LifecycleEvent.STOP)
+
+        elif actionName == "Polaris:RestartDriver":
+            await lifecycle.signal(LifecycleEvent.RESTART)
+            resp.text = await PropertyResponse('RestartDriver ok', req)  
 
         elif actionName == "Polaris:ConfigFetch":
             fetched_params = Config.as_dict()
@@ -1818,8 +1818,10 @@ def make_params_live(changed_params):
             polaris.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
         elif param == "guide_rate_dec":
             polaris.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
+        elif param == "advanced_alignment":
+            polaris._sm.optimize_baseQ_B2T()
         elif param == "advanced_alignment_zero":
-            polaris._sm.optimize_q1_adj()
+            polaris._sm.optimize_baseQ_B2T()
         elif param == "ref":
             if changed_params["ref"]==3:    # Set Current Orientation
                 Config.apply_changes({

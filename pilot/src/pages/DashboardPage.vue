@@ -151,6 +151,7 @@ const btnDense = computed(() =>
   $q.screen.lt.md ? true : false
 )
 
+const centerPanel = computed(() => Math.floor((cfg.rows * cfg.cols + 1) / 2))
 
 // ------------------- Lifecycle Events ---------------------
 
@@ -295,8 +296,10 @@ async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
   console.log('Fab Angle:', e);
 }
 
+
+
 async function onClickRecenterGrid() {
-  await dev.alpacaPanoGrid('{"anchor":0, "ref":3}')
+  await dev.alpacaPanoGrid(`{"anchor":0, "ref":3, "panel": ${centerPanel.value}}`)
   console.log('Recenter PanoGrid');
 }
 

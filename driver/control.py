@@ -15,7 +15,7 @@ import math
 import copy
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
-from orbitals import orbital_data, find_closest_orbital, create_tle_orbital_celestrak, create_xephem_orbital_jpl
+from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
 
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -100,38 +100,81 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 
 # ************* Quaternion Kinematics *************
 # The Benro Polaris is a 3-axis motorised astronomical camera mount ("Polaris"). 
-# It has three motor angles defined by theta (theta1, theta2, theta3) that describe how the mechanism is physically positioned.
-# These motor angles orient the camera to point at a specific sky target defined by alpha (azimuth, altitude, roll angle).
-# The sky target has an equavalent equatorial coordinates defined by delta (Right Ascension, Declination, Position Angle).
-# The motor angles Theta1 and theta2 roughly correspond to azimuth and altitude, while theta3 pans the tilted camera around its own up axis. 
-# Because of theta3, the true sky pointing (alpha) cannot be read directly from theta1/theta2/theta3.
-# Instead a quaternion is used to compose all three motor angles into the final pointing direction.
 #
-# The Alpaca Driver for the Benro Polaris includes a PID Controller. This PID controller is a pure position-based control architecture.
-# Once we're in theta space, the motors are independent axes, and do not need cross decoupling.
+# We define four frames of reference to assist with controlling the mount.
+# B - Mount Base Frame: Mechanical Frame;           theta: theta1-theta2-theta3 frame               omega: omega1-omega2-omega3 angular velocities
+#     +Z_B = Axis 1 up direction;                   theta1 = motor1 spin axis, around +Z_B          omega1: motor1 angular velocity
+#     +X_B = Axis 2 Red btn direction;              theta2 = motor2 spin axis, around +X_B          omega2: motor2 angular velocity
+#     +Y_B = Back SD Card direction;                theta3 = motor3 rotates about camera up +X_C    omega3: motor3 angular velocity
+# C - Camera Sensor Frame: Looking skywards −Z 
+#     +X_C  = camera "up" in the image
+#     +Y_C  = camera "left" in the image
+#     -Z_C  = optical axis (camera boresight)
+# T - Topocentric Frame: Observing Site Location;   alpha: Alt-Az-Roll frame
+#     +X_T = East;                                  Roll = rotation around boresight, relative to the local horizon plane  
+#     +Y_T = North;                                 Azimuth = Measured in the horizon plane, from North toward East
+#     +Z_T = Zenith (Up);                           Altitude = Measured from horizon plane, up toward Zenith
+# E - Celestrial Frame: Earth-centered sky frame;   delta: Ra-Dec-PA frame
+#     +Z_E = North Celestial Pole;                  Declination = measured from Celestrial Equator, South -90, Equator 0, North +90
+#     +X_E = RA = 0h, Dec = 0°;                     Right Ascension = angle around celestrial equator, Eastward from vernal Equinox, HourAngle = LST - RA
+#     +Y_E = RA = 6h, Dec = 0°;                     Position Angle = the angle between Celestrial North Pole and Camera up +X_C; PA = ParalaticAngle + Roll
+#                                                   Paralatic Angle = the angle between Celestrial North Pole and Zenth (at the RA/Dec target)
 #
-# RA/Dec/PA (delta_ref)
-#       ↓ - converted using pyephem
-# Az/Alt/Roll (alpha_ref)
-#       ↓ - converted to q, adjusted via multi-point-alignment q1_adj, quaternion_to_angles
-# Motor angles (theta_ref)
-#       ↓ - error calculated as a quaternion slerp from q_theta_meas to q_theta_ref
-# PID(theta_ref − theta_meas)
-#       ↓ - output of PID are angular velocities to each motor speed controller
-# motor_speed_controlers (omega)
-#       ↓ - controllers use PWM of slow and fast speed commands
-# polaris_send_protocol(slow and fast commands)
+# We define three quaternions that rotates vectors from one reference frame to another
+# motorQ_C2B - Motor Orientation Quaternion, q1
+#     Rotates vectors expressed in Camera frame into Mount Base frame.
+#     It depends only on motor angles.
+#     It encodes pure mechanical geometry.
+#     It knows nothing about the sky, other than the Polaris firmware based alignment (Single Point Alignment).
+# baseQ_B2T - Base Orientation Quaternion
+#     Rotates vectors expressed in Mount Base frame into Topocentric frame.
+#     This encodes: az/alt offset ie azimuth offset, tripod tilt, wedge tilt, imperfect polar alignment, sync corrections
+#     Based on QUEST (for Multi Point alignment) or Identify (for Single Point Alignment)
+# R(+r) - Rotation adj around the camera boresight
+#     This encodes: roll offset based on roll_sync
+#     Beware that this quaternion depends on the current orientation of the mount
+# cameraQ_C2T - Camera Orientation Quaternion
+#     Rotates vectors expressed in Camera frame into Topocentric frame
+#     And is defined by: cameraQ_C2T = R(-r) ∘ baseQ_B2T ∘ motorQ_C2B
+#     From cameraQ_C2T, you can compute: Azimuth, Altitude, Roll.
+#
+# Forward Kinematics (Motors → Sky)
+#     motorQ_C2B = theta_to_motorQ_C2B(θ1, θ2, θ3)
+#     cameraQ_C2T = motorQ_to_cameraQ(motorQ_C2B) = R(-r) ∘ baseQ_B2T * motorQ_C2B 
+#     Az, Alt, Roll = cameraQ_C2T_to_azaltroll(cameraQ_C2T)
+#     celestrialQ_T2E = pyephem(az,alt); From celestrialQ_T2E you derive RA-Dec-PA
+#
+# Inverse Kinematics (Sky → Motors)
+#     ephembody = delta2body(RA, Dec, PA) or OrbitalBody
+#     az,alt,roll = body2alpha(ephembody)
+#     cameraQ_C2T_ref = alpha_to_cameraQ_C2T(az,alt,roll)
+#     motorQ_C2B_ref = cameraQ_to_motorQ(cameraQ_C2T_ref) = baseQ_B2T⁻¹ ∘ R(+r) ∘ cameraQ_C2T_ref
+#     θ1, θ2, θ3 = motorQ_C2B_to_theta(motorQ_C2B_ref); Potentially two solutions (cf elbow up/down)
+#
 
 def is_angle_same(a, b, tolerance=1e-4):
     """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
     return abs((a - b + 180) % 360 - 180) < tolerance
 
 
-def is_same_quaternion_rotation(q1, q2, tolerance=1e-6):
-    """Check if two quaternions represent the same rotation"""
-    t1, t2, t3, a1, a2, a3 = quaternion_to_angles(q1)
-    s1, s2, s3, b1, b2, b3 = quaternion_to_angles(q2)
-    return (t1-s1)**2+(t2-s2)**2+(t3-s3)**2+(a1-b1)**2+(a2-b2)**2+(a3-b3)**2 < tolerance
+def quaternion_error(q_from, q_to):
+    """
+    Returns:
+        angle_deg     : total SO(3) rotation angle (degrees)
+        axis          : unit rotation axis (in q_from frame)
+        q_delta       : shortest-path relative quaternion
+    """
+    if np.dot(q_from.elements, q_to.elements) < 0:     # Enforce shortest path
+        q_to = -q_to
+    q_delta = (q_from.inverse * q_to).normalised       # Relative rotation
+    w = np.clip(q_delta[0], -1.0, 1.0)
+    angle_rad = 2.0 * np.arccos(w)
+    if angle_rad < 1e-12:
+        return 0.0, np.zeros(3), q_delta
+    sin_half = np.sqrt(1.0 - w*w)
+    axis = q_delta.vector / sin_half
+    return np.degrees(angle_rad), axis, q_delta
+
 
 def wrap_to_360(angle):
     """Wraps angle to [0, 360) degrees"""
@@ -293,11 +336,35 @@ def calculate_angular_velocity(history):
     except Exception:
         return np.zeros(3)
 
-
-
-def angles_to_quaternion(az, alt, roll):
+def calculate_angular_velocity_vector(q0: Quaternion, q1: Quaternion, dt: float):
     """
-    Convert altitude, azimuth, and roll angles to a quaternion using simple rotation composition.
+    Compute angular velocity vector (rad/sec) from two quaternions over a time interval.
+    Args:
+        q0 : Quaternion - Initial orientation.
+        q1 : Quaternion - Final orientation.
+        dt : float - Time interval in seconds.
+    Returns:
+        omega : np.ndarray, shape (3,) - Angular velocity vector in the frame of q0.
+    """
+    # Check for no duration
+    if dt <= 0:
+        return np.zeros(3, dtype=float)
+    # Rotation from q0 → q1
+    q_delta = q1 * q0.inverse
+    # Decompose q_delta
+    angle_rad = np.radians(q_delta.degrees)
+    axis = np.array(q_delta.axis)
+    axis_norm = np.linalg.norm(axis)
+    # Check for no rotation → zero angular velocity
+    if axis_norm < 1e-12 or angle_rad == 0.0:
+        return np.zeros(3, dtype=float)
+    # Angular velocity ω = axis * (angle / dt)
+    omega = axis / axis_norm * (angle_rad / dt)
+    return omega
+
+def alpha_to_cameraQ_C2T(az, alt, roll):
+    """
+    Convert altitude, azimuth, and roll angles to a camera quaternion using simple rotation composition.
     
     Args:
         az: Azimuth angle in degrees (0-360)
@@ -311,15 +378,15 @@ def angles_to_quaternion(az, alt, roll):
     qaz = Quaternion(axis=[0, 0, 1], degrees= -az + 90)
     qalt = Quaternion(axis=[0, 1, 0], degrees= -alt - 90)
     qroll = Quaternion(axis=[0, 0, 1], degrees= roll)
-    q1 = qaz * qalt * qroll  # Reconstructed q1 quaternion from roll, then alt, then az
+    q1 = qaz * qalt * qroll  # Reconstructed quaternion from roll, then alt, then az
     
     return -(q1.normalised) if roll < 0 else q1.normalised
 
 
 
-def motors_to_quaternion(theta1, theta2, theta3):
+def theta_to_motorQ_C2B(theta1, theta2, theta3):
     """
-    Convert theta1, theta2, theta3 angles to a quaternion using simple rotation composition.
+    Convert theta1, theta2, theta3 angles to a base quaternion using simple rotation composition.
     
     Args:
         theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount, 0=North)
@@ -339,6 +406,34 @@ def motors_to_quaternion(theta1, theta2, theta3):
     noflip = theta3 < 0
     q1n = q1.normalised if noflip else -q1.normalised
     return q1n
+
+
+def theta_to_jacobian(theta1, theta2, theta3):
+    """
+    Compute the 3x3 Jacobian matrix at the given base frame orientation theta.
+
+    Args:
+        theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount, 0=North)
+        theta2: Polaris Axis 2 angle in degrees (-90 to +90) +ve=upwards (looking side on to mount, 0=Horizontal)
+        theta3: Polaris Axis 3 angle in degrees (-180 to +180) +ve=cw (looking down towards mount. 0=Level)
+
+    Returns
+        J : (3,3) ndarray - Jacobian matrix such that ω = J(θ) · θ_dot
+    """
+    # Rotation quaternions for first two joints
+    qtheta1 = Quaternion(axis=[0, 0, 1], degrees=-theta1 + 90)
+    qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-theta2 - 90)
+
+    # Joint axes expressed in base frame
+    a1 = np.array([0, 0, 1])                      # Joint 1 axis (Z, fixed in base)
+    a2 = qtheta1.rotate([0, 1, 0])                # Joint 2 axis (Y after θ1)
+    a3 = (qtheta1 * qtheta2).rotate([1, 0, 0])    # Joint 3 axis (X after θ1, θ2)
+
+    # Assemble Jacobian
+    J = np.column_stack((a1, a2, a3))
+
+    return -J
+
 
 def extract_theta_given_theta3(tUp, tBore, theta3):
     """ Calc Theta1 and Theta2 based on removing Theta3 pan """
@@ -363,10 +458,12 @@ class LastPosition:
         dt2 = angular_difference(t2, self.last_theta2)
         dt3 = angular_difference(t3, self.last_theta3)
         return dt1*dt1 + dt2*dt2 + dt3*dt3
-    def check_for_gimbal_lock(self, theta2):
+    def check_for_gimbal_lock(self, theta2=None):
+        if theta2 is None:
+            theta2 = self.last_theta2
         # check new theta2 for potential gimbal lock, with hysteresis to eliminate chatter at boundary
-        GIMBAL_ENTER = 0.01            # Enter gimbal lock when theta2 is less than 18 arcsec
-        GIMBAL_EXIT = 0.02              # Exit gimbal lock when theta2 is greater than 36 arcsec
+        GIMBAL_ENTER = 0.005  # 18 arcsec
+        GIMBAL_EXIT  = GIMBAL_ENTER*10          
         if not self.in_gimbal_lock and abs(theta2) < GIMBAL_ENTER:
             self.in_gimbal_lock = True
         elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
@@ -374,13 +471,9 @@ class LastPosition:
         return self.in_gimbal_lock
 
 
-_lp = LastPosition()
-
-def quaternion_to_motors(q1, lastPos=None):
+def motorQ_C2B_to_theta(motorQ_C2B, lastPos=LastPosition()):
     """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
-    global _lp
-    if lastPos is None:
-        lastPos = _lp
+    q1 = motorQ_C2B
 
     # --- Camera Up and Boresight vector in topo frame
     tUp = q1.rotate(np.array([1, 0, 0]))
@@ -394,28 +487,76 @@ def quaternion_to_motors(q1, lastPos=None):
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
     theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
 
-    # Choose the best mechanical solution
-    if theta2_A < -8:           # Rules out Solution A
-        [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
-    elif theta2_B < -8:         # Rules out Solution B
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
-    else:                       # --- Choose the solution closest to the last mechanical position
-        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A,)
-        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B,)
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if diffA<diffB else [theta1_B, theta2_B, theta3_B]
+    # Check each solution for valid mechanical range of theta2
+    theta2_min, theta2_max = -8, 83
+    validA = theta2_min <= theta2_A <= theta2_max
+    validB = theta2_min <= theta2_B <= theta2_max
+
+    # Choose a solution
+    if validA and not validB:
+        theta1, theta2, theta3 = theta1_A, theta2_A, theta3_A
+    elif validB and not validA:
+        theta1, theta2, theta3 = theta1_B, theta2_B, theta3_B
+    elif validA and validB:
+        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A)
+        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B)
+        theta1, theta2, theta3 = (theta1_A, theta2_A, theta3_A) if diffA < diffB else (theta1_B, theta2_B, theta3_B)
+    else:
+        # Both candidates out of θ2 bounds
+        def dist_to_range(t2):
+            if t2 < theta2_min: return theta2_min - t2
+            if t2 > theta2_max: return t2 - theta2_max
+            return 0.0
+        if dist_to_range(theta2_A) <= dist_to_range(theta2_B):
+            theta1, theta2, theta3 = theta1_A, np.clip(theta2_A, theta2_min, theta2_max), theta3_A
+        else:
+            theta1, theta2, theta3 = theta1_B, np.clip(theta2_B, theta2_min, theta2_max), theta3_B
 
     # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
     in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
     if in_gimbal_lock:
-        theta1 = wrap_to_360(theta1 + theta3)
-        theta3 = 0.0
-
-    lastPos.update(theta1, theta2, theta3)
+        locked_sum = wrap_to_360(theta1 + theta3)
+        theta3 = 0
+        theta1 = locked_sum
 
     return theta1, theta2, theta3
 
 
-def quaternion_to_angles(q1, lastPos = None):
+def cameraQ_C2T_to_azaltroll(cameraQ_C2T):
+    # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
+    tBore = cameraQ_C2T.rotate([0, 0, -1])
+
+    # Azimuth and Altitude: rotation around unadjusted bore vector ie Topocentric co-ordinates including effect of Axis 3
+    az = np.degrees(np.arctan2(tBore[0], tBore[1]))                     # Azimuth = Boresight axis projected on N/E plane
+    alt = np.degrees(np.arcsin(np.clip(tBore[2], -1, 1)))               # Altitude = Angle from N/E plane, vertically to the Boresight axis
+
+    # Roll Angle: Reconstruct the zero-roll quaternion using the same forward chain (roll=0)
+    qaz   = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
+    qalt  = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
+    q_no_roll = qaz * qalt          # What the quaternion would be with roll=0
+
+    # The roll is the residual rotation between q_no_roll and the actual quaternion.
+    # q_no_roll * qroll = cameraQ_C2T  =>  qroll = q_no_roll.inverse * cameraQ_C2T
+    # But we must account for the double-cover sign ambiguity first, to ensure both q's are in same 4D hemisphere.
+    q_actual = cameraQ_C2T
+    if (q_no_roll * q_actual.inverse).scalar < 0:
+        q_actual = -q_actual
+    q_roll_residual = q_no_roll.inverse * q_actual
+
+    # Extract the roll angle from the residual quaternion (axis should be ≈ [0,0,1])
+    roll = np.degrees(2 * np.arctan2(
+        np.linalg.norm([q_roll_residual[1], q_roll_residual[2], q_roll_residual[3]]),
+        q_roll_residual[0]
+    ))
+
+    # Determine sign: if residual axis points in -Z direction, negate the angle
+    if q_roll_residual[3] < 0:
+        roll = -roll
+
+    return wrap_to_360(az), wrap_to_180(alt), wrap_to_180(roll)
+
+
+def quaternion_to_angles(q1, lastPos = LastPosition()):
     """
     Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
     
@@ -437,8 +578,8 @@ def quaternion_to_angles(q1, lastPos = None):
 
     # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
 
-    # calculate the motor angles from the quaternion
-    theta1, theta2, theta3 = quaternion_to_motors(q1, lastPos=lastPos)
+    # calculate the motor angles from the base quaternion
+    theta1, theta2, theta3 = motorQ_C2B_to_theta(q1, lastPos=lastPos)
 
     # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
     tBore = q1.rotate(np.array([0, 0,-1]))   
@@ -472,8 +613,8 @@ class KalmanFilter:
         self._time = time.monotonic()
         self._need_first_measurement = True
 
-        # State: [theta1, theta2, theta3, omega1, omega2, omega3]
-        self.x = initial_state.reshape(6, 1)
+        self.z = np.zeros((6,1))
+        self.x = initial_state.reshape(6, 1)    # State: [theta1, theta2, theta3, omega1, omega2, omega3]
         self.set_state_transition_matrix_A()    # State transition matrix (A): position + dt * velocity 
         self.set_control_matrix_B()             # Control matrix (B): nudge state velocity by acceleration (omega_ref - omega_state)
         self.H = np.eye(6)                      # Measurement matrix (H): measures both position and velocity
@@ -527,7 +668,7 @@ class KalmanFilter:
 
         theta_meas = np.array(theta).reshape(3, 1)
         omega_meas = np.array(omega).reshape(3, 1)
-        z = np.vstack((theta_meas, omega_meas))               # Measurement: position + velocity
+        self.z = np.vstack((theta_meas, omega_meas))               # Measurement: position + velocity
 
         # Measurement residual
         theta_residual = wrap_angle_residual(theta_meas, self.x[:3])
@@ -555,8 +696,9 @@ class KalmanFilter:
 
     def get_state(self):
         state = self.x.flatten()
-        theta = state[0:3]
-        omega = state[3:]
+        meas = self.z.flatten()
+        theta = state[0:3] if Config.advanced_kf else meas[0:3]
+        omega = state[3:] if Config.advanced_kf else meas[3:]
         return theta, omega
 
     def set_state(self, x):
@@ -1033,6 +1175,7 @@ class PID_Controller():
     def __init__(self, logger, polaris, dt=0.2, loop=None):
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
         self._lock = Lock()                                  # Used to ensure no threading issues
+        self._lp = LastPosition()                            # Used to remember last theta position for gimbal lock
         self.logger = logger                                 # Logging utility
         self.polaris = polaris                               # Only used for guiding clacs and flaging
         self.controllers = polaris._motors                   # Motor speed controllers[0,1,2]
@@ -1059,6 +1202,8 @@ class PID_Controller():
         self.zeta_ref = np.zeros(3, dtype=float)       # zeta1-3 motor reference angular position (used in PARKING, HOMING)
         self.error_signal = np.zeros(3, dtype=float)   # theta1-3 error btw theta_ref and theta_meas
         self.error_integral = np.zeros(3, dtype=float) # theta1-3 error btw theta_ref and theta_meas
+        self.cameraQ_ref = None
+        self.cameraQ_ref_last = None
         self.goto_complete_callback = None                   # callback function when no longer deviating
         self.rotate_complete_callback = None                 # callback function when no longer deviating
         self.slew_complete_callback = None                   # callback function when no longer slewing
@@ -1425,49 +1570,14 @@ class PID_Controller():
         self.set_pid_mode('IDLE')
 
     #------- Control step functions ---------
-
-    def quaternion_motor_error(self, theta_ref, theta_meas):
-        """
-        Incremental quaternion error using SLERP, scaled by maximum motor angular velocity.
-        Fallback to clamp_error(self.theta_ref, self.theta_meas) when
-            * motor velocity is near zero
-            * SO3 distance is near zero
-        """
-
-        # --- Build quaternions ---
-        q_ref  = motors_to_quaternion(*theta_ref)
-        q_meas = motors_to_quaternion(*theta_meas)
-
-        # --- Ensure shortest path ---
-        if np.dot(q_meas.elements, q_ref.elements) < 0:
-            q_ref = -q_ref
-
-        # --- Calc the Total shortest-path rotation angle in SO(3) ---
-        q_err = (q_meas.inverse * q_ref).normalised
-        w = np.clip(q_err[0], -1.0, 1.0)
-        theta_total = np.degrees(2 * np.arccos(w))
-        if theta_total < 1e-9:                # Fallback if small SO(3) distance
-            return clamp_error(self.theta_ref, self.theta_meas)
-
-        # --- Calc expected max rotation step this cycle ---
-        # theta_step = np.linalg.norm(self.omega_op)   # dont use velocity
-        theta_step = 15.6                     # clamp to max vel = sqrt(9^2 + 9^2 + 9^2) deg/s 
-        if theta_step < 0.006:                # Fallback if starting from rest (prevent stall)
-            return clamp_error(self.theta_ref, self.theta_meas)
-
-        # --- Compute interpolation fraction ---
-        frac = min(1.0, theta_step / theta_total)
+    def quaternion_limit_step(self, q_meas, q_ref, max_step_deg=12, min_frac=0.01, max_frac=1.0):
+        angle_total, _, _ = quaternion_error(q_meas, q_ref)
+        if angle_total < 1e-9:
+            return q_ref
+        frac = np.clip(max_step_deg / angle_total, min_frac, max_frac)           # linear taper
         if Config.log_pulse_guiding:
-            self.logger.info(f'PID SLERP frac {frac} = theta_step {theta_step} / theta_total {theta_total} ')
-
-        # --- SLERP toward reference ---
-        q_target = Quaternion.slerp(q_meas, q_ref, amount=frac)
-
-        # --- Convert back to motor space ---
-        theta_target = np.array(quaternion_to_motors(q_target))
-        theta_err = clamp_error(theta_target, theta_meas)
-
-        return theta_err
+            self.logger.info(f'PID SLERP frac {frac} = amgle_step {max_step_deg} / angle_total {angle_total} ')
+        return Quaternion.slerp(q_meas, q_ref, amount=frac)
 
     def track_target(self):
         # Update alpha_ref based on current mode
@@ -1513,19 +1623,22 @@ class PID_Controller():
             self.alpha_ref = clamp_alpha(self.body2alpha())
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
 
-        # Convert alpha_ref to theta_ref
-        a_az, a_alt, a_roll = self.alpha_ref
-        if Config.advanced_rotator and Config.advanced_control:
-            a_roll = self.polaris._sm.roll_ascom2polaris(a_roll)
-
-        q1 = angles_to_quaternion(a_az, a_alt, a_roll)
-
-        if Config.advanced_alignment and Config.advanced_control:
-            q1 = self.polaris._sm.q1_adj.inverse * q1
-
-        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
-        self.theta_ref_last = self.theta_ref
+        # Inverse Kinematics flow (Sky to Motors)
+        cameraQ_ref = alpha_to_cameraQ_C2T(*self.alpha_ref)
+        cameraQ_meas = alpha_to_cameraQ_C2T(*self.alpha_meas)
+        cameraQ_step = self.quaternion_limit_step(cameraQ_meas, cameraQ_ref)
+        motorQ_ref = self.polaris._sm.cameraQ_to_motorQ(cameraQ_step)
+        theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref, self._lp)
         self.theta_ref = np.array([theta1,theta2,theta3])
+
+        # Remember cameraQ_ref and last cameraQ_ref for calculating FF
+        if self.cameraQ_ref is None:
+            # first run — no previous reference
+            self.cameraQ_ref = cameraQ_ref
+            self.cameraQ_ref_last = cameraQ_ref
+        else:
+            self.cameraQ_ref_last = self.cameraQ_ref
+            self.cameraQ_ref = cameraQ_ref
     
     def measure(self, delta_meas, alpha_meas, theta_meas, zeta_meas):
         now = ephem.now()
@@ -1536,6 +1649,8 @@ class PID_Controller():
         self.theta_meas = theta_meas
         self.zeta_meas = zeta_meas
         self.time_meas = now
+        self._lp.update(*theta_meas)
+        self._lp.check_for_gimbal_lock()
 
     def predict(self):          # This is not used in the PID Control Loop
         self.theta_meas = clamp_theta(self.theta_meas + self.dt * self.omega_op)
@@ -1548,10 +1663,17 @@ class PID_Controller():
             delta_ref_change = self.delta_ref - self.delta_ref_last
             delta_ref_nochange = np.sum(delta_ref_change ** 2) < 2      # ignore changes greather than 2 degrees
             if self.dt > 0 and (delta_ref_nochange and self.polaris._tracking):
-                tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
-                self.omega_ff = tracking_vel
+                # Desired angular velocity vector based on change in cameraQ_ref
+                omega_topo = calculate_angular_velocity_vector(self.cameraQ_ref_last, self.cameraQ_ref, self.dt)
+                omega_base = self.polaris._sm.cameraQ_vec_to_motorQ_vec(omega_topo, self.cameraQ_ref)   # Convert to base frame Sky tracking velocity
+                # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
+                J = theta_to_jacobian(*self.theta_meas)
+                # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
+                theta_dot = np.linalg.solve(J, omega_base)
+                self.omega_ff = np.degrees(theta_dot)
+                # for non sidereal tracking,  ensure M3 ff is zero
                 if self.polaris._trackingrate != 0: 
-                    self.omega_ff[2] = 0                                 # for non sidereal tracking,  ensure M3 ff is zero
+                    self.omega_ff[2] = 0                                 
         # Feed forward slew velocities when in auto mode
         elif self.mode == "AUTO":
             self.omega_ff = self.alpha_v_sp
@@ -1561,12 +1683,9 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
-            # self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
-            self.error_signal = self.quaternion_motor_error(self.theta_ref, self.theta_meas)
+            self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
 
         # Per-axis deviation flags
-        integration_rate_limit = 1/60                                                            # max deg per sec for the integration component
-        self.is_axis_preloading = np.abs(self.error_signal) > integration_rate_limit * 1      # preload when greater than integration limit over 1 sec
         self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
 
         # calc cost signal and flags
@@ -1576,11 +1695,15 @@ class PID_Controller():
         self.was_moving = self.is_moving
         self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
 
-        # calc the integral error if tracking or slewing
-        Ki = np.array(Config.pid_Ki, dtype=float)
+    def errintegral(self):
+        # setup some constants for calcs below
+        Ki = np.array(Config.pid_Ki, dtype=float) 
         Kd = np.array(Config.pid_Kd, dtype=float)
+        integration_rate_limit = 1/60                                                            # max deg per sec for the integration component
+        self.is_axis_preloading = np.abs(self.error_signal) > integration_rate_limit * 1      # preload when greater than integration limit over 1 sec
         i_limit = np.where(Ki != 0, integration_rate_limit / Ki, 0)    # limit integral rate / Ki
 
+        # calc the integral error if tracking or slewing
         if self.mode=='TRACK' or self.is_slewing:
             # Preload to cancel derivative term: omega_kd = -Kd * omega_op, or use last integral value
             preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
@@ -1591,7 +1714,7 @@ class PID_Controller():
                 np.sign(self.error_signal) != np.sign(self.omega_tgt)
             ) & (~self.polaris._ispulseguiding)
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
-            updated_integral = preload_masked + delta_integral
+            updated_integral = preload_masked + delta_integral * self.dt
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
             if self.polaris._trackingrate != 0: 
                 self.error_integral[2] = 0                                 # for non sidereal tracking,  ensure M3 integral is zero
@@ -1666,6 +1789,29 @@ class PID_Controller():
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(0)
 
+    async def control_step(self):
+        now = time.monotonic()
+        if self.control_loop_duration:
+            self.dt = now - self.time_step
+        self.time_step = now
+        if self.time_meas:      # Only process if we have a measurement
+            self.track_target() # Update theta_ref with target's new position
+            self.feed_forward() # Feed forward tracking velocities when in TRACK mode
+            self.errsignal()    # Update error_signal with deviation from theta_ref
+            self.errintegral()  # Update error_integral with accumulation of err_signal
+            self.pid()          # Update omega_tgt, calculate raw PID control target
+            self.constrain()    # Update omega_ctl, constrain velocity and acceleration
+            await self.control()      # Update omega_op, constrain with valid op control values
+            self.notify()       # Notify any callback of no longer deviating
+            self.telemetry()    # send to Alpaca Pilot
+
+    async def _control_loop(self):
+        while not self._stop_flag.is_set():
+            # self.measure() is done at processing 518 message
+            await self.control_step()
+            delay = self.control_loop_duration if self.polaris._connected else 2.0
+            await asyncio.sleep(delay)
+
     def notify(self):
         if ((not self.is_deviating) or self.goto_timeout()) and self.goto_complete_callback:
             self.goto_complete_callback()
@@ -1700,27 +1846,6 @@ class PID_Controller():
         pidlogger.info(payload)
 
 
-    async def control_step(self):
-        now = time.monotonic()
-        if self.control_loop_duration:
-            self.dt = now - self.time_step
-        self.time_step = now
-        if self.time_meas:      # Only process if we have a measurement
-            self.track_target() # Update theta_ref with target's new position
-            self.feed_forward() # Feed forward tracking velocities when in TRACK mode
-            self.errsignal()    # Update error_signal/integral with deviation from theta_ref
-            self.pid()          # Update omega_tgt, calculate raw PID control target
-            self.constrain()    # Update omega_ctl, constrain velocity and acceleration
-            await self.control()      # Update omega_op, constrain with valid op control values
-            self.notify()       # Notify any callback of no longer deviating
-            self.telemetry()    # send to Alpaca Pilot
-
-    async def _control_loop(self):
-        while not self._stop_flag.is_set():
-            # self.measure() is done at processing 518 message
-            await self.control_step()
-            delay = self.control_loop_duration if self.polaris._connected else 2.0
-            await asyncio.sleep(delay)
 
     async def stop_control_loop_task(self):
         with self._lock:
@@ -1736,14 +1861,19 @@ class SyncManager:
     def __init__(self, logger, polaris):
         self.logger = logger
         self.polaris = polaris
+        self.set_baseQ_to_identity()
+
+    def set_baseQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
-        self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
-        self.q1_adj_message = ""                # message from last optimisation
-        self.tilt_adj_az = 0                    # q1_adj Tilt azimuth (°): direction of steepest upward inclination (info only)     
-        self.tilt_adj_mag = 0                   # q1_adj Tilt magnitude (°): angle of inclination from horizontal plane (info only)
-        self.az_adj = 0                         # q1_adj Azimuth correction (°): azimuth axis correction to apply (info only)
+        self.baseQ_B2T = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
+        self.baseQ_B2T_inv = Quaternion(1,0,0,0)   # optimised adjustment quaternion for azalt syncing, initially identity
+        self.baseQ_B2T_message = ""                # message from last optimisation
+        self.tilt_adj_az = 0                    # baseQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)     
+        self.tilt_adj_mag = 0                   # baseQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
+        self.az_adj = 0                         # baseQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
+        self.logSyncDataReset()
 
     def standard_entry(self):
         entry = {
@@ -1759,6 +1889,51 @@ class SyncManager:
             "a_roll": None,
         }
         return entry
+
+    def motorQ_to_cameraQ(self, motorQ_C2B):
+        """
+        Forward kinematics: Base frame → Topocentric frame.
+        Applies az/alt correction (baseQ_B2T) then roll correction around the boresight.
+        
+        Usage:
+            cameraQ_state = self._sm.motorQ_to_cameraQ(motorQ_state)
+        """
+        cameraQ = self.baseQ_B2T * motorQ_C2B
+        if self.roll_adj == 0:
+            return cameraQ
+        boresight_T = cameraQ.rotate([0, 0, -1])
+        q_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
+        return q_roll * cameraQ
+
+    def cameraQ_to_motorQ(self, cameraQ_C2T):
+        """
+        Inverse kinematics: Topocentric frame → Base frame.
+        Removes roll correction then applies inverse az/alt correction.
+
+        Usage:
+            motorQ_ref = self._sm.cameraQ_to_motorQ(cameraQ_step)
+        """
+        if self.roll_adj != 0:
+            boresight_T = cameraQ_C2T.rotate([0, 0, -1])
+            q_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
+            cameraQ_C2T = q_roll_undo * cameraQ_C2T
+        return self.baseQ_B2T_inv * cameraQ_C2T
+
+    def cameraQ_vec_to_motorQ_vec(self, omega_topo, cameraQ_C2T):
+        """
+        Rotate an angular velocity vector from topocentric to base frame,
+        accounting for both the az/alt correction and the roll correction.
+        
+        The roll correction is a rotation applied around the boresight in
+        topocentric space (left-multiply), so its inverse must be undone first
+        before applying baseQ_B2T_inv.
+        """
+        if self.roll_adj != 0:
+            boresight_T = cameraQ_C2T.rotate([0, 0, -1])
+            q_roll_undo = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
+            omega_topo = q_roll_undo.rotate(omega_topo)
+        return self.baseQ_B2T_inv.rotate(omega_topo)
+
 
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
         new_vec = azalt_to_vector(a_az, a_alt)
@@ -1787,15 +1962,15 @@ class SyncManager:
         entry["a_az"] = a_az
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
-        self.optimize_q1_adj()
+        self.optimize_baseQ_B2T()
         self.logSyncData()
 
     def sync_roll(self, a_roll):
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if (Config.advanced_alignment and Config.advanced_control):
-            _,_,_,_,_,p_roll = quaternion_to_angles(self.q1_adj * self.polaris._q1)
-            entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using q1_adj
+            _,_,p_roll = cameraQ_C2T_to_azaltroll(self.baseQ_B2T * self.polaris._q1)
+            entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using baseQ_B2T
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.logSyncData()
@@ -1811,7 +1986,7 @@ class SyncManager:
             if Config.log_quest_model:
                 self.logger.info(f"Cleared sync data for timestamp: {timestamp}")
             if optimise:
-                self.optimize_q1_adj()
+                self.optimize_baseQ_B2T()
                 self.optimize_roll_adj()
             self.logSyncData()
         else:
@@ -1819,22 +1994,22 @@ class SyncManager:
 
 
     def azalt_polaris2ascom(self, p_az, p_alt):
-        if self.q1_adj is None:
+        if self.baseQ_B2T is None:
             return p_az, p_alt
         v_pred = azalt_to_vector(p_az, p_alt)
-        v_obs = self.q1_adj.rotate(v_pred)
+        v_obs = self.baseQ_B2T.rotate(v_pred)
         c_az, c_alt = vector_to_az_alt(v_obs) 
         return c_az, c_alt
 
     def azalt_ascom2polaris(self, a_az, a_alt):
-        if self.q1_adj is None:
+        if self.baseQ_B2T is None:
             return a_az, a_alt
         v_obs = azalt_to_vector(a_az, a_alt)
-        v_pred = self.q1_adj.inverse.rotate(v_obs)
+        v_pred = self.baseQ_B2T.inverse.rotate(v_obs)
         p_az, p_alt = vector_to_az_alt(v_pred)
         return p_az, p_alt
 
-    def optimize_q1_adj(self):
+    def optimize_baseQ_B2T(self):
         """
         Implement the QUEST algorithm to find the optimal rotation quaternion
         that minimizes the misalignment between predicted (Polaris) and observed (Plate Solved/ASCOM) vectors.
@@ -1842,6 +2017,10 @@ class SyncManager:
         Markley, F. L. (2000). "Quaternion Attitude Estimation Using Vector Observations." https://tinyurl.com/ymk5xd7z
         Markley, F. L. (2003). "Attitude Estimation or Quaternion Estimation?" https://ntrs.nasa.gov/citations/20030093641
         """
+        if Config.advanced_alignment == False:
+            self.set_baseQ_to_identity()
+            return
+
         pairs = []
         weights = []
 
@@ -1872,8 +2051,9 @@ class SyncManager:
 
         self.aligned_count = len(pairs)
         if len(pairs) < 2:
-            self.q1_adj = self.optimise_q1_adj_fallback_single_sync(pairs)
-            self.q1_adj_message = "Fallback rotation from single sync"
+            self.baseQ_B2T = self.optimise_baseQ_B2T_fallback_single_sync(pairs)
+            self.baseQ_B2T_inv = self.baseQ_B2T.inverse
+            self.baseQ_B2T_message = "Fallback rotation from single sync"
         else:
             # Normalize weights
             weights = np.array(weights)
@@ -1909,11 +2089,12 @@ class SyncManager:
             eigvals, eigvecs = np.linalg.eigh(K)
             q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
 
-            self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
+            self.baseQ_B2T = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
+            self.baseQ_B2T_inv = self.baseQ_B2T.inverse
             if Config.advanced_alignment_zero:
                 self.apply_final_sync_alignment()
                 
-            self.q1_adj_message = "QUEST solution applied"
+            self.baseQ_B2T_message = "QUEST solution applied"
 
 
         # Now compute the residuals and tilt correction
@@ -1933,29 +2114,30 @@ class SyncManager:
 
     def apply_final_sync_alignment(self):
         """
-        Apply a minimal correction quaternion to self.q1_adj so that the last valid sync point
+        Apply a minimal correction quaternion to self.baseQ_B2T so that the last valid sync point
         has zero residual. This ensures the most recent sync is perfectly honored.
         """
         last_valid = next((entry for entry in reversed(self.sync_history)
                         if not entry["deleted"] and entry["a_az"] is not None and entry["a_alt"] is not None), None)
         if not last_valid:
-            self.q1_adj_message += " | No valid sync for final alignment"
+            self.baseQ_B2T_message += " | No valid sync for final alignment"
             return
         v_obs = azalt_to_vector(last_valid["a_az"], last_valid["a_alt"])
         v_pred = azalt_to_vector(last_valid["p_az"], last_valid["p_alt"])
-        v_pred_rot = self.q1_adj.rotate(v_pred)
+        v_pred_rot = self.baseQ_B2T.rotate(v_pred)
         axis = np.cross(v_pred_rot, v_obs)
         norm_axis = np.linalg.norm(axis)
         if norm_axis < 1e-8:
-            self.q1_adj_message += " | Final sync already aligned"
+            self.baseQ_B2T_message += " | Final sync already aligned"
             return
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
         q_correction = Quaternion(axis=axis, angle=angle)
-        self.q1_adj = q_correction * self.q1_adj
+        self.baseQ_B2T = q_correction * self.baseQ_B2T
+        self.baseQ_B2T_inv = self.baseQ_B2T.inverse
 
 
-    def optimise_q1_adj_fallback_single_sync(self, pairs):
+    def optimise_baseQ_B2T_fallback_single_sync(self, pairs):
         if len(pairs) == 0:
             return Quaternion(1,0,0,0)  # identity quaternion
         
@@ -2078,8 +2260,18 @@ class SyncManager:
         self.compute_roll_residuals()
 
     def logSyncData(self):
+        self.logSyncDataReset()
         sm_logger = logging.getLogger('sm')
         for entry in self.sync_history:
             sm_logger.info(entry)
+    
+    def logSyncDataReset(self):
+        sm_logger = logging.getLogger('sm')
+        first_entry = self.standard_entry()
+        first_entry["timestamp"] = 'reset'    # flag clients to clear alignment history
+        first_entry["a_alt"] = 0
+        first_entry["a_az"] = 0 
+        first_entry["a_roll"] = 0 
+        sm_logger.info(first_entry)
 
 

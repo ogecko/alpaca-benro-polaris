@@ -49,6 +49,7 @@ import app_web
 import app_socket
 from pathlib import Path
 import os
+import sys
 from polaris import Polaris
 from shr import LifecycleController, LifecycleEvent
 import signal
@@ -95,6 +96,8 @@ async def main():
             if lifecycle._event == LifecycleEvent.RESTART:
                 logger.info("==MAIN== Restarting driver stack...in 5 sec")
                 await asyncio.sleep(5)
+                logger.info("==MAIN== Restarting now...")
+                os.execv(sys.executable, [sys.executable] + sys.argv)
                 continue
             elif lifecycle._event == LifecycleEvent.INTERRUPT:
                 logger.info("==MAIN== Interrupt. Exiting.")

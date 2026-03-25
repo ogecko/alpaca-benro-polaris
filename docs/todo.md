@@ -1,6 +1,14 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Development Todo List
+- [X] Detect when multiple instances of driver running
+- [X] Add a stop and restart driver (to allow pickup of python code changes)
+- [X] Document how to autostart the driver on win11
+- [X] Improve co-ordination of Gimbal Lock handling
+- [ ] Correctly reset pid SP when removing sync points or reseting back to Single Point Alignment
+- [ ] Ramp pulse guiding acceleration to reduce overshoot
+- [ ] PEC control (how to detect phase?)
+- [ ] Create video of new features - Large Roll Direction Maintain, Large -ve Az, Pulse Guide Accuracy, PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy, Stop and Restart Driver
 
 ## Final Release Checklist
 - [X] Complete todo checklist
@@ -17,8 +25,9 @@
 - [X] Final Changes - git checkout dev2_2, git pull origin dev2_2
 - [X]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json
 - [X]     Build Pilot for release
-- [X]     Confirm all Alpaca Driver tests pass
-- [X]     Confirm all Alpaca Pilot tests pass
+- [X]     Confirm all Alpaca ConformU tests pass
+- [X]     Confirm all Alpaca Driver unit tests pass
+- [X]     Confirm all Alpaca Pilot unit tests pass
 - [X] Create Branch - releases/2_1_0 based on dev2_2
 - [X] Merge into main - git checkout main, git pull origin main, git merge releases/v2.2.0, git push origin main
 - [X] Draft Github New Release and Tag - on main branch
@@ -103,7 +112,7 @@
 - [X] Alpaca pilot Tripod Level Correction
 - [x] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
 - [X] Fix Reduce number of Nina plate-solve and sync to get to target
-- [ ] Fix SYNC events are not cleared in client after driver restart
+- [X] Fix SYNC events are not cleared in client after driver restart
 
 ## Alpaca Speed Control
 - [X] Refactor low level SLOW and FAST speed controler
