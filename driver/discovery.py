@@ -24,7 +24,8 @@ async def socket_client(logger: Logger, lifecycle: LifecycleController):
 
 
 DISCOVERY_KEYWORD = "alpacadiscovery1"
-IPV6_GROUP = "ff12::a1:9aca"
+#IPV6_GROUP = "ff12::a1:9aca"   # site-local scope
+IPV6_GROUP = "ff02::"       # link-local scope
 
 class AlpacaDiscoveryResponder:
     def __init__(self, logger: Logger):
@@ -60,10 +61,23 @@ class AlpacaDiscoveryResponder:
     def _create_ipv6_receive_socket(self):
         sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+        except OSError:
+            pass
         sock.bind(("::", Config.alpaca_discovery_port))
         group_bin = socket.inet_pton(socket.AF_INET6, IPV6_GROUP)
-        mreq = group_bin + struct.pack("@I", 0)  # interface index 0 = all
-        sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, mreq)
+        joined = False
+        for if_index, if_name in socket.if_nameindex():
+            try:
+                mreq = group_bin + struct.pack("@I", if_index)
+                sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, mreq)
+                self.logger.info(f"Joined IPv6 multicast on {if_name}")
+                joined = True
+            except OSError:
+                continue
+        if not joined:
+            self.logger.warning("No IPv6 multicast interfaces available")
         sock.setblocking(False)
         return sock
 
@@ -74,6 +88,8 @@ class AlpacaDiscoveryResponder:
         return sock
 
     async def _poll_socket(self, sock, label):
+        if sock is None:
+            return
         loop = asyncio.get_running_loop()
         while self.running:
             try:
@@ -95,10 +111,18 @@ class AlpacaDiscoveryResponder:
                 await asyncio.sleep(self.poll_interval)
 
     async def start(self):
-        self.ipv4_rsock = self._create_ipv4_receive_socket()
-        self.ipv6_rsock = self._create_ipv6_receive_socket()
-        self.ipv4_tsock = self._create_ipv4_transmit_socket()
-        self.ipv6_tsock = self._create_ipv6_transmit_socket()
+        try:
+            self.ipv6_rsock = self._create_ipv6_receive_socket()
+            self.ipv6_tsock = self._create_ipv6_transmit_socket()
+        except Exception as e:
+            self.logger.warning(f"IPv6 discovery disabled: {e}")
+            self.ipv6_rsock = None        
+        try:
+            self.ipv4_rsock = self._create_ipv4_receive_socket()
+            self.ipv4_tsock = self._create_ipv4_transmit_socket()
+        except Exception as e:
+            self.logger.warning(f"IPv4 discovery disabled: {e}")
+            self.ipv4_rsock = None        
         self.tsock = self._create_transmit_socket()
         self.running = True
         self.logger.info(f"==STARTUP== Serving Alpaca Discovery on :{Config.alpaca_discovery_port}")
