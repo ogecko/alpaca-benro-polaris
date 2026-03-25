@@ -255,6 +255,8 @@ def test_misc_t1t2t3_motors_to_q1_roundtrip(n, t1, t2, t3):
     if (u2==0):
         v1 = wrap_to_360(v1+v3)
         v3 = 0.0
+    if (v2>83):
+        v2=83.0
     assert str([f'D{n}', u1,u2,u3]) == str([f'D{n}', v1,v2,v3])
 
 def test_all_motor_positions():

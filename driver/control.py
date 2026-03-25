@@ -526,7 +526,7 @@ def motorQ_C2B_to_theta(motorQ_C2B, lastPos=None):
     return theta1, theta2, theta3
 
 
-def cameraQ_C2T_to_altazroll(cameraQ_C2T):
+def cameraQ_C2T_to_azaltroll(cameraQ_C2T):
     # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
     tBore = cameraQ_C2T.rotate([0, 0, -1])
 
@@ -1970,7 +1970,7 @@ class SyncManager:
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if (Config.advanced_alignment and Config.advanced_control):
-            _,_,_,_,_,p_roll = quaternion_to_angles(self.baseQ_B2T * self.polaris._q1)
+            _,_,p_roll = cameraQ_C2T_to_azaltroll(self.baseQ_B2T * self.polaris._q1)
             entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using baseQ_B2T
         self.sync_history.append(entry)
         self.optimize_roll_adj()

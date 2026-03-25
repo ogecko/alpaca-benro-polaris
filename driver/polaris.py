@@ -28,8 +28,6 @@ import time
 import re
 import asyncio
 import ephem
-import json
-import logging
 import numpy as np
 from collections import deque
 from pyquaternion import Quaternion
@@ -38,7 +36,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import quaternion_to_angles, theta_to_motorQ_C2B, motorQ_C2B_to_theta, cameraQ_C2T_to_altazroll, calculate_angular_velocity, is_angle_same, wrap_to_360, wrap_to_180
+from control import theta_to_motorQ_C2B, motorQ_C2B_to_theta, cameraQ_C2T_to_azaltroll, calculate_angular_velocity, is_angle_same, wrap_to_360, wrap_to_180
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
@@ -847,7 +845,7 @@ class Polaris:
         return theta_meas, omega_meas, omega_ref
 
     def extract_sky_positions(self, cameraQ):
-        az, alt, roll = cameraQ_C2T_to_altazroll(cameraQ)
+        az, alt, roll = cameraQ_C2T_to_azaltroll(cameraQ)
         ra, dec = self.altaz2radec(alt, az)
         posa, para = self._sm.roll2pa(az, alt, roll)
         return az, alt, roll, ra, dec, posa, para
