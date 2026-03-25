@@ -2,7 +2,7 @@
 
 # Installation Guide 
 [Alpaca Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Alpaca MacOS](./installation_macos.md) | 
-[Startup](#running-the-alpaca-benro-polaris-driver) | 
+[Startup](#running-the-alpaca-driver) | 
 [Workflow](#imaging-with-alpaca-driver-v20-and-nina) | 
 [Stellarium](#installing-stellarium-optional) | 
 [Sky Safari](#seting-up-sky-safari-pro-optional) | 
