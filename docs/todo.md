@@ -2,12 +2,12 @@
 
 # Development Todo List
 - [X] Detect when multiple instances of driver running
+- [X] Add a stop and restart driver (to allow pickup of python code changes)
+- [ ] Document how to autostart the driver on win11
 - [ ] Correctly reset pid SP when removing sync points or reseting back to Single Point Alignment
 - [ ] Ramp pulse guiding acceleration to reduce overshoot
 - [ ] PEC control (how to detect phase?)
 - [ ] Improve co-ordination of Gimbal Lock handling
-- [ ] Document how to autostart the driver on win11
-- [ ] Add a restart driver to pickup code changes
 - [ ] Create video of new features - Large Roll Direction Maintain, Large -ve Az, Pulse Guide Accuracy, PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy, Stop and Restart Driver
 
 ## Final Release Checklist

@@ -49,7 +49,8 @@
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
 - **[Pano Orbitals]**: Document how to capture the moon or other orbitals in a workflow
 - **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
-- **[Stop Driver]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify which instance can be stopped.
+- **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
+- **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
 
 ## New Features (enabled by Nina)
 

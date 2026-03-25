@@ -77,14 +77,18 @@
                 </q-item-section>
               </q-item>
 
-              <!-- Alpaca Driver STOP -->
+              <!-- Alpaca Driver RESTART and STOP -->
               <q-item v-if="dev.restAPIConnected" :inset-level="0.5">
-                <q-item-section><q-item-label>Stop the Alpaca Driver at {{ alpacaHost }}:{{ restAPIPort }}</q-item-label></q-item-section>
-                <q-item-section side>
-                  <q-btn label="STOP" icon="mdi-alert-octagon"  class="fixedWidth" @click="onStopDriver"/>
+                <q-item-section><q-item-label>Control the Alpaca Driver at {{ alpacaHost }}:{{ restAPIPort }}</q-item-label></q-item-section>
+                <q-item-section side >
+                  <div class="row">
+                    <q-btn label="RESTART" icon="mdi-restart"  stack class="fixedWidth" @click="onRestartDriver"/>
+                    <q-btn label="STOP" icon="mdi-alert-octagon"  stack class="fixedWidth" @click="onStopDriver"/>
+                  </div>
                 </q-item-section>
               </q-item>
               
+
             </q-list>
         </q-card>
       </div>      
@@ -346,6 +350,16 @@ onUnmounted(() => {
 
 
 // ------------------- Event Handlers ---------------------
+
+async function onRestartDriver() {
+    $q.notify({
+      message: 'Requesting Alpaca Driver to restart in 5 seconds.',
+      type: 'positive', position: 'top', timeout: 5000,
+      actions: [{ icon: 'mdi-close', color: 'white' }]
+    })
+  await dev.alpacaRestartDriver()
+}
+
 
 function onStopDriver() {
     $q.notify({

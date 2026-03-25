@@ -191,6 +191,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:SetAlignment', `{"azimuth": ${az}, "altitude": ${alt}}`)
     },
 
+    async alpacaRestartDriver() {
+      await this.apiAction<void>('Polaris:RestartDriver')
+    },
+
     async alpacaStopDriver() {
       await this.apiAction<void>('Polaris:StopDriver')
     },

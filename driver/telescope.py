@@ -1540,14 +1540,14 @@ class action:
             logger.warn(f'{actionName}: Invalid JSON Parameters {raw_params}')
             raise HTTPBadRequest(title='Bad Action Request', description='Invalid Parameters format')
 
-        if actionName == "Polaris:RestartDriver":
-            await lifecycle.signal(LifecycleEvent.RESTART)
-            resp.text = await PropertyResponse('RestartDriver ok', req)  
-
         if actionName == "Polaris:StopDriver":
             resp.text = await PropertyResponse('StopDriver ok', req)  
             await asyncio.sleep(2)
             await lifecycle.signal(LifecycleEvent.STOP)
+
+        elif actionName == "Polaris:RestartDriver":
+            await lifecycle.signal(LifecycleEvent.RESTART)
+            resp.text = await PropertyResponse('RestartDriver ok', req)  
 
         elif actionName == "Polaris:ConfigFetch":
             fetched_params = Config.as_dict()
