@@ -47,7 +47,6 @@
 - **[Pano Recenter]**  Add btn on the Dashboard to save the current pointing orientation into the PanoGrid, recentering it in space.
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
-- **[Pano Orbitals]**: Document how to capture the moon or other orbitals in a workflow
 - **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
 - **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
 - **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
@@ -67,7 +66,9 @@
 - **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
 
 ## Documentation (Alpaca Driver)
-- **[Guiding Calibration]**: Provide best practice recommendations in choosing a guiding calibration location
+- **[Auto Startup]**: Define how to make the Alpaca Driver start automatically on Windows (installation.md, Step 5)
+- **[Guiding Calibration]**: Provide best practice recommendations in choosing a guiding calibration location (guiding.md, Section 4)
+- **[Pano Orbitals]**: Descrone how to capture the moon or other orbitals in a workflow (pilot.md, Section 4.4)
 - **[Troublshooting A6]**: How to troublshoot shortcut error messages on Windows
 - **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 
