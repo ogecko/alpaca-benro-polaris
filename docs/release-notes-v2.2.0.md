@@ -51,6 +51,7 @@
 - **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
 - **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
 - **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
+- **[IPv6 Discovery]**: Revamped IPv6 Alpaca Discovery for support on MacOS, Linux and Windows.
 
 ## New Features (enabled by Nina)
 
