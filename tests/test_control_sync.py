@@ -17,6 +17,8 @@ import math
 class PID_Controller:
     def measure(self, alpha, theta):
         return
+    def reset_sp(self, alpha):
+        return
 
 class Polaris:
     def __init__(self):
