@@ -36,7 +36,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import theta_to_motorQ_C2B, motorQ_C2B_to_theta, cameraQ_C2T_to_azaltroll, calculate_angular_velocity, is_angle_same, wrap_to_360, wrap_to_180
+from control import theta_to_motorQ_C2B, motorQ_C2B_to_theta, cameraQ_C2T_to_azaltroll, wrap_to_360, wrap_to_180
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
@@ -223,7 +223,6 @@ class Polaris:
         self._theta_meas = None                     # The latest set of Polaris 1-aligned motor axis angles [theta1, theta2, theta3] measured from q1
         self._theta_state = None                    # The state of 1-aligned motor axis angles [theta1, theta2, theta3] estimated by KF
         self._omega_meas = None                     # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
-        self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._cm = CalibrationManager()
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         self._motors = {
@@ -784,7 +783,6 @@ class Polaris:
         p_alt = -float(arg_dict['alt'])     # from Polaris direct
         theta_meas = np.array(motorQ_C2B_to_theta(motorQ_meas, self._pid._lp))
 
-        self._history.append([dt_now, *theta_meas])          # deque collection, so it automatically throws away stuff older than 6 samples ago
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
         omega_meas = omega_ref                          # this is our best measurement of omega, dont use calc from histoy ωt - ωt-6
 

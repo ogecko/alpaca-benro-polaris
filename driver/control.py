@@ -306,40 +306,6 @@ def fmt4(delta):
     return f'{rad2hms(delta[0]/180*math.pi)[:8]}, {deg2dms(delta[1])[:8]}, {deg2dms(delta[2])[:8]}'
 
 
-def calculate_angular_velocity(history):
-    """
-    Computes angular velocity from the first and last entries in a history buffer.
-    Each entry must be a list or tuple: [timestamp, theta1, theta2, theta3]
-
-    Returns omega : ndarray
-        Angular velocity vector [ω₁, ω₂, ω₃] in degrees per second.
-        Returns [0.0, 0.0, 0.0] if input is insufficient or invalid.
-    """
-    try:
-        if history is None or len(history) < 2:
-            return np.zeros(3)
-
-        # Use first and last entries
-        t_start, *theta_start = history[0]
-        t_end,   *theta_end   = history[-1]
-
-        if not isinstance(t_start, datetime.datetime) or not isinstance(t_end, datetime.datetime):
-            return np.zeros(3)
-
-        dt = (t_end - t_start).total_seconds()
-        if dt <= 0:
-            return np.zeros(3)
-
-        # Wrap-safe angular velocity
-        omega = np.array([
-            angular_difference(start, end) / dt
-            for start, end in zip(theta_start, theta_end)
-        ])
-        return omega
-
-    except Exception:
-        return np.zeros(3)
-
 def calculate_angular_velocity_vector(q0: Quaternion, q1: Quaternion, dt: float):
     """
     Compute angular velocity vector (rad/sec) from two quaternions over a time interval.
