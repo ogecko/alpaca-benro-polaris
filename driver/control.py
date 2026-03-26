@@ -1213,6 +1213,7 @@ class PID_Controller():
         self.is_tracking = False                             # tracking target body
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
+        self.inhibit_ff_ticks = 0                            # number of ticks to supress FF after any SP change
         self.omega_kp = np.zeros(3, dtype=float)       # omega1-3 due to proportional error
         self.omega_ki = np.zeros(3, dtype=float)       # omega1-3 due to integrated error
         self.omega_kd = np.zeros(3, dtype=float)       # omega1-3 due to velocity damping (derivative of position)
@@ -1291,6 +1292,7 @@ class PID_Controller():
         self.alpha_ref = self.alpha_meas
         self.alpha_sp = self.alpha_meas                  
         self.reset_offsets() 
+        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
 
     def body_pa(self):
         return wrap_to_180(0.0 - rad2deg(self.body.parallactic_angle()))
@@ -1399,6 +1401,8 @@ class PID_Controller():
     def set_pid_mode(self, newMode):
         if newMode in ['PRESETUP', 'HOMING', 'PARKING', 'PARK', 'IDLE', 'AUTO', 'TRACK', 'LIMIT', ]:
             self.mode = newMode
+            self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+
 
     def set_no_target(self):
         self.target_type = 'NONE'
@@ -1418,6 +1422,7 @@ class PID_Controller():
         self.alpha2body(alpha)
         self.delta_sp[:] = self.body2delta()
         self.alpha_sp[:] = alpha
+        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1434,6 +1439,7 @@ class PID_Controller():
         self.reset_offsets()      # Only reset offsets on axes that are changed
         self.target_type = "DELTA"
         self.delta_sp = delta
+        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1443,6 +1449,7 @@ class PID_Controller():
         self.delta_sp[axis] = sp
         self.delta_v_sp[axis] = 0
         self.delta_offst[axis] = 0
+        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
         
@@ -1452,6 +1459,7 @@ class PID_Controller():
         self.delta_sp[axis] = self.delta_sp[axis] + sp
         self.delta_v_sp[axis] = 0
         self.delta_offst[axis] = 0
+        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1659,12 +1667,13 @@ class PID_Controller():
         self.time_meas = self.time_meas + self.dt
 
     def feed_forward(self):
-        # Feed forward tracking velocities (when in track mode and no delta_ref change)
+        # inhibit FF after any step SP change.
+        if self.ff_inhibit_ticks > 0:
+            self.ff_inhibit_ticks -= 1
+            return
         self.omega_ff = np.zeros(3, dtype=float)
         if self.mode == "TRACK":
-            delta_ref_change = self.delta_ref - self.delta_ref_last
-            delta_ref_nochange = np.sum(delta_ref_change ** 2) < 2      # ignore changes greather than 2 degrees
-            if self.dt > 0 and (delta_ref_nochange and self.polaris._tracking):
+            if self.dt > 0 and self.polaris._tracking:
                 # Desired angular velocity vector based on change in cameraQ_ref
                 omega_topo = calculate_angular_velocity_vector(self.cameraQ_ref_last, self.cameraQ_ref, self.dt)
                 omega_base = self.polaris._sm.cameraQ_vec_to_motorQ_vec(omega_topo, self.cameraQ_ref)   # Convert to base frame Sky tracking velocity
