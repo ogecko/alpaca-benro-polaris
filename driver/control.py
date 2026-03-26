@@ -1950,7 +1950,8 @@ class SyncManager:
                                    
 
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
-        new_vec = azalt_to_vector(a_az, a_alt)
+        new_pred_vec = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
+        new_obs_vec  = azalt_to_vector(a_az, a_alt)
         threshold_rad = math.radians(2.5)   # 2.5 degrees
 
         # Remove nearby sync points
@@ -1959,8 +1960,12 @@ class SyncManager:
                 continue
             if entry["a_az"] is None or entry["a_alt"] is None:
                 continue
-            existing_vec = azalt_to_vector(entry["a_az"], entry["a_alt"])
-            if v_angular_distance(new_vec, existing_vec) < threshold_rad:
+
+            existing_pred_vec = azalt_to_vector(entry["p_az"], entry["p_alt"])
+            existing_obs_vec  = azalt_to_vector(entry["a_az"], entry["a_alt"])
+            
+            if (v_angular_distance(new_pred_vec, existing_pred_vec) < threshold_rad or
+                v_angular_distance(new_obs_vec,  existing_obs_vec)  < threshold_rad):
                 self.sync_remove(entry["timestamp"], optimise=False)
 
         active_entries = [e for e in self.sync_history if not e.get("deleted", False)]
