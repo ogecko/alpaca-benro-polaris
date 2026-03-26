@@ -139,7 +139,11 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     From cameraQ_C2T, you can compute: Azimuth, Altitude, Roll.
 #
 # Forward Kinematics (Motors → Sky)
-#     motorQ_C2B = theta_to_motorQ_C2B(θ1, θ2, θ3)
+#     q1 from Polaris
+#     theta_meas = motorQ_C2B_to_theta(q1)
+#     omega_meas = use omega_ref rather than calc(theta_meas_t - theta_meas_t-6)/(dt*6)
+#     theta_state = KF(theta_meas, omega_meas)
+#     motorQ_C2B = theta_to_motorQ_C2B(theta_state)
 #     cameraQ_C2T = motorQ_to_cameraQ(motorQ_C2B) = R(-r) ∘ baseQ_B2T * motorQ_C2B 
 #     Az, Alt, Roll = cameraQ_C2T_to_azaltroll(cameraQ_C2T)
 #     celestrialQ_T2E = pyephem(az,alt); From celestrialQ_T2E you derive RA-Dec-PA
@@ -1122,7 +1126,7 @@ class MotorSpeedController:
                     pwm_rate = base if was_on else next_up
                     duration = 0.5 * (1 - self.duty_cycle if was_on else self.duty_cycle)
                     await self._messenger.send_slow_move_msg(pwm_rate)
-                    # self._logger.info(f"Motor {self.axis} PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
+                    # self._logger.info(f"Motor {self.axis+1} RateDPS: {self.rate_dps:.4f}, PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
                     self.pwm_phase = "OFF" if was_on else "ON"
                     self.last_switch_time = now
                     self.next_dispatch_time = now + duration
@@ -1788,6 +1792,9 @@ class PID_Controller():
         # send control to motor when moving
         if self.is_moving and self.mode in ['AUTO', 'TRACK', 'HOMING', 'PARKING']:
             for axis in range(3):
+                # if Config.log_polaris_ble and axis==1:
+                #     q = self.polaris._q1
+                #     self.logger.info(f"Motor 2 omega_meas1-3: {self.polaris._omega_meas[0]:+.5f} {self.polaris._omega_meas[1]:+.5f} {self.polaris._omega_meas[2]:+.5f}, t_meas: {self.theta_meas[1]:.4f}, t_ref: {self.theta_ref[1]:.4f}, kp: {self.omega_kp[1]:.4f}, ki: {self.omega_ki[1]:.4f}, kd: {self.omega_kd[1]:.4f}, ff: {self.omega_ff[1]:.4f}, op: {self.omega_op[1]:.4f}")
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
         # If we have goto timeout or stopped moving; while  in AUTO, HOMING or PARKING, go to IDLE
         if (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']:

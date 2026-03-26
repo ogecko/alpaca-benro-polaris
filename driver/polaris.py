@@ -785,8 +785,8 @@ class Polaris:
         theta_meas = np.array(motorQ_C2B_to_theta(motorQ_meas, self._pid._lp))
 
         self._history.append([dt_now, *theta_meas])          # deque collection, so it automatically throws away stuff older than 6 samples ago
-        omega_meas = calculate_angular_velocity(self._history)
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
+        omega_meas = omega_ref                          # this is our best measurement of omega, dont use calc from histoy ωt - ωt-6
 
         # Store all the polaris mechanical angles and velocities
         with self._lock:
