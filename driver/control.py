@@ -1282,7 +1282,9 @@ class PID_Controller():
         self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor angular reference position
         self.theta_ref_last = np.zeros(3, dtype=float) # theta1-3 motor angular reference position of last control step
 
-    def reset_sp(self):                                      # align all SP with alpha_meas current position
+    def reset_sp(self, alpha_meas=None):               # align all SP with alpha_meas (defaults to current pid measured position)
+        if alpha_meas is not None:
+            self.alpha_meas = alpha_meas
         self.alpha2body(self.alpha_meas)
         self.delta_ref = self.body2delta()           
         self.delta_sp = self.delta_ref            
@@ -1873,6 +1875,7 @@ class SyncManager:
         self.tilt_adj_mag = 0                   # baseQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # baseQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
+        self.refresh_pid_setpoints_from_q1()
         self.logSyncDataReset()
 
     def standard_entry(self):
@@ -1934,6 +1937,17 @@ class SyncManager:
             omega_topo = q_roll_undo.rotate(omega_topo)
         return self.baseQ_B2T_inv.rotate(omega_topo)
 
+    def refresh_pid_setpoints_from_q1(self):
+        """
+        Called after any sync reset, delete, or alignment model update.
+        Re-derives all PID setpoints from current motor quaternion + new alignment model,
+        """   
+        if self.polaris._q1 is None:
+            return
+        cameraQ = self.motorQ_to_cameraQ(self.polaris._q1)     
+        az, alt, roll = cameraQ_C2T_to_azaltroll(cameraQ)
+        self.polaris._pid.reset_sp(np.array([az,alt,roll], dtype=float))
+                                   
 
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
         new_vec = azalt_to_vector(a_az, a_alt)
@@ -1963,6 +1977,7 @@ class SyncManager:
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
         self.optimize_baseQ_B2T()
+        self.refresh_pid_setpoints_from_q1()
         self.logSyncData()
 
     def sync_roll(self, a_roll):
@@ -1973,6 +1988,7 @@ class SyncManager:
             entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using baseQ_B2T
         self.sync_history.append(entry)
         self.optimize_roll_adj()
+        self.refresh_pid_setpoints_from_q1()
         self.logSyncData()
 
     def sync_remove(self, timestamp, optimise=True):
@@ -1988,6 +2004,7 @@ class SyncManager:
             if optimise:
                 self.optimize_baseQ_B2T()
                 self.optimize_roll_adj()
+                self.refresh_pid_setpoints_from_q1()
             self.logSyncData()
         else:
             self.logger.warning(f"No sync entry found with timestamp: {timestamp}")
@@ -2103,7 +2120,7 @@ class SyncManager:
 
         if Config.log_quest_model:
             for i, entry in enumerate(self.sync_history):
-                if entry["deleted"]:
+                if entry["deleted"] or (entry["a_az"] is None):
                     continue
                 msg = f"Sync[{i}] | Timestamp: {entry['timestamp']} | Pred AzAlt: ({entry['p_az']:.2f}, {entry['p_alt']:.2f}) "
                 msg += f"| Obs AzAlt: ({entry['a_az']:.2f}, {entry['a_alt']:.2f}) | Obs RADec: ({entry['a_ra']:.2f}, {entry['a_dec']:.2f}) "

@@ -508,53 +508,6 @@ class Polaris:
         p_az = a_az - self._adj_sync_azimuth
         return p_alt, p_az
 
-    async def sync_to_azalt(self, a_az, a_alt):
-        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
-        self.logger.info(f"->> Polaris: SYNC Observed   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
-        await self.sync_telescope_pointing_models(a_az=a_az, a_alt=a_alt)
-        return
-
-    async def sync_to_radec(self, a_ra, a_dec):
-        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
-        self.logger.info(f"->> Polaris: SYNC Observed   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} ({syncmsg})")
-        await self.sync_telescope_pointing_models(a_ra=a_ra, a_dec=a_dec)
-        return
-
-    async def sync_telescope_pointing_models(self, a_ra=None, a_dec=None, a_az=None, a_alt=None, name=None):
-        if a_ra is not None and a_dec is not None:
-            a_alt, a_az = self.radec2altaz(a_ra, a_dec)
-        elif a_az is not None and a_alt is not None:
-            a_ra, a_dec = self.altaz2radec(a_alt, a_az)
-        else:
-            self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
-            return
-
-        if Config.advanced_alignment and Config.advanced_control:
-            # Use Multi-Point Alignment and QUEST Model to determine Optimal Quaternion offset
-            self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)}")
-            self._sm.sync_az_alt(a_ra, a_dec, a_az, a_alt)
-
-        else:
-            # Use Single-Point Alignment and Alt/Az Sync Pointing model, send through to Polaris
-            asyncio.create_task(self.send_cmd_star_alignment(a_az, a_alt))
-
-        self._rightascension = a_ra 
-        self._declination = a_dec
-        self._targetrightascension = a_ra
-        self._targetdeclination = a_dec
-        self._altitude = a_alt
-        self._azimuth = a_az
-        self._pid.alpha_sp[0] = a_az
-        self._pid.alpha_sp[1] = a_alt
-        self._pid.delta_sp[0] = a_ra * 15
-        self._pid.delta_sp[1] = a_dec
-        corrected_position_angle, _ = self._sm.roll2pa(a_az, a_alt, self._roll) # to preserve roll
-        self._pid.delta_sp[2] = corrected_position_angle
-        self.logger.info(f"->> Polaris: DeltaSP    RA {hr2hms(self._pid.delta_sp[0]/15)} Dec {deg2dms(self._pid.delta_sp[1])} PA {deg2dms(self._pid.delta_sp[2])}")
-        self.logger.info(f"->> Polaris: DeltaOfft  RA {hr2hms(self._pid.delta_offst[0]/15)} Dec {deg2dms(self._pid.delta_offst[1])} PA {deg2dms(self._pid.delta_offst[2])}")
-
-        return
-
     async def skip_compass_alignment(self, compass):
             await self.send_cmd_compass_alignment(compass)
             await self.send_cmd_284_query_current_mode()
@@ -2026,11 +1979,52 @@ class Polaris:
         if Config.advanced_rotator and Config.advanced_control:
             self.logger.info(f"->> Polaris: Sync Absolute Observed   RollAngle {deg2dms(roll_angle)}, Current {deg2dms(self.roll)}")
             self._sm.sync_roll(roll_angle)
-            position_angle,_ = self._sm.roll2pa(self._pid.alpha_sp[0], self._pid.alpha_sp[1], roll_angle)
-            self._pid.alpha_sp[2] = roll_angle
-            self._pid.delta_sp[2] = position_angle
         else:
             self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
+
+    async def sync_to_azalt(self, a_az, a_alt):
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
+        self.logger.info(f"->> Polaris: SYNC Observed   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
+        await self.sync_telescope_pointing_models(a_az=a_az, a_alt=a_alt)
+        return
+
+    async def sync_to_radec(self, a_ra, a_dec):
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
+        self.logger.info(f"->> Polaris: SYNC Observed   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} ({syncmsg})")
+        await self.sync_telescope_pointing_models(a_ra=a_ra, a_dec=a_dec)
+        return
+
+    async def sync_telescope_pointing_models(self, a_ra=None, a_dec=None, a_az=None, a_alt=None, name=None):
+        if a_ra is not None and a_dec is not None:
+            a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+        elif a_az is not None and a_alt is not None:
+            a_ra, a_dec = self.altaz2radec(a_alt, a_az)
+        else:
+            self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
+            return
+
+        if Config.advanced_alignment and Config.advanced_control:
+            # Use Multi-Point Alignment and QUEST Model to determine Optimal Quaternion offset
+            self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)}")
+            self._sm.sync_az_alt(a_ra, a_dec, a_az, a_alt)
+
+        else:
+            # Use Single-Point Alignment and Alt/Az Sync Pointing model, send through to Polaris
+            asyncio.create_task(self.send_cmd_star_alignment(a_az, a_alt))
+            self._rightascension = a_ra 
+            self._declination = a_dec
+            self._targetrightascension = a_ra
+            self._targetdeclination = a_dec
+            self._altitude = a_alt
+            self._azimuth = a_az
+            self._pid.alpha_sp[0] = a_az
+            self._pid.alpha_sp[1] = a_alt
+            self._pid.delta_sp[0] = a_ra * 15
+            self._pid.delta_sp[1] = a_dec
+            corrected_position_angle, _ = self._sm.roll2pa(a_az, a_alt, self._roll) # to preserve roll
+            self._pid.delta_sp[2] = corrected_position_angle
+
+        return
 
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
         self._trackingrate = 0
