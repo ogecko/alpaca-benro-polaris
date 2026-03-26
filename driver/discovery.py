@@ -39,6 +39,8 @@ class AlpacaDiscoveryResponder:
 
     # ------------------------------------------------------------------
     # Socket constructors
+    # All sockets are left in blocking mode — recvfrom is called inside
+    # asyncio.to_thread with a timeout, so blocking is correct here.
     # ------------------------------------------------------------------
 
     def _create_ipv4_receive_socket(self):
@@ -52,13 +54,11 @@ class AlpacaDiscoveryResponder:
             pass
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.bind(("0.0.0.0", Config.alpaca_discovery_port))
-        sock.setblocking(False)
         return sock
 
     def _create_ipv4_transmit_socket(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setblocking(False)
         return sock
 
     def _create_ipv6_receive_socket(self):
@@ -68,6 +68,7 @@ class AlpacaDiscoveryResponder:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         except (AttributeError, OSError):
             pass
+
         # Force IPv6-only so it does not fight the IPv4 socket on the same port.
         # This is the default on Windows but must be set explicitly on Linux/macOS.
         try:
@@ -94,7 +95,6 @@ class AlpacaDiscoveryResponder:
         if not joined:
             self.logger.warning("No IPv6 multicast interfaces available")
 
-        sock.setblocking(False)
         return sock
 
     def _create_ipv6_transmit_socket(self):
@@ -105,33 +105,51 @@ class AlpacaDiscoveryResponder:
             sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
         except OSError:
             pass
-        sock.setblocking(False)
         return sock
 
     # ------------------------------------------------------------------
     # Polling loop — one per receive socket
     # ------------------------------------------------------------------
 
+    def _blocking_recvfrom(self, rsock):
+        """
+        Blocking recv with a 1 s timeout, safe to run inside asyncio.to_thread.
+        Returns (data, addr) on success, or (None, None) on timeout.
+
+        The 1 s timeout means the event loop checks self.running at least
+        once per second, giving clean and prompt shutdown on all platforms.
+        """
+        rsock.settimeout(1.0)
+        try:
+            return rsock.recvfrom(1024)
+        except socket.timeout:
+            return None, None
+
     async def _poll_socket(self, rsock, tsock, label: str):
         """
         Wait for discovery broadcasts/multicasts and reply on the matching
-        transmit socket.  Uses loop.sock_recvfrom so the event loop drives
-        readiness; avoids spinning on BlockingIOError.
+        transmit socket.
+
+        Uses asyncio.to_thread with a blocking socket + 1 s timeout so it
+        never spins and yields back to the event loop each iteration.
+        Compatible with Python 3.9+ on Windows, Linux, and macOS:
+          - avoids loop.sock_recvfrom  (requires Python 3.11)
+          - avoids loop.add_reader     (NotImplementedError on Windows ProactorEventLoop)
         """
         if rsock is None:
             return
 
-        loop = asyncio.get_running_loop()
-
         while self.running:
             try:
-                data, addr = await loop.sock_recvfrom(rsock, 1024)
+                data, addr = await asyncio.to_thread(self._blocking_recvfrom, rsock)
             except OSError as e:
-                # Socket was closed during shutdown — exit cleanly.
                 if not self.running:
                     return
                 self.logger.warning(f"{label} recv error: {e}")
-                await asyncio.sleep(0.1)
+                continue
+
+            if data is None:
+                # Timeout — loop back and check self.running.
                 continue
 
             try:
@@ -146,7 +164,7 @@ class AlpacaDiscoveryResponder:
                 self.logger.info(f"{label} Discovery request from {addr}: {message!r}")
 
             try:
-                await loop.sock_sendto(tsock, self.response_to_send, addr)
+                tsock.sendto(self.response_to_send, addr)
                 if Config.log_alpaca_discovery:
                     self.logger.info(f"{label} Sent response to {addr}")
             except OSError as e:
