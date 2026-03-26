@@ -120,7 +120,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     +Y_E = RA = 6h, Dec = 0°;                     Position Angle = the angle between Celestrial North Pole and Camera up +X_C; PA = ParalaticAngle + Roll
 #                                                   Paralatic Angle = the angle between Celestrial North Pole and Zenth (at the RA/Dec target)
 #
-# We define three quaternions that rotates vectors from one reference frame to another
+# We define four quaternions that rotates vectors from one reference frame to another
 # motorQ_C2B - Motor Orientation Quaternion, q1
 #     Rotates vectors expressed in Camera frame into Mount Base frame.
 #     It depends only on motor angles.
