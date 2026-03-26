@@ -108,19 +108,23 @@ Once PHD2 has been installed, you need to perform some initial setup. This inclu
 Connecting PHD2 to the guide camera and Alpaca Driver (one time setup)
 1. Ensure your **guide camera** is physically connected and power it on.
 2. Ensure the **Alpaca Driver** is running and connected to the Polaris.
-2. Launch **PHD2**
-2. Select **Guide** from the **PHD2** menubar, then **Connect Equipment**
-3. Choose **New Using Wizard**, from the **Manage Profiles** dropdown 
-3. Camera: select your **guide camera** from the dropdown list
-4. Scope: set your **Guide scope focal length** eg 190mm for SV106
-5. Click **Next**
-4. Mount: select **Alpaca Benro Polaris Telescope (ASCOM)** from the dropdown list
-5. Click **Next**
-5. Leave Adaptive Optices as None (not required), then click **Next**
-6. Rotator: select **Alpaca Benro Polaris Rotator (ASCOM)** from the dropdown list
-5. Click **Next**
-7. Finish the wizard and save the profile
-8. Click **Connect All**
+3. Launch **PHD2**
+4. Select **Guide** from the **PHD2** menubar, then **Connect Equipment**
+5. Choose **New Using Wizard**, from the **Manage Profiles** dropdown.
+    * Camera: select your **guide camera** from the dropdown list
+    * Scope: set your **Guide scope focal length** eg 190mm for SV106. Click **Next**.
+    * Mount: select **Alpaca Benro Polaris Telescope (ASCOM)** from the dropdown list. Click **Next**.
+    * Leave Adaptive Optices as None (not required), then click **Next**.
+    * Rotator: select **Alpaca Benro Polaris Rotator (ASCOM)** from the dropdown list. Click **Next**.
+    * Finish the wizard and save the profile.
+6. On the **Connect Equipment** diaglog, click the **Camera Setup** button
+    * You will find **Camera Setup** next to the Camera **Connect** button
+    * Change the Camera Mode to **16 bit**. Click **Ok**.
+    * Click **Connect All**, or **Connect** each device individually.
+8. Select **Guide** from the **PHD2** menubar, then **Advanced Settings**.
+    * Change to the **Camera** tab.
+    * Change the **Saturation by Max-ADU Value** to 65535.
+    * Click **Ok**
 
 ### 3.2 Guide Scope and Camera setup
 Focusing, Rotating and Aligning the guide camera (one time setup)
