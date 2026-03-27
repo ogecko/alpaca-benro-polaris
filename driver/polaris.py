@@ -29,7 +29,6 @@ import re
 import asyncio
 import ephem
 import numpy as np
-from collections import deque
 from pyquaternion import Quaternion
 from threading import Lock
 from logging import Logger
