@@ -108,11 +108,8 @@ async def publish_status(polaris: Polaris):
         await asyncio.sleep(0.2)
         statusdata = polaris.getStatus()
         payload = {"type": "status", "data": statusdata}
-        for ws, filter_args in subscriptions.get("status", {}).copy().items():
-            try:
-                await ws_safe_send_json(ws, payload)
-            except (WebSocketDisconnect, RuntimeError):
-                await _remove_client(ws)
+        for ws in list(subscriptions.get("status", {}).keys()):
+            await ws_safe_send_json(ws, payload)
 
 class PublishLogTopic(logging.Handler):
     _buffers: Dict[str, deque] = {}
