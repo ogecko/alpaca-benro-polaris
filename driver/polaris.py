@@ -78,11 +78,6 @@ class Polaris:
         self._polaris_mode = -1                     # Current Mode of the Polaris Device (1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=Sun, 8=**Astro**, 9=Program, 10=Video )
         self._polaris_L_bracket = False             # Current L Bracket mode
         self._polaris_msg_re = re.compile(r'(\d{3})@(.+?)#')
-        self._every_50ms_msg_to_send = None         # Fast Move message to send every 50ms
-        self._every_50ms_counter = 0                # Fast Move counter, incrementing every 50ms up to 1s
-        self._every_50ms_last_timestamp = None      # Fast Move counter, last 1s timestamp
-        self._every_50ms_last_alt = None            # Fast Move counter, last 1s polaris altitude
-        self._every_50ms_last_az = None             # Fast Move counter, last 1s polaris azimuth
         self._startup_timestamp = dt_now            # Timestamp for when the driver started.
         self._last_517_timestamp = dt_now           # Timestamp for last 517 Orientation Update message from Polaris.
         self._last_518_timestamp = dt_now           # Timestamp for last 518 Position Update message from Polaris.
@@ -335,7 +330,6 @@ class Polaris:
         self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
         self.lifecycle.create_task(self._every_1s_watchdog_check(), name="PolarisWatchdog")
         self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisWatchdog")
-        self.lifecycle.create_task(self.every_50ms_tick(), name="PolarisFastMove")
         if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
             self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
 
@@ -420,50 +414,6 @@ class Polaris:
             except Exception as e:
                 self._task_exception = e
                 break
-
-    async def every_50ms_tick(self):
-        while True:
-            try: 
-                await self.every_50ms_counter_check()
-                await asyncio.sleep(0.05)
-            except Exception as e:
-                self._task_exception = e
-                break
-
-    async def every_50ms_counter_check(self):
-        self._every_50ms_counter += 1
-        # At every log_perf_speed_interval take a measurement
-        if self._every_50ms_counter >= Config.log_perf_speed_interval * 1000 / 50:
-
-            # reset counter and store timestamps
-            self._every_50ms_counter = 0
-
-            # if we want to log performance data around speed travelled
-            if (Config.log_performance_data == 3):
-                curr_timestamp = datetime.datetime.now()
-                last_timestamp = self._every_50ms_last_timestamp
-                time = self.get_performance_data_time()
-                # if we have a last recording
-                if last_timestamp:
-                    r_curr = self._axis_ASCOM_slewing_rates
-                    r_last = self._every_50ms_last_a_rates
-                    r_constant = (r_curr[0] == r_last[0] and r_curr[1] == r_last[1] and r_curr[2] == r_last[2])
-                    d_ra = (self._p_rightascension - self._every_50ms_last_p_rightascension + 12) % 24 - 12
-                    d_dec = (self._p_declination - self._every_50ms_last_p_declination + 180) % 360 - 180
-                    d_alt = (self._p_altitude - self._every_50ms_last_p_altitude + 180) % 360 - 180
-                    d_az = (self._p_azimuth - self._every_50ms_last_p_azimuth + 180) % 360 - 180
-                    d_total = math.sqrt(d_alt*d_alt + d_az*d_az)
-                    d_sec = (curr_timestamp - last_timestamp).total_seconds()
-                    if d_sec>0:
-                        self.logger.info(f",DATA3,{time:.3f},{d_sec:.2f},{r_constant},{r_curr[0]:.2f},{d_az/d_sec:.7f},{r_curr[1]:.2f},{d_alt/d_sec:.7f},{d_ra/d_sec:.7f},{d_dec/d_sec:.7f},'{deg2dms(d_total/d_sec)}'")
-
-                # Store values for next run
-                self._every_50ms_last_timestamp = curr_timestamp
-                self._every_50ms_last_p_rightascension = self._p_rightascension
-                self._every_50ms_last_p_declination = self._p_declination
-                self._every_50ms_last_p_altitude = self._p_altitude
-                self._every_50ms_last_p_azimuth = self._p_azimuth
-                self._every_50ms_last_a_rates = self._axis_ASCOM_slewing_rates.copy()
 
     def get_performance_data_time(self):
         dt_now = datetime.datetime.now()
