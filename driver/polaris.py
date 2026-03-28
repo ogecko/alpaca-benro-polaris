@@ -615,6 +615,7 @@ class Polaris:
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas, omega_ref)
             theta_state, _ = self._kf.get_state()
+            self._theta_state_pre_pec = theta_state
             if Config.advanced_pec_imu and Config.advanced_control:
                 theta_state = self._microPEC(theta_state, self._pid.theta_ref, dt=self._pid.dt)
             self._theta_state = theta_state

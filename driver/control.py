@@ -1826,8 +1826,8 @@ class PID_Controller():
             "Δ_pv": self.delta_meas.tolist(),
             "α_sp": self.alpha_ref.tolist(),
             "α_pv": self.alpha_meas.tolist(),
-            "θ_sp": (self.theta_ref-self.theta_ref).tolist(), 
-            "θ_pv": (self.theta_meas-self.theta_ref).tolist(), 
+            "θ_sp": (self.polaris._theta_state-self.theta_ref).tolist(), 
+            "θ_pv": (self.polaris._theta_state_pre_pec-self.theta_ref).tolist(), 
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 
@@ -2318,7 +2318,7 @@ class ThetaStateMicroPEC:
 
     def __init__(self, logger,
                  stats_window_sec=4.0, 
-                 tracking_tolerance=10,
+                 tracking_tolerance=15,
                  jump_sigma=2.0,
                  ramp_back_sec=5.0,
                  typical_dt=0.2): 
@@ -2361,8 +2361,20 @@ class ThetaStateMicroPEC:
             self._last_theta_ref   = theta_ref.copy()
             return theta_state.copy()
 
-        # --- Per-axis processing ---
-        # is theta_state close to theta_ref?
+        # --- Decay corrections toward zero ---
+        for i in range(3):
+            if self._correction[i] != 0.0 and self._ramp_step[i] != 0.0:
+                # Check if next step would overshoot zero
+                if abs(self._correction[i]) <= abs(self._ramp_step[i]):
+                    self._correction[i] = 0.0
+                    self._ramp_step[i]  = 0.0
+                else:
+                    self._correction[i] -= self._ramp_step[i]
+                    # Ensure ramp_step direction stays correct after accumulation
+                    if np.sign(self._correction[i]) != np.sign(self._ramp_step[i]):
+                        self._ramp_step[i] = -self._ramp_step[i]
+
+        # --- Tolerance check on RAW theta_state ---
         tracking_error = theta_state - theta_ref
         is_enabled =  np.abs(tracking_error) < self._tolerance
 
@@ -2413,18 +2425,6 @@ class ThetaStateMicroPEC:
                         f'tracking={tracking_error[i]*3600:.2f}" '
                     )
 
-        # --- Decay corrections toward zero ---
-        for i in range(3):
-            if self._correction[i] != 0.0 and self._ramp_step[i] != 0.0:
-                # Check if next step would overshoot zero
-                if abs(self._correction[i]) <= abs(self._ramp_step[i]):
-                    self._correction[i] = 0.0
-                    self._ramp_step[i]  = 0.0
-                else:
-                    self._correction[i] -= self._ramp_step[i]
-                    # Ensure ramp_step direction stays correct after accumulation
-                    if np.sign(self._correction[i]) != np.sign(self._ramp_step[i]):
-                        self._ramp_step[i] = -self._ramp_step[i]
                         
         self._last_theta_state = theta_state.copy()
         self._last_theta_ref   = theta_ref.copy()
