@@ -128,8 +128,9 @@ class PublishLogTopic(logging.Handler):
         try:
             payload = self.format(record)
             self._buffers[self.topic].append(payload)
-            for ws, filter_args in subscriptions.get(self.topic, {}).copy().items():
-                asyncio.create_task(ws.send_json(payload))
+            for ws in list(subscriptions.get(self.topic, {}).keys()):
+                task = asyncio.create_task(ws_safe_send_json(ws, payload))
+                task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
         except Exception:
             pass
 
