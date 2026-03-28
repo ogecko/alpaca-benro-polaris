@@ -93,6 +93,19 @@ To enable autologin:
 9. Click **OK**
 10. Enter the autologin **User name**, **password** and **confirm password**, click **OK**
 
+### Microsoft Account
+Recent versions of Windows increasingly encourage the use of a Microsoft account instead of a local account. When you sign in with a Microsoft account, Windows Backup automatically syncs certain settings, including Wi-Fi profiles, across your devices by default.
+
+This behavior can interfere with the Wi-Fi configuration on the MiniPC. To prevent Windows from sharing the MiniPC’s settings with other devices, disable settings sync:
+
+To isolate the MiniPC’s Windows settings:
+1. Open Settings
+2. Go to Accounts
+3. Select Windows backup
+4. Turn off Remember my preferences
+
+This will stop Windows from syncing system settings (including Wi-Fi networks) to and from other PCs using the same Microsoft account.
+
 ### Power saver functions
 Make sure that your power saver functions are set so that your computer will not go to sleep/hibernate mode. Also its useful to disable your screensaver.
 You need to set the Power Management to High Power.

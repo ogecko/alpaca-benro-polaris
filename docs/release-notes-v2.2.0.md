@@ -69,6 +69,7 @@
 - **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
 
 ## Documentation (Alpaca Driver)
+- **[Microsoft Account]**: Prevent Windows from syncing Wi-Fi settings across PCs using the same Microsoft account (hardware.md)
 - **[Auto Startup]**: Define how to make the Alpaca Driver start automatically on Windows (installation.md, Step 5)
 - **[Guiding 16-bit]**: Describe how to configure the guide camera as a 16-bit camera (guiding.md, Section 3.1)
 - **[Guiding Calibration]**: Provide best practice recommendations in choosing a guiding calibration location (guiding.md, Section 4)
