@@ -13,6 +13,7 @@ from typing import Optional
 import ephem
 import math
 import copy
+from collections import deque
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
@@ -2286,3 +2287,169 @@ class SyncManager:
         sm_logger.info(first_entry)
 
 
+
+########################## 
+#  MicroPEC              #
+########################## 
+
+class ThetaStateMicroPEC:
+    """
+    Detects and cancels sudden jumps in theta_state.
+
+    All statistics are computed on:
+        residual = (theta_state - theta_state_prev) - (theta_ref - theta_ref_prev)
+
+    ie the deviation of actual motion from the commanded reference motion.
+    Zero-mean by construction during clean tracking regardless of
+    slew rate or orientation. Handles +ve and -ve jumps equally.
+
+    Only enabled when theta_state is tracking close to theta_ref.
+
+    Usage:
+        corrector = ThetaStateMicroPEC(logger)
+        theta_corrected = corrector(theta_state, theta_ref, dt)
+    Class Init Args:
+        stats_window_sec       : window for stdev(theta) estimate (seconds)
+        tracking_tolerance     : enable only within per axis tracking tolerance (arc-sec)
+        jump_sigma             : sigma threshold to declare a jump (default 4 sigma)
+        ramp_back_sec          : seconds to ramp correction back to zero (seconds)
+        typical_dt             : typical time elapsed between ticks
+    """
+
+    def __init__(self, logger,
+                 stats_window_sec=4.0, 
+                 tracking_tolerance=10,
+                 jump_sigma=2.0,
+                 ramp_back_sec=5.0,
+                 typical_dt=0.2): 
+
+        # Store class parameters
+        self._logger = logger
+        self._stats_window_sec = stats_window_sec
+        self._jump_sigma = jump_sigma
+        self._ramp_back_sec = ramp_back_sec
+        self._tolerance = tracking_tolerance/3600
+
+        # Array of three sliding deque windows of residuals (one per axis). Each axis deque entry: residual_degrees
+        ticks = max(25, int(stats_window_sec / typical_dt))  
+        self._history = [deque(maxlen=ticks) for _ in range(3)]
+
+        # Active correction per axis
+        self._correction = np.zeros(3)
+        self._ramp_step  = np.zeros(3)
+
+        self._last_theta_state = None
+        self._last_theta_ref   = None
+
+    # ------------------------------------------------------------------
+
+    def __call__(self, theta_state, theta_ref, dt):
+        """
+        Args:
+            theta_state : (3,) KF theta state (degrees)
+            theta_ref   : (3,) PID reference angles (degrees)
+            dt          : actual elapsed time this tick (seconds)
+        Returns:
+            theta_corrected : (3,) jump-corrected theta state
+        """
+        theta_state = np.array(theta_state, dtype=float)
+        theta_ref   = np.array(theta_ref,   dtype=float)
+
+        # --- First call ---
+        if self._last_theta_state is None:
+            self._last_theta_state = theta_state.copy()
+            self._last_theta_ref   = theta_ref.copy()
+            return theta_state.copy()
+
+        # --- Per-axis processing ---
+        # is theta_state close to theta_ref?
+        tracking_error = theta_state - theta_ref
+        is_enabled =  np.abs(tracking_error) < self._tolerance
+
+        for i in range(3):
+            # Residual: how much did theta_state move BEYOND what theta_ref moved?
+            # Both deltas over the same tick so dt cancels - no dt needed here
+            state_delta = theta_state[i] - self._last_theta_state[i]
+            ref_delta   = theta_ref[i]   - self._last_theta_ref[i]
+            residual    = state_delta - ref_delta
+
+            if not is_enabled[i]:
+                # Not tracking - clear history and correction
+                self._history[i].clear()
+                self._correction[i] = 0.0
+                self._ramp_step[i]  = 0.0
+                continue
+
+            # Accumulate residual
+            self._history[i].append(residual)
+            if len(self._history[i]) < 10:
+                continue
+
+            # Calculate Statistics
+            residuals = np.array(self._history[i])
+            sigma = float(np.std(residuals))
+            mean  = float(np.mean(residuals))
+            if sigma < 1e-9:
+                continue
+
+            # Signed deviation from mean
+            deviation = residual - mean
+
+            if abs(deviation) > self._jump_sigma * sigma:
+                # Cancel the jump with equal and opposite correction
+                self._correction[i] -= deviation
+
+                # Ramp back to zero over ramp_back_sec
+                ramp_ticks = max(1, round(self._ramp_back_sec / dt))
+                self._ramp_step[i] = self._correction[i] / ramp_ticks
+
+                self._logger.info(
+                    f'MicroPEC on axis {i}: '
+                    f'jump={deviation*3600:+.2f}" ({deviation/sigma:+.1f} sigma) '
+                    f'correction={self._correction[i]*3600:+.2f}" '
+                    f'sigma={sigma*3600:.2f}" '
+                    f'tracking={tracking_error[i]*3600:.2f}" '
+                )
+
+        # --- Decay corrections toward zero ---
+        for i in range(3):
+            if self._ramp_step[i] != 0.0:
+                if abs(self._correction[i]) <= abs(self._ramp_step[i]):
+                    self._correction[i] = 0.0
+                    self._ramp_step[i]  = 0.0
+                else:
+                    self._correction[i] -= self._ramp_step[i]
+
+        self._last_theta_state = theta_state.copy()
+        self._last_theta_ref   = theta_ref.copy()
+
+        return theta_state + self._correction
+
+    # ------------------------------------------------------------------
+
+    def reset(self):
+        """Call after GOTO or mode change."""
+        for h in self._history:
+            h.clear()
+        self._correction       = np.zeros(3)
+        self._ramp_step        = np.zeros(3)
+        self._last_theta_state = None
+        self._last_theta_ref   = None
+
+    def get_status(self):
+        sigmas = []
+        means  = []
+        for h in self._history:
+            if len(h) > 5:
+                residuals = np.array(h)
+                sigmas.append(float(np.std(residuals)) * 3600)
+                means.append( float(np.mean(residuals)) * 3600)
+            else:
+                sigmas.append(0.0)
+                means.append(0.0)
+        return {
+            'correction_arcsec': [round(c * 3600, 2) for c in self._correction],
+            'ramp_active':       [s != 0.0 for s in self._ramp_step],
+            'sigma_arcsec':      [round(s, 2) for s in sigmas],
+            'mean_arcsec':       [round(m, 2) for m in means],
+        }

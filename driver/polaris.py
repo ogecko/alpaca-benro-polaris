@@ -35,7 +35,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import theta_to_motorQ_C2B, motorQ_C2B_to_theta, cameraQ_C2T_to_azaltroll, wrap_to_360, wrap_to_180
+from control import theta_to_motorQ_C2B, motorQ_C2B_to_theta, cameraQ_C2T_to_azaltroll, wrap_to_360, wrap_to_180, ThetaStateMicroPEC
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
@@ -226,6 +226,7 @@ class Polaris:
         self._pid = PID_Controller(logger, self, loop=0.2)
         self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
         self._sm = SyncManager(logger, self)
+        self._microPEC = ThetaStateMicroPEC(logger)
 
         
     async def shutdown(self):
@@ -246,17 +247,17 @@ class Polaris:
             return "The Polaris network connection was aborted."
         if isinstance(e, OSError):
             if getattr(e, 'winerror', None) == 121:
-                return "Check Network. Cannot open Polaris connection."
+                return "Check Network. Cannot open Polaris connection (winerror=121)."
             if getattr(e, 'winerror', None) == 1225:
-                return "Connection refused. Check Polaris App and network."
+                return "Connection refused. Check Polaris App and network (winerror=1225)."
             if getattr(e, 'winerror', None) == 1236:
-                return "Connection lost. Reconnect via Polaris App."
+                return "Connection lost. Reconnect via Polaris App (winerror=1236)."
             if getattr(e, 'winerror', None) == 10054:
-                return "Connection reset. Reconnect via Polaris App."
+                return "Connection reset. Reconnect via Polaris App (winerror=10054)."
             if e.errno == 51:
-                return "Check Network. Cannot open Polaris connection"
+                return f"Check Network. Cannot open Polaris connection (errno={e.errno})."
             if e.errno in (60, 64):
-                return "Check Hostname. Polaris host unreachable."
+                return f"Check Hostname. Polaris host unreachable (errno={e.errno})."
         if isinstance(e, AstroModeError):
             return "Polaris not in Astro Mode. Use Polaris App to change."
         if isinstance(e, AstroAlignmentError):
@@ -614,10 +615,11 @@ class Polaris:
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas, omega_ref)
             theta_state, _ = self._kf.get_state()
+            if Config.log_polaris_ble:
+                theta_state = self._microPEC(theta_state, self._pid.theta_ref, dt=self._pid.dt)
+            self._theta_state = theta_state
             motorQ_state = theta_to_motorQ_C2B(*theta_state)
             cameraQ_state = self._sm.motorQ_to_cameraQ(motorQ_state)
-            self._theta_state = theta_state            
-
             # update all the Sky Positions and the PID loop
             delta_state, alpha_state = self.update_sky_positions(motorQ_state, cameraQ_state)
             self._pid.measure(delta_state, alpha_state, theta_state, self._zeta_meas)
