@@ -40,15 +40,12 @@ async def socket_handler(websocket: WebSocket):
                 topic = msg.get("topic")
                 filter_args = msg.get("filter", {})
                 if topic:
+                    client_activity[websocket] = datetime.now(timezone.utc) 
                     subscriptions.setdefault(topic, {})[websocket] = filter_args
                     # Send backlog if available
                     backlog = PublishLogTopic.get_backlog(topic)
                     for entry in backlog:
-                        try:
-                            await ws_safe_send_json(websocket, entry)
-                        except Exception:
-                            await _remove_client(websocket)
-
+                        await ws_safe_send_json(websocket, entry)
             elif msg_type == "unsubscribe":
                 topic = msg.get("topic")
                 if topic and topic in subscriptions:
@@ -174,7 +171,7 @@ async def alpaca_socket_httpd(logger, lifecycle: LifecycleController, polaris):
     sm_logger = attach_publisher_to_logger("sm")    # sync manager
     cfg_logger = attach_publisher_to_logger("cfg")  # config change manager
     polaris._cm.logTestData(polaris._cm.test_data.keys())
-
+    socket_server = None
     try:
         socket_app = Starlette(routes=[ WebSocketRoute("/ws", socket_handler) ])
         socket_config = uvicorn.Config(socket_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_socket_port, log_level="error")
