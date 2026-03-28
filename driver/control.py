@@ -2399,27 +2399,33 @@ class ThetaStateMicroPEC:
                 # Cancel the jump with equal and opposite correction
                 self._correction[i] -= deviation
 
-                # Ramp back to zero over ramp_back_sec
+                # Always ramp the accumulated correction back to zero, over time ramp_back_sec
                 ramp_ticks = max(1, round(self._ramp_back_sec / dt))
-                self._ramp_step[i] = self._correction[i] / ramp_ticks
+                base_step = abs(self._correction[i]) / ramp_ticks
+                self._ramp_step[i] = np.sign(self._correction[i]) * base_step
 
-                self._logger.info(
-                    f'MicroPEC on axis {i}: '
-                    f'jump={deviation*3600:+.2f}" ({deviation/sigma:+.1f} sigma) '
-                    f'correction={self._correction[i]*3600:+.2f}" '
-                    f'sigma={sigma*3600:.2f}" '
-                    f'tracking={tracking_error[i]*3600:.2f}" '
-                )
+                if Config.log_pec:
+                    self._logger.info(
+                        f'MicroPEC on axis {i}: '
+                        f'jump={deviation*3600:+.2f}" ({deviation/sigma:+.1f} sigma) '
+                        f'correction={self._correction[i]*3600:+.2f}" '
+                        f'sigma={sigma*3600:.2f}" '
+                        f'tracking={tracking_error[i]*3600:.2f}" '
+                    )
 
         # --- Decay corrections toward zero ---
         for i in range(3):
-            if self._ramp_step[i] != 0.0:
+            if self._correction[i] != 0.0 and self._ramp_step[i] != 0.0:
+                # Check if next step would overshoot zero
                 if abs(self._correction[i]) <= abs(self._ramp_step[i]):
                     self._correction[i] = 0.0
                     self._ramp_step[i]  = 0.0
                 else:
                     self._correction[i] -= self._ramp_step[i]
-
+                    # Ensure ramp_step direction stays correct after accumulation
+                    if np.sign(self._correction[i]) != np.sign(self._ramp_step[i]):
+                        self._ramp_step[i] = -self._ramp_step[i]
+                        
         self._last_theta_state = theta_state.copy()
         self._last_theta_ref   = theta_ref.copy()
 

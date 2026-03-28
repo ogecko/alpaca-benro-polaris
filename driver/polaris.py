@@ -615,7 +615,7 @@ class Polaris:
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas, omega_ref)
             theta_state, _ = self._kf.get_state()
-            if Config.log_polaris_ble:
+            if Config.advanced_pec_imu and Config.advanced_control:
                 theta_state = self._microPEC(theta_state, self._pid.theta_ref, dt=self._pid.dt)
             self._theta_state = theta_state
             motorQ_state = theta_to_motorQ_C2B(*theta_state)

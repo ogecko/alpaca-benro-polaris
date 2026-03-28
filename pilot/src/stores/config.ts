@@ -73,6 +73,7 @@ export const useConfigStore = defineStore('config', {
     advanced_alignment: false,
     advanced_alignment_zero: false,
     advanced_orbitals: false,
+    advanced_pec_imu: false,
     // Motion and Tuning Constants
     tracking_settle_time: 16,
     kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
@@ -132,6 +133,7 @@ export const useConfigStore = defineStore('config', {
     log_polaris_polling: false,
     log_quest_model: false,
     log_orbital_queries: false,
+    log_pec: false,
 
     log_telemetry_data: false,
     log_aiming_data: false,

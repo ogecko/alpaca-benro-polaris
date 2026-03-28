@@ -54,6 +54,7 @@
             </div>
             <div class="row">
             <q-toggle class='col-6' v-bind="bindField('log_orbital_queries', 'Log Orbital Queries')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_pec', 'Log Predictive Error Correction')"/>
             </div>
         </div>
     </q-card>
