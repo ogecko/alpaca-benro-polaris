@@ -1537,7 +1537,7 @@ class action:
             else:
                 parameters = {}
         except Exception:
-            logger.warn(f'{actionName}: Invalid JSON Parameters {raw_params}')
+            logger.warning(f'{actionName}: Invalid JSON Parameters {raw_params}')
             raise HTTPBadRequest(title='Bad Action Request', description='Invalid Parameters format')
 
         if actionName == "Polaris:StopDriver":

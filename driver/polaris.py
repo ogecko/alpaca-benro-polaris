@@ -539,7 +539,7 @@ class Polaris:
                         self._connecting = False
                         break
                     if not data:
-                        self.logger.warn("==DISCONNECT== Polaris socket closed.")
+                        self.logger.warning("==DISCONNECT== Polaris socket closed.")
                         self._connecting = False
                         break
 
@@ -579,7 +579,7 @@ class Polaris:
             args = m.group(2)
             remaining = buffer[end:]
             if start > 0 and Config.log_polaris_protocol:
-                self.logger.warn(f"<<- Polaris: Discarding junk protocol: {bytes2hexascii(buffer[:start].encode())}")
+                self.logger.warning(f"<<- Polaris: Discarding junk protocol: {bytes2hexascii(buffer[:start].encode())}")
             return (cmd, args, remaining)
         else:
             # No complete message yet — wait for more data
@@ -1192,7 +1192,7 @@ class Polaris:
         s_lon = self._sitelongitude
         self.logger.info("Polaris communication init... done")
         self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
-        self.logger.warn(f'Change site_latitude and site_longitude in Alpaca Pilot App.')
+        self.logger.warning(f'Change site_latitude and site_longitude in Alpaca Pilot App.')
         # if we want to run Aim test or Drift test over a set of targets in the sky
         if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
             asyncio.create_task(self.goto_tracking_test())
