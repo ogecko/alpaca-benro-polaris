@@ -110,7 +110,7 @@ async def publish_status(polaris: Polaris):
         payload = {"type": "status", "data": statusdata}
         for ws, filter_args in subscriptions.get("status", {}).copy().items():
             try:
-                await ws.send_json(payload)
+                await ws_safe_send_json(ws, payload)
             except (WebSocketDisconnect, RuntimeError):
                 await _remove_client(ws)
 
