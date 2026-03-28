@@ -317,7 +317,9 @@ class Polaris:
                 attempt += 1
                 success = await self.attempt_polaris_connect()
                 if success:
+                    attempt = 0
                     await self.read_msgs()       # blocks until error or shutdown
+                # always wait 10s before trying again
                 await asyncio.sleep(10)
         
             except Exception as e:
