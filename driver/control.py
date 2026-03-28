@@ -1183,7 +1183,7 @@ class PID_Controller():
         self.is_tracking = False                             # tracking target body
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
-        self.inhibit_ff_ticks = 0                            # number of ticks to supress FF after any SP change
+        self.ff_inhibit_ticks = 0                            # number of ticks to supress FF after any SP change
         self.omega_kp = np.zeros(3, dtype=float)       # omega1-3 due to proportional error
         self.omega_ki = np.zeros(3, dtype=float)       # omega1-3 due to integrated error
         self.omega_kd = np.zeros(3, dtype=float)       # omega1-3 due to velocity damping (derivative of position)
@@ -1733,7 +1733,7 @@ class PID_Controller():
             self.omega_max = np.where(zeta > zeta_max, np.array([0,0,0]), +self.Kv) 
             isLimited = np.any(self.omega_min == 0) or np.any(self.omega_max == 0)
             isUnAcked = self.ack_limit_timestamp is None or (datetime.datetime.now() - self.ack_limit_timestamp).total_seconds() > 60
-            isnotPARKorHOMEorPRESETUP = self.set_pid_mode not in ['PRESETUP', 'PARK', 'HOME']
+            isnotPARKorHOMEorPRESETUP = self.mode not in ['PRESETUP', 'PARK', 'HOME']
             if isLimited and isUnAcked and isnotPARKorHOMEorPRESETUP:
                 self.set_pid_mode('LIMIT')
                 self.parking_complete_callback = None  # Cancel any parking underway
