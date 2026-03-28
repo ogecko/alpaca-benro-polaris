@@ -1,5 +1,5 @@
 <template>
-        <q-chip :color="statusColor" :outline="statusLabel=='Idle'" :icon="statusIcon" class="q-pa-md">
+        <q-chip :color="statusColor" :outline="statusOutline" :icon="statusIcon" class="q-pa-md">
         {{statusLabel}}
       </q-chip>
 </template>
@@ -15,6 +15,7 @@ const statusLabel = computed(() =>
   p.pidmode=='LIMIT' ? "Limit" :
   p.pidmode=='HOMING' ? "Homing" :
   p.pidmode=='PARKING' ? "Parking" :
+  p.athome ? "At Home" : 
   p.atpark ? "Parked" : 
   p.gotoing ? "Gotoing" : 
   p.slewing ? "Slewing" :
@@ -49,8 +50,12 @@ const statusColor = computed(() =>
   p.pidmode=='LIMIT' ? "negative" : 
   p.orbitalstatus[0] == 1 && p.pidmode == 'TRACK' ? "warning" : 
   "positive"
-
 )
+
+const statusOutline = computed(() => (
+  statusLabel.value==="Idle" ||
+  statusLabel.value==="At Home"
+))
 
 const statusIcon = computed(() => 
   p.pidmode=='PRESETUP' ? "mdi-cellphone-cog" :
@@ -58,6 +63,7 @@ const statusIcon = computed(() =>
   p.pidmode=='HOMING' ? "mdi-home-outline" :
   p.pidmode=='PARKING' ? "mdi-alpha-p" :
   p.atpark ? "mdi-parking" : 
+  p.athome ? "mdi-home" : 
   p.gotoing ? "mdi-move-resize-variant" : 
   p.slewing ? "mdi-cursor-move" :
   p.rotating ? "mdi-restore" :

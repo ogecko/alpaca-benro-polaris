@@ -1178,6 +1178,7 @@ class PID_Controller():
         self.rotate_complete_callback = None                 # callback function when no longer deviating
         self.slew_complete_callback = None                   # callback function when no longer slewing
         self.parking_complete_callback = None                # callback function when reached parking position
+        self.homing_complete_callback = None                 # callback function when reached homing position
         self.is_deviating = False                            # cost signal is > Kc Arc Minutes²
         self.is_slewing = False                              # a velicity_sp is non-zero
         self.is_tracking = False                             # tracking target body
@@ -1545,6 +1546,9 @@ class PID_Controller():
     def set_parking_complete_callback(self, fn):
         self.parking_complete_callback = fn
               
+    def set_homing_complete_callback(self, fn):
+        self.homing_complete_callback = fn
+              
     def ack_limit_alarm(self):
         self.ack_limit_timestamp = datetime.datetime.now()
         self.set_pid_mode('IDLE')
@@ -1807,6 +1811,9 @@ class PID_Controller():
         if not self.is_deviating and self.parking_complete_callback:
             self.parking_complete_callback()
             self.parking_complete_callback = None
+        if not self.is_deviating and self.homing_complete_callback:
+            self.homing_complete_callback()
+            self.homing_complete_callback = None
         if not self.is_slewing and self.slew_complete_callback:
             self.slew_complete_callback()
             self.slew_complete_callback = None

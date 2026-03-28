@@ -645,6 +645,8 @@ class Polaris:
                     self._zeta_is_moving = False  # first update is not moving
                 else:
                     self._zeta_is_moving = any( abs(new - old) > threshold for new, old in zip(new_zeta, prev_zeta) )
+                    if self._zeta_is_moving:
+                        self._athome = False
                 self._zeta_meas = new_zeta
 
             if Config.log_polaris_polling:
@@ -1874,6 +1876,7 @@ class Polaris:
         with self._lock:
             self._slewing = True
             self._gotoing = True
+            self._athome = False
             self._goto_complete_event = asyncio.Event()
 
     def markGotoAsComplete(self):
@@ -1886,6 +1889,7 @@ class Polaris:
     def markRotateAsUnderway(self):
         with self._lock:
             self._rotating = True
+            self._athome = False
             self._rotate_complete_event = asyncio.Event()
 
     def markRotateAsComplete(self):
@@ -1897,6 +1901,7 @@ class Polaris:
     def markSlewAsUnderway(self):
         with self._lock:
             self._slewing = True
+            self._athome = False
             self._slew_complete_event = asyncio.Event()
 
     def markSlewAsComplete(self):
@@ -1909,6 +1914,7 @@ class Polaris:
         with self._lock:
             self._slewing = True
             self._atpark = False
+            self._athome = False
 
     def markParkingAsComplete(self):
         with self._lock:
@@ -1920,6 +1926,23 @@ class Polaris:
             self._pid.set_parking_complete_callback(None)
             self._slewing = False
             self._atpark = False
+
+    def markHomingAsUnderway(self):
+        with self._lock:
+            self._slewing = True
+            self._athome = False
+
+    def markHomingAsComplete(self):
+        with self._lock:
+            self._slewing = False
+            self._athome = True
+
+    def markHomingAsCanceled(self):
+        with self._lock:
+            self._pid.set_homing_complete_callback(None)
+            self._slewing = False
+            self._athome = False
+
 
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
         a_alt = altitude
@@ -2097,6 +2120,7 @@ class Polaris:
             self.markRotateAsComplete()
             self.markSlewAsComplete()
             self.markParkingAsCanceled()
+            self.markHomingAsCanceled()
         await self._motors[0].set_motor_speed(0, "DPS")
         await self._motors[1].set_motor_speed(0, "DPS")
         await self._motors[2].set_motor_speed(0, "DPS")
@@ -2134,11 +2158,12 @@ class Polaris:
             self.logger.info(f"Advanced Control: Find HOME Position of telescope")
             await self.stop_tracking()
             self._pid.set_zeta_ref_to_home()
+            self.markHomingAsUnderway()
             self.markParkingAsCanceled()
             self.markGotoAsComplete()
             self.markRotateAsComplete()
             self._pid.set_pid_mode('HOMING')
-
+            self._pid.set_homing_complete_callback(self.markHomingAsComplete)
 
     async def setPark(self):
         if Config.advanced_control:
@@ -2158,6 +2183,7 @@ class Polaris:
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: PARK telescope")
             self.markParkingAsUnderway()
+            self.markHomingAsCanceled()
             self.markGotoAsComplete()
             self.markRotateAsComplete()
             await self.stop_tracking()
