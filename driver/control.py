@@ -2320,7 +2320,7 @@ class ThetaStateMicroPEC:
                  stats_window_sec=4.0, 
                  tracking_tolerance=15,
                  jump_sigma=2.0,
-                 ramp_back_sec=5.0,
+                 ramp_back_sec=4.0,
                  typical_dt=0.2): 
 
         # Store class parameters
@@ -2338,8 +2338,7 @@ class ThetaStateMicroPEC:
         self._correction = np.zeros(3)
         self._ramp_step  = np.zeros(3)
 
-        self._last_theta_state = None
-        self._last_theta_ref   = None
+        self._last_theta_error = None
 
     # ------------------------------------------------------------------
 
@@ -2354,12 +2353,14 @@ class ThetaStateMicroPEC:
         """
         theta_state = np.array(theta_state, dtype=float)
         theta_ref   = np.array(theta_ref,   dtype=float)
+        theta_error = theta_state - theta_ref
 
         # --- First call ---
-        if self._last_theta_state is None:
-            self._last_theta_state = theta_state.copy()
-            self._last_theta_ref   = theta_ref.copy()
+        if self._last_theta_error is None:
+            self._last_theta_error = theta_error.copy()
             return theta_state.copy()
+
+        error_delta = theta_error - self._last_theta_error
 
         # --- Decay corrections toward zero ---
         for i in range(3):
@@ -2374,17 +2375,10 @@ class ThetaStateMicroPEC:
                     if np.sign(self._correction[i]) != np.sign(self._ramp_step[i]):
                         self._ramp_step[i] = -self._ramp_step[i]
 
-        # --- Tolerance check on RAW theta_state ---
-        tracking_error = theta_state - theta_ref
-        is_enabled =  np.abs(tracking_error) < self._tolerance
+        # --- Tolerance check on RAW theta_error ---
+        is_enabled =  np.abs(theta_error) < self._tolerance
 
         for i in range(3):
-            # Residual: how much did theta_state move BEYOND what theta_ref moved?
-            # Both deltas over the same tick so dt cancels - no dt needed here
-            state_delta = theta_state[i] - self._last_theta_state[i]
-            ref_delta   = theta_ref[i]   - self._last_theta_ref[i]
-            residual    = state_delta - ref_delta
-
             if not is_enabled[i]:
                 # Not tracking - clear history and correction
                 self._history[i].clear()
@@ -2393,41 +2387,52 @@ class ThetaStateMicroPEC:
                 continue
 
             # Accumulate residual
-            self._history[i].append(residual)
+            self._history[i].append(abs(error_delta[i]))
             if len(self._history[i]) < 10:
                 continue
 
             # Calculate Statistics
             residuals = np.array(self._history[i])
             sigma = float(np.std(residuals))
-            mean  = float(np.mean(residuals))
             if sigma < 1e-9:
                 continue
 
-            # Signed deviation from mean
-            deviation = residual - mean
-
-            if abs(deviation) > self._jump_sigma * sigma:
+            if abs(error_delta[i]) > self._jump_sigma * sigma:
                 # Cancel the jump with equal and opposite correction
-                self._correction[i] -= deviation
+                self._correction[i] -= error_delta[i]
 
                 # Always ramp the accumulated correction back to zero, over time ramp_back_sec
                 ramp_ticks = max(1, round(self._ramp_back_sec / dt))
                 base_step = abs(self._correction[i]) / ramp_ticks
                 self._ramp_step[i] = np.sign(self._correction[i]) * base_step
 
-                if Config.log_pec:
+                if Config.log_pec and i==0:
                     self._logger.info(
                         f'MicroPEC on axis {i}: '
-                        f'jump={deviation*3600:+.2f}" ({deviation/sigma:+.1f} sigma) '
+                        f'jump={error_delta[i]*3600:+.2f}" ({error_delta[i]/sigma:+.1f} sigma) '
                         f'correction={self._correction[i]*3600:+.2f}" '
                         f'sigma={sigma*3600:.2f}" '
-                        f'tracking={tracking_error[i]*3600:.2f}" '
+                        f'tracking={theta_error[i]*3600:.2f}" '
                     )
 
-                        
-        self._last_theta_state = theta_state.copy()
-        self._last_theta_ref   = theta_ref.copy()
+        # residuals = np.array(self._history[0])
+        # sigma = float(np.std(residuals))
+
+        # self._logger.info(
+        #     f'MicroPEC axis0: tstate={theta_state[0]:+.4f} '
+        #     f'tref={theta_ref[0]:+.4f} '
+        #     f'terr={theta_error[0]*3600:+.4f}" '
+        #     f'edelta={error_delta[0]*3600:+.4f}" '
+        #     f'isenable={is_enabled[0]} '
+        #     f'isjump={abs(error_delta[0]) > self._jump_sigma * sigma} '
+        #     f'jump={error_delta[0]*3600:+.2f}" ({error_delta[0]/sigma:+.1f} sigma) '
+        #     f'correction={self._correction[0]*3600:+.2f}" '
+        #     f'rampst={self._ramp_step[0]*3600:+.2f}" '
+        #     f'sigma={sigma*3600:.2f}" '
+
+        # )
+                
+        self._last_theta_error = theta_error.copy()
 
         return theta_state + self._correction
 
@@ -2439,8 +2444,7 @@ class ThetaStateMicroPEC:
             h.clear()
         self._correction       = np.zeros(3)
         self._ramp_step        = np.zeros(3)
-        self._last_theta_state = None
-        self._last_theta_ref   = None
+        self._last_theta_error = None
 
     def get_status(self):
         sigmas = []
