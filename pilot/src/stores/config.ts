@@ -73,7 +73,7 @@ export const useConfigStore = defineStore('config', {
     advanced_alignment: false,
     advanced_alignment_zero: false,
     advanced_orbitals: false,
-    advanced_pec_imu: false,
+    advanced_pec: false,
     // Motion and Tuning Constants
     tracking_settle_time: 16,
     kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],

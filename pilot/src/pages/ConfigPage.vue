@@ -145,7 +145,7 @@
               </div>
               <div class="row q-pb-md">
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_pec_imu', 'IMU Predictive Error Correction')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Predictive Error Correction')"/>
               </div>
               <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pt-md q-pl-md q-pr-mdn ">
                 <q-select
