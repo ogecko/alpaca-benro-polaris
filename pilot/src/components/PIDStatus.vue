@@ -22,6 +22,7 @@ const statusLabel = computed(() =>
   p.rotating ? "Rotating" :
   p.ispulseguiding ? "Guiding" :
   p.tracking  ? trackingStatusLabel.value : 
+  p.pidglock  ? "Gimbal" : 
                "Idle"
 )
 
@@ -54,6 +55,7 @@ const statusColor = computed(() =>
 
 const statusOutline = computed(() => (
   statusLabel.value==="Idle" ||
+  statusLabel.value==="Gimbal" ||
   statusLabel.value==="At Home"
 ))
 
@@ -69,6 +71,7 @@ const statusIcon = computed(() =>
   p.rotating ? "mdi-restore" :
   p.ispulseguiding ? "mdi-pulse" :
   p.tracking ? "mdi-star-shooting-outline" : 
+  p.pidglock  ? "mdi-lock" : 
                "mdi-sleep"
 )
 

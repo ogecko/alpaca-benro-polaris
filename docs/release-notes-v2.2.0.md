@@ -39,7 +39,7 @@
 
 - **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations
 - **[Forward Kinematics]** Improve forward kinematic robustness for negative azimuth angles
-- **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing and hysteresis to reduce uncertainty
+- **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing and hysteresis to reduce uncertainty, and add status icon to Pilot.
 - **[Negative Azimuth]** Support Goto Altitude below -8°, now accessable with improved inverse kinematics solution selection, when M3 is not zero
 - **[Sidereal Tracking]** Enhance sidereal tracking by computing motor error signals using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
 - **[Roll Angle Tracking]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.

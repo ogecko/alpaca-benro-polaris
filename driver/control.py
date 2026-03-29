@@ -427,8 +427,8 @@ class LastPosition:
         if theta2 is None:
             theta2 = self.last_theta2
         # check new theta2 for potential gimbal lock, with hysteresis to eliminate chatter at boundary
-        GIMBAL_ENTER = 0.005  # 18 arcsec
-        GIMBAL_EXIT  = GIMBAL_ENTER*10          
+        GIMBAL_ENTER = 1  
+        GIMBAL_EXIT  = 3          
         if not self.in_gimbal_lock and abs(theta2) < GIMBAL_ENTER:
             self.in_gimbal_lock = True
         elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
