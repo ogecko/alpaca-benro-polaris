@@ -1778,7 +1778,7 @@ class PID_Controller():
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(0)
 
-    async def control_step(self):
+    def control_step_calculate(self):
         now = time.monotonic()
         if self.control_loop_duration:
             self.dt = now - self.time_step
@@ -1790,14 +1790,25 @@ class PID_Controller():
             self.errintegral()  # Update error_integral with accumulation of err_signal
             self.pid()          # Update omega_tgt, calculate raw PID control target
             self.constrain()    # Update omega_ctl, constrain velocity and acceleration
-            await self.control()      # Update omega_op, constrain with valid op control values
             self.notify()       # Notify any callback of no longer deviating
             self.telemetry()    # send to Alpaca Pilot
 
+    async def control_step_execute(self):
+        """Async part - motor commands only."""
+        if self.time_meas:
+            await self.control()      # Update omega_op, constrain with valid op control values
+
+    async def control_step(self):
+        self.control_step_calculate()
+        await self.control_step_execute()
+
     async def _control_loop(self):
         while not self._stop_flag.is_set():
-            # self.measure() is done at processing 518 message
-            await self.control_step()
+            # Only run if 518 messages have stopped flowing
+            # ie device disconnected or not sending position updates
+            if self.polaris._age_518_seconds > 0.5:
+                self.control_step_calculate()      
+                await self.control_step_execute()      
             delay = self.control_loop_duration if self.polaris._connected else 2.0
             await asyncio.sleep(delay)
 
@@ -1826,8 +1837,8 @@ class PID_Controller():
             "Δ_pv": self.delta_meas.tolist(),
             "α_sp": self.alpha_ref.tolist(),
             "α_pv": self.alpha_meas.tolist(),
-            "θ_sp": (self.polaris._theta_state-self.theta_ref).tolist(), 
-            "θ_pv": (self.polaris._theta_state_pre_pec-self.theta_ref).tolist(), 
+            "θ_sp": (self.theta_ref-self.theta_ref).tolist(), 
+            "θ_pv": (self.polaris._theta_state-self.theta_ref).tolist(), 
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 
@@ -2287,179 +2298,3 @@ class SyncManager:
         sm_logger.info(first_entry)
 
 
-
-########################## 
-#  MicroPEC              #
-########################## 
-
-class ThetaStateMicroPEC:
-    """
-    Detects and cancels sudden jumps in theta_state.
-
-    All statistics are computed on:
-        residual = (theta_state - theta_state_prev) - (theta_ref - theta_ref_prev)
-
-    ie the deviation of actual motion from the commanded reference motion.
-    Zero-mean by construction during clean tracking regardless of
-    slew rate or orientation. Handles +ve and -ve jumps equally.
-
-    Only enabled when theta_state is tracking close to theta_ref.
-
-    Usage:
-        corrector = ThetaStateMicroPEC(logger)
-        theta_corrected = corrector(theta_state, theta_ref, dt)
-    Class Init Args:
-        stats_window_sec       : window for stdev(theta) estimate (seconds)
-        tracking_tolerance     : enable only within per axis tracking tolerance (arc-sec)
-        jump_sigma             : sigma threshold to declare a jump (default 4 sigma)
-        ramp_back_sec          : seconds to ramp correction back to zero (seconds)
-        typical_dt             : typical time elapsed between ticks
-    """
-
-    def __init__(self, logger,
-                 stats_window_sec=4.0, 
-                 tracking_tolerance=15,
-                 jump_sigma=2.0,
-                 ramp_back_sec=4.0,
-                 typical_dt=0.2): 
-
-        # Store class parameters
-        self._logger = logger
-        self._stats_window_sec = stats_window_sec
-        self._jump_sigma = jump_sigma
-        self._ramp_back_sec = ramp_back_sec
-        self._tolerance = tracking_tolerance/3600
-
-        # Array of three sliding deque windows of residuals (one per axis). Each axis deque entry: residual_degrees
-        ticks = max(25, int(stats_window_sec / typical_dt))  
-        self._history = [deque(maxlen=ticks) for _ in range(3)]
-
-        # Active correction per axis
-        self._correction = np.zeros(3)
-        self._ramp_step  = np.zeros(3)
-
-        self._last_theta_error = None
-
-    # ------------------------------------------------------------------
-
-    def __call__(self, theta_state, theta_ref, dt):
-        """
-        Args:
-            theta_state : (3,) KF theta state (degrees)
-            theta_ref   : (3,) PID reference angles (degrees)
-            dt          : actual elapsed time this tick (seconds)
-        Returns:
-            theta_corrected : (3,) jump-corrected theta state
-        """
-        theta_state = np.array(theta_state, dtype=float)
-        theta_ref   = np.array(theta_ref,   dtype=float)
-        theta_error = theta_state - theta_ref
-
-        # --- First call ---
-        if self._last_theta_error is None:
-            self._last_theta_error = theta_error.copy()
-            return theta_state.copy()
-
-        error_delta = theta_error - self._last_theta_error
-
-        # --- Decay corrections toward zero ---
-        for i in range(3):
-            if self._correction[i] != 0.0 and self._ramp_step[i] != 0.0:
-                # Check if next step would overshoot zero
-                if abs(self._correction[i]) <= abs(self._ramp_step[i]):
-                    self._correction[i] = 0.0
-                    self._ramp_step[i]  = 0.0
-                else:
-                    self._correction[i] -= self._ramp_step[i]
-                    # Ensure ramp_step direction stays correct after accumulation
-                    if np.sign(self._correction[i]) != np.sign(self._ramp_step[i]):
-                        self._ramp_step[i] = -self._ramp_step[i]
-
-        # --- Tolerance check on RAW theta_error ---
-        is_enabled =  np.abs(theta_error) < self._tolerance
-
-        for i in range(3):
-            if not is_enabled[i]:
-                # Not tracking - clear history and correction
-                self._history[i].clear()
-                self._correction[i] = 0.0
-                self._ramp_step[i]  = 0.0
-                continue
-
-            # Accumulate residual
-            self._history[i].append(abs(error_delta[i]))
-            if len(self._history[i]) < 10:
-                continue
-
-            # Calculate Statistics
-            residuals = np.array(self._history[i])
-            sigma = float(np.std(residuals))
-            if sigma < 1e-9:
-                continue
-
-            if abs(error_delta[i]) > self._jump_sigma * sigma:
-                # Cancel the jump with equal and opposite correction
-                self._correction[i] -= error_delta[i]
-
-                # Always ramp the accumulated correction back to zero, over time ramp_back_sec
-                ramp_ticks = max(1, round(self._ramp_back_sec / dt))
-                base_step = abs(self._correction[i]) / ramp_ticks
-                self._ramp_step[i] = np.sign(self._correction[i]) * base_step
-
-                if Config.log_pec and i==0:
-                    self._logger.info(
-                        f'MicroPEC on axis {i}: '
-                        f'jump={error_delta[i]*3600:+.2f}" ({error_delta[i]/sigma:+.1f} sigma) '
-                        f'correction={self._correction[i]*3600:+.2f}" '
-                        f'sigma={sigma*3600:.2f}" '
-                        f'tracking={theta_error[i]*3600:.2f}" '
-                    )
-
-        # residuals = np.array(self._history[0])
-        # sigma = float(np.std(residuals))
-
-        # self._logger.info(
-        #     f'MicroPEC axis0: tstate={theta_state[0]:+.4f} '
-        #     f'tref={theta_ref[0]:+.4f} '
-        #     f'terr={theta_error[0]*3600:+.4f}" '
-        #     f'edelta={error_delta[0]*3600:+.4f}" '
-        #     f'isenable={is_enabled[0]} '
-        #     f'isjump={abs(error_delta[0]) > self._jump_sigma * sigma} '
-        #     f'jump={error_delta[0]*3600:+.2f}" ({error_delta[0]/sigma:+.1f} sigma) '
-        #     f'correction={self._correction[0]*3600:+.2f}" '
-        #     f'rampst={self._ramp_step[0]*3600:+.2f}" '
-        #     f'sigma={sigma*3600:.2f}" '
-
-        # )
-                
-        self._last_theta_error = theta_error.copy()
-
-        return theta_state + self._correction
-
-    # ------------------------------------------------------------------
-
-    def reset(self):
-        """Call after GOTO or mode change."""
-        for h in self._history:
-            h.clear()
-        self._correction       = np.zeros(3)
-        self._ramp_step        = np.zeros(3)
-        self._last_theta_error = None
-
-    def get_status(self):
-        sigmas = []
-        means  = []
-        for h in self._history:
-            if len(h) > 5:
-                residuals = np.array(h)
-                sigmas.append(float(np.std(residuals)) * 3600)
-                means.append( float(np.mean(residuals)) * 3600)
-            else:
-                sigmas.append(0.0)
-                means.append(0.0)
-        return {
-            'correction_arcsec': [round(c * 3600, 2) for c in self._correction],
-            'ramp_active':       [s != 0.0 for s in self._ramp_step],
-            'sigma_arcsec':      [round(s, 2) for s in sigmas],
-            'mean_arcsec':       [round(m, 2) for m in means],
-        }

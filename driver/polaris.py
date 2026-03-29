@@ -34,8 +34,8 @@ from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
-from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import theta_to_motorQ_C2B, motorQ_C2B_to_theta, cameraQ_C2T_to_azaltroll, wrap_to_360, wrap_to_180, ThetaStateMicroPEC
+from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController
+from control import theta_to_motorQ_C2B, motorQ_C2B_to_theta, cameraQ_C2T_to_azaltroll, wrap_to_360, wrap_to_180
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
@@ -226,7 +226,6 @@ class Polaris:
         self._pid = PID_Controller(logger, self, loop=0.2)
         self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
         self._sm = SyncManager(logger, self)
-        self._microPEC = ThetaStateMicroPEC(logger)
 
         
     async def shutdown(self):
@@ -615,15 +614,14 @@ class Polaris:
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas, omega_ref)
             theta_state, _ = self._kf.get_state()
-            self._theta_state_pre_pec = theta_state
-            if Config.advanced_pec_imu and Config.advanced_control:
-                theta_state = self._microPEC(theta_state, self._pid.theta_ref, dt=self._pid.dt)
             self._theta_state = theta_state
             motorQ_state = theta_to_motorQ_C2B(*theta_state)
             cameraQ_state = self._sm.motorQ_to_cameraQ(motorQ_state)
             # update all the Sky Positions and the PID loop
             delta_state, alpha_state = self.update_sky_positions(motorQ_state, cameraQ_state)
             self._pid.measure(delta_state, alpha_state, theta_state, self._zeta_meas)
+            self._pid.control_step_calculate()
+            asyncio.create_task(self._pid.control_step_execute())
 
 
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
