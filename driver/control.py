@@ -406,13 +406,7 @@ def theta_to_jacobian(theta1, theta2, theta3):
     return -J
 
 
-def extract_theta_given_theta3(tUp, tBore, theta3):
-    """ Calc Theta1 and Theta2 based on removing Theta3 pan """
-    unTheta3Pan = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
-    mBore = unTheta3Pan.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module effect
-    theta1 = wrap_to_360(np.degrees(np.arctan2(mBore[0], mBore[1])))
-    theta2 = wrap_to_90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
-    return theta1, theta2, wrap_to_180(theta3)
+
 
 class LastPosition:
     def __init__(self, t1=180, t2=45, t3=0):
@@ -442,7 +436,7 @@ class LastPosition:
         return self.in_gimbal_lock
 
 
-def motorQ_C2B_to_theta(motorQ_C2B, lastPos=LastPosition()):
+def motorQ_C2B_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
     """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
     q1 = motorQ_C2B
 
@@ -453,6 +447,14 @@ def motorQ_C2B_to_theta(motorQ_C2B, lastPos=LastPosition()):
     # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
     q4 = q1 * Quaternion(axis=np.array([1, 0, 0]), degrees=180) 
     theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
+
+    def extract_theta_given_theta3(tUp, tBore, theta3):
+        """ Calc Theta1 and Theta2 based on removing Theta3 pan """
+        unTheta3Pan = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
+        mBore = unTheta3Pan.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module effect
+        theta1 = wrap_to_360(np.degrees(np.arctan2(mBore[0], mBore[1])))
+        theta2 = wrap_to_90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
+        return theta1, theta2, wrap_to_180(theta3)
 
     # --- Find the two solutions based on theta3 being pointing one way or the opposite
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
@@ -492,6 +494,82 @@ def motorQ_C2B_to_theta(motorQ_C2B, lastPos=LastPosition()):
 
     return theta1, theta2, theta3
 
+
+def motorQ_C2B_to_theta(motorQ_C2B, lastPos=LastPosition()):
+    q1 = motorQ_C2B
+    
+    # tUp invariant under theta3
+    tUp = q1.rotate(np.array([1, 0, 0]))
+    tRight = q1.rotate(np.array([0, 1, 0]))
+
+    # Primary solution
+    theta1_A = wrap_to_360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
+    t1r_A    = np.radians(theta1_A)
+    sin_t2_A = -(tUp[0]*np.sin(t1r_A) + tUp[1]*np.cos(t1r_A))
+    theta2_A = wrap_to_90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
+
+    # Alternative solution
+    theta1_B = wrap_to_360(theta1_A + 180)
+    theta2_B = -theta2_A
+
+    # Validity
+    theta2_min, theta2_max = -8, 83
+    validA = theta2_min <= theta2_A <= theta2_max
+    validB = theta2_min <= theta2_B <= theta2_max
+
+    def calc_theta3(theta1, theta2):
+        qt1 = Quaternion(axis=[0,0,1], degrees=-theta1+90)
+        qt2 = Quaternion(axis=[0,1,0], degrees=-theta2-90)
+        tRight_no_M3 = (qt1 * qt2).rotate([0, 1, 0])
+        r1 = tRight_no_M3 - np.dot(tRight_no_M3, tUp) * tUp
+        r2 = tRight       - np.dot(tRight,       tUp) * tUp
+        n1, n2 = np.linalg.norm(r1), np.linalg.norm(r2)
+        if n1 < 1e-9 or n2 < 1e-9:
+            return lastPos.last_theta3
+        r1n, r2n = r1/n1, r2/n2
+        cos_t3 = np.clip(np.dot(r1n, r2n), -1, 1)
+        sin_t3 = np.dot(np.cross(r1n, r2n), tUp)
+        return wrap_to_180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
+
+    if validA and not validB:
+        theta1, theta2 = theta1_A, theta2_A
+        theta3 = calc_theta3(theta1, theta2)
+
+    elif validB and not validA:
+        theta1, theta2 = theta1_B, theta2_B
+        theta3 = calc_theta3(theta1, theta2)
+
+    elif validA and validB:
+        # Both valid — compute theta3 for each and use full 3D lastPos comparison
+        theta3_A = calc_theta3(theta1_A, theta2_A)
+        theta3_B = calc_theta3(theta1_B, theta2_B)
+        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A)
+        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B)
+        if diffA <= diffB:
+            theta1, theta2, theta3 = theta1_A, theta2_A, theta3_A
+        else:
+            theta1, theta2, theta3 = theta1_B, theta2_B, theta3_B
+
+    else:
+        # Neither valid — clamp closest
+        def dist(t2):
+            if t2 < theta2_min: return theta2_min - t2
+            if t2 > theta2_max: return t2 - theta2_max
+            return 0.0
+        if dist(theta2_B) < dist(theta2_A):
+            theta1, theta2 = theta1_B, np.clip(theta2_B, theta2_min, theta2_max)
+        else:
+            theta1, theta2 = theta1_A, np.clip(theta2_A, theta2_min, theta2_max)
+        theta3 = calc_theta3(theta1, theta2)
+
+    # Gimbal lock
+    in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
+    if in_gimbal_lock:
+        locked_sum = wrap_to_360(theta1 + theta3)
+        theta3 = 0
+        theta1 = locked_sum
+
+    return theta1, theta2, theta3
 
 def cameraQ_C2T_to_azaltroll(cameraQ_C2T):
     # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
@@ -1848,6 +1926,20 @@ class PID_Controller():
         pidlogger = logging.getLogger('pid') 
         pidlogger.info(payload)
 
+        if Config.log_pec:
+            q1 = self.polaris._q1
+            tm = self.polaris._theta_meas
+            tv = motorQ_C2B_to_theta_v2(q1, self._lp)
+            te = (tm - tv)*3600
+
+
+
+            self.logger.info(
+                f'q1={q1[0]:+.6f} {q1[1]:+.6f}i {q1[2]:+.6f}j {q1[3]:+.6f}k '
+                f'theta_v1={tm[0]:+.6f} {tm[1]:+.6f} {tm[2]:+.6f} '
+                f'theta_v2={tv[0]:+.6f} {tv[1]:+.6f} {tv[2]:+.6f} '
+                f'theta_error={te[0]:+.2f}" {te[1]:+.2f}" {te[2]:+.2f}" '
+            )
 
 
     async def stop_control_loop_task(self):
