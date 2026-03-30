@@ -224,7 +224,7 @@ A very good multi-point alignment model will have all sync points with residuals
 
 ### F. Reseting Multi-Point Alignment on Re-Setup
 
-From ABP Driver v2.2 onwards, the Multi-Point Alignment model is saved to disk and restored automatically on driver restart, so your alignment survives restarts without needing to re-sync. 
+From ABP Driver v2.2 onwards, the Multi-Point Alignment model is saved to disk and restored automatically on driver restart, so your alignment survives restarts without needing to re-sync. You can now restart the driver or reboot the MiniPC mid-session and resume imaging without losing your alignment.
 
 However, if you physically move or re-level the tripod, the saved model will no longer match your new setup and must be reset. To clear all sync points:
 1. Open Alpaca Pilot and navigate to the Alignment page.
