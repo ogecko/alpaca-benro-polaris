@@ -2056,6 +2056,8 @@ class SyncManager:
                                    
 
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
+        if not Config.advanced_alignment:
+            return
         new_pred_vec = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
         new_obs_vec  = azalt_to_vector(a_az, a_alt)
         threshold_rad = math.radians(2.5)   # 2.5 degrees
@@ -2092,6 +2094,8 @@ class SyncManager:
         self.logSyncData()
 
     def sync_roll(self, a_roll):
+        if not Config.advanced_alignment:
+            return
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if (Config.advanced_alignment and Config.advanced_control):
@@ -2444,6 +2448,9 @@ class SyncManager:
                     'a_roll':     float(entry['a_roll']) if entry.get('a_roll') is not None else None,
                 }
                 self.sync_history.append(clean)
+
+            payload = {'advanced_alignment': True if len(self.sync_history)>0 else False }
+            Config.apply_changes(payload)
             # Rerun optimisers to reconstruct baseQ_B2T and roll_adj from loaded data
             self.logger.info(f"==STARTUP== Loading Alignment Model ({len(self.sync_history)} sync points).")
             self.optimize_baseQ_B2T()
