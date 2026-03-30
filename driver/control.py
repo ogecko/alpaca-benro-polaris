@@ -1243,7 +1243,7 @@ class PID_Controller():
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
         self.delta_meas = np.zeros(3, dtype=float)     # ra, dec, polar measured angular position
         self.alpha_meas = np.zeros(3, dtype=float)     # az, alt, roll measured angular position
-        self.theta_meas = np.zeros(3, dtype=float)     # theta1-3 motor measured angular position
+        self.theta_pec = np.zeros(3, dtype=float)      # theta1-3 motor measured angular position, kf and pec corrected
         self.zeta_meas = np.zeros(3, dtype=float)      # zeta1-3 motor raw measured angular position (no alignment effect)
         self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, polar angular reference position
         self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll angular reference position
@@ -1703,20 +1703,20 @@ class PID_Controller():
             self.cameraQ_ref_last = self.cameraQ_ref
             self.cameraQ_ref = cameraQ_ref
     
-    def measure(self, delta_meas, alpha_meas, theta_meas, zeta_meas):
+    def measure(self, delta_meas, alpha_meas, theta_pec, zeta_meas):
         now = ephem.now()
         # if not self.time_meas:
         #     self.alpha_sp = alpha_meas     # initialise alpha_sp with first measurement
         self.delta_meas = delta_meas
         self.alpha_meas = alpha_meas
-        self.theta_meas = theta_meas
+        self.theta_pec = theta_pec
         self.zeta_meas = zeta_meas
         self.time_meas = now
-        self._lp.update(*theta_meas)
+        self._lp.update(*theta_pec)
         self._lp.check_for_gimbal_lock()
 
     def predict(self):          # This is not used in the PID Control Loop
-        self.theta_meas = clamp_theta(self.theta_meas + self.dt * self.omega_op)
+        self.theta_pec = clamp_theta(self.theta_pec + self.dt * self.omega_op)
         self.time_meas = self.time_meas + self.dt
 
     def feed_forward(self):
@@ -1731,7 +1731,7 @@ class PID_Controller():
                 omega_topo = calculate_angular_velocity_vector(self.cameraQ_ref_last, self.cameraQ_ref, self.dt)
                 omega_base = self.polaris._sm.cameraQ_vec_to_motorQ_vec(omega_topo, self.cameraQ_ref)   # Convert to base frame Sky tracking velocity
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
-                J = theta_to_jacobian(*self.theta_meas)
+                J = theta_to_jacobian(*self.theta_pec)
                 # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
                 theta_dot = np.linalg.solve(J, omega_base)
                 self.omega_ff = np.degrees(theta_dot)
@@ -1747,7 +1747,7 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
-            self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
+            self.error_signal = clamp_error(self.theta_ref, self.theta_pec)
 
         # Per-axis deviation flags
         self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
@@ -1928,18 +1928,29 @@ class PID_Controller():
 
         if Config.log_pec:
             q1 = self.polaris._q1
+            tq = np.array([q1[0],q1[1],q1[2],q1[3]])
             tm = self.polaris._theta_meas
-            tv = motorQ_C2B_to_theta_v2(q1, self._lp)
-            te = (tm - tv)*3600
+            ts = self.polaris._theta_state
+            tr = self.theta_ref
+            te = self.polaris._theta_state - self.theta_ref
 
+            if not hasattr(self, '_prev'):
+                self._prev = { 'tq':tq, 'tm':tm, 'ts':ts, 'tr':tr }
 
+            d_tq = tq - self._prev['tq']
+            d_tm = tm - self._prev['tm']
+            d_ts = ts - self._prev['ts']
+            d_tr = tr - self._prev['tr']
 
             self.logger.info(
-                f'q1={q1[0]:+.6f} {q1[1]:+.6f}i {q1[2]:+.6f}j {q1[3]:+.6f}k '
-                f'theta_v1={tm[0]:+.6f} {tm[1]:+.6f} {tm[2]:+.6f} '
-                f'theta_v2={tv[0]:+.6f} {tv[1]:+.6f} {tv[2]:+.6f} '
-                f'theta_error={te[0]:+.2f}" {te[1]:+.2f}" {te[2]:+.2f}" '
+                f'd_tq={d_tq[0]:+.6f} {d_tq[1]:+.6f}i {d_tq[2]:+.6f}j {d_tq[3]:+.6f}k '
+                f'd_tm={d_tm[0]:+.6f} {d_tm[1]:+.6f} {d_tm[2]:+.6f} '
+                f'd_ts={d_ts[0]:+.6f} {d_ts[1]:+.6f} {d_ts[2]:+.6f} '
+                f'd_tr={d_tr[0]:+.6f} {d_tr[1]:+.6f} {d_tr[2]:+.6f} '
+                f'd_te={te[0]:+.6f} {te[1]:+.6f} {te[2]:+.6f} '
             )
+            
+            self._prev = { 'tq':tq, 'tm':tm, 'ts':ts, 'tr':tr }
 
 
     async def stop_control_loop_task(self):

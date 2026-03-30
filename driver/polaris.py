@@ -215,7 +215,8 @@ class Polaris:
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
         self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
         self._theta_meas = None                     # The latest set of Polaris 1-aligned motor axis angles [theta1, theta2, theta3] measured from q1
-        self._theta_state = None                    # The state of 1-aligned motor axis angles [theta1, theta2, theta3] estimated by KF
+        self._theta_state = None                    # The state of 1-aligned motor axis angles [theta1, theta2, theta3] = KF(meas)
+        self._theta_pec = None                      # The state of 1-aligned motor axis angles [theta1, theta2, theta3] = PEC(state)
         self._omega_meas = None                     # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._cm = CalibrationManager()
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
@@ -613,13 +614,13 @@ class Polaris:
             # Process through the Kalman Filter to determine Polaris theta_state
             self._kf.predict(omega_ref)
             self._kf.observe(theta_meas, omega_meas, omega_ref)
-            theta_state, _ = self._kf.get_state()
-            self._theta_state = theta_state
-            motorQ_state = theta_to_motorQ_C2B(*theta_state)
+            self._theta_state, _ = self._kf.get_state()
+            self._theta_pec = self._theta_state         # Future PEC to be implemented here
+            motorQ_state = theta_to_motorQ_C2B(*self._theta_pec)
             cameraQ_state = self._sm.motorQ_to_cameraQ(motorQ_state)
             # update all the Sky Positions and the PID loop
             delta_state, alpha_state = self.update_sky_positions(motorQ_state, cameraQ_state)
-            self._pid.measure(delta_state, alpha_state, theta_state, self._zeta_meas)
+            self._pid.measure(delta_state, alpha_state, self._theta_pec, self._zeta_meas)
             self._pid.control_step_calculate()
             asyncio.create_task(self._pid.control_step_execute())
 
