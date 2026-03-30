@@ -37,6 +37,7 @@
 
 ## What's new in v2.2.0
 
+- **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart.
 - **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations
 - **[Forward Kinematics]** Improve forward kinematic robustness for negative azimuth angles
 - **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing and hysteresis to reduce uncertainty, and add status icon to Pilot.
@@ -74,7 +75,8 @@
 - **[Auto Startup]**: Define how to make the Alpaca Driver start automatically on Windows (installation.md, Step 5)
 - **[Guiding 16-bit]**: Describe how to configure the guide camera as a 16-bit camera (guiding.md, Section 3.1)
 - **[Guiding Calibration]**: Provide best practice recommendations in choosing a guiding calibration location (guiding.md, Section 4)
-\- **[Pano Orbitals]**: Descrone how to capture the moon or other orbitals in a workflow (pilot.md, Section 4.4)
+- **[Persit Alignment]**: Document the need to reset Multi-Point Alignment on new setup (control.md, section Alignment III.F)
+- **[Pano Orbitals]**: Descrone how to capture the moon or other orbitals in a workflow (pilot.md, Section 4.4)
 - **[Troublshooting A6]**: How to troublshoot shortcut error messages on Windows
 - **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 

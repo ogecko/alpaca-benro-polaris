@@ -12,6 +12,7 @@ __pycache__/
 # Alpaca Logs, Performance and Custom data
 speed_calibration.json
 speed_testdata.json
+sync_points.json
 catalog.json
 config.*.json
 *.log

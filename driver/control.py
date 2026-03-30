@@ -24,6 +24,10 @@ DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../d
 CALIBRATION_PATH = DATA_DIR / 'speed_calibration.json'
 TESTDATA_PATH = DATA_DIR / 'speed_testdata.json'
 CATALOG_PATH = DATA_DIR / 'catalog.json'
+SYNC_POINTS_PATH = DATA_DIR / 'sync_points.json'
+
+def ensure_data_dir_exists():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # ************* Custom Catalog Items *************
 
@@ -955,16 +959,14 @@ class CalibrationManager:
             output_lines.append("},")  # End of axis block with trailing comma
         return begin + '\n'.join(output_lines) + '\n}\n'
 
-    def ensure_data_dir_exists(self):
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     def saveCalibrationDataToFile(self, path = CALIBRATION_PATH):
-        self.ensure_data_dir_exists()
+        ensure_data_dir_exists()
         with open(path, 'w') as f:
             f.write(self.formatCalibrationData())
 
     def saveTestDataToFile(self, path = TESTDATA_PATH):
-        self.ensure_data_dir_exists()
+        ensure_data_dir_exists()
         with open(path, 'w') as f:
             json.dump(self.test_data, f, indent=2)
 
@@ -2385,12 +2387,14 @@ class SyncManager:
         self.roll_adj = sum(deltas) / len(deltas) if deltas else 0
         self.compute_roll_residuals()
 
-    def logSyncData(self):
+    def logSyncData(self, persist=True):
         self.logSyncDataReset()
         sm_logger = logging.getLogger('sm')
         for entry in self.sync_history:
             sm_logger.info(entry)
-    
+        if persist:
+            self.saveSyncDataToFile()
+
     def logSyncDataReset(self):
         sm_logger = logging.getLogger('sm')
         first_entry = self.standard_entry()
@@ -2400,4 +2404,53 @@ class SyncManager:
         first_entry["a_roll"] = 0 
         sm_logger.info(first_entry)
 
+    def saveSyncDataToFile(self, path=SYNC_POINTS_PATH):
+        ensure_data_dir_exists()
+        # Only persist non-deleted entries, and only the fields needed to reconstruct the model
+        entries_to_save = [
+            {k: v for k, v in entry.items() if k not in ('w_recency', 'w_proximity', 'w_polar', 'w_total', 'residual_vector', 'residual_magnitude')}
+            for entry in self.sync_history
+            if not entry.get('deleted', False)
+        ]
+        with open(path, 'w') as f:
+            json.dump(entries_to_save, f, indent=2)
 
+    def loadSyncDataFromFile(self, path=SYNC_POINTS_PATH):
+        if not os.path.exists(path):
+            return False
+        try:
+            with open(path, 'r') as f:
+                entries = json.load(f)
+            if not isinstance(entries, list):
+                self.logger.warning("sync_points.json: expected a list, ignoring.")
+                return False
+            self.sync_history = []
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                if entry.get('timestamp') == 'reset':   # skip sentinel entries
+                    continue
+                # Ensure required fields are present with safe defaults
+                clean = {
+                    'timestamp':  entry.get('timestamp', format_timestamp()),
+                    'deleted':    False,   # never restore deleted entries
+                    'p_az':       float(entry['p_az']),
+                    'p_alt':      float(entry['p_alt']),
+                    'p_roll':     float(entry['p_roll']),
+                    'a_ra':       float(entry['a_ra'])   if entry.get('a_ra')   is not None else None,
+                    'a_dec':      float(entry['a_dec'])  if entry.get('a_dec')  is not None else None,
+                    'a_az':       float(entry['a_az'])   if entry.get('a_az')   is not None else None,
+                    'a_alt':      float(entry['a_alt'])  if entry.get('a_alt')  is not None else None,
+                    'a_roll':     float(entry['a_roll']) if entry.get('a_roll') is not None else None,
+                }
+                self.sync_history.append(clean)
+            # Rerun optimisers to reconstruct baseQ_B2T and roll_adj from loaded data
+            self.logger.info(f"==STARTUP== Loading Alignment Model ({len(self.sync_history)} sync points).")
+            self.optimize_baseQ_B2T()
+            self.optimize_roll_adj()
+            self.refresh_pid_setpoints_from_q1()
+            self.logSyncData(persist=False)
+            return True
+        except Exception as e:
+            self.logger.warning(f"Failed to load sync_points.json: {e}")
+            return False

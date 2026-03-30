@@ -6,9 +6,9 @@
 - [X] Document how to autostart the driver on win11
 - [X] Improve co-ordination of Gimbal Lock handling
 - [X] Correctly reset pid SP when removing sync points or reseting back to Single Point Alignment
-- [X] Fix 7s cycle in PID OP control jumping (driving PID calc from 518 handler rather than independent timer)
+- [X] Fix 7s cycle in PID OP control jumping (synchronise 518 handler and PID calculations)
+- [X] Persist Multi-Point alignment model through Driver restarts
 - [ ] Fix Multi-Point Alignment without final zero adjust (goto adj)
-- [ ] Persist Multi-Point alignment model through Driver restarts
 - [ ] Ramp pulse guiding acceleration to reduce overshoot
 - [ ] PEC control (how to detect phase?)
 - [ ] Create video of new features - Large Roll Direction Maintain, Large -ve Az, Pulse Guide Accuracy, PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy, Stop and Restart Driver

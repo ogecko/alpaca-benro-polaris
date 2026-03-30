@@ -302,6 +302,7 @@ class Polaris:
             init_task = asyncio.create_task(self.polaris_init())
             init_task.add_done_callback(self.task_done)
             self.logger.info(f'==STARTUP== Starting Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}.')
+            self._sm.loadSyncDataFromFile()
             return True
 
         except Exception as e:

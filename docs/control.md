@@ -165,7 +165,6 @@ Multi-Point Alignment (MPA), is the advanced alignment feature recommended for a
 *   **Benefit:** A major advantage of MPA is that users **no longer need to obsess over leveling their tripod**, as the model is designed to detect and correct for tilt.
 *   **Procedure:** To perform  Multi Point Alignment, you simply **perform multiple synced plate solves**. Each new sync automatically adds to the Driver's knowledge of the Polaris alignment at different orientations and times.
 
-
 Here is the procedure for performing Multi-Point Alignment and information regarding the necessary synchronization points, based on the version 2.0 driver and its integration with applications like NINA (Nighttime Imaging 'N' Astronomy).
 
 ## III. Performing Multi-Point Alignment
@@ -222,6 +221,17 @@ The other sync points in this list, will likely have varying residuals. The lowe
 Delete a sync point by clicking on the cross next to the point. Note that if tracking is enabled when you delete a sync point, the model will adjust, and the mount will shift the head to its new understanding of where the current target is located. If this varies from its current location, then perform another manually initiated plate-solve and sync.
 
 A very good multi-point alignment model will have all sync points with residuals of arc-seconds, and none with arc-minutes or whole degrees of residuals.
+
+### F. Reseting Multi-Point Alignment on Re-Setup
+
+From ABP Driver v2.2 onwards, the Multi-Point Alignment model is saved to disk and restored automatically on driver restart, so your alignment survives restarts without needing to re-sync. 
+
+However, if you physically move or re-level the tripod, the saved model will no longer match your new setup and must be reset. To clear all sync points:
+1. Open Alpaca Pilot and navigate to the Alignment page.
+2. Switch to Single-Point Alignment. This clears all saved sync points.
+3. Switch back to Multi-Point Alignment.
+4. Perform a fresh Multi-Point Alignment as described in sections B–E above.
+
 
 ## IV. Adding Sync Points to the model
 By adding sync points, you help the Driver build a geometric model of your mount’s orientation relative to the sky. There are three approaches to adding sync points to the model.
