@@ -71,7 +71,7 @@ export const useConfigStore = defineStore('config', {
     advanced_rotator: false,
     advanced_guiding: false,
     advanced_alignment: false,
-    advanced_sidereal: false,
+    advanced_align_local: false,
     advanced_orbitals: false,
     advanced_pec: false,
     // Motion and Tuning Constants

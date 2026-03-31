@@ -2002,45 +2002,54 @@ class SyncManager:
     def motorQ_to_cameraQ(self, motorQ_C2B):
         """
         Forward kinematics: Base frame → Topocentric frame.
-        Applies az/alt correction (baseQ_B2T) then roll correction around the boresight.
-        
-        Usage:
-            cameraQ_state = self._sm.motorQ_to_cameraQ(motorQ_state)
+        Applies az/alt correction (baseQ_B2T), local residual correction,
+        then roll correction around the boresight.
         """
         cameraQ = self.baseQ_B2T * motorQ_C2B
+        # Apply spatially-weighted local residual correction if enabled
+        if Config.advanced_align_local:
+            q_local = self.get_local_residual_correction(cameraQ)
+            if q_local is not None:
+                cameraQ = q_local * cameraQ
         if self.roll_adj == 0:
             return cameraQ
         boresight_T = cameraQ.rotate([0, 0, -1])
         q_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
         return q_roll * cameraQ
 
+
+
     def cameraQ_to_motorQ(self, cameraQ_C2T):
         """
         Inverse kinematics: Topocentric frame → Base frame.
-        Removes roll correction then applies inverse az/alt correction.
-
-        Usage:
-            motorQ_ref = self._sm.cameraQ_to_motorQ(cameraQ_step)
+        Removes roll correction, local residual correction,
+        then applies inverse az/alt correction.
         """
         if self.roll_adj != 0:
             boresight_T = cameraQ_C2T.rotate([0, 0, -1])
             q_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
             cameraQ_C2T = q_roll_undo * cameraQ_C2T
+        # Undo spatially-weighted local residual correction if enabled
+        if Config.advanced_align_local:
+            q_local = self.get_local_residual_correction(cameraQ_C2T)
+            if q_local is not None:
+                cameraQ_C2T = q_local.inverse * cameraQ_C2T
         return self.baseQ_B2T_inv * cameraQ_C2T
 
     def cameraQ_vec_to_motorQ_vec(self, omega_topo, cameraQ_C2T):
         """
         Rotate an angular velocity vector from topocentric to base frame,
-        accounting for both the az/alt correction and the roll correction.
-        
-        The roll correction is a rotation applied around the boresight in
-        topocentric space (left-multiply), so its inverse must be undone first
-        before applying baseQ_B2T_inv.
+        accounting for az/alt correction, local residual correction, and roll correction.
         """
         if self.roll_adj != 0:
             boresight_T = cameraQ_C2T.rotate([0, 0, -1])
             q_roll_undo = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
             omega_topo = q_roll_undo.rotate(omega_topo)
+        # Undo local residual correction on the velocity vector
+        if Config.advanced_align_local:
+            q_local = self.get_local_residual_correction(cameraQ_C2T)
+            if q_local is not None:
+                omega_topo = q_local.inverse.rotate(omega_topo)
         return self.baseQ_B2T_inv.rotate(omega_topo)
 
     def refresh_pid_setpoints_from_q1(self):
@@ -2227,7 +2236,7 @@ class SyncManager:
             self.baseQ_B2T_inv = self.baseQ_B2T.inverse
 
             # If not optimal sidereal tracking then tweak QUEST model to zero our residual on final syncpoint
-            if not Config.advanced_sidereal:
+            if not Config.advanced_align_local:
                 self.apply_last_syncpoint_residual_to_model()
                 
             self.baseQ_B2T_message = "QUEST solution applied"
@@ -2247,6 +2256,7 @@ class SyncManager:
                 msg += f"| TotalW: {entry['w_total']:.4f} | Residual: { deg2dms(entry['residual_magnitude'])}"
                 self.logger.info(msg)
         return
+
 
     def get_last_syncpoint_residual(self):
         """
@@ -2277,7 +2287,42 @@ class SyncManager:
         alt_err = angular_difference(alt_corr, last_valid['a_alt'])
 
         return az_err, alt_err, v_pred_rot, v_obs
+    
 
+    def get_local_residual_correction(self, cameraQ_C2T, sigma_deg=15.0):
+        """
+        Returns a spatially-weighted correction quaternion based on the last sync
+        point residual. The correction fades to identity with a Gaussian as angular
+        distance from the last sync point increases.
+        Returns None if no valid sync, residual is negligible, or weight is too small.
+        """
+        az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
+        if v_pred_rot is None:
+            return None
+
+        # Angular distance from current boresight to last sync point (in observed space)
+        boresight_T = cameraQ_C2T.rotate([0, 0, -1])
+        angular_dist_rad = v_angular_distance(boresight_T, v_obs)
+
+        # Gaussian weight: 1.0 at sync point, fades toward 0 beyond sigma_deg
+        sigma_rad = math.radians(sigma_deg)
+        weight = math.exp(-(angular_dist_rad ** 2) / (2 * sigma_rad ** 2))
+        if weight < 1e-4:
+            return None
+
+        # Build the full residual correction quaternion (v_pred_rot → v_obs)
+        axis = np.cross(v_pred_rot, v_obs)
+        norm_axis = np.linalg.norm(axis)
+        if norm_axis < 1e-8:
+            return None
+        axis /= norm_axis
+        angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
+
+        # Slerp between identity and full correction by weight, then invert for
+        # inverse kinematics (we want to pre-compensate the input, not post-rotate)
+        q_full = Quaternion(axis=axis, angle=angle)
+        q_weighted = Quaternion.slerp(Quaternion(1, 0, 0, 0), q_full, amount=weight)
+        return q_weighted
 
     def apply_last_syncpoint_residual_to_model(self):
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
@@ -2297,30 +2342,6 @@ class SyncManager:
         self.baseQ_B2T = q_correction * self.baseQ_B2T
         self.baseQ_B2T_inv = self.baseQ_B2T.inverse
 
-
-    def apply_last_syncpoint_residual_to_azalt(self, target_az, target_alt):
-        az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
-        if v_pred_rot is None:
-            return target_az, target_alt
-
-        # Build the true residual rotation from v_pred_rot → v_obs
-        axis = np.cross(v_pred_rot, v_obs)
-        norm_axis = np.linalg.norm(axis)
-        if norm_axis < 1e-8:
-            return target_az, target_alt   # already aligned, no compensation needed
-        axis /= norm_axis
-        angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
-        q_residual = Quaternion(axis=axis, angle=angle)
-
-        # Apply the inverse residual rotation to the target vector
-        v_target = azalt_to_vector(target_az, target_alt)
-        v_comp = q_residual.inverse.rotate(v_target)
-        comp_az, comp_alt = vector_to_az_alt(v_comp)
-        comp_az  = wrap_to_360(comp_az)
-        comp_alt = wrap_to_90(comp_alt)
-
-        self.logger.info(f"->> Polaris: GOTO Corrected  Az {deg2dms(comp_az)}   Alt {deg2dms(comp_alt)} last residual az={az_err:+.4f}° alt={alt_err:+.4f}°")
-        return comp_az, comp_alt
 
     def optimise_baseQ_B2T_fallback_single_sync(self, pairs):
         if len(pairs) == 0:

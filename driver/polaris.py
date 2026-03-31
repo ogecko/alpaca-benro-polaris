@@ -2013,9 +2013,6 @@ class Polaris:
             self._targetrightascension = a_ra
             self._targetdeclination = a_dec
         if Config.advanced_alignment and Config.advanced_control:
-            # if Optimal Sidereal Tracking then correct GOTO target to eliminate final syncpoint residual
-            if Config.advanced_sidereal:
-                a_az, a_alt = self._sm.apply_last_syncpoint_residual_to_azalt(a_az, a_alt)
             p_az, p_alt = self._sm.azalt_ascom2polaris(a_az, a_alt)         # Use Multi-Point Alignment model
         else:
             p_alt, p_az = self.altaz_ascom2polaris(a_alt, a_az)             # Use Single-Point Alignment model

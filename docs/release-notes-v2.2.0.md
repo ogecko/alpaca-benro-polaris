@@ -39,7 +39,7 @@
 
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart.
 - **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
-- **[GOTO Correction]** Last sync residual is applied to GOTO targets rather than the alignment model, preserving optimal sidereal tracking.
+- **[Local Alignment]** Improve GOTO accuracy with a local Gaussian correction for the last sync residual.
 - **[Shortest Path]** Move Polaris using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
 - **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations
 - **[Forward Kinematics]** Improve forward kinematic robustness, deriving motor angles from CameraUp vector rather than theta3
