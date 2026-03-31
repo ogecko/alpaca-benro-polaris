@@ -137,7 +137,7 @@
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_alignment_zero', 'Zero Residual on last sync')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_sidereal', 'Optimal Sidereal Tracking')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_tracking', 'PID Tracking')"/>

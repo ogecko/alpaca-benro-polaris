@@ -38,6 +38,7 @@
 ## What's new in v2.2.0
 
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart.
+- **[GOTO Correction]** Last sync residual is applied to GOTO targets rather than the alignment model, preserving optimal sidereal tracking.
 - **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations
 - **[Forward Kinematics]** Improve forward kinematic robustness for negative azimuth angles
 - **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing and hysteresis to reduce uncertainty, and add status icon to Pilot.

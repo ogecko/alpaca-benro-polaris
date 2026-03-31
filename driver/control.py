@@ -2223,8 +2223,10 @@ class SyncManager:
 
             self.baseQ_B2T = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
             self.baseQ_B2T_inv = self.baseQ_B2T.inverse
-            if Config.advanced_alignment_zero:
-                self.apply_final_sync_alignment()
+
+            # If not optimal sidereal tracking then tweak QUEST model to zero our residual on final syncpoint
+            if not Config.advanced_sidereal:
+                self.apply_last_syncpoint_residual_to_model()
                 
             self.baseQ_B2T_message = "QUEST solution applied"
 
@@ -2244,30 +2246,79 @@ class SyncManager:
                 self.logger.info(msg)
         return
 
-    def apply_final_sync_alignment(self):
+    def get_last_syncpoint_residual(self):
         """
-        Apply a minimal correction quaternion to self.baseQ_B2T so that the last valid sync point
-        has zero residual. This ensures the most recent sync is perfectly honored.
+        Returns the residual of the most recent valid AzAlt sync point as
+        (az_err_deg, alt_err_deg, v_pred_rot, v_obs), or (0, 0, None, None)
+        if no valid sync exists.
+
+        Residual is defined as: observed - model_predicted.
+        v_pred_rot is the model-rotated predicted vector (used for quaternion correction).
+        v_obs is the observed vector (used for quaternion correction).
         """
-        last_valid = next((entry for entry in reversed(self.sync_history)
-                        if not entry["deleted"] and entry["a_az"] is not None and entry["a_alt"] is not None), None)
-        if not last_valid:
+        last_valid = next(
+            (e for e in reversed(self.sync_history)
+            if not e.get('deleted', False)
+            and e.get('a_az') is not None
+            and e.get('a_alt') is not None),
+            None
+        )
+        if last_valid is None:
+            return 0.0, 0.0, None, None
+
+        v_pred = azalt_to_vector(last_valid['p_az'], last_valid['p_alt'])
+        v_obs  = azalt_to_vector(last_valid['a_az'], last_valid['a_alt'])
+        v_pred_rot = self.baseQ_B2T.rotate(v_pred)
+
+        az_corr, alt_corr = vector_to_az_alt(v_pred_rot)
+        az_err  = angular_difference(az_corr, last_valid['a_az'])
+        alt_err = angular_difference(alt_corr, last_valid['a_alt'])
+
+        return az_err, alt_err, v_pred_rot, v_obs
+
+
+    def apply_last_syncpoint_residual_to_model(self):
+        az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
+        if v_pred_rot is None:
             self.baseQ_B2T_message += " | No valid sync for final alignment"
             return
-        v_obs = azalt_to_vector(last_valid["a_az"], last_valid["a_alt"])
-        v_pred = azalt_to_vector(last_valid["p_az"], last_valid["p_alt"])
-        v_pred_rot = self.baseQ_B2T.rotate(v_pred)
+
         axis = np.cross(v_pred_rot, v_obs)
         norm_axis = np.linalg.norm(axis)
         if norm_axis < 1e-8:
             self.baseQ_B2T_message += " | Final sync already aligned"
             return
+
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
         q_correction = Quaternion(axis=axis, angle=angle)
         self.baseQ_B2T = q_correction * self.baseQ_B2T
         self.baseQ_B2T_inv = self.baseQ_B2T.inverse
 
+
+    def apply_last_syncpoint_residual_to_azalt(self, target_az, target_alt):
+        az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
+        if v_pred_rot is None:
+            return target_az, target_alt
+
+        # Build the true residual rotation from v_pred_rot → v_obs
+        axis = np.cross(v_pred_rot, v_obs)
+        norm_axis = np.linalg.norm(axis)
+        if norm_axis < 1e-8:
+            return target_az, target_alt   # already aligned, no compensation needed
+        axis /= norm_axis
+        angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
+        q_residual = Quaternion(axis=axis, angle=angle)
+
+        # Apply the inverse residual rotation to the target vector
+        v_target = azalt_to_vector(target_az, target_alt)
+        v_comp = q_residual.inverse.rotate(v_target)
+        comp_az, comp_alt = vector_to_az_alt(v_comp)
+        comp_az  = wrap_to_360(comp_az)
+        comp_alt = wrap_to_90(comp_alt)
+
+        self.logger.info(f"->> Polaris: GOTO Corrected  Az {deg2dms(comp_az)}   Alt {deg2dms(comp_alt)} last residual az={az_err:+.4f}° alt={alt_err:+.4f}°")
+        return comp_az, comp_alt
 
     def optimise_baseQ_B2T_fallback_single_sync(self, pairs):
         if len(pairs) == 0:
