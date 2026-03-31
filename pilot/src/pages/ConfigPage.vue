@@ -137,7 +137,7 @@
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_align_local', 'Local Gausian Alignment')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_align_local', 'Local Gaussian Alignment')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_tracking', 'PID Tracking')"/>
