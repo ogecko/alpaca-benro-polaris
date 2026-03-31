@@ -38,14 +38,15 @@
 ## What's new in v2.2.0
 
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart.
+- **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
 - **[GOTO Correction]** Last sync residual is applied to GOTO targets rather than the alignment model, preserving optimal sidereal tracking.
+- **[Shortest Path]** Move Polaris using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
 - **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations
-- **[Forward Kinematics]** Improve forward kinematic robustness for negative azimuth angles
-- **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing and hysteresis to reduce uncertainty, and add status icon to Pilot.
+- **[Forward Kinematics]** Improve forward kinematic robustness, deriving motor angles from CameraUp vector rather than theta3
+- **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing, hysteresis to reduce uncertainty, and add status icon to Pilot.
 - **[Negative Azimuth]** Support Goto Altitude below -8°, now accessable with improved inverse kinematics solution selection, when M3 is not zero
-- **[Sidereal Tracking]** Enhance sidereal tracking by computing motor error signals using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
 - **[Roll Angle Tracking]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.
-- **[Orbital Tracking]** Enhance orbital tracking by adding feed forward, expanding integration component, and maintaining a fixed roll angle, resulting in smoother and more stable tracking.
+- **[Orbital Tracking]** Enhance orbital tracking by adding feed forward, expanding integration, and maintaining a fixed roll angle
 - **[Guiding Accuracy]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
 - **[Guiding Integral]**: Reduce pulse-guiding overshoot by temporarily suspending integration of the error term during active guiding.
 - **[Pano Recenter]**  Add btn on the Dashboard to save the current pointing orientation into the PanoGrid, recentering it in space.
