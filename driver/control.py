@@ -2050,6 +2050,8 @@ class SyncManager:
         """   
         if self.polaris._q1 is None:
             return
+        if not hasattr(self.polaris, '_pid') or self.polaris._pid is None:
+            return
         cameraQ = self.motorQ_to_cameraQ(self.polaris._q1)     
         az, alt, roll = cameraQ_C2T_to_azaltroll(cameraQ)
         self.polaris._pid.reset_sp(np.array([az,alt,roll], dtype=float))
