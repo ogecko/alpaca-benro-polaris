@@ -2082,7 +2082,7 @@ class SyncManager:
         # If limit reached, remove the lowest-weighted entry
         if len(active_entries) >= 10:
             # Find entry with lowest weight
-            lowest_entry = min(active_entries, key=lambda e: e["w_total"])
+            lowest_entry = min(active_entries, key=lambda e: e.get("w_total", 0.0))
             timestamp_to_remove = lowest_entry.get("timestamp")
             self.sync_remove(timestamp_to_remove, optimise=False)
         entry = self.standard_entry()
