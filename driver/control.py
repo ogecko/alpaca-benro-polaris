@@ -2436,12 +2436,17 @@ class SyncManager:
         for entry in self.sync_history:
             if entry["deleted"] or entry["a_roll"] is None:
                 continue
-
             # Compute delta: how much Polaris roll differs from expected PA
             delta = angular_difference(entry["p_roll"], entry["a_roll"])
             deltas.append(delta)
 
-        self.roll_adj = sum(deltas) / len(deltas) if deltas else 0
+        if deltas:
+            # circular mean to handle wrap-around near ±180°
+            sin_sum = sum(math.sin(math.radians(d)) for d in deltas)
+            cos_sum = sum(math.cos(math.radians(d)) for d in deltas)
+            self.roll_adj = math.degrees(math.atan2(sin_sum, cos_sum))
+        else:
+            self.roll_adj = 0
         self.compute_roll_residuals()
 
     def logSyncData(self, persist=True):
