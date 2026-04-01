@@ -2484,7 +2484,7 @@ class SyncManager:
             # --- Per-point table, compact format ---
             # Header
             self.logger.info(
-                f"{'#':>2} {'Timestamp':>10} {'Age h':>5} "
+                f"  {'No':>2} {'Timestamp':>10} {'Age h':>5} "
                 f"{'Obs RA':>8} {'Obs Dec':>8} {'Obs Az':>8} {'Obs Alt':>8} "
                 f"{'p_az':>8} {'p_alt':>8} {'p_roll':>8} "
                 f"{'Weight':>7} {'ResAz':>8} {'ResAlt':>8} {'ResMag':>8}"
@@ -2501,7 +2501,7 @@ class SyncManager:
                 ts = ts_local.strftime('%H:%M:%S')
                 age_h = (datetime.datetime.now(datetime.timezone.utc) - ts_utc).total_seconds() / 3600
                 self.logger.info(
-                    f"{i:>2} {ts:>10} {age_h:>5.1f} "
+                    f" #{i:02d} {ts:>10} {age_h:>5.1f} "
                     f"{entry['a_ra']:>8.2f} {entry['a_dec']:>8.2f} {entry['a_az']:>8.2f} {entry['a_alt']:>8.2f} "
                     f"{entry['p_az']:>8.2f} {entry['p_alt']:>8.2f} {entry['p_roll']:>8.2f} "
                     f"{w:>7.4f} {az_err*60:>+8.2f}' {alt_err*60:>+8.2f}' {deg2dms(mag):>8}"
@@ -2515,9 +2515,9 @@ class SyncManager:
                         v1 = azalt_to_vector(active[i]['a_az'], active[i]['a_alt'])
                         v2 = azalt_to_vector(active[j]['a_az'], active[j]['a_alt'])
                         sep = math.degrees(v_angular_distance(v1, v2))
-                        parts.append(f"[{j}]: {sep:5.2f}")
+                        parts.append(f"#{j:02d}: {sep:5.2f}")
                     if parts:
-                        self.logger.info(f"  [{i}] <-> {'; '.join(parts)}")
+                        self.logger.info(f" #{i:02d}   <->  {';  '.join(parts)}")
 
     def streamSyncData(self, persist=True):
         self.streamSyncDataReset()
