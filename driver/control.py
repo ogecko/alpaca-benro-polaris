@@ -1982,7 +1982,7 @@ class SyncManager:
         self.az_adj = 0                         # baseQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
         self.refresh_pid_setpoints_from_q1()
-        self.logSyncDataReset()
+        self.streamSyncDataReset()
 
     def standard_entry(self):
         entry = {
@@ -2102,7 +2102,7 @@ class SyncManager:
         self.sync_history.append(entry)
         self.optimize_baseQ_B2T()
         self.refresh_pid_setpoints_from_q1()
-        self.logSyncData()
+        self.streamSyncData()
 
     def sync_roll(self, a_roll):
         if not Config.advanced_alignment:
@@ -2115,7 +2115,7 @@ class SyncManager:
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.refresh_pid_setpoints_from_q1()
-        self.logSyncData()
+        self.streamSyncData()
 
     def sync_remove(self, timestamp, optimise=True):
         found = False
@@ -2131,7 +2131,7 @@ class SyncManager:
                 self.optimize_baseQ_B2T()
                 self.optimize_roll_adj()
                 self.refresh_pid_setpoints_from_q1()
-            self.logSyncData()
+            self.streamSyncData()
         else:
             self.logger.warning(f"No sync entry found with timestamp: {timestamp}")
 
@@ -2245,16 +2245,8 @@ class SyncManager:
         # Now compute the residuals and tilt correction
         self.compute_azalt_residuals()   # Compute and store residuals
         self.compute_tilt()              # Compute tilt correction
+        self.logSyncDataToConsole()
 
-        if Config.log_quest_model:
-            for i, entry in enumerate(self.sync_history):
-                if entry["deleted"] or (entry["a_az"] is None):
-                    continue
-                msg = f"Sync[{i}] | Timestamp: {entry['timestamp']} | Pred AzAlt: ({entry['p_az']:.2f}, {entry['p_alt']:.2f}) "
-                msg += f"| Obs AzAlt: ({entry['a_az']:.2f}, {entry['a_alt']:.2f}) | Obs RADec: ({entry['a_ra']:.2f}, {entry['a_dec']:.2f}) "
-                msg += f"| ProximityW: {entry['w_proximity']:.4f} | RecencyW: {entry['w_recency']:.4f} | PolarW: {entry['w_polar']:.4f} "
-                msg += f"| TotalW: {entry['w_total']:.4f} | Residual: { deg2dms(entry['residual_magnitude'])}"
-                self.logger.info(msg)
         return
 
 
@@ -2470,15 +2462,72 @@ class SyncManager:
             self.roll_adj = 0
         self.compute_roll_residuals()
 
-    def logSyncData(self, persist=True):
-        self.logSyncDataReset()
+
+    def logSyncDataToConsole(self):
+        if Config.log_quest_model:
+            # --- Model summary line ---
+            active = [e for e in self.sync_history if not e.get("deleted") and e.get("a_az") is not None]
+            residuals = [e["residual_magnitude"] for e in active if "residual_magnitude" in e]
+            rms = math.sqrt(sum(r**2 for r in residuals) / len(residuals)) if residuals else 0
+            max_res = max(residuals) if residuals else 0
+            max_entry = active[residuals.index(max_res)] if residuals else None
+
+            self.logger.info(
+                f"QUEST Model | Points: {len(active)} | "
+                f"RMS Residual: {deg2dms(rms)} | "
+                f"Max Residual: {deg2dms(max_res)} | "
+                f"Az Correction: {deg2dms(self.az_adj)} | "
+                f"Tilt: {deg2dms(self.tilt_adj_mag)} @ {deg2dms(self.tilt_adj_az)} | "
+                f"Roll Adj: {deg2dms(self.roll_adj)}"
+            )
+
+            # --- Per-point table, compact format ---
+            # Header
+            self.logger.info(
+                f"{'#':>2} {'Timestamp':>10} {'Age h':>5} "
+                f"{'Obs RA':>8} {'Obs Dec':>8} {'Obs Az':>8} {'Obs Alt':>8} "
+                f"{'p_az':>8} {'p_alt':>8} {'p_roll':>8} "
+                f"{'Weight':>7} {'ResAz':>8} {'ResAlt':>8} {'ResMag':>8}"
+            )
+            for i, entry in enumerate(self.sync_history):
+                if entry.get("deleted") or entry.get("a_az") is None:
+                    continue
+                az_err, alt_err = entry.get("residual_vector", (0, 0))
+                mag = entry.get("residual_magnitude", 0)
+                w = entry.get("w_total", 0)
+                # Timestamp short form eg 12:24:04
+                ts_utc = datetime.datetime.fromisoformat(entry['timestamp'].replace('Z', '+00:00'))
+                ts_local = ts_utc.astimezone()
+                ts = ts_local.strftime('%H:%M:%S')
+                age_h = (datetime.datetime.now(datetime.timezone.utc) - ts_utc).total_seconds() / 3600
+                self.logger.info(
+                    f"{i:>2} {ts:>10} {age_h:>5.1f} "
+                    f"{entry['a_ra']:>8.2f} {entry['a_dec']:>8.2f} {entry['a_az']:>8.2f} {entry['a_alt']:>8.2f} "
+                    f"{entry['p_az']:>8.2f} {entry['p_alt']:>8.2f} {entry['p_roll']:>8.2f} "
+                    f"{w:>7.4f} {az_err*60:>+8.2f}' {alt_err*60:>+8.2f}' {deg2dms(mag):>8}"
+                )
+            # --- Point pair separation ---
+            if len(active) >= 2:
+                self.logger.info("Point separations (degrees):")
+                for i in range(len(active)):
+                    parts = []
+                    for j in range(i+1, len(active)):
+                        v1 = azalt_to_vector(active[i]['a_az'], active[i]['a_alt'])
+                        v2 = azalt_to_vector(active[j]['a_az'], active[j]['a_alt'])
+                        sep = math.degrees(v_angular_distance(v1, v2))
+                        parts.append(f"[{j}]: {sep:5.2f}")
+                    if parts:
+                        self.logger.info(f"  [{i}] <-> {'; '.join(parts)}")
+
+    def streamSyncData(self, persist=True):
+        self.streamSyncDataReset()
         sm_logger = logging.getLogger('sm')
         for entry in self.sync_history:
             sm_logger.info(entry)
         if persist:
             self.saveSyncDataToFile()
 
-    def logSyncDataReset(self):
+    def streamSyncDataReset(self):
         sm_logger = logging.getLogger('sm')
         first_entry = self.standard_entry()
         first_entry["timestamp"] = 'reset'    # flag clients to clear alignment history
@@ -2535,7 +2584,7 @@ class SyncManager:
             self.optimize_baseQ_B2T()
             self.optimize_roll_adj()
             self.refresh_pid_setpoints_from_q1()
-            self.logSyncData(persist=False)
+            self.streamSyncData(persist=False)
             return True
         except Exception as e:
             self.logger.warning(f"Failed to load sync_points.json: {e}")

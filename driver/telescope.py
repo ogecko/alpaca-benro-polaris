@@ -1821,7 +1821,7 @@ def make_params_live(changed_params):
         elif param in ["advanced_alignment", "advanced_align_local"]:
             polaris._sm.optimize_baseQ_B2T()
             polaris._sm.refresh_pid_setpoints_from_q1()
-            polaris._sm.logSyncData()
+            polaris._sm.streamSyncData()
         elif param == "ref":
             if changed_params["ref"]==3:    # Set Current Orientation
                 Config.apply_changes({
