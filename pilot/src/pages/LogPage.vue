@@ -27,9 +27,7 @@
         <q-scroll-area ref="scrollArea" @scroll="onScroll"  :style="{ 'height': scrollHeight + 'px' }"
           @wheel="resetKeepAtBottom" @click="resetKeepAtBottom" @pointerdown="resetKeepAtBottom">
           <div>
-            <div v-for="(entry, index) in logEntries" :key="index">
-              {{ format(entry) }}
-            </div>
+            <div v-for="(entry, index) in logEntries" :key="index" style="white-space: pre;">{{ format(entry) }}</div>
             <q-intersection @visibility="onSentinelVisibility" />
           </div>
         </q-scroll-area>
