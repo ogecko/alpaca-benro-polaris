@@ -4,7 +4,7 @@ import numpy as np
 def convert_to_float(value):
     try:
         return float(value)
-    except ValueError:
+    except (ValueError, TypeError):
         return float('nan')
 
     
@@ -23,9 +23,9 @@ def convert_to_arcsec(value):
 # Define the conversion function
 def convert_to_bool(value):
     try:
-        return True if value=='True' else False
-    except ValueError:
-        return bool('nan')
+        return value == 'True'
+    except:
+        return False
     
 # Define RMS calculation function
 def rms(x):
