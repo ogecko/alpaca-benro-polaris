@@ -106,60 +106,66 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 # ************* Quaternion Kinematics *************
 # The Benro Polaris is a 3-axis motorised astronomical camera mount ("Polaris"). 
 #
-# We define four frames of reference to assist with controlling the mount.
-# B - Mount Base Frame: Mechanical Frame;           theta: theta1-theta2-theta3 frame               omega: omega1-omega2-omega3 angular velocities
-#     +Z_B = Axis 1 up direction;                   theta1 = motor1 spin axis, around +Z_B          omega1: motor1 angular velocity
-#     +X_B = Axis 2 Red btn direction;              theta2 = motor2 spin axis, around +X_B          omega2: motor2 angular velocity
-#     +Y_B = Back SD Card direction;                theta3 = motor3 rotates about camera up +X_C    omega3: motor3 angular velocity
-# C - Camera Sensor Frame: Looking skywards −Z 
-#     +X_C  = camera "up" in the image
-#     +Y_C  = camera "left" in the image
-#     -Z_C  = optical axis (camera boresight)
-# T - Topocentric Frame: Observing Site Location;   alpha: Alt-Az-Roll frame
-#     +X_T = East;                                  Roll = rotation around boresight, relative to the local horizon plane  
-#     +Y_T = North;                                 Azimuth = Measured in the horizon plane, from North toward East
-#     +Z_T = Zenith (Up);                           Altitude = Measured from horizon plane, up toward Zenith
-# E - Celestrial Frame: Earth-centered sky frame;   delta: Ra-Dec-PA frame
-#     +Z_E = North Celestial Pole;                  Declination = measured from Celestrial Equator, South -90, Equator 0, North +90
-#     +X_E = RA = 0h, Dec = 0°;                     Right Ascension = angle around celestrial equator, Eastward from vernal Equinox, HourAngle = LST - RA
-#     +Y_E = RA = 6h, Dec = 0°;                     Position Angle = the angle between Celestrial North Pole and Camera up +X_C; PA = ParalaticAngle + Roll
-#                                                   Paralatic Angle = the angle between Celestrial North Pole and Zenth (at the RA/Dec target)
-#
-# We define four quaternions that rotates vectors from one reference frame to another
-# motorQ_C2B - Motor Orientation Quaternion, q1
-#     Rotates vectors expressed in Camera frame into Mount Base frame.
-#     It depends only on motor angles.
-#     It encodes pure mechanical geometry.
-#     It knows nothing about the sky, other than the Polaris firmware based alignment (Single Point Alignment).
-# baseQ_B2T - Base Orientation Quaternion
-#     Rotates vectors expressed in Mount Base frame into Topocentric frame.
-#     This encodes: az/alt offset ie azimuth offset, tripod tilt, wedge tilt, imperfect polar alignment, sync corrections
-#     Based on QUEST (for Multi Point alignment) or Identify (for Single Point Alignment)
-# R(+r) - Rotation adj around the camera boresight
-#     This encodes: roll offset based on roll_sync
-#     Beware that this quaternion depends on the current orientation of the mount
-# cameraQ_C2T - Camera Orientation Quaternion
-#     Rotates vectors expressed in Camera frame into Topocentric frame
-#     And is defined by: cameraQ_C2T = R(-r) ∘ baseQ_B2T ∘ motorQ_C2B
-#     From cameraQ_C2T, you can compute: Azimuth, Altitude, Roll.
-#
-# Forward Kinematics (Motors → Sky)
+# We define four frames of reference to assist with controlling the mount. Each frame has its natural coordinates:
+# C — Camera sensor geometry    : +X_C = camera img "up"    +Y_C  = camera img "left"  -Z_C  = camera boresight
+# B — Mount base mechanics      : +X_B = Axis 2 Red btn     +Y_B = Back SD Card        +Z_B = Axis 1 up
+# T — Topocentric sky           : +X_T = East               +Y_T = North               +Z_T = Zenith (Up)
+# E — Equatorial sky            : +X_E = RA = 0h, Dec = 0°  +Y_E = RA = 6h, Dec = 0°   +Z_E = North Celestial Pole
+
+# C Frame Variables - Sensor
+# cUP             Camera Up vector in Camera Frame
+
+# B Frame Variables — raw IMU / mechanical
+#     motorQ_C2B       C→B Polaris quaternion (q1 raw from Polaris IMU), Rotates vectors expressed in Camera frame into Mount Base frame.
+#     alignQ_B2T       B→T alignment quaternion (identity under SPA, QUEST-derived under MPA, was baseQ_B2T). Rotates vectors expressed in Mount Base frame into Topocentric frame.
+#     alignQ_B2T_inv   Inverse of alignB2T
+#     theta_pec        State of Motor angles after KF and PEC (theta1, theta2, theta3)
+#     omega_B          Angular velocity in base frame (used from feed forward)
+#     p_az/alt/roll    Polaris Azimuth, Altitude and Roll, IMU-predicted Az/Alt/Roll, derived from motorQ_C2B in B frame (doesnt include QUEST) 
+
+# T Frame Variables - Precisely aligned sky coordinates/transforms
+#     cameraQ_C2T      C→T quaternion (fully corrected, state dependant, incorporates RBC, QUEST, LGC, roll_adj). Rotates vectors expressed in Camera frame into Topocentric frame
+#     alpha            Standard Topocentric co-ordinates (az, alt, roll)
+#     omega_T          Angular velocity in topo frame (from cameraQ change)
+#     Azimuth          Measured in the horizon plane, from North toward East
+#     Altitude         Measured from horizon plane, up toward Zenith
+#     Roll Angle       rotation around boresight, relative to the local horizon plane (roll)
+
+# E Frame Variables - Equatorial co-ordinates/transforms
+#     delta            Standard Equatorial co-ordinates (RA, Dec, PA)
+#     Right Ascension  Angle around celestrial equator, Eastward from vernal Equinox, HourAngle = LST - RA
+#     Declination      Measured from Celestrial Equator, South -90, Equator 0, North +90 
+#     Position Angle   The angle between Celestrial North Pole and Camera up +X_C; PA = ParalaticAngle + Roll
+#     Paralatic Angle  The angle between Celestrial North Pole and Zenth (at the RA/Dec target)
+
+# State-dependent corrections — not frame quaternions
+#     δq_RBC          applied in B frame, function of (p_roll, p_alt)
+#     δq_LGC          applied in T frame, function of (angular distance to sync point)  
+#     δq_roll         applied in T frame, scalar roll_adj around boresight
+
+# Forward Kinematics (Motors → Sky Angular Position)
 #     q1 from Polaris
-#     theta_meas = motorQ_C2B_to_theta(q1)
-#     omega_meas = use omega_ref rather than calc(theta_meas_t - theta_meas_t-6)/(dt*6)
-#     theta_state = KF(theta_meas, omega_meas)
-#     motorQ_C2B = theta_to_motorQ_C2B(theta_state)
-#     cameraQ_C2T = motorQ_to_cameraQ(motorQ_C2B) = R(-r) ∘ baseQ_B2T * motorQ_C2B 
-#     Az, Alt, Roll = cameraQ_C2T_to_azaltroll(cameraQ_C2T)
+#     theta_meas      = motorQ_C2B_to_theta(q1)
+#     omega_meas      = omega_ref (as proxy)
+#     theta_state     = KalmanFilter(theta_meas, omega_meas)
+#     theta_pec       = PeriodicErrorCorrection(theta_staet, phase)
+#     motorQ_C2B      = theta_to_motorQ_C2B(theta_pec) 
+#     cameraQ_C2T     = motorQ_to_cameraQ(motorQ_C2B) = δq_roll ∘ δq_LGC ∘ alignQ_B2T ∘ δq_RBC ∘ motorQ_C2B
+#     Az, Alt, Roll   = cameraQ_C2T_to_azaltroll(cameraQ_C2T)
 #     celestrialQ_T2E = pyephem(az,alt); From celestrialQ_T2E you derive RA-Dec-PA
-#
-# Inverse Kinematics (Sky → Motors)
-#     ephembody = delta2body(RA, Dec, PA) or OrbitalBody
-#     az,alt,roll = body2alpha(ephembody)
+
+# Inverse Kinematics (Sky → Motors Angular Position)
+#     ephembody       = delta2body(RA, Dec, PA) or OrbitalBody
+#     az,alt,roll     = body2alpha(ephembody)
 #     cameraQ_C2T_ref = alpha_to_cameraQ_C2T(az,alt,roll)
-#     motorQ_C2B_ref = cameraQ_to_motorQ(cameraQ_C2T_ref) = baseQ_B2T⁻¹ ∘ R(+r) ∘ cameraQ_C2T_ref
-#     θ1, θ2, θ3 = motorQ_C2B_to_theta(motorQ_C2B_ref); Potentially two solutions (cf elbow up/down)
-#
+#     motorQ_C2B_ref  = cameraQ_to_motorQ(cameraQ_C2T_ref) = undoes(δq_roll ∘ δq_LGC ∘ alignQ_B2T ∘ δq_RBC) ∘ cameraQ_C2T_ref
+#     θ1, θ2, θ3      = motorQ_C2B_to_theta(motorQ_C2B_ref); Potentially two solutions (cf elbow up/down)
+
+# Inverse Kinematics (Sky → Motors Angular Velocity)
+#     omega_T         = calculate_angular_velocity(cameraQ_C2T_last, cameraQ_C2T, dt)
+#     omega_B         = topoVec_to_baseVec(omega_T, cameraQ_C2T) 
+#     theta_dot       = J⁻¹(theta_pec) · omega_B
+#     omega_ff        = degrees(theta_dot)
 
 def is_angle_same(a, b, tolerance=1e-4):
     """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
