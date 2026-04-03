@@ -618,6 +618,13 @@ class Polaris:
             self._theta_state, _ = self._kf.get_state()
             self._theta_pec = self._theta_state         # Future PEC to be implemented here
             motorQ_state = theta_to_motorQ_C2B(*self._theta_pec)
+            # Optionally apply Rotation Bias Correction (RBC)
+            if Config.advanced_align_roll:
+                motorQ_state = self._sm._apply_roll_error_correction(motorQ_state)
+                t1, t2, t3 = motorQ_C2B_to_theta(motorQ_state, self._pid._lp)
+                self._theta_pec = np.array([t1, t2, t3])
+
+            # Translate from Base Frame to Topo Frame
             cameraQ_state = self._sm.motorQ_to_cameraQ(motorQ_state)
             # update all the Sky Positions and the PID loop
             delta_state, alpha_state = self.update_sky_positions(motorQ_state, cameraQ_state)

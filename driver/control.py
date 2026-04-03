@@ -2010,12 +2010,8 @@ class SyncManager:
     def motorQ_to_cameraQ(self, motorQ_C2B):
         """
         Forward kinematics: Base frame → Topocentric frame.
-        motorQ → [RBC] → [QUEST] → [LGC] → [roll_adj] → cameraQ
+        motorQ → [QUEST] → [LGC] → [roll_adj] → cameraQ
         """
-
-        # Apply Rotation Bias Correction (RBC)
-        if Config.advanced_align_roll:
-            motorQ_C2B = self._apply_roll_error_correction(motorQ_C2B)
 
         # Apply baseQ_B2T model (QUEST)
         cameraQ = self.baseQ_B2T * motorQ_C2B
@@ -2039,7 +2035,7 @@ class SyncManager:
     def cameraQ_to_motorQ(self, cameraQ_C2T):
         """
         Inverse kinematics: Topocentric frame → Base frame.
-        cameraQ → undo[roll_adj] → undo[LGC] → undo[QUEST] → undo[RBC] → motorQ
+        cameraQ → undo[roll_adj] → undo[LGC] → undo[QUEST] → motorQ
         """
         # Undo roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -2056,17 +2052,13 @@ class SyncManager:
         # Undo baseQ_B2T model (QUEST)
         motorQ_C2B = self.baseQ_B2T_inv * cameraQ_C2T
 
-        # Undo rotation bias model correction (RBC)
-        if Config.advanced_align_roll:
-            motorQ_C2B = self._undo_roll_error_correction(motorQ_C2B)
-
         return motorQ_C2B
 
 
     def cameraQ_vec_to_motorQ_vec(self, omega_topo, cameraQ_C2T):
         """
         Rotate an angular velocity vector from topocentric to base frame
-        omega_topo,cameraQ → undo[roll_adj] → undo[LGC] → undo[QUEST] → undo[RBC] → omega_base,motorQ
+        omega_topo,cameraQ → undo[roll_adj] → undo[LGC] → undo[QUEST] → omega_base,motorQ
         """
         # Undo roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -2082,12 +2074,6 @@ class SyncManager:
 
         # Undo baseQ_B2T model (QUEST)
         omega_base = self.baseQ_B2T_inv.rotate(omega_topo)
-
-        # Undo rotation bias model correction (RBC)
-        if Config.advanced_align_roll:
-            q_rbc = self._roll_error_quaternion(cameraQ_C2T, sign=+1)
-            if q_rbc is not None:
-                omega_base = q_rbc.rotate(omega_base)
 
         return omega_base
 
