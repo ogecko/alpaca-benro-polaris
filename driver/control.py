@@ -121,7 +121,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     alignQ_B2T_inv   Inverse of alignB2T
 #     theta_pec        State of Motor angles after KF and PEC (theta1, theta2, theta3)
 #     omega_B          Angular velocity in base frame (used from feed forward)
-#     p_az/alt/roll    Polaris Azimuth, Altitude and Roll, IMU-predicted Az/Alt/Roll, derived from motorQ_C2B in B frame (doesnt include QUEST) 
+#     p_az/alt/roll    Polaris Azimuth, Altitude and Roll, IMU-predicted Az/Alt/Roll, derived from motorQ_C2B in B frame (doesnt include QUEST and other corrections) 
 
 # T Frame Variables - Precisely aligned sky coordinates/transforms
 #     cameraQ_C2T      C→T quaternion (fully corrected, state dependant, incorporates RBC, QUEST, LGC, roll_adj). Rotates vectors expressed in Camera frame into Topocentric frame
@@ -139,9 +139,11 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     Paralatic Angle  The angle between Celestrial North Pole and Zenth (at the RA/Dec target)
 
 # State-dependent corrections — not frame quaternions
-#     δq_RBC          applied in B frame, function of (p_roll, p_alt)
-#     δq_LGC          applied in T frame, function of (angular distance to sync point)  
-#     δq_roll         applied in T frame, scalar roll_adj around boresight
+# Forward:  motorQ_C2B → corrQ_RBC → alignQ_B2T → corrQ_LGC → corrQ_roll → cameraQ_C2T
+# Inverse:  cameraQ_C2T → corrQ_roll⁻¹ → corrQ_LGC⁻¹ → alignQ_B2T_inv → corrQ_RBC⁻¹ → motorQ_C2B
+#     corrQ_RBC       Roll Bias Correction applied in B frame, function of (p_roll, p_alt)
+#     corrQ_LGC       Local Gaussian Correction applied in T frame, function of (angular distance to sync point)  
+#     corrQ_roll      Scalar Roll Sync Adjustment applied in T frame, scalar roll_adj around boresight
 
 # Forward Kinematics (Motors → Sky Angular Position)
 #     q1 from Polaris
@@ -150,7 +152,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     theta_state     = KalmanFilter(theta_meas, omega_meas)
 #     theta_pec       = PeriodicErrorCorrection(theta_staet, phase)
 #     motorQ_C2B      = theta_to_motorQ_C2B(theta_pec) 
-#     cameraQ_C2T     = motorQ_to_cameraQ(motorQ_C2B) = δq_roll ∘ δq_LGC ∘ alignQ_B2T ∘ δq_RBC ∘ motorQ_C2B
+#     cameraQ_C2T     = motorQ_to_cameraQ(motorQ_C2B) = corrQ_roll ∘ corrQ_LGC ∘ alignQ_B2T ∘ corrQ_RBC ∘ motorQ_C2B
 #     Az, Alt, Roll   = cameraQ_C2T_to_azaltroll(cameraQ_C2T)
 #     celestrialQ_T2E = pyephem(az,alt); From celestrialQ_T2E you derive RA-Dec-PA
 
@@ -158,7 +160,7 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
 #     ephembody       = delta2body(RA, Dec, PA) or OrbitalBody
 #     az,alt,roll     = body2alpha(ephembody)
 #     cameraQ_C2T_ref = alpha_to_cameraQ_C2T(az,alt,roll)
-#     motorQ_C2B_ref  = cameraQ_to_motorQ(cameraQ_C2T_ref) = undoes(δq_roll ∘ δq_LGC ∘ alignQ_B2T ∘ δq_RBC) ∘ cameraQ_C2T_ref
+#     motorQ_C2B_ref  = cameraQ_to_motorQ(cameraQ_C2T_ref) = corrQ_RBC⁻¹ ∘ alignQ_B2T_inv ∘ corrQ_LGC⁻¹ ∘ corrQ_roll⁻¹ ∘ cameraQ_C2T_ref
 #     θ1, θ2, θ3      = motorQ_C2B_to_theta(motorQ_C2B_ref); Potentially two solutions (cf elbow up/down)
 
 # Inverse Kinematics (Sky → Motors Angular Velocity)
