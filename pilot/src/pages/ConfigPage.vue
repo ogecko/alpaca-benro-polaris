@@ -136,18 +136,21 @@
                 <q-toggle class='col-6' v-bind="bindField('advanced_goto', 'Advanced Goto')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_align_local', 'Local Gaussian Alignment')"/>
-              </div>
-              <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_tracking', 'PID Tracking')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_orbitals', 'Orbitals Tracking')"/>
               </div>
-              <div class="row q-pb-md">
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Predictive Error Correction')"/>
               </div>
-              <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pt-md q-pl-md q-pr-mdn ">
+              <div v-if="cfg.advanced_alignment" class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_align_local', 'Local Gaussian Correction')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_align_roll', 'Rotation Bias Correction')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Predictive Error Correction (PEC)')"/>
+              </div>
+              <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
                 <q-select
                   class="col-6 q-pt-none" label="RA Pulse Guide Rate" emit-value map-options
                   v-model="cfg.guide_rate_ra" @update:model-value="v => putdb({ guide_rate_ra: v })"

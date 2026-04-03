@@ -2002,39 +2002,106 @@ class SyncManager:
     def motorQ_to_cameraQ(self, motorQ_C2B):
         """
         Forward kinematics: Base frame → Topocentric frame.
-        Applies az/alt correction (baseQ_B2T), local residual correction,
-        then roll correction around the boresight.
+        Applies rotation bias, QUEST model, local residual correction, then roll sync adj.
         """
+
+        # Apply rotation bias model correction
+        if Config.advanced_align_roll:
+            motorQ_C2B = self._apply_roll_error_correction(motorQ_C2B)
+
+        # Apply baseQ_B2T QUEST model
         cameraQ = self.baseQ_B2T * motorQ_C2B
-        # Apply spatially-weighted local residual correction if enabled
+
+        # Apply Local Gaussian Correction
         if Config.advanced_align_local:
             q_local = self.get_local_residual_correction(cameraQ)
             if q_local is not None:
                 cameraQ = q_local * cameraQ
-        if self.roll_adj == 0:
-            return cameraQ
-        boresight_T = cameraQ.rotate([0, 0, -1])
-        q_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
-        return q_roll * cameraQ
+
+        # Apply roll sync adj
+        if self.roll_adj != 0:
+            boresight_T = cameraQ.rotate([0, 0, -1])
+            q_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
+            cameraQ = q_roll * cameraQ
+
+        return cameraQ
 
 
 
     def cameraQ_to_motorQ(self, cameraQ_C2T):
         """
         Inverse kinematics: Topocentric frame → Base frame.
-        Removes roll correction, local residual correction,
-        then applies inverse az/alt correction.
+        Removes roll sync adj, local residual correction, QUEST model, then rotation bias
         """
+        # Undo roll sync adj
         if self.roll_adj != 0:
             boresight_T = cameraQ_C2T.rotate([0, 0, -1])
             q_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
             cameraQ_C2T = q_roll_undo * cameraQ_C2T
-        # Undo spatially-weighted local residual correction if enabled
+
+        # Undo Local Guassian Correction 
         if Config.advanced_align_local:
             q_local = self.get_local_residual_correction(cameraQ_C2T)
             if q_local is not None:
                 cameraQ_C2T = q_local.inverse * cameraQ_C2T
-        return self.baseQ_B2T_inv * cameraQ_C2T
+
+        # Undo baseQ_B2T QUEST model
+        motorQ_C2B = self.baseQ_B2T_inv * cameraQ_C2T
+
+        # Undo rotation bias model correction 
+        if Config.advanced_align_roll:
+            motorQ_C2B = self._undo_roll_error_correction(motorQ_C2B)
+
+        return motorQ_C2B
+
+
+    def _apply_roll_error_correction(self, motorQ_C2B):
+        """
+        Remove the roll-dependent IMU bias from a raw motor quaternion.
+
+        The bias model (fitted from calibration data):
+            roll_error (arcmin) = (roll_model_a · tan(alt) + roll_model_b) · p_roll
+
+        where p_roll and p_alt are extracted from the uncorrected motorQ itself.
+        We rotate motorQ around its own boresight by -roll_error to precondition it.
+        """
+
+        # Extract raw az/alt/roll from uncorrected motor quaternion
+        # (use motorQ directly — not via baseQ_B2T, which hasn't been applied yet)
+        _, p_alt, p_roll = cameraQ_C2T_to_azaltroll(motorQ_C2B)
+
+        # Compute predicted roll error
+        slope = Config.roll_model_a * np.tan(np.radians(p_alt)) + Config.roll_model_b
+        roll_error_deg = slope * p_roll / 60.0   # convert arcmin → degrees
+
+        if abs(roll_error_deg) < 1e-6:
+            return motorQ_C2B
+
+        # Rotate around the boresight axis of the uncorrected quaternion
+        # boresight in topocentric frame = motorQ_C2B.rotate([0, 0, -1])
+        boresight = motorQ_C2B.rotate([0, 0, -1])
+        q_correction = Quaternion(axis=boresight, degrees=-roll_error_deg)
+        return q_correction * motorQ_C2B
+
+
+    def _undo_roll_error_correction(self, motorQ_C2B):
+        """
+        Inverse of _apply_roll_error_correction.
+        Used in cameraQ_to_motorQ so that inverse kinematics targets
+        the right physical motor angle.
+        """
+
+        _, p_alt, p_roll = cameraQ_C2T_to_azaltroll(motorQ_C2B)
+        slope = Config.roll_model_a * np.tan(np.radians(p_alt)) + Config.roll_model_b
+        roll_error_deg = slope * p_roll / 60.0
+
+        if abs(roll_error_deg) < 1e-6:
+            return motorQ_C2B
+
+        boresight = motorQ_C2B.rotate([0, 0, -1])
+        q_undo = Quaternion(axis=boresight, degrees=+roll_error_deg)  # note: +, not -
+        return q_undo * motorQ_C2B
+
 
     def cameraQ_vec_to_motorQ_vec(self, omega_topo, cameraQ_C2T):
         """

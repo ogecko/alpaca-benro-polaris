@@ -57,6 +57,7 @@ advanced_tracking = true                    # Perform advanced tracking of targe
 advanced_guiding = true                     # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
 advanced_alignment = false                  # Enable Multi-Point Alignment/Quest model vs Single Point Alignment/Polaris model
 advanced_align_local = true                 # Enable local Gausian adjustment to correct last sync residual, without distorting global alignment model
+advanced_align_roll = false                 # Enable Rotation Bias Correction model adjustment, corrects systemic p_roll encoding error that affects az and roll pointing
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 advanced_pec = false                        # Perform Predictive Error Correction, not yet implemented
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.003981071705534973 ]
@@ -79,6 +80,9 @@ m2_park = 0.0                               # Motor 2 position for saved Park Lo
 m3_park = 0.0                               # Motor 3 position for saved Park Location
 guide_rate_ra = 1.0                         # Right Ascensiion guide rate multiple of sidereal rate
 guide_rate_dec = 1.0                        # Declination guide rate multiple of sidereal rate
+                                            # Rotation Bias Model: roll_error (arcmin) = (roll_model_a · tan(alt) + roll_model_b) · p_roll
+roll_model_a = 0.9742                       # Rotation Bias Slope - scales roll bias with altitude via tan(alt)  (arcmin / degree of p_roll, 0 = no effect)
+roll_model_b = 0.2509                       # Rotation Bias Offset = floor bias at zero altitude                 (arcmin / degree of p_roll, 0 = no effect)
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.
