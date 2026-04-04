@@ -256,11 +256,17 @@ QUEST optimises alignQ_B2T to minimise Σ angle(alignQ_B2T · v_pred, v_obs)
 ---
 ### 3.5 Rotation Bias Correction (RBC)
 
-The Polaris IMU systematically mis-reports the camera rotation angle depending on the
-mechanical configuration of the three motor axes. Because the same Az/Alt pointing can
-be reached at different rotation angles — requiring different M3 positions — this error
-varies with mechanical configuration and cannot be corrected by QUEST's single
-rigid-body alignment.
+Through extensive testing (around 1,000 plate-solves across a grid of mechanical 
+positions), we confirmed that the Polaris IMU systematically mis-reports the camera 
+rotation angle. This causes a predictable pointing offset whose magnitude depends on 
+the current rotation angle (p_roll) and altitude (p_alt).
+
+Because the error changes with mechanical orientation, it cannot be absorbed by 
+QUEST's rigid-body alignment. A sync point taken at one rotation angle gives QUEST 
+contradictory information to a sync point taken at the same altitude and azimuth but at a different rotation angle, 
+preventing convergence to a stable solution.
+
+The effect is modest at low altitudes and small rotation angles, but grows significantly with larger altitudes (toward the zenith) and with larger roll angles (away from horizontal). At 70° altitude and ±70° rotation, the uncorrected error reaches ±205 arcmin in roll and ±563 arcmin (~9°) in azimuth.
 
 #### Root Cause
 
@@ -275,8 +281,7 @@ errors in M3:
 #### Discovery and Calibration
 
 The error was discovered by plate-solving ~1000 images across a porcupine grid of
-Az/Alt/Roll positions using Single Point Alignment (no QUEST). Three components of
-`dev_roll` (solved − predicted) were identified:
+Az/Alt/Roll positions using Single Point Alignment (no QUEST). Three components of the deviation between plate-solved and predicted positions (`dev_roll`), were identified:
 
 | Component | Description                                              | Handled by        |
 |-----------|----------------------------------------------------------|-------------------|
@@ -286,11 +291,57 @@ Az/Alt/Roll positions using Single Point Alignment (no QUEST). Three components 
 
 Component [3] is what RBC corrects. After removing [1] and [2], the residual follows:
 
-> roll_error (arcmin) = (roll_model_a · tan(alt) + roll_model_b) · p_roll
+roll_error (arcmin) = (roll_model_a · tan(alt) + roll_model_b) · p_roll
+---
 
 Fitted from calibration data: R² = 0.995 for slope vs tan(alt), per-cell R² > 0.96.
+Given this fitted model, the Roll and Az corrections are as follows
+#### Roll correction (arcmin)
 
-To recalibrate, use `fits_extract.py`:
+| alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **0°** | -18 | -15 | -13 | -10 | -8 | -5 | -3 | +0 | +3 | +5 | +8 | +10 | +13 | +15 | +18 |
+| **10°** | -30 | -25 | -21 | -17 | -13 | -8 | -4 | +0 | +4 | +8 | +13 | +17 | +21 | +25 | +30 |
+| **20°** | -42 | -36 | -30 | -24 | -18 | -12 | -6 | +0 | +6 | +12 | +18 | +24 | +30 | +36 | +42 |
+| **30°** | -57 | -49 | -41 | -33 | -24 | -16 | -8 | +0 | +8 | +16 | +24 | +33 | +41 | +49 | +57 |
+| **40°** | -75 | -64 | -53 | -43 | -32 | -21 | -11 | +0 | +11 | +21 | +32 | +43 | +53 | +64 | +75 |
+| **50°** | -99 | -85 | -71 | -56 | -42 | -28 | -14 | +0 | +14 | +28 | +42 | +56 | +71 | +85 | +99 |
+| **60°** | -136 | -116 | -97 | -78 | -58 | -39 | -19 | +0 | +19 | +39 | +58 | +78 | +97 | +116 | +136 |
+| **70°** | -205 | -176 | -146 | -117 | -88 | -59 | -29 | +0 | +29 | +59 | +88 | +117 | +146 | +176 | +205 |
+
+#### Az correction (arcmin)
+
+| alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **0°** | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 |
+| **10°** | -5 | -4 | -4 | -3 | -2 | -1 | -1 | +0 | +1 | +1 | +2 | +3 | +4 | +4 | +5 |
+| **20°** | -15 | -13 | -11 | -9 | -7 | -4 | -2 | +0 | +2 | +4 | +7 | +9 | +11 | +13 | +15 |
+| **30°** | -33 | -28 | -23 | -19 | -14 | -9 | -5 | +0 | +5 | +9 | +14 | +19 | +23 | +28 | +33 |
+| **40°** | -63 | -54 | -45 | -36 | -27 | -18 | -9 | +0 | +9 | +18 | +27 | +36 | +45 | +54 | +63 |
+| **50°** | -118 | -101 | -84 | -67 | -50 | -34 | -17 | +0 | +17 | +34 | +50 | +67 | +84 | +101 | +118 |
+| **60°** | -235 | -201 | -168 | -134 | -101 | -67 | -34 | +0 | +34 | +67 | +101 | +134 | +168 | +201 | +235 |
+| **70°** | -563 | -483 | -402 | -322 | -241 | -161 | -80 | +0 | +80 | +161 | +241 | +322 | +402 | +483 | +563 |
+
+The key takeaways are clear from the numbers, roll correction at typical observing altitudes (40°–60°) ranges from around ±75 to ±136 arcmin at maximum p_roll. The az correction is much more dramatic, reaching ±563 arcmin (nearly 10°) at 70° altitude and ±70° p_roll.
+
+#### Re-Calibration of the model parameters
+A calibration utility, `fits_extract.py`, is provided to derive the correction 
+coefficients for your specific mount. This script is optional as the standard model parameters should be sufficient. Re-calibrating is only recommended for advanced technical specialists, aiming to optimise their performance without additional support. To use it:
+
+1. Capture images across a grid of altitude, azimuth and rotation positions using 
+   Single Point Alignment (no QUEST). Aim for good coverage across the full rotation 
+   range at several altitude and azimuth combinations.
+2. Batch plate-solve all images using ASTAP.
+3. Run `fits_extract.py -extract` to read the FITS files and build a CSV of predicted 
+   versus plate-solved values.
+4. Run `fits_extract.py -model` to fit the correction model and print the 
+   `roll_model_a` and `roll_model_b` coefficients for your mount.
+5. Adjust these parameters by editing directly in `config.toml`
+
+The default coefficients were derived from a 1,000 image test on a single unit. 
+As the coefficients reflect hardware characteristics of the M3 encoder, linearity 
+and zero-point offset, they should be stable across setups and SPA alignments, 
+but may differ between individual Polaris units.
 
 ---
 ### 3.6 Local Gaussian Correction (LGC)
