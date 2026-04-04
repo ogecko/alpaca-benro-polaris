@@ -27,7 +27,7 @@ class Polaris:
         self.azimuth = 180
         self._pid = PID_Controller()
 
-    def update_ascom_from_new_baseQ_B2T(self, q1s):
+    def update_ascom_from_new_alignQ_B2T(self, q1s):
         a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s)
         alpha_state = np.array([a_az, a_alt, a_roll], dtype=float)
         theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)
@@ -75,7 +75,7 @@ def test_no_sync_adj():
         p = Polaris()
         logger = logging.getLogger()
         sm = SyncManager(logger,p)
-        az,alt,roll,_,_,_ = quaternion_to_angles(sm.baseQ_B2T * p._q1)
+        az,alt,roll,_,_,_ = quaternion_to_angles(sm.alignQ_B2T * p._q1)
         assert f'{az:.6f}' == "180.000000"
         assert f'{alt:.6f}' == "45.000000"
         assert f'{roll:.6f}' == "0.000000"

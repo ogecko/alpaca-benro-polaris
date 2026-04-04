@@ -130,7 +130,6 @@ omega_raw               Raw angular velocity (proxy = omega_ref)
     │
     ▼ Kalman Filter(theta_raw, omega_raw)
 theta_state             KF smoothed motor angles
-alpha_state             KF smoothed sky angles
     │
     ▼ Periodic Error Correction, optional (future — currently theta_corr = theta_state)
     ▼ Rotation Bias Correction, optional (corrQ_RBC)
@@ -141,7 +140,7 @@ motorQ_adj             adjusted motor orientation quaternion (theta_to_q)
     ▼     QUEST Alignment (alignQ_B2T) 
     ▼     Local Gaussian Correction (corrQ_LGC)
     ▼     Roll Sync Adjustment (corrQ_roll)
-cameraQ_C2T_pv         Fully corrected C→T pointing quaternion
+cameraQ_pv             Fully corrected C→T pointing quaternion
 alpha_pv               (az, alt, roll) = q_to_azaltroll(cameraQ_C2T_corr)
 delta_pv               (RA, Dec, PA)   = pyephem(az, alt, roll)
 ```
@@ -155,14 +154,19 @@ RBC is applied at the measurement stage, not in the alignment chain.
 ```
 delta_ref               DSO Target equatorial coordinates (RA, Dec, PA)
     │
-    ▼ delta2body(delta_ref) or pyephem.body(Orbital Parameters) 
+    │ ---  SIDEREAL  ---OR--- ORBITAL ---
+    ▼   delta2body() ---OR--- pyephem.body(Orbital Parameters) 
   body                  Target pyephem body
     │
-    ▼ body2alpha
+    │ --- TRACK MODE ---OR--- AUTO MODE ---
+    ▼     body2alpha ---OR--- alpha_sp + alpha_offst
 alpha_ref               Target topocentric angles (az, alt, roll)
-cameraQ_C2T_ref         Target C→T quaternion = azaltroll_to_q(*alpha_ref)
+cameraQ_ref             Target C→T quaternion = azaltroll_to_q(*alpha_ref)
     │
-    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGC⁻¹ ∘ alignQ_B2T⁻¹ ∘ cameraQ_C2T_ref
+    ▼ Shortest Path SO(3) slerp from cameraQ_pv to cameraQ_ref
+cameraQ_step
+    │
+    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGC⁻¹ ∘ alignQ_B2T⁻¹ ∘ cameraQ_step
     ▼    Undo Roll Sync Adjustment      (corrQ_roll⁻¹, T frame)
     ▼    Undo Local Gaussian Correction (corrQ_LGC⁻¹, T frame)
     ▼    QUEST Alignment inverse        (alignQ_B2T_inv, T→B)
@@ -181,8 +185,12 @@ error_signal            = theta_ref - theta_adj
     ▼  PID + Feed Forward
 omega_tgt               = omega_kp + omega_ki + omega_kd + omega_ff
     │
-    ▼  Constrain (acceleration limit Ka, velocity limit Kv)
-omega_op                Control output velocity → motor commands                            
+    ▼  Constrain (acceleration limit Ka, velocity limit Kv, position limit Config.z_min/max_limit)
+omega_ctl                Desired motor control velocities
+omega_op                 Requested motor Speed Controller outputs
+    │
+    ▼  Motor Speed Controller (interpolate speed commands and SLOW_PWM)
+polaris_protocol         Slew SLOW and FAST commands
 ```
 
 ---
@@ -198,15 +206,15 @@ already accounted for in `theta_adj` and therefore in the Jacobian.
 cameraQ_C2T_ref         Target C→T quaternion (from last two control steps)
     │
     ▼  calculate_angular_velocity(cameraQ_C2T_ref_last, cameraQ_C2T_ref, dt)
-omega_T                 Angular velocity of sky target in T frame
+omega_topo              Angular velocity of sky target in T frame
     │
     ▼  topoVec_to_baseVec(omega_T, cameraQ_C2T_pv)
     │  Undo T-frame corrections and rotate T → B:
     │  corrQ_roll⁻¹(T) → corrQ_LGC⁻¹(T) → alignQ_B2T_inv(T→B)
-omega_B                 Angular velocity in B frame
+omega_base              Angular velocity in B frame
     │
-    ▼  J⁻¹(theta_adj) · omega_B
-theta_dot               Motor joint rates
+    ▼  Inverse Jacobian Solution = J⁻¹(theta_adj) · omega_B
+theta_dot               Motor joint rates (radians)
     │
     ▼  degrees(theta_dot)
 omega_ff                Feed-forward motor joint rates

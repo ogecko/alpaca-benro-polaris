@@ -1184,9 +1184,9 @@ class PID_Controller():
         self.orbital_sp_status = [0, 0, 0]             # status of orbital tracking [is_orb_trackable (0=N/A, 1=toolow, 2=ok), orb_az, orb_alt]
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, polar anglular positions
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
-        self.delta_meas = np.zeros(3, dtype=float)     # ra, dec, polar measured angular position
-        self.alpha_meas = np.zeros(3, dtype=float)     # az, alt, roll measured angular position
-        self.theta_pec = np.zeros(3, dtype=float)      # theta1-3 motor measured angular position, kf and pec corrected
+        self.delta_pv = np.zeros(3, dtype=float)       # ra, dec, polar measured angular position
+        self.alpha_pv = np.zeros(3, dtype=float)       # az, alt, roll measured angular position
+        self.theta_adj = np.zeros(3, dtype=float)      # theta1-3 motor measured angular position, kf and pec corrected
         self.zeta_meas = np.zeros(3, dtype=float)      # zeta1-3 motor raw measured angular position (no alignment effect)
         self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, polar angular reference position
         self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll angular reference position
@@ -1276,14 +1276,14 @@ class PID_Controller():
         self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor angular reference position
         self.theta_ref_last = np.zeros(3, dtype=float) # theta1-3 motor angular reference position of last control step
 
-    def reset_sp(self, alpha_meas=None):               # align all SP with alpha_meas (defaults to current pid measured position)
-        if alpha_meas is not None:
-            self.alpha_meas = alpha_meas
-        self.alpha2body(self.alpha_meas)
+    def reset_sp(self, alpha_pv=None):               # align all SP with alpha_meas (defaults to current pid measured position)
+        if alpha_pv is not None:
+            self.alpha_pv = alpha_pv
+        self.alpha2body(self.alpha_pv)
         self.delta_ref = self.body2delta()           
         self.delta_sp = self.delta_ref            
-        self.alpha_ref = self.alpha_meas
-        self.alpha_sp = self.alpha_meas                  
+        self.alpha_ref = self.alpha_pv
+        self.alpha_sp = self.alpha_pv                  
         self.reset_offsets() 
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
 
@@ -1378,7 +1378,7 @@ class PID_Controller():
         if self.mode=='AUTO':
             track_target = self.alpha_ref.copy()
         else:
-            track_target = self.alpha_meas.copy()
+            track_target = self.alpha_pv.copy()
         self.reset_offsets()
         self.alpha_sp = track_target
         self.alpha2body(track_target)
@@ -1627,15 +1627,16 @@ class PID_Controller():
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
             self.alpha_ref = clamp_alpha(self.body2alpha())
-            self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
+            self.alpha_sp = self.alpha_pv             # in case we switch to AUTO
+
+        # SO(3) Shortest path from pv to ref
+        cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
+        cameraQ_pv = azaltroll_to_q(*self.alpha_pv)
+        cameraQ_step = self.quaternion_limit_step(cameraQ_pv, cameraQ_ref)
 
         # Inverse Kinematics flow (Sky to Motors)
-        cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
-        cameraQ_meas = azaltroll_to_q(*self.alpha_meas)
-        cameraQ_step = self.quaternion_limit_step(cameraQ_meas, cameraQ_ref)
-        motorQ_ref = self.polaris._sm.cameraQ_to_motorQ(cameraQ_step)
-        theta1,theta2,theta3 = q_to_theta(motorQ_ref, self._lp)
-        self.theta_ref = np.array([theta1,theta2,theta3])
+        motorQ_ref = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
+        self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
 
         # Remember cameraQ_ref and last cameraQ_ref for calculating FF
         if self.cameraQ_ref is None:
@@ -1646,20 +1647,20 @@ class PID_Controller():
             self.cameraQ_ref_last = self.cameraQ_ref
             self.cameraQ_ref = cameraQ_ref
     
-    def measure(self, delta_meas, alpha_meas, theta_pec, zeta_meas):
+    def measure(self, delta_pv, alpha_pv, theta_adj, zeta_meas):
         now = ephem.now()
         # if not self.time_meas:
         #     self.alpha_sp = alpha_meas     # initialise alpha_sp with first measurement
-        self.delta_meas = delta_meas
-        self.alpha_meas = alpha_meas
-        self.theta_pec = theta_pec
+        self.delta_pv = delta_pv
+        self.alpha_pv = alpha_pv
+        self.theta_adj = theta_adj
         self.zeta_meas = zeta_meas
         self.time_meas = now
-        self._lp.update(*theta_pec)
+        self._lp.update(*theta_adj)
         self._lp.check_for_gimbal_lock()
 
     def predict(self):          # This is not used in the PID Control Loop
-        self.theta_pec = clamp_theta(self.theta_pec + self.dt * self.omega_op)
+        self.theta_adj = clamp_theta(self.theta_adj + self.dt * self.omega_op)
         self.time_meas = self.time_meas + self.dt
 
     def feed_forward(self):
@@ -1672,9 +1673,9 @@ class PID_Controller():
             if self.dt > 0 and self.polaris._tracking:
                 # Desired angular velocity vector based on change in cameraQ_ref
                 omega_topo = calculate_angular_velocity_vector(self.cameraQ_ref_last, self.cameraQ_ref, self.dt)
-                omega_base = self.polaris._sm.cameraQ_vec_to_motorQ_vec(omega_topo, self.cameraQ_ref)   # Convert to base frame Sky tracking velocity
+                omega_base = self.polaris._sm.topoVec_to_baseVec(omega_topo, self.cameraQ_ref)   # Convert to base frame Sky tracking velocity
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
-                J = theta_to_jacobian(*self.theta_pec)
+                J = theta_to_jacobian(*self.theta_adj)
                 # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
                 theta_dot = np.linalg.solve(J, omega_base)
                 self.omega_ff = np.degrees(theta_dot)
@@ -1690,7 +1691,7 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
-            self.error_signal = clamp_error(self.theta_ref, self.theta_pec)
+            self.error_signal = clamp_error(self.theta_ref, self.theta_adj)
 
         # Per-axis deviation flags
         self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
@@ -1855,11 +1856,11 @@ class PID_Controller():
         # Log meas, state and ref for websocket streaming
         payload = { 
             "Δ_sp": self.delta_ref.tolist(),
-            "Δ_pv": self.delta_meas.tolist(),
+            "Δ_pv": self.delta_pv.tolist(),
             "α_sp": self.alpha_ref.tolist(),
-            "α_pv": self.alpha_meas.tolist(),
+            "α_pv": self.alpha_pv.tolist(),
             "θ_sp": (self.theta_ref-self.theta_ref).tolist(), 
-            "θ_pv": (self.polaris._theta_state-self.theta_ref).tolist(), 
+            "θ_pv": (self.polaris._theta_adj-self.theta_ref).tolist(), 
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 
@@ -1915,12 +1916,12 @@ class SyncManager:
     def set_baseQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
-        self.baseQ_B2T = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
-        self.baseQ_B2T_inv = Quaternion(1,0,0,0)   # optimised adjustment quaternion for azalt syncing, initially identity
-        self.baseQ_B2T_message = ""                # message from last optimisation
-        self.tilt_adj_az = 0                    # baseQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)     
-        self.tilt_adj_mag = 0                   # baseQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
-        self.az_adj = 0                         # baseQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
+        self.alignQ_B2T = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
+        self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # optimised adjustment quaternion for azalt syncing, initially identity
+        self.alignQ_B2T_message = ""                # message from last optimisation
+        self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)     
+        self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
+        self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncDataReset()
@@ -1940,32 +1941,32 @@ class SyncManager:
         }
         return entry
 
-    def motorQ_to_cameraQ(self, motorQ_C2B):
+    def baseQ_to_topoQ(self, motorQ_C2B):
         """
         Forward kinematics: Base frame → Topocentric frame.
         motorQ → [QUEST] → [LGC] → [roll_adj] → cameraQ
         """
 
-        # Apply baseQ_B2T model (QUEST)
-        cameraQ = self.baseQ_B2T * motorQ_C2B
+        # Apply alignQ_B2T model (QUEST)
+        cameraQ = self.alignQ_B2T * motorQ_C2B
 
         # Apply Local Gaussian Correction (LGC)
         if Config.advanced_align_local:
-            q_local = self.get_local_residual_correction(cameraQ)
-            if q_local is not None:
-                cameraQ = q_local * cameraQ
+            corrQ_LGC = self.get_local_residual_correction(cameraQ)
+            if corrQ_LGC is not None:
+                cameraQ = corrQ_LGC * cameraQ
 
         # Apply roll sync adj (roll_adj)
         if self.roll_adj != 0:
             boresight_T = cameraQ.rotate([0, 0, -1])
-            q_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
-            cameraQ = q_roll * cameraQ
+            corrQ_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
+            cameraQ = corrQ_roll * cameraQ
 
         return cameraQ
 
 
 
-    def cameraQ_to_motorQ(self, cameraQ_C2T):
+    def topoQ_to_baseQ(self, cameraQ_C2T):
         """
         Inverse kinematics: Topocentric frame → Base frame.
         cameraQ → undo[roll_adj] → undo[LGC] → undo[QUEST] → motorQ
@@ -1973,22 +1974,22 @@ class SyncManager:
         # Undo roll sync adj (roll_adj)
         if self.roll_adj != 0:
             boresight_T = cameraQ_C2T.rotate([0, 0, -1])
-            q_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
-            cameraQ_C2T = q_roll_undo * cameraQ_C2T
+            corrQ_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
+            cameraQ_C2T = corrQ_roll_undo * cameraQ_C2T
 
         # Undo Local Guassian Correction (LGC) 
         if Config.advanced_align_local:
-            q_local = self.get_local_residual_correction(cameraQ_C2T)
-            if q_local is not None:
-                cameraQ_C2T = q_local.inverse * cameraQ_C2T
+            corrQ_LGC = self.get_local_residual_correction(cameraQ_C2T)
+            if corrQ_LGC is not None:
+                cameraQ_C2T = corrQ_LGC.inverse * cameraQ_C2T
 
-        # Undo baseQ_B2T model (QUEST)
-        motorQ_C2B = self.baseQ_B2T_inv * cameraQ_C2T
+        # Undo alignQ_B2T model (QUEST)
+        motorQ_C2B = self.alignQ_B2T_inv * cameraQ_C2T
 
         return motorQ_C2B
 
 
-    def cameraQ_vec_to_motorQ_vec(self, omega_topo, cameraQ_C2T):
+    def topoVec_to_baseVec(self, omega_topo, cameraQ_C2T):
         """
         Rotate an angular velocity vector from topocentric to base frame
         omega_topo,cameraQ → undo[roll_adj] → undo[LGC] → undo[QUEST] → omega_base,motorQ
@@ -2005,8 +2006,8 @@ class SyncManager:
             if q_local is not None:
                 omega_topo = q_local.inverse.rotate(omega_topo)
 
-        # Undo baseQ_B2T model (QUEST)
-        omega_base = self.baseQ_B2T_inv.rotate(omega_topo)
+        # Undo alignQ_B2T model (QUEST)
+        omega_base = self.alignQ_B2T_inv.rotate(omega_topo)
 
         return omega_base
 
@@ -2044,7 +2045,7 @@ class SyncManager:
             return
         if not hasattr(self.polaris, '_pid') or self.polaris._pid is None:
             return
-        cameraQ = self.motorQ_to_cameraQ(self.polaris._q1)     
+        cameraQ = self.baseQ_to_topoQ(self.polaris._q1)     
         az, alt, roll = q_to_azaltroll(cameraQ)
         self.polaris._pid.reset_sp(np.array([az,alt,roll], dtype=float))
                                    
@@ -2083,7 +2084,7 @@ class SyncManager:
         entry["a_az"] = a_az
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
-        self.optimize_baseQ_B2T()
+        self.optimize_alignQ_B2T()
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncData()
 
@@ -2093,8 +2094,8 @@ class SyncManager:
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if (Config.advanced_alignment and Config.advanced_control):
-            _,_,p_roll = q_to_azaltroll(self.baseQ_B2T * self.polaris._q1)
-            entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using baseQ_B2T
+            _,_,p_roll = q_to_azaltroll(self.alignQ_B2T * self.polaris._q1)
+            entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using alignQ_B2T
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.refresh_pid_setpoints_from_q1()
@@ -2111,7 +2112,7 @@ class SyncManager:
             if Config.log_quest_model:
                 self.logger.info(f"Cleared sync data for timestamp: {timestamp}")
             if optimise:
-                self.optimize_baseQ_B2T()
+                self.optimize_alignQ_B2T()
                 self.optimize_roll_adj()
                 self.refresh_pid_setpoints_from_q1()
             self.streamSyncData()
@@ -2120,22 +2121,22 @@ class SyncManager:
 
 
     def azalt_polaris2ascom(self, p_az, p_alt):
-        if self.baseQ_B2T is None:
+        if self.alignQ_B2T is None:
             return p_az, p_alt
         v_pred = azalt_to_vector(p_az, p_alt)
-        v_obs = self.baseQ_B2T.rotate(v_pred)
+        v_obs = self.alignQ_B2T.rotate(v_pred)
         c_az, c_alt = vector_to_az_alt(v_obs) 
         return c_az, c_alt
 
     def azalt_ascom2polaris(self, a_az, a_alt):
-        if self.baseQ_B2T is None:
+        if self.alignQ_B2T is None:
             return a_az, a_alt
         v_obs = azalt_to_vector(a_az, a_alt)
-        v_pred = self.baseQ_B2T.inverse.rotate(v_obs)
+        v_pred = self.alignQ_B2T.inverse.rotate(v_obs)
         p_az, p_alt = vector_to_az_alt(v_pred)
         return p_az, p_alt
 
-    def optimize_baseQ_B2T(self):
+    def optimize_alignQ_B2T(self):
         """
         Implement the QUEST algorithm to find the optimal rotation quaternion
         that minimizes the misalignment between predicted (Polaris) and observed (Plate Solved/ASCOM) vectors.
@@ -2177,9 +2178,9 @@ class SyncManager:
 
         self.aligned_count = len(pairs)
         if len(pairs) < 2:
-            self.baseQ_B2T = self.optimise_baseQ_B2T_fallback_single_sync(pairs)
-            self.baseQ_B2T_inv = self.baseQ_B2T.inverse
-            self.baseQ_B2T_message = "Fallback rotation from single sync"
+            self.alignQ_B2T = self.optimise_alignQ_B2T_fallback_single_sync(pairs)
+            self.alignQ_B2T_inv = self.alignQ_B2T.inverse
+            self.alignQ_B2T_message = "Fallback rotation from single sync"
         else:
             # Normalize weights
             weights = np.array(weights)
@@ -2215,14 +2216,14 @@ class SyncManager:
             eigvals, eigvecs = np.linalg.eigh(K)
             q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
 
-            self.baseQ_B2T = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
-            self.baseQ_B2T_inv = self.baseQ_B2T.inverse
+            self.alignQ_B2T = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
+            self.alignQ_B2T_inv = self.alignQ_B2T.inverse
 
             # If not optimal sidereal tracking then tweak QUEST model to zero our residual on final syncpoint
             if not Config.advanced_align_local:
                 self.apply_last_syncpoint_residual_to_model()
                 
-            self.baseQ_B2T_message = "QUEST solution applied"
+            self.alignQ_B2T_message = "QUEST solution applied"
 
 
         # Now compute the residuals and tilt correction
@@ -2255,7 +2256,7 @@ class SyncManager:
 
         v_pred = azalt_to_vector(last_valid['p_az'], last_valid['p_alt'])
         v_obs  = azalt_to_vector(last_valid['a_az'], last_valid['a_alt'])
-        v_pred_rot = self.baseQ_B2T.rotate(v_pred)
+        v_pred_rot = self.alignQ_B2T.rotate(v_pred)
 
         az_corr, alt_corr = vector_to_az_alt(v_pred_rot)
         az_err  = angular_difference(az_corr, last_valid['a_az'])
@@ -2302,23 +2303,23 @@ class SyncManager:
     def apply_last_syncpoint_residual_to_model(self):
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
         if v_pred_rot is None:
-            self.baseQ_B2T_message += " | No valid sync for final alignment"
+            self.alignQ_B2T_message += " | No valid sync for final alignment"
             return
 
         axis = np.cross(v_pred_rot, v_obs)
         norm_axis = np.linalg.norm(axis)
         if norm_axis < 1e-8:
-            self.baseQ_B2T_message += " | Final sync already aligned"
+            self.alignQ_B2T_message += " | Final sync already aligned"
             return
 
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
         q_correction = Quaternion(axis=axis, angle=angle)
-        self.baseQ_B2T = q_correction * self.baseQ_B2T
-        self.baseQ_B2T_inv = self.baseQ_B2T.inverse
+        self.alignQ_B2T = q_correction * self.alignQ_B2T
+        self.alignQ_B2T_inv = self.alignQ_B2T.inverse
 
 
-    def optimise_baseQ_B2T_fallback_single_sync(self, pairs):
+    def optimise_alignQ_B2T_fallback_single_sync(self, pairs):
         if len(pairs) == 0:
             return Quaternion(1,0,0,0)  # identity quaternion
         
@@ -2562,9 +2563,9 @@ class SyncManager:
 
             payload = {'advanced_alignment': True if len(self.sync_history)>0 else False }
             Config.apply_changes(payload)
-            # Rerun optimisers to reconstruct baseQ_B2T and roll_adj from loaded data
+            # Rerun optimisers to reconstruct alignQ_B2T and roll_adj from loaded data
             self.logger.info(f"==STARTUP== Loading Alignment Model ({len(self.sync_history)} sync points).")
-            self.optimize_baseQ_B2T()
+            self.optimize_alignQ_B2T()
             self.optimize_roll_adj()
             self.refresh_pid_setpoints_from_q1()
             self.streamSyncData(persist=False)

@@ -627,7 +627,7 @@ class Polaris:
                 self._theta_adj = self._theta_state         
 
             # Translate from Base Frame to Topo Frame
-            cameraQ_pv = self._sm.motorQ_to_cameraQ(motorQ_adj)
+            cameraQ_pv = self._sm.baseQ_to_topoQ(motorQ_adj)
             # update all the Sky Positions and the PID loop
             delta_pv, alpha_pv = self.update_sky_positions(motorQ_state, cameraQ_pv)
             self._pid.measure(delta_pv, alpha_pv, self._theta_adj, self._zeta_meas)
@@ -754,7 +754,7 @@ class Polaris:
         # Store all the polaris mechanical angles and velocities
         with self._lock:
             self._last_518_timestamp = dt_now
-            self._q1 = motorQ_raw
+            self._q1 = motorQ_raw                      # raw quaternion stored
             self._theta_raw = theta_raw
             self._omega_raw = omega_raw
        
@@ -790,10 +790,10 @@ class Polaris:
             self._parallactic_angle = float(a_para)
 
         # return alpha and delta state (all in degrees)
-        alpha_state = np.array([a_az, a_alt, wrap_to_180(a_roll)], dtype=float)
-        delta_state = np.array([a_ra*15, a_dec, wrap_to_360(a_posa)], dtype=float)         
+        alpha_pv = np.array([a_az, a_alt, wrap_to_180(a_roll)], dtype=float)
+        delta_pv = np.array([a_ra*15, a_dec, wrap_to_360(a_posa)], dtype=float)         
 
-        return delta_state, alpha_state
+        return delta_pv, alpha_pv
 
     def aim_altaz_log_result(self):
         with self._lock:
