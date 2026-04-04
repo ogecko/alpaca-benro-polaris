@@ -70,8 +70,8 @@ Suffixes distinguish the level of processing applied to a mechanical orientation
 |----------|-------------|------------------------------------------------------------------|
 | `_raw`   | orientation | Uncorrected value direct from device                             |
 | `_state` | orientation | Kalman Filter smoothed/estimated value                           |
-| `_adj`   | orientation | Mechanically adjusted - KF + PEC + RBC                           |
-| `_pv`    | orientation | Process Variable — KF + PEC + RBC + QUEST + LGC + Roll           |
+| `_adj`   | orientation | Mechanically adjusted after KF + PEC + RBC                       |
+| `_pv`    | orientation | Process Variable after KF + PEC + RBC + QUEST + LGC + Roll       |
 | `_ref`   | orientation | Setpoint / reference / target value for the control loop         |
 | `_op`    | velocity    | Control output velocity for the motors                           |
 
