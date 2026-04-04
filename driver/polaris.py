@@ -211,7 +211,8 @@ class Polaris:
 
         # Advanced Control variables
         self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
-        self._motorQ_adj = None                     # The PAC+SBC corrected C2B quaternion in B Frame
+        self._motorQ_state = None                   # The KF corrected C2B quaternion in B Frame
+        self._motorQ_adj = None                     # The KF+PAC+SBC corrected C2B quaternion in B Frame
         self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
         self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
@@ -773,6 +774,7 @@ class Polaris:
 
         # Store all the Polaris unadjusted values for QUEST modelling
         with self._lock:
+            self._motorQ_state = motorQ_state
             self._p_azimuth = float(p_az)
             self._p_altitude = float(p_alt)
             self._p_roll = float(p_roll)
@@ -790,7 +792,7 @@ class Polaris:
             self._position_angle = float(a_posa)
             self._parallactic_angle = float(a_para)
 
-        # return alpha and delta state (all in degrees)
+        # return alpha and delta process values (all in degrees)
         alpha_pv = np.array([a_az, a_alt, wrap_to_180(a_roll)], dtype=float)
         delta_pv = np.array([a_ra*15, a_dec, wrap_to_360(a_posa)], dtype=float)         
 
