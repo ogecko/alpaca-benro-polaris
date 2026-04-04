@@ -556,7 +556,8 @@ def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
     sign = +1 for undo (inverse kinematics / velocity vectors)
     """
     _, p_alt, p_roll = q_to_azaltroll(motorQ_C2B)
-    slope = Config.roll_model_a * np.tan(np.radians(p_alt)) + Config.roll_model_b
+    p_alt_clamped = min(p_alt, 75.0)
+    slope = Config.roll_model_a * np.tan(np.radians(p_alt_clamped)) + Config.roll_model_b
     roll_error_deg = slope * p_roll / 60.0
     if abs(roll_error_deg) < 1e-6:
         return None
