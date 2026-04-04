@@ -549,6 +549,29 @@ def q_to_azaltroll(cameraQ_C2T):
 
     return wrap_to_360(az), wrap_to_180(alt), wrap_to_180(roll)
 
+def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
+    """
+    Returns the RBC correction quaternion.
+    sign = -1 for apply (forward kinematics)
+    sign = +1 for undo (inverse kinematics / velocity vectors)
+    """
+    _, p_alt, p_roll = q_to_azaltroll(motorQ_C2B)
+    slope = Config.roll_model_a * np.tan(np.radians(p_alt)) + Config.roll_model_b
+    roll_error_deg = slope * p_roll / 60.0
+    if abs(roll_error_deg) < 1e-6:
+        return None
+    boresight = motorQ_C2B.rotate([0, 0, -1])
+    return Quaternion(axis=boresight, degrees=sign * roll_error_deg)
+
+def apply_rotation_bias_corrQ_RBC(motorQ_C2B):
+    corrQ_RBC = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=-1)
+    return corrQ_RBC * motorQ_C2B if corrQ_RBC is not None else motorQ_C2B
+
+def undo_rotation_bias_corrQ_RBC(motorQ_C2B):
+    undo_corrQ_RBC = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1)
+    return undo_corrQ_RBC * motorQ_C2B if undo_corrQ_RBC is not None else motorQ_C2B
+
+
 
 def quaternion_to_angles(q1, lastPos = LastPosition()):
     """
@@ -1911,9 +1934,9 @@ class SyncManager:
     def __init__(self, logger, polaris):
         self.logger = logger
         self.polaris = polaris
-        self.set_baseQ_to_identity()
+        self.set_alignQ_to_identity()
 
-    def set_baseQ_to_identity(self):
+    def set_alignQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
         self.alignQ_B2T = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
@@ -1930,7 +1953,7 @@ class SyncManager:
         entry = {
             "timestamp": format_timestamp(),
             "deleted": False,
-            "p_az": self.polaris._p_azimuth,
+            "p_az": self.polaris._p_azimuth,    # adjusted in entry_to_pred_vector for RBC
             "p_alt": self.polaris._p_altitude,
             "p_roll": self.polaris._p_roll,
             "a_ra": None,
@@ -1940,6 +1963,25 @@ class SyncManager:
             "a_roll": None,
         }
         return entry
+
+    def entry_to_pred_vector(self, entry):
+        """
+        Convert a sync history entry's raw stored p_az/p_alt/p_roll into a
+        predicted unit vector, optionally applying Rotation Bias Correction.
+
+        Raw values are always stored in sync history so that toggling
+        advanced_align_roll recalculates alignQ_B2T without new sync points.
+        RBC is applied here at query time, not at storage time.
+        """
+        if Config.advanced_align_roll:
+            motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
+            motorQ_adj   = apply_rotation_bias_corrQ_RBC(motorQ_entry)
+            eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
+        else:
+            eff_az  = entry["p_az"]
+            eff_alt = entry["p_alt"]
+        return azalt_to_vector(eff_az, eff_alt), eff_az, eff_alt
+    
 
     def baseQ_to_topoQ(self, motorQ_C2B):
         """
@@ -2011,31 +2053,6 @@ class SyncManager:
 
         return omega_base
 
-
-    def _roll_error_quaternion(self, motorQ_C2B, sign=+1):
-        """
-        Returns the RBC correction quaternion.
-        sign = -1 for apply (forward kinematics)
-        sign = +1 for undo (inverse kinematics / velocity vectors)
-        """
-        _, p_alt, p_roll = q_to_azaltroll(motorQ_C2B)
-        slope = Config.roll_model_a * np.tan(np.radians(p_alt)) + Config.roll_model_b
-        roll_error_deg = slope * p_roll / 60.0
-        if abs(roll_error_deg) < 1e-6:
-            return None
-        boresight = motorQ_C2B.rotate([0, 0, -1])
-        return Quaternion(axis=boresight, degrees=sign * roll_error_deg)
-
-    def _apply_roll_error_correction(self, motorQ_C2B):
-        q = self._roll_error_quaternion(motorQ_C2B, sign=-1)
-        return q * motorQ_C2B if q is not None else motorQ_C2B
-
-    def _undo_roll_error_correction(self, motorQ_C2B):
-        q = self._roll_error_quaternion(motorQ_C2B, sign=+1)
-        return q * motorQ_C2B if q is not None else motorQ_C2B
-
-
-
     def refresh_pid_setpoints_from_q1(self):
         """
         Called after any sync reset, delete, or alignment model update.
@@ -2095,6 +2112,13 @@ class SyncManager:
         entry["a_roll"] = a_roll
         if (Config.advanced_alignment and Config.advanced_control):
             _,_,p_roll = q_to_azaltroll(self.alignQ_B2T * self.polaris._q1)
+            if Config.advanced_align_roll:
+                motorQ_adj = apply_rotation_bias_corrQ_RBC(self.polaris._q1)
+            else:
+                motorQ_adj = self.polaris._q1
+            _, _, p_roll = q_to_azaltroll(self.alignQ_B2T * motorQ_adj)
+
+
             entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using alignQ_B2T
         self.sync_history.append(entry)
         self.optimize_roll_adj()
@@ -2145,7 +2169,7 @@ class SyncManager:
         Markley, F. L. (2003). "Attitude Estimation or Quaternion Estimation?" https://ntrs.nasa.gov/citations/20030093641
         """
         if Config.advanced_alignment == False:
-            self.set_baseQ_to_identity()
+            self.set_alignQ_to_identity()
             return
 
         pairs = []
@@ -2157,9 +2181,10 @@ class SyncManager:
         for i, entry in enumerate(self.sync_history):
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
+
             v_obs = azalt_to_vector(entry["a_az"], entry["a_alt"])            # Observed vector from sync
-            v_pred = azalt_to_vector(entry["p_az"], entry["p_alt"])           # Predicted vector from Polaris
-            proximity_angle = v_angular_distance(v_pred, v_current)                 # in Polaris space
+            v_pred, _, _ = self.entry_to_pred_vector(entry)                   # Predicted vector from q1/alpha_state
+            proximity_angle = v_angular_distance(v_pred, v_current)           # in Polaris space
 
             w_recency = 0.5 * np.exp(-0.1 * (len(self.sync_history) - i))                 # Recent syncs weighted more heavily: ~0.6–1.0
             w_proximity = 1.0 * np.exp(-(proximity_angle**2) / (2 * np.radians(10)**2))   # Higher weight for syncs near current pointing orientation: #  guassian σ=10°
@@ -2254,7 +2279,7 @@ class SyncManager:
         if last_valid is None:
             return 0.0, 0.0, None, None
 
-        v_pred = azalt_to_vector(last_valid['p_az'], last_valid['p_alt'])
+        v_pred, _, _ = self.entry_to_pred_vector(last_valid)
         v_obs  = azalt_to_vector(last_valid['a_az'], last_valid['a_alt'])
         v_pred_rot = self.alignQ_B2T.rotate(v_pred)
 
@@ -2357,7 +2382,8 @@ class SyncManager:
         for entry in self.sync_history:
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
-            az_corr, alt_corr = self.azalt_polaris2ascom(entry["p_az"], entry["p_alt"])
+            _, eff_az, eff_alt = self.entry_to_pred_vector(entry)
+            az_corr, alt_corr  = self.azalt_polaris2ascom(eff_az, eff_alt)            
             az_err = angular_difference(az_corr, entry["a_az"])
             alt_err = angular_difference(alt_corr, entry["a_alt"])
             magnitude = math.sqrt(az_err**2 + alt_err**2)
@@ -2458,8 +2484,8 @@ class SyncManager:
 
             self.logger.info(
                 f"QUEST Model | Points: {len(active)} | "
+                f"RBC: {'ON' if Config.advanced_align_roll else 'OFF'} | " 
                 f"RMS Residual: {deg2dms(rms)} | "
-                f"Max Residual: {deg2dms(max_res)} | "
                 f"Az Correction: {deg2dms(self.az_adj)} | "
                 f"Tilt: {deg2dms(self.tilt_adj_mag)} @ {deg2dms(self.tilt_adj_az)} | "
                 f"Roll Adj: {deg2dms(self.roll_adj)}"
@@ -2471,7 +2497,7 @@ class SyncManager:
                 f"  {'No':>2} {'Timestamp':>10} {'Age h':>5} "
                 f"{'Obs RA':>8} {'Obs Dec':>8} {'Obs Az':>8} {'Obs Alt':>8} "
                 f"{'p_az':>8} {'p_alt':>8} {'p_roll':>8} "
-                f"{'Weight':>7} {'ResAz':>8} {'ResAlt':>8} {'ResMag':>8}"
+                f"{'Weight':>7} {'ResAz':>8} {'ResAlt':>8} {'ResMag':>8} "
             )
             for i, entry in enumerate(self.sync_history):
                 if entry.get("deleted") or entry.get("a_az") is None:

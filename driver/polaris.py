@@ -35,7 +35,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController
-from control import theta_to_q, q_to_theta, q_to_azaltroll, wrap_to_360, wrap_to_180
+from control import theta_to_q, q_to_theta, q_to_azaltroll, apply_rotation_bias_corrQ_RBC, wrap_to_360, wrap_to_180
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
@@ -620,7 +620,7 @@ class Polaris:
 
             # Optionally apply Rotation Bias Correction (RBC)
             if Config.advanced_align_roll:
-                motorQ_adj = self._sm._apply_roll_error_correction(motorQ_state)
+                motorQ_adj = apply_rotation_bias_corrQ_RBC(motorQ_state)
                 self._theta_adj = np.array(q_to_theta(motorQ_adj, self._pid._lp))
             else:
                 motorQ_adj = motorQ_state
