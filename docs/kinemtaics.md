@@ -233,7 +233,7 @@ omega_ff                Feed-forward motor joint rates
 QUEST finds the optimal `alignQ_B2T` that minimises the angular residual between
 IMU-predicted and plate-solved observed positions across all sync points.
 
-Raw `alpha_raw` values (`p_az`, `p_alt`, `p_roll`) are stored in sync history. RBC is
+Smoothed `alpha_state` values (`p_az`, `p_alt`, `p_roll`) are stored in sync history. RBC is
 applied at optimisation time so that toggling `advanced_align_roll` immediately
 recalculates `alignQ_B2T` without requiring new sync observations.
 
