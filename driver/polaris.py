@@ -211,7 +211,8 @@ class Polaris:
 
         # Advanced Control variables
         self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
-        self._q1s = None                            # The estimated quaternion state based on Kalman Filter
+        self._motorQ_adj = None                     # The PAC+SBC corrected C2B quaternion in B Frame
+        self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
         self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
         self._theta_raw = None                      # Latest Motor Angles Raw  [theta1, theta2, theta3] from 518 msg q1
@@ -620,14 +621,14 @@ class Polaris:
 
             # Optionally apply Rotation Bias Correction (RBC)
             if Config.advanced_align_roll:
-                motorQ_adj = apply_rotation_bias_corrQ_RBC(motorQ_state)
-                self._theta_adj = np.array(q_to_theta(motorQ_adj, self._pid._lp))
+                self._motorQ_adj = apply_rotation_bias_corrQ_RBC(motorQ_state)
+                self._theta_adj = np.array(q_to_theta(self._motorQ_adj, self._pid._lp))
             else:
-                motorQ_adj = motorQ_state
-                self._theta_adj = self._theta_state         
+                self._motorQ_adj = motorQ_state
+                self._theta_adj = self._theta_state      
 
             # Translate from Base Frame to Topo Frame
-            cameraQ_pv = self._sm.baseQ_to_topoQ(motorQ_adj)
+            cameraQ_pv = self._sm.baseQ_to_topoQ(self._motorQ_adj)
             # update all the Sky Positions and the PID loop
             delta_pv, alpha_pv = self.update_sky_positions(motorQ_state, cameraQ_pv)
             self._pid.measure(delta_pv, alpha_pv, self._theta_adj, self._zeta_meas)
@@ -780,7 +781,7 @@ class Polaris:
 
         # Store all the new ascom values
         with self._lock:
-            self._q1s = cameraQ_pv
+            self._cameraQ_pv = cameraQ_pv
             self._altitude = float(a_alt)
             self._azimuth = float(a_az)
             self._roll = float(a_roll)
@@ -1378,7 +1379,7 @@ class Polaris:
                 'pidmode': self._pid.mode,     
                 'pidglock': self._pid._lp.in_gimbal_lock,           
                 'q1': str(self._q1),
-                'q1s': str(self._q1s),
+                'q1s': str(self._cameraQ_pv),
                 'zetameas': [0,0,0] if self._zeta_meas is None else self._zeta_meas,
                 'lotameas': [0,0,0,0,0] if self._theta_raw is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],
                 'thetameas': [0,0,0] if self._theta_raw is None else self._theta_raw.tolist(),

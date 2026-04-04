@@ -1953,14 +1953,15 @@ class SyncManager:
         entry = {
             "timestamp": format_timestamp(),
             "deleted": False,
-            "p_az": self.polaris._p_azimuth,    # adjusted in entry_to_pred_vector for RBC
-            "p_alt": self.polaris._p_altitude,
-            "p_roll": self.polaris._p_roll,
+            "p_az": self.polaris._p_azimuth,    # store raw motorQ_state Az
+            "p_alt": self.polaris._p_altitude,  # store raw motorQ_state Alt
+            "p_roll": self.polaris._p_roll,     # store raw motorQ_state Roll
             "a_ra": None,
             "a_dec": None,
             "a_az": None,
             "a_alt": None,
             "a_roll": None,
+            "p_roll_pv": None,                  # store RBC + QUEST Roll
         }
         return entry
 
@@ -2110,16 +2111,9 @@ class SyncManager:
             return
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
-        if (Config.advanced_alignment and Config.advanced_control):
-            _,_,p_roll = q_to_azaltroll(self.alignQ_B2T * self.polaris._q1)
-            if Config.advanced_align_roll:
-                motorQ_adj = apply_rotation_bias_corrQ_RBC(self.polaris._q1)
-            else:
-                motorQ_adj = self.polaris._q1
-            _, _, p_roll = q_to_azaltroll(self.alignQ_B2T * motorQ_adj)
-
-
-            entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using alignQ_B2T
+        if Config.advanced_alignment and Config.advanced_control:
+            _, _, p_roll_pv = q_to_azaltroll(self.alignQ_B2T * self.polaris._motorQ_adj)
+            entry["p_roll_pv"] = p_roll_pv   # SBC+QUEST corrected roll in T Frame for roll_adj computation
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.refresh_pid_setpoints_from_q1()
@@ -2459,8 +2453,10 @@ class SyncManager:
         for entry in self.sync_history:
             if entry["deleted"] or entry["a_roll"] is None:
                 continue
+            # Use RBC+QUEST corrected p_roll_pv if available, else raw
+            p_roll = entry.get("p_roll_pv", entry["p_roll"])
             # Compute delta: how much Polaris roll differs from expected PA
-            delta = angular_difference(entry["p_roll"], entry["a_roll"])
+            delta = angular_difference(p_roll, entry["a_roll"])
             deltas.append(delta)
 
         if deltas:
@@ -2579,6 +2575,7 @@ class SyncManager:
                     'p_az':       float(entry['p_az']),
                     'p_alt':      float(entry['p_alt']),
                     'p_roll':     float(entry['p_roll']),
+                    'p_roll_pv':  float(entry['p_roll_pv']) if entry.get('p_roll_pv') is not None else None,
                     'a_ra':       float(entry['a_ra'])   if entry.get('a_ra')   is not None else None,
                     'a_dec':      float(entry['a_dec'])  if entry.get('a_dec')  is not None else None,
                     'a_az':       float(entry['a_az'])   if entry.get('a_az')   is not None else None,
