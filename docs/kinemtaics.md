@@ -126,12 +126,12 @@ orientation.
 ```
 motorQ_raw              Raw C→B quaternion from Polaris IMU (q1, from 518 message)
 theta_raw               Raw motor angles = q_to_theta(motorQ_raw) used in KF
-alpha_raw               Raw sky angles = q_to_azaltroll(motorQ_raw) used in sync
 omega_raw               Raw angular velocity (proxy = omega_ref)
     │
     ▼ Kalman Filter(theta_raw, omega_raw)
 theta_state             KF smoothed motor morientation angles
 motorQ_state            KF smoother motor orientation quaternion C→B
+alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
     ▼ Periodic Error Correction, optional (future — currently theta_corr = theta_state)
     ▼ Rotation Bias Correction, optional (corrQ_RBC)
@@ -143,8 +143,8 @@ motorQ_adj             adjusted motor orientation quaternion (theta_to_q)
     ▼     Local Gaussian Correction (corrQ_LGC)
     ▼     Roll Sync Adjustment (corrQ_roll)
 cameraQ_pv             Fully corrected C→T pointing quaternion
-alpha_pv               (az, alt, roll) = q_to_azaltroll(cameraQ_C2T_corr)
-delta_pv               (RA, Dec, PA)   = pyephem(az, alt, roll)
+alpha_pv               (a_az, a_alt, a_roll) = q_to_azaltroll(cameraQ_pv)
+delta_pv               (a_ra, a_dec, a_pa)   = pyephem(az, alt, roll), used as ASCOM co-ordinates
 ```
 
 ### 3.2 Inverse Kinematics — Sky → Motors Angular Position
