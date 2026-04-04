@@ -35,7 +35,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController
-from control import theta_to_motorQ_C2B, motorQ_C2B_to_theta, cameraQ_C2T_to_azaltroll, wrap_to_360, wrap_to_180
+from control import theta_to_q, q_to_theta, q_to_azaltroll, wrap_to_360, wrap_to_180
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
@@ -214,10 +214,10 @@ class Polaris:
         self._q1s = None                            # The estimated quaternion state based on Kalman Filter
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
         self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
-        self._theta_meas = None                     # The latest set of Polaris 1-aligned motor axis angles [theta1, theta2, theta3] measured from q1
-        self._theta_state = None                    # The state of 1-aligned motor axis angles [theta1, theta2, theta3] = KF(meas)
-        self._theta_pec = None                      # The state of 1-aligned motor axis angles [theta1, theta2, theta3] = PEC(state)
-        self._omega_meas = None                     # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
+        self._theta_raw = None                      # Latest Motor Angles Raw  [theta1, theta2, theta3] from 518 msg q1
+        self._theta_state = None                    # Latest Motor Angles Kalman Filtered [theta1, theta2, theta3] = KF(theta_raw)
+        self._theta_adj = None                      # Latest Motor Angles KF+PEC+RBC [theta1, theta2, theta3] = RBC(theta_state)
+        self._omega_raw = None                      # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._cm = CalibrationManager()
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         self._motors = {
@@ -610,25 +610,27 @@ class Polaris:
         elif cmd == "518":
 
             # parse the 518 message args to determine motor angles and velocities
-            theta_meas, omega_meas, omega_ref = self.decode_518position_measurement(args)
+            theta_raw, omega_raw, omega_ref = self.decode_518position_measurement(args)
 
             # Process through the Kalman Filter to determine Polaris theta_state
             self._kf.predict(omega_ref)
-            self._kf.observe(theta_meas, omega_meas, omega_ref)
+            self._kf.observe(theta_raw, omega_raw, omega_ref)
             self._theta_state, _ = self._kf.get_state()
-            self._theta_pec = self._theta_state         # Future PEC to be implemented here
-            motorQ_state = theta_to_motorQ_C2B(*self._theta_pec)
+            motorQ_state = theta_to_q(*self._theta_state)
+
             # Optionally apply Rotation Bias Correction (RBC)
             if Config.advanced_align_roll:
-                motorQ_state = self._sm._apply_roll_error_correction(motorQ_state)
-                t1, t2, t3 = motorQ_C2B_to_theta(motorQ_state, self._pid._lp)
-                self._theta_pec = np.array([t1, t2, t3])
+                motorQ_adj = self._sm._apply_roll_error_correction(motorQ_state)
+                self._theta_adj = np.array(q_to_theta(motorQ_adj, self._pid._lp))
+            else:
+                motorQ_adj = motorQ_state
+                self._theta_adj = self._theta_state         
 
             # Translate from Base Frame to Topo Frame
-            cameraQ_state = self._sm.motorQ_to_cameraQ(motorQ_state)
+            cameraQ_pv = self._sm.motorQ_to_cameraQ(motorQ_adj)
             # update all the Sky Positions and the PID loop
-            delta_state, alpha_state = self.update_sky_positions(motorQ_state, cameraQ_state)
-            self._pid.measure(delta_state, alpha_state, self._theta_pec, self._zeta_meas)
+            delta_pv, alpha_pv = self.update_sky_positions(motorQ_state, cameraQ_pv)
+            self._pid.measure(delta_pv, alpha_pv, self._theta_adj, self._zeta_meas)
             self._pid.control_step_calculate()
             asyncio.create_task(self._pid.control_step_execute())
 
@@ -741,32 +743,32 @@ class Polaris:
 
         # parse the quaternion and extract its mechanical angles and velocities
         arg_dict = self.polaris_parse_args(args, name_postfix=True)
-        motorQ_meas = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
+        motorQ_raw = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
         p_az = float(arg_dict['compass'])   # from Polaris direct
         p_alt = -float(arg_dict['alt'])     # from Polaris direct
-        theta_meas = np.array(motorQ_C2B_to_theta(motorQ_meas, self._pid._lp))
+        theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp))
 
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
-        omega_meas = omega_ref                          # this is our best measurement of omega, dont use calc from histoy ωt - ωt-6
+        omega_raw = omega_ref                          # this is our best measurement of omega, dont use calc from histoy ωt - ωt-6
 
         # Store all the polaris mechanical angles and velocities
         with self._lock:
             self._last_518_timestamp = dt_now
-            self._q1 = motorQ_meas
-            self._theta_meas = theta_meas
-            self._omega_meas = omega_meas
+            self._q1 = motorQ_raw
+            self._theta_raw = theta_raw
+            self._omega_raw = omega_raw
        
-        return theta_meas, omega_meas, omega_ref
+        return theta_raw, omega_raw, omega_ref
 
     def extract_sky_positions(self, cameraQ):
-        az, alt, roll = cameraQ_C2T_to_azaltroll(cameraQ)
+        az, alt, roll = q_to_azaltroll(cameraQ)
         ra, dec = self.altaz2radec(alt, az)
         posa, para = self._sm.roll2pa(az, alt, roll)
         return az, alt, roll, ra, dec, posa, para
 
-    def update_sky_positions(self, motorQ_state, cameraQ_state):
+    def update_sky_positions(self, motorQ_state, cameraQ_pv):
         p_az, p_alt, p_roll, p_ra, p_dec, _, _ = self.extract_sky_positions(motorQ_state)
-        a_az, a_alt, a_roll, a_ra, a_dec, a_posa, a_para = self.extract_sky_positions(cameraQ_state)
+        a_az, a_alt, a_roll, a_ra, a_dec, a_posa, a_para = self.extract_sky_positions(cameraQ_pv)
 
         # Store all the Polaris unadjusted values for QUEST modelling
         with self._lock:
@@ -778,7 +780,7 @@ class Polaris:
 
         # Store all the new ascom values
         with self._lock:
-            self._q1s = cameraQ_state
+            self._q1s = cameraQ_pv
             self._altitude = float(a_alt)
             self._azimuth = float(a_az)
             self._roll = float(a_roll)
@@ -1194,12 +1196,12 @@ class Polaris:
                 break
             direction = +1
             # check axis 1 bounds and reverse direction if necc 
-            if axis==1 and self._theta_meas.any():
-                if self._theta_meas[1] > 60:
+            if axis==1 and self._theta_raw.any():
+                if self._theta_raw[1] > 60:
                     await motor.set_motor_speed(0, "RAW")
                     await asyncio.sleep(3)
                     direction = -1
-                if self._theta_meas[1] < 20:
+                if self._theta_raw[1] < 20:
                     await motor.set_motor_speed(0, "RAW")
                     await asyncio.sleep(3)
                     direction = +1
@@ -1231,9 +1233,9 @@ class Polaris:
             await asyncio.sleep(sampling_interval)
             if self.lifecycle.should_stop():
                 return 0,0,0,"STOPPED"
-            if self._omega_meas is None:
+            if self._omega_raw is None:
                 return 0,0,0,"NO DATA"
-            omega = self._omega_meas[axis]
+            omega = self._omega_raw[axis]
             omega_samples.append(omega)
 
             # if we potentially have enough samples, take a window the last set
@@ -1378,8 +1380,8 @@ class Polaris:
                 'q1': str(self._q1),
                 'q1s': str(self._q1s),
                 'zetameas': [0,0,0] if self._zeta_meas is None else self._zeta_meas,
-                'lotameas': [0,0,0,0,0] if self._theta_meas is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],
-                'thetameas': [0,0,0] if self._theta_meas is None else self._theta_meas.tolist(),
+                'lotameas': [0,0,0,0,0] if self._theta_raw is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],
+                'thetameas': [0,0,0] if self._theta_raw is None else self._theta_raw.tolist(),
                 'thetastate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
                 'deltaref': self._pid.delta_ref.tolist(),
                 'alpharef': self._pid.alpha_ref.tolist(),

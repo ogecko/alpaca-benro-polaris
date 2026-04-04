@@ -56,8 +56,8 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular ve
 
 | From           | To             | Function                           | Notes |
 |----------------|----------------|------------------------------------|-------|
-| `motorQ_C2B`   | `theta`        | `= motorQ_C2B_to_theta(motorQ)`      | Two solutions possible (elbow up/down). Resolved by proximity to last position. |
-| `theta`        | `motorQ_C2B`   | `= theta_to_motorQ_C2B(*theta)`      |  Determine quaternion that represents a given set of motor angles.                                                                        |
+| `motorQ_C2B`   | `theta`        | `= q_to_theta(motorQ)`             | Two solutions possible (elbow up/down). Resolved by proximity to last position. |
+| `theta`        | `motorQ_C2B`   | `= theta_to_q(*theta)`      |  Determine quaternion that represents a given set of motor angles.                                                                        |
 | `omega_T`      | `omega_B`      | `= topoVec_to_baseVec(omega_T, cameraQ_C2T)` | Undoes T-frame corrections, applies `alignQ_B2T_inv`. See Feed Forward. |
 | `theta_dot`      | `omega_B`      | `= J(theta) · theta_dot` | B frame angular velocity → joint rates. |
 | `omega_B`      | `theta_dot`      | `= J⁻¹(theta) · omega_B` | joint rates → B frame angular velocity. |
@@ -97,8 +97,8 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 
 | From           | To             | Function                           | Notes |
 |----------------|----------------|------------------------------------|-------|
-| `cameraQ_C2T`  | `alpha`         | ` = cameraQ_C2T_to_azaltroll(cameraQ)`   |   Determine sky angles for a given quaternion                             |
-| `alpha`         | `cameraQ_C2T`  | ` = alpha_to_cameraQ_C2T(*alpha)`        |   Determine quaternion that represents a given set of sky angles                             |
+| `cameraQ_C2T`  | `alpha`         | ` = q_to_azaltroll(cameraQ)`   |   Determine sky angles for a given quaternion                             |
+| `alpha`         | `cameraQ_C2T`  | ` = azaltroll_to_q(*alpha)`    |   Determine quaternion that represents a given set of sky                 |
 
 ---
 
@@ -124,8 +124,8 @@ orientation.
 
 ```
 motorQ_raw              Raw C→B quaternion from Polaris IMU (q1, from 518 message)
-theta_raw               Raw motor angles = motorQ_C2B_to_theta(motorQ_raw) used in KF
-alpha_raw               Raw sky angles = cameraQ_C2T_to_azaltroll(motorQ_raw) used in sync
+theta_raw               Raw motor angles = q_to_theta(motorQ_raw) used in KF
+alpha_raw               Raw sky angles = q_to_azaltroll(motorQ_raw) used in sync
 omega_raw               Raw angular velocity (proxy = omega_ref)
     │
     ▼ Kalman Filter(theta_raw, omega_raw)
@@ -135,14 +135,14 @@ alpha_state             KF smoothed sky angles
     ▼ Periodic Error Correction, optional (future — currently theta_corr = theta_state)
     ▼ Rotation Bias Correction, optional (corrQ_RBC)
 theta_adj              adjusted motor orientation angles
-motorQ_adj             adjusted motor orientation quaternion (theta_to_motorQ_C2B)
+motorQ_adj             adjusted motor orientation quaternion (theta_to_q)
     │
     ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGC ∘ alignQ_B2T ∘ motorQ_adj
     ▼     QUEST Alignment (alignQ_B2T) 
     ▼     Local Gaussian Correction (corrQ_LGC)
     ▼     Roll Sync Adjustment (corrQ_roll)
 cameraQ_C2T_pv         Fully corrected C→T pointing quaternion
-alpha_pv               (az, alt, roll) = cameraQ_C2T_to_azaltroll(cameraQ_C2T_corr)
+alpha_pv               (az, alt, roll) = q_to_azaltroll(cameraQ_C2T_corr)
 delta_pv               (RA, Dec, PA)   = pyephem(az, alt, roll)
 ```
 

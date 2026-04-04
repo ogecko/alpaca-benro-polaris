@@ -212,16 +212,16 @@ class LastPosition:
             self.in_gimbal_lock = False
         return self.in_gimbal_lock
 
-def alpha_to_cameraQ_C2T(az, alt, roll):
-    """Matches driver's alpha_to_cameraQ_C2T()."""
+def azaltroll_to_q(az, alt, roll):
+    """Matches driver's azaltroll_to_q()."""
     qaz   = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
     qalt  = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
     qroll = Quaternion(axis=[0, 0, 1], degrees=roll)
     q1 = qaz * qalt * qroll
     return -(q1.normalised) if roll < 0 else q1.normalised
 
-def motorQ_C2B_to_theta(motorQ_C2B, lastPos=None):
-    """Matches driver's motorQ_C2B_to_theta()."""
+def q_to_theta(motorQ_C2B, lastPos=None):
+    """Matches driver's q_to_theta()."""
     if lastPos is None:
         lastPos = LastPosition()
     q1     = motorQ_C2B
@@ -290,13 +290,13 @@ def azaltroll_to_theta(p_az, p_alt, p_roll):
     """
     Derive theta1, theta2, theta3 from p_az, p_alt, p_roll using the same
     inverse kinematics as the driver. When QUEST is off, motorQ == cameraQ
-    so alpha_to_cameraQ_C2T gives us motorQ_C2B directly.
+    so azaltroll_to_q gives us motorQ_C2B directly.
     """
     if not HAS_QUATERNION:
         return None, None, None
     try:
-        motorQ = alpha_to_cameraQ_C2T(p_az, p_alt, p_roll)
-        t1, t2, t3 = motorQ_C2B_to_theta(motorQ)
+        motorQ = azaltroll_to_q(p_az, p_alt, p_roll)
+        t1, t2, t3 = q_to_theta(motorQ)
         return t1, t2, t3
     except Exception:
         return None, None, None

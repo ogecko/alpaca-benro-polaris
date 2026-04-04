@@ -278,7 +278,7 @@ def calculate_angular_velocity_vector(q0: Quaternion, q1: Quaternion, dt: float)
     omega = axis / axis_norm * (angle_rad / dt)
     return omega
 
-def alpha_to_cameraQ_C2T(az, alt, roll):
+def azaltroll_to_q(az, alt, roll):
     """
     Convert altitude, azimuth, and roll angles to a camera quaternion using simple rotation composition.
     
@@ -300,7 +300,7 @@ def alpha_to_cameraQ_C2T(az, alt, roll):
 
 
 
-def theta_to_motorQ_C2B(theta1, theta2, theta3):
+def theta_to_q(theta1, theta2, theta3):
     """
     Convert theta1, theta2, theta3 angles to a base quaternion using simple rotation composition.
     
@@ -381,7 +381,7 @@ class LastPosition:
         return self.in_gimbal_lock
 
 
-def motorQ_C2B_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
+def q_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
     """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
     q1 = motorQ_C2B
 
@@ -440,7 +440,7 @@ def motorQ_C2B_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
     return theta1, theta2, theta3
 
 
-def motorQ_C2B_to_theta(motorQ_C2B, lastPos=LastPosition()):
+def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     q1 = motorQ_C2B
     
     # tUp invariant under theta3
@@ -516,7 +516,7 @@ def motorQ_C2B_to_theta(motorQ_C2B, lastPos=LastPosition()):
 
     return theta1, theta2, theta3
 
-def cameraQ_C2T_to_azaltroll(cameraQ_C2T):
+def q_to_azaltroll(cameraQ_C2T):
     # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
     tBore = cameraQ_C2T.rotate([0, 0, -1])
 
@@ -573,7 +573,7 @@ def quaternion_to_angles(q1, lastPos = LastPosition()):
     # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
 
     # calculate the motor angles from the base quaternion
-    theta1, theta2, theta3 = motorQ_C2B_to_theta(q1, lastPos=lastPos)
+    theta1, theta2, theta3 = q_to_theta(q1, lastPos=lastPos)
 
     # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
     tBore = q1.rotate(np.array([0, 0,-1]))   
@@ -1630,11 +1630,11 @@ class PID_Controller():
             self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
 
         # Inverse Kinematics flow (Sky to Motors)
-        cameraQ_ref = alpha_to_cameraQ_C2T(*self.alpha_ref)
-        cameraQ_meas = alpha_to_cameraQ_C2T(*self.alpha_meas)
+        cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
+        cameraQ_meas = azaltroll_to_q(*self.alpha_meas)
         cameraQ_step = self.quaternion_limit_step(cameraQ_meas, cameraQ_ref)
         motorQ_ref = self.polaris._sm.cameraQ_to_motorQ(cameraQ_step)
-        theta1,theta2,theta3 = motorQ_C2B_to_theta(motorQ_ref, self._lp)
+        theta1,theta2,theta3 = q_to_theta(motorQ_ref, self._lp)
         self.theta_ref = np.array([theta1,theta2,theta3])
 
         # Remember cameraQ_ref and last cameraQ_ref for calculating FF
@@ -1786,7 +1786,7 @@ class PID_Controller():
             for axis in range(3):
                 # if Config.log_polaris_ble and axis==1:
                 #     q = self.polaris._q1
-                #     self.logger.info(f"Motor 2 omega_meas1-3: {self.polaris._omega_meas[0]:+.5f} {self.polaris._omega_meas[1]:+.5f} {self.polaris._omega_meas[2]:+.5f}, t_meas: {self.theta_meas[1]:.4f}, t_ref: {self.theta_ref[1]:.4f}, kp: {self.omega_kp[1]:.4f}, ki: {self.omega_ki[1]:.4f}, kd: {self.omega_kd[1]:.4f}, ff: {self.omega_ff[1]:.4f}, op: {self.omega_op[1]:.4f}")
+                #     self.logger.info(f"Motor 2 omega_meas1-3: {self.polaris._omega_raw[0]:+.5f} {self.polaris._omega_raw[1]:+.5f} {self.polaris._omega_raw[2]:+.5f}, t_meas: {self.theta_meas[1]:.4f}, t_ref: {self.theta_ref[1]:.4f}, kp: {self.omega_kp[1]:.4f}, ki: {self.omega_ki[1]:.4f}, kd: {self.omega_kd[1]:.4f}, ff: {self.omega_ff[1]:.4f}, op: {self.omega_op[1]:.4f}")
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
         # If we have goto timeout or stopped moving; while  in AUTO, HOMING or PARKING, go to IDLE
         if (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']:
@@ -1872,7 +1872,7 @@ class PID_Controller():
         if Config.log_pec:
             q1 = self.polaris._q1
             tq = np.array([q1[0],q1[1],q1[2],q1[3]])
-            tm = self.polaris._theta_meas
+            tm = self.polaris._theta_raw
             ts = self.polaris._theta_state
             tr = self.theta_ref
             te = self.polaris._theta_state - self.theta_ref
@@ -2017,7 +2017,7 @@ class SyncManager:
         sign = -1 for apply (forward kinematics)
         sign = +1 for undo (inverse kinematics / velocity vectors)
         """
-        _, p_alt, p_roll = cameraQ_C2T_to_azaltroll(motorQ_C2B)
+        _, p_alt, p_roll = q_to_azaltroll(motorQ_C2B)
         slope = Config.roll_model_a * np.tan(np.radians(p_alt)) + Config.roll_model_b
         roll_error_deg = slope * p_roll / 60.0
         if abs(roll_error_deg) < 1e-6:
@@ -2045,7 +2045,7 @@ class SyncManager:
         if not hasattr(self.polaris, '_pid') or self.polaris._pid is None:
             return
         cameraQ = self.motorQ_to_cameraQ(self.polaris._q1)     
-        az, alt, roll = cameraQ_C2T_to_azaltroll(cameraQ)
+        az, alt, roll = q_to_azaltroll(cameraQ)
         self.polaris._pid.reset_sp(np.array([az,alt,roll], dtype=float))
                                    
 
@@ -2093,7 +2093,7 @@ class SyncManager:
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if (Config.advanced_alignment and Config.advanced_control):
-            _,_,p_roll = cameraQ_C2T_to_azaltroll(self.baseQ_B2T * self.polaris._q1)
+            _,_,p_roll = q_to_azaltroll(self.baseQ_B2T * self.polaris._q1)
             entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using baseQ_B2T
         self.sync_history.append(entry)
         self.optimize_roll_adj()
