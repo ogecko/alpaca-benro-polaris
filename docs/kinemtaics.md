@@ -129,7 +129,8 @@ alpha_raw               Raw sky angles = q_to_azaltroll(motorQ_raw) used in sync
 omega_raw               Raw angular velocity (proxy = omega_ref)
     │
     ▼ Kalman Filter(theta_raw, omega_raw)
-theta_state             KF smoothed motor angles
+theta_state             KF smoothed motor morientation angles
+motorQ_state            KF smoother motor orientation quaternion C→B
     │
     ▼ Periodic Error Correction, optional (future — currently theta_corr = theta_state)
     ▼ Rotation Bias Correction, optional (corrQ_RBC)
@@ -152,14 +153,19 @@ corrections in exact reverse order of the forward chain. No `corrQ_RBC⁻¹` is 
 RBC is applied at the measurement stage, not in the alignment chain.
 
 ```
-delta_ref               DSO Target equatorial coordinates (RA, Dec, PA)
+delta_sp                DSO Target equatorial coordinates (RA, Dec, PA)
+    │
+    ▼     Pulse Guiding delta_offset += delta_g_sp(ms) * guide_rate
+    ▼     Slewing       delta_offst  += delta_v_sp * dt
+    ▼     Add offset    delta_ref    =  delta_sp + delta_offst
+delta_ref               DSO Target adjusted equatorial coordinates (RA, Dec, PA)
     │
     │ ---  SIDEREAL  ---OR--- ORBITAL ---
     ▼   delta2body() ---OR--- pyephem.body(Orbital Parameters) 
   body                  Target pyephem body
     │
-    │ --- TRACK MODE ---OR--- AUTO MODE ---
-    ▼     body2alpha ---OR--- alpha_sp + alpha_offst
+    │ --- TRACK MODE ---OR--- AUTO MODE --- (ie goto or slew with no tracking)
+    ▼     body2alpha ---OR--- alphar_ref = alpha_sp + alpha_offst 
 alpha_ref               Target topocentric angles (az, alt, roll)
 cameraQ_ref             Target C→T quaternion = azaltroll_to_q(*alpha_ref)
     │
