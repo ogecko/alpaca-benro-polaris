@@ -26,7 +26,7 @@ quaternions that live in each, and the kinematic chains that connect them.
 
 ## 2. Reference Frames
 
-Each frame has a fixed set of basis axes. Vectors and quaternions are tagged with
+Each frame has a fixed set of basis axes. The scale of each reference frame is arbitrary, since Polaris kinematic mathematics is angle-based, and quaternions are defined on a unit sphere. Vectors and quaternions are tagged with
 the frame they are expressed in.
 
 | Frame | Name | Description | `+X` axis | `+Y` axis | `+Z` axis |
@@ -42,7 +42,7 @@ the frame they are expressed in.
 
 #### Mechanical Orientation and Angular Velocity
 The Base Frame represents the mechanical orientation of the mount as either motor angles
-or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular velocity in the Base Frame drives individual motor speeds. The Jacobian `J(theta)` maps between B frame angular velocity and motor joint rates.
+or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular velocity in the Base Frame drives individual motor speeds. The Jacobian `J(theta)` is a matrix that, for a given orientation `(theta)`, describes how small changes in the motor axis angles `(theta_dot)`, produce motion of the camera. It maps between motor axis rates and B frame angular velocity.
 
 | Representation | Type       | Description  | Use for |
 |----------------|------------|--------------|---------|
@@ -59,8 +59,8 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular ve
 | `motorQ_C2B`   | `theta`        | `= q_to_theta(motorQ)`             | Two solutions possible (elbow up/down). Resolved by proximity to last position. |
 | `theta`        | `motorQ_C2B`   | `= theta_to_q(*theta)`      |  Determine quaternion that represents a given set of motor angles.                                                                        |
 | `omega_topo`   | `omega_base`      | `= topoVec_to_baseVec(omega_topo, cameraQ_C2T)` | Undoes T-frame corrections, applies `alignQ_B2T_inv`. See Feed Forward. |
-| `theta_dot`    | `omega_base`      | `= J(theta) · theta_dot` | B frame angular velocity → joint rates. |
-| `omega_base`   | `theta_dot`      | `= J⁻¹(theta) · omega_base` | joint rates → B frame angular velocity. |
+| `theta_dot`    | `omega_base`      | `= J(theta) · theta_dot` | joint rates → B frame angular velocity.  |
+| `omega_base`   | `theta_dot`      | `= J⁻¹(theta) · omega_base` | B frame angular velocity → joint rates. Used to calculate FF joint rates. |
 
 #### Variable Suffixes
 
