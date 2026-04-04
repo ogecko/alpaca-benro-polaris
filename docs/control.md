@@ -22,7 +22,9 @@ When version 1.0 of the Alpaca Driver was launched, it allowed advanced imaging 
 
 With version 2.0 of the Alpaca Driver, we introduce a complete rewrite of the motion control system. The motors are now driven using advanced algorithms that dramatically improve tracking accuracy, responsiveness, and stability.
 
-This guide covers describes each of the new motion control concepts introduced in V2.0
+This guide provides an overview of the new motion control concepts introduced in V2.0.
+
+For a comprehensive technical reference on the updated kinematics, refer to [kinematics.md](./kinemtaics.md).
 
 <br>
 <br>

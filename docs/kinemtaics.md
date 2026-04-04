@@ -1,4 +1,19 @@
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+
+
+
 # Alpaca Benro Polaris Driver — Kinematics Reference
+[Overview](#1-overview) | 
+[Base](#21-base-frame-b---representations-and-conversions) | 
+[Topo](#22-topocentric-frame-t---representations-and-conversions) | 
+[Equatorial ](#23-equatorial-frame-e---representations) | 
+[Forward Kinematics](#31-forward-kinematics--motors--sky-angular-position) | 
+[Inverse Kinematics](#32-inverse-kinematics--sky--motors-angular-position) | 
+[Feed Forward](#33-inverse-kinematics--sky--motors-angular-velocity-feed-forward) | 
+[QUEST](#34-quest-alignment-optimisation) |
+[RBC](#35-rotation-bias-correction-rbc) |
+[LGC](#36-local-gaussian-correction-lgc) |
+
 
 ## 1. Overview
 
@@ -172,7 +187,7 @@ omega_op                Control output velocity → motor commands
 
 ---
 
-## Inverse Kinematics — Sky → Motors Angular Velocity (Feed Forward)
+### 3.3 Inverse Kinematics — Sky → Motors Angular Velocity (Feed Forward)
 
 Converts the rate of change of the sky target into motor joint rates for sidereal tracking
 feed-forward. The Jacobian `J(theta_adj)` is expressed in the **B frame**, so `omega_T`
@@ -199,7 +214,7 @@ omega_ff                Feed-forward motor joint rates
 
 ---
 
-## QUEST Alignment Optimisation
+### 3.4 QUEST Alignment Optimisation
 
 QUEST finds the optimal `alignQ_B2T` that minimises the angular residual between
 IMU-predicted and plate-solved observed positions across all sync points.
@@ -224,8 +239,77 @@ QUEST optimises alignQ_B2T to minimise Σ angle(alignQ_B2T · v_pred, v_obs)
 ```
 
 ---
+### 3.5 Rotation Bias Correction (RBC)
 
-## Summary — Full Kinematic Chain
+The Polaris IMU systematically mis-reports the camera rotation angle depending on the
+mechanical configuration of the three motor axes. Because the same Az/Alt pointing can
+be reached at different rotation angles — requiring different M3 positions — this error
+varies with mechanical configuration and cannot be corrected by QUEST's single
+rigid-body alignment.
+
+#### Root Cause
+
+M3 (theta3) controls the camera up-vector rotation. The IMU has two coupled encoder
+errors in M3:
+
+| Coefficient     | Physical Meaning                                                                 |
+|-----------------|----------------------------------------------------------------------------------|
+| `roll_model_a`  | **Gain error** — M3 reports slightly less rotation than actually occurred. Scales with altitude because a roll error projects onto Az by `tan(alt)` as azimuth lines converge toward the zenith. Hardware characteristic of the Polaris unit (encoder linearity, mechanical flex in M3 arm). Stable across setups and SPA alignments. |
+| `roll_model_b`  | **Zero-point offset** — IMU believes theta3=0 but the camera up-vector is not quite level. Residual bias at zero altitude independent of how far M3 has rotated. Also a hardware characteristic, stable across setups. |
+
+#### Discovery and Calibration
+
+The error was discovered by plate-solving ~1000 images across a porcupine grid of
+Az/Alt/Roll positions using Single Point Alignment (no QUEST). Three components of
+`dev_roll` (solved − predicted) were identified:
+
+| Component | Description                                              | Handled by        |
+|-----------|----------------------------------------------------------|-------------------|
+| [1] Global SPA bias    | ~2.5° constant roll offset from SPA-only alignment | QUEST (any sync point) |
+| [2] Polar misalignment | ~0.9° sinusoidal Az-dependent variation from mount tilt | QUEST (multi-point sync) |
+| [3] Rotation bias      | Roll-dependent residual — `f(p_roll, p_alt)` | RBC — QUEST cannot fix this |
+
+Component [3] is what RBC corrects. After removing [1] and [2], the residual follows:
+
+> roll_error (arcmin) = (roll_model_a · tan(alt) + roll_model_b) · p_roll
+
+Fitted from calibration data: R² = 0.995 for slope vs tan(alt), per-cell R² > 0.96.
+
+To recalibrate, use `fits_extract.py`:
+
+---
+### 3.6 Local Gaussian Correction (LGC)
+
+Even after QUEST alignment, a small residual pointing error typically remains at any
+given sky position. This occurs because QUEST fits a single rigid-body rotation
+(`alignQ_B2T`) across all sync points. It finds the global optimum but cannot perfectly
+satisfy every individual point. 
+
+This can be a problem for **Slew and Center** commands that verify the accuracy of a GOTO command. After a plate-solve, the controlling application makes a corrective slew to the target. If there is a residual error at this sync point, then it may take several corrective slews to narrow in on the target. The LGC corrects this residual locally around the most
+recent sync point, fading to identity as the mount moves away.
+
+#### Concept
+
+After a sync, the residual error at that sync point is known exactly. It is the
+difference between the QUEST-corrected predicted position and the observed plate-solved
+position. LGC applies this residual as a full correction at the sync point, then
+spatially fades it using a Gaussian weight as a function of angular distance:
+
+**weight = exp(−angular_distance² / (2 · σ²))**
+**where: σ = 15° (default)**
+
+At the sync point itself: `weight = 1.0` — full correction applied.  
+At 15° away: `weight = exp(-0.5) ≈ 0.61` — correction at 61%.  
+At 30° away: `weight = exp(-2.0) ≈ 0.14` — correction at 14%.  
+Beyond ~45°: `weight < 0.05` — correction effectively zero, LGC inactive.
+
+This means the mount points with maximum accuracy near the last sync point and
+gracefully degrades to QUEST-only accuracy as it moves away, without any
+discontinuity.
+
+
+---
+## 4. Summary — Full Kinematic Chain
 
 ```
 motorQ_raw          (C→B, raw from IMU)
