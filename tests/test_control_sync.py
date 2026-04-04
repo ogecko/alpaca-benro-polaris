@@ -39,7 +39,7 @@ class Polaris:
         self._p_roll = roll
         self._q1 = alpha_to_cameraQ_C2T(az, alt, roll)
         t1,t2,t3,_,_,_ = quaternion_to_angles(self._q1)
-        self._theta_meas = [t1, t2, t3]
+        self._theta_raw = [t1, t2, t3]
         self._roll = roll
 
 def test_dummy():
@@ -48,6 +48,8 @@ def test_dummy():
 def test_sync_history():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
 
@@ -64,17 +66,25 @@ def test_sync_history():
         assert sm.sync_history[1]["a_roll"] == 5
 
 def test_no_sync_adj():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    az,alt,roll,_,_,_ = quaternion_to_angles(sm.baseQ_B2T * p._q1)
-    assert f'{az:.6f}' == "180.000000"
-    assert f'{alt:.6f}' == "45.000000"
-    assert f'{roll:.6f}' == "0.000000"
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
+        MockConfig.advanced_control = True
+        MockConfig.log_quest_model = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        az,alt,roll,_,_,_ = quaternion_to_angles(sm.baseQ_B2T * p._q1)
+        assert f'{az:.6f}' == "180.000000"
+        assert f'{alt:.6f}' == "45.000000"
+        assert f'{roll:.6f}' == "0.000000"
 
 def test_single_syncs_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
         p = Polaris()
@@ -93,6 +103,8 @@ def test_single_syncs_adj():
 def test_azshift10_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
         p = Polaris()
@@ -113,6 +125,8 @@ def test_leveling_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         MockConfig.log_quest_model = False
         p = Polaris()
         logger = logging.getLogger()
@@ -130,6 +144,8 @@ def test_leveling_sync_adj():
 def test_largetilt_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
         p = Polaris()
@@ -151,6 +167,8 @@ def test_largetilt_sync_adj():
 def test_az170alt15shift_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
         p = Polaris()
@@ -168,6 +186,8 @@ def test_az170alt15shift_sync_adj():
 def test_zeroroll_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         MockConfig.advanced_control = True
         p = Polaris()
         logger = logging.getLogger()
@@ -180,6 +200,8 @@ def test_zeroroll_sync_adj():
 def test_15roll_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         MockConfig.advanced_control = True
         p = Polaris()
         logger = logging.getLogger()
@@ -192,6 +214,8 @@ def test_15roll_sync_adj():
 def test_neg60roll_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         MockConfig.advanced_control = True
         p = Polaris()
         logger = logging.getLogger()
@@ -207,6 +231,8 @@ def test_tworoll_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
         p = Polaris()
         logger = logging.getLogger()
         sm = SyncManager(logger,p)
@@ -219,39 +245,64 @@ def test_tworoll_sync_adj():
 
 
 def test_aboveSouth_roll2pa():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    position_ang, parallactic_ang = sm.roll2pa(180, 45, 10)
-    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "10.000000, -0.000000"  
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        position_ang, parallactic_ang = sm.roll2pa(180, 45, 10)
+        assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "10.000000, -0.000000"  
 
 def test_belowSouth_roll2pa():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    position_ang, parallactic_ang = sm.roll2pa(180, 30, 10)
-    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "190.000000, -180.000000"  
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        position_ang, parallactic_ang = sm.roll2pa(180, 30, 10)
+        assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "190.000000, -180.000000"  
 
 def test_belowSouth_pa2roll():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    position_ang, parallactic_ang = sm.roll2pa(180, 30, 200)
-    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "20.000000, -180.000000"  
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        position_ang, parallactic_ang = sm.roll2pa(180, 30, 200)
+        assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "20.000000, -180.000000"  
 
 def test_aboveNorth_roll2pa():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    position_ang, parallactic_ang = sm.roll2pa(0, 0, 30)
-    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "210.000000, -180.000000"  
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        position_ang, parallactic_ang = sm.roll2pa(0, 0, 30)
+        assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "210.000000, -180.000000"  
 
 def test_horizEast_roll2pa():
-    p = Polaris()
-    logger = logging.getLogger()
-    sm = SyncManager(logger,p)
-    position_ang, parallactic_ang = sm.roll2pa(90, 0, 30)
-    assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "266.344718, -123.655282"  # PA -123+30 = -93+360 = 267
+    with patch('control.Config') as MockConfig:
+        MockConfig.advanced_alignment = True
+        MockConfig.advanced_control = True
+        MockConfig.advanced_align_local = False
+        MockConfig.advanced_align_roll = False
+        p = Polaris()
+        logger = logging.getLogger()
+        sm = SyncManager(logger,p)
+        position_ang, parallactic_ang = sm.roll2pa(90, 0, 30)
+        assert f'{position_ang:.6f}, {parallactic_ang:.6f}' == "266.344718, -123.655282"  # PA -123+30 = -93+360 = 267
 
 
 def test_East_parallactic_angle():
