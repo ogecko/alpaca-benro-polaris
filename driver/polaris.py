@@ -762,8 +762,8 @@ class Polaris:
        
         return theta_raw, omega_raw, omega_ref
 
-    def extract_sky_positions(self, cameraQ):
-        az, alt, roll = q_to_azaltroll(cameraQ)
+    def extract_sky_positions(self, q):
+        az, alt, roll = q_to_azaltroll(q)
         ra, dec = self.altaz2radec(alt, az)
         posa, para = self._sm.roll2pa(az, alt, roll)
         return az, alt, roll, ra, dec, posa, para
