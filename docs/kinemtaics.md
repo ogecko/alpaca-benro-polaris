@@ -33,7 +33,7 @@ the frame they are expressed in.
 |-------|------|-------------|-----------|-----------|-----------|
 | **C** | Camera Frame | Camera sensor geometry, independent of pointing direction, -Z axis is camera boresight, looking skywards.  |  Image "up"             | Image "left"          | -ve boresight            |
 | **B** | Base Frame   | Mechanical frame as bolted to tripod (Az 180, Alt 45 after All Axis Reset). Differs from T by Multi-Point Alignment (`alignQ_B2T`)| Axis 2 red button side | Back SD card side     | Axis 1 up            |
-| **T** | Topo Frame  | True local sky frame at observing site, will all corrections applied. Home of Az, Alt, Roll   | East                   | North                 | Zenith               |
+| **T** | Topo Frame  | True local sky frame at observing site, with all corrections applied. Home of Az, Alt, Roll   | East                   | North                 | Zenith               |
 | **E** | Equatorial Frame   | Earth-centred celestial frame, with all corrections applied. Home of RA, Dec, PA       | RA = 0h, Dec = 0°      | RA = 6h, Dec = 0°     | North Celestial Pole |
 
 ---
@@ -48,7 +48,7 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular ve
 |----------------|------------|--------------|---------|
 | `theta`        | angles     | Mechanical orientation as motor angles `(theta1, theta2, theta3)` | Jacobian, PID error signal, Kalman Filter state |
 | `motorQ_C2B`   | quaternion | Mechanical orientation as quaternion rotating vectors from C→B    | Composition, interpolation, kinematic chain     |
-| `omega_B`      | vector | Angular velocity in Base frame `(omega1, omega2, omega3)` deg/s   | Jacobian input, feed-forward solve   |
+| `omega_base`   | vector | Angular velocity in Base frame `(omega1, omega2, omega3)` deg/s   | Jacobian input, feed-forward solve   |
 | `omega_raw`    | vector | Raw angular velocity from device (proxy = `omega_ref`)            | Kalman Filter observation            |
 | `omega_op`     | vector | Control output velocity sent to motors                            | Motor commands     
 
@@ -58,9 +58,9 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular ve
 |----------------|----------------|------------------------------------|-------|
 | `motorQ_C2B`   | `theta`        | `= q_to_theta(motorQ)`             | Two solutions possible (elbow up/down). Resolved by proximity to last position. |
 | `theta`        | `motorQ_C2B`   | `= theta_to_q(*theta)`      |  Determine quaternion that represents a given set of motor angles.                                                                        |
-| `omega_T`      | `omega_B`      | `= topoVec_to_baseVec(omega_T, cameraQ_C2T)` | Undoes T-frame corrections, applies `alignQ_B2T_inv`. See Feed Forward. |
-| `theta_dot`      | `omega_B`      | `= J(theta) · theta_dot` | B frame angular velocity → joint rates. |
-| `omega_B`      | `theta_dot`      | `= J⁻¹(theta) · omega_B` | joint rates → B frame angular velocity. |
+| `omega_topo`   | `omega_base`      | `= topoVec_to_baseVec(omega_topo, cameraQ_C2T)` | Undoes T-frame corrections, applies `alignQ_B2T_inv`. See Feed Forward. |
+| `theta_dot`    | `omega_base`      | `= J(theta) · theta_dot` | B frame angular velocity → joint rates. |
+| `omega_base`   | `theta_dot`      | `= J⁻¹(theta) · omega_base` | joint rates → B frame angular velocity. |
 
 #### Variable Suffixes
 
@@ -92,7 +92,7 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 |----------------|------------|--------------|---------|
 | `alpha`        | angles     | Sky orientation as topocentric angles `(az, alt, roll)`        | Display, ephem, PID setpoints, sync history        |
 | `cameraQ_C2T`  | quaternion | Sky orientation as quaternion rotating vectors from C→T         | Composition, interpolation, kinematic chain, SLERP |
-| `omega_T`      | vector | Angular velocity in Topocentric frame, computed from `cameraQ_C2T` change over time | Feed-forward starting point |
+| `omega_topo`      | vector | Angular velocity in Topocentric frame, computed from `cameraQ_C2T` change over time | Feed-forward starting point |
 
 #### Conversion Functions
 
@@ -205,22 +205,22 @@ polaris_protocol         Slew SLOW and FAST commands
 ### 3.3 Inverse Kinematics — Sky → Motors Angular Velocity (Feed Forward)
 
 Converts the rate of change of the sky target into motor joint rates for sidereal tracking
-feed-forward. The Jacobian `J(theta_adj)` is expressed in the **B frame**, so `omega_T`
-must be converted to `omega_B` before the solve. No `corrQ_RBC⁻¹` is needed — RBC is
+feed-forward. The Jacobian `J(theta_adj)` is expressed in the **B frame**, so `omega_topo`
+must be converted to `omega_base` before the solve. No `corrQ_RBC⁻¹` is needed — RBC is
 already accounted for in `theta_adj` and therefore in the Jacobian.
 
 ```
-cameraQ_C2T_ref         Target C→T quaternion (from last two control steps)
+cameraQ_ref             Target C→T quaternion (from last two control steps)
     │
     ▼  calculate_angular_velocity(cameraQ_C2T_ref_last, cameraQ_C2T_ref, dt)
 omega_topo              Angular velocity of sky target in T frame
     │
-    ▼  topoVec_to_baseVec(omega_T, cameraQ_C2T_pv)
+    ▼  topoVec_to_baseVec(omega_topo, cameraQ_pv)
     │  Undo T-frame corrections and rotate T → B:
     │  corrQ_roll⁻¹(T) → corrQ_LGC⁻¹(T) → alignQ_B2T_inv(T→B)
 omega_base              Angular velocity in B frame
     │
-    ▼  Inverse Jacobian Solution = J⁻¹(theta_adj) · omega_B
+    ▼  Inverse Jacobian Solution = J⁻¹(theta_adj) · omega_base
 theta_dot               Motor joint rates (radians)
     │
     ▼  degrees(theta_dot)
