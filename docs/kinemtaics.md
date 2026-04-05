@@ -146,7 +146,7 @@ theta_state             KF smoothed motor morientation angles
 motorQ_state            KF smoother motor orientation quaternion C→B
 alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
-    ▼ Periodic Error Correction, optional (future — currently theta_corr = theta_state)
+    ▼ Periodic Error Correction, optional (future — currently theta_adj = theta_state)
     ▼ Rotation Bias Correction, optional (corrQ_RBC)
 theta_adj              adjusted motor orientation angles
 motorQ_adj             adjusted motor orientation quaternion (theta_to_q)
