@@ -18,9 +18,9 @@
 
         <q-card flat bordered class="col">
           <div class="row ">
-            <div class="col-6">
+            <div class="col-lg-6 col-12">
               <q-timeline layout="comfortable" class="">
-                <q-timeline-entry heading>Forward Kinematics</q-timeline-entry>
+                <q-timeline-entry heading tag="h4">Forward Kinematics</q-timeline-entry>
                 <q-timeline-entry title="Polaris" >
                   <div class="text-grey-6 terminal">{{`q1:          ${p.q1}`}}</div>
                   <div class="text-grey-6 terminal">{{`motor_raw:   M1 ${fmt(p.zetameas[0])}   |   M2 ${fmt(p.zetameas[1])}   |   M3 ${fmt(p.zetameas[2])}`}}</div>
@@ -47,9 +47,9 @@
                 <q-timeline-entry title="Sky" ></q-timeline-entry>
               </q-timeline>
             </div>
-            <div class="col-6">
+            <div class="col-lg-6 col-12">
               <q-timeline layout="comfortable" class="q-pr-xl">
-                <q-timeline-entry heading>Inverse Kinematics</q-timeline-entry>
+                <q-timeline-entry heading tag="h4">Inverse Kinematics</q-timeline-entry>
                 <q-timeline-entry title="DSO Target" >
                   <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
                 </q-timeline-entry>
@@ -73,6 +73,15 @@
                 <q-timeline-entry title="Multi-Point Alignment" subtitle="Translate" icon="mdi-rotate-orbit">
                   <div class="text-grey-6 terminal">theta_ref</div>
                   <div class="text-grey-6 terminal">theta_pv</div>
+                </q-timeline-entry>
+                <q-timeline-entry icon="mdi-chart-bell-curve-cumulative">
+                  <template v-slot:title>PID Controller <PIDStatus /></template>
+                  <template v-slot:subtitle>Control</template>
+                  <div class="text-grey-6 terminal">omega_Kp</div>
+                  <div class="text-grey-6 terminal">omega_Ki</div>
+                  <div class="text-grey-6 terminal">omega_Kd</div>
+                  <div class="text-grey-6 terminal">omega_ff</div>
+                  <div class="text-grey-6 terminal">omega_tgt</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="PID Controller" subtitle="Control" icon="mdi-chart-bell-curve-cumulative">
                   <div class="text-grey-6 terminal">omega_Kp</div>
@@ -127,6 +136,8 @@ import { useStatusStore } from 'src/stores/status'
 import { useConfigStore } from 'src/stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import type { UnitKey } from 'src/utils/angles'
+import PIDStatus from 'src/components/PIDStatus.vue'
+
 
 const p = useStatusStore()
 const dev = useDeviceStore()
