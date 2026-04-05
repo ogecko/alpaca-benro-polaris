@@ -47,7 +47,10 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular ve
 | Representation | Type       | Description  | Use for |
 |----------------|------------|--------------|---------|
 | `theta`        | angles     | Mechanical orientation as motor angles `(theta1, theta2, theta3)` | Jacobian, PID error signal, Kalman Filter state |
-| `motorQ_C2B`   | quaternion | Mechanical orientation as quaternion rotating vectors from C→B    | Composition, interpolation, kinematic chain     |
+| `theta1`        | angle     | Motor 1 angular position [0 to 360); equal to az when theta3=0, diverges otherwise. +ve=cw (looking down towards mount, 0=North)| PID error signal |
+| `theta2`        | angle     | Motor 2 angular position (-8 to +83); equal to alt when theta3=0, diverges otherwise; +ve=upwards (looking side on to mount, 0=Horizontal). | PID error signal |
+| `theta3`        | angle     | Motor 3 (Astro) angular position (-180 to +180); rotation around camera up +X_C, swinging camera side to side; +ve=cw (looking down towards mount. 0=Level) | PID error signal |
+| `motorQ_C2B`   | quaternion | Mechanical orientation as quaternion rotating vectors from C→B; equivalent to theta    | Composition, interpolation, kinematic chain     |
 | `omega_base`   | vector | Angular velocity in Base frame `(omega1, omega2, omega3)` deg/s   | Jacobian input, feed-forward solve   |
 | `omega_raw`    | vector | Raw angular velocity from device (proxy = `omega_ref`)            | Kalman Filter observation            |
 | `omega_op`     | vector | Control output velocity sent to motors                            | Motor commands     
@@ -91,7 +94,10 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 | Representation | Type       | Description  | Use for |
 |----------------|------------|--------------|---------|
 | `alpha`        | angles     | Sky orientation as topocentric angles `(az, alt, roll)`        | Display, ephem, PID setpoints, sync history        |
-| `cameraQ_C2T`  | quaternion | Sky orientation as quaternion rotating vectors from C→T         | Composition, interpolation, kinematic chain, SLERP |
+| `az`          | angle  | Azimuth — Measured in the horizon plane (0-360), from North toward East        | Target coordinate              |
+| `alt`          | angle  | Altitude — Measured from horizon plane (-90 to +90), up toward Zenith        | Target coordinate              |
+| `roll`          | angle  | Roll — rotation around boresight (-75 to +75), relative to the local horizon plane;  0=horizontal, +ve=camera rotates CCW when viewed from rear          | Target coordinate              |
+| `cameraQ_C2T`  | quaternion | Sky orientation as quaternion rotating vectors from C→T; equivalent to alpha         | Composition, interpolation, kinematic chain, SLERP |
 | `omega_topo`      | vector | Angular velocity in Topocentric frame, computed from `cameraQ_C2T` change over time | Feed-forward starting point |
 
 #### Conversion Functions
@@ -106,10 +112,17 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 ### 2.3 Equatorial Frame (E) - Representations
 
 #### Equatorial Orientation
+| Representation | Type   | Description                                                                                  | Use for                        |
+|----------------|--------|----------------------------------------------------------------------------------------------|--------------------------------|
+| `delta`        | angles | Equatorial orientation as `(RA, Dec, PA)`                                                    | Target coordinates, tracking   |
+| `ra`           | angle  | Right Ascension — angle around celestial equator, eastward from vernal equinox (hours)       | Target coordinate              |
+| `dec`          | angle  | Declination — angle from celestial equator: −90° (south), 0° (equator), +90° (north)        | Target coordinate              |
+| `pa`           | angle  | Position Angle — angle from celestial north pole to camera up (+X_C); PA = parallactic + roll | Target coordinate             |
+| `para`         | angle  | Parallactic Angle — angle between celestial north pole and zenith at the target RA/Dec       | Derived, used to compute PA    |
+| `LST`          | time   | Local Sidereal Time — the RA currently on the meridian at the observing site. LST = RA + HA  | Time reference for tracking    |
+| `HA`           | time   | Hour Angle — how far a target has travelled past the meridian. HA = LST − RA. Negative before meridian, positive after | Derived, used in ephem |
 
-| Representation | Type   | Description                              | Use for                             |
-|----------------|--------|------------------------------------------|-------------------------------------|
-| `delta`        | angles | Equatorial orientation as `(RA, Dec, PA)` | Target coordinates, tracking, ephem |
+
 
 Conversion between T and E frames is handled by `pyephem` using the observer's site
 coordinates and time. Angles are always used in practice for the E frame.

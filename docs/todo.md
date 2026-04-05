@@ -10,6 +10,7 @@
 - [X] Persist Multi-Point alignment model through Driver restarts
 - [X] Fix Multi-Point Alignment without final zero adjust (goto adj)
 - [X] RBC Rotation Based Correction to fix M3 bias effecting Az and Roll (based on plate-solve test)
+- [ ] Update Kinematics page in Pilot
 - [ ] PEC control (how to detect phase?)
 - [ ] Create video of new features - Large Roll Direction Maintain, Large -ve Az, Pulse Guide Accuracy, PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy, Stop and Restart Driver
 
