@@ -15,6 +15,86 @@
     </div>
 
     <!-- Page Body -->
+
+        <q-card flat bordered class="col">
+          <div class="row ">
+            <div class="col-6">
+              <q-timeline layout="comfortable" class="">
+                <q-timeline-entry heading>Forward Kinematics</q-timeline-entry>
+                <q-timeline-entry title="Polaris" >
+                  <div class="text-grey-6 terminal">{{`q1:          ${p.q1}`}}</div>
+                  <div class="text-grey-6 terminal">{{`motor_raw:   M1 ${fmt(p.zetameas[0])}   |   M2 ${fmt(p.zetameas[1])}   |   M3 ${fmt(p.zetameas[2])}`}}</div>
+                  <div class="text-grey-6 terminal">{{`theta_raw:   t1 ${fmt(p.thetastate[0])}   |   t2 ${fmt(p.thetastate[1])}   |   t3 ${fmt(p.thetastate[2])}`}}</div>
+                </q-timeline-entry>
+                <q-timeline-entry v-if="cfg.advanced_kf" title="Kalman Filter" subtitle="Smooth" icon="mdi-chart-line">
+                  <div class="text-grey-6 terminal">{{`theta_state: t1 ${fmt(p.thetastate[0])}   |   t2 ${fmt(p.thetastate[1])}   |   t3 ${fmt(p.thetastate[2])}`}}</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Error Corrections" subtitle="Correct" icon="mdi-axis-x-rotate-clockwise">
+                  <div v-if="cfg.advanced_pec" class="text-grey-6 terminal">PEC:</div>
+                  <div v-if="cfg.advanced_align_roll" class="text-grey-6 terminal">{{`RBC: Roll Error = (0.9921 * tan(Alt) + 0.2323) * Roll  =  Adj ${fmt(p.thetastate[2])}`}}</div>
+                  <div v-if="cfg.advanced_align_local" class="text-grey-6 terminal">LGC:</div>
+                </q-timeline-entry>
+                <q-timeline-entry v-if="cfg.advanced_alignment" title="Multi-Point Alignment" subtitle="align" icon="mdi-rotate-orbit">
+                  <div class="text-grey-6 terminal">QUEST:</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Alpaca API" subtitle="serve" icon="mdi-rotate-orbit">
+                  <div class="text-grey-6 terminal">{{`theta_pv:    t1 ${fmt(p.thetastate[0])}   |   t2 ${fmt(p.thetastate[1])}   |   t3 ${fmt(p.thetastate[2])}`}}</div>
+                  <div class="text-grey-6 terminal">{{`alpha_pv:    Az ${fmt(p.azimuth)}   |  Alt ${fmt(p.altitude)}   | Roll ${fmt(p.roll)}`}}</div>
+                  <div class="text-grey-6 terminal">{{`delta_pv:    RA ${fmt(p.rightascension,"hr")}   |  Dec ${fmt(p.declination)}   | PosA ${fmt(p.positionangle)}`}}</div>
+                  <div class="text-grey-6 terminal">{{`ephem:       HA ${fmt(p.rightascension,"hr")}   |             Paralatic Angle ${fmt(p.positionangle)}`}}</div>
+                  <div class="text-grey-6 terminal">{{`            LST ${fmt(p.rightascension,"hr")}`}}</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Sky" ></q-timeline-entry>
+              </q-timeline>
+            </div>
+            <div class="col-6">
+              <q-timeline layout="comfortable" class="q-pr-xl">
+                <q-timeline-entry heading>Inverse Kinematics</q-timeline-entry>
+                <q-timeline-entry title="DSO Target" >
+                  <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Orbital Target">
+                  <div class="text-grey-6 terminal">3Line</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="AzAlt Target">
+                  <div class="text-grey-6 terminal">{{`alpha_sp:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Pulse Guiding" subtitle="Guide" icon="mdi-pulse">
+                  <div class="text-grey-6 terminal">delta_offset</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Sidereal Motion" subtitle="Track" icon="mdi-flare">
+                  <div class="text-grey-6 terminal">delta_ref</div>
+                  <div class="text-grey-6 terminal">omega_ref</div>
+                  <div class="text-grey-6 terminal">alpha_ref</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Shortest Path" subtitle="Plan" icon="mdi-debug-step-over">
+                  <div class="text-grey-6 terminal">cameraQ_step</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Multi-Point Alignment" subtitle="Translate" icon="mdi-rotate-orbit">
+                  <div class="text-grey-6 terminal">theta_ref</div>
+                  <div class="text-grey-6 terminal">theta_pv</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="PID Controller" subtitle="Control" icon="mdi-chart-bell-curve-cumulative">
+                  <div class="text-grey-6 terminal">omega_Kp</div>
+                  <div class="text-grey-6 terminal">omega_Ki</div>
+                  <div class="text-grey-6 terminal">omega_Kd</div>
+                  <div class="text-grey-6 terminal">omega_ff</div>
+                  <div class="text-grey-6 terminal">omega_tgt</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Speed & Accel Monitor" subtitle="Limit" icon="mdi-format-vertical-align-top">
+                  <div class="text-grey-6 terminal">omega_op</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
+                  <div class="text-grey-6 terminal">protocol</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Motors" ></q-timeline-entry>
+
+              </q-timeline>
+
+            </div>
+          </div>
+        </q-card>
+
     <div class="row q-col-gutter-sm items-stretch">
       <div class="col-lg-8 col-12 flex">
         <q-card flat bordered class="col">
@@ -42,13 +122,18 @@
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { deg2dms } from 'src/utils/angles'
+import { PollingManager } from 'src/utils/polling';
 import { useStatusStore } from 'src/stores/status'
+import { useConfigStore } from 'src/stores/config';
+import { useDeviceStore } from 'src/stores/device';
 import type { UnitKey } from 'src/utils/angles'
 
 const p = useStatusStore()
+const dev = useDeviceStore()
+const cfg = useConfigStore()
 const selected = ref([])
 const axis = ref<number>(0)
-
+const poll = new PollingManager()
 
 watch(axis, ()=>selected.value=[])
 
@@ -61,12 +146,21 @@ type TableRow = {
   q:string, name:string, az:string, alt:string, roll:string, ra:string, dec:string, pa:string, 
 }
 
-onMounted(() => {
+onMounted(async () => {
+  const shouldFetch =
+    dev.restAPIConnected &&
+    dev.restAPIConnectedAt &&
+    cfg.fetchedAt < dev.restAPIConnectedAt
+
+  if (shouldFetch) {
+    await cfg.configFetch()
+  }
+  poll.startPolling(() => { void cfg.configFetch() }, 10, 'configFetch')
 })
 
 onUnmounted(() => {
+  poll.stopPolling()
 })
-
 
 type AlignType = 'left' | 'center' | 'right'
 
@@ -105,6 +199,10 @@ const initialPagination = {
 </script>
 
 <style lang="scss">
+  .terminal {
+    font-family: monospace;
+    white-space: pre;
+  }
   .q-markdown--link {
     color: $grey-6;
 
