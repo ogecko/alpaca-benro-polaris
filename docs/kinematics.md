@@ -115,7 +115,7 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 | Representation | Type   | Description                                                                                  | Use for                        |
 |----------------|--------|----------------------------------------------------------------------------------------------|--------------------------------|
 | `delta`        | angles | Equatorial orientation as `(RA, Dec, PA)`                                                    | Target coordinates, tracking   |
-| `ra`           | angle  | Right Ascension — angle around celestial equator, eastward from vernal equinox (hours)       | Target coordinate              |
+| `ra`           | angle  | Right Ascension — sidereal time the DSO will pass the meridian, eastward from vernal equinox (hours)       | Target coordinate              |
 | `dec`          | angle  | Declination — angle from celestial equator: −90° (south), 0° (equator), +90° (north)        | Target coordinate              |
 | `pa`           | angle  | Position Angle — angle from celestial north pole to camera up (+X_C); PA = parallactic + roll | Target coordinate             |
 | `para`         | angle  | Parallactic Angle — angle between celestial north pole and zenith at the target RA/Dec       | Derived, used to compute PA    |

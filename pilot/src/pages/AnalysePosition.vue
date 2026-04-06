@@ -62,8 +62,8 @@
                   <div class="text-grey-6 terminal">{{`theta_pv:    t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
                   <div class="text-grey-6 terminal">{{`alpha_pv:    Az ${fmt(p.azimuth)}   |  Alt ${fmt(p.altitude)}   | Roll ${fmt(p.roll)}`}}</div>
                   <div class="text-grey-6 terminal">{{`delta_pv:    RA ${fmt(p.rightascension,"hr")}   |  Dec ${fmt(p.declination)}   | PosA ${fmt(p.positionangle)}`}}</div>
-                  <div class="text-grey-6 terminal">{{`ephem:       HA ${fmt(p.rightascension,"hr")}   |             Paralatic Angle ${fmt(p.positionangle)}`}}</div>
-                  <div class="text-grey-6 terminal">{{`            LST ${fmt(p.rightascension,"hr")}`}}</div>
+                  <div class="text-grey-6 terminal">{{`ephem:       HA ${fmt(p.siderealtime - p.rightascension,"hr")}   |             Paralatic Angle ${fmt(p.parallacticangle)}`}}</div>
+                  <div class="text-grey-6 terminal">{{`            LST ${fmt(p.siderealtime,"hr")}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Sky" ></q-timeline-entry>
               </q-timeline>
@@ -116,9 +116,9 @@
                 </q-timeline-entry>
                 <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
                   <div class="text-grey-6 terminal">protocol</div>
+                  <div class="text-grey-6 terminal">{{`Protocol:    M1 +1 30:70 +2     |   M2 +2000           |  M3 ${fmt(p.astate[2])}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Motors" ></q-timeline-entry>
-
               </q-timeline>
 
             </div>
