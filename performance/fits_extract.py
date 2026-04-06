@@ -328,12 +328,16 @@ _ALL_FIELDS = [
     'site_lat', 'site_lon',
     # Polaris predicted
     'p_ra', 'p_dec', 'p_az', 'p_alt', 'p_roll',
-    # Derived motor angles
+    # Predicted motor angles (from p_az/p_alt/p_roll)
     'theta1', 'theta2', 'theta3',
     # ASTAP solved
     'solved_ra', 'solved_dec', 'solved_pa', 'solved_az', 'solved_alt', 'solved_roll',
-    # Deviations
+    # Solved motor angles (from solved_az/alt/roll via inverse kinematics)
+    'a_theta1', 'a_theta2', 'a_theta3',
+    # Deviations — sky
     'dev_az_arcmin', 'dev_alt_arcmin', 'dev_roll_arcmin',
+    # Deviations — motor angles (degrees)
+    'dev_theta1', 'dev_theta2', 'dev_theta3',
     # WCS metrics
     'crota2', 'cd1_1', 'cd1_2', 'cd2_1', 'cd2_2',
     'pa_source', 'parallactic_angle', 'pixel_scale_arcsec',
@@ -435,6 +439,30 @@ def process_fits(fits_path):
     az_dev   = wrap_to_180(solved_az  - p_az)  if (solved_az  is not None and p_az  is not None) else None
     alt_dev  = (solved_alt - p_alt)             if (solved_alt is not None and p_alt is not None) else None
     roll_dev = wrap_to_180(solved_roll - p_roll)     if p_roll is not None else None
+
+
+
+    # ── Derive a_theta1/2/3 from solved_az/alt/roll ───────────────────────
+    if None not in (solved_az, solved_alt, solved_roll):
+        a_t1, a_t2, a_t3 = azaltroll_to_theta(solved_az, solved_alt, solved_roll)
+        row.update({
+            'a_theta1': f(a_t1),
+            'a_theta2': f(a_t2),
+            'a_theta3': f(a_t3),
+        })
+
+    dev_theta1, dev_theta2, dev_theta3 = None, None, None
+    if None not in (p_az, p_alt, p_roll, solved_az, solved_alt, solved_roll):
+        # wrap_to_180 for angular differences to handle wrap-around
+        dev_theta1 = wrap_to_180(a_t1 - t1)
+        dev_theta2 = a_t2 - t2          # altitude — no wrap needed
+        dev_theta3 = wrap_to_180(a_t3 - t3)
+        row.update({
+            'dev_theta1': f(dev_theta1),
+            'dev_theta2': f(dev_theta2),
+            'dev_theta3': f(dev_theta3),
+        })
+
 
     row.update({
         'status':             'solved',
@@ -801,7 +829,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-dir',
         metavar='DIR',
-        default='../../../images/2026-04-02/L/lights',
+        default='../../../images/DSO Lights/Roll Bias Correction Model/L/lights',
         help='Directory to scan recursively for FITS files. Default: current directory.',
     )
     parser.add_argument(
