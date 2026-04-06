@@ -22,23 +22,34 @@
               <q-timeline layout="comfortable" class="">
                 <q-timeline-entry heading tag="h4">Forward Kinematics</q-timeline-entry>
                 <q-timeline-entry title="Polaris" >
-                  <div class="text-grey-6 terminal">{{`q1:          ${p.q1}`}}</div>
                   <div class="text-grey-6 terminal">{{`motor_raw:   M1 ${fmt(p.zetameas[0])}   |   M2 ${fmt(p.zetameas[1])}   |   M3 ${fmt(p.zetameas[2])}`}}</div>
-                  <div class="text-grey-6 terminal">{{`theta_raw:   t1 ${fmt(p.thetastate[0])}   |   t2 ${fmt(p.thetastate[1])}   |   t3 ${fmt(p.thetastate[2])}`}}</div>
                 </q-timeline-entry>
-                <q-timeline-entry v-if="cfg.advanced_kf" title="Kalman Filter" subtitle="Smooth" icon="mdi-chart-line">
-                  <div class="text-grey-6 terminal">{{`theta_state: t1 ${fmt(p.thetastate[0])}   |   t2 ${fmt(p.thetastate[1])}   |   t3 ${fmt(p.thetastate[2])}`}}</div>
+                <q-timeline-entry title="Single-Point Alignment (Polaris)" subtitle="align" icon="mdi-rotate-orbit">
+                  <div class="text-grey-6 terminal">{{`qC2B_raw:     w ${fmtn(p.qraw[0])}    x ${fmtn(p.qraw[1])}   y ${fmtn(p.qraw[2])}   z ${fmtn(p.qraw[3])}`}}</div>
+                  <div class="text-grey-6 terminal">{{`theta_raw:   t1 ${fmt(p.traw[0])}   |   t2 ${fmt(p.traw[1])}   |   t3 ${fmt(p.traw[2])}`}}</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Kalman Filter" subtitle="Smooth" icon="mdi-chart-line">
+                  <div v-if="cfg.advanced_kf" >
+                    <div class="text-grey-6 terminal">{{`qC2B_state:   w ${fmtn(p.qstate[0])}    x ${fmtn(p.qstate[1])}   y ${fmtn(p.qstate[2])}   z ${fmtn(p.qstate[3])}`}}</div>
+                    <div class="text-grey-6 terminal">{{`theta_state: t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
+                  </div>
+                  <div v-else class="text-grey-6 terminal">Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Error Corrections" subtitle="Correct" icon="mdi-axis-x-rotate-clockwise">
-                  <div v-if="cfg.advanced_pec" class="text-grey-6 terminal">PEC:</div>
-                  <div v-if="cfg.advanced_align_roll" class="text-grey-6 terminal">{{`RBC: Roll Error = (0.9921 * tan(Alt) + 0.2323) * Roll  =  Adj ${fmt(p.thetastate[2])}`}}</div>
-                  <div v-if="cfg.advanced_align_local" class="text-grey-6 terminal">LGC:</div>
+                  <div v-if="cfg.advanced_pec" class="text-grey-6 terminal">PEC: Predictive Error Correction</div>
+                  <div v-else class="text-grey-6 terminal">PEC: Disabled</div>
+                  <div v-if="cfg.advanced_align_roll" class="text-grey-6 terminal">{{`RBC: Rotation Bias Correction                             Adj ${fmt(p.tstate[2])}`}}</div>
+                  <div v-else class="text-grey-6 terminal">RBC: Disabled</div>
+                  <div v-if="cfg.advanced_align_local" class="text-grey-6 terminal">LGC: Local Gaussian Correction</div>
+                  <div v-else class="text-grey-6 terminal">LGC: Disabled</div>
                 </q-timeline-entry>
-                <q-timeline-entry v-if="cfg.advanced_alignment" title="Multi-Point Alignment" subtitle="align" icon="mdi-rotate-orbit">
-                  <div class="text-grey-6 terminal">QUEST:</div>
+                <q-timeline-entry title="Multi-Point Alignment (Driver)" subtitle="align" icon="mdi-rotate-orbit">
+                  <div v-if="cfg.advanced_alignment" class="text-grey-6 terminal">QUEST:</div>
+                  <div v-else class="text-grey-6 terminal">Disabled</div>
                 </q-timeline-entry>
-                <q-timeline-entry title="Alpaca API" subtitle="serve" icon="mdi-rotate-orbit">
-                  <div class="text-grey-6 terminal">{{`theta_pv:    t1 ${fmt(p.thetastate[0])}   |   t2 ${fmt(p.thetastate[1])}   |   t3 ${fmt(p.thetastate[2])}`}}</div>
+                <q-timeline-entry title="Alpaca API" subtitle="serve" icon="mdi-email-fast">
+                  <div class="text-grey-6 terminal">{{`qC2T_pv:      w ${fmtn(p.qpv[0])}    x ${fmtn(p.qpv[1])}   y ${fmtn(p.qpv[2])}   z ${fmtn(p.qpv[3])}`}}</div>
+                  <div class="text-grey-6 terminal">{{`theta_pv:    t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
                   <div class="text-grey-6 terminal">{{`alpha_pv:    Az ${fmt(p.azimuth)}   |  Alt ${fmt(p.altitude)}   | Roll ${fmt(p.roll)}`}}</div>
                   <div class="text-grey-6 terminal">{{`delta_pv:    RA ${fmt(p.rightascension,"hr")}   |  Dec ${fmt(p.declination)}   | PosA ${fmt(p.positionangle)}`}}</div>
                   <div class="text-grey-6 terminal">{{`ephem:       HA ${fmt(p.rightascension,"hr")}   |             Paralatic Angle ${fmt(p.positionangle)}`}}</div>
@@ -153,6 +164,13 @@ function fmt(x:number|undefined, unit:UnitKey="deg"): string {
   return `${s.sign}${s.degreestr}${s.minutestr}${s.secondstr}`
 }
 
+function fmtn(x:number|undefined, decimals:number=7): string {
+  const n = x??0
+  const sign = n < 0 ? '-' : '+';
+  const nstr = Math.abs(n).toFixed(decimals)
+  return sign+nstr
+}
+
 type TableRow = {
   q:string, name:string, az:string, alt:string, roll:string, ra:string, dec:string, pa:string, 
 }
@@ -188,10 +206,8 @@ const columns = [
 
 const rows = computed<TableRow[]>(() => {
   return [
-  { name:'(1) Polaris: Quaternion (Q1)', q:p.q1, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
-  { name:'(2) ASCOM: n-Aligned and KF (Q1S)', q:p.q1s, az:'', alt:'', roll:'', ra:'', dec:'', pa:''},
   { name:'(3) Polaris: Motors Angles M1-3 (Zeta)', q:'', az:fmt(p.zetameas[0]), alt:fmt(p.zetameas[1]), roll:fmt(p.zetameas[2]), ra:'', dec:'', pa:'',},
-  { name:'(4) Polaris: Motors 1-Aligned T1-3 (Theta)', q:'', az:fmt(p.thetastate[0]), alt:fmt(p.thetastate[1]), roll:fmt(p.thetastate[2]), ra:'', dec:'', pa:'',},
+  { name:'(4) Polaris: Motors 1-Aligned T1-3 (Theta)', q:'', az:fmt(p.tstate[0]), alt:fmt(p.tstate[1]), roll:fmt(p.tstate[2]), ra:'', dec:'', pa:'',},
   { name:'(5) Polaris: Orientation 1-Aligned L1-3 (Lota)', q:'', az:fmt(p.lotameas[0]), alt:fmt(p.lotameas[1]), roll:fmt(p.lotameas[2]), ra:fmt(p.lotameas[3], "hr"), dec:fmt(p.lotameas[4]), pa:'',},
   { name:'(6) ASCOM: Orientation n-Aligned (ASCOM)', q:'', az:fmt(p.azimuth), alt:fmt(p.altitude), roll:fmt(p.roll), ra:fmt(p.rightascension, "hr"), dec:fmt(p.declination), pa:fmt(p.positionangle)},
   { name:'(7) ASCOM: Parallatic Angle', q:'', az:'', alt:'', roll:'', ra:'', dec:'', pa:fmt(p.parallacticangle)},

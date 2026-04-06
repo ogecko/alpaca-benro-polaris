@@ -143,7 +143,7 @@
                 <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
               </div>
-              <div v-if="cfg.advanced_alignment" class="row">
+              <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_align_local', 'Local Gaussian Correction')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_align_roll', 'Rotation Bias Correction')"/>
               </div>
