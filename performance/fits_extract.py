@@ -628,22 +628,42 @@ def fit_rbc_model(csv_path):
     # ── Component 3b: Az coupling coefficient (rbc_model_c) ──────────────────
     # The same M3 encoder error that produces a roll bias also induces a
     # proportional az error. The relationship dev_az = rbc_model_c · dev_roll
-    # is altitude-independent (empirically observed). The non-zero intercept in
-    # the raw dev_az vs dev_roll scatter is the global SPA az bias, which QUEST
-    # absorbs — so we fit slope only through the mean-centred data.
+    # is altitude-independent (empirically observed).
+    #
+    # To get a meaningful R², components 1 and 2 must be removed from d_az
+    # just as they were removed from d_roll before fitting 3a:
+    #   - Component 1 (global SPA az bias): remove by fitting a sinusoid to
+    #     d_az vs p_az and using its offset term, matching what was done for roll.
+    #   - Component 2 (polar misalignment az sinusoid): subtract the sinusoid fit.
+    # After that, the residual az_residual contains only the RBC-driven az error
+    # plus noise, and R² reflects how well rbc_model_c explains that signal.
     roll_error_pred = (rbc_model_a * tan_alt + rbc_model_b) * p_roll
-    az_residual     = d_az - d_az.mean()          # remove SPA az offset
-    roll_residual   = roll_error_pred - roll_error_pred.mean()
 
-    # Slope-only regression through the origin on centred data
-    rbc_model_c = float(np.dot(roll_residual, az_residual) /
-                        np.dot(roll_residual, roll_residual))
+    # Fit and remove the az sinusoid (components 1+2) from d_az
+    p0_daz = [
+        (d_az.max() - d_az.min()) / 2,
+        90.0,
+        d_az.mean(),
+    ]
+    try:
+        popt_daz, _ = curve_fit(sinusoidal_az, p_az, d_az, p0=p0_daz, maxfev=10000)
+        d_az_residual = d_az - sinusoidal_az(p_az, *popt_daz)
+    except RuntimeError:
+        # Fallback: remove mean only (component 1)
+        d_az_residual = d_az - d_az.mean()
+        popt_daz = [0, 0, d_az.mean()]
 
-    az_pred_c   = rbc_model_c * roll_residual
-    r2_az       = r_squared(az_residual, az_pred_c)
-    rmse_az     = np.sqrt(np.mean((az_residual - az_pred_c) ** 2))
+    # Slope-only regression: az_residual = rbc_model_c · roll_error_pred
+    # Both variables are already centred (sinusoid removal took out the mean),
+    # so this is a pure origin regression on the RBC-relevant signal only.
+    rbc_model_c = float(np.dot(roll_error_pred, d_az_residual) /
+                        np.dot(roll_error_pred, roll_error_pred))
 
-    # Also report the raw linear fit for diagnostic comparison
+    az_pred_c = rbc_model_c * roll_error_pred
+    r2_az     = r_squared(d_az_residual, az_pred_c)
+    rmse_az   = np.sqrt(np.mean((d_az_residual - az_pred_c) ** 2))
+
+    # Raw linear fit on unprocessed data for diagnostic comparison
     raw_slope, raw_intercept = np.polyfit(d_roll, d_az, 1)
 
     print()
@@ -652,7 +672,8 @@ def fit_rbc_model(csv_path):
           f"intercept={raw_intercept:.1f} arcmin")
     print(f"   (intercept is the SPA az bias — absorbed by QUEST, excluded from rbc_model_c)")
     print(f"")
-    print(f"   Slope-only fit on mean-centred data  : rbc_model_c = {rbc_model_c:.4f}")
+    print(f"   After removing components 1+2 from dev_az:")
+    print(f"   Slope-only fit vs roll_error_pred    : rbc_model_c = {rbc_model_c:.4f}")
     print(f"   R²   = {r2_az:.4f}")
     print(f"   RMSE = {rmse_az:.1f} arcmin")
     print(f"")
