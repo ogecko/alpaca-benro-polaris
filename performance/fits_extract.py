@@ -21,12 +21,12 @@ The script extracts (-extract):
   - Derived deviations: solved − predicted Az/Alt/Roll (solved frames only)
 
 The script models  (-model):
-  Fits a Rotation Bias Correction model to the plate-solved data. The IMU
+  Fits a Rotation Bias Correction (RBC) model to the plate-solved data. The IMU
   systematically mis-reports camera rotation angle depending on the mechanical
   configuration of the three motor axes. Because the same Az/Alt pointing can
   be reached at different rotation angles (requiring different motor positions),
   this error is configuration-dependent and cannot be corrected by QUEST's
-  single rigid-body alignment. The model decomposes the observed roll deviation
+  single rigid-body alignment. The model decomposes the observed pointing error
   into three components:
 
     [1] Global SPA bias     — a constant roll offset from Single Point Alignment,
@@ -41,30 +41,38 @@ The script models  (-model):
                               because it changes with mechanical configuration.
                               Modelled as:
                                 roll_error (arcmin) = (a · tan(alt) + b) · p_roll
+                                az_error   (arcmin) =  c · roll_error (arcmin)
 
   Fitted coefficients:
 
-    roll_model_a — the geometric projection coefficient. Describes how much the
-                   rotation bias projects onto the Az coordinate as altitude
-                   increases (azimuth lines converge toward the zenith). A value
-                   close to 1.0 indicates a small gain error in the M3 encoder —
-                   it reports slightly less rotation than actually occurred. This
-                   is a hardware characteristic of the Polaris unit (encoder
-                   linearity, mechanical flex in the M3 arm) and should be stable
-                   across different setups and SPA alignments.
+    rbc_model_a — the geometric projection coefficient for roll error. Describes
+                  how the rotation bias grows with altitude as azimuth lines
+                  converge toward the zenith. A value close to 1.0 indicates a
+                  small gain error in the M3 encoder — it reports slightly less
+                  rotation than actually occurred. Hardware characteristic of the
+                  Polaris unit (encoder linearity, mechanical flex in the M3 arm),
+                  stable across setups and SPA alignments.
 
-    roll_model_b — the residual rotation bias at zero altitude (when tan(alt)=0).
-                   Represents a mechanical zero-point offset in the M3 encoder —
-                   the IMU believes theta3=0 but the camera up-vector is not quite
-                   where expected. Also a hardware characteristic, stable across
-                   setups.
+    rbc_model_b — the residual roll bias at zero altitude (when tan(alt) = 0).
+                  Represents a mechanical zero-point offset in the M3 encoder —
+                  the IMU believes theta3 = 0 but the camera up-vector is not
+                  quite where expected. Also a hardware characteristic, stable
+                  across setups.
+
+    rbc_model_c — the az-coupling coefficient. The M3 encoder error that causes
+                  a roll bias also induces a proportional azimuth error:
+                    az_error (arcmin) = rbc_model_c · roll_error (arcmin)
+                  Fitted empirically from the linear relationship between
+                  dev_az and dev_roll across all altitudes. The constant offset
+                  in that relationship is the global SPA az bias absorbed by
+                  QUEST and is excluded from this coefficient.
 
 Usage:
     python fits_extract.py -extract|-model [-dir DIR] [-csv FILE]
 
 Options:
     -extract         Scan -dir for FITS files and write results to -csv.
-    -model           Fit the roll bias correction model from -csv and print coefficients.
+    -model           Fit the RBC model from -csv and print coefficients.
     -dir DIR         Directory to scan for FITS files. Default: current directory.
     -csv FILE        CSV file — written by -extract, read by -model.
                      Default: fits_extract.csv
@@ -328,16 +336,12 @@ _ALL_FIELDS = [
     'site_lat', 'site_lon',
     # Polaris predicted
     'p_ra', 'p_dec', 'p_az', 'p_alt', 'p_roll',
-    # Predicted motor angles (from p_az/p_alt/p_roll)
+    # Derived motor angles
     'theta1', 'theta2', 'theta3',
     # ASTAP solved
     'solved_ra', 'solved_dec', 'solved_pa', 'solved_az', 'solved_alt', 'solved_roll',
-    # Solved motor angles (from solved_az/alt/roll via inverse kinematics)
-    'a_theta1', 'a_theta2', 'a_theta3',
-    # Deviations — sky
+    # Deviations
     'dev_az_arcmin', 'dev_alt_arcmin', 'dev_roll_arcmin',
-    # Deviations — motor angles (degrees)
-    'dev_theta1', 'dev_theta2', 'dev_theta3',
     # WCS metrics
     'crota2', 'cd1_1', 'cd1_2', 'cd2_1', 'cd2_2',
     'pa_source', 'parallactic_angle', 'pixel_scale_arcsec',
@@ -440,30 +444,6 @@ def process_fits(fits_path):
     alt_dev  = (solved_alt - p_alt)             if (solved_alt is not None and p_alt is not None) else None
     roll_dev = wrap_to_180(solved_roll - p_roll)     if p_roll is not None else None
 
-
-
-    # ── Derive a_theta1/2/3 from solved_az/alt/roll ───────────────────────
-    if None not in (solved_az, solved_alt, solved_roll):
-        a_t1, a_t2, a_t3 = azaltroll_to_theta(solved_az, solved_alt, solved_roll)
-        row.update({
-            'a_theta1': f(a_t1),
-            'a_theta2': f(a_t2),
-            'a_theta3': f(a_t3),
-        })
-
-    dev_theta1, dev_theta2, dev_theta3 = None, None, None
-    if None not in (p_az, p_alt, p_roll, solved_az, solved_alt, solved_roll):
-        # wrap_to_180 for angular differences to handle wrap-around
-        dev_theta1 = wrap_to_180(a_t1 - t1)
-        dev_theta2 = a_t2 - t2          # altitude — no wrap needed
-        dev_theta3 = wrap_to_180(a_t3 - t3)
-        row.update({
-            'dev_theta1': f(dev_theta1),
-            'dev_theta2': f(dev_theta2),
-            'dev_theta3': f(dev_theta3),
-        })
-
-
     row.update({
         'status':             'solved',
         'solved_ra':          f(solved_ra,  6),
@@ -488,18 +468,19 @@ def process_fits(fits_path):
     return row, 'solved'
 
 
-# ── Roll error model fitting ──────────────────────────────────────────────────
+# ── RBC model fitting ─────────────────────────────────────────────────────────
 
-def fit_roll_error_model(csv_path):
+def fit_rbc_model(csv_path):
     """
-    Load the extracted CSV and fit the three-component roll error model.
+    Load the extracted CSV and fit the three-coefficient RBC model.
     Prints diagnostics and the calibration coefficients for use in the driver.
 
-    Three-component decomposition of dev_roll:
+    Three-component decomposition of IMU pointing error:
       [1] Global SPA bias     — constant offset, absorbed by QUEST
       [2] Az-dependent offset — polar misalignment sinusoid, absorbed by QUEST
-      [3] Roll-dependent bias — (a·tan(alt) + b)·p_roll, must be corrected
-                                BEFORE passing the quaternion to QUEST
+      [3] Rotation bias       — corrected by RBC before passing quaternion to QUEST:
+            roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
+            az_error   (arcmin) =  rbc_model_c · roll_error (arcmin)
 
     This function requires numpy and scipy.
     """
@@ -510,7 +491,7 @@ def fit_roll_error_model(csv_path):
     except ImportError:
         print("\nERROR: numpy and scipy are required for --model.")
         print("       Run: pip install numpy scipy")
-        return None, None
+        return None, None, None
 
     # ── Load CSV ──────────────────────────────────────────────────────────────
     rows = []
@@ -532,7 +513,7 @@ def fit_roll_error_model(csv_path):
 
     if len(rows) < 20:
         print(f"\nERROR: Only {len(rows)} solved rows — need at least 20 for a reliable fit.")
-        return None, None
+        return None, None, None
 
     p_az  = np.array([r['p_az']           for r in rows])
     p_alt = np.array([r['p_alt']           for r in rows])
@@ -552,7 +533,7 @@ def fit_roll_error_model(csv_path):
 
     print()
     print("═" * 60)
-    print("  ROLL ADJUSTMENT MODEL FIT")
+    print("  ROTATION BIAS CORRECTION MODEL FIT")
     print("═" * 60)
 
     # ── Component 1: Global SPA bias ──────────────────────────────────────────
@@ -578,7 +559,7 @@ def fit_roll_error_model(csv_path):
         popt_az, _ = curve_fit(sinusoidal_az, p_az, d_roll, p0=p0_roll, maxfev=10000)
     except RuntimeError:
         print("\nWARNING: Az sinusoid fit failed to converge — check Az coverage in data.")
-        return None, None
+        return None, None, None
 
     roll_az_amplitude, roll_az_az0, roll_az_offset = popt_az
     az_r2 = r_squared(d_roll, sinusoidal_az(p_az, *popt_az))
@@ -608,12 +589,12 @@ def fit_roll_error_model(csv_path):
         print(f"   Implied polar tilt          : ~{abs(popt_alt[0])/60:.2f}° toward Az≈{popt_alt[1]:.0f}°")
     print(f"   Interpretation              : QUEST absorbs this with multi-point sync spread across Az")
 
-    # Remove Az-dependent mean to isolate roll-driven residual
+    # Remove Az-dependent mean to isolate the roll-driven residual
     d_roll_residual = d_roll - sinusoidal_az(p_az, *popt_az)
 
-    # ── Component 3: Roll-dependent residual ──────────────────────────────────
-    # Model: dev_roll_residual = (a · tan(alt) + b) · p_roll
-    # Two engineered features, no intercept (model is zero when p_roll=0)
+    # ── Component 3a: Roll error model (rbc_model_a, rbc_model_b) ────────────
+    # Model: roll_error = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
+    # Two features, no intercept (model is zero when p_roll = 0)
     tan_alt     = np.tan(np.radians(p_alt))
     feature_tan = tan_alt * p_roll    # X1 = tan(alt) · p_roll
     feature_p   = p_roll              # X2 = p_roll
@@ -622,41 +603,73 @@ def fit_roll_error_model(csv_path):
     y = d_roll_residual
 
     coeffs, _, _, _ = lstsq(X, y, rcond=None)
-    roll_model_a, roll_model_b = coeffs
+    rbc_model_a, rbc_model_b = coeffs
 
-    pred_c3 = X @ coeffs
-    r2_c3   = r_squared(y, pred_c3)
-    rmse_c3 = np.sqrt(np.mean((y - pred_c3) ** 2))
+    pred_roll = X @ coeffs
+    r2_roll   = r_squared(y, pred_roll)
+    rmse_roll = np.sqrt(np.mean((y - pred_roll) ** 2))
 
     print()
-    print("── Component 3: Roll-dependent residual model ──────────────")
+    print("── Component 3a: Roll error model (rbc_model_a, rbc_model_b) ──")
     print(f"   Fit on {n} points (continuous, no binning)")
-    print(f"   R²   = {r2_c3:.4f}")
-    print(f"   RMSE = {rmse_c3:.1f} arcmin")
+    print(f"   R²   = {r2_roll:.4f}")
+    print(f"   RMSE = {rmse_roll:.1f} arcmin")
     print(f"")
-    print(f"   roll_fixed = p_roll - roll_error")
-    print(f"   roll_error = slope(alt) · p_roll")
-    print(f"   slope(alt) = roll_model_a · tan(alt) + roll_model_b")
-    print(f"              = {roll_model_a:.4f} · tan(alt) + {roll_model_b:.4f}")
+    print(f"   roll_error (arcmin) = slope(alt) · p_roll")
+    print(f"   slope(alt)          = rbc_model_a · tan(alt) + rbc_model_b")
+    print(f"                       = {rbc_model_a:.4f} · tan(alt) + {rbc_model_b:.4f}")
     print(f"")
     print(f"   Implied slope at representative altitudes:")
     print(f"   {'Alt':>6}  {'tan(alt)':>9}  {'slope':>7}")
     for alt in [20, 30, 40, 50, 60, 70, 80]:
-        s = roll_model_a * np.tan(np.radians(alt)) + roll_model_b
+        s = rbc_model_a * np.tan(np.radians(alt)) + rbc_model_b
         print(f"   {alt:>5}°  {np.tan(np.radians(alt)):>9.3f}  {s:>7.3f}")
 
-    # ── Validation ────────────────────────────────────────────────────────────
-    roll_error_pred = (roll_model_a * tan_alt + roll_model_b) * p_roll
-    d_roll_final    = d_roll_residual - roll_error_pred
+    # ── Component 3b: Az coupling coefficient (rbc_model_c) ──────────────────
+    # The same M3 encoder error that produces a roll bias also induces a
+    # proportional az error. The relationship dev_az = rbc_model_c · dev_roll
+    # is altitude-independent (empirically observed). The non-zero intercept in
+    # the raw dev_az vs dev_roll scatter is the global SPA az bias, which QUEST
+    # absorbs — so we fit slope only through the mean-centred data.
+    roll_error_pred = (rbc_model_a * tan_alt + rbc_model_b) * p_roll
+    az_residual     = d_az - d_az.mean()          # remove SPA az offset
+    roll_residual   = roll_error_pred - roll_error_pred.mean()
 
-    before_std   = d_roll_residual.std()
-    after_std    = d_roll_final.std()
-    improvement  = 100 * (1 - after_std / before_std)
-    corr_before  = float(np.corrcoef(d_roll_residual, p_roll)[0, 1])
-    corr_after   = float(np.corrcoef(d_roll_final,    p_roll)[0, 1])
+    # Slope-only regression through the origin on centred data
+    rbc_model_c = float(np.dot(roll_residual, az_residual) /
+                        np.dot(roll_residual, roll_residual))
+
+    az_pred_c   = rbc_model_c * roll_residual
+    r2_az       = r_squared(az_residual, az_pred_c)
+    rmse_az     = np.sqrt(np.mean((az_residual - az_pred_c) ** 2))
+
+    # Also report the raw linear fit for diagnostic comparison
+    raw_slope, raw_intercept = np.polyfit(d_roll, d_az, 1)
 
     print()
-    print("── Validation ───────────────────────────────────────────────")
+    print("── Component 3b: Az coupling coefficient (rbc_model_c) ────")
+    print(f"   Raw linear fit  dev_az vs dev_roll  : slope={raw_slope:.4f}  "
+          f"intercept={raw_intercept:.1f} arcmin")
+    print(f"   (intercept is the SPA az bias — absorbed by QUEST, excluded from rbc_model_c)")
+    print(f"")
+    print(f"   Slope-only fit on mean-centred data  : rbc_model_c = {rbc_model_c:.4f}")
+    print(f"   R²   = {r2_az:.4f}")
+    print(f"   RMSE = {rmse_az:.1f} arcmin")
+    print(f"")
+    print(f"   az_error (arcmin) = rbc_model_c · roll_error (arcmin)")
+    print(f"                     = {rbc_model_c:.4f} · roll_error")
+
+    # ── Validation ────────────────────────────────────────────────────────────
+    d_roll_final = d_roll_residual - roll_error_pred
+
+    before_std  = d_roll_residual.std()
+    after_std   = d_roll_final.std()
+    improvement = 100 * (1 - after_std / before_std)
+    corr_before = float(np.corrcoef(d_roll_residual, p_roll)[0, 1])
+    corr_after  = float(np.corrcoef(d_roll_final,    p_roll)[0, 1])
+
+    print()
+    print("── Validation (roll) ────────────────────────────────────────")
     print(f"   Correlation with p_roll  before : {corr_before:+.4f}")
     print(f"   Correlation with p_roll  after  : {corr_after:+.4f}")
     print(f"   Std before : {before_std:.1f} arcmin")
@@ -670,33 +683,30 @@ def fit_roll_error_model(csv_path):
 
    [1] Global SPA bias     : {global_mean/60:+.3f}° roll offset (constant everywhere)
    [2] Polar misalignment  : {abs(popt_alt[0])/60:.3f}° tilt toward Az≈{popt_alt[1]:.0f}°  (sinusoidal in Az)
-   [3] Roll-dependent bias : removed by preconditioning IMU quaternion  ← new
+   [3] Rotation bias       : removed by preconditioning IMU quaternion  ← RBC
 
-   Correction equation (Component 3):
+   Correction equations (Component 3):
 
-       roll_adjustment (arcmin) = (roll_model_a · tan(p_alt) + roll_model_b) · p_roll
+       roll_error (arcmin) = (rbc_model_a · tan(p_alt) + rbc_model_b) · p_roll
+       az_error   (arcmin) =  rbc_model_c · roll_error (arcmin)
 
    where:
-       roll_model_a = {roll_model_a:.4f}   [arcmin/° of p_roll per unit tan(alt)]
-       roll_model_b = {roll_model_b:.4f}   [arcmin/° of p_roll at horizon]
-       p_roll       = IMU-reported roll angle (degrees)
-       p_alt        = IMU-reported altitude (degrees)
-
-   To apply:
-       corrected_roll = p_roll  −  roll_adjustment_model(p_roll, p_alt) / 60
+       rbc_model_a = {rbc_model_a:.4f}   [slope coefficient, scales with tan(alt)]
+       rbc_model_b = {rbc_model_b:.4f}   [slope at horizon, altitude-independent]
+       rbc_model_c = {rbc_model_c:.4f}   [az/roll coupling ratio, altitude-independent]
+       p_roll      = IMU-reported roll angle (degrees)
+       p_alt       = IMU-reported altitude (degrees)
 
    Components [1] and [2] are handled by QUEST alignment.
    Component  [3] must be corrected BEFORE passing the quaternion to QUEST.
 """)
     print("── Fitted coefficients (copy into driver Config) ────────────")
-    # print(f"   roll_az_amplitude = {roll_az_amplitude:.4f}   # arcmin (diagnostic only)")
-    # print(f"   roll_az_az0       = {roll_az_az0:.4f}   # degrees (diagnostic only)")
-    # print(f"   roll_az_offset    = {roll_az_offset:.4f}   # arcmin (diagnostic only)")
-    print(f"   roll_model_a      = {roll_model_a:.4f}   # ← use in driver")
-    print(f"   roll_model_b      = {roll_model_b:.4f}   # ← use in driver")
+    print(f"   rbc_model_a = {rbc_model_a:.4f}   # ← use in driver")
+    print(f"   rbc_model_b = {rbc_model_b:.4f}   # ← use in driver")
+    print(f"   rbc_model_c = {rbc_model_c:.4f}   # ← use in driver")
     print()
 
-    return roll_model_a, roll_model_b
+    return rbc_model_a, rbc_model_b, rbc_model_c
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -800,8 +810,6 @@ def process_directory(fits_dir, output_csv):
         if t3s:     print(f"  theta3 (°): {min(t3s):.1f} → {max(t3s):.1f}")
 
 
-
-
 if __name__ == '__main__':
     import argparse
 
@@ -821,7 +829,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-model',
         action='store_true',
-        help='Fit the three-component Rotation Bias Correction model from --csv and print '
+        help='Fit the three-coefficient RBC model from --csv and print '
              'calibration coefficients for use in the driver.',
     )
 
@@ -852,4 +860,4 @@ if __name__ == '__main__':
         csv_path = Path(args.csv)
         if not csv_path.is_file():
             parser.error(f'CSV file not found: {csv_path}')
-        fit_roll_error_model(csv_path)
+        fit_rbc_model(csv_path)

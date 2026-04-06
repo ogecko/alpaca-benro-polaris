@@ -80,9 +80,10 @@ m2_park = 0.0                               # Motor 2 position for saved Park Lo
 m3_park = 0.0                               # Motor 3 position for saved Park Location
 guide_rate_ra = 1.0                         # Right Ascensiion guide rate multiple of sidereal rate
 guide_rate_dec = 1.0                        # Declination guide rate multiple of sidereal rate
-                                            # Rotation Bias Model: roll_error (arcmin) = (roll_model_a · tan(alt) + roll_model_b) · p_roll
-roll_model_a = 0.9742                       # Rotation Bias Slope - scales roll bias with altitude via tan(alt)  (arcmin / degree of p_roll, 0 = no effect)
-roll_model_b = 0.2509                       # Rotation Bias Offset = floor bias at zero altitude                 (arcmin / degree of p_roll, 0 = no effect)
+rbc_model_a = 0.9742                        # Rotation Bias Model: roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
+rbc_model_b = 0.2509                        # Rotation Bias Model: roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
+rbc_model_c = -0.9678                       # Rotation Bias Model: az_error (arcmin) = rbc_model_c · roll_error
+
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.

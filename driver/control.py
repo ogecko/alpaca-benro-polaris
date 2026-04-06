@@ -552,17 +552,41 @@ def q_to_azaltroll(cameraQ_C2T):
 def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
     """
     Returns the RBC correction quaternion and roll error.
-    sign = -1 for apply (forward kinematics)
-    sign = +1 for undo (inverse kinematics / velocity vectors)
+
+    Corrects two coupled M3 encoder errors:
+      1. Roll error:  dev_roll = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll      [arcmin]
+         Corrected by rotating around the camera boresight axis.
+
+      2. Az error:    dev_az   = rbc_model_c · dev_roll                               [arcmin]
+         Empirically fitted from plate-solve data across all altitudes.
+
+    sign = -1  for apply (forward kinematics)
+    sign = +1  for undo (inverse kinematics / velocity vectors)
     """
     _, p_alt, p_roll = q_to_azaltroll(motorQ_C2B)
     p_alt_clamped = min(p_alt, 75.0)
-    slope = Config.roll_model_a * np.tan(np.radians(p_alt_clamped)) + Config.roll_model_b
+
+    slope = Config.rbc_model_a * np.tan(np.radians(p_alt_clamped)) + Config.rbc_model_b
     roll_error_deg = slope * p_roll / 60.0
+
     if abs(roll_error_deg) < 1e-6:
         return (None, 0)
-    boresight = motorQ_C2B.rotate([0, 0, -1])
-    return (Quaternion(axis=boresight, degrees=sign * roll_error_deg), roll_error_deg)
+
+    # --- Roll correction ---
+    # Rotate around the camera boresight axis (expressed in B frame).
+    boresight_B = motorQ_C2B.rotate([0, 0, -1])
+    corrQ_roll = Quaternion(axis=boresight_B, degrees=sign * roll_error_deg)
+
+    # --- Az correction ---
+    # Empirical relationship: dev_az (arcmin) = az_model_c * dev_roll (arcmin)
+    # The zenith direction in B frame is the M1 rotation axis = [0, 0, 1] (Z_B).
+    az_error_deg = Config.rbc_model_c * roll_error_deg
+    corrQ_az = Quaternion(axis=[0, 0, 1], degrees=sign * az_error_deg)
+
+    # Compose: apply roll correction first, then az (rightmost = first applied).
+    corrQ = corrQ_az * corrQ_roll
+
+    return (corrQ, roll_error_deg)
 
 def apply_rotation_bias_corrQ_RBC(motorQ_C2B):
     corrQ_RBC, roll_error_deg = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=-1)
