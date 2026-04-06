@@ -10,8 +10,16 @@
         <div class="text-caption text-grey-6">
         Use these pages to perform tests and analyse the performance of your Benro Polaris. 
        </div>
+
       </div>
       <q-space />
+        <q-space />
+        <div class="q-gutter-md flex justify-end q-mr-md">
+          <div class="col-auto q-gutter-sm flex justify-end items-center">
+            <q-btn rounded  icon="mdi-information-variant-circle" color="grey-9" label="Reference Documentation" class="position-right" 
+                href="https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/kinematics.md"  target="_blank" rel="noopener" />
+          </div>
+        </div>
     </div>
 
     <!-- Page Body -->
