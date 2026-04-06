@@ -1385,6 +1385,7 @@ class Polaris:
                 'pidglock': self._pid._lp.in_gimbal_lock,           
                 'qraw': [0,0,0,0] if self._q1 is None else [self._q1[0],self._q1[1],self._q1[2],self._q1[3]],
                 'qstate': [0,0,0,0] if self._motorQ_state is None else [self._motorQ_state[0],self._motorQ_state[1],self._motorQ_state[2],self._motorQ_state[3]],
+                'qalign': [0,0,0,0] if self._sm.alignQ_B2T is None else [self._sm.alignQ_B2T[0],self._sm.alignQ_B2T[1],self._sm.alignQ_B2T[2],self._sm.alignQ_B2T[3]],
                 'qpv': [0,0,0,0] if self._cameraQ_pv is None else [self._cameraQ_pv[0],self._cameraQ_pv[1],self._cameraQ_pv[2],self._cameraQ_pv[3]],
                 'zetameas': [0,0,0] if self._zeta_meas is None else self._zeta_meas,
                 'lotameas': [0,0,0,0,0] if self._theta_raw is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],

@@ -41,11 +41,12 @@
                   <div v-else class="text-grey-6 terminal">PEC: Disabled</div>
                   <div v-if="cfg.advanced_align_roll" class="text-grey-6 terminal">{{`RBC: Rotation Bias Correction                        Roll Adj ${fmt(p.rbcerror)}`}}</div>
                   <div v-else class="text-grey-6 terminal">RBC: Disabled</div>
-                  <div v-if="cfg.advanced_align_local" class="text-grey-6 terminal">{{`LGC: Local Guassian Correction                   Residual Adj ${fmt(-p.lgcerror)}`}}</div>
+                  <div v-if="cfg.advanced_align_local" class="text-grey-6 terminal">{{`LGC: Local Guassian Correction         Last Sync Residual Adj ${fmt(-p.lgcerror)}`}}</div>
                   <div v-else class="text-grey-6 terminal">LGC: Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Multi-Point Alignment (Driver)" subtitle="align" icon="mdi-rotate-orbit">
-                  <div v-if="cfg.advanced_alignment" class="text-grey-6 terminal">QUEST:</div>
+                  <div v-if="cfg.advanced_alignment" class="text-grey-6 terminal">{{`qB2T_align:     w ${fmtn(p.qalign[0])}    x ${fmtn(p.qalign[1])}   y ${fmtn(p.qalign[2])}   z ${fmtn(p.qalign[3])}`}}</div>
+                  <div v-if="cfg.advanced_alignment" class="text-grey-6 terminal">{{`QUEST Adj:   Az ${fmt(p.az_adj)}   | Tilt ${fmt(p.tilt_adj_mag)}   |  Rot ${fmt(p.roll_adj)}`}}</div>
                   <div v-else class="text-grey-6 terminal">Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Alpaca API" subtitle="serve" icon="mdi-email-fast">

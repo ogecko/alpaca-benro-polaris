@@ -68,6 +68,7 @@ export const useStatusStore = defineStore('status', {
         pidglock: false,
         qraw: [0,0,0,0],
         qstate: [0,0,0,0],
+        qalign: [0,0,0,0],
         qpv: [0,0,0,0],
         zetameas: [0,0,0],
         lotameas: [0,0,0,0,0],
