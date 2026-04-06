@@ -309,7 +309,7 @@ roll_error (arcmin) = (roll_model_a · tan(alt) + roll_model_b) · p_roll
 
 Fitted from calibration data: R² = 0.995 for slope vs tan(alt), per-cell R² > 0.96.
 Given this fitted model, the Roll and Az corrections are as follows
-#### Roll correction (arcmin)
+#### Roll Error (arcmin)
 
 | alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -322,7 +322,7 @@ Given this fitted model, the Roll and Az corrections are as follows
 | **60°** | -136 | -116 | -97 | -78 | -58 | -39 | -19 | +0 | +19 | +39 | +58 | +78 | +97 | +116 | +136 |
 | **70°** | -205 | -176 | -146 | -117 | -88 | -59 | -29 | +0 | +29 | +59 | +88 | +117 | +146 | +176 | +205 |
 
-#### Az correction (arcmin)
+#### Az Error (arcmin)
 
 | alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|

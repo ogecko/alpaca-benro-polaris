@@ -551,7 +551,7 @@ def q_to_azaltroll(cameraQ_C2T):
 
 def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
     """
-    Returns the RBC correction quaternion.
+    Returns the RBC correction quaternion and roll error.
     sign = -1 for apply (forward kinematics)
     sign = +1 for undo (inverse kinematics / velocity vectors)
     """
@@ -560,17 +560,17 @@ def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
     slope = Config.roll_model_a * np.tan(np.radians(p_alt_clamped)) + Config.roll_model_b
     roll_error_deg = slope * p_roll / 60.0
     if abs(roll_error_deg) < 1e-6:
-        return None
+        return (None, 0)
     boresight = motorQ_C2B.rotate([0, 0, -1])
-    return Quaternion(axis=boresight, degrees=sign * roll_error_deg)
+    return (Quaternion(axis=boresight, degrees=sign * roll_error_deg), roll_error_deg)
 
 def apply_rotation_bias_corrQ_RBC(motorQ_C2B):
-    corrQ_RBC = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=-1)
-    return corrQ_RBC * motorQ_C2B if corrQ_RBC is not None else motorQ_C2B
+    corrQ_RBC, roll_error_deg = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=-1)
+    return (corrQ_RBC * motorQ_C2B, roll_error_deg) if corrQ_RBC is not None else (motorQ_C2B, 0)
 
 def undo_rotation_bias_corrQ_RBC(motorQ_C2B):
-    undo_corrQ_RBC = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1)
-    return undo_corrQ_RBC * motorQ_C2B if undo_corrQ_RBC is not None else motorQ_C2B
+    undo_corrQ_RBC, roll_error_deg = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1)
+    return (undo_corrQ_RBC * motorQ_C2B, roll_error_deg) if undo_corrQ_RBC is not None else (motorQ_C2B, 0)
 
 
 
@@ -1977,7 +1977,7 @@ class SyncManager:
         """
         if Config.advanced_align_roll:
             motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
-            motorQ_adj   = apply_rotation_bias_corrQ_RBC(motorQ_entry)
+            motorQ_adj, _   = apply_rotation_bias_corrQ_RBC(motorQ_entry)
             eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
         else:
             eff_az  = entry["p_az"]
