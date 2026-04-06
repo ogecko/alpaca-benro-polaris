@@ -73,6 +73,7 @@ export const useStatusStore = defineStore('status', {
         lotameas: [0,0,0,0,0],
         traw: [0,0,0],
         tstate: [0,0,0],
+        astate: [0,0,0],
         deltaref: [0,0,0],
         alpharef: [0,0,0],
         omegaref: [0,0,0],

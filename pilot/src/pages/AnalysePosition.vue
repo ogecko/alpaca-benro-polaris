@@ -32,15 +32,16 @@
                   <div v-if="cfg.advanced_kf" >
                     <div class="text-grey-6 terminal">{{`qC2B_state:   w ${fmtn(p.qstate[0])}    x ${fmtn(p.qstate[1])}   y ${fmtn(p.qstate[2])}   z ${fmtn(p.qstate[3])}`}}</div>
                     <div class="text-grey-6 terminal">{{`theta_state: t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
+                    <div class="text-grey-6 terminal">{{`alpha_state: Az ${fmt(p.astate[0])}   |  Alt ${fmt(p.astate[1])}   | Roll ${fmt(p.astate[2])}`}}</div>
                   </div>
                   <div v-else class="text-grey-6 terminal">Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Error Corrections" subtitle="Correct" icon="mdi-axis-x-rotate-clockwise">
                   <div v-if="cfg.advanced_pec" class="text-grey-6 terminal">PEC: Predictive Error Correction</div>
                   <div v-else class="text-grey-6 terminal">PEC: Disabled</div>
-                  <div v-if="cfg.advanced_align_roll" class="text-grey-6 terminal">{{`RBC: Rotation Bias Correction                             Adj ${fmt(-p.rbcerror)}`}}</div>
+                  <div v-if="cfg.advanced_align_roll" class="text-grey-6 terminal">{{`RBC: Rotation Bias Correction                          t3 Adj ${fmt(p.rbcerror)}`}}</div>
                   <div v-else class="text-grey-6 terminal">RBC: Disabled</div>
-                  <div v-if="cfg.advanced_align_local" class="text-grey-6 terminal">{{`LGC: Local Guassian Correction                            Adj ${fmt(-p.lgcerror)}`}}</div>
+                  <div v-if="cfg.advanced_align_local" class="text-grey-6 terminal">{{`LGC: Local Guassian Correction                   Residual Adj ${fmt(-p.lgcerror)}`}}</div>
                   <div v-else class="text-grey-6 terminal">LGC: Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Multi-Point Alignment (Driver)" subtitle="align" icon="mdi-rotate-orbit">

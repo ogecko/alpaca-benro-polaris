@@ -776,6 +776,7 @@ class Polaris:
         # Store all the Polaris unadjusted values for QUEST modelling
         with self._lock:
             self._motorQ_state = motorQ_state
+            self._alpha_state = np.array([p_az, p_alt, p_roll], dtype=float)
             self._p_azimuth = float(p_az)
             self._p_altitude = float(p_alt)
             self._p_roll = float(p_roll)
@@ -794,8 +795,8 @@ class Polaris:
             self._parallactic_angle = float(a_para)
 
         # return alpha and delta process values (all in degrees)
-        alpha_pv = np.array([a_az, a_alt, wrap_to_180(a_roll)], dtype=float)
-        delta_pv = np.array([a_ra*15, a_dec, wrap_to_360(a_posa)], dtype=float)         
+        alpha_pv = np.array([a_az, a_alt, a_roll], dtype=float)
+        delta_pv = np.array([a_ra*15, a_dec, a_posa], dtype=float)         
 
         return delta_pv, alpha_pv
 
@@ -1388,6 +1389,7 @@ class Polaris:
                 'lotameas': [0,0,0,0,0] if self._theta_raw is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],
                 'traw': [0,0,0] if self._theta_raw is None else self._theta_raw.tolist(),
                 'tstate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
+                'astate': [0,0,0] if self._alpha_state is None else self._alpha_state.tolist(),
                 'deltaref': self._pid.delta_ref.tolist(),
                 'alpharef': self._pid.alpha_ref.tolist(),
                 'omegaref': self._pid.omega_ff.tolist(),
