@@ -25,12 +25,12 @@
                   <div class="text-grey-6 terminal">{{`motor_raw:   M1 ${fmt(p.zetameas[0])}   |   M2 ${fmt(p.zetameas[1])}   |   M3 ${fmt(p.zetameas[2])}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Single-Point Alignment (Polaris)" subtitle="align" icon="mdi-rotate-orbit">
-                  <div class="text-grey-6 terminal">{{`qC2B_raw:     w ${fmtn(p.qraw[0])}    x ${fmtn(p.qraw[1])}   y ${fmtn(p.qraw[2])}   z ${fmtn(p.qraw[3])}`}}</div>
+                  <div class="text-grey-6 terminal">{{`qC2B_raw:     w ${fmtn(p.qraw[0])}      x ${fmtn(p.qraw[1])}   y ${fmtn(p.qraw[2])}   z ${fmtn(p.qraw[3])}`}}</div>
                   <div class="text-grey-6 terminal">{{`theta_raw:   t1 ${fmt(p.traw[0])}   |   t2 ${fmt(p.traw[1])}   |   t3 ${fmt(p.traw[2])}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Kalman Filter" subtitle="Smooth" icon="mdi-chart-line">
                   <div v-if="cfg.advanced_kf" >
-                    <div class="text-grey-6 terminal">{{`qC2B_state:   w ${fmtn(p.qstate[0])}    x ${fmtn(p.qstate[1])}   y ${fmtn(p.qstate[2])}   z ${fmtn(p.qstate[3])}`}}</div>
+                    <div class="text-grey-6 terminal">{{`qC2B_state:   w ${fmtn(p.qstate[0])}      x ${fmtn(p.qstate[1])}   y ${fmtn(p.qstate[2])}   z ${fmtn(p.qstate[3])}`}}</div>
                     <div class="text-grey-6 terminal">{{`theta_state: t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
                     <div class="text-grey-6 terminal">{{`alpha_state: Az ${fmt(p.astate[0])}   |  Alt ${fmt(p.astate[1])}   | Roll ${fmt(p.astate[2])}`}}</div>
                   </div>
@@ -45,12 +45,12 @@
                   <div v-else class="text-grey-6 terminal">LGC: Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Multi-Point Alignment (Driver)" subtitle="align" icon="mdi-rotate-orbit">
-                  <div v-if="cfg.advanced_alignment" class="text-grey-6 terminal">{{`qB2T_align:     w ${fmtn(p.qalign[0])}    x ${fmtn(p.qalign[1])}   y ${fmtn(p.qalign[2])}   z ${fmtn(p.qalign[3])}`}}</div>
+                  <div v-if="cfg.advanced_alignment" class="text-grey-6 terminal">{{`qB2T_align:   w ${fmtn(p.qalign[0])}      x ${fmtn(p.qalign[1])}   y ${fmtn(p.qalign[2])}   z ${fmtn(p.qalign[3])}`}}</div>
                   <div v-if="cfg.advanced_alignment" class="text-grey-6 terminal">{{`QUEST Adj:   Az ${fmt(p.az_adj)}   | Tilt ${fmt(p.tilt_adj_mag)}   |  Rot ${fmt(p.roll_adj)}`}}</div>
                   <div v-else class="text-grey-6 terminal">Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Alpaca API" subtitle="serve" icon="mdi-email-fast">
-                  <div class="text-grey-6 terminal">{{`qC2T_pv:      w ${fmtn(p.qpv[0])}    x ${fmtn(p.qpv[1])}   y ${fmtn(p.qpv[2])}   z ${fmtn(p.qpv[3])}`}}</div>
+                  <div class="text-grey-6 terminal">{{`qC2T_pv:      w ${fmtn(p.qpv[0])}      x ${fmtn(p.qpv[1])}   y ${fmtn(p.qpv[2])}   z ${fmtn(p.qpv[3])}`}}</div>
                   <div class="text-grey-6 terminal">{{`theta_pv:    t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
                   <div class="text-grey-6 terminal">{{`alpha_pv:    Az ${fmt(p.azimuth)}   |  Alt ${fmt(p.altitude)}   | Roll ${fmt(p.roll)}`}}</div>
                   <div class="text-grey-6 terminal">{{`delta_pv:    RA ${fmt(p.rightascension,"hr")}   |  Dec ${fmt(p.declination)}   | PosA ${fmt(p.positionangle)}`}}</div>
