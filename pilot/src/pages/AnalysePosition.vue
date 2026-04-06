@@ -37,7 +37,7 @@
                   <div v-else class="text-grey-6 terminal">Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Error Corrections" subtitle="Correct" icon="mdi-axis-x-rotate-clockwise">
-                  <div v-if="cfg.advanced_pec" class="text-grey-6 terminal">PEC: Predictive Error Correction</div>
+                  <div v-if="cfg.advanced_pec" class="text-grey-6 terminal">{{`PEC: Predictive Error Correction                     Use PHD2`}}</div>
                   <div v-else class="text-grey-6 terminal">PEC: Disabled</div>
                   <div v-if="cfg.advanced_align_roll" class="text-grey-6 terminal">{{`RBC: Rotation Bias Correction                        Roll Adj ${fmt(p.rbcerror)}`}}</div>
                   <div v-else class="text-grey-6 terminal">RBC: Disabled</div>

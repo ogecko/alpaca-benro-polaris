@@ -2407,7 +2407,11 @@ class SyncManager:
             az_corr, alt_corr  = self.azalt_polaris2ascom(eff_az, eff_alt)            
             az_err = angular_difference(az_corr, entry["a_az"])
             alt_err = angular_difference(alt_corr, entry["a_alt"])
-            magnitude = math.sqrt(az_err**2 + alt_err**2)
+            # Project az error onto the sky before combining with alt error.
+            # Raw az degrees overstate separation at high altitudes.
+            ref_alt = math.radians((alt_corr + entry["a_alt"]) / 2.0)
+            az_err_projected = az_err * math.cos(ref_alt)
+            magnitude = math.sqrt(az_err_projected**2 + alt_err**2)
             entry["residual_vector"] = (az_err, alt_err)
             entry["residual_magnitude"] = magnitude
 
