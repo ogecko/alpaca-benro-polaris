@@ -86,7 +86,8 @@ export const useStatusStore = defineStore('status', {
         polarisswver: '',
         polarishwver: '',
         polarisastrover: '',
-        rollerror: 0,
+        rbcerror: 0,
+        lgcerror: 0,
     }),
 
     actions: {

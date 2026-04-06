@@ -155,7 +155,7 @@ class Polaris:
         self._adj_azimuth: float = Config.aiming_adjustment_az      # The Azimuth adjustment to correct the aim based on past goto results
         self._adj_sync_altitude: float = 0          # The Altitude adjustment difference between polaris and ascom
         self._adj_sync_azimuth: float = 0           # The Azimuth adjustment difference between polaris and ascom
-        self._roll_error: float = 0                 # Rotation Bias Error from RBC
+        self._rbc_error: float = 0                  # Rotation Bias Error from RBC, LGC error in _sm
         #
         # Telescope device rates
         #
@@ -623,10 +623,10 @@ class Polaris:
 
             # Optionally apply Rotation Bias Correction (RBC)
             if Config.advanced_align_roll:
-                self._motorQ_adj, self._roll_error = apply_rotation_bias_corrQ_RBC(motorQ_state)
+                self._motorQ_adj, self._rbc_error = apply_rotation_bias_corrQ_RBC(motorQ_state)
                 self._theta_adj = np.array(q_to_theta(self._motorQ_adj, self._pid._lp))
             else:
-                self._motorQ_adj, self._roll_error = motorQ_state, 0
+                self._motorQ_adj, self._rbc_error = motorQ_state, 0
                 self._theta_adj = self._theta_state      
 
             # Translate from Base Frame to Topo Frame
@@ -1403,7 +1403,8 @@ class Polaris:
                 'polarisswver': self._polaris_sw_ver,
                 'polarishwver': self._polaris_hw_ver,
                 'polarisastrover': self._polaris_astro_ver,
-                'rollerror': self._roll_error,
+                'rbcerror': self._rbc_error,
+                'lgcerror': self._sm.lgc_error,
             }
         return res
 

@@ -1947,6 +1947,7 @@ class SyncManager:
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
+        self.lgc_error = 0                      # Local Guassian Correction Error
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncDataReset()
 
@@ -1996,7 +1997,7 @@ class SyncManager:
 
         # Apply Local Gaussian Correction (LGC)
         if Config.advanced_align_local:
-            corrQ_LGC = self.get_local_residual_correction(cameraQ)
+            corrQ_LGC, self.lgc_error = self.get_local_residual_correction(cameraQ)
             if corrQ_LGC is not None:
                 cameraQ = corrQ_LGC * cameraQ
 
@@ -2023,7 +2024,7 @@ class SyncManager:
 
         # Undo Local Guassian Correction (LGC) 
         if Config.advanced_align_local:
-            corrQ_LGC = self.get_local_residual_correction(cameraQ_C2T)
+            corrQ_LGC, _ = self.get_local_residual_correction(cameraQ_C2T)
             if corrQ_LGC is not None:
                 cameraQ_C2T = corrQ_LGC.inverse * cameraQ_C2T
 
@@ -2046,7 +2047,7 @@ class SyncManager:
 
         # Undo Local Guassian Correction (LGC) 
         if Config.advanced_align_local:
-            q_local = self.get_local_residual_correction(cameraQ_C2T)
+            q_local, _ = self.get_local_residual_correction(cameraQ_C2T)
             if q_local is not None:
                 omega_topo = q_local.inverse.rotate(omega_topo)
 
@@ -2287,14 +2288,14 @@ class SyncManager:
 
     def get_local_residual_correction(self, cameraQ_C2T, sigma_deg=15.0):
         """
-        Returns a spatially-weighted correction quaternion based on the last sync
+        Returns a spatially-weighted correction quaternion (and error in degrees) based on the last sync
         point residual. The correction fades to identity with a Gaussian as angular
         distance from the last sync point increases.
         Returns None if no valid sync, residual is negligible, or weight is too small.
         """
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
         if v_pred_rot is None:
-            return None
+            return (None,0)
 
         # Angular distance from current boresight to last sync point (in observed space)
         boresight_T = cameraQ_C2T.rotate([0, 0, -1])
@@ -2304,13 +2305,13 @@ class SyncManager:
         sigma_rad = math.radians(sigma_deg)
         weight = math.exp(-(angular_dist_rad ** 2) / (2 * sigma_rad ** 2))
         if weight < 1e-4:
-            return None
+            return (None,0)
 
         # Build the full residual correction quaternion (v_pred_rot → v_obs)
         axis = np.cross(v_pred_rot, v_obs)
         norm_axis = np.linalg.norm(axis)
         if norm_axis < 1e-8:
-            return None
+            return (None,0)
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
 
@@ -2318,7 +2319,8 @@ class SyncManager:
         # inverse kinematics (we want to pre-compensate the input, not post-rotate)
         q_full = Quaternion(axis=axis, angle=angle)
         q_weighted = Quaternion.slerp(Quaternion(1, 0, 0, 0), q_full, amount=weight)
-        return q_weighted
+        lgc_error = np.degrees(-angle*weight)
+        return (q_weighted, lgc_error)
 
     def apply_last_syncpoint_residual_to_model(self):
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
