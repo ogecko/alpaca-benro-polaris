@@ -219,6 +219,7 @@ class Polaris:
         self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
         self._theta_raw = None                      # Latest Motor Angles Raw  [theta1, theta2, theta3] from 518 msg q1
         self._theta_state = None                    # Latest Motor Angles Kalman Filtered [theta1, theta2, theta3] = KF(theta_raw)
+        self._alpha_state = None                    # Latest KF Filtered Sky Angles Kalman Filtered [az, alt, roll] 
         self._theta_adj = None                      # Latest Motor Angles KF+PEC+RBC [theta1, theta2, theta3] = RBC(theta_state)
         self._omega_raw = None                      # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._cm = CalibrationManager()
