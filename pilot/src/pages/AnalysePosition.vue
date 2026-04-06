@@ -71,22 +71,32 @@
             <div class="col-lg-6 col-12">
               <q-timeline layout="comfortable" class="q-pr-xl">
                 <q-timeline-entry heading tag="h4">Inverse Kinematics</q-timeline-entry>
-                <q-timeline-entry title="DSO Target" >
-                  <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
-                </q-timeline-entry>
-                <q-timeline-entry title="Orbital Target">
-                  <div class="text-grey-6 terminal">3Line</div>
-                </q-timeline-entry>
-                <q-timeline-entry title="AzAlt Target">
-                  <div class="text-grey-6 terminal">{{`alpha_sp:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
-                </q-timeline-entry>
+                <q-timeline-entry title="Sky" ></q-timeline-entry>
                 <q-timeline-entry title="Pulse Guiding" subtitle="Guide" icon="mdi-pulse">
                   <div class="text-grey-6 terminal">delta_offset</div>
                 </q-timeline-entry>
-                <q-timeline-entry title="Sidereal Motion" subtitle="Track" icon="mdi-flare">
+                <q-timeline-entry title="DSO Target" subtitle="Track" icon="mdi-flare">
+                  <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
                   <div class="text-grey-6 terminal">delta_ref</div>
                   <div class="text-grey-6 terminal">omega_ref</div>
                   <div class="text-grey-6 terminal">alpha_ref</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Orbital Target" subtitle="Track" icon="mdi-satellite-variant">
+                  <div class="text-grey-6 terminal">{{`TLA_line1:   ISS (ZARYA)`}}</div>
+                  <div class="text-grey-6 terminal">{{`TLA_line2:   1 25544U 98067A   03097.78853147  .00021906  00000-0  28403-3 0  8652`}}</div>
+                  <div class="text-grey-6 terminal">{{`TLA_line3:   2 25544  51.6361  13.7980 0004256  35.6671  59.2566 15.58778559250029`}}</div>
+                  <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
+                  <div class="text-grey-6 terminal">delta_ref</div>
+                  <div class="text-grey-6 terminal">omega_ref</div>
+                  <div class="text-grey-6 terminal">alpha_ref</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="AzAlt Target" subtitle="Goto" icon="mdi-move-resize-variant">
+                  <div class="text-grey-6 terminal">{{`alpha_sp:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
+                  <div class="text-grey-6 terminal">delta_ref</div>
+                  <div class="text-grey-6 terminal">omega_ref</div>
+                  <div class="text-grey-6 terminal">alpha_ref</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Waiting for Command" subtitle="Idle"  icon="mdi-sleep" >
                 </q-timeline-entry>
                 <q-timeline-entry title="Shortest Path" subtitle="Plan" icon="mdi-debug-step-over">
                   <div class="text-grey-6 terminal">cameraQ_step</div>
