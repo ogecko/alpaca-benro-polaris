@@ -77,31 +77,29 @@
                 </q-timeline-entry>
                 <q-timeline-entry title="DSO Target" subtitle="Track" icon="mdi-flare">
                   <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
-                  <div class="text-grey-6 terminal">delta_ref</div>
-                  <div class="text-grey-6 terminal">omega_ref</div>
-                  <div class="text-grey-6 terminal">alpha_ref</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Orbital Target" subtitle="Track" icon="mdi-satellite-variant">
                   <div class="text-grey-6 terminal">{{`TLA_line1:   ISS (ZARYA)`}}</div>
                   <div class="text-grey-6 terminal">{{`TLA_line2:   1 25544U 98067A   03097.78853147  .00021906  00000-0  28403-3 0  8652`}}</div>
                   <div class="text-grey-6 terminal">{{`TLA_line3:   2 25544  51.6361  13.7980 0004256  35.6671  59.2566 15.58778559250029`}}</div>
                   <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
-                  <div class="text-grey-6 terminal">delta_ref</div>
-                  <div class="text-grey-6 terminal">omega_ref</div>
-                  <div class="text-grey-6 terminal">alpha_ref</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="AzAlt Target" subtitle="Goto" icon="mdi-move-resize-variant">
                   <div class="text-grey-6 terminal">{{`alpha_sp:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
-                  <div class="text-grey-6 terminal">delta_ref</div>
-                  <div class="text-grey-6 terminal">omega_ref</div>
-                  <div class="text-grey-6 terminal">alpha_ref</div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Adjust Target" subtitle="Slew" icon="mdi-move-resize-variant">
+                  <div class="text-grey-6 terminal">{{`delta_offset:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
+                  <div class="text-grey-6 terminal">{{`alpha_offset:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Waiting for Command" subtitle="Idle"  icon="mdi-sleep" >
                 </q-timeline-entry>
-                <q-timeline-entry title="Shortest Path" subtitle="Plan" icon="mdi-debug-step-over">
+                <q-timeline-entry title="Optimal Movement Strategy" subtitle="Plan" icon="mdi-debug-step-over">
+                  <div class="text-grey-6 terminal">delta_ref</div>
+                  <div class="text-grey-6 terminal">alpha_ref</div>
+                  <div class="text-grey-6 terminal">omega_ref</div>
                   <div class="text-grey-6 terminal">cameraQ_step</div>
                 </q-timeline-entry>
-                <q-timeline-entry title="Multi-Point Alignment" subtitle="Translate" icon="mdi-rotate-orbit">
+                <q-timeline-entry title="Multi-Point Alignment" subtitle="Solve" icon="mdi-rotate-orbit">
                   <div class="text-grey-6 terminal">theta_ref</div>
                   <div class="text-grey-6 terminal">theta_pv</div>
                 </q-timeline-entry>
@@ -114,14 +112,7 @@
                   <div class="text-grey-6 terminal">omega_ff</div>
                   <div class="text-grey-6 terminal">omega_tgt</div>
                 </q-timeline-entry>
-                <q-timeline-entry title="PID Controller" subtitle="Control" icon="mdi-chart-bell-curve-cumulative">
-                  <div class="text-grey-6 terminal">omega_Kp</div>
-                  <div class="text-grey-6 terminal">omega_Ki</div>
-                  <div class="text-grey-6 terminal">omega_Kd</div>
-                  <div class="text-grey-6 terminal">omega_ff</div>
-                  <div class="text-grey-6 terminal">omega_tgt</div>
-                </q-timeline-entry>
-                <q-timeline-entry title="Speed & Accel Monitor" subtitle="Limit" icon="mdi-format-vertical-align-top">
+                <q-timeline-entry title="Speed & Accel Governer" subtitle="Limit" icon="mdi-format-vertical-align-top">
                   <div class="text-grey-6 terminal">omega_op</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
