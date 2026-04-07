@@ -238,6 +238,20 @@ def clamp_theta(theta):
     clamped[2] = ((theta[2] + 180) % 360) - 180
     return clamped
 
+def clamp_offset(offset):
+    """
+    Apply custom bounds to Offset Angles offset[0], offset[1], offset[2]:
+    - Offset1 ∈ [-180, 180)
+    - Offset2 ∈ [-180, 180)
+    - Offset3 ∈ [-180, 180)
+    """
+    clamped = np.empty_like(offset)
+    clamped[0] = ((offset[0] + 180) % 360) - 180
+    clamped[1] = ((offset[1] + 180) % 360) - 180
+    clamped[2] = ((offset[2] + 180) % 360) - 180
+    return clamped
+
+
 def clamp_error(theta_ref, theta_meas):
     """
     Calculates angular error considering wrap-around using modular arithmetic.
@@ -1646,11 +1660,11 @@ class PID_Controller():
             self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
-            self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * self.delta_v_sp)
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
             # when in AUTO ignore body, and use the alpha_sp + alpha_offset
-            self.alpha_offst = clamp_alpha(self.alpha_offst + self.dt * self.alpha_v_sp)
+            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * self.alpha_v_sp)
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
 
         elif self.mode == 'TRACK':
@@ -1676,7 +1690,7 @@ class PID_Controller():
                         self.delta_guide[axis] = 0
 
             # Apply relevant delta slew velocities
-            self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * self.delta_v_sp)
             self.delta_ref_last = self.delta_ref
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)

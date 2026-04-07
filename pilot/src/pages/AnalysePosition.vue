@@ -72,29 +72,35 @@
               <q-timeline layout="comfortable" class="q-pr-xl">
                 <q-timeline-entry heading tag="h4">Inverse Kinematics</q-timeline-entry>
                 <q-timeline-entry title="Sky" ></q-timeline-entry>
-                <q-timeline-entry title="Pulse Guiding" subtitle="Guide" icon="mdi-pulse">
-                  <div class="text-grey-6 terminal">delta_offset</div>
-                </q-timeline-entry>
                 <q-timeline-entry :title="tgt.title" :subtitle="tgt.task" :icon="tgt.icon">
                 </q-timeline-entry>
                 <q-timeline-entry title="DSO Target" subtitle="Track" icon="mdi-flare">
-                  <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
-                </q-timeline-entry>
-                <q-timeline-entry title="Orbital Target" subtitle="Track" icon="mdi-satellite-variant">
-                  <div class="text-grey-6 terminal">{{`TLA_line1:   ISS (ZARYA)`}}</div>
-                  <div class="text-grey-6 terminal">{{`TLA_line2:   1 25544U 98067A   03097.78853147  .00021906  00000-0  28403-3 0  8652`}}</div>
-                  <div class="text-grey-6 terminal">{{`TLA_line3:   2 25544  51.6361  13.7980 0004256  35.6671  59.2566 15.58778559250029`}}</div>
-                  <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
-                </q-timeline-entry>
-                <q-timeline-entry title="AzAlt Target" subtitle="Goto" icon="mdi-move-resize-variant">
-                  <div class="text-grey-6 terminal">{{`alpha_sp:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
-                </q-timeline-entry>
-                <q-timeline-entry title="Adjust Target" subtitle="Slew" icon="mdi-move-resize-variant">
                   <div>
                     <VField label="delta_sp:    RA " :val="p.dsp[0]??0" unit="hr"/>
                     <VField label="   |  Dec " :val="p.dsp[1]??0" unit="deg"/>
                     <VField label="   |   PA " :val="p.dsp[2]??0" unit="deg"/>
                   </div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Orbital Target" subtitle="Track" icon="mdi-satellite-variant">
+                  <div class="text-grey-6 terminal">{{`TLA_line1:   ISS (ZARYA)`}}</div>
+                  <div class="text-grey-6 terminal">{{`TLA_line2:   1 25544U 98067A   03097.78853147  .00021906  00000-0  28403-3 0  8652`}}</div>
+                  <div class="text-grey-6 terminal">{{`TLA_line3:   2 25544  51.6361  13.7980 0004256  35.6671  59.2566 15.58778559250029`}}</div>
+                  <div>
+                    <VField label="delta_sp:    RA " :val="p.dsp[0]??0" unit="hr"/>
+                    <VField label="   |  Dec " :val="p.dsp[1]??0" unit="deg"/>
+                    <VField label="   |   PA " :val="p.dsp[2]??0" unit="deg"/>
+                  </div>
+                </q-timeline-entry>
+                <q-timeline-entry title="AzAlt Target" subtitle="Goto" icon="mdi-move-resize-variant">
+                  <div>
+                    <VField label="alpha_sp:    Az " :val="p.asp[0]??0" unit="deg"/>
+                    <VField label="   |  Alt " :val="p.asp[1]??0" unit="deg"/>
+                    <VField label="   | Roll " :val="p.asp[2]??0" unit="deg"/>
+                  </div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Waiting for Command" subtitle="Idle"  icon="mdi-sleep" >
+                </q-timeline-entry>
+                <q-timeline-entry title="Pulse Guide and Slew" subtitle="Adjust" icon="mdi-pulse">
                   <div>
                     <VField label="delta_guide: RA " :val="p.dguide[0]??0" unit="hr/s"/>
                     <VField label=" |  Dec " :val="p.dguide[1]??0" unit="deg/s"/>
@@ -106,42 +112,33 @@
                     <VField label=" |   PA " :val="p.dslew[2]??0" unit="deg/s"/>
                   </div>
                   <div>
-                    <VField label="delta_ofst:  RA " :val="p.dofst[0]??0" unit="hr"/>
-                    <VField label="   |  Dec " :val="p.dofst[1]??0" unit="deg"/>
-                    <VField label="   |   PA " :val="p.dofst[2]??0" unit="deg"/>
+                    <VField label="delta_ofst:  RA " :val="p.dofst[0]??0" unit="hr_ofst"/>
+                    <VField label="   |  Dec " :val="p.dofst[1]??0" unit="deg_ofst"/>
+                    <VField label="   |   PA " :val="p.dofst[2]??0" unit="deg_ofst"/>
                   </div>
-                  <div>
-                    <VField label="delta_ref:   RA " :val="p.deltaref[0]??0" unit="hr"/>
-                    <VField label="   |  Dec " :val="p.deltaref[1]??0" unit="deg"/>
-                    <VField label="   |   PA " :val="p.deltaref[2]??0" unit="deg"/>
-                  </div>
-                  <div>x</div>
-                  <div>
-                    <VField label="alpha_sp:    Az " :val="p.asp[0]??0" unit="deg"/>
-                    <VField label="   |  Alt " :val="p.asp[1]??0" unit="deg"/>
-                    <VField label="   | Roll " :val="p.asp[2]??0" unit="deg"/>
-                  </div>
+                  <div>&nbsp;</div>
                   <div>
                     <VField label="alpha_slew:  Az " :val="p.aslew[0]??0" unit="deg/s"/>
                     <VField label=" |  Alt " :val="p.aslew[1]??0" unit="deg/s"/>
                     <VField label=" | Roll " :val="p.aslew[2]??0" unit="deg/s"/>
                   </div>
                   <div>
-                    <VField label="alpha_ofst:  Az " :val="p.aofst[0]??0" unit="deg"/>
-                    <VField label="   |  Alt " :val="p.aofst[1]??0" unit="deg"/>
-                    <VField label="   | Roll " :val="p.aofst[2]??0" unit="deg"/>
+                    <VField label="alpha_ofst:  Az " :val="p.aofst[0]??0" unit="deg_ofst"/>
+                    <VField label="   |  Alt " :val="p.aofst[1]??0" unit="deg_ofst"/>
+                    <VField label="   | Roll " :val="p.aofst[2]??0" unit="deg_ofst"/>
+                  </div>
+                </q-timeline-entry>
+                <q-timeline-entry title="Optimal Movement Strategy" subtitle="Plan" icon="mdi-debug-step-over">
+                  <div>
+                    <VField label="delta_ref:   RA " :val="p.deltaref[0]??0" unit="hr"/>
+                    <VField label="   |  Dec " :val="p.deltaref[1]??0" unit="deg"/>
+                    <VField label="   |   PA " :val="p.deltaref[2]??0" unit="deg"/>
                   </div>
                   <div>
                     <VField label="alpha_ref:   Az " :val="p.alpharef[0]??0" unit="deg"/>
                     <VField label="   |  Alt " :val="p.alpharef[1]??0" unit="deg"/>
                     <VField label="   | Roll " :val="p.alpharef[2]??0" unit="deg"/>
                   </div>
-                </q-timeline-entry>
-                <q-timeline-entry title="Waiting for Command" subtitle="Idle"  icon="mdi-sleep" >
-                </q-timeline-entry>
-                <q-timeline-entry title="Optimal Movement Strategy" subtitle="Plan" icon="mdi-debug-step-over">
-                  <div class="text-grey-6 terminal">delta_ref</div>
-                  <div class="text-grey-6 terminal">alpha_ref</div>
                   <div class="text-grey-6 terminal">omega_ref</div>
                   <div class="text-grey-6 terminal">cameraQ_step</div>
                 </q-timeline-entry>

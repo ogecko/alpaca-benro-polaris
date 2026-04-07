@@ -23,10 +23,13 @@ function fmt_hr(x:number|undefined, unit:UnitKey="hr"): string {
     return fmt_deg(x ?? 0 / 15, unit)
 }
 
+const BELOW_ZERO = -0.5/3600
+const ABOVE_ZERO = +0.5/3600
+
 function fmt_deg_s(x:number|undefined, unit:UnitKey="deg"): string {
   const velocity = x ?? 0
   const str = fmt_deg(velocity, unit).replace(/^[+-]/, '')
-  const sign = (velocity>0) ? '▲' : (velocity<0) ? '▼' : ' '
+  const sign = (velocity>0.5/3600) ? '▲' : (velocity<-0.5/3600) ? '▼' : ' '
   const signed_str = sign + str + '/s'
   return signed_str
 }
@@ -34,11 +37,13 @@ function fmt_hr_s(x:number|undefined, unit:UnitKey="hr"): string {
     return fmt_deg_s(x ?? 0 / 15, unit)
 }
 const fmt = computed(() =>
-  props.unit=="deg"   ? { color: 'std', Fn: fmt_deg } : 
-  props.unit=="hr"    ? { color: 'std', Fn: fmt_hr } : 
-  props.unit=="deg/s" ? { color: props.val<0 ? 'haz' : props.val>0 ? 'pos' : 'off', Fn: fmt_deg_s } : 
-  props.unit=="hr/s"  ? { color: props.val<0 ? 'haz' : props.val>0 ? 'pos' : 'off', Fn: fmt_hr_s } : 
-                                 { color: 'std', Fn: fmt_deg } 
+  props.unit=="deg"       ? { color: 'std', Fn: fmt_deg } : 
+  props.unit=="hr"        ? { color: 'std', Fn: fmt_hr } : 
+  props.unit=="deg/s"     ? { color: props.val<BELOW_ZERO ? 'haz' : props.val>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_deg_s } : 
+  props.unit=="hr/s"      ? { color: props.val<BELOW_ZERO ? 'haz' : props.val>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_hr_s } : 
+  props.unit=="deg_ofst"  ? { color: props.val<BELOW_ZERO ? 'haz' : props.val>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_deg } : 
+  props.unit=="hr_ofst"   ? { color: props.val<BELOW_ZERO ? 'haz' : props.val>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_hr } : 
+                        { color: 'std', Fn: fmt_deg } 
 )
 
 </script>
