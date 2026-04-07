@@ -1298,6 +1298,7 @@ class PID_Controller():
         if axes is None:
             self.delta_v_sp = np.zeros(3, dtype=float)     # Setpoint for ra, dec, polar anglular velocities
             self.delta_g_sp = np.zeros(3, dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
+            self.delta_guide = np.zeros(3, dtype=float)     # Guiderate anglular velocities live
             self.delta_offst = np.zeros(3, dtype=float)    # ra, dec, polar anglular offsets
             self.delta_ref_last = np.zeros(3, dtype=float) # ra, dec, polar angular reference position of last control step
             return
@@ -1306,6 +1307,7 @@ class PID_Controller():
             if key in axes:
                 self.delta_v_sp[idx] = 0.0
                 self.delta_g_sp[idx] = 0.0
+                self.delta_guide[idx] = 0.0
                 self.delta_offst[idx] = 0.0
                 self.delta_ref_last[idx] = 0.0
 
@@ -1666,9 +1668,13 @@ class PID_Controller():
                         step_ms = min(remaining_ms, self.dt * 1000)  # apply only up to what's left
                         step_sec = step_ms / 1000.0
                         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
+                        self.delta_guide[axis] = velocity
                         self.delta_offst[axis] += step_sec * velocity
                         self.delta_g_sp[axis] -= sign * step_ms
                         self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral and trends to zero
+                    else:
+                        self.delta_guide[axis] = 0
+
             # Apply relevant delta slew velocities
             self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
             self.delta_ref_last = self.delta_ref
