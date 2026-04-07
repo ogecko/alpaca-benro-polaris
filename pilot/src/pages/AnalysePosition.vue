@@ -7,7 +7,7 @@
     <div class="row q-pb-sm q-col-gutter-md items-center">
       <div class="col text-h6 q-ml-md">
         Alpaca Driver Performance Analysis
-        <div class="text-caption text-grey-6">
+        <div class="text-caption ok">
         Use these pages to perform tests and analyse the performance of your Benro Polaris. 
        </div>
 
@@ -30,40 +30,40 @@
               <q-timeline layout="comfortable" class="">
                 <q-timeline-entry heading tag="h4">Forward Kinematics</q-timeline-entry>
                 <q-timeline-entry title="Polaris" >
-                  <div class="text-grey-6 terminal">{{`motor_raw:   M1 ${fmt(p.zetameas[0])}   |   M2 ${fmt(p.zetameas[1])}   |   M3 ${fmt(p.zetameas[2])}`}}</div>
+                  <div class="ok terminal">{{`motor_raw:   M1 ${fmt(p.zetameas[0])}   |   M2 ${fmt(p.zetameas[1])}   |   M3 ${fmt(p.zetameas[2])}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Single-Point Alignment (Polaris)" subtitle="align" icon="mdi-rotate-orbit">
-                  <div class="text-grey-6 terminal">{{`qC2B_raw:     w ${fmtn(p.qraw[0])}      x ${fmtn(p.qraw[1])}   y ${fmtn(p.qraw[2])}   z ${fmtn(p.qraw[3])}`}}</div>
-                  <div class="text-grey-6 terminal">{{`theta_raw:   t1 ${fmt(p.traw[0])}   |   t2 ${fmt(p.traw[1])}   |   t3 ${fmt(p.traw[2])}`}}</div>
+                  <div class="ok terminal">{{`qC2B_raw:     w ${fmtn(p.qraw[0])}      x ${fmtn(p.qraw[1])}   y ${fmtn(p.qraw[2])}   z ${fmtn(p.qraw[3])}`}}</div>
+                  <div class="ok terminal">{{`theta_raw:   t1 ${fmt(p.traw[0])}   |   t2 ${fmt(p.traw[1])}   |   t3 ${fmt(p.traw[2])}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Kalman Filter" subtitle="Smooth" icon="mdi-chart-line">
                   <div v-if="cfg.advanced_kf" >
-                    <div class="text-grey-6 terminal">{{`qC2B_state:   w ${fmtn(p.qstate[0])}      x ${fmtn(p.qstate[1])}   y ${fmtn(p.qstate[2])}   z ${fmtn(p.qstate[3])}`}}</div>
-                    <div class="text-grey-6 terminal">{{`theta_state: t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
-                    <div class="text-grey-6 terminal">{{`alpha_state: Az ${fmt(p.astate[0])}   |  Alt ${fmt(p.astate[1])}   | Roll ${fmt(p.astate[2])}`}}</div>
+                    <div class="ok terminal">{{`qC2B_state:   w ${fmtn(p.qstate[0])}      x ${fmtn(p.qstate[1])}   y ${fmtn(p.qstate[2])}   z ${fmtn(p.qstate[3])}`}}</div>
+                    <div class="ok terminal">{{`theta_state: t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
+                    <div class="ok terminal">{{`alpha_state: Az ${fmt(p.astate[0])}   |  Alt ${fmt(p.astate[1])}   | Roll ${fmt(p.astate[2])}`}}</div>
                   </div>
-                  <div v-else class="text-grey-6 terminal">Disabled</div>
+                  <div v-else class="haz terminal">Disabled</div>
                 </q-timeline-entry>
-                <q-timeline-entry title="Error Corrections" subtitle="Correct" icon="mdi-axis-x-rotate-clockwise">
-                  <div v-if="cfg.advanced_pec" class="text-grey-6 terminal">{{`PEC: Predictive Error Correction                     Use PHD2`}}</div>
-                  <div v-else class="text-grey-6 terminal">PEC: Disabled</div>
-                  <div v-if="cfg.advanced_align_roll" class="text-grey-6 terminal">{{`RBC: Rotation Bias Correction                        Roll Adj ${fmt(p.rbcerror)}`}}</div>
-                  <div v-else class="text-grey-6 terminal">RBC: Disabled</div>
-                  <div v-if="cfg.advanced_align_local" class="text-grey-6 terminal">{{`LGC: Local Guassian Correction         Last Sync Residual Adj ${fmt(-p.lgcerror)}`}}</div>
-                  <div v-else class="text-grey-6 terminal">LGC: Disabled</div>
+                <q-timeline-entry title="Error Corrections" subtitle="Adjust" icon="mdi-axis-x-rotate-clockwise">
+                  <div v-if="cfg.advanced_pec" class="ok terminal">{{`PEC: Predictive Error Correction                     Use PHD2`}}</div>
+                  <div v-else class="haz terminal">PEC: Disabled</div>
+                  <div v-if="cfg.advanced_align_roll" class="ok terminal">{{`RBC: Rotation Bias Correction                        Roll Adj ${fmt(p.rbcerror)}`}}</div>
+                  <div v-else class="haz terminal">RBC: Disabled</div>
+                  <div v-if="cfg.advanced_align_local" class="ok terminal">{{`LGC: Local Guassian Correction         Last Sync Residual Adj ${fmt(-p.lgcerror)}`}}</div>
+                  <div v-else class="haz terminal">LGC: Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Multi-Point Alignment (Driver)" subtitle="align" icon="mdi-rotate-orbit">
-                  <div v-if="cfg.advanced_alignment" class="text-grey-6 terminal">{{`qB2T_align:   w ${fmtn(p.qalign[0])}      x ${fmtn(p.qalign[1])}   y ${fmtn(p.qalign[2])}   z ${fmtn(p.qalign[3])}`}}</div>
-                  <div v-if="cfg.advanced_alignment" class="text-grey-6 terminal">{{`QUEST Adj:   Az ${fmt(p.az_adj)}   | Tilt ${fmt(p.tilt_adj_mag)}   |  Rot ${fmt(p.roll_adj)}`}}</div>
-                  <div v-else class="text-grey-6 terminal">Disabled</div>
+                  <div v-if="cfg.advanced_alignment" class="ok terminal">{{`qB2T_align:   w ${fmtn(p.qalign[0])}      x ${fmtn(p.qalign[1])}   y ${fmtn(p.qalign[2])}   z ${fmtn(p.qalign[3])}`}}</div>
+                  <div v-if="cfg.advanced_alignment" class="ok terminal">{{`QUEST Adj:   Az ${fmt(p.az_adj)}   | Tilt ${fmt(p.tilt_adj_mag)}   |  Rot ${fmt(p.roll_adj)}`}}</div>
+                  <div v-else class="haz terminal">Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Alpaca API" subtitle="serve" icon="mdi-email-fast">
-                  <div class="text-grey-6 terminal">{{`qC2T_pv:      w ${fmtn(p.qpv[0])}      x ${fmtn(p.qpv[1])}   y ${fmtn(p.qpv[2])}   z ${fmtn(p.qpv[3])}`}}</div>
-                  <div class="text-grey-6 terminal">{{`theta_pv:    t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
-                  <div class="text-grey-6 terminal">{{`alpha_pv:    Az ${fmt(p.azimuth)}   |  Alt ${fmt(p.altitude)}   | Roll ${fmt(p.roll)}`}}</div>
-                  <div class="text-grey-6 terminal">{{`delta_pv:    RA ${fmt(p.rightascension,"hr")}   |  Dec ${fmt(p.declination)}   | PosA ${fmt(p.positionangle)}`}}</div>
-                  <div class="text-grey-6 terminal">{{`ephem:       HA ${fmt(p.siderealtime - p.rightascension,"hr")}   |             Paralatic Angle ${fmt(p.parallacticangle)}`}}</div>
-                  <div class="text-grey-6 terminal">{{`            LST ${fmt(p.siderealtime,"hr")}`}}</div>
+                  <div class="ok terminal">{{`qC2T_pv:      w ${fmtn(p.qpv[0])}      x ${fmtn(p.qpv[1])}   y ${fmtn(p.qpv[2])}   z ${fmtn(p.qpv[3])}`}}</div>
+                  <div class="ok terminal">{{`theta_pv:    t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
+                  <div class="ok terminal">{{`alpha_pv:    Az ${fmt(p.azimuth)}   |  Alt ${fmt(p.altitude)}   | Roll ${fmt(p.roll)}`}}</div>
+                  <div class="ok terminal">{{`delta_pv:    RA ${fmt(p.rightascension,"hr")}   |  Dec ${fmt(p.declination)}   | PosA ${fmt(p.positionangle)}`}}</div>
+                  <div class="ok terminal">{{`ephem:       HA ${fmt(p.siderealtime - p.rightascension,"hr")}   |             Paralatic Angle ${fmt(p.parallacticangle)}`}}</div>
+                  <div class="ok terminal">{{`            LST ${fmt(p.siderealtime,"hr")}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Sky" ></q-timeline-entry>
               </q-timeline>
@@ -82,9 +82,9 @@
                   </div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Orbital Target" subtitle="Track" icon="mdi-satellite-variant">
-                  <div class="text-grey-6 terminal">{{`TLA_line1:   ISS (ZARYA)`}}</div>
-                  <div class="text-grey-6 terminal">{{`TLA_line2:   1 25544U 98067A   03097.78853147  .00021906  00000-0  28403-3 0  8652`}}</div>
-                  <div class="text-grey-6 terminal">{{`TLA_line3:   2 25544  51.6361  13.7980 0004256  35.6671  59.2566 15.58778559250029`}}</div>
+                  <div class="ok terminal">{{`TLA_line1:   ISS (ZARYA)`}}</div>
+                  <div class="ok terminal">{{`TLA_line2:   1 25544U 98067A   03097.78853147  .00021906  00000-0  28403-3 0  8652`}}</div>
+                  <div class="ok terminal">{{`TLA_line3:   2 25544  51.6361  13.7980 0004256  35.6671  59.2566 15.58778559250029`}}</div>
                   <div>
                     <VField label="delta_sp:    RA " :val="p.dsp[0]??0" unit="hr"/>
                     <VField label="   |  Dec " :val="p.dsp[1]??0" unit="deg"/>
@@ -101,18 +101,20 @@
                 <q-timeline-entry title="Waiting for Command" subtitle="Idle"  icon="mdi-sleep" >
                 </q-timeline-entry>
                 <q-timeline-entry title="Pulse Guide and Slew" subtitle="Adjust" icon="mdi-pulse">
-                  <div>
+                  <div v-if="cfg.advanced_guiding" >
                     <VField label="delta_guide: RA " :val="p.dguide[0]??0" unit="hr/s"/>
+
                     <VField label=" |  Dec " :val="p.dguide[1]??0" unit="deg/s"/>
                     <VField label=" |   PA " :val="p.dguide[2]??0" unit="deg/s"/>
                   </div>
+                  <div v-else class="haz terminal">Pulse Guiding: Disabled</div>
                   <div>
                     <VField label="delta_slew:  RA " :val="p.dslew[0]??0" unit="hr/s"/>
                     <VField label=" |  Dec " :val="p.dslew[1]??0" unit="deg/s"/>
                     <VField label=" |   PA " :val="p.dslew[2]??0" unit="deg/s"/>
                   </div>
                   <div>
-                    <VField label="delta_ofst:  RA " :val="p.dofst[0]??0" unit="hr_ofst"/>
+                    <VField label="delta_offst: RA " :val="p.dofst[0]??0" unit="hr_ofst"/>
                     <VField label="   |  Dec " :val="p.dofst[1]??0" unit="deg_ofst"/>
                     <VField label="   |   PA " :val="p.dofst[2]??0" unit="deg_ofst"/>
                   </div>
@@ -123,7 +125,7 @@
                     <VField label=" | Roll " :val="p.aslew[2]??0" unit="deg/s"/>
                   </div>
                   <div>
-                    <VField label="alpha_ofst:  Az " :val="p.aofst[0]??0" unit="deg_ofst"/>
+                    <VField label="alpha_offst: Az " :val="p.aofst[0]??0" unit="deg_ofst"/>
                     <VField label="   |  Alt " :val="p.aofst[1]??0" unit="deg_ofst"/>
                     <VField label="   | Roll " :val="p.aofst[2]??0" unit="deg_ofst"/>
                   </div>
@@ -139,28 +141,28 @@
                     <VField label="   |  Alt " :val="p.alpharef[1]??0" unit="deg"/>
                     <VField label="   | Roll " :val="p.alpharef[2]??0" unit="deg"/>
                   </div>
-                  <div class="text-grey-6 terminal">omega_ref</div>
-                  <div class="text-grey-6 terminal">cameraQ_step</div>
+                  <div class="ok terminal">omega_ref</div>
+                  <div class="ok terminal">cameraQ_step</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Multi-Point Alignment" subtitle="Solve" icon="mdi-rotate-orbit">
-                  <div class="text-grey-6 terminal">theta_ref</div>
-                  <div class="text-grey-6 terminal">theta_pv</div>
+                  <div class="ok terminal">theta_ref</div>
+                  <div class="ok terminal">theta_pv</div>
                 </q-timeline-entry>
                 <q-timeline-entry icon="mdi-chart-bell-curve-cumulative">
                   <template v-slot:title>PID Controller <PIDStatus /></template>
                   <template v-slot:subtitle>Control</template>
-                  <div class="text-grey-6 terminal">omega_Kp</div>
-                  <div class="text-grey-6 terminal">omega_Ki</div>
-                  <div class="text-grey-6 terminal">omega_Kd</div>
-                  <div class="text-grey-6 terminal">omega_ff</div>
-                  <div class="text-grey-6 terminal">omega_tgt</div>
+                  <div class="ok terminal">omega_Kp</div>
+                  <div class="ok terminal">omega_Ki</div>
+                  <div class="ok terminal">omega_Kd</div>
+                  <div class="ok terminal">omega_ff</div>
+                  <div class="ok terminal">omega_tgt</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Speed & Accel Governer" subtitle="Limit" icon="mdi-format-vertical-align-top">
-                  <div class="text-grey-6 terminal">omega_op</div>
+                  <div class="ok terminal">omega_op</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
-                  <div class="text-grey-6 terminal">protocol</div>
-                  <div class="text-grey-6 terminal">{{`Protocol:    M1 +1 30:70 +2     |   M2 +2000           |  M3 ${fmt(p.astate[2])}`}}</div>
+                  <div class="ok terminal">protocol</div>
+                  <div class="ok terminal">{{`Protocol:    M1 +1 30:70 +2     |   M2 +2000           |  M3 ${fmt(p.astate[2])}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Motors" ></q-timeline-entry>
               </q-timeline>
@@ -324,23 +326,23 @@ const initialPagination = {
     white-space: pre;
   }
 
-  .c-ok {
+  .ok {
     color: $grey-6;
   }
 
-  .c-off {
+  .off {
     color: $grey-8;
   }
 
-  .c-neg {
+  .neg {
     color: $negative;
   }
 
-  .c-war {
+  .haz {
     color: $warning;
   }
 
-  .c-pos {
+  .pos {
     color: $positive;
   }
 
