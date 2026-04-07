@@ -75,6 +75,8 @@ export const useStatusStore = defineStore('status', {
         traw: [0,0,0],
         tstate: [0,0,0],
         astate: [0,0,0],
+        dvsp: [0,0,0],
+        avsp: [0,0,0],
         deltaref: [0,0,0],
         alpharef: [0,0,0],
         omegaref: [0,0,0],

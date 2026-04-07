@@ -75,6 +75,8 @@
                 <q-timeline-entry title="Pulse Guiding" subtitle="Guide" icon="mdi-pulse">
                   <div class="text-grey-6 terminal">delta_offset</div>
                 </q-timeline-entry>
+                <q-timeline-entry :title="tgt.title" :subtitle="tgt.task" :icon="tgt.icon">
+                </q-timeline-entry>
                 <q-timeline-entry title="DSO Target" subtitle="Track" icon="mdi-flare">
                   <div class="text-grey-6 terminal">{{`delta_sp:    RA ${fmt((p.deltaref[0]??0)/15,"hr")}   |  Dec ${fmt(p.deltaref[1])}   |   PA ${fmt(p.deltaref[2])}`}}</div>
                 </q-timeline-entry>
@@ -88,8 +90,18 @@
                   <div class="text-grey-6 terminal">{{`alpha_sp:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Adjust Target" subtitle="Slew" icon="mdi-move-resize-variant">
-                  <div class="text-grey-6 terminal">{{`delta_offset:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
-                  <div class="text-grey-6 terminal">{{`alpha_offset:    Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
+                  <div>
+                    <VField label="delta_v_sp:  RA " :val="p.dvsp[0]??0" unit="hr/s"/>
+                    <VField label=" |  Dec " :val="p.dvsp[1]??0" unit="deg/s"/>
+                    <VField label=" |   PA " :val="p.dvsp[2]??0" unit="deg/s"/>
+                  </div>
+                  <div>
+                    <VField label="alpha_v_sp:  Az " :val="p.avsp[0]??0" unit="deg/s"/>
+                    <VField label=" |  Alt " :val="p.avsp[1]??0" unit="deg/s"/>
+                    <VField label=" | Roll " :val="p.avsp[2]??0" unit="deg/s"/>
+                  </div>
+                  <div class="text-grey-6 terminal">{{`delta_offst: RA ${fmt(p.alpharef[0],"hr")}   |  Dec ${fmt(p.alpharef[1])}   |   PA ${fmt(p.alpharef[2])}`}}</div>
+                  <div class="text-grey-6 terminal">{{`alpha_offst: Az ${fmt(p.alpharef[0],"hr")}   |  Alt ${fmt(p.alpharef[1])}   | Roll ${fmt(p.alpharef[2])}`}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Waiting for Command" subtitle="Idle"  icon="mdi-sleep" >
                 </q-timeline-entry>
@@ -159,6 +171,7 @@ import { useConfigStore } from 'src/stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import type { UnitKey } from 'src/utils/angles'
 import PIDStatus from 'src/components/PIDStatus.vue'
+import VField from 'src/components/VField.vue'
 
 
 const p = useStatusStore()
@@ -174,6 +187,7 @@ function fmt(x:number|undefined, unit:UnitKey="deg"): string {
   const s = deg2dms(x ?? 0, 1, unit)
   return `${s.sign}${s.degreestr}${s.minutestr}${s.secondstr}`
 }
+
 
 function fmtn(x:number|undefined, decimals:number=7): string {
   const n = x??0
@@ -201,6 +215,43 @@ onMounted(async () => {
 onUnmounted(() => {
   poll.stopPolling()
 })
+
+const wfc="Waiting for Command"
+
+const tgt = computed(() => 
+  p.pidmode=='PRESETUP' ? {task: "PreSetup", title: wfc, icon: 'mdi-cellphone-cog'} :
+  p.pidmode=='LIMIT' ? {task: "Limit", title: wfc, icon: 'mdi-alert'} :
+  p.pidmode=='HOMING' ? {task: "Home", title: 'Home Target', icon: 'mdi-home-outline'} :
+  p.pidmode=='PARKING' ? {task: "Park", title: 'Park Target', icon: 'mdi-alpha-p'}:
+  p.athome ? {task: "At Home", title: wfc, icon: 'mdi-home'} : 
+  p.atpark ? {task: "Parked", title: wfc, icon: 'mdi-parking'} : 
+  p.gotoing ? {task: "Goto", title: 'AzAlt Target', icon: 'mdi-move-resize-variant'} : 
+  p.slewing ? {task: "Slew", title: 'Slewing Target', icon: 'mdi-cursor-move'} :
+  p.rotating ? {task: "Rotate", title: 'Rotating Target', icon: 'mdi-restore'} :
+  p.tracking  ? {task: "Track", title: `${trackingStatusLabel.value} Target`, icon: 'mdi-star-shooting-outline'} : 
+  p.pidglock  ? {task: "Gimbal", title: 'Gimble Locked', icon: 'mdi-lock'} : 
+               {task: "Idle", title: wfc, icon: 'mdi-sleep'}
+)
+
+const trackingStatusLabel = computed(() => {
+  const [isTracking, az, alt] = p.orbitalstatus;
+  const azText = az !== undefined ? `${Math.round(az)}°` : '—';
+  const altText = alt !== undefined ? `${Math.round(alt)}°` : '—';
+  return isTracking === 1
+    ? `${trackingLabel.value} (Az ${azText} Alt ${altText})`
+    : trackingLabel.value;
+});
+
+
+
+const trackingLabel = computed(() =>
+  p.trackingrate==0 ? "Sidereal" : 
+  p.trackingrate==1 ? "Lunar" : 
+  p.trackingrate==2 ? "Solar" : 
+  p.trackingrate==3 && p.trackingname ? p.trackingname : 
+                      "Custom" 
+)
+
 
 type AlignType = 'left' | 'center' | 'right'
 
@@ -241,6 +292,27 @@ const initialPagination = {
     font-family: monospace;
     white-space: pre;
   }
+
+  .c-ok {
+    color: $grey-6;
+  }
+
+  .c-off {
+    color: $grey-8;
+  }
+
+  .c-neg {
+    color: $negative;
+  }
+
+  .c-war {
+    color: $warning;
+  }
+
+  .c-pos {
+    color: $positive;
+  }
+
   .q-markdown--link {
     color: $grey-6;
 

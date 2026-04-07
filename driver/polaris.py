@@ -1392,6 +1392,8 @@ class Polaris:
                 'traw': [0,0,0] if self._theta_raw is None else self._theta_raw.tolist(),
                 'tstate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
                 'astate': [0,0,0] if self._alpha_state is None else self._alpha_state.tolist(),
+                'dvsp': [0,0,0] if self._pid.delta_v_sp is None else self._pid.delta_v_sp.tolist(),
+                'avsp': [0,0,0] if self._pid.alpha_v_sp is None else self._pid.alpha_v_sp.tolist(),
                 'deltaref': self._pid.delta_ref.tolist(),
                 'alpharef': self._pid.alpha_ref.tolist(),
                 'omegaref': self._pid.omega_ff.tolist(),
