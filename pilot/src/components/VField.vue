@@ -10,7 +10,7 @@ import type { UnitKey } from 'src/utils/angles'
 
 const props = defineProps<{
   label: string
-  val: number 
+  val: number | undefined  
   unit: string
 }>()
 
@@ -36,15 +36,28 @@ function fmt_deg_s(x:number|undefined, unit:UnitKey="deg"): string {
 function fmt_hr_s(x:number|undefined, unit:UnitKey="hr"): string {
     return fmt_deg_s(x ?? 0 / 15, unit)
 }
-const fmt = computed(() =>
-  props.unit=="deg"       ? { color: 'std', Fn: fmt_deg } : 
-  props.unit=="hr"        ? { color: 'std', Fn: fmt_hr } : 
-  props.unit=="deg/s"     ? { color: props.val<BELOW_ZERO ? 'haz' : props.val>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_deg_s } : 
-  props.unit=="hr/s"      ? { color: props.val<BELOW_ZERO ? 'haz' : props.val>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_hr_s } : 
-  props.unit=="deg_ofst"  ? { color: props.val<BELOW_ZERO ? 'haz' : props.val>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_deg } : 
-  props.unit=="hr_ofst"   ? { color: props.val<BELOW_ZERO ? 'haz' : props.val>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_hr } : 
-                        { color: 'std', Fn: fmt_deg } 
-)
+
+function fmt_number(x:number|undefined, decimals:number=7): string {
+  const n = x??0
+  const sign = n < 0 ? '-' : '+';
+  const nstr = Math.abs(n).toFixed(decimals)
+  return sign+nstr
+}
+
+
+const fmt = computed(() => {
+  const v = props.val ?? 0  // ← unwrap once here
+  return (
+    props.unit=="number"    ? { color: 'std', Fn: fmt_number } : 
+    props.unit=="deg"       ? { color: 'std', Fn: fmt_deg } : 
+    props.unit=="hr"        ? { color: 'std', Fn: fmt_hr } : 
+    props.unit=="deg/s"     ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_deg_s } : 
+    props.unit=="hr/s"      ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_hr_s } : 
+    props.unit=="deg_ofst"  ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_deg } : 
+    props.unit=="hr_ofst"   ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_hr } : 
+                              { color: 'std', Fn: fmt_deg }
+  )
+})
 
 </script>
 

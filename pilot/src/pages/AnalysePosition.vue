@@ -30,40 +30,101 @@
               <q-timeline layout="comfortable" class="">
                 <q-timeline-entry heading tag="h4">Forward Kinematics</q-timeline-entry>
                 <q-timeline-entry title="Polaris" >
-                  <div class="ok terminal">{{`motor_raw:   M1 ${fmt(p.zetameas[0])}   |   M2 ${fmt(p.zetameas[1])}   |   M3 ${fmt(p.zetameas[2])}`}}</div>
+                  <div>
+                    <VField label="motor_raw:   M1 " :val="p.zetameas[0]" unit="deg"/>
+                    <VField label="   |   M2 " :val="p.zetameas[1]" unit="deg"/>
+                    <VField label="   |   M3 " :val="p.zetameas[2]" unit="deg"/>
+                  </div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Single-Point Alignment (Polaris)" subtitle="align" icon="mdi-rotate-orbit">
-                  <div class="ok terminal">{{`qC2B_raw:     w ${fmtn(p.qraw[0])}      x ${fmtn(p.qraw[1])}   y ${fmtn(p.qraw[2])}   z ${fmtn(p.qraw[3])}`}}</div>
-                  <div class="ok terminal">{{`theta_raw:   t1 ${fmt(p.traw[0])}   |   t2 ${fmt(p.traw[1])}   |   t3 ${fmt(p.traw[2])}`}}</div>
+                  <div>
+                    <VField label="qC2B_raw:     w " :val="p.qraw[0]" unit="number"/>
+                    <VField label="      x " :val="p.qraw[1]" unit="number"/>
+                    <VField label="   y " :val="p.qraw[2]" unit="number"/>
+                    <VField label="   z " :val="p.qraw[3]" unit="number"/>
+                  </div>
+                  <div>
+                    <VField label="theta_raw:   t1 " :val="p.traw[0]" unit="deg"/>
+                    <VField label="   |   t2 " :val="p.traw[1]" unit="deg"/>
+                    <VField label="   |   t3 " :val="p.traw[2]" unit="deg"/>
+                  </div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Kalman Filter" subtitle="Smooth" icon="mdi-chart-line">
                   <div v-if="cfg.advanced_kf" >
-                    <div class="ok terminal">{{`qC2B_state:   w ${fmtn(p.qstate[0])}      x ${fmtn(p.qstate[1])}   y ${fmtn(p.qstate[2])}   z ${fmtn(p.qstate[3])}`}}</div>
-                    <div class="ok terminal">{{`theta_state: t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
-                    <div class="ok terminal">{{`alpha_state: Az ${fmt(p.astate[0])}   |  Alt ${fmt(p.astate[1])}   | Roll ${fmt(p.astate[2])}`}}</div>
+                    <div>
+                      <VField label="qC2B_state:   w " :val="p.qstate[0]" unit="number"/>
+                      <VField label="      x " :val="p.qstate[1]" unit="number"/>
+                      <VField label="   y " :val="p.qstate[2]" unit="number"/>
+                      <VField label="   z " :val="p.qstate[3]" unit="number"/>
+                    </div>
+                    <div>
+                      <VField label="theta_state: t1 " :val="p.tstate[0]" unit="deg"/>
+                      <VField label="   |   t2 " :val="p.tstate[1]" unit="deg"/>
+                      <VField label="   |   t3 " :val="p.tstate[2]" unit="deg"/>
+                    </div>
+                    <div>
+                      <VField label="alpha_state: Az " :val="p.astate[0]" unit="deg"/>
+                      <VField label="   |  Alt " :val="p.astate[1]" unit="deg"/>
+                      <VField label="   | Roll " :val="p.astate[2]" unit="deg"/>
+                    </div>
                   </div>
                   <div v-else class="haz terminal">Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Error Corrections" subtitle="Adjust" icon="mdi-axis-x-rotate-clockwise">
                   <div v-if="cfg.advanced_pec" class="ok terminal">{{`PEC: Predictive Error Correction                     Use PHD2`}}</div>
                   <div v-else class="haz terminal">PEC: Disabled</div>
-                  <div v-if="cfg.advanced_align_roll" class="ok terminal">{{`RBC: Rotation Bias Correction                        Roll Adj ${fmt(p.rbcerror)}`}}</div>
+                  <div v-if="cfg.advanced_align_roll">
+                    <VField label="RBC: Rotation Bias Correction                        Roll Adj " :val="p.rbcerror" unit="deg_ofst"/>
+                  </div>
                   <div v-else class="haz terminal">RBC: Disabled</div>
-                  <div v-if="cfg.advanced_align_local" class="ok terminal">{{`LGC: Local Guassian Correction         Last Sync Residual Adj ${fmt(-p.lgcerror)}`}}</div>
+                  <div v-if="cfg.advanced_align_local">
+                    <VField label="LGC: Local Guassian Correction         Last Sync Residual Adj " :val="p.lgcerror" unit="deg_ofst"/>
+                  </div>
                   <div v-else class="haz terminal">LGC: Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Multi-Point Alignment (Driver)" subtitle="align" icon="mdi-rotate-orbit">
-                  <div v-if="cfg.advanced_alignment" class="ok terminal">{{`qB2T_align:   w ${fmtn(p.qalign[0])}      x ${fmtn(p.qalign[1])}   y ${fmtn(p.qalign[2])}   z ${fmtn(p.qalign[3])}`}}</div>
-                  <div v-if="cfg.advanced_alignment" class="ok terminal">{{`QUEST Adj:   Az ${fmt(p.az_adj)}   | Tilt ${fmt(p.tilt_adj_mag)}   |  Rot ${fmt(p.roll_adj)}`}}</div>
+                  <div v-if="cfg.advanced_alignment">
+                    <VField label="qB2T_align:   w " :val="p.qalign[0]" unit="number"/>
+                    <VField label="      x " :val="p.qalign[1]" unit="number"/>
+                    <VField label="   y " :val="p.qalign[2]" unit="number"/>
+                    <VField label="   z " :val="p.qalign[3]" unit="number"/>
+                  </div>
+                  <div v-if="cfg.advanced_alignment">
+                    <VField label="QUEST Adj:   Az " :val="p.az_adj" unit="deg"/>
+                    <VField label="   | Tilt " :val="p.tilt_adj_mag" unit="deg"/>
+                    <VField label="   |  Rot " :val="p.roll_adj" unit="deg"/>
+                  </div>
                   <div v-else class="haz terminal">Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Alpaca API" subtitle="serve" icon="mdi-email-fast">
-                  <div class="ok terminal">{{`qC2T_pv:      w ${fmtn(p.qpv[0])}      x ${fmtn(p.qpv[1])}   y ${fmtn(p.qpv[2])}   z ${fmtn(p.qpv[3])}`}}</div>
-                  <div class="ok terminal">{{`theta_pv:    t1 ${fmt(p.tstate[0])}   |   t2 ${fmt(p.tstate[1])}   |   t3 ${fmt(p.tstate[2])}`}}</div>
-                  <div class="ok terminal">{{`alpha_pv:    Az ${fmt(p.azimuth)}   |  Alt ${fmt(p.altitude)}   | Roll ${fmt(p.roll)}`}}</div>
-                  <div class="ok terminal">{{`delta_pv:    RA ${fmt(p.rightascension,"hr")}   |  Dec ${fmt(p.declination)}   | PosA ${fmt(p.positionangle)}`}}</div>
-                  <div class="ok terminal">{{`ephem:       HA ${fmt(p.siderealtime - p.rightascension,"hr")}   |             Paralatic Angle ${fmt(p.parallacticangle)}`}}</div>
-                  <div class="ok terminal">{{`            LST ${fmt(p.siderealtime,"hr")}`}}</div>
+                  <div>
+                    <VField label="qC2T_pv:      w " :val="p.qpv[0]" unit="number"/>
+                    <VField label="      x " :val="p.qpv[1]" unit="number"/>
+                    <VField label="   y " :val="p.qpv[2]" unit="number"/>
+                    <VField label="   z " :val="p.qpv[3]" unit="number"/>
+                  </div>
+                  <div>
+                    <VField label="theta_pv:*   t1 " :val="p.tstate[0]" unit="deg"/>
+                    <VField label="   |   t2 " :val="p.tstate[1]" unit="deg"/>
+                    <VField label="   |   t3 " :val="p.tstate[2]" unit="deg"/>
+                  </div>
+                  <div>
+                    <VField label="alpha_pv:    Az " :val="p.azimuth" unit="deg"/>
+                    <VField label="   |  Alt " :val="p.altitude" unit="deg"/>
+                    <VField label="   | Roll " :val="p.roll" unit="deg"/>
+                  </div>
+                  <div>
+                    <VField label="delta_pv:    RA " :val="p.rightascension" unit="hr"/>
+                    <VField label="   |  Dec " :val="p.declination" unit="deg"/>
+                    <VField label="   | PosA " :val="p.positionangle" unit="deg"/>
+                  </div>
+                  <div>
+                    <VField label="ephem:       HA " :val="p.siderealtime - p.rightascension" unit="hr"/>
+                    <VField label="   |             Paralatic Angle " :val="p.declination" unit="deg"/>
+                  </div>
+                  <div>
+                    <VField label="            LST " :val="p.siderealtime" unit="hr"/>
+                  </div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Sky" ></q-timeline-entry>
               </q-timeline>
@@ -73,73 +134,57 @@
                 <q-timeline-entry heading tag="h4">Inverse Kinematics</q-timeline-entry>
                 <q-timeline-entry title="Sky" ></q-timeline-entry>
                 <q-timeline-entry :title="tgt.title" :subtitle="tgt.task" :icon="tgt.icon">
-                </q-timeline-entry>
-                <q-timeline-entry title="DSO Target" subtitle="Track" icon="mdi-flare">
                   <div>
-                    <VField label="delta_sp:    RA " :val="p.dsp[0]??0" unit="hr"/>
-                    <VField label="   |  Dec " :val="p.dsp[1]??0" unit="deg"/>
-                    <VField label="   |   PA " :val="p.dsp[2]??0" unit="deg"/>
+                    <VField label="delta_sp:    RA " :val="p.dsp[0]" unit="hr"/>
+                    <VField label="   |  Dec " :val="p.dsp[1]" unit="deg"/>
+                    <VField label="   | PosA " :val="p.dsp[2]" unit="deg"/>
                   </div>
-                </q-timeline-entry>
-                <q-timeline-entry title="Orbital Target" subtitle="Track" icon="mdi-satellite-variant">
-                  <div class="ok terminal">{{`TLA_line1:   ISS (ZARYA)`}}</div>
-                  <div class="ok terminal">{{`TLA_line2:   1 25544U 98067A   03097.78853147  .00021906  00000-0  28403-3 0  8652`}}</div>
-                  <div class="ok terminal">{{`TLA_line3:   2 25544  51.6361  13.7980 0004256  35.6671  59.2566 15.58778559250029`}}</div>
                   <div>
-                    <VField label="delta_sp:    RA " :val="p.dsp[0]??0" unit="hr"/>
-                    <VField label="   |  Dec " :val="p.dsp[1]??0" unit="deg"/>
-                    <VField label="   |   PA " :val="p.dsp[2]??0" unit="deg"/>
+                    <VField label="alpha_sp:    Az " :val="p.asp[0]" unit="deg"/>
+                    <VField label="   |  Alt " :val="p.asp[1]" unit="deg"/>
+                    <VField label="   | Roll " :val="p.asp[2]" unit="deg"/>
                   </div>
-                </q-timeline-entry>
-                <q-timeline-entry title="AzAlt Target" subtitle="Goto" icon="mdi-move-resize-variant">
-                  <div>
-                    <VField label="alpha_sp:    Az " :val="p.asp[0]??0" unit="deg"/>
-                    <VField label="   |  Alt " :val="p.asp[1]??0" unit="deg"/>
-                    <VField label="   | Roll " :val="p.asp[2]??0" unit="deg"/>
-                  </div>
-                </q-timeline-entry>
-                <q-timeline-entry title="Waiting for Command" subtitle="Idle"  icon="mdi-sleep" >
                 </q-timeline-entry>
                 <q-timeline-entry title="Pulse Guide and Slew" subtitle="Adjust" icon="mdi-pulse">
                   <div v-if="cfg.advanced_guiding" >
-                    <VField label="delta_guide: RA " :val="p.dguide[0]??0" unit="hr/s"/>
+                    <VField label="delta_guide: RA " :val="p.dguide[0]" unit="hr/s"/>
 
-                    <VField label=" |  Dec " :val="p.dguide[1]??0" unit="deg/s"/>
-                    <VField label=" |   PA " :val="p.dguide[2]??0" unit="deg/s"/>
+                    <VField label=" |  Dec " :val="p.dguide[1]" unit="deg/s"/>
+                    <VField label=" | PosA " :val="p.dguide[2]" unit="deg/s"/>
                   </div>
                   <div v-else class="haz terminal">Pulse Guiding: Disabled</div>
                   <div>
-                    <VField label="delta_slew:  RA " :val="p.dslew[0]??0" unit="hr/s"/>
-                    <VField label=" |  Dec " :val="p.dslew[1]??0" unit="deg/s"/>
-                    <VField label=" |   PA " :val="p.dslew[2]??0" unit="deg/s"/>
+                    <VField label="delta_slew:  RA " :val="p.dslew[0]" unit="hr/s"/>
+                    <VField label=" |  Dec " :val="p.dslew[1]" unit="deg/s"/>
+                    <VField label=" | PosA " :val="p.dslew[2]" unit="deg/s"/>
                   </div>
                   <div>
-                    <VField label="delta_offst: RA " :val="p.dofst[0]??0" unit="hr_ofst"/>
-                    <VField label="   |  Dec " :val="p.dofst[1]??0" unit="deg_ofst"/>
-                    <VField label="   |   PA " :val="p.dofst[2]??0" unit="deg_ofst"/>
+                    <VField label="delta_offst: RA " :val="p.dofst[0]" unit="hr_ofst"/>
+                    <VField label="   |  Dec " :val="p.dofst[1]" unit="deg_ofst"/>
+                    <VField label="   | PosA " :val="p.dofst[2]" unit="deg_ofst"/>
                   </div>
                   <div>&nbsp;</div>
                   <div>
-                    <VField label="alpha_slew:  Az " :val="p.aslew[0]??0" unit="deg/s"/>
-                    <VField label=" |  Alt " :val="p.aslew[1]??0" unit="deg/s"/>
-                    <VField label=" | Roll " :val="p.aslew[2]??0" unit="deg/s"/>
+                    <VField label="alpha_slew:  Az " :val="p.aslew[0]" unit="deg/s"/>
+                    <VField label=" |  Alt " :val="p.aslew[1]" unit="deg/s"/>
+                    <VField label=" | Roll " :val="p.aslew[2]" unit="deg/s"/>
                   </div>
                   <div>
-                    <VField label="alpha_offst: Az " :val="p.aofst[0]??0" unit="deg_ofst"/>
-                    <VField label="   |  Alt " :val="p.aofst[1]??0" unit="deg_ofst"/>
-                    <VField label="   | Roll " :val="p.aofst[2]??0" unit="deg_ofst"/>
+                    <VField label="alpha_offst: Az " :val="p.aofst[0]" unit="deg_ofst"/>
+                    <VField label="   |  Alt " :val="p.aofst[1]" unit="deg_ofst"/>
+                    <VField label="   | Roll " :val="p.aofst[2]" unit="deg_ofst"/>
                   </div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Optimal Movement Strategy" subtitle="Plan" icon="mdi-debug-step-over">
                   <div>
-                    <VField label="delta_ref:   RA " :val="p.deltaref[0]??0" unit="hr"/>
-                    <VField label="   |  Dec " :val="p.deltaref[1]??0" unit="deg"/>
-                    <VField label="   |   PA " :val="p.deltaref[2]??0" unit="deg"/>
+                    <VField label="delta_ref:   RA " :val="p.deltaref[0]" unit="hr"/>
+                    <VField label="   |  Dec " :val="p.deltaref[1]" unit="deg"/>
+                    <VField label="   | PosA " :val="p.deltaref[2]" unit="deg"/>
                   </div>
                   <div>
-                    <VField label="alpha_ref:   Az " :val="p.alpharef[0]??0" unit="deg"/>
-                    <VField label="   |  Alt " :val="p.alpharef[1]??0" unit="deg"/>
-                    <VField label="   | Roll " :val="p.alpharef[2]??0" unit="deg"/>
+                    <VField label="alpha_ref:   Az " :val="p.alpharef[0]" unit="deg"/>
+                    <VField label="   |  Alt " :val="p.alpharef[1]" unit="deg"/>
+                    <VField label="   | Roll " :val="p.alpharef[2]" unit="deg"/>
                   </div>
                   <div class="ok terminal">omega_ref</div>
                   <div class="ok terminal">cameraQ_step</div>
@@ -162,7 +207,7 @@
                 </q-timeline-entry>
                 <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
                   <div class="ok terminal">protocol</div>
-                  <div class="ok terminal">{{`Protocol:    M1 +1 30:70 +2     |   M2 +2000           |  M3 ${fmt(p.astate[2])}`}}</div>
+                  <div class="ok terminal">{{`Protocol:    M1 +1 30:70 +2     |   M2 +2000           |  M3 `}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Motors" ></q-timeline-entry>
               </q-timeline>
@@ -181,12 +226,10 @@
 
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
-import { deg2dms } from 'src/utils/angles'
 import { PollingManager } from 'src/utils/polling';
 import { useStatusStore } from 'src/stores/status'
 import { useConfigStore } from 'src/stores/config';
 import { useDeviceStore } from 'src/stores/device';
-import type { UnitKey } from 'src/utils/angles'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import VField from 'src/components/VField.vue'
 
@@ -199,19 +242,6 @@ const axis = ref<number>(0)
 const poll = new PollingManager()
 
 watch(axis, ()=>selected.value=[])
-
-function fmt(x:number|undefined, unit:UnitKey="deg"): string {
-  const s = deg2dms(x ?? 0, 1, unit)
-  return `${s.sign}${s.degreestr}${s.minutestr}${s.secondstr}`
-}
-
-
-function fmtn(x:number|undefined, decimals:number=7): string {
-  const n = x??0
-  const sign = n < 0 ? '-' : '+';
-  const nstr = Math.abs(n).toFixed(decimals)
-  return sign+nstr
-}
 
 onMounted(async () => {
   const shouldFetch =
