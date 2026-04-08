@@ -2286,7 +2286,7 @@ class SyncManager:
 
             # If not optimal sidereal tracking then tweak QUEST model to zero our residual on final syncpoint
             if Config.advanced_slew_center and not Config.advanced_align_lga:
-                self.apply_last_syncpoint_residual_to_model()
+                self.apply_zero_last_residual_to_model()
                 
             self.alignQ_B2T_message = "QUEST solution applied"
 
@@ -2366,7 +2366,8 @@ class SyncManager:
         scc_error = np.degrees(-angle*weight)
         return (q_weighted, scc_error)
 
-    def apply_last_syncpoint_residual_to_model(self):
+    def apply_zero_last_residual_to_model(self):
+        self.scc_error = 0
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
         if v_pred_rot is None:
             self.alignQ_B2T_message += " | No valid sync for final alignment"
@@ -2383,6 +2384,7 @@ class SyncManager:
         q_correction = Quaternion(axis=axis, angle=angle)
         self.alignQ_B2T = q_correction * self.alignQ_B2T
         self.alignQ_B2T_inv = self.alignQ_B2T.inverse
+        self.scc_error = np.degrees(-angle)
 
 
     def optimise_alignQ_B2T_fallback_single_sync(self, pairs):
