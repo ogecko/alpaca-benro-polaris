@@ -39,8 +39,10 @@
 
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart.
 - **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
-- **[Local Alignment]** Improve GOTO accuracy with a local Gaussian correction for the last sync residual.
 - **[Alignment Diagnostics]** Improve Multi-Point Alignment Model diagnostic logging.
+- **[Kinematics Status]** A new Kinematics page that provides a comprehensive overview of both Forward and Inverse Kinematics workflows.
+- **[Rotation Bias Correction]** Correct systematic bias and gain errors in the Astro axis sensors (based on over 800 plate-solves).
+- **[Slew & Center Correction]** Reduce the number of corrective slews with Zero Last Residual (ZLR) and Local Guasssian Adjustment (LGA) algorithms.
 - **[Shortest Path]** Move Polaris using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
 - **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations
 - **[Forward Kinematics]** Improve forward kinematic robustness, deriving motor angles from CameraUp vector rather than theta3
@@ -74,6 +76,7 @@
 - **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
 
 ## Documentation (Alpaca Driver)
+- **[Kinematics Reference]**: Defines Reference Frames, Kinematic Flows and Correction Algorithms
 - **[Microsoft Account]**: Prevent Windows from syncing Wi-Fi settings across PCs using the same Microsoft account (hardware.md)
 - **[Auto Startup]**: Define how to make the Alpaca Driver start automatically on Windows (installation.md, Step 5)
 - **[Guiding 16-bit]**: Describe how to configure the guide camera as a 16-bit camera (guiding.md, Section 3.1)
