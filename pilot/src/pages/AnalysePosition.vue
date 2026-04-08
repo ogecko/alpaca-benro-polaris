@@ -147,7 +147,7 @@
                 <q-timeline-entry title="Sky" ></q-timeline-entry>
                 <q-timeline-entry :title="tgt.title" :subtitle="tgt.task" :icon="tgt.icon">
                   <div>
-                    <VField label="delta_sp:    RA " :val="p.dsp[0]" unit="hr"/>
+                    <VField label="delta_sp:    RA " :val="p.dsp[0]" unit="deg2hr"/>
                     <VField label="   |  Dec " :val="p.dsp[1]" unit="deg"/>
                     <VField label="   | PosA " :val="p.dsp[2]" unit="deg"/>
                   </div>
@@ -159,18 +159,18 @@
                 </q-timeline-entry>
                 <q-timeline-entry title="Pulse Guide and Slew" subtitle="Adjust" icon="mdi-pulse">
                   <div v-if="cfg.advanced_guiding" >
-                    <VField label="delta_guide: RA " :val="p.dguide[0]" unit="hr/s"/>
+                    <VField label="delta_guide: RA " :val="p.dguide[0]" unit="deg/s"/>
                     <VField label=" |  Dec " :val="p.dguide[1]" unit="deg/s"/>
                     <VField label=" | PosA " :val="p.dguide[2]" unit="deg/s"/>
                   </div>
                   <div v-else class="haz terminal">Pulse Guiding: Disabled</div>
                   <div>
-                    <VField label="delta_slew:  RA " :val="p.dslew[0]" unit="hr/s"/>
+                    <VField label="delta_slew:  RA " :val="p.dslew[0]" unit="deg/s"/>
                     <VField label=" |  Dec " :val="p.dslew[1]" unit="deg/s"/>
                     <VField label=" | PosA " :val="p.dslew[2]" unit="deg/s"/>
                   </div>
                   <div>
-                    <VField label="delta_offst: RA " :val="p.dofst[0]" unit="hr_ofst"/>
+                    <VField label="delta_offst: RA " :val="p.dofst[0]" unit="deg_ofst"/>
                     <VField label="   |  Dec " :val="p.dofst[1]" unit="deg_ofst"/>
                     <VField label="   | PosA " :val="p.dofst[2]" unit="deg_ofst"/>
                   </div>
@@ -188,7 +188,7 @@
                 </q-timeline-entry>
                 <q-timeline-entry title="Optimal Movement Strategy" subtitle="Plan" icon="mdi-debug-step-over">
                   <div>
-                    <VField label="delta_ref:   RA " :val="p.deltaref[0]" unit="hr"/>
+                    <VField label="delta_ref:   RA " :val="p.deltaref[0]" unit="deg2hr"/>
                     <VField label="   |  Dec " :val="p.deltaref[1]" unit="deg"/>
                     <VField label="   | PosA " :val="p.deltaref[2]" unit="deg"/>
                   </div>

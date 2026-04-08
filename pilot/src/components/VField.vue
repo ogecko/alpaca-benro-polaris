@@ -20,9 +20,11 @@ function fmt_deg(x:number|undefined, unit:UnitKey="deg"): string {
   return `${s.sign}${s.degreestr}${s.minutestr}${s.secondstr}`
 }
 function fmt_hr(x:number|undefined, unit:UnitKey="hr"): string {
-    return fmt_deg(x ?? 0 / 15, unit)
+    return fmt_deg(x ?? 0, unit)
 }
-
+function fmt_deg2hr(x:number|undefined, unit:UnitKey="hr"): string {
+    return fmt_deg((x ?? 0)/15, unit)
+}
 const BELOW_ZERO = -0.5/3600
 const ABOVE_ZERO = +0.5/3600
 
@@ -50,6 +52,7 @@ const fmt = computed(() => {
   return (
     props.unit=="number"    ? { color: 'std', Fn: fmt_number } : 
     props.unit=="deg"       ? { color: 'std', Fn: fmt_deg } : 
+    props.unit=="deg2hr"    ? { color: 'std', Fn: fmt_deg2hr } : 
     props.unit=="hr"        ? { color: 'std', Fn: fmt_hr } : 
     props.unit=="deg/s"     ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_deg_s } : 
     props.unit=="hr/s"      ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_hr_s } : 
