@@ -29,6 +29,7 @@
             <div class="col-lg-6 col-12">
               <q-timeline layout="comfortable" class="">
                 <q-timeline-entry heading tag="h4">Forward Kinematics</q-timeline-entry>
+                <!-- Polaris -->
                 <q-timeline-entry title="Polaris" >
                   <div>
                     <VField label="motor_raw:   M1 " :val="p.zetameas[0]" unit="deg"/>
@@ -36,6 +37,7 @@
                     <VField label="   |   M3 " :val="p.zetameas[2]" unit="deg"/>
                   </div>
                 </q-timeline-entry>
+                <!-- SPA -->
                 <q-timeline-entry title="Single-Point Alignment (Polaris)" subtitle="align" icon="mdi-rotate-orbit">
                   <div>
                     <VField label="qC2B_raw:     w " :val="p.qraw[0]" unit="number"/>
@@ -49,6 +51,7 @@
                     <VField label="   |   t3 " :val="p.traw[2]" unit="deg"/>
                   </div>
                 </q-timeline-entry>
+                <!-- KF -->
                 <q-timeline-entry title="Kalman Filter" subtitle="Smooth" icon="mdi-chart-line">
                   <div v-if="cfg.advanced_kf" >
                     <div>
@@ -70,18 +73,31 @@
                   </div>
                   <div v-else class="haz terminal">Disabled</div>
                 </q-timeline-entry>
+                <!-- Corrections -->
                 <q-timeline-entry title="Error Corrections" subtitle="Adjust" icon="mdi-axis-x-rotate-clockwise">
-                  <div v-if="cfg.advanced_pec" class="ok terminal">{{`PEC: Predictive Error Correction                     Use PHD2`}}</div>
-                  <div v-else class="haz terminal">PEC: Disabled</div>
-                  <div v-if="cfg.advanced_align_rbc">
-                    <VField label="RBC: Rotation Bias Correction                        Roll Adj " :val="p.rbcerror" unit="deg_ofst"/>
+                  <!-- PEC -->
+                  <div class="ok terminal">
+                    <span>{{`PEC: Predictive Error Correction`}}</span>
+                    <span v-if="cfg.advanced_pec">{{ `                     Use PHD2`}}</span>
+                    <span v-else class="haz">{{ `                               Disabled`}}</span>
                   </div>
-                  <div v-else class="haz terminal">RBC: Disabled</div>
-                  <div v-if="cfg.advanced_align_lgc">
-                    <VField label="LGC: Local Guassian Correction         Last Sync Residual Adj " :val="p.lgcerror" unit="deg_ofst"/>
+                  <!-- RBC -->
+                  <div class="ok terminal">
+                    <span>{{`RBC: Rotation Bias Correction`}}</span>
+                    <VField v-if="cfg.advanced_align_rbc" label="                        Roll Adj " :val="p.rbcerror" unit="deg_ofst"/>
+                    <span v-else class="haz">{{ `                                  Disabled`}}</span>
                   </div>
-                  <div v-else class="haz terminal">LGC: Disabled</div>
+                  <!-- SCC -->
+                  <div class="ok terminal">
+                    <span>{{`SCC: Slew & Center Correction`}}</span>
+                    <span v-if="cfg.advanced_slew_center">
+                        <VField v-if="cfg.advanced_align_lga" label="              Local Guassian Adj " :val="p.sccerror" unit="deg_ofst"/>
+                        <VField v-else label="          Zero Last Residual Adj " :val="p.sccerror" unit="deg_ofst"/>
+                    </span>
+                    <span v-else class="haz">{{ `                                  Disabled`}}</span>
+                  </div >
                 </q-timeline-entry>
+                <!-- MPA -->
                 <q-timeline-entry title="Multi-Point Alignment (Driver)" subtitle="align" icon="mdi-rotate-orbit">
                   <div v-if="cfg.advanced_alignment">
                     <VField label="qB2T_align:   w " :val="p.qalign[0]" unit="number"/>
@@ -96,6 +112,7 @@
                   </div>
                   <div v-else class="haz terminal">Disabled</div>
                 </q-timeline-entry>
+                <!-- API -->
                 <q-timeline-entry title="Alpaca API" subtitle="serve" icon="mdi-email-fast">
                   <div>
                     <VField label="qC2T_pv:      w " :val="p.qpv[0]" unit="number"/>

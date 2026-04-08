@@ -1991,7 +1991,7 @@ class SyncManager:
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
-        self.lgc_error = 0                      # Local Guassian Correction Error
+        self.scc_error = 0                      # Local Guassian Correction Error
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncDataReset()
 
@@ -2033,17 +2033,17 @@ class SyncManager:
     def baseQ_to_topoQ(self, motorQ_C2B):
         """
         Forward kinematics: Base frame → Topocentric frame.
-        motorQ → [QUEST] → [LGC] → [roll_adj] → cameraQ
+        motorQ → [QUEST] → [LGA] → [roll_adj] → cameraQ
         """
 
         # Apply alignQ_B2T model (QUEST)
         cameraQ = self.alignQ_B2T * motorQ_C2B
 
-        # Apply Local Gaussian Correction (LGC)
-        if Config.advanced_align_lgc:
-            corrQ_LGC, self.lgc_error = self.get_local_residual_correction(cameraQ)
-            if corrQ_LGC is not None:
-                cameraQ = corrQ_LGC * cameraQ
+        # Apply Local Gaussian Correction (LGA)
+        if Config.advanced_slew_center and Config.advanced_align_lga:
+            corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ)
+            if corrQ_LGA is not None:
+                cameraQ = corrQ_LGA * cameraQ
 
         # Apply roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -2058,7 +2058,7 @@ class SyncManager:
     def topoQ_to_baseQ(self, cameraQ_C2T):
         """
         Inverse kinematics: Topocentric frame → Base frame.
-        cameraQ → undo[roll_adj] → undo[LGC] → undo[QUEST] → motorQ
+        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → motorQ
         """
         # Undo roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -2066,11 +2066,11 @@ class SyncManager:
             corrQ_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
             cameraQ_C2T = corrQ_roll_undo * cameraQ_C2T
 
-        # Undo Local Guassian Correction (LGC) 
-        if Config.advanced_align_lgc:
-            corrQ_LGC, _ = self.get_local_residual_correction(cameraQ_C2T)
-            if corrQ_LGC is not None:
-                cameraQ_C2T = corrQ_LGC.inverse * cameraQ_C2T
+        # Undo Local Guassian Correction (LGA) 
+        if Config.advanced_slew_center and Config.advanced_align_lga:
+            corrQ_LGA, _ = self.get_local_guassian_adjustment_q(cameraQ_C2T)
+            if corrQ_LGA is not None:
+                cameraQ_C2T = corrQ_LGA.inverse * cameraQ_C2T
 
         # Undo alignQ_B2T model (QUEST)
         motorQ_C2B = self.alignQ_B2T_inv * cameraQ_C2T
@@ -2081,7 +2081,7 @@ class SyncManager:
     def topoVec_to_baseVec(self, omega_topo, cameraQ_C2T):
         """
         Rotate an angular velocity vector from topocentric to base frame
-        omega_topo,cameraQ → undo[roll_adj] → undo[LGC] → undo[QUEST] → omega_base,motorQ
+        omega_topo,cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → omega_base,motorQ
         """
         # Undo roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -2089,9 +2089,9 @@ class SyncManager:
             q_roll_undo = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
             omega_topo = q_roll_undo.rotate(omega_topo)
 
-        # Undo Local Guassian Correction (LGC) 
-        if Config.advanced_align_lgc:
-            q_local, _ = self.get_local_residual_correction(cameraQ_C2T)
+        # Undo Local Guassian Correction (LGA) 
+        if Config.advanced_slew_center and Config.advanced_align_lga:
+            q_local, _ = self.get_local_guassian_adjustment_q(cameraQ_C2T)
             if q_local is not None:
                 omega_topo = q_local.inverse.rotate(omega_topo)
 
@@ -2285,7 +2285,7 @@ class SyncManager:
             self.alignQ_B2T_inv = self.alignQ_B2T.inverse
 
             # If not optimal sidereal tracking then tweak QUEST model to zero our residual on final syncpoint
-            if not Config.advanced_align_lgc:
+            if Config.advanced_slew_center and not Config.advanced_align_lga:
                 self.apply_last_syncpoint_residual_to_model()
                 
             self.alignQ_B2T_message = "QUEST solution applied"
@@ -2330,7 +2330,7 @@ class SyncManager:
         return az_err, alt_err, v_pred_rot, v_obs
     
 
-    def get_local_residual_correction(self, cameraQ_C2T, sigma_deg=15.0):
+    def get_local_guassian_adjustment_q(self, cameraQ_C2T, sigma_deg=15.0):
         """
         Returns a spatially-weighted correction quaternion (and error in degrees) based on the last sync
         point residual. The correction fades to identity with a Gaussian as angular
@@ -2363,8 +2363,8 @@ class SyncManager:
         # inverse kinematics (we want to pre-compensate the input, not post-rotate)
         q_full = Quaternion(axis=axis, angle=angle)
         q_weighted = Quaternion.slerp(Quaternion(1, 0, 0, 0), q_full, amount=weight)
-        lgc_error = np.degrees(-angle*weight)
-        return (q_weighted, lgc_error)
+        scc_error = np.degrees(-angle*weight)
+        return (q_weighted, scc_error)
 
     def apply_last_syncpoint_residual_to_model(self):
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()

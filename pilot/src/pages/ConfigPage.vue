@@ -146,7 +146,7 @@
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_slew_center', 'Slew & Center Correction')"/>
                 <div v-if="cfg.advanced_slew_center">
-                  <span>Zero Last Residual</span><q-toggle class='col-6' v-bind="bindField('advanced_align_lgc', 'Local Gaussian Correction')"/>
+                  <span>Zero Last Residual</span><q-toggle class='col-6' v-bind="bindField('advanced_align_lga', 'Local Gaussian Adjustment')"/>
                 </div>
               </div>
               <div class="row">

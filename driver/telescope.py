@@ -1818,7 +1818,7 @@ def make_params_live(changed_params):
             polaris.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
         elif param == "guide_rate_dec":
             polaris.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
-        elif param in ["advanced_alignment", "advanced_align_lgc", "advanced_align_rbc"]:
+        elif param in ["advanced_alignment", "advanced_slew_center", "advanced_align_lga", "advanced_align_rbc"]:
             polaris._sm.optimize_alignQ_B2T()
             polaris._sm.refresh_pid_setpoints_from_q1()
             polaris._sm.streamSyncData()

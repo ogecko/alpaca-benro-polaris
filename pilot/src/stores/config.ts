@@ -72,7 +72,7 @@ export const useConfigStore = defineStore('config', {
     advanced_guiding: false,
     advanced_alignment: false,
     advanced_slew_center: false,
-    advanced_align_lgc: false,
+    advanced_align_lga: false,
     advanced_align_rbc: false,
     advanced_orbitals: false,
     advanced_pec: false,

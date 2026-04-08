@@ -48,7 +48,7 @@ def test_dummy():
 def test_sync_history():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
@@ -68,7 +68,7 @@ def test_sync_history():
 def test_no_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
@@ -83,7 +83,7 @@ def test_no_sync_adj():
 def test_single_syncs_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
@@ -103,7 +103,7 @@ def test_single_syncs_adj():
 def test_azshift10_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
@@ -125,7 +125,7 @@ def test_leveling_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.log_quest_model = False
         p = Polaris()
@@ -144,7 +144,7 @@ def test_leveling_sync_adj():
 def test_largetilt_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
@@ -167,7 +167,7 @@ def test_largetilt_sync_adj():
 def test_az170alt15shift_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
@@ -186,7 +186,7 @@ def test_az170alt15shift_sync_adj():
 def test_zeroroll_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.advanced_control = True
         p = Polaris()
@@ -200,7 +200,7 @@ def test_zeroroll_sync_adj():
 def test_15roll_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.advanced_control = True
         p = Polaris()
@@ -214,7 +214,7 @@ def test_15roll_sync_adj():
 def test_neg60roll_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         MockConfig.advanced_control = True
         p = Polaris()
@@ -231,7 +231,7 @@ def test_tworoll_sync_adj():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         p = Polaris()
         logger = logging.getLogger()
@@ -248,7 +248,7 @@ def test_aboveSouth_roll2pa():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         p = Polaris()
         logger = logging.getLogger()
@@ -260,7 +260,7 @@ def test_belowSouth_roll2pa():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         p = Polaris()
         logger = logging.getLogger()
@@ -272,7 +272,7 @@ def test_belowSouth_pa2roll():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         p = Polaris()
         logger = logging.getLogger()
@@ -284,7 +284,7 @@ def test_aboveNorth_roll2pa():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         p = Polaris()
         logger = logging.getLogger()
@@ -296,7 +296,7 @@ def test_horizEast_roll2pa():
     with patch('control.Config') as MockConfig:
         MockConfig.advanced_alignment = True
         MockConfig.advanced_control = True
-        MockConfig.advanced_align_lgc = False
+        MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_rbc = False
         p = Polaris()
         logger = logging.getLogger()

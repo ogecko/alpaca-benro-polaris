@@ -155,7 +155,7 @@ class Polaris:
         self._adj_azimuth: float = Config.aiming_adjustment_az      # The Azimuth adjustment to correct the aim based on past goto results
         self._adj_sync_altitude: float = 0          # The Altitude adjustment difference between polaris and ascom
         self._adj_sync_azimuth: float = 0           # The Azimuth adjustment difference between polaris and ascom
-        self._rbc_error: float = 0                  # Rotation Bias Error from RBC, LGC error in _sm
+        self._rbc_error: float = 0                  # Rotation Bias Error from RBC, LGA error in _sm
         #
         # Telescope device rates
         #
@@ -1415,7 +1415,7 @@ class Polaris:
                 'polarishwver': self._polaris_hw_ver,
                 'polarisastrover': self._polaris_astro_ver,
                 'rbcerror': self._rbc_error,
-                'lgcerror': self._sm.lgc_error,
+                'sccerror': self._sm.scc_error,
             }
         return res
 

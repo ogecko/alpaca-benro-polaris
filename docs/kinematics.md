@@ -61,7 +61,7 @@ To achieve high-precision results, you must move from simply "syncing" to **stra
     *   **Target Trajectory (DSO Arc):** For the highest accuracy during imaging, place additional sync points **along the trajectory (arc)** that your target object will follow during the night. QUEST provides the best results when it is interpolating between points rather than extrapolating far away from them.
 *   **Monitor Residuals:** Use the **Alignment page in Alpaca Pilot** to review "model residuals". This shows how well the QUEST model fits each sync point. Aim for residuals in the **arc-seconds**; if a point shows residuals of whole degrees, it should be deleted as it is likely a bad solve.
 *   **Persistence:** From version 2.2 onwards, your QUEST model is **saved to disk**. You can restart the driver or your MiniPC mid-session without losing your refined alignment.
-*   **Local Refinement:** The driver also applies a **Local Gaussian Correction (LGC)** on top of the QUEST model, which further eliminates any tiny remaining residuals specifically around your last sync point.
+*   **Local Refinement:** The driver also applies a **Local Gaussian Correction (LGA)** on top of the QUEST model, which further eliminates any tiny remaining residuals specifically around your last sync point.
 
 ---
 ### 2.2 Slew & Center Correction
@@ -85,11 +85,11 @@ The Alpaca Driver utilizes three distinct strategies to handle these residuals, 
 2.  **Zero Last Residual (ZLR):**
     In this approach, the driver forces the QUEST model to ensure the **last sync point always has a zero residual**. When a new sync is performed, the model essentially "shifts" its understanding of the sky so that the current orientation is perfectly anchored to the observed coordinates. This provides an immediate, absolute correction for the current target but can affect the global fit of the rest of the model.
 
-3.  **Local Gaussian Correction (LGC):** (Recommended)
-    LGC is a more sophisticated method that corrects the residual **locally around the most recent sync point** without disrupting the global integrity of the QUEST model. It applies the full correction at the exact sync location and then gracefully "fades" that correction back to the standard QUEST model as the mount moves away.
+3.  **Local Gaussian Adjustment (LGA):** (Recommended)
+    LGA is a more sophisticated method that corrects the residual **locally around the most recent sync point** without disrupting the global integrity of the QUEST model. It applies the full correction at the exact sync location and then gracefully "fades" that correction back to the standard QUEST model as the mount moves away.
 
-#### **IV. The Mathematics of LGC**
-LGC uses a **Gaussian weighting function** to determine how much of the local residual should be applied based on the angular distance from the last sync point. The correction fades to identity (zero additional correction) as the distance increases.
+#### **IV. The Mathematics of LGA**
+LGA uses a **Gaussian weighting function** to determine how much of the local residual should be applied based on the angular distance from the last sync point. The correction fades to identity (zero additional correction) as the distance increases.
 
 The formula for the weight is:
 >>**$weight = exp(−angular\_distance² / (2 · \sigma²))$**
@@ -98,7 +98,7 @@ The formula for the weight is:
 *   **At the Sync Point:** The weight is 1.0, meaning the **full residual correction** is applied.
 *   **At 15° Away:** The weight drops to approximately 0.61 (61% correction).
 *   **At 30° Away:** The weight drops to approximately 0.14 (14% correction).
-*   **Beyond 45°:** The weight is less than 0.05, meaning the LGC is effectively inactive and the mount relies solely on the QUEST model.
+*   **Beyond 45°:** The weight is less than 0.05, meaning the LGA is effectively inactive and the mount relies solely on the QUEST model.
 
 #### **V. Operational Benefits**
 *   **Faster Centering:** By eliminating the local residual at the target, the first "corrective slew" issued by imaging software is far more likely to be the only one needed.
@@ -267,7 +267,7 @@ Suffixes distinguish the level of processing applied to a mechanical orientation
 | `_raw`   | orientation | Uncorrected value direct from device                             |
 | `_state` | orientation | Kalman Filter smoothed/estimated value                           |
 | `_adj`   | orientation | Mechanically adjusted after KF + PEC + RBC                       |
-| `_pv`    | orientation | Process Variable after KF + PEC + RBC + QUEST + LGC + Roll       |
+| `_pv`    | orientation | Process Variable after KF + PEC + RBC + QUEST + LGA + Roll       |
 | `_sp`    | orientation | User Set Point target value (pre slew offset and pulse guiding)  |
 | `_ref`   | orientation | Final Reference target value for the control loop                |
 | `_op`    | velocity    | Control output velocity for the motors                           |
@@ -344,9 +344,9 @@ alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUE
 theta_adj              adjusted motor orientation angles
 motorQ_adj             adjusted motor orientation quaternion (theta_to_q)
     │
-    ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGC ∘ alignQ_B2T ∘ motorQ_adj
+    ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGA ∘ alignQ_B2T ∘ motorQ_adj
     ▼     QUEST Alignment (alignQ_B2T) 
-    ▼     Local Gaussian Correction (corrQ_LGC)
+    ▼     Local Gaussian Correction (corrQ_LGA)
     ▼     Roll Sync Adjustment (corrQ_roll)
 cameraQ_pv             Fully corrected C→T pointing quaternion
 alpha_pv               (a_az, a_alt, a_roll) = q_to_azaltroll(cameraQ_pv)
@@ -379,9 +379,9 @@ cameraQ_ref             Target C→T quaternion = azaltroll_to_q(*alpha_ref)
     ▼ Shortest Path SO(3) slerp from cameraQ_pv to cameraQ_ref
 cameraQ_step
     │
-    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGC⁻¹ ∘ alignQ_B2T⁻¹ ∘ cameraQ_step
+    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGA⁻¹ ∘ alignQ_B2T⁻¹ ∘ cameraQ_step
     ▼    Undo Roll Sync Adjustment      (corrQ_roll⁻¹, T frame)
-    ▼    Undo Local Gaussian Correction (corrQ_LGC⁻¹, T frame)
+    ▼    Undo Local Gaussian Correction (corrQ_LGA⁻¹, T frame)
     ▼    QUEST Alignment inverse        (alignQ_B2T_inv, T→B)
 motorQ_ref              Target C→B quaternion
 theta_ref               Target motor angles (θ1, θ2, θ3) = q_to_theta(motorQ_ref)
@@ -423,7 +423,7 @@ omega_topo              Angular velocity of sky target in T frame
     │
     ▼  topoVec_to_baseVec(omega_topo, cameraQ_pv)
     │  Undo T-frame corrections and rotate T → B:
-    │  corrQ_roll⁻¹(T) → corrQ_LGC⁻¹(T) → alignQ_B2T_inv(T→B)
+    │  corrQ_roll⁻¹(T) → corrQ_LGA⁻¹(T) → alignQ_B2T_inv(T→B)
 omega_base              Angular velocity in B frame
     │
     ▼  Inverse Jacobian Solution = J⁻¹(theta_adj) · omega_base
@@ -447,7 +447,7 @@ theta_adj / motorQ_adj    (B frame, mechanically adjusted)
     │
     ▼  corrQ_RBC           Rotation Bias Correction     B frame
     ▼  alignQ_B2T          QUEST Alignment              B → T
-    ▼  corrQ_LGC           Local Gaussian Correction    T frame
+    ▼  corrQ_LGA           Local Gaussian Correction    T frame
     ▼  corrQ_roll          Roll Sync Adjustment         T frame
     │
 cameraQ_C2T_pv      (C→T, fully aligned, process variable)
