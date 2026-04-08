@@ -10,46 +10,70 @@ import type { UnitKey } from 'src/utils/angles'
 
 const props = defineProps<{
   label: string
-  val: number | undefined  
+  val: number | string | undefined  
   unit: string
 }>()
 
+function toNumber(x: unknown, fallback = 0): number {
+  if (typeof x === 'number') return x
+  if (typeof x === 'string') {
+    const n = Number(x)
+    return isNaN(n) ? fallback : n
+  }
+  return fallback
+}
 
-function fmt_deg(x:number|undefined, unit:UnitKey="deg"): string {
-  const s = deg2dms(x ?? 0, 1, unit)
+function toStringSafe(x: unknown): string {
+  if (typeof x === 'string') return x
+  if (typeof x === 'number' || typeof x === 'boolean' || typeof x === 'bigint')
+    return String(x)
+  if (x == null) return ''
+  return ''   // do NOT stringify objects
+}
+
+function fmt_deg(x: unknown, unit:UnitKey="deg"): string {
+  const n = toNumber(x)
+  const s = deg2dms(n, 1, unit)
   return `${s.sign}${s.degreestr}${s.minutestr}${s.secondstr}`
 }
-function fmt_hr(x:number|undefined, unit:UnitKey="hr"): string {
-    return fmt_deg(x ?? 0, unit)
+function fmt_hr(x: unknown, unit:UnitKey="hr"): string {
+  const n = toNumber(x)
+  return fmt_deg(n, unit)
 }
-function fmt_deg2hr(x:number|undefined, unit:UnitKey="hr"): string {
-    return fmt_deg((x ?? 0)/15, unit)
+function fmt_deg2hr(x: unknown, unit:UnitKey="hr"): string {
+  const n = toNumber(x)  
+  return fmt_deg(n / 15, unit)
 }
 const BELOW_ZERO = -0.5/3600
 const ABOVE_ZERO = +0.5/3600
 
-function fmt_deg_s(x:number|undefined, unit:UnitKey="deg"): string {
-  const velocity = x ?? 0
+function fmt_deg_s(x: unknown, unit:UnitKey="deg"): string {
+  const velocity = toNumber(x)
   const str = fmt_deg(velocity, unit).replace(/^[+-]/, '')
   const sign = (velocity>0.5/3600) ? '▲' : (velocity<-0.5/3600) ? '▼' : ' '
   const signed_str = sign + str + '/s'
   return signed_str
 }
-function fmt_hr_s(x:number|undefined, unit:UnitKey="hr"): string {
-    return fmt_deg_s(x ?? 0 / 15, unit)
+function fmt_hr_s(x: unknown, unit:UnitKey="hr"): string {
+  const n = toNumber(x)
+  return fmt_deg_s(n, unit)
 }
 
-function fmt_number(x:number|undefined, decimals:number=7): string {
-  const n = x??0
+function fmt_number(x: unknown, decimals:number=7): string {
+  const n = toNumber(x)
   const sign = n < 0 ? '-' : '+';
   const nstr = Math.abs(n).toFixed(decimals)
   return sign+nstr
 }
 
+function fmt_string(x: unknown): string {
+  return toStringSafe(x)
+}
 
 const fmt = computed(() => {
-  const v = props.val ?? 0  // ← unwrap once here
+  const v = toNumber(props.val)
   return (
+    props.unit=="string"    ? { color: 'std', Fn: fmt_string } : 
     props.unit=="number"    ? { color: 'std', Fn: fmt_number } : 
     props.unit=="deg"       ? { color: 'std', Fn: fmt_deg } : 
     props.unit=="deg2hr"    ? { color: 'std', Fn: fmt_deg2hr } : 

@@ -1407,6 +1407,7 @@ class Polaris:
                 'omegamin': self._pid.omega_min.tolist(),
                 'omegamax': self._pid.omega_max.tolist(),
                 'motorref': [motor.rate_dps for motor in self._motors.values()],
+                'motorcmd': [motor.get_cmdstr() for motor in self._motors.values()],
                 'siderealtime': self._siderealtime,
                 'lifecycleevent': self.lifecycle._event.name,
                 'bledevices' : [info["name"] for info in self._ble.devices.values()],

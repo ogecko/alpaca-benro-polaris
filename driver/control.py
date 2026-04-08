@@ -102,6 +102,18 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
         print(f"Catalog: Error loading custom catalog: {e}")
         return []
 
+def ratio_string(x: float) -> str:
+    """
+    Convert a float in [0, 1] to a ratio string like '99:01', '50:50', '01:99'.
+    Total always equals 100 and each side is two digits.
+    """
+    x = max(0.0, min(1.0, x))
+    right = round(x * 100)
+    right = max(1, min(99, right))
+    left = 100 - right
+    return f"{left:02d}:{right:02d}"
+
+
 def is_angle_same(a, b, tolerance=1e-4):
     """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
     return abs((a - b + 180) % 360 - 180) < tolerance
@@ -1184,6 +1196,19 @@ class MotorSpeedController:
                 else:
                     self.next_dispatch_time = now + 0.05
 
+    def get_cmdstr(self):
+        if self.mode=="IDLE":
+            return f" IDLE      "
+        elif self.mode=="FAST_RAMP":
+            return f" FAST {self.command:+05.0f}"
+        elif self.mode=="FAST":
+            return f" FAST {self.command:+05.0f}"
+        elif self.mode=="SLOW":
+            return f" SLOW {self.command:+05.0f}"
+        elif self.mode=="SLOW_PWM":
+            return f"{self.command[0]:+2.0f} {ratio_string(self.duty_cycle)} {self.command[1]:+2.0f}"
+        else:
+            return f"       "
 
     async def stop_disspatch_loop_task(self):
         async with self._condition:

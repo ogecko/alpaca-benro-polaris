@@ -219,15 +219,17 @@
                     <VField label="   |   t3 " :val="p.tadj[2]" unit="deg"/>
                   </div>
                 </q-timeline-entry>
-                <q-timeline-entry title="Position, Speed & Acceleration" subtitle="Limit" icon="mdi-format-vertical-align-top">
+                <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
                   <div>
                     <VField label="omega_op:    t1 " :val="p.motorref[0]" unit="deg/s"/>
                     <VField label=" |   t2 " :val="p.motorref[1]" unit="deg/s"/>
                     <VField label=" |   t3 " :val="p.motorref[2]" unit="deg/s"/>
                   </div>
-                </q-timeline-entry>
-                <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
-                  <div class="ok terminal">{{`Protocol:    M1 +1 30:70 +2     |   M2 +2000           |  M3 `}}</div>
+                  <div>
+                    <VField label="Protocol:    M1 " :val="p.motorcmd[0]" unit="string"/>
+                    <VField label="     |   M2 " :val="p.motorcmd[1]" unit="string"/>
+                    <VField label="     |   M3 " :val="p.motorcmd[2]" unit="string"/>
+                  </div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Motors" ></q-timeline-entry>
               </q-timeline>
