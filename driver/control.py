@@ -2017,10 +2017,10 @@ class SyncManager:
         predicted unit vector, optionally applying Rotation Bias Correction.
 
         Raw values are always stored in sync history so that toggling
-        advanced_align_roll recalculates alignQ_B2T without new sync points.
+        advanced_align_rbc recalculates alignQ_B2T without new sync points.
         RBC is applied here at query time, not at storage time.
         """
-        if Config.advanced_align_roll:
+        if Config.advanced_align_rbc:
             motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
             motorQ_adj, _   = apply_rotation_bias_corrQ_RBC(motorQ_entry)
             eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
@@ -2040,7 +2040,7 @@ class SyncManager:
         cameraQ = self.alignQ_B2T * motorQ_C2B
 
         # Apply Local Gaussian Correction (LGC)
-        if Config.advanced_align_local:
+        if Config.advanced_align_lgc:
             corrQ_LGC, self.lgc_error = self.get_local_residual_correction(cameraQ)
             if corrQ_LGC is not None:
                 cameraQ = corrQ_LGC * cameraQ
@@ -2067,7 +2067,7 @@ class SyncManager:
             cameraQ_C2T = corrQ_roll_undo * cameraQ_C2T
 
         # Undo Local Guassian Correction (LGC) 
-        if Config.advanced_align_local:
+        if Config.advanced_align_lgc:
             corrQ_LGC, _ = self.get_local_residual_correction(cameraQ_C2T)
             if corrQ_LGC is not None:
                 cameraQ_C2T = corrQ_LGC.inverse * cameraQ_C2T
@@ -2090,7 +2090,7 @@ class SyncManager:
             omega_topo = q_roll_undo.rotate(omega_topo)
 
         # Undo Local Guassian Correction (LGC) 
-        if Config.advanced_align_local:
+        if Config.advanced_align_lgc:
             q_local, _ = self.get_local_residual_correction(cameraQ_C2T)
             if q_local is not None:
                 omega_topo = q_local.inverse.rotate(omega_topo)
@@ -2285,7 +2285,7 @@ class SyncManager:
             self.alignQ_B2T_inv = self.alignQ_B2T.inverse
 
             # If not optimal sidereal tracking then tweak QUEST model to zero our residual on final syncpoint
-            if not Config.advanced_align_local:
+            if not Config.advanced_align_lgc:
                 self.apply_last_syncpoint_residual_to_model()
                 
             self.alignQ_B2T_message = "QUEST solution applied"
@@ -2531,7 +2531,7 @@ class SyncManager:
 
             self.logger.info(
                 f"QUEST Model | Points: {len(active)} | "
-                f"RBC: {'ON' if Config.advanced_align_roll else 'OFF'} | " 
+                f"RBC: {'ON' if Config.advanced_align_rbc else 'OFF'} | " 
                 f"RMS Residual: {deg2dms(rms)} | "
                 f"Az Correction: {deg2dms(self.az_adj)} | "
                 f"Tilt: {deg2dms(self.tilt_adj_mag)} @ {deg2dms(self.tilt_adj_az)} | "

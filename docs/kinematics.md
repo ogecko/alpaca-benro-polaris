@@ -80,9 +80,9 @@ This leaves a **residual pointing error**, the difference between the model's pr
 The Alpaca Driver utilizes three distinct strategies to handle these residuals, ensuring the mount's "Present Value" matches the sky as accurately as possible:
 
 1.  **Tracking Optimised Correction (TOC):**
-    In this approach, no correction is made to optimise slew and cetner operations. The QUEST model is maintained as globally optimal aimed for best sidereal tracking results.
+    In this approach, you disable Slew & Center Correction, ie no correction is made to optimise slew and center operations. The QUEST model is maintained as globally optimal for sidereal tracking.
     
-2.  **Last Zero Correction (LZC):**
+2.  **Zero Last Residual (ZLR):**
     In this approach, the driver forces the QUEST model to ensure the **last sync point always has a zero residual**. When a new sync is performed, the model essentially "shifts" its understanding of the sky so that the current orientation is perfectly anchored to the observed coordinates. This provides an immediate, absolute correction for the current target but can affect the global fit of the rest of the model.
 
 3.  **Local Gaussian Correction (LGC):** (Recommended)
@@ -150,7 +150,7 @@ While the default coefficients are derived from extensive testing and are suffic
 #### **VI. Important Implementation Details**
 *   **Stability:** Because these coefficients reflect the mechanical characteristics of the M3 encoder and arm, they are highly stable and do not need to be recalculated unless the hardware is modified.
 *   **Inverse Kinematics:** No inverse RBC correction is required in the kinematic chain because the bias is handled at the **measurement/telemetry stage**.
-*   **QUEST Integration:** Toggling RBC (via `advanced_align_roll`) allows the QUEST algorithm to immediately recalculate the alignment model using the corrected sync history without requiring new observations.
+*   **QUEST Integration:** Toggling RBC (via `advanced_align_rbc`) allows the QUEST algorithm to immediately recalculate the alignment model using the corrected sync history without requiring new observations.
 
 #### **VII. Roll Error (arcmin)**
 

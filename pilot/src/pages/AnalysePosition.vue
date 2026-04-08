@@ -73,11 +73,11 @@
                 <q-timeline-entry title="Error Corrections" subtitle="Adjust" icon="mdi-axis-x-rotate-clockwise">
                   <div v-if="cfg.advanced_pec" class="ok terminal">{{`PEC: Predictive Error Correction                     Use PHD2`}}</div>
                   <div v-else class="haz terminal">PEC: Disabled</div>
-                  <div v-if="cfg.advanced_align_roll">
+                  <div v-if="cfg.advanced_align_rbc">
                     <VField label="RBC: Rotation Bias Correction                        Roll Adj " :val="p.rbcerror" unit="deg_ofst"/>
                   </div>
                   <div v-else class="haz terminal">RBC: Disabled</div>
-                  <div v-if="cfg.advanced_align_local">
+                  <div v-if="cfg.advanced_align_lgc">
                     <VField label="LGC: Local Guassian Correction         Last Sync Residual Adj " :val="p.lgcerror" unit="deg_ofst"/>
                   </div>
                   <div v-else class="haz terminal">LGC: Disabled</div>

@@ -623,7 +623,7 @@ class Polaris:
             motorQ_state = theta_to_q(*self._theta_state)
 
             # Optionally apply Rotation Bias Correction (RBC)
-            if Config.advanced_align_roll:
+            if Config.advanced_align_rbc:
                 self._motorQ_adj, self._rbc_error = apply_rotation_bias_corrQ_RBC(motorQ_state)
                 self._theta_adj = np.array(q_to_theta(self._motorQ_adj, self._pid._lp))
             else:

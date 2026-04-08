@@ -144,11 +144,14 @@
                 <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_align_local', 'Local Gaussian Correction')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_align_roll', 'Rotation Bias Correction')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_slew_center', 'Slew & Center Correction')"/>
+                <div v-if="cfg.advanced_slew_center">
+                  <span>Zero Last Residual</span><q-toggle class='col-6' v-bind="bindField('advanced_align_lgc', 'Local Gaussian Correction')"/>
+                </div>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Predictive Error Correction (PEC)')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_align_rbc', 'Rotation Bias Correction')"/>
               </div>
               <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
                 <q-select
