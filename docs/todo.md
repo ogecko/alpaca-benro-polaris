@@ -10,7 +10,11 @@
 - [X] Persist Multi-Point alignment model through Driver restarts
 - [X] Fix Multi-Point Alignment without final zero adjust (goto adj)
 - [X] RBC Rotation Based Correction to fix M3 bias effecting Az and Roll (based on plate-solve test)
-- [ ] Update Kinematics page in Pilot
+- [X] Refactor Kinematics page in Pilot
+- [ ] Complete Kinematics page motor output
+- [ ] Explore how to reduce sidereal tracking drift - incorporate agregated pulse guidace offset into model, or manual adjustment of polar alignment
+- [ ] Debug suspect Stellarium memory usage leakage
+- [ ] Debug 518 message intermittant miss
 - [ ] PEC control (how to detect phase?)
 - [ ] Create video of new features - Large Roll Direction Maintain, Large -ve Az, Pulse Guide Accuracy, PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy, Stop and Restart Driver
 
