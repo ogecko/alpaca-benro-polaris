@@ -121,11 +121,6 @@
                     <VField label="   z " :val="p.qpv[3]" unit="number"/>
                   </div>
                   <div>
-                    <VField label="theta_pv:*   t1 " :val="p.tstate[0]" unit="deg"/>
-                    <VField label="   |   t2 " :val="p.tstate[1]" unit="deg"/>
-                    <VField label="   |   t3 " :val="p.tstate[2]" unit="deg"/>
-                  </div>
-                  <div>
                     <VField label="alpha_pv:    Az " :val="p.azimuth" unit="deg"/>
                     <VField label="   |  Alt " :val="p.altitude" unit="deg"/>
                     <VField label="   | Roll " :val="p.roll" unit="deg"/>
@@ -165,7 +160,6 @@
                 <q-timeline-entry title="Pulse Guide and Slew" subtitle="Adjust" icon="mdi-pulse">
                   <div v-if="cfg.advanced_guiding" >
                     <VField label="delta_guide: RA " :val="p.dguide[0]" unit="hr/s"/>
-
                     <VField label=" |  Dec " :val="p.dguide[1]" unit="deg/s"/>
                     <VField label=" | PosA " :val="p.dguide[2]" unit="deg/s"/>
                   </div>
@@ -203,27 +197,36 @@
                     <VField label="   |  Alt " :val="p.alpharef[1]" unit="deg"/>
                     <VField label="   | Roll " :val="p.alpharef[2]" unit="deg"/>
                   </div>
-                  <div class="ok terminal">omega_ref</div>
-                  <div class="ok terminal">cameraQ_step</div>
                 </q-timeline-entry>
-                <q-timeline-entry title="Multi-Point Alignment" subtitle="Solve" icon="mdi-rotate-orbit">
-                  <div class="ok terminal">theta_ref</div>
-                  <div class="ok terminal">theta_pv</div>
+                <q-timeline-entry title="Multi-Point Alignment (Inverse)" subtitle="Solve" icon="mdi-rotate-orbit">
                 </q-timeline-entry>
                 <q-timeline-entry icon="mdi-chart-bell-curve-cumulative">
                   <template v-slot:title>PID Controller <PIDStatus /></template>
                   <template v-slot:subtitle>Control</template>
-                  <div class="ok terminal">omega_Kp</div>
-                  <div class="ok terminal">omega_Ki</div>
-                  <div class="ok terminal">omega_Kd</div>
-                  <div class="ok terminal">omega_ff</div>
-                  <div class="ok terminal">omega_tgt</div>
+                  <div>
+                    <VField label="omega_ref:   t1 " :val="p.omegaref[0]" unit="deg/s"/>
+                    <VField label=" |   t2 " :val="p.omegaref[1]" unit="deg/s"/>
+                    <VField label=" |   t3 " :val="p.omegaref[2]" unit="deg/s"/>
+                  </div>
+                  <div>
+                    <VField label="theta_ref:   t1 " :val="p.tref[0]" unit="deg"/>
+                    <VField label="   |   t2 " :val="p.tref[1]" unit="deg"/>
+                    <VField label="   |   t3 " :val="p.tref[2]" unit="deg"/>
+                  </div>
+                  <div>
+                    <VField label="theta_pv:    t1 " :val="p.tadj[0]" unit="deg"/>
+                    <VField label="   |   t2 " :val="p.tadj[1]" unit="deg"/>
+                    <VField label="   |   t3 " :val="p.tadj[2]" unit="deg"/>
+                  </div>
                 </q-timeline-entry>
-                <q-timeline-entry title="Speed & Accel Governer" subtitle="Limit" icon="mdi-format-vertical-align-top">
-                  <div class="ok terminal">omega_op</div>
+                <q-timeline-entry title="Position, Speed & Acceleration" subtitle="Limit" icon="mdi-format-vertical-align-top">
+                  <div>
+                    <VField label="omega_op:    t1 " :val="p.motorref[0]" unit="deg/s"/>
+                    <VField label=" |   t2 " :val="p.motorref[1]" unit="deg/s"/>
+                    <VField label=" |   t3 " :val="p.motorref[2]" unit="deg/s"/>
+                  </div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
-                  <div class="ok terminal">protocol</div>
                   <div class="ok terminal">{{`Protocol:    M1 +1 30:70 +2     |   M2 +2000           |  M3 `}}</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Motors" ></q-timeline-entry>
