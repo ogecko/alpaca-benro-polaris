@@ -4,15 +4,16 @@
 
 # Alpaca Benro Polaris Driver — Kinematics Reference
 [Overview](#1-overview) | 
-[Base](#21-base-frame-b---representations-and-conversions) | 
-[Topo](#22-topocentric-frame-t---representations-and-conversions) | 
-[Equatorial ](#23-equatorial-frame-e---representations) | 
-[Forward Kinematics](#31-forward-kinematics--motors--sky-angular-position) | 
-[Inverse Kinematics](#32-inverse-kinematics--sky--motors-angular-position) | 
-[Feed Forward](#33-inverse-kinematics--sky--motors-angular-velocity-feed-forward) | 
-[QUEST](#34-quest-alignment-optimisation) |
-[RBC](#35-rotation-bias-correction-rbc) |
-[LGC](#36-local-gaussian-correction-lgc) |
+[QUEST](#21-quest-alignment-optimisation) |
+[Residuals](#22-slew-and-center-correction) |
+[Rotation](#23-rotation-bias-correction-rbc) |
+[PEC](#24-predictive-error-correction-pec) |
+[Base](#31-base-frame-b---representations-and-conversions) | 
+[Topo](#32-topocentric-frame-t---representations-and-conversions) | 
+[Equatorial ](#33-equatorial-frame-e---representations) | 
+[Forward Flow](#41-forward-kinematics--motors--sky-angular-position) | 
+[Inverse Flow](#42-inverse-kinematics--sky--motors-angular-position) | 
+[Feed Forward](#43-inverse-kinematics--sky--motors-angular-velocity-feed-forward) | 
 
 
 ## 1. Overview
@@ -20,11 +21,203 @@
 The Benro Polaris is a 3-axis motorised camera mount. Controlling it precisely requires
 transforming between four reference frames: the camera sensor, the mount base, the local
 sky, and the celestial sphere. This document defines those frames, the variables and
-quaternions that live in each, and the kinematic chains that connect them.
+quaternions that live in each, and the kinematic optimisation and chains that connect them.
+
+
+---
+## 2. Kinematics Optimisation
+The Alpaca Driver achieves superior tracking performance through a multi-layered suite of kinematic corrections that address both global and local mechanical errors. At its foundations is the QUEST model in Multi-Point Alignment. Layered on top of this are corrections for Sync Residuals and Rotation Bias.
+
+### 2.1 QUEST Alignment Optimisation
+
+#### **I. What it is and What it Solves**
+**QUEST (QUaternion ESTimator)** is an advanced mathematical framework used in Multi-Point Alignment (MPA) to calculate the most accurate relationship between your Polaris mount and the night sky. In the context of the Alpaca Driver, it is a **closed-form, quaternion-based solution** designed to solve "Wahba’s problem": determining the optimal rotation that aligns a set of predicted sensor vectors with observed "ground-truth" vectors from plate solving.
+
+Because the Benro Polaris is an **Alt/Az/Roll mount**, it lacks a physical axis naturally aligned with Earth’s rotation. This makes tracking complex, as all three motors must coordinate perfectly to follow a target. QUEST solves several critical hardware and environmental challenges that standard software cannot:
+*   **Mechanical Imperfections:** It compensates for **cone error, polar misalignment, and general mechanical offsets**.
+*   **Tripod Tilt:** A major advantage of QUEST is that **users no longer need to obsess over leveling their tripod**, as the model mathematically detects and corrects for tilt.
+*   **Tracking Accuracy:** It minimizes the angular residuals (errors) between where the mount *thinks* it is pointing and where it *actually* is, leading to superior sidereal tracking for long-exposure deep-sky photography.
+
+#### **II. Integration with Single Point Alignment (SPA)**
+The Alpaca Driver supports two distinct modes: **Single-Point Alignment (SPA)** and **Multi-Point Alignment (QUEST/MPA)**. 
+*   **SPA (The Foundation):** This mirrors the standard Polaris method by syncing to one known celestial position. While simple, it relies on **precise tripod leveling** and is highly susceptible to drift because it cannot account for complex geometric errors.
+*   **QUEST (The Advanced Layer):** QUEST fits "on top" of the basic alignment by utilizing **three or more sync points** to build a detailed 3D correction model. Instead of a single global offset, QUEST finds the **optimal rotation (alignQ_B2T)** that transforms the mount's "Base Frame" into the true "Topocentric Frame" (the actual sky). 
+
+By using QUEST, the driver can correct for the fact that a sync point taken in the East might require a slightly different correction than one taken in the West due to tripod tilt or mechanical flex.
+
+#### **III. The Mathematics of the Model (Briefly)**
+QUEST operates by minimizing a **quadratic loss function**, which is essentially the sum of the squared differences between pairs of reference vectors (stars) and measured vectors (mount sensors). 
+1.  **Vector Pairing:** Each sync point provides a pair of vectors: the **predicted direction** from the mount's internal sensors and the **observed direction** from a plate solve.
+2.  **Davenport Matrix:** The algorithm constructs a specialized matrix (known as a **Davenport Matrix**) from the weighted outer products of these vector pairs.
+3.  **Eigenvector Solution:** The "optimal" alignment is found by identifying the **eigenvector with the largest eigenvalue** of that matrix. This provides a **unit quaternion** that represents the best-fit rotation for the entire system.
+
+#### **IV. How to Use QUEST and Get the Best Results**
+To achieve high-precision results, you must move from simply "syncing" to **strategic modeling**:
+
+*   **Enable MPA:** Ensure Multi-Point Alignment is enabled in the Alpaca Pilot App settings or alignment page.
+*   **Point Selection (The Rule of Three):** You must provide **at least three sync points** to allow the QUEST algorithm to begin building a model.
+*   **Strategic Geometry:** 
+    *   **Celestial Pole:** Always perform a plate solve and sync at the **Celestial Pole** (North or South). This ensures the model has an anchored reference for Earth’s rotation axis.
+    *   **Target Trajectory (DSO Arc):** For the highest accuracy during imaging, place additional sync points **along the trajectory (arc)** that your target object will follow during the night. QUEST provides the best results when it is interpolating between points rather than extrapolating far away from them.
+*   **Monitor Residuals:** Use the **Alignment page in Alpaca Pilot** to review "model residuals". This shows how well the QUEST model fits each sync point. Aim for residuals in the **arc-seconds**; if a point shows residuals of whole degrees, it should be deleted as it is likely a bad solve.
+*   **Persistence:** From version 2.2 onwards, your QUEST model is **saved to disk**. You can restart the driver or your MiniPC mid-session without losing your refined alignment.
+*   **Local Refinement:** The driver also applies a **Local Gaussian Correction (LGC)** on top of the QUEST model, which further eliminates any tiny remaining residuals specifically around your last sync point.
+
+---
+### 2.2 Slew & Center Correction
+
+#### **I. What it is and What it Solves**
+In high-precision astrophotography, the **Slew & Center** operation is a critical workflow where the mount slews to a target, performs a plate-solve to verify its position, and then makes a corrective slew to center the object, repeating the process until it is centered perfectly. The primary aim of **Slew & Center Correction** is to speed up this process by **reducing the number of correction slews** needed to zero in on a target. 
+
+Without this correction, even a high-quality global alignment model (like QUEST) may have a small residual error at any given sky position. When a controlling application (such as NINA) performs a corrective slew based on a residual error, it may require several iterations to narrow in on the target. If the residual at the target is large and you have configureda very low pointing tollerance, the Slew & Center operation may struggle to complete.
+
+#### **II. The Challenge: Global vs. Local Accuracy**
+The QUEST algorithm finds a global optimum by fitting a single rigid-body rotation across all available sync points. While this provides excellent average accuracy across the entire sky, it cannot perfectly satisfy every individual sync point simultaneously. 
+
+This leaves a **residual pointing error**, the difference between the model's predicted position and the actual observed plate-solved position. To achieve near-instant centering, the driver must account for this residual immediately after a sync occurs.
+
+#### **III. Three Approaches to Correction**
+The Alpaca Driver utilizes three distinct strategies to handle these residuals, ensuring the mount's "Present Value" matches the sky as accurately as possible:
+
+1.  **Tracking Optimised Correction (TOC):**
+    In this approach, no correction is made to optimise slew and cetner operations. The QUEST model is maintained as globally optimal aimed for best sidereal tracking results.
+    
+2.  **Last Zero Correction (LZC):**
+    In this approach, the driver forces the QUEST model to ensure the **last sync point always has a zero residual**. When a new sync is performed, the model essentially "shifts" its understanding of the sky so that the current orientation is perfectly anchored to the observed coordinates. This provides an immediate, absolute correction for the current target but can affect the global fit of the rest of the model.
+
+3.  **Local Gaussian Correction (LGC):** (Recommended)
+    LGC is a more sophisticated method that corrects the residual **locally around the most recent sync point** without disrupting the global integrity of the QUEST model. It applies the full correction at the exact sync location and then gracefully "fades" that correction back to the standard QUEST model as the mount moves away.
+
+#### **IV. The Mathematics of LGC**
+LGC uses a **Gaussian weighting function** to determine how much of the local residual should be applied based on the angular distance from the last sync point. The correction fades to identity (zero additional correction) as the distance increases.
+
+The formula for the weight is:
+>>**$weight = exp(−angular\_distance² / (2 · \sigma²))$**
+
+*   **$\sigma$ (Sigma):** This is the "spread" of the correction, with a **default value of 15°**.
+*   **At the Sync Point:** The weight is 1.0, meaning the **full residual correction** is applied.
+*   **At 15° Away:** The weight drops to approximately 0.61 (61% correction).
+*   **At 30° Away:** The weight drops to approximately 0.14 (14% correction).
+*   **Beyond 45°:** The weight is less than 0.05, meaning the LGC is effectively inactive and the mount relies solely on the QUEST model.
+
+#### **V. Operational Benefits**
+*   **Faster Centering:** By eliminating the local residual at the target, the first "corrective slew" issued by imaging software is far more likely to be the only one needed.
+*   **Seamless Transitions:** Because the correction uses a Gaussian fade, there are no mechanical discontinuities or "jumps" as the mount moves across the sky.
+*   **Persistence:** In version 2.2 and later, this local alignment improvement is integrated into the motion control chain, appearing in the process variable (**_pv**) after the Kalman Filter and QUEST stages.
+
+
+
+---
+### 2.3 Rotation Bias Correction (RBC)
+
+The **Rotation Bias Correction (RBC)** is a specialized kinematic model designed to compensate for systematic reporting errors in the Benro Polaris Internal Measurement Unit (IMU). While the mount’s hardware is robust, the IMU mis-reports the camera rotation angle based on its specific mechanical orientation, leading to significant pointing inaccuracies that standard alignment models cannot resolve.
+
+#### **I. What it is and What it Solves**
+RBC is a **non-rigid-body correction** that adjusts for errors in the M3 (Astro) axis. Unlike traditional alignment issues caused by tripod tilt or polar misalignment, which are "rigid" and apply globally, Rotation Bias is **orientation-dependent**. The magnitude of the error changes based on the current **altitude (p_alt)** and **rotation angle (p_roll)**.
+
+Without RBC, a sync point taken at one rotation angle would provide contradictory data to a sync point taken at a different rotation angle, even if the Azimuth and Altitude were identical. This prevents the QUEST alignment algorithm from converging on a stable, accurate solution. By applying RBC at the measurement stage, the driver ensures that the alignment model receives "clean" data, allowing for high-precision pointing across the entire sky.
+
+#### **II. Root Cause and Discovery**
+The error was discovered after analyzing a "porcupine grid" of approximately **1,000 plate-solved images** captured across various mechanical positions. By using Single Point Alignment (SPA) to isolate variables, we identified a residual error that persisted even after accounting for global bias and polar misalignment.
+
+The **root cause** lies in two coupled encoder errors within the M3 axis (theta3):
+*   **Gain Error (roll_model_a):** The M3 axis reports slightly less physical rotation than what actually occurred. This error is amplified at high altitudes because roll errors project more dramatically onto Azimuth as coordinates converge toward the zenith.
+*   **Zero-Point Offset (roll_model_b):** A fixed mechanical bias where the IMU believes the camera is level (theta3=0) when it is actually slightly tilted.
+
+#### **III. Magnitude of the Error**
+The impact of this bias is modest at low altitudes but becomes severe as the mount points toward the zenith or uses aggressive roll angles.
+*   **At 0° Altitude and 70° Roll:** The error is relatively small, causing a maximum of ±18 arcmin of roll error.
+*   **At 70° Altitude and 70° Roll:** The uncorrected error is massive, causing **±205 arcmin (~3.4°)** in roll error and a staggering **±563 arcmin (~9.4°)** in azimuth error.
+
+#### **IV. The Mathematical Model**
+The driver uses a fitted coefficients model to calculate the required correction in real-time:
+
+>>**$roll\_error (arcmin) = (roll\_model\_a \cdot tan(alt) + roll\_model\_b) \cdot p\_roll$**
+
+>>**$az\_error (arcmin) = (roll\_model\_c \cdot  p\_roll\_error$**
+
+This formula allows the driver to predict and negate the IMU's reporting error before the coordinates are used for tracking or GOTOs.
+
+#### **V. How to Perform Your Own Calibration**
+While the default coefficients are derived from extensive testing and are sufficient for most users, advanced specialists can use the **`fits_extract.py`** utility to fine-tune the model for their specific Polaris unit.
+
+1.  **Data Collection:** Using **Single Point Alignment** (not Multi-Point), capture a wide grid of images covering various Alt, Az, and Roll positions. Aim for full coverage of the roll range at multiple altitudes.
+2.  **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
+3.  **Extraction:** Run the script with the `-extract` flag: `python fits_extract.py -extract`. This reads the FITS headers and builds a CSV comparing predicted positions with plate-solved ground truth.
+4.  **Modeling:** Run the script with the `-model` flag: `python fits_extract.py -model`. This fits the RBC coefficients (`roll_model_a`, `roll_model_b` and `roll_model_c`) to your data.
+5.  **Application:** Manually update the derived coefficients in your **`config.toml`** file.
+
+#### **VI. Important Implementation Details**
+*   **Stability:** Because these coefficients reflect the mechanical characteristics of the M3 encoder and arm, they are highly stable and do not need to be recalculated unless the hardware is modified.
+*   **Inverse Kinematics:** No inverse RBC correction is required in the kinematic chain because the bias is handled at the **measurement/telemetry stage**.
+*   **QUEST Integration:** Toggling RBC (via `advanced_align_roll`) allows the QUEST algorithm to immediately recalculate the alignment model using the corrected sync history without requiring new observations.
+
+#### **VII. Roll Error (arcmin)**
+
+| alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **0°** | -18 | -15 | -13 | -10 | -8 | -5 | -3 | +0 | +3 | +5 | +8 | +10 | +13 | +15 | +18 |
+| **10°** | -30 | -25 | -21 | -17 | -13 | -8 | -4 | +0 | +4 | +8 | +13 | +17 | +21 | +25 | +30 |
+| **20°** | -42 | -36 | -30 | -24 | -18 | -12 | -6 | +0 | +6 | +12 | +18 | +24 | +30 | +36 | +42 |
+| **30°** | -57 | -49 | -41 | -33 | -24 | -16 | -8 | +0 | +8 | +16 | +24 | +33 | +41 | +49 | +57 |
+| **40°** | -75 | -64 | -53 | -43 | -32 | -21 | -11 | +0 | +11 | +21 | +32 | +43 | +53 | +64 | +75 |
+| **50°** | -99 | -85 | -71 | -56 | -42 | -28 | -14 | +0 | +14 | +28 | +42 | +56 | +71 | +85 | +99 |
+| **60°** | -136 | -116 | -97 | -78 | -58 | -39 | -19 | +0 | +19 | +39 | +58 | +78 | +97 | +116 | +136 |
+| **70°** | -205 | -176 | -146 | -117 | -88 | -59 | -29 | +0 | +29 | +59 | +88 | +117 | +146 | +176 | +205 |
+
+#### **VIII. Az Error (arcmin)**
+
+| alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **0°** | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 |
+| **10°** | -5 | -4 | -4 | -3 | -2 | -1 | -1 | +0 | +1 | +1 | +2 | +3 | +4 | +4 | +5 |
+| **20°** | -15 | -13 | -11 | -9 | -7 | -4 | -2 | +0 | +2 | +4 | +7 | +9 | +11 | +13 | +15 |
+| **30°** | -33 | -28 | -23 | -19 | -14 | -9 | -5 | +0 | +5 | +9 | +14 | +19 | +23 | +28 | +33 |
+| **40°** | -63 | -54 | -45 | -36 | -27 | -18 | -9 | +0 | +9 | +18 | +27 | +36 | +45 | +54 | +63 |
+| **50°** | -118 | -101 | -84 | -67 | -50 | -34 | -17 | +0 | +17 | +34 | +50 | +67 | +84 | +101 | +118 |
+| **60°** | -235 | -201 | -168 | -134 | -101 | -67 | -34 | +0 | +34 | +67 | +101 | +134 | +168 | +201 | +235 |
+| **70°** | -563 | -483 | -402 | -322 | -241 | -161 | -80 | +0 | +80 | +161 | +241 | +322 | +402 | +483 | +563 |
+
+
+### 2.4 Predictive Error Correction (PEC)
+
+#### **I. What it is and What it Solves**
+**Predictive Error Correction (PEC)** is a technique used to mitigate systematic, repeating tracking errors caused by mechanical imperfections in a mount's drive system, such as gear tooth irregularities or motor inconsistencies. While the Benro Polaris hardware is excellent, its inherent mechanical imprecision and gear-driven nature can lead to "periodic error", ie small, predictable oscillations in tracking that cause stars to trail during long exposures.
+
+PEC solves this by identifying these repeating patterns and applying proactive corrections. Instead of just reacting to a star moving off-center, a predictive system anticipates the movement based on previous cycles and counteracts it before the error becomes visible in the image.
+
+#### **II. Implementation: External Reliance**
+Currently, the **Alpaca Driver does not have a native, internal PEC recording and playback feature**. Instead, the system relies entirely on external **auto-guiding applications**, most notably **PHD2**, to handle the logic of error detection and prediction.
+
+The workflow functions as a high-speed feedback loop:
+1.  **PHD2** monitors a guide star and calculates the deviation from its expected position.
+2.  Using its internal algorithms (such as the **Predictive PEC** or **Proactive PEC** guide algorithms), PHD2 models the periodic error.
+3.  PHD2 sends **pulse-guiding correction commands** via the ASCOM/Alpaca interface to the driver.
+4.  The Alpaca Driver refines the target’s equatorial setpoints and translates these into precise, coordinated motor-level adjustments (M1, M2, and M3) to negate the error.
+
+#### **III. PHD2 Predictive Modeling Summary**
+PHD2’s approach to predictive correction is built into its "Brain" settings and advanced guiding algorithms. It employs a sophisticated mathematical approach to tracking:
+*   **Cycle Analysis:** The software observes the mount's behavior over one or more worm gear cycles to identify the frequency and amplitude of the periodic error.
+*   **Gaussian Process Regression:** In its most advanced "Predictive PEC" algorithm, PHD2 uses Gaussian processes to model the non-linear errors of the mount and predict future deviations.
+*   **Pulse Translation:** Once an error is predicted, PHD2 issues a "pulse" of a specific duration. The Alpaca Driver interprets this as a temporary velocity change, adjusting the mount's tracking rate for the duration of the pulse to keep the star centered.
+
+#### **IV. How to Use and Get the Best Results**
+To achieve the best predictive results with the Benro Polaris, focus on the following configuration steps in PHD2 and the Alpaca Pilot App:
+
+*   **Multi-Star Guiding:** Always enable **"Use Multiple Stars"** in PHD2’s Advanced Settings. This provides a much cleaner signal for the predictive algorithm by averaging out atmospheric turbulence (seeing), preventing the PEC model from trying to "chase the wind".
+*   **Proper Calibration:** Ensure you calibrate PHD2 near the **celestial equator and the meridian**. This is where the mount's movement is most sensitive and provides the most accurate data for the predictive model.
+*   **Optimize Guide Rates:** Set the **Guide Rate** in the Alpaca Pilot Settings (typically **0.75x or 1.0x Sidereal**). If the predictive algorithm causes the mount to oscillate or over-correct, lowering this rate can smooth the response.
+*   **Monitor Residuals:** Use the **PHD2 Graph and Stats** to monitor performance. The Polaris is capable of achieving an **RMS Error of 1.5 to 3.0 arc-seconds** when the predictive model is correctly tuned.
+*   **16-Bit Camera Mode:** Configure your guide camera for **16-bit mode** and high ADU saturation values to provide PHD2 with the highest possible bit-depth for identifying subtle star movements.
+
+#### **V. Important Considerations**
+*   **Sidereal Only:** PEC via auto-guiding is designed for **sidereal tracking** of DSOs and stars. It is not suitable for Lunar, Solar, or custom orbital tracking.
+*   **Not a Total Cure:** While PEC via PHD2 is a powerful fine-correction tool, it cannot compensate for major mechanical issues like cable drag, severe tripod instability, or poor initial alignment.
+*   **Driver Refinements:** Starting with version 2.2, the driver has **refined pulse-guiding accuracy** by incorporating PID feed-forward control, which ensures that external PEC commands from PHD2 are executed with higher fidelity.
 
 ---
 
-## 2. Reference Frames
+## 3. Reference Frames
 
 Each frame has a fixed set of basis axes. The scale of each reference frame is arbitrary, since Polaris kinematic mathematics is angle-based, and quaternions are defined on a unit sphere. Vectors and quaternions are tagged with
 the frame they are expressed in.
@@ -38,7 +231,7 @@ the frame they are expressed in.
 
 ---
 
-### 2.1 Base Frame (B) - Representations and Conversions
+### 3.1 Base Frame (B) - Representations and Conversions
 
 #### Mechanical Orientation and Angular Velocity
 The Base Frame represents the mechanical orientation of the mount as either motor angles
@@ -83,7 +276,7 @@ Suffixes distinguish the level of processing applied to a mechanical orientation
 
 ---
 
-### 2.2 Topocentric Frame (T) - Representations and Conversions
+### 3.2 Topocentric Frame (T) - Representations and Conversions
 
 #### Sky Orientation and Angular Velocity
 
@@ -109,7 +302,7 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 
 ---
 
-### 2.3 Equatorial Frame (E) - Representations
+### 3.3 Equatorial Frame (E) - Representations
 
 #### Equatorial Orientation
 | Representation | Type   | Description                                                                                  | Use for                        |
@@ -128,10 +321,10 @@ Conversion between T and E frames is handled by `pyephem` using the observer's s
 coordinates and time. Angles are always used in practice for the E frame.
 
 ---
-## 3. Kinemtaics Flows
+## 4. Kinemtaics Flows
 
 
-### 3.1 Forward Kinematics — Motors → Sky Angular Position
+### 4.1 Forward Kinematics — Motors → Sky Angular Position
 
 Converts the raw IMU quaternion from the Polaris device into a fully corrected sky
 orientation. 
@@ -160,7 +353,7 @@ alpha_pv               (a_az, a_alt, a_roll) = q_to_azaltroll(cameraQ_pv)
 delta_pv               (a_ra, a_dec, a_pa)   = pyephem(az, alt, roll), used as ASCOM co-ordinates
 ```
 
-### 3.2 Inverse Kinematics — Sky → Motors Angular Position
+### 4.2 Inverse Kinematics — Sky → Motors Angular Position
 
 Converts a target sky orientation into the motor angles required to achieve it. Undoes
 corrections in exact reverse order of the forward chain. No `corrQ_RBC⁻¹` is needed as
@@ -215,7 +408,7 @@ polaris_protocol         Slew SLOW and FAST commands
 
 ---
 
-### 3.3 Inverse Kinematics — Sky → Motors Angular Velocity (Feed Forward)
+### 4.3 Inverse Kinematics — Sky → Motors Angular Velocity (Feed Forward)
 
 Converts the rate of change of the sky target into motor joint rates for sidereal tracking
 feed-forward. The Jacobian `J(theta_adj)` is expressed in the **B frame**, so `omega_topo`
@@ -240,155 +433,10 @@ theta_dot               Motor joint rates (radians)
 omega_ff                Feed-forward motor joint rates
 ```
 
----
-
-### 3.4 QUEST Alignment Optimisation
-
-QUEST finds the optimal `alignQ_B2T` that minimises the angular residual between
-IMU-predicted and plate-solved observed positions across all sync points.
-
-Smoothed `alpha_state` values (`p_az`, `p_alt`, `p_roll`) are stored in sync history. RBC is
-applied at optimisation time so that toggling `advanced_align_roll` immediately
-recalculates `alignQ_B2T` without requiring new sync observations.
-
-```
-For each sync point in history:
-
-    v_pred = azalt_to_vector(p_az, p_alt)              ← alpha_raw stored values
-
-    if advanced_align_roll:
-        motorQ_entry = azaltroll_to_q(p_az, p_alt, p_roll)
-        motorQ_adj   = corrQ_RBC ∘ motorQ_entry         ← apply RBC at optimisation time
-        v_pred       = azalt_to_vector(*q_to_azaltroll(motorQ_adj)[:2])
-
-    v_obs = azalt_to_vector(a_az, a_alt)               ← plate-solved observed position
-
-QUEST optimises alignQ_B2T to minimise Σ angle(alignQ_B2T · v_pred, v_obs)
-```
-
----
-### 3.5 Rotation Bias Correction (RBC)
-
-Through extensive testing (around 1,000 plate-solves across a grid of mechanical 
-positions), we confirmed that the Polaris IMU systematically mis-reports the camera 
-rotation angle. This causes a predictable pointing offset whose magnitude depends on 
-the current rotation angle (p_roll) and altitude (p_alt).
-
-Because the error changes with mechanical orientation, it cannot be absorbed by 
-QUEST's rigid-body alignment. A sync point taken at one rotation angle gives QUEST 
-contradictory information to a sync point taken at the same altitude and azimuth but at a different rotation angle, 
-preventing convergence to a stable solution.
-
-The effect is modest at low altitudes and small rotation angles, but grows significantly with larger altitudes (toward the zenith) and with larger roll angles (away from horizontal). At 70° altitude and ±70° rotation, the uncorrected error reaches ±205 arcmin in roll and ±563 arcmin (~9°) in azimuth.
-
-#### Root Cause
-
-M3 (theta3) controls the camera up-vector rotation. The IMU has two coupled encoder
-errors in M3:
-
-| Coefficient     | Physical Meaning                                                                 |
-|-----------------|----------------------------------------------------------------------------------|
-| `roll_model_a`  | **Gain error** — M3 reports slightly less rotation than actually occurred. Scales with altitude because a roll error projects onto Az by `tan(alt)` as azimuth lines converge toward the zenith. Hardware characteristic of the Polaris unit (encoder linearity, mechanical flex in M3 arm). Stable across setups and SPA alignments. |
-| `roll_model_b`  | **Zero-point offset** — IMU believes theta3=0 but the camera up-vector is not quite level. Residual bias at zero altitude independent of how far M3 has rotated. Also a hardware characteristic, stable across setups. |
-
-#### Discovery and Calibration
-
-The error was discovered by plate-solving ~1000 images across a porcupine grid of
-Az/Alt/Roll positions using Single Point Alignment (no QUEST). Three components of the deviation between plate-solved and predicted positions (`dev_roll`), were identified:
-
-| Component | Description                                              | Handled by        |
-|-----------|----------------------------------------------------------|-------------------|
-| [1] Global SPA bias    | ~2.5° constant roll offset from SPA-only alignment | QUEST (any sync point) |
-| [2] Polar misalignment | ~0.9° sinusoidal Az-dependent variation from mount tilt | QUEST (multi-point sync) |
-| [3] Rotation bias      | Roll-dependent residual — `f(p_roll, p_alt)` | RBC — QUEST cannot fix this |
-
-Component [3] is what RBC corrects. After removing [1] and [2], the residual follows:
-
-roll_error (arcmin) = (roll_model_a · tan(alt) + roll_model_b) · p_roll
----
-
-Fitted from calibration data: R² = 0.995 for slope vs tan(alt), per-cell R² > 0.96.
-Given this fitted model, the Roll and Az corrections are as follows
-#### Roll Error (arcmin)
-
-| alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **0°** | -18 | -15 | -13 | -10 | -8 | -5 | -3 | +0 | +3 | +5 | +8 | +10 | +13 | +15 | +18 |
-| **10°** | -30 | -25 | -21 | -17 | -13 | -8 | -4 | +0 | +4 | +8 | +13 | +17 | +21 | +25 | +30 |
-| **20°** | -42 | -36 | -30 | -24 | -18 | -12 | -6 | +0 | +6 | +12 | +18 | +24 | +30 | +36 | +42 |
-| **30°** | -57 | -49 | -41 | -33 | -24 | -16 | -8 | +0 | +8 | +16 | +24 | +33 | +41 | +49 | +57 |
-| **40°** | -75 | -64 | -53 | -43 | -32 | -21 | -11 | +0 | +11 | +21 | +32 | +43 | +53 | +64 | +75 |
-| **50°** | -99 | -85 | -71 | -56 | -42 | -28 | -14 | +0 | +14 | +28 | +42 | +56 | +71 | +85 | +99 |
-| **60°** | -136 | -116 | -97 | -78 | -58 | -39 | -19 | +0 | +19 | +39 | +58 | +78 | +97 | +116 | +136 |
-| **70°** | -205 | -176 | -146 | -117 | -88 | -59 | -29 | +0 | +29 | +59 | +88 | +117 | +146 | +176 | +205 |
-
-#### Az Error (arcmin)
-
-| alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **0°** | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 |
-| **10°** | -5 | -4 | -4 | -3 | -2 | -1 | -1 | +0 | +1 | +1 | +2 | +3 | +4 | +4 | +5 |
-| **20°** | -15 | -13 | -11 | -9 | -7 | -4 | -2 | +0 | +2 | +4 | +7 | +9 | +11 | +13 | +15 |
-| **30°** | -33 | -28 | -23 | -19 | -14 | -9 | -5 | +0 | +5 | +9 | +14 | +19 | +23 | +28 | +33 |
-| **40°** | -63 | -54 | -45 | -36 | -27 | -18 | -9 | +0 | +9 | +18 | +27 | +36 | +45 | +54 | +63 |
-| **50°** | -118 | -101 | -84 | -67 | -50 | -34 | -17 | +0 | +17 | +34 | +50 | +67 | +84 | +101 | +118 |
-| **60°** | -235 | -201 | -168 | -134 | -101 | -67 | -34 | +0 | +34 | +67 | +101 | +134 | +168 | +201 | +235 |
-| **70°** | -563 | -483 | -402 | -322 | -241 | -161 | -80 | +0 | +80 | +161 | +241 | +322 | +402 | +483 | +563 |
-
-The key takeaways are clear from the numbers, roll correction at typical observing altitudes (40°–60°) ranges from around ±75 to ±136 arcmin at maximum p_roll. The az correction is much more dramatic, reaching ±563 arcmin (nearly 10°) at 70° altitude and ±70° p_roll.
-
-#### Re-Calibration of the model parameters
-A calibration utility, `fits_extract.py`, is provided to derive the correction 
-coefficients for your specific mount. This script is optional as the standard model parameters should be sufficient. Re-calibrating is only recommended for advanced technical specialists, aiming to optimise their performance without additional support. To use it:
-
-1. Capture images across a grid of altitude, azimuth and rotation positions using 
-   Single Point Alignment (no QUEST). Aim for good coverage across the full rotation 
-   range at several altitude and azimuth combinations.
-2. Batch plate-solve all images using ASTAP.
-3. Run `fits_extract.py -extract` to read the FITS files and build a CSV of predicted 
-   versus plate-solved values.
-4. Run `fits_extract.py -model` to fit the correction model and print the 
-   `roll_model_a` and `roll_model_b` coefficients for your mount.
-5. Adjust these parameters by editing directly in `config.toml`
-
-The default coefficients were derived from a 1,000 image test on a single unit. 
-As the coefficients reflect hardware characteristics of the M3 encoder, linearity 
-and zero-point offset, they should be stable across setups and SPA alignments, 
-but may differ between individual Polaris units.
-
----
-### 3.6 Local Gaussian Correction (LGC)
-
-Even after QUEST alignment, a small residual pointing error typically remains at any
-given sky position. This occurs because QUEST fits a single rigid-body rotation
-(`alignQ_B2T`) across all sync points. It finds the global optimum but cannot perfectly
-satisfy every individual point. 
-
-This can be a problem for **Slew and Center** commands that verify the accuracy of a GOTO command. After a plate-solve, the controlling application makes a corrective slew to the target. If there is a residual error at this sync point, then it may take several corrective slews to narrow in on the target. The LGC corrects this residual locally around the most
-recent sync point, fading to identity as the mount moves away.
-
-#### Concept
-
-After a sync, the residual error at that sync point is known exactly. It is the
-difference between the QUEST-corrected predicted position and the observed plate-solved
-position. LGC applies this residual as a full correction at the sync point, then
-spatially fades it using a Gaussian weight as a function of angular distance:
-
-**weight = exp(−angular_distance² / (2 · σ²))**
-**where: σ = 15° (default)**
-
-At the sync point itself: `weight = 1.0` — full correction applied.  
-At 15° away: `weight = exp(-0.5) ≈ 0.61` — correction at 61%.  
-At 30° away: `weight = exp(-2.0) ≈ 0.14` — correction at 14%.  
-Beyond ~45°: `weight < 0.05` — correction effectively zero, LGC inactive.
-
-This means the mount points with maximum accuracy near the last sync point and
-gracefully degrades to QUEST-only accuracy as it moves away, without any
-discontinuity.
 
 
 ---
-## 4. Summary — Full Kinematic Chain
+## 5. Summary — Full Kinematic Chain
 
 ```
 motorQ_raw          (C→B, raw from IMU)
