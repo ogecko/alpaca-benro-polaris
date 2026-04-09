@@ -37,6 +37,7 @@
 
 ## What's new in v2.2.0
 
+- **[Goto Completion]** Reduce post-goto star trails by stabilising tracking before marking goto as complete, tightening tollerance x20 when tracking enabled.
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart.
 - **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
 - **[Alignment Diagnostics]** Improve Multi-Point Alignment Model diagnostic logging.

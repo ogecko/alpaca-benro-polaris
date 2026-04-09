@@ -1290,7 +1290,6 @@ class PID_Controller():
         self.homing_complete_callback = None                 # callback function when reached homing position
         self.is_deviating = False                            # cost signal is > Kc Arc Minutes²
         self.is_slewing = False                              # a velicity_sp is non-zero
-        self.is_tracking = False                             # tracking target body
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
         self.ff_inhibit_ticks = 0                            # number of ticks to supress FF after any SP change
@@ -1787,7 +1786,8 @@ class PID_Controller():
             self.error_signal = clamp_error(self.theta_ref, self.theta_adj)
 
         # Per-axis deviation flags
-        self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
+        tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
+        self.is_axis_deviating = np.abs(self.error_signal) > tollerance
 
         # calc cost signal and flags
         self.is_deviating = np.any(self.is_axis_deviating)
