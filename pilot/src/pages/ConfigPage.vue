@@ -146,7 +146,7 @@
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_slew_center', 'Slew & Center Correction')"/>
                 <div v-if="cfg.advanced_slew_center">
-                  <span>Zero Last Residual</span><q-toggle class='col-6' v-bind="bindField('advanced_align_lga', 'Local Gaussian Adjustment')"/>
+                  <q-toggle class='col-6' v-bind="bindField('advanced_align_lga', scc_option)"/>
                 </div>
               </div>
               <div class="row">
@@ -224,7 +224,7 @@ const cfg = useConfigStore()
 const p = useStatusStore()
 const poll = new PollingManager()
 
-
+const scc_option = computed(() => (cfg.advanced_align_lga? 'Local Guassian Adjustment' : 'Zero Last Residual'))
 const z3curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[2]??0,"deg",1) }));
 const z2curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[1]??0,"deg",1) }));
 const z1curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[0]??0,"deg",1) }));
