@@ -169,22 +169,24 @@
                     <VField label=" | PosA " :val="p.dguide[2]" unit="deg/s"/>
                   </div>
                   <div v-else class="haz terminal">Pulse Guiding: Disabled</div>
-                  <div>
+                  <div v-if="cfg.advanced_slewing" >
                     <VField label="delta_slew:  RA " :val="p.dslew[0]" unit="deg/s"/>
                     <VField label=" |  Dec " :val="p.dslew[1]" unit="deg/s"/>
                     <VField label=" | PosA " :val="p.dslew[2]" unit="deg/s"/>
                   </div>
+                  <div v-else class="haz terminal">Advanced Slewing: Disabled</div>
                   <div>
                     <VField label="delta_offst: RA " :val="p.dofst[0]" unit="deg_ofst"/>
                     <VField label="   |  Dec " :val="p.dofst[1]" unit="deg_ofst"/>
                     <VField label="   | PosA " :val="p.dofst[2]" unit="deg_ofst"/>
                   </div>
                   <div>&nbsp;</div>
-                  <div>
+                  <div v-if="cfg.advanced_slewing">
                     <VField label="alpha_slew:  Az " :val="p.aslew[0]" unit="deg/s"/>
                     <VField label=" |  Alt " :val="p.aslew[1]" unit="deg/s"/>
                     <VField label=" | Roll " :val="p.aslew[2]" unit="deg/s"/>
                   </div>
+                  <div v-else class="haz terminal">Advanced Slewing: Disabled</div>
                   <div>
                     <VField label="alpha_offst: Az " :val="p.aofst[0]" unit="deg_ofst"/>
                     <VField label="   |  Alt " :val="p.aofst[1]" unit="deg_ofst"/>
@@ -193,16 +195,19 @@
                 </q-timeline-entry>
                 <!-- PLANNING REF -->
                 <q-timeline-entry title="Optimal Movement Strategy" subtitle="Plan" icon="mdi-debug-step-over">
-                  <div>
-                    <VField label="delta_ref:   RA " :val="p.deltaref[0]" unit="deg2hr"/>
-                    <VField label="   |  Dec " :val="p.deltaref[1]" unit="deg"/>
-                    <VField label="   | PosA " :val="p.deltaref[2]" unit="deg"/>
+                  <div v-if="cfg.advanced_goto">
+                    <div>
+                      <VField label="delta_ref:   RA " :val="p.deltaref[0]" unit="deg2hr"/>
+                      <VField label="   |  Dec " :val="p.deltaref[1]" unit="deg"/>
+                      <VField label="   | PosA " :val="p.deltaref[2]" unit="deg"/>
+                    </div>
+                    <div>
+                      <VField label="alpha_ref:   Az " :val="p.alpharef[0]" unit="deg"/>
+                      <VField label="   |  Alt " :val="p.alpharef[1]" unit="deg"/>
+                      <VField label="   | Roll " :val="p.alpharef[2]" unit="deg"/>
+                    </div>
                   </div>
-                  <div>
-                    <VField label="alpha_ref:   Az " :val="p.alpharef[0]" unit="deg"/>
-                    <VField label="   |  Alt " :val="p.alpharef[1]" unit="deg"/>
-                    <VField label="   | Roll " :val="p.alpharef[2]" unit="deg"/>
-                  </div>
+                  <div v-else class="haz terminal">Advanced Goto: Disabled</div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Multi-Point Alignment (Inverse)" subtitle="Solve" icon="mdi-rotate-orbit">
                 </q-timeline-entry>
@@ -210,21 +215,24 @@
                 <q-timeline-entry icon="mdi-chart-bell-curve-cumulative">
                   <template v-slot:title>PID Controller <PIDStatus /></template>
                   <template v-slot:subtitle>Control</template>
-                  <div>
-                    <VField label="omega_ref:   t1 " :val="p.omegaref[0]" unit="deg/s"/>
-                    <VField label=" |   t2 " :val="p.omegaref[1]" unit="deg/s"/>
-                    <VField label=" |   t3 " :val="p.omegaref[2]" unit="deg/s"/>
+                  <div v-if="cfg.advanced_tracking">
+                    <div>
+                      <VField label="omega_ref:   t1 " :val="p.omegaref[0]" unit="deg/s"/>
+                      <VField label=" |   t2 " :val="p.omegaref[1]" unit="deg/s"/>
+                      <VField label=" |   t3 " :val="p.omegaref[2]" unit="deg/s"/>
+                    </div>
+                    <div>
+                      <VField label="theta_ref:   t1 " :val="p.tref[0]" unit="deg"/>
+                      <VField label="   |   t2 " :val="p.tref[1]" unit="deg"/>
+                      <VField label="   |   t3 " :val="p.tref[2]" unit="deg"/>
+                    </div>
+                    <div>
+                      <VField label="theta_pv:    t1 " :val="p.tadj[0]" unit="deg"/>
+                      <VField label="   |   t2 " :val="p.tadj[1]" unit="deg"/>
+                      <VField label="   |   t3 " :val="p.tadj[2]" unit="deg"/>
+                    </div>
                   </div>
-                  <div>
-                    <VField label="theta_ref:   t1 " :val="p.tref[0]" unit="deg"/>
-                    <VField label="   |   t2 " :val="p.tref[1]" unit="deg"/>
-                    <VField label="   |   t3 " :val="p.tref[2]" unit="deg"/>
-                  </div>
-                  <div>
-                    <VField label="theta_pv:    t1 " :val="p.tadj[0]" unit="deg"/>
-                    <VField label="   |   t2 " :val="p.tadj[1]" unit="deg"/>
-                    <VField label="   |   t3 " :val="p.tadj[2]" unit="deg"/>
-                  </div>
+                  <div v-else class="haz terminal">PID Controller: Disabled</div>
                 </q-timeline-entry>
                 <!-- SPEED CONTROLLER -->
                 <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
