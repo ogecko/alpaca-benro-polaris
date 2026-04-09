@@ -26,6 +26,7 @@ class Polaris:
         self._sitelatitude = -33.65528161613541
         self.azimuth = 180
         self._pid = PID_Controller()
+        self._motorQ_adj = Quaternion(1,0,0,0)
 
     def update_ascom_from_new_alignQ_B2T(self, q1s):
         a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s)
@@ -38,6 +39,7 @@ class Polaris:
         self._p_altitude = alt
         self._p_roll = roll
         self._q1 = azaltroll_to_q(az, alt, roll)
+        self._motorQ_adj = self._q1
         t1,t2,t3,_,_,_ = quaternion_to_angles(self._q1)
         self._theta_raw = [t1, t2, t3]
         self._roll = roll
