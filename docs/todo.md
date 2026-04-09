@@ -11,7 +11,7 @@
 - [X] Fix Multi-Point Alignment without final zero adjust (goto adj)
 - [X] RBC Rotation Based Correction to fix M3 bias effecting Az and Roll (based on plate-solve test)
 - [X] Refactor Kinematics page in Pilot
-- [ ] Complete Kinematics page motor output, sp highlighting, settings disabling
+- [X] Complete Kinematics page motor output, sp highlighting, settings disabling
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
 - [ ] Explore how to reduce sidereal tracking drift - incorporate agregated pulse guidace offset into model, or manual adjustment of polar alignment
 - [ ] Debug suspect Stellarium memory usage leakage
