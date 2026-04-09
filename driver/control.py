@@ -2009,6 +2009,7 @@ class SyncManager:
     def set_alignQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
+        self.corrQ_LGA = None                   # cach of Local Guassian Correction stored in forward Kinematics path
         self.alignQ_B2T = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # optimised adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_message = ""                # message from last optimisation
@@ -2064,11 +2065,11 @@ class SyncManager:
         # Apply alignQ_B2T model (QUEST)
         cameraQ = self.alignQ_B2T * motorQ_C2B
 
-        # Apply Local Gaussian Correction (LGA)
+        # Apply Local Gaussian Adjustment (LGA)
         if Config.advanced_slew_center and Config.advanced_align_lga:
-            corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ)
-            if corrQ_LGA is not None:
-                cameraQ = corrQ_LGA * cameraQ
+            self.corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ)
+            if self.corrQ_LGA is not None:
+                cameraQ = self.corrQ_LGA * cameraQ
 
         # Apply roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -2091,11 +2092,10 @@ class SyncManager:
             corrQ_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
             cameraQ_C2T = corrQ_roll_undo * cameraQ_C2T
 
-        # Undo Local Guassian Correction (LGA) 
+        # Undo Local Guassian Adjustment (LGA) 
         if Config.advanced_slew_center and Config.advanced_align_lga:
-            corrQ_LGA, _ = self.get_local_guassian_adjustment_q(cameraQ_C2T)
-            if corrQ_LGA is not None:
-                cameraQ_C2T = corrQ_LGA.inverse * cameraQ_C2T
+            if self.corrQ_LGA is not None:
+                cameraQ_C2T = self.corrQ_LGA.inverse * cameraQ_C2T
 
         # Undo alignQ_B2T model (QUEST)
         motorQ_C2B = self.alignQ_B2T_inv * cameraQ_C2T
@@ -2114,11 +2114,10 @@ class SyncManager:
             q_roll_undo = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
             omega_topo = q_roll_undo.rotate(omega_topo)
 
-        # Undo Local Guassian Correction (LGA) 
+        # Undo Local Guassian Adjustment (LGA) 
         if Config.advanced_slew_center and Config.advanced_align_lga:
-            q_local, _ = self.get_local_guassian_adjustment_q(cameraQ_C2T)
-            if q_local is not None:
-                omega_topo = q_local.inverse.rotate(omega_topo)
+            if self.corrQ_LGA is not None:
+                omega_topo = self.corrQ_LGA.inverse.rotate(omega_topo)
 
         # Undo alignQ_B2T model (QUEST)
         omega_base = self.alignQ_B2T_inv.rotate(omega_topo)
