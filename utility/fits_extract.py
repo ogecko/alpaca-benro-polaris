@@ -820,13 +820,17 @@ def process_directory(fits_dir, output_csv):
         print(f"  Az dev:    {stats([r['dev_az_arcmin']   for r in solved_rows])}")
         print(f"  Alt dev:   {stats([r['dev_alt_arcmin']  for r in solved_rows])}")
 
-        p_rolls = [float(r['p_roll'])  for r in solved_rows if r['p_roll']  != '']
+        p_azs   = [float(r['p_az'])    for r in solved_rows if r['p_az']    != '']
         p_alts  = [float(r['p_alt'])   for r in solved_rows if r['p_alt']   != '']
+        p_rolls = [float(r['p_roll'])  for r in solved_rows if r['p_roll']  != '']
+        t1s     = [float(r['theta1'])  for r in solved_rows if r['theta1']  != '']
         t2s     = [float(r['theta2'])  for r in solved_rows if r['theta2']  != '']
         t3s     = [float(r['theta3'])  for r in solved_rows if r['theta3']  != '']
 
+        if p_azs:   print(f"  p_az   (°): {min(p_azs):.1f} → {max(p_azs):.1f}")
+        if p_alts:  print(f"  p_alt  (°): {min(p_alts):.1f} → {max(p_alts):.1f}")
         if p_rolls: print(f"  p_roll (°): {min(p_rolls):.1f} → {max(p_rolls):.1f}")
-        if p_alts:  print(f"  p_alt  (°): {min(p_alts):.1f}  → {max(p_alts):.1f}")
+        if t1s:     print(f"  theta1 (°): {min(t1s):.1f} → {max(t1s):.1f}")
         if t2s:     print(f"  theta2 (°): {min(t2s):.1f} → {max(t2s):.1f}")
         if t3s:     print(f"  theta3 (°): {min(t3s):.1f} → {max(t3s):.1f}")
 
@@ -858,7 +862,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-dir',
         metavar='DIR',
-        default='../../../images/DSO Lights/Roll Bias Correction Model/L/lights',
+        default='../../../images/DSO Lights/Test Data Sky Survey/L/lights',
         help='Directory to scan recursively for FITS files. Default: current directory.',
     )
     parser.add_argument(

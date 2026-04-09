@@ -15,7 +15,7 @@ speed_testdata.json
 sync_points.json
 catalog.json
 config.*.json
-fits_extract.csv
+fits_extract*.csv
 *.log
 *.log.*
 alpaca*.csv
