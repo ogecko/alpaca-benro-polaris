@@ -123,16 +123,16 @@
                   <div>
                     <VField label="alpha_pv:    Az " :val="p.azimuth" unit="deg"/>
                     <VField label="   |  Alt " :val="p.altitude" unit="deg"/>
-                    <VField label="   | Roll " :val="p.roll" unit="deg"/>
+                    <VField label="   | Roll " :val="p.roll" unit="deg" v-if="cfg.advanced_rotator"/>
                   </div>
                   <div>
                     <VField label="delta_pv:    RA " :val="p.rightascension" unit="hr"/>
                     <VField label="   |  Dec " :val="p.declination" unit="deg"/>
-                    <VField label="   | PosA " :val="p.positionangle" unit="deg"/>
+                    <VField label="   | PosA " :val="p.positionangle" unit="deg" v-if="cfg.advanced_rotator"/>
                   </div>
                   <div>
                     <VField label="ephem:       HA " :val="p.siderealtime - p.rightascension" unit="hr"/>
-                    <VField label="   |             Paralatic Angle " :val="p.declination" unit="deg"/>
+                    <VField label="   |             Paralatic Angle " :val="p.declination" unit="deg"  v-if="cfg.advanced_rotator"/>
                   </div>
                   <div>
                     <VField label="            LST " :val="p.siderealtime" unit="hr"/>
@@ -145,7 +145,11 @@
               <q-timeline layout="comfortable" class="q-pr-xl">
                 <q-timeline-entry heading tag="h4">Inverse Kinematics</q-timeline-entry>
                 <q-timeline-entry title="Sky" ></q-timeline-entry>
+                <!-- SET POINT -->
                 <q-timeline-entry :title="tgt.title" :subtitle="tgt.task" :icon="tgt.icon">
+                  <div>
+                    <VField label="orbital_sp:  ID " :val="orbital.label" unit="string" :color="orbital.color"/>
+                  </div>
                   <div>
                     <VField label="delta_sp:    RA " :val="p.dsp[0]" unit="deg2hr" :color="dsp_color"/>
                     <VField label="   |  Dec " :val="p.dsp[1]" unit="deg"  :color="dsp_color"/>
@@ -157,6 +161,7 @@
                     <VField label="   | Roll " :val="p.asp[2]" unit="deg" :color="rsp_color"/>
                   </div>
                 </q-timeline-entry>
+                <!-- PULSE GUIDE AND SLEW -->
                 <q-timeline-entry title="Pulse Guide and Slew" subtitle="Adjust" icon="mdi-pulse">
                   <div v-if="cfg.advanced_guiding" >
                     <VField label="delta_guide: RA " :val="p.dguide[0]" unit="deg/s"/>
@@ -186,6 +191,7 @@
                     <VField label="   | Roll " :val="p.aofst[2]" unit="deg_ofst"/>
                   </div>
                 </q-timeline-entry>
+                <!-- PLANNING REF -->
                 <q-timeline-entry title="Optimal Movement Strategy" subtitle="Plan" icon="mdi-debug-step-over">
                   <div>
                     <VField label="delta_ref:   RA " :val="p.deltaref[0]" unit="deg2hr"/>
@@ -200,6 +206,7 @@
                 </q-timeline-entry>
                 <q-timeline-entry title="Multi-Point Alignment (Inverse)" subtitle="Solve" icon="mdi-rotate-orbit">
                 </q-timeline-entry>
+                <!-- PID CONTROLLER -->
                 <q-timeline-entry icon="mdi-chart-bell-curve-cumulative">
                   <template v-slot:title>PID Controller <PIDStatus /></template>
                   <template v-slot:subtitle>Control</template>
@@ -219,6 +226,7 @@
                     <VField label="   |   t3 " :val="p.tadj[2]" unit="deg"/>
                   </div>
                 </q-timeline-entry>
+                <!-- SPEED CONTROLLER -->
                 <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
                   <div>
                     <VField label="omega_op:    t1 " :val="p.motorref[0]" unit="deg/s"/>
@@ -322,6 +330,10 @@ const trackingLabel = computed(() =>
                       "Custom" 
 )
 
+const orbital = computed(() => ({
+  label: !cfg.advanced_orbitals ? 'Disabled' : p.trackingrate==0? 'None' : trackingLabel.value,
+  color: !cfg.advanced_orbitals ? 'haz'      : p.trackingrate==0? 'std'  : p.tracking ? 'pos' : 'std'
+}))
 
 
 </script>
