@@ -141,7 +141,7 @@ This formula allows the driver to predict and negate the IMU's reporting error b
 #### **V. How to Perform Your Own Calibration**
 While the default coefficients are derived from extensive testing and are sufficient for most users, advanced specialists can use the **`fits_extract.py`** utility to fine-tune the model for their specific Polaris unit.
 
-1.  **Data Collection:** Using **Single Point Alignment** (not Multi-Point), capture a wide grid of images covering various Alt, Az, and Roll positions. Aim for full coverage of the roll range at multiple altitudes.
+1.  **Data Collection:** Using **Single Point Alignment** (not Multi-Point), capture a wide grid of FITS images covering various Alt, Az, and Roll positions. Aim for full coverage of the roll range at multiple altitudes.
 2.  **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
 3.  **Extraction:** Run the script with the `-extract` flag: `python fits_extract.py -extract`. This reads the FITS headers and builds a CSV comparing predicted positions with plate-solved ground truth.
 4.  **Modeling:** Run the script with the `-model` flag: `python fits_extract.py -model`. This fits the RBC coefficients (`roll_model_a`, `roll_model_b` and `roll_model_c`) to your data.
