@@ -393,56 +393,26 @@ class Stellarium:
     # __________ Stellarium Client __________
 
     async def client(self):
-        """Main receive loop.
-
-        FIX 1: Uses asyncio.wait() to race reader.read() against stop_event so
-               a lifecycle RESTART (or position-loop failure) unblocks the read
-               immediately without needing Stellarium to close the connection.
-        FIX 2: Catches OSError separately from unexpected exceptions so normal
-               disconnects don't produce noisy tracebacks.
-        """
         while not self.stop_event.is_set():
             try:
-                # FIX 1: Race the blocking read against the stop signal.
-                read_task = asyncio.ensure_future(self.reader.read(256))
-                stop_task = asyncio.ensure_future(self.stop_event.wait())
-                done, pending = await asyncio.wait(
-                    [read_task, stop_task],
-                    return_when=asyncio.FIRST_COMPLETED
-                )
-                # Cancel whichever future didn't finish
-                for fut in pending:
-                    fut.cancel()
-                    try:
-                        await fut
-                    except (asyncio.CancelledError, Exception):
-                        pass
+                try:
+                    data = await asyncio.wait_for(self.reader.read(256), timeout=1.0)
+                except asyncio.TimeoutError:
+                    continue  # just loop back and re-check stop_event
 
-                if stop_task in done:
-                    # Shutdown/restart requested — exit cleanly
-                    self.logger.info("==INFO== Stellarium client: stop event received, closing.")
-                    break
-
-                # read_task finished — check the result
-                data = read_task.result()
                 if not data:
                     self.logger.info("==INFO== Stellarium client: remote closed connection.")
                     break
 
                 await self.process_protocol(data)
-                await asyncio.sleep(0.25)    # slow down Stellarium from polling too quickly, overloading this loop, leading to Win11 going very slow
+                await asyncio.sleep(0.25)
 
             except OSError as e:
-                # Network error — expected on abrupt disconnect
                 self.logger.info(f"==INFO== Stellarium client: connection lost ({e})")
                 break
             except Exception as e:
-                # Unexpected — log with traceback but keep the loop alive
                 self.logger.exception(f"==ERROR== Stellarium client: unexpected error: {e}")
-                # Brief back-off before retrying so we don't spin hard on a
-                # persistent failure (e.g. a bad telescope.polaris state).
                 await asyncio.sleep(1.0)
-
 
 # Called once for every client connection.
 # shutdown_event is a module-local asyncio.Event created by synscan_api and
