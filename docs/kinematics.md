@@ -92,9 +92,11 @@ The Alpaca Driver utilizes three distinct strategies to handle these residuals, 
 LGA uses a **Gaussian weighting function** to determine how much of the local residual should be applied based on the angular distance from the last sync point. The correction fades to identity (zero additional correction) as the distance increases.
 
 The formula for the weight is:
->>**$weight = exp(−angular\_distance² / (2 · \sigma²))$**
 
-*   **$\sigma$ (Sigma):** This is the "spread" of the correction, with a **default value of 15°**.
+    weight = exp(−angular_distance² / (2 · sigma²))
+
+*   **angular_distance:** The angular separation between the current pointing orientation and the orientation recorded at the last sync point.
+*   **sigma:** This is the "spread" of the correction, with a **default value of 15°**.
 *   **At the Sync Point:** The weight is 1.0, meaning the **full residual correction** is applied.
 *   **At 15° Away:** The weight drops to approximately 0.61 (61% correction).
 *   **At 30° Away:** The weight drops to approximately 0.14 (14% correction).
@@ -132,9 +134,9 @@ The impact of this bias is modest at low altitudes but becomes severe as the mou
 #### **IV. The Mathematical Model**
 The driver uses a fitted coefficients model to calculate the required correction in real-time:
 
->>**$roll\_error (arcmin) = (roll\_model\_a \cdot tan(alt) + roll\_model\_b) \cdot p\_roll$**
+    roll_error (arcmin) = (roll_model_a * tan(p_alt) + roll_model_b) * p_roll
 
->>**$az\_error (arcmin) = (roll\_model\_c \cdot  p\_roll\_error$**
+    az_error (arcmin) = roll_model_c * roll_error
 
 This formula allows the driver to predict and negate the IMU's reporting error before the coordinates are used for tracking or GOTOs.
 
