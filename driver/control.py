@@ -609,9 +609,15 @@ def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
     az_error_deg = Config.rbc_model_c * roll_error_deg
     corrQ_az = Quaternion(axis=[0, 0, 1], degrees=sign * az_error_deg)
 
-    # Compose: apply roll correction first, then az (rightmost = first applied).
-    corrQ = corrQ_az * corrQ_roll
+    # measure residual altitude change introduced by the roll+az corrections
+    # and cancel it with a rotation around the East axis
+    q_test = corrQ_az * corrQ_roll * motorQ_C2B
+    _, corrected_alt, _ = q_to_azaltroll(q_test)
+    alt_error_deg = corrected_alt - p_alt          # how much alt shifted spuriously
+    east_axis_B = motorQ_C2B.rotate([1, 0, 0])     # or use fixed [1,0,0] in base frame
+    corrQ_alt = Quaternion(axis=[0, 1, 0], degrees=-sign * alt_error_deg)
 
+    corrQ = corrQ_alt * corrQ_az * corrQ_roll
     return (corrQ, roll_error_deg)
 
 def apply_rotation_bias_corrQ_RBC(motorQ_C2B):
