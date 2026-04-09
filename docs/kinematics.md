@@ -67,7 +67,7 @@ To achieve high-precision results, you must move from simply "syncing" to **stra
 ### 2.2 Slew & Center Correction
 
 #### **I. What it is and What it Solves**
-In high-precision astrophotography, the **Slew & Center** operation is a critical workflow where the mount slews to a target, performs a plate-solve to verify its position, and then makes a corrective slew to center the object, repeating the process until it is centered perfectly. The primary aim of **Slew & Center Correction** is to speed up this process by **reducing the number of correction slews** needed to zero in on a target. 
+In astrophotography, the **Slew & Center** operation is a critical workflow where the mount slews to a target, performs a plate-solve to verify its position, and then makes a corrective slew to center the object, repeating the process until it is centered perfectly. The primary aim of **Slew & Center Correction** is to speed up this process by **reducing the number of correction slews** needed to zero in on a target. 
 
 Without this correction, even a high-quality global alignment model (like QUEST) may have a small residual error at any given sky position. When a controlling application (such as NINA) performs a corrective slew based on a residual error, it may require several iterations to narrow in on the target. If the residual at the target is large and you have configured a very low pointing tollerance, the Slew & Center operation may struggle to complete.
 
@@ -105,7 +105,6 @@ The formula for the weight is:
 #### **V. Operational Benefits**
 *   **Faster Centering:** By eliminating the local residual at the target, the first "corrective slew" issued by imaging software is far more likely to be the only one needed.
 *   **Seamless Transitions:** Because the correction uses a Gaussian fade, there are no mechanical discontinuities or "jumps" as the mount moves across the sky.
-*   **Persistence:** In version 2.2 and later, this local alignment improvement is integrated into the motion control chain, appearing in the process variable (**_pv**) after the Kalman Filter and QUEST stages.
 
 
 
