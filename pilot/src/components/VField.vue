@@ -44,8 +44,6 @@ function fmt_deg2hr(x: unknown, unit:UnitKey="hr"): string {
   const n = toNumber(x)  
   return fmt_deg(n / 15, unit)
 }
-const BELOW_ZERO = -0.5/3600
-const ABOVE_ZERO = +0.5/3600
 
 function fmt_deg_s(x: unknown, unit:UnitKey="deg"): string {
   const velocity = toNumber(x)
@@ -70,6 +68,12 @@ function fmt_string(x: unknown): string {
   return toStringSafe(x)
 }
 
+const BELOW_ZERO = -0.5/3600
+const ABOVE_ZERO = +0.5/3600
+function col_deviation(v:number) {
+  return v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off'
+}
+
 const fmt = computed(() => {
   const v = toNumber(props.val)
   return (
@@ -78,10 +82,10 @@ const fmt = computed(() => {
     props.unit=="deg"       ? { color: 'std', Fn: fmt_deg } : 
     props.unit=="deg2hr"    ? { color: 'std', Fn: fmt_deg2hr } : 
     props.unit=="hr"        ? { color: 'std', Fn: fmt_hr } : 
-    props.unit=="deg/s"     ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_deg_s } : 
-    props.unit=="hr/s"      ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_hr_s } : 
-    props.unit=="deg_ofst"  ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_deg } : 
-    props.unit=="hr_ofst"   ? { color: v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off', Fn: fmt_hr } : 
+    props.unit=="deg/s"     ? { color: col_deviation(v), Fn: fmt_deg_s } : 
+    props.unit=="hr/s"      ? { color: col_deviation(v), Fn: fmt_hr_s } : 
+    props.unit=="deg_ofst"  ? { color: col_deviation(v), Fn: fmt_deg } : 
+    props.unit=="hr_ofst"   ? { color: col_deviation(v), Fn: fmt_hr } : 
                               { color: 'std', Fn: fmt_deg }
   )
 })
