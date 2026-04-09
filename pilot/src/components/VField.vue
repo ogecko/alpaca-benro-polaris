@@ -12,6 +12,7 @@ const props = defineProps<{
   label: string
   val: number | string | undefined  
   unit: string
+  color?: string
 }>()
 
 function toNumber(x: unknown, fallback = 0): number {
@@ -74,19 +75,23 @@ function col_deviation(v:number) {
   return v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off'
 }
 
+function col_options() {
+  return props.color ? props.color : 'std'
+}
+
 const fmt = computed(() => {
   const v = toNumber(props.val)
   return (
-    props.unit=="string"    ? { color: 'std', Fn: fmt_string } : 
-    props.unit=="number"    ? { color: 'std', Fn: fmt_number } : 
-    props.unit=="deg"       ? { color: 'std', Fn: fmt_deg } : 
-    props.unit=="deg2hr"    ? { color: 'std', Fn: fmt_deg2hr } : 
-    props.unit=="hr"        ? { color: 'std', Fn: fmt_hr } : 
+    props.unit=="string"    ? { color: col_options(), Fn: fmt_string } : 
+    props.unit=="number"    ? { color: col_options(), Fn: fmt_number } : 
+    props.unit=="deg"       ? { color: col_options(), Fn: fmt_deg } : 
+    props.unit=="deg2hr"    ? { color: col_options(), Fn: fmt_deg2hr } : 
+    props.unit=="hr"        ? { color: col_options(), Fn: fmt_hr } : 
     props.unit=="deg/s"     ? { color: col_deviation(v), Fn: fmt_deg_s } : 
     props.unit=="hr/s"      ? { color: col_deviation(v), Fn: fmt_hr_s } : 
     props.unit=="deg_ofst"  ? { color: col_deviation(v), Fn: fmt_deg } : 
     props.unit=="hr_ofst"   ? { color: col_deviation(v), Fn: fmt_hr } : 
-                              { color: 'std', Fn: fmt_deg }
+                              { color: col_options(), Fn: fmt_deg }
   )
 })
 

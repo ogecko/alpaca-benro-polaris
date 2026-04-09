@@ -147,14 +147,14 @@
                 <q-timeline-entry title="Sky" ></q-timeline-entry>
                 <q-timeline-entry :title="tgt.title" :subtitle="tgt.task" :icon="tgt.icon">
                   <div>
-                    <VField label="delta_sp:    RA " :val="p.dsp[0]" unit="deg2hr"/>
-                    <VField label="   |  Dec " :val="p.dsp[1]" unit="deg"/>
-                    <VField label="   | PosA " :val="p.dsp[2]" unit="deg"/>
+                    <VField label="delta_sp:    RA " :val="p.dsp[0]" unit="deg2hr" :color="dsp_color"/>
+                    <VField label="   |  Dec " :val="p.dsp[1]" unit="deg"  :color="dsp_color"/>
+                    <VField label="   | PosA " :val="p.dsp[2]" unit="deg" :color="dsp_color"/>
                   </div>
                   <div>
-                    <VField label="alpha_sp:    Az " :val="p.asp[0]" unit="deg"/>
-                    <VField label="   |  Alt " :val="p.asp[1]" unit="deg"/>
-                    <VField label="   | Roll " :val="p.asp[2]" unit="deg"/>
+                    <VField label="alpha_sp:    Az " :val="p.asp[0]" unit="deg" :color="asp_color"/>
+                    <VField label="   |  Alt " :val="p.asp[1]" unit="deg" :color="asp_color"/>
+                    <VField label="   | Roll " :val="p.asp[2]" unit="deg" :color="rsp_color"/>
                   </div>
                 </q-timeline-entry>
                 <q-timeline-entry title="Pulse Guide and Slew" subtitle="Adjust" icon="mdi-pulse">
@@ -280,6 +280,11 @@ onMounted(async () => {
 onUnmounted(() => {
   poll.stopPolling()
 })
+
+const dsp_color = computed(() => (p.tracking ? 'pos' : 'std'))  
+const asp_color = computed(() => ((!p.tracking && (p.gotoing || p.slewing)) ? 'pos' : 'std'))  
+const rsp_color = computed(() => ((!p.tracking && (p.rotating || p.slewing)) ? 'pos' : 'std'))  
+
 
 const wfc="Waiting for Command"
 
