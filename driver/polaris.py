@@ -1401,6 +1401,7 @@ class Polaris:
                 'aofst': [0,0,0] if self._pid.alpha_offst is None else self._pid.alpha_offst.tolist(),
                 'dsp': [0,0,0] if self._pid.delta_sp is None else self._pid.delta_sp.tolist(),
                 'asp': [0,0,0] if self._pid.alpha_sp is None else self._pid.alpha_sp.tolist(),
+                'errsig': [0,0,0] if self._pid.error_signal is None else self._pid.error_signal.tolist(),
                 'deltaref': self._pid.delta_ref.tolist(),
                 'alpharef': self._pid.alpha_ref.tolist(),
                 'omegaref': self._pid.omega_ff.tolist(),

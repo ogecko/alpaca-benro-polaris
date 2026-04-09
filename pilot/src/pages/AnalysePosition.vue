@@ -30,7 +30,7 @@
               <q-timeline layout="comfortable" class="">
                 <q-timeline-entry heading tag="h4">Forward Kinematics</q-timeline-entry>
                 <!-- Polaris -->
-                <q-timeline-entry title="Polaris" >
+                <q-timeline-entry title="Polaris Motors" >
                   <div>
                     <VField label="motor_raw:   M1 " :val="p.zetameas[0]" unit="deg"/>
                     <VField label="   |   M2 " :val="p.zetameas[1]" unit="deg"/>
@@ -231,6 +231,11 @@
                       <VField label="   |   t2 " :val="p.tadj[1]" unit="deg"/>
                       <VField label="   |   t3 " :val="p.tadj[2]" unit="deg"/>
                     </div>
+                    <div>
+                      <VField label="error_sig:   t1 " :val="p.errsig[0]" unit="deg_ofst" :tollerance="2/3600"/>
+                      <VField label="   |   t2 " :val="p.errsig[1]" unit="deg_ofst" :tollerance="2/3600"/>
+                      <VField label="   |   t3 " :val="p.errsig[2]" unit="deg_ofst" :tollerance="2/3600"/>
+                    </div>
                   </div>
                   <div v-else class="haz terminal">PID Controller: Disabled</div>
                 </q-timeline-entry>
@@ -247,7 +252,7 @@
                     <VField label="     |   M3 " :val="p.motorcmd[2]" unit="string"/>
                   </div>
                 </q-timeline-entry>
-                <q-timeline-entry title="Motors" ></q-timeline-entry>
+                <q-timeline-entry title="Polaris Motors" ></q-timeline-entry>
               </q-timeline>
 
             </div>

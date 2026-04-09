@@ -13,6 +13,7 @@ const props = defineProps<{
   val: number | string | undefined  
   unit: string
   color?: string
+  tollerance?: number
 }>()
 
 function toNumber(x: unknown, fallback = 0): number {
@@ -69,10 +70,9 @@ function fmt_string(x: unknown): string {
   return toStringSafe(x)
 }
 
-const BELOW_ZERO = -0.5/3600
-const ABOVE_ZERO = +0.5/3600
 function col_deviation(v:number) {
-  return v<BELOW_ZERO ? 'haz' : v>ABOVE_ZERO ? 'pos' : 'off'
+  const tollerance = props.tollerance ?? 0.5/3600
+  return v < -tollerance ? 'haz' : v > +tollerance ? 'pos' : 'off'
 }
 
 function col_options() {
