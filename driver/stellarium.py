@@ -430,6 +430,7 @@ class Stellarium:
                     break
 
                 await self.process_protocol(data)
+                await asyncio.sleep(0.25)    # slow down Stellarium from polling too quickly, overloading this loop, leading to Win11 going very slow
 
             except OSError as e:
                 # Network error — expected on abrupt disconnect
