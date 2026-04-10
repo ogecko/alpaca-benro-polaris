@@ -893,13 +893,14 @@ def fit_rbc_model(csv_path):
         print()
 
         # ── M2 axis tilt → pa_dev_theta2 ──────────────────────────────
-        print("  ── B1: M2 axis tilt  (pa_dev_theta2 = A·sin(theta2 − φ))")
+        print("  ── B1: M2 axis tilt  (pa_dev_theta2 = theta_model_a · sin(theta2 − theta_model_b))")
         print()
         print("     Mechanical meaning: M2 rotation axis is not perfectly horizontal.")
         print("     As theta2 increases, the camera altitude deviates sinusoidally.")
-        print("     A  = tilt amplitude (arcmin)")
-        print("     φ  = theta2 at which error is zero (degrees)")
+        print("     theta_model_a  = tilt amplitude (arcmin)")
+        print("     theta_model_b  = theta2 at which error is zero (degrees)")
         print()
+        amp_m2, zero_m2 = None, None
         try:
             def m2_model(t, amp, zero): return amp * np.sin(np.radians(t - zero))
             r_m2 = _fit_curve(m2_model, t2, pa_dev_t2, p0=[52., 36.])
@@ -908,31 +909,30 @@ def fit_rbc_model(csv_path):
             tc = r_m2['t_crit']
             _sa = _conf_str(amp_m2,  amp_err,  tc, "'")
             _sz = _conf_str(zero_m2, zero_err, tc, '°')
-            print(f"     A   = {_sa}")
-            print(f"     φ   = {_sz}")
+            print(f"     theta_model_a = {_sa}")
+            print(f"     theta_model_b = {_sz}")
             print(f"     R²={r_m2['r2']:.4f}  RMSE={r_m2['rmse']:.2f}'  "
                   f"F={r_m2['F']:.1f}  {_significance(r_m2['p_F'])}")
             print(f"     Residual normality: {_normality(r_m2['p_sw'])}")
-            print()
-            print(f"     → Driver correction: delta_theta2 = "
-                  f"−{amp_m2:.1f}'·sin(theta2 − {zero_m2:.1f}°)  /60")
         except Exception as e:
             print(f"     FIT FAILED: {e}")
 
         # ── M2 axis tilt → pa_dev_roll coupling ───────────────────────
         print()
-        print("  ── B2: M2 tilt coupling into roll  (pa_dev_roll = A·cos(theta2 − φ))")
+        print("  ── B2: M2 tilt coupling into roll  (pa_dev_roll = theta_model_c · cos(theta2 − theta_model_d))")
         print()
         print("     The same M2 axis tilt that shifts altitude also rotates the camera")
         print("     frame around the boresight, appearing as a roll error that grows")
         print("     with cos(theta2) — largest at horizon, zero at zenith.")
+        print("     theta_model_c  = roll coupling amplitude (arcmin)")
+        print("     theta_model_d  = theta2 at which roll coupling is zero (degrees)")
         print()
         print("     Fitted on theta3≈0 subset only: at large theta3 the M3 encoder")
         print("     error dominates pa_dev_roll and buries the M2 coupling signal.")
         print()
 
-        # Select the tightest theta3 window that gives ≥30 points
-        B2_MIN_N = 30
+        B2_MIN_N        = 30
+        B2_MIN_T2_RANGE = 30.0
         b2_thresh = None
         b2_mask   = None
         for _thresh in [2, 5, 10, 15, 20]:
@@ -942,32 +942,60 @@ def fit_rbc_model(csv_path):
                 b2_mask   = _m
                 break
 
+        amp_r, zero_r = None, None
+        b2_reliable   = False
         try:
             if b2_mask is None or b2_mask.sum() < B2_MIN_N:
                 raise ValueError(f"No theta3≈0 subset with ≥{B2_MIN_N} points found. "
-                                  f"Capture images at p_roll≈0 and re-run.")
+                                  "Capture images at p_roll≈0 across a range of altitudes and re-run.")
 
-            n_b2 = int(b2_mask.sum())
-            t2_b2 = t2[b2_mask]
-            roll_b2 = pa_dev_roll[b2_mask]
+            n_b2      = int(b2_mask.sum())
+            t2_b2     = t2[b2_mask]
+            roll_b2   = pa_dev_roll[b2_mask]
+            t2_span   = float(t2_b2.max() - t2_b2.min())
+            t2_unique = len(np.unique(np.round(t2_b2, 0)))
+
+            print(f"     Subset: |theta3| < {b2_thresh}°  (n={n_b2} of {n} total frames)")
+            print(f"     theta2 coverage: {t2_b2.min():.1f}° – {t2_b2.max():.1f}°"
+                  f"  (span={t2_span:.1f}°,  {t2_unique} distinct altitudes)")
+            print()
+
+            if t2_span < B2_MIN_T2_RANGE:
+                print(f"     ⚠ theta2 span ({t2_span:.1f}°) is too narrow for a reliable")
+                print(f"       cosine fit — need ≥{B2_MIN_T2_RANGE:.0f}° to distinguish amplitude from noise.")
+                print(f"       For a reliable B2: capture images at p_roll≈0 with")
+                print(f"       altitude stepped from 20° to 70° across multiple azimuths.")
+                print()
 
             def m2_roll_model(t, amp, zero): return amp * np.cos(np.radians(t - zero))
             r_roll = _fit_curve(m2_roll_model, t2_b2, roll_b2, p0=[149., -52.])
             amp_r, zero_r = r_roll['popt']
+            if amp_r < 0:
+                amp_r  = -amp_r
+                zero_r = zero_r + 180.0
+            zero_r = ((zero_r + 180) % 360) - 180
+
             tc = r_roll['t_crit']
             _sa = _conf_str(amp_r,  r_roll['perr'][0], tc, "'")
             _sz = _conf_str(zero_r, r_roll['perr'][1], tc, '°')
-            print(f"     Subset: |theta3| < {b2_thresh}°  (n={n_b2} of {n} total frames)")
-            print(f"     A   = {_sa}")
-            print(f"     φ   = {_sz}")
+            print(f"     theta_model_c = {_sa}")
+            print(f"     theta_model_d = {_sz}")
             print(f"     R²={r_roll['r2']:.4f}  RMSE={r_roll['rmse']:.2f}'  "
                   f"F={r_roll['F']:.1f}  {_significance(r_roll['p_F'])}")
             print(f"     Residual normality: {_normality(r_roll['p_sw'])}")
             print()
-            # Cross-check on same subset
-            pred_b1_sub = m2_model(t2_b2, *r_m2['popt'])
-            resid_b1_sub = roll_b2 - pred_b1_sub  # approximate B1 resid on subset
-            # Actually use full B1 residuals projected onto subset
+            b2_reliable = r_roll['r2'] >= 0.5 and t2_span >= B2_MIN_T2_RANGE
+            if not b2_reliable:
+                print(f"     ⚠ Low reliability (R²={r_roll['r2']:.2f}, theta2 span={t2_span:.0f}°).")
+                if amp_m2 is not None:
+                    median_t2 = float(np.median(t2_b2))
+                    expected_a = abs(amp_m2) / math.tan(math.radians(median_t2))
+                    print(f"       Rough estimate at median theta2={median_t2:.0f}°: "
+                          f"theta_model_c ≈ {expected_a:.0f}'")
+                print(f"       Capture images at p_roll≈0 across alt 20°–70° and re-run.")
+            else:
+                print(f"     ✓ Reliable fit (R²={r_roll['r2']:.2f}, theta2 span={t2_span:.0f}°)")
+            print()
             corr = float(np.corrcoef(r_m2['resid'][b2_mask], r_roll['resid'])[0,1])
             print(f"     Cross-check: corr(B1_resid, B2_resid) on subset = {corr:+.4f}")
             if abs(corr) > 0.3:
@@ -979,22 +1007,23 @@ def fit_rbc_model(csv_path):
 
         # ── M3 encoder → pa_dev_theta3 ────────────────────────────────
         print()
-        print("  ── B3: M3 encoder scale error  (pa_dev_theta3 = k·theta3)")
+        print("  ── B3: M3 encoder scale error  (pa_dev_theta3 = theta_model_e · theta3)")
         print()
+        print(f"     theta_model_e  = M3 encoder scale error (arcmin per degree of theta3)")
         print(f"     theta3 range in this dataset: {t3.min():.1f}° to {t3.max():.1f}°"
               f"  (span = {t3_range:.1f}°)")
         print()
 
+        k_m3, k_m3_frac = None, None
         MIN_T3_RANGE = 30.0
         if t3_range < MIN_T3_RANGE:
             print(f"     ⚠ theta3 range ({t3_range:.1f}°) is insufficient for reliable fit.")
             print(f"       Need ≥{MIN_T3_RANGE:.0f}° range (ideally ±60°).")
             print(f"       Collect dedicated images with p_roll varied from −60° to +60°")
             print(f"       at a fixed az/alt and re-run -model.")
-            k_m3 = float(np.dot(t3, pa_dev_t3) / np.dot(t3, t3)) if np.dot(t3,t3)>0 else 0
-            print(f"       Indicative estimate (unreliable): k ≈ {k_m3:.3f}'/°")
+            _k_ind = float(np.dot(t3, pa_dev_t3) / np.dot(t3, t3)) if np.dot(t3,t3)>0 else 0
+            print(f"       Indicative estimate (unreliable): theta_model_e ≈ {_k_ind:.3f}'/°")
         else:
-            # Origin regression: pa_dev_t3 = k·t3
             k_m3  = float(np.dot(t3, pa_dev_t3) / np.dot(t3, t3))
             pred3 = k_m3 * t3
             ss_r3 = float(np.sum((pa_dev_t3 - pred3)**2))
@@ -1005,31 +1034,27 @@ def fit_rbc_model(csv_path):
             t_stat= k_m3 / se_k if se_k > 0 else 0
             tc    = float(sp_stats.t.ppf(0.975, df=max(n-1,1)))
             p_k   = float(2*(1 - sp_stats.t.cdf(abs(t_stat), df=max(n-1,1))))
-            # Check theta2 dependence of residuals
             r_t2r = float(np.corrcoef(t2, pa_dev_t3 - pred3)[0,1])
-            print(f"     k = {k_m3:+.4f}'/°  ±{se_k:.4f}  95%CI ±{tc*se_k:.4f}")
-            print(f"     k as fraction: {k_m3/60:.6f} ({k_m3/60*100:.4f}% scale error)")
+            k_m3_frac = k_m3 / 60.0
+            print(f"     theta_model_e = {k_m3:+.4f}'/°  ±{se_k:.4f}  95%CI ±{tc*se_k:.4f}")
+            print(f"     As fraction:    {k_m3_frac:.6f} ({k_m3_frac*100:.4f}% scale error)")
             print(f"     R²={r2_m3:.4f}  RMSE={rmse3:.2f}'  t={t_stat:.1f}  {_significance(p_k)}")
-            print(f"     Corr(theta2, residuals) = {r_t2r:.4f}  (want ≈0; if large, theta2 term needed)")
-            print(f"     → Driver correction: delta_theta3 = {k_m3:.4f}'/° × theta3")
+            print(f"     Corr(theta2, residuals) = {r_t2r:.4f}  (want ≈0)")
 
         # ── pa_dev_theta1 ──────────────────────────────────────────────
         print()
-        print("  ── B4: pa_dev_theta1 structure")
+        print("  ── B4: pa_dev_theta1 structure (diagnostic only — no config constant)")
         print()
         print("     pa_dev_theta1 is the residual azimuth error in motor space.")
         print("     At theta3≈0 it has two components:")
         print("       i)  Geometric projection of M2 tilt onto the az axis")
-        print("           — this goes as cot(theta2) and should disappear once")
-        print("             apply_mechanical_corrections() is in place.")
+        print("           — disappears automatically once apply_mechanical_corrections()")
+        print("             is implemented (no extra constant needed).")
         print("       ii) Residual from imperfect polar sinusoid removal")
         print("             — irreducible until more az coverage is added.")
         print()
         print(f"     Summary: mean={pa_dev_t1.mean():+.1f}'  std={pa_dev_t1.std():.1f}'  "
               f"min={pa_dev_t1.min():+.1f}'  max={pa_dev_t1.max():+.1f}'")
-
-        # Fit M2 geometric projection onto theta1: dev_t1 = K * cot(theta2)
-        # = K * cos(theta2)/sin(theta2)
         cot_t2 = np.cos(np.radians(t2)) / np.clip(np.sin(np.radians(t2)), 1e-3, None)
         k_cot  = float(np.dot(cot_t2, pa_dev_t1) / np.dot(cot_t2, cot_t2))
         pred_t1_cot = k_cot * cot_t2
@@ -1038,25 +1063,52 @@ def fit_rbc_model(csv_path):
         r2_cot      = 1 - ss_r_cot / ss_t_t1 if ss_t_t1 > 0 else 0
         se_cot      = float(np.sqrt(ss_r_cot / max(n-1,1) / max(float(np.dot(cot_t2,cot_t2)),1e-9)))
         tc_cot      = float(sp_stats.t.ppf(0.975, df=max(n-1,1)))
-
-        # Also try simple linear in theta2 for comparison
-        slope_t2, intercept_t2, r_t2, _, _ = sp_stats.linregress(t2, pa_dev_t1)
-        corr_t3 = float(np.corrcoef(t3, pa_dev_t1)[0,1])
-
+        corr_t3     = float(np.corrcoef(t3, pa_dev_t1)[0,1])
         print()
-        print(f"     Model i)  pa_dev_t1 = K·cot(theta2)  (M2 geometric projection)")
+        print(f"     Geometric projection: pa_dev_t1 = K·cot(theta2)")
         print(f"       K = {k_cot:+.3f}'/°  ±{se_cot:.3f}  95%CI ±{tc_cot*se_cot:.3f}")
         print(f"       R²={r2_cot:.4f}  RMSE={np.sqrt(ss_r_cot/n):.2f}'")
-        print(f"     Model ii) pa_dev_t1 = m·theta2 + c  (linear, for comparison)")
-        print(f"       slope={slope_t2:+.3f}'/°  intercept={intercept_t2:+.2f}'  R²={r_t2**2:.4f}")
         print(f"     Corr(theta3, pa_dev_t1) = {corr_t3:+.4f}")
         if abs(corr_t3) > 0.5:
             print(f"     → Strong theta3 correlation: M3 encoder error is visible in az.")
-            print(f"       This will reduce once B3 (M3) correction is calibrated.")
         else:
             print(f"     → Weak theta3 correlation: consistent with near-zero theta3 dataset.")
-            print(f"       Collect data with theta3 swept ±60° to separate M3 from M2 effects.")
 
+        # ── Section B fitted coefficients summary ──────────────────────
+        print()
+        print("  " + "─" * 62)
+        print("  Fitted coefficients — Section B  (copy into driver config.toml)")
+        print("  " + "─" * 62)
+        print()
+        if amp_m2 is not None:
+            print(f"  theta_model_a = {amp_m2:.4f}   # M2 tilt amplitude (arcmin)")
+            print(f"  theta_model_b = {zero_m2:.4f}   # M2 tilt zero crossing (degrees theta2)")
+        else:
+            print(f"  theta_model_a = ???              # B1 fit failed — check data")
+            print(f"  theta_model_b = ???")
+        if amp_r is not None:
+            b2_note = "# M2 roll coupling amplitude (arcmin)" + \
+                      ("" if b2_reliable else "  ⚠ low reliability — use with caution")
+            print(f"  theta_model_c = {amp_r:.4f}   {b2_note}")
+            print(f"  theta_model_d = {zero_r:.4f}   # M2 roll coupling zero crossing (degrees theta2)")
+        else:
+            print(f"  theta_model_c = ???              # B2 fit failed or insufficient data")
+            print(f"  theta_model_d = ???")
+        if k_m3 is not None:
+            print(f"  theta_model_e = {k_m3:.4f}   # M3 encoder scale error (arcmin/degree)")
+        else:
+            print(f"  theta_model_e = ???              # B3 insufficient theta3 range — sweep p_roll ±60°")
+        print()
+        print("  Usage in apply_mechanical_corrections():")
+        a_str = f"{amp_m2:.1f}"    if amp_m2    is not None else "theta_model_a"
+        b_str = f"{zero_m2:.1f}"   if zero_m2   is not None else "theta_model_b"
+        e_str = f"{k_m3_frac:.6f}" if k_m3_frac is not None else "theta_model_e/60"
+        print(f"    apply_mechanical_corrections(q,")
+        print(f"        m2_tilt_arcmin   = {a_str},")
+        print(f"        m2_tilt_zero_deg = {b_str},")
+        print(f"        m3_encoder_k     = {e_str})")
+
+        # ── Section A non-normality explanation ───────────────────────
         # ── Section A non-normality explanation ───────────────────────
         print()
         print("  ── Note on non-normal residuals (Sections A and B)")
