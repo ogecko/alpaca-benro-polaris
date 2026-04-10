@@ -575,6 +575,65 @@ def q_to_azaltroll(cameraQ_C2T):
 
     return wrap_to_360(az), wrap_to_180(alt), wrap_to_180(roll)
 
+
+def apply_mechanical_corrections(q):
+    """
+    Correct raw Polaris quaternion for three theta-space mechanical errors,
+    each applied as a quaternion rotation around its physical axis in the
+    base frame. Requires a single q_to_theta() call; all axis directions
+    are derived from the decomposed angles. Safe to call at full frequency.
+
+    B1 — M2 dependant azimuth offset (Config.theta_model_a, theta_model_b)
+         M2 tilt axis is not perfectly horizontal; camera altitude deviates
+         sinusoidally with theta2.
+         Correction axis: M2 direction = qtheta1.rotate([0, 1, 0])
+         delta_t2 = -(theta_model_a/60) * sin(theta2 - theta_model_b)
+         Sign: negative M2 rotation raises altitude.
+
+    B2 — M2 dependent roll offset  (Config.theta_model_c, theta_model_d)
+         A roll error that varies with altitude independently of theta3.
+         Source: imperfect polar sinusoid removal leaving an altitude-dependent
+         residual, or a true mechanical roll offset in the camera mount.
+         Correction axis: camera boresight = q.rotate([0, 0, -1])
+         delta_roll = -(theta_model_c/60) * cos(theta2 - theta_model_d)
+         Rotating around the boresight produces PURE roll — exactly zero
+         az/alt change, verified geometrically and numerically.
+         Sign: negative boresight rotation increases roll.
+         Note: reliable only when fitted on a theta3≈0 dataset with good
+         theta2 coverage (R²≥0.5). See fits_extract.py -model B2.
+
+    B3 — M3 encoder scale error  (Config.theta_model_e)
+         M3 encoder reports slightly more/less rotation than actually occurred.
+         Correction axis: M3 direction = (qtheta1*qtheta2).rotate([1, 0, 0])
+         delta_t3 = (theta_model_e/60) * theta3
+         theta_model_e units: arcmin/degree — divide by 60 → degrees/degree.
+    """
+    t1, t2, t3 = q_to_theta(q)
+
+    # Motor axis directions in the base frame (one q_to_theta call shared by all)
+    qtheta1   = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
+    qtheta2   = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
+    m2_axis   = np.array(qtheta1.rotate([0, 1, 0]))
+    m3_axis   = np.array((qtheta1 * qtheta2).rotate([1, 0, 0]))
+    boresight = np.array(q.rotate([0, 0, -1]))
+
+    # B1: M2 axis tilt correction (altitude)
+    delta_t2 = -(Config.theta_model_a / 60.0) * math.sin(
+                  math.radians(t2 - Config.theta_model_b))
+    q_m2 = Quaternion(axis=m2_axis, degrees=delta_t2)
+
+    # B2: altitude-dependent roll correction (boresight rotation)
+    delta_roll = -(Config.theta_model_c / 60.0) * math.cos(
+                    math.radians(t2 - Config.theta_model_d))
+    q_b2 = Quaternion(axis=boresight, degrees=delta_roll)
+
+    # B3: M3 encoder scale correction
+    delta_t3 = (Config.theta_model_e / 60.0) * t3
+    q_m3 = Quaternion(axis=m3_axis, degrees=delta_t3)
+
+    # Apply: M2 first (earliest in kinematic chain), then boresight roll, then M3
+    return (q_m3 * q_b2 * q_m2 * q).normalised
+
 def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
     """
     Returns the RBC correction quaternion and roll error.
@@ -617,7 +676,7 @@ def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
     east_axis_B = motorQ_C2B.rotate([1, 0, 0])     # or use fixed [1,0,0] in base frame
     corrQ_alt = Quaternion(axis=[0, 1, 0], degrees=-sign * alt_error_deg)
 
-    corrQ = corrQ_alt * corrQ_az * corrQ_roll
+    corrQ =  corrQ_az * corrQ_alt *corrQ_roll
     return (corrQ, roll_error_deg)
 
 def apply_rotation_bias_corrQ_RBC(motorQ_C2B):

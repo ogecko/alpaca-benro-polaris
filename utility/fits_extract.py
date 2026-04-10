@@ -39,27 +39,79 @@ The polar alignment model fitted during -extract:
   pa_dev_theta1/2/3         = pa_theta* minus raw theta* (motor-space residual)
 
 The script models  (-model):
-  Fits a Rotation Bias Correction (RBC) model to the plate-solved data. The IMU
-  systematically mis-reports camera rotation angle depending on the mechanical
-  configuration of the three motor axes. Because the same Az/Alt pointing can
-  be reached at different rotation angles (requiring different motor positions),
-  this error is configuration-dependent and cannot be corrected by QUEST's
-  single rigid-body alignment. The model decomposes the observed pointing error
-  into three components:
+  Analyses plate-solve residuals to characterise and fit three layers of
+  systematic pointing error. The output is divided into four sections:
 
-    [1] Global SPA bias     — a constant roll offset from Single Point Alignment,
-                              present uniformly across all positions. Absorbed by
-                              QUEST with any sync point.
+  SECTION A — Polar alignment confidence
+    Fits a sinusoid (A·cos(az) + B·sin(az) + C) to the raw deviations
+    dev_alt, dev_az, and dev_roll as a function of azimuth. Reports
+    amplitude, phase, offset, R², RMSE, F-test significance, and
+    Shapiro-Wilk residual normality for each channel.
 
-    [2] Polar misalignment  — an Az-dependent sinusoidal variation caused by the
-                              mount's azimuth axis not being perfectly vertical.
-                              Absorbed by QUEST with sync points spread across Az.
+    Derived summary:
+      Polar tilt magnitude and direction (from dev_alt amplitude/phase)
+      Az encoder offset  (from dev_az constant term C)
+      SPA roll bias      (from dev_roll constant term C)
 
-    [3] Rotation bias       — a roll-dependent residual that QUEST cannot correct
-                              because it changes with mechanical configuration.
-                              Modelled as:
-                                roll_error (arcmin) = (a · tan(alt) + b) · p_roll
-                                az_error   (arcmin) =  c · roll_error (arcmin)
+    These errors are absorbed by QUEST multi-point alignment and require
+    no driver config constants. Non-normal residuals in this section are
+    expected until theta-space corrections (Section B) are applied.
+
+  SECTION B — Theta-space mechanical models
+    Fits corrections for three physical axis errors using the polar-
+    corrected residuals (pa_dev_*). Each correction uses a named
+    config constant (theta_model_a through theta_model_e):
+
+    B1 — M2 dependant altitude residual  (theta_model_a, theta_model_b)
+      The M2 rotation axis is not perfectly horizontal. Camera altitude
+      deviates sinusoidally as theta2 changes:
+        pa_dev_theta2 = theta_model_a · sin(theta2 − theta_model_b)
+      Requires: good az and alt coverage (theta3 does not matter).
+
+    B2 — M2 dependent roll residual  (theta_model_c, theta_model_d)
+      A roll error that varies with altitude, visible at theta3≈0.
+      Physically: imperfect polar sinusoid removal leaving an altitude-
+      dependent residual, or a true mechanical roll offset in the camera
+      mount. Corrected in the driver by rotating around the boresight axis:
+        pa_dev_roll = theta_model_c · cos(theta2 − theta_model_d)
+      Requires: theta3≈0 subset with theta2 span ≥30°. Fitted on the
+      tightest |theta3| window that yields ≥30 points. Unreliable if
+      the polar sinusoid fit (Section A) has poor R² for dev_roll.
+
+    B3 — M3 encoder scale error  (theta_model_e)
+      The M3 encoder reports slightly more or less rotation than occurred.
+      Visible only when theta3 spans ≥30° (ideally ±60°):
+        pa_dev_theta3 = theta_model_e · theta3
+      Requires: p_roll swept from −60° to +60° at fixed az/alt.
+
+    B4 — pa_dev_theta1 structure  (diagnostic only, no config constant)
+      Residual azimuth error after polar correction. At theta3≈0 this
+      is the geometric projection of M2 tilt onto the az axis, which
+      disappears automatically once apply_mechanical_corrections() is
+      active. No separate correction constant is needed.
+
+    A fitted-coefficients block is printed at the end of Section B for
+    direct copy-paste into config.toml.
+
+  SECTION C — Sky-space RBC model  (rbc_model_a, rbc_model_b, rbc_model_c)
+    Fits a roll-dependent residual that QUEST cannot correct because it
+    changes with mechanical configuration (specifically M3 encoder error
+    coupling into roll and az). Modelled in sky space after polar sinusoid
+    removal:
+        roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
+        az_error   (arcmin) =  rbc_model_c · roll_error
+    Requires: p_roll swept across ±60° for reliable fitting (R² improves
+    dramatically with theta3 coverage). Reports R², RMSE, and the
+    percentage reduction in roll standard deviation.
+
+    Note: rbc_model_a/b partially absorb the M2 axis tilt geometric
+    projection until theta-space corrections are implemented. After
+    implementing Sections B1–B3, recollect data and refit — the
+    rbc coefficients should reduce substantially.
+
+  SECTION D — Calibration roadmap
+    Priority-ordered action list derived from Sections A–C, with exact
+    config values and driver call syntax for each pending correction.
 
   Fitted coefficients:
 
@@ -764,7 +816,7 @@ def _normality(p_sw):
 
 # ── RBC model fitting ─────────────────────────────────────────────────────────
 
-def fit_rbc_model(csv_path):
+def fit_models(csv_path):
     """
     Load the extracted CSV and fit:
 
@@ -893,7 +945,7 @@ def fit_rbc_model(csv_path):
         print()
 
         # ── M2 axis tilt → pa_dev_theta2 ──────────────────────────────
-        print("  ── B1: M2 axis tilt  (pa_dev_theta2 = theta_model_a · sin(theta2 − theta_model_b))")
+        print("  ── B1: M2 dependent altitude residual  (pa_dev_theta2 = theta_model_a · sin(theta2 − theta_model_b))")
         print()
         print("     Mechanical meaning: M2 rotation axis is not perfectly horizontal.")
         print("     As theta2 increases, the camera altitude deviates sinusoidally.")
@@ -919,7 +971,7 @@ def fit_rbc_model(csv_path):
 
         # ── M2 axis tilt → pa_dev_roll coupling ───────────────────────
         print()
-        print("  ── B2: M2 tilt coupling into roll  (pa_dev_roll = theta_model_c · cos(theta2 − theta_model_d))")
+        print("  ── B2: M2 dependant roll residual  (pa_dev_roll = theta_model_c · cos(theta2 − theta_model_d))")
         print()
         print("     The same M2 axis tilt that shifts altitude also rotates the camera")
         print("     frame around the boresight, appearing as a roll error that grows")
@@ -1099,16 +1151,7 @@ def fit_rbc_model(csv_path):
         else:
             print(f"  theta_model_e = ???              # B3 insufficient theta3 range — sweep p_roll ±60°")
         print()
-        print("  Usage in apply_mechanical_corrections():")
-        a_str = f"{amp_m2:.1f}"    if amp_m2    is not None else "theta_model_a"
-        b_str = f"{zero_m2:.1f}"   if zero_m2   is not None else "theta_model_b"
-        e_str = f"{k_m3_frac:.6f}" if k_m3_frac is not None else "theta_model_e/60"
-        print(f"    apply_mechanical_corrections(q,")
-        print(f"        m2_tilt_arcmin   = {a_str},")
-        print(f"        m2_tilt_zero_deg = {b_str},")
-        print(f"        m3_encoder_k     = {e_str})")
 
-        # ── Section A non-normality explanation ───────────────────────
         # ── Section A non-normality explanation ───────────────────────
         print()
         print("  ── Note on non-normal residuals (Sections A and B)")
@@ -1130,7 +1173,7 @@ def fit_rbc_model(csv_path):
     # ══════════════════════════════════════════════════════════════════
     print()
     print(W)
-    print("  SECTION C — SKY-SPACE RBC MODEL  (legacy driver coefficients)")
+    print("  SECTION C — SKY-SPACE RBC MODEL")
     print(W)
     print()
     print("  Note: this model was fitted in sky space (p_alt, p_roll) before")
@@ -1422,4 +1465,4 @@ if __name__ == '__main__':
         csv_path = Path(args.csv)
         if not csv_path.is_file():
             parser.error(f'CSV file not found: {csv_path}')
-        fit_rbc_model(csv_path)
+        fit_models(csv_path)
