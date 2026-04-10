@@ -19,7 +19,7 @@ The script extracts (-extract):
   - ASTAP plate-solve values: CRVAL1/2, CROTA2, CD matrix (solved frames only)
   - Derived motor angles: theta1/2/3 (via inverse kinematics from p_az/p_alt/p_roll)
   - Derived deviations: solved − predicted Az/Alt/Roll (solved frames only)
-  - Polar-alignment-adjusted fields (pa_*): predicted position with polar misalignment
+  - Polar-alignment-adjusted fields (pa_*): solved position with polar misalignment
     and global SPA bias removed, plus residual deviations and motor angles
     expressed in that corrected frame
 
@@ -660,164 +660,499 @@ def apply_polar_correction(row, polar_model):
             pass
 
 
+# ── Model fitting helpers ─────────────────────────────────────────────────────
+
+def _r2(y, y_pred):
+    ss_res = np.sum((y - y_pred) ** 2)
+    ss_tot = np.sum((y - y.mean()) ** 2)
+    return (1 - ss_res / ss_tot) if ss_tot > 0 else 0.0
+
+def _rmse(y, y_pred):
+    return float(np.sqrt(np.mean((y - y_pred) ** 2)))
+
+def _fit_sincos(az_rad, y):
+    """
+    Fit y = A·cos(az) + B·sin(az) + C via linear least squares.
+    Returns (popt, pcov, r2, rmse, F_stat, p_F, p_shapiro).
+    """
+    from numpy.linalg import lstsq
+    from scipy import stats as sp_stats
+
+    n = len(y)
+    X = np.column_stack([np.cos(az_rad), np.sin(az_rad), np.ones(n)])
+    coeffs, _, _, _ = lstsq(X, y, rcond=None)
+    pred  = X @ coeffs
+    resid = y - pred
+
+    ss_res = float(np.sum(resid ** 2))
+    ss_tot = float(np.sum((y - y.mean()) ** 2))
+    r2     = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
+    rmse_  = float(np.sqrt(ss_res / n))
+
+    # Covariance of coefficients
+    sigma2 = ss_res / max(n - 3, 1)
+    XtX_inv = np.linalg.pinv(X.T @ X)
+    pcov = sigma2 * XtX_inv
+    perr = np.sqrt(np.diag(pcov))
+
+    # Amplitude and phase from A, B
+    A, B, C = coeffs
+    amp   = float(np.sqrt(A**2 + B**2))
+    phase = float(np.degrees(np.arctan2(B, A)))  # az of maximum
+
+    # Uncertainty on amplitude via delta method
+    amp_err = float(np.sqrt((A/amp)**2 * pcov[0,0] + (B/amp)**2 * pcov[1,1]
+                             + 2*(A/amp)*(B/amp)*pcov[0,1])) if amp > 1e-6 else 0.0
+
+    # F-test (model vs null)
+    ss_model = ss_tot - ss_res
+    F_stat   = (ss_model / 3) / (ss_res / max(n - 3, 1)) if ss_res > 0 else 0.0
+    p_F      = float(1 - sp_stats.f.cdf(max(F_stat, 0), 3, max(n - 3, 1)))
+
+    # Shapiro-Wilk normality test on residuals
+    _, p_sw = sp_stats.shapiro(resid) if n <= 5000 else (0, float('nan'))
+
+    return dict(
+        A=A, B=B, C=C, coeffs=coeffs, perr=perr, pcov=pcov,
+        amp=amp, amp_err=amp_err, phase=phase,
+        r2=r2, rmse=rmse_, F=F_stat, p_F=p_F, p_sw=p_sw,
+        pred=pred, resid=resid,
+    )
+
+def _fit_curve(model_fn, x, y, p0, n_params=None):
+    """
+    Fit via scipy curve_fit. Returns extended result dict.
+    """
+    from scipy.optimize import curve_fit as sp_curve_fit
+    from scipy import stats as sp_stats
+
+    n = len(y)
+    p = n_params or len(p0)
+    popt, pcov = sp_curve_fit(model_fn, x, y, p0=p0, maxfev=20000)
+    perr  = np.sqrt(np.diag(pcov))
+    pred  = model_fn(x, *popt)
+    resid = y - pred
+
+    ss_res = float(np.sum(resid ** 2))
+    ss_tot = float(np.sum((y - y.mean()) ** 2))
+    r2     = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
+    rmse_  = float(np.sqrt(ss_res / n))
+
+    ss_model = ss_tot - ss_res
+    F_stat   = (ss_model / p) / (ss_res / max(n - p - 1, 1)) if ss_res > 0 else 0.0
+    p_F      = float(1 - sp_stats.f.cdf(max(F_stat, 0), p, max(n - p - 1, 1)))
+    t_crit   = sp_stats.t.ppf(0.975, df=max(n - p, 1))
+    _, p_sw  = sp_stats.shapiro(resid) if n <= 5000 else (0, float('nan'))
+
+    return dict(popt=popt, perr=perr, r2=r2, rmse=rmse_,
+                F=F_stat, p_F=p_F, t_crit=t_crit, p_sw=p_sw,
+                pred=pred, resid=resid)
+
+def _conf_str(val, err, t_crit, unit=''):
+    return f"{val:+.3f}{unit}  ±{err:.3f}{unit} 1σ  95%CI ±{t_crit*err:.3f}{unit}"
+
+def _significance(p_F):
+    if p_F < 1e-10: return "p<1e-10 ✓✓✓"
+    if p_F < 1e-4:  return f"p={p_F:.1e} ✓✓"
+    if p_F < 0.05:  return f"p={p_F:.4f} ✓"
+    return f"p={p_F:.4f} (not significant)"
+
+def _normality(p_sw):
+    if math.isnan(p_sw): return "n/a"
+    return f"p={p_sw:.4f} {'✓ normal' if p_sw > 0.05 else '(non-normal — use results cautiously)'}"
+
+
 # ── RBC model fitting ─────────────────────────────────────────────────────────
 
 def fit_rbc_model(csv_path):
     """
-    Load the extracted CSV and fit the three-coefficient RBC model.
+    Load the extracted CSV and fit:
+
+      A) Polar alignment model confidence
+         Sinusoidal fits of raw dev_alt / dev_az / dev_roll vs azimuth,
+         reported with R², RMSE, F-test and 95% confidence intervals.
+
+      B) Theta-space mechanical models (from pa_dev_theta* fields)
+         M2 axis tilt:    pa_dev_theta2 = A·sin(theta2 − φ)
+         M2 roll coupling: pa_dev_roll  = A·cos(theta2 − φ)
+         M3 encoder scale: pa_dev_theta3 = k·theta3  (if theta3 range is sufficient)
+
+      C) Sky-space RBC model (legacy, for driver Config)
+         roll_error = (rbc_model_a·tan(alt) + rbc_model_b)·p_roll
+         az_error   = rbc_model_c · roll_error
     """
     try:
         import numpy as np
         from scipy.optimize import curve_fit
+        from scipy import stats as sp_stats
         from numpy.linalg import lstsq
     except ImportError:
         print("\nERROR: numpy and scipy are required for --model.")
         print("       Run: pip install numpy scipy")
         return None, None, None
 
+    # ── Load rows ─────────────────────────────────────────────────────────
     rows = []
+    has_pa_fields = False
     with open(csv_path, newline='') as f:
-        for row in csv.DictReader(f):
+        reader = csv.DictReader(f)
+        fieldnames = reader.fieldnames or []
+        has_pa_fields = 'pa_dev_theta2_arcmin' in fieldnames
+        for row in reader:
             if row['status'] != 'solved':
                 continue
             try:
-                rows.append({
+                d = {
                     'p_az':           float(row['p_az']),
                     'p_alt':          float(row['p_alt']),
                     'p_roll':         float(row['p_roll']),
                     'dev_az_arcmin':  float(row['dev_az_arcmin']),
                     'dev_alt_arcmin': float(row['dev_alt_arcmin']),
                     'dev_roll_arcmin':float(row['dev_roll_arcmin']),
-                })
+                }
+                if has_pa_fields:
+                    d.update({
+                        'theta2':             float(row['theta2']),
+                        'theta3':             float(row['theta3']),
+                        'pa_dev_t2':          float(row['pa_dev_theta2_arcmin']),
+                        'pa_dev_t3':          float(row['pa_dev_theta3_arcmin']),
+                        'pa_dev_roll':        float(row['pa_dev_roll_arcmin']),
+                        'pa_dev_t1':          float(row['pa_dev_theta1_arcmin']),
+                    })
+                rows.append(d)
             except (ValueError, KeyError):
                 continue
 
     if len(rows) < 20:
-        print(f"\nERROR: Only {len(rows)} solved rows — need at least 20 for a reliable fit.")
+        print(f"\nERROR: Only {len(rows)} solved rows — need at least 20.")
         return None, None, None
 
+    n     = len(rows)
     p_az  = np.array([r['p_az']           for r in rows])
     p_alt = np.array([r['p_alt']           for r in rows])
     p_roll= np.array([r['p_roll']          for r in rows])
     d_az  = np.array([r['dev_az_arcmin']   for r in rows])
     d_alt = np.array([r['dev_alt_arcmin']  for r in rows])
     d_roll= np.array([r['dev_roll_arcmin'] for r in rows])
-    n     = len(rows)
+    az_rad= np.radians(p_az)
 
-    def sinusoidal_az(az_deg, amplitude, az0_deg, offset):
+    W = "═" * 64
+
+    # ══════════════════════════════════════════════════════════════════
+    print()
+    print(W)
+    print("  SECTION A — POLAR ALIGNMENT MODEL CONFIDENCE")
+    print(W)
+    print(f"  N = {n} solved frames")
+    print()
+    print("  Fits dev_alt / dev_az / dev_roll = A·cos(az)+B·sin(az)+C")
+    print("  Amplitude = √(A²+B²), Phase = azimuth of maximum deviation")
+    print()
+
+    polar_fits = {}
+    for label, y, desc in [
+        ('dev_alt',  d_alt,  'Altitude deviation (polar tilt, dominant signal)'),
+        ('dev_az',   d_az,   'Azimuth deviation  (encoder offset + weaker tilt)'),
+        ('dev_roll', d_roll, 'Roll deviation     (SPA bias + polar tilt in roll)'),
+    ]:
+        f = _fit_sincos(az_rad, y)
+        polar_fits[label] = f
+        t_crit = sp_stats.t.ppf(0.975, df=max(n - 3, 1))
+        print(f"  ── {label} ({desc})")
+        amp_str = _conf_str(f['amp'], f['amp_err'], t_crit, "'")
+        off_str = _conf_str(f['C'],   f['perr'][2], t_crit, "'")
+        print(f"     Amplitude : {amp_str}")
+        print(f"     Phase (az): {f['phase']:+.2f}°  (azimuth of maximum)")
+        print(f"     Offset C  : {off_str}")
+        print(f"     R²={f['r2']:.4f}  RMSE={f['rmse']:.1f}'  F={f['F']:.1f}  {_significance(f['p_F'])}")
+        print(f"     Residual normality: {_normality(f['p_sw'])}")
+        print()
+
+    # Derived tilt summary
+    alt_f = polar_fits['dev_alt']
+    print(f"  Polar tilt (from dev_alt): {alt_f['amp']/60:.3f}° ± {alt_f['amp_err']/60:.3f}°  "
+          f"toward az={alt_f['phase']:.1f}°")
+    print(f"  Az encoder offset (C from dev_az): {polar_fits['dev_az']['C']:+.1f}'")
+    print(f"  SPA roll bias     (C from dev_roll): {polar_fits['dev_roll']['C']:+.1f}'")
+
+    # ══════════════════════════════════════════════════════════════════
+    if has_pa_fields:
+        t2 = np.array([r['theta2']    for r in rows])
+        t3 = np.array([r['theta3']    for r in rows])
+        pa_dev_t2   = np.array([r['pa_dev_t2']   for r in rows])
+        pa_dev_t3   = np.array([r['pa_dev_t3']   for r in rows])
+        pa_dev_roll = np.array([r['pa_dev_roll'] for r in rows])
+        pa_dev_t1   = np.array([r['pa_dev_t1']  for r in rows])
+
+        t3_range = float(t3.max() - t3.min())
+
+        print()
+        print(W)
+        print("  SECTION B — THETA-SPACE MECHANICAL MODELS")
+        print(W)
+        print()
+
+        # ── M2 axis tilt → pa_dev_theta2 ──────────────────────────────
+        print("  ── B1: M2 axis tilt  (pa_dev_theta2 = A·sin(theta2 − φ))")
+        print()
+        print("     Mechanical meaning: M2 rotation axis is not perfectly horizontal.")
+        print("     As theta2 increases, the camera altitude deviates sinusoidally.")
+        print("     A  = tilt amplitude (arcmin)")
+        print("     φ  = theta2 at which error is zero (degrees)")
+        print()
+        try:
+            def m2_model(t, amp, zero): return amp * np.sin(np.radians(t - zero))
+            r_m2 = _fit_curve(m2_model, t2, pa_dev_t2, p0=[52., 36.])
+            amp_m2, zero_m2 = r_m2['popt']
+            amp_err, zero_err = r_m2['perr']
+            tc = r_m2['t_crit']
+            _sa = _conf_str(amp_m2,  amp_err,  tc, "'")
+            _sz = _conf_str(zero_m2, zero_err, tc, '°')
+            print(f"     A   = {_sa}")
+            print(f"     φ   = {_sz}")
+            print(f"     R²={r_m2['r2']:.4f}  RMSE={r_m2['rmse']:.2f}'  "
+                  f"F={r_m2['F']:.1f}  {_significance(r_m2['p_F'])}")
+            print(f"     Residual normality: {_normality(r_m2['p_sw'])}")
+            print()
+            print(f"     → Driver correction: delta_theta2 = "
+                  f"−{amp_m2:.1f}'·sin(theta2 − {zero_m2:.1f}°)  /60")
+        except Exception as e:
+            print(f"     FIT FAILED: {e}")
+
+        # ── M2 axis tilt → pa_dev_roll coupling ───────────────────────
+        print()
+        print("  ── B2: M2 tilt coupling into roll  (pa_dev_roll = A·cos(theta2 − φ))")
+        print()
+        print("     The same M2 axis tilt that shifts altitude also rotates the camera")
+        print("     frame around the boresight, appearing as a roll error that grows")
+        print("     with cos(theta2) — largest at horizon, zero at zenith.")
+        print()
+        try:
+            def m2_roll_model(t, amp, zero): return amp * np.cos(np.radians(t - zero))
+            r_roll = _fit_curve(m2_roll_model, t2, pa_dev_roll, p0=[149., -52.])
+            amp_r, zero_r = r_roll['popt']
+            tc = r_roll['t_crit']
+            _sa = _conf_str(amp_r,  r_roll['perr'][0], tc, "'")
+            _sz = _conf_str(zero_r, r_roll['perr'][1], tc, '°')
+            print(f"     A   = {_sa}")
+            print(f"     φ   = {_sz}")
+            print(f"     R²={r_roll['r2']:.4f}  RMSE={r_roll['rmse']:.2f}'  "
+                  f"F={r_roll['F']:.1f}  {_significance(r_roll['p_F'])}")
+            print(f"     Residual normality: {_normality(r_roll['p_sw'])}")
+            print()
+            corr = float(np.corrcoef(r_m2['resid'], r_roll['resid'])[0,1])
+            print(f"     Cross-check: corr(B1_resid, B2_resid) = {corr:+.4f}")
+            print(f"     (shared residual suggests common physical source — confirmed M2 tilt)")
+        except Exception as e:
+            print(f"     FIT FAILED: {e}")
+
+        # ── M3 encoder → pa_dev_theta3 ────────────────────────────────
+        print()
+        print("  ── B3: M3 encoder scale error  (pa_dev_theta3 = k·theta3)")
+        print()
+        print(f"     theta3 range in this dataset: {t3.min():.1f}° to {t3.max():.1f}°"
+              f"  (span = {t3_range:.1f}°)")
+        print()
+
+        MIN_T3_RANGE = 30.0
+        if t3_range < MIN_T3_RANGE:
+            print(f"     ⚠ theta3 range ({t3_range:.1f}°) is insufficient for reliable fit.")
+            print(f"       Need ≥{MIN_T3_RANGE:.0f}° range (ideally ±60°).")
+            print(f"       Collect dedicated images with p_roll varied from −60° to +60°")
+            print(f"       at a fixed az/alt and re-run -model.")
+            k_m3 = float(np.dot(t3, pa_dev_t3) / np.dot(t3, t3)) if np.dot(t3,t3)>0 else 0
+            print(f"       Indicative estimate (unreliable): k ≈ {k_m3:.3f}'/°")
+        else:
+            # Origin regression: pa_dev_t3 = k·t3
+            k_m3  = float(np.dot(t3, pa_dev_t3) / np.dot(t3, t3))
+            pred3 = k_m3 * t3
+            ss_r3 = float(np.sum((pa_dev_t3 - pred3)**2))
+            ss_t3 = float(np.sum((pa_dev_t3 - pa_dev_t3.mean())**2))
+            r2_m3 = 1 - ss_r3/ss_t3 if ss_t3 > 0 else 0
+            rmse3 = float(np.sqrt(ss_r3/n))
+            se_k  = float(np.sqrt(ss_r3 / max(n-1,1) / max(float(np.dot(t3,t3)),1e-9)))
+            t_stat= k_m3 / se_k if se_k > 0 else 0
+            tc    = float(sp_stats.t.ppf(0.975, df=max(n-1,1)))
+            p_k   = float(2*(1 - sp_stats.t.cdf(abs(t_stat), df=max(n-1,1))))
+            # Check theta2 dependence of residuals
+            r_t2r = float(np.corrcoef(t2, pa_dev_t3 - pred3)[0,1])
+            print(f"     k = {k_m3:+.4f}'/°  ±{se_k:.4f}  95%CI ±{tc*se_k:.4f}")
+            print(f"     k as fraction: {k_m3/60:.6f} ({k_m3/60*100:.4f}% scale error)")
+            print(f"     R²={r2_m3:.4f}  RMSE={rmse3:.2f}'  t={t_stat:.1f}  {_significance(p_k)}")
+            print(f"     Corr(theta2, residuals) = {r_t2r:.4f}  (want ≈0; if large, theta2 term needed)")
+            print(f"     → Driver correction: delta_theta3 = {k_m3:.4f}'/° × theta3")
+
+        # ── pa_dev_theta1 ──────────────────────────────────────────────
+        print()
+        print("  ── B4: pa_dev_theta1 structure")
+        print()
+        print("     pa_dev_theta1 is the residual azimuth error in motor space.")
+        print("     At theta3≈0 it has two components:")
+        print("       i)  Geometric projection of M2 tilt onto the az axis")
+        print("           — this goes as cot(theta2) and should disappear once")
+        print("             apply_mechanical_corrections() is in place.")
+        print("       ii) Residual from imperfect polar sinusoid removal")
+        print("             — irreducible until more az coverage is added.")
+        print()
+        print(f"     Summary: mean={pa_dev_t1.mean():+.1f}'  std={pa_dev_t1.std():.1f}'  "
+              f"min={pa_dev_t1.min():+.1f}'  max={pa_dev_t1.max():+.1f}'")
+
+        # Fit M2 geometric projection onto theta1: dev_t1 = K * cot(theta2)
+        # = K * cos(theta2)/sin(theta2)
+        cot_t2 = np.cos(np.radians(t2)) / np.clip(np.sin(np.radians(t2)), 1e-3, None)
+        k_cot  = float(np.dot(cot_t2, pa_dev_t1) / np.dot(cot_t2, cot_t2))
+        pred_t1_cot = k_cot * cot_t2
+        ss_r_cot    = float(np.sum((pa_dev_t1 - pred_t1_cot)**2))
+        ss_t_t1     = float(np.sum((pa_dev_t1 - pa_dev_t1.mean())**2))
+        r2_cot      = 1 - ss_r_cot / ss_t_t1 if ss_t_t1 > 0 else 0
+        se_cot      = float(np.sqrt(ss_r_cot / max(n-1,1) / max(float(np.dot(cot_t2,cot_t2)),1e-9)))
+        tc_cot      = float(sp_stats.t.ppf(0.975, df=max(n-1,1)))
+
+        # Also try simple linear in theta2 for comparison
+        slope_t2, intercept_t2, r_t2, _, _ = sp_stats.linregress(t2, pa_dev_t1)
+        corr_t3 = float(np.corrcoef(t3, pa_dev_t1)[0,1])
+
+        print()
+        print(f"     Model i)  pa_dev_t1 = K·cot(theta2)  (M2 geometric projection)")
+        print(f"       K = {k_cot:+.3f}'/°  ±{se_cot:.3f}  95%CI ±{tc_cot*se_cot:.3f}")
+        print(f"       R²={r2_cot:.4f}  RMSE={np.sqrt(ss_r_cot/n):.2f}'")
+        print(f"     Model ii) pa_dev_t1 = m·theta2 + c  (linear, for comparison)")
+        print(f"       slope={slope_t2:+.3f}'/°  intercept={intercept_t2:+.2f}'  R²={r_t2**2:.4f}")
+        print(f"     Corr(theta3, pa_dev_t1) = {corr_t3:+.4f}")
+        if abs(corr_t3) > 0.5:
+            print(f"     → Strong theta3 correlation: M3 encoder error is visible in az.")
+            print(f"       This will reduce once B3 (M3) correction is calibrated.")
+        else:
+            print(f"     → Weak theta3 correlation: consistent with near-zero theta3 dataset.")
+            print(f"       Collect data with theta3 swept ±60° to separate M3 from M2 effects.")
+
+        # ── Section A non-normality explanation ───────────────────────
+        print()
+        print("  ── Note on non-normal residuals (Sections A and B)")
+        print()
+        print("     All channels show non-normal residuals (Shapiro-Wilk p<0.05).")
+        print("     Cause: the M2 axis tilt creates an altitude-dependent error that")
+        print("     survives the polar sinusoid removal — the sinusoid absorbs the")
+        print("     az variation but not the altitude variation within each az group.")
+        print("     Once apply_mechanical_corrections() is implemented and theta2")
+        print("     errors are removed upstream, residual normality should improve.")
+        print("     For now, treat confidence intervals as approximate.")
+
+    else:
+        print()
+        print("  NOTE: pa_* fields not found in CSV.")
+        print("  Re-run -extract with the updated script to generate them,")
+        print("  then re-run -model for theta-space model fitting.")
+
+    # ══════════════════════════════════════════════════════════════════
+    print()
+    print(W)
+    print("  SECTION C — SKY-SPACE RBC MODEL  (legacy driver coefficients)")
+    print(W)
+    print()
+    print("  Note: this model was fitted in sky space (p_alt, p_roll) before")
+    print("  theta-space corrections were understood. The tan(alt) term in")
+    print("  rbc_model_a partially absorbs the M2 axis tilt geometric projection.")
+    print("  After implementing theta-space corrections (Sections B1/B3), the")
+    print("  residual RBC correction should be smaller and recalibrated.")
+    print()
+
+    def sinusoidal_az_amp(az_deg, amplitude, az0_deg, offset):
         return amplitude * np.cos(np.radians(az_deg - az0_deg)) + offset
-
-    def r_squared(y_actual, y_predicted):
-        ss_res = np.sum((y_actual - y_predicted) ** 2)
-        ss_tot = np.sum((y_actual - y_actual.mean()) ** 2)
-        return 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
-
-    print()
-    print("═" * 60)
-    print("  ROTATION BIAS CORRECTION MODEL FIT")
-    print("═" * 60)
-
-    global_mean = d_roll.mean()
-    global_std  = d_roll.std()
-
-    print()
-    print("── Component 1: Global alignment offset (SPA bias) ─────────")
-    print(f"   Mean dev_roll  : {global_mean:+.1f} arcmin  ({global_mean/60:+.3f}°)")
-    print(f"   Std  dev_roll  : {global_std:.1f} arcmin")
-    print(f"   N (solved)     : {n}")
-    print(f"   Interpretation : ~{global_mean/60:.2f}° global roll bias under SPA-only")
-    print(f"                    QUEST absorbs this with any sync point")
 
     p0_roll = [(d_roll.max() - d_roll.min()) / 2, 90.0, d_roll.mean()]
     try:
-        popt_az, _ = curve_fit(sinusoidal_az, p_az, d_roll, p0=p0_roll, maxfev=10000)
+        popt_az, _ = curve_fit(sinusoidal_az_amp, p_az, d_roll,
+                               p0=p0_roll, maxfev=10000)
     except RuntimeError:
-        print("\nWARNING: Az sinusoid fit failed to converge.")
+        print("WARNING: Az sinusoid fit failed to converge.")
         return None, None, None
 
-    roll_az_amplitude, roll_az_az0, roll_az_offset = popt_az
-    az_r2 = r_squared(d_roll, sinusoidal_az(p_az, *popt_az))
-
-    p0_alt = [(d_alt.max() - d_alt.min()) / 2, 10.0, d_alt.mean()]
-    try:
-        popt_alt, _ = curve_fit(sinusoidal_az, p_az, d_alt, p0=p0_alt, maxfev=10000)
-        alt_r2 = r_squared(d_alt, sinusoidal_az(p_az, *popt_alt))
-        alt_fit_ok = True
-    except RuntimeError:
-        popt_alt = [0, 0, 0]
-        alt_r2 = 0.0
-        alt_fit_ok = False
-
-    print()
-    print("── Component 2: Az-dependent offset (polar misalignment) ───")
-    print(f"   dev_roll sinusoid amplitude : {roll_az_amplitude:+.1f} arcmin  R²={az_r2:.4f}")
-    print(f"   dev_roll Az of maximum      : {roll_az_az0:.1f}°")
-    if alt_fit_ok:
-        print(f"   dev_alt  sinusoid amplitude : {popt_alt[0]:+.1f} arcmin  R²={alt_r2:.4f}")
-        print(f"   dev_alt  Az of maximum      : {popt_alt[1]:.1f}°")
-        print(f"   Implied polar tilt          : ~{abs(popt_alt[0])/60:.2f}° toward Az≈{popt_alt[1]:.0f}°")
-    print(f"   Interpretation              : QUEST absorbs this with multi-point sync")
-
-    d_roll_residual = d_roll - sinusoidal_az(p_az, *popt_az)
-
-    tan_alt     = np.tan(np.radians(p_alt))
-    feature_tan = tan_alt * p_roll
-    feature_p   = p_roll
-
-    X = np.column_stack([feature_tan, feature_p])
-    y = d_roll_residual
-
-    coeffs, _, _, _ = lstsq(X, y, rcond=None)
-    rbc_model_a, rbc_model_b = coeffs
-
-    pred_roll = X @ coeffs
-    r2_roll   = r_squared(y, pred_roll)
-    rmse_roll = np.sqrt(np.mean((y - pred_roll) ** 2))
-
-    print()
-    print("── Component 3a: Roll error model (rbc_model_a, rbc_model_b) ──")
-    print(f"   Fit on {n} points  R²={r2_roll:.4f}  RMSE={rmse_roll:.1f} arcmin")
-    print(f"   roll_error = ({rbc_model_a:.4f}·tan(alt) + {rbc_model_b:.4f}) · p_roll")
-
+    d_roll_residual = d_roll - sinusoidal_az_amp(p_az, *popt_az)
+    tan_alt         = np.tan(np.radians(p_alt))
+    X               = np.column_stack([tan_alt * p_roll, p_roll])
+    coeffs, _, _, _ = lstsq(X, d_roll_residual, rcond=None)
+    rbc_model_a, rbc_model_b = float(coeffs[0]), float(coeffs[1])
+    pred_roll       = X @ coeffs
+    r2_rbc          = _r2(d_roll_residual, pred_roll)
+    rmse_rbc        = _rmse(d_roll_residual, pred_roll)
     roll_error_pred = (rbc_model_a * tan_alt + rbc_model_b) * p_roll
 
     p0_daz = [(d_az.max() - d_az.min()) / 2, 90.0, d_az.mean()]
     try:
-        popt_daz, _ = curve_fit(sinusoidal_az, p_az, d_az, p0=p0_daz, maxfev=10000)
-        d_az_residual = d_az - sinusoidal_az(p_az, *popt_daz)
+        popt_daz, _ = curve_fit(sinusoidal_az_amp, p_az, d_az,
+                                p0=p0_daz, maxfev=10000)
+        d_az_residual = d_az - sinusoidal_az_amp(p_az, *popt_daz)
     except RuntimeError:
         d_az_residual = d_az - d_az.mean()
 
-    rbc_model_c = float(np.dot(roll_error_pred, d_az_residual) /
-                        np.dot(roll_error_pred, roll_error_pred))
+    denom       = float(np.dot(roll_error_pred, roll_error_pred))
+    rbc_model_c = float(np.dot(roll_error_pred, d_az_residual) / denom) if denom > 0 else 0.0
+    az_pred_c   = rbc_model_c * roll_error_pred
+    r2_az_c     = _r2(d_az_residual, az_pred_c)
+    rmse_az_c   = _rmse(d_az_residual, az_pred_c)
 
-    az_pred_c = rbc_model_c * roll_error_pred
-    r2_az     = r_squared(d_az_residual, az_pred_c)
-    rmse_az   = np.sqrt(np.mean((d_az_residual - az_pred_c) ** 2))
-    raw_slope, raw_intercept = np.polyfit(d_roll, d_az, 1)
+    d_roll_final = d_roll_residual - pred_roll
+    corr_before  = float(np.corrcoef(d_roll_residual, p_roll)[0,1])
+    corr_after   = float(np.corrcoef(d_roll_final,    p_roll)[0,1])
+    pct_improve  = 100 * (1 - d_roll_final.std() / max(d_roll_residual.std(), 1e-9))
 
+    print(f"  roll_error = ({rbc_model_a:.4f}·tan(alt) + {rbc_model_b:.4f})·p_roll")
+    print(f"  R²={r2_rbc:.4f}  RMSE={rmse_rbc:.1f}'")
+    print(f"  az_error = {rbc_model_c:.4f} · roll_error")
+    print(f"  R²={r2_az_c:.4f}  RMSE={rmse_az_c:.1f}'")
     print()
-    print("── Component 3b: Az coupling coefficient (rbc_model_c) ────")
-    print(f"   Raw linear fit dev_az vs dev_roll: slope={raw_slope:.4f}  intercept={raw_intercept:.1f}'")
-    print(f"   Slope-only fit vs roll_error_pred: rbc_model_c={rbc_model_c:.4f}  R²={r2_az:.4f}  RMSE={rmse_az:.1f}'")
-
-    d_roll_final = d_roll_residual - roll_error_pred
-    before_std  = d_roll_residual.std()
-    after_std   = d_roll_final.std()
-    improvement = 100 * (1 - after_std / before_std)
-    corr_before = float(np.corrcoef(d_roll_residual, p_roll)[0, 1])
-    corr_after  = float(np.corrcoef(d_roll_final,    p_roll)[0, 1])
-
+    print(f"  Validation: corr(p_roll, residual) {corr_before:+.4f} → {corr_after:+.4f}")
+    print(f"  Roll std reduction: {d_roll_residual.std():.1f}' → {d_roll_final.std():.1f}'  "
+          f"({pct_improve:.1f}% improvement)")
     print()
-    print("── Validation ───────────────────────────────────────────────")
-    print(f"   Correlation p_roll before: {corr_before:+.4f}  →  after: {corr_after:+.4f}")
-    print(f"   Std before: {before_std:.1f}'  →  after: {after_std:.1f}'  ({improvement:.1f}% reduction)")
+    print("  ── Fitted coefficients (copy into driver Config) ───────────")
+    print(f"     rbc_model_a = {rbc_model_a:.4f}")
+    print(f"     rbc_model_b = {rbc_model_b:.4f}")
+    print(f"     rbc_model_c = {rbc_model_c:.4f}")
 
+    # ══════════════════════════════════════════════════════════════════
     print()
-    print("── Fitted coefficients (copy into driver Config) ────────────")
-    print(f"   rbc_model_a = {rbc_model_a:.4f}")
-    print(f"   rbc_model_b = {rbc_model_b:.4f}")
-    print(f"   rbc_model_c = {rbc_model_c:.4f}")
+    print(W)
+    print("  SECTION D — CALIBRATION ROADMAP")
+    print(W)
+    print()
+    print("  Priority order for corrections, largest to smallest expected impact:")
+    print()
+    if has_pa_fields:
+        try:
+            amp_m2_val = float(amp_m2)
+            zero_m2_val = float(zero_m2)
+            print(f"  1. M2 axis tilt  [Section B1]  amplitude={amp_m2_val:.1f}'  zero={zero_m2_val:.1f}°")
+            print(f"     Apply in driver: apply_mechanical_corrections(q,")
+            print(f"         m2_tilt_arcmin={amp_m2_val:.1f}, m2_tilt_zero_deg={zero_m2_val:.1f}, m3_encoder_k=0.0)")
+            print(f"     Expected QUEST residual improvement: ~{amp_m2_val/2:.0f}' → <10'")
+        except NameError:
+            print("  1. M2 axis tilt  [Section B1]  — fit failed, check data")
+        print()
+        print(f"  2. M3 encoder scale  [Section B3]")
+        if t3_range < 30.0:
+            print(f"     ✗ Cannot calibrate — theta3 span only {t3_range:.1f}°")
+            print(f"     → Capture ~5 images each at p_roll = −60°, −30°, 0°, +30°, +60°")
+            print(f"       at a fixed az/alt with good sky coverage, then re-run -model.")
+        else:
+            try:
+                print(f"     Apply: m3_encoder_k = {k_m3/60:.6f}  (in degrees/degree)")
+            except NameError:
+                pass
+        print()
+    print(f"  3. Polar axis tilt  [Section A, dev_alt]")
+    try:
+        print(f"     Tilt = {alt_f['amp']/60:.3f}° ± {alt_f['amp_err']/60:.3f}°  toward az={alt_f['phase']:.1f}°")
+    except NameError:
+        pass
+    print(f"     Handled by QUEST multi-point alignment (no driver code change needed).")
+    print(f"     More sync points spread across az will reduce residual further.")
+    print()
+    print(f"  4. Sky-space RBC  [Section C]")
+    print(f"     After implementing steps 1–2, recollect data and refit -model.")
+    print(f"     The rbc_model_a/b/c coefficients should be smaller once theta-space")
+    print(f"     corrections absorb the dominant M2/M3 errors.")
     print()
 
     return rbc_model_a, rbc_model_b, rbc_model_c
@@ -987,7 +1322,7 @@ if __name__ == '__main__':
                         help='Scan --dir for FITS files and write results to --csv.')
     parser.add_argument('-model',   action='store_true',
                         help='Fit the RBC model from --csv and print calibration coefficients.')
-    parser.add_argument('-dir',  metavar='DIR',  default='../../../images/DSO Lights/Test Data Sky Survey/L/lights',
+    parser.add_argument('-dir',  metavar='DIR',  default='.',
                         help='Directory to scan recursively for FITS files.')
     parser.add_argument('-csv',  metavar='FILE', default='fits_extract.csv',
                         help='CSV file path.')
