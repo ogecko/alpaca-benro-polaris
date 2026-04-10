@@ -1133,23 +1133,23 @@ def fit_models(csv_path):
         print("  " + "─" * 62)
         print()
         if amp_m2 is not None:
-            print(f"  theta_model_a = {amp_m2:.4f}   # M2 tilt amplitude (arcmin)")
-            print(f"  theta_model_b = {zero_m2:.4f}   # M2 tilt zero crossing (degrees theta2)")
+            print(f"  theta_model_a = {amp_m2:.4f}   # M2/theta2 Bias Model: pa_dev_theta2 (arcmin) = theta_model_a · sin(theta2 − theta_model_b)   from fits_extract -model B1")
+            print(f"  theta_model_b = {zero_m2:.4f}   # M2/theta2 Bias Model: pa_dev_theta2 (arcmin) = theta_model_a · sin(theta2 − theta_model_b)   from fits_extract -model B1")
         else:
-            print(f"  theta_model_a = ???              # B1 fit failed — check data")
+            print(f"  theta_model_a = ???            # B1 fit failed — check data")
             print(f"  theta_model_b = ???")
         if amp_r is not None:
-            b2_note = "# M2 roll coupling amplitude (arcmin)" + \
+            b2_note = "# M2/roll Bias Model:   pa_dev_roll (arcmin) = theta_model_c · cos(theta2 − theta_model_d)     from fits_extract -model B2" + \
                       ("" if b2_reliable else "  ⚠ low reliability — use with caution")
-            print(f"  theta_model_c = {amp_r:.4f}   {b2_note}")
-            print(f"  theta_model_d = {zero_r:.4f}   # M2 roll coupling zero crossing (degrees theta2)")
+            print(f"  theta_model_c = {amp_r:.4f}    {b2_note}")
+            print(f"  theta_model_d = {zero_r:.4f}   # M2/roll Bias Model: zero crossing (degrees theta2)")
         else:
-            print(f"  theta_model_c = ???              # B2 fit failed or insufficient data")
+            print(f"  theta_model_c = ???            # B2 fit failed or insufficient data")
             print(f"  theta_model_d = ???")
         if k_m3 is not None:
-            print(f"  theta_model_e = {k_m3:.4f}   # M3 encoder scale error (arcmin/degree)")
+            print(f"  theta_model_e = {k_m3:.4f}     # M3/theta3 Bias Model  pa_dev_theta3 (arcmin/deg) = theta_model_e · theta3                    from fits_extract -model B3")
         else:
-            print(f"  theta_model_e = ???              # B3 insufficient theta3 range — sweep p_roll ±60°")
+            print(f"  theta_model_e = ???            # B3 insufficient theta3 range — sweep p_roll ±60°")
         print()
 
         # ── Section A non-normality explanation ───────────────────────
