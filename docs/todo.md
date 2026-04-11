@@ -16,6 +16,7 @@
 - [ ] Explore how to reduce sidereal tracking drift and reduce residuals - eg TPoint Model, PEC, Polar Align Adj, verify with cross validation
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
 - [ ] Debug 518 message intermittant miss
+- [ ] Add HTTPS so that Copy Clipboard and Map Locate work in Browser
 - [ ] Create video of new features - Large Roll Direction Maintain, Large -ve Az, Pulse Guide Accuracy, RBC, LGC, Kinematics Page, PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy, Stop and Restart Driver
 
 ## Final Release Checklist
