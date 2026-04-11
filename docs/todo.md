@@ -12,11 +12,10 @@
 - [X] RBC Rotation Based Correction to fix M3 bias effecting Az and Roll (based on plate-solve test)
 - [X] Refactor Kinematics page in Pilot
 - [X] Complete Kinematics page motor output, sp highlighting, settings disabling
+- [ ] Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates
+- [ ] Explore how to reduce sidereal tracking drift and reduce residuals - eg TPoint Model, PEC, Polar Align Adj, verify with cross validation
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
-- [ ] Explore how to reduce sidereal tracking drift - incorporate agregated pulse guidace offset into model, or manual adjustment of polar alignment
-- [ ] Debug suspect Stellarium memory usage leakage
 - [ ] Debug 518 message intermittant miss
-- [ ] PEC control (how to detect phase?)
 - [ ] Create video of new features - Large Roll Direction Maintain, Large -ve Az, Pulse Guide Accuracy, RBC, LGC, Kinematics Page, PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy, Stop and Restart Driver
 
 ## Final Release Checklist

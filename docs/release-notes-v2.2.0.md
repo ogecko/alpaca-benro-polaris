@@ -55,7 +55,8 @@
 - **[Orbital Tracking]** Enhance orbital tracking by adding feed forward, expanding integration, and maintaining a fixed roll angle
 - **[Guiding Accuracy]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
 - **[Guiding Integral]**: Reduce pulse-guiding overshoot by temporarily suspending integration of the error term during active guiding.
-- **[Pano Recenter]**  Add btn on the Dashboard to save the current pointing orientation into the PanoGrid, recentering it in space.
+- **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.
+- **[Pano Recenter]** Add btn on the Dashboard to save the current pointing orientation into the PanoGrid, recentering it in space.
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
 - **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).

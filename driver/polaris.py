@@ -2218,7 +2218,7 @@ class Polaris:
             self._pid.set_alpha_target({ "roll": Config.r3 })
             await self.SlewToAltAz(alt, az, isasync)
         elif Config.track == 1:            # Sky - Horizon Locked
-            self._pid.set_alpha_target({ "roll": 0 })
+            self._pid.set_alpha_target({ "roll": Config.r3 })
             await self.SlewToAltAz(alt, az, isasync)
             await self.start_tracking()
         elif Config.track == 2:            # Sky - Celestrial
@@ -2292,7 +2292,7 @@ class Polaris:
         dy = (panel_row - ref_row) * vstep 
 
         # --- Apply boresight roll ---
-        roll_rad = math.radians(ref_roll)
+        roll_rad = math.radians(ref_roll) if Config.track==2 else 0
         dx_r = dx * math.cos(roll_rad) - dy * math.sin(roll_rad)
         dy_r = dx * math.sin(roll_rad) + dy * math.cos(roll_rad)
 
@@ -2301,3 +2301,5 @@ class Polaris:
         alt = ref_alt + dy_r
 
         return az, alt
+    
+    
