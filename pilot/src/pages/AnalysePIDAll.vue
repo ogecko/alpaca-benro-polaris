@@ -25,7 +25,9 @@
           :options="[
             { label: 'Mot', value: 0 },
             { label: 'Top', value: 1 },
-            { label: 'Equ', value: 2 }
+            { label: 'Equ', value: 2 },
+            { label: 'ΔTop', value: 3 },
+            { label: 'ΔMot', value: 4 },
           ]"
         />
       </div>
@@ -93,6 +95,8 @@ const axisOptionsData = [
   [ { label: 'M1', value: 0 }, { label: 'M2', value: 1 },   { label: 'M3', value: 2 } ],
   [ { label: 'Az', value: 0 }, { label: 'Alt', value: 1 },   { label: 'Roll', value: 2 } ],
   [ { label: 'RA ', value: 0 }, { label: 'Dec', value: 1 },   { label: 'PA ', value: 2 } ],
+  [ { label: 'ΔAz', value: 0 }, { label: 'ΔAlt', value: 1 },   { label: 'ΔRoll', value: 2 } ],
+  [ { label: 'ΔM1', value: 0 }, { label: 'ΔM2', value: 1 },   { label: 'ΔM3', value: 2 } ],
 ]
 const axisLabel = (n:number) => {
   const group = axisOptionsData[coord.value]
@@ -127,10 +131,10 @@ function formatPosData(n: number) {
     let pvKey: keyof PIDMessage
     let spKey: keyof PIDMessage
 
-    if (coord.value === 0) {
+    if (coord.value === 0 || coord.value === 4) {
       pvKey = "θ_pv"
       spKey = "θ_sp"
-    } else if (coord.value === 1) {
+    } else if (coord.value === 1 || coord.value === 3) {
       pvKey = "α_pv"
       spKey = "α_sp"
     } else {
@@ -138,8 +142,14 @@ function formatPosData(n: number) {
       spKey = "Δ_sp"
     }
 
-    const PV = data[pvKey]?.[n-1] ?? 0
-    const SP = data[spKey]?.[n-1] ?? 0
+
+    let PV = data[pvKey]?.[n-1] ?? 0
+    let SP = data[spKey]?.[n-1] ?? 0
+
+    if (coord.value > 2) {
+        PV = PV - SP
+        SP = SP - SP
+    }
 
     return { x1: time, PV, SP }
   }
