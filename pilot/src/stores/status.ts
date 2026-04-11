@@ -101,6 +101,7 @@ export const useStatusStore = defineStore('status', {
         polarisastrover: '',
         rbcerror: 0,
         sccerror: 0,
+        pidKc: 0.75,
     }),
 
     actions: {

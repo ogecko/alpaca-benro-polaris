@@ -42,6 +42,7 @@
 - **[Alignment Diagnostics]** Improve Multi-Point Alignment Model diagnostic logging.
 - **[Kinematics Status]** A new Kinematics page that provides a comprehensive overview of both Forward and Inverse Kinematics workflows.
 - **[Goto Completion]** Reduce post-goto star trails by stabilising tracking before marking goto as complete, tightening tollerance x20 when tracking enabled.
+- **[Progress Indicator]** Add a circular progress indicator showing remaining angular distance for Goto, Rotate, Home, and Park operations.
 - **[Slew & Center Correction]** Reduce the number of corrective slews with Zero Last Residual (ZLR) and Local Guasssian Adjustment (LGA) algorithms.
 - **[Rotation Bias Correction]** Correct systematic bias and gain errors in the Astro axis sensors.
 - **[FITS Extract]** Utility script to extract meta-data from plate-solved FITS images and calibrate Rotation Bias Correction Model (fits_extract.py)

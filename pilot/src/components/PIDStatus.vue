@@ -1,6 +1,7 @@
 <template>
         <q-chip :color="statusColor" :outline="statusOutline" :icon="statusIcon" class="q-pa-md">
         {{statusLabel}}
+        <q-circular-progress v-if="long_cmd" :value="progress" :thickness="0.4" size="25px" color="white" track-color="green-10" class="q-ml-md"/>
       </q-chip>
 </template>
 
@@ -9,6 +10,19 @@ import { computed } from 'vue'
 import { useStatusStore } from 'src/stores/status'
 
 const p = useStatusStore()
+
+const long_cmd = computed(() => p.gotoing || p.rotating || p.pidmode=='HOMING' || p.pidmode=='PARKING' )
+
+const progress = computed(() => {
+  const [x,y,z] = p.errsig as [number, number, number] 
+  const magnitude = Math.max(Math.abs(x), Math.abs(y), Math.abs(z))
+  const log = Math.log(magnitude)
+  const tollerance = p.tracking ? p.pidKc/60/20 : p.pidKc/60
+  const min = Math.log(tollerance)
+  const max = Math.log(15)
+  const raw = (log - min) / (max - min) * 100
+  return 100 - Math.min(100, Math.max(0, raw))
+})
 
 const statusLabel = computed(() => 
   p.pidmode=='PRESETUP' ? "PreSetup" :

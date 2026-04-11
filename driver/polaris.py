@@ -1425,6 +1425,7 @@ class Polaris:
                 'polarisastrover': self._polaris_astro_ver,
                 'rbcerror': self._rbc_error,
                 'sccerror': self._sm.scc_error,
+                'pidKc': Config.pid_Kc,
             }
         return res
 
