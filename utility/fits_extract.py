@@ -849,10 +849,15 @@ def fit_models(csv_path):
     with open(csv_path, newline='') as f:
         reader = csv.DictReader(f)
         fieldnames = reader.fieldnames or []
-        has_pa_fields = 'pa_dev_theta2_arcmin' in fieldnames
         for row in reader:
             if row['status'] != 'solved':
                 continue
+            REQUIRED_FIELDS = ('p_az', 'p_alt', 'p_roll', 'dev_az_arcmin', 'dev_alt_arcmin', 'dev_roll_arcmin')
+            if any(row[k] == '' for k in REQUIRED_FIELDS):
+                continue
+            PA_REQUIRED_FIELDS = ('theta2', 'theta3', 'pa_dev_theta1_arcmin', 'pa_dev_theta2_arcmin', 'pa_dev_theta3_arcmin', 'pa_dev_roll_arcmin')
+            has_pa_fields = all(k in fieldnames for k in PA_REQUIRED_FIELDS)
+            has_pa_data = has_pa_fields and all(row[k] !='' for k in PA_REQUIRED_FIELDS)
             try:
                 d = {
                     'p_az':           float(row['p_az']),
@@ -862,14 +867,14 @@ def fit_models(csv_path):
                     'dev_alt_arcmin': float(row['dev_alt_arcmin']),
                     'dev_roll_arcmin':float(row['dev_roll_arcmin']),
                 }
-                if has_pa_fields:
+                if has_pa_data:
                     d.update({
                         'theta2':             float(row['theta2']),
                         'theta3':             float(row['theta3']),
+                        'pa_dev_t1':          float(row['pa_dev_theta1_arcmin']),
                         'pa_dev_t2':          float(row['pa_dev_theta2_arcmin']),
                         'pa_dev_t3':          float(row['pa_dev_theta3_arcmin']),
                         'pa_dev_roll':        float(row['pa_dev_roll_arcmin']),
-                        'pa_dev_t1':          float(row['pa_dev_theta1_arcmin']),
                     })
                 rows.append(d)
             except (ValueError, KeyError):
@@ -1308,25 +1313,32 @@ def process_directory(fits_dir, output_csv):
     # ── Pass 1: read every FITS file ──────────────────────────────────────
     rows = []
     status_counts = Counter()
-    solved_for_model = []
+    solved_for_pa_model = []
 
     for fp in fits_files:
         row, status = process_fits(fp)
         rows.append(row)
         status_counts[status] += 1
 
-        t_str = (f"  t1={row['theta1']:>7}  t2={row['theta2']:>6}  t3={row['theta3']:>7}"
+        p_az_str  = f"{float(row['p_az']):>6.2f}"   if row['p_az']  != '' else '   N/A'
+        p_alt_str  = f"{float(row['p_alt']):>6.2f}"   if row['p_alt']  != '' else '   N/A'
+        p_roll_str = f"{float(row['p_roll']):>6.2f}"  if row['p_roll'] != '' else '    N/A'
+        t_str = (f"  t1={row['theta1']:>6.2f}  t2={row['theta2']:>6.2f}  t3={row['theta3']:>6.2f}"
                  if row['theta1'] != '' else '')
 
         if status == 'solved':
+            az_str     = f"{float(row['dev_az_arcmin']):>+7.2f}'"   if row['dev_az_arcmin']   != '' else '    N/A'
+            alt_str    = f"{float(row['dev_alt_arcmin']):>+7.2f}'"   if row['dev_alt_arcmin']   != '' else '    N/A'
+            roll_str   = f"{float(row['dev_roll_arcmin']):>+7.2f}'" if row['dev_roll_arcmin'] != '' else '    N/A'
             print(f"  OK      {fp.name:<44s}  "
-                  f"p_alt={row['p_alt']:>6}  p_roll={row['p_roll']:>7}"
-                  f"{t_str}  "
-                  f"roll_err={row['dev_roll_arcmin']:>+7}'"
-                  f"  az_err={row['dev_az_arcmin']:>+7}'")
+                f"p_az={p_az_str}  p_alt={p_alt_str}  p_roll={p_roll_str}"
+                f"{t_str}  "
+                f"az_err={az_str} "
+                f"alt_err={alt_str} "
+                f"roll_err={roll_str}")
             # Collect data for polar model fit
             try:
-                solved_for_model.append({
+                solved_for_pa_model.append({
                     'p_az':            float(row['p_az']),
                     'p_alt':           float(row['p_alt']),
                     'dev_az_arcmin':   float(row['dev_az_arcmin']),
@@ -1337,8 +1349,8 @@ def process_directory(fits_dir, output_csv):
                 pass
         elif status == 'unsolved':
             print(f"  UNSOLVED {fp.name:<44s}  "
-                  f"p_alt={row['p_alt']:>6}  p_roll={row['p_roll']:>7}"
-                  f"{t_str}")
+                f"p_az={p_az_str}  p_alt={p_alt_str}  p_roll={p_roll_str}"
+                f"{t_str} ")
         else:
             print(f"  {status.upper():<10} {fp.name}")
 
@@ -1347,9 +1359,9 @@ def process_directory(fits_dir, output_csv):
     # ── Pass 2: fit polar model and compute pa_* fields ───────────────────
     polar_model = PolarAlignmentModel()
 
-    if HAS_SCIPY and HAS_QUATERNION and solved_for_model:
+    if HAS_SCIPY and HAS_QUATERNION and solved_for_pa_model:
         print("── Polar alignment model ─────────────────────────────────────────────")
-        fitted = polar_model.fit(solved_for_model)
+        fitted = polar_model.fit(solved_for_pa_model)
         if fitted:
             polar_model.print_summary()
             print()
@@ -1363,7 +1375,7 @@ def process_directory(fits_dir, output_csv):
             print()
     elif not HAS_SCIPY:
         print("  Skipping pa_* fields (scipy not available).")
-    elif not solved_for_model:
+    elif not solved_for_pa_model:
         print("  Skipping pa_* fields (no solved rows).")
 
     # Strip internal scratch keys before writing
@@ -1402,35 +1414,40 @@ def process_directory(fits_dir, output_csv):
     if solved_rows:
         def stats(vals):
             vals = [float(v) for v in vals if v != '']
-            if not vals: return 'N/A'
-            return (f"mean={sum(vals)/len(vals):+6.1f}  "
-                    f"min={min(vals):+6.1f}  max={max(vals):+6.1f}")
-
+            if not vals:
+                return 'N/A'
+            arr = np.array(vals)
+            return (f"mean={np.mean(arr):+6.1f}  "
+                    f"stdev={np.std(arr, ddof=1):+6.1f}  "
+                    f"min={np.min(arr):+6.1f}  "
+                    f"max={np.max(arr):+6.1f}")
         print()
-        print(f"── Solved file statistics (arc-minutes) ────────────────────────────")
-        print(f"  Raw deviations:")
+        print(f"── Solved file statistics ────────────────────────────")
+        print(f"  Residuals raw deviations in arc-min:      dev_* = solved_* - p_* ")
         print(f"    Roll:       {stats([r['dev_roll_arcmin'] for r in solved_rows])}")
         print(f"    Az:         {stats([r['dev_az_arcmin']   for r in solved_rows])}")
         print(f"    Alt:        {stats([r['dev_alt_arcmin']  for r in solved_rows])}")
         if polar_model.fitted:
-            print(f"  Residuals after polar correction, solved_* − pa_* (pa_dev_*):")
+            print(f"  Residuals after polar correction:         pa_dev_* = solved_* − pa_* ")
             print(f"    Roll:       {stats([r['pa_dev_roll_arcmin'] for r in solved_rows])}")
             print(f"    Az:         {stats([r['pa_dev_az_arcmin']   for r in solved_rows])}")
             print(f"    Alt:        {stats([r['pa_dev_alt_arcmin']  for r in solved_rows])}")
-            print(f"  Motor-space residuals, solved_theta − pa_theta (pa_dev_theta*):")
+            print(f"  Motor-space residuals in arc-min:         pa_dev_theta* = solved_theta* − pa_theta*")
             print(f"    Theta1:     {stats([r['pa_dev_theta1_arcmin'] for r in solved_rows])}")
             print(f"    Theta2:     {stats([r['pa_dev_theta2_arcmin'] for r in solved_rows])}")
             print(f"    Theta3:     {stats([r['pa_dev_theta3_arcmin'] for r in solved_rows])}")
-
         p_azs   = [float(r['p_az'])    for r in solved_rows if r['p_az']    != '']
         p_alts  = [float(r['p_alt'])   for r in solved_rows if r['p_alt']   != '']
         p_rolls = [float(r['p_roll'])  for r in solved_rows if r['p_roll']  != '']
         t3s     = [float(r['theta3'])  for r in solved_rows if r['theta3']  != '']
         print()
-        if p_azs:   print(f"  p_az   (°): {min(p_azs):.1f} → {max(p_azs):.1f}")
-        if p_alts:  print(f"  p_alt  (°): {min(p_alts):.1f} → {max(p_alts):.1f}")
-        if p_rolls: print(f"  p_roll (°): {min(p_rolls):.1f} → {max(p_rolls):.1f}")
-        if t3s:     print(f"  theta3 (°): {min(t3s):.1f} → {max(t3s):.1f}")
+        print(f"  Range of data: (degrees) ")
+        if p_azs:   print(f"    p_az   (°): {min(p_azs):.1f} → {max(p_azs):.1f}")
+        if p_alts:  print(f"    p_alt  (°): {min(p_alts):.1f} → {max(p_alts):.1f}")
+        if p_rolls: print(f"    p_roll (°): {min(p_rolls):.1f} → {max(p_rolls):.1f}")
+        if t3s:     print(f"    theta3 (°): {min(t3s):.1f} → {max(t3s):.1f}")
+
+        print()
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -1448,7 +1465,7 @@ if __name__ == '__main__':
                         help='Scan --dir for FITS files and write results to --csv.')
     parser.add_argument('-model',   action='store_true',
                         help='Fit the RBC model from --csv and print calibration coefficients.')
-    parser.add_argument('-dir',  metavar='DIR',  default='.',
+    parser.add_argument('-dir',  metavar='DIR',  default='../../../images/2026-04-11/L/LIGHT',
                         help='Directory to scan recursively for FITS files.')
     parser.add_argument('-csv',  metavar='FILE', default='fits_extract.csv',
                         help='CSV file path.')
