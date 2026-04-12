@@ -1315,16 +1315,16 @@ def process_directory(fits_dir, output_csv):
         rows.append(row)
         status_counts[status] += 1
 
-        p_az_str  = f"{float(row['p_az']):>6.1f}"   if row['p_az']  != '' else '   N/A'
-        p_alt_str  = f"{float(row['p_alt']):>6.1f}"   if row['p_alt']  != '' else '   N/A'
-        p_roll_str = f"{float(row['p_roll']):>7.1f}"  if row['p_roll'] != '' else '    N/A'
-        t_str = (f"  t1={row['theta1']:>7}  t2={row['theta2']:>6}  t3={row['theta3']:>7}"
+        p_az_str  = f"{float(row['p_az']):>6.2f}"   if row['p_az']  != '' else '   N/A'
+        p_alt_str  = f"{float(row['p_alt']):>6.2f}"   if row['p_alt']  != '' else '   N/A'
+        p_roll_str = f"{float(row['p_roll']):>6.2f}"  if row['p_roll'] != '' else '    N/A'
+        t_str = (f"  t1={row['theta1']:>6.2f}  t2={row['theta2']:>6.2f}  t3={row['theta3']:>6.2f}"
                  if row['theta1'] != '' else '')
 
         if status == 'solved':
-            az_str     = f"{float(row['dev_az_arcmin']):>+7.1f}'"   if row['dev_az_arcmin']   != '' else '    N/A'
-            alt_str    = f"{float(row['dev_alt_arcmin']):>+7.1f}'"   if row['dev_alt_arcmin']   != '' else '    N/A'
-            roll_str   = f"{float(row['dev_roll_arcmin']):>+7.1f}'" if row['dev_roll_arcmin'] != '' else '    N/A'
+            az_str     = f"{float(row['dev_az_arcmin']):>+7.2f}'"   if row['dev_az_arcmin']   != '' else '    N/A'
+            alt_str    = f"{float(row['dev_alt_arcmin']):>+7.2f}'"   if row['dev_alt_arcmin']   != '' else '    N/A'
+            roll_str   = f"{float(row['dev_roll_arcmin']):>+7.2f}'" if row['dev_roll_arcmin'] != '' else '    N/A'
             print(f"  OK      {fp.name:<44s}  "
                 f"p_az={p_az_str}  p_alt={p_alt_str}  p_roll={p_roll_str}"
                 f"{t_str}  "
@@ -1403,8 +1403,8 @@ def process_directory(fits_dir, output_csv):
                     f"min={min(vals):+6.1f}  max={max(vals):+6.1f}")
 
         print()
-        print(f"── Solved file statistics (arc-minutes) ────────────────────────────")
-        print(f"  Raw deviations:")
+        print(f"── Solved file statistics ────────────────────────────")
+        print(f"  Raw deviations: (arc-minutes) ")
         print(f"    Roll:       {stats([r['dev_roll_arcmin'] for r in solved_rows])}")
         print(f"    Az:         {stats([r['dev_az_arcmin']   for r in solved_rows])}")
         print(f"    Alt:        {stats([r['dev_alt_arcmin']  for r in solved_rows])}")
@@ -1417,16 +1417,18 @@ def process_directory(fits_dir, output_csv):
             print(f"    Theta1:     {stats([r['pa_dev_theta1_arcmin'] for r in solved_rows])}")
             print(f"    Theta2:     {stats([r['pa_dev_theta2_arcmin'] for r in solved_rows])}")
             print(f"    Theta3:     {stats([r['pa_dev_theta3_arcmin'] for r in solved_rows])}")
-
         p_azs   = [float(r['p_az'])    for r in solved_rows if r['p_az']    != '']
         p_alts  = [float(r['p_alt'])   for r in solved_rows if r['p_alt']   != '']
         p_rolls = [float(r['p_roll'])  for r in solved_rows if r['p_roll']  != '']
         t3s     = [float(r['theta3'])  for r in solved_rows if r['theta3']  != '']
         print()
-        if p_azs:   print(f"  p_az   (°): {min(p_azs):.1f} → {max(p_azs):.1f}")
-        if p_alts:  print(f"  p_alt  (°): {min(p_alts):.1f} → {max(p_alts):.1f}")
-        if p_rolls: print(f"  p_roll (°): {min(p_rolls):.1f} → {max(p_rolls):.1f}")
-        if t3s:     print(f"  theta3 (°): {min(t3s):.1f} → {max(t3s):.1f}")
+        print(f"  Range of data: (degrees) ")
+        if p_azs:   print(f"    p_az   (°): {min(p_azs):.1f} → {max(p_azs):.1f}")
+        if p_alts:  print(f"    p_alt  (°): {min(p_alts):.1f} → {max(p_alts):.1f}")
+        if p_rolls: print(f"    p_roll (°): {min(p_rolls):.1f} → {max(p_rolls):.1f}")
+        if t3s:     print(f"    theta3 (°): {min(t3s):.1f} → {max(t3s):.1f}")
+
+        print()
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
