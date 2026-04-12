@@ -1960,6 +1960,10 @@ class Polaris:
         else:
             self.logger.info("Advanced Orbital Tracking is currently disabled")
 
+    def RotateToRelativeRollAngle(self, rel_roll_angle):
+        self.logger.info(f"->> Polaris: Rotate Relative Observed   RollAngle {deg2dms(self._pid.alpha_sp[2])} PLUS {deg2dms(rel_roll_angle)}")
+        roll_angle = self._pid.alpha_sp[2] + rel_roll_angle
+        self.RotateToRollAngle(roll_angle)
 
     def RotateToRelativePositionAngle(self, rel_position_angle):
         self.logger.info(f"->> Polaris: Rotate Relative Observed   PositionAngle {deg2dms(self.positionangle)} PLUS {deg2dms(rel_position_angle)}")
