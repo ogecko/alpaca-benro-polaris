@@ -17,7 +17,13 @@
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
 - [ ] Debug 518 message intermittant miss
 - [ ] Add HTTPS so that Copy Clipboard and Map Locate work in Browser
-- [ ] Create video of new features - Large Roll Direction Maintain, Large -ve Az, Pulse Guide Accuracy, RBC, LGC, Kinematics Page, PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy, Stop and Restart Driver
+- [ ] Create video of new features 
+    - Goto Completion - New Status Indicator, Setting Tollerance Kc and Kc/20
+    - Kinematics - Shortest Path, Rotate maintains direction, Large -ve Az, Kinematics Page, RBC 
+    - PID - Cyclic bump removed, Pulse Guide Cross-coupling
+    - Advanced Scheduler - Rename_dirs, RotateRelative, FindHome/Wait/Polaris:AbortSlew
+    - Driver control - Stop and Restart Driver
+    - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy
 
 ## Final Release Checklist
 - [X] Complete todo checklist
