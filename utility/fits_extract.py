@@ -1315,30 +1315,26 @@ def process_directory(fits_dir, output_csv):
         rows.append(row)
         status_counts[status] += 1
 
+        p_az_str  = f"{float(row['p_az']):>6.1f}"   if row['p_az']  != '' else '   N/A'
+        p_alt_str  = f"{float(row['p_alt']):>6.1f}"   if row['p_alt']  != '' else '   N/A'
+        p_roll_str = f"{float(row['p_roll']):>7.1f}"  if row['p_roll'] != '' else '    N/A'
         t_str = (f"  t1={row['theta1']:>7}  t2={row['theta2']:>6}  t3={row['theta3']:>7}"
                  if row['theta1'] != '' else '')
 
         if status == 'solved':
+            az_str     = f"{float(row['dev_az_arcmin']):>+7.1f}'"   if row['dev_az_arcmin']   != '' else '    N/A'
+            alt_str    = f"{float(row['dev_alt_arcmin']):>+7.1f}'"   if row['dev_alt_arcmin']   != '' else '    N/A'
+            roll_str   = f"{float(row['dev_roll_arcmin']):>+7.1f}'" if row['dev_roll_arcmin'] != '' else '    N/A'
             print(f"  OK      {fp.name:<44s}  "
-                  f"p_alt={row['p_alt']:>6}  p_roll={row['p_roll']:>7}"
-                  f"{t_str}  "
-                  f"roll_err={row['dev_roll_arcmin']:>+7}'"
-                  f"  az_err={row['dev_az_arcmin']:>+7}'")
-            # Collect data for polar model fit
-            try:
-                solved_for_model.append({
-                    'p_az':            float(row['p_az']),
-                    'p_alt':           float(row['p_alt']),
-                    'dev_az_arcmin':   float(row['dev_az_arcmin']),
-                    'dev_alt_arcmin':  float(row['dev_alt_arcmin']),
-                    'dev_roll_arcmin': float(row['dev_roll_arcmin']),
-                })
-            except (ValueError, TypeError):
-                pass
+                f"p_az={p_az_str}  p_alt={p_alt_str}  p_roll={p_roll_str}"
+                f"{t_str}  "
+                f"az_err={az_str} "
+                f"alt_err={alt_str} "
+                f"roll_err={roll_str}")
         elif status == 'unsolved':
             print(f"  UNSOLVED {fp.name:<44s}  "
-                  f"p_alt={row['p_alt']:>6}  p_roll={row['p_roll']:>7}"
-                  f"{t_str}")
+                f"p_az={p_az_str}  p_alt={p_alt_str}  p_roll={p_roll_str}"
+                f"{t_str} ")
         else:
             print(f"  {status.upper():<10} {fp.name}")
 
@@ -1448,7 +1444,7 @@ if __name__ == '__main__':
                         help='Scan --dir for FITS files and write results to --csv.')
     parser.add_argument('-model',   action='store_true',
                         help='Fit the RBC model from --csv and print calibration coefficients.')
-    parser.add_argument('-dir',  metavar='DIR',  default='.',
+    parser.add_argument('-dir',  metavar='DIR',  default='../../../images/2026-04-11/L/LIGHT',
                         help='Directory to scan recursively for FITS files.')
     parser.add_argument('-csv',  metavar='FILE', default='fits_extract.csv',
                         help='CSV file path.')
