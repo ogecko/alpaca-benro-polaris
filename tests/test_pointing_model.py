@@ -15,8 +15,8 @@ Running:
 """
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
-import math
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))import math
+
 import pytest
 import numpy as np
 from pyquaternion import Quaternion

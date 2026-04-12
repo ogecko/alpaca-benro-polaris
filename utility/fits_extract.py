@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 """
 fits_extract.py
 
@@ -55,25 +58,28 @@ The script models  (-model):
 
     These errors are absorbed by QUEST multi-point alignment and require
     no driver config constants. Non-normal residuals in this section are
-    expected until theta-space corrections (Section B) are applied.
+    expected until theta-space corrections (Section B) are implemented.
 
   SECTION B — Theta-space mechanical models
     Fits corrections for three physical axis errors using the polar-
     corrected residuals (pa_dev_*). Each correction uses a named
     config constant (theta_model_a through theta_model_e):
 
-    B1 — M2 dependant altitude residual  (theta_model_a, theta_model_b)
+    B1 — M2 axis tilt  (theta_model_a, theta_model_b)
       The M2 rotation axis is not perfectly horizontal. Camera altitude
       deviates sinusoidally as theta2 changes:
         pa_dev_theta2 = theta_model_a · sin(theta2 − theta_model_b)
       Requires: good az and alt coverage (theta3 does not matter).
 
-    B2 — M2 dependent roll residual  (theta_model_c, theta_model_d)
+    B2 — Altitude-dependent roll residual  (theta_model_c, theta_model_d)
       A roll error that varies with altitude, visible at theta3≈0.
       Physically: imperfect polar sinusoid removal leaving an altitude-
       dependent residual, or a true mechanical roll offset in the camera
       mount. Corrected in the driver by rotating around the boresight axis:
         pa_dev_roll = theta_model_c · cos(theta2 − theta_model_d)
+      Note: a rotation around the M2 axis is geometrically perpendicular
+      to the boresight and produces exactly zero roll change, so this
+      signal cannot come from M2 tilt coupling.
       Requires: theta3≈0 subset with theta2 span ≥30°. Fitted on the
       tightest |theta3| window that yields ≥30 points. Unreliable if
       the polar sinusoid fit (Section A) has poor R² for dev_roll.
@@ -91,7 +97,8 @@ The script models  (-model):
       active. No separate correction constant is needed.
 
     A fitted-coefficients block is printed at the end of Section B for
-    direct copy-paste into config.toml.
+    direct copy-paste into config.toml, along with the corresponding
+    apply_mechanical_corrections() call.
 
   SECTION C — Sky-space RBC model  (rbc_model_a, rbc_model_b, rbc_model_c)
     Fits a roll-dependent residual that QUEST cannot correct because it
@@ -113,27 +120,32 @@ The script models  (-model):
     Priority-ordered action list derived from Sections A–C, with exact
     config values and driver call syntax for each pending correction.
 
-  Fitted coefficients:
-
-    rbc_model_a — the geometric projection coefficient for roll error.
-    rbc_model_b — the residual roll bias at zero altitude.
-    rbc_model_c — the az-coupling coefficient.
-
 Usage:
     python fits_extract.py -extract|-model [-dir DIR] [-csv FILE]
+    python fits_extract.py -combine -csv SESSION1.csv SESSION2.csv ... -out combined.csv
+    python fits_extract.py -evaluate -csv combined.csv [-sync N]
 
 Options:
     -extract         Scan -dir for FITS files and write results to -csv.
     -model           Fit the RBC model from -csv and print coefficients.
+    -combine         Merge multiple per-session CSVs into one combined dataset.
+                     Strips pa_* fields (session-specific). Adds session_id column.
+    -evaluate        Evaluate the pointing model hierarchy on a combined CSV.
+                     Requires pointing_model.py in the same directory.
     -dir DIR         Directory to scan for FITS files. Default: current directory.
-    -csv FILE        CSV file — written by -extract, read by -model.
-                     Default: fits_extract.csv
+    -csv FILE        For -extract/-model: CSV file path. Default: fits_extract.csv
+                     For -combine: list of input CSVs.
+                     For -evaluate: combined CSV produced by -combine.
+    -out FILE        Output path for -combine. Default: combined.csv
+    -sync N          Number of sync points per session for -evaluate. Default: 6
 
 Examples:
     python fits_extract.py -extract
     python fits_extract.py -extract -dir /path/to/fits -csv my_data.csv
     python fits_extract.py -extract -model -csv my_data.csv
     python fits_extract.py -model -csv fits_extract.csv
+    python fits_extract.py -combine -csv night1.csv night2.csv -out combined.csv
+    python fits_extract.py -evaluate -csv combined.csv -sync 6
 
 Dependencies:
     pip install astropy ephem pyquaternion
@@ -168,6 +180,18 @@ except ImportError:
     HAS_SCIPY = False
     print("WARNING: scipy not available — pa_* polar-alignment fields won't be computed.")
     print("         Run: pip install scipy")
+
+try:
+    import pointing_model as _pm
+    _theta_to_q       = _pm.theta_to_q
+    _q_to_azaltroll   = _pm.q_to_azaltroll
+    _q_from_azaltroll = _pm.q_from_azaltroll
+    _quest_solve      = _pm.quest_solve
+    HAS_POINTING_MODEL = True
+except ImportError:
+    HAS_POINTING_MODEL = False
+    print("WARNING: pointing_model.py not found — pa_* QUEST correction won't be computed.")
+    print("         Place pointing_model.py in the same directory as fits_extract.py.")
 
 try:
     import ephem
@@ -496,6 +520,243 @@ _ALL_FIELDS = [
     'pa_dev_theta1_arcmin', 'pa_dev_theta2_arcmin', 'pa_dev_theta3_arcmin',
 ]
 
+# Fields kept in the combined dataset (raw truth only, no session-specific pa_*)
+# pa_* fields are baked in per-session and not portable across sessions.
+_COMBINED_FIELDS = [
+    'session_id',
+    'filename', 'status', 'date_obs',
+    'p_az', 'p_alt', 'p_roll',
+    'theta1', 'theta2', 'theta3',
+    'solved_az', 'solved_alt', 'solved_roll',
+    'dev_az_arcmin', 'dev_alt_arcmin', 'dev_roll_arcmin',
+]
+
+
+# ── Combine sessions ──────────────────────────────────────────────────────────
+
+def combine_csvs(csv_paths, output_path):
+    """
+    Merge multiple per-session CSVs into one combined dataset.
+
+    Each input CSV gets a session_id derived from its filename stem (e.g.
+    '2024-01-15' from '2024-01-15.csv').  Only solved rows are kept.
+    Only the raw truth fields are kept — pa_* fields are excluded because
+    they bake in per-session polar alignment and are not portable.
+
+    The combined CSV is the input for -evaluate and for cross-session
+    model fitting via pointing_model.py.
+    """
+    rows_written = 0
+    session_counts = {}
+
+    with open(output_path, 'w', newline='') as fout:
+        writer = csv.DictWriter(fout, fieldnames=_COMBINED_FIELDS,
+                                extrasaction='ignore')
+        writer.writeheader()
+
+        for csv_path in csv_paths:
+            csv_path    = Path(csv_path)
+            session_id  = csv_path.stem
+            n_session   = 0
+
+            with open(csv_path, newline='') as fin:
+                reader = csv.DictReader(fin)
+                missing = [f for f in _COMBINED_FIELDS
+                           if f not in (reader.fieldnames or [])
+                           and f != 'session_id']
+                if missing:
+                    print(f"  WARNING {csv_path.name}: missing columns {missing} — skipping")
+                    continue
+
+                for row in reader:
+                    if row.get('status') != 'solved':
+                        continue
+                    out_row = {'session_id': session_id}
+                    for f in _COMBINED_FIELDS:
+                        if f != 'session_id':
+                            out_row[f] = row.get(f, '')
+                    writer.writerow(out_row)
+                    n_session    += 1
+                    rows_written += 1
+
+            session_counts[session_id] = n_session
+
+    print()
+    print(f"Combined {len(session_counts)} session(s) → {output_path}")
+    print()
+    for sid, n in sorted(session_counts.items()):
+        print(f"  {sid:40s}  {n:>5} rows")
+    print(f"  {'TOTAL':40s}  {rows_written:>5} rows")
+    return rows_written
+
+
+# ── Evaluate model hierarchy on combined dataset ──────────────────────────────
+
+def evaluate_models(combined_csv_path, n_sync_points=6):
+    """
+    Load a combined CSV and evaluate the pointing model hierarchy.
+
+    For each model level (0 = raw kinematics → 3 = full corrections), fits
+    per-session alignment parameters using the first n_sync_points observations
+    from each session, then reports pointing residuals on the held-out remainder.
+
+    Also runs leave-one-session-out cross-validation when ≥2 sessions present:
+    shared hardware parameters (theta-space) are fitted on N-1 sessions, then
+    per-session alignment is fitted on the held-out session's sync points.
+
+    Requires pointing_model.py to be importable from the same directory.
+    """
+    try:
+        import pointing_model as pm
+        from pyquaternion import Quaternion
+    except ImportError as e:
+        print(f"ERROR: {e}")
+        print("pointing_model.py must be in the same directory as fits_extract.py")
+        return
+
+    # ── Load combined data ────────────────────────────────────────────────
+    sessions_dict = {}
+    with open(combined_csv_path, newline='') as f:
+        for row in csv.DictReader(f):
+            if row.get('status') != 'solved':
+                continue
+            sid = row.get('session_id', 'unknown')
+            try:
+                obs = pm.Observation(
+                    session_id      = sid,
+                    filename        = row.get('filename', ''),
+                    theta1          = float(row['theta1']),
+                    theta2          = float(row['theta2']),
+                    theta3          = float(row['theta3']),
+                    p_az            = float(row['p_az']),
+                    p_alt           = float(row['p_alt']),
+                    p_roll          = float(row['p_roll']),
+                    solved_az       = float(row['solved_az']),
+                    solved_alt      = float(row['solved_alt']),
+                    solved_roll     = float(row['solved_roll']),
+                    dev_az_arcmin   = float(row['dev_az_arcmin']),
+                    dev_alt_arcmin  = float(row['dev_alt_arcmin']),
+                    dev_roll_arcmin = float(row['dev_roll_arcmin']),
+                )
+                sessions_dict.setdefault(sid, []).append(obs)
+            except (ValueError, KeyError):
+                continue
+
+    sessions = [pm.Session(session_id=sid, observations=obs_list)
+                for sid, obs_list in sorted(sessions_dict.items())]
+    n_sessions = len(sessions)
+    all_obs    = pm.combine_sessions(sessions)
+
+    W = "═" * 64
+    print()
+    print(W)
+    print("  MODEL EVALUATION")
+    print(W)
+    print(f"  Sessions: {n_sessions}   Total observations: {len(all_obs)}")
+    print(f"  Sync points per session: {n_sync_points}")
+    print()
+
+    identity = Quaternion(1, 0, 0, 0)
+
+    def _sync_idx(session):
+        step = max(1, session.n // n_sync_points)
+        return list(range(0, session.n, step))[:n_sync_points]
+
+    def _eval_all_sessions(theta_params=None, fit_polar=False, label=''):
+        """Fit per-session alignment, evaluate, return all test errors."""
+        all_test_errs = []
+        session_results = []
+        for session in sessions:
+            sidx = _sync_idx(session)
+            alignQ, AW, AN = pm.fit_session_alignment(
+                session, sidx,
+                theta_params=theta_params,
+                fit_polar=fit_polar,
+            )
+            _, test = pm.evaluate_session(
+                session, alignQ, AW, AN,
+                theta_params=theta_params,
+                sync_indices=sidx,
+            )
+            all_test_errs.extend([test.rms])
+            session_results.append((session.session_id, test.rms, AW, AN))
+        return all_test_errs, session_results
+
+    def _print_level(label, errs, session_results, show_polar=False):
+        overall = pm.residual_stats(errs)
+        print(f"  {label}")
+        for sid, rms, AW, AN in session_results:
+            polar_str = f"  AW={AW*60:+.1f}\" AN={AN*60:+.1f}\"" if show_polar else ""
+            print(f"    {sid:40s}  {rms:>6.1f}'{polar_str}")
+        print(f"    {'MEAN RMS across sessions':40s}  {overall.rms:>6.1f}'")
+        print()
+
+    # ── Level 0: raw kinematics ───────────────────────────────────────────
+    print("  Level 0 — Raw motor kinematics (no alignment)")
+    all_errs0 = []
+    ses_res0  = []
+    for session in sessions:
+        _, test = pm.evaluate_session(session, identity)
+        all_errs0.append(test.rms)
+        ses_res0.append((session.session_id, test.rms, 0.0, 0.0))
+    _print_level("Level 0: raw kinematics", all_errs0, ses_res0)
+
+    # ── Level 1: per-session QUEST ────────────────────────────────────────
+    errs1, res1 = _eval_all_sessions(label='L1')
+    _print_level("Level 1: QUEST alignment (no polar)", errs1, res1)
+
+    # ── Level 2: per-session polar-aware QUEST ────────────────────────────
+    if all(s.az_spread_deg() > 60 and s.n >= 3 for s in sessions):
+        errs2, res2 = _eval_all_sessions(fit_polar=True, label='L2')
+        _print_level("Level 2: polar-aware QUEST (AW+AN+alignQ)",
+                     errs2, res2, show_polar=True)
+    else:
+        print("  Level 2: skipped — insufficient az spread or observations in some sessions")
+        print()
+
+    # ── Cross-validation: leave-one-session-out ───────────────────────────
+    if n_sessions >= 2:
+        print("  " + "─" * 62)
+        print("  Leave-one-session-out cross-validation (Level 1)")
+        print("  " + "─" * 62)
+        print()
+        loo_errs = []
+        for j, test_session in enumerate(sessions):
+            # For now: no shared hardware params to train on train sessions
+            # (theta-space fitting on combined data is the next step)
+            # Per-session alignment on held-out session sync points only
+            sidx   = _sync_idx(test_session)
+            alignQ, _, _ = pm.fit_session_alignment(test_session, sidx)
+            _, test = pm.evaluate_session(
+                test_session, alignQ, sync_indices=sidx)
+            loo_errs.append(test.rms)
+            print(f"    Hold-out {test_session.session_id:36s}  {test.rms:>6.1f}'")
+
+        loo_stats = pm.residual_stats(loo_errs)
+        print(f"    {'Mean LOO RMS':40s}  {loo_stats.rms:>6.1f}'")
+        print()
+
+    # ── Summary ───────────────────────────────────────────────────────────
+    print(W)
+    print("  SUMMARY")
+    print(W)
+    print()
+    l0_mean = sum(all_errs0) / len(all_errs0)
+    l1_mean = sum(errs1)     / len(errs1)
+    print(f"  Level 0 (raw):           {l0_mean:>6.1f}' mean RMS")
+    print(f"  Level 1 (QUEST):         {l1_mean:>6.1f}' mean RMS  "
+          f"({(1-l1_mean/l0_mean)*100:.0f}% reduction)")
+    if 'errs2' in dir():
+        l2_mean = sum(errs2) / len(errs2)
+        print(f"  Level 2 (polar+QUEST):   {l2_mean:>6.1f}' mean RMS  "
+              f"({(1-l2_mean/l0_mean)*100:.0f}% reduction)")
+    print()
+    print("  Next steps for further improvement:")
+    print("  1. Collect more sessions with varied pointing (more az coverage)")
+    print("  2. Implement theta-space corrections (pointing_model.ThetaModelParams)")
+    print("  3. Re-run -evaluate with theta_model_* config values")
+    print("  4. Fit shared hardware params (theta-space) across sessions for Level 3")
+
 
 # ── Per-file processing ───────────────────────────────────────────────────────
 
@@ -625,91 +886,102 @@ def process_fits(fits_path):
     return row, 'solved'
 
 
-def apply_polar_correction(row, polar_model):
+def apply_quest_correction(row, alignQ):
     """
     Second pass: fill pa_* fields for a single solved row using the fitted
-    polar alignment model.
+    QUEST alignment quaternion.
 
-    The polar model is applied to the PREDICTED position (p_*) to produce a
-    corrected prediction (pa_*) that accounts for polar misalignment and SPA bias:
+    pa_* semantics (QUEST-based):
+        pa_az/alt/roll  = q_to_azaltroll(alignQ * q_base)
+                          the QUEST-corrected predicted pointing — what the
+                          driver predicts after alignment
 
-        pa_az/alt/roll  = p_* + polar_model(p_az)
-                          i.e. where the mount would point if polar alignment
-                          were perfect and SPA bias were zero
-
-        pa_theta1/2/3   = IK(pa_az, pa_alt, pa_roll)
+        pa_theta1/2/3   = q_to_theta(alignQ * q_base)
                           motor angles corresponding to the corrected prediction
 
         pa_dev_*        = solved_* − pa_*
-                          residual between plate-solve ground truth and the
-                          corrected prediction; reveals mechanical errors
-                          (M2 axis tilt, M3 encoder) not captured by polar model
+                          residual after QUEST — reveals non-rigid-body errors
+                          (M2 axis tilt, M3 encoder scale, theta3→alt coupling)
+                          that QUEST cannot absorb
 
         pa_dev_theta*   = solved_theta* − pa_theta*
                           same residual expressed in motor-angle space
+
+    This replaces the former sinusoidal polar alignment model which was:
+      - only a parametric approximation to the rigid body frame rotation
+      - in-sample (all rows used to fit, so residuals were optimistic)
+      - conflating frame rotation (rigid body → QUEST) with hardware errors
+
+    QUEST is the mathematically correct rigid body removal. pa_dev_* are
+    the quantities that theta_model_* corrections should explain.
     """
-    if not polar_model.fitted:
+    if alignQ is None:
+        return
+
+    try:
+        theta1 = float(row.get('theta1', ''))
+        theta2 = float(row.get('theta2', ''))
+        theta3 = float(row.get('theta3', ''))
+    except (ValueError, TypeError):
         return
 
     solved_az   = row.get('_solved_az')
     solved_alt  = row.get('_solved_alt')
     solved_roll = row.get('_solved_roll')
-    p_az        = row.get('_p_az')
-    p_alt       = row.get('_p_alt')
-    p_roll      = row.get('_p_roll')
-
-    if None in (solved_az, solved_alt, solved_roll, p_az, p_alt, p_roll):
+    if None in (solved_az, solved_alt, solved_roll):
         return
 
     def f(v, dp=4):
         return round(v, dp) if v is not None else ''
 
-    # Polar model correction (arcmin) at the predicted azimuth
-    model_daz, model_dalt, model_droll = polar_model.predict(p_az)
+    try:
+        # q_base: raw motor quaternion
+        q_base = _theta_to_q(theta1, theta2, theta3)
 
-    # Apply polar correction to PREDICTED position → corrected prediction pa_*
-    pa_az   = wrap_to_360(p_az   + model_daz   / 60.0)
-    pa_alt  =             p_alt  + model_dalt  / 60.0
-    pa_roll = wrap_to_180(p_roll + model_droll / 60.0)
+        # pa_q: QUEST-corrected prediction
+        pa_q = (alignQ * q_base).normalised
 
-    # Residual deviations: solved ground truth minus corrected prediction
-    pa_dev_az   = wrap_to_180(solved_az   - pa_az)   * 60.0
-    pa_dev_alt  =            (solved_alt  - pa_alt)  * 60.0
-    pa_dev_roll = wrap_to_180(solved_roll - pa_roll) * 60.0
+        # pa_az/alt/roll from QUEST-corrected prediction
+        pa_az, pa_alt, pa_roll = _q_to_azaltroll(pa_q)
+        pa_az   = wrap_to_360(pa_az)
+        pa_roll = wrap_to_180(pa_roll)
 
-    row.update({
-        'pa_az':              f(pa_az),
-        'pa_alt':             f(pa_alt),
-        'pa_roll':            f(pa_roll),
-        'pa_dev_az_arcmin':   f(pa_dev_az,   2),
-        'pa_dev_alt_arcmin':  f(pa_dev_alt,  2),
-        'pa_dev_roll_arcmin': f(pa_dev_roll, 2),
-    })
+        # Residuals: ground truth minus QUEST-corrected prediction
+        pa_dev_az   = wrap_to_180(solved_az   - pa_az)   * 60.0
+        pa_dev_alt  =            (solved_alt  - pa_alt)  * 60.0
+        pa_dev_roll = wrap_to_180(solved_roll - pa_roll) * 60.0
 
-    # IK from corrected prediction → pa_theta*
-    if HAS_QUATERNION:
-        try:
-            pa_t1, pa_t2, pa_t3 = azaltroll_to_theta(pa_az, pa_alt, pa_roll)
-            row.update({
-                'pa_theta1': f(pa_t1),
-                'pa_theta2': f(pa_t2),
-                'pa_theta3': f(pa_t3),
-            })
+        row.update({
+            'pa_az':              f(pa_az),
+            'pa_alt':             f(pa_alt),
+            'pa_roll':            f(pa_roll),
+            'pa_dev_az_arcmin':   f(pa_dev_az,   2),
+            'pa_dev_alt_arcmin':  f(pa_dev_alt,  2),
+            'pa_dev_roll_arcmin': f(pa_dev_roll, 2),
+        })
 
-            # Motor-space residuals: solved_theta - pa_theta
-            # Derive solved motor angles from solved_az/alt/roll
-            s_t1, s_t2, s_t3 = azaltroll_to_theta(solved_az, solved_alt, solved_roll)
-            if None not in (pa_t1, pa_t2, pa_t3, s_t1, s_t2, s_t3):
-                pa_dev_t1 = wrap_to_180(s_t1 - pa_t1) * 60.0
-                pa_dev_t2 =            (s_t2 - pa_t2) * 60.0
-                pa_dev_t3 = wrap_to_180(s_t3 - pa_t3) * 60.0
-                row.update({
-                    'pa_dev_theta1_arcmin': f(pa_dev_t1, 2),
-                    'pa_dev_theta2_arcmin': f(pa_dev_t2, 2),
-                    'pa_dev_theta3_arcmin': f(pa_dev_t3, 2),
-                })
-        except Exception:
-            pass
+        # IK from QUEST-corrected prediction → pa_theta*
+        pa_t1, pa_t2, pa_t3 = q_to_theta(pa_q)
+        row.update({
+            'pa_theta1': f(pa_t1),
+            'pa_theta2': f(pa_t2),
+            'pa_theta3': f(pa_t3),
+        })
+
+        # Motor-space residuals: solved_theta* − pa_theta*
+        q_solved = _q_from_azaltroll(solved_az, solved_alt, solved_roll)
+        s_t1, s_t2, s_t3 = q_to_theta(q_solved)
+        pa_dev_t1 = wrap_to_180(s_t1 - pa_t1) * 60.0
+        pa_dev_t2 =            (s_t2 - pa_t2) * 60.0
+        pa_dev_t3 = wrap_to_180(s_t3 - pa_t3) * 60.0
+        row.update({
+            'pa_dev_theta1_arcmin': f(pa_dev_t1, 2),
+            'pa_dev_theta2_arcmin': f(pa_dev_t2, 2),
+            'pa_dev_theta3_arcmin': f(pa_dev_t3, 2),
+        })
+
+    except Exception:
+        pass
 
 
 # ── Model fitting helpers ─────────────────────────────────────────────────────
@@ -849,15 +1121,10 @@ def fit_models(csv_path):
     with open(csv_path, newline='') as f:
         reader = csv.DictReader(f)
         fieldnames = reader.fieldnames or []
+        has_pa_fields = 'pa_dev_theta2_arcmin' in fieldnames
         for row in reader:
             if row['status'] != 'solved':
                 continue
-            REQUIRED_FIELDS = ('p_az', 'p_alt', 'p_roll', 'dev_az_arcmin', 'dev_alt_arcmin', 'dev_roll_arcmin')
-            if any(row[k] == '' for k in REQUIRED_FIELDS):
-                continue
-            PA_REQUIRED_FIELDS = ('theta2', 'theta3', 'pa_dev_theta1_arcmin', 'pa_dev_theta2_arcmin', 'pa_dev_theta3_arcmin', 'pa_dev_roll_arcmin')
-            has_pa_fields = all(k in fieldnames for k in PA_REQUIRED_FIELDS)
-            has_pa_data = has_pa_fields and all(row[k] !='' for k in PA_REQUIRED_FIELDS)
             try:
                 d = {
                     'p_az':           float(row['p_az']),
@@ -867,14 +1134,14 @@ def fit_models(csv_path):
                     'dev_alt_arcmin': float(row['dev_alt_arcmin']),
                     'dev_roll_arcmin':float(row['dev_roll_arcmin']),
                 }
-                if has_pa_data:
+                if has_pa_fields:
                     d.update({
                         'theta2':             float(row['theta2']),
                         'theta3':             float(row['theta3']),
-                        'pa_dev_t1':          float(row['pa_dev_theta1_arcmin']),
                         'pa_dev_t2':          float(row['pa_dev_theta2_arcmin']),
                         'pa_dev_t3':          float(row['pa_dev_theta3_arcmin']),
                         'pa_dev_roll':        float(row['pa_dev_roll_arcmin']),
+                        'pa_dev_t1':          float(row['pa_dev_theta1_arcmin']),
                     })
                 rows.append(d)
             except (ValueError, KeyError):
@@ -950,7 +1217,7 @@ def fit_models(csv_path):
         print()
 
         # ── M2 axis tilt → pa_dev_theta2 ──────────────────────────────
-        print("  ── B1: M2 dependent altitude residual  (pa_dev_theta2 = theta_model_a · sin(theta2 − theta_model_b))")
+        print("  ── B1: M2 axis tilt  (pa_dev_theta2 = theta_model_a · sin(theta2 − theta_model_b))")
         print()
         print("     Mechanical meaning: M2 rotation axis is not perfectly horizontal.")
         print("     As theta2 increases, the camera altitude deviates sinusoidally.")
@@ -976,13 +1243,16 @@ def fit_models(csv_path):
 
         # ── M2 axis tilt → pa_dev_roll coupling ───────────────────────
         print()
-        print("  ── B2: M2 dependant roll residual  (pa_dev_roll = theta_model_c · cos(theta2 − theta_model_d))")
+        print("  ── B2: Roll residual vs altitude  (pa_dev_roll = theta_model_c · cos(theta2 − theta_model_d))  [diagnostic]")
         print()
-        print("     The same M2 axis tilt that shifts altitude also rotates the camera")
-        print("     frame around the boresight, appearing as a roll error that grows")
-        print("     with cos(theta2) — largest at horizon, zero at zenith.")
-        print("     theta_model_c  = roll coupling amplitude (arcmin)")
-        print("     theta_model_d  = theta2 at which roll coupling is zero (degrees)")
+        print("     Note: M2 correction rotates around camera LEFT (+Y), which is")
+        print("     perpendicular to the boresight (-Z), so it produces exactly zero")
+        print("     roll change. The cos(theta2) signal is an artefact of imperfect")
+        print("     polar sinusoid removal — DIAGNOSTIC ONLY.")
+        print("     theta_model_c and theta_model_d are not used in")
+        print("     apply_mechanical_corrections().")
+        print("     theta_model_c  = altitude-dependent roll residual amplitude (arcmin)")
+        print("     theta_model_d  = theta2 at which roll residual is zero (degrees)")
         print()
         print("     Fitted on theta3≈0 subset only: at large theta3 the M3 encoder")
         print("     error dominates pa_dev_roll and buries the M2 coupling signal.")
@@ -1138,25 +1408,34 @@ def fit_models(csv_path):
         print("  " + "─" * 62)
         print()
         if amp_m2 is not None:
-            print(f"  theta_model_a = {amp_m2:.4f}   # M2/theta2 Bias Model: pa_dev_theta2 (arcmin) = theta_model_a · sin(theta2 − theta_model_b)   from fits_extract -model B1")
-            print(f"  theta_model_b = {zero_m2:.4f}   # M2/theta2 Bias Model: pa_dev_theta2 (arcmin) = theta_model_a · sin(theta2 − theta_model_b)   from fits_extract -model B1")
+            print(f"  theta_model_a = {amp_m2:.4f}   # M2 tilt amplitude (arcmin)")
+            print(f"  theta_model_b = {zero_m2:.4f}   # M2 tilt zero crossing (degrees theta2)")
         else:
-            print(f"  theta_model_a = ???            # B1 fit failed — check data")
+            print(f"  theta_model_a = ???              # B1 fit failed — check data")
             print(f"  theta_model_b = ???")
         if amp_r is not None:
-            b2_note = "# M2/roll Bias Model:   pa_dev_roll (arcmin) = theta_model_c · cos(theta2 − theta_model_d)     from fits_extract -model B2" + \
-                      ("" if b2_reliable else "  ⚠ low reliability — use with caution")
-            print(f"  theta_model_c = {amp_r:.4f}    {b2_note}")
-            print(f"  theta_model_d = {zero_r:.4f}   # M2/roll Bias Model: zero crossing (degrees theta2)")
+            b2_note = "# roll residual amplitude — diagnostic only, not used in apply_mechanical_corrections()" + \
+                      ("" if b2_reliable else "  ⚠ low reliability")
+            print(f"  theta_model_c = {amp_r:.4f}   {b2_note}")
+            print(f"  theta_model_d = {zero_r:.4f}   # roll residual zero crossing — diagnostic only")
         else:
-            print(f"  theta_model_c = ???            # B2 fit failed or insufficient data")
-            print(f"  theta_model_d = ???")
+            print(f"  theta_model_c = ???              # B2 fit failed or insufficient data  [diagnostic only]")
+            print(f"  theta_model_d = ???              # [diagnostic only]")
         if k_m3 is not None:
-            print(f"  theta_model_e = {k_m3:.4f}     # M3/theta3 Bias Model  pa_dev_theta3 (arcmin/deg) = theta_model_e · theta3                    from fits_extract -model B3")
+            print(f"  theta_model_e = {k_m3:.4f}   # M3 encoder scale error (arcmin/degree)")
         else:
-            print(f"  theta_model_e = ???            # B3 insufficient theta3 range — sweep p_roll ±60°")
+            print(f"  theta_model_e = ???              # B3 insufficient theta3 range — sweep p_roll ±60°")
         print()
+        print("  Usage in apply_mechanical_corrections():")
+        a_str = f"{amp_m2:.1f}"    if amp_m2    is not None else "theta_model_a"
+        b_str = f"{zero_m2:.1f}"   if zero_m2   is not None else "theta_model_b"
+        e_str = f"{k_m3_frac:.6f}" if k_m3_frac is not None else "theta_model_e/60"
+        print(f"    apply_mechanical_corrections(q,")
+        print(f"        m2_tilt_arcmin   = {a_str},")
+        print(f"        m2_tilt_zero_deg = {b_str},")
+        print(f"        m3_encoder_k     = {e_str})")
 
+        # ── Section A non-normality explanation ───────────────────────
         # ── Section A non-normality explanation ───────────────────────
         print()
         print("  ── Note on non-normal residuals (Sections A and B)")
@@ -1178,7 +1457,7 @@ def fit_models(csv_path):
     # ══════════════════════════════════════════════════════════════════
     print()
     print(W)
-    print("  SECTION C — SKY-SPACE RBC MODEL")
+    print("  SECTION C — SKY-SPACE RBC MODEL  (legacy driver coefficients)")
     print(W)
     print()
     print("  Note: this model was fitted in sky space (p_alt, p_roll) before")
@@ -1336,17 +1615,24 @@ def process_directory(fits_dir, output_csv):
                 f"az_err={az_str} "
                 f"alt_err={alt_str} "
                 f"roll_err={roll_str}")
-            # Collect data for polar model fit
-            try:
-                solved_for_pa_model.append({
-                    'p_az':            float(row['p_az']),
-                    'p_alt':           float(row['p_alt']),
-                    'dev_az_arcmin':   float(row['dev_az_arcmin']),
-                    'dev_alt_arcmin':  float(row['dev_alt_arcmin']),
-                    'dev_roll_arcmin': float(row['dev_roll_arcmin']),
-                })
-            except (ValueError, TypeError):
-                pass
+            # Collect (q_base, q_solved) pairs for QUEST alignment fit.
+            # Use solved az/alt with PREDICTED roll so that:
+            #   - QUEST absorbs only the 2-DOF az-axis tilt (frame rotation)
+            #   - SPA roll bias is not included (it would distort az/alt fit)
+            #   - pa_dev_roll shows the true roll residual (SPA bias + B2)
+            if HAS_POINTING_MODEL:
+                try:
+                    t1    = float(row['theta1'])
+                    t2    = float(row['theta2'])
+                    t3    = float(row['theta3'])
+                    saz   = float(row['_solved_az'])
+                    salt  = float(row['_solved_alt'])
+                    p_roll = float(row['_p_roll'])   # use predicted roll, not solved
+                    q_base   = _theta_to_q(t1, t2, t3)
+                    q_solved = _q_from_azaltroll(saz, salt, p_roll)
+                    solved_for_pa_model.append((q_base, q_solved))
+                except (ValueError, TypeError, KeyError):
+                    pass
         elif status == 'unsolved':
             print(f"  UNSOLVED {fp.name:<44s}  "
                 f"p_az={p_az_str}  p_alt={p_alt_str}  p_roll={p_roll_str}"
@@ -1356,25 +1642,38 @@ def process_directory(fits_dir, output_csv):
 
     print()
 
-    # ── Pass 2: fit polar model and compute pa_* fields ───────────────────
-    polar_model = PolarAlignmentModel()
+    # ── Pass 2: fit QUEST alignment and compute pa_* fields ───────────────
+    alignQ = None
 
-    if HAS_SCIPY and HAS_QUATERNION and solved_for_pa_model:
-        print("── Polar alignment model ─────────────────────────────────────────────")
-        fitted = polar_model.fit(solved_for_pa_model)
-        if fitted:
-            polar_model.print_summary()
+    if HAS_POINTING_MODEL and HAS_QUATERNION and solved_for_pa_model:
+        print("── QUEST alignment (rigid body frame fit) ────────────────────────────")
+        try:
+            alignQ = _quest_solve(solved_for_pa_model)
+            # Report the equivalent AW/AN (az-axis tilt) for diagnostics
+            import math
+            # The frame rotation quaternion tells us the tilt:
+            # alignQ rotates [0,0,1] to the actual az axis direction
+            az_axis = alignQ.rotate([0, 0, 1])
+            tilt_deg = math.degrees(math.acos(max(-1.0, min(1.0, az_axis[2]))))
+            tilt_az  = math.degrees(math.atan2(az_axis[0], az_axis[1])) % 360
+            print(f"  QUEST alignQ: frame tilt = {tilt_deg*60:.1f}' toward az={tilt_az:.1f}°")
+            print(f"  (Equivalent to: mount base tilted {tilt_deg*60:.1f} arcmin from level)")
+            print(f"  Fitted from {len(solved_for_pa_model)} solved frames.")
             print()
-            # Apply pa_* correction to every solved row
+
+            # Apply QUEST correction to every solved row
             n_pa = 0
             for row in rows:
                 if row['status'] == 'solved' and row.get('_solved_az') is not None:
-                    apply_polar_correction(row, polar_model)
+                    apply_quest_correction(row, alignQ)
                     n_pa += 1
-            print(f"  Applied pa_* correction to {n_pa} solved rows.")
+            print(f"  Applied QUEST pa_* correction to {n_pa} solved rows.")
             print()
-    elif not HAS_SCIPY:
-        print("  Skipping pa_* fields (scipy not available).")
+        except Exception as e:
+            print(f"  QUEST fit failed: {e}")
+            print()
+    elif not HAS_POINTING_MODEL:
+        print("  Skipping pa_* fields (pointing_model.py not available).")
     elif not solved_for_pa_model:
         print("  Skipping pa_* fields (no solved rows).")
 
@@ -1421,33 +1720,32 @@ def process_directory(fits_dir, output_csv):
                     f"stdev={np.std(arr, ddof=1):+6.1f}  "
                     f"min={np.min(arr):+6.1f}  "
                     f"max={np.max(arr):+6.1f}")
+
         print()
-        print(f"── Solved file statistics ────────────────────────────")
-        print(f"  Residuals raw deviations in arc-min:      dev_* = solved_* - p_* ")
+        print(f"── Solved file statistics (arc-minutes) ────────────────────────────")
+        print(f"  Raw deviations:")
         print(f"    Roll:       {stats([r['dev_roll_arcmin'] for r in solved_rows])}")
         print(f"    Az:         {stats([r['dev_az_arcmin']   for r in solved_rows])}")
         print(f"    Alt:        {stats([r['dev_alt_arcmin']  for r in solved_rows])}")
-        if polar_model.fitted:
-            print(f"  Residuals after polar correction:         pa_dev_* = solved_* − pa_* ")
+        if alignQ is not None:
+            print(f"  QUEST residuals, solved_* − pa_* (pa_dev_*):")
             print(f"    Roll:       {stats([r['pa_dev_roll_arcmin'] for r in solved_rows])}")
             print(f"    Az:         {stats([r['pa_dev_az_arcmin']   for r in solved_rows])}")
             print(f"    Alt:        {stats([r['pa_dev_alt_arcmin']  for r in solved_rows])}")
-            print(f"  Motor-space residuals in arc-min:         pa_dev_theta* = solved_theta* − pa_theta*")
+            print(f"  Motor-space residuals, solved_theta − pa_theta (pa_dev_theta*):")
             print(f"    Theta1:     {stats([r['pa_dev_theta1_arcmin'] for r in solved_rows])}")
             print(f"    Theta2:     {stats([r['pa_dev_theta2_arcmin'] for r in solved_rows])}")
             print(f"    Theta3:     {stats([r['pa_dev_theta3_arcmin'] for r in solved_rows])}")
+
         p_azs   = [float(r['p_az'])    for r in solved_rows if r['p_az']    != '']
         p_alts  = [float(r['p_alt'])   for r in solved_rows if r['p_alt']   != '']
         p_rolls = [float(r['p_roll'])  for r in solved_rows if r['p_roll']  != '']
         t3s     = [float(r['theta3'])  for r in solved_rows if r['theta3']  != '']
         print()
-        print(f"  Range of data: (degrees) ")
-        if p_azs:   print(f"    p_az   (°): {min(p_azs):.1f} → {max(p_azs):.1f}")
-        if p_alts:  print(f"    p_alt  (°): {min(p_alts):.1f} → {max(p_alts):.1f}")
-        if p_rolls: print(f"    p_roll (°): {min(p_rolls):.1f} → {max(p_rolls):.1f}")
-        if t3s:     print(f"    theta3 (°): {min(t3s):.1f} → {max(t3s):.1f}")
-
-        print()
+        if p_azs:   print(f"  p_az   (°): {min(p_azs):.1f} → {max(p_azs):.1f}")
+        if p_alts:  print(f"  p_alt  (°): {min(p_alts):.1f} → {max(p_alts):.1f}")
+        if p_rolls: print(f"  p_roll (°): {min(p_rolls):.1f} → {max(p_rolls):.1f}")
+        if t3s:     print(f"  theta3 (°): {min(t3s):.1f} → {max(t3s):.1f}")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -1461,25 +1759,47 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument('-extract', action='store_true',
+    parser.add_argument('-extract',  action='store_true',
                         help='Scan --dir for FITS files and write results to --csv.')
-    parser.add_argument('-model',   action='store_true',
+    parser.add_argument('-model',    action='store_true',
                         help='Fit the RBC model from --csv and print calibration coefficients.')
-    parser.add_argument('-dir',  metavar='DIR',  default='../../../images/2026-04-11/L/LIGHT',
+    parser.add_argument('-combine',  action='store_true',
+                        help='Merge multiple per-session CSVs into one combined dataset.')
+    parser.add_argument('-evaluate', action='store_true',
+                        help='Evaluate pointing model hierarchy on a combined CSV.')
+    parser.add_argument('-dir',  metavar='DIR',  default='.',
                         help='Directory to scan recursively for FITS files.')
-    parser.add_argument('-csv',  metavar='FILE', default='fits_extract.csv',
-                        help='CSV file path.')
+    parser.add_argument('-csv',  metavar='FILE', nargs='+', default=['fits_extract.csv'],
+                        help='CSV file(s). For -combine: list of input session CSVs.')
+    parser.add_argument('-out',  metavar='FILE', default='combined.csv',
+                        help='Output CSV path for -combine. Default: combined.csv')
+    parser.add_argument('-sync', metavar='N', type=int, default=6,
+                        help='Sync points per session for -evaluate. Default: 6')
 
     args = parser.parse_args()
 
-    if not args.extract and not args.model:
-        parser.error('At least one of -extract or -model is required.')
+    if not any([args.extract, args.model, args.combine, args.evaluate]):
+        parser.error('At least one of -extract, -model, -combine, or -evaluate is required.')
 
     if args.extract:
-        process_directory(args.dir, args.csv)
+        csv_path = args.csv[0] if args.csv else 'fits_extract.csv'
+        process_directory(args.dir, csv_path)
 
     if args.model:
-        csv_path = Path(args.csv)
+        csv_path = Path(args.csv[0] if args.csv else 'fits_extract.csv')
         if not csv_path.is_file():
             parser.error(f'CSV file not found: {csv_path}')
         fit_models(csv_path)
+
+    if args.combine:
+        input_csvs = args.csv
+        missing = [p for p in input_csvs if not Path(p).is_file()]
+        if missing:
+            parser.error(f'CSV file(s) not found: {missing}')
+        combine_csvs(input_csvs, args.out)
+
+    if args.evaluate:
+        csv_path = Path(args.csv[0] if args.csv else 'combined.csv')
+        if not csv_path.is_file():
+            parser.error(f'CSV file not found: {csv_path}')
+        evaluate_models(csv_path, n_sync_points=args.sync)
