@@ -13,18 +13,21 @@ Running:
     pytest test_pointing_model.py -v
     pytest test_pointing_model.py -v -k "not real_data"   # skip CSV tests
 """
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))import math
 
+import math
+import os
 import pytest
 import numpy as np
 from pyquaternion import Quaternion
 from typing import List
 
+import pointing_model as pm
 from pointing_model import (
     # kinematics
     theta_to_q, q_to_azaltroll, q_to_theta, wrap180, angular_error_arcmin,
+    # angle helpers (moved from fits_extract)
+    wrap_to_180, wrap_to_360, wrap_to_90, rotator_to_p_roll,
+    calc_parallactic_angle, crota2_from_cd, crota2_to_roll,
     # correction layers
     make_polar_corrQ, apply_polar_correction, apply_polar_correction_pair,
     apply_theta_corrections, ThetaModelParams,
@@ -656,3 +659,151 @@ class TestRealDataEnriched:
         gaps = [s[i+1]-s[i] for i in range(len(s)-1)] + [360-s[-1]+s[0]]
         spread = 360 - max(gaps)
         assert spread > 270, f"Expected >270° az spread, got {spread:.1f}°"
+
+# ── Tests for new pointing_model functions ────────────────────────────────────
+
+class TestAngleHelpers:
+    def test_wrap_to_180(self):
+        assert pm.wrap_to_180(270)  == -90.0
+        assert pm.wrap_to_180(-270) ==  90.0
+        assert pm.wrap_to_180(180)  == -180.0
+        assert pm.wrap_to_180(0)    ==   0.0
+
+    def test_wrap_to_360(self):
+        assert pm.wrap_to_360(-10)  == 350.0
+        assert pm.wrap_to_360(370)  ==  10.0
+        assert pm.wrap_to_360(0)    ==   0.0
+
+    def test_wrap_to_90(self):
+        assert pm.wrap_to_90(100)  == -80.0
+        assert pm.wrap_to_90(-91)  ==  89.0
+
+    def test_rotator_to_p_roll(self):
+        assert pm.rotator_to_p_roll(0)   ==   0.0
+        assert pm.rotator_to_p_roll(270) == -90.0
+
+    def test_calc_parallactic_angle_zenith(self):
+        pa = pm.calc_parallactic_angle(0, 90, -33.86)
+        assert pa == 0.0
+
+    def test_calc_parallactic_angle_value(self):
+        # At az=90, alt=45, lat=-33.86: non-degenerate value
+        pa = pm.calc_parallactic_angle(90, 45, -33.86)
+        assert isinstance(pa, float)
+        assert -180 <= pa <= 180
+
+    def test_crota2_from_cd_zero(self):
+        result, source = pm.crota2_from_cd(0.0, 0.0)
+        assert result is None
+        assert source == 'none'
+
+    def test_crota2_from_cd_value(self):
+        angle, source = pm.crota2_from_cd(-0.001, 0.001)
+        assert source == 'CD_matrix'
+        assert isinstance(angle, float)
+
+    def test_crota2_to_roll_roundtrip(self):
+        # crota2_to_roll should give consistent parallactic angle
+        az, alt, lat = 180.0, 45.0, -33.86
+        para = pm.calc_parallactic_angle(az, alt, lat)
+        roll, pa, para2 = pm.crota2_to_roll(0.0, az, alt, lat)
+        assert abs(para - para2) < 1e-9
+
+
+class TestB5Correction:
+    """Tests for theta_model_f (M3 axis tilt → altitude) B5 correction."""
+
+    def test_theta_model_f_in_dataclass(self):
+        p = pm.ThetaModelParams(m3_axis_tilt_k=-0.0399)
+        assert p.m3_axis_tilt_k == pytest.approx(-0.0399)
+
+    def test_from_config_values_with_f(self):
+        p = pm.ThetaModelParams.from_config_values(theta_model_f=-2.394)
+        assert p.m3_axis_tilt_k == pytest.approx(-2.394 / 60.0, rel=1e-5)
+
+    def test_b5_no_correction_at_t3_zero(self):
+        p = pm.ThetaModelParams.from_config_values(theta_model_f=-2.394)
+        q = pm.theta_to_q(180, 40, 0)
+        q_corr = pm.apply_theta_corrections(q, p)
+        t1r, t2r, t3r = pm.q_to_theta(q)
+        t1c, t2c, t3c = pm.q_to_theta(q_corr)
+        assert abs(t2c - t2r) < 0.01
+
+    def test_b5_corrects_pa_dev_theta2(self):
+        """After B5 correction, pa_dev_theta2 should be near zero."""
+        theta_model_f = -2.394
+        p = pm.ThetaModelParams.from_config_values(theta_model_f=theta_model_f)
+        for t3 in [-50, -30, -10, 10, 30, 50]:
+            q_base = pm.theta_to_q(180, 40, t3)
+            t1_m, t2_m, t3_m = pm.q_to_theta(q_base)
+            # Simulate real hardware: offset theta2 by the M3 tilt amount
+            t2_real = t2_m + theta_model_f * t3 / 60.0
+            # Apply B5 correction to q_base
+            q_corr = pm.apply_theta_corrections(q_base, p)
+            t1c, t2c, t3c = pm.q_to_theta(q_corr)
+            # pa_dev_theta2 after correction
+            pa_dev_b5 = (t2_real - t2c) * 60.0
+            assert abs(pa_dev_b5) < 0.1, f"t3={t3}: pa_dev_b5={pa_dev_b5:.2f}' (expected ≈0)"
+
+    def test_b5_direction_positive_t3(self):
+        """At positive t3, B5 should DECREASE pa_theta2 to compensate low real alt."""
+        p = pm.ThetaModelParams.from_config_values(theta_model_f=-2.394)
+        q = pm.theta_to_q(180, 40, 30)
+        q_corr = pm.apply_theta_corrections(q, p)
+        t1r, t2r, _ = pm.q_to_theta(q)
+        t1c, t2c, _ = pm.q_to_theta(q_corr)
+        assert t2c < t2r, "B5 should decrease pa_theta2 when theta3 > 0"
+
+    def test_b5_direction_negative_t3(self):
+        """At negative t3, B5 should INCREASE pa_theta2."""
+        p = pm.ThetaModelParams.from_config_values(theta_model_f=-2.394)
+        q = pm.theta_to_q(180, 40, -30)
+        q_corr = pm.apply_theta_corrections(q, p)
+        t1r, t2r, _ = pm.q_to_theta(q)
+        t1c, t2c, _ = pm.q_to_theta(q_corr)
+        assert t2c > t2r, "B5 should increase pa_theta2 when theta3 < 0"
+
+    def test_b5_does_not_affect_b1(self):
+        """B5 and B1 applied together should give independent corrections."""
+        p_b5_only = pm.ThetaModelParams.from_config_values(theta_model_f=-2.394)
+        p_b5_b1   = pm.ThetaModelParams.from_config_values(
+            theta_model_f=-2.394, theta_model_a=52.2, theta_model_b=36.4)
+        q = pm.theta_to_q(180, 60, 30)
+        q_b5    = pm.apply_theta_corrections(q, p_b5_only)
+        q_b5_b1 = pm.apply_theta_corrections(q, p_b5_b1)
+        t1_b5,   t2_b5,   _ = pm.q_to_theta(q_b5)
+        t1_both, t2_both, _ = pm.q_to_theta(q_b5_b1)
+        # B1 adds additional theta2 correction on top of B5
+        # At theta2=60, B=36.4: sin(23.6°)=0.40, correction = 52.2*0.40/60 = 0.35°
+        assert abs(t2_b5 - t2_both) > 0.1, "B1 should add extra theta2 shift on top of B5"
+
+
+class TestFitsExtractDelegation:
+    """Verify fits_extract.py helper functions work correctly."""
+
+    def test_wrap180_internal(self):
+        import fits_extract as fe
+        # New API uses wrap180 (not wrap_to_180)
+        assert fe.wrap180(270)  == pm.wrap_to_180(270)
+        assert fe.wrap180(-90)  == pm.wrap_to_180(-90)
+
+    def test_wrap360_internal(self):
+        import fits_extract as fe
+        assert fe.wrap360(-10) == pm.wrap_to_360(-10)
+
+    def test_crota2_from_cd_via_pm(self):
+        # fits_extract.crota2_from_cd returns float (not tuple) in new version
+        # Use pointing_model directly for delegation test
+        r = pm.crota2_from_cd(0.001, -0.001)
+        assert r[1] == 'CD_matrix'
+        assert isinstance(r[0], float)
+
+    def test_azaltroll_to_theta(self):
+        import fits_extract as fe
+        t1, t2, t3 = fe.azaltroll_to_theta(180, 40, 0)
+        assert t1 is not None
+        assert abs(t2 - 40.0) < 0.01
+
+    def test_rotator_to_p_roll_via_pm(self):
+        assert pm.rotator_to_p_roll(270) == pm.wrap_to_180(270 - 0.0)
+

@@ -21,6 +21,211 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 
+# -- Angle helpers (also used by fits_extract.py) --------------------------------
+
+ROTATOR_OFFSET = 0.0   # Override if camera mounting introduces a roll bias
+
+
+def wrap_to_180(angle: float) -> float:
+    """Wrap angle to [-180, +180)."""
+    return (angle + 180.0) % 360.0 - 180.0
+
+
+def wrap_to_360(angle: float) -> float:
+    """Wrap angle to [0, 360)."""
+    wrapped = angle % 360.0
+    return 0.0 if abs(wrapped - 360) < 1e-10 else wrapped
+
+
+def wrap_to_90(angle: float) -> float:
+    """Wrap angle to [-90, +90)."""
+    return (angle + 90.0) % 180.0 - 90.0
+
+
+def rotator_to_p_roll(rotator_deg: float) -> float:
+    """Convert raw rotator angle to predicted roll, applying ROTATOR_OFFSET."""
+    return wrap_to_180(rotator_deg - ROTATOR_OFFSET)
+
+
+# -- Astronomy helpers -----------------------------------------------------------
+
+
+def calc_parallactic_angle(az_deg: float, alt_deg: float, lat_deg: float) -> float:
+    """
+    Parallactic angle at (az, alt) for observer latitude lat_deg.
+    Matches driver's calc_parallactic_angle().
+    """
+    if abs(alt_deg - 90.0) < 1e-6:
+        return 0.0
+    az  = math.radians(az_deg)
+    alt = math.radians(alt_deg)
+    lat = math.radians(lat_deg)
+    num = math.sin(az)
+    den = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
+    return wrap_to_180(-math.degrees(math.atan2(num, den)))
+
+
+def radec_to_altaz(ra_deg: float, dec_deg: float,
+                   lat_deg: float, lon_deg: float,
+                   date_obs_utc: str) -> Tuple[Optional[float], Optional[float]]:
+    """
+    Convert J2000 RA/Dec to topocentric Alt/Az using ephem.
+    Returns (az_deg, alt_deg) or (None, None) if ephem unavailable.
+    """
+    try:
+        import ephem
+        obs = ephem.Observer()
+        obs.lat   = math.radians(lat_deg)
+        obs.long  = math.radians(lon_deg)
+        obs.date  = ephem.Date(date_obs_utc.split('.')[0].replace('T', ' '))
+        obs.epoch = ephem.J2000
+        body = ephem.FixedBody()
+        body._ra    = math.radians(ra_deg)
+        body._dec   = math.radians(dec_deg)
+        body._epoch = ephem.J2000
+        body.compute(obs)
+        return math.degrees(float(body.az)), math.degrees(float(body.alt))
+    except Exception:
+        return None, None
+
+
+def crota2_from_cd(cd1_2: float, cd2_2: float) -> Tuple[Optional[float], str]:
+    """Extract CROTA2 rotation angle from CD matrix elements."""
+    if abs(cd1_2) < 1e-15 and abs(cd2_2) < 1e-15:
+        return None, 'none'
+    return wrap_to_180(math.degrees(math.atan2(-cd1_2, cd2_2))), 'CD_matrix'
+
+
+def crota2_to_roll(crota2_deg: float,
+                   az_deg: float, alt_deg: float,
+                   lat_deg: float) -> Tuple[float, float, float]:
+    """
+    Convert CROTA2 WCS rotation to camera roll, position angle, parallactic angle.
+    Returns (roll_deg, position_angle_deg, parallactic_angle_deg).
+    """
+    para           = calc_parallactic_angle(az_deg, alt_deg, lat_deg)
+    position_angle = wrap_to_360(180 - crota2_deg)
+    roll           = wrap_to_180(position_angle - para)
+    return roll, position_angle, para
+
+
+# -- Driver-matching IK (azaltroll_to_q / q_to_theta / azaltroll_to_theta) ------
+
+class LastPosition:
+    """Tracks previous motor position for IK disambiguation and gimbal lock."""
+    def __init__(self, t1=180.0, t2=45.0, t3=0.0):
+        self.last_theta1 = t1
+        self.last_theta2 = t2
+        self.last_theta3 = t3
+        self.in_gimbal_lock = False
+
+    def calcMechanicalAngularDiff(self, t1, t2, t3):
+        def ad(a, b): return ((b - a + 180) % 360) - 180
+        return ad(t1, self.last_theta1)**2 + ad(t2, self.last_theta2)**2 + ad(t3, self.last_theta3)**2
+
+    def check_for_gimbal_lock(self, theta2=None):
+        if theta2 is None:
+            theta2 = self.last_theta2
+        if not self.in_gimbal_lock and abs(theta2) < 1:
+            self.in_gimbal_lock = True
+        elif self.in_gimbal_lock and abs(theta2) > 3:
+            self.in_gimbal_lock = False
+        return self.in_gimbal_lock
+
+
+def azaltroll_to_q(az: float, alt: float, roll: float) -> Quaternion:
+    """Az/alt/roll (degrees) -> camera quaternion. Matches driver azaltroll_to_q()."""
+    qaz   = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
+    qalt  = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
+    qroll = Quaternion(axis=[0, 0, 1], degrees=roll)
+    q1    = qaz * qalt * qroll
+    return -(q1.normalised) if roll < 0 else q1.normalised
+
+
+def q_to_theta_driver(motorQ_C2B: Quaternion,
+                      lastPos: Optional['LastPosition'] = None,
+                      ) -> Tuple[float, float, float]:
+    """
+    Camera quaternion -> (theta1, theta2, theta3) motor angles.
+    Matches driver q_to_theta() exactly, including gimbal-lock handling.
+    Use this when pa_* motor-space residuals need to match the driver's IK.
+    """
+    if lastPos is None:
+        lastPos = LastPosition()
+    q1     = motorQ_C2B
+    tUp    = q1.rotate(np.array([1, 0, 0]))
+    tRight = q1.rotate(np.array([0, 1, 0]))
+
+    theta1_A = wrap_to_360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
+    t1r_A    = np.radians(theta1_A)
+    sin_t2_A = -(tUp[0] * np.sin(t1r_A) + tUp[1] * np.cos(t1r_A))
+    theta2_A = wrap_to_90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
+    theta1_B = wrap_to_360(theta1_A + 180)
+    theta2_B = -theta2_A
+
+    theta2_min, theta2_max = -8, 83
+    validA = theta2_min <= theta2_A <= theta2_max
+    validB = theta2_min <= theta2_B <= theta2_max
+
+    def calc_theta3(theta1, theta2):
+        qt1 = Quaternion(axis=[0, 0, 1], degrees=-theta1 + 90)
+        qt2 = Quaternion(axis=[0, 1, 0], degrees=-theta2 - 90)
+        tRight_no_M3 = (qt1 * qt2).rotate([0, 1, 0])
+        r1 = tRight_no_M3 - np.dot(tRight_no_M3, tUp) * tUp
+        r2 = tRight        - np.dot(tRight,        tUp) * tUp
+        n1, n2 = np.linalg.norm(r1), np.linalg.norm(r2)
+        if n1 < 1e-9 or n2 < 1e-9:
+            return lastPos.last_theta3
+        r1n, r2n = r1 / n1, r2 / n2
+        cos_t3 = np.clip(np.dot(r1n, r2n), -1, 1)
+        sin_t3 = np.dot(np.cross(r1n, r2n), tUp)
+        return wrap_to_180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
+
+    if validA and not validB:
+        theta1, theta2 = theta1_A, theta2_A
+        theta3 = calc_theta3(theta1, theta2)
+    elif validB and not validA:
+        theta1, theta2 = theta1_B, theta2_B
+        theta3 = calc_theta3(theta1, theta2)
+    elif validA and validB:
+        theta3_A = calc_theta3(theta1_A, theta2_A)
+        theta3_B = calc_theta3(theta1_B, theta2_B)
+        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A)
+        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B)
+        if diffA <= diffB:
+            theta1, theta2, theta3 = theta1_A, theta2_A, theta3_A
+        else:
+            theta1, theta2, theta3 = theta1_B, theta2_B, theta3_B
+    else:
+        def dist(t2):
+            if t2 < theta2_min: return theta2_min - t2
+            if t2 > theta2_max: return t2 - theta2_max
+            return 0.0
+        if dist(theta2_B) < dist(theta2_A):
+            theta1, theta2 = theta1_B, np.clip(theta2_B, theta2_min, theta2_max)
+        else:
+            theta1, theta2 = theta1_A, np.clip(theta2_A, theta2_min, theta2_max)
+        theta3 = calc_theta3(theta1, theta2)
+
+    if lastPos.check_for_gimbal_lock(theta2):
+        locked_sum = wrap_to_360(theta1 + theta3)
+        theta3 = 0.0
+        theta1 = locked_sum
+
+    return float(theta1), float(theta2), float(theta3)
+
+
+def azaltroll_to_theta(p_az: float, p_alt: float, p_roll: float,
+                       lastPos: Optional[LastPosition] = None,
+                       ) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+    """Az/alt/roll (degrees) -> (theta1, theta2, theta3) via IK. Returns (None,None,None) on error."""
+    try:
+        motorQ = azaltroll_to_q(p_az, p_alt, p_roll)
+        return q_to_theta_driver(motorQ, lastPos)
+    except Exception:
+        return None, None, None
+
+
 # ── Basic quaternion / kinematics ─────────────────────────────────────────────
 
 def theta_to_q(t1: float, t2: float, t3: float) -> Quaternion:
@@ -32,14 +237,6 @@ def theta_to_q(t1: float, t2: float, t3: float) -> Quaternion:
     q = (qtheta3 * qtheta1 * qtheta2).normalised
     return q if t3 >= 0 else (-q).normalised
 
-def q_from_azaltroll(az: float, alt: float, roll: float) -> Quaternion:
-    """Build quaternion from (az, alt, roll) in degrees."""
-    qaz  = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
-    qalt = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
-    qnr  = qaz * qalt
-    bore = np.array(qnr.rotate([0, 0, -1]))
-    qroll = Quaternion(axis=bore.tolist(), degrees=-roll)
-    return (qroll * qnr).normalised
 
 def q_to_azaltroll(q: Quaternion) -> Tuple[float, float, float]:
     """Camera quaternion → (az, alt, roll) in degrees.  az in [0,360)."""
@@ -56,6 +253,7 @@ def q_to_azaltroll(q: Quaternion) -> Tuple[float, float, float]:
     if qr[3] < 0:
         roll = -roll
     return az, alt, roll
+
 
 def q_to_theta(q: Quaternion) -> Tuple[float, float, float]:
     """Camera quaternion → (theta1, theta2, theta3) in degrees."""
@@ -146,6 +344,16 @@ def make_polar_corrQ(theta1_deg: float,
     return (q_real * q_ideal.inverse).normalised
 
 
+def q_from_azaltroll(az: float, alt: float, roll: float) -> Quaternion:
+    """Build quaternion from (az, alt, roll) in degrees."""
+    qaz  = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
+    qalt = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
+    qnr  = qaz * qalt
+    bore = np.array(qnr.rotate([0, 0, -1]))
+    qroll = Quaternion(axis=bore.tolist(), degrees=-roll)
+    return (qroll * qnr).normalised
+
+
 def apply_polar_correction(q: Quaternion,
                            AW_deg: float, AN_deg: float,
                            undo: bool = False,
@@ -191,12 +399,33 @@ def apply_polar_correction_pair(q: Quaternion,
 
 @dataclass
 class ThetaModelParams:
-    """Hardware-stable mechanical axis correction parameters."""
-    m2_tilt_arcmin:   float = 0.0   # theta_model_a: M2 tilt amplitude (arcmin)
-    m2_tilt_zero_deg: float = 0.0   # theta_model_b: zero crossing (degrees theta2)
-    roll_amp_arcmin:  float = 0.0   # theta_model_c: boresight roll amplitude (arcmin)
-    roll_zero_deg:    float = 0.0   # theta_model_d: roll zero crossing (degrees theta2)
-    m3_encoder_k:     float = 0.0   # theta_model_e/60: M3 scale error (degrees/degree)
+    """
+    Hardware-stable mechanical axis correction parameters.
+
+    Applied in order B5 → B1 → B3 by apply_theta_corrections().
+
+    Parameters
+    ----------
+    m2_tilt_arcmin   : theta_model_a  M2 axis tilt amplitude (arcmin).
+                       pa_dev_theta2 = a * sin(theta2 - b)
+    m2_tilt_zero_deg : theta_model_b  theta2 at which B1 error is zero (degrees).
+    roll_amp_arcmin  : theta_model_c  Altitude-dependent roll residual amplitude.
+                       DIAGNOSTIC ONLY — not applied in corrections.
+    roll_zero_deg    : theta_model_d  theta2 at which roll residual is zero.
+                       DIAGNOSTIC ONLY — not applied in corrections.
+    m3_encoder_k     : theta_model_e / 60.  M3 scale error (degrees/degree).
+                       pa_dev_theta3 = e * theta3
+    m3_axis_tilt_k   : theta_model_f / 60.  M3 axis tilt → altitude (degrees/degree).
+                       delta_theta2 = -(f/60) * theta3
+                       Dominant error at large roll; ~2.4 arcmin/degree.
+                       Best estimate: theta_model_f = -2.394 arcmin/degree.
+    """
+    m2_tilt_arcmin:   float = 0.0   # theta_model_a
+    m2_tilt_zero_deg: float = 0.0   # theta_model_b
+    roll_amp_arcmin:  float = 0.0   # theta_model_c  [diagnostic only]
+    roll_zero_deg:    float = 0.0   # theta_model_d  [diagnostic only]
+    m3_encoder_k:     float = 0.0   # theta_model_e / 60
+    m3_axis_tilt_k:   float = 0.0   # theta_model_f / 60  (M3 axis tilt → altitude)
 
     @classmethod
     def from_config_values(cls,
@@ -204,7 +433,8 @@ class ThetaModelParams:
                            theta_model_b: float = 0.0,
                            theta_model_c: float = 0.0,
                            theta_model_d: float = 0.0,
-                           theta_model_e: float = 0.0) -> 'ThetaModelParams':
+                           theta_model_e: float = 0.0,
+                           theta_model_f: float = 0.0) -> 'ThetaModelParams':
         """Construct from config.toml theta_model_* values."""
         return cls(
             m2_tilt_arcmin   = theta_model_a,
@@ -212,40 +442,66 @@ class ThetaModelParams:
             roll_amp_arcmin  = theta_model_c,
             roll_zero_deg    = theta_model_d,
             m3_encoder_k     = theta_model_e / 60.0,
+            m3_axis_tilt_k   = theta_model_f / 60.0,
         )
 
 
 def apply_theta_corrections(q: Quaternion,
                              params: ThetaModelParams) -> Quaternion:
     """
-    Apply B1 (M2 tilt), B2 (boresight roll), B3 (M3 encoder) corrections.
+    Apply mechanical axis corrections to camera quaternion.
 
-    B2 uses the boresight axis — not M2 — because M2 rotation is geometrically
-    perpendicular to the boresight and cannot produce roll change.
+    Correction order (applied left-to-right, outermost first):
+      B5 first: removes dominant M3-axis-tilt error so B1 residuals are clean.
+      B1 next:  removes M2-axis-tilt altitude error.
+      B3 last:  removes M3 encoder scale error.
+
+    B5 — M3 axis tilt -> altitude (theta_model_f)  [DOMINANT, apply first]
+      Physical cause: M3 rotation axis is not exactly camera UP.
+      Rotating M3 sweeps the boresight vertically.
+      Correction: rotate around M2 axis (altitude axis) by -(f/60)*theta3 degrees.
+      Formula:  delta_theta2 = -(theta_model_f / 60) * theta3
+
+    B1 — M2 axis tilt -> altitude (theta_model_a, theta_model_b)
+      Physical cause: M2 rotation axis not perpendicular to M1.
+      Correction: rotate around M2 axis by -(a/60)*sin(theta2-b) degrees.
+      Formula:  delta_theta2 = -(theta_model_a / 60) * sin(theta2 - theta_model_b)
+
+    B3 — M3 encoder scale error (theta_model_e)
+      Physical cause: M3 encoder reads more/less rotation than occurred.
+      Correction: rotate around M3 axis by (e/60)*theta3 degrees.
+      Formula:  delta_theta3 = (theta_model_e / 60) * theta3
+
+    B2 (theta_model_c/d) is NOT applied here — it is diagnostic only.
+    M2 rotation is perpendicular to the boresight and cannot produce roll change,
+    so the cos(theta2) roll signal has a different origin (QUEST residual artefact).
+
+    RBC (rbc_model_a/b/c) is DECOMMISSIONED.
+    It was modelling the B5 M3-axis-tilt error in the wrong axis (roll/az),
+    causing divergence in slew-and-centre at large roll angles.
     """
     t1, t2, t3 = q_to_theta(q)
 
-    qtheta1   = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
-    qtheta2   = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
-    m2_axis   = np.array(qtheta1.rotate([0, 1, 0]))
-    m3_axis   = np.array((qtheta1 * qtheta2).rotate([1, 0, 0]))
-    boresight = np.array(q.rotate([0, 0, -1]))
+    qtheta1 = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
+    qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
+    m2_axis = np.array(qtheta1.rotate([0, 1, 0]))
+    m3_axis = np.array((qtheta1 * qtheta2).rotate([1, 0, 0]))
 
-    # B1: M2 axis tilt → altitude correction
-    delta_t2 = -(params.m2_tilt_arcmin / 60.0) * math.sin(
+    # B5: M3 axis tilt -> altitude (apply first — dominant error)
+    # Rotates around M2 axis (altitude) by -(theta_model_f/60)*theta3 degrees
+    delta_t2_b5 = -params.m3_axis_tilt_k * t3
+    q_b5 = Quaternion(axis=m2_axis.tolist(), degrees=delta_t2_b5)
+
+    # B1: M2 axis tilt -> altitude
+    delta_t2_b1 = -(params.m2_tilt_arcmin / 60.0) * math.sin(
         math.radians(t2 - params.m2_tilt_zero_deg))
-    q_m2 = Quaternion(axis=m2_axis.tolist(), degrees=delta_t2)
-
-    # B2: altitude-dependent roll offset → boresight rotation
-    delta_roll = -(params.roll_amp_arcmin / 60.0) * math.cos(
-        math.radians(t2 - params.roll_zero_deg))
-    q_b2 = Quaternion(axis=boresight.tolist(), degrees=delta_roll)
+    q_b1 = Quaternion(axis=m2_axis.tolist(), degrees=delta_t2_b1)
 
     # B3: M3 encoder scale error
     delta_t3 = params.m3_encoder_k * t3
-    q_m3 = Quaternion(axis=m3_axis.tolist(), degrees=delta_t3)
+    q_b3 = Quaternion(axis=m3_axis.tolist(), degrees=delta_t3)
 
-    return (q_m3 * q_b2 * q_m2 * q).normalised
+    return (q_b3 * q_b1 * q_b5 * q).normalised
 
 
 # ── RBC correction ────────────────────────────────────────────────────────────
