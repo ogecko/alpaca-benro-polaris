@@ -202,12 +202,12 @@ except ImportError:
     print("         Run: pip install ephem")
 
 
-# ── Configuration ─────────────────────────────────────────────────────────────
+# ---- Configuration --------------------------------------------------------------------
 
 ROTATOR_OFFSET = 0.0
 
 
-# ── Angle helpers ─────────────────────────────────────────────────────────────
+# ---- Angle helpers --------------------------------------------------------------------
 
 def wrap_to_180(angle):
     return (angle + 180.0) % 360.0 - 180.0
@@ -264,7 +264,7 @@ def crota2_to_roll(crota2_deg, az_deg, alt_deg, lat_deg):
     return roll, position_angle, para
 
 
-# ── Inverse kinematics ────────────────────────────────────────────────────────
+# ---- Inverse kinematics --------------------------------------------------------
 
 class LastPosition:
     def __init__(self, t1=180, t2=45, t3=0):
@@ -371,7 +371,7 @@ def azaltroll_to_theta(p_az, p_alt, p_roll):
         return None, None, None
 
 
-# ── Polar alignment model ─────────────────────────────────────────────────────
+# ---- Polar alignment model ----------------------------------------------------------
 
 class PolarAlignmentModel:
     """
@@ -475,7 +475,7 @@ class PolarAlignmentModel:
         print(f"  Roll sinusoid:  {G:>+7.2f}·cos(az) + {H:>+7.2f}·sin(az) + {I:>+7.2f}  (arcmin)")
 
 
-# ── FITS reading ──────────────────────────────────────────────────────────────
+# ---- FITS reading -------------------------------------------------------------------
 
 def safe_float(header, key, default=None):
     try:
@@ -494,7 +494,7 @@ def read_header(fits_path):
         return dict(hdul[0].header)
 
 
-# ── CSV field order ───────────────────────────────────────────────────────────
+# ---- CSV field order ---------------------------------------------------------------------
 
 _ALL_FIELDS = [
     'filename', 'status', 'date_obs', 'object', 'filter', 'exptime_s',
@@ -758,7 +758,7 @@ def evaluate_models(combined_csv_path, n_sync_points=6):
     print("  4. Fit shared hardware params (theta-space) across sessions for Level 3")
 
 
-# ── Per-file processing ───────────────────────────────────────────────────────
+# ---- Per-file processing ---------------------------------------------------------
 
 def process_fits(fits_path):
     """
@@ -774,7 +774,7 @@ def process_fits(fits_path):
         row['status'] = f'error: {e}'
         return row, row['status']
 
-    # ── Polaris/Nina values ────────────────────────────────────────────────
+    # ---- Polaris/Nina values -------------------------------------------------------------------------
     centaz   = safe_float(h, 'CENTAZ')
     centalt  = safe_float(h, 'CENTALT')
     rotator  = safe_float(h, 'ROTATOR')
@@ -805,7 +805,7 @@ def process_fits(fits_path):
         'p_roll':      f(p_roll),
     })
 
-    # ── Theta1/2/3 from p_az/p_alt/p_roll ────────────────────────────────
+    # ---- Theta1/2/3 from p_az/p_alt/p_roll ----------------------------------------------
     if None not in (p_az, p_alt, p_roll):
         t1, t2, t3 = azaltroll_to_theta(p_az, p_alt, p_roll)
         row.update({
@@ -814,7 +814,7 @@ def process_fits(fits_path):
             'theta3': f(t3),
         })
 
-    # ── Check solve status ────────────────────────────────────────────────
+    # ---- Check solve status -------------------------------------------------------------------------
     solved_flag = h.get('PLTSOLVD', False)
     is_solved = (solved_flag is True or str(solved_flag).strip().upper() == 'T')
 
@@ -822,7 +822,7 @@ def process_fits(fits_path):
         row['status'] = 'unsolved'
         return row, 'unsolved'
 
-    # ── ASTAP solved values ───────────────────────────────────────────────
+    # ---- ASTAP solved values --------------------------------------------------------------------------
     solved_ra  = safe_float(h, 'CRVAL1')
     solved_dec = safe_float(h, 'CRVAL2')
     crota2     = safe_float(h, 'CROTA2')
@@ -984,7 +984,7 @@ def apply_quest_correction(row, alignQ):
         pass
 
 
-# ── Model fitting helpers ─────────────────────────────────────────────────────
+# ---- Model fitting helpers -----------------------------------------------------------
 
 def _r2(y, y_pred):
     ss_res = np.sum((y - y_pred) ** 2)
@@ -1086,7 +1086,7 @@ def _normality(p_sw):
     return f"p={p_sw:.4f} {'✓ normal' if p_sw > 0.05 else '(non-normal — use results cautiously)'}"
 
 
-# ── RBC model fitting ─────────────────────────────────────────────────────────
+# ---- RBC model fitting --------------------------------------------------------------------
 
 def fit_models(csv_path):
     """
@@ -1115,7 +1115,7 @@ def fit_models(csv_path):
         print("       Run: pip install numpy scipy")
         return None, None, None
 
-    # ── Load rows ─────────────────────────────────────────────────────────
+    # ---- Load rows --------------------------------------------------------------------
     rows = []
     has_pa_fields = False
     with open(csv_path, newline='') as f:
@@ -1182,7 +1182,7 @@ def fit_models(csv_path):
         f = _fit_sincos(az_rad, y)
         polar_fits[label] = f
         t_crit = sp_stats.t.ppf(0.975, df=max(n - 3, 1))
-        print(f"  ── {label} ({desc})")
+        print(f"  ---- {label} ({desc})")
         amp_str = _conf_str(f['amp'], f['amp_err'], t_crit, "'")
         off_str = _conf_str(f['C'],   f['perr'][2], t_crit, "'")
         print(f"     Amplitude : {amp_str}")
@@ -1216,8 +1216,8 @@ def fit_models(csv_path):
         print(W)
         print()
 
-        # ── M2 axis tilt → pa_dev_theta2 ──────────────────────────────
-        print("  ── B1: M2 axis tilt  (pa_dev_theta2 = theta_model_a · sin(theta2 − theta_model_b))")
+        # ---- M2 axis tilt -> pa_dev_theta2 -------------------------------------------------
+        print("  ---- B1: M2 dependent altitude residual  (pa_dev_theta2 = theta_model_a · sin(theta2 − theta_model_b))")
         print()
         print("     Mechanical meaning: M2 rotation axis is not perfectly horizontal.")
         print("     As theta2 increases, the camera altitude deviates sinusoidally.")
@@ -1241,9 +1241,9 @@ def fit_models(csv_path):
         except Exception as e:
             print(f"     FIT FAILED: {e}")
 
-        # ── M2 axis tilt → pa_dev_roll coupling ───────────────────────
+        # ---- M2 axis tilt -> pa_dev_roll coupling --------------------------------------
         print()
-        print("  ── B2: Roll residual vs altitude  (pa_dev_roll = theta_model_c · cos(theta2 − theta_model_d))  [diagnostic]")
+        print("  ---- B2: M2 dependant roll residual  (pa_dev_roll = theta_model_c · cos(theta2 − theta_model_d))")
         print()
         print("     Note: M2 correction rotates around camera LEFT (+Y), which is")
         print("     perpendicular to the boresight (-Z), so it produces exactly zero")
@@ -1332,9 +1332,9 @@ def fit_models(csv_path):
         except Exception as e:
             print(f"     FIT FAILED: {e}")
 
-        # ── M3 encoder → pa_dev_theta3 ────────────────────────────────
+        # ---- M3 encoder -> pa_dev_theta3 -------------------------------------------------
         print()
-        print("  ── B3: M3 encoder scale error  (pa_dev_theta3 = theta_model_e · theta3)")
+        print("  ---- B3: M3 encoder scale error  (pa_dev_theta3 = theta_model_e · theta3)")
         print()
         print(f"     theta_model_e  = M3 encoder scale error (arcmin per degree of theta3)")
         print(f"     theta3 range in this dataset: {t3.min():.1f}° to {t3.max():.1f}°"
@@ -1368,9 +1368,9 @@ def fit_models(csv_path):
             print(f"     R²={r2_m3:.4f}  RMSE={rmse3:.2f}'  t={t_stat:.1f}  {_significance(p_k)}")
             print(f"     Corr(theta2, residuals) = {r_t2r:.4f}  (want ≈0)")
 
-        # ── pa_dev_theta1 ──────────────────────────────────────────────
+        # ---- pa_dev_theta1 --------------------------------------------------------------------------
         print()
-        print("  ── B4: pa_dev_theta1 structure (diagnostic only — no config constant)")
+        print("  ---- B4: pa_dev_theta1 structure (diagnostic only — no config constant)")
         print()
         print("     pa_dev_theta1 is the residual azimuth error in motor space.")
         print("     At theta3≈0 it has two components:")
@@ -1397,11 +1397,11 @@ def fit_models(csv_path):
         print(f"       R²={r2_cot:.4f}  RMSE={np.sqrt(ss_r_cot/n):.2f}'")
         print(f"     Corr(theta3, pa_dev_t1) = {corr_t3:+.4f}")
         if abs(corr_t3) > 0.5:
-            print(f"     → Strong theta3 correlation: M3 encoder error is visible in az.")
+            print(f"     -> Strong theta3 correlation: M3 encoder error is visible in az.")
         else:
-            print(f"     → Weak theta3 correlation: consistent with near-zero theta3 dataset.")
+            print(f"     -> Weak theta3 correlation: consistent with near-zero theta3 dataset.")
 
-        # ── Section B fitted coefficients summary ──────────────────────
+        # ---- Section B fitted coefficients summary --------------------------------------
         print()
         print("  " + "─" * 62)
         print("  Fitted coefficients — Section B  (copy into driver config.toml)")
@@ -1437,8 +1437,10 @@ def fit_models(csv_path):
 
         # ── Section A non-normality explanation ───────────────────────
         # ── Section A non-normality explanation ───────────────────────
+
+        # ---- Section A non-normality explanation -------------------------------------
         print()
-        print("  ── Note on non-normal residuals (Sections A and B)")
+        print("  ---- Note on non-normal residuals (Sections A and B)")
         print()
         print("     All channels show non-normal residuals (Shapiro-Wilk p<0.05).")
         print("     Cause: the M2 axis tilt creates an altitude-dependent error that")
@@ -1512,11 +1514,11 @@ def fit_models(csv_path):
     print(f"  az_error = {rbc_model_c:.4f} · roll_error")
     print(f"  R²={r2_az_c:.4f}  RMSE={rmse_az_c:.1f}'")
     print()
-    print(f"  Validation: corr(p_roll, residual) {corr_before:+.4f} → {corr_after:+.4f}")
-    print(f"  Roll std reduction: {d_roll_residual.std():.1f}' → {d_roll_final.std():.1f}'  "
+    print(f"  Validation: corr(p_roll, residual) {corr_before:+.4f} -> {corr_after:+.4f}")
+    print(f"  Roll std reduction: {d_roll_residual.std():.1f}' -> {d_roll_final.std():.1f}'  "
           f"({pct_improve:.1f}% improvement)")
     print()
-    print("  ── Fitted coefficients (copy into driver Config) ───────────")
+    print("  ---- Fitted coefficients (copy into driver Config) -------------------")
     print(f"     rbc_model_a = {rbc_model_a:.4f}")
     print(f"     rbc_model_b = {rbc_model_b:.4f}")
     print(f"     rbc_model_c = {rbc_model_c:.4f}")
@@ -1536,14 +1538,14 @@ def fit_models(csv_path):
             print(f"  1. M2 axis tilt  [Section B1]  amplitude={amp_m2_val:.1f}'  zero={zero_m2_val:.1f}°")
             print(f"     Apply in driver: apply_mechanical_corrections(q,")
             print(f"         m2_tilt_arcmin={amp_m2_val:.1f}, m2_tilt_zero_deg={zero_m2_val:.1f}, m3_encoder_k=0.0)")
-            print(f"     Expected QUEST residual improvement: ~{amp_m2_val/2:.0f}' → <10'")
+            print(f"     Expected QUEST residual improvement: ~{amp_m2_val/2:.0f}' -> <10'")
         except NameError:
             print("  1. M2 axis tilt  [Section B1]  — fit failed, check data")
         print()
         print(f"  2. M3 encoder scale  [Section B3]")
         if t3_range < 30.0:
             print(f"     ✗ Cannot calibrate — theta3 span only {t3_range:.1f}°")
-            print(f"     → Capture ~5 images each at p_roll = −60°, −30°, 0°, +30°, +60°")
+            print(f"     -> Capture ~5 images each at p_roll = −60°, −30°, 0°, +30°, +60°")
             print(f"       at a fixed az/alt with good sky coverage, then re-run -model.")
         else:
             try:
@@ -1568,7 +1570,7 @@ def fit_models(csv_path):
     return rbc_model_a, rbc_model_b, rbc_model_c
 
 
-# ── Main processing ───────────────────────────────────────────────────────────
+# ---- Main processing ----------------------------------------------------------------------
 
 def process_directory(fits_dir, output_csv):
     fits_dir   = Path(fits_dir)
@@ -1589,7 +1591,7 @@ def process_directory(fits_dir, output_csv):
           f"Found {len(fits_files)} FITS files")
     print()
 
-    # ── Pass 1: read every FITS file ──────────────────────────────────────
+    # ---- Pass 1: read every FITS file ------------------------------------------------------------------
     rows = []
     status_counts = Counter()
     solved_for_pa_model = []
@@ -1646,7 +1648,7 @@ def process_directory(fits_dir, output_csv):
     alignQ = None
 
     if HAS_POINTING_MODEL and HAS_QUATERNION and solved_for_pa_model:
-        print("── QUEST alignment (rigid body frame fit) ────────────────────────────")
+        print("--- QUEST alignment (rigid body frame fit) ----------------------------------")
         try:
             alignQ = _quest_solve(solved_for_pa_model)
             # Report the equivalent AW/AN (az-axis tilt) for diagnostics
@@ -1681,13 +1683,13 @@ def process_directory(fits_dir, output_csv):
     _SCRATCH_KEYS = {'_solved_az', '_solved_alt', '_solved_roll', '_p_az', '_p_alt', '_p_roll'}
     clean_rows = [{k: v for k, v in r.items() if k not in _SCRATCH_KEYS} for r in rows]
 
-    # ── Write CSV ─────────────────────────────────────────────────────────
+    # ---- Write CSV --------------------------------------------------------------------
     try:
         with open(output_csv, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=_ALL_FIELDS, extrasaction='ignore')
             writer.writeheader()
             writer.writerows(clean_rows)
-        print(f"Wrote {len(clean_rows)} rows → {output_csv}")
+        print(f"Wrote {len(clean_rows)} rows -> {output_csv}")
     except PermissionError:
         alt_csv = output_csv.with_stem(output_csv.stem + '_1')
         print(f"ERROR: Permission denied on {output_csv}. Trying: {alt_csv}")
@@ -1696,19 +1698,19 @@ def process_directory(fits_dir, output_csv):
                 writer = csv.DictWriter(f, fieldnames=_ALL_FIELDS, extrasaction='ignore')
                 writer.writeheader()
                 writer.writerows(clean_rows)
-            print(f"Wrote {len(clean_rows)} rows → {alt_csv}")
+            print(f"Wrote {len(clean_rows)} rows -> {alt_csv}")
             output_csv = alt_csv
         except PermissionError as e:
             print(f"ERROR: Could not write to {alt_csv} either: {e}")
             return
 
-    # ── Status summary ────────────────────────────────────────────────────
+    # ---- Status summary -----------------------------------------------------------
     print()
-    print(f"── Status summary ──────────────────────────────────────────────────")
+    print(f"---- Status summary ---------------------------------------------------------------------------------------")
     for status, count in sorted(status_counts.items()):
         print(f"  {status:<22s}: {count}")
 
-    # ── Statistics for solved files ───────────────────────────────────────
+    # ---- Statistics for solved files --------------------------------------------------------------------
     solved_rows = [r for r in clean_rows if r['status'] == 'solved']
     if solved_rows:
         def stats(vals):
@@ -1722,17 +1724,17 @@ def process_directory(fits_dir, output_csv):
                     f"max={np.max(arr):+6.1f}")
 
         print()
-        print(f"── Solved file statistics (arc-minutes) ────────────────────────────")
-        print(f"  Raw deviations:")
+        print(f"---- Solved file statistics -------------------------------------------------")
+        print(f"  Residuals raw deviations in arc-min:      dev_* = solved_* - p_* ")
         print(f"    Roll:       {stats([r['dev_roll_arcmin'] for r in solved_rows])}")
         print(f"    Az:         {stats([r['dev_az_arcmin']   for r in solved_rows])}")
         print(f"    Alt:        {stats([r['dev_alt_arcmin']  for r in solved_rows])}")
         if alignQ is not None:
-            print(f"  QUEST residuals, solved_* − pa_* (pa_dev_*):")
+            print(f"  QUEST residuals, solved_* - pa_* (pa_dev_*):")
             print(f"    Roll:       {stats([r['pa_dev_roll_arcmin'] for r in solved_rows])}")
             print(f"    Az:         {stats([r['pa_dev_az_arcmin']   for r in solved_rows])}")
             print(f"    Alt:        {stats([r['pa_dev_alt_arcmin']  for r in solved_rows])}")
-            print(f"  Motor-space residuals, solved_theta − pa_theta (pa_dev_theta*):")
+            print(f"  Motor-space residuals, solved_theta - pa_theta (pa_dev_theta*):")
             print(f"    Theta1:     {stats([r['pa_dev_theta1_arcmin'] for r in solved_rows])}")
             print(f"    Theta2:     {stats([r['pa_dev_theta2_arcmin'] for r in solved_rows])}")
             print(f"    Theta3:     {stats([r['pa_dev_theta3_arcmin'] for r in solved_rows])}")
@@ -1742,13 +1744,16 @@ def process_directory(fits_dir, output_csv):
         p_rolls = [float(r['p_roll'])  for r in solved_rows if r['p_roll']  != '']
         t3s     = [float(r['theta3'])  for r in solved_rows if r['theta3']  != '']
         print()
-        if p_azs:   print(f"  p_az   (°): {min(p_azs):.1f} → {max(p_azs):.1f}")
-        if p_alts:  print(f"  p_alt  (°): {min(p_alts):.1f} → {max(p_alts):.1f}")
-        if p_rolls: print(f"  p_roll (°): {min(p_rolls):.1f} → {max(p_rolls):.1f}")
-        if t3s:     print(f"  theta3 (°): {min(t3s):.1f} → {max(t3s):.1f}")
+        print(f"  Range of data: (degrees) ")
+        if p_azs:   print(f"    p_az  : {min(p_azs):.1f} -> {max(p_azs):.1f}")
+        if p_alts:  print(f"    p_alt : {min(p_alts):.1f} -> {max(p_alts):.1f}")
+        if p_rolls: print(f"    p_roll: {min(p_rolls):.1f} -> {max(p_rolls):.1f}")
+        if t3s:     print(f"    theta3: {min(t3s):.1f} -> {max(t3s):.1f}")
+
+        print()
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# ---- Entry point ------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     import argparse

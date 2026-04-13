@@ -1508,7 +1508,7 @@ class unpark:
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([
-            "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:AbortSlew", "Polaris:TrackOrbital", 
+            "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:AbortSlew", "Polaris:RotateRelative", "Polaris:TrackOrbital", 
             "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
             "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:StatusFetch", 
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
@@ -1606,6 +1606,16 @@ class action:
             logger.info(f'Polaris:AbortSlew {parameters}')
             asyncio.create_task(polaris.AbortSlew()) 
             resp.text = await PropertyResponse('Polaris:AbortSlew ok', req)  
+            return
+
+        elif actionName == "Polaris:RotateRelative":
+            logger.info(f'Polaris:RotateRelative {parameters}')
+            roll = parameters.get('roll', 0)
+            isasync = parameters.get('isasync', False)
+            polaris.RotateToRelativeRollAngle(roll) 
+            if not isasync:
+                await polaris._rotate_complete_event.wait()
+            resp.text = await PropertyResponse('Polaris:RotateRelative ok', req)  
             return
 
         elif actionName == "Polaris:MoveMotor":

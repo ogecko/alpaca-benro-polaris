@@ -57,6 +57,7 @@
 - **[Guiding Accuracy]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
 - **[Guiding Integral]**: Reduce pulse-guiding overshoot by temporarily suspending integration of the error term during active guiding.
 - **[Abort Slew]** Add Polaris:AbortSlew Device Action for Nina Advanced Scheduler. Stops all axis motion, turns off tracking, unparks the mount.
+- **[Rotate Relative]** Add Polaris:RotateRelative Device Action for Nina Advanced Scheduler. Adjusts the roll angle by a specified relative offset.
 - **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.
 - **[Pano Recenter]** Add btn on the Dashboard to save the current pointing orientation into the PanoGrid, recentering it in space.
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
