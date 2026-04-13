@@ -17,6 +17,10 @@ catalog.json
 config.*.json
 *_extract.csv
 *_extract.txt
+*_model.txt
+*_model.json
+*_validate.txt
+*_validate.csv
 *.log
 *.log.*
 alpaca*.csv
