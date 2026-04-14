@@ -12,6 +12,7 @@
 - [X] RBC Rotation Based Correction to fix M3 bias effecting Az and Roll (based on plate-solve test)
 - [X] Refactor Kinematics page in Pilot
 - [X] Complete Kinematics page motor output, sp highlighting, settings disabling
+- [ ] Kinematics Page Delta_sp Position Angle needs 0-360 wrapping (currently -180 to 180), delta_ref & delta_pv ok
 - [ ] Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates
 - [ ] Explore how to reduce sidereal tracking drift and reduce residuals - eg TPoint Model, PEC, Polar Align Adj, verify with cross validation
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
