@@ -2073,16 +2073,17 @@ class SyncManager:
 
     def set_alignQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
+        self.last_sync_time = None              # timestamp used to fade LGA to zero as time passes
+        self.corrQ_LGA = None                   # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
+        self.scc_error = 0                      # cache of Slew & Center Correction error magnitude, either LGA or ZRC (for Kinematics page)
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
-        self.corrQ_LGA = None                   # cach of Local Guassian Correction stored in forward Kinematics path
-        self.alignQ_B2T = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
-        self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # optimised adjustment quaternion for azalt syncing, initially identity
+        self.alignQ_B2T = Quaternion(1,0,0,0)       # cached adjustment quaternion for azalt syncing, initially identity
+        self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # cached inverse adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_message = ""                # message from last optimisation
         self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)     
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
-        self.scc_error = 0                      # Local Guassian Correction Error
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncDataReset()
 
@@ -2237,6 +2238,7 @@ class SyncManager:
         entry["a_az"] = a_az
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
+        self.last_sync_time = time.monotonic()
         self.optimize_alignQ_B2T()
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncData()
@@ -2419,13 +2421,27 @@ class SyncManager:
         return az_err, alt_err, v_pred_rot, v_obs
     
 
-    def get_local_guassian_adjustment_q(self, cameraQ_C2T, sigma_deg=15.0):
+    def get_local_guassian_adjustment_q(self, cameraQ_C2T, sigma_deg=15.0, sigma_sec=3*60):
         """
-        Returns a spatially-weighted correction quaternion (and error in degrees) based on the last sync
-        point residual. The correction fades to identity with a Gaussian as angular
-        distance from the last sync point increases.
-        Returns None if no valid sync, residual is negligible, or weight is too small.
+        Returns a spatially and temporally weighted correction quaternion based on the
+        last sync point residual.
+        Spatial:  Gaussian over angular distance from last sync point (sigma_deg).
+        Temporal: Gaussian over time since last sync (sigma_sec).
+                LGA fades to identity after a slew-and-centre completes so that
+                sidereal tracking is not continuously nudged by a stale correction.
+
+        Returns (None, 0) if no valid sync, weight too small, or correction negligible.
         """
+        # ---- Temporal fade --------------------------------------------------
+        if self.last_sync_time is None:
+            return (None, 0)
+        
+        dt = time.monotonic() - self.last_sync_time
+        temporal_weight = math.exp(-(dt ** 2) / (2 * sigma_sec ** 2))
+        if temporal_weight < 1e-3:                   # effectively zero after ~3 sigma
+            return (None, 0)
+        
+        # ---- Spatial Gaussian -----------------------------------------------
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
         if v_pred_rot is None:
             return (None,0)
@@ -2436,8 +2452,8 @@ class SyncManager:
 
         # Gaussian weight: 1.0 at sync point, fades toward 0 beyond sigma_deg
         sigma_rad = math.radians(sigma_deg)
-        weight = math.exp(-(angular_dist_rad ** 2) / (2 * sigma_rad ** 2))
-        if weight < 1e-4:
+        spatial_weight = math.exp(-(angular_dist_rad ** 2) / (2 * sigma_rad ** 2))
+        if spatial_weight < 1e-4:
             return (None,0)
 
         # Build the full residual correction quaternion (v_pred_rot → v_obs)
@@ -2447,10 +2463,10 @@ class SyncManager:
             return (None,0)
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
-
-        # Slerp between identity and full correction by weight, then invert for
-        # inverse kinematics (we want to pre-compensate the input, not post-rotate)
         q_full = Quaternion(axis=axis, angle=angle)
+
+        # Slerp between identity and full correction by weight
+        weight = spatial_weight * temporal_weight
         q_weighted = Quaternion.slerp(Quaternion(1, 0, 0, 0), q_full, amount=weight)
         scc_error = np.degrees(-angle*weight)
         return (q_weighted, scc_error)
