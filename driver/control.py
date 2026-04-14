@@ -588,18 +588,18 @@ def apply_mechanical_corrections(q):
     B5 — M3 axis tilt -> altitude (theta_model_f)  [DOMINANT]
       Physical cause: M3 rotation axis is not exactly camera UP.
       Rotating M3 sweeps the boresight vertically.
-      Fitted error: dev_theta2 = (f/60) * theta3
+      Fitted error: dev_theta2_arcmin = f * theta3
       Correction:   rotate around M2 axis (altitude axis) by -(f/60)*theta3 degrees.
 
 
     B1 — M2 axis tilt -> altitude (theta_model_a, theta_model_b)
       Physical cause: M2 rotation axis not perpendicular to M1.
-      Fitted error: dev_theta2 = a * sin(theta2 - b)
+      Fitted error: dev_theta2_arcmin = a * sin(theta2 - b)
       Correction: rotate around M2 axis by -(a/60)*sin(theta2 - b) degrees.
 
     B3 — M3 encoder scale error (theta_model_e)
       Physical cause: M3 encoder reads more/less rotation than occurred.
-      Fitted error: dev_theta3 = (e/60) * theta3
+      Fitted error: dev_theta3_arcmin = e * theta3
       Correction: rotate around M3 axis by (e/60)*theta3 degrees.
 
     B2 (theta_model_c/d) is NOT applied here — it is diagnostic only.
