@@ -58,7 +58,7 @@ advanced_guiding = true                     # Enable the ASCOM Alpaca Pulse guid
 advanced_alignment = false                  # Enable Multi-Point Alignment/Quest model vs Single Point Alignment/Polaris model
 advanced_slew_center = true                 # Enable corrections to reduce the number of Slew & Center cycles ie enable LZC or LGA 
 advanced_align_lga = true                   # False=Zero Last Residual, True=Local Gausian Adjustment; only when advanced_slew_ceeter is enabled
-advanced_align_rbc = true                   # Enable Rotation Bias Correction model adjustment, corrects systemic p_roll encoding error that affects az and roll pointing
+advanced_align_rbc = false                  # Enable Rotation Bias Correction model adjustment, corrects systemic p_roll encoding error that affects az and roll pointing
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 advanced_pec = true                         # Perform Predictive Error Correction, not yet implemented
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.003981071705534973 ]
@@ -84,12 +84,16 @@ guide_rate_dec = 1.0                        # Declination guide rate multiple of
 rbc_model_a = 0.9742                        # Rotation Bias Model:  roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
 rbc_model_b = 0.2509                        # Rotation Bias Model:  roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
 rbc_model_c = -1.0102                       # Rotation Bias Model:  az_error (arcmin) = rbc_model_c · roll_error
-theta_model_a = 52.182                      # M2/theta2 Bias Model: pa_dev_theta2 (arcmin) = theta_model_a · sin(theta2 − theta_model_b)   from fits_extract -model B1
-theta_model_b = 36.391                      # M2/theta2 Bias Model: pa_dev_theta2 (arcmin) = theta_model_a · sin(theta2 − theta_model_b)   from fits_extract -model B1
-theta_model_c = 150.5062                    # M2/roll Bias Model:   pa_dev_roll (arcmin) = theta_model_c · cos(theta2 − theta_model_d)     from fits_extract -model B2
-theta_model_d = -52.3479                    # M2/roll Bias Model:   pa_dev_roll (arcmin) = theta_model_c · cos(theta2 − theta_model_d)     from fits_extract -model B2
-theta_model_e = 0.7678                      # M3/theta3 Bias Model  pa_dev_theta3 (arcmin/deg) = theta_model_e · theta3                    from fits_extract -model B3
-
+theta_model_a = 0.0     # B1 M2-tilt amplitude (arcmin) -- ZEROED pending clean refit after B5 live
+                        #   Fitted error: dev_theta2 = a * sin(theta2 - b)
+                        #   Correction:   -(a/60) * sin(theta2 - b)         degrees rotation around M2 axis
+theta_model_b = 0.0     # B1 M2-tilt zero crossing (degrees theta2) -- see above
+theta_model_e = 0.0     # B3 M3-encoder scale (arcmin/deg) -- ZEROED, unreliable (SPA roll bias contamination)
+                        #   Fitted error: dev_theta3 = e * theta3
+                        #   Correction:   (e/60) * theta3                   degrees rotation around M3 axis
+theta_model_f = -2.087  # B5 M3-axis-tilt (arcmin/deg theta3) -- DOMINANT ERROR
+                        #   Fitted error: dev_theta2 = f * theta3
+                        #   Correction:   -(f/60) * theta3                  degrees rotation around M2 axis
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.
