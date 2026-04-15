@@ -91,9 +91,14 @@ theta_model_b = 0.0     # B1 M2-tilt zero crossing (degrees theta2) -- see above
 theta_model_e = 0.0     # B3 M3-encoder scale (arcmin/deg) -- ZEROED, unreliable (SPA roll bias contamination)
                         #   Fitted error: dev_theta3 = e * theta3
                         #   Correction:   (e/60) * theta3                   degrees rotation around M3 axis
-theta_model_f = -2.087  # B5 M3-axis-tilt (arcmin/deg theta3) -- DOMINANT ERROR
-                        #   Fitted error: dev_theta2 = f * theta3
-                        #   Correction:   -(f/60) * theta3                  degrees rotation around M2 axis
+theta_model_f = -2.708  # B5 altitude component (arcmin/deg)
+                        #   Fitted error: dev_theta2 [arcmin] = f * cos(theta2) * theta3
+                        #   Correction:   -(f/60) * cos(theta2) * theta3  deg around M2 axis
+
+theta_model_g = 2.220   # B5 azimuth component (arcmin/deg) -- NEW
+                        #   Fitted error: dev_theta1 [arcmin] = g * sin(theta2) * theta3
+                        #   Correction:   +(g/60) * sin(theta2) * theta3  deg around M1 axis
+
 
 [device]
 tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.
