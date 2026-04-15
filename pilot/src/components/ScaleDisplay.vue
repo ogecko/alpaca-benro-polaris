@@ -45,9 +45,11 @@
           <div class="row text-positive text-h6 items-center q-gutter-xs  no-wrap text-weight-light">
             <div v-if="showButtons">
               <MoveFab v-if="props.label=='Roll'" icon="mdi-format-align-middle" >
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: -60})">-60°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: -30})">-30°</q-fab-action>
                 <q-fab-action color="positive" @click="onClickFabAngle({roll: 0})" >0°</q-fab-action>
-                <q-fab-action color="positive" @click="onClickFabAngle({roll: -70})">-70°</q-fab-action>
-                <q-fab-action color="positive" @click="onClickFabAngle({roll: +70})">+70°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: +30})">+30°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: +60})">+60°</q-fab-action>
               </MoveFab>
               <MoveFab v-if="props.label=='Altitude'" icon="mdi-angle-acute" >
                 <q-fab-action color="positive" @click="onClickFabAngle({alt: 0})" >0°</q-fab-action>
