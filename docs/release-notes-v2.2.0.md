@@ -51,7 +51,7 @@
 - **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations
 - **[Forward Kinematics]** Improve forward kinematic robustness, deriving motor angles from CameraUp vector rather than theta3
 - **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing, hysteresis to reduce uncertainty, and add status icon to Pilot.
-- **[Negative Azimuth]** Support Goto Altitude below -8°, now accessable with improved inverse kinematics solution selection, when M3 is not zero
+- **[Negative Azimuth]** Goto's now support altitudes down to -79° by flipping the astro axis in the opposite direction. Previously limited to -8°.
 - **[Roll Angle Tracking]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.
 - **[Orbital Tracking]** Enhance orbital tracking by adding feed forward, expanding integration, and maintaining a fixed roll angle
 - **[Guiding Accuracy]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
