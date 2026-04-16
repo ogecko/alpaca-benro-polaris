@@ -6,28 +6,40 @@ fits_extract.py - Calibration utility for the Alpaca Benro Polaris Driver.
 
 Pipeline
 --------
-  -extract    FITS files -> fits_extract.csv  (run once per session, then archive FITS)
-  -model      CSV(s) -> fit theta model + per-session QUEST -> fits_params.json
-  -validate   CSV(s) + fits_params.json -> fits_predict.csv
+  -extract    FITS files -> CSV  (run once per session, then archive FITS)
+  -model      CSV(s) -> fit mechanical corrections + QUEST -> {prefix}model.json
+  -validate   CSV(s) + {prefix}model.json -> {prefix}validate.csv + summary
 
-Workflow
---------
-  1. Capture calibration images in NINA across az/alt/roll grid.
-  2. Plate-solve with ASTAP (writes WCS back into FITS headers).
-  3. Run -extract to produce a permanent CSV of raw observations.
-  4. Run -model to fit the pointing model. Inspect residuals.
-     Re-run -model to refine (reads fits_params.json as initial guess).
-  5. Run -validate on held-out data to get honest out-of-sample errors.
-     Inspect fits_predict.csv in Excel/Python to analyse each correction.
+Recommended workflow
+--------------------
+  1. Disable ALL mechanical corrections in the driver config: QUEST off, RBC off, LGA off, PEC off
+  2. Capture a full calibration grid in NINA using a 12 x 4 PanoGrid, 30 hstep, 10 vstep, starting panel 1 at az 30, alt 25, roll 0
+  3. Repeat capture for roll -45 and roll +45
+  4. Plate-solve with ASTAP (writes WCS back into FITS headers).
+  5. Run -extract to produce a permanent CSV of raw observations.
+  6. Run -model to fit all parameters. Inspect the Results Summary.
+  7. Run -validate -sync 6 to confirm out-of-sample improvement.
+  8. Copy the fitted parameters to config.toml.
+
+The same CSV works forever. Corrections are applied inside -model as fit
+variables, so you can try different models without recapturing data.
 
 CSV field naming
 ----------------
-  p_*      Polaris raw prediction (what the driver commanded)
+  p_*      Polaris raw prediction (derived from qC2B_raw, includes SPA)
   s_*      Solved truth  (plate-solve result)
-  m_*      Model prediction  (theta corrections + QUEST)
-  dev_p_*  Raw deviation  = solved - polaris  (arcmin)
-  dev_m_*  Model residual = solved - model    (arcmin)
+  m_*      Model prediction  (corrections + QUEST applied)
+  dev_p_*  Raw deviation    = solved - polaris  (arcmin)
+  dev_m_*  Model deviations = solved - model    (arcmin)
 
+Note on SPA
+-----------
+  The Polaris firmware performs a Single Point Alignment (SPA) before use. 
+  This bakes the firmware's full initial alignment (not just a rotator offset) 
+  into qC2B_raw, which is the source of all p_* values. 
+  QUEST corrects any residual frame tilt per session on top of SPA.
+
+All output uses ASCII only so stdout can be redirected to a text file.
 
 Dependencies
 ------------
@@ -67,10 +79,34 @@ except ImportError:
 
 try:
     import pointing_model as _pm
+    from pointing_model import (
+        wrap_to_180 as wrap180,   # wrap_to_180 is the canonical name
+        wrap_to_360 as wrap360,
+        wrap_to_90  as wrap90,
+        rotator_to_p_roll,
+        calc_parallactic_angle,
+        radec_to_altaz,
+        azaltroll_to_q   as _azaltroll_to_q,
+        q_to_theta       as _q_to_theta_pm,
+        azaltroll_to_theta,
+        crota2_from_cd,
+        crota2_to_roll,
+    )
     HAS_PM = True
 except ImportError:
     HAS_PM = False
     print("WARNING: pointing_model.py not found.")
+    # Minimal stubs so the rest of the file can be imported without pm
+    def wrap180(a):    return (a + 180.0) % 360.0 - 180.0
+    def wrap360(a):
+        w = a % 360.0; return 0.0 if abs(w - 360) < 1e-10 else w
+    def wrap90(a):     return (a + 90.0) % 180.0 - 90.0
+    def rotator_to_p_roll(r): return wrap180(r)
+    def calc_parallactic_angle(az, alt, lat): return 0.0
+    def radec_to_altaz(*a, **kw): return None, None
+    def azaltroll_to_theta(*a): return None, None, None
+    def _azaltroll_to_q(*a): return None
+    def _q_to_theta_pm(*a): return None, None, None
 
 try:
     import ephem
@@ -105,121 +141,8 @@ print = _print
 
 DEFAULT_LAT    = -33.86
 DEFAULT_LON    = 151.12
-ROTATOR_OFFSET = 0.0
 
 
-# ---- Angle helpers -------------------------------------------------------
-
-def wrap180(a):
-    return (a + 180.0) % 360.0 - 180.0
-
-def wrap360(a):
-    w = a % 360.0
-    return 0.0 if abs(w - 360) < 1e-10 else w
-
-def wrap90(a):
-    return (a + 90.0) % 180.0 - 90.0
-
-def rotator_to_p_roll(rotator_deg):
-    return wrap180(rotator_deg - ROTATOR_OFFSET)
-
-def calc_parallactic_angle(az_deg, alt_deg, lat_deg):
-    if abs(alt_deg - 90.0) < 1e-6:
-        return 0.0
-    az  = math.radians(az_deg)
-    alt = math.radians(alt_deg)
-    lat = math.radians(lat_deg)
-    return wrap180(-math.degrees(math.atan2(
-        math.sin(az),
-        math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az))))
-
-def radec_to_altaz(ra_deg, dec_deg, lat_deg, lon_deg, date_obs_utc):
-    if not HAS_EPHEM:
-        return None, None
-    try:
-        obs = ephem.Observer()
-        obs.lat   = math.radians(lat_deg)
-        obs.long  = math.radians(lon_deg)
-        obs.date  = ephem.Date(date_obs_utc.split('.')[0].replace('T', ' '))
-        obs.epoch = ephem.J2000
-        body = ephem.FixedBody()
-        body._ra    = math.radians(ra_deg)
-        body._dec   = math.radians(dec_deg)
-        body._epoch = ephem.J2000
-        body.compute(obs)
-        return math.degrees(float(body.az)), math.degrees(float(body.alt))
-    except Exception:
-        return None, None
-
-def crota2_from_cd(cd1_2, cd2_2):
-    if abs(cd1_2) < 1e-15 and abs(cd2_2) < 1e-15:
-        return None
-    return wrap180(math.degrees(math.atan2(-cd1_2, cd2_2)))
-
-def crota2_to_roll(crota2_deg, az_deg, alt_deg, lat_deg):
-    para           = calc_parallactic_angle(az_deg, alt_deg, lat_deg)
-    position_angle = wrap360(180.0 - crota2_deg)
-    return wrap180(position_angle - para), para
-
-
-# ---- Driver-matching IK --------------------------------------------------
-
-def _azaltroll_to_q(az, alt, roll):
-    qaz   = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
-    qalt  = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
-    qroll = Quaternion(axis=[0, 0, 1], degrees=roll)
-    q1    = qaz * qalt * qroll
-    return -(q1.normalised) if roll < 0 else q1.normalised
-
-def _q_to_theta(q):
-    """Driver-matching IK. Returns (theta1, theta2, theta3)."""
-    tUp    = q.rotate(np.array([1, 0, 0]))
-    tRight = q.rotate(np.array([0, 1, 0]))
-    th1A   = wrap360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
-    t1rA   = np.radians(th1A)
-    s2A    = -(tUp[0] * np.sin(t1rA) + tUp[1] * np.cos(t1rA))
-    th2A   = wrap90(np.degrees(np.arctan2(s2A, tUp[2])))
-    th1B   = wrap360(th1A + 180)
-    th2B   = -th2A
-    lo, hi = -8, 83
-    okA    = lo <= th2A <= hi
-    okB    = lo <= th2B <= hi
-
-    def t3_from(t1, t2):
-        qt1 = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
-        qt2 = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
-        rNM = (qt1 * qt2).rotate([0, 1, 0])
-        r1  = rNM    - np.dot(rNM,    tUp) * tUp
-        r2  = tRight - np.dot(tRight, tUp) * tUp
-        n1, n2 = np.linalg.norm(r1), np.linalg.norm(r2)
-        if n1 < 1e-9 or n2 < 1e-9:
-            return 0.0
-        r1n, r2n = r1 / n1, r2 / n2
-        return wrap180(-np.degrees(np.arctan2(
-            np.dot(np.cross(r1n, r2n), tUp),
-            np.clip(np.dot(r1n, r2n), -1, 1))))
-
-    if okA and not okB:
-        return th1A, th2A, t3_from(th1A, th2A)
-    if okB and not okA:
-        return th1B, th2B, t3_from(th1B, th2B)
-    if okA and okB:
-        t3A = t3_from(th1A, th2A)
-        t3B = t3_from(th1B, th2B)
-        return (th1A, th2A, t3A) if abs(th2A - 45) <= abs(th2B - 45) else (th1B, th2B, t3B)
-    # both out of range - clamp nearest
-    pick = th2A if abs(th2A - 45) <= abs(th2B - 45) else th2B
-    t1p  = th1A if pick == th2A else th1B
-    t2p  = float(np.clip(pick, lo, hi))
-    return t1p, t2p, t3_from(t1p, t2p)
-
-def azaltroll_to_theta(az, alt, roll):
-    if not HAS_NUMPY:
-        return None, None, None
-    try:
-        return _q_to_theta(_azaltroll_to_q(az, alt, roll))
-    except Exception:
-        return None, None, None
 
 
 # ---- CSV schemas ---------------------------------------------------------
@@ -433,25 +356,26 @@ def cmd_extract(fits_dir, output_csv, lat, lon):
             a = np.array(v)
             return (f"mean={np.mean(a):+7.1f}'  std={np.std(a):5.1f}'"
                     f"  min={np.min(a):+7.1f}'  max={np.max(a):+7.1f}'")
-        print()
-        print("---- Raw deviations (arcmin) ----")
-        print(f"  dev_p_az  : {_st([r['dev_p_az']   for r in solved])}")
-        print(f"  dev_p_alt : {_st([r['dev_p_alt']  for r in solved])}")
-        print(f"  dev_p_roll: {_st([r['dev_p_roll'] for r in solved])}")
-        t1s    = [float(r['p_theta1']) for r in solved if r['p_theta1'] != '']
-        t2s    = [float(r['p_theta2']) for r in solved if r['p_theta2'] != '']
-        t3s    = [float(r['p_theta3']) for r in solved if r['p_theta3'] != '']
+
         azs    = [float(r['p_az'])     for r in solved if r['p_az']     != '']
         alts   = [float(r['p_alt'])    for r in solved if r['p_alt']    != '']
         rolls  = [float(r['p_roll'])   for r in solved if r['p_roll']   != '']
+        t1s    = [float(r['p_theta1']) for r in solved if r['p_theta1'] != '']
+        t2s    = [float(r['p_theta2']) for r in solved if r['p_theta2'] != '']
+        t3s    = [float(r['p_theta3']) for r in solved if r['p_theta3'] != '']
         print()
         print("---- Data coverage ----")
-        if t1s:   print(f"  p_theta1 (az)  : {min(t1s):+6.1f} -> {max(t1s):+6.1f} deg | span={max(t1s)-min(t1s):6.1f}")
-        if t2s:   print(f"  p_theta2 (alt) : {min(t2s):+6.1f} -> {max(t2s):+6.1f} deg | span={max(t2s)-min(t2s):6.1f}")
-        if t3s:   print(f"  p_theta3 (roll): {min(t3s):+6.1f} -> {max(t3s):+6.1f} deg | span={max(t3s)-min(t3s):6.1f}")
         if rolls: print(f"  p_az           : {min(azs):+6.1f} -> {max(azs):+6.1f} deg | span={max(azs)-min(azs):6.1f}")
         if rolls: print(f"  p_alt          : {min(alts):+6.1f} -> {max(alts):+6.1f} deg | span={max(alts)-min(alts):6.1f}")
         if rolls: print(f"  p_roll         : {min(rolls):+6.1f} -> {max(rolls):+6.1f} deg | span={max(rolls)-min(rolls):6.1f}")
+        if t1s:   print(f"  p_theta1 (az)  : {min(t1s):+6.1f} -> {max(t1s):+6.1f} deg | span={max(t1s)-min(t1s):6.1f}")
+        if t2s:   print(f"  p_theta2 (alt) : {min(t2s):+6.1f} -> {max(t2s):+6.1f} deg | span={max(t2s)-min(t2s):6.1f}")
+        if t3s:   print(f"  p_theta3 (roll): {min(t3s):+6.1f} -> {max(t3s):+6.1f} deg | span={max(t3s)-min(t3s):6.1f}")
+        print()
+        print("---- Raw deviations from plate-solved solution (arcmin) ----")
+        print(f"  dev_p_az  : {_st([r['dev_p_az']   for r in solved])}")
+        print(f"  dev_p_alt : {_st([r['dev_p_alt']  for r in solved])}")
+        print(f"  dev_p_roll: {_st([r['dev_p_roll'] for r in solved])}")
     print()
 
 
@@ -513,23 +437,24 @@ def _load_csvs(csv_paths):
 
 # ---- QUEST helpers -------------------------------------------------------
 
-def _load_theta_params(params_path):
-    """Load ThetaModelParams from fits_params.json. Returns defaults if absent."""
+def _load_mount_params(params_path):
+    """Load MountModelParams from fits_params.json. Returns defaults if absent."""
     p = Path(params_path)
     if p.exists():
         with open(p) as f:
             saved = json.load(f)
-        tm = saved.get('theta_model', {})
-        return _pm.ThetaModelParams.from_config_values(
-            theta_model_a=tm.get('theta_model_a', 0.0),
-            theta_model_b=tm.get('theta_model_b', 0.0),
-            theta_model_e=tm.get('theta_model_e', 0.0),
-            theta_model_f=tm.get('theta_model_f', 0.0),
+        tm = saved.get('mount_model', saved.get('theta_model', {}))
+        return _pm.MountModelParams(
+            m3_tilt_alt      = tm.get('m3_tilt_alt',      0.0),
+            m3_tilt_az       = tm.get('m3_tilt_az',       0.0),
+            m2_tilt_alt_amp  = tm.get('m2_tilt_alt_amp',  0.0),
+            m2_tilt_alt_zero = tm.get('m2_tilt_alt_zero', 0.0),
+            m3_encoder_scale = tm.get('m3_encoder_scale', 0.0),
         ), saved
-    return _pm.ThetaModelParams(), {}
+    return _pm.MountModelParams(), {}
 
 
-def _build_quest_pairs(rows, theta_params):
+def _build_quest_pairs(rows, mount_params):
     """Build (q_base_corrected, q_solved) pairs for QUEST.
     q_solved uses p_roll (not s_roll) so QUEST absorbs frame tilt only,
     not SPA roll bias."""
@@ -542,21 +467,21 @@ def _build_quest_pairs(rows, theta_params):
         except (ValueError, TypeError):
             continue
         q_base = _pm.theta_to_q(t1, t2, t3)
-        if theta_params is not None:
-            q_base = _pm.apply_theta_corrections(q_base, theta_params)
+        if mount_params is not None:
+            q_base = _pm.apply_mechanical_corrections(q_base, mount_params)
         q_sol = _pm.q_from_azaltroll(s_az, s_alt, p_roll)
         pairs.append((q_base, q_sol))
     return pairs
 
 
-def _fit_alignQ_from_rows(rows, theta_params):
-    pairs = _build_quest_pairs(rows, theta_params)
+def _fit_alignQ_from_rows(rows, mount_params):
+    pairs = _build_quest_pairs(rows, mount_params)
     if len(pairs) < 3:
         return None
     return _pm.quest_solve(pairs)
 
 
-def _predict_row(row, alignQ, theta_params):
+def _predict_row(row, alignQ, mount_params):
     """Return model prediction dict for one row, or None on error."""
     try:
         t1    = float(row['p_theta1']); t2 = float(row['p_theta2']); t3 = float(row['p_theta3'])
@@ -566,13 +491,13 @@ def _predict_row(row, alignQ, theta_params):
         return None
 
     q_base = _pm.theta_to_q(t1, t2, t3)
-    if theta_params is not None:
-        q_base = _pm.apply_theta_corrections(q_base, theta_params)
+    if mount_params is not None:
+        q_base = _pm.apply_mechanical_corrections(q_base, mount_params)
     pa_q = (alignQ * q_base).normalised
 
     m_az, m_alt, m_roll_raw = _pm.q_to_azaltroll(pa_q)
     m_roll = wrap180(m_roll_raw)
-    m_t1, m_t2, m_t3 = _q_to_theta(pa_q)
+    m_t1, m_t2, m_t3 = _pm.q_to_theta(pa_q)
 
     try:
         p_t2 = float(row.get('p_theta2', ''))
@@ -693,15 +618,16 @@ def cmd_model(csv_paths, params_path):
         return
 
     params_path = Path(params_path)
-    theta_params, saved_json = _load_theta_params(params_path)
+    mount_params, saved_json = _load_mount_params(params_path)
 
     if saved_json:
-        tm = saved_json.get('theta_model', {})
+        tm = saved_json.get('mount_model', saved_json.get('theta_model', {}))
         print(f"Loaded initial params from {params_path}:")
-        print(f"  theta_model_f={tm.get('theta_model_f',0):.4f}  "
-              f"theta_model_a={tm.get('theta_model_a',0):.4f}  "
-              f"theta_model_b={tm.get('theta_model_b',0):.4f}  "
-              f"theta_model_e={tm.get('theta_model_e',0):.4f}")
+        print(f"  m3_tilt_alt={tm.get('m3_tilt_alt',0):.4f}  "
+              f"m3_tilt_az={tm.get('m3_tilt_az',0):.4f}  "
+              f"m2_tilt_alt_amp={tm.get('m2_tilt_alt_amp',0):.4f}  "
+              f"m2_tilt_alt_zero={tm.get('m2_tilt_alt_zero',0):.4f}  "
+              f"m3_encoder_scale={tm.get('m3_encoder_scale',0):.4f}")
         print()
 
     all_rows = _load_csvs(csv_paths)
@@ -716,23 +642,28 @@ def cmd_model(csv_paths, params_path):
     n_sessions = len(sessions)
     n_total    = len(all_rows)
 
-    W = "=" * 66
+    W  = "=" * 66
+    W2 = "-" * 66
     print()
     print(W)
     print("  MODEL FITTING")
     print(W)
-    print(f"  Sessions  : {n_sessions}")
-    print(f"  Total obs : {n_total}")
+    print(f"  Sessions     : {n_sessions}")
+    print(f"  Observations : {n_total}")
+    print(f"  CSV inputs   : {[str(p) for p in csv_paths]}")
     print()
 
-    # ---- Fit per-session QUEST ------------------------------------------
-    print("---- QUEST alignment (per session, all rows used) ----")
+    # ---- QUEST per session --------------------------------------------------
+    print(W2)
+    print("  QUEST FRAME ALIGNMENT  (fitted per session from all rows)")
+    print(W2)
     print()
-    session_alignQ   = {}
-    all_pred_rows    = []   # (row, pred_dict) for all sessions
+
+    session_alignQ = {}
+    all_pred_rows  = []
 
     for sid, rows in sorted(sessions.items()):
-        alignQ = _fit_alignQ_from_rows(rows, theta_params)
+        alignQ = _fit_alignQ_from_rows(rows, mount_params)
         if alignQ is None:
             print(f"  SKIP {sid}: insufficient data for QUEST (<3 valid rows)")
             continue
@@ -741,18 +672,15 @@ def cmd_model(csv_paths, params_path):
         az_ax = alignQ.rotate([0, 0, 1])
         tilt  = math.degrees(math.acos(max(-1.0, min(1.0, az_ax[2]))))
         taz   = math.degrees(math.atan2(az_ax[0], az_ax[1])) % 360
-        print(f"  Session : {sid}")
+        print(f"  Session : {sid}  (N={len(rows)})")
         print(f"  alignQ  w={w:.7f}  x={x:.7f}  y={y:.7f}  z={z:.7f}")
-        print(f"  Frame tilt: {tilt*60:.2f}' toward az={taz:.1f} deg"
-              f"  (N={len(rows)})")
+        print(f"  Frame tilt: {tilt*60:.1f}' toward az={taz:.1f} deg")
 
-        preds = [_predict_row(r, alignQ, theta_params) for r in rows]
+        preds = [_predict_row(r, alignQ, mount_params) for r in rows]
         valid = [(r, p) for r, p in zip(rows, preds) if p is not None]
         if valid:
             dt2 = np.array([p['_dev_m_theta2'] for _, p in valid])
-            da  = np.array([p['dev_m_alt']      for _, p in valid])
-            print(f"  dev_m_theta2: {_arr_stats(dt2)}")
-            print(f"  dev_m_alt   : {_arr_stats(da)}")
+            print(f"  dev_m_theta2 (M3+M2 tilt residual): {_arr_stats(dt2)}")
         print()
         all_pred_rows.extend(valid)
 
@@ -760,7 +688,7 @@ def cmd_model(csv_paths, params_path):
         print("ERROR: No valid predictions to fit model from.")
         return
 
-    # Build arrays for fitting
+    # ---- Build arrays -------------------------------------------------------
     def _col(key):
         out = []
         for r, p in all_pred_rows:
@@ -772,181 +700,249 @@ def cmd_model(csv_paths, params_path):
         return np.array([float(p[key]) if p and not math.isnan(p[key]) else float('nan')
                          for _, p in all_pred_rows])
 
-    theta2    = _col('p_theta2')
-    theta3    = _col('p_theta3')
-    p_az      = _col('p_az')
-    p_roll    = _col('p_roll')
-    az_rad    = np.radians(p_az)
-    t3_range  = float(np.nanmax(theta3) - np.nanmin(theta3))
-    n         = len(all_pred_rows)
+    theta2   = _col('p_theta2')
+    theta3   = _col('p_theta3')
+    p_az     = _col('p_az')
+    az_rad   = np.radians(p_az)
+    t3_range = float(np.nanmax(theta3) - np.nanmin(theta3))
+    n        = len(all_pred_rows)
 
     dev_m_t2  = _pcol('_dev_m_theta2')
     dev_m_t3  = _pcol('_dev_m_theta3')
     dev_m_az  = _pcol('dev_m_az')
-    dev_m_alt = _pcol('dev_m_alt')
+    dev_p_az  = _col('dev_p_az')
+    dev_p_alt = _col('dev_p_alt')
 
-    dev_p_az   = _col('dev_p_az')
-    dev_p_alt  = _col('dev_p_alt')
-    dev_p_roll = _col('dev_p_roll')
+    # Baseline RMS (with current theta_params, before any new fitting)
+    rms_baseline = float(np.sqrt(np.nanmean(dev_m_t2**2)))
 
-    # ---- Section A ------------------------------------------------------
+    # ---- Section A: SPA / Frame tilt diagnostics ----------------------------
     print()
     print(W)
-    print("  SECTION A -- POLAR ALIGNMENT (sinusoid vs azimuth)")
-    print(W)
-    print(f"  N = {n} observations across {n_sessions} session(s)")
-    print()
-    print("  Fits raw dev_p_* = A*cos(az) + B*sin(az) + C")
-    print()
-
-    for label, y in [('dev_p_alt', dev_p_alt), ('dev_p_az', dev_p_az),
-                     ('dev_p_roll', dev_p_roll)]:
-        res = _fit_sincos(az_rad, y)
-        if res is None:
-            print(f"  -- {label}: insufficient data"); continue
-        print(f"  -- {label}")
-        print(f"     Amplitude: {res['amp']:+.2f}'  Phase: {res['phase']:+.1f} deg"
-              f"  Offset C: {res['C']:+.2f}'")
-        print(f"     R2={res['r2']:.4f}  RMSE={res['rmse']:.2f}'  {_sig(res['pF'])}")
-        print()
-
-    # ---- Section B ------------------------------------------------------
-    print()
-    print(W)
-    print("  SECTION B -- THETA-SPACE MECHANICAL MODELS")
+    print("  SECTION A -- SPA / FRAME TILT  (diagnostic, handled by QUEST)")
     print(W)
     print()
-
-    fitted_f = fitted_a = fitted_b = fitted_e = None
-
-    # B5: theta_model_f  (M3 axis tilt -> altitude, dominant)
-    print("  -- B5: M3 axis tilt -> altitude  (theta_model_f)")
-    print(f"     Model: dev_m_theta2 = F * theta3")
-    print(f"     theta3 range: {np.nanmin(theta3):.1f} -> {np.nanmax(theta3):.1f} deg"
-          f"  span={t3_range:.1f}")
-    print(f"     corr(theta3, dev_m_theta2) = "
-          f"{np.corrcoef(theta3[~np.isnan(dev_m_t2)], dev_m_t2[~np.isnan(dev_m_t2)])[0,1]:+.3f}")
+    print("  The SPA (Single Point Alignment) bakes the Polaris firmware's")
+    print("  initial alignment into qC2B_raw.  QUEST corrects any residual")
+    print("  frame tilt per session.  Sinusoid amplitude should be small")
+    print("  after QUEST is applied.  Large values indicate poor SPA or")
+    print("  that not enough az-spread sync points were used.")
     print()
+    print("  Raw dev_p_alt = A*cos(az) + B*sin(az) + C  (pre-QUEST):")
+    res_ft = _fit_sincos(az_rad, dev_p_alt)
+    if res_ft:
+        print(f"    Amplitude : {res_ft['amp']:+.1f}'   Phase: {res_ft['phase']:+.1f} deg  "
+              f"Offset C: {res_ft['C']:+.1f}'")
+        print(f"    R2={res_ft['r2']:.3f}  RMSE={res_ft['rmse']:.1f}'  {_sig(res_ft['pF'])}")
+        if res_ft['amp'] > 60:
+            print(f"    WARNING: Large frame tilt ({res_ft['amp']:.0f}'). Check SPA and use")
+            print(f"    6+ sync points spread across the full az circle.")
+        elif res_ft['amp'] > 20:
+            print(f"    CAUTION: Moderate frame tilt ({res_ft['amp']:.0f}'). Consider more")
+            print(f"    sync points spread across az=N/E/S/W.")
+        else:
+            print(f"    OK: Frame tilt is small ({res_ft['amp']:.0f}').")
+    print()
+
+    # ---- Section B: Mechanical corrections ----------------------------------
+    print()
+    print(W)
+    print("  SECTION B -- MECHANICAL CORRECTIONS  (motor-space fitting)")
+    print(W)
+    print()
+    print(f"  Fitting residuals after QUEST.  N={n} observations.")
+    print(f"  Baseline dev_m_theta2 RMS (current params): {rms_baseline:.1f}'")
+    print()
+    print(f"  theta3 range in data: {np.nanmin(theta3):.1f} to {np.nanmax(theta3):.1f} deg"
+          f"  (span={t3_range:.1f})")
+    print()
+
+    fitted_f = fitted_g = fitted_a = fitted_b = fitted_e = None
+
+    # M3 tilt correction — altitude component
+    print("  -- M3 tilt correction — altitude  [m3_tilt_alt]")
+    print("     Fitted error: dev_theta2 [arcmin] = f * theta3")
+    corr_f = float(np.corrcoef(theta3[~np.isnan(dev_m_t2)],
+                                dev_m_t2[~np.isnan(dev_m_t2)])[0,1])
+    print(f"     corr(theta3, dev_m_theta2) = {corr_f:+.3f}")
     if t3_range >= 10:
         k_f, se_f, r2_f = _fit_linear_through_origin(theta3, dev_m_t2)
         if k_f is not None:
             fitted_f = k_f
             tc_f = float(sp_stats.t.ppf(0.975, df=max(n-1,1)))
-            print(f"     theta_model_f = {_conf(k_f, se_f, tc_f, ' arcmin/deg')}")
-            print(f"     R2={r2_f:.4f}")
-            print(f"     At +-50 deg roll: {abs(k_f*50):.1f}' altitude error")
+            resid_f = dev_m_t2 - k_f*theta3
+            rms_after_f = float(np.sqrt(np.nanmean(resid_f**2)))
+            impr_f = (1 - rms_after_f/rms_baseline)*100 if rms_baseline > 0 else 0
+            print(f"     m3_tilt_alt = {k_f:+.4f} arcmin/deg  "
+                  f"+/-{se_f:.4f}  R2={r2_f:.3f}")
+            print(f"     Error at +-50 deg roll: {abs(k_f*50):.0f}'")
+            print(f"     dev_m_theta2 RMS: {rms_baseline:.1f}' -> {rms_after_f:.1f}'  "
+                  f"({impr_f:+.0f}% improvement)")
     else:
-        print(f"     theta3 span too small for reliable fit (need >= 10 deg).")
+        print(f"     Insufficient theta3 span ({t3_range:.0f} deg, need >= 10).")
     print()
 
-    # B1: theta_model_a/b  (M2 axis tilt -> altitude)
-    print("  -- B1: M2 axis tilt -> altitude  (theta_model_a, theta_model_b)")
-    print(f"     Model: dev_m_theta2 = A * sin(theta2 - B)  [after removing B5]")
+    # M3 tilt correction — azimuth component
+    print("  -- M3 tilt correction — azimuth   [m3_tilt_az]")
+    print("     Fitted error: dev_theta1 [arcmin] = g * sin(theta2) * theta3")
+    # Build the predictor: sin(theta2) * theta3
+    pred_g = np.sin(np.radians(theta2)) * theta3
+    mask_g = ~np.isnan(dev_m_t2) & ~np.isnan(pred_g) & (np.abs(theta3) > 5)
+    if mask_g.sum() >= 10:
+        # Use az-motor residual if available, else approximate from sky-az
+        # For now fit from dev_m_az which is available
+        denom_g = float(np.dot(pred_g[mask_g], pred_g[mask_g]))
+        if denom_g > 0:
+            k_g = float(np.dot(pred_g[mask_g], dev_m_az[mask_g]) / denom_g)
+            fitted_g = k_g
+            resid_after_g = dev_m_az[mask_g] - k_g * pred_g[mask_g]
+            rms_az_raw   = float(np.sqrt(np.nanmean(dev_m_az[mask_g]**2)))
+            rms_az_after = float(np.sqrt(np.nanmean(resid_after_g**2)))
+            corr_g = float(np.corrcoef(pred_g[mask_g], dev_m_az[mask_g])[0,1])
+            impr_g = (1 - rms_az_after/rms_az_raw)*100 if rms_az_raw > 0 else 0
+            print(f"     corr(sin(t2)*t3, dev_m_az) = {corr_g:+.3f}")
+            print(f"     m3_tilt_az = {k_g:+.4f} arcmin/deg")
+            print(f"     dev_m_az  RMS: {rms_az_raw:.1f}' -> {rms_az_after:.1f}'  "
+                  f"({impr_g:+.0f}% improvement)")
+    else:
+        print(f"     Insufficient data for M3 tilt azimuth fit.")
     print()
+
+    # M2 tilt correction
+    print("  -- M2 tilt correction             [m2_tilt_alt_amp, m2_tilt_alt_zero]")
+    print("     Fitted error: dev_theta2 [arcmin] = a * sin(theta2 - b)")
     y_b1 = dev_m_t2 - (fitted_f * theta3 if fitted_f is not None else 0)
-    p0a  = [theta_params.m2_tilt_arcmin or 52., theta_params.m2_tilt_zero_deg or 36.]
+    p0a  = [mount_params.m2_tilt_alt_amp or 52., mount_params.m2_tilt_alt_zero or 36.]
     r_b1 = _fit_curve(lambda t, a, b: a * np.sin(np.radians(t - b)), theta2, y_b1, p0a)
     if r_b1 is not None:
         fitted_a, fitted_b = float(r_b1['popt'][0]), float(r_b1['popt'][1])
-        print("     theta_model_a = " + _conf(fitted_a, r_b1['perr'][0], r_b1['tc'], "'"))
-        print(f"     theta_model_b = {_conf(fitted_b, r_b1['perr'][1], r_b1['tc'], ' deg')}")
-        print(f"     R2={r_b1['r2']:.4f}  RMSE={r_b1['rmse']:.2f}'  {_sig(r_b1['pF'])}")
+        resid_b1 = y_b1 - r_b1['popt'][0]*np.sin(np.radians(theta2 - r_b1['popt'][1]))
+        rms_b1_before = float(np.sqrt(np.nanmean(y_b1**2)))
+        rms_b1_after  = float(np.sqrt(np.nanmean(resid_b1**2)))
+        impr_b1 = (1 - rms_b1_after/rms_b1_before)*100 if rms_b1_before > 0 else 0
+        print(f"     m2_tilt_alt_amp  = {fitted_a:+.2f}'  "
+              f"+/-{r_b1['perr'][0]:.2f}'  "
+              f"R2={r_b1['r2']:.3f}  {_sig(r_b1['pF'])}")
+        print(f"     m2_tilt_alt_zero = {fitted_b:+.2f} deg  "
+              f"+/-{r_b1['perr'][1]:.2f} deg")
+        print(f"     Residual RMS after M3+M2 tilt: {rms_b1_before:.1f}' -> {rms_b1_after:.1f}'  "
+              f"({impr_b1:+.0f}%)")
+        if abs(t3_range) < 30:
+            print("     NOTE: M2 tilt fit may be contaminated by M3 tilt if theta3 range is small.")
+            print("           Fit M2 tilt from roll=0 data only for cleanest result.")
     else:
-        print("     FIT FAILED")
+        print("     FIT FAILED -- insufficient theta2 variation or poor data coverage.")
     print()
 
-    # B3: theta_model_e  (M3 encoder scale)
-    print("  -- B3: M3 encoder scale  (theta_model_e)")
-    print(f"     Model: dev_m_theta3 = E * theta3")
-    print(f"     theta3 span: {t3_range:.1f} deg  (need >= 30 for reliable fit)")
-    print()
+    # M3 encoder correction
+    print("  -- M3 encoder correction          [m3_encoder_scale]")
+    print("     Fitted error: dev_theta3 [arcmin] = e * theta3")
     if t3_range >= 30:
         k_e, se_e, r2_e = _fit_linear_through_origin(theta3, dev_m_t3)
         if k_e is not None:
             fitted_e = k_e
             tc_e = float(sp_stats.t.ppf(0.975, df=max(n-1,1)))
-            print(f"     theta_model_e = {_conf(k_e, se_e, tc_e, ' arcmin/deg')}")
-            print(f"     R2={r2_e:.4f}")
-            print()
-            print("     NOTE: dev_m_theta3 may be contaminated by SPA roll bias.")
-            print("     Collect roll-sweep dataset at fixed az/alt to verify.")
+            print(f"     m3_encoder_scale = {k_e:+.4f} arcmin/deg  "
+                  f"+/-{se_e:.4f}  R2={r2_e:.3f}")
+            if r2_e < 0.3:
+                print("     CAUTION: Low R2. dev_theta3 may be contaminated by SPA")
+                print("     roll bias. Treat this value with caution.")
     else:
-        print("     Skipped - insufficient theta3 range.")
-        print("     Collect images with p_roll from -60 to +60 deg at fixed az/alt.")
+        print(f"     Skipped -- theta3 span {t3_range:.0f} deg < 30 deg minimum.")
+        print("     Collect data with p_roll sweeping -60 to +60 at fixed az/alt.")
     print()
 
-    # ---- Coefficient summary --------------------------------------------
-    print()
-    print("  " + "-" * 62)
-    print("  Fitted coefficients  -->  fits_params.json")
-    print("  " + "-" * 62)
-    print()
-    print(f"  theta_model_f = {fitted_f:.6f}"  if fitted_f is not None
-          else "  theta_model_f = 0.000000  (not fitted)")
-    print(f"  theta_model_a = {fitted_a:.6f}"  if fitted_a is not None
-          else "  theta_model_a = 0.000000  (not fitted)")
-    print(f"  theta_model_b = {fitted_b:.6f}"  if fitted_b is not None
-          else "  theta_model_b = 0.000000  (not fitted)")
-    print(f"  theta_model_e = {fitted_e:.6f}"  if fitted_e is not None
-          else "  theta_model_e = 0.000000  (not fitted)")
-    print()
-
-    # ---- Section C: RBC diagnostics (read-only) -------------------------
-    print()
-    print(W)
-    print("  SECTION C -- RBC DIAGNOSTICS  (decommissioned)")
-    print(W)
-    print()
-    print("  RBC is decommissioned. theta_model_f corrects the same error")
-    print("  in the correct axis. Shown here for reference.")
-    print()
-    c1 = np.corrcoef(p_roll[~np.isnan(dev_p_alt)],
-                     dev_p_alt[~np.isnan(dev_p_alt)])[0,1]
-    c2 = np.corrcoef(theta3[~np.isnan(dev_m_alt)],
-                     dev_m_alt[~np.isnan(dev_m_alt)])[0,1]
-    print(f"  corr(p_roll,  dev_p_alt)  = {c1:+.3f}  (signal RBC tried to model)")
-    print(f"  corr(theta3,  dev_m_alt)  = {c2:+.3f}  (residual after QUEST)")
-    print()
-    if abs(c2) > 0.3:
-        print("  >> theta_model_f is not yet applied or insufficient.")
-    else:
-        print("  >> theta3 -> altitude coupling is well-corrected.")
-    print()
-
-    # ---- Section D: roadmap ---------------------------------------------
-    print()
-    print(W)
-    print("  SECTION D -- ROADMAP")
-    print(W)
-    print()
-    print("  1. theta_model_f  [B5 - M3 axis tilt - DOMINANT]")
-    if fitted_f is not None:
-        print(f"     -> {fitted_f:.4f} arcmin/deg"
-              f"  (+-{abs(fitted_f*50):.0f}' at +-50 deg roll)")
-        print("     Implement in driver before refitting B1.")
-    print()
-    print("  2. theta_model_a/b  [B1 - M2 axis tilt]")
-    if fitted_a is not None:
-        print(f"     -> a={fitted_a:.4f}'  b={fitted_b:.4f} deg")
-        print("     Refit after B5 is live in the driver.")
-    print()
-    print("  3. alignQ per session - already fitted above.")
-    print("     Production: 3-6 sync points spread in az, low roll.")
-    print()
-    print("  4. theta_model_e  [B3 - M3 encoder] - dedicated roll sweep needed.")
-    print()
-    print("  Re-run -model after implementing corrections to see convergence.")
-    print()
-
-    # ---- Save fits_params.json ------------------------------------------
+    # ---- Results summary ----------------------------------------------------
     def _use(fitted, fallback):
         return round(fitted, 6) if fitted is not None else round(fallback, 6)
 
-    theta_model_out = {
-        'theta_model_a': _use(fitted_a, theta_params.m2_tilt_arcmin),
-        'theta_model_b': _use(fitted_b, theta_params.m2_tilt_zero_deg),
-        'theta_model_e': _use(fitted_e, theta_params.m3_encoder_k * 60),
-        'theta_model_f': _use(fitted_f, theta_params.m3_axis_tilt_k * 60),
+    f_out = _use(fitted_f, mount_params.m3_tilt_alt)
+    g_out = _use(fitted_g, mount_params.m3_tilt_az)
+    a_out = _use(fitted_a, mount_params.m2_tilt_alt_amp)
+    b_out = _use(fitted_b, mount_params.m2_tilt_alt_zero)
+    e_out = _use(fitted_e, mount_params.m3_encoder_scale)
+
+    # Final residual with all fitted params applied
+    y_final = dev_m_t2.copy()
+    if fitted_f is not None:
+        y_final = y_final - fitted_f * theta3
+    if fitted_a is not None and fitted_b is not None:
+        y_final = y_final - fitted_a * np.sin(np.radians(theta2 - fitted_b))
+    rms_final  = float(np.sqrt(np.nanmean(y_final[~np.isnan(y_final)]**2)))
+    impr_total = (1 - rms_final / rms_baseline) * 100 if rms_baseline > 0 else 0
+
+    def _quality(r2):
+        if r2 is None:   return "not fitted"
+        if r2 > 0.7:     return "GOOD"
+        if r2 > 0.4:     return "FAIR"
+        if r2 > 0.1:     return "WEAK"
+        return "POOR"
+
+    print()
+    print(W)
+    print("  RESULTS SUMMARY")
+    print(W)
+    print()
+    print("  dev_m_theta2 RMS progression (motor altitude error):")
+    print(f"    After QUEST only    : {rms_baseline:7.1f}'  (baseline)")
+    if fitted_f is not None:
+        rms_after_f2 = float(np.sqrt(np.nanmean((dev_m_t2 - fitted_f * theta3)**2)))
+        print(f"    After QUEST + M3 tilt       : {rms_after_f2:7.1f}'")
+    print(f"    After QUEST + M3+M2 tilt    : {rms_final:7.1f}'  ({impr_total:+.0f}% total)")
+    print()
+
+    r2_f_val  = r2_f   if fitted_f is not None else None
+    r2_g_val  = corr_g**2 if fitted_g is not None else None
+    r2_b1_val = r_b1['r2'] if r_b1 is not None else None
+    r2_e_val  = r2_e   if fitted_e is not None else None
+
+    print("  Fitted parameters  (copy to config.toml):")
+    print(f"    m3_tilt_alt      = {f_out:+.4f}   [M3 tilt alt  arcmin/deg]   {_quality(r2_f_val)}"
+          + (f"  R2={r2_f_val:.3f}" if r2_f_val is not None else ""))
+    print(f"    m3_tilt_az       = {g_out:+.4f}   [M3 tilt az   arcmin/deg]   {_quality(r2_g_val)}"
+          + (f"  R2={r2_g_val:.3f}" if r2_g_val is not None else ""))
+    print(f"    m2_tilt_alt_amp  = {a_out:+.4f}   [M2 tilt amp  arcmin    ]   {_quality(r2_b1_val)}"
+          + (f"  R2={r2_b1_val:.3f}" if r2_b1_val is not None else ""))
+    print(f"    m2_tilt_alt_zero = {b_out:+.4f}   [M2 tilt zero degrees   ]")
+    print(f"    m3_encoder_scale = {e_out:+.4f}   [M3 encoder   arcmin/deg]   {_quality(r2_e_val)}"
+          + (f"  R2={r2_e_val:.3f}" if r2_e_val is not None else ""))
+    print()
+
+    # Data quality warnings
+    warnings = []
+    if t3_range < 30:
+        warnings.append(
+            f"theta3 span only {t3_range:.0f} deg -- M3 tilt fit unreliable (need 60+ deg)")
+    if r2_f_val is not None and r2_f_val < 0.4:
+        warnings.append(
+            f"M3 tilt alt R2={r2_f_val:.3f} is low -- check roll variation in data")
+    if r2_b1_val is not None and r2_b1_val < 0.3:
+        warnings.append(
+            f"M2 tilt R2={r2_b1_val:.3f} is low -- fit M2 tilt from roll=0 data only")
+    if n_sessions == 1 and n_total < 100:
+        warnings.append(
+            f"Only {n_total} observations -- more data improves reliability")
+    if res_ft and res_ft['amp'] > 60:
+        warnings.append(
+            f"Frame tilt amplitude {res_ft['amp']:.0f}' is large -- "
+            f"check SPA and use 6+ sync points spread across the full az circle")
+
+    if warnings:
+        print("  DATA QUALITY WARNINGS:")
+        for w_msg in warnings:
+            print(f"    !  {w_msg}")
+        print()
+
+    print("  Run -validate to confirm improvement on held-out data.")
+    print()
+
+    # ---- Save JSON ----------------------------------------------------------
+    model_params_out = {
+        'm3_tilt_alt':      f_out,
+        'm3_tilt_az':       g_out,
+        'm2_tilt_alt_amp':  a_out,
+        'm2_tilt_alt_zero': b_out,
+        'm3_encoder_scale': e_out,
     }
     sessions_out = {}
     for sid, alignQ in session_alignQ.items():
@@ -956,13 +952,16 @@ def cmd_model(csv_paths, params_path):
             'n_obs':  len(sessions[sid]),
         }
     output = {
-        'theta_model':  theta_model_out,
+        'mount_model':  model_params_out,
         'sessions':     sessions_out,
         'fit_metadata': {
             'date_fitted':    datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
             'n_sessions':     n_sessions,
             'n_observations': n_total,
             'csv_inputs':     [str(p) for p in csv_paths],
+            'rms_baseline_arcmin':  round(rms_baseline, 2),
+            'rms_final_arcmin':     round(rms_final, 2),
+            'improvement_pct':      round(impr_total, 1),
         }
     }
     with open(params_path, 'w') as f:
@@ -989,14 +988,15 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
         print(f"ERROR: {params_path} not found.  Run -model first.")
         return
 
-    theta_params, saved_json = _load_theta_params(params_path)
-    tm = saved_json.get('theta_model', {})
+    mount_params, saved_json = _load_mount_params(params_path)
+    tm = saved_json.get('mount_model', saved_json.get('theta_model', {}))
     print("==== VALIDATE ====")
     print(f"Params: {params_path}")
-    print(f"  theta_model_f={tm.get('theta_model_f',0):.4f}  "
-          f"theta_model_a={tm.get('theta_model_a',0):.4f}  "
-          f"theta_model_b={tm.get('theta_model_b',0):.4f}  "
-          f"theta_model_e={tm.get('theta_model_e',0):.4f}")
+    print(f"  m3_tilt_alt={tm.get('m3_tilt_alt',0):.4f}  "
+          f"m3_tilt_az={tm.get('m3_tilt_az',0):.4f}  "
+          f"m2_tilt_alt_amp={tm.get('m2_tilt_alt_amp',0):.4f}  "
+          f"m2_tilt_alt_zero={tm.get('m2_tilt_alt_zero',0):.4f}  "
+          f"m3_encoder_scale={tm.get('m3_encoder_scale',0):.4f}")
     sync_label = 'ALL rows' if n_sync is None else f'first {n_sync} rows'
     print(f"Sync points  : {sync_label} per session")
     print()
@@ -1020,7 +1020,7 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
 
         print(f"---- Session: {sid}  (N={len(rows)}) ----")
 
-        alignQ = _fit_alignQ_from_rows(sync_rows, theta_params)
+        alignQ = _fit_alignQ_from_rows(sync_rows, mount_params)
         if alignQ is None:
             print(f"  ERROR: Could not fit alignQ from {len(sync_rows)} sync rows.")
             print()
@@ -1043,7 +1043,7 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
         dev_m_t2_list = []
 
         for i, row in enumerate(rows):
-            pred = _predict_row(row, alignQ, theta_params)
+            pred = _predict_row(row, alignQ, mount_params)
             is_sync = i in sync_set
 
             out = {k: row.get(k, '') for k in _EXTRACT_FIELDS}
@@ -1103,22 +1103,29 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
         rms_m_t2 = _rms(dev_m_t2_list) if dev_m_t2_list else float('nan')
         imp_t2   = (1 - rms_m_t2/rms_p_t2)*100 if rms_p_t2 > 0 else float('nan')
 
-        print(f"  Results (all {len(rows)} rows):")
-        print(f"    Sky  2D  RMS raw  (dev_p az+alt):  {dp_rms_all:7.2f}'")
-        print(f"    Sky  2D  RMS model(dev_m az+alt):  {dm_rms_all:7.2f}'  ({imp_all:+.1f}%)")
+        # ---- Per-session results block ------------------------------------
+        print(f"  Results ({len(rows)} rows, {n_use_sync} sync):")
+        print(f"  {'Metric':<32}  {'Raw':>8}  {'Model':>8}  {'Improv':>8}")
+        print(f"  {'-'*32}  {'-'*8}  {'-'*8}  {'-'*8}")
         if not math.isnan(rms_p_t2):
-            print(f"    Motor t2 RMS raw  (dev_p_theta2): {rms_p_t2:7.2f}'")
-            print(f"    Motor t2 RMS model(dev_m_theta2): {rms_m_t2:7.2f}'  ({imp_t2:+.1f}%)")
-        if n_test > 0:
-            print(f"  Results ({n_test} non-sync rows only):")
-            print(f"    Sky 2D raw  : {dp_rms_test:7.2f}'")
-            print(f"    Sky 2D model: {dm_rms_test:7.2f}'  ({imp_test:+.1f}%)")
+            imp_t2_s = f"{imp_t2:>+7.1f}%" if not math.isnan(imp_t2) else "    N/A"
+            good = "  <-- KEY" if not math.isnan(imp_t2) and abs(imp_t2) > 10 else ""
+            print(f"  {'Motor theta2 RMS (dev_p/m_theta2)':<32}  "
+                  f"{rms_p_t2:>7.1f}'  {rms_m_t2:>7.1f}'  {imp_t2_s}{good}")
+        imp_all_s = f"{imp_all:>+7.1f}%" if not math.isnan(imp_all) else "    N/A"
+        print(f"  {'Sky 2D RMS (az+alt, all rows)':<32}  "
+              f"{dp_rms_all:>7.1f}'  {dm_rms_all:>7.1f}'  {imp_all_s}")
+        if n_test > 0 and not math.isnan(dp_rms_test):
+            imp_test_s = f"{imp_test:>+7.1f}%" if not math.isnan(imp_test) else "    N/A"
+            print(f"  {'Sky 2D RMS (az+alt, test only)':<32}  "
+                  f"{dp_rms_test:>7.1f}'  {dm_rms_test:>7.1f}'  {imp_test_s}")
         print()
 
         session_summary.append({
             'sid': sid, 'n': len(rows), 'n_sync': n_use_sync,
             'dp_all': dp_rms_all, 'dm_all': dm_rms_all, 'imp_all': imp_all,
             'dp_test': dp_rms_test, 'dm_test': dm_rms_test, 'imp_test': imp_test,
+            'rms_p_t2': rms_p_t2, 'rms_m_t2': rms_m_t2, 'imp_t2': imp_t2,
         })
 
     # Write CSV
@@ -1130,26 +1137,68 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
     print(f"Wrote {len(output_rows)} rows -> {output_csv}")
     print()
 
-    # Summary table
-    print("==== SUMMARY ====")
+    # ---- Overall summary table -------------------------------------------
+    print("=" * 66)
+    print("  VALIDATION SUMMARY")
+    print("=" * 66)
     print()
-    hdr = f"  {'Session':<36}  {'N':>5}  {'Sync':>5}  {'Raw RMS':>8}  {'Mdl RMS':>8}  {'Improv':>7}"
-    print(hdr)
-    print("  " + "-"*36 + "  " + "-"*5 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*7)
+
+    # Motor-space table (primary metric)
+    has_t2 = any(not math.isnan(s.get('rms_p_t2', float('nan'))) for s in session_summary)
+    if has_t2:
+        print("  Motor theta2 (KEY metric -- directly measures correction quality):")
+        print(f"  {'Session':<34}  {'N':>5}  {'Raw':>8}  {'Model':>8}  {'Improvement':>12}")
+        print("  " + "-"*34 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*12)
+        t2_dp = []; t2_dm = []
+        for s in session_summary:
+            rp = s.get('rms_p_t2', float('nan'))
+            rm = s.get('rms_m_t2', float('nan'))
+            ii = s.get('imp_t2',   float('nan'))
+            if math.isnan(rp): continue
+            imps = f"{ii:>+8.1f}%" if not math.isnan(ii) else "       N/A"
+            flag = "  ***" if not math.isnan(ii) and ii > 30 else                    "  *"   if not math.isnan(ii) and ii > 10 else ""
+            print(f"  {s['sid']:<34}  {s['n']:>5}  {rp:>7.1f}'  {rm:>7.1f}'  {imps}{flag}")
+            t2_dp.append(rp); t2_dm.append(rm)
+        if t2_dp:
+            mean_rp = sum(t2_dp)/len(t2_dp)
+            mean_rm = sum(t2_dm)/len(t2_dm)
+            ov = (1 - mean_rm/mean_rp)*100 if mean_rp > 0 else float('nan')
+            print("  " + "-"*34 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*12)
+            ov_s = f"{ov:>+8.1f}%" if not math.isnan(ov) else "       N/A"
+            print(f"  {'OVERALL':<34}  {'':>5}  {mean_rp:>7.1f}'  {mean_rm:>7.1f}'  {ov_s}")
+            print()
+            # Interpretation
+            if not math.isnan(ov):
+                if ov > 50:
+                    print(f"  EXCELLENT: {ov:.0f}% improvement in motor theta2.")
+                elif ov > 25:
+                    print(f"  GOOD: {ov:.0f}% improvement in motor theta2.")
+                elif ov > 10:
+                    print(f"  MODERATE: {ov:.0f}% improvement. Consider refitting parameters.")
+                elif ov > 0:
+                    print(f"  MARGINAL: {ov:.0f}% improvement. Data quality or model may need review.")
+                else:
+                    print(f"  NO IMPROVEMENT ({ov:.0f}%). Check parameter signs and data quality.")
+        print()
+
+    # Sky-space table (secondary metric)
+    print("  Sky 2D az+alt (secondary -- note: sky metric can be misleading")
+    print("  at large roll due to motor-to-sky geometry coupling):")
+    print(f"  {'Session':<34}  {'N':>5}  {'Raw':>8}  {'Model':>8}  {'Improvement':>12}")
+    print("  " + "-"*34 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*12)
     all_dp = []; all_dm = []
     for s in session_summary:
-        imp_s = f"{s['imp_all']:+.1f}%" if not math.isnan(s['imp_all']) else '   N/A'
-        print(f"  {s['sid']:<36}  {s['n']:>5}  {s['n_sync']:>5}"
-              f"  {s['dp_all']:>7.2f}'  {s['dm_all']:>7.2f}'  {imp_s:>7}")
+        imp_s = f"{s['imp_all']:>+8.1f}%" if not math.isnan(s['imp_all']) else "       N/A"
+        print(f"  {s['sid']:<34}  {s['n']:>5}  {s['dp_all']:>7.1f}'  {s['dm_all']:>7.1f}'  {imp_s}")
         if not math.isnan(s['dp_all']): all_dp.append(s['dp_all'])
         if not math.isnan(s['dm_all']): all_dm.append(s['dm_all'])
     if all_dp:
         mean_dp = sum(all_dp)/len(all_dp)
         mean_dm = sum(all_dm)/len(all_dm)
         ov_imp  = (1 - mean_dm/mean_dp)*100 if mean_dp > 0 else float('nan')
-        print("  " + "-"*36 + "  " + "-"*5 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*7)
-        print(f"  {'OVERALL':<36}  {'':>5}  {'':>5}"
-              f"  {mean_dp:>7.2f}'  {mean_dm:>7.2f}'  {ov_imp:>+6.1f}%")
+        print("  " + "-"*34 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*12)
+        ov_s = f"{ov_imp:>+8.1f}%" if not math.isnan(ov_imp) else "       N/A"
+        print(f"  {'OVERALL':<34}  {'':>5}  {mean_dp:>7.1f}'  {mean_dm:>7.1f}'  {ov_s}")
     print()
 
 
