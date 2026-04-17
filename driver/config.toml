@@ -81,23 +81,31 @@ m2_park = 0.0                               # Motor 2 position for saved Park Lo
 m3_park = 0.0                               # Motor 3 position for saved Park Location
 guide_rate_ra = 1.0                         # Right Ascensiion guide rate multiple of sidereal rate
 guide_rate_dec = 1.0                        # Declination guide rate multiple of sidereal rate
+
+
+[models]
+# ---- Rotation Bias Correction Model (Sky space)
+
 rbc_model_a = 0.9742                        # Rotation Bias Model:  roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
 rbc_model_b = 0.2509                        # Rotation Bias Model:  roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
 rbc_model_c = -1.0102                       # Rotation Bias Model:  az_error (arcmin) = rbc_model_c · roll_error
-theta_model_a = 0.0     # B1 M2-tilt amplitude (arcmin) -- ZEROED pending clean refit after B5 live
-                        #   Fitted error: dev_theta2 = a * sin(theta2 - b)
-                        #   Correction:   -(a/60) * sin(theta2 - b)         degrees rotation around M2 axis
-theta_model_b = 0.0     # B1 M2-tilt zero crossing (degrees theta2) -- see above
-theta_model_e = 0.0     # B3 M3-encoder scale (arcmin/deg) -- ZEROED, unreliable (SPA roll bias contamination)
-                        #   Fitted error: dev_theta3 = e * theta3
-                        #   Correction:   (e/60) * theta3                   degrees rotation around M3 axis
-theta_model_f = -2.708  # B5 altitude component (arcmin/deg)
-                        #   Fitted error: dev_theta2 [arcmin] = f * cos(theta2) * theta3
-                        #   Correction:   -(f/60) * cos(theta2) * theta3  deg around M2 axis
 
-theta_model_g = 2.220   # B5 azimuth component (arcmin/deg) -- NEW
-                        #   Fitted error: dev_theta1 [arcmin] = g * sin(theta2) * theta3
-                        #   Correction:   +(g/60) * sin(theta2) * theta3  deg around M1 axis
+# ---- Mechnical Mount Correction Model (theta space)
+
+# ---- M3 tilt correction  (dominant — astro axis physically tilted away from camera up)
+# Fitted error: dev_theta2 [arcmin] = m3_tilt_alt * theta3
+m3_tilt_alt   = -4.0                        # arcmin/deg_theta3  — altitude effect
+# Fitted error: dev_theta1 [arcmin] = m3_tilt_az * sin(theta2) * theta3
+m3_tilt_az    = 2.56                        # arcmin/deg_theta3  — azimuth effect (altitude-dependent)
+
+# ---- M2 tilt correction  (altitude axis not perpendicular to azimuth axis)
+# Fitted error: dev_theta2 [arcmin] = m2_tilt_alt_amp * sin(theta2 - m2_tilt_alt_zero)
+m2_tilt_alt_amp  = 52.2                     # arcmin
+m2_tilt_alt_zero = 36.4                     # degrees — theta2 where error crosses zero
+
+# ---- M3 encoder correction  (astro axis encoder scale error — treat with caution)
+# Fitted error: dev_theta3 [arcmin] = m3_encoder_scale * theta3
+m3_encoder_scale = 0.0                      # arcmin/deg_theta3
 
 
 [device]

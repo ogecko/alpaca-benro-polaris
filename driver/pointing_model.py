@@ -26,7 +26,7 @@ from typing import List, Optional, Tuple
 
 # ── Angle helpers ─────────────────────────────────────────────────────────────
 
-ROTATOR_OFFSET = 0.0   # Override if camera mounting introduces a roll bias
+ROTATOR_OFFSET = 0   # Override if camera mounting introduces a roll bias
 
 def wrap_to_180(angle: float) -> float:
     """Wrap angle to [-180, +180)."""
@@ -225,6 +225,14 @@ def azaltroll_to_theta(p_az: float, p_alt: float, p_roll: float,
     try:
         motorQ = azaltroll_to_q(p_az, p_alt, p_roll)
         return q_to_theta_driver(motorQ, lastPos)
+    except Exception:
+        return None, None, None
+
+def theta_to_azaltroll(theta1: float, theta2: float, theta3: float):
+    """theta1, theta2, theta3 (degrees) -> (az,alt,roll) via FK. Returns (None,None,None) on error."""
+    try:
+        motorQ = theta_to_q(theta1, theta2, theta3)
+        return q_to_azaltroll(motorQ)
     except Exception:
         return None, None, None
 

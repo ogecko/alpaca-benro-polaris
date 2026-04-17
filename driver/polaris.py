@@ -36,7 +36,8 @@ from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController
 from control import theta_to_q, q_to_theta, q_to_azaltroll, apply_rotation_bias_corrQ_RBC, wrap_to_360, wrap_to_180
-from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, apply_mechanical_corrections
+from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
+from pointing_model import apply_mechanical_corrections, MountModelParams
 from ble_service import BLE_Controller
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}
@@ -753,7 +754,8 @@ class Polaris:
 
         # apply mechanical corrections
         if (Config.advanced_pec):
-            motorQ_raw = apply_mechanical_corrections(motorQ_raw)
+            params = MountModelParams.from_config(Config)
+            motorQ_raw = apply_mechanical_corrections(motorQ_raw, params)
 
         theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp))
 
