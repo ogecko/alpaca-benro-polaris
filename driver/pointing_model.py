@@ -478,7 +478,7 @@ def apply_mechanical_corrections(q: Quaternion, params: MountModelParams) -> Qua
         Correction:     rotate around M2 axis by -(m3_tilt_alt/60) * theta3 degrees.
       Azimuth effect (altitude-dependent):
         Fitted error:   dev_theta1 [arcmin] = m3_tilt_az * sin(theta2) * theta3
-        Correction:     rotate around M1 axis by +(m3_tilt_az/60) * sin(theta2) * theta3 degrees.
+        Correction:     rotate around M1 axis by -(m3_tilt_az/60) * sin(theta2) * theta3 degrees.
 
     M2 tilt correction [m2_tilt_alt_amp, m2_tilt_alt_zero]
       Physical cause: M2 rotation axis not perpendicular to M1.
@@ -499,15 +499,15 @@ def apply_mechanical_corrections(q: Quaternion, params: MountModelParams) -> Qua
 
     # M3 tilt correction — altitude component (dominant)
     q_m3_tilt_alt = Quaternion(axis=m2_axis,
-                               degrees=-(params.m3_tilt_alt / 60.0) * t3)
+                               degrees= -(params.m3_tilt_alt / 60.0) * t3)
 
     # M3 tilt correction — azimuth component (altitude-dependent)
     q_m3_tilt_az = Quaternion(axis=[0.0, 0.0, 1.0],
-                              degrees=(params.m3_tilt_az / 60.0) * math.sin(math.radians(t2)) * t3)
+                              degrees= -(params.m3_tilt_az / 60.0) * math.sin(math.radians(t2)) * t3)
 
     # M2 tilt correction — altitude error
     q_m2_tilt = Quaternion(axis=m2_axis,
-                           degrees=-(params.m2_tilt_alt_amp / 60.0) * math.sin(
+                           degrees= -(params.m2_tilt_alt_amp / 60.0) * math.sin(
                                math.radians(t2 - params.m2_tilt_alt_zero)))
 
     # M3 encoder correction — roll scale error
