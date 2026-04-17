@@ -463,14 +463,17 @@ def _build_quest_pairs(rows, mount_params):
         try:
             t1     = float(r['p_theta1']); t2 = float(r['p_theta2']); t3 = float(r['p_theta3'])
             s_az   = float(r['s_az']);    s_alt = float(r['s_alt'])
-            p_roll = float(r['p_roll'])
+            p_az   = float(r['p_az']);    p_alt = float(r['p_alt'])
         except (ValueError, TypeError):
             continue
         q_base = _pm.theta_to_q(t1, t2, t3)
         if mount_params is not None:
             q_base = _pm.apply_mechanical_corrections(q_base, mount_params)
-        q_sol = _pm.q_from_azaltroll(s_az, s_alt, p_roll)
-        pairs.append((q_base, q_sol))
+        p_az_corr, p_alt_corr, _ = _pm.q_to_azaltroll(q_base)
+        # Now pair corrected predicted az/alt vs solved az/alt, roll=0
+        q_pred   = _pm.q_from_azaltroll(p_az_corr, p_alt_corr, 0.0)
+        q_solved = _pm.q_from_azaltroll(s_az, s_alt, 0.0)
+        pairs.append((q_pred, q_solved))
     return pairs
 
 
