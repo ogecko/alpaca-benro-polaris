@@ -108,7 +108,7 @@
                   <div v-if="cfg.advanced_alignment">
                     <VField label="QUEST Adj:   Az " :val="p.az_adj" unit="deg"/>
                     <VField label="   | Tilt " :val="p.tilt_adj_mag" unit="deg"/>
-                    <VField label="   |  Rot " :val="p.roll_adj" unit="deg"/>
+                    <VField label="   | Roll " :val="p.roll_adj" unit="deg"/>
                   </div>
                   <div v-else class="haz terminal">Disabled</div>
                 </q-timeline-entry>
