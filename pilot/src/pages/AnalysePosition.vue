@@ -84,7 +84,7 @@
                   <!-- RBC -->
                   <div class="ok terminal">
                     <span>{{`RBC: Rotation Bias Correction`}}</span>
-                    <VField v-if="cfg.advanced_align_rbc" label="                        Roll Adj " :val="p.rbcerror" unit="deg_ofst"/>
+                    <VField v-if="cfg.advanced_align_rbc" label="                  Mechanical Adj " :val="p.rbcerror" unit="deg_ofst"/>
                     <span v-else class="haz">{{ `                                  Disabled`}}</span>
                   </div>
                   <!-- SCC -->
