@@ -37,7 +37,7 @@ from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController
 from control import theta_to_q, q_to_theta, q_to_azaltroll, apply_rotation_bias_corrQ_RBC, wrap_to_360, wrap_to_180
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
-from pointing_model import apply_mechanical_corrections, MountModelParams
+from kinematics import apply_mechanical_corrections, MountModelParams
 from ble_service import BLE_Controller
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}

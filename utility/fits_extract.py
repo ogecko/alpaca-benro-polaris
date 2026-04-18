@@ -78,8 +78,8 @@ except ImportError:
     print("WARNING: scipy not available - model fitting won't work.")
 
 try:
-    import pointing_model as _pm
-    from pointing_model import (
+    import kinematics as _pm
+    from kinematics import (
         wrap_to_180 as wrap180,   # wrap_to_180 is the canonical name
         wrap_to_360 as wrap360,
         wrap_to_90  as wrap90,
@@ -95,7 +95,7 @@ try:
     HAS_PM = True
 except ImportError:
     HAS_PM = False
-    print("WARNING: pointing_model.py not found.")
+    print("WARNING: kinematics.py not found.")
     # Minimal stubs so the rest of the file can be imported without pm
     def wrap180(a):    return (a + 180.0) % 360.0 - 180.0
     def wrap360(a):
@@ -627,7 +627,7 @@ def _fit_curve(fn, x, y, p0):
 
 def cmd_model(csv_paths, params_path):
     if not HAS_PM or not HAS_SCIPY:
-        print("ERROR: pointing_model.py and scipy are required for -model.")
+        print("ERROR: kinematics.py and scipy are required for -model.")
         return
     missing = [p for p in csv_paths if not Path(p).exists()]
     if missing:
@@ -998,7 +998,7 @@ def cmd_model(csv_paths, params_path):
 
 def cmd_validate(csv_paths, params_path, output_csv, n_sync):
     if not HAS_PM:
-        print("ERROR: pointing_model.py required for -validate.")
+        print("ERROR: kinematics.py required for -validate.")
         return
     missing = [p for p in csv_paths if not Path(p).exists()]
     if missing:

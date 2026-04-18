@@ -1,8 +1,8 @@
 """
-test_pointing_model.py — pytest suite for pointing_model.py
+test_kinematics.py — pytest suite for kinematics.py
 
 Running:
-    pytest test_pointing_model.py -v
+    pytest test_kinematics.py -v
 """
 import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
@@ -11,8 +11,8 @@ import pytest
 import numpy as np
 from pyquaternion import Quaternion
 
-import pointing_model as pm
-from pointing_model import (
+import kinematics as pm
+from kinematics import (
     theta_to_q, q_to_azaltroll, q_to_theta, q_from_azaltroll,
     azaltroll_to_q, azaltroll_to_theta, wrap180, angular_error_arcmin,
     wrap_to_180, wrap_to_360, wrap_to_90, rotator_to_p_roll,

@@ -53,6 +53,17 @@ def rotator_to_p_roll(rotator_deg: float) -> float:
     """Convert raw rotator angle to predicted roll, applying ROTATOR_OFFSET."""
     return wrap_to_180(rotator_deg - ROTATOR_OFFSET)
 
+def angular_error_arcmin(
+        az_pred: float, alt_pred: float,
+        az_true: float, alt_true: float) -> float:
+    """Great-circle angular separation in arcminutes."""
+    az1, az2 = math.radians(az_pred), math.radians(az_true)
+    al1, al2 = math.radians(alt_pred), math.radians(alt_true)
+    cos_sep = (math.sin(al1) * math.sin(al2) +
+               math.cos(al1) * math.cos(al2) * math.cos(az1 - az2))
+    cos_sep = max(-1.0, min(1.0, cos_sep))
+    return math.degrees(math.acos(cos_sep)) * 60.0
+
 
 # ── Astronomy helpers ─────────────────────────────────────────────────────────
 
@@ -331,17 +342,6 @@ def apply_polar_correction(q: Quaternion,
     t1, _, _ = q_to_theta(q)
     corrQ = make_polar_corrQ(t1, AW_deg, AN_deg)
     return (corrQ * q).normalised
-
-def angular_error_arcmin(
-        az_pred: float, alt_pred: float,
-        az_true: float, alt_true: float) -> float:
-    """Great-circle angular separation in arcminutes."""
-    az1, az2 = math.radians(az_pred), math.radians(az_true)
-    al1, al2 = math.radians(alt_pred), math.radians(alt_true)
-    cos_sep = (math.sin(al1) * math.sin(al2) +
-               math.cos(al1) * math.cos(al2) * math.cos(az1 - az2))
-    cos_sep = max(-1.0, min(1.0, cos_sep))
-    return math.degrees(math.acos(cos_sep)) * 60.0
 
 
 # ── Polar correction (TPoint AW/AN, or NINA TPPA output) ─────────────────────
