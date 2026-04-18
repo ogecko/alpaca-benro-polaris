@@ -78,7 +78,7 @@ except ImportError:
     print("WARNING: scipy not available - model fitting won't work.")
 
 try:
-    import kinematics as _pm
+    import kinematics as _km
     from kinematics import (
         wrap_to_180 as wrap180,   # wrap_to_180 is the canonical name
         wrap_to_360 as wrap360,
@@ -87,14 +87,14 @@ try:
         calc_parallactic_angle,
         radec_to_altaz,
         azaltroll_to_q   as _azaltroll_to_q,
-        q_to_theta       as _q_to_theta_pm,
+        q_to_theta       as _q_to_theta_km,
         azaltroll_to_theta,
         crota2_from_cd,
         crota2_to_roll,
     )
-    HAS_PM = True
+    HAS_KM = True
 except ImportError:
-    HAS_PM = False
+    HAS_KM = False
     print("WARNING: kinematics.py not found.")
     # Minimal stubs so the rest of the file can be imported without pm
     def wrap180(a):    return (a + 180.0) % 360.0 - 180.0
@@ -106,7 +106,7 @@ except ImportError:
     def radec_to_altaz(*a, **kw): return None, None
     def azaltroll_to_theta(*a): return None, None, None
     def _azaltroll_to_q(*a): return None
-    def _q_to_theta_pm(*a): return None, None, None
+    def _q_to_theta_km(*a): return None, None, None
 
 try:
     import ephem
@@ -444,14 +444,14 @@ def _load_mount_params(params_path):
         with open(p) as f:
             saved = json.load(f)
         tm = saved.get('mount_model', saved.get('theta_model', {}))
-        return _pm.MountModelParams(
+        return _km.MountModelParams(
             m3_tilt_alt      = tm.get('m3_tilt_alt',      0.0),
             m3_tilt_az       = tm.get('m3_tilt_az',       0.0),
             m2_tilt_alt_amp  = tm.get('m2_tilt_alt_amp',  0.0),
             m2_tilt_alt_zero = tm.get('m2_tilt_alt_zero', 0.0),
             m3_encoder_scale = tm.get('m3_encoder_scale', 0.0),
         ), saved
-    return _pm.MountModelParams(), {}
+    return _km.MountModelParams(), {}
 
 
 def _build_quest_pairs(rows, mount_params):
@@ -466,13 +466,13 @@ def _build_quest_pairs(rows, mount_params):
             p_az   = float(r['p_az']);    p_alt = float(r['p_alt'])
         except (ValueError, TypeError):
             continue
-        q_base = _pm.theta_to_q(t1, t2, t3)
+        q_base = _km.theta_to_q(t1, t2, t3)
         if mount_params is not None:
-            q_base = _pm.apply_mechanical_corrections(q_base, mount_params)
-        p_az_corr, p_alt_corr, _ = _pm.q_to_azaltroll(q_base)
+            q_base = _km.apply_mechanical_corrections(q_base, mount_params)
+        p_az_corr, p_alt_corr, _ = _km.q_to_azaltroll(q_base)
         # Now pair corrected predicted az/alt vs solved az/alt, roll=0
-        q_pred   = _pm.q_from_azaltroll(p_az_corr, p_alt_corr, 0.0)
-        q_solved = _pm.q_from_azaltroll(s_az, s_alt, 0.0)
+        q_pred   = _km.q_from_azaltroll(p_az_corr, p_alt_corr, 0.0)
+        q_solved = _km.q_from_azaltroll(s_az, s_alt, 0.0)
         pairs.append((q_pred, q_solved))
     return pairs
 
@@ -495,7 +495,7 @@ def _fit_alignQ_from_rows(rows, mount_params):
     pairs = _build_quest_pairs(rows, mount_params)
     if len(pairs) < 3:
         return None
-    return _pm.quest_solve(pairs)
+    return _km.quest_solve(pairs)
 
 
 def _predict_row(row, alignQ, roll_adj, mount_params):
@@ -510,14 +510,14 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
     if not p_roll:
         return None
 
-    q_base = _pm.theta_to_q(p_t1, p_t2, p_t3)
+    q_base = _km.theta_to_q(p_t1, p_t2, p_t3)
     if mount_params is not None:
-        q_base = _pm.apply_mechanical_corrections(q_base, mount_params)
+        q_base = _km.apply_mechanical_corrections(q_base, mount_params)
     pa_q = (alignQ * q_base).normalised
 
-    m_az, m_alt, m_roll_raw = _pm.q_to_azaltroll(pa_q)
+    m_az, m_alt, m_roll_raw = _km.q_to_azaltroll(pa_q)
     m_roll = wrap180(m_roll_raw + roll_adj)
-    m_t1, m_t2, m_t3 = _pm.q_to_theta(pa_q)
+    m_t1, m_t2, m_t3 = _km.q_to_theta(pa_q)
     m_t1   = wrap360(m_t1 + roll_adj / math.sin(math.radians(m_t2)))
 #    m_t2   = wrap180(m_t2 - roll_adj * math.sin(math.radians(m_t3)))
     m_t3   = wrap180(m_t3 - roll_adj / math.tan(math.radians(m_t2)))
@@ -626,7 +626,7 @@ def _fit_curve(fn, x, y, p0):
 # ---- -model --------------------------------------------------------------
 
 def cmd_model(csv_paths, params_path):
-    if not HAS_PM or not HAS_SCIPY:
+    if not HAS_KM or not HAS_SCIPY:
         print("ERROR: kinematics.py and scipy are required for -model.")
         return
     missing = [p for p in csv_paths if not Path(p).exists()]
@@ -639,7 +639,7 @@ def cmd_model(csv_paths, params_path):
     params_path = Path(params_path)
     mount_params, saved_json = _load_mount_params(params_path)
     # dont use any pre-existing parameters when -model
-    mount_params, saved_json = _pm.MountModelParams(), {}
+    mount_params, saved_json = _km.MountModelParams(), {}
 
     if saved_json:
         tm = saved_json.get('mount_model', saved_json.get('theta_model', {}))
@@ -921,14 +921,14 @@ def cmd_model(csv_paths, params_path):
     r2_e_val  = r2_e   if fitted_e is not None else None
 
     print("  Fitted parameters  (copy to config.toml):")
-    print(f"    m3_tilt_alt      = {f_out:+.4f}   [M3 tilt alt  arcmin/deg]   {_quality(r2_f_val)}"
+    print(f"    m3_tilt_alt      = {f_out:+8.4f}   [M3 tilt alt  arcmin/deg]   {_quality(r2_f_val)}"
           + (f"  R2={r2_f_val:.3f}" if r2_f_val is not None else ""))
-    print(f"    m3_tilt_az       = {g_out:+.4f}   [M3 tilt az   arcmin/deg]   {_quality(r2_g_val)}"
+    print(f"    m3_tilt_az       = {g_out:+8.4f}   [M3 tilt az   arcmin/deg]   {_quality(r2_g_val)}"
           + (f"  R2={r2_g_val:.3f}" if r2_g_val is not None else ""))
-    print(f"    m2_tilt_alt_amp  = {a_out:+.4f}   [M2 tilt amp  arcmin    ]   {_quality(r2_b1_val)}"
+    print(f"    m2_tilt_alt_amp  = {a_out:+8.4f}   [M2 tilt amp  arcmin    ]   {_quality(r2_b1_val)}"
           + (f"  R2={r2_b1_val:.3f}" if r2_b1_val is not None else ""))
-    print(f"    m2_tilt_alt_zero = {b_out:+.4f}   [M2 tilt zero degrees   ]")
-    print(f"    m3_encoder_scale = {e_out:+.4f}   [M3 encoder   arcmin/deg]   {_quality(r2_e_val)}"
+    print(f"    m2_tilt_alt_zero = {b_out:+8.4f}   [M2 tilt zero degrees   ]")
+    print(f"    m3_encoder_scale = {e_out:+8.4f}   [M3 encoder   arcmin/deg]   {_quality(r2_e_val)}"
           + (f"  R2={r2_e_val:.3f}" if r2_e_val is not None else ""))
     print()
 
@@ -997,7 +997,7 @@ def cmd_model(csv_paths, params_path):
 # ---- -validate -----------------------------------------------------------
 
 def cmd_validate(csv_paths, params_path, output_csv, n_sync):
-    if not HAS_PM:
+    if not HAS_KM:
         print("ERROR: kinematics.py required for -validate.")
         return
     missing = [p for p in csv_paths if not Path(p).exists()]
