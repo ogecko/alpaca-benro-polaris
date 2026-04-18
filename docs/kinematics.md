@@ -130,11 +130,11 @@ All three misalignments are fixed properties of the mount hardware. They are cor
 
 #### **III. Magnitude of the Error**
 
-The combined effect is modest at low altitudes but grows significantly at high altitudes and large roll angles, because the M3 tilt projects more strongly onto sky azimuth as coordinates converge toward the zenith.
+The combined effect is modest at high altitudes but grows significantly at low altitudes and large roll angles, This makes pointing to targets closer to the horizon or at high roll angles more difficult.
 
-- **At 20° altitude and ±50° roll:** altitude error ~±30 arcmin, azimuth error ~±11 arcmin
-- **At 50° altitude and ±50° roll:** altitude error ~±50 arcmin, azimuth error ~±84 arcmin  
-- **At 70° altitude and ±50° roll:** altitude error ~±75 arcmin, azimuth error ~±402 arcmin (~6.7°)
+- **At 20° altitude and ±50° roll:** correction error magnitude ~114 to 205 arcmin
+- **At 50° altitude and ±50° roll:** correction error magnitude ~46 to 138 arcmin  
+- **At 70° altitude and ±50° roll:** correction error magnitude ~40 to 101 arcmin
 
 #### **IV. The Mathematical Model**
 
@@ -188,7 +188,7 @@ While the default coefficients are derived from extensive testing and are suffic
 **Altitude 30°**   |   103 |    97 |    87 |    75 |    59 |    37 |    13 |    34 |    72 |   107 |   137 |   161 |   180 |   195 |   206 | 
 **Altitude 20°**   |   128 |   122 |   114 |   103 |    89 |    67 |    32 |    23 |    80 |   126 |   160 |   185 |   205 |   220 |   231 | 
 **Altitude 10°**   |   154 |   149 |   143 |   136 |   127 |   113 |    79 |    12 |   111 |   162 |   192 |   215 |   233 |   247 |   257 | 
-**Altitude  0°**   |   181 |   177 |   173 |   171 |   170 |   173 |   179 |     0 |   202 |   218 |   233 |   249 |   263 |   275 |   283 
+
 
 
 ### 2.4 Predictive Error Correction (PEC)
