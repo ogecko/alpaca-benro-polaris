@@ -6,9 +6,9 @@ in the real-time driver.  No file I/O, no CSV reading, no analysis helpers.
 
 Contents
 --------
-  Angle helpers       wrap_to_180/360/90, wrap180, rotator_to_p_roll
+  Angle helpers       wrap360/180/90
   Astronomy helpers   calc_parallactic_angle, radec_to_altaz, crota2_from_cd,
-                      crota2_to_roll  (used by driver and fits_extract)
+                      crota2_to_roll  (used by fits_extract)
   IK / FK             theta_to_q, q_to_theta, q_to_azaltroll, azaltroll_to_q
                       azaltroll_to_theta, q_from_azaltroll, LastPosition
   Polar correction    make_polar_corrQ, apply_polar_correction[_pair]
@@ -26,32 +26,19 @@ from typing import List, Optional, Tuple
 
 # ── Angle helpers ─────────────────────────────────────────────────────────────
 
-ROTATOR_OFFSET = 0   # Override if camera mounting introduces a roll bias
+def wrap360(angle: float) -> float:
+    """Wrap angle to [0, 360)."""
+    wrapped = angle % 360.0
+    # --- Handle a weird rounding problem for tests, ensure 359.9999999994 is 0.0 and not 360
+    return 0.0 if abs(wrapped - 360) < 1e-10 else wrapped
 
-def wrap_to_180(angle: float) -> float:
+def wrap180(angle: float) -> float:
     """Wrap angle to [-180, +180)."""
     return (angle + 180.0) % 360.0 - 180.0
 
-
-def wrap_to_360(angle: float) -> float:
-    """Wrap angle to [0, 360)."""
-    wrapped = angle % 360.0
-    return 0.0 if abs(wrapped - 360) < 1e-10 else wrapped
-
-
-def wrap_to_90(angle: float) -> float:
+def wrap90(angle: float) -> float:
     """Wrap angle to [-90, +90)."""
     return (angle + 90.0) % 180.0 - 90.0
-
-
-def wrap180(x: float) -> float:
-    """Wrap angle to [-180, +180).  Alias for wrap_to_180."""
-    return ((x + 180) % 360) - 180
-
-
-def rotator_to_p_roll(rotator_deg: float) -> float:
-    """Convert raw rotator angle to predicted roll, applying ROTATOR_OFFSET."""
-    return wrap_to_180(rotator_deg - ROTATOR_OFFSET)
 
 def angular_error_arcmin(
         az_pred: float, alt_pred: float,
@@ -76,12 +63,12 @@ def calc_parallactic_angle(az_deg: float, alt_deg: float, lat_deg: float) -> flo
     lat = math.radians(lat_deg)
     num = math.sin(az)
     den = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
-    return wrap_to_180(-math.degrees(math.atan2(num, den)))
+    return wrap180(-math.degrees(math.atan2(num, den)))
 
 
 def radec_to_altaz(ra_deg: float, dec_deg: float,
                    lat_deg: float, lon_deg: float,
-                   date_obs_utc: str) -> Tuple[Optional[float], Optional[float]]:
+                   date_obs_utc: str):
     """
     Convert J2000 RA/Dec to topocentric Alt/Az using ephem.
     Returns (az_deg, alt_deg) or (None, None) if ephem unavailable or on error.
@@ -103,26 +90,26 @@ def radec_to_altaz(ra_deg: float, dec_deg: float,
         return None, None
 
 
-def crota2_from_cd(cd1_2: float, cd2_2: float) -> Optional[float]:
+def crota2_from_cd(cd1_2: float, cd2_2: float):
     """
     Extract CROTA2 rotation angle (degrees) from WCS CD matrix elements.
     Returns None if both elements are effectively zero.
     """
     if abs(cd1_2) < 1e-15 and abs(cd2_2) < 1e-15:
         return None
-    return wrap_to_180(math.degrees(math.atan2(-cd1_2, cd2_2)))
+    return wrap180(math.degrees(math.atan2(-cd1_2, cd2_2)))
 
 
 def crota2_to_roll(crota2_deg: float,
                    az_deg: float, alt_deg: float,
-                   lat_deg: float) -> Tuple[float, float]:
+                   lat_deg: float):
     """
     Convert CROTA2 WCS rotation to camera roll and parallactic angle.
     Returns (roll_deg, parallactic_angle_deg).
     """
     para           = calc_parallactic_angle(az_deg, alt_deg, lat_deg)
-    position_angle = wrap_to_360(180.0 - crota2_deg)
-    return wrap_to_180(position_angle - para), para
+    position_angle = wrap360(180.0 - crota2_deg)
+    return wrap180(position_angle - para), para
 
 
 # ── IK / FK (inverse and forward kinematics) ─────────────────────────────────
@@ -171,11 +158,11 @@ def q_to_theta_driver(motorQ_C2B: Quaternion,
     tUp    = q1.rotate(np.array([1, 0, 0]))
     tRight = q1.rotate(np.array([0, 1, 0]))
 
-    theta1_A = wrap_to_360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
+    theta1_A = wrap360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
     t1r_A    = np.radians(theta1_A)
     sin_t2_A = -(tUp[0] * np.sin(t1r_A) + tUp[1] * np.cos(t1r_A))
-    theta2_A = wrap_to_90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
-    theta1_B = wrap_to_360(theta1_A + 180)
+    theta2_A = wrap90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
+    theta1_B = wrap360(theta1_A + 180)
     theta2_B = -theta2_A
 
     theta2_min, theta2_max = -8, 83
@@ -194,7 +181,7 @@ def q_to_theta_driver(motorQ_C2B: Quaternion,
         r1n, r2n = r1 / n1, r2 / n2
         cos_t3 = np.clip(np.dot(r1n, r2n), -1, 1)
         sin_t3 = np.dot(np.cross(r1n, r2n), tUp)
-        return wrap_to_180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
+        return wrap180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
 
     if validA and not validB:
         theta1, theta2 = theta1_A, theta2_A
@@ -223,7 +210,7 @@ def q_to_theta_driver(motorQ_C2B: Quaternion,
         theta3 = calc_theta3(theta1, theta2)
 
     if lastPos.check_for_gimbal_lock(theta2):
-        locked_sum = wrap_to_360(theta1 + theta3)
+        locked_sum = wrap360(theta1 + theta3)
         theta3 = 0.0
         theta1 = locked_sum
 
@@ -231,7 +218,7 @@ def q_to_theta_driver(motorQ_C2B: Quaternion,
 
 def azaltroll_to_theta(p_az: float, p_alt: float, p_roll: float,
                        lastPos: Optional[LastPosition] = None,
-                       ) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+                       ):
     """Az/alt/roll (degrees) -> (theta1, theta2, theta3) via IK. Returns (None,None,None) on error."""
     try:
         motorQ = azaltroll_to_q(p_az, p_alt, p_roll)
@@ -450,7 +437,7 @@ class MountModelParams:
     m3_encoder_scale: float = 0.0   # arcmin/deg — M3 encoder scale error
 
     @classmethod
-    def from_config(cls, config) -> 'MountModelParams':
+    def from_config(cls, config):
         """Construct from a Config object. Field names must match config attributes."""
         return cls(
             m3_tilt_alt      = config.m3_tilt_alt,

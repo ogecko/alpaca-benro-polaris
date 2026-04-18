@@ -80,10 +80,7 @@ except ImportError:
 try:
     import kinematics as _km
     from kinematics import (
-        wrap_to_180 as wrap180,   # wrap_to_180 is the canonical name
-        wrap_to_360 as wrap360,
-        wrap_to_90  as wrap90,
-        rotator_to_p_roll,
+        wrap360, wrap180, wrap90,
         calc_parallactic_angle,
         radec_to_altaz,
         azaltroll_to_q   as _azaltroll_to_q,
@@ -93,7 +90,8 @@ try:
         crota2_to_roll,
     )
     HAS_KM = True
-except ImportError:
+except ImportError as e:
+    print(e)
     HAS_KM = False
     print("WARNING: kinematics.py not found.")
     # Minimal stubs so the rest of the file can be imported without pm
@@ -101,7 +99,6 @@ except ImportError:
     def wrap360(a):
         w = a % 360.0; return 0.0 if abs(w - 360) < 1e-10 else w
     def wrap90(a):     return (a + 90.0) % 180.0 - 90.0
-    def rotator_to_p_roll(r): return wrap180(r)
     def calc_parallactic_angle(az, alt, lat): return 0.0
     def radec_to_altaz(*a, **kw): return None, None
     def azaltroll_to_theta(*a): return None, None, None
@@ -205,8 +202,7 @@ def _process_fits(path, session_id, lat, lon):
 
     p_az   = _sf(h, 'CENTAZ')
     p_alt  = _sf(h, 'CENTALT')
-    rotator = _sf(h, 'ROTATOR')
-    p_roll  = rotator_to_p_roll(rotator) if rotator is not None else None
+    p_roll = _sf(h, 'ROTATOR')
 
     row['p_az']   = f4(p_az)
     row['p_alt']  = f4(p_alt)

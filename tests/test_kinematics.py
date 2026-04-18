@@ -14,8 +14,8 @@ from pyquaternion import Quaternion
 import kinematics as pm
 from kinematics import (
     theta_to_q, q_to_azaltroll, q_to_theta, q_from_azaltroll,
-    azaltroll_to_q, azaltroll_to_theta, wrap180, angular_error_arcmin,
-    wrap_to_180, wrap_to_360, wrap_to_90, rotator_to_p_roll,
+    azaltroll_to_q, azaltroll_to_theta, angular_error_arcmin,
+    wrap360, wrap180, wrap90, rotator_to_p_roll,
     calc_parallactic_angle, crota2_from_cd, crota2_to_roll,
     make_polar_corrQ, apply_polar_correction, apply_polar_correction_pair,
     apply_mechanical_corrections, MountModelParams,
@@ -248,20 +248,20 @@ class TestQuestSolve:
 
 
 class TestAngleHelpers:
-    def test_wrap_to_180(self):
-        assert pm.wrap_to_180(270)  == -90.0
-        assert pm.wrap_to_180(-270) ==  90.0
-        assert pm.wrap_to_180(180)  == -180.0
-        assert pm.wrap_to_180(0)    ==   0.0
+    def test_wrap180(self):
+        assert pm.wrap180(270)  == -90.0
+        assert pm.wrap180(-270) ==  90.0
+        assert pm.wrap180(180)  == -180.0
+        assert pm.wrap180(0)    ==   0.0
 
-    def test_wrap_to_360(self):
-        assert pm.wrap_to_360(-10)  == 350.0
-        assert pm.wrap_to_360(370)  ==  10.0
-        assert pm.wrap_to_360(0)    ==   0.0
+    def test_wrap360(self):
+        assert pm.wrap360(-10)  == 350.0
+        assert pm.wrap360(370)  ==  10.0
+        assert pm.wrap360(0)    ==   0.0
 
-    def test_wrap_to_90(self):
-        assert pm.wrap_to_90(100)  == -80.0
-        assert pm.wrap_to_90(-91)  ==  89.0
+    def test_wrap90(self):
+        assert pm.wrap90(100)  == -80.0
+        assert pm.wrap90(-91)  ==  89.0
 
     def test_rotator_to_p_roll(self):
         assert pm.rotator_to_p_roll(0)   ==   0.0

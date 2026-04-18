@@ -17,7 +17,7 @@ from collections import deque
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-
+from kinematics import wrap360, wrap180, wrap90
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -138,28 +138,14 @@ def quaternion_error(q_from, q_to):
     return np.degrees(angle_rad), axis, q_delta
 
 
-def wrap_to_360(angle):
-    """Wraps angle to [0, 360) degrees"""
-    wrapped = angle % 360.0
-    # --- Handle a weird rounding problem for tests, ensure 359.9999999994 is 0.0 and not 360
-    return 0.0 if abs(wrapped - 360) < 1e-10 else wrapped
-
-def wrap_to_180(angle):
-    """Wraps angle to [-180, +180) degrees"""
-    return (angle + 180.0) % 360.0 - 180.0
-
-def wrap_to_90(angle):
-    """Wraps angle to [-90, +90) degrees"""
-    return (angle + 90.0) % 180.0 - 90.0
-
 def wrap_angle_residual(measured_theta, predicted_theta):
-    return np.vectorize(wrap_to_180)(measured_theta - predicted_theta)
+    return np.vectorize(wrap180)(measured_theta - predicted_theta)
 
 def wrap_state_angles(x):
     x_wrapped = x.copy()
-    x_wrapped[0, 0] = wrap_to_360(x[0, 0])    # theta1
-    x_wrapped[1, 0] = wrap_to_180(x[1, 0])    # theta2
-    x_wrapped[2, 0] = wrap_to_180(x[2, 0])    # theta3 
+    x_wrapped[0, 0] = wrap360(x[0, 0])    # theta1
+    x_wrapped[1, 0] = wrap180(x[1, 0])    # theta2
+    x_wrapped[2, 0] = wrap180(x[2, 0])    # theta3 
     return x_wrapped
 
 def calc_parallactic_angle(az_deg, alt_deg, lat_deg):
@@ -173,7 +159,7 @@ def calc_parallactic_angle(az_deg, alt_deg, lat_deg):
     numerator = math.sin(az)
     denominator = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
     angle = math.degrees(math.atan2(numerator, denominator))
-    return wrap_to_180(-angle)
+    return wrap180(-angle)
 
 
 def azalt_to_vector(az_deg, alt_deg):
@@ -423,9 +409,9 @@ def q_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
         """ Calc Theta1 and Theta2 based on removing Theta3 pan """
         unTheta3Pan = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
         mBore = unTheta3Pan.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module effect
-        theta1 = wrap_to_360(np.degrees(np.arctan2(mBore[0], mBore[1])))
-        theta2 = wrap_to_90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
-        return theta1, theta2, wrap_to_180(theta3)
+        theta1 = wrap360(np.degrees(np.arctan2(mBore[0], mBore[1])))
+        theta2 = wrap90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
+        return theta1, theta2, wrap180(theta3)
 
     # --- Find the two solutions based on theta3 being pointing one way or the opposite
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
@@ -459,7 +445,7 @@ def q_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
     # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
     in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
     if in_gimbal_lock:
-        locked_sum = wrap_to_360(theta1 + theta3)
+        locked_sum = wrap360(theta1 + theta3)
         theta3 = 0
         theta1 = locked_sum
 
@@ -474,13 +460,13 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     tRight = q1.rotate(np.array([0, 1, 0]))
 
     # Primary solution
-    theta1_A = wrap_to_360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
+    theta1_A = wrap360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
     t1r_A    = np.radians(theta1_A)
     sin_t2_A = -(tUp[0]*np.sin(t1r_A) + tUp[1]*np.cos(t1r_A))
-    theta2_A = wrap_to_90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
+    theta2_A = wrap90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
 
     # Alternative solution
-    theta1_B = wrap_to_360(theta1_A + 180)
+    theta1_B = wrap360(theta1_A + 180)
     theta2_B = -theta2_A
 
     # Validity
@@ -500,7 +486,7 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
         r1n, r2n = r1/n1, r2/n2
         cos_t3 = np.clip(np.dot(r1n, r2n), -1, 1)
         sin_t3 = np.dot(np.cross(r1n, r2n), tUp)
-        return wrap_to_180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
+        return wrap180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
 
     if validA and not validB:
         theta1, theta2 = theta1_A, theta2_A
@@ -536,7 +522,7 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     # Gimbal lock
     in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
     if in_gimbal_lock:
-        locked_sum = wrap_to_360(theta1 + theta3)
+        locked_sum = wrap360(theta1 + theta3)
         theta3 = 0
         theta1 = locked_sum
 
@@ -573,7 +559,7 @@ def q_to_azaltroll(cameraQ_C2T):
     if q_roll_residual[3] < 0:
         roll = -roll
 
-    return wrap_to_360(az), wrap_to_180(alt), wrap_to_180(roll)
+    return wrap360(az), wrap180(alt), wrap180(roll)
 
 
 def apply_mechanical_corrections(q):
@@ -1440,7 +1426,7 @@ class PID_Controller():
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
 
     def body_pa(self):
-        return wrap_to_180(0.0 - rad2deg(self.body.parallactic_angle()))
+        return wrap180(0.0 - rad2deg(self.body.parallactic_angle()))
     
     def body2alpha(self):
         self.observer.date = ephem.Date(datetime.datetime.utcnow())
@@ -1483,7 +1469,7 @@ class PID_Controller():
         az = rad2deg(self.body.az)
         if self.polaris._trackingrate == 0:   # only update roll when sidereal tracking
             parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
-            self.body_pa_offset = wrap_to_360(delta[2] - parallactic_angle)
+            self.body_pa_offset = wrap360(delta[2] - parallactic_angle)
 
     def orbital2delta(self):
         orbital = None
@@ -2582,27 +2568,27 @@ class SyncManager:
 
         self.tilt_adj_az = tilt_az_observed
         self.tilt_adj_mag = tilt_magnitude_deg
-        self.az_adj = wrap_to_180(north_az)
+        self.az_adj = wrap180(north_az)
 
 
     def roll2pa(self, az_deg, alt_deg, roll_deg):
         """Convert camera-frame roll to sky-frame position angle and parallactic angle at ascom azalt."""
         parallactic_angle = calc_parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
-        position_angle = wrap_to_360(roll_deg + parallactic_angle)
+        position_angle = wrap360(roll_deg + parallactic_angle)
         return position_angle, parallactic_angle
 
     def pa2roll(self, az_deg, alt_deg, position_angle_deg):
         """Convert sky-frame position angle to camera-fram roll using parallactic angle at ascom azalt."""
         parallactic_angle = calc_parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
-        return wrap_to_360(position_angle_deg - parallactic_angle)
+        return wrap360(position_angle_deg - parallactic_angle)
 
     def roll_polaris2ascom(self, polaris_roll_deg):
         """Convert Polaris roll angle to ASCOM roll angle (mechanical angle), applying roll sync adjustment correction."""
-        return wrap_to_360(polaris_roll_deg + self.roll_adj)
+        return wrap360(polaris_roll_deg + self.roll_adj)
 
     def roll_ascom2polaris(self, ascom_roll_deg):
         """Convert ASCOM roll angle (mechanical angle) to Polaris roll angle, applying roll sync adjustment."""
-        return wrap_to_360(ascom_roll_deg - self.roll_adj)
+        return wrap360(ascom_roll_deg - self.roll_adj)
 
     def optimize_roll_adj(self):
         deltas = []
