@@ -172,7 +172,7 @@ While the default coefficients are derived from extensive testing and are suffic
 
 #### **VI. Important Implementation Details**
 
-- **Stability:** The coefficients reflect the physical mechanical characteristics of the mount axes and are highly stable. They do not need to be recalculated unless the hardware is modified or the camera is remounted.
+- **Stability:** The coefficients reflect the physical mechanical characteristics of the mount axes and independant of polar alignment, tripod tilt, or azimuth position.
 - **Roll Adjustment (`roll_adj`):** A separate per-session camera roll offset is calibrated independently via `sync_roll()` in the live driver. This accounts for the camera mounting angle and is not part of the mechanical model.
 - **QUEST Integration:** The mechanical corrections are applied before QUEST frame alignment. This ensures that QUEST receives consistent data regardless of roll angle, allowing it to converge on a stable per-session alignment quaternion.
 - **Forward Kinematics Only:** The corrections are applied in the forward kinematic model (`apply_mechanical_corrections`). No inverse correction is required in the IK because the bias is handled at the predicted-position stage.
