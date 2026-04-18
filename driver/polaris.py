@@ -2003,16 +2003,16 @@ class Polaris:
     async def sync_to_azalt(self, a_az, a_alt):
         syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
         self.logger.info(f"->> Polaris: SYNC Observed   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
-        await self.sync_telescope_pointing_models(a_az=a_az, a_alt=a_alt)
+        await self.sync_telescope(a_az=a_az, a_alt=a_alt)
         return
 
     async def sync_to_radec(self, a_ra, a_dec):
         syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
         self.logger.info(f"->> Polaris: SYNC Observed   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} ({syncmsg})")
-        await self.sync_telescope_pointing_models(a_ra=a_ra, a_dec=a_dec)
+        await self.sync_telescope(a_ra=a_ra, a_dec=a_dec)
         return
 
-    async def sync_telescope_pointing_models(self, a_ra=None, a_dec=None, a_az=None, a_alt=None, name=None):
+    async def sync_telescope(self, a_ra=None, a_dec=None, a_az=None, a_alt=None, name=None):
         if a_ra is not None and a_dec is not None:
             a_alt, a_az = self.radec2altaz(a_ra, a_dec)
         elif a_az is not None and a_alt is not None:
