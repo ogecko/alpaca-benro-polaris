@@ -58,7 +58,7 @@ advanced_guiding = true                     # Enable the ASCOM Alpaca Pulse guid
 advanced_alignment = false                  # Enable Multi-Point Alignment/Quest model vs Single Point Alignment/Polaris model
 advanced_slew_center = true                 # Enable corrections to reduce the number of Slew & Center cycles ie enable LZC or LGA 
 advanced_align_lga = true                   # False=Zero Last Residual, True=Local Gausian Adjustment; only when advanced_slew_ceeter is enabled
-advanced_align_rbc = false                  # Enable Rotation Bias Correction model adjustment, corrects systemic p_roll encoding error that affects az and roll pointing
+advanced_align_rbc = true                   # Enable Rotation Bias Correction model adjustment, corrects mechanical tilt on M3 and M2
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 advanced_pec = true                         # Perform Predictive Error Correction, not yet implemented
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.003981071705534973 ]

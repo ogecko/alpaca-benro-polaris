@@ -472,7 +472,7 @@ class MountModelParams:
         )
 
 
-def apply_mechanical_corrections(q: Quaternion, params: MountModelParams) -> Quaternion:
+def apply_mechanical_corrections(q: Quaternion, params: MountModelParams):
     """
     Apply mechanical axis corrections to camera quaternion.
 
@@ -526,7 +526,11 @@ def apply_mechanical_corrections(q: Quaternion, params: MountModelParams) -> Qua
                               degrees=(params.m3_encoder_scale / 60.0) * t3)
 
     # Applied right-to-left: M3_tilt_az, M3_tilt_alt, M2_tilt, M3_encoder
-    return (q_m3_encoder * q_m2_tilt * q_m3_tilt_alt * q_m3_tilt_az * q).normalised
+    q_corr = q_m3_encoder * q_m2_tilt * q_m3_tilt_alt * q_m3_tilt_az
+    q_fixed = (q_corr * q).normalised
+    magnitude = q_corr.degrees
+
+    return q_fixed, magnitude
 
 # ── QUEST alignment ──────────────────────────────────────────────────────────
 

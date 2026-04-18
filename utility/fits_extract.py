@@ -464,7 +464,7 @@ def _build_quest_pairs(rows, mount_params):
             continue
         q_base = _km.theta_to_q(t1, t2, t3)
         if mount_params is not None:
-            q_base = _km.apply_mechanical_corrections(q_base, mount_params)
+            q_base, _ = _km.apply_mechanical_corrections(q_base, mount_params)
         p_az_corr, p_alt_corr, _ = _km.q_to_azaltroll(q_base)
         # Now pair corrected predicted az/alt vs solved az/alt, roll=0
         q_pred   = _km.q_from_azaltroll(p_az_corr, p_alt_corr, 0.0)
@@ -508,7 +508,7 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
 
     q_base = _km.theta_to_q(p_t1, p_t2, p_t3)
     if mount_params is not None:
-        q_base = _km.apply_mechanical_corrections(q_base, mount_params)
+        q_base, _ = _km.apply_mechanical_corrections(q_base, mount_params)
     pa_q = (alignQ * q_base).normalised
 
     m_az, m_alt, m_roll_raw = _km.q_to_azaltroll(pa_q)

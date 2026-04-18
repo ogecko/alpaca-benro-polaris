@@ -17,7 +17,7 @@ from collections import deque
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
+from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle, apply_mechanical_corrections
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -522,62 +522,6 @@ def q_to_azaltroll(cameraQ_C2T):
         roll = -roll
 
     return wrap360(az), wrap180(alt), wrap180(roll)
-
-
-def apply_mechanical_corrections(q):
-    """
-    Apply mechanical axis corrections to camera quaternion.
-
-    Correction order (applied right-to-left in the return expression):
-      B5 first: removes dominant M3-axis-tilt error so B1 residuals are clean.
-      B1 next:  removes M2-axis-tilt altitude error.
-      B3 last:  removes M3 encoder scale error.
-
-    B5 — M3 axis tilt -> altitude AND azimuth (both altitude-dependent) [DOMINANT]
-      At low altitude: mostly altitude error. At high altitude: mostly azimuth error.
-      Physical cause: M3 rotation axis is not exactly camera UP.
-      Fitted error: dev_theta2 [arcmin] = f * cos(theta2) * theta3
-                    dev_theta1 [arcmin] = g * sin(theta2) * theta3
-      Correction:   rotate around M2 axis by -(f/60) * cos(theta2) * theta3 degrees
-                    rotate around M1 axis by +(g/60) * sin(theta2) * theta3 degrees
-
-    B1 — M2 axis tilt -> altitude (theta_model_a, theta_model_b)
-      Physical cause: M2 rotation axis not perpendicular to M1.
-      Fitted error: dev_theta2 [arcmin] = a * sin(theta2 - b)
-      Correction:   rotate around M2 axis by -(a/60) * sin(theta2 - b) degrees.
-
-    B3 — M3 encoder scale error (theta_model_e)
-      Physical cause: M3 encoder reads more/less rotation than occurred.
-      Fitted error: dev_theta3 [arcmin] = e * theta3
-      Correction:   rotate around M3 axis by (e/60) * theta3 degrees.
-
-    B2 (theta_model_c/d) is NOT applied — diagnostic only.
-    """
-    t1, t2, t3 = q_to_theta(q)
-
-    # Motor axis directions in the base frame
-    qtheta1 = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
-    qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
-    m1_axis = [0.0, 0.0, 1.0]
-    m2_axis = qtheta1.rotate([0, 1, 0])
-    m3_axis = (qtheta1 * qtheta2).rotate([1, 0, 0])
-
-    # B5: M3 axis tilt -> altitude and azimuth
-    delta_t2_b5 = -(Config.theta_model_f / 60.0) * math.cos(math.radians(t2)) * t3
-    delta_t1_b5 =  (Config.theta_model_g / 60.0) * math.sin(math.radians(t2)) * t3
-    q_b5_alt = Quaternion(axis=m2_axis, degrees=delta_t2_b5)
-    q_b5_az  = Quaternion(axis=m1_axis, degrees=delta_t1_b5)
-
-    # B1: M2 axis tilt -> altitude
-    delta_t2_b1 = -(Config.theta_model_a / 60.0) * math.sin(math.radians(t2 - Config.theta_model_b))
-    q_b1 = Quaternion(axis=m2_axis, degrees=delta_t2_b1)
-
-    # B3: M3 encoder scale error
-    delta_t3 = (Config.theta_model_e / 60.0) * t3
-    q_b3 = Quaternion(axis=m3_axis, degrees=delta_t3)
-
-    # Applied right-to-left: B5_az, B5_alt, B1, B3
-    return (q_b3 * q_b1 * q_b5_alt * q_b5_az * q).normalised
 
 
 
@@ -2053,19 +1997,10 @@ class SyncManager:
     def entry_to_pred_vector(self, entry):
         """
         Convert a sync history entry's raw stored p_az/p_alt/p_roll into a
-        predicted unit vector, optionally applying Rotation Bias Correction.
-
-        Raw values are always stored in sync history so that toggling
-        advanced_align_rbc recalculates alignQ_B2T without new sync points.
-        RBC is applied here at query time, not at storage time.
+        predicted unit vector.
         """
-        if Config.advanced_align_rbc:
-            motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
-            motorQ_adj, _   = apply_rotation_bias_corrQ_RBC(motorQ_entry)
-            eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
-        else:
-            eff_az  = entry["p_az"]
-            eff_alt = entry["p_alt"]
+        eff_az  = entry["p_az"]
+        eff_alt = entry["p_alt"]
         return azalt_to_vector(eff_az, eff_alt), eff_az, eff_alt
     
 

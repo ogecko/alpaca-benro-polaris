@@ -624,10 +624,14 @@ class Polaris:
             self._theta_state, _ = self._kf.get_state()
             motorQ_state = theta_to_q(*self._theta_state)
 
-            # Optionally apply Rotation Bias Correction (RBC)
-            if Config.advanced_align_rbc:
-                self._motorQ_adj, self._rbc_error = apply_rotation_bias_corrQ_RBC(motorQ_state)
+            # optionally apply mechanical corrections (RBC)
+            if (Config.advanced_align_rbc):
+                params = MountModelParams.from_config(Config)
+                self._motorQ_adj, self._rbc_error = apply_mechanical_corrections(motorQ_state, params)
                 self._theta_adj = np.array(q_to_theta(self._motorQ_adj, self._pid._lp))
+                # Optionally apply Rotation Bias Correction (RBC)
+                # self._motorQ_adj, self._rbc_error = apply_rotation_bias_corrQ_RBC(motorQ_state)
+                # self._theta_adj = np.array(q_to_theta(self._motorQ_adj, self._pid._lp))
             else:
                 self._motorQ_adj, self._rbc_error = motorQ_state, 0
                 self._theta_adj = self._theta_state      
@@ -753,20 +757,14 @@ class Polaris:
         p_az = float(arg_dict['compass'])   # from Polaris direct
         p_alt = -float(arg_dict['alt'])     # from Polaris direct
 
-        # apply mechanical corrections
-        if (Config.advanced_pec):
-            params = MountModelParams.from_config(Config)
-            motorQ_raw = apply_mechanical_corrections(motorQ_raw, params)
-
         theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp))
-
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
         omega_raw = omega_ref                          # this is our best measurement of omega, dont use calc from histoy ωt - ωt-6
 
         # Store all the polaris mechanical angles and velocities
         with self._lock:
             self._last_518_timestamp = dt_now
-            self._q1 = motorQ_raw                      # raw quaternion stored
+            self._q1 = motorQ_raw
             self._theta_raw = theta_raw
             self._omega_raw = omega_raw
        
