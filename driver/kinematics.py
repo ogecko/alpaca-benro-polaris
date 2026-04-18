@@ -39,9 +39,7 @@ def wrap90(angle: float) -> float:
     """Wrap angle to [-90, +90)."""
     return (angle + 90.0) % 180.0 - 90.0
 
-def angular_error_arcmin(
-        az_pred: float, alt_pred: float,
-        az_true: float, alt_true: float) -> float:
+def angular_error_arcmin(az_pred: float, alt_pred: float, az_true: float, alt_true: float) -> float:
     """Great-circle angular separation in arcminutes."""
     az1, az2 = math.radians(az_pred), math.radians(az_true)
     al1, al2 = math.radians(alt_pred), math.radians(alt_true)
@@ -53,6 +51,11 @@ def angular_error_arcmin(
 def is_angle_same(a, b, tolerance=1e-4):
     """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
     return abs((a - b + 180) % 360 - 180) < tolerance
+
+# ── 3D Vector helpers ─────────────────────────────────────────────────────────
+
+
+# ── Quaternion helpers ─────────────────────────────────────────────────────────
 
 def quaternion_difference(q_from, q_to):
     """
@@ -71,9 +74,6 @@ def quaternion_difference(q_from, q_to):
     sin_half = np.sqrt(1.0 - w*w)
     axis = q_delta.vector / sin_half
     return np.degrees(angle_rad), axis, q_delta
-
-# ── 3D Vector helpers ─────────────────────────────────────────────────────────
-
 
 # ── Astronomy helpers ─────────────────────────────────────────────────────────
 
