@@ -524,62 +524,6 @@ def q_to_azaltroll(cameraQ_C2T):
     return wrap360(az), wrap180(alt), wrap180(roll)
 
 
-
-def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
-    """
-    Returns the RBC correction quaternion and roll error.
-
-    Corrects two coupled M3 encoder errors:
-      1. Roll error:  dev_roll = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll      [arcmin]
-         Corrected by rotating around the camera boresight axis.
-
-      2. Az error:    dev_az   = rbc_model_c · dev_roll                               [arcmin]
-         Empirically fitted from plate-solve data across all altitudes.
-
-    sign = -1  for apply (forward kinematics)
-    sign = +1  for undo (inverse kinematics / velocity vectors)
-    """
-    _, p_alt, p_roll = q_to_azaltroll(motorQ_C2B)
-    p_alt_clamped = min(p_alt, 75.0)
-
-    slope = Config.rbc_model_a * np.tan(np.radians(p_alt_clamped)) + Config.rbc_model_b
-    roll_error_deg = slope * p_roll / 60.0
-
-    if abs(roll_error_deg) < 1e-6:
-        return (None, 0)
-
-    # --- Roll correction ---
-    # Rotate around the camera boresight axis (expressed in B frame).
-    boresight_B = motorQ_C2B.rotate([0, 0, -1])
-    corrQ_roll = Quaternion(axis=boresight_B, degrees=sign * roll_error_deg)
-
-    # --- Az correction ---
-    # Empirical relationship: dev_az (arcmin) = az_model_c * dev_roll (arcmin)
-    # The zenith direction in B frame is the M1 rotation axis = [0, 0, 1] (Z_B).
-    az_error_deg = Config.rbc_model_c * roll_error_deg
-    corrQ_az = Quaternion(axis=[0, 0, 1], degrees=sign * az_error_deg)
-
-    # measure residual altitude change introduced by the roll+az corrections
-    # and cancel it with a rotation around the East axis
-    q_test = corrQ_az * corrQ_roll * motorQ_C2B
-    _, corrected_alt, _ = q_to_azaltroll(q_test)
-    alt_error_deg = corrected_alt - p_alt          # how much alt shifted spuriously
-    east_axis_B = motorQ_C2B.rotate([1, 0, 0])     # or use fixed [1,0,0] in base frame
-    corrQ_alt = Quaternion(axis=[0, 1, 0], degrees=-sign * alt_error_deg)
-
-    corrQ =  corrQ_az * corrQ_alt *corrQ_roll
-    return (corrQ, roll_error_deg)
-
-def apply_rotation_bias_corrQ_RBC(motorQ_C2B):
-    corrQ_RBC, roll_error_deg = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=-1)
-    return (corrQ_RBC * motorQ_C2B, roll_error_deg) if corrQ_RBC is not None else (motorQ_C2B, 0)
-
-def undo_rotation_bias_corrQ_RBC(motorQ_C2B):
-    undo_corrQ_RBC, roll_error_deg = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1)
-    return (undo_corrQ_RBC * motorQ_C2B, roll_error_deg) if undo_corrQ_RBC is not None else (motorQ_C2B, 0)
-
-
-
 def quaternion_to_angles(q1, lastPos = LastPosition()):
     """
     Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.

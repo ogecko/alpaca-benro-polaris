@@ -629,9 +629,7 @@ class Polaris:
                 params = MountModelParams.from_config(Config)
                 self._motorQ_adj, self._rbc_error = apply_mechanical_corrections(motorQ_state, params)
                 self._theta_adj = np.array(q_to_theta(self._motorQ_adj, self._pid._lp))
-                # Optionally apply Rotation Bias Correction (RBC)
-                # self._motorQ_adj, self._rbc_error = apply_rotation_bias_corrQ_RBC(motorQ_state)
-                # self._theta_adj = np.array(q_to_theta(self._motorQ_adj, self._pid._lp))
+
             else:
                 self._motorQ_adj, self._rbc_error = motorQ_state, 0
                 self._theta_adj = self._theta_state      
