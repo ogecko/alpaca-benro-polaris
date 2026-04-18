@@ -462,13 +462,13 @@ class MountModelParams:
 
     @classmethod
     def from_config(cls, config):
-        """Construct from a Config object. Field names must match config attributes."""
+        get = (lambda k: config[k]) if isinstance(config, dict) else (lambda k: getattr(config, k))
         return cls(
-            m3_tilt_alt      = config.m3_tilt_alt,
-            m3_tilt_az       = config.m3_tilt_az,
-            m2_tilt_alt_amp  = config.m2_tilt_alt_amp,
-            m2_tilt_alt_zero = config.m2_tilt_alt_zero,
-            m3_encoder_scale = config.m3_encoder_scale,
+            m3_tilt_alt      = get('m3_tilt_alt'),
+            m3_tilt_az       = get('m3_tilt_az'),
+            m2_tilt_alt_amp  = get('m2_tilt_alt_amp'),
+            m2_tilt_alt_zero = get('m2_tilt_alt_zero'),
+            m3_encoder_scale = get('m3_encoder_scale'),
         )
 
 
@@ -528,7 +528,7 @@ def apply_mechanical_corrections(q: Quaternion, params: MountModelParams):
     # Applied right-to-left: M3_tilt_az, M3_tilt_alt, M2_tilt, M3_encoder
     q_corr = q_m3_encoder * q_m2_tilt * q_m3_tilt_alt * q_m3_tilt_az
     q_fixed = (q_corr * q).normalised
-    magnitude = q_corr.degrees
+    magnitude = 2 * math.degrees(math.acos(min(1.0, abs(q_corr.w))))
 
     return q_fixed, magnitude
 

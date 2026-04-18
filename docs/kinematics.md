@@ -107,77 +107,88 @@ The formula for the weight is:
 *   **Seamless Transitions:** Because the correction uses a Gaussian fade, there are no mechanical discontinuities or "jumps" as the mount moves across the sky.
 
 
-
 ---
 ### 2.3 Rotation Bias Correction (RBC)
 
-The **Rotation Bias Correction (RBC)** is a specialized kinematic model designed to compensate for systematic reporting errors in the Benro Polaris Internal Measurement Unit (IMU). While the mount’s hardware is robust, the IMU mis-reports the camera rotation angle based on its specific mechanical orientation, leading to significant pointing inaccuracies that standard alignment models cannot resolve.
+The **Rotation Bias Correction (RBC)** is a mechanical pointing model that compensates for systematic errors caused by physical axis misalignments within the Benro Polaris mount. Unlike traditional alignment issues caused by tripod tilt or polar misalignment, which are "rigid" and apply globally, Rotation Bias errors are **orientation-dependent**. The magnitude of the error changes based on the current **altitude** and **rotation angle (camera roll)**.
 
-#### **I. What it is and What it Solves**
-RBC is a **non-rigid-body correction** that adjusts for errors in the M3 (Astro) axis. Unlike traditional alignment issues caused by tripod tilt or polar misalignment, which are "rigid" and apply globally, Rotation Bias is **orientation-dependent**. The magnitude of the error changes based on the current **altitude (p_alt)** and **rotation angle (p_roll)**.
+#### **I. What It Is and What It Solves**
 
-Without RBC, a sync point taken at one rotation angle would provide contradictory data to a sync point taken at a different rotation angle, even if the Azimuth and Altitude were identical. This prevents the QUEST alignment algorithm from converging on a stable, accurate solution. By applying RBC at the measurement stage, the driver ensures that the alignment model receives "clean" data, allowing for high-precision pointing across the entire sky.
+Without RBC, a sync point taken at one rotation angle provides contradictory data to a sync point taken at a different rotation angle, even if the Azimuth and Altitude are identical. This prevents the QUEST alignment algorithm from converging on a stable, accurate solution. By modelling and correcting the underlying mechanical axis misalignments, the driver ensures that the alignment model receives clean data, allowing for high-precision pointing across the entire sky.
 
 #### **II. Root Cause and Discovery**
-The error was discovered after analyzing a "porcupine grid" of approximately **1,000 plate-solved images** captured across various mechanical positions. By using Single Point Alignment (SPA) to isolate variables, we identified a residual error that persisted even after accounting for global bias and polar misalignment.
 
-The **root cause** lies in two coupled encoder errors within the M3 axis (theta3):
-*   **Gain Error (roll_model_a):** The M3 axis reports slightly less physical rotation than what actually occurred. This error is amplified at high altitudes because roll errors project more dramatically onto Azimuth as coordinates converge toward the zenith.
-*   **Zero-Point Offset (roll_model_b):** A fixed mechanical bias where the IMU believes the camera is level (theta3=0) when it is actually slightly tilted.
+The error was discovered after analysing a "porcupine grid" of approximately 3,000 plate-solved images captured across various mechanical positions. Residual pointing errors that persisted even after QUEST frame alignment were decomposed into three physical axis misalignments:
+
+- **M3 axis tilt - altitude component (`m3_tilt_alt`):** The physical M3 motor rotation axis is tilted from its ideal direction (the camera UP axis) by approximately 2.6 arcmin. When M3 rotates to set camera roll, this tilt sweeps the camera boresight in altitude by an amount proportional to the roll angle commanded. The fitted coefficient is −2.10 arcmin per degree of rotation.
+
+- **M3 axis tilt - azimuth component (`m3_tilt_az`):** The same physical M3 axis tilt also sweeps the boresight in azimuth. This effect is modulated by sin(altitude) because at low altitude an azimuth-axis rotation mostly changes roll rather than sky azimuth. The fitted coefficient is +1.52 arcmin per degree of roll.
+
+- **M2 axis tilt (`m2_tilt_alt_amp`, `m2_tilt_alt_zero`):** The M2 motor rotation axis is not perfectly perpendicular to M1. This produces a sinusoidal altitude error as a function of the altitude motor position, with an amplitude of approximately 67 arcmin and a zero crossing near the horizon.
+
+All three misalignments are fixed properties of the mount hardware. They are corrected by applying small compensating quaternion rotations in the forward kinematic model before sky coordinates are computed.
 
 #### **III. Magnitude of the Error**
-The impact of this bias is modest at low altitudes but becomes severe as the mount points toward the zenith or uses aggressive roll angles.
-*   **At 0° Altitude and 70° Roll:** The error is relatively small, causing a maximum of ±18 arcmin of roll error.
-*   **At 70° Altitude and 70° Roll:** The uncorrected error is massive, causing **±205 arcmin (~3.4°)** in roll error and a staggering **±563 arcmin (~9.4°)** in azimuth error.
+
+The combined effect is modest at low altitudes but grows significantly at high altitudes and large roll angles, because the M3 tilt projects more strongly onto sky azimuth as coordinates converge toward the zenith.
+
+- **At 20° altitude and ±50° roll:** altitude error ~±30 arcmin, azimuth error ~±11 arcmin
+- **At 50° altitude and ±50° roll:** altitude error ~±50 arcmin, azimuth error ~±84 arcmin  
+- **At 70° altitude and ±50° roll:** altitude error ~±75 arcmin, azimuth error ~±402 arcmin (~6.7°)
 
 #### **IV. The Mathematical Model**
-The driver uses a fitted coefficients model to calculate the required correction in real-time:
 
-    roll_error (arcmin) = (roll_model_a * tan(p_alt) + roll_model_b) * p_roll
+Three correction quaternions are applied in sequence within `apply_mechanical_corrections()`:
 
-    az_error (arcmin) = roll_model_c * roll_error
+**M3 tilt — altitude:**
 
-This formula allows the driver to predict and negate the IMU's reporting error before the coordinates are used for tracking or GOTOs.
+    altitude_correction (arcmin) = m3_tilt_alt × theta3
+
+Applied as a rotation around the M2 axis (altitude axis) by `−(m3_tilt_alt / 60) × theta3` degrees.
+
+**M3 tilt — azimuth:**
+
+    azimuth_correction (arcmin) = m3_tilt_az × sin(theta2) × theta3
+
+Applied as a rotation around the vertical M1 axis by `−(m3_tilt_az / 60) × sin(theta2) × theta3` degrees.
+
+**M2 tilt — altitude:**
+
+    altitude_correction (arcmin) = m2_tilt_alt_amp × sin(theta2 − m2_tilt_alt_zero)
+
+Applied as a rotation around the M2 axis by `−(m2_tilt_alt_amp / 60) × sin(theta2 − m2_tilt_alt_zero)` degrees.
+
+Where `theta2` is the altitude motor angle and `theta3` is the astro motor angle, both in degrees.
 
 #### **V. How to Perform Your Own Calibration**
-While the default coefficients are derived from extensive testing and are sufficient for most users, advanced specialists can use the **`fits_extract.py`** utility to fine-tune the model for their specific Polaris unit.
 
-1.  **Data Collection:** Using **Single Point Alignment** (not Multi-Point), capture a wide grid of FITS images covering various Alt, Az, and Roll positions. Aim for full coverage of the roll range at multiple altitudes.
-2.  **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
-3.  **Extraction:** Run the script with the `-extract` flag: `python fits_extract.py -extract`. This reads the FITS headers and builds a CSV comparing predicted positions with plate-solved ground truth.
-4.  **Modeling:** Run the script with the `-model` flag: `python fits_extract.py -model`. This fits the RBC coefficients (`roll_model_a`, `roll_model_b` and `roll_model_c`) to your data.
-5.  **Application:** Manually update the derived coefficients in your **`config.toml`** file.
+While the default coefficients are derived from extensive testing and are sufficient for most users, advanced users who own an astro camera that supports FITs format, can use the **`fits_extract.py`** utility to fit the model for their specific Polaris unit.
+
+1. **Data Collection:** Using a pano grid with roll variation, capture FITS images covering a wide range of altitude, azimuth, and roll positions. Aim for full coverage of the roll range (±50°) at multiple altitudes (20°–65°). Ensure all corrections are disabled while collecting the images.
+2. **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
+3. **Extraction:** Run `python fits_extract.py -extract`. This reads the FITS headers and builds a CSV comparing predicted positions with plate-solved ground truth.
+4. **Modelling:** Run `python fits_extract.py -model`. This fits the RBC coefficients (`m3_tilt_alt`, `m3_tilt_az`, `m2_tilt_alt_amp`, `m2_tilt_alt_zero`) to your data and writes them to a JSON file.
+5. **Application:** Copy the fitted parameters into your **`config.toml`** file.
 
 #### **VI. Important Implementation Details**
-*   **Stability:** Because these coefficients reflect the mechanical characteristics of the M3 encoder and arm, they are highly stable and do not need to be recalculated unless the hardware is modified.
-*   **Inverse Kinematics:** No inverse RBC correction is required in the kinematic chain because the bias is handled at the **measurement/telemetry stage**.
-*   **QUEST Integration:** Toggling RBC (via `advanced_align_rbc`) allows the QUEST algorithm to immediately recalculate the alignment model using the corrected sync history without requiring new observations.
 
-#### **VII. Roll Error (arcmin)**
+- **Stability:** The coefficients reflect the physical mechanical characteristics of the mount axes and are highly stable. They do not need to be recalculated unless the hardware is modified or the camera is remounted.
+- **Roll Adjustment (`roll_adj`):** A separate per-session camera roll offset is calibrated independently via `sync_roll()` in the live driver. This accounts for the camera mounting angle and is not part of the mechanical model.
+- **QUEST Integration:** The mechanical corrections are applied before QUEST frame alignment. This ensures that QUEST receives consistent data regardless of roll angle, allowing it to converge on a stable per-session alignment quaternion.
+- **Forward Kinematics Only:** The corrections are applied in the forward kinematic model (`apply_mechanical_corrections`). No inverse correction is required in the IK because the bias is handled at the predicted-position stage.
 
-| alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
+#### **VII. Mechnical Correction (arcmin) by Roll and Altitude**
+
+| **Roll:** | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **0°** | -18 | -15 | -13 | -10 | -8 | -5 | -3 | +0 | +3 | +5 | +8 | +10 | +13 | +15 | +18 |
-| **10°** | -30 | -25 | -21 | -17 | -13 | -8 | -4 | +0 | +4 | +8 | +13 | +17 | +21 | +25 | +30 |
-| **20°** | -42 | -36 | -30 | -24 | -18 | -12 | -6 | +0 | +6 | +12 | +18 | +24 | +30 | +36 | +42 |
-| **30°** | -57 | -49 | -41 | -33 | -24 | -16 | -8 | +0 | +8 | +16 | +24 | +33 | +41 | +49 | +57 |
-| **40°** | -75 | -64 | -53 | -43 | -32 | -21 | -11 | +0 | +11 | +21 | +32 | +43 | +53 | +64 | +75 |
-| **50°** | -99 | -85 | -71 | -56 | -42 | -28 | -14 | +0 | +14 | +28 | +42 | +56 | +71 | +85 | +99 |
-| **60°** | -136 | -116 | -97 | -78 | -58 | -39 | -19 | +0 | +19 | +39 | +58 | +78 | +97 | +116 | +136 |
-| **70°** | -205 | -176 | -146 | -117 | -88 | -59 | -29 | +0 | +29 | +59 | +88 | +117 | +146 | +176 | +205 |
-
-#### **VIII. Az Error (arcmin)**
-
-| alt \ p_roll | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **0°** | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 | +0 |
-| **10°** | -5 | -4 | -4 | -3 | -2 | -1 | -1 | +0 | +1 | +1 | +2 | +3 | +4 | +4 | +5 |
-| **20°** | -15 | -13 | -11 | -9 | -7 | -4 | -2 | +0 | +2 | +4 | +7 | +9 | +11 | +13 | +15 |
-| **30°** | -33 | -28 | -23 | -19 | -14 | -9 | -5 | +0 | +5 | +9 | +14 | +19 | +23 | +28 | +33 |
-| **40°** | -63 | -54 | -45 | -36 | -27 | -18 | -9 | +0 | +9 | +18 | +27 | +36 | +45 | +54 | +63 |
-| **50°** | -118 | -101 | -84 | -67 | -50 | -34 | -17 | +0 | +17 | +34 | +50 | +67 | +84 | +101 | +118 |
-| **60°** | -235 | -201 | -168 | -134 | -101 | -67 | -34 | +0 | +34 | +67 | +101 | +134 | +168 | +201 | +235 |
-| **70°** | -563 | -483 | -402 | -322 | -241 | -161 | -80 | +0 | +80 | +161 | +241 | +322 | +402 | +483 | +563 |
+**Altitude 70°**   |       |    39 |    40 |    42 |    45 |    50 |    56 |    63 |    71 |    79 |    87 |    94 |   101 |   106 |       | 
+**Altitude 60°**   |    43 |    40 |    37 |    34 |    35 |    39 |    47 |    58 |    71 |    84 |    97 |   109 |   119 |   127 |   133 | 
+**Altitude 50°**   |    59 |    53 |    46 |    38 |    30 |    28 |    36 |    51 |    70 |    89 |   108 |   124 |   138 |   149 |   157 | 
+**Altitude 40°**   |    80 |    73 |    64 |    52 |    38 |    23 |    23 |    43 |    70 |    96 |   120 |   141 |   158 |   171 |   181 | 
+**Altitude 30°**   |   103 |    97 |    87 |    75 |    59 |    37 |    13 |    34 |    72 |   107 |   137 |   161 |   180 |   195 |   206 | 
+**Altitude 20°**   |   128 |   122 |   114 |   103 |    89 |    67 |    32 |    23 |    80 |   126 |   160 |   185 |   205 |   220 |   231 | 
+**Altitude 10°**   |   154 |   149 |   143 |   136 |   127 |   113 |    79 |    12 |   111 |   162 |   192 |   215 |   233 |   247 |   257 | 
+**Altitude  0°**   |   181 |   177 |   173 |   171 |   170 |   173 |   179 |     0 |   202 |   218 |   233 |   249 |   263 |   275 |   283 
 
 
 ### 2.4 Predictive Error Correction (PEC)
