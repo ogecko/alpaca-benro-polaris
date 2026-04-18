@@ -1,5 +1,5 @@
 """
-pointing_model.py — Production pointing model for the Benro Polaris driver.
+kinematics.py — Production kinematics and correction models for the Benro Polaris driver.
 
 Provides the kinematics, mechanical corrections, and QUEST alignment used
 in the real-time driver.  No file I/O, no CSV reading, no analysis helpers.
@@ -22,7 +22,6 @@ import numpy as np
 from pyquaternion import Quaternion
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
-
 
 # ── Angle helpers ─────────────────────────────────────────────────────────────
 
@@ -50,6 +49,28 @@ def angular_error_arcmin(
                math.cos(al1) * math.cos(al2) * math.cos(az1 - az2))
     cos_sep = max(-1.0, min(1.0, cos_sep))
     return math.degrees(math.acos(cos_sep)) * 60.0
+
+def is_angle_same(a, b, tolerance=1e-4):
+    """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
+    return abs((a - b + 180) % 360 - 180) < tolerance
+
+def quaternion_difference(q_from, q_to):
+    """
+    Returns:
+        angle_deg     : total SO(3) rotation angle (degrees)
+        axis          : unit rotation axis (in q_from frame)
+        q_delta       : shortest-path relative quaternion
+    """
+    if np.dot(q_from.elements, q_to.elements) < 0:     # Enforce shortest path
+        q_to = -q_to
+    q_delta = (q_from.inverse * q_to).normalised       # Relative rotation
+    w = np.clip(q_delta[0], -1.0, 1.0)
+    angle_rad = 2.0 * np.arccos(w)
+    if angle_rad < 1e-12:
+        return 0.0, np.zeros(3), q_delta
+    sin_half = np.sqrt(1.0 - w*w)
+    axis = q_delta.vector / sin_half
+    return np.degrees(angle_rad), axis, q_delta
 
 
 # ── Astronomy helpers ─────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@ from collections import deque
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-from kinematics import wrap360, wrap180, wrap90
+from kinematics import wrap360, wrap180, wrap90, quaternion_difference
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -112,30 +112,6 @@ def ratio_string(x: float) -> str:
     right = max(1, min(99, right))
     left = 100 - right
     return f"{left:02d}:{right:02d}"
-
-
-def is_angle_same(a, b, tolerance=1e-4):
-    """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
-    return abs((a - b + 180) % 360 - 180) < tolerance
-
-
-def quaternion_error(q_from, q_to):
-    """
-    Returns:
-        angle_deg     : total SO(3) rotation angle (degrees)
-        axis          : unit rotation axis (in q_from frame)
-        q_delta       : shortest-path relative quaternion
-    """
-    if np.dot(q_from.elements, q_to.elements) < 0:     # Enforce shortest path
-        q_to = -q_to
-    q_delta = (q_from.inverse * q_to).normalised       # Relative rotation
-    w = np.clip(q_delta[0], -1.0, 1.0)
-    angle_rad = 2.0 * np.arccos(w)
-    if angle_rad < 1e-12:
-        return 0.0, np.zeros(3), q_delta
-    sin_half = np.sqrt(1.0 - w*w)
-    axis = q_delta.vector / sin_half
-    return np.degrees(angle_rad), axis, q_delta
 
 
 def wrap_angle_residual(measured_theta, predicted_theta):
@@ -1715,7 +1691,7 @@ class PID_Controller():
 
     #------- Control step functions ---------
     def quaternion_limit_step(self, q_meas, q_ref, max_step_deg=12, min_frac=0.01, max_frac=1.0):
-        angle_total, _, _ = quaternion_error(q_meas, q_ref)
+        angle_total, _, _ = quaternion_difference(q_meas, q_ref)
         if angle_total < 1e-9:
             return q_ref
         frac = np.clip(max_step_deg / angle_total, min_frac, max_frac)           # linear taper
