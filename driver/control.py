@@ -17,7 +17,7 @@ from collections import deque
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle, apply_mechanical_corrections
+from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle, apply_mechanical_corrections, MountModelParams
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -1943,10 +1943,17 @@ class SyncManager:
         Convert a sync history entry's raw stored p_az/p_alt/p_roll into a
         predicted unit vector.
         """
-        eff_az  = entry["p_az"]
-        eff_alt = entry["p_alt"]
+        if Config.advanced_align_rbc:
+            motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
+            params = MountModelParams.from_config(Config)
+            motorQ_adj, _   = apply_mechanical_corrections(motorQ_entry, params)
+            eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
+        else:
+            eff_az  = entry["p_az"]
+            eff_alt = entry["p_alt"]
         return azalt_to_vector(eff_az, eff_alt), eff_az, eff_alt
-    
+
+
 
     def baseQ_to_topoQ(self, motorQ_C2B):
         """
