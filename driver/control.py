@@ -1361,7 +1361,7 @@ class PID_Controller():
         alt = rad2deg(self.body.alt)
         az = rad2deg(self.body.az)
         parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
-        pa_deg = self.body_pa_offset + parallactic_angle
+        pa_deg = wrap360(self.body_pa_offset + parallactic_angle)
         return np.array([ra_deg, dec_deg, pa_deg], dtype=float)
     
 
