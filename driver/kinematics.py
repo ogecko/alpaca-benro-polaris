@@ -72,6 +72,8 @@ def quaternion_difference(q_from, q_to):
     axis = q_delta.vector / sin_half
     return np.degrees(angle_rad), axis, q_delta
 
+# ── 3D Vector helpers ─────────────────────────────────────────────────────────
+
 
 # ── Astronomy helpers ─────────────────────────────────────────────────────────
 
@@ -82,9 +84,10 @@ def calc_parallactic_angle(az_deg: float, alt_deg: float, lat_deg: float) -> flo
     az  = math.radians(az_deg)
     alt = math.radians(alt_deg)
     lat = math.radians(lat_deg)
-    num = math.sin(az)
-    den = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
-    return wrap180(-math.degrees(math.atan2(num, den)))
+    numerator = math.sin(az)
+    denominator = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
+    angle = math.degrees(math.atan2(numerator, denominator))
+    return wrap180(-angle)
 
 
 def radec_to_altaz(ra_deg: float, dec_deg: float,

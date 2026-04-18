@@ -17,7 +17,7 @@ from collections import deque
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-from kinematics import wrap360, wrap180, wrap90, quaternion_difference
+from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -123,20 +123,6 @@ def wrap_state_angles(x):
     x_wrapped[1, 0] = wrap180(x[1, 0])    # theta2
     x_wrapped[2, 0] = wrap180(x[2, 0])    # theta3 
     return x_wrapped
-
-def calc_parallactic_angle(az_deg, alt_deg, lat_deg):
-    if abs(alt_deg - 90.0) < 1e-6:
-        return 0.0  # Zenith has no parallactic angle
-
-    az = math.radians(az_deg)
-    alt = math.radians(alt_deg)
-    lat = math.radians(lat_deg)
-
-    numerator = math.sin(az)
-    denominator = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
-    angle = math.degrees(math.atan2(numerator, denominator))
-    return wrap180(-angle)
-
 
 def azalt_to_vector(az_deg, alt_deg):
     az = math.radians(az_deg)

@@ -4,8 +4,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 from unittest.mock import patch
 
 import numpy as np
-from control import SyncManager, quaternion_to_angles, azaltroll_to_q, angular_difference, calc_parallactic_angle
+from control import SyncManager, quaternion_to_angles, azaltroll_to_q
 from polaris import Polaris
+from kinematics import calc_parallactic_angle
 
 import pytest
 import logging
