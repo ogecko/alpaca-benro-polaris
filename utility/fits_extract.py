@@ -501,13 +501,16 @@ def _fit_alignQ_from_rows(rows, mount_params):
 def _predict_row(row, alignQ, roll_adj, mount_params):
     """Return model prediction dict for one row, or None on error."""
     try:
-        t1    = float(row['p_theta1']); t2 = float(row['p_theta2']);    t3 = float(row['p_theta3'])
+        p_az  = float(row['p_az']);     p_alt = float(row['p_alt']);    p_roll = float(row['p_roll'])
+        p_t1  = float(row['p_theta1']); p_t2 = float(row['p_theta2']);  p_t3 = float(row['p_theta3'])
         s_az  = float(row['s_az']);     s_alt = float(row['s_alt']);    s_roll = float(row['s_roll'])
         s_t1  = float(row['s_theta1']); s_t2  = float(row['s_theta2']); s_t3 = float(row['s_theta3'])
     except (ValueError, TypeError):
         return None
+    if not p_roll:
+        return None
 
-    q_base = _pm.theta_to_q(t1, t2, t3)
+    q_base = _pm.theta_to_q(p_t1, p_t2, p_t3)
     if mount_params is not None:
         q_base = _pm.apply_mechanical_corrections(q_base, mount_params)
     pa_q = (alignQ * q_base).normalised
@@ -515,17 +518,9 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
     m_az, m_alt, m_roll_raw = _pm.q_to_azaltroll(pa_q)
     m_roll = wrap180(m_roll_raw + roll_adj)
     m_t1, m_t2, m_t3 = _pm.q_to_theta(pa_q)
-    m_t1 = wrap360(m_t1 + roll_adj / math.sin(math.radians(m_t2)))
-    m_t3 = wrap180(m_t3 - roll_adj / math.tan(math.radians(m_t2)))
-
-    try:
-        p_t2 = float(row.get('p_theta2', ''))
-        p_t3 = float(row.get('p_theta3', ''))
-        dev_p_t2 = wrap180(s_t2 - p_t2) * 60
-        dev_p_t3 = wrap180(s_t3 - p_t3) * 60
-    except (ValueError, TypeError):
-        dev_p_t2 = float('nan')
-        dev_p_t3 = float('nan')
+    m_t1   = wrap360(m_t1 + roll_adj / math.sin(math.radians(m_t2)))
+#    m_t2   = wrap180(m_t2 - roll_adj * math.sin(math.radians(m_t3)))
+    m_t3   = wrap180(m_t3 - roll_adj / math.tan(math.radians(m_t2)))
 
     return {
         'm_az':          m_az,
@@ -534,11 +529,15 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
         'm_theta1':      m_t1,
         'm_theta2':      m_t2,
         'm_theta3':      m_t3,
+        'dev_p_az':      wrap180(s_az  - p_az)    * 60,
+        'dev_p_alt':     wrap180(s_alt - p_alt)   * 60,
+        'dev_p_roll':    wrap180(s_roll - p_roll) * 60,
         'dev_m_az':      wrap180(s_az  - m_az)    * 60,
         'dev_m_alt':     wrap180(s_alt - m_alt)   * 60,
         'dev_m_roll':    wrap180(s_roll - m_roll) * 60,
-        'dev_p_theta2':  dev_p_t2,
-        'dev_p_theta3':  dev_p_t3,
+        'dev_p_theta1':  wrap180(s_t1 - p_t1) * 60,
+        'dev_p_theta2':  wrap180(s_t2 - p_t2) * 60,
+        'dev_p_theta3':  wrap180(s_t3 - p_t3) * 60,
         'dev_m_theta1':  wrap180(s_t1 - m_t1) * 60,
         'dev_m_theta2':  wrap180(s_t2 - m_t2) * 60,
         'dev_m_theta3':  wrap180(s_t3 - m_t3) * 60,
@@ -1116,7 +1115,8 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
                 except Exception:
                     pass
 
-            output_rows.append(out)
+                # Only output if we have a prediction
+                output_rows.append(out)
 
         dp_rms_all  = _rms(dev_p_2d_all)
         dm_rms_all  = _rms(dev_m_2d_all)
