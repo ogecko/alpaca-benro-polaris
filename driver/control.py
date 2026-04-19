@@ -2470,9 +2470,15 @@ class SyncManager:
             max_entry = active[residuals.index(max_res)] if residuals else None
 
             self.logger.info(
-                f"QUEST Model | Points: {len(active)} | "
-                f"RBC: {'ON' if Config.advanced_align_rbc else 'OFF'} | " 
-                f"RMS Residual: {deg2dms(rms)} | "
+                f"QUEST Model  | Points: {len(active)} | "
+                f"w: {self.alignQ_B2T[0]:+9.7f} | " 
+                f"x: {self.alignQ_B2T[1]:+9.7f} | " 
+                f"y: {self.alignQ_B2T[2]:+9.7f} | " 
+                f"z: {self.alignQ_B2T[3]:+9.7f} " 
+            )
+            self.logger.info(
+                f"RBC: {'ON ' if Config.advanced_align_rbc else 'OFF'} | " 
+                f"RMS Residual: {deg2dms(rms)}  | "
                 f"Az Correction: {deg2dms(self.az_adj)} | "
                 f"Tilt: {deg2dms(self.tilt_adj_mag)} @ {deg2dms(self.tilt_adj_az)} | "
                 f"Roll Adj: {deg2dms(self.roll_adj)}"
