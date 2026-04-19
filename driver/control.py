@@ -1665,8 +1665,9 @@ class PID_Controller():
         if self.mode == "TRACK":
             if self.dt > 0 and self.polaris._tracking:
                 # Desired angular velocity vector based on change in cameraQ_ref
-                omega_topo = calculate_angular_velocity_vector(self.cameraQ_ref_last, self.cameraQ_ref, self.dt)
-                omega_base = self.polaris._sm.topoVec_to_baseVec(omega_topo, self.cameraQ_ref)   # Convert to base frame Sky tracking velocity
+                motorQ_now  = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref)
+                motorQ_last = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref_last)
+                omega_base = calculate_angular_velocity_vector(motorQ_last, motorQ_now, self.dt)
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
                 J = theta_to_jacobian(*self.theta_pv)
                 # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
@@ -2014,28 +2015,6 @@ class SyncManager:
         #         motorQ_C2B = self.corrQ_RBC.inverse * motorQ_C2B
 
         return motorQ_C2B
-
-
-    def topoVec_to_baseVec(self, omega_topo, cameraQ_C2T):
-        """
-        Rotate an angular velocity vector from topocentric to base frame
-        omega_topo,cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → omega_base,motorQ
-        """
-        # Undo roll sync adj (roll_adj)
-        if self.roll_adj != 0:
-            boresight_T = cameraQ_C2T.rotate([0, 0, -1])
-            q_roll_undo = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
-            omega_topo = q_roll_undo.rotate(omega_topo)
-
-        # Undo Local Guassian Adjustment (LGA) 
-        if Config.advanced_slew_center and Config.advanced_align_lga:
-            if self.corrQ_LGA is not None:
-                omega_topo = self.corrQ_LGA.inverse.rotate(omega_topo)
-
-        # Undo alignQ_B2T model (QUEST)
-        omega_base = self.alignQ_B2T_inv.rotate(omega_topo)
-
-        return omega_base
 
     def refresh_pid_setpoints_from_q1(self):
         """

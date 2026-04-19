@@ -266,7 +266,6 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular ve
 |----------------|----------------|------------------------------------|-------|
 | `motorQ_C2B`   | `theta`        | `= q_to_theta(motorQ)`             | Two solutions possible (elbow up/down). Resolved by proximity to last position. |
 | `theta`        | `motorQ_C2B`   | `= theta_to_q(*theta)`      |  Determine quaternion that represents a given set of motor angles.                                                                        |
-| `omega_topo`   | `omega_base`      | `= topoVec_to_baseVec(omega_topo, cameraQ_C2T)` | Undoes T-frame corrections, applies `alignQ_B2T_inv`. See Feed Forward. |
 | `theta_dot`    | `omega_base`      | `= J(theta) · theta_dot` | joint rates → B frame angular velocity.  |
 | `omega_base`   | `theta_dot`      | `= J⁻¹(theta) · omega_base` | B frame angular velocity → joint rates. Used to calculate FF joint rates. |
 
@@ -430,12 +429,11 @@ already accounted for in `theta_pv` and therefore in the Jacobian.
 ```
 cameraQ_ref             Target C→T quaternion (from last two control steps)
     │
-    ▼  calculate_angular_velocity(cameraQ_C2T_ref_last, cameraQ_C2T_ref, dt)
-omega_topo              Angular velocity of sky target in T frame
+    ▼  Frame Transform topoQ_to_baseQ 
+motorQ_ref              Target C→B quaternion (current)
+motorQ_ref_last         Target C→B quaternion (one control step in the past)
     │
-    ▼  topoVec_to_baseVec(omega_topo, cameraQ_pv)
-    │  Undo T-frame corrections and rotate T → B:
-    │  corrQ_roll⁻¹(T) → corrQ_LGA⁻¹(T) → alignQ_B2T_inv(T→B)
+    ▼  calculate_angular_velocity(motorQ_ref_last, motorQ_ref, dt)
 omega_base              Angular velocity in B frame
     │
     ▼  Inverse Jacobian Solution = J⁻¹(theta_pv) · omega_base
