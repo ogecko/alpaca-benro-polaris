@@ -180,7 +180,7 @@
                     <VField label="   |  Dec " :val="p.dofst[1]" unit="deg_ofst"/>
                     <VField label="   | PosA " :val="p.dofst[2]" unit="deg_ofst"/>
                   </div>
-                  <div>&nbsp;</div>
+                  <!-- <div>&nbsp;</div> -->
                   <div v-if="cfg.advanced_slewing">
                     <VField label="alpha_slew:  Az " :val="p.aslew[0]" unit="deg/s"/>
                     <VField label=" |  Alt " :val="p.aslew[1]" unit="deg/s"/>
@@ -193,8 +193,8 @@
                     <VField label="   | Roll " :val="p.aofst[2]" unit="deg_ofst"/>
                   </div>
                 </q-timeline-entry>
-                <!-- PLANNING REF -->
-                <q-timeline-entry title="Optimal Movement Strategy" subtitle="Plan" icon="mdi-debug-step-over">
+                <!-- MPA-PLANNING REF -->
+                <q-timeline-entry title="Model Predictive Control" subtitle="Plan" icon="mdi-debug-step-over">
                   <div v-if="cfg.advanced_goto">
                     <div>
                       <VField label="delta_ref:   RA " :val="p.deltaref[0]" unit="deg2hr"/>
@@ -202,25 +202,28 @@
                       <VField label="   | PosA " :val="p.deltaref[2]" unit="deg"/>
                     </div>
                     <div>
+                      <VField label="delta_pv:    RA " :val="p.rightascension" unit="hr"/>
+                      <VField label="   |  Dec " :val="p.declination" unit="deg"/>
+                      <VField label="   | PosA " :val="p.positionangle" unit="deg" v-if="cfg.advanced_rotator"/>
+                    </div>
+                    <div>
                       <VField label="alpha_ref:   Az " :val="p.alpharef[0]" unit="deg"/>
                       <VField label="   |  Alt " :val="p.alpharef[1]" unit="deg"/>
                       <VField label="   | Roll " :val="p.alpharef[2]" unit="deg"/>
                     </div>
+                    <div>
+                      <VField label="alpha_pv:    Az " :val="p.azimuth" unit="deg"/>
+                      <VField label="   |  Alt " :val="p.altitude" unit="deg"/>
+                      <VField label="   | Roll " :val="p.roll" unit="deg" v-if="cfg.advanced_rotator"/>
+                    </div>
                   </div>
                   <div v-else class="haz terminal">Advanced Goto: Disabled</div>
-                </q-timeline-entry>
-                <q-timeline-entry title="Multi-Point Alignment (Inverse)" subtitle="Solve" icon="mdi-rotate-orbit">
                 </q-timeline-entry>
                 <!-- PID CONTROLLER -->
                 <q-timeline-entry icon="mdi-chart-bell-curve-cumulative">
                   <template v-slot:title>PID Controller <PIDStatus /></template>
                   <template v-slot:subtitle>Control</template>
                   <div v-if="cfg.advanced_tracking">
-                    <div>
-                      <VField label="omega_ref:   t1 " :val="p.omegaref[0]" unit="deg/s"/>
-                      <VField label=" |   t2 " :val="p.omegaref[1]" unit="deg/s"/>
-                      <VField label=" |   t3 " :val="p.omegaref[2]" unit="deg/s"/>
-                    </div>
                     <div>
                       <VField label="theta_ref:   t1 " :val="p.tref[0]" unit="deg"/>
                       <VField label="   |   t2 " :val="p.tref[1]" unit="deg"/>
@@ -241,6 +244,11 @@
                 </q-timeline-entry>
                 <!-- SPEED CONTROLLER -->
                 <q-timeline-entry title="Speed Controller" subtitle="Comms" icon="mdi-speedometer-slow">
+                  <div>
+                    <VField label="omega_ref:   t1 " :val="p.omegaref[0]" unit="deg/s"/>
+                    <VField label=" |   t2 " :val="p.omegaref[1]" unit="deg/s"/>
+                    <VField label=" |   t3 " :val="p.omegaref[2]" unit="deg/s"/>
+                  </div>
                   <div>
                     <VField label="omega_op:    t1 " :val="p.motorref[0]" unit="deg/s"/>
                     <VField label=" |   t2 " :val="p.motorref[1]" unit="deg/s"/>
