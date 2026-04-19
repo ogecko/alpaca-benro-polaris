@@ -286,46 +286,28 @@ def cmd_extract(fits_dir, output_csv, lat, lon):
     status_counts = Counter()
     n_total = len(fits_files)
     for idx, fp in enumerate(fits_files, 1):
-        # Overwriting progress line on stderr (not captured by -log)
-        prog = f"  ({idx:04d} of {n_total:04d})  {fp.name:<48s}"
-        sys.stderr.write('\r' + prog)
-        sys.stderr.flush()
-
         row = _process_fits(fp, '', lat, lon)
         rows.append(row)
         status_counts[row['status']] += 1
+        # Overwriting progress line on stderr (not captured by -log)
+        prog = f"  ({idx} of {n_total})  {fp.name:<48s}"
+        prog += f" | Az " + f"{float(row['p_az']):+7.2f}" if row['p_az']  != ''    else '    N/A'
+        prog += f" | Alt " + f"{float(row['p_alt']):+7.2f}" if row['p_alt'] != ''   else '    N/A'
+        prog += f" | Roll " + f"{float(row['p_roll']):+7.2f}" if row['p_roll'] != '' else '    N/A'
+        prog += f" | {row['status']:<8s}"
+        sys.stderr.write('\r' + prog)
+        sys.stderr.flush()
 
     # Clear the progress line before printing the summary
-    sys.stderr.write('\r' + ' ' * 80 + '\r')
+    sys.stderr.write('\r' + ' ' * 120 + '\r')
     sys.stderr.flush()
 
+    # Determine the session ID
     n_solved   = status_counts.get('solved', 0)
     ts         = datetime.now().strftime('%Y-%m-%d %H:%M')
     session_id = f"{ts} N={n_solved}"
     for row in rows:
         row['session_id'] = session_id
-
-    for row in rows:
-        st     = row['status']
-        p_az_s = f"{float(row['p_az']):>7.2f}" if row['p_az']  != '' else '    N/A'
-        p_al_s = f"{float(row['p_alt']):>6.2f}" if row['p_alt'] != '' else '   N/A'
-        p_ro_s = f"{float(row['p_roll']):>7.2f}" if row['p_roll'] != '' else '    N/A'
-        t_s    = (f"  t2={row['p_theta2']:>6.2f}  t3={row['p_theta3']:>7.2f}"
-                  if row['p_theta2'] != '' else '')
-        if st == 'solved':
-            da_s = f"{float(row['dev_p_az']):>+7.1f}'"   if row['dev_p_az']   != '' else '    N/A'
-            dl_s = f"{float(row['dev_p_alt']):>+7.1f}'"  if row['dev_p_alt']  != '' else '    N/A'
-            dr_s = f"{float(row['dev_p_roll']):>+7.1f}'" if row['dev_p_roll'] != '' else '    N/A'
-            print(f"  OK       {row['filename']:<42s}"
-                  f"  p_az={p_az_s}  p_alt={p_al_s}  p_roll={p_ro_s}{t_s}"
-                  f"  daz={da_s}  dalt={dl_s}  droll={dr_s}")
-        elif st == 'unsolved':
-            print(f"  UNSOLVED {row['filename']:<42s}"
-                  f"  p_az={p_az_s}  p_alt={p_al_s}  p_roll={p_ro_s}{t_s}")
-        else:
-            print(f"  {st.upper():<10} {row['filename']}")
-
-    print()
     print(f"Session ID: {session_id}")
     print()
 
@@ -346,32 +328,28 @@ def cmd_extract(fits_dir, output_csv, lat, lon):
 
     solved = [r for r in rows if r['status'] == 'solved']
     if solved and HAS_NUMPY:
-        def _st(vals):
-            v = [float(x) for x in vals if x != '']
-            if not v: return 'N/A'
-            a = np.array(v)
-            return (f"mean={np.mean(a):+7.1f}'  std={np.std(a):5.1f}'"
-                    f"  min={np.min(a):+7.1f}'  max={np.max(a):+7.1f}'")
-
-        azs    = [float(r['p_az'])     for r in solved if r['p_az']     != '']
-        alts   = [float(r['p_alt'])    for r in solved if r['p_alt']    != '']
-        rolls  = [float(r['p_roll'])   for r in solved if r['p_roll']   != '']
-        t1s    = [float(r['p_theta1']) for r in solved if r['p_theta1'] != '']
-        t2s    = [float(r['p_theta2']) for r in solved if r['p_theta2'] != '']
-        t3s    = [float(r['p_theta3']) for r in solved if r['p_theta3'] != '']
+        def _st1(field):
+            vals = [float(r[field])     for r in solved if r[field] != '']
+            return f"min={min(vals):+7.1f} deg | max={max(vals):+6.1f} deg | span={max(vals)-min(vals):6.1f}" if vals else "N/A"
+        def _st2(field):
+            vals = [float(r[field])     for r in solved if r[field] != '']
+            if not vals: return "N/A"
+            a = np.array(vals)
+            return f"min={np.min(a):+7.1f}'    | max={np.max(a):+7.1f}'   | mean={np.mean(a):+7.1f}' | median={np.median(a):+7.1f}' | std={np.std(a):5.1f}'"
         print()
         print("---- Data coverage ----")
-        if rolls: print(f"  p_az           : {min(azs):+6.1f} -> {max(azs):+6.1f} deg | span={max(azs)-min(azs):6.1f}")
-        if rolls: print(f"  p_alt          : {min(alts):+6.1f} -> {max(alts):+6.1f} deg | span={max(alts)-min(alts):6.1f}")
-        if rolls: print(f"  p_roll         : {min(rolls):+6.1f} -> {max(rolls):+6.1f} deg | span={max(rolls)-min(rolls):6.1f}")
-        if t1s:   print(f"  p_theta1 (az)  : {min(t1s):+6.1f} -> {max(t1s):+6.1f} deg | span={max(t1s)-min(t1s):6.1f}")
-        if t2s:   print(f"  p_theta2 (alt) : {min(t2s):+6.1f} -> {max(t2s):+6.1f} deg | span={max(t2s)-min(t2s):6.1f}")
-        if t3s:   print(f"  p_theta3 (roll): {min(t3s):+6.1f} -> {max(t3s):+6.1f} deg | span={max(t3s)-min(t3s):6.1f}")
+        print(f"  p_az            : {_st1('p_az')}")
+        print(f"  p_alt           : {_st1('p_alt')}")
+        print(f"  p_roll          : {_st1('p_roll')}")
+        print()
+        print(f"  p_theta1 (az)   : {_st1('p_theta1')}")
+        print(f"  p_theta2 (alt)  : {_st1('p_theta2')}")
+        print(f"  p_theta3 (roll) : {_st1('p_theta3')}")
         print()
         print("---- Raw deviations from plate-solved solution (arcmin) ----")
-        print(f"  dev_p_az  : {_st([r['dev_p_az']   for r in solved])}")
-        print(f"  dev_p_alt : {_st([r['dev_p_alt']  for r in solved])}")
-        print(f"  dev_p_roll: {_st([r['dev_p_roll'] for r in solved])}")
+        print(f"  dev_p_az        : {_st2('dev_p_az')}")
+        print(f"  dev_p_alt       : {_st2('dev_p_alt')}")
+        print(f"  dev_p_roll      : {_st2('dev_p_roll')}")
     print()
 
 
