@@ -2477,7 +2477,9 @@ class SyncManager:
                 f"z: {self.alignQ_B2T[3]:+9.7f} " 
             )
             self.logger.info(
-                f"RBC: {'ON ' if Config.advanced_align_rbc else 'OFF'} | " 
+                f"  RBC: {'ON ' if Config.advanced_align_rbc else 'OFF'}   | " 
+                f"{'SCC: OFF  | ' if not Config.advanced_slew_center else 
+                   'LGC: ON   | ' if Config.advanced_align_lga else 'ZLR: ON   | '}"
                 f"RMS Residual: {deg2dms(rms)}  | "
                 f"Az Correction: {deg2dms(self.az_adj)} | "
                 f"Tilt: {deg2dms(self.tilt_adj_mag)} @ {deg2dms(self.tilt_adj_az)} | "
