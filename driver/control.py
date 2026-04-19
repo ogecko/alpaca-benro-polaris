@@ -1174,7 +1174,7 @@ class PID_Controller():
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
         self.delta_pv = np.zeros(3, dtype=float)       # ra, dec, polar measured angular position
         self.alpha_pv = np.zeros(3, dtype=float)       # az, alt, roll measured angular position
-        self.theta_adj = np.zeros(3, dtype=float)      # theta1-3 motor measured angular position, kf and pec corrected
+        self.theta_pv = np.zeros(3, dtype=float)      # theta1-3 motor measured angular position, kf and pec corrected
         self.zeta_meas = np.zeros(3, dtype=float)      # zeta1-3 motor raw measured angular position (no alignment effect)
         self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, polar angular reference position
         self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll angular reference position
@@ -1640,20 +1640,20 @@ class PID_Controller():
             self.cameraQ_ref_last = self.cameraQ_ref
             self.cameraQ_ref = cameraQ_ref
     
-    def measure(self, delta_pv, alpha_pv, theta_adj, zeta_meas):
+    def measure(self, delta_pv, alpha_pv, theta_pv, zeta_meas):
         now = ephem.now()
         # if not self.time_meas:
         #     self.alpha_sp = alpha_meas     # initialise alpha_sp with first measurement
         self.delta_pv = delta_pv
         self.alpha_pv = alpha_pv
-        self.theta_adj = theta_adj
+        self.theta_pv = theta_pv
         self.zeta_meas = zeta_meas
         self.time_meas = now
-        self._lp.update(*theta_adj)
+        self._lp.update(*theta_pv)
         self._lp.check_for_gimbal_lock()
 
     def predict(self):          # This is not used in the PID Control Loop
-        self.theta_adj = clamp_theta(self.theta_adj + self.dt * self.omega_op)
+        self.theta_pv = clamp_theta(self.theta_pv + self.dt * self.omega_op)
         self.time_meas = self.time_meas + self.dt
 
     def feed_forward(self):
@@ -1668,7 +1668,7 @@ class PID_Controller():
                 omega_topo = calculate_angular_velocity_vector(self.cameraQ_ref_last, self.cameraQ_ref, self.dt)
                 omega_base = self.polaris._sm.topoVec_to_baseVec(omega_topo, self.cameraQ_ref)   # Convert to base frame Sky tracking velocity
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
-                J = theta_to_jacobian(*self.theta_adj)
+                J = theta_to_jacobian(*self.theta_pv)
                 # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
                 theta_dot = np.linalg.solve(J, omega_base)
                 self.omega_ff = np.degrees(theta_dot)
@@ -1684,7 +1684,7 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
-            self.error_signal = clamp_error(self.theta_ref, self.theta_adj)
+            self.error_signal = clamp_error(self.theta_ref, self.theta_pv)
 
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
@@ -1854,7 +1854,7 @@ class PID_Controller():
             "α_sp": self.alpha_ref.tolist(),
             "α_pv": self.alpha_pv.tolist(),
             "θ_sp": self.theta_ref.tolist(), 
-            "θ_pv": self.theta_adj.tolist(), 
+            "θ_pv": self.theta_pv.tolist(), 
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 

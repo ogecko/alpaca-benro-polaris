@@ -400,7 +400,7 @@ theta_ref               Target motor angles (θ1, θ2, θ3) = q_to_theta(motorQ_
     │                        two solutions possible (elbow up/down).
     │                        resolved by proximity to last known position.
     ▼  PID Error Signal
-error_signal            = theta_ref - theta_adj
+error_signal            = theta_ref - theta_pv
     │
     ├── omega_kp        = +Kp · error_signal             Proportional
     ├── omega_ki        = +Ki · ∫ error_signal dt        Integral
@@ -423,9 +423,9 @@ polaris_protocol         Slew SLOW and FAST commands
 ### 4.3 Inverse Kinematics — Sky → Motors Angular Velocity (Feed Forward)
 
 Converts the rate of change of the sky target into motor joint rates for sidereal tracking
-feed-forward. The Jacobian `J(theta_adj)` is expressed in the **B frame**, so `omega_topo`
+feed-forward. The Jacobian `J(theta_pv)` is expressed in the **B frame**, so `omega_topo`
 must be converted to `omega_base` before the solve. No `corrQ_RBC⁻¹` is needed — RBC is
-already accounted for in `theta_adj` and therefore in the Jacobian.
+already accounted for in `theta_pv` and therefore in the Jacobian.
 
 ```
 cameraQ_ref             Target C→T quaternion (from last two control steps)
@@ -438,7 +438,7 @@ omega_topo              Angular velocity of sky target in T frame
     │  corrQ_roll⁻¹(T) → corrQ_LGA⁻¹(T) → alignQ_B2T_inv(T→B)
 omega_base              Angular velocity in B frame
     │
-    ▼  Inverse Jacobian Solution = J⁻¹(theta_adj) · omega_base
+    ▼  Inverse Jacobian Solution = J⁻¹(theta_pv) · omega_base
 theta_dot               Motor joint rates (radians)
     │
     ▼  degrees(theta_dot)
@@ -455,7 +455,7 @@ motorQ_raw          (C→B, raw from IMU)
 theta_raw / alpha_raw / omega_raw
     │
     ▼  KF + PEC + RBC
-theta_adj / motorQ_adj    (B frame, mechanically adjusted)
+theta_pv / motorQ_adj    (B frame, mechanically adjusted)
     │
     ▼  corrQ_RBC           Rotation Bias Correction     B frame
     ▼  alignQ_B2T          QUEST Alignment              B → T
