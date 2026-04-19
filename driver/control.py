@@ -2008,6 +2008,7 @@ class SyncManager:
         motorQ_C2B = self.alignQ_B2T_inv * cameraQ_C2T
 
         # Undo Mechanical Corrections (RBC) - DO NOT APPLY AS ALL PID theta works in corrected
+        # ALSO BEWARE THAT corrQ_RBC is updated from 518, so it may not match the target's corrQ_RBC
         # if Config.advanced_align_rbc:
         #     if self.corrQ_RBC is not None:
         #         motorQ_C2B = self.corrQ_RBC.inverse * motorQ_C2B
