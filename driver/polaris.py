@@ -636,7 +636,8 @@ class Polaris:
 
             # Translate from Base Frame to Topo Frame
             cameraQ_pv = self._sm.baseQ_to_topoQ(self._motorQ_adj)
-            # update all the Sky Positions and the PID loop
+            
+            # update all the Sky Positions (p_*=kf_state;  a_*= pid_pv) and the PID loop
             delta_pv, alpha_pv = self.update_sky_positions(motorQ_state, cameraQ_pv)
             self._pid.measure(delta_pv, alpha_pv, self._theta_adj, self._zeta_meas)
             self._pid.control_step_calculate()
