@@ -230,9 +230,9 @@
                       <VField label="   |   t3 " :val="p.tref[2]" unit="deg"/>
                     </div>
                     <div>
-                      <VField label="theta_pv:    t1 " :val="p.tadj[0]" unit="deg"/>
-                      <VField label="   |   t2 " :val="p.tadj[1]" unit="deg"/>
-                      <VField label="   |   t3 " :val="p.tadj[2]" unit="deg"/>
+                      <VField label="theta_pv:    t1 " :val="p.tpv[0]" unit="deg"/>
+                      <VField label="   |   t2 " :val="p.tpv[1]" unit="deg"/>
+                      <VField label="   |   t3 " :val="p.tpv[2]" unit="deg"/>
                     </div>
                     <div>
                       <VField label="error_sig:   t1 " :val="p.errsig[0]" unit="deg_ofst" :tollerance="2/3600"/>
