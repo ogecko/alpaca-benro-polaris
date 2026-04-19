@@ -765,6 +765,7 @@ def cmd_model(csv_paths, params_path):
     corr_f = float(np.corrcoef(theta3[~np.isnan(dev_m_t2)],
                                 dev_m_t2[~np.isnan(dev_m_t2)])[0,1])
     print(f"     corr(theta3, dev_m_theta2) = {corr_f:+.3f}")
+    r2_f, fitted_f, se_f = None, None, None
     if t3_range >= 10:
         k_f, se_f, r2_f = _fit_linear_through_origin(theta3, dev_m_t2)
         if k_f is not None:
@@ -784,6 +785,7 @@ def cmd_model(csv_paths, params_path):
     # M3 tilt correction — azimuth component
     print("  -- M3 tilt correction — azimuth/theta1 ----------")
     print("     Fitted error: dev_m_az [arcmin] = g * sin(theta2) * theta3")
+    r2_g, fitted_g, se_g = None, None, None
     pred_g = np.sin(np.radians(theta2)) * theta3
     mask_g = ~np.isnan(dev_m_az) & ~np.isnan(pred_g) & (np.abs(theta3) > 5)
     if mask_g.sum() >= 10:
@@ -810,6 +812,7 @@ def cmd_model(csv_paths, params_path):
     # M2 tilt correction
     print("  -- M2 tilt correction - altitude/theta2 ----------")
     print("     Fitted error: dev_theta2 [arcmin] = a * sin(theta2 - b)")
+    r2_m2, fitted_a, fitted_b, se_a, se_b = None, None, None, None, None
     mask_m2 = np.abs(theta3) < 4 # only use near-zero roll rows to fit this model
     y_b1 = dev_m_t2 - (fitted_f * theta3 if fitted_f is not None else 0)
     p0a  = [mount_params.m2_tilt_alt_amp or 52., mount_params.m2_tilt_alt_zero or 36.]
@@ -835,6 +838,7 @@ def cmd_model(csv_paths, params_path):
     # M3 encoder correction
     print("  -- M3 encoder correction - roll/theta3 ----------")
     print("     Fitted error: dev_theta3 [arcmin] = e * theta3")
+    r2_e, fitted_e, se_e = None, None, None
     if t3_range >= 30:
         k_e, se_e, r2_e = _fit_linear_through_origin(theta3, dev_m_t3)
         if k_e is not None:
