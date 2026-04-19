@@ -17,7 +17,8 @@ from collections import deque
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle, apply_mechanical_corrections, MountModelParams
+from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
+from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -1853,7 +1854,7 @@ class PID_Controller():
             "α_sp": self.alpha_ref.tolist(),
             "α_pv": self.alpha_pv.tolist(),
             "θ_sp": self.theta_ref.tolist(), 
-            "θ_pv": self.polaris._theta_adj.tolist(), 
+            "θ_pv": self.theta_adj.tolist(), 
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 
@@ -1909,8 +1910,11 @@ class SyncManager:
     def set_alignQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.last_sync_time = None              # timestamp used to fade LGA to zero as time passes
-        self.corrQ_LGA = None                   # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
+        self.corrQ_LGA = Quaternion(1,0,0,0)    # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
+        self.corrQ_RBC = Quaternion(1,0,0,0)    # cache of RBC stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
+        self.params_RBC = MountModelParams.from_config(Config)
         self.scc_error = 0                      # cache of Slew & Center Correction error magnitude, either LGA or ZRC (for Kinematics page)
+        self.rbc_error = 0                      # cache of Rotation Bias Correction  error magnitude, (for Kinematics page)
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
         self.alignQ_B2T = Quaternion(1,0,0,0)       # cached adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # cached inverse adjustment quaternion for azalt syncing, initially identity
@@ -1945,8 +1949,7 @@ class SyncManager:
         """
         if Config.advanced_align_rbc:
             motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
-            params = MountModelParams.from_config(Config)
-            motorQ_adj, _   = apply_mechanical_corrections(motorQ_entry, params)
+            motorQ_adj, _   = apply_mechanical_corrections(motorQ_entry, self.params_RBC)
             eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
         else:
             eff_az  = entry["p_az"]
@@ -1958,17 +1961,22 @@ class SyncManager:
     def baseQ_to_topoQ(self, motorQ_C2B):
         """
         Forward kinematics: Base frame → Topocentric frame.
-        motorQ → [QUEST] → [LGA] → [roll_adj] → cameraQ
+        motorQ → [RBC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
         """
+        motorQ = motorQ_C2B
+
+        # Apply Mechanical Corrections (RBC)
+        if Config.advanced_align_rbc:
+            self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B, self.params_RBC)
+            motorQ = self.corrQ_RBC * motorQ
 
         # Apply alignQ_B2T model (QUEST)
-        cameraQ = self.alignQ_B2T * motorQ_C2B
+        cameraQ = self.alignQ_B2T * motorQ
 
         # Apply Local Gaussian Adjustment (LGA)
         if Config.advanced_slew_center and Config.advanced_align_lga:
             self.corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ)
-            if self.corrQ_LGA is not None:
-                cameraQ = self.corrQ_LGA * cameraQ
+            cameraQ = self.corrQ_LGA * cameraQ
 
         # Apply roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -1976,14 +1984,14 @@ class SyncManager:
             corrQ_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
             cameraQ = corrQ_roll * cameraQ
 
-        return cameraQ
+        return cameraQ, motorQ
 
 
 
     def topoQ_to_baseQ(self, cameraQ_C2T):
         """
         Inverse kinematics: Topocentric frame → Base frame.
-        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → motorQ
+        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → undo[RBC] → motorQ
         """
         # Undo roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -1998,6 +2006,11 @@ class SyncManager:
 
         # Undo alignQ_B2T model (QUEST)
         motorQ_C2B = self.alignQ_B2T_inv * cameraQ_C2T
+
+        # Undo Mechanical Corrections (RBC) - DO NOT APPLY AS ALL PID theta works in corrected
+        # if Config.advanced_align_rbc:
+        #     if self.corrQ_RBC is not None:
+        #         motorQ_C2B = self.corrQ_RBC.inverse * motorQ_C2B
 
         return motorQ_C2B
 
@@ -2032,7 +2045,7 @@ class SyncManager:
             return
         if not hasattr(self.polaris, '_pid') or self.polaris._pid is None:
             return
-        cameraQ = self.baseQ_to_topoQ(self.polaris._q1)     
+        cameraQ, _ = self.baseQ_to_topoQ(self.polaris._q1)     
         az, alt, roll = q_to_azaltroll(cameraQ)
         self.polaris._pid.reset_sp(np.array([az,alt,roll], dtype=float))
                                    
@@ -2082,8 +2095,8 @@ class SyncManager:
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if Config.advanced_alignment and Config.advanced_control:
-            _, _, p_roll_pv = q_to_azaltroll(self.alignQ_B2T * self.polaris._motorQ_adj)
-            entry["p_roll_pv"] = p_roll_pv   # SBC+QUEST corrected roll in T Frame for roll_adj computation
+            _, _, p_roll_pv = q_to_azaltroll(self.alignQ_B2T * self.corrQ_RBC * self.polaris._motorQ_state)
+            entry["p_roll_pv"] = p_roll_pv   # RBC+QUEST corrected roll in T Frame for roll_adj computation
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.refresh_pid_setpoints_from_q1()
@@ -2263,21 +2276,23 @@ class SyncManager:
                 LGA fades to identity after a slew-and-centre completes so that
                 sidereal tracking is not continuously nudged by a stale correction.
 
-        Returns (None, 0) if no valid sync, weight too small, or correction negligible.
+        Returns (QIdentity, 0) if no valid sync, weight too small, or correction negligible.
         """
+        identity = (Quaternion(1,0,0,0), 0)
+
         # ---- Temporal fade --------------------------------------------------
         if self.last_sync_time is None:
-            return (None, 0)
+            return identity
         
         dt = time.monotonic() - self.last_sync_time
         temporal_weight = math.exp(-(dt ** 2) / (2 * sigma_sec ** 2))
         if temporal_weight < 1e-3:                   # effectively zero after ~3 sigma
-            return (None, 0)
+            return identity
         
         # ---- Spatial Gaussian -----------------------------------------------
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
         if v_pred_rot is None:
-            return (None,0)
+            return identity
 
         # Angular distance from current boresight to last sync point (in observed space)
         boresight_T = cameraQ_C2T.rotate([0, 0, -1])
@@ -2287,13 +2302,13 @@ class SyncManager:
         sigma_rad = math.radians(sigma_deg)
         spatial_weight = math.exp(-(angular_dist_rad ** 2) / (2 * sigma_rad ** 2))
         if spatial_weight < 1e-4:
-            return (None,0)
+            return identity
 
         # Build the full residual correction quaternion (v_pred_rot → v_obs)
         axis = np.cross(v_pred_rot, v_obs)
         norm_axis = np.linalg.norm(axis)
         if norm_axis < 1e-8:
-            return (None,0)
+            return identity
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
         q_full = Quaternion(axis=axis, angle=angle)

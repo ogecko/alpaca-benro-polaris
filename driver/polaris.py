@@ -157,7 +157,6 @@ class Polaris:
         self._adj_azimuth: float = Config.aiming_adjustment_az      # The Azimuth adjustment to correct the aim based on past goto results
         self._adj_sync_altitude: float = 0          # The Altitude adjustment difference between polaris and ascom
         self._adj_sync_azimuth: float = 0           # The Azimuth adjustment difference between polaris and ascom
-        self._rbc_error: float = 0                  # Rotation Bias Error from RBC, LGA error in _sm
         #
         # Telescope device rates
         #
@@ -215,14 +214,12 @@ class Polaris:
         # Advanced Control variables
         self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
         self._motorQ_state = None                   # The KF corrected C2B quaternion in B Frame
-        self._motorQ_adj = None                     # The KF+PAC+SBC corrected C2B quaternion in B Frame
         self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
         self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
         self._theta_raw = None                      # Latest Motor Angles Raw  [theta1, theta2, theta3] from 518 msg q1
         self._theta_state = None                    # Latest Motor Angles Kalman Filtered [theta1, theta2, theta3] = KF(theta_raw)
         self._alpha_state = None                    # Latest KF Filtered Sky Angles Kalman Filtered [az, alt, roll] 
-        self._theta_adj = None                      # Latest Motor Angles KF+PEC+RBC [theta1, theta2, theta3] = RBC(theta_state)
         self._omega_raw = None                      # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._cm = CalibrationManager()
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
@@ -618,28 +615,19 @@ class Polaris:
             # parse the 518 message args to determine motor angles and velocities
             theta_raw, omega_raw, omega_ref = self.decode_518position_measurement(args)
 
-            # Process through the Kalman Filter to determine Polaris theta_state
+            # Process through the Kalman Filter [KF] to determine Polaris theta_state
             self._kf.predict(omega_ref)
             self._kf.observe(theta_raw, omega_raw, omega_ref)
             self._theta_state, _ = self._kf.get_state()
             motorQ_state = theta_to_q(*self._theta_state)
 
-            # optionally apply mechanical corrections (RBC)
-            if (Config.advanced_align_rbc):
-                params = MountModelParams.from_config(Config)
-                self._motorQ_adj, self._rbc_error = apply_mechanical_corrections(motorQ_state, params)
-                self._theta_adj = np.array(q_to_theta(self._motorQ_adj, self._pid._lp))
+            # Translate from Base Frame to Topo Frame [RBC] -> QUEST -> [LGA] -> [RollAdj]
+            cameraQ_pv, motorQ_pv = self._sm.baseQ_to_topoQ(motorQ_state)
+            theta_pv = np.array(q_to_theta(motorQ_pv, self._pid._lp))
 
-            else:
-                self._motorQ_adj, self._rbc_error = motorQ_state, 0
-                self._theta_adj = self._theta_state      
-
-            # Translate from Base Frame to Topo Frame
-            cameraQ_pv = self._sm.baseQ_to_topoQ(self._motorQ_adj)
-            
             # update all the Sky Positions (p_*=kf_state;  a_*= pid_pv) and the PID loop
             delta_pv, alpha_pv = self.update_sky_positions(motorQ_state, cameraQ_pv)
-            self._pid.measure(delta_pv, alpha_pv, self._theta_adj, self._zeta_meas)
+            self._pid.measure(delta_pv, alpha_pv, theta_pv, self._zeta_meas)
             self._pid.control_step_calculate()
             asyncio.create_task(self._pid.control_step_execute())
 
@@ -1397,7 +1385,7 @@ class Polaris:
                 'traw': [0,0,0] if self._theta_raw is None else self._theta_raw.tolist(),
                 'tstate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
                 'astate': [0,0,0] if self._alpha_state is None else self._alpha_state.tolist(),
-                'tadj': [0,0,0] if self._theta_adj is None else self._theta_adj.tolist(),
+                'tadj': [0,0,0] if self._pid.theta_adj is None else self._pid.theta_adj.tolist(),
                 'tref': [0,0,0] if self._pid.theta_ref is None else self._pid.theta_ref.tolist(),
                 'dguide': [0,0,0] if self._pid.delta_guide is None else self._pid.delta_guide.tolist(),
                 'dslew': [0,0,0] if self._pid.delta_v_sp is None else self._pid.delta_v_sp.tolist(),
@@ -1423,7 +1411,7 @@ class Polaris:
                 'polarisswver': self._polaris_sw_ver,
                 'polarishwver': self._polaris_hw_ver,
                 'polarisastrover': self._polaris_astro_ver,
-                'rbcerror': self._rbc_error,
+                'rbcerror': self._sm.rbc_error,
                 'sccerror': self._sm.scc_error,
                 'pidKc': Config.pid_Kc,
             }

@@ -351,16 +351,16 @@ theta_state             KF smoothed motor morientation angles
 motorQ_state            KF smoother motor orientation quaternion C→B
 alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
-    ▼ Periodic Error Correction, optional (future — currently theta_adj = theta_state)
-    ▼ Rotation Bias Correction, optional (corrQ_RBC)
-theta_adj              adjusted motor orientation angles
-motorQ_adj             adjusted motor orientation quaternion (theta_to_q)
+    ▼ Periodic Error Correction, optional (future)
     │
     ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGA ∘ alignQ_B2T ∘ motorQ_adj
-    ▼     QUEST Alignment (alignQ_B2T) 
-    ▼     Local Gaussian Correction (corrQ_LGA)
-    ▼     Roll Sync Adjustment (corrQ_roll)
+    ▼     Rotation Bias Correction (corrQ_RBC)  B Frame
+    ▼     QUEST Alignment (alignQ_B2T)          B→T
+    ▼     Local Gaussian Correction (corrQ_LGA) T Frame
+    ▼     Roll Sync Adjustment (corrQ_roll) T Frame
+motorQ_pv              RBC corrected only (B Frame)
 cameraQ_pv             Fully corrected C→T pointing quaternion
+theta_pv               RBC corrected only (B Frame)
 alpha_pv               (a_az, a_alt, a_roll) = q_to_azaltroll(cameraQ_pv)
 delta_pv               (a_ra, a_dec, a_pa)   = pyephem(az, alt, roll), used as ASCOM co-ordinates
 ```
@@ -368,8 +368,7 @@ delta_pv               (a_ra, a_dec, a_pa)   = pyephem(az, alt, roll), used as A
 ### 4.2 Inverse Kinematics — Sky → Motors Angular Position
 
 Converts a target sky orientation into the motor angles required to achieve it. Undoes
-corrections in exact reverse order of the forward chain. No `corrQ_RBC⁻¹` is needed as
-RBC is applied at the measurement stage, not in the alignment chain.
+corrections in exact reverse order of the forward chain. 
 
 ```
 delta_sp                DSO Target equatorial coordinates (RA, Dec, PA)
@@ -391,10 +390,11 @@ cameraQ_ref             Target C→T quaternion = azaltroll_to_q(*alpha_ref)
     ▼ Shortest Path SO(3) slerp from cameraQ_pv to cameraQ_ref
 cameraQ_step
     │
-    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGA⁻¹ ∘ alignQ_B2T⁻¹ ∘ cameraQ_step
+    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGA⁻¹ ∘ alignQ_B2T⁻¹ ∘ corrQ_RBC⁻¹ ∘ cameraQ_step
     ▼    Undo Roll Sync Adjustment      (corrQ_roll⁻¹, T frame)
     ▼    Undo Local Gaussian Correction (corrQ_LGA⁻¹, T frame)
     ▼    QUEST Alignment inverse        (alignQ_B2T_inv, T→B)
+    ▼    Undo Rotation Bias Correction  (corrQ_RBC⁻¹, B frame)
 motorQ_ref              Target C→B quaternion
 theta_ref               Target motor angles (θ1, θ2, θ3) = q_to_theta(motorQ_ref)
     │                        two solutions possible (elbow up/down).
