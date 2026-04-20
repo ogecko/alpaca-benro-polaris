@@ -457,28 +457,32 @@ def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
     M3 tilt correction [m3_tilt_alt, m3_tilt_az]
       Physical cause: M3 rotation axis tilted from ideal camera-up axis [1,0,0].
       Altitude effect:
-        Fitted error:   dev_theta2 [arcmin] = m3_tilt_alt * theta3
-        Correction:     rotate around M2 axis by -(m3_tilt_alt/60) * theta3 degrees.
+        Fitted error: dev_theta2 [arcmin] = m3_tilt_alt * theta3
+        Correction:   rotate around M2 axis by -(m3_tilt_alt/60) * theta3 degrees.
       Azimuth effect (altitude-dependent):
-        Fitted error:   dev_m_az [arcmin] = m3_tilt_az * sin(theta2) * theta3
-        Correction:     rotate around vertical axis by -(m3_tilt_az/60) * sin(theta2) * theta3 degrees.
+        Fitted error: dev_m_az [arcmin] = m3_tilt_az * sin(theta2) * theta3
+        Correction:   M1 axis adj = -(m3_tilt_az/60) * sin(theta2) * theta3 degrees.
 
     M2 tilt correction [m2_tilt_alt_amp, m2_tilt_alt_zero]
       Physical cause: M2 rotation axis not perpendicular to M1.
       Fitted error:   dev_theta2 [arcmin] = m2_tilt_alt_amp * sin(theta2 - m2_tilt_alt_zero)
-      Correction:     rotate around M2 axis by -(m2_tilt_alt_amp/60) * sin(theta2 - m2_tilt_alt_zero) degrees.
+      Correction:     M2 axis adj = -(m2_tilt_alt_amp/60) * sin(theta2 - m2_tilt_alt_zero) degrees.
 
     M2 roll coupling correction [m2_roll_coupling, m2_roll_zero]
       Physical cause: M2 motor introduces roll error proportional to displacement from
                       mechanical zero (theta2 = m2_roll_zero, typically 45 degrees).
       Fitted error:   dev_roll [arcmin] = m2_roll_coupling * (theta2 - m2_roll_zero)
-      Correction:     rotate around camera boresight by
-                      -(m2_roll_coupling/60) * (theta2 - m2_roll_zero) degrees.
+      Correction:     boresight adj = -(m2_roll_coupling/60) * (theta2 - m2_roll_zero) degrees.
 
     M3 encoder correction [m3_encoder_scale]
       Physical cause: M3 encoder reads more/less rotation than occurred.
       Fitted error:   dev_theta3 [arcmin] = m3_encoder_scale * theta3
-      Correction:     rotate around M3 axis by (m3_encoder_scale/60) * theta3 degrees.
+      Correction:     M3 axis adj = (m3_encoder_scale/60) * theta3 degrees.
+
+    M1-M3 Motor Offset correction [m1_offset, m2_offset, m3_offset]
+      Physical cause: polar misalignment not corrected by QUEST 
+      Fitted error:   Use Nina 3 Point Alignment to determin az/M1 and alt/M2 offsets
+      Correction:     M1 to M3 axis adj = -m1 to -m3_offset fixed manually entered offset
     """
     t1, t2, t3 = q_to_theta(q)
 
@@ -491,12 +495,11 @@ def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
 
     # M3 tilt correction — altitude component (dominant)
     q_m3_tilt_alt = Quaternion(axis=m2_axis,
-                               degrees=-(params.m3_tilt_alt / 60.0) * t3)
+                               degrees=-(params.m3_tilt_alt / 60.0) * t3 - params.m2_offset)
 
     # M3 tilt correction — azimuth component (altitude-dependent)
     q_m3_tilt_az  = Quaternion(axis=m1_axis,
-                               degrees=-(params.m3_tilt_az / 60.0) *
-                               math.sin(math.radians(t2)) * t3)
+                               degrees=-(params.m3_tilt_az / 60.0) * math.sin(math.radians(t2)) * t3 - params.m1_offset)
 
     # M2 tilt correction — altitude error
     q_m2_tilt     = Quaternion(axis=m2_axis,
@@ -510,7 +513,7 @@ def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
 
     # M3 encoder correction — roll scale error
     q_m3_encoder  = Quaternion(axis=m3_axis,
-                               degrees=(params.m3_encoder_scale / 60.0) * t3)
+                               degrees=(params.m3_encoder_scale / 60.0) * t3 - params.m3_offset)
 
     # Applied right-to-left: M3_tilt_az, M3_tilt_alt, M2_tilt, M2_roll, M3_encoder
     q_corr = q_m3_encoder * q_m2_roll * q_m2_tilt * q_m3_tilt_alt * q_m3_tilt_az

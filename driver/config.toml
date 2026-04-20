@@ -84,34 +84,27 @@ guide_rate_dec = 1.0                        # Declination guide rate multiple of
 
 
 [models]
-# ---- Rotation Bias Correction Model (Sky space)
+# Mechanical Correction Models (set to zero for no effect)
 
-rbc_model_a = 0.9742                        # Rotation Bias Model:  roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
-rbc_model_b = 0.2509                        # Rotation Bias Model:  roll_error (arcmin) = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll
-rbc_model_c = -1.0102                       # Rotation Bias Model:  az_error (arcmin) = rbc_model_c · roll_error
+# ---- Polar mis-alignment correction (polar misalignment not corrected by QUEST)
+m1_offset        = 0.0        # degrees       M1 axis adj = -m1_offset
+m2_offset        = 0.0        # degrees       M2 axis adj = -m2_offset
+m3_offset        = 0.0        # degrees       M3 axis adj = -m3_offset
 
-# ---- Mechnical Mount Correction Model (theta space)
+# ---- M3 tilt correction (astro axis physically tilted away from camera up - dominant)
+m3_tilt_alt      = -2.1048    # arcmin/deg;   M2 axis adj = -(m3_tilt_alt/60) * theta3
+m3_tilt_az       = +1.5241    # arcmin/deg;   M1 axis adj = -(m3_tilt_az/60) * sin(theta2) * theta3
 
-# ---- M3 tilt correction  (dominant — astro axis physically tilted away from camera up)
-# Fitted error: dev_theta2 [arcmin] = m3_tilt_alt * theta3
-m3_tilt_alt   = -2.1048                     # arcmin/deg_theta3  — altitude effect
-# Fitted error: dev_theta1 [arcmin] = m3_tilt_az * sin(theta2) * theta3
-m3_tilt_az    = +1.5241                     # arcmin/deg_theta3  — azimuth effect (altitude-dependent)
+# ---- M2 tilt correction (altitude axis not perpendicular to azimuth axis)
+m2_tilt_alt_amp  = +67.11     # arcmin;       M2 axis adj = -(m2_tilt_alt_amp/60) * sin(theta2 - m2_tilt_alt_zero)
+m2_tilt_alt_zero = 0.0        # degrees
 
-# ---- M2 tilt correction  (altitude axis not perpendicular to azimuth axis)
-# Fitted error: dev_theta2 [arcmin] = m2_tilt_alt_amp * sin(theta2 - m2_tilt_alt_zero)
-m2_tilt_alt_amp  = +67.11                   # arcmin
-m2_tilt_alt_zero = 0.0                      # degrees — theta2 where error crosses zero
+# ---- M2 roll coupling correction (altitude axis introduces roll proportional to theta2)
+m2_roll_coupling = -3.5726    # arcmin/deg;   Boresight adj = m2_roll_coupling * (theta2 - m2_roll_zero)
+m2_roll_zero     = 45.0       # degrees
 
-# ---- M2 roll coupling correction  (altitude axis introduces roll proportional to theta2)
-# Fitted error: dev_roll [arcmin] = m2_roll_coupling * (theta2 - m2_roll_zero)
-m2_roll_coupling = -3.5726                  # arcmin/deg — M2 roll coupling (theta2-dependent roll error)
-m2_roll_zero = 45.0                         # degrees    — theta2 where M2 roll coupling is zero
-
-# ---- M3 encoder correction  (astro axis encoder scale error — treat with caution)
-# Fitted error: dev_theta3 [arcmin] = m3_encoder_scale * theta3
-m3_encoder_scale = 0.0                      # arcmin/deg_theta3
-
+# ---- M3 encoder correction (astro axis encoder scale error)
+m3_encoder_scale = 0.0        # arcmin/deg;   M3 axis adj = (m3_encoder_scale/60) * theta3
 
 
 [device]

@@ -398,6 +398,9 @@ def _load_mount_params(params_path):
             m3_encoder_scale = tm.get('m3_encoder_scale', 0.0),
             m2_roll_coupling = tm.get('m2_roll_coupling', 0.0),
             m2_roll_zero     = tm.get('m2_roll_zero',     45.0),
+            m1_offset        = tm.get('m1_offset',        0.0),
+            m2_offset        = tm.get('m2_offset',        0.0),
+            m3_offset        = tm.get('m3_offset',        0.0),
         ), saved
     return _km.MountModelParams(), {}
 
@@ -594,7 +597,11 @@ def cmd_model(csv_paths, params_path):
               f"m2_tilt_alt_zero={tm.get('m2_tilt_alt_zero',0):.4f}  "
               f"m3_encoder_scale={tm.get('m3_encoder_scale',0):.4f}  "
               f"m2_roll_coupling={tm.get('m2_roll_coupling',0):.4f}  "
-              f"m2_roll_zero={tm.get('m2_roll_zero',45.0):.4f}")
+              f"m2_roll_zero={tm.get('m2_roll_zero',45.0):.4f} "
+              f"m1_offset={tm.get('m1_offset',0.0):.4f} "
+              f"m2_offset={tm.get('m2_offset',0.0):.4f} "
+              f"m3_offset={tm.get('m3_offset',0.0):.4f} "
+              )
         print()
 
     all_rows = _load_csvs(csv_paths)
@@ -806,7 +813,7 @@ def cmd_model(csv_paths, params_path):
         print("     FIT FAILED -- insufficient theta2 variation or poor data coverage.")
     print()
 
-    # MODIFICATION 2: M2 roll coupling correction 
+    # M2 roll coupling correction 
     print("  -- M2 roll coupling - roll/theta2 ----------")
     print("     Fitted error: dev_m_roll [arcmin] = h * (theta2 - m2_roll_zero)")
     print("     Physical cause: M2 motor introduces roll error proportional to")
@@ -856,6 +863,8 @@ def cmd_model(csv_paths, params_path):
         print(f"     Skipped -- theta3 span {t3_range:.0f} deg < 30 deg minimum.")
         print("     Collect data with p_roll sweeping -60 to +60 at fixed az/alt.")
     print()
+
+    # Offset correction
 
     # ---- Results summary ----------------------------------------------------
     def _use(fitted, fallback):
@@ -957,6 +966,9 @@ def cmd_model(csv_paths, params_path):
         'm3_encoder_scale': e_out,
         'm2_roll_coupling': h_out,
         'm2_roll_zero':     z_out,
+        'm1_offset':        0.0,
+        'm2_offset':        0.0,
+        'm3_offset':        0.0,
     }
     sessions_out = {}
     for sid, alignQ in session_alignQ.items():
@@ -1012,7 +1024,11 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
           f"m2_tilt_alt_zero={tm.get('m2_tilt_alt_zero',0):.4f}  "
           f"m3_encoder_scale={tm.get('m3_encoder_scale',0):.4f}  "
           f"m2_roll_coupling={tm.get('m2_roll_coupling',0):.4f}  "
-          f"m2_roll_zero={tm.get('m2_roll_zero',45.0):.4f}")
+          f"m2_roll_zero={tm.get('m2_roll_zero',45.0):.4f} "
+          f"m1_offset={tm.get('m1_offset',0.0):.4f} "
+          f"m2_offset={tm.get('m2_offset',0.0):.4f} "
+          f"m3_offset={tm.get('m3_offset',0.0):.4f} "
+          )
     sync_label = 'ALL rows' if n_sync is None else f'first {n_sync} rows'
     print(f"Sync points  : {sync_label} per session")
     print()
