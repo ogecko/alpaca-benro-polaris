@@ -103,9 +103,15 @@ m3_tilt_az    = +1.5241                     # arcmin/deg_theta3  — azimuth eff
 m2_tilt_alt_amp  = +67.11                   # arcmin
 m2_tilt_alt_zero = 0.0                      # degrees — theta2 where error crosses zero
 
+# ---- M2 roll coupling correction  (altitude axis introduces roll proportional to theta2)
+# Fitted error: dev_roll [arcmin] = m2_roll_coupling * (theta2 - m2_roll_zero)
+m2_roll_coupling = -3.5726                  # arcmin/deg — M2 roll coupling (theta2-dependent roll error)
+m2_roll_zero = 45.0                         # degrees    — theta2 where M2 roll coupling is zero
+
 # ---- M3 encoder correction  (astro axis encoder scale error — treat with caution)
 # Fitted error: dev_theta3 [arcmin] = m3_encoder_scale * theta3
 m3_encoder_scale = 0.0                      # arcmin/deg_theta3
+
 
 
 [device]
