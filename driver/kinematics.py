@@ -423,6 +423,9 @@ class MountModelParams:
     m3_encoder_scale: float = 0.0   # arcmin/deg — M3 encoder scale error
     m2_roll_coupling: float = 0.0   # arcmin/deg — M2 roll coupling (theta2-dependent roll error)
     m2_roll_zero:     float = 45.0  # degrees    — theta2 where M2 roll coupling is zero
+    m1_offset:        float = 0.0   # degrees    — Polar Alignment M1/Az offset
+    m2_offset:        float = 0.0   # degrees    — Polar Alignment M2/Alt offset
+    m3_offset:        float = 0.0   # degrees    — Polar Alignment M3 offset
 
     @classmethod
     def from_config(cls, config):
@@ -434,7 +437,10 @@ class MountModelParams:
             m2_tilt_alt_zero = get('m2_tilt_alt_zero'),
             m3_encoder_scale = get('m3_encoder_scale'),
             m2_roll_coupling = get('m2_roll_coupling'),
-            m2_roll_zero = get('m2_roll_zero'),
+            m2_roll_zero     = get('m2_roll_zero'),
+            m1_offset        = get('m1_offset'),
+            m2_offset        = get('m2_offset'),
+            m3_offset        = get('m3_offset'),
         )
 
 def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
@@ -480,14 +486,15 @@ def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
     qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
     m2_axis = qtheta1.rotate([0, 1, 0])
     m3_axis = (qtheta1 * qtheta2).rotate([1, 0, 0])
-    boresight = q.rotate([0, 0, -1])
+    m1_axis = [0.0, 0.0, 1.0]
+    boresight_axis = q.rotate([0,0,-1])
 
     # M3 tilt correction — altitude component (dominant)
     q_m3_tilt_alt = Quaternion(axis=m2_axis,
                                degrees=-(params.m3_tilt_alt / 60.0) * t3)
 
     # M3 tilt correction — azimuth component (altitude-dependent)
-    q_m3_tilt_az  = Quaternion(axis=[0.0, 0.0, 1.0],
+    q_m3_tilt_az  = Quaternion(axis=m1_axis,
                                degrees=-(params.m3_tilt_az / 60.0) *
                                math.sin(math.radians(t2)) * t3)
 
@@ -497,7 +504,7 @@ def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
                                math.sin(math.radians(t2 - params.m2_tilt_alt_zero)))
 
     # M2 roll coupling correction — roll error proportional to (theta2 - zero)
-    q_m2_roll     = Quaternion(axis=boresight,
+    q_m2_roll     = Quaternion(axis=boresight_axis,
                                degrees=-(params.m2_roll_coupling / 60.0) *
                                (t2 - params.m2_roll_zero))
 
