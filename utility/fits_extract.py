@@ -28,15 +28,17 @@ CSV field naming
 ----------------
   p_*      Polaris raw prediction (derived from qC2B_raw, includes SPA)
   s_*      Solved truth  (plate-solve result)
+  q_*      Quest-only prediction (QUEST applied, mechanical corrections NOT applied)
   m_*      Model prediction  (corrections + QUEST applied)
   dev_p_*  Raw deviation    = solved - polaris  (arcmin)
+  dev_q_*  Quest deviations = solved - quest    (arcmin)
   dev_m_*  Model deviations = solved - model    (arcmin)
 
 Note on SPA
 -----------
-  The Polaris firmware performs a Single Point Alignment (SPA) before use. 
-  This bakes the firmware's full initial alignment (not just a rotator offset) 
-  into qC2B_raw, which is the source of all p_* values. 
+  The Polaris firmware performs a Single Point Alignment (SPA) before use.
+  This bakes the firmware's full initial alignment (not just a rotator offset)
+  into qC2B_raw, which is the source of all p_* values.
   QUEST corrects any residual frame tilt per session on top of SPA.
 
 All output uses ASCII only so stdout can be redirected to a text file.
@@ -151,6 +153,10 @@ _EXTRACT_FIELDS = [
 _PREDICT_FIELDS = _EXTRACT_FIELDS + [
     'sync_point',
     'alignQ_w', 'alignQ_x', 'alignQ_y', 'alignQ_z',
+    # Quest-only prediction (QUEST applied, no mechanical corrections)
+    'q_az', 'q_alt', 'q_roll', 'q_theta1', 'q_theta2', 'q_theta3',
+    'dev_q_az', 'dev_q_alt', 'dev_q_roll',
+    # Full model prediction (QUEST + mechanical corrections)
     'm_az', 'm_alt', 'm_roll', 'm_theta1', 'm_theta2', 'm_theta3',
     'dev_m_az', 'dev_m_alt', 'dev_m_roll',
 ]
@@ -447,7 +453,12 @@ def _fit_alignQ_from_rows(rows, mount_params):
 
 
 def _predict_row(row, alignQ, roll_adj, mount_params):
-    """Return model prediction dict for one row, or None on error."""
+    """Return model prediction dict for one row, or None on error.
+
+    Returns predictions at three levels:
+      q_*     QUEST only  — alignQ applied, no mechanical corrections
+      m_*     Full model  — mechanical corrections applied before QUEST
+    """
     try:
         p_az  = float(row['p_az']);     p_alt = float(row['p_alt']);    p_roll = float(row['p_roll'])
         p_t1  = float(row['p_theta1']); p_t2 = float(row['p_theta2']);  p_t3 = float(row['p_theta3'])
@@ -458,6 +469,17 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
     if not p_roll:
         return None
 
+    # ---- Quest-only prediction (no mechanical corrections) ---------------
+    q_base_raw = _km.theta_to_q(p_t1, p_t2, p_t3)
+    qa_q = (alignQ * q_base_raw).normalised
+    q_az, q_alt, q_roll_raw = _km.q_to_azaltroll(qa_q)
+    q_roll = wrap180(q_roll_raw + roll_adj)
+    q_t1, q_t2, q_t3 = _km.q_to_theta(qa_q)
+    # Apply roll_adj scalar corrections to quest-only thetas too
+    q_t1_adj = wrap360(q_t1 + roll_adj / math.sin(math.radians(q_t2)))
+    q_t3_adj = wrap180(q_t3 - roll_adj / math.tan(math.radians(q_t2)))
+
+    # ---- Full model prediction (mechanical corrections + QUEST) ----------
     q_base = _km.theta_to_q(p_t1, p_t2, p_t3)
     if mount_params is not None:
         q_base, _ = _km.apply_mechanical_corrections(q_base, mount_params)
@@ -471,12 +493,24 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
     m_t3   = wrap180(m_t3 - roll_adj / math.tan(math.radians(m_t2)))
 
     return {
+        # Quest-only
+        'q_az':          q_az,
+        'q_alt':         q_alt,
+        'q_roll':        q_roll,
+        'q_theta1':      q_t1_adj,
+        'q_theta2':      q_t2,
+        'q_theta3':      q_t3_adj,
+        'dev_q_az':      wrap180(s_az   - q_az)   * 60,
+        'dev_q_alt':     wrap180(s_alt  - q_alt)  * 60,
+        'dev_q_roll':    wrap180(s_roll - q_roll) * 60,
+        # Full model
         'm_az':          m_az,
         'm_alt':         m_alt,
         'm_roll':        m_roll,
         'm_theta1':      m_t1,
         'm_theta2':      m_t2,
         'm_theta3':      m_t3,
+        # Raw deviations (recomputed here for completeness)
         'dev_p_az':      wrap180(s_az  - p_az)    * 60,
         'dev_p_alt':     wrap180(s_alt - p_alt)   * 60,
         'dev_p_roll':    wrap180(s_roll - p_roll) * 60,
@@ -489,6 +523,7 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
         'dev_m_theta1':  wrap180(s_t1 - m_t1) * 60,
         'dev_m_theta2':  wrap180(s_t2 - m_t2) * 60,
         'dev_m_theta3':  wrap180(s_t3 - m_t3) * 60,
+        'dev_q_theta2':  wrap180(s_t2 - q_t2) * 60,
         '_dev_m_theta2': wrap180(s_t2 - m_t2) * 60,
         '_dev_m_theta3': wrap180(s_t3 - m_t3) * 60,
     }
@@ -813,7 +848,7 @@ def cmd_model(csv_paths, params_path):
         print("     FIT FAILED -- insufficient theta2 variation or poor data coverage.")
     print()
 
-    # M2 roll coupling correction 
+    # M2 roll coupling correction
     print("  -- M2 roll coupling - roll/theta2 ----------")
     print("     Fitted error: dev_m_roll [arcmin] = h * (theta2 - m2_roll_zero)")
     print("     Physical cause: M2 motor introduces roll error proportional to")
@@ -1069,12 +1104,10 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
         print(f"  Sync rows used: {n_use_sync} / {len(rows)}")
         print()
 
-        dev_p_2d_all  = []
-        dev_m_2d_all  = []
-        dev_p_2d_test = []
-        dev_m_2d_test = []
-        dev_p_t2_list = []
-        dev_m_t2_list = []
+        # Per-row accumulators: raw, quest-only, full model
+        dev_p_2d_all  = []; dev_q_2d_all  = []; dev_m_2d_all  = []
+        dev_p_2d_test = []; dev_q_2d_test = []; dev_m_2d_test = []
+        dev_p_t2_list = []; dev_q_t2_list = []; dev_m_t2_list = []
 
         for i, row in enumerate(rows):
             pred = _predict_row(row, alignQ, roll_adj, mount_params)
@@ -1090,6 +1123,19 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
             if pred is not None:
                 f4 = lambda v: round(v, 4)
                 f2 = lambda v: round(v, 2)
+
+                # Quest-only fields
+                out['q_az']      = f4(pred['q_az'])
+                out['q_alt']     = f4(pred['q_alt'])
+                out['q_roll']    = f4(pred['q_roll'])
+                out['q_theta1']  = f4(pred['q_theta1'])
+                out['q_theta2']  = f4(pred['q_theta2'])
+                out['q_theta3']  = f4(pred['q_theta3'])
+                out['dev_q_az']  = f2(pred['dev_q_az'])
+                out['dev_q_alt'] = f2(pred['dev_q_alt'])
+                out['dev_q_roll']= f2(pred['dev_q_roll'])
+
+                # Full model fields
                 out['m_az']    = f4(pred['m_az'])
                 out['m_alt']   = f4(pred['m_alt'])
                 out['m_roll']  = f4(pred['m_roll'])
@@ -1099,68 +1145,99 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
                 out['dev_m_az']   = f2(pred['dev_m_az'])
                 out['dev_m_alt']  = f2(pred['dev_m_alt'])
                 out['dev_m_roll'] = f2(pred['dev_m_roll'])
-                for k in ('dev_p_theta2','dev_p_theta3','dev_m_theta2','dev_m_theta3'):
-                    v = pred.get(k, float('nan'))
-                    if not math.isnan(v): out[k] = f2(v)
 
+                for k in ('dev_p_theta2', 'dev_p_theta3',
+                          'dev_m_theta2', 'dev_m_theta3',
+                          'dev_q_theta2'):
+                    v = pred.get(k, float('nan'))
+                    if not math.isnan(v):
+                        out[k] = f2(v)
+
+                # 2D sky RMS accumulators
                 try:
-                    dp = math.sqrt(float(row.get('dev_p_az',0))**2 +
-                                   float(row.get('dev_p_alt',0))**2)
+                    dp = math.sqrt(float(row.get('dev_p_az', 0))**2 +
+                                   float(row.get('dev_p_alt', 0))**2)
+                    dq = math.sqrt(pred['dev_q_az']**2 + pred['dev_q_alt']**2)
                     dm = math.sqrt(pred['dev_m_az']**2 + pred['dev_m_alt']**2)
-                    dev_p_2d_all.append(dp)
-                    dev_m_2d_all.append(dm)
+                    dev_p_2d_all.append(dp); dev_q_2d_all.append(dq); dev_m_2d_all.append(dm)
                     if not is_sync:
                         dev_p_2d_test.append(dp)
+                        dev_q_2d_test.append(dq)
                         dev_m_2d_test.append(dm)
                 except Exception:
                     pass
+
+                # Motor theta2 RMS accumulators
                 try:
                     pdt2 = pred.get('dev_p_theta2', float('nan'))
+                    dqt2 = pred.get('dev_q_theta2', float('nan'))
                     dmt2 = pred.get('dev_m_theta2', float('nan'))
                     if not math.isnan(pdt2):
                         dev_p_t2_list.append(pdt2)
+                        dev_q_t2_list.append(dqt2)
                         dev_m_t2_list.append(dmt2)
                 except Exception:
                     pass
 
                 output_rows.append(out)
 
+        # ---- Per-session metrics -------------------------------------------
         dp_rms_all  = _rms(dev_p_2d_all)
+        dq_rms_all  = _rms(dev_q_2d_all)
         dm_rms_all  = _rms(dev_m_2d_all)
         dp_rms_test = _rms(dev_p_2d_test)
+        dq_rms_test = _rms(dev_q_2d_test)
         dm_rms_test = _rms(dev_m_2d_test)
-        imp_all     = (1 - dm_rms_all/dp_rms_all)*100   if dp_rms_all  > 0 else float('nan')
-        imp_test    = (1 - dm_rms_test/dp_rms_test)*100 if dp_rms_test > 0 else float('nan')
+
+        def _impr(after, before):
+            return (1 - after/before)*100 if before > 0 and not math.isnan(after) else float('nan')
 
         n_test = len(rows) - n_use_sync
         rms_p_t2 = _rms(dev_p_t2_list) if dev_p_t2_list else float('nan')
+        rms_q_t2 = _rms(dev_q_t2_list) if dev_q_t2_list else float('nan')
         rms_m_t2 = _rms(dev_m_t2_list) if dev_m_t2_list else float('nan')
-        imp_t2   = (1 - rms_m_t2/rms_p_t2)*100 if rms_p_t2 > 0 else float('nan')
+
+        # Column widths: Metric(32) Raw(8) Quest(8) Model(8) Q-Impr(9) M-Impr(9)
+        W_MET = 34; W_VAL = 8; W_IMP = 9
+        hdr   = (f"  {'Metric':<{W_MET}}  {'Raw':>{W_VAL}}  {'Quest':>{W_VAL}}"
+                 f"  {'Model':>{W_VAL}}  {'Q-Impr':>{W_IMP}}  {'M-Impr':>{W_IMP}}")
+        sep   = "  " + "-"*W_MET + "  " + "-"*W_VAL + "  " + "-"*W_VAL + "  " + "-"*W_VAL + "  " + "-"*W_IMP + "  " + "-"*W_IMP
+
+        def _row_line(label, rp, rq, rm):
+            iq = _impr(rq, rp); im = _impr(rm, rp)
+            iqs = f"{iq:>+8.1f}%" if not math.isnan(iq) else "      N/A"
+            ims = f"{im:>+8.1f}%" if not math.isnan(im) else "      N/A"
+            rps = f"{rp:>7.1f}'" if not math.isnan(rp) else "     N/A"
+            rqs = f"{rq:>7.1f}'" if not math.isnan(rq) else "     N/A"
+            rms_s = f"{rm:>7.1f}'" if not math.isnan(rm) else "     N/A"
+            return f"  {label:<{W_MET}}  {rps}  {rqs}  {rms_s}  {iqs}  {ims}"
 
         print(f"  Results ({len(rows)} rows, {n_use_sync} sync):")
-        print(f"  {'Metric':<32}  {'Raw':>8}  {'Model':>8}  {'Improv':>8}")
-        print(f"  {'-'*32}  {'-'*8}  {'-'*8}  {'-'*8}")
+        print(hdr)
+        print(sep)
+
         if not math.isnan(rms_p_t2):
-            imp_t2_s = f"{imp_t2:>+7.1f}%" if not math.isnan(imp_t2) else "    N/A"
-            good = "  <-- KEY" if not math.isnan(imp_t2) and abs(imp_t2) > 10 else ""
-            print(f"  {'Motor theta2 RMS (dev_p/m_theta2)':<32}  "
-                  f"{rms_p_t2:>7.1f}'  {rms_m_t2:>7.1f}'  {imp_t2_s}{good}")
-        imp_all_s = f"{imp_all:>+7.1f}%" if not math.isnan(imp_all) else "    N/A"
-        print(f"  {'Sky 2D RMS (az+alt, all rows)':<32}  "
-              f"{dp_rms_all:>7.1f}'  {dm_rms_all:>7.1f}'  {imp_all_s}")
+            line = _row_line('Motor theta2 RMS (dev_*_theta2)', rms_p_t2, rms_q_t2, rms_m_t2)
+            key_flag = "  <-- KEY" if not math.isnan(_impr(rms_m_t2, rms_p_t2)) and abs(_impr(rms_m_t2, rms_p_t2)) > 10 else ""
+            print(line + key_flag)
+
+        print(_row_line('Sky 2D RMS az+alt (all rows)', dp_rms_all, dq_rms_all, dm_rms_all))
+
         if n_test > 0 and not math.isnan(dp_rms_test):
-            imp_test_s = f"{imp_test:>+7.1f}%" if not math.isnan(imp_test) else "    N/A"
-            print(f"  {'Sky 2D RMS (az+alt, test only)':<32}  "
-                  f"{dp_rms_test:>7.1f}'  {dm_rms_test:>7.1f}'  {imp_test_s}")
+            print(_row_line('Sky 2D RMS az+alt (test only)', dp_rms_test, dq_rms_test, dm_rms_test))
+
         print()
 
         session_summary.append({
             'sid': sid, 'n': len(rows), 'n_sync': n_use_sync,
-            'dp_all': dp_rms_all, 'dm_all': dm_rms_all, 'imp_all': imp_all,
-            'dp_test': dp_rms_test, 'dm_test': dm_rms_test, 'imp_test': imp_test,
-            'rms_p_t2': rms_p_t2, 'rms_m_t2': rms_m_t2, 'imp_t2': imp_t2,
+            # 2D sky
+            'dp_all': dp_rms_all, 'dq_all': dq_rms_all, 'dm_all': dm_rms_all,
+            'dp_test': dp_rms_test, 'dq_test': dq_rms_test, 'dm_test': dm_rms_test,
+            # Motor theta2
+            'rms_p_t2': rms_p_t2, 'rms_q_t2': rms_q_t2, 'rms_m_t2': rms_m_t2,
         })
 
+    # ---- Write CSV ----------------------------------------------------------
     output_csv = Path(output_csv)
     with open(output_csv, 'w', newline='') as f:
         w2 = csv.DictWriter(f, fieldnames=_PREDICT_FIELDS, extrasaction='ignore')
@@ -1169,65 +1246,98 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
     print(f"Wrote {len(output_rows)} rows -> {output_csv}")
     print()
 
-    print("=" * 66)
+    # ---- Validation summary -------------------------------------------------
+    W  = "=" * 78
+    W2 = "-" * 78
+    W_MET = 34; W_VAL = 8; W_IMP = 9
+
+    def _impr(after, before):
+        return (1 - after/before)*100 if before > 0 and not math.isnan(after) else float('nan')
+
+    def _summary_row(label, n, rp, rq, rm):
+        iq = _impr(rq, rp); im = _impr(rm, rp)
+        iqs = f"{iq:>+8.1f}%" if not math.isnan(iq) else "      N/A"
+        ims = f"{im:>+8.1f}%" if not math.isnan(im) else "      N/A"
+        rps = f"{rp:>7.1f}'" if not math.isnan(rp) else "     N/A"
+        rqs = f"{rq:>7.1f}'" if not math.isnan(rq) else "     N/A"
+        rms_s = f"{rm:>7.1f}'" if not math.isnan(rm) else "     N/A"
+        ns  = f"{n:>5}" if n is not None else "     "
+        return f"  {label:<{W_MET}}  {ns}  {rps}  {rqs}  {rms_s}  {iqs}  {ims}"
+
+    hdr_full = (f"  {'Session':<{W_MET}}  {'N':>5}  {'Raw':>{W_VAL}}  {'Quest':>{W_VAL}}"
+                f"  {'Model':>{W_VAL}}  {'Q-Impr':>{W_IMP}}  {'M-Impr':>{W_IMP}}")
+    sep_full  = ("  " + "-"*W_MET + "  " + "-"*5 + "  " + "-"*W_VAL + "  " + "-"*W_VAL
+                 + "  " + "-"*W_VAL + "  " + "-"*W_IMP + "  " + "-"*W_IMP)
+
+    print(W)
     print("  VALIDATION SUMMARY")
-    print("=" * 66)
+    print(W)
     print()
 
+    # ---- Motor theta2 table -------------------------------------------------
     has_t2 = any(not math.isnan(s.get('rms_p_t2', float('nan'))) for s in session_summary)
     if has_t2:
         print("  Motor theta2 (KEY metric -- directly measures correction quality):")
-        print(f"  {'Session':<34}  {'N':>5}  {'Raw':>8}  {'Model':>8}  {'Improvement':>12}")
-        print("  " + "-"*34 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*12)
-        t2_dp = []; t2_dm = []
+        print("  Quest column shows QUEST-only residual (no mechanical corrections).")
+        print("  Model column shows full pipeline residual.")
+        print()
+        print(hdr_full)
+        print(sep_full)
+        t2_dp = []; t2_dq = []; t2_dm = []
         for s in session_summary:
             rp = s.get('rms_p_t2', float('nan'))
+            rq = s.get('rms_q_t2', float('nan'))
             rm = s.get('rms_m_t2', float('nan'))
-            ii = s.get('imp_t2',   float('nan'))
             if math.isnan(rp): continue
-            imps = f"{ii:>+8.1f}%" if not math.isnan(ii) else "       N/A"
-            flag = "  ***" if not math.isnan(ii) and ii > 30 else \
-                   "  *"   if not math.isnan(ii) and ii > 10 else ""
-            print(f"  {s['sid']:<34}  {s['n']:>5}  {rp:>7.1f}'  {rm:>7.1f}'  {imps}{flag}")
-            t2_dp.append(rp); t2_dm.append(rm)
+            im = _impr(rm, rp)
+            flag = "  ***" if not math.isnan(im) and im > 30 else \
+                   "  *"   if not math.isnan(im) and im > 10 else ""
+            print(_summary_row(s['sid'], s['n'], rp, rq, rm) + flag)
+            t2_dp.append(rp); t2_dq.append(rq); t2_dm.append(rm)
         if t2_dp:
             mean_rp = sum(t2_dp)/len(t2_dp)
+            mean_rq = sum(t2_dq)/len(t2_dq)
             mean_rm = sum(t2_dm)/len(t2_dm)
-            ov = (1 - mean_rm/mean_rp)*100 if mean_rp > 0 else float('nan')
-            print("  " + "-"*34 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*12)
-            ov_s = f"{ov:>+8.1f}%" if not math.isnan(ov) else "       N/A"
-            print(f"  {'OVERALL':<34}  {'':>5}  {mean_rp:>7.1f}'  {mean_rm:>7.1f}'  {ov_s}")
+            print(sep_full)
+            print(_summary_row('OVERALL', None, mean_rp, mean_rq, mean_rm))
             print()
-            if not math.isnan(ov):
-                if ov > 50:
-                    print(f"  EXCELLENT: {ov:.0f}% improvement in motor theta2.")
-                elif ov > 25:
-                    print(f"  GOOD: {ov:.0f}% improvement in motor theta2.")
-                elif ov > 10:
-                    print(f"  MODERATE: {ov:.0f}% improvement. Consider refitting parameters.")
-                elif ov > 0:
-                    print(f"  MARGINAL: {ov:.0f}% improvement. Data quality or model may need review.")
+            ov_q = _impr(mean_rq, mean_rp)
+            ov_m = _impr(mean_rm, mean_rp)
+            if not math.isnan(ov_m):
+                if ov_m > 50:
+                    print(f"  EXCELLENT: {ov_m:.0f}% total improvement in motor theta2.")
+                elif ov_m > 25:
+                    print(f"  GOOD: {ov_m:.0f}% total improvement in motor theta2.")
+                elif ov_m > 10:
+                    print(f"  MODERATE: {ov_m:.0f}% improvement. Consider refitting parameters.")
+                elif ov_m > 0:
+                    print(f"  MARGINAL: {ov_m:.0f}% improvement. Data quality or model may need review.")
                 else:
-                    print(f"  NO IMPROVEMENT ({ov:.0f}%). Check parameter signs and data quality.")
+                    print(f"  NO IMPROVEMENT ({ov_m:.0f}%). Check parameter signs and data quality.")
+            if not math.isnan(ov_q) and not math.isnan(ov_m):
+                quest_share = ov_q
+                mech_share  = ov_m - ov_q
+                print(f"  Improvement breakdown: QUEST={quest_share:+.1f}%  Mechanical={mech_share:+.1f}%")
         print()
 
+    # ---- Sky 2D table -------------------------------------------------------
     print("  Sky 2D az+alt (secondary -- note: sky metric can be misleading")
     print("  at large roll due to motor-to-sky geometry coupling):")
-    print(f"  {'Session':<34}  {'N':>5}  {'Raw':>8}  {'Model':>8}  {'Improvement':>12}")
-    print("  " + "-"*34 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*12)
-    all_dp = []; all_dm = []
+    print()
+    print(hdr_full)
+    print(sep_full)
+    all_dp = []; all_dq = []; all_dm = []
     for s in session_summary:
-        imp_s = f"{s['imp_all']:>+8.1f}%" if not math.isnan(s['imp_all']) else "       N/A"
-        print(f"  {s['sid']:<34}  {s['n']:>5}  {s['dp_all']:>7.1f}'  {s['dm_all']:>7.1f}'  {imp_s}")
+        print(_summary_row(s['sid'], s['n'], s['dp_all'], s['dq_all'], s['dm_all']))
         if not math.isnan(s['dp_all']): all_dp.append(s['dp_all'])
+        if not math.isnan(s['dq_all']): all_dq.append(s['dq_all'])
         if not math.isnan(s['dm_all']): all_dm.append(s['dm_all'])
     if all_dp:
         mean_dp = sum(all_dp)/len(all_dp)
+        mean_dq = sum(all_dq)/len(all_dq)
         mean_dm = sum(all_dm)/len(all_dm)
-        ov_imp  = (1 - mean_dm/mean_dp)*100 if mean_dp > 0 else float('nan')
-        print("  " + "-"*34 + "  " + "-"*5 + "  " + "-"*8 + "  " + "-"*8 + "  " + "-"*12)
-        ov_s = f"{ov_imp:>+8.1f}%" if not math.isnan(ov_imp) else "       N/A"
-        print(f"  {'OVERALL':<34}  {'':>5}  {mean_dp:>7.1f}'  {mean_dm:>7.1f}'  {ov_s}")
+        print(sep_full)
+        print(_summary_row('OVERALL', None, mean_dp, mean_dq, mean_dm))
     print()
 
 
