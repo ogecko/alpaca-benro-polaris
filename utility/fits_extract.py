@@ -523,7 +523,9 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
         'dev_m_theta1':  wrap180(s_t1 - m_t1) * 60,
         'dev_m_theta2':  wrap180(s_t2 - m_t2) * 60,
         'dev_m_theta3':  wrap180(s_t3 - m_t3) * 60,
+        'dev_q_theta1':  wrap180(s_t1 - q_t1_adj) * 60,
         'dev_q_theta2':  wrap180(s_t2 - q_t2) * 60,
+        'dev_q_theta3':  wrap180(s_t3 - q_t3_adj) * 60,
         '_dev_m_theta2': wrap180(s_t2 - m_t2) * 60,
         '_dev_m_theta3': wrap180(s_t3 - m_t3) * 60,
     }
@@ -1104,10 +1106,11 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
         print(f"  Sync rows used: {n_use_sync} / {len(rows)}")
         print()
 
-        # Per-row accumulators: raw, quest-only, full model
-        dev_p_2d_all  = []; dev_q_2d_all  = []; dev_m_2d_all  = []
-        dev_p_2d_test = []; dev_q_2d_test = []; dev_m_2d_test = []
-        dev_p_t2_list = []; dev_q_t2_list = []; dev_m_t2_list = []
+        # Per-row accumulators — theta space and sky space, each 3 axes × 3 levels
+        # Keys: axes t1/t2/t3 and az/alt/roll; levels p/q/m
+        _TAXES = ['t1', 't2', 't3']
+        _SAXES = ['az', 'alt', 'roll']
+        acc = {ax: {'p': [], 'q': [], 'm': []} for ax in _TAXES + _SAXES}
 
         for i, row in enumerate(rows):
             pred = _predict_row(row, alignQ, roll_adj, mount_params)
@@ -1125,116 +1128,124 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
                 f2 = lambda v: round(v, 2)
 
                 # Quest-only fields
-                out['q_az']      = f4(pred['q_az'])
-                out['q_alt']     = f4(pred['q_alt'])
-                out['q_roll']    = f4(pred['q_roll'])
-                out['q_theta1']  = f4(pred['q_theta1'])
-                out['q_theta2']  = f4(pred['q_theta2'])
-                out['q_theta3']  = f4(pred['q_theta3'])
-                out['dev_q_az']  = f2(pred['dev_q_az'])
-                out['dev_q_alt'] = f2(pred['dev_q_alt'])
-                out['dev_q_roll']= f2(pred['dev_q_roll'])
+                out['q_az']       = f4(pred['q_az'])
+                out['q_alt']      = f4(pred['q_alt'])
+                out['q_roll']     = f4(pred['q_roll'])
+                out['q_theta1']   = f4(pred['q_theta1'])
+                out['q_theta2']   = f4(pred['q_theta2'])
+                out['q_theta3']   = f4(pred['q_theta3'])
+                out['dev_q_az']   = f2(pred['dev_q_az'])
+                out['dev_q_alt']  = f2(pred['dev_q_alt'])
+                out['dev_q_roll'] = f2(pred['dev_q_roll'])
 
                 # Full model fields
-                out['m_az']    = f4(pred['m_az'])
-                out['m_alt']   = f4(pred['m_alt'])
-                out['m_roll']  = f4(pred['m_roll'])
-                out['m_theta1'] = f4(pred['m_theta1'])
-                out['m_theta2'] = f4(pred['m_theta2'])
-                out['m_theta3'] = f4(pred['m_theta3'])
+                out['m_az']       = f4(pred['m_az'])
+                out['m_alt']      = f4(pred['m_alt'])
+                out['m_roll']     = f4(pred['m_roll'])
+                out['m_theta1']   = f4(pred['m_theta1'])
+                out['m_theta2']   = f4(pred['m_theta2'])
+                out['m_theta3']   = f4(pred['m_theta3'])
                 out['dev_m_az']   = f2(pred['dev_m_az'])
                 out['dev_m_alt']  = f2(pred['dev_m_alt'])
                 out['dev_m_roll'] = f2(pred['dev_m_roll'])
 
-                for k in ('dev_p_theta2', 'dev_p_theta3',
-                          'dev_m_theta2', 'dev_m_theta3',
-                          'dev_q_theta2'):
+                for k in ('dev_p_theta1', 'dev_p_theta2', 'dev_p_theta3',
+                          'dev_q_theta1', 'dev_q_theta2', 'dev_q_theta3',
+                          'dev_m_theta1', 'dev_m_theta2', 'dev_m_theta3'):
                     v = pred.get(k, float('nan'))
                     if not math.isnan(v):
                         out[k] = f2(v)
 
-                # 2D sky RMS accumulators
-                try:
-                    dp = math.sqrt(float(row.get('dev_p_az', 0))**2 +
-                                   float(row.get('dev_p_alt', 0))**2)
-                    dq = math.sqrt(pred['dev_q_az']**2 + pred['dev_q_alt']**2)
-                    dm = math.sqrt(pred['dev_m_az']**2 + pred['dev_m_alt']**2)
-                    dev_p_2d_all.append(dp); dev_q_2d_all.append(dq); dev_m_2d_all.append(dm)
-                    if not is_sync:
-                        dev_p_2d_test.append(dp)
-                        dev_q_2d_test.append(dq)
-                        dev_m_2d_test.append(dm)
-                except Exception:
-                    pass
-
-                # Motor theta2 RMS accumulators
-                try:
-                    pdt2 = pred.get('dev_p_theta2', float('nan'))
-                    dqt2 = pred.get('dev_q_theta2', float('nan'))
-                    dmt2 = pred.get('dev_m_theta2', float('nan'))
-                    if not math.isnan(pdt2):
-                        dev_p_t2_list.append(pdt2)
-                        dev_q_t2_list.append(dqt2)
-                        dev_m_t2_list.append(dmt2)
-                except Exception:
-                    pass
+                # Accumulate per-axis residuals for RMS
+                _pmap = {
+                    't1':   ('dev_p_theta1', 'dev_q_theta1', 'dev_m_theta1'),
+                    't2':   ('dev_p_theta2', 'dev_q_theta2', 'dev_m_theta2'),
+                    't3':   ('dev_p_theta3', 'dev_q_theta3', 'dev_m_theta3'),
+                    'az':   ('dev_p_az',     'dev_q_az',     'dev_m_az'),
+                    'alt':  ('dev_p_alt',    'dev_q_alt',    'dev_m_alt'),
+                    'roll': ('dev_p_roll',   'dev_q_roll',   'dev_m_roll'),
+                }
+                for ax, (pk, qk, mk) in _pmap.items():
+                    try:
+                        vp = pred.get(pk, float('nan'))
+                        vq = pred.get(qk, float('nan'))
+                        vm = pred.get(mk, float('nan'))
+                        # raw p values come from the row for sky axes
+                        if ax in _SAXES:
+                            vp = float(row.get(pk, 'nan') or 'nan')
+                        if not math.isnan(vp):
+                            acc[ax]['p'].append(vp)
+                            acc[ax]['q'].append(vq)
+                            acc[ax]['m'].append(vm)
+                    except Exception:
+                        pass
 
                 output_rows.append(out)
 
-        # ---- Per-session metrics -------------------------------------------
-        dp_rms_all  = _rms(dev_p_2d_all)
-        dq_rms_all  = _rms(dev_q_2d_all)
-        dm_rms_all  = _rms(dev_m_2d_all)
-        dp_rms_test = _rms(dev_p_2d_test)
-        dq_rms_test = _rms(dev_q_2d_test)
-        dm_rms_test = _rms(dev_m_2d_test)
-
+        # ---- Per-session RMS computation ------------------------------------
         def _impr(after, before):
             return (1 - after/before)*100 if before > 0 and not math.isnan(after) else float('nan')
 
-        n_test = len(rows) - n_use_sync
-        rms_p_t2 = _rms(dev_p_t2_list) if dev_p_t2_list else float('nan')
-        rms_q_t2 = _rms(dev_q_t2_list) if dev_q_t2_list else float('nan')
-        rms_m_t2 = _rms(dev_m_t2_list) if dev_m_t2_list else float('nan')
+        def _rms3(ax_list):
+            """Combined 3D RMS across a list of axes (each a list of residuals)."""
+            combined = []
+            for vals in ax_list:
+                combined.extend(vals)
+            return _rms(combined)
 
-        # Column widths: Metric(32) Raw(8) Quest(8) Model(8) Q-Impr(9) M-Impr(9)
-        W_MET = 34; W_VAL = 8; W_IMP = 9
-        hdr   = (f"  {'Metric':<{W_MET}}  {'Raw':>{W_VAL}}  {'Quest':>{W_VAL}}"
-                 f"  {'Model':>{W_VAL}}  {'Q-Impr':>{W_IMP}}  {'M-Impr':>{W_IMP}}")
-        sep   = "  " + "-"*W_MET + "  " + "-"*W_VAL + "  " + "-"*W_VAL + "  " + "-"*W_VAL + "  " + "-"*W_IMP + "  " + "-"*W_IMP
+        rms = {ax: {lvl: _rms(acc[ax][lvl]) for lvl in ('p', 'q', 'm')}
+               for ax in _TAXES + _SAXES}
 
-        def _row_line(label, rp, rq, rm):
+        # 3D combined RMS
+        rms3_theta = {lvl: _rms3([acc[ax][lvl] for ax in _TAXES]) for lvl in ('p', 'q', 'm')}
+        rms3_sky   = {lvl: _rms3([acc[ax][lvl] for ax in _SAXES]) for lvl in ('p', 'q', 'm')}
+
+        # ---- Per-session results table --------------------------------------
+        W_MET = 18; W_VAL = 8; W_IMP = 9
+        hdr_sess = (f"  {'Metric':<{W_MET}}  {'Raw':>{W_VAL}}  {'Quest':>{W_VAL}}"
+                    f"  {'Model':>{W_VAL}}  {'Q-Impr':>{W_IMP}}  {'M-Impr':>{W_IMP}}")
+        sep_sess  = ("  " + "-"*W_MET + "  " + "-"*W_VAL + "  " + "-"*W_VAL
+                     + "  " + "-"*W_VAL + "  " + "-"*W_IMP + "  " + "-"*W_IMP)
+
+        def _sess_row(label, rp, rq, rm, flag=''):
             iq = _impr(rq, rp); im = _impr(rm, rp)
             iqs = f"{iq:>+8.1f}%" if not math.isnan(iq) else "      N/A"
             ims = f"{im:>+8.1f}%" if not math.isnan(im) else "      N/A"
             rps = f"{rp:>7.1f}'" if not math.isnan(rp) else "     N/A"
             rqs = f"{rq:>7.1f}'" if not math.isnan(rq) else "     N/A"
             rms_s = f"{rm:>7.1f}'" if not math.isnan(rm) else "     N/A"
-            return f"  {label:<{W_MET}}  {rps}  {rqs}  {rms_s}  {iqs}  {ims}"
+            return f"  {label:<{W_MET}}  {rps}  {rqs}  {rms_s}  {iqs}  {ims}{flag}"
 
         print(f"  Results ({len(rows)} rows, {n_use_sync} sync):")
-        print(hdr)
-        print(sep)
-
-        if not math.isnan(rms_p_t2):
-            line = _row_line('Motor theta2 RMS (dev_*_theta2)', rms_p_t2, rms_q_t2, rms_m_t2)
-            key_flag = "  <-- KEY" if not math.isnan(_impr(rms_m_t2, rms_p_t2)) and abs(_impr(rms_m_t2, rms_p_t2)) > 10 else ""
-            print(line + key_flag)
-
-        print(_row_line('Sky 2D RMS az+alt (all rows)', dp_rms_all, dq_rms_all, dm_rms_all))
-
-        if n_test > 0 and not math.isnan(dp_rms_test):
-            print(_row_line('Sky 2D RMS az+alt (test only)', dp_rms_test, dq_rms_test, dm_rms_test))
-
+        print()
+        print("  -- Theta space (motor angles) --")
+        print(hdr_sess)
+        print(sep_sess)
+        for ax, label in [('t1', 'theta1 (azimuth)'),
+                           ('t2', 'theta2 (altitude)'),
+                           ('t3', 'theta3 (roll)')]:
+            print(_sess_row(label, rms[ax]['p'], rms[ax]['q'], rms[ax]['m']))
+        print(sep_sess)
+        print(_sess_row('3D combined RMS',
+                        rms3_theta['p'], rms3_theta['q'], rms3_theta['m']))
+        print()
+        print("  -- Sky space (az/alt/roll) --")
+        print(hdr_sess)
+        print(sep_sess)
+        for ax, label in [('az',   'az'),
+                           ('alt',  'alt'),
+                           ('roll', 'roll')]:
+            print(_sess_row(label, rms[ax]['p'], rms[ax]['q'], rms[ax]['m']))
+        print(sep_sess)
+        print(_sess_row('3D combined RMS',
+                        rms3_sky['p'], rms3_sky['q'], rms3_sky['m']))
         print()
 
         session_summary.append({
             'sid': sid, 'n': len(rows), 'n_sync': n_use_sync,
-            # 2D sky
-            'dp_all': dp_rms_all, 'dq_all': dq_rms_all, 'dm_all': dm_rms_all,
-            'dp_test': dp_rms_test, 'dq_test': dq_rms_test, 'dm_test': dm_rms_test,
-            # Motor theta2
-            'rms_p_t2': rms_p_t2, 'rms_q_t2': rms_q_t2, 'rms_m_t2': rms_m_t2,
+            'rms': rms,
+            'rms3_theta': rms3_theta,
+            'rms3_sky':   rms3_sky,
         })
 
     # ---- Write CSV ----------------------------------------------------------
@@ -1247,98 +1258,132 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
     print()
 
     # ---- Validation summary -------------------------------------------------
-    W  = "=" * 78
-    W2 = "-" * 78
-    W_MET = 34; W_VAL = 8; W_IMP = 9
+    W    = "=" * 82
+    W2   = "-" * 82
+    W_SID = 28; W_VAL = 8; W_IMP = 9
 
     def _impr(after, before):
         return (1 - after/before)*100 if before > 0 and not math.isnan(after) else float('nan')
 
-    def _summary_row(label, n, rp, rq, rm):
+    # Build per-axis overall means (mean of per-session RMS values)
+    _TAXES = ['t1', 't2', 't3']
+    _SAXES = ['az', 'alt', 'roll']
+
+    def _mean_across_sessions(ax, lvl):
+        vals = [s['rms'][ax][lvl] for s in session_summary
+                if not math.isnan(s['rms'][ax][lvl])]
+        return sum(vals)/len(vals) if vals else float('nan')
+
+    def _mean_rms3(space, lvl):
+        """Mean of per-session 3D combined RMS."""
+        key = 'rms3_theta' if space == 'theta' else 'rms3_sky'
+        vals = [s[key][lvl] for s in session_summary if not math.isnan(s[key][lvl])]
+        return sum(vals)/len(vals) if vals else float('nan')
+
+    hdr_sum = (f"  {'Session':<{W_SID}}  {'N':>5}  {'Raw':>{W_VAL}}  {'Quest':>{W_VAL}}"
+               f"  {'Model':>{W_VAL}}  {'Q-Impr':>{W_IMP}}  {'M-Impr':>{W_IMP}}")
+    sep_sum  = ("  " + "-"*W_SID + "  " + "-"*5 + "  " + "-"*W_VAL + "  " + "-"*W_VAL
+                + "  " + "-"*W_VAL + "  " + "-"*W_IMP + "  " + "-"*W_IMP)
+
+    def _sum_row(label, n, rp, rq, rm, flag=''):
         iq = _impr(rq, rp); im = _impr(rm, rp)
         iqs = f"{iq:>+8.1f}%" if not math.isnan(iq) else "      N/A"
         ims = f"{im:>+8.1f}%" if not math.isnan(im) else "      N/A"
         rps = f"{rp:>7.1f}'" if not math.isnan(rp) else "     N/A"
         rqs = f"{rq:>7.1f}'" if not math.isnan(rq) else "     N/A"
         rms_s = f"{rm:>7.1f}'" if not math.isnan(rm) else "     N/A"
-        ns  = f"{n:>5}" if n is not None else "     "
-        return f"  {label:<{W_MET}}  {ns}  {rps}  {rqs}  {rms_s}  {iqs}  {ims}"
+        ns    = f"{n:>5}" if n is not None else "     "
+        return f"  {label:<{W_SID}}  {ns}  {rps}  {rqs}  {rms_s}  {iqs}  {ims}{flag}"
 
-    hdr_full = (f"  {'Session':<{W_MET}}  {'N':>5}  {'Raw':>{W_VAL}}  {'Quest':>{W_VAL}}"
-                f"  {'Model':>{W_VAL}}  {'Q-Impr':>{W_IMP}}  {'M-Impr':>{W_IMP}}")
-    sep_full  = ("  " + "-"*W_MET + "  " + "-"*5 + "  " + "-"*W_VAL + "  " + "-"*W_VAL
-                 + "  " + "-"*W_VAL + "  " + "-"*W_IMP + "  " + "-"*W_IMP)
+    def _print_axis_table(title, note, axes_labels, rms3_key):
+        """Print a per-session × per-axis block, then an OVERALL row."""
+        print(f"  {title}")
+        if note:
+            print(f"  {note}")
+        print()
+        for ax, ax_label in axes_labels:
+            print(f"  {ax_label}:")
+            print(hdr_sum)
+            print(sep_sum)
+            col_p = []; col_q = []; col_m = []
+            for s in session_summary:
+                rp = s['rms'][ax]['p']
+                rq = s['rms'][ax]['q']
+                rm = s['rms'][ax]['m']
+                im = _impr(rm, rp)
+                flag = "  ***" if not math.isnan(im) and im > 30 else \
+                       "  *"   if not math.isnan(im) and im > 10 else ""
+                print(_sum_row(s['sid'], s['n'], rp, rq, rm, flag))
+                if not math.isnan(rp): col_p.append(rp)
+                if not math.isnan(rq): col_q.append(rq)
+                if not math.isnan(rm): col_m.append(rm)
+            if col_p:
+                ov_p = sum(col_p)/len(col_p)
+                ov_q = sum(col_q)/len(col_q) if col_q else float('nan')
+                ov_m = sum(col_m)/len(col_m) if col_m else float('nan')
+                print(sep_sum)
+                print(_sum_row('OVERALL', None, ov_p, ov_q, ov_m))
+            print()
+
+        # 3D combined RMS across all axes in this space
+        print(f"  3D combined RMS ({', '.join(lbl for _, lbl in axes_labels)}):")
+        print(hdr_sum)
+        print(sep_sum)
+        col_p = []; col_q = []; col_m = []
+        for s in session_summary:
+            rp = s[rms3_key]['p']; rq = s[rms3_key]['q']; rm = s[rms3_key]['m']
+            im = _impr(rm, rp)
+            flag = "  ***" if not math.isnan(im) and im > 30 else \
+                   "  *"   if not math.isnan(im) and im > 10 else ""
+            print(_sum_row(s['sid'], s['n'], rp, rq, rm, flag))
+            if not math.isnan(rp): col_p.append(rp)
+            if not math.isnan(rq): col_q.append(rq)
+            if not math.isnan(rm): col_m.append(rm)
+        if col_p:
+            ov_p = sum(col_p)/len(col_p)
+            ov_q = sum(col_q)/len(col_q) if col_q else float('nan')
+            ov_m = sum(col_m)/len(col_m) if col_m else float('nan')
+            print(sep_sum)
+            print(_sum_row('OVERALL', None, ov_p, ov_q, ov_m))
+            ov_qi = _impr(ov_q, ov_p); ov_mi = _impr(ov_m, ov_p)
+            if not math.isnan(ov_mi):
+                if ov_mi > 50:   verdict = f"EXCELLENT: {ov_mi:.0f}% total improvement."
+                elif ov_mi > 25: verdict = f"GOOD: {ov_mi:.0f}% total improvement."
+                elif ov_mi > 10: verdict = f"MODERATE: {ov_mi:.0f}% improvement."
+                elif ov_mi > 0:  verdict = f"MARGINAL: {ov_mi:.0f}% improvement."
+                else:            verdict = f"NO IMPROVEMENT ({ov_mi:.0f}%)."
+                print()
+                print(f"  {verdict}")
+            if not math.isnan(ov_qi) and not math.isnan(ov_mi):
+                print(f"  Improvement breakdown: QUEST={ov_qi:+.1f}%  Mechanical={ov_mi-ov_qi:+.1f}%")
+        print()
 
     print(W)
     print("  VALIDATION SUMMARY")
     print(W)
     print()
-
-    # ---- Motor theta2 table -------------------------------------------------
-    has_t2 = any(not math.isnan(s.get('rms_p_t2', float('nan'))) for s in session_summary)
-    if has_t2:
-        print("  Motor theta2 (KEY metric -- directly measures correction quality):")
-        print("  Quest column shows QUEST-only residual (no mechanical corrections).")
-        print("  Model column shows full pipeline residual.")
-        print()
-        print(hdr_full)
-        print(sep_full)
-        t2_dp = []; t2_dq = []; t2_dm = []
-        for s in session_summary:
-            rp = s.get('rms_p_t2', float('nan'))
-            rq = s.get('rms_q_t2', float('nan'))
-            rm = s.get('rms_m_t2', float('nan'))
-            if math.isnan(rp): continue
-            im = _impr(rm, rp)
-            flag = "  ***" if not math.isnan(im) and im > 30 else \
-                   "  *"   if not math.isnan(im) and im > 10 else ""
-            print(_summary_row(s['sid'], s['n'], rp, rq, rm) + flag)
-            t2_dp.append(rp); t2_dq.append(rq); t2_dm.append(rm)
-        if t2_dp:
-            mean_rp = sum(t2_dp)/len(t2_dp)
-            mean_rq = sum(t2_dq)/len(t2_dq)
-            mean_rm = sum(t2_dm)/len(t2_dm)
-            print(sep_full)
-            print(_summary_row('OVERALL', None, mean_rp, mean_rq, mean_rm))
-            print()
-            ov_q = _impr(mean_rq, mean_rp)
-            ov_m = _impr(mean_rm, mean_rp)
-            if not math.isnan(ov_m):
-                if ov_m > 50:
-                    print(f"  EXCELLENT: {ov_m:.0f}% total improvement in motor theta2.")
-                elif ov_m > 25:
-                    print(f"  GOOD: {ov_m:.0f}% total improvement in motor theta2.")
-                elif ov_m > 10:
-                    print(f"  MODERATE: {ov_m:.0f}% improvement. Consider refitting parameters.")
-                elif ov_m > 0:
-                    print(f"  MARGINAL: {ov_m:.0f}% improvement. Data quality or model may need review.")
-                else:
-                    print(f"  NO IMPROVEMENT ({ov_m:.0f}%). Check parameter signs and data quality.")
-            if not math.isnan(ov_q) and not math.isnan(ov_m):
-                quest_share = ov_q
-                mech_share  = ov_m - ov_q
-                print(f"  Improvement breakdown: QUEST={quest_share:+.1f}%  Mechanical={mech_share:+.1f}%")
-        print()
-
-    # ---- Sky 2D table -------------------------------------------------------
-    print("  Sky 2D az+alt (secondary -- note: sky metric can be misleading")
-    print("  at large roll due to motor-to-sky geometry coupling):")
+    print("  Quest column = QUEST only (no mechanical corrections).")
+    print("  Model column = full pipeline (QUEST + mechanical corrections).")
+    print("  Q-Impr/M-Impr = improvement vs Raw.")
     print()
-    print(hdr_full)
-    print(sep_full)
-    all_dp = []; all_dq = []; all_dm = []
-    for s in session_summary:
-        print(_summary_row(s['sid'], s['n'], s['dp_all'], s['dq_all'], s['dm_all']))
-        if not math.isnan(s['dp_all']): all_dp.append(s['dp_all'])
-        if not math.isnan(s['dq_all']): all_dq.append(s['dq_all'])
-        if not math.isnan(s['dm_all']): all_dm.append(s['dm_all'])
-    if all_dp:
-        mean_dp = sum(all_dp)/len(all_dp)
-        mean_dq = sum(all_dq)/len(all_dq)
-        mean_dm = sum(all_dm)/len(all_dm)
-        print(sep_full)
-        print(_summary_row('OVERALL', None, mean_dp, mean_dq, mean_dm))
-    print()
+
+    _print_axis_table(
+        "THETA SPACE  (motor angles — primary metric for correction quality)",
+        "theta2 is the direct observable for M2/M3 tilt corrections.",
+        [('t1', 'theta1 (azimuth motor)'),
+         ('t2', 'theta2 (altitude motor)  <-- KEY'),
+         ('t3', 'theta3 (roll motor)')],
+        'rms3_theta',
+    )
+
+    _print_axis_table(
+        "SKY SPACE  (az / alt / roll — observer-frame residuals)",
+        "Roll included. Sky errors at large roll are partly motor-geometry coupling.",
+        [('az',   'az'),
+         ('alt',  'alt'),
+         ('roll', 'roll')],
+        'rms3_sky',
+    )
 
 
 # ---- Entry point ---------------------------------------------------------
