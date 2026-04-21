@@ -150,6 +150,7 @@ async function onModelUpdate(v:  boolean ) {
   const payload = { advanced_align_rbc: v }
   console.log(payload)
   await cfg.configUpdate(payload) 
+  load_params()
 }
 
 // async function onM1Plus(payload: { isPressed: boolean }) {
