@@ -26,10 +26,10 @@
 
       </div>
 
-      <div class="col-12 text-h7 q-pt-sm">Polar Mis-alignment Correction</div>
+      <div class="col-12 text-h7 q-pt-sm">Polar Axis Alignment Correction</div>
       <div class="row q-col-gutter-md">
         <div class="col-6 text-grey text-caption">
-          Manually shift the polar alignment axes by adding an offset to the base Azimuth and/or Altitude axes.
+          The Polar axis may may not be perfectly aligned with QUEST. Correct the Azimuth and Altitude drift caused by this mis-alignment.
         </div>
         <div class="col-3">
           <q-input label="Azimuth (arcmin)" v-model="m1_offset_str" :disable="!cfg.advanced_align_rbc"/>
@@ -38,10 +38,10 @@
           <q-input label="Alttitude (arcmin)" v-model="m2_offset_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
       </div>
-      <div class="col-12 text-h7 q-pt-sm">M3 Axis Tilt Correction</div>
+      <div class="col-12 text-h7 q-pt-sm">M3 Axis Alignment Correction</div>
       <div class="row q-col-gutter-md">
         <div class="col-6 text-grey text-caption">
-          The Astro Axis may not be perfectly aligned. Correct the Altitude and Azimuth axes by given arcmin per degree of M3 rotation.
+          The Astro Axis may not be perpendicular to M2. Correct the Altitude and Azimuth axes by given arcmin per degree of M3 rotation.
         </div>
         <div class="col-3">
           <q-input label="Azimuth (arcmin/M3°)" v-model="m3_tilt_az_str" :disable="!cfg.advanced_align_rbc"/>
@@ -50,22 +50,16 @@
           <q-input label="Alttitude (arcmin/M3°)" v-model="m3_tilt_alt_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
       </div>
-      <div class="col-12 text-h7 q-pt-sm">M2 Axis Tilt Correction</div>
+      <div class="col-12 text-h7 q-pt-sm">M2 Axis Alignment Correction</div>
       <div class="row q-col-gutter-md">
         <div class="col-6 text-grey text-caption">
-          The Altitude Axis may not be perfectly aligned. Correct the Altitude axis by given arcmin per degree of M2 rotation.
-        </div>
-        <div class="col-3">
-          <q-input label="Azimuth (arcmin/M2°)" v-model="m2_tilt_alt_amp_str" :disable="!cfg.advanced_align_rbc"/>
-        </div>
-      </div>
-      <div class="col-12 text-h7 q-pt-sm">M2 Coupling Correction</div>
-      <div class="row q-col-gutter-md">
-        <div class="col-6 text-grey text-caption">
-          The Altitude Axis may introduce boresight roll. Correct the boresight roll by given arcmin per degree of M2 rotation.
+          The Altitude Axis may not be perpenticular to M1. Correct the Boresight and Altitude axis by given arcmin per degree of M2 rotation.
         </div>
         <div class="col-3">
           <q-input label="Boresight (arcmin/M2°)" v-model="m2_roll_coupling_str" :disable="!cfg.advanced_align_rbc"/>
+        </div>
+        <div class="col-3">
+          <q-input label="Azimuth (arcmin/M2°)" v-model="m2_tilt_alt_amp_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
       </div>
 
