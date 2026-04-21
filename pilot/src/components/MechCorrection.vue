@@ -32,10 +32,10 @@
           Manually shift the polar alignment axes by adding an offset to the base Azimuth and/or Altitude axes.
         </div>
         <div class="col-3">
-          <q-input   label="Azimuth (arcmin)" v-model="m1_offset_str"/>
+          <q-input label="Azimuth (arcmin)" v-model="m1_offset_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
         <div class="col-3">
-          <q-input   label="Alttitude (arcmin)" v-model="m2_offset_str"/>
+          <q-input label="Alttitude (arcmin)" v-model="m2_offset_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
       </div>
       <div class="col-12 text-h7 q-pt-sm">M3 Axis Tilt Correction</div>
@@ -44,10 +44,10 @@
           The Astro Axis may not be perfectly aligned. Correct the Altitude and Azimuth axes by given arcmin per degree of M3 rotation.
         </div>
         <div class="col-3">
-          <q-input   label="Azimuth (arcmin/M3°)" v-model="m3_tilt_az_str"/>
+          <q-input label="Azimuth (arcmin/M3°)" v-model="m3_tilt_az_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
         <div class="col-3">
-          <q-input   label="Alttitude (arcmin/M3°)" v-model="m3_tilt_alt_str"/>
+          <q-input label="Alttitude (arcmin/M3°)" v-model="m3_tilt_alt_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
       </div>
       <div class="col-12 text-h7 q-pt-sm">M2 Axis Tilt Correction</div>
@@ -56,7 +56,7 @@
           The Altitude Axis may not be perfectly aligned. Correct the Altitude axis by given arcmin per degree of M2 rotation.
         </div>
         <div class="col-3">
-          <q-input   label="Azimuth (arcmin/M2°)" v-model="m2_tilt_alt_amp_str"/>
+          <q-input label="Azimuth (arcmin/M2°)" v-model="m2_tilt_alt_amp_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
       </div>
       <div class="col-12 text-h7 q-pt-sm">M2 Coupling Correction</div>
@@ -65,7 +65,7 @@
           The Altitude Axis may introduce boresight roll. Correct the boresight roll by given arcmin per degree of M2 rotation.
         </div>
         <div class="col-3">
-          <q-input   label="Boresight (arcmin/M2°)" v-model="m2_roll_coupling_str"/>
+          <q-input label="Boresight (arcmin/M2°)" v-model="m2_roll_coupling_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
       </div>
 
