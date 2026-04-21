@@ -8,6 +8,14 @@ export const symbol: SymbolMap = {
 };
 
 
+
+export function deg2min(decimalDegrees: number | undefined, precision: number = 1) {
+  if (decimalDegrees === undefined) return ''
+  const sign = decimalDegrees < 0 ? '-' : '+';
+  const totalMin = Math.abs(decimalDegrees) * 60;
+  return `${sign}${totalMin.toFixed(precision)}`
+}
+
 export function deg2dms(decimalDegrees: number | undefined, precision: number = 1, unit: UnitKey = 'deg') {
 
   if (decimalDegrees === undefined) return {}

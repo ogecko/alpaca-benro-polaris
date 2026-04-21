@@ -155,7 +155,7 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
           </q-card>
       </div>
 
-      <!-- Telescope Alignment Row -->
+      <!-- Methods to add Sync Points -->
       <div class="col-12 col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">Methods to add SYNC Points</div>
@@ -258,9 +258,13 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
           </q-card>
       </div>
 
-  </div>
+      <!-- Mechanical Correction Model -->
+      <div class="col-12 col-md-6 col-lg-4 flex">
+        <MechCorrection />
+      </div>
+    </div>
 
-</q-page>
+  </q-page>
 </template>
 
 
@@ -277,6 +281,7 @@ import { deg2dms, dms2deg } from 'src/utils/angles'
 import { useStatusStore } from 'src/stores/status'
 import type { LocationResult } from 'src/utils/locationServices';
 import LocationPicker from 'src/components/LocationPicker.vue';
+import MechCorrection from 'src/components/MechCorrection.vue';
 import { getWeatherData, delta_latlon2AzAlt } from 'src/utils/locationServices';
 import { debounce } from 'quasar'
 const socket = useStreamStore()

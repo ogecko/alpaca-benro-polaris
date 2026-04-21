@@ -101,7 +101,7 @@ m2_tilt_alt_zero = 0.0        # degrees
 
 # ---- M2 roll coupling correction (altitude axis introduces roll proportional to theta2)
 m2_roll_coupling = -3.5726    # arcmin/deg;   Boresight adj = m2_roll_coupling * (theta2 - m2_roll_zero)
-m2_roll_zero     = 45.0       # degrees
+m2_roll_zero     = +45.0       # degrees
 
 # ---- M3 encoder correction (astro axis encoder scale error)
 m3_encoder_scale = 0.0        # arcmin/deg;   M3 axis adj = (m3_encoder_scale/60) * theta3
