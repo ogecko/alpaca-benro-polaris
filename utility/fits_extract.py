@@ -399,6 +399,7 @@ def _load_mount_params(params_path):
         return _km.MountModelParams(
             m3_tilt_alt      = tm.get('m3_tilt_alt',      0.0),
             m3_tilt_az       = tm.get('m3_tilt_az',       0.0),
+            m3_tilt_bore     = tm.get('m3_tilt_bore',     0.0),
             m2_tilt_alt_amp  = tm.get('m2_tilt_alt_amp',  0.0),
             m2_tilt_alt_zero = tm.get('m2_tilt_alt_zero', 0.0),
             m3_encoder_scale = tm.get('m3_encoder_scale', 0.0),
@@ -635,6 +636,7 @@ def cmd_model(csv_paths, params_path):
         print(f"Loaded initial params from {params_path}:")
         print(f"  m3_tilt_alt={tm.get('m3_tilt_alt',0):.4f}  "
               f"m3_tilt_az={tm.get('m3_tilt_az',0):.4f}  "
+              f"m3_tilt_bore={tm.get('m3_tilt_bore',0):.4f}  "
               f"m2_tilt_alt_amp={tm.get('m2_tilt_alt_amp',0):.4f}  "
               f"m2_tilt_alt_zero={tm.get('m2_tilt_alt_zero',0):.4f}  "
               f"m3_encoder_scale={tm.get('m3_encoder_scale',0):.4f}  "
@@ -776,27 +778,29 @@ def cmd_model(csv_paths, params_path):
           f"  (span={t3_range:.1f})")
     print()
 
-    r2_f = r2_g = r2_h = r2_e = None
+    r2_f = r2_g = r2_h = r2_e = r2_bore = None
     fitted_f = fitted_g = fitted_a = fitted_b = fitted_e = None
-    fitted_h = fitted_z = None
+    fitted_h = fitted_z = fitted_bore = None
 
     # M3 tilt correction — altitude component
     print("  -- M3 tilt correction — altitude/theta2 ----------")
-    print("     Fitted error: dev_theta2 [arcmin] = f * theta3")
-    corr_f = float(np.corrcoef(theta3[~np.isnan(dev_m_t2)],
+    print("     Fitted error: dev_theta2 [arcmin] = f * sin(theta3)")
+    sin_theta3 = np.sin(np.radians(theta3))
+    corr_f = float(np.corrcoef(sin_theta3[~np.isnan(dev_m_t2)],
                                 dev_m_t2[~np.isnan(dev_m_t2)])[0,1])
-    print(f"     corr(theta3, dev_m_theta2) = {corr_f:+.3f}")
+    print(f"     corr(sin(theta3), dev_m_theta2) = {corr_f:+.3f}")
     if t3_range >= 10:
-        k_f, se_f, r2_f = _fit_linear_through_origin(theta3, dev_m_t2)
+        k_f, se_f, r2_f = _fit_linear_through_origin(sin_theta3, dev_m_t2)
         if k_f is not None:
             fitted_f = k_f
-            tc_f = float(sp_stats.t.ppf(0.975, df=max(n-1,1)))
-            resid_f = dev_m_t2 - k_f*theta3
+            resid_f = dev_m_t2 - k_f * sin_theta3
             rms_after_f = float(np.sqrt(np.nanmean(resid_f**2)))
             impr_f = (1 - rms_after_f/rms_baseline)*100 if rms_baseline > 0 else 0
-            print(f"     f = m3_tilt_alt = {k_f:+.4f} arcmin/deg  +/-{se_f:.4f}        R2={r2_f:.3f}")
+            print(f"     f = m3_tilt_alt = {k_f:+.4f} arcmin  +/-{se_f:.4f}        R2={r2_f:.3f}")
+            print(f"     (f is now the tilt angle directly; previously was arcmin/deg)")
             print(f"     dev_m_theta2 RMS: {rms_baseline:.1f}' -> {rms_after_f:.1f}'                       ({impr_f:+.0f}% improvement)")
-            print(f"     eg. Theta2 Deviation at +-40 deg roll: {abs(k_f*40):.0f}'")
+            print(f"     eg. Theta2 Deviation at +-40 deg roll: {abs(k_f*np.sin(np.radians(40))):.1f}'")
+            print(f"     eg. Theta2 Deviation at +-60 deg roll: {abs(k_f*np.sin(np.radians(60))):.1f}'")
     else:
         fitted_f = 0
         print(f"     Insufficient theta3 span ({t3_range:.0f} deg, need >= 10).")
@@ -804,23 +808,22 @@ def cmd_model(csv_paths, params_path):
 
     # M3 tilt correction — azimuth component
     print("  -- M3 tilt correction — azimuth/theta1 ----------")
-    print("     Fitted error: dev_m_az [arcmin] = g * sin(theta2) * theta3")
-    pred_g = np.sin(np.radians(theta2)) * theta3
+    print("     Fitted error: dev_m_az [arcmin] = g * sin(theta2) * sin(theta3)")
+    pred_g = np.sin(np.radians(theta2)) * sin_theta3
     mask_g = ~np.isnan(dev_m_az) & ~np.isnan(pred_g) & (np.abs(theta3) > 5)
     if mask_g.sum() >= 10:
         k_g, se_g, r2_g = _fit_linear_through_origin(pred_g[mask_g], dev_m_az[mask_g])
         if k_g is not None:
             fitted_g = k_g
-            tc_g = float(sp_stats.t.ppf(0.975, df=max(mask_g.sum()-1, 1)))
             resid_g = dev_m_az[mask_g] - k_g * pred_g[mask_g]
             rms_az_raw   = float(np.sqrt(np.nanmean(dev_m_az[mask_g]**2)))
             rms_az_after = float(np.sqrt(np.nanmean(resid_g**2)))
             impr_g = (1 - rms_az_after/rms_az_raw)*100 if rms_az_raw > 0 else 0
             corr_g = float(np.corrcoef(pred_g[mask_g], dev_m_az[mask_g])[0,1])
-            print(f"     corr(sin(t2)*t3, dev_m_az) = {corr_g:+.3f}")
-            print(f"     g = m3_tilt_az = {k_g:+.4f} arcmin/deg +/-{se_g:.4f}          R2={r2_g:.3f}  ")
+            print(f"     corr(sin(t2)*sin(t3), dev_m_az) = {corr_g:+.3f}")
+            print(f"     g = m3_tilt_az = {k_g:+.4f} arcmin  +/-{se_g:.4f}          R2={r2_g:.3f}")
             print(f"     dev_m_az RMS: {rms_az_raw:.1f}' -> {rms_az_after:.1f}'                           ({impr_g:+.0f}% improvement)")
-            print(f"     eg. Azimuth Deviation at +40 deg roll and alt: {abs(k_g*np.sin(np.radians(40))*40):.0f}'")
+            print(f"     eg. Azimuth Deviation at +40 deg roll, +40 deg alt: {abs(k_g*np.sin(np.radians(40))*np.sin(np.radians(40))):.1f}'")
         else:
             fitted_g = 0
             print("     FIT FAILED")
@@ -828,12 +831,42 @@ def cmd_model(csv_paths, params_path):
         print(f"     Insufficient data (N={mask_g.sum()}, need >= 10 with |theta3| > 5).")
     print()
 
+    # M3 tilt bore correction — boresight roll
+    print("  -- M3 boresight roll correction — bore/theta3 ----------")
+    print("     Fitted error: dev_theta3 [arcmin] = c * (1 - cos(theta3))")
+    print("     Physical cause: M3 axis tilt creates a boresight roll that grows")
+    print("     symmetrically with |theta3|, peaking at 180 deg (full reversal).")
+    one_minus_cos_t3 = 1.0 - np.cos(np.radians(theta3))
+    dev_m_t3_arr = _pcol('_dev_m_theta3')
+    mask_bore = ~np.isnan(dev_m_t3_arr) & ~np.isnan(one_minus_cos_t3)
+    r2_bore = None; fitted_bore = None
+    if mask_bore.sum() >= 10 and t3_range >= 10:
+        k_bore, se_bore, r2_bore = _fit_linear_through_origin(
+            one_minus_cos_t3[mask_bore], dev_m_t3_arr[mask_bore])
+        if k_bore is not None:
+            fitted_bore = k_bore
+            resid_bore = dev_m_t3_arr[mask_bore] - k_bore * one_minus_cos_t3[mask_bore]
+            rms_bore_raw   = float(np.sqrt(np.nanmean(dev_m_t3_arr[mask_bore]**2)))
+            rms_bore_after = float(np.sqrt(np.nanmean(resid_bore**2)))
+            impr_bore = (1 - rms_bore_after/rms_bore_raw)*100 if rms_bore_raw > 0 else 0
+            corr_bore = float(np.corrcoef(one_minus_cos_t3[mask_bore],
+                                          dev_m_t3_arr[mask_bore])[0,1])
+            print(f"     corr(1-cos(t3), dev_m_theta3) = {corr_bore:+.3f}")
+            print(f"     c = m3_tilt_bore = {k_bore:+.4f} arcmin  +/-{se_bore:.4f}  R2={r2_bore:.3f}")
+            print(f"     dev_m_theta3 RMS: {rms_bore_raw:.1f}' -> {rms_bore_after:.1f}'  ({impr_bore:+.0f}% improvement)")
+            print(f"     eg. Boresight roll at +-45 deg roll: {abs(k_bore*(1-np.cos(np.radians(45)))):.1f}'")
+            print(f"     eg. Boresight roll at +-60 deg roll: {abs(k_bore*(1-np.cos(np.radians(60)))):.1f}'")
+    else:
+        fitted_bore = 0
+        print(f"     Insufficient data (N={mask_bore.sum()}, need theta3 span >= 10).")
+    print()
+
     # M2 tilt correction
     print("  -- M2 tilt correction - altitude/theta2 ----------")
     print("     Fitted error: dev_theta2 [arcmin] = a * sin(theta2 - b)")
     r2_m2 = None
     mask_m2 = np.abs(theta3) < 4
-    y_b1 = dev_m_t2 - (fitted_f * theta3 if fitted_f is not None else 0)
+    y_b1 = dev_m_t2 - (fitted_f * sin_theta3 if fitted_f is not None else 0)
     p0a  = [mount_params.m2_tilt_alt_amp or 52., mount_params.m2_tilt_alt_zero or 36.]
     r_b1 = _fit_curve(lambda t, a, b: a * np.sin(np.radians(t - b)), theta2[mask_m2], y_b1[mask_m2], p0a)
     if r_b1 is not None:
@@ -912,9 +945,10 @@ def cmd_model(csv_paths, params_path):
     def _use(fitted, fallback):
         return round(fitted, 6) if fitted is not None else round(fallback, 6)
 
-    f_out = _use(fitted_f, mount_params.m3_tilt_alt)
-    g_out = _use(fitted_g, mount_params.m3_tilt_az)
-    a_out = _use(fitted_a, mount_params.m2_tilt_alt_amp)
+    f_out    = _use(fitted_f,    mount_params.m3_tilt_alt)
+    g_out    = _use(fitted_g,    mount_params.m3_tilt_az)
+    bore_out = _use(fitted_bore, mount_params.m3_tilt_bore)
+    a_out    = _use(fitted_a,    mount_params.m2_tilt_alt_amp)
     b_out = _use(fitted_b, mount_params.m2_tilt_alt_zero)
     e_out = _use(fitted_e, mount_params.m3_encoder_scale)
     h_out = _use(fitted_h, mount_params.m2_roll_coupling)
@@ -922,7 +956,7 @@ def cmd_model(csv_paths, params_path):
 
     y_final = dev_m_t2.copy()
     if fitted_f is not None:
-        y_final = y_final - fitted_f * theta3
+        y_final = y_final - fitted_f * sin_theta3
     if fitted_a is not None and fitted_b is not None:
         y_final = y_final - fitted_a * np.sin(np.radians(theta2 - fitted_b))
     rms_final  = float(np.sqrt(np.nanmean(y_final[~np.isnan(y_final)]**2)))
@@ -943,22 +977,25 @@ def cmd_model(csv_paths, params_path):
     print("  dev_m_theta2 RMS progression (motor altitude error):")
     print(f"    After QUEST only    : {rms_baseline:7.1f}'  (baseline)")
     if fitted_f is not None:
-        rms_after_f2 = float(np.sqrt(np.nanmean((dev_m_t2 - fitted_f * theta3)**2)))
+        rms_after_f2 = float(np.sqrt(np.nanmean((dev_m_t2 - fitted_f * sin_theta3)**2)))
         print(f"    After QUEST + M3 tilt       : {rms_after_f2:7.1f}'")
     print(f"    After QUEST + M3+M2 tilt    : {rms_final:7.1f}'  ({impr_total:+.0f}% total)")
     print()
 
-    r2_f_val  = r2_f   if fitted_f is not None else None
-    r2_g_val  = r2_g   if fitted_g is not None else None
-    r2_b1_val = r_b1['r2'] if r_b1 is not None else None
-    r2_h_val  = r2_h   if fitted_h is not None else None
-    r2_e_val  = r2_e   if fitted_e is not None else None
+    r2_f_val    = r2_f    if fitted_f    is not None else None
+    r2_g_val    = r2_g    if fitted_g    is not None else None
+    r2_bore_val = r2_bore if fitted_bore is not None else None
+    r2_b1_val   = r_b1['r2'] if r_b1 is not None else None
+    r2_h_val    = r2_h    if fitted_h    is not None else None
+    r2_e_val    = r2_e    if fitted_e    is not None else None
 
     print("  Fitted parameters  (copy to config.toml):")
-    print(f"    m3_tilt_alt      = {f_out:+8.4f}   [M3 tilt alt  arcmin/deg]   {_quality(r2_f_val)}"
+    print(f"    m3_tilt_alt      = {f_out:+8.4f}   [M3 tilt alt  arcmin     ]   {_quality(r2_f_val)}"
           + (f"  R2={r2_f_val:.3f}" if r2_f_val is not None else ""))
-    print(f"    m3_tilt_az       = {g_out:+8.4f}   [M3 tilt az   arcmin/deg]   {_quality(r2_g_val)}"
+    print(f"    m3_tilt_az       = {g_out:+8.4f}   [M3 tilt az   arcmin     ]   {_quality(r2_g_val)}"
           + (f"  R2={r2_g_val:.3f}" if r2_g_val is not None else ""))
+    print(f"    m3_tilt_bore     = {bore_out:+8.4f}   [M3 boresight arcmin     ]   {_quality(r2_bore_val)}"
+          + (f"  R2={r2_bore_val:.3f}" if r2_bore_val is not None else ""))
     print(f"    m2_tilt_alt_amp  = {a_out:+8.4f}   [M2 tilt amp  arcmin    ]   {_quality(r2_b1_val)}"
           + (f"  R2={r2_b1_val:.3f}" if r2_b1_val is not None else ""))
     print(f"    m2_tilt_alt_zero = {b_out:+8.4f}   [M2 tilt zero degrees   ]")
@@ -979,6 +1016,9 @@ def cmd_model(csv_paths, params_path):
     if r2_b1_val is not None and r2_b1_val < 0.3:
         warnings.append(
             f"M2 tilt R2={r2_b1_val:.3f} is low -- fit M2 tilt from roll=0 data only")
+    if r2_bore_val is not None and r2_bore_val < 0.2:
+        warnings.append(
+            f"M3 boresight R2={r2_bore_val:.3f} is low -- need wider theta3 span for reliable fit")
     if r2_h_val is not None and r2_h_val < 0.3:
         warnings.append(
             f"M2 roll coupling R2={r2_h_val:.3f} is low -- check dev_m_roll variation in data")
@@ -1003,6 +1043,7 @@ def cmd_model(csv_paths, params_path):
     model_params_out = {
         'm3_tilt_alt':      f_out,
         'm3_tilt_az':       g_out,
+        'm3_tilt_bore':     bore_out,
         'm2_tilt_alt_amp':  a_out,
         'm2_tilt_alt_zero': b_out,
         'm3_encoder_scale': e_out,
@@ -1064,6 +1105,7 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
           f"m3_tilt_az={tm.get('m3_tilt_az',0):.4f}  "
           f"m2_tilt_alt_amp={tm.get('m2_tilt_alt_amp',0):.4f}  "
           f"m2_tilt_alt_zero={tm.get('m2_tilt_alt_zero',0):.4f}  "
+          f"m3_tilt_bore={tm.get('m3_tilt_bore',0):.4f}  "
           f"m3_encoder_scale={tm.get('m3_encoder_scale',0):.4f}  "
           f"m2_roll_coupling={tm.get('m2_roll_coupling',0):.4f}  "
           f"m2_roll_zero={tm.get('m2_roll_zero',45.0):.4f} "

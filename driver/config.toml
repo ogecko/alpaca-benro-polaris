@@ -92,8 +92,17 @@ m2_offset        = 0.0        # degrees       M2 axis adj = -m2_offset
 m3_offset        = 0.0        # degrees       M3 axis adj = -m3_offset
 
 # ---- M3 tilt correction (astro axis physically tilted away from camera up - dominant)
-m3_tilt_alt      = -2.1048    # arcmin/deg;   M2 axis adj = -(m3_tilt_alt/60) * theta3
-m3_tilt_az       = +1.5241    # arcmin/deg;   M1 axis adj = -(m3_tilt_az/60) * sin(theta2) * theta3
+m3_tilt_alt      = 0.0        # arcmin;       M2 axis adj = -(m3_tilt_alt/60) * sin(theta3)
+m3_tilt_az       = 0.0        # arcmin;       M1 axis adj = -(m3_tilt_az/60) * sin(theta2) * theta3
+
+# ---- M3 boresight roll correction (M3 axis tilt creates symmetric boresight roll)
+#      Physical: rotating M3 away from zero generates a boresight roll that grows
+#      symmetrically with |theta3| as (1-cos(theta3)). This projects into both
+#      dev_theta3 and dev_theta1. Previously absorbed by QUEST at sync-point roll angles.
+m3_tilt_bore     = 0.0        # arcmin;       Boresight adj = -(m3_tilt_bore/60) * (1-cos(theta3))
+ 
+# ---- M3 encoder correction (astro axis encoder scale error)
+m3_encoder_scale = 0.0        # arcmin/deg;   M3 axis adj = (m3_encoder_scale/60) * theta3
 
 # ---- M2 tilt correction (altitude axis not perpendicular to azimuth axis)
 m2_tilt_alt_amp  = +67.11     # arcmin;       M2 axis adj = -(m2_tilt_alt_amp/60) * sin(theta2 - m2_tilt_alt_zero)
@@ -102,9 +111,6 @@ m2_tilt_alt_zero = 0.0        # degrees
 # ---- M2 roll coupling correction (altitude axis introduces roll proportional to theta2)
 m2_roll_coupling = -3.5726    # arcmin/deg;   Boresight adj = m2_roll_coupling * (theta2 - m2_roll_zero)
 m2_roll_zero     = +45.0       # degrees
-
-# ---- M3 encoder correction (astro axis encoder scale error)
-m3_encoder_scale = 0.0        # arcmin/deg;   M3 axis adj = (m3_encoder_scale/60) * theta3
 
 
 [device]
