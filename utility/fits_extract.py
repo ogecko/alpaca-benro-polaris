@@ -875,9 +875,9 @@ def cmd_model(csv_paths, params_path):
         fitted_h = h_fit
         fitted_z = z_fit
         eg_t2 = 25.0
-        print(f"     h = m2_roll_coupling = {fitted_h:+.4f} arcmin/deg  R2={r2_h:.3f}")
+        print(f"     h = m2_roll_coupling = {fitted_h:+.4f} arcmin/deg               R2={r2_h:.3f}")
         print(f"     z = m2_roll_zero     = {fitted_z:+.2f} deg")
-        print(f"     dev_m_roll RMS: {rms_roll_raw:.1f}' -> {rms_roll_after:.1f}'  ({impr_roll:+.0f}% improvement)")
+        print(f"     dev_m_roll RMS: {rms_roll_raw:.1f}' -> {rms_roll_after:.1f}'                        ({impr_roll:+.0f}% improvement)")
         print(f"     eg. Roll deviation at theta2={eg_t2:.0f}: {abs(fitted_h*(eg_t2-fitted_z)):.0f}'")
     else:
         print(f"     Insufficient data (N={mask_roll.sum()}).")
