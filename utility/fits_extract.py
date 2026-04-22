@@ -526,8 +526,13 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
         'dev_q_theta1':  wrap180(s_t1 - q_t1_adj) * 60,
         'dev_q_theta2':  wrap180(s_t2 - q_t2) * 60,
         'dev_q_theta3':  wrap180(s_t3 - q_t3_adj) * 60,
-        '_dev_m_theta2': wrap180(s_t2 - m_t2) * 60,
-        '_dev_m_theta3': wrap180(s_t3 - m_t3) * 60,
+        # NOTE: use q_t2/q_t3 (not m_t2/m_t3) so that roll_adj*sin(theta3)
+        # contamination is absent from the M3/M2 tilt fitting targets in cmd_model.
+        # m_t2 has roll_adj*sin(m_t3) subtracted which introduces a spurious slope
+        # vs theta3 that swamps the real M3 tilt signal (~1 arcmin/deg per deg of
+        # roll_adj). q_t2/q_t3 are the raw QUEST-aligned angles with no roll_adj term.
+        '_dev_m_theta2': wrap180(s_t2 - q_t2) * 60,
+        '_dev_m_theta3': wrap180(s_t3 - q_t3_adj) * 60,
     }
 
 
