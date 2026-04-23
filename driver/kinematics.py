@@ -460,8 +460,8 @@ def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
     M3 tilt correction [m3_tilt_alt, m3_tilt_az]
       Physical cause: M3 rotation axis tilted from ideal camera-up axis [1,0,0].
       Altitude effect:
-        Fitted error: dev_theta2 [arcmin] = m3_tilt_alt * sin(theta3)
-        Correction:   rotate around M2 axis by -(m3_tilt_alt/60) * sin(theta3) degrees.
+        Fitted error: dev_theta2 [arcmin] = m3_tilt_alt * theta3
+        Correction:   rotate around M2 axis by -(m3_tilt_alt/60) * theta3 degrees.
       Azimuth effect (altitude-dependent):
         Data shows R2 < 0.09 for all candidate forms — not reliably fitted.
         Set m3_tilt_az = 0.0. Parameter retained for legacy compatibility only.
@@ -510,8 +510,7 @@ def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
 
     # M3 tilt correction — altitude component (dominant)
     q_m3_tilt_alt = Quaternion(axis=m2_axis,
-                               degrees=-(params.m3_tilt_alt / 60.0) *
-                               math.sin(math.radians(t3)) - params.m2_offset)
+                               degrees= -(params.m3_tilt_alt / 60.0) * t3 - params.m2_offset)
 
     # M3 tilt correction — azimuth component
     # Retained for legacy compatibility. Set m3_tilt_az = 0.0 — data shows R2 < 0.09

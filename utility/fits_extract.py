@@ -738,13 +738,10 @@ def cmd_model(csv_paths, params_path):
         print(f"  alignQ  w={w:.7f}  x={x:.7f}  y={y:.7f}  z={z:.7f}")
         print(f"  Frame tilt: {tilt*60:.1f}' toward az={taz:.1f} deg")
         print(f"  Roll Adj:   {roll_adj:.5f} deg")
+        print()
 
         preds = [_predict_row(r, alignQ, roll_adj, mount_params) for r in rows]
         valid = [(r, p) for r, p in zip(rows, preds) if p is not None]
-        if valid:
-            dt2 = np.array([p['_dev_m_theta2'] for _, p in valid])
-            print(f"  dev_m_theta2 (M3+M2 tilt residual): {_arr_stats(dt2)}")
-        print()
         all_pred_rows.extend(valid)
 
     if not all_pred_rows:
@@ -763,18 +760,20 @@ def cmd_model(csv_paths, params_path):
         return np.array([float(p[key]) if p and not math.isnan(p[key]) else float('nan')
                          for _, p in all_pred_rows])
 
+    n        = len(all_pred_rows)
     theta2   = _col('p_theta2')
     theta3   = _col('p_theta3')
     p_az     = _col('p_az')
     az_rad   = np.radians(p_az)
     t3_range = float(np.nanmax(theta3) - np.nanmin(theta3))
-    n        = len(all_pred_rows)
 
     dev_m_t2  = _pcol('_dev_m_theta2')
     dev_m_t3  = _pcol('_dev_m_theta3')
     dev_m_az  = _pcol('dev_m_az')
     dev_p_az  = _col('dev_p_az')
     dev_p_alt = _col('dev_p_alt')
+
+    sin_theta3 = np.sin(np.radians(theta3))
 
     rms_baseline = float(np.sqrt(np.nanmean(dev_m_t2**2)))
 
@@ -824,24 +823,24 @@ def cmd_model(csv_paths, params_path):
     fitted_h = fitted_z = fitted_bore = None
 
     # M3 tilt correction — altitude component
-    print("  -- M3 tilt correction — altitude/theta2 ----------")
-    print("     Fitted error: dev_theta2 [arcmin] = f * sin(theta3)")
-    sin_theta3 = np.sin(np.radians(theta3))
-    corr_f = float(np.corrcoef(sin_theta3[~np.isnan(dev_m_t2)],
-                                dev_m_t2[~np.isnan(dev_m_t2)])[0,1])
-    print(f"     corr(sin(theta3), dev_m_theta2) = {corr_f:+.3f}")
+    y_field, x_field  = 'dev_q_theta2',   'q_theta3',      
+    y_vals, x_vals    = _pcol(y_field),   _pcol(x_field)
+    rms_baseline = float(np.sqrt(np.nanmean(y_vals**2)))
+    corr_f = float(np.corrcoef(x_vals[~np.isnan(y_vals)], y_vals[~np.isnan(y_vals)])[0,1])
+    print(f"  -- M3 tilt correction — altitude/theta2 ----------")
+    print(f"     Fitted error: {y_field} [arcmin] = f * {x_field} + c")
     if t3_range >= 10:
-        k_f, se_f, r2_f = _fit_linear_through_origin(sin_theta3, dev_m_t2)
+        k_f, se_f, r2_f = _fit_linear_through_origin(x_vals, y_vals)
         if k_f is not None:
             fitted_f = k_f
-            resid_f = dev_m_t2 - k_f * sin_theta3
+            resid_f = y_vals - k_f * x_vals
             rms_after_f = float(np.sqrt(np.nanmean(resid_f**2)))
             impr_f = (1 - rms_after_f/rms_baseline)*100 if rms_baseline > 0 else 0
-            print(f"     f = m3_tilt_alt = {k_f:+.4f} arcmin  +/-{se_f:.4f}          R2={r2_f:.3f}")
-            print(f"     (f is now the tilt angle directly; previously was arcmin/deg)")
-            print(f"     dev_m_theta2 RMS: {rms_baseline:.1f}' -> {rms_after_f:.1f}'                       ({impr_f:+.0f}% improvement)")
-            print(f"     eg. Theta2 Deviation at +-40 deg roll: {abs(k_f*np.sin(np.radians(40))):.1f}'")
-            print(f"     eg. Theta2 Deviation at +-60 deg roll: {abs(k_f*np.sin(np.radians(60))):.1f}'")
+            print(f"     where: f = m3_tilt_alt = {k_f:+.4f} arcmin  +/-{se_f:.4f}          R2={r2_f:.3f}")
+            print(f"     Baseline RMS Error: {rms_baseline:.1f}' Residual RMS Error: {rms_after_f:.1f}'                       ({impr_f:+.0f}% improvement)")
+            print(f"     Corr({y_field}, {x_field}) = {corr_f:+.3f}")
+            print(f"     eg. {y_field} at +-40 deg roll: {abs(k_f*40):.1f}'")
+            print(f"     eg. {y_field} at +-60 deg roll: {abs(k_f*60):.1f}'")
     else:
         fitted_f = 0
         print(f"     Insufficient theta3 span ({t3_range:.0f} deg, need >= 10).")
