@@ -592,6 +592,47 @@ def _fit_linear_through_origin(x, y):
     se_k  = float(np.sqrt(ss_r / max(n-1,1) / max(denom,1e-9)))
     return k, se_k, r2
 
+def _fit_linear_with_intercept(x, y):
+    """
+    Fit y = a + b*x
+    Returns dict with a (intercept), b (slope), se_a, se_b, r2, rmse, F, pF
+    """
+    mask = ~np.isnan(y)
+    x_, y_ = x[mask], y[mask]
+    n = len(x_)
+    if n < 5:
+        return None
+
+    # Design matrix: [1, x]
+    X = np.column_stack([np.ones(n), x_])
+
+    # Least squares solution
+    c, _, _, _ = lstsq(X, y_, rcond=None)
+    a, b = c
+
+    # Predictions and residuals
+    pred = X @ c
+    resid = y_ - pred
+    ss_r = float(np.sum(resid**2))
+    ss_t = float(np.sum((y_ - y_.mean())**2))
+    r2 = 1 - ss_r/ss_t if ss_t > 0 else 0
+    rmse = float(np.sqrt(ss_r / n))
+
+    # --- Standard errors ---
+    dof = max(n - 2, 1)
+    sigma2 = ss_r / dof
+    XtX_inv = np.linalg.inv(X.T @ X)
+    cov = sigma2 * XtX_inv
+    se_a = float(np.sqrt(cov[0, 0]))
+    se_b = float(np.sqrt(cov[1, 1]))
+
+    # --- F-statistic ---
+    F_ = (ss_t - ss_r) / 2 / (ss_r / dof) if ss_r > 0 else 0
+    pF = float(1 - sp_stats.f.cdf(max(F_, 0), 2, dof))
+
+    return dict(a=float(a), b=float(b), se_a=se_a, se_b=se_b, r2=r2, rmse=rmse, F=F_, pF=pF)
+
+
 def _fit_curve(fn, x, y, p0):
     mask = ~np.isnan(y)
     x_, y_ = x[mask], y[mask]
@@ -796,7 +837,7 @@ def cmd_model(csv_paths, params_path):
             resid_f = dev_m_t2 - k_f * sin_theta3
             rms_after_f = float(np.sqrt(np.nanmean(resid_f**2)))
             impr_f = (1 - rms_after_f/rms_baseline)*100 if rms_baseline > 0 else 0
-            print(f"     f = m3_tilt_alt = {k_f:+.4f} arcmin  +/-{se_f:.4f}        R2={r2_f:.3f}")
+            print(f"     f = m3_tilt_alt = {k_f:+.4f} arcmin  +/-{se_f:.4f}          R2={r2_f:.3f}")
             print(f"     (f is now the tilt angle directly; previously was arcmin/deg)")
             print(f"     dev_m_theta2 RMS: {rms_baseline:.1f}' -> {rms_after_f:.1f}'                       ({impr_f:+.0f}% improvement)")
             print(f"     eg. Theta2 Deviation at +-40 deg roll: {abs(k_f*np.sin(np.radians(40))):.1f}'")
@@ -821,7 +862,7 @@ def cmd_model(csv_paths, params_path):
             impr_g = (1 - rms_az_after/rms_az_raw)*100 if rms_az_raw > 0 else 0
             corr_g = float(np.corrcoef(pred_g[mask_g], dev_m_az[mask_g])[0,1])
             print(f"     corr(sin(t2)*sin(t3), dev_m_az) = {corr_g:+.3f}")
-            print(f"     g = m3_tilt_az = {k_g:+.4f} arcmin  +/-{se_g:.4f}          R2={r2_g:.3f}")
+            print(f"     g = m3_tilt_az = {k_g:+.4f} arcmin  +/-{se_g:.4f}            R2={r2_g:.3f}")
             print(f"     dev_m_az RMS: {rms_az_raw:.1f}' -> {rms_az_after:.1f}'                           ({impr_g:+.0f}% improvement)")
             print(f"     eg. Azimuth Deviation at +40 deg roll, +40 deg alt: {abs(k_g*np.sin(np.radians(40))*np.sin(np.radians(40))):.1f}'")
         else:
@@ -913,7 +954,7 @@ def cmd_model(csv_paths, params_path):
         fitted_h = h_fit
         fitted_z = z_fit
         eg_t2 = 25.0
-        print(f"     h = m2_roll_coupling = {fitted_h:+.4f} arcmin/deg               R2={r2_h:.3f}")
+        print(f"     h = m2_roll_coupling = {fitted_h:+.4f} arcmin/deg             R2={r2_h:.3f}")
         print(f"     z = m2_roll_zero     = {fitted_z:+.2f} deg")
         print(f"     dev_m_roll RMS: {rms_roll_raw:.1f}' -> {rms_roll_after:.1f}'                        ({impr_roll:+.0f}% improvement)")
         print(f"     eg. Roll deviation at theta2={eg_t2:.0f}: {abs(fitted_h*(eg_t2-fitted_z)):.0f}'")
