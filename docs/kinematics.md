@@ -157,7 +157,7 @@ While these parameters can enabled and adjusted from the Alpaca Pilot Page, the 
 The workflow to calibrate your mount includes:
 
 1.  **`-extract`:** Processes a directory of FITS images to read WCS (World Coordinate System) headers from plate solves and creates a permanent CSV of raw observations comparing Polaris's predicted position (`p_*`) with the solved truth (`s_*`).
-2.  **`-model`:** Uses the extracted CSV to fit the mechanical coefficients listed above alongside the QUEST alignment. It generates a `{prefix}model.text` containing the optimized parameters.
+2.  **`-model`:** Uses the extracted CSV to fit the mechanical coefficients listed above alongside the QUEST alignment. It generates a `{prefix}model.txt` containing the optimized parameters.
 3.  **`-validate`:** Compares the fitted model against the original data (or a subset of "out-of-sample" data) to confirm the reduction in residuals before you commit the values to your configuration.
 
 #### **V. How to Perform Your Own Calibration**
