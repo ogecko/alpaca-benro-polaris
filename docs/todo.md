@@ -14,6 +14,7 @@
 - [X] Complete Kinematics page motor output, sp highlighting, settings disabling
 - [X] Kinematics Page Delta_sp Position Angle needs 0-360 wrapping (currently -180 to 180), delta_ref & delta_pv ok
 - [X] Replace RBC with motor-space corrections, Kinematics Page RBC Magnitude update
+- [X] Complete more wholistic Mechnical Alignment Correction (replacing Roll Bias Correction)
 - [ ] Refactor kinematics.py and wrap180, move more kinimatic functions from control.py to kinematics.py   
 - [ ] Debug Gimbal Lock solution selection issue @ Az 292, Alt 0, Roll 2
 - [ ] Debug clicking on roll scale seemed to reset Az/Alt SP to current value

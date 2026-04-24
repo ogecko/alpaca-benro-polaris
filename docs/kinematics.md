@@ -5,8 +5,8 @@
 # Alpaca Benro Polaris Driver — Kinematics Reference
 [Overview](#1-overview) | 
 [QUEST](#21-quest-alignment-optimisation) |
-[Residuals](#22-slew-and-center-correction) |
-[Rotation](#23-rotation-bias-correction-rbc) |
+[Slew & Center](#22-slew-and-center-correction) |
+[Tilt Correction](#23-rotation-bias-correction-rbc) |
 [PEC](#24-predictive-error-correction-pec) |
 [Base](#31-base-frame-b---representations-and-conversions) | 
 [Topo](#32-topocentric-frame-t---representations-and-conversions) | 
@@ -107,89 +107,87 @@ The formula for the weight is:
 *   **Seamless Transitions:** Because the correction uses a Gaussian fade, there are no mechanical discontinuities or "jumps" as the mount moves across the sky.
 
 
+
 ---
-### 2.3 Rotation Bias Correction (RBC)
+### 2.3 Mechanical Alignment Corrections
 
-The **Rotation Bias Correction (RBC)** is a mechanical pointing model that compensates for systematic errors caused by physical axis misalignments within the Benro Polaris mount. Unlike traditional alignment issues caused by tripod tilt or polar misalignment, which are "rigid" and apply globally, Rotation Bias errors are **orientation-dependent**. The magnitude of the error changes based on the current **altitude** and **rotation angle (camera roll)**.
+#### **I. What it is and What it Solves**
+**Mechanical Alignment Corrections** is a specialized pointing model that compensates for systematic, non-rigid errors caused by physical axis misalignments within the Benro Polaris mount. Unlike global errors like tripod tilt or polar misalignment, which are "rigid" and affect the entire sky equally, these mechanical errors are **orientation-dependent**. The magnitude of the error fluctuates based on the mount's orientation, specifically its **Altitude** and **Roll Angle** positions.
 
-#### **I. What It Is and What It Solves**
+Without these corrections, sync points taken at different rotation angles or altitudes would provide contradictory data, preventing the **QUEST** alignment algorithm from converging on a stable solution. By modeling these hardware-specific traits, the driver ensures the alignment model receives "clean" data for high-precision pointing across the entire sky.
 
-Without RBC, a sync point taken at one rotation angle provides contradictory data to a sync point taken at a different rotation angle, even if the Azimuth and Altitude are identical. This prevents the QUEST alignment algorithm from converging on a stable, accurate solution. By modelling and correcting the underlying mechanical axis misalignments, the driver ensures that the alignment model receives clean data, allowing for high-precision pointing across the entire sky.
+### **II. Benefits of the Model**
 
-#### **II. Root Cause and Discovery**
+Enabling the **Mechanical Alignment Corrections** within the Alpaca Driver will improve the precision of the Benro Polaris platform. By layering **Mechanical Alignment Corrections** and **QUEST Alignment**, the system achieves a level of pointing and tracking fidelity that overcomes the inherent geometric limitations of the Alt/Az/Roll hardware.
 
-The error was discovered after analysing a "porcupine grid" of approximately 3,000 plate-solved images captured across various mechanical positions. Residual pointing errors that persisted even after QUEST frame alignment were decomposed into three physical axis misalignments:
+#### **A. High-Precision Multi-Point Alignment**
+The first primary effect of enabling the model is a **significant increase in the accuracy of Multi-Point Alignment (MPA)**. 
+*   **Smaller Residuals:** Without these corrections, mechanical misalignments (such as axis tilts) cause the mount to report contradictory data depending on its orientation. This prevents the QUEST algorithm from converging on a stable global solution. 
+*   **Consistent Data:** By applying mechanical corrections at the measurement stage, the driver provides "clean," consistent data to the alignment model. This allows the QUEST estimator to find a tighter mathematical fit, resulting in **considerably smaller residuals**
 
-- **M3 axis tilt - altitude component (`m3_tilt_dm2`):** The physical M3 motor rotation axis is tilted from its ideal direction (the camera UP axis) by approximately 2.6 arcmin. When M3 rotates to set camera roll, this tilt sweeps the camera boresight in altitude by an amount proportional to the roll angle commanded. The fitted coefficient is −2.10 arcmin per degree of rotation.
+#### **B. Enhanced Slew and Center Accuracy**
+The second primary effect is that **Slew and Center operations become more accurate across the entire sky**, especially at challenging orientations.
+*   **Extreme Orientations:** The magnitude of mechanical errors in the Polaris hardware grows dramatically as the mount points upwards or utilizes large roll angles, sometimes reaching errors of over 200 arcminutes. The model predicts and negates these errors in real-time within the kinematic chain.
+*   **Reduced Iterations:** Because the model accounts for these complex deviations, the mount's predicted position aligns much more closely with the true celestial coordinates. This ensures that imaging applications like N.I.N.A. can center a target with far **fewer corrective slews**, often achieving a perfect center on the first attempt.
+*   **Global Reliability:** This increased precision is not limited to the area around a single sync point; the combined model ensures reliable pointing even when moving between targets in different parts of the sky or at large roll angles.
 
-- **M3 axis tilt - azimuth component (`m3_tilt_dm1`):** The same physical M3 axis tilt also sweeps the boresight in azimuth. This effect is modulated by sin(altitude) because at low altitude an azimuth-axis rotation mostly changes roll rather than sky azimuth. The fitted coefficient is +1.52 arcmin per degree of roll.
+#### **C. Improved Guiding Performance**
+For users employing a **guide scope** and auto-guiding software (such as PHD2), the advanced model provides a superior foundation for fine tracking corrections.
+*   **Precise Pulse Translation:** Auto-guiding relies on the driver to translate equatorial (RA/Dec) pulse commands into coordinated motor-level adjustments (M1, M2, and M3). The Mechanical Alignment model ensures this coordinate transformation is highly accurate regardless of the mount’s orientation.
+*   **Reduced Axis Cross-Coupling:** Because the Polaris is not a traditional equatorial mount, RA and Dec pulses must be carefully decomposed into multi-axis motor movements. The refined model minimizes "cross-coupling", where a correction in one axis causes an unintended shift in another, which is a common challenge for Alt/Az mounts.
+*   **Lower RMS Error:** This mathematical precision allows guiding applications to settle faster and maintain a **lower overall RMS error** (often between 1.3 to 3.0 arc-seconds), which is essential for capturing sharp stars during long-exposure imaging.
 
-- **M2 axis tilt (`m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`):** The M2 motor rotation axis is not perfectly perpendicular to M1. This produces a sinusoidal altitude error as a function of the altitude motor position, with an amplitude of approximately 67 arcmin and a zero crossing near the horizon.
+Ultimately, these benefits provide the stable foundation required for professional-grade sidereal tracking and long-exposure imaging.
 
-All three misalignments are fixed properties of the mount hardware. They are corrected by applying small compensating quaternion rotations in the forward kinematic model before sky coordinates are computed.
+#### **III. The Mechanical Model Parameters**
+The model identifies several fixed mechanical parameters of the mount hardware, derived from extensive analysis of "sky survey grids" (large-scale plate-solved datasets). These fitted parameters are stored as coefficients in the `config.toml` and key parameters can be viewed and edited from the Alignment Page in Alpaca Pilot.
 
-#### **III. Magnitude of the Error**
+*   **M3 (Astro) Axis Tilt:** The physical M3 motor rotation axis may be slightly tilted from the ideal camera vertical axis. It may be tilted or cantered towards the boresight or M2 Axis. This tilt is decomposed into three components:
+    *   **Altitude Component (`m3_tilt_dm2`):** Sweeps the camera boresight in altitude as the M3 axis rotates. Introduces residual errors into the M2 axis.
+    *   **Azimuth Component (`m3_tilt_dm1`):** Sweeps the camera boresight in azimuth as the M3 axis rotates, an effect modulated by the current altitude. Introduces residual errors into the M1 axis.
+    *   **Roll Component (`m3_tilt_dm3`):** Sweeps the camera boresight in roll, geometrically linked to the Azimuth Axis residual. Introduces residual errors into the M3 axis.
+*   **M2 (Altitude) Axis Tilt:** The physical M2 motor rotatation axis may not be perfectly perpendicular to M1 (Azimuth), and can produces a sinusoidal altitude error.
+    *   **Amplitude (`m2_tilt_dm2_amp`):** The peak magnitude of the altitude error. Introduces residual errors into the Altitude in a sinusoidal manner as M2 rotates.
+    *   **Zero Point (`m2_tilt_dm2_zero`):** The altitude angle where the M2 error is zero, typically near or above the horizon.
+*   **Axis Offsets:** Fixed user defined offsets for each motor (`m1_offset`, `m2_offset`, `m3_offset`) to help fine tune polar alignment.
 
-The combined effect is modest at high altitudes but grows significantly at low altitudes and large roll angles, This makes pointing to targets closer to the horizon or at high roll angles more difficult.
+#### **IV. The `fits_extract.py` Cailibration Workflow**
+While these parameters can enabled and adjusted from the Alpaca Pilot Page, the Driver provides a utility **`fits_extract.py`** to calibrate these paramters for your specific mount. You will need an astro camera capable of storing FITS file. This is intended for advanced users only.
 
-- **At 20° altitude and ±50° roll:** correction error magnitude ~114 to 205 arcmin
-- **At 50° altitude and ±50° roll:** correction error magnitude ~46 to 138 arcmin  
-- **At 70° altitude and ±50° roll:** correction error magnitude ~40 to 101 arcmin
+The workflow to calibrate your mount includes:
 
-#### **IV. The Mathematical Model**
-
-Three correction quaternions are applied in sequence within `apply_mechanical_corrections()`:
-
-**M3 tilt — altitude:**
-
-    altitude_correction (arcmin) = m3_tilt_dm2 × theta3
-
-Applied as a rotation around the M2 axis (altitude axis) by `−(m3_tilt_dm2 / 60) × theta3` degrees.
-
-**M3 tilt — azimuth:**
-
-    azimuth_correction (arcmin) = m3_tilt_dm1 × sin(theta2) × theta3
-
-Applied as a rotation around the vertical M1 axis by `−(m3_tilt_dm1 / 60) × sin(theta2) × theta3` degrees.
-
-**M2 tilt — altitude:**
-
-    altitude_correction (arcmin) = m2_tilt_dm2_amp × sin(theta2 − m2_tilt_dm2_zero)
-
-Applied as a rotation around the M2 axis by `−(m2_tilt_dm2_amp / 60) × sin(theta2 − m2_tilt_dm2_zero)` degrees.
-
-Where `theta2` is the altitude motor angle and `theta3` is the astro motor angle, both in degrees.
+1.  **`-extract`:** Processes a directory of FITS images to read WCS (World Coordinate System) headers from plate solves and creates a permanent CSV of raw observations comparing Polaris's predicted position (`p_*`) with the solved truth (`s_*`).
+2.  **`-model`:** Uses the extracted CSV to fit the mechanical coefficients listed above alongside the QUEST alignment. It generates a `{prefix}model.text` containing the optimized parameters.
+3.  **`-validate`:** Compares the fitted model against the original data (or a subset of "out-of-sample" data) to confirm the reduction in residuals before you commit the values to your configuration.
 
 #### **V. How to Perform Your Own Calibration**
+While default coefficients are provided, advanced users can fine-tune their mount using the following workflow:
 
-While the default coefficients are derived from extensive testing and are sufficient for most users, advanced users who own an astro camera that supports FITs format, can use the **`fits_extract.py`** utility to fit the model for their specific Polaris unit.
-
-1. **Data Collection:** Using a pano grid with roll variation, capture FITS images covering a wide range of altitude, azimuth, and roll positions. Aim for full coverage of the roll range (±50°) at multiple altitudes (20°–65°). Ensure all corrections are disabled while collecting the images.
+1. **Data Collection:** Using a pano grid with roll variation, capture FITS images covering a wide range of altitude, azimuth, and roll positions. Aim for full coverage of the roll range (±50°) at multiple altitudes (20°–65°). Ensure all corrections are disabled while collecting the images ie only SPA, disable MPA, SCC, LGA, ZLR, MAC, PEC.
 2. **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
 3. **Extraction:** Run `python fits_extract.py -extract`. This reads the FITS headers and builds a CSV comparing predicted positions with plate-solved ground truth.
 4. **Modelling:** Run `python fits_extract.py -model`. This fits the RBC coefficients (`m3_tilt_dm2`, `m3_tilt_dm1`, `m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`) to your data and writes them to a JSON file.
 5. **Application:** Copy the fitted parameters into your **`config.toml`** file.
 
+
 #### **VI. Important Implementation Details**
-
-- **Stability:** The coefficients reflect the physical mechanical characteristics of the mount axes and independant of polar alignment, tripod tilt, or azimuth position.
-- **Roll Adjustment (`roll_adj`):** A separate per-session camera roll offset is calibrated independently via `sync_roll()` in the live driver. This accounts for the camera mounting angle and is not part of the mechanical model.
-- **QUEST Integration:** The mechanical corrections are applied before QUEST frame alignment. This ensures that QUEST receives consistent data regardless of roll angle, allowing it to converge on a stable per-session alignment quaternion.
-- **Forward Kinematics Only:** The corrections are applied in the forward kinematic model (`apply_mechanical_corrections`). No inverse correction is required in the IK because the bias is handled at the predicted-position stage.
-
-#### **VII. Mechnical Correction (arcmin) by Roll and Altitude**
-
-| **Roll:** | -70° | -60° | -50° | -40° | -30° | -20° | -10° | +0° | +10° | +20° | +30° | +40° | +50° | +60° | +70° |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-**Altitude 70°**   |       |    39 |    40 |    42 |    45 |    50 |    56 |    63 |    71 |    79 |    87 |    94 |   101 |   106 |       | 
-**Altitude 60°**   |    43 |    40 |    37 |    34 |    35 |    39 |    47 |    58 |    71 |    84 |    97 |   109 |   119 |   127 |   133 | 
-**Altitude 50°**   |    59 |    53 |    46 |    38 |    30 |    28 |    36 |    51 |    70 |    89 |   108 |   124 |   138 |   149 |   157 | 
-**Altitude 40°**   |    80 |    73 |    64 |    52 |    38 |    23 |    23 |    43 |    70 |    96 |   120 |   141 |   158 |   171 |   181 | 
-**Altitude 30°**   |   103 |    97 |    87 |    75 |    59 |    37 |    13 |    34 |    72 |   107 |   137 |   161 |   180 |   195 |   206 | 
-**Altitude 20°**   |   128 |   122 |   114 |   103 |    89 |    67 |    32 |    23 |    80 |   126 |   160 |   185 |   205 |   220 |   231 | 
-**Altitude 10°**   |   154 |   149 |   143 |   136 |   127 |   113 |    79 |    12 |   111 |   162 |   192 |   215 |   233 |   247 |   257 | 
+*   **Stability:** These coefficients reflect the physical manufacturing of your specific unit; they are independent of your site's level or polar alignment and do not need frequent recalculation.
+*   **Forward Kinematics:** Corrections are applied within the **forward kinematic model** (`apply_mechanical_corrections`) before sky coordinates are calculated. This ensures the QUEST algorithm receives consistent data regardless of the mount's orientation.
+*   **Persistence:** Once defined in the configuration, these corrections are applied automatically at the measurement/telemetry stage of the control loop.
 
 
+#### **VII. Mechnical Correction Magnitude (arcmin) at specific Roll and Altitud Orientations**
+
+|              Roll |   -70° |   -60° |   -50° |   -40° |   -30° |   -20° |   -10° |    +0° |   +10° |   +20° |   +30° |   +40° |   +50° |   +60° |   +70° | 
+|-------------------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|
+|**Altitude 70°**   |   514' |    82' |    80' |    77' |    75' |    73' |    72' |    72' |    72' |    73' |    75' |    77' |    80' |    82' |   514' | 
+|**Altitude 60°**   |    87' |    82' |    76' |    71' |    66' |    62' |    60' |    60' |    60' |    62' |    66' |    71' |    76' |    82' |    87' | 
+|**Altitude 50°**   |    96' |    87' |    77' |    66' |    57' |    51' |    47' |    46' |    47' |    51' |    57' |    66' |    77' |    87' |    96' | 
+|**Altitude 40°**   |   114' |   101' |    85' |    68' |    52' |    40' |    33' |    31' |    33' |    40' |    52' |    68' |    85' |   101' |   114' | 
+|**Altitude 30°**   |   141' |   124' |   103' |    79' |    54' |    32' |    18' |    15' |    18' |    32' |    54' |    79' |   103' |   124' |   141' | 
+|**Altitude 20°**   |   175' |   155' |   130' |   100' |    67' |    35' |    10' |     1' |    10' |    35' |    67' |   100' |   130' |   155' |   175' | 
+|**Altitude 10°**   |   214' |   193' |   165' |   131' |    93' |    54' |    21' |    18' |    21' |    54' |    93' |   131' |   165' |   193' |   214' | 
+|**Altitude  0°**   |   257' |   235' |   206' |   172' |   132' |    89' |    48' |    34' |    48' |    89' |   132' |   172' |   206' |   235' |   257' |
 
 ### 2.4 Predictive Error Correction (PEC)
 
