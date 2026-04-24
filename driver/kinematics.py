@@ -416,28 +416,26 @@ class MountModelParams:
     """
     Mechanical axis correction parameters for the Benro Polaris mount.
     """
-    m3_tilt_alt:      float = 0.0   # arcmin/deg — M3 tilt altitude effect
-    m3_tilt_az:       float = 0.0   # arcmin/deg — M3 tilt azimuth effect
-    m3_tilt_bore:     float = 0.0   # arcmin/deg — M3 tilt azimuth effect
-    m2_tilt_alt_amp:  float = 0.0   # arcmin     — M2 tilt amplitude
-    m2_tilt_alt_zero: float = 0.0   # degrees    — M2 tilt zero crossing
-    m3_encoder_scale: float = 0.0   # arcmin/deg — M3 encoder scale error
-    m2_roll_coupling: float = 0.0   # arcmin/deg — M2 roll coupling (theta2-dependent roll error)
-    m2_roll_zero:     float = 45.0  # degrees    — theta2 where M2 roll coupling is zero
-    m1_offset:        float = 0.0   # degrees    — Polar Alignment M1/Az offset
-    m2_offset:        float = 0.0   # degrees    — Polar Alignment M2/Alt offset
-    m3_offset:        float = 0.0   # degrees    — Polar Alignment M3 offset
+    m3_tilt_dm2:      float = 0.0   # arcmin    — M3 tilt altitude effect
+    m3_tilt_dm1:      float = 0.0   # arcmin    — M3 tilt azimuth effect
+    m3_tilt_dm3:      float = 0.0   # arcmin    — M3 tilt roll effect
+    m2_tilt_dm2_amp:  float = 0.0   # arcmin    — M2 tilt amplitude
+    m2_tilt_dm2_zero: float = 0.0   # degrees   — M2 tilt zero crossing
+    m2_roll_coupling: float = 0.0   # arcmin    — M2 roll coupling (theta2-dependent roll error)
+    m2_roll_zero:     float = 45.0  # degrees   — theta2 where M2 roll coupling is zero
+    m1_offset:        float = 0.0   # arcmin    — Polar Alignment M1/Az offset
+    m2_offset:        float = 0.0   # arcmin    — Polar Alignment M2/Alt offset
+    m3_offset:        float = 0.0   # arcmin    — Polar Alignment M3 offset
 
     @classmethod
     def from_config(cls, config):
         get = (lambda k: config[k]) if isinstance(config, dict) else (lambda k: getattr(config, k))
         return cls(
-            m3_tilt_alt      = get('m3_tilt_alt'),
-            m3_tilt_az       = get('m3_tilt_az'),
-            m3_tilt_bore     = get('m3_tilt_bore'),
-            m2_tilt_alt_amp  = get('m2_tilt_alt_amp'),
-            m2_tilt_alt_zero = get('m2_tilt_alt_zero'),
-            m3_encoder_scale = get('m3_encoder_scale'),
+            m3_tilt_dm2      = get('m3_tilt_dm2'),
+            m3_tilt_dm1      = get('m3_tilt_dm1'),
+            m3_tilt_dm3      = get('m3_tilt_dm3'),
+            m2_tilt_dm2_amp  = get('m2_tilt_dm2_amp'),
+            m2_tilt_dm2_zero = get('m2_tilt_dm2_zero'),
             m2_roll_coupling = get('m2_roll_coupling'),
             m2_roll_zero     = get('m2_roll_zero'),
             m1_offset        = get('m1_offset'),
@@ -447,108 +445,89 @@ class MountModelParams:
 
 def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
     """
-    Create a quaternion for FK mechanical axis corrections to motor/base quaternion.
+    Create a quaternion for FK mechanical axis corrections applied BEFORE QUEST.
 
-    Correction order (applied right-to-left in return expression):
-      M3 tilt az   (innermost): azimuth component of M3 axis tilt.
-      M3 tilt alt  (next):      altitude component of M3 axis tilt (dominant).
-      M2 tilt      (next):      M2 axis tilt altitude error.
-      M2 roll      (next):      M2 roll coupling — roll error proportional to (theta2 - zero).
-      M3 tilt bore (next):      M3 boresight roll — symmetric roll from M3 axis tilt.
-      M3 encoder   (outermost): M3 encoder scale error.
+    Architecture: corrections are applied to q_base before QUEST alignment.
+    QUEST is then refitted on corrected sky-pointing pairs, absorbing the
+    altitude-structured component of each correction into the frame alignment.
 
-    M3 tilt correction [m3_tilt_alt, m3_tilt_az]
-      Physical cause: M3 rotation axis tilted from ideal camera-up axis [1,0,0].
-      Altitude effect:
-        Fitted error: dev_theta2 [arcmin] = m3_tilt_alt * theta3
-        Correction:   rotate around M2 axis by -(m3_tilt_alt/60) * theta3 degrees.
-      Azimuth effect (altitude-dependent):
-        Data shows R2 < 0.09 for all candidate forms — not reliably fitted.
-        Set m3_tilt_az = 0.0. Parameter retained for legacy compatibility only.
+    Sign convention:
+      All corrections use degrees=-dm* where dm* is the error in degrees.
+      This applies the correction in the apparent 'wrong' motor-space direction,
+      which after QUEST absorption produces the correct net correction.
+      This is NOT the same as post-QUEST scalar corrections (which add the error
+      directly to theta values). The two architectures have opposite sign conventions.
 
-    M3 boresight roll correction [m3_tilt_bore]
-      Physical cause: M3 axis tilt creates a boresight roll that grows symmetrically
-                      with |theta3|, following a (1 - cos(theta3)) shape. Peaks at
-                      theta3 = 180 deg (full reversal of camera orientation).
-      Fitted error:   dev_theta3 [arcmin] = m3_tilt_bore * (1 - cos(theta3))
-                      dev_theta1 [arcmin] = -m3_tilt_bore * (1 - cos(theta3)) / tan(theta2)
-      Correction:     rotate around boresight by -(m3_tilt_bore/60) * (1-cos(theta3)) degrees.
+    Constraint on which corrections can be used here:
+      Only corrections whose sky-space projection is altitude-structured (varies
+      with theta2/sky-alt, not theta3/roll) can work before QUEST. QUEST can absorb
+      altitude-varying sky-alt shifts as a frame-tilt adjustment.
+      Roll-varying sky-alt shifts (e.g. m3_tilt_dm2: f*sin(t3)) CANNOT be corrected
+      here — QUEST cannot absorb them, causing double application. Set m3_tilt_dm2=0.
 
-    M2 tilt correction [m2_tilt_alt_amp, m2_tilt_alt_zero]
-      Physical cause: M2 rotation axis not perpendicular to M1.
-      Fitted error:   dev_theta2 [arcmin] = m2_tilt_alt_amp * sin(theta2 - m2_tilt_alt_zero)
-      Correction:     M2 axis adj = -(m2_tilt_alt_amp/60) * sin(theta2 - m2_tilt_alt_zero) degrees.
-      Note: m2_tilt_alt_zero is now a fitted parameter (previously held at 0). Expect
-            values around 18 deg from data.
+    M3 tilt — theta1 effect [m3_tilt_dm1]
+      Fitted error: dev_q_theta1 = m3_tilt_dm1 * (1 - cos(theta3))
+      dm1 = (m3_tilt_dm1/60) * (1-cos(t3)) + m1_offset/60  [degrees]
+      Applied: Quaternion(m1_axis, degrees=-dm1)
 
-    M2 roll coupling correction [m2_roll_coupling, m2_roll_zero]
-      Physical cause: M2 motor introduces roll error proportional to displacement from
-                      mechanical zero (theta2 = m2_roll_zero, typically 45 degrees).
-      Fitted error:   dev_roll [arcmin] = m2_roll_coupling * (theta2 - m2_roll_zero)
-      Correction:     boresight adj = -(m2_roll_coupling/60) * (theta2 - m2_roll_zero) degrees.
+    M3 tilt — theta3 effect (geometrically coupled to theta1)
+      dev_q_theta3 = -cos(theta2) * dev_q_theta1  (j ≈ -1 from FK geometry)
+      dm3 = -cos(t2) * dm1 + m3_offset/60  [degrees]
+      Applied: Quaternion(m3_axis, degrees=-dm3)
 
-    M3 encoder correction [m3_encoder_scale]
-      Physical cause: M3 encoder reads more/less rotation than occurred.
-      Fitted error:   dev_theta3 [arcmin] = m3_encoder_scale * theta3
-      Correction:     M3 axis adj = (m3_encoder_scale/60) * theta3 degrees.
-      Note: Data shows (1-cos) boresight roll dominates dev_theta3. The encoder scale
-            term is weak after bore correction. Set to 0.0 unless clearly needed.
+    M2 tilt [m2_tilt_dm2_amp, m2_tilt_dm2_zero]
+      Fitted error: dev_q_theta2 = m2_tilt_dm2_amp * sin(theta2 - m2_tilt_dm2_zero)
+      Works before QUEST: sky-alt shift is altitude-structured (sin(t2)).
+      dm2 += (m2_tilt_dm2_amp/60) * sin(t2 - m2_tilt_dm2_zero) + m2_offset/60
+      Applied: Quaternion(m2_axis, degrees=-dm2)
 
-    M1-M3 Motor Offset correction [m1_offset, m2_offset, m3_offset]
-      Physical cause: polar misalignment not corrected by QUEST.
-      Fitted error:   Use drift-pair plate solve method to determine az/alt drift rates.
-      Correction:     M1 to M3 axis adj = -m1 to -m3_offset fixed manually entered offset.
+    M3 tilt — theta2 effect [m3_tilt_dm2]
+      Fitted error: dev_q_theta2 = m3_tilt_dm2 * sin(theta3)
+      CANNOT be applied here (roll-varying sky-alt, QUEST cannot absorb).
+      Set m3_tilt_dm2 = 0 in config. Parameter retained for documentation only.
+
+    Correction chain order (right-to-left application):
+      q_corr = q_dm3 * q_dm1 * q_dm2
+      q_fixed = (q_corr * q_base).normalised
     """
     t1, t2, t3 = q_to_theta(q)
 
     qtheta1 = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
     qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
-    m2_axis = qtheta1.rotate([0, 1, 0])
-    m3_axis = (qtheta1 * qtheta2).rotate([1, 0, 0])
-    m1_axis = [0.0, 0.0, 1.0]
+    m2_axis        = qtheta1.rotate([0, 1, 0])
+    m3_axis        = (qtheta1 * qtheta2).rotate([1, 0, 0])
+    m1_axis        = [0.0, 0.0, 1.0]
     boresight_axis = q.rotate([0, 0, -1])
 
-    # M3 tilt correction — altitude component (dominant)
-    q_m3_tilt_alt = Quaternion(axis=m2_axis,
-                               degrees= -(params.m3_tilt_alt / 60.0) * t3 - params.m2_offset)
+    # M3 tilt — theta2 effect (dominant, around m2_axis)
+    dm2 = 0         # (params.m3_tilt_dm2 / 60.0) * math.sin(math.radians(t3))
+    dm2 = + params.m2_offset / 60.0
 
-    # M3 tilt correction — azimuth component
-    # Retained for legacy compatibility. Set m3_tilt_az = 0.0 — data shows R2 < 0.09
-    q_m3_tilt_az  = Quaternion(axis=m1_axis,
-                               degrees=-(params.m3_tilt_az / 60.0) *
-                               math.sin(math.radians(t2)) *
-                               math.sin(math.radians(t3)) - params.m1_offset)
+    # M3 tilt — theta1 effect (around m1_axis)
+    dm1 = (params.m3_tilt_dm1 / 60.0) * (1.0 - math.cos(math.radians(t3))) \
+        + params.m1_offset / 60.0
 
-    # M3 boresight roll correction — symmetric roll from M3 axis tilt
-    # Corrects dev_theta3 = c*(1-cos(t3)) and its az projection into dev_theta1.
-    q_m3_tilt_bore = Quaternion(axis=boresight_axis,
-                                degrees=(params.m3_tilt_bore / 60.0) *
-                                (1.0 - math.cos(math.radians(t3))))
+    # M3 tilt — theta3 effect (geometrically coupled to theta1, around m3_axis)
+    # dm3 = -cos(t2) * dm1, with sign already correct for Quaternion(+dm3)
+    dm3 = -math.cos(math.radians(t2)) * dm1 \
+        + params.m3_offset / 60.0
 
-    # M3 encoder correction — roll scale error
-    q_m3_encoder  = Quaternion(axis=m3_axis,
-                               degrees=(params.m3_encoder_scale / 60.0) *
-                               t3 - params.m3_offset)
-
-    # M2 tilt correction — altitude error
-    q_m2_tilt     = Quaternion(axis=m2_axis,
-                               degrees=-(params.m2_tilt_alt_amp / 60.0) *
-                               math.sin(math.radians(t2 - params.m2_tilt_alt_zero)))
-
-    # M2 roll coupling correction — roll error proportional to (theta2 - zero)
-    q_m2_roll     = Quaternion(axis=boresight_axis,
-                               degrees=-(params.m2_roll_coupling / 60.0) *
-                               (t2 - params.m2_roll_zero))
+    # M2 tilt — additional theta2 effect (added to dm2, same m2_axis)
+    dm2 += (params.m2_tilt_dm2_amp / 60.0) * \
+           math.sin(math.radians(t2 - params.m2_tilt_dm2_zero))  
 
 
-    # Applied right-to-left:
-    #   M3_tilt_az (innermost), M3_tilt_alt, M2_tilt, M2_roll, M3_tilt_bore, M3_encoder
-    q_corr = (q_m3_encoder * q_m2_roll *
-              q_m2_tilt * q_m3_tilt_alt * q_m3_tilt_az * q_m3_tilt_bore)
+    # Build correction quaternions
+    # All use degrees=-dm* because +1 deg around each axis decreases the corresponding theta
+    # Exception: dm3 uses +dm3 (sign already accounted for in geometric derivation above)
+    q_dm2 = Quaternion(axis=m2_axis,  degrees=-dm2)
+    q_dm1 = Quaternion(axis=m1_axis,  degrees=-dm1)
+    q_dm3 = Quaternion(axis=m3_axis,  degrees=-dm3)  
+
+    q_corr    = q_dm3 * q_dm1 * q_dm2
     magnitude = 2 * math.degrees(math.acos(min(1.0, abs(q_corr.w))))
 
     return q_corr, magnitude
-
 
 def apply_mechanical_corrections(q: Quaternion, params: MountModelParams):
     """

@@ -397,12 +397,11 @@ def _load_mount_params(params_path):
         tm = saved.get('mount_model', saved.get('theta_model', {}))
         # MODIFICATION 1: added m2_roll_coupling and m2_roll_zero
         return _km.MountModelParams(
-            m3_tilt_alt      = tm.get('m3_tilt_alt',      0.0),
-            m3_tilt_az       = tm.get('m3_tilt_az',       0.0),
-            m3_tilt_bore     = tm.get('m3_tilt_bore',     0.0),
-            m2_tilt_alt_amp  = tm.get('m2_tilt_alt_amp',  0.0),
-            m2_tilt_alt_zero = tm.get('m2_tilt_alt_zero', 0.0),
-            m3_encoder_scale = tm.get('m3_encoder_scale', 0.0),
+            m3_tilt_dm2      = tm.get('m3_tilt_dm2',      0.0),
+            m3_tilt_dm1       = tm.get('m3_tilt_dm1',       0.0),
+            m3_tilt_dm3     = tm.get('m3_tilt_dm3',     0.0),
+            m2_tilt_dm2_amp  = tm.get('m2_tilt_dm2_amp',  0.0),
+            m2_tilt_dm2_zero = tm.get('m2_tilt_dm2_zero', 0.0),
             m2_roll_coupling = tm.get('m2_roll_coupling', 0.0),
             m2_roll_zero     = tm.get('m2_roll_zero',     45.0),
             m1_offset        = tm.get('m1_offset',        0.0),
@@ -675,12 +674,11 @@ def cmd_model(csv_paths, params_path):
     if saved_json:
         tm = saved_json.get('mount_model', saved_json.get('theta_model', {}))
         print(f"Loaded initial params from {params_path}:")
-        print(f"  m3_tilt_alt={tm.get('m3_tilt_alt',0):.4f}  "
-              f"m3_tilt_az={tm.get('m3_tilt_az',0):.4f}  "
-              f"m3_tilt_bore={tm.get('m3_tilt_bore',0):.4f}  "
-              f"m2_tilt_alt_amp={tm.get('m2_tilt_alt_amp',0):.4f}  "
-              f"m2_tilt_alt_zero={tm.get('m2_tilt_alt_zero',0):.4f}  "
-              f"m3_encoder_scale={tm.get('m3_encoder_scale',0):.4f}  "
+        print(f"  m3_tilt_dm2={tm.get('m3_tilt_dm2',0):.4f}  "
+              f"m3_tilt_dm1={tm.get('m3_tilt_dm1',0):.4f}  "
+              f"m3_tilt_dm3={tm.get('m3_tilt_dm3',0):.4f}  "
+              f"m2_tilt_dm2_amp={tm.get('m2_tilt_dm2_amp',0):.4f}  "
+              f"m2_tilt_dm2_zero={tm.get('m2_tilt_dm2_zero',0):.4f}  "
               f"m2_roll_coupling={tm.get('m2_roll_coupling',0):.4f}  "
               f"m2_roll_zero={tm.get('m2_roll_zero',45.0):.4f} "
               f"m1_offset={tm.get('m1_offset',0.0):.4f} "
@@ -961,8 +959,8 @@ def cmd_model(csv_paths, params_path):
         rms_b1_before = float(np.sqrt(np.nanmean(y_vals[mask_m2]**2)))
         rms_b1_after  = float(np.sqrt(np.nanmean(resid_b1[mask_m2]**2)))
         impr_b1 = (1 - rms_b1_after/rms_b1_before)*100 if rms_b1_before > 0 else 0
-        print(f"     where: a = m2_tilt_alt_amp  = {fitted_a:+5.2f}'  +/-{soln['perr'][0]:4.2f}'               R2={soln['r2']:5.3f}")
-        print(f"            b = m2_tilt_alt_zero = {fitted_b:+5.2f} deg  +/-{soln['perr'][1]:4.2f} deg")
+        print(f"     where: a = m2_tilt_dm2_amp  = {fitted_a:+5.2f}'  +/-{soln['perr'][0]:4.2f}'               R2={soln['r2']:5.3f}")
+        print(f"            b = m2_tilt_dm2_zero = {fitted_b:+5.2f} deg  +/-{soln['perr'][1]:4.2f} deg")
         print(f"            {y_field}^ = {y_field} after applying M3 tilt correction.")
         print(f"     Baseline RMS Error: {rms_b1_before:.1f}' Residual RMS Error {rms_b1_after:.1f}'            ({impr_b1:+3.0f}% improvement)")
         print(f"     eg. {y_field}^ at +40 deg alt: {abs(fnx(40,fitted_a,fitted_b)):.0f}'")
@@ -1012,12 +1010,11 @@ def cmd_model(csv_paths, params_path):
     def _use(fitted, fallback):
         return round(fitted, 6) if fitted is not None else round(fallback, 6)
 
-    f_out    = _use(fitted_f,    mount_params.m3_tilt_alt)
-    g_out    = _use(fitted_g,    mount_params.m3_tilt_az)
-    bore_out = _use(fitted_bore, mount_params.m3_tilt_bore)
-    a_out    = _use(fitted_a,    mount_params.m2_tilt_alt_amp)
-    b_out = _use(fitted_b, mount_params.m2_tilt_alt_zero)
-    e_out = _use(fitted_e, mount_params.m3_encoder_scale)
+    f_out    = _use(fitted_f,    mount_params.m3_tilt_dm2)
+    g_out    = _use(fitted_g,    mount_params.m3_tilt_dm1)
+    k_out    = _use(fitted_k,    mount_params.m3_tilt_dm3)
+    a_out    = _use(fitted_a,    mount_params.m2_tilt_dm2_amp)
+    b_out = _use(fitted_b, mount_params.m2_tilt_dm2_zero)
     h_out = _use(fitted_h, mount_params.m2_roll_coupling)
     z_out = round(fitted_z, 6) if fitted_z is not None else round(mount_params.m2_roll_zero, 6)
 
@@ -1041,36 +1038,30 @@ def cmd_model(csv_paths, params_path):
     print("  RESULTS SUMMARY")
     print(W)
     print()
-    print("  dev_m_theta2 RMS progression (motor altitude error):")
-    print(f"    After QUEST only    : {rms_baseline:7.1f}'  (baseline)")
-    if fitted_f is not None:
-        rms_after_f2 = float(np.sqrt(np.nanmean((dev_m_t2 - fitted_f * sin_theta3)**2)))
-        print(f"    After QUEST + M3 tilt       : {rms_after_f2:7.1f}'")
-    print(f"    After QUEST + M3+M2 tilt    : {rms_final:7.1f}'  ({impr_total:+.0f}% total)")
-    print()
 
     r2_f_val    = r2_f    if fitted_f    is not None else None
     r2_g_val    = r2_g    if fitted_g    is not None else None
-    r2_bore_val = r2_bore if fitted_bore is not None else None
-    r2_b1_val   = soln['r2'] if soln is not None else None
+    r2_k_val    = r2_k    if fitted_k    is not None else None
+    r2_b1_val   = soln['r2'] if soln     is not None else None
     r2_h_val    = r2_h    if fitted_h    is not None else None
     r2_e_val    = r2_e    if fitted_e    is not None else None
 
-    print("  Fitted parameters  (copy to config.toml):")
-    print(f"    m3_tilt_alt      = {f_out:+8.4f}   [M3 tilt alt  arcmin     ]   {_quality(r2_f_val)}"
-          + (f"  R2={r2_f_val:.3f}" if r2_f_val is not None else ""))
-    print(f"    m3_tilt_az       = {g_out:+8.4f}   [M3 tilt az   arcmin     ]   {_quality(r2_g_val)}"
+    print("#  Fitted parameters  (copy to config.toml):")
+    print(f"m3_tilt_dm1       = {g_out:+8.2f}                # [arcmin/fn_M3] {_quality(r2_g_val)}"
           + (f"  R2={r2_g_val:.3f}" if r2_g_val is not None else ""))
-    print(f"    m3_tilt_bore     = {bore_out:+8.4f}   [M3 boresight arcmin     ]   {_quality(r2_bore_val)}"
-          + (f"  R2={r2_bore_val:.3f}" if r2_bore_val is not None else ""))
-    print(f"    m2_tilt_alt_amp  = {a_out:+8.4f}   [M2 tilt amp  arcmin    ]   {_quality(r2_b1_val)}"
+    print(f"m3_tilt_dm2       = {f_out:+8.2f}                # [arcmin/fn_M3] {_quality(r2_f_val)}"
+          + (f"  R2={r2_f_val:.3f}" if r2_f_val is not None else ""))
+    print(f"m3_tilt_dm3       = {k_out:+8.2f}                # [arcmin/fn_M3] {_quality(r2_k_val)}"
+          + (f"  R2={r2_k_val:.3f}" if r2_k_val is not None else ""))
+    print(f"m2_tilt_dm2_amp   = {a_out:+8.2f}                # [arcmin/fn_M2] {_quality(r2_b1_val)}"
           + (f"  R2={r2_b1_val:.3f}" if r2_b1_val is not None else ""))
-    print(f"    m2_tilt_alt_zero = {b_out:+8.4f}   [M2 tilt zero degrees   ]")
-    print(f"    m3_encoder_scale = {e_out:+8.4f}   [M3 encoder   arcmin/deg]   {_quality(r2_e_val)}"
-          + (f"  R2={r2_e_val:.3f}" if r2_e_val is not None else ""))
-    print(f"    m2_roll_coupling = {h_out:+8.4f}   [M2 roll coupling arcmin/deg] {_quality(r2_h_val)}"
+    print(f"m2_tilt_dm2_zero  = {b_out:+8.2f}                # [degrees     ]")
+    print(f"m2_roll_coupling  = {h_out:+8.2f}                # [arcmin/fn_M2] {_quality(r2_h_val)}"
           + (f"  R2={r2_h_val:.3f}" if r2_h_val is not None else ""))
-    print(f"    m2_roll_zero     = {z_out:+8.4f}   [M2 roll zero  degrees      ]")
+    print(f"m2_roll_zero      = {z_out:+8.2f}                # [degrees     ]")
+    print(f"m1_offset         =     0.0                 # [arcmin      ]")
+    print(f"m2_offset         =     0.0                 # [arcmin      ]")
+    print(f"m3_offset         =     0.0                 # [arcmin      ]")
     print()
 
     warnings = []
@@ -1083,9 +1074,9 @@ def cmd_model(csv_paths, params_path):
     if r2_b1_val is not None and r2_b1_val < 0.3:
         warnings.append(
             f"M2 tilt R2={r2_b1_val:.3f} is low -- fit M2 tilt from roll=0 data only")
-    if r2_bore_val is not None and r2_bore_val < 0.2:
+    if r2_k_val is not None and r2_k_val < 0.2:
         warnings.append(
-            f"M3 boresight R2={r2_bore_val:.3f} is low -- need wider theta3 span for reliable fit")
+            f"M3 boresight R2={r2_k_val:.3f} is low -- need wider theta3 span for reliable fit")
     if r2_h_val is not None and r2_h_val < 0.3:
         warnings.append(
             f"M2 roll coupling R2={r2_h_val:.3f} is low -- check dev_m_roll variation in data")
@@ -1108,12 +1099,11 @@ def cmd_model(csv_paths, params_path):
 
     # ---- Save JSON ----------------------------------------------------------
     model_params_out = {
-        'm3_tilt_alt':      f_out,
-        'm3_tilt_az':       g_out,
-        'm3_tilt_bore':     bore_out,
-        'm2_tilt_alt_amp':  a_out,
-        'm2_tilt_alt_zero': b_out,
-        'm3_encoder_scale': e_out,
+        'm3_tilt_dm2':      f_out,
+        'm3_tilt_dm1':      g_out,
+        'm3_tilt_dm3':      k_out,
+        'm2_tilt_dm2_amp':  a_out,
+        'm2_tilt_dm2_zero': b_out,
         'm2_roll_coupling': h_out,
         'm2_roll_zero':     z_out,
         'm1_offset':        0.0,
@@ -1168,12 +1158,11 @@ def cmd_validate(csv_paths, params_path, output_csv, n_sync):
     tm = saved_json.get('mount_model', saved_json.get('theta_model', {}))
     print("==== VALIDATE ====")
     print(f"Params: {params_path}")
-    print(f"  m3_tilt_alt={tm.get('m3_tilt_alt',0):.4f}  "
-          f"m3_tilt_az={tm.get('m3_tilt_az',0):.4f}  "
-          f"m2_tilt_alt_amp={tm.get('m2_tilt_alt_amp',0):.4f}  "
-          f"m2_tilt_alt_zero={tm.get('m2_tilt_alt_zero',0):.4f}  "
-          f"m3_tilt_bore={tm.get('m3_tilt_bore',0):.4f}  "
-          f"m3_encoder_scale={tm.get('m3_encoder_scale',0):.4f}  "
+    print(f"  m3_tilt_dm2={tm.get('m3_tilt_dm2',0):.4f}  "
+          f"m3_tilt_dm1={tm.get('m3_tilt_dm1',0):.4f}  "
+          f"m2_tilt_dm2_amp={tm.get('m2_tilt_dm2_amp',0):.4f}  "
+          f"m2_tilt_dm2_zero={tm.get('m2_tilt_dm2_zero',0):.4f}  "
+          f"m3_tilt_dm3={tm.get('m3_tilt_dm3',0):.4f}  "
           f"m2_roll_coupling={tm.get('m2_roll_coupling',0):.4f}  "
           f"m2_roll_zero={tm.get('m2_roll_zero',45.0):.4f} "
           f"m1_offset={tm.get('m1_offset',0.0):.4f} "

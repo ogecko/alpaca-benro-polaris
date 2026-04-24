@@ -120,11 +120,11 @@ Without RBC, a sync point taken at one rotation angle provides contradictory dat
 
 The error was discovered after analysing a "porcupine grid" of approximately 3,000 plate-solved images captured across various mechanical positions. Residual pointing errors that persisted even after QUEST frame alignment were decomposed into three physical axis misalignments:
 
-- **M3 axis tilt - altitude component (`m3_tilt_alt`):** The physical M3 motor rotation axis is tilted from its ideal direction (the camera UP axis) by approximately 2.6 arcmin. When M3 rotates to set camera roll, this tilt sweeps the camera boresight in altitude by an amount proportional to the roll angle commanded. The fitted coefficient is −2.10 arcmin per degree of rotation.
+- **M3 axis tilt - altitude component (`m3_tilt_dm2`):** The physical M3 motor rotation axis is tilted from its ideal direction (the camera UP axis) by approximately 2.6 arcmin. When M3 rotates to set camera roll, this tilt sweeps the camera boresight in altitude by an amount proportional to the roll angle commanded. The fitted coefficient is −2.10 arcmin per degree of rotation.
 
-- **M3 axis tilt - azimuth component (`m3_tilt_az`):** The same physical M3 axis tilt also sweeps the boresight in azimuth. This effect is modulated by sin(altitude) because at low altitude an azimuth-axis rotation mostly changes roll rather than sky azimuth. The fitted coefficient is +1.52 arcmin per degree of roll.
+- **M3 axis tilt - azimuth component (`m3_tilt_dm1`):** The same physical M3 axis tilt also sweeps the boresight in azimuth. This effect is modulated by sin(altitude) because at low altitude an azimuth-axis rotation mostly changes roll rather than sky azimuth. The fitted coefficient is +1.52 arcmin per degree of roll.
 
-- **M2 axis tilt (`m2_tilt_alt_amp`, `m2_tilt_alt_zero`):** The M2 motor rotation axis is not perfectly perpendicular to M1. This produces a sinusoidal altitude error as a function of the altitude motor position, with an amplitude of approximately 67 arcmin and a zero crossing near the horizon.
+- **M2 axis tilt (`m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`):** The M2 motor rotation axis is not perfectly perpendicular to M1. This produces a sinusoidal altitude error as a function of the altitude motor position, with an amplitude of approximately 67 arcmin and a zero crossing near the horizon.
 
 All three misalignments are fixed properties of the mount hardware. They are corrected by applying small compensating quaternion rotations in the forward kinematic model before sky coordinates are computed.
 
@@ -142,21 +142,21 @@ Three correction quaternions are applied in sequence within `apply_mechanical_co
 
 **M3 tilt — altitude:**
 
-    altitude_correction (arcmin) = m3_tilt_alt × theta3
+    altitude_correction (arcmin) = m3_tilt_dm2 × theta3
 
-Applied as a rotation around the M2 axis (altitude axis) by `−(m3_tilt_alt / 60) × theta3` degrees.
+Applied as a rotation around the M2 axis (altitude axis) by `−(m3_tilt_dm2 / 60) × theta3` degrees.
 
 **M3 tilt — azimuth:**
 
-    azimuth_correction (arcmin) = m3_tilt_az × sin(theta2) × theta3
+    azimuth_correction (arcmin) = m3_tilt_dm1 × sin(theta2) × theta3
 
-Applied as a rotation around the vertical M1 axis by `−(m3_tilt_az / 60) × sin(theta2) × theta3` degrees.
+Applied as a rotation around the vertical M1 axis by `−(m3_tilt_dm1 / 60) × sin(theta2) × theta3` degrees.
 
 **M2 tilt — altitude:**
 
-    altitude_correction (arcmin) = m2_tilt_alt_amp × sin(theta2 − m2_tilt_alt_zero)
+    altitude_correction (arcmin) = m2_tilt_dm2_amp × sin(theta2 − m2_tilt_dm2_zero)
 
-Applied as a rotation around the M2 axis by `−(m2_tilt_alt_amp / 60) × sin(theta2 − m2_tilt_alt_zero)` degrees.
+Applied as a rotation around the M2 axis by `−(m2_tilt_dm2_amp / 60) × sin(theta2 − m2_tilt_dm2_zero)` degrees.
 
 Where `theta2` is the altitude motor angle and `theta3` is the astro motor angle, both in degrees.
 
@@ -167,7 +167,7 @@ While the default coefficients are derived from extensive testing and are suffic
 1. **Data Collection:** Using a pano grid with roll variation, capture FITS images covering a wide range of altitude, azimuth, and roll positions. Aim for full coverage of the roll range (±50°) at multiple altitudes (20°–65°). Ensure all corrections are disabled while collecting the images.
 2. **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
 3. **Extraction:** Run `python fits_extract.py -extract`. This reads the FITS headers and builds a CSV comparing predicted positions with plate-solved ground truth.
-4. **Modelling:** Run `python fits_extract.py -model`. This fits the RBC coefficients (`m3_tilt_alt`, `m3_tilt_az`, `m2_tilt_alt_amp`, `m2_tilt_alt_zero`) to your data and writes them to a JSON file.
+4. **Modelling:** Run `python fits_extract.py -model`. This fits the RBC coefficients (`m3_tilt_dm2`, `m3_tilt_dm1`, `m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`) to your data and writes them to a JSON file.
 5. **Application:** Copy the fitted parameters into your **`config.toml`** file.
 
 #### **VI. Important Implementation Details**
