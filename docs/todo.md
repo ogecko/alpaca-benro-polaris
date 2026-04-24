@@ -12,6 +12,11 @@
 - [X] RBC Rotation Based Correction to fix M3 bias effecting Az and Roll (based on plate-solve test)
 - [X] Refactor Kinematics page in Pilot
 - [X] Complete Kinematics page motor output, sp highlighting, settings disabling
+- [X] Kinematics Page Delta_sp Position Angle needs 0-360 wrapping (currently -180 to 180), delta_ref & delta_pv ok
+- [X] Replace RBC with motor-space corrections, Kinematics Page RBC Magnitude update
+- [ ] Refactor kinematics.py and wrap180, move more kinimatic functions from control.py to kinematics.py   
+- [ ] Debug Gimbal Lock solution selection issue @ Az 292, Alt 0, Roll 2
+- [ ] Debug clicking on roll scale seemed to reset Az/Alt SP to current value
 - [ ] Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates
 - [ ] Explore how to reduce sidereal tracking drift and reduce residuals - eg TPoint Model, PEC, Polar Align Adj, verify with cross validation
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly

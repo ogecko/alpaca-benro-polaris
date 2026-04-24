@@ -4,8 +4,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 from unittest.mock import patch
 
 import numpy as np
-from control import SyncManager, quaternion_to_angles, azaltroll_to_q, angular_difference, calc_parallactic_angle
+from control import SyncManager, quaternion_to_angles, azaltroll_to_q
 from polaris import Polaris
+from kinematics import calc_parallactic_angle
 
 import pytest
 import logging
@@ -26,7 +27,7 @@ class Polaris:
         self._sitelatitude = -33.65528161613541
         self.azimuth = 180
         self._pid = PID_Controller()
-        self._motorQ_adj = Quaternion(1,0,0,0)
+        self._motorQ_state = Quaternion([1,0,0,0])
 
     def update_ascom_from_new_alignQ_B2T(self, q1s):
         a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s)
@@ -39,7 +40,7 @@ class Polaris:
         self._p_altitude = alt
         self._p_roll = roll
         self._q1 = azaltroll_to_q(az, alt, roll)
-        self._motorQ_adj = self._q1
+        self._motorQ_state = self._q1
         t1,t2,t3,_,_,_ = quaternion_to_angles(self._q1)
         self._theta_raw = [t1, t2, t3]
         self._roll = roll

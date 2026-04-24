@@ -151,7 +151,7 @@
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Predictive Error Correction (PEC)')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_align_rbc', 'Rotation Bias Correction')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_align_rbc', 'Meachnical Alignment Correction')"/>
               </div>
               <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
                 <q-select

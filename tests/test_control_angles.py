@@ -3,7 +3,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
 # import pytest
-from control import angular_difference, is_angle_same, wrap_to_90, is_angle_between
+from control import angular_difference, wrap90, is_angle_between
+from kinematics import wrap90, is_angle_same
 from shr import deg2rad, rad2deg
 import pytest
 
@@ -31,34 +32,34 @@ def test_angular_difference():
     assert(angular_difference(359.5, 0.25) == 0.75)
   
 
-def test_wrap_to_90_center_and_extremes():
-    assert wrap_to_90(0) == 0.0
-    assert wrap_to_90(90) == -90.0
-    assert wrap_to_90(-90) == -90.0
-    assert wrap_to_90(180) == 0.0
-    assert wrap_to_90(-180) == 0.0
+def test_wrap90_center_and_extremes():
+    assert wrap90(0) == 0.0
+    assert wrap90(90) == -90.0
+    assert wrap90(-90) == -90.0
+    assert wrap90(180) == 0.0
+    assert wrap90(-180) == 0.0
 
-def test_wrap_to_90_positive_wraps():
-    assert wrap_to_90(95) == -85.0
-    assert wrap_to_90(135) == -45.0
-    assert pytest.approx(wrap_to_90(179.99), abs=1e-6) == -0.01
-    assert wrap_to_90(270) == -90.0
-    assert wrap_to_90(360) == 0.0
+def test_wrap90_positive_wraps():
+    assert wrap90(95) == -85.0
+    assert wrap90(135) == -45.0
+    assert pytest.approx(wrap90(179.99), abs=1e-6) == -0.01
+    assert wrap90(270) == -90.0
+    assert wrap90(360) == 0.0
 
-def test_wrap_to_90_negative_wraps():
-    assert wrap_to_90(-95) == 85.0
-    assert wrap_to_90(-135) == 45.0
-    assert pytest.approx(wrap_to_90(-179.99), abs=1e-6) == 0.01
-    assert wrap_to_90(-270) == -90.0
-    assert wrap_to_90(-360) == 0.0
+def test_wrap90_negative_wraps():
+    assert wrap90(-95) == 85.0
+    assert wrap90(-135) == 45.0
+    assert pytest.approx(wrap90(-179.99), abs=1e-6) == 0.01
+    assert wrap90(-270) == -90.0
+    assert wrap90(-360) == 0.0
 
-def test_wrap_to_90_symmetry_and_continuity():
-    assert wrap_to_90(45) == 45.0
-    assert wrap_to_90(-45) == -45.0
-    assert wrap_to_90(225) == 45.0
-    assert wrap_to_90(-225) == -45.0
-    assert wrap_to_90(315) == -45.0
-    assert wrap_to_90(-315) == 45.0
+def test_wrap90_symmetry_and_continuity():
+    assert wrap90(45) == 45.0
+    assert wrap90(-45) == -45.0
+    assert wrap90(225) == 45.0
+    assert wrap90(-225) == -45.0
+    assert wrap90(315) == -45.0
+    assert wrap90(-315) == 45.0
 
 
 def test_is_angle_between():

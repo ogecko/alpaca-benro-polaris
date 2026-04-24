@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import azaltroll_to_q, quaternion_to_angles, wrap_to_360, calculate_angular_velocity_vector
+from control import azaltroll_to_q, quaternion_to_angles, wrap360, calculate_angular_velocity_vector
 from control import theta_to_jacobian, theta_to_q, q_to_theta, LastPosition
 
 
@@ -253,7 +253,7 @@ def test_misc_t1t2t3_motors_to_q1_roundtrip(n, t1, t2, t3):
     angles = q_to_theta(q1, lastPos=LastPosition(t1,t2,t3))
     u1,u2,u3 = approx(angles)
     if (u2==0):
-        v1 = wrap_to_360(v1+v3)
+        v1 = wrap360(v1+v3)
         v3 = 0.0
     if (v2>83):
         v2=83.0

@@ -17,7 +17,8 @@ from collections import deque
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-
+from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
+from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -114,67 +115,15 @@ def ratio_string(x: float) -> str:
     return f"{left:02d}:{right:02d}"
 
 
-def is_angle_same(a, b, tolerance=1e-4):
-    """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
-    return abs((a - b + 180) % 360 - 180) < tolerance
-
-
-def quaternion_error(q_from, q_to):
-    """
-    Returns:
-        angle_deg     : total SO(3) rotation angle (degrees)
-        axis          : unit rotation axis (in q_from frame)
-        q_delta       : shortest-path relative quaternion
-    """
-    if np.dot(q_from.elements, q_to.elements) < 0:     # Enforce shortest path
-        q_to = -q_to
-    q_delta = (q_from.inverse * q_to).normalised       # Relative rotation
-    w = np.clip(q_delta[0], -1.0, 1.0)
-    angle_rad = 2.0 * np.arccos(w)
-    if angle_rad < 1e-12:
-        return 0.0, np.zeros(3), q_delta
-    sin_half = np.sqrt(1.0 - w*w)
-    axis = q_delta.vector / sin_half
-    return np.degrees(angle_rad), axis, q_delta
-
-
-def wrap_to_360(angle):
-    """Wraps angle to [0, 360) degrees"""
-    wrapped = angle % 360.0
-    # --- Handle a weird rounding problem for tests, ensure 359.9999999994 is 0.0 and not 360
-    return 0.0 if abs(wrapped - 360) < 1e-10 else wrapped
-
-def wrap_to_180(angle):
-    """Wraps angle to [-180, +180) degrees"""
-    return (angle + 180.0) % 360.0 - 180.0
-
-def wrap_to_90(angle):
-    """Wraps angle to [-90, +90) degrees"""
-    return (angle + 90.0) % 180.0 - 90.0
-
 def wrap_angle_residual(measured_theta, predicted_theta):
-    return np.vectorize(wrap_to_180)(measured_theta - predicted_theta)
+    return np.vectorize(wrap180)(measured_theta - predicted_theta)
 
 def wrap_state_angles(x):
     x_wrapped = x.copy()
-    x_wrapped[0, 0] = wrap_to_360(x[0, 0])    # theta1
-    x_wrapped[1, 0] = wrap_to_180(x[1, 0])    # theta2
-    x_wrapped[2, 0] = wrap_to_180(x[2, 0])    # theta3 
+    x_wrapped[0, 0] = wrap360(x[0, 0])    # theta1
+    x_wrapped[1, 0] = wrap180(x[1, 0])    # theta2
+    x_wrapped[2, 0] = wrap180(x[2, 0])    # theta3 
     return x_wrapped
-
-def calc_parallactic_angle(az_deg, alt_deg, lat_deg):
-    if abs(alt_deg - 90.0) < 1e-6:
-        return 0.0  # Zenith has no parallactic angle
-
-    az = math.radians(az_deg)
-    alt = math.radians(alt_deg)
-    lat = math.radians(lat_deg)
-
-    numerator = math.sin(az)
-    denominator = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
-    angle = math.degrees(math.atan2(numerator, denominator))
-    return wrap_to_180(-angle)
-
 
 def azalt_to_vector(az_deg, alt_deg):
     az = math.radians(az_deg)
@@ -423,9 +372,9 @@ def q_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
         """ Calc Theta1 and Theta2 based on removing Theta3 pan """
         unTheta3Pan = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
         mBore = unTheta3Pan.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module effect
-        theta1 = wrap_to_360(np.degrees(np.arctan2(mBore[0], mBore[1])))
-        theta2 = wrap_to_90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
-        return theta1, theta2, wrap_to_180(theta3)
+        theta1 = wrap360(np.degrees(np.arctan2(mBore[0], mBore[1])))
+        theta2 = wrap90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
+        return theta1, theta2, wrap180(theta3)
 
     # --- Find the two solutions based on theta3 being pointing one way or the opposite
     theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
@@ -459,7 +408,7 @@ def q_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
     # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
     in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
     if in_gimbal_lock:
-        locked_sum = wrap_to_360(theta1 + theta3)
+        locked_sum = wrap360(theta1 + theta3)
         theta3 = 0
         theta1 = locked_sum
 
@@ -474,13 +423,13 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     tRight = q1.rotate(np.array([0, 1, 0]))
 
     # Primary solution
-    theta1_A = wrap_to_360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
+    theta1_A = wrap360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
     t1r_A    = np.radians(theta1_A)
     sin_t2_A = -(tUp[0]*np.sin(t1r_A) + tUp[1]*np.cos(t1r_A))
-    theta2_A = wrap_to_90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
+    theta2_A = wrap90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
 
     # Alternative solution
-    theta1_B = wrap_to_360(theta1_A + 180)
+    theta1_B = wrap360(theta1_A + 180)
     theta2_B = -theta2_A
 
     # Validity
@@ -500,7 +449,7 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
         r1n, r2n = r1/n1, r2/n2
         cos_t3 = np.clip(np.dot(r1n, r2n), -1, 1)
         sin_t3 = np.dot(np.cross(r1n, r2n), tUp)
-        return wrap_to_180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
+        return wrap180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
 
     if validA and not validB:
         theta1, theta2 = theta1_A, theta2_A
@@ -536,7 +485,7 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     # Gimbal lock
     in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
     if in_gimbal_lock:
-        locked_sum = wrap_to_360(theta1 + theta3)
+        locked_sum = wrap360(theta1 + theta3)
         theta3 = 0
         theta1 = locked_sum
 
@@ -573,120 +522,7 @@ def q_to_azaltroll(cameraQ_C2T):
     if q_roll_residual[3] < 0:
         roll = -roll
 
-    return wrap_to_360(az), wrap_to_180(alt), wrap_to_180(roll)
-
-
-def apply_mechanical_corrections(q):
-    """
-    Correct raw Polaris quaternion for three theta-space mechanical errors,
-    each applied as a quaternion rotation around its physical axis in the
-    base frame. Requires a single q_to_theta() call; all axis directions
-    are derived from the decomposed angles. Safe to call at full frequency.
-
-    B1 — M2 dependant azimuth offset (Config.theta_model_a, theta_model_b)
-         M2 tilt axis is not perfectly horizontal; camera altitude deviates
-         sinusoidally with theta2.
-         Correction axis: M2 direction = qtheta1.rotate([0, 1, 0])
-         delta_t2 = -(theta_model_a/60) * sin(theta2 - theta_model_b)
-         Sign: negative M2 rotation raises altitude.
-
-    B2 — M2 dependent roll offset  (Config.theta_model_c, theta_model_d)
-         A roll error that varies with altitude independently of theta3.
-         Source: imperfect polar sinusoid removal leaving an altitude-dependent
-         residual, or a true mechanical roll offset in the camera mount.
-         Correction axis: camera boresight = q.rotate([0, 0, -1])
-         delta_roll = -(theta_model_c/60) * cos(theta2 - theta_model_d)
-         Rotating around the boresight produces PURE roll — exactly zero
-         az/alt change, verified geometrically and numerically.
-         Sign: negative boresight rotation increases roll.
-         Note: reliable only when fitted on a theta3≈0 dataset with good
-         theta2 coverage (R²≥0.5). See fits_extract.py -model B2.
-
-    B3 — M3 encoder scale error  (Config.theta_model_e)
-         M3 encoder reports slightly more/less rotation than actually occurred.
-         Correction axis: M3 direction = (qtheta1*qtheta2).rotate([1, 0, 0])
-         delta_t3 = (theta_model_e/60) * theta3
-         theta_model_e units: arcmin/degree — divide by 60 → degrees/degree.
-    """
-    t1, t2, t3 = q_to_theta(q)
-
-    # Motor axis directions in the base frame (one q_to_theta call shared by all)
-    qtheta1   = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
-    qtheta2   = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
-    m2_axis   = np.array(qtheta1.rotate([0, 1, 0]))
-    m3_axis   = np.array((qtheta1 * qtheta2).rotate([1, 0, 0]))
-    boresight = np.array(q.rotate([0, 0, -1]))
-
-    # B1: M2 axis tilt correction (altitude)
-    delta_t2 = -(Config.theta_model_a / 60.0) * math.sin(
-                  math.radians(t2 - Config.theta_model_b))
-    q_m2 = Quaternion(axis=m2_axis, degrees=delta_t2)
-
-    # B2: altitude-dependent roll correction (boresight rotation)
-    delta_roll = -(Config.theta_model_c / 60.0) * math.cos(
-                    math.radians(t2 - Config.theta_model_d))
-    q_b2 = Quaternion(axis=boresight, degrees=delta_roll)
-
-    # B3: M3 encoder scale correction
-    delta_t3 = (Config.theta_model_e / 60.0) * t3
-    q_m3 = Quaternion(axis=m3_axis, degrees=delta_t3)
-
-    # Apply: M2 first (earliest in kinematic chain), then boresight roll, then M3
-    return (q_m3 * q_b2 * q_m2 * q).normalised
-
-def _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1):
-    """
-    Returns the RBC correction quaternion and roll error.
-
-    Corrects two coupled M3 encoder errors:
-      1. Roll error:  dev_roll = (rbc_model_a · tan(alt) + rbc_model_b) · p_roll      [arcmin]
-         Corrected by rotating around the camera boresight axis.
-
-      2. Az error:    dev_az   = rbc_model_c · dev_roll                               [arcmin]
-         Empirically fitted from plate-solve data across all altitudes.
-
-    sign = -1  for apply (forward kinematics)
-    sign = +1  for undo (inverse kinematics / velocity vectors)
-    """
-    _, p_alt, p_roll = q_to_azaltroll(motorQ_C2B)
-    p_alt_clamped = min(p_alt, 75.0)
-
-    slope = Config.rbc_model_a * np.tan(np.radians(p_alt_clamped)) + Config.rbc_model_b
-    roll_error_deg = slope * p_roll / 60.0
-
-    if abs(roll_error_deg) < 1e-6:
-        return (None, 0)
-
-    # --- Roll correction ---
-    # Rotate around the camera boresight axis (expressed in B frame).
-    boresight_B = motorQ_C2B.rotate([0, 0, -1])
-    corrQ_roll = Quaternion(axis=boresight_B, degrees=sign * roll_error_deg)
-
-    # --- Az correction ---
-    # Empirical relationship: dev_az (arcmin) = az_model_c * dev_roll (arcmin)
-    # The zenith direction in B frame is the M1 rotation axis = [0, 0, 1] (Z_B).
-    az_error_deg = Config.rbc_model_c * roll_error_deg
-    corrQ_az = Quaternion(axis=[0, 0, 1], degrees=sign * az_error_deg)
-
-    # measure residual altitude change introduced by the roll+az corrections
-    # and cancel it with a rotation around the East axis
-    q_test = corrQ_az * corrQ_roll * motorQ_C2B
-    _, corrected_alt, _ = q_to_azaltroll(q_test)
-    alt_error_deg = corrected_alt - p_alt          # how much alt shifted spuriously
-    east_axis_B = motorQ_C2B.rotate([1, 0, 0])     # or use fixed [1,0,0] in base frame
-    corrQ_alt = Quaternion(axis=[0, 1, 0], degrees=-sign * alt_error_deg)
-
-    corrQ =  corrQ_az * corrQ_alt *corrQ_roll
-    return (corrQ, roll_error_deg)
-
-def apply_rotation_bias_corrQ_RBC(motorQ_C2B):
-    corrQ_RBC, roll_error_deg = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=-1)
-    return (corrQ_RBC * motorQ_C2B, roll_error_deg) if corrQ_RBC is not None else (motorQ_C2B, 0)
-
-def undo_rotation_bias_corrQ_RBC(motorQ_C2B):
-    undo_corrQ_RBC, roll_error_deg = _calc_rotation_bias_corrQ_RBC(motorQ_C2B, sign=+1)
-    return (undo_corrQ_RBC * motorQ_C2B, roll_error_deg) if undo_corrQ_RBC is not None else (motorQ_C2B, 0)
-
+    return wrap360(az), wrap180(alt), wrap180(roll)
 
 
 def quaternion_to_angles(q1, lastPos = LastPosition()):
@@ -1338,7 +1174,7 @@ class PID_Controller():
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
         self.delta_pv = np.zeros(3, dtype=float)       # ra, dec, polar measured angular position
         self.alpha_pv = np.zeros(3, dtype=float)       # az, alt, roll measured angular position
-        self.theta_adj = np.zeros(3, dtype=float)      # theta1-3 motor measured angular position, kf and pec corrected
+        self.theta_pv = np.zeros(3, dtype=float)      # theta1-3 motor measured angular position, kf and pec corrected
         self.zeta_meas = np.zeros(3, dtype=float)      # zeta1-3 motor raw measured angular position (no alignment effect)
         self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, polar angular reference position
         self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll angular reference position
@@ -1441,7 +1277,7 @@ class PID_Controller():
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
 
     def body_pa(self):
-        return wrap_to_180(0.0 - rad2deg(self.body.parallactic_angle()))
+        return wrap180(0.0 - rad2deg(self.body.parallactic_angle()))
     
     def body2alpha(self):
         self.observer.date = ephem.Date(datetime.datetime.utcnow())
@@ -1470,7 +1306,7 @@ class PID_Controller():
         alt = rad2deg(self.body.alt)
         az = rad2deg(self.body.az)
         parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
-        pa_deg = self.body_pa_offset + parallactic_angle
+        pa_deg = wrap360(self.body_pa_offset + parallactic_angle)
         return np.array([ra_deg, dec_deg, pa_deg], dtype=float)
     
 
@@ -1484,7 +1320,7 @@ class PID_Controller():
         az = rad2deg(self.body.az)
         if self.polaris._trackingrate == 0:   # only update roll when sidereal tracking
             parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
-            self.body_pa_offset = wrap_to_360(delta[2] - parallactic_angle)
+            self.body_pa_offset = wrap360(delta[2] - parallactic_angle)
 
     def orbital2delta(self):
         orbital = None
@@ -1730,7 +1566,7 @@ class PID_Controller():
 
     #------- Control step functions ---------
     def quaternion_limit_step(self, q_meas, q_ref, max_step_deg=12, min_frac=0.01, max_frac=1.0):
-        angle_total, _, _ = quaternion_error(q_meas, q_ref)
+        angle_total, _, _ = quaternion_difference(q_meas, q_ref)
         if angle_total < 1e-9:
             return q_ref
         frac = np.clip(max_step_deg / angle_total, min_frac, max_frac)           # linear taper
@@ -1804,20 +1640,20 @@ class PID_Controller():
             self.cameraQ_ref_last = self.cameraQ_ref
             self.cameraQ_ref = cameraQ_ref
     
-    def measure(self, delta_pv, alpha_pv, theta_adj, zeta_meas):
+    def measure(self, delta_pv, alpha_pv, theta_pv, zeta_meas):
         now = ephem.now()
         # if not self.time_meas:
         #     self.alpha_sp = alpha_meas     # initialise alpha_sp with first measurement
         self.delta_pv = delta_pv
         self.alpha_pv = alpha_pv
-        self.theta_adj = theta_adj
+        self.theta_pv = theta_pv
         self.zeta_meas = zeta_meas
         self.time_meas = now
-        self._lp.update(*theta_adj)
+        self._lp.update(*theta_pv)
         self._lp.check_for_gimbal_lock()
 
     def predict(self):          # This is not used in the PID Control Loop
-        self.theta_adj = clamp_theta(self.theta_adj + self.dt * self.omega_op)
+        self.theta_pv = clamp_theta(self.theta_pv + self.dt * self.omega_op)
         self.time_meas = self.time_meas + self.dt
 
     def feed_forward(self):
@@ -1829,10 +1665,11 @@ class PID_Controller():
         if self.mode == "TRACK":
             if self.dt > 0 and self.polaris._tracking:
                 # Desired angular velocity vector based on change in cameraQ_ref
-                omega_topo = calculate_angular_velocity_vector(self.cameraQ_ref_last, self.cameraQ_ref, self.dt)
-                omega_base = self.polaris._sm.topoVec_to_baseVec(omega_topo, self.cameraQ_ref)   # Convert to base frame Sky tracking velocity
+                motorQ_now  = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref)
+                motorQ_last = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref_last)
+                omega_base = calculate_angular_velocity_vector(motorQ_last, motorQ_now, self.dt)
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
-                J = theta_to_jacobian(*self.theta_adj)
+                J = theta_to_jacobian(*self.theta_pv)
                 # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
                 theta_dot = np.linalg.solve(J, omega_base)
                 self.omega_ff = np.degrees(theta_dot)
@@ -1848,7 +1685,7 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
-            self.error_signal = clamp_error(self.theta_ref, self.theta_adj)
+            self.error_signal = clamp_error(self.theta_ref, self.theta_pv)
 
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
@@ -2018,7 +1855,7 @@ class PID_Controller():
             "α_sp": self.alpha_ref.tolist(),
             "α_pv": self.alpha_pv.tolist(),
             "θ_sp": self.theta_ref.tolist(), 
-            "θ_pv": self.polaris._theta_adj.tolist(), 
+            "θ_pv": self.theta_pv.tolist(), 
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 
@@ -2074,8 +1911,11 @@ class SyncManager:
     def set_alignQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.last_sync_time = None              # timestamp used to fade LGA to zero as time passes
-        self.corrQ_LGA = None                   # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
+        self.corrQ_LGA = Quaternion(1,0,0,0)    # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
+        self.corrQ_RBC = Quaternion(1,0,0,0)    # cache of RBC stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
+        self.params_RBC = MountModelParams.from_config(Config)
         self.scc_error = 0                      # cache of Slew & Center Correction error magnitude, either LGA or ZRC (for Kinematics page)
+        self.rbc_error = 0                      # cache of Rotation Bias Correction  error magnitude, (for Kinematics page)
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
         self.alignQ_B2T = Quaternion(1,0,0,0)       # cached adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # cached inverse adjustment quaternion for azalt syncing, initially identity
@@ -2106,36 +1946,38 @@ class SyncManager:
     def entry_to_pred_vector(self, entry):
         """
         Convert a sync history entry's raw stored p_az/p_alt/p_roll into a
-        predicted unit vector, optionally applying Rotation Bias Correction.
-
-        Raw values are always stored in sync history so that toggling
-        advanced_align_rbc recalculates alignQ_B2T without new sync points.
-        RBC is applied here at query time, not at storage time.
+        predicted unit vector.
         """
         if Config.advanced_align_rbc:
             motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
-            motorQ_adj, _   = apply_rotation_bias_corrQ_RBC(motorQ_entry)
+            motorQ_adj, _   = apply_mechanical_corrections(motorQ_entry, self.params_RBC)
             eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
         else:
             eff_az  = entry["p_az"]
             eff_alt = entry["p_alt"]
         return azalt_to_vector(eff_az, eff_alt), eff_az, eff_alt
-    
+
+
 
     def baseQ_to_topoQ(self, motorQ_C2B):
         """
         Forward kinematics: Base frame → Topocentric frame.
-        motorQ → [QUEST] → [LGA] → [roll_adj] → cameraQ
+        motorQ → [RBC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
         """
+        motorQ = motorQ_C2B
+
+        # Apply Mechanical Corrections (RBC)
+        if Config.advanced_align_rbc:
+            self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B, self.params_RBC)
+            motorQ = self.corrQ_RBC * motorQ
 
         # Apply alignQ_B2T model (QUEST)
-        cameraQ = self.alignQ_B2T * motorQ_C2B
+        cameraQ = self.alignQ_B2T * motorQ
 
         # Apply Local Gaussian Adjustment (LGA)
         if Config.advanced_slew_center and Config.advanced_align_lga:
             self.corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ)
-            if self.corrQ_LGA is not None:
-                cameraQ = self.corrQ_LGA * cameraQ
+            cameraQ = self.corrQ_LGA * cameraQ
 
         # Apply roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -2143,14 +1985,14 @@ class SyncManager:
             corrQ_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
             cameraQ = corrQ_roll * cameraQ
 
-        return cameraQ
+        return cameraQ, motorQ
 
 
 
     def topoQ_to_baseQ(self, cameraQ_C2T):
         """
         Inverse kinematics: Topocentric frame → Base frame.
-        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → motorQ
+        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → undo[RBC] → motorQ
         """
         # Undo roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -2166,29 +2008,13 @@ class SyncManager:
         # Undo alignQ_B2T model (QUEST)
         motorQ_C2B = self.alignQ_B2T_inv * cameraQ_C2T
 
+        # Undo Mechanical Corrections (RBC) - DO NOT APPLY AS ALL PID theta works in corrected theta space
+        # ALSO BEWARE THAT corrQ_RBC is updated from 518, so it may not match the target's corrQ_RBC
+        # if Config.advanced_align_rbc:
+        #     if self.corrQ_RBC is not None:
+        #         motorQ_C2B = self.corrQ_RBC.inverse * motorQ_C2B
+
         return motorQ_C2B
-
-
-    def topoVec_to_baseVec(self, omega_topo, cameraQ_C2T):
-        """
-        Rotate an angular velocity vector from topocentric to base frame
-        omega_topo,cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → omega_base,motorQ
-        """
-        # Undo roll sync adj (roll_adj)
-        if self.roll_adj != 0:
-            boresight_T = cameraQ_C2T.rotate([0, 0, -1])
-            q_roll_undo = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
-            omega_topo = q_roll_undo.rotate(omega_topo)
-
-        # Undo Local Guassian Adjustment (LGA) 
-        if Config.advanced_slew_center and Config.advanced_align_lga:
-            if self.corrQ_LGA is not None:
-                omega_topo = self.corrQ_LGA.inverse.rotate(omega_topo)
-
-        # Undo alignQ_B2T model (QUEST)
-        omega_base = self.alignQ_B2T_inv.rotate(omega_topo)
-
-        return omega_base
 
     def refresh_pid_setpoints_from_q1(self):
         """
@@ -2199,7 +2025,7 @@ class SyncManager:
             return
         if not hasattr(self.polaris, '_pid') or self.polaris._pid is None:
             return
-        cameraQ = self.baseQ_to_topoQ(self.polaris._q1)     
+        cameraQ, _ = self.baseQ_to_topoQ(self.polaris._q1)     
         az, alt, roll = q_to_azaltroll(cameraQ)
         self.polaris._pid.reset_sp(np.array([az,alt,roll], dtype=float))
                                    
@@ -2249,8 +2075,8 @@ class SyncManager:
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if Config.advanced_alignment and Config.advanced_control:
-            _, _, p_roll_pv = q_to_azaltroll(self.alignQ_B2T * self.polaris._motorQ_adj)
-            entry["p_roll_pv"] = p_roll_pv   # SBC+QUEST corrected roll in T Frame for roll_adj computation
+            _, _, p_roll_pv = q_to_azaltroll(self.alignQ_B2T * self.corrQ_RBC * self.polaris._motorQ_state)
+            entry["p_roll_pv"] = p_roll_pv   # RBC+QUEST corrected roll in T Frame for roll_adj computation
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.refresh_pid_setpoints_from_q1()
@@ -2430,21 +2256,23 @@ class SyncManager:
                 LGA fades to identity after a slew-and-centre completes so that
                 sidereal tracking is not continuously nudged by a stale correction.
 
-        Returns (None, 0) if no valid sync, weight too small, or correction negligible.
+        Returns (QIdentity, 0) if no valid sync, weight too small, or correction negligible.
         """
+        identity = (Quaternion(1,0,0,0), 0)
+
         # ---- Temporal fade --------------------------------------------------
         if self.last_sync_time is None:
-            return (None, 0)
+            return identity
         
         dt = time.monotonic() - self.last_sync_time
         temporal_weight = math.exp(-(dt ** 2) / (2 * sigma_sec ** 2))
         if temporal_weight < 1e-3:                   # effectively zero after ~3 sigma
-            return (None, 0)
+            return identity
         
         # ---- Spatial Gaussian -----------------------------------------------
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
         if v_pred_rot is None:
-            return (None,0)
+            return identity
 
         # Angular distance from current boresight to last sync point (in observed space)
         boresight_T = cameraQ_C2T.rotate([0, 0, -1])
@@ -2454,13 +2282,13 @@ class SyncManager:
         sigma_rad = math.radians(sigma_deg)
         spatial_weight = math.exp(-(angular_dist_rad ** 2) / (2 * sigma_rad ** 2))
         if spatial_weight < 1e-4:
-            return (None,0)
+            return identity
 
         # Build the full residual correction quaternion (v_pred_rot → v_obs)
         axis = np.cross(v_pred_rot, v_obs)
         norm_axis = np.linalg.norm(axis)
         if norm_axis < 1e-8:
-            return (None,0)
+            return identity
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
         q_full = Quaternion(axis=axis, angle=angle)
@@ -2583,27 +2411,27 @@ class SyncManager:
 
         self.tilt_adj_az = tilt_az_observed
         self.tilt_adj_mag = tilt_magnitude_deg
-        self.az_adj = wrap_to_180(north_az)
+        self.az_adj = wrap180(north_az)
 
 
     def roll2pa(self, az_deg, alt_deg, roll_deg):
         """Convert camera-frame roll to sky-frame position angle and parallactic angle at ascom azalt."""
         parallactic_angle = calc_parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
-        position_angle = wrap_to_360(roll_deg + parallactic_angle)
+        position_angle = wrap360(roll_deg + parallactic_angle)
         return position_angle, parallactic_angle
 
     def pa2roll(self, az_deg, alt_deg, position_angle_deg):
         """Convert sky-frame position angle to camera-fram roll using parallactic angle at ascom azalt."""
         parallactic_angle = calc_parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
-        return wrap_to_360(position_angle_deg - parallactic_angle)
+        return wrap360(position_angle_deg - parallactic_angle)
 
     def roll_polaris2ascom(self, polaris_roll_deg):
         """Convert Polaris roll angle to ASCOM roll angle (mechanical angle), applying roll sync adjustment correction."""
-        return wrap_to_360(polaris_roll_deg + self.roll_adj)
+        return wrap360(polaris_roll_deg + self.roll_adj)
 
     def roll_ascom2polaris(self, ascom_roll_deg):
         """Convert ASCOM roll angle (mechanical angle) to Polaris roll angle, applying roll sync adjustment."""
-        return wrap_to_360(ascom_roll_deg - self.roll_adj)
+        return wrap360(ascom_roll_deg - self.roll_adj)
 
     def optimize_roll_adj(self):
         deltas = []
@@ -2637,9 +2465,17 @@ class SyncManager:
             max_entry = active[residuals.index(max_res)] if residuals else None
 
             self.logger.info(
-                f"QUEST Model | Points: {len(active)} | "
-                f"RBC: {'ON' if Config.advanced_align_rbc else 'OFF'} | " 
-                f"RMS Residual: {deg2dms(rms)} | "
+                f"QUEST Model  | Points: {len(active)} | "
+                f"w: {self.alignQ_B2T[0]:+9.7f} | " 
+                f"x: {self.alignQ_B2T[1]:+9.7f} | " 
+                f"y: {self.alignQ_B2T[2]:+9.7f} | " 
+                f"z: {self.alignQ_B2T[3]:+9.7f} " 
+            )
+            self.logger.info(
+                f"  RBC: {'ON ' if Config.advanced_align_rbc else 'OFF'}   | " 
+                f"{'SCC: OFF  | ' if not Config.advanced_slew_center else 
+                   'LGC: ON   | ' if Config.advanced_align_lga else 'ZLR: ON   | '}"
+                f"RMS Residual: {deg2dms(rms)}  | "
                 f"Az Correction: {deg2dms(self.az_adj)} | "
                 f"Tilt: {deg2dms(self.tilt_adj_mag)} @ {deg2dms(self.tilt_adj_az)} | "
                 f"Roll Adj: {deg2dms(self.roll_adj)}"

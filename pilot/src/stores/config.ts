@@ -100,6 +100,18 @@ export const useConfigStore = defineStore('config', {
     guide_rate_ra: 0.5,
     guide_rate_dec: 0.5,
 
+    // Mechanical Correction Models
+    m1_offset: 0.0,
+    m2_offset: 0.0,
+    m3_offset: 0.0,
+    m3_tilt_dm2: 0.0,
+    m3_tilt_dm1: 0.0,
+    m2_tilt_dm2_amp: 0.0,
+    m2_tilt_dm2_zero: 0.0,
+    m2_roll_coupling: 0.0,
+    m2_roll_zero: 0.0,
+    m3_encoder_scale: 0.0,
+
     // Aiming Adjustment
     aiming_adjustment_enabled: true,
     aiming_adjustment_time: 2,
