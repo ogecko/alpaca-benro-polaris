@@ -766,6 +766,7 @@ def cmd_model(csv_paths, params_path):
     p_az     = _col('p_az')
     az_rad   = np.radians(p_az)
     t3_range = float(np.nanmax(theta3) - np.nanmin(theta3))
+    t2_range = float(np.nanmax(theta2) - np.nanmin(theta2))
 
     dev_m_t2  = _pcol('_dev_m_theta2')
     dev_m_t3  = _pcol('_dev_m_theta3')
@@ -938,58 +939,33 @@ def cmd_model(csv_paths, params_path):
         print(f"     Insufficient data (N={mask_j.sum()}, need >= 10 with |theta3| > 5).")
     print()
 
-
-
-
-    # M3 tilt bore correction — boresight roll
-    print("  -- M3 boresight roll correction — bore/theta3 ----------")
-    print("     Fitted error: dev_theta3 [arcmin] = c * (1 - cos(theta3))")
-    print("     Physical cause: M3 axis tilt creates a boresight roll that grows")
-    print("     symmetrically with |theta3|, peaking at 180 deg (full reversal).")
-    one_minus_cos_t3 = 1.0 - np.cos(np.radians(theta3))
-    dev_m_t3_arr = _pcol('_dev_m_theta3')
-    mask_bore = ~np.isnan(dev_m_t3_arr) & ~np.isnan(one_minus_cos_t3)
-    r2_bore = None; fitted_bore = None
-    if mask_bore.sum() >= 10 and t3_range >= 10:
-        k_bore, se_bore, r2_bore = _fit_linear_through_origin(
-            one_minus_cos_t3[mask_bore], dev_m_t3_arr[mask_bore])
-        if k_bore is not None:
-            fitted_bore = k_bore
-            resid_bore = dev_m_t3_arr[mask_bore] - k_bore * one_minus_cos_t3[mask_bore]
-            rms_bore_raw   = float(np.sqrt(np.nanmean(dev_m_t3_arr[mask_bore]**2)))
-            rms_bore_after = float(np.sqrt(np.nanmean(resid_bore**2)))
-            impr_bore = (1 - rms_bore_after/rms_bore_raw)*100 if rms_bore_raw > 0 else 0
-            corr_bore = float(np.corrcoef(one_minus_cos_t3[mask_bore],
-                                          dev_m_t3_arr[mask_bore])[0,1])
-            print(f"     corr(1-cos(t3), dev_m_theta3) = {corr_bore:+.3f}")
-            print(f"     c = m3_tilt_bore = {k_bore:+.4f} arcmin  +/-{se_bore:.4f}  R2={r2_bore:.3f}")
-            print(f"     dev_m_theta3 RMS: {rms_bore_raw:.1f}' -> {rms_bore_after:.1f}'  ({impr_bore:+.0f}% improvement)")
-            print(f"     eg. Boresight roll at +-45 deg roll: {abs(k_bore*(1-np.cos(np.radians(45)))):.1f}'")
-            print(f"     eg. Boresight roll at +-60 deg roll: {abs(k_bore*(1-np.cos(np.radians(60)))):.1f}'")
-    else:
-        fitted_bore = 0
-        print(f"     Insufficient data (N={mask_bore.sum()}, need theta3 span >= 10).")
+    print(f"  -- M2 tilt correction ----------------------------------------------")
+    print(f"  The M2 axis may be physically tilted by a small angle ε from being perpendicular to M1.")
+    print(f"  This may include a tilt towards the vertical or boresight axis and effects residuals on Az and Alt axes.")
+    print(f"  Theta2 range in data: {np.nanmin(theta2):.1f} to {np.nanmax(theta2):.1f} deg"
+          f"  (span={t2_range:.1f})")
     print()
 
-    # M2 tilt correction
-    print("  -- M2 tilt correction - altitude/theta2 ----------")
-    print("     Fitted error: dev_theta2 [arcmin] = a * sin(theta2 - b)")
-    r2_m2 = None
-    mask_m2 = np.abs(theta3) < 4
-    y_b1 = dev_m_t2 - (fitted_f * sin_theta3 if fitted_f is not None else 0)
-    p0a  = [mount_params.m2_tilt_alt_amp or 52., mount_params.m2_tilt_alt_zero or 36.]
-    r_b1 = _fit_curve(lambda t, a, b: a * np.sin(np.radians(t - b)), theta2[mask_m2], y_b1[mask_m2], p0a)
-    if r_b1 is not None:
-        fitted_a, fitted_b = float(r_b1['popt'][0]), float(r_b1['popt'][1])
-        resid_b1 = y_b1 - r_b1['popt'][0]*np.sin(np.radians(theta2 - r_b1['popt'][1]))
-        rms_b1_before = float(np.sqrt(np.nanmean(y_b1**2)))
-        rms_b1_after  = float(np.sqrt(np.nanmean(resid_b1**2)))
+    print(f"  -- M2 tilt correction - theta2 effect on remaining theta2 residuals ----------")
+    y_field, x_field, t3_field= 'dev_q_theta2',  'q_theta2',     'q_theta3'      
+    y_vals,  x_vals,  t3_vals  = _pcol(y_field),  _pcol(x_field), _pcol(t3_field)
+    y_vals = y_vals - (fitted_f * np.sin(np.radians(t3_vals)) if fitted_f is not None else 0)
+    mask_m2 = np.abs(t3_vals) < 4
+    p0a  = [52.0, 1.0]
+    print(f"     Fitted error: {y_field}^ [arcmin] = a * sin({x_field} - b)")
+    fnx = lambda x, a, b: a * np.sin(np.radians(x - b))
+    soln = _fit_curve(fnx, x_vals[mask_m2], y_vals[mask_m2], p0a)
+    if soln is not None:
+        fitted_a, fitted_b = float(soln['popt'][0]), float(soln['popt'][1])
+        resid_b1 = y_vals - fnx(x_vals, fitted_a, fitted_b)
+        rms_b1_before = float(np.sqrt(np.nanmean(y_vals[mask_m2]**2)))
+        rms_b1_after  = float(np.sqrt(np.nanmean(resid_b1[mask_m2]**2)))
         impr_b1 = (1 - rms_b1_after/rms_b1_before)*100 if rms_b1_before > 0 else 0
-        r2_m2 = r_b1['r2']
-        print(f"     a = m2_tilt_alt_amp  = {fitted_a:+.2f}'  +/-{r_b1['perr'][0]:.2f}'               R2={r_b1['r2']:.3f}")
-        print(f"     b = m2_tilt_alt_zero = {fitted_b:+.2f} deg  +/-{r_b1['perr'][1]:.2f} deg")
-        print(f"     Residual RMS after M3+M2 tilt: {rms_b1_before:.1f}' -> {rms_b1_after:.1f}'          ({impr_b1:+.0f}% improvement)")
-        print(f"     eg. Theta2 Deviation at +40 deg alt: {abs(fitted_a*np.sin(np.radians(40-fitted_b))):.0f}'")
+        print(f"     where: a = m2_tilt_alt_amp  = {fitted_a:+5.2f}'  +/-{soln['perr'][0]:4.2f}'               R2={soln['r2']:5.3f}")
+        print(f"            b = m2_tilt_alt_zero = {fitted_b:+5.2f} deg  +/-{soln['perr'][1]:4.2f} deg")
+        print(f"            {y_field}^ = {y_field} after applying M3 tilt correction.")
+        print(f"     Baseline RMS Error: {rms_b1_before:.1f}' Residual RMS Error {rms_b1_after:.1f}'            ({impr_b1:+3.0f}% improvement)")
+        print(f"     eg. {y_field}^ at +40 deg alt: {abs(fnx(40,fitted_a,fitted_b)):.0f}'")
         if abs(t3_range) < 30:
             fitted_a, fitted_b = 0, 0
             print("     NOTE: M2 tilt fit may be contaminated by M3 tilt if theta3 range is small.")
@@ -999,7 +975,7 @@ def cmd_model(csv_paths, params_path):
     print()
 
     # M2 roll coupling correction
-    print("  -- M2 roll coupling - roll/theta2 ----------")
+    print("  -- M2 roll coupling - theta2 effect on boresight roll residuals ----------")
     print("     Fitted error: dev_m_roll [arcmin] = h * (theta2 - m2_roll_zero)")
     print("     Physical cause: M2 motor introduces roll error proportional to")
     print("     displacement from mechanical zero (theta2 = m2_roll_zero).")
@@ -1031,25 +1007,6 @@ def cmd_model(csv_paths, params_path):
         print(f"     Insufficient data (N={mask_roll.sum()}).")
     print()
 
-    # M3 encoder correction
-    print("  -- M3 encoder correction - roll/theta3 ----------")
-    print("     Fitted error: dev_theta3 [arcmin] = e * theta3")
-    if t3_range >= 30:
-        k_e, se_e, r2_e = _fit_linear_through_origin(theta3, dev_m_t3)
-        if k_e is not None:
-            fitted_e = k_e
-            tc_e = float(sp_stats.t.ppf(0.975, df=max(n-1,1)))
-            print(f"     e = m3_encoder_scale = {k_e:+.4f} arcmin/deg  +/-{se_e:.4f}   R2={r2_e:.3f}")
-            if r2_e < 0.3:
-                fitted_e = 0
-                print("     CAUTION: Low R2. dev_theta3 may be contaminated by SPA")
-                print("     roll bias. Treat this value with caution.")
-    else:
-        print(f"     Skipped -- theta3 span {t3_range:.0f} deg < 30 deg minimum.")
-        print("     Collect data with p_roll sweeping -60 to +60 at fixed az/alt.")
-    print()
-
-    # Offset correction
 
     # ---- Results summary ----------------------------------------------------
     def _use(fitted, fallback):
@@ -1095,7 +1052,7 @@ def cmd_model(csv_paths, params_path):
     r2_f_val    = r2_f    if fitted_f    is not None else None
     r2_g_val    = r2_g    if fitted_g    is not None else None
     r2_bore_val = r2_bore if fitted_bore is not None else None
-    r2_b1_val   = r_b1['r2'] if r_b1 is not None else None
+    r2_b1_val   = soln['r2'] if soln is not None else None
     r2_h_val    = r2_h    if fitted_h    is not None else None
     r2_e_val    = r2_e    if fitted_e    is not None else None
 
