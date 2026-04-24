@@ -543,8 +543,8 @@ def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
 
     # Applied right-to-left:
     #   M3_tilt_az (innermost), M3_tilt_alt, M2_tilt, M2_roll, M3_tilt_bore, M3_encoder
-    q_corr = (q_m3_encoder * q_m3_tilt_bore * q_m2_roll *
-              q_m2_tilt * q_m3_tilt_alt * q_m3_tilt_az)
+    q_corr = (q_m3_encoder * q_m2_roll *
+              q_m2_tilt * q_m3_tilt_alt * q_m3_tilt_az * q_m3_tilt_bore)
     magnitude = 2 * math.degrees(math.acos(min(1.0, abs(q_corr.w))))
 
     return q_corr, magnitude

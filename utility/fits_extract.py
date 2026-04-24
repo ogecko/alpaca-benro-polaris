@@ -812,9 +812,11 @@ def cmd_model(csv_paths, params_path):
     print(W)
     print()
     print(f"  Fitting residuals after QUEST.  N={n} observations.")
-    print(f"  Baseline dev_m_theta2 RMS (current params): {rms_baseline:.1f}'")
     print()
-    print(f"  theta3 range in data: {np.nanmin(theta3):.1f} to {np.nanmax(theta3):.1f} deg"
+    print(f"  -- M3 tilt correction ----------------------------------------------")
+    print(f"  The M3 axis may be physically tilted by a small angle ε from the true camera-up direction.")
+    print(f"  This may include a tilt towards the boresight or M2 axis and effects residuals on all axes.")
+    print(f"  Theta3 range in data: {np.nanmin(theta3):.1f} to {np.nanmax(theta3):.1f} deg"
           f"  (span={t3_range:.1f})")
     print()
 
@@ -822,54 +824,122 @@ def cmd_model(csv_paths, params_path):
     fitted_f = fitted_g = fitted_a = fitted_b = fitted_e = None
     fitted_h = fitted_z = fitted_bore = None
 
-    # M3 tilt correction — altitude component
+    print(f"  -- M3 tilt correction — theta3 effect on theta2 residuals ----------")
     y_field, x_field  = 'dev_q_theta2',   'q_theta3',      
     y_vals, x_vals    = _pcol(y_field),   _pcol(x_field)
+    fnx = lambda x: np.sin(np.radians(x))
+    fnx_vals = fnx(x_vals)
     rms_baseline = float(np.sqrt(np.nanmean(y_vals**2)))
-    corr_f = float(np.corrcoef(x_vals[~np.isnan(y_vals)], y_vals[~np.isnan(y_vals)])[0,1])
-    print(f"  -- M3 tilt correction — altitude/theta2 ----------")
-    print(f"     Fitted error: {y_field} [arcmin] = f * {x_field} + c")
+    corr_f = float(np.corrcoef(fnx_vals[~np.isnan(y_vals)], y_vals[~np.isnan(y_vals)])[0,1])
+    print(f"     Fitted error: {y_field} [arcmin] = f * sin({x_field}) + c")
     if t3_range >= 10:
-        k_f, se_f, r2_f = _fit_linear_through_origin(x_vals, y_vals)
-        if k_f is not None:
-            fitted_f = k_f
-            resid_f = y_vals - k_f * x_vals
+        soln = _fit_linear_with_intercept(fnx_vals, y_vals)
+        if soln is not None:
+            fitted_f, se_f, r2_f = soln['b'], soln['se_b'], soln['r2']
+            resid_f = y_vals - fitted_f * fnx_vals
             rms_after_f = float(np.sqrt(np.nanmean(resid_f**2)))
             impr_f = (1 - rms_after_f/rms_baseline)*100 if rms_baseline > 0 else 0
-            print(f"     where: f = m3_tilt_alt = {k_f:+.4f} arcmin  +/-{se_f:.4f}          R2={r2_f:.3f}")
-            print(f"     Baseline RMS Error: {rms_baseline:.1f}' Residual RMS Error: {rms_after_f:.1f}'                       ({impr_f:+.0f}% improvement)")
-            print(f"     Corr({y_field}, {x_field}) = {corr_f:+.3f}")
-            print(f"     eg. {y_field} at +-40 deg roll: {abs(k_f*40):.1f}'")
-            print(f"     eg. {y_field} at +-60 deg roll: {abs(k_f*60):.1f}'")
+            print(f"     where: f = m3_tilt_dm2 = {fitted_f:+6.2f} arcmin/deg_M3  +/-{se_f:4.2f}       R2={r2_f:5.3f}")
+            print(f"            c = intercept   = {soln["a"]:+6.4f} arcmin/deg_M3  +/-{soln["se_a"]:4.2f}")
+            print(f"     Baseline RMS Error: {rms_baseline:5.1f}' Residual RMS Error: {rms_after_f:5.1f}'         ({impr_f:+3.0f}% improvement)")
+            print(f"     Corr(fn({y_field}), {x_field}) = {corr_f:+.3f}")
+            print(f"     eg. {y_field} at +-40 deg roll: {abs(fitted_f*fnx(40)):5.1f}'")
+            print(f"     eg. {y_field} at +-60 deg roll: {abs(fitted_f*fnx(60)):5.1f}'")
     else:
         fitted_f = 0
         print(f"     Insufficient theta3 span ({t3_range:.0f} deg, need >= 10).")
     print()
 
-    # M3 tilt correction — azimuth component
-    print("  -- M3 tilt correction — azimuth/theta1 ----------")
-    print("     Fitted error: dev_m_az [arcmin] = g * sin(theta2) * sin(theta3)")
-    pred_g = np.sin(np.radians(theta2)) * sin_theta3
-    mask_g = ~np.isnan(dev_m_az) & ~np.isnan(pred_g) & (np.abs(theta3) > 5)
+    print(f"  -- M3 tilt correction — theta3 effect on theta1 residuals ----------")
+    y_field, x_field  = 'dev_q_theta1',   'q_theta3',      
+    y_vals, x_vals    = _pcol(y_field),   _pcol(x_field)
+    fnx = lambda x: 1 - np.cos(np.radians(x))
+    fnx_vals = fnx(x_vals)
+    rms_baseline = float(np.sqrt(np.nanmean(y_vals**2)))
+    print(f"     Fitted error: {y_field} [arcmin] = g * (1 - cos({x_field})) + c")
+    mask_g = ~np.isnan(y_vals) & ~np.isnan(fnx_vals) 
     if mask_g.sum() >= 10:
-        k_g, se_g, r2_g = _fit_linear_through_origin(pred_g[mask_g], dev_m_az[mask_g])
-        if k_g is not None:
-            fitted_g = k_g
-            resid_g = dev_m_az[mask_g] - k_g * pred_g[mask_g]
-            rms_az_raw   = float(np.sqrt(np.nanmean(dev_m_az[mask_g]**2)))
-            rms_az_after = float(np.sqrt(np.nanmean(resid_g**2)))
-            impr_g = (1 - rms_az_after/rms_az_raw)*100 if rms_az_raw > 0 else 0
-            corr_g = float(np.corrcoef(pred_g[mask_g], dev_m_az[mask_g])[0,1])
-            print(f"     corr(sin(t2)*sin(t3), dev_m_az) = {corr_g:+.3f}")
-            print(f"     g = m3_tilt_az = {k_g:+.4f} arcmin  +/-{se_g:.4f}            R2={r2_g:.3f}")
-            print(f"     dev_m_az RMS: {rms_az_raw:.1f}' -> {rms_az_after:.1f}'                           ({impr_g:+.0f}% improvement)")
-            print(f"     eg. Azimuth Deviation at +40 deg roll, +40 deg alt: {abs(k_g*np.sin(np.radians(40))*np.sin(np.radians(40))):.1f}'")
+        soln = _fit_linear_with_intercept(fnx_vals, y_vals)
+        if soln is not None:
+            fitted_g, se_g, r2_g = soln['b'], soln['se_b'], soln['r2']
+            resid_g = y_vals[mask_g] - fitted_g * fnx_vals[mask_g]
+            rms_before   = float(np.sqrt(np.nanmean(y_vals[mask_g]**2)))
+            rms_after    = float(np.sqrt(np.nanmean(resid_g**2)))
+            impr_g = (1 - rms_after/rms_before)*100 if rms_before > 0 else 0
+            corr_g = float(np.corrcoef(fnx_vals[mask_g], y_vals[mask_g])[0,1])
+            print(f"     where: g = m3_tilt_dm1 = {fitted_g:+6.2f} arcmin  +/-{se_g:4.2f}              R2={r2_g:5.3f}")
+            print(f"            c = intercept   = {soln["a"]:+6.4f} arcmin  +/-{soln["se_a"]:4.2f}")
+            print(f"     Baseline RMS Error: {rms_before:5.1f}' Residual RMS Error {rms_after:5.1f}'         ({impr_g:+3.0f}% improvement)")
+            print(f"     Corr(fn({x_field}), {y_field}) = {corr_g:+5.3f}")
+            print(f"     eg. {y_field} at +40 deg roll: {abs(fitted_g*fnx(40)):.1f}'")
         else:
             fitted_g = 0
             print("     FIT FAILED")
     else:
         print(f"     Insufficient data (N={mask_g.sum()}, need >= 10 with |theta3| > 5).")
     print()
+
+    print(f"  -- M3 tilt correction — theta3 effect on theta3 residuals ----------")
+    y_field, x_field, x2_field = 'dev_q_theta3',   'q_theta3',  'q_theta2'      
+    y_vals, x_vals, x2_vals    = _pcol(y_field),   _pcol(x_field),  _pcol(x2_field)
+    fnx = lambda x3,x2: np.cos(np.radians(x2)) * (1 - np.cos(np.radians(x3)))
+    fnx_vals = fnx(x_vals,x2_vals)
+    rms_baseline = float(np.sqrt(np.nanmean(y_vals**2)))
+    print(f"     Fitted error: {y_field} [arcmin] = k * cos({x2_field}) * (1 - cos({x_field})) + c")
+    mask_k = ~np.isnan(y_vals) & ~np.isnan(fnx_vals) 
+    if mask_k.sum() >= 10:
+        soln = _fit_linear_with_intercept(fnx_vals, y_vals)
+        if soln is not None:
+            fitted_k, se_k, r2_k = soln['b'], soln['se_b'], soln['r2']
+            resid_k = y_vals[mask_k] - fitted_k * fnx_vals[mask_k]
+            rms_before   = float(np.sqrt(np.nanmean(y_vals[mask_k]**2)))
+            rms_after    = float(np.sqrt(np.nanmean(resid_k**2)))
+            impr_k = (1 - rms_after/rms_before)*100 if rms_before > 0 else 0
+            corr_k = float(np.corrcoef(fnx_vals[mask_k], y_vals[mask_k])[0,1])
+            print(f"     where: k = m3_tilt_dm3 = {fitted_k:+6.2f} arcmin  +/-{se_k:4.2f}              R2={r2_k:5.3f}")
+            print(f"            c = intercept   = {soln["a"]:+6.4f} arcmin  +/-{soln["se_a"]:4.2f}")
+            print(f"     Baseline RMS Error: {rms_before:5.1f}' Residual RMS Error {rms_after:5.1f}'         ({impr_k:+3.0f}% improvement)")
+            print(f"     Corr(fn({x2_field}), {y_field}) = {corr_k:+5.3f}")
+            print(f"     eg. {y_field} at +45 deg roll, t2=60: {abs(fitted_k*fnx(45,60)):.1f}'")
+            print(f"     Expect lower R2 for this model: {r2_k<r2_g} = {r2_k:5.3f} <{r2_g:5.3f}")
+        else:
+            fitted_k = 0
+            print("     FIT FAILED")
+    else:
+        print(f"     Insufficient data (N={mask_k.sum()}, need >= 10 with |theta3| > 5).")
+    print()
+
+    print(f"  -- M3 tilt correction — theta3/theta1 residuals check ----------")
+    y_field, x_field, x2_field = 'dev_q_theta3',   'dev_q_theta1',  'q_theta2'      
+    y_vals, x_vals, x2_vals    = _pcol(y_field),   _pcol(x_field),  _pcol(x2_field)
+    fnx = lambda x3,x2: np.cos(np.radians(x2)) * x3
+    fnx_vals = fnx(x_vals, x2_vals)
+    rms_baseline = float(np.sqrt(np.nanmean(y_vals**2)))
+    print(f"     Fitted error: {y_field} [arcmin] = j * cos({x2_field}) * {x_field} + c")
+    mask_j = ~np.isnan(y_vals) & ~np.isnan(fnx_vals) 
+    if mask_j.sum() >= 10:
+        soln = _fit_linear_with_intercept(fnx_vals, y_vals)
+        if soln is not None:
+            fitted_j, se_j, r2_j = soln['b'], soln['se_b'], soln['r2']
+            resid_j = y_vals[mask_j] - fitted_j * fnx_vals[mask_j]
+            rms_before   = float(np.sqrt(np.nanmean(y_vals[mask_j]**2)))
+            rms_after    = float(np.sqrt(np.nanmean(resid_j**2)))
+            impr_j = (1 - rms_after/rms_before)*100 if rms_before > 0 else 0
+            corr_j = float(np.corrcoef(fnx_vals[mask_j], y_vals[mask_j])[0,1])
+            print(f"     where: j = m3_tilt_dm31 = {fitted_j:+5.3f} arcmin  +/-{se_j:4.2f}              R2={r2_j:5.3f}")
+            print(f"            c = intercept    = {soln["a"]:+6.4f} arcmin  +/-{soln["se_a"]:4.2f}")
+            print(f"     Baseline RMS Error: {rms_before:5.1f}' Residual RMS Error {rms_after:5.1f}'         ({impr_j:+3.0f}% improvement)")
+            print(f"     Corr(fn({x_field}), {y_field}) = {corr_j:+5.3f}")
+            print(f"     Expect geometric relationship: {abs(fitted_j+1)<0.10} = {fitted_j:+5.3f} approx -1")
+        else:
+            fitted_j = 0
+            print("     FIT FAILED")
+    else:
+        print(f"     Insufficient data (N={mask_j.sum()}, need >= 10 with |theta3| > 5).")
+    print()
+
+
+
 
     # M3 tilt bore correction — boresight roll
     print("  -- M3 boresight roll correction — bore/theta3 ----------")
