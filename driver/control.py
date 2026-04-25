@@ -2131,6 +2131,7 @@ class SyncManager:
 
         pairs = []
         weights = []
+        self.params_RBC = MountModelParams.from_config(Config)
 
 
         v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
