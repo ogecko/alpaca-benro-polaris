@@ -152,7 +152,7 @@ The model identifies several fixed mechanical parameters of the mount hardware, 
 *   **Axis Offsets:** Fixed user defined offsets for each motor (`m1_offset`, `m2_offset`, `m3_offset`) to help fine tune polar alignment.
 
 #### **IV. The `fits_extract.py` Cailibration Workflow**
-While these parameters can enabled and adjusted from the Alpaca Pilot Page, the Driver provides a utility **`fits_extract.py`** to calibrate these paramters for your specific mount. You will need an astro camera capable of storing FITS file. This is intended for advanced users only.
+While these parameters can be enabled and adjusted from the Alpaca Pilot Page, the Driver provides a utility **`fits_extract.py`** to calibrate these paramters for your specific mount. You will need an astro camera capable of storing FITS file. This is intended for advanced users only.
 
 The workflow to calibrate your mount includes:
 
