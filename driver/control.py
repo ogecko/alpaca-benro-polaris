@@ -1912,7 +1912,7 @@ class SyncManager:
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.last_sync_time = None              # timestamp used to fade LGA to zero as time passes
         self.corrQ_LGA = Quaternion(1,0,0,0)    # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
-        self.corrQ_RBC = Quaternion(1,0,0,0)    # cache of RBC stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
+        self.corrQ_RBC = Quaternion(1,0,0,0)    # cache of MAC stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
         self.params_RBC = MountModelParams.from_config(Config)
         self.scc_error = 0                      # cache of Slew & Center Correction error magnitude, either LGA or ZRC (for Kinematics page)
         self.rbc_error = 0                      # cache of Rotation Bias Correction  error magnitude, (for Kinematics page)
@@ -1940,7 +1940,7 @@ class SyncManager:
             "a_az": None,
             "a_alt": None,
             "a_roll": None,
-            "p_roll_pv": None,                  # store RBC + QUEST Roll
+            "p_roll_pv": None,                  # store MAC + QUEST Roll
         }
         return entry
 
@@ -1963,11 +1963,11 @@ class SyncManager:
     def baseQ_to_topoQ(self, motorQ_C2B):
         """
         Forward kinematics: Base frame → Topocentric frame.
-        motorQ → [RBC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
+        motorQ → [MAC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
         """
         motorQ = motorQ_C2B
 
-        # Apply Mechanical Corrections (RBC)
+        # Apply Mechanical Corrections (MAC)
         if Config.advanced_align_rbc:
             self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B, self.params_RBC)
             motorQ = self.corrQ_RBC * motorQ
@@ -1993,7 +1993,7 @@ class SyncManager:
     def topoQ_to_baseQ(self, cameraQ_C2T):
         """
         Inverse kinematics: Topocentric frame → Base frame.
-        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → undo[RBC] → motorQ
+        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → undo[MAC] → motorQ
         """
         # Undo roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -2077,7 +2077,7 @@ class SyncManager:
         entry["a_roll"] = a_roll
         if Config.advanced_alignment and Config.advanced_control:
             _, _, p_roll_pv = q_to_azaltroll(self.alignQ_B2T * self.corrQ_RBC * self.polaris._motorQ_state)
-            entry["p_roll_pv"] = p_roll_pv   # RBC+QUEST corrected roll in T Frame for roll_adj computation
+            entry["p_roll_pv"] = p_roll_pv   # MAC+QUEST corrected roll in T Frame for roll_adj computation
         self.sync_history.append(entry)
         self.optimize_roll_adj()
         self.refresh_pid_setpoints_from_q1()
@@ -2441,7 +2441,7 @@ class SyncManager:
         for entry in self.sync_history:
             if entry["deleted"] or entry["a_roll"] is None:
                 continue
-            # Use RBC+QUEST corrected p_roll_pv if available, else raw
+            # Use MAC+QUEST corrected p_roll_pv if available, else raw
             p_roll = entry.get("p_roll_pv", entry["p_roll"])
             # Compute delta: how much Polaris roll differs from expected PA
             delta = angular_difference(p_roll, entry["a_roll"])
@@ -2475,7 +2475,7 @@ class SyncManager:
                 f"z: {self.alignQ_B2T[3]:+9.7f} " 
             )
             self.logger.info(
-                f"  RBC: {'ON ' if Config.advanced_align_rbc else 'OFF'}   | " 
+                f"  MAC: {'ON ' if Config.advanced_align_rbc else 'OFF'}   | " 
                 f"{'SCC: OFF  | ' if not Config.advanced_slew_center else 
                    'LGC: ON   | ' if Config.advanced_align_lga else 'ZLR: ON   | '}"
                 f"RMS Residual: {deg2dms(rms)}  | "

@@ -12,7 +12,7 @@ Pipeline
 
 Recommended workflow
 --------------------
-  1. Disable ALL mechanical corrections in the driver config: QUEST off, RBC off, LGA off, PEC off
+  1. Disable ALL mechanical corrections in the driver config: QUEST off, MAC off, LGA off, PEC off
   2. Capture a full calibration grid in NINA using a 12 x 4 PanoGrid, 30 hstep, 10 vstep, starting panel 1 at az 30, alt 25, roll 0
   3. Repeat capture for roll -45 and roll +45
   4. Plate-solve with ASTAP (writes WCS back into FITS headers).

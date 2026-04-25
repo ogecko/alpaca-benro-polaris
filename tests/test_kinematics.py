@@ -208,7 +208,7 @@ class TestMechanicalCorrections:
                 f"M2 correction changed roll by {droll}' at t1={t1} t2={t2}"
 
 
-# ── Unit tests: RBC correction ────────────────────────────────────────────────
+# ── Unit tests: MAC correction ────────────────────────────────────────────────
 
 
 class TestQuestSolve:

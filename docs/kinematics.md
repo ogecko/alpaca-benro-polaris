@@ -166,7 +166,7 @@ While default coefficients are provided, advanced users can fine-tune their moun
 1. **Data Collection:** Using a pano grid with roll variation, capture FITS images covering a wide range of altitude, azimuth, and roll positions. Aim for full coverage of the roll range (±50°) at multiple altitudes (20°–65°). Ensure all corrections are disabled while collecting the images ie only SPA, disable MPA, SCC, LGA, ZLR, MAC, PEC.
 2. **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
 3. **Extraction:** Run `python fits_extract.py -extract`. This reads the FITS headers and builds a CSV comparing predicted positions with plate-solved ground truth.
-4. **Modelling:** Run `python fits_extract.py -model`. This fits the RBC coefficients (`m3_tilt_dm2`, `m3_tilt_dm1`, `m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`) to your data and writes them to a JSON file.
+4. **Modelling:** Run `python fits_extract.py -model`. This fits the mechnical coefficients (`m3_tilt_dm2`, `m3_tilt_dm1`, `m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`) to your data and writes them to a JSON file.
 5. **Application:** Copy the fitted parameters into your **`config.toml`** file.
 
 
@@ -275,8 +275,8 @@ Suffixes distinguish the level of processing applied to a mechanical orientation
 |----------|-------------|------------------------------------------------------------------|
 | `_raw`   | orientation | Uncorrected value direct from device                             |
 | `_state` | orientation | Kalman Filter smoothed/estimated value                           |
-| `_adj`   | orientation | Mechanically adjusted after KF + PEC + RBC                       |
-| `_pv`    | orientation | Process Variable after KF + PEC + RBC + QUEST + LGA + Roll       |
+| `_adj`   | orientation | Mechanically adjusted after KF + PEC + MAC                       |
+| `_pv`    | orientation | Process Variable after KF + PEC + MAC + QUEST + LGA + Roll       |
 | `_sp`    | orientation | User Set Point target value (pre slew offset and pulse guiding)  |
 | `_ref`   | orientation | Final Reference target value for the control loop                |
 | `_op`    | velocity    | Control output velocity for the motors                           |
@@ -351,13 +351,13 @@ alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUE
     ▼ Periodic Error Correction, optional (future)
     │
     ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGA ∘ alignQ_B2T ∘ motorQ_adj
-    ▼     Rotation Bias Correction (corrQ_RBC)  B Frame
+    ▼     Rotation Bias Correction (corrQ_MAC)  B Frame
     ▼     QUEST Alignment (alignQ_B2T)          B→T
     ▼     Local Gaussian Correction (corrQ_LGA) T Frame
     ▼     Roll Sync Adjustment (corrQ_roll) T Frame
-motorQ_pv              RBC corrected only (B Frame)
+motorQ_pv              MAC corrected only (B Frame)
 cameraQ_pv             Fully corrected C→T pointing quaternion
-theta_pv               RBC corrected only (B Frame)
+theta_pv               MAC corrected only (B Frame)
 alpha_pv               (a_az, a_alt, a_roll) = q_to_azaltroll(cameraQ_pv)
 delta_pv               (a_ra, a_dec, a_pa)   = pyephem(az, alt, roll), used as ASCOM co-ordinates
 ```
@@ -387,11 +387,11 @@ cameraQ_ref             Target C→T quaternion = azaltroll_to_q(*alpha_ref)
     ▼ Shortest Path SO(3) slerp from cameraQ_pv to cameraQ_ref
 cameraQ_step
     │
-    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGA⁻¹ ∘ alignQ_B2T⁻¹ ∘ corrQ_RBC⁻¹ ∘ cameraQ_step
+    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGA⁻¹ ∘ alignQ_B2T⁻¹ ∘ corrQ_MAC⁻¹ ∘ cameraQ_step
     ▼    Undo Roll Sync Adjustment      (corrQ_roll⁻¹, T frame)
     ▼    Undo Local Gaussian Correction (corrQ_LGA⁻¹, T frame)
     ▼    QUEST Alignment inverse        (alignQ_B2T_inv, T→B)
-    ▼    Undo Rotation Bias Correction  (corrQ_RBC⁻¹, B frame)
+    ▼    Undo Rotation Bias Correction  (corrQ_MAC⁻¹, B frame)
 motorQ_ref              Target C→B quaternion
 theta_ref               Target motor angles (θ1, θ2, θ3) = q_to_theta(motorQ_ref)
     │                        two solutions possible (elbow up/down).
@@ -421,7 +421,7 @@ polaris_protocol         Slew SLOW and FAST commands
 
 Converts the rate of change of the sky target into motor joint rates for sidereal tracking
 feed-forward. The Jacobian `J(theta_pv)` is expressed in the **B frame**, so `omega_topo`
-must be converted to `omega_base` before the solve. No `corrQ_RBC⁻¹` is needed — RBC is
+must be converted to `omega_base` before the solve. No `corrQ_MAC⁻¹` is needed — MAC is
 already accounted for in `theta_pv` and therefore in the Jacobian.
 
 ```
@@ -450,10 +450,10 @@ omega_ff                Feed-forward motor joint rates
 motorQ_raw          (C→B, raw from IMU)
 theta_raw / alpha_raw / omega_raw
     │
-    ▼  KF + PEC + RBC
+    ▼  KF + PEC + MAC
 theta_pv / motorQ_adj    (B frame, mechanically adjusted)
     │
-    ▼  corrQ_RBC           Rotation Bias Correction     B frame
+    ▼  corrQ_MAC           Rotation Bias Correction     B frame
     ▼  alignQ_B2T          QUEST Alignment              B → T
     ▼  corrQ_LGA           Local Gaussian Correction    T frame
     ▼  corrQ_roll          Roll Sync Adjustment         T frame
@@ -467,6 +467,6 @@ delta_pv            (RA, Dec, PA)
 ```
 
 The inverse chain (`topoQ_to_baseQ`) undoes the frame transforms in exact reverse order.
-RBC is handled at the measurement/PEC stage and does not appear in the inverse chain.
+MAC is handled at the measurement/PEC stage and does not appear in the inverse chain.
 
 ---
