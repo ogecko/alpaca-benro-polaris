@@ -26,7 +26,7 @@ quaternions that live in each, and the kinematic optimisation and chains that co
 
 ---
 ## 2. Kinematics Optimisation
-The Alpaca Driver achieves superior tracking performance through a multi-layered suite of kinematic corrections that address both global and local mechanical errors. At its foundations is the QUEST model in Multi-Point Alignment. Layered on top of this are corrections for Sync Residuals and Rotation Bias.
+The Alpaca Driver achieves superior tracking performance through a multi-layered suite of kinematic corrections that address both global and local mechanical errors. At its foundations is the QUEST model in Multi-Point Alignment. Layered on top of this are corrections for Sync Residuals and Mechanical imperfections.
 
 ### 2.1 QUEST Alignment Optimisation
 
@@ -349,15 +349,15 @@ motorQ_state            KF smoother motor orientation quaternion C→B
 alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
     ▼ Periodic Error Correction, optional (future)
+    ▼ Mechanical Corrections       (corrQ_RBC)  B Frame
+motorQ_pv              MAC corrected only (B Frame)
+theta_pv               MAC corrected only (B Frame)
     │
     ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGA ∘ alignQ_B2T ∘ motorQ_adj
-    ▼     Rotation Bias Correction (corrQ_MAC)  B Frame
     ▼     QUEST Alignment (alignQ_B2T)          B→T
     ▼     Local Gaussian Correction (corrQ_LGA) T Frame
     ▼     Roll Sync Adjustment (corrQ_roll) T Frame
-motorQ_pv              MAC corrected only (B Frame)
 cameraQ_pv             Fully corrected C→T pointing quaternion
-theta_pv               MAC corrected only (B Frame)
 alpha_pv               (a_az, a_alt, a_roll) = q_to_azaltroll(cameraQ_pv)
 delta_pv               (a_ra, a_dec, a_pa)   = pyephem(az, alt, roll), used as ASCOM co-ordinates
 ```
@@ -391,7 +391,7 @@ cameraQ_step
     ▼    Undo Roll Sync Adjustment      (corrQ_roll⁻¹, T frame)
     ▼    Undo Local Gaussian Correction (corrQ_LGA⁻¹, T frame)
     ▼    QUEST Alignment inverse        (alignQ_B2T_inv, T→B)
-    ▼    Undo Rotation Bias Correction  (corrQ_MAC⁻¹, B frame)
+    ▼    No Undo Mechanical Correction  (PID works in corrected B Frame)
 motorQ_ref              Target C→B quaternion
 theta_ref               Target motor angles (θ1, θ2, θ3) = q_to_theta(motorQ_ref)
     │                        two solutions possible (elbow up/down).
@@ -450,10 +450,10 @@ omega_ff                Feed-forward motor joint rates
 motorQ_raw          (C→B, raw from IMU)
 theta_raw / alpha_raw / omega_raw
     │
-    ▼  KF + PEC + MAC
+    ▼  KF + PEC            Kalman Filter                B Frame
+    ▼  corrQ_RBC           Mechanical Correction        B frame
 theta_pv / motorQ_adj    (B frame, mechanically adjusted)
     │
-    ▼  corrQ_MAC           Rotation Bias Correction     B frame
     ▼  alignQ_B2T          QUEST Alignment              B → T
     ▼  corrQ_LGA           Local Gaussian Correction    T frame
     ▼  corrQ_roll          Roll Sync Adjustment         T frame
