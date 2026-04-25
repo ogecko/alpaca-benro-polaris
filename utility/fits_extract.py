@@ -823,32 +823,6 @@ def cmd_model(csv_paths, params_path):
     fitted_f = fitted_g = fitted_a = fitted_b = fitted_e = None
     fitted_h = fitted_z = fitted_bore = None
 
-    print(f"  -- M3 tilt correction — theta3 effect on theta2 residuals ----------")
-    y_field, x_field  = 'dev_q_theta2',   'q_theta3',      
-    y_vals, x_vals    = _pcol(y_field),   _pcol(x_field)
-    fnx = lambda x: np.sin(np.radians(x))
-    fnx_vals = fnx(x_vals)
-    rms_baseline = float(np.sqrt(np.nanmean(y_vals**2)))
-    corr_f = float(np.corrcoef(fnx_vals[~np.isnan(y_vals)], y_vals[~np.isnan(y_vals)])[0,1])
-    print(f"     Fitted error: {y_field} [arcmin] = f * sin({x_field}) + c")
-    if t3_range >= 10:
-        soln = _fit_linear_with_intercept(fnx_vals, y_vals)
-        if soln is not None:
-            fitted_f, se_f, r2_f = soln['b'], soln['se_b'], soln['r2']
-            resid_f = y_vals - fitted_f * fnx_vals
-            rms_after_f = float(np.sqrt(np.nanmean(resid_f**2)))
-            impr_f = (1 - rms_after_f/rms_baseline)*100 if rms_baseline > 0 else 0
-            print(f"     where: f = m3_tilt_dm2 = {fitted_f:+6.2f} arcmin/deg_M3  +/-{se_f:4.2f}       R2={r2_f:5.3f}")
-            print(f"            c = intercept   = {soln["a"]:+6.4f} arcmin/deg_M3  +/-{soln["se_a"]:4.2f}")
-            print(f"     Baseline RMS Error: {rms_baseline:5.1f}' Residual RMS Error: {rms_after_f:5.1f}'         ({impr_f:+3.0f}% improvement)")
-            print(f"     Corr(fn({y_field}), {x_field}) = {corr_f:+.3f}")
-            print(f"     eg. {y_field} at +-40 deg roll: {abs(fitted_f*fnx(40)):5.1f}'")
-            print(f"     eg. {y_field} at +-60 deg roll: {abs(fitted_f*fnx(60)):5.1f}'")
-    else:
-        fitted_f = 0
-        print(f"     Insufficient theta3 span ({t3_range:.0f} deg, need >= 10).")
-    print()
-
     print(f"  -- M3 tilt correction — theta3 effect on theta1 residuals ----------")
     y_field, x_field  = 'dev_q_theta1',   'q_theta3',      
     y_vals, x_vals    = _pcol(y_field),   _pcol(x_field)
@@ -871,11 +845,39 @@ def cmd_model(csv_paths, params_path):
             print(f"     Baseline RMS Error: {rms_before:5.1f}' Residual RMS Error {rms_after:5.1f}'         ({impr_g:+3.0f}% improvement)")
             print(f"     Corr(fn({x_field}), {y_field}) = {corr_g:+5.3f}")
             print(f"     eg. {y_field} at +40 deg roll: {abs(fitted_g*fnx(40)):.1f}'")
+            print(f"     Summary: Important parameter for mechanical alignment correction.")
         else:
             fitted_g = 0
             print("     FIT FAILED")
     else:
         print(f"     Insufficient data (N={mask_g.sum()}, need >= 10 with |theta3| > 5).")
+    print()
+
+    print(f"  -- M3 tilt correction — theta3 effect on theta2 residuals ----------")
+    y_field, x_field  = 'dev_q_theta2',   'q_theta3',      
+    y_vals, x_vals    = _pcol(y_field),   _pcol(x_field)
+    fnx = lambda x: np.sin(np.radians(x))
+    fnx_vals = fnx(x_vals)
+    rms_baseline = float(np.sqrt(np.nanmean(y_vals**2)))
+    corr_f = float(np.corrcoef(fnx_vals[~np.isnan(y_vals)], y_vals[~np.isnan(y_vals)])[0,1])
+    print(f"     Fitted error: {y_field} [arcmin] = f * sin({x_field}) + c")
+    if t3_range >= 10:
+        soln = _fit_linear_with_intercept(fnx_vals, y_vals)
+        if soln is not None:
+            fitted_f, se_f, r2_f = soln['b'], soln['se_b'], soln['r2']
+            resid_f = y_vals - fitted_f * fnx_vals
+            rms_after_f = float(np.sqrt(np.nanmean(resid_f**2)))
+            impr_f = (1 - rms_after_f/rms_baseline)*100 if rms_baseline > 0 else 0
+            print(f"     where: f = m3_tilt_dm2 = {fitted_f:+6.2f} arcmin/deg_M3  +/-{se_f:4.2f}       R2={r2_f:5.3f}")
+            print(f"            c = intercept   = {soln["a"]:+6.4f} arcmin/deg_M3  +/-{soln["se_a"]:4.2f}")
+            print(f"     Baseline RMS Error: {rms_baseline:5.1f}' Residual RMS Error: {rms_after_f:5.1f}'         ({impr_f:+3.0f}% improvement)")
+            print(f"     Corr(fn({y_field}), {x_field}) = {corr_f:+.3f}")
+            print(f"     eg. {y_field} at +-40 deg roll: {abs(fitted_f*fnx(40)):5.1f}'")
+            print(f"     eg. {y_field} at +-60 deg roll: {abs(fitted_f*fnx(60)):5.1f}'")
+            print(f"     Summary: Theta1/Theta3 corrections make this parameter redundant.")
+    else:
+        fitted_f = 0
+        print(f"     Insufficient theta3 span ({t3_range:.0f} deg, need >= 10).")
     print()
 
     print(f"  -- M3 tilt correction — theta3 effect on theta3 residuals ----------")
@@ -901,6 +903,8 @@ def cmd_model(csv_paths, params_path):
             print(f"     Corr(fn({x2_field}), {y_field}) = {corr_k:+5.3f}")
             print(f"     eg. {y_field} at +45 deg roll, t2=60: {abs(fitted_k*fnx(45,60)):.1f}'")
             print(f"     Expect lower R2 for this model: {r2_k<r2_g} = {r2_k:5.3f} <{r2_g:5.3f}")
+            print(f"     Parameter should NOT be applied, Driver relies on theta3/theta1 geometry.")
+            print(f"     Summary: Rely on Theta3/Theta1 geometry instead of this parameter.")
         else:
             fitted_k = 0
             print("     FIT FAILED")
@@ -908,7 +912,7 @@ def cmd_model(csv_paths, params_path):
         print(f"     Insufficient data (N={mask_k.sum()}, need >= 10 with |theta3| > 5).")
     print()
 
-    print(f"  -- M3 tilt correction — theta3/theta1 residuals check ----------")
+    print(f"  -- M3 tilt correction — theta3/theta1 geometric relationship ----------")
     y_field, x_field, x2_field = 'dev_q_theta3',   'dev_q_theta1',  'q_theta2'      
     y_vals, x_vals, x2_vals    = _pcol(y_field),   _pcol(x_field),  _pcol(x2_field)
     fnx = lambda x3,x2: np.cos(np.radians(x2)) * x3
@@ -930,6 +934,7 @@ def cmd_model(csv_paths, params_path):
             print(f"     Baseline RMS Error: {rms_before:5.1f}' Residual RMS Error {rms_after:5.1f}'         ({impr_j:+3.0f}% improvement)")
             print(f"     Corr(fn({x_field}), {y_field}) = {corr_j:+5.3f}")
             print(f"     Expect geometric relationship: {abs(fitted_j+1)<0.10} = {fitted_j:+5.3f} approx -1")
+            print(f"     Summary: Important relationship for mechanical alignment correction.")
         else:
             fitted_j = 0
             print("     FIT FAILED")
@@ -954,12 +959,12 @@ def cmd_model(csv_paths, params_path):
     fnx = lambda x, a, b: a * np.sin(np.radians(x - b))
     soln = _fit_curve(fnx, x_vals[mask_m2], y_vals[mask_m2], p0a)
     if soln is not None:
-        fitted_a, fitted_b = float(soln['popt'][0]), float(soln['popt'][1])
+        fitted_a, fitted_b, r2_a = float(soln['popt'][0]), float(soln['popt'][1]), soln['r2']
         resid_b1 = y_vals - fnx(x_vals, fitted_a, fitted_b)
         rms_b1_before = float(np.sqrt(np.nanmean(y_vals[mask_m2]**2)))
         rms_b1_after  = float(np.sqrt(np.nanmean(resid_b1[mask_m2]**2)))
         impr_b1 = (1 - rms_b1_after/rms_b1_before)*100 if rms_b1_before > 0 else 0
-        print(f"     where: a = m2_tilt_dm2_amp  = {fitted_a:+5.2f}'  +/-{soln['perr'][0]:4.2f}'               R2={soln['r2']:5.3f}")
+        print(f"     where: a = m2_tilt_dm2_amp  = {fitted_a:+5.2f}'  +/-{soln['perr'][0]:4.2f}'               R2={r2_a:5.3f}")
         print(f"            b = m2_tilt_dm2_zero = {fitted_b:+5.2f} deg  +/-{soln['perr'][1]:4.2f} deg")
         print(f"            {y_field}^ = {y_field} after applying M3 tilt correction.")
         print(f"     Baseline RMS Error: {rms_b1_before:.1f}' Residual RMS Error {rms_b1_after:.1f}'            ({impr_b1:+3.0f}% improvement)")
@@ -1007,58 +1012,37 @@ def cmd_model(csv_paths, params_path):
 
 
     # ---- Results summary ----------------------------------------------------
-    def _use(fitted, fallback):
-        return round(fitted, 6) if fitted is not None else round(fallback, 6)
+    def _quality(fitted, r2):
+        rating = "not fitted" if r2 is None else \
+                  "GOOD" if r2>0.7 else \
+                  "FAIR" if r2>0.4 else \
+                  "WEAK" if r2>0.1 else \
+                  "POOR"
+        quality = f"{rating}" + f"  R2={r2:.3f}" if r2 is not None else ""
+        out = fitted if rating in ["GOOD","FAIR"] else 0
+        return round(out,6), quality
 
-    f_out    = _use(fitted_f,    mount_params.m3_tilt_dm2)
-    g_out    = _use(fitted_g,    mount_params.m3_tilt_dm1)
-    k_out    = _use(fitted_k,    mount_params.m3_tilt_dm3)
-    a_out    = _use(fitted_a,    mount_params.m2_tilt_dm2_amp)
-    b_out = _use(fitted_b, mount_params.m2_tilt_dm2_zero)
-    h_out = _use(fitted_h, mount_params.m2_roll_coupling)
-    z_out = round(fitted_z, 6) if fitted_z is not None else round(mount_params.m2_roll_zero, 6)
-
-    y_final = dev_m_t2.copy()
-    if fitted_f is not None:
-        y_final = y_final - fitted_f * sin_theta3
-    if fitted_a is not None and fitted_b is not None:
-        y_final = y_final - fitted_a * np.sin(np.radians(theta2 - fitted_b))
-    rms_final  = float(np.sqrt(np.nanmean(y_final[~np.isnan(y_final)]**2)))
-    impr_total = (1 - rms_final / rms_baseline) * 100 if rms_baseline > 0 else 0
-
-    def _quality(r2):
-        if r2 is None:   return "not fitted"
-        if r2 > 0.7:     return "GOOD"
-        if r2 > 0.4:     return "FAIR"
-        if r2 > 0.1:     return "WEAK"
-        return "POOR"
+    f_out, f_quality    = _quality(fitted_f, r2_f)
+    g_out, g_quality    = _quality(fitted_g, r2_g)
+    k_out, k_quality    = _quality(fitted_k, r2_k)
+    a_out, a_quality    = _quality(fitted_a, r2_a)
+    b_out, b_quality    = _quality(fitted_b, r2_a)
+    h_out, h_quality    = _quality(fitted_h, r2_h)
+    z_out, z_quality    = _quality(fitted_z, r2_h)
 
     print()
     print(W)
     print("  RESULTS SUMMARY")
     print(W)
     print()
-
-    r2_f_val    = r2_f    if fitted_f    is not None else None
-    r2_g_val    = r2_g    if fitted_g    is not None else None
-    r2_k_val    = r2_k    if fitted_k    is not None else None
-    r2_b1_val   = soln['r2'] if soln     is not None else None
-    r2_h_val    = r2_h    if fitted_h    is not None else None
-    r2_e_val    = r2_e    if fitted_e    is not None else None
-
-    print("#  Fitted parameters  (copy to config.toml):")
-    print(f"m3_tilt_dm1       = {g_out:+8.2f}                # [arcmin/fn_M3] {_quality(r2_g_val)}"
-          + (f"  R2={r2_g_val:.3f}" if r2_g_val is not None else ""))
-    print(f"m3_tilt_dm2       = {f_out:+8.2f}                # [arcmin/fn_M3] {_quality(r2_f_val)}"
-          + (f"  R2={r2_f_val:.3f}" if r2_f_val is not None else ""))
-    print(f"m3_tilt_dm3       = {k_out:+8.2f}                # [arcmin/fn_M3] {_quality(r2_k_val)}"
-          + (f"  R2={r2_k_val:.3f}" if r2_k_val is not None else ""))
-    print(f"m2_tilt_dm2_amp   = {a_out:+8.2f}                # [arcmin/fn_M2] {_quality(r2_b1_val)}"
-          + (f"  R2={r2_b1_val:.3f}" if r2_b1_val is not None else ""))
-    print(f"m2_tilt_dm2_zero  = {b_out:+8.2f}                # [degrees     ]")
-    print(f"m2_roll_coupling  = {h_out:+8.2f}                # [arcmin/fn_M2] {_quality(r2_h_val)}"
-          + (f"  R2={r2_h_val:.3f}" if r2_h_val is not None else ""))
-    print(f"m2_roll_zero      = {z_out:+8.2f}                # [degrees     ]")
+    print("# Fitted parameters generated by fits_extract.py (copy to config.toml):")
+    print(f"m3_tilt_dm1       = {g_out:+8.2f}                # [arcmin/fn_M3]  {g_quality}")
+    print(f"m3_tilt_dm2       = {f_out:+8.2f}                # [arcmin/fn_M3]  {f_quality}")
+    print(f"m3_tilt_dm3       = {k_out:+8.2f}                # [arcmin/fn_M3]  {k_quality}")
+    print(f"m2_tilt_dm2_amp   = {a_out:+8.2f}                # [arcmin/fn_M2]  {a_quality}")
+    print(f"m2_tilt_dm2_zero  = {b_out:+8.2f}                # [degrees     ]  {b_quality}")
+    print(f"m2_roll_coupling  = {h_out:+8.2f}                # [arcmin/fn_M2]  {h_quality}")
+    print(f"m2_roll_zero      = {z_out:+8.2f}                # [degrees     ]  {z_quality}")
     print(f"m1_offset         =     0.0                 # [arcmin      ]")
     print(f"m2_offset         =     0.0                 # [arcmin      ]")
     print(f"m3_offset         =     0.0                 # [arcmin      ]")
@@ -1068,18 +1052,18 @@ def cmd_model(csv_paths, params_path):
     if t3_range < 30:
         warnings.append(
             f"theta3 span only {t3_range:.0f} deg -- M3 tilt fit unreliable (need 60+ deg)")
-    if r2_f_val is not None and r2_f_val < 0.4:
+    if r2_f is not None and r2_f < 0.4:
         warnings.append(
-            f"M3 tilt alt R2={r2_f_val:.3f} is low -- check roll variation in data")
-    if r2_b1_val is not None and r2_b1_val < 0.3:
+            f"M3 tilt alt R2={r2_f:.3f} is low -- check roll variation in data")
+    if r2_a is not None and r2_a < 0.3:
         warnings.append(
-            f"M2 tilt R2={r2_b1_val:.3f} is low -- fit M2 tilt from roll=0 data only")
-    if r2_k_val is not None and r2_k_val < 0.2:
+            f"M2 tilt R2={r2_a:.3f} is low -- fit M2 tilt from roll=0 data only")
+    if r2_k is not None and r2_k < 0.2:
         warnings.append(
-            f"M3 boresight R2={r2_k_val:.3f} is low -- need wider theta3 span for reliable fit")
-    if r2_h_val is not None and r2_h_val < 0.3:
+            f"M3 boresight R2={r2_k:.3f} is low -- need wider theta3 span for reliable fit")
+    if r2_h is not None and r2_h < 0.3:
         warnings.append(
-            f"M2 roll coupling R2={r2_h_val:.3f} is low -- check dev_m_roll variation in data")
+            f"M2 roll coupling R2={r2_h:.3f} is low -- check dev_m_roll variation in data")
     if n_sessions == 1 and n_total < 100:
         warnings.append(
             f"Only {n_total} observations -- more data improves reliability")
@@ -1125,9 +1109,6 @@ def cmd_model(csv_paths, params_path):
             'n_sessions':     n_sessions,
             'n_observations': n_total,
             'csv_inputs':     [str(p) for p in csv_paths],
-            'rms_baseline_arcmin':  round(rms_baseline, 2),
-            'rms_final_arcmin':     round(rms_final, 2),
-            'improvement_pct':      round(impr_total, 1),
         }
     }
     with open(params_path, 'w') as f:
