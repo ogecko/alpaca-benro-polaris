@@ -88,6 +88,17 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
                   <q-btn dense size="sm" round icon="mdi-close" @click="onSyncRemove(data.timestamp)"/>
               </q-item-section>
             </q-item>
+            <q-item v-if="telescope_syncs.length>1">
+              <q-item-section>Alignment RMS Error (n={{ telescope_syncs.length }})</q-item-section>
+              <q-item-section side>
+                  <q-item-label>
+                    <span>RMS Residual {{(p.mpaerror*60).toFixed(1)}}'</span> 
+                  </q-item-label>
+              </q-item-section>              
+              <q-item-section side>
+                  <q-btn dense size="sm" round/>
+              </q-item-section>
+            </q-item>
           </q-list>
           <!-- Telescope Correction Summary Row -->
           <div class="text-h7 q-pt-md">Correction Summary</div>

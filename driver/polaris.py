@@ -1413,6 +1413,7 @@ class Polaris:
                 'polarisastrover': self._polaris_astro_ver,
                 'rbcerror': self._sm.rbc_error,
                 'sccerror': self._sm.scc_error,
+                'mpaerror': self._sm.mpa_error,
                 'pidKc': Config.pid_Kc,
             }
         return res

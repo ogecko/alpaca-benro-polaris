@@ -1916,6 +1916,7 @@ class SyncManager:
         self.params_RBC = MountModelParams.from_config(Config)
         self.scc_error = 0                      # cache of Slew & Center Correction error magnitude, either LGA or ZRC (for Kinematics page)
         self.rbc_error = 0                      # cache of Rotation Bias Correction  error magnitude, (for Kinematics page)
+        self.mpa_error = 0                      # cache of Multi Point Alignment RMS Residual error, (for Alignment page)
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
         self.alignQ_B2T = Quaternion(1,0,0,0)       # cached adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # cached inverse adjustment quaternion for azalt syncing, initially identity
@@ -2464,6 +2465,7 @@ class SyncManager:
             rms = math.sqrt(sum(r**2 for r in residuals) / len(residuals)) if residuals else 0
             max_res = max(residuals) if residuals else 0
             max_entry = active[residuals.index(max_res)] if residuals else None
+            self.mpa_error = rms
 
             self.logger.info(
                 f"QUEST Model  | Points: {len(active)} | "
