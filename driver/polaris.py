@@ -430,7 +430,7 @@ class Polaris:
         return time
 
     def radec2altaz(self, ra, dec, inthefuture=0, epoch=None):
-        if epoch=None:
+        if epoch==None:
             epoch=ephem.now()
         target = ephem.FixedBody()
         target._ra = hr2rad(ra)
