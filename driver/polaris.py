@@ -429,7 +429,9 @@ class Polaris:
         time = (dt_now - self._performance_data_start_timestamp).total_seconds()
         return time
 
-    def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.now()):
+    def radec2altaz(self, ra, dec, inthefuture=0, epoch=None):
+        if epoch=None:
+            epoch=ephem.now()
         target = ephem.FixedBody()
         target._ra = hr2rad(ra)
         target._dec = deg2rad(dec)
