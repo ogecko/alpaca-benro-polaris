@@ -1865,7 +1865,7 @@ class PID_Controller():
         pidlogger = logging.getLogger('pid') 
         pidlogger.info(payload)
 
-        if Config.log_pec:
+        if False:   # Config.log_pec
             q1 = self.polaris._q1
             tq = np.array([q1[0],q1[1],q1[2],q1[3]])
             tm = self.polaris._theta_raw
