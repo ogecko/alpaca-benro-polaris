@@ -143,7 +143,7 @@ DEFAULT_LON    = 151.12
 
 _EXTRACT_FIELDS = [
     'session_id', 'filename', 'status', 'date_obs',
-    'site_lat', 'site_lon',
+    'ra', 'dec', 'site_lat', 'site_lon',
     'p_az', 'p_alt', 'p_roll', 'p_theta1', 'p_theta2', 'p_theta3',
     's_az', 's_alt', 's_roll', 's_theta1', 's_theta2', 's_theta3',
     'dev_p_az', 'dev_p_alt', 'dev_p_roll',
@@ -186,6 +186,7 @@ def _process_fits(path, session_id, lat, lon):
     row = {k: '' for k in _EXTRACT_FIELDS}
     row['session_id'] = session_id
     row['filename']   = path.name
+    f8 = lambda v: round(v, 8) if v is not None else ''
     f4 = lambda v: round(v, 4) if v is not None else ''
     f2 = lambda v: round(v, 2) if v is not None else ''
 
@@ -194,9 +195,13 @@ def _process_fits(path, session_id, lat, lon):
     except Exception as e:
         row['status'] = f'error: {e}'
         return row
-
+    
+    ra  = _sf(h, 'RA')
+    dec = _sf(h, 'DEC')
     lat = _sf(h, 'SITELAT',  lat)
     lon = _sf(h, 'SITELONG', lon)
+    row['ra'] = f2(ra)
+    row['dec'] = f2(dec)
     row['site_lat'] = f4(lat)
     row['site_lon'] = f4(lon)
     row['date_obs'] = _ss(h, 'DATE-OBS')
