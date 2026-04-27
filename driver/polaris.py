@@ -81,8 +81,8 @@ class Polaris:
         self._polaris_L_bracket = False             # Current L Bracket mode
         self._polaris_msg_re = re.compile(r'(\d{3})@(.+?)#')
         self._startup_timestamp = dt_now            # Timestamp for when the driver started.
-        self._last_517_timestamp = dt_now           # Timestamp for last 517 Orientation Update message from Polaris.
-        self._last_518_timestamp = dt_now           # Timestamp for last 518 Position Update message from Polaris.
+        self._last_517_timesec = time.monotonic()   # Timesec for last 517 Orientation Update message from Polaris.
+        self._last_518_timesec = time.monotonic()   # Timesec for last 518 Position Update message from Polaris.
         self._age_517_seconds = 0.0                 # Age in seconds of last 517 message.
         self._age_518_seconds = 0.0                 # Age in seconds of last 518 message.
         self._performance_data_start_timestamp = None      # Timestamp for Performance Data logging.
@@ -373,9 +373,9 @@ class Polaris:
         while True:
             try: 
                 # calculate age of last 517 and 518 message
-                curr_timestamp = datetime.datetime.now()
-                self._age_518_seconds = (curr_timestamp - self._last_518_timestamp).total_seconds()
-                self._age_517_seconds = (curr_timestamp - self._last_517_timestamp).total_seconds()
+                curr_timesec = time.monotonic()
+                self._age_518_seconds = (curr_timesec - self._last_518_timesec)
+                self._age_517_seconds = (curr_timesec - self._last_517_timesec)
 
                 # get update on true orientation
                 if self._connected:
@@ -595,7 +595,7 @@ class Polaris:
             p_roll = rad2deg(float(arg_dict['roll']))       # from Polaris direct
 
             with self._lock:
-                self._last_517_timestamp = dt_now
+                self._last_517_timesec = time.monotonic()
                 threshold = 0.01
                 new_zeta = [p_yaw, p_pitch, p_roll]
                 prev_zeta = getattr(self, '_zeta_meas', None)
@@ -758,7 +758,7 @@ class Polaris:
 
         # Store all the polaris mechanical angles and velocities
         with self._lock:
-            self._last_518_timestamp = dt_now
+            self._last_518_timesec = time.monotonic()
             self._q1 = motorQ_raw
             self._theta_raw = theta_raw
             self._omega_raw = omega_raw
