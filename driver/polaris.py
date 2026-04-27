@@ -335,7 +335,7 @@ class Polaris:
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
         self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
-        self.lifecycle.create_task(self._every_1s_watchdog_check(), name="PolarisWatchdog")
+        self.lifecycle.create_task(self._every_500ms_watchdog_check(), name="PolarisWatchdog")
         self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisWatchdog")
         if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
             self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
@@ -369,7 +369,7 @@ class Polaris:
             self._task_exception = e
             self.logger.error(f"==SEND== Failed to send message: {e}")
 
-    async def _every_1s_watchdog_check(self):
+    async def _every_500ms_watchdog_check(self):
         while True:
             try: 
                 # calculate age of last 517 and 518 message
@@ -390,7 +390,7 @@ class Polaris:
                     self.logger.info(f'->> Polaris: No position update for {self._age_518_seconds:4.1f}s. Requesting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.5)
 
             except Exception as e:
                 self._task_exception = e
