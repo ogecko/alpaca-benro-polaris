@@ -24,12 +24,22 @@
 - [ ] Debug 518 message intermittant miss
 - [ ] Add HTTPS so that Copy Clipboard and Map Locate work in Browser
 - [ ] Create video of new features 
-    - Goto Completion - New Status Indicator, Setting Tollerance Kc and Kc/20
-    - Kinematics - Shortest Path, Rotate maintains direction, Large -ve Az, Kinematics Page, RBC 
-    - PID - Cyclic bump removed, Pulse Guide Cross-coupling
+    - New requirements.txt and config.toml
+    - Kinematics Page - enabling different features 
+    - Kinematics - Shortest Path, Rotate maintains direction, Large -ve Az, 
+    - Gimbal Lock - Status, loss of degree of freedom
+    - PID - Improved RMS Error, Cyclic bump removed, PID axes in dms, De-Trenmded Charts
+    - Orbitals - tracking See PA changing, Roll Angle fixed.
+    - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
+    - Goto Completion - New Progress Indicator, Setting Tollerance Kc and Kc/20 for tracking
+    - Slew and Center - Last MPA Residual, no completion, ZLR force it, LGA on Kinematics
+    - Mechanical Corrections - Turn on off on Alignment page, see Residuals change
+    - Home - Telescope v4, async, 
+    - Discovery - IPv6 support, ConformU support
     - Advanced Scheduler - Rename_dirs, RotateRelative, FindHome/Wait/Polaris:AbortSlew
-    - Driver control - Stop and Restart Driver
-    - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, PanoGrid Copy
+    - Driver control - Stop and Restart Driver, Restart multiple
+    - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, Navigating around Pano, PanoGrid Copy
+    - SyncRoll - Plate-Solve using Nina and manuall sync Roll Angle
 
 ## Final Release Checklist
 - [X] Complete todo checklist
