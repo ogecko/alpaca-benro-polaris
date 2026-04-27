@@ -379,10 +379,6 @@ class Polaris:
                 self._age_518_seconds = (curr_timesec - self._last_518_timesec)
                 self._age_517_seconds = (curr_timesec - self._last_517_timesec)
 
-                # get update on true orientation
-                if self._connected:
-                    await self.send_cmd_517()
-
                 # if we dont have any updates, even after trying to restart AHRS, then reboot the connection
                 if self._connected and self._aligned and self._age_518_seconds > 5:
                     self._task_exception = WatchdogError("==ERROR==: No position update for over 5s. Rebooting Connection.")
@@ -391,12 +387,28 @@ class Polaris:
                 if self._connected and self._aligned and self._age_518_seconds > 0.5:
                     cpu = psutil.cpu_percent(interval=None)
                     mem = psutil.virtual_memory().percent
-                    n_threads = threading.active_count()                    
-                    self.logger.info(f'->> Polaris: No position update for {self._age_518_seconds:.1f}s. '+
-                                     f'CPU: {cpu} Mem {mem} Threads {n_threads} Requesting AHRS.')
+                    n_threads = threading.active_count()
+                    net = psutil.net_io_counters()                    
+                    self.logger.warning(f'->> Polaris: No position update for {self._age_518_seconds:.3f}s. '
+                                     f'CPU: {cpu} Mem {mem} Threads {n_threads} '
+                                     f'NetDrops: {net.dropin}/{net.dropout} NetErr: {net.errin}/{net.errout} '
+                                     f'Requesting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
-                await asyncio.sleep(0.5)
+                # get update on true orientation
+                if self._connected:
+                    try:
+                        await asyncio.wait_for(self.send_cmd_517(), timeout=0.2)
+                    except asyncio.TimeoutError:
+                        self.logger.warning(f'->> Polaris: cmd_517 timed out after 200ms')
+
+                # sleep before next watchdog cycle, checking quality of sleep
+                loop_check_start = time.monotonic()
+                desired_sleep = 0.5
+                await asyncio.sleep(desired_sleep)
+                actual_sleep = time.monotonic() - loop_check_start
+                if actual_sleep > 0.6:  # 20% slop
+                    self.logger.warning(f'->> Event loop lag detected: slept {actual_sleep:.3f}s instead of {desired_sleep:.3f}s')
 
             except Exception as e:
                 self._task_exception = e
