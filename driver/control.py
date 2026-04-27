@@ -1648,8 +1648,9 @@ class PID_Controller():
 
         # Step in alpha space with az/alt locked during roll changes
         alpha_step = self.alpha_limit_step(self.alpha_pv, self.alpha_ref)
-        cameraQ_step = azaltroll_to_q(*alpha_step)  # IK from the stepped alpha
-
+        cameraQ_step = azaltroll_to_q(*alpha_step)  
+        
+        # IK from the stepped alpha
         motorQ_ref   = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
         self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
 
