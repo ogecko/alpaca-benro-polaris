@@ -46,13 +46,13 @@
     </div>
     <div v-else-if="is518Old" >
       <q-banner inline-actions rounded class="bg-warning" >
-        WARNING: The Alpaca Driver is not receiving 200ms position updates from Polaris. Check Setup, Wi-Fi or CPU load. 
+        WARNING: The Alpaca Driver is not receiving 200ms position updates from Polaris. Check Setup. 
         <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
     <div v-else-if="is517Old" >
       <q-banner inline-actions rounded class="bg-warning" >
-        WARNING: The Alpaca Driver is not receiving 1s orientation updates from Polaris. Check Setup, Wi-Fi or CPU load. 
+        WARNING: The Alpaca Driver is not receiving 1s orientation updates from Polaris. Check Setup. 
         <template v-slot:action><q-btn v-if="isShowReconnect" flat label="Reconnect" to="/connect" /></template>
       </q-banner>
     </div>
@@ -81,8 +81,8 @@ registerInterval( ()  => { now.value = Date.now() }, 1000 )
 
 const isShowReconnect = computed(() => route.path != '/connect')
 const isStatusOld = computed(() => { return now.value - p.fetchedAt > 1000;   });
-const is517Old = computed(() => { return p.age517 > 2.0;   });
-const is518Old = computed(() => { return p.age518 > 2.0;   });
+const is517Old = computed(() => { return p.age517 > 3.0;   });
+const is518Old = computed(() => { return p.age518 > 3.0;   });
 const isNoAstroModule = computed(() => { return p.polarisastrover==''   });
 const isNoAstroMode = computed(() => { return p.polarismode!=8   });
 
