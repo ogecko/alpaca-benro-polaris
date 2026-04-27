@@ -174,7 +174,8 @@ def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2
                         stack = ''.join(traceback.format_stack(frame))
                         if ('_worker' in stack and 'work_item' not in stack) or \
                             'work_queue.get' in stack or \
-                            'traceback.format_stack' in stack:
+                            'traceback.format_stack' in stack or \
+                            '_blocking_recvfrom' in stack:
                             continue
                         lines.append(f'  Thread {tid}:\n{stack}')
                     logger.warning('\n'.join(lines))
