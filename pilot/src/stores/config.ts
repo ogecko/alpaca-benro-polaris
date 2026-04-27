@@ -148,6 +148,7 @@ export const useConfigStore = defineStore('config', {
     log_quest_model: false,
     log_orbital_queries: false,
     log_pec: false,
+    log_heartbeat: false,
 
     log_telemetry_data: false,
     log_aiming_data: false,

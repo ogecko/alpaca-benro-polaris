@@ -167,12 +167,17 @@ def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2
             if lag > threshold_sec and (now - last_logged) > 2.0:
                 last_logged = now
                 logger.warning(f'->> Heartbeat lag detected: {lag:.3f}s since last beat (expected {heartbeat_sec:.3f}s)')
-                frames = sys._current_frames()
-                lines = [f'->> Hearbeat Stack Trace:']
-                for tid, frame in frames.items():
-                    stack = ''.join(traceback.format_stack(frame))
-                    lines.append(f'  Thread {tid}:\n{stack}')
-                logger.warning('\n'.join(lines))
+                if Config.log_heartbeat:
+                    frames = sys._current_frames()
+                    lines = [f'->> Hearbeat Stack Trace:']
+                    for tid, frame in frames.items():
+                        stack = ''.join(traceback.format_stack(frame))
+                        if ('_worker' in stack and 'work_item' not in stack) or \
+                            'work_queue.get' in stack or \
+                            'traceback.format_stack' in stack:
+                            continue
+                        lines.append(f'  Thread {tid}:\n{stack}')
+                    logger.warning('\n'.join(lines))
 
 
     asyncio.run_coroutine_threadsafe(_start_heartbeat(), loop)
