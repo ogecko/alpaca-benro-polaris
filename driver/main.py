@@ -100,6 +100,7 @@ async def main():
                 logger.info("==MAIN== Restarting driver stack...in 2 sec")
                 await asyncio.sleep(2)
                 logger.info("==MAIN== Restarting now...")
+                log.shutdown_logging()
                 os.execv(sys.executable, [sys.executable] + sys.argv)
                 continue
             elif lifecycle._event == LifecycleEvent.INTERRUPT:
@@ -108,6 +109,9 @@ async def main():
             else:
                 logger.info("==MAIN== Shutdown requested. Exiting.")
                 break
+
+    log.shutdown_logging()
+
 
 # ===================
 # RUN ALL TASKS

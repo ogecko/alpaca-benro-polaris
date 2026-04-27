@@ -110,6 +110,7 @@ async def publish_status(polaris: Polaris):
 
 class PublishLogTopic(logging.Handler):
     _buffers: Dict[str, deque] = {}
+    _tasks: set = set()   # prevent GC of in-flight tasks
     _maxlen = 150
 
     def __init__(self, topic: str):
@@ -119,14 +120,20 @@ class PublishLogTopic(logging.Handler):
             self._buffers[topic] = deque(maxlen=self._maxlen)
 
     def emit(self, record):
+        def emit_done(t):
+            self._tasks.discard(t)
+            if not t.cancelled():
+                t.exception()
         try:
             payload = self.format(record)
             self._buffers[self.topic].append(payload)
             for ws in list(subscriptions.get(self.topic, {}).keys()):
                 task = asyncio.create_task(ws_safe_send_json(ws, payload))
-                task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
+                self._tasks.add(task)
+                task.add_done_callback(emit_done)
         except Exception:
             pass
+
 
     @classmethod
     def get_backlog(cls, topic: str) -> list:
