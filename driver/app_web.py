@@ -48,6 +48,21 @@ class QuasarStaticResource:
         async with aiofiles.open(file_path, 'rb') as f:
             resp.data = await f.read()
 
+
+class AsyncStaticResource:
+    def __init__(self, base_path: Path):
+        self.base_path = base_path
+
+    async def on_get(self, req, resp, filename):
+        file_path = self.base_path / filename
+        if not file_path.is_file():
+            resp.status = '404 Not Found'
+            return
+        resp.content_type = mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
+        async with aiofiles.open(file_path, 'rb') as f:
+            resp.data = await f.read()
+
+
 # ---------------------------------------------
 # MAIN HTTP ENGINE (FALCON ASGI BASED)
 # ---------------------------------------------
@@ -66,8 +81,8 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
 
     if (Config.enable_pilot):
         # add the Pilot Static routes
-        web_app.add_static_route('/icons', QUASAR_DIST / 'icons')      # icons resources (note /{path} does serve subdirecties)
-        web_app.add_static_route('/assets', QUASAR_DIST / 'assets')    # assets resources
+        web_app.add_route('/icons/{filename}', AsyncStaticResource(QUASAR_DIST / 'icons'))
+        web_app.add_route('/assets/{filename}', AsyncStaticResource(QUASAR_DIST / 'assets'))
         web_app.add_route('/{path}', QuasarStaticResource())                 # root resources, fallback to index.html when not found
         web_app.add_route('/', QuasarStaticResource())                       # root, fallback to index.html when nothing provided
 
