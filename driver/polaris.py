@@ -384,7 +384,7 @@ class Polaris:
                     self._task_exception = WatchdogError("==ERROR==: No position update for over 5s. Rebooting Connection.")
 
                 # if we dont have any updates for over 2s, then restart AHRS.
-                if self._connected and self._aligned and self._age_518_seconds > 0.5:
+                if self._connected and self._polaris_mode==8 and self._aligned and self._age_518_seconds > 0.5:
                     cpu = psutil.cpu_percent(interval=None)
                     mem = psutil.virtual_memory().percent
                     n_threads = threading.active_count()
