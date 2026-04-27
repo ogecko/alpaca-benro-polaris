@@ -12,3 +12,4 @@ pyquaternion==0.9.9
 aiohttp==3.13.3
 certifi==2026.1.4
 urllib3==2.6.3
+psutil==7.0.0

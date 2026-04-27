@@ -47,6 +47,9 @@ import stellarium
 import app_api
 import app_web
 import app_socket
+import threading
+import time
+import traceback
 from pathlib import Path
 import os
 import sys
@@ -113,6 +116,10 @@ async def run_all(logger, lifecycle: LifecycleController):
     # Output Alpaca Driver version
     logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
+    # Start heartbeat event loop watchdog thread
+    loop = asyncio.get_running_loop()
+    _start_eventloop_watchdog(loop, logger)
+
     # Create the Polaris master object and startup each ASCOM device
     global polaris
     polaris = Polaris(logger, lifecycle)
@@ -133,6 +140,45 @@ async def run_all(logger, lifecycle: LifecycleController):
     logger.info(f'==SHUTDOWN== Shutting down all tasks...for {event}')
     await lifecycle.shutdown_tasks()
     await polaris.shutdown()
+
+
+# ==================================================================
+
+def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2, monitor_sec=0.3, monitor_delay_sec=1.0):
+
+    last_seen = time.monotonic()
+
+    async def heartbeat():
+        nonlocal last_seen
+        while True:
+            last_seen = time.monotonic()
+            await asyncio.sleep(heartbeat_sec)
+
+    async def _start_heartbeat():
+        asyncio.create_task(heartbeat(), name='loop_watchdog_heartbeat')
+    
+    def monitor():
+        time.sleep(monitor_delay_sec)
+        last_logged = 0
+        while True:
+            time.sleep(monitor_sec)
+            now = time.monotonic()
+            lag = now - last_seen
+            if lag > threshold_sec and (now - last_logged) > 2.0:
+                last_logged = now
+                logger.warning(f'->> Heartbeat lag detected: {lag:.3f}s since last beat (expected {heartbeat_sec:.3f}s)')
+                frames = sys._current_frames()
+                lines = [f'->> Hearbeat Stack Trace:']
+                for tid, frame in frames.items():
+                    stack = ''.join(traceback.format_stack(frame))
+                    lines.append(f'  Thread {tid}:\n{stack}')
+                logger.warning('\n'.join(lines))
+
+
+    asyncio.run_coroutine_threadsafe(_start_heartbeat(), loop)
+    t = threading.Thread(target=monitor, name='loop_watchdog_monitor', daemon=True)
+    t.start()
+    logger.info('==STARTUP== Heartbeat watchdog thread started.')
 
 
 # ==================================================================
