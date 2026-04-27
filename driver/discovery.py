@@ -125,6 +125,7 @@ class AlpacaDiscoveryResponder:
         except socket.timeout:
             return None, None
 
+
     async def _poll_socket(self, rsock, tsock, label: str):
         """
         Wait for discovery broadcasts/multicasts and reply on the matching
@@ -139,36 +140,31 @@ class AlpacaDiscoveryResponder:
         if rsock is None:
             return
 
-        while self.running:
-            try:
-                data, addr = await asyncio.to_thread(self._blocking_recvfrom, rsock)
-            except OSError as e:
-                if not self.running:
-                    return
-                self.logger.warning(f"{label} recv error: {e}")
-                continue
+        loop = asyncio.get_running_loop()
+        
+        def blocking_loop():
+            while self.running:
+                data, addr = self._blocking_recvfrom(rsock)
+                if data is None:
+                    continue
+                # Schedule the response back on the event loop
+                loop.call_soon_threadsafe(self._handle_discovery, data, addr, tsock, label)
 
-            if data is None:
-                # Timeout — loop back and check self.running.
-                continue
+        await asyncio.to_thread(blocking_loop)
 
-            try:
-                message = data.decode("ascii", errors="ignore")
-            except Exception:
-                continue
-
-            if DISCOVERY_KEYWORD not in message:
-                continue
-
-            if Config.log_alpaca_discovery:
-                self.logger.info(f"{label} Discovery request from {addr}: {message!r}")
-
-            try:
-                tsock.sendto(self.response_to_send, addr)
-                if Config.log_alpaca_discovery:
-                    self.logger.info(f"{label} Sent response to {addr}")
-            except OSError as e:
-                self.logger.warning(f"{label} Failed to send response to {addr}: {e}")
+    def _handle_discovery(self, data, addr, tsock, label):
+        try:
+            message = data.decode("ascii", errors="ignore")
+        except Exception:
+            return
+        if DISCOVERY_KEYWORD not in message:
+            return
+        if Config.log_alpaca_discovery:
+            self.logger.info(f"{label} Discovery request from {addr}: {message!r}")
+        try:
+            tsock.sendto(self.response_to_send, addr)
+        except OSError as e:
+            self.logger.warning(f"{label} Failed to send response to {addr}: {e}")
 
     # ------------------------------------------------------------------
     # Lifecycle
