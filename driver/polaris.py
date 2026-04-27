@@ -28,6 +28,8 @@ import time
 import re
 import asyncio
 import ephem
+import psutil
+import threading
 import numpy as np
 from pyquaternion import Quaternion
 from threading import Lock
@@ -387,7 +389,11 @@ class Polaris:
 
                 # if we dont have any updates for over 2s, then restart AHRS.
                 if self._connected and self._aligned and self._age_518_seconds > 0.5:
-                    self.logger.info(f'->> Polaris: No position update for {self._age_518_seconds:4.1f}s. Requesting AHRS.')
+                    cpu = psutil.cpu_percent(interval=None)
+                    mem = psutil.virtual_memory().percent
+                    n_threads = threading.active_count()                    
+                    self.logger.info(f'->> Polaris: No position update for {self._age_518_seconds:.1f}s. '+
+                                     f'CPU: {cpu} Mem {mem} Threads {n_threads} Requesting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
                 await asyncio.sleep(0.5)
