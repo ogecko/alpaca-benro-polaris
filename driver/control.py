@@ -1565,14 +1565,27 @@ class PID_Controller():
         self.set_pid_mode('IDLE')
 
     #------- Control step functions ---------
-    def quaternion_limit_step(self, q_meas, q_ref, max_step_deg=12, min_frac=0.01, max_frac=1.0):
-        angle_total, _, _ = quaternion_difference(q_meas, q_ref)
-        if angle_total < 1e-9:
-            return q_ref
-        frac = np.clip(max_step_deg / angle_total, min_frac, max_frac)           # linear taper
-        if Config.log_pulse_guiding:
-            self.logger.info(f'PID SLERP frac {frac} = amgle_step {max_step_deg} / angle_total {angle_total} ')
-        return Quaternion.slerp(q_meas, q_ref, amount=frac)
+    def alpha_limit_step(self, alpha_pv, alpha_ref, 
+                     max_step_deg=12, min_frac=0.01):
+        """
+        Interpolate in (az, alt, roll) space independently,
+        with az/alt and roll rate-limited separately.
+        
+        Because IK is re-solved at the stepped alpha, az/alt
+        are held fixed by construction during a pure roll change.
+        """
+        delta = alpha_ref - alpha_pv
+        delta = (delta + 180) % 360 - 180             # Wrap each axis individually
+
+        # Separate az/alt travel from roll travel
+        az_alt_travel = np.max(np.abs(delta[:2]))
+        roll_travel   = abs(delta[2])
+        total_travel  = max(az_alt_travel, roll_travel)
+        if total_travel < 1e-6:
+            return alpha_ref
+
+        frac = np.clip(max_step_deg / total_travel, min_frac, 1.0)
+        return alpha_pv + frac * delta    
 
     def track_target(self):
         # Update alpha_ref based on current mode
@@ -1622,16 +1635,9 @@ class PID_Controller():
             self.alpha_ref = clamp_alpha(self.body2alpha())
             self.alpha_sp = self.alpha_pv             # in case we switch to AUTO
 
-        # SO(3) Shortest path from pv to ref
-        cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
-        cameraQ_pv = azaltroll_to_q(*self.alpha_pv)
-        cameraQ_step = self.quaternion_limit_step(cameraQ_pv, cameraQ_ref)
-
-        # Inverse Kinematics flow (Sky to Motors)
-        motorQ_ref = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
-        self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
 
         # Remember cameraQ_ref and last cameraQ_ref for calculating FF
+        cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
         if self.cameraQ_ref is None:
             # first run — no previous reference
             self.cameraQ_ref = cameraQ_ref
@@ -1639,7 +1645,14 @@ class PID_Controller():
         else:
             self.cameraQ_ref_last = self.cameraQ_ref
             self.cameraQ_ref = cameraQ_ref
-    
+
+        # Step in alpha space with az/alt locked during roll changes
+        alpha_step = self.alpha_limit_step(self.alpha_pv, self.alpha_ref)
+        cameraQ_step = azaltroll_to_q(*alpha_step)  # IK from the stepped alpha
+
+        motorQ_ref   = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
+        self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
+
     def measure(self, delta_pv, alpha_pv, theta_pv, zeta_meas):
         now = ephem.now()
         # if not self.time_meas:
