@@ -48,7 +48,8 @@
 - **[FITS Extract]** Utility script to extract meta-data from plate-solved FITS images and calibrate Mechanical Correction Models (fits_extract.py)
 - **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.
 - **[Shortest Path]** Move Polaris using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
-- **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations
+- **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations.
+- **[RMSError projection]** Apply cos(Dec) and cos(Alt) scaling to RA/Az RMS error to correct for polar projection effects.
 - **[Forward Kinematics]** Improve forward kinematic robustness, deriving motor angles from CameraUp vector rather than theta3
 - **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing, hysteresis to reduce uncertainty, and add status icon to Pilot.
 - **[Negative Azimuth]** Goto's now support altitudes down to -79° by flipping the astro axis in the opposite direction. Previously limited to -8°.
@@ -65,6 +66,7 @@
 - **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
 - **[Deviation Charts]** Add ΔTopographic and ΔMotor charts to PID Tuning page to remove underlying sidereal trends and show SP deviation only.
 - **[At Home]**: Upgrade to ASCOM ITelescopeV4 FindHome method (non-blocking) and associated AtHome property. Include in Pilot Status indicator.
+- **[Heartbeat Diagnostics]**: Introduce a heartbeat monitor and additional telemetry statistics to assist in diagnosing late position updates.
 - **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
 - **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
 - **[IPv6 Discovery]**: Revamped IPv6 Alpaca Discovery for support on MacOS, Linux and Windows.

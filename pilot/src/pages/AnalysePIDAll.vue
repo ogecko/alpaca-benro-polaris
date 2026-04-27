@@ -49,7 +49,7 @@
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY :data="chartPosData(n)" x1Type="time" y1Type="dms"></ChartXY>
+          <ChartXY :data="chartPosData(n)" x1Type="time" y1Type="dms" :rmsScale="rmsScale(axisLabel(n))"></ChartXY>
         </q-card>
       </div>
     </div>
@@ -77,6 +77,7 @@
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
+import { useStatusStore } from 'src/stores/status'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
@@ -87,6 +88,7 @@ import type { TelemetryRecord, PIDMessage }from 'src/stores/stream'
 const socket = useStreamStore()
 const cfg = useConfigStore()
 const dev = useDeviceStore()
+const p = useStatusStore()
 
 const coord = ref<number>(2)
 
@@ -118,6 +120,11 @@ const chartVelData = (n:number) => {
 }
 
 
+const rmsScale = (axisLabel:string) => {
+  const modulating_angle = (/(RA|PA)/.test(axisLabel)) ? (p.declination ?? 0) : 
+                           (/(Az|Roll)/.test(axisLabel)) ? (p.altitude ?? 0) : 0
+  return Math.cos(modulating_angle * Math.PI / 180)
+}
 
 
 

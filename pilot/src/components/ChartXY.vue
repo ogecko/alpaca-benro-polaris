@@ -17,6 +17,7 @@ const props = withDefaults(defineProps<{
   data: DataPoint[]
   x1Type: 'number' | 'time'
   y1Type?: 'number' | 'dms' | 'hms'
+  rmsScale?: number
 }>(), {
   y1Type: 'number'
 })
@@ -199,8 +200,8 @@ function drawStatistics(svg: d3.Selection<SVGSVGElement, unknown, null, undefine
     const errors = props.data
       .map(d => (typeof d.PV === 'number' && typeof d.SP === 'number') ? d.SP - d.PV : null)
       .filter((v): v is number => v !== null)
-
-    const rms = Math.sqrt(d3.mean(errors.map(e => e * e)) ?? 0)
+    const scaledErrors = errors.map(e => (props.rmsScale ?? 1) * e)
+    const rms = Math.sqrt(d3.mean(scaledErrors.map(e => e * e)) ?? 0)
     label = `RMS Error: ${formatAngle(rms, 'deg', 2)}`
   } else if (hasOP) {
     const opValues = props.data
