@@ -13,6 +13,7 @@
     "dev": "quasar dev",
     "build": "quasar build",
     "9000": "powershell -Command \"Get-NetTCPConnection -LocalPort 9000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }\"",
+    "9001": "netstat -aon | findstr :9000",
     "postinstall": "quasar prepare"
   },
   "dependencies": {
