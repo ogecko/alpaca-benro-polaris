@@ -54,7 +54,7 @@ from pathlib import Path
 import os
 import sys
 from polaris import Polaris
-from shr import LifecycleController, LifecycleEvent
+from shr import LifecycleController, LifecycleEvent, system_stats
 import signal
 polaris: Polaris = None
 
@@ -170,7 +170,7 @@ def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2
             lag = now - last_seen
             if lag > threshold_sec and (now - last_logged) > 2.0:
                 last_logged = now
-                logger.warning(f'->> Heartbeat lag detected: {lag:.3f}s since last beat (expected {heartbeat_sec:.3f}s)')
+                logger.warning(f'->> Heartbeat lag detected:   pulse {lag:.3f}s (expected {heartbeat_sec:.3f}s) {system_stats()}')
                 if Config.log_heartbeat:
                     frames = sys._current_frames()
                     lines = [f'->> Hearbeat Stack Trace:']

@@ -28,15 +28,13 @@ import time
 import re
 import asyncio
 import ephem
-import psutil
-import threading
 import numpy as np
 from pyquaternion import Quaternion
 from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
-from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController
+from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, system_stats
 from control import theta_to_q, q_to_theta, q_to_azaltroll
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from kinematics import apply_mechanical_corrections, MountModelParams
@@ -385,14 +383,8 @@ class Polaris:
 
                 # if we dont have any updates for over 2s, then restart AHRS.
                 if self._connected and self._polaris_mode==8 and self._aligned and self._age_518_seconds > 0.5:
-                    cpu = psutil.cpu_percent(interval=None)
-                    mem = psutil.virtual_memory().percent
-                    n_threads = threading.active_count()
-                    net = psutil.net_io_counters()                    
-                    self.logger.warning(f'->> Polaris: No position update for {self._age_518_seconds:.3f}s. '
-                                     f'CPU: {cpu} Mem {mem} Threads {n_threads} '
-                                     f'NetDrops: {net.dropin}/{net.dropout} NetErr: {net.errin}/{net.errout} '
-                                     f'Requesting AHRS.')
+                    self.logger.warning(f'->> Polaris position update:    lag {self._age_518_seconds:.3f}s (expected 0.200s) '
+                                        f'{system_stats()} Requesting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
                 # get update on true orientation
@@ -408,7 +400,7 @@ class Polaris:
                 await asyncio.sleep(desired_sleep)
                 actual_sleep = time.monotonic() - loop_check_start
                 if actual_sleep > 0.6:  # 20% slop
-                    self.logger.warning(f'->> Event loop lag detected: slept {actual_sleep:.3f}s instead of {desired_sleep:.3f}s')
+                    self.logger.warning(f'->> Event loop lag detected:  slept {actual_sleep:.3f}s (expected {desired_sleep:.3f}s) {system_stats()}')
 
             except Exception as e:
                 self._task_exception = e

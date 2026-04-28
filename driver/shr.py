@@ -66,6 +66,7 @@ import re
 import math
 import asyncio
 import threading
+import psutil
 from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
 from config import Config
@@ -578,3 +579,14 @@ class LifecycleController:
 
     def reset(self):
         self._event = LifecycleEvent.NONE
+
+
+def system_stats():
+    """ Returns a string with %CPU, %Mem, #Threads, NetDrops In/Out, NetErr In/Out"""
+    cpu = psutil.cpu_percent(interval=None)
+    mem = psutil.virtual_memory().percent
+    n_threads = threading.active_count()
+    net = psutil.net_io_counters()                    
+    str = f'CPU: {cpu} Mem {mem} Threads {n_threads} ' +\
+          f'NetDrops: {net.dropin}/{net.dropout} NetErr: {net.errin}/{net.errout}'
+    return str
