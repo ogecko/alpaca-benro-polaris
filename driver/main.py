@@ -142,10 +142,18 @@ async def run_all(logger, lifecycle: LifecycleController):
     # Output Alpaca Driver version
     logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
-    # Start heartbeat event loop watchdog thread
+    # Start heartbeat event loop watchdog thread and asyncio exception handler
     loop = asyncio.get_running_loop()
-    install_asyncio_exception_handler(loop, logger)
     _start_eventloop_watchdog(loop, logger)
+    install_asyncio_exception_handler(loop, logger)
+
+    # Attach socket publishers BEFORE creating Polaris so no early log lines are missed
+    app_socket.attach_publisher_to_logger("log")   # general log
+    app_socket.attach_publisher_to_logger("pid")   # pid controller
+    app_socket.attach_publisher_to_logger("kf")    # kalman filter
+    app_socket.attach_publisher_to_logger("cm")    # calibration manager
+    app_socket.attach_publisher_to_logger("sm")    # sync manager
+    app_socket.attach_publisher_to_logger("cfg")   # config change manager
 
     # Create the Polaris master object and startup each ASCOM device
     global polaris

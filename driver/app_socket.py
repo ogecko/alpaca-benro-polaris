@@ -171,12 +171,6 @@ def attach_publisher_to_logger(topic: str, level=logging.INFO):
     return logger
 
 async def alpaca_socket_httpd(logger, lifecycle: LifecycleController, polaris):
-    log_logger = attach_publisher_to_logger("log")  # general log
-    pid_logger = attach_publisher_to_logger("pid")  # pid controller
-    kf_logger = attach_publisher_to_logger("kf")    # kalman filter
-    cm_logger = attach_publisher_to_logger("cm")    # calibration manager
-    sm_logger = attach_publisher_to_logger("sm")    # sync manager
-    cfg_logger = attach_publisher_to_logger("cfg")  # config change manager
     polaris._cm.logTestData(polaris._cm.test_data.keys())
     socket_server = None
     try:
