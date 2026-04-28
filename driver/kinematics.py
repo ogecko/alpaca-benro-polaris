@@ -53,7 +53,33 @@ def is_angle_same(a, b, tolerance=1e-4):
     return abs((a - b + 180) % 360 - 180) < tolerance
 
 # ── 3D Vector helpers ─────────────────────────────────────────────────────────
+def wrap_angle_residual(measured_theta, predicted_theta):
+    return np.vectorize(wrap180)(measured_theta - predicted_theta)
 
+def wrap_state_angles(x):
+    x_wrapped = x.copy()
+    x_wrapped[0, 0] = wrap360(x[0, 0])    # theta1
+    x_wrapped[1, 0] = wrap180(x[1, 0])    # theta2
+    x_wrapped[2, 0] = wrap180(x[2, 0])    # theta3 
+    return x_wrapped
+
+def azalt_to_vector(az_deg, alt_deg):
+    az = math.radians(az_deg)
+    alt = math.radians(alt_deg)
+    x = math.cos(alt) * math.sin(az)
+    y = math.cos(alt) * math.cos(az)
+    z = math.sin(alt)
+    return np.array([x, y, z])
+
+def vector_to_az_alt(vec):
+    x, y, z = vec
+    az = math.degrees(math.atan2(x, y)) % 360
+    alt = math.degrees(math.asin(z / np.linalg.norm(vec)))
+    return az, alt
+
+def v_angular_distance(v1, v2):
+    """Compute angular separation between two unit vectors in radians."""
+    return np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
 
 # ── Quaternion helpers ─────────────────────────────────────────────────────────
 

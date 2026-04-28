@@ -19,6 +19,7 @@ from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
 from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
 from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
+from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -115,33 +116,7 @@ def ratio_string(x: float) -> str:
     return f"{left:02d}:{right:02d}"
 
 
-def wrap_angle_residual(measured_theta, predicted_theta):
-    return np.vectorize(wrap180)(measured_theta - predicted_theta)
 
-def wrap_state_angles(x):
-    x_wrapped = x.copy()
-    x_wrapped[0, 0] = wrap360(x[0, 0])    # theta1
-    x_wrapped[1, 0] = wrap180(x[1, 0])    # theta2
-    x_wrapped[2, 0] = wrap180(x[2, 0])    # theta3 
-    return x_wrapped
-
-def azalt_to_vector(az_deg, alt_deg):
-    az = math.radians(az_deg)
-    alt = math.radians(alt_deg)
-    x = math.cos(alt) * math.sin(az)
-    y = math.cos(alt) * math.cos(az)
-    z = math.sin(alt)
-    return np.array([x, y, z])
-
-def vector_to_az_alt(vec):
-    x, y, z = vec
-    az = math.degrees(math.atan2(x, y)) % 360
-    alt = math.degrees(math.asin(z / np.linalg.norm(vec)))
-    return az, alt
-
-def v_angular_distance(v1, v2):
-    """Compute angular separation between two unit vectors in radians."""
-    return np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
 
 def angular_difference(a, b):
     """
