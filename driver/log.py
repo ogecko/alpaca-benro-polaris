@@ -11,10 +11,6 @@ logger = None
 
 _log_queue_listener: logging.handlers.QueueListener = None  # keep reference for shutdown
 
-class UvicornH11Filter(logging.Filter):
-    def filter(self, record):
-        return 'can\'t handle event type Response when role=SERVER and state=CLOSED' not in record.getMessage()
-
 
 def init_logging():
     try:
@@ -48,10 +44,6 @@ def init_logging():
             file_handler.setFormatter(formatter)
             file_handler.doRollover()
             blocking_handlers.append(file_handler)
-
-        # supress known UvicornH11 error message which is harmless but ugly
-        logging.getLogger('uvicorn.error').addFilter(UvicornH11Filter())
-        logging.getLogger('uvicorn.access').addFilter(UvicornH11Filter())
 
         # Remove all existing handlers from root logger
         root_logger.handlers.clear()

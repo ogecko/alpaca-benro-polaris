@@ -113,6 +113,28 @@ async def main():
     log.shutdown_logging()
 
 
+
+def install_asyncio_exception_handler(loop, logger):
+    
+    def handle_exception(loop, context):
+        message = context.get('message', '')
+        exception = context.get('exception', None)
+        exc_str = str(exception) if exception else ''
+        
+        # Suppress known harmless h11 protocol errors on connection close
+        if 'can\'t handle event type Response' in exc_str:
+            return
+        if '_ProactorReadPipeTransport' in message and 'CLOSED' in exc_str:
+            return
+            
+        # Log everything else as a warning so it goes through our logging system
+        logger.warning(f'==ASYNCIO== Unhandled exception: {message} | {exc_str}')
+        if exception:
+            logger.debug('==ASYNCIO== Exception detail:', exc_info=exception)
+    
+    loop.set_exception_handler(handle_exception)
+
+
 # ===================
 # RUN ALL TASKS
 # ===================
@@ -122,6 +144,7 @@ async def run_all(logger, lifecycle: LifecycleController):
 
     # Start heartbeat event loop watchdog thread
     loop = asyncio.get_running_loop()
+    install_asyncio_exception_handler(loop, logger)
     _start_eventloop_watchdog(loop, logger)
 
     # Create the Polaris master object and startup each ASCOM device
