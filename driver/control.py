@@ -2238,7 +2238,7 @@ class SyncManager:
         return az_err, alt_err, v_pred_rot, v_obs
     
 
-    def get_local_guassian_adjustment_q(self, cameraQ_C2T, sigma_deg=10.0, sigma_sec=60):
+    def get_local_guassian_adjustment_q(self, cameraQ_C2T, sigma_deg=10.0, sigma_sec=60*60):
         """
         Returns a spatially and temporally weighted correction quaternion based on the
         last sync point residual.
