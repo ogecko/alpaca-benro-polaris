@@ -11,7 +11,7 @@ class Q:
     def __init__(self, w=1.0, x=0.0, y=0.0, z=0.0, array=None, 
                 axis=None, radians=None, degrees=None, matrix=None):
         if matrix is not None:
-            self.q = Q.from_matrix(matrix).q
+            self.q = Q.from_matrix(np.asarray(matrix, dtype=float)).q
         elif axis is not None:
             ax = np.asarray(axis, dtype=float)
             ax = ax / np.linalg.norm(ax)
@@ -115,3 +115,40 @@ class Q:
         s1 = np.cos(theta) - dot * sin_t / sin_t0
         s2 = sin_t / sin_t0
         return Q(array=s1 * q1.q + s2 * q2.q)
+    
+    @staticmethod
+    def from_matrix(R):
+        """Construct from 3x3 rotation matrix — Shepperd's method."""
+        trace = R[0,0] + R[1,1] + R[2,2]
+        if trace > 0:
+            s = 0.5 / np.sqrt(trace + 1.0)
+            return Q(array=np.array([
+                0.25 / s,
+                (R[2,1] - R[1,2]) * s,
+                (R[0,2] - R[2,0]) * s,
+                (R[1,0] - R[0,1]) * s,
+            ]))
+        elif R[0,0] > R[1,1] and R[0,0] > R[2,2]:
+            s = 2.0 * np.sqrt(1.0 + R[0,0] - R[1,1] - R[2,2])
+            return Q(array=np.array([
+                (R[2,1] - R[1,2]) / s,
+                0.25 * s,
+                (R[0,1] + R[1,0]) / s,
+                (R[0,2] + R[2,0]) / s,
+            ]))
+        elif R[1,1] > R[2,2]:
+            s = 2.0 * np.sqrt(1.0 + R[1,1] - R[0,0] - R[2,2])
+            return Q(array=np.array([
+                (R[0,2] - R[2,0]) / s,
+                (R[0,1] + R[1,0]) / s,
+                0.25 * s,
+                (R[1,2] + R[2,1]) / s,
+            ]))
+        else:
+            s = 2.0 * np.sqrt(1.0 + R[2,2] - R[0,0] - R[1,1])
+            return Q(array=np.array([
+                (R[1,0] - R[0,1]) / s,
+                (R[0,2] + R[2,0]) / s,
+                (R[1,2] + R[2,1]) / s,
+                0.25 * s,
+            ]))
