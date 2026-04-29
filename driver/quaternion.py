@@ -25,6 +25,9 @@ class Q:
             self.q = np.array([np.cos(a / 2), ax[0]*s, ax[1]*s, ax[2]*s])
         elif array is not None:
             self.q = np.asarray(array, dtype=float)
+        elif hasattr(w, '__len__') or isinstance(w, np.ndarray):
+            # pyquaternion accepts Quaternion([w, x, y, z]) as first positional arg
+            self.q = np.asarray(w, dtype=float)
         else:
             self.q = np.array([w, x, y, z], dtype=float)
 
