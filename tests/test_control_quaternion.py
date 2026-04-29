@@ -28,7 +28,7 @@ test_misc_motor_to_q1_cases = [
     (177, 60, +5, Quaternion(-0.159, +0.672, +0.692, +0.209)),
     (177, +2, +3, Quaternion(-0.491, +0.508, +0.509, +0.492)),
     (261, +2, +4, Quaternion(-0.029, +0.719, +0.032, +0.694)),
-    (260, +2, -5, Quaternion(+0.092, -0.713, -0.093, -0.689)),
+    (260, +2, -5, Quaternion(+0.0923, -0.713, -0.093, -0.689)),
     (280, 30, +5, Quaternion(+0.081, +0.860, -0.097, +0.494)),
     (280, 30, -5, Quaternion(-0.006, -0.864, +0.054, -0.501)),
     (297, 30, -5, Quaternion(-0.080, -0.846, +0.181, -0.495)),
@@ -38,9 +38,9 @@ test_misc_motor_to_q1_cases = [
     (350, 30, -5, Quaternion(-0.292, -0.677, +0.539, -0.407)),
     (358, 45, -5, Quaternion(-0.237, -0.676, +0.629, -0.303)),
     (358, 45, +5, Quaternion(+0.295, +0.652, -0.653, +0.247)),
-    (260, -2, -5, Quaternion(+0.093, -0.689, -0.092, -0.713)),  
-    (179, -2, +3, Quaternion(-0.500, +0.500, +0.482, +0.517)),  
-    (150, -5, 0, Quaternion(-0.639, +0.338, +0.585, +0.369)),   
+    (260, -2, -5, Quaternion(+0.093, -0.689, -0.0923, -0.713)),  
+    (179, -2, +3, Quaternion(-0.500, +0.500, +0.4819, +0.517)),  
+    (150, -5, 0, Quaternion(-0.6385, +0.3378, +0.5851, +0.3686)),   
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_misc_motor_to_q1_cases)
 def test_misc_roundtrip_theta_q1(theta1, theta2, theta3, q1):
@@ -51,15 +51,15 @@ def test_misc_roundtrip_theta_q1(theta1, theta2, theta3, q1):
 
 test_5t1_30t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
-    (+5, +30, -170, Quaternion(-0.551, +0.418, +0.281, +0.666)),
-    (+5, +30, -100, Quaternion(-0.211, +0.658, -0.152, +0.706)),
-    (+5, +30,  -80, Quaternion(-0.094, +0.685, -0.272, +0.669)),
-    (+5, +30,  -10, Quaternion(+0.316, +0.615, -0.607, +0.392)),
-    (+5, +30,    0, Quaternion(-0.369, -0.585, +0.639, -0.338)),
-    (+5, +30,  +10, Quaternion(-0.418, -0.551, +0.666, -0.281)),
-    (+5, +30,  +80, Quaternion(-0.658, -0.211, +0.706, +0.152)),
-    (+5, +30, +100, Quaternion(-0.685, -0.094, +0.669, +0.272)),
-    (+5, +30, +170, Quaternion(-0.615, +0.316, +0.392, +0.607)),
+    (+5, +30, -170, Quaternion(-0.5507, +0.4182, +0.2809, +0.6655)),
+    (+5, +30, -100, Quaternion(-0.2112, +0.6585, -0.1517, +0.7063)),
+    (+5, +30,  -80, Quaternion(-0.0937, +0.6852, -0.2720, +0.6692)),
+    (+5, +30,  -10, Quaternion(+0.3162, +0.6150, -0.6066, +0.3922)),
+    (+5, +30,    0, Quaternion(-0.3686, -0.5851, +0.6385, -0.3378)),
+    (+5, +30,  +10, Quaternion(-0.4182, -0.5507, +0.6655, -0.2809)),
+    (+5, +30,  +80, Quaternion(-0.6585, -0.2112, +0.7063, +0.1517)),
+    (+5, +30, +100, Quaternion(-0.6852, -0.0937, +0.6692, +0.2720)),
+    (+5, +30, +170, Quaternion(-0.6150, +0.3162, +0.3922, +0.6066)),
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_5t1_30t2_cases)
 def test_5t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
@@ -70,15 +70,15 @@ def test_5t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
 
 test_355t1_30t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
-    (+355, +30, -170, Quaternion(+0.607, -0.392, -0.316, -0.615)),
-    (+355, +30, -100, Quaternion(+0.272, -0.669, +0.094, -0.685)),
-    (+355, +30,  -80, Quaternion(+0.152, -0.706, +0.211, -0.658)),
-    (+355, +30,  -10, Quaternion(-0.281, -0.666, +0.551, -0.418)),
-    (+355, +30,    0, Quaternion(+0.338, +0.639, -0.585, +0.369)),
-    (+355, +30,  +10, Quaternion(+0.392, +0.607, -0.615, +0.316)),
-    (+355, +30,  +80, Quaternion(+0.669, +0.272, -0.685, -0.094)),
-    (+355, +30, +100, Quaternion(+0.706, +0.152, -0.658, -0.211)),
-    (+355, +30, +170, Quaternion(+0.666, -0.281, -0.418, -0.551)),
+    (+355, +30, -170, Quaternion(+0.6066, -0.3922, -0.3162, -0.6150)),
+    (+355, +30, -100, Quaternion(+0.2720, -0.6692, +0.0937, -0.6852)),
+    (+355, +30,  -80, Quaternion(+0.1517, -0.7063, +0.2112, -0.6585)),
+    (+355, +30,  -10, Quaternion(-0.2809, -0.6655, +0.5507, -0.4182)),
+    (+355, +30,    0, Quaternion(+0.3378, +0.6385, -0.5851, +0.3686)),
+    (+355, +30,  +10, Quaternion(+0.3922, +0.6066, -0.6150, +0.3162)),
+    (+355, +30,  +80, Quaternion(+0.6692, +0.2720, -0.6852, -0.0937)),
+    (+355, +30, +100, Quaternion(+0.7063, +0.1517, -0.6585, -0.211)),
+    (+355, +30, +170, Quaternion(+0.6655, -0.2809, -0.4182, -0.5507)),
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_355t1_30t2_cases)
 def test_355t1_30t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
@@ -108,15 +108,15 @@ def test_355t1_minus7t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
 
 test_5t1_0t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
-    (+5, 0, -170, Quaternion(-0.430, +0.561, +0.430, +0.561), +195,0,0),
-    (+5, 0, -100, Quaternion(-0.031, +0.706, +0.031, +0.706), +265,0,0),
-    (+5, 0,  -80, Quaternion(+0.092, +0.701, -0.092, +0.701), +285,0,0),
-    (+5, 0,  -10, Quaternion(+0.478, +0.521, -0.478, +0.521), +355,0,0),
-    (+5, 0,    0, Quaternion(-0.521, -0.478, +0.521, -0.478), +5,0,0), 
-    (+5, 0,  +10, Quaternion(-0.561, -0.430, +0.561, -0.430), +15,0,0),
-    (+5, 0,  +80, Quaternion(-0.706, -0.031, +0.706, -0.031), +85,0,0),
-    (+5, 0, +100, Quaternion(-0.701, +0.092, +0.701, +0.092), +105,0,0),
-    (+5, 0, +170, Quaternion(-0.521, +0.478, +0.521, +0.478), +175,0,0),
+    (+5, 0, -170, Quaternion(-0.4305, +0.5610, +0.4305, +0.5610), +195,0,0),
+    (+5, 0, -100, Quaternion(-0.0308, +0.7064, +0.0308, +0.7064), +265,0,0),
+    (+5, 0,  -80, Quaternion(+0.0923, +0.7011, -0.0923, +0.7011), +285,0,0),
+    (+5, 0,  -10, Quaternion(+0.4777, +0.5213, -0.4777, +0.5213), +355,0,0),
+    (+5, 0,    0, Quaternion(-0.5213, -0.4777, +0.5213, -0.4777), +5,0,0), 
+    (+5, 0,  +10, Quaternion(-0.5610, -0.4305, +0.5610, -0.4305), +15,0,0),
+    (+5, 0,  +80, Quaternion(-0.7064, -0.0308, +0.7064, -0.0308), +85,0,0),
+    (+5, 0, +100, Quaternion(-0.7011, +0.0923, +0.7011, +0.0923), +105,0,0),
+    (+5, 0, +170, Quaternion(-0.5213, +0.4777, +0.5213, +0.4777), +175,0,0),
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1, t1, t2, t3", test_5t1_0t2_cases)
 def test_5t1_0t2_roundtrip_theta_q1(theta1, theta2, theta3, q1, t1,t2,t3):
@@ -127,8 +127,8 @@ def test_5t1_0t2_roundtrip_theta_q1(theta1, theta2, theta3, q1, t1,t2,t3):
 
 test_90t1_minus5t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
-    (+90, -5, +89, Quaternion(-0.526, +0.517, +0.482, +0.474)),     # around Az180, Alt0, Roll+5
-    (+90, -5, +91, Quaternion(-0.517, +0.526, +0.474, +0.482)),     # around Az180, Alt0, Roll+5
+    (+90, -5, +89, Quaternion(-0.5259, +0.5168, +0.4819, +0.4735)),     # around Az180, Alt0, Roll+5
+    (+90, -5, +91, Quaternion(-0.5168, +0.5259, +0.4735, +0.4819)),     # around Az180, Alt0, Roll+5
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_90t1_minus5t2_cases)
 def test_90t1_minus5t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
@@ -139,15 +139,15 @@ def test_90t1_minus5t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
 
 test_180t1_70t2_cases = [
     # (theta1, theta2, theta3, expected_quaternion)
-    (+180, 70, -170, Quaternion(0.704, +0.062, -0.183, +0.683)),
-    (+180, 70, -100, Quaternion(0.612, -0.354, -0.542, +0.455)),
-    (+180, 70, -80, Quaternion(0.542, -0.455, -0.612, +0.354)),
-    (+180, 70, -10, Quaternion(0.183, -0.683, -0.704, -0.062)),
-    (+180, 70, 0, Quaternion(-0.123, +0.696, +0.696, +0.123)),
-    (+180, 70, 10, Quaternion(-0.062, +0.704, +0.683, +0.183)),
-    (+180, 70, 80, Quaternion(0.354, +0.612, +0.455, +0.542)),
-    (+180, 70, 100, Quaternion(0.455, +0.542, +0.354, +0.612)),
-    (+180, 70, 170, Quaternion(0.683, +0.183, -0.062, +0.704)),
+    (+180, 70, -170, Quaternion(0.7044, +0.0616, -0.183, +0.683)),
+    (+180, 70, -100, Quaternion(0.6124, -0.3536, -0.5417, +0.4545)),
+    (+180, 70, -80, Quaternion(0.5417, -0.4545, -0.6124, +0.3536)),
+    (+180, 70, -10, Quaternion(0.183, -0.683, -0.7044, -0.0616)),
+    (+180, 70, 0, Quaternion(-0.1228, +0.6964, +0.6964, +0.1228)),
+    (+180, 70, 10, Quaternion(-0.0616, +0.7044, +0.683, +0.183)),
+    (+180, 70, 80, Quaternion(0.3536, +0.6124, +0.4545, +0.5417)),
+    (+180, 70, 100, Quaternion(0.4545, +0.5417, +0.3536, +0.6124)),
+    (+180, 70, 170, Quaternion(0.683, +0.183, -0.0616, +0.7044)),
 ]
 @pytest.mark.parametrize("theta1, theta2, theta3, q1", test_180t1_70t2_cases)
 def test_180t1_70t2_roundtrip_theta_q1(theta1, theta2, theta3, q1):
@@ -164,13 +164,13 @@ def test_azaltroll_to_q():
     assert str(azaltroll_to_q(+5.0797,+44.7842,-4.9892)) == str(Quaternion(-0.295, -0.652, +0.653, -0.247))   # 358, 45, +5
     assert str(azaltroll_to_q(+167.0704,+59.6340,+8.5897)) == str(Quaternion(+0.217, -0.656, -0.708, -0.147)) # 177, 60, -5
     assert str(azaltroll_to_q(+186.9383,+59.6312,-8.5961)) == str(Quaternion(-0.158, +0.672, +0.692, +0.209)) # 177, 60, +5
-    assert str(azaltroll_to_q(+182.0085,+1.9935,-0.1747)) == str(Quaternion(-0.482, +0.517, +0.500, +0.500))  # 177, +2, +5
+    assert str(azaltroll_to_q(+182.0085,+1.9935,-0.1747)) == str(Quaternion(-0.4819, +0.5168, +0.500, +0.500))  # 177, +2, +5
     assert str(azaltroll_to_q(+182.0086,-1.9875,-0.1741)) == str(Quaternion(-0.499, +0.499, +0.483, +0.518))  # 177, -2, +5
     assert str(azaltroll_to_q(+265.0099,+1.9935,-0.1747)) == str(Quaternion(-0.029, +0.719, +0.032, +0.694))  # 260, +2, +5
-    assert str(azaltroll_to_q(+254.9864,+1.9933,+0.1748)) == str(Quaternion(+0.092, -0.713, -0.093, -0.689))  # 260, +2, -5
+    assert str(azaltroll_to_q(+254.9864,+1.9933,+0.1748)) == str(Quaternion(+0.0923, -0.713, -0.093, -0.689))  # 260, +2, -5
     assert str(azaltroll_to_q(+254.9868,-1.9940,+0.174)) == str(Quaternion(+0.095, -0.689, -0.090, -0.713))   # 260, -2, -5
     assert str(azaltroll_to_q(+150.0048,+19.0005,-0.0040)) == str(Quaternion(-0.503,+0.407,+0.705,+0.290))   # 260, -2, -5
-    assert str(azaltroll_to_q(+150.0044,-5.0069,-0.0010,)) == str(Quaternion(-0.639,+0.338,+0.585,+0.369))   # 260, -2, -5
+    assert str(azaltroll_to_q(+150.0044,-5.0069,-0.0010,)) == str(Quaternion(-0.6385,+0.3378,+0.5851,+0.3686))   # 260, -2, -5
 
 def test_quaternion_to_angles():
     assert approx_quaternion_to_angles(-0.303, -0.629, +0.676, -0.237) == str([2.1, 45.0, 4.9, 9.0, 44.8, -4.9])
@@ -178,18 +178,18 @@ def test_quaternion_to_angles():
     assert approx_quaternion_to_angles(+0.382, +0.017, -0.923, +0.040) == str([89.9, 45.0, -4.9, 83.0, 44.8, +4.9])
     assert approx_quaternion_to_angles(+0.217, -0.656, -0.708, -0.147) == str([177.0, 60.0, -5.1, 166.9, 59.6, 8.7])
     assert approx_quaternion_to_angles(-0.159, +0.672, +0.692, +0.209) == str([177.0, 59.9, 5.0, 186.9, 59.5, -8.6])
-    assert approx_quaternion_to_angles(-0.482, +0.517, +0.500, +0.500) == str([179.4, 2.0, 2.6, 182.0, 2.0, -0.1])
-    assert approx_quaternion_to_angles(-0.500, +0.500, +0.482, +0.517) == str([179.4, -2.0, 2.6, 182.0, -2.0, -0.1]) 
+    assert approx_quaternion_to_angles(-0.4819, +0.5168, +0.500, +0.500) == str([179.4, 2.0, 2.6, 182.0, 2.0, -0.1])
+    assert approx_quaternion_to_angles(-0.500, +0.500, +0.4819, +0.517) == str([179.4, -2.0, 2.6, 182.0, -2.0, -0.1]) 
     assert approx_quaternion_to_angles(-0.029, +0.719, +0.032, +0.694) == str([260.7, 2.0, 4.4, 265.1, 2.0, -0.2])
-    assert approx_quaternion_to_angles(+0.092, -0.713, -0.093, -0.689) == str([260.1, 1.9, -5.1, 255.0, 1.9, 0.2])
-    assert approx_quaternion_to_angles(+0.093, -0.689, -0.092, -0.713) == str([260.1, -1.9, -5.1, 255.0, -1.9, 0.2]) 
+    assert approx_quaternion_to_angles(+0.0923, -0.713, -0.093, -0.689) == str([260.1, 1.9, -5.1, 255.0, 1.9, 0.2])
+    assert approx_quaternion_to_angles(+0.093, -0.689, -0.0923, -0.713) == str([260.1, -1.9, -5.1, 255.0, -1.9, 0.2]) 
     assert approx_quaternion_to_angles(+0.081, +0.860, -0.097, +0.494) == str([280.0, 30.0, 5.0, 285.7, 29.9, -2.9])
     assert approx_quaternion_to_angles(-0.006, -0.864, +0.054, -0.501) == str([280.0, 30.0, -5.0, 274.3, 29.9, 2.9])
     assert approx_quaternion_to_angles(-0.080, -0.846, +0.181, -0.495) == str([297.1, 29.9, -5.0, 291.3, 29.8, 2.9])
     assert approx_quaternion_to_angles(-0.217, -0.760, +0.414, -0.451) == str([330.0, 30.0, -5.0, 324.3, 29.9, 2.9])
     assert approx_quaternion_to_angles(-0.256, -0.721, +0.478, -0.431) == str([339.9, 29.9, -4.9, 334.3, 29.8, 2.8])
     assert approx_quaternion_to_angles(-0.295, -0.652, +0.653, -0.247) == str([358.0, 45.0, 5.0, 5.1, 44.7, -5.0])
-    assert approx_quaternion_to_angles(-0.639, +0.338, +0.585, +0.369) == str([149.9, -5.0, 0.2, 150.0, -5.0, -0.0])
+    assert approx_quaternion_to_angles(-0.6385, +0.3378, +0.5851, +0.3686) == str([149.9, -5.0, 0.2, 150.0, -5.0, -0.0])
     assert approx_quaternion_to_angles(+0.247, +0.653, -0.652, +0.295) == str([2.0, 45.0, -5.0, 354.9, 44.7, 5.0])
     assert approx_quaternion_to_angles(+0.256, +0.721, -0.478, +0.431) == str([339.9, 29.9, -4.9, 334.3, 29.8, 2.8])
     assert approx_quaternion_to_angles(+0.292, +0.677, -0.539, +0.407) == str([349.9, 30.0, -5.0, 344.2, 29.9, 2.9])
