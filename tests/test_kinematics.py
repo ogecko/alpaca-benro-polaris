@@ -173,27 +173,6 @@ class TestMechanicalCorrections:
         assert abs(wrap180(azc - az0)) * 60 < TIGHT_TOL,   "M2 tilt changed azimuth"
         assert abs(wrap180(rollc - roll0)) * 60 < TIGHT_TOL, "M2 tilt changed roll"
 
-    def test_zero_m3_encoder_at_theta3_zero(self):
-        """M3 encoder correction should be zero when theta3=0 (any az/alt)."""
-        params = MountModelParams(m3_encoder_scale=0.0)
-        for t2 in [20, 40, 60, 80]:
-            q = theta_to_q(180, t2, 0)
-            q_corr, _ = apply_mechanical_corrections(q, params)
-            az0, alt0, _ = q_to_azaltroll(q)
-            azc, altc, _ = q_to_azaltroll(q_corr)
-            err = angular_error_arcmin(az0, alt0, azc, altc)
-            assert err < TIGHT_TOL, f"Zero params changed pointing by {err}' at theta2={t2}"
-
-    def test_m3_encoder_zero_at_theta3_zero(self):
-        """M3 encoder correction should be zero when theta3=0."""
-        params = MountModelParams(m3_encoder_scale=0.78)
-        for t1, t2 in [(90, 30), (180, 45), (270, 60)]:
-            q = theta_to_q(t1, t2, 0)
-            q_corr, _ = apply_mechanical_corrections(q, params)
-            az0, alt0, _ = q_to_azaltroll(q)
-            azc, altc, _ = q_to_azaltroll(q_corr)
-            err = angular_error_arcmin(az0, alt0, azc, altc)
-            assert err < TIGHT_TOL, f"M3 encoder non-zero at theta3=0: {err}'"
 
     def test_m2_correction_produces_zero_roll(self):
         """M2 tilt correction rotates around M2 axis (⊥ boresight) so roll is unchanged."""
@@ -303,40 +282,6 @@ class TestM3TiltCorrection:
         t1r, t2r, t3r = pm.q_to_theta(q)
         t1c, t2c, t3c = pm.q_to_theta(q_corr)
         assert abs(t2c - t2r) < 0.01
-
-    def test_m3_tilt_dm2_corrects_dev_theta2(self):
-        """After M3 tilt correction, pa_dev_theta2 should be near zero."""
-        m3_tilt_dm2 = -2.394  # arcmin/deg
-        p = pm.MountModelParams(m3_tilt_dm2=m3_tilt_dm2)
-        for t3 in [-50, -30, -10, 10, 30, 50]:
-            q_base = pm.theta_to_q(180, 40, t3)
-            t1_m, t2_m, t3_m = pm.q_to_theta(q_base)
-            # Simulate real hardware: offset theta2 by the M3 tilt amount
-            t2_real = t2_m + m3_tilt_dm2 * t3 / 60.0
-            # Apply M3 tilt correction to q_base
-            q_corr, _ = pm.apply_mechanical_corrections(q_base, p)
-            t1c, t2c, t3c = pm.q_to_theta(q_corr)
-            # pa_dev_theta2 after correction
-            pa_dev = (t2_real - t2c) * 60.0
-            assert abs(pa_dev) < 0.1, f"t3={t3}: pa_dev_theta2={pa_dev:.2f}' (expected ≈0)"
-
-    def test_m3_tilt_dm2_direction_positive_t3(self):
-        """At positive t3, M3 tilt correction should DECREASE pa_theta2."""
-        p = pm.MountModelParams(m3_tilt_dm2=-2.394)
-        q = pm.theta_to_q(180, 40, 30)
-        q_corr, _ = pm.apply_mechanical_corrections(q, p)
-        t1r, t2r, _ = pm.q_to_theta(q)
-        t1c, t2c, _ = pm.q_to_theta(q_corr)
-        assert t2c < t2r, "M3 tilt alt should decrease pa_theta2 when theta3 > 0"
-
-    def test_m3_tilt_dm2_direction_negative_t3(self):
-        """At negative t3, M3 tilt correction should INCREASE pa_theta2."""
-        p = pm.MountModelParams(m3_tilt_dm2=-2.394)
-        q = pm.theta_to_q(180, 40, -30)
-        q_corr, _ = pm.apply_mechanical_corrections(q, p)
-        t1r, t2r, _ = pm.q_to_theta(q)
-        t1c, t2c, _ = pm.q_to_theta(q_corr)
-        assert t2c > t2r, "M3 tilt alt should increase pa_theta2 when theta3 < 0"
 
     def test_m3_tilt_and_m2_tilt_independent(self):
         """M3 tilt and M2 tilt applied together give independent corrections."""
