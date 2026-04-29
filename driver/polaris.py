@@ -34,7 +34,7 @@ from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
-from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, system_stats
+from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, system_vitals
 from control import theta_to_q, q_to_theta, q_to_azaltroll
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from kinematics import apply_mechanical_corrections, MountModelParams
@@ -384,7 +384,7 @@ class Polaris:
                 # if we dont have any updates for over 2s, then restart AHRS.
                 if self._connected and self._polaris_mode==8 and self._aligned and self._age_518_seconds > 0.5:
                     self.logger.warning(f'->> Polaris position update:    lag {self._age_518_seconds:.3f}s (expected 0.200s) '
-                                        f'{system_stats()} Requesting AHRS.')
+                                        f'{system_vitals()} Requesting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
                 # get update on true orientation
@@ -400,7 +400,7 @@ class Polaris:
                 await asyncio.sleep(desired_sleep)
                 actual_sleep = time.monotonic() - loop_check_start
                 if actual_sleep > 0.6:  # 20% slop
-                    self.logger.warning(f'->> Event loop lag detected:  slept {actual_sleep:.3f}s (expected {desired_sleep:.3f}s) {system_stats()}')
+                    self.logger.warning(f'->> Event loop lag detected:  slept {actual_sleep:.3f}s (expected {desired_sleep:.3f}s) {system_vitals()}')
 
             except Exception as e:
                 self._task_exception = e

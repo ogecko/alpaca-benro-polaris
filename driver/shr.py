@@ -581,7 +581,7 @@ class LifecycleController:
         self._event = LifecycleEvent.NONE
 
 
-def system_stats():
+def system_vitals():
     """ Returns a string with %CPU, %Mem, #Threads, NetDrops In/Out, NetErr In/Out"""
     cpu = psutil.cpu_percent(interval=None)
     mem = psutil.virtual_memory().percent
@@ -589,4 +589,71 @@ def system_stats():
     net = psutil.net_io_counters()                    
     str = f'CPU: {cpu} Mem {mem} Threads {n_threads} ' +\
           f'NetDrops: {net.dropin}/{net.dropout} NetErr: {net.errin}/{net.errout}'
+    if cpu>95:
+        system_cpu_start_probe()
     return str
+
+_system_cpu_top5_cache     = ""
+_system_cpu_probe_task     = None   # task to run cpu probes
+_system_cpu_loop           = None   # main event loop
+_system_cpu_probe_last_run = 0.0
+_system_cpu_probe_debounce = 10     # min seconds between cpu probe
+_system_cpu_count = psutil.cpu_count(logical=True)
+
+def system_vitals_init(loop):
+    """Call once at startup with the running event loop."""
+    global _system_cpu_loop
+    _system_cpu_loop = loop
+
+def system_cpu_start_probe():
+    global _system_cpu_probe_task, _system_cpu_probe_last_run
+    if _system_cpu_loop is None:
+        return
+    since      = _system_cpu_loop.time() - _system_cpu_probe_last_run
+    probe_idle = _system_cpu_probe_task is None or _system_cpu_probe_task.done()
+    if not (probe_idle and since > _system_cpu_probe_debounce):
+        return
+    try:
+        running_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        running_loop = None
+    if running_loop is _system_cpu_loop:
+        # Called from inside the event loop — use create_task
+        _system_cpu_probe_task = _system_cpu_loop.create_task(system_cpu_probe())
+    else:
+        # Called from a thread — use thread-safe submission
+        _system_cpu_probe_task = asyncio.run_coroutine_threadsafe(system_cpu_probe(), _system_cpu_loop)
+
+async def system_cpu_probe():
+    global _system_cpu_top5_cache, _system_cpu_probe_last_run
+    # Prime cpu_percent counters — first call always returns 0.0, just sets baseline
+    for p in psutil.process_iter(['name', 'cpu_percent']):
+        try:
+            p.cpu_percent()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+    await asyncio.sleep(1.0)
+    psutil.process_iter.cache_clear()
+    procs = []
+    for p in psutil.process_iter(['name', 'cpu_percent']):
+        try:
+            cpu = p.cpu_percent() / _system_cpu_count
+            if cpu > 0:
+                procs.append((p.info['name'], cpu))
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+    top5 = sorted(procs, key=lambda x: x[1], reverse=True)[:5]
+    _system_cpu_top5_cache     = ", ".join(f"{n} {c:.0f}%" for n, c in top5)
+    _system_cpu_probe_last_run = _system_cpu_loop.time()
+
+def system_cpu_report_available():
+    """ Checks whether a cpu_probe has been run and results available """
+    global _system_cpu_top5_cache
+    return _system_cpu_top5_cache != ""
+
+def system_cpu():
+    """ Returns cached string, listing the top 5 Processes by CPU usage, resetting the cache """
+    global _system_cpu_top5_cache
+    top5 = _system_cpu_top5_cache
+    _system_cpu_top5_cache = ""
+    return top5

@@ -54,7 +54,8 @@ from pathlib import Path
 import os
 import sys
 from polaris import Polaris
-from shr import LifecycleController, LifecycleEvent, system_stats
+from shr import LifecycleController, LifecycleEvent
+from shr import system_vitals_init, system_vitals, system_cpu, system_cpu_report_available
 import signal
 polaris: Polaris = None
 
@@ -145,6 +146,7 @@ async def run_all(logger, lifecycle: LifecycleController):
     # Start heartbeat event loop watchdog thread and asyncio exception handler
     loop = asyncio.get_running_loop()
     _start_eventloop_watchdog(loop, logger)
+    system_vitals_init(loop)
     install_asyncio_exception_handler(loop, logger)
 
     # Attach socket publishers BEFORE creating Polaris so no early log lines are missed
@@ -180,7 +182,40 @@ async def run_all(logger, lifecycle: LifecycleController):
 # ==================================================================
 
 def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2, monitor_sec=0.3, monitor_delay_sec=1.0):
+    """
+    Starts a watchdog to detect asyncio event loop stalls.
 
+    Schedules a lightweight heartbeat coroutine inside the event loop that
+    timestamps itself every `heartbeat_sec` seconds. A separate daemon thread
+    monitors the gap between timestamps from outside the loop; if the gap
+    exceeds `threshold_sec` it logs a warning with current system vitals and,
+    if Config.log_heartbeat is set, a filtered stack trace of all threads
+    (excluding idle workers, blocking receives, and the monitor itself).
+
+    Args:
+        loop:               The running asyncio event loop to monitor.
+        logger:             Logger instance for warnings and startup confirmation.
+        heartbeat_sec:      How often the in-loop heartbeat coroutine ticks (seconds).
+                            Default 0.1s.
+        threshold_sec:      Lag above which a stall warning is emitted (seconds).
+                            Should be greater than heartbeat_sec. Default 0.2s.
+        monitor_sec:        How often the watchdog thread checks the heartbeat (seconds).
+                            Default 0.3s.
+        monitor_delay_sec:  Delay before the watchdog thread begins monitoring, allowing
+                            the event loop to reach steady state before the first check.
+                            Default 1.0s.
+
+    Notes:
+        - The monitor thread is a daemon and will not prevent process exit.
+        - Stall warnings are rate-limited to at most one every 2 seconds.
+        - Stack traces filter out threads with normal behavious.
+    """
+    _STACK_FILTERS = [
+        '_blocking_recvfrom',           # blocking network socket recv — normal for network threads
+        'traceback.format_stack',       # the watchdog's own stack capture — always present, skip
+        'work_queue.get',               # thread pool worker waiting for work — idle, not stalled
+        f'logging{os.sep}handlers.py',  # async logging handler thread blocked on empty queue — normal
+    ]
     last_seen = time.monotonic()
 
     async def heartbeat():
@@ -201,19 +236,19 @@ def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2
             lag = now - last_seen
             if lag > threshold_sec and (now - last_logged) > 2.0:
                 last_logged = now
-                logger.warning(f'->> Heartbeat lag detected:   pulse {lag:.3f}s (expected {heartbeat_sec:.3f}s) {system_stats()}')
+                logger.warning(f'->> Heartbeat lag detected:   pulse {lag:.3f}s (expected {heartbeat_sec:.3f}s) {system_vitals()}')
                 if Config.log_heartbeat:
                     frames = sys._current_frames()
                     lines = [f'->> Heartbeat Stack Trace:']
                     for tid, frame in frames.items():
                         stack = ''.join(traceback.format_stack(frame))
-                        if ('_worker' in stack and 'work_item' not in stack) or \
-                            'work_queue.get' in stack or \
-                            'traceback.format_stack' in stack or \
-                            '_blocking_recvfrom' in stack:
-                            continue
-                        lines.append(f'  Thread {tid}:\n{stack}')
+                        if any(f in stack for f in _STACK_FILTERS) or ('_worker' in stack and 'work_item' not in stack):
+                            continue    
+                        lines.append(f'  Heartbeat Stack - Thread {tid}:\n{stack}')
                     logger.warning('\n'.join(lines))
+
+            if (system_cpu_report_available()):
+                logger.warning(f'->> HIGH CPU LOAD breakdown:  {system_cpu()}')
 
 
     asyncio.run_coroutine_threadsafe(_start_heartbeat(), loop)
