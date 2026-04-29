@@ -316,7 +316,7 @@ class sync:
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class stepsize:
     async def on_get(self, req: Request, resp: Response, devnum: int):
-        resp.text = await MethodResponse(req, NotImplementedException())
+        resp.text = await PropertyResponse(1/3600, req)
 
 @before(PreProcessRequest(maxdev, 'log_rotator_protocol'))
 class halt:
