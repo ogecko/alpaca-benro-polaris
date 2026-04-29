@@ -1,12 +1,12 @@
 import sys
 import os
-from quaternion import Q as Quaternion
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
 import pytest
 import numpy as np
 from control import azaltroll_to_q, quaternion_to_angles, wrap360, calculate_angular_velocity_vector
 from control import theta_to_jacobian, theta_to_q, q_to_theta, LastPosition
+from quaternion import Q as Quaternion
 
 
 def approx_quaternion_to_angles(w,x,y,z):
