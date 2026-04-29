@@ -1,6 +1,6 @@
 import sys
 import os
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
 import pytest

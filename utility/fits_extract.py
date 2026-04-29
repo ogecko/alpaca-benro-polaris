@@ -64,7 +64,7 @@ except ImportError:
 
 try:
     import numpy as np
-    from pyquaternion import Quaternion
+    from quaternion import Q as Quaternion
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False

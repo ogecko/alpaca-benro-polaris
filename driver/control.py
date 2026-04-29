@@ -3,7 +3,7 @@ import datetime
 import json, os, re
 import logging
 from pathlib import Path
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 from config import Config
 from scipy.interpolate import PchipInterpolator
 from scipy.optimize import minimize
@@ -2282,7 +2282,7 @@ class SyncManager:
             return identity
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
-        q_full = Quaternion(axis=axis, angle=angle)
+        q_full = Quaternion(axis=axis, radians=angle)
 
         # Slerp between identity and full correction by weight
         weight = spatial_weight * temporal_weight
@@ -2305,7 +2305,7 @@ class SyncManager:
 
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
-        q_correction = Quaternion(axis=axis, angle=angle)
+        q_correction = Quaternion(axis=axis, radians=angle)
         self.alignQ_B2T = q_correction * self.alignQ_B2T
         self.alignQ_B2T_inv = self.alignQ_B2T.inverse
         self.scc_error = np.degrees(-angle)

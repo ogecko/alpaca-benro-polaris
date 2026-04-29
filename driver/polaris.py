@@ -29,7 +29,7 @@ import re
 import asyncio
 import ephem
 import numpy as np
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 from threading import Lock
 from logging import Logger
 from config import Config

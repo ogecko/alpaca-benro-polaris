@@ -10,7 +10,7 @@ from kinematics import calc_parallactic_angle
 
 import pytest
 import logging
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 
 import math
 

@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 import math
 import pytest
 import numpy as np
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 
 import kinematics as pm
 from kinematics import (

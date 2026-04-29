@@ -19,7 +19,7 @@ Contents
 
 import math
 import numpy as np
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
