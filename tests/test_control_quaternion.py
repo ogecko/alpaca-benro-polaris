@@ -8,12 +8,10 @@ from control import azaltroll_to_q, quaternion_to_angles, wrap360, calculate_ang
 from control import theta_to_jacobian, theta_to_q, q_to_theta, LastPosition, q_to_azaltroll
 from quaternion import Q as Quaternion
 
-
 def approx_quaternion_to_angles(w,x,y,z):
     q1=Quaternion(w,x,y,z)
-    az, alt, roll = q_to_azaltroll(q1)
-    t1, t2, t3 = q_to_theta(q1)
-    rounded = [float(round(x,1)) for x in [az,alt,roll,t1,t2,t3]]
+    results = quaternion_to_angles(q1)
+    rounded = [float(round(x,1)) for x in results]
     return str(rounded)
 
 def approx(array_input, precision=5):
@@ -174,7 +172,7 @@ def test_azaltroll_to_q():
     assert str(azaltroll_to_q(+150.0044,-5.0069,-0.0010,)) == str(Quaternion(-0.639,+0.338,+0.585,+0.369))   # 260, -2, -5
 
 def test_quaternion_to_angles():
-    #assert approx_quaternion_to_angles(-0.303, -0.629, +0.676, -0.237) == str([2.1, 45.0, 4.9, 9.0, 44.8, -4.9])
+    assert approx_quaternion_to_angles(-0.303, -0.629, +0.676, -0.237) == str([2.1, 45.0, 4.9, 9.0, 44.8, -4.9])
     assert approx_quaternion_to_angles(-0.382, +0.017, +0.923, +0.040) == str([90.1, 45.0, 4.9, 97.0, 44.8, -4.9])
     assert approx_quaternion_to_angles(+0.382, +0.017, -0.923, +0.040) == str([89.9, 45.0, -4.9, 83.0, 44.8, +4.9])
     assert approx_quaternion_to_angles(+0.217, -0.656, -0.708, -0.147) == str([177.0, 60.0, -5.1, 166.9, 59.6, 8.7])
