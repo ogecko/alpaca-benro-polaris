@@ -58,7 +58,10 @@ class Q:
     @property  
     def vector(self): return self.q[1:] 
     @property
-    def angle(self): return 2 * np.arccos(np.clip(self.q[0], -1.0, 1.0))
+    def angle(self): 
+        sin_half = np.linalg.norm(self.q[1:])
+        cos_half = self.q[0]
+        return 2.0 * np.arctan2(sin_half, cos_half)    
     @property
     def radians(self): return self.angle
     @property
