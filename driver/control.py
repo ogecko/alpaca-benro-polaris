@@ -1897,33 +1897,33 @@ class SyncManager:
 
 
 
-    def baseQ_to_topoQ(self, motorQ_C2B):
+    def baseQ_to_topoQ(self, motorQ_C2B_state):
         """
         Forward kinematics: Base frame → Topocentric frame.
         motorQ → [MAC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
         """
-        motorQ = motorQ_C2B
+        motorQ_C2B_pv = motorQ_C2B_state
 
         # Apply Mechanical Corrections (MAC)
         if Config.advanced_align_rbc:
-            self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B, self.params_RBC)
-            motorQ = self.corrQ_RBC * motorQ
+            self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B_state, self.params_RBC)
+            motorQ_C2B_pv = self.corrQ_RBC * motorQ_C2B_state
 
         # Apply alignQ_B2T model (QUEST)
-        cameraQ = self.alignQ_B2T * motorQ
+        cameraQ_C2T_pv = self.alignQ_B2T * motorQ_C2B_pv
 
         # Apply Local Gaussian Adjustment (LGA)
         if Config.advanced_slew_center and Config.advanced_align_lga:
-            self.corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ)
-            cameraQ = self.corrQ_LGA * cameraQ
+            self.corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ_C2T_pv)
+            cameraQ_C2T_pv = self.corrQ_LGA * cameraQ_C2T_pv
 
         # Apply roll sync adj (roll_adj)
         if self.roll_adj != 0:
-            boresight_T = cameraQ.rotate([0, 0, -1])
+            boresight_T = cameraQ_C2T_pv.rotate([0, 0, -1])
             corrQ_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
-            cameraQ = corrQ_roll * cameraQ
+            cameraQ_C2T_pv = corrQ_roll * cameraQ_C2T_pv
 
-        return cameraQ, motorQ
+        return cameraQ_C2T_pv, motorQ_C2B_pv
 
 
 
