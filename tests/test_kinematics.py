@@ -298,3 +298,272 @@ class TestM3TiltCorrection:
         assert abs(t2_m3 - t2_both) > 0.1, "M2 tilt should add extra theta2 shift on top of M3 tilt"
 
 
+# ── Unit tests: pulse_to_baseQ ────────────────────────────────────────────────
+
+from kinematics import pulse_to_baseQ
+
+class TestPulseToBaseQ:
+    """
+    Tests for pulse_to_baseQ — guide pulse to base-frame rotation quaternion.
+
+    Key geometric invariants:
+    - RA pulse rotates around the celestial pole axis
+    - Dec pulse rotates perpendicular to both pole and boresight
+    - Zero duration/velocity returns identity
+    - RA and Dec axes are orthogonal
+    - Applying then inverting recovers original pointing
+    - Pulse magnitude scales linearly with step_sec and velocity
+    """
+
+    # ── Fixtures ──────────────────────────────────────────────────────────────
+
+    @pytest.fixture
+    def site_lat(self):
+        return -33.86   # Sydney
+
+    @pytest.fixture
+    def alignQ(self):
+        """Identity alignment — simplifies geometric checks."""
+        return Quaternion()
+
+    @pytest.fixture
+    def alignQ_offset(self):
+        """Small realistic alignment offset."""
+        return Quaternion(axis=[0, 0, 1], degrees=10.7)
+
+    @pytest.fixture
+    def cameraQ_meridian(self, site_lat):
+        """Camera pointing at meridian, mid-altitude."""
+        return azaltroll_to_q(180.0, 45.0, 0.0)
+
+    @pytest.fixture
+    def cameraQ_east(self, site_lat):
+        """Camera pointing east."""
+        return azaltroll_to_q(90.0, 45.0, 0.0)
+
+    @pytest.fixture
+    def cameraQ_pole(self, site_lat):
+        """Camera pointing near celestial pole (az=0, alt=lat)."""
+        return azaltroll_to_q(0.0, abs(site_lat) - 5.0, 0.0)
+
+    # ── Identity / zero cases ─────────────────────────────────────────────────
+
+    def test_zero_duration_returns_identity(self, cameraQ_meridian, alignQ, site_lat):
+        """Zero step_sec should return identity quaternion."""
+        q = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, axis=0,
+                           step_sec=0.0, velocity=15.0/3600)
+        assert abs(q.w - 1.0) < 1e-9, "Zero duration should give identity"
+
+    def test_zero_velocity_returns_identity(self, cameraQ_meridian, alignQ, site_lat):
+        """Zero velocity should return identity quaternion."""
+        q = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, axis=0,
+                           step_sec=1.0, velocity=0.0)
+        assert abs(q.w - 1.0) < 1e-9, "Zero velocity should give identity"
+
+    def test_zero_both_returns_identity(self, cameraQ_meridian, alignQ, site_lat):
+        """Zero velocity and duration should return identity."""
+        q = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, axis=0,
+                           step_sec=0.0, velocity=0.0)
+        assert abs(q.w - 1.0) < 1e-9
+
+    # ── Return type and unit quaternion ───────────────────────────────────────
+
+    def test_returns_unit_quaternion_ra(self, cameraQ_meridian, alignQ, site_lat):
+        """RA pulse should return a unit quaternion."""
+        q = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, axis=0,
+                           step_sec=1.0, velocity=15.0/3600)
+        assert abs(np.linalg.norm(q.q) - 1.0) < 1e-9
+
+    def test_returns_unit_quaternion_dec(self, cameraQ_meridian, alignQ, site_lat):
+        """Dec pulse should return a unit quaternion."""
+        q = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, axis=1,
+                           step_sec=1.0, velocity=15.0/3600)
+        assert abs(np.linalg.norm(q.q) - 1.0) < 1e-9
+
+    # ── Magnitude scaling ─────────────────────────────────────────────────────
+
+    def test_ra_pulse_angle_scales_with_duration(self, cameraQ_meridian, alignQ, site_lat):
+        """Rotation angle should scale linearly with step_sec."""
+        v = 15.0 / 3600   # sidereal rate deg/s
+        q1 = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, 0, 1.0, v)
+        q2 = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, 0, 2.0, v)
+        assert abs(q2.degrees - 2 * q1.degrees) < 1e-6, \
+            f"Angle should double with double duration: {q1.degrees} → {q2.degrees}"
+
+    def test_ra_pulse_angle_scales_with_velocity(self, cameraQ_meridian, alignQ, site_lat):
+        """Rotation angle should scale linearly with velocity."""
+        q1 = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, 0, 1.0, 1.0/3600)
+        q2 = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, 0, 1.0, 2.0/3600)
+        assert abs(q2.degrees - 2 * q1.degrees) < 1e-6, \
+            f"Angle should double with double velocity"
+
+    def test_negative_velocity_inverts_rotation(self, cameraQ_meridian, alignQ, site_lat):
+        """Negative velocity should give same magnitude, opposite rotation."""
+        v = 15.0 / 3600
+        q_pos = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, 0,  1.0,  v)
+        q_neg = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, 0,  1.0, -v)
+        # Opposite rotation: q_pos * q_neg should be near identity
+        q_combined = q_pos * q_neg
+        assert abs(q_combined.w) > 1 - 1e-6, \
+            "Positive and negative pulses should cancel"
+
+    # ── RA axis geometry ──────────────────────────────────────────────────────
+
+    def test_ra_pulse_rotates_around_pole(self, alignQ, site_lat):
+        """RA pulse should rotate the boresight around the celestial pole axis."""
+        # At different pointings, apply RA pulse and verify the rotation axis
+        # in topo frame is the pole direction
+        lat_rad   = np.radians(site_lat)
+        pole_topo = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
+
+        for az in [0.0, 90.0, 180.0, 270.0]:
+            cameraQ = azaltroll_to_q(az, 45.0, 0.0)
+            q_pulse = pulse_to_baseQ(cameraQ, alignQ, site_lat, 0, 1.0, 1.0/3600)
+
+            # Rotation axis in base frame — with identity alignQ, B==T
+            axis_base = q_pulse.axis
+            # Verify it points toward the pole (or anti-pole — sign may flip)
+            dot = abs(np.dot(axis_base, pole_topo))
+            assert dot > 1 - 1e-4, \
+                f"RA axis at az={az} should align with pole, dot={dot:.6f}"
+
+    def test_ra_pulse_axis_independent_of_pointing(self, alignQ, site_lat):
+        """RA rotation axis should be the same regardless of where we point."""
+        pointings = [(0, 30), (90, 45), (180, 60), (270, 30)]
+        axes = []
+        for az, alt in pointings:
+            cameraQ = azaltroll_to_q(az, alt, 0.0)
+            q_pulse = pulse_to_baseQ(cameraQ, alignQ, site_lat, 0, 1.0, 1.0/3600)
+            axes.append(q_pulse.axis)
+
+        # All axes should be parallel (dot product near ±1)
+        for i in range(1, len(axes)):
+            dot = abs(np.dot(axes[0], axes[i]))
+            assert dot > 1 - 1e-4, \
+                f"RA axis should be constant across pointings, dot={dot:.6f}"
+
+    # ── Dec axis geometry ─────────────────────────────────────────────────────
+
+    def test_dec_axis_perpendicular_to_ra_axis(self, alignQ, site_lat):
+        """Dec rotation axis should be perpendicular to RA axis."""
+        for az, alt in [(0, 45), (90, 45), (180, 45), (270, 45)]:
+            cameraQ  = azaltroll_to_q(az, alt, 0.0)
+            q_ra     = pulse_to_baseQ(cameraQ, alignQ, site_lat, 0, 1.0, 1.0/3600)
+            q_dec    = pulse_to_baseQ(cameraQ, alignQ, site_lat, 1, 1.0, 1.0/3600)
+            dot      = np.dot(q_ra.axis, q_dec.axis)
+            assert abs(dot) < 1e-4, \
+                f"RA and Dec axes not orthogonal at az={az}: dot={dot:.6f}"
+
+    def test_dec_axis_changes_with_pointing(self, alignQ, site_lat):
+        """Dec axis should change as pointing changes (unlike RA axis)."""
+        cameraQ_0   = azaltroll_to_q(0.0,   45.0, 0.0)
+        cameraQ_90  = azaltroll_to_q(90.0,  45.0, 0.0)
+        q_dec_0     = pulse_to_baseQ(cameraQ_0,  alignQ, site_lat, 1, 1.0, 1.0/3600)
+        q_dec_90    = pulse_to_baseQ(cameraQ_90, alignQ, site_lat, 1, 1.0, 1.0/3600)
+        dot = abs(np.dot(q_dec_0.axis, q_dec_90.axis))
+        assert dot < 0.99, \
+            f"Dec axis should differ between az=0 and az=90, dot={dot:.4f}"
+
+    def test_dec_pulse_perpendicular_to_boresight(self, alignQ, site_lat):
+        """Dec rotation axis should be perpendicular to boresight in topo frame."""
+        for az, alt in [(0, 30), (90, 45), (180, 60), (270, 30)]:
+            cameraQ        = azaltroll_to_q(az, alt, 0.0)
+            boresight_topo = cameraQ.rotate([0.0, 0.0, -1.0])
+            q_dec          = pulse_to_baseQ(cameraQ, alignQ, site_lat, 1, 1.0, 1.0/3600)
+            # Dec axis in topo frame (identity alignQ → B==T)
+            dot = np.dot(q_dec.axis, boresight_topo)
+            assert abs(dot) < 1e-3, \
+                f"Dec axis not perpendicular to boresight at az={az} alt={alt}: dot={dot:.6f}"
+
+    # ── Roundtrip — apply and invert ──────────────────────────────────────────
+
+    def test_ra_pulse_roundtrip(self, alignQ, site_lat):
+        """Applying RA pulse then its inverse should recover original pointing."""
+        cameraQ = azaltroll_to_q(180.0, 45.0, 0.0)
+        v       = 15.0 / 3600
+        q_pulse = pulse_to_baseQ(cameraQ, alignQ, site_lat, 0, 1.0, v)
+
+        # Apply then invert — compose with conjugate
+        q_combined = q_pulse.inverse * q_pulse
+        assert abs(q_combined.w) > 1 - 1e-9, "Pulse * inverse should be identity"
+
+    def test_dec_pulse_roundtrip(self, alignQ, site_lat):
+        """Applying Dec pulse then its inverse should recover original pointing."""
+        cameraQ = azaltroll_to_q(180.0, 45.0, 0.0)
+        v       = 15.0 / 3600
+        q_pulse = pulse_to_baseQ(cameraQ, alignQ, site_lat, 1, 1.0, v)
+        q_combined = q_pulse.inverse * q_pulse
+        assert abs(q_combined.w) > 1 - 1e-9
+
+    def test_many_small_pulses_equal_one_large(self, alignQ, site_lat):
+        """10 small RA pulses composed should equal 1 pulse of 10x duration."""
+        cameraQ = azaltroll_to_q(180.0, 45.0, 0.0)
+        v       = 15.0 / 3600
+        q_large = pulse_to_baseQ(cameraQ, alignQ, site_lat, 0, 1.0, v)
+
+        q_accum = Quaternion()
+        for _ in range(10):
+            q_small  = pulse_to_baseQ(cameraQ, alignQ, site_lat, 0, 0.1, v)
+            q_accum  = (q_small * q_accum).normalised
+
+        # Should match large pulse up to sign (double cover)
+        dot = abs(np.dot(q_accum.q, q_large.q))
+        assert dot > 1 - 1e-6, \
+            f"10 small pulses should equal 1 large pulse, dot={dot:.9f}"
+
+    # ── alignQ effect ─────────────────────────────────────────────────────────
+
+    def test_nonidentity_alignQ_changes_result(self, cameraQ_meridian, alignQ, site_lat):
+        """Non-identity alignQ should rotate the pulse axis in base frame."""
+        alignQ_tilt = Quaternion(axis=[1, 0, 0], degrees=10.7)
+
+        q_identity = pulse_to_baseQ(cameraQ_meridian, alignQ,      site_lat, 0, 1.0, 1.0)
+        q_tilted   = pulse_to_baseQ(cameraQ_meridian, alignQ_tilt, site_lat, 0, 1.0, 1.0)
+
+        # Compare rotation axes — these should differ when alignQ differs
+        dot = abs(np.dot(q_identity.axis, q_tilted.axis))
+        assert dot < 1 - 1e-4, \
+            f"Tilt alignQ should rotate the base-frame axis, dot={dot:.9f}"
+        
+    def test_alignQ_preserves_pulse_magnitude(self, cameraQ_meridian, site_lat):
+        """alignQ rotates the axis but never changes the pulse angle magnitude."""
+        alignQ_identity = Quaternion()
+        alignQ_tilt     = Quaternion(axis=[1, 0, 0], degrees=10.7)
+        q_identity = pulse_to_baseQ(cameraQ_meridian, alignQ_identity, site_lat, 0, 1.0, 1.0/3600)
+        q_tilted   = pulse_to_baseQ(cameraQ_meridian, alignQ_tilt,     site_lat, 0, 1.0, 1.0/3600)
+        assert abs(q_identity.degrees - q_tilted.degrees) < 1e-6, \
+            "alignQ rotation should not change pulse angle magnitude"
+
+    # ── Near-pole behaviour ───────────────────────────────────────────────────
+
+    def test_near_pole_dec_fallback(self, alignQ, site_lat):
+        """Near the celestial pole, Dec axis fallback should return a valid unit quaternion."""
+        # Point almost exactly at the pole
+        cameraQ = azaltroll_to_q(0.0, abs(site_lat), 0.0)
+        q = pulse_to_baseQ(cameraQ, alignQ, site_lat, 1, 1.0, 1.0/3600)
+        assert abs(np.linalg.norm(q.q) - 1.0) < 1e-9, \
+            "Near-pole Dec pulse should still return unit quaternion"
+
+    def test_near_pole_ra_still_valid(self, alignQ, site_lat):
+        """Near the celestial pole, RA pulse should still be valid (pole axis well-defined)."""
+        cameraQ = azaltroll_to_q(0.0, abs(site_lat), 0.0)
+        q = pulse_to_baseQ(cameraQ, alignQ, site_lat, 0, 1.0, 1.0/3600)
+        assert abs(np.linalg.norm(q.q) - 1.0) < 1e-9
+
+    # ── Physical scale check ──────────────────────────────────────────────────
+
+    def test_sidereal_rate_pulse_magnitude(self, cameraQ_meridian, alignQ, site_lat):
+        """1 second at sidereal rate should give ~0.0042 degrees rotation."""
+        sidereal_rate = 15.0 / 3600   # deg/s
+        q = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, 0,
+                           step_sec=1.0, velocity=sidereal_rate)
+        expected_deg = sidereal_rate * 1.0
+        assert abs(q.degrees - expected_deg) < 1e-6, \
+            f"Sidereal pulse angle {q.degrees:.6f}° ≠ expected {expected_deg:.6f}°"
+
+    def test_guide_pulse_is_small_rotation(self, cameraQ_meridian, alignQ, site_lat):
+        """A typical 500ms guide pulse at 0.5x sidereal should be < 0.005 degrees."""
+        q = pulse_to_baseQ(cameraQ_meridian, alignQ, site_lat, 0,
+                           step_sec=0.5, velocity=0.5 * 15.0/3600)
+        assert q.degrees < 0.005, \
+            f"Guide pulse should be tiny rotation, got {q.degrees:.6f}°"

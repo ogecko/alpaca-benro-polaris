@@ -19,7 +19,7 @@ from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
 from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
 from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
-from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance
+from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance, pulse_to_baseQ
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -1544,7 +1544,8 @@ class PID_Controller():
                         step_sec = step_ms / 1000.0
                         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
                         self.delta_guide[axis] = velocity
-                        self.delta_offst[axis] += step_sec * velocity
+                        self.polaris._sm.accumulate_guide_pulses(self.polaris, axis, step_sec, velocity)
+                        # self.delta_offst[axis] += step_sec * velocity
                         self.delta_g_sp[axis] -= sign * step_ms
                         self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral and trends to zero
                     else:
@@ -1858,7 +1859,9 @@ class SyncManager:
         self.alignQ_B2T = Quaternion(1,0,0,0)       # cached adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # cached inverse adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_message = ""                # message from last optimisation
-        self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)     
+        self.q_guide_B = Quaternion(1,0,0,0)    # accumulation of pulse guide corrections
+        self.delta_guide_accum = np.zeros(3, dtype=float) 
+        self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)    
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
@@ -1908,6 +1911,9 @@ class SyncManager:
         if Config.advanced_align_rbc:
             self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B_state, self.params_RBC)
             motorQ_C2B_pv = self.corrQ_RBC * motorQ_C2B_state
+
+        # Apply Pulse Guide Corrections (PGC)
+        motorQ_C2B_pv = self.q_guide_B * motorQ_C2B_pv
 
         # Apply alignQ_B2T model (QUEST)
         cameraQ_C2T_pv = self.alignQ_B2T * motorQ_C2B_pv
@@ -2070,6 +2076,7 @@ class SyncManager:
         pairs = []
         weights = []
         self.params_RBC = MountModelParams.from_config(Config)
+        self.clear_guide_pulses()
 
 
         v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
@@ -2532,3 +2539,16 @@ class SyncManager:
         except Exception as e:
             self.logger.warning(f"Failed to load sync_points.json: {e}")
             return False
+
+    def accumulate_guide_pulses(self, polaris, axis, step_sec, velocity):
+        lat = polaris.sitelatitude
+        cameraQ_pv = polaris._cameraQ_pv
+        alignQ_B2T = self.alignQ_B2T 
+        q_pulse = pulse_to_baseQ(cameraQ_pv, alignQ_B2T, lat, axis, step_sec, velocity)
+        self.q_guide_B = (q_pulse * self.q_guide_B).normalised
+        self.delta_guide_accum[axis] += velocity*step_sec
+        polaris._cameraQ_pv = (q_pulse * polaris._cameraQ_pv).normalised
+    
+    def clear_guide_pulses(self):
+        self.delta_guide_accum = np.zeros(3, dtype=float)
+        self.q_guide_B = Quaternion(1,0,0,0)
