@@ -338,66 +338,6 @@ class LastPosition:
             self.in_gimbal_lock = False
         return self.in_gimbal_lock
 
-
-def q_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
-    """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
-    q1 = motorQ_C2B
-
-    # --- Camera Up and Boresight vector in topo frame
-    tUp = q1.rotate(np.array([1, 0, 0]))
-    tBore = q1.rotate(np.array([0, 0, -1]))
-
-    # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
-    q4 = q1 * Quaternion(axis=np.array([1, 0, 0]), degrees=180) 
-    theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
-
-    def extract_theta_given_theta3(tUp, tBore, theta3):
-        """ Calc Theta1 and Theta2 based on removing Theta3 pan """
-        unTheta3Pan = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
-        mBore = unTheta3Pan.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module effect
-        theta1 = wrap360(np.degrees(np.arctan2(mBore[0], mBore[1])))
-        theta2 = wrap90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
-        return theta1, theta2, wrap180(theta3)
-
-    # --- Find the two solutions based on theta3 being pointing one way or the opposite
-    theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
-    theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
-
-    # Check each solution for valid mechanical range of theta2
-    theta2_min, theta2_max = -8, 83
-    validA = theta2_min <= theta2_A <= theta2_max
-    validB = theta2_min <= theta2_B <= theta2_max
-
-    # Choose a solution
-    if validA and not validB:
-        theta1, theta2, theta3 = theta1_A, theta2_A, theta3_A
-    elif validB and not validA:
-        theta1, theta2, theta3 = theta1_B, theta2_B, theta3_B
-    elif validA and validB:
-        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A)
-        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B)
-        theta1, theta2, theta3 = (theta1_A, theta2_A, theta3_A) if diffA < diffB else (theta1_B, theta2_B, theta3_B)
-    else:
-        # Both candidates out of θ2 bounds
-        def dist_to_range(t2):
-            if t2 < theta2_min: return theta2_min - t2
-            if t2 > theta2_max: return t2 - theta2_max
-            return 0.0
-        if dist_to_range(theta2_A) <= dist_to_range(theta2_B):
-            theta1, theta2, theta3 = theta1_A, np.clip(theta2_A, theta2_min, theta2_max), theta3_A
-        else:
-            theta1, theta2, theta3 = theta1_B, np.clip(theta2_B, theta2_min, theta2_max), theta3_B
-
-    # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
-    in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
-    if in_gimbal_lock:
-        locked_sum = wrap360(theta1 + theta3)
-        theta3 = 0
-        theta1 = locked_sum
-
-    return theta1, theta2, theta3
-
-
 def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     q1 = motorQ_C2B
     
