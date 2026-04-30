@@ -3,7 +3,7 @@ import datetime
 import json, os, re
 import logging
 from pathlib import Path
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 from config import Config
 from scipy.interpolate import PchipInterpolator
 from scipy.optimize import minimize
@@ -19,7 +19,7 @@ from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
 from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
 from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
-from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance
+from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance, pulse_to_baseQ
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -215,15 +215,23 @@ def calculate_angular_velocity_vector(q0: Quaternion, q1: Quaternion, dt: float)
     # Check for no duration
     if dt <= 0:
         return np.zeros(3, dtype=float)
+
     # Rotation from q0 → q1
     q_delta = q1 * q0.inverse
+
+    # Ensure shortest path
+    if q_delta.w < 0:
+        q_delta = Quaternion(array=-q_delta.q)
+
     # Decompose q_delta
     angle_rad = np.radians(q_delta.degrees)
     axis = np.array(q_delta.axis)
     axis_norm = np.linalg.norm(axis)
+
     # Check for no rotation → zero angular velocity
     if axis_norm < 1e-12 or angle_rad == 0.0:
         return np.zeros(3, dtype=float)
+
     # Angular velocity ω = axis * (angle / dt)
     omega = axis / axis_norm * (angle_rad / dt)
     return omega
@@ -329,66 +337,6 @@ class LastPosition:
         elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
             self.in_gimbal_lock = False
         return self.in_gimbal_lock
-
-
-def q_to_theta_v1(motorQ_C2B, lastPos=LastPosition()):
-    """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
-    q1 = motorQ_C2B
-
-    # --- Camera Up and Boresight vector in topo frame
-    tUp = q1.rotate(np.array([1, 0, 0]))
-    tBore = q1.rotate(np.array([0, 0, -1]))
-
-    # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
-    q4 = q1 * Quaternion(axis=np.array([1, 0, 0]), degrees=180) 
-    theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
-
-    def extract_theta_given_theta3(tUp, tBore, theta3):
-        """ Calc Theta1 and Theta2 based on removing Theta3 pan """
-        unTheta3Pan = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
-        mBore = unTheta3Pan.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module effect
-        theta1 = wrap360(np.degrees(np.arctan2(mBore[0], mBore[1])))
-        theta2 = wrap90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
-        return theta1, theta2, wrap180(theta3)
-
-    # --- Find the two solutions based on theta3 being pointing one way or the opposite
-    theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
-    theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
-
-    # Check each solution for valid mechanical range of theta2
-    theta2_min, theta2_max = -8, 83
-    validA = theta2_min <= theta2_A <= theta2_max
-    validB = theta2_min <= theta2_B <= theta2_max
-
-    # Choose a solution
-    if validA and not validB:
-        theta1, theta2, theta3 = theta1_A, theta2_A, theta3_A
-    elif validB and not validA:
-        theta1, theta2, theta3 = theta1_B, theta2_B, theta3_B
-    elif validA and validB:
-        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A)
-        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B)
-        theta1, theta2, theta3 = (theta1_A, theta2_A, theta3_A) if diffA < diffB else (theta1_B, theta2_B, theta3_B)
-    else:
-        # Both candidates out of θ2 bounds
-        def dist_to_range(t2):
-            if t2 < theta2_min: return theta2_min - t2
-            if t2 > theta2_max: return t2 - theta2_max
-            return 0.0
-        if dist_to_range(theta2_A) <= dist_to_range(theta2_B):
-            theta1, theta2, theta3 = theta1_A, np.clip(theta2_A, theta2_min, theta2_max), theta3_A
-        else:
-            theta1, theta2, theta3 = theta1_B, np.clip(theta2_B, theta2_min, theta2_max), theta3_B
-
-    # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
-    in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
-    if in_gimbal_lock:
-        locked_sum = wrap360(theta1 + theta3)
-        theta3 = 0
-        theta1 = locked_sum
-
-    return theta1, theta2, theta3
-
 
 def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     q1 = motorQ_C2B
@@ -1458,7 +1406,12 @@ class PID_Controller():
         else:
             self.logger.warning(f"Invalid pulse guide direction: {direction}")
             return
+
         # accumulate the pulse guide durations on the relevant axis
+        step_sec = abs(duration)/1000
+        velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
+        self.polaris._sm.accumulate_guide_pulses(self.polaris, axis, step_sec, velocity)
+        # store in delta_g_sp as well for isguiding flag
         with self._lock:
             current = self.delta_g_sp[axis]
             proposed = current + sign * duration
@@ -1596,7 +1549,8 @@ class PID_Controller():
                         step_sec = step_ms / 1000.0
                         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
                         self.delta_guide[axis] = velocity
-                        self.delta_offst[axis] += step_sec * velocity
+                        # self.polaris._sm.accumulate_guide_pulses(self.polaris, axis, step_sec, velocity)
+                        # self.delta_offst[axis] += step_sec * velocity
                         self.delta_g_sp[axis] -= sign * step_ms
                         self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral and trends to zero
                     else:
@@ -1910,7 +1864,9 @@ class SyncManager:
         self.alignQ_B2T = Quaternion(1,0,0,0)       # cached adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # cached inverse adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_message = ""                # message from last optimisation
-        self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)     
+        self.q_guide_B = Quaternion(1,0,0,0)    # accumulation of pulse guide corrections
+        self.delta_guide_accum = np.zeros(3, dtype=float) 
+        self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)    
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
@@ -1949,33 +1905,36 @@ class SyncManager:
 
 
 
-    def baseQ_to_topoQ(self, motorQ_C2B):
+    def baseQ_to_topoQ(self, motorQ_C2B_state):
         """
         Forward kinematics: Base frame → Topocentric frame.
         motorQ → [MAC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
         """
-        motorQ = motorQ_C2B
+        motorQ_C2B_pv = motorQ_C2B_state
 
         # Apply Mechanical Corrections (MAC)
         if Config.advanced_align_rbc:
-            self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B, self.params_RBC)
-            motorQ = self.corrQ_RBC * motorQ
+            self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B_state, self.params_RBC)
+            motorQ_C2B_pv = self.corrQ_RBC * motorQ_C2B_state
+
+        # Apply Pulse Guide Corrections (PGC)
+        motorQ_C2B_pv = self.q_guide_B * motorQ_C2B_pv
 
         # Apply alignQ_B2T model (QUEST)
-        cameraQ = self.alignQ_B2T * motorQ
+        cameraQ_C2T_pv = self.alignQ_B2T * motorQ_C2B_pv
 
         # Apply Local Gaussian Adjustment (LGA)
         if Config.advanced_slew_center and Config.advanced_align_lga:
-            self.corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ)
-            cameraQ = self.corrQ_LGA * cameraQ
+            self.corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ_C2T_pv)
+            cameraQ_C2T_pv = self.corrQ_LGA * cameraQ_C2T_pv
 
         # Apply roll sync adj (roll_adj)
         if self.roll_adj != 0:
-            boresight_T = cameraQ.rotate([0, 0, -1])
+            boresight_T = cameraQ_C2T_pv.rotate([0, 0, -1])
             corrQ_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
-            cameraQ = corrQ_roll * cameraQ
+            cameraQ_C2T_pv = corrQ_roll * cameraQ_C2T_pv
 
-        return cameraQ, motorQ
+        return cameraQ_C2T_pv, motorQ_C2B_pv
 
 
 
@@ -2122,6 +2081,7 @@ class SyncManager:
         pairs = []
         weights = []
         self.params_RBC = MountModelParams.from_config(Config)
+        self.clear_guide_pulses()
 
 
         v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
@@ -2255,10 +2215,12 @@ class SyncManager:
         if self.last_sync_time is None:
             return identity
         
-        dt = time.monotonic() - self.last_sync_time
-        temporal_weight = math.exp(-(dt ** 2) / (2 * sigma_sec ** 2))
-        if temporal_weight < 1e-3:                   # effectively zero after ~3 sigma
-            return identity
+        # Disable Temporal weight
+        temporal_weight = 1
+        # dt = time.monotonic() - self.last_sync_time
+        # temporal_weight = math.exp(-(dt ** 2) / (2 * sigma_sec ** 2))
+        # if temporal_weight < 1e-3:                   # effectively zero after ~3 sigma
+        #     return identity
         
         # ---- Spatial Gaussian -----------------------------------------------
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
@@ -2282,7 +2244,7 @@ class SyncManager:
             return identity
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
-        q_full = Quaternion(axis=axis, angle=angle)
+        q_full = Quaternion(axis=axis, radians=angle)
 
         # Slerp between identity and full correction by weight
         weight = spatial_weight * temporal_weight
@@ -2305,7 +2267,7 @@ class SyncManager:
 
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
-        q_correction = Quaternion(axis=axis, angle=angle)
+        q_correction = Quaternion(axis=axis, radians=angle)
         self.alignQ_B2T = q_correction * self.alignQ_B2T
         self.alignQ_B2T_inv = self.alignQ_B2T.inverse
         self.scc_error = np.degrees(-angle)
@@ -2582,3 +2544,16 @@ class SyncManager:
         except Exception as e:
             self.logger.warning(f"Failed to load sync_points.json: {e}")
             return False
+
+    def accumulate_guide_pulses(self, polaris, axis, step_sec, velocity):
+        lat = polaris.sitelatitude
+        cameraQ_pv = polaris._cameraQ_pv
+        alignQ_B2T = self.alignQ_B2T 
+        q_pulse = pulse_to_baseQ(cameraQ_pv, alignQ_B2T, lat, axis, step_sec, velocity)
+        self.q_guide_B = (q_pulse * self.q_guide_B).normalised
+        self.delta_guide_accum[axis] += velocity*step_sec
+        polaris._cameraQ_pv = (q_pulse * polaris._cameraQ_pv).normalised
+    
+    def clear_guide_pulses(self):
+        self.delta_guide_accum = np.zeros(3, dtype=float)
+        self.q_guide_B = Quaternion(1,0,0,0)

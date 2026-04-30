@@ -1,13 +1,12 @@
 import sys
 import os
-from pyquaternion import Quaternion
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
 import pytest
 import numpy as np
 from control import azaltroll_to_q, quaternion_to_angles, wrap360, calculate_angular_velocity_vector
-from control import theta_to_jacobian, theta_to_q, q_to_theta, LastPosition
-
+from control import theta_to_jacobian, theta_to_q, q_to_theta, LastPosition, q_to_azaltroll
+from quaternion import Q as Quaternion
 
 def approx_quaternion_to_angles(w,x,y,z):
     q1=Quaternion(w,x,y,z)
@@ -242,8 +241,7 @@ test_misc_azaltroll_cases = [
 def test_misc_azaltroll_angles_to_q1_roundtrip(n, az, alt, roll):
     az1,alt1,roll1 = approx( [az,alt,roll] )
     q1 = azaltroll_to_q(az, alt, roll)
-    angles = quaternion_to_angles(q1, lastPos=LastPosition(180,30,0))
-    _,_,_,az2,alt2,roll2 = approx( angles )
+    az2,alt2,roll2 = approx(q_to_azaltroll(q1))
     assert str([f'C{n}', az2,alt2,roll2]) == str([f'C{n}', az1,alt1,roll1])
 
 @pytest.mark.parametrize("n, t1, t2, t3", test_misc_azaltroll_cases)
@@ -278,8 +276,9 @@ def test_zeroalt_motor_positions():
 
 # --- Jacobian finite-difference test ---
 @pytest.mark.parametrize("theta1, theta2, theta3", [
-    (0, 0, 0),
+
     (45, 10, 5),
+    (0, 0, 0),
     (90, 30, -20),
     (180, 45, 0),
     (270, 60, 30),

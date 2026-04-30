@@ -597,7 +597,7 @@ _system_cpu_top5_cache     = ""
 _system_cpu_probe_task     = None   # task to run cpu probes
 _system_cpu_loop           = None   # main event loop
 _system_cpu_probe_last_run = 0.0
-_system_cpu_probe_debounce = 10     # min seconds between cpu probe
+_system_cpu_probe_debounce = 10     # minimum seconds between cpu probe
 _system_cpu_count = psutil.cpu_count(logical=True)
 
 def system_vitals_init(loop):
@@ -606,7 +606,7 @@ def system_vitals_init(loop):
     _system_cpu_loop = loop
 
 def system_cpu_start_probe():
-    global _system_cpu_probe_task, _system_cpu_probe_last_run
+    global _system_cpu_probe_task
     if _system_cpu_loop is None:
         return
     since      = _system_cpu_loop.time() - _system_cpu_probe_last_run

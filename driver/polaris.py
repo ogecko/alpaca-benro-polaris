@@ -29,7 +29,7 @@ import re
 import asyncio
 import ephem
 import numpy as np
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 from threading import Lock
 from logging import Logger
 from config import Config
@@ -621,10 +621,10 @@ class Polaris:
                 self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
 
             if Config.log_pec:
-                self.logger.info(f"PECLOG, {p_yaw:+12.7f}, {p_pitch:+12.7f}, {p_roll:+12.7f}, " +
-                                 f"{self._pid.alpha_pv[0]:+12.7f}, {self._pid.alpha_pv[1]:+12.7f}, {self._pid.alpha_pv[2]:+12.7f}, " +
-                                 f"{self._pid.delta_pv[0]:+12.7f}, {self._pid.delta_pv[1]:+12.7f}, {self._pid.delta_pv[2]:+12.7f}, " +
-                                 f"{self._pid.delta_offst[0]:+11.9f}, {self._pid.delta_offst[1]:+11.9f}")
+                self.logger.info(f"PECLOG, {p_yaw:+12.5f}, {p_pitch:+12.5f}, {p_roll:+12.5f}, " +
+                                 f"{self._pid.theta_pv[0]:+12.5f}, {self._pid.theta_pv[1]:+12.5f}, {self._pid.theta_pv[2]:+12.5f}, " +
+                                 f"{self._pid.alpha_pv[0]:+12.5f}, {self._pid.alpha_pv[1]:+12.5f}, {self._pid.alpha_pv[2]:+12.5f}, " +
+                                 f"{self._sm.delta_guide_accum[0]:+12.5f}, {self._sm.delta_guide_accum[1]:+12.5f}, {self._sm.delta_guide_accum[2]:+12.5f}")
 
 
         # return result of POSITION update from AHRS {} 

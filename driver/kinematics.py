@@ -19,7 +19,7 @@ Contents
 
 import math
 import numpy as np
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
@@ -586,3 +586,54 @@ def quest_solve(sync_pairs: List[Tuple[Quaternion, Quaternion]]) -> Quaternion:
     D = np.diag([1.0, 1.0, d])
     R = U @ D @ Vt
     return Quaternion(matrix=R)
+
+# ── Pulse Guiding ──────────────────────────────────────────────────────────
+
+def pulse_to_baseQ(cameraQ_C2T: Quaternion, alignQ_B2T: Quaternion, site_lat: float, 
+                   axis: int, step_sec: float, velocity: float) -> Quaternion:
+    """
+    Convert a guide pulse to a rotation quaternion in base (B) frame.
+
+    Args:
+        cameraQ_C2T:  current camera→topo quaternion (fully corrected pv)
+        lat:          Site latitude in degrees
+        axis:         0 = RA, 1 = Dec
+        step_sec:     pulse duration in seconds
+        velocity:     guide rate in deg/s (signed)
+
+    Returns:
+        Small rotation quaternion in B frame to compose into q_guide_B
+    """
+    angle_deg = velocity * step_sec
+    if abs(angle_deg) < 1e-9:
+        return Quaternion()
+
+    # ── Celestial pole in topo frame ──────────────────────────────────────
+    lat_rad    = np.radians(site_lat)
+    pole_topo  = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
+
+    # ── Boresight in topo frame ───────────────────────────────────────────
+    # Camera frame: -z = boresight, so rotate [0,0,-1] into topo
+    boresight_topo = cameraQ_C2T.rotate([0.0, 0.0, -1.0])
+
+    # ── RA and Dec axes in topo frame ─────────────────────────────────────
+    if axis == 0:   # RA — rotate around celestial pole
+        axis_topo = pole_topo
+
+    else:           # Dec — perpendicular to pole and boresight
+        axis_topo = np.cross(pole_topo, boresight_topo)
+        n = np.linalg.norm(axis_topo)
+        if n < 1e-6:
+            # Boresight is aligned with pole — Dec axis undefined (pointing at pole)
+            # Fall back to east vector
+            axis_topo = np.array([1.0, 0.0, 0.0])
+        else:
+            axis_topo = axis_topo / n
+
+    # ── Rotate axis from topo (T) into base (B) frame ────────────────────
+    # cameraQ_C2T rotates C→T, its inverse rotates T→C
+    # alignQ_B2T rotates B→T, its inverse rotates T→B
+    axis_base = alignQ_B2T.inverse.rotate(axis_topo)
+    axis_base = axis_base / np.linalg.norm(axis_base)
+
+    return Quaternion(axis=axis_base, degrees=angle_deg)
