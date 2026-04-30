@@ -215,15 +215,23 @@ def calculate_angular_velocity_vector(q0: Quaternion, q1: Quaternion, dt: float)
     # Check for no duration
     if dt <= 0:
         return np.zeros(3, dtype=float)
+
     # Rotation from q0 → q1
     q_delta = q1 * q0.inverse
+
+    # Ensure shortest path
+    if q_delta.w < 0:
+        q_delta = Quaternion(array=-q_delta.q)
+
     # Decompose q_delta
     angle_rad = np.radians(q_delta.degrees)
     axis = np.array(q_delta.axis)
     axis_norm = np.linalg.norm(axis)
+
     # Check for no rotation → zero angular velocity
     if axis_norm < 1e-12 or angle_rad == 0.0:
         return np.zeros(3, dtype=float)
+
     # Angular velocity ω = axis * (angle / dt)
     omega = axis / axis_norm * (angle_rad / dt)
     return omega
