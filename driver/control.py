@@ -1406,7 +1406,12 @@ class PID_Controller():
         else:
             self.logger.warning(f"Invalid pulse guide direction: {direction}")
             return
+
         # accumulate the pulse guide durations on the relevant axis
+        step_sec = abs(duration)/1000
+        velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
+        self.polaris._sm.accumulate_guide_pulses(self.polaris, axis, step_sec, velocity)
+        # store in delta_g_sp as well for isguiding flag
         with self._lock:
             current = self.delta_g_sp[axis]
             proposed = current + sign * duration
@@ -1544,7 +1549,7 @@ class PID_Controller():
                         step_sec = step_ms / 1000.0
                         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
                         self.delta_guide[axis] = velocity
-                        self.polaris._sm.accumulate_guide_pulses(self.polaris, axis, step_sec, velocity)
+                        # self.polaris._sm.accumulate_guide_pulses(self.polaris, axis, step_sec, velocity)
                         # self.delta_offst[axis] += step_sec * velocity
                         self.delta_g_sp[axis] -= sign * step_ms
                         self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral and trends to zero
