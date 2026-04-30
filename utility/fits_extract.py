@@ -45,7 +45,7 @@ All output uses ASCII only so stdout can be redirected to a text file.
 
 Dependencies
 ------------
-  pip install astropy ephem pyquaternion numpy scipy
+  pip install astropy ephem numpy scipy
 """
 
 import csv
@@ -68,7 +68,7 @@ try:
     HAS_NUMPY = True
 except ImportError:
     HAS_NUMPY = False
-    print("WARNING: numpy/pyquaternion not available.")
+    print("WARNING: numpy/quaternion not available.")
 
 try:
     from scipy.optimize import curve_fit
