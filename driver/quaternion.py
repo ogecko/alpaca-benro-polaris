@@ -10,6 +10,10 @@ class Q:
 
     def __init__(self, w=1.0, x=0.0, y=0.0, z=0.0, array=None, 
                 axis=None, radians=None, degrees=None, matrix=None):
+        # Coerce scalars and strings to float before branch logic
+        if isinstance(w, (int, float, str, np.floating, np.integer)):
+            w, x, y, z = float(w), float(x), float(y), float(z)
+        
         if matrix is not None:
             self.q = Q.from_matrix(np.asarray(matrix, dtype=float)).q
         elif axis is not None:
@@ -25,11 +29,11 @@ class Q:
             self.q = np.array([np.cos(a / 2), ax[0]*s, ax[1]*s, ax[2]*s])
         elif array is not None:
             self.q = np.asarray(array, dtype=float)
-        elif hasattr(w, '__len__') or isinstance(w, np.ndarray):
-            # pyquaternion accepts Quaternion([w, x, y, z]) as first positional arg
-            self.q = np.asarray(w, dtype=float)
+        elif hasattr(w, '__len__') or (isinstance(w, np.ndarray) and w.ndim == 4):
+            self.q = np.asarray(w, dtype=float).ravel()
         else:
             self.q = np.array([w, x, y, z], dtype=float)
+        assert self.q.shape == (4,), f"Q: bad shape {self.q.shape}, input w={w}"
 
     # ── properties ────────────────────────────────────────────────────────
     @property
