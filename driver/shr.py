@@ -606,7 +606,7 @@ def system_vitals_init(loop):
     _system_cpu_loop = loop
 
 def system_cpu_start_probe():
-    global _system_cpu_probe_task, _system_cpu_probe_last_run
+    global _system_cpu_probe_task
     if _system_cpu_loop is None:
         return
     since      = _system_cpu_loop.time() - _system_cpu_probe_last_run
