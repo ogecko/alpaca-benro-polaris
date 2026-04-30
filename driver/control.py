@@ -2203,10 +2203,12 @@ class SyncManager:
         if self.last_sync_time is None:
             return identity
         
-        dt = time.monotonic() - self.last_sync_time
-        temporal_weight = math.exp(-(dt ** 2) / (2 * sigma_sec ** 2))
-        if temporal_weight < 1e-3:                   # effectively zero after ~3 sigma
-            return identity
+        # Disable Temporal weight
+        temporal_weight = 1
+        # dt = time.monotonic() - self.last_sync_time
+        # temporal_weight = math.exp(-(dt ** 2) / (2 * sigma_sec ** 2))
+        # if temporal_weight < 1e-3:                   # effectively zero after ~3 sigma
+        #     return identity
         
         # ---- Spatial Gaussian -----------------------------------------------
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
