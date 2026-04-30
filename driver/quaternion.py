@@ -93,7 +93,7 @@ class Q:
         return NotImplemented
 
     def __neg__(self): return Q(array=-self.q)
-    def __repr__(self): return f'Q(w={self.w:.4f} x={self.x:.4f} y={self.y:.4f} z={self.z:.4f})'
+    def __repr__(self): return f'Q(w={self.w:.3f} x={self.x:.3f} y={self.y:.3f} z={self.z:.3f})'
 
     # ── rotation ──────────────────────────────────────────────────────────
     def rotate(self, v):
