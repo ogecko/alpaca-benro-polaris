@@ -2555,8 +2555,10 @@ class SyncManager:
 
     def accumulate_guide_pulses(self, axis, step_sec, velocity):
         axis_base = self.equatorial_axes_B[axis]
+        if axis_base is None:
+            return Quaternion()
         angle_deg = velocity * step_sec
-        if angle_deg < 1e-9 or axis_base is None:
+        if abs(angle_deg) < 1e-9:
             return Quaternion()
         q_pulse = Quaternion(axis=axis_base, degrees=angle_deg)
         self.q_guide_B = (q_pulse * self.q_guide_B).normalised
