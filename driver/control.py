@@ -2548,8 +2548,8 @@ class SyncManager:
     def accumulate_guide_pulses(self, polaris, axis, step_sec, velocity):
         lat = polaris.sitelatitude
         cameraQ_pv = polaris._cameraQ_pv
-        alignQ_B2T = self.alignQ_B2T 
-        q_pulse = pulse_to_baseQ(cameraQ_pv, alignQ_B2T, lat, axis, step_sec, velocity)
+        alignQ_B2T_inv = self.alignQ_B2T_inv 
+        q_pulse = pulse_to_baseQ(cameraQ_pv, alignQ_B2T_inv, lat, axis, step_sec, velocity)
         self.q_guide_B = (q_pulse * self.q_guide_B).normalised
         self.delta_guide_accum[axis] += velocity*step_sec
         polaris._cameraQ_pv = (q_pulse * polaris._cameraQ_pv).normalised
