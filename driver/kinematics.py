@@ -589,71 +589,37 @@ def quest_solve(sync_pairs: List[Tuple[Quaternion, Quaternion]]) -> Quaternion:
 
 # ── Pulse Guiding ──────────────────────────────────────────────────────────
 
-def radecpa_to_baseQ(cameraQ_C2T: Quaternion, alignQ_B2T_inv: Quaternion, 
-                     site_lat: float, delta_deg: np.ndarray) -> Quaternion:
-    """
-    Convert RA, Dec and Position Angle offsets into a single rotation quaternion
-    in base (B) frame. The three offsets are composed in order: RA, Dec, PA.
-
-    Args:
-        cameraQ_C2T:      current camera→topo quaternion (fully corrected pv)
-        alignQ_B2T_inv:   alignment quaternion T→B
-        site_lat:         site latitude in degrees
-        delta_deg:        [ra_deg, dec_deg, pa_deg] offsets in degrees
-
-    Returns:
-        Rotation quaternion in base (B) frame
-    """
-    ra_deg, dec_deg, pa_deg = delta_deg
-
+def calc_equatorial_axes_B(cameraQ_C2T: Quaternion, alignQ_B2T_inv: Quaternion, site_lat: float):
     # ── RA Axis - Celestial pole in topo frame ──────────────────────────────────────
     lat_rad   = np.radians(site_lat)
     ra_axis_topo = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
 
     # ── PA axis — boresight itself (rotation around line of sight) ────────
-    boresight_topo = cameraQ_C2T.rotate([0.0, 0.0, -1.0])
-    pa_axis_topo = boresight_topo / np.linalg.norm(boresight_topo)
+    pa_axis_topo = cameraQ_C2T.rotate([0.0, 0.0, -1.0])
 
     # ── Dec axis — perpendicular to pole and boresight. Fallback near pole ───────
-    dec_axis_topo = np.cross(ra_axis_topo, boresight_topo)
+    dec_axis_topo = np.cross(ra_axis_topo, pa_axis_topo)
     n = np.linalg.norm(dec_axis_topo)
-    dec_axis_topo = dec_axis_topo / n if n >= 1e-6 else np.array([1.0, 0.0, 0.0])
+    if n < 1e-6:
+        dec_axis_topo = np.array([1.0, 0.0, 0.0])   # fallback near pole
+    else:
+        dec_axis_topo /= n
+        # Ensure +Dec = northward: rotating boresight around dec_axis
+        # by a small positive angle should increase the north (+y) component.
+        # Test by checking cross product of dec_axis with boresight — if it
+        # has a negative y component the axis is pointing the wrong way.
+        nudged = np.cross(dec_axis_topo, pa_axis_topo)
+        if nudged[1] < 0:
+            dec_axis_topo = -dec_axis_topo
 
-    # ── Build quaternion per axis in topo, rotate to base, compose ────────
-    q_result = Quaternion()   # identity
+    ra_axis_B  = alignQ_B2T_inv.rotate(ra_axis_topo)
+    dec_axis_B = alignQ_B2T_inv.rotate(dec_axis_topo)
+    pa_axis_B  = alignQ_B2T_inv.rotate(pa_axis_topo)
 
-    for axis_topo, angle_deg in [
-        (ra_axis_topo,  ra_deg),   # RA  — around celestial pole
-        (dec_axis_topo, dec_deg),  # Dec — perpendicular to pole and boresight
-        (pa_axis_topo,  pa_deg),   # PA  — around boresight
-    ]:
-        if abs(angle_deg) < 1e-9:
-            continue
-        axis_base = alignQ_B2T_inv.rotate(axis_topo)
-        axis_base = axis_base / np.linalg.norm(axis_base)
-        q = Quaternion(axis=axis_base, degrees=angle_deg)
-        q_result = (q * q_result).normalised
+    equatorial_axes_B = (
+        ra_axis_B  / np.linalg.norm(ra_axis_B),
+        dec_axis_B / np.linalg.norm(dec_axis_B),
+        pa_axis_B  / np.linalg.norm(pa_axis_B),
+    )
+    return equatorial_axes_B
 
-    return q_result
-
-
-def pulse_to_baseQ(cameraQ_C2T: Quaternion, alignQ_B2T_inv: Quaternion, site_lat: float,
-                   axis: int, step_sec: float, velocity: float) -> Quaternion:
-    """
-    Convert a guide pulse to a rotation quaternion in base (B) frame.
-
-    Args:
-        cameraQ_C2T:      current camera→topo quaternion (fully corrected pv)
-        alignQ_B2T_inv:   alignment quaternion T→B
-        site_lat:         site latitude in degrees
-        axis:             0 = RA, 1 = Dec, 2 = PA
-        step_sec:         pulse duration in seconds
-        velocity:         guide rate in deg/s (signed)
-
-    Returns:
-        Small rotation quaternion in base (B) frame
-    """
-    angle_deg = velocity * step_sec
-    delta_deg = np.zeros(3)
-    delta_deg[axis] = angle_deg   # axis 0=RA, 1=Dec, 2=PA
-    return radecpa_to_baseQ(cameraQ_C2T, alignQ_B2T_inv, site_lat, delta_deg)

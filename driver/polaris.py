@@ -37,8 +37,6 @@ from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, system_vitals
 from control import theta_to_q, q_to_theta, q_to_azaltroll
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
-from kinematics import apply_mechanical_corrections, MountModelParams
-from kinematics import wrap360, wrap180, wrap90
 from ble_service import BLE_Controller
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}
@@ -642,6 +640,8 @@ class Polaris:
             # Translate from Base Frame to Topo Frame [MAC] -> QUEST -> [LGA] -> [RollAdj]
             cameraQ_pv, motorQ_pv = self._sm.baseQ_to_topoQ(motorQ_state)
             theta_pv = np.array(q_to_theta(motorQ_pv, self._pid._lp))
+            # update cache of equatorial axes, used by pulse guiding and MAC corrections
+            self._sm.cache_equatorial_axes_B(cameraQ_pv, self.sitelatitude)
 
             # update all the Sky Positions (p_*=kf_state;  a_*= pid_pv) and the PID loop
             delta_pv, alpha_pv = self.update_sky_positions(motorQ_state, cameraQ_pv)

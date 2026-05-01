@@ -19,7 +19,7 @@ from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
 from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
 from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
-from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance, pulse_to_baseQ
+from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance, calc_equatorial_axes_B
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -1399,23 +1399,28 @@ class PID_Controller():
             return
         axis = None
         sign = 0
-        if direction == 0: axis, sign = 1, +1    # North
-        elif direction == 1: axis, sign = 1, -1  # South
-        elif direction == 2: axis, sign = 0, +1  # East
-        elif direction == 3: axis, sign = 0, -1  # West
+        if direction == 0: axis, sign = 1, -1    # North DEC +ve
+        elif direction == 1: axis, sign = 1, +1  # South DEC -ve
+        elif direction == 2: axis, sign = 0, +1  # East RA +ve
+        elif direction == 3: axis, sign = 0, -1  # West RA -ve
         else:
             self.logger.warning(f"Invalid pulse guide direction: {direction}")
             return
 
-        # accumulate the pulse guide durations on the relevant axis
+        # accumulate the pulse guide durations for topoQ_to_baseQ pulse adjustments 
         step_sec = abs(duration)/1000
         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
-        self.polaris._sm.accumulate_guide_pulses(self.polaris, axis, step_sec, velocity)
+        q_pulse = self.polaris._sm.accumulate_guide_pulses(axis, step_sec, velocity)
+
+        # make immediate adjustment to pv
+        self.polaris._cameraQ_pv = (q_pulse * self.polaris._cameraQ_pv).normalised
+
         # store in delta_g_sp as well for isguiding flag
         with self._lock:
             current = self.delta_g_sp[axis]
             proposed = current + sign * duration
             clamped = max(-10_000, min(10_000, proposed))
+            clamped = max(-1, min(1, proposed))
             self.delta_g_sp[axis] = clamped
 
     def set_zeta_ref_to_home(self):
@@ -1546,11 +1551,8 @@ class PID_Controller():
                         sign = np.sign(duration)
                         remaining_ms = abs(duration)
                         step_ms = min(remaining_ms, self.dt * 1000)  # apply only up to what's left
-                        step_sec = step_ms / 1000.0
                         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
                         self.delta_guide[axis] = velocity
-                        # self.polaris._sm.accumulate_guide_pulses(self.polaris, axis, step_sec, velocity)
-                        # self.delta_offst[axis] += step_sec * velocity
                         self.delta_g_sp[axis] -= sign * step_ms
                         self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral and trends to zero
                     else:
@@ -1866,6 +1868,7 @@ class SyncManager:
         self.alignQ_B2T_message = ""                # message from last optimisation
         self.q_guide_B = Quaternion(1,0,0,0)    # accumulation of pulse guide corrections
         self.delta_guide_accum = np.zeros(3, dtype=float) 
+        self.equatorial_axes_B = (None, None, None)
         self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)    
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
@@ -2545,14 +2548,20 @@ class SyncManager:
             self.logger.warning(f"Failed to load sync_points.json: {e}")
             return False
 
-    def accumulate_guide_pulses(self, polaris, axis, step_sec, velocity):
-        lat = polaris.sitelatitude
-        cameraQ_pv = polaris._cameraQ_pv
-        alignQ_B2T_inv = self.alignQ_B2T_inv 
-        q_pulse = pulse_to_baseQ(cameraQ_pv, alignQ_B2T_inv, lat, axis, step_sec, velocity)
+    def cache_equatorial_axes_B(self, cameraQ_pv, lat):
+        """ cache equatorial axes in B Frame, when ever PV changes, ie from 518 handler """
+        alignQ_B2T_inv = self.alignQ_B2T_inv
+        self.equatorial_axes_B = calc_equatorial_axes_B(cameraQ_pv, alignQ_B2T_inv, lat)
+
+    def accumulate_guide_pulses(self, axis, step_sec, velocity):
+        axis_base = self.equatorial_axes_B[axis]
+        angle_deg = velocity * step_sec
+        if angle_deg < 1e-9 or axis_base is None:
+            return Quaternion()
+        q_pulse = Quaternion(axis=axis_base, degrees=angle_deg)
         self.q_guide_B = (q_pulse * self.q_guide_B).normalised
-        self.delta_guide_accum[axis] += velocity*step_sec
-        polaris._cameraQ_pv = (q_pulse * polaris._cameraQ_pv).normalised
+        self.delta_guide_accum[axis] += angle_deg
+        return q_pulse
     
     def clear_guide_pulses(self):
         self.delta_guide_accum = np.zeros(3, dtype=float)
