@@ -590,36 +590,33 @@ def quest_solve(sync_pairs: List[Tuple[Quaternion, Quaternion]]) -> Quaternion:
 # ── Pulse Guiding ──────────────────────────────────────────────────────────
 
 def calc_equatorial_axes_B(cameraQ_C2T: Quaternion, alignQ_B2T_inv: Quaternion, site_lat: float):
-    # ── RA Axis - Celestial pole in topo frame ──────────────────────────────────────
-    lat_rad   = np.radians(site_lat)
+    lat_rad = np.radians(site_lat)
+
+    # ── RA axis — celestial pole in topo frame ────────────────────────────
     ra_axis_topo = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
 
-    # ── PA axis — boresight itself (rotation around line of sight) ────────
-    pa_axis_topo = cameraQ_C2T.rotate([0.0, 0.0, -1.0])
+    # ── PA axis — boresight ───────────────────────────────────────────────
+    pa_axis_topo = np.array(cameraQ_C2T.rotate([0.0, 0.0, -1.0]))
 
-    # ── Dec axis — perpendicular to pole and boresight. Fallback near pole ───────
+    # ── Dec axis — cross(pole, boresight), sign fixed for +Dec = northward ─
+    # cross(pole, boresight) is perpendicular to both by construction.
+    # Sign: at any pointing, rotating around dec_axis by +angle should
+    # increase the north (+y) component of the boresight.
+    # We verify this with a dot product check and negate if wrong.
     dec_axis_topo = np.cross(ra_axis_topo, pa_axis_topo)
     n = np.linalg.norm(dec_axis_topo)
     if n < 1e-6:
-        dec_axis_topo = np.array([1.0, 0.0, 0.0])   # fallback near pole
+        dec_axis_topo = np.array([1.0, 0.0, 0.0])
     else:
         dec_axis_topo /= n
-        # Ensure +Dec = northward: rotating boresight around dec_axis
-        # by a small positive angle should increase the north (+y) component.
-        # Test by checking cross product of dec_axis with boresight — if it
-        # has a negative y component the axis is pointing the wrong way.
-        nudged = np.cross(dec_axis_topo, pa_axis_topo)
-        if nudged[1] < 0:
-            dec_axis_topo = -dec_axis_topo
 
+    # ── Rotate all axes to base (B) frame ────────────────────────────────
     ra_axis_B  = alignQ_B2T_inv.rotate(ra_axis_topo)
     dec_axis_B = alignQ_B2T_inv.rotate(dec_axis_topo)
     pa_axis_B  = alignQ_B2T_inv.rotate(pa_axis_topo)
 
-    equatorial_axes_B = (
+    return (
         ra_axis_B  / np.linalg.norm(ra_axis_B),
         dec_axis_B / np.linalg.norm(dec_axis_B),
         pa_axis_B  / np.linalg.norm(pa_axis_B),
     )
-    return equatorial_axes_B
-

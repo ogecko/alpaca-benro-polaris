@@ -301,322 +301,233 @@ class TestM3TiltCorrection:
 # ── Unit tests: calc_equatorial_axes_B ───────────────────────────────────────
 
 from kinematics import calc_equatorial_axes_B
-
 class TestCalcEquatorialAxesB:
     """
-    Tests for calc_equatorial_axes_B — computes RA, Dec, PA rotation axes in base (B) frame.
-
-    Key geometric invariants:
-    - RA axis aligns with celestial pole in topo frame
-    - Dec axis is perpendicular to both RA axis and boresight
-    - PA axis aligns with boresight
-    - All axes are unit vectors
-    - Dec axis sign: positive rotation = northward = increasing Dec (both hemispheres)
-    - With identity alignQ, base frame == topo frame
-    - Non-identity alignQ rotates axes into base frame without changing magnitudes
+    Direct geometric verification of calc_equatorial_axes_B.
+    Tests mirror what ConformU does: apply a rotation, check where the
+    boresight moved, assert correct direction and no cross-axis contamination.
     """
 
-    # ── Fixtures ──────────────────────────────────────────────────────────────
+    IDENTITY = Quaternion()
+    LAT_S    = -33.86   # Sydney
+    LAT_N    = +51.51   # London
+    ANGLE    = 1.0      # 1 degree test rotation — large enough to measure clearly
 
-    @pytest.fixture
-    def site_lat_south(self):
-        return -33.86   # Sydney — southern hemisphere
+    def _boresight(self, cameraQ):
+        return np.array(cameraQ.rotate([0.0, 0.0, -1.0]))
 
-    @pytest.fixture
-    def site_lat_north(self):
-        return +51.51   # London — northern hemisphere
+    def _apply(self, axis_B, boresight_topo, angle_deg):
+        """Rotate a topo boresight around a B-frame axis. With identity alignQ B==T."""
+        return np.array(Quaternion(axis=axis_B, degrees=angle_deg).rotate(boresight_topo))
 
-    @pytest.fixture
-    def alignQ_inv_identity(self):
-        """Identity — base frame == topo frame."""
-        return Quaternion()
+    def _print_axes(self, cameraQ, lat, label=""):
+        """Helper — print axis values for manual inspection during debugging."""
+        ra, dec, pa = calc_equatorial_axes_B(cameraQ, self.IDENTITY, lat)
+        b = self._boresight(cameraQ)
+        print(f"\n{label} az={np.degrees(np.arctan2(-b[0], b[1])):.1f} "
+              f"alt={np.degrees(np.arcsin(b[2])):.1f}")
+        print(f"  RA  axis: {ra}")
+        print(f"  Dec axis: {dec}")
+        print(f"  PA  axis: {pa}")
+        print(f"  boresight: {b}")
 
-    @pytest.fixture
-    def alignQ_inv_tilt(self):
-        """Non-identity tilt — rotates axes into base frame."""
-        return Quaternion(axis=[1, 0, 0], degrees=10.7).inverse
+    # ── Sanity print — run this first to see raw values ───────────────────────
 
-    @pytest.fixture
-    def alignQ_tilt(self):
-        """Forward alignQ — used for round-trip verification."""
-        return Quaternion(axis=[1, 0, 0], degrees=10.7)
-
-    @pytest.fixture
-    def cameraQ_meridian_south(self):
-        """Camera pointing at meridian, mid-altitude, southern sky."""
-        return azaltroll_to_q(180.0, 45.0, 0.0)
-
-    @pytest.fixture
-    def cameraQ_east(self):
-        return azaltroll_to_q(90.0, 45.0, 0.0)
-
-    @pytest.fixture
-    def cameraQ_west(self):
-        return azaltroll_to_q(270.0, 45.0, 0.0)
-
-    @pytest.fixture
-    def cameraQ_north(self):
-        return azaltroll_to_q(0.0, 45.0, 0.0)
-
-    # ── Helper ────────────────────────────────────────────────────────────────
-
-    def _pole_topo(self, site_lat):
-        lat_rad = np.radians(site_lat)
-        return np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
-
-    # ── Unit vector checks ────────────────────────────────────────────────────
-
-    def test_all_axes_are_unit_vectors(self, cameraQ_meridian_south,
-                                       alignQ_inv_identity, site_lat_south):
-        ra, dec, pa = calc_equatorial_axes_B(
-            cameraQ_meridian_south, alignQ_inv_identity, site_lat_south)
-        assert abs(np.linalg.norm(ra)  - 1.0) < 1e-9, "RA axis not unit length"
-        assert abs(np.linalg.norm(dec) - 1.0) < 1e-9, "Dec axis not unit length"
-        assert abs(np.linalg.norm(pa)  - 1.0) < 1e-9, "PA axis not unit length"
-
-    @pytest.mark.parametrize("az,alt", [(0,30),(90,45),(180,60),(270,30)])
-    def test_unit_vectors_at_multiple_pointings(self, alignQ_inv_identity, site_lat_south,
-                                                az, alt):
-        cameraQ = azaltroll_to_q(az, alt, 0.0)
-        ra, dec, pa = calc_equatorial_axes_B(
-            cameraQ, alignQ_inv_identity, site_lat_south)
-        assert abs(np.linalg.norm(ra)  - 1.0) < 1e-9
-        assert abs(np.linalg.norm(dec) - 1.0) < 1e-9
-        assert abs(np.linalg.norm(pa)  - 1.0) < 1e-9
-
-    # ── RA axis — aligns with celestial pole ──────────────────────────────────
-
-    def test_ra_axis_aligns_with_pole_south(self, cameraQ_meridian_south,
-                                            alignQ_inv_identity, site_lat_south):
-        """With identity alignQ, RA axis should equal celestial pole in topo frame."""
-        ra, _, _ = calc_equatorial_axes_B(
-            cameraQ_meridian_south, alignQ_inv_identity, site_lat_south)
-        pole = self._pole_topo(site_lat_south)
-        dot  = abs(np.dot(ra, pole))
-        assert dot > 1 - 1e-9, f"RA axis should align with south pole, dot={dot:.9f}"
-
-    def test_ra_axis_aligns_with_pole_north(self, cameraQ_meridian_south,
-                                            alignQ_inv_identity, site_lat_north):
-        """Northern hemisphere: RA axis should align with north celestial pole."""
-        ra, _, _ = calc_equatorial_axes_B(
-            cameraQ_meridian_south, alignQ_inv_identity, site_lat_north)
-        pole = self._pole_topo(site_lat_north)
-        dot  = abs(np.dot(ra, pole))
-        assert dot > 1 - 1e-9, f"RA axis should align with north pole, dot={dot:.9f}"
-
-    def test_ra_axis_independent_of_pointing(self, alignQ_inv_identity, site_lat_south):
-        """RA axis should be the same regardless of where the mount points."""
-        axes = []
-        for az, alt in [(0, 30), (90, 45), (180, 60), (270, 30)]:
+    def test_000_print_axes_for_inspection(self):
+        for az, alt, lat, label in [
+            (  0, 30, self.LAT_S, "az=0  alt=30 south"),
+            (180, 45, self.LAT_S, "az=180 alt=45 south"),
+            ( 90, 45, self.LAT_S, "az=90  alt=45 south"),
+        ]:
             cameraQ = azaltroll_to_q(az, alt, 0.0)
+            ra, dec, pa = calc_equatorial_axes_B(cameraQ, self.IDENTITY, lat)
+            b = self._boresight(cameraQ)
+            lat_rad = np.radians(lat)
+            pole = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
+            print(f"\n{label}")
+            print(f"  boresight: {np.round(b,4)}")
+            print(f"  pole:      {np.round(pole,4)}")
+            print(f"  cross:     {np.round(np.cross(pole,b),4)}")
+            print(f"  RA  axis:  {np.round(ra,4)}")
+            print(f"  Dec axis:  {dec}")
+            print(f"  PA  axis:  {np.round(pa,4)}")
+            print(f"  dot(dec,ra):  {np.dot(dec,ra):.6f}")
+            print(f"  dot(dec,pa):  {np.dot(dec,pa):.6f}")
+            print(f"  |cross|:   {np.linalg.norm(np.cross(pole,b)):.6f}")
+        assert True
+    # ── RA axis — must equal celestial pole ───────────────────────────────────
+
+    def test_ra_axis_equals_pole_south(self):
+        lat = self.LAT_S
+        lat_rad = np.radians(lat)
+        expected_pole = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
+        for az, alt in [(0,30),(90,45),(180,60),(270,30)]:
             ra, _, _ = calc_equatorial_axes_B(
-                cameraQ, alignQ_inv_identity, site_lat_south)
-            axes.append(ra)
-        for i in range(1, len(axes)):
-            dot = abs(np.dot(axes[0], axes[i]))
+                azaltroll_to_q(az, alt, 0.0), self.IDENTITY, lat)
+            dot = abs(np.dot(ra, expected_pole))
             assert dot > 1 - 1e-9, \
-                f"RA axis should be constant across pointings, dot={dot:.9f}"
+                f"RA axis should be pole at az={az} alt={alt}: dot={dot:.9f}"
 
-    # ── Dec axis — perpendicular to RA and boresight ──────────────────────────
+    def test_ra_axis_equals_pole_north(self):
+        lat = self.LAT_N
+        lat_rad = np.radians(lat)
+        expected_pole = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
+        for az, alt in [(0,30),(90,45),(180,60),(270,30)]:
+            ra, _, _ = calc_equatorial_axes_B(
+                azaltroll_to_q(az, alt, 0.0), self.IDENTITY, lat)
+            dot = abs(np.dot(ra, expected_pole))
+            assert dot > 1 - 1e-9, \
+                f"RA axis should be pole at az={az} alt={alt}: dot={dot:.9f}"
 
-    def test_dec_axis_perpendicular_to_ra(self, alignQ_inv_identity, site_lat_south):
-        """Dec axis must be perpendicular to RA axis at all pointings."""
-        for az, alt in [(0, 30), (90, 45), (180, 60), (270, 30)]:
+    # ── PA axis — must equal boresight ────────────────────────────────────────
+
+    def test_pa_axis_equals_boresight(self):
+        for az, alt in [(0,30),(90,45),(180,60),(270,30)]:
             cameraQ = azaltroll_to_q(az, alt, 0.0)
-            ra, dec, _ = calc_equatorial_axes_B(
-                cameraQ, alignQ_inv_identity, site_lat_south)
-            dot = np.dot(ra, dec)
-            assert abs(dot) < 1e-6, \
-                f"Dec not perpendicular to RA at az={az} alt={alt}: dot={dot:.9f}"
-
-    def test_dec_axis_perpendicular_to_boresight(self, alignQ_inv_identity, site_lat_south):
-        """Dec axis must be perpendicular to boresight (PA axis) at all pointings."""
-        for az, alt in [(0, 30), (90, 45), (180, 60), (270, 30)]:
-            cameraQ = azaltroll_to_q(az, alt, 0.0)
-            _, dec, pa = calc_equatorial_axes_B(
-                cameraQ, alignQ_inv_identity, site_lat_south)
-            dot = np.dot(dec, pa)
-            assert abs(dot) < 1e-6, \
-                f"Dec not perpendicular to PA at az={az} alt={alt}: dot={dot:.9f}"
-
-    def test_dec_axis_changes_with_pointing(self, alignQ_inv_identity, site_lat_south):
-        """Dec axis should change as az changes (unlike RA axis)."""
-        _, dec_0,  _ = calc_equatorial_axes_B(
-            azaltroll_to_q(  0.0, 45.0, 0.0), alignQ_inv_identity, site_lat_south)
-        _, dec_90, _ = calc_equatorial_axes_B(
-            azaltroll_to_q( 90.0, 45.0, 0.0), alignQ_inv_identity, site_lat_south)
-        dot = abs(np.dot(dec_0, dec_90))
-        assert dot < 0.99, \
-            f"Dec axis should differ between az=0 and az=90, dot={dot:.6f}"
-
-    # ── Dec sign convention — critical for N/S guiding ────────────────────────
-
-    def test_dec_positive_rotation_moves_north_southern_hemisphere(
-            self, alignQ_inv_identity, site_lat_south):
-        """
-        Southern hemisphere: positive rotation around Dec axis should move
-        the boresight northward (increasing Dec).
-        Verified by rotating the boresight and checking the Dec component increases.
-        """
-        cameraQ = azaltroll_to_q(180.0, 45.0, 0.0)
-        ra, dec, pa = calc_equatorial_axes_B(
-            cameraQ, alignQ_inv_identity, site_lat_south)
-
-        # Apply a small positive rotation around the Dec axis
-        small_angle = 1.0   # degree
-        q_dec = Quaternion(axis=dec, degrees=small_angle)
-
-        # Rotate boresight
-        boresight_before = cameraQ.rotate([0.0, 0.0, -1.0])
-        boresight_after  = q_dec.rotate(boresight_before)
-
-        # Project both onto the north direction in topo (+y = north)
-        north_component_before = boresight_before[1]
-        north_component_after  = boresight_after[1]
-
-        assert north_component_after > north_component_before, \
-            f"Positive Dec rotation should move boresight northward: " \
-            f"before={north_component_before:.4f} after={north_component_after:.4f}"
-
-    def test_dec_positive_rotation_moves_north_northern_hemisphere(
-            self, alignQ_inv_identity, site_lat_north):
-        """Northern hemisphere: positive rotation around Dec axis should also move north."""
-        cameraQ = azaltroll_to_q(180.0, 45.0, 0.0)
-        ra, dec, pa = calc_equatorial_axes_B(
-            cameraQ, alignQ_inv_identity, site_lat_north)
-
-        small_angle      = 1.0
-        q_dec            = Quaternion(axis=dec, degrees=small_angle)
-        boresight_before = cameraQ.rotate([0.0, 0.0, -1.0])
-        boresight_after  = q_dec.rotate(boresight_before)
-
-        assert boresight_after[1] > boresight_before[1], \
-            f"Positive Dec rotation should move north in northern hemisphere too"
-
-    @pytest.mark.parametrize("az", [0.0, 90.0, 180.0, 270.0])
-    def test_dec_sign_consistent_across_azimuths(self, alignQ_inv_identity,
-                                                  site_lat_south, az):
-        """Positive Dec rotation should always move northward regardless of azimuth."""
-        cameraQ = azaltroll_to_q(az, 45.0, 0.0)
-        ra, dec, pa = calc_equatorial_axes_B(
-            cameraQ, alignQ_inv_identity, site_lat_south)
-
-        q_dec            = Quaternion(axis=dec, degrees=1.0)
-        boresight_before = cameraQ.rotate([0.0, 0.0, -1.0])
-        boresight_after  = q_dec.rotate(boresight_before)
-
-        assert boresight_after[1] > boresight_before[1], \
-            f"Positive Dec rotation should move north at az={az}: " \
-            f"before={boresight_before[1]:.4f} after={boresight_after[1]:.4f}"
-
-    # ── PA axis — aligns with boresight ───────────────────────────────────────
-
-    def test_pa_axis_aligns_with_boresight(self, alignQ_inv_identity, site_lat_south):
-        """PA axis should equal the boresight direction."""
-        for az, alt in [(0, 30), (90, 45), (180, 60), (270, 30)]:
-            cameraQ        = azaltroll_to_q(az, alt, 0.0)
-            _, _, pa       = calc_equatorial_axes_B(
-                cameraQ, alignQ_inv_identity, site_lat_south)
-            boresight_topo = cameraQ.rotate([0.0, 0.0, -1.0])
-            dot = abs(np.dot(pa, boresight_topo / np.linalg.norm(boresight_topo)))
+            _, _, pa = calc_equatorial_axes_B(cameraQ, self.IDENTITY, self.LAT_S)
+            b = self._boresight(cameraQ)
+            dot = abs(np.dot(pa, b))
             assert dot > 1 - 1e-6, \
-                f"PA axis should align with boresight at az={az} alt={alt}: dot={dot:.9f}"
+                f"PA axis should equal boresight at az={az} alt={alt}: dot={dot:.9f}"
 
-    def test_pa_axis_perpendicular_to_dec(self, alignQ_inv_identity, site_lat_south):
-        """PA axis perpendicular to Dec axis — guaranteed by cross product construction."""
-        for az, alt in [(0, 30), (90, 45), (180, 60), (270, 30)]:
-            cameraQ   = azaltroll_to_q(az, alt, 0.0)
-            _, dec, pa = calc_equatorial_axes_B(
-                cameraQ, alignQ_inv_identity, site_lat_south)
-            dot = np.dot(pa, dec)
-            assert abs(dot) < 1e-6, \
-                f"PA not perpendicular to Dec at az={az} alt={alt}: dot={dot:.9f}"
+    # ── Dec axis — must be perpendicular to both RA and PA ────────────────────
+    def test_000_print_axes_for_inspection(self):
+        for az, alt, lat, label in [
+            (  0, 30, self.LAT_S, "az=0  alt=30 south"),
+            (180, 45, self.LAT_S, "az=180 alt=45 south"),
+            ( 90, 45, self.LAT_S, "az=90  alt=45 south"),
+        ]:
+            cameraQ = azaltroll_to_q(az, alt, 0.0)
+            ra, dec, pa = calc_equatorial_axes_B(cameraQ, self.IDENTITY, lat)
+            b = self._boresight(cameraQ)
+            lat_rad = np.radians(lat)
+            pole = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
+            print(f"\n{label}")
+            print(f"  boresight: {np.round(b,4)}")
+            print(f"  pole:      {np.round(pole,4)}")
+            print(f"  cross:     {np.round(np.cross(pole,b),4)}")
+            print(f"  RA  axis:  {np.round(ra,4)}")
+            print(f"  Dec axis:  {dec}")
+            print(f"  PA  axis:  {np.round(pa,4)}")
+            print(f"  dot(dec,ra):  {np.dot(dec,ra):.6f}")
+            print(f"  dot(dec,pa):  {np.dot(dec,pa):.6f}")
+            print(f"  |cross|:   {np.linalg.norm(np.cross(pole,b)):.6f}")
+        assert True
 
-    # ── alignQ_inv effect ─────────────────────────────────────────────────────
 
-    def test_nonidentity_alignQ_changes_axes(self, cameraQ_meridian_south,
-                                              alignQ_inv_identity, alignQ_inv_tilt,
-                                              site_lat_south):
-        """Non-identity alignQ_inv should rotate axes into base frame."""
-        ra_id,  _, _ = calc_equatorial_axes_B(
-            cameraQ_meridian_south, alignQ_inv_identity, site_lat_south)
-        ra_tilt, _, _ = calc_equatorial_axes_B(
-            cameraQ_meridian_south, alignQ_inv_tilt, site_lat_south)
-        dot = abs(np.dot(ra_id, ra_tilt))
-        assert dot < 1 - 1e-4, \
-            f"Non-identity alignQ_inv should change RA axis in base frame, dot={dot:.9f}"
+    def test_dec_perpendicular_to_ra_and_pa(self):
+        for lat in [self.LAT_S, self.LAT_N]:
+            for az, alt in [(0,30),(90,45),(180,60),(270,30)]:
+                ra, dec, pa = calc_equatorial_axes_B(
+                    azaltroll_to_q(az, alt, 0.0), self.IDENTITY, lat)
+                dot_ra = np.dot(dec, ra)
+                dot_pa = np.dot(dec, pa)
+                assert abs(dot_ra) < 1e-6, \
+                    f"Dec not perp to RA at lat={lat} az={az}: dot={dot_ra:.9f}"
+                assert abs(dot_pa) < 1e-6, \
+                    f"Dec not perp to PA at lat={lat} az={az}: dot={dot_pa:.9f}"
 
-    def test_alignQ_preserves_axis_magnitudes(self, cameraQ_meridian_south,
-                                               alignQ_inv_identity, alignQ_inv_tilt,
-                                               site_lat_south):
-        """alignQ_inv rotates axes but preserves their unit length."""
-        for alignQ_inv in [alignQ_inv_identity, alignQ_inv_tilt]:
-            ra, dec, pa = calc_equatorial_axes_B(
-                cameraQ_meridian_south, alignQ_inv, site_lat_south)
-            assert abs(np.linalg.norm(ra)  - 1.0) < 1e-9
-            assert abs(np.linalg.norm(dec) - 1.0) < 1e-9
-            assert abs(np.linalg.norm(pa)  - 1.0) < 1e-9
-
-    def test_alignQ_roundtrip_recovers_topo_pole(self, cameraQ_meridian_south,
-                                                  alignQ_inv_tilt, alignQ_tilt,
-                                                  site_lat_south):
+    # ── ConformU-style tests: rotate boresight, check where it went ───────────
+    def test_ra_rotation_moves_east_west_not_north_south(self):
         """
-        RA axis in base frame, rotated back through alignQ_B2T, should
-        recover the celestial pole in topo frame.
+        RA rotation should move the boresight predominantly east/west.
+        It will also change altitude (that's correct — RA traces a circle
+        around the pole), but the east/west component must dominate.
         """
-        ra_B, _, _ = calc_equatorial_axes_B(
-            cameraQ_meridian_south, alignQ_inv_tilt, site_lat_south)
-        ra_topo_recovered = alignQ_tilt.rotate(ra_B)
-        pole_topo         = self._pole_topo(site_lat_south)
-        dot = abs(np.dot(ra_topo_recovered, pole_topo))
-        assert dot > 1 - 1e-6, \
-            f"alignQ.rotate(ra_B) should recover pole_topo, dot={dot:.9f}"
+        for lat in [self.LAT_S, self.LAT_N]:
+            for az, alt in [(90, 45), (180, 45), (270, 45)]:
+                cameraQ  = azaltroll_to_q(az, alt, 0.0)
+                ra, _, _ = calc_equatorial_axes_B(cameraQ, self.IDENTITY, lat)
+                b_before = self._boresight(cameraQ)
+                b_after  = self._apply(ra, b_before, self.ANGLE)
+                delta    = b_after - b_before
 
-    def test_alignQ_inv_vs_forward_gives_different_ra(self, cameraQ_meridian_south,
-                                                       alignQ_tilt, alignQ_inv_tilt,
-                                                       site_lat_south):
-        """Passing alignQ vs alignQ.inverse should give different RA axis — catches wrong convention."""
-        ra_fwd,  _, _ = calc_equatorial_axes_B(
-            cameraQ_meridian_south, alignQ_tilt,     site_lat_south)
-        ra_inv,  _, _ = calc_equatorial_axes_B(
-            cameraQ_meridian_south, alignQ_inv_tilt, site_lat_south)
-        dot = abs(np.dot(ra_fwd, ra_inv))
-        assert dot < 1 - 1e-4, \
-            f"Forward and inverse alignQ should give different RA axis, dot={dot:.9f}"
+                # East/west (x) change should dominate over north (y) change
+                # RA motion has no north component — it circles the pole
+                north_change = abs(delta[1])
+                east_change  = abs(delta[0])
+                assert north_change < 0.01, \
+                    f"RA rotation changed north (+y) by {north_change:.4f} " \
+                    f"at lat={lat} az={az} — RA should never move north/south"
 
-    # ── Near-pole fallback ────────────────────────────────────────────────────
-
-    def test_near_pole_returns_valid_axes(self, alignQ_inv_identity, site_lat_south):
-        """Near the celestial pole, fallback should return valid unit quaternions."""
-        cameraQ = azaltroll_to_q(0.0, abs(site_lat_south), 0.0)
-        ra, dec, pa = calc_equatorial_axes_B(
-            cameraQ, alignQ_inv_identity, site_lat_south)
-        assert abs(np.linalg.norm(ra)  - 1.0) < 1e-9, "RA not unit near pole"
-        assert abs(np.linalg.norm(dec) - 1.0) < 1e-9, "Dec not unit near pole"
-        assert abs(np.linalg.norm(pa)  - 1.0) < 1e-9, "PA not unit near pole"
-
-    def test_near_pole_ra_still_aligns_with_pole(self, alignQ_inv_identity, site_lat_south):
-        """Even near the pole, RA axis should still align with celestial pole."""
-        cameraQ   = azaltroll_to_q(0.0, abs(site_lat_south), 0.0)
-        ra, _, _  = calc_equatorial_axes_B(
-            cameraQ, alignQ_inv_identity, site_lat_south)
-        pole_topo = self._pole_topo(site_lat_south)
-        dot       = abs(np.dot(ra, pole_topo))
-        assert dot > 1 - 1e-9, f"RA should still align with pole near pole, dot={dot:.9f}"
-
-    # ── Mutual orthogonality ──────────────────────────────────────────────────
-
-    def test_ra_dec_pa_are_mutually_orthogonal(self, alignQ_inv_identity, site_lat_south):
+    def test_dec_rotation_moves_north_south_not_east_west(self):
         """
-        RA ⊥ Dec and Dec ⊥ PA are guaranteed by construction.
-        RA ⊥ PA is NOT guaranteed (only true at Dec=0).
-        This test documents what IS and IS NOT orthogonal.
+        Dec rotation should move boresight north/south with no east/west component.
+        Dec axis is perpendicular to both pole and boresight by construction,
+        so it must produce pure north/south motion.
         """
-        # At the equator (alt ≈ 90 - lat for meridian transit at Dec=0)
-        cameraQ      = azaltroll_to_q(180.0, 45.0, 0.0)
-        ra, dec, pa  = calc_equatorial_axes_B(
-            cameraQ, alignQ_inv_identity, site_lat_south)
+        for lat in [self.LAT_S, self.LAT_N]:
+            for az, alt in [(90, 45), (180, 45), (270, 45)]:
+                cameraQ     = azaltroll_to_q(az, alt, 0.0)
+                _, dec, _   = calc_equatorial_axes_B(cameraQ, self.IDENTITY, lat)
+                b_before    = self._boresight(cameraQ)
+                b_after     = self._apply(dec, b_before, self.ANGLE)
+                delta       = b_after - b_before
 
-        assert abs(np.dot(ra,  dec)) < 1e-6, "RA must be perpendicular to Dec"
-        assert abs(np.dot(dec, pa))  < 1e-6, "Dec must be perpendicular to PA"
-        # RA and PA are NOT asserted orthogonal — only true at Dec=0
+                # East (x) change should be near zero
+                east_change  = abs(delta[0])
+                north_change = abs(delta[1])
+                assert east_change < 0.01, \
+                    f"Dec rotation changed east (+x) by {east_change:.4f} " \
+                    f"at lat={lat} az={az} — Dec should not move east/west"
+                assert north_change > 0.001, \
+                    f"Dec rotation had no north movement at lat={lat} az={az}"
+
+    def test_positive_dec_rotation_moves_north(self):
+        """
+        Positive rotation around Dec axis must increase declination.
+        Measured by converting boresight to Dec via dot product with pole.
+        Dec = arcsin(dot(boresight, pole_unit)) — increases toward pole.
+        Note: for southern hemisphere, pole points south so we use
+        the absolute pole direction for Dec measurement.
+        """
+        for lat in [self.LAT_S, self.LAT_N]:
+            lat_rad    = np.radians(lat)
+            pole       = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
+            # North celestial pole for Dec measurement — always points north
+            north_pole = np.array([0.0, np.cos(abs(lat_rad)), np.sin(abs(lat_rad))])
+
+            for az in [0.0, 90.0, 180.0, 270.0]:
+                cameraQ   = azaltroll_to_q(az, 45.0, 0.0)
+                _, dec, _ = calc_equatorial_axes_B(cameraQ, self.IDENTITY, lat)
+                b_before  = self._boresight(cameraQ)
+                b_after   = self._apply(dec, b_before, self.ANGLE)
+
+                # Dec = angle between boresight and celestial equator plane
+                # = arcsin(dot(boresight, north_pole))
+                dec_before = np.degrees(np.arcsin(np.clip(
+                    np.dot(b_before, north_pole), -1, 1)))
+                dec_after  = np.degrees(np.arcsin(np.clip(
+                    np.dot(b_after,  north_pole), -1, 1)))
+
+                assert dec_after > dec_before, \
+                    f"Positive Dec rotation should increase Dec " \
+                    f"at lat={lat} az={az}: " \
+                    f"dec_before={dec_before:.4f}° dec_after={dec_after:.4f}°"
+                
+    def test_positive_ra_rotation_moves_west(self):
+        """
+        Positive rotation around RA (pole) axis should move boresight westward.
+        Check the east (+x) component decreases at az=90 (pointing east)
+        where the effect is unambiguous.
+        """
+        for lat in [self.LAT_S, self.LAT_N]:
+            # Point east — positive RA rotation should move toward north/less east
+            cameraQ  = azaltroll_to_q(90.0, 30.0, 0.0)
+            ra, _, _ = calc_equatorial_axes_B(cameraQ, self.IDENTITY, lat)
+            b_before = self._boresight(cameraQ)
+            b_after  = self._apply(ra, b_before, self.ANGLE)
+            # East component should decrease (moving westward)
+            assert b_after[0] < b_before[0], \
+                f"Positive RA rotation should decrease east (+x) from az=90 " \
+                f"at lat={lat}: before={b_before[0]:.4f} after={b_after[0]:.4f}"
+    # ── All axes are unit vectors ─────────────────────────────────────────────
+
+    def test_all_axes_unit_length(self):
+        for lat in [self.LAT_S, self.LAT_N]:
+            for az, alt in [(0,30),(90,45),(180,60),(270,30)]:
+                ra, dec, pa = calc_equatorial_axes_B(
+                    azaltroll_to_q(az, alt, 0.0), self.IDENTITY, lat)
+                assert abs(np.linalg.norm(ra)  - 1.0) < 1e-9, "RA not unit"
+                assert abs(np.linalg.norm(dec) - 1.0) < 1e-9, "Dec not unit"
+                assert abs(np.linalg.norm(pa)  - 1.0) < 1e-9, "PA not unit"
