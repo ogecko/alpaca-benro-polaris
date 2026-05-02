@@ -77,7 +77,7 @@
                 <q-timeline-entry title="Error Corrections" subtitle="Adjust" icon="mdi-axis-x-rotate-clockwise">
                   <!-- PEC -->
                   <div class="ok terminal">
-                    <span>{{`PEC: Predictive Error Correction`}}</span>
+                    <span>{{`PEC: Periodic Error Correction`}}</span>
                     <span v-if="cfg.advanced_pec">{{ `                     Use PHD2`}}</span>
                     <span v-else class="haz">{{ `                               Disabled`}}</span>
                   </div>
