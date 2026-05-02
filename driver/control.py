@@ -19,7 +19,7 @@ from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
 from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
 from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
-from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance, calc_equatorial_axes_B
+from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance, calc_equatorial_axes_B, get_polar_correction_q
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -1919,6 +1919,11 @@ class SyncManager:
         if Config.advanced_align_rbc:
             self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B_state, self.params_RBC)
             motorQ_C2B_pv = self.corrQ_RBC * motorQ_C2B_state
+
+        # Apply Polar Alignment Corrections (MAC)
+        if Config.advanced_align_rbc:
+           q_polar = get_polar_correction_q(self.equatorial_axes_B, self.params_RBC)
+           motorQ_C2B_pv = q_polar * motorQ_C2B_pv
 
         # Apply Pulse Guide Corrections (PGC)
         motorQ_C2B_pv = self.q_guide_B * motorQ_C2B_pv

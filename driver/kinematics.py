@@ -381,58 +381,6 @@ def apply_polar_correction(q: Quaternion,
     return (corrQ * q).normalised
 
 
-# ── Polar correction (TPoint AW/AN, or NINA TPPA output) ─────────────────────
-
-def make_polar_corrQ(theta1_deg: float,
-                     AW_deg: float, AN_deg: float) -> Quaternion:
-    """
-    Quaternion that corrects the base frame for polar axis tilt.
-
-    Parameters
-    ----------
-    theta1_deg : current mount azimuth (theta1 / M1 angle)
-    AW_deg     : N-S tilt of az axis (degrees).  TPoint AW.
-                 Positive = axis tilts North (pole too HIGH).
-    AN_deg     : E-W tilt of az axis (degrees).  TPoint AN.
-                 Positive = axis tilts East.
-
-    From NINA TPPA output:
-        AW_deg = -tppa_alt_error_arcmin / 60   (pole too low → neg AW)
-        AN_deg = +tppa_az_error_arcmin  / 60   (pole too far east → pos AN)
-
-    Returns
-    -------
-    Quaternion such that  q_corrected = corrQ * q_base
-    """
-    tilt = math.sqrt(AW_deg**2 + AN_deg**2)
-    if tilt < 1e-6:
-        return Quaternion(1, 0, 0, 0)
-
-    # n_polar: the true az axis direction in the base frame
-    eps = math.radians(tilt)
-    # AW is N-S (cos component), AN is E-W (sin component)
-    phi = math.atan2(AN_deg, AW_deg)      # direction the axis tilts toward
-    n_polar = [
-        math.sin(eps) * math.sin(phi),
-        math.sin(eps) * math.cos(phi),
-        math.cos(eps),
-    ]
-    q_real  = Quaternion(axis=n_polar,  degrees=-theta1_deg + 90)
-    q_ideal = Quaternion(axis=[0, 0, 1], degrees=-theta1_deg + 90)
-    return (q_real * q_ideal.inverse).normalised
-
-
-def apply_polar_correction_pair(q: Quaternion,
-                                 AW_deg: float,
-                                 AN_deg: float,
-                                 ) -> Tuple[Quaternion, Quaternion]:
-    """
-    Apply polar correction, returning (q_corrected, corrQ).
-    Use corrQ.inverse to undo exactly: q_orig = corrQ.inverse * q_corrected.
-    """
-    t1, _, _ = q_to_theta(q)
-    corrQ = make_polar_corrQ(t1, AW_deg, AN_deg)
-    return (corrQ * q).normalised, corrQ
 
 
 # ── Mechanical axis corrections ───────────────────────────────────────────────
@@ -525,27 +473,14 @@ def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
     m1_axis        = [0.0, 0.0, 1.0]
     boresight_axis = q.rotate([0, 0, -1])
 
-    # M3 tilt — theta2 effect (dominant, around m2_axis)
-    dm2 = 0         # (params.m3_tilt_dm2 / 60.0) * math.sin(math.radians(t3))
-    dm2 = + params.m2_offset / 60.0
-
-    # M3 tilt — theta1 effect (around m1_axis)
-    dm1 = (params.m3_tilt_dm1 / 60.0) * (1.0 - math.cos(math.radians(t3))) \
-        + params.m1_offset / 60.0
-
-    # M3 tilt — theta3 effect (geometrically coupled to theta1, around m3_axis)
-    # dm3 = -cos(t2) * dm1, with sign already correct for Quaternion(+dm3)
-    dm3 = -math.cos(math.radians(t2)) * dm1 \
-        + params.m3_offset / 60.0
-
-    # M2 tilt — additional theta2 effect (added to dm2, same m2_axis)
-    dm2 += (params.m2_tilt_dm2_amp / 60.0) * \
-           math.sin(math.radians(t2 - params.m2_tilt_dm2_zero))  
-
+    # theta1 - M3 tilt effect (around m1_axis)
+    dm1 = (params.m3_tilt_dm1 / 60.0) * (1.0 - math.cos(math.radians(t3)))
+    # theta3 - M3 tilt effect (geometrically coupled to theta1, around m3_axis)
+    dm3 = -math.cos(math.radians(t2)) * dm1
+    # theta2 - M2 tilt effect (around m2_axis)
+    dm2 = (params.m2_tilt_dm2_amp / 60.0) * math.sin(math.radians(t2 - params.m2_tilt_dm2_zero))  
 
     # Build correction quaternions
-    # All use degrees=-dm* because +1 deg around each axis decreases the corresponding theta
-    # Exception: dm3 uses +dm3 (sign already accounted for in geometric derivation above)
     q_dm2 = Quaternion(axis=m2_axis,  degrees=-dm2)
     q_dm1 = Quaternion(axis=m1_axis,  degrees=-dm1)
     q_dm3 = Quaternion(axis=m3_axis,  degrees=-dm3)  
@@ -564,6 +499,65 @@ def apply_mechanical_corrections(q: Quaternion, params: MountModelParams):
 
     return q_fixed, magnitude
 
+# ── Polar correction (TPoint AW/AN, or NINA TPPA output) ─────────────────────
+
+
+def get_polar_correction_q(eq, params: MountModelParams):
+    q_ra =  Quaternion(axis=eq[0], degrees=params.m1_offset / 60.0)
+    q_dec = Quaternion(axis=eq[1], degrees=params.m2_offset / 60.0)
+    q_pa =  Quaternion(axis=eq[2], degrees=params.m3_offset / 60.0)
+    return (q_pa * q_dec * q_ra).normalised
+
+def make_polar_corrQ(theta1_deg: float,
+                     AW_deg: float, AN_deg: float) -> Quaternion:
+    """
+    Quaternion that corrects the base frame for polar axis tilt.
+
+    Parameters
+    ----------
+    theta1_deg : current mount azimuth (theta1 / M1 angle)
+    AW_deg     : N-S tilt of az axis (degrees).  TPoint AW.
+                 Positive = axis tilts North (pole too HIGH).
+    AN_deg     : E-W tilt of az axis (degrees).  TPoint AN.
+                 Positive = axis tilts East.
+
+    From NINA TPPA output:
+        AW_deg = -tppa_alt_error_arcmin / 60   (pole too low → neg AW)
+        AN_deg = +tppa_az_error_arcmin  / 60   (pole too far east → pos AN)
+
+    Returns
+    -------
+    Quaternion such that  q_corrected = corrQ * q_base
+    """
+    tilt = math.sqrt(AW_deg**2 + AN_deg**2)
+    if tilt < 1e-6:
+        return Quaternion(1, 0, 0, 0)
+
+    # n_polar: the true az axis direction in the base frame
+    eps = math.radians(tilt)
+    # AW is N-S (cos component), AN is E-W (sin component)
+    phi = math.atan2(AN_deg, AW_deg)      # direction the axis tilts toward
+    n_polar = [
+        math.sin(eps) * math.sin(phi),
+        math.sin(eps) * math.cos(phi),
+        math.cos(eps),
+    ]
+    q_real  = Quaternion(axis=n_polar,  degrees=-theta1_deg + 90)
+    q_ideal = Quaternion(axis=[0, 0, 1], degrees=-theta1_deg + 90)
+    return (q_real * q_ideal.inverse).normalised
+
+
+def apply_polar_correction_pair(q: Quaternion,
+                                 AW_deg: float,
+                                 AN_deg: float,
+                                 ) -> Tuple[Quaternion, Quaternion]:
+    """
+    Apply polar correction, returning (q_corrected, corrQ).
+    Use corrQ.inverse to undo exactly: q_orig = corrQ.inverse * q_corrected.
+    """
+    t1, _, _ = q_to_theta(q)
+    corrQ = make_polar_corrQ(t1, AW_deg, AN_deg)
+    return (corrQ * q).normalised, corrQ
 
 
 # ── QUEST alignment ──────────────────────────────────────────────────────────

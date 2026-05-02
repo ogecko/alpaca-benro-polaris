@@ -15,16 +15,17 @@
 - [X] Kinematics Page Delta_sp Position Angle needs 0-360 wrapping (currently -180 to 180), delta_ref & delta_pv ok
 - [X] Replace RBC with motor-space corrections, Kinematics Page RBC Magnitude update
 - [X] Complete more wholistic Mechnical Alignment Correction (replacing Roll Bias Correction)
+- [ ] Explore how to reduce sidereal tracking drift and reduce residuals - Sync Guiding
 - [ ] Refactor kinematics.py and wrap180, move more kinimatic functions from control.py to kinematics.py   
 - [ ] Debug Gimbal Lock solution selection issue @ Az 292, Alt 0, Roll 2
 - [ ] Debug clicking on roll scale seemed to reset Az/Alt SP to current value
 - [ ] Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates
-- [ ] Explore how to reduce sidereal tracking drift and reduce residuals - eg TPoint Model, PEC, Polar Align Adj, verify with cross validation
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
 - [ ] Debug 518 message intermittant miss
 - [ ] Add HTTPS so that Copy Clipboard and Map Locate work in Browser
 - [ ] Create video of new features 
     - New requirements.txt and config.toml
+    - On connection, new banner - not completed initial single star alignment
     - Kinematics Page - enabling different features 
     - Kinematics - Shortest Path, Rotate maintains direction, Large -ve Az, 
     - Gimbal Lock - Status, loss of degree of freedom
