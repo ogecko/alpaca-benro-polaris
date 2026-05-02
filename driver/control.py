@@ -14,7 +14,7 @@ import ephem
 import math
 import copy
 from collections import deque
-from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
+from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp, ratio_string
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
 from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
@@ -103,18 +103,6 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
     except Exception as e:
         print(f"Catalog: Error loading custom catalog: {e}")
         return []
-
-def ratio_string(x: float) -> str:
-    """
-    Convert a float in [0, 1] to a ratio string like '99:01', '50:50', '01:99'.
-    Total always equals 100 and each side is two digits.
-    """
-    x = max(0.0, min(1.0, x))
-    right = round(x * 100)
-    right = max(1, min(99, right))
-    left = 100 - right
-    return f"{left:02d}:{right:02d}"
-
 
 
 

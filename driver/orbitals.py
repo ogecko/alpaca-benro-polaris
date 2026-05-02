@@ -2,7 +2,7 @@ import ephem
 import ssl
 import certifi
 from shr import rad2deg, rad2hr
-from shr import angular_separation
+from kinematics import angular_separation
 from config import Config
 import aiohttp
 import re

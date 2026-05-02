@@ -6,7 +6,8 @@ in the real-time driver.  No file I/O, no CSV reading, no analysis helpers.
 
 Contents
 --------
-  Angle helpers       wrap360/180/90
+  Angle helpers       wrap360/180/90, clamp_arcsec,
+                      is_angle_same, angular_error_arcmin, angular_separation
   Astronomy helpers   calc_parallactic_angle, radec_to_altaz, crota2_from_cd,
                       crota2_to_roll  (used by fits_extract)
   IK / FK             theta_to_q, q_to_theta, q_to_azaltroll, azaltroll_to_q
@@ -14,7 +15,6 @@ Contents
   Polar correction    make_polar_corrQ, apply_polar_correction[_pair]
   Mechanical corr.    MountModelParams, apply_mechanical_corrections
   QUEST alignment     quest_solve
-  Misc                angular_error_arcmin
 """
 
 import math
@@ -39,6 +39,21 @@ def wrap90(angle: float) -> float:
     """Wrap angle to [-90, +90)."""
     return (angle + 90.0) % 180.0 - 90.0
 
+def clamparcsec(x):
+    try:
+        value = float(x) % (360 * 3600)  # Normalize to 0-360 degrees in arc-seconds
+        if value > 180 * 3600:
+            value -= 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
+        elif value < -180 * 3600:
+            value += 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
+        return value
+    except ValueError:
+        return float('nan')
+
+def is_angle_same(a, b, tolerance=1e-4):
+    """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
+    return abs((a - b + 180) % 360 - 180) < tolerance
+
 def angular_error_arcmin(az_pred: float, alt_pred: float, az_true: float, alt_true: float) -> float:
     """Great-circle angular separation in arcminutes."""
     az1, az2 = math.radians(az_pred), math.radians(az_true)
@@ -48,9 +63,39 @@ def angular_error_arcmin(az_pred: float, alt_pred: float, az_true: float, alt_tr
     cos_sep = max(-1.0, min(1.0, cos_sep))
     return math.degrees(math.acos(cos_sep)) * 60.0
 
-def is_angle_same(a, b, tolerance=1e-4):
-    """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
-    return abs((a - b + 180) % 360 - 180) < tolerance
+def angular_separation(ra1_hr, dec1_deg, ra2_hr, dec2_deg):
+    """
+    Computes angular separation between two celestial coordinates using the spherical law of cosines.
+    
+    Parameters:
+        ra1_hr, dec1_deg: RA and Dec of first object (RA in hours, Dec in degrees)
+        ra2_hr, dec2_deg: RA and Dec of second object (RA in hours, Dec in degrees)
+    
+    Returns:
+        Angular separation in degrees
+    """
+    # Convert RA from hours to degrees
+    ra1_deg = ra1_hr * 15.0
+    ra2_deg = ra2_hr * 15.0
+
+    # Convert all angles to radians
+    ra1_rad = math.radians(ra1_deg)
+    dec1_rad = math.radians(dec1_deg)
+    ra2_rad = math.radians(ra2_deg)
+    dec2_rad = math.radians(dec2_deg)
+
+    # Spherical law of cosines
+    cos_angle = (math.sin(dec1_rad) * math.sin(dec2_rad) +
+                 math.cos(dec1_rad) * math.cos(dec2_rad) * math.cos(ra1_rad - ra2_rad))
+
+    # Clamp to valid range to avoid rounding errors
+    cos_angle = min(1.0, max(-1.0, cos_angle))
+
+    # Compute angle in radians and convert to degrees
+    angle_rad = math.acos(cos_angle)
+    angle_deg = math.degrees(angle_rad)
+
+    return angle_deg
 
 # ── 3D Vector helpers ─────────────────────────────────────────────────────────
 def wrap_angle_residual(measured_theta, predicted_theta):

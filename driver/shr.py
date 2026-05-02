@@ -1,62 +1,19 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# shr.py - Device characteristics and support classes/functions/data
-#
-# Part of the AlpycaDevice Alpaca skeleton/template device driver
-#
-# Author:   Robert B. Denny <rdenny@dc3.com> (rbd)
-#
-# Python Compatibility: Requires Python 3.7 or later
-# GitHub: https://github.com/ASCOMInitiative/AlpycaDevice
-#
-# -----------------------------------------------------------------------------
-# MIT License
-#
-# Copyright (c) 2022 Bob Denny
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-# -----------------------------------------------------------------------------
-# Edit History:
-# 15-Dec-2022   rbd 0.1 Initial edit for Alpaca sample/template
-# 18-Dev-2022   rbd 0.1 Additional driver info items
-# 20-Dec-2022   rbd 0.1 Fix idiotic error in to_bool()
-# 22-Dec-2022   rbd 0.1 DeviceMetadata
-# 24-Dec-2022   rbd 0.1 Logging
-# 25-Dec-2022   rbd 0.1 Logging typing for intellisense
-# 26-Dec-2022   rbd 0.1 Refactor logging to config module.
-# 27-Dec-2022   rbd 0.1 Methods can return values. Common request
-#                       logging (before starting processing).
-#                       MIT license and module header. Logging cleanup.
-#                       Python 3.7 global restriction.
-# 28-Dec-2022   rbd 0.1 Rename conf.py to config.py to avoid conflict with sphinx
-# 29-Dec-2022   rbd 0.1 ProProcess() Falcon hook class for pre-logging and
-#                       common request validation (Client IDs for now).
-# 31-Dec-2022   rbd 0.1 Bad boolean values return 400 Bad Request
-# 10-Jan-2023   rbd 0.1 Cleanups for documentation and add docstrings for Sphinx.
-# 23-May-2023   rbd 0.2 Refactoring for multiple ASCOM device type support
-#               GitHub issue #1. Improve error messages in PreProcessRequest().
-# 29-May-2023   rbd 0.2 Enhance get_request_field() so empty string for default
-#               value means mandatory field. Add title and description info
-#               to raised HTTP BAD_REQUEST.
-# 30-May-2023   rbd 0.3 Improve request logging at time of arrival
-# 01-Jun-2023   rbd 0.3 Issue #2 Do not return empty Value field in property
-#               response, and omit Value if error is not success().
+"""
+shy.py — Shared Utility functions.
+
+Provides helper functions for the Alpaca REST API as well as String and Angle formatters.
+Also includes asyncio co-routine lifecycle management and system statistics
+
+Contents
+--------
+  Rest API helpers    DeviceMetadata, get_request_field, log_request, log_response, 
+                      PreProcessRequest, PropertyResponse, MethodResponse, getNextTransId
+  String formatters   format_timestamp, ratio_string, bytes2hexascii
+  Angle formatters    deg2dms, hr2hms, dms2dec, dms2rad, rad2dms, hms2hr, hms2rad, rad2hms
+                      rad2hr, hr2rad, rad2deg, deg2rad
+  LifeCycle mgmt      LifecycleEvent, LifecycleController
+  System Stats        system_vitals_init, system_vitals, system_cpu
+"""
 
 from __future__ import annotations
 from threading import Lock
@@ -74,6 +31,7 @@ import re
 from typing import Set, Coroutine, Dict, Optional
 from datetime import datetime, timezone
 
+# ── REST API helpers ─────────────────────────────────────────────────────────────
 
 logger: Logger = None
 #logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
@@ -224,9 +182,7 @@ class PreProcessRequest():
         await log_request(req)                             # Log even a bad request
         await self._check_request(req, params['devnum'])   # Raises to 400 error on check failure
 
-# ------------------
-# PropertyResponse
-# ------------------
+
 async def PropertyResponse(value, req: Request, err = Success()):
     """Form a ``PropertyResponse`` string.
 
@@ -252,9 +208,7 @@ async def PropertyResponse(value, req: Request, err = Success()):
 
     return json.dumps(res)
 
-# --------------
-# MethodResponse
-# --------------
+
 async def MethodResponse(req: Request, err = Success(), value = None): # value useless unless Success
     """Initialize a MethodResponse string.
 
@@ -279,9 +233,7 @@ async def MethodResponse(req: Request, err = Success(), value = None): # value u
     return json.dumps(res)
 
 
-# -------------------------------
 # Thread-safe ServerTransactionID
-# -------------------------------
 _lock = Lock()
 _stid = 0
 
@@ -292,9 +244,7 @@ def getNextTransId() -> int:
     return _stid
 
 
-# -------------------------------
-# Number conversion functions
-# -------------------------------
+# ── String Formatters ─────────────────────────────────────────────────────────────
 
 def format_timestamp(ts: datetime | float | None = None) -> str:
     """
@@ -323,24 +273,24 @@ def format_timestamp(ts: datetime | float | None = None) -> str:
 
     return dt.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
-
-
-def clamparcsec(x):
-    try:
-        value = float(x) % (360 * 3600)  # Normalize to 0-360 degrees in arc-seconds
-        if value > 180 * 3600:
-            value -= 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
-        elif value < -180 * 3600:
-            value += 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
-        return value
-    except ValueError:
-        return float('nan')
-
+def ratio_string(x: float) -> str:
+    """
+    Convert a float in [0, 1] to a ratio string like '99:01', '50:50', '01:99'.
+    Total always equals 100 and each side is two digits.
+    """
+    x = max(0.0, min(1.0, x))
+    right = round(x * 100)
+    right = max(1, min(99, right))
+    left = 100 - right
+    return f"{left:02d}:{right:02d}"
 
 def bytes2hexascii(data):
     s_hex = ' '.join(('0'+hex(x)[2:])[-2:] for x in data)
     s_ascii = ''.join(chr(x) if 32 <= x <= 126 else '.' for x in data)
     return f"{s_hex}: {s_ascii}"
+
+
+# ── Angle Formatters ─────────────────────────────────────────────────────────────
 
 def deg2dms(decimal_degrees):
     """Converts decimal degrees to formatted degrees-minutes-seconds (DMS) string with sign."""
@@ -428,40 +378,8 @@ def deg2rad(deg):
     """Converts decimal degrees to radians."""
     return deg*math.pi/180
 
-def angular_separation(ra1_hr, dec1_deg, ra2_hr, dec2_deg):
-    """
-    Computes angular separation between two celestial coordinates using the spherical law of cosines.
-    
-    Parameters:
-        ra1_hr, dec1_deg: RA and Dec of first object (RA in hours, Dec in degrees)
-        ra2_hr, dec2_deg: RA and Dec of second object (RA in hours, Dec in degrees)
-    
-    Returns:
-        Angular separation in degrees
-    """
-    # Convert RA from hours to degrees
-    ra1_deg = ra1_hr * 15.0
-    ra2_deg = ra2_hr * 15.0
 
-    # Convert all angles to radians
-    ra1_rad = math.radians(ra1_deg)
-    dec1_rad = math.radians(dec1_deg)
-    ra2_rad = math.radians(ra2_deg)
-    dec2_rad = math.radians(dec2_deg)
-
-    # Spherical law of cosines
-    cos_angle = (math.sin(dec1_rad) * math.sin(dec2_rad) +
-                 math.cos(dec1_rad) * math.cos(dec2_rad) * math.cos(ra1_rad - ra2_rad))
-
-    # Clamp to valid range to avoid rounding errors
-    cos_angle = min(1.0, max(-1.0, cos_angle))
-
-    # Compute angle in radians and convert to degrees
-    angle_rad = math.acos(cos_angle)
-    angle_deg = math.degrees(angle_rad)
-
-    return angle_deg
-
+# ── Lifecycle Management ─────────────────────────────────────────────────────────────
 
 def empty_queue(q: asyncio.Queue):
   while not q.empty():
@@ -580,6 +498,8 @@ class LifecycleController:
     def reset(self):
         self._event = LifecycleEvent.NONE
 
+
+# ── System Statistics ─────────────────────────────────────────────────────────────
 
 def system_vitals():
     """ Returns a string with %CPU, %Mem, #Threads, NetDrops In/Out, NetErr In/Out"""
