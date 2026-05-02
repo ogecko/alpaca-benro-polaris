@@ -176,7 +176,7 @@ While default coefficients are provided, advanced users can fine-tune their moun
 *   **Persistence:** Once defined in the configuration, these corrections are applied automatically at the measurement/telemetry stage of the control loop.
 
 
-#### **VII. Mechnical Correction Magnitude (arcmin) at specific Roll and Altitud Orientations**
+#### **VII. Mechnical Correction Magnitude (arcmin) at specific Roll and Altitude Orientations**
 
 |              Roll |   -70° |   -60° |   -50° |   -40° |   -30° |   -20° |   -10° |    +0° |   +10° |   +20° |   +30° |   +40° |   +50° |   +60° |   +70° | 
 |-------------------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|
