@@ -1810,33 +1810,6 @@ class PID_Controller():
         pidlogger = logging.getLogger('pid') 
         pidlogger.info(payload)
 
-        if False:   # Config.log_pec
-            q1 = self.polaris._q1
-            tq = np.array([q1[0],q1[1],q1[2],q1[3]])
-            tm = self.polaris._theta_raw
-            ts = self.polaris._theta_state
-            tr = self.theta_ref
-            te = self.polaris._theta_state - self.theta_ref
-
-            if not hasattr(self, '_prev'):
-                self._prev = { 'tq':tq, 'tm':tm, 'ts':ts, 'tr':tr }
-
-            d_tq = tq - self._prev['tq']
-            d_tm = tm - self._prev['tm']
-            d_ts = ts - self._prev['ts']
-            d_tr = tr - self._prev['tr']
-
-            self.logger.info(
-                f'd_tq={d_tq[0]:+.6f} {d_tq[1]:+.6f}i {d_tq[2]:+.6f}j {d_tq[3]:+.6f}k '
-                f'd_tm={d_tm[0]:+.6f} {d_tm[1]:+.6f} {d_tm[2]:+.6f} '
-                f'd_ts={d_ts[0]:+.6f} {d_ts[1]:+.6f} {d_ts[2]:+.6f} '
-                f'd_tr={d_tr[0]:+.6f} {d_tr[1]:+.6f} {d_tr[2]:+.6f} '
-                f'd_te={te[0]:+.6f} {te[1]:+.6f} {te[2]:+.6f} '
-            )
-            
-            self._prev = { 'tq':tq, 'tm':tm, 'ts':ts, 'tr':tr }
-
-
     async def stop_control_loop_task(self):
         with self._lock:
             self._stop_flag.set()
