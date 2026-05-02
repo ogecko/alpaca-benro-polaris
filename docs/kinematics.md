@@ -325,6 +325,10 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 | `HA`           | time   | Hour Angle — how far a target has travelled past the meridian. HA = LST − RA. Negative before meridian, positive after | Derived, used in ephem |
 
 
+Conventions:
+ - Positive RA rotation: boresight moves eastward along celestrial equator (increasing RA)
+ - Positive Dec rotation: boresight moves toward north celestial pole (increasing Dec)
+ - Positive PA rotation: camera rotates counter-clockwise (increasing PA)
 
 Conversion between T and E frames is handled by `pyephem` using the observer's site
 coordinates and time. Angles are always used in practice for the E frame.

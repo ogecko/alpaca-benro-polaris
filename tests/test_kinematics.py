@@ -517,8 +517,8 @@ class TestCalcEquatorialAxesB:
             ra, _, _ = calc_equatorial_axes_B(cameraQ, self.IDENTITY, lat)
             b_before = self._boresight(cameraQ)
             b_after  = self._apply(ra, b_before, self.ANGLE)
-            # East component should decrease (moving westward)
-            assert b_after[0] < b_before[0], \
+            # East component should increase (moving eastward)
+            assert b_after[0] > b_before[0], \
                 f"Positive RA rotation should decrease east (+x) from az=90 " \
                 f"at lat={lat}: before={b_before[0]:.4f} after={b_after[0]:.4f}"
     # ── All axes are unit vectors ─────────────────────────────────────────────

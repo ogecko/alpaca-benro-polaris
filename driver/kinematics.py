@@ -631,23 +631,29 @@ def quest_solve(sync_pairs: List[Tuple[Quaternion, Quaternion]]) -> Quaternion:
 def calc_equatorial_axes_B(cameraQ_C2T: Quaternion, alignQ_B2T_inv: Quaternion, site_lat: float):
     lat_rad = np.radians(site_lat)
 
-    # ── RA axis — celestial pole in topo frame ────────────────────────────
+    # ── RA axis — celestial north pole in topo frame ────────────────────────────
     ra_axis_topo = np.array([0.0, np.cos(lat_rad), np.sin(lat_rad)])
-
-    # ── PA axis — boresight ───────────────────────────────────────────────
+   
+    # ── PA axis — boresight in topo frame ───────────────────────────────────────
     pa_axis_topo = np.array(cameraQ_C2T.rotate([0.0, 0.0, -1.0]))
 
-    # ── Dec axis — cross(pole, boresight), sign fixed for +Dec = northward ─
-    # cross(pole, boresight) is perpendicular to both by construction.
-    # Sign: at any pointing, rotating around dec_axis by +angle should
-    # increase the north (+y) component of the boresight.
-    # We verify this with a dot product check and negate if wrong.
+    # ── Dec axis — cross(pole, boresight), sign fixed for +Dec = northward ─────
     dec_axis_topo = np.cross(ra_axis_topo, pa_axis_topo)
     n = np.linalg.norm(dec_axis_topo)
     if n < 1e-6:
         dec_axis_topo = np.array([1.0, 0.0, 0.0])
     else:
         dec_axis_topo /= n
+
+    # Check Dec sign. Simulate a small positive rotation around the candidate dec axis
+    # Rodrigues' formula: rotate boresight (pa_axis_topo) around dec_axis_topo by angle
+    angle = 1e-3  # radians
+    c, s = np.cos(angle), np.sin(angle)
+    nudged = (c * pa_axis_topo
+            + s * np.cross(dec_axis_topo, pa_axis_topo)
+            + (1 - c) * np.dot(dec_axis_topo, pa_axis_topo) * dec_axis_topo)
+    if np.dot(nudged, ra_axis_topo) < np.dot(pa_axis_topo, ra_axis_topo):
+        dec_axis_topo = -dec_axis_topo
 
     # ── Rotate all axes to base (B) frame ────────────────────────────────
     ra_axis_B  = alignQ_B2T_inv.rotate(ra_axis_topo)
