@@ -1545,7 +1545,7 @@ class Polaris:
 
     @property
     def utcdate(self) -> datetime.datetime:
-        res = datetime.datetime.now(datetime.timezone.utc).isoformat().split('+')[0]
+        res = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
         return res
 
     #
