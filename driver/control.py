@@ -1147,8 +1147,6 @@ class PID_Controller():
     def reset_delta_offsets(self, axes):
         if axes is None:
             self.delta_v_sp = np.zeros(3, dtype=float)     # Setpoint for ra, dec, polar anglular velocities
-            self.delta_g_sp = np.zeros(3, dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
-            self.delta_guide = np.zeros(3, dtype=float)     # Guiderate anglular velocities live
             self.delta_offst = np.zeros(3, dtype=float)    # ra, dec, polar anglular offsets
             self.delta_ref_last = np.zeros(3, dtype=float) # ra, dec, polar angular reference position of last control step
             return
@@ -1156,8 +1154,6 @@ class PID_Controller():
         for key, idx in DELTA_MAP.items():
             if key in axes:
                 self.delta_v_sp[idx] = 0.0
-                self.delta_g_sp[idx] = 0.0
-                self.delta_guide[idx] = 0.0
                 self.delta_offst[idx] = 0.0
                 self.delta_ref_last[idx] = 0.0
 
@@ -1381,36 +1377,6 @@ class PID_Controller():
         if self.mode=="IDLE":
             self.set_pid_mode("AUTO")
 
-
-    def pulse_delta_axis(self, direction, duration):
-        if self.mode!="TRACK":
-            return
-        axis = None
-        sign = 0
-        if direction == 0: axis, sign = 1, -1    # North DEC +ve
-        elif direction == 1: axis, sign = 1, +1  # South DEC -ve
-        elif direction == 2: axis, sign = 0, +1  # East RA +ve
-        elif direction == 3: axis, sign = 0, -1  # West RA -ve
-        else:
-            self.logger.warning(f"Invalid pulse guide direction: {direction}")
-            return
-
-        # accumulate the pulse guide durations for topoQ_to_baseQ pulse adjustments 
-        step_sec = abs(duration)/1000
-        velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
-        q_pulse = self.polaris._sm.accumulate_guide_pulses(axis, step_sec, velocity)
-
-        # make immediate adjustment to pv
-        self.polaris._cameraQ_pv = (q_pulse * self.polaris._cameraQ_pv).normalised
-
-        # store in delta_g_sp as well for isguiding flag
-        with self._lock:
-            current = self.delta_g_sp[axis]
-            proposed = current + sign * duration
-            clamped = max(-10_000, min(10_000, proposed))
-            clamped = max(-1, min(1, proposed))
-            self.delta_g_sp[axis] = clamped
-
     def set_zeta_ref_to_home(self):
         if self.mode in ['PRESETUP']:
             return
@@ -1529,22 +1495,6 @@ class PID_Controller():
         elif self.mode == 'TRACK':
             # update delta_sp based on any non-sidereal tracking (Lunar, Solar, Other)
             self.orbital2delta()
-            # Apply relevant guiderate if delta_g_sp duration is non-zero
-            with self._lock:
-                self.polaris._ispulseguiding = False
-                for axis in [0, 1]:  # RA, Dec
-                    duration = self.delta_g_sp[axis]        # remaining pulse guide duration in ms
-                    if duration != 0:
-                        self.polaris._ispulseguiding = True
-                        sign = np.sign(duration)
-                        remaining_ms = abs(duration)
-                        step_ms = min(remaining_ms, self.dt * 1000)  # apply only up to what's left
-                        velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
-                        self.delta_guide[axis] = velocity
-                        self.delta_g_sp[axis] -= sign * step_ms
-                        self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral and trends to zero
-                    else:
-                        self.delta_guide[axis] = 0
 
             # Apply relevant delta slew velocities
             self.delta_offst = clamp_offset(self.delta_offst + self.dt * self.delta_v_sp)
@@ -1829,6 +1779,7 @@ class SyncManager:
         self.alignQ_B2T_message = ""                # message from last optimisation
         self.q_guide_B = Quaternion(1,0,0,0)    # accumulation of pulse guide corrections
         self.delta_guide_accum = np.zeros(3, dtype=float) 
+        self.delta_guide_rate = np.zeros(3, dtype=float) 
         self.equatorial_axes_B = (None, None, None)
         self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)    
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
@@ -2514,8 +2465,10 @@ class SyncManager:
             self.logger.warning(f"Failed to load sync_points.json: {e}")
             return False
 
+# ── Pulse Guiding ──────────────────────────────────────────────────────────
+
     def cache_equatorial_axes_B(self, cameraQ_pv, lat):
-        """ cache equatorial axes in B Frame, when ever PV changes, ie from 518 handler """
+        """ cache equatorial axes in B Frame, when ever PV changes, ie called from 518 handler """
         alignQ_B2T_inv = self.alignQ_B2T_inv
         self.equatorial_axes_B = calc_equatorial_axes_B(cameraQ_pv, alignQ_B2T_inv, lat)
 
@@ -2529,8 +2482,33 @@ class SyncManager:
         q_pulse = Quaternion(axis=axis_base, degrees=angle_deg)
         self.q_guide_B = (q_pulse * self.q_guide_B).normalised
         self.delta_guide_accum[axis] += angle_deg
-        return q_pulse
+        self.delta_guide_rate[axis] = velocity
     
     def clear_guide_pulses(self):
         self.delta_guide_accum = np.zeros(3, dtype=float)
         self.q_guide_B = Quaternion(1,0,0,0)
+        self.delta_guide_rate = np.zeros(3, dtype=float)
+
+    def pulse_delta_axis(self, direction, duration):
+        axis = None
+        sign = 0
+        if direction == 0: axis, sign = 1, +1    # North DEC +ve
+        elif direction == 1: axis, sign = 1, -1  # South DEC -ve
+        elif direction == 2: axis, sign = 0, +1  # East RA +ve
+        elif direction == 3: axis, sign = 0, -1  # West RA -ve
+        else:
+            self.logger.warning(f"Invalid pulse guide direction: {direction}")
+            return
+
+        # accumulate the pulse guide durations into q_guide_B for baseQ_to_topoQ to apply as a correction
+        step_sec = abs(duration)/1000
+        velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
+        self.polaris._sm.accumulate_guide_pulses(axis, step_sec, velocity)
+
+        # make immediate update to ra and dec for conformU tests
+        cameraQ_pv, _ = self.polaris._sm.baseQ_to_topoQ(self.polaris._motorQ_state)
+        az, alt, _ = q_to_azaltroll(cameraQ_pv)
+        ra, dec = self.polaris.altaz2radec(alt, az)
+        self.polaris._rightascension = float(ra)
+        self.polaris._declination = float(dec)
+        self.polaris._ispulseguiding = True

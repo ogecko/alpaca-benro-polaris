@@ -133,7 +133,7 @@ The second primary effect is that **Slew and Center operations become more accur
 
 #### **C. Improved Guiding Performance**
 For users employing a **guide scope** and auto-guiding software (such as PHD2), the advanced model provides a superior foundation for fine tracking corrections.
-*   **Precise Pulse Translation:** Auto-guiding relies on the driver to translate equatorial (RA/Dec) pulse commands into coordinated motor-level adjustments (M1, M2, and M3). The Mechanical Alignment model ensures this coordinate transformation is highly accurate regardless of the mount’s orientation.
+*   **Precise Pulse Translation:** Auto-guiding relies on the driver to translate equatorial (RA/Dec) pulse commands into coordinated motor-level adjustments (M1, M2, and M3). The acculation of pulse quaternions ensures this coordinate transformation is highly accurate regardless of the mount’s orientation.
 *   **Reduced Axis Cross-Coupling:** Because the Polaris is not a traditional equatorial mount, RA and Dec pulses must be carefully decomposed into multi-axis motor movements. The refined model minimizes "cross-coupling", where a correction in one axis causes an unintended shift in another, which is a common challenge for Alt/Az mounts.
 *   **Lower RMS Error:** This mathematical precision allows guiding applications to settle faster and maintain a **lower overall RMS error** (often between 1.3 to 3.0 arc-seconds), which is essential for capturing sharp stars during long-exposure imaging.
 
@@ -352,15 +352,16 @@ theta_state             KF smoothed motor morientation angles
 motorQ_state            KF smoother motor orientation quaternion C→B
 alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
-    ▼ Periodic Error Correction, optional (future)
-    ▼ Mechanical Corrections       (corrQ_RBC)  B Frame
-motorQ_pv              MAC corrected only (B Frame)
-theta_pv               MAC corrected only (B Frame)
+    ▼ Mechanical Corrections             (corrQ_RBC)  B Frame
+    ▼ Pulse Guiding Accum Corrections    (q_pulse_B)  B Frame
+    ▼ Periodic Error Correction
+motorQ_pv              MAC, Pulse and PEC corrected only (B Frame)
+theta_pv               MAC, Pulse and PEC corrected only (B Frame)
     │
     ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGA ∘ alignQ_B2T ∘ motorQ_adj
-    ▼     QUEST Alignment (alignQ_B2T)          B→T
-    ▼     Local Gaussian Correction (corrQ_LGA) T Frame
-    ▼     Roll Sync Adjustment (corrQ_roll) T Frame
+    ▼     QUEST Alignment                (alignQ_B2T) B→T
+    ▼     Local Gaussian Correction      (corrQ_LGA)  T Frame
+    ▼     Roll Sync Adjustment           (corrQ_roll) T Frame
 cameraQ_pv             Fully corrected C→T pointing quaternion
 alpha_pv               (a_az, a_alt, a_roll) = q_to_azaltroll(cameraQ_pv)
 delta_pv               (a_ra, a_dec, a_pa)   = pyephem(az, alt, roll), used as ASCOM co-ordinates
@@ -374,7 +375,6 @@ corrections in exact reverse order of the forward chain.
 ```
 delta_sp                DSO Target equatorial coordinates (RA, Dec, PA)
     │
-    ▼     Pulse Guiding delta_offset += delta_g_sp(ms) * guide_rate
     ▼     Slewing       delta_offst  += delta_v_sp * dt
     ▼     Add offset    delta_ref    =  delta_sp + delta_offst
 delta_ref               DSO Target adjusted equatorial coordinates (RA, Dec, PA)

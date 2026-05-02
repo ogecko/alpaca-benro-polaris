@@ -1406,7 +1406,7 @@ class Polaris:
                 'astate': [0,0,0] if self._alpha_state is None else self._alpha_state.tolist(),
                 'tpv': [0,0,0] if self._pid.theta_pv is None else self._pid.theta_pv.tolist(),
                 'tref': [0,0,0] if self._pid.theta_ref is None else self._pid.theta_ref.tolist(),
-                'dguide': [0,0,0] if self._pid.delta_guide is None else self._pid.delta_guide.tolist(),
+                'dguide': [0,0,0] if self._sm.delta_guide_rate is None else self._sm.delta_guide_rate.tolist(),
                 'dslew': [0,0,0] if self._pid.delta_v_sp is None else self._pid.delta_v_sp.tolist(),
                 'aslew': [0,0,0] if self._pid.alpha_v_sp is None else self._pid.alpha_v_sp.tolist(),
                 'dofst': [0,0,0] if self._pid.delta_offst is None else self._pid.delta_offst.tolist(),
@@ -1435,6 +1435,10 @@ class Polaris:
                 'mpaerror': self._sm.mpa_error,
                 'pidKc': Config.pid_Kc,
             }
+        # clear after sent to Pilot
+        self._sm.delta_guide_rate =  np.zeros(3, dtype=float) 
+        self._ispulseguiding = False
+
         return res
 
     @property
@@ -1491,7 +1495,7 @@ class Polaris:
     def ispulseguiding(self) -> bool:
         with self._lock:
             res =  self._ispulseguiding
-        return res
+        return False
     #
     # Telescope device variables
     #
@@ -2153,7 +2157,7 @@ class Polaris:
         if Config.advanced_guiding and Config.advanced_control:
             if Config.log_pulse_guiding:
                 self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")
-            self._pid.pulse_delta_axis(direction, duration)
+            self._sm.pulse_delta_axis(direction, duration)
             with self._lock:
                 self._ispulseguiding = True                     # is reset in _pid.track_target when all done
         else:
