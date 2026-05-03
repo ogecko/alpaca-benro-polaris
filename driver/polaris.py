@@ -692,7 +692,7 @@ class Polaris:
         elif cmd == "546":
             arg_dict = self.polaris_parse_args(args)
             if Config.log_polaris_protocol:
-                self.logger.info(f"<<- Polaris: SET L Bracket: {cmd} {arg_dict}")
+                self.logger.info(f"<<- Polaris: SET L Bracket status response: {cmd} {arg_dict}")
 
         # return result of FILE request {'type':1; 'class':0; 'path':'/app/sd/normal/SP_0052.jpg'; 'size':'916156'; 'cTime':'2023-10-24 22:33:12'; 'duration':'0'} 
         elif cmd == "771":
@@ -1026,6 +1026,7 @@ class Polaris:
         state = 1 if L_bracket else 0
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 546 Set L Bracket request {'ON' if L_bracket else 'OFF'}")
+        self._polaris_L_bracket = L_bracket
         msg = f"1&546&3&dir:{state}#"
         await self.send_msg(msg)
 
@@ -2017,14 +2018,10 @@ class Polaris:
             self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
 
     async def sync_to_azalt(self, a_az, a_alt):
-        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
-        self.logger.info(f"->> Polaris: SYNC Observed   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
         await self.sync_telescope(a_az=a_az, a_alt=a_alt)
         return
 
     async def sync_to_radec(self, a_ra, a_dec):
-        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
-        self.logger.info(f"->> Polaris: SYNC Observed   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} ({syncmsg})")
         await self.sync_telescope(a_ra=a_ra, a_dec=a_dec)
         return
 
@@ -2037,9 +2034,11 @@ class Polaris:
             self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
             return
 
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
+        self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
+
         if Config.advanced_alignment and Config.advanced_control:
             # Use Multi-Point Alignment and QUEST Model to determine Optimal Quaternion offset
-            self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)}")
             self._sm.sync_az_alt(a_ra, a_dec, a_az, a_alt)
 
         else:
