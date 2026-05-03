@@ -115,7 +115,7 @@ async def main():
 
 
 
-def install_asyncio_exception_handler(loop, logger):
+def install_asyncio_exception_handler(lifecycle, logger):
     
     def handle_exception(loop, context):
         message = context.get('message', '')
@@ -133,7 +133,7 @@ def install_asyncio_exception_handler(loop, logger):
         if exception:
             logger.debug('==ASYNCIO== Exception detail:', exc_info=exception)
     
-    loop.set_exception_handler(handle_exception)
+    lifecycle.loop.set_exception_handler(handle_exception)
 
 
 # ===================
@@ -144,10 +144,9 @@ async def run_all(logger, lifecycle: LifecycleController):
     logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
     # Start heartbeat event loop watchdog thread and asyncio exception handler
-    loop = asyncio.get_running_loop()
-    _start_eventloop_watchdog(loop, logger)
-    system_vitals_init(loop)
-    install_asyncio_exception_handler(loop, logger)
+    _start_eventloop_watchdog(lifecycle, logger)
+    system_vitals_init(lifecycle)
+    install_asyncio_exception_handler(lifecycle, logger)
 
     # Attach socket publishers BEFORE creating Polaris so no early log lines are missed
     app_socket.attach_publisher_to_logger("log")   # general log
@@ -181,7 +180,7 @@ async def run_all(logger, lifecycle: LifecycleController):
 
 # ==================================================================
 
-def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2, monitor_sec=0.3, monitor_delay_sec=1.0):
+def _start_eventloop_watchdog(lifecycle, logger, heartbeat_sec=0.1, threshold_sec=0.2, monitor_sec=0.3, monitor_delay_sec=1.0):
     """
     Starts a watchdog to detect asyncio event loop stalls.
 
@@ -193,7 +192,7 @@ def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2
     (excluding idle workers, blocking receives, and the monitor itself).
 
     Args:
-        loop:               The running asyncio event loop to monitor.
+        lifecycle:          The lifecycle amanager with running asyncio event loop to monitor.
         logger:             Logger instance for warnings and startup confirmation.
         heartbeat_sec:      How often the in-loop heartbeat coroutine ticks (seconds).
                             Default 0.1s.
@@ -214,7 +213,9 @@ def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2
         '_blocking_recvfrom',           # blocking network socket recv — normal for network threads
         'traceback.format_stack',       # the watchdog's own stack capture — always present, skip
         'work_queue.get',               # thread pool worker waiting for work — idle, not stalled
+        '_cpu_sampler_loop',            # thread to get top5 CPU% processes - only run when cpu>95
         f'logging{os.sep}handlers.py',  # async logging handler thread blocked on empty queue — normal
+        'windows_events.py',            # Windows IOCP proactor event loop polling — normal on Win
     ]
     last_seen = time.monotonic()
 
@@ -227,10 +228,10 @@ def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2
     async def _start_heartbeat():
         asyncio.create_task(heartbeat(), name='loop_watchdog_heartbeat')
     
-    def monitor():
+    def heatbeat_monitor():
         time.sleep(monitor_delay_sec)
         last_logged = 0
-        while True:
+        while not lifecycle.should_shutdown():
             time.sleep(monitor_sec)
             now = time.monotonic()
             lag = now - last_seen
@@ -251,8 +252,10 @@ def _start_eventloop_watchdog(loop, logger, heartbeat_sec=0.1, threshold_sec=0.2
                 logger.warning(f'->> HIGH CPU LOAD breakdown:  {system_cpu()}')
 
 
-    asyncio.run_coroutine_threadsafe(_start_heartbeat(), loop)
-    t = threading.Thread(target=monitor, name='loop_watchdog_monitor', daemon=True)
+
+    # Currently executing outside the loop, please run _start_heatbeat in the asyncio loop
+    asyncio.run_coroutine_threadsafe(_start_heartbeat(), lifecycle.loop)
+    t = threading.Thread(target=heatbeat_monitor, name='loop_watchdog_monitor', daemon=True)
     t.start()
     logger.info('==STARTUP== Heartbeat watchdog thread started.')
 
