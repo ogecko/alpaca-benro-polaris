@@ -214,7 +214,9 @@ def _start_eventloop_watchdog(lifecycle, logger, heartbeat_sec=0.1, threshold_se
         'traceback.format_stack',       # the watchdog's own stack capture — always present, skip
         'work_queue.get',               # thread pool worker waiting for work — idle, not stalled
         '_cpu_sampler_loop',            # thread to get top5 CPU% processes - only run when cpu>95
+        'system_cpu_start_probe',       # starting separate thread for top 5 CPU% - can block
         f'logging{os.sep}handlers.py',  # async logging handler thread blocked on empty queue — normal
+        f'psutil{os.sep}_pswindows.py', # psutil used in system vitals when problems detected - normal to block
         'windows_events.py',            # Windows IOCP proactor event loop polling — normal on Win
     ]
     last_seen = time.monotonic()

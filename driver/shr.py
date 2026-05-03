@@ -524,12 +524,14 @@ def system_vitals_init(lifecycle):
 
 
 def system_vitals():
-    """Returns a string with %CPU, %Mem, #Threads, NetDrops In/Out, NetErr In/Out"""
+    """Returns a string with %CPU, %Mem, #Threads"""
     cpu = psutil.cpu_percent(interval=None)
-    mem = psutil.virtual_memory().percent
-    n_threads = threading.active_count()
+    mem = psutil.virtual_memory()
+    swap = psutil.swap_memory()
     net = psutil.net_io_counters()
-    s = (f'CPU: {cpu} Mem {mem} Threads {n_threads} '
+    n_threads = threading.active_count()
+    s = (f'CPU: {cpu:4.1f}% Mem: {mem.percent:4.1f}% ({mem.used//1024//1024}MB) '
+         f'Swap: {swap.percent:4.1f}% Threads: {n_threads}'
          f'NetDrops: {net.dropin}/{net.dropout} NetErr: {net.errin}/{net.errout}')
     if cpu > 95:
         system_cpu_start_probe()
