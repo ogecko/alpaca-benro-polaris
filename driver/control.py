@@ -1902,31 +1902,31 @@ class SyncManager:
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
         if not Config.advanced_alignment:
             return
+
+        # Remove old nearby sync points
         new_pred_vec = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
         new_obs_vec  = azalt_to_vector(a_az, a_alt)
         threshold_rad = math.radians(2.5)   # 2.5 degrees
-
-        # Remove nearby sync points
         for entry in self.sync_history:
             if entry.get("deleted", False):
                 continue
             if entry["a_az"] is None or entry["a_alt"] is None:
                 continue
-
             existing_pred_vec = azalt_to_vector(entry["p_az"], entry["p_alt"])
             existing_obs_vec  = azalt_to_vector(entry["a_az"], entry["a_alt"])
-            
             if (v_angular_distance(new_pred_vec, existing_pred_vec) < threshold_rad or
                 v_angular_distance(new_obs_vec,  existing_obs_vec)  < threshold_rad):
                 self.sync_remove(entry["timestamp"], optimise=False)
 
-        active_entries = [e for e in self.sync_history if not e.get("deleted", False)]
         # If limit reached, remove the lowest-weighted entry
+        active_entries = [e for e in self.sync_history if not e.get("deleted", False)]
         if len(active_entries) >= 10:
             # Find entry with lowest weight
             lowest_entry = min(active_entries, key=lambda e: e.get("w_total", 0.0))
             timestamp_to_remove = lowest_entry.get("timestamp")
             self.sync_remove(timestamp_to_remove, optimise=False)
+
+        # Create and add the new entry
         entry = self.standard_entry()
         entry["a_ra"] = a_ra
         entry["a_dec"] = a_dec
@@ -1934,9 +1934,12 @@ class SyncManager:
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
         self.last_sync_time = time.monotonic()
+
+        # Recalculate QUEST based on the new data
         self.optimize_alignQ_B2T()
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncData()
+
 
     def sync_roll(self, a_roll):
         if not Config.advanced_alignment:
