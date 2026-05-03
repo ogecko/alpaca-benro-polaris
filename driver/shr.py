@@ -531,7 +531,7 @@ def system_vitals():
     net = psutil.net_io_counters()
     n_threads = threading.active_count()
     s = (f'CPU: {cpu:4.1f}% Mem: {mem.percent:4.1f}% ({mem.used//1024//1024}MB) '
-         f'Swap: {swap.percent:4.1f}% Threads: {n_threads}'
+         f'Swap: {swap.percent:4.1f}% Threads: {n_threads} '
          f'NetDrops: {net.dropin}/{net.dropout} NetErr: {net.errin}/{net.errout}')
     if cpu > 95:
         system_cpu_start_probe()
