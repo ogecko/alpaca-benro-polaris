@@ -53,9 +53,9 @@ class BLE_Controller:
             if now - info.get("last_seen", 0) > timeout
         ]
         for addr in stale:
-            self.logger.info(f"BLE pruning stale device: {addr}")
             if self.selectedDevice == self.devices[addr].get("name"):
                 continue    # dont prune the currently selected device
+            self.logger.info(f"BLE pruning stale device: {addr}")
             del self.devices[addr]
 
     # ------------------------------------------------------------------
