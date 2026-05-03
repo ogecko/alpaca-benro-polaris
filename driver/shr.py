@@ -20,6 +20,7 @@ from threading import Lock
 from exceptions import Success
 import json
 import re
+import time
 import math
 import asyncio
 import threading
@@ -400,6 +401,7 @@ class LifecycleEvent(Enum):
     
 class LifecycleController:
     def __init__(self):
+        self.loop = asyncio.get_running_loop()
         self._event = LifecycleEvent.NONE
         self._cond = asyncio.Condition()
         self._lock = threading.Lock()  # For thread-safe sync signaling
@@ -499,81 +501,108 @@ class LifecycleController:
         self._event = LifecycleEvent.NONE
 
 
+
 # ── System Statistics ─────────────────────────────────────────────────────────────
 
+_CPU_SETTLE_INTERVAL  = 1.0   # psutil settling sleep inside each sample
+_CPU_REPORT_THRESHOLD = 1.0   # minimum % to appear in top-5
+
+_system_cpu_lock          = threading.Lock()
+_system_cpu_top5_cache    = ""
+_system_cpu_top5_logged   = False
+_system_cpu_lifecycle     = None
+_system_cpu_sampler_thread = None
+_system_cpu_count         = psutil.cpu_count(logical=True) or 1
+
+_CPU_IDLE_NAMES = {'system idle process', 'idle'}
+
+
+def system_vitals_init(lifecycle):
+    """Call once at startup."""
+    global _system_cpu_lifecycle
+    _system_cpu_lifecycle = lifecycle
+
+
 def system_vitals():
-    """ Returns a string with %CPU, %Mem, #Threads, NetDrops In/Out, NetErr In/Out"""
+    """Returns a string with %CPU, %Mem, #Threads, NetDrops In/Out, NetErr In/Out"""
     cpu = psutil.cpu_percent(interval=None)
     mem = psutil.virtual_memory().percent
     n_threads = threading.active_count()
-    net = psutil.net_io_counters()                    
-    str = f'CPU: {cpu} Mem {mem} Threads {n_threads} ' +\
-          f'NetDrops: {net.dropin}/{net.dropout} NetErr: {net.errin}/{net.errout}'
-    if cpu>95:
+    net = psutil.net_io_counters()
+    s = (f'CPU: {cpu} Mem {mem} Threads {n_threads} '
+         f'NetDrops: {net.dropin}/{net.dropout} NetErr: {net.errin}/{net.errout}')
+    if cpu > 95:
         system_cpu_start_probe()
-    return str
+    return s
 
-_system_cpu_top5_cache     = ""
-_system_cpu_probe_task     = None   # task to run cpu probes
-_system_cpu_loop           = None   # main event loop
-_system_cpu_probe_last_run = 0.0
-_system_cpu_probe_debounce = 10     # minimum seconds between cpu probe
-_system_cpu_count = psutil.cpu_count(logical=True)
-
-def system_vitals_init(loop):
-    """Call once at startup with the running event loop."""
-    global _system_cpu_loop
-    _system_cpu_loop = loop
 
 def system_cpu_start_probe():
-    global _system_cpu_probe_task
-    if _system_cpu_loop is None:
+    """Trigger a one-shot CPU probe thread if one isn't already running."""
+    global _system_cpu_sampler_thread
+    if _system_cpu_lifecycle is not None and _system_cpu_lifecycle.should_shutdown():
         return
-    since      = _system_cpu_loop.time() - _system_cpu_probe_last_run
-    probe_idle = _system_cpu_probe_task is None or _system_cpu_probe_task.done()
-    if not (probe_idle and since > _system_cpu_probe_debounce):
+    with _system_cpu_lock:
+        already_running = (_system_cpu_sampler_thread is not None and
+                           _system_cpu_sampler_thread.is_alive())
+    if already_running:
         return
-    try:
-        running_loop = asyncio.get_running_loop()
-    except RuntimeError:
-        running_loop = None
-    if running_loop is _system_cpu_loop:
-        # Called from inside the event loop — use create_task
-        _system_cpu_probe_task = _system_cpu_loop.create_task(system_cpu_probe())
-    else:
-        # Called from a thread — use thread-safe submission
-        _system_cpu_probe_task = asyncio.run_coroutine_threadsafe(system_cpu_probe(), _system_cpu_loop)
+    t = threading.Thread(target=_cpu_sampler_loop, name='cpu_sampler', daemon=True)
+    with _system_cpu_lock:
+        _system_cpu_sampler_thread = t
+    t.start()
 
-async def system_cpu_probe():
-    global _system_cpu_top5_cache, _system_cpu_probe_last_run
-    # Prime cpu_percent counters — first call always returns 0.0, just sets baseline
-    for p in psutil.process_iter(['name', 'cpu_percent']):
-        try:
-            p.cpu_percent()
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
-    await asyncio.sleep(1.0)
-    psutil.process_iter.cache_clear()
-    procs = []
-    for p in psutil.process_iter(['name', 'cpu_percent']):
-        try:
-            cpu = p.cpu_percent() / _system_cpu_count
-            if cpu > 0:
-                procs.append((p.info['name'], cpu))
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
-    top5 = sorted(procs, key=lambda x: x[1], reverse=True)[:5]
-    _system_cpu_top5_cache     = ", ".join(f"{n} {c:.0f}%" for n, c in top5)
-    _system_cpu_probe_last_run = _system_cpu_loop.time()
 
 def system_cpu_report_available():
-    """ Checks whether a cpu_probe has been run and results available """
-    global _system_cpu_top5_cache
-    return _system_cpu_top5_cache != ""
+    """Returns True when an unlogged CPU sample is ready."""
+    with _system_cpu_lock:
+        return bool(_system_cpu_top5_cache) and not _system_cpu_top5_logged
+
 
 def system_cpu():
-    """ Returns cached string, listing the top 5 Processes by CPU usage, resetting the cache """
-    global _system_cpu_top5_cache
-    top5 = _system_cpu_top5_cache
-    _system_cpu_top5_cache = ""
-    return top5
+    """Returns the cached top-5 CPU string and marks it as logged."""
+    global _system_cpu_top5_logged
+    with _system_cpu_lock:
+        _system_cpu_top5_logged = True
+        return _system_cpu_top5_cache
+
+
+def _cpu_sampler_loop():
+    """One-shot thread: prime counters, settle, sample, cache result."""
+    global _system_cpu_top5_cache, _system_cpu_top5_logged
+
+    # Prime — first cpu_percent() call always returns 0.0, just sets baseline
+    try:
+        for p in psutil.process_iter(['name', 'cpu_percent']):
+            p.cpu_percent()
+    except Exception:
+        pass
+
+    # Settle outside the lock so other threads aren't blocked
+    time.sleep(_CPU_SETTLE_INTERVAL)
+
+    if _system_cpu_lifecycle is not None and _system_cpu_lifecycle.should_shutdown():
+        return
+
+    procs = []
+    try:
+        for p in psutil.process_iter(['name', 'cpu_percent']):
+            try:
+                name = p.info['name'] or ''
+                if name.lower() in _CPU_IDLE_NAMES:
+                    continue
+                cpu = p.info['cpu_percent']
+                if cpu is not None and cpu >= _CPU_REPORT_THRESHOLD:
+                    procs.append((name, cpu / _system_cpu_count))
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+    except Exception:
+        pass
+
+    top5 = sorted(procs, key=lambda x: x[1], reverse=True)[:5]
+    top5_str = ", ".join(f"{n} {c:.1f}%" for n, c in top5)
+
+    with _system_cpu_lock:
+        _system_cpu_top5_cache = top5_str
+        _system_cpu_top5_logged = False
+        # Thread is done — clear the handle so the next high-CPU event can spawn a new one
+        _system_cpu_sampler_thread = None
