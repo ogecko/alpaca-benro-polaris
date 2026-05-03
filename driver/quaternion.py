@@ -101,6 +101,7 @@ class Q:
 
     def __neg__(self): return Q(array=-self.q)
     def __repr__(self): return f'Q(w={self.w:.3f} x={self.x:.3f} y={self.y:.3f} z={self.z:.3f})'
+    def show(self): return f'Q(w={self.w:.8f} x={self.x:.8f} y={self.y:.8f} z={self.z:.8f})'
 
     # ── rotation ──────────────────────────────────────────────────────────
     def rotate(self, v):

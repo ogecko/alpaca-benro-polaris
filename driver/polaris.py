@@ -1958,7 +1958,7 @@ class Polaris:
 
     # ******* Advanced MPC control aware methods ********
     async def trackOrbital(self, name, category):
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         if Config.advanced_orbitals and Config.advanced_control:
             self._pid.orbital_sp_fetchmsg = ''
             await self.start_tracking()                         # start tracking
@@ -1976,26 +1976,26 @@ class Polaris:
             self.logger.info("Advanced Orbital Tracking is currently disabled")
 
     def RotateToRelativeRollAngle(self, rel_roll_angle):
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         self.logger.info(f"->> Polaris: Rotate Relative Observed   RollAngle {deg2dms(self._pid.alpha_sp[2])} PLUS {deg2dms(rel_roll_angle)}")
         roll_angle = self._pid.alpha_sp[2] + rel_roll_angle
         self.RotateToRollAngle(roll_angle)
 
     def RotateToRelativePositionAngle(self, rel_position_angle):
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         self.logger.info(f"->> Polaris: Rotate Relative Observed   PositionAngle {deg2dms(self.positionangle)} PLUS {deg2dms(rel_position_angle)}")
         position_angle = self.positionangle + rel_position_angle
         self.RotateToAbsolutePositionAngle(position_angle)
 
 
     def RotateToAbsolutePositionAngle(self, position_angle):
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         self.logger.info(f"->> Polaris: Rotate Absolute Observed   PositionAngle {deg2dms(position_angle)}")
         roll = self._sm.pa2roll(self._pid.alpha_sp[0], self._pid.alpha_sp[1], position_angle)
         self.RotateToRollAngle(roll)
 
     def RotateToRollAngle(self, roll):
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         if Config.advanced_rotator and Config.advanced_control:
             self.logger.info(f"->> Polaris: Rotate Absolute Observed   RollAngle {deg2dms(roll)}")
             self.markRotateAsUnderway()
@@ -2060,7 +2060,7 @@ class Polaris:
         return
 
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         self._trackingrate = 0
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
         a_ra = rightascension
@@ -2105,7 +2105,7 @@ class Polaris:
     async def move_axis(self, axis:int, rate:float, units="ASCOM"):
         # axis 0,1,2 = Az,Alt,Roll (alpha space)
         # axis 3,4,5 = RA,Dec,PA (delta space) — maps to motor 0,1,2 via % 3
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         if axis not in (0, 1, 2, 3, 4, 5):
             raise ValueError(f"Invalid axis index: {axis}. Must be 0 Az, 1 Alt, 2 Roll, 3 RA, 4 Dec, 5 PA.")
         motor = self._motors[axis % 3]
@@ -2127,7 +2127,7 @@ class Polaris:
                 await motor.set_motor_speed(rate, units)
 
     async def stop_all_axes(self):
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         with self._lock:
             self._axis_ASCOM_slewing_rates = [0,0,0]
             self._slewing = False
@@ -2144,7 +2144,7 @@ class Polaris:
         await self._motors[2].set_motor_speed(0, "DPS")
 
     async def stop_tracking(self):
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         self._tracking = False
         if self._tracking_in_benro:
                 await self.send_cmd_change_tracking_state(False)
@@ -2163,7 +2163,7 @@ class Polaris:
                 await self.send_cmd_change_tracking_state(True)
 
     def pulse_guide(self, direction: int, duration: int):
-        self._sm.valid_guide_sync = False
+        self._sm.sync_guide.clear()
         if Config.advanced_guiding and Config.advanced_control:
             if Config.log_pulse_guiding:
                 self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")

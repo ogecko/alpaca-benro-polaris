@@ -1765,7 +1765,7 @@ class SyncManager:
         self.set_alignQ_to_identity()
 
     def set_alignQ_to_identity(self):
-        self.valid_guide_sync = False           # flag to indicate pure sidereal tracking since last sync
+        self.sync_guide = SyncGuideCorrection()
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.last_sync_time = None              # timestamp used to fade LGA to zero as time passes
         self.corrQ_LGA = Quaternion(1,0,0,0)    # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
@@ -1832,6 +1832,9 @@ class SyncManager:
         if Config.advanced_align_rbc:
             self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B_state, self.params_RBC)
             motorQ_C2B_pv = self.corrQ_RBC * motorQ_C2B_state
+
+        # Apply Sync Guide Corrections (SGC)
+        motorQ_C2B_pv = self.sync_guide.get_current() * motorQ_C2B_pv
 
         # Apply Polar Alignment Corrections (MAC)
         if Config.advanced_align_rbc:
@@ -1903,27 +1906,41 @@ class SyncManager:
         if not Config.advanced_alignment:
             return
     
-        if self.valid_guide_sync:
-            self.process_guide_sync(a_ra, a_dec, a_az, a_alt)
-        else:
-            self.process_quest_sync(a_ra, a_dec, a_az, a_alt)
+        # return if a valid sync guide update occurs
+        if self.process_guide_sync(a_ra, a_dec, a_az, a_alt):
+            return   
 
-        if self.polaris.tracking:
-            self.valid_guide_sync = True
+        # otherwise process it as a quest update
+        self.process_quest_sync(a_ra, a_dec, a_az, a_alt)
 
 
     def process_guide_sync(self, a_ra, a_dec, a_az, a_alt):
-        t_now = time.monotonic()
-        ra_resid = a_ra - self.polaris.rightascension
+        if self.sync_guide.is_invalid():
+            return False
+        
+        MAX_SYNC_GUIDE_DEG = 3.0
+        ra_resid = (a_ra - self.polaris.rightascension)*15
         dec_resid = a_dec - self.polaris.declination
         ra_axis_B, dec_axis_B, _ = self.equatorial_axes_B
-       
-        q_ra_corr  = Quaternion(axis=ra_axis_B,  degrees= -ra_resid)
-        q_dec_corr = Quaternion(axis=dec_axis_B, degrees= -dec_resid)
+        if (abs(ra_resid) > MAX_SYNC_GUIDE_DEG or abs(dec_resid) > MAX_SYNC_GUIDE_DEG):
+            return False
+
+        self.delta_guide_accum[0] += ra_resid
+        self.delta_guide_accum[1] += dec_resid
+
+        q_ra_corr  = Quaternion(axis=ra_axis_B,  degrees= ra_resid)
+        q_dec_corr = Quaternion(axis=dec_axis_B, degrees= dec_resid)
         q_syncguide_corr = (q_ra_corr * q_dec_corr).normalised
 
-        self.logger.info(f"->> Polaris: GUIDE SYNC      Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)}")
-        return
+        self.logger.info(f"->> Polaris: SYNC GUIDING    Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)} Residuals")
+        self.sync_guide.update(q_syncguide_corr)
+
+        # cameraQ, _ = self.baseQ_to_topoQ(self.polaris._motorQ_state)
+        # az, alt, _ = q_to_azaltroll(cameraQ)
+        # ra, dec = self.polaris.altaz2radec(alt, az)
+        # self.logger.info(f"post-correction ra_resid={deg2dms((a_ra - ra)*15)} dec_resid={deg2dms(a_dec - dec)}")
+
+        return True
 
     def process_quest_sync(self, a_ra, a_dec, a_az, a_alt):
         # Remove old nearby sync points
@@ -1962,7 +1979,7 @@ class SyncManager:
         self.optimize_alignQ_B2T()
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncData()
-
+        self.sync_guide.enable()
 
     def sync_roll(self, a_roll):
         if not Config.advanced_alignment:
@@ -2020,6 +2037,8 @@ class SyncManager:
         Markley, F. L. (2000). "Quaternion Attitude Estimation Using Vector Observations." https://tinyurl.com/ymk5xd7z
         Markley, F. L. (2003). "Attitude Estimation or Quaternion Estimation?" https://ntrs.nasa.gov/citations/20030093641
         """
+        self.sync_guide.clear()    
+
         if Config.advanced_alignment == False:
             self.set_alignQ_to_identity()
             return
@@ -2538,3 +2557,27 @@ class SyncManager:
         self.polaris._rightascension = float(ra)
         self.polaris._declination = float(dec)
         self.polaris._ispulseguiding = True
+
+class SyncGuideCorrection:
+    def __init__(self):
+        self.valid_sync_guide = False       # flag to indicate pure sidereal tracking since last sync
+        self.q_accumulated = Quaternion(1,0,0,0)
+
+    def is_invalid(self):
+        return not self.valid_sync_guide
+
+    def clear(self):
+        """ Cleared whenever tracking off, goto, slew, pusle-guide, quest chage """
+        self.valid_sync_guide = False
+        self.q_accumulated = Quaternion(1,0,0,0)
+
+    def enable(self):
+        """ Enabled from a valid QUEST sync and sidereal tracking enabled """
+        self.valid_sync_guide = True
+
+    def update(self, q_new):
+        self.q_accumulated = (q_new * self.q_accumulated).normalised
+
+    def get_current(self):
+        return self.q_accumulated
+    
