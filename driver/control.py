@@ -1765,6 +1765,7 @@ class SyncManager:
         self.set_alignQ_to_identity()
 
     def set_alignQ_to_identity(self):
+        self.valid_guide_sync = False           # flag to indicate pure sidereal tracking since last sync
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.last_sync_time = None              # timestamp used to fade LGA to zero as time passes
         self.corrQ_LGA = Quaternion(1,0,0,0)    # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
@@ -1898,11 +1899,33 @@ class SyncManager:
         az, alt, roll = q_to_azaltroll(cameraQ)
         self.polaris._pid.reset_sp(np.array([az,alt,roll], dtype=float))
                                    
-
     def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
         if not Config.advanced_alignment:
             return
+    
+        if self.valid_guide_sync:
+            self.process_guide_sync(a_ra, a_dec, a_az, a_alt)
+        else:
+            self.process_quest_sync(a_ra, a_dec, a_az, a_alt)
 
+        if self.polaris.tracking:
+            self.valid_guide_sync = True
+
+
+    def process_guide_sync(self, a_ra, a_dec, a_az, a_alt):
+        t_now = time.monotonic()
+        ra_resid = a_ra - self.polaris.rightascension
+        dec_resid = a_dec - self.polaris.declination
+        ra_axis_B, dec_axis_B, _ = self.equatorial_axes_B
+       
+        q_ra_corr  = Quaternion(axis=ra_axis_B,  degrees= -ra_resid)
+        q_dec_corr = Quaternion(axis=dec_axis_B, degrees= -dec_resid)
+        q_syncguide_corr = (q_ra_corr * q_dec_corr).normalised
+
+        self.logger.info(f"->> Polaris: GUIDE SYNC      Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)}")
+        return
+
+    def process_quest_sync(self, a_ra, a_dec, a_az, a_alt):
         # Remove old nearby sync points
         new_pred_vec = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
         new_obs_vec  = azalt_to_vector(a_az, a_alt)
