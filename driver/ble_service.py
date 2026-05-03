@@ -138,14 +138,18 @@ class BLE_Controller:
         if Config.log_polaris_ble and should_log:
             self.logger.info(f"BLE Polaris registered: {addr} ({self.devices[addr]})")
 
+
     async def runBleScanner(self):
         try:
-            await self._start_scanner()
             self.logger.info("==STARTUP== Bluetooth scanner running.")
-
             while not self.lifecycle.should_shutdown():
                 self.prune_stale_devices()
-                if not self.isConnectedFn():
+                if self.isConnectedFn():
+                    # Connected — scanner not needed, make sure it's off
+                    await self._stop_scanner()
+                else:
+                    # Not connected — ensure scanner is running to find Polaris
+                    await self._start_scanner()
                     await self.enableWifi()
                 await asyncio.sleep(30)
 
@@ -368,7 +372,8 @@ class BLE_Controller:
             )
             self.isEnablingWifi = False
 
-        try:
-            await self._start_scanner()
-        except Exception as e:
-            self.logger.warning(f"BLE failed to restart scanner: {e}")
+        if not self.isConnectedFn():
+            try:
+                await self._start_scanner()
+            except Exception as e:
+                self.logger.warning(f"BLE failed to restart scanner: {e}")
