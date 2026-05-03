@@ -37,43 +37,53 @@
 
 ## What's new in v2.2.0
 
-- **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart.
-- **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
-- **[Alignment Diagnostics]** Improve Multi-Point Alignment Model diagnostics with Alignment RMS Error and more logging.
+### Refactored Kinematics
+- **[Improved Accuracy]** Reduce tracking RMS Error by up to 70%, by synchronising 518 and PID calculations.
 - **[Kinematics Status]** A new Kinematics page that provides a comprehensive overview of both Forward and Inverse Kinematics workflows.
+- **[Negative Azimuth]** Goto's now support altitudes down to -79° by flipping the astro axis in the opposite direction. Previously limited to -8°.
+- **[Smoother Rolling]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.
+- **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing, hysteresis to reduce uncertainty, and add status icon to Pilot.
+- **[At Home]**: Upgrade to ASCOM ITelescopeV4 FindHome method (non-blocking) and associated AtHome property. Include in Pilot Status indicator.
+
+### Goto and Pointing Correction Models
 - **[Goto Completion]** Reduce post-goto star trails by stabilising tracking before marking goto as complete, tightening tollerance x20 when tracking enabled.
 - **[Progress Indicator]** Add a circular progress indicator showing remaining angular distance for Goto, Rotate, Home, and Park operations.
 - **[Slew & Center Correction]** Reduce the number of corrective slews with Zero Last Residual (ZLR) and Local Guasssian Adjustment (LGA) algorithms.
 - **[Mechanical Correction]** Correction models for potentially tilted or cantered Astro and Altitude motor axes.
-- **[FITS Extract]** Utility script to extract meta-data from plate-solved FITS images and calibrate Mechanical Correction Models (fits_extract.py)
-- **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.
-- **[Shortest Path]** Move Polaris using the SO(3) quaternion shortest-path interpolation, ensuring more accurate and smooth orientation corrections.
-- **[Reduced RMSError]** Reduce RMS Error by up to 70%, by synchronising 518 and PID calculations.
-- **[RMSError projection]** Apply cos(Dec) and cos(Alt) scaling to RA/Az RMS error to correct for polar projection effects.
-- **[Forward Kinematics]** Improve forward kinematic robustness, deriving motor angles from CameraUp vector rather than theta3
-- **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing, hysteresis to reduce uncertainty, and add status icon to Pilot.
-- **[Negative Azimuth]** Goto's now support altitudes down to -79° by flipping the astro axis in the opposite direction. Previously limited to -8°.
-- **[Roll Angle Tracking]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.
-- **[Orbital Tracking]** Enhance orbital tracking by adding feed forward, expanding integration, and maintaining a fixed roll angle
-- **[Guiding Accuracy]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
-- **[Guiding Integral]**: Reduce pulse-guiding overshoot by temporarily suspending integration of the error term during active guiding.
-- **[Abort Slew]** Add Polaris:AbortSlew Device Action for Nina Advanced Scheduler. Stops all axis motion, turns off tracking, unparks the mount.
-- **[Rotate Relative]** Add Polaris:RotateRelative Device Action for Nina Advanced Scheduler. Adjusts the roll angle by a specified relative offset.
+
+### Multi Point Alignment
+- **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart.
+- **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
+- **[Alignment Diagnostics]** Improve Multi-Point Alignment Model diagnostics with Alignment RMS Error and more logging.
+
+### Auto-Guiding Improvements
+- **[Sync Guiding]** Drift correction made simple; no guide camera, no extra PHD2 software, just plate-solving.
+- **[Pulse Guiding]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
+- **[Polar Alignment]** Guiding adjustments applied as corrections rather than setpoint changes to maintain polar alignemnt
+
+### Panorama Tools
 - **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.
 - **[Pano Recenter]** Add btn on the Dashboard to save the current pointing orientation into the PanoGrid, recentering it in space.
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
-- **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
-- **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
-- **[Deviation Charts]** Add ΔTopographic and ΔMotor charts to PID Tuning page to remove underlying sidereal trends and show SP deviation only.
-- **[At Home]**: Upgrade to ASCOM ITelescopeV4 FindHome method (non-blocking) and associated AtHome property. Include in Pilot Status indicator.
-- **[Heartbeat Diagnostics]**: Introduce a heartbeat monitor and additional telemetry statistics to assist in diagnosing late position updates.
-- **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
+
+## Utilities and Visualisation
+- **[FITS Extract]** Utility script to extract meta-data from plate-solved FITS images and calibrate Mechanical Correction Models (fits_extract.py)
+- **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.
 - **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
+- **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
+
+### Diagnostics and System
+- **[Heartbeat Diagnostics]**: Introduce a heartbeat monitor and additional telemetry statistics to assist in diagnosing late position updates.
 - **[IPv6 Discovery]**: Revamped IPv6 Alpaca Discovery for support on MacOS, Linux and Windows.
+- **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
+- **[Chart RMSError projection]** Apply cos(Dec) and cos(Alt) scaling to RA/Az RMS error to correct for polar projection effects.
+- **[Deviation Charts]** Add ΔTopographic and ΔMotor charts to PID Tuning page to remove underlying sidereal trends and show SP deviation only.
 
-## New Features (enabled by Nina)
-
-## New Features (enabled by Stellarium)
+### New Features (enabled by Nina)
+- **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
+- **[Device Actions]** Additional Device Actions added for Nina Advanced Sequencer
+    - **Polaris:RotateRelative** Adjusts the roll angle by a specified relative offset.
+    - **Polaris:AbortSlew** Stops all axis motion, turns off tracking, unparks the mount.
 
 ## Upgraded Win11 Requirements.txt Compatibility
 - **[Python 3.13.12]**: Upgraded Python support from 3.13.9.
