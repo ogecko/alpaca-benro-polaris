@@ -7,6 +7,7 @@ from bleak.exc import BleakError, BleakDBusError
 from shr import LifecycleController, bytes2hexascii
 from config import Config
 
+POLARIS_ADVERTISED_UUID = "00007370-0000-1000-8000-00805f9b34fb"
 SEND_UUID = "0000fff1-0000-1000-8000-00805f9b34fb"
 RECV_UUID = "0000fff2-0000-1000-8000-00805f9b34fb"
 
@@ -73,7 +74,7 @@ class BLE_Controller:
         if self._scanning:
             return
         try:
-            self._scanner = BleakScanner(self.scannerCallback)
+            self._scanner = BleakScanner(self.scannerCallback, service_uuids=[POLARIS_ADVERTISED_UUID])
             await self._scanner.start()
             self._scanning = True
             if Config.log_polaris_ble:
