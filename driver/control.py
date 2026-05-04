@@ -2178,7 +2178,7 @@ class SyncManager:
             return False
         
         MAX_SYNC_GUIDE_DEG = 3.0
-        ra_resid = clamp_error(a_ra, self.polaris.rightascension)*15
+        ra_resid = clamp_error(a_ra*15, self.polaris.rightascension*15)
         dec_resid = clamp_error(a_dec, self.polaris.declination)
         if (abs(ra_resid) > MAX_SYNC_GUIDE_DEG or abs(dec_resid) > MAX_SYNC_GUIDE_DEG):
             return False
