@@ -172,12 +172,12 @@ def clamp_offset(offset):
     return clamped
 
 
-def clamp_error(theta_ref, theta_meas):
+def clamp_error(ref, meas):
     """
     Calculates angular error considering wrap-around using modular arithmetic.
     Each error is normalized to [-180, 180) range.
     """
-    return ((theta_ref - theta_meas + 180) % 360) - 180
+    return ((ref - meas + 180) % 360) - 180
 
 # ── 3D Vector helpers ─────────────────────────────────────────────────────────
 
