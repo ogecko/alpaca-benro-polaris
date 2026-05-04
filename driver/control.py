@@ -778,6 +778,8 @@ class PID_Controller():
             self.Kv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
 
     def reset_offsets(self, axes=None):
+        """Reset alpha/delta_v_sp, _offset, _ref_last for each axes. 
+           Where axes is a list from ["ra", "dec", "pa", "alt", "az", "roll"], and defaults to all"""
         self.reset_delta_offsets(axes)
         self.reset_alpha_offsets(axes)
 
@@ -939,11 +941,16 @@ class PID_Controller():
             return
         self.reset_offsets()      # Only reset offsets on axes that are changed
         self.target_type = 'ALPHA'
+
         # Safely update alpha_sp components if provided
+        if self.mode == 'TRACK':
+            default = self.body2alpha()
+        else:
+            default = self.alpha_sp
         alpha = [
-            sp.get("az",   self.alpha_sp[0]),
-            sp.get("alt",  self.alpha_sp[1]),
-            sp.get("roll", self.alpha_sp[2]),
+            sp.get("az",   default[0]),
+            sp.get("alt",  default[1]),
+            sp.get("roll", default[2]),
         ]
         self.alpha2body(alpha)
         self.delta_sp[:] = self.body2delta()

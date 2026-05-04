@@ -17,6 +17,7 @@
 - [X] Complete more wholistic Mechnical Alignment Correction (replacing Roll Bias Correction)
 - [X] Debug 518 message intermittant miss, document the fix was BLE Scanner related
 - [X] Refactor kinematics.py and wrap180, move more kinimatic functions from control.py to kinematics.py   
+- [X] Allow Roll change while in tracking mode, without resetting az/alt setpoints.
 - [ ] Explore how to reduce sidereal tracking drift and reduce residuals - Sync Guiding
 - [ ] Debug Gimbal Lock solution selection issue @ Az 292, Alt 0, Roll 2
 - [ ] Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates
