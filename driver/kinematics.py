@@ -15,7 +15,7 @@ Contents
   Astronomy helpers   calc_parallactic_angle, radec_to_altaz, crota2_from_cd,
                       crota2_to_roll  (used by fits_extract)
   IK / FK             theta_to_q, q_to_theta, q_to_azaltroll, azaltroll_to_q
-                      azaltroll_to_theta, q_from_azaltroll, LastPosition
+                      azaltroll_to_theta, azaltroll_to_q, LastPosition
   Mechanical corr.    MountModelParams, apply_mechanical_corrections
   QUEST alignment     quest_solve
 """
@@ -328,71 +328,129 @@ def crota2_to_roll(crota2_deg: float,
 
 # ── IK / FK (inverse and forward kinematics) ─────────────────────────────────
 
+
+def azaltroll_to_q(az, alt, roll):
+    """
+    Convert altitude, azimuth, and roll angles to a camera quaternion using simple rotation composition.
+    Args:
+        az: Azimuth angle in degrees (0-360)
+        alt: Altitude angle in degrees (-90 to +90)
+        roll: Roll angle around boresight (degrees),  (+ve=camera rotates ccw when view from rear, image rotates cw)
+    Returns:
+        Quaternion: q1 that rotates from camera frame to topocentric frame
+    """
+    # Reconstructing q1 from az, alt, roll
+    qaz = Quaternion(axis=[0, 0, 1], degrees= -az + 90)
+    qalt = Quaternion(axis=[0, 1, 0], degrees= -alt - 90)
+    qroll = Quaternion(axis=[0, 0, 1], degrees= roll)
+    q1 = qaz * qalt * qroll  # Reconstructed quaternion from roll, then alt, then az
+    return -(q1.normalised) if roll < 0 else q1.normalised
+
+
+def theta_to_q(theta1, theta2, theta3):
+    """
+    Convert theta1, theta2, theta3 angles to a base quaternion using simple rotation composition.
+    Args:
+        theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount, 0=North)
+        theta2: Polaris Axis 2 angle in degrees (-90 to +90) +ve=upwards (looking side on to mount, 0=Horizontal)
+        theta3: Polaris Axis 3 angle in degrees (-180 to +180) +ve=cw (looking down towards mount. 0=Level)
+    Returns:
+        # q1 represents the orientation of the camera in topocentric 3D World space SO(3)
+        # there may be multiple motor angle solutions that give rise to this orientation cf elbow up or down.
+        # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
+    """
+    # Reconstructing q1 from theta1, theta2, theta3
+    qtheta1 = Quaternion(axis=[0, 0, 1], degrees= -theta1 + 90)                      # Spin camera around vertical
+    qtheta2 = Quaternion(axis=[0, 1, 0], degrees= -theta2 - 90)                      # Tilt camera up/down
+    qtheta3 = Quaternion(axis=(qtheta1*qtheta2).rotate([1, 0, 0]), degrees= -theta3) # Pan camera left/right
+    q = (qtheta3 * qtheta1 * qtheta2).normalised
+    noflip = theta3 < 0
+    return q if noflip else -q
+
+
+def theta_to_jacobian(theta1, theta2, theta3):
+    """
+    Compute the 3x3 Jacobian matrix at the given base frame orientation theta.
+    Args:
+        theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount, 0=North)
+        theta2: Polaris Axis 2 angle in degrees (-90 to +90) +ve=upwards (looking side on to mount, 0=Horizontal)
+        theta3: Polaris Axis 3 angle in degrees (-180 to +180) +ve=cw (looking down towards mount. 0=Level)
+    Returns
+        J : (3,3) ndarray - Jacobian matrix such that ω = J(θ) · θ_dot
+    """
+    # Rotation quaternions for first two joints
+    qtheta1 = Quaternion(axis=[0, 0, 1], degrees=-theta1 + 90)
+    qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-theta2 - 90)
+    # Joint axes expressed in base frame
+    a1 = np.array([0, 0, 1])                      # Joint 1 axis (Z, fixed in base)
+    a2 = qtheta1.rotate([0, 1, 0])                # Joint 2 axis (Y after θ1)
+    a3 = (qtheta1 * qtheta2).rotate([1, 0, 0])    # Joint 3 axis (X after θ1, θ2)
+    # Assemble Jacobian
+    J = np.column_stack((a1, a2, a3))
+    return -J
+
+
 class LastPosition:
-    """Tracks previous motor position for IK disambiguation and gimbal lock."""
-    def __init__(self, t1=180.0, t2=45.0, t3=0.0):
+    def __init__(self, t1=180, t2=45, t3=0):
         self.last_theta1 = t1
         self.last_theta2 = t2
         self.last_theta3 = t3
         self.in_gimbal_lock = False
-
-    def calcMechanicalAngularDiff(self, t1, t2, t3):
-        def ad(a, b): return ((b - a + 180) % 360) - 180
-        return ad(t1, self.last_theta1)**2 + ad(t2, self.last_theta2)**2 + ad(t3, self.last_theta3)**2
-
+    def update(self,t1,t2,t3):
+        self.last_theta1 = t1
+        self.last_theta2 = t2
+        self.last_theta3 = t3
+    def calcMechanicalAngularDiff(self,t1,t2,t3):
+        dt1 = angular_difference(t1, self.last_theta1)
+        dt2 = angular_difference(t2, self.last_theta2)
+        dt3 = angular_difference(t3, self.last_theta3)
+        return dt1*dt1 + dt2*dt2 + dt3*dt3
     def check_for_gimbal_lock(self, theta2=None):
         if theta2 is None:
             theta2 = self.last_theta2
-        if not self.in_gimbal_lock and abs(theta2) < 1:
+        # check new theta2 for potential gimbal lock, with hysteresis to eliminate chatter at boundary
+        GIMBAL_ENTER = 1  
+        GIMBAL_EXIT  = 3          
+        if not self.in_gimbal_lock and abs(theta2) < GIMBAL_ENTER:
             self.in_gimbal_lock = True
-        elif self.in_gimbal_lock and abs(theta2) > 3:
+        elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
             self.in_gimbal_lock = False
         return self.in_gimbal_lock
 
-
-def azaltroll_to_q(az: float, alt: float, roll: float) -> Quaternion:
-    """Az/alt/roll (degrees) -> camera quaternion. Matches driver azaltroll_to_q()."""
-    qaz   = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
-    qalt  = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
-    qroll = Quaternion(axis=[0, 0, 1], degrees=roll)
-    q1    = qaz * qalt * qroll
-    return -(q1.normalised) if roll < 0 else q1.normalised
-
-def q_to_theta_driver(motorQ_C2B: Quaternion,
-                      lastPos: Optional['LastPosition'] = None,
-                      ) -> Tuple[float, float, float]:
-    """
-    Camera quaternion -> (theta1, theta2, theta3) motor angles.
-    Matches driver q_to_theta() exactly, including gimbal-lock handling.
-    Use this when pa_* motor-space residuals need to match the driver's IK.
-    """
-    if lastPos is None:
-        lastPos = LastPosition()
-    q1     = motorQ_C2B
-    tUp    = q1.rotate(np.array([1, 0, 0]))
+def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
+    """Convert a motor quaternion (C2B frame) into joint angles (θ), using the previous
+       position as a reference to resolve ambiguity and ensure continuity."""
+    q1 = motorQ_C2B
+    
+    # tUp invariant under theta3
+    tUp = q1.rotate(np.array([1, 0, 0]))
     tRight = q1.rotate(np.array([0, 1, 0]))
 
+    # Primary solution
     theta1_A = wrap360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
     t1r_A    = np.radians(theta1_A)
-    sin_t2_A = -(tUp[0] * np.sin(t1r_A) + tUp[1] * np.cos(t1r_A))
+    sin_t2_A = -(tUp[0]*np.sin(t1r_A) + tUp[1]*np.cos(t1r_A))
     theta2_A = wrap90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
+
+    # Alternative solution
     theta1_B = wrap360(theta1_A + 180)
     theta2_B = -theta2_A
 
+    # Validity
     theta2_min, theta2_max = -8, 83
     validA = theta2_min <= theta2_A <= theta2_max
     validB = theta2_min <= theta2_B <= theta2_max
 
     def calc_theta3(theta1, theta2):
-        qt1 = Quaternion(axis=[0, 0, 1], degrees=-theta1 + 90)
-        qt2 = Quaternion(axis=[0, 1, 0], degrees=-theta2 - 90)
+        qt1 = Quaternion(axis=[0,0,1], degrees=-theta1+90)
+        qt2 = Quaternion(axis=[0,1,0], degrees=-theta2-90)
         tRight_no_M3 = (qt1 * qt2).rotate([0, 1, 0])
         r1 = tRight_no_M3 - np.dot(tRight_no_M3, tUp) * tUp
-        r2 = tRight        - np.dot(tRight,        tUp) * tUp
+        r2 = tRight       - np.dot(tRight,       tUp) * tUp
         n1, n2 = np.linalg.norm(r1), np.linalg.norm(r2)
         if n1 < 1e-9 or n2 < 1e-9:
             return lastPos.last_theta3
-        r1n, r2n = r1 / n1, r2 / n2
+        r1n, r2n = r1/n1, r2/n2
         cos_t3 = np.clip(np.dot(r1n, r2n), -1, 1)
         sin_t3 = np.dot(np.cross(r1n, r2n), tUp)
         return wrap180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
@@ -400,10 +458,13 @@ def q_to_theta_driver(motorQ_C2B: Quaternion,
     if validA and not validB:
         theta1, theta2 = theta1_A, theta2_A
         theta3 = calc_theta3(theta1, theta2)
+
     elif validB and not validA:
         theta1, theta2 = theta1_B, theta2_B
         theta3 = calc_theta3(theta1, theta2)
+
     elif validA and validB:
+        # Both valid — compute theta3 for each and use full 3D lastPos comparison
         theta3_A = calc_theta3(theta1_A, theta2_A)
         theta3_B = calc_theta3(theta1_B, theta2_B)
         diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A)
@@ -412,7 +473,9 @@ def q_to_theta_driver(motorQ_C2B: Quaternion,
             theta1, theta2, theta3 = theta1_A, theta2_A, theta3_A
         else:
             theta1, theta2, theta3 = theta1_B, theta2_B, theta3_B
+
     else:
+        # Neither valid — clamp closest
         def dist(t2):
             if t2 < theta2_min: return theta2_min - t2
             if t2 > theta2_max: return t2 - theta2_max
@@ -423,22 +486,60 @@ def q_to_theta_driver(motorQ_C2B: Quaternion,
             theta1, theta2 = theta1_A, np.clip(theta2_A, theta2_min, theta2_max)
         theta3 = calc_theta3(theta1, theta2)
 
-    if lastPos.check_for_gimbal_lock(theta2):
+    # Gimbal lock
+    in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
+    if in_gimbal_lock:
         locked_sum = wrap360(theta1 + theta3)
-        theta3 = 0.0
+        theta3 = 0
         theta1 = locked_sum
 
     return float(theta1), float(theta2), float(theta3)
 
+
+
+def q_to_azaltroll(cameraQ_C2T):
+    """Convert a camera quaternion (C2T frame) into azimuth, altitude, and roll angles."""
+    # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
+    tBore = cameraQ_C2T.rotate([0, 0, -1])
+
+    # Azimuth and Altitude: rotation around unadjusted bore vector ie Topocentric co-ordinates including effect of Axis 3
+    az = np.degrees(np.arctan2(tBore[0], tBore[1]))                     # Azimuth = Boresight axis projected on N/E plane
+    alt = np.degrees(np.arcsin(np.clip(tBore[2], -1, 1)))               # Altitude = Angle from N/E plane, vertically to the Boresight axis
+
+    # Roll Angle: Reconstruct the zero-roll quaternion using the same forward chain (roll=0)
+    qaz   = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
+    qalt  = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
+    q_no_roll = qaz * qalt          # What the quaternion would be with roll=0
+
+    # The roll is the residual rotation between q_no_roll and the actual quaternion.
+    # q_no_roll * qroll = cameraQ_C2T  =>  qroll = q_no_roll.inverse * cameraQ_C2T
+    # But we must account for the double-cover sign ambiguity first, to ensure both q's are in same 4D hemisphere.
+    q_actual = cameraQ_C2T
+    if (q_no_roll * q_actual.inverse).scalar < 0:
+        q_actual = -q_actual
+    q_roll_residual = q_no_roll.inverse * q_actual
+
+    # Extract the roll angle from the residual quaternion (axis should be ≈ [0,0,1])
+    roll = np.degrees(2 * np.arctan2(
+        np.linalg.norm([q_roll_residual[1], q_roll_residual[2], q_roll_residual[3]]),
+        q_roll_residual[0]
+    ))
+
+    # Determine sign: if residual axis points in -Z direction, negate the angle
+    if q_roll_residual[3] < 0:
+        roll = -roll
+
+    return wrap360(az), wrap180(alt), wrap180(roll)
+
 def azaltroll_to_theta(p_az: float, p_alt: float, p_roll: float,
-                       lastPos: Optional[LastPosition] = None,
-                       ):
+                       lastPos: Optional[LastPosition] = None):
     """Az/alt/roll (degrees) -> (theta1, theta2, theta3) via IK. Returns (None,None,None) on error."""
     try:
         motorQ = azaltroll_to_q(p_az, p_alt, p_roll)
-        return q_to_theta_driver(motorQ, lastPos)
+        return q_to_theta(motorQ, lastPos)
     except Exception:
         return None, None, None
+
 
 def theta_to_azaltroll(theta1: float, theta2: float, theta3: float):
     """theta1, theta2, theta3 (degrees) -> (az,alt,roll) via FK. Returns (None,None,None) on error."""
@@ -448,73 +549,48 @@ def theta_to_azaltroll(theta1: float, theta2: float, theta3: float):
     except Exception:
         return None, None, None
 
-# ── Basic quaternion / kinematics ─────────────────────────────────────────────
 
-def theta_to_q(t1: float, t2: float, t3: float) -> Quaternion:
-    """Motor angles (degrees) → camera quaternion in base frame."""
-    qtheta1 = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
-    qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
-    m3_axis = np.array((qtheta1 * qtheta2).rotate([1, 0, 0]))
-    qtheta3 = Quaternion(axis=m3_axis.tolist(), degrees=-t3)
-    q = (qtheta3 * qtheta1 * qtheta2).normalised
-    return q if t3 >= 0 else (-q).normalised
+def quaternion_to_angles(q1, lastPos = LastPosition()):
+    """
+    Decomissioned - do not use this fn
+    Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
+    Args:
+        q1: Quaternion that rotates from camera frame to topocentric frame
+            Camera frame: -z = boresight, +x = up, +y = left
+            Topocentric frame: +z = Zenith, +y = North, +x = East
+        lastPos: last mechanical position (LastPosition object)
+    Returns:
+        tuple: (theta1, theta2, theta3, alt, az, roll)
+            - theta1: Rotation around Polaris Axis 1 (degrees, 0-360)
+            - theta2: Rotation around Polaris Axis 2 (degrees, -90 to +90)
+            - theta3: Rotation around Polaris Axis 3 (degrees)
+            - alt: Altitude angle (degrees, -90 to +90)
+            - az: Azimuth angle (degrees, 0-360)
+            - roll: Roll angle around boresight (degrees),  (+ve=camera rotates ccw when view from rear, image rotates cw)
+    """
+    # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
+    # calculate the motor angles from the base quaternion
+    theta1, theta2, theta3 = q_to_theta(q1, lastPos=lastPos)
+    # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
+    tBore = q1.rotate(np.array([0, 0,-1]))   
+    # --- Azimuth and Altitude: rotation around unadjusted bore vector ie Topocentric co-ordinates including effect of Axis 3
+    az = (np.degrees(np.arctan2(tBore[0], tBore[1])) + 360) % 360       # Azimuth = Boresight axis projected on N/E plane
+    alt = np.degrees(np.arcsin(np.clip(tBore[2], -1.0, 1.0)))           # Altitude = Angle from N/E plane, vertically to the Boresight axis
+    # --- Roll angle: rotation around boresight ---
+    if abs(abs(alt) - 90) < 1e-3:                                       # if altitude is +90 = pointing straight up or -90 = straight down
+        roll = 0.0  
+    else:
+        qalt = Quaternion(axis=np.array([0,-1, 0]), degrees= alt + 90)  # Rotate Alt around cRight
+        qaz = Quaternion(axis=np.array([0, 0,-1]), degrees= az - 90)    # Rotate Az around cBore
+        q3 = q1 * (qaz * qalt).inverse                                  # remove alt and az rotations, leaving only the residual roll about the boresight
+        roll = abs(q3.degrees)
+        aDiff = angular_difference(theta1, az)                          # anglular distance from theta1 to az (-ve diff is a positive ccw roll)
+        flip = (roll<90 and aDiff>0) or (roll>=90 and aDiff<=0)
+        roll = -roll if flip else roll
+    return theta1, theta2, theta3, az, alt, roll
 
 
-def q_to_azaltroll(q: Quaternion) -> Tuple[float, float, float]:
-    """Camera quaternion → (az, alt, roll) in degrees.  az in [0,360)."""
-    bore = q.rotate([0, 0, -1])
-    az   = math.degrees(math.atan2(bore[0], bore[1])) % 360
-    alt  = math.degrees(math.asin(max(-1.0, min(1.0, bore[2]))))
-    qaz  = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
-    qalt = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
-    qnr  = qaz * qalt
-    qa   = q if (qnr * q.inverse).scalar >= 0 else -q
-    qr   = qnr.inverse * qa
-    roll = math.degrees(2 * math.atan2(
-        math.sqrt(qr[1]**2 + qr[2]**2 + qr[3]**2), qr[0]))
-    if qr[3] < 0:
-        roll = -roll
-    return az, alt, roll
 
-def q_to_theta(q: Quaternion) -> Tuple[float, float, float]:
-    """Camera quaternion → (theta1, theta2, theta3) in degrees."""
-    tUp    = np.array(q.rotate([1, 0, 0]))
-    tRight = np.array(q.rotate([0, 1, 0]))
-
-    theta1_A = float(math.degrees(math.atan2(-tUp[0], -tUp[1])) % 360)
-    t1r      = math.radians(theta1_A)
-    sin_t2   = -(tUp[0] * math.sin(t1r) + tUp[1] * math.cos(t1r))
-    theta2_A = float(max(-90.0, min(90.0,
-                   math.degrees(math.atan2(sin_t2, tUp[2])))))
-    theta1_B = (theta1_A + 180) % 360
-    theta2_B = -theta2_A
-
-    def _theta3(t1, t2):
-        qt1  = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
-        qt2  = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
-        tR0  = np.array((qt1 * qt2).rotate([0, 1, 0]))
-        r1   = tR0    - np.dot(tR0,    tUp) * tUp
-        r2   = tRight - np.dot(tRight, tUp) * tUp
-        n1, n2 = np.linalg.norm(r1), np.linalg.norm(r2)
-        if n1 < 1e-9 or n2 < 1e-9:
-            return 0.0
-        r1n, r2n = r1 / n1, r2 / n2
-        cross_z = float(np.dot(np.cross(r1n, r2n), tUp))
-        dot     = float(np.clip(np.dot(r1n, r2n), -1.0, 1.0))
-        return float(((-(math.degrees(math.atan2(cross_z, dot))) + 180) % 360) - 180)
-
-    if -8 <= theta2_A <= 83:
-        return theta1_A, theta2_A, _theta3(theta1_A, theta2_A)
-    return theta1_B, theta2_B, _theta3(theta1_B, theta2_B)
-
-def q_from_azaltroll(az: float, alt: float, roll: float) -> Quaternion:
-    """Build quaternion from (az, alt, roll) in degrees."""
-    qaz  = Quaternion(axis=[0, 0, 1], degrees=-az + 90)
-    qalt = Quaternion(axis=[0, 1, 0], degrees=-alt - 90)
-    qnr  = qaz * qalt
-    bore = np.array(qnr.rotate([0, 0, -1]))
-    qroll = Quaternion(axis=bore.tolist(), degrees=-roll)
-    return (qroll * qnr).normalised
 
 # ── Mechanical axis corrections ───────────────────────────────────────────────
 

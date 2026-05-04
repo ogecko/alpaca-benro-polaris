@@ -430,8 +430,8 @@ def _build_quest_pairs(rows, mount_params):
         if mount_params is not None:
             q_base, _ = _km.apply_mechanical_corrections(q_base, mount_params)
         p_az_corr, p_alt_corr, _ = _km.q_to_azaltroll(q_base)
-        q_pred   = _km.q_from_azaltroll(p_az_corr, p_alt_corr, 0.0)
-        q_solved = _km.q_from_azaltroll(s_az, s_alt, 0.0)
+        q_pred   = _km.azaltroll_to_q(p_az_corr, p_alt_corr, 0.0)
+        q_solved = _km.azaltroll_to_q(s_az, s_alt, 0.0)
         pairs.append((q_pred, q_solved))
     return pairs
 

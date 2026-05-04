@@ -16,8 +16,8 @@
 - [X] Replace RBC with motor-space corrections, Kinematics Page RBC Magnitude update
 - [X] Complete more wholistic Mechnical Alignment Correction (replacing Roll Bias Correction)
 - [X] Debug 518 message intermittant miss, document the fix was BLE Scanner related
+- [X] Refactor kinematics.py and wrap180, move more kinimatic functions from control.py to kinematics.py   
 - [ ] Explore how to reduce sidereal tracking drift and reduce residuals - Sync Guiding
-- [ ] Refactor kinematics.py and wrap180, move more kinimatic functions from control.py to kinematics.py   
 - [ ] Debug Gimbal Lock solution selection issue @ Az 292, Alt 0, Roll 2
 - [ ] Debug clicking on roll scale seemed to reset Az/Alt SP to current value
 - [ ] Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates

@@ -13,7 +13,7 @@ from quaternion import Q as Quaternion
 
 import kinematics as pm
 from kinematics import (
-    theta_to_q, q_to_azaltroll, q_to_theta, q_from_azaltroll,
+    theta_to_q, q_to_azaltroll, q_to_theta, azaltroll_to_q,
     azaltroll_to_q, azaltroll_to_theta, angular_error_arcmin,
     wrap360, wrap180, wrap90,
     calc_parallactic_angle, crota2_from_cd, crota2_to_roll,
