@@ -19,7 +19,6 @@
 - [X] Refactor kinematics.py and wrap180, move more kinimatic functions from control.py to kinematics.py   
 - [ ] Explore how to reduce sidereal tracking drift and reduce residuals - Sync Guiding
 - [ ] Debug Gimbal Lock solution selection issue @ Az 292, Alt 0, Roll 2
-- [ ] Debug clicking on roll scale seemed to reset Az/Alt SP to current value
 - [ ] Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
 - [ ] Add HTTPS so that Copy Clipboard and Map Locate work in Browser
