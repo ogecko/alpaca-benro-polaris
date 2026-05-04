@@ -391,15 +391,19 @@ def theta_to_jacobian(theta1, theta2, theta3):
 
 
 class LastPosition:
-    def __init__(self, t1=180, t2=45, t3=0):
+    def __init__(self, t1=180, t2=45, t3=0, z3=None):
         self.last_theta1 = t1
         self.last_theta2 = t2
         self.last_theta3 = t3
+        self.last_zeta3 = z3
         self.in_gimbal_lock = False
     def update(self,t1,t2,t3):
         self.last_theta1 = t1
         self.last_theta2 = t2
         self.last_theta3 = t3
+    def update_zeta(self,zeta):
+        if zeta is not None:
+            self.last_zeta3 = zeta[2]
     def calcMechanicalAngularDiff(self,t1,t2,t3):
         dt1 = angular_difference(t1, self.last_theta1)
         dt2 = angular_difference(t2, self.last_theta2)
@@ -416,6 +420,10 @@ class LastPosition:
         elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
             self.in_gimbal_lock = False
         return self.in_gimbal_lock
+    def get_fallback_theta3(self):
+        if self.last_zeta3 is not None:
+            return self.last_zeta3  # more reliable that theta3, not subject to gimbal lock
+        return self.last_theta3     # fallback if no zeta3
 
 def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     """Convert a motor quaternion (C2B frame) into joint angles (θ), using the previous
@@ -448,8 +456,8 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
         r1 = tRight_no_M3 - np.dot(tRight_no_M3, tUp) * tUp
         r2 = tRight       - np.dot(tRight,       tUp) * tUp
         n1, n2 = np.linalg.norm(r1), np.linalg.norm(r2)
-        if n1 < 1e-9 or n2 < 1e-9:
-            return lastPos.last_theta3
+        if n1 < 1e-9 or n2 < 1e-9:  # hard lock, t3 and t1 axis parallel
+            return lastPos.get_fallback_theta3()
         r1n, r2n = r1/n1, r2/n2
         cos_t3 = np.clip(np.dot(r1n, r2n), -1, 1)
         sin_t3 = np.dot(np.cross(r1n, r2n), tUp)
@@ -490,8 +498,8 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
     if in_gimbal_lock:
         locked_sum = wrap360(theta1 + theta3)
-        theta3 = 0
-        theta1 = locked_sum
+        theta3 = lastPos.get_fallback_theta3()
+        theta1 = wrap360(locked_sum - theta3)
 
     return float(theta1), float(theta2), float(theta3)
 

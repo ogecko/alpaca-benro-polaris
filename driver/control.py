@@ -1177,6 +1177,7 @@ class PID_Controller():
         self.zeta_meas = zeta_meas
         self.time_meas = now
         self._lp.update(*theta_pv)
+        self._lp.update_zeta(zeta_meas)
         self._lp.check_for_gimbal_lock()
 
     def predict(self):          # This is not used in the PID Control Loop
