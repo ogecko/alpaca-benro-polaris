@@ -17,9 +17,11 @@ from collections import deque
 from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp, ratio_string
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-from kinematics import wrap360, wrap180, wrap90, quaternion_difference, calc_parallactic_angle
-from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
-from kinematics import wrap_angle_residual, wrap_state_angles, azalt_to_vector, vector_to_az_alt, v_angular_distance, calc_equatorial_axes_B, get_polar_correction_q
+from kinematics import wrap360, wrap180, wrap90, calc_parallactic_angle, wrap_angle_residual, wrap_state_angles
+from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams, calc_equatorial_axes_B
+from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
+from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
+
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -105,124 +107,6 @@ def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
         return []
 
 
-
-def angular_difference(a, b):
-    """
-    Compute shortest angular difference from a to b, in degrees.
-    Wraps output to [-180°, +180°].
-    angular_difference(359, 1)   # → +2
-    angular_difference(1, 359)   # → -2
-    angular_difference(0, 180)   # → +180
-    angular_difference(180, 0)   # → -180
-
-    """
-    return ((b - a + 180) % 360) - 180
-
-def is_angle_between(angle: float, min_angle: float, max_angle: float) -> bool:
-    diff_to_min = angle - min_angle
-    diff_to_max = angle - max_angle
-    return diff_to_min >= 0 and diff_to_max <= 0
-
-def clamp_alpha(alpha):
-    """
-    Apply custom bounds to Topo-centric angles alpha[0], alpha[1], alpha[2]:
-    - Azimuth ∈ [0, 360)
-    - Altitude ∈ [-90, 90)
-    - Roll ∈ [-180, 180)
-    """
-    clamped = np.empty_like(alpha)
-    clamped[0] = alpha[0] % 360
-    clamped[1] = np.clip(alpha[1], -90, 90)
-    clamped[2] = ((alpha[2] + 180) % 360) - 180
-    return clamped
-
-def clamp_delta(delta):
-    """
-    Apply custom bounds to Equatorial angles delta[0], delta[1], delta[2]:
-    - Right Ascention ∈ [0, 360)
-    - Declination ∈ [-90, 90)
-    - Polar Angle ∈ [0, 360)
-    """
-    clamped = np.empty_like(delta)
-    clamped[0] = delta[0] % 360
-    clamped[1] = np.clip(delta[1], -90, 90)
-    clamped[2] = delta[2] % 360
-    return clamped
-
-def clamp_theta(theta):
-    """
-    Apply custom bounds to Motor Angles theta[0], theta[1], theta[2]:
-    - Theta1 ∈ [0, 360)
-    - Theta2 ∈ [-90, 90)
-    - Theta3 ∈ [-180, 180)
-    """
-    clamped = np.empty_like(theta)
-    clamped[0] = theta[0] % 360
-    clamped[1] = np.clip(theta[1], -90, 90)
-    clamped[2] = ((theta[2] + 180) % 360) - 180
-    return clamped
-
-def clamp_offset(offset):
-    """
-    Apply custom bounds to Offset Angles offset[0], offset[1], offset[2]:
-    - Offset1 ∈ [-180, 180)
-    - Offset2 ∈ [-180, 180)
-    - Offset3 ∈ [-180, 180)
-    """
-    clamped = np.empty_like(offset)
-    clamped[0] = ((offset[0] + 180) % 360) - 180
-    clamped[1] = ((offset[1] + 180) % 360) - 180
-    clamped[2] = ((offset[2] + 180) % 360) - 180
-    return clamped
-
-
-def clamp_error(theta_ref, theta_meas):
-    """
-    Calculates angular error considering wrap-around using modular arithmetic.
-    Each error is normalized to [-180, 180) range.
-    """
-    return ((theta_ref - theta_meas + 180) % 360) - 180
-
-def fmt3(theta):
-    return ','.join([ f"{x:.4f}" for x in theta ])
-
-def fmt4(delta):
-    return f'{rad2hms(delta[0]/180*math.pi)[:8]}, {deg2dms(delta[1])[:8]}, {deg2dms(delta[2])[:8]}'
-
-
-def calculate_angular_velocity_vector(q0: Quaternion, q1: Quaternion, dt: float):
-    """
-    Compute angular velocity vector (rad/sec) from two quaternions over a time interval.
-    Args:
-        q0 : Quaternion - Initial orientation.
-        q1 : Quaternion - Final orientation.
-        dt : float - Time interval in seconds.
-    Returns:
-        omega : np.ndarray, shape (3,) - Angular velocity vector in the frame of q0.
-    """
-    # Check for no duration
-    if dt <= 0:
-        return np.zeros(3, dtype=float)
-
-    # Rotation from q0 → q1
-    q_delta = q1 * q0.inverse
-
-    # Ensure shortest path
-    if q_delta.w < 0:
-        q_delta = Quaternion(array=-q_delta.q)
-
-    # Decompose q_delta
-    angle_rad = np.radians(q_delta.degrees)
-    axis = np.array(q_delta.axis)
-    axis_norm = np.linalg.norm(axis)
-
-    # Check for no rotation → zero angular velocity
-    if axis_norm < 1e-12 or angle_rad == 0.0:
-        return np.zeros(3, dtype=float)
-
-    # Angular velocity ω = axis * (angle / dt)
-    omega = axis / axis_norm * (angle_rad / dt)
-    return omega
 
 def azaltroll_to_q(az, alt, roll):
     """
@@ -1836,11 +1720,6 @@ class SyncManager:
 
         # Apply Sync Guide Corrections (SGC)
         motorQ_C2B_pv = self.get_sync_guiding_correction_q() * motorQ_C2B_pv
-
-        # Apply Polar Alignment Corrections (MAC)
-        if Config.advanced_align_rbc:
-           q_polar = get_polar_correction_q(self.equatorial_axes_B, self.params_RBC)
-           motorQ_C2B_pv = q_polar * motorQ_C2B_pv
 
         # Apply Pulse Guide Corrections (PGC)
         motorQ_C2B_pv = self.q_guide_B * motorQ_C2B_pv

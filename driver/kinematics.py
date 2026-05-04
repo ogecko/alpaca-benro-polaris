@@ -6,13 +6,16 @@ in the real-time driver.  No file I/O, no CSV reading, no analysis helpers.
 
 Contents
 --------
-  Angle helpers       wrap360/180/90, clamp_arcsec,
-                      is_angle_same, angular_error_arcmin, angular_separation
+  Angle helpers       wrap360/180/90, is_angle_same, angular_error_arcmin, 
+                      angular_separation, angular_difference, is_angle_between
+  Angle clampers      clamp_arcsec,  clamp_alpha/delta/theta/error/offset/error
+  3D Vectors          wrap_angle_residual, wrap_state_angles
+                      azalt_to_vector, vector_to_az_alt, v_angular_distance
+                      calculate_angular_velocity_vector
   Astronomy helpers   calc_parallactic_angle, radec_to_altaz, crota2_from_cd,
                       crota2_to_roll  (used by fits_extract)
   IK / FK             theta_to_q, q_to_theta, q_to_azaltroll, azaltroll_to_q
                       azaltroll_to_theta, q_from_azaltroll, LastPosition
-  Polar correction    make_polar_corrQ, apply_polar_correction[_pair]
   Mechanical corr.    MountModelParams, apply_mechanical_corrections
   QUEST alignment     quest_solve
 """
@@ -38,17 +41,6 @@ def wrap180(angle: float) -> float:
 def wrap90(angle: float) -> float:
     """Wrap angle to [-90, +90)."""
     return (angle + 90.0) % 180.0 - 90.0
-
-def clamparcsec(x):
-    try:
-        value = float(x) % (360 * 3600)  # Normalize to 0-360 degrees in arc-seconds
-        if value > 180 * 3600:
-            value -= 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
-        elif value < -180 * 3600:
-            value += 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
-        return value
-    except ValueError:
-        return float('nan')
 
 def is_angle_same(a, b, tolerance=1e-4):
     """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
@@ -97,7 +89,98 @@ def angular_separation(ra1_hr, dec1_deg, ra2_hr, dec2_deg):
 
     return angle_deg
 
+def angular_difference(a, b):
+    """
+    Compute shortest angular difference from a to b, in degrees.
+    Wraps output to [-180°, +180°].
+    angular_difference(359, 1)   # → +2
+    angular_difference(1, 359)   # → -2
+    angular_difference(0, 180)   # → +180
+    angular_difference(180, 0)   # → -180
+
+    """
+    return ((b - a + 180) % 360) - 180
+
+def is_angle_between(angle: float, min_angle: float, max_angle: float) -> bool:
+    diff_to_min = angle - min_angle
+    diff_to_max = angle - max_angle
+    return diff_to_min >= 0 and diff_to_max <= 0
+
+# ── Angle clampers ─────────────────────────────────────────────────────────────
+
+def clamparcsec(x):
+    try:
+        value = float(x) % (360 * 3600)  # Normalize to 0-360 degrees in arc-seconds
+        if value > 180 * 3600:
+            value -= 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
+        elif value < -180 * 3600:
+            value += 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
+        return value
+    except ValueError:
+        return float('nan')
+
+def clamp_alpha(alpha):
+    """
+    Apply custom bounds to Topo-centric angles alpha[0], alpha[1], alpha[2]:
+    - Azimuth ∈ [0, 360)
+    - Altitude ∈ [-90, 90)
+    - Roll ∈ [-180, 180)
+    """
+    clamped = np.empty_like(alpha)
+    clamped[0] = alpha[0] % 360
+    clamped[1] = np.clip(alpha[1], -90, 90)
+    clamped[2] = ((alpha[2] + 180) % 360) - 180
+    return clamped
+
+def clamp_delta(delta):
+    """
+    Apply custom bounds to Equatorial angles delta[0], delta[1], delta[2]:
+    - Right Ascention ∈ [0, 360)
+    - Declination ∈ [-90, 90)
+    - Polar Angle ∈ [0, 360)
+    """
+    clamped = np.empty_like(delta)
+    clamped[0] = delta[0] % 360
+    clamped[1] = np.clip(delta[1], -90, 90)
+    clamped[2] = delta[2] % 360
+    return clamped
+
+def clamp_theta(theta):
+    """
+    Apply custom bounds to Motor Angles theta[0], theta[1], theta[2]:
+    - Theta1 ∈ [0, 360)
+    - Theta2 ∈ [-90, 90)
+    - Theta3 ∈ [-180, 180)
+    """
+    clamped = np.empty_like(theta)
+    clamped[0] = theta[0] % 360
+    clamped[1] = np.clip(theta[1], -90, 90)
+    clamped[2] = ((theta[2] + 180) % 360) - 180
+    return clamped
+
+def clamp_offset(offset):
+    """
+    Apply custom bounds to Offset Angles offset[0], offset[1], offset[2]:
+    - Offset1 ∈ [-180, 180)
+    - Offset2 ∈ [-180, 180)
+    - Offset3 ∈ [-180, 180)
+    """
+    clamped = np.empty_like(offset)
+    clamped[0] = ((offset[0] + 180) % 360) - 180
+    clamped[1] = ((offset[1] + 180) % 360) - 180
+    clamped[2] = ((offset[2] + 180) % 360) - 180
+    return clamped
+
+
+def clamp_error(theta_ref, theta_meas):
+    """
+    Calculates angular error considering wrap-around using modular arithmetic.
+    Each error is normalized to [-180, 180) range.
+    """
+    return ((theta_ref - theta_meas + 180) % 360) - 180
+
 # ── 3D Vector helpers ─────────────────────────────────────────────────────────
+
 def wrap_angle_residual(measured_theta, predicted_theta):
     return np.vectorize(wrap180)(measured_theta - predicted_theta)
 
@@ -125,6 +208,42 @@ def vector_to_az_alt(vec):
 def v_angular_distance(v1, v2):
     """Compute angular separation between two unit vectors in radians."""
     return np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
+
+
+def calculate_angular_velocity_vector(q0: Quaternion, q1: Quaternion, dt: float):
+    """
+    Compute angular velocity vector (rad/sec) from two quaternions over a time interval.
+    Args:
+        q0 : Quaternion - Initial orientation.
+        q1 : Quaternion - Final orientation.
+        dt : float - Time interval in seconds.
+    Returns:
+        omega : np.ndarray, shape (3,) - Angular velocity vector in the frame of q0.
+    """
+    # Check for no duration
+    if dt <= 0:
+        return np.zeros(3, dtype=float)
+
+    # Rotation from q0 → q1
+    q_delta = q1 * q0.inverse
+
+    # Ensure shortest path
+    if q_delta.w < 0:
+        q_delta = Quaternion(array=-q_delta.q)
+
+    # Decompose q_delta
+    angle_rad = np.radians(q_delta.degrees)
+    axis = np.array(q_delta.axis)
+    axis_norm = np.linalg.norm(axis)
+
+    # Check for no rotation → zero angular velocity
+    if axis_norm < 1e-12 or angle_rad == 0.0:
+        return np.zeros(3, dtype=float)
+
+    # Angular velocity ω = axis * (angle / dt)
+    omega = axis / axis_norm * (angle_rad / dt)
+    return omega
+
 
 # ── Quaternion helpers ─────────────────────────────────────────────────────────
 
@@ -397,37 +516,6 @@ def q_from_azaltroll(az: float, alt: float, roll: float) -> Quaternion:
     qroll = Quaternion(axis=bore.tolist(), degrees=-roll)
     return (qroll * qnr).normalised
 
-
-def apply_polar_correction(q: Quaternion,
-                           AW_deg: float, AN_deg: float,
-                           undo: bool = False,
-                           _corrQ: Optional[Quaternion] = None,
-                           ) -> Quaternion:
-    """
-    Apply (or undo) polar correction to q_base.
-
-    For apply:  returns q_corrected = corrQ * q
-    For undo:   pass the corrQ returned from the apply step as _corrQ,
-                then returns corrQ.inverse * q_corrected (exact round-trip).
-
-    Usage:
-        q_corr, corrQ = apply_polar_correction_pair(q, AW, AN)
-        q_undo        = apply_polar_correction(q_corr, AW, AN,
-                                               undo=True, _corrQ=corrQ)
-    """
-    if undo:
-        if _corrQ is None:
-            # Fallback: recompute corrQ from q — NOT exact if theta1 changed
-            t1, _, _ = q_to_theta(q)
-            _corrQ = make_polar_corrQ(t1, AW_deg, AN_deg)
-        return (_corrQ.inverse * q).normalised
-    t1, _, _ = q_to_theta(q)
-    corrQ = make_polar_corrQ(t1, AW_deg, AN_deg)
-    return (corrQ * q).normalised
-
-
-
-
 # ── Mechanical axis corrections ───────────────────────────────────────────────
 
 @dataclass
@@ -543,66 +631,6 @@ def apply_mechanical_corrections(q: Quaternion, params: MountModelParams):
     q_fixed = (q_corr * q).normalised
 
     return q_fixed, magnitude
-
-# ── Polar correction (TPoint AW/AN, or NINA TPPA output) ─────────────────────
-
-
-def get_polar_correction_q(eq, params: MountModelParams):
-    q_ra =  Quaternion(axis=eq[0], degrees=params.m1_offset / 60.0)
-    q_dec = Quaternion(axis=eq[1], degrees=params.m2_offset / 60.0)
-    q_pa =  Quaternion(axis=eq[2], degrees=params.m3_offset / 60.0)
-    return (q_pa * q_dec * q_ra).normalised
-
-def make_polar_corrQ(theta1_deg: float,
-                     AW_deg: float, AN_deg: float) -> Quaternion:
-    """
-    Quaternion that corrects the base frame for polar axis tilt.
-
-    Parameters
-    ----------
-    theta1_deg : current mount azimuth (theta1 / M1 angle)
-    AW_deg     : N-S tilt of az axis (degrees).  TPoint AW.
-                 Positive = axis tilts North (pole too HIGH).
-    AN_deg     : E-W tilt of az axis (degrees).  TPoint AN.
-                 Positive = axis tilts East.
-
-    From NINA TPPA output:
-        AW_deg = -tppa_alt_error_arcmin / 60   (pole too low → neg AW)
-        AN_deg = +tppa_az_error_arcmin  / 60   (pole too far east → pos AN)
-
-    Returns
-    -------
-    Quaternion such that  q_corrected = corrQ * q_base
-    """
-    tilt = math.sqrt(AW_deg**2 + AN_deg**2)
-    if tilt < 1e-6:
-        return Quaternion(1, 0, 0, 0)
-
-    # n_polar: the true az axis direction in the base frame
-    eps = math.radians(tilt)
-    # AW is N-S (cos component), AN is E-W (sin component)
-    phi = math.atan2(AN_deg, AW_deg)      # direction the axis tilts toward
-    n_polar = [
-        math.sin(eps) * math.sin(phi),
-        math.sin(eps) * math.cos(phi),
-        math.cos(eps),
-    ]
-    q_real  = Quaternion(axis=n_polar,  degrees=-theta1_deg + 90)
-    q_ideal = Quaternion(axis=[0, 0, 1], degrees=-theta1_deg + 90)
-    return (q_real * q_ideal.inverse).normalised
-
-
-def apply_polar_correction_pair(q: Quaternion,
-                                 AW_deg: float,
-                                 AN_deg: float,
-                                 ) -> Tuple[Quaternion, Quaternion]:
-    """
-    Apply polar correction, returning (q_corrected, corrQ).
-    Use corrQ.inverse to undo exactly: q_orig = corrQ.inverse * q_corrected.
-    """
-    t1, _, _ = q_to_theta(q)
-    corrQ = make_polar_corrQ(t1, AW_deg, AN_deg)
-    return (corrQ * q).normalised, corrQ
 
 
 # ── QUEST alignment ──────────────────────────────────────────────────────────

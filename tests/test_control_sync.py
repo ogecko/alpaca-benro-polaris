@@ -26,6 +26,8 @@ class Polaris:
         self.update(180, 45, 0)
         self._sitelatitude = -33.65528161613541
         self.azimuth = 180
+        self.rightascension = 0
+        self.declination= -75
         self._pid = PID_Controller()
         self._motorQ_state = Quaternion([1,0,0,0])
 

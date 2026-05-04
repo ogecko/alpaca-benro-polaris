@@ -17,7 +17,6 @@ from kinematics import (
     azaltroll_to_q, azaltroll_to_theta, angular_error_arcmin,
     wrap360, wrap180, wrap90,
     calc_parallactic_angle, crota2_from_cd, crota2_to_roll,
-    make_polar_corrQ, apply_polar_correction, apply_polar_correction_pair,
     apply_mechanical_corrections, MountModelParams,
     quest_solve,
 )
@@ -67,74 +66,6 @@ class TestKinematics:
         # 1 degree separation at equator ≈ 60 arcmin
         err = angular_error_arcmin(0, 0, 1, 0)
         assert abs(err - 60.0) < 0.1
-
-
-# ── Unit tests: polar correction ─────────────────────────────────────────────
-
-
-class TestPolarCorrection:
-
-    def test_zero_tilt_is_identity(self):
-        """AW=AN=0 should return identity quaternion."""
-        corrQ = make_polar_corrQ(180.0, 0.0, 0.0)
-        assert abs(corrQ[0] - 1.0) < 1e-6
-
-    def test_correction_exact_at_all_azimuths(self):
-        """Applying then undoing via corrQ.inverse gives exact floating-point round-trip."""
-        AW, AN = -0.888, 0.178
-        for t1, t2, t3 in [(0, 40, 0), (90, 30, 0), (180, 50, 0), (270, 60, 0)]:
-            q = theta_to_q(t1, t2, t3)
-            q_corr, corrQ = apply_polar_correction_pair(q, AW, AN)
-            q_recovered   = apply_polar_correction(q_corr, AW, AN,
-                                                    undo=True, _corrQ=corrQ)
-            az0, alt0, _ = q_to_azaltroll(q)
-            azr, altr, _ = q_to_azaltroll(q_recovered)
-            err = angular_error_arcmin(az0, alt0, azr, altr)
-            assert err < TIGHT_TOL, f"Polar round-trip error {err}' at t1={t1}"
-
-    def test_polar_correction_removes_sinusoidal_error(self):
-        """
-        A mount with polar tilt produces az-dependent altitude errors.
-        After polar correction, those errors should be near zero.
-        """
-        AW, AN = -0.888 * math.cos(math.radians(10.7)), \
-                  0.888 * math.sin(math.radians(10.7))
-        errors_before, errors_after = [], []
-
-        for az in range(0, 360, 30):
-            q = theta_to_q(az, 40, 0)
-            # True topo = polar correction applied
-            q_true    = apply_polar_correction(q, AW, AN)
-            az_t, alt_t, _ = q_to_azaltroll(q_true)
-            az_p, alt_p, _ = q_to_azaltroll(q)
-
-            errors_before.append(abs(alt_t - alt_p) * 60)
-
-            # After correction
-            q_corr = apply_polar_correction(q, AW, AN)
-            az_c, alt_c, _ = q_to_azaltroll(q_corr)
-            errors_after.append(angular_error_arcmin(az_c, alt_c, az_t, alt_t))
-
-        rms_before = math.sqrt(sum(e**2 for e in errors_before) / len(errors_before))
-        rms_after  = math.sqrt(sum(e**2 for e in errors_after)  / len(errors_after))
-        assert rms_before > 30.0, "Expected >30' error before correction"
-        assert rms_after  < 0.01, f"Expected <0.01' after correction, got {rms_after}'"
-
-    @pytest.mark.parametrize("tppa_alt,tppa_az", [
-        (53.3, 10.7),
-        (-30.0, 20.0),
-        (0.0, 45.0),
-        (45.0, 0.0),
-    ])
-    def test_tppa_to_aw_an_conversion(self, tppa_alt, tppa_az):
-        """NINA TPPA errors should convert correctly to AW/AN."""
-        AW = -tppa_alt / 60.0
-        AN = +tppa_az  / 60.0
-
-        # Validate: the total tilt magnitude should match
-        eps_expected = math.sqrt((tppa_alt/60)**2 + (tppa_az/60)**2)
-        eps_got      = math.sqrt(AW**2 + AN**2)
-        assert abs(eps_got - eps_expected) < 1e-9
 
 
 # ── Unit tests: mechanical axis corrections ───────────────────────────────────
@@ -189,41 +120,6 @@ class TestMechanicalCorrections:
 
 # ── Unit tests: MAC correction ────────────────────────────────────────────────
 
-
-class TestQuestSolve:
-
-    def test_single_pair_exact(self):
-        """With 1 pair, QUEST should fit it exactly."""
-        q_base  = theta_to_q(180, 40, 0)
-        q_topo  = apply_polar_correction(q_base, -0.5, 0.2)
-        alignQ  = quest_solve([(q_base, q_topo)])
-        q_pred  = (alignQ * q_base).normalised
-        az_t, alt_t, _ = q_to_azaltroll(q_topo)
-        az_p, alt_p, _ = q_to_azaltroll(q_pred)
-        err = angular_error_arcmin(az_p, alt_p, az_t, alt_t)
-        assert err < ARCMIN_TOL
-
-    def test_multiple_pairs_low_residual(self):
-        """With consistent pairs, QUEST residuals should be near zero."""
-        # Simulate a mount with a constant rigid body offset
-        AW, AN = -0.888, 0.178
-        positions = [(az, 40) for az in range(0, 360, 45)]
-        pairs = []
-        for az, alt in positions:
-            q_b = theta_to_q(az, alt, 0)
-            q_t = apply_polar_correction(q_b, AW, AN)
-            pairs.append((q_b, q_t))
-
-        alignQ = quest_solve(pairs)
-        errs   = []
-        for q_b, q_t in pairs:
-            q_p = (alignQ * q_b).normalised
-            az_t, alt_t, _ = q_to_azaltroll(q_t)
-            az_p, alt_p, _ = q_to_azaltroll(q_p)
-            errs.append(angular_error_arcmin(az_p, alt_p, az_t, alt_t))
-        # Polar tilt is NOT a rigid body — QUEST should leave ~30' RMS
-        rms = math.sqrt(sum(e**2 for e in errs) / len(errs))
-        assert rms > 10.0, "QUEST should NOT fully absorb polar tilt"
 
 
 class TestAngleHelpers:
