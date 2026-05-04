@@ -24,24 +24,36 @@
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
 - [ ] Add HTTPS so that Copy Clipboard and Map Locate work in Browser
 - [ ] Create video of new features 
-    - New requirements.txt and config.toml
-    - On connection, new banner - not completed initial single star alignment
-    - Kinematics Page - enabling different features 
-    - Kinematics - Shortest Path, Rotate maintains direction, Large -ve Az, 
-    - Gimbal Lock - Status, loss of degree of freedom
-    - PID - Improved RMS Error, Cyclic bump removed, PID axes in dms, De-Trenmded Charts
-    - Orbitals - tracking See PA changing, Roll Angle fixed.
-    - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
-    - Goto Completion - New Progress Indicator, Setting Tollerance Kc and Kc/20 for tracking
-    - Slew and Center - Last MPA Residual, no completion, ZLR force it, LGA on Kinematics
-    - Mechanical Corrections - Turn on off on Alignment page, see Residuals change
-    - Home - Telescope v4, async, 
-    - Discovery - IPv6 support, ConformU support
-    - Advanced Scheduler - Rename_dirs, RotateRelative, FindHome/Wait/Polaris:AbortSlew
-    - Driver control - Stop and Restart Driver, Restart multiple
-    - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, Navigating around Pano, PanoGrid Copy
-    - SyncRoll - Plate-Solve using Nina and manuall sync Roll Angle
-
+    - Install
+        - New requirements.txt and pip install
+        - Ok to copy pilot.settings.xml but new config.toml
+    - Connect
+        - On connection, new banner - not completed initial single star alignment
+        - Discovery - IPv6 support, ConformU support
+        - Position Update late (reduced)
+        - Driver control - Stop and Restart Driver, Restart multiple
+        - Sync persistent
+    - Kinematics
+        - Kinematics Page - better understanding and total rewrite 
+        - Settings Page - enabling different correction features
+        - Mechanical Corrections - Turn on off on Alignment page, see Residuals change
+        - Slew and Center - Last MPA Residual, no completion, ZLR force it, LGA on Kinematics
+    - Pointing and Motion Control
+        - Goto Completion - New Progress Indicator, Setting Tollerance Kc and Kc/20 
+        - Negative Alt - Large negative angles, better chosing soln        
+        - Rotations - Shortest Path, Rotate maintains direction 
+        - Gimbal Lock - Loss of degree of freedom, Limit Sidereal Horiz, 3 degree out
+        - At Home - Telescope v4, async, 
+    - Tracking
+        - PID - Improved RMS Error, Cyclic bump removed, PID axes in dms, De-Trenmded Charts
+        - Orbitals - tracking See PA changing, Roll Angle fixed.
+    - Guiding
+        - Sync Guiding - Plate-Solve using Nina and manuall sync Roll Angle
+        - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
+    - Utilities
+        - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, Navigating Pano, PanoGrid Copy
+        - Advanced Scheduler - Rename_dirs, RotateRelative, FindHome/Wait/Polaris:AbortSlew
+    
 ## Final Release Checklist
 - [X] Complete todo checklist
 - [X] Check Driver package vulnerabilities
