@@ -19,7 +19,8 @@
 - [X] Refactor kinematics.py and wrap180, move more kinimatic functions from control.py to kinematics.py   
 - [X] Allow Roll change while in tracking mode, without resetting az/alt setpoints.
 - [ ] Explore how to reduce sidereal tracking drift and reduce residuals - Sync Guiding
-- [ ] Debug Gimbal Lock solution selection issue @ Az 292, Alt 0, Roll 2
+- [X] Fix Gimbal lock oscillation at Az 292, Alt 0, Roll 2, improving estimate for theta3 by using zeta3
+- [ ] Fix Gimbal lock oscillation when passing from Alt 10 through Alt 0 (Gimbal Lock) to Alt -10, ensuring PID flips theta3 at correct time
 - [ ] Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
 - [ ] Add HTTPS so that Copy Clipboard and Map Locate work in Browser
