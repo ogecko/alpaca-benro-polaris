@@ -78,6 +78,7 @@ const statusIcon = computed(() =>
   p.pidmode=='LIMIT' ? "mdi-alert" :
   p.pidmode=='HOMING' ? "mdi-home-outline" :
   p.pidmode=='PARKING' ? "mdi-alpha-p" :
+  p.pidglock  ? "mdi-lock" : 
   p.atpark ? "mdi-parking" : 
   p.athome ? "mdi-home" : 
   p.gotoing ? "mdi-move-resize-variant" : 
@@ -85,7 +86,6 @@ const statusIcon = computed(() =>
   p.rotating ? "mdi-restore" :
   p.ispulseguiding ? "mdi-pulse" :
   p.tracking ? "mdi-star-shooting-outline" : 
-  p.pidglock  ? "mdi-lock" : 
                "mdi-sleep"
 )
 
