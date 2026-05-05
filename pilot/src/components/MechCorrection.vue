@@ -5,7 +5,7 @@
       <div class="text-h6">Mechanical Alignment Correction Models</div>
       <div class="row">
       <div class="col text-grey text-caption">
-        Reduce drift and pointing residuals. Fine tune adjustments that correct for mechanical imperfections and polar mis-alignment. 
+        Reduce pointing residuals. Fine tune adjustments that correct for mechanical imperfections in the Benro Polaris and mount geometry. 
       </div>
         <q-space />
         <div class="q-gutter-md flex justify-end q-mr-md">
@@ -26,40 +26,26 @@
 
       </div>
 
-      <div class="col-12 text-h7 q-pt-sm">Polar Axis Alignment Correction</div>
+      <div class="col-12 text-h7 q-pt-md">M2 Axis Alignment Correction</div>
       <div class="row q-col-gutter-md">
-        <div class="col-6 text-grey text-caption">
-          The Polar axis may may not be perfectly aligned with QUEST. Correct the Azimuth and Altitude drift caused by this mis-alignment.
+        <div class="col-9 text-grey text-caption">
+          <div>The Altitude Axis may not be perfectly perpenticular to the M1 axis. This may introduce a mechanical error, dependent on θ₂. </div>
+          <div  class="q-pl-md q-pt-sm text-body1">Altitude Residual = A x sin( θ₂ - B )</div>
         </div>
         <div class="col-3">
-          <q-input label="Azimuth (arcmin)" v-model="m1_offset_str" :disable="!cfg.advanced_align_rbc"/>
-        </div>
-        <div class="col-3">
-          <q-input label="Alttitude (arcmin)" v-model="m2_offset_str" :disable="!cfg.advanced_align_rbc"/>
+          <q-input label="Parameter A (arcmin/M2°)" v-model="m2_tilt_dm2_amp_str" :disable="!cfg.advanced_align_rbc"/>
+          <q-input label="Parameter B (degrees)" v-model="m2_tilt_dm2_zero_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
       </div>
       <div class="col-12 text-h7 q-pt-sm">M3 Axis Alignment Correction</div>
-      <div class="row q-col-gutter-md">
-        <div class="col-6 text-grey text-caption">
-          The Astro Axis may not be perpendicular to M2. Magnitude of the Altitude and Azimuth correction related to M3 rotation.
+      <div class="row q-col-gutter-md q-pb-lg">
+        <div class="col-9 text-grey text-caption">
+          <div>The Astro Axis may not be perfectly perpendicular to the M2 axis. This may introduce a mechanical error, depenent on θ₂ and θ₃. </div>
+          <div class="q-pl-md q-pt-sm text-body1 ">Azimuth Residual = G x (1 - cos( θ₃ ))</div>
+          <div  class="q-pl-md q-pt-sm text-body1">Roll Residual = -cos( θ₂ ) x Azimuth Residual</div>
         </div>
         <div class="col-3">
-          <q-input label="Azimuth (arcmin/M3°)" v-model="m3_tilt_dm1_str" :disable="!cfg.advanced_align_rbc"/>
-        </div>
-        <div class="col-3">
-          <q-input label="Alttitude (arcmin/M3°)" v-model="m3_tilt_dm2_str" :disable="!cfg.advanced_align_rbc"/>
-        </div>
-      </div>
-      <div class="col-12 text-h7 q-pt-sm">M2 Axis Alignment Correction</div>
-      <div class="row q-col-gutter-md">
-        <div class="col-6 text-grey text-caption">
-          The Altitude Axis may not be perpenticular to M1. Magnitude and zero point of the Altitude correction related to M2 rotation.
-        </div>
-        <div class="col-3">
-          <q-input label="Zero Point (degrees)" v-model="m2_tilt_dm2_zero_str" :disable="!cfg.advanced_align_rbc"/>
-        </div>
-        <div class="col-3">
-          <q-input label="Altitude (arcmin/M2°)" v-model="m2_tilt_dm2_amp_str" :disable="!cfg.advanced_align_rbc"/>
+          <q-input label="Parameter G (arcmin/M3°)" v-model="m3_tilt_dm1_str" :disable="!cfg.advanced_align_rbc"/>
         </div>
       </div>
 
