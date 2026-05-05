@@ -26,6 +26,8 @@
 - [ ] Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates
 - [ ] Explore why L_Bracket setting is lost on connection intermittantly
 - [ ] Add HTTPS so that Copy Clipboard and Map Locate work in Browser
+- [ ] Upgrade dependant libraries on Node and Python
+- [ ] Update compatibility with Stellarium Desktop 26.1 maybe 26.2 (if its released on time)
 - [ ] Create video of new features 
     - Install
         - New requirements.txt and pip install
