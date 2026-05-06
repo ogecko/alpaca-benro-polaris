@@ -7,10 +7,12 @@
 [QUEST](#21-quest-alignment-optimisation) |
 [Slew & Center](#22-slew--center-correction) |
 [Tilt Correction](#23-mechanical-alignment-corrections) |
-[PEC](#24-predictive-error-correction-pec) |
-[Base](#31-base-frame-b---representations-and-conversions) | 
-[Topo](#32-topocentric-frame-t---representations-and-conversions) | 
-[Equatorial ](#33-equatorial-frame-e---representations) | 
+[Sync Guiding](#24-plate-solvedsync-guiding) |
+[Pulse Guiding](#25-pulse-guiding) |
+[PEC](#26-predictive-error-correction-pec) |
+[Base Frame](#31-base-frame-b---representations-and-conversions) | 
+[Topo Frame](#32-topocentric-frame-t---representations-and-conversions) | 
+[Equatorial Frame](#33-equatorial-frame-e---representations) | 
 [Forward Flow](#41-forward-kinematics--motors--sky-angular-position) | 
 [Inverse Flow](#42-inverse-kinematics--sky--motors-angular-position) | 
 [Feed Forward](#43-inverse-kinematics--sky--motors-angular-velocity-feed-forward) | 
@@ -26,7 +28,7 @@ quaternions that live in each, and the kinematic optimisation and chains that co
 
 ---
 ## 2. Kinematics Optimisation
-The Alpaca Driver achieves superior tracking performance through a multi-layered suite of kinematic corrections that address both global and local mechanical errors. At its foundations is the QUEST model in Multi-Point Alignment. Layered on top of this are corrections for Sync Residuals and Mechanical imperfections.
+The Alpaca Driver achieves superior tracking performance through a multi-layered suite of kinematic corrections that address both global and local mechanical errors. At its foundations is the QUEST model in Multi-Point Alignment. Layered on top of this are corrections for Mechanical imperfections, Periodic and Local residual errors.
 
 ### 2.1 QUEST Alignment Optimisation
 
@@ -79,14 +81,15 @@ This leaves a **residual pointing error**, the difference between the model's pr
 #### **III. Three Approaches to Correction**
 The Alpaca Driver utilizes three distinct strategies to handle these residuals, ensuring the mount's "Present Value" matches the sky as accurately as possible:
 
-1.  **Tracking Optimised Correction (TOC):**
-    In this approach, you disable Slew & Center Correction, ie no correction is made to optimise slew and center operations. The QUEST model is maintained as globally optimal for sidereal tracking.
-    
-2.  **Zero Last Residual (ZLR):**
+1.  **Zero Last Residual (ZLR):**
     In this approach, the driver forces the QUEST model to ensure the **last sync point always has a zero residual**. When a new sync is performed, the model essentially "shifts" its understanding of the sky so that the current orientation is perfectly anchored to the observed coordinates. This provides an immediate, absolute correction for the current target but can affect the global fit of the rest of the model.
 
-3.  **Local Gaussian Adjustment (LGA):** (Recommended)
+2.  **Local Gaussian Adjustment (LGA):** 
     LGA is a more sophisticated method that corrects the residual **locally around the most recent sync point** without disrupting the global integrity of the QUEST model. It applies the full correction at the exact sync location, then gracefully fades that correction both spatially and temporally. As the mount moves aways from the last sync point (σ = 10 degrees), and as time passes (σ = 3 minutes), the adjustment automatically decays back to the pure QUEST model. This ensurs the system smoothly returns to the underlying global solution.
+
+3.  **Sync Guiding Adjustment (SGA):** (Recommended)
+    SGA is the most advanced approach. It seeds the **Sync Guiding** system with the residual of the last QUEST sync point. By integrating all pointing residuals into a single, unified quaternion, SGA addresses both local alignment errors and **Periodic Error Correction (PEC)** simultaneously. You can further refine this alignment by performing additional syncs without slewing the mount. Each sync will refine the model further.
+    
 
 #### **IV. The Mathematics of LGA**
 LGA uses a **Gaussian weighting function** to determine how much of the local residual should be applied based on the angular distance from the last sync point. The correction fades to identity (zero additional correction) as the distance increases.
@@ -189,7 +192,69 @@ While default coefficients are provided, advanced users can fine-tune their moun
 |**Altitude 10°**   |   214' |   193' |   165' |   131' |    93' |    54' |    21' |    18' |    21' |    54' |    93' |   131' |   165' |   193' |   214' | 
 |**Altitude  0°**   |   257' |   235' |   206' |   172' |   132' |    89' |    48' |    34' |    48' |    89' |   132' |   172' |   206' |   235' |   257' | 
 
-### 2.4 Predictive Error Correction (PEC)
+
+
+### 2.4 **Plate-Solved/Sync Guiding**
+
+#### **I. What it is and What it Solves**
+**Plate-Solved/Sync Guiding** is an innovative, hardware-free approach to auto-guiding that eliminates the need for a separate guide scope and camera. It solves the persistent problem of tracking drift and periodic error in the Benro Polaris by using the main imaging camera to periodically "re-anchor" the mount's alignment model. 
+
+Traditionally, the Polaris suffers from **periodic error (PEC)**, mechanical oscillations caused by gear irregularities, which have been measured at approximately **14+ arc minutes** with a primary period of **35 minutes**. Without constant correction, this error leads to noticeable star trails and tracking drift during long exposures. Plate-Solved/Sync Guiding solves this by integrating periodic plate-solve data directly into the motion control loop, acting as a high-precision pulse guide without additional hardware.
+
+#### **II. The Mechanism: From Sync to Pulse Guide**
+The core of this feature lies in how the Alpaca Driver interprets synchronization commands. When a user performs a **plate-solve sync without slewing the telescope**, the driver no longer treats it a new position to add to the QUEST model.
+
+Instead, the driver interprets the resulting residual error as a **pulse-guiding correction**. This new approach integrates all pointing residuals into a single, unified alignment quaternion. This integrated model addresses both local alignment issues and the long-term PEC cycle simultaneously, ensuring the mount's "Present Value" is constantly refined to match the true sky.
+
+#### **III. Integration with QUEST and PID Control**
+This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to function at its highest potential. 
+*   **Dynamic Refinement:** By feeding the model fresh "ground-truth" data every few minutes, any local errors can be corrected for dynamically. 
+*   **Drift Reduction:** The residual data is fed into the **PID Controller**, which automatically adjusts motor speeds to "kill" the drift. 
+*   **Reduced Star Trails:** By proactively correcting for the 35-minute PEC cycle and inherent drift, exposures remain sharp even during lengthy imaging sessions.
+
+#### **IV. Recommended Workflow: The 5-Minute Sync**
+To get the best results and maintain perfect centering without manual intervention, a simple automated workflow is recommended:
+1.  **Configure your capture session** (e.g., in N.I.N.A.) to perform a plate-solve and sync every **5 minutes**.
+2.  **Ensure no slew** is commanded during this periodic sync; the driver will automatically detect the static position and apply the guiding correction.
+3.  **Monitor the Kinematics page** in Alpaca Pilot to see the drift being eliminated in real-time as the guiding corrections are refined.
+
+#### **V. Primary Benefits**
+*   **No Additional Hardware:** Eliminates the cost and weight of a dedicated guide scope and camera.
+*   **Superior Accuracy:** Plate-solves provide significantly more information and higher resolution than traditional guide star pulses.
+*   **Streamlined Operations:** No more repetitive "Slew and Center" iterations are needed; the guiding happens "in-place" as part of the normal imaging sequence.
+
+
+### 2.5 **Pulse Guiding**
+
+#### **I. What it is and What it Solves**
+**Pulse Guiding** is a high-speed feedback mechanism that allows external guiding software to make micro-adjustments to the mount's tracking in real-time. While **QUEST Alignment** and **Mechanical Corrections** provide a robust global model, they cannot account for dynamic, unpredictable factors such as atmospheric refraction, subtle mechanical "sticktion," or high-frequency periodic error.
+
+Pulse guiding solves these issues by acting as a **fine correction tool**. It continuously monitors the position of a guide star and sends small "pulses" to the driver to nudge the mount back into perfect alignment, ensuring that the imaging target remains stationary on the sensor at a sub-pixel level.
+
+#### **II. The Mechanism: From Pulse to Motion**
+The Alpaca Driver exposes pulse-guiding commands through the **ASCOM Alpaca ITelescopeV3 Interface**. When a guiding application (like PHD2) detects a deviation, it calculates the required correction and sends a pulse of a specific duration and direction to the driver.
+
+The driver interprets this input as a **corrected position change**. In the PID control loop, this appears as a "jump" in RA and/or Dec co-ordinates in proportion to the duration of the pulse and the pulse guide rate. This allows the driver to translate equatorial corrections into coordinated, multi-axis motor movements (M1, M2, and M3) without interrupting the underlying sidereal tracking.
+
+#### **III. The Mathematical Model (Briefly)**
+Starting with version 2.2, the driver utilizes a refined mathematical approach to ensure these pulses are executed with extreme fidelity:
+*   **PID Feed-Forward Control:** The driver incorporates feed-forward logic specifically for pulses, allowing the motors to reach the required correction velocity almost instantaneously.
+*   **Integral Suspension:** To prevent "overshoot"—where the mount continues moving after a pulse ends—the driver **temporarily suspends the integration of the error term** (KI) during an active pulse. This ensures the correction is crisp and does not introduce new oscillations.
+
+#### **IV. How to Use and Get the Best Results**
+For a comprehensive guide on hardware selection and software configuration, please refer to the **Guiding Users Guide** (`guiding.md`). To optimize the kinematic response of pulse guiding:
+*   **Set the Guide Rate:** A guide rate of **0.75x to 1.0x sidereal** is recommended. If the mount appears to "hunt" or oscillate, lowering this rate in the Alpaca Pilot settings can smooth the response.
+*   **Multi-Star Guiding:** Always enable "Use Multiple Stars" in your guiding software. This averages out atmospheric turbulence (seeing), providing the PID controller with a cleaner signal that represents true mechanical drift rather than "chasing the wind".
+*   **Monitor the PID Loop:** You can visualize pulse commands in real-time on the **PID Tuning page** in Alpaca Pilot, where they appear as dynamic shifts in the RA and Dec setpoints.
+
+#### **V. Primary Benefits**
+*   **Sub-Exposure Correction:** The main benefit of pulse guiding is the ability to correct tracking errors **within a single exposure**. This prevents small drifts from turning stars into "footballs" or trails before the frame is completed.
+*   **Longer Exposures:** By eliminating cumulative drift, pulse guiding enables the Benro Polaris to maintain pinpoint stars over much longer imaging sessions than would be possible unguided.
+*   **Reduced RMS Error:** With a well-tuned PID loop and proper calibration, pulse guiding can reduce the mount's tracking error to an **RMS of 1.5 to 3.0 arc-seconds**, meeting the requirements for high-resolution deep-sky imaging.
+
+
+
+### 2.6 Predictive Error Correction (PEC)
 
 #### **I. What it is and What it Solves**
 **Predictive Error Correction (PEC)** is a technique used to mitigate systematic, repeating tracking errors caused by mechanical imperfections in a mount's drive system, such as gear tooth irregularities or motor inconsistencies. While the Benro Polaris hardware is excellent, its inherent mechanical imprecision and gear-driven nature can lead to "periodic error", ie small, predictable oscillations in tracking that cause stars to trail during long exposures.
