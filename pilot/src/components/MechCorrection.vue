@@ -12,7 +12,7 @@
           <q-item-section>
             <div>
               <q-btn  v-if="is_dirty" rounded  color="grey-9"  label="Apply" @click="apply_params"/>
-              <q-btn-toggle v-model="cfg.advanced_align_rbc" push rounded glossy toggle-color="primary"  
+              <q-btn-toggle v-model="cfg.advanced_align_mac" push rounded glossy toggle-color="primary"  
                 @update:model-value="onModelUpdate"
                 :options="[
                   {label: 'On', value: true},
@@ -33,8 +33,8 @@
           <div  class="q-pl-md q-pt-sm text-body1">Altitude Residual = A x sin( θ₂ - B )</div>
         </div>
         <div class="col-3">
-          <q-input label="Parameter A (arcmin/M2°)" v-model="m2_tilt_dm2_amp_str" :disable="!cfg.advanced_align_rbc"/>
-          <q-input label="Parameter B (degrees)" v-model="m2_tilt_dm2_zero_str" :disable="!cfg.advanced_align_rbc"/>
+          <q-input label="Parameter A (arcmin/M2°)" v-model="m2_tilt_dm2_amp_str" :disable="!cfg.advanced_align_mac"/>
+          <q-input label="Parameter B (degrees)" v-model="m2_tilt_dm2_zero_str" :disable="!cfg.advanced_align_mac"/>
         </div>
       </div>
       <div class="col-12 text-h7 q-pt-sm">M3 Axis Alignment Correction</div>
@@ -45,7 +45,7 @@
           <div  class="q-pl-md q-pt-sm text-body1">Roll Residual = -cos( θ₂ ) x Azimuth Residual</div>
         </div>
         <div class="col-3">
-          <q-input label="Parameter G (arcmin/M3°)" v-model="m3_tilt_dm1_str" :disable="!cfg.advanced_align_rbc"/>
+          <q-input label="Parameter G (arcmin/M3°)" v-model="m3_tilt_dm1_str" :disable="!cfg.advanced_align_mac"/>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ async function apply_params() {
     m1_offset: dms2deg(m1_offset_str.value, 'deg'),
     m2_offset: dms2deg(m2_offset_str.value, 'deg'),
     m3_offset: dms2deg(m3_offset_str.value, 'deg'),
-    advanced_align_rbc: true,
+    advanced_align_mac: true,
   }
   await cfg.configUpdate(payload)
   load_params()
@@ -124,7 +124,7 @@ onMounted(async () => {
 
 
 async function onModelUpdate(v:  boolean ) {
-  const payload = { advanced_align_rbc: v }
+  const payload = { advanced_align_mac: v }
   console.log(payload)
   await cfg.configUpdate(payload) 
   load_params()

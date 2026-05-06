@@ -84,40 +84,41 @@
                   <!-- MAC -->
                   <div class="ok terminal">
                     <span>{{`MAC: Mechanical Alignment Correction`}}</span>
-                    <VField v-if="cfg.advanced_align_rbc" label="           Mechanical Adj " :val="p.rbcerror" unit="deg_ofst"/>
+                    <VField v-if="cfg.advanced_align_mac" label="           Mechanical Adj " :val="p.rbcerror" unit="deg_ofst"/>
                     <span v-else class="haz">{{ `                              Disabled`}}</span>
                   </div>
                   <!-- SCC -->
                   <div class="ok terminal">
                     <span>{{`SCC: Slew & Center Correction`}}</span>
-                    <span v-if="cfg.advanced_slew_center">
-                        <VField v-if="cfg.advanced_align_lga" label="              Local Guassian Adj " :val="p.sccerror" unit="deg_ofst"/>
-                        <VField v-else label="          Zero Last Residual Adj " :val="p.sccerror" unit="deg_ofst"/>
+                    <span v-if="cfg.advanced_scc_enabled">
+                        <VField v-if="cfg.advanced_scc_choice==0" label="          Zero Last Residual Adj " :val="p.sccerror" unit="deg_ofst"/>
+                        <VField v-if="cfg.advanced_scc_choice==1" label="              Local Guassian Adj " :val="p.sccerror" unit="deg_ofst"/>
+                        <VField v-if="cfg.advanced_scc_choice==2" label="                Sync Guiding Adj " :val="p.sccerror" unit="deg_ofst"/>
                     </span>
                     <span v-else class="haz">{{ `                                     Disabled`}}</span>
                   </div >
                   <div class="ok terminal">
                     <span>{{`Guide Rate:`}}</span>
-                    <span v-if="cfg.advanced_guiding" >
+                    <span v-if="cfg.advanced_pulse_guiding || cfg.advanced_sync_guiding" >
                       <VField label="  RA " :val="p.gdrate[0]" unit="deg/s"/>
                       <VField label=" |  Dec " :val="p.gdrate[1]" unit="deg/s"/>
                       <VField label=" | PosA " :val="p.gdrate[2]" unit="deg/s"/>
                     </span>
                     <span v-else>
-                      <span >{{`   Pulse Guiding`}}</span>
-                      <span class="haz">{{ `                                       Disabled`}}</span>
+                      <span >{{`   Sync/Pulse Guiding`}}</span>
+                      <span class="haz">{{ `                                  Disabled`}}</span>
                     </span>
                   </div>
                   <div class="ok terminal">
                     <span>{{`Guide Accum:`}}</span>
-                    <span v-if="cfg.advanced_guiding" >
+                    <span v-if="cfg.advanced_pulse_guiding || cfg.advanced_sync_guiding" >
                       <VField label=" RA " :val="p.gdaccum[0]" unit="deg_ofst"/>
                       <VField label="   |  Dec " :val="p.gdaccum[1]" unit="deg_ofst"/>
                       <VField label="   | PosA " :val="p.gdaccum[2]" unit="deg_ofst"/>
                     </span>
                     <span v-else>
-                      <span >{{`  Pulse Guiding`}}</span>
-                      <span class="haz">{{ `                                       Disabled`}}</span>
+                      <span >{{`  Sync/Pulse Guiding`}}</span>
+                      <span class="haz">{{ `                                  Disabled`}}</span>
                     </span>
                   </div>
                 </q-timeline-entry>

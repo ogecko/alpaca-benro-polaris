@@ -2060,7 +2060,7 @@ class Polaris:
         return
 
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         self._trackingrate = 0
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
         a_ra = rightascension
@@ -2163,7 +2163,7 @@ class Polaris:
                 await self.send_cmd_change_tracking_state(True)
 
     def pulse_guide(self, direction: int, duration: int):
-        if Config.advanced_guiding and Config.advanced_control:
+        if Config.advanced_pulse_guiding and Config.advanced_control:
             if Config.log_pulse_guiding:
                 self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")
             self._sm.process_pulse_guide_axis(direction, duration)

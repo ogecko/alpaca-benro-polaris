@@ -1456,7 +1456,7 @@ class SyncManager:
         Convert a sync history entry's raw stored p_az/p_alt/p_roll into a
         predicted unit vector.
         """
-        if Config.advanced_align_rbc:
+        if Config.advanced_align_mac:
             motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
             motorQ_adj, _   = apply_mechanical_corrections(motorQ_entry, self.params_RBC)
             eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
@@ -1475,7 +1475,7 @@ class SyncManager:
         motorQ_C2B_pv = motorQ_C2B_state
 
         # Apply Mechanical Corrections (MAC)
-        if Config.advanced_align_rbc:
+        if Config.advanced_align_mac:
             self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B_state, self.params_RBC)
             motorQ_C2B_pv = self.corrQ_RBC * motorQ_C2B_state
 
@@ -1489,7 +1489,7 @@ class SyncManager:
         cameraQ_C2T_pv = self.alignQ_B2T * motorQ_C2B_pv
 
         # Apply Local Gaussian Adjustment (LGA)
-        if Config.advanced_slew_center and Config.advanced_align_lga:
+        if Config.advanced_scc_enabled and Config.advanced_scc_choice==1:
             self.corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ_C2T_pv)
             cameraQ_C2T_pv = self.corrQ_LGA * cameraQ_C2T_pv
 
@@ -1515,7 +1515,7 @@ class SyncManager:
             cameraQ_C2T = corrQ_roll_undo * cameraQ_C2T
 
         # Undo Local Guassian Adjustment (LGA) 
-        if Config.advanced_slew_center and Config.advanced_align_lga:
+        if Config.advanced_scc_enabled and Config.advanced_scc_choice==1:
             if self.corrQ_LGA is not None:
                 cameraQ_C2T = self.corrQ_LGA.inverse * cameraQ_C2T
 
@@ -1524,7 +1524,7 @@ class SyncManager:
 
         # Undo Mechanical Corrections (RBC) - DO NOT APPLY AS ALL PID theta works in corrected theta space
         # ALSO BEWARE THAT corrQ_RBC is updated from 518, so it may not match the target's corrQ_RBC
-        # if Config.advanced_align_rbc:
+        # if Config.advanced_align_mac:
         #     if self.corrQ_RBC is not None:
         #         motorQ_C2B = self.corrQ_RBC.inverse * motorQ_C2B
 
@@ -1547,9 +1547,10 @@ class SyncManager:
         if not Config.advanced_alignment:
             return
     
-        # return if a valid sync guide update occurs
-        if self.process_guide_sync(a_ra, a_dec, a_az, a_alt):
-            return   
+        if Config.advanced_sync_guiding:
+            # return if a valid sync guide update occurs
+            if self.process_guide_sync(a_ra, a_dec, a_az, a_alt):
+                return   
 
         # otherwise process it as a quest update
         self.process_quest_sync(a_ra, a_dec, a_az, a_alt)
@@ -1650,8 +1651,6 @@ class SyncManager:
         Markley, F. L. (2000). "Quaternion Attitude Estimation Using Vector Observations." https://tinyurl.com/ymk5xd7z
         Markley, F. L. (2003). "Attitude Estimation or Quaternion Estimation?" https://ntrs.nasa.gov/citations/20030093641
         """
-        self.clear_sync_guiding()    
-
         if Config.advanced_alignment == False:
             self.set_alignQ_to_identity()
             return
@@ -1731,7 +1730,7 @@ class SyncManager:
             self.alignQ_B2T_inv = self.alignQ_B2T.inverse
 
             # If not optimal sidereal tracking then tweak QUEST model to zero our residual on final syncpoint
-            if Config.advanced_slew_center and not Config.advanced_align_lga:
+            if Config.advanced_scc_enabled and Config.advanced_scc_choice==0:
                 self.apply_zero_last_residual_to_model()
                 
             self.alignQ_B2T_message = "QUEST solution applied"
@@ -1741,6 +1740,8 @@ class SyncManager:
         self.compute_azalt_residuals()   # Compute and store residuals
         self.compute_tilt()              # Compute tilt correction
         self.logSyncDataToConsole()
+        if Config.advanced_scc_enabled and Config.advanced_scc_choice==2:
+            self.seed_sync_guide_from_quest_residual()
 
         return
 
@@ -2003,9 +2004,11 @@ class SyncManager:
                 f"y: {self.alignQ_B2T[2]:+9.7f} | " 
                 f"z: {self.alignQ_B2T[3]:+9.7f} " 
             )
+            en = Config.advanced_scc_enabled
+            ch = Config.advanced_scc_choice
             self.logger.info(
-                f"  MAC: {'ON ' if Config.advanced_align_rbc else 'OFF'}   | " 
-                f"{'SCC: OFF  | ' if not Config.advanced_slew_center else 'LGC: ON   | ' if Config.advanced_align_lga else 'ZLR: ON   | '}"
+                f"  MAC: {'ON ' if Config.advanced_align_mac else 'OFF'}   | " 
+                f"{'SCC: OFF  | ' if not en else 'ZLR: ON   | ' if ch==0 else 'LGA: ON   | ' if ch==1 else 'SGA: ON   | ' }"
                 f"RMS Residual: {deg2dms(rms)}  | "
                 f"Az Correction: {deg2dms(self.az_adj)} | "
                 f"Tilt: {deg2dms(self.tilt_adj_mag)} @ {deg2dms(self.tilt_adj_az)} | "
@@ -2188,11 +2191,18 @@ class SyncManager:
 
         return True
 
+    def invalidate_sync_guiding(self):
+        """ Next sync is not to be used for sync guiding """
+        self.valid_sync_guide = False
+
     def clear_sync_guiding(self):
-        """ Cleared whenever tracking off, goto, slew, pusle-guide, quest chage """
+        """ Cleared whenever Tracking disabled, Panning, Rolling, or Pusle-guiding 
+            Although Gotos only invalidate, as the q_syncguide_B is used for scc """
         self.valid_sync_guide = False
         self.q_syncguide_B = Quaternion(1,0,0,0)
         self.delta_guide_accum = np.zeros(3, dtype=float) 
+        if Config.advanced_scc_enabled and Config.advanced_scc_choice==2:
+            self.scc_error = 0
 
     def enable_sync_guiding(self):
         """ Enabled from a valid QUEST sync and sidereal tracking enabled """
@@ -2212,4 +2222,39 @@ class SyncManager:
         
     def get_sync_guiding_correction_q(self):
         return self.q_syncguide_B
-    
+        
+    def seed_sync_guide_from_quest_residual(self):
+        if self.last_sync_time is None:
+            return
+        ra_axis_B, dec_axis_B, _ = self.equatorial_axes_B
+        if ra_axis_B is None or dec_axis_B is None:
+            return
+        az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
+        if v_pred_rot is None:
+            return
+
+        # Build full residual quaternion in Topocentric frame (v_pred_rot → v_obs)
+        axis_T = np.cross(v_pred_rot, v_obs)
+        norm_axis = np.linalg.norm(axis_T)
+        if norm_axis < 1e-8:
+            return
+        axis_T /= norm_axis
+        angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
+        self.scc_error = np.degrees(angle)
+
+        # Rotate error axis into Base frame
+        axis_B = np.array(self.alignQ_B2T_inv.rotate(axis_T))
+
+        # Decompose onto RA/Dec axes in Base frame
+        # angle * dot(axis, ra_axis) gives the RA component of the rotation
+        ra_resid  = np.degrees(angle) * np.dot(axis_B, ra_axis_B)
+        dec_resid = np.degrees(angle) * np.dot(axis_B, dec_axis_B)
+
+        self.logger.info(
+            f"Sync Guide seeded from QUEST residual: "
+            f"Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)}"
+        )
+
+        # Feed through accumulate so delta_guide_accum and q_syncguide_B
+        # are both consistent, and get_sync_guiding_correction_q rebuilds correctly
+        self.accumulate_sync_guiding_residuals(ra_resid, dec_resid)    

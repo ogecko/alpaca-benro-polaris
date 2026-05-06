@@ -141,19 +141,35 @@
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_guiding', 'Pulse Guiding')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_align_mac', 'Meachnical Alignment Correction')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_slew_center', 'Slew & Center Correction')"/>
-                <div v-if="cfg.advanced_slew_center">
-                  <q-toggle class='col-6' v-bind="bindField('advanced_align_lga', scc_option)"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_scc_enabled', 'Slew & Center Correction')"/>
+                <div class="col-6" v-if="cfg.advanced_scc_enabled">
+                  <div class="q-gutter-md">
+                    <q-select label="Method" dense filled map-options 
+                      :modelValue="cfg.advanced_scc_choice" @update:modelValue="v => putdb({advanced_scc_choice: v.value})"
+                      :options="scc_options" options-selected-class="positive">
+                      <template v-slot:option="scope">
+                        <q-item v-bind="scope.itemProps">
+                          <q-item-section>
+                            <q-item-label>{{ scope.opt.label }}</q-item-label>
+                            <q-item-label caption>{{ scope.opt.description }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>
+                  </div>
                 </div>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Predictive Error Correction (PEC)')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_align_rbc', 'Meachnical Alignment Correction')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_sync_guiding', 'Plate-solve/Sync Guiding')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Periodic Error Correction (PEC)')"/>
               </div>
-              <div v-if="cfg.advanced_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_pulse_guiding', 'Guide-camera/Pulse Guiding')"/>
+              </div>
+              <div v-if="cfg.advanced_pulse_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
                 <q-select
                   class="col-6 q-pt-none" label="RA Pulse Guide Rate" emit-value map-options
                   v-model="cfg.guide_rate_ra" @update:model-value="v => putdb({ guide_rate_ra: v })"
@@ -161,7 +177,7 @@
                 />
                 <q-select
                   class="col-6 q-pt-none" label="Dec Pulse Guide Rate" emit-value map-options
-                  v-model="cfg.guide_rate_dec" @update:model-value="v => putdb({ guide_rate_dec: v })"
+                  v-model="cfg.guide_rate_dec" @update:model-value="v => put({ guide_rate_dec: v.value })"
                   :options="guideRateOptions"
                 />
               </div>
@@ -224,7 +240,6 @@ const cfg = useConfigStore()
 const p = useStatusStore()
 const poll = new PollingManager()
 
-const scc_option = computed(() => (cfg.advanced_align_lga? 'Local Guassian Adjustment' : 'Zero Last Residual'))
 const z3curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[2]??0,"deg",1) }));
 const z2curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[1]??0,"deg",1) }));
 const z1curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[0]??0,"deg",1) }));
@@ -237,6 +252,12 @@ const guideRateOptions = [
   { label: '1.25× sidereal', value: 1.25 },
   { label: '1.50× sidereal', value: 1.50 },
   { label: '2.00× sidereal', value: 2.00 },
+]
+
+const scc_options = [
+  { label: 'Zero Last Residual', value: 0, icon: 'mail', description: 'Force the most recent sync residual to zero before applying alignment correction'},
+  { label: 'Local Guassian Adjustment', value: 1, icon: 'mail', description: 'Apply a localized pointing correction centered on the last sync position'},
+  { label: 'Sync Guiding Adjustment', value: 2, icon: 'mail', description: 'Initialize guiding corrections using the last measured residual'},
 ]
 
 onMounted(async () => {
