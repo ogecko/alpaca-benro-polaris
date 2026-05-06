@@ -352,16 +352,17 @@ theta_state             KF smoothed motor morientation angles
 motorQ_state            KF smoother motor orientation quaternion C→B
 alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
-    ▼ Mechanical Corrections             (corrQ_RBC)  B Frame
-    ▼ Pulse Guiding Accum Corrections    (q_pulse_B)  B Frame
+    ▼ Mechanical Corrections             (corrQ_RBC)      B Frame
+    ▼ Sync Guiding Accum Corrections     (q_syncguide_B)  B Frame
+    ▼ Pulse Guiding Accum Corrections    (q_pulse_B)      B Frame
     ▼ Periodic Error Correction
 motorQ_pv              MAC, Pulse and PEC corrected only (B Frame)
 theta_pv               MAC, Pulse and PEC corrected only (B Frame)
     │
-    ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGA ∘ alignQ_B2T ∘ motorQ_adj
+    ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGA ∘ alignQ_B2T ∘ motorQ_pv
     ▼     QUEST Alignment                (alignQ_B2T) B→T
-    ▼     Local Gaussian Correction      (corrQ_LGA)  T Frame
-    ▼     Roll Sync Adjustment           (corrQ_roll) T Frame
+    ▼     Local Gaussian Correction      (corrQ_LGA)      T Frame
+    ▼     Roll Sync Adjustment           (corrQ_roll)     T Frame
 cameraQ_pv             Fully corrected C→T pointing quaternion
 alpha_pv               (a_az, a_alt, a_roll) = q_to_azaltroll(cameraQ_pv)
 delta_pv               (a_ra, a_dec, a_pa)   = pyephem(az, alt, roll), used as ASCOM co-ordinates

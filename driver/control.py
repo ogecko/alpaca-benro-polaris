@@ -1453,8 +1453,8 @@ class SyncManager:
 
     def entry_to_pred_vector(self, entry):
         """
-        Convert a sync history entry's raw stored p_az/p_alt/p_roll into a
-        predicted unit vector.
+        Convert a sync history entry's raw stored p_az/p_alt/p_roll into a predicted unit vector.
+        Only apply [MAC] as its the only static theta frame correction. Do not apply [SGC], [PGC] or [LGA] 
         """
         if Config.advanced_align_mac:
             motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
@@ -1470,7 +1470,7 @@ class SyncManager:
     def baseQ_to_topoQ(self, motorQ_C2B_state):
         """
         Forward kinematics: Base frame → Topocentric frame.
-        motorQ → [MAC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
+        motorQ → [MAC] → [SGC] → [PGC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
         """
         motorQ_C2B_pv = motorQ_C2B_state
 
@@ -1506,7 +1506,7 @@ class SyncManager:
     def topoQ_to_baseQ(self, cameraQ_C2T):
         """
         Inverse kinematics: Topocentric frame → Base frame.
-        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → undo[MAC] → motorQ
+        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → motorQ (in corrected theta space)
         """
         # Undo roll sync adj (roll_adj)
         if self.roll_adj != 0:
@@ -1522,11 +1522,10 @@ class SyncManager:
         # Undo alignQ_B2T model (QUEST)
         motorQ_C2B = self.alignQ_B2T_inv * cameraQ_C2T
 
-        # Undo Mechanical Corrections (RBC) - DO NOT APPLY AS ALL PID theta works in corrected theta space
-        # ALSO BEWARE THAT corrQ_RBC is updated from 518, so it may not match the target's corrQ_RBC
-        # if Config.advanced_align_mac:
-        #     if self.corrQ_RBC is not None:
-        #         motorQ_C2B = self.corrQ_RBC.inverse * motorQ_C2B
+        # Do not undo the following as PID theta works in corrected theta space
+        # no undo Mechanical Corrections (MAC)
+        # no undo Pulse Guiding Corrections (PGC)
+        # no undo Sync Guiding Corrections (SGC)
 
         return motorQ_C2B
 
