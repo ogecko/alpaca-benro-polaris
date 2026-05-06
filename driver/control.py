@@ -1658,7 +1658,7 @@ class SyncManager:
         weights = []
         self.params_RBC = MountModelParams.from_config(Config)
         self.clear_guide_pulses()
-
+        # self.clear_sync_guiding() (done inside seed sync guiding)
 
         v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
 
@@ -2254,6 +2254,21 @@ class SyncManager:
             f"Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)}"
         )
 
+        self.q_syncguide_B = Quaternion()
+        self.delta_guide_accum[0] = 0
+        self.delta_guide_accum[1] = 0
+
+
         # Feed through accumulate so delta_guide_accum and q_syncguide_B
         # are both consistent, and get_sync_guiding_correction_q rebuilds correctly
         self.accumulate_sync_guiding_residuals(ra_resid, dec_resid)    
+
+        # # Diagnostic
+        # self.logger.info(f"SGC seed complete: q_syncguide_B={self.q_syncguide_B} valid={self.valid_sync_guide}")
+        
+        # # Immediately test FK with and without SGC
+        # if self.polaris._motorQ_state is not None:
+        #     cameraQ, _ = self.baseQ_to_topoQ(self.polaris._motorQ_state)
+        #     az, alt, _ = q_to_azaltroll(cameraQ)
+        #     ra, dec = self.polaris.altaz2radec(alt, az)
+        #     self.logger.info(f"SGC seed FK test: az={deg2dms(az)} alt={deg2dms(alt)} ra={deg2dms(ra*15)} dec={deg2dms(dec)}")
