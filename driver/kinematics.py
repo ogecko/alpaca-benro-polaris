@@ -25,6 +25,7 @@ import numpy as np
 from quaternion import Q as Quaternion
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
+import ephem
 
 # ── Angle helpers ─────────────────────────────────────────────────────────────
 
@@ -280,15 +281,12 @@ def calc_parallactic_angle(az_deg: float, alt_deg: float, lat_deg: float) -> flo
     return wrap180(-angle)
 
 
-def radec_to_altaz(ra_deg: float, dec_deg: float,
-                   lat_deg: float, lon_deg: float,
-                   date_obs_utc: str):
+def radec_to_altaz(ra_deg: float, dec_deg: float, lat_deg: float, lon_deg: float, date_obs_utc: str):
     """
     Convert J2000 RA/Dec to topocentric Alt/Az using ephem.
     Returns (az_deg, alt_deg) or (None, None) if ephem unavailable or on error.
     """
     try:
-        import ephem
         obs = ephem.Observer()
         obs.lat   = math.radians(lat_deg)
         obs.long  = math.radians(lon_deg)
@@ -300,6 +298,24 @@ def radec_to_altaz(ra_deg: float, dec_deg: float,
         body._epoch = ephem.J2000
         body.compute(obs)
         return math.degrees(float(body.az)), math.degrees(float(body.alt))
+    except Exception:
+        return None, None
+
+def azalt_to_radec(az_deg: float, alt_deg: float, lat_deg: float, lon_deg: float, date_obs_utc: str):
+    """
+    Convert topocentric Alt/Az to J2000 RA/Dec using ephem.
+    Returns (ra_deg, dec_deg) or (None, None) if ephem unavailable or on error.
+    """
+    try:
+        obs = ephem.Observer()
+        obs.lat   = math.radians(lat_deg)
+        obs.long  = math.radians(lon_deg)
+        obs.epoch = ephem.J2000
+        obs.date = ephem.Date(date_obs_utc.split('.')[0].replace('T', ' '))
+        ra_rad, dec_rad = obs.radec_of(np.radians(az_deg), np.radians(alt_deg))
+        ra_deg = np.degrees(ra_rad)  
+        dec_deg = np.degrees(dec_rad)
+        return ra_deg, dec_deg
     except Exception:
         return None, None
 

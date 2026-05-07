@@ -6,8 +6,8 @@ from unittest.mock import patch
 import numpy as np
 from control import SyncManager, quaternion_to_angles, azaltroll_to_q, q_to_azaltroll
 from polaris import Polaris
-from kinematics import calc_parallactic_angle, calc_equatorial_axes_B
-
+from kinematics import calc_parallactic_angle, calc_equatorial_axes_B, radec_to_altaz, azalt_to_radec
+from shr import format_timestamp
 
 import pytest
 import logging
@@ -62,6 +62,11 @@ class Polaris:
         t1,t2,t3,_,_,_ = quaternion_to_angles(self._q1)
         self._theta_raw = [t1, t2, t3]
         self._roll = roll
+
+    def update_ascom_radec(self, ra, dec):
+        """ Updates the RA (hr) and DEC (deg) of the Polaris object """
+        self.rightascension = ra
+        self.declination = dec
 
 def test_dummy():
     assert(1==1)
@@ -314,4 +319,28 @@ def test_sgc_seed_from_quest_residual(mock_config):
 
     assert abs(az - 180) < 0.02,  f"Az {az:.3f} not close to observed 180"
     assert abs(alt - 44) < 0.02, f"Alt {alt:.3f} not close to observed 44"
+
+    # Perform a GUIDE sync in the North with a zero residual 
+    DEFAULT_LAT    = -33.86
+    DEFAULT_LON    = 151.12
+    a_ra, a_dec = 90, -75
+    a_az, a_alt = radec_to_altaz(a_ra, a_dec, DEFAULT_LAT, DEFAULT_LON, format_timestamp())
+    topoQ = azaltroll_to_q(a_az,a_alt,0)
+    baseQ = sm.topoQ_to_baseQ(topoQ)
+    p_az, p_alt, p_roll = q_to_azaltroll(baseQ)
+    # Receive 518 msg and predict
+    p.update(p_az, p_alt)
+    cameraQ, _ = sm.baseQ_to_topoQ(p._motorQ_state)
+    fk_az, fk_alt, _ = q_to_azaltroll(cameraQ)
+    fk_ra, fk_dec = azalt_to_radec(fk_az, fk_alt, DEFAULT_LAT, DEFAULT_LON, format_timestamp())
+    p.update_ascom_radec(fk_ra/15, fk_dec)
+    # Plate solve observed
+    observed_ra, observed_dec = a_ra, a_dec
+    result = sm.process_guide_sync(observed_ra/15, observed_dec, a_az, a_alt)
+    assert result == True, "Guide sync should be accepted"
+    cameraQ, _ = sm.baseQ_to_topoQ(p._motorQ_state)
+    az, alt, _ = q_to_azaltroll(cameraQ)
+
+    assert abs(az - a_az) < 0.5,  f"Az {az:.3f} not close to observed {a_az}"
+    assert abs(alt - a_alt) < 0.5, f"Alt {alt:.3f} not close to observed {a_alt}"
 
