@@ -1658,7 +1658,7 @@ class SyncManager:
         weights = []
         self.params_RBC = MountModelParams.from_config(Config)
         self.clear_guide_pulses()
-        # self.clear_sync_guiding() (done inside seed sync guiding)
+        self.clear_sync_guiding()
 
         v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
 
