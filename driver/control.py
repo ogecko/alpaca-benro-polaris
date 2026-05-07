@@ -2208,6 +2208,7 @@ class SyncManager:
         self.valid_sync_guide = True
 
     def accumulate_sync_guiding_residuals(self, ra_resid, dec_resid):
+        """ Accumulate residuals in decimal degrees, as well as a corresponding corection quaternion"""
         ra_axis_B, dec_axis_B, _ = self.equatorial_axes_B
         q_ra_corr  = Quaternion(axis=ra_axis_B,  degrees= ra_resid)
         q_dec_corr = Quaternion(axis=dec_axis_B, degrees= dec_resid)
