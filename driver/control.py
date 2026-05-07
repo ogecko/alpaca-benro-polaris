@@ -1658,7 +1658,6 @@ class SyncManager:
         weights = []
         self.params_RBC = MountModelParams.from_config(Config)
         self.clear_guide_pulses()
-        self.clear_sync_guiding()
 
         v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
 
@@ -1730,6 +1729,7 @@ class SyncManager:
 
             # If not optimal sidereal tracking then tweak QUEST model to zero our residual on final syncpoint
             if Config.advanced_scc_enabled and Config.advanced_scc_choice==0:
+                self.clear_sync_guiding()
                 self.apply_zero_last_residual_to_model()
                 
             self.alignQ_B2T_message = "QUEST solution applied"
