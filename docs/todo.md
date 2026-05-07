@@ -53,7 +53,8 @@
         - PID - Improved RMS Error, Cyclic bump removed, PID axes in dms, De-Trenmded Charts
         - Orbitals - tracking See PA changing, Roll Angle fixed.
     - Guiding
-        - Sync Guiding - Plate-Solve using Nina and manuall sync Roll Angle
+        - Sync Guiding - Plate-Solve/Sync using Nina in a 5min cycle
+        - Sync Roll - How to copy Plate-Solve Roll and manual Roll Sync
         - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
     - Utilities
         - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, Navigating Pano, PanoGrid Copy
