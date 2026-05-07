@@ -110,6 +110,8 @@ def test_azshift10_sync_adj():
         MockConfig.advanced_alignment = True
         MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_mac = False
+        MockConfig.advanced_scc_enabled = True
+        MockConfig.advanced_scc_choice = 0
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
         p = Polaris()
@@ -151,6 +153,8 @@ def test_largetilt_sync_adj():
         MockConfig.advanced_alignment = True
         MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_mac = False
+        MockConfig.advanced_scc_enabled = True
+        MockConfig.advanced_scc_choice = 0
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
         p = Polaris()
@@ -174,6 +178,8 @@ def test_az170alt15shift_sync_adj():
         MockConfig.advanced_alignment = True
         MockConfig.advanced_align_lga = False
         MockConfig.advanced_align_mac = False
+        MockConfig.advanced_scc_enabled = True
+        MockConfig.advanced_scc_choice = 0
         MockConfig.advanced_control = True
         MockConfig.log_quest_model = False
         p = Polaris()
