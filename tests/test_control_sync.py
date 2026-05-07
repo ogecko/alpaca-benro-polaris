@@ -4,9 +4,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 from unittest.mock import patch
 
 import numpy as np
-from control import SyncManager, quaternion_to_angles, azaltroll_to_q
+from control import SyncManager, quaternion_to_angles, azaltroll_to_q, q_to_azaltroll
 from polaris import Polaris
-from kinematics import calc_parallactic_angle
+from kinematics import calc_parallactic_angle, calc_equatorial_axes_B
+
 
 import pytest
 import logging
@@ -261,4 +262,56 @@ def test_SouthCelestrialPole_parallactic_angle():
     pa = calc_parallactic_angle(180, p._sitelatitude, p._sitelatitude)
     assert f'{pa:.6f}' == "-180.000000"  
 
+
+def test_sgc_seed_from_quest_residual(mock_config):
+    """
+    Test that after a QUEST sync with scc_choice=2, the SGC seed
+    shifts the FK output to match the observed position.
+    """
+    mock_config.advanced_scc_enabled = True
+    mock_config.advanced_scc_choice = 2
+    mock_config.advanced_sync_guiding = True
+    mock_config.advanced_align_mac = False
+
+    p = Polaris()
+    logger = logging.getLogger()
+    sm = SyncManager(logger, p)
+
+    # Three sync points to build a reasonable QUEST model
+    p.update(180, 45)
+    sm.sync_az_alt(0, 0, 170, 45)
+
+    p.update(90, 45)
+    sm.sync_az_alt(0, 0, 80, 45)
+
+    p.update(270, 45)
+    sm.sync_az_alt(0, 0, 260, 45)
+
+    # Now simulate a slew to a new position and plate solve
+    # Mount reports az=190, alt=45 but plate solve sees az=180, alt=46; ie RA_resid 0, Dec_resid close to -1 degree
+    p.update(190, 45)
+
+    # Seed equatorial axes so SGC can build correction quaternion
+    cameraQ, _ = sm.baseQ_to_topoQ(p._motorQ_state)
+    sm.equatorial_axes_B = calc_equatorial_axes_B(cameraQ, sm.alignQ_B2T_inv, p._sitelatitude)
+
+    # Perform a QUEST sync at the new position with a slight +ve Dec error TO BE PICKED UP BY SGA
+    sm.sync_az_alt(0, 0, 180.0, 46.0)
+    cameraQ, _ = sm.baseQ_to_topoQ(p._motorQ_state)
+    az, alt, _ = q_to_azaltroll(cameraQ)
+
+    # The FK output should now be close to the observed plate solve position, not exactly because QUEST has been refreshed and may absorb some of the residual.
+    assert abs(az - 180) < 0.02,  f"Az {az:.3f} not close to observed 180"
+    assert abs(alt - 46) < 0.02, f"Alt {alt:.3f} not close to observed 46"
+
+    # And SGC accumulator should be non-zero
+    assert sm.q_syncguide_B != Quaternion([1,0,0,0]), "q_syncguide_B should not be identity"
+
+    # Perform a QUEST sync at the same position with a slight -ve Dec error (mock of Polaris causes every sync to be a QUEST sync)
+    sm.sync_az_alt(0, 0, 180.0, 44.0)
+    cameraQ, _ = sm.baseQ_to_topoQ(p._motorQ_state)
+    az, alt, _ = q_to_azaltroll(cameraQ)
+
+    assert abs(az - 180) < 0.02,  f"Az {az:.3f} not close to observed 180"
+    assert abs(alt - 44) < 0.02, f"Alt {alt:.3f} not close to observed 44"
 
