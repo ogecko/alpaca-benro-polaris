@@ -147,7 +147,7 @@
                 <q-toggle class='col-6' v-bind="bindField('advanced_scc_enabled', 'Slew & Center Correction')"/>
                 <div class="col-6" v-if="cfg.advanced_scc_enabled">
                   <div class="q-gutter-md">
-                    <q-select label="Method" dense filled map-options 
+                    <q-select label="Slew & Center Correction Method" dense filled map-options 
                       :modelValue="cfg.advanced_scc_choice" @update:modelValue="v => putdb({advanced_scc_choice: v.value})"
                       :options="scc_options" options-selected-class="positive">
                       <template v-slot:option="scope">
@@ -177,7 +177,7 @@
                 />
                 <q-select
                   class="col-6 q-pt-none" label="Dec Pulse Guide Rate" emit-value map-options
-                  v-model="cfg.guide_rate_dec" @update:model-value="v => put({ guide_rate_dec: v.value })"
+                  v-model="cfg.guide_rate_dec" @update:model-value="v => putdb({ guide_rate_dec: v })"
                   :options="guideRateOptions"
                 />
               </div>
