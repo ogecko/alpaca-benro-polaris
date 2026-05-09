@@ -2334,7 +2334,7 @@ class SyncManager:
 
         # Convergence thresholds
         self._pec_max_P        = getattr(Config, 'pec_max_covariance',   0.01)   # RLS must converge below this
-        self._pec_max_rmse     = getattr(Config, 'pec_max_rmse_arcmin',  2.0) / 60.0  # degrees
+        self._pec_max_rmse     = getattr(Config, 'pec_max_rmse_arcmin',  6.0) / 60.0  # degrees
         
         # Running RMSE via exponential moving average of squared prediction error
         self._pec_ra_sse       = 0.0        # smoothed squared error RA
@@ -2421,8 +2421,8 @@ class SyncManager:
 
         self.logger.info(
             f"PEC  n={self._pec_n:4d} | "
-            f"RA:  rate={self._pec_ra_theta*60:+.4f}'/min  rmse={ra_rmse:.4f}'  R²={ra_r2:.3f}  {'OK' if ra_conv else '--'} | "
-            f"Dec: rate={self._pec_dec_theta*60:+.4f}'/min  rmse={dec_rmse:.4f}'  R²={dec_r2:.3f}  {'OK' if dec_conv else '--'} | "
+            f"RA:  rate={self._pec_ra_theta*3600:+.4f}\"/min  rmse={ra_rmse:.4f}'  R²={ra_r2:.3f}  {'OK' if ra_conv else '--'} | "
+            f"Dec: rate={self._pec_dec_theta*3600:+.4f}\"/min  rmse={dec_rmse:.4f}'  R²={dec_r2:.3f}  {'OK' if dec_conv else '--'} | "
             f"{'ACTIVE' if self._pec_active else 'warmup'}"
         )
 
