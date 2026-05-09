@@ -140,5 +140,5 @@ log_performance_data = 0                    # Logging of Polaris Performance Dat
 log_performance_data_test = 0               # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test, 5=Rotator test
 log_perf_speed_interval = 5                 # To calculate average speed, measure distance travelled, once every "log_perf_speed_interval" seconds.
 
-max_size_mb = 5                             # maximum log file size.
-num_keep_logs = 5                           # maximum number of log files to rotate through.
+max_size_mb = 10                            # maximum log file size.
+num_keep_logs = 9                           # maximum number of log files to rotate through.
