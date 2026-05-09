@@ -2226,6 +2226,12 @@ class SyncManager:
     def seed_sync_guide_from_quest_residual(self):
         if self.last_sync_time is None:
             return
+        if self.polaris._motorQ_state is None:
+            return
+            
+        # Recompute cameraQ and equatorial axes with the freshly updated alignQ_B2T
+        cameraQ_pv, _ = self.baseQ_to_topoQ(self.polaris._motorQ_state)
+        self.cache_equatorial_axes_B(cameraQ_pv, self.polaris._sitelatitude)
         ra_axis_B, dec_axis_B, _ = self.equatorial_axes_B
         if ra_axis_B is None or dec_axis_B is None:
             return
