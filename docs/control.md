@@ -131,6 +131,12 @@ To visualize your framing accurately in Stellarium, an adjustment is necessary.
 *   **Coordinate Mismatch:** Stellarium’s internal "rotation angle" setting uses a different frame of reference than the standard ASCOM Position Angle used by the driver and NINA.
 *   **Correcting the Angle:** To achieve the same framing in Stellarium as calculated in NINA (e.g., a proposed PA of 140°), you must input the **negative of the Position Angle** into Stellarium’s rotation angle setting (e.g., -140°).
 
+### Aligning the Rotator
+We recommend performing at least one Position Angle sync (see Method 2 below) at the start of each imaging session. This establishes the roll offset between the mount's Roll Angle and the true sky Position Angle, the zero reference the PID Controller uses for sidereal tracking.
+
+This matters because to maintain a constant Position Angle during tracking, the mount's Roll Angle must continuously change to compensate for the evolving parallactic angle as the target moves across the sky. Since the three motor axes are coupled, a poorly calibrated roll offset will subtly corrupt pointing and tracking accuracy across all axes.
+
+If you have a physical camera rotator, note that rotating it will shift the position angle seen by the camera sensor. It will not update the Position Angle reported by the Driver or the roll offset, so tracking will not be affected. If you want the Driver to report the correct Position Angle, perform a re-syncing after using the physical camera rotator.
 
 <br>
 <br>
@@ -255,6 +261,13 @@ You can manually add a sync point by specifying a known celestial target using *
 - Best for: Users targeting known stars or objects
 - How: Manually align the image with the known target then confirm the **Sync** with an application like Stellarium or Alpaca Pilot
 - Benefit: Useful when plate solving isn’t available or for quick calibration
+
+Nina does not sync the plate-solved Position Angle with the Alpaca Driver. We recommend that you do this manually at least once per imaging session.
+- Perform a plate-solve and note the Roll Angle reported.
+- Using Pilot, open the Alignment Page. 
+- On the Methods to add SYNC Points panel, open the RA/DEC/PA tab.
+- Manually enter the Position Angle in decimal degrees.
+- Click the Rotator Sync button.
 
 #### Method 3: Sync via Geographic Landmark (Azimuth and Altitude)
 ![Alignment Sync](images/control-sync3.png)
