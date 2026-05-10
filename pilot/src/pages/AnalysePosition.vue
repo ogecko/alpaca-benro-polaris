@@ -75,12 +75,6 @@
                 </q-timeline-entry>
                 <!-- Corrections -->
                 <q-timeline-entry title="Error Corrections" subtitle="Adjust" icon="mdi-axis-x-rotate-clockwise">
-                  <!-- PEC -->
-                  <div class="ok terminal">
-                    <span>{{`PEC: Periodic Error Correction`}}</span>
-                    <span v-if="cfg.advanced_pec">{{ `                       Use PHD2`}}</span>
-                    <span v-else class="haz">{{ `                                    Disabled`}}</span>
-                  </div>
                   <!-- MAC -->
                   <div class="ok terminal">
                     <span>{{`MAC: Mechanical Alignment Correction`}}</span>
@@ -97,6 +91,21 @@
                     </span>
                     <span v-else class="haz">{{ `                                     Disabled`}}</span>
                   </div >
+                  <!-- PEC -->
+                  <div class="ok terminal">
+                    <span>{{`PEC:`}}</span>
+                    <span v-if="cfg.advanced_pec" >
+                      <VField label="         RA " :val="p.pec_r2[0]" unit="deg/hr"/>
+                      <VField label=" |  Dec " :val="p.pec_r2[1]" unit="deg/hr"/>
+                      <VField label=" | R² " :val="p.pec_r2[2]" unit="r2"/>
+                      <VField label=" | R² " :val="p.pec_r2[3]" unit="r2"/>
+                    </span>
+                    <span v-else>
+                      <span >{{` Periodic Error Correction  `}}</span>
+                      <span class="haz">{{ `                                  Disabled`}}</span>
+                    </span>
+                  </div>
+                  <!-- Guiding -->
                   <div class="ok terminal">
                     <span>{{`Guide Rate:`}}</span>
                     <span v-if="cfg.advanced_pulse_guiding || cfg.advanced_sync_guiding" >

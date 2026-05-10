@@ -2229,8 +2229,6 @@ class SyncManager:
         q_adj = (q_ra_corr * q_dec_corr).normalised
         self.q_syncguide_B = (q_adj * self.q_syncguide_B).normalised
 
-        self.delta_guide_rate[0] = ra_resid
-        self.delta_guide_rate[1] = dec_resid
         self.delta_guide_accum[0] += ra_resid
         self.delta_guide_accum[1] += dec_resid
         
@@ -2312,7 +2310,7 @@ class SyncManager:
         self._pec_lam         = lam
 
         # RLS sufficient statistics per axis: P (variance estimate), theta (slope)
-        self._pec_ra_theta    = 0.0           # drift rate arcmin/sec
+        self._pec_ra_theta    = 0.0           # drift rate degrees/sec 
         self._pec_ra_P        = 1.0           # RLS covariance (scalar)
         self._pec_ra_ref      = 0.0           # cumulative RA at t0  (intercept anchor)
 
@@ -2424,8 +2422,8 @@ class SyncManager:
 
         self.logger.info(
             f"PEC  n={self._pec_n:4d} | "
-            f"RA:  rate={self._pec_ra_theta*3600:+.4f}\"/min  R²={self._pec_ra_r2:.3f}   rmse={ra_rmse:.4f}'   {'OK' if ra_conv else '--'} | "
-            f"Dec: rate={self._pec_dec_theta*3600:+.4f}\"/min  R²={self._pec_dec_r2:.3f}   rmse={dec_rmse:.4f}'   {'OK' if dec_conv else '--'} | "
+            f"RA:  rate={self._pec_ra_theta*3600:+.4f}'/min  R²={self._pec_ra_r2:.3f}   rmse={ra_rmse:.4f}'   {'OK' if ra_conv else '--'} | "
+            f"Dec: rate={self._pec_dec_theta*3600:+.4f}'/min  R²={self._pec_dec_r2:.3f}   rmse={dec_rmse:.4f}'   {'OK' if dec_conv else '--'} | "
             f"{'ACTIVE' if self._pec_active else 'warmup'}"
         )
 

@@ -54,6 +54,15 @@ function fmt_deg_s(x: unknown, unit:UnitKey="deg"): string {
   const signed_str = sign + str + '/s'
   return signed_str
 }
+function fmt_deg_min(x: unknown, unit:UnitKey="deg"): string {
+  const velocity = toNumber(x)
+  const str = fmt_deg(velocity, unit).replace(/^[+-]/, '')
+  const sign = (velocity>0.5/3600) ? '▲' : (velocity<-0.5/3600) ? '▼' : ' '
+  const signed_str = sign + str + '/m'
+  return signed_str
+}
+
+
 function fmt_hr_s(x: unknown, unit:UnitKey="hr"): string {
   const n = toNumber(x)
   return fmt_deg_s(n, unit)
@@ -62,6 +71,13 @@ function fmt_hr_s(x: unknown, unit:UnitKey="hr"): string {
 function fmt_number(x: unknown, decimals:number=7): string {
   const n = toNumber(x)
   const sign = n < 0 ? '-' : '+';
+  const nstr = Math.abs(n).toFixed(decimals)
+  return sign+nstr
+}
+
+function fmt_r2(x: unknown, decimals:number=3): string {
+  const n = toNumber(x)
+  const sign = n < 0 ? '-' : '';
   const nstr = Math.abs(n).toFixed(decimals)
   return sign+nstr
 }
@@ -79,15 +95,25 @@ function col_options() {
   return props.color ? props.color : 'std'
 }
 
+function col_r2(v:number) {
+  return v == 0 ? 'off' : 
+         v < 0 ? 'haz' :
+         v > 0.3 ? 'pos' :
+         'std'
+}
+
+
 const fmt = computed(() => {
   const v = toNumber(props.val)
   return (
     props.unit=="string"    ? { color: col_options(), Fn: fmt_string } : 
     props.unit=="number"    ? { color: col_options(), Fn: fmt_number } : 
+    props.unit=="r2"        ? { color: col_r2(v), Fn: fmt_r2 } : 
     props.unit=="deg"       ? { color: col_options(), Fn: fmt_deg } : 
     props.unit=="deg2hr"    ? { color: col_options(), Fn: fmt_deg2hr } : 
     props.unit=="hr"        ? { color: col_options(), Fn: fmt_hr } : 
     props.unit=="deg/s"     ? { color: col_deviation(v), Fn: fmt_deg_s } : 
+    props.unit=="deg/hr"    ? { color: col_deviation(v), Fn: fmt_deg_min } : 
     props.unit=="hr/s"      ? { color: col_deviation(v), Fn: fmt_hr_s } : 
     props.unit=="deg_ofst"  ? { color: col_deviation(v), Fn: fmt_deg } : 
     props.unit=="hr_ofst"   ? { color: col_deviation(v), Fn: fmt_hr } : 
