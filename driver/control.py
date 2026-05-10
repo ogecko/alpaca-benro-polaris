@@ -2344,6 +2344,9 @@ class SyncManager:
         self._pec_ra_var   = 0.0    # EMA of y² (total variance)
         self._pec_dec_var  = 0.0
 
+        self._pec_ra_r2    = 0.0
+        self._pec_dec_r2    = 0.0
+
     def update_pec_model(self, ra_resid_deg, dec_resid_deg):
         MAX_CORRECTION = 10 / 60
         ra_skip  = ra_resid_deg  is None or abs(ra_resid_deg)  > MAX_CORRECTION
@@ -2415,14 +2418,14 @@ class SyncManager:
         ra_P        = self._pec_ra_P
         dec_P       = self._pec_dec_P
         ra_conv     = ra_P  < self._pec_max_P and ra_rmse/60  < self._pec_max_rmse
-        dec_conv     = dec_P < self._pec_max_P and dec_rmse/60 < self._pec_max_rmse
-        ra_r2  = 1.0 - (self._pec_ra_sse  / self._pec_ra_var)  if self._pec_ra_var  > 1e-10 else 0.0
-        dec_r2 = 1.0 - (self._pec_dec_sse / self._pec_dec_var) if self._pec_dec_var > 1e-10 else 0.0
+        dec_conv    = dec_P < self._pec_max_P and dec_rmse/60 < self._pec_max_rmse
+        self._pec_ra_r2  = 1.0 - (self._pec_ra_sse  / self._pec_ra_var)  if self._pec_ra_var  > 1e-10 else 0.0
+        self._pec_dec_r2 = 1.0 - (self._pec_dec_sse / self._pec_dec_var) if self._pec_dec_var > 1e-10 else 0.0
 
         self.logger.info(
             f"PEC  n={self._pec_n:4d} | "
-            f"RA:  rate={self._pec_ra_theta*3600:+.4f}\"/min  rmse={ra_rmse:.4f}'  R²={ra_r2:.3f}  {'OK' if ra_conv else '--'} | "
-            f"Dec: rate={self._pec_dec_theta*3600:+.4f}\"/min  rmse={dec_rmse:.4f}'  R²={dec_r2:.3f}  {'OK' if dec_conv else '--'} | "
+            f"RA:  rate={self._pec_ra_theta*3600:+.4f}\"/min  R²={self._pec_ra_r2:.3f}   rmse={ra_rmse:.4f}'   {'OK' if ra_conv else '--'} | "
+            f"Dec: rate={self._pec_dec_theta*3600:+.4f}\"/min  R²={self._pec_dec_r2:.3f}   rmse={dec_rmse:.4f}'   {'OK' if dec_conv else '--'} | "
             f"{'ACTIVE' if self._pec_active else 'warmup'}"
         )
 
