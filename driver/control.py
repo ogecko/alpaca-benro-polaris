@@ -2307,7 +2307,7 @@ class SyncManager:
         # intercept is handled by anchoring to cumulative totals at t0.
         # State vector [slope] estimated via scalar RLS.
         lam = getattr(Config, 'pec_forgetting_factor', 0.98)
-        self._pec_lam         = lam
+        self._pec_lamda       = lam
 
         # RLS sufficient statistics per axis: P (variance estimate), theta (slope)
         self._pec_ra_theta    = 0.0           # drift rate degrees/sec 
@@ -2330,9 +2330,10 @@ class SyncManager:
         self._pec_cumul_ra    = 0.0
         self._pec_cumul_dec   = 0.0
 
-        # Convergence thresholds
-        self._pec_max_P        = getattr(Config, 'pec_max_covariance',   0.01)   # RLS must converge below this
-        self._pec_max_rmse     = getattr(Config, 'pec_max_rmse_arcmin',  6.0) / 60.0  # degrees
+        # Validity and Convergence thresholds
+        self._pec_max_P        = getattr(Config, 'pec_max_covariance',   0.01)          # RLS must converge below this
+        self._pec_max_rmse     = getattr(Config, 'pec_max_rmse_arcmin',  6.0) / 60.0    # RLS rmse must be below this in degrees
+        self._pec_max_resid    = getattr(Config, 'pec_max_resid_arcmin',  10.0) / 60.0  # skip any guide resid update above this in degrees
         
         # Running RMSE via exponential moving average of squared prediction error
         self._pec_ra_sse       = 0.0        # smoothed squared error RA
@@ -2346,9 +2347,8 @@ class SyncManager:
         self._pec_dec_r2    = 0.0
 
     def update_pec_model(self, ra_resid_deg, dec_resid_deg):
-        MAX_CORRECTION = 10 / 60
-        ra_skip  = ra_resid_deg  is None or abs(ra_resid_deg)  > MAX_CORRECTION
-        dec_skip = dec_resid_deg is None or abs(dec_resid_deg) > MAX_CORRECTION
+        ra_skip  = ra_resid_deg  is None or abs(ra_resid_deg)  > self._pec_max_resid
+        dec_skip = dec_resid_deg is None or abs(dec_resid_deg) > self._pec_max_resid
         if ra_skip and dec_skip:
             return
 
@@ -2380,7 +2380,7 @@ class SyncManager:
         if t < 1e-6:
             return
 
-        lam = self._pec_lam
+        lam = self._pec_lamda
 
         def _rls_update(P, theta, t, y):
             gain  = P * t / (lam + P * t * t)

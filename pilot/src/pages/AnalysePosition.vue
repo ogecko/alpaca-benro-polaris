@@ -93,9 +93,9 @@
                   </div >
                   <!-- PEC -->
                   <div class="ok terminal">
-                    <span>{{`PEC:`}}</span>
+                    <span>{{`PEC Rate:`}}</span>
                     <span v-if="cfg.advanced_pec" >
-                      <VField label="         RA " :val="p.pec_r2[0]" unit="deg/hr"/>
+                      <VField label="    RA " :val="p.pec_r2[0]" unit="deg/hr"/>
                       <VField label=" |  Dec " :val="p.pec_r2[1]" unit="deg/hr"/>
                       <VField label=" | R² " :val="p.pec_r2[2]" unit="r2"/>
                       <VField label=" | R² " :val="p.pec_r2[3]" unit="r2"/>
