@@ -1435,7 +1435,7 @@ class Polaris:
                 'rbcerror': self._sm.rbc_error,
                 'sccerror': self._sm.scc_error,
                 'mpaerror': self._sm.mpa_error,
-                'pec_r2': [0,0,0,0] if not self._sm._pec_active else [self._sm._pec_ra_theta*60, self._sm._pec_dec_theta*60, self._sm._pec_ra_r2, self._sm._pec_dec_r2],
+                'pec_r2': [0,0,0,0] if not self._sm._pec_active else [self._sm._pec_ra.theta*60, self._sm._pec_dec.theta*60, self._sm._pec_ra.r2, self._sm._pec_dec.r2],
                 'pidKc': Config.pid_Kc,
             }
         # clear after sent to Pilot

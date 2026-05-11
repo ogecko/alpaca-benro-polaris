@@ -2295,56 +2295,26 @@ class SyncManager:
 
 
 
-# ── PEC and Drift Modelling ──────────────────────────────────────────────────────────
+
+# ── PEC and Drift Modelling ───────────────────────────────────────────────
 
     def init_pec_model(self):
         """Initialise (or reset) the recursive drift model. Safe to call after slew."""
-        self._pec_t0          = None          # time of first observation (anchor)
-        self._pec_n           = 0             # number of observations ingested
-        self._pec_last_apply  = None          # monotonic time of last apply call
+        self._pec_t0          = None
+        self._pec_n           = 0
+        self._pec_last_apply  = None
+        self._pec_ra          = PecAxis()
+        self._pec_dec         = PecAxis()
 
-        # RLS state — one set per axis.  Tracks slope (drift rate) only;
-        # intercept is handled by anchoring to cumulative totals at t0.
-        # State vector [slope] estimated via scalar RLS.
-        lam = getattr(Config, 'pec_forgetting_factor', 0.98)
-        self._pec_lamda       = lam
-
-        # RLS sufficient statistics per axis: P (variance estimate), theta (slope)
-        self._pec_ra_theta    = 0.0           # drift rate degrees/sec 
-        self._pec_ra_P        = 1.0           # RLS covariance (scalar)
-        self._pec_ra_ref      = 0.0           # cumulative RA at t0  (intercept anchor)
-
-        self._pec_dec_theta   = 0.0
-        self._pec_dec_P       = 1.0
-        self._pec_dec_ref     = 0.0
-
-        self._pec_applied_ra  = 0.0    # cumulative PEC corrections since last sync
-        self._pec_applied_dec = 0.0
-
-        self._pec_active      = False         # True once min observations reached
-        self._pec_min_obs     = getattr(Config, 'pec_min_observations', 3)
-        self._pec_max_step    = getattr(Config, 'pec_max_step_arcmin', 0.5)
-
-        # Running cumulative totals (mirrors delta_guide_accum but never reset by
-        # clear_guide_pulses, so the RLS sees a monotonic signal)
-        self._pec_cumul_ra    = 0.0
-        self._pec_cumul_dec   = 0.0
-
-        # Validity and Convergence thresholds
-        self._pec_max_P        = getattr(Config, 'pec_max_covariance',   0.01)          # RLS must converge below this
-        self._pec_max_rmse     = getattr(Config, 'pec_max_rmse_arcmin',  6.0) / 60.0    # RLS rmse must be below this in degrees
-        self._pec_max_resid    = getattr(Config, 'pec_max_resid_arcmin',  10.0) / 60.0  # skip any guide resid update above this in degrees
-        
-        # Running RMSE via exponential moving average of squared prediction error
-        self._pec_ra_sse       = 0.0        # smoothed squared error RA
-        self._pec_dec_sse      = 0.0        # smoothed squared error Dec
-        self._pec_rmse_alpha   = 0.05       # EMA factor — slow enough to be stable
-
-        self._pec_ra_var   = 0.0    # EMA of y² (total variance)
-        self._pec_dec_var  = 0.0
-
-        self._pec_ra_r2    = 0.0
-        self._pec_dec_r2    = 0.0
+        # Config-driven thresholds (read once so update/apply don't need getattr)
+        self._pec_lambda      = getattr(Config, 'pec_forgetting_factor',   0.98)
+        self._pec_min_obs     = getattr(Config, 'pec_min_observations',    3)
+        self._pec_max_step    = getattr(Config, 'pec_max_step_arcmin',     0.5)   / 60.0  # degrees
+        self._pec_max_P       = getattr(Config, 'pec_max_covariance',      0.01)
+        self._pec_max_rmse    = getattr(Config, 'pec_max_rmse_arcmin',     6.0)   / 60.0  # degrees
+        self._pec_max_resid   = getattr(Config, 'pec_max_resid_arcmin',    10.0)  / 60.0  # degrees
+        self._pec_rmse_alpha  = 0.05
+        self._pec_active      = False
 
     def update_pec_model(self, ra_resid_deg, dec_resid_deg):
         ra_skip  = ra_resid_deg  is None or abs(ra_resid_deg)  > self._pec_max_resid
@@ -2356,86 +2326,49 @@ class SyncManager:
             self.init_pec_model()
 
         now = time.monotonic()
+        ra, dec = self._pec_ra, self._pec_dec
 
-        # Reconstitute true observed drift before RLS update
-        effective_ra  = (ra_resid_deg  if not ra_skip  else 0.0) + self._pec_applied_ra
-        effective_dec = (dec_resid_deg if not dec_skip else 0.0) + self._pec_applied_dec
-        self._pec_applied_ra  = 0.0    # reset accumulator
-        self._pec_applied_dec = 0.0
-
+        # Reconstitute true observed drift, folding in any PEC corrections applied since last sync
         if not ra_skip:
-            self._pec_cumul_ra  += effective_ra
+            ra.cumul  += (ra_resid_deg  + ra.applied)
+            ra.applied  = 0.0
         if not dec_skip:
-            self._pec_cumul_dec += effective_dec
+            dec.cumul += (dec_resid_deg + dec.applied)
+            dec.applied = 0.0
 
         if self._pec_n == 0:
-            self._pec_t0         = now
-            self._pec_ra_ref     = self._pec_cumul_ra
-            self._pec_dec_ref    = self._pec_cumul_dec
-            self._pec_n          = 1
-            self._pec_last_apply = now
+            self._pec_t0 = self._pec_last_apply = now
+            ra.ref  = ra.cumul
+            dec.ref = dec.cumul
+            self._pec_n = 1
             return
 
         t = now - self._pec_t0
         if t < 1e-6:
             return
 
-        lam = self._pec_lamda
-
-        def _rls_update(P, theta, t, y):
-            gain  = P * t / (lam + P * t * t)
-            theta = theta + gain * (y - theta * t)
-            P     = (1.0 - gain * t) * P / lam
-            return P, theta
-
         if not ra_skip:
-            y_ra = self._pec_cumul_ra - self._pec_ra_ref
-            self._pec_ra_var  = self._pec_rmse_alpha * y_ra  * y_ra  + (1 - self._pec_rmse_alpha) * self._pec_ra_var
-            pred_ra  = self._pec_ra_theta  * t
-            err_ra   = y_ra  - pred_ra
-            self._pec_ra_sse  = self._pec_rmse_alpha * err_ra  * err_ra  + (1 - self._pec_rmse_alpha) * self._pec_ra_sse
-            self._pec_ra_P,  self._pec_ra_theta  = _rls_update(self._pec_ra_P, self._pec_ra_theta, t, y_ra)
-
+            ra.update(self._pec_lambda, self._pec_rmse_alpha, t, ra.cumul - ra.ref)
         if not dec_skip:
-            y_dec = self._pec_cumul_dec - self._pec_dec_ref
-            self._pec_dec_var = self._pec_rmse_alpha * y_dec * y_dec + (1 - self._pec_rmse_alpha) * self._pec_dec_var
-            pred_dec = self._pec_dec_theta * t
-            err_dec  = y_dec - pred_dec
-            self._pec_dec_sse = self._pec_rmse_alpha * err_dec * err_dec + (1 - self._pec_rmse_alpha) * self._pec_dec_sse
-            self._pec_dec_P, self._pec_dec_theta = _rls_update(self._pec_dec_P, self._pec_dec_theta, t, y_dec)
+            dec.update(self._pec_lambda, self._pec_rmse_alpha, t, dec.cumul - dec.ref)
 
         self._pec_n += 1
 
-        # Activate only when both covariance has converged AND noise is acceptable
-        ra_converged  = self._pec_ra_P  < self._pec_max_P and math.sqrt(self._pec_ra_sse)  < self._pec_max_rmse
-        dec_converged = self._pec_dec_P < self._pec_max_P and math.sqrt(self._pec_dec_sse) < self._pec_max_rmse
-        self._pec_active = self._pec_n >= self._pec_min_obs and (ra_converged or dec_converged)
-
-        ra_rmse     = math.sqrt(self._pec_ra_sse)  * 60   # arcmin
-        dec_rmse    = math.sqrt(self._pec_dec_sse) * 60   # arcmin
-        ra_P        = self._pec_ra_P
-        dec_P       = self._pec_dec_P
-        ra_conv     = ra_P  < self._pec_max_P and ra_rmse/60  < self._pec_max_rmse
-        dec_conv    = dec_P < self._pec_max_P and dec_rmse/60 < self._pec_max_rmse
-        self._pec_ra_r2  = 1.0 - (self._pec_ra_sse  / self._pec_ra_var)  if self._pec_ra_var  > 1e-10 else 0.0
-        self._pec_dec_r2 = 1.0 - (self._pec_dec_sse / self._pec_dec_var) if self._pec_dec_var > 1e-10 else 0.0
+        ra_conv  = ra.converged(self._pec_max_P, self._pec_max_rmse)
+        dec_conv = dec.converged(self._pec_max_P, self._pec_max_rmse)
+        self._pec_active = self._pec_n >= self._pec_min_obs and (ra_conv or dec_conv)
 
         self.logger.info(
             f"PEC  n={self._pec_n:4d} | "
-            f"RA:  rate={self._pec_ra_theta*3600:+.4f}'/min  R²={self._pec_ra_r2:.3f}   rmse={ra_rmse:.4f}'   {'OK' if ra_conv else '--'} | "
-            f"Dec: rate={self._pec_dec_theta*3600:+.4f}'/min  R²={self._pec_dec_r2:.3f}   rmse={dec_rmse:.4f}'   {'OK' if dec_conv else '--'} | "
+            f"{ra.log_str('RA', ra_conv)} | "
+            f"{dec.log_str('Dec', dec_conv)} | "
             f"{'ACTIVE' if self._pec_active else 'warmup'}"
         )
 
     def apply_pec_drift_correction(self):
-        """
-        Called every 200 ms from the PID control loop.
-        Predicts the RA/Dec drift since the last call and feeds it into
-        accumulate_sync_guiding_residuals .
-
-        Returns immediately (no-op) if the model is not yet active.
-        """
-        if not hasattr(self, '_pec_active') or not self._pec_active:
+        """Called every 200 ms from the PID loop. Predicts RA/Dec drift since last
+        call and feeds it into accumulate_sync_guiding_residuals."""
+        if not getattr(self, '_pec_active', False):
             return
         if self.equatorial_axes_B[0] is None:
             return
@@ -2445,31 +2378,78 @@ class SyncManager:
             self._pec_last_apply = now
             return
 
-        dt = now - self._pec_last_apply       # seconds since last apply
+        dt = now - self._pec_last_apply
         self._pec_last_apply = now
-
-        if dt <= 0 or dt > 5.0:               # skip if stale (e.g. just woke from slew)
+        if dt <= 0 or dt > 5.0:    # skip if stale (e.g. just woke from slew)
             return
 
-        ra_converged  = self._pec_ra_P  < self._pec_max_P and math.sqrt(self._pec_ra_sse)  < self._pec_max_rmse
-        dec_converged = self._pec_dec_P < self._pec_max_P and math.sqrt(self._pec_dec_sse) < self._pec_max_rmse
+        ra, dec = self._pec_ra, self._pec_dec
 
-        d_ra  = self._pec_ra_theta  * dt if ra_converged  else 0.0
-        d_dec = self._pec_dec_theta * dt if dec_converged else 0.0
+        d_ra  = ra.theta  * dt if ra.converged(self._pec_max_P,  self._pec_max_rmse) else 0.0
+        d_dec = dec.theta * dt if dec.converged(self._pec_max_P, self._pec_max_rmse) else 0.0
 
-        cap = self._pec_max_step
+        cap   = self._pec_max_step
         d_ra  = max(-cap, min(cap, d_ra))
         d_dec = max(-cap, min(cap, d_dec))
 
         if abs(d_ra) < 1e-7 and abs(d_dec) < 1e-7:
             return
 
-        self._pec_applied_ra  += d_ra
-        self._pec_applied_dec += d_dec
+        ra.applied  += d_ra
+        dec.applied += d_dec
         self.accumulate_sync_guiding_residuals(d_ra, d_dec)
 
-
     def reset_pec_model(self):
-        """Call after slew, rotate, or QUEST reset. Clears observations but is
-        ready to re-learn immediately on the next guide correction."""
+        """Call after slew, rotate, or QUEST reset."""
         self.init_pec_model()
+
+
+
+
+from dataclasses import dataclass, field
+
+@dataclass
+class PecAxis:
+    theta:  float = 0.0    # drift rate degrees/sec
+    P:      float = 1.0    # RLS covariance
+    ref:    float = 0.0    # cumulative value at t0 (intercept anchor)
+    cumul:  float = 0.0    # running cumulative total
+    sse:    float = 0.0    # smoothed squared error (EMA)
+    var:    float = 0.0    # smoothed squared signal (EMA)
+    r2:     float = 0.0    # R² fit quality
+    applied: float = 0.0   # cumulative PEC corrections since last sync
+
+    def converged(self, max_P, max_rmse):
+        return self.P < max_P and math.sqrt(self.sse) < max_rmse
+
+    def rmse_arcmin(self):
+        return math.sqrt(self.sse) * 60
+
+    def update_ema(self, y, alpha):
+        self.var = alpha * y * y + (1 - alpha) * self.var
+        err = y - self.theta * self._t   # set before calling
+        self.sse = alpha * err * err + (1 - alpha) * self.sse
+
+    def rls_update(self, lam, t, y):
+        gain    = self.P * t / (lam + self.P * t * t)
+        self.theta = self.theta + gain * (y - self.theta * t)
+        self.P     = (1.0 - gain * t) * self.P / lam
+
+    def update(self, lam, alpha, t, y):
+        """Run one full RLS + EMA update step."""
+        err       = y - self.theta * t
+        self.var  = alpha * y   * y   + (1 - alpha) * self.var
+        self.sse  = alpha * err * err + (1 - alpha) * self.sse
+        gain      = self.P * t / (lam + self.P * t * t)
+        self.theta += gain * (y - self.theta * t)
+        self.P     = (1.0 - gain * t) * self.P / lam
+        self.r2    = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
+
+    def log_str(self, label, conv):
+        return (
+            f"{label}: rate={self.theta*3600:+.4f}'/min  "
+            f"R²={self.r2:.3f}  "
+            f"rmse={self.rmse_arcmin():.4f}'  "
+            f"{'OK' if conv else '--'}"
+        )
+
