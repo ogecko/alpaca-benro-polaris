@@ -18,8 +18,9 @@
 - [X] Debug 518 message intermittant miss, document the fix was BLE Scanner related
 - [X] Refactor kinematics.py and wrap180, move more kinimatic functions from control.py to kinematics.py   
 - [X] Allow Roll change while in tracking mode, without resetting az/alt setpoints.
-- [ ] Explore how to reduce sidereal tracking drift and reduce residuals - Sync Guiding
+- [X] Explore how to reduce sidereal tracking drift and reduce residuals - Sync Guiding and PEC
 - [X] Fix Gimbal lock oscillation at Az 292, Alt 0, Roll 2, improving estimate for theta3 by using zeta3
+- [ ] Fix Slew and Center - Sync Guiding Seeding
 - [ ] Doco note about 5Ghz band
 - [ ] Doco note about HIGH CPU Breakdown: MsMpEng.exe 23.3% and excluding folders from Microsoft Defender AntiVirus
 - [ ] Fix Gimbal lock oscillation when passing from Alt 10 through Alt 0 (Gimbal Lock) to Alt -10, ensuring PID flips theta3 at correct time
