@@ -2308,11 +2308,13 @@ class SyncManager:
 
         # Config-driven thresholds (read once so update/apply don't need getattr)
         self._pec_lambda      = getattr(Config, 'pec_forgetting_factor',   0.98)
-        self._pec_min_obs     = getattr(Config, 'pec_min_observations',    3)
-        self._pec_max_step    = getattr(Config, 'pec_max_step_arcmin',     0.5)   / 60.0  # degrees
-        self._pec_max_P       = getattr(Config, 'pec_max_covariance',      0.01)
-        self._pec_max_rmse    = getattr(Config, 'pec_max_rmse_arcmin',     6.0)   / 60.0  # degrees
-        self._pec_max_resid   = getattr(Config, 'pec_max_resid_arcmin',    10.0)  / 60.0  # degrees
+        self._pec_min_obs     = getattr(Config, 'pec_min_observations',    3)             # inhibit until n > min_obs
+        self._pec_max_resid   = getattr(Config, 'pec_max_resid_arcmin',    10.0)  / 60.0  # ignore guide update if resid > max_resid degrees
+        self._pec_max_step    = getattr(Config, 'pec_max_step_arcmin',     0.5)   / 60.0  # inhibit if applied step > max_step degrees
+        self._pec_max_rmse    = getattr(Config, 'pec_max_rmse_arcmin',     6.0)   / 60.0  # inhibit if rmse > max_rmse degrees
+        self._pec_max_P       = getattr(Config, 'pec_max_covariance',      0.01)          # inhibit if not converged ie P > max_P
+        self._pec_min_r2      = getattr(Config, 'pec_min_r2', 0.5)                        # inhibit if bad R2 < 0.5
+
         self._pec_rmse_alpha  = 0.05
         self._pec_active      = False
 
@@ -2328,13 +2330,10 @@ class SyncManager:
         now = time.monotonic()
         ra, dec = self._pec_ra, self._pec_dec
 
-        # Reconstitute true observed drift, folding in any PEC corrections applied since last sync
         if not ra_skip:
-            ra.cumul  += (ra_resid_deg  + ra.applied)
-            ra.applied  = 0.0
+            ra.cumul  += ra_resid_deg  + ra.applied;  ra.applied  = 0.0
         if not dec_skip:
-            dec.cumul += (dec_resid_deg + dec.applied)
-            dec.applied = 0.0
+            dec.cumul += dec_resid_deg + dec.applied; dec.applied = 0.0
 
         if self._pec_n == 0:
             self._pec_t0 = self._pec_last_apply = now
@@ -2354,20 +2353,20 @@ class SyncManager:
 
         self._pec_n += 1
 
-        ra_conv  = ra.converged(self._pec_max_P, self._pec_max_rmse)
-        dec_conv = dec.converged(self._pec_max_P, self._pec_max_rmse)
-        self._pec_active = self._pec_n >= self._pec_min_obs and (ra_conv or dec_conv)
+        # Evaluate inhibit state for each axis
+        ra.eval_inhibit(self._pec_n,  self._pec_min_obs, self._pec_max_P, self._pec_max_rmse, self._pec_min_r2)
+        dec.eval_inhibit(self._pec_n, self._pec_min_obs, self._pec_max_P, self._pec_max_rmse, self._pec_min_r2)
+        self._pec_active = ra.converged() or dec.converged()
 
         self.logger.info(
             f"PEC  n={self._pec_n:4d} | "
-            f"{ra.log_str('RA', ra_conv)} | "
-            f"{dec.log_str('Dec', dec_conv)} | "
+            f"{ra.log_str('RA')} | "
+            f"{dec.log_str('Dec')} | "
             f"{'ACTIVE' if self._pec_active else 'warmup'}"
         )
 
     def apply_pec_drift_correction(self):
-        """Called every 200 ms from the PID loop. Predicts RA/Dec drift since last
-        call and feeds it into accumulate_sync_guiding_residuals."""
+        """Called every 200 ms from the PID loop."""
         if not getattr(self, '_pec_active', False):
             return
         if self.equatorial_axes_B[0] is None:
@@ -2380,17 +2379,14 @@ class SyncManager:
 
         dt = now - self._pec_last_apply
         self._pec_last_apply = now
-        if dt <= 0 or dt > 5.0:    # skip if stale (e.g. just woke from slew)
+        if dt <= 0 or dt > 5.0:
             return
 
         ra, dec = self._pec_ra, self._pec_dec
+        cap = self._pec_max_step
 
-        d_ra  = ra.theta  * dt if ra.converged(self._pec_max_P,  self._pec_max_rmse) else 0.0
-        d_dec = dec.theta * dt if dec.converged(self._pec_max_P, self._pec_max_rmse) else 0.0
-
-        cap   = self._pec_max_step
-        d_ra  = max(-cap, min(cap, d_ra))
-        d_dec = max(-cap, min(cap, d_dec))
+        d_ra  = max(-cap, min(cap, ra.theta  * dt)) if ra.converged()  else 0.0
+        d_dec = max(-cap, min(cap, dec.theta * dt)) if dec.converged() else 0.0
 
         if abs(d_ra) < 1e-7 and abs(d_dec) < 1e-7:
             return
@@ -2398,6 +2394,7 @@ class SyncManager:
         ra.applied  += d_ra
         dec.applied += d_dec
         self.accumulate_sync_guiding_residuals(d_ra, d_dec)
+
 
     def reset_pec_model(self):
         """Call after slew, rotate, or QUEST reset."""
@@ -2407,49 +2404,57 @@ class SyncManager:
 
 
 from dataclasses import dataclass, field
-
+from enum import IntEnum
+class PecInhibit(IntEnum):
+    VALID        = 0
+    TOO_FEW_OBS  = 1
+    NOT_CONVERGED = 2
+    HIGH_RMSE    = 3
+    LOW_R2       = 4
+    
 @dataclass
 class PecAxis:
-    theta:  float = 0.0    # drift rate degrees/sec
-    P:      float = 1.0    # RLS covariance
-    ref:    float = 0.0    # cumulative value at t0 (intercept anchor)
-    cumul:  float = 0.0    # running cumulative total
-    sse:    float = 0.0    # smoothed squared error (EMA)
-    var:    float = 0.0    # smoothed squared signal (EMA)
-    r2:     float = 0.0    # R² fit quality
-    applied: float = 0.0   # cumulative PEC corrections since last sync
+    theta:   float = 0.0
+    P:       float = 1.0
+    ref:     float = 0.0
+    cumul:   float = 0.0
+    sse:     float = 0.0
+    var:     float = 0.0
+    r2:      float = 0.0
+    applied: float = 0.0
+    inhibit: PecInhibit = PecInhibit.TOO_FEW_OBS
 
-    def converged(self, max_P, max_rmse):
-        return self.P < max_P and math.sqrt(self.sse) < max_rmse
+    def eval_inhibit(self, n, min_obs, max_P, max_rmse, min_r2=0.5):
+        if n < min_obs:
+            self.inhibit = PecInhibit.TOO_FEW_OBS
+        elif self.P >= max_P:
+            self.inhibit = PecInhibit.NOT_CONVERGED
+        elif math.sqrt(self.sse) >= max_rmse:
+            self.inhibit = PecInhibit.HIGH_RMSE
+        elif self.r2 < min_r2:
+            self.inhibit = PecInhibit.LOW_R2
+        else:
+            self.inhibit = PecInhibit.VALID
+
+    def converged(self):
+        return self.inhibit == PecInhibit.VALID
 
     def rmse_arcmin(self):
         return math.sqrt(self.sse) * 60
 
-    def update_ema(self, y, alpha):
-        self.var = alpha * y * y + (1 - alpha) * self.var
-        err = y - self.theta * self._t   # set before calling
-        self.sse = alpha * err * err + (1 - alpha) * self.sse
-
-    def rls_update(self, lam, t, y):
-        gain    = self.P * t / (lam + self.P * t * t)
-        self.theta = self.theta + gain * (y - self.theta * t)
-        self.P     = (1.0 - gain * t) * self.P / lam
-
     def update(self, lam, alpha, t, y):
-        """Run one full RLS + EMA update step."""
-        err       = y - self.theta * t
-        self.var  = alpha * y   * y   + (1 - alpha) * self.var
-        self.sse  = alpha * err * err + (1 - alpha) * self.sse
-        gain      = self.P * t / (lam + self.P * t * t)
+        err        = y - self.theta * t
+        self.var   = alpha * y   * y   + (1 - alpha) * self.var
+        self.sse   = alpha * err * err + (1 - alpha) * self.sse
+        gain       = self.P * t / (lam + self.P * t * t)
         self.theta += gain * (y - self.theta * t)
-        self.P     = (1.0 - gain * t) * self.P / lam
-        self.r2    = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
+        self.P      = (1.0 - gain * t) * self.P / lam
+        self.r2     = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
 
-    def log_str(self, label, conv):
+    def log_str(self, label):
         return (
             f"{label}: rate={self.theta*3600:+.4f}'/min  "
             f"R²={self.r2:.3f}  "
             f"rmse={self.rmse_arcmin():.4f}'  "
-            f"{'OK' if conv else '--'}"
+            f"{self.inhibit.name}"
         )
-
