@@ -1351,6 +1351,9 @@ class Polaris:
             raise Exception(self._task_errorstr)
 
     def getStatus(self) -> dict:
+        pec_ra, pec_dec = self._sm._pec_ra, self._sm._pec_dec
+        pec_ra_status = pec_ra.r2   if pec_ra.converged() else -pec_ra.inhibit
+        pec_dec_status = pec_dec.r2 if pec_dec.converged() else -pec_dec.inhibit
         with self._lock:
             res = {
                 'polarismode': self._polaris_mode,
@@ -1435,7 +1438,7 @@ class Polaris:
                 'rbcerror': self._sm.rbc_error,
                 'sccerror': self._sm.scc_error,
                 'mpaerror': self._sm.mpa_error,
-                'pec_r2': [0,0,0,0] if not self._sm._pec_active else [self._sm._pec_ra.theta*60, self._sm._pec_dec.theta*60, self._sm._pec_ra.r2, self._sm._pec_dec.r2],
+                'pec': [pec_ra.theta*60, pec_dec.theta*60, pec_ra_status, pec_dec_status],
                 'pidKc': Config.pid_Kc,
             }
         # clear after sent to Pilot

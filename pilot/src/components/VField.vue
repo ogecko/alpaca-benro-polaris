@@ -77,9 +77,14 @@ function fmt_number(x: unknown, decimals:number=7): string {
 
 function fmt_r2(x: unknown, decimals:number=3): string {
   const n = toNumber(x)
-  const sign = n < 0 ? '-' : '';
-  const nstr = Math.abs(n).toFixed(decimals)
-  return sign+nstr
+  return (n > 0) ? Math.abs(n).toFixed(decimals) :
+         (n == 0)  ? 'Idle' :
+         (n == -1) ? 'Valid' :
+         (n == -2) ? 'Warmup' :
+         (n == -3) ? 'Adapt' :
+         (n == -4) ? 'RMSE' :
+         (n == -5) ? 'Poor' :
+                     'Unknown'
 }
 
 function fmt_string(x: unknown): string {
@@ -98,7 +103,7 @@ function col_options() {
 function col_r2(v:number) {
   return v == 0 ? 'off' : 
          v < 0 ? 'haz' :
-         v > 0.3 ? 'pos' :
+         v > 0.6 ? 'pos' :
          'std'
 }
 

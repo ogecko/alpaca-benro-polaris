@@ -95,14 +95,14 @@
                   <div class="ok terminal">
                     <span>{{`PEC Rate:`}}</span>
                     <span v-if="cfg.advanced_pec" >
-                      <VField label="    RA " :val="p.pec_r2[0]" unit="deg/hr"/>
-                      <VField label=" |  Dec " :val="p.pec_r2[1]" unit="deg/hr"/>
-                      <VField label=" | R² " :val="p.pec_r2[2]" unit="r2"/>
-                      <VField label=" | R² " :val="p.pec_r2[3]" unit="r2"/>
+                      <VField label="    RA " :val="p.pec[0]" unit="deg/hr"/>
+                      <VField label=" |  Dec " :val="p.pec[1]" unit="deg/hr"/>
+                      <VField label=" | R² " :val="p.pec[2]" unit="r2"/>
+                      <VField label=" | R² " :val="p.pec[3]" unit="r2"/>
                     </span>
                     <span v-else>
                       <span >{{` Periodic Error Correction  `}}</span>
-                      <span class="haz">{{ `                                  Disabled`}}</span>
+                      <span class="haz">{{ `                             Disabled`}}</span>
                     </span>
                   </div>
                   <!-- Guiding -->

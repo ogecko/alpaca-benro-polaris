@@ -2205,12 +2205,12 @@ class SyncManager:
 
     def invalidate_sync_guiding(self):
         """ Next sync is not to be used for sync guiding """
-        self.reset_pec_model()
         self.valid_sync_guide = False
 
     def clear_sync_guiding(self):
-        """ Cleared whenever Tracking disabled, Panning, Rolling, or Pusle-guiding 
+        """ Cleared whenever Tracking disabled, Panning, Rolling 
             Although Gotos only invalidate, as the q_syncguide_B is used for scc """
+        self.reset_pec_model()
         self.valid_sync_guide = False
         self.q_syncguide_B = Quaternion(1,0,0,0)
         self.delta_guide_accum = np.zeros(3, dtype=float) 
@@ -2318,6 +2318,12 @@ class SyncManager:
         self._pec_rmse_alpha  = 0.05
         self._pec_active      = False
 
+
+    def reset_pec_model(self):
+        """Call after slew, rotate, or QUEST reset."""
+        self.init_pec_model()
+
+
     def update_pec_model(self, ra_resid_deg, dec_resid_deg):
         ra_skip  = ra_resid_deg  is None or abs(ra_resid_deg)  > self._pec_max_resid
         dec_skip = dec_resid_deg is None or abs(dec_resid_deg) > self._pec_max_resid
@@ -2396,21 +2402,17 @@ class SyncManager:
         self.accumulate_sync_guiding_residuals(d_ra, d_dec)
 
 
-    def reset_pec_model(self):
-        """Call after slew, rotate, or QUEST reset."""
-        self.init_pec_model()
-
-
 
 
 from dataclasses import dataclass, field
 from enum import IntEnum
 class PecInhibit(IntEnum):
-    VALID        = 0
-    TOO_FEW_OBS  = 1
-    NOT_CONVERGED = 2
-    HIGH_RMSE    = 3
-    LOW_R2       = 4
+    IDLE         = 0
+    VALID        = 1
+    TOO_FEW_OBS  = 2
+    NOT_CONVERGED = 3
+    HIGH_RMSE    = 4
+    LOW_R2       = 5
     
 @dataclass
 class PecAxis:
@@ -2422,7 +2424,7 @@ class PecAxis:
     var:     float = 0.0
     r2:      float = 0.0
     applied: float = 0.0
-    inhibit: PecInhibit = PecInhibit.TOO_FEW_OBS
+    inhibit: PecInhibit = PecInhibit.IDLE
 
     def eval_inhibit(self, n, min_obs, max_P, max_rmse, min_r2=0.5):
         if n < min_obs:
