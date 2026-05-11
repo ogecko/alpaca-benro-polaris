@@ -44,6 +44,7 @@ The document also outlines the principal mitigation techniques used to reduce tr
 | Guiding Errors  | Tracking Drift          | Drift Between Plate Solves         | Tracking drift accumulates even further over extended imaging sessions, potentially losing the target as it drift out of frame.                                              | Sync Guiding (v2.2) no guide-camera needed                                     |
 | Guiding Errors  | Periodic Error          | Worm Gear Imperfections                        | Sinusoidal cyclic tracking error in RA and Dec with a period matching the worm gear cycle (~35 min). Can also include accumulated residual tracking errors.                  | Periodic Error Correction (PEC v2.2)                    |
 | Optical Errors  | Focus Drift             | Temperature / Mechanical Changes               | Temperature or mechanical changes alter optical focus during imaging, degrading star shape and plate solve reliability.                                  | NINA Hocus Focus Plugin                            |
+| Optical Errors  | Lens Tilt             | Sensor / Lens Plane Non-Parallelism              | A tilt between the camera sensor plane and the optical focal plane causes uneven focus across the image and elongated or bloated stars in the corners                                  | Aluminium Foil Tape                            |
 
 
 
