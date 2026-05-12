@@ -85,7 +85,7 @@ To achieve high-precision results, you must move from simply "syncing" to **stra
     *   **Target Trajectory (DSO Arc):** For the highest accuracy during imaging, place additional sync points **along the trajectory (arc)** that your target object will follow during the night. QUEST provides the best results when it is interpolating between points rather than extrapolating far away from them.
 *   **Monitor Residuals:** Use the **Alignment page in Alpaca Pilot** to review "model residuals". This shows how well the QUEST model fits each sync point. Aim for residuals in the **arc-seconds**; if a point shows residuals of whole degrees, it should be deleted as it is likely a bad solve.
 *   **Persistence:** From version 2.2 onwards, your QUEST model is **saved to disk**. You can restart the driver or your MiniPC mid-session without losing your refined alignment.
-*   **Local Refinement:** The driver also applies a **Local Gaussian Correction (LGA)** on top of the QUEST model, which further eliminates any tiny remaining residuals specifically around your last sync point.
+
 
 ---
 ### 2.2 Slew & Center Correction
@@ -107,10 +107,10 @@ The Alpaca Driver utilizes three distinct strategies to handle these residuals, 
     In this approach, the driver forces the QUEST model to ensure the **last sync point always has a zero residual**. When a new sync is performed, the model essentially "shifts" its understanding of the sky so that the current orientation is perfectly anchored to the observed coordinates. This provides an immediate, absolute correction for the current target but can affect the global fit of the rest of the model.
 
 2.  **Local Gaussian Adjustment (LGA):** 
-    LGA is a more sophisticated method that corrects the residual **locally around the most recent sync point** without disrupting the global integrity of the QUEST model. It applies the full correction at the exact sync location, then gracefully fades that correction both spatially and temporally. As the mount moves aways from the last sync point (σ = 10 degrees), and as time passes (σ = 3 minutes), the adjustment automatically decays back to the pure QUEST model. This ensurs the system smoothly returns to the underlying global solution.
+    LGA is a more advanced method that corrects the residual **locally around the most recent sync point** without disrupting the global integrity of the QUEST model. It applies the full correction at the exact sync location, then gracefully fades that correction both spatially and temporally. As the mount moves aways from the last sync point (σ = 10 degrees), the adjustment automatically decays back to the pure QUEST model. This ensurs the system smoothly returns to the underlying global solution.
 
 3.  **Sync Guiding Adjustment (SGA):** (Recommended)
-    SGA is the most advanced approach. It seeds the **Sync Guiding** system with the residual of the last QUEST sync point. By integrating all pointing residuals into a single, unified quaternion, SGA addresses both local alignment errors and **Periodic Error Correction (PEC)** simultaneously. You can further refine this alignment by performing additional syncs without slewing the mount. Each sync will refine the model further.
+    SGA is the most sophisticated approach. It seeds the **Sync Guiding** system with the residual of the last QUEST sync point. By integrating all local pointing residuals into a single, unified quaternion, SGA addresses both local alignment errors and **Periodic Error Correction (PEC)** simultaneously. You can further refine this alignment by performing additional syncs without slewing the mount. Each sync will refine the model further.
     
 
 #### **IV. The Mathematics of LGA**
@@ -128,9 +128,7 @@ The formula for the weight is:
 *   **Beyond 45°:** The weight is less than 0.05, meaning the LGA is effectively inactive and the mount relies solely on the QUEST model.
 
 #### **V. Operational Benefits**
-*   **Faster Centering:** By eliminating the local residual at the target, the first "corrective slew" issued by imaging software is far more likely to be the only one needed.
-*   **Seamless Transitions:** Because the correction uses a Gaussian fade, there are no mechanical discontinuities or "jumps" as the mount moves across the sky.
-
+*   **Faster Centering:** By eliminating the local residual at the target, the first "corrective slew" issued by imaging software is more accurate.
 
 
 ---
@@ -146,12 +144,12 @@ Without these corrections, sync points taken at different rotation angles or alt
 Enabling the **Mechanical Alignment Corrections** within the Alpaca Driver will improve the precision of the Benro Polaris platform. By layering **Mechanical Alignment Corrections** and **QUEST Alignment**, the system achieves a level of pointing and tracking fidelity that overcomes the inherent geometric limitations of the Alt/Az/Roll hardware.
 
 #### **A. High-Precision Multi-Point Alignment**
-The first primary effect of enabling the model is a **significant increase in the accuracy of Multi-Point Alignment (MPA)**. 
+The primary effect of enabling the model is a **significant increase in the accuracy of Multi-Point Alignment (MPA)**. 
 *   **Smaller Residuals:** Without these corrections, mechanical misalignments (such as axis tilts) cause the mount to report contradictory data depending on its orientation. This prevents the QUEST algorithm from converging on a stable global solution. 
 *   **Consistent Data:** By applying mechanical corrections at the measurement stage, the driver provides "clean," consistent data to the alignment model. This allows the QUEST estimator to find a tighter mathematical fit, resulting in **considerably smaller residuals**
 
 #### **B. Enhanced Slew and Center Accuracy**
-The second primary effect is that **Slew and Center operations become more accurate across the entire sky**, especially at challenging orientations.
+The secondary effect is that **Slew and Center operations become more accurate across the entire sky**, especially at challenging orientations.
 *   **Extreme Orientations:** The magnitude of mechanical errors in the Polaris hardware grows dramatically as the mount points upwards or utilizes large roll angles, sometimes reaching errors of over 200 arcminutes. The model predicts and negates these errors in real-time within the kinematic chain.
 *   **Reduced Iterations:** Because the model accounts for these complex deviations, the mount's predicted position aligns much more closely with the true celestial coordinates. This ensures that imaging applications like N.I.N.A. can center a target with far **fewer corrective slews**, often achieving a perfect center on the first attempt.
 *   **Global Reliability:** This increased precision is not limited to the area around a single sync point; the combined model ensures reliable pointing even when moving between targets in different parts of the sky or at large roll angles.
@@ -167,14 +165,13 @@ Ultimately, these benefits provide the stable foundation required for profession
 #### **III. The Mechanical Model Parameters**
 The model identifies several fixed mechanical parameters of the mount hardware, derived from extensive analysis of "sky survey grids" (large-scale plate-solved datasets), captured at various roll angles. These fitted parameters are stored as coefficients in the `config.toml` and key parameters can be viewed and edited from the Alignment Page in Alpaca Pilot.
 
+*   **M2 (Altitude) Axis Tilt:** The physical M2 motor rotatation axis may not be perfectly perpendicular to M1 (Azimuth), and can produces a sinusoidal altitude error.
+    *   **Amplitude (`m2_tilt_dm2_amp`):** The peak magnitude of the altitude error. Introduces residual errors into the Altitude in a sinusoidal manner as M2 rotates.
+    *   **Zero Point (`m2_tilt_dm2_zero`):** The altitude angle where the M2 error is zero, typically near or above the horizon.
 *   **M3 (Astro) Axis Tilt:** The physical M3 motor rotation axis may be slightly tilted from the ideal camera vertical axis. It may be tilted or cantered towards the boresight or M2 Axis. This tilt is decomposed into three components:
     *   **Altitude Component (`m3_tilt_dm2`):** Sweeps the camera boresight in altitude as the M3 axis rotates. Introduces residual errors into the M2 axis.
     *   **Azimuth Component (`m3_tilt_dm1`):** Sweeps the camera boresight in azimuth as the M3 axis rotates, an effect modulated by the current altitude. Introduces residual errors into the M1 axis.
     *   **Roll Component (`m3_tilt_dm3`):** Sweeps the camera boresight in roll, geometrically linked to the Azimuth Axis residual. Introduces residual errors into the M3 axis.
-*   **M2 (Altitude) Axis Tilt:** The physical M2 motor rotatation axis may not be perfectly perpendicular to M1 (Azimuth), and can produces a sinusoidal altitude error.
-    *   **Amplitude (`m2_tilt_dm2_amp`):** The peak magnitude of the altitude error. Introduces residual errors into the Altitude in a sinusoidal manner as M2 rotates.
-    *   **Zero Point (`m2_tilt_dm2_zero`):** The altitude angle where the M2 error is zero, typically near or above the horizon.
-*   **Axis Offsets:** Fixed user defined offsets for each motor (`m1_offset`, `m2_offset`, `m3_offset`) to help fine tune polar alignment.
 
 #### **IV. The `fits_extract.py` Cailibration Workflow**
 While these parameters can be enabled and adjusted from the Alpaca Pilot Page, the Driver provides a utility **`fits_extract.py`** to calibrate these paramters for your specific mount. You will need an astro camera capable of storing FITS file. This is intended for advanced users only.
@@ -219,14 +216,14 @@ While default coefficients are provided, advanced users can fine-tune their moun
 ### 2.4 **Plate-Solved/Sync Guiding**
 
 #### **I. What it is and What it Solves**
-**Plate-Solved/Sync Guiding** is an innovative, hardware-free approach to auto-guiding that eliminates the need for a separate guide scope and camera. It solves the persistent problem of tracking drift and periodic error in the Benro Polaris by using the main imaging camera to periodically "re-anchor" the mount's alignment model. 
+**Plate-Solved/Sync Guiding** is an innovative, hardware-free approach to auto-guiding that eliminates the need for a separate guide scope and camera. It solves the persistent problem of tracking drift and periodic error in the Benro Polaris by using the main imaging camera to periodically update its dynamic local alignment model. 
 
 Traditionally, the Polaris suffers from **periodic error (PEC)**, mechanical oscillations caused by gear irregularities, which have been measured at approximately **14+ arc minutes** with a primary period of **35 minutes**. Without constant correction, this error leads to noticeable star trails and tracking drift during long exposures. Plate-Solved/Sync Guiding solves this by integrating periodic plate-solve data directly into the motion control loop, acting as a high-precision pulse guide without additional hardware.
 
 #### **II. The Mechanism: From Sync to Pulse Guide**
 The core of this feature lies in how the Alpaca Driver interprets synchronization commands. When a user performs a **plate-solve sync without slewing the telescope**, the driver no longer treats it a new position to add to the QUEST model.
 
-Instead, the driver interprets the resulting residual error as a **pulse-guiding correction**. This new approach integrates all pointing residuals into a single, unified alignment quaternion. This integrated model addresses both local alignment issues and the long-term PEC cycle simultaneously, ensuring the mount's "Present Value" is constantly refined to match the true sky.
+Instead, the driver interprets the resulting residual error as a **guiding correction**. Each of these guiding corrections feed into a recursive least squares model to predict the instantaneous local RA and Dec drift rates. The PID Controller then applies these drift rates every 200ms as a continuously refining quaternion correction. This integrated model addresses both local alignment issues and the long-term periodic error cycle simultaneously, ensuring the mount's "Present Value" is continuously refined to match the true sky, even between each plate-solve.
 
 #### **III. Integration with QUEST and PID Control**
 This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to function at its highest potential. 
@@ -234,11 +231,14 @@ This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to fun
 *   **Drift Reduction:** The residual data is fed into the **PID Controller**, which automatically adjusts motor speeds to "kill" the drift. 
 *   **Reduced Star Trails:** By proactively correcting for the 35-minute PEC cycle and inherent drift, exposures remain sharp even during lengthy imaging sessions.
 
-#### **IV. Recommended Workflow: The 5-Minute Sync**
+#### **IV. Recommended Workflow: The Plate-Solve/Sync Guiding**
 To get the best results and maintain perfect centering without manual intervention, a simple automated workflow is recommended:
-1.  **Configure your capture session** (e.g., in N.I.N.A.) to perform a plate-solve and sync every **5 minutes**.
-2.  **Ensure no slew** is commanded during this periodic sync; the driver will automatically detect the static position and apply the guiding correction.
-3.  **Monitor the Kinematics page** in Alpaca Pilot to see the drift being eliminated in real-time as the guiding corrections are refined.
+1.  **Reset Multi-Point-Alignment** To reset MPA, clear all old Sync points, or toggle SPA on/off to clear all sync points. Enable Tracking.
+2.  **Perform Multi-Point-Alignment** Slew and capture at least three sync-points. Ideally at your celestrial pole and along the path of your DSO Target
+3.  **Slew to your target** Slew to your target
+4.  **Initialise Sync Guiding Model** Without slewing, manually initiate several "Solve and Sync" operations separated by 30s. This will initialise the Sync Guiding model.
+5.  **Configure your capture session** Use Nina's Advanced Scheduler to perform "Smart Exposures", then a "Solve and Sync" every **2 to 5 minutes**.
+6.  **Monitor the Kinematics page** use Alpaca Pilot's kinematics page to monitor the Sync Guiding correction rates and model quality.
 
 #### **V. Primary Benefits**
 *   **No Additional Hardware:** Eliminates the cost and weight of a dedicated guide scope and camera.
