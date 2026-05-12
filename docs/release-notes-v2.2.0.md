@@ -87,6 +87,7 @@
 
 ## Upgraded Win11 Requirements.txt Compatibility
 - **[Python 3.13.12]**: Upgraded Python support from 3.13.9.
+- **[Python 3.9.6]**: Minimum Python version supported.
 - **[Falcon 4.2.0]**: Upgraded Falcon support from 4.0.2.
 - **[Uvicorn 0.35.0]**: Upgraded Uvicorn support from 0.33.0.
 - **[Bleak 1.1.1]**: Upgraded Bleak support from 1.1.0.
