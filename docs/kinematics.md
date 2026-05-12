@@ -236,9 +236,9 @@ To get the best results and maintain perfect centering without manual interventi
 1.  **Reset Multi-Point-Alignment** To reset MPA, clear all old Sync points, or toggle SPA on/off to clear all sync points. Enable Tracking.
 2.  **Perform Multi-Point-Alignment** Slew and capture at least three sync-points. Ideally at your celestrial pole and along the path of your DSO Target
 3.  **Slew to your target** Slew to your target
-4.  **Initialise Sync Guiding Model** Without slewing, manually initiate several "Solve and Sync" operations separated by 30s. This will initialise the Sync Guiding model.
+4.  **Initialise Sync Guiding Model** Without slewing, you can optionally initiate several "Solve and Sync" operations separated by 30s. This will speed up its warmup period.
 5.  **Configure your capture session** Use Nina's Advanced Scheduler to perform "Smart Exposures", then a "Solve and Sync" every **2 to 5 minutes**.
-6.  **Monitor the Kinematics page** use Alpaca Pilot's kinematics page to monitor the Sync Guiding correction rates and model quality.
+6.  **Monitor the Kinematics page** use Alpaca Pilot's kinematics page to monitor the PEC Rate correction and the models R² quality.
 
 #### **V. Primary Benefits**
 *   **No Additional Hardware:** Eliminates the cost and weight of a dedicated guide scope and camera.
