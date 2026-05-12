@@ -233,12 +233,12 @@ This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to fun
 
 #### **IV. Recommended Workflow: The Plate-Solve/Sync Guiding**
 To get the best results and maintain perfect centering without manual intervention, a simple automated workflow is recommended:
-1.  **Reset Multi-Point-Alignment** To reset MPA, clear all old Sync points, or toggle MPA off then back on (this will clear all sync points). Enable Tracking.
-2.  **Perform Multi-Point-Alignment** Slew and capture at least three sync-points. Ideally at your celestrial pole and along the path of your DSO Target
-3.  **Slew to your target** Slew to your target
-4.  **Initialise Sync Guiding Model** Without slewing, you can optionally initiate several "Solve and Sync" operations separated by 30s. This will speed up its warmup period.
-5.  **Configure your capture session** Use Nina's Advanced Scheduler to perform "Smart Exposures", then a "Solve and Sync" every **2 to 5 minutes**.
-6.  **Monitor the Kinematics page** use Alpaca Pilot's kinematics page to monitor the PEC Rate correction and the models R² quality.
+1.  **Reset Multi-Point-Alignment** - To reset MPA, clear all old Sync points, or toggle MPA off then back on (this will clear all sync points). Enable Tracking.
+2.  **Perform Multi-Point-Alignment** - Slew and capture at least three sync-points. Ideally, at your celestial pole and along the future path of your DSO Target.
+3.  **Slew and Center on your target** - Use Nina to Slew and Center on your target.
+4.  **Initialise Sync Guiding Model** - On the Nina Image tab, use the Plate Solving Tool to manually perform several plate-solves, 30s apart. This is optional, but it can help initialise the model faster.
+5.  **Configure your capture session** - Use Nina's Advanced Scheduler to perform "Smart Exposures", then a "Solve and Sync" every **2 to 5 minutes**.
+6.  **Monitor the Kinematics page** - use Alpaca Pilot's kinematics page to monitor the PEC Rate correction and the models R² quality.
 
 #### **V. Primary Benefits**
 *   **No Additional Hardware:** Eliminates the cost and weight of a dedicated guide scope and camera.
