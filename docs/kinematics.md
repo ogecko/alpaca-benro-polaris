@@ -233,7 +233,7 @@ This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to fun
 
 #### **IV. Recommended Workflow: The Plate-Solve/Sync Guiding**
 To get the best results and maintain perfect centering without manual intervention, a simple automated workflow is recommended:
-1.  **Reset Multi-Point-Alignment** To reset MPA, clear all old Sync points, or toggle SPA on/off to clear all sync points. Enable Tracking.
+1.  **Reset Multi-Point-Alignment** To reset MPA, clear all old Sync points, or toggle MPA off then back on (this will clear all sync points). Enable Tracking.
 2.  **Perform Multi-Point-Alignment** Slew and capture at least three sync-points. Ideally at your celestrial pole and along the path of your DSO Target
 3.  **Slew to your target** Slew to your target
 4.  **Initialise Sync Guiding Model** Without slewing, you can optionally initiate several "Solve and Sync" operations separated by 30s. This will speed up its warmup period.
