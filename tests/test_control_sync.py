@@ -19,13 +19,20 @@ import math
 def mock_config():
     with patch('control.Config') as MockConfig:
         defaults = {
-            "advanced_alignment": True,
-            "advanced_align_lga": False,
-            "advanced_align_mac": False,
-            "advanced_control": True,
-            "advanced_scc_enabled": True,
-            "advanced_scc_choice": 0,
-            "log_quest_model": False,
+            "advanced_alignment":       True,
+            "advanced_align_lga":       False,
+            "advanced_align_mac":       False,
+            "advanced_control":         True,
+            "advanced_scc_enabled":     True,
+            "advanced_scc_choice":      0,
+            "log_quest_model":          False,
+            "pec_forgetting_factor":    0.98,
+            "pec_min_observations":     3,
+            "pec_max_step_arcmin":      0.5,
+            "pec_max_covariance":       0.01,
+            "pec_max_rmse_arcmin":      6.0,
+            "pec_max_resid_arcmin":     10.0,
+            "pec_min_r2":               0.5,
         }
         for key, value in defaults.items():
             setattr(MockConfig, key, value)

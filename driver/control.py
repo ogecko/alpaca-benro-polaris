@@ -2325,6 +2325,8 @@ class SyncManager:
 
 
     def update_pec_model(self, ra_resid_deg, dec_resid_deg):
+        if ra_resid_deg  is not None: ra_resid_deg  = float(ra_resid_deg)
+        if dec_resid_deg is not None: dec_resid_deg = float(dec_resid_deg)
         ra_skip  = ra_resid_deg  is None or abs(ra_resid_deg)  > self._pec_max_resid
         dec_skip = dec_resid_deg is None or abs(dec_resid_deg) > self._pec_max_resid
         if ra_skip and dec_skip:
