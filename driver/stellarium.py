@@ -478,6 +478,9 @@ async def synscan_api(logger, lifecycle: LifecycleController):
     except asyncio.CancelledError:
         logger.info("==CANCELLED== SynSCAN API cancel received.")
     except Exception as e:
+        if e.errno == 10048 or e.errno == 98:  # Windows / Linux "address in use"
+            logger.error(f"==ERROR== SynSCAN API: port {port} is already in use. ")
+            return 
         logger.exception(f"==EXCEPTION== SynSCAN API unhandled exception: {e}")
     finally:
         # Step 1: unblock all active read loops FIRST — they are racing
