@@ -375,10 +375,14 @@ class Stellarium:
         while not self.stop_event.is_set():
             try:
                 if self.stellarium_binary_protocol:
-                    t   = int(datetime.now().timestamp())
-                    ra  = telescope.polaris.rightascension
-                    dec = telescope.polaris.declination
-                    await self.stellarium_send_msg(radec2bytes(ra, dec, t), ispolled=True)
+                    buf_size = self.writer.transport.get_write_buffer_size()
+                    if buf_size > 4096:
+                        self.logger.warning(f"Stellarium: write buffer backed up ({buf_size}B), skipping update")
+                    else:
+                        t   = int(datetime.now().timestamp())
+                        ra  = telescope.polaris.rightascension
+                        dec = telescope.polaris.declination
+                        await self.stellarium_send_msg(radec2bytes(ra, dec, t), ispolled=True)
                 await asyncio.sleep(0.5)
             except OSError as e:
                 # Remote closed the connection — normal disconnect path
