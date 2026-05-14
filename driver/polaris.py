@@ -957,7 +957,7 @@ class Polaris:
         await asyncio.sleep(0.2)
         await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
 
-    async def send_cmd_park(self):
+    async def send_cmd_reset_axis012(self):
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: PARK all 3 axis")
         await self.send_cmd_reset_axis(0)
@@ -1158,14 +1158,6 @@ class Polaris:
         # 519 type:3;code:519;val:state:1;yaw:-166.577;pitch:61.513;lat:-33.655254;track:0;speed:0;lng:151.12231;
         # 530
         self._connecting = False
-
-        # if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
-        #     if 'track' in ret_dict and int(ret_dict['track']) == 3:
-        #         # Polaris is in astro mode but alignment not complete
-        #         raise AstroAlignmentError()
-        # else:
-        #     # Polaris is not in astro mode
-        #     raise AstroModeError()
 
         # Completed initialisation
         with self._lock:
@@ -1881,6 +1873,12 @@ class Polaris:
     ####################################################################
     # Methods
     ####################################################################
+    def markAllAsComplete(self):
+        self.markGotoAsComplete()
+        self.markRotateAsComplete()
+        self.markSlewAsComplete()
+        self.markParkingAsCanceled()
+        self.markHomingAsCanceled()
 
     def markGotoAsUnderway(self):
         with self._lock:
@@ -2138,13 +2136,20 @@ class Polaris:
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: STOP all axes")
             self._pid.set_pid_mode("IDLE")
-            self.markGotoAsComplete()
-            self.markRotateAsComplete()
-            self.markSlewAsComplete()
-            self.markParkingAsCanceled()
-            self.markHomingAsCanceled()
+            self.markAllAsComplete()
         await self._motors[0].set_motor_speed(0, "DPS")
         await self._motors[1].set_motor_speed(0, "DPS")
+        await self._motors[2].set_motor_speed(0, "DPS")
+
+    async def stop_astro_axis(self):
+        self._sm.clear_sync_guiding()
+        with self._lock:
+            self._axis_ASCOM_slewing_rates[2] = 0
+            self._slewing = False
+        if Config.advanced_control:
+            self.logger.info(f"Advanced Control: STOP Astro axis")
+            self._pid.set_pid_mode("IDLE")
+            self.markAllAsComplete()
         await self._motors[2].set_motor_speed(0, "DPS")
 
     async def stop_tracking(self):
@@ -2229,8 +2234,14 @@ class Polaris:
         await self.stop_all_axes()
         await self.stop_tracking()
         await asyncio.sleep(1)
-        await self.send_cmd_park()
+        await self.send_cmd_reset_axis012()
 
+    async def resetAstroAxis(self):
+        # Benro Polaris Park (reset axes)
+        await self.stop_astro_axis()
+        await self.stop_tracking()
+        await asyncio.sleep(1)
+        await self.send_cmd_reset_axis(2)
 
     async def slew_to_panel(self, target, isasync:bool=False) -> None:
         new_panel = target

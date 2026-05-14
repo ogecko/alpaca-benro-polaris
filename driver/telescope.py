@@ -1755,7 +1755,7 @@ class action:
             state = float(parameters.get('state', False))
             await polaris.send_cmd_546_set_L_bracket(state)
             await polaris.send_cmd_545_query_L_bracket()
-            await polaris.resetAxes()
+            await polaris.resetAstroAxis()
             resp.text = await PropertyResponse('Polaris:SetLBracket ok', req)  
             return
         
