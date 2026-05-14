@@ -619,12 +619,6 @@ class Polaris:
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
 
-            if Config.log_pec:
-                self.logger.info(f"PECLOG, {p_yaw:+12.5f}, {p_pitch:+12.5f}, {p_roll:+12.5f}, " +
-                                 f"{self._pid.theta_pv[0]:+12.5f}, {self._pid.theta_pv[1]:+12.5f}, {self._pid.theta_pv[2]:+12.5f}, " +
-                                 f"{self._pid.alpha_pv[0]:+12.5f}, {self._pid.alpha_pv[1]:+12.5f}, {self._pid.alpha_pv[2]:+12.5f}, " +
-                                 f"{self._sm.delta_guide_accum[0]:+12.5f}, {self._sm.delta_guide_accum[1]:+12.5f}, {self._sm.delta_guide_accum[2]:+12.5f}")
-
 
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":

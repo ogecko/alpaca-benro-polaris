@@ -2373,6 +2373,20 @@ class SyncManager:
             f"{'ACTIVE' if self._pec_active else 'warmup'}"
         )
 
+        if Config.log_pec:
+            pv = self.polaris._pid.alpha_pv
+            accum = self.delta_guide_accum
+            # PECLOG, Az_deg, Alt_deg, Roll_deg, RA_accum_', Dec_accum_', RA_guide_', Dec_guide_', RA_pecrate_'/min, Dec_pecrate_'/min , RA_inh, Dec_inh
+            msg = f"PECLOG, {pv[0]:+.5f}, {pv[1]:+.5f}, {pv[2]:+.5f},    "
+            msg += f"{accum[0]*60:+.5f}, {accum[1]*60:+.5f},     "
+            msg += f"{ra_resid_deg*60:+.5f}, {dec_resid_deg*60:+.5f},     "
+            msg += f"{ra.theta*3600:+.5f}, {dec.theta*3600:+.5f},     "
+            msg += f"{ra.inhibit.name}, {dec.inhibit.name}"
+            self.logger.info(msg)
+
+
+
+
     def apply_pec_drift_correction(self):
         """Called every 200 ms from the PID loop."""
         if not getattr(self, '_pec_active', False):
