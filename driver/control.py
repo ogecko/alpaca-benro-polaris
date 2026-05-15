@@ -2300,17 +2300,17 @@ class SyncManager:
 
     def init_pec_model(self):
         """Initialise (or reset) the recursive drift model. Safe to call after slew."""
-        self._pec_t0          = None
         self._pec_n           = 0
+        self._pec_t0          = None
         self._pec_last_apply  = None
         self._pec_ra          = PecAxis()
         self._pec_dec         = PecAxis()
 
         # Config-driven thresholds (read once so update/apply don't need getattr)
-        self._pec_lambda      = getattr(Config, 'pec_forgetting_factor',   0.98)
+        self._pec_lambda      = getattr(Config, 'pec_forgetting_factor',   0.98)          # Lambda = 1 - 1 / n_memory; n_memory = T_forget / dt_avg
         self._pec_min_obs     = getattr(Config, 'pec_min_observations',    3)             # inhibit until n > min_obs
         self._pec_max_resid   = getattr(Config, 'pec_max_resid_arcmin',    10.0)  / 60.0  # ignore guide update if resid > max_resid degrees
-        self._pec_max_step    = getattr(Config, 'pec_max_step_arcmin',     0.5)   / 60.0  # inhibit if applied step > max_step degrees
+        self._pec_max_step    = getattr(Config, 'pec_max_step_arcmin',     0.5)   / 60.0  # clamp +/-correction step to max_step degrees
         self._pec_max_rmse    = getattr(Config, 'pec_max_rmse_arcmin',     6.0)   / 60.0  # inhibit if rmse > max_rmse degrees
         self._pec_max_P       = getattr(Config, 'pec_max_covariance',      0.01)          # inhibit if not converged ie P > max_P
         self._pec_min_r2      = getattr(Config, 'pec_min_r2', 0.5)                        # inhibit if bad R2 < 0.5
