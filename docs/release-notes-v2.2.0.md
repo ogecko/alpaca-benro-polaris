@@ -85,6 +85,9 @@
     - **Polaris:RotateRelative** Adjusts the roll angle by a specified relative offset.
     - **Polaris:AbortSlew** Stops all axis motion, turns off tracking, unparks the mount.
 
+### New Features (enabled by Stellarium)
+- **[Stellarium 26.1]** Improved ASCOM Telescope support, fixing stability, and improving ease of telescope selection. 
+
 ## Upgraded Win11 Requirements.txt Compatibility
 - **[Python 3.13.12]**: Upgraded Python support from 3.13.9.
 - **[Python 3.9.6]**: Minimum Python version supported.
@@ -149,6 +152,7 @@
 * Benro Connect Android App v3.0.30, iOS App v1.5.0
 * Benro Polaris Android App v3.0.27, iOS App v1.4.4
 * Stellarium Mobile PLUS v1.12.9 Android and iOS.
+* Stellarium Desktop v26.1 Qt6 Windows (requires ASCOM Platform 7)
 * Stellarium Desktop v25.2 Qt6 Windows (requires ASCOM Platform 7)
 * Stellarium Desktop v24.3 Qt5 Windows (not Qt6 version)
 * Stellarium Desktop v24.2 Windows

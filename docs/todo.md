@@ -10,6 +10,7 @@
 - [X] Persist Multi-Point alignment model through Driver restarts
 - [X] Fix Multi-Point Alignment without final zero adjust (goto adj)
 - [X] RBC Rotation Based Correction to fix M3 bias effecting Az and Roll (based on plate-solve test)
+- [X] Stellarium - Debug suspect Stellarium memory usage leakage (done), issue with Stellarium 25.2
 - [X] Refactor Kinematics page in Pilot
 - [X] Complete Kinematics page motor output, sp highlighting, settings disabling
 - [X] Kinematics Page Delta_sp Position Angle needs 0-360 wrapping (currently -180 to 180), delta_ref & delta_pv ok
@@ -22,7 +23,6 @@
 - [X] Motion Planning - Fix Gimbal lock oscillation at Az 292, Alt 0, Roll 2, improving estimate for theta3 by using zeta3
 - [ ] Slew and Center - fix Sync Guiding Seeding
 - [ ] Motion Planning - Fix Gimbal lock oscillation when passing from Alt 10 through Alt 0 (Gimbal Lock) to Alt -10, ensuring PID flips theta3 at correct time
-- [ ] Stellarium - Debug suspect Stellarium memory usage leakage (done), Stellarium buffering updates
 - [ ] Connection - why L_Bracket setting needs toggling to get correct setup
 - [ ] Connection - why does changing IP address allow connection to proceed?
 - [ ] Documentation - note about 5Ghz band
