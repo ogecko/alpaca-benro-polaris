@@ -2303,6 +2303,8 @@ class SyncManager:
         self._pec_n           = 0
         self._pec_t0          = None
         self._pec_last_apply  = None
+        self._pec_last_update = None
+        self._pec_interval    = 0.2          # EMA of interval between pec model updates (seconds), only count ra updates (as pulses come in separately)
         self._pec_ra          = PecAxis()
         self._pec_dec         = PecAxis()
 
@@ -2314,8 +2316,10 @@ class SyncManager:
         self._pec_max_rmse    = getattr(Config, 'pec_max_rmse_arcmin',     6.0)   / 60.0  # inhibit if rmse > max_rmse degrees
         self._pec_max_P       = getattr(Config, 'pec_max_covariance',      0.01)          # inhibit if not converged ie P > max_P
         self._pec_min_r2      = getattr(Config, 'pec_min_r2', 0.5)                        # inhibit if bad R2 < 0.5
+        self._pec_forget_horz = getattr(Config, 'pec_forget_horizon_sec',  35*60)         # 35 min for full PEC cycle
 
-        self._pec_rmse_alpha  = 0.05
+        self._pec_interv_alpha= 0.3           # EMA factor for _pec_interval estimate
+        self._pec_rmse_alpha  = 0.05          # EMA factor for rmse estimate
         self._pec_active      = False
 
 
@@ -2323,20 +2327,30 @@ class SyncManager:
         """Call after slew, rotate, or QUEST reset."""
         self.init_pec_model()
 
+    def _update_forgetting_lambda(self, now):
+        """Recompute λ based on observed update rate and desired forget horizon."""
+        if self._pec_last_update is not None:
+            dt_obs = now - self._pec_last_update
+            if 0.1 < dt_obs < 3600:               # sanity bounds: 1s–1hr
+                if self._pec_interval is None:
+                    self._pec_interval = dt_obs
+                else:
+                    self._pec_interval = (self._pec_interv_alpha * dt_obs + (1 - self._pec_interv_alpha) * self._pec_interval)
+        self._pec_last_update = now
+        if self._pec_interval is not None:
+            self._pec_lambda = max(0.5, min(0.99999, 1.0 - self._pec_interval / self._pec_forget_horz))
 
     def update_pec_model(self, ra_resid_deg, dec_resid_deg):
-        if ra_resid_deg  is not None: ra_resid_deg  = float(ra_resid_deg)
+        now = time.monotonic()
+        ra, dec = self._pec_ra, self._pec_dec
+
+        if ra_resid_deg  is not None: ra_resid_deg  = float(ra_resid_deg); self._update_forgetting_lambda(now)
         if dec_resid_deg is not None: dec_resid_deg = float(dec_resid_deg)
         ra_skip  = ra_resid_deg  is None or abs(ra_resid_deg)  > self._pec_max_resid
         dec_skip = dec_resid_deg is None or abs(dec_resid_deg) > self._pec_max_resid
-        if ra_skip and dec_skip:
-            return
 
-        if not hasattr(self, '_pec_t0') or self._pec_t0 is None:
-            self.init_pec_model()
-
-        now = time.monotonic()
-        ra, dec = self._pec_ra, self._pec_dec
+        if ra_skip and dec_skip: return
+        if not hasattr(self, '_pec_t0') or self._pec_t0 is None: self.init_pec_model()
 
         if not ra_skip:
             ra.cumul  += ra_resid_deg  + ra.applied;  ra.applied  = 0.0
@@ -2345,14 +2359,12 @@ class SyncManager:
 
         if self._pec_n == 0:
             self._pec_t0 = self._pec_last_apply = now
-            ra.ref  = ra.cumul
-            dec.ref = dec.cumul
+            ra.ref  = ra.cumul;  dec.ref = dec.cumul
             self._pec_n = 1
             return
 
         t = now - self._pec_t0
-        if t < 1e-6:
-            return
+        if t < 1e-6: return
 
         if not ra_skip:
             ra.update(self._pec_lambda, self._pec_rmse_alpha, t, ra.cumul - ra.ref)
@@ -2370,7 +2382,8 @@ class SyncManager:
             f"PEC  n={self._pec_n:4d} | "
             f"{ra.log_str('RA')} | "
             f"{dec.log_str('Dec')} | "
-            f"{'ACTIVE' if self._pec_active else 'warmup'}"
+            f"lambda={self._pec_lambda:.5f}  interval={self._pec_interval:.1f}s | "
+            f"{'ACTIVE' if self._pec_active else 'WARMUP'}"
         )
 
         if Config.log_pec:
