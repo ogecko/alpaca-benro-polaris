@@ -21,7 +21,7 @@
 - [X] Allow Roll change while in tracking mode, without resetting az/alt setpoints.
 - [X] Explore how to reduce sidereal tracking drift and reduce residuals - Sync Guiding and PEC
 - [X] Motion Planning - Fix Gimbal lock oscillation at Az 292, Alt 0, Roll 2, improving estimate for theta3 by using zeta3
-- [ ] Slew and Center - fix Sync Guiding Seeding
+- [X] Slew and Center - fix Sync Guiding Seeding
 - [ ] Motion Planning - Fix Gimbal lock oscillation when passing from Alt 10 through Alt 0 (Gimbal Lock) to Alt -10, ensuring PID flips theta3 at correct time
 - [ ] Connection - why L_Bracket setting needs toggling to get correct setup
 - [ ] Connection - why does changing IP address allow connection to proceed?
