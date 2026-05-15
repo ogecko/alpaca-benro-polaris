@@ -2121,6 +2121,7 @@ class SyncManager:
             self.optimize_alignQ_B2T()
             self.optimize_roll_adj()
             self.refresh_pid_setpoints_from_q1()
+            self.last_sync_time = time.monotonic()
             self.streamSyncData(persist=False)
             return True
         except Exception as e:
@@ -2240,58 +2241,35 @@ class SyncManager:
             return
         if self.polaris._motorQ_state is None:
             return
-            
-        # Recompute cameraQ and equatorial axes with the freshly updated alignQ_B2T
+        
+        # Update cameraQ_pv based on recalculated QUEST model
         cameraQ_pv, _ = self.baseQ_to_topoQ(self.polaris._motorQ_state)
         self.cache_equatorial_axes_B(cameraQ_pv, self.polaris._sitelatitude)
-        ra_axis_B, dec_axis_B, _ = self.equatorial_axes_B
-        if ra_axis_B is None or dec_axis_B is None:
-            return
+
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
         if v_pred_rot is None:
             return
 
-        # Build full residual quaternion in Topocentric frame (v_pred_rot → v_obs)
-        axis_T = np.cross(v_pred_rot, v_obs)
-        norm_axis = np.linalg.norm(axis_T)
+        axis = np.cross(v_pred_rot, v_obs)
+        norm_axis = np.linalg.norm(axis)
         if norm_axis < 1e-8:
             return
-        axis_T /= norm_axis
+        axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
-        self.scc_error = np.degrees(angle)
+        self.scc_error = np.degrees(-angle)
 
-        # Rotate error axis into Base frame
-        axis_B = np.array(self.alignQ_B2T_inv.rotate(axis_T))
-
-        # Decompose onto RA/Dec axes in Base frame
-        # angle * dot(axis, ra_axis) gives the RA component of the rotation
-        ra_resid  = np.degrees(angle) * np.dot(axis_B, ra_axis_B)
-        dec_resid = np.degrees(angle) * np.dot(axis_B, dec_axis_B)
+        # Build exact residual correction in Topocentric frame, rotate to Base frame
+        q_corr_topo = Quaternion(axis=axis, radians=angle)
+        q_corr_B = self.alignQ_B2T_inv * q_corr_topo * self.alignQ_B2T
 
         self.logger.info(
             f"Sync Guide seeded from QUEST residual: "
-            f"Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)}"
+            f"Az {deg2dms(az_err)}, Alt {deg2dms(alt_err)}, angle {deg2dms(np.degrees(angle))}"
         )
 
-        self.q_syncguide_B = Quaternion()
+        self.q_syncguide_B = q_corr_B.normalised
         self.delta_guide_accum[0] = 0
         self.delta_guide_accum[1] = 0
-
-
-        # Feed through accumulate so delta_guide_accum and q_syncguide_B
-        # are both consistent, and get_sync_guiding_correction_q rebuilds correctly
-        self.accumulate_sync_guiding_residuals(ra_resid, dec_resid)    
-
-        # # Diagnostic
-        # self.logger.info(f"SGC seed complete: q_syncguide_B={self.q_syncguide_B} valid={self.valid_sync_guide}")
-        
-        # # Immediately test FK with and without SGC
-        # if self.polaris._motorQ_state is not None:
-        #     cameraQ, _ = self.baseQ_to_topoQ(self.polaris._motorQ_state)
-        #     az, alt, _ = q_to_azaltroll(cameraQ)
-        #     ra, dec = self.polaris.altaz2radec(alt, az)
-        #     self.logger.info(f"SGC seed FK test: az={deg2dms(az)} alt={deg2dms(alt)} ra={deg2dms(ra*15)} dec={deg2dms(dec)}")
-
 
 
 
