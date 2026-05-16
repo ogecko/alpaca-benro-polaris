@@ -17,8 +17,10 @@ Guiding is a general concept that refers to any method used to correct tracking 
 **Auto-Guiding** is a broad term for any method used to automatically correct for tracking errors. While the Alpaca Driver’s Multi-Point-Alignment model (QUEST) provides an excellent foundation for tracking, physical factors like **periodic error**, **mechanical error**, and **polar mis-alignment**, can still cause star trailing and drift. 
 
 The Benro Polaris has a **periodic error** measured at **over 14 arc minutes**, with a repeating **35-minute** cycle. To achieve improved results, the driver supports two distinct auto-guiding approaches:
-1.  **Plate-Solve/Sync Guiding:** A hardware-free, software-based approach using your main imaging camera.
+1.  **Sync Guiding:** A hardware-free, software-based approach using your main imaging camera.
 2.  **Pulse Guiding:** A traditional hardware-based approach using a dedicated guide scope and camera.
+
+![PHD2 Advanced Settings](images/phd2-choice.png)
 
 #### **Approach 1: Plate-Solve/Sync Guiding (Hardware-Free)**
 
@@ -47,7 +49,7 @@ Pulse Guiding is a high-speed feedback mechanism that uses a dedicated camera to
     
 ## Proactive Auto-Guiding Refinement
 
-Version 2.2 incoporates a significant step forward in tracking accuracy when you use either approach to auto-guiding. **Periodic Error Correction (PEC)** is a specialized, proactive layer that sits **on top of both auto-guiding approaches**. It does not replace guiding; rather, it uses the data provided by either Sync or Pulse guiding to build a superior tracking model.
+Version 2.2 incoporates a significant step forward in tracking accuracy when you use either approach to auto-guiding. **Periodic Error Correction (PEC)** is a specialized, proactive layer that sits **below either auto-guiding approach**. It does not replace guiding; rather, it uses the data provided by either Sync or Pulse guiding to build a superior tracking model.
 
 *   **Proactive Modeling:** While guiding is reactive (fixing errors after they happen), PEC develops a **recursive least squares model** to estimate instantaneous drift rates. This allows the driver to **anticipate** mechanical oscillations and apply fine-grained corrections every **200ms**.
 *   **Dual Support:** PEC learns from whichever guiding data is available. It monitors the "pulses" from PHD2 or the "residuals" from Plate-Solve Syncs to refine its understanding of the 35-minute gear cycle. 
