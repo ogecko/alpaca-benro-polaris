@@ -1,37 +1,92 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Guiding Users Guide
-[Introduction](#why-use-auto-guiding) | 
-[Pre-requisites](#2-phd2-guiding-prerequisites) | 
-[Equipment Setup](#3-equipment-setup) | 
+[Sync-Guiding](#approach-1-plate-solvesync-guiding-hardware-free) | 
+[Pulse-Guiding](#approach-2-pulse-guiding-hardware-based) | 
+[Periodic Error Correction](#proactive-auto-guiding-refinement)  |
+[PHD2: Pre-requisites](#2-phd2-guiding-prerequisites) | 
+[Equipment Setup](#3-phd2-equipment-setup) | 
 [Calibration](#4-phd2-calibration) | 
-[Auto-Guiding](#5-auto-guiding-with-phd2) 
+[Workflow](#5-pulse-guiding-with-phd2) |
 
-## 1. Guiding Introduction
+
+Guiding is a general concept that refers to any method used to correct tracking errors. It includes manual-guiding, auto-guiding, encoder-assisted guiding, and software based corrections. 
+
+## Alternate Auto-Guiding Approaches
+
+**Auto-Guiding** is a broad term for any method used to automatically correct for tracking errors. While the Alpaca Driver’s Multi-Point-Alignment model (QUEST) provides an excellent foundation for tracking, physical factors like **periodic error**, **mechanical error**, and **polar mis-alignment**, can still cause star trailing and drift. 
+
+The Benro Polaris has a **periodic error** measured at **over 14 arc minutes**, with a repeating **35-minute** cycle. To achieve improved results, the driver supports two distinct auto-guiding approaches:
+1.  **Plate-Solve/Sync Guiding:** A hardware-free, software-based approach using your main imaging camera.
+2.  **Pulse Guiding:** A traditional hardware-based approach using a dedicated guide scope and camera.
+
+#### **Approach 1: Plate-Solve/Sync Guiding (Hardware-Free)**
+
+This innovative approach finally solves the drift problem without requiring a separate guide scope or camera. By using the main imaging camera to periodically "re-anchor" the alignment model, the driver can effectively correct for tracking drift.
+
+*   **How it Works:** When you perform a **plate-solve sync without slewing**, the driver no longer treats it as a simple Multi-Point-Alignment update. Instead, it interprets the residual error as a **guiding correction**. 
+*   **The Recommended Workflow:**
+    1.  **Initialise:** Perform your standard Multi-Point Alignment (MPA) and slew to your target.
+    2.  **Automate:** Configure your capture software (like NINA) to perform a **"Solve and Sync" every 2 to 5 minutes** as part of your imaging sequence.
+    3.  **Result:** The driver will automatically refine the alignment and PEC model with every sync, keeping the target perfectly centered.
+*   **Primary Benefits:**
+    *   **No Extra Hardware:** Eliminates the cost, weight, and cable management of a guide scope and camera.
+    *   **Superior Accuracy:** Full-frame plate-solves provide much higher resolution and more reliable data than traditional single-star guiding.
+    *   **Faster Operation:** Guiding happens "in-place" during your normal sequence; no more repetitive slew-and-center cycles.
+
+
+#### **Approach 2: Pulse Guiding (Hardware-Based)**
+
+Pulse Guiding is a high-speed feedback mechanism that uses a dedicated camera to monitor a guide star's position. This remains the gold standard for correcting high-frequency errors **within a single exposure**.
+
+*   **How it Works:** An external application (such as **PHD2**) monitors a guide star and sends "pulse corrections" to the driver. The driver interprets these as temporary velocity changes, nudging the mount back into alignment without interrupting the underlying sidereal motion.
+*   **Primary Benefits:**
+    *   **Sub-Exposure Correction:** Corrects tracking errors immediately as they happen, preventing stars from turning into "footballs" during a long frame.
+    *   **Long Exposures:** Ideal for very deep-sky imaging where exposures may exceed 2 or 5 minutes.
+    *   **Improved Control:** Version 2.2 incorporates improvements to the accuracy of **Pulse Guiding*, improving the reliability of calibration and corections.
+    
+## Proactive Auto-Guiding Refinement
+
+Version 2.2 incoporates a significant step forward in tracking accuracy when you use either approach to auto-guiding. **Periodic Error Correction (PEC)** is a specialized, proactive layer that sits **on top of both auto-guiding approaches**. It does not replace guiding; rather, it uses the data provided by either Sync or Pulse guiding to build a superior tracking model.
+
+*   **Proactive Modeling:** While guiding is reactive (fixing errors after they happen), PEC develops a **recursive least squares model** to estimate instantaneous drift rates. This allows the driver to **anticipate** mechanical oscillations and apply fine-grained corrections every **200ms**.
+*   **Dual Support:** PEC learns from whichever guiding data is available. It monitors the "pulses" from PHD2 or the "residuals" from Plate-Solve Syncs to refine its understanding of the 35-minute gear cycle. 
+*   **Convergence:** To ensure high fidelity, the PEC model only begins applying proactive corrections once it meets strict statistical criteria, such as having a minimum of three observations and an **R² (reliability) value greater than 0.500**.
+*   **Integration:** This implementation is fully integrated into the **PID control loop**, enabling the Benro Polaris to maintain pinpoint stars even during long exposures by effectively "killing" the periodic error before it manifests.
+
+<br>
+<br>
+<br>
+
+---
+
+
+This remainder of this document introduces how to use **PHD2** and pulse-guiding with the **Alpaca Benro Polaris Driver** on a **Benro Polaris mount**. It is intended for users who are new to pulse-guiding, as well as those transitioning from unguided imaging.
+
+## 1. Pulse Guiding Introduction
 
 >VIDEO DEMO: [27 - Guiding the Alpaca Benro Polaris](https://youtu.be/dn1nLxT5eWw)
 
-Guiding is a general concept that refers to any method used to correct tracking errors during exposure. It includes manual-guiding, auto-guiding, encoder-assisted guiding, and software based corrections. Auto-guiding is a specific form of guiding that uses a guide camera, guide scope, and guiding software to make continuous tracking adjustments automatically.
 
-This document introduces how to use **PHD2** auto-guiding with the **Alpaca Benro Polaris Driver** on a **Benro Polaris mount**. It is intended for users who are new to auto-guiding, as well as those transitioning from unguided imaging.
+
+
+### Why Use Pulse-Guiding?
+
+Pulse-guiding is used to correct **small tracking errors and drift** that occur during long-exposure or long-session astrophotography. Even with good multi-point alignment and careful setup, small mechanical imperfections, AHRS drift, atmospheric effects, and tracking rate errors may cause stars to slowly trail or drift over time. Pulse-guiding helps correct many of these issues.
 
 ![PHD2 Main screen](./images/phd2-main1.png)
 
-### Why Use Auto-guiding?
-
-Auto-guiding is used to correct **small tracking errors and drift** that occur during long-exposure or long-session astrophotography. Even with good multi-point alignment and careful setup, small mechanical imperfections, AHRS drift, atmospheric effects, and tracking rate errors may cause stars to slowly trail or drift over time. Autoguiding helps correct many of these issues.
-
-For the Benro Polaris, the **primary benefit of auto-guiding is eliminating drift**, enabling longer more consistent imaging sessions. It’s important to set realistic expectations. Autoguiding cannot fix:
+For the Benro Polaris, the **primary benefit of pulse-guiding is eliminating drift**, enabling longer more consistent imaging sessions. It’s important to set realistic expectations. Pulse-guiding cannot fix:
 
 * Poor focus, optical issues, or unfavourable seeing conditions
 * Vibrations caused by tripod flexure, ground instability, or wind
 * Mechanical binding, balance problems, cable drag or obstructions
 * The inherent mechanical in-precision of the Polaris
 
-> Note: Auto-guiding is totally optional. You can still obtain excellent DSO images without the use of Auto-guiding. Auto-guiding is not a replacement for good setup, it is a **fine correction tool**, not a cure-all.
+> Note: Pulse-guiding is totally optional. You can still obtain excellent DSO images without the use of pulse-guiding. Pulse-guiding is not a replacement for good setup, it is a **fine correction tool**, not a cure-all.
 
-### How does Auto-guiding work?
-Auto-guiding is controlled by a separate guiding application that connects to the guiding camera as well as the Alpaca Driver. The guiding application operates by:
+### How does Pulse-guiding work?
+Pulse-guiding is controlled by a separate guiding application that connects to the guiding camera as well as the Alpaca Driver. The guiding application operates by:
 * Continuously monitoring a selected guide star (or stars) from the guide camera
 * Measuring small deviations from the star’s expected position
 * Sending **pulse-guiding correction commands** to the Alpaca Driver
@@ -46,7 +101,7 @@ The Alpaca Driver then:
 The Alpaca Driver exposes pulse-guiding commands through the **ASCOM Alpaca ITelescopeV3 Interface**. Any guiding application that supports this pulse-guiding interface can work with the Alpaca Driver.
 The following guiding solutions have been tested with v2.0:
 
-* **CCDciel’s Autoguider** — provides integrated guiding, including star selection, calibration, and corrections. Ideal for macOS and non-NINA platforms.
+* **CCDciel’s Pulseguider** — provides integrated guiding, including star selection, calibration, and corrections. Ideal for macOS and non-NINA platforms.
 * **PHD2** (used alongside **NINA**) — PHD2 handles guiding, while NINA manages imaging and dithering (via PHD2)
 * **NINA Direct Guider** — enables dithering without a guide scope. Not recommended as we have not seen significant improvements with this solution.
 
@@ -55,7 +110,7 @@ The remainder of this secion will focus on the second solution, using **PHD2**.
 ## 2. PHD2 Guiding Prerequisites
 
 ### 2.1 Hardware Purchases and Software Installation
-To perform auto-guiding you will need some additional equipment, including the following. See [Hardware Auto-Guiding Equipment](./hardware.md#guiding-scope-and-camera-optional) for more details.
+To perform auto-guiding you will need some additional equipment, including the following. See [Hardware Pulse-Guiding Equipment](./hardware.md#guiding-scope-and-camera-optional) for more details.
 * A **Guide scope** (eg SVBony SV106 Guide Scope), or an off-axis guider (OAG)
 * A **Guide camera** (e.g. ToupTek GPM462M, ZWO ASI120MM, ZWO ASI220MM, etc.)
 * Suitable **Mounting equipment** 
@@ -101,7 +156,7 @@ Once the ASCOM Platform is been installed, you need to use the **ASCOM Diagnosti
 5. Close the **Device Connection Tester** dialog box
 6. Close the **ASCOM Diagnostics App**
 
-## 3. Equipment Setup
+## 3. PHD2 Equipment Setup
 Once PHD2 has been installed, you need to perform some initial setup. This includes connecting, focusing and configuring the equipment.
 
 ### 3.1 PHD2 Connecting Equipment
@@ -246,7 +301,7 @@ PHD2 assumes that the mapping of RA and Dec pulses to pixel motion on the guide 
 If you have a separate ZWO Rotator on just the main imaging sensor, and the guide camera is fixed relative to the mount, then you do not need to recalibrate on ZWO Rotator changes.
 
 
-##  5. Auto-Guiding with PHD2
+##  5. Pulse-Guiding with PHD2
 
 Once you have calibrated PHD2, auto-guiding with PHD2 is relatively simple. If you have configured Nina to use PHD2, it will automatically run through steps 1 through 4 for you. 
 1. Start **PHD2** and **Connect All Equipment**
