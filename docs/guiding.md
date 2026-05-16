@@ -53,7 +53,7 @@ Version 2.2 incoporates a significant step forward in tracking accuracy when you
 
 *   **Proactive Modeling:** While guiding is reactive (fixing errors after they happen), PEC develops a **recursive least squares model** to estimate instantaneous drift rates. This allows the driver to **anticipate** mechanical oscillations and apply fine-grained corrections every **200ms**.
 *   **Dual Support:** PEC learns from whichever guiding data is available. It monitors the "pulses" from PHD2 or the "residuals" from Plate-Solve Syncs to refine its understanding of the 35-minute gear cycle. 
-*   **Convergence:** To ensure high fidelity, the PEC model only begins applying proactive corrections once it meets strict statistical criteria, such as having a minimum of three observations and an **R² (reliability) value greater than 0.500**.
+*   **Convergence:** To ensure high fidelity, the PEC model only begins applying proactive corrections once it meets strict statistical criteria, such as a low **P-value**, a low **rmse**, and an **R² value** indicating good fit.
 *   **Integration:** This implementation is fully integrated into the **PID control loop**, enabling the Benro Polaris to maintain pinpoint stars even during long exposures by effectively "killing" the periodic error before it manifests.
 
 <br>
