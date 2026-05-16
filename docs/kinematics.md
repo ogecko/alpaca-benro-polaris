@@ -49,7 +49,7 @@ The document also outlines the principal mitigation techniques used to reduce tr
 
 
 ---
-## 2. Kinematics Optimisation
+## 2. Kinematics Corrections
 The Alpaca Driver achieves superior tracking performance through a multi-layered suite of kinematic corrections that address both global and local mechanical errors. At its foundations is the QUEST model in Multi-Point Alignment. Layered on top of this are corrections for Mechanical imperfections, Periodic and Local residual errors.
 
 ### 2.1 QUEST Alignment Optimisation
@@ -276,41 +276,45 @@ For a comprehensive guide on hardware selection and software configuration, plea
 
 
 
-### 2.6 Predictive Error Correction (PEC)
+
+### **2.6 Periodic Error Correction (PEC)**
 
 #### **I. What it is and What it Solves**
-**Predictive Error Correction (PEC)** is a technique used to mitigate systematic, repeating tracking errors caused by mechanical imperfections in a mount's drive system, such as gear tooth irregularities or motor inconsistencies. While the Benro Polaris hardware is excellent, its inherent mechanical imprecision and gear-driven nature can lead to "periodic error", ie small, predictable oscillations in tracking that cause stars to trail during long exposures.
+**Periodic Error Correction (PEC)** is a specialized technique used to mitigate systematic tracking drift and periodic errors that change over time. These errors typically stem from mechanical imperfections in the mount’s drive system, such as irregularities in the worm gear teeth or motor inconsistencies. In the Benro Polaris, this manifests as a sinusoidal cyclic tracking error in Right Ascension (RA) and Declination (Dec) with a primary period of approximately **35 minutes** and a magnitude of **14+ arc minutes**.
 
-PEC solves this by identifying these repeating patterns and applying proactive corrections. Instead of just reacting to a star moving off-center, a predictive system anticipates the movement based on previous cycles and counteracts it before the error becomes visible in the image.
+Without correction, these mechanical oscillations lead to irregular star shapes and trails, severely limiting effective exposure lengths. PEC solves this by "learning" these repeating patterns and applying proactive, fine-grained corrections every **200ms** to ensure smooth sidereal tracking.
 
-#### **II. Implementation: External Reliance**
-Currently, the **Alpaca Driver does not have a native, internal PEC recording and playback feature**. Instead, the system relies entirely on external **auto-guiding applications**, most notably **PHD2**, to handle the logic of error detection and prediction.
+#### **II. Implementation: Dual Guiding Support**
+Unlike simpler implementations, the Alpaca Driver’s PEC is layered on top of auto-guiding corrections and **supports both primary guiding techniques**:
+*   **Pulse Guiding:** PEC monitors corrections sent from external applications like **PHD2**.
+*   **Sync Guiding:** PEC learns from the residuals generated during periodic **plate-solve syncs**.
 
-The workflow functions as a high-speed feedback loop:
-1.  **PHD2** monitors a guide star and calculates the deviation from its expected position.
-2.  Using its internal algorithms (such as the **Predictive PEC** or **Proactive PEC** guide algorithms), PHD2 models the periodic error.
-3.  PHD2 sends **pulse-guiding correction commands** via the ASCOM/Alpaca interface to the driver.
-4.  The Alpaca Driver refines the target’s equatorial setpoints and translates these into precise, coordinated motor-level adjustments (M1, M2, and M3) to negate the error.
+As corrections are received, PEC develops a **recursive least squares model** to estimate the current instantaneous drift rates for both RA and Dec. This allows the system to anticipate mechanical movement and counteract it before the error becomes visible in your image.
 
-#### **III. PHD2 Predictive Modeling Summary**
-PHD2’s approach to predictive correction is built into its "Brain" settings and advanced guiding algorithms. It employs a sophisticated mathematical approach to tracking:
-*   **Cycle Analysis:** The software observes the mount's behavior over one or more worm gear cycles to identify the frequency and amplitude of the periodic error.
-*   **Gaussian Process Regression:** In its most advanced "Predictive PEC" algorithm, PHD2 uses Gaussian processes to model the non-linear errors of the mount and predict future deviations.
-*   **Pulse Translation:** Once an error is predicted, PHD2 issues a "pulse" of a specific duration. The Alpaca Driver interprets this as a temporary velocity change, adjusting the mount's tracking rate for the duration of the pulse to keep the star centered.
+#### **III. The Predictive Model and Convergence**
+To ensure high-fidelity tracking, the PEC system filters incoming data and only applies corrections once the model has mathematically converged. 
+*   **Filtering Logic:** The system ignores any corrections larger than **10 arc minutes** to prevent the model from being "poisoned" by bad data, and it employs a "forget horizon" of **35 minutes** to keep the model relevant to the current gear cycle.
+*   **Convergence Requirements:** The model will only begin applying corrections to sidereal tracking once it meets four strict statistical criteria:
+    1.  **Observations:** A minimum of **3 corrections** received.
+    2.  **Accuracy:** A root mean square error (RMSE) below **6 arc minutes**.
+    3.  **Reliability:** An R-squared (R²) statistic greater than **0.500**.
+    4.  **Significance:** A model P-value below **0.01**.
 
-#### **IV. How to Use and Get the Best Results**
-To achieve the best predictive results with the Benro Polaris, focus on the following configuration steps in PHD2 and the Alpaca Pilot App:
+#### **IV. Comparison with External Models**
+While software like PHD2 offers its own "Predictive PEC," the Alpaca Driver's implementation is considered superior for the Benro Polaris. External models often only operate on the RA axis and have slower corrective cycles. In contrast, the Alpaca PEC is **fully integrated into the PID control loop** of the driver's motion strategy, correcting all axes simultaneously with extreme precision.
 
-*   **Multi-Star Guiding:** Always enable **"Use Multiple Stars"** in PHD2’s Advanced Settings. This provides a much cleaner signal for the predictive algorithm by averaging out atmospheric turbulence (seeing), preventing the PEC model from trying to "chase the wind".
-*   **Proper Calibration:** Ensure you calibrate PHD2 near the **celestial equator and the meridian**. This is where the mount's movement is most sensitive and provides the most accurate data for the predictive model.
-*   **Optimize Guide Rates:** Set the **Guide Rate** in the Alpaca Pilot Settings (typically **0.75x or 1.0x Sidereal**). If the predictive algorithm causes the mount to oscillate or over-correct, lowering this rate can smooth the response.
-*   **Monitor Residuals:** Use the **PHD2 Graph and Stats** to monitor performance. The Polaris is capable of achieving an **RMS Error of 1.5 to 3.0 arc-seconds** when the predictive model is correctly tuned.
-*   **16-Bit Camera Mode:** Configure your guide camera for **16-bit mode** and high ADU saturation values to provide PHD2 with the highest possible bit-depth for identifying subtle star movements.
+#### **V. How to Use and Monitor PEC**
+1.  **Enabling:** Ensure "Predictive Error Correction (PEC)" is toggled **ON** in the Alpaca Pilot Settings page.
+2.  **Guiding Strategy:** Choose either **Sync Guiding** (performing a "Solve and Sync" every 2 to 5 minutes in NINA) or **Pulse Guiding** (using a dedicated guide camera).
+3.  **Monitoring Status:** Use the **Kinematics Page** in Alpaca Pilot to view real-time RA/Dec drift rates and model quality. The **R² value** will provide status messages if the model is inhibited:
+    *   **Warmup/Adapt:** Insufficient or high-variance data.
+    *   **RMSE/Poor:** High model error or low quality.
+    *   **Active (Numeric Value):** When the model is being applied, it displays a value between 0 and 1, where values closer to 1 indicate a near-perfect fit.
 
-#### **V. Important Considerations**
-*   **Sidereal Only:** PEC via auto-guiding is designed for **sidereal tracking** of DSOs and stars. It is not suitable for Lunar, Solar, or custom orbital tracking.
-*   **Not a Total Cure:** While PEC via PHD2 is a powerful fine-correction tool, it cannot compensate for major mechanical issues like cable drag, severe tripod instability, or poor initial alignment.
-*   **Driver Refinements:** Starting with version 2.2, the driver has **refined pulse-guiding accuracy** by incorporating PID feed-forward control, which ensures that external PEC commands from PHD2 are executed with higher fidelity.
+#### **VI. Important Considerations**
+PEC is designed exclusively for **sidereal tracking** of Deep Sky Objects (DSOs) and stars. It is not suitable for tracking Lunar, Solar, or custom orbital targets. Additionally, while PEC is a powerful tool for fine mechanical correction, it cannot compensate for gross mechanical failures such as cable drag, tripod instability, or wind effects.
+
+
 
 ---
 

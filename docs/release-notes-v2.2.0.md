@@ -48,11 +48,11 @@
 ### Goto and Pointing Correction Models
 - **[Goto Completion]** Reduce post-goto star trails by stabilising tracking before marking goto as complete, tightening tollerance x20 when tracking enabled.
 - **[Progress Indicator]** Add a circular progress indicator showing remaining angular distance for Goto, Rotate, Home, and Park operations.
-- **[Slew & Center Correction]** Reduce the number of corrective slews with Zero Last Residual (ZLR) and Local Guasssian Adjustment (LGA) algorithms.
-- **[Mechanical Correction]** Correction models for potentially tilted or cantered Astro and Altitude motor axes.
+- **[Slew & Center Correction]** Reduce the number of corrective slews with three alternate algorithms - Zero Last Residual (ZLR), Local Guasssian Adjustment (LGA) and Sync Guiding Adjustment (SGA).
+- **[Mechanical Correction]** Correction models for potentially tilted or misaligned Astro and Altitude motor axes.
 
 ### Multi Point Alignment
-- **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart.
+- **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart, allowing imagaging sessions to continue, uninterupted.
 - **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
 - **[Alignment Diagnostics]** Improve Multi-Point Alignment Model diagnostics with Alignment RMS Error and more logging.
 
@@ -60,6 +60,7 @@
 - **[Sync Guiding]** Drift correction made simple; no guide camera, no extra PHD2 software, just plate-solving.
 - **[Pulse Guiding]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
 - **[Polar Alignment]** Guiding adjustments applied as corrections rather than setpoint changes to maintain polar alignemnt
+- **[Drift and PEC]** Models instantaneous drift in RA and Dec to correct periodic and alignment errors, significantly improving sidereal tracking accuracy.
 
 ### Panorama Tools
 - **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.
