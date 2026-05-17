@@ -939,14 +939,10 @@ class PID_Controller():
     def set_alpha_target(self, sp: dict[str, float]):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets()      # Only reset offsets on axes that are changed
+        self.reset_offsets()      
         self.target_type = 'ALPHA'
-
         # Safely update alpha_sp components if provided
-        if self.mode == 'TRACK':
-            default = self.body2alpha()
-        else:
-            default = self.alpha_sp
+        default = self.body2alpha() if self.mode == 'TRACK' else self.alpha_sp
         alpha = [
             sp.get("az",   default[0]),
             sp.get("alt",  default[1]),
@@ -969,7 +965,7 @@ class PID_Controller():
     def set_delta_target(self, delta):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets()      # Only reset offsets on axes that are changed
+        self.reset_offsets()      
         self.target_type = "DELTA"
         self.delta_sp = delta
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
