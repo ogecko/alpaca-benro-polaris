@@ -176,7 +176,6 @@ def ensure_tls_cert(host: str, logger) -> bool:
         logger.info("==STARTUP== Generating self-signed TLS certificate for HTTPS…")
         return _generate_self_signed_cert(host, TLS_CERT_PATH, TLS_KEY_PATH, logger)
 
-    logger.info(f"==STARTUP== Reusing existing TLS certificate from {TLS_CERT_PATH}")
     return True
 
 
@@ -298,14 +297,10 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         servers_to_run.append(('HTTP-redirect', http_server, http_port))
 
         logger.info(
-            f"==STARTUP== Alpaca Pilot → HTTPS on {bind_host}:{https_port}  "
-            f"| HTTP redirect on {bind_host}:{http_port}"
+            f"==STARTUP== Serving Alpaca Pilot Web (HTTPS) on {bind_host}:{https_port}  "
+            f"| (HTTP) redirect on {bind_host}:{http_port}"
         )
-        logger.info(
-            f"==STARTUP== Browser security note: you will see a 'self-signed certificate' "
-            f"warning on first visit — click 'Advanced → Proceed' to continue.  "
-            f"Clipboard and Geolocation APIs will then work normally."
-        )
+        logger.info("==STARTUP== Accept self-signed certificate warning on first visit — click 'Advanced > Proceed'")
     else:
         # Fallback: plain HTTP (clipboard/geolocation still restricted)
         http_cfg = uvicorn.Config(

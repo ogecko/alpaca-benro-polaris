@@ -48,7 +48,8 @@ export const useStreamStore = defineStore('telemetry', () => {
   // Reactive derived config
   const socketHost = computed(() => dev.alpacaHost)
   const socketPort = computed(() => dev.socketAPIPort)
-  const socketURL = computed(() => `ws://${socketHost.value}:${socketPort.value}/ws`)
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socketURL = computed(() => `${proto}//${socketHost.value}:${socketPort.value}/ws`)
   const socketConnected = computed(() => socketConnectionStatus.value === 'connected')
 
   // State

@@ -34,14 +34,18 @@ export const useDeviceStore = defineStore('device', {
     setAlpacaHost(host: string) {
       this.alpacaHost = host
       localStorage.setItem('alpacaHost', host)
+      console.log('setAlpacaHost:', host, '→ stored:', localStorage.getItem('alpacaHost'))
     },
 
     setRestAPIPort(port: number) {
       this.restAPIPort = port
       localStorage.setItem('restAPIPort', port.toString())
+      console.log('setRestAPIPort:', port, '→ stored:', localStorage.getItem('restAPIPort'))
     },
 
     async connectRestAPI() {
+      console.log('connectRestAPI: alpacaHost=', this.alpacaHost, 'restAPIPort=', this.restAPIPort)
+      console.log('localStorage at connect: host=', localStorage.getItem('alpacaHost'), 'port=', localStorage.getItem('restAPIPort'))
       this.$patch({
         restAPIConnectingMsg: 'Connecting...',
         alpacaClientID: 8000+Math.floor(Math.random()*1000),
@@ -280,7 +284,8 @@ export const useDeviceStore = defineStore('device', {
       const ClientTransactionID = this.alpacaClientTransactionID
       const isPut = body
       const isJSONContent = (isPut && body.Action && body.Action=='Polaris:ConfigUpdate')
-      const baseUrl = `http://${this.alpacaHost}:${this.restAPIPort}`;
+      const protocol = window.location.protocol; // 'https:' or 'http:'
+      const baseUrl = `${protocol}//${this.alpacaHost}:${this.restAPIPort}`;      
       const url = isPut ? `${baseUrl}/${resourcePath}` : `${baseUrl}/${resourcePath}?ClientID=${ClientID}&ClientTransactionID=${ClientTransactionID}`;
       const payload = isPut ? { ...body, ClientID, ClientTransactionID } : {}
       const options = {
