@@ -240,12 +240,12 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         that redirects all traffic to HTTPS.  Clipboard and Geolocation APIs
         will work because the browser sees a secure context.
       • If cert generation fails (e.g. 'cryptography' not installed) → falls
-        back to plain HTTP on Config.alpaca_pilot_port so the app still loads,
+        back to plain HTTP on Config.alpaca_pilot_http_port so the app still loads,
         but clipboard/location features remain restricted.
 
     Config keys used:
       alpaca_restapi_ip_address   – bind address (e.g. "0.0.0.0")
-      alpaca_pilot_port           – HTTPS port  (default 443)
+      alpaca_pilot_https_port     – HTTPS port  (default 443)
       alpaca_pilot_http_port      – HTTP redirect port (default 80)
       enable_pilot                – bool gate
     """
@@ -253,11 +253,11 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         return
 
     bind_host   = Config.alpaca_restapi_ip_address
-    https_port  = getattr(Config, 'alpaca_pilot_port', 443)
+    https_port  = getattr(Config, 'alpaca_pilot_https_port', 443)
     http_port   = getattr(Config, 'alpaca_pilot_http_port', 80)
 
     # --- TLS cert -----------------------------------------------------------
-    tls_ok = ensure_tls_cert(bind_host, logger)
+    tls_ok = Config.enable_https and ensure_tls_cert(bind_host, logger)
 
     # --- Build the main (HTTPS or fallback HTTP) Falcon app -----------------
     main_app = asgi.App()
@@ -296,13 +296,9 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         http_server = uvicorn.Server(http_cfg)
         servers_to_run.append(('HTTP-redirect', http_server, http_port))
 
-        logger.info(
-            f"==STARTUP== Serving Alpaca Pilot Web (HTTPS) on {bind_host}:{https_port}  "
-            f"| (HTTP) redirect on {bind_host}:{http_port}"
-        )
-        logger.info("==STARTUP== Accept self-signed certificate warning on first visit — click 'Advanced > Proceed'")
+        logger.info(f"==STARTUP== Serving Alpaca Pilot Web (HTTPS) on {bind_host}:{https_port} | (HTTP) redirect on {bind_host}:{http_port}")
+        logger.warning("==STARTUP== Accept self-signed certificate warning on first visit — click 'Advanced > Proceed'")
     else:
-        # Fallback: plain HTTP (clipboard/geolocation still restricted)
         http_cfg = uvicorn.Config(
             main_app,
             host=bind_host,
@@ -310,12 +306,9 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
             log_level="error",
         )
         http_server = uvicorn.Server(http_cfg)
-        servers_to_run.append(('HTTP-fallback', http_server, https_port))
+        servers_to_run.append(('HTTP', http_server, https_port))
 
-        logger.warning(
-            f"==STARTUP== Alpaca Pilot → HTTP fallback on {bind_host}:{https_port}  "
-            f"(clipboard and geolocation features will NOT work)"
-        )
+        logger.info(f"==STARTUP== Serving Alpaca Pilot Web (HTTP) on {bind_host}:{https_port}")
 
     # --- Run all servers concurrently alongside lifecycle watcher -----------
     async def serve_all():

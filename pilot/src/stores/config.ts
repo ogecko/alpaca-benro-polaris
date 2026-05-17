@@ -25,7 +25,8 @@ export const useConfigStore = defineStore('config', {
     alpaca_restapi_port: 5555,
     alpaca_socket_port: 5556,
     alpaca_discovery_port: 32227,
-    alpaca_pilot_port: 80,
+    alpaca_pilot_http_port: 80,
+    alpaca_pilot_https_port: 433,
     stellarium_synscan_port: 10001,
     stellarium_synscan_ip_address: '',
     alpaca_restapi_ip_address: '',
@@ -192,7 +193,7 @@ export const useConfigStore = defineStore('config', {
         // Check if any updated key requires restart
         const restartKeys = [
           'polaris_auto_retry', 'enable_restapi', 'enable_socket', 'enable_discovery', 'enable_pilot', 'enable_synscan',
-          'alpaca_restapi_port', 'alpaca_socket_port', 'alpaca_discovery_port', 'alpaca_pilot_port', 'stellarium_synscan_port',
+          'alpaca_restapi_port', 'alpaca_socket_port', 'alpaca_discovery_port', 'alpaca_pilot_http_port', 'alpaca_pilot_https_port', 'stellarium_synscan_port',
         ]
         const updatedKeys = Object.keys(updated)
         const requiresRestart = updatedKeys.some(key => restartKeys.includes(key))

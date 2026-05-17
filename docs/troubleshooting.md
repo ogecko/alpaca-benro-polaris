@@ -82,7 +82,7 @@ This may be caused by HTTP.sys, a kernel-mode HTTP listener built into Windows t
 To change the Port used by Alpaca Pilot:
 * You can change the port used by Alpaca Pilot by changing config.toml line
   ```
-  alpaca_pilot_port = 80                     
+  alpaca_pilot_http_port = 80                     
   ```
 * Choose a free port like 8081. 
 * When using a browser to navigate to Alpaca pilot you will need to pass the new port number. For Example: http://hostname:8081

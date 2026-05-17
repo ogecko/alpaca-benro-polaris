@@ -70,8 +70,8 @@ pip install -r requirements.txt -c constraints.txt
 
 
 # 0. Update Alpaca Pilot port in config.toml
-echo "==SETUP== 6.Updating config.toml with 'alpaca_pilot_port = 8080' =="
-sudo sed -i 's/^alpaca_pilot_port = 80 .*/alpaca_pilot_port = 8080/' "$src_home/driver/config.toml"
+echo "==SETUP== 6.Updating config.toml with 'alpaca_pilot_http_port = 8080' =="
+sudo sed -i 's/^alpaca_pilot_http_port = 80 .*/alpaca_pilot_http_port = 8080/' "$src_home/driver/config.toml"
 
 
 SERVICE_FILE="/etc/systemd/system/polaris-driver.service"

@@ -9,11 +9,12 @@ enable_socket = true                        # Provide the Alpaca Pilot SocketIO 
 enable_discovery = true                     # Provide the Alpaca Discovery Service.
 enable_pilot = true                         # Provide the Alpaca Pilot Web Service.
 enable_synscan = true                       # Provide the SynSCAN/Stellarium API Service.
+enable_https = false                        # Serve WebServer/WebSockets/RestAPI over HTTPS/WSS, with self-signed certificate.
+alpaca_pilot_https_port = 443               # HTTPS port for the SPA when enable_https = true
+alpaca_pilot_http_port  = 80                # HTTP port for the SPA when enable_https = false
 alpaca_restapi_port = 5555                  # Port to expose Alpaca REST API Service on.
 alpaca_socket_port = 5556                   # Port to expose Alpaca Pilot SocketIO Service on.
 alpaca_discovery_port = 32227               # Port to expose Alpaca Discovery Service on.
-alpaca_pilot_port = 443                     # HTTPS port for the SPA
-alpaca_pilot_http_port  = 80                # HTTP redirect port
 stellarium_synscan_port = 10001             # Port to expose the Stellarium/SynSCAN Telescope Control Service on.
 stellarium_synscan_ip_address = ''          # IP Address to expose this StellariumSynSCAN Service on. Loopback='127.0.0.1', Any Address=''.
 alpaca_restapi_ip_address = ''              # IP Address to expose this Alpaca REST API Service on. Loopback='127.0.0.1', Any Address=''.

@@ -76,7 +76,7 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     * ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
     * ==SETUP== 3. Create a pyenv and add to ~/.bashrc.
     * ==SETUP== 4. Install the python dependencies needed for the application.
-    * ==SETUP== 5. Updating config.toml with 'alpaca_pilot_port = 8080'
+    * ==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080'
     * ==SETUP== 6. Set up [systemd] services to start the Polaris Driver at boot time
     * ==SETUP== 7. Starts the polaris-driver service.
 
@@ -427,7 +427,7 @@ This is done automatically in setup.sh, but if you did not use this method, then
 1. Update Web Server Port  
      Change the setting in the file  `driver/config.toml` to the following.
     ```driver/config.toml
-    alpaca_pilot_port = 8080
+    alpaca_pilot_http_port = 8080
     ```
 
 ### P6 - Optionally install build tools  

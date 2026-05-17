@@ -39,8 +39,8 @@
         </div>
         <!-- Rest Pilot Web Services -->
         <div class="row q-col-gutter-sm no-wrap">
-            <q-toggle class='col-8' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>
-            <q-input class="col-4" v-bind="bindField('alpaca_pilot_port', 'Port')"
+            <q-toggle class='col-8' v-bind="bindField('enable_pilot', 'Alpaca Pilot HTTP Webserver')"/>
+            <q-input class="col-4" v-bind="bindField('alpaca_pilot_http_port', 'Port')"
                 type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
                 <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
             </q-input>
