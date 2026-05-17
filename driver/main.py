@@ -125,7 +125,17 @@ def install_asyncio_exception_handler(lifecycle, logger):
         # Suppress known harmless h11 protocol errors on connection close
         if 'can\'t handle event type Response' in exc_str:
             return
-        if '_ProactorReadPipeTransport' in message and 'CLOSED' in exc_str:
+        
+        # Suppress Windows Proactor pipe/socket errors on abrupt client disconnect.
+        # WinError 10054 = ECONNRESET: browser dropped the TCP connection after a
+        # redirect or TLS handshake rejection — completely normal, not a driver fault.
+        # WinError 10053 = ECONNABORTED: similar aborted connection scenario.
+        # WinError 995  = ERROR_OPERATION_ABORTED: I/O cancelled when connection closes.
+        if '_ProactorBasePipeTransport' in message or '_ProactorReadPipeTransport' in message:
+            return
+        if 'WinError 10054' in exc_str or 'WinError 10053' in exc_str or 'WinError 995' in exc_str:
+            return
+        if 'CLOSED' in exc_str:
             return
             
         # Log everything else as a warning so it goes through our logging system
@@ -134,7 +144,6 @@ def install_asyncio_exception_handler(lifecycle, logger):
             logger.debug('==ASYNCIO== Exception detail:', exc_info=exception)
     
     lifecycle.loop.set_exception_handler(handle_exception)
-
 
 # ===================
 # RUN ALL TASKS

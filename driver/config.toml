@@ -12,7 +12,8 @@ enable_synscan = true                       # Provide the SynSCAN/Stellarium API
 alpaca_restapi_port = 5555                  # Port to expose Alpaca REST API Service on.
 alpaca_socket_port = 5556                   # Port to expose Alpaca Pilot SocketIO Service on.
 alpaca_discovery_port = 32227               # Port to expose Alpaca Discovery Service on.
-alpaca_pilot_port = 80                      # Port to expose Alpaca Pilot Web Service on.
+alpaca_pilot_port = 443                     # HTTPS port for the SPA
+alpaca_pilot_http_port  = 80                # HTTP redirect port
 stellarium_synscan_port = 10001             # Port to expose the Stellarium/SynSCAN Telescope Control Service on.
 stellarium_synscan_ip_address = ''          # IP Address to expose this StellariumSynSCAN Service on. Loopback='127.0.0.1', Any Address=''.
 alpaca_restapi_ip_address = ''              # IP Address to expose this Alpaca REST API Service on. Loopback='127.0.0.1', Any Address=''.
