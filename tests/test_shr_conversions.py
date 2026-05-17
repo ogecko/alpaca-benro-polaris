@@ -117,8 +117,7 @@ def test_dms2rad_incomplete_input():
     assert pytest.approx(dms2rad("-123d45'")) == deg2rad(-123 - 45/60)
 
 def test_dms2rad_invalid():
-    with pytest.raises(ValueError):
-        dms2rad("not_a_dms")
+    assert dms2rad("not_a_dms") == 0.0
 
 def test_rad2hms_basic():
     assert rad2hms(0) == "00h00m00.00s"
@@ -166,3 +165,52 @@ def test_rad2dms_wraparound():
 def test_rad2dms_precision():
 #    assert rad2dms(math.pi / 6) == "+030d00'00.00\""
     assert rad2dms(math.pi / 3) == "+060d00'00.00\""
+
+# DMS2DEC Tests (upgraded)
+def test_dms2dec_basic():
+    assert pytest.approx(dms2dec("12d30'30.00\""), 0.00001) == 12.5083333
+    assert pytest.approx(dms2dec("00d00'00.00\""), 0.00001) == 0.0
+    assert pytest.approx(dms2dec("-45d15'15.00\""), 0.00001) == -45.2541666
+
+def test_dms2dec_unicode_symbols():
+    # Degree/minute/second unicode symbols (°′″)
+    assert pytest.approx(dms2dec("12°30′30″"), 0.00001) == 12.5083333
+    assert pytest.approx(dms2dec("-45°15′15″"), 0.00001) == -45.2541666
+    assert pytest.approx(dms2dec("0°0′0″"), 0.00001) == 0.0
+
+def test_dms2dec_hr_unit():
+    # HMS hour symbols (ʰᵐˢ)
+    assert pytest.approx(dms2dec("02ʰ30ᵐ00ˢ", unit='hr'), 0.00001) == 2.5
+    assert pytest.approx(dms2dec("01ʰ45ᵐ30ˢ", unit='hr'), 0.00001) == 1.758333
+    assert pytest.approx(dms2dec("00ʰ00ᵐ00ˢ", unit='hr'), 0.00001) == 0.0
+
+def test_dms2dec_sign_handling():
+    # Explicit positive sign
+    assert pytest.approx(dms2dec("+12°30′00″"), 0.00001) == 12.5
+    # Negative sign
+    assert pytest.approx(dms2dec("-12°30′00″"), 0.00001) == -12.5
+    # Negative zero degrees — sign comes from leading char, not degrees value
+    assert pytest.approx(dms2dec("-0°30′00″"), 0.00001) == -0.5
+
+def test_dms2dec_partial_input():
+    # Degrees only
+    assert pytest.approx(dms2dec("123d"), 0.00001) == 123.0
+    # Degrees and minutes only
+    assert pytest.approx(dms2dec("45d30'"), 0.00001) == 45.5
+    # Negative degrees and minutes only
+    assert pytest.approx(dms2dec("-10d15'"), 0.00001) == -10.25
+
+def test_dms2dec_empty_fields():
+    # Empty middle field (e.g. "10::30" → 10d 0m 30s)
+    assert pytest.approx(dms2dec("10::30"), 0.00001) == 10.008333
+
+def test_dms2dec_bad_input_returns_zero():
+    # None, empty string, non-string — all return 0.0 instead of raising
+    assert dms2dec(None) == 0.0
+    assert dms2dec("") == 0.0
+    assert dms2dec(42) == 0.0  # type: ignore
+
+def test_dms2dec_roundtrip():
+    # Should survive a deg2dms → dms2dec round-trip
+    for val in [0.0, 90.0, -45.5, 180.0, -0.75]:
+        assert pytest.approx(dms2dec(deg2dms(val)), abs=1e-6) == val

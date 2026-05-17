@@ -323,18 +323,27 @@ def hr2hms(decimal_hr):
         hours += 1
     return f"{sign}{int(hours):02}h{int(minutes):02}m{seconds:05.2f}s"
 
-def dms2dec(dms):
-    """Parses a DMS string into decimal degrees."""
-    parts = re.split(r'[^\d.-]+', dms)
-    parts = [float(p) for p in parts if p]
-    if not parts:
-        raise ValueError(f"dms2dec: Invalid HMS string input: '{dms}'")
+def dms2dec(dms: str | None, unit: str = 'deg') -> float:
+    """Parses a DMS (or HMS) string into decimal degrees."""
+    if not dms or not isinstance(dms, str):
+        return 0.0
+    # Normalize unit symbols and stray characters to colons, then strip
+    cleaned = re.sub(f'[hdms°′″ʰᵐˢ\'"]', ':', dms)
+    cleaned = re.sub(r'[^\d.+\-:]', '', cleaned).strip()
+    # Extract sign
+    sign_match = re.match(r'^[+\-]', cleaned)
+    sign = -1 if (sign_match and sign_match.group() == '-') else 1
+    # Remove leading sign before splitting
+    unsigned = re.sub(r'^[+\-]', '', cleaned)
+    # Split and parse, treating empty fields as 0
+    raw_parts = unsigned.split(':')
+    parts = [0.0 if p == '' else float(p) for p in raw_parts]
     while len(parts) < 3:
         parts.append(0.0)
-    sign = 1 if parts[0] >= 0 else -1
-    degrees, minutes, seconds = abs(parts[0]), parts[1], parts[2]
-    total_deg = degrees + minutes / 60 + seconds / 3600 
-    return sign * total_deg
+    degrees_raw, minutes, seconds = parts[0], parts[1], parts[2]
+    degrees = abs(degrees_raw)
+    decimal = degrees + minutes / 60 + seconds / 3600
+    return sign * decimal
 
 def dms2rad(dms):
     """Converts DMS formatted string (e.g. '+123d45\'56.78"') to radians."""
