@@ -323,7 +323,7 @@ def hr2hms(decimal_hr):
         hours += 1
     return f"{sign}{int(hours):02}h{int(minutes):02}m{seconds:05.2f}s"
 
-def dms2dec(dms: str | None, unit: str = 'deg') -> float:
+def dms2dec(dms: str | None) -> float:
     """Parses a DMS (or HMS) string into decimal degrees."""
     if not dms or not isinstance(dms, str):
         return 0.0
