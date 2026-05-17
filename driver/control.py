@@ -948,9 +948,9 @@ class PID_Controller():
             sp.get("alt",  default[1]),
             sp.get("roll", default[2]),
         ]
+        self.alpha_sp[:] = alpha
         self.alpha2body(alpha)
         self.delta_sp[:] = self.body2delta()
-        self.alpha_sp[:] = alpha
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
@@ -963,6 +963,7 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
 
     def set_delta_target(self, sp: dict[str, float]):
+        """" Beware ra parameter is in hours, ra/dec changes keep pa constant """
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.reset_offsets()
@@ -974,6 +975,8 @@ class PID_Controller():
             sp.get("pa",  default[2]),
         ]
         self.delta_sp[:] = delta
+        self.delta2body(delta)
+        self.alpha_sp[:] = self.body2alpha()
         self.ff_inhibit_ticks = 2
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')

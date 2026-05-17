@@ -34,7 +34,7 @@ from threading import Lock
 from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
-from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
+from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
 from kinematics import clamparcsec
 from control import theta_to_q, q_to_theta, q_to_azaltroll
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
@@ -2121,6 +2121,60 @@ class Polaris:
                 self._slewing = any(self._axis_ASCOM_slewing_rates)
             if not (self._tracking and Config.advanced_control and Config.advanced_tracking):
                 await motor.set_motor_speed(rate, units)
+
+    def slew_axis(self, coords: dict, relative: bool = False) -> None:
+        """
+        Apply an absolute or relative slew using the advanced PID controller.
+        Alpha keys (az, alt, roll) are applied via set_alpha_target.
+        Delta keys (ra, dec, pa)   are applied via set_delta_target, ra in hours.
+        For relative moves, each value is added to the current PID setpoint.
+        """
+        if (not coords) or (not Config.advanced_goto):
+            self.logger.warning('slew_axis: invalid request, ignoring.')
+            return
+
+        AXES = {
+            #  key    space    idx  scale
+            'az':   ('alpha',  0,   1),
+            'alt':  ('alpha',  1,   1),
+            'roll': ('alpha',  2,   1),
+            'ra':   ('delta',  0,  15),   # ra stored as deg internally
+            'dec':  ('delta',  1,   1),
+            'pa':   ('delta',  2,   1),
+        }
+
+        alpha_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'alpha'}
+        delta_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'delta'}
+        self._sm.clear_sync_guiding()
+
+        if alpha_updates:
+            if relative:
+                alpha_updates = {k: self._pid.alpha_sp[AXES[k][1]] + v for k, v in alpha_updates.items()}
+            self._pid.set_alpha_target(alpha_updates)
+
+        if delta_updates:
+            if relative:
+                delta_updates = {k: self._pid.delta_sp[AXES[k][1]] / AXES[k][2] + v for k, v in delta_updates.items()}
+            self._pid.set_delta_target(delta_updates)
+
+        if alpha_updates or delta_updates:
+            self.markGotoAsUnderway()
+            self._pid.set_goto_complete_callback(self.markGotoAsComplete)
+
+
+    def parse_slew_parameters(self, parameters: dict) -> dict:
+        """
+        Parse a slew parameter dict whose values are either float/int (decimal degrees,
+        or hours for 'ra') or str (interpreted via dms2dec). Unrecognised keys are dropped.
+        """
+        VALID_KEYS = {'ra', 'dec', 'pa', 'az', 'alt', 'roll'}
+        def parse_val(key, val):
+            if isinstance(val, (int, float)): return float(val)
+            if isinstance(val, str): return dms2dec(val)
+            self.logger.warning(f'parse_slew_parameters: ignoring invalid value for {key}: {val!r}')
+
+        return {k: v for k, val in parameters.items()
+                if k in VALID_KEYS and (v := parse_val(k, val)) is not None}
 
     async def stop_all_axes(self):
         self._sm.clear_sync_guiding()

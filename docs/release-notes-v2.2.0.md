@@ -83,8 +83,10 @@
 ### New Features (enabled by Nina)
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
 - **[Device Actions]** Additional Device Actions added for Nina Advanced Sequencer
-    - **Polaris:RotateRelative** Adjusts the roll angle by a specified relative offset.
+    - **Polaris:SlewRelative** Slews any axis relative to current setpoint. All Optional Parameters {"ra":h, "dec":d, "pa":d, "az":d, "alt":d, "roll":d}
+    - **Polaris:SlewAbsolute** Slews any axis to new setpoint. All Optional Parameters {"ra":h, "dec":d, "pa":d, "az":d, "alt":d, "roll":d}
     - **Polaris:AbortSlew** Stops all axis motion, turns off tracking, unparks the mount.
+    - where: h=decimal hours, d=decimal degrees; h and d can also be strings with dms format eg "14:30:10" or "180d30m15s" or "90d30m"
 
 ### New Features (enabled by Stellarium)
 - **[Stellarium 26.1]** Improved ASCOM Telescope support, fixing stability, and improving ease of telescope selection. 

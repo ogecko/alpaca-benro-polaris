@@ -168,6 +168,7 @@ def test_rad2dms_precision():
 
 # DMS2DEC Tests (upgraded)
 def test_dms2dec_basic():
+    assert pytest.approx(dms2dec("12d15m49s"), 0.00001) == 12+15/60+49/3600
     assert pytest.approx(dms2dec("12d30'30.00\""), 0.00001) == 12.5083333
     assert pytest.approx(dms2dec("00d00'00.00\""), 0.00001) == 0.0
     assert pytest.approx(dms2dec("-45d15'15.00\""), 0.00001) == -45.2541666
