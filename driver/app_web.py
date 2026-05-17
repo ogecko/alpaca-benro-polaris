@@ -302,7 +302,7 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         http_cfg = uvicorn.Config(
             main_app,
             host=bind_host,
-            port=https_port,   # keep same port expectation
+            port=http_port,   # keep same port expectation
             log_level="error",
         )
         http_server = uvicorn.Server(http_cfg)
