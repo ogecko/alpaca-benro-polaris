@@ -2,6 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 from unittest.mock import patch
+from types import SimpleNamespace
 
 import numpy as np
 from control import SyncManager, quaternion_to_angles, azaltroll_to_q, q_to_azaltroll
@@ -17,26 +18,40 @@ import math
 
 @pytest.fixture
 def mock_config():
-    with patch('control.Config') as MockConfig:
-        defaults = {
-            "advanced_alignment":       True,
-            "advanced_align_lga":       False,
-            "advanced_align_mac":       False,
-            "advanced_control":         True,
-            "advanced_scc_enabled":     True,
-            "advanced_scc_choice":      0,
-            "log_quest_model":          False,
-            "pec_forgetting_factor":    0.98,
-            "pec_min_observations":     3,
-            "pec_max_step_arcmin":      0.5,
-            "pec_max_covariance":       0.01,
-            "pec_max_rmse_arcmin":      6.0,
-            "pec_max_resid_arcmin":     10.0,
-            "pec_min_r2":               0.5,
-        }
-        for key, value in defaults.items():
-            setattr(MockConfig, key, value)
-        yield MockConfig
+    defaults = {
+        "advanced_alignment":       True,
+        "advanced_align_lga":       False,
+        "advanced_align_mac":       False,
+        "advanced_control":         True,
+        "advanced_sync_guiding":    True,
+        "advanced_scc_enabled":     True,
+        "advanced_scc_choice":      0,
+        "log_quest_model":          False,
+        "pec_forgetting_factor":    0.98,
+        "pec_min_observations":     3,
+        "pec_max_step_arcmin":      0.5,
+        "pec_max_covariance":       0.01,
+        "pec_max_rmse_arcmin":      6.0,
+        "pec_max_resid_arcmin":     10.0,
+        "pec_forget_horiz":         35*60,
+        "pec_interv_alpha":         0.3,
+        "pec_min_r2":               0.5,
+        "m3_tilt_dm1":              0, 
+        "m3_tilt_dm2":              0, 
+        "m3_tilt_dm3":              0, 
+        "m2_tilt_dm2_amp":          0,
+        "m2_tilt_dm2_zero":         0, 
+        "m2_roll_coupling":         0, 
+        "m2_roll_zero":             0, 
+        "m1_offset":                0, 
+        "m2_offset":                0, 
+        "m3_offset":                0, 
+        
+    }
+    config_obj = SimpleNamespace(**defaults)
+
+    with patch('control.Config', config_obj):
+        yield config_obj
 
 class PID_Controller:
     def measure(self, alpha, theta):
