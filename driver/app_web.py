@@ -29,6 +29,7 @@ import mimetypes
 import aiofiles
 import asyncio
 import uvicorn
+import socket
 from falcon import asgi, HTTP_200, HTTP_301
 from config import Config
 from pathlib import Path
@@ -68,6 +69,47 @@ def _cert_needs_regeneration(cert_path: Path, key_path: Path) -> bool:
     except Exception:
         return True  # if we can't read it, regenerate
 
+def _get_local_ips() -> list:
+    ips = []
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None):
+            addr = info[4][0]
+            if not addr or not addr.strip():   
+                continue
+            try:
+                ip = ipaddress.IPv4Address(addr)
+                if not ip.is_loopback:
+                    ips.append(ip)
+            except ValueError:
+                pass
+    except Exception:
+        pass
+    return ips
+
+def _get_san_entries(host):
+    san_dns = ["localhost"]
+    san_ip  = [ipaddress.IPv4Address("127.0.0.1")]
+    # Add hostname and hostname.local for mDNS access
+    try:
+        hostname = socket.gethostname()
+        if hostname and hostname.strip():
+            san_dns.append(hostname)
+            san_dns.append(hostname.lower())
+            san_dns.append(f"{hostname}.local")
+            san_dns.append(f"{hostname.lower()}.local")
+    except Exception:
+        pass
+    # Add all current LAN IPs for direct IP access
+    for lan_ip in _get_local_ips():
+        if lan_ip not in san_ip:      san_ip.append(lan_ip)
+    # Add configured host if specific
+    if host and host.strip() and host not in ("0.0.0.0", "::"):
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip not in san_ip:      san_ip.append(ip)
+        except ValueError:
+            if host not in san_dns:   san_dns.append(host)    
+    return san_dns, san_ip
 
 def _generate_self_signed_cert(host: str, cert_path: Path, key_path: Path, logger) -> bool:
     """
@@ -104,23 +146,12 @@ def _generate_self_signed_cert(host: str, cert_path: Path, key_path: Path, logge
         ])
 
         # --- build SAN list ------------------------------------------------
-        # Include whatever address the driver is bound to plus sensible defaults
-        san_dns  = ["localhost"]
-        san_ip   = [ipaddress.IPv4Address("127.0.0.1")]
-
-        # Add the configured host if it looks like an IP, otherwise as a DNS name
-        if host not in ("0.0.0.0", "::"):
-            try:
-                san_ip.append(ipaddress.ip_address(host))
-            except ValueError:
-                san_dns.append(host)   # it's a hostname, not an IP
-
-        # If bound to 0.0.0.0 we can't know the LAN IP at cert-generation time,
-        # so we add the wildcard DNS fallback and a note in the log.
+        san_dns, san_ip = _get_san_entries(host)
         san_entries = (
             [x509.DNSName(d) for d in san_dns]
             + [x509.IPAddress(ip) for ip in san_ip]
         )
+
         # --- certificate ---
         now = datetime.datetime.now(datetime.timezone.utc)
         cert = (
@@ -152,9 +183,8 @@ def _generate_self_signed_cert(host: str, cert_path: Path, key_path: Path, logge
         except Exception as exc:
             logger.warning(f"==TLS== Could not set private key permissions: {exc}")
 
-        logger.info(
-            f"==STARTUP== TLS cert generated {cert_path}  "
-            f"(valid {CERT_VALIDITY_DAYS // 365} yrs, SANs: {san_dns + [str(i) for i in san_ip]})"
+        logger.info(f"==STARTUP== TLS cert generated {cert_path} (valid {CERT_VALIDITY_DAYS // 365} yrs)")
+        logger.info(f"==STARTUP== TLS SANs: {san_dns + [str(i) for i in san_ip]})"
         )
         return True
 
