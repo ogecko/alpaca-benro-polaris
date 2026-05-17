@@ -962,33 +962,19 @@ class PID_Controller():
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
-    def set_delta_target(self, delta):
+    def set_delta_target(self, sp: dict[str, float]):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets()      
-        self.target_type = "DELTA"
-        self.delta_sp = delta
-        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
-        if self.mode == 'IDLE':
-            self.set_pid_mode('AUTO')
-
-    def set_delta_axis_position(self, axis, sp=0.0):
-        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
-            return
-        self.delta_sp[axis] = sp
-        self.delta_v_sp[axis] = 0
-        self.delta_offst[axis] = 0
-        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
-        if self.mode == 'IDLE':
-            self.set_pid_mode('AUTO')
-        
-    def set_delta_axis_position_relative(self, axis, sp=0.0):
-        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
-            return
-        self.delta_sp[axis] = self.delta_sp[axis] + sp
-        self.delta_v_sp[axis] = 0
-        self.delta_offst[axis] = 0
-        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+        self.reset_offsets()
+        self.target_type = 'DELTA'
+        default = self.delta_sp
+        delta = [
+            sp.get("ra",  default[0] / 15) * 15,   # accept ra in hours, store as deg
+            sp.get("dec", default[1]),
+            sp.get("pa",  default[2]),
+        ]
+        self.delta_sp[:] = delta
+        self.ff_inhibit_ticks = 2
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
