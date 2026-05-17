@@ -146,8 +146,14 @@ def _generate_self_signed_cert(host: str, cert_path: Path, key_path: Path, logge
             )
         )
 
+        # --- restrict private key permissions ---
+        try:
+            TLS_KEY_PATH.chmod(0o600)
+        except Exception as exc:
+            logger.warning(f"==TLS== Could not set private key permissions: {exc}")
+
         logger.info(
-            f"==STARTUP== TLS cert generated → {cert_path}  "
+            f"==STARTUP== TLS cert generated {cert_path}  "
             f"(valid {CERT_VALIDITY_DAYS // 365} yrs, SANs: {san_dns + [str(i) for i in san_ip]})"
         )
         return True
