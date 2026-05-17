@@ -225,6 +225,22 @@ class HttpsRedirectResource:
         if req.query_string:
             resp.location += f'?{req.query_string}'
 
+class HttpRedirectResource:
+    """
+    Redirects HTTPS requests to plain HTTP on the configured HTTP port.
+    Used when enable_https=False so bookmarked https:// URLs still work.
+    """
+    def __init__(self, http_port: int):
+        self.http_port = http_port
+
+    async def on_get(self, req, resp, **kwargs):
+        host = req.host.split(':')[0]
+        port_suffix = '' if self.http_port == 80 else f':{self.http_port}'
+        resp.status = HTTP_301
+        resp.location = f'http://{host}{port_suffix}{req.path}'
+        if req.query_string:
+            resp.location += f'?{req.query_string}'
+
 
 # ---------------------------------------------------------------------------
 # MAIN HTTP/HTTPS ENGINE (FALCON ASGI + UVICORN)
@@ -270,45 +286,37 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
 
     if tls_ok:
         # HTTPS server for the Quasar SPA
-        https_cfg = uvicorn.Config(
-            main_app,
-            host=bind_host,
-            port=https_port,
-            ssl_certfile=str(TLS_CERT_PATH),
-            ssl_keyfile=str(TLS_KEY_PATH),
-            log_level="error",
-        )
+        https_cfg = uvicorn.Config(main_app, host=bind_host, port=https_port, ssl_certfile=str(TLS_CERT_PATH), ssl_keyfile=str(TLS_KEY_PATH), log_level="error")
         https_server = uvicorn.Server(https_cfg)
         servers_to_run.append(('HTTPS', https_server, https_port))
 
         # HTTP redirect server
         redirect_app = asgi.App()
         redirect_resource = HttpsRedirectResource(https_port)
-        # Register a sink so *every* path is caught (Falcon sink = catch-all)
         redirect_app.add_sink(redirect_resource.on_get, prefix='/')
-
-        http_cfg = uvicorn.Config(
-            redirect_app,
-            host=bind_host,
-            port=http_port,
-            log_level="error",
-        )
-        http_server = uvicorn.Server(http_cfg)
+        http_redirect_cfg = uvicorn.Config(redirect_app, host=bind_host, port=http_port, log_level="error" )
+        http_server = uvicorn.Server(http_redirect_cfg)
         servers_to_run.append(('HTTP-redirect', http_server, http_port))
-
         logger.info(f"==STARTUP== Serving Alpaca Pilot Web (HTTPS) on {bind_host}:{https_port} | (HTTP) redirect on {bind_host}:{http_port}")
         logger.warning("==STARTUP== Accept self-signed certificate warning on first visit — click 'Advanced > Proceed'")
+
     else:
-        http_cfg = uvicorn.Config(
-            main_app,
-            host=bind_host,
-            port=http_port,   # keep same port expectation
-            log_level="error",
-        )
+        # HTTP server for the Quasar SPA
+        http_cfg = uvicorn.Config(main_app, host=bind_host, port=http_port, log_level="error" )
         http_server = uvicorn.Server(http_cfg)
         servers_to_run.append(('HTTP', http_server, https_port))
 
+        # HTTPS redirect server
+        redirect_tls_ok = ensure_tls_cert(bind_host, logger)
+        if redirect_tls_ok:
+            redirect_app = asgi.App()
+            redirect_app.add_sink(HttpRedirectResource(http_port).on_get, prefix='/')
+            https_redirect_cfg = uvicorn.Config(redirect_app, host=bind_host, port=https_port, ssl_certfile=str(TLS_CERT_PATH), ssl_keyfile=str(TLS_KEY_PATH), log_level="error")
+            https_redirect_server = uvicorn.Server(https_redirect_cfg)
+            servers_to_run.append(('HTTPS-redirect', https_redirect_server, https_port))
+
         logger.info(f"==STARTUP== Serving Alpaca Pilot Web (HTTP) on {bind_host}:{https_port}")
+
 
     # --- Run all servers concurrently alongside lifecycle watcher -----------
     async def serve_all():
