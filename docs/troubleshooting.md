@@ -157,6 +157,20 @@ To reset the password of your Benro Polaris
 ### B7 - Where can I find the Benro Polaris manual?
 The user manual can be found at the following link - [Polaris User Manual English](https://resource.benro.com/assets/benro/manual/polaris/polaris_user_manual_en.pdf).
 
+### B8 - Single Star Alignment Will Not Complete
+If the **Single Star Alignment** does not complete successfully, the Polaris may be stuck in an unknown connection state. You can identify this by using the Alpaca Pilot Connect Page. Click on the **Skip** button next to **Single Star Alignment**. If the status momentarily turns green, then turns back to red, it is likely you have this problem. The following recovery steps may help clear the connection:
+1. Power-cycle the Polaris
+    * Turn the Polaris off.
+    * Wait at least 2 minutes.
+    * Turn the Polaris back on and retry the Single Star Alignment.
+2. Force a fresh network connection
+    * Change your Wi-Fi connection to the Polaris from automatic addressing to Manual IPv4.
+    * Use the following settings:
+        * IP Address: 192.168.0.5
+        * Subnet Mask: 255.255.255.0
+    * Reconnect and retry the alignment process.
+
+This forces the Polaris to establish a new clean connection, which may clear the stuck state.
 
 ## Alpaca Communications  Troubleshooting
 ### C0 - Cannot connect Win11 Computer or Laptop to Benro Polaris Wifi
