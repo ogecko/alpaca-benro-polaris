@@ -31,11 +31,17 @@ class AlpacaDiscoveryResponder:
     def __init__(self, logger: Logger):
         self.logger = logger
         self.running = False
-        self.response_to_send = json.dumps({"AlpacaPort": Config.alpaca_restapi_port}).encode()
         self.ipv4_rsock = None
         self.ipv6_rsock = None
         self.ipv4_tsock = None
         self.ipv6_tsock = None
+
+    @property
+    def _response(self):
+        return json.dumps({
+            "AlpacaPort": Config.alpaca_restapi_port,
+            "Https": Config.enable_https,
+        }).encode()
 
     # ------------------------------------------------------------------
     # Socket constructors
@@ -159,10 +165,10 @@ class AlpacaDiscoveryResponder:
             return
         if DISCOVERY_KEYWORD not in message:
             return
-        if Config.log_alpaca_discovery:
-            self.logger.info(f"{label} Discovery request from {addr}: {message!r}")
         try:
-            tsock.sendto(self.response_to_send, addr)
+            tsock.sendto(self._response, addr)
+            if Config.log_alpaca_discovery:
+                self.logger.info(f"{label} Discovery response sent to {addr}: {self._response!r}")
         except OSError as e:
             self.logger.warning(f"{label} Failed to send response to {addr}: {e}")
 
