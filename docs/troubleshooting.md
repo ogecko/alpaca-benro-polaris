@@ -176,6 +176,25 @@ This forces the Polaris to establish a new clean connection, which may clear the
 ### C0 - Cannot connect Win11 Computer or Laptop to Benro Polaris Wifi
 There appears to be an issue with some types of Wifi Adapters being able to conenct with the Benro Polaris Wifi. If you cannot get Win11 to form a connection with the polaris_XXXXX Wifi, you may want to try using a USB Wifi Adapter. The following adapter is known to connect with Benro Polaris, [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/). 
 
+You can use the Benro Polaris App to change the Band used by the Polaris to communicate. We recommend changing this to the 5Ghz band.
+1. Open the Benro Polaris App
+2. Click on Nearby Devices and Connect to your Polaris
+3. Click on the Mode button in the top right hand corner of the screen
+4. Click on the Home icon in the top right hand corner.
+5. Close the Select the device to be connected window (if it is open)
+6. Click on the Cog icon inside the blue circle
+7. Click on the Wifi Range menu
+8. Choose 5G.
+
+You can also change the TP-Link USB Wifi Adapter to only use the 5Ghz bands with the following procedure
+1. Open Windows Device Manager
+2. Under Network Adapters, double click on the TP-Link Wireless USB Adapter
+3. Change to the Advanced Tab
+4. Select the Wireless Mode Property
+5. Change the value to "IEEE 802.11 a/n/ac" 
+
+Forcing the TP-Link Adapter to only use the 5GHz band, can reduce a periodic network latency spike that is caused by WLAN AutoConfig Background Scanning. This is when Windows 11 momentarily diverts the adapter to scan for other frequencies, completely halting normal data communications and interfering with the Driver.
+
 ### C1a - Cannot see "`communications init... done`" in the log (Wi-Fi 2 not connected).
 * Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
 * Confirm the mini-PC has connected with the polaris-XXXXX hotspot using the second `Wi-Fi 2` or `Wi-Fi USB` adapter. It should look like the following:

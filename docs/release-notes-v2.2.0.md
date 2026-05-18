@@ -113,6 +113,7 @@
 - **[Pano Orbitals]**: Descrone how to capture the moon or other orbitals in a workflow (pilot.md, Section 4.4)
 - **[Troublshooting A6]**: How to troublshoot shortcut error messages on Windows
 - **[Troublshooting B8]**: Single Star Alignment Will Not Complete
+- **[Troublshooting C0]**: Improve communications reliability by reducing periodic network frequency scanning.
 - **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 
 ## Bug Fixes (from v2.1.0 version)
