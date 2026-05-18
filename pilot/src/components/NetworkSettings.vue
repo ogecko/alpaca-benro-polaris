@@ -39,8 +39,16 @@
         </div>
         <!-- Rest Pilot Web Services -->
         <div class="row q-col-gutter-sm no-wrap">
-            <q-toggle class='col-8' v-bind="bindField('enable_pilot', 'Alpaca Pilot HTTP Webserver')"/>
-            <q-input class="col-4" v-bind="bindField('alpaca_pilot_http_port', 'Port')"
+            <q-toggle class='col' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>
+            <q-space/>
+            <div class='content-center'>
+                <q-btn-toggle v-if="cfg.enable_pilot"
+                    v-bind="bindField('enable_https', '')"
+                    push rounded glossy toggle-color="primary"
+                    :options="[ { label: 'HTTP', value: false }, { label: 'HTTPS', value: true }, ]"
+                />
+            </div>
+            <q-input class="col-4" v-bind="bindField(cfg.enable_https?'alpaca_pilot_https_port':'alpaca_pilot_http_port', 'Port')"
                 type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
                 <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
             </q-input>

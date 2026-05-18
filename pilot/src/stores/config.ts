@@ -25,6 +25,7 @@ export const useConfigStore = defineStore('config', {
     alpaca_restapi_port: 5555,
     alpaca_socket_port: 5556,
     alpaca_discovery_port: 32227,
+    enable_https: false,
     alpaca_pilot_http_port: 80,
     alpaca_pilot_https_port: 433,
     stellarium_synscan_port: 10001,
