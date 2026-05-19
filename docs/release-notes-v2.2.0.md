@@ -68,13 +68,15 @@
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
 
 ## Utilities and Visualisation
-- **[FITS Extract]** Utility script to extract meta-data from plate-solved FITS images and calibrate Mechanical Correction Models (fits_extract.py)
 - **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.
+- **[FITS Extract]** Utility script to extract meta-data from plate-solved FITS images and calibrate Mechanical Correction Models (fits_extract.py)
 - **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
 - **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
+- **[HTTPS Support]**: Alpaca Pilot now support https, enabling location and clipboard services in the browser.
 
 ### Diagnostics and System
 - **[Heartbeat Diagnostics]**: Introduce a heartbeat monitor and additional telemetry statistics to assist in diagnosing late position updates.
+- **[Auto Reload]**: Alpaca Pilot will automatically reload when it detects it is on a different version or protocol than the Driver
 - **[IPv6 Discovery]**: Revamped IPv6 Alpaca Discovery for support on MacOS, Linux and Windows.
 - **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
 - **[Chart RMSError projection]** Apply cos(Dec) and cos(Alt) scaling to RA/Az RMS error to correct for polar projection effects.
