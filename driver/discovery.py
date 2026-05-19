@@ -40,7 +40,7 @@ class AlpacaDiscoveryResponder:
     def _response(self):
         return json.dumps({
             "AlpacaPort": Config.alpaca_restapi_port,
-            "Https": Config.enable_https,
+            "Https": Config.enable_rest_https,
         }).encode()
 
     # ------------------------------------------------------------------

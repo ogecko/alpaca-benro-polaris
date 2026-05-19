@@ -6,6 +6,7 @@ import os
 import mimetypes
 import aiofiles
 import asyncio
+import aiohttp
 import uvicorn
 import socket
 from falcon import asgi, HTTP_200, HTTP_301
@@ -316,7 +317,39 @@ class HttpRedirectResource:
         if req.query_string:
             resp.location += f'?{req.query_string}'
 
+class AlpacaProxyResource:
+    def __init__(self, api_base: str):
+        self.api_base = api_base
+        self._session: aiohttp.ClientSession = None
 
+    def _get_session(self):
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession(base_url=self.api_base)
+        return self._session
+
+    async def on_get(self, req, resp, path=''):
+        await self._proxy(req, resp, 'GET', path)
+
+    async def on_put(self, req, resp, path=''):
+        await self._proxy(req, resp, 'PUT', path)
+
+    async def on_options(self, req, resp, path=''):
+        resp.status = HTTP_200
+
+    async def _proxy(self, req, resp, method, path):
+        url = f'/{path}'
+        if req.query_string:
+            url += f'?{req.query_string}'
+        body = await req.bounded_stream.read() if method == 'PUT' else None
+        headers = {'Content-Type': req.content_type} if body else {}
+        try:
+            async with self._get_session().request(method, url, data=body, headers=headers) as r:
+                resp.status = str(r.status)
+                resp.content_type = r.headers.get('Content-Type', 'application/json')
+                resp.data = await r.read()
+        except aiohttp.ClientError as e:
+            resp.status = '502 Bad Gateway'
+            resp.media = {'error': str(e)}
 
 # ── MAIN HTTP/HTTPS ENGINE (FALCON ASGI + UVICORN) ─────────────────────────────────────────────────────────────
 
@@ -356,6 +389,10 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     main_app.add_route('/{path}',              QuasarStaticResource())
     main_app.add_route('/',                    QuasarStaticResource())
     main_app.add_route('/alpaca_pilot_ca.crt', CACertDownloadResource())
+    # --- Proxy the HTTPS REST API routes the main REST-API Falcon app/port -----------------
+    proxy = AlpacaProxyResource(f'http://localhost:{Config.alpaca_restapi_port}')
+    main_app.add_route('/proxy/{path:path}',      proxy)
+    main_app.add_route('/proxy',                  proxy)
 
     servers_to_run = []
 

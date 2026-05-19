@@ -284,8 +284,7 @@ export const useDeviceStore = defineStore('device', {
       const ClientTransactionID = this.alpacaClientTransactionID
       const isPut = body
       const isJSONContent = (isPut && body.Action && body.Action=='Polaris:ConfigUpdate')
-      const protocol = window.location.protocol; // 'https:' or 'http:'
-      const baseUrl = `${protocol}//${this.alpacaHost}:${this.restAPIPort}`;      
+      const baseUrl = `/proxy`;      
       const url = isPut ? `${baseUrl}/${resourcePath}` : `${baseUrl}/${resourcePath}?ClientID=${ClientID}&ClientTransactionID=${ClientTransactionID}`;
       const payload = isPut ? { ...body, ClientID, ClientTransactionID } : {}
       const options = {

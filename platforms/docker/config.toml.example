@@ -9,7 +9,8 @@ enable_socket = true                        # Provide the Alpaca Pilot SocketIO 
 enable_discovery = true                     # Provide the Alpaca Discovery Service.
 enable_pilot = true                         # Provide the Alpaca Pilot Web Service.
 enable_synscan = true                       # Provide the SynSCAN/Stellarium API Service.
-enable_https = false                        # Serve WebServer/WebSockets/RestAPI over HTTPS/WSS, with self-signed certificate.
+enable_rest_https = false                   # Serve Alpaca REST-API over HTTPS (requires Nina>Options>Equipment>ASCOM Alpaca Disover>Use HTTPS - On).
+enable_https = false                        # Serve Alpaca Pilot WebServer/WebSockets over HTTPS/WSS, with self-signed certificate.
 alpaca_pilot_https_port = 443               # HTTPS port for the SPA when enable_https = true
 alpaca_pilot_http_port  = 80                # HTTP port for the SPA when enable_https = false
 alpaca_restapi_port = 5555                  # Port to expose Alpaca REST API Service on.
