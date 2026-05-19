@@ -227,6 +227,55 @@ Additionally, this dialog allows you to modify the Driver’s behavior regarding
 
 ![Pilot connect](images/pilot-connectf.png)
 
+
+### G. Using Alpaca Pilot over HTTPS
+
+By default, Alpaca Pilot runs as an HTTP-based Single Page Application (SPA). As a result, your browser may display the site as **“Not Secure”** and restrict certain features such as location access and clipboard integration.
+
+Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser access and full functionality.
+
+#### Enable HTTPS in Alpaca Pilot
+
+1. Open the **Alpaca Pilot Connect** page.
+2. Open the **Network Services** dropdown.
+3. Select **HTTPS**, then click **Save**.
+4. The driver will automatically restart with HTTPS enabled.
+
+#### Download the CA Certificate
+
+1. Refresh your browser after the restart.
+2. Return to the **Network Services** dialog.
+3. Click **Download CA Certificate**.
+
+#### Install the CA Certificate on Windows
+
+1. Open the downloaded `alpaca_pilot_ca.crt` file.
+2. Click **Install Certificate**.
+3. Select **Local Machine**, then click **Next**.
+4. Choose **Place all certificates in the following store**, then click **Browse**.
+5. Select **Trusted Root Certification Authorities**, then click **OK**.
+6. Click **Next**, then **Finish**.
+
+#### Install the CA Certificate on macOS
+
+1. Open the downloaded `.crt` file — **Keychain Access** will launch automatically.
+2. Add the certificate to the **System** keychain.
+3. Locate `alpaca-pilot-ca` in the certificate list and double-click it.
+4. Expand the **Trust** section and set **When using this certificate** to **Always Trust**.
+5. Close the dialog and enter your password to confirm the changes.
+
+#### Restart Your Browser
+
+* **Chrome:** Navigate to `chrome://restart`
+* **Firefox:**
+
+  1. Open `about:config`
+  2. Search for `security.enterprise_roots.enabled`
+  3. Set the value to `true`
+  4. Restart Firefox
+
+
+
 <br>
 <br>
 
