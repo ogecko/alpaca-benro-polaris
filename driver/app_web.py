@@ -404,6 +404,7 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
 
     # --- TLS cert -----------------------------------------------------------
     tls_ok = Config.enable_https and ensure_tls_cert(bind_host, logger)
+    version_resource = VersionResource()
 
     # --- Build the main (HTTPS or fallback HTTP) Falcon app -----------------
     main_app = asgi.App()
@@ -412,7 +413,7 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     main_app.add_route('/{path}',              QuasarStaticResource())
     main_app.add_route('/',                    QuasarStaticResource())
     main_app.add_route('/alpaca_pilot_ca.crt', CACertDownloadResource())
-    main_app.add_route('/version',             VersionResource())
+    main_app.add_route('/version',             version_resource)
     # --- Forward the HTTPS/HTTP webserver /proxy routes to the main REST-API Falcon app/port -----------------
     proto = 'HTTPS' if Config.enable_rest_https else 'HTTP'
     proxy = AlpacaProxyResource(f'{proto}://localhost:{Config.alpaca_restapi_port}')
@@ -430,6 +431,7 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         # HTTP redirect server
         redirect_app = asgi.App()
         redirect_resource = HttpsRedirectResource(https_port)
+        redirect_app.add_route('/version',             version_resource)
         redirect_app.add_sink(redirect_resource.on_get, prefix='/')
         http_redirect_cfg = uvicorn.Config(redirect_app, host=bind_host, port=http_port, log_level="error" )
         http_server = uvicorn.Server(http_redirect_cfg)
@@ -446,6 +448,7 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         redirect_tls_ok = ensure_tls_cert(bind_host, logger)
         if redirect_tls_ok:
             redirect_app = asgi.App()
+            redirect_app.add_route('/version',             version_resource)
             redirect_app.add_sink(HttpRedirectResource(http_port).on_get, prefix='/')
             https_redirect_cfg = uvicorn.Config(redirect_app, host=bind_host, port=https_port, ssl_certfile=str(TLS_CERT_PATH), ssl_keyfile=str(TLS_KEY_PATH), log_level="error")
             https_redirect_server = uvicorn.Server(https_redirect_cfg)
