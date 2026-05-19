@@ -373,7 +373,6 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         http_server = uvicorn.Server(http_redirect_cfg)
         servers_to_run.append(('HTTP-redirect', http_server, http_port))
         logger.info(f"==STARTUP== Serving Alpaca Pilot Web (HTTPS) on {bind_host}:{https_port} | (HTTP) redirect on {bind_host}:{http_port}")
-        logger.warning("==STARTUP== Accept self-signed certificate warning on first visit — click 'Advanced > Proceed'")
 
     else:
         # HTTP server for the Quasar SPA
