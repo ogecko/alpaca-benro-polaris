@@ -7,6 +7,10 @@
         <div class="row">
             <div class="col text-caption text-grey-6 q-pb-md">
             The Alpaca Driver provides several network services for external aplications to use the Benro Polaris. Changes to Network Services require saving to take effect. 
+            <span v-if="cfg.enable_https">
+                <br>For HTTPS, after restart <a target="_blank" rel="noopener" href="/alpaca_pilot_ca.crt">Download CA Certificate</a>, 
+                and install using <a target="_blank" rel="noopener" href="https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/pilot.md#g-using-alpaca-pilot-over-https">Documentation</a>.           
+            </span>
             </div>
             <div class="q-gutter-md flex justify-end q-mr-md">
                 <div class="col-auto q-gutter-sm flex justify-end items-center">
@@ -14,6 +18,30 @@
                             @click="save" :disable="cfg.isSaving" :loading="cfg.isSaving" />
                 </div>
             </div>
+        </div>
+        <!-- Alpaca Pilot Web Services -->
+        <div class="row q-col-gutter-sm no-wrap">
+            <q-toggle class='col' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>
+            <q-space/>
+            <div class='content-center'>
+                <q-btn-toggle v-if="cfg.enable_pilot"
+                    v-bind="bindField('enable_https', '')"
+                    push rounded glossy toggle-color="primary"
+                    :options="[ { label: 'HTTP', value: false }, { label: 'HTTPS', value: true }, ]"
+                />
+            </div>
+            <q-input class="col-4" v-bind="bindField(cfg.enable_https?'alpaca_pilot_https_port':'alpaca_pilot_http_port', 'Port')"
+                type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
+                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
+            </q-input>
+        </div>
+        <!-- Alpaca Pilot Socket Services -->
+        <div class="row q-col-gutter-sm no-wrap">
+            <q-toggle class='col-8' v-bind="bindField('enable_socket', 'Alpaca Pilot Socket IO')"/>
+            <q-input class="col-4" v-bind="bindField('alpaca_socket_port', 'Port')"
+                type="number" input-class="text-right" :style="{ visibility: cfg.enable_socket ? 'visible' : 'hidden' }">
+                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
+            </q-input>
         </div>
         <!-- Rest API Services -->
         <div class="row q-col-gutter-sm no-wrap">
@@ -34,30 +62,6 @@
             <q-toggle class='col-8' v-bind="bindField('enable_discovery', 'Alpaca Discovery Service')"/>
             <q-input class="col-4" v-bind="bindField('alpaca_discovery_port', 'Port')"
                 type="number" input-class="text-right" :style="{ visibility: cfg.enable_discovery ? 'visible' : 'hidden' }">
-                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-            </q-input>
-        </div>
-        <!-- Rest Pilot Web Services -->
-        <div class="row q-col-gutter-sm no-wrap">
-            <q-toggle class='col' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>
-            <q-space/>
-            <div class='content-center'>
-                <q-btn-toggle v-if="cfg.enable_pilot"
-                    v-bind="bindField('enable_https', '')"
-                    push rounded glossy toggle-color="primary"
-                    :options="[ { label: 'HTTP', value: false }, { label: 'HTTPS', value: true }, ]"
-                />
-            </div>
-            <q-input class="col-4" v-bind="bindField(cfg.enable_https?'alpaca_pilot_https_port':'alpaca_pilot_http_port', 'Port')"
-                type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
-                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-            </q-input>
-        </div>
-        <!-- Rest Pilot Socket Services -->
-        <div class="row q-col-gutter-sm no-wrap">
-            <q-toggle class='col-8' v-bind="bindField('enable_socket', 'Alpaca Pilot Socket IO')"/>
-            <q-input class="col-4" v-bind="bindField('alpaca_socket_port', 'Port')"
-                type="number" input-class="text-right" :style="{ visibility: cfg.enable_socket ? 'visible' : 'hidden' }">
                 <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
             </q-input>
         </div>
