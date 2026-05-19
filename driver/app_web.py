@@ -15,7 +15,8 @@ from pathlib import Path
 from shr import LifecycleController
 import datetime
 import ipaddress
-
+import hashlib
+import time
 
 SCRIPT_DIR = Path(__file__).resolve().parent            # Get the path to the current script
 QUASAR_DIST = SCRIPT_DIR.parent / 'pilot' / 'dist' / 'spa'
@@ -26,9 +27,6 @@ TLS_KEY_PATH  = DATA_DIR / 'alpaca_pilot.key'      # server private key
 CA_CERT_PATH  = DATA_DIR / 'alpaca_pilot_ca.crt'   # CA cert only (for trust store install)
 CA_KEY_PATH   = DATA_DIR / 'alpaca_pilot_ca.key'   # CA private key
 
-# For Nina to use Alpaca RestAPI over HTTPS, set Nina>Options>Equipment>Alpaca Discover - Enable HTTPS
-# Also need to install Alpaca Pilot certificate on machine Nina is running on, using Admin Powershell eg.
-# Import-Certificate -FilePath .\alpaca_pilot.crt -CertStoreLocation Cert:\LocalMachine\Root
 
 # ── Low-level x509 helpers ─────────────────────────────────────────────────────────────
 def _new_rsa_key():
@@ -351,6 +349,31 @@ class AlpacaProxyResource:
             resp.status = '502 Bad Gateway'
             resp.media = {'error': str(e)}
 
+# ── Version Watchdog Falcon Resource ─────────────────────────────────────────────────────────────
+
+# Generated once at process startup — changes on every driver restart
+_BOOT_TOKEN = hex(int(time.time()))[2:]
+
+def _get_spa_hash() -> str:
+    """Hash the main SPA index.html to detect new builds."""
+    index = QUASAR_DIST / 'index.html'
+    try:
+        return hashlib.md5(index.read_bytes()).hexdigest()[:8]
+    except Exception:
+        return 'unknown'
+
+class VersionResource:
+    def __init__(self):
+        self._spa_hash = _get_spa_hash()
+
+    async def on_get(self, req, resp):
+        resp.media = {
+            'boot':  _BOOT_TOKEN,           # changes every restart
+            'https': Config.enable_https,   # True/False — triggers reload on protocol change
+            'spa':   self._spa_hash,        # changes every SPA rebuild → catches case 3
+        }
+
+
 # ── MAIN HTTP/HTTPS ENGINE (FALCON ASGI + UVICORN) ─────────────────────────────────────────────────────────────
 
 async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
@@ -389,6 +412,7 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     main_app.add_route('/{path}',              QuasarStaticResource())
     main_app.add_route('/',                    QuasarStaticResource())
     main_app.add_route('/alpaca_pilot_ca.crt', CACertDownloadResource())
+    main_app.add_route('/version',             VersionResource())
     # --- Forward the HTTPS/HTTP webserver /proxy routes to the main REST-API Falcon app/port -----------------
     proto = 'HTTPS' if Config.enable_rest_https else 'HTTP'
     proxy = AlpacaProxyResource(f'{proto}://localhost:{Config.alpaca_restapi_port}')

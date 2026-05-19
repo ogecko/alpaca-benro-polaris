@@ -84,6 +84,21 @@ export default defineConfig((/* ctx */) => {
       // https: true,
       historyApiFallback: true,
       open: false, // opens browser window automatically
+      proxy: {
+        '/proxy': {
+          target: 'http://nina01:5555',  // Falcon REST API port
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/proxy/, ''),
+        },
+        '/version': {
+          target: 'http://nina01:80',    // Falcon web server port
+          changeOrigin: true,
+        },
+        '/alpaca_pilot_ca.crt': {
+          target: 'http://nina01:80',
+          changeOrigin: true,
+        },
+      }
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

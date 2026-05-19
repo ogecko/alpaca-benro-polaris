@@ -141,6 +141,7 @@ import { useDeviceStore } from 'src/stores/device'
 import { useStreamStore } from 'src/stores/stream'
 import { debounce } from 'quasar'
 import { useCatalogStore } from 'src/stores/catalog'
+import { useVersionWatch } from 'src/composables/useVersionWatch'
 import { AppFullscreen } from 'quasar'
 import { useQuasar } from 'quasar'
 import type { RouteLocationRaw } from 'vue-router'
@@ -149,6 +150,7 @@ const $q = useQuasar()
 const dev = useDeviceStore()
 const p = useStatusStore()
 const socket = useStreamStore()
+const vw = useVersionWatch()
 const router = useRouter()
 const route = useRoute()
 const cat = useCatalogStore()
@@ -192,6 +194,7 @@ function onSearchFocus() {
 onMounted(() => {
   // socket.connectSocket()   //    connect whenever the socketURL or AppVisibility changes - see watch below
   // socket.subscribe('status')
+  vw.startVersionWatch()
 })
 
 onUnmounted(() => {
