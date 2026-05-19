@@ -12,7 +12,7 @@ import socket
 from falcon import asgi, HTTP_200, HTTP_301
 from config import Config
 from pathlib import Path
-from shr import LifecycleController
+from shr import LifecycleController, DeviceMetadata
 import datetime
 import ipaddress
 import hashlib
@@ -368,9 +368,10 @@ class VersionResource:
 
     async def on_get(self, req, resp):
         resp.media = {
-            'boot':  _BOOT_TOKEN,           # changes every restart
+            'boot':  _BOOT_TOKEN,           # changes every Driver restart
             'https': Config.enable_https,   # True/False — triggers reload on protocol change
-            'spa':   self._spa_hash,        # changes every SPA rebuild → catches case 3
+            'spa':   self._spa_hash,        # changes every Alpaca Pilot SPA rebuild 
+            'driver': DeviceMetadata.Version
         }
 
 
