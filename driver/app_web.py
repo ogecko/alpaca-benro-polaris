@@ -390,7 +390,7 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
             https_redirect_server = uvicorn.Server(https_redirect_cfg)
             servers_to_run.append(('HTTPS-redirect', https_redirect_server, https_port))
 
-        logger.info(f"==STARTUP== Serving Alpaca Pilot Web (HTTP) on {bind_host}:{https_port}")
+        logger.info(f"==STARTUP== Serving Alpaca Pilot Web (HTTP) on {bind_host}:{http_port}")
 
 
     # --- Run all servers concurrently alongside lifecycle watcher -----------
