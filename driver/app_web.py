@@ -389,10 +389,11 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     main_app.add_route('/{path}',              QuasarStaticResource())
     main_app.add_route('/',                    QuasarStaticResource())
     main_app.add_route('/alpaca_pilot_ca.crt', CACertDownloadResource())
-    # --- Proxy the HTTPS REST API routes the main REST-API Falcon app/port -----------------
-    proxy = AlpacaProxyResource(f'http://localhost:{Config.alpaca_restapi_port}')
-    main_app.add_route('/proxy/{path:path}',      proxy)
-    main_app.add_route('/proxy',                  proxy)
+    # --- Forward the HTTPS/HTTP webserver /proxy routes to the main REST-API Falcon app/port -----------------
+    proto = 'HTTPS' if Config.enable_rest_https else 'HTTP'
+    proxy = AlpacaProxyResource(f'{proto}://localhost:{Config.alpaca_restapi_port}')
+    main_app.add_route('/proxy/{path:path}',   proxy)
+    main_app.add_route('/proxy',               proxy)
 
     servers_to_run = []
 

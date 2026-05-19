@@ -35,9 +35,10 @@ def init_routes(app: App, devname: str, module):
 
 class RedirectResource:
     async def on_get(self, req, resp):
-        # Redirect to the HTTPS pilot port
+        # Redirect to the HTTP/HTTPS pilot port
+        proto = 'HTTPS' if Config.enable_https else 'HTTP'
         host = req.host.split(':')[0]
-        raise HTTPFound(f'https://{host}:{Config.alpaca_pilot_https_port}/?api={Config.alpaca_restapi_port}')
+        raise HTTPFound(f'{proto}://{host}:{Config.alpaca_pilot_https_port}/?api={Config.alpaca_restapi_port}&host={host}')
 
 
 async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
