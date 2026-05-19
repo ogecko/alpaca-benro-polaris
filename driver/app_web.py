@@ -14,41 +14,85 @@ from pathlib import Path
 from shr import LifecycleController
 import datetime
 import ipaddress
-import logging
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent            # Get the path to the current script
 QUASAR_DIST = SCRIPT_DIR.parent / 'pilot' / 'dist' / 'spa'
 DATA_DIR    = SCRIPT_DIR.parent / 'data'                # ../data relative to main.py location
 
-# TLS certificate/key paths (generated once, reused across runs)
-TLS_CERT_PATH = DATA_DIR / 'alpaca_pilot.crt'
-TLS_KEY_PATH  = DATA_DIR / 'alpaca_pilot.key'
-
-# How long the self-signed cert is valid for (10 years — nobody wants to redo this)
-CERT_VALIDITY_DAYS = 3650
+TLS_CERT_PATH = DATA_DIR / 'alpaca_pilot.crt'      # server cert + CA chain (for uvicorn)
+TLS_KEY_PATH  = DATA_DIR / 'alpaca_pilot.key'      # server private key
+CA_CERT_PATH  = DATA_DIR / 'alpaca_pilot_ca.crt'   # CA cert only (for trust store install)
+CA_KEY_PATH   = DATA_DIR / 'alpaca_pilot_ca.key'   # CA private key
 
 # For Nina to use Alpaca RestAPI over HTTPS, set Nina>Options>Equipment>Alpaca Discover - Enable HTTPS
 # Also need to install Alpaca Pilot certificate on machine Nina is running on, using Admin Powershell eg.
 # Import-Certificate -FilePath .\alpaca_pilot.crt -CertStoreLocation Cert:\LocalMachine\Root
 
-# ---------------------------------------------------------------------------
-# Certificate helpers
-# ---------------------------------------------------------------------------
+# ── Low-level x509 helpers ─────────────────────────────────────────────────────────────
+def _new_rsa_key():
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.backends import default_backend
+    return rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+ 
+ 
+def _make_name(common_name: str):
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID
+    return x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
+ 
+ 
+def _build_cert(*, subject, issuer, public_key, signing_key, days: int, extensions: list):
+    """
+    Build and sign an x509 certificate.
+    Args:
+        subject:     x509.Name for the subject
+        issuer:      x509.Name for the issuer (same as subject for self-signed CA)
+        public_key:  Public key to embed in the cert
+        signing_key: Private key used to sign (CA key for server cert, own key for CA)
+        days:        Validity period in days from now
+        extensions:  List of (extension_object, critical: bool) tuples
+    """
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.backends import default_backend
+ 
+    now     = datetime.datetime.now(datetime.timezone.utc)
+    builder = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(public_key)
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=days))
+    )
+    for ext, critical in extensions:
+        builder = builder.add_extension(ext, critical=critical)
+    return builder.sign(signing_key, hashes.SHA256(), default_backend())
+ 
+ 
+def _pem_key(key) -> bytes:
+    from cryptography.hazmat.primitives import serialization
+    return key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    ) 
+ 
+def _pem_cert(cert) -> bytes:
+    from cryptography.hazmat.primitives import serialization
+    return cert.public_bytes(serialization.Encoding.PEM)
 
-def _cert_needs_regeneration(cert_path: Path, key_path: Path) -> bool:
-    """Return True if cert/key are missing OR the cert expires within 30 days."""
-    if not cert_path.is_file() or not key_path.is_file():
-        return True
+def _chmod(path: Path, mode: int):
+    """Best-effort permission set — silently ignored on Windows."""
     try:
-        from cryptography import x509
-        from cryptography.hazmat.backends import default_backend
-        pem = cert_path.read_bytes()
-        cert = x509.load_pem_x509_certificate(pem, default_backend())
-        # naive datetime comparison — both are UTC
-        remaining = cert.not_valid_after_utc - datetime.datetime.now(datetime.timezone.utc)
-        return remaining.days < 30
+        path.chmod(mode)
     except Exception:
-        return True  # if we can't read it, regenerate
+        pass
+
+
+# ── SAN / network helpers ─────────────────────────────────────────────────────────────
 
 def _get_local_ips() -> list:
     ips = []
@@ -67,138 +111,152 @@ def _get_local_ips() -> list:
         pass
     return ips
 
-def _get_san_entries(host):
+def _build_san_entries(host: str):
     san_dns = ["localhost"]
     san_ip  = [ipaddress.IPv4Address("127.0.0.1")]
     # Add hostname and hostname.local for mDNS access
     try:
-        hostname = socket.gethostname()
-        if hostname and hostname.strip():
-            san_dns.append(hostname)
-            san_dns.append(hostname.lower())
-            san_dns.append(f"{hostname}.local")
-            san_dns.append(f"{hostname.lower()}.local")
+        hostname = socket.gethostname().strip()
+        for name in [f"{hostname}", f"{hostname.lower()}", f"{hostname}.local", f"{hostname.lower()}.local"]:
+            if name and name not in san_dns:    san_dns.append(name)
     except Exception:
         pass
     # Add all current LAN IPs for direct IP access
     for lan_ip in _get_local_ips():
-        if lan_ip not in san_ip:      san_ip.append(lan_ip)
+        if lan_ip not in san_ip:                san_ip.append(lan_ip)
     # Add configured host if specific
     if host and host.strip() and host not in ("0.0.0.0", "::"):
         try:
             ip = ipaddress.ip_address(host)
-            if ip not in san_ip:      san_ip.append(ip)
+            if ip not in san_ip:                san_ip.append(ip)
         except ValueError:
-            if host not in san_dns:   san_dns.append(host)    
+            if host not in san_dns:             san_dns.append(host)    
     return san_dns, san_ip
 
-def _generate_self_signed_cert(host: str, cert_path: Path, key_path: Path, logger) -> bool:
+# ── Certificate generation ─────────────────────────────────────────────────────────────
+
+def _load_or_generate_ca_cert(logger):
     """
-    Generate a self-signed TLS certificate and private key, saving them to
-    cert_path / key_path.  Works on Windows, macOS, and Linux with Python 3.9+
-    as long as the 'cryptography' package is installed (pip install cryptography).
-
-    Subject Alternative Names include:
-      - The configured host/IP so the cert matches the server address.
-      - localhost / 127.0.0.1 so local loopback always works too.
-
-    Returns True on success, False on any error.
+    Load the existing CA cert+key from disk, or generate a new one if missing
+    or unreadable. The CA is long-lived (10 yrs) and must remain stable —
+    users install it into their trust store once and it should never change.
+    Returns (ca_cert, ca_key, ca_name).
     """
-    try:
-        from cryptography import x509
-        from cryptography.x509.oid import NameOID
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import rsa
-        from cryptography.hazmat.backends import default_backend
+    from cryptography import x509
+    from cryptography.hazmat.backends import default_backend
+    from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
-        # --- private key ---
-        key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend(),
-        )
-
-        # --- subject / issuer ---
-        # COMMON_NAME must be 1-64 chars; browsers ignore it in favour of SANs
-        # anyway, so we use a fixed safe string rather than the bind address
-        # (which may be "0.0.0.0" or empty).
-        subject = issuer = x509.Name([
-            x509.NameAttribute(NameOID.COMMON_NAME, "alpaca-pilot"),
-        ])
-
-        # --- build SAN list ------------------------------------------------
-        san_dns, san_ip = _get_san_entries(host)
-        san_entries = (
-            [x509.DNSName(d) for d in san_dns]
-            + [x509.IPAddress(ip) for ip in san_ip]
-        )
-
-        # --- certificate ---
-        now = datetime.datetime.now(datetime.timezone.utc)
-        cert = (
-            x509.CertificateBuilder()
-            .subject_name(subject)
-            .issuer_name(issuer)
-            .public_key(key.public_key())
-            .serial_number(x509.random_serial_number())
-            .not_valid_before(now)
-            .not_valid_after(now + datetime.timedelta(days=CERT_VALIDITY_DAYS))
-            .add_extension(x509.SubjectAlternativeName(san_entries), critical=False)
-            .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
-            .sign(key, hashes.SHA256(), default_backend())
-        )
-
-        # --- persist to disk ---
-        cert_path.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
-        key_path.write_bytes(
-            key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.NoEncryption(),
-            )
-        )
-
-        # --- restrict private key permissions ---
+    if CA_CERT_PATH.is_file() and CA_KEY_PATH.is_file():
         try:
-            TLS_KEY_PATH.chmod(0o600)
+            ca_cert = x509.load_pem_x509_certificate(CA_CERT_PATH.read_bytes(), default_backend())
+            ca_key  = load_pem_private_key(CA_KEY_PATH.read_bytes(), password=None, backend=default_backend())
+            remaining = ca_cert.not_valid_after_utc - datetime.datetime.now(datetime.timezone.utc)
+            if remaining.days > 30:
+                return ca_cert, ca_key, ca_cert.subject
         except Exception as exc:
-            logger.warning(f"==TLS== Could not set private key permissions: {exc}")
+            pass
+    # Generate new CA
+    ca_key  = _new_rsa_key()
+    ca_name = _make_name("alpaca-pilot-ca")
+    ca_cert = _build_cert(
+        subject=ca_name, issuer=ca_name,
+        public_key=ca_key.public_key(), signing_key=ca_key,
+        days=3650,
+        extensions=[
+            (x509.BasicConstraints(ca=True, path_length=0), True),
+            (x509.KeyUsage(
+                digital_signature=False,  key_cert_sign=True,  crl_sign=True,
+                content_commitment=False, key_encipherment=False,
+                data_encipherment=False,  key_agreement=False,
+                encipher_only=False,      decipher_only=False,
+            ), True),
+            (x509.SubjectKeyIdentifier.from_public_key(ca_key.public_key()), False),
+        ],
+    )
+    CA_CERT_PATH.write_bytes(_pem_cert(ca_cert))
+    CA_KEY_PATH.write_bytes(_pem_key(ca_key))
+    _chmod(CA_CERT_PATH,0o644)
+    _chmod(CA_KEY_PATH, 0o600)
+    logger.info(f"==STARTUP== CA certificate generated {CA_CERT_PATH}")
+    logger.info(f"==STARTUP== Install CA cert into browser/OS trust store: {CA_CERT_PATH}")
+    return ca_cert, ca_key, ca_name 
 
-        logger.info(f"==STARTUP== TLS cert generated {cert_path} (valid {CERT_VALIDITY_DAYS // 365} yrs)")
-        logger.info(f"==STARTUP== TLS SANs: {san_dns + [str(i) for i in san_ip]})"
+def _load_or_generate_server_cert(host: str, ca_cert, ca_key, ca_name, logger) -> bool:
+    """
+    Load the existing server cert if still valid, or generate a new one signed
+    by the given CA. Short-lived (397 days — Chrome's maximum).
+    Returns True if a usable cert/key pair is available.
+    """
+    from cryptography import x509
+    from cryptography.hazmat.backends import default_backend
+    if TLS_CERT_PATH.is_file() and TLS_KEY_PATH.is_file():
+        try:
+            pem = TLS_CERT_PATH.read_bytes()
+            cert = x509.load_pem_x509_certificate(pem, default_backend())
+            remaining = cert.not_valid_after_utc - datetime.datetime.now(datetime.timezone.utc)
+            if remaining.days > 30:
+                return True
+        except Exception:
+            pass
+    # Generate new Server Cert
+    try:
+        san_dns, san_ip = _build_san_entries(host)
+        san_ext = x509.SubjectAlternativeName(
+            [x509.DNSName(d) for d in san_dns] + [x509.IPAddress(ip) for ip in san_ip]
         )
+        server_key  = _new_rsa_key()
+        server_cert = _build_cert(
+            subject=_make_name("alpaca-pilot"), issuer=ca_name,
+            public_key=server_key.public_key(), signing_key=ca_key,
+            days=397,
+            extensions=[
+                (san_ext,                                                                 False),
+                (x509.BasicConstraints(ca=False, path_length=None),                       True),
+                (x509.KeyUsage(
+                    digital_signature=True,  key_encipherment=True,
+                    content_commitment=False, data_encipherment=False,
+                    key_agreement=False,     key_cert_sign=False,
+                    crl_sign=False,          encipher_only=False, decipher_only=False,
+                ), True),
+                (x509.ExtendedKeyUsage([x509.ExtendedKeyUsageOID.SERVER_AUTH]),            False),
+                (x509.SubjectKeyIdentifier.from_public_key(server_key.public_key()),       False),
+                (x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()),  False),
+            ],
+        )
+        TLS_CERT_PATH.write_bytes(_pem_cert(server_cert) + _pem_cert(ca_cert))
+        TLS_KEY_PATH.write_bytes(_pem_key(server_key))
+        _chmod(TLS_CERT_PATH, 0o644)
+        _chmod(TLS_KEY_PATH,  0o600)
+        logger.info(f"==STARTUP== Server cert generated {TLS_CERT_PATH} (397 days)")
+        logger.info(f"==STARTUP== TLS SANs: {san_dns + [str(i) for i in san_ip]}")
         return True
-
-    except ImportError:
-        logger.error(
-            "==TLS== 'cryptography' package not found. "
-            "Install it with:  pip install cryptography\n"
-            "HTTPS will not be available; falling back to HTTP."
-        )
-        return False
     except Exception as exc:
-        logger.exception(f"==TLS== Failed to generate self-signed certificate: {exc}")
+        logger.exception(f"==TLS== Failed to generate server certificate: {exc}")
         return False
-
 
 def ensure_tls_cert(host: str, logger) -> bool:
     """
-    Ensure a valid TLS certificate exists in DATA_DIR.
-    Creates the data directory if needed, regenerates the cert if missing or
-    expiring soon.  Returns True if a usable cert/key pair is available.
+    Ensure a valid CA + server certificate pair exists in DATA_DIR.
+      CA cert     — loaded if present, generated once if not (stable for trust store)
+      Server cert — loaded if valid, regenerated when missing or expiring within 30 days
+    Returns True if a usable cert/key pair is available.
     """
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    ca_cert, ca_key, ca_name = _load_or_generate_ca_cert(logger)
+    success = _load_or_generate_server_cert(host, ca_cert, ca_key, ca_name, logger)
+    return success
 
-    if _cert_needs_regeneration(TLS_CERT_PATH, TLS_KEY_PATH):
-        logger.info("==STARTUP== Generating self-signed TLS certificate for HTTPS…")
-        return _generate_self_signed_cert(host, TLS_CERT_PATH, TLS_KEY_PATH, logger)
+# ── Falcon resources ─────────────────────────────────────────────────────────────
 
-    return True
-
-
-# ---------------------------------------------------------------------------
-# Falcon resources
-# ---------------------------------------------------------------------------
+class CACertDownloadResource:
+    async def on_get(self, req, resp):
+        if not CA_CERT_PATH.is_file():
+            resp.status = '404 Not Found'
+            return
+        resp.content_type = 'application/x-x509-ca-cert'
+        resp.set_header('Content-Disposition', 'attachment; filename="alpaca_pilot_ca.crt"')
+        async with aiofiles.open(CA_CERT_PATH, 'rb') as f:
+            resp.data = await f.read()
 
 class QuasarStaticResource:
     async def on_get(self, req, resp, path=None):
@@ -259,9 +317,8 @@ class HttpRedirectResource:
             resp.location += f'?{req.query_string}'
 
 
-# ---------------------------------------------------------------------------
-# MAIN HTTP/HTTPS ENGINE (FALCON ASGI + UVICORN)
-# ---------------------------------------------------------------------------
+
+# ── MAIN HTTP/HTTPS ENGINE (FALCON ASGI + UVICORN) ─────────────────────────────────────────────────────────────
 
 async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     """
@@ -294,10 +351,11 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
 
     # --- Build the main (HTTPS or fallback HTTP) Falcon app -----------------
     main_app = asgi.App()
-    main_app.add_route('/icons/{filename}',  AsyncStaticResource(QUASAR_DIST / 'icons'))
-    main_app.add_route('/assets/{filename}', AsyncStaticResource(QUASAR_DIST / 'assets'))
-    main_app.add_route('/{path}',            QuasarStaticResource())
-    main_app.add_route('/',                  QuasarStaticResource())
+    main_app.add_route('/icons/{filename}',    AsyncStaticResource(QUASAR_DIST / 'icons'))
+    main_app.add_route('/assets/{filename}',   AsyncStaticResource(QUASAR_DIST / 'assets'))
+    main_app.add_route('/{path}',              QuasarStaticResource())
+    main_app.add_route('/',                    QuasarStaticResource())
+    main_app.add_route('/alpaca_pilot_ca.crt', CACertDownloadResource())
 
     servers_to_run = []
 

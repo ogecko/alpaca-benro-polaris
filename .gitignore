@@ -15,8 +15,8 @@ speed_testdata.json
 sync_points.json
 catalog.json
 config.*.json
-alpaca_pilot.crt
-alpaca_pilot.key
+alpaca_pilot*.crt
+alpaca_pilot*.key
 *_extract.csv
 *_extract.txt
 *_model.txt
