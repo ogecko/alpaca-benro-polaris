@@ -364,13 +364,15 @@ def _get_spa_hash() -> str:
 
 class VersionResource:
     def __init__(self):
-        self._spa_hash = _get_spa_hash()
+        # capture once at Driver start/Resource initialisation
+        self._boot_token = hex(int(time.time()))[2:]    # changes every Driver restart
+        self._https_active = Config.enable_https        # capture state when Driver starts and becomes active
 
     async def on_get(self, req, resp):
         resp.media = {
-            'boot':  _BOOT_TOKEN,           # changes every Driver restart
-            'https': Config.enable_https,   # True/False — triggers reload on protocol change
-            'spa':   self._spa_hash,        # changes every Alpaca Pilot SPA rebuild 
+            'boot':  self._boot_token,
+            'https': self._https_active,
+            'spa':   _get_spa_hash(),                   # changes every Alpaca Pilot SPA rebuild
             'driver': DeviceMetadata.Version
         }
 
