@@ -23,13 +23,13 @@
 - [X] Motion Planning - Fix Gimbal lock oscillation at Az 292, Alt 0, Roll 2, improving estimate for theta3 by using zeta3
 - [X] Slew and Center - fix Sync Guiding Seeding
 - [X] Actions - Add SlewAbsolute and SlewRelative to enable Advanced Sequence of MPA alignment around RA axis. 
+- [X] Pilot Web Server - HTTPS so that Copy Clipboard and Map Locate work in Browser
+- [X] Documentation - note about 5Ghz band
+- [X] Documentation - note about TPLine frequency scan causing comms latency
+- [X] Dependancies - Update compatibility with Stellarium Desktop 26.1 maybe 26.2 (if its released on time)
 - [ ] Motion Planning - Fix Gimbal lock oscillation when passing from Alt 10 through Alt 0 (Gimbal Lock) to Alt -10, ensuring PID flips theta3 at correct time
 - [ ] Connection - why does changing IP address allow connection to proceed?
-- [ ] Documentation - note about 5Ghz band
-- [ ] Documentation - note about HIGH CPU Breakdown: MsMpEng.exe 23.3% and excluding folders from Microsoft Defender AntiVirus
-- [ ] Pilot Web Server - HTTPS so that Copy Clipboard and Map Locate work in Browser
 - [ ] Dependancies - Upgrade dependant libraries on Node and Python
-- [ ] Dependancies - Update compatibility with Stellarium Desktop 26.1 maybe 26.2 (if its released on time)
 - [ ] Create video of new features 
     - Install
         - New requirements.txt and pip install
