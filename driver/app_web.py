@@ -351,30 +351,32 @@ class AlpacaProxyResource:
 
 # ── Version Watchdog Falcon Resource ─────────────────────────────────────────────────────────────
 
-# Generated once at process startup — changes on every driver restart
-_BOOT_TOKEN = hex(int(time.time()))[2:]
-
-def _get_spa_hash() -> str:
-    """Hash the main SPA index.html to detect new builds."""
-    index = QUASAR_DIST / 'index.html'
-    try:
-        return hashlib.md5(index.read_bytes()).hexdigest()[:8]
-    except Exception:
-        return 'unknown'
-
 class VersionResource:
     def __init__(self):
         # capture once at Driver start/Resource initialisation
         self._boot_token = hex(int(time.time()))[2:]    # changes every Driver restart
         self._https_active = Config.enable_https        # capture state when Driver starts and becomes active
+        self._spa_hash_cached = None                    # changes every Alpaca Pilot SPA rebuild
+        self._spa_hash_cached = self._get_spa_hash()    # cache in case index.html is temporarily deleted during a rebuild
+        self._index_path = QUASAR_DIST / 'index.html'
+
+    def _get_spa_hash(self) -> str:
+        """Hash the main SPA index.html to detect new builds."""
+        try:
+            if self._index_path.is_file():
+                self._spa_hash_cached = hashlib.md5(self._index_path.read_bytes()).hexdigest()[:8]
+        except Exception:
+            pass
+        return self._spa_hash_cached or 'unknown'
 
     async def on_get(self, req, resp):
         resp.media = {
             'boot':  self._boot_token,
             'https': self._https_active,
-            'spa':   _get_spa_hash(),                   # changes every Alpaca Pilot SPA rebuild
+            'spa':   self._get_spa_hash(),                   
             'driver': DeviceMetadata.Version
         }
+
 
 
 # ── MAIN HTTP/HTTPS ENGINE (FALCON ASGI + UVICORN) ─────────────────────────────────────────────────────────────
