@@ -2352,10 +2352,12 @@ class SyncManager:
         if Config.log_pec:
             pv = self.polaris._pid.alpha_pv
             accum = self.delta_guide_accum
+            ra_log  = ra_resid_deg  * 60 if ra_resid_deg  is not None else float('nan')
+            dec_log = dec_resid_deg * 60 if dec_resid_deg is not None else float('nan')
             # PECLOG, Az_deg, Alt_deg, Roll_deg, RA_accum_', Dec_accum_', RA_guide_', Dec_guide_', RA_pecrate_'/min, Dec_pecrate_'/min , RA_inh, Dec_inh
             msg = f"PECLOG, {pv[0]:+.5f}, {pv[1]:+.5f}, {pv[2]:+.5f},    "
             msg += f"{accum[0]*60:+.5f}, {accum[1]*60:+.5f},     "
-            msg += f"{ra_resid_deg*60:+.5f}, {dec_resid_deg*60:+.5f},     "
+            msg += f"{ra_log:+.5f}, {dec_log:+.5f},     "
             msg += f"{ra.theta*3600:+.5f}, {dec.theta*3600:+.5f},     "
             msg += f"{ra.inhibit.name}, {dec.inhibit.name}"
             self.logger.info(msg)
