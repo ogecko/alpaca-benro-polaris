@@ -2282,7 +2282,7 @@ class SyncManager:
         self._pec_forget_horz = getattr(Config, 'pec_forget_horizon_sec',  15*60)         # 15 min to track reversals of 35min PEC cycle
 
         self._pec_interv_alpha= 0.3           # EMA factor for _pec_interval estimate
-        self._pec_rmse_alpha  = 0.05          # EMA factor for rmse estimate
+        self._pec_rmse_alpha  = 0.15          # EMA factor for rmse estimate
         self._pec_active      = False
 
 
