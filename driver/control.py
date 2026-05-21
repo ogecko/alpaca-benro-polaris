@@ -2282,7 +2282,8 @@ class SyncManager:
         self._pec_forget_horz = getattr(Config, 'pec_forget_horizon_sec',  15*60)         # 15 min to track reversals of 35min PEC cycle
 
         self._pec_interv_alpha= 0.3           # EMA factor for _pec_interval estimate
-        self._pec_rmse_alpha  = 0.15          # EMA factor for rmse estimate
+        self._pec_var_alpha  = 0.05           # EMA factor for var estimate, more stable R2
+        self._pec_sse_alpha  = 0.15           # EMA factor for sse estimate, faster tracking decay
         self._pec_active      = False
 
 
@@ -2336,9 +2337,9 @@ class SyncManager:
         if t < 1e-6: return
 
         if not ra_skip:
-            ra.update(self._pec_lambda, self._pec_rmse_alpha, t, ra.cumul - ra.ref)
+            ra.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, t, ra.cumul - ra.ref)
         if not dec_skip:
-            dec.update(self._pec_lambda, self._pec_rmse_alpha, t, dec.cumul - dec.ref)
+            dec.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, t, dec.cumul - dec.ref)
 
         self._pec_n += 1
 
@@ -2449,10 +2450,10 @@ class PecAxis:
     def rmse_arcmin(self):
         return math.sqrt(self.sse) * 60
 
-    def update(self, lam, alpha, t, y):
+    def update(self, lam, var_alpha, sse_alpha, t, y):
         err        = y - self.theta * t
-        self.var   = alpha * y   * y   + (1 - alpha) * self.var
-        self.sse   = alpha * err * err + (1 - alpha) * self.sse
+        self.var   = var_alpha * y   * y   + (1 - var_alpha) * self.var
+        self.sse   = sse_alpha * err * err + (1 - sse_alpha) * self.sse
         gain       = self.P * t / (lam + self.P * t * t)
         self.theta += gain * (y - self.theta * t)
         self.P      = (1.0 - gain * t) * self.P / lam
