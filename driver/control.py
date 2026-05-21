@@ -2208,7 +2208,7 @@ class SyncManager:
         self.valid_sync_guide = True
 
     def accumulate_sync_guiding_residuals(self, ra_resid, dec_resid):
-        """ Accumulate residuals in decimal degrees, as well as a corresponding corection quaternion"""
+        """ Accumulate residuals in decimal degrees, as well as a corresponding corection quaternion """
         ra_axis_B, dec_axis_B, _ = self.equatorial_axes_B
         q_ra_corr  = Quaternion(axis=ra_axis_B,  degrees= ra_resid)
         q_dec_corr = Quaternion(axis=dec_axis_B, degrees= dec_resid)
@@ -2304,6 +2304,12 @@ class SyncManager:
             self._pec_lambda = max(0.5, min(0.99999, 1.0 - self._pec_interval / self._pec_forget_horz))
 
     def update_pec_model(self, ra_resid_deg, dec_resid_deg):
+        """
+        Ingest a guide correction.
+        ra_resid_deg:  RA residual in degrees (None if not applicable this update)
+        dec_resid_deg: Dec residual in degrees (None if not applicable this update)
+        Internally: cumul/ref/applied all in degrees; theta in degrees/second.
+        """
         now = time.monotonic()
         ra, dec = self._pec_ra, self._pec_dec
 
@@ -2352,12 +2358,12 @@ class SyncManager:
         if Config.log_pec:
             pv = self.polaris._pid.alpha_pv
             accum = self.delta_guide_accum
-            ra_log  = ra_resid_deg  * 60 if ra_resid_deg  is not None else float('nan')
-            dec_log = dec_resid_deg * 60 if dec_resid_deg is not None else float('nan')
+            ra_log  = ra_resid_deg if ra_resid_deg  is not None else float('nan')
+            dec_log = dec_resid_deg if dec_resid_deg is not None else float('nan')
             # PECLOG, Az_deg, Alt_deg, Roll_deg, RA_accum_', Dec_accum_', RA_guide_', Dec_guide_', RA_pecrate_'/min, Dec_pecrate_'/min , RA_inh, Dec_inh
             msg = f"PECLOG, {pv[0]:+.5f}, {pv[1]:+.5f}, {pv[2]:+.5f},    "
             msg += f"{accum[0]*60:+.5f}, {accum[1]*60:+.5f},     "
-            msg += f"{ra_log:+.5f}, {dec_log:+.5f},     "
+            msg += f"{ra_log*60:+.5f}, {dec_log*60:+.5f},     "
             msg += f"{ra.theta*3600:+.5f}, {dec.theta*3600:+.5f},     "
             msg += f"{ra.inhibit.name}, {dec.inhibit.name}"
             self.logger.info(msg)
@@ -2366,7 +2372,12 @@ class SyncManager:
 
 
     def apply_pec_drift_correction(self):
-        """Called every 200 ms from the PID loop."""
+        """
+        Called every ~200ms from PID loop.
+        Computes d_ra, d_dec in degrees (= theta [deg/s] * dt [s]).
+        Passes to accumulate_sync_guiding_residuals which expects degrees.
+        axis.applied accumulates in degrees between sync guide updates.
+        """
         if not getattr(self, '_pec_active', False):
             return
         if self.equatorial_axes_B[0] is None:
