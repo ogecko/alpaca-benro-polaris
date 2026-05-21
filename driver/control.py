@@ -2279,7 +2279,7 @@ class SyncManager:
         self._pec_max_rmse    = getattr(Config, 'pec_max_rmse_arcmin',     6.0)   / 60.0  # inhibit if rmse > max_rmse degrees
         self._pec_max_P       = getattr(Config, 'pec_max_covariance',      0.01)          # inhibit if not converged ie P > max_P
         self._pec_min_r2      = getattr(Config, 'pec_min_r2', 0.5)                        # inhibit if bad R2 < 0.5
-        self._pec_forget_horz = getattr(Config, 'pec_forget_horizon_sec',  35*60)         # 35 min for full PEC cycle
+        self._pec_forget_horz = getattr(Config, 'pec_forget_horizon_sec',  15*60)         # 15 min to track reversals of 35min PEC cycle
 
         self._pec_interv_alpha= 0.3           # EMA factor for _pec_interval estimate
         self._pec_rmse_alpha  = 0.05          # EMA factor for rmse estimate
