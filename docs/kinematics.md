@@ -5,11 +5,11 @@
 # Alpaca Benro Polaris Driver — Kinematics Reference
 [Overview](#1-overview) | 
 [QUEST](#21-quest-alignment-optimisation) |
-[Slew & Center](#22-slew--center-correction) |
-[Tilt Correction](#23-mechanical-alignment-corrections) |
+[SCC](#22-slew--center-correction) |
+[MAC](#23-mechanical-alignment-corrections) |
+[PEC](#26-predictive-error-correction-pec) |
 [Sync Guiding](#24-plate-solvedsync-guiding) |
 [Pulse Guiding](#25-pulse-guiding) |
-[PEC](#26-predictive-error-correction-pec) |
 [Base Frame](#31-base-frame-b---representations-and-conversions) | 
 [Topo Frame](#32-topocentric-frame-t---representations-and-conversions) | 
 [Equatorial Frame](#33-equatorial-frame-e---representations) | 
