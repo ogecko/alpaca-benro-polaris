@@ -1,4 +1,4 @@
-[Home](../README.md) | [Hardware](./docs/hardware.md) | [Installation](./docs/installation.md) | [Pilot](./docs/pilot.md) | [Control](./docs/control.md) | [Stellarium](./docs/stellarium.md) | [Nina](./docs/nina.md) | [Guiding](./docs/guiding.md) | [Troubleshooting](./docs/troubleshooting.md) | [FAQ](./docs/faq.md)
+[Home](../README.md) | [Hardware](./docs/hardware.md) | [Installation](./docs/installation.md) | [Pilot](./docs/pilot.md) | [Control](./docs/control.md) | [Stellarium](./docs/stellarium.md) | [Nina](./docs/nina.md) | [CCDciel](./docs/ccdciel.md) | [Guiding](./docs/guiding.md) | [Troubleshooting](./docs/troubleshooting.md) | [FAQ](./docs/faq.md)
 
 # Introduction
 ![Overview](docs/images/abp-overview.png)
@@ -59,6 +59,9 @@ The [Using Nina Guide](./docs/nina.md) explains how to use Nina with the Benro P
 For more detailed reference material refer to the thorough [Nina online documentation](https://nighttime-imaging.eu/docs/master/site/) or [Nina PDF Manual](https://nighttime-imaging.eu/docs/master/site/pdf/Manual.pdf) for the standard documentation. You can find some very informative, long form videos on Nina at the following youtube channels.
 * [Cuiv, The Lazy Geek Youtube Channel](https://www.youtube.com/@CuivTheLazyGeek)
 * [Patriot Astro Youtube channel](https://www.youtube.com/@PatriotAstro)
+
+## [Using CCDCiel](./docs/ccdciel.md)
+The [Using CCDCiel Guide](./docs/ccdciel.md) explains how to use CCDCiel with the Benro Polaris for capturing, focusing, plate-solving, sync-guiding and pulse-guiding. It also delves into essential equipment setup and preferences in CCDiel, to make the most out of the Benro Polaris.
 
 ## [Using PHD2](./docs/nina.md)
 The [Guiding Users Guide](./docs/guiding.md) explains how to use PHD2 with the Benro Polaris for auto-guiding with a guiding camera and scope. It describes how to setup, calibrate and use auto-guiding to obtain improved tracking for longer exposures and longer imaging sessions.
