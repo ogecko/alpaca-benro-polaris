@@ -352,9 +352,8 @@ class BLE_Controller:
                         f"{address}, will retry..."
                     )
                 else:
-                    self.logger.warning(
-                        f"BLE attempt {attempt} failed for {address}: {e}"
-                    )
+                    if Config.log_polaris_ble:
+                        self.logger.warning(f"BLE attempt {attempt} failed for {address}: {e}")
 
             except Exception as e:
                 self.logger.exception(
