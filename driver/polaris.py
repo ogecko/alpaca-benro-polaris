@@ -576,6 +576,9 @@ class Polaris:
                     self._tracking_in_benro = arg_dict.get('track') == '1'
                     self._aligned = isAligned
                     self._compassed = isAligned
+                else:
+                    self._aligned = False
+                    self._compassed = False
                 if not (Config.advanced_tracking and Config.advanced_control):        # only update tracking if Benro in control
                     self._tracking = self._tracking_in_benro
             if Config.log_polaris_polling:
