@@ -255,7 +255,7 @@ def quaternion_difference(q_from, q_to):
         axis          : unit rotation axis (in q_from frame)
         q_delta       : shortest-path relative quaternion
     """
-    if np.dot(q_from.elements, q_to.elements) < 0:     # Enforce shortest path
+    if np.dot(q_from.q, q_to.q) < 0:     # Enforce shortest path
         q_to = -q_to
     q_delta = (q_from.inverse * q_to).normalised       # Relative rotation
     w = np.clip(q_delta[0], -1.0, 1.0)

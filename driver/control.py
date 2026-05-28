@@ -21,7 +21,7 @@ from kinematics import wrap360, wrap180, wrap90, calc_parallactic_angle, wrap_an
 from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams, calc_equatorial_axes_B
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
-from kinematics import q_to_theta, q_to_azaltroll, theta_to_azaltroll, quaternion_to_angles
+from kinematics import q_to_theta, q_to_azaltroll, theta_to_azaltroll, quaternion_to_angles, quaternion_difference
 from kinematics import theta_to_q, azaltroll_to_q, azaltroll_to_theta, theta_to_jacobian, LastPosition
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -1081,28 +1081,37 @@ class PID_Controller():
         self.set_pid_mode('IDLE')
 
     #------- Control step functions ---------
-    def alpha_limit_step(self, alpha_pv, alpha_ref, 
-                     max_step_deg=12, min_frac=0.01):
+    def alpha_limit_step(self, alpha_pv, alpha_ref, max_step_deg=12, min_frac=0.01):
         """
-        Interpolate in (az, alt, roll) space independently,
-        with az/alt and roll rate-limited separately.
-        
-        Because IK is re-solved at the stepped alpha, az/alt
-        are held fixed by construction during a pure roll change.
+        Step toward alpha_ref from alpha_pv.
+        Az/alt are stepped in SO(3) (geodesic, well-behaved near zenith).
+        Roll is stepped independently in angle space (preserves az/alt during roll-only moves).
         """
-        delta = alpha_ref - alpha_pv
-        delta = (delta + 180) % 360 - 180             # Wrap each axis individually
+        # ── Az/alt component: step in SO(3) using boresight vectors ──────────
+        # Build quaternions with roll=0 for both pv and ref
+        # This isolates the az/alt motion from roll
+        q_pv_noroll  = azaltroll_to_q(alpha_pv[0],  alpha_pv[1],  0.0)
+        q_ref_noroll = azaltroll_to_q(alpha_ref[0], alpha_ref[1], 0.0)
 
-        # Separate az/alt travel from roll travel
-        az_alt_travel = np.max(np.abs(delta[:2]))
-        roll_travel   = abs(delta[2])
-        total_travel  = max(az_alt_travel, roll_travel)
+        azalt_angle, _, _ = quaternion_difference(q_pv_noroll, q_ref_noroll)
+        roll_delta = wrap180(alpha_ref[2] - alpha_pv[2])
+        total_travel = max(azalt_angle, abs(roll_delta))
+
         if total_travel < 1e-6:
             return alpha_ref
 
         frac = np.clip(max_step_deg / total_travel, min_frac, 1.0)
-        return alpha_pv + frac * delta    
 
+        # Step az/alt via slerp (geodesic, singularity-safe)
+        q_step_noroll = Quaternion.slerp(q_pv_noroll, q_ref_noroll, frac)
+        az_step, alt_step, _ = q_to_azaltroll(q_step_noroll)
+
+        # Step roll linearly (independent axis, preserves az/alt)
+        roll_step = alpha_pv[2] + frac * roll_delta
+
+        return np.array([az_step, alt_step, roll_step])
+    
+    
     def track_target(self):
         # Update alpha_ref based on current mode
         if self.mode in ['PRESETUP', 'PARKING', 'HOMING', 'PARK', 'LIMIT']:
