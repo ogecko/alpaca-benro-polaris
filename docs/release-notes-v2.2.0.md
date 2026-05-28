@@ -121,6 +121,7 @@
 
 ## Bug Fixes (from v2.1.0 version)
 - **[fix #81]**: Improve error message shown when trying to run multiple instances of Alpaca Driver
+- **[fix #80]**: Refined connection management logic to minimize unnecessary reconnections and support manual connection handling
 - **[fix #79]**: Clear Pilot SYNC list cache when driver restarts or moves to single point alignment
 
 ## Tested Compatible Hardware and Software
