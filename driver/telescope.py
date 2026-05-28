@@ -1679,7 +1679,7 @@ class action:
 
         elif actionName == "Polaris:ConnectPolaris":
             logger.info(f'Device Connect {parameters}')
-            lifecycle.create_task(polaris.run_connection_cycle(0), name="ConnectPolaris")
+            lifecycle.create_task(polaris.run_connection_cycle(), name="ConnectPolaris")
             resp.text = await PropertyResponse('ConnectPolaris ok', req)  
             return
 

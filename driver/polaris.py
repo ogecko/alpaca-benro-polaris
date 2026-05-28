@@ -290,57 +290,64 @@ class Polaris:
             self._task_errorstr = ""
 
     async def attempt_polaris_connect(self):
+        with self._lock:
+            self._connected = False             # set to true when "Polaris communication init... done"
+            self._connecting = True             # set to false when when polaris_init succeeds or connection failed
+            self._battery_is_available = False  # set to true when we get a battery status message
+            self._task_exception = None
         try:
-            with self._lock:
-                self._connected = False             # set to true when "Polaris communication init... done"
-                self._connecting = True             # set to false when this function returns"
-                self._battery_is_available = False  # set to true when we get a battery status message
-                self._task_exception = None
-
             client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
             self._reader = client_reader
             self._writer = client_writer
-
             init_task = asyncio.create_task(self.polaris_init())
             init_task.add_done_callback(self.task_done)
             self.logger.info(f'==STARTUP== Starting Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}.')
             self._sm.loadSyncDataFromFile()
-            return True
-
+            return init_task, client_reader
         except Exception as e:
             self._task_errorstr = self._format_connection_error(e)
             self.logger.error(self._task_errorstr)
             self._connecting = False
-            return False
+            return None, None
     
 
-    async def run_connection_cycle(self, max_retries):
-        attempt = 0
-        while (not self.lifecycle.should_shutdown()) and (attempt <= max_retries):
+    async def run_connection_cycle(self):
+        init_task = None
+        while (not self.lifecycle.should_shutdown()):
             try:
-                attempt += 1
-                success = await self.attempt_polaris_connect()
-                if success:
-                    attempt = 0
-                    await self.read_msgs()       # blocks until error or shutdown
-                # always wait 10s before trying again
-                await asyncio.sleep(10)
-        
+                # Cancel any still-running polaris_init 
+                if init_task and not init_task.done():
+                    init_task.cancel()
+                    try:
+                        await init_task
+                    except (asyncio.CancelledError, Exception):
+                        pass
+                init_task = None
+                init_task, reader = await self.attempt_polaris_connect()
+                if init_task is not None:
+                    await self.read_msgs(reader)       # blocks until error or shutdown
+
             except Exception as e:
                 self._task_errorstr = self._format_connection_error(e)
                 self.logger.error(f"==STARTUP== Connection error: {self._task_errorstr}")
-                await asyncio.sleep(10)
+
+            finally:
+                if Config.polaris_auto_retry and not self.lifecycle.should_shutdown():
+                    await asyncio.sleep(10)
+                else:
+                    break
+        
 
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
         self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
         self.lifecycle.create_task(self._every_500ms_watchdog_check(), name="PolarisWatchdog")
-        self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisWatchdog")
+        self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisKeepalive")
         if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
             self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
 
         if Config.polaris_auto_retry:
-            self.lifecycle.create_task(self.run_connection_cycle(float('inf')), name="PolarisConnectionCycle")
+            self.lifecycle.create_task(self.run_connection_cycle(), name="PolarisConnectionCycle")
         else:
             self.logger.info("==STARTUP== Auto-restart disabled. Awaiting manual connection trigger.")
 
@@ -487,7 +494,7 @@ class Polaris:
             await self.send_cmd_520_position_updates(True)
             self._aligning = False
 
-    async def read_msgs(self):
+    async def read_msgs(self, reader):
         buffer = ""
         try:
             while not self.lifecycle.should_shutdown():
@@ -496,9 +503,9 @@ class Polaris:
                     raise self._task_exception
 
                 # Read from Polaris
-                if self._reader:
+                if reader:
                     try:
-                        data = await asyncio.wait_for(self._reader.read(1024), timeout=2.0)
+                        data = await asyncio.wait_for(reader.read(1024), timeout=2.0)
                     except asyncio.TimeoutError:
                         continue  # No data, keep looping
                     except (ConnectionResetError, BrokenPipeError) as e:
