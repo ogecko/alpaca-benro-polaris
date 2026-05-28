@@ -181,9 +181,9 @@ def test_dms2dec_unicode_symbols():
 
 def test_dms2dec_hr_unit():
     # HMS hour symbols (ʰᵐˢ)
-    assert pytest.approx(dms2dec("02ʰ30ᵐ00ˢ", unit='hr'), 0.00001) == 2.5
-    assert pytest.approx(dms2dec("01ʰ45ᵐ30ˢ", unit='hr'), 0.00001) == 1.758333
-    assert pytest.approx(dms2dec("00ʰ00ᵐ00ˢ", unit='hr'), 0.00001) == 0.0
+    assert pytest.approx(dms2dec("02ʰ30ᵐ00ˢ"), 0.00001) == 2.5
+    assert pytest.approx(dms2dec("01ʰ45ᵐ30ˢ"), 0.00001) == 1.758333
+    assert pytest.approx(dms2dec("00ʰ00ᵐ00ˢ"), 0.00001) == 0.0
 
 def test_dms2dec_sign_handling():
     # Explicit positive sign
