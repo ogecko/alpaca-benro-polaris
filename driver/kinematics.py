@@ -476,8 +476,8 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     theta3_A = calc_theta3(theta1_A, theta2_A)
     thetaA = lastPos.unwrap(theta1_A, theta2_A, theta3_A)
 
-    # Alternative solution
-    theta1_B, theta2_B = wrap180(theta1_A + 180), -theta2_A
+    # Alternative solution with M1 fliped 180, and M2 -ve
+    theta1_B, theta2_B = theta1_A + 180, -theta2_A
     theta3_B = calc_theta3(theta1_B, theta2_B)
     thetaB = lastPos.unwrap(theta1_B, theta2_B, theta3_B)
 
