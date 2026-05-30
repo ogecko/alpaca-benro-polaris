@@ -421,9 +421,9 @@ class LastPosition:
         if zeta is not None:
             self.last_zeta3 = zeta[2]
     def calcMechanicalAngularDiff(self,t1,t2,t3):
-        dt1 = angular_difference(t1, self.last_theta1)
-        dt2 = angular_difference(t2, self.last_theta2)
-        dt3 = angular_difference(t3, self.last_theta3)
+        dt1 = t1 - self.last_theta1
+        dt2 = t2 - self.last_theta2
+        dt3 = t3 - self.last_theta3
         return dt1*dt1 + dt2*dt2 + dt3*dt3
     def check_for_gimbal_lock(self, theta2=None):
         if theta2 is None:
@@ -440,6 +440,10 @@ class LastPosition:
         if self.last_zeta3 is not None:
             return self.last_zeta3  # more reliable that theta3, not subject to gimbal lock
         return self.last_theta3     # fallback if no zeta3
+    def unwrap(self,t1,t2,t3):
+        N1 = round((self.last_theta1 - t1) / 360)
+        N3 = round((self.last_theta3 - t3) / 360)
+        return t1 + N1 * 360, t2, t3 + N3 * 360
 
 def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     """Convert a motor quaternion (C2B frame) into joint angles (θ), using the previous
@@ -449,21 +453,6 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     # tUp invariant under theta3
     tUp = q1.rotate(np.array([1, 0, 0]))
     tRight = q1.rotate(np.array([0, 1, 0]))
-
-    # Primary solution
-    theta1_A = wrap360(np.degrees(np.arctan2(-tUp[0], -tUp[1])))
-    t1r_A    = np.radians(theta1_A)
-    sin_t2_A = -(tUp[0]*np.sin(t1r_A) + tUp[1]*np.cos(t1r_A))
-    theta2_A = wrap90(np.degrees(np.arctan2(sin_t2_A, tUp[2])))
-
-    # Alternative solution
-    theta1_B = wrap360(theta1_A + 180)
-    theta2_B = -theta2_A
-
-    # Validity
-    theta2_min, theta2_max = -8, 83
-    validA = theta2_min <= theta2_A <= theta2_max
-    validB = theta2_min <= theta2_B <= theta2_max
 
     def calc_theta3(theta1, theta2):
         qt1 = Quaternion(axis=[0,0,1], degrees=-theta1+90)
@@ -477,26 +466,40 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
         r1n, r2n = r1/n1, r2/n2
         cos_t3 = np.clip(np.dot(r1n, r2n), -1, 1)
         sin_t3 = np.dot(np.cross(r1n, r2n), tUp)
-        return wrap180(-np.degrees(np.arctan2(sin_t3, cos_t3)))
+        return -np.degrees(np.arctan2(sin_t3, cos_t3))
+
+    # Primary solution
+    t1r_A = np.arctan2(-tUp[0], -tUp[1])
+    sin_t2_A = -(tUp[0]*np.sin(t1r_A) + tUp[1]*np.cos(t1r_A))
+    t2r_A = np.arctan2(sin_t2_A, tUp[2])
+    theta1_A, theta2_A = np.degrees(t1r_A), np.degrees(t2r_A)
+    theta3_A = calc_theta3(theta1_A, theta2_A)
+    thetaA = lastPos.unwrap(theta1_A, theta2_A, theta3_A)
+
+    # Alternative solution
+    theta1_B, theta2_B = wrap180(theta1_A + 180), -theta2_A
+    theta3_B = calc_theta3(theta1_B, theta2_B)
+    thetaB = lastPos.unwrap(theta1_B, theta2_B, theta3_B)
+
+    # Validity
+    theta2_min, theta2_max = -8, 83
+    validA = theta2_min <= theta2_A <= theta2_max
+    validB = theta2_min <= theta2_B <= theta2_max
 
     if validA and not validB:
-        theta1, theta2 = theta1_A, theta2_A
-        theta3 = calc_theta3(theta1, theta2)
+        theta1, theta2, theta3 = thetaA
 
     elif validB and not validA:
-        theta1, theta2 = theta1_B, theta2_B
-        theta3 = calc_theta3(theta1, theta2)
+        theta1, theta2, theta3 = thetaB
 
     elif validA and validB:
         # Both valid — compute theta3 for each and use full 3D lastPos comparison
-        theta3_A = calc_theta3(theta1_A, theta2_A)
-        theta3_B = calc_theta3(theta1_B, theta2_B)
-        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A)
-        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B)
+        diffA = lastPos.calcMechanicalAngularDiff(*thetaA)
+        diffB = lastPos.calcMechanicalAngularDiff(*thetaB)
         if diffA <= diffB:
-            theta1, theta2, theta3 = theta1_A, theta2_A, theta3_A
+            theta1, theta2, theta3 = thetaA
         else:
-            theta1, theta2, theta3 = theta1_B, theta2_B, theta3_B
+            theta1, theta2, theta3 = thetaB
 
     else:
         # Neither valid — clamp closest
@@ -508,14 +511,14 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
             theta1, theta2 = theta1_B, np.clip(theta2_B, theta2_min, theta2_max)
         else:
             theta1, theta2 = theta1_A, np.clip(theta2_A, theta2_min, theta2_max)
-        theta3 = calc_theta3(theta1, theta2)
+        theta1, theta2, theta3 = lastPos.unwrap(theta1, theta2, calc_theta3(theta1, theta2))
 
     # Gimbal lock
     in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
     if in_gimbal_lock:
-        locked_sum = wrap360(theta1 + theta3)
+        locked_sum = theta1 + theta3
         theta3 = lastPos.get_fallback_theta3()
-        theta1 = wrap360(locked_sum - theta3)
+        theta1 = locked_sum - theta3
 
     return float(theta1), float(theta2), float(theta3)
 

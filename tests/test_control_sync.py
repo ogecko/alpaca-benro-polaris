@@ -111,9 +111,9 @@ def test_no_sync_adj(mock_config):
     logger = logging.getLogger()
     sm = SyncManager(logger,p)
     az,alt,roll,_,_,_ = quaternion_to_angles(sm.alignQ_B2T * p._q1)
-    assert f'{az:.6f}' == "180.000000"
-    assert f'{alt:.6f}' == "45.000000"
-    assert f'{roll:.6f}' == "0.000000"
+    assert az == pytest.approx(180.0, abs=1e-6)
+    assert alt == pytest.approx(45.0, abs=1e-6)
+    assert roll == pytest.approx(0.0, abs=1e-6)
 
 def test_single_syncs_adj(mock_config):
     p = Polaris()
