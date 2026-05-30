@@ -1161,6 +1161,18 @@ class PID_Controller():
         motorQ_ref   = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
         self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
 
+        # Log every 2 seconds for debugging
+        # now = time.monotonic()
+        # every_2s = not hasattr(self, '_last_log_time') or now - self._last_log_time > 2.0
+        # if self.mode in ['AUTO','HOMING','PARKING'] and every_2s:
+        #     self._last_log_time = now
+        #     self.logger.info(f"POSLOG"
+        #         f", | alpha_ref: ,{self.alpha_ref[0]:+.1f},{self.alpha_ref[1]:+.1f},{self.alpha_ref[2]:+.1f}"
+        #         f", | alpha_pv: ,{self.alpha_pv[0]:+.1f},{self.alpha_pv[1]:+.1f},{self.alpha_pv[2]:+.1f}"
+        #         f", | theta_ref: ,{self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}"
+        #         f", | theta_pv: ,{self.theta_pv[0]:+.1f},{self.theta_pv[1]:+.1f},{self.theta_pv[2]:+.1f}"
+        #     )
+
     def measure(self, delta_pv, alpha_pv, theta_pv, zeta_meas):
         now = ephem.now()
         # if not self.time_meas:
@@ -1207,7 +1219,7 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:            
-            self.error_signal = clamp_error(self.theta_ref, self.theta_pv)
+            self.error_signal = self.theta_ref - self.theta_pv
 
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
