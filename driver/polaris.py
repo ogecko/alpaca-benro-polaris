@@ -334,8 +334,10 @@ class Polaris:
             finally:
                 if Config.polaris_auto_retry and not self.lifecycle.should_shutdown():
                     await asyncio.sleep(10)
-                else:
-                    break
+                    if self._connected:                # if it was manually reconnected in the meantime then stop
+                        break
+                else:                                  # if auto_retry is disabled then stop
+                    break                              
         
 
     # open connection and serve as polaris client
@@ -510,10 +512,12 @@ class Polaris:
                         continue  # No data, keep looping
                     except (ConnectionResetError, BrokenPipeError) as e:
                         self.logger.error(f"==DISCONNECT== Polaris socket error: {e}")
+                        self._connected = False
                         self._connecting = False
                         break
                     if not data:
                         self.logger.warning("==DISCONNECT== Polaris socket closed.")
+                        self._connected = False
                         self._connecting = False
                         break
 
@@ -536,12 +540,14 @@ class Polaris:
 
         except asyncio.CancelledError:
             self.logger.info("==CANCELLED== PolarisReadMsgs cancelled.")
+            self._connected = False
             self._connecting = False
             raise
 
         except Exception as e:
             self._task_exception = e
             self.logger.error(f"==ERROR== read_msgs failed: {e}")
+            self._connected = False
             self._connecting = False
 
     # Parse a buffer returning a matched (cmd, args, remainingBuffer) or when no match (None, None, remainingBuffer)
