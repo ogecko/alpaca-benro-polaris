@@ -589,6 +589,7 @@ class Polaris:
                     self._tracking_in_benro = arg_dict.get('track') == '1'
                     self._aligned = isAligned
                     self._compassed = isAligned
+                    self._last_518_timesec = time.monotonic()   # reset 518 watchdog on isAligned update
                 else:
                     self._aligned = False
                     self._compassed = False
