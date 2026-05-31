@@ -2276,7 +2276,7 @@ class SyncManager:
         self._pec_t0          = None
         self._pec_last_apply  = None
         self._pec_last_update = None
-        self._pec_interval    = 0.2          # EMA of interval between pec model updates (seconds), only count ra updates (as pulses come in separately)
+        self._pec_interval    = None          # EMA of interval between pec model updates (seconds), only count ra updates (as pulses come in separately)
         self._pec_ra          = PecAxis()
         self._pec_dec         = PecAxis()
 
@@ -2325,10 +2325,10 @@ class SyncManager:
             slide           = t - self._pec_forget_horz / 2
             self._pec_t0   += slide
             t               = now - self._pec_t0
-            for axis in (ra, dec):
-                axis.P      = 1.0           # force reconvergence
-                axis.sse    = 0.0
-                axis.var    = 0.0
+            ra.ref         += ra.theta  * slide                  # advance ref by predicted amount (deg/sec * sec = deg)
+            dec.ref        += dec.theta * slide            
+            ra.reset_fit()
+            dec.reset_fit()
             self.logger.info(
                 f"PEC: anchor slid {slide:.0f}s, t={t:.0f}s "
                 f" | Rate,{ra.theta*3600:+.4f},{dec.theta*3600:+.4f}"
@@ -2439,7 +2439,6 @@ class SyncManager:
 
 
 
-from dataclasses import dataclass, field
 from enum import IntEnum
 class PecInhibit(IntEnum):
     IDLE         = 0
