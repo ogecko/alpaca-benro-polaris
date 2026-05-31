@@ -2313,6 +2313,30 @@ class SyncManager:
         if self._pec_interval is not None:
             self._pec_lambda = max(0.5, min(0.99999, 1.0 - self._pec_interval / self._pec_forget_horz))
 
+    def _slide_anchor_if_needed(self, now, ra, dec):
+        """
+        Slide the shared anchor forward if t exceeds forget horizon.
+        Resets ref = cumul exactly on both axes so y=0 at new t0.
+        Preserves theta on both axes as warm start for new segment.
+        Returns current t (seconds since anchor).
+        """
+        t = now - self._pec_t0
+        if t > self._pec_forget_horz:
+            slide           = t - self._pec_forget_horz / 2
+            self._pec_t0   += slide
+            t               = now - self._pec_t0
+            for axis in (ra, dec):
+                axis.P      = 1.0           # force reconvergence
+                axis.sse    = 0.0
+                axis.var    = 0.0
+            self.logger.info(
+                f"PEC: anchor slid {slide:.0f}s, t={t:.0f}s "
+                f" | Rate,{ra.theta*3600:+.4f},{dec.theta*3600:+.4f}"
+            )
+        return t
+
+
+
     def update_pec_model(self, ra_resid_deg, dec_resid_deg):
         """
         Ingest a guide correction.
@@ -2342,14 +2366,16 @@ class SyncManager:
             self._pec_n = 1
             return
 
-        t = now - self._pec_t0
+        t = self._slide_anchor_if_needed(now, ra, dec)
         if t < 1e-6: return
 
         if not ra_skip:
-            ra.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, t, ra.cumul - ra.ref)
+            ra.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, 
+                      t , ra.cumul - ra.ref)
         if not dec_skip:
-            dec.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, t, dec.cumul - dec.ref)
-
+            dec.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha,
+                       t , dec.cumul - dec.ref)
+            
         self._pec_n += 1
 
         # Evaluate inhibit state for each axis
@@ -2370,6 +2396,7 @@ class SyncManager:
                 f", | Guide,{ra_guide_arcmin:+.5f},{dec_guide_arcmin:+.5f}"
                 f", | Accum,{accum_arcmin[0]:+.5f},{accum_arcmin[1]:+.5f}"
                 f", | Pos,{pv_deg[0]:.2f},{pv_deg[1]:.2f},{pv_deg[2]:+.2f}"
+                f", | P,{ra.P:.4f},{dec.P:.4f}"
                 f", | lambda,{self._pec_lambda:.5f},{self._pec_interval:.1f}"
             )
 
@@ -2422,17 +2449,28 @@ class PecInhibit(IntEnum):
     HIGH_RMSE    = 4
     LOW_R2       = 5
     
-@dataclass
 class PecAxis:
-    theta:   float = 0.0
-    P:       float = 1.0
-    ref:     float = 0.0
-    cumul:   float = 0.0
-    sse:     float = 0.0
-    var:     float = 0.0
-    r2:      float = 0.0
-    applied: float = 0.0
-    inhibit: PecInhibit = PecInhibit.IDLE
+    def __init__(self):
+        self.theta   = 0.0             # slope: deg/sec
+        self.P       = 1.0             # RLS covariance (scalar)
+        self.ref     = 0.0             # cumulative anchor at t0
+        self.cumul   = 0.0             # running cumulative correction (degrees)
+        self.sse     = 0.0             # EMA of squared prediction error
+        self.var     = 0.0             # EMA of y²
+        self.r2      = 0.0             # R² fit quality
+        self.applied = 0.0             # corrections applied since last update
+        self.inhibit = PecInhibit.IDLE
+
+    def reset(self):
+        """Full reset — call after slew or model reinit."""
+        self.__init__()
+
+    def reset_fit(self):
+        """Reset RLS fit state but preserve theta as initial estimate."""
+        self.P   = 1.0
+        self.sse = 0.0
+        self.var = 0.0
+        self.r2  = 0.0
 
     def eval_inhibit(self, n, min_obs, max_P, max_rmse, min_r2=0.5):
         if n < min_obs:
@@ -2453,6 +2491,12 @@ class PecAxis:
         return math.sqrt(self.sse) * 60
 
     def update(self, lam, var_alpha, sse_alpha, t, y):
+        """
+        Scalar RLS update.
+        t:      time by sliding anchor - seconds
+        y:      cumul - ref in degrees
+        theta:  slope in deg/sec (extracted via / horiz after RLS in normalised space)
+        """
         err        = y - self.theta * t
         self.var   = var_alpha * y   * y   + (1 - var_alpha) * self.var
         self.sse   = sse_alpha * err * err + (1 - sse_alpha) * self.sse
@@ -2460,4 +2504,3 @@ class PecAxis:
         self.theta += gain * (y - self.theta * t)
         self.P      = (1.0 - gain * t) * self.P / lam
         self.r2     = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
-
