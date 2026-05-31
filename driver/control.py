@@ -2357,28 +2357,21 @@ class SyncManager:
         dec.eval_inhibit(self._pec_n, self._pec_min_obs, self._pec_max_P, self._pec_max_rmse, self._pec_min_r2)
         self._pec_active = ra.converged() or dec.converged()
 
-        self.logger.info(
-            f"PEC  n={self._pec_n:4d} | "
-            f"{ra.log_str('RA')} | "
-            f"{dec.log_str('Dec')} | "
-            f"lambda={self._pec_lambda:.5f}  interval={self._pec_interval:.1f}s | "
-            f"{'ACTIVE' if self._pec_active else 'WARMUP'}"
-        )
-
         if Config.log_pec:
-            pv = self.polaris._pid.alpha_pv
-            accum = self.delta_guide_accum
-            ra_log  = ra_resid_deg if ra_resid_deg  is not None else float('nan')
-            dec_log = dec_resid_deg if dec_resid_deg is not None else float('nan')
-            # PECLOG, Az_deg, Alt_deg, Roll_deg, RA_accum_', Dec_accum_', RA_guide_', Dec_guide_', RA_pecrate_'/min, Dec_pecrate_'/min , RA_inh, Dec_inh
-            msg = f"PECLOG, {pv[0]:+.5f}, {pv[1]:+.5f}, {pv[2]:+.5f},    "
-            msg += f"{accum[0]*60:+.5f}, {accum[1]*60:+.5f},     "
-            msg += f"{ra_log*60:+.5f}, {dec_log*60:+.5f},     "
-            msg += f"{ra.theta*3600:+.5f}, {dec.theta*3600:+.5f},     "
-            msg += f"{ra.inhibit.name}, {dec.inhibit.name}"
-            self.logger.info(msg)
-
-
+            pv_deg = self.polaris._pid.alpha_pv
+            accum_arcmin = self.delta_guide_accum*60
+            ra_guide_arcmin  = ra_resid_deg*60 if ra_resid_deg is not None else float('nan')
+            dec_guide_arcmin = dec_resid_deg*60 if dec_resid_deg is not None else float('nan')
+            self.logger.info(
+                f"PECLOG  n,{self._pec_n},{ra.inhibit.name},{dec.inhibit.name}"
+                f", | R2,{ra.r2:.3f},{dec.r2:.3f}"
+                f", | rmse,{ra.rmse_arcmin():.4f},{dec.rmse_arcmin():.4f}"
+                f", | Rate,{ra.theta*3600:+.4f},{dec.theta*3600:+.4f}"
+                f", | Guide,{ra_guide_arcmin:+.5f},{dec_guide_arcmin:+.5f}"
+                f", | Accum,{accum_arcmin[0]:+.5f},{accum_arcmin[1]:+.5f}"
+                f", | Pos,{pv_deg[0]:.2f},{pv_deg[1]:.2f},{pv_deg[2]:+.2f}"
+                f", | lambda,{self._pec_lambda:.5f},{self._pec_interval:.1f}"
+            )
 
 
     def apply_pec_drift_correction(self):
@@ -2468,10 +2461,3 @@ class PecAxis:
         self.P      = (1.0 - gain * t) * self.P / lam
         self.r2     = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
 
-    def log_str(self, label):
-        return (
-            f"{label}: rate={self.theta*3600:+.4f}'/min  "
-            f"R²={self.r2:.3f}  "
-            f"rmse={self.rmse_arcmin():.4f}'  "
-            f"{self.inhibit.name}"
-        )
