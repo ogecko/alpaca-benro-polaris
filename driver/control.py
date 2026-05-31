@@ -2276,7 +2276,7 @@ class SyncManager:
         self._pec_t0          = None
         self._pec_last_apply  = None
         self._pec_last_update = None
-        self._pec_interval    = None          # EMA of interval between pec model updates (seconds), only count ra updates (as pulses come in separately)
+        self._pec_interval    = 0.2          # EMA of interval between pec model updates (seconds), only count ra updates (as pulses come in separately)
         self._pec_ra          = PecAxis()
         self._pec_dec         = PecAxis()
 
@@ -2305,10 +2305,7 @@ class SyncManager:
         if self._pec_last_update is not None:
             dt_obs = now - self._pec_last_update
             if 0.1 < dt_obs < 3600:               # sanity bounds: 1s–1hr
-                if self._pec_interval is None:
-                    self._pec_interval = dt_obs
-                else:
-                    self._pec_interval = (self._pec_interv_alpha * dt_obs + (1 - self._pec_interv_alpha) * self._pec_interval)
+                self._pec_interval = (self._pec_interv_alpha * dt_obs + (1 - self._pec_interv_alpha) * self._pec_interval)
         self._pec_last_update = now
         if self._pec_interval is not None:
             self._pec_lambda = max(0.5, min(0.99999, 1.0 - self._pec_interval / self._pec_forget_horz))
