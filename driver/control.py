@@ -2310,29 +2310,6 @@ class SyncManager:
         if self._pec_interval is not None:
             self._pec_lambda = max(0.5, min(0.99999, 1.0 - self._pec_interval / self._pec_forget_horz))
 
-    def _slide_anchor_if_needed(self, now, ra, dec):
-        """
-        Slide the shared anchor forward if t exceeds forget horizon.
-        Resets ref = cumul exactly on both axes so y=0 at new t0.
-        Preserves theta on both axes as warm start for new segment.
-        Returns current t (seconds since anchor).
-        """
-        t = now - self._pec_t0
-        if t > self._pec_forget_horz:
-            slide           = t - self._pec_forget_horz / 2
-            self._pec_t0   += slide
-            t               = now - self._pec_t0
-            ra.ref         += ra.theta  * slide                  # advance ref by predicted amount (deg/sec * sec = deg)
-            dec.ref        += dec.theta * slide            
-            ra.reset_fit()
-            dec.reset_fit()
-            self.logger.info(
-                f"PEC: anchor slid {slide:.0f}s, t={t:.0f}s "
-                f" | Rate,{ra.theta*3600:+.4f},{dec.theta*3600:+.4f}"
-            )
-        return t
-
-
 
     def update_pec_model(self, ra_resid_deg, dec_resid_deg):
         """
@@ -2363,15 +2340,13 @@ class SyncManager:
             self._pec_n = 1
             return
 
-        t = self._slide_anchor_if_needed(now, ra, dec)
+        t = now - self._pec_t0
         if t < 1e-6: return
 
         if not ra_skip:
-            ra.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, 
-                      t , ra.cumul - ra.ref)
+            ra.update( self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, t, ra.cumul  - ra.ref)
         if not dec_skip:
-            dec.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha,
-                       t , dec.cumul - dec.ref)
+            dec.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, t, dec.cumul - dec.ref)
             
         self._pec_n += 1
 
@@ -2446,33 +2421,120 @@ class PecInhibit(IntEnum):
     LOW_R2       = 5
     
 class PecAxis:
-    def __init__(self):
-        self.theta   = 0.0             # slope: deg/sec
-        self.P       = 1.0             # RLS covariance (scalar)
-        self.ref     = 0.0             # cumulative anchor at t0
-        self.cumul   = 0.0             # running cumulative correction (degrees)
-        self.sse     = 0.0             # EMA of squared prediction error
-        self.var     = 0.0             # EMA of y²
-        self.r2      = 0.0             # R² fit quality
-        self.applied = 0.0             # corrections applied since last update
+    """
+    Multi-harmonic Recursive Least Squares.
+    Fits: y(t)  = a*t + b1*sin(wt)   + c1*cos(wt)   + b2*sin(2wt)    + c2*cos(2wt) + ...
+          dy/dt = a   + b1*w*cos(wt) - c1*w*sin(wt) + b2*2w*cos(2wt) - c2*2w*sin(2wt) ...
+    
+    Primary output: self.theta in deg/sec — estimated instanteous drift rate for apply_pec_drift_correction()
+    Secondary outputs: amplitude at each harmonic, R², rmse
+    
+    T: worm period in seconds (default 34 min = 2040s)
+    n_harmonics: 1, 2, or 3 (adds pairs of sin/cos terms)
+    """
+
+    def __init__(self, T=34*60, n_harmonics=2):
+        self.T           = T
+        self.n_harmonics = n_harmonics
+        self.n_params    = 1 + 2 * n_harmonics    # drift + sin/cos pairs
+
+        self._t_last = 0.0                        # last t seen by update()
+        self._theta  = np.zeros(self.n_params)    # internal: full parameter vector
+        self.P       = np.eye(self.n_params)      # RLS covariance matrix
+        self.sse     = 0.0                        # EMA squared prediction error
+        self.var     = 0.0                        # EMA y²
+        self.r2      = 0.0
+        self.applied = 0.0
         self.inhibit = PecInhibit.IDLE
 
+    # ── primary output ─────────────────────────────────────────────────────────
+    @property
+    def theta(self):
+        """Instantaneous drift rate in deg/sec at current time"""
+        return self._drift_rate(self._t_last)
+
+    def _drift_rate(self, t):
+        """dy/dt of the full model at time t, in deg/sec."""
+        w    = 2 * math.pi / self.T
+        rate = self._theta[0]   # linear drift term
+        for h in range(1, self.n_harmonics + 1):
+            i     = 1 + 2 * (h - 1)
+            b     = self._theta[i]
+            c     = self._theta[i + 1]
+            hw    = h * w
+            rate += b * hw * math.cos(hw * t) - c * hw * math.sin(hw * t)
+        return rate
+
+    # ── secondary outputs ──────────────────────────────────────────────────────
+    def amplitude(self, harmonic=1):
+        """PEC amplitude in degrees at the given harmonic (1-indexed)."""
+        if harmonic < 1 or harmonic > self.n_harmonics:
+            return 0.0
+        i = 1 + 2 * (harmonic - 1)
+        return math.sqrt(self._theta[i]**2 + self._theta[i+1]**2)
+
+    def phase(self, harmonic=1):
+        """PEC phase in radians at the given harmonic."""
+        if harmonic < 1 or harmonic > self.n_harmonics:
+            return 0.0
+        i = 1 + 2 * (harmonic - 1)
+        return math.atan2(self._theta[i+1], self._theta[i])
+
+    def predicted_rate(self, t):
+        """Instantaneous rate at arbitrary t — for plotting the fitted curve."""
+        return self._drift_rate(t)
+
+    def predicted_cumul(self, t):
+        """Predicted cumulative correction at t — for comparing against raw cumul."""
+        phi = self._phi(t)
+        return float(phi @ self._theta)
+
+    # ── RLS internals ──────────────────────────────────────────────────────────
+    def _phi(self, t):
+        """Feature vector: [t, sin(wt), cos(wt), sin(2wt), cos(2wt), ...]"""
+        w   = 2 * math.pi / self.T
+        phi = np.zeros(self.n_params)
+        phi[0] = t
+        for h in range(1, self.n_harmonics + 1):
+            phi[1 + 2*(h-1)] = math.sin(h * w * t)
+            phi[2 + 2*(h-1)] = math.cos(h * w * t)
+        return phi
+
+    def update(self, lam, var_alpha, sse_alpha, t, y):
+        """
+        Multi-harmonic RLS update.
+        t: seconds since session start (grows monotonically)
+        y: cumul - ref in degrees
+        """
+        self._t_last = t
+        phi  = self._phi(t)
+        err  = y - float(phi @ self._theta)
+
+        self.var = var_alpha * y * y   + (1 - var_alpha) * self.var
+        self.sse = sse_alpha * err * err + (1 - sse_alpha) * self.sse
+
+        # RLS gain
+        Pp   = self.P @ phi
+        S    = lam + float(phi @ Pp)
+        K    = Pp / S
+
+        self._theta += K * err
+        self.P       = (self.P - np.outer(K, phi @ self.P)) / lam
+        self.r2      = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
+
     def reset(self):
-        """Full reset — call after slew or model reinit."""
-        self.__init__()
+        self.__init__(T=self.T, n_harmonics=self.n_harmonics)
 
     def reset_fit(self):
-        """Reset RLS fit state but preserve theta as initial estimate."""
-        self.P   = 1.0
+        """Reset fit statistics but preserve parameter estimates as warm start."""
+        self.P   = np.eye(self.n_params)
         self.sse = 0.0
         self.var = 0.0
         self.r2  = 0.0
 
-    def eval_inhibit(self, n, min_obs, max_P, max_rmse, min_r2=0.5):
+    def eval_inhibit(self, n, min_obs, max_rmse, min_r2=0.5):
         if n < min_obs:
-            self.inhibit = PecInhibit.TOO_FEW_OBS
-        elif self.P >= max_P:
-            self.inhibit = PecInhibit.NOT_CONVERGED
+            self.inhibit = PecInhibit.IDLE
         elif math.sqrt(self.sse) >= max_rmse:
             self.inhibit = PecInhibit.HIGH_RMSE
         elif self.r2 < min_r2:
@@ -2486,17 +2548,15 @@ class PecAxis:
     def rmse_arcmin(self):
         return math.sqrt(self.sse) * 60
 
-    def update(self, lam, var_alpha, sse_alpha, t, y):
-        """
-        Scalar RLS update.
-        t:      time by sliding anchor - seconds
-        y:      cumul - ref in degrees
-        theta:  slope in deg/sec (extracted via / horiz after RLS in normalised space)
-        """
-        err        = y - self.theta * t
-        self.var   = var_alpha * y   * y   + (1 - var_alpha) * self.var
-        self.sse   = sse_alpha * err * err + (1 - sse_alpha) * self.sse
-        gain       = self.P * t / (lam + self.P * t * t)
-        self.theta += gain * (y - self.theta * t)
-        self.P      = (1.0 - gain * t) * self.P / lam
-        self.r2     = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
+    def log_str(self, label):
+        amps = ', '.join(
+            f'H{h}={self.amplitude(h)*3600:.2f}\'/hr'
+            for h in range(1, self.n_harmonics + 1)
+        )
+        return (
+            f"{label}: drift={self.theta*3600:+.4f}'/hr  "
+            f"{amps}  "
+            f"R²={self.r2:.3f}  "
+            f"rmse={self.rmse_arcmin():.4f}'  "
+            f"{self.inhibit.name}"
+        )
