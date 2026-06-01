@@ -60,7 +60,7 @@
 - **[Sync Guiding]** Drift correction made simple; no guide camera, no extra PHD2 software, just plate-solving.
 - **[Pulse Guiding]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
 - **[Polar Alignment]** Guiding adjustments applied as corrections rather than setpoint changes to maintain polar alignemnt
-- **[Drift and PEC]** Models instantaneous drift in RA and Dec to correct periodic and alignment errors, significantly improving sidereal tracking accuracy.
+- **[Drift and PEC]** Models linear and harmonic drift in RA and Dec to correct alignment and periodic errors, significantly improving sidereal tracking accuracy.
 
 ### Panorama Tools
 - **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.
