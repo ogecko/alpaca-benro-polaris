@@ -2576,7 +2576,7 @@ class PecAxis:
         """Instantaneous rate at arbitrary t — for plotting the fitted curve."""
         return self._drift_rate(t)
 
-    def predicted_cumul(self, t):
+    def predicted_accum(self, t):
         """Predicted cumulative correction at t — for comparing against raw cumul."""
         phi = self._phi(t)
         return float(phi @ self._theta)
