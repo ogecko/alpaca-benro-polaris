@@ -2504,7 +2504,16 @@ class PecAxis:
         # update the RLS model
         y = self._cumul - self._ref
         self._update_rls(lam, var_alpha, sse_alpha, t, y)
-        
+
+    def ingest_cumul(self, cumul_deg, t, lam, var_alpha, sse_alpha):
+        """
+        Direct cumul ingestion for notebook replay — bypasses delta accounting.
+        cumul_deg: absolute cumulative correction in degrees from session start.
+        """
+        self._cumul = cumul_deg
+        y = self._cumul - self._ref
+        self._update_rls(lam, var_alpha, sse_alpha, t, y)
+
     def eval_correction(self, dt, cap):
         """
         Compute and accumulate a PEC correction step.
@@ -2523,7 +2532,7 @@ class PecAxis:
     # ── primary output ─────────────────────────────────────────────────────────
     @property
     def theta(self):
-        """Instantaneous drift rate in deg/sec at current time"""
+        """Instantaneous total drift rate in deg/sec at current time (linear plus harmonics)"""
         return self._drift_rate(self._t_last)
 
     def _drift_rate(self, t):
@@ -2539,15 +2548,21 @@ class PecAxis:
         return rate
 
     # ── secondary outputs ──────────────────────────────────────────────────────
-    def amplitude(self, harmonic=1):
-        """PEC amplitude in degrees at the given harmonic (1-indexed)."""
+
+    def dc_rate(self):
+        """Steady-state drift rate in deg/sec (linear component, excluding harmonics)."""
+        return self._theta[0]
+
+    def harmonic_rate(self, harmonic=1):
+        """Amplitude/Peak contribution rate in deg/sec of the given harmonic (1-indexed)."""
         if harmonic < 1 or harmonic > self.n_harmonics:
             return 0.0
-        i = 1 + 2 * (harmonic - 1)
-        return math.sqrt(self._theta[i]**2 + self._theta[i+1]**2)
+        i  = 1 + 2 * (harmonic - 1)
+        hw = harmonic * 2 * math.pi / self.T
+        return hw * math.sqrt(self._theta[i]**2 + self._theta[i+1]**2)
 
     def phase(self, harmonic=1):
-        """PEC phase in radians at the given harmonic."""
+        """PEC phase in radians of the given harmonic."""
         if harmonic < 1 or harmonic > self.n_harmonics:
             return 0.0
         i = 1 + 2 * (harmonic - 1)
