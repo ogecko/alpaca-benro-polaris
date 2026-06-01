@@ -2277,8 +2277,6 @@ class SyncManager:
         self._pec_last_apply  = None
         self._pec_last_update = None
         self._pec_interval    = 0.2          # EMA of interval between pec model updates (seconds), only count ra updates (as pulses come in separately)
-        self._pec_ra          = PecAxis()
-        self._pec_dec         = PecAxis()
 
         # Config-driven thresholds (read once so update/apply don't need getattr)
         self._pec_lambda      = getattr(Config, 'pec_forgetting_factor',   0.98)          # Lambda = 1 - 1 / n_memory; n_memory = T_forget / dt_avg
@@ -2289,6 +2287,11 @@ class SyncManager:
         self._pec_max_P       = getattr(Config, 'pec_max_covariance',      0.01)          # inhibit if not converged ie P > max_P
         self._pec_min_r2      = getattr(Config, 'pec_min_r2', 0.5)                        # inhibit if bad R2 < 0.5
         self._pec_forget_horz = getattr(Config, 'pec_forget_horizon_sec',  15*60)         # 15 min to track reversals of 35min PEC cycle
+        self._pec_T_sec       = getattr(Config, 'pec_T_sec',               34*60)         # T: worm period in seconds (default 34 min = 2040s)
+        self._pec_n_harmonics = getattr(Config, 'pec_n_harmonics',         2)             # n_harmonics: 1, 2, or 3 (adds pairs of sin/cos terms)
+
+        self._pec_ra          = PecAxis(T=self._pec_T_sec, n_harmonics=self._pec_n_harmonics) 
+        self._pec_dec         = PecAxis(T=self._pec_T_sec, n_harmonics=self._pec_n_harmonics)
 
         self._pec_interv_alpha= 0.3           # EMA factor for _pec_interval estimate
         self._pec_var_alpha  = 0.05           # EMA factor for var estimate, more stable R2
@@ -2354,8 +2357,8 @@ class SyncManager:
         if self._pec_n == 0:
             self._pec_t0         = now
             self._pec_last_apply = now
-            if ra_resid  is not None: self._pec_ra.seed()
-            if dec_resid is not None: self._pec_dec.seed()
+            if ra_resid  is not None: self._pec_ra.reset_seed()
+            if dec_resid is not None: self._pec_dec.reset_seed()
             self._pec_n = 1
             return False
 
@@ -2485,7 +2488,7 @@ class PecAxis:
         self.var = 0.0
         self.r2  = 0.0
 
-    def seed(self, accum_deg=0.0):
+    def reset_seed(self, accum_deg=0.0):
         """Set the reference point at t=0."""
         self._accum  = accum_deg
         self._ref     = accum_deg
