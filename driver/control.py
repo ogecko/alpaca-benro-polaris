@@ -2381,7 +2381,8 @@ class SyncManager:
             return
         ra, dec = self._pec_ra, self._pec_dec
         pv_deg = self.polaris._pid.alpha_pv
-        accum_arcmin = self.delta_guide_accum*60
+        ra_accum_arcmin = ra._accum*60
+        dec_accum_arcmin = dec._accum*60
         ra_guide_arcmin  = ra_resid*60 if ra_resid is not None else float('nan')
         dec_guide_arcmin = dec_resid*60 if dec_resid is not None else float('nan')
         ra_fit  = f"{ra.dc_rate()*3600:+.4f}"
@@ -2395,7 +2396,7 @@ class SyncManager:
             f", | rmse,{ra.rmse_arcmin():.4f},{dec.rmse_arcmin():.4f}"
             f", | Rate,{ra.theta*3600:+.4f},{dec.theta*3600:+.4f}"
             f", | Guide,{ra_guide_arcmin:+.5f},{dec_guide_arcmin:+.5f}"
-            f", | Accum,{accum_arcmin[0]:+.5f},{accum_arcmin[1]:+.5f}"
+            f", | Accum,{ra_accum_arcmin:+.5f},{dec_accum_arcmin:+.5f}"
             f", | Pos,{pv_deg[0]:.2f},{pv_deg[1]:.2f},{pv_deg[2]:+.2f}"
             f", | RA_model,{ra_fit}"
             f", | Dec_model,{dec_fit}"
@@ -2471,7 +2472,7 @@ class PecAxis:
         # accounting — private, managed via methods
         self._t_last     = 0.0   # last t seen by update()
         self._ref        = 0.0   # cumul corrections at t0
-        self._cumul      = 0.0   # running total of all corrections seen
+        self._accum      = 0.0   # running total of all corrections seen
         self._applied    = 0.0   # PEC corrections applied since last ingest
 
     def reset(self):
@@ -2484,10 +2485,10 @@ class PecAxis:
         self.var = 0.0
         self.r2  = 0.0
 
-    def seed(self, cumul_deg=0.0):
+    def seed(self, accum_deg=0.0):
         """Set the reference point at t=0."""
-        self._cumul = cumul_deg
-        self._ref   = cumul_deg
+        self._accum  = accum_deg
+        self._ref     = accum_deg
         self._applied = 0.0
 
     # ── primary methods ─────────────────────────────────────────────────────────
@@ -2497,21 +2498,21 @@ class PecAxis:
         resid_deg: guide residual for this axis in degrees.
         t: seconds since session start.
         """
-        # reconcile: total drift = residual seen + what PEC already corrected
-        self._cumul += resid_deg + self._applied
+        # reconcile: total drift = residual seen from autoguiding + what PEC already corrected
+        self._accum += resid_deg + self._applied
         self._applied = 0.0
 
         # update the RLS model
-        y = self._cumul - self._ref
+        y = self._accum - self._ref
         self._update_rls(lam, var_alpha, sse_alpha, t, y)
 
-    def ingest_cumul(self, cumul_deg, t, lam, var_alpha, sse_alpha):
+    def ingest_accum(self, accum_deg, t, lam, var_alpha, sse_alpha):
         """
-        Direct cumul ingestion for notebook replay — bypasses delta accounting.
+        Direct accum ingestion for notebook replay — bypasses delta accounting.
         cumul_deg: absolute cumulative correction in degrees from session start.
         """
-        self._cumul = cumul_deg
-        y = self._cumul - self._ref
+        self._accum = accum_deg
+        y = self._accum - self._ref
         self._update_rls(lam, var_alpha, sse_alpha, t, y)
 
     def eval_correction(self, dt, cap):
@@ -2627,15 +2628,3 @@ class PecAxis:
     def rmse_arcmin(self):
         return math.sqrt(self.sse) * 60
 
-    def log_str(self, label):
-        amps = ', '.join(
-            f'H{h}={self.amplitude(h)*3600:.2f}\'/hr'
-            for h in range(1, self.n_harmonics + 1)
-        )
-        return (
-            f"{label}: drift={self.theta*3600:+.4f}'/hr  "
-            f"{amps}  "
-            f"R²={self.r2:.3f}  "
-            f"rmse={self.rmse_arcmin():.4f}'  "
-            f"{self.inhibit.name}"
-        )
