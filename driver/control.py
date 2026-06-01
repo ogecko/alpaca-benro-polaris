@@ -2512,7 +2512,7 @@ class PecAxis:
     def ingest_accum(self, accum_deg, t, lam, var_alpha, sse_alpha):
         """
         Direct accum ingestion for notebook replay — bypasses delta accounting.
-        cumul_deg: absolute cumulative correction in degrees from session start.
+        accum_deg: absolute cumulative correction in degrees from session start.
         """
         self._accum = accum_deg
         y = self._accum - self._ref
@@ -2596,7 +2596,7 @@ class PecAxis:
         """
         Multi-harmonic RLS update.
         t: seconds since session start (grows monotonically)
-        y: cumul - ref in degrees
+        y: accum - ref in degrees
         """
         self._t_last = t
         phi  = self._phi(t)
