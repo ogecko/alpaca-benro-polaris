@@ -2300,7 +2300,40 @@ class SyncManager:
         """Call after slew, rotate, or QUEST reset."""
         self.init_pec_model()
 
-    def _update_forgetting_lambda(self, now):
+    def update_pec_model(self, ra_resid_deg, dec_resid_deg):
+        """
+        Ingest a guide correction into the PEC model.
+        Either or both residuals may be None (pulse guiding sends one axis at a time).
+        """
+        now = time.monotonic()
+        ra_resid  = self._pec_validate_resid(ra_resid_deg,  is_ra=True,  now=now)
+        dec_resid = self._pec_validate_resid(dec_resid_deg, is_ra=False, now=now)
+
+        if ra_resid is None and dec_resid is None:
+            return
+
+        if not self._pec_initialised(now, ra_resid, dec_resid):
+            return
+
+        t = now - self._pec_t0
+        self._pec_update_axes(ra_resid, dec_resid, t)
+        self._pec_log(ra_resid, dec_resid)
+
+    def _pec_validate_resid(self, resid, is_ra, now):
+        """
+        Returns float residual if valid, None if missing or outlier.
+        Also updates forgetting lambda for RA (the timing reference axis).
+        """
+        if resid is None:
+            return None
+        resid = float(resid)
+        if is_ra:
+            self._pec_update_forgetting_lambda(now)
+        if abs(resid) > self._pec_max_resid:
+            return None
+        return resid
+
+    def _pec_update_forgetting_lambda(self, now):
         """Recompute λ based on observed update rate and desired forget horizon."""
         if self._pec_last_update is not None:
             dt_obs = now - self._pec_last_update
@@ -2310,75 +2343,71 @@ class SyncManager:
         if self._pec_interval is not None:
             self._pec_lambda = max(0.5, min(0.99999, 1.0 - self._pec_interval / self._pec_forget_horz))
 
-
-    def update_pec_model(self, ra_resid_deg, dec_resid_deg):
+    def _pec_initialised(self, now, ra_resid, dec_resid):
         """
-        Ingest a guide correction.
-        ra_resid_deg:  RA residual in degrees (None if not applicable this update)
-        dec_resid_deg: Dec residual in degrees (None if not applicable this update)
-        Internally: cumul/ref/applied all in degrees; theta in degrees/second.
+        Ensures model is ready. Seeds axes on first valid observation.
+        Returns False if this call should be consumed as the seed (no RLS update yet).
         """
-        now = time.monotonic()
-        ra, dec = self._pec_ra, self._pec_dec
-
-        if ra_resid_deg  is not None: ra_resid_deg  = float(ra_resid_deg); self._update_forgetting_lambda(now)
-        if dec_resid_deg is not None: dec_resid_deg = float(dec_resid_deg)
-        ra_skip  = ra_resid_deg  is None or abs(ra_resid_deg)  > self._pec_max_resid
-        dec_skip = dec_resid_deg is None or abs(dec_resid_deg) > self._pec_max_resid
-
-        if ra_skip and dec_skip: return
-        if not hasattr(self, '_pec_t0') or self._pec_t0 is None: self.init_pec_model()
-
-        if not ra_skip:
-            ra.cumul  += ra_resid_deg  + ra.applied;  ra.applied  = 0.0
-        if not dec_skip:
-            dec.cumul += dec_resid_deg + dec.applied; dec.applied = 0.0
+        if self._pec_t0 is None:
+            self.init_pec_model()
 
         if self._pec_n == 0:
-            self._pec_t0 = self._pec_last_apply = now
-            ra.ref  = ra.cumul;  dec.ref = dec.cumul
+            self._pec_t0         = now
+            self._pec_last_apply = now
+            if ra_resid  is not None: self._pec_ra.seed()
+            if dec_resid is not None: self._pec_dec.seed()
             self._pec_n = 1
-            return
+            return False
 
-        t = now - self._pec_t0
-        if t < 1e-6: return
+        return True
 
-        if not ra_skip:
-            ra.update( self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, t, ra.cumul  - ra.ref)
-        if not dec_skip:
-            dec.update(self._pec_lambda, self._pec_var_alpha, self._pec_sse_alpha, t, dec.cumul - dec.ref)
-            
+    def _pec_update_axes(self, ra_resid, dec_resid, t):
+        """Update RLS and inhibit state for each axis."""
+        lam = self._pec_lambda
+
+        if ra_resid is not None:
+            self._pec_ra.ingest(ra_resid,   t, lam, self._pec_var_alpha, self._pec_sse_alpha)
+        if dec_resid is not None:
+            self._pec_dec.ingest(dec_resid, t, lam, self._pec_var_alpha, self._pec_sse_alpha)
+
         self._pec_n += 1
 
-        # Evaluate inhibit state for each axis
-        ra.eval_inhibit(self._pec_n,  self._pec_min_obs, self._pec_max_P, self._pec_max_rmse, self._pec_min_r2)
-        dec.eval_inhibit(self._pec_n, self._pec_min_obs, self._pec_max_P, self._pec_max_rmse, self._pec_min_r2)
-        self._pec_active = ra.converged() or dec.converged()
-
-        if Config.log_pec:
-            pv_deg = self.polaris._pid.alpha_pv
-            accum_arcmin = self.delta_guide_accum*60
-            ra_guide_arcmin  = ra_resid_deg*60 if ra_resid_deg is not None else float('nan')
-            dec_guide_arcmin = dec_resid_deg*60 if dec_resid_deg is not None else float('nan')
-            self.logger.info(
-                f"PECLOG  n,{self._pec_n},{ra.inhibit.name},{dec.inhibit.name}"
-                f", | R2,{ra.r2:.3f},{dec.r2:.3f}"
-                f", | rmse,{ra.rmse_arcmin():.4f},{dec.rmse_arcmin():.4f}"
-                f", | Rate,{ra.theta*3600:+.4f},{dec.theta*3600:+.4f}"
-                f", | Guide,{ra_guide_arcmin:+.5f},{dec_guide_arcmin:+.5f}"
-                f", | Accum,{accum_arcmin[0]:+.5f},{accum_arcmin[1]:+.5f}"
-                f", | Pos,{pv_deg[0]:.2f},{pv_deg[1]:.2f},{pv_deg[2]:+.2f}"
-                f", | P,{ra.P:.4f},{dec.P:.4f}"
-                f", | lambda,{self._pec_lambda:.5f},{self._pec_interval:.1f}"
-            )
+        self._pec_ra.eval_inhibit( self._pec_n, self._pec_min_obs, self._pec_max_rmse, self._pec_min_r2)
+        self._pec_dec.eval_inhibit(self._pec_n, self._pec_min_obs, self._pec_max_rmse, self._pec_min_r2)
+        self._pec_active = self._pec_ra.converged() or self._pec_dec.converged()
+    
+    def _pec_log(self, ra_resid, dec_resid):
+        if not Config.log_pec:
+            return
+        ra, dec = self._pec_ra, self._pec_dec
+        pv_deg = self.polaris._pid.alpha_pv
+        accum_arcmin = self.delta_guide_accum*60
+        ra_guide_arcmin  = ra_resid*60 if ra_resid is not None else float('nan')
+        dec_guide_arcmin = dec_resid*60 if dec_resid is not None else float('nan')
+        ra_fit  = f"{ra._theta[0]*3600:+.4f}"
+        dec_fit = f"{dec._theta[0]*3600:+.4f}"
+        for h in range(1, ra.n_harmonics + 1):
+            ra_fit  += f",{ra.amplitude(h)*3600:.4f}"
+            dec_fit += f",{dec.amplitude(h)*3600:.4f}"
+        self.logger.info(
+            f"PECLOG  n,{self._pec_n},{ra.inhibit.name},{dec.inhibit.name}"
+            f", | R2,{ra.r2:.3f},{dec.r2:.3f}"
+            f", | rmse,{ra.rmse_arcmin():.4f},{dec.rmse_arcmin():.4f}"
+            f", | Rate,{ra.theta*3600:+.4f},{dec.theta*3600:+.4f}"
+            f", | Guide,{ra_guide_arcmin:+.5f},{dec_guide_arcmin:+.5f}"
+            f", | Accum,{accum_arcmin[0]:+.5f},{accum_arcmin[1]:+.5f}"
+            f", | Pos,{pv_deg[0]:.2f},{pv_deg[1]:.2f},{pv_deg[2]:+.2f}"
+            f", | RA_model,{ra_fit}"
+            f", | Dec_model,{dec_fit}"
+            f", | lambda,{self._pec_lambda:.5f},{self._pec_interval:.1f}"
+        )
 
 
     def apply_pec_drift_correction(self):
         """
         Called every ~200ms from PID loop.
-        Computes d_ra, d_dec in degrees (= theta [deg/s] * dt [s]).
+        Computes PEC corrections d_ra, d_dec in degrees (= theta [deg/s] * dt [s]).
         Passes to accumulate_sync_guiding_residuals which expects degrees.
-        axis.applied accumulates in degrees between sync guide updates.
         """
         if not getattr(self, '_pec_active', False):
             return
@@ -2395,19 +2424,12 @@ class SyncManager:
         if dt <= 0 or dt > 5.0:
             return
 
-        ra, dec = self._pec_ra, self._pec_dec
         cap = self._pec_max_step
+        d_ra,  ra_applied  = self._pec_ra.eval_correction(dt, cap)
+        d_dec, dec_applied = self._pec_dec.eval_correction(dt, cap)
 
-        d_ra  = max(-cap, min(cap, ra.theta  * dt)) if ra.converged()  else 0.0
-        d_dec = max(-cap, min(cap, dec.theta * dt)) if dec.converged() else 0.0
-
-        if abs(d_ra) < 1e-7 and abs(d_dec) < 1e-7:
-            return
-
-        ra.applied  += d_ra
-        dec.applied += d_dec
-        self.accumulate_sync_guiding_residuals(d_ra, d_dec)
-
+        if ra_applied or dec_applied:
+            self.accumulate_sync_guiding_residuals(d_ra, d_dec)
 
 
 
@@ -2438,7 +2460,6 @@ class PecAxis:
         self.n_harmonics = n_harmonics
         self.n_params    = 1 + 2 * n_harmonics    # drift + sin/cos pairs
 
-        self._t_last = 0.0                        # last t seen by update()
         self._theta  = np.zeros(self.n_params)    # internal: full parameter vector
         self.P       = np.eye(self.n_params)      # RLS covariance matrix
         self.sse     = 0.0                        # EMA squared prediction error
@@ -2446,6 +2467,58 @@ class PecAxis:
         self.r2      = 0.0
         self.applied = 0.0
         self.inhibit = PecInhibit.IDLE
+
+        # accounting — private, managed via methods
+        self._t_last     = 0.0   # last t seen by update()
+        self._ref        = 0.0   # cumul corrections at t0
+        self._cumul      = 0.0   # running total of all corrections seen
+        self._applied    = 0.0   # PEC corrections applied since last ingest
+
+    def reset(self):
+        self.__init__(T=self.T, n_harmonics=self.n_harmonics)
+
+    def reset_fit(self):
+        """Reset fit statistics but preserve parameter estimates as warm start."""
+        self.P   = np.eye(self.n_params)
+        self.sse = 0.0
+        self.var = 0.0
+        self.r2  = 0.0
+
+    def seed(self, cumul_deg=0.0):
+        """Set the reference point at t=0."""
+        self._cumul = cumul_deg
+        self._ref   = cumul_deg
+        self._applied = 0.0
+
+    # ── primary methods ─────────────────────────────────────────────────────────
+    def ingest(self, resid_deg, t, lam, var_alpha, sse_alpha):
+        """
+        Ingest a new guide residual and update the RLS model.
+        resid_deg: guide residual for this axis in degrees.
+        t: seconds since session start.
+        """
+        # reconcile: total drift = residual seen + what PEC already corrected
+        self._cumul += resid_deg + self._applied
+        self._applied = 0.0
+
+        # update the RLS model
+        y = self._cumul - self._ref
+        self._update_rls(lam, var_alpha, sse_alpha, t, y)
+        
+    def eval_correction(self, dt, cap):
+        """
+        Compute and accumulate a PEC correction step.
+        Returns (d, correction_was_applied).
+        d is in degrees, ready for accumulate_sync_guiding_residuals.
+        """
+        if not self.converged():
+            return 0.0, False
+        d = max(-cap, min(cap, self.theta * dt))
+        if abs(d) < 1e-7:
+            return 0.0, False
+        self._applied += d
+        return d, True
+
 
     # ── primary output ─────────────────────────────────────────────────────────
     @property
@@ -2500,7 +2573,7 @@ class PecAxis:
             phi[2 + 2*(h-1)] = math.cos(h * w * t)
         return phi
 
-    def update(self, lam, var_alpha, sse_alpha, t, y):
+    def _update_rls(self, lam, var_alpha, sse_alpha, t, y):
         """
         Multi-harmonic RLS update.
         t: seconds since session start (grows monotonically)
@@ -2522,19 +2595,10 @@ class PecAxis:
         self.P       = (self.P - np.outer(K, phi @ self.P)) / lam
         self.r2      = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
 
-    def reset(self):
-        self.__init__(T=self.T, n_harmonics=self.n_harmonics)
-
-    def reset_fit(self):
-        """Reset fit statistics but preserve parameter estimates as warm start."""
-        self.P   = np.eye(self.n_params)
-        self.sse = 0.0
-        self.var = 0.0
-        self.r2  = 0.0
 
     def eval_inhibit(self, n, min_obs, max_rmse, min_r2=0.5):
         if n < min_obs:
-            self.inhibit = PecInhibit.IDLE
+            self.inhibit = PecInhibit.TOO_FEW_OBS
         elif math.sqrt(self.sse) >= max_rmse:
             self.inhibit = PecInhibit.HIGH_RMSE
         elif self.r2 < min_r2:
