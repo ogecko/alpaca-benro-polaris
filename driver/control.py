@@ -2384,11 +2384,11 @@ class SyncManager:
         accum_arcmin = self.delta_guide_accum*60
         ra_guide_arcmin  = ra_resid*60 if ra_resid is not None else float('nan')
         dec_guide_arcmin = dec_resid*60 if dec_resid is not None else float('nan')
-        ra_fit  = f"{ra._theta[0]*3600:+.4f}"
-        dec_fit = f"{dec._theta[0]*3600:+.4f}"
+        ra_fit  = f"{ra.dc_rate()*3600:+.4f}"
+        dec_fit = f"{dec.dc_rate()*3600:+.4f}"
         for h in range(1, ra.n_harmonics + 1):
-            ra_fit  += f",{ra.amplitude(h)*3600:.4f}"
-            dec_fit += f",{dec.amplitude(h)*3600:.4f}"
+            ra_fit  += f",{ra.harmonic_rate(h)*3600:.4f}"
+            dec_fit += f",{dec.harmonic_rate(h)*3600:.4f}"
         self.logger.info(
             f"PECLOG  n,{self._pec_n},{ra.inhibit.name},{dec.inhibit.name}"
             f", | R2,{ra.r2:.3f},{dec.r2:.3f}"
