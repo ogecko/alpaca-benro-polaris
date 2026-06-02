@@ -28,7 +28,7 @@
 - [X] Documentation - note about TPLine frequency scan causing comms latency
 - [X] Dependancies - Update compatibility with Stellarium Desktop 26.1 maybe 26.2 (if its released on time)
 - [X] PEC - RLS upgraded to model both axes linear drift rate and harmonic drift rates
-- [ ] PEC - Update kinematics page with PEC Rate deg/hr (continuously applied), Guide Pulse deg
+- [X] PEC - Update kinematics page with PEC Rate deg/hr (continuously applied), and Guide Pulse in degrees (rather than guide rate)
 - [ ] Motion Planning - Fix Gimbal lock oscillation when passing from Alt 10 through Alt 0 (Gimbal Lock) to Alt -10, ensuring PID flips theta3 at correct time
 - [ ] HTTPS - Document Location GPS using phone web browser
 - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
