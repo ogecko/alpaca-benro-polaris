@@ -2199,7 +2199,8 @@ class SyncManager:
         return True
 
     def invalidate_sync_guiding(self):
-        """ Next sync is not to be used for sync guiding """
+        """ Next sync is not to be used for sync guiding, but keep q_syncguide_B """
+        self.reset_pec_model()
         self.valid_sync_guide = False
 
     def clear_sync_guiding(self):
