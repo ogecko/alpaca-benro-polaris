@@ -1413,7 +1413,7 @@ class Polaris:
                 'astate': [0,0,0] if self._alpha_state is None else self._alpha_state.tolist(),
                 'tpv': [0,0,0] if self._pid.theta_pv is None else self._pid.theta_pv.tolist(),
                 'tref': [0,0,0] if self._pid.theta_ref is None else self._pid.theta_ref.tolist(),
-                'gdrate': [0,0,0] if self._sm.delta_guide_rate is None else self._sm.delta_guide_rate.tolist(),
+                'gdpulse': [0,0,0] if self._sm.delta_guide_pulse is None else self._sm.delta_guide_pulse.tolist(),
                 'gdaccum': [0,0,0] if self._sm.delta_guide_accum is None else self._sm.delta_guide_accum.tolist(),
                 'dslew': [0,0,0] if self._pid.delta_v_sp is None else self._pid.delta_v_sp.tolist(),
                 'aslew': [0,0,0] if self._pid.alpha_v_sp is None else self._pid.alpha_v_sp.tolist(),
@@ -1445,7 +1445,7 @@ class Polaris:
                 'pidKc': Config.pid_Kc,
             }
         # clear after sent to Pilot
-        self._sm.delta_guide_rate =  np.zeros(3, dtype=float) 
+        self._sm.delta_guide_pulse =  np.zeros(3, dtype=float) 
         self._ispulseguiding = False
 
         return res

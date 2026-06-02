@@ -1422,7 +1422,7 @@ class SyncManager:
         self.q_syncguide_B = Quaternion(1,0,0,0)    # accumulation of sync guide corrections
         self.valid_sync_guide = False               # flag to indicate pure sidereal tracking since last sync
         self.delta_guide_accum = np.zeros(3, dtype=float) 
-        self.delta_guide_rate = np.zeros(3, dtype=float) 
+        self.delta_guide_pulse = np.zeros(3, dtype=float) 
         self.equatorial_axes_B = (None, None, None)
         self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)    
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
@@ -2169,13 +2169,13 @@ class SyncManager:
         q_pulse = Quaternion(axis=axis_base, degrees=angle_deg)
         self.q_guide_B = (q_pulse * self.q_guide_B).normalised
         self.delta_guide_accum[axis] += angle_deg
-        self.delta_guide_rate[axis] = velocity
+        self.delta_guide_pulse[axis] = angle_deg
 
     
     def clear_guide_pulses(self):
         self.delta_guide_accum = np.zeros(3, dtype=float)
         self.q_guide_B = Quaternion(1,0,0,0)
-        self.delta_guide_rate = np.zeros(3, dtype=float)
+        self.delta_guide_pulse = np.zeros(3, dtype=float)
 
 
 # ── Sync Guiding ──────────────────────────────────────────────────────────

@@ -107,11 +107,11 @@
                   </div>
                   <!-- Guiding -->
                   <div class="ok terminal">
-                    <span>{{`Guide Rate:`}}</span>
+                    <span>{{`Guide Pulse:`}}</span>
                     <span v-if="cfg.advanced_pulse_guiding || cfg.advanced_sync_guiding" >
-                      <VField label="  RA " :val="p.gdrate[0]" unit="deg/s"/>
-                      <VField label=" |  Dec " :val="p.gdrate[1]" unit="deg/s"/>
-                      <VField label=" | PosA " :val="p.gdrate[2]" unit="deg/s"/>
+                      <VField label=" RA " :val="p.gdpulse[0]" unit="deg_ofst"/>
+                      <VField label="   |  Dec " :val="p.gdpulse[1]" unit="deg_ofst"/>
+                      <VField label="   | PosA " :val="p.gdpulse[2]" unit="deg_ofst"/>
                     </span>
                     <span v-else>
                       <span >{{`   Sync/Pulse Guiding`}}</span>

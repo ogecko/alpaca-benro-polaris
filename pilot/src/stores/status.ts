@@ -77,7 +77,7 @@ export const useStatusStore = defineStore('status', {
         astate: [0,0,0],
         tpv: [0,0,0],
         tref: [0,0,0],
-        gdrate: [0,0,0],
+        gdpulse: [0,0,0],
         gdaccum: [0,0,0],
         dslew: [0,0,0],
         aslew: [0,0,0],
