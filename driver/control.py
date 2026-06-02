@@ -2423,14 +2423,15 @@ class SyncManager:
             self._pec_last_apply = now
             return
 
+        t = now - self._pec_t0
         dt = now - self._pec_last_apply
         self._pec_last_apply = now
         if dt <= 0 or dt > 5.0:
             return
 
         cap = self._pec_max_step
-        d_ra,  ra_applied  = self._pec_ra.eval_correction(dt, cap)
-        d_dec, dec_applied = self._pec_dec.eval_correction(dt, cap)
+        d_ra,  ra_applied  = self._pec_ra.eval_correction(t, dt, cap)
+        d_dec, dec_applied = self._pec_dec.eval_correction(t, dt, cap)
 
         if ra_applied or dec_applied:
             self.accumulate_sync_guiding_residuals(d_ra, d_dec)
@@ -2474,9 +2475,10 @@ class PecAxis:
 
         # accounting — private, managed via methods
         self._t_last     = 0.0   # last t seen by update()
-        self._ref        = 0.0   # cumul corrections at t0
-        self._accum      = 0.0   # running total of all corrections seen
-        self._applied    = 0.0   # PEC corrections applied since last ingest
+        self._ref        = 0.0   # accum corrections at t0
+        self._accum      = 0.0   # running total of all corrections seen, guide and PEC (deg)
+        self._applied_accum = 0.0   # PEC corrections applied since last ingest (deg)
+        self._applied_rate  = 0.0   # PEC instantaneous drift rate, last applied (deg/s)
 
     def reset(self):
         self.__init__(T=self.T, n_harmonics=self.n_harmonics)
@@ -2490,9 +2492,9 @@ class PecAxis:
 
     def reset_seed(self, accum_deg=0.0):
         """Set the reference point at t=0."""
-        self._accum  = accum_deg
+        self._accum   = accum_deg
         self._ref     = accum_deg
-        self._applied = 0.0
+        self._applied_accum = 0.0
 
     # ── primary methods ─────────────────────────────────────────────────────────
     def ingest(self, resid_deg, t, lam, var_alpha, sse_alpha):
@@ -2502,8 +2504,8 @@ class PecAxis:
         t: seconds since session start.
         """
         # reconcile: total drift = residual seen from autoguiding + what PEC already corrected
-        self._accum += resid_deg + self._applied
-        self._applied = 0.0
+        self._accum += resid_deg + self._applied_accum
+        self._applied_accum = 0.0
 
         # update the RLS model
         y = self._accum - self._ref
@@ -2518,18 +2520,19 @@ class PecAxis:
         y = self._accum - self._ref
         self._update_rls(lam, var_alpha, sse_alpha, t, y)
 
-    def eval_correction(self, dt, cap):
+    def eval_correction(self, t, dt, cap):
         """
-        Compute and accumulate a PEC correction step.
+        Compute and accumulate a PEC correction step at time t and over time span dt.
         Returns (d, correction_was_applied).
         d is in degrees, ready for accumulate_sync_guiding_residuals.
         """
         if not self.converged():
             return 0.0, False
-        d = max(-cap, min(cap, self.theta * dt))
+        self._applied_rate = self._drift_rate(t)
+        d = max(-cap, min(cap, self._applied_rate * dt))
         if abs(d) < 1e-7:
             return 0.0, False
-        self._applied += d
+        self._applied_accum += d
         return d, True
 
 
