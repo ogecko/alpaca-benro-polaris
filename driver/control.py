@@ -1230,7 +1230,7 @@ class PID_Controller():
                 theta_final = np.array(q_to_theta(motorQ_final, self._lp))
                 theta_final[0] += t1_fix
                 theta_final[2] += t3_fix
-                self.logger.info(f'Winup Prevention: z1 {z1_implied:+.1f} t1 {theta_final[0]-t1_fix:+.1f} -> {theta_final[0]:+.1f} | z3 {z3_implied:+.1f} t3 {theta_final[2]-t3_fix:+.1f} -> {theta_final[2]:+.1f}')
+                self.logger.info(f'Windup Prevention: z1 {z1_implied:+.1f} t1 {theta_final[0]-t1_fix:+.1f} -> {theta_final[0]:+.1f} | z3 {z3_implied:+.1f} t3 {theta_final[2]-t3_fix:+.1f} -> {theta_final[2]:+.1f}')
                 self.theta_ref_cache = theta_final
 
     def errsignal(self):
