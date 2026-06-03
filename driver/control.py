@@ -727,6 +727,7 @@ class PID_Controller():
         self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, polar angular reference position
         self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll angular reference position
         self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor reference angular position
+        self.theta_ref_cache = np.zeros(3, dtype=float)      # theta1-3 cached when mount needs to do large flips
         self.zeta_ref = np.zeros(3, dtype=float)       # zeta1-3 motor reference angular position (used in PARKING, HOMING)
         self.error_signal = np.zeros(3, dtype=float)   # theta1-3 error btw theta_ref and theta_meas
         self.error_integral = np.zeros(3, dtype=float) # theta1-3 error btw theta_ref and theta_meas
@@ -782,6 +783,7 @@ class PID_Controller():
            Where axes is a list from ["ra", "dec", "pa", "alt", "az", "roll"], and defaults to all"""
         self.reset_delta_offsets(axes)
         self.reset_alpha_offsets(axes)
+        self.theta_ref_cache = None                        # Clear any cached target
 
     def reset_delta_offsets(self, axes):
         if axes is None:
@@ -1161,6 +1163,18 @@ class PID_Controller():
         motorQ_ref   = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
         self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
 
+        # Log every 2 seconds for debugging
+        # now = time.monotonic()
+        # every_2s = not hasattr(self, '_last_log_time') or now - self._last_log_time > 2.0
+        # if self.mode in ['AUTO','HOMING','PARKING'] and every_2s:
+        #     self._last_log_time = now
+        #     self.logger.info(f"POSLOG"
+        #         f", | alpha_ref: ,{self.alpha_ref[0]:+.1f},{self.alpha_ref[1]:+.1f},{self.alpha_ref[2]:+.1f}"
+        #         f", | alpha_pv: ,{self.alpha_pv[0]:+.1f},{self.alpha_pv[1]:+.1f},{self.alpha_pv[2]:+.1f}"
+        #         f", | theta_ref: ,{self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}"
+        #         f", | theta_pv: ,{self.theta_pv[0]:+.1f},{self.theta_pv[1]:+.1f},{self.theta_pv[2]:+.1f}"
+        #     )
+
     def measure(self, delta_pv, alpha_pv, theta_pv, zeta_meas):
         now = ephem.now()
         # if not self.time_meas:
@@ -1202,12 +1216,38 @@ class PID_Controller():
         elif self.mode == "AUTO":
             self.omega_ff = self.alpha_v_sp
 
+    def prevent_windup(self):
+        if self.theta_ref_cache is None and self.polaris._zeta_meas is not None:
+            zeta = np.array(self.polaris._zeta_meas)
+            z1_implied = zeta[0] + (self.alpha_ref[0] - self.alpha_pv[0])   # use alpha to see full az change (not limited by step)
+            z3_implied = zeta[2] + (self.theta_ref[2] - self.theta_pv[2])   # use theta for M3 as its more likely to twist on -ve alt
+            t1_fix = 360 if z1_implied < Config.z1_min_limit else -360 if z1_implied > Config.z1_max_limit else 0
+            t3_fix = 360 if z3_implied < Config.z3_min_limit else -360 if z3_implied > Config.z3_max_limit else 0
+            if t1_fix != 0 or t3_fix != 0:
+                motorQ_final = self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*self.alpha_ref))
+                theta_final = np.array(q_to_theta(motorQ_final, self._lp))
+                theta_final[0] += t1_fix
+                theta_final[2] += t3_fix
+                self.logger.info(f'UNWIND: z1 {z1_implied:+.1f} t1 {theta_final[0]-t1_fix:+.1f} -> {theta_final[0]:+.1f} | z3 {z3_implied:+.1f} t3 {theta_final[2]-t3_fix:+.1f} -> {theta_final[2]:+.1f}')
+                self.theta_ref_cache = theta_final
+
     def errsignal(self):
-        # calc the error signal off theta (1 star aligned motor angles) or zeta (raw motor angles)
+        # calc the error signal off theta (aligned motor angles) or zeta (raw motor angles)
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
-        else:            
-            self.error_signal = clamp_error(self.theta_ref, self.theta_pv)
+        else:        
+            if self.theta_ref_cache is None:
+                self.prevent_windup()
+                self.error_signal = self.theta_ref - self.theta_pv
+                # if far away from target in M1 or M3 then cache the target
+                if abs(self.error_signal[0])>30 or abs(self.error_signal[2])>30:
+                    self.theta_ref_cache = self.theta_ref
+            else:
+                self.error_signal = self.theta_ref_cache - self.theta_pv
+                # if close to cached target then reset the cache
+                if abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10:
+                    self.theta_ref_cache = None
+
 
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60

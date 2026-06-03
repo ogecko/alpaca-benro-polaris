@@ -50,6 +50,8 @@
 - **[Progress Indicator]** Add a circular progress indicator showing remaining angular distance for Goto, Rotate, Home, and Park operations.
 - **[Slew & Center Correction]** Reduce the number of corrective slews with three alternate algorithms - Zero Last Residual (ZLR), Local Guasssian Adjustment (LGA) and Sync Guiding Adjustment (SGA).
 - **[Mechanical Correction]** Correction models for potentially tilted or misaligned Astro and Altitude motor axes.
+- **[Windup Prevention]** Automatically detects when a move would over-rotate an axis and reroutes 360° in the opposite direction to prevent cable damage
+- **[Zenith/Horizon Crossing]** Handles the physical axis flip needed when pointing through zenith or to negative altitudes, equivalent to a meridian flip
 
 ### Multi Point Alignment
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart, allowing imagaging sessions to continue, uninterupted.
