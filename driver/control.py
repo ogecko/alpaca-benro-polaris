@@ -1223,8 +1223,9 @@ class PID_Controller():
             d3 = max(self.alpha_ref[2] - self.alpha_pv[2], self.theta_ref[2] - self.theta_pv[2], key=abs)
             z1_implied = zeta[0] + d1
             z3_implied = zeta[2] + d3
-            t1_fix = 360 if z1_implied < Config.z1_min_limit else -360 if z1_implied > Config.z1_max_limit else 0
-            t3_fix = 360 if z3_implied < Config.z3_min_limit else -360 if z3_implied > Config.z3_max_limit else 0
+            safety = Config.zeta_safety_margin
+            t1_fix = 360 if z1_implied < Config.z1_min_limit+safety else -360 if z1_implied > Config.z1_max_limit-safety else 0
+            t3_fix = 360 if z3_implied < Config.z3_min_limit+safety else -360 if z3_implied > Config.z3_max_limit-safety else 0
             if t1_fix != 0 or t3_fix != 0:
                 motorQ_final = self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*self.alpha_ref))
                 theta_final = np.array(q_to_theta(motorQ_final, self._lp))
