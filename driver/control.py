@@ -2624,7 +2624,7 @@ class PecAxis:
             self.inhibit = PecInhibit.TOO_FEW_OBS
         elif math.sqrt(self.sse) >= max_rmse:
             self.inhibit = PecInhibit.HIGH_RMSE
-        elif self.r2 < min_r2:
+        elif self.r2 < min_r2 and self.var > self.sse:  # skip R² check if signal variance too small
             self.inhibit = PecInhibit.LOW_R2
         else:
             self.inhibit = PecInhibit.VALID
