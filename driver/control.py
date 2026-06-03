@@ -783,6 +783,7 @@ class PID_Controller():
            Where axes is a list from ["ra", "dec", "pa", "alt", "az", "roll"], and defaults to all"""
         self.reset_delta_offsets(axes)
         self.reset_alpha_offsets(axes)
+        self.theta_ref_cache = None                        # Clear any cached target
 
     def reset_delta_offsets(self, axes):
         if axes is None:
