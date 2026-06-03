@@ -28,6 +28,8 @@
 - [X] Documentation - note about TPLine frequency scan causing comms latency
 - [X] Dependancies - Update compatibility with Stellarium Desktop 26.1 maybe 26.2 (if its released on time)
 - [X] Motion Planning - Windup Prevention and Zenith/Horizon Crossing (equivalent to a meridian flip)
+- [X] PEC - RLS upgraded to model both axes linear drift rate and harmonic drift rates
+- [X] PEC - Update kinematics page with PEC Rate deg/hr (continuously applied), and Guide Pulse in degrees (rather than guide rate)
 - [X] PEC - to detect crossovers where there is zero trend and reset for new phase, added harmonics and phase detection
 - [ ] PEC - Calibration pulses to be ignored by PEC (using either PHD2 and CCDciel)
 - [ ] Galactic - Add Galactic Co-ordinate system to Pilot
@@ -35,6 +37,8 @@
 - [ ] HTTPS - Document Location GPS using phone web browser
 - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
 - [ ] Nina - Test session using Nina and document Sync Guiding workflow
+- [ ] PEC - Calibration pulse to be ignored by PEC (using either PHD2 and CCDciel)
+- [ ] PEC - to detect crossovers where there is zero trend and reset for new phase
 - [ ] Connection - why does changing IP address allow connection to proceed?
 - [ ] Connection - why does L-Bracket get initialised incorrectly sometimes?
 - [ ] Dependancies - Upgrade dependant libraries on Node and Python
