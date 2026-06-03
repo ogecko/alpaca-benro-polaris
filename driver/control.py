@@ -2227,6 +2227,8 @@ class SyncManager:
 
         self.delta_guide_accum[0] += ra_resid
         self.delta_guide_accum[1] += dec_resid
+        self.delta_guide_pulse[0] = ra_resid
+        self.delta_guide_pulse[1] = dec_resid
         
     def get_sync_guiding_correction_q(self):
         return self.q_syncguide_B
