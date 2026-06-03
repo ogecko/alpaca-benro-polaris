@@ -61,7 +61,8 @@
         - Slew and Center - Last MPA Residual, no completion, ZLR force it, LGA on Kinematics
     - Pointing and Motion Control
         - Goto Completion - New Progress Indicator, Setting Tollerance Kc and Kc/20 
-        - Negative Alt - Large negative angles, better chosing soln        
+        - Negative Alt - Supports below horizon pointing, transitioning through horizon, zenith imaging
+        - Windup Prevention - detects when a move would over-rotate an axis and reroutes 360° in the opposite direction
         - Rotations - Shortest Path, Rotate maintains direction 
         - Gimbal Lock - Loss of degree of freedom, Limit Sidereal Horiz, 3 degree out
         - At Home - Telescope v4, async, 
