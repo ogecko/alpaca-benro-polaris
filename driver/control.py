@@ -2287,7 +2287,7 @@ class SyncManager:
         self._pec_max_rmse    = getattr(Config, 'pec_max_rmse_arcmin',     6.0)   / 60.0  # inhibit if rmse > max_rmse degrees
         self._pec_max_P       = getattr(Config, 'pec_max_covariance',      0.01)          # inhibit if not converged ie P > max_P
         self._pec_min_r2      = getattr(Config, 'pec_min_r2',              0.5)           # inhibit if bad R2 < 0.5
-        self._pec_forget_horz = getattr(Config, 'pec_forget_horizon_sec',  68*60)         # 68 min to track reversals of 34min PEC cycle
+        self._pec_forget_horz = getattr(Config, 'pec_forget_horizon_sec',  21*60)         # at least 21 min (2/3 cycle) to track curve of 34min PEC cycle
         self._pec_T_sec       = getattr(Config, 'pec_T_sec',               34*60)         # T: worm period in seconds (default 34 min = 2040s)
         self._pec_n_harmonics = getattr(Config, 'pec_n_harmonics',         2)             # n_harmonics: 1, 2, or 3 (adds pairs of sin/cos terms)
 
