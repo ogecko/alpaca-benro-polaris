@@ -1216,12 +1216,28 @@ class PID_Controller():
         elif self.mode == "AUTO":
             self.omega_ff = self.alpha_v_sp
 
+    def prevent_windup(self):
+        if self.theta_ref_cache is None and self.polaris._zeta_meas is not None:
+            zeta = np.array(self.polaris._zeta_meas)
+            z1_implied = zeta[0] + (self.alpha_ref[0] - self.alpha_pv[0])   # use alpha to see full az change (not limited by step)
+            z3_implied = zeta[2] + (self.theta_ref[2] - self.theta_pv[2])   # use theta for M3 as its more likely to twist on -ve alt
+            t1_fix = 360 if z1_implied < Config.z1_min_limit else -360 if z1_implied > Config.z1_max_limit else 0
+            t3_fix = 360 if z3_implied < Config.z3_min_limit else -360 if z3_implied > Config.z3_max_limit else 0
+            if t1_fix != 0 or t3_fix != 0:
+                motorQ_final = self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*self.alpha_ref))
+                theta_final = np.array(q_to_theta(motorQ_final, self._lp))
+                theta_final[0] += t1_fix
+                theta_final[2] += t3_fix
+                self.logger.info(f'UNWIND: z1 {z1_implied:+.1f} t1 {theta_final[0]-t1_fix:+.1f} -> {theta_final[0]:+.1f} | z3 {z3_implied:+.1f} t3 {theta_final[2]-t3_fix:+.1f} -> {theta_final[2]:+.1f}')
+                self.theta_ref_cache = theta_final
+
     def errsignal(self):
-        # calc the error signal off theta (1 star aligned motor angles) or zeta (raw motor angles)
+        # calc the error signal off theta (aligned motor angles) or zeta (raw motor angles)
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:        
             if self.theta_ref_cache is None:
+                self.prevent_windup()
                 self.error_signal = self.theta_ref - self.theta_pv
                 # if far away from target in M1 or M3 then cache the target
                 if abs(self.error_signal[0])>30 or abs(self.error_signal[2])>30:
