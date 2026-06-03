@@ -1221,16 +1221,16 @@ class PID_Controller():
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
         else:        
-            if self.theta_ref_cache is not None:
-                self.error_signal = self.theta_ref_cache - self.theta_pv
-                # if close to cached target then reset the cache
-                if abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10:
-                    self.theta_ref_cache = None
-            else:
+            if self.theta_ref_cache is None:
                 self.error_signal = self.theta_ref - self.theta_pv
                 # if far away from target in M1 or M3 then cache the target
                 if abs(self.error_signal[0])>30 or abs(self.error_signal[2])>30:
                     self.theta_ref_cache = self.theta_ref
+            else:
+                self.error_signal = self.theta_ref_cache - self.theta_pv
+                # if close to cached target then reset the cache
+                if abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10:
+                    self.theta_ref_cache = None
 
 
         # Per-axis deviation flags
