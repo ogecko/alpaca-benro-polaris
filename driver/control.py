@@ -727,6 +727,7 @@ class PID_Controller():
         self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, polar angular reference position
         self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll angular reference position
         self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor reference angular position
+        self.theta_ref_cache = np.zeros(3, dtype=float)      # theta1-3 cached when mount needs to do large flips
         self.zeta_ref = np.zeros(3, dtype=float)       # zeta1-3 motor reference angular position (used in PARKING, HOMING)
         self.error_signal = np.zeros(3, dtype=float)   # theta1-3 error btw theta_ref and theta_meas
         self.error_integral = np.zeros(3, dtype=float) # theta1-3 error btw theta_ref and theta_meas
@@ -1218,8 +1219,18 @@ class PID_Controller():
         # calc the error signal off theta (1 star aligned motor angles) or zeta (raw motor angles)
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
-        else:            
-            self.error_signal = self.theta_ref - self.theta_pv
+        else:        
+            if self.theta_ref_cache is not None:
+                self.error_signal = self.theta_ref_cache - self.theta_pv
+                # if close to cached target then reset the cache
+                if abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10:
+                    self.theta_ref_cache = None
+            else:
+                self.error_signal = self.theta_ref - self.theta_pv
+                # if far away from target in M1 or M3 then cache the target
+                if abs(self.error_signal[0])>30 or abs(self.error_signal[2])>30:
+                    self.theta_ref_cache = self.theta_ref
+
 
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
