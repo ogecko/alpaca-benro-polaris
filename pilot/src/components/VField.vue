@@ -77,14 +77,13 @@ function fmt_number(x: unknown, decimals:number=7): string {
 
 function fmt_r2(x: unknown, decimals:number=3): string {
   const n = toNumber(x)
-  return (n > 0) ? Math.abs(n).toFixed(decimals) :
-         (n == 0)  ? 'Idle' :
+  return (n == 0)  ? 'Idle' :
          (n == -1) ? 'Valid' :
          (n == -2) ? 'Warmup' :
          (n == -3) ? 'Adapt' :
          (n == -4) ? 'RMSE' :
-         (n == -5) ? 'Poor' :
-                     'Unknown'
+         (n == -5) ? 'R²Low' :
+                     n.toFixed(decimals)
 }
 
 function fmt_string(x: unknown): string {
