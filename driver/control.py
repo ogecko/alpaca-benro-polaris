@@ -718,17 +718,19 @@ class PID_Controller():
         self.orbital_sp_name = None                    # name of pyephem body tracking for Lunar, Solar, Custom rates
         self.orbital_sp_fetchmsg  = None               # result msg from last http fetch of orbital parameters
         self.orbital_sp_status = [0, 0, 0]             # status of orbital tracking [is_orb_trackable (0=N/A, 1=toolow, 2=ok), orb_az, orb_alt]
-        self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, polar anglular positions
-        self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
-        self.delta_pv = np.zeros(3, dtype=float)       # ra, dec, polar measured angular position
-        self.alpha_pv = np.zeros(3, dtype=float)       # az, alt, roll measured angular position
-        self.theta_pv = np.zeros(3, dtype=float)      # theta1-3 motor measured angular position, kf and pec corrected
-        self.zeta_meas = np.zeros(3, dtype=float)      # zeta1-3 motor raw measured angular position (no alignment effect)
-        self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, polar angular reference position
-        self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll angular reference position
-        self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor reference angular position
-        self.theta_ref_cache = np.zeros(3, dtype=float)      # theta1-3 cached when mount needs to do large flips
-        self.zeta_ref = np.zeros(3, dtype=float)       # zeta1-3 motor reference angular position (used in PARKING, HOMING)
+        self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
+        self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, pa   - user set target equatorial co-ordinates
+        self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll - user set target topocentric co-ordinates
+        self.gamma_pv = np.zeros(3, dtype=float)       # l,  b,   gpa  - measured galactic co-ordinates
+        self.delta_pv = np.zeros(3, dtype=float)       # ra, dec, pa   - measured equatorial co-ordinates
+        self.alpha_pv = np.zeros(3, dtype=float)       # az, alt, roll - measured topocentric co-ordinates
+        self.theta_pv = np.zeros(3, dtype=float)       # theta1-3      - measured motor angular position (kf and pec corrected)
+        self.zeta_meas = np.zeros(3, dtype=float)      # zeta1-3       - measured raw motor angular position (no alignment effect)
+        self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, pa    - control target equatorial co-ordinates
+        self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll  - control target topocentric co-ordinates
+        self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor - control target motor co-ordinates
+        self.theta_ref_cache = np.zeros(3, dtype=float)# theta1-3       - cached when mount needs to do large flips
+        self.zeta_ref = np.zeros(3, dtype=float)       # zeta1-3        - control target motor reference (used in PARKING, HOMING)
         self.error_signal = np.zeros(3, dtype=float)   # theta1-3 error btw theta_ref and theta_meas
         self.error_integral = np.zeros(3, dtype=float) # theta1-3 error btw theta_ref and theta_meas
         self.cameraQ_ref = None
