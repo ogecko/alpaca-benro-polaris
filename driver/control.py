@@ -2355,6 +2355,9 @@ class SyncManager:
         Ingest a guide correction into the PEC model.
         Either or both residuals may be None (pulse guiding sends one axis at a time).
         """
+        if not Config.advanced_pec:
+            return
+        
         now = time.monotonic()
         ra_resid  = self._pec_validate_resid(ra_resid_deg,  is_ra=True,  now=now)
         dec_resid = self._pec_validate_resid(dec_resid_deg, is_ra=False, now=now)
