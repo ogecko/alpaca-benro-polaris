@@ -31,7 +31,9 @@
 - [X] PEC - RLS upgraded to model both axes linear drift rate and harmonic drift rates
 - [X] PEC - Update kinematics page with PEC Rate deg/hr (continuously applied), and Guide Pulse in degrees (rather than guide rate)
 - [X] PEC - to detect crossovers where there is zero trend and reset for new phase, added harmonics and phase detection
+- [X] PEC - Disable learning of PEC Model while disabled
 - [ ] PEC - Calibration pulses to be ignored by PEC (using either PHD2 and CCDciel)
+- [ ] Flip - Cannot flip to -30 back to +30 at Az 210
 - [ ] Galactic - Add Galactic Co-ordinate system to Pilot
 - [ ] Galactic - Add Sky - Milky Way Panorama for aligning pano grid with Milky Way spine
 - [ ] HTTPS - Document Location GPS using phone web browser
