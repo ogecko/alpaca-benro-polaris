@@ -10,8 +10,14 @@
       <div class="q-pb-sm">
         <div class="q-gutter-md ">
           <q-btn-group >
-            <q-btn icon="mdi-telescope"  glossy  :dense="btnDense" :size="btnSize" color="secondary" push :outline="!isEq" @click="isEq=!isEq" >
-              <q-tooltip>Switch between Equatorial and Az/Alt Co-ordinates.</q-tooltip>
+            <q-btn
+              :icon="isEq === 0 ? 'mdi-compass' : isEq === 1 ? 'mdi-telescope' : 'mdi-cryengine'"
+              glossy :dense="btnDense" :size="btnSize" color="secondary" push
+              @click="isEq = ((isEq + 1) % 3) as 0 | 1 | 2"
+            >
+              <q-tooltip>
+                Coordinate frame: {{  isEq === 0 ? 'Topocentric (Az, Alt, Roll)' : isEq === 1 ? 'Equatorial (RA, Dec, PA)' : 'Galactic (l, b, GPA)' }}
+              </q-tooltip>
             </q-btn>
             <q-btn v-if="isDeviated" icon="mdi-format-horizontal-align-center"  glossy :dense="btnDense" :size="btnSize" color="secondary" outline @click="onResetSP">
               <q-tooltip>Reset all setpoints to their current values.</q-tooltip>
@@ -117,23 +123,32 @@ const route = useRoute()
 const dev = useDeviceStore()
 const p = useStatusStore()
 const cfg= useConfigStore()
-const isEq = ref<boolean>(false)
+const isEq = ref<0 | 1 | 2>(0)
 const isStopOutline = ref<boolean>(true)
 
 // ------------------- Layout Configuration Data ---------------------
 
-const displayConfig = computed(() => isEq.value ? [
-  { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, domain: 'ra_24' as DomainStyleType },
-  { label: 'Declination', pv: p.declination, sp: p.deltaref[1], domain: 'dec_180' as DomainStyleType },
-  { label: 'Position Angle', pv: p.positionangle, sp: p.deltaref[2], domain: 'pa_360' as DomainStyleType }
-] : [
-  { label: 'Azimuth', pv: p.azimuth, sp: p.alpharef[0], domain: 'az_360' as DomainStyleType },
-  { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType },
-  { label: 'Roll', pv: p.roll, sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType }
-]);
+const displayConfig = computed(() => {
+  if (isEq.value === 1) return [
+    { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, domain: 'ra_24' as DomainStyleType },
+    { label: 'Declination',     pv: p.declination,    sp: p.deltaref[1],   domain: 'dec_180' as DomainStyleType },
+    { label: 'Position Angle',  pv: p.positionangle,  sp: p.deltaref[2],   domain: 'pa_360' as DomainStyleType }
+  ]
+  if (isEq.value === 2) return [
+    { label: 'Galactic Lon', pv: p.gpv[0], sp: p.gsp[0], domain: 'az_360' as DomainStyleType },
+    { label: 'Galactic Lat',  pv: p.gpv[1], sp: p.gsp[1], domain: 'dec_180' as DomainStyleType },
+    { label: 'Galactic PA',        pv: p.gpv[2], sp: p.gsp[2], domain: 'pa_360' as DomainStyleType }
+  ]
+  return [ // isEq === 0, Topocentric
+    { label: 'Azimuth',  pv: p.azimuth,  sp: p.alpharef[0], domain: 'az_360' as DomainStyleType },
+    { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType },
+    { label: 'Roll',     pv: p.roll,     sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType }
+  ]
+})
 
 const isDeviated = computed(() => {
   if (p.pidmode!='IDLE') return false
+  if (isEq.value === 2) return false
   const RAD = angularDifference(p.rightascension, p.deltarefRAhrs)
   const DecD = angularDifference(p.declination, p.deltaref[1]?? 0)
   const PAD = angularDifference(p.positionangle, p.deltaref[2]?? 0)
