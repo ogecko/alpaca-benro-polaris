@@ -83,6 +83,8 @@ export const useStatusStore = defineStore('status', {
         aslew: [0,0,0],
         dofst: [0,0,0],
         aofst: [0,0,0],
+        gpv: [0,0,0],
+        gsp: [0,0,0],
         dsp: [0,0,0],
         asp: [0,0,0],
         errsig: [0,0,0],

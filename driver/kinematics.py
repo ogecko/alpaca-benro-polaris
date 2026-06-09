@@ -319,6 +319,41 @@ def azalt_to_radec(az_deg: float, alt_deg: float, lat_deg: float, lon_deg: float
     except Exception:
         return None, None
 
+def delta_to_gamma(delta: np.ndarray) -> np.ndarray:
+    """Convert equatorial (ra, dec, pa) to galactic (l, b, gpa)."""
+
+    ra_deg, dec_deg, pa_deg = delta[0], delta[1], delta[2]
+    try:
+        # Step 1: JNow → J2000
+        eq_now = ephem.Equatorial(math.radians(ra_deg), math.radians(dec_deg), epoch=ephem.now())
+        eq_j2000 = ephem.Equatorial(eq_now, epoch=ephem.J2000)
+
+        # Step 2: J2000 RA/Dec → Galactic (l, b)
+        gal = ephem.Galactic(eq_j2000)
+        l_deg = math.degrees(float(gal.lon))
+        b_deg = math.degrees(float(gal.lat))
+
+        # Step 3: PA (equatorial) → GPA (galactic)
+        # Nudge along galactic latitude to find where galactic north points
+        # in equatorial coords, then measure its bearing from our target.
+        eps = 1e-4  # degrees
+        gal_n     = ephem.Galactic(math.radians(l_deg), math.radians(b_deg + eps), epoch=ephem.J2000)
+        eq_n      = ephem.Equatorial(gal_n, epoch=ephem.J2000)
+        ra_n_deg  = math.degrees(float(eq_n.ra))
+        dec_n_deg = math.degrees(float(eq_n.dec))
+
+        # Bearing of galactic north in the equatorial tangent plane
+        d_ra  = wrap180(ra_n_deg - math.degrees(float(eq_j2000.ra))) * math.cos(math.radians(dec_deg))
+        d_dec = dec_n_deg - math.degrees(float(eq_j2000.dec))
+        gal_north_pa = math.degrees(math.atan2(d_ra, d_dec))
+
+        gpa_deg = wrap180(pa_deg - gal_north_pa)
+
+    except Exception:
+        return np.array([None, None, None])
+
+    return np.array([l_deg, b_deg, gpa_deg])
+
 
 def crota2_from_cd(cd1_2: float, cd2_2: float):
     """

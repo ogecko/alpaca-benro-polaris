@@ -22,7 +22,7 @@ from kinematics import get_mechanical_correction_q, apply_mechanical_corrections
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, theta_to_azaltroll, quaternion_to_angles, quaternion_difference
-from kinematics import theta_to_q, azaltroll_to_q, azaltroll_to_theta, theta_to_jacobian, LastPosition
+from kinematics import theta_to_q, azaltroll_to_q, azaltroll_to_theta, theta_to_jacobian, LastPosition, delta_to_gamma
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -1146,8 +1146,9 @@ class PID_Controller():
             self.alpha_ref = clamp_alpha(self.body2alpha())
             self.alpha_sp = self.alpha_pv             # in case we switch to AUTO
 
-
+        
         # Remember cameraQ_ref and last cameraQ_ref for calculating FF
+        self.gamma_sp = delta_to_gamma(self.delta_ref)
         cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
         if self.cameraQ_ref is None:
             # first run — no previous reference
@@ -1189,6 +1190,7 @@ class PID_Controller():
         self._lp.update(*theta_pv)
         self._lp.update_zeta(zeta_meas)
         self._lp.check_for_gimbal_lock()
+        self.gamma_pv = delta_to_gamma(delta_pv)
 
     def predict(self):          # This is not used in the PID Control Loop
         self.theta_pv = clamp_theta(self.theta_pv + self.dt * self.omega_op)
