@@ -2146,6 +2146,7 @@ class Polaris:
         Apply an absolute or relative slew using the advanced PID controller.
         Alpha keys (az, alt, roll) are applied via set_alpha_target.
         Delta keys (ra, dec, pa)   are applied via set_delta_target, ra in hours.
+        Gamma keys (l, b, gpa)     are converted to delta then applied via set_delta_target.
         For relative moves, each value is added to the current PID setpoint.
         """
         if (not coords) or (not Config.advanced_goto):
@@ -2160,10 +2161,14 @@ class Polaris:
             'ra':   ('delta',  0,  15),   # ra stored as deg internally
             'dec':  ('delta',  1,   1),
             'pa':   ('delta',  2,   1),
+            'l':    ('gamma',  0,  1),
+            'b':    ('gamma',  1,  1),
+            'gpa':  ('gamma',  2,  1),
         }
 
         alpha_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'alpha'}
         delta_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'delta'}
+        gamma_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'gamma'}
         self._sm.clear_sync_guiding()
 
         if alpha_updates:
@@ -2176,7 +2181,22 @@ class Polaris:
                 delta_updates = {k: self._pid.delta_sp[AXES[k][1]] / AXES[k][2] + v for k, v in delta_updates.items()}
             self._pid.set_delta_target(delta_updates)
 
-        if alpha_updates or delta_updates:
+        if gamma_updates:
+            # Build a full gamma setpoint, filling missing axes from current gamma_sp
+            gamma_sp = self._pid.gamma_sp.copy()
+            for k, v in gamma_updates.items():
+                idx = AXES[k][1]
+                if relative:
+                    gamma_sp[idx] += v
+                else:
+                    gamma_sp[idx] = v
+            delta = self.gamma_to_delta(gamma_sp)
+            if delta is None:
+                self.logger.warning('slew_axis: gamma_to_delta conversion failed, ignoring.')
+            else:
+                self._pid.set_delta_target({'ra': delta[0] / 15, 'dec': delta[1], 'pa': delta[2]})
+
+        if alpha_updates or delta_updates or gamma_updates:
             self.markGotoAsUnderway()
             self._pid.set_goto_complete_callback(self.markGotoAsComplete)
 
@@ -2186,7 +2206,7 @@ class Polaris:
         Parse a slew parameter dict whose values are either float/int (decimal degrees,
         or hours for 'ra') or str (interpreted via dms2dec). Unrecognised keys are dropped.
         """
-        VALID_KEYS = {'ra', 'dec', 'pa', 'az', 'alt', 'roll'}
+        VALID_KEYS = {'ra', 'dec', 'pa', 'az', 'alt', 'roll', 'l', 'b', 'gpa'}
         def parse_val(key, val):
             if isinstance(val, (int, float)): return float(val)
             if isinstance(val, str): return dms2dec(val)

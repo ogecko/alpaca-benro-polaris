@@ -346,13 +346,41 @@ def delta_to_gamma(delta: np.ndarray) -> np.ndarray:
         d_ra  = wrap180(ra_n_deg - math.degrees(float(eq_j2000.ra))) * math.cos(math.radians(dec_deg))
         d_dec = dec_n_deg - math.degrees(float(eq_j2000.dec))
         gal_north_pa = math.degrees(math.atan2(d_ra, d_dec))
-
         gpa_deg = wrap180(pa_deg - gal_north_pa)
 
+        return np.array([l_deg, b_deg, gpa_deg])
     except Exception:
         return np.array([None, None, None])
 
-    return np.array([l_deg, b_deg, gpa_deg])
+def gamma_to_delta(self, gamma: np.ndarray) -> np.ndarray:
+    """Convert galactic (l, b, gpa) in degrees to equatorial JNow (ra, dec, pa) in degrees."""
+    l_deg, b_deg, gpa_deg = gamma[0], gamma[1], gamma[2]
+    try:
+        # Step 1: Galactic (l, b) → J2000 RA/Dec
+        gal = ephem.Galactic(math.radians(l_deg), math.radians(b_deg), epoch=ephem.J2000)
+        eq_j2000 = ephem.Equatorial(gal, epoch=ephem.J2000)
+
+        # Step 2: J2000 → JNow
+        eq_now = ephem.Equatorial(eq_j2000, epoch=ephem.now())
+        ra_deg  = math.degrees(float(eq_now.ra))
+        dec_deg = math.degrees(float(eq_now.dec))
+
+        # Step 3: GPA → equatorial PA
+        # Nudge along galactic latitude to find galactic north bearing in equatorial frame
+        eps = 1e-4
+        gal_n    = ephem.Galactic(math.radians(l_deg), math.radians(b_deg + eps), epoch=ephem.J2000)
+        eq_n     = ephem.Equatorial(gal_n, epoch=ephem.J2000)
+        ra_n_deg  = math.degrees(float(eq_n.ra))
+        dec_n_deg = math.degrees(float(eq_n.dec))
+
+        d_ra  = wrap180(ra_n_deg - math.degrees(float(eq_j2000.ra))) * math.cos(math.radians(dec_deg))
+        d_dec = dec_n_deg - math.degrees(float(eq_j2000.dec))
+        gal_north_pa = math.degrees(math.atan2(d_ra, d_dec))
+        pa_deg = wrap180(gpa_deg + gal_north_pa)
+
+        return np.array([ra_deg, dec_deg, pa_deg])
+    except Exception:
+        return None
 
 
 def crota2_from_cd(cd1_2: float, cd2_2: float):
