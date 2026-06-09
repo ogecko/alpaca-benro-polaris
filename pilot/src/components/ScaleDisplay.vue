@@ -592,7 +592,7 @@ function joinMarks(
         .each(function (d) { zOrder<MarkDatum>(this, d) })
         .each(function (d) { addPathOrText(this, d) })
         .attr('opacity', 0)
-        .on('mousedown', function (event, d) { if (d.label) { event.preventDefault(); event.stopPropagation() }})
+        .on('pointerdown', function (event, d) { if (d.label) { event.preventDefault(); event.stopPropagation() }})
         .on('click', function (event, d) { if (d.label && typeof d.angle==='number') { onLabelClick(event, d.angle) } })
         .transition(t)
         .attr('opacity', d => determineOpacity(d, min, max))
