@@ -13,7 +13,7 @@
         <div v-if="showButtons">
           <div class="row absolute-top-left q-pl-xl q-pb-sm" > 
           </div>
-          <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
+          <q-btn-group rounded  class="row absolute-top-right q-pr-lg" style="pointer-events: none" > 
             <div class="column">
               <q-btn @click="onScaleZoomInClick" dense flat color="secondary" icon="mdi-magnify-plus-outline"></q-btn>
             </div>
