@@ -2,8 +2,13 @@
   <q-card flat bordered class="q-pa-md full-width">
     <div class="row items-center justify-between">
       <div class="text-h6">Panorama Grid Layout</div>
-      <q-btn label="Copy PanoGrid" icon="mdi-content-copy"  class="text-grey-6"  @click="copyPanoSettings"
-      />
+      <q-btn-group>
+      <q-btn label="Calc" icon="mdi-calculator" class="text-grey-6"  >
+        <q-popup-proxy><PanoCalculator class="" /></q-popup-proxy>
+      </q-btn>
+      <q-btn label="Swap" icon="mdi-phone-rotate-landscape"  class="text-grey-6"  @click="swapStepSettings"/>
+      <q-btn label="Copy" icon="mdi-content-copy"  class="text-grey-6"  @click="copyPanoSettings"/>
+      </q-btn-group>
     </div>
     <div class="row q-col-gutter-lg items-center q-pt-sm">
       <q-input
@@ -20,18 +25,7 @@
         input-class="text-right"
         dense
       />
-      <div class="col-1"></div>
-      <q-btn
-        class="col-1 self-end q-pt-sm"
-        size="md"
-        text-color="grey-6"
-        flat
-        rounded
-        dense
-        icon="mdi-calculator"
-      >
-        <q-popup-proxy><PanoCalculator class="" /></q-popup-proxy>
-      </q-btn>
+      <div class="col-2"></div>
       <q-input
         class="col-3"
         v-bind="bindField('hstep', 'Horizontal Step', '°')"
@@ -223,6 +217,12 @@ const panoRefAlignOptions = computed(() => {
   }
   return options;
 });
+
+function swapStepSettings() {
+  const vstep = cfg.hstep
+  const hstep = cfg.vstep
+  put({hstep, vstep})
+}
 
 async function copyPanoSettings() {
   const payload = {
