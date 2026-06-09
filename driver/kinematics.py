@@ -352,7 +352,7 @@ def delta_to_gamma(delta: np.ndarray) -> np.ndarray:
     except Exception:
         return np.array([None, None, None])
 
-def gamma_to_delta(self, gamma: np.ndarray) -> np.ndarray:
+def gamma_to_delta(gamma: np.ndarray) -> np.ndarray:
     """Convert galactic (l, b, gpa) in degrees to equatorial JNow (ra, dec, pa) in degrees."""
     l_deg, b_deg, gpa_deg = gamma[0], gamma[1], gamma[2]
     try:

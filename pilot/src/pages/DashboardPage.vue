@@ -265,36 +265,36 @@ async function onClickScale(e: { label:string, angle: number, radialOffset: numb
   if (cannotPerformCommand('slew')) return
 
   if (e.label=="Azimuth") {
-    const az = e.angle
-    const alt = p.alpharef[1] ?? 0
-    const result = await dev.alpacaSlewToAltAz(alt, az)
-    console.log(`Change ${e.label} angle to ${e.angle}`,  result);
+    const result = await dev.alpacaSlewToAltAz(p.alpharef[1] ?? 0, e.angle)
+    console.log(`Change ${e.label} angle to ${e.angle}`, result);
   } else if (e.label=="Altitude") {
-    const az = p.alpharef[0] ?? 0
-    const alt = e.angle
-    const result = await dev.alpacaSlewToAltAz(alt, az)
-    console.log(`Change ${e.label} angle to ${e.angle}`,  result);
+    const result = await dev.alpacaSlewToAltAz(e.angle, p.alpharef[0] ?? 0)
+    console.log(`Change ${e.label} angle to ${e.angle}`, result);
   } else if (e.label=="Roll") {
     const result = await dev.alpacaMoveMechanical(e.angle)
-    console.log(`Change ${e.label} angle to ${e.angle}`,  result);
+    console.log(`Change ${e.label} angle to ${e.angle}`, result);
   } else if (e.label=="Right Ascension") {
-    const ra = e.angle
-    const dec = p.deltaref[1] ?? 0
-    const result = await dev.alpacaSlewToCoord(ra, dec)
-    console.log(`Change ${e.label} angle to ${e.angle}`,  result);
+    const result = await dev.alpacaSlewToCoord(e.angle, p.deltaref[1] ?? 0)
+    console.log(`Change ${e.label} angle to ${e.angle}`, result);
   } else if (e.label=="Declination") {
-    const ra = p.deltarefRAhrs ?? 0
-    const dec = e.angle
-    const result = await dev.alpacaSlewToCoord(ra, dec)
-    console.log(`Change ${e.label} angle to ${e.angle}`,  result);
+    const result = await dev.alpacaSlewToCoord(p.deltarefRAhrs ?? 0, e.angle)
+    console.log(`Change ${e.label} angle to ${e.angle}`, result);
   } else if (e.label=="Position Angle") {
     const result = await dev.alpacaMoveAbsolute(e.angle)
-    console.log(`Change ${e.label} angle to ${e.angle}`,  result);
+    console.log(`Change ${e.label} angle to ${e.angle}`, result);
+  } else if (e.label=="Galactic Lon") {
+    const result = await dev.alpacaSlewAbsolute({ l: e.angle, b: p.gsp[1] ?? 0, gpa: p.gsp[2] ?? 0 })
+    console.log(`Change ${e.label} angle to ${e.angle}`, result);
+  } else if (e.label=="Galactic Lat") {
+    const result = await dev.alpacaSlewAbsolute({ l: p.gsp[0] ?? 0, b: e.angle, gpa: p.gsp[2] ?? 0 })
+    console.log(`Change ${e.label} angle to ${e.angle}`, result);
+  } else if (e.label=="Galactic PA") {
+    const result = await dev.alpacaSlewAbsolute({ l: p.gsp[0] ?? 0, b: p.gsp[1] ?? 0, gpa: e.angle })
+    console.log(`Change ${e.label} angle to ${e.angle}`, result);
   } else {
     console.log(`Click ${e.label} angle: ${e.angle}, offset: ${e.radialOffset}`);
   }
 }
-
 
 
 async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
