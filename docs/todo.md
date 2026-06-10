@@ -32,19 +32,19 @@
 - [X] PEC - Update kinematics page with PEC Rate deg/hr (continuously applied), and Guide Pulse in degrees (rather than guide rate)
 - [X] PEC - to detect crossovers where there is zero trend and reset for new phase, added harmonics and phase detection
 - [X] PEC - Disable learning of PEC Model while disabled
-- [ ] PEC - Calibration pulses to be ignored by PEC (using either PHD2 and CCDciel)
-- [ ] Flip - Cannot flip to -30 back to +30 at Az 210
-- [ ] Flip - Confirm unwrapping doesnt cause stutter in pid on long slews
-- [ ] Galactic - Add Galactic Co-ordinate system to Pilot
+- [X] Galactic - Add Galactic Co-ordinate system to Pilot
 - [ ] Galactic - Add Sky - Milky Way Panorama for aligning pano grid with Milky Way spine
 - [ ] HTTPS - Document Location GPS using phone web browser
+- [ ] Flip - Cannot flip to -30 back to +30 at Az 210
+- [ ] Flip - Confirm unwrapping doesnt cause stutter in pid on long slews
+- [ ] Tests - Remove all performance tests from core
 - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
 - [ ] Nina - Test session using Nina and document Sync Guiding workflow
-- [ ] PEC - Calibration pulse to be ignored by PEC (using either PHD2 and CCDciel)
-- [ ] PEC - to detect crossovers where there is zero trend and reset for new phase
 - [ ] Connection - why does changing IP address allow connection to proceed?
 - [ ] Connection - why does L-Bracket get initialised incorrectly sometimes?
 - [ ] Dependancies - Upgrade dependant libraries on Node and Python
+- [ ] Version - Upgrade to Beta version 2.2
+- [ ] PEC - Calibration pulses to be ignored by PEC (using either PHD2 and CCDciel)
 - [ ] Create video of new features 
     - Install
         - New requirements.txt and pip install
