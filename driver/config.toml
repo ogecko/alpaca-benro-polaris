@@ -129,7 +129,7 @@ log_synscan_polling = false                 # log frequent polling messages from
 log_polaris_polling = false                 # log frequent polling messages from Benro Polaris
 log_quest_model = true                      # log weights in multi-point sync model
 log_orbital_queries = true                  # log information related to JPL and Celestrak orbital parameter queries
-log_pec = false                             # log information related to Predictive Error Correction
+log_pec = true                              # log information related to Predictive Error Correction
 log_heartbeat = false                       # log the stack track whenever there is a heartbeat skip
 
 log_telemetry_data = false                  # log raw telemetry data from polaris
