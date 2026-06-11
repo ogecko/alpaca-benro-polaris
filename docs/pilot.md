@@ -47,7 +47,7 @@ The main menu of the **Alpaca Pilot** application provides centralized access to
 - **④ Connect:**  Initiates or terminates the connection to the Alpaca Driver and Polaris mount. This button reflects current connection status.
 
 - **⑤ Settings:** Opens the configuration panel where you can set observing site latitude/longitude, define the park position, adjust preferences, and enable standard and advanced features.
-
+> Note: Location services are restricted in browsers on mobile phones and the Locate function in Settings will only work over HTTPS. Refer to the instructions below to [enable HTTPS in Alpaca Pilot](#enable-https-in-alpaca-pilot).
 - **⑥ Search Entry:** A text input field for searching catalog entries and targets. Supports shorthand formats and intelligent parsing for quick access to celestial objects.
 
 - **⑦ Search Toggle:** Toggles the visibility of the search entry field. On narrow screens, it also expands the search input area for easier access. When a search term is present, this button acts as a quick-clear control to reset the entry.
@@ -1052,7 +1052,7 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    * **3 – Sky · Milky Way**: Sidereal tracking is enabled. Panel positions are calculated in Galactic coordinates, with hstep adjusting Galactic Longitude and vstep adjusting Galactic Latitude. The Galactic Position Angle remains constant for all panels and is derived from the anchor's reference roll angle. *Use for mosaics aligned with the milky way spine.*
       * **Galactic longitude (0–360°)** defines the position around the Milky Way's disk. At longitude 0° and latitude 0°, the camera is pointed toward the Galactic Center, near Sagittarius A*.
       * **Galactic Latitude (–90° to +90°)** defines the angular distance above or below the Milky Way's disk. At latitude 0°, the camera is centered on the Galactic plane.
-      * **Galactic Position Angle (-180° to +180°)** defines the camera's rotation about its viewing axis. At 0°, the top of the frame points toward the North Galactic Pole. At ±90°, the top of the frame is aligned with the Milky Way plane. Beware of Benro Polaris roll angle limits.
+      * **Galactic Position Angle (-180° to +180°)** defines the camera's rotation about its viewing axis. At 0°, the top of the frame points toward the North Galactic Pole. At ±90°, the top of the frame is aligned with the Milky Way plane. Beware of Benro Polaris roll angle
 
 
 - **⑧ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the reference position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
@@ -1074,8 +1074,11 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    * **Reference Axis 2 `"r2":`**: Altitude or Declination (decimal degrees)
    * **Reference Axis 3 `"r3":`**: Roll or Position Angle (decimal degrees)
 
+- **&#9322; Swap:** Changes the spacing between panels for either a Landscape or Portrait orientation, by  swaping the `"hstep"` and `"vstep"` values. Landscape orientation will have a larger `"hstep"`, while Portrait orientation will have a larger `"vstep"`. This button only changes the spacing of the panels, you will need to use a lens collar to rotate your camera's sensor to match the orientation. 
 
-- **&#9322; Copy PanoGrid:** Copies the current Panorama Grid settings to the clipboard in JSON format. After defining the Panorama Grid Layout, use this button to paste the settings directly into the `Polaris:PanoGrid` **Device Action Parameters** field within the NINA Advanced Sequencer. See below for an example.
+- **&#9322; Copy:** Copies the current Panorama Grid settings to the clipboard in JSON format. After defining the Panorama Grid Layout, use this button to paste the settings directly into the `Polaris:PanoGrid` **Device Action Parameters** field within the NINA Advanced Sequencer. See below for an example.
+
+> Note: Clipboard access is restricted in browsers and the Copy function will only work over HTTPS. Refer to the instructions below to [enable HTTPS in Alpaca Pilot](#enable-https-in-alpaca-pilot). 
 
 - **Panel Navigation:** The Panel Navigation grid provides a visual representation of the panorama layout and allows you to click any panel number to slew the mount directly to that position. The grid follows the panorama layout convention where the **bottom-left panel represents the lowest Altitude and lowest Azimuth**. As you move **to the right**, Azimuth increases; as you move **upward**, Altitude increases. The numbering and progression reflect the selected First Panel and Panel Order settings, while symbols indicate the next panel in the capture sequence and the anchor panel tied to the reference position.
  

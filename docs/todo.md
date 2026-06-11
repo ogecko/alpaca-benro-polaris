@@ -34,8 +34,9 @@
 - [X] PEC - Disable learning of PEC Model while disabled
 - [X] Galactic - Add Galactic Co-ordinate system to Pilot
 - [X] Galactic - Add Sky - Milky Way Panorama for aligning pano grid with Milky Way spine
+- [X] Version - Upgrade to Beta version 2.2
+- [X] HTTPS - Document Location GPS using phone web browser
 - [ ] Galactic - Improve fallback for unreachable roll angles in Galactic panos
-- [ ] HTTPS - Document Location GPS using phone web browser
 - [ ] Flip - Cannot flip to -30 back to +30 at Az 210
 - [ ] Flip - Confirm unwrapping doesnt cause stutter in pid on long slews
 - [ ] Tests - Remove all performance tests from core
@@ -44,7 +45,6 @@
 - [ ] Connection - why does changing IP address allow connection to proceed?
 - [ ] Connection - why does L-Bracket get initialised incorrectly sometimes?
 - [ ] Dependancies - Upgrade dependant libraries on Node and Python
-- [ ] Version - Upgrade to Beta version 2.2
 - [ ] PEC - Calibration pulses to be ignored by PEC (using either PHD2 and CCDciel)
 - [ ] Create video of new features 
     - Install
