@@ -34,6 +34,7 @@
 - [X] PEC - Disable learning of PEC Model while disabled
 - [X] Galactic - Add Galactic Co-ordinate system to Pilot
 - [X] Galactic - Add Sky - Milky Way Panorama for aligning pano grid with Milky Way spine
+- [ ] Galactic - Improve fallback for unreachable roll angles in Galactic panos
 - [ ] HTTPS - Document Location GPS using phone web browser
 - [ ] Flip - Cannot flip to -30 back to +30 at Az 210
 - [ ] Flip - Confirm unwrapping doesnt cause stutter in pid on long slews
