@@ -137,7 +137,7 @@ const displayConfig = computed(() => {
   if (isEq.value === 2) return [
     { label: 'Galactic Lon', pv: p.gpv[0], sp: p.gsp[0], domain: 'az_360' as DomainStyleType },
     { label: 'Galactic Lat',  pv: p.gpv[1], sp: p.gsp[1], domain: 'dec_180' as DomainStyleType },
-    { label: 'Galactic PA',        pv: p.gpv[2], sp: p.gsp[2], domain: 'pa_360' as DomainStyleType }
+    { label: 'Galactic PA',        pv: p.gpv[2], sp: p.gsp[2], domain: 'gpa_180' as DomainStyleType }
   ]
   return [ // isEq === 0, Topocentric
     { label: 'Azimuth',  pv: p.azimuth,  sp: p.alpharef[0], domain: 'az_360' as DomainStyleType },
