@@ -294,11 +294,10 @@ As corrections are received, PEC develops a **recursive least squares model** to
 #### **III. The Predictive Model and Convergence**
 To ensure high-fidelity tracking, the PEC system filters incoming data and only applies corrections once the model has mathematically converged. 
 *   **Filtering Logic:** The system ignores any corrections larger than **10 arc minutes** to prevent the model from being "poisoned" by bad data, and it employs a "forget horizon" of **35 minutes** to keep the model relevant to the current gear cycle.
-*   **Convergence Requirements:** The model will only begin applying corrections to sidereal tracking once it meets four strict statistical criteria:
+*   **Convergence Requirements:** The model will only begin applying corrections to sidereal tracking once it meets three strict statistical criteria:
     1.  **Observations:** A minimum of **3 corrections** received.
     2.  **Accuracy:** A root mean square error (RMSE) below **6 arc minutes**.
     3.  **Reliability:** An R-squared (R²) statistic greater than **0.500**.
-    4.  **Significance:** A model P-value below **0.01**.
 
 #### **IV. Comparison with External Models**
 While software like PHD2 offers its own "Predictive PEC," the Alpaca Driver's implementation is considered superior for the Benro Polaris. External models often only operate on the RA axis and have slower corrective cycles. In contrast, the Alpaca PEC is **fully integrated into the PID control loop** of the driver's motion strategy, correcting all axes simultaneously with extreme precision.
@@ -329,6 +328,7 @@ the frame they are expressed in.
 | **B** | Base Frame   | Mechanical frame as bolted to tripod (assuming Az 180, Alt 45 after All Axis Reset). Differs from T by Multi-Point Alignment (`alignQ_B2T`)| Axis 2 red button side | Back SD card side     | Axis 1 up            |
 | **T** | Topo Frame  | True local sky frame at observing site, with all corrections applied. Home of Az, Alt, Roll   | East                   | North                 | Zenith               |
 | **E** | Equatorial Frame   | Earth-centred celestial frame, with all corrections applied. Home of RA, Dec, PA       | RA = 0h, Dec = 0°      | RA = 6h, Dec = 0°     | North Celestial Pole |
+| **G** | Galactic Frame   | Sun-centred galactic frame, with all corrections applied. Home of l, b, GPA       | toward Galactic Center      | toward l = 90°     | North Galactic Pole |
 
 ---
 
@@ -423,6 +423,37 @@ Conventions:
 
 Conversion between T and E frames is handled by `pyephem` using the observer's site
 coordinates and time. Angles are always used in practice for the E frame.
+
+
+### 3.4 Galactic Frame (G) - Representations and Conversions
+
+#### Galactic Orientation 
+
+The Galactic Frame represents the camera's orientation in the Milky Way reference system as *(l, b, GPA)* angles. This frame is centered on the Sun, aligned with the IAU-defined Galactic coordinate system.
+
+A key distinction in this system is that **gamma_sp** and **gamma_pv** is used as the internal canonical representation of Galactic coordinates. They are direct conversions of **delta_sp** and **delta_pv**
+
+| Representation | Type       | Description                                                                                                                            | Use for                                          |
+| -------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `gamma`        | vector     | Canonical Galactic coordinate representation `(l, b, gpa)` used as the internal transform space between Equatorial and Galactic frames | Frame conversion, interpolation, control targets |
+| `l`            | angle      | Galactic Longitude — angular position around the Milky Way disk (0–360°)                                                               | Target coordinate                                |
+| `b`            | angle      | Galactic Latitude — angular distance above/below the Galactic plane (−90° to +90°)                                                     | Target coordinate                                |
+| `gpa`          | angle      | Galactic Position Angle — rotation of the camera about the boresight relative to Galactic North                                        | Frame rotation / image alignment                 |
+
+
+---
+
+#### Conversion Functions
+
+| From         | To           | Function                  | Notes                                                    |
+| ------------ | ------------ | ------------------------- | -------------------------------------------------------- |
+| `delta`      | `gamma`      | `= delta_to_gamma(delta)`    | Converts Equatorial (E) → Galactic (G) via IAU transform |
+| `gamma`      | `delta`      | `= gamma_to_delta(gamma)`       | Converts Galactic (G) → Equatorial (E)                   |
+
+---
+
+
+
 
 ---
 ## 4. Kinemtaics Flows
