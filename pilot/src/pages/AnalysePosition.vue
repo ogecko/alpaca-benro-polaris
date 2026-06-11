@@ -165,6 +165,11 @@
                     <VField label="   | PosA " :val="p.positionangle" unit="deg" v-if="cfg.advanced_rotator"/>
                   </div>
                   <div>
+                    <VField label="gamma_pv:   lat " :val="p.gpv[0]" unit="deg"/>
+                    <VField label="   |  lon " :val="p.gpv[1]" unit="deg"/>
+                    <VField label="   |  gpa " :val="p.gpv[2]" unit="deg" v-if="cfg.advanced_rotator"/>
+                  </div>
+                  <div>
                     <VField label="ephem:       HA " :val="p.siderealtime - p.rightascension" unit="hr"/>
                     <VField label="   |             Paralatic Angle " :val="p.declination" unit="deg"  v-if="cfg.advanced_rotator"/>
                   </div>
