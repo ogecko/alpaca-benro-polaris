@@ -94,7 +94,7 @@
 - [X]     npm install axios@^1.13.5
 - [X]     npm ls axios
 - [X] Final Changes - git checkout dev2_2, git pull origin dev2_2
-- [X]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json
+- [X]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
 - [X]     Build Pilot for release
 - [X]     Confirm all Alpaca ConformU tests pass
 - [X]     Confirm all Alpaca Driver unit tests pass
