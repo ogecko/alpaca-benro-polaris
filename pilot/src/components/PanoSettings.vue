@@ -186,7 +186,7 @@ const panoTrackingOptions = [
   { label: 'Landscape - Untracked', value: 0 },
   { label: 'Sky - Horizon-Locked', value: 1 },
   { label: 'Sky - Celestrial', value: 2 },
-  // { label: 'Sky - Orbital', value: 3 },
+  { label: 'Sky - Milky Way', value: 3 },
 ];
 
 const panoOrderOptions = [
