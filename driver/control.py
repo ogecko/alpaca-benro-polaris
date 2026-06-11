@@ -1251,6 +1251,7 @@ class PID_Controller():
                     self.logger.info(f'Flip Transition: t1 {self.theta_ref[0]:+.1f} t2 {self.theta_ref[1]:+.1f} t3 {self.theta_ref[2]:+.1f}')
                     self.theta_ref_cache = self.theta_ref.copy()
             else:
+                self.theta_ref = self.theta_ref_cache
                 self.error_signal = self.theta_ref_cache - self.theta_pv
                 # if close to cached target then reset the cache
                 if abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10:
