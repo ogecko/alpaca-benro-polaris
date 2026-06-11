@@ -38,6 +38,7 @@
 - [X] HTTPS - Document Location GPS using phone web browser
 - [X] Tests - Remove all performance tests from core
 - [ ] Galactic - Improve fallback for unreachable roll angles in Galactic panos
+- [ ] MAC - Consider adding autotune to Mechanical Alignment Correction
 - [ ] Flip - Cannot flip to -30 back to +30 at Az 210
 - [ ] Flip - Confirm unwrapping doesnt cause stutter in pid on long slews
 - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
