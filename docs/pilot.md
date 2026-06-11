@@ -1049,8 +1049,11 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    *Use for horizon‑aligned sky panoramas where consistent framing is required.*
    * **2 – Sky · Celestial**: Sidereal tracking is enabled. Camera roll is **not modified** between panels.
    *Use for astronomical sky mosaics such as large DSOs.*
-   * **3 – Sky · Orbital**: Tracking and camera roll are left unchanged.
-   *Use for mosaics centred on tracked orbitals.*
+   * **3 – Sky · Milky Way**: Sidereal tracking is enabled. Panel positions are calculated in Galactic coordinates, with hstep adjusting Galactic Longitude and vstep adjusting Galactic Latitude. The Galactic Position Angle remains constant for all panels and is derived from the anchor's reference roll angle. *Use for mosaics aligned with the milky way spine.*
+      * **Galactic longitude (0–360°)** defines the position around the Milky Way's disk. At longitude 0° and latitude 0°, the camera is pointed toward the Galactic Center, near Sagittarius A*.
+      * **Galactic Latitude (–90° to +90°)** defines the angular distance above or below the Milky Way's disk. At latitude 0°, the camera is centered on the Galactic plane.
+      * **Galactic Position Angle (-180° to +180°)** defines the camera's rotation about its viewing axis. At 0°, the top of the frame points toward the North Galactic Pole. At ±90°, the top of the frame is aligned with the Milky Way plane. Beware of Benro Polaris roll angle limits.
+
 
 - **⑧ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the reference position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
    * **0 – Whole Mosaic**:  The entire panorama is centred on the reference position.

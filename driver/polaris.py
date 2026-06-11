@@ -35,7 +35,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
-from kinematics import clamparcsec, gamma_to_delta
+from kinematics import clamparcsec, gamma_to_delta, delta_to_gamma
 from control import theta_to_q, q_to_theta, q_to_azaltroll
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
@@ -2330,104 +2330,134 @@ class Polaris:
         await asyncio.sleep(1)
         await self.send_cmd_reset_axis(2)
 
-    async def slew_to_panel(self, target, isasync:bool=False) -> None:
-        new_panel = target
+    def get_number_of_panels(self):
+        """Returns the total number of panels in the PanoGrid"""
+        return getattr(Config, "rows", 1) * getattr(Config, "cols", 3)
+    
+    def validate_target_panel(self, target):
+        """Returns the target panel number, increments current panel number if no target"""
+        total = self.get_number_of_panels()
         if target is None:
-            current = getattr(Config, "panel", 0)
-            rows = getattr(Config, "rows", 1)
-            cols = getattr(Config, "cols", 3)
-            total_panels = rows * cols
-            new_panel = current + 1 if current<total_panels else 1
-        az, alt = self.get_panel_altaz(new_panel)
+            target = getattr(Config, "panel", 0) + 1
+        return ((target - 1) % total) + 1
+
+    async def slew_to_panel(self, target, isasync:bool=False) -> None:
+        """Slew the moun to the az/alt/roll position of the given target panel number"""
+        new_panel = self.validate_target_panel(target)
+        az, alt, roll = self.get_panel_azaltroll(new_panel)
         Config.apply_changes({"panel": new_panel})
-        self.logger.info(f'SlewToPanel: Panel {new_panel} - Az {az:.2f}, Alt {alt:.2f}')
+        self.logger.info(f'SlewToPanel: Panel {new_panel} - Az {az:.2f}, Alt {alt:.2f}, Roll {roll:.2f}')
         if Config.track == 0:            # Landscape - Untracked
             await self.stop_tracking()
-            self._pid.set_alpha_target({ "roll": Config.r3 })
+            self._pid.set_alpha_target({ "roll": roll })
             await self.SlewToAltAz(alt, az, isasync)
         elif Config.track == 1:            # Sky - Horizon Locked
-            self._pid.set_alpha_target({ "roll": Config.r3 })
+            self._pid.set_alpha_target({ "roll": roll })
             await self.SlewToAltAz(alt, az, isasync)
             await self.start_tracking()
         elif Config.track == 2:            # Sky - Celestrial
             await self.SlewToAltAz(alt, az, isasync)
             await self.start_tracking()
+        elif Config.track == 3:            # Sky - Milky Way
+            self._pid.set_alpha_target({ "roll": roll })
+            await self.SlewToAltAz(alt, az, isasync)
+            await self.start_tracking()
 
-
-    def get_panel_altaz(self, panel: int) -> tuple[float, float]:
-        """
-        Calculate Az/Alt coordinates for a given panel number in the mosaic,
-        including boresight roll rotation.
-
-        Grid convention:
-        - Row 0 = bottom
-        - Column 0 = left
-        - Roll applies to the entire mosaic
-        """
+    # --- Critical function MUST MATCH panelToRC() in pilot/src/components/PanoNavigation.vue  ---
+    def panel_to_rc(self, p: int) -> tuple[float, float]:
+        """Returns the row, col of the given panel number based on panogrid settings"""
         rows = getattr(Config, "rows", 1)
         cols = getattr(Config, "cols", 3)
+        first = getattr(Config, "first", 0)  # panorama grid corner for panel 1
+        order = getattr(Config, "order", 0)
+        if p == 0:          # Panel 0 means center of grid
+            return (rows - 1) / 2, (cols - 1) / 2            
+        i = p - 1
+        # Apply Panel Order adjustment
+        if order == 0:      # row-major
+            r = i // cols
+            c = i % cols
+        elif order == 1:    # column-major
+            c = i // rows
+            r = i % rows
+        else:               # serpentine
+            r = i // cols
+            c = i % cols
+            if r % 2 == 1:
+                c = cols - 1 - c
+        # Apply First Panel adjustment 
+        if first == 0:      # Top Left (mirrow row axis)
+            r = rows - 1 - r
+        elif first == 1:    # Top Right (mirror row and col axis)
+            r = rows - 1 - r
+            c = cols - 1 - c
+        elif first == 3:    # Bottom Right (mirror col axis)
+            c = cols - 1 - c
+        # return calculated row,col position
+        return r, c
+
+    def get_ref_anchor_position(self):
+        """Returns the Anchor Topocentric or Galactic co-ordinates"""
+        # Initially in Topocentric co-ordinates (az, alt, roll)
+        ref_x = getattr(Config, "r1", 0.0)
+        ref_y = getattr(Config, "r2", 0.0)
+        ref_z = getattr(Config, "r3", 0.0)  # degrees
+        # if "Sky - Milky Way" Convert to Galactic co-ordinates (l, b, gpa)
+        if Config.track == 3:
+            x,y,z = ref_x, ref_y, ref_z
+            rah, dec = self.altaz2radec(ref_y, ref_x)
+            posa, para = self._sm.roll2pa(ref_x, ref_y, ref_z)
+            ref_x, ref_y, ref_z = delta_to_gamma([rah*15, dec, posa])
+            self.logger.info(f"PANO: Anchor Topo {x:.2f} {y:.2f} {z:.2f} | Eq {rah:.2f} {dec:.2f} {posa:.2f} | Gal {ref_x:.2f} {ref_y:.2f} {ref_z:.2f}")
+        return float(ref_x), float(ref_y), float(ref_z)
+
+    def get_ref_azaltroll_position(self, ref_x, ref_y, ref_z):
+        """Returns the Topocentric co-ordinates for an adjusted reference position"""
+        # if "Sky - Milky Way" Convert from Galactic co-ordinates to Topocentric
+        if Config.track == 3:
+            x,y,z = ref_x, ref_y, ref_z
+            rad, dec, posa = gamma_to_delta([ref_x, ref_y, ref_z])
+            ref_y, ref_x = self.radec2altaz(rad/15, dec)
+            ref_z = self._sm.pa2roll(ref_x, ref_y, posa)
+            self.logger.info(f"PANO: Panel Gal {x:.2f} {y:.2f} {z:.2f} | Eq {rad/15:.2f} {dec:.2f} {posa:.2f} | Topo {ref_x:.2f} {ref_y:.2f} {ref_z:.2f}")
+        return float(ref_x), float(ref_y), float(ref_z)
+       
+
+    def get_panel_azaltroll(self, target: int) -> tuple[float, float]:
+        """
+        Calculate Az/Alt/Roll coordinates for a given panel number in the mosaic,
+        given panogrid settings.
+        """
         hstep = getattr(Config, "hstep", 40.0)
         vstep = getattr(Config, "vstep", 25.0)
-        first = getattr(Config, "first", 0.0)  # panorama grid corner for panel 1
-        order = getattr(Config, "order", 0)
         anchor = getattr(Config, "anchor", 0)
-        ref_az = getattr(Config, "r1", 0.0)
-        ref_alt = getattr(Config, "r2", 0.0)
-        ref_roll = getattr(Config, "r3", 0.0)  # degrees
 
-        total_panels = rows * cols
-        if panel < 1 or panel > total_panels:
-            raise ValueError(f"Panel {panel} is out of range (1-{total_panels})")
-        
-        # --- Force anchor to 0 if out of bounds ---
-        if anchor < 0 or anchor > total_panels:
+        # --- Validate target and Force anchor to 0 if out of bounds ---
+        panel = self.validate_target_panel(target)
+        if anchor < 0 or anchor > self.get_number_of_panels():
             anchor = 0  # default to center panel if invalid
 
-        # --- Critical function MUST MATCH panelToRC() in pilot/src/components/PanoNavigation.vue  ---
-        def panel_to_rc(p: int) -> tuple[float, float]:
-            if p == 0:          # Panel 0 means center of grid
-                return (rows - 1) / 2, (cols - 1) / 2            
-            i = p - 1
-            # Apply Panel Order adjustment
-            if order == 0:      # row-major
-                r = i // cols
-                c = i % cols
-            elif order == 1:    # column-major
-                c = i // rows
-                r = i % rows
-            else:               # serpentine
-                r = i // cols
-                c = i % cols
-                if r % 2 == 1:
-                    c = cols - 1 - c
-            # Apply First Panel adjustment 
-            if first == 0:      # Top Left (mirrow row axis)
-                r = rows - 1 - r
-            elif first == 1:    # Top Right (mirror row and col axis)
-                r = rows - 1 - r
-                c = cols - 1 - c
-            elif first == 3:    # Bottom Right (mirror col axis)
-                c = cols - 1 - c
-            # return calculated row,col position
-            return r, c
-
-        # --- Panel positions ---
-        panel_row, panel_col = panel_to_rc(panel)
-        ref_row, ref_col = panel_to_rc(anchor)
+        # --- row,column positions ---
+        panel_row, panel_col = self.panel_to_rc(panel)
+        anchor_row, anchor_col = self.panel_to_rc(anchor)
 
         # --- Grid-space deltas ---
-        dx = (panel_col - ref_col) * hstep
-        dy = (panel_row - ref_row) * vstep 
+        dx = (panel_col - anchor_col) * hstep
+        dy = (panel_row - anchor_row) * vstep 
+        # self.logger.info(f"PANO: panel={panel} Anchor_rc=({anchor_row},{anchor_col}) Panel_rc=({panel_row},{panel_col})  dx={dx} dy={dy}")
 
-        # --- Apply boresight roll ---
-        roll_rad = math.radians(ref_roll) if Config.track==2 else 0
+        # --- Grab the anchors position (in Topo or Galactic co-ord)
+        ref_x, ref_y, ref_z = self.get_ref_anchor_position()
+
+        # --- Apply panogrid rotation (only for Sky Celestrial) ---
+        roll_rad = math.radians(ref_z) if Config.track==2 else 0
         dx_r = dx * math.cos(roll_rad) - dy * math.sin(roll_rad)
         dy_r = dx * math.sin(roll_rad) + dy * math.cos(roll_rad)
 
-        # --- Final Az/Alt ---
-        az = ref_az + dx_r
-        alt = ref_alt + dy_r
+        # --- Adjust reference position ---
+        ref_x += dx_r
+        ref_y += dy_r
 
-        return az, alt
+        return self.get_ref_azaltroll_position(ref_x, ref_y, ref_z)
     
     

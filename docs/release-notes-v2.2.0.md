@@ -70,6 +70,7 @@
 - **[Pano Recenter]** Add btn on the Dashboard to save the current pointing orientation into the PanoGrid, recentering it in space.
 - **[Pano Swap]**  Add btn to switch between Landscape and Portrait orientation (swapping hstep and vstep values)
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
+- **[Pano Galactic]**  Add "Sky - Milky Way" panorama that aligns with the milky way spine using Galactic coordinates. 
 
 ## Utilities and Visualisation
 - **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.

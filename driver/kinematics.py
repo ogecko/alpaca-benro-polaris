@@ -320,7 +320,7 @@ def azalt_to_radec(az_deg: float, alt_deg: float, lat_deg: float, lon_deg: float
         return None, None
 
 def delta_to_gamma(delta: np.ndarray) -> np.ndarray:
-    """Convert equatorial (ra, dec, pa) to galactic (l, b, gpa)."""
+    """Convert equatorial JNow (ra, dec, pa) to galactic (l, b, gpa)."""
 
     ra_deg, dec_deg, pa_deg = delta[0], delta[1], delta[2]
     try:
