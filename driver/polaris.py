@@ -345,8 +345,6 @@ class Polaris:
         self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
         self.lifecycle.create_task(self._every_500ms_watchdog_check(), name="PolarisWatchdog")
         self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisKeepalive")
-        if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
-            self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
 
         if Config.polaris_auto_retry:
             self.lifecycle.create_task(self.run_connection_cycle(), name="PolarisConnectionCycle")
@@ -414,19 +412,6 @@ class Polaris:
                 self._task_exception = e
                 break
 
-    async def every_2min_drift_check(self):
-        while True:
-            try:
-                with self._lock: 
-                    ra = self._targetrightascension
-                    dec = self._targetdeclination
-                if self.connected:
-                    await self.drift_error_test(ra,dec,duration=120)
-                else:
-                    await asyncio.sleep(10)
-            except Exception as e:
-                self._task_exception = e
-                break
 
     async def _every_15s_send_polaris_keepalive(self):
         while True:
@@ -839,9 +824,6 @@ class Polaris:
             adj_az = self._adj_azimuth
         time = self.get_performance_data_time()
         self.logger.info(f"->> Polaris: GOTO AimOffset (Az {deg2dms(adj_az)} Alt {deg2dms(adj_alt)}) | Error Az {err_az*3600:.3f} Alt {err_alt*3600:.3f}")
-        # if we want to log Aim data
-        if Config.log_performance_data == 1:
-            self.logger.info(f",DATA1,{time:.3f},{a_az:.7f},{a_alt:.7f},{adj_az:.7f},{adj_alt:.7f},{err_az*3600:.3f},{err_alt*3600:.3f}")
 
     def aim_altaz_log_and_correct(self, alt: float, az:float):
         # log the original aiming co-ordinates and grab the last error ajustments
@@ -1179,150 +1161,7 @@ class Polaris:
         self.logger.info("Polaris communication init... done")
         self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
         self.logger.warning(f'Change site_latitude and site_longitude in Alpaca Pilot App.')
-        # if we want to run Aim test or Drift test over a set of targets in the sky
-        if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
-            asyncio.create_task(self.goto_tracking_test())
-        if Config.log_performance_data_test == 5:
-            asyncio.create_task(self.rotator_test())
 
-
-    async def rotator_test(self):
-        if self._test_underway:
-            return
-        self._test_underway = True
-        Config.log_performance_data == 0
-        axis = 2 # Rotation
-        steps = 8
-        duration = 90.0/4
-        self.logger.info(f"== TEST == Rotator Test | {steps} steps")
-        for i in range(0, steps, 1):
-            alt = 10 + 80/steps * i
-            az = 180
-            await self.send_cmd_goto_altaz(alt, az, False)
-            self.logger.info(f"== TEST == Rotator Test | {alt:.2f} alt")
-            Config.log_performance_data = 5
-            await self.move_axis(2, 9)
-            await asyncio.sleep(duration)
-            Config.log_performance_data = 0
-            await self.move_axis(2, 0)
-            await asyncio.sleep(2)
-        # complete the test
-        self.logger.info(f"== TEST == Rotator Test | COMPLETE")
-
-
-    async def moveaxis_speed_test(self, axis, rates):
-        self.lifecycle.start()
-        motor = self._motors[axis]
-        for rate in rates:
-            if self.lifecycle.should_stop():
-                break
-            direction = +1
-            # check axis 1 bounds and reverse direction if necc 
-            if axis==1 and self._theta_raw.any():
-                if self._theta_raw[1] > 60:
-                    await motor.set_motor_speed(0, "RAW")
-                    await asyncio.sleep(3)
-                    direction = -1
-                if self._theta_raw[1] < 20:
-                    await motor.set_motor_speed(0, "RAW")
-                    await asyncio.sleep(3)
-                    direction = +1
-            # send the move request
-            await motor.set_motor_speed(rate * direction, "RAW")
-            result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
-            self._cm.addTestResult(axis, rate, result, stdev, status)
-
-        # ensure we stop all movement
-        await motor.set_motor_speed(0, "RAW")
-        if Config.advanced_control:
-            await self.findHome()
-        else:
-            await asyncio.sleep(2)
-            await self.send_cmd_reset_axis(axis)
-        self.lifecycle.reset()
-
-
-    async def moveaxis_speed_measurement(self, axis, rate, required_stable_samples = 5, initial_interval = 3.0, max_interval = 15, sampling_interval = 0.25):
-        start_time = time.monotonic()
-        stable_tolerance = 0.05 if rate > 5 else 0.002
-        await asyncio.sleep(initial_interval)
-        rate_raw = self._motors[axis].rate_raw    # what the controller thinks the raw rate is
-        rate_dps = self._motors[axis].rate_dps    # what the controller thinks the dps rate is
-        status = "COMPLETED"
-
-        omega_samples = []     # deg/sec
-        while time.monotonic() - start_time < max_interval:
-            await asyncio.sleep(sampling_interval)
-            if self.lifecycle.should_stop():
-                return 0,0,0,"STOPPED"
-            if self._omega_raw is None:
-                return 0,0,0,"NO DATA"
-            omega = self._omega_raw[axis]
-            omega_samples.append(omega)
-
-            # if we potentially have enough samples, take a window the last set
-            if len(omega_samples) >= required_stable_samples:
-                window = omega_samples[-required_stable_samples:]
-                stdev = np.std(window)
-                if stdev < stable_tolerance and (np.mean(window) > 0.002 or rate == 0):
-                    measured_dps = float(np.mean(window)) if rate>0 else 0
-                    self.logger.info(f"== TEST == Stable | Axis {axis} |  RAW {rate_raw} | DPS: {measured_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
-                    break
-        # exited while without a value in tollerance
-        else:
-            measured_dps = rate_dps  # fallback to the controller's rate
-            status = "HIGH STDEV"
-            self.logger.info(f'== TEST == **UNSTABLE** on Axis {axis} |  RAW {rate_raw} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}')
-        return abs(measured_dps), abs(rate_raw), stdev, status
-
-
-    async def goto_tracking_test(self):
-        if self._test_underway:
-            return
-        self._test_underway = True
-        nRA = int(360/30)
-        nDec = int(180/15)
-        await asyncio.sleep(30)             # Start test 30s after startup
-        for j in range(0, nDec, 1):
-            for i in range(0, nRA, 1):
-                e_ra = i/nRA*24
-                e_dec = j/nDec*180-90 if self._sitelatitude<0 else (nDec - j)/nDec*180-90
-                if (abs(e_dec)==90 and e_ra!=0):    # only do it once at the poles
-                    continue
-                now_coord = ephem.Equatorial(hr2rad(e_ra), deg2rad(e_dec), epoch=ephem.now())
-                radec = ephem.Equatorial(now_coord, epoch=ephem.now())
-                a_ra=rad2hr(radec.ra)
-                a_dec=rad2deg(radec.dec)
-                p_ra, p_dec = self.radec_ascom2polaris(a_ra, a_dec)
-                p_alt, p_az = self.radec2altaz(p_ra, p_dec)
-                if p_alt>12 and p_alt<80:           # only GOTO if within range of Benro Polaris capabilities
-                    self.logger.info(f"== TEST == GOTO Tracking Test | Now RA {e_ra:5.1f} Dec {e_dec:5.1f} | J2000 RA {a_ra:5.1f} Dec {a_dec:5.1f} | Az {p_az:5.1f} Alt {p_alt:5.1f}")
-                    await self.SlewToCoordinates(a_ra, a_dec, isasync = False)
-                    # if we want to do Aim test (assumes Aim Data is being logged), just pause
-                    if Config.log_performance_data_test == 1:
-                        await asyncio.sleep(5)
-                    # if we want to do Drift test, await for it to perform a single test
-                    if Config.log_performance_data_test == 2:
-                        await self.drift_error_test(e_ra, e_dec, duration=3*60)
-
-    async def drift_error_test(self, ra, dec, duration=120):
-        a0_ra = self._rightascension
-        a0_dec = self._declination
-        a0_track = self.tracking
-        t0 = datetime.datetime.now()
-        await asyncio.sleep(duration)
-        a1_ra = self._rightascension
-        a1_dec = self._declination
-        a1_track = self.tracking
-        t1 = datetime.datetime.now()
-        d_t = (t1 - t0).total_seconds()
-        d_ra = clamparcsec((a0_ra - a1_ra)*3600/24*360)/d_t*60
-        d_dec = clamparcsec((a0_dec - a1_dec)*3600)/d_t*60
-        a_ra = ra if ra else self._targetrightascension if self._targetrightascension else self._rightascension
-        a_dec = dec if dec else self._targetdeclination if self._targetdeclination else self._declination
-        time = self.get_performance_data_time()
-        self.logger.info(f",DATA2,{time:.3f},{a0_track},{a1_track},{a_ra},{a_dec},{d_ra:.3f},{d_dec:.3f}")
-        return
 
 
     #

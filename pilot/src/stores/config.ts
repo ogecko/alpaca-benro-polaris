@@ -127,10 +127,6 @@ export const useConfigStore = defineStore('config', {
     log_to_file: true,
     log_to_stdout: true,
 
-    log_performance_data: 0,
-    log_performance_data_test: 0,
-    log_perf_speed_interval: 5,
-
     log_polaris: true,
     log_stellarium_protocol: false,
     supress_polaris_frequent_msgs: true,
@@ -152,14 +148,6 @@ export const useConfigStore = defineStore('config', {
     log_orbital_queries: false,
     log_pec: false,
     log_heartbeat: false,
-
-    log_telemetry_data: false,
-    log_aiming_data: false,
-    log_drift_data: false,
-    log_periodic_data: false,
-    log_kalman_data: false,
-    log_pid_data: false,
-    log_sync_data: false,
 
     // Log Rotation
     max_size_mb: 5,

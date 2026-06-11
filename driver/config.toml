@@ -132,17 +132,5 @@ log_orbital_queries = true                  # log information related to JPL and
 log_pec = true                              # log information related to Predictive Error Correction
 log_heartbeat = false                       # log the stack track whenever there is a heartbeat skip
 
-log_telemetry_data = false                  # log raw telemetry data from polaris
-log_aiming_data = false                     # log aiming accuracy metrics and corrections
-log_drift_data = false                      # log drift error measurements and compensation
-log_periodic_data = false                   # log periodic error tracking and modeling
-log_kalman_data = false                     # log Kalman filter inputs and outputs
-log_pid_data = false                        # log PID control loop activity
-log_sync_data = false                       # log sync performance metrics and timing
-
-log_performance_data = 0                    # Logging of Polaris Performance Data 0=Disabled, 1=Aim, 2=Drift, 3=Obsolete, 4=Position, 5=KalmanFilter, 6=PID
-log_performance_data_test = 0               # (DEV ONLY) Run Performance tests 0=none, 1=Aim test, 2=Drift test, 3=Moveaxis speed test, 5=Rotator test
-log_perf_speed_interval = 5                 # To calculate average speed, measure distance travelled, once every "log_perf_speed_interval" seconds.
-
 max_size_mb = 10                            # maximum log file size.
 num_keep_logs = 9                           # maximum number of log files to rotate through.

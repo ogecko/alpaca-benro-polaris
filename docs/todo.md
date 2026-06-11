@@ -36,10 +36,10 @@
 - [X] Galactic - Add Sky - Milky Way Panorama for aligning pano grid with Milky Way spine
 - [X] Version - Upgrade to Beta version 2.2
 - [X] HTTPS - Document Location GPS using phone web browser
+- [X] Tests - Remove all performance tests from core
 - [ ] Galactic - Improve fallback for unreachable roll angles in Galactic panos
 - [ ] Flip - Cannot flip to -30 back to +30 at Az 210
 - [ ] Flip - Confirm unwrapping doesnt cause stutter in pid on long slews
-- [ ] Tests - Remove all performance tests from core
 - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
 - [ ] Nina - Test session using Nina and document Sync Guiding workflow
 - [ ] Connection - why does changing IP address allow connection to proceed?

@@ -29,8 +29,8 @@ def init_logging():
             blocking_handlers.append(stdout_handler)
 
         # File handler
-        if Config.log_to_file or Config.log_performance_data:
-            logfile = 'alpaca.log' if not Config.log_performance_data else 'alpaca.csv'
+        if Config.log_to_file:
+            logfile = 'alpaca.log'
             logdir = Config.log_dir if Config.log_dir else '.'
             logpath = os.path.join(logdir, logfile)
             file_handler = logging.handlers.RotatingFileHandler(
