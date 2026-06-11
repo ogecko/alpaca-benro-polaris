@@ -148,6 +148,7 @@ export const useConfigStore = defineStore('config', {
     log_orbital_queries: false,
     log_pec: false,
     log_heartbeat: false,
+    log_position: false,
 
     // Log Rotation
     max_size_mb: 5,
