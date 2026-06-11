@@ -26,6 +26,7 @@ def mock_config():
         "advanced_sync_guiding":    True,
         "advanced_scc_enabled":     True,
         "advanced_scc_choice":      0,
+        "advanced_pec":             True,
         "log_quest_model":          False,
         "pec_forgetting_factor":    0.98,
         "pec_min_observations":     3,
