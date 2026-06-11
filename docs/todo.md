@@ -33,7 +33,7 @@
 - [X] PEC - to detect crossovers where there is zero trend and reset for new phase, added harmonics and phase detection
 - [X] PEC - Disable learning of PEC Model while disabled
 - [X] Galactic - Add Galactic Co-ordinate system to Pilot
-- [ ] Galactic - Add Sky - Milky Way Panorama for aligning pano grid with Milky Way spine
+- [X] Galactic - Add Sky - Milky Way Panorama for aligning pano grid with Milky Way spine
 - [ ] HTTPS - Document Location GPS using phone web browser
 - [ ] Flip - Cannot flip to -30 back to +30 at Az 210
 - [ ] Flip - Confirm unwrapping doesnt cause stutter in pid on long slews
