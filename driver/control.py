@@ -1224,7 +1224,10 @@ class PID_Controller():
                 theta_final = np.array(q_to_theta(motorQ_final, self._lp))
                 theta_final[0] += t1_fix
                 theta_final[2] += t3_fix
-                self.logger.info(f'Windup Prevention: z1 {z1_implied:+.1f} t1 {theta_final[0]-t1_fix:+.1f} -> {theta_final[0]:+.1f} | z3 {z3_implied:+.1f} t3 {theta_final[2]-t3_fix:+.1f} -> {theta_final[2]:+.1f}')
+                msg = 'Windup Prevention '
+                if t1_fix!=0: msg+= f'| Implied z1 {z1_implied:+.1f} Remap t1 {theta_final[0]-t1_fix:+.1f} to {theta_final[0]:+.1f}'
+                if t3_fix!=0: msg+= f'| Implied z3 {z3_implied:+.1f} Remap t3 {theta_final[2]-t3_fix:+.1f} to {theta_final[2]:+.1f}'
+                self.logger.info(msg)
                 self.theta_ref_cache = theta_final
 
     def errsignal(self):
@@ -1257,6 +1260,7 @@ class PID_Controller():
                     f", | alpha_pv: ,{self.alpha_pv[0]:+.1f},{self.alpha_pv[1]:+.1f},{self.alpha_pv[2]:+.1f}"
                     f", | theta_ref: ,{self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}"
                     f", | theta_pv: ,{self.theta_pv[0]:+.1f},{self.theta_pv[1]:+.1f},{self.theta_pv[2]:+.1f}"
+                    f", | zeta_pv: ,{self.zeta_meas[0]:+.1f},{self.zeta_meas[1]:+.1f},{self.zeta_meas[2]:+.1f}"
                 )
 
         # Per-axis deviation flags
@@ -1332,6 +1336,7 @@ class PID_Controller():
                 self.set_pid_mode('LIMIT')
                 self.parking_complete_callback = None  # Cancel any parking underway
                 self.homing_complete_callback = None  # Cancel any homeing underway
+                self.theta_ref_cache = None # Cancel any cached theta_ref
 
         # Check that lat/lon has been set
         lat_unchanged = abs(rad2deg(float(self.observer.lat)) - -33.8598874) <= 0.00001
