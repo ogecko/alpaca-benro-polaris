@@ -649,7 +649,7 @@ class MotorSpeedController:
         if self.mode=="IDLE":
             return f" IDLE      "
         elif self.mode=="FAST_RAMP":
-            return f" FAST {self.command:+05.0f}"
+            return f" RAMP {self.command:+05.0f}"
         elif self.mode=="FAST":
             return f" FAST {self.command:+05.0f}"
         elif self.mode=="SLOW":
@@ -1262,6 +1262,7 @@ class PID_Controller():
                     f", | theta_ref: ,{self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}"
                     f", | theta_pv: ,{self.theta_pv[0]:+.1f},{self.theta_pv[1]:+.1f},{self.theta_pv[2]:+.1f}"
                     f", | zeta_pv: ,{self.zeta_meas[0]:+.1f},{self.zeta_meas[1]:+.1f},{self.zeta_meas[2]:+.1f}"
+                    f", | motors: ,{[motor.get_cmdstr() for motor in self.polaris._motors.values()]}"
                 )
 
         # Per-axis deviation flags
