@@ -539,10 +539,11 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     theta3_A = calc_theta3(theta1_A, theta2_A)
     thetaA = lastPos.unwrap(theta1_A, theta2_A, theta3_A)
 
-    # Alternative solution with M1 fliped 180, and M2 -ve
-    theta1_B, theta2_B = theta1_A + 180, -theta2_A
-    theta3_B = calc_theta3(theta1_B, theta2_B)
-    thetaB = lastPos.unwrap(theta1_B, theta2_B, theta3_B)
+    # Alternative solution with M1/M3 fliped 180, and M2 -ve
+    theta1_B = theta1_A + 180
+    theta2_B = -theta2_A
+    theta3_B = theta3_A - 180
+    thetaB = (theta1_B, theta2_B, theta3_B)
 
     # Validity
     theta2_min, theta2_max = -8, 83

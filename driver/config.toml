@@ -132,6 +132,7 @@ log_orbital_queries = true                  # log information related to JPL and
 log_pec = true                              # log information related to Predictive Error Correction
 log_heartbeat = false                       # log the stack track whenever there is a heartbeat skip
 log_position = false                        # log the alpha and theta state of the pid loop 
+log_position_rate = 2                       # log the position every X seconds
 
 max_size_mb = 10                            # maximum log file size.
 num_keep_logs = 9                           # maximum number of log files to rotate through.

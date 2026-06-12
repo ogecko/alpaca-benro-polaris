@@ -1210,25 +1210,26 @@ class PID_Controller():
             self.omega_ff = self.alpha_v_sp
 
     def prevent_windup(self):
-        if self.theta_ref_cache is None and self.zeta_meas is not None:
-            zeta = np.array(self.zeta_meas)
-            d1 = max(self.alpha_ref[0] - self.alpha_pv[0], self.theta_ref[0] - self.theta_pv[0], key=abs)
-            d3 = max(self.alpha_ref[2] - self.alpha_pv[2], self.theta_ref[2] - self.theta_pv[2], key=abs)
-            z1_implied = zeta[0] + d1
-            z3_implied = zeta[2] + d3
-            safety = Config.zeta_safety_margin
-            t1_fix = 360 if z1_implied < Config.z1_min_limit+safety else -360 if z1_implied > Config.z1_max_limit-safety else 0
-            t3_fix = 360 if z3_implied < Config.z3_min_limit+safety else -360 if z3_implied > Config.z3_max_limit-safety else 0
-            if t1_fix != 0 or t3_fix != 0:
-                motorQ_final = self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*self.alpha_ref))
-                theta_final = np.array(q_to_theta(motorQ_final, self._lp))
-                theta_final[0] += t1_fix
-                theta_final[2] += t3_fix
-                msg = 'Windup Prevention '
-                if t1_fix!=0: msg+= f'| Implied z1 {z1_implied:+.1f} Remap t1 {theta_final[0]-t1_fix:+.1f} to {theta_final[0]:+.1f}'
-                if t3_fix!=0: msg+= f'| Implied z3 {z3_implied:+.1f} Remap t3 {theta_final[2]-t3_fix:+.1f} to {theta_final[2]:+.1f}'
-                self.logger.info(msg)
-                self.theta_ref_cache = theta_final
+        if self.theta_ref_cache is not None or self.zeta_meas is None or self.mode == 'LIMIT':
+            return
+        zeta = np.array(self.zeta_meas)
+        d1 = max(self.alpha_ref[0] - self.alpha_pv[0], self.theta_ref[0] - self.theta_pv[0], key=abs)
+        d3 = max(self.alpha_ref[2] - self.alpha_pv[2], self.theta_ref[2] - self.theta_pv[2], key=abs)
+        z1_implied = zeta[0] + d1
+        z3_implied = zeta[2] + d3
+        safety = Config.zeta_safety_margin
+        t1_fix = 360 if z1_implied < Config.z1_min_limit+safety else -360 if z1_implied > Config.z1_max_limit-safety else 0
+        t3_fix = 360 if z3_implied < Config.z3_min_limit+safety else -360 if z3_implied > Config.z3_max_limit-safety else 0
+        if t1_fix != 0 or t3_fix != 0:
+            motorQ_final = self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*self.alpha_ref))
+            theta_final = np.array(q_to_theta(motorQ_final, self._lp))
+            theta_final[0] += t1_fix
+            theta_final[2] += t3_fix
+            msg = 'Windup Prevention '
+            if t1_fix!=0: msg+= f'| Implied z1 {z1_implied:+.1f} Remap t1 {theta_final[0]-t1_fix:+.1f} to {theta_final[0]:+.1f}'
+            if t3_fix!=0: msg+= f'| Implied z3 {z3_implied:+.1f} Remap t3 {theta_final[2]-t3_fix:+.1f} to {theta_final[2]:+.1f}'
+            self.logger.info(msg)
+            self.theta_ref_cache = theta_final
 
     def errsignal(self):
         # calc the error signal off theta (aligned motor angles) or zeta (raw motor angles)
@@ -1240,7 +1241,7 @@ class PID_Controller():
                 self.error_signal = self.theta_ref - self.theta_pv
                 # if far away from target in M1 or M3 then cache the target
                 if abs(self.error_signal[0])>30 or abs(self.error_signal[2])>30:
-                    self.logger.info(f'Flip Transition: t1 {self.theta_ref[0]:+.1f} t2 {self.theta_ref[1]:+.1f} t3 {self.theta_ref[2]:+.1f}')
+                    self.logger.info(f'Flip Transition | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
                     self.theta_ref_cache = self.theta_ref.copy()
             else:
                 self.theta_ref = self.theta_ref_cache
@@ -1252,8 +1253,8 @@ class PID_Controller():
         # Log every position for debugging
         if Config.log_position:
             now = time.monotonic()
-            every_2s = not hasattr(self, '_last_log_time') or now - self._last_log_time > 2
-            if every_2s:
+            every_Xs = not hasattr(self, '_last_log_time') or now - self._last_log_time > Config.log_position_rate
+            if every_Xs:
                 self._last_log_time = now
                 self.logger.info(f"POSLOG"
                     f", | alpha_ref: ,{self.alpha_ref[0]:+.1f},{self.alpha_ref[1]:+.1f},{self.alpha_ref[2]:+.1f}"

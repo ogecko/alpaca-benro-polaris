@@ -58,7 +58,7 @@
             </div>
             <div class="row">
             <q-toggle class='col-6' v-bind="bindField('log_heartbeat', 'Log Heartbeat Stack Traces')"/>
-            <q-toggle class='col-6' v-bind="bindField('log_position', 'Log Position every 2s')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_position', 'Log Kinematics Position')"/>
             </div>
         </div>
     </q-card>
