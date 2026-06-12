@@ -1230,6 +1230,7 @@ class PID_Controller():
             if t3_fix!=0: msg+= f'| Implied z3 {z3_implied:+.1f} Remap t3 {theta_final[2]-t3_fix:+.1f} to {theta_final[2]:+.1f}'
             self.logger.info(msg)
             self.theta_ref_cache = theta_final
+            self.theta_ref = theta_final
 
     def errsignal(self):
         # calc the error signal off theta (aligned motor angles) or zeta (raw motor angles)
