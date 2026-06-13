@@ -543,7 +543,7 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     theta1_B = theta1_A + 180
     theta2_B = -theta2_A
     theta3_B = theta3_A - 180
-    thetaB = (theta1_B, theta2_B, theta3_B)
+    thetaB = lastPos.unwrap(theta1_B, theta2_B, theta3_B)
 
     # Validity
     theta2_min, theta2_max = -8, 83
