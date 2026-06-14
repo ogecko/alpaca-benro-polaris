@@ -227,7 +227,7 @@
                   </div>
                 </q-timeline-entry>
                 <!-- MPA-PLANNING REF -->
-                <q-timeline-entry title="Model Predictive Control" subtitle="Plan" icon="mdi-debug-step-over">
+                <q-timeline-entry title="Motion Planning" subtitle="Plan" icon="mdi-debug-step-over">
                   <div v-if="cfg.advanced_goto">
                     <div>
                       <VField label="delta_ref:   RA " :val="p.deltaref[0]" unit="deg2hr"/>
