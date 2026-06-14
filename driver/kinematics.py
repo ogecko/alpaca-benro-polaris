@@ -8,7 +8,7 @@ Contents
 --------
   Angle helpers       wrap360/180/90, is_angle_same, angular_error_arcmin, 
                       angular_separation, angular_difference, is_angle_between
-  Angle clampers      clamp_arcsec,  clamp_alpha/delta/theta/error/offset/error
+  Angle clampers      clamp_arcsec,  clamp_alpha/delta/theta/error/offset/error, altitude_to_maxroll
   3D Vectors          wrap_angle_residual, wrap_state_angles
                       azalt_to_vector, vector_to_az_alt, v_angular_distance
                       calculate_angular_velocity_vector
@@ -641,6 +641,23 @@ def theta_to_azaltroll(theta1: float, theta2: float, theta3: float):
         return q_to_azaltroll(motorQ)
     except Exception:
         return None, None, None
+
+def altitude_to_maxroll(alt_deg, theta2_max=81.5):
+    """
+    Maximum achievable camera roll at a given sky altitude.
+    
+    Derived from spherical geometry: as t3 varies at fixed t2_max,
+    the boresight traces a great circle. At the point where altitude
+    equals alt_deg, the roll satisfies:
+    
+        cos(roll) = cos(t2_max) / cos(alt)
+    
+    Returns 0 if altitude is outside the reachable range.
+    """
+    cos_ratio = np.cos(np.radians(theta2_max)) / np.cos(np.radians(alt_deg))
+    if abs(cos_ratio) > 1:
+        return 0.0
+    return np.degrees(np.arccos(cos_ratio))
 
 
 def quaternion_to_angles(q1, lastPos = LastPosition()):
