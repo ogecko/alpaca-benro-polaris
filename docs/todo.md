@@ -117,10 +117,10 @@
 - [ ] Merge into main - git checkout main, git pull origin main, git merge releases/v2.2.0, git push origin main
 - [ ] Draft Github New Release and Tag - on main branch
 - [ ]     Release Title: Alpaca Benro Polaris Driver v2.2.0
-- [ ]     Release Notes: Refer to https://github.com/ogecko/alpaca-benro-polaris/blob/releases/2_1_0/docs/release-notes-v2.2.0.md
+- [ ]     Release Notes: Refer to https://github.com/ogecko/alpaca-benro-polaris/blob/releases/2_2_0/docs/release-notes-v2.2.0.md
 - [ ]     Set as latest release
 - [ ] Announce on Kickstarter, Facebook, Discord
-- [ ] Create new Dev Branch - dev2_2 based on dev2_2
+- [ ] Create new Dev Branch - dev2_3 based on dev2_2
 
 ## Alpaca Pilot App
 - [X] Implement Alpaca Pilot App Framework
