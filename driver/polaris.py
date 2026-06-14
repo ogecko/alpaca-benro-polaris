@@ -1196,6 +1196,7 @@ class Polaris:
         pec_ra, pec_dec = self._sm._pec_ra, self._sm._pec_dec
         pec_ra_status = pec_ra.r2   if pec_ra.converged() else -pec_ra.inhibit
         pec_dec_status = pec_dec.r2 if pec_dec.converged() else -pec_dec.inhibit
+        pidmode = self._pid.mode if self._pid.theta_ref_cache is None else self._pid.theta_ref_cache_cause
         with self._lock:
             res = {
                 'polarismode': self._polaris_mode,
@@ -1239,7 +1240,7 @@ class Polaris:
                 'rightascension': self._rightascension,
                 'parallacticangle': self._parallactic_angle,
                 'positionangle': self._position_angle,
-                'pidmode': self._pid.mode,     
+                'pidmode': pidmode,     
                 'pidglock': self._pid._lp.in_gimbal_lock,           
                 'qraw':    [0,0,0,0] if self._q1 is None else [self._q1[0],self._q1[1],self._q1[2],self._q1[3]],
                 'qstate':  [0,0,0,0] if self._motorQ_state is None else [self._motorQ_state[0],self._motorQ_state[1],self._motorQ_state[2],self._motorQ_state[3]],

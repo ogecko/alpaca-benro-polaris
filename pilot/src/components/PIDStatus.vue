@@ -29,6 +29,9 @@ const statusLabel = computed(() =>
   p.pidmode=='LIMIT' ? "Limit" :
   p.pidmode=='HOMING' ? "Homing" :
   p.pidmode=='PARKING' ? "Parking" :
+  p.pidmode=='FLIP CW' ? "Flip CW" :
+  p.pidmode=='FLIP CCW' ? "Flip CCW" :
+  p.pidmode=='UNWIND' ? "Unwind" :
   p.athome ? "At Home" : 
   p.atpark ? "Parked" : 
   p.gotoing ? "Gotoing" : 
@@ -78,6 +81,9 @@ const statusIcon = computed(() =>
   p.pidmode=='LIMIT' ? "mdi-alert" :
   p.pidmode=='HOMING' ? "mdi-home-outline" :
   p.pidmode=='PARKING' ? "mdi-alpha-p" :
+  p.pidmode=='FLIP CW' ? "mdi-rotate-360" :
+  p.pidmode=='FLIP CCW' ? "mdi-rotate-360" :
+  p.pidmode=='UNWIND' ? "mdi-rotate-360" :
   p.pidglock  ? "mdi-lock" : 
   p.atpark ? "mdi-parking" : 
   p.athome ? "mdi-home" : 
