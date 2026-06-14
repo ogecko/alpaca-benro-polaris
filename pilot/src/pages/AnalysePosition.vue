@@ -79,7 +79,7 @@
                   <div class="ok terminal">
                     <span>{{`MAC: Mechanical Alignment Correction`}}</span>
                     <VField v-if="cfg.advanced_align_mac" label="           Mechanical Adj " :val="p.rbcerror" unit="deg_ofst"/>
-                    <span v-else class="haz">{{ `                              Disabled`}}</span>
+                    <span v-else class="haz">{{ `                               Disabled`}}</span>
                   </div>
                   <!-- SCC -->
                   <div class="ok terminal">
@@ -89,7 +89,7 @@
                         <VField v-if="cfg.advanced_scc_choice==1" label="              Local Guassian Adj " :val="p.sccerror" unit="deg_ofst"/>
                         <VField v-if="cfg.advanced_scc_choice==2" label="                Sync Guiding Adj " :val="p.sccerror" unit="deg_ofst"/>
                     </span>
-                    <span v-else class="haz">{{ `                                     Disabled`}}</span>
+                    <span v-else class="haz">{{ `                                      Disabled`}}</span>
                   </div >
                   <!-- PEC -->
                   <div class="ok terminal">
@@ -102,7 +102,7 @@
                     </span>
                     <span v-else>
                       <span >{{` Periodic Error Correction  `}}</span>
-                      <span class="haz">{{ `                             Disabled`}}</span>
+                      <span class="haz">{{ `                              Disabled`}}</span>
                     </span>
                   </div>
                   <!-- Guiding -->
@@ -114,8 +114,8 @@
                       <VField label="   | PosA " :val="p.gdpulse[2]" unit="deg_ofst"/>
                     </span>
                     <span v-else>
-                      <span >{{`   Sync/Pulse Guiding`}}</span>
-                      <span class="haz">{{ `                                  Disabled`}}</span>
+                      <span >{{` Sync/Pulse Guiding`}}</span>
+                      <span class="haz">{{ `                                    Disabled`}}</span>
                     </span>
                   </div>
                   <div class="ok terminal">
@@ -126,8 +126,8 @@
                       <VField label="   | PosA " :val="p.gdaccum[2]" unit="deg_ofst"/>
                     </span>
                     <span v-else>
-                      <span >{{`  Sync/Pulse Guiding`}}</span>
-                      <span class="haz">{{ `                                  Disabled`}}</span>
+                      <span >{{` Sync/Pulse Guiding`}}</span>
+                      <span class="haz">{{ `                                    Disabled`}}</span>
                     </span>
                   </div>
                 </q-timeline-entry>
