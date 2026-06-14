@@ -47,41 +47,52 @@
 - [ ] Connection - why does L-Bracket get initialised incorrectly sometimes?
 - [ ] Dependancies - Upgrade dependant libraries on Node and Python
 - [ ] PEC - Calibration pulses to be ignored by PEC (using either PHD2 and CCDciel)
-- [ ] Create video of new features 
+- [ ] Create video on install and connect
     - Install
         - New requirements.txt and pip install
         - Ok to copy pilot.settings.xml but new config.toml
     - Connect
         - On connection, new banner - not completed initial single star alignment
         - Discovery - IPv6 support, ConformU support
-        - Position Update late (reduced)
+        - Position Update late messages (reduced)
         - Driver control - Stop and Restart Driver, Restart multiple
         - Sync persistent
+        - HTTPS
+- [ ] Create video on dashboard and motion changes
+    - Pointing and Motion Control
+        - Goto Completion - New Progress Indicator, logrithmic scale completes max axis deviation within Goto Tollerance Kc, Tracking Tollerance Kc/20 
+        - Scale Warning Bars - Now change in real time to reflect Polaris Mechanical Limits, Roll = fn(Alt), Also added RA = fn(lat, LST); Dec = fn(lat), Notice Alt opened up 
+        - Negative Alt - Supports below horizon pointing, transitioning through horizon flip (eqiv of meridian flip for Equatorial)
+        - Gimbal Lock - Loss of degree of freedom as M1&M3 aligned, Enter Gimbal Lock when Alt < 1 deg, exit when Alt > 3 deg; Status icon, may not reach Low Rolls at Alt=0
+        - Motion Planning - Typically Shortest Path in SO3 space, Caters for Zenith Singularity, Rotate maintains direction 
+        - Windup Prevention - Normally shortest path, unless it predicts it will exceed motor angle limit, then reroutes 360°. Not foolproof.
+        - Zenith Imaging - purposefully mount on a wedge
+        - At Home - Telescope v4, async, 
+- [ ] Create video on Galactric Co-rdinates, Panoramas and scripting
     - MPA
         - Demo Advanced Sequence for MPA following targets RA movement
+    - Utilities
+        - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, Navigating Pano, PanoGrid Copy
+        - Advanced Scheduler - Rename_dirs, RotateRelative, FindHome/Wait/Polaris:AbortSlew
+- [ ] Create video on kinematics, tracking, guiding
     - Kinematics
+        - Settings Page - enabling different correction features, show alongside kinematics page, toggling on/off
         - Kinematics Page - better understanding and total rewrite 
-        - Settings Page - enabling different correction features
+    - Slewing
         - Mechanical Corrections - Turn on off on Alignment page, see Residuals change
         - Slew and Center - Last MPA Residual, no completion, ZLR force it, LGA on Kinematics
-    - Pointing and Motion Control
-        - Goto Completion - New Progress Indicator, Setting Tollerance Kc and Kc/20 
-        - Negative Alt - Supports below horizon pointing, transitioning through horizon, zenith imaging
-        - Windup Prevention - detects when a move would over-rotate an axis and reroutes 360° in the opposite direction
-        - Rotations - Shortest Path, Rotate maintains direction 
-        - Gimbal Lock - Loss of degree of freedom, Limit Sidereal Horiz, 3 degree out
-        - At Home - Telescope v4, async, 
     - Tracking
-        - PID - Improved RMS Error, Cyclic bump removed, PID axes in dms, De-Trenmded Charts
+        - PID - PID axes in dms, De-Trenmded Charts
+        - PID - Improved RMS Error, Cyclic bump removed, 
         - Orbitals - tracking See PA changing, Roll Angle fixed.
     - Guiding
         - Sync Guiding - Plate-Solve/Sync using Nina in a 2-5min cycle, Before smart exposure - PID steadies while filter changing.
         - Sync Roll - How to copy Plate-Solve Roll and manual Roll Sync
         - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
-    - Utilities
-        - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, Navigating Pano, PanoGrid Copy
-        - Advanced Scheduler - Rename_dirs, RotateRelative, FindHome/Wait/Polaris:AbortSlew
-    
+- [ ] Create video on CCDCiel
+- [ ] Create video on RaspberryPi creation
+
+
 ## Final Release Checklist
 - [X] Complete todo checklist
 - [X] Check Driver package vulnerabilities
