@@ -469,7 +469,7 @@ function generateWarningArcs(low: number, high: number, stepSize: number): ArcDa
     const ranges = props.warnings ?? []
     const arcs = ranges.map( (w, i) => {
     return { 
-      key: `tkWrn-${i}-${stepSize}`, 
+      key: `tkWrn-${props.domain}-${i}-${stepSize}`, 
       beginAngle:w[0], endAngle:w[1], 
       offset:1, opacity: 0.7, zorder: 'low' 
     } as ArcDatum
