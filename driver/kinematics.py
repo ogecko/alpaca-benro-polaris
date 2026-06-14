@@ -468,7 +468,6 @@ def theta_to_jacobian(theta1, theta2, theta3):
     J = np.column_stack((a1, a2, a3))
     return -J
 
-
 class LastPosition:
     def __init__(self, t1=180, t2=45, t3=0, z3=None):
         self.last_theta1 = t1
@@ -476,6 +475,7 @@ class LastPosition:
         self.last_theta3 = t3
         self.last_zeta3 = z3
         self.in_gimbal_lock = False
+        self.flipCW = False             # Alternate solution based on CW: t1+180, t2 -ve, t3-180 or CCW: t1-180, t2 -ve, t3+180
     def update(self,t1,t2,t3):
         self.last_theta1 = t1
         self.last_theta2 = t2
@@ -540,9 +540,10 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     thetaA = lastPos.unwrap(theta1_A, theta2_A, theta3_A)
 
     # Alternative solution with M1/M3 fliped 180, and M2 -ve
-    theta1_B = theta1_A + 180
-    theta2_B = -theta2_A
-    theta3_B = theta3_A - 180
+    if lastPos.flipCW:
+        theta1_B, theta2_B, theta3_B = theta1_A + 180, -theta2_A, theta3_A - 180
+    else:
+        theta1_B, theta2_B, theta3_B = theta1_A - 180, -theta2_A, theta3_A + 180
     thetaB = lastPos.unwrap(theta1_B, theta2_B, theta3_B)
 
     # Validity

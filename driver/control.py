@@ -1242,8 +1242,9 @@ class PID_Controller():
                 self.error_signal = self.theta_ref - self.theta_pv
                 # if far away from target in M1 or M3 then cache the target
                 if abs(self.error_signal[0])>30 or abs(self.error_signal[2])>30:
-                    self.logger.info(f'Flip Transition | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
+                    self.logger.info(f'Flip Transition {'CW' if self._lp.flipCW else 'CCW'} | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
                     self.theta_ref_cache = self.theta_ref.copy()
+                    self._lp.flipCW = not self._lp.flipCW
             else:
                 self.theta_ref = self.theta_ref_cache
                 self.error_signal = self.theta_ref_cache - self.theta_pv
