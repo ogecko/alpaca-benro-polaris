@@ -129,6 +129,7 @@ const props = defineProps<{
 	lst?: number 
   label: string
   domain: DomainStyleType
+  warnings: [number, number][]  // required, pass [] for none    
 }>()
 
 // dynamic variables/refs
@@ -142,7 +143,7 @@ const spxInputRef = ref();
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
-const renderKey = computed(() => `${props.domain}-${scaleRange.value}-${props.pv}-${props.sp}-${props.lst}`)
+const renderKey = computed(() => `${props.domain}-${scaleRange.value}-${props.pv}-${props.sp}-${props.lst}-${JSON.stringify(props.warnings)}`)
 const pvn = computed(() => dProps.value.dAngleFn(props.pv??0))        // pv normalised
 const spn = computed(() => dProps.value.dAngleFn(props.sp??0))        // sp normalised
 const pvx = computed(() => deg2dms(pvn.value, 1, dProps.value.unit))   // pv decomposed
@@ -177,7 +178,6 @@ export type DomainStyleType =
 	| 'pa_360'
 	| 'gpa_180'
 
-type WarningRange = [number, number];
 type DomainStyleConfig = {
   width: number;
   height: number;
@@ -190,20 +190,19 @@ type DomainStyleConfig = {
   unit: UnitKey;
   minScale: number;
   maxScale: number;
-  warnings: WarningRange[];
 };
 
 
 const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
-  'linear_360':   { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:-10, sAngleHigh:190, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'circular_360': { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:10,  sAngleHigh:340, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'az_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,179],[-179,-79]] },
-  'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[75,200],[-75,-200]] },
-  'ra_24':        { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12,  warnings:[] },
-  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[90,200],[-90,-200]] },
-  'pa_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'gpa_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'linear_360':   { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:-10, sAngleHigh:190, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200 },
+  'circular_360': { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:10,  sAngleHigh:340, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200 },
+  'az_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200 },
+  'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200 },
+  'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200 },
+  'ra_24':        { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12 },
+  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200 },
+  'pa_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200 },
+  'gpa_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200 },
 };
 
 
@@ -461,14 +460,19 @@ function generateScaleArcs(low: number, high: number, stepSize: number, stepDiv:
   const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
   const endAngle = beginAngle + high - low;
   return [
-    { key: `tkArcS-${stepSize}-${stepDiv}`, level:'tk-solid', beginAngle:low, endAngle:high, offset:1, opacity: 0.2, zorder: 'low' },
+    { key: `tkArcS`, level:'tk-solid', beginAngle:low, endAngle:high, offset:1, opacity: 0.2, zorder: 'low' },
     { key: `tkArcD-${stepSize}-${stepDiv}`, level:'tk-dashed', beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low' },
   ]
 }
 
 function generateWarningArcs(low: number, high: number, stepSize: number): ArcDatum[] {
-  const arcs = dProps.value.warnings.map( w => {
-    return { key: `tkWrn-${w[0]}-${w[1]}-${stepSize}`, beginAngle:w[0], endAngle:w[1], offset:1, opacity: 0.7, zorder: 'low' } as ArcDatum
+    const ranges = props.warnings ?? []
+    const arcs = ranges.map( (w, i) => {
+    return { 
+      key: `tkWrn-${i}-${stepSize}`, 
+      beginAngle:w[0], endAngle:w[1], 
+      offset:1, opacity: 0.7, zorder: 'low' 
+    } as ArcDatum
   })
  return arcs
 }

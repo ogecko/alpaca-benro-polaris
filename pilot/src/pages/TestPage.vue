@@ -20,7 +20,7 @@
     <div flat bordered class="col ">
       <div class="row">
         <div clas="col">
-          <ScaleDisplay :pv="pv" :sp="sp" :lst="lst" label="Azimuth" :domain="domainChoice" />
+          <ScaleDisplay :pv="pv" :sp="sp" :lst="lst" label="Azimuth" :domain="domainChoice" :warnings="[]"/>
         </div>
         <div class="col">
           <SpinnerSpeed :speed="pv" :position="359.2" label="M3" />

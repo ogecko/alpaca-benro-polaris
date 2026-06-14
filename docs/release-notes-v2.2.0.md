@@ -42,6 +42,7 @@
 - **[Improved Accuracy]** Reduce tracking RMS Error by up to 70%, by synchronising 518 and PID calculations.
 - **[Kinematics Status]** A new Kinematics page that provides a comprehensive overview of both Forward and Inverse Kinematics workflows.
 - **[Negative Azimuth]** Goto's now support altitudes down to -79° by flipping the astro axis in the opposite direction. Previously limited to -8°.
+- **[Scale Warnings]** Realtime scale warning markers on Roll, RA, Dec based on Benro Polaris Mechanical Limits.
 - **[Smoother Rolling]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.
 - **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing, hysteresis to reduce uncertainty, and add status icon to Pilot.
 - **[At Home]**: Upgrade to ASCOM ITelescopeV4 FindHome method (non-blocking) and associated AtHome property. Include in Pilot Status indicator.

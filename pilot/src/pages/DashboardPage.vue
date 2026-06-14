@@ -77,6 +77,7 @@
             :sp="cfg.sp"
             :lst="p.siderealtime"
             :domain="cfg.domain"
+            :warnings="cfg.warnings"
             @clickScale="onClickScale"
             @clickFabAngle="onClickFabAngle"
             @clickMove="onClickMove"
@@ -128,22 +129,58 @@ const isStopOutline = ref<boolean>(true)
 
 // ------------------- Layout Configuration Data ---------------------
 
+const noWarnings:     [number, number][] = []
+const altWarnings:    [number, number][] = [[81.5, 200], [-200, -81.5]]
+const glatWarnings:   [number, number][] = [[90,200],[-90,-200]]
+const rollWarnings = computed((): [number, number][] => {
+    const altRounded = Math.round((p.altitude ?? 0) * 2) / 2 // round to 0.5 deg
+    const maxRoll = altitudeToMaxRoll(altRounded)
+    if (maxRoll <= 0) return []
+    return [[maxRoll, 200], [-maxRoll, -200]]
+})
+const raWarnings = computed((): [number, number][] => {
+    const lst = Math.round((p.siderealtime ?? 0) * 4) / 4  // round to 15min steps
+    const dec = Math.round((p.declination ?? 0) * 2) / 2   // round to 0.5 deg
+    const lat = cfg.site_latitude
+    // HA limit varies with declination: arccos(-tan(lat)*tan(dec)) in hours
+    // clamp to 6h maximum (mount cable limit)
+    const cosHA = -Math.tan(lat * Math.PI / 180) * Math.tan(dec * Math.PI / 180)
+    const haLimitHrs = (Math.abs(cosHA) <= 1) ? Math.min(6, Math.acos(cosHA) * 12 / Math.PI) : 12
+    const raEast = lst + haLimitHrs   // warn above this (not yet risen enough)
+    const raWest = lst - haLimitHrs   // warn below this (too far past meridian)
+    return [
+        [raEast, 30] as [number, number],
+        [raWest, -6] as [number, number],
+    ]
+})
+const decWarnings = computed((): [number, number][] => {
+    const lat = cfg.site_latitude
+    const maxDec = Math.min(90, Math.round(lat + 90))
+    const minDec = Math.max(-90, Math.round(lat - 90))
+    return [
+        [maxDec, 200] as [number, number],
+        [-200, minDec] as [number, number],
+    ]
+})
+
+
+
 const displayConfig = computed(() => {
-  if (isEq.value === 1) return [
-    { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, domain: 'ra_24' as DomainStyleType },
-    { label: 'Declination',     pv: p.declination,    sp: p.deltaref[1],   domain: 'dec_180' as DomainStyleType },
-    { label: 'Position Angle',  pv: p.positionangle,  sp: p.deltaref[2],   domain: 'pa_360' as DomainStyleType }
-  ]
-  if (isEq.value === 2) return [
-    { label: 'Galactic Lon', pv: p.gpv[0], sp: p.gsp[0], domain: 'az_360' as DomainStyleType },
-    { label: 'Galactic Lat',  pv: p.gpv[1], sp: p.gsp[1], domain: 'dec_180' as DomainStyleType },
-    { label: 'Galactic PA',        pv: p.gpv[2], sp: p.gsp[2], domain: 'gpa_180' as DomainStyleType }
-  ]
-  return [ // isEq === 0, Topocentric
-    { label: 'Azimuth',  pv: p.azimuth,  sp: p.alpharef[0], domain: 'az_360' as DomainStyleType },
-    { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType },
-    { label: 'Roll',     pv: p.roll,     sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType }
-  ]
+    if (isEq.value === 1) return [
+        { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, domain: 'ra_24' as DomainStyleType,   warnings: raWarnings.value },
+        { label: 'Declination',     pv: p.declination,    sp: p.deltaref[1],   domain: 'dec_180' as DomainStyleType, warnings: decWarnings.value },
+        { label: 'Position Angle',  pv: p.positionangle,  sp: p.deltaref[2],   domain: 'pa_360' as DomainStyleType,  warnings: noWarnings }
+    ]
+    if (isEq.value === 2) return [
+        { label: 'Galactic Lon', pv: p.gpv[0], sp: p.gsp[0], domain: 'az_360' as DomainStyleType,   warnings: noWarnings },
+        { label: 'Galactic Lat', pv: p.gpv[1], sp: p.gsp[1], domain: 'dec_180' as DomainStyleType,  warnings: glatWarnings },
+        { label: 'Galactic PA',  pv: p.gpv[2], sp: p.gsp[2], domain: 'gpa_180' as DomainStyleType,  warnings: noWarnings }
+    ]
+    return [
+        { label: 'Azimuth',  pv: p.azimuth,  sp: p.alpharef[0], domain: 'az_360' as DomainStyleType,   warnings: noWarnings },
+        { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType,   warnings: altWarnings },
+        { label: 'Roll',     pv: p.roll,     sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType, warnings: rollWarnings.value }
+    ]
 })
 
 const isDeviated = computed(() => {
@@ -209,6 +246,12 @@ function cannotPerformCommand(cmd:string) {
       return true
   }
   return false
+}
+
+function altitudeToMaxRoll(altDeg: number, theta2Max = 81.5): number {
+    const cosRatio = Math.cos(theta2Max * Math.PI / 180) / Math.cos(altDeg * Math.PI / 180)
+    if (Math.abs(cosRatio) > 1) return 0
+    return Math.acos(cosRatio) * 180 / Math.PI
 }
 
 // ------------------- Event Handlers ---------------------
