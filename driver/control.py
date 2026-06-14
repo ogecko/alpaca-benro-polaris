@@ -1246,8 +1246,8 @@ class PID_Controller():
             self.set_theta_ref_cache(cause, theta_final)
         else:
             # FLIP: if far away from target (in M1 or M3) then cache the target
-            self.error_signal = self.theta_ref - self.theta_pv
-            if abs(self.error_signal[0])>30 or abs(self.error_signal[2])>30:
+            distance = self.theta_ref - self.theta_pv
+            if abs(distance[0])>30 or abs(distance[2])>30:
                 cause = 'FLIP CW' if self._lp.flipCW else 'FLIP CCW'
                 self.logger.info(f'{cause} Transition | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
                 self.set_theta_ref_cache(cause, self.theta_ref.copy())

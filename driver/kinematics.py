@@ -534,7 +534,8 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     # Primary solution
     t1r_A = np.arctan2(-tUp[0], -tUp[1])
     sin_t2_A = -(tUp[0]*np.sin(t1r_A) + tUp[1]*np.cos(t1r_A))
-    t2r_A = np.arctan2(sin_t2_A, tUp[2])
+    cos_t2_A = tUp[2]
+    t2r_A = np.arctan2(sin_t2_A, cos_t2_A)
     theta1_A, theta2_A = np.degrees(t1r_A), np.degrees(t2r_A)
     theta3_A = calc_theta3(theta1_A, theta2_A)
     thetaA = lastPos.unwrap(theta1_A, theta2_A, theta3_A)
