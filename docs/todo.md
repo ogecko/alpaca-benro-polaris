@@ -1,9 +1,6 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Development Todo List
-- [X] Detect when multiple instances of driver running
-- [X] Add a stop and restart driver (to allow pickup of python code changes)
-- [X] Document how to autostart the driver on win11
 - [X] Improve co-ordination of Gimbal Lock handling
 - [X] Correctly reset pid SP when removing sync points or reseting back to Single Point Alignment
 - [X] Fix 7s cycle in PID OP control jumping (synchronise 518 handler and PID calculations)
@@ -56,6 +53,7 @@
         - Install
             - New requirements.txt and pip install
             - Ok to copy pilot.settings.xml but new config.toml
+            - Autostart doc
         - Connect
             - On connection, new banner - not completed initial single star alignment
             - Discovery - IPv6 support, ConformU support
@@ -97,33 +95,32 @@
     - [ ] Create video on CCDCiel
     - [ ] Create video on RaspberryPi creation
 
-
 ## Final Release Checklist
-- [X] Complete todo checklist
-- [X] Check Driver package vulnerabilities
-- [X]     pip-audit
-- [X]     pip show urllib
-- [X]     pipdeptree | findstr urllib3
-- [X]     pip install --upgrade urllib3==2.6.3
-- [X]     Modify all requirements.txt files accordingly
-- [X] Check Pilot package vulnerabilities
-- [X]     npm audit --omit=dev   # Only vulnerabilities in runtime dependencies matter as deployed as SPA
-- [X]     npm install axios@^1.13.5
-- [X]     npm ls axios
-- [X] Final Changes - git checkout dev2_2, git pull origin dev2_2
-- [X]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
-- [X]     Build Pilot for release
-- [X]     Confirm all Alpaca ConformU tests pass
-- [X]     Confirm all Alpaca Driver unit tests pass
-- [X]     Confirm all Alpaca Pilot unit tests pass
-- [X] Create Branch - releases/2_1_0 based on dev2_2
-- [X] Merge into main - git checkout main, git pull origin main, git merge releases/v2.2.0, git push origin main
-- [X] Draft Github New Release and Tag - on main branch
-- [X]     Release Title: Alpaca Benro Polaris Driver v2.0.0
-- [X]     Release Notes: Refer to https://github.com/ogecko/alpaca-benro-polaris/blob/releases/2_1_0/docs/release-notes-v2.2.0.md
-- [X]     Set as latest release
-- [X] Announce on Kickstarter, Facebook, Discord
-- [X] Create new Dev Branch - dev2_2 based on dev2_2
+- [ ] Complete todo checklist
+- [ ] Check Driver package vulnerabilities
+- [ ]     pip-audit
+- [ ]     pip show urllib
+- [ ]     pipdeptree | findstr urllib3
+- [ ]     pip install --upgrade urllib3==2.6.3
+- [ ]     Modify all requirements.txt files accordingly
+- [ ] Check Pilot package vulnerabilities
+- [ ]     npm audit --omit=dev   # Only vulnerabilities in runtime dependencies matter as deployed as SPA
+- [ ]     npm install axios@^1.13.5
+- [ ]     npm ls axios
+- [ ] Final Changes - git checkout dev2_2, git pull origin dev2_2
+- [ ]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
+- [ ]     Build Pilot for release
+- [ ]     Confirm all Alpaca ConformU tests pass
+- [ ]     Confirm all Alpaca Driver unit tests pass
+- [ ]     Confirm all Alpaca Pilot unit tests pass
+- [ ] Create Branch - releases/2_2_0 based on dev2_2
+- [ ] Merge into main - git checkout main, git pull origin main, git merge releases/v2.2.0, git push origin main
+- [ ] Draft Github New Release and Tag - on main branch
+- [ ]     Release Title: Alpaca Benro Polaris Driver v2.2.0
+- [ ]     Release Notes: Refer to https://github.com/ogecko/alpaca-benro-polaris/blob/releases/2_1_0/docs/release-notes-v2.2.0.md
+- [ ]     Set as latest release
+- [ ] Announce on Kickstarter, Facebook, Discord
+- [ ] Create new Dev Branch - dev2_2 based on dev2_2
 
 ## Alpaca Pilot App
 - [X] Implement Alpaca Pilot App Framework
@@ -131,7 +128,10 @@
 - [X] Implment Alpaca Pilot routing
 - [X] Add a Dashboard button to recenter Pano Grid to match mount's orientation 
 - [X] At least Pano 5 rows on Dashboard before scroll bars
-- [ ] Check Driver version to see if client needs refreshing
+- [X] Detect when multiple instances of driver running and provide clearer diagnostic message
+- [X] Check Driver version to see if client needs refreshing
+- [X] Add a stop and restart driver (to allow pickup of python code changes)
+- [X] Document how to autostart the driver on win11
 
 ## Alpaca Pilot Connection, Bluetooth LE
 - [X] Implement Benro Polaris Connection process and diagnostics
@@ -198,7 +198,7 @@
 - [X] Alpaca pilot Sync Analysis and Residual display
 - [X] Alpaca pilot Sync editing and removal
 - [X] Alpaca pilot Tripod Level Correction
-- [x] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
+- [X] Alpaca near Zenith (18° circle) tracking and gotoing by tilting mount  
 - [X] Fix Reduce number of Nina plate-solve and sync to get to target
 - [X] Fix SYNC events are not cleared in client after driver restart
 
@@ -235,7 +235,7 @@
 - [x] Overlay the expected tracking velocity on the omega plot
 - [X] Improve responsiveness of manual slewing, incorporate desired velocity into omega_op
 - [X] Explicit pid mode changes, add a 'PARK' mode, ensure no pid activity while parked.
-- [ ] Improve stability of tracking before allowing first plate-solve (after a GOTO) to proceed
+- [X] Improve stability of tracking before allowing first plate-solve (after a GOTO) to proceed
 
 ## Reliability and degrdation
 - [X] Proper task cleanup in polaris.restart(), especially to fix no position updates for over 2s. Restarting AHRS
@@ -263,8 +263,8 @@
 - [X] Integral Anti-Windup dontaccumulate when output is saturated or quantized
 - [X] Store Motor Calibration data to a file
 - [X] Improve tracking performance beyond BP implementation
-- [ ] Remove obsolete performance tests and notebooks 
-- [ ] Move image culling to Alpaca Pilot
+- [X] Remove obsolete performance tests and notebooks 
+- [ ] Move image culling to Alpaca Pilot, or Document use of ASTAP for image culling
 
 ## ASCOM Rotator
 - [X] Implement Rotator
