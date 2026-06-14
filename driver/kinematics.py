@@ -659,6 +659,59 @@ def altitude_to_maxroll(alt_deg, theta2_max=81.5):
         return 0.0
     return np.degrees(np.arccos(cos_ratio))
 
+"""
+Revised FK/IK closed form trig solutions - Jun2026.
+The three relationships are:
+    alt       = arcsin(cos(t3) · sin(t2))
+    roll_mag  = arcos(cos(t2) / cos(alt))        
+    az        = t1 + arctan2(sin(t3), cos(t3)·cos(t2))
+
+With sign conventions: 
+    roll_sign = -sign(sin(t3)) · sign(t2)   in FK, and 
+    t3_sign   = -sign(roll)                 in IK (since IK always returns t2 ≥ 0).
+"""
+
+def theta_to_azaltroll_fk(t1, t2, t3):
+    t2r, t3r = np.radians(t2), np.radians(t3)
+
+    # Altitude: boresight Z as t3 rotates it around tUp
+    alt = np.degrees(np.arcsin(np.clip(np.cos(t3r) * np.sin(t2r), -1, 1)))
+    cos_alt = np.cos(np.radians(alt))
+
+    # Roll magnitude: from cos(roll) * cos(alt) = cos(t2)
+    roll_mag = np.degrees(np.arccos(np.clip(np.cos(t2r) / cos_alt, -1, 1))) if cos_alt > 1e-9 else 0.0
+    # Roll sign: -sign(sin(t3)) * sign(t2)
+    sin_t3 = np.sin(t3r)
+    roll_sign = -np.sign(sin_t3) * np.sign(t2) if abs(sin_t3) > 1e-9 else 1.0
+    roll = roll_mag * roll_sign
+
+    # Azimuth: t1 plus az offset from t3
+    az = (t1 + np.degrees(np.arctan2(np.sin(t3r), np.cos(t3r) * np.cos(t2r)))) % 360
+
+    return az, alt, roll
+
+
+def azaltroll_to_theta_ik(az, alt, roll):
+    altr, rollr = np.radians(alt), np.radians(roll)
+
+    # t2: from cos(t2) = cos(roll) * cos(alt)
+    t2 = np.degrees(np.arccos(np.clip(np.cos(rollr) * np.cos(altr), -1, 1)))
+    t2r = np.radians(t2)
+    sin_t2 = np.sin(t2r)
+
+    # t3 magnitude: from cos(t3) = sin(alt) / sin(t2)
+    t3_mag = np.degrees(np.arccos(np.clip(np.sin(altr) / sin_t2, -1, 1)))  if sin_t2 > 1e-9 else 0.0
+    # t3 sign: IK always gives t2>=0, so sign(t2)=+1, giving t3_sign = -sign(roll)
+    t3_sign = -np.sign(roll) if abs(roll) > 1e-9 else 1.0
+    t3 = t3_mag * t3_sign
+    t3r = np.radians(t3)
+
+    # t1: az minus az offset from t3
+    az_offset = np.degrees(np.arctan2(np.sin(t3r), np.cos(t3r) * np.cos(t2r)))
+    t1 = (az - az_offset) % 360
+
+    return t1, t2, t3
+
 
 def quaternion_to_angles(q1, lastPos = LastPosition()):
     """

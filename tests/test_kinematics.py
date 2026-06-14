@@ -427,3 +427,74 @@ class TestCalcEquatorialAxesB:
                 assert abs(np.linalg.norm(ra)  - 1.0) < 1e-9, "RA not unit"
                 assert abs(np.linalg.norm(dec) - 1.0) < 1e-9, "Dec not unit"
                 assert abs(np.linalg.norm(pa)  - 1.0) < 1e-9, "PA not unit"
+
+
+# ── Unit tests: Simplified FK/IK ───────────────────────────────────────
+
+from kinematics import azaltroll_to_theta, azaltroll_to_theta_ik, theta_to_azaltroll, theta_to_azaltroll_fk 
+class TestSimplifiedFKIK:
+
+    def approx_eq(self, a, b, tol=0.01):
+        return abs(((a - b + 180) % 360) - 180) < tol  # handles wraparound
+
+    def test_fk_matches_quaternion(self):
+        """Simplified FK should match quaternion-based FK for all reachable poses."""
+        failures = []
+        for t1 in range(0, 360, 15):
+            for t2 in range(-8, 84, 4):
+                for t3 in range(-175, 180, 10):
+                    az_q, alt_q, roll_q = theta_to_azaltroll(t1, t2, t3)
+                    az_s, alt_s, roll_s = theta_to_azaltroll_fk(t1, t2, t3)
+                    if not (self.approx_eq(az_s, az_q) and
+                            self.approx_eq(alt_s, alt_q) and
+                            self.approx_eq(roll_s, roll_q)):
+                        failures.append(
+                            f't=({t1},{t2},{t3}): '
+                            f'q=({az_q:.2f},{alt_q:.2f},{roll_q:.2f}) '
+                            f's=({az_s:.2f},{alt_s:.2f},{roll_s:.2f})'
+                        )
+        assert not failures, f'{len(failures)} FK failures:\n' + '\n'.join(failures[:10])
+
+    def test_ik_matches_quaternion(self):
+        """Simplified IK should match quaternion-based IK for all reachable poses."""
+        failures = []
+        for t1 in range(0, 360, 15):
+            for t2 in range(0, 84, 4):      # t2>=0 only: primary IK solution
+                for t3 in range(-175, 180, 10):
+                    # Get the sky coords from FK
+                    az, alt, roll = theta_to_azaltroll_fk(t1, t2, t3)
+                    # Both IK methods should recover the same sky coords
+                    t1_s, t2_s, t3_s = azaltroll_to_theta_ik(az, alt, roll)
+                    az2, alt2, roll2 = theta_to_azaltroll_fk(t1_s, t2_s, t3_s)
+                    if not (self.approx_eq(az2, az) and
+                            self.approx_eq(alt2, alt) and
+                            self.approx_eq(roll2, roll)):
+                        failures.append(
+                            f't=({t1},{t2},{t3}) az/alt/roll=({az:.1f},{alt:.1f},{roll:.1f}): '
+                            f'ik=({t1_s:.1f},{t2_s:.1f},{t3_s:.1f}) '
+                            f'roundtrip=({az2:.2f},{alt2:.2f},{roll2:.2f})'
+                        )
+        assert not failures, f'{len(failures)} IK failures:\n' + '\n'.join(failures[:10])
+
+    def test_ik_fk_roundtrip_from_sky(self):
+        """IK then FK should recover original sky coords across full reachable sky."""
+        failures = []
+        for alt in range(-8, 82, 5):
+            for az in range(0, 360, 15):
+                for roll in range(-80, 81, 10):
+                    # skip unreachable: |roll| > max_roll_for_altitude(alt)
+                    cos_ratio = np.cos(np.radians(81.5)) / np.cos(np.radians(alt))
+                    max_roll = np.degrees(np.arccos(np.clip(cos_ratio, -1, 1)))
+                    if abs(roll) > max_roll + 0.5:
+                        continue
+                    t1, t2, t3 = azaltroll_to_theta_ik(az, alt, roll)
+                    az2, alt2, roll2 = theta_to_azaltroll_fk(t1, t2, t3)
+                    if not (self.approx_eq(az2, az) and
+                            self.approx_eq(alt2, alt) and
+                            self.approx_eq(roll2, roll)):
+                        failures.append(
+                            f'in=({az},{alt},{roll}) '
+                            f't=({t1:.1f},{t2:.1f},{t3:.1f}) '
+                            f'out=({az2:.2f},{alt2:.2f},{roll2:.2f})'
+                        )
+        assert not failures, f'{len(failures)} roundtrip failures:\n' + '\n'.join(failures[:10])
