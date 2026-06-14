@@ -729,7 +729,8 @@ class PID_Controller():
         self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, pa    - control target equatorial co-ordinates
         self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll  - control target topocentric co-ordinates
         self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor - control target motor co-ordinates
-        self.theta_ref_cache = np.zeros(3, dtype=float)# theta1-3       - cached when mount needs to do large flips
+        self.theta_ref_cache = None                    # theta1-3       - cached when mount needs to do large slews
+        self.theta_ref_cache_cause = None              # theta1-3       - string cause of cached theta_ref either 'Flip CW', 'Flip CCW' or 'Unwind'
         self.zeta_ref = np.zeros(3, dtype=float)       # zeta1-3        - control target motor reference (used in PARKING, HOMING)
         self.error_signal = np.zeros(3, dtype=float)   # theta1-3 error btw theta_ref and theta_meas
         self.error_integral = np.zeros(3, dtype=float) # theta1-3 error btw theta_ref and theta_meas
@@ -785,7 +786,7 @@ class PID_Controller():
            Where axes is a list from ["ra", "dec", "pa", "alt", "az", "roll"], and defaults to all"""
         self.reset_delta_offsets(axes)
         self.reset_alpha_offsets(axes)
-        self.theta_ref_cache = None                        # Clear any cached target
+        self.clear_theta_ref_cache()
 
     def reset_delta_offsets(self, axes):
         if axes is None:
@@ -934,6 +935,7 @@ class PID_Controller():
         if newMode in ['PRESETUP', 'HOMING', 'PARKING', 'PARK', 'IDLE', 'AUTO', 'TRACK', 'LIMIT', ]:
             self.mode = newMode
             self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+            self.clear_theta_ref_cache()
 
 
     def set_no_target(self):
@@ -1084,6 +1086,16 @@ class PID_Controller():
         self.ack_limit_timestamp = datetime.datetime.now()
         self.set_pid_mode('IDLE')
 
+    def set_theta_ref_cache(self, cause, theta):
+        self.theta_ref = theta
+        self.theta_ref_cache = theta
+        self.theta_ref_cache_cause = cause
+
+    def clear_theta_ref_cache(self):
+        self.theta_ref_cache = None
+        self.theta_ref_cache_cause = None
+        
+
     #------- Control step functions ---------
     def alpha_limit_step(self, alpha_pv, alpha_ref, max_step_deg=12, min_frac=0.01):
         """
@@ -1229,8 +1241,7 @@ class PID_Controller():
             if t1_fix!=0: msg+= f'| Implied z1 {z1_implied:+.1f} Remap t1 {theta_final[0]-t1_fix:+.1f} to {theta_final[0]:+.1f}'
             if t3_fix!=0: msg+= f'| Implied z3 {z3_implied:+.1f} Remap t3 {theta_final[2]-t3_fix:+.1f} to {theta_final[2]:+.1f}'
             self.logger.info(msg)
-            self.theta_ref_cache = theta_final
-            self.theta_ref = theta_final
+            self.set_theta_ref_cache('Unwind', theta_final)
 
     def errsignal(self):
         # calc the error signal off theta (aligned motor angles) or zeta (raw motor angles)
@@ -1242,15 +1253,16 @@ class PID_Controller():
                 self.error_signal = self.theta_ref - self.theta_pv
                 # if far away from target in M1 or M3 then cache the target
                 if abs(self.error_signal[0])>30 or abs(self.error_signal[2])>30:
-                    self.logger.info(f'Flip Transition {'CW' if self._lp.flipCW else 'CCW'} | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
-                    self.theta_ref_cache = self.theta_ref.copy()
+                    cause = 'Flip CW' if self._lp.flipCW else 'Flip CCW'
+                    self.logger.info(f'{cause} Transition | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
+                    self.set_theta_ref_cache(cause, self.theta_ref.copy())
                     self._lp.flipCW = not self._lp.flipCW
             else:
                 self.theta_ref = self.theta_ref_cache
                 self.error_signal = self.theta_ref_cache - self.theta_pv
                 # if close to cached target then reset the cache
                 if abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10:
-                    self.theta_ref_cache = None
+                    self.clear_theta_ref_cache()
 
         # Log every position for debugging
         if Config.log_position:
@@ -1340,7 +1352,7 @@ class PID_Controller():
                 self.set_pid_mode('LIMIT')
                 self.parking_complete_callback = None  # Cancel any parking underway
                 self.homing_complete_callback = None  # Cancel any homeing underway
-                self.theta_ref_cache = None # Cancel any cached theta_ref
+                self.clear_theta_ref_cache()
 
         # Check that lat/lon has been set
         lat_unchanged = abs(rad2deg(float(self.observer.lat)) - -33.8598874) <= 0.00001
