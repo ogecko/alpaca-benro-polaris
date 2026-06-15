@@ -103,14 +103,14 @@
 - [X]     pipdeptree | findstr urllib3
 - [X]     pip install --upgrade urllib3==2.7.0
 - [X]     Modify all requirements.txt files accordingly
-- [ ] Check Pilot package vulnerabilities
-- [ ]     Check non-breaking updates (dry run): quasar info;  quasar upgrade;        Apply the updates: quasar upgrade -i
-- [ ]     Check major potentially breaking updates (dry run): quasar upgrade -m;     Apply the updates: quasar upgrade -m -i
-- [ ]     Check runtime dependencies:                         npm audit --omit=dev   Apply the updates: npm audit fix
-- [ ]     npm install axios@^1.13.5
-- [ ]     npm ls axios
-- [ ]     Upgrade Node on win11 by downloading installer from https://nodejs.org/en/download
-
+- [X] Check Pilot package vulnerabilities
+- [X]     Check non-breaking updates (dry run): quasar info;  quasar upgrade;        Apply the updates: quasar upgrade -i
+- [X]     Check major potentially breaking updates (dry run): quasar upgrade -m;     Apply the updates: quasar upgrade -m -i
+- [X]     Check runtime dependencies:                         npm audit --omit=dev   Apply the updates: npm audit fix
+- [X]     npm list --depth=0
+- [X]     npm install axios@^1.13.5
+- [X]     npm list axios
+- [X]     Upgrade Node on win11 by downloading installer from https://nodejs.org/en/download
 - [ ] Final Changes - git checkout dev2_2, git pull origin dev2_2
 - [ ]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
 - [ ]     Build Pilot for release
