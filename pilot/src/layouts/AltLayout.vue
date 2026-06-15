@@ -102,7 +102,7 @@
           </q-item-label>
           <q-item
             v-for="link in links5"
-            :key="link.text" v-ripple lickable 
+            :key="link.text" v-ripple clickable 
             :to="link.to || undefined"
             :tag="link.toExternal ? 'a' : 'router-link'" 
             :href="link.toExternal || undefined" 

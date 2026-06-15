@@ -6,7 +6,6 @@ from types import SimpleNamespace
 
 import numpy as np
 from control import SyncManager, quaternion_to_angles, azaltroll_to_q, q_to_azaltroll
-from polaris import Polaris
 from kinematics import calc_parallactic_angle, calc_equatorial_axes_B, radec_to_altaz, azalt_to_radec
 from shr import format_timestamp
 
@@ -56,9 +55,9 @@ def mock_config():
 
 class PID_Controller:
     def measure(self, alpha, theta):
-        return
+        return 0.0
     def reset_sp(self, alpha):
-        return
+        return 0.0
 
 class Polaris:
     def __init__(self):

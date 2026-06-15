@@ -52,7 +52,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
                     />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label> Choosen Motor Axis</q-item-label>
+                  <q-item-label> Chosen Motor Axis</q-item-label>
                   <q-item-label caption>
                     Select the motor axis you'd like to analyse and tune. Motor 1 Azimuth; Motor 2 Altitude; Motor 3 Astro head. 
                     Keep in mind: when Motor 3 (Astro Head) is rotated, the orientation of Motor 1 and Motor 2 no longer corresponds directly to Azimuth and Altitude.            </q-item-label>

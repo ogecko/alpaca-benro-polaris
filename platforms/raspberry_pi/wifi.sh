@@ -13,7 +13,7 @@ usage() {
 Usage: $0 [-i interface] [-s SSID] [-a ip_address]
   -i  Network interface for Polaris connection (default: ${INTERFACE})
   -s  Network SSID of Polaris (default: auto-scan for 'polaris_*')
-  -a  Static IP of Rapberry Pi on Polaris Network (default: ${DEFAULT_STATIC}) 
+  -a  Static IP of Raspberry Pi on Polaris Network (default: ${DEFAULT_STATIC}) 
   -h  Show this help
 
 Examples:
