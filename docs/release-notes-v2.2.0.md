@@ -28,8 +28,8 @@
 * Upgrade pip using the command `python -m pip install --upgrade pip`
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
-* Follow the standard [Installation Guide](./installation.md) to install the Alpaca Driver v2.1.0
-* Install all pre-requisite python packages using the command `pip install -r platforms/win/requirements.txt`
+* Follow the standard [Installation Guide](./installation.md) to install the Alpaca Driver v2.2.0
+* Ensure you install all pre-requisite packages using the command `pip install -r platforms/win/requirements.txt` as v2.2 includes 3 new dependencies
 * WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.x
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.x
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
@@ -101,14 +101,14 @@
 
 ## Upgraded Win11 Requirements.txt Compatibility
 - **[Python 3.13.12]**: Upgraded Python support from 3.13.9.
-- **[Python 3.9.6]**: Minimum Python version supported.
-- **[Falcon 4.2.0]**: Upgraded Falcon support from 4.0.2.
-- **[Uvicorn 0.35.0]**: Upgraded Uvicorn support from 0.33.0.
-- **[Bleak 1.1.1]**: Upgraded Bleak support from 1.1.0.
-- **[Ephem 4.2]**: Upgraded Ephem support from 4.1.6.
-- **[numpy 2.4.2]**: Upgraded numpy support from 2.3.2.
-- **[scipy 1.17.0]**: Upgraded scipy support from 1.16.1.
-- **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
+- **[Python 3.11]**: Minimum Python version supported.
+- **[starlette 1.0.1]**: Upgraded aiohttp support from 0.49.1.
+- **[aiohttp 3.13.4]**: Upgraded aiohttp support from 3.13.3.
+- **[urlib3 2.7.0]**: Upgraded urlib3 support from 2.6.3.
+- **[psutil 7.0.0]**: New dependency in Alpaca Driver v2.2.
+- **[cryptography 48.0.0]**: New dependency in Alpaca Driver v2.2.
+- **[requests 2.33.0]**: Made transitive dependency explicit in Alpaca Driver v2.2.
+- **[idna 3.15]**: Made transitive dependency explicit in Alpaca Driver v2.2.
 
 ## Documentation (Alpaca Driver)
 - **[CCDciel Guide]**: Add the CCDciel users guide for the Benro Polaris (ccdciel.md)
