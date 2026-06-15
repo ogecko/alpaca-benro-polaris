@@ -35,9 +35,9 @@
 - [X] HTTPS - Document Location GPS using phone web browser
 - [X] Tests - Remove all performance tests from core
 - [X] Flip - Cannot flip to -30 back to +30 at Az 210
-- [ ] Dependancies - Upgrade dependant libraries on Node and Python
+- [X] Dependancies - Upgrade dependant libraries on Node and Python
+- [X] Kinematics - use newly developed trignometric closed form solutions for IK/FK, unable as Quaternions needed in both paths for corrections 
 - [ ] Close candidate enhancement list
-    - [ ] Kinematics - use newly developed trignometric closed form solutions for IK/FK 
     - [ ] Galactic - Improve fallback for unreachable roll angles in Galactic panos
     - [ ] MAC - Consider adding autotune to Mechanical Alignment Correction
     - [ ] CCDCiel - Auto install Alpaca Driver scripts for CCDCiel
