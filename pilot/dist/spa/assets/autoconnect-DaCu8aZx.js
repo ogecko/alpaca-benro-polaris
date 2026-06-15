@@ -1,1 +1,0 @@
-import{t as e}from"./device-C8C81YcH.js";var t=async()=>{let t=e();t.alpacaHost&&t.restAPIPort&&await t.connectRestAPI()};export{t as default};
