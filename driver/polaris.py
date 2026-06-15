@@ -314,6 +314,7 @@ class Polaris:
     async def run_connection_cycle(self):
         init_task = None
         while (not self.lifecycle.should_shutdown()):
+            should_break = False
             try:
                 # Cancel any still-running polaris_init 
                 if init_task and not init_task.done():
@@ -335,9 +336,12 @@ class Polaris:
                 if Config.polaris_auto_retry and not self.lifecycle.should_shutdown():
                     await asyncio.sleep(10)
                     if self._connected:                # if it was manually reconnected in the meantime then stop
-                        break
+                        should_break = True
                 else:                                  # if auto_retry is disabled then stop
-                    break                              
+                    should_break = True 
+
+            if should_break:
+                break                             
         
 
     # open connection and serve as polaris client
