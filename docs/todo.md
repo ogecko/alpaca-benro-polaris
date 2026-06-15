@@ -37,6 +37,8 @@
 - [X] Flip - Cannot flip to -30 back to +30 at Az 210
 - [X] Dependancies - Upgrade dependant libraries on Node and Python
 - [X] Kinematics - use newly developed trignometric closed form solutions for IK/FK, unable as Quaternions needed in both paths for corrections 
+- [ ] Settings - Add ability to save observing site locations
+- [ ] Settings - Add ability to save orbital parameters
 - [ ] Close candidate enhancement list
     - [ ] Galactic - Improve fallback for unreachable roll angles in Galactic panos
     - [ ] MAC - Consider adding autotune to Mechanical Alignment Correction
