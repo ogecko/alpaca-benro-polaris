@@ -97,12 +97,12 @@
 
 ## Final Release Checklist
 - [ ] Complete todo checklist
-- [ ] Check Driver package vulnerabilities
-- [ ]     pip-audit
-- [ ]     pip show urllib
-- [ ]     pipdeptree | findstr urllib3
-- [ ]     pip install --upgrade urllib3==2.7.0
-- [ ]     Modify all requirements.txt files accordingly
+- [X] Check Driver package vulnerabilities
+- [X]     pip-audit
+- [X]     pip show urllib
+- [X]     pipdeptree | findstr urllib3
+- [X]     pip install --upgrade urllib3==2.7.0
+- [X]     Modify all requirements.txt files accordingly
 - [ ] Check Pilot package vulnerabilities
 - [ ]     npm audit --omit=dev   # Only vulnerabilities in runtime dependencies matter as deployed as SPA
 - [ ]     npm install axios@^1.13.5
