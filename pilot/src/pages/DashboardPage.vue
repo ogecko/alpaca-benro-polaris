@@ -139,18 +139,22 @@ const rollWarnings = computed((): [number, number][] => {
     return [[maxRoll, 200], [-maxRoll, -200]]
 })
 const raWarnings = computed((): [number, number][] => {
-    const lst = Math.round((p.siderealtime ?? 0) * 4) / 4  // round to 15min steps
-    const dec = Math.round((p.declination ?? 0) * 2) / 2   // round to 0.5 deg
+    const lst = Math.round((p.siderealtime ?? 0) * 4) / 4
+    const dec = Math.round((p.declination   ?? 0) * 2) / 2
     const lat = cfg.site_latitude
-    // HA limit varies with declination: arccos(-tan(lat)*tan(dec)) in hours
-    // clamp to 6h maximum (mount cable limit)
+
     const cosHA = -Math.tan(lat * Math.PI / 180) * Math.tan(dec * Math.PI / 180)
-    const haLimitHrs = (Math.abs(cosHA) <= 1) ? Math.min(6, Math.acos(cosHA) * 12 / Math.PI) : 12
-    const raEast = lst + haLimitHrs   // warn above this (not yet risen enough)
-    const raWest = lst - haLimitHrs   // warn below this (too far past meridian)
-    return [
-        [raEast, 30] as [number, number],
-        [raWest, -6] as [number, number],
+    const haLimitHrs = cosHA > 1  ? 0  :   // never rises
+                       cosHA < -1 ? 12 :   // circumpolar
+                       Math.acos(cosHA) * 12 / Math.PI
+
+    if (haLimitHrs >= 12) return []         // always visible, no warning
+    // Safe window: [raWest, raEast] in raw (unwrapped) hours
+    const raWest = lst - haLimitHrs         // western (past meridian) limit
+    const raEast = lst + haLimitHrs         // eastern (not yet risen) limit
+    return [                                // Warning zones are everything OUTSIDE [raWest, raEast].
+        [raEast, raEast+12] as [number, number],
+        [raWest-12, raWest] as [number, number],
     ]
 })
 const decWarnings = computed((): [number, number][] => {
