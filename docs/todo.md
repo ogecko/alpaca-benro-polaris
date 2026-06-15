@@ -101,7 +101,7 @@
 - [ ]     pip-audit
 - [ ]     pip show urllib
 - [ ]     pipdeptree | findstr urllib3
-- [ ]     pip install --upgrade urllib3==2.6.3
+- [ ]     pip install --upgrade urllib3==2.7.0
 - [ ]     Modify all requirements.txt files accordingly
 - [ ] Check Pilot package vulnerabilities
 - [ ]     npm audit --omit=dev   # Only vulnerabilities in runtime dependencies matter as deployed as SPA

@@ -28,7 +28,7 @@ In some countries, your ISP's Domain Name Servers may redirect traffic to invali
 ```
 $ pip install -r platforms/win/requirements.txt
 WARNING: Retrying (Retry (total=0 to 4.........
-ERROR: Could not find a version that satisfies the requirement falcon==4.0.2
+ERROR: Could not find a version that satisfies the requirement falcon==4.2.0
 ```
 You can force Windows to resolve the host names for the Python Package servers to their correct IPv4 addresses. Using Administrator, edit the file `hosts` in the directory 
 `C:\Windows\System32\drivers\etc`. Add the following two lines to the end of the `hosts` file.
