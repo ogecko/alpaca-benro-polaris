@@ -19,7 +19,7 @@ from kinematics import get_mechanical_correction_q, apply_mechanical_corrections
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference
-from kinematics import theta_to_q, azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma
+from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -604,6 +604,7 @@ class MotorSpeedController:
                     try:
                         await asyncio.wait_for( self._condition.wait(), timeout=timeout )
                     except asyncio.TimeoutError:
+                        # Expected: timeout means it's time to wake and dispatch on schedule.
                         pass
                     continue
 
