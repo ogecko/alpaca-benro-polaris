@@ -64,4 +64,3 @@ def test_wrap90_symmetry_and_continuity():
 def test_is_angle_between():
     assert(is_angle_between(90,80,100)==True)
     assert(is_angle_between(-84,-100,+100)==True)
-    None
