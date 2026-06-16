@@ -28,7 +28,6 @@ import psutil
 from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
 from config import Config
-import re
 from typing import Set, Coroutine, Dict, Optional
 from datetime import datetime, timezone
 

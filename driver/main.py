@@ -40,7 +40,6 @@ import exceptions
 import shr
 import log
 from config import Config
-import discovery
 import telescope
 import rotator
 import stellarium
