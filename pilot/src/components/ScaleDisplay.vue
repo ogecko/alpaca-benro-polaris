@@ -314,8 +314,8 @@ function onSvgPointerDown(e: PointerEvent) {
 function onScaleWheel(e: WheelEvent) {
   e.preventDefault();  
 
-  const baseFactor = 1.2    // tweak baseFactor for step sensitivity     
-  const divisor = 50        // tweak divisor for magnitude sensitivity
+  const baseFactor = 1.2;    // tweak baseFactor for step sensitivity     
+  const divisor = 50;        // tweak divisor for magnitude sensitivity
 
   const direction = Math.sign(e.deltaY);
   const magnitude = Math.abs(e.deltaY);
