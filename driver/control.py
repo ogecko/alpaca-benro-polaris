@@ -678,7 +678,7 @@ class MoveAxisMessenger:
     async def send_slow_move_msg(self, slow_raw_rate: int) -> str:
         clamped_raw_rate = int(np.clip(slow_raw_rate, -5, +5))
         if clamped_raw_rate == self.last_slow_raw_rate:
-            return
+            return ""
         self.last_slow_raw_rate = clamped_raw_rate
         key = 0 if clamped_raw_rate > 0 else 1
         state = 0 if clamped_raw_rate == 0 else 1

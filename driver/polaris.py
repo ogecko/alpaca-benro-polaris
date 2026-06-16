@@ -876,7 +876,7 @@ class Polaris:
         # if we are currently slewing or gotoing, dont try again
         if currently_slewing or currently_gotoing:
             self.logger.info(f"->> Polaris: GOTO CANNOT EXECUTE due to current slew {currently_slewing} or goto {currently_gotoing}")
-            return
+            return -1
 
         # Mark that we are gotoing and slewing
         with self._lock:
