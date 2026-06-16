@@ -59,6 +59,9 @@ class AlpacaDiscoveryResponder:
         except (AttributeError, OSError):
             pass
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        # lgtm[py/bind-socket-all-network-interfaces] # nosec
+        # ASCOM Alpaca Discovery spec requires listening on all interfaces
+        # to receive UDP broadcasts from any client on the local network.        
         sock.bind(("0.0.0.0", Config.alpaca_discovery_port))
         return sock
 
@@ -82,7 +85,9 @@ class AlpacaDiscoveryResponder:
         except OSError:
             pass
 
-        # Bind to all IPv6 interfaces on the discovery port.
+        # lgtm[py/bind-socket-all-network-interfaces] # nosec
+        # ASCOM Alpaca Discovery spec requires listening on all interfaces
+        # to receive UDP broadcasts from any client on the local network.        
         sock.bind(("::", Config.alpaca_discovery_port, 0, 0))
 
         # Join the ASCOM multicast group on every available interface.
