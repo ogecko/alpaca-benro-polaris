@@ -44,7 +44,6 @@
 #
 import traceback
 from config import Config
-from logging import Logger
 
 # At the module level, no need for - global logger
 logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
