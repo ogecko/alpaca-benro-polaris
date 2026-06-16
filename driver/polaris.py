@@ -1963,9 +1963,10 @@ class Polaris:
     async def move_axis(self, axis:int, rate:float, units="ASCOM"):
         # axis 0,1,2 = Az,Alt,Roll (alpha space)
         # axis 3,4,5 = RA,Dec,PA (delta space) — maps to motor 0,1,2 via % 3
+        # axis 6,7,8 = GLon, GLat, GPA - no move available
         self._sm.clear_sync_guiding()
         if axis not in (0, 1, 2, 3, 4, 5):
-            raise ValueError(f"Invalid axis index: {axis}. Must be 0 Az, 1 Alt, 2 Roll, 3 RA, 4 Dec, 5 PA.")
+            return
         motor = self._motors[axis % 3]
         if Config.advanced_control and Config.advanced_slewing:
             # if tracking is enabled then we must slew RA/Dec/PA

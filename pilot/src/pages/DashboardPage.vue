@@ -373,6 +373,11 @@ type AxisLabel =
   | "Right Ascension"
   | "Declination"
   | "Position Angle"
+  | "Galactic Lon"
+  | "Galactic Lat"
+  | "Galactic PA"
+
+
 
 const axisMap:Record<AxisLabel, number> = {
   "Azimuth": 0,
@@ -380,14 +385,17 @@ const axisMap:Record<AxisLabel, number> = {
   "Roll": 2,
   "Right Ascension": 3,
   "Declination": 4,
-  "Position Angle": 5  
+  "Position Angle": 5,
+  "Galactic Lon": 6,
+  "Galactic Lat": 7,
+  "Galactic PA": 8
 }
 
 async function onClickMove(e: { label: string, rateScale: number}) {
   console.log('ClickMove ', e.label, e.rateScale)
   if (!Object.keys(axisMap).includes(e.label)) return
   const axis = axisMap[e.label as AxisLabel] ?? -1
-  const rate = (axis!=3) ? e.rateScale / 200*9 : e.rateScale / 12*9
+  const rate = (axis!=3) ? (e.rateScale / 200)*9 : (e.rateScale / 12)*9
   if (axis>=0 && axis<=5) {
     await dev.apiAction('Polaris:MoveAxis', `{"axis":${axis},"rate":${rate}}`)
   }
