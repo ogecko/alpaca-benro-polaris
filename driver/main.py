@@ -54,8 +54,6 @@ from pathlib import Path
 import os
 import sys
 from polaris import Polaris
-from shr import LifecycleController, LifecycleEvent
-from shr import system_vitals_init, system_vitals, system_cpu, system_cpu_report_available
 import signal
 polaris: Polaris = None
 
@@ -79,9 +77,9 @@ async def main():
 
     while True:
         # Create a new LifeCycle Controller and install SIGINT handler
-        lifecycle = LifecycleController()
+        lifecycle = shr.LifecycleController()
         def handle_sigint(signum, frame):
-            lifecycle.signal_sync(LifecycleEvent.INTERRUPT)
+            lifecycle.signal_sync(shr.LifecycleEvent.INTERRUPT)
         signal.signal(signal.SIGINT, handle_sigint)
 
         # Try running all tasks
@@ -97,14 +95,14 @@ async def main():
             logger.exception(f"==MAIN== Fatal error in main loop: {e}")
             break
         else:
-            if lifecycle._event == LifecycleEvent.RESTART:
+            if lifecycle._event == shr.LifecycleEvent.RESTART:
                 logger.info("==MAIN== Restarting driver stack...in 2 sec")
                 await asyncio.sleep(2)
                 logger.info("==MAIN== Restarting now...")
                 log.shutdown_logging()
                 os.execv(sys.executable, [sys.executable] + sys.argv)
                 continue
-            elif lifecycle._event == LifecycleEvent.INTERRUPT:
+            elif lifecycle._event == shr.LifecycleEvent.INTERRUPT:
                 logger.info("==MAIN== Interrupt. Exiting.")
                 break
             else:
@@ -148,13 +146,13 @@ def install_asyncio_exception_handler(lifecycle, logger):
 # ===================
 # RUN ALL TASKS
 # ===================
-async def run_all(logger, lifecycle: LifecycleController):
+async def run_all(logger, lifecycle: shr.LifecycleController):
     # Output Alpaca Driver version
     logger.info(f'==STARTUP== ALPACA BENRO POLARIS DRIVER v{shr.DeviceMetadata.Version} =========== ') 
 
     # Start heartbeat event loop watchdog thread and asyncio exception handler
     _start_eventloop_watchdog(lifecycle, logger)
-    system_vitals_init(lifecycle)
+    shr.system_vitals_init(lifecycle)
     install_asyncio_exception_handler(lifecycle, logger)
 
     # Attach socket publishers BEFORE creating Polaris so no early log lines are missed
@@ -248,7 +246,7 @@ def _start_eventloop_watchdog(lifecycle, logger, heartbeat_sec=0.1, threshold_se
             lag = now - last_seen
             if lag > threshold_sec and (now - last_logged) > 2.0:
                 last_logged = now
-                logger.warning(f'->> Heartbeat lag detected:   pulse {lag:.3f}s (expected {heartbeat_sec:.3f}s) {system_vitals()}')
+                logger.warning(f'->> Heartbeat lag detected:   pulse {lag:.3f}s (expected {heartbeat_sec:.3f}s) {shr.system_vitals()}')
                 if Config.log_heartbeat:
                     frames = sys._current_frames()
                     lines = [f'->> Heartbeat Stack Trace:']
@@ -259,8 +257,8 @@ def _start_eventloop_watchdog(lifecycle, logger, heartbeat_sec=0.1, threshold_se
                         lines.append(f'  Heartbeat Stack - Thread {tid}:\n{stack}')
                     logger.warning('\n'.join(lines))
 
-            if (system_cpu_report_available()):
-                logger.warning(f'->> HIGH CPU LOAD breakdown:  {system_cpu()}')
+            if (shr.system_cpu_report_available()):
+                logger.warning(f'->> HIGH CPU LOAD breakdown:  {shr.system_cpu()}')
 
 
 
