@@ -19,8 +19,9 @@ from falcon import Request, Response, before
 import ephem
 import asyncio
 from logging import Logger
+from config import Config
 from shr import PropertyResponse, MethodResponse, HTTPBadRequest,  PreProcessRequest, get_request_field, to_bool, deg2rad, rad2deg, rad2hr, hr2rad
-from exceptions import *        # Nothing but exception classes
+from exceptions import NotImplementedException, DriverException, NotConnectedException, InvalidValueException, InvalidOperationException
 import math
 import json
 from polaris import Polaris

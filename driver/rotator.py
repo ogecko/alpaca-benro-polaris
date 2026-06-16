@@ -17,7 +17,7 @@
 from falcon import Request, Response, before
 from logging import Logger
 from shr import PropertyResponse, MethodResponse, PreProcessRequest, get_request_field, to_bool
-from exceptions import *        # Nothing but exception classes
+from exceptions import NotImplementedException, DriverException, NotConnectedException, InvalidValueException, InvalidOperationException
 import math
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController
