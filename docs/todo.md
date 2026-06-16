@@ -113,6 +113,11 @@
 - [X]     npm install axios@^1.13.5
 - [X]     npm list axios
 - [X]     Upgrade Node on win11 by downloading installer from https://nodejs.org/en/download
+- [X] Check GitHub open issues
+- [X]     No CodeQL Security or Quality issues
+- [X]     No Malware or Vulnerability issues
+- [X]     No AI findings that have not been addressed
+- [X]     Confirmed any open GitHub issues are acceptable for release
 - [ ] Final Changes - git checkout dev2_2, git pull origin dev2_2
 - [ ]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
 - [ ]     Build Pilot for release
