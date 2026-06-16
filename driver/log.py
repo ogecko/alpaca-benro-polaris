@@ -6,7 +6,7 @@ import sys
 from config import Config
 import os
 
-global logger
+# At the module level, no need for - global logger
 logger = None
 
 _log_queue_listener: logging.handlers.QueueListener = None  # keep reference for shutdown
