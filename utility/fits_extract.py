@@ -442,7 +442,7 @@ def _fit_roll_adj_from_rows(rows):
             s_roll = float(r['s_roll'])
             p_roll = float(r['p_roll'])
             roll_deltas.append(wrap180(s_roll - p_roll))
-        except: pass
+        except Exception:  pass
 
     if not roll_deltas:
         return None

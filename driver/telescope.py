@@ -118,7 +118,7 @@ class destinationsideofpier:
         rightascensionstr = await get_request_field('RightAscension', req)  # Raises 400 bad request if missing
         try:
             rightascension = float(rightascensionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
         if rightascension < 0 or rightascension > 24 or math.isnan(rightascension):
@@ -127,7 +127,7 @@ class destinationsideofpier:
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
         try:
             declination = float(declinationstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
         if declination < -90 or declination > +90 or math.isnan(declination):
@@ -577,7 +577,7 @@ class guideratedeclination:
         guideratedeclinationstr = await get_request_field('GuideRateDeclination', req)      # Raises 400 bad request if missing
         try:
             guideratedeclination = float(guideratedeclinationstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateDeclination {guideratedeclinationstr} not a valid number.'))
             return
         if guideratedeclination <=0 or guideratedeclination > 2 or math.isnan(guideratedeclination):
@@ -610,7 +610,7 @@ class guideraterightascension:
         guideraterightascensionstr = await get_request_field('GuideRateRightAscension', req)      # Raises 400 bad request if missing
         try:
             guideraterightascension = float(guideraterightascensionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'GuideRateRightAscension {guideraterightascensionstr} not a valid number.'))
             return
         if guideraterightascension <=0 or guideraterightascension > 2 or math.isnan(guideraterightascension):
@@ -686,7 +686,7 @@ class sideofpier:
         sideofpierstr = await get_request_field('SideOfPier', req)      # Raises 400 bad request if missing
         try:
             polaris.sideofpier = int(sideofpierstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'SideOfPier {sideofpierstr} not a valid number.'))
             return
@@ -733,7 +733,7 @@ class siteelevation:
         siteelevationstr = await get_request_field('SiteElevation', req)      # Raises 400 bad request if missing
         try:
             siteelevation = float(siteelevationstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'SiteElevation {siteelevationstr} not a valid number.'))
             return
         if siteelevation < 0 or siteelevation > 10000 or math.isnan(siteelevation):
@@ -765,7 +765,7 @@ class sitelatitude:
         sitelatitudestr = await get_request_field('SiteLatitude', req)      # Raises 400 bad request if missing
         try:
             sitelatitude = float(sitelatitudestr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'SiteLatitude {sitelatitudestr} not a valid number.'))
             return
         if sitelatitude < -90 or sitelatitude > 90 or math.isnan(sitelatitude):
@@ -797,7 +797,7 @@ class sitelongitude:
         sitelongitudestr = await get_request_field('SiteLongitude', req)      # Raises 400 bad request if missing
         try:
             sitelongitude = float(sitelongitudestr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'SiteLongitude {sitelongitudestr} not a valid number.'))
             return
         if sitelongitude < -180 or sitelongitude > 180 or math.isnan(sitelongitude):
@@ -842,7 +842,7 @@ class slewsettletime:
         slewsettletimestr = await get_request_field('SlewSettleTime', req)      # Raises 400 bad request if missing
         try:
             slewsettletime = int(slewsettletimestr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'SlewSettleTime {slewsettletimestr} not a valid number.'))
             return
         if slewsettletime < 0 or slewsettletime > 200:
@@ -877,7 +877,7 @@ class targetdeclination:
         targetdeclinationstr = await get_request_field('TargetDeclination', req)      # Raises 400 bad request if missing
         try:
             targetdeclination = float(targetdeclinationstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'TargetDeclination {targetdeclinationstr} not a valid number.'))
             return
         if targetdeclination < -90 or targetdeclination > +90 or math.isnan(targetdeclination):
@@ -912,7 +912,7 @@ class targetrightascension:
         targetrightascensionstr = await get_request_field('TargetRightAscension', req)      # Raises 400 bad request if missing
         try:
             targetrightascension = float(targetrightascensionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'TargetRightAscension {targetrightascensionstr} not a valid number.'))
             return
         if targetrightascension < 0 or targetrightascension > 24 or math.isnan(targetrightascension):
@@ -974,7 +974,7 @@ class trackingrate:
         trackingratestr = await get_request_field('TrackingRate', req)      # Raises 400 bad request if missing
         try:
             trackingrate = int(trackingratestr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'TrackingRate {trackingratestr} not a valid number.'))
             return
         if trackingrate < 0 or trackingrate > 3:
@@ -1043,7 +1043,7 @@ class axisrates:
         axisstr = await get_request_field('Axis', req)      # Raises 400 bad request if missing
         try:
             axis = int(axisstr)
-        except:
+        except Exception: 
             resp.text = await PropertyResponse(None,req,InvalidValueException(f'Axis {axisstr} not a valid number.'))
             return
         try:
@@ -1062,7 +1062,7 @@ class canmoveaxis:
         axisstr = await get_request_field('Axis', req)      # Raises 400 bad request if missing
         try:
             axis = int(axisstr)
-        except:
+        except Exception: 
             resp.text = await PropertyResponse(None,req,InvalidValueException(f'Axis {axisstr} not a valid number.'))
             return
         if axis < 0 or axis > 2:
@@ -1103,7 +1103,7 @@ class moveaxis:
         axisstr = await get_request_field('Axis', req)      # Raises 400 bad request if missing
         try:
             axis = int(axisstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Axis {axisstr} not a valid number.'))
             return
@@ -1113,7 +1113,7 @@ class moveaxis:
         ratestr = await get_request_field('Rate', req)      # Raises 400 bad request if missing
         try:
             rate = float(ratestr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Rate {ratestr} not a valid number.'))
             return
@@ -1167,7 +1167,7 @@ class pulseguide:
         try:
             # 0=North (+ declination/altitude); 1=South (- declination/altitude); 2=East (+ right ascension/azimuth); 3=West (- right ascension/azimuth)
             direction = int(directionstr)   
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Direction {directionstr} not a valid number'))
             return
         if direction < 0 or direction > 3:
@@ -1176,7 +1176,7 @@ class pulseguide:
         durationstr = await get_request_field('Duration', req)      # Raises 400 bad request if missing
         try:
             duration = int(durationstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Duration {durationstr} not a valid number.'))
             return
@@ -1216,7 +1216,7 @@ class slewtoaltaz:
         azimuthstr = await get_request_field('Azimuth', req)      # Raises 400 bad request if missing
         try:
             azimuth = float(azimuthstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Azimuth {azimuthstr} not a valid number.'))
             return
         if azimuth < 0 or azimuth > +360 or math.isnan(azimuth):
@@ -1225,7 +1225,7 @@ class slewtoaltaz:
         altitudestr = await get_request_field('Altitude', req)      # Raises 400 bad request if missing
         try:
             altitude = float(altitudestr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
         if altitude < -8 or altitude > +90 or math.isnan(altitude):
@@ -1256,7 +1256,7 @@ class slewtoaltazasync:
         azimuthstr = await get_request_field('Azimuth', req)      # Raises 400 bad request if missing
         try:
             azimuth = float(azimuthstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Azimuth {azimuthstr} not a valid number.'))
             return
         if azimuth < 0 or azimuth > +360 or math.isnan(azimuth):
@@ -1265,7 +1265,7 @@ class slewtoaltazasync:
         altitudestr = await get_request_field('Altitude', req)      # Raises 400 bad request if missing
         try:
             altitude = float(altitudestr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
         if altitude < -90 or altitude > +90 or math.isnan(altitude):
@@ -1293,7 +1293,7 @@ class slewtocoordinates:
         rightascensionstr = await get_request_field('RightAscension', req)      # Raises 400 bad request if missing
         try:
             rightascension = float(rightascensionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
         if rightascension < 0 or rightascension > 24 or math.isnan(rightascension):
@@ -1302,7 +1302,7 @@ class slewtocoordinates:
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
         try:
             declination = float(declinationstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
         if declination < -90 or declination > +90 or math.isnan(declination):
@@ -1333,7 +1333,7 @@ class slewtocoordinatesasync:
         rightascensionstr = await get_request_field('RightAscension', req)      # Raises 400 bad request if missing
         try:
             rightascension = float(rightascensionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
         if rightascension < 0 or rightascension > 24 or math.isnan(rightascension):
@@ -1342,7 +1342,7 @@ class slewtocoordinatesasync:
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
         try:
             declination = float(declinationstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
         if declination < -90 or declination > +90 or math.isnan(declination):
@@ -1413,7 +1413,7 @@ class synctoaltaz:
         azimuthstr = await get_request_field('Azimuth', req)      # Raises 400 bad request if missing
         try:
             azimuth = float(azimuthstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Azimuth {azimuthstr} not a valid number.'))
             return
@@ -1423,7 +1423,7 @@ class synctoaltaz:
         altitudestr = await get_request_field('Altitude', req)      # Raises 400 bad request if missing
         try:
             altitude = float(altitudestr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req,
                             InvalidValueException(f'Altitude {altitudestr} not a valid number.'))
             return
@@ -1450,7 +1450,7 @@ class synctocoordinates:
         rightascensionstr = await get_request_field('RightAscension', req)      # Raises 400 bad request if missing
         try:
             rightascension = float(rightascensionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'RightAscension {rightascensionstr} not a valid number.'))
             return
         if rightascension < 0 or rightascension > 24 or math.isnan(rightascension):
@@ -1459,7 +1459,7 @@ class synctocoordinates:
         declinationstr = await get_request_field('Declination', req)      # Raises 400 bad request if missing
         try:
             declination = float(declinationstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Declination {declinationstr} not a valid number.'))
             return
         if declination < -90 or declination > +90 or math.isnan(declination):

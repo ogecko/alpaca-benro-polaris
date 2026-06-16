@@ -237,7 +237,7 @@ class movemechanical:
         positionstr = await get_request_field('Position', req)      # Raises 400 bad request if missing
         try:
             position = float(positionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} not a valid number.'))
             return
         if position < -180 or position > 360 or math.isnan(position):
@@ -258,7 +258,7 @@ class moveabsolute:
         positionstr = await get_request_field('Position', req)      # Raises 400 bad request if missing
         try:
             position = float(positionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} not a valid number.'))
             return
         if position < -180 or position > 360 or math.isnan(position):
@@ -280,7 +280,7 @@ class move:
         positionstr = await get_request_field('Position', req)      # Raises 400 bad request if missing
         try:
             position = float(positionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} not a valid number.'))
             return
         if position < -540 or position > +540 or math.isnan(position):
@@ -301,7 +301,7 @@ class sync:
         positionstr = await get_request_field('Position', req)      # Raises 400 bad request if missing
         try:
             position = float(positionstr)
-        except:
+        except Exception: 
             resp.text = await MethodResponse(req, InvalidValueException(f'Position {positionstr} not a valid number.'))
             return
         if position < -180 or position > 360 or math.isnan(position):
