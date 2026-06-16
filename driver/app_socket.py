@@ -68,8 +68,10 @@ async def socket_handler(websocket: WebSocket):
                     subscriptions.get(topic, {}).pop(websocket, None)
 
     except asyncio.CancelledError:
+        # Expected: client can cencel.
         pass
     except WebSocketDisconnect:
+        # Expected: client can disconnect.
         pass
     except Exception as e:
         logging.getLogger().info(f"==EXCEPTION== WebSocket error: {e}")

@@ -208,8 +208,7 @@ class BLE_Controller:
             return "write-without-response" not in props
         return "write" in props
 
-    @staticmethod
-    async def _reset_bluetooth_adapter():
+    async def _reset_bluetooth_adapter(self):
         if not IS_LINUX:
             return
         try:
@@ -219,8 +218,9 @@ class BLE_Controller:
                 stderr=asyncio.subprocess.DEVNULL,
             )
             await asyncio.wait_for(proc.wait(), timeout=3.0)
-        except Exception:
-            pass
+        except Exception as e:
+             if Config.log_polaris_ble:
+                self.logger.info(f"BLE adapter reset skipped/failed: {e}")
 
     # ------------------------------------------------------------------
     # Core: enable Wi-Fi over BLE
