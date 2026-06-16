@@ -3,8 +3,6 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
 from orbitals import update_orbital_data
-import pytest
-import math
 import ephem
 
 def test_dummy():

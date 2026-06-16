@@ -6,23 +6,20 @@ from pathlib import Path
 from quaternion import Q as Quaternion
 from config import Config
 from scipy.interpolate import PchipInterpolator
-from scipy.optimize import minimize
 import time
 import asyncio
-from typing import Optional
 import ephem
 import math
 import copy
-from collections import deque
-from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp, ratio_string
+from shr import rad2deg, deg2rad, deg2dms, format_timestamp, ratio_string
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-from kinematics import wrap360, wrap180, wrap90, calc_parallactic_angle, wrap_angle_residual, wrap_state_angles
+from kinematics import wrap360, wrap180, calc_parallactic_angle, wrap_angle_residual, wrap_state_angles
 from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams, calc_equatorial_axes_B
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
-from kinematics import q_to_theta, q_to_azaltroll, theta_to_azaltroll, quaternion_to_angles, quaternion_difference
-from kinematics import theta_to_q, azaltroll_to_q, azaltroll_to_theta, theta_to_jacobian, LastPosition, delta_to_gamma
+from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference
+from kinematics import theta_to_q, azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 

@@ -4,8 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 # import pytest
 from kinematics import wrap90, is_angle_same
-from kinematics import angular_difference, is_angle_between, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
-from shr import deg2rad, rad2deg
+from kinematics import angular_difference, is_angle_between
 import pytest
 
 import math

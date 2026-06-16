@@ -43,7 +43,7 @@
 #               GitHub issue #1
 #
 from falcon import Request, Response
-from shr import PropertyResponse, DeviceMetadata, log_request, log_response
+from shr import PropertyResponse, DeviceMetadata, log_request
 from config import Config
 from logging import Logger
 # For each *type* of device served

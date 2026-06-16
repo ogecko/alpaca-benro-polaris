@@ -6,7 +6,7 @@ import json
 import struct
 from logging import Logger
 from config import Config
-from shr import LifecycleController, LifecycleEvent
+from shr import LifecycleController
 
 # Main entry point - create the discovery responder and run it until a lifecyle event
 async def socket_client(logger: Logger, lifecycle: LifecycleController):

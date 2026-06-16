@@ -35,7 +35,7 @@ from logging import Logger
 from config import Config
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
-from kinematics import clamparcsec, gamma_to_delta, delta_to_gamma
+from kinematics import gamma_to_delta, delta_to_gamma
 from control import theta_to_q, q_to_theta, q_to_azaltroll
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller

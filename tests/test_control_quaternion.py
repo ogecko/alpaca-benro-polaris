@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 import pytest
 import numpy as np
-from control import azaltroll_to_q, quaternion_to_angles, wrap360
+from control import azaltroll_to_q, quaternion_to_angles
 from control import theta_to_jacobian, theta_to_q, q_to_theta, LastPosition, q_to_azaltroll
 from quaternion import Q as Quaternion
 from kinematics import calculate_angular_velocity_vector

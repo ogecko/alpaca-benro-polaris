@@ -3,7 +3,7 @@ import asyncio
 import sys
 import time
 from bleak import BleakScanner, BleakClient
-from bleak.exc import BleakError, BleakDBusError
+from bleak.exc import BleakError
 from shr import LifecycleController, bytes2hexascii
 from config import Config
 
