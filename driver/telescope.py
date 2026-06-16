@@ -1046,6 +1046,9 @@ class axisrates:
         except Exception: 
             resp.text = await PropertyResponse(None,req,InvalidValueException(f'Axis {axisstr} not a valid number.'))
             return
+        if axis < 0 or axis > 2:
+            resp.text = await PropertyResponse(None,req, InvalidValueException(f'Axis {axisstr} must be between 0 and 2.'))
+            return
         try:
             val = polaris.axisrates
             resp.text = await PropertyResponse(val, req)
@@ -1751,7 +1754,6 @@ class action:
 
         elif actionName == "Polaris:J2000Goto":
             logger.info(f'Polaris J2000Goto {parameters}')
-            name = parameters.get('name', '')
             j2000_ra = float(parameters.get('ra', ''))
             j2000_dec = float(parameters.get('dec', ''))
             J2000_coord = ephem.Equatorial(hr2rad(j2000_ra), deg2rad(j2000_dec), epoch=ephem.J2000)

@@ -873,7 +873,6 @@ class Polaris:
         with self._lock:
             currently_slewing = self._slewing
             currently_gotoing = self._gotoing
-            currently_tracking = self._tracking
 
         # if we are currently slewing or gotoing, dont try again
         if currently_slewing or currently_gotoing:
@@ -1133,7 +1132,7 @@ class Polaris:
         await self.send_cmd_782()
         await self.send_cmd_778()
         await self.send_cmd_775()
-        ret_dict = await self.send_cmd_284_query_current_mode()
+        await self.send_cmd_284_query_current_mode()
         await self.send_cmd_802()
         await self.send_cmd_824()
         # 286

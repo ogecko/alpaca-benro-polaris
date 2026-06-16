@@ -182,7 +182,7 @@ async def run_all(logger, lifecycle: LifecycleController):
 
     event = await lifecycle.wait_for_event()
 
-    logger.info(f'==SHUTDOWN== Shutting down all tasks...for {event}')
+    logger.info(f'==SHUTDOWN== Shutting down all {len(tasks)} tasks...for {event}')
     await lifecycle.shutdown_tasks()
     await polaris.shutdown()
 

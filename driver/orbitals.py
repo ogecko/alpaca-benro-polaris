@@ -214,7 +214,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         M = extract("MA")
         n = extract("N")
         epoch_jd = extract("EPOCH")
-        tp_jd = extract("TP")
+        # tp_jd = extract("TP")
 
         month, day, year = jd_to_calendar(epoch_jd)
         epoch_date = f"{month:02d}/{day:02d}/{year}"
