@@ -75,7 +75,7 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
         for param in req.params.items():        # [name,value] tuples
             if param[0].lower() == lcName:
                 return param[1]
-        if default == None:
+        if default is None:
             raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
         return default                          # not in args, return default
     else:                                       # Assume PUT since we never route other methods
@@ -87,7 +87,7 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
         else:
             if name in formdata:
                 return formdata[name]
-        if default == None:
+        if default is None:
             raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
         return default
 

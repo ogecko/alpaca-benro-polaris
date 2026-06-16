@@ -861,7 +861,7 @@ class targetdeclination:
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
-        if polaris.targetdeclination == None:
+        if polaris.targetdeclination is None:
             resp.text = await PropertyResponse(None, req, InvalidOperationException())
             return
         try:
@@ -896,7 +896,7 @@ class targetrightascension:
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
             return
-        if polaris.targetrightascension == None:
+        if polaris.targetrightascension is None:
             resp.text = await PropertyResponse(None, req, InvalidOperationException())
             return
         try:
