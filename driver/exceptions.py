@@ -138,7 +138,7 @@ class DriverException:
               Python traceback is included.
             * Logs the constructed ``DriverException`` message
         """
-        if number <= 0x500 or number >= 0xFFF:
+        if number < 0x500 or number > 0xFFF:
             logger.error(f'Programmer error, bad DriverException number {hex(number)}, substituting 0x500')
             number = 0x500
         self.number = number
