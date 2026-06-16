@@ -707,7 +707,7 @@ function renderLinearScale() {
 	if (!linearGroup.value) return
 
 	const scale = scaleLinear()
-		.domain([props.pv??0 - scaleRange.value / 2, props.pv??0 + scaleRange.value / 2])
+		.domain([(props.pv ?? 0) - scaleRange.value / 2, (props.pv ?? 0) + scaleRange.value / 2])
 		.range([0, dProps.value.width - 40])
 
 	const axis = axisBottom(scale).ticks(10)
