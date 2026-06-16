@@ -415,7 +415,7 @@ async function onCompass(newVal:string = '180.0') {
     return
   } 
   const bearing = dms2deg(newVal, 'deg')
-  console.log('Set Compass Alignment to ${bearing}')
+  console.log(`Set Compass Alignment to ${bearing}`)
   await dev.setPolarisCompass(bearing)
 }
 
@@ -430,7 +430,7 @@ async function onSingleAlignment(azstr:string = '180.0', altstr:string = '45.0')
   } 
   const az = dms2deg(azstr, 'deg')
   const alt = dms2deg(altstr, 'deg')
-  console.log('Set Alignment Alignment Az ${az}, Alt ${alt}')
+  console.log(`Set Alignment Alignment Az ${az}, Alt ${alt}`)
   await dev.setPolarisAlignment(az, alt)
 }
 
