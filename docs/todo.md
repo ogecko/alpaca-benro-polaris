@@ -39,6 +39,7 @@
 - [X] Kinematics - use newly developed trignometric closed form solutions for IK/FK, unable as Quaternions needed in both paths for corrections 
 - [ ] Settings - Add ability to save observing site locations
 - [ ] Settings - Add ability to save orbital parameters
+- [ ] Galactic - Use Galactic co-ord for MW Pano anchor (rather than Az/Alt as they shift as MW pano proceeds)
 - [ ] Close candidate enhancement list
     - [ ] Galactic - Improve fallback for unreachable roll angles in Galactic panos
     - [ ] MAC - Consider adding autotune to Mechanical Alignment Correction
