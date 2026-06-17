@@ -20,7 +20,7 @@ Can you please let me know the details about the equipment you are testing with.
 * Platform: OS Version, Application Versions (Nina/Stellarium, etc), Browser Version, etc. 
 
 If you know Markdown you can add this directly to your section of the following document
-https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/beta_results_v2.md 
+https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/beta_results_v2.2.md 
 
 Otherwise, just send me a note on Discord and I’ll add it for you.
 
@@ -31,18 +31,15 @@ Otherwise, just send me a note on Discord and I’ll add it for you.
 Break down your assessment into a series of tests with clear goals and expected outcomes. Take small steps, confirming each along the way. Include real-world use cases, as well as load and performance tests where possible.
 
 Example of tests may be
-* Install and connect V2 driver to Polaris, confirming communications
-* Use Pilot App Connection Page to connect to Polaris without using BP App
-* Use Pilot App Settings Page to set lat/lon of the Driver
-* Use Single Point Alignment to confirm it operates the same as in V1
-* Connect Stellarium Desktop to V2 Driver via ASCOM
-* Confirm GOTO and SYNC are possible through Stellarium
-* Connect Nina Telescope to V2 Driver via Alpaca
-* Connect Nina Rotator to V2 Driver via AAlpaca
-* Confirm PARK, Home functions work from Nina
-* Confirm Pulse-guiding with PHD2
-* Confirm Mosaics with Nina
-* etc
+* Install and connect V2.2 driver to Polaris, confirming communications
+* Conduct DSO imaging session with new Driver, observing any perculiarities
+* Test usage of Mechanical Alignment Correction
+* Test usage of Slew and Center Corrections
+* Test usage of Sync Guiding Correction
+* Test usage of Periodic Error Correction
+* Test usage of Galactic Coordinates and Milky Way Pano
+* Test usage of HTTPS
+* Test usage of other new V2.2 enhancements
 
 
 ---
@@ -63,7 +60,6 @@ To help resolve issues effectively, follow these steps:
 * **Reproduce** - If something goes wrong, try to repeat it and record the steps. This is especially important for intermittent problems.  
 
 * **Isolate** - Try to narrow down the cause or area of the problem. The more constrained the issue, the easier it is to resolve. Repeat the test under different scenarios to help isolate any special causes. 
-
 
 * **Diagnose** - Compare what is expected vs what was observed. What might be causing the problem. What data/logs might be needed to help find the cause. Anything you can do before involving someone else?
 

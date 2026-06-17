@@ -1,0 +1,198 @@
+[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
+
+# Beta test results
+## Result Summary
+|Tester|Platform|Results|Summary|
+|--|--|--|--|
+| [Mark](#beta-tester-mark)| [ ] Platform | [ ] Results | [ ] Summary
+| [Daniel](#beta-tester-daniel)| [ ] Platform | [ ] Results | [ ] Summary
+| [Alex](#beta-tester-alex)| [ ] Platform | [ ] Results | [ ] Summary
+| [Vladimir](#beta-tester-vladimir)| [ ] Platform | [ ] Results | [ ] Summary
+| [William](#beta-tester-william)| [ ] Platform | [ ] Results | [ ] Summary
+| [Paul](#beta-tester-paul)| [ ] Platform | [ ] Results | [ ] Summary
+| [Steve](#beta-tester-steve)| [ ] Platform | [ ] Results | [ ] Summary
+| [Shiv](#beta-tester-shiv)| [ ] Platform | [ ] Results | [ ] Summary
+| [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
+| [Mauricio](#beta-tester-mauricio)| [ ] Platform | [ ] Results | [ ] Summary
+
+
+
+## Beta Tester: Vladimir 
+(Dis: vyskocil; GH: vyskocil; FB Vladimir Vyskocil)
+Notes: feedback on MacOS and Raspberry Pi 4
+
+### Platform & Environment
+* Applications: CCDCiel beta 0.9.92-3846, IndiStarter 2.4.2-220, Stellarium 25.2
+* Platform: MacOS Tahoe 26.1, Raspios Trixie (2025-10-01-raspios-trixie-arm64-full.img), Firefox v145
+* Hardware: MacBook Air M4 13" 32Go SSD 2To, Raspberry Pi 4 4Go VILROS 802.11n wifi dongle.
+* Optics: Cooled astro camera ZWO ASI533MC Pro, lens TTArtisan 500mm f/6.3 (Canon EF), Optolong L-Pro filter, 50/205 Deluxe - TS-Optics guidescope and ZWO ASI715MC camera.
+* Tripod: Manfrotto 190XPROB, precise hardware level
+
+### Test Areas
+
+### Results
+
+### Feedback Summary
+
+
+## Beta Tester: Mark
+(Dis: Bakermanz; GH: bakermanz; FB: Real Bread Aotearoa)
+Notes: connect ok, tracking pulsing, top 360
+### Platform & Environment
+* Location: Auckland, New Zealand
+* Optics: Z 6II (Astro Modified) and Z8, Nikkor Z 100-400mm f/4.5-5.6 VR S
+* Mount: Benro Polaris (latest device version 6.0.0.54 and astro kit version 1.0.2.14)
+* ABP Driver: 2.0 Beta 1(Windows version)
+* N.I.N.A: Version 3.2 RC12
+
+* Option 1 - for testing purposes and as backup
+    * 14” MacBook Pro 2021 (M1) macOS Tahoe (26.0.1)
+    * Windows 11 Pro version 24H2 via Parallels Desktop 26 for Mac (26.1.1)
+* Option 2 - main system
+    * Mele Quieter 4C with tp-link Archer T1300U Nano USB Wi-Fi Adapter
+    * Intel N100 800MHz, 16Gb Ram, 512Gb SSD) with Anker 140W Battery
+    * Windows 11 Pro version 24H2
+* TP-link travel router (AC750 Wi-Fi TL-WR902AC) connected via ethernet - provides wifi to allow iPad Pro (M4) iPadOS 26.0.1 to control mini PC via ‘Windows App Mobile’ (version 11.2.1)
+### Test Areas
+### Results
+### Summary
+
+## Beta Tester: Paul
+(Dis: Paul C)
+### Platform & Environment
+* Platform: Win11?, cheap mini PC, iOptron carbon fibre tripod
+* Applications: Nina, PHD2
+* Optics: astro modified Z7 with the 150-600 zoom set to 352mm, Dew Bands
+* Guiding: iOptron 30mm f4 guide scope and ASI220 camera
+* Power: SVBONY SV241 Pro
+### Test Areas
+### Results
+### Feedback Summary
+
+
+
+## Beta Tester: Daniel
+(FB: Daniel Michaud; Dis: Dmich39; GH: Dmich39)
+### Platform & Environment
+- Mini PC : Nipogi GKIII Alder Lake N97 ,  16 GB memory 1 GB on disc  Win Pro 11, very similar to Mele. Built in Wifi port + external USB one, ( TP Link  ) 
+- Benro Polaris Astro in latest firmware & Benro app version
+- Solid tripod weighted with  5 kg mass , levelled carefully with 2 digital levelling tools (< 0.1 degree error in any direction)
+- Arca swiss Plate carefully positioned precisely 90 degrees vs camera body with help of calliper,equerre.
+- Camera Canon 5D MK III unfiltered & Canon 5D MK IV normal
+- Various Canon EF L Lenses : 200 mm F2.8, 100-400 F4.5, x1.4 multiplier gen II, and x2 multiplier gen III. Heated Lens Caps due freezing conditions these days.
+
+### Test Areas
+### Results
+### Feedback Summary
+### Conclusion  
+
+
+
+
+
+## Beta Tester: John
+(FB: John Harrison; GH: 5x5Stuido)
+Notes: Ireland Week43, New 5nm filters.
+### Platform & Environment
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
+### Test Areas
+...
+### Results
+...
+### Feedback Summary
+...
+
+
+
+## Beta Tester: William
+(FB: William Siers; GH: Spiderx01, Dis: williamsiers)
+Notes: Phoenix Week43
+### Platform & Environment
+* Applications: Alpaca Pilot 
+* Platform: OS Version Win11, Chrome Browser.
+* Hardware: Mele 4C Mini-PC
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
+### Test Areas
+### Results
+### Feedback Summary
+...
+
+
+
+
+
+## Beta Tester: Alex
+(Dis: Alex; FB: Alexander M...; GH: ..)
+Notes: help with producing tutorial/overview and beta testing
+### Platform & Environment
+* Applications: Nina 
+* Platform: Win10, Python v3.12.7, Ascom platform 7.1
+* Hardware: Intel MacBook pro that is running win10 via bootcamp. it is a shame it won’t run on windows for ARM… I’d love to use my M1 MacBook for this
+* Optics: Nikon Z6, 135mm/300mm Lens, Filters, Guidescope, etc
+
+### Test Areas
+### Results
+### Feedback Summary
+
+## Beta Tester: Steve
+(Dis: LanzaSteve; FB: Steve E...; GH: SteveE..)
+Notes: Tried BP Dither
+### Platform & Environment
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
+### Test Areas
+### Results
+### Feedback Summary
+
+
+## Beta Tester: Shiv
+(Dis: shiv_93263; FB: Shiv Verma; GH: SVerma033, KS: Shiv Verma)
+
+Notes: I do have a relationship with the MAC Group the nation-wide distributors of the Benro product line here in the USA.  
+### Platform & Environment
+Hardware: 
+* MeLE Quieter 4C, MackBook Pro 14inch M3 Pro with 18GB memory, MAC Studio with 64GB Memory, IPad and the iPhone 16 Pro
+
+Optics: 
+* As a Panasonic Lumix Ambassador, I have: Full frame - Panasonic Lumix S1R II, S5 II, S5 IIX and all their lenses
+* MFT - GH6, G9 II and all the MFT Lenses
+* Sony A7R V, Sony A6500 (Astro Modified) - 20MM, 24, MM, 50mm, 16-35, 24 - 70mm, 70-200mm, 200-600mm
+
+Platform: 
+* Windows 11 Pro on the MeLE, Mac OS 26.0.1 on both Macs and on the iPad
+* Stellarium Desktop, NiNA, with related SW and drivers
+
+### Test Areas
+...
+### Results
+...
+### Feedback Summary
+...
+
+
+## Beta Tester: Mauricio
+(Dis: AstroPolo?; FB: Mauricio Salazar; GH: MauriSalazar, KS: )
+Notes: Last week RC1 tester.
+### Platform & Environment
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
+### Test Areas
+### Results
+### Feedback Summary
+
+
+## RFC
+FB: Andrew Sargent; GH: CynicalSarge
+
+FB: Mingyang Wang; GH: saltyminty
