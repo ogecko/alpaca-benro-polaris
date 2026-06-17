@@ -2,25 +2,32 @@
 # POLARIS.PY - Proxy for Benro Polaris device
 # =================================================================
 #
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# polaris.py - Simulation of a "telescope" mount
 #
-# This module contains a primary Polaris Class that represents a Benro Polaris and 
-# the connection to the Device, including all of its state parameters implied by 
-# ASCOM ITelescopeV3.
+# Implements an ASCOM Alpaca-compatible driver for the
+# Benro Polaris astro-photography mount. Manages the full lifecycle
+# of the device connection and exposes telescope, rotator and
+# panoramic grid control via the Polaris class.
 #
-# It provides thread-safe access to read and write its properties.
-# It provides functions to perform methods required by ITelescopeV3.
-# It provides all the communications functions for asynchronous two 
-# way communication with the Benro Polaris Device.
+# Key responsibilities:
 #
-# Python Compatibility: Requires Python 3.7 or later
-# GitHub: https://github.com/ASCOMInitiative/AlpycaDevice
+#   Polaris Connection Management
+#     Async TCP socket client with auto-reconnect, watchdog, and
+#     keepalive. 
 #
-# -----------------------------------------------------------------------------
-# MIT License
-# -----------------------------------------------------------------------------
+#   Polaris Protocol Reading and Writing
+#     Binary-framed message protocol (NNN@args#). Sends commands
+#     and parses responses for mode, GOTO, tracking, orientation
+#     (517/518 AHRS), alignment, battery, firmware, and more.
+#
+#   Device State and Config
+#     Maintains complete state of the mount and provides properties
+#     that reflect the current configuration and disposition of the 
+#     mount. This is inclusive of Telescope and Rotator.
+#
+#   High Level Methods
+#     Provides high level advancved control methods for slew, goto, 
+#     tracking, parking, homing, etc as per the Alpaca standard needs.
+#     Also provides methods for Alpaca extensions like PanoGrid.
 #
 import math
 import datetime
@@ -239,9 +246,7 @@ class Polaris:
             motor = self._motors[axis]
             await motor.stop_disspatch_loop_task()
 
-    ########################################
-    # POLARIS COMMUNICATIONS METHODS 
-    ########################################
+# ── Connection Helper Methods ─────────────────────────────────────────────────────────────
 
     def _format_connection_error(self, e: Exception) -> str:
         if isinstance(e, ConnectionAbortedError):
@@ -342,6 +347,7 @@ class Polaris:
             if should_break:
                 break                             
         
+# ── Main Client Methods ─────────────────────────────────────────────────────────────
 
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
@@ -359,24 +365,6 @@ class Polaris:
         if not task.cancelled():
             # task.exception returns None if no exception
             self._task_exception = task.exception()
-
-    async def send_msg(self, msg):
-        if self.lifecycle.should_shutdown():
-            return
-        parts = msg.strip('#').split('&')
-        ispoll = len(parts)>1 and parts[1] in POLARIS_POLL_COMMANDS
-        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
-            self.logger.info(f'->> Polaris: send_msg: {msg}')
-        try:
-            if self._writer:
-                if self._writer.transport.is_closing():
-                    self.logger.debug("Writer transport is closing — skipping drain")
-                    return
-                self._writer.write(msg.encode())
-                await asyncio.wait_for(self._writer.drain(), timeout=2.0)
-        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError, asyncio.TimeoutError) as e:
-            self._task_exception = e
-            self.logger.error(f"==SEND== Failed to send message: {e}")
 
     async def _every_500ms_watchdog_check(self):
         while True:
@@ -434,6 +422,8 @@ class Polaris:
         time = (dt_now - self._performance_data_start_timestamp).total_seconds()
         return time
 
+# ── Polaris Angle Helpers ─────────────────────────────────────────────────────────────
+
     def radec2altaz(self, ra, dec, inthefuture=0, epoch=None):
         if epoch==None:
             epoch=ephem.now()
@@ -470,19 +460,27 @@ class Polaris:
         p_az = a_az - self._adj_sync_azimuth
         return p_alt, p_az
 
-    async def skip_compass_alignment(self, compass):
-            await self.send_cmd_compass_alignment(compass)
-            await self.send_cmd_284_query_current_mode()
-            await self.send_cmd_520_position_updates(True)
 
 
+# ── Communication Methods ─────────────────────────────────────────────────────────────
 
-    async def skip_star_alignment(self, azimuth, altitude):
-            self._aligning = True
-            await self.send_cmd_star_alignment(azimuth, altitude)
-            await self.send_cmd_284_query_current_mode()
-            await self.send_cmd_520_position_updates(True)
-            self._aligning = False
+    async def send_msg(self, msg):
+        if self.lifecycle.should_shutdown():
+            return
+        parts = msg.strip('#').split('&')
+        ispoll = len(parts)>1 and parts[1] in POLARIS_POLL_COMMANDS
+        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
+            self.logger.info(f'->> Polaris: send_msg: {msg}')
+        try:
+            if self._writer:
+                if self._writer.transport.is_closing():
+                    self.logger.debug("Writer transport is closing — skipping drain")
+                    return
+                self._writer.write(msg.encode())
+                await asyncio.wait_for(self._writer.drain(), timeout=2.0)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError, asyncio.TimeoutError) as e:
+            self._task_exception = e
+            self.logger.error(f"==SEND== Failed to send message: {e}")
 
     async def read_msgs(self, reader):
         buffer = ""
@@ -537,6 +535,9 @@ class Polaris:
             self.logger.error(f"==ERROR== read_msgs failed: {e}")
             self._connected = False
             self._connecting = False
+
+
+# ── Parsing Polaris Communication Messages ─────────────────────────────────────────────────────────────
 
     # Parse a buffer returning a matched (cmd, args, remainingBuffer) or when no match (None, None, remainingBuffer)
     def parse_msg(self, buffer):
@@ -841,6 +842,20 @@ class Polaris:
         caz = az + adj_az if Config.aiming_adjustment_enabled else az
         caz = 360 - caz if caz>180 else -caz
         return (calt, caz)
+
+# ── Sending Polaris Communication Messages ─────────────────────────────────────────────────────────────
+
+    async def skip_compass_alignment(self, compass):
+            await self.send_cmd_compass_alignment(compass)
+            await self.send_cmd_284_query_current_mode()
+            await self.send_cmd_520_position_updates(True)
+
+    async def skip_star_alignment(self, azimuth, altitude):
+            self._aligning = True
+            await self.send_cmd_star_alignment(azimuth, altitude)
+            await self.send_cmd_284_query_current_mode()
+            await self.send_cmd_520_position_updates(True)
+            self._aligning = False
 
     async def send_cmd_change_tracking_state(self, tracking: bool):
         cmd = '531'
@@ -1165,10 +1180,8 @@ class Polaris:
         self.logger.warning(f'Change site_latitude and site_longitude in Alpaca Pilot App.')
 
 
+# ── Alpaca Telescope Device State ─────────────────────────────────────────────────────────────
 
-    #
-    # Telescope device states
-    #
     @property
     def connected(self) -> bool:
         with self._lock:
@@ -1724,10 +1737,8 @@ class Polaris:
     
     
 
+# ── Alpaca Telescope Higher Level Methods ─────────────────────────────────────────────────────────────
 
-    ####################################################################
-    # Methods
-    ####################################################################
     def markAllAsComplete(self):
         self.markGotoAsComplete()
         self.markRotateAsComplete()
@@ -1813,7 +1824,9 @@ class Polaris:
         a_ra, a_dec = self.altaz2radec(a_alt, a_az)
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
-    # ******* Advanced MPC control aware methods ********
+
+# ── Alpaca Telescope Advanced Control Aware Methods ─────────────────────────────────────────────────────────────
+
     async def trackOrbital(self, name, category):
         self._sm.clear_sync_guiding()
         if Config.advanced_orbitals and Config.advanced_control:
@@ -2172,6 +2185,10 @@ class Polaris:
         await self.stop_tracking()
         await asyncio.sleep(1)
         await self.send_cmd_reset_axis(2)
+
+
+
+# ── Alpaca Telescope PanoGrid Methods ─────────────────────────────────────────────────────────────
 
     def get_number_of_panels(self):
         """Returns the total number of panels in the PanoGrid"""
