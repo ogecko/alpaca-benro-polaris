@@ -26,7 +26,6 @@ import math
 import json
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent
-from log import update_log_level
 from orbitals import update_orbital_data, compose_orbital_export
 from control import loadCustomCatalogDataFromFile
 
@@ -1573,7 +1572,7 @@ class action:
         elif actionName == "Polaris:ConfigUpdate":
             # Apply changes to store in Config and make them live
             changed_params = Config.apply_changes(parameters)
-            make_params_live(changed_params)
+            polaris.make_config_params_live(changed_params)
             resp.text = await PropertyResponse(changed_params, req)
             return
 
@@ -1584,7 +1583,7 @@ class action:
         elif actionName == "Polaris:ConfigRestore":
             # Restore Config from config.toml and make them live
             changed_params = Config.restore_base()
-            make_params_live(changed_params)
+            polaris.make_config_params_live(changed_params)
             resp.text = await PropertyResponse(changed_params, req)
             return
 
@@ -1799,7 +1798,7 @@ class action:
             # Apply changes to store in Config and make them live
             logger.info(f'Polaris:PanoGrid {parameters}')
             changed_params = Config.apply_changes(parameters)
-            make_params_live(changed_params)
+            polaris.make_config_params_live(changed_params)
             resp.text = await PropertyResponse("Polaris:PanoGrid Ok", req)
             return
 
@@ -1826,39 +1825,4 @@ class action:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
 
 
-def make_params_live(changed_params):
-    # make changes live in polaris where possible
-    for param in changed_params:
-        if param == "log_level":
-            update_log_level(Config.log_level)
-        elif param == "site_latitude":
-            polaris.sitelatitude = float(Config.site_latitude)
-        elif param == "site_longitude":
-            polaris.sitelongitude = float(Config.site_longitude)
-        elif param == "site_elevation":
-            polaris.siteelevation = Config.site_elevation
-        elif param == "site_pressure":
-            polaris.sitepressure = Config.site_pressure
-        elif param == "max_accel_rate":        
-            polaris._pid.set_Ka_array(Config.max_accel_rate)
-        elif param == "max_slew_rate":
-            polaris._pid.set_Kv_array(Config.max_slew_rate)
-        elif param == "guide_rate_ra":
-            polaris.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
-        elif param == "guide_rate_dec":
-            polaris.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
-        elif param in ["advanced_alignment", "advanced_scc_enabled", "advanced_scc_choice", "advanced_align_mac"]:
-            polaris._sm.clear_sync_guiding()
-            polaris._sm.optimize_alignQ_B2T()
-            polaris._sm.refresh_pid_setpoints_from_q1()
-            polaris._sm.streamSyncData()
-        elif param == "ref":
-            if changed_params["ref"]==3:    # Set Current Orientation
-                Config.apply_changes({
-                    "r1": polaris.azimuth,
-                    "r2": polaris.altitude,
-                    "r3": polaris.roll,
-                    "ref": 0
-                })
-   
 

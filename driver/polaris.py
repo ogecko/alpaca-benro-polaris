@@ -40,6 +40,7 @@ from quaternion import Q as Quaternion
 from threading import Lock
 from logging import Logger
 from config import Config
+from log import update_log_level
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll
@@ -1306,6 +1307,42 @@ class Polaris:
         self._ispulseguiding = False
 
         return res
+
+    def make_config_params_live(self, changed_params):
+        # make changes live in polaris where possible
+        for param in changed_params:
+            if param == "log_level":
+                update_log_level(Config.log_level)
+            elif param == "site_latitude":
+                self.sitelatitude = float(Config.site_latitude)
+            elif param == "site_longitude":
+                self.sitelongitude = float(Config.site_longitude)
+            elif param == "site_elevation":
+                self.siteelevation = Config.site_elevation
+            elif param == "site_pressure":
+                self.sitepressure = Config.site_pressure
+            elif param == "max_accel_rate":        
+                self._pid.set_Ka_array(Config.max_accel_rate)
+            elif param == "max_slew_rate":
+                self._pid.set_Kv_array(Config.max_slew_rate)
+            elif param == "guide_rate_ra":
+                self.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
+            elif param == "guide_rate_dec":
+                self.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
+            elif param in ["advanced_alignment", "advanced_scc_enabled", "advanced_scc_choice", "advanced_align_mac"]:
+                self._sm.clear_sync_guiding()
+                self._sm.optimize_alignQ_B2T()
+                self._sm.refresh_pid_setpoints_from_q1()
+                self._sm.streamSyncData()
+            elif param == "ref":
+                if changed_params["ref"]==3:    # Set Current Orientation
+                    Config.apply_changes({
+                        "r1": self.azimuth,
+                        "r2": self.altitude,
+                        "r3": self.roll,
+                        "ref": 0
+                    })
+    
 
     @property
     def tracking(self) -> bool:
