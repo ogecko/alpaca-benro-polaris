@@ -33,6 +33,7 @@ export const useConfigStore = defineStore('config', {
     alpaca_restapi_ip_address: '',
 
     // Site Info
+    location_list: '',
     location: 'Unknown',
     site_latitude: -33.8598874,
     site_longitude: 151.2021771,

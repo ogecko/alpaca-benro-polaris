@@ -45,7 +45,31 @@
             <div class="row q-col-gutter-lg q-pb-md">
                 <q-input class="col-3" v-bind="bindField('site_latitude', 'Latitude', '°')" type="number" input-class="text-right"/>
                 <q-input class="col-3" v-bind="bindField('site_longitude','Longitude', '°')" type="number" input-class="text-right"/>
-                <q-input class="col-6" v-bind="bindField('location','Location')" />
+                <div class="col-6">
+                  <q-select
+                    label="Location" :model-value="cfg.location" :options="locationOptions" 
+                    use-input input-debounce="0" fill-input hide-selected
+                    emit-value @filter="locationFilter" @update:model-value="onLocationSelect" @input-value="onLocationTyped" @clear="onLocationClear"
+                  >
+                    <template v-slot:append>
+                      <q-icon name="mdi-content-save" class="cursor-pointer" color="grey-6" @click.stop="onLocationSave">
+                        <q-tooltip>Save current location</q-tooltip>
+                      </q-icon>
+                    </template>
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt }}</q-item-label>
+                        </q-item-section>
+                        <q-item-section side>
+                          <q-icon name="mdi-delete-outline" color="grey-5" class="cursor-pointer" @click.stop="onLocationDelete(scope.opt)">
+                            <q-tooltip>Delete this location</q-tooltip>
+                          </q-icon>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                </div>
             </div>
             <div class="row q-col-gutter-lg">
                 <q-input class="col-3" v-bind="bindField('site_elevation', 'Elevation', 'm')" type="number" input-class="text-right"/>
@@ -219,7 +243,7 @@
 <script setup lang="ts">
 // import axios from 'axios'
 import { useQuasar, debounce } from 'quasar'
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useConfigStore } from 'src/stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { useStatusStore } from 'src/stores/status';
@@ -293,6 +317,80 @@ async function onSetPark() {
   const ok = await cfg.configFetch()
   triggerAnimation(['m1_park','m2_park', 'm3_park'])
   console.log(result, ok)
+}
+
+
+// Derive the dropdown options from the pipe-separated location_list
+const locationOptions = computed<string[]>(() =>
+  cfg.location_list
+    ? cfg.location_list.split('|').filter(Boolean)
+    : []
+)
+ 
+// Filtered subset shown while the user types
+const filteredLocationOptions = ref<string[]>([])
+
+// Keep filteredLocationOptions in sync when the source list changes
+// (e.g. after a save/delete refreshes location_list)
+watch(locationOptions, (opts) => {
+  filteredLocationOptions.value = opts
+}, { immediate: true })   // ← immediate: true seeds it on mount
+
+function locationFilter(val: string, update: (fn: () => void) => void) {
+  update(() => {
+    const needle = val.toLowerCase()
+    filteredLocationOptions.value = needle
+      ? locationOptions.value.filter(o => o.toLowerCase().includes(needle))
+      : locationOptions.value
+  })
+}
+ 
+// User picked an existing entry from the dropdown → load it
+function onLocationSelect(name: string | null) {
+  if (!name) return
+  cfg.location = name
+  put({ location: name, location_action: 'load' })
+  triggerAnimation(['site_latitude', 'site_longitude', 'site_elevation', 'site_pressure'])
+}
+ 
+// User is typing a new name (free-text) → just update location, no action
+function onLocationTyped(val: string) {
+  cfg.location = val
+  putdb({ location: val })
+}
+ 
+// User clicked the clearable × → delete the current entry from the store
+function onLocationClear() {
+  const name = cfg.location
+  if (!name) return
+  put({ location: name, location_action: 'delete' })
+}
+ 
+// User clicked the save icon → save current lat/lon/ele/pressure under current name
+function onLocationSave() {
+  const name = cfg.location
+  if (!name) return
+  put({ location: name, location_action: 'save' })
+  $q.notify({
+    message: `Location "${name}" saved.`,
+    type: 'positive', position: 'top', timeout: 3000,
+    actions: [{ icon: 'mdi-close', color: 'white' }],
+  })
+}
+ 
+// User clicked the delete icon on a dropdown row
+function onLocationDelete(name: string) {
+  put({ location: name, location_action: 'delete' })
+  // If we just deleted the currently displayed name, clear the field
+  if (cfg.location === name) {
+    cfg.location = ''
+    putdb({ location: '' })
+  }
+  $q.notify({
+    message: `Location "${name}" deleted.`,
+    type: 'positive', position: 'top', timeout: 3000,
+    actions: [{ icon: 'mdi-close', color: 'white' }],
+  })
 }
 
 

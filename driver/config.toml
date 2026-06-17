@@ -21,6 +21,8 @@ stellarium_synscan_ip_address = ''          # IP Address to expose this Stellari
 alpaca_restapi_ip_address = ''              # IP Address to expose this Alpaca REST API Service on. Loopback='127.0.0.1', Any Address=''.
 
 [server]
+location_action = ''                        # set to "save", "delete", or "load" to trigger action; auto-resets to ""
+location_list   = ''                        # pipe-separated sorted list of saved names, for Pilot locations dropdown
 location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az.
 site_latitude = -33.8598874                 # The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
 site_longitude = 151.2021771                # The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
