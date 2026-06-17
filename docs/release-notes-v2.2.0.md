@@ -91,8 +91,8 @@
 ### New Features (enabled by Nina)
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
 - **[Device Actions]** Additional Device Actions added for Nina Advanced Sequencer
-    - **Polaris:SlewRelative** Slews any axis relative to current setpoint. All Optional Parameters {"ra":h, "dec":d, "pa":d, "az":d, "alt":d, "roll":d}
-    - **Polaris:SlewAbsolute** Slews any axis to new setpoint. All Optional Parameters {"ra":h, "dec":d, "pa":d, "az":d, "alt":d, "roll":d}
+    - **Polaris:SlewRelative** Slews any axis relative to current setpoint. All Optional Parameters {"ra":h, "dec":d, "pa":d, "az":d, "alt":d, "roll":d, "l":d, "b":d, "gpa":d}
+    - **Polaris:SlewAbsolute** Slews any axis to new setpoint. All Optional Parameters {"ra":h, "dec":d, "pa":d, "az":d, "alt":d, "roll":d, "l":d, "b":d, "gpa":d}
     - **Polaris:AbortSlew** Stops all axis motion, turns off tracking, unparks the mount.
     - where: h=decimal hours, d=decimal degrees; h and d can also be strings with dms format eg "14:30:10" or "180d30m15s" or "90d30m"
 
