@@ -37,7 +37,7 @@
 - [X] Flip - Cannot flip to -30 back to +30 at Az 210
 - [X] Dependancies - Upgrade dependant libraries on Node and Python
 - [X] Kinematics - use newly developed trignometric closed form solutions for IK/FK, unable as Quaternions needed in both paths for corrections 
-- [ ] Settings - Add ability to save observing site locations
+- [X] Settings - Add ability to save observing site locations
 - [ ] Settings - Add ability to save orbital parameters
 - [ ] Galactic - Use Galactic co-ord for MW Pano anchor (rather than Az/Alt as they shift as MW pano proceeds)
 - [ ] Close candidate enhancement list
