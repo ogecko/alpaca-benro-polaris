@@ -17,7 +17,8 @@
     "postinstall": "quasar prepare"
   },
   "overrides": {
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.1",
+    "markdown-it": ">=14.2.0"
   },
   "dependencies": {
     "@quasar/extras": "^2.0.1",
