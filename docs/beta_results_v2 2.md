@@ -196,3 +196,7 @@ Notes: Last week RC1 tester.
 FB: Andrew Sargent; GH: CynicalSarge
 
 FB: Mingyang Wang; GH: saltyminty
+
+YT: @NickHartman  
+
+YT: @robertedgar853  
