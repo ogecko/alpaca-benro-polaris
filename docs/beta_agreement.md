@@ -15,12 +15,12 @@ If you don’t already have a GitHub account, please create one and let me know 
 ### 2. Document your test environment
 
 Can you please let me know the details about the equipment you are testing with. Include details on 
-* Hardware: MiniPC model, Tablet model, Phone model. 
+* Hardware: MiniPC or Apple model, Tablet model, Phone model, Benro Polaris versions
 * Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
 * Platform: OS Version, Application Versions (Nina/Stellarium, etc), Browser Version, etc. 
 
 If you know Markdown you can add this directly to your section of the following document
-https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/beta_results_v2%202.md 
+https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/beta_results_v2.2.md 
 
 Otherwise, just send me a note on Discord and I’ll add it for you.
 

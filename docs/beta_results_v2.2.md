@@ -192,6 +192,17 @@ Notes: Last week RC1 tester.
 ### Feedback Summary
 
 
+
+
+## Beta Tester: Greg Stark
+(Dis: gbstark; GH: gstakgb, KS: Greg Stark)
+### Platform & Environment
+### Test Areas
+### Results
+### Feedback Summary
+
+
+
 ## RFC
 FB: Andrew Sargent; GH: CynicalSarge
 
