@@ -1349,6 +1349,10 @@ class Polaris:
                         case 0: Config.apply_changes({"r1": self.azimuth, "r2": self.altitude,  "r3": self.roll, "ref_action": '' })
                         case 1: Config.apply_changes({"r1": self.rightascension, "r2": self.declination,  "r3": self.positionangle, "ref_action": '' })
                         case 2: Config.apply_changes({"r1": self._pid.gamma_pv[0], "r2": self._pid.gamma_pv[1],  "r3": self._pid.gamma_pv[2], "ref_action": '' })
+            elif param == "track":
+                if Config.track == 0:   Config.apply_changes({ "ref": 0 }) # For Landscape - Untracked, set Reference Frame Topo 
+                if Config.track == 3:   Config.apply_changes({ "ref": 2 }) # For Sky - Milky Way,       set Reference Frame Galactic
+                
 
     @property
     def tracking(self) -> bool:
