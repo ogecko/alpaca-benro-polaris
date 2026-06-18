@@ -62,7 +62,7 @@
                           <q-item-label>{{ scope.opt }}</q-item-label>
                         </q-item-section>
                         <q-item-section side>
-                          <q-icon name="mdi-delete-outline" color="grey-5" class="cursor-pointer" @click.stop="onLocationDelete(scope.opt)">
+                          <q-icon name="mdi-close-circle" color="grey-6" class="cursor-pointer" @click.stop="onLocationDelete(scope.opt)">
                             <q-tooltip>Delete this location</q-tooltip>
                           </q-icon>
                         </q-item-section>
