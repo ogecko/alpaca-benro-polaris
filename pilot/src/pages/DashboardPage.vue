@@ -361,7 +361,7 @@ async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
 
 
 async function onClickRecenterGrid() {
-  await dev.alpacaPanoGrid(`{"anchor":0, "ref":3, "panel": ${centerPanel.value}}`)
+  await dev.alpacaPanoGrid(`{"anchor":0, "ref_action":"update", "panel": ${centerPanel.value}}`)
   console.log('Recenter PanoGrid');
 }
 

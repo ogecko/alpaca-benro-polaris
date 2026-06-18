@@ -993,19 +993,19 @@ While the Benro Polaris Standard Panorama and Pro Panorama modes are excellent f
 
 The Alpaca Driver approaches panoramas from a different perspective. Rather than treating a panorama as a one-shot operation, it defines a deterministic grid of pointings anchored in space, that can be revisited, reordered, and reused. Panel geometry is defined explicitly, slews are repeatable, and camera orientation is controlled in a predictable way. This allows the same panorama definition to be reused hours or even days later, or embedded cleanly into larger automated workflows.
 
-In addition, the Alpaca Driver provides finer control over capture sequencing, tracking state, roll angle, and reference positioning. This makes it possible to deliberately structure separate capture passes. For example, an untracked foreground landscape pass, a tracked sky pass, or even the inclusion of an orbital layer within the same overall composition.
+In addition, the Alpaca Driver provides finer control over capture sequencing, tracking state, roll angle, and anchor positioning. This makes it possible to deliberately structure separate capture passes. For example, an untracked foreground landscape pass, a tracked sky pass, or even the inclusion of an orbital layer within the same overall composition.
 
 In short, while the Benro Polaris hardware is already capable of producing excellent panoramas, the Alpaca Driver extends that capability by turning panoramas into a first-class, automatable imaging primitive rather than a single-pass capture mode.
 
 ## 2. Defining a Panorama Grid
 
-At the core of the Alpaca Driver’s panorama system is the concept of a single, deterministic panorama grid anchored in space. At any given time, exactly one panorama grid is active in the driver. This grid defines the geometry, ordering, tracking behaviour, and reference position for all panorama-related slews.
+At the core of the Alpaca Driver’s panorama system is the concept of a single, deterministic panorama grid anchored in space. At any given time, exactly one panorama grid is active in the driver. This grid defines the geometry, ordering, tracking behaviour, and anchor position for all panorama-related slews.
 
 The active panorama grid can be defined or modified either interactively using Alpaca Pilot, or programmatically using NINA’s Advanced Sequencer. Regardless of how it is configured, the driver always operates against the same internal panorama grid.
 
 ### 2.1 Defining the Grid Using Alpaca Pilot
 
-Alpaca Pilot provides a visual and interactive way to define the panorama grid. The Panorama Settings card allows you to configure the grid geometry, panel order, tracking behaviour, and reference position in one place.
+Alpaca Pilot provides a visual and interactive way to define the panorama grid. The Panorama Settings card allows you to configure the grid geometry, panel order, tracking behaviour, and anchor position in one place.
 
 Changes made in Alpaca Pilot immediately update the active panorama grid in the driver. This makes it well suited to planning, experimentation, and on-site adjustment when refining framing and overlap.
 
@@ -1017,7 +1017,13 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 - **① Columns `"cols":`**  Number of horizontal panels across the panorama. Range: **2–14**. 
 - **② Rows `"rows":`**  Number of vertical panels in the panorama. Range: **1–3**.
 
-- **③ Panel Spacing Calculator:**  Used to calculate **Sensor Field of View** including recommended Horizontal and Vertical Step. See below.
+- **③ Calc:** Panel Spacing Calculator used to calculate **Sensor Field of View** including recommended Horizontal and Vertical Step. See below.
+
+- **③ Swap:** Changes the spacing between panels for either a Landscape or Portrait orientation, by  swaping the `"hstep"` and `"vstep"` values. Landscape orientation will have a larger `"hstep"`, while Portrait orientation will have a larger `"vstep"`. This button only changes the spacing of the panels, you will need to use a lens collar to rotate your camera's sensor to match the orientation. 
+
+- **&#9322; Copy:** Copies the current Panorama Grid settings to the clipboard in JSON format. After defining the Panorama Grid Layout, use this button to paste the settings directly into the `Polaris:PanoGrid` **Device Action Parameters** field within the NINA Advanced Sequencer. See below for an example.
+
+> Note: Clipboard access is restricted in browsers and the Copy function will only work over HTTPS. Refer to the instructions below to [enable HTTPS in Alpaca Pilot](#enable-https-in-alpaca-pilot). 
 
 - **③ Horizontal Step `"hstep":`**  Angular distance, in **decimal degrees**, between the centres of adjacent horizontal panels. Factor in FOV overlap.
 
@@ -1055,32 +1061,24 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
       * **Galactic Position Angle (-180° to +180°)** defines the camera's rotation about its viewing axis. At 0°, the top of the frame points toward the North Galactic Pole. At ±90°, the top of the frame is aligned with the Milky Way plane. Beware of Benro Polaris roll angle
 
 
-- **⑧ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the reference position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
-   * **0 – Whole Mosaic**:  The entire panorama is centred on the reference position.
-   * **n – Panel n**:   This panel is placed at the reference position and all other panels are offset accordingly.
+- **⑧ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the anchor position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
+   * **0 – Whole Mosaic**:  The entire panorama is centred on the anchor position.
+   * **n – Panel n**:   This panel is placed at the anchor position and all other panels are offset accordingly.
 
 
-- **⑨ to Reference Position Type `"ref":`** Defines the coordinate system used by the reference position.
+- **⑨ Reference Frame `"ref":`** Defines the coordinate system used by the anchor position.
    * **0 – Az / Alt / Roll** Topocentric coordinates.
    * **1 – RA / Dec / PA** Equatorial coordinates.
-   * **2 – Orbital ID**  Centre the panorama on a tracked orbital object.
-   * **3 – Current Orientation** Use the current mount orientation as the reference position.
-   If tracking is enabled, the position is stored as equatorial coordinates; otherwise it is stored as topocentric coordinates.
+   * **2 – Glon / Glat / GPA**  Galactic coordinates.
 
+- **&#9321; Anchor Position:** Defines the sky position for the anchor:
 
-- **&#9321; Reference Position:** Defines the actual reference position:
+   * **Update Button**: Updates the anchor position with the mounts current orientation
+   * **Reference Axis 1 `"r1":`**: Azimuth, Right Ascension, or Galactic Lon
+   * **Reference Axis 2 `"r2":`**: Altitude, Declination, or Galactic Lat (decimal degrees)
+   * **Reference Axis 3 `"r3":`**: Roll, Position Angle, or Galactic PA (decimal degrees)
 
-   * **Reference Axis 1 `"r1":`**: Azimuth, Right Ascension, or Orbital ID
-   * **Reference Axis 2 `"r2":`**: Altitude or Declination (decimal degrees)
-   * **Reference Axis 3 `"r3":`**: Roll or Position Angle (decimal degrees)
-
-- **&#9322; Swap:** Changes the spacing between panels for either a Landscape or Portrait orientation, by  swaping the `"hstep"` and `"vstep"` values. Landscape orientation will have a larger `"hstep"`, while Portrait orientation will have a larger `"vstep"`. This button only changes the spacing of the panels, you will need to use a lens collar to rotate your camera's sensor to match the orientation. 
-
-- **&#9322; Copy:** Copies the current Panorama Grid settings to the clipboard in JSON format. After defining the Panorama Grid Layout, use this button to paste the settings directly into the `Polaris:PanoGrid` **Device Action Parameters** field within the NINA Advanced Sequencer. See below for an example.
-
-> Note: Clipboard access is restricted in browsers and the Copy function will only work over HTTPS. Refer to the instructions below to [enable HTTPS in Alpaca Pilot](#enable-https-in-alpaca-pilot). 
-
-- **Panel Navigation:** The Panel Navigation grid provides a visual representation of the panorama layout and allows you to click any panel number to slew the mount directly to that position. The grid follows the panorama layout convention where the **bottom-left panel represents the lowest Altitude and lowest Azimuth**. As you move **to the right**, Azimuth increases; as you move **upward**, Altitude increases. The numbering and progression reflect the selected First Panel and Panel Order settings, while symbols indicate the next panel in the capture sequence and the anchor panel tied to the reference position.
+- **Panel Navigation:** The Panel Navigation grid provides a visual representation of the panorama layout and allows you to click any panel number to slew the mount directly to that position. The grid follows the panorama layout convention where the **bottom-left panel represents the lowest Altitude and lowest Azimuth**. As you move **to the right**, Azimuth increases; as you move **upward**, Altitude increases. The numbering and progression reflect the selected First Panel and Panel Order settings, while symbols indicate the next panel in the capture sequence and the anchor panel tied to the anchor position.
  
 - **Current Panel: `"panel":`** This represents the active Panel Number being captured and is highlighted in blue on the Panel Navigation grid. This field effects what the next panel in sequence will be.
 
@@ -1110,7 +1108,7 @@ To manually position the grid on site, omit `r1`, `r2`, and `r3` and set `ref` t
 
 ![Alpaca Pilot Pano Settings](images/pilot-panogrid2.png)
 
-To capture a foreground pass without tracking while retaining the previous grid orientation, set `track` to `0` and remove `anchor` and `ref` fields. This preserves the current grid geometry without redefining the reference position.
+To capture a foreground pass without tracking while retaining the previous grid orientation, set `track` to `0` and remove `anchor` and `ref` fields. This preserves the current grid geometry without redefining the anchor position.
 
 ![Alpaca Pilot Pano Settings](images/pilot-panogrid3.png)
 
@@ -1160,12 +1158,12 @@ To check the horizontal extent of the scene:
 * Slew to the bottom-left panel and then to the bottom-right panel.
 * Take some sample exposures at the desired panels to check exposure.
 * Confirm that all desired features are within the captured area.
-* Adjust the number of columns or reference position if necessary.
+* Adjust the number of columns or anchor position if necessary.
 
 To check the vertical extent of the scene:
 * Slew to the top row of panels.
 * Confirm that the grid reaches the desired altitude for your targets.
-* Adjust the number of rows or reference position as needed.
+* Adjust the number of rows or anchor position as needed.
 
 >Note: Because of potential gimbal lock, the Alpaca Driver may not always be able to calculate a fully canonical solution when the mount altitude is exactly 0°. When planning panorama grids, avoid placing rows at Altitude 0°. Instead, offset the grid by a few degrees above or below the horizon.
 

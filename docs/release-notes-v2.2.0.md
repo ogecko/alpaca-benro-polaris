@@ -67,11 +67,12 @@
 - **[Polar Alignment]** Guiding adjustments applied as corrections rather than setpoint changes to maintain polar alignemnt
 - **[Drift and PEC]** Models linear and harmonic drift in RA and Dec to correct alignment and periodic errors, significantly improving sidereal tracking accuracy.
 
-### Panorama Tools
-- **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.
-- **[Pano Recenter]** Add btn on the Dashboard to save the current pointing orientation into the PanoGrid, recentering it in space.
+### Panorama Improvements
+- **[Pano Recenter]** Add btn on the Dashboard to recenter the PanoGrid to match the mounts current orientation
 - **[Pano Swap]**  Add btn to switch between Landscape and Portrait orientation (swapping hstep and vstep values)
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
+- **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.
+- **[Anchor Position]**  Allow Anchor Position to be specified in Topocentric, Equatorial or Galactic coordinates.
 - **[Pano Galactic]**  Add "Sky - Milky Way" panorama that aligns with the milky way spine using Galactic coordinates. 
 
 ## Utilities and Visualisation

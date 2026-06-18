@@ -1343,14 +1343,12 @@ class Polaris:
                 self._sm.optimize_alignQ_B2T()
                 self._sm.refresh_pid_setpoints_from_q1()
                 self._sm.streamSyncData()
-            elif param == "ref":
-                if changed_params["ref"]==3:    # Set Current Orientation
-                    Config.apply_changes({
-                        "r1": self.azimuth,
-                        "r2": self.altitude,
-                        "r3": self.roll,
-                        "ref": 0
-                    })
+            elif param == "ref_action":
+                if changed_params["ref_action"]=="update":    # Update Reference Position with Current Orientation
+                    match Config.ref:
+                        case 0: Config.apply_changes({"r1": self.azimuth, "r2": self.altitude,  "r3": self.roll, "ref_action": '' })
+                        case 1: Config.apply_changes({"r1": self.rightascension, "r2": self.declination,  "r3": self.positionangle, "ref_action": '' })
+                        case 2: Config.apply_changes({"r1": self._pid.gamma_pv[0], "r2": self._pid.gamma_pv[1],  "r3": self._pid.gamma_pv[2], "ref_action": '' })
 
     @property
     def tracking(self) -> bool:
@@ -2302,29 +2300,38 @@ class Polaris:
         return r, c
 
     def get_ref_anchor_position(self):
-        """Returns the Anchor Topocentric or Galactic co-ordinates"""
-        # Initially in Topocentric co-ordinates (az, alt, roll)
+        """Returns the Anchor Position in Reference Frame co-ordinates, except MW Pano which is always Galactic co-ordinates"""
         ref_x = getattr(Config, "r1", 0.0)
         ref_y = getattr(Config, "r2", 0.0)
         ref_z = getattr(Config, "r3", 0.0)  # degrees
         # if "Sky - Milky Way" Convert to Galactic co-ordinates (l, b, gpa)
         if Config.track == 3:
-            x,y,z = ref_x, ref_y, ref_z
-            rah, dec = self.altaz2radec(ref_y, ref_x)
-            posa, para = self._sm.roll2pa(ref_x, ref_y, ref_z)
-            ref_x, ref_y, ref_z = delta_to_gamma([rah*15, dec, posa])
-            self.logger.info(f"PANO: Anchor Topo {x:.2f} {y:.2f} {z:.2f} | Eq {rah:.2f} {dec:.2f} {posa:.2f} | Gal {ref_x:.2f} {ref_y:.2f} {ref_z:.2f}")
+            if (Config.ref == 0):    # Topo to Galactic
+                rah, dec = self.altaz2radec(ref_y, ref_x)
+                posa, para = self._sm.roll2pa(ref_x, ref_y, ref_z)
+                ref_x, ref_y, ref_z = delta_to_gamma([rah*15, dec, posa])
+            elif (Config.ref == 1):  # Equatorial to Galactic
+                ref_x, ref_y, ref_z = delta_to_gamma([ref_x*15, ref_y, ref_z])
+        else:
+            if (Config.ref == 1):    # if Equatorial then RA hrs to decimal degrees
+                ref_x = ref_x*15
+    
         return float(ref_x), float(ref_y), float(ref_z)
+    
 
     def get_ref_azaltroll_position(self, ref_x, ref_y, ref_z):
-        """Returns the Topocentric co-ordinates for an adjusted reference position"""
-        # if "Sky - Milky Way" Convert from Galactic co-ordinates to Topocentric
-        if Config.track == 3:
+        """Returns the Topocentric co-ordinates for an adjusted position"""
+        # if "Sky - Milky Way" Convert from Galactic to Topocentric
+        if Config.track == 3 or Config.ref == 2:
             x,y,z = ref_x, ref_y, ref_z
             rad, dec, posa = gamma_to_delta([ref_x, ref_y, ref_z])
             ref_y, ref_x = self.radec2altaz(rad/15, dec)
             ref_z = self._sm.pa2roll(ref_x, ref_y, posa)
-            self.logger.info(f"PANO: Panel Gal {x:.2f} {y:.2f} {z:.2f} | Eq {rad/15:.2f} {dec:.2f} {posa:.2f} | Topo {ref_x:.2f} {ref_y:.2f} {ref_z:.2f}")
+
+        elif (Config.ref == 1):   # Equatorial to Topo
+            ref_y, ref_x = self.radec2altaz(ref_x/15, ref_y)
+            ref_z = self._sm.pa2roll(ref_x, ref_y, ref_z)
+
         return float(ref_x), float(ref_y), float(ref_z)
        
 

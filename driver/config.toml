@@ -46,7 +46,8 @@ first = 0                                   # Defines which corner is assigned p
 order = 0                                   # Defines the sequence in which panels are captured: 0=Column-Major, 1=Row-Major, 2=Serpentine
 track = 0                                   # Defines how the mount sets roll and tracking after moving to each panel: 0=Foreground/notracking, 1=Horizon-Locked/tracked&zero-roll, 2=Celestrial/tracked
 anchor = 0                                  # Which part of the mosaic should be placed at the Reference Position: 0: Mosaic-Center, n=Panel-n
-ref = 0                                     # Defines what type of Reference Position: 0=Az/Alt/Roll, 1=RA/Dec/PA, 2=OrbitalID, 3=Current Mount Orientation
+ref_action = ''                             # set to "update" to set reference position to current mount orientation; auto-resets to ""
+ref = 0                                     # Defines Reference Frame: 0=Az/Alt/Roll, 1=RA/Dec/PA, 2=Glon/Glat/GPA
 r1 = 90.0                                   # Axis1 of Reference Position
 r2 = 5.0                                    # Axis2 of Reference Position
 r3 = 0.0                                    # Axis3 of Reference Position
