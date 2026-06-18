@@ -49,7 +49,7 @@
                   <q-select
                     label="Location" :model-value="cfg.location" :options="locationOptions" 
                     use-input input-debounce="0" fill-input hide-selected
-                    emit-value @filter="locationFilter" @update:model-value="onLocationSelect" @input-value="onLocationTyped" @clear="onLocationClear"
+                    emit-value @update:model-value="onLocationSelect" @input-value="onLocationTyped" 
                   >
                     <template v-slot:append>
                       <q-icon name="mdi-content-save" class="cursor-pointer" color="grey-6" @click.stop="onLocationSave">
@@ -243,7 +243,7 @@
 <script setup lang="ts">
 // import axios from 'axios'
 import { useQuasar, debounce } from 'quasar'
-import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useConfigStore } from 'src/stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { useStatusStore } from 'src/stores/status';
@@ -327,24 +327,6 @@ const locationOptions = computed<string[]>(() =>
     : []
 )
  
-// Filtered subset shown while the user types
-const filteredLocationOptions = ref<string[]>([])
-
-// Keep filteredLocationOptions in sync when the source list changes
-// (e.g. after a save/delete refreshes location_list)
-watch(locationOptions, (opts) => {
-  filteredLocationOptions.value = opts
-}, { immediate: true })   // ← immediate: true seeds it on mount
-
-function locationFilter(val: string, update: (fn: () => void) => void) {
-  update(() => {
-    const needle = val.toLowerCase()
-    filteredLocationOptions.value = needle
-      ? locationOptions.value.filter(o => o.toLowerCase().includes(needle))
-      : locationOptions.value
-  })
-}
- 
 // User picked an existing entry from the dropdown → load it
 function onLocationSelect(name: string | null) {
   if (!name) return
@@ -357,13 +339,6 @@ function onLocationSelect(name: string | null) {
 function onLocationTyped(val: string) {
   cfg.location = val
   putdb({ location: val })
-}
- 
-// User clicked the clearable × → delete the current entry from the store
-function onLocationClear() {
-  const name = cfg.location
-  if (!name) return
-  put({ location: name, location_action: 'delete' })
 }
  
 // User clicked the save icon → save current lat/lon/ele/pressure under current name
