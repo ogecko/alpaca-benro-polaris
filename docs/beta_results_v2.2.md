@@ -195,7 +195,7 @@ Notes: Last week RC1 tester.
 
 
 ## Beta Tester: Greg Stark
-(Dis: gbstark; GH: gstakgb, KS: Greg Stark)
+(Dis: gbstark; GH: starkgb, KS: Greg Stark)
 ### Platform & Environment
 ### Test Areas
 ### Results
