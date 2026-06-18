@@ -39,6 +39,7 @@
 
 ### Refactored Kinematics
 - **[Galactic Coordinates]** Dashboard supports Topocentric, Equatorial and now Galactic Frames for naviagation relative to the milky way galaxy's spine.
+- **[Reachable Targets]**: Resolve Target Orientation to a reachable orientation given Polaris Limits in Alt and Roll
 - **[Improved Accuracy]** Reduce tracking RMS Error by up to 70%, by synchronising 518 and PID calculations.
 - **[Kinematics Status]** A new Kinematics page that provides a comprehensive overview of both Forward and Inverse Kinematics workflows.
 - **[Negative Azimuth]** Goto's now support altitudes down to -79° by flipping the astro axis in the opposite direction. Previously limited to -8°.

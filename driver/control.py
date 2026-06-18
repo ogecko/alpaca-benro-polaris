@@ -18,7 +18,7 @@ from kinematics import wrap360, wrap180, calc_parallactic_angle, wrap_angle_resi
 from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams, calc_equatorial_axes_B
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
-from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference
+from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -1155,6 +1155,7 @@ class PID_Controller():
 
         
         # Remember cameraQ_ref and last cameraQ_ref for calculating FF
+        self.alpha_ref = np.array(reachable_azaltroll(*self.alpha_ref))
         self.gamma_sp = delta_to_gamma(self.delta_ref)
         cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
         if self.cameraQ_ref is None:

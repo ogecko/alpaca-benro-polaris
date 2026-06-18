@@ -32,6 +32,7 @@
 - [X] Galactic - Add Galactic Co-ordinate system to Pilot
 - [X] Galactic - Add Sky - Milky Way Panorama for aligning pano grid with Milky Way spine
 - [X] Galactic - Use Galactic co-ord for MW Pano anchor (rather than Az/Alt as they shift as MW pano proceeds)
+- [X] Kinematics - Resolve Target Orientation to a reachable orientation given Polaris Limits in Alt and Roll
 - [X] Version - Upgrade to Beta version 2.2
 - [X] HTTPS - Document Location GPS using phone web browser
 - [X] Tests - Remove all performance tests from core
@@ -41,7 +42,6 @@
 - [X] Settings - Add ability to save observing site locations
 - [ ] Settings - Add ability to save orbital parameters
 - [ ] Close candidate enhancement list
-    - [ ] Galactic - Improve fallback for unreachable roll angles in Galactic panos
     - [ ] MAC - Consider adding autotune to Mechanical Alignment Correction
     - [ ] CCDCiel - Auto install Alpaca Driver scripts for CCDCiel
     - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding

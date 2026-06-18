@@ -8,7 +8,8 @@ Contents
 --------
   Angle helpers       wrap360/180/90, is_angle_same, angular_error_arcmin, 
                       angular_separation, angular_difference, is_angle_between
-  Angle clampers      clamp_arcsec,  clamp_alpha/delta/theta/error/offset/error, altitude_to_maxroll
+  Angle clampers      clamp_arcsec,  clamp_alpha/delta/theta/error/offset/error, 
+                      altitude_to_maxroll, wrap_to_nearest, reachable_azaltroll
   3D Vectors          wrap_angle_residual, wrap_state_angles
                       azalt_to_vector, vector_to_az_alt, v_angular_distance
                       calculate_angular_velocity_vector
@@ -658,6 +659,94 @@ def altitude_to_maxroll(alt_deg, theta2_max=81.5):
     if abs(cos_ratio) > 1:
         return 0.0
     return np.degrees(np.arccos(cos_ratio))
+
+THETA2_MAX = 81.5  # hard mechanical limit for both alt and roll axes
+
+def wrap_to_nearest(angle: float, target: float = 0.0) -> float:
+    """Wrap angle to the value nearest to target, in steps of 360."""
+    diff = angle - target
+    diff = diff - 360 * round(diff / 360)
+    return target + diff
+
+
+def reachable_azaltroll(az: float, alt: float, roll: float) -> tuple[float, float, float]:
+    """
+    Map any (az, alt, roll) to a mechanically reachable (az, alt, roll).
+
+    Priority: reach the requested Az/Alt first, then best-effort on Roll.
+
+    Alt handling
+    ------------
+    Normalise alt to the range (-180, 180] via wrap_to_nearest.
+    If the result is in (-90, 90) it is directly reachable.
+    If |alt| > 90 the boresight has gone 'over the top'; flip to the
+    equivalent pointing: alt' = 180 - alt (or -180 - alt), az' = az + 180,
+    and accumulate a 180° roll flip.
+
+    Roll handling
+    -------------
+    Normalise roll (including any flip from the alt stage) to (-180, 180].
+    The maximum achievable roll at the resolved altitude is altitude_to_maxroll(alt').
+    If |roll| <= max_roll  → use roll as-is.
+    If |roll| >  max_roll  → try the 180° equivalent (roll - 180 or roll + 180);
+                             if still unreachable, clamp to ±max_roll.
+
+    Returns
+    -------
+    az  : float  0 – 360
+    alt : float  -THETA2_MAX – +THETA2_MAX
+    roll: float  -max_roll   – +max_roll
+    """
+
+    # Normalise alt to (-180, 180] 
+    alt_norm = wrap_to_nearest(alt, target=0.0)   # brings to (-180, 180]
+
+    # Resolve over-the-top alt by flipping through the pole 
+    roll_flip = 0.0
+
+    if alt_norm > THETA2_MAX:
+        # e.g. alt=120 → alt'=60, az+=180, roll+=180
+        alt_resolved = 180.0 - alt_norm
+        az += 180.0
+        roll_flip += 180.0
+    elif alt_norm < -THETA2_MAX:
+        # e.g. alt=-120 → alt'=-60, az+=180, roll+=180
+        alt_resolved = -180.0 - alt_norm
+        az += 180.0
+        roll_flip += 180.0
+    else:
+        alt_resolved = alt_norm
+
+    # Safety clamp — should not be needed after the flip, but be defensive
+    alt_resolved = float(np.clip(alt_resolved, -THETA2_MAX, THETA2_MAX))
+
+    # Normalise az to [0, 360)
+    az_resolved = az % 360.0
+
+    # Compute the roll limit at the resolved altitude
+    max_roll = altitude_to_maxroll(alt_resolved, THETA2_MAX)
+
+    # Resolve roll
+    roll_total = wrap_to_nearest(roll + roll_flip, target=0.0)
+
+    if abs(roll_total) <= max_roll:
+        roll_resolved = roll_total
+    else:
+        # Try the upside-down equivalent: rotate 180° around boresight
+        sign = 1.0 if roll_total >= 0 else -1.0
+        roll_flipped = roll_total - sign * 180.0
+        if abs(roll_flipped) <= max_roll:
+            roll_resolved = roll_flipped
+        else:
+            # Neither orientation reaches the target — clamp to nearest limit
+            roll_resolved = float(np.clip(roll_total, -max_roll, max_roll))
+
+    return az_resolved, alt_resolved, roll_resolved
+
+
+
+
+
 
 """
 Revised FK/IK closed form trig solutions - Jun2026.
