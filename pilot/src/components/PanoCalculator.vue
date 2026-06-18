@@ -8,7 +8,7 @@
 
     <q-select
       v-model="sensor_size" label="Sensor Size" new-value-mode="add-unique" use-input use-chips dense emit-value map-options
-      :options="['Full Frame (36 × 24 mm)', 'APS-C / IMX571 (23.5 × 15.7 mm)', 'Micro Four Thirds (17.3 × 13.0 mm)', 'IMX585 (11.2 × 6.3 mm)', 'IMX533 (11.3 × 11.3 mm)', 'IMX462 (5.6 × 3.2 mm)']"
+      :options="sensor_size_options"
     />
 
     <q-select
@@ -23,6 +23,13 @@
 
     <div v-if="show_result">
         <div class="text-subtitle2 text-grey-6 q-mt-md q-pt-lg">
+          Calculated PanoGrid Field of View:
+        </div>    
+        <div class="row q-col-gutter-lg  items-center  ">
+          <q-input class="col-6" label="Horizontal FOV" suffix="°" readonly v-model="calc_hGridFOV_display" input-class="text-right" dense/>
+          <q-input class="col-6" label="Vertical FOV" suffix="°" readonly v-model="calc_vGridFOV_display" input-class="text-right" dense/>
+        </div>
+        <div class="text-subtitle2 text-grey-6 q-mt-md">
           Calculated Sensor Field of View:
         </div>    
         <div class="row q-col-gutter-lg  items-center  ">
@@ -81,6 +88,7 @@ function parseSensorXY(str?: string): { x: number | null; y: number | null } {
 }
 
 // ---------------- Computed functions
+
 const sensor_size_x = computed<number | null>(() => {
   return parseSensorXY(sensor_size.value).x
 })
@@ -88,6 +96,13 @@ const sensor_size_x = computed<number | null>(() => {
 const sensor_size_y = computed<number | null>(() => {
   return parseSensorXY(sensor_size.value).y
 })
+
+const sensor_size_options = computed(() => {
+  const landscape =  ['Full Frame (36 × 24 mm)', 'APS-C / IMX571 (23.5 × 15.7 mm)', 'Micro Four Thirds (17.3 × 13.0 mm)', 'IMX585 (11.2 × 6.3 mm)', 'IMX533 (11.3 × 11.3 mm)', 'IMX462 (5.6 × 3.2 mm)']  
+  const portrait =  ['Full Frame (24 × 36 mm)', 'APS-C / IMX571 (15.7 × 23.5 mm)', 'Micro Four Thirds (13.0 × 17.3 mm)', 'IMX585 (6.3 × 11.2 mm)', 'IMX533 (11.3 × 11.3 mm)', 'IMX462 (3.2 × 5.6 mm)']  
+  return ((sensor_size_x.value ?? 36) > (sensor_size_y.value ?? 24)) ? landscape : portrait
+})
+
 
 const focal_mm = computed<number | null>(() => {
   return parseFirstNumber(focal_length.value)
@@ -122,6 +137,16 @@ const calc_vstep = computed<number>(() => {
   return calc_vFOV.value * (1 - overlap_frac.value)
 })
 
+const calc_vGridFOV = computed<number>(() => {
+  if (!calc_vFOV.value || calc_vstep.value === null) return NaN
+  return calc_vFOV.value + calc_vstep.value * (cfg.rows - 1) 
+})
+
+const calc_hGridFOV = computed<number>(() => {
+  if (!calc_hFOV.value || calc_hstep.value === null) return NaN
+  return calc_vFOV.value + calc_hstep.value * (cfg.cols - 1) 
+})
+
 const calc_hFOV_display = computed(() =>
   isFinite(calc_hFOV.value) ? calc_hFOV.value.toFixed(2) : ''
 )
@@ -136,6 +161,14 @@ const calc_hstep_display = computed(() =>
 
 const calc_vstep_display = computed(() =>
   isFinite(calc_vstep.value) ? calc_vstep.value.toFixed(2) : ''
+)
+
+const calc_vGridFOV_display = computed(() =>
+  isFinite(calc_vGridFOV.value) ? calc_vGridFOV.value.toFixed(2) : ''
+)
+
+const calc_hGridFOV_display = computed(() =>
+  isFinite(calc_hGridFOV.value) ? calc_hGridFOV.value.toFixed(2) : ''
 )
 
 const show_result = computed<boolean>(() => {

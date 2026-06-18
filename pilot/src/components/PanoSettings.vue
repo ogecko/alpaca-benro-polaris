@@ -113,7 +113,9 @@ const vStepLabel = computed(() => `${(cfg.ref==2)?'Galactic Lat Step':  (cfg.ref
 function swapStepSettings() {
   const vstep = cfg.hstep
   const hstep = cfg.vstep
-  put({hstep, vstep})
+  const sensor_size = cfg.sensor_size.replace(/([\d.]+)(\s*[×xX]\s*)([\d.]+)/,'$3$2$1')
+
+  put({hstep, vstep, sensor_size})
 }
 
 async function copyPanoSettings() {

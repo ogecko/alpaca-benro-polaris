@@ -75,6 +75,7 @@
 - **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.
 - **[Anchor Position]**  Allow Anchor Position to be specified in Topocentric, Equatorial or Galactic coordinates.
 - **[Pano Galactic]**  Add "Sky - Milky Way" panorama that aligns with the milky way spine using Galactic coordinates. 
+- **[Pano Calculator]**  Calculates the full PanoGrid field of view (FOV), (as well as the sensor FOV, hstep, and vstep) 
 
 ## Utilities and Visualisation
 - **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.
