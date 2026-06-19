@@ -42,6 +42,7 @@
 - [X] Settings - Add ability to save observing site locations
 - [ ] Settings - Add ability to save orbital parameters
 - [ ] Close candidate enhancement list
+    - [ ] Goto - Determine ideal settle time for Benro Polaris and v2.2
     - [ ] MAC - Consider adding autotune to Mechanical Alignment Correction
     - [ ] CCDCiel - Auto install Alpaca Driver scripts for CCDCiel
     - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
