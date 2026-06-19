@@ -14,7 +14,7 @@
 | [Shiv](#beta-tester-shiv)| [ ] Platform | [ ] Results | [ ] Summary
 | [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
 | [Mauricio](#beta-tester-mauricio)| [ ] Platform | [ ] Results | [ ] Summary
-
+| [Greg](#beta-tester-greg-stark)| [X] Platform | [ ] Results | [ ] Summary
 
 
 ## Beta Tester: Vladimir 
@@ -197,6 +197,11 @@ Notes: Last week RC1 tester.
 ## Beta Tester: Greg Stark
 (Dis: gbstark; GH: starkgb, KS: Greg Stark)
 ### Platform & Environment
+* Applications: Nina 3.2.0.9001, Stellarium 25.4.0, PHD2 2.6.14
+* Platform: Windows 11 Pro 25H2, Browser: Google Chrome Version 149.0.7827.115
+* Hardware: MeLe 4C (32 GB with 512 GB SSD), iPhone 13 mini iOS 26.5.
+* Optics: Sony a7R IV (Full Frame, IMX455?), various lens from 20mm f/1.8 to 150-500mm f/5-6.7, no filters, Guiding via QHY5III 678M w/QHY 30mm f/4.3 scope.  
+* Alt setup: Player-One Poseidon C (OSC APS-C, IMX571), Borg 90FL w/Starizona Apex ED reducer (325mm f/3.6), IDAS GNB (Ha+OIII), Askar C2 ColourMagic (SII+OIII), Guiding via QHY5III 678M and OAG
 ### Test Areas
 ### Results
 ### Feedback Summary
