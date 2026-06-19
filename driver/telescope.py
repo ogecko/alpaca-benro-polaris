@@ -1518,7 +1518,7 @@ class supportedactions:
             "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
             "Polaris:MoveAxis", "Polaris:MoveMotor", "Polaris:ResetAxes",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
-            "Polaris:SyncRoll", "Polaris:SyncRemove", 
+            "Polaris:SyncRoll", "Polaris:SyncRemove", "Polaris:AutotuneMAC",
             "Polaris:J2000Sync", "Polaris:J2000Goto",
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
             "Polaris:GetOrbitals", "Polaris:GetCatalog",
@@ -1819,6 +1819,24 @@ class action:
             }
             polaris._pid.set_pano_offset(offsets)
             resp.text = await PropertyResponse('Polaris PanoOffset ok', req)
+            return
+
+        elif actionName == "Polaris:AutotuneMAC":
+            logger.info('Polaris:AutotuneMAC')
+            from kinematics import autotune_mac, MountModelParams
+            base_params = MountModelParams.from_config(Config)
+            result = autotune_mac(polaris._sm.sync_history, base_params)
+            if result['success']:
+                improv_msg = ('improved' if result['rms_improv']>0 else 'worse') + f' {abs(result['rms_improv']):.1f}%'
+                logger.info(
+                    f"AutotuneMAC: Based on {result['n_points']} points, ran {result['nit']} iterations | "
+                    f"R2 {result['r2']:.4f}, "
+                    f"RMS {result['rms_before']:.2f}' to {result['rms_after']:.2f}' ({improv_msg}) | "
+                    f"A = {result['m2_tilt_dm2_amp']:.2f}' "
+                    f"B = {result['m2_tilt_dm2_zero']:.1f}° "
+                    f"C = {result['m3_tilt_dm1']:.2f}'"
+                )
+            resp.text = await PropertyResponse(result, req)
             return
 
         else:

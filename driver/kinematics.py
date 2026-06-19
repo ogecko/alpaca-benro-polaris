@@ -23,9 +23,11 @@ Contents
 
 import math
 import numpy as np
+import dataclasses
 from quaternion import Q as Quaternion
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
+from scipy.optimize import minimize
 import ephem
 
 # ── Angle helpers ─────────────────────────────────────────────────────────────
@@ -959,6 +961,107 @@ def apply_mechanical_corrections(q: Quaternion, params: MountModelParams):
     q_fixed = (q_corr * q).normalised
 
     return q_fixed, magnitude
+
+
+
+def autotune_mac(sync_history: list[dict], base_params: MountModelParams) -> dict:
+    """
+    Numerically optimise three MAC parameters to minimise QUEST residuals.
+
+    Optimises: m2_tilt_dm2_amp, m2_tilt_dm2_zero, m3_tilt_dm1
+    All other MountModelParams are held fixed at base_params values.
+
+    Parameters
+    ----------
+    sync_history : list of sync entry dicts from SyncManager.sync_history (only non-deleted AzAlt entries are used)
+    base_params  : current MountModelParams (frozen — not mutated)
+
+    Returns
+    -------
+    dict with keys:
+        success          : bool
+        m2_tilt_dm2_amp  : float (arcmin)
+        m2_tilt_dm2_zero : float (degrees)
+        m3_tilt_dm1      : float (arcmin)
+        rms_before       : float (degrees)
+        rms_after        : float (degrees)
+        rms_improv       : float (rms_before / rms_after)
+        r2               : float (fraction of variance explained by MAC)
+        n_points         : int   (number of sync points used)
+        nit              : int   (number of optimiser iterations)
+        message          : str
+    """
+
+    # ── Gather valid sync pairs ───────────────────────────────────────────
+    entries = [
+        e for e in sync_history
+        if not e.get('deleted', False) 
+        and e.get('a_az') is not None
+        and e.get('a_alt') is not None
+    ]
+    n = len(entries)
+    if n < 2:
+        return {'success': False, 'message': f'Need ≥2 sync points, have {n}', 'n_points': n}
+
+    # Pre-compute observed quaternions — fixed, don't change with params
+    q_obs_list = [azaltroll_to_q(e['a_az'], e['a_alt'], 0.0) for e in entries]
+
+    # ── Objective: sum of squared angular residuals (radians²) ───────────
+    def residuals_ss(params: MountModelParams) -> float:
+        pairs = []
+        for e, q_obs in zip(entries, q_obs_list):
+            motorQ    = azaltroll_to_q(e['p_az'], e['p_alt'], e['p_roll'])
+            q_corr, _ = get_mechanical_correction_q(motorQ, params)
+            q_pred    = (q_corr * motorQ).normalised
+            pairs.append((q_pred, q_obs))
+
+        alignQ = quest_solve(pairs)
+
+        ss = 0.0
+        for q_pred, q_obs in pairs:
+            v_pred_rot = np.array(alignQ.rotate(q_pred.rotate([0, 0, -1])))
+            v_obs      = np.array(q_obs.rotate([0, 0, -1]))
+            dot = np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0)
+            ss += math.acos(dot) ** 2
+        return ss
+
+    def objective(x):
+        """ Objective fn(x) where x are the three MAC parameters. Returns residuals_rms to minimise """
+        amp, zero, dm1 = x
+        params = dataclasses.replace(base_params, m2_tilt_dm2_amp  = amp, m2_tilt_dm2_zero = zero, m3_tilt_dm1 = dm1)
+        return residuals_ss(params)
+
+    # ── Optimise ─────────────────────────────────────────────────────────
+    #              m2_tilt_dm2_amp  (arcmin)    m2_tilt_dm2_zero (degrees)    m3_tilt_dm1 (arcmin)
+    x0         = [ base_params.m2_tilt_dm2_amp, base_params.m2_tilt_dm2_zero, base_params.m3_tilt_dm1 ]
+    bounds     = [ (-60.0,  60.0),              (-90.0,  90.0),               (-60.0,  60.0) ]
+    ss_before  = objective([ base_params.m2_tilt_dm2_amp, base_params.m2_tilt_dm2_zero, base_params.m3_tilt_dm1 ])
+    result     = minimize(
+        objective,
+        x0,
+        method='Nelder-Mead',
+        bounds=bounds,
+        options={'xatol': 0.01, 'fatol': 1e-6, 'maxiter': 2000},
+    )
+    ss_after   = result.fun
+    rms_before = math.degrees(math.sqrt(ss_before / n)) * 60   # arcmin
+    rms_after  = math.degrees(math.sqrt(ss_after  / n)) * 60   # arcmin
+    r2         = 1.0 - (ss_after / ss_before) if ss_before > 0 else 0.0
+
+    return {
+        'success':           result.success,
+        'm2_tilt_dm2_amp':   result.x[0],
+        'm2_tilt_dm2_zero':  result.x[1],
+        'm3_tilt_dm1':       result.x[2],
+        'rms_before':        rms_before,   # arcmin
+        'rms_after':         rms_after,    # arcmin
+        'rms_improv':        (1.0 - rms_after / rms_before) * 100 if rms_before > 0 else 0.0,
+        'r2':                r2,
+        'n_points':          n,
+        'nit':               result.nit,
+        'message':           result.message,
+    }
+
 
 
 # ── QUEST alignment ──────────────────────────────────────────────────────────
