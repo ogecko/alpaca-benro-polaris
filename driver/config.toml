@@ -19,10 +19,11 @@ alpaca_discovery_port = 32227               # Port to expose Alpaca Discovery Se
 stellarium_synscan_port = 10001             # Port to expose the Stellarium/SynSCAN Telescope Control Service on.
 stellarium_synscan_ip_address = ''          # IP Address to expose this StellariumSynSCAN Service on. Loopback='127.0.0.1', Any Address=''.
 alpaca_restapi_ip_address = ''              # IP Address to expose this Alpaca REST API Service on. Loopback='127.0.0.1', Any Address=''.
+preset_action = ''                          # Action to trigger set to "<verb>_<type>", where <verb>="loc" | "pano", and <type>="save" | "load" | "delete"; auto-resets to ""
+preset_name = ''                            # name of the preset to take action on
 
 [server]
-location_action = ''                        # set to "save", "delete", or "load" to trigger action; auto-resets to ""
-location_list   = ''                        # pipe-separated sorted list of saved names, for Pilot locations dropdown
+location_list   = ''                        # pipe-separated sorted list of saved location names, for Pilot locations dropdown
 location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az.
 site_latitude = -33.8598874                 # The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
 site_longitude = 151.2021771                # The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
@@ -35,6 +36,8 @@ default_azimuth = '180'                     # String 'deg:mm:ss' used by Alpaca 
 default_altitude = '45'                     # String 'deg:mm:ss' used by Alpaca Pilot as default altitude on Single Star Align
 
 [panorama]
+pano_list = ''                              # pipe-separated sorted list of saved panorama names, for Pilot panos dropdown
+pano_name = ''                              # Name of the panorama defined below
 sensor_size = 'Full Frame (36 × 24 mm)'     # Sensor size in mm. Only used in Panel Spacing Calculator. 
 panel_overlap = '30%'                       # Overlap betwen adjacent panels. Only used in Panel Spacing Calculator. 
 show_panels = false                         # Show Panorama Grid Panel Navigation on Main Dashboard  

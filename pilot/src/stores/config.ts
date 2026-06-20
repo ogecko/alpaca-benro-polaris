@@ -33,8 +33,8 @@ export const useConfigStore = defineStore('config', {
     alpaca_restapi_ip_address: '',
 
     // Site Info
-    location_list: '',
     location: 'Unknown',
+    location_list: '',
     site_latitude: -33.8598874,
     site_longitude: 151.2021771,
     site_elevation: 39,
@@ -47,6 +47,8 @@ export const useConfigStore = defineStore('config', {
     focal_ratio: 11,
 
     // Panorama
+    pano_name: '',
+    pano_list: '',
     sensor_size: 'Full Frame (36 × 24 mm)',
     panel_overlap: '30%',
     show_panels: false,

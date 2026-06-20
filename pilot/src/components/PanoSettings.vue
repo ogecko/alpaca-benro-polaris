@@ -11,21 +11,45 @@
       </q-btn-group>
     </div>
     <div class="row q-col-gutter-lg items-center q-pt-sm">
-      <q-input class="col-2" v-bind="bindField('cols', 'Columns')" type="number" input-class="text-right" />
-      <q-input class="col-2" v-bind="bindField('rows', 'Rows')" type="number" input-class="text-right" />
-      <div class="col-2"></div>
-      <q-input class="col-3" v-bind="bindField('hstep', hStepLabel, '°')" type="number" input-class="text-right" />
-      <q-input class="col-3" v-bind="bindField('vstep', vStepLabel, '°')" type="number" input-class="text-right" />
+      <q-input class="col-3" v-bind="bindField('cols', 'Columns')" type="number" input-class="text-right" />
+      <q-input class="col-3" v-bind="bindField('rows', 'Rows')" type="number" input-class="text-right" />
+                <div class="col-6">
+                  <q-select
+                    label="Panorama Preset" :model-value="cfg.pano_name" :options="panoOptions" 
+                    use-input input-debounce="0" fill-input hide-selected
+                    emit-value @update:model-value="onPanoSelect" @input-value="onPanoTyped" 
+                  >
+                    <template v-slot:append>
+                      <q-icon name="mdi-content-save" class="cursor-pointer" color="grey-6" @click.stop="onPanoSave">
+                        <q-tooltip>Save current panorama</q-tooltip>
+                      </q-icon>
+                    </template>
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section>
+                          <q-item-label>{{ scope.opt }}</q-item-label>
+                        </q-item-section>
+                        <q-item-section side>
+                          <q-icon name="mdi-close-circle" color="grey-6" class="cursor-pointer" @click.stop="onPanoDelete(scope.opt)">
+                            <q-tooltip>Delete this panorama</q-tooltip>
+                          </q-icon>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                </div>
     </div>
     <div class="row q-col-gutter-lg items-center">
-      <q-select class="col-6" v-bind="bindField('track', 'Rotation and Tracking')" :options="panoTrackingOptions" emit-value map-options />
+      <q-input class="col-3" v-bind="bindField('hstep', hStepLabel, '°')" type="number" input-class="text-right" />
+      <q-input class="col-3" v-bind="bindField('vstep', vStepLabel, '°')" type="number" input-class="text-right" />
       <q-select class="col-3" v-bind="bindField('first', 'First Panel')" :options="panoStartingPositionOptions" emit-value map-options />
       <q-select class="col-3" v-bind="bindField('order', 'Panel Order')" :options="panoOrderOptions" emit-value map-options />
     </div>
     <div class="text-h6 q-pt-lg">Panorama Grid Positioning</div>
     <div class="row q-col-gutter-lg items-center">
-      <q-select class="col-6" v-bind="bindField('anchor', 'Anchor Panel')" :options="panoRefAlignOptions" emit-value map-options />
-      <q-select class="col-6" v-bind="bindField('ref', 'using Reference Frame')" :options="panoRefTypeOptions" emit-value map-options />
+      <q-select class="col-3" v-bind="bindField('anchor', 'Anchor Panel')" :options="panoRefAlignOptions" emit-value map-options />
+      <q-select class="col-3" v-bind="bindField('ref', 'Reference Frame')" :options="panoRefTypeOptions" emit-value map-options />
+      <q-select class="col-6" v-bind="bindField('track', 'Rotation and Tracking')" :options="panoTrackingOptions" emit-value map-options />
     </div>
     <div class="row q-col-gutter-lg q-pb-md items-center q-pt-md">
       <div class="text-caption text-grey-5 col-3">Anchor Position
@@ -61,10 +85,11 @@
 import { onMounted, computed, ref } from 'vue';
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
-import { debounce } from 'quasar';
+import { useQuasar, debounce } from 'quasar';
 import PanoNavigation from 'src/components/PanoNavigation.vue';
 import PanoCalculator from 'src/components/PanoCalculator.vue';
 
+const $q = useQuasar()
 const dev = useDeviceStore();
 const cfg = useConfigStore();
 // cfg properties {"cols":5, "rows":3, "hstep": 50, "vstep": 30, "first":0, "order":2, "track":2, "anchor":3, "ref":0, "r1":180, "r2":30, "r3":10, "panel":2 }
@@ -90,9 +115,9 @@ const panoStartingPositionOptions = [
 ];
 
 const panoRefTypeOptions = [
-  { label: 'Topocentric Co-ordinates', value: 0 },
-  { label: 'Equatorial Co-ordinates', value: 1 },
-  { label: 'Galactic Co-ordinates', value: 2 },
+  { label: 'Topocentric', value: 0 },
+  { label: 'Equatorial', value: 1 },
+  { label: 'Galactic', value: 2 },
 ];
 
 const panoRefAlignOptions = computed(() => {
@@ -151,6 +176,52 @@ onMounted(async () => {
 });
 
 
+// Derive the dropdown options from the pipe-separated pano_list
+const panoOptions = computed<string[]>(() =>
+  cfg.pano_list
+    ? cfg.pano_list.split('|').filter(Boolean)
+    : []
+)
+ 
+// User picked an existing entry from the dropdown → load it
+function onPanoSelect(name: string | null) {
+  if (!name) return
+  put({ preset_name: name, preset_action: 'load_pano', })
+  triggerAnimation(['site_latitude', 'site_longitude', 'site_elevation', 'site_pressure'])
+}
+ 
+// User is typing a new name (free-text) → just update pano_name, no action
+function onPanoTyped(val: string) {
+  cfg.pano_name = val
+  putdb({ pano_name: val })
+}
+ 
+// User clicked the save icon → save current pano under current name
+function onPanoSave() {
+  const name = cfg.pano_name
+  if (!name) return
+  put({ preset_name: name, preset_action: 'save_pano' })
+  $q.notify({
+    message: `Panorama "${name}" saved.`,
+    type: 'positive', position: 'top', timeout: 3000,
+    actions: [{ icon: 'mdi-close', color: 'white' }],
+  })
+}
+ 
+// User clicked the delete icon on a dropdown row
+function onPanoDelete(name: string) {
+  put({ preset_name: name, preset_action: 'delete_pano' })
+  $q.notify({
+    message: `Panorama "${name}" deleted.`,
+    type: 'positive', position: 'top', timeout: 3000,
+    actions: [{ icon: 'mdi-close', color: 'white' }],
+  })
+}
+
+
+
+
+
 const taKeys = ref(new Set<string>()) // set of keys to animate
 function triggerAnimation(keys: string[]) {
   keys.forEach(key => taKeys.value.add(key))
@@ -193,7 +264,7 @@ function bindField(key: string, label: string, suffix?: string) {
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store
 const put = debounce((payload) => cfg.configUpdate(payload), 5); // fast put for toggles
-// const putdb = debounce((payload) => cfg.configUpdate(payload), 500); // slow put for input text
+const putdb = debounce((payload) => cfg.configUpdate(payload), 500); // slow put for input text
 </script>
 
 <style lang="scss">
