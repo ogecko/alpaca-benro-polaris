@@ -204,8 +204,9 @@ Notes: Last week RC1 tester.
 * Optics: Sony a7R IV (Full Frame, IMX455?), various lens from 20mm f/1.8 to 150-500mm f/5-6.7, no filters, Guiding via QHY5III 678M w/QHY 30mm f/4.3 scope.  
 * Alt setup: Player-One Poseidon C (OSC APS-C, IMX571), Borg 90FL w/Starizona Apex ED reducer (325mm f/3.6), IDAS GNB (Ha+OIII), Askar C2 ColourMagic (SII+OIII), Guiding via QHY5III 678M and OAG
 ### Test Areas
-* Early dev2_2 build 19-Jun-26; at Az=0; changing Alt can cause unecessary "unwind" operations.
+* Indoor slew/movement tests via Alpaca Pilot
 ### Results
+* Early dev2_2 build 19-Jun-26; at Az=0; changing Alt can cause unecessary "unwind" operations.
 ### Feedback Summary
 
 
