@@ -89,6 +89,15 @@ function parseSensorXY(str?: string): { x: number | null; y: number | null } {
 
 // ---------------- Computed functions
 
+function defaultPanoPresetName() {
+  const size = `${cfg.cols} x ${cfg.rows}`
+  const sensor = sensor_size.value.replace(/\s*\([^)]*mm\)/i, '').trim()
+  const lens = focal_length.value
+  const overlap = `${panel_overlap.value} overlap`
+  return `${size} ${sensor}, ${lens}, ${overlap}`
+}
+
+
 const sensor_size_x = computed<number | null>(() => {
   return parseSensorXY(sensor_size.value).x
 })
@@ -201,7 +210,8 @@ async function onApply() {
     vstep: calc_vstep.value,
     sensor_size: sensor_size.value,
     panel_overlap: panel_overlap.value,
-    focal_length: parseFirstNumber(focal_length.value) || 35
+    focal_length: parseFirstNumber(focal_length.value) || 35,
+    pano_name: defaultPanoPresetName()
   }
   await cfg.configUpdate(payload)
 }

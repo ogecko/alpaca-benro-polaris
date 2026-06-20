@@ -19,7 +19,7 @@ alpaca_discovery_port = 32227               # Port to expose Alpaca Discovery Se
 stellarium_synscan_port = 10001             # Port to expose the Stellarium/SynSCAN Telescope Control Service on.
 stellarium_synscan_ip_address = ''          # IP Address to expose this StellariumSynSCAN Service on. Loopback='127.0.0.1', Any Address=''.
 alpaca_restapi_ip_address = ''              # IP Address to expose this Alpaca REST API Service on. Loopback='127.0.0.1', Any Address=''.
-preset_action = ''                          # Action to trigger set to "<verb>_<type>", where <verb>="loc" | "pano", and <type>="save" | "load" | "delete"; auto-resets to ""
+preset_action = ''                          # Action to trigger preset "<verb>_<type>", where <verb>="save" | "load" | "delete" and <type>="loc" | "pano"; auto-resets to ""
 preset_name = ''                            # name of the preset to take action on
 
 [server]
@@ -36,7 +36,7 @@ default_azimuth = '180'                     # String 'deg:mm:ss' used by Alpaca 
 default_altitude = '45'                     # String 'deg:mm:ss' used by Alpaca Pilot as default altitude on Single Star Align
 
 [panorama]
-pano_list = ''                              # pipe-separated sorted list of saved panorama names, for Pilot panos dropdown
+pano_list = ''                              # pipe-separated sorted list of saved panorama presets, for Pilot panos dropdown
 pano_name = ''                              # Name of the panorama defined below
 sensor_size = 'Full Frame (36 × 24 mm)'     # Sensor size in mm. Only used in Panel Spacing Calculator. 
 panel_overlap = '30%'                       # Overlap betwen adjacent panels. Only used in Panel Spacing Calculator. 
