@@ -4,9 +4,10 @@ Tests for reachable_azaltroll() and supporting helpers in kinematics.py
 Convention
 ----------
 - Az  : 0–360 (North=0, East=90)
-- Alt : -81.5 to +81.5 (horizon=0, zenith=90 nominal but clamped)
+- Alt : -81.5 to +81.5 (horizon=0, zenith=90 nominal but unreachable)
 - Roll: -81.5 to +81.5 (level=0), range shrinks at high alt
-- THETA2_MAX = 81.5°  (hard mechanical limit for both alt and roll axes)
+- THETA2_MAX = 81.5°  (hard mechanical M2 limit effects both alt and roll axes)
+- THETA2_MIN = -8° (hard mechanical M2 limit effects both alt and roll axes)
 """
 
 import sys
@@ -18,6 +19,7 @@ import numpy as np
 from kinematics import reachable_azaltroll, altitude_to_maxroll, wrap_to_nearest
 
 THETA2_MAX = 81.5
+THETA2_MIN = -8.0
 ABS_TOL    = 1e-6       # degrees, used throughout
 
 
