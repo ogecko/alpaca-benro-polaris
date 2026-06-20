@@ -153,7 +153,7 @@ const calc_vGridFOV = computed<number>(() => {
 
 const calc_hGridFOV = computed<number>(() => {
   if (!calc_hFOV.value || calc_hstep.value === null) return NaN
-  return calc_vFOV.value + calc_hstep.value * (cfg.cols - 1) 
+  return calc_hFOV.value + calc_hstep.value * (cfg.cols - 1) 
 })
 
 const calc_hFOV_display = computed(() =>
