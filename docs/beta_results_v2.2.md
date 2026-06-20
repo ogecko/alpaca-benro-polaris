@@ -4,17 +4,18 @@
 ## Result Summary
 |Tester|Platform|Results|Summary|
 |--|--|--|--|
-| [Mark](#beta-tester-mark)| [ ] Platform | [ ] Results | [ ] Summary
+| [Mark](#beta-tester-mark)| [X] Platform | [ ] Results | [ ] Summary
+| [Vladimir](#beta-tester-vladimir)| [X] Platform | [ ] Results | [ ] Summary
+| [Greg](#beta-tester-greg-stark)| [X] Platform | [ ] Results | [ ] Summary
 | [Daniel](#beta-tester-daniel)| [ ] Platform | [ ] Results | [ ] Summary
 | [Alex](#beta-tester-alex)| [ ] Platform | [ ] Results | [ ] Summary
-| [Vladimir](#beta-tester-vladimir)| [ ] Platform | [ ] Results | [ ] Summary
 | [William](#beta-tester-william)| [ ] Platform | [ ] Results | [ ] Summary
 | [Paul](#beta-tester-paul)| [ ] Platform | [ ] Results | [ ] Summary
 | [Steve](#beta-tester-steve)| [ ] Platform | [ ] Results | [ ] Summary
 | [Shiv](#beta-tester-shiv)| [ ] Platform | [ ] Results | [ ] Summary
 | [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
 | [Mauricio](#beta-tester-mauricio)| [ ] Platform | [ ] Results | [ ] Summary
-| [Greg](#beta-tester-greg-stark)| [X] Platform | [ ] Results | [ ] Summary
+
 
 
 ## Beta Tester: Vladimir 
@@ -203,6 +204,7 @@ Notes: Last week RC1 tester.
 * Optics: Sony a7R IV (Full Frame, IMX455?), various lens from 20mm f/1.8 to 150-500mm f/5-6.7, no filters, Guiding via QHY5III 678M w/QHY 30mm f/4.3 scope.  
 * Alt setup: Player-One Poseidon C (OSC APS-C, IMX571), Borg 90FL w/Starizona Apex ED reducer (325mm f/3.6), IDAS GNB (Ha+OIII), Askar C2 ColourMagic (SII+OIII), Guiding via QHY5III 678M and OAG
 ### Test Areas
+* Early dev2_2 build 19-Jun-26; at Az=0; changing Alt can cause unecessary "unwind" operations.
 ### Results
 ### Feedback Summary
 
