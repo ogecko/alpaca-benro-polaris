@@ -69,6 +69,7 @@
 - **[Drift and PEC]** Models linear and harmonic drift in RA and Dec to correct alignment and periodic errors, significantly improving sidereal tracking accuracy.
 
 ### Panorama Improvements
+- **[Pano Presets]**  Ability to configure, save and load Panoramas presets
 - **[Pano Recenter]** Add btn on the Dashboard to recenter the PanoGrid to match the mounts current orientation
 - **[Pano Swap]**  Add btn to switch between Landscape and Portrait orientation (swapping hstep and vstep values)
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
