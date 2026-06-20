@@ -187,7 +187,9 @@ const panoOptions = computed<string[]>(() =>
 function onPanoSelect(name: string | null) {
   if (!name) return
   put({ preset_name: name, preset_action: 'load_pano', })
-  triggerAnimation(['site_latitude', 'site_longitude', 'site_elevation', 'site_pressure'])
+  triggerAnimation(['cols', 'rows', 'hstep', 'vstep', 'first', 'order',
+            'track', 'anchor', 'ref', 'r1', 'r2', 'r3',
+            'panel', 'sensor_size', 'panel_overlap'])
 }
  
 // User is typing a new name (free-text) → just update pano_name, no action
