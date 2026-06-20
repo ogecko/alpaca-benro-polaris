@@ -5,8 +5,9 @@ from unittest.mock import patch
 from types import SimpleNamespace
 
 import numpy as np
-from control import SyncManager, quaternion_to_angles, azaltroll_to_q, q_to_azaltroll
+from control import SyncManager
 from kinematics import calc_parallactic_angle, calc_equatorial_axes_B, radec_to_altaz, azalt_to_radec
+from kinematics import quaternion_to_angles, azaltroll_to_q, q_to_azaltroll
 from shr import format_timestamp
 
 import pytest
