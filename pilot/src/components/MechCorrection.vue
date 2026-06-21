@@ -4,14 +4,13 @@
     <q-card flat bordered class="q-pa-md full-width">
       <div class="text-h6">Mechanical Alignment Correction Models</div>
       <div class="row">
-      <div class="col text-grey text-caption">
-        Reduce pointing residuals. Fine tune adjustments that correct for mechanical imperfections in the Benro Polaris and mount geometry. 
-      </div>
+        <div class="col text-grey text-caption">
+          Reduce pointing residuals. Fine tune adjustments that correct for mechanical imperfections in the Benro Polaris and mount geometry. 
+        </div>
         <q-space />
         <div class="q-gutter-md flex justify-end q-mr-md">
           <q-item-section>
             <div>
-              <q-btn  v-if="is_dirty" rounded  color="grey-9"  label="Apply" @click="apply_params"/>
               <q-btn-toggle v-model="cfg.advanced_align_mac" push rounded glossy toggle-color="primary"  
                 @update:model-value="onModelUpdate"
                 :options="[
@@ -46,6 +45,12 @@
         </div>
         <div class="col-3">
           <q-input label="Parameter G (arcmin/M3°)" v-model="m3_tilt_dm1_str" :disable="!cfg.advanced_align_mac"/>
+          <div class="q-pt-md q-gutter-sm column items-center">
+            <q-btn  v-if="is_dirty" rounded  color="grey-9"  label="Apply Changes" @click="apply_params"/>
+            <q-btn  v-else label="AutoTune" icon='mdi-tune-vertical' rounded  color="grey-9">
+              <q-popup-proxy><MechAutotune class="" /></q-popup-proxy>
+            </q-btn>
+          </div>
         </div>
       </div>
 
@@ -58,6 +63,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { deg2min, dms2deg } from 'src/utils/angles'
+import MechAutotune from 'src/components/MechAutotune.vue';
 
 const dev = useDeviceStore()
 const cfg = useConfigStore()
