@@ -1,5 +1,5 @@
 <template>
-  <q-card style="width: 400px; height:500px" class="q-px-md q-pb-md">
+  <q-card style="width: 400px" class="q-px-md q-pb-md">
     <div class="text-h6 q-mb-xs q-mt-md">
       Autotune Pre-requisites
     </div>
@@ -27,11 +27,15 @@
             <q-item-section>
                 <q-item-label>Roll Angle spread > {{MIN_ROLLSPAN}}°  (currently {{ stat?.roll_span }}° )</q-item-label>
             </q-item-section>
-        </q-item>    </q-list>
+        </q-item>
+    </q-list>
     <div class="col text-grey text-caption q-pt-sm">
         {{morePointsMsg}}
     </div>
-    <div v-if="isResultRun">
+    <div v-if="!isResultRun">
+        <div style="height: 250px" class="text-grey text-caption">No Results yet.</div>
+    </div>
+    <div v-else>
         <div class="text-h6 q-mb-xs q-mt-md">
         Autotune Results
         </div>
@@ -43,7 +47,12 @@
             <q-input class="col-4" label="Param B (deg)"    readonly :model-value="param_B" input-class="text-right"/>
             <q-input class="col-4" label="Param C (arcmin)" readonly :model-value="param_C" input-class="text-right"/>
         </div>
-        <div class="col text-grey text-caption q-mt-md">
+        <div v-if="isNoChange">
+            <div class="col text-grey text-caption q-mt-sm">
+                Parameters are similar to existing settings. Nothing to Apply. 
+            </div>
+        </div>
+        <div v-else class="col text-grey text-caption q-mt-md">
             <q-list dense>
                 <q-item>
                     <q-item-section thumbnail>
@@ -63,9 +72,9 @@
                 </q-item>    
 
             </q-list>
-        </div>
-        <div class="col text-grey text-caption q-mt-sm">
-            {{resultSummaryMsg}} 
+            <div class="col text-grey text-caption q-mt-sm">
+                {{resultSummaryMsg}} 
+            </div>
         </div>
 
     </div>
@@ -147,6 +156,18 @@ const altMsg = computed(() => `Alt < ${stat.value?.alt_min}°, or Alt > ${stat.v
 // ---------------- Autotune Result Statistics Computed functions
 const isResultRun = computed(() => autotuneResult.value)
 const isRestultOk  = computed(() => (isR2Ok.value && isRmsOk.value))
+
+const CHANGE_THRESHOLD_AMP  = 5    // arcmin
+const CHANGE_THRESHOLD_ZERO = 2    // degrees  
+const CHANGE_THRESHOLD_TILT = 5    // arcmin
+
+const isNoChange = computed(() => {
+  if (!autotuneResult.value) return false
+  const ampSimilar  = Math.abs(autotuneResult.value.m2_tilt_dm2_amp  - cfg.m2_tilt_dm2_amp)  < CHANGE_THRESHOLD_AMP
+  const zeroSimilar = Math.abs(autotuneResult.value.m2_tilt_dm2_zero - cfg.m2_tilt_dm2_zero) < CHANGE_THRESHOLD_ZERO
+  const tiltSimilar = Math.abs(autotuneResult.value.m3_tilt_dm1      - cfg.m3_tilt_dm1)      < CHANGE_THRESHOLD_TILT
+  return ampSimilar && zeroSimilar && tiltSimilar
+})
 
 const isR2Ok  = computed(() => (autotuneResult.value?.r2 ?? 0) > MIN_R2)
 const r2str = computed(() => autotuneResult.value ? formatAutotuneR2(autotuneResult.value.r2) : 'unknown' )
