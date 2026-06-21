@@ -13,6 +13,7 @@ __pycache__/
 speed_calibration.json
 speed_testdata.json
 sync_points.json
+locations.json
 panoramas.json
 catalog.json
 config.*.json
