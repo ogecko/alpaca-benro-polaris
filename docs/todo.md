@@ -40,10 +40,11 @@
 - [X] Dependancies - Upgrade dependant libraries on Node and Python
 - [X] Kinematics - use newly developed trignometric closed form solutions for IK/FK, unable as Quaternions needed in both paths for corrections 
 - [X] Settings - Add ability to save observing site locations
+- [X] Settings - Add ability to save pano presets
+- [X] MAC - Add autotune to Mechanical Alignment Correction
 - [ ] Settings - Add ability to save orbital parameters
 - [ ] Close candidate enhancement list
     - [ ] Goto - Determine ideal settle time for Benro Polaris and v2.2
-    - [ ] MAC - Consider adding autotune to Mechanical Alignment Correction
     - [ ] CCDCiel - Auto install Alpaca Driver scripts for CCDCiel
     - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
     - [ ] Nina - Test session using Nina and document Sync Guiding workflow
