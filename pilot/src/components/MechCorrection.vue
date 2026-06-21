@@ -2,7 +2,7 @@
 
 <template>
     <q-card flat bordered class="q-pa-md full-width">
-      <div class="text-h6">Mechanical Alignment Correction Models</div>
+      <div class="text-h6">Mechanical Alignment Correction Model</div>
       <div class="row">
         <div class="col text-grey text-caption">
           Reduce pointing residuals. Fine tune adjustments that correct for mechanical imperfections in the Benro Polaris and mount geometry. 
