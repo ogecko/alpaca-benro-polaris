@@ -105,7 +105,7 @@
 - [X] Check Driver package vulnerabilities
 - [X]     pip-audit
 - [X]     pip show urllib
-- [X]     pipdeptree | findstr urllib3
+- [X]     pipdeptree -reverse --package bleach 
 - [X]     pip install --upgrade urllib3==2.7.0
 - [X]     Modify all requirements.txt files accordingly
 - [X] Check Pilot package vulnerabilities
