@@ -167,6 +167,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:J2000Sync', `{"ra": "${ra}", "dec": "${dec}"}`)
     },
 
+    async alpacaAutotuneMAC() {
+      return await this.apiAction<void>('Polaris:AutotuneMAC')
+    },
+    
     async alpacaResetSP() {
       await this.apiAction<void>('Polaris:ResetSP')
     },

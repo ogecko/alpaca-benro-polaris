@@ -35,13 +35,41 @@
       Autotune Results
     </div>
     <div class="col text-grey text-caption">
-        {{ stat }}
+        <q-list dense>
+            <q-item>
+                <q-item-section thumbnail>
+                    <q-icon :name="isR2Ok ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isR2Ok ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                    <q-item-label>R2 fit quality {{r2str}} (good)</q-item-label>
+                </q-item-section>
+            </q-item>
+            <q-item>
+                <q-item-section thumbnail>
+                    <q-icon :name="isRmsOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isRmsOk ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                    <q-item-label>RMS Residual improved/worsened by 34%</q-item-label>
+                </q-item-section>
+            </q-item>    
+
+        </q-list>
+    </div>
+    <div class="col text-grey text-caption q-pt-sm">
+      Estimated Model Parameters
+    </div>
+    <div class="row q-col-gutter-lg  items-center">
+        <q-input class="col-4" label="Param A (arcmin)" readonly model-value="0" input-class="text-right"/>
+        <q-input class="col-4" label="Param B (deg)"    readonly model-value="0" input-class="text-right"/>
+        <q-input class="col-4" label="Param C (arcmin)" readonly model-value="0" input-class="text-right"/>
+    </div>
+    <div class="col text-grey text-caption q-pt-lg">
+        Based on 7 Sync Points and 10 autotune iterations. All result critera acceptable. Click Apply to accept new parameters.
     </div>
     <q-space />
-
     <div class="row q-gutter-sm  q-mt-md justify-center">
       <q-btn class="col-3" label="Cancel"  outline color="grey-7" v-close-popup />
-      <q-btn class="col-3" label="Run"  outline color="grey-7"  />
+      <q-btn class="col-3" label="Run"  outline color="grey-7"  @click="onRunAutotune"/>
       <q-btn class="col-3" label="Apply" outline color="primary" @click="onApply" v-close-popup/>
     </div>
 
@@ -50,7 +78,7 @@
 
 <script setup lang="ts">
 // import axios from 'axios'
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { useStreamStore } from 'src/stores/stream'
@@ -65,6 +93,22 @@ const MIN_SYNCS = 5
 const MIN_ALTSPAN = 30
 const MIN_ROLLSPAN = 100
 
+type AutotuneResult = {
+  success: boolean,
+  m2_tilt_dm2_amp: number,
+  m2_tilt_dm2_zero: number,
+  m3_tilt_dm1: number,
+  rms_before: number,
+  rms_after: number,
+  rms_improv: number,
+  r2: number,
+  n_points: number,
+  nit: number,
+  message: string,
+}
+
+const autotuneResult = ref<null | AutotuneResult>(null)
+    
 // ---------------- Helper functions
 type TableRow = {
   deleted:boolean, timestamp:string, p_alt:number, p_roll:number 
@@ -82,6 +126,8 @@ function formatSyncData(data: SyncMessage):TableRow {
 const isEnoughPoints = computed(() => (stat.value?.n_syncs??0)>MIN_SYNCS);
 const isAltSpanOk = computed(() => (stat.value?.alt_span??0)>MIN_ALTSPAN);
 const isRollSpanOk = computed(() => (stat.value?.roll_span??0)>MIN_ROLLSPAN);
+const isR2Ok  = computed(() => (autotuneResult.value?.r2 ?? 0) > 0.9)
+const isRmsOk = computed(() => (autotuneResult.value?.rms_improv ?? 0) > 0)
 
 const morePointsMsg = computed(() => {
     return (isEnoughPoints.value && isAltSpanOk.value && isRollSpanOk.value) ? "All pre-requisites met. Click Run to perform Autotune." :
@@ -93,6 +139,7 @@ const morePointsMsg = computed(() => {
 const rollMsg = computed(() => `Roll < ${stat.value?.roll_min}°, or Roll > ${stat.value?.roll_max}°`)
 const altMsg = computed(() => `Alt < ${stat.value?.alt_min}°, or Alt > ${stat.value?.alt_max}°`)
 
+const r2str = computed(() => autotuneResult.value ? autotuneResult.value.r2.toFixed(4) : '—' )
 
 const telescope_syncs = computed(() =>
   Array.from(socket.syncPoints.values())
@@ -128,7 +175,11 @@ onMounted(async () => {
   socket.subscribe('sm')
 })
 
-
+async function onRunAutotune() {
+  const result = await dev.alpacaAutotuneMAC()
+  autotuneResult.value = result as unknown as AutotuneResult
+  console.log(result)
+}
 async function onApply() {
   // simplest: reset inputs to defaults or close dialog
   // example reset:
