@@ -330,8 +330,7 @@ const locationOptions = computed<string[]>(() =>
 // User picked an existing entry from the dropdown → load it
 function onLocationSelect(name: string | null) {
   if (!name) return
-  cfg.location = name
-  put({ location: name, location_action: 'load' })
+  put({ preset_name: name, preset_action: 'load_loc', })
   triggerAnimation(['site_latitude', 'site_longitude', 'site_elevation', 'site_pressure'])
 }
  
@@ -345,7 +344,7 @@ function onLocationTyped(val: string) {
 function onLocationSave() {
   const name = cfg.location
   if (!name) return
-  put({ location: name, location_action: 'save' })
+  put({ preset_name: name, preset_action: 'save_loc' })
   $q.notify({
     message: `Location "${name}" saved.`,
     type: 'positive', position: 'top', timeout: 3000,
@@ -355,12 +354,7 @@ function onLocationSave() {
  
 // User clicked the delete icon on a dropdown row
 function onLocationDelete(name: string) {
-  put({ location: name, location_action: 'delete' })
-  // If we just deleted the currently displayed name, clear the field
-  if (cfg.location === name) {
-    cfg.location = ''
-    putdb({ location: '' })
-  }
+  put({ preset_name: name, preset_action: 'delete_loc' })
   $q.notify({
     message: `Location "${name}" deleted.`,
     type: 'positive', position: 'top', timeout: 3000,

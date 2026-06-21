@@ -89,6 +89,15 @@ function parseSensorXY(str?: string): { x: number | null; y: number | null } {
 
 // ---------------- Computed functions
 
+function defaultPanoPresetName() {
+  const size = `${cfg.cols} x ${cfg.rows}`
+  const sensor = sensor_size.value.replace(/\s*\([^)]*mm\)/i, '').trim()
+  const lens = focal_length.value
+  const overlap = `${panel_overlap.value} overlap`
+  return `${size} ${sensor}, ${lens}, ${overlap}`
+}
+
+
 const sensor_size_x = computed<number | null>(() => {
   return parseSensorXY(sensor_size.value).x
 })
@@ -144,7 +153,7 @@ const calc_vGridFOV = computed<number>(() => {
 
 const calc_hGridFOV = computed<number>(() => {
   if (!calc_hFOV.value || calc_hstep.value === null) return NaN
-  return calc_vFOV.value + calc_hstep.value * (cfg.cols - 1) 
+  return calc_hFOV.value + calc_hstep.value * (cfg.cols - 1) 
 })
 
 const calc_hFOV_display = computed(() =>
@@ -201,7 +210,8 @@ async function onApply() {
     vstep: calc_vstep.value,
     sensor_size: sensor_size.value,
     panel_overlap: panel_overlap.value,
-    focal_length: parseFirstNumber(focal_length.value) || 35
+    focal_length: parseFirstNumber(focal_length.value) || 35,
+    pano_name: defaultPanoPresetName()
   }
   await cfg.configUpdate(payload)
 }

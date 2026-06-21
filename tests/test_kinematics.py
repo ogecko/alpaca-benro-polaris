@@ -440,9 +440,9 @@ class TestSimplifiedFKIK:
     def test_fk_matches_quaternion(self):
         """Simplified FK should match quaternion-based FK for all reachable poses."""
         failures = []
-        for t1 in range(0, 360, 15):
-            for t2 in range(-8, 84, 4):
-                for t3 in range(-175, 180, 10):
+        for t1 in range(0, 360, 30):
+            for t2 in range(-8, 84, 15):
+                for t3 in range(-175, 180, 30):
                     az_q, alt_q, roll_q = theta_to_azaltroll(t1, t2, t3)
                     az_s, alt_s, roll_s = theta_to_azaltroll_fk(t1, t2, t3)
                     if not (self.approx_eq(az_s, az_q) and

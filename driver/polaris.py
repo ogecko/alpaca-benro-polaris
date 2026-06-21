@@ -40,7 +40,7 @@ from quaternion import Q as Quaternion
 from threading import Lock
 from logging import Logger
 from config import Config
-from locations import LocationManager
+from presets import PresetManager
 from log import update_log_level
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
@@ -1175,7 +1175,7 @@ class Polaris:
         with self._lock:
             self._connected = True
             self._task_errorstr = ''
-        LocationManager.refresh_list(Config)
+        PresetManager.refresh_all_lists(Config)
         s_lat = self._sitelatitude
         s_lon = self._sitelongitude
         self.logger.info("Polaris communication init... done")
@@ -1315,8 +1315,8 @@ class Polaris:
         for param in changed_params:
             if param == "log_level":
                 update_log_level(Config.log_level)
-            elif param == "location_action":    # "load", "save", "delete" or ""
-                LocationManager.handle_action(Config)
+            elif param == "preset_action":    # "load_<type>", "save_<type>", "delete_<type>" or ""
+                PresetManager.handle_action(Config)
                 # apply any loaded location properties to the Polaris state
                 self.sitelatitude  = float(Config.site_latitude)
                 self.sitelongitude = float(Config.site_longitude)

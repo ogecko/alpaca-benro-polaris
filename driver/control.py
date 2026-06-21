@@ -1221,8 +1221,8 @@ class PID_Controller():
         if self.theta_ref_cache is not None or self.zeta_meas is None or self.mode == 'LIMIT':
             return
         zeta = np.array(self.zeta_meas)
-        d1 = max(self.alpha_ref[0] - self.alpha_pv[0], self.theta_ref[0] - self.theta_pv[0], key=abs)
-        d3 = max(self.alpha_ref[2] - self.alpha_pv[2], self.theta_ref[2] - self.theta_pv[2], key=abs)
+        d1 = max(angular_difference(self.alpha_pv[0],self.alpha_ref[0]), angular_difference(self.theta_pv[0],self.theta_ref[0]), key=abs)
+        d3 = max(angular_difference(self.alpha_pv[2],self.alpha_ref[2]), angular_difference(self.theta_pv[2],self.theta_ref[2]), key=abs)
         z1_implied = zeta[0] + d1
         z3_implied = zeta[2] + d3
         safety = Config.zeta_safety_margin
