@@ -1,5 +1,5 @@
 <template>
-  <q-card style="width: 400px" class="q-px-md q-pb-md">
+  <q-card style="width: 400px; height:500px" class="q-px-md q-pb-md">
     <div class="text-h6 q-mb-xs q-mt-md">
       Autotune Pre-requisites
     </div>
@@ -31,46 +31,49 @@
     <div class="col text-grey text-caption q-pt-sm">
         {{morePointsMsg}}
     </div>
-    <div class="text-h6 q-mb-xs q-mt-md">
-      Autotune Results
-    </div>
-    <div class="col text-grey text-caption">
-        Parameters based on {{n_points}} Sync Points and {{n_iter}} iterations. 
-    </div>
-    <div class="row q-col-gutter-lg  items-center">
-        <q-input class="col-4" label="Param A (arcmin)" readonly :model-value="param_A" input-class="text-right"/>
-        <q-input class="col-4" label="Param B (deg)"    readonly :model-value="param_B" input-class="text-right"/>
-        <q-input class="col-4" label="Param C (arcmin)" readonly :model-value="param_C" input-class="text-right"/>
-    </div>
-    <div class="col text-grey text-caption q-mt-md">
-        <q-list dense>
-            <q-item>
-                <q-item-section thumbnail>
-                    <q-icon :name="isR2Ok ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isR2Ok ? 'green' : 'red'" />
-                </q-item-section>
-                <q-item-section>
-                    <q-item-label>R2 fit quality {{r2str}} (need > {{MIN_R2}})</q-item-label>
-                </q-item-section>
-            </q-item>
-            <q-item>
-                <q-item-section thumbnail>
-                    <q-icon :name="isRmsOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isRmsOk ? 'green' : 'red'" />
-                </q-item-section>
-                <q-item-section>
-                    <q-item-label>RMS {{rmsstr}} (need > {{MIN_RMS}}%)</q-item-label>
-                </q-item-section>
-            </q-item>    
+    <div v-if="isResultRun">
+        <div class="text-h6 q-mb-xs q-mt-md">
+        Autotune Results
+        </div>
+        <div class="col text-grey text-caption">
+            Parameters based on {{n_points}} Sync Points and {{n_iter}} iterations. 
+        </div>
+        <div class="row q-col-gutter-lg  items-center">
+            <q-input class="col-4" label="Param A (arcmin)" readonly :model-value="param_A" input-class="text-right"/>
+            <q-input class="col-4" label="Param B (deg)"    readonly :model-value="param_B" input-class="text-right"/>
+            <q-input class="col-4" label="Param C (arcmin)" readonly :model-value="param_C" input-class="text-right"/>
+        </div>
+        <div class="col text-grey text-caption q-mt-md">
+            <q-list dense>
+                <q-item>
+                    <q-item-section thumbnail>
+                        <q-icon :name="isR2Ok ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isR2Ok ? 'green' : 'red'" />
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>R2 fit quality {{r2str}} (need > {{MIN_R2}})</q-item-label>
+                    </q-item-section>
+                </q-item>
+                <q-item>
+                    <q-item-section thumbnail>
+                        <q-icon :name="isRmsOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isRmsOk ? 'green' : 'red'" />
+                    </q-item-section>
+                    <q-item-section>
+                        <q-item-label>RMS {{rmsstr}} (need > {{MIN_RMS}}%)</q-item-label>
+                    </q-item-section>
+                </q-item>    
 
-        </q-list>
-    </div>
-    <div class="col text-grey text-caption q-mt-sm">
-        {{resultSummaryMsg}} 
+            </q-list>
+        </div>
+        <div class="col text-grey text-caption q-mt-sm">
+            {{resultSummaryMsg}} 
+        </div>
+
     </div>
     <q-space />
     <div class="row q-gutter-sm  q-mt-md justify-center">
       <q-btn class="col-3" label="Cancel"  outline color="grey-7" v-close-popup />
       <q-btn class="col-3" label="Run"  outline color="grey-7"  @click="onRunAutotune"/>
-      <q-btn class="col-3" label="Apply" outline color="primary" @click="onApply" v-close-popup/>
+      <q-btn class="col-3" label="Apply" outline color="primary" @click="onApply" :disable="!isRestultOk" v-close-popup/>
     </div>
 
   </q-card>
@@ -78,6 +81,7 @@
 
 <script setup lang="ts">
 // import axios from 'axios'
+import { useQuasar } from 'quasar'
 import { onMounted, computed, ref } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
@@ -89,6 +93,7 @@ import type { SyncMessage }from 'src/stores/stream'
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 const socket = useStreamStore()
+const $q = useQuasar()
 
 const MIN_SYNCS = 5
 const MIN_ALTSPAN = 30
@@ -140,6 +145,9 @@ const rollMsg = computed(() => `Roll < ${stat.value?.roll_min}°, or Roll > ${st
 const altMsg = computed(() => `Alt < ${stat.value?.alt_min}°, or Alt > ${stat.value?.alt_max}°`)
 
 // ---------------- Autotune Result Statistics Computed functions
+const isResultRun = computed(() => autotuneResult.value)
+const isRestultOk  = computed(() => (isR2Ok.value && isRmsOk.value))
+
 const isR2Ok  = computed(() => (autotuneResult.value?.r2 ?? 0) > MIN_R2)
 const r2str = computed(() => autotuneResult.value ? formatAutotuneR2(autotuneResult.value.r2) : 'unknown' )
 function formatAutotuneR2(r2: number) {
@@ -148,16 +156,16 @@ function formatAutotuneR2(r2: number) {
 }
 
 const isRmsOk = computed(() => (autotuneResult.value?.rms_improv ?? 0) > MIN_RMS)
-const rmsstr = computed(() => autotuneResult.value ? formatRms(autotuneResult.value.rms_improv) : '(unknown)' )
+const rmsstr = computed(() => autotuneResult.value ? formatRms(autotuneResult.value.rms_improv) : 'unknown' )
 function formatRms(rms: number) {
     const quality = (rms>0) ? 'improved' : 'worsened'
     return `${quality} by ${rms.toFixed(1)}%`
 }
-const n_points = computed(() => autotuneResult.value ? autotuneResult.value.n_points : '(unknown)' )
-const n_iter = computed(() => autotuneResult.value ? autotuneResult.value.nit : '(unknown)' )
-const param_A = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_amp.toFixed(1) : '(unknown)' )
-const param_B = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_zero.toFixed(1) : '(unknown)' )
-const param_C = computed(() => autotuneResult.value ? autotuneResult.value.m3_tilt_dm1.toFixed(1) : '(unknown)' )
+const n_points = computed(() => autotuneResult.value ? autotuneResult.value.n_points : 'N/A' )
+const n_iter = computed(() => autotuneResult.value ? autotuneResult.value.nit : 'N/A' )
+const param_A = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_amp.toFixed(1) : 'N/A' )
+const param_B = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_zero.toFixed(1) : 'N/A' )
+const param_C = computed(() => autotuneResult.value ? autotuneResult.value.m3_tilt_dm1.toFixed(1) : 'N/A' )
 const resultSummaryMsg = computed(() => {
     return (isR2Ok.value && isRmsOk.value) ? "All result checks met. Click apply to accept results." :
            (!isRmsOk.value) ? `MAC has not improved RMS Residulas enough. Do not Apply.` :
@@ -204,16 +212,17 @@ async function onRunAutotune() {
   console.log(result)
 }
 async function onApply() {
-  // simplest: reset inputs to defaults or close dialog
-  // example reset:
-//   const payload = { 
-//     hstep: calc_hstep.value, 
-//     vstep: calc_vstep.value,
-//     sensor_size: sensor_size.value,
-//     panel_overlap: panel_overlap.value,
-//     focal_length: parseFirstNumber(focal_length.value) || 35
-//   }
-//   await cfg.configUpdate(payload)
+  if (isRestultOk.value && autotuneResult.value) {
+    const payload = { 
+        m2_tilt_dm2_amp: autotuneResult.value.m2_tilt_dm2_amp, 
+        m2_tilt_dm2_zero: autotuneResult.value.m2_tilt_dm2_zero,
+        m3_tilt_dm1: autotuneResult.value.m3_tilt_dm1,
+    }
+    await cfg.configUpdate(payload)
+    const ok = await cfg.configSave()
+    $q.notify({ message:`Autotune Parameters save ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
+                position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
+  }
 }
 
 </script>

@@ -59,7 +59,7 @@
 
 <script setup lang="ts">
 // import axios from 'axios'
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { deg2min, dms2deg } from 'src/utils/angles'
@@ -77,6 +77,11 @@ const m2_roll_zero_str     = ref('0.0')
 const m1_offset_str        = ref('0.0')
 const m2_offset_str        = ref('0.0')
 const m3_offset_str        = ref('0.0')
+
+watch(
+  () => [cfg.m2_tilt_dm2_amp, cfg.m2_tilt_dm2_zero, cfg.m3_tilt_dm1],
+  () => load_params()
+)
 
 function load_params() {
   m3_tilt_dm1_str.value = deg2min(cfg.m3_tilt_dm1/60, 1)
