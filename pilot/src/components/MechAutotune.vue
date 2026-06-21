@@ -59,7 +59,7 @@
                         <q-icon :name="isR2Ok ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isR2Ok ? 'green' : 'red'" />
                     </q-item-section>
                     <q-item-section>
-                        <q-item-label>R2 fit quality {{r2str}} (need > {{MIN_R2}})</q-item-label>
+                        <q-item-label>R² fit quality {{r2str}} (need > {{MIN_R2}})</q-item-label>
                     </q-item-section>
                 </q-item>
                 <q-item>
