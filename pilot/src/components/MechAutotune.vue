@@ -73,7 +73,8 @@
 
             </q-list>
             <div class="col text-grey text-caption q-mt-sm">
-                {{resultSummaryMsg}} 
+                {{rmsSummaryMsg}} <br>
+                {{resultConclusionMsg}} 
             </div>
         </div>
 
@@ -178,6 +179,8 @@ function formatAutotuneR2(r2: number) {
 }
 
 const isRmsOk = computed(() => (autotuneResult.value?.rms_improv ?? 0) > MIN_RMS)
+const rms_before = computed(() => autotuneResult.value ? autotuneResult.value.rms_before.toFixed(1) : 'N/A' )
+const rms_after = computed(() => autotuneResult.value ? autotuneResult.value.rms_after.toFixed(1) : 'N/A' )
 const rmsstr = computed(() => autotuneResult.value ? formatRms(autotuneResult.value.rms_improv) : 'unknown' )
 function formatRms(rms: number) {
     const quality = (rms>0) ? 'improved' : 'worsened'
@@ -188,11 +191,13 @@ const n_iter = computed(() => autotuneResult.value ? autotuneResult.value.nit : 
 const param_A = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_amp.toFixed(1) : 'N/A' )
 const param_B = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_zero.toFixed(1) : 'N/A' )
 const param_C = computed(() => autotuneResult.value ? autotuneResult.value.m3_tilt_dm1.toFixed(1) : 'N/A' )
-const resultSummaryMsg = computed(() => {
+const resultConclusionMsg = computed(() => {
     return (isR2Ok.value && isRmsOk.value) ? "All result checks met. Click apply to accept results." :
            (!isRmsOk.value) ? `MAC has not improved RMS Residulas enough. Do not Apply.` :
            (!isR2Ok.value) ? `MAC does not explain RMS Residuals. Do not Apply.` : `Autotune Results Unavailable.`
 })
+const rmsSummaryMsg = computed(() => `Autotuning changed RMS residuals from ${rms_before.value}' to ${rms_after.value}'`)
+
 // ---------------- Telescope Sync Computed functions
 const telescope_syncs = computed(() =>
   Array.from(socket.syncPoints.values())
