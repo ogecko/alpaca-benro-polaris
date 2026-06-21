@@ -1,0 +1,1 @@
+var e=`/assets/abp-v2-logo-hires-full-xCgNsASJ.png`;export{e as t};

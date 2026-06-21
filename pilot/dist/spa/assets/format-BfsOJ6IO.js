@@ -1,0 +1,1 @@
+function e(e,t,n){return n<=t?t:Math.min(n,Math.max(t,e))}function t(e,t,n){if(n<=t)return t;let r=n-t+1,i=t+(e-t)%r;return i<t&&(i=r+i),i===0?0:i}export{t as n,e as t};
