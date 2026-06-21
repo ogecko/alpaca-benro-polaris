@@ -33,7 +33,7 @@
         {{morePointsMsg}}
     </div>
     <div v-if="!isResultRun">
-        <div style="height: 250px" class="text-grey text-caption">No Results yet.</div>
+        <div style="height: 280px" class="text-grey text-caption">No Results yet.</div>
     </div>
     <div v-else>
         <div class="text-h6 q-mb-xs q-mt-md">
