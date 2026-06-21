@@ -146,6 +146,7 @@ const isRollSpanOk = computed(() => (stat.value?.roll_span??0)>MIN_ROLLSPAN);
 
 const morePointsMsg = computed(() => {
     return (isEnoughPoints.value && isAltSpanOk.value && isRollSpanOk.value) ? "All pre-requisites met. Click Run to perform Autotune." :
+           (!isEnoughPoints.value) ? `Collect more Sync Points.` :
            (!isRollSpanOk.value && !isAltSpanOk.value) ? `Collect more Sync Points with ${rollMsg.value}, and also more with ${altMsg.value}.` :
            (!isRollSpanOk.value) ? `Collect more Sync Points with ${rollMsg.value}.` :
            (!isAltSpanOk.value) ? `Collect more Sync Points with ${altMsg.value}.` : `Autotune Unavailable.`
@@ -228,10 +229,13 @@ onMounted(async () => {
 })
 
 async function onRunAutotune() {
-  const result = await dev.alpacaAutotuneMAC()
-  autotuneResult.value = result as unknown as AutotuneResult
+  const result = await dev.alpacaAutotuneMAC() as unknown as AutotuneResult
+  if (result.success) {
+    autotuneResult.value = result 
+  }
   console.log(result)
 }
+
 async function onApply() {
   if (isRestultOk.value && autotuneResult.value) {
     const payload = { 
