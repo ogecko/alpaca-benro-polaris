@@ -233,7 +233,7 @@ function triggerAnimation(keys: string[]) {
 }
 
 
-function bindField(key: string, label: string, suffix?: string) {
+function bindField(key: string, label: string, suffix?: string, decimals?: number) {
   /**
    * Creates a v-model binding object for a given config key.
    * Supports string, number, and boolean values. Updates cfg and persists changes via api.
@@ -242,23 +242,31 @@ function bindField(key: string, label: string, suffix?: string) {
    * @param key - The config key to bind
    * @param label - The label of the field
    * @param suffix - Optional suffix to display in the input
+   * @param decimals - Optional number of decimal places to display
    * @returns A binding object compatible with Quasar input components
    */
   // @ts-expect-error: dynamic key access on cfg
   const val = cfg[key];
   const type = typeof val;
   const isValid = ['string', 'number', 'boolean'].includes(type);
+  const isBoolean = type === 'boolean'
+  const dp = decimals ?? (suffix === '°' || suffix === 'ʰ' ? 6 : undefined)
+  const displayVal = (typeof val === 'number' && dp !== undefined)
+    ? parseFloat(val.toFixed(dp))   // toFixed then parseFloat strips trailing zeros
+    : (isValid ? val : '')
+
   return {
     label,
     ...(suffix ? { suffix } : {}),
     class: { taflash: taKeys.value.has(key) },
-    modelValue: isValid ? val : '',
+    modelValue: displayVal,
     'onUpdate:modelValue': (v: string | number | boolean | null) => {
       if (v !== null && isValid) {
         // @ts-expect-error: dynamic key assignment
         cfg[key] = v;
         const payload = { [key]: v };
-        put(payload);
+        if (isBoolean) { put(payload) } else { putdb(payload) }
+
       }
     },
   };
