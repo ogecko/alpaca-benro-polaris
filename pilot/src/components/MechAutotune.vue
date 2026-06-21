@@ -35,13 +35,21 @@
       Autotune Results
     </div>
     <div class="col text-grey text-caption">
+        Parameters based on {{n_points}} Sync Points and {{n_iter}} iterations. 
+    </div>
+    <div class="row q-col-gutter-lg  items-center">
+        <q-input class="col-4" label="Param A (arcmin)" readonly :model-value="param_A" input-class="text-right"/>
+        <q-input class="col-4" label="Param B (deg)"    readonly :model-value="param_B" input-class="text-right"/>
+        <q-input class="col-4" label="Param C (arcmin)" readonly :model-value="param_C" input-class="text-right"/>
+    </div>
+    <div class="col text-grey text-caption q-mt-md">
         <q-list dense>
             <q-item>
                 <q-item-section thumbnail>
                     <q-icon :name="isR2Ok ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isR2Ok ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                    <q-item-label>R2 fit quality {{r2str}} (good)</q-item-label>
+                    <q-item-label>R2 fit quality {{r2str}} (need > {{MIN_R2}})</q-item-label>
                 </q-item-section>
             </q-item>
             <q-item>
@@ -49,22 +57,14 @@
                     <q-icon :name="isRmsOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isRmsOk ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                    <q-item-label>RMS Residual improved/worsened by 34%</q-item-label>
+                    <q-item-label>RMS {{rmsstr}} (need > {{MIN_RMS}}%)</q-item-label>
                 </q-item-section>
             </q-item>    
 
         </q-list>
     </div>
-    <div class="col text-grey text-caption q-pt-sm">
-      Estimated Model Parameters
-    </div>
-    <div class="row q-col-gutter-lg  items-center">
-        <q-input class="col-4" label="Param A (arcmin)" readonly model-value="0" input-class="text-right"/>
-        <q-input class="col-4" label="Param B (deg)"    readonly model-value="0" input-class="text-right"/>
-        <q-input class="col-4" label="Param C (arcmin)" readonly model-value="0" input-class="text-right"/>
-    </div>
-    <div class="col text-grey text-caption q-pt-lg">
-        Based on 7 Sync Points and 10 autotune iterations. All result critera acceptable. Click Apply to accept new parameters.
+    <div class="col text-grey text-caption q-mt-sm">
+        {{resultSummaryMsg}} 
     </div>
     <q-space />
     <div class="row q-gutter-sm  q-mt-md justify-center">
@@ -89,9 +89,12 @@ import type { SyncMessage }from 'src/stores/stream'
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 const socket = useStreamStore()
+
 const MIN_SYNCS = 5
 const MIN_ALTSPAN = 30
 const MIN_ROLLSPAN = 100
+const MIN_RMS = 10
+const MIN_R2 = 0.4
 
 type AutotuneResult = {
   success: boolean,
@@ -108,7 +111,7 @@ type AutotuneResult = {
 }
 
 const autotuneResult = ref<null | AutotuneResult>(null)
-    
+
 // ---------------- Helper functions
 type TableRow = {
   deleted:boolean, timestamp:string, p_alt:number, p_roll:number 
@@ -122,12 +125,10 @@ function formatSyncData(data: SyncMessage):TableRow {
   return { deleted, timestamp, p_alt, p_roll }
 }
 
-// ---------------- Computed functions
+// ---------------- Sync Statistics Computed functions
 const isEnoughPoints = computed(() => (stat.value?.n_syncs??0)>MIN_SYNCS);
 const isAltSpanOk = computed(() => (stat.value?.alt_span??0)>MIN_ALTSPAN);
 const isRollSpanOk = computed(() => (stat.value?.roll_span??0)>MIN_ROLLSPAN);
-const isR2Ok  = computed(() => (autotuneResult.value?.r2 ?? 0) > 0.9)
-const isRmsOk = computed(() => (autotuneResult.value?.rms_improv ?? 0) > 0)
 
 const morePointsMsg = computed(() => {
     return (isEnoughPoints.value && isAltSpanOk.value && isRollSpanOk.value) ? "All pre-requisites met. Click Run to perform Autotune." :
@@ -135,12 +136,34 @@ const morePointsMsg = computed(() => {
            (!isRollSpanOk.value) ? `Collect more Sync Points with ${rollMsg.value}.` :
            (!isAltSpanOk.value) ? `Collect more Sync Points with ${altMsg.value}.` : `Autotune Unavailable.`
 })
-
 const rollMsg = computed(() => `Roll < ${stat.value?.roll_min}°, or Roll > ${stat.value?.roll_max}°`)
 const altMsg = computed(() => `Alt < ${stat.value?.alt_min}°, or Alt > ${stat.value?.alt_max}°`)
 
-const r2str = computed(() => autotuneResult.value ? autotuneResult.value.r2.toFixed(4) : '—' )
+// ---------------- Autotune Result Statistics Computed functions
+const isR2Ok  = computed(() => (autotuneResult.value?.r2 ?? 0) > MIN_R2)
+const r2str = computed(() => autotuneResult.value ? formatAutotuneR2(autotuneResult.value.r2) : 'unknown' )
+function formatAutotuneR2(r2: number) {
+    const quality = (r2>0.9) ? 'Excellent' : (r2>0.7) ? 'Good' : (r2>0.4) ? 'Satisfactory' : (r2>0.1) ? 'Weak' : 'Poor'
+    return `${r2.toFixed(3)} ${quality}`
+}
 
+const isRmsOk = computed(() => (autotuneResult.value?.rms_improv ?? 0) > MIN_RMS)
+const rmsstr = computed(() => autotuneResult.value ? formatRms(autotuneResult.value.rms_improv) : '(unknown)' )
+function formatRms(rms: number) {
+    const quality = (rms>0) ? 'improved' : 'worsened'
+    return `${quality} by ${rms.toFixed(1)}%`
+}
+const n_points = computed(() => autotuneResult.value ? autotuneResult.value.n_points : '(unknown)' )
+const n_iter = computed(() => autotuneResult.value ? autotuneResult.value.nit : '(unknown)' )
+const param_A = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_amp.toFixed(1) : '(unknown)' )
+const param_B = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_zero.toFixed(1) : '(unknown)' )
+const param_C = computed(() => autotuneResult.value ? autotuneResult.value.m3_tilt_dm1.toFixed(1) : '(unknown)' )
+const resultSummaryMsg = computed(() => {
+    return (isR2Ok.value && isRmsOk.value) ? "All result checks met. Click apply to accept results." :
+           (!isRmsOk.value) ? `MAC has not improved RMS Residulas enough. Do not Apply.` :
+           (!isR2Ok.value) ? `MAC does not explain RMS Residuals. Do not Apply.` : `Autotune Results Unavailable.`
+})
+// ---------------- Telescope Sync Computed functions
 const telescope_syncs = computed(() =>
   Array.from(socket.syncPoints.values())
     .filter(d => d.a_az != null && d.a_alt != null)
