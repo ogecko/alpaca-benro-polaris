@@ -1021,15 +1021,17 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 
 - **③ Swap:** Changes the spacing between panels for either a Landscape or Portrait orientation, by  swaping the `"hstep"` and `"vstep"` values. Landscape orientation will have a larger `"hstep"`, while Portrait orientation will have a larger `"vstep"`. This button only changes the spacing of the panels, you will need to use a lens collar to rotate your camera's sensor to match the orientation. 
 
-- **&#9322; Copy:** Copies the current Panorama Grid settings to the clipboard in JSON format. After defining the Panorama Grid Layout, use this button to paste the settings directly into the `Polaris:PanoGrid` **Device Action Parameters** field within the NINA Advanced Sequencer. See below for an example.
+- **③ Copy:** Copies the current Panorama Grid settings to the clipboard in JSON format. After defining the Panorama Grid Layout, use this button to paste the settings directly into the `Polaris:PanoGrid` **Device Action Parameters** field within the NINA Advanced Sequencer. See below for an example.
 
 > Note: Clipboard access is restricted in browsers and the Copy function will only work over HTTPS. Refer to the instructions below to [enable HTTPS in Alpaca Pilot](#enable-https-in-alpaca-pilot). 
 
-- **③ Horizontal Step `"hstep":`**  Angular distance, in **decimal degrees**, between the centres of adjacent horizontal panels. Factor in FOV overlap. Horizontal means different things for diferent reference frames. For Topocentric it alters the Azimuth, for Equatorial it alters the Right Ascension and for Galactic it alters the Galactic Longitude.
+- **④ Panorama Preset `"pano_name":`**  The name used to save and load Panorama Presets. This field is automatically filled when applying Pano Calculator Setting and can be overriden with a custom name. Clicking the Save button will add the preset to the drop down list for later recall. 
 
-- **④ Vertical Step `"vstep":`**  Angular distance, in **decimal degrees**, between the centres of adjacent vertical panels. Factor in FOV overlap. Vertical means different things for diferent reference frames. For Topocentric it alters the Altitude, for Equatorial it alters the Declination and for Galactic it alters the Galactic Latitude.
+- **⑤ Horizontal Step `"hstep":`**  Angular distance, in **decimal degrees**, between the centres of adjacent horizontal panels. Factor in FOV overlap. Horizontal means different things for diferent reference frames. For Topocentric it alters the Azimuth, for Equatorial it alters the Right Ascension and for Galactic it alters the Galactic Longitude.
 
-- **⑤ First Panel `"first":`** Defines which corner of the panorama grid is assigned panel number 1. This determines where the capture sequence begins and, together with the **Panel Order ("order")** setting, controls the rotational step direction in which the panorama progresses. 
+- **⑥ Vertical Step `"vstep":`**  Angular distance, in **decimal degrees**, between the centres of adjacent vertical panels. Factor in FOV overlap. Vertical means different things for diferent reference frames. For Topocentric it alters the Altitude, for Equatorial it alters the Declination and for Galactic it alters the Galactic Latitude.
+
+- **⑦ First Panel `"first":`** Defines which corner of the panorama grid is assigned panel number 1. This determines where the capture sequence begins and, together with the **Panel Order ("order")** setting, controls the rotational step direction in which the panorama progresses. 
 
    * **0 – Top Left**: Panel 1 is located in the top row and leftmost column.
    * **1 – Top Right**: Panel 1 is located in the top row and rightmost column.
@@ -1043,12 +1045,22 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 
 
 
-- **⑥ Panel Order `"order":`** Defines the sequence in which panels are captured:
+- **⑧ Panel Order `"order":`** Defines the sequence in which panels are captured:
    * **0 – Row‑Major**: Complete each row before moving to the next row.
    * **1 – Column‑Major**:  Complete each column before moving to the next column.
    * **2 – Serpentine**:  Alternate direction on each row or column to minimise repositioning time.
 
-- **⑦ Rotation and Tracking `"track":`** Defines how the mount tracks and how camera roll is handled **after moving to each panel**:
+- **⑨ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the anchor position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
+   * **0 – Whole Mosaic**:  The entire panorama is centred on the anchor position.
+   * **n – Panel n**:   This panel is placed at the anchor position and all other panels are offset accordingly.
+
+
+- **&#9321; Reference Frame `"ref":`** Defines the coordinate system used to calculate the position of each panel. The panels position is defined by the Anchor Position plus a certain multiple of hstep and vstep, in the Reference Frames co-ordinates. 
+   * **0 – Az / Alt / Roll** Topocentric coordinates.
+   * **1 – RA / Dec / PA** Equatorial coordinates.
+   * **2 – Glon / Glat / GPA**  Galactic coordinates.
+
+- **&#9322; Rotation and Tracking `"track":`** Defines how the mount tracks and how camera roll is handled **after moving to each panel**:
    * **0 – Landscape · Untracked**: Tracking is disabled. The camera frame remains fixed relative to the horizon. Typically used in the Topocenteric Reference Frame.
    *Use for foreground or landscape panels where star motion is acceptable.*
    * **1 – Sky · Horizon‑Locked**: Sidereal tracking is enabled. The camera roll is reset to **0°** at each panel.
@@ -1061,17 +1073,8 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
       * **Galactic Position Angle (-180° to +180°)** defines the camera's rotation about its viewing axis. At 0°, the top of the frame points toward the North Galactic Pole. At ±90°, the top of the frame is aligned with the Milky Way plane. Beware of Benro Polaris roll angle
 
 
-- **⑧ Anchor Panel `"anchor":`** Specifies which part of the panorama is placed at the anchor position. The **Anchor Panel** and **Reference Position** work together to shift the entire panorama grid to your desired orientation:
-   * **0 – Whole Mosaic**:  The entire panorama is centred on the anchor position.
-   * **n – Panel n**:   This panel is placed at the anchor position and all other panels are offset accordingly.
 
-
-- **⑨ Reference Frame `"ref":`** Defines the coordinate system used to calculate the position of each panel. The panels position is defined by the Anchor Position plus a certain multiple of hstep and vstep, in the Reference Frames co-ordinates. 
-   * **0 – Az / Alt / Roll** Topocentric coordinates.
-   * **1 – RA / Dec / PA** Equatorial coordinates.
-   * **2 – Glon / Glat / GPA**  Galactic coordinates.
-
-- **&#9321; Anchor Position:** Defines the sky position for the anchor:
+- ** &#9323;Anchor Position:** Defines the sky position for the anchor:
 
    * **Update Button**: Updates the anchor position with the mounts current orientation
    * **Reference Axis 1 `"r1":`**: Azimuth, Right Ascension, or Galactic Lon
