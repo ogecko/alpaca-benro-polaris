@@ -286,7 +286,7 @@ import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
-import type { TelemetryRecord, SyncMessage }from 'src/stores/stream'
+import type { SyncMessage }from 'src/stores/stream'
 import { formatAngle } from 'src/utils/scale'
 import { deg2dms, dms2deg } from 'src/utils/angles'
 import { useStatusStore } from 'src/stores/status'
@@ -317,33 +317,17 @@ const Az = computed(() => dms2deg(Az_Str.value, 'deg'))
 const Alt = computed(() => dms2deg(Alt_str.value, 'deg'))
 const Roll = computed(() => dms2deg(Roll_str.value, 'deg'))
 
-const telescope_syncs = computed(() => {
-  const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData).filter(d=>((d.a_az != '') && (d.a_alt != '')))
-  const consolidated = new Map<string, TableRow>()
-  for (const data of syncdata) {
-    if (data.timestamp == 'reset') {
-      consolidated.clear()
-    } else {
-      consolidated.set(data.timestamp, data)
-    }
-  }
-  return Array.from(consolidated.values()).filter(d=>(!d.deleted))
-})
+const telescope_syncs = computed(() =>
+  Array.from(socket.syncPoints.values())
+    .filter(d => d.a_az != null && d.a_alt != null)
+    .map(formatSyncData)
+)
 
-const rotator_syncs = computed(() => {
-  const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData).filter(d=>(d.a_roll != ''))
-  const consolidated = new Map<string, TableRow>()
-  for (const data of syncdata) {
-    if (data.timestamp == 'reset') {
-      consolidated.clear()
-    } else {
-      consolidated.set(data.timestamp, data)
-    }
-  }
-  return Array.from(consolidated.values()).filter(d=>(!d.deleted))
-})
+const rotator_syncs = computed(() =>
+  Array.from(socket.syncPoints.values())
+    .filter(d => d.a_roll != null)
+    .map(formatSyncData)
+)
 
 
 watch(axis, ()=>selected.value=[])
@@ -353,8 +337,7 @@ type TableRow = {
 }
 
 
-function formatSyncData(d: TelemetryRecord):TableRow {
-  const data = d.data as SyncMessage
+function formatSyncData(data:SyncMessage):TableRow {
   const timestamp = data.timestamp ?? ''
   const deleted = data.deleted ?? false
   const time = new Date(data.timestamp).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true}) ?? ''

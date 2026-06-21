@@ -62,6 +62,7 @@ export const useStreamStore = defineStore('telemetry', () => {
   const _pingInterval = ref<ReturnType<typeof setInterval> | null>(null)
   const _reconnectTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
   const retryCount = ref(0)
+  const syncPoints = ref(new Map<string, SyncMessage>())
 
   // Actions (unchanged logic, just scoped)
   function connectSocket(url?: string | null) {
@@ -95,8 +96,17 @@ export const useStreamStore = defineStore('telemetry', () => {
         if (topic === 'pong') return
         if (topic === 'status') {
           status.statusUpdate(record.data)
-        } else if (topic == 'cfg') {
+        } else if (topic === 'cfg') {
           cfg.$patch(record.data)
+        } else if (topic === 'sm') {
+          const msg = record.data as SyncMessage
+          if (msg.timestamp === 'reset') {
+            syncPoints.value.clear()
+          } else if (msg.deleted) {
+            syncPoints.value.delete(msg.timestamp)
+          } else {
+            syncPoints.value.set(msg.timestamp, msg)
+          }
         } else {
           if (!topics.value[topic]) topics.value[topic] = []
           topics.value[topic].push(record)
@@ -214,6 +224,7 @@ export const useStreamStore = defineStore('telemetry', () => {
     socketConnectionStatus,
     lastActivity,
     topics,
+    syncPoints,
     subscriptions,
     connectSocket,
     disconnectSocket,

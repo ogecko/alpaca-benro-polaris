@@ -59,8 +59,12 @@ async def socket_handler(websocket: WebSocket):
                 if topic:
                     client_activity[websocket] = datetime.now(timezone.utc)
                     subscriptions.setdefault(topic, {})[websocket] = msg.get("filter", {})
-                    for entry in PublishLogTopic.get_backlog(topic):
-                        await ws_safe_send_json(websocket, entry)
+                    if topic == "sm":
+                        for entry in SyncBacklog.get_backlog():
+                            await ws_safe_send_json(websocket, entry)
+                    else:
+                        for entry in PublishLogTopic.get_backlog(topic):
+                            await ws_safe_send_json(websocket, entry)
 
             elif msg_type == "unsubscribe":
                 topic = msg.get("topic")
@@ -131,6 +135,28 @@ async def publish_status(polaris: Polaris):
         )
 
 
+# ── Manage the Sync Points Set─────────────────────────────────────────────────
+class SyncBacklog:
+    """Maintains a pre-consolidated map of valid sync points."""
+    _points: Dict[str, dict] = {}
+
+    @classmethod
+    def process(cls, payload: dict):
+        data = payload.get("data", {})
+        ts = data.get("timestamp")
+        if not ts:
+            return
+        if ts == "reset":
+            cls._points.clear()
+        elif data.get("deleted"):
+            cls._points.pop(ts, None)
+        else:
+            cls._points[ts] = payload
+
+    @classmethod
+    def get_backlog(cls) -> list:
+        return list(cls._points.values())
+
 # ── Log publisher ─────────────────────────────────────────────────────────────
 
 class PublishLogTopic(logging.Handler):
@@ -180,6 +206,8 @@ class PublishLogTopic(logging.Handler):
         try:
             payload = self.format(record)
             self._buffers[self.topic].append(payload)
+            if self.topic == "sm":
+                SyncBacklog.process(payload)
 
             queue = self._queues.get(self.topic)
             if queue is None:
@@ -284,3 +312,5 @@ async def alpaca_socket_httpd(logger, lifecycle: LifecycleController, polaris):
         if socket_server and socket_server.started:
             socket_server.should_exit = True
             await socket_server.shutdown()
+
+

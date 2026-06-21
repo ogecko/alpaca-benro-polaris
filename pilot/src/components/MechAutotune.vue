@@ -36,8 +36,7 @@ type TableRow = {
   deleted:boolean, timestamp:string, p_alt:number, p_roll:number 
 }
 
-function formatSyncData(d: TelemetryRecord):TableRow {
-  const data = d.data as SyncMessage
+function formatSyncData(data: SyncMessage):TableRow {
   const deleted = data.deleted ?? false
   const timestamp = data.timestamp ?? ''
   const p_alt = data.p_alt ?? 0
@@ -46,19 +45,11 @@ function formatSyncData(d: TelemetryRecord):TableRow {
 }
 
 // ---------------- Computed functions
-const telescope_syncs = computed(() => {
-  const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData).filter(d=>((d.p_roll != 0) && (d.p_alt != 0)))
-  const consolidated = new Map<string, TableRow>()
-  for (const data of syncdata) {
-    if (data.timestamp == 'reset') {
-      consolidated.clear()
-    } else {
-      consolidated.set(data.timestamp, data)
-    }
-  }
-  return Array.from(consolidated.values()).filter(d=>(!d.deleted))
-})
+const telescope_syncs = computed(() =>
+  Array.from(socket.syncPoints.values())
+    .filter(d => d.a_az != null && d.a_alt != null)
+    .map(formatSyncData)
+)
 
 const sync_summary = computed(() => {
   const ts = telescope_syncs.value
