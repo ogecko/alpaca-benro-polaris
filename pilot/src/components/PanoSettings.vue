@@ -1,57 +1,63 @@
 <template>
   <q-card flat bordered class="q-pa-md full-width">
+    
+    <!-- Grid Title and Buttons -->
     <div class="row items-center justify-between">
       <div class="text-h6">Panorama Grid Layout</div>
       <q-btn-group>
-      <q-btn label="Calc" icon="mdi-calculator" class="text-grey-6"  >
-        <q-popup-proxy><PanoCalculator class="" /></q-popup-proxy>
-      </q-btn>
-      <q-btn label="Swap" icon="mdi-phone-rotate-landscape"  class="text-grey-6"  @click="swapStepSettings"/>
-      <q-btn label="Copy" icon="mdi-content-copy"  class="text-grey-6"  @click="copyPanoSettings"/>
+        <q-btn label="Calc" icon="mdi-calculator" class="text-grey-6"  >
+          <q-popup-proxy><PanoCalculator class="" /></q-popup-proxy>
+        </q-btn>
+        <q-btn label="Swap" icon="mdi-phone-rotate-landscape"  class="text-grey-6"  @click="swapStepSettings"/>
+        <q-btn label="Copy" icon="mdi-content-copy"  class="text-grey-6"  @click="copyPanoSettings"/>
       </q-btn-group>
     </div>
+
+    <!-- Grid Layout -->
     <div class="row q-col-gutter-lg items-center q-pt-sm">
       <q-input class="col-3" v-bind="bindField('cols', 'Columns')" type="number" input-class="text-right" />
       <q-input class="col-3" v-bind="bindField('rows', 'Rows')" type="number" input-class="text-right" />
-                <div class="col-6">
-                  <q-select
-                    label="Panorama Preset" :model-value="cfg.pano_name" :options="panoOptions" 
-                    use-input input-debounce="0" fill-input hide-selected
-                    emit-value @update:model-value="onPanoSelect" @input-value="onPanoTyped" 
-                  >
-                    <template v-slot:append>
-                      <q-icon name="mdi-content-save" class="cursor-pointer" color="grey-6" @click.stop="onPanoSave">
-                        <q-tooltip>Save current panorama</q-tooltip>
-                      </q-icon>
-                    </template>
-                    <template v-slot:option="scope">
-                      <q-item v-bind="scope.itemProps">
-                        <q-item-section>
-                          <q-item-label>{{ scope.opt }}</q-item-label>
-                        </q-item-section>
-                        <q-item-section side>
-                          <q-icon name="mdi-close-circle" color="grey-6" class="cursor-pointer" @click.stop="onPanoDelete(scope.opt)">
-                            <q-tooltip>Delete this panorama</q-tooltip>
-                          </q-icon>
-                        </q-item-section>
-                      </q-item>
-                    </template>
-                  </q-select>
-                </div>
+        <div class="col-6">
+          <q-select
+            label="Panorama Preset" :model-value="cfg.pano_name" :options="panoOptions" 
+            use-input input-debounce="0" fill-input hide-selected
+            emit-value @update:model-value="onPanoSelect" @input-value="onPanoTyped" 
+          >
+            <template v-slot:append>
+              <q-icon name="mdi-content-save" class="cursor-pointer" color="grey-6" @click.stop="onPanoSave">
+                <q-tooltip>Save current panorama as a preset</q-tooltip>
+              </q-icon>
+            </template>
+            <template v-slot:option="scope">
+              <q-item v-bind="scope.itemProps">
+                <q-item-section>
+                  <q-item-label>{{ scope.opt }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-icon name="mdi-close-circle" color="grey-6" class="cursor-pointer" @click.stop="onPanoDelete(scope.opt)">
+                    <q-tooltip>Delete this panorama</q-tooltip>
+                  </q-icon>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+        </div>
     </div>
-    <div class="row q-col-gutter-lg items-center">
+    <div class="row q-col-gutter-lg items-center q-pt-sm">
       <q-input class="col-3" v-bind="bindField('hstep', hStepLabel, '°')" type="number" input-class="text-right" />
       <q-input class="col-3" v-bind="bindField('vstep', vStepLabel, '°')" type="number" input-class="text-right" />
       <q-select class="col-3" v-bind="bindField('first', 'First Panel')" :options="panoStartingPositionOptions" emit-value map-options />
       <q-select class="col-3" v-bind="bindField('order', 'Panel Order')" :options="panoOrderOptions" emit-value map-options />
     </div>
+
+    <!-- Grid Positioning -->
     <div class="text-h6 q-pt-lg">Panorama Grid Positioning</div>
     <div class="row q-col-gutter-lg items-center">
       <q-select class="col-3" v-bind="bindField('anchor', 'Anchor Panel')" :options="panoRefAlignOptions" emit-value map-options />
       <q-select class="col-3" v-bind="bindField('ref', 'Reference Frame')" :options="panoRefTypeOptions" emit-value map-options />
       <q-select class="col-6" v-bind="bindField('track', 'Rotation and Tracking')" :options="panoTrackingOptions" emit-value map-options />
     </div>
-    <div class="row q-col-gutter-lg q-pb-md items-center q-pt-md">
+    <div class="row q-col-gutter-lg q-pb-md items-center q-pt-sm">
       <div class="text-caption text-grey-5 col-3">Anchor Position
         <q-btn outline label="Update" icon="mdi-crosshairs-gps" @click="put({ref_action:'update'}); triggerAnimation(['r1', 'r2', 'r3'])" no-wrap>
           <q-tooltip>Update Anchor Position with current mount orientation</q-tooltip>
@@ -61,22 +67,19 @@
       <q-input class="col-3" v-bind="bindField('r2', r2Label, '°')" type="number" input-class="text-right" />
       <q-input class="col-3" v-bind="bindField('r3', r3Label, '°')" type="number" input-class="text-right" />
     </div>
-    <div class="text-h6 q-pt-lg">Panel Navigation</div>
+
+    <!-- Panel Navigation -->
+    <div class="text-h6 q-pt-md">Panel Navigation</div>
     <div class="col text-caption text-grey-6 q-pb-none">
       Click a panel number to slew the mount to the corresponding panel position.
     </div>
-
     <PanoNavigation />
-
-    <div class="col text-caption text-grey-6 q-pt-md">
-      ✱ Indicates the next panel in the panorama sequence
-    </div>
-    <div class="col text-caption text-grey-6">
-      ⚓ Which part of the mosaic to be placed at the reference position
-    </div>
+    <div class="col text-caption text-grey-6 q-pt-md">✱ Indicates the next panel in the panorama sequence</div>
+    <div class="col text-caption text-grey-6">⚓ Which part of the mosaic to be placed at the reference position</div>
     <div class="row text-grey-6">
       <q-toggle v-bind="bindField('show_panels', 'Show Panel Navigation on Main Dashboard')" />
     </div>
+
   </q-card>
 </template>
 
