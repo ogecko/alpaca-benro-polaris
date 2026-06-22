@@ -42,6 +42,7 @@
 - [X] Settings - Add ability to save observing site locations
 - [X] Settings - Add ability to save pano presets
 - [X] MAC - Add autotune to Mechanical Alignment Correction
+- [ ] Sync Guiding - Check whether immediate pulse guide return is cause of bad subexposure. ie detail till converged.
 - [ ] Settings - Add ability to save orbital parameters
 - [ ] Close candidate enhancement list
     - [ ] Goto - Determine ideal settle time for Benro Polaris and v2.2
