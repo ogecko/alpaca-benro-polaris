@@ -10,15 +10,7 @@ __pycache__/
 *.so
 
 # Alpaca Logs, Performance and Custom data
-speed_calibration.json
-speed_testdata.json
-sync_points.json
-locations.json
-panoramas.json
-catalog.json
-config.*.json
-alpaca_pilot*.crt
-alpaca_pilot*.key
+data/*
 *_extract.csv
 *_extract.txt
 *_model.txt
