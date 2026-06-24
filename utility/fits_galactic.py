@@ -204,7 +204,7 @@ def process_file(
         with fits.open(fits_path, mode=mode) as hdul:
             header = hdul[0].header
 
-            if "GLON" in header and "GLAT" in header and not overwrite:
+            if "GLON" in header and "GLAT" in header and not rename and not overwrite:
                 return f"SKIP (already has GLON/GLAT): {fits_path.name}"
 
             coords = extract_ra_dec(header)
