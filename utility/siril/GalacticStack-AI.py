@@ -19,11 +19,12 @@
 #
 # File Preparation
 # -----------
-#   1. Use ASTAP to plate-solve all preprocessed FITS files eg. pp_light_000*.fit
-#   2. Copy all plate-solved, preprocessed files into a working directory, ususually above process
-#   3. Use the utility/fits_galactic.py to rename the files based on Galactic co-ordinates
-#   4. Using Siril, set the Home directory to your working directory
-#   5. Using Siril > Scripts > Python Scripts > Scripts > GalacticStack-AI; to run this script
+#   1. Use Siril to preprocess biases, darks, flats and lights 
+#   2. Use ASTAP to cull and plate-solve all preprocessed FITS files 
+#   3. Copy all plate-solved, preprocessed files eg. pp_light_*.fit into a working directory
+#   4. Use the utility/fits_galactic.py to rename the files based on Galactic co-ordinates
+#   5. Using Siril, set the Home directory to your working directory
+#   6. Using Siril > Scripts > Python Scripts > Scripts > GalacticStack-AI; to run this script
 # 
 # Description
 # -----------
