@@ -59,6 +59,7 @@
 ### Multi Point Alignment
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart, allowing imagaging sessions to continue, uninterupted.
 - **[Persist Locations]** Pilot Settings allows multiple Observing Site Locations to be saved, loaded and deleted for offline use.
+- **[Persist Co-ordinate Frame]** Dashboard co-ordinate frame is persisted across F5 refresh and page changes, while separate for each browser tab.
 - **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
 - **[Alignment Diagnostics]** Improve Multi-Point Alignment Model diagnostics with Alignment RMS Error and more logging.
 

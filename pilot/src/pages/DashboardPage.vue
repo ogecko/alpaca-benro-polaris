@@ -11,12 +11,12 @@
         <div class="q-gutter-md ">
           <q-btn-group >
             <q-btn
-              :icon="isEq === 0 ? 'mdi-compass' : isEq === 1 ? 'mdi-telescope' : 'mdi-cryengine'"
+              :icon="ui.coordFrame === 0 ? 'mdi-compass' : ui.coordFrame === 1 ? 'mdi-telescope' : 'mdi-cryengine'"
               glossy :dense="btnDense" :size="btnSize" color="secondary" push
-              @click="isEq = ((isEq + 1) % 3) as 0 | 1 | 2"
+              @click="ui.cycleCoordFrame()"
             >
               <q-tooltip>
-                Coordinate frame: {{  isEq === 0 ? 'Topocentric (Az, Alt, Roll)' : isEq === 1 ? 'Equatorial (RA, Dec, PA)' : 'Galactic (l, b, GPA)' }}
+                Coordinate frame: {{  ui.coordFrame === 0 ? 'Topocentric (Az, Alt, Roll)' : ui.coordFrame === 1 ? 'Equatorial (RA, Dec, PA)' : 'Galactic (l, b, GPA)' }}
               </q-tooltip>
             </q-btn>
             <q-btn v-if="isDeviated" icon="mdi-format-horizontal-align-center"  glossy :dense="btnDense" :size="btnSize" color="secondary" outline @click="onResetSP">
@@ -110,6 +110,7 @@ import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
 import { useConfigStore } from 'src/stores/config'
+import { useUIStore } from 'src/stores/ui'
 import ScaleDisplay  from 'src/components/ScaleDisplay.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
 import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
@@ -124,7 +125,7 @@ const route = useRoute()
 const dev = useDeviceStore()
 const p = useStatusStore()
 const cfg= useConfigStore()
-const isEq = ref<0 | 1 | 2>(0)
+const ui = useUIStore()
 const isStopOutline = ref<boolean>(true)
 
 // ------------------- Layout Configuration Data ---------------------
@@ -170,12 +171,12 @@ const decWarnings = computed((): [number, number][] => {
 
 
 const displayConfig = computed(() => {
-    if (isEq.value === 1) return [
+    if (ui.coordFrame === 1) return [
         { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, domain: 'ra_24' as DomainStyleType,   warnings: raWarnings.value },
         { label: 'Declination',     pv: p.declination,    sp: p.deltaref[1],   domain: 'dec_180' as DomainStyleType, warnings: decWarnings.value },
         { label: 'Position Angle',  pv: p.positionangle,  sp: p.deltaref[2],   domain: 'pa_360' as DomainStyleType,  warnings: noWarnings }
     ]
-    if (isEq.value === 2) return [
+    if (ui.coordFrame === 2) return [
         { label: 'Galactic Lon', pv: p.gpv[0], sp: p.gsp[0], domain: 'az_360' as DomainStyleType,   warnings: noWarnings },
         { label: 'Galactic Lat', pv: p.gpv[1], sp: p.gsp[1], domain: 'dec_180' as DomainStyleType,  warnings: glatWarnings },
         { label: 'Galactic PA',  pv: p.gpv[2], sp: p.gsp[2], domain: 'gpa_180' as DomainStyleType,  warnings: noWarnings }
@@ -189,7 +190,7 @@ const displayConfig = computed(() => {
 
 const isDeviated = computed(() => {
   if (p.pidmode!='IDLE') return false
-  if (isEq.value === 2) return false
+  if (ui.coordFrame === 2) return false
   const RAD = angularDifference(p.rightascension, p.deltarefRAhrs)
   const DecD = angularDifference(p.declination, p.deltaref[1]?? 0)
   const PAD = angularDifference(p.positionangle, p.deltaref[2]?? 0)
