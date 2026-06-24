@@ -4,13 +4,13 @@
 [Applications Supported](#telescope-control-compatibility) | [Stellarium Mobile](#1-using-stellarium-mobile-plus) | [Stellarium Desktop](#2-using-stellarium-desktop) | [Sky Safari Pro](./installation.md#seting-up-sky-safari-pro-optional) | [Aiming Accuracy](#3-improving-aiming-accuracy) 
 
 ## Telescope Control Compatibility
-The Alpaca Benro Polaris Driver supports both the Alpaca ASCOM and SynScan protocols. This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
+The Alpaca Benro Polaris Driver supports both the [ASCOM Alpaca API](https://ascom-standards.org/api/#/Telescope%20Specific%20Methods) and [SynScan protocol](https://inter-static.skywatcher.com/downloads/synscanserialcommunicationprotocol_version33.pdf). This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
 
 ![imaging](images/abp-compatibility.png)
 
 ### Supported and Tested
 
-* [Stellariium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) (IOS, Android) - paid, telescope control via SynScan protocol.
+* [Stellariium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) (IOS, Android) - paid, telescope control via [SynScan protocol](https://inter-static.skywatcher.com/downloads/synscanserialcommunicationprotocol_version33.pdf).
 * [Stellarium Desktop](https://stellarium.org/) (Win) - free, telescope control via Alpaca ASCOM
 * [Stellarium Desktop](https://stellarium.org/) (MacOS, Linux) - free, telescope control via a binary protocol
 * [Sky Safari 7 Plus and Pro](https://skysafariastronomy.com/) - paid, telescope control via Alpaca 
