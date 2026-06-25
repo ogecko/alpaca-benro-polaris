@@ -207,6 +207,7 @@ Notes: Last week RC1 tester.
 * Indoor slew/movement tests via Alpaca Pilot
 ### Results
 * Early dev2_2 build 19-Jun-26; at Az=0; changing Alt can cause unecessary "unwind" operations.
+* When switching between the Dashboard and Multi-Point Alignment windows in the Pilot App, the coordinates on the Dashboard keep switching back to alt/az (a bit of an annoyance). JDM - Fixed in Dev2_2
 ### Feedback Summary
 
 
