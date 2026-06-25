@@ -1,4 +1,6 @@
 // src/stores/ui.ts
+// Used to store any information that needs to be persisted between page changes and on a per tab basis
+// Information stored to sessionStorage will also persist across page refresh F5
 import { defineStore } from 'pinia'
 
 export const useUIStore = defineStore('ui', {
