@@ -121,6 +121,10 @@ import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
 import type { LevelKey, UnitKey } from 'src/utils/angles'
+import { useUIStore } from 'src/stores/ui'
+
+
+const ui = useUIStore()
 
 // Component properties
 const props = defineProps<{
@@ -136,10 +140,13 @@ const props = defineProps<{
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const svgElement = ref<SVGSVGElement | null>(null);
-const scaleRange = ref<number>(200)
 const showButtons = ref<boolean>(false);
 const spxValueEditStr = ref<string>('')
 const spxInputRef = ref();
+const scaleRange = computed({
+  get: () => ui.getScaleRange(props.label, dProps.value.maxScale),
+  set: (val: number) => ui.setScaleRange(props.label, val)
+})
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
