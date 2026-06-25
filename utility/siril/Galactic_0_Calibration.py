@@ -265,7 +265,8 @@ def build_master_bias(siril, biases_dir, output_dir):
         return None
     # Force 32-bit to handle mixed-precision input files
     cmd_safe(siril, "set32bits")
-    if not cmd_safe(siril, "stack", "bias", "med", "-nonorm",
+    # Use sigma-rejection matching the official Mono_Preprocessing.ssf
+    if not cmd_safe(siril, "stack", "bias", "rej", "3", "3", "-nonorm",
                     "-out=" + MASTER_BIAS_NAME):
         return None
     for ext in (".fits", ".fit", ".fts"):
@@ -294,15 +295,12 @@ def build_master_dark(siril, darks_dir, master_bias_path, output_dir):
         return None
     if not cmd_safe(siril, "cd", str(proc)):
         return None
-    if master_bias_path and master_bias_path.exists():
-        if not cmd_safe(siril, "calibrate", "dark",
-                        "-bias=" + str(master_bias_path)):
-            return None
-        dark_seq = "pp_dark"
-    else:
-        siril_log(siril, "  No master bias -- stacking raw darks.")
-        dark_seq = "dark"
-    if not cmd_safe(siril, "stack", dark_seq, "med", "-nonorm",
+    # Stack raw darks WITHOUT subtracting bias -- this matches the official
+    # Mono_Preprocessing.ssf. The dark retains its bias signal, which is
+    # correct: when calibrating lights, the dark (bias+thermal) is subtracted
+    # from the light (bias+thermal+signal), cancelling both bias and dark.
+    # Subtracting bias from darks first would leave bias uncorrected in lights.
+    if not cmd_safe(siril, "stack", "dark", "rej", "3", "3", "-nonorm",
                     "-out=" + MASTER_DARK_NAME):
         return None
     for ext in (".fits", ".fit", ".fts"):
@@ -344,7 +342,8 @@ def build_master_flat(siril, flats_dir, master_bias_path, filter_name):
         flat_seq = "flat"
     # Write master flat to flats_dir (parent of process/) for easy access
     master_flat_path = flats_dir / MASTER_FLAT_NAME
-    if not cmd_safe(siril, "stack", flat_seq, "med", "-norm=mul",
+    # Use sigma-rejection matching the official Mono_Preprocessing.ssf
+    if not cmd_safe(siril, "stack", flat_seq, "rej", "3", "3", "-norm=mul",
                     "-out=" + str(master_flat_path)):
         return None
     for ext in (".fits", ".fit", ".fts"):
@@ -382,13 +381,20 @@ def preprocess_filter(siril, filter_name, lights_dir, process_dir,
     if not cmd_safe(siril, "cd", str(process_dir)):
         return False
 
-    # Build calibrate command -- sequence name only (no path), CWD is process_dir
+    # Build calibrate command following official Mono_Preprocessing.ssf exactly:
+    #   calibrate light -dark=dark_stacked -flat=pp_flat_stacked -cc=dark
+    #
+    # No -bias= (bias is inside the raw dark, double-subtraction otherwise)
+    # No -opt  (only for mismatched library darks, official script omits it)
+    # -cc=dark enables cosmetic correction: hot pixels in the master dark
+    #   (sigma=3) are replaced in each light frame. The official script
+    #   shows: "Cosmetic correction from masterdark: using sigma 3.00 for
+    #   hot pixels. 953 corrected pixels". Without this, hot pixels remain
+    #   as white specks in calibrated images.
     pp_args = ["calibrate", "light"]
-    if master_bias_path and master_bias_path.exists():
-        pp_args.append("-bias=" + str(master_bias_path))
     if master_dark_path and master_dark_path.exists():
         pp_args.append("-dark=" + str(master_dark_path))
-        pp_args.append("-opt")
+        pp_args.append("-cc=dark")   # hot pixel cosmetic correction from dark
     if master_flat_path and master_flat_path.exists():
         pp_args.append("-flat=" + str(master_flat_path))
     # prefix=pp_ gives pp_light_00001.fits (sequence name "light" appended by Siril)
@@ -510,6 +516,7 @@ def main():
         # ------------------------------------------------------------------
         ok_filters = []
         fail_filters = []
+        filter_renamed = {}  # filt -> count of renamed files
 
         for filt, info in filter_info.items():
             siril_log(siril, " ")
@@ -561,6 +568,7 @@ def main():
             siril_log(siril, "  Renamed: " + str(renamed)
                       + "  Skipped: " + str(skipped)
                       + "  Errors: " + str(errors))
+            filter_renamed[filt] = renamed
 
             ok_filters.append(filt)
 
@@ -570,11 +578,33 @@ def main():
         siril_log(siril, " ")
         siril_log(siril, "=" * 60)
         siril_log(siril, "Galactic_0_Calibration complete.")
-        siril_log(siril, "  Filters OK    : " + ", ".join(ok_filters) if ok_filters
-                  else "  Filters OK    : none")
-        siril_log(siril, "  Filters failed: " + ", ".join(fail_filters) if fail_filters
-                  else "  Filters failed: none")
-        siril_log(siril, "  Ready for Galactic_1_Stack.py")
+        siril_log(siril, "=" * 60)
+        siril_log(siril, "  Darks   : " + str(n_darks)
+                  + "  Biases: " + str(n_biases))
+        siril_log(siril, "  Master bias: "
+                  + (str(master_bias_path.name) if master_bias_path else "not built"))
+        siril_log(siril, "  Master dark: "
+                  + (str(master_dark_path.name) if master_dark_path else "not built"))
+        siril_log(siril, " ")
+        siril_log(siril, "  {:<8} {:>8} {:>8} {:>10} {:>8}".format(
+                  "Filter", "Lights", "Flats", "Calibrated", "Renamed"))
+        siril_log(siril, "  " + "-" * 48)
+        for filt in ok_filters:
+            info = filter_info[filt]
+            # Count calibrated files: pp_light_* before rename, GLAT*_pp_light_* after
+            n_cal = sum(1 for p in info["process_dir"].iterdir()
+                        if p.is_file()
+                        and p.suffix.lower() in {".fits", ".fit", ".fts"}
+                        and ("pp_light_" in p.stem or p.stem.startswith("pp_")))
+            n_ren = filter_renamed.get(filt, 0)
+            siril_log(siril, "  {:<8} {:>8} {:>8} {:>10} {:>8}".format(
+                      filt, info["n_lights"], info["n_flats"], n_cal, n_ren))
+        for filt in fail_filters:
+            siril_log(siril, "  {:<8}   FAILED".format(filt))
+        siril_log(siril, " ")
+        siril_log(siril, "  Filters OK    : " + (", ".join(ok_filters) if ok_filters else "none"))
+        siril_log(siril, "  Filters failed: " + (", ".join(fail_filters) if fail_filters else "none"))
+        siril_log(siril, "  Next: run Galactic_1_Stack.py")
         siril_log(siril, "=" * 60)
 
     except Exception as exc:

@@ -120,13 +120,38 @@ def process_panel(siril, prefix, lrgb_path, home_dir):
     cmd_safe(siril, "cd", str(home_dir))
 
     # ------------------------------------------------------------------
-    # Step 1: Load plate-solved LRGB and run SPCC
+    # Step 1: GraXpert Background Extraction then Colour Calibration
+    # BGE must run BEFORE SPCC on the linear LRGB image:
+    #   - rgbcomp can introduce a gradient even if individual channel
+    #     stacks were BGE-corrected (different channel gradients combine
+    #     into a residual in the composite)
+    #   - SPCC measures stellar photometry across the field; a gradient
+    #     makes stars near the bright edge appear brighter, causing SPCC
+    #     to overcorrect (the "consider correcting gradient first" warning)
+    # Smoothing is set in Preferences -> Miscellaneous -> GraXpert.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [1/6] Colour calibration (SPCC -> PCC fallback)...")
+    siril_log(siril, "  [1/8] GraXpert background extraction (BGE)...")
     if not cmd_safe(siril, "load", str(lrgb_path)):
         siril_log(siril, "  [ERROR] Cannot load " + lrgb_path.name)
         return False
 
+    bge_ok = cmd_safe(siril, "pyscript", "GraXpert-AI.py", "-bge")
+    if not bge_ok:
+        siril_log(siril, "  [WARNING] GraXpert BGE failed -- continuing without.")
+
+    # ------------------------------------------------------------------
+    # Step 2: GraXpert Denoise
+    # Denoise after BGE -- denoiser works better on gradient-free data.
+    # ------------------------------------------------------------------
+    siril_log(siril, "  [2/8] GraXpert denoise...")
+    denoise_ok = cmd_safe(siril, "pyscript", "GraXpert-AI.py", "-denoise", "-strength=0.5")
+    if not denoise_ok:
+        siril_log(siril, "  [WARNING] GraXpert denoise failed -- continuing.")
+
+    # ------------------------------------------------------------------
+    # Step 3: Colour Calibration -- SPCC preferred, PCC with Gaia DR3 fallback
+    # ------------------------------------------------------------------
+    siril_log(siril, "  [3/8] Colour calibration (SPCC -> PCC fallback)...")
     cc_ok = cmd_safe(siril, "spcc")
     if not cc_ok:
         siril_log(siril, "  SPCC failed -- trying PCC with local Gaia DR3...")
@@ -143,7 +168,7 @@ def process_panel(siril, prefix, lrgb_path, home_dir):
     # Step 2: StarNet star removal
     # Save cc_linear then load it so StarNet uses its stem for output names.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [2/6] StarNet star removal...")
+    siril_log(siril, "  [4/8] StarNet star removal...")
 
     if not cmd_safe(siril, "save", str(cc_linear_path)):
         siril_log(siril, "  [ERROR] Cannot save cc_linear.")
@@ -191,7 +216,7 @@ def process_panel(siril, prefix, lrgb_path, home_dir):
     # ------------------------------------------------------------------
     # Step 3: VeraLux HyperMetric Stretch
     # ------------------------------------------------------------------
-    siril_log(siril, "  [3/6] VeraLux HyperMetric Stretch (Log D "
+    siril_log(siril, "  [5/8] VeraLux HyperMetric Stretch (Log D "
               + str(HMS_LOG_D) + ")...")
     siril_log(siril, "  NOTE: Dialog will open -- set Log D to "
               + str(HMS_LOG_D) + " and click Process.")
@@ -230,7 +255,7 @@ def process_panel(siril, prefix, lrgb_path, home_dir):
     # Step 4: VeraLux StarComposer
     # ------------------------------------------------------------------
     if has_starmask:
-        siril_log(siril, "  [4/6] VeraLux StarComposer...")
+        siril_log(siril, "  [6/8] VeraLux StarComposer...")
         siril_log(siril, "  *** SELECT BOTH FILES IN THE DIALOG ***")
         siril_log(siril, "  Starless : " + str(stretched_starless))
         siril_log(siril, "  Starmask : " + str(starmask_out))
@@ -240,13 +265,13 @@ def process_panel(siril, prefix, lrgb_path, home_dir):
             siril_log(siril, "  [WARNING] StarComposer failed -- using starless only.")
             cmd_safe(siril, "load", str(stretched_starless))
     else:
-        siril_log(siril, "  [4/6] No starmask -- using starless only.")
+        siril_log(siril, "  [6/8] No starmask -- using starless only.")
         cmd_safe(siril, "load", str(stretched_starless))
 
     # ------------------------------------------------------------------
     # Step 5: Save FITS 32-bit
     # ------------------------------------------------------------------
-    siril_log(siril, "  [5/6] Saving FITS 32-bit...")
+    siril_log(siril, "  [7/8] Saving FITS 32-bit...")
     if not cmd_safe(siril, "save", str(result_out)):
         siril_log(siril, "  [ERROR] Cannot save result FITS.")
         return False
@@ -255,7 +280,7 @@ def process_panel(siril, prefix, lrgb_path, home_dir):
     # ------------------------------------------------------------------
     # Step 6: Save TIFF 16-bit
     # ------------------------------------------------------------------
-    siril_log(siril, "  [6/6] Saving TIFF 16-bit...")
+    siril_log(siril, "  [8/8] Saving TIFF 16-bit...")
     if not cmd_safe(siril, "savetif", str(tiff_out.with_suffix(""))):
         siril_log(siril, "  [WARNING] TIFF save failed.")
     else:
@@ -302,17 +327,28 @@ def main():
             siril_log(siril, "  " + p.name)
 
         ok = fail = 0
+        results = []
         for prefix, lrgb_path in panels:
             if process_panel(siril, prefix, lrgb_path, home_dir):
                 ok += 1
+                results.append((prefix, "OK"))
             else:
                 fail += 1
+                results.append((prefix, "FAIL"))
 
         siril_log(siril, " ")
         siril_log(siril, "=" * 60)
         siril_log(siril, "Galactic_3_Stretch complete.")
-        siril_log(siril, "  Panels OK    : " + str(ok))
-        siril_log(siril, "  Panels failed: " + str(fail))
+        siril_log(siril, "=" * 60)
+        siril_log(siril, "  {:<20} {:>6}".format("Panel", "Result"))
+        siril_log(siril, "  " + "-" * 28)
+        for prefix, status in results:
+            siril_log(siril, "  {:<20} {:>6}".format(prefix, status))
+        siril_log(siril, " ")
+        siril_log(siril, "  OK  : " + str(ok)
+                  + "   FAIL: " + str(fail)
+                  + "   TOTAL: " + str(len(results)))
+        siril_log(siril, "  Output: GLAT*_LRGB_stretched_result.fits/.tif in home/")
         siril_log(siril, "=" * 60)
 
     except Exception as exc:

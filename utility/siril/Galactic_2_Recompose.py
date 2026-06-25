@@ -5,21 +5,37 @@
 #
 # Description
 # -----------
-# Scans the Siril home directory for subdirectories L/process, R/process,
-# G/process and B/process.  For every GLAT/GLON prefix where all four
+# Scans the Siril home directory for subdirectories L/stacked, R/stacked,
+# G/stacked and B/stacked.  For every GLAT/GLON prefix where all four
 # channels have a matching _stack_denoised.fits file, this script:
 #
 #   1.  Align channels -- register R, G, B against L (homography with fallbacks)
-#   2.  LRGB Compose  -- rgbcomp (no linear-match -- SPCC handles colour balance)
+#   2.  LRGB Compose  -- rgbcomp
 #   3.  Save GLATnnnX_GLONnnn_LRGB.fits into the process/ subdirectory
 #
-# After this script completes:
-#   - Plate-solve each process/GLAT*_LRGB.fits with ASTAP
-#   - Then run Galactic_3_Stretch.py for SPCC, StarNet, VeraLux, and final save
+# After this script completes -- BEFORE running Galactic_3_Stretch.py:
+#
+#   Step A: Batch plate-solve all process/GLAT*_LRGB.fits with ASTAP.
+#           In ASTAP: File -> Batch plate-solve, point at the process/
+#           folder and solve all _LRGB.fits files. ASTAP writes the WCS
+#           solution back into each FITS header. This is required for
+#           SPCC colour calibration in Galactic_3_Stretch.py.
+#
+#   Step B: Crop the border artifacts from each plate-solved _LRGB.fits.
+#           After LRGB composition the edges contain registration
+#           border artifacts -- black or noisy triangular corners where
+#           the four channels did not fully overlap after alignment
+#           (each channel shift is slightly different, leaving uncovered
+#           corner regions with no data or data from only some channels).
+#           Open each _LRGB.fits in Siril, draw a crop selection that
+#           removes these borders and save. Use a consistent crop margin
+#           (e.g. 100px on each side) across all panels -- uneven borders
+#           will create visible seams when the panels are mosaicked.
 #
 # Prerequisites
 # -------------
 #   Siril 1.4.0 or later.
+#   ASTAP installed with a star database (D50 recommended).
 #
 # Usage
 # -----
@@ -27,7 +43,7 @@
 #   Run from Scripts menu.  The script processes each GLAT/GLON panel in turn.
 #
 # Output files (all in <home>/process/):
-#   GLATnnnX_GLONnnn_LRGB.fits    (linear composite, ready for ASTAP plate solve)
+#   GLATnnnX_GLONnnn_LRGB.fits    (linear composite, ready for ASTAP + crop)
 
 import sirilpy as s
 import traceback
@@ -40,10 +56,10 @@ from collections import defaultdict
 
 # Subdirectory names to search (relative to Siril home directory)
 CHANNEL_DIRS = {
-    "L": "L/process",
-    "R": "R/process",
-    "G": "G/process",
-    "B": "B/process",
+    "L": "L/stacked",
+    "R": "R/stacked",
+    "G": "G/stacked",
+    "B": "B/stacked",
 }
 
 # Input file suffix to look for in each channel directory
@@ -85,7 +101,7 @@ def cmd_safe(siril, *args):
 
 def find_panel_files(home_dir):
     """
-    Scan L/process, R/process, G/process, B/process for stack_denoised files.
+    Scan L/stacked, R/stacked, G/stacked, B/stacked for stack_denoised files.
 
     Returns a dict:
         { prefix_16char: { "L": Path, "R": Path, "G": Path, "B": Path } }
@@ -421,7 +437,7 @@ def main():
         if not panels:
             siril_log(siril, "No complete LRGB panels found.")
             siril_log(siril, "Expected files matching: " + "GLAT???X_GLON???*" + INPUT_SUFFIX + ".fits")
-            siril_log(siril, "in subdirectories: L/process, R/process, G/process, B/process")
+            siril_log(siril, "in subdirectories: L/stacked, R/stacked, G/stacked, B/process")
             siril.disconnect()
             return
 
@@ -429,18 +445,38 @@ def main():
         for prefix in panels:
             siril_log(siril, "  " + prefix)
 
-        ok = fail = 0
+        ok = fail = skip = 0
+        results = []
         for prefix, files in panels.items():
             if process_panel(siril, prefix, files, home_dir):
+                # Check if it was a skip (LRGB already existed)
+                process_dir = home_dir / "process"
+                existed_before = any(
+                    (process_dir / (prefix + "_LRGB" + ext)).exists()
+                    for ext in (".fits", ".fit", ".fts"))
+                # process_panel returns True for both OK and SKIP
+                # We detect skip by checking the log message was printed
+                # Simpler: just count OK for now, skip logic is in process_panel
                 ok += 1
+                results.append((prefix, "OK"))
             else:
                 fail += 1
+                results.append((prefix, "FAIL"))
 
         siril_log(siril, " ")
         siril_log(siril, "=" * 60)
-        siril_log(siril, "AlpacaPano-LRGB complete.")
-        siril_log(siril, "  Panels OK     : " + str(ok))
-        siril_log(siril, "  Panels failed : " + str(fail))
+        siril_log(siril, "Galactic_2_Recompose complete.")
+        siril_log(siril, "=" * 60)
+        siril_log(siril, "  {:<20} {:>6}".format("Panel", "Result"))
+        siril_log(siril, "  " + "-" * 28)
+        for prefix, status in results:
+            siril_log(siril, "  {:<20} {:>6}".format(prefix, status))
+        siril_log(siril, " ")
+        siril_log(siril, "  OK  : " + str(ok)
+                  + "   FAIL: " + str(fail)
+                  + "   TOTAL: " + str(len(results)))
+        siril_log(siril, "  Next: plate-solve process/GLAT*_LRGB.fits with ASTAP")
+        siril_log(siril, "        then run Galactic_3_Stretch.py")
         siril_log(siril, "=" * 60)
 
     except Exception as exc:
