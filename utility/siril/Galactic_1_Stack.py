@@ -1,31 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# GalacticStack-AI.py
+# Galactic_1_Stack.py
 # Version: 1.1.0
 # Author:  Generated for alpaca-benro-polaris utility suite
 # Contact: https://github.com/scriptable
 #
-# Galactic Panorama Siril Script
-# ------------------------------
-# Save time by automatically stacking and denoising groups of FITS files into each Galactic Pano Panel
-# Can be used for OSC or monochrome images. Makes it easy to match the monochrome channels for each Panel by Galactic coordinates.
-# 
-# Installation
-# -----------
-#   1. Copy script into C:\Users\YourUserName\AppData\Roaming\siril\scripts, creating directory if it doenst exist
-#   2. Using Siril > Scripts > Get Scripts, check the above folder is included, then click the refresh button
-#   3. The Siril log should show 
-#      17:35:28: Searching for scripts in: "C:\Users\YourUserName\AppData\Roaming\siril\scripts"...
-#      17:35:28: Loading script: GalacticStack-AI.py
-#
-# File Preparation
-# -----------
-#   1. Use Siril to preprocess biases, darks, flats and lights 
-#   2. Use ASTAP to cull and plate-solve all preprocessed FITS files 
-#   3. Copy all plate-solved, preprocessed files eg. pp_light_*.fit into a working directory
-#   4. Use the utility/fits_galactic.py to rename the files based on Galactic co-ordinates
-#   5. Using Siril, set the Home directory to your working directory
-#   6. Using Siril > Scripts > Python Scripts > Scripts > GalacticStack-AI; to run this script
-# 
 # Description
 # -----------
 # Groups all FITS files in the Siril working directory by the first 16
@@ -71,6 +49,13 @@ STACK_SIGMA_HIGH = 3        # upper sigma threshold for rejection
 STACK_NORM       = "addscale"  # normalisation: addscale / add / mul / no
 FITS_EXTENSIONS  = {".fits", ".fit", ".fts"}
 PREFIX_LENGTH    = 16       # number of filename characters used to group files
+
+# Channel subdirectories to scan (relative to Siril home directory).
+# Stacked outputs are saved back into the same directory they were found in
+# so that Galactic_2_Recompose.py can find them in channel/process/.
+# Only directories that exist are processed -- missing filters are skipped.
+CHANNEL_DIRS = ["L/process", "R/process", "G/process", "B/process",
+                "Ha/process", "Sii/process", "Oiii/process"]
 # ---------------------------------------------------------------------------
 
 
@@ -114,32 +99,51 @@ def is_output_file(path):
     return False
 
 
-def group_fits_by_prefix(directory):
+def group_fits_by_channel(home_dir):
     """
-    Scan *directory* for FITS files and bucket them by the first
-    PREFIX_LENGTH characters of the filename.
+    Scan each channel subdirectory (L/process, R/process, G/process, B/process)
+    for FITS files and group them by the first PREFIX_LENGTH characters.
 
-    Skips:
-      - files produced by a previous run of this script (_stack, _stack_denoised)
-      - files inside _grp_* subdirectories (temp working dirs)
+    Returns dict { prefix: { channel_dir_str: [Path, ...] } }
+    where channel_dir_str is e.g. "L/process".
 
-    Returns dict { prefix_string: [Path, ...] }
+    Only directories that exist are scanned. Files that look like previous
+    stack outputs (_stack, _stack_denoised) are excluded.
     """
-    groups = defaultdict(list)
-    for p in sorted(directory.iterdir()):
-        if not p.is_file():
+    # channel_dir -> { prefix -> [Path] }
+    per_channel = {}
+    for rel_dir in CHANNEL_DIRS:
+        scan_dir = home_dir / rel_dir
+        if not scan_dir.is_dir():
             continue
-        if p.suffix.lower() not in FITS_EXTENSIONS:
-            continue
-        # Skip our own output files so re-runs don't stack stacks
-        if is_output_file(p):
-            continue
-        if len(p.name) >= PREFIX_LENGTH:
-            prefix = p.name[:PREFIX_LENGTH]
-        else:
-            prefix = "_ungrouped_"
-        groups[prefix].append(p)
-    return dict(groups)
+        groups = defaultdict(list)
+        for p in sorted(scan_dir.iterdir()):
+            if not p.is_file():
+                continue
+            if p.suffix.lower() not in FITS_EXTENSIONS:
+                continue
+            if is_output_file(p):
+                continue
+            prefix = p.name[:PREFIX_LENGTH] if len(p.name) >= PREFIX_LENGTH else "_ungrouped_"
+            groups[prefix].append(p)
+        per_channel[rel_dir] = dict(groups)
+
+    # Collect all prefixes that appear in at least one channel dir
+    all_prefixes = set()
+    for groups in per_channel.values():
+        all_prefixes.update(groups.keys())
+    all_prefixes.discard("_ungrouped_")
+
+    # Build result: prefix -> { rel_dir: [files] }
+    result = {}
+    for prefix in sorted(all_prefixes):
+        channel_files = {}
+        for rel_dir, groups in per_channel.items():
+            if prefix in groups:
+                channel_files[rel_dir] = groups[prefix]
+        if channel_files:
+            result[prefix] = channel_files
+    return result
 
 
 def cleanup_group_dir(siril, group_dir, work_dir):
@@ -177,17 +181,25 @@ def process_group(siril, group_prefix, files, work_dir):
     safe_prefix  = "".join(c if (c.isalnum() or c == "_") else "_" for c in group_prefix)
     group_dir    = work_dir / ("_grp_" + safe_prefix)
 
-    # Always start with a completely empty directory to prevent stale
-    # symlinks / converted files from a prior run inflating the file count.
-    if group_dir.exists():
-        import shutil as _shutil
-        _shutil.rmtree(group_dir, ignore_errors=True)
-    group_dir.mkdir(parents=True, exist_ok=True)
-
     seq_name      = safe_prefix
     reg_seq_name  = "r_" + safe_prefix
     stack_out     = safe_prefix + "_stack"
     denoised_out  = safe_prefix + "_stack_denoised"
+
+    # Skip if the denoised output already exists (any extension).
+    # Check BEFORE creating the group_dir so no empty directory is left.
+    for ext in (".fits", ".fit", ".fts"):
+        existing = work_dir / (denoised_out + ext)
+        if existing.exists():
+            siril_log(siril, "  SKIP: output already exists: " + existing.name)
+            return True
+
+    # Always start with a completely empty directory to prevent stale
+    # files from a prior run inflating the file count.
+    if group_dir.exists():
+        import shutil as _shutil
+        _shutil.rmtree(group_dir, ignore_errors=True)
+    group_dir.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------
     # Step 1: Populate the group sub-directory and convert to sequence.
@@ -195,7 +207,7 @@ def process_group(siril, group_prefix, files, work_dir):
     # and register agree on the filename suffix -- without this, convert
     # may write .fit while register looks for .fits (or vice-versa).
     # ------------------------------------------------------------------
-    siril_log(siril, "  [1/4] Converting " + str(n) + " files into sequence '" + seq_name + "'...")
+    siril_log(siril, "  [1/5] Converting " + str(n) + " files into sequence '" + seq_name + "'...")
 
     if not cmd_safe(siril, "cd", str(group_dir)):
         return False
@@ -227,41 +239,63 @@ def process_group(siril, group_prefix, files, work_dir):
     # and would require a separate seqapplyreg step before stacking.
     # Single-pass register is correct for unattended batch use.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [2/4] Registering (-transf=" + REGISTER_TRANSF + ")...")
+    siril_log(siril, "  [2/5] Registering (-transf=" + REGISTER_TRANSF + ")...")
     if not cmd_safe(siril, "register", seq_name, "-transf=" + REGISTER_TRANSF):
         siril_log(siril, "  [ERROR] registration failed -- skipping group.")
         return False
 
     # ------------------------------------------------------------------
     # Step 3: Stack
-    # Correct syntax: stack seqname rej sigma_low sigma_high -norm= -out=
-    # Rejection type and sigmas are positional (no "type=" prefix needed).
-    # Confirmed from official docs: stack bias rej 3 3 -nonorm -out=master-bias
+    # Force 32-bit float output BEFORE stacking.
+    # When input files are 16-bit camera FITS, Siril automatically outputs
+    # 16-bit stacks. With addscale normalisation, bright star cores in
+    # 16-bit stacks are clipped at 65535 -- information is lost and the
+    # clipped pixels cause colour problems in LRGB composition.
+    # 32-bit float stores the true normalised value (e.g. 0.94) with no
+    # clipping, preserving all colour information through the pipeline.
+    # set32bits persists until set16bits is called or Siril restarts.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [3/4] Stacking -> " + stack_out + " ...")
-    if not cmd_safe(
-        siril,
-        "stack", reg_seq_name,
-        STACK_TYPE,
-        str(STACK_SIGMA_LOW),
-        str(STACK_SIGMA_HIGH),
-        "-norm=" + STACK_NORM,
-        "-out=" + stack_out,
-    ):
-        siril_log(siril, "  [ERROR] stacking failed -- skipping denoising.")
-        return False
+    cmd_safe(siril, "set32bits")
+    siril_log(siril, "  Output set to 32-bit float for stacking.")
+
+    MIN_FRAMES_FOR_REJECTION = 5
+    if n < MIN_FRAMES_FOR_REJECTION:
+        stack_type_used = "med"   # median -- inherent single-outlier rejection
+        siril_log(siril, "  [3/5] Stacking " + str(n) + " frames -> median"
+                  + " (too few for sigma rejection) -> " + stack_out + " ...")
+        if not cmd_safe(
+            siril,
+            "stack", reg_seq_name,
+            stack_type_used,
+            "-norm=" + STACK_NORM,
+            "-output_norm",
+            "-out=" + stack_out,
+        ):
+            siril_log(siril, "  [ERROR] stacking failed -- skipping BGE/denoise.")
+            return False
+    else:
+        stack_type_used = STACK_TYPE
+        siril_log(siril, "  [3/5] Stacking " + str(n) + " frames -> "
+                  + STACK_TYPE + " rejection -> " + stack_out + " ...")
+        if not cmd_safe(
+            siril,
+            "stack", reg_seq_name,
+            STACK_TYPE,
+            str(STACK_SIGMA_LOW),
+            str(STACK_SIGMA_HIGH),
+            "-norm=" + STACK_NORM,
+            "-output_norm",
+            "-out=" + stack_out,
+        ):
+            siril_log(siril, "  [ERROR] stacking failed -- skipping BGE/denoise.")
+            return False
 
     # ------------------------------------------------------------------
-    # Step 4: GraXpert denoising via pyscript
-    # GraXpert-AI.py CLI v2+ uses flag arguments, not key=value pairs.
-    # Correct usage (from the script's own --help output):
-    #   pyscript GraXpert-AI.py -denoise [-strength=<0.0-1.0>]
-    # The script operates on the currently loaded Siril image and updates
-    # it in place -- no -output argument exists.  We load the stack first,
-    # call pyscript, then save the (now-denoised) current image ourselves.
-    # pyscript blocks until completion when called from inside a script.
+    # Step 4: GraXpert Background Extraction then Denoise
+    # GraXpert recommends BGE before denoising -- removing the gradient
+    # first gives the denoiser a cleaner, more uniform signal to work on.
+    # Both steps operate on the currently loaded Siril image in-place.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [4/4] Denoising via GraXpert-AI.py -denoise (strength=" + str(DENOISE_STRENGTH) + ")...")
 
     # Find the stacked file (Siril writes .fit or .fits depending on setext)
     stack_path = None
@@ -272,17 +306,24 @@ def process_group(siril, group_prefix, files, work_dir):
             break
 
     if stack_path is None:
-        siril_log(siril, "  [ERROR] Stacked file not found -- skipping denoise.")
+        siril_log(siril, "  [ERROR] Stacked file not found -- skipping BGE/denoise.")
         cleanup_group_dir(siril, group_dir, work_dir)
         return False
 
-    # Load the stack so it becomes Siril's current image
+    # Load the stack
     if not cmd_safe(siril, "load", str(stack_path)):
         siril_log(siril, "  [ERROR] Could not load stacked file.")
         cleanup_group_dir(siril, group_dir, work_dir)
         return False
 
-    # Run GraXpert-AI.py in denoise mode -- modifies the current Siril image
+    # Step 4a: Background Extraction
+    siril_log(siril, "  [4/5] Background extraction via GraXpert-AI.py -bge...")
+    bge_ok = cmd_safe(siril, "pyscript", "GraXpert-AI.py", "-bge")
+    if not bge_ok:
+        siril_log(siril, "  [WARNING] GraXpert BGE failed -- continuing to denoise.")
+
+    # Step 4b: Denoising
+    siril_log(siril, "  [5/5] Denoising via GraXpert-AI.py -denoise (strength=" + str(DENOISE_STRENGTH) + ")...")
     denoise_ok = cmd_safe(
         siril,
         "pyscript", "GraXpert-AI.py",
@@ -290,15 +331,19 @@ def process_group(siril, group_prefix, files, work_dir):
         "-strength=" + str(DENOISE_STRENGTH),
     )
 
-    # Save whichever image is now current (denoised or original on fallback)
-    final_path = work_dir / ((denoised_out if denoise_ok else stack_out) + ".fits")
+    # Save result -- named _stack_denoised regardless of which steps succeeded
+    # so AlpacaPano-Recompose can find it by its expected filename
+    final_path = work_dir / (denoised_out + ".fits")
     if not cmd_safe(siril, "save", str(final_path)):
         siril_log(siril, "  [ERROR] Could not save result to " + str(final_path))
         cleanup_group_dir(siril, group_dir, work_dir)
         return False
 
-    label = "denoised" if denoise_ok else "plain stack (denoise failed)"
-    siril_log(siril, "  OK  Saved (" + label + "): " + final_path.name)
+    steps_done = []
+    if bge_ok:     steps_done.append("BGE")
+    if denoise_ok: steps_done.append("denoised")
+    if not steps_done: steps_done.append("plain stack")
+    siril_log(siril, "  OK  Saved (" + " + ".join(steps_done) + "): " + final_path.name)
 
     # Clean up the temporary group directory
     cleanup_group_dir(siril, group_dir, work_dir)
@@ -326,43 +371,51 @@ def main():
         return
 
     try:
-        work_dir = Path(siril.get_siril_wd())
-        siril_log(siril, "Working directory: " + str(work_dir))
-        siril_log(siril, "Grouping by first " + str(PREFIX_LENGTH) + " characters of filename...")
+        home_dir = Path(siril.get_siril_wd())
+        siril_log(siril, "Home directory: " + str(home_dir))
+        siril_log(siril, "Scanning channel subdirectories: " + ", ".join(CHANNEL_DIRS))
 
-        groups = group_fits_by_prefix(work_dir)
+        channel_groups = group_fits_by_channel(home_dir)
 
-        if not groups:
-            siril_log(siril, "No FITS files found. Set the Siril working directory to")
-            siril_log(siril, "the folder containing your renamed FITS files and try again.")
+        if not channel_groups:
+            siril_log(siril, "No FITS files found in any channel subdirectory.")
+            siril_log(siril, "Expected subdirectories: " + ", ".join(CHANNEL_DIRS))
             siril.disconnect()
             return
 
-        siril_log(siril, "Found " + str(len(groups)) + " group(s):")
-        for prefix, files in groups.items():
-            siril_log(siril, "  " + prefix + "  ->  " + str(len(files)) + " file(s)")
+        # Report what was found
+        siril_log(siril, "Found " + str(len(channel_groups)) + " prefix group(s):")
+        for prefix, chan_files in channel_groups.items():
+            total = sum(len(f) for f in chan_files.values())
+            channels = ", ".join(d.split("/")[0] + ":" + str(len(f))
+                                 for d, f in chan_files.items())
+            siril_log(siril, "  " + prefix + "  ->  " + channels
+                      + "  (" + str(total) + " total)")
 
         ok = fail = skip = 0
-        for prefix, files in groups.items():
-            if prefix == "_ungrouped_":
-                siril_log(siril, "Skipping " + str(len(files)) + " ungrouped file(s).")
-                skip += len(files)
-                continue
-            if process_group(siril, prefix, files, work_dir):
-                ok += 1
-            else:
-                fail += 1
+        for prefix, chan_files in channel_groups.items():
+            # Process each channel's files separately -- each gets its own
+            # stack in its own channel/process/ directory so
+            # Galactic_2_Recompose.py finds them in the right place.
+            for rel_dir, files in chan_files.items():
+                work_dir = home_dir / rel_dir
+                channel = rel_dir.split("/")[0]   # "L", "R", "G", "B"
+                siril_log(siril, " ")
+                siril_log(siril, "Channel " + channel + " / " + prefix
+                          + " (" + str(len(files)) + " file(s))")
+                if process_group(siril, prefix, files, work_dir):
+                    ok += 1
+                else:
+                    fail += 1
 
-        # Restore working directory to the root folder when done
-        cmd_safe(siril, "cd", str(work_dir))
+        # Restore working directory to home when done
+        cmd_safe(siril, "cd", str(home_dir))
 
-        siril_log(siril, "")
+        siril_log(siril, " ")
         siril_log(siril, "=" * 60)
-        siril_log(siril, "GalacticStack-AI complete.")
-        siril_log(siril, "  Groups processed OK : " + str(ok))
-        siril_log(siril, "  Groups with errors  : " + str(fail))
-        if skip:
-            siril_log(siril, "  Ungrouped files skipped: " + str(skip))
+        siril_log(siril, "Galactic_1_Stack complete.")
+        siril_log(siril, "  Channel/panel groups OK    : " + str(ok))
+        siril_log(siril, "  Channel/panel groups failed: " + str(fail))
         siril_log(siril, "=" * 60)
 
     except Exception as exc:

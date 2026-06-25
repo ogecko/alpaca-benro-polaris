@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# AlpacaPano-LRGB.py
-# Version: 1.0.0
-# Part of the AlpacaPano suite for panoramic astrophotography automation.
+# Galactic_2_Recompose.py
+# Version: 2.0.0
+# Part of the Galactic pipeline for panoramic astrophotography automation.
 #
 # Description
 # -----------
@@ -9,47 +9,25 @@
 # G/process and B/process.  For every GLAT/GLON prefix where all four
 # channels have a matching _stack_denoised.fits file, this script:
 #
-#   1.  LRGB Compose  -- rgbcomp with linear-match normalisation
-#   2.  Plate-solve   -- platesolve -force -blindpos -blindres (fully blind).
-#                        Solver backend set in Preferences -> Astrometry.
-#                        ASTAP with D50 database recommended.
-#   3.  Color Calibrate -- SPCC (preferred) then PCC w/ Gaia DR3 fallback
-#   4.  StarNet star removal -- pyscript StarNet.py --linear --masks starmask
-#   5.  VeraLux HyperMetric Stretch on starless (Log D 3.8)
-#   6.  VeraLux StarComposer (starmask + stretched starless, star intensity
-#       Log D 10.5) -- NOTE: StarComposer requires GUI interaction; see below
-#   7.  Save FITS 32-bit  GLATnnnX_GLONnnn_LRGB_cc_stretched.fits
-#   8.  Save TIFF 16-bit  GLATnnnX_GLONnnn_LRGB_cc_stretched.tif
+#   1.  Align channels -- register R, G, B against L (homography with fallbacks)
+#   2.  LRGB Compose  -- rgbcomp (no linear-match -- SPCC handles colour balance)
+#   3.  Save GLATnnnX_GLONnnn_LRGB.fits into the process/ subdirectory
 #
-# IMPORTANT NOTES ON GUI-ONLY STEPS
-# ----------------------------------
-# VeraLux HyperMetric Stretch and StarComposer currently show an interactive
-# dialog and do not expose stable CLI arguments for fully headless use.
-# This script calls them via pyscript (which will open the dialog for you to
-# confirm) and then continues.  If you need fully unattended operation, the
-# script includes a GHS-based fallback stretch that runs headless.
+# After this script completes:
+#   - Plate-solve each process/GLAT*_LRGB.fits with ASTAP
+#   - Then run Galactic_3_Stretch.py for SPCC, StarNet, VeraLux, and final save
 #
 # Prerequisites
 # -------------
 #   Siril 1.4.0 or later.
-#   VeraLux_HyperMetric_Stretch.py  installed via Scripts -> Get Scripts.
-#   VeraLux_StarComposer.py         installed via Scripts -> Get Scripts.
-#   StarNet.py                      installed via Scripts -> Get Scripts.
-#   StarNet++ CLI configured in Preferences -> Miscellaneous.
-#   ASTAP executable + D50 star database -- set in Preferences -> Astrometry.
-#   SPCC sensor/filter configured in Preferences (saved between sessions).
 #
 # Usage
 # -----
-#   Set Siril home directory to the root folder containing L/, R/, G/, B/.
+#   Set Siril home directory to the session root (containing L/, R/, G/, B/).
 #   Run from Scripts menu.  The script processes each GLAT/GLON panel in turn.
 #
-# Output files are written to the home directory root:
-#   GLATnnnX_GLONnnn_LRGB.fits                  (linear, plate-solved)
-#   GLATnnnX_GLONnnn_LRGB_cc_stretched.fits      (32-bit FITS, final)
-#   GLATnnnX_GLONnnn_LRGB_cc_stretched.tif       (16-bit TIFF, final)
-#   GLATnnnX_GLONnnn_LRGB_starless.fits          (intermediate, kept)
-#   GLATnnnX_GLONnnn_LRGB_starmask.fits          (intermediate, kept)
+# Output files (all in <home>/process/):
+#   GLATnnnX_GLONnnn_LRGB.fits    (linear composite, ready for ASTAP plate solve)
 
 import sirilpy as s
 import traceback
@@ -75,39 +53,9 @@ FITS_EXTENSIONS = (".fits", ".fit", ".fts")
 # First N characters of filename used as the panel prefix key
 PREFIX_LENGTH = 16   # e.g. "GLAT007N_GLON344"
 
-# VeraLux HyperMetric Stretch parameters (passed as CLI args if supported)
-HMS_LOG_D = 3.8        # Log D stretch strength
+# Output suffix -- LRGB composite written into process/ subdir
+SUFFIX_LRGB = "_LRGB"
 
-# VeraLux StarComposer parameters
-SC_STAR_LOG_D = 10.5   # Star intensity Log D
-
-# GHS fallback stretch (used if VeraLux pyscript cannot run headless)
-GHS_STRETCH_FACTOR = 5.0   # GHS D parameter for starless fallback
-
-# Output suffixes
-SUFFIX_LRGB       = "_LRGB"
-SUFFIX_CC         = "_LRGB_cc_stretched"
-SUFFIX_STARLESS   = "_LRGB_starless_stretched"
-SUFFIX_STARMASK   = "_LRGB_starmask"
-
-# All intermediate/output suffixes produced by this script.
-# Files whose stem ends with any of these are cleaned up at the start of
-# each panel run so stale files from a previous run cannot pollute results.
-ALL_OUTPUT_SUFFIXES = (
-    "_LRGB",
-    "_LRGB_cc_linear",
-    "_LRGB_cc_stretched",
-    "_LRGB_starless_stretched",
-    "_LRGB_starmask",
-    "_LRGB_stretched_starless",
-    "_cc_linear_starless",    # StarNet intermediate (suffix style)
-    "_cc_linear_starmask",    # StarNet intermediate (suffix style)
-)
-
-# StarNet writes output with PREFIX convention: starless_<stem> and starmask_<stem>
-# These are detected by scanning for files starting with starless_ or starmask_
-# that contain the panel prefix anywhere in the name.
-STARNET_STARLESS_PREFIX = "starless_"
 STARNET_STARMASK_PREFIX = "starmask_"
 
 # ---------------------------------------------------------------------------
@@ -187,54 +135,20 @@ def process_panel(siril, prefix, files, home_dir):
     siril_log(siril, "  B: " + files["B"].name)
     siril_log(siril, "=" * 60)
 
-    lrgb_out   = home_dir / (prefix + SUFFIX_LRGB + ".fits")
-    cc_out     = home_dir / (prefix + SUFFIX_CC + ".fits")
-    tiff_out   = home_dir / (prefix + SUFFIX_CC + ".tif")
-    starless_out = home_dir / (prefix + SUFFIX_STARLESS + ".fits")
-    starmask_out = home_dir / (prefix + SUFFIX_STARMASK + ".fits")
+    # Intermediate files go into process/ -- home/ stays clean
+    process_dir = home_dir / "process"
+    process_dir.mkdir(exist_ok=True)
 
-    # Skip this panel if the final outputs already exist
-    if cc_out.exists() and tiff_out.exists():
-        siril_log(siril, "  SKIP: final outputs already exist:")
-        siril_log(siril, "    " + cc_out.name)
-        siril_log(siril, "    " + tiff_out.name)
+    lrgb_out = process_dir / (prefix + SUFFIX_LRGB + ".fits")
+
+    # Skip if LRGB composite already exists in process/
+    # (Galactic_3 skip is separate -- it checks for _stretched_result in home/)
+    if lrgb_out.exists():
+        siril_log(siril, "  SKIP: LRGB already composed: " + lrgb_out.name)
+        siril_log(siril, "  (Delete from process/ to recompose)")
         return True
 
-    # Remove stale intermediate files from any previous run of this panel
-    # so old data never leaks into the current run.
-    siril_log(siril, "  Cleaning stale intermediate files for " + prefix + "...")
-    cleaned = 0
-    for p in list(home_dir.iterdir()):
-        if not p.is_file():
-            continue
-        if p.suffix.lower() not in FITS_EXTENSIONS and p.suffix.lower() != ".tif":
-            continue
-        stem = p.stem
-        if not stem.startswith(prefix):
-            continue
-        remainder = stem[len(prefix):]
-        # Check suffix-style outputs (our own named files)
-        matched = False
-        for suf in ALL_OUTPUT_SUFFIXES:
-            if remainder == suf or remainder.endswith(suf):
-                matched = True
-                break
-        # Check prefix-style StarNet outputs (starless_<stem>, starmask_<stem>)
-        if not matched:
-            full = p.stem  # e.g. "starless_GLAT007N_GLON000_LRGB_cc_linear"
-            if ((full.startswith(STARNET_STARLESS_PREFIX) or
-                 full.startswith(STARNET_STARMASK_PREFIX))
-                    and prefix in full):
-                matched = True
-        if matched:
-                try:
-                    p.unlink()
-                    cleaned += 1
-                except Exception:
-                    pass
-                break
-    if cleaned:
-        siril_log(siril, "  Removed " + str(cleaned) + " stale file(s).")
+    # No stale cleanup -- process/ keeps intermediates for diagnosis
 
     # ------------------------------------------------------------------
     # Step 1: Align channels then LRGB compose
@@ -330,8 +244,21 @@ def process_panel(siril, prefix, files, home_dir):
         ch_copy.rename(ch_seq_copy)
 
         siril_log(siril, "  Registering " + ch_name + " against L (seq=" + seq + ")...")
-        if not cmd_safe(siril, "register", seq, "-transf=homography"):
-            siril_log(siril, "  [ERROR] Registration failed for channel " + ch_name)
+        reg_ok = cmd_safe(siril, "register", seq, "-transf=homography")
+        if not reg_ok:
+            # Homography failed (poor seeing, elongated stars, few matches).
+            # Fall back through progressively simpler transforms.
+            for fallback in ("affine", "similarity", "shift"):
+                siril_log(siril, "  Retrying " + ch_name
+                          + " with -transf=" + fallback + "...")
+                reg_ok = cmd_safe(siril, "register", seq, "-transf=" + fallback)
+                if reg_ok:
+                    siril_log(siril, "  Registered " + ch_name
+                              + " with fallback -transf=" + fallback)
+                    break
+        if not reg_ok:
+            siril_log(siril, "  [ERROR] Registration failed for channel "
+                      + ch_name + " -- all transforms tried.")
             if not DEBUG_KEEP_TEMP:
                 _shutil.rmtree(align_dir, ignore_errors=True)
             cmd_safe(siril, "cd", str(home_dir))
@@ -367,100 +294,47 @@ def process_panel(siril, prefix, files, home_dir):
               + "  G=" + r_G.name + "  B=" + r_B.name)
 
     # ------------------------------------------------------------------
-    # Pre-composition channel equalisation via linear_match.
+    # Pre-composition linear_match removed.
     #
-    # The RGB Composition GUI "Linear Fit" normalises colour channels to
-    # a common level before compositing. Without it, SPCC gets sigma >20
-    # on R/G. With it, sigma drops to ~2 and SPCC works correctly.
+    # linear_match on raw stacked data causes the red spot problem:
+    #   - R and B channels have pixels saturated at max (65535)
+    #   - G channel is NOT saturated (observed max 56879)
+    #   - linear_match sees R/B clipped at ceiling, G not clipped
+    #   - The fit drives R and B upward toward G's higher median
+    #   - This amplifies already-clipped pixels, spreading saturation
+    #   - Result: orange stars become pure red squares
     #
-    # The GUI picks the DARKEST channel as reference (identity fit,
-    # slope=1, offset=0) and scales others DOWN to match it.
+    # The GUI "Linear Fit" works because it runs on display-scaled data
+    # AFTER colour calibration where saturation behaves differently.
+    # On raw pre-SPCC stacks it makes saturation worse, not better.
     #
-    # We find the darkest channel by reading the median of each via
-    # siril.get_image_from_file() which uses the sirilpy Python API
-    # (does not load into Siril's display -- no cmd needed).
-    # Then: load each non-reference channel -> linear_match ref -> save.
+    # SPCC handles colour balance correctly via stellar photometry.
+    # We pass the aligned channels directly to rgbcomp without
+    # pre-distorting the levels.
     # ------------------------------------------------------------------
-    siril_log(siril, "  Pre-composition channel equalisation (mirroring GUI Linear Fit)...")
+    siril_log(siril, "  Channels aligned -- proceeding to rgbcomp (no linear_match).")
 
-    # Read median of each channel using astropy (available in siril venv).
-    # get_image_from_file() does not exist in sirilpy 1.4 -- use astropy
-    # to read the FITS directly without touching Siril's display.
-    # The GUI default quantile range for linear_match is low=0, high=0.92
-    # (excludes top 8% of pixels -- stars -- from the fit).
-    import numpy as _np
-    try:
-        from astropy.io import fits as _afits
-        _use_astropy = True
-    except ImportError:
-        _use_astropy = False
+    # L scaling removed -- CIE Lab (-cfa flag on rgbcomp) handles
+    # luminance/colour separation correctly without needing pre-scaling.
+    # Scaling L to match RGB median was causing issues when L happened
+    # to be dimmer than RGB (scale > 1.0), making the gamut problem worse.
+    scaled_L = r_L
 
-    ch_median = {}
-    ch_paths = {"R": r_R, "G": r_G, "B": r_B}
-
-    for ch_label, ch_path in ch_paths.items():
-        try:
-            if _use_astropy:
-                with _afits.open(str(ch_path)) as _hdul:
-                    _data = _hdul[0].data.astype(float)
-                    ch_median[ch_label] = float(_np.median(_data))
-            else:
-                ch_median[ch_label] = 1.0
-        except Exception as exc:
-            siril_log(siril, "  [WARNING] Could not read median for "
-                      + ch_label + ": " + str(exc))
-            ch_median[ch_label] = 1.0
-
-    siril_log(siril, "  Median levels -- R: " + str(round(ch_median.get("R", 0), 6))
-              + "  G: " + str(round(ch_median.get("G", 0), 6))
-              + "  B: " + str(round(ch_median.get("B", 0), 6)))
-
-    # Always use G as the fixed reference.
-    # SPCC calibrates R/G and B/G ratios against the Gaia catalogue.
-    # If we scale G (by picking a different darkest-channel reference),
-    # we corrupt those ratios and SPCC gets extreme correction factors.
-    # In this Milky Way field R is often the dimmest channel (dust lanes
-    # absorb red), so "darkest = reference" logic picks R -- then G and B
-    # are scaled DOWN to match dim R, making R appear relatively bright
-    # to SPCC (R/G ratio >> catalogue) and producing K0=0.5 etc.
-    # Keeping G fixed and matching R and B to G gives SPCC the correct
-    # R/G and B/G ratios to work with, whatever the field.
-    ref_path = ch_paths["G"]
-    siril_log(siril, "  Reference: G (fixed -- SPCC calibrates R/G and B/G against Gaia)")
-
-    # low and high are quantiles of the pixel VALUE range [0,1].
-    # On linear (unstretched) data nearly all pixels are < 0.01,
-    # so low=0.10 would exclude virtually everything leaving only
-    # a handful of bright star cores -- producing a meaningless fit.
-    # Use low=0 (include all background) and high=0.92 (exclude top 8%
-    # which are saturated stars), matching the GUI defaults exactly.
-    LM_LOW  = "0"
-    LM_HIGH = "0.92"
-
-    for ch_label, ch_path in [("R", ch_paths["R"]), ("B", ch_paths["B"])]:
-        if not cmd_safe(siril, "load", str(ch_path)):
-            siril_log(siril, "  [WARNING] Could not load " + ch_label + " for linear match.")
-            continue
-        if not cmd_safe(siril, "linear_match", str(ref_path), LM_LOW, LM_HIGH):
-            siril_log(siril, "  [WARNING] linear_match failed for " + ch_label + ".")
-            continue
-        if not cmd_safe(siril, "save", str(ch_path)):
-            siril_log(siril, "  [WARNING] Could not save matched " + ch_label + ".")
-        else:
-            siril_log(siril, "  " + ch_label + ": matched to G and saved.")
-    siril_log(siril, "  G: reference -- no change.")
-    siril_log(siril, "  Channel equalisation complete.")
-
-    # Compose LRGB from aligned channels; write result to home_dir
-    cmd_safe(siril, "cd", str(home_dir))
+    # Compose LRGB from aligned + scaled channels; write result to process_dir
+    cmd_safe(siril, "cd", str(process_dir))
     lrgb_stem = prefix + SUFFIX_LRGB
+    # -cfa uses CIE Lab colour space for LRGB composition.
+    # Lab has a much larger gamut than HSL/HSV -- orange stars stay
+    # orange even when L is brighter than the colour channels, because
+    # Lab separates luminance from chrominance completely.
     if not cmd_safe(
         siril,
         "rgbcomp",
-        "-lum=" + str(r_L),
+        "-lum=" + str(scaled_L),
         str(r_R),
         str(r_G),
         str(r_B),
+        "-cfa",
         "-out=" + lrgb_stem,
     ):
         siril_log(siril, "  [ERROR] LRGB composition failed.")
@@ -479,7 +353,7 @@ def process_panel(siril, prefix, files, home_dir):
     # Find the composed file (Siril writes <stem>.fit or <stem>.fits)
     lrgb_path = None
     for ext in FITS_EXTENSIONS:
-        candidate = home_dir / (lrgb_stem + ext)
+        candidate = process_dir / (lrgb_stem + ext)
         if candidate.exists():
             lrgb_path = candidate
             break
@@ -490,294 +364,19 @@ def process_panel(siril, prefix, files, home_dir):
     siril_log(siril, "  LRGB composed: " + lrgb_path.name)
 
     # ------------------------------------------------------------------
-    # Step 2: Plate solve
-    # There is no ASTAP.py script -- ASTAP is used as Siril's solver backend
-    # when configured in Preferences -> Astrometry -> Solver.
-    # The platesolve command uses whichever solver is set in preferences.
-    # -force overrides the already-solved skip.
-    # -blindpos and -blindres do a fully blind solve (ignores existing
-    # RA/Dec and sampling from header) -- most reliable for the composed
-    # LRGB whose WCS was inherited from a mono channel, not the composite.
-    # RA/Dec come from the FITS header (written by your capture software
-    # and preserved through stacking and denoising).
+    # Step 2: Save LRGB composite.
+    # Plate solving is done manually with ASTAP before running
+    # Galactic_3_Stretch.py which handles SPCC through final save.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [2/8] Plate solving (blind, forced fresh solve)...")
-
+    siril_log(siril, "  [2/2] Saving LRGB composite...")
     if not cmd_safe(siril, "load", str(lrgb_path)):
-        siril_log(siril, "  [ERROR] Cannot load LRGB file for plate solving.")
+        siril_log(siril, "  [ERROR] Cannot load LRGB.")
         return False
-
-    # Force a fully blind solve: -force overrides the already-solved skip,
-    solved = cmd_safe(siril, "platesolve", "-force", "-blindpos", "-blindres")
-    if not solved:
-        siril_log(siril, "  [WARNING] Plate solve failed.")
-        siril_log(siril, "  Check: Preferences -> Astrometry -> Solver is set to ASTAP")
-        siril_log(siril, "  and ASTAP is installed with a star database (D50 recommended).")
-        siril_log(siril, "  SPCC/PCC require a valid plate solution -- color calibration")
-        siril_log(siril, "  will be skipped if this is not resolved.")
-    else:
-        siril_log(siril, "  Plate solve succeeded.")
-
-    # Save with plate solution embedded (32-bit FITS)
     if not cmd_safe(siril, "save", str(lrgb_out)):
-        siril_log(siril, "  [ERROR] Cannot save plate-solved LRGB.")
+        siril_log(siril, "  [ERROR] Cannot save LRGB.")
         return False
     siril_log(siril, "  Saved: " + lrgb_out.name)
-
-    # Reload from the saved file to ensure header is fresh before color cal
-    if not cmd_safe(siril, "load", str(lrgb_out)):
-        return False
-
-    # ------------------------------------------------------------------
-    # Step 3: Color Calibration -- SPCC preferred, PCC with Gaia DR3 fallback
-    # Both require a plate-solved image loaded as current.
-    # SPCC uses sensor/filter preferences already saved in Siril settings.
-    # ------------------------------------------------------------------
-    siril_log(siril, "  [3/8] Color calibration (SPCC -> PCC fallback)...")
-
-    cc_ok = cmd_safe(siril, "spcc")
-    if not cc_ok:
-        siril_log(siril, "  SPCC failed -- trying PCC with local Gaia DR3...")
-        cc_ok = cmd_safe(siril, "pcc", "-catalog=localgaia")
-    if not cc_ok:
-        siril_log(siril, "  PCC with local Gaia failed -- trying remote Gaia...")
-        cc_ok = cmd_safe(siril, "pcc", "-catalog=gaia")
-    if not cc_ok:
-        siril_log(siril, "  [WARNING] All color calibration methods failed. Continuing without.")
-    else:
-        siril_log(siril, "  Color calibration succeeded.")
-
-    # ------------------------------------------------------------------
-    # Step 4: StarNet star removal
-    # pyscript StarNet.py --linear for linear (unstretched) input.
-    # Output: starless is the current image; starmask written to working dir
-    # as <original_stem>_starmask.fits
-    # ------------------------------------------------------------------
-    siril_log(siril, "  [4/8] StarNet star removal...")
-
-    # Save the color-calibrated linear image before star removal.
-    # Critically: also LOAD it after saving so Siril's internal filename
-    # is set to cc_linear_path. StarNet names its output using the stem
-    # of the currently LOADED filename -- not the last saved path.
-    # Without this load, StarNet uses the LRGB stem and writes
-    # GLAT007N_GLON000_LRGB_starless.fits instead of
-    # GLAT007N_GLON000_LRGB_cc_linear_starless.fits.
-    cc_linear_path = home_dir / (prefix + "_LRGB_cc_linear.fits")
-    if not cmd_safe(siril, "save", str(cc_linear_path)):
-        siril_log(siril, "  [ERROR] Cannot save color-calibrated linear image.")
-        return False
-    if not cmd_safe(siril, "load", str(cc_linear_path)):
-        siril_log(siril, "  [ERROR] Cannot reload cc_linear to set StarNet stem.")
-        return False
-
-    # Ensure CWD is home_dir before starnet so the starmask is written there.
-    cmd_safe(siril, "cd", str(home_dir))
-
-    # Use the built-in siril "starnet" command which reads the StarNet
-    # executable path directly from Siril Preferences -> Miscellaneous.
-    # -stretch applies the pre-stretch needed for linear (unstretched) input.
-    # By default starnet generates a starmask (use -nostarmask to skip).
-    # Starmask is written to Siril's CWD as <loaded_stem>_starmask.fits.
-    starnet_ok = cmd_safe(siril, "starnet", "-stretch")
-
-    # Scan working dir so we can see exactly what StarNet wrote.
-    # Also query Siril's actual CWD in case it differs from home_dir.
-    siril_log(siril, "  StarNet ok=" + str(starnet_ok)
-              + "  Scanning for starless/starmask files...")
-    siril_log(siril, "  home_dir: " + str(home_dir))
-    found_any = False
-    for f in sorted(home_dir.iterdir()):
-        if f.suffix.lower() in FITS_EXTENSIONS and (
-                "starless" in f.name.lower() or "starmask" in f.name.lower()):
-            siril_log(siril, "    FOUND: " + f.name)
-            found_any = True
-    if not found_any:
-        siril_log(siril, "    (none found in home_dir)")
-    # Also check expected exact path
-    expected_starmask = home_dir / (cc_linear_path.stem + "_starmask.fits")
-    siril_log(siril, "  Expected starmask path: " + expected_starmask.name
-              + " exists=" + str(expected_starmask.exists()))
-
-    if not starnet_ok:
-        siril_log(siril, "  [WARNING] StarNet failed -- continuing with no star separation.")
-        starless_path = cc_linear_path
-        has_starmask  = False
-    else:
-        # StarNet writes <cc_linear_stem>_starless.fits and loads it as current.
-        # Save current (starless) image to our named output path.
-        if not cmd_safe(siril, "save", str(starless_out)):
-            siril_log(siril, "  [ERROR] Cannot save starless image.")
-            return False
-
-        # Verify the saved file is actually starless (different from cc_linear)
-        try:
-            from astropy.io import fits as _afits
-            import numpy as _np2
-            with _afits.open(str(starless_out)) as _h1,                  _afits.open(str(cc_linear_path)) as _h2:
-                _med1 = float(_np2.median(_h1[0].data))
-                _med2 = float(_np2.median(_h2[0].data))
-            siril_log(siril, "  Starless median: " + str(round(_med1, 6))
-                      + "  cc_linear median: " + str(round(_med2, 6)))
-            if abs(_med1 - _med2) < 1e-6:
-                siril_log(siril, "  [WARNING] Starless and cc_linear are identical"
-                          + " -- StarNet may not have run correctly.")
-        except Exception as exc:
-            siril_log(siril, "  [WARNING] Could not verify starless: " + str(exc))
-
-        starless_path = starless_out
-
-        # Find starmask -- StarNet writes <loaded_stem>_starmask.<ext>
-        # The loaded stem is cc_linear_path.stem, but also scan broadly
-        # for any _starmask file starting with our panel prefix in case
-        # StarNet uses a different naming convention.
-        has_starmask = False
-
-        # Exact search: StarNet writes starmask_<stem>.<ext> (prefix, not suffix)
-        for ext in FITS_EXTENSIONS:
-            candidate = home_dir / ("starmask_" + cc_linear_path.stem + ext)
-            if candidate.exists():
-                siril_log(siril, "  Found starmask (exact): " + candidate.name)
-                try:
-                    candidate.rename(starmask_out)
-                    has_starmask = True
-                    siril_log(siril, "  Renamed to: " + starmask_out.name)
-                except Exception as exc:
-                    siril_log(siril, "  [WARNING] Could not rename: " + str(exc))
-                    starmask_out = candidate
-                    has_starmask = True
-                break
-
-        # Broad scan fallback: any file starting with prefix containing _starmask
-        if not has_starmask:
-            for p in sorted(home_dir.iterdir()):
-                if (p.suffix.lower() in FITS_EXTENSIONS
-                        and p.stem.startswith(prefix)
-                        and ("starmask_" in p.stem or p.stem.startswith("starmask_"))):
-                    siril_log(siril, "  Found starmask (scan): " + p.name)
-                    try:
-                        if p != starmask_out:
-                            p.rename(starmask_out)
-                            siril_log(siril, "  Renamed to: " + starmask_out.name)
-                    except Exception as exc:
-                        siril_log(siril, "  [WARNING] Could not rename: " + str(exc))
-                        starmask_out = p
-                    has_starmask = True
-                    break
-
-        if not has_starmask:
-            siril_log(siril, "  [WARNING] Starmask not found anywhere in " + str(home_dir))
-            siril_log(siril, "  Computing starmask via PixelMath (cc_linear - starless)...")
-            # Starmask = original - starless, clamped to [0,1]
-            # Both files must be in the working directory for PixelMath
-            # Use filenames without path (Siril resolves from CWD)
-            pm_expr = '"$' + cc_linear_path.stem + '$ - $' + starless_out.stem + '$"'
-            if cmd_safe(siril, "pm", pm_expr):
-                if cmd_safe(siril, "save", str(starmask_out)):
-                    has_starmask = True
-                    siril_log(siril, "  Starmask computed and saved: " + starmask_out.name)
-                else:
-                    siril_log(siril, "  [WARNING] Could not save computed starmask.")
-            else:
-                siril_log(siril, "  [WARNING] PixelMath starmask computation failed.")
-            # Reload starless as current image after PixelMath
-            cmd_safe(siril, "load", str(starless_out))
-
-        siril_log(siril, "  StarNet complete. Starless: " + starless_path.name)
-
-    # ------------------------------------------------------------------
-    # Step 5: VeraLux HyperMetric Stretch on starless
-    # Load starless, call pyscript VeraLux_HyperMetric_Stretch.py
-    # The script will show its dialog -- confirm with your Log D 3.8 setting.
-    # After the dialog is closed/applied, the stretched image is current.
-    # ------------------------------------------------------------------
-    siril_log(siril, "  [5/8] VeraLux HyperMetric Stretch (Log D " + str(HMS_LOG_D) + ")...")
-    siril_log(siril, "  NOTE: The VeraLux dialog will open -- set Log D to "
-              + str(HMS_LOG_D) + " and click Process.")
-
-    # Load the starless fresh immediately before calling VeraLux.
-    # No other commands between load and pyscript -- this ensures VeraLux
-    # opens with the starless as the current image, not the LRGB or cc_linear.
-    if not cmd_safe(siril, "load", str(starless_out)):
-        siril_log(siril, "  [ERROR] Cannot load starless for stretching.")
-        return False
-    siril_log(siril, "  Loaded for VeraLux: " + starless_out.name)
-
-    hms_ok = cmd_safe(siril, "pyscript", "VeraLux_HyperMetric_Stretch.py")
-    if not hms_ok:
-        siril_log(siril, "  [WARNING] VeraLux HMS failed -- applying GHS fallback stretch.")
-        # GHS fallback: autostretch then GHS with configured D factor
-        cmd_safe(siril, "autostretch")
-
-    # Save stretched starless
-    stretched_starless = home_dir / (prefix + "_LRGB_stretched_starless.fits")
-    if not cmd_safe(siril, "save", str(stretched_starless)):
-        siril_log(siril, "  [ERROR] Cannot save stretched starless.")
-        return False
-    siril_log(siril, "  Stretched starless saved: " + stretched_starless.name)
-
-    # ------------------------------------------------------------------
-    # Step 6: Star recomposition via VeraLux StarComposer
-    # StarComposer uses a photometric adaptive solver -- it analyses
-    # stellar flux distribution and combines in CIE LAB colour space.
-    # Simple PixelMath addition cannot replicate this quality.
-    # We load the stretched starless as current image so StarComposer
-    # opens with it pre-loaded. You only need to browse for the starmask
-    # in the dialog, then click Process.
-    # ------------------------------------------------------------------
-    if has_starmask:
-        siril_log(siril, "  [6/8] VeraLux StarComposer...")
-        siril_log(siril, "  Starmask file: " + starmask_out.name)
-        siril_log(siril, "  ACTION: When dialog opens, browse to the starmask above")
-        siril_log(siril, "          then click Process. Star Log D default is fine.")
-
-        # Load stretched starless immediately before StarComposer --
-        # it opens with whatever is currently loaded as the starless side.
-        if cmd_safe(siril, "load", str(stretched_starless)):
-            siril_log(siril, "  Loaded: " + stretched_starless.name)
-            sc_ok = cmd_safe(siril, "pyscript", "VeraLux_StarComposer.py")
-            if not sc_ok:
-                siril_log(siril, "  [WARNING] StarComposer failed -- using starless only.")
-                cmd_safe(siril, "load", str(stretched_starless))
-        else:
-            siril_log(siril, "  [ERROR] Cannot load stretched starless.")
-            cmd_safe(siril, "load", str(stretched_starless))
-    else:
-        siril_log(siril, "  [6/8] No starmask -- using starless only.")
-        cmd_safe(siril, "load", str(stretched_starless))
-
-    # The current image is now the final result (recomposed or starless-only)
-
-    # ------------------------------------------------------------------
-    # Step 7: Save FITS 32-bit
-    # ------------------------------------------------------------------
-    siril_log(siril, "  [7/8] Saving final FITS 32-bit...")
-    if not cmd_safe(siril, "save", str(cc_out)):
-        siril_log(siril, "  [ERROR] Cannot save final FITS.")
-        return False
-    siril_log(siril, "  Saved: " + cc_out.name)
-
-    # ------------------------------------------------------------------
-    # Step 8: Save TIFF 16-bit
-    # savetiff saves in 16-bit by default.
-    # ------------------------------------------------------------------
-    siril_log(siril, "  [8/8] Saving TIFF 16-bit...")
-    tiff_stem = str(tiff_out.with_suffix(""))   # savetif adds extension
-    if not cmd_safe(siril, "savetif", tiff_stem):
-        siril_log(siril, "  [WARNING] TIFF save failed.")
-    else:
-        siril_log(siril, "  Saved: " + tiff_out.name)
-
-    # Clean up all intermediate files for this panel
-    starnet_starless = home_dir / (STARNET_STARLESS_PREFIX + cc_linear_path.stem + ".fits")
-    starnet_starmask = home_dir / (STARNET_STARMASK_PREFIX + cc_linear_path.stem + ".fits")
-    for tmp in [cc_linear_path, stretched_starless,
-                starnet_starless, starnet_starmask]:
-        try:
-            if tmp.exists():
-                tmp.unlink()
-        except Exception:
-            pass
-
+    siril_log(siril, "  --> Plate-solve with ASTAP then run Galactic_3_Stretch.py")
     siril_log(siril, "  Panel " + prefix + " complete.")
     return True
 
