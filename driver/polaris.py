@@ -424,6 +424,73 @@ class Polaris:
         time = (dt_now - self._performance_data_start_timestamp).total_seconds()
         return time
 
+
+    async def moveaxis_speed_test(self, axis, rates):
+        self.lifecycle.start()
+        motor = self._motors[axis]
+        for rate in rates:
+            if self.lifecycle.should_stop():
+                break
+            direction = +1
+            # check axis 1 bounds and reverse direction if necc 
+            if axis==1 and self._theta_meas.any():
+                if self._theta_meas[1] > 60:
+                    await motor.set_motor_speed(0, "RAW")
+                    await asyncio.sleep(3)
+                    direction = -1
+                if self._theta_meas[1] < 20:
+                    await motor.set_motor_speed(0, "RAW")
+                    await asyncio.sleep(3)
+                    direction = +1
+            # send the move request
+            await motor.set_motor_speed(rate * direction, "RAW")
+            result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
+            self._cm.addTestResult(axis, rate, result, stdev, status)
+
+        # ensure we stop all movement
+        await motor.set_motor_speed(0, "RAW")
+        if Config.advanced_control:
+            await self.findHome()
+        else:
+            await asyncio.sleep(2)
+            await self.send_cmd_reset_axis(axis)
+        self.lifecycle.reset()
+
+
+    async def moveaxis_speed_measurement(self, axis, rate, required_stable_samples = 5, initial_interval = 3.0, max_interval = 15, sampling_interval = 0.25):
+        start_time = time.monotonic()
+        stable_tolerance = 0.05 if rate > 5 else 0.002
+        await asyncio.sleep(initial_interval)
+        rate_raw = self._motors[axis].rate_raw    # what the controller thinks the raw rate is
+        rate_dps = self._motors[axis].rate_dps    # what the controller thinks the dps rate is
+        status = "COMPLETED"
+
+        omega_samples = []     # deg/sec
+        while time.monotonic() - start_time < max_interval:
+            await asyncio.sleep(sampling_interval)
+            if self.lifecycle.should_stop():
+                return 0,0,0,"STOPPED"
+            if self._omega_meas is None:
+                return 0,0,0,"NO DATA"
+            omega = self._omega_meas[axis]
+            omega_samples.append(omega)
+
+            # if we potentially have enough samples, take a window the last set
+            if len(omega_samples) >= required_stable_samples:
+                window = omega_samples[-required_stable_samples:]
+                stdev = np.std(window)
+                if stdev < stable_tolerance and (np.mean(window) > 0.002 or rate == 0):
+                    measured_dps = float(np.mean(window)) if rate>0 else 0
+                    self.logger.info(f"== TEST == Stable | Axis {axis} |  RAW {rate_raw} | DPS: {measured_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
+                    break
+        # exited while without a value in tollerance
+        else:
+            measured_dps = rate_dps  # fallback to the controller's rate
+            status = "HIGH STDEV"
+            self.logger.info(f'== TEST == **UNSTABLE** on Axis {axis} |  RAW {rate_raw} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}')
+        return abs(measured_dps), abs(rate_raw), stdev, status
+
+
 # ── Polaris Angle Helpers ─────────────────────────────────────────────────────────────
 
     def radec2altaz(self, ra, dec, inthefuture=0, epoch=None):
