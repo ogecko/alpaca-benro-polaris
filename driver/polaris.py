@@ -36,6 +36,7 @@ import re
 import asyncio
 import ephem
 import numpy as np
+from collections import deque
 from quaternion import Q as Quaternion
 from threading import Lock
 from logging import Logger
@@ -44,7 +45,7 @@ from presets import PresetManager
 from log import update_log_level
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
-from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll
+from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
 
@@ -144,6 +145,7 @@ class Polaris:
         #
         # Telescope device state variables
         #
+        self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._altitude: float = 0.0                 # The Pitch/Altitude above the local horizon of the telescope's current position (degrees, positive up)
         self._azimuth: float = 0.0                  # The Yaw/Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
         self._roll: float = 0.0                     # The Roll (-180 to +180), 0=after GOTO, -ve=clockwise rotation looking down onto top of Astro mount axis.
@@ -228,6 +230,7 @@ class Polaris:
         self._theta_state = None                    # Latest Motor Angles Kalman Filtered [theta1, theta2, theta3] = KF(theta_raw)
         self._alpha_state = None                    # Latest KF Filtered Sky Angles Kalman Filtered [az, alt, roll] 
         self._omega_raw = None                      # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
+        self._omega_meas = None                     # The latest calculated Polaris motor axis angular velocity [omega1, omega2, omega3] measured from 6 sample history
         self._cm = CalibrationManager()
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         self._motors = {
@@ -824,7 +827,7 @@ class Polaris:
                 self.logger.info(f"<<- Polaris: response to command received: {cmd} {args}")
 
     def decode_518position_measurement(self, args):
-        dt_now = datetime.datetime.now()
+        dt_now = time.monotonic()
 
         # parse the quaternion and extract its mechanical angles and velocities
         arg_dict = self.polaris_parse_args(args, name_postfix=True)
@@ -835,14 +838,17 @@ class Polaris:
         theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp))
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
         omega_raw = omega_ref                          # this is our best measurement of omega, dont use calc from histoy ωt - ωt-6
+        self._history.append([dt_now, float(theta_raw[0]), float(theta_raw[1]), float(theta_raw[2])])          # deque collection, so it automatically throws away stuff older than 6 samples ago
+        omega_meas = calculate_angular_velocity(self._history)
 
         # Store all the polaris mechanical angles and velocities
         with self._lock:
-            self._last_518_timesec = time.monotonic()
+            self._last_518_timesec = dt_now
             self._q1 = motorQ_raw
             self._theta_raw = theta_raw
             self._omega_raw = omega_raw
-       
+            self._omega_meas = omega_meas
+
         return theta_raw, omega_raw, omega_ref
 
     def extract_sky_positions(self, q):
