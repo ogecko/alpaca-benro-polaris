@@ -33,8 +33,8 @@ The [Release Notes v2.2.0](./docs/release-notes-v2.2.0.md) is a reference docume
 ## [Video Playlists](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d)
 We have a range of demonstration videos included on Youtube to help familiarise yourself with the Alpaca Driver and Alpaca Pilot Application.
 - [Alpaca Benro Polaris Project V1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) - Still relevant to learn the basics
-- [Alpaca Benro Polaris Project V2.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D) - Covers new features in V2.0
-
+- [Alpaca Benro Polaris Project V2.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D) - Covers new features in V2.0 and V2.1
+- [Alpaca Benro Polaris Project V2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake) - Covers new features in V2.2
 
 ## [Hardware Guide](./docs/hardware.md)
 The [Hardware Guide(s)](./docs/hardware.md) outlines the recommended hardware platforms for running the Alpaca Benro Polaris Driver, ranging from basic laptop setups to more advanced mini-PC configurations for controlling all astronomy equipment. It offers step-by-step guidance on setting up a "NinaAir" mini-PC, ensuring users can establish a robust and dedicated astrophotography control center.
