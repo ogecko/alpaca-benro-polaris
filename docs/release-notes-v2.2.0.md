@@ -10,18 +10,7 @@
 * **Current Branch:** dev2_2
 
 ## Demonstration Videos
-* **20 - Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
-* **21 - Preview Demo:** Demonstration Video at https://youtu.be/0QSKD1GCzOc
-* **22 - Starting and Using:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
-* **23 - Rotator Framing:** Demonstration Video at https://youtu.be/_Swd-jIyQis
-* **24 - Multi Point Alignment:** Demonstration Video at https://youtu.be/4CMO0R_yphw
-* **25 - Equipment Safety:** Demonstration Video at https://youtu.be/45EP-DExSOQ
-* **26 - Tracking Orbitals:** Demonstration Video at https://youtu.be/no47ZNagEDk
-* **27 - Pulse Guiding:** Demonstration Video at https://youtu.be/dn1nLxT5eWw
-* **28 - Panoramas:** Demonstration Video at https://youtu.be/k7OoPk98UCk
-* **31 - Kalman Filter:** Demonstration Video at https://youtu.be/aDFKAWBNQHU
-* **32 - Speed Calibration:** Demonstration Video at https://youtu.be/U_0-mBDuTjE
-* **33 - PID Tuning:** Demonstration Video at https://youtu.be/6vJbSb0gl3M
+* **40 - Podcast Video:** Podcast Video at https://youtu.be/ouJ52WcTY2M
 
 ## Win11 Upgrade Instructions
 * Upgrade Python to 3.13.12 by downloading Windows Installer (64 bit) for Python 3.13.12 and running the install program.
