@@ -82,7 +82,7 @@ MASTER_FLAT_NAME = "master_flat"
 
 # Plate solving removed -- RA/Dec from capture software FITS headers
 # is preserved through calibrate and used directly for GLAT/GLON rename.
-# Full WCS plate solve is done by Galactic_2_Recompose.py on the stack.
+# Full WCS plate solve is done by Galactic_2_Composite.py on the stack.
 
 # GLAT/GLON rename settings (mirrors fits_galactic.py --rename behaviour)
 PREFIX_LENGTH = 16          # characters in the prefix e.g. GLAT007N_GLON344
@@ -612,6 +612,12 @@ def main():
         traceback.print_exc()
 
     finally:
+        # Always return to home directory on exit or interrupt
+        try:
+            home_dir = Path(siril.get_siril_wd())
+            siril.cmd("cd", str(home_dir))
+        except Exception:
+            pass
         siril.disconnect()
 
 

@@ -1,17 +1,23 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Galactic_2_Recompose.py
+# Galactic_2_Composite.py
 # Version: 2.0.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
 # Description
 # -----------
-# Scans the Siril home directory for subdirectories L/stacked, R/stacked,
-# G/stacked and B/stacked.  For every GLAT/GLON prefix where all four
-# channels have a matching _stack_denoised.fits file, this script:
+# Scans the Siril home directory for stacked channel subdirectories and
+# automatically selects the composite mode based on what is available:
 #
-#   1.  Align channels -- register R, G, B against L (homography with fallbacks)
-#   2.  LRGB Compose  -- rgbcomp
-#   3.  Save GLATnnnX_GLONnnn_LRGB.fits into the process/ subdirectory
+#   LRGB  -- L/R/G/B stacked dirs -> luminance + colour composition
+#   SHO   -- Ha/Sii/Oiii stacked dirs -> Hubble palette (SII=R Ha=G OIII=B)
+#   HSO   -- as SHO but Ha=R SII=G OIII=B (set COMPOSITE_MODE manually)
+#
+# For each GLAT/GLON prefix where all required channels have a matching
+# _stack.fits file, this script:
+#
+#   1.  Align channels -- register against reference (homography with fallbacks)
+#   2.  Compose        -- rgbcomp (LRGB with luminance, or RGB for narrowband)
+#   3.  Save GLATnnnX_GLONnnn_(LRGB|SHO|HSO).fits into composites/ subdir
 #
 # After this script completes -- BEFORE running Galactic_3_Stretch.py:
 #
@@ -42,7 +48,7 @@
 #   Set Siril home directory to the session root (containing L/, R/, G/, B/).
 #   Run from Scripts menu.  The script processes each GLAT/GLON panel in turn.
 #
-# Output files (all in <home>/process/):
+# Output files (all in <home>/composites/):
 #   GLATnnnX_GLONnnn_LRGB.fits    (linear composite, ready for ASTAP + crop)
 
 import sirilpy as s
@@ -54,23 +60,59 @@ from collections import defaultdict
 # CONFIGURATION -- edit these values as needed
 # ---------------------------------------------------------------------------
 
-# Subdirectory names to search (relative to Siril home directory)
-CHANNEL_DIRS = {
-    "L": "L/stacked",
-    "R": "R/stacked",
-    "G": "G/stacked",
-    "B": "B/stacked",
+# COMPOSITE MODE -- determines which filters are combined and how.
+#
+# "LRGB" : Luminance + RGB broadband (L as lum, R/G/B as colour).
+#           Auto-selected when L/R/G/B stacked dirs are present.
+#           SPCC uses wideband (solar analogue) photometry.
+#
+# "SHO"  : Hubble/HST palette -- SII=R, Ha=G, OIII=B.
+#           Auto-selected when Ha/Sii/Oiii dirs are present and LRGB absent.
+#           SPCC uses narrowband (7nm) photometry.
+#           NOTE: This is the standard Hubble Space Telescope palette.
+#
+# "HSO"  : Ha=R, SII=G, OIII=B -- alternative narrowband mapping.
+#           Select manually to override auto-detection.
+#           SPCC uses narrowband (7nm) photometry.
+#           NOTE: For best results with HSO, use VeraLux Alchemy for
+#           colour remapping before running Galactic_3_Stretch.py.
+#
+# Set to None to auto-detect from available stacked directories.
+COMPOSITE_MODE = None   # None = auto-detect, or "LRGB" / "HSO" / "SHO"
+
+# Channel directories per composite mode (relative to Siril home directory)
+# Keys match what rgbcomp expects: for LRGB -- L (lum), R, G, B (colour).
+# For narrowband -- the filter names map to R/G/B display channels.
+CHANNEL_DIRS_LRGB = {
+    "L":  "L/stacked",
+    "R":  "R/stacked",
+    "G":  "G/stacked",
+    "B":  "B/stacked",
+}
+CHANNEL_DIRS_SHO = {        # Hubble palette: SII->R, Ha->G, OIII->B
+    "R":  "Sii/stacked",
+    "G":  "Ha/stacked",
+    "B":  "Oiii/stacked",
+}
+CHANNEL_DIRS_HSO = {        # Alternative: Ha->R, SII->G, OIII->B
+    "R":  "Ha/stacked",
+    "G":  "Sii/stacked",
+    "B":  "Oiii/stacked",
 }
 
 # Input file suffix to look for in each channel directory
-INPUT_SUFFIX = "_stack_denoised"      # e.g. GLAT007N_GLON344_stack_denoised.fits
+INPUT_SUFFIX = "_stack"      # e.g. GLAT007N_GLON344_stack.fits
 FITS_EXTENSIONS = (".fits", ".fit", ".fts")
 
 # First N characters of filename used as the panel prefix key
 PREFIX_LENGTH = 16   # e.g. "GLAT007N_GLON344"
 
-# Output suffix -- LRGB composite written into process/ subdir
-SUFFIX_LRGB = "_LRGB"
+# Output suffixes per composite mode -- written into process/ subdir
+SUFFIX_BY_MODE = {
+    "LRGB": "_LRGB",
+    "HSO":  "_HSO",
+    "SHO":  "_SHO",
+}
 
 STARNET_STARMASK_PREFIX = "starmask_"
 
@@ -78,6 +120,36 @@ STARNET_STARMASK_PREFIX = "starmask_"
 # DEBUG -- set True to keep _lrgb_align_* temp directories for inspection
 DEBUG_KEEP_TEMP = False
 # ---------------------------------------------------------------------------
+
+
+def detect_composite_mode(home_dir):
+    """
+    Auto-detect composite mode from available stacked directories.
+    Returns "LRGB", "HSO", or None if insufficient channels found.
+    """
+    if COMPOSITE_MODE is not None:
+        return COMPOSITE_MODE
+
+    def has_channel(rel_dir):
+        d = home_dir / rel_dir
+        return d.is_dir() and any(
+            p.suffix.lower() in FITS_EXTENSIONS and INPUT_SUFFIX in p.stem
+            for p in d.iterdir() if p.is_file()
+        )
+
+    has_L = has_channel("L/stacked")
+    has_R = has_channel("R/stacked")
+    has_G = has_channel("G/stacked")
+    has_B = has_channel("B/stacked")
+    has_Ha  = has_channel("Ha/stacked")
+    has_Sii = has_channel("Sii/stacked")
+    has_Oiii = has_channel("Oiii/stacked")
+
+    if has_L and has_R and has_G and has_B:
+        return "LRGB"
+    if has_Ha and has_Sii and has_Oiii:
+        return "SHO"   # Hubble palette default for narrowband
+    return None
 
 
 def siril_log(siril, msg):
@@ -99,17 +171,19 @@ def cmd_safe(siril, *args):
         return False
 
 
-def find_panel_files(home_dir):
+def find_panel_files(home_dir, mode, channel_dirs):
     """
-    Scan L/stacked, R/stacked, G/stacked, B/stacked for stack_denoised files.
+    Scan stacked directories for stack_denoised files.
+
+    mode        : "LRGB", "HSO", or "SHO"
+    channel_dirs: dict mapping channel key -> relative dir (from CHANNEL_DIRS_*)
 
     Returns a dict:
-        { prefix_16char: { "L": Path, "R": Path, "G": Path, "B": Path } }
-    Only entries where all 4 channels are present are included.
+        { prefix_16char: { channel_key: Path, ... } }
+    Only entries where ALL required channels are present are included.
     """
-    # Build per-channel lookup: prefix -> Path
-    channel_map = {}   # { channel: { prefix: Path } }
-    for channel, rel_dir in CHANNEL_DIRS.items():
+    channel_map = {}
+    for channel, rel_dir in channel_dirs.items():
         channel_map[channel] = {}
         search_dir = home_dir / rel_dir
         if not search_dir.is_dir():
@@ -126,45 +200,47 @@ def find_panel_files(home_dir):
             prefix = p.name[:PREFIX_LENGTH]
             channel_map[channel][prefix] = p
 
-    # Find prefixes present in all 4 channels
-    all_prefixes = set(channel_map["L"].keys())
-    for ch in ("R", "G", "B"):
+    # Intersect: only prefixes present in ALL channels
+    required = list(channel_dirs.keys())
+    if not required:
+        return {}
+    all_prefixes = set(channel_map[required[0]].keys())
+    for ch in required[1:]:
         all_prefixes &= set(channel_map[ch].keys())
 
     panels = {}
     for prefix in sorted(all_prefixes):
-        panels[prefix] = {ch: channel_map[ch][prefix] for ch in ("L", "R", "G", "B")}
+        panels[prefix] = {ch: channel_map[ch][prefix] for ch in required}
     return panels
 
 
-def process_panel(siril, prefix, files, home_dir):
+def process_panel(siril, prefix, files, home_dir, mode):
     """
     Run the full LRGB pipeline for one panel prefix.
     Returns True on success, False on failure.
     """
     siril_log(siril, " ")
     siril_log(siril, "=" * 60)
-    siril_log(siril, "Panel: " + prefix)
-    siril_log(siril, "  L: " + files["L"].name)
-    siril_log(siril, "  R: " + files["R"].name)
-    siril_log(siril, "  G: " + files["G"].name)
-    siril_log(siril, "  B: " + files["B"].name)
+    siril_log(siril, "Panel: " + prefix + "  [" + mode + "]")
+    for ch, f in files.items():
+        siril_log(siril, "  " + ch + ": " + f.name)
     siril_log(siril, "=" * 60)
 
-    # Intermediate files go into process/ -- home/ stays clean
-    process_dir = home_dir / "process"
-    process_dir.mkdir(exist_ok=True)
+    # Composites go into composites/ -- clean separation from stretch intermediates
+    composites_dir = home_dir / "composites"
+    composites_dir.mkdir(exist_ok=True)
 
-    lrgb_out = process_dir / (prefix + SUFFIX_LRGB + ".fits")
+    composite_suffix = SUFFIX_BY_MODE[mode]
+    lrgb_out = composites_dir / (prefix + composite_suffix + ".fits")
 
-    # Skip if LRGB composite already exists in process/
-    # (Galactic_3 skip is separate -- it checks for _stretched_result in home/)
+    # Skip if composite already exists in composites/
+    # (Galactic_3 skip is separate -- it checks for _stretched_result in result_fits/)
     if lrgb_out.exists():
-        siril_log(siril, "  SKIP: LRGB already composed: " + lrgb_out.name)
-        siril_log(siril, "  (Delete from process/ to recompose)")
+        siril_log(siril, "  SKIP: already composed: " + lrgb_out.name)
+        siril_log(siril, "  (Delete from composites/ to recompose)")
         return True
 
-    # No stale cleanup -- process/ keeps intermediates for diagnosis
+    # No stale cleanup -- composites/ keeps files for diagnosis
 
     # ------------------------------------------------------------------
     # Step 1: Align channels then LRGB compose
@@ -211,27 +287,36 @@ def process_panel(siril, prefix, files, home_dir):
     # as frame 1 (reference).  This gives r_LR_00001 (L), r_LR_00002 (R),
     # r_LG_00002 (G), r_LB_00002 (B), all clearly labelled.
 
-    src_ext = files["L"].suffix   # .fits or .fit
+    # Determine reference and colour channels from mode
+    if mode == "LRGB":
+        ref_ch   = "L"
+        colour_channels = ["R", "G", "B"]
+    else:
+        # Narrowband: no luminance channel -- use R as reference
+        # (first channel alphabetically / as mapped by CHANNEL_DIRS_HSO/SHO)
+        ref_ch   = "R"
+        colour_channels = ["G", "B"]
+
+    src_ext = files[ref_ch].suffix
     ext_no_dot = src_ext.lstrip(".")
     cmd_safe(siril, "setext", ext_no_dot)
 
-    # Copy L once (shared reference for all pairs)
-    l_copy = align_dir / ("L_00001" + src_ext)
+    # Copy reference channel
+    ref_copy = align_dir / (ref_ch + "_00001" + src_ext)
     try:
-        _shutil.copy2(files["L"], l_copy)
+        _shutil.copy2(files[ref_ch], ref_copy)
     except Exception as exc:
-        siril_log(siril, "  [ERROR] Could not copy L channel: " + str(exc))
+        siril_log(siril, "  [ERROR] Could not copy " + ref_ch + " channel: " + str(exc))
         if not DEBUG_KEEP_TEMP:
-            if not DEBUG_KEEP_TEMP:
-                _shutil.rmtree(align_dir, ignore_errors=True)
+            _shutil.rmtree(align_dir, ignore_errors=True)
         cmd_safe(siril, "cd", str(home_dir))
         return False
+    # Keep backward compat alias
+    l_copy = ref_copy
 
-    # For each colour channel build a 2-frame sequence L+colour,
-    # register it, and capture the registered colour frame.
-    reg_colour = {}   # { "R": Path, "G": Path, "B": Path }
-    for ch_name, ch_file in [("R", files["R"]), ("G", files["G"]), ("B", files["B"])]:
-        seq = "L" + ch_name          # sequence basename: LR, LG, LB
+    reg_colour = {}
+    for ch_name, ch_file in [(c, files[c]) for c in colour_channels]:
+        seq = ref_ch + ch_name        # sequence basename: LR/LG/LB or RG/RB
         ch_copy = align_dir / (ch_name + "_00002" + src_ext)
         try:
             _shutil.copy2(ch_file, ch_copy)
@@ -243,10 +328,10 @@ def process_panel(siril, prefix, files, home_dir):
             cmd_safe(siril, "cd", str(home_dir))
             return False
 
-        # Rename L copy to match this pair sequence (L_00001 -> LR_00001 etc.)
+        # Copy reference to match this pair sequence (L_00001 -> LR_00001 etc.)
         l_seq_copy = align_dir / (seq + "_00001" + src_ext)
         try:
-            _shutil.copy2(l_copy, l_seq_copy)
+            _shutil.copy2(ref_copy, l_seq_copy)
         except Exception as exc:
             siril_log(siril, "  [ERROR] Could not stage L for " + seq
                       + ": " + str(exc))
@@ -300,14 +385,11 @@ def process_panel(siril, prefix, files, home_dir):
         reg_colour[ch_name] = r_ch
         siril_log(siril, "  Registered: " + r_ch.name)
 
-    # L is used as-is (it is the reference; no transform needed)
-    r_L = l_copy
-    r_R = reg_colour["R"]
-    r_G = reg_colour["G"]
-    r_B = reg_colour["B"]
+    # Reference channel is used as-is (no transform needed)
+    r_ref = ref_copy
     siril_log(siril, "  All channels aligned:")
-    siril_log(siril, "    L=" + r_L.name + "  R=" + r_R.name
-              + "  G=" + r_G.name + "  B=" + r_B.name)
+    siril_log(siril, "    " + ref_ch + "=" + r_ref.name + "  "
+              + "  ".join(ch + "=" + p.name for ch, p in reg_colour.items()))
 
     # ------------------------------------------------------------------
     # Pre-composition linear_match removed.
@@ -330,30 +412,35 @@ def process_panel(siril, prefix, files, home_dir):
     # ------------------------------------------------------------------
     siril_log(siril, "  Channels aligned -- proceeding to rgbcomp (no linear_match).")
 
-    # L scaling removed -- CIE Lab (-cfa flag on rgbcomp) handles
-    # luminance/colour separation correctly without needing pre-scaling.
-    # Scaling L to match RGB median was causing issues when L happened
-    # to be dimmer than RGB (scale > 1.0), making the gamut problem worse.
-    scaled_L = r_L
+    # Compose channels using rgbcomp
+    cmd_safe(siril, "cd", str(composites_dir))
+    lrgb_stem = prefix + composite_suffix
 
-    # Compose LRGB from aligned + scaled channels; write result to process_dir
-    cmd_safe(siril, "cd", str(process_dir))
-    lrgb_stem = prefix + SUFFIX_LRGB
-    # -cfa uses CIE Lab colour space for LRGB composition.
-    # Lab has a much larger gamut than HSL/HSV -- orange stars stay
-    # orange even when L is brighter than the colour channels, because
-    # Lab separates luminance from chrominance completely.
-    if not cmd_safe(
-        siril,
-        "rgbcomp",
-        "-lum=" + str(scaled_L),
-        str(r_R),
-        str(r_G),
-        str(r_B),
-        "-cfa",
-        "-out=" + lrgb_stem,
-    ):
-        siril_log(siril, "  [ERROR] LRGB composition failed.")
+    if mode == "LRGB":
+        # LRGB: luminance from L, colour from R/G/B
+        compose_ok = cmd_safe(
+            siril,
+            "rgbcomp",
+            "-lum=" + str(r_ref),
+            str(reg_colour["R"]),
+            str(reg_colour["G"]),
+            str(reg_colour["B"]),
+            "-out=" + lrgb_stem,
+        )
+    else:
+        # Narrowband (HSO or SHO): no luminance -- pure RGB composition
+        # R/G/B are already mapped to display colours via CHANNEL_DIRS_*
+        compose_ok = cmd_safe(
+            siril,
+            "rgbcomp",
+            str(r_ref),              # R channel (Ha or Sii)
+            str(reg_colour["G"]),    # G channel (Sii or Ha)
+            str(reg_colour["B"]),    # B channel (Oiii)
+            "-out=" + lrgb_stem,
+        )
+
+    if not compose_ok:
+        siril_log(siril, "  [ERROR] Composition failed.")
         if not DEBUG_KEEP_TEMP:
             _shutil.rmtree(align_dir, ignore_errors=True)
         return False
@@ -369,7 +456,7 @@ def process_panel(siril, prefix, files, home_dir):
     # Find the composed file (Siril writes <stem>.fit or <stem>.fits)
     lrgb_path = None
     for ext in FITS_EXTENSIONS:
-        candidate = process_dir / (lrgb_stem + ext)
+        candidate = composites_dir / (lrgb_stem + ext)
         if candidate.exists():
             lrgb_path = candidate
             break
@@ -392,7 +479,7 @@ def process_panel(siril, prefix, files, home_dir):
         siril_log(siril, "  [ERROR] Cannot save LRGB.")
         return False
     siril_log(siril, "  Saved: " + lrgb_out.name)
-    siril_log(siril, "  --> Plate-solve with ASTAP then run Galactic_3_Stretch.py")
+    siril_log(siril, "  --> Plate-solve with ASTAP, crop borders, then run Galactic_3_Stretch.py")
     siril_log(siril, "  Panel " + prefix + " complete.")
     return True
 
@@ -421,42 +508,57 @@ def main():
         siril_log(siril, "Home directory: " + str(home_dir))
 
         # Verify channel directories exist
-        missing = []
-        for ch, rel in CHANNEL_DIRS.items():
-            d = home_dir / rel
-            if not d.is_dir():
-                missing.append(ch + " (" + rel + ")")
-        if missing:
-            siril_log(siril, "[WARNING] Missing channel directories: " + ", ".join(missing))
-            siril_log(siril, "These channels will be skipped in panel matching.")
-
-        # Find panels with all 4 channels present
-        siril_log(siril, "Scanning for complete LRGB panels...")
-        panels = find_panel_files(home_dir)
-
-        if not panels:
-            siril_log(siril, "No complete LRGB panels found.")
-            siril_log(siril, "Expected files matching: " + "GLAT???X_GLON???*" + INPUT_SUFFIX + ".fits")
-            siril_log(siril, "in subdirectories: L/stacked, R/stacked, G/stacked, B/process")
+        # Auto-detect or use configured composite mode
+        mode = detect_composite_mode(home_dir)
+        if mode is None:
+            siril_log(siril, "[ERROR] Could not detect composite mode.")
+            siril_log(siril, "  LRGB needs: L/R/G/B stacked dirs with stack_denoised files.")
+            siril_log(siril, "  HSO/SHO needs: Ha/Sii/Oiii stacked dirs.")
+            siril_log(siril, "  Or set COMPOSITE_MODE explicitly in the config section.")
             siril.disconnect()
             return
 
-        siril_log(siril, "Found " + str(len(panels)) + " complete LRGB panel(s):")
+        channel_dirs = {
+            "LRGB": CHANNEL_DIRS_LRGB,
+            "HSO":  CHANNEL_DIRS_HSO,
+            "SHO":  CHANNEL_DIRS_SHO,
+        }[mode]
+        siril_log(siril, "Composite mode: " + mode)
+        siril_log(siril, "Channel mapping:")
+        for ch, rel in channel_dirs.items():
+            siril_log(siril, "  " + ch + " <- " + rel)
+
+        # Find panels with all required channels present
+        panels = find_panel_files(home_dir, mode, channel_dirs)
+
+        if not panels:
+            siril_log(siril, "No complete " + mode + " panels found.")
+            siril_log(siril, "Expected stack_denoised files in: "
+                      + ", ".join(channel_dirs.values()))
+            siril.disconnect()
+            return
+
+        siril_log(siril, "Found " + str(len(panels)) + " complete " + mode + " panel(s):")
         for prefix in panels:
             siril_log(siril, "  " + prefix)
 
         ok = fail = skip = 0
         results = []
         for prefix, files in panels.items():
-            if process_panel(siril, prefix, files, home_dir):
-                # Check if it was a skip (LRGB already existed)
-                process_dir = home_dir / "process"
-                existed_before = any(
-                    (process_dir / (prefix + "_LRGB" + ext)).exists()
-                    for ext in (".fits", ".fit", ".fts"))
-                # process_panel returns True for both OK and SKIP
-                # We detect skip by checking the log message was printed
-                # Simpler: just count OK for now, skip logic is in process_panel
+            # Check skip before calling -- lrgb_out path
+            composite_suffix = {
+                "LRGB": "_LRGB", "HSO": "_HSO", "SHO": "_SHO"
+            }[mode]
+            composites_dir = home_dir / "composites"
+            already = any(
+                (composites_dir / (prefix + composite_suffix + ext)).exists()
+                for ext in (".fits", ".fit", ".fts")
+            )
+            if already:
+                siril_log(siril, "SKIP: " + prefix + composite_suffix + " already exists.")
+                skip += 1
+                results.append((prefix, "SKIP"))
+            elif process_panel(siril, prefix, files, home_dir, mode):
                 ok += 1
                 results.append((prefix, "OK"))
             else:
@@ -465,7 +567,7 @@ def main():
 
         siril_log(siril, " ")
         siril_log(siril, "=" * 60)
-        siril_log(siril, "Galactic_2_Recompose complete.")
+        siril_log(siril, "Galactic_2_Composite complete.")
         siril_log(siril, "=" * 60)
         siril_log(siril, "  {:<20} {:>6}".format("Panel", "Result"))
         siril_log(siril, "  " + "-" * 28)
@@ -473,17 +575,26 @@ def main():
             siril_log(siril, "  {:<20} {:>6}".format(prefix, status))
         siril_log(siril, " ")
         siril_log(siril, "  OK  : " + str(ok)
+                  + "   SKIP: " + str(skip)
                   + "   FAIL: " + str(fail)
                   + "   TOTAL: " + str(len(results)))
-        siril_log(siril, "  Next: plate-solve process/GLAT*_LRGB.fits with ASTAP")
-        siril_log(siril, "        then run Galactic_3_Stretch.py")
+        siril_log(siril, "  Next: plate-solve composites/GLAT*_LRGB.fits with ASTAP,")
+        siril_log(siril, "        crop borders, then run Galactic_3_Stretch.py")
         siril_log(siril, "=" * 60)
+
+        cmd_safe(siril, "cd", str(home_dir))
 
     except Exception as exc:
         siril_log(siril, "Unhandled error: " + str(exc))
         traceback.print_exc()
 
     finally:
+        # Always return to home directory on exit or interrupt
+        try:
+            home_dir = Path(siril.get_siril_wd())
+            siril.cmd("cd", str(home_dir))
+        except Exception:
+            pass
         siril.disconnect()
 
 

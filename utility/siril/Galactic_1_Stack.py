@@ -13,7 +13,7 @@
 #   2.  Registers (aligns) the sequence with global star-matching
 #   3.  Stacks with sigma-clipping rejection and average combination
 #   4.  Loads the stacked image and applies GraXpert AI denoising
-#   5.  Saves the denoised result as <prefix>_stack_denoised.fits
+#   5.  Saves the denoised result as <prefix>_stack.fits
 #
 # Prerequisites
 # -------------
@@ -41,7 +41,7 @@ from collections import defaultdict
 # ---------------------------------------------------------------------------
 # CONFIGURATION -- edit these values as needed
 # ---------------------------------------------------------------------------
-DENOISE_STRENGTH = 0.5      # GraXpert denoising strength: 0.0 (none) to 1.0 (max)
+DENOISE_STRENGTH = 1.0      # GraXpert denoising strength: 0.0 (none) to 1.0 (max)
 REGISTER_TRANSF  = "homography" # registration transform: shift / similarity / affine / homography
 STACK_TYPE       = "rej"    # stacking type (rej = sigma-clipping rejection)
 STACK_SIGMA_LOW  = 3        # lower sigma threshold for rejection
@@ -50,9 +50,18 @@ STACK_NORM       = "addscale"  # normalisation: addscale / add / mul / no
 FITS_EXTENSIONS  = {".fits", ".fit", ".fts"}
 PREFIX_LENGTH    = 16       # number of filename characters used to group files
 
+# Set RUN_DENOISE = False to skip GraXpert denoising (default: True).
+RUN_DENOISE = True
+
+# Set RUN_ABERRATION_REMOVER = True to run AberrationRemover.py after denoise.
+# AberrationRemover opens a GUI dialog for each panel group -- only enable
+# this when you need to correct specific panels (delete their _stack
+# and rerun with this flag on). Leave False for normal automated runs.
+RUN_ABERRATION_REMOVER = False
+
 # Channel subdirectories to scan (relative to Siril home directory).
 # Stacked outputs are saved back into the same directory they were found in
-# so that Galactic_2_Recompose.py can find them in channel/stacked/.
+# so that Galactic_2_Composite.py can find them in channel/stacked/.
 # Only directories that exist are processed -- missing filters are skipped.
 CHANNEL_DIRS = ["L/stacked", "R/stacked", "G/stacked", "B/stacked",
                 "Ha/stacked", "Sii/stacked", "Oiii/stacked"]
@@ -87,7 +96,7 @@ def cmd_safe(siril, *args):
 # Suffixes that identify output files produced by this script.
 # Any FITS file whose stem ends with one of these is skipped on re-runs
 # so that previous stacks are never mixed back into the input data.
-OUTPUT_SUFFIXES = ("_stack", "_stack_denoised")
+OUTPUT_SUFFIXES = ("_stack",)
 
 # Prefixes that identify intermediate files from Galactic_0_Calibration.py.
 # light_NNNNN.fits files are created by `convert` in the process/ directory
@@ -197,18 +206,18 @@ def process_group(siril, group_prefix, files, work_dir):
 
     if n < 2:
         # Single frame -- skip stacking/registration but copy it through
-        # so downstream scripts (Galactic_2_Recompose) can find it.
-        siril_log(siril, "  Single frame -- copying as stack_denoised (no stacking possible).")
+        # so downstream scripts (Galactic_2_Composite) can find it.
+        siril_log(siril, "  Single frame -- copying as _stack (no stacking possible).")
         safe_prefix  = "".join(c if (c.isalnum() or c == "_") else "_" for c in group_prefix)
-        denoised_out = safe_prefix + "_stack_denoised"
+        stack_out = safe_prefix + "_stack"
         # Check skip first
         for ext in (".fits", ".fit", ".fts"):
-            existing = work_dir / (denoised_out + ext)
+            existing = work_dir / (stack_out + ext)
             if existing.exists():
                 siril_log(siril, "  SKIP: output already exists: " + existing.name)
                 return True
         src_file = files[0]
-        dest_file = work_dir / (denoised_out + src_file.suffix)
+        dest_file = work_dir / (stack_out + src_file.suffix)
         try:
             import shutil as _shutil
             _shutil.copy2(src_file, dest_file)
@@ -228,12 +237,11 @@ def process_group(siril, group_prefix, files, work_dir):
     seq_name      = safe_prefix
     reg_seq_name  = "r_" + safe_prefix
     stack_out     = safe_prefix + "_stack"
-    denoised_out  = safe_prefix + "_stack_denoised"
 
     # Skip if the denoised output already exists (any extension).
     # Check BEFORE creating the group_dir so no empty directory is left.
     for ext in (".fits", ".fit", ".fts"):
-        existing = work_dir / (denoised_out + ext)
+        existing = work_dir / (stack_out + ext)
         if existing.exists():
             siril_log(siril, "  SKIP: output already exists: " + existing.name)
             return True
@@ -366,24 +374,39 @@ def process_group(siril, group_prefix, files, work_dir):
         cleanup_group_dir(siril, group_dir, work_dir)
         return False
 
-    # Denoise
-    siril_log(siril, "  [4/4] Denoising via GraXpert-AI.py -denoise (strength=" + str(DENOISE_STRENGTH) + ")...")
-    denoise_ok = cmd_safe(
-        siril,
-        "pyscript", "GraXpert-AI.py",
-        "-denoise",
-        "-strength=" + str(DENOISE_STRENGTH),
-    )
+    # Denoise (optional -- see RUN_DENOISE config)
+    denoise_ok = False
+    if RUN_DENOISE:
+        siril_log(siril, "  [4/4] Denoising via GraXpert-AI.py -denoise (strength=" + str(DENOISE_STRENGTH) + ")...")
+        denoise_ok = cmd_safe(
+            siril,
+            "pyscript", "GraXpert-AI.py",
+            "-denoise",
+            "-strength=" + str(DENOISE_STRENGTH),
+        )
+    else:
+        siril_log(siril, "  [4/4] Denoising skipped (RUN_DENOISE = False).")
 
-    # Save result -- named _stack_denoised regardless of which steps succeeded
-    # so AlpacaPano-Recompose can find it by its expected filename
-    final_path = work_dir / (denoised_out + ".fits")
+    # Optional: Aberration Removal (GUI dialog -- see RUN_ABERRATION_REMOVER config)
+    ab_ok = False
+    if RUN_ABERRATION_REMOVER:
+        siril_log(siril, "  Aberration removal (dialog will open for "
+                  + group_prefix + ")...")
+        ab_ok = cmd_safe(siril, "pyscript", "AberrationRemover.py")
+        if not ab_ok:
+            siril_log(siril, "  [WARNING] AberrationRemover failed -- continuing.")
+
+    # Save result -- named _stack regardless of which steps succeeded
+    # so Galactic_2_Composite can find it by its expected filename
+    final_path = work_dir / (stack_out + ".fits")
     if not cmd_safe(siril, "save", str(final_path)):
         siril_log(siril, "  [ERROR] Could not save result to " + str(final_path))
         cleanup_group_dir(siril, group_dir, work_dir)
         return False
 
-    steps_done = ["denoised"] if denoise_ok else ["plain stack"]
+    steps_done = ["stacked"]
+    if denoise_ok: steps_done.append("denoised")
+    if ab_ok:      steps_done.append("aberration corrected")
     siril_log(siril, "  OK  Saved (" + " + ".join(steps_done) + "): " + final_path.name)
 
     # Clean up the temporary group directory
@@ -445,9 +468,9 @@ def main():
                 siril_log(siril, "Channel " + channel + " / " + prefix
                           + " (" + str(len(files)) + " file(s))")
                 # Check skip before calling so we can count it
-                denoised_out = ("".join(c if (c.isalnum() or c == "_") else "_"
-                                        for c in prefix) + "_stack_denoised")
-                already_done = any((work_dir / (denoised_out + ext)).exists()
+                stack_out = ("".join(c if (c.isalnum() or c == "_") else "_"
+                                        for c in prefix) + "_stack")
+                already_done = any((work_dir / (stack_out + ext)).exists()
                                    for ext in (".fits", ".fit", ".fts"))
                 if already_done:
                     skip += 1
@@ -477,7 +500,7 @@ def main():
                   + "   SKIP: " + str(skip)
                   + "   FAIL: " + str(fail)
                   + "   TOTAL: " + str(ok + skip + fail))
-        siril_log(siril, "  Next: plate-solve outputs in stacked/ then run Galactic_2_Recompose.py")
+        siril_log(siril, "  Next: run Galactic_2_Composite.py")
         siril_log(siril, "=" * 60)
 
     except Exception as exc:
@@ -485,6 +508,12 @@ def main():
         traceback.print_exc()
 
     finally:
+        # Always return to home directory on exit or interrupt
+        try:
+            home_dir = Path(siril.get_siril_wd())
+            siril.cmd("cd", str(home_dir))
+        except Exception:
+            pass
         siril.disconnect()
 
 
