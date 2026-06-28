@@ -289,13 +289,15 @@ def process_panel(siril, prefix, files, home_dir, mode):
 
     # Determine reference and colour channels from mode
     if mode == "LRGB":
-        ref_ch   = "L"
+        # L is the luminance reference; R/G/B are colour channels
+        ref_ch        = "L"
         colour_channels = ["R", "G", "B"]
     else:
-        # Narrowband: no luminance channel -- use R as reference
-        # (first channel alphabetically / as mapped by CHANNEL_DIRS_HSO/SHO)
-        ref_ch   = "R"
-        colour_channels = ["G", "B"]
+        # Narrowband: use G as the reference (Ha in SHO, Sii in HSO).
+        # All three filters are aligned in one pass: R and B align to G.
+        # This gives a single consistent registration across all channels.
+        ref_ch        = "G"
+        colour_channels = ["R", "B"]
 
     src_ext = files[ref_ch].suffix
     ext_no_dot = src_ext.lstrip(".")
