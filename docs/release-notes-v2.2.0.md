@@ -68,7 +68,7 @@
 - **[Anchor Position]**  Allow Anchor Position to be specified in Topocentric, Equatorial or Galactic coordinates.
 - **[Pano Galactic]**  Add "Sky - Milky Way" panorama that aligns with the milky way spine using Galactic coordinates. 
 - **[Pano Calculator]**  Calculates the full PanoGrid field of view (FOV), (as well as the sensor FOV, hstep, and vstep) 
-- **[Siril Scripts]**  Automate pano processing (calibrate, stack, recompose and stretch) per individual panel.
+- **[Siril Scripts]**  Automate Siril image processing (calibrate, group, stack, composit and stretch) for multi Panel mono images in a Galactic Pano.
 
 ## Utilities and Visualisation
 - **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.
