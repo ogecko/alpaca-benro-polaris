@@ -174,20 +174,64 @@ def radec_to_galactic(ra_deg, dec_deg):
     return g.l.deg % 360.0, g.b.deg
 
 
-def make_glat_glon_prefix(l, b, decimals=0):
+def find_glon_offset(glon_values):
     """
-    Build the GLAT/GLON filename prefix.
-    e.g. l=209.456, b=-7.123, decimals=0  ->  GLAT007S_GLON209_
+    Given a list of GLON values (0-359), find the offset to apply to each
+    so that the values are monotonically increasing across the panorama.
+
+    Algorithm: find the largest gap between consecutive values around the
+    circle. The panel after that gap is the start of the panorama. Any
+    panel whose GLON is less than the start value gets +360 added.
+
+    Example: [318, 327, 335, 343, 351, 0, 8]
+      Sorted: [0, 8, 318, 327, 335, 343, 351]
+      Gaps (circular): 8, 310, 9, 8, 8, 8, 9  (gap from 351 back to 0 = 9)
+      Largest gap: 310 (between 8 and 318) -> panorama starts at 318
+      Result: 0->360, 8->368, rest unchanged
+    """
+    if not glon_values:
+        return {}
+    unique = sorted(set(glon_values))
+    if len(unique) == 1:
+        return {unique[0]: unique[0]}
+
+    # Compute gaps between consecutive values (circular)
+    gaps = []
+    n = len(unique)
+    for i in range(n):
+        gap = (unique[(i + 1) % n] - unique[i]) % 360
+        gaps.append((gap, i))
+
+    # Largest gap -- the panorama starts at the value AFTER this gap
+    largest_gap_idx = max(gaps, key=lambda x: x[0])[1]
+    start_val = unique[(largest_gap_idx + 1) % n]
+
+    # Build offset map: values before start_val (i.e. that wrapped) get +360
+    result = {}
+    for v in unique:
+        if v < start_val:
+            result[v] = v + 360
+        else:
+            result[v] = v
+    return result
+
+
+def make_glat_glon_prefix(b, glon_adjusted, decimals=0):
+    """
+    Build the GLAT/GLON filename prefix using wrap-corrected GLON.
+    e.g. b=-7.123, glon_adjusted=368  ->  GLAT007S_GLON368_
     """
     ns = "S" if b < 0 else "N"
     glat_int = int(round(abs(b)))
-    glon_int  = int(round(l)) % 360
+    glon_int  = int(round(glon_adjusted))
     return "GLAT{:03d}{}_GLON{:03d}_".format(glat_int, ns, glon_int)
 
 
 def rename_with_glat_glon(siril, process_dir):
     """
     Read each pp_light*.fits in process_dir and rename with GLAT/GLON prefix.
+    GLON values are wrap-corrected so files sort monotonically across the
+    panorama (e.g. 351->351, 0->360, 8->368 when the gap is at ~180°).
     Opens files read-only so Python doesn't hold a write lock during rename.
     Uses a retry loop for Windows file lock release timing after Siril closes.
     Returns (renamed_count, skipped_count, error_count).
@@ -201,8 +245,13 @@ def rename_with_glat_glon(siril, process_dir):
                       and p.stem.startswith("pp_")
                       and not p.stem[:4].upper() == "GLAT")
 
+    if not pp_files:
+        return 0, 0, 0
+
+    # Pass 1: read all coordinates to compute wrap-around offset
+    file_coords = {}   # path -> (b, l_raw)
+    glon_values = []
     for fits_path in pp_files:
-        # Read header then close file before renaming
         try:
             with _afits.open(str(fits_path), mode="readonly") as hdul:
                 coords = extract_ra_dec(hdul[0].header)
@@ -210,15 +259,27 @@ def rename_with_glat_glon(siril, process_dir):
             siril_log(siril, "  ERROR reading " + fits_path.name + ": " + str(exc))
             errors += 1
             continue
-
         if coords is None:
             siril_log(siril, "  SKIP (no RA/Dec): " + fits_path.name)
             skipped += 1
             continue
-
         ra_deg, dec_deg = coords
         l, b = radec_to_galactic(ra_deg, dec_deg)
-        prefix = make_glat_glon_prefix(l, b, RENAME_DECIMALS)
+        l_int = int(round(l)) % 360
+        file_coords[fits_path] = (b, l, l_int)
+        glon_values.append(l_int)
+
+    # Compute wrap-corrected GLON mapping
+    glon_offset_map = find_glon_offset(glon_values)
+    if any(v != k for k, v in glon_offset_map.items()):
+        adjusted = {k: v for k, v in glon_offset_map.items() if v != k}
+        siril_log(siril, "  Wrap-around detected -- adjusting GLON values: "
+                  + ", ".join(str(k) + "->" + str(v) for k, v in sorted(adjusted.items())))
+
+    # Pass 2: rename with corrected GLON
+    for fits_path, (b, l, l_int) in file_coords.items():
+        glon_adjusted = glon_offset_map.get(l_int, l_int)
+        prefix = make_glat_glon_prefix(b, glon_adjusted, RENAME_DECIMALS)
         new_path = fits_path.with_name(prefix + fits_path.name)
 
         # Retry rename up to 5 times -- Windows releases Siril's file lock
