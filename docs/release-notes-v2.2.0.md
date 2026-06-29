@@ -123,6 +123,7 @@
 - **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 
 ## Bug Fixes (from v2.1.0 version)
+- **[fix #84]**: Driver can get confused as to the state of the L-Bracket setting on connection
 - **[fix #82]**: Correct dashboard Scale Label interaction (allow click when near zoom buttons, dont double fire slew)
 - **[fix #81]**: Improve error message shown when trying to run multiple instances of Alpaca Driver
 - **[fix #80]**: Refined connection management logic to minimize unnecessary reconnections and support manual connection handling
