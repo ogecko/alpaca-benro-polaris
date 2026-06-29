@@ -292,10 +292,16 @@ async def _fetch_xephem_from_jpl(logger, name_or_designation: str):
 
         # Construct xephem string
         if e is not None and e >= 1.0:
-            # Hyperbolic/near-parabolic: use HyperbolicBody format
-            tp_month, tp_day, tp_year = jd_to_calendar(tp_jd)
-            tp_date = f"{tp_month:02d}/{tp_day:02d}/{tp_year}"
-            db_string = f"{name},h,{tp_date},{qr},{i},{O},{o},{e},{D},0,0,0"
+            # pyephem HyperbolicBody is broken for near-parabolic comets.
+            # Use EllipticalBody with e clamped to 0.9999 — gives accurate results.
+            e_ell = 0.9999
+            a_ell = qr / (1 - e_ell)          # qr = perihelion distance from JPL
+            n_ell = 0.9856076686 / (a_ell ** 1.5)
+            # M at element epoch = n * (epoch - perihelion) in days
+            epoch_jd_val = epoch_jd           # already extracted
+            dt = epoch_jd_val - tp_jd         # days from perihelion at element epoch
+            M_ell = n_ell * dt
+            db_string = f"{name},e,{i},{O},{o},{a_ell},{n_ell},{e_ell},{M_ell},{epoch_date},{D},,,"
         else:
             # Elliptical: existing path
             db_string = f"{name},e,{i},{O},{o},{a},{n},{e},{M},{epoch_date},{D},,,"
@@ -324,7 +330,7 @@ async def _fetch_xephem_from_jpl(logger, name_or_designation: str):
 
     # ---------------- Persist to cache (best-effort)
     try:
-        store_orbital_body_to_cache(body, source='jpl', query=query)
+        store_orbital_body_to_cache(body, source='jpl', query=query, db_string=db_string)
     except Exception as ex:
         logger.warning(f'JPL: Failed to cache orbital — {ex}')
 
@@ -401,7 +407,7 @@ def save_cache(cache: dict[str, dict]):
  
 # ── Orbital store / restore / refresh cache ─────────────────────────────────────────────────────────────
  
-def store_orbital_body_to_cache(body, source: str, query: str = '', name_override: str = '') -> None:
+def store_orbital_body_to_cache(body, source, query='', name_override='', db_string=None):
     """
     Persist a freshly-fetched pyephem body to orbitals.json.
  
@@ -411,7 +417,7 @@ def store_orbital_body_to_cache(body, source: str, query: str = '', name_overrid
     name_override — optional friendly name; defaults to body.name
     """
     try:
-        writedb_str = body.writedb()
+        writedb_str = db_string if db_string else body.writedb()
         c1, c2      = _c1_c2_for_source(source, query)
         main_id = body.name.strip()
         name    = name_override or body.name.strip()
