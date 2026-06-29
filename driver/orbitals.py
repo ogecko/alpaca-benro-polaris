@@ -116,6 +116,13 @@ async def create_tle_orbital_celestrak(logger, norad_id):
     - This function relies on publicly available TLE data from Celestrak, which may be updated daily.
     - TLE-based orbital models are suitable for short-term tracking but degrade in accuracy over time.
     """
+
+    # ---------------- If name is already in orbital_data (e.g. restored from cache), use it directly
+    query_str = str(norad_id).strip()
+    if query_str in orbital_data:
+        return orb_result(logger, query_str, f'Celestrak: Using cached body for {query_str}.')
+
+
     # ---------------- Try and parse the norad_id
     try:
         query = int(str(norad_id).strip())
@@ -294,7 +301,6 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
     # ---------------- Try and create the Orbital Body
     try:
         body = ephem.readdb(db_string)
-
         if Config.log_orbital_queries:
             logger.info(f'JPL: Body Orbital Parameters: {body.writedb()}')
 
@@ -360,18 +366,23 @@ def store_orbital_body_to_cache(body, source: str, query: str = '', name_overrid
     """
     try:
         writedb_str = body.writedb()
-        name        = name_override or body.name.strip()
         c1, c2      = _c1_c2_for_source(source, query)
+        if source == 'celestrak':
+            main_id = name_override or body.name.strip()
+            name    = ''
+        else:
+            main_id = name_override or body.name.strip()
+            name    = ''
  
         cache = load_cache()
-        existing = cache.get(name, {})
+        existing = cache.get(main_id, {})
  
         entry = {
             'source':     source,
             'writedb':    writedb_str,
             'fetched_at': _now_utc_iso(),
             # Catalog fields
-            'MainID':   name,
+            'MainID':   main_id,
             'Name':     existing.get('Name', name),
             'Notes':    existing.get('Notes', f'Cached {source.upper()} orbital. Last fetched: {_now_utc_iso()}'),
             'Class':    existing.get('Class', ''),
@@ -386,9 +397,9 @@ def store_orbital_body_to_cache(body, source: str, query: str = '', name_overrid
         # Update Notes to reflect latest fetch time
         entry['Notes'] = f'Cached {source.upper()} orbital. Last fetched: {entry["fetched_at"]}'
  
-        cache[name] = entry
+        cache[main_id] = entry
         save_cache(cache)
-        logger.info(f'orbital_cache: saved "{name}" (source={source})')
+        logger.info(f'orbital_cache: saved "{main_id}" (source={source})')
     except Exception as ex:
         logger.warning(f'orbital_cache: failed to cache body — {ex}')
  
