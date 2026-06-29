@@ -42,8 +42,7 @@
 - [X] Settings - Add ability to save observing site locations
 - [X] Settings - Add ability to save pano presets
 - [X] MAC - Add autotune to Mechanical Alignment Correction
-- [ ] Sync Guiding - Check whether immediate pulse guide return is cause of bad subexposure. ie detail till converged.
-- [ ] Settings - Add ability to save orbital parameters
+- [X] Orbitals - Add ability to save orbital parameters for offline use
 - [ ] Close candidate enhancement list
     - [ ] Goto - Determine ideal settle time for Benro Polaris and v2.2
     - [ ] CCDCiel - Auto install Alpaca Driver scripts for CCDCiel
@@ -52,6 +51,7 @@
 - [ ] Close open questions
     - [ ] Flip - Can we improve horizon flip/windup prevention at Az 30 or Az 0?
     - [ ] PEC - Can we identify Guiding Application Calibration pulses so PEC can ignore them?
+    - [ ] Sync Guiding - Check whether immediate pulse guide return is cause of bad subexposure. ie detail till converged.
     - [ ] Connection - why does changing IP address allow connection to proceed?
     - [ ] Connection - why does L-Bracket get initialised incorrectly sometimes?
 - [ ] Create youtube videos for v2.2 content

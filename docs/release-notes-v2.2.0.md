@@ -45,13 +45,13 @@
 - **[Windup Prevention]** Automatically detects when a move would over-rotate an axis and reroutes 360° in the opposite direction to prevent cable damage
 - **[Zenith/Horizon Crossing]** Handles the physical axis flip needed when pointing through zenith or to negative altitudes, equivalent to a meridian flip
 
-### Multi Point Alignment
-- **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart, allowing imagaging sessions to continue, uninterupted.
+### Dark Site Operations
 - **[Persist Locations]** Pilot Settings allows multiple Observing Site Locations to be saved, loaded and deleted for offline use.
+- **[Persist Orbitals]** Orbitals fetched successfully are stored in the catalog, allowing offline use and later retrieval, refresh, or deletion. 
+- **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart, allowing imagaging sessions to continue, uninterupted.
 - **[Persist Co-ordinate Frame]** Dashboard co-ordinate frame is persisted across F5 refresh and page changes, while separate for each browser tab.
 - **[Persist Zoom Range]** Each radial dial on the Dashboard retains its zoom range when navigating between pages.
 - **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
-- **[Alignment Diagnostics]** Improve Multi-Point Alignment Model diagnostics with Alignment RMS Error and more logging.
 
 ### Auto-Guiding Improvements
 - **[Sync Guiding]** Drift correction made simple; no guide camera, no extra PHD2 software, just plate-solving.
