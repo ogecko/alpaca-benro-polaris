@@ -371,6 +371,17 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
     return await _fetch_xephem_from_jpl(logger, name)
 
 
+def remove_orbital(main_id):
+    if main_id:
+        # Remove from orbital_data
+        orbital_data.pop(main_id, None)
+        # Remove from cache file
+        cache = load_cache()
+        if main_id in cache:
+            del cache[main_id]
+            save_cache(cache)
+
+
 
 # ── Orbital Cache File Load/Save ─────────────────────────────────────────────────────────────
  

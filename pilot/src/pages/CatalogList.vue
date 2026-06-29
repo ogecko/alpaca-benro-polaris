@@ -143,9 +143,13 @@
                   <q-btn class="gt-xs" flat dense icon="mdi-move-resize-variant" @click.stop="onClickGoto(dso)">
                     <q-tooltip>Goto</q-tooltip>
                   </q-btn>
-                  <q-btn class="gt-xs" flat dense icon="mdi-sync" @click.stop="onClickSync(dso)">
+                  <q-btn v-if="!isDeletableItem(dso)" class="gt-xs" flat dense icon="mdi-sync" @click.stop="onClickSync(dso)">
                     <q-tooltip>Sync</q-tooltip>
                   </q-btn>
+                  <q-btn v-if="isDeletableItem(dso)" class="gt-xs" flat dense color="negative" icon="mdi-delete-outline" @click.stop="onClickRemoveOrbital(dso)">
+                    <q-tooltip>Remove from orbital cache</q-tooltip>
+                  </q-btn>
+
                 </div>
               </q-item-section>
 
@@ -224,6 +228,7 @@ const isNoResults = computed(() => cat.paginated.length == 0 && !cat.filter.C1?.
 const isNoradSearch = computed(() => check(cat.searchFor, [noradRegex]) || cat.filter.C1?.includes(6))
 const isCometSearch = computed(() => check(cat.searchFor, [cometRegex]) || cat.filter.C1?.includes(7))
 const isAsteroidSearch = computed(() => check(cat.searchFor, [namedRegex, numberedRegex, provisionalRegex]) || cat.filter.C1?.includes(8))
+const isDeletableItem = (dso:CatalogItem) => (dso.Cn === 84 && dso.C1 >= 6)
 const filteredLinks = computed(() => allLinks.value.filter(link => cat.filter.C1?.includes(link.C1)))
 const allLinks = computed(() => [
   {
@@ -390,16 +395,19 @@ function syncFiltersFromRoute(query = route.query) {
 
 
 function onClickDSO(dso: CatalogItem) {
-    $q.notify({
-    message: `Ready to sync or goto ${dso.MainID} ${dso.Name ? dso.Name : ''}?`,
+  const actions = [
+    { label: 'Sync', icon: 'mdi-sync', color: 'yellow', handler: () => { void onClickSync(dso) } },
+    { label: 'Goto', icon: 'mdi-move-resize-variant', color: 'yellow', handler: () => { void onClickGoto(dso) } },
+    { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => {} },
+  ]
+  if (isDeletableItem(dso)) {
+    actions.splice(-1, 0, { label: 'Remove', icon: 'mdi-delete-outline', color: 'yellow', handler: () => { void onClickRemoveOrbital(dso) }  })
+  }
+  $q.notify({
+    message: `Ready to sync or goto ${dso.MainID}?`,
     color: 'warning', position: 'top', timeout: 5000,
-    actions: [
-      { label: 'Sync', icon: 'mdi-sync', color: 'yellow', handler: () => { void onClickSync(dso)} },
-      { label: 'Goto', icon: 'mdi-move-resize-variant', color: 'yellow', handler: () => {void onClickGoto(dso)} },
-      { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => { /* ... */ } }
-    ]
+    actions
   })
-
 }
 
 async function onClickSync(dso: CatalogItem) {
@@ -429,6 +437,17 @@ async function onClickGoto(dso: CatalogItem) {
   cat.dsoGotoed = dso
   await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
 }
+
+
+async function onClickRemoveOrbital(dso: CatalogItem) {
+  await dev.alpacaRemoveOrbital(dso.MainID)
+  // Remove from local dsos immediately so UI updates without refresh
+  cat.dsos = cat.dsos.filter(d => d.MainID !== dso.MainID)
+  $q.notify({ message: `Removed ${dso.MainID} from orbital cache.`, 
+    icon: 'mdi-delete-outline', type: 'negative', position: 'top', timeout: 3000,
+    actions: [{ icon: 'mdi-close', color: 'white' }] })
+}
+
 
 async function onClickSearchOrbital(c1:DsoType=6) {
   const name = cat.searchFor

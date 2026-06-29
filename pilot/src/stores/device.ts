@@ -236,7 +236,6 @@ export const useDeviceStore = defineStore('device', {
       return result ?? []
     },
 
-
     async alpacaGetOrbitals() {
       const result = await this.api<OrbitalExport>('api/v1/telescope/0/action', { Action: 'Polaris:GetOrbitals', Parameters: ' ' });
       return result
@@ -246,6 +245,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:TrackOrbital', `{"name": "${name}", "category":${c1}}`)
     },
 
+    async alpacaRemoveOrbital(mainId: string) {
+      await this.apiAction<void>('Polaris:RemoveOrbital', `{"mainId": "${mainId}"}`)
+    },
+    
     async alpacaPanoGrid(params: string) {
       await this.apiAction<void>('Polaris:PanoGrid', params)
     },

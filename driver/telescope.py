@@ -26,7 +26,7 @@ import math
 import json
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent
-from orbitals import update_orbital_positions, compose_orbital_positions_for_catalog, loadCustomCatalogDataFromFile
+from orbitals import update_orbital_positions, compose_orbital_positions_for_catalog, loadCustomCatalogDataFromFile, remove_orbital
 
 
 logger: Logger = None
@@ -1511,17 +1511,17 @@ class unpark:
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([
-            "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:SlewAbsolute", "Polaris:SlewRelative", "Polaris:AbortSlew", "Polaris:TrackOrbital", 
-            "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
-            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:StatusFetch", 
-            "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
-            "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
+            "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:SlewAbsolute", "Polaris:SlewRelative", "Polaris:AbortSlew",  
             "Polaris:MoveAxis", "Polaris:MoveMotor", "Polaris:ResetAxes",
+            "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
+            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", 
+            "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
+            "Polaris:StatusFetch", "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove", "Polaris:AutotuneMAC",
             "Polaris:J2000Sync", "Polaris:J2000Goto",
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
-            "Polaris:GetOrbitals", "Polaris:GetCatalog",
+            "Polaris:GetCatalog", "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:RemoveOrbital",
             "Polaris:PanoOffset",
         ], req)  
 
@@ -1792,6 +1792,13 @@ class action:
             category = parameters.get('category', 6)
             asyncio.create_task(polaris.trackOrbital(name, category)) 
             resp.text = await PropertyResponse('Polaris:TrackOrbital ok', req)  
+            return
+
+        elif actionName == "Polaris:RemoveOrbital":
+            main_id = parameters.get('mainId', '')
+            logger.info(f'Polaris:RemoveOrbital {main_id}')
+            remove_orbital(main_id)
+            resp.text = await PropertyResponse('RemoveOrbital ok', req)
             return
 
         elif actionName == "Polaris:PanoGrid":
