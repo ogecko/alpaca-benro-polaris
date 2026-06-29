@@ -6,6 +6,7 @@ import ephem
 import ssl
 import certifi
 import logging
+import asyncio
 from pathlib import Path
 from datetime import datetime, timezone
 from shr import rad2deg, rad2hr
@@ -92,7 +93,7 @@ def orb_result(logger, name, msg):
 
 # ── Orbital Parameter Web Query Methods ─────────────────────────────────────────────────────────────
 
-async def create_tle_orbital_celestrak(logger, norad_id):
+async def _fetch_tle_from_celestrak(logger, norad_id):
     """
     Fetches Two-Line Element (TLE) data for an Earth-orbiting satellite using its NORAD catalog ID and constructs a PyEphem-compatible satellite object.
 
@@ -117,19 +118,13 @@ async def create_tle_orbital_celestrak(logger, norad_id):
     - TLE-based orbital models are suitable for short-term tracking but degrade in accuracy over time.
     """
 
-    # ---------------- If name is already in orbital_data (e.g. restored from cache), use it directly
-    query_str = str(norad_id).strip()
-    if query_str in orbital_data:
-        return orb_result(logger, query_str, f'Celestrak: Using cached body for {query_str}.')
-
-
     # ---------------- Try and parse the norad_id
     try:
         query = int(str(norad_id).strip())
         if query <= 0:
             return orb_result(logger, None, f'Celestrak: NORAD ID must be a positive integer.')
     except Exception as e:
-        return orb_result(logger, None, f'Celestrak: Invalid NORAD ID.')
+        return orb_result(logger, None, f'Celestrak: Invalid NORAD ID {norad_id}.')
 
     # ---------------- Try and query the Celestrak API
     try:
@@ -162,6 +157,7 @@ async def create_tle_orbital_celestrak(logger, norad_id):
     try:
         # Construct TLE strings
         name, line1, line2 = lines[:3]
+        name = name.strip()  
         body = ephem.readtle(name, line1, line2)
 
         if Config.log_orbital_queries:
@@ -170,7 +166,14 @@ async def create_tle_orbital_celestrak(logger, norad_id):
     except Exception as e:
         return orb_result(logger, None, f'Celestrak: Failed to create TLE body.')
 
-    orbital_data[name] = { "body": body }
+    orbital_data[name] = {
+        'body':     body,
+        'MainID':   name,                    # e.g. "STARLINK-34643"
+        'OtherIDs': str(norad_id).strip(),   # original NORAD query
+        'C1':       C1_SATELLITE,
+        'C2':       C2_SATELLITE,
+        'Cn':       CN_ORBIT,
+    }
 
     # ---------------- Persist to cache (best-effort)
     try:
@@ -183,7 +186,7 @@ async def create_tle_orbital_celestrak(logger, norad_id):
 
 
 
-async def create_xephem_orbital_jpl(logger, name_or_designation: str):
+async def _fetch_xephem_from_jpl(logger, name_or_designation: str):
     """
     Fetches high-precision orbital elements for a minor body from the JPL Horizons API and constructs a PyEphem-compatible object.
 
@@ -228,7 +231,7 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
             "MAKE_EPHEM": "NO",
             "OUT_UNITS": "AU-D",
             "ELEM_LABELS": "YES",
-            "REF_PLANE": "ECLIPTIC",
+            "REF_PLANE": "FRAME",       # was "ECLIPTIC" — xephem readdb() expects equatorial J2000
             "TP_TYPE": "ABSOLUTE",
             "CSV_FORMAT": "NO",
             "CENTER": "'500@10'",       # Solar system barycenter
@@ -269,6 +272,8 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
             match = re.search(r"PL/HORIZONS\s+(.*?)\s+\d{4}-\w{3}-\d{2}", elements)
             return match.group(1).strip() if match else query
 
+        logger.info(f'JPL RAW ELEMENTS: IN={extract("IN")}, OM={extract("OM")}, W={extract("W")}')
+
         name = extractname()
         i = extract("IN")
         O = extract("OM")
@@ -307,7 +312,15 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
     except Exception as e:
         return orb_result(logger, None, f'JPL: Failed to create orbital body.')
 
-    orbital_data[name] = {"body": body}
+    c1, c2 = _c1_c2_for_source('jpl', query)
+    orbital_data[name] = {
+        'body':     body,
+        'MainID':   name,
+        'OtherIDs': query,       # original designation e.g. "C/2025 R3"
+        'C1':       c1,
+        'C2':       c2,
+        'Cn':       CN_ORBIT,
+    }
 
     # ---------------- Persist to cache (best-effort)
     try:
@@ -317,6 +330,39 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
 
     return orb_result(logger, name, f'Sucessfully retrieved orbital parameters for {name}.')
 
+
+
+
+# ── Orbital Data object creation from Cache or Web ─────────────────────────────────────────────────────────────
+
+async def create_tle_orbital_celestrak(logger, norad_id):
+    """
+    Public API for PID/tracking. Returns immediately if body already in orbital_data,
+    then fires a background refresh. If not cached, fetches synchronously.
+    """
+    name = str(norad_id).strip()
+
+    if name in orbital_data:
+        # Already have a body — return it immediately and refresh in background
+        query = orbital_data[name].get('OtherIDs', '').strip() or name
+        asyncio.create_task(_fetch_tle_from_celestrak(logger, query))
+        return orb_result(logger, name, f'Celestrak: Using cached body for {name}, refreshing.')
+
+    # Not in orbital_data — fetch synchronously so tracking can start
+    return await _fetch_tle_from_celestrak(logger, name)
+
+
+async def create_xephem_orbital_jpl(logger, name_or_designation: str):
+    """Public API for PID/tracking."""
+    name = str(name_or_designation).strip()
+
+    if name in orbital_data:
+        query  = orbital_data[name].get('OtherIDs', '').strip() or name
+        asyncio.create_task(_fetch_xephem_from_jpl(logger, query))
+        return orb_result(logger, name, f'JPL: Using cached body for {name}, refreshing.')
+
+    # Not cached — fetch synchronously, with offline fallback
+    return await _fetch_xephem_from_jpl(logger, name)
 
 
 
@@ -426,7 +472,14 @@ def restore_orbital_bodies_from_orbital_cache() -> int:
             continue
         try:
             body = ephem.readdb(writedb_str)
-            orbital_data[name] = {'body': body}
+            orbital_data[name] = {
+                'body':     body,
+                'MainID':   entry.get('MainID', name),
+                'OtherIDs': entry.get('OtherIDs', ''),
+                'C1':       entry.get('C1', C1_SATELLITE),
+                'C2':       entry.get('C2', C2_SATELLITE),
+                'Cn':       CN_ORBIT,
+            }
             count += 1
             logger.info(f'orbital_cache: restored "{name}" from cache (fetched {entry.get("fetched_at","?")})')
         except Exception as ex:
@@ -464,38 +517,20 @@ def restore_catalog_items_from_orbital_cache() -> list[dict]:
  
  
 
-async def refresh_orbital_cache_from_internet(orbital_data: dict,
-                                      create_tle_fn,
-                                      create_xephem_fn,
-                                      logger_instance) -> None:
-    """
-    Called once at startup (after restore_orbitals_from_cache).
-    For each cached entry, attempts to re-fetch from the original source
-    to update the orbital elements. Failures are silently ignored so that
-    offline operation is unaffected.
- 
-    create_tle_fn    — orbitals.create_tle_orbital_celestrak(logger, norad_id)
-    create_xephem_fn — orbitals.create_xephem_orbital_jpl(logger, name)
-    """
+async def refresh_orbital_cache_from_internet(logger_instance) -> None:
+    """Calls _fetch_* directly using the original query in OtherIDs. Never calls create_* wrappers."""
     cache = load_cache()
-    for name, entry in cache.items():
-        source  = entry.get('source', '')
-        query   = entry.get('OtherIDs', '') or name   # original query stored in OtherIDs
- 
+    for main_id, entry in cache.items():
+        source = entry.get('source', '')
+        query  = entry.get('OtherIDs', '').strip() or main_id
         try:
             if source == 'celestrak':
-                # OtherIDs stores the original NORAD ID string (or name)
-                norad_candidate = entry.get('OtherIDs', '') or name
-                result_name, msg = await create_tle_fn(logger_instance, norad_candidate)
-                if result_name:
-                    logger_instance.info(f'orbital_cache refresh: updated "{name}" from Celestrak')
+                await _fetch_tle_from_celestrak(logger_instance, query)
             elif source == 'jpl':
-                result_name, msg = await create_xephem_fn(logger_instance, query)
-                if result_name:
-                    logger_instance.info(f'orbital_cache refresh: updated "{name}" from JPL')
+                await _fetch_xephem_from_jpl(logger_instance, query)
         except Exception as ex:
-            logger_instance.info(f'orbital_cache refresh: "{name}" offline or failed — {ex}')
- 
+            logger_instance.info(f'orbital_cache refresh: "{main_id}" offline or failed — {ex}')
+
 
 # ── Orbital Position Refresh Methods ─────────────────────────────────────────────────────────────
 
@@ -532,14 +567,30 @@ def update_orbital_positions(observer, scope_ra=0.0, scope_dec=0.0):
         entity["Alt_deg"] = rad2deg(orbital.alt)
         entity["Proximity"] = angular_separation(ra_hr, dec_deg, scope_ra, scope_dec)
 
+BUILTIN_ORBITAL_KEYS = {
+    "Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn",
+    "Uranus","Neptune","Pluto","Phobos","Deimos","Io","Europa",
+    "Ganymede","Callisto","Titan","Iapetus","Rhea","Dione",
+    "Tethys","Enceladus","Mimas","Hyperion"
+}
+
 def compose_orbital_positions_for_catalog():
     export_data = {}
     for key, entity in orbital_data.items():
-        export_data[key] = {
+        entry = {
             "RA_hr": entity.get("RA_hr"),           # BEWARE these are JNow Epoch, Most Pilot catalog are J2000
             "DEC_deg": entity.get("DEC_deg"),
             "Proximity": entity.get("Proximity"),
         }
+        if key not in BUILTIN_ORBITAL_KEYS:
+            entry["MainID"]   = entity.get("MainID", key)
+            entry["OtherIDs"] = entity.get("OtherIDs", "")
+            entry["C1"]       = entity.get("C1", C1_SATELLITE)
+            entry["C2"]       = entity.get("C2", C2_SATELLITE)
+            entry["Cn"]       = CN_ORBIT
+            entry["RA_hr"]    = entity.get("RA_hr")    # already set above, explicit for clarity
+            entry["DEC_deg"]  = entity.get("DEC_deg")
+        export_data[key] = entry
     return export_data
 
 # ── Standard Orbital Bodies included in Catalog ─────────────────────────────────────────────────────────────
