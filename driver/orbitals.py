@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 DRIVER_DIR = Path(__file__).resolve().parent
 DATA_DIR   = DRIVER_DIR.parent / 'data'
 CACHE_PATH = DATA_DIR / 'orbitals.json'
- 
+CATALOG_PATH = DATA_DIR / 'catalog.json'
+
 # Category constants (matches catalog.ts typeLookup)
 C1_SATELLITE = 6
 C1_COMET     = 7
@@ -31,6 +32,13 @@ C2_ASTEROID  = 40
  
 # Cn=84 = "Orbit" — the frontend getRaDec() branch for live orbital positions
 CN_ORBIT = 84
+
+# Defaults for catalog fields
+DEFAULTS = {
+    "MainID": "", "Name": "", "Notes": "", "Class": "", "OtherIDs": "",
+    "Rt": 5, "Sz": 8, "Vz": 7, "C1": 10, "C2": 41, "Cn": 85
+}
+
 
 # ── Helper Methods ─────────────────────────────────────────────────────────────
 
@@ -72,9 +80,9 @@ def _c1_c2_for_source(source: str, query: str = '') -> tuple[int, int]:
     return C1_ASTEROID, C2_ASTEROID
  
  
-def _ensure_data_dir():
+def ensure_data_dir_exists():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
- 
+
 
 def orb_result(logger, name, msg):
     logger.info(msg)
@@ -330,7 +338,7 @@ def load_cache() -> dict[str, dict]:
  
 def save_cache(cache: dict[str, dict]):
     """Persist the cache dict (keyed by MainID) to orbitals.json."""
-    _ensure_data_dir()
+    ensure_data_dir_exists()
     try:
         entries = list(cache.values())
         with open(CACHE_PATH, 'w', encoding='utf-8') as f:
@@ -554,17 +562,90 @@ orbital_data = {
 
 
 
-# ── Startup: restore cached orbitals ──────────────────────────────────────
-# This runs at module import time so orbital_data is populated before any
-# request handler touches it.  Failures are silently swallowed.
-try:
-    _restored = restore_orbital_bodies_from_orbital_cache(orbital_data)
-    if _restored:
-        import logging as _logging
-        _logging.getLogger(__name__).info(
-            f'orbital_cache: restored {_restored} cached orbital(s) from data/orbitals.json'
-        )
-except Exception as _ex:
-    import logging as _logging
-    _logging.getLogger(__name__).warning(f'orbital_cache: startup restore failed — {_ex}')
+
+# ── Custom Catalog Items (user defined + cached orbitals) ──────────────────────────────────────
+
+def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
+    """
+    Loads the custom catalog JSON file, stripping // comments, trailing commas,
+    and enforcing required schema + default values.
  
+    Also merges in any cached orbitals from data/orbitals.json so that
+    satellites, comets, and asteroids previously fetched online appear in the
+    catalog at dark sites without internet access.
+ 
+    Returns:
+        list of dicts (always)
+    """
+    if not os.path.exists(path):
+        user_items = []
+    else:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                raw = f.read()
+ 
+            # Remove comment lines --- Example matched: "// comment", "   // comment"
+            clean = re.sub(r'^\s*//.*$', '', raw, flags=re.MULTILINE)
+            # Remove trailing commas BEFORE } --- Example:  "Name": "Galaxy", }
+            clean = re.sub(r',\s*}', '}', clean)
+            # --- Remove trailing commas BEFORE ] --- Example:  }, ]
+            clean = re.sub(r',\s*]', ']', clean)
+ 
+            items = json.loads(clean)
+ 
+            # Ensure JSON is an array
+            if not isinstance(items, list):
+                raise ValueError("Catalog: Top-level catalog.json must be an array")
+ 
+            user_items = []
+            for obj in items:
+                if not isinstance(obj, dict):
+                    continue  # skip invalid items
+                cleaned = {}
+                # Ensure all required fields exist with correct types / defaults
+                for key, default in DEFAULTS.items():
+                    value = obj.get(key, default)
+                    if isinstance(default, int):
+                        try:
+                            value = int(value)
+                        except:
+                            value = default
+                    else:
+                        value = str(value) if value is not None else ""
+                    cleaned[key] = value
+ 
+                # Copy any extra fields (e.g., RA_hr, Dec_deg, etc.)
+                for key, value in obj.items():
+                    if key not in cleaned:
+                        cleaned[key] = value
+ 
+                # Clamp numeric ranges 
+                cleaned["Rt"] = max(0, min(5, cleaned["Rt"]))
+                cleaned["Sz"] = max(0, min(8, cleaned["Sz"]))
+                cleaned["Vz"] = max(0, min(7, cleaned["Vz"]))
+                cleaned["C1"] = max(0, min(10, cleaned["C1"]))
+                cleaned["C2"] = max(0, min(41, cleaned["C2"]))
+                cleaned["Cn"] = max(0, min(85, cleaned["Cn"]))
+                user_items.append(cleaned)
+ 
+        except Exception as e:
+            print(f"Catalog: Error loading custom catalog: {e}")
+            user_items = []
+ 
+    # ── Merge cached orbitals ─────────────────────────────────────────────
+    # load_cached_catalog_items() returns a list of dicts with standard
+    # catalog fields (MainID, Name, C1, C2, Cn=84, etc.).  We skip any
+    # entry whose MainID already appears in user_items (user catalog wins).
+    try:
+        existing_ids = {item.get('MainID') for item in user_items}
+        orbital_items = restore_catalog_items_from_orbital_cache()
+        for orb in orbital_items:
+            if orb.get('MainID') not in existing_ids:
+                user_items.append(orb)
+    except Exception as e:
+        print(f"Catalog: Error merging cached orbitals: {e}")
+ 
+    return user_items
+
+
+

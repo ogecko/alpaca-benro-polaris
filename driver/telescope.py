@@ -26,8 +26,8 @@ import math
 import json
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent
-from orbitals import update_orbital_positions, compose_orbital_positions_for_catalog
-from control import loadCustomCatalogDataFromFile
+from orbitals import update_orbital_positions, compose_orbital_positions_for_catalog, loadCustomCatalogDataFromFile
+
 
 logger: Logger = None
 polaris: Polaris = None
@@ -1771,6 +1771,13 @@ class action:
             resp.text = await PropertyResponse('Polaris:SetLBracket ok', req)  
             return
         
+        elif actionName == "Polaris:GetCatalog":
+            logger.info("Polaris:GetCatalog requested")
+            export_data = loadCustomCatalogDataFromFile()
+            resp.content_type = "application/json"
+            resp.text = json.dumps(export_data, indent=2)
+            return
+        
         elif actionName == "Polaris:GetOrbitals":
             logger.info("Polaris:GetOrbitals requested")
             update_orbital_positions(polaris._observer, polaris.rightascension, polaris.declination)
@@ -1787,13 +1794,6 @@ class action:
             resp.text = await PropertyResponse('Polaris:TrackOrbital ok', req)  
             return
 
-        elif actionName == "Polaris:GetCatalog":
-            logger.info("Polaris:GetCatalog requested")
-            export_data = loadCustomCatalogDataFromFile()
-            resp.content_type = "application/json"
-            resp.text = json.dumps(export_data, indent=2)
-            return
-        
         elif actionName == "Polaris:PanoGrid":
             # Apply changes to store in Config and make them live
             logger.info(f'Polaris:PanoGrid {parameters}')
