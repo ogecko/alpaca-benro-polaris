@@ -413,12 +413,8 @@ def store_orbital_body_to_cache(body, source: str, query: str = '', name_overrid
     try:
         writedb_str = body.writedb()
         c1, c2      = _c1_c2_for_source(source, query)
-        if source == 'celestrak':
-            main_id = name_override or body.name.strip()
-            name    = ''
-        else:
-            main_id = name_override or body.name.strip()
-            name    = ''
+        main_id = body.name.strip()
+        name    = name_override or body.name.strip()
  
         cache = load_cache()
         existing = cache.get(main_id, {})

@@ -88,6 +88,7 @@
                   <q-btn color="positive" rounded  icon="mdi-cookie" label="Search" class="position-right" @click="onClickSearchOrbital(8)"/>
               </q-item-section>
             </q-item>
+            <template v-if="cat.page === 1" >
               <q-item v-for="(link, index) in filteredLinks" :key="index" class="q-pt-lg q-pb-lg" >
                 <q-item-section avatar><q-icon :name="link.icon" /></q-item-section>
                 <q-item-section>
@@ -98,6 +99,7 @@
                     <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="link.href"  target="_blank" rel="noopener" />
                 </q-item-section>
               </q-item>
+            </template>
             <q-item v-if="isNoResults" class="q-pt-lg q-pb-lg">
               <q-item-section avatar><q-icon name="mdi-help" /></q-item-section>
               <q-item-section>
@@ -117,7 +119,7 @@
                   <span class="text-weight-bolder">{{dso.MainID}}</span>
                   <span v-if="dso.OtherIDs" class="text-grey-7"> &nbsp;&nbsp;|&nbsp;&nbsp; {{ dso.OtherIDs }}</span>
                 </q-item-label>
-                <q-item-label overline>{{ dso.Name }} </q-item-label>
+                <q-item-label overline v-if="dso.Name && dso.Name !== dso.MainID">{{ dso.Name }} </q-item-label>
                 <q-item-label caption class="text-grey-6"> 
                   {{dso.Subtype}} in {{ dso.Constellation }}. {{ dso.Notes }} 
                 </q-item-label>
