@@ -1,22 +1,38 @@
+
+import json
+import os
+import re
 import ephem
 import ssl
 import certifi
+import logging
+from pathlib import Path
+from datetime import datetime, timezone
 from shr import rad2deg, rad2hr
 from kinematics import angular_separation
 from config import Config
 import aiohttp
-import re
-from datetime import datetime
 
-def compose_orbital_export():
-    export_data = {}
-    for key, entity in orbital_data.items():
-        export_data[key] = {
-            "RA_hr": entity.get("RA_hr"),           # BEWARE these are JNow Epoch, Most Pilot catalog are J2000
-            "DEC_deg": entity.get("DEC_deg"),
-            "Proximity": entity.get("Proximity"),
-        }
-    return export_data
+logger = logging.getLogger(__name__)
+
+DRIVER_DIR = Path(__file__).resolve().parent
+DATA_DIR   = DRIVER_DIR.parent / 'data'
+CACHE_PATH = DATA_DIR / 'orbitals.json'
+ 
+# Category constants (matches catalog.ts typeLookup)
+C1_SATELLITE = 6
+C1_COMET     = 7
+C1_ASTEROID  = 8
+ 
+# C2 subtypes
+C2_SATELLITE = 36
+C2_COMET     = 39
+C2_ASTEROID  = 40
+ 
+# Cn=84 = "Orbit" — the frontend getRaDec() branch for live orbital positions
+CN_ORBIT = 84
+
+# ── Helper Methods ─────────────────────────────────────────────────────────────
 
 # Julian Date to Gregorian Date
 def jd_to_calendar(jd):
@@ -39,9 +55,34 @@ def jd_to_calendar(jd):
 
     return int(month), int(day), int(year)
 
+
+
+def _now_utc_iso() -> str:
+    return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+ 
+ 
+def _c1_c2_for_source(source: str, query: str = '') -> tuple[int, int]:
+    """Infer C1/C2 catalog type from fetch source."""
+    if source == 'celestrak':
+        return C1_SATELLITE, C2_SATELLITE
+    # JPL: distinguish comet vs asteroid by query prefix
+    q = query.strip().upper()
+    if q.startswith('C/') or q.startswith('P/') or q.startswith('D/'):
+        return C1_COMET, C2_COMET
+    return C1_ASTEROID, C2_ASTEROID
+ 
+ 
+def _ensure_data_dir():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+ 
+
 def orb_result(logger, name, msg):
     logger.info(msg)
     return name, msg
+
+
+
+# ── Orbital Parameter Web Query Methods ─────────────────────────────────────────────────────────────
 
 async def create_tle_orbital_celestrak(logger, norad_id):
     """
@@ -115,7 +156,15 @@ async def create_tle_orbital_celestrak(logger, norad_id):
         return orb_result(logger, None, f'Celestrak: Failed to create TLE body.')
 
     orbital_data[name] = { "body": body }
+
+    # ---------------- Persist to cache (best-effort)
+    try:
+        store_orbital_body_to_cache(body, source='celestrak', query=str(norad_id))
+    except Exception as ex:
+        logger.warning(f'Celestrak: Failed to cache orbital — {ex}')
+ 
     return orb_result(logger, name, f'Sucessfully retrieved orbital parameters for {name}.')
+
 
 
 
@@ -214,19 +263,28 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         M = extract("MA")
         n = extract("N")
         epoch_jd = extract("EPOCH")
-        # tp_jd = extract("TP")
+        qr = extract("QR")          # perihelion distance in AU
+        tp_jd = extract("TP")       # time of perihelion (Julian Date)
 
         month, day, year = jd_to_calendar(epoch_jd)
         epoch_date = f"{month:02d}/{day:02d}/{year}"
         D = 2000
+
+        # Construct xephem string
+        if e is not None and e >= 1.0:
+            # Hyperbolic/near-parabolic: use HyperbolicBody format
+            tp_month, tp_day, tp_year = jd_to_calendar(tp_jd)
+            tp_date = f"{tp_month:02d}/{tp_day:02d}/{tp_year}"
+            db_string = f"{name},h,{tp_date},{qr},{i},{O},{o},{e},{D},0,0,0"
+        else:
+            # Elliptical: existing path
+            db_string = f"{name},e,{i},{O},{o},{a},{n},{e},{M},{epoch_date},{D},,,"
 
     except Exception as e:
         return orb_result(logger, None, f'JPL: Failed to parse orbital data.')
 
     # ---------------- Try and create the Orbital Body
     try:
-        # Construct xephem string
-        db_string = f"{name},e,{i},{O},{o},{a},{n},{e},{M},{epoch_date},{D},,,"
         body = ephem.readdb(db_string)
 
         if Config.log_orbital_queries:
@@ -236,13 +294,195 @@ async def create_xephem_orbital_jpl(logger, name_or_designation: str):
         return orb_result(logger, None, f'JPL: Failed to create orbital body.')
 
     orbital_data[name] = {"body": body}
+
+    # ---------------- Persist to cache (best-effort)
+    try:
+        store_orbital_body_to_cache(body, source='jpl', query=query)
+    except Exception as ex:
+        logger.warning(f'JPL: Failed to cache orbital — {ex}')
+
     return orb_result(logger, name, f'Sucessfully retrieved orbital parameters for {name}.')
 
 
 
+
+# ── Orbital Cache File Load/Save ─────────────────────────────────────────────────────────────
+ 
+def load_cache() -> dict[str, dict]:
+    """
+    Load orbitals.json from disk.
+    Returns a dict keyed by body name (same key used in orbital_data).
+    Returns {} if file missing or corrupt.
+    """
+    if not CACHE_PATH.exists():
+        return {}
+    try:
+        with open(CACHE_PATH, 'r', encoding='utf-8') as f:
+            entries = json.load(f)
+        if not isinstance(entries, list):
+            logger.warning('orbitals.json: expected a list, ignoring.')
+            return {}
+        return {e['MainID']: e for e in entries if isinstance(e, dict) and 'MainID' in e}
+    except Exception as ex:
+        logger.warning(f'orbitals.json: failed to load — {ex}')
+        return {}
+ 
+ 
+def save_cache(cache: dict[str, dict]):
+    """Persist the cache dict (keyed by MainID) to orbitals.json."""
+    _ensure_data_dir()
+    try:
+        entries = list(cache.values())
+        with open(CACHE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(entries, f, indent=2)
+    except Exception as ex:
+        logger.warning(f'orbitals.json: failed to save — {ex}')
+ 
+ 
+# ── Orbital store / restore / refresh cache ─────────────────────────────────────────────────────────────
+ 
+def store_orbital_body_to_cache(body, source: str, query: str = '', name_override: str = '') -> None:
+    """
+    Persist a freshly-fetched pyephem body to orbitals.json.
+ 
+    body         — the ephem body object (readtle or readdb result)
+    source       — 'celestrak' or 'jpl'
+    query        — the original user query string (used to infer C1/C2 for JPL)
+    name_override — optional friendly name; defaults to body.name
+    """
+    try:
+        writedb_str = body.writedb()
+        name        = name_override or body.name.strip()
+        c1, c2      = _c1_c2_for_source(source, query)
+ 
+        cache = load_cache()
+        existing = cache.get(name, {})
+ 
+        entry = {
+            'source':     source,
+            'writedb':    writedb_str,
+            'fetched_at': _now_utc_iso(),
+            # Catalog fields
+            'MainID':   name,
+            'Name':     existing.get('Name', name),
+            'Notes':    existing.get('Notes', f'Cached {source.upper()} orbital. Last fetched: {_now_utc_iso()}'),
+            'Class':    existing.get('Class', ''),
+            'OtherIDs': existing.get('OtherIDs', query if query != name else ''),
+            'Rt':       existing.get('Rt', 2),   # 'Typical'
+            'Sz':       existing.get('Sz', 8),   # 'Unknown'
+            'Vz':       existing.get('Vz', 7),   # 'Unknown'
+            'C1':       c1,
+            'C2':       c2,
+            'Cn':       CN_ORBIT,                # 84 = Orbit → live RA/Dec from orbs
+        }
+        # Update Notes to reflect latest fetch time
+        entry['Notes'] = f'Cached {source.upper()} orbital. Last fetched: {entry["fetched_at"]}'
+ 
+        cache[name] = entry
+        save_cache(cache)
+        logger.info(f'orbital_cache: saved "{name}" (source={source})')
+    except Exception as ex:
+        logger.warning(f'orbital_cache: failed to cache body — {ex}')
+ 
+ 
+
+ 
+def restore_orbital_bodies_from_orbital_cache() -> int:
+    """
+    Called at startup. Reads orbitals.json and, for each entry, reconstructs
+    the pyephem body via ephem.readdb() and inserts it into orbital_data.
+    Bodies already present in orbital_data (built-in planets etc.) are skipped.
+ 
+    Returns the number of bodies successfully restored.
+    """
+    cache = load_cache()
+    count = 0
+    for name, entry in cache.items():
+        if name in orbital_data:
+            logger.info(f'orbital_cache: "{name}" already in orbital_data, skipping restore.')
+            continue
+        writedb_str = entry.get('writedb', '')
+        if not writedb_str:
+            logger.warning(f'orbital_cache: "{name}" has no writedb string, skipping.')
+            continue
+        try:
+            body = ephem.readdb(writedb_str)
+            orbital_data[name] = {'body': body}
+            count += 1
+            logger.info(f'orbital_cache: restored "{name}" from cache (fetched {entry.get("fetched_at","?")})')
+        except Exception as ex:
+            logger.warning(f'orbital_cache: failed to restore "{name}" — {ex}')
+    return count
+ 
+
+ 
+def restore_catalog_items_from_orbital_cache() -> list[dict]:
+    """
+    Returns the catalog-compatible list of dicts from orbitals.json.
+    Each dict has the standard catalog fields (MainID, Name, C1, C2, Cn=84, …).
+    RA_hr / Dec_deg are intentionally omitted here — the frontend resolves them
+    live from the orbs export (Cn=84 branch in getRaDec).
+    """
+    cache = load_cache()
+    items = []
+    for entry in cache.values():
+        item = {
+            'MainID':   entry.get('MainID', ''),
+            'Name':     entry.get('Name', ''),
+            'Notes':    entry.get('Notes', ''),
+            'Class':    entry.get('Class', ''),
+            'OtherIDs': entry.get('OtherIDs', ''),
+            'Rt':       entry.get('Rt', 2),
+            'Sz':       entry.get('Sz', 8),
+            'Vz':       entry.get('Vz', 7),
+            'C1':       entry.get('C1', C1_SATELLITE),
+            'C2':       entry.get('C2', C2_SATELLITE),
+            'Cn':       CN_ORBIT,
+            # RA_hr / Dec_deg left absent; frontend uses orbs live data
+        }
+        items.append(item)
+    return items
+ 
+ 
+
+async def refresh_orbital_cache_from_internet(orbital_data: dict,
+                                      create_tle_fn,
+                                      create_xephem_fn,
+                                      logger_instance) -> None:
+    """
+    Called once at startup (after restore_orbitals_from_cache).
+    For each cached entry, attempts to re-fetch from the original source
+    to update the orbital elements. Failures are silently ignored so that
+    offline operation is unaffected.
+ 
+    create_tle_fn    — orbitals.create_tle_orbital_celestrak(logger, norad_id)
+    create_xephem_fn — orbitals.create_xephem_orbital_jpl(logger, name)
+    """
+    cache = load_cache()
+    for name, entry in cache.items():
+        source  = entry.get('source', '')
+        query   = entry.get('OtherIDs', '') or name   # original query stored in OtherIDs
+ 
+        try:
+            if source == 'celestrak':
+                # OtherIDs stores the original NORAD ID string (or name)
+                norad_candidate = entry.get('OtherIDs', '') or name
+                result_name, msg = await create_tle_fn(logger_instance, norad_candidate)
+                if result_name:
+                    logger_instance.info(f'orbital_cache refresh: updated "{name}" from Celestrak')
+            elif source == 'jpl':
+                result_name, msg = await create_xephem_fn(logger_instance, query)
+                if result_name:
+                    logger_instance.info(f'orbital_cache refresh: updated "{name}" from JPL')
+        except Exception as ex:
+            logger_instance.info(f'orbital_cache refresh: "{name}" offline or failed — {ex}')
+ 
+
+# ── Orbital Position Refresh Methods ─────────────────────────────────────────────────────────────
+
 def find_closest_orbital(observer, scope_ra, scope_dec):
-    # refresh orbital data with current observer and scope position
-    update_orbital_data(observer, scope_ra, scope_dec)
+    """ Refresh orbital data with current observer and scope position """
+    update_orbital_positions(observer, scope_ra, scope_dec)
     closest_entity = None
     min_proximity = float('inf')
     for key, entity in orbital_data.items():
@@ -256,9 +496,8 @@ def find_closest_orbital(observer, scope_ra, scope_dec):
     else:
         return None, None
 
-# This function update_orbital_data is only used for the Catalog. 
-# The currently tracked orbital is updated within the PID Control loop
-def update_orbital_data(observer, scope_ra=0.0, scope_dec=0.0):
+def update_orbital_positions(observer, scope_ra=0.0, scope_dec=0.0):
+    """ Updates Orbital entities RADec, AzAlt, Proximity properties. PID Control loop updates body """
     global orbital_data
 
     for key, entity in orbital_data.items():
@@ -274,6 +513,17 @@ def update_orbital_data(observer, scope_ra=0.0, scope_dec=0.0):
         entity["Alt_deg"] = rad2deg(orbital.alt)
         entity["Proximity"] = angular_separation(ra_hr, dec_deg, scope_ra, scope_dec)
 
+def compose_orbital_positions_for_catalog():
+    export_data = {}
+    for key, entity in orbital_data.items():
+        export_data[key] = {
+            "RA_hr": entity.get("RA_hr"),           # BEWARE these are JNow Epoch, Most Pilot catalog are J2000
+            "DEC_deg": entity.get("DEC_deg"),
+            "Proximity": entity.get("Proximity"),
+        }
+    return export_data
+
+# ── Standard Orbital Bodies included in Catalog ─────────────────────────────────────────────────────────────
 
 orbital_data = {
     "Sun": { "body": ephem.Sun() },
@@ -303,3 +553,18 @@ orbital_data = {
 }
 
 
+
+# ── Startup: restore cached orbitals ──────────────────────────────────────
+# This runs at module import time so orbital_data is populated before any
+# request handler touches it.  Failures are silently swallowed.
+try:
+    _restored = restore_orbital_bodies_from_orbital_cache(orbital_data)
+    if _restored:
+        import logging as _logging
+        _logging.getLogger(__name__).info(
+            f'orbital_cache: restored {_restored} cached orbital(s) from data/orbitals.json'
+        )
+except Exception as _ex:
+    import logging as _logging
+    _logging.getLogger(__name__).warning(f'orbital_cache: startup restore failed — {_ex}')
+ 

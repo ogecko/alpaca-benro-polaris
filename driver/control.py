@@ -13,7 +13,7 @@ import math
 import copy
 from shr import rad2deg, deg2rad, deg2dms, format_timestamp, ratio_string
 from threading import Lock
-from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl
+from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl, restore_catalog_items_from_orbital_cache
 from kinematics import wrap360, wrap180, calc_parallactic_angle, wrap_angle_residual, wrap_state_angles
 from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams, calc_equatorial_axes_B
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
@@ -39,73 +39,88 @@ DEFAULTS = {
     "Rt": 5, "Sz": 8, "Vz": 7, "C1": 10, "C2": 41, "Cn": 85
 }
 
+
 def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
     """
-    Loads the custom catalog JSON file, stripping // comments, trailing commas, and enforcing
-    required schema + default values.
-
+    Loads the custom catalog JSON file, stripping // comments, trailing commas,
+    and enforcing required schema + default values.
+ 
+    Also merges in any cached orbitals from data/orbitals.json so that
+    satellites, comets, and asteroids previously fetched online appear in the
+    catalog at dark sites without internet access.
+ 
     Returns:
         list of dicts (always)
     """
     if not os.path.exists(path):
-        return []
-
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            raw = f.read()
-
-        # Remove comment lines --- Example matched: "// comment", "   // comment"
-        clean = re.sub(r'^\s*//.*$', '', raw, flags=re.MULTILINE)
-        # Remove trailing commas BEFORE } --- Example:  "Name": "Galaxy", }
-        clean = re.sub(r',\s*}', '}', clean)
-        # --- Remove trailing commas BEFORE ] --- Example:  }, ]
-        clean = re.sub(r',\s*]', ']', clean)
-
-        items = json.loads(clean)
-
-        # Ensure JSON is an array
-        if not isinstance(items, list):
-            raise ValueError("Catalog: Top-level catalog.json must be an array")
-
-        output = []
-        for obj in items:
-            if not isinstance(obj, dict):
-                continue  # skip invalid items
-            cleaned = {}
-            # Ensure all required fields exist with correct types / defaults
-            for key, default in DEFAULTS.items():
-                value = obj.get(key, default)
-                if isinstance(default, int):
-                    try:
-                        value = int(value)
-                    except:
-                        value = default
-                else:
-                    value = str(value) if value is not None else ""
-                cleaned[key] = value
-
-            # Copy any extra fields (e.g., RA_hr, Dec_deg, etc.)
-            for key, value in obj.items():
-                if key not in cleaned:
+        user_items = []
+    else:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                raw = f.read()
+ 
+            # Remove comment lines --- Example matched: "// comment", "   // comment"
+            clean = re.sub(r'^\s*//.*$', '', raw, flags=re.MULTILINE)
+            # Remove trailing commas BEFORE } --- Example:  "Name": "Galaxy", }
+            clean = re.sub(r',\s*}', '}', clean)
+            # --- Remove trailing commas BEFORE ] --- Example:  }, ]
+            clean = re.sub(r',\s*]', ']', clean)
+ 
+            items = json.loads(clean)
+ 
+            # Ensure JSON is an array
+            if not isinstance(items, list):
+                raise ValueError("Catalog: Top-level catalog.json must be an array")
+ 
+            user_items = []
+            for obj in items:
+                if not isinstance(obj, dict):
+                    continue  # skip invalid items
+                cleaned = {}
+                # Ensure all required fields exist with correct types / defaults
+                for key, default in DEFAULTS.items():
+                    value = obj.get(key, default)
+                    if isinstance(default, int):
+                        try:
+                            value = int(value)
+                        except:
+                            value = default
+                    else:
+                        value = str(value) if value is not None else ""
                     cleaned[key] = value
-
-            # Clamp numeric ranges 
-            cleaned["Rt"] = max(0, min(5, cleaned["Rt"]))
-            cleaned["Sz"] = max(0, min(8, cleaned["Sz"]))
-            cleaned["Vz"] = max(0, min(7, cleaned["Vz"]))
-            cleaned["C1"] = max(0, min(10, cleaned["C1"]))
-            cleaned["C2"] = max(0, min(41, cleaned["C2"]))
-            cleaned["Cn"] = max(0, min(85, cleaned["Cn"]))
-            output.append(cleaned)
-
-        return output
-
+ 
+                # Copy any extra fields (e.g., RA_hr, Dec_deg, etc.)
+                for key, value in obj.items():
+                    if key not in cleaned:
+                        cleaned[key] = value
+ 
+                # Clamp numeric ranges 
+                cleaned["Rt"] = max(0, min(5, cleaned["Rt"]))
+                cleaned["Sz"] = max(0, min(8, cleaned["Sz"]))
+                cleaned["Vz"] = max(0, min(7, cleaned["Vz"]))
+                cleaned["C1"] = max(0, min(10, cleaned["C1"]))
+                cleaned["C2"] = max(0, min(41, cleaned["C2"]))
+                cleaned["Cn"] = max(0, min(85, cleaned["Cn"]))
+                user_items.append(cleaned)
+ 
+        except Exception as e:
+            print(f"Catalog: Error loading custom catalog: {e}")
+            user_items = []
+ 
+    # ── Merge cached orbitals ─────────────────────────────────────────────
+    # load_cached_catalog_items() returns a list of dicts with standard
+    # catalog fields (MainID, Name, C1, C2, Cn=84, etc.).  We skip any
+    # entry whose MainID already appears in user_items (user catalog wins).
+    try:
+        existing_ids = {item.get('MainID') for item in user_items}
+        orbital_items = restore_catalog_items_from_orbital_cache()
+        for orb in orbital_items:
+            if orb.get('MainID') not in existing_ids:
+                user_items.append(orb)
     except Exception as e:
-        print(f"Catalog: Error loading custom catalog: {e}")
-        return []
-
-
-
+        print(f"Catalog: Error merging cached orbitals: {e}")
+ 
+    return user_items
 
 
 

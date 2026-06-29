@@ -26,7 +26,7 @@ import math
 import json
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent
-from orbitals import update_orbital_data, compose_orbital_export
+from orbitals import update_orbital_positions, compose_orbital_positions_for_catalog
 from control import loadCustomCatalogDataFromFile
 
 logger: Logger = None
@@ -1773,8 +1773,8 @@ class action:
         
         elif actionName == "Polaris:GetOrbitals":
             logger.info("Polaris:GetOrbitals requested")
-            update_orbital_data(polaris._observer, polaris.rightascension, polaris.declination)
-            export_data = compose_orbital_export()
+            update_orbital_positions(polaris._observer, polaris.rightascension, polaris.declination)
+            export_data = compose_orbital_positions_for_catalog()
             resp.content_type = "application/json"
             resp.text = json.dumps(export_data, indent=2)
             return

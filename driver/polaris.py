@@ -48,6 +48,7 @@ from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, byte
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
 from ble_service import BLE_Controller
+from orbitals import restore_orbital_bodies_from_orbital_cache
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}
 
@@ -240,7 +241,7 @@ class Polaris:
         self._pid = PID_Controller(logger, self, loop=0.2)
         self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
         self._sm = SyncManager(logger, self)
-
+        restore_orbital_bodies_from_orbital_cache()
         
     async def shutdown(self):
         self.logger.info(f'==SHUTDOWN== Polaris stopping all tasks.')
