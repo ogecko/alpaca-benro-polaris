@@ -761,7 +761,7 @@ class Polaris:
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: QUERTY L Bracket status response: {cmd} {arg_dict}")
 
-        # return result of query L Bracket {} 
+        # return result of set L Bracket {} 
         elif cmd == "546":
             arg_dict = self.polaris_parse_args(args)
             # if Config.log_polaris_protocol:
