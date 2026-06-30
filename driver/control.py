@@ -1535,7 +1535,7 @@ class SyncManager:
         # Remove old nearby sync points
         new_pred_vec = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
         new_obs_vec  = azalt_to_vector(a_az, a_alt)
-        threshold_rad = math.radians(2.5)   # 2.5 degrees
+        threshold_rad = math.radians(1.5)   # 1.5 degrees
         for entry in self.sync_history:
             if entry.get("deleted", False):
                 continue
