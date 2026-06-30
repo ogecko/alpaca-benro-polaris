@@ -1110,6 +1110,7 @@ class Polaris:
 
     async def send_cmd_546_set_L_bracket(self, L_bracket:bool=True):
         state = 1 if L_bracket else 0
+        self._polaris_L_bracket = None  # pending until 545 confirms
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 546 Set L Bracket request {'ON' if L_bracket else 'OFF'}")
         msg = f"1&546&3&dir:{state}#"
