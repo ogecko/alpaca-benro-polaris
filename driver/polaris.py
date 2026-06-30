@@ -764,9 +764,8 @@ class Polaris:
         # return result of set L Bracket {} 
         elif cmd == "546":
             arg_dict = self.polaris_parse_args(args)
-            # if Config.log_polaris_protocol:
-            #     self.logger.info(f"<<- Polaris: SET L Bracket status response: {cmd} {arg_dict}")
-            self.logger.info(f"<<- Polaris: SET L Bracket status response: {cmd} {arg_dict}")
+            if Config.log_polaris_protocol:
+                self.logger.info(f"<<- Polaris: SET L Bracket status response: {cmd} {arg_dict}")
 
         # return result of FILE request {'type':1; 'class':0; 'path':'/app/sd/normal/SP_0052.jpg'; 'size':'916156'; 'cTime':'2023-10-24 22:33:12'; 'duration':'0'} 
         elif cmd == "771":
