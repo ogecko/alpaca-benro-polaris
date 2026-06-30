@@ -43,6 +43,7 @@
 - [X] Settings - Add ability to save pano presets
 - [X] MAC - Add autotune to Mechanical Alignment Correction
 - [X] Orbitals - Add ability to save orbital parameters for offline use
+- [X] Connection - why does L-Bracket get initialised incorrectly sometimes?
 - [ ] Close candidate enhancement list
     - [ ] Goto - Determine ideal settle time for Benro Polaris and v2.2
     - [ ] CCDCiel - Auto install Alpaca Driver scripts for CCDCiel
@@ -53,12 +54,10 @@
     - [ ] PEC - Can we identify Guiding Application Calibration pulses so PEC can ignore them?
     - [ ] Sync Guiding - Check whether immediate pulse guide return is cause of bad subexposure. ie detail till converged.
     - [ ] Connection - why does changing IP address allow connection to proceed?
-    - [ ] Connection - why does L-Bracket get initialised incorrectly sometimes?
 - [ ] Create youtube videos for v2.2 content
     - [ ] Create video on install and connect
         - Install
             - New requirements.txt and pip install
-            - Ok to copy pilot.settings.xml but new config.toml
             - Autostart doc
         - Connect
             - On connection, new banner - not completed initial single star alignment
@@ -66,6 +65,10 @@
             - Position Update late messages (reduced)
             - Driver control - Stop and Restart Driver, Restart multiple
             - Sync persistent
+            - Persist Locations
+            - Persist Orbitals - Orbitals fetched successfully are stored in the catalog, allowing offline use and later retrieval, refresh, or deletion. 
+            - Persist Panos
+            - L Bracket State?
             - HTTPS
     - [ ] Create video on dashboard and motion changes
         - Pointing and Motion Control
