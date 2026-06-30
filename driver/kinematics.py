@@ -1077,7 +1077,7 @@ def autotune_mac(sync_history: list[dict], base_params: MountModelParams) -> dic
     # ── Optimise ─────────────────────────────────────────────────────────
     #              m2_tilt_dm2_amp  (arcmin)    m2_tilt_dm2_zero (degrees)    m3_tilt_dm1 (arcmin)
     x0        = [ base_params.m2_tilt_dm2_amp, base_params.m2_tilt_dm2_zero, base_params.m3_tilt_dm1 ]
-    bounds    = [ (-300.0,  300.0),              (-90.0,  90.0),               (-360.0,  360.0) ]
+    bounds    = [ (-300.0,  300.0),              (-360.0,  360.0),               (-400.0,  400.0) ]
     ss_before = objective(x0)
     result    = minimize(objective, x0, method='Nelder-Mead', bounds=bounds,
                          options={'xatol': 0.01, 'fatol': 1e-6, 'maxiter': 2000})
