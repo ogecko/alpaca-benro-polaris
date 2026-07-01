@@ -24,7 +24,7 @@
 * **33 - PID Tuning:** Demonstration Video at https://youtu.be/6vJbSb0gl3M
 
 ## Win11 Upgrade Instructions
-* Upgrade Python to 3.13.12 by downloading Windows Installer (64 bit) for Python 3.13.12 and running the install program.
+* Upgrade Python to 3.13.14 by downloading Windows Installer (64 bit) for Python 3.13.14 and running the install program.
 * Upgrade pip using the command `python -m pip install --upgrade pip`
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
@@ -59,7 +59,7 @@
 ## New Features (enabled by Stellarium)
 
 ## Upgraded Win11 Requirements.txt Compatibility
-- **[Python 3.13.12]**: Upgraded Python support from 3.13.9.
+- **[Python 3.13.14]**: Upgraded Python support from 3.13.9.
 - **[Falcon 4.2.0]**: Upgraded Falcon support from 4.0.2.
 - **[Uvicorn 0.35.0]**: Upgraded Uvicorn support from 0.33.0.
 - **[Bleak 1.1.1]**: Upgraded Bleak support from 1.1.0.
@@ -170,7 +170,7 @@ Please let us know if you can try any of these features.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Known Issues
-- **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.12 instead.
+- **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.14 instead.
 
 ## Potential Future Enhancements
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
