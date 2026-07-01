@@ -19,7 +19,7 @@ Please refer to the separate [MAC installation guidelines](./installation_macos.
 
 #### Windows 11 Installation Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
-[![Install and Setup on Windows 11](https://img.youtube.com/vi/ipbWT54afhY/0.jpg)](https://www.youtube.com/watch?v=ipbWT54afhY)
+[![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
 
 #### To Install on Windows 11
 The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed before it can run.

@@ -11,6 +11,7 @@
 
 ## Demonstration Videos
 * **40 - Podcast Video:** Podcast Video at https://youtu.be/ouJ52WcTY2M
+* **41 - Installation Video:** Installation Video at https://youtu.be/qXRiTLS2EaY
 
 ## Win11 Upgrade Instructions
 * Upgrade Python to 3.13.14 by downloading Windows Installer (64 bit) for Python 3.13.14 and running the install program.
