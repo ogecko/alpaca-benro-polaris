@@ -32,9 +32,9 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
 
 3. Expand the zip file to a location of your choice. We reccommend `C:\Users\`Username`\Documents`. Using Windows Explorer, right-click on the folder you just expanded to, and select `Open in Terminal` to open a Command Window. If you cant see `Open in Terminal` try right clicking a second time. Enter the following: 
   
-    ```
-    C:\Users\Nina\Documents\alpaca-benro-polaris-main> pip install -r platforms/win/requirements.txt
-    ```
+      ```
+      pip install -r platforms/win/requirements.txt
+      ```
 
 4. (Optional) Create a Shortcut. You can copy the file `platforms\win\Alpaca Benro Polaris Driver.lnk` to your desktop and edit it so it points to the folder where you extracted the ZIP file.
 
