@@ -127,6 +127,7 @@
 - [X]     Confirmed any open GitHub issues are acceptable for release
 - [ ] Final Changes - git checkout dev2_2, git pull origin dev2_2
 - [ ]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
+- [ ]     Check download links in readme.md, release-notes-vX.X.X.md
 - [ ]     Build Pilot for release
 - [ ]     Confirm all Alpaca ConformU tests pass
 - [ ]     Confirm all Alpaca Driver unit tests pass
