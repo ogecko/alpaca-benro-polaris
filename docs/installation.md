@@ -24,7 +24,7 @@ You can view a demonstration of parts of this documentation in the following You
 #### To Install on Windows 11
 The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed before it can run.
 
-1. Download Windows Installer (64-bit) for Python 3.13.14 from the [Python website](https://www.python.org/downloads/release/python-31312/). Run the installation file downloaded. You must check the field `Add python.exe to PATH`, then click `Install Now`. 
+1. Download Windows Installer (64-bit) for Python 3.13.14 from the [Python website](https://www.python.org/downloads/release/python-31314/). Run the installation file downloaded. You must check the field `Add python.exe to PATH`, then click `Install Now`. 
    >Note: Python 3.14 is not supported as of February 2026, as pyephem has not yet been compiled for this release.
 
 
