@@ -68,9 +68,9 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
 
       * Click **New**
       * Set **Action** to **Start a program**
-      * In **Program/script**, enter the full path to `python.exe`
+      * In **Program/script**, enter `python.exe`
       * In **Add arguments (optional)**, enter the full path to the Alpaca Driver file `main.py`
-      * In **Start in (optional)**, enter the full path to the Alpaca Driver directory
+      * In **Start in (optional)**, enter the full path to the Alpaca Driver directory, without quotes.
       * Click **OK**
    6. On the **Conditions** tab:
 
@@ -82,6 +82,10 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
    9. When prompted, enter your Windows username and password.
    10. To test the setup, right-click the newly created task and select **Run**.
 
+      > NOTE: If the driver does not start, try these steps:
+      >   - In Task Scheduler, click **Enable All Tasks History** in the right-hand Actions panel, re-run the task, then review its **History** tab for error codes.
+      >   - If the task fails, try replacing `python.exe` in the Program field with its full path. You can find this by opening a Command Prompt and running `where python`.
+      >   - Make sure the **Start In** field has no surrounding quotes, even if the path contains spaces.
 
 ### Running the Alpaca Driver
 
