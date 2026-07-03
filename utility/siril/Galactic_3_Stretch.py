@@ -55,6 +55,79 @@ import traceback
 from pathlib import Path
 
 
+
+# ---------------------------------------------------------------------------
+# CONFIGURATION
+# ---------------------------------------------------------------------------
+HMS_LOG_D     = 3.8    # VeraLux HyperMetric Stretch Log D
+SC_STAR_LOG_D = 10.5   # VeraLux StarComposer star intensity Log D
+
+# Optional processing steps -- set False to skip
+RUN_BGE     = True   # GraXpert background extraction before SPCC
+RUN_DENOISE = False   # GraXpert denoise after BGE
+# If RUN_STARNET = False, StarNet and StarComposer are both skipped.
+# VeraLux HyperMetric Stretch runs on the full image (stars included).
+RUN_STARNET = True   # StarNet star removal + VeraLux StarComposer
+
+# Set RUN_SPCC = True  to run SPCC automatically (default for LRGB and HSO).
+# Set RUN_SPCC = False to skip SPCC -- use this for SHO where you have
+# already run colour calibration manually (via VeraLux Alchemy + SPCC in
+# the GUI) before running this script. The manual workflow for SHO is:
+#   1. Galactic_2_Composite.py  -> produces composites/GLAT*_LRGB.fits
+#   2. Plate-solve with ASTAP
+#   3. Crop registration borders
+#   4. Run VeraLux Alchemy manually in Siril GUI
+#   5. Run SPCC manually in Siril GUI
+#   6. Save the result back to composites/GLAT*_LRGB.fits
+#   7. Run Galactic_3_Stretch.py with RUN_SPCC = False
+RUN_SPCC = True
+
+# BYPASS_VERALUX_HMS = True skips the VeraLux GUI entirely and uses a
+# headless Python equivalent of the HyperMetric Stretch algorithm.
+# This eliminates the Cairo/icc_remove crash that can occur when VeraLux
+# opens its dialog inside a scripted pipeline. The math is identical to
+# VeraLux HMS v1.5.x (IHS with vector colour preservation).
+# Parameters below map directly to the VeraLux GUI controls.
+BYPASS_VERALUX_HMS = False   # True = headless stretch, False = VeraLux GUI
+HMS_TARGET_BG  = 0.15        # Target background median (VeraLux "Target Bg")
+HMS_PROTECT_B  = 6.0         # Highlight protection (VeraLux "Protect b")
+HMS_COLOR_GRIP = 0.0         # 0.0=scientific vector preserve, 1.0=scalar stretch
+
+# Composite suffixes -- matches Galactic_2_Composite SUFFIX_BY_MODE
+COMPOSITE_SUFFIXES = ("_LRGB", "_HSO", "_SHO")
+
+# Processing suffixes (based on composite suffix, substituted at runtime)
+# These use _LRGB as the template -- replaced with actual suffix per panel
+SUFFIX_CC_LINEAR          = "_cc_linear"
+SUFFIX_STARLESS           = "_starless"
+SUFFIX_STARMASK           = "_starmask"
+SUFFIX_STARLESS_STRETCHED = "_starless_stretched"
+SUFFIX_RESULT             = "_stretched_result"
+
+STARNET_STARLESS_PREFIX = "starless_"
+STARNET_STARMASK_PREFIX = "starmask_"
+
+FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
+# ---------------------------------------------------------------------------
+
+
+def siril_log(siril, msg):
+    safe = msg.encode("ascii", errors="replace").decode("ascii")
+    if not safe.strip():
+        safe = " "
+    siril.log(safe)
+
+
+def cmd_safe(siril, *args):
+    try:
+        siril.cmd(*args)
+        return True
+    except Exception as exc:
+        siril_log(siril, "  [WARNING] Command failed: " + " ".join(str(a) for a in args))
+        siril_log(siril, "            " + str(exc))
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Headless VeraLux HyperMetric Stretch equivalent
 # ---------------------------------------------------------------------------
@@ -159,78 +232,7 @@ def hms_stretch(fits_path, out_path, log_d, target_bg, protect_b, color_grip):
 
     except Exception as exc:
         return False
-
-# ---------------------------------------------------------------------------
-# CONFIGURATION
-# ---------------------------------------------------------------------------
-HMS_LOG_D     = 3.8    # VeraLux HyperMetric Stretch Log D
-SC_STAR_LOG_D = 10.5   # VeraLux StarComposer star intensity Log D
-
-# Optional processing steps -- set False to skip
-RUN_BGE     = True   # GraXpert background extraction before SPCC
-RUN_DENOISE = True   # GraXpert denoise after BGE
-# If RUN_STARNET = False, StarNet and StarComposer are both skipped.
-# VeraLux HyperMetric Stretch runs on the full image (stars included).
-RUN_STARNET = True   # StarNet star removal + VeraLux StarComposer
-
-# Set RUN_SPCC = True  to run SPCC automatically (default for LRGB and HSO).
-# Set RUN_SPCC = False to skip SPCC -- use this for SHO where you have
-# already run colour calibration manually (via VeraLux Alchemy + SPCC in
-# the GUI) before running this script. The manual workflow for SHO is:
-#   1. Galactic_2_Composite.py  -> produces composites/GLAT*_LRGB.fits
-#   2. Plate-solve with ASTAP
-#   3. Crop registration borders
-#   4. Run VeraLux Alchemy manually in Siril GUI
-#   5. Run SPCC manually in Siril GUI
-#   6. Save the result back to composites/GLAT*_LRGB.fits
-#   7. Run Galactic_3_Stretch.py with RUN_SPCC = False
-RUN_SPCC = True
-
-# BYPASS_VERALUX_HMS = True skips the VeraLux GUI entirely and uses a
-# headless Python equivalent of the HyperMetric Stretch algorithm.
-# This eliminates the Cairo/icc_remove crash that can occur when VeraLux
-# opens its dialog inside a scripted pipeline. The math is identical to
-# VeraLux HMS v1.5.x (IHS with vector colour preservation).
-# Parameters below map directly to the VeraLux GUI controls.
-BYPASS_VERALUX_HMS = False   # True = headless stretch, False = VeraLux GUI
-HMS_TARGET_BG  = 0.15        # Target background median (VeraLux "Target Bg")
-HMS_PROTECT_B  = 6.0         # Highlight protection (VeraLux "Protect b")
-HMS_COLOR_GRIP = 0.0         # 0.0=scientific vector preserve, 1.0=scalar stretch
-
-# Composite suffixes -- matches Galactic_2_Composite SUFFIX_BY_MODE
-COMPOSITE_SUFFIXES = ("_LRGB", "_HSO", "_SHO")
-
-# Processing suffixes (based on composite suffix, substituted at runtime)
-# These use _LRGB as the template -- replaced with actual suffix per panel
-SUFFIX_CC_LINEAR          = "_cc_linear"
-SUFFIX_STARLESS           = "_starless"
-SUFFIX_STARMASK           = "_starmask"
-SUFFIX_STARLESS_STRETCHED = "_starless_stretched"
-SUFFIX_RESULT             = "_stretched_result"
-
-STARNET_STARLESS_PREFIX = "starless_"
-STARNET_STARMASK_PREFIX = "starmask_"
-
-FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
-# ---------------------------------------------------------------------------
-
-
-def siril_log(siril, msg):
-    safe = msg.encode("ascii", errors="replace").decode("ascii")
-    if not safe.strip():
-        safe = " "
-    siril.log(safe)
-
-
-def cmd_safe(siril, *args):
-    try:
-        siril.cmd(*args)
-        return True
-    except Exception as exc:
-        siril_log(siril, "  [WARNING] Command failed: " + " ".join(str(a) for a in args))
-        siril_log(siril, "            " + str(exc))
-        return False
-
+    
 
 def find_lrgb_panels(home_dir):
     """
