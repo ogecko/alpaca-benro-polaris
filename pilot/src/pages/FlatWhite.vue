@@ -15,12 +15,20 @@ import { useQuasar } from 'quasar'
 const $q = useQuasar()
 
 onMounted(async () => {
-  await $q.fullscreen.request()
+  try {
+    await $q.fullscreen.request()
+  } catch (err) {
+    console.error('Failed to enter fullscreen', err)
+  }
 })
 
-onBeforeUnmount(() => {
+onBeforeUnmount(async () => {
   if ($q.fullscreen.isActive) {
-    $q.fullscreen.exit()
+    try {
+        await $q.fullscreen.exit()
+    } catch (err) {
+        console.error('Failed to exit fullscreen', err)
+    }
   }
 })
 </script>
