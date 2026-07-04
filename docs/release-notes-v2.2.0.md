@@ -63,6 +63,7 @@
 ### Panorama Improvements
 - **[Pano Presets]**  Ability to configure, save and load Panoramas presets
 - **[Pano Recenter]** Add btn on the Dashboard to recenter the PanoGrid to match the mounts current orientation
+- **[Solve and Center]**  Allow Nina Scripting to "Solve and Sync" then use Device Action Polaris:PanoSlew {"panel": -1} to center on current panel
 - **[Pano Swap]**  Add btn to switch between Landscape and Portrait orientation (swapping hstep and vstep values)
 - **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
 - **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.

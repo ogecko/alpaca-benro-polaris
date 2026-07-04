@@ -2320,8 +2320,10 @@ class Polaris:
     def validate_target_panel(self, target):
         """Returns the target panel number, increments current panel number if no target"""
         total = self.get_number_of_panels()
-        if target is None:
+        if target is None:                              # next Panel
             target = getattr(Config, "panel", 0) + 1
+        elif target == -1:                           # current Panel
+            target = getattr(Config, "panel", 0) 
         return ((target - 1) % total) + 1
 
     async def slew_to_panel(self, target, isasync:bool=False) -> None:
