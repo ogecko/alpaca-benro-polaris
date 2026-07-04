@@ -338,9 +338,9 @@ const links3: CatalogLink[] = [
 const links4 = [
   { icon: 'mdi-format-vertical-align-top', text: 'Alignment', to: '/sync' },
   { icon: 'mdi-set-split', text: 'Calibration', to: '/speed' },
+  { icon: 'mdi-wall-sconce-flat-variant-outline', text: 'Flat White', to: '/flatwhite' },
   { icon: 'mdi-chart-line', text: 'KF Tuning', to: '/kalman' },
   { icon: 'mdi-chart-bell-curve-cumulative', text: 'PID Tuning', to: '/pidall' },
-  { icon: 'mdi-pulse', text: 'PWM Testing', to: '/pwm' },
   { icon: 'mdi-motion-outline', text: 'Kinematics', to: '/position' },
   { icon: 'mdi-database-clock-outline', text: 'Driver Log', to: '/log' },
 ]
