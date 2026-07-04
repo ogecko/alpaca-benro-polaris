@@ -53,6 +53,7 @@
 - **[Persist Co-ordinate Frame]** Dashboard co-ordinate frame is persisted across F5 refresh and page changes, while separate for each browser tab.
 - **[Persist Zoom Range]** Each radial dial on the Dashboard retains its zoom range when navigating between pages.
 - **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
+- **[Flat White]** Added support for capturing flat frames from a display screen via the new Flat White menu item.
 
 ### Auto-Guiding Improvements
 - **[Sync Guiding]** Drift correction made simple; no guide camera, no extra PHD2 software, just plate-solving.
