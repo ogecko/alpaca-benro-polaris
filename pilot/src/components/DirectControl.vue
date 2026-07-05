@@ -10,11 +10,8 @@
 
       <!-- Row 2 -->
       <q-btn outline size="xl" color="primary" icon="mdi-parking" @click="sendCommand('park')" />
-      <div class="btn-container"> 
       <MoveButton rounded size="xl" :opacity="0.8" icon="mdi-arrow-left-bold" color="positive" upcolor="primary" iupcolor="white" @push="e=>onMove({...e, axis:0, dir: -1})"/>
-        <div  class="text-caption text-grey-8 q-mt-xs">-ve Azimuth</div>
-      </div>
-        <div class="btn-container"> 
+      <div class="btn-container"> 
         <q-knob v-model="speed" :min="0" :inner-min="1" :inner-max="9" :max="10" size="80px" show-value color="positive" track-color="grey-7" /> 
         <div  class="text-caption text-positive q-mt-xs">Speed</div>
       </div>
@@ -22,7 +19,7 @@
 
 
       <!-- Row 3 -->
-      <q-btn outline size="xl" color="negative" icon="mdi-stop" @click="sendCommand('stop')" />
+      <q-btn outline size="xl" color="primary" icon="mdi-stop" @click="sendCommand('stop')" />
       <q-btn outline size="xl" color="secondary" icon="mdi-star-shooting-outline" @click="sendCommand('track')" />
       <MoveButton rounded size="xl" :opacity="0.8" icon="mdi-arrow-down-bold" color="positive" upcolor="primary" iupcolor="white" @push="e=>onMove({...e, axis:1, dir: -1})"/>
       <q-btn outline size="xl" color="primary" icon="mdi-format-vertical-align-center" @click="sendCommand('level')" />
@@ -32,7 +29,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import MoveButton from 'src/components//MoveButton.vue'
+import MoveButton from 'src/components/MoveButton.vue'
 
 const speed = ref(5)
 
