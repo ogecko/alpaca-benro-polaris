@@ -280,7 +280,7 @@
                 </q-item-section>
                 <q-item-section side>
                   <div class="row items-center q-gutter-sm">
-                    <q-toggle v-model="p.polarislbracket" label="L-Bracket" @update:modelValue="onLBracket"/>
+                    <q-toggle v-model="p.polarislbracket" label="L - Bracket" @update:modelValue="onLBracket"/>
                   </div>
                 </q-item-section>
               </q-item>
