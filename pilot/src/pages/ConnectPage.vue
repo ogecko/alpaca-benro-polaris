@@ -285,6 +285,24 @@
                 </q-item-section>
               </q-item>
 
+              <!-- Observing Site  -->
+              <q-item v-if="p.connected">
+                <q-item-section thumbnail>
+                  <q-icon :name="cfg.location ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="cfg.location ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Check Observing Site Location </q-item-label>
+                </q-item-section>
+                <q-item-section v-if="cfg.location_list" side>
+                  <q-select
+                    label="Location" dense filled :model-value="cfg.location" :options="locationOptions" 
+                    @update:model-value="onLocationSelect"  
+                  />
+                </q-item-section>
+                <q-item-section v-else side>
+                  <q-btn label="Settings" icon="mdi-crosshairs-gps"  class="fixedWidth" to="/config"/>
+                </q-item-section>
+              </q-item>
 
 
               <!-- Multi Point Align -->
@@ -356,6 +374,7 @@ const isCheckLBracket = computed(() => p.aligned && !p.iszetamoving)
 const astroCaption = computed(() => {
   return (isAstroMode.value) ? '' : 'Change Polaris Mode to Astro.'
 });
+const locationOptions = computed<string[]>(() => cfg.location_list ? cfg.location_list.split('|').filter(Boolean)  : [] )
 
 // ------------------- Lifecycle Events ---------------------
 
@@ -466,6 +485,14 @@ async function onLBracket(value: boolean) {
   await dev.setPolarisLBracket(value)
 }
 
+
+// User picked an existing entry from the dropdown → load it
+function onLocationSelect(name: string | null) {
+  if (!name) return
+  put({ preset_name: name, preset_action: 'load_loc', })
+}
+
+
 async function onMultiAlignment() {
   if (!isAstroMode.value) {
     $q.notify({
@@ -568,7 +595,7 @@ function onDefaultAltChange(v: string | number | boolean | null) {
 
 
 const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put for input text
-
+const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put for toggles
 </script>
 
 <style lang="scss">

@@ -47,6 +47,7 @@
 - **[Zenith/Horizon Crossing]** Handles the physical axis flip needed when pointing through zenith or to negative altitudes, equivalent to a meridian flip
 
 ### Dark Site Operations
+- **[Connect Checklist]** Add Checks for L-Bracket Orientation and Site Location to Connect page. 
 - **[Persist Locations]** Pilot Settings allows multiple Observing Site Locations to be saved, loaded and deleted for offline use.
 - **[Persist Orbitals]** Orbitals fetched successfully are stored in the catalog, allowing offline use and later retrieval, refresh, or deletion. 
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart, allowing imagaging sessions to continue, uninterupted.
@@ -74,7 +75,6 @@
 - **[Siril Scripts]**  Automate Siril image processing (calibrate, group, stack, composit and stretch) for multi Panel mono images in a Galactic Pano.
 
 ## Utilities and Visualisation
-- **[L-Bracket Toggle]** Moved L-Bracket Toggle to Connet page and removed Standard Control Features panel from Setup page.
 - **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.
 - **[FITS Extract]** Utility script to extract meta-data from plate-solved FITS images and calibrate Mechanical Correction Models (fits_extract.py)
 - **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
