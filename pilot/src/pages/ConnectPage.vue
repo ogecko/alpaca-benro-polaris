@@ -143,7 +143,7 @@
                       <q-badge>hw v{{ p.polarishwver }}</q-badge>
                       <q-badge>sw v{{ p.polarisswver }}</q-badge> 
                       <q-badge v-if="p.polarisastrover">astro v{{ p.polarisastrover }}</q-badge> 
-                      <q-badge v-else color="warning">astro module missing</q-badge> 
+                      <q-badge v-else color="warning">missing astro module</q-badge> 
                     </span>
                   </q-item-label>
                 </q-item-section>
