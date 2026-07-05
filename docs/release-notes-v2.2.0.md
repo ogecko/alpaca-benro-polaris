@@ -173,6 +173,7 @@
 * Stellarium Desktop v25.2 Qt6 Windows (requires ASCOM Platform 7)
 * Stellarium Desktop v24.3 Qt5 Windows (not Qt6 version)
 * Stellarium Desktop v24.2 Windows
+* Nina v3.2.0.9001, HocusFocus v4.0.0.1, LensAF v3.1.2.2, Scope Control  v2.0.2.1, Session Metadata 2.6.3.0
 * Nina v3.2.0.9001, HocusFocus v3.0.0.21, LensAF v2.1.0.3, Scope Control  v2.0.2.1
 * Nina v3.1.2.9001, HocusFocus v3.0.0.18, LensAF v2.1.0.2, Scope Control  v2.0.2.0
 * Nina v3.1.1.9001, HocusFocus v3.0.0.17
