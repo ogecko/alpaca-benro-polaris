@@ -445,7 +445,7 @@ async function onLBracket(value: boolean) {
 }
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 
-const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put for input text
+const putdb = debounce((payload) => cfg.configUpdate(payload), 1500) // slow put for input text
 const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put for toggles
 
 
