@@ -437,12 +437,12 @@ class Polaris:
                 break
             direction = +1
             # check axis 1 bounds and reverse direction if necc 
-            if axis==1 and self._theta_meas.any():
-                if self._theta_meas[1] > 60:
+            if axis==1 and self._theta_raw.any():
+                if self._theta_raw[1] > 60:
                     await motor.set_motor_speed(0, "RAW")
                     await asyncio.sleep(3)
                     direction = -1
-                if self._theta_meas[1] < 20:
+                if self._theta_raw[1] < 20:
                     await motor.set_motor_speed(0, "RAW")
                     await asyncio.sleep(3)
                     direction = +1
