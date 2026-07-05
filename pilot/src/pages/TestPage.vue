@@ -68,13 +68,15 @@
         </div>
       </div>
     </div>
-  </q-page>
+    <DirectControl \>
+</DirectControl>  </q-page>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted,ref } from 'vue'
 import ScaleDisplay from 'components/ScaleDisplay.vue'
 import SpinnerSpeed from 'components/SpinnerSpeed.vue'
+import DirectControl from 'src/components/DirectControl.vue'
 import type { DomainStyleType } from 'components/ScaleDisplay.vue'
 
 const pv = ref<number>(0)
