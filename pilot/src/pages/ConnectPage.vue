@@ -276,7 +276,7 @@
                   <q-icon :name="isCheckLBracket ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isCheckLBracket ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Check L-Bracket Camera Orientation</q-item-label>
+                  <q-item-label>Check Camera Orientation (Az: {{ p.azimuth.toFixed(0) }}, Alt: {{p.altitude.toFixed(0)}}, Roll: {{p.roll.toFixed(0)}})</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <div class="row items-center q-gutter-sm">
