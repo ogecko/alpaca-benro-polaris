@@ -288,7 +288,7 @@
               <!-- Observing Site  -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
-                  <q-icon :name="cfg.location ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="cfg.location ? 'green' : 'red'" />
+                  <q-icon :name="isLocationOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isLocationOk ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Check Observing Site Location </q-item-label>
@@ -374,6 +374,7 @@ const isCheckLBracket = computed(() => p.aligned && !p.iszetamoving)
 const astroCaption = computed(() => {
   return (isAstroMode.value) ? '' : 'Change Polaris Mode to Astro.'
 });
+const isLocationOk = computed(() => cfg.location)
 const locationOptions = computed<string[]>(() => cfg.location_list ? cfg.location_list.split('|').filter(Boolean)  : [] )
 
 // ------------------- Lifecycle Events ---------------------
