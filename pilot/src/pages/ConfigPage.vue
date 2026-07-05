@@ -212,7 +212,7 @@
           </q-card>
         </div>
         <!-- Standard Control Features -->
-        <div class="col-12 col-md-6 col-lg-4 flex">
+        <div v-if="false" class="col-12 col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md full-width">
             <div class="text-h6">Standard Control Features</div>
             <div class="row">

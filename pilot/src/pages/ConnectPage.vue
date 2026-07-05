@@ -270,6 +270,23 @@
                 </q-item-section>
               </q-item>
 
+              <!-- L-Bracket -->
+              <q-item v-if="p.connected">
+                <q-item-section thumbnail>
+                  <q-icon :name="isCheckLBracket ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isCheckLBracket ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Check L-Bracket Camera Orientation</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="row items-center q-gutter-sm">
+                    <q-toggle v-model="p.polarislbracket" label="L-Bracket" @update:modelValue="onLBracket"/>
+                  </div>
+                </q-item-section>
+              </q-item>
+
+
+
               <!-- Multi Point Align -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
@@ -335,6 +352,7 @@ const bleCaption = computed(() => {
          (isBLESelected.value) ? '' : 'Please select device.'
 });
 const isAstroMode = computed(() => p.polarismode==8);
+const isCheckLBracket = computed(() => p.aligned && !p.iszetamoving)
 const astroCaption = computed(() => {
   return (isAstroMode.value) ? '' : 'Change Polaris Mode to Astro.'
 });
@@ -342,7 +360,14 @@ const astroCaption = computed(() => {
 // ------------------- Lifecycle Events ---------------------
 
 onMounted(async () => {
+  const shouldFetch =
+    dev.restAPIConnected &&
+    dev.restAPIConnectedAt &&
+    cfg.fetchedAt < dev.restAPIConnectedAt
 
+  if (shouldFetch) {
+    await cfg.configFetch()
+  }
 })
 
 onUnmounted(() => {
@@ -433,6 +458,12 @@ async function onSingleAlignment(azstr:string = '180.0', altstr:string = '45.0')
   const alt = dms2deg(altstr, 'deg')
   console.log(`Set Alignment Alignment Az ${az}, Alt ${alt}`)
   await dev.setPolarisAlignment(az, alt)
+}
+
+
+async function onLBracket(value: boolean) {
+  console.log("L-Bracket set to ", value)
+  await dev.setPolarisLBracket(value)
 }
 
 async function onMultiAlignment() {

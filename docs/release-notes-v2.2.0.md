@@ -74,6 +74,7 @@
 - **[Siril Scripts]**  Automate Siril image processing (calibrate, group, stack, composit and stretch) for multi Panel mono images in a Galactic Pano.
 
 ## Utilities and Visualisation
+- **[L-Bracket Toggle]** Moved L-Bracket Toggle to Connet page and removed Standard Control Features panel from Setup page.
 - **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.
 - **[FITS Extract]** Utility script to extract meta-data from plate-solved FITS images and calibrate Mechanical Correction Models (fits_extract.py)
 - **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
