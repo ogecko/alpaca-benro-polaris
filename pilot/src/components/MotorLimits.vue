@@ -26,14 +26,14 @@
           <div class="relative-position" style="height:300px; width:300px">
             <q-img src="../assets/abp-v2-motor-limits-b.png" fit="scale-down" @contextmenu.prevent>
             </q-img>
-            <MoveButton activeColor="positive" label="M3+" :opacity="1.0" size="md" color="white" icon=""  dense @push="onM3Plus" class="absolute" style="top:2%; left:47%"/>
-            <MoveButton activeColor="positive" label="M3-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM3Minus" class="absolute" style="top:2%; left:77%"/>
+            <MoveButton activeColor="positive" label="M3+" :opacity="1.0" size="md" iupcolor="white" icon=""  dense @push="onM3Plus" class="absolute" style="top:2%; left:47%"/>
+            <MoveButton activeColor="positive" label="M3-" :opacity="1.0" size="md" iupcolor="white" icon=""  dense  @push="onM3Minus" class="absolute" style="top:2%; left:77%"/>
 
-            <MoveButton activeColor="positive" label="M2+" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM2Plus" class="absolute" style="top:43%; left:38%"/>
-            <MoveButton activeColor="positive" label="M2-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM2Minus" class="absolute" style="top:66%; left:25%"/>
+            <MoveButton activeColor="positive" label="M2+" :opacity="1.0" size="md" iupcolor="white" icon=""  dense  @push="onM2Plus" class="absolute" style="top:43%; left:38%"/>
+            <MoveButton activeColor="positive" label="M2-" :opacity="1.0" size="md" iupcolor="white" icon=""  dense  @push="onM2Minus" class="absolute" style="top:66%; left:25%"/>
 
-            <MoveButton activeColor="positive" label="M1+" :opacity="1.0" size="md" color="white" icon=""  dense   @push="onM1Plus" class="absolute" style="top:79%; left:11%"/>
-            <MoveButton activeColor="positive" label="M1-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM1Minus" class="absolute" style="top:91%; left:30%"/>
+            <MoveButton activeColor="positive" label="M1+" :opacity="1.0" size="md" iupcolor="white" icon=""  dense   @push="onM1Plus" class="absolute" style="top:79%; left:11%"/>
+            <MoveButton activeColor="positive" label="M1-" :opacity="1.0" size="md" iupcolor="white" icon=""  dense  @push="onM1Minus" class="absolute" style="top:91%; left:30%"/>
 
           </div>
         </div>
