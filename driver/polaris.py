@@ -143,6 +143,7 @@ class Polaris:
         self._rotate_complete_event = None          # asyncio Event to allow notification of rotate complete (only used with advanced control rotates)
         self._slew_complete_event = None            # asyncio Event to allow notification of slew complete (only used with advanced control rotates)
         self._ispulseguiding: bool = False          # True if a PulseGuide(GuideDirections, Int32) command is in progress, False otherwise
+        self._is_reset_axes: bool = False           # True if Reset All Axes has been called after connect
         #
         # Telescope device state variables
         #
@@ -1246,6 +1247,7 @@ class Polaris:
         # 519 type:3;code:519;val:state:1;yaw:-166.577;pitch:61.513;lat:-33.655254;track:0;speed:0;lng:151.12231;
         # 530
         self._connecting = False
+        self._is_reset_axes = False
 
         # Completed initialisation
         with self._lock:
@@ -1321,6 +1323,7 @@ class Polaris:
                 'slewing': self._slewing,
                 'gotoing': self._gotoing,
                 'rotating': self._rotating,
+                'isreset': self._is_reset_axes,
                 'iszetamoving': self._zeta_is_moving,
                 'ispulseguiding': self._ispulseguiding,
                 'paltitude': self._p_altitude,
@@ -2297,6 +2300,7 @@ class Polaris:
 
     async def resetAxes(self):
         # Benro Polaris Park (reset axes)
+        self._is_reset_axes = True
         await self.stop_all_axes()
         await self.stop_tracking()
         await asyncio.sleep(1)

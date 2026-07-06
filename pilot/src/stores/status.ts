@@ -51,6 +51,7 @@ export const useStatusStore = defineStore('status', {
         rotating: false,
         iszetamoving: false,
         ispulseguiding: false,
+        isreset: false,
         paltitude: 0,
         pazimuth: 0,
         proll: 0,

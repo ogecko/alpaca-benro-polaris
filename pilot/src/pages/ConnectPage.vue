@@ -199,10 +199,10 @@
                 </q-item-section>
               </q-item>
 
-              <!-- Park -->
+              <!-- Reset Axes -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
-                  <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
+                  <q-icon :name="p.isreset ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.isreset ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Reset all Polaris Axes</q-item-label>
