@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_0_Calibration.py
-# Version: 1.0.0
+# Version: 1.0.1
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
 # Description
@@ -109,7 +109,35 @@ def siril_log(siril, msg):
     siril.log(safe)
 
 
+def _quote_if_needed(arg):
+    """
+    Wrap an argument in double quotes if it contains whitespace, so Siril's
+    command-line parser treats it as a single token instead of splitting on
+    the internal space (e.g. Windows paths like 'D:\\...\\HIP 97434\\...').
+
+    IMPORTANT: Siril only recognises a quoted token when the double-quote is
+    the very FIRST character of that token. Quoting only the value portion
+    of a '-key=value' style option (e.g. -out="C:\\a b") does NOT work --
+    Siril still splits on the internal space and leaves a stray quote
+    character glued to the truncated path. The quote has to wrap the
+    ENTIRE token, prefix included (e.g. "-out=C:\\a b"), so it is the
+    leading character of the token Siril sees.
+
+    Arguments that are already quoted, or that contain no whitespace, are
+    returned unchanged.
+    """
+    txt = str(arg)
+    if " " not in txt and "\t" not in txt:
+        return txt
+    if txt.startswith('"') and txt.endswith('"'):
+        return txt
+    return '"' + txt + '"'
+
+
 def cmd_safe(siril, *args):
+    # Auto-quote any argument containing whitespace (e.g. Windows paths
+    # with spaces) so Siril's command parser treats it as one token.
+    args = tuple(_quote_if_needed(a) for a in args)
     try:
         siril.cmd(*args)
         return True
@@ -231,7 +259,7 @@ def rename_with_glat_glon(siril, process_dir):
     """
     Read each pp_light*.fits in process_dir and rename with GLAT/GLON prefix.
     GLON values are wrap-corrected so files sort monotonically across the
-    panorama (e.g. 351->351, 0->360, 8->368 when the gap is at ~180°).
+    panorama (e.g. 351->351, 0->360, 8->368 when the gap is at ~180 deg).
     Opens files read-only so Python doesn't hold a write lock during rename.
     Uses a retry loop for Windows file lock release timing after Siril closes.
     Returns (renamed_count, skipped_count, error_count).
@@ -477,7 +505,7 @@ def main():
 
     try:
         siril.connect()
-        siril_log(siril, "Galactic_0_Calibration v1.0.0 connected.")
+        siril_log(siril, "Galactic_0_Calibration v1.0.1 connected.")
     except Exception as exc:
         print("Galactic_0_Calibration: could not connect: " + str(exc))
         return
@@ -676,7 +704,7 @@ def main():
         # Always return to home directory on exit or interrupt
         try:
             home_dir = Path(siril.get_siril_wd())
-            siril.cmd("cd", str(home_dir))
+            siril.cmd("cd", _quote_if_needed(str(home_dir)))
         except Exception:
             pass
         siril.disconnect()

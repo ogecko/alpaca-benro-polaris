@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_1_Stack.py
-# Version: 1.1.0
+# Version: 1.1.1
 # Author:  Generated for alpaca-benro-polaris utility suite
 # Contact: https://github.com/scriptable
 #
@@ -79,11 +79,36 @@ def siril_log(siril, msg):
     siril.log(safe)
 
 
+def _quote_if_needed(arg):
+    """
+    Wrap an argument in double quotes if it contains whitespace, so Siril's
+    command-line parser (which splits tokens on unquoted whitespace) treats
+    it as a single token instead of truncating it. This is what causes
+    'cd' to fail on Windows paths like 'D:\\...\\HIP 97434\\...'.
+
+    Handles both bare paths ("cd", "C:\\a b") and key=value style options
+    ("-out=C:\\a b" -> '-out="C:\\a b"'). Arguments that are already quoted,
+    or that contain no whitespace, are returned unchanged.
+    """
+    txt = str(arg)
+    if " " not in txt and "\t" not in txt:
+        return txt
+    if txt.startswith('"') and txt.endswith('"'):
+        return txt
+    if "=" in txt:
+        key, _, value = txt.partition("=")
+        if value.startswith('"') and value.endswith('"'):
+            return txt
+        return key + '="' + value + '"'
+    return '"' + txt + '"'
+
+
 def cmd_safe(siril, *args):
     """
     Run a Siril command, returning True on success, False on failure.
     Errors are logged but never re-raised, so the loop continues.
     """
+    args = tuple(_quote_if_needed(a) for a in args)
     try:
         siril.cmd(*args)
         return True
@@ -419,7 +444,7 @@ def main():
 
     try:
         siril.connect()
-        siril_log(siril, "GalacticStack-AI v1.1.0 connected.")
+        siril_log(siril, "GalacticStack-AI v1.1.1 connected.")
     except Exception as exc:
         # connect() failed -- siril.log() won't work, so print only
         print("GalacticStack-AI: could not connect to Siril: " + str(exc))
@@ -511,7 +536,7 @@ def main():
         # Always return to home directory on exit or interrupt
         try:
             home_dir = Path(siril.get_siril_wd())
-            siril.cmd("cd", str(home_dir))
+            siril.cmd("cd", _quote_if_needed(str(home_dir)))
         except Exception:
             pass
         siril.disconnect()
