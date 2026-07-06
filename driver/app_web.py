@@ -9,7 +9,7 @@ import asyncio
 import aiohttp
 import uvicorn
 import socket
-from falcon import asgi, HTTP_200, HTTP_301
+from falcon import asgi, HTTP_200, HTTP_301, WebSocketDisconnected
 from config import Config
 from pathlib import Path
 from shr import LifecycleController, DeviceMetadata
@@ -349,6 +349,54 @@ class AlpacaProxyResource:
             resp.status = '502 Bad Gateway'
             resp.media = {'error': str(e)}
 
+class AlpacaSocketProxyResource:
+    """
+    Proxies a browser WebSocket (on the pilot's own origin) through to the
+    internal Alpaca Pilot socket server (app_socket.py), mirroring how
+    AlpacaProxyResource proxies REST calls. This means the frontend never
+    needs to know the real device hostname/IP for the socket connection —
+    same as REST.
+    """
+    def __init__(self, socket_base: str):
+        self.socket_base = socket_base  # e.g. 'ws://localhost:5556' or 'wss://localhost:5556'
+
+    async def on_websocket(self, req, ws):
+        await ws.accept()
+        connector = aiohttp.TCPConnector(ssl=False)  # internal hop, self-signed cert if wss
+        try:
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.ws_connect(f'{self.socket_base}/ws') as upstream:
+                    await self._relay(ws, upstream)
+        except Exception:
+            try:
+                await ws.close(code=1011)
+            except Exception:
+                pass
+
+    async def _relay(self, client_ws, upstream_ws):
+        async def client_to_upstream():
+            try:
+                while True:
+                    msg = await client_ws.receive_text()
+                    await upstream_ws.send_str(msg)
+            except (WebSocketDisconnected, ConnectionResetError):
+                pass
+
+        async def upstream_to_client():
+            async for msg in upstream_ws:
+                if msg.type == aiohttp.WSMsgType.TEXT:
+                    try:
+                        await client_ws.send_text(msg.data)
+                    except WebSocketDisconnected:
+                        break
+                elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.CLOSING, aiohttp.WSMsgType.ERROR):
+                    break
+
+        tasks = [asyncio.create_task(client_to_upstream()), asyncio.create_task(upstream_to_client())]
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        for t in pending:
+            t.cancel()
+
 # ── Version Watchdog Falcon Resource ─────────────────────────────────────────────────────────────
 
 class VersionResource:
@@ -424,7 +472,11 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     proxy = AlpacaProxyResource(f'{proto}://localhost:{Config.alpaca_restapi_port}')
     main_app.add_route('/proxy/{path:path}',   proxy)
     main_app.add_route('/proxy',               proxy)
-
+    # --- Forward /proxy/ws to the internal socket server (app_socket.py) -------------------------------------
+    socket_proto = 'wss' if Config.enable_https else 'ws'
+    socket_proxy = AlpacaSocketProxyResource(f'{socket_proto}://localhost:{Config.alpaca_socket_port}')
+    main_app.add_route('/proxy/ws', socket_proxy)
+    
     servers_to_run = []
 
     if tls_ok:

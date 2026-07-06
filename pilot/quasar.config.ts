@@ -86,9 +86,9 @@ export default defineConfig((/* ctx */) => {
       open: false, // opens browser window automatically
       proxy: {
         '/proxy': {
-          target: 'http://nina01:5555',  // Falcon REST API port
+          target: 'http://nina01:80',    // Let Falcon web server proxy it to REST API port
           changeOrigin: true,
-          rewrite: (path: string) => path.replace(/^\/proxy/, ''),
+          ws: true,                      // Let Falcon web server proxy ws to app_socket.py
         },
         '/version': {
           target: 'http://nina01:80',    // Falcon web server port

@@ -49,7 +49,7 @@ export const useStreamStore = defineStore('telemetry', () => {
   const socketHost = computed(() => dev.alpacaHost)
   const socketPort = computed(() => dev.socketAPIPort)
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const socketURL = computed(() => `${proto}//${socketHost.value}:${socketPort.value}/ws`)
+  const socketURL = computed(() => `${proto}//${window.location.host}/proxy/ws`)
   const socketConnected = computed(() => socketConnectionStatus.value === 'connected')
 
   // State
