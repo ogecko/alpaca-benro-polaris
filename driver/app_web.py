@@ -291,7 +291,11 @@ class HttpsRedirectResource:
     def __init__(self, https_port: int):
         self.https_port = https_port
 
-    async def on_get(self, req, resp, **kwargs):
+    async def on_get(self, req, resp, ws=None, **kwargs):
+        if ws is not None:
+            # WebSockets can't follow an HTTP redirect — refuse cleanly.
+            await ws.close(code=1002)
+            return
         host = req.host.split(':')[0]   # strip any existing port
         port_suffix = '' if self.https_port == 443 else f':{self.https_port}'
         resp.status  = HTTP_301
@@ -307,7 +311,11 @@ class HttpRedirectResource:
     def __init__(self, http_port: int):
         self.http_port = http_port
 
-    async def on_get(self, req, resp, **kwargs):
+    async def on_get(self, req, resp, ws=None, **kwargs):
+        if ws is not None:
+            # WebSockets can't follow an HTTP redirect — refuse cleanly.
+            await ws.close(code=1002)
+            return
         host = req.host.split(':')[0]
         port_suffix = '' if self.http_port == 80 else f':{self.http_port}'
         resp.status = HTTP_301
