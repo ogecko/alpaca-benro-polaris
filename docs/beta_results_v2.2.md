@@ -18,23 +18,6 @@
 | [Greg](#beta-tester-greg-stark)| [X] Platform | [ ] Results | [ ] Summary
 
 
-## Beta Tester: Vladimir 
-(Dis: vyskocil; GH: vyskocil; FB Vladimir Vyskocil)
-Notes: feedback on MacOS and Raspberry Pi 4
-
-### Platform & Environment
-* Applications: CCDCiel beta 0.9.92-3846, IndiStarter 2.4.2-220, Stellarium 25.2
-* Platform: MacOS Tahoe 26.1, Raspios Trixie (2025-10-01-raspios-trixie-arm64-full.img), Firefox v145
-* Hardware: MacBook Air M4 13" 32Go SSD 2To, Raspberry Pi 4 4Go VILROS 802.11n wifi dongle.
-* Optics: Cooled astro camera ZWO ASI533MC Pro, lens TTArtisan 500mm f/6.3 (Canon EF), Optolong L-Pro filter, 50/205 Deluxe - TS-Optics guidescope and ZWO ASI715MC camera.
-* Tripod: Manfrotto 190XPROB, precise hardware level
-
-### Test Areas
-
-### Results
-
-### Feedback Summary
-
 
 ## Beta Tester: Mark
 (Dis: Bakermanz; GH: bakermanz; FB: Real Bread Aotearoa)
@@ -56,7 +39,57 @@ Notes: connect ok, tracking pulsing, top 360
 * TP-link travel router (AC750 Wi-Fi TL-WR902AC) connected via ethernet - provides wifi to allow iPad Pro (M4) iPadOS 26.0.1 to control mini PC via ‘Windows App Mobile’ (version 11.2.1)
 ### Test Areas
 ### Results
+4 July 2026
+* On the Connect page, most items are ‘red’ until they have been selected. However, RESET has always had a green tick (even before it is selected). - JDM fixed in dev2_2
 ### Summary
+
+
+
+
+## Beta Tester: Vladimir 
+(Dis: vyskocil; GH: vyskocil; FB Vladimir Vyskocil)
+Notes: feedback on MacOS and Raspberry Pi 4
+### Platform & Environment
+* Applications: CCDCiel beta 0.9.92-3846, IndiStarter 2.4.2-220, Stellarium 25.2
+* Platform: MacOS Tahoe 26.1, Raspios Trixie (2025-10-01-raspios-trixie-arm64-full.img), Firefox v145
+* Hardware: MacBook Air M4 13" 32Go SSD 2To, Raspberry Pi 4 4Go VILROS 802.11n wifi dongle.
+* Optics: Cooled astro camera ZWO ASI533MC Pro, lens TTArtisan 500mm f/6.3 (Canon EF), Optolong L-Pro filter, 50/205 Deluxe - TS-Optics guidescope and ZWO ASI715MC camera.
+* Tripod: Manfrotto 190XPROB, precise hardware level
+### Test Areas
+### Results
+4 July 2028
+* Elevation offset - started Alpaca but I forgot to fully deploy the Polaris to be horizontal and did the usual setup. But now there is a 45 degrees offset in elevation - JDM This is likely MPA/Quest model causing an offset from the home position. In v2.2 MPA is persisted to allow restarts without re-aligning. To fix, typically just toggle to SPA and back to MPA
+* Latitude data entry - When a 0 is typed in lat/lon, it disappears when it’s the last digit - JDM I've increased the debounce to 1.5s to allow for trailing zero data entry on lat/lon. This is fixed in the latest dev2_2
+* No Astro Module - The blue tag was displaying astro v, maybe it should not be displayed at all - JDM Connect page highlights missing astro module. This is fixed in the latest dev2_2
+* M2 Speed Calibration - When trying to calibrate the motor M2 I an errorP - JDM roblem with legacy code not updated for new kinematics. This is fixed in the latest dev2_2
+* Reset Astro Axis - I don’t know how to reset the astro axe - JDM Home or Connect Page Reset should reset all axis to zero position.
+* SP / PV deviation - It is idle but the white and green arrow are not aligned - JDM When in idle, if the motors are moved the present value will deviate from the SP. pressing the vertical bar with arrows will realign the SP's.
+### Feedback Summary
+
+
+
+## Beta Tester: Greg Stark
+(Dis: gbstark; GH: starkgb, KS: Greg Stark)
+### Platform & Environment
+* Applications: Nina 3.2.0.9001, Stellarium 25.4.0, PHD2 2.6.14
+* Platform: Windows 11 Pro 25H2, Browser: Google Chrome Version 149.0.7827.115
+* Hardware: MeLe 4C (32 GB with 512 GB SSD), iPhone 13 mini iOS 26.5.
+* Optics: Sony a7R IV (Full Frame, IMX455?), various lens from 20mm f/1.8 to 150-500mm f/5-6.7, no filters, Guiding via QHY5III 678M w/QHY 30mm f/4.3 scope.  
+* Alt setup: Player-One Poseidon C (OSC APS-C, IMX571), Borg 90FL w/Starizona Apex ED reducer (325mm f/3.6), IDAS GNB (Ha+OIII), Askar C2 ColourMagic (SII+OIII), Guiding via QHY5III 678M and OAG
+### Test Areas
+* Indoor slew/movement tests via Alpaca Pilot
+### Results
+June 2026
+* Early dev2_2 build 19-Jun-26; at Az=0; changing Az around 360/0 can cause unecessary "unwind" operations. JDM - fixed in dev2_2
+* When switching between the Dashboard and Multi-Point Alignment windows in the Pilot App, the coordinates on the Dashboard keep switching back to alt/az (a bit of an annoyance). JDM - Fixed in dev2_2
+* On the Mac running dev2_2 with Stellarium 26.1, the RA/DEC/PA method to add SYNC points does't seem to work.  - JDM Unfortunately, Stellarium Desktop doesn't support the SynSCAN Sync command eg “S34AB,12CE”. Not sure why they don't, but Stellarium Mobile does.
+July 2026
+* I was trying to perform the motor speed calibration as shown in the video and it didnt work. JDM - Fixed in dev2_2
+### Feedback Summary
+
+
+
+
 
 ## Beta Tester: Paul
 (Dis: Paul C)
@@ -193,22 +226,6 @@ Notes: Last week RC1 tester.
 ### Feedback Summary
 
 
-
-
-## Beta Tester: Greg Stark
-(Dis: gbstark; GH: starkgb, KS: Greg Stark)
-### Platform & Environment
-* Applications: Nina 3.2.0.9001, Stellarium 25.4.0, PHD2 2.6.14
-* Platform: Windows 11 Pro 25H2, Browser: Google Chrome Version 149.0.7827.115
-* Hardware: MeLe 4C (32 GB with 512 GB SSD), iPhone 13 mini iOS 26.5.
-* Optics: Sony a7R IV (Full Frame, IMX455?), various lens from 20mm f/1.8 to 150-500mm f/5-6.7, no filters, Guiding via QHY5III 678M w/QHY 30mm f/4.3 scope.  
-* Alt setup: Player-One Poseidon C (OSC APS-C, IMX571), Borg 90FL w/Starizona Apex ED reducer (325mm f/3.6), IDAS GNB (Ha+OIII), Askar C2 ColourMagic (SII+OIII), Guiding via QHY5III 678M and OAG
-### Test Areas
-* Indoor slew/movement tests via Alpaca Pilot
-### Results
-* Early dev2_2 build 19-Jun-26; at Az=0; changing Az around 360/0 can cause unecessary "unwind" operations. JDM - fixed in dev2_2
-* When switching between the Dashboard and Multi-Point Alignment windows in the Pilot App, the coordinates on the Dashboard keep switching back to alt/az (a bit of an annoyance). JDM - Fixed in dev2_2
-### Feedback Summary
 
 
 
