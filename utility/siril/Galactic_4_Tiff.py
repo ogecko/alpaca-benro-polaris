@@ -35,6 +35,30 @@
 # FITS ROWORDER=BOTTOM-UP is always corrected to top-down raster order
 # regardless of PANO_MODE.
 #
+# Optional cross-panel colour steps
+# ----------------------------------
+# Both run here (rather than in Galactic_3_Stretch.py) specifically so
+# they can be tuned and re-run without re-running the stretch on every
+# panel -- they read from result_fits/ but never modify it; corrections
+# only ever land in the exported result_tiff/ files, so re-running this
+# script is always cheap and safe.
+#
+# RUN_REMOVE_GREEN_NOISE (optional, default False): runs Siril's rmgreen
+#   (SCNR) on each panel before export. Green is essentially never a real
+#   deep-sky colour outside a few emission nebulae, so residual green
+#   after stretching a wideband RGB image is almost always noise or a
+#   calibration artefact.
+#
+# RUN_HARMONIZE_PANELS (optional, default False): evens out panel-to-panel
+#   colour/brightness differences (e.g. one panel reading "too green" or
+#   "too dark" next to its neighbours) that Kolor Giga Panel's own
+#   blending can't fix, by nudging each panel's per-channel level to match
+#   the consensus across all panels. This is a mosaic-consistency
+#   correction, not a colour-accuracy one -- it deliberately trades
+#   absolute per-panel truth for a seamless-looking stitch. See
+#   HARMONIZE_MAX_GAIN to bound how aggressive the correction can get for
+#   any one panel.
+#
 # Usage
 # -----
 #   Make any final adjustments to result_fits/*.fits then run from Scripts menu.
@@ -56,7 +80,27 @@ PANO_MODE = "GALACTIC"   # "GALACTIC" | "RADEC" | "NONE"
 # Example: FORCE_VFLIP = ["GLAT007N_GLON360_2_LRGB_stretched_result"]
 FORCE_VFLIP = []   # stems that need an extra vertical flip
 FORCE_HFLIP = []   # stems that need an extra horizontal flip
+
+# -- Optional green noise removal (Siril's rmgreen/SCNR) --
+RUN_REMOVE_GREEN_NOISE = True
+GREEN_NOISE_TYPE = 0        # 0=average neutral, 1=maximum neutral,
+                            # 2=maximum mask, 3=additive mask
+GREEN_NOISE_AMOUNT = 1.0    # only used for type 2/3, range 0-1
+GREEN_NOISE_PRESERVE_LIGHTNESS = True   # False passes -nopreserve to rmgreen
+
+# -- Optional cross-panel harmonization --
+RUN_HARMONIZE_PANELS = True
+HARMONIZE_STAT = "median"    # statistic used to characterise each panel's
+                              # overall level per channel ("median" is
+                              # robust to bright stars/small nebulae since
+                              # background pixels always dominate the count)
+HARMONIZE_MAX_GAIN = 1.5     # clamp on the per-channel correction factor,
+                              # so one very different panel (e.g. genuinely
+                              # dominated by bright nebulosity) can't get
+                              # pushed to an extreme correction -- gain is
+                              # clipped to [1/HARMONIZE_MAX_GAIN, HARMONIZE_MAX_GAIN]
 # ---------------------------------------------------------------------------
+
 
 
 def siril_log(siril, msg):
@@ -69,25 +113,77 @@ def siril_log(siril, msg):
 def _quote_if_needed(arg):
     """
     Wrap an argument in double quotes if it contains whitespace, so Siril's
-    command-line parser (which splits tokens on unquoted whitespace) treats
-    it as a single token instead of truncating it. This is what causes
-    'cd' to fail on Windows paths like 'D:\\...\\HIP 97434\\...'.
+    command-line parser treats it as a single token instead of splitting on
+    the internal space (e.g. Windows paths like 'D:\\...\\HIP 97434\\...').
 
-    Handles both bare paths ("cd", "C:\\a b") and key=value style options
-    ("-out=C:\\a b" -> '-out="C:\\a b"'). Arguments that are already quoted,
-    or that contain no whitespace, are returned unchanged.
+    IMPORTANT: Siril only recognises a quoted token when the double-quote is
+    the very FIRST character of that token. Quoting only the value portion
+    of a '-key=value' style option (e.g. -out="C:\\a b") does NOT work --
+    Siril still splits on the internal space and leaves a stray quote
+    character glued to the truncated path. The quote has to wrap the
+    ENTIRE token, prefix included (e.g. "-out=C:\\a b"), so it is the
+    leading character of the token Siril sees.
+
+    Arguments that are already quoted, or that contain no whitespace, are
+    returned unchanged.
     """
     txt = str(arg)
     if " " not in txt and "\t" not in txt:
         return txt
     if txt.startswith('"') and txt.endswith('"'):
         return txt
-    if "=" in txt:
-        key, _, value = txt.partition("=")
-        if value.startswith('"') and value.endswith('"'):
-            return txt
-        return key + '="' + value + '"'
     return '"' + txt + '"'
+
+
+def cmd_safe(siril, *args):
+    args = tuple(_quote_if_needed(a) for a in args)
+    try:
+        siril.cmd(*args)
+        return True
+    except Exception as exc:
+        siril_log(siril, "  [WARNING] Command failed: " + " ".join(str(a) for a in args))
+        siril_log(siril, "            " + str(exc))
+        return False
+
+
+def remove_green_noise(siril, src_path, dst_path):
+    """
+    Run Siril's rmgreen (SCNR) on src_path, saving the result to dst_path
+    -- src_path is never modified, so result_fits/ stays pristine and this
+    script can be re-run safely at any time.
+    """
+    if not cmd_safe(siril, "load", str(src_path)):
+        return False
+
+    rmgreen_args = ["rmgreen"]
+    if not GREEN_NOISE_PRESERVE_LIGHTNESS:
+        rmgreen_args.append("-nopreserve")
+    rmgreen_args.append(str(GREEN_NOISE_TYPE))
+    if GREEN_NOISE_TYPE in (2, 3):
+        rmgreen_args.append(str(GREEN_NOISE_AMOUNT))
+
+    if not cmd_safe(siril, *rmgreen_args):
+        return False
+    return cmd_safe(siril, "save", str(dst_path))
+
+
+def compute_channel_stat(data, stat=HARMONIZE_STAT):
+    """
+    Characterise a panel's overall per-channel level for harmonization.
+    "median" is robust to bright stars/small nebulae -- background pixels
+    always dominate the total count in these panels, so the median tracks
+    the background/overall level rather than getting pulled by a few
+    bright outliers.
+    """
+    import numpy as np
+    n_ch = data.shape[0]
+    stats = []
+    for c in range(n_ch):
+        if stat == "mean":
+            stats.append(float(np.mean(data[c])))
+        else:
+            stats.append(float(np.median(data[c])))
+    return stats
 
 
 def galactic_orientation(header):
@@ -252,10 +348,14 @@ def compute_flips(glon_vec, glat_vec, ref_glon_vec, ref_glat_vec):
 
 def fits_to_tiff(fits_path, tiff_path, siril,
                  pano_mode, ref_glon_vec=None, ref_glat_vec=None,
-                 target_det_sign=None):
+                 target_det_sign=None, channel_gain=None):
     """
     Read a FITS, normalise orientation, write 16-bit TIFF.
     Returns (glon_vec, glat_vec) for use as reference by subsequent panels.
+
+    channel_gain, if given, is a list of per-channel multipliers applied
+    right after reading the data (before flips/clipping) -- this is how
+    the optional cross-panel harmonization correction gets applied.
     """
     import numpy as np
     from astropy.io import fits as _afits
@@ -269,6 +369,10 @@ def fits_to_tiff(fits_path, tiff_path, siril,
     if mono:
         data = data[np.newaxis]
     n_ch, H, W = data.shape
+
+    if channel_gain is not None and len(channel_gain) == n_ch:
+        for c in range(n_ch):
+            data[c] = data[c] * channel_gain[c]
 
     roworder     = str(header.get('ROWORDER', 'BOTTOM-UP')).strip().upper()
     need_vflip   = False
@@ -368,7 +472,7 @@ def main():
     siril = s.SirilInterface()
     try:
         siril.connect()
-        siril_log(siril, "Galactic_4_Tiff v4.0.1 connected.")
+        siril_log(siril, "Galactic_4_Tiff v4.1.0 connected.")
     except Exception as exc:
         print("Galactic_4_Tiff: could not connect: " + str(exc))
         return
@@ -412,6 +516,103 @@ def main():
             return
 
         siril_log(siril, "Converting " + str(len(fits_files)) + " file(s)...")
+        siril_log(siril, "Note: result_fits/ is never modified -- green noise"
+                  + " removal and harmonization (if enabled) only affect"
+                  + " the exported result_tiff/ files, so re-running this"
+                  + " script is always safe.")
+
+        # ------------------------------------------------------------
+        # Pass 0 (optional): green noise removal. Runs on a copy of each
+        # panel in a working subdirectory -- result_fits/ originals are
+        # never touched. effective_path maps each original fits_path to
+        # the path fits_to_tiff should actually read from.
+        # ------------------------------------------------------------
+        effective_path = {p: p for p in fits_files}
+
+        if RUN_REMOVE_GREEN_NOISE:
+            siril_log(siril, " ")
+            siril_log(siril, "Pass 0: removing green noise (rmgreen, type="
+                      + str(GREEN_NOISE_TYPE) + ")...")
+            green_dir = home_dir / "process" / "_tiff_green_noise_removed"
+            green_dir.mkdir(parents=True, exist_ok=True)
+            for fits_path in fits_files:
+                dst = green_dir / fits_path.name
+                if remove_green_noise(siril, fits_path, dst):
+                    effective_path[fits_path] = dst
+                    siril_log(siril, "  OK: " + fits_path.name)
+                else:
+                    siril_log(siril, "  [WARNING] rmgreen failed for "
+                              + fits_path.name + " -- using original for this panel.")
+        else:
+            siril_log(siril, " ")
+            siril_log(siril, "Pass 0: green noise removal skipped (RUN_REMOVE_GREEN_NOISE = False).")
+
+        # ------------------------------------------------------------
+        # Pass 1 (optional): cross-panel harmonization. Computes each
+        # panel's per-channel level (post green-noise-removal, if that
+        # ran) and nudges every panel toward the consensus across all
+        # panels -- a mosaic-consistency correction, not a colour-
+        # accuracy one. channel_gain_map stays empty (no correction) if
+        # disabled.
+        # ------------------------------------------------------------
+        channel_gain_map = {}
+
+        if RUN_HARMONIZE_PANELS:
+            siril_log(siril, " ")
+            siril_log(siril, "Pass 1: computing cross-panel harmonization ("
+                      + HARMONIZE_STAT + ")...")
+            import numpy as np
+            from astropy.io import fits as _afits
+
+            panel_stats = {}
+            for fits_path in fits_files:
+                src = effective_path[fits_path]
+                try:
+                    with _afits.open(str(src)) as hdul:
+                        data = hdul[0].data.astype(np.float64)
+                    if data.ndim == 2:
+                        data = data[np.newaxis]
+                    panel_stats[fits_path] = compute_channel_stat(data)
+                except Exception as exc:
+                    siril_log(siril, "  [WARNING] Could not read " + fits_path.name
+                              + " for harmonization stats: " + str(exc))
+
+            n_channels_seen = set(len(v) for v in panel_stats.values())
+            if len(n_channels_seen) > 1:
+                siril_log(siril, "  [WARNING] Panels have mixed channel counts "
+                          + str(n_channels_seen) + " -- harmonization needs a"
+                          + " consistent channel count across panels. Skipping.")
+            elif panel_stats:
+                n_ch = next(iter(n_channels_seen))
+                reference = [
+                    float(np.median([panel_stats[p][c] for p in panel_stats]))
+                    for c in range(n_ch)
+                ]
+                siril_log(siril, "  Reference (consensus) level per channel: "
+                          + ", ".join("{:.5f}".format(r) for r in reference))
+
+                for fits_path, stats in panel_stats.items():
+                    gains = []
+                    for c in range(n_ch):
+                        if stats[c] > 1e-9:
+                            g = reference[c] / stats[c]
+                        else:
+                            g = 1.0
+                        g = min(max(g, 1.0 / HARMONIZE_MAX_GAIN), HARMONIZE_MAX_GAIN)
+                        gains.append(g)
+                    channel_gain_map[fits_path] = gains
+                    siril_log(siril, "  " + fits_path.stem[-44:] + "  gain="
+                              + ", ".join("{:.3f}".format(g) for g in gains))
+        else:
+            siril_log(siril, " ")
+            siril_log(siril, "Pass 1: harmonization skipped (RUN_HARMONIZE_PANELS = False).")
+
+        # ------------------------------------------------------------
+        # Main pass: orientation normalisation + TIFF export, reading
+        # from effective_path (post green-noise-removal if that ran)
+        # and applying any computed harmonization gain.
+        # ------------------------------------------------------------
+        siril_log(siril, " ")
 
         # For GALACTIC mode: first panel sets the reference orientation
         # For RADEC mode: target is always negative determinant
@@ -429,14 +630,15 @@ def main():
         siril_log(siril, " ")
 
         ok = fail = 0
-        hflipped = []
         for fits_path in fits_files:
             tiff_path = tiff_dir / (fits_path.stem + ".tif")
+            src = effective_path[fits_path]
+            gain = channel_gain_map.get(fits_path)
             try:
                 glon_vec, glat_vec = fits_to_tiff(
-                    fits_path, tiff_path, siril,
+                    src, tiff_path, siril,
                     PANO_MODE, ref_glon_vec, ref_glat_vec,
-                    target_det_sign)
+                    target_det_sign, channel_gain=gain)
 
                 # First valid panel sets the reference.
                 # If we vflipped it, invert dy components so subsequent
