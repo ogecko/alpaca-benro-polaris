@@ -55,37 +55,40 @@
     - [ ] Sync Guiding - Check whether immediate pulse guide return is cause of bad subexposure. ie detail till converged.
     - [ ] Connection - why does changing IP address allow connection to proceed?
 - [ ] Create youtube videos for v2.2 content
-    - [ ] Create video on install and connect
-        - Install
-            - New requirements.txt and pip install
-            - Autostart doc
-        - Connect
-            - On connection, new banner - not completed initial single star alignment
-            - Discovery - IPv6 support, ConformU support
-            - Position Update late messages (reduced)
-            - Driver control - Stop and Restart Driver, Restart multiple
-            - Sync persistent
-            - Persist Locations
-            - Persist Orbitals - Orbitals fetched successfully are stored in the catalog, allowing offline use and later retrieval, refresh, or deletion. 
-            - Persist Panos
-            - L Bracket State?
-            - HTTPS
+    - [X] Create video on install and connect
     - [ ] Create video on dashboard and motion changes
+        - Quality of Life Features
+            - Flat White - Added support for capturing flat frames from a display screen via the new Flat White menu item.
+            - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, Navigating Pano, PanoGrid Copy
+            - Connection Checklist - Add Checks for L-Bracket Orientation, Site Location and tracking of Reset All Axes to Connect page. 
+            - Presist dashboard settings - Ability to configure, save and load Panoramas presets
+            - Chart Axes and Deviation Charts - dd ΔTopographic and ΔMotor charts to PID Tuning page to remove underlying sidereal trends and show SP deviation only.
+        - Dark Site / offline features
+            - Saved Locations - saved locations can be recalled without internet
+            - Saved Orbitals - every successful search is saved to the catalog, can be recalled without internet. Can be searched. Will refresh when you goto if internet avail.  
+            - Saved Multi-Point Alignment - restart will reload all MPA sync points, so you can continue imaging without redoing MPA. If you move the tripod though you will need to re-align.
+            - Saved Panos - plan ahead of time, future walkhrough of Galactic Panos
+        - New co-ordinate system
+            - Az/Alt/Roll and RA/Dec/PA
+            - new Galactic Co-ordinates
+                - GLat how far above or below the MW plane, 0 is on the Milky way plane. +ve obove it, -ve below it.
+                - GLon where on the MW disc you are pointing, 0 is towards its center Sagg A
+                - GPA how it is rotated relative to the MW plane, A value of 0 means the Camera Frame Top points up to Galactic North (or perpendicular with the MW plane), +/-90 means its aligned with the MW plane
         - Pointing and Motion Control
+            - At Home - Telescope v4, async, 
             - Goto Completion - New Progress Indicator, logrithmic scale completes max axis deviation within Goto Tollerance Kc, Tracking Tollerance Kc/20 
             - Scale Warning Bars - Now change in real time to reflect Polaris Mechanical Limits, Roll = fn(Alt), Also added RA = fn(lat, LST); Dec = fn(lat), Notice Alt opened up 
-            - Negative Alt - Supports below horizon pointing, transitioning through horizon flip (eqiv of meridian flip for Equatorial)
+            - Reachable Targets - Resolve Target Orientation to a reachable orientation given Polaris Limits in Alt and Roll
+            - Zenith/Horizon Crossing - Supports below horizon pointing, transitioning through horizon flip (eqiv of meridian flip for Equatorial)
             - Gimbal Lock - Loss of degree of freedom as M1&M3 aligned, Enter Gimbal Lock when Alt < 1 deg, exit when Alt > 3 deg; Status icon, may not reach Low Rolls at Alt=0
-            - Motion Planning - Typically Shortest Path in SO3 space, Caters for Zenith Singularity, Rotate maintains direction 
             - Windup Prevention - Normally shortest path, unless it predicts it will exceed motor angle limit, then reroutes 360°. Not foolproof.
-            - Zenith Imaging - purposefully mount on a wedge
-            - At Home - Telescope v4, async, 
-    - [ ] Create video on Galactric Co-rdinates, Panoramas and scripting
+            - Motion Planning - Typically Shortest Path in SO3 space, Caters for Zenith Singularity, Rotate maintains direction 
+    - [ ] Create video on Galactric Pano, Panoramas and scripting
         - MPA
             - Demo Advanced Sequence for MPA following targets RA movement
         - Utilities
-            - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, Navigating Pano, PanoGrid Copy
             - Advanced Scheduler - Rename_dirs, RotateRelative, FindHome/Wait/Polaris:AbortSlew
+            - Siril Scripts
     - [ ] Create video on kinematics, tracking, guiding
         - Kinematics
             - Settings Page - enabling different correction features, show alongside kinematics page, toggling on/off
@@ -101,8 +104,8 @@
             - Sync Guiding - Plate-Solve/Sync using Nina in a 2-5min cycle, Before smart exposure - PID steadies while filter changing.
             - Sync Roll - How to copy Plate-Solve Roll and manual Roll Sync
             - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
+    - [ ] Create video on RaspberryPi installation
     - [ ] Create video on CCDCiel
-    - [ ] Create video on RaspberryPi creation
 
 ## Final Release Checklist
 - [ ] Complete todo checklist

@@ -362,8 +362,8 @@ const restAPIPort = computed({
 
 const isMultiPointAligned = computed(() => p.aligned_count>=3);
 const bleLen = computed(() => p.bledevices.length);
-const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
 const isPolarisConnected = computed(() => (!!p.connected));
+const isBLESelected = computed(() => (!!p.connected) || (!!p.bleselected && bleLen.value>0));
 const bleCaption = computed(() => {
   return (bleLen.value==0) ? 'Check Power or Bluetooth, no devices discovered.' :
          (bleLen.value>1) ? 'Multiple devices discovered.' :
