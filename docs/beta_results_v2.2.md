@@ -7,13 +7,13 @@
 | [Mark](#beta-tester-mark)| [X] Platform | [ ] Results | [ ] Summary
 | [Vladimir](#beta-tester-vladimir)| [X] Platform | [ ] Results | [ ] Summary
 | [Greg](#beta-tester-greg-stark)| [X] Platform | [ ] Results | [ ] Summary
+| [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
 | [Daniel](#beta-tester-daniel)| [ ] Platform | [ ] Results | [ ] Summary
 | [Alex](#beta-tester-alex)| [ ] Platform | [ ] Results | [ ] Summary
 | [William](#beta-tester-william)| [ ] Platform | [ ] Results | [ ] Summary
 | [Paul](#beta-tester-paul)| [ ] Platform | [ ] Results | [ ] Summary
 | [Steve](#beta-tester-steve)| [ ] Platform | [ ] Results | [ ] Summary
 | [Shiv](#beta-tester-shiv)| [ ] Platform | [ ] Results | [ ] Summary
-| [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
 | [Mauricio](#beta-tester-mauricio)| [ ] Platform | [ ] Results | [ ] Summary
 | [Greg](#beta-tester-greg-stark)| [X] Platform | [ ] Results | [ ] Summary
 
@@ -88,6 +88,22 @@ July 2026
 ### Feedback Summary
 
 
+## Beta Tester: John
+(FB: John Harrison; GH: 5x5Stuido)
+Notes: Ireland Week43, New 5nm filters.
+### Platform & Environment
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+
+### Test Areas
+...
+### Results
+8-Jul-2026 Even after setup the connect Polaris icon stays red instead of turning green. Reproduced several times tonight just going through the connection process - JDM fixed in dev2_2
+### Feedback Summary
+...
+
 
 
 
@@ -123,22 +139,6 @@ July 2026
 
 
 
-
-## Beta Tester: John
-(FB: John Harrison; GH: 5x5Stuido)
-Notes: Ireland Week43, New 5nm filters.
-### Platform & Environment
-* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
-* Platform: OS Version, Browser Version, etc.
-* Hardware: MiniPC model, Tablet model, Phone model.
-* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
-
-### Test Areas
-...
-### Results
-...
-### Feedback Summary
-...
 
 
 
