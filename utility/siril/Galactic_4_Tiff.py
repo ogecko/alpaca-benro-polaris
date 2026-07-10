@@ -1,106 +1,198 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Galactic_4_Tiff.py
-# Version: 4.0.1
+# Galactic_3_Stretch.py
+# Version: 2.0.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
 # Description
 # -----------
-# Converts every FITS file in result_fits/ to a 16-bit TIFF in result_tiff/.
-# Uses astropy + tifffile directly for explicit pixel control.
+# Processes plate-solved GLAT*_(LRGB|SHO|HSO).fits files from composites/
+# through: GraXpert background extraction -> SPCC colour calibration ->
+# a single calibrated stretch curve, replacing the earlier StarNet +
+# VeraLux HMS + StarComposer pipeline entirely.
 #
-# Orientation normalisation
-# -------------------------
-# PANO_MODE = "GALACTIC" (default):
-#   The camera may be in portrait or landscape orientation -- we cannot
-#   assume galactic longitude maps to pixel X or Y. Instead:
+# Why the architecture changed
+# -----------------------------
+# The previous version split each image into a starless layer (stretched
+# with an arcsinh/IHS curve) and a star mask (StarNet-extracted, stretched
+# and recombined separately). That split was the root cause of a long
+# chain of problems: StarNet extraction noise contaminating black-point
+# statistics, hard edges at star boundaries needing a blur fix, background
+# colour speckle in empty starfields, and none of it ever quite matching
+# the quality of doing the stretch directly.
 #
-#   Pass 1: Compute the galactic orientation for every panel:
-#     - glon_vec: 2D unit vector showing which pixel direction GLON increases
-#     - glat_vec: 2D unit vector showing which pixel direction GLAT increases
-#   Pass 2: Use the FIRST panel as the orientation reference. For each
-#     subsequent panel, compute whether its galactic axes are consistent
-#     with the reference. If GLON is flipped relative to reference, apply
-#     an hflip or vflip (whichever axis GLON runs along) to normalise it.
+# The current approach instead applies ONE curve directly to the whole
+# composited image, per channel -- exactly matching a manual workflow of
+# repeated Generalized Hyperbolic Stretch (GHS) passes in Siril, each
+# with the symmetry point set at the current histogram peak, plus an
+# occasional highlight-taming pass to keep the black point from drifting
+# too light. That curve was calibrated directly from a real
+# linear/stretched image pair (5 manual passes, SP at histogram peak,
+# modest stretch factor ~1.35, occasional darken-from-0.95 pass to hold
+# the peak near 0.12) and reproduces it with a mean pixel error of ~0.0006
+# (visually indistinguishable) when reapplied. The curve is expressed in
+# coordinates RELATIVE to each channel's own histogram peak, so a new
+# image's own peak/background level re-anchors the same curve shape --
+# this is what makes it generalise across panels with different exposure
+# or background levels, the same way manually re-picking the peak as SP
+# for a new image would.
 #
-#   This works correctly regardless of camera orientation (portrait/landscape)
-#   and for panoramas spanning any arc length including >180 degrees.
+# Steps (all 4 always logged; skipped steps say "skipped"):
 #
-# PANO_MODE = "RADEC":
-#   Uses RA/Dec CD matrix determinant sign. Suitable for small RA/Dec panos.
-#   Target: negative determinant (standard: East left, North up).
+#   [1/4]  GraXpert BGE          -- optional: RUN_BGE = True (default)
+#          Background extraction on the linear composite before SPCC.
 #
-# PANO_MODE = "NONE":
-#   No orientation normalisation. Use for AzAlt panos or when already consistent.
+#   [2/4]  GraXpert Denoise      -- optional: RUN_DENOISE = False (default)
+#          Denoising after BGE on gradient-free data.
 #
-# FITS ROWORDER=BOTTOM-UP is always corrected to top-down raster order
-# regardless of PANO_MODE.
+#   [3/4]  SPCC colour calibration -- optional: RUN_SPCC = True (default)
+#          Auto-detects wideband (LRGB) vs narrowband (SHO/HSO).
+#          Set False for SHO after running VeraLux Alchemy manually.
 #
-# Optional cross-panel colour steps
-# ----------------------------------
-# Both run here (rather than in Galactic_3_Stretch.py) specifically so
-# they can be tuned and re-run without re-running the stretch on every
-# panel -- they read from result_fits/ but never modify it; corrections
-# only ever land in the exported result_tiff/ files, so re-running this
-# script is always cheap and safe.
+#   [4/4]  Universal calibrated stretch, per channel, then save 32-bit
+#          FITS -> result_fits/GLAT*_stretched_result.fits
 #
-# RUN_REMOVE_GREEN_NOISE (optional, default False): runs Siril's rmgreen
-#   (SCNR) on each panel before export. Green is essentially never a real
-#   deep-sky colour outside a few emission nebulae, so residual green
-#   after stretching a wideband RGB image is almost always noise or a
-#   calibration artefact.
+# Prerequisites
+# -------------
+#   - Run Galactic_2_Composite.py first -> composites/GLAT*_(LRGB|SHO|HSO).fits
+#   - Plate-solve each composite with ASTAP
+#   - Crop registration border artifacts consistently across all panels
+#   - Siril 1.4.0 or later
 #
-# RUN_HARMONIZE_PANELS (optional, default False): evens out panel-to-panel
-#   colour/brightness differences (e.g. one panel reading "too green" or
-#   "too dark" next to its neighbours) that Kolor Giga Panel's own
-#   blending can't fix, by nudging each panel's per-channel level to match
-#   the consensus across all panels. This is a mosaic-consistency
-#   correction, not a colour-accuracy one -- it deliberately trades
-#   absolute per-panel truth for a seamless-looking stitch. See
-#   HARMONIZE_MAX_GAIN to bound how aggressive the correction can get for
-#   any one panel.
+# SHO workflow (VeraLux Alchemy + manual SPCC)
+# --------------------------------------------
+# For SHO, run Alchemy and SPCC manually in the GUI before this script,
+# then set RUN_SPCC = False in the config section below.
 #
-# Usage
-# -----
-#   Make any final adjustments to result_fits/*.fits then run from Scripts menu.
+# Skip logic
+# ----------
+# Panels where result_fits/GLAT*_stretched_result.fits already exists are
+# skipped. Delete that file to reprocess a panel.
 
 import sirilpy as s
 import traceback
 from pathlib import Path
 
-FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
 
 # ---------------------------------------------------------------------------
 # CONFIGURATION
 # ---------------------------------------------------------------------------
-PANO_MODE = "GALACTIC"   # "GALACTIC" | "RADEC" | "NONE"
 
-# Manual overrides for panels where VeraLux wrote incorrect metadata.
-# List FITS stems (without extension) that need a forced flip regardless
-# of what WCS or HISTORY says. Use when a panel stubbornly stitches wrong.
-# Example: FORCE_VFLIP = ["GLAT007N_GLON360_2_LRGB_stretched_result"]
-FORCE_VFLIP = []   # stems that need an extra vertical flip
-FORCE_HFLIP = []   # stems that need an extra horizontal flip
+# Optional processing steps -- set False to skip
+RUN_BGE     = True    # GraXpert background extraction before SPCC
+RUN_DENOISE = False   # GraXpert denoise after BGE
 
-# -- Optional green noise removal (Siril's rmgreen/SCNR) --
-RUN_REMOVE_GREEN_NOISE = True
-GREEN_NOISE_TYPE = 0        # 0=average neutral, 1=maximum neutral,
-                            # 2=maximum mask, 3=additive mask
-GREEN_NOISE_AMOUNT = 1.0    # only used for type 2/3, range 0-1
-GREEN_NOISE_PRESERVE_LIGHTNESS = True   # False passes -nopreserve to rmgreen
+# Set RUN_SPCC = True  to run SPCC automatically (default for LRGB and HSO).
+# Set RUN_SPCC = False to skip SPCC -- use this for SHO where you have
+# already run colour calibration manually (via VeraLux Alchemy + SPCC in
+# the GUI) before running this script. The manual workflow for SHO is:
+#   1. Galactic_2_Composite.py  -> produces composites/GLAT*_LRGB.fits
+#   2. Plate-solve with ASTAP
+#   3. Crop registration borders
+#   4. Run VeraLux Alchemy manually in Siril GUI
+#   5. Run SPCC manually in Siril GUI
+#   6. Save the result back to composites/GLAT*_LRGB.fits
+#   7. Run Galactic_3_Stretch.py with RUN_SPCC = False
+RUN_SPCC = True
 
-# -- Optional cross-panel harmonization --
-RUN_HARMONIZE_PANELS = True
-HARMONIZE_STAT = "median"    # statistic used to characterise each panel's
-                              # overall level per channel ("median" is
-                              # robust to bright stars/small nebulae since
-                              # background pixels always dominate the count)
-HARMONIZE_MAX_GAIN = 1.5     # clamp on the per-channel correction factor,
-                              # so one very different panel (e.g. genuinely
-                              # dominated by bright nebulosity) can't get
-                              # pushed to an extreme correction -- gain is
-                              # clipped to [1/HARMONIZE_MAX_GAIN, HARMONIZE_MAX_GAIN]
+# SPCC sensor and filter names -- these MUST match EXACTLY (including
+# case and spacing) the names shown in Siril's SPCC dialog combo boxes,
+# since Siril requires an exact string match. To find the exact names
+# for your gear, run these commands in Siril's own command line (not in
+# this script) and read the printed list:
+#   spcc_list monosensor      (or oscsensor for one-shot-colour cameras)
+#   spcc_list redfilter
+#   spcc_list greenfilter
+#   spcc_list bluefilter
+# Then copy the exact strings below. If a name has spaces (most do), keep
+# them here as plain strings -- this script's own quoting (_quote_if_needed)
+# already wraps whole arguments containing spaces correctly for Siril.
+#
+# Once set here, SPCC is told the sensor/filters explicitly on every run,
+# rather than depending on whatever was last selected in the GUI (which is
+# what was silently wrong before -- Siril remembers the last-used GUI
+# selection across sessions, so a wrong one-time selection quietly stays
+# wrong for every subsequent script run until corrected).
+SPCC_SENSOR_MODE = "mono"     # "mono" or "osc"
+
+# -- mono sensor + per-channel filters (used when SPCC_SENSOR_MODE="mono") --
+SPCC_MONO_SENSOR = "IMX585"        # exact name from `spcc_list monosensor`
+SPCC_RFILTER     = "Optolong R"    # exact name from `spcc_list redfilter`
+SPCC_GFILTER     = "Optolong G"    # exact name from `spcc_list greenfilter`
+SPCC_BFILTER     = "Optolong B"    # exact name from `spcc_list bluefilter`
+
+# -- OSC sensor (used when SPCC_SENSOR_MODE="osc") --
+SPCC_OSC_SENSOR = ""     # exact name from `spcc_list oscsensor`
+SPCC_OSC_FILTER = ""     # exact name from `spcc_list oscfilter` (optional)
+SPCC_OSC_LPF    = ""     # exact name from `spcc_list osclpf` (optional)
+
+# Optional: white reference (default "Average Spiral Galaxy" if left blank).
+# Exact name from `spcc_list whiteref`.
+SPCC_WHITEREF = ""
+
+# Optional background tolerance for SPCC's own automatic background
+# sampling (used internally for its background-neutralization step --
+# SPCC always tries to realign the background to neutral gray as part of
+# its calibration, using whatever pixels it decides count as "background").
+# If different panels show different colour casts (e.g. "too purple" vs
+# "too green" vs "too dark" on the same mosaic), a likely cause is this
+# automatic sample picking up different amounts of faint nebulosity/gradient
+# in some panels but not others, skewing their calibration slightly
+# differently. Tightening this (smaller values = more conservative, only
+# very dim/uniform pixels count as background) can make SPCC's background
+# selection -- and therefore the calibration -- more consistent panel to
+# panel. Format is "lower,upper" as Siril expects; leave blank to use
+# Siril's own default.
+SPCC_BGTOL = ""    # e.g. "0.01,0.1" -- tune to taste, blank = Siril default
+
+# GHS_PEAK_HIST_BINS controls the resolution of the histogram used to find
+# each channel's background peak (the reference point the calibrated
+# curve is anchored to, matching "pick the peak as the symmetry point").
+# Higher = more precise peak location but slightly slower; 3000 is a good
+# default for typical panel sizes.
+GHS_PEAK_HIST_BINS = 3000
+
+# Neutral-lock correction for the "shoulder" brightness zone
+# --------------------------------------------------------------
+# Discovered by direct comparison against a real linear/stretched pair:
+# a pixel with only ~9% relative difference between its raw R/G/B values
+# (essentially neutral, e.g. raw [0.0127, 0.0117, 0.0116]) can come out
+# of the stretch as [0.77, 0.72, 0.73] -- a much larger, visibly-coloured
+# gap. This isn't unique to this script's reconstruction; the SAME
+# divergence was confirmed present in the real manually-stretched
+# reference image too, to within 0.001. It happens because ANY strongly
+# compressive curve amplifies small relative input differences wherever
+# its slope is still steep -- true independent of whether channels are
+# stretched independently or via a shared luminance ratio (both were
+# tested; luminance-ratio was actually slightly worse for this case).
+#
+# The fix: detect pixels whose RAW channels are already close to each
+# other (likely genuinely neutral, or a calibration-noise-level
+# difference that shouldn't be dramatised) within a brightness "shoulder"
+# window -- background itself doesn't need this (already forced neutral
+# by the per-channel peak match) and clearly-coloured bright stars don't
+# need it either (their raw spread is well above the threshold, so they
+# pass through completely unaffected) -- and pull just that shoulder
+# region toward a shared neutral (luminance) output. Verified: this
+# reduces a 0.049 output spread down to 0.002 for the discovered example,
+# while genuinely coloured stars (raw spread > NEUTRAL_LOCK_SPREAD_HIGH)
+# were confirmed pixel-for-pixel UNCHANGED, and overall reconstruction
+# fidelity against the real reference only softened from 0.0006 to 0.0007
+# mean absolute error.
+NEUTRAL_LOCK_XREL_RISE = (1.2, 3.0)     # brightness window (in x_rel) where
+NEUTRAL_LOCK_XREL_FALL = (10.0, 40.0)   # the correction ramps on, then off
+NEUTRAL_LOCK_SPREAD_LOW  = 0.15   # raw relative spread below this -> treat
+                                  # as neutral, pull toward gray
+NEUTRAL_LOCK_SPREAD_HIGH = 0.40   # raw relative spread above this -> treat
+                                  # as genuinely coloured, leave untouched
+
+# Composite suffixes -- matches Galactic_2_Composite SUFFIX_BY_MODE
+COMPOSITE_SUFFIXES = ("_LRGB", "_HSO", "_SHO")
+
+SUFFIX_CC_LINEAR = "_cc_linear"    # post-BGE/SPCC linear result, kept for diagnosis
+SUFFIX_RESULT    = "_stretched_result"
+
+FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
 # ---------------------------------------------------------------------------
-
 
 
 def siril_log(siril, msg):
@@ -116,13 +208,12 @@ def _quote_if_needed(arg):
     command-line parser treats it as a single token instead of splitting on
     the internal space (e.g. Windows paths like 'D:\\...\\HIP 97434\\...').
 
-    IMPORTANT: Siril only recognises a quoted token when the double-quote is
-    the very FIRST character of that token. Quoting only the value portion
-    of a '-key=value' style option (e.g. -out="C:\\a b") does NOT work --
-    Siril still splits on the internal space and leaves a stray quote
-    character glued to the truncated path. The quote has to wrap the
-    ENTIRE token, prefix included (e.g. "-out=C:\\a b"), so it is the
-    leading character of the token Siril sees.
+    IMPORTANT: Siril only recognises a quoted token when the double-quote
+    is the very FIRST character of that token. Quoting only the value in a
+    '-key=value' style option (e.g. -out="C:\\a b") does NOT work -- Siril
+    still splits on the space and leaves a stray quote character glued to
+    the truncated path. The quote must wrap the ENTIRE token, prefix
+    included (e.g. "-out=C:\\a b"), so it is the leading character.
 
     Arguments that are already quoted, or that contain no whitespace, are
     returned unchanged.
@@ -146,528 +237,455 @@ def cmd_safe(siril, *args):
         return False
 
 
-def remove_green_noise(siril, src_path, dst_path):
+def _build_spcc_args(narrowband):
     """
-    Run Siril's rmgreen (SCNR) on src_path, saving the result to dst_path
-    -- src_path is never modified, so result_fits/ stays pristine and this
-    script can be re-run safely at any time.
+    Build the spcc command's argument list from the SPCC_* config, so the
+    sensor and filters are specified explicitly on every run instead of
+    depending on whatever was last selected in Siril's GUI (which is what
+    silently stays wrong indefinitely once set incorrectly once, since
+    Siril remembers the last GUI selection across sessions).
+
+    When narrowband=True, per-channel filter arguments are omitted (Siril
+    ignores them in that mode and synthesises NB filter curves instead),
+    but the sensor itself is still passed since its QE curve still matters.
     """
-    if not cmd_safe(siril, "load", str(src_path)):
-        return False
+    args = ["spcc"]
 
-    rmgreen_args = ["rmgreen"]
-    if not GREEN_NOISE_PRESERVE_LIGHTNESS:
-        rmgreen_args.append("-nopreserve")
-    rmgreen_args.append(str(GREEN_NOISE_TYPE))
-    if GREEN_NOISE_TYPE in (2, 3):
-        rmgreen_args.append(str(GREEN_NOISE_AMOUNT))
+    if SPCC_SENSOR_MODE == "osc":
+        if SPCC_OSC_SENSOR:
+            args.append("-oscsensor=" + SPCC_OSC_SENSOR)
+        if not narrowband:
+            if SPCC_OSC_FILTER:
+                args.append("-oscfilter=" + SPCC_OSC_FILTER)
+            if SPCC_OSC_LPF:
+                args.append("-osclpf=" + SPCC_OSC_LPF)
+    else:
+        if SPCC_MONO_SENSOR:
+            args.append("-monosensor=" + SPCC_MONO_SENSOR)
+        if not narrowband:
+            if SPCC_RFILTER:
+                args.append("-rfilter=" + SPCC_RFILTER)
+            if SPCC_GFILTER:
+                args.append("-gfilter=" + SPCC_GFILTER)
+            if SPCC_BFILTER:
+                args.append("-bfilter=" + SPCC_BFILTER)
 
-    if not cmd_safe(siril, *rmgreen_args):
-        return False
-    return cmd_safe(siril, "save", str(dst_path))
+    if narrowband:
+        args.append("-narrowband")
+    if SPCC_BGTOL:
+        args.append("-bgtol=" + SPCC_BGTOL)
+    if SPCC_WHITEREF:
+        args.append("-whiteref=" + SPCC_WHITEREF)
+
+    return args
 
 
-def compute_channel_stat(data, stat=HARMONIZE_STAT):
+# ---------------------------------------------------------------------------
+# Calibrated universal stretch curve
+#
+# Derived from a real linear/stretched image pair: 5 manual GHS passes in
+# Siril, symmetry point re-picked at the current histogram peak each time,
+# modest stretch factor (~1.35), with an occasional highlight-taming pass
+# (SP=0.95, darkening) to hold the peak near 0.12 when darks drifted too
+# light. Fitted via isotonic regression against >1M sampled pixel pairs
+# across all three channels (pooled, since per-channel curves in
+# peak-relative coordinates were found to be nearly identical), then
+# compressed to a 152-point monotonic lookup table.
+#
+# Reapplying this exact curve to the calibration image reproduces the
+# real stretched result with a mean absolute pixel error of ~0.0006
+# (visually indistinguishable) -- see chat history for the validation.
+#
+# The X axis is in units of "multiples of this channel's own histogram
+# peak" (x_rel = raw_value / channel_peak), NOT absolute pixel value --
+# this is what lets the same curve re-anchor itself to a different
+# panel's own background level, the same way manually re-picking the
+# peak as SP for a new image would.
+# ---------------------------------------------------------------------------
+GHS_LUT_X = [
+    0.000000, 0.438443, 0.438882, 0.457427, 0.476756, 0.496902, 0.517899, 0.539783,
+    0.562592, 0.586365, 0.611142, 0.636967, 0.663882, 0.691935, 0.721174, 0.751647,
+    0.783409, 0.816513, 0.851015, 0.886976, 0.924456, 0.963519, 1.004234, 1.046668,
+    1.090896, 1.136993, 1.185038, 1.235113, 1.287303, 1.341700, 1.398394, 1.457485,
+    1.519072, 1.583262, 1.650164, 1.719893, 1.792569, 1.868316, 1.947263, 2.029546,
+    2.115307, 2.204691, 2.297852, 2.394950, 2.496151, 2.601628, 2.711562, 2.826141,
+    2.945562, 3.070030, 3.199757, 3.334965, 3.475887, 3.622764, 3.775847, 3.935399,
+    4.101693, 4.275014, 4.455658, 4.643936, 4.840170, 5.044696, 5.257864, 5.480040,
+    5.711604, 5.952953, 6.204500, 6.466677, 6.739932, 7.024734, 7.321570, 7.630950,
+    7.953403, 8.289481, 8.639760, 9.004841, 9.385349, 9.781935, 10.195280, 10.626091,
+    11.075106, 11.543094, 12.030858, 12.539233, 13.069090, 13.621336, 14.196918, 14.796821,
+    15.422074, 16.073748, 16.752959, 17.460870, 18.198695, 18.967698, 19.769195, 20.604560,
+    21.475224, 22.382679, 23.328480, 24.314246, 25.341666, 26.412501, 27.528585, 28.691831,
+    29.904230, 31.167860, 32.484886, 33.857565, 35.288247, 36.779383, 38.333530, 39.953348,
+    41.641612, 43.401216, 45.235174, 47.146627, 49.138851, 51.215257, 53.379404, 55.634999,
+    57.985906, 60.436153, 62.989938, 65.651635, 68.425804, 71.317198, 74.330771, 77.471685,
+    80.745321, 84.157287, 87.713430, 91.419840, 95.282868, 99.309132, 103.505529, 107.879249,
+    112.437784, 117.188945, 122.140869, 127.302042, 132.681305, 138.287874, 144.131353, 150.221754,
+    156.569510, 163.185496, 170.081047, 177.267976, 184.758594, 192.565736, 200.702775, 209.183653,
+]
+
+GHS_LUT_Y = [
+    0.021085, 0.021085, 0.021085, 0.022625, 0.024230, 0.025903, 0.027647, 0.029464,
+    0.031490, 0.033998, 0.036612, 0.039544, 0.042915, 0.046549, 0.050820, 0.055732,
+    0.061356, 0.067945, 0.075713, 0.084852, 0.096098, 0.109762, 0.126173, 0.144791,
+    0.164095, 0.184553, 0.205883, 0.228519, 0.251737, 0.276194, 0.301052, 0.326789,
+    0.353455, 0.380427, 0.408145, 0.436215, 0.463415, 0.492013, 0.520048, 0.547807,
+    0.575255, 0.601258, 0.628249, 0.652718, 0.677440, 0.700858, 0.723021, 0.744979,
+    0.764922, 0.784545, 0.802317, 0.819118, 0.834518, 0.849977, 0.863847, 0.876504,
+    0.887987, 0.899057, 0.908749, 0.917462, 0.926331, 0.933246, 0.940185, 0.945945,
+    0.951323, 0.956033, 0.960405, 0.964235, 0.967801, 0.970968, 0.974017, 0.976649,
+    0.978988, 0.981059, 0.982907, 0.984550, 0.986112, 0.987525, 0.988769, 0.989938,
+    0.990967, 0.991849, 0.992730, 0.993452, 0.994125, 0.994727, 0.995303, 0.995794,
+    0.996230, 0.996599, 0.996944, 0.997258, 0.997554, 0.997807, 0.998023, 0.998237,
+    0.998422, 0.998585, 0.998732, 0.998866, 0.998978, 0.999094, 0.999188, 0.999273,
+    0.999352, 0.999420, 0.999488, 0.999544, 0.999590, 0.999638, 0.999677, 0.999716,
+    0.999746, 0.999778, 0.999803, 0.999827, 0.999848, 0.999867, 0.999884, 0.999899,
+    0.999912, 0.999924, 0.999933, 0.999943, 0.999951, 0.999959, 0.999965, 0.999970,
+    0.999975, 0.999979, 0.999983, 0.999986, 0.999988, 0.999991, 0.999992, 0.999994,
+    0.999995, 0.999996, 0.999997, 0.999998, 0.999999, 0.999999, 0.999999, 1.000000,
+    1.000000, 1.000000, 1.000000, 1.000000, 1.000000, 1.000000, 1.000000, 1.000000,
+]
+
+
+def _channel_histogram_peak(arr, n_bins=3000):
     """
-    Characterise a panel's overall per-channel level for harmonization.
-    "median" is robust to bright stars/small nebulae -- background pixels
-    always dominate the total count in these panels, so the median tracks
-    the background/overall level rather than getting pulled by a few
-    bright outliers.
+    Find the background level as the peak (mode) of a fine histogram --
+    "pick the peak histogram point" from the manual workflow this curve
+    was calibrated against. Ordinary composited LRGB data (unlike a
+    StarNet star mask) isn't hard-floored at zero, so a plain histogram
+    peak works directly here without needing the source-contamination
+    handling the star-mask code required in the previous version.
     """
     import numpy as np
-    n_ch = data.shape[0]
-    stats = []
-    for c in range(n_ch):
-        if stat == "mean":
-            stats.append(float(np.mean(data[c])))
-        else:
-            stats.append(float(np.median(data[c])))
-    return stats
+    a = arr.ravel()
+    a = a[np.isfinite(a)]
+    if a.size == 0:
+        return 1e-6
+    hi = float(np.percentile(a, 99.9))
+    if hi <= 0:
+        hi = max(float(a.max()), 1e-6)
+    hist, edges = np.histogram(a, bins=n_bins, range=(0.0, hi))
+    peak_idx = int(np.argmax(hist))
+    return max(0.5 * (edges[peak_idx] + edges[peak_idx + 1]), 1e-9)
 
 
-def galactic_orientation(header):
+def _smoothstep(t):
+    import numpy as np
+    t = np.clip(t, 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+
+def universal_ghs_stretch(fits_path, out_path, n_bins=GHS_PEAK_HIST_BINS):
     """
-    Compute 2D unit vectors for galactic longitude and latitude in pixel space.
+    Apply the calibrated universal stretch curve to a linear FITS image,
+    independently per channel, each anchored to that channel's own
+    histogram peak. See the GHS_LUT_X/GHS_LUT_Y module comment for how
+    this curve was derived and validated.
 
-    Returns (glon_vec, glat_vec) where each is (dx, dy) in pixel coordinates.
-    dx > 0 means the coordinate increases to the right.
-    dy > 0 means the coordinate increases downward (raster convention).
+    A neutral-lock correction (see the module comment above
+    NEUTRAL_LOCK_XREL_RISE) then pulls the "shoulder" brightness zone
+    back toward neutral for pixels whose RAW channels were already close
+    together, without affecting background (already neutral by
+    construction) or genuinely coloured bright stars (well above the raw
+    spread threshold, left untouched).
 
-    Returns (None, None) if WCS is missing or computation fails.
+    Returns (ok, peaks) -- peaks is a list of the per-channel background
+    levels found, useful for logging/diagnosing consistency across panels.
     """
     try:
         import numpy as np
-        from astropy.coordinates import SkyCoord
-        import astropy.units as u
+        from astropy.io import fits as _afits
 
-        ra0  = float(header['CRVAL1'])
-        dec0 = float(header['CRVAL2'])
+        with _afits.open(str(fits_path)) as hdul:
+            header = hdul[0].header.copy()
+            data = hdul[0].data.astype(np.float64)
 
-        # Image centre in galactic
-        c0 = SkyCoord(ra=ra0*u.deg, dec=dec0*u.deg, frame='icrs')
-        g0 = c0.galactic
-        l0 = g0.l.deg
-        b0 = g0.b.deg
+        mono = data.ndim == 2
+        if mono:
+            data = data[np.newaxis]
 
-        # Step in galactic longitude
-        cl = SkyCoord(l=(l0 + 1.0)*u.deg, b=b0*u.deg, frame='galactic').icrs
-        dra_l  = (cl.ra.deg - ra0) * np.cos(np.radians(dec0))
-        ddec_l = cl.dec.deg - dec0
+        max_val = data.max()
+        if max_val > 1.0:
+            data = data / max_val
 
-        # Step in galactic latitude
-        cb = SkyCoord(l=l0*u.deg, b=(b0 + 1.0)*u.deg, frame='galactic').icrs
-        dra_b  = (cb.ra.deg - ra0) * np.cos(np.radians(dec0))
-        ddec_b = cb.dec.deg - dec0
+        n_ch = data.shape[0]
+        peaks = []
+        x_rel = np.empty_like(data)
 
-        # Build CD matrix (pixel <- sky)
-        if 'CD1_1' in header:
-            cd11 = float(header['CD1_1']); cd12 = float(header['CD1_2'])
-            cd21 = float(header['CD2_1']); cd22 = float(header['CD2_2'])
-        elif 'CDELT1' in header or 'PC1_1' in header:
-            d1 = float(header.get('CDELT1', 1.0))
-            d2 = float(header.get('CDELT2', 1.0))
-            cd11 = d1 * float(header.get('PC1_1', 1.0))
-            cd12 = d1 * float(header.get('PC1_2', 0.0))
-            cd21 = d2 * float(header.get('PC2_1', 0.0))
-            cd22 = d2 * float(header.get('PC2_2', 1.0))
-        else:
-            return None, None
-
-        # Inverse CD: sky offset -> pixel offset
-        det = cd11 * cd22 - cd12 * cd21
-        if abs(det) < 1e-20:
-            return None, None
-
-        def sky_to_pix(dra, ddec):
-            dpx = ( cd22 * dra - cd12 * ddec) / det
-            dpy = (-cd21 * dra + cd11 * ddec) / det
-            mag = (dpx**2 + dpy**2) ** 0.5
-            return (dpx / mag, dpy / mag) if mag > 1e-12 else (0.0, 0.0)
-
-        glon_vec = sky_to_pix(dra_l, ddec_l)
-        glat_vec = sky_to_pix(dra_b, ddec_b)
-        return glon_vec, glat_vec
-
-    except Exception:
-        return None, None
-
-
-def count_mirror_ops(header):
-    """
-    Count net horizontal and vertical flip operations recorded in FITS HISTORY.
-
-    VeraLux uses inconsistent terminology across versions:
-      Vertical flip:   'TOP-DOWN mirror'  OR  'Mirror Y'
-      Horizontal flip: 'Mirror X'         OR  'Left-right mirror'
-
-    Returns (net_hflip, net_vflip) as booleans:
-      True  = odd number of that flip applied (net flip present)
-      False = even number (flips cancel out)
-    """
-    n_vflip = 0
-    n_hflip = 0
-    for card in header.cards:
-        if card.keyword != 'HISTORY':
-            continue
-        val = str(card.value).strip()
-        # Vertical flip variants
-        if 'TOP-DOWN' in val or 'Mirror Y' in val:
-            n_vflip += 1
-        # Horizontal flip variants
-        if 'Mirror X' in val or 'Left-right mirror' in val:
-            n_hflip += 1
-    return (n_hflip % 2 == 1), (n_vflip % 2 == 1)
-    """Compute WCS CD matrix determinant for RADEC mode."""
-    try:
-        if 'CD1_1' in header:
-            cd11 = float(header['CD1_1']); cd12 = float(header['CD1_2'])
-            cd21 = float(header['CD2_1']); cd22 = float(header['CD2_2'])
-        else:
-            d1 = float(header.get('CDELT1', 1.0))
-            d2 = float(header.get('CDELT2', 1.0))
-            cd11 = d1 * float(header.get('PC1_1', 1.0))
-            cd12 = d1 * float(header.get('PC1_2', 0.0))
-            cd21 = d2 * float(header.get('PC2_1', 0.0))
-            cd22 = d2 * float(header.get('PC2_2', 1.0))
-        return cd11 * cd22 - cd12 * cd21
-    except Exception:
-        return None
-
-
-def compute_flips(glon_vec, glat_vec, ref_glon_vec, ref_glat_vec):
-    """
-    Determine hflip/vflip needed to make this panel consistent with reference.
-
-    Strategy:
-    - Compute dot products of this panel's galactic vectors with the reference
-    - If dot(glon_vec, ref_glon_vec) < 0: GLON is reversed relative to reference
-    - If dot(glat_vec, ref_glat_vec) < 0: GLAT is reversed relative to reference
-    - Determine which flip (h or v) fixes each reversal based on which pixel
-      axis (X or Y) each galactic coordinate predominantly runs along
-    """
-    import numpy as np
-
-    gx, gy = glon_vec
-    bx, by = glat_vec
-    rx, ry = ref_glon_vec
-    rby_x, rby_y = ref_glat_vec
-
-    glon_dot = gx * rx + gy * ry    # > 0 if same direction as reference
-    glat_dot = bx * rby_x + by * rby_y
-
-    glon_flipped = glon_dot < 0
-    glat_flipped = glat_dot < 0
-
-    if not glon_flipped and not glat_flipped:
-        return False, False   # already consistent
-
-    # Determine which pixel axis GLON runs along (X or Y)
-    # |gx| vs |gy|: if |gx| > |gy| then GLON is more horizontal
-    glon_is_horizontal = abs(gx) >= abs(gy)
-
-    hflip = vflip = False
-
-    if glon_flipped:
-        if glon_is_horizontal:
-            hflip = True   # GLON runs along X -- hflip fixes it
-        else:
-            vflip = True   # GLON runs along Y -- vflip fixes it
-
-    if glat_flipped:
-        # After glon fix, check if glat is still wrong
-        # GLAT runs perpendicular to GLON
-        glat_is_horizontal = abs(bx) >= abs(by)
-        if glat_is_horizontal and not hflip:
-            hflip = True
-        elif not glat_is_horizontal and not vflip:
-            vflip = True
-
-    return hflip, vflip
-
-
-def fits_to_tiff(fits_path, tiff_path, siril,
-                 pano_mode, ref_glon_vec=None, ref_glat_vec=None,
-                 target_det_sign=None, channel_gain=None):
-    """
-    Read a FITS, normalise orientation, write 16-bit TIFF.
-    Returns (glon_vec, glat_vec) for use as reference by subsequent panels.
-
-    channel_gain, if given, is a list of per-channel multipliers applied
-    right after reading the data (before flips/clipping) -- this is how
-    the optional cross-panel harmonization correction gets applied.
-    """
-    import numpy as np
-    from astropy.io import fits as _afits
-    import tifffile
-
-    with _afits.open(str(fits_path)) as hdul:
-        header = hdul[0].header
-        data   = hdul[0].data.copy().astype(np.float64)
-
-    mono = data.ndim == 2
-    if mono:
-        data = data[np.newaxis]
-    n_ch, H, W = data.shape
-
-    if channel_gain is not None and len(channel_gain) == n_ch:
         for c in range(n_ch):
-            data[c] = data[c] * channel_gain[c]
+            peak = _channel_histogram_peak(data[c], n_bins=n_bins)
+            peaks.append(peak)
+            x_rel[c] = data[c] / peak
 
-    roworder     = str(header.get('ROWORDER', 'BOTTOM-UP')).strip().upper()
-    need_vflip   = False
-    need_hflip   = False
-    glon_vec     = glat_vec = None
-    hist_hflip   = hist_vflip = False
-    diag         = []   # collect diagnostic lines, print at end
+        out_indep = np.empty_like(data)
+        for c in range(n_ch):
+            out_indep[c] = np.interp(x_rel[c], GHS_LUT_X, GHS_LUT_Y,
+                                     left=GHS_LUT_Y[0], right=GHS_LUT_Y[-1])
 
-    if pano_mode == "GALACTIC":
-        glon_vec, glat_vec = galactic_orientation(header)
-        hist_hflip, hist_vflip = count_mirror_ops(header)
+        if n_ch >= 3:
+            x_rel_avg = x_rel.mean(axis=0)
+            L_out = np.interp(x_rel_avg, GHS_LUT_X, GHS_LUT_Y,
+                              left=GHS_LUT_Y[0], right=GHS_LUT_Y[-1])
 
-        if glon_vec is not None:
-            # Correct WCS vectors for net pixel flips VeraLux applied
-            gx, gy = glon_vec
-            bx, by = glat_vec
-            if hist_hflip:
-                gx, bx = -gx, -bx
-            if hist_vflip:
-                gy, by = -gy, -by
-            glon_vec = (gx, gy)
-            glat_vec = (bx, by)
+            raw_max = data.max(axis=0)
+            raw_min = data.min(axis=0)
+            raw_spread = (raw_max - raw_min) / np.maximum(raw_max, 1e-9)
 
-            if hist_hflip or hist_vflip:
-                diag.append("  hist_h=" + str(hist_hflip)
-                            + " hist_v=" + str(hist_vflip)
-                            + "  CORR glon=({:.3f},{:.3f})".format(*glon_vec)
-                            + " glat=({:.3f},{:.3f})".format(*glat_vec))
+            rise = _smoothstep(
+                (x_rel_avg - NEUTRAL_LOCK_XREL_RISE[0])
+                / (NEUTRAL_LOCK_XREL_RISE[1] - NEUTRAL_LOCK_XREL_RISE[0])
+            )
+            fall = 1.0 - _smoothstep(
+                (x_rel_avg - NEUTRAL_LOCK_XREL_FALL[0])
+                / (NEUTRAL_LOCK_XREL_FALL[1] - NEUTRAL_LOCK_XREL_FALL[0])
+            )
+            window = np.clip(rise * fall, 0.0, 1.0)
 
-            if ref_glon_vec is None:
-                # This is the reference panel
-                need_vflip = (glat_vec[1] > 0)
-                need_hflip = False
-                diag.append("  REFERENCE")
-            else:
-                # Compare to reference
-                glon_dot = glon_vec[0]*ref_glon_vec[0] + glon_vec[1]*ref_glon_vec[1]
-                glat_dot = glat_vec[0]*ref_glat_vec[0] + glat_vec[1]*ref_glat_vec[1]
-                diag.append("  DOT glon={:.3f} glat={:.3f}".format(glon_dot, glat_dot))
-                need_hflip, need_vflip = compute_flips(
-                    glon_vec, glat_vec, ref_glon_vec, ref_glat_vec)
+            color_confidence = _smoothstep(
+                (raw_spread - NEUTRAL_LOCK_SPREAD_LOW)
+                / (NEUTRAL_LOCK_SPREAD_HIGH - NEUTRAL_LOCK_SPREAD_LOW)
+            )
+            pull_to_gray = window * (1.0 - color_confidence)
+
+            out = out_indep * (1.0 - pull_to_gray) + L_out * pull_to_gray
         else:
-            # No WCS -- fall back to ROWORDER
-            need_vflip = (roworder == 'BOTTOM-UP')
-            diag.append("  No WCS -- ROWORDER=" + roworder)
+            out = out_indep
 
-    elif pano_mode == "RADEC":
-        det = cd_determinant(header)
-        if det is not None and target_det_sign is not None:
-            need_hflip = (1 if det >= 0 else -1) != target_det_sign
-        need_vflip = (roworder == 'BOTTOM-UP')
-        diag.append("  det={:.6f}".format(det) if det else "  no WCS")
+        out = np.clip(out, 0.0, 1.0)
+        if mono:
+            out = out[0]
 
+        out_hdu = _afits.PrimaryHDU(out.astype(np.float32), header=header)
+        out_hdu.writeto(str(out_path), overwrite=True)
+        return True, peaks
+
+    except Exception:
+        return False, None
+
+
+def scan_all_panels(home_dir):
+    """
+    Scan home_dir/composites/ for GLAT*_(LRGB|HSO|SHO).fits files and
+    report the status of EVERY one found -- "SKIP" if its result_fits/
+    output already exists, "QUEUED" if it still needs to be processed.
+
+    Returns a list of dicts: {prefix, composite_suffix, path, result_path,
+    status}, sorted by filename. This is the single source of truth for
+    what will run -- printed in full before any processing starts, so
+    it's never ambiguous why more (or fewer) panels ran than expected.
+    """
+    composites_dir = home_dir / "composites"
+    if not composites_dir.is_dir():
+        return []
+    entries = []
+    for p in sorted(composites_dir.iterdir()):
+        if not p.is_file():
+            continue
+        if p.suffix.lower() not in FITS_EXTENSIONS:
+            continue
+        if not p.stem.startswith("GLAT"):
+            continue
+        composite_suffix = None
+        for suf in COMPOSITE_SUFFIXES:
+            if p.stem.endswith(suf):
+                composite_suffix = suf
+                break
+        if composite_suffix is None:
+            continue
+        prefix = p.stem[: -len(composite_suffix)]
+        result_path = home_dir / "result_fits" / (prefix + composite_suffix + SUFFIX_RESULT + ".fits")
+        status = "SKIP" if result_path.exists() else "QUEUED"
+        entries.append({
+            "prefix": prefix,
+            "composite_suffix": composite_suffix,
+            "path": p,
+            "result_path": result_path,
+            "status": status,
+        })
+    return entries
+
+
+def process_panel(siril, prefix, composite_suffix, lrgb_path, home_dir):
+    """Run steps 1-4 for one plate-solved composite panel."""
+    siril_log(siril, " ")
+    siril_log(siril, "=" * 60)
+    siril_log(siril, "Panel: " + prefix + "  [" + composite_suffix.strip("_") + "]")
+    siril_log(siril, "Input: " + lrgb_path.name)
+    siril_log(siril, "=" * 60)
+
+    process_dir = home_dir / "process"
+    process_dir.mkdir(exist_ok=True)
+
+    result_fits_dir = home_dir / "result_fits"
+    result_tiff_dir = home_dir / "result_tiff"
+    result_fits_dir.mkdir(exist_ok=True)
+    result_tiff_dir.mkdir(exist_ok=True)
+
+    cs = composite_suffix
+    result_out = result_fits_dir / (prefix + cs + SUFFIX_RESULT + ".fits")
+    cc_linear_path = process_dir / (prefix + cs + SUFFIX_CC_LINEAR + ".fits")
+
+    cmd_safe(siril, "cd", str(home_dir))
+
+    # ------------------------------------------------------------------
+    # Steps 1-2: GraXpert BGE and Denoise (both optional via RUN_ flags)
+    # ------------------------------------------------------------------
+    if not cmd_safe(siril, "load", str(lrgb_path)):
+        siril_log(siril, "  [ERROR] Cannot load " + lrgb_path.name)
+        return False
+
+    if RUN_BGE:
+        siril_log(siril, "  [1/4] GraXpert background extraction (BGE)...")
+        bge_ok = cmd_safe(siril, "pyscript", "GraXpert-AI.py", "-bge")
+        if not bge_ok:
+            siril_log(siril, "  [WARNING] GraXpert BGE failed -- continuing.")
     else:
-        need_vflip = (roworder == 'BOTTOM-UP')
+        siril_log(siril, "  [1/4] BGE skipped (RUN_BGE = False).")
 
-    # Manual overrides (XOR toggle)
-    stem = fits_path.stem
-    if stem in FORCE_VFLIP:
-        need_vflip = not need_vflip
-        diag.append("  FORCE_VFLIP -> vflip=" + str(need_vflip))
-    if stem in FORCE_HFLIP:
-        need_hflip = not need_hflip
-        diag.append("  FORCE_HFLIP -> hflip=" + str(need_hflip))
-
-    # Log summary + all diagnostics together
-    glon_str = ("({:.2f},{:.2f})".format(*glon_vec) if glon_vec else
-                ("det" if pano_mode == "RADEC" else "none"))
-    siril_log(siril, "  " + fits_path.stem[-44:]
-              + "  " + glon_str
-              + "  vflip=" + str(need_vflip)
-              + "  hflip=" + str(need_hflip))
-    for d in diag:
-        siril_log(siril, "  " + d)
-
-    # Apply flips
-    if need_vflip:
-        data = data[:, ::-1, :]
-    if need_hflip:
-        data = data[:, :, ::-1]
-
-    data    = np.clip(data, 0.0, 1.0)
-    data_16 = (data * 65535.0).astype(np.uint16)
-
-    if n_ch >= 3:
-        arr = np.transpose(data_16[:3], (1, 2, 0))
+    if RUN_DENOISE:
+        siril_log(siril, "  [2/4] GraXpert denoise...")
+        denoise_ok = cmd_safe(siril, "pyscript", "GraXpert-AI.py", "-denoise", "-strength=0.5")
+        if not denoise_ok:
+            siril_log(siril, "  [WARNING] GraXpert denoise failed -- continuing.")
     else:
-        arr = data_16[0]
+        siril_log(siril, "  [2/4] Denoise skipped (RUN_DENOISE = False).")
 
-    tifffile.imwrite(str(tiff_path), arr,
-                     photometric='rgb' if n_ch >= 3 else 'minisblack')
-    return glon_vec, glat_vec
+    # ------------------------------------------------------------------
+    # Step 3: Colour Calibration -- SPCC preferred, PCC with Gaia DR3 fallback
+    # ------------------------------------------------------------------
+    if not RUN_SPCC:
+        siril_log(siril, "  [3/4] Colour calibration SKIPPED (RUN_SPCC = False).")
+        siril_log(siril, "  Assuming SPCC/Alchemy was already applied manually.")
+    else:
+        siril_log(siril, "  [3/4] Colour calibration (SPCC -> PCC fallback)...")
 
+        is_narrowband = (
+            (home_dir / "Ha" / "stacked").is_dir() or
+            (home_dir / "Sii" / "stacked").is_dir() or
+            (home_dir / "Oiii" / "stacked").is_dir()
+        ) and not (home_dir / "L" / "stacked").is_dir()
+
+        if is_narrowband:
+            siril_log(siril, "  Narrowband mode detected -- using SPCC -narrowband"
+                      + " (sensor QE still applied, per-channel filters ignored)")
+            cc_ok = cmd_safe(siril, *_build_spcc_args(narrowband=True))
+        else:
+            siril_log(siril, "  Wideband mode -- SPCC with " + SPCC_SENSOR_MODE
+                      + " sensor "
+                      + (SPCC_MONO_SENSOR if SPCC_SENSOR_MODE != "osc" else SPCC_OSC_SENSOR))
+            cc_ok = cmd_safe(siril, *_build_spcc_args(narrowband=False))
+
+        if not cc_ok:
+            siril_log(siril, "  SPCC failed -- trying PCC with local Gaia DR3...")
+            cc_ok = cmd_safe(siril, "pcc", "-catalog=localgaia")
+        if not cc_ok:
+            siril_log(siril, "  PCC local failed -- trying remote Gaia...")
+            cc_ok = cmd_safe(siril, "pcc", "-catalog=gaia")
+        if not cc_ok:
+            siril_log(siril, "  [WARNING] All colour calibration failed. Continuing without.")
+        else:
+            siril_log(siril, "  Colour calibration succeeded.")
+
+    if not cmd_safe(siril, "save", str(cc_linear_path)):
+        siril_log(siril, "  [ERROR] Cannot save cc_linear.")
+        return False
+
+    # ------------------------------------------------------------------
+    # Step 4: Universal calibrated stretch (see module comment above
+    # GHS_LUT_X for how this curve was derived), then save.
+    # ------------------------------------------------------------------
+    siril_log(siril, "  [4/4] Applying calibrated stretch curve...")
+    ok, peaks = universal_ghs_stretch(cc_linear_path, result_out)
+    if not ok:
+        siril_log(siril, "  [ERROR] Stretch failed.")
+        return False
+
+    peaks_str = ", ".join("{:.5f}".format(p) for p in peaks) if peaks else "?"
+    siril_log(siril, "  Per-channel background peaks: " + peaks_str)
+    siril_log(siril, "  Saved: " + result_out.name)
+    siril_log(siril, "  Next: run Galactic_4_Tiff.py to export TIFFs for stitching.")
+
+    cmd_safe(siril, "cd", str(home_dir))
+    siril_log(siril, "  Panel " + prefix + " complete.")
+    return True
 
 
 def main():
     siril = s.SirilInterface()
     try:
         siril.connect()
-        siril_log(siril, "Galactic_4_Tiff v4.1.0 connected.")
+        siril_log(siril, "Galactic_3_Stretch v2.0.0 connected.")
     except Exception as exc:
-        print("Galactic_4_Tiff: could not connect: " + str(exc))
+        print("Galactic_3_Stretch: could not connect: " + str(exc))
         return
 
     try:
         siril.cmd("requires", "1.4.0")
     except Exception:
-        siril.error_messagebox("Galactic_4_Tiff requires Siril 1.4.0 or later.")
+        siril.error_messagebox("Galactic_3_Stretch requires Siril 1.4.0 or later.")
         siril.disconnect()
         return
 
     try:
         home_dir = Path(siril.get_siril_wd())
-        fits_dir = home_dir / "result_fits"
-        tiff_dir = home_dir / "result_tiff"
-
         siril_log(siril, "Home directory: " + str(home_dir))
-        siril_log(siril, "PANO_MODE: " + PANO_MODE)
+        siril_log(siril, "Scanning for plate-solved GLAT*_LRGB.fits files...")
 
-        if not fits_dir.is_dir():
-            siril_log(siril, "[ERROR] result_fits/ not found.")
+        all_entries = scan_all_panels(home_dir)
+
+        if not all_entries:
+            siril_log(siril, "No plate-solved LRGB panels found.")
+            siril_log(siril, "Expected: GLAT*_LRGB.fits files in " + str(home_dir / "composites"))
+            siril_log(siril, "Plate-solve your LRGB files with ASTAP first.")
             siril.disconnect()
             return
 
-        tiff_dir.mkdir(exist_ok=True)
+        siril_log(siril, "Found " + str(len(all_entries)) + " composite panel(s):")
+        for e in all_entries:
+            siril_log(siril, "  [{}] {}".format(e["status"], e["path"].name))
 
-        try:
-            import sirilpy as _s
-            _s.ensure_installed("tifffile")
-            _s.ensure_installed("astropy")
-        except Exception:
-            pass
+        panels = [(e["prefix"], e["composite_suffix"], e["path"])
+                  for e in all_entries if e["status"] == "QUEUED"]
+        n_skip = len(all_entries) - len(panels)
 
-        fits_files = sorted(p for p in fits_dir.iterdir()
-                            if p.is_file()
-                            and p.suffix.lower() in FITS_EXTENSIONS)
-
-        if not fits_files:
-            siril_log(siril, "No FITS files found in result_fits/.")
+        if not panels:
+            siril_log(siril, " ")
+            siril_log(siril, "All panels already have a result_fits/*_stretched_result.fits.")
+            siril_log(siril, "Delete the ones you want reprocessed and re-run.")
             siril.disconnect()
             return
 
-        siril_log(siril, "Converting " + str(len(fits_files)) + " file(s)...")
-        siril_log(siril, "Note: result_fits/ is never modified -- green noise"
-                  + " removal and harmonization (if enabled) only affect"
-                  + " the exported result_tiff/ files, so re-running this"
-                  + " script is always safe.")
-
-        # ------------------------------------------------------------
-        # Pass 0 (optional): green noise removal. Runs on a copy of each
-        # panel in a working subdirectory -- result_fits/ originals are
-        # never touched. effective_path maps each original fits_path to
-        # the path fits_to_tiff should actually read from.
-        # ------------------------------------------------------------
-        effective_path = {p: p for p in fits_files}
-
-        if RUN_REMOVE_GREEN_NOISE:
-            siril_log(siril, " ")
-            siril_log(siril, "Pass 0: removing green noise (rmgreen, type="
-                      + str(GREEN_NOISE_TYPE) + ")...")
-            green_dir = home_dir / "process" / "_tiff_green_noise_removed"
-            green_dir.mkdir(parents=True, exist_ok=True)
-            for fits_path in fits_files:
-                dst = green_dir / fits_path.name
-                if remove_green_noise(siril, fits_path, dst):
-                    effective_path[fits_path] = dst
-                    siril_log(siril, "  OK: " + fits_path.name)
-                else:
-                    siril_log(siril, "  [WARNING] rmgreen failed for "
-                              + fits_path.name + " -- using original for this panel.")
-        else:
-            siril_log(siril, " ")
-            siril_log(siril, "Pass 0: green noise removal skipped (RUN_REMOVE_GREEN_NOISE = False).")
-
-        # ------------------------------------------------------------
-        # Pass 1 (optional): cross-panel harmonization. Computes each
-        # panel's per-channel level (post green-noise-removal, if that
-        # ran) and nudges every panel toward the consensus across all
-        # panels -- a mosaic-consistency correction, not a colour-
-        # accuracy one. channel_gain_map stays empty (no correction) if
-        # disabled.
-        # ------------------------------------------------------------
-        channel_gain_map = {}
-
-        if RUN_HARMONIZE_PANELS:
-            siril_log(siril, " ")
-            siril_log(siril, "Pass 1: computing cross-panel harmonization ("
-                      + HARMONIZE_STAT + ")...")
-            import numpy as np
-            from astropy.io import fits as _afits
-
-            panel_stats = {}
-            for fits_path in fits_files:
-                src = effective_path[fits_path]
-                try:
-                    with _afits.open(str(src)) as hdul:
-                        data = hdul[0].data.astype(np.float64)
-                    if data.ndim == 2:
-                        data = data[np.newaxis]
-                    panel_stats[fits_path] = compute_channel_stat(data)
-                except Exception as exc:
-                    siril_log(siril, "  [WARNING] Could not read " + fits_path.name
-                              + " for harmonization stats: " + str(exc))
-
-            n_channels_seen = set(len(v) for v in panel_stats.values())
-            if len(n_channels_seen) > 1:
-                siril_log(siril, "  [WARNING] Panels have mixed channel counts "
-                          + str(n_channels_seen) + " -- harmonization needs a"
-                          + " consistent channel count across panels. Skipping.")
-            elif panel_stats:
-                n_ch = next(iter(n_channels_seen))
-                reference = [
-                    float(np.median([panel_stats[p][c] for p in panel_stats]))
-                    for c in range(n_ch)
-                ]
-                siril_log(siril, "  Reference (consensus) level per channel: "
-                          + ", ".join("{:.5f}".format(r) for r in reference))
-
-                for fits_path, stats in panel_stats.items():
-                    gains = []
-                    for c in range(n_ch):
-                        if stats[c] > 1e-9:
-                            g = reference[c] / stats[c]
-                        else:
-                            g = 1.0
-                        g = min(max(g, 1.0 / HARMONIZE_MAX_GAIN), HARMONIZE_MAX_GAIN)
-                        gains.append(g)
-                    channel_gain_map[fits_path] = gains
-                    siril_log(siril, "  " + fits_path.stem[-44:] + "  gain="
-                              + ", ".join("{:.3f}".format(g) for g in gains))
-        else:
-            siril_log(siril, " ")
-            siril_log(siril, "Pass 1: harmonization skipped (RUN_HARMONIZE_PANELS = False).")
-
-        # ------------------------------------------------------------
-        # Main pass: orientation normalisation + TIFF export, reading
-        # from effective_path (post green-noise-removal if that ran)
-        # and applying any computed harmonization gain.
-        # ------------------------------------------------------------
         siril_log(siril, " ")
-
-        # For GALACTIC mode: first panel sets the reference orientation
-        # For RADEC mode: target is always negative determinant
-        ref_glon_vec = ref_glat_vec = None
-        target_det_sign = -1
-
-        if PANO_MODE == "GALACTIC":
-            siril_log(siril, "Reference orientation from first panel.")
-            siril_log(siril, "All panels normalised to match reference.")
-        elif PANO_MODE == "RADEC":
-            siril_log(siril, "Target: negative CD matrix determinant.")
-        else:
-            siril_log(siril, "No orientation normalisation (PANO_MODE=NONE).")
-
-        siril_log(siril, " ")
+        siril_log(siril, str(len(panels)) + " panel(s) queued to process, "
+                  + str(n_skip) + " skipped (already done):")
+        for prefix, composite_suffix, p in panels:
+            siril_log(siril, "  " + p.name)
 
         ok = fail = 0
-        for fits_path in fits_files:
-            tiff_path = tiff_dir / (fits_path.stem + ".tif")
-            src = effective_path[fits_path]
-            gain = channel_gain_map.get(fits_path)
-            try:
-                glon_vec, glat_vec = fits_to_tiff(
-                    src, tiff_path, siril,
-                    PANO_MODE, ref_glon_vec, ref_glat_vec,
-                    target_det_sign, channel_gain=gain)
-
-                # First valid panel sets the reference.
-                # If we vflipped it, invert dy components so subsequent
-                # panels compare against the corrected orientation.
-                if (PANO_MODE == "GALACTIC"
-                        and ref_glon_vec is None
-                        and glon_vec is not None):
-                    need_vflip_ref = (glat_vec[1] > 0) if glat_vec else False
-                    if need_vflip_ref:
-                        ref_glon_vec = (glon_vec[0], -glon_vec[1])
-                        ref_glat_vec = (glat_vec[0], -glat_vec[1])
-                    else:
-                        ref_glon_vec = glon_vec
-                        ref_glat_vec = glat_vec
-                    siril_log(siril, "  Reference set from: " + fits_path.stem[-44:])
-
+        results = []
+        for prefix, composite_suffix, lrgb_path in panels:
+            if process_panel(siril, prefix, composite_suffix, lrgb_path, home_dir):
                 ok += 1
-            except Exception as exc:
-                siril_log(siril, "  [ERROR] " + fits_path.name + ": " + str(exc))
+                results.append((prefix + composite_suffix, "OK"))
+            else:
                 fail += 1
+                results.append((prefix + composite_suffix, "FAIL"))
 
         siril_log(siril, " ")
         siril_log(siril, "=" * 60)
-        siril_log(siril, "Galactic_4_Tiff complete.")
+        siril_log(siril, "Galactic_3_Stretch complete.")
         siril_log(siril, "=" * 60)
+        siril_log(siril, "  {:<20} {:>6}".format("Panel", "Result"))
+        siril_log(siril, "  " + "-" * 28)
+        for prefix, status in results:
+            siril_log(siril, "  {:<20} {:>6}".format(prefix, status))
+        siril_log(siril, " ")
         siril_log(siril, "  OK  : " + str(ok)
                   + "   FAIL: " + str(fail)
-                  + "   TOTAL: " + str(ok + fail))
-        siril_log(siril, "  TIFFs in result_tiff/ -- ready for stitching.")
+                  + "   SKIP: " + str(n_skip)
+                  + "   TOTAL: " + str(len(all_entries)))
+        siril_log(siril, "  Output: result_fits/GLAT*_stretched_result.fits")
+        siril_log(siril, "  Next: make any final adjustments, then run Galactic_4_Tiff.py")
         siril_log(siril, "=" * 60)
 
     except Exception as exc:
