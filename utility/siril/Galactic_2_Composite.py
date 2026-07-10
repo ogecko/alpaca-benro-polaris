@@ -117,6 +117,43 @@ SUFFIX_BY_MODE = {
 STARNET_STARMASK_PREFIX = "starmask_"
 
 # ---------------------------------------------------------------------------
+# Optional border crop -- removes registration/compositing artifacts at the
+# panel edges (see "Step B" in the header comment above: the corners/edges
+# where L/R/G/B didn't all perfectly overlap after independent registration,
+# leaving black or partial-colour borders). Doing this here, before ASTAP
+# plate-solving, is safe -- there's no WCS in the file yet at this point, so
+# there's nothing to invalidate, and it also means you can skip the manual
+# "Step B" crop afterward if you enable this.
+RUN_CROP = True
+CROP_MODE = "auto"    # "fixed" | "auto" | "auto_or_fixed_min"
+                       #   "fixed": always crop CROP_FIXED_PERCENT from every edge.
+                       #   "auto": detect the artifact border automatically per
+                       #     edge (see CROP_AUTO_* below) and crop exactly that,
+                       #     independently per side.
+                       #   "auto_or_fixed_min": auto-detect, but never crop less
+                       #     than CROP_FIXED_PERCENT even if auto-detection finds
+                       #     a smaller (or no) artifact -- a safety floor.
+CROP_FIXED_PERCENT = 2.5   # percent of width/height cropped from EACH edge in
+                           # "fixed" mode, or the floor in "auto_or_fixed_min".
+
+# Auto-detection: a pixel counts as a compositing artifact if ANY channel is
+# at/near exactly 0 there (real background noise in linear data is never
+# exactly 0.0, so this is a reliable signal for "at least one channel had no
+# data here after registration"). Scans inward from each edge row/column at a
+# time; an edge stops being "bad" once CROP_AUTO_CONSECUTIVE_GOOD rows/columns
+# in a row fall below CROP_AUTO_INVALID_FRAC.
+CROP_AUTO_INVALID_FRAC = 0.02        # fraction of a row/column allowed to be
+                                     # zero-in-any-channel before that row/
+                                     # column still counts as "artifact"
+CROP_AUTO_CONSECUTIVE_GOOD = 5       # consecutive clean rows/columns needed
+                                     # before declaring that edge's artifact
+                                     # zone has ended
+CROP_AUTO_MAX_PERCENT = 10.0         # safety cap -- auto-detection can never
+                                     # crop more than this from any one edge,
+                                     # regardless of what it finds
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # DEBUG -- set True to keep _lrgb_align_* temp directories for inspection
 DEBUG_KEEP_TEMP = False
 # ---------------------------------------------------------------------------
@@ -238,6 +275,136 @@ def find_panel_files(home_dir, mode, channel_dirs):
     for prefix in sorted(all_prefixes):
         panels[prefix] = {ch: channel_map[ch][prefix] for ch in required}
     return panels
+
+
+def _find_edge_margin(invalid_frac, max_margin, threshold, consecutive_good):
+    """
+    Scan a 1D array of per-row (or per-column) "invalid fraction" values
+    from index 0 inward, looking for where the artifact border ends --
+    defined as the first point with `consecutive_good` rows/columns in a
+    row falling at/below `threshold`. Returns the margin (number of rows/
+    columns to crop from that edge), capped at max_margin.
+    """
+    n = len(invalid_frac)
+    good_streak = 0
+    limit = min(n, max_margin + consecutive_good)
+    for i in range(limit):
+        if invalid_frac[i] <= threshold:
+            good_streak += 1
+            if good_streak >= consecutive_good:
+                margin = i - consecutive_good + 1
+                return max(margin, 0)
+        else:
+            good_streak = 0
+    return max_margin
+
+
+def detect_autocrop_margins(data, invalid_frac=CROP_AUTO_INVALID_FRAC,
+                            consecutive_good=CROP_AUTO_CONSECUTIVE_GOOD,
+                            max_percent=CROP_AUTO_MAX_PERCENT, iterations=6):
+    """
+    Detect how much to crop from each of the 4 edges to remove compositing
+    artifacts -- a pixel counts as an artifact if ANY channel is at/near
+    exactly 0 there (real background noise in linear data is never exactly
+    0.0, so this reliably flags "at least one channel had no data here
+    after registration", which is exactly what a misaligned-channel border
+    looks like). Returns (top, bottom, left, right) margins in pixels.
+
+    Coordinate-descent refinement: a channel shifted purely horizontally
+    leaves a full-HEIGHT invalid column strip, which would contaminate
+    every row's invalid fraction if measured against the full image and
+    confuse the top/bottom scan into thinking the whole image is bad (and
+    vice versa for a vertical-only shift confusing the left/right scan).
+    Each iteration recomputes top/bottom using the CURRENT left/right
+    crop to exclude that contamination, then recomputes left/right using
+    the current top/bottom -- repeated until the margins stop changing.
+    Margins are recomputed fresh each pass (not accumulated), so an
+    overshoot from an early, still-contaminated pass gets corrected once
+    the contaminating axis is excluded, rather than being locked in.
+    """
+    import numpy as np
+    n_ch, H, W = data.shape
+    max_v = int(H * max_percent / 100.0)
+    max_h = int(W * max_percent / 100.0)
+
+    top = bottom = left = right = 0
+    for _ in range(iterations):
+        # Recompute top/bottom using the CURRENT left/right crop.
+        w_lo, w_hi = left, W - right
+        if w_hi - w_lo < 10:
+            break
+        row_invalid = (data[:, :, w_lo:w_hi] <= 1e-9).any(axis=0).mean(axis=1)
+        new_top = _find_edge_margin(row_invalid, max_v, invalid_frac, consecutive_good)
+        new_bottom = _find_edge_margin(row_invalid[::-1], max_v, invalid_frac, consecutive_good)
+
+        # Recompute left/right using the just-updated top/bottom crop.
+        h_lo, h_hi = new_top, H - new_bottom
+        if h_hi - h_lo < 10:
+            break
+        col_invalid = (data[:, h_lo:h_hi, :] <= 1e-9).any(axis=0).mean(axis=0)
+        new_left = _find_edge_margin(col_invalid, max_h, invalid_frac, consecutive_good)
+        new_right = _find_edge_margin(col_invalid[::-1], max_h, invalid_frac, consecutive_good)
+
+        converged = (new_top == top and new_bottom == bottom
+                    and new_left == left and new_right == right)
+        top, bottom, left, right = new_top, new_bottom, new_left, new_right
+        if converged:
+            break
+
+    top = min(top, max_v)
+    bottom = min(bottom, max_v)
+    left = min(left, max_h)
+    right = min(right, max_h)
+    return top, bottom, left, right
+
+
+def apply_crop(fits_path, mode=CROP_MODE, fixed_percent=CROP_FIXED_PERCENT):
+    """
+    Crop a composite FITS file in place to remove registration/compositing
+    border artifacts (see the "Optional border crop" config comment for
+    why this is safe to do before ASTAP plate-solving). Returns
+    (ok, top, bottom, left, right) -- the margins actually applied, in
+    pixels, for logging.
+    """
+    try:
+        import numpy as np
+        from astropy.io import fits as _afits
+
+        with _afits.open(str(fits_path)) as hdul:
+            header = hdul[0].header.copy()
+            data = hdul[0].data.astype(np.float32)
+
+        mono = data.ndim == 2
+        if mono:
+            data = data[np.newaxis]
+        n_ch, H, W = data.shape
+
+        if mode == "fixed":
+            top = bottom = int(H * fixed_percent / 100.0)
+            left = right = int(W * fixed_percent / 100.0)
+        else:
+            top, bottom, left, right = detect_autocrop_margins(data)
+            if mode == "auto_or_fixed_min":
+                floor_v = int(H * fixed_percent / 100.0)
+                floor_h = int(W * fixed_percent / 100.0)
+                top = max(top, floor_v)
+                bottom = max(bottom, floor_v)
+                left = max(left, floor_h)
+                right = max(right, floor_h)
+
+        if top + bottom >= H or left + right >= W:
+            return False, 0, 0, 0, 0
+
+        cropped = data[:, top:H - bottom, left:W - right]
+        if mono:
+            cropped = cropped[0]
+
+        out_hdu = _afits.PrimaryHDU(cropped, header=header)
+        out_hdu.writeto(str(fits_path), overwrite=True)
+        return True, top, bottom, left, right
+
+    except Exception:
+        return False, 0, 0, 0, 0
 
 
 def process_panel(siril, prefix, files, home_dir, mode):
@@ -499,7 +666,7 @@ def process_panel(siril, prefix, files, home_dir, mode):
     # Plate solving is done manually with ASTAP before running
     # Galactic_3_Stretch.py which handles SPCC through final save.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [2/2] Saving LRGB composite...")
+    siril_log(siril, "  [2/3] Saving LRGB composite...")
     if not cmd_safe(siril, "load", str(lrgb_path)):
         siril_log(siril, "  [ERROR] Cannot load LRGB.")
         return False
@@ -507,7 +674,31 @@ def process_panel(siril, prefix, files, home_dir, mode):
         siril_log(siril, "  [ERROR] Cannot save LRGB.")
         return False
     siril_log(siril, "  Saved: " + lrgb_out.name)
-    siril_log(siril, "  --> Plate-solve with ASTAP, crop borders, then run Galactic_3_Stretch.py")
+
+    # ------------------------------------------------------------------
+    # Step 3: Optional border crop -- removes registration/compositing
+    # artifacts at the edges (see "Optional border crop" config comment).
+    # Safe to do here since no WCS exists yet (ASTAP plate-solves AFTER
+    # this script runs), so there's nothing to invalidate.
+    # ------------------------------------------------------------------
+    if RUN_CROP:
+        siril_log(siril, "  [3/3] Cropping borders (mode=" + CROP_MODE + ")...")
+        crop_ok, top, bottom, left, right = apply_crop(lrgb_out)
+        if crop_ok:
+            siril_log(siril, "  Cropped margins (top,bottom,left,right): "
+                      + "{}, {}, {}, {} px".format(top, bottom, left, right))
+            # Reload the cropped file so what's displayed/loaded in Siril
+            # matches the actual saved output, rather than leaving the
+            # uncropped composite showing.
+            if not cmd_safe(siril, "load", str(lrgb_out)):
+                siril_log(siril, "  [WARNING] Cropped, but could not reload into Siril for display.")
+        else:
+            siril_log(siril, "  [WARNING] Crop failed or margins too large -- composite left uncropped.")
+    else:
+        siril_log(siril, "  [3/3] Border crop skipped (RUN_CROP = False).")
+
+    siril_log(siril, "  --> Plate-solve with ASTAP" + ("" if RUN_CROP else ", crop borders,")
+              + " then run Galactic_3_Stretch.py")
     siril_log(siril, "  Panel " + prefix + " complete.")
     return True
 
