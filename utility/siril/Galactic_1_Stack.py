@@ -43,6 +43,20 @@ from collections import defaultdict
 # ---------------------------------------------------------------------------
 DENOISE_STRENGTH = 1.0      # GraXpert denoising strength: 0.0 (none) to 1.0 (max)
 REGISTER_TRANSF  = "homography" # registration transform: shift / similarity / affine / homography
+
+# STACK_FRAMING controls whether frames get cropped to their common overlap
+# area before stacking -- this removes the ragged/partial-coverage borders
+# that dithering between subs leaves at the edges (some edge pixels only
+# have data from a few of the N subs, rather than all of them). Confirmed
+# via Siril's own docs as the standard approach for this:
+#   register seq -2pass  (compute transforms only)
+#   seqapplyreg seq -framing=min   (apply + crop to the common overlap area)
+# "min" -- crop to the common overlap (recommended for this pipeline: each
+#   panel's subs all point at the same target, so there's no reason to keep
+#   the partial-coverage edges).
+# "current" -- old behaviour: single-pass register, no cropping. Frames stay
+#   at their original size regardless of per-sub coverage differences.
+STACK_FRAMING = "min"   # "min" | "current"
 STACK_TYPE       = "rej"    # stacking type (rej = sigma-clipping rejection)
 STACK_SIGMA_LOW  = 3        # lower sigma threshold for rejection
 STACK_SIGMA_HIGH = 3        # upper sigma threshold for rejection
@@ -82,24 +96,25 @@ def siril_log(siril, msg):
 def _quote_if_needed(arg):
     """
     Wrap an argument in double quotes if it contains whitespace, so Siril's
-    command-line parser (which splits tokens on unquoted whitespace) treats
-    it as a single token instead of truncating it. This is what causes
-    'cd' to fail on Windows paths like 'D:\\...\\HIP 97434\\...'.
+    command-line parser treats it as a single token instead of splitting on
+    the internal space (e.g. Windows paths like 'D:\\...\\HIP 97434\\...').
 
-    Handles both bare paths ("cd", "C:\\a b") and key=value style options
-    ("-out=C:\\a b" -> '-out="C:\\a b"'). Arguments that are already quoted,
-    or that contain no whitespace, are returned unchanged.
+    IMPORTANT: Siril only recognises a quoted token when the double-quote is
+    the very FIRST character of that token. Quoting only the value portion
+    of a '-key=value' style option (e.g. -out="C:\\a b") does NOT work --
+    Siril still splits on the internal space and leaves a stray quote
+    character glued to the truncated path. The quote has to wrap the
+    ENTIRE token, prefix included (e.g. "-out=C:\\a b"), so it is the
+    leading character of the token Siril sees.
+
+    Arguments that are already quoted, or that contain no whitespace, are
+    returned unchanged.
     """
     txt = str(arg)
     if " " not in txt and "\t" not in txt:
         return txt
     if txt.startswith('"') and txt.endswith('"'):
         return txt
-    if "=" in txt:
-        key, _, value = txt.partition("=")
-        if value.startswith('"') and value.endswith('"'):
-            return txt
-        return key + '="' + value + '"'
     return '"' + txt + '"'
 
 
@@ -311,19 +326,41 @@ def process_group(siril, group_prefix, files, work_dir):
 
     # ------------------------------------------------------------------
     # Step 2: Register
-    # register without -2pass writes the r_ image files directly (one pass).
-    # -2pass only computes transforms into the .seq without writing images,
-    # and would require a separate seqapplyreg step before stacking.
-    # Single-pass register is correct for unattended batch use.
+    #
+    # STACK_FRAMING="min" uses Siril's documented two-step approach for
+    # cropping to the common overlap area (removes ragged/partial-coverage
+    # borders left by dithering between subs):
+    #   register seq -2pass          (compute transforms only, no output yet)
+    #   seqapplyreg seq -framing=min (apply transforms + crop to overlap,
+    #                                 writes the r_ prefixed output files)
+    # STACK_FRAMING="current" keeps the old single-pass register, which
+    # writes the r_ files directly with no cropping.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [2/4] Registering (-transf=" + REGISTER_TRANSF + ")...")
+    siril_log(siril, "  [2/4] Registering (-transf=" + REGISTER_TRANSF
+              + ", framing=" + STACK_FRAMING + ")...")
     # Set the last frame as reference before registering.
     # The first frame can be wobbly due to mount settling after a slew.
     # setref seqname N sets frame N (1-based) as the reference.
+    # NOTE: -2pass runs its own preliminary quality/framing-based reference
+    # selection, which may pick a different (likely better-informed) frame
+    # than this manual setref regardless -- Siril's docs don't fully specify
+    # whether a prior setref is respected or superseded by -2pass. Either
+    # way this should be a fine or better outcome than the single-pass
+    # setref-driven choice, since -2pass's selection is explicitly quality-
+    # based rather than just "avoid the first frame".
     cmd_safe(siril, "setref", seq_name, str(n))
-    if not cmd_safe(siril, "register", seq_name, "-transf=" + REGISTER_TRANSF):
-        siril_log(siril, "  [ERROR] registration failed -- skipping group.")
-        return False
+
+    if STACK_FRAMING == "min":
+        if not cmd_safe(siril, "register", seq_name, "-2pass", "-transf=" + REGISTER_TRANSF):
+            siril_log(siril, "  [ERROR] registration (2-pass) failed -- skipping group.")
+            return False
+        if not cmd_safe(siril, "seqapplyreg", seq_name, "-framing=min"):
+            siril_log(siril, "  [ERROR] seqapplyreg (framing=min) failed -- skipping group.")
+            return False
+    else:
+        if not cmd_safe(siril, "register", seq_name, "-transf=" + REGISTER_TRANSF):
+            siril_log(siril, "  [ERROR] registration failed -- skipping group.")
+            return False
 
     # ------------------------------------------------------------------
     # Step 3: Stack
