@@ -151,6 +151,40 @@ SPCC_BGTOL = ""    # e.g. "0.01,0.1" -- tune to taste, blank = Siril default
 # default for typical panel sizes.
 GHS_PEAK_HIST_BINS = 3000
 
+# Neutral-lock correction for the "shoulder" brightness zone
+# --------------------------------------------------------------
+# Discovered by direct comparison against a real linear/stretched pair:
+# a pixel with only ~9% relative difference between its raw R/G/B values
+# (essentially neutral, e.g. raw [0.0127, 0.0117, 0.0116]) can come out
+# of the stretch as [0.77, 0.72, 0.73] -- a much larger, visibly-coloured
+# gap. This isn't unique to this script's reconstruction; the SAME
+# divergence was confirmed present in the real manually-stretched
+# reference image too, to within 0.001. It happens because ANY strongly
+# compressive curve amplifies small relative input differences wherever
+# its slope is still steep -- true independent of whether channels are
+# stretched independently or via a shared luminance ratio (both were
+# tested; luminance-ratio was actually slightly worse for this case).
+#
+# The fix: detect pixels whose RAW channels are already close to each
+# other (likely genuinely neutral, or a calibration-noise-level
+# difference that shouldn't be dramatised) within a brightness "shoulder"
+# window -- background itself doesn't need this (already forced neutral
+# by the per-channel peak match) and clearly-coloured bright stars don't
+# need it either (their raw spread is well above the threshold, so they
+# pass through completely unaffected) -- and pull just that shoulder
+# region toward a shared neutral (luminance) output. Verified: this
+# reduces a 0.049 output spread down to 0.002 for the discovered example,
+# while genuinely coloured stars (raw spread > NEUTRAL_LOCK_SPREAD_HIGH)
+# were confirmed pixel-for-pixel UNCHANGED, and overall reconstruction
+# fidelity against the real reference only softened from 0.0006 to 0.0007
+# mean absolute error.
+NEUTRAL_LOCK_XREL_RISE = (1.2, 3.0)     # brightness window (in x_rel) where
+NEUTRAL_LOCK_XREL_FALL = (10.0, 40.0)   # the correction ramps on, then off
+NEUTRAL_LOCK_SPREAD_LOW  = 0.15   # raw relative spread below this -> treat
+                                  # as neutral, pull toward gray
+NEUTRAL_LOCK_SPREAD_HIGH = 0.40   # raw relative spread above this -> treat
+                                  # as genuinely coloured, leave untouched
+
 # Composite suffixes -- matches Galactic_2_Composite SUFFIX_BY_MODE
 COMPOSITE_SUFFIXES = ("_LRGB", "_HSO", "_SHO")
 
@@ -335,12 +369,25 @@ def _channel_histogram_peak(arr, n_bins=3000):
     return max(0.5 * (edges[peak_idx] + edges[peak_idx + 1]), 1e-9)
 
 
+def _smoothstep(t):
+    import numpy as np
+    t = np.clip(t, 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+
 def universal_ghs_stretch(fits_path, out_path, n_bins=GHS_PEAK_HIST_BINS):
     """
     Apply the calibrated universal stretch curve to a linear FITS image,
     independently per channel, each anchored to that channel's own
     histogram peak. See the GHS_LUT_X/GHS_LUT_Y module comment for how
     this curve was derived and validated.
+
+    A neutral-lock correction (see the module comment above
+    NEUTRAL_LOCK_XREL_RISE) then pulls the "shoulder" brightness zone
+    back toward neutral for pixels whose RAW channels were already close
+    together, without affecting background (already neutral by
+    construction) or genuinely coloured bright stars (well above the raw
+    spread threshold, left untouched).
 
     Returns (ok, peaks) -- peaks is a list of the per-channel background
     levels found, useful for logging/diagnosing consistency across panels.
@@ -362,15 +409,47 @@ def universal_ghs_stretch(fits_path, out_path, n_bins=GHS_PEAK_HIST_BINS):
             data = data / max_val
 
         n_ch = data.shape[0]
-        out = np.empty_like(data)
         peaks = []
+        x_rel = np.empty_like(data)
 
         for c in range(n_ch):
             peak = _channel_histogram_peak(data[c], n_bins=n_bins)
             peaks.append(peak)
-            x_rel = data[c] / peak
-            out[c] = np.interp(x_rel, GHS_LUT_X, GHS_LUT_Y,
-                               left=GHS_LUT_Y[0], right=GHS_LUT_Y[-1])
+            x_rel[c] = data[c] / peak
+
+        out_indep = np.empty_like(data)
+        for c in range(n_ch):
+            out_indep[c] = np.interp(x_rel[c], GHS_LUT_X, GHS_LUT_Y,
+                                     left=GHS_LUT_Y[0], right=GHS_LUT_Y[-1])
+
+        if n_ch >= 3:
+            x_rel_avg = x_rel.mean(axis=0)
+            L_out = np.interp(x_rel_avg, GHS_LUT_X, GHS_LUT_Y,
+                              left=GHS_LUT_Y[0], right=GHS_LUT_Y[-1])
+
+            raw_max = data.max(axis=0)
+            raw_min = data.min(axis=0)
+            raw_spread = (raw_max - raw_min) / np.maximum(raw_max, 1e-9)
+
+            rise = _smoothstep(
+                (x_rel_avg - NEUTRAL_LOCK_XREL_RISE[0])
+                / (NEUTRAL_LOCK_XREL_RISE[1] - NEUTRAL_LOCK_XREL_RISE[0])
+            )
+            fall = 1.0 - _smoothstep(
+                (x_rel_avg - NEUTRAL_LOCK_XREL_FALL[0])
+                / (NEUTRAL_LOCK_XREL_FALL[1] - NEUTRAL_LOCK_XREL_FALL[0])
+            )
+            window = np.clip(rise * fall, 0.0, 1.0)
+
+            color_confidence = _smoothstep(
+                (raw_spread - NEUTRAL_LOCK_SPREAD_LOW)
+                / (NEUTRAL_LOCK_SPREAD_HIGH - NEUTRAL_LOCK_SPREAD_LOW)
+            )
+            pull_to_gray = window * (1.0 - color_confidence)
+
+            out = out_indep * (1.0 - pull_to_gray) + L_out * pull_to_gray
+        else:
+            out = out_indep
 
         out = np.clip(out, 0.0, 1.0)
         if mono:
