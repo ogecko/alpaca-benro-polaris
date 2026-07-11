@@ -84,9 +84,37 @@ MASTER_FLAT_NAME = "master_flat"
 # is preserved through calibrate and used directly for GLAT/GLON rename.
 # Full WCS plate solve is done by Galactic_2_Composite.py on the stack.
 
-# GLAT/GLON rename settings (mirrors fits_galactic.py --rename behaviour)
+# GLAT/GLON rename settings (mirrors fits_galactic.py --rename behaviour).
+#
+# RENAME_DECIMALS controls how finely GLAT/GLON get rounded before being
+# used as the panel label -- this is what determines which subs get
+# grouped into the same panel. 0 = nearest whole degree (the old default).
+# Negative values round to a coarser unit instead -- e.g. -1 rounds to the
+# nearest 10 degrees -- which is the main knob to reach for if subs from
+# what's clearly the same panel are landing on opposite sides of a
+# rounding boundary (e.g. GLON 119.9 and 120.1 rounding to 120 and 120 is
+# fine, but 119.4 and 119.6 rounding to 119 and 120 is the problem this
+# fixes: pick a coarser unit and both fall inside the same bucket).
+# Positive values are also supported (e.g. 1 keeps one decimal place) if
+# you need finer-grained panels than a whole degree.
+RENAME_DECIMALS = 0
+
+# MANUAL MERGE OVERRIDE -- for one-off anomalies (e.g. a mount slip meant
+# two batches of subs for the same intended panel ended up far enough
+# apart that no reasonable RENAME_DECIMALS choice would group them
+# together without also merging genuinely separate, adjacent panels
+# elsewhere in the same session). Deliberately manual, not automatic --
+# there's no general distance rule that can tell "this is a one-off
+# mistake" apart from "these are two real adjacent panels" on its own.
+#
+# Each entry maps a prefix EXACTLY as make_glat_glon_prefix generates it
+# (including the trailing underscore) to the prefix you want instead, e.g.:
+#   MERGE_LABELS = {"GLAT007N_GLON123_": "GLAT007N_GLON120_"}
+# Check the Siril log after a run to see the exact prefixes being
+# generated if you need to copy one here. Leave empty ({}) if not needed.
+MERGE_LABELS = {}
+
 PREFIX_LENGTH = 16          # characters in the prefix e.g. GLAT007N_GLON344
-RENAME_DECIMALS = 0         # decimal places for prefix (integer gives 3+3 digits)
 
 # RA/Dec header keyword candidates (tried in priority order)
 RA_KEYS_DEG  = ["RA",      "RA_OBJ",  "CRVAL1"]
@@ -195,6 +223,16 @@ def extract_ra_dec(header):
     return ra_deg, dec_deg
 
 
+def round_coord(value, decimals):
+    """
+    Round a coordinate to RENAME_DECIMALS places. Negative decimals round
+    to a coarser unit (e.g. -1 -> nearest 10), which is the main lever for
+    fixing subs of the same intended panel landing on opposite sides of a
+    rounding boundary -- see the RENAME_DECIMALS config comment.
+    """
+    return round(value, decimals)
+
+
 def radec_to_galactic(ra_deg, dec_deg):
     """Convert equatorial J2000 to Galactic (l, b) in degrees via astropy."""
     c = SkyCoord(ra=ra_deg * _u.degree, dec=dec_deg * _u.degree, frame="icrs")
@@ -244,22 +282,34 @@ def find_glon_offset(glon_values):
     return result
 
 
-def make_glat_glon_prefix(b, glon_adjusted, decimals=0):
+def make_glat_glon_prefix(glat_snapped, glon_adjusted):
     """
-    Build the GLAT/GLON filename prefix using wrap-corrected GLON.
-    e.g. b=-7.123, glon_adjusted=368  ->  GLAT007S_GLON368_
+    Build the GLAT/GLON filename prefix from already-snapped/rounded
+    values. e.g. glat_snapped=-7, glon_adjusted=368 -> GLAT007S_GLON368_
     """
-    ns = "S" if b < 0 else "N"
-    glat_int = int(round(abs(b)))
-    glon_int  = int(round(glon_adjusted))
+    ns = "S" if glat_snapped < 0 else "N"
+    glat_int = int(round(abs(glat_snapped)))
+    glon_int = int(round(glon_adjusted))
     return "GLAT{:03d}{}_GLON{:03d}_".format(glat_int, ns, glon_int)
 
 
 def rename_with_glat_glon(siril, process_dir):
     """
     Read each pp_light*.fits in process_dir and rename with GLAT/GLON prefix.
-    GLON values are wrap-corrected so files sort monotonically across the
-    panorama (e.g. 351->351, 0->360, 8->368 when the gap is at ~180 deg).
+
+    Each file's GLAT/GLON is snapped to the nearest intended grid position
+    (GRID_GLON_STEP/GRID_GLAT_STEP, if set) or simply rounded
+    (RENAME_DECIMALS, if not) BEFORE wrap-around correction and panel
+    labelling -- see the config comments for why grid snapping is
+    recommended: it avoids two subs of the same intended panel landing on
+    opposite sides of an arbitrary rounding boundary just from ordinary
+    mount jitter.
+
+    GLON values are then wrap-corrected so files sort monotonically across
+    the panorama (e.g. 351->351, 0->360, 8->368 when the gap is at ~180
+    deg), and finally MERGE_LABELS is applied for any explicit manual
+    overrides.
+
     Opens files read-only so Python doesn't hold a write lock during rename.
     Uses a retry loop for Windows file lock release timing after Siril closes.
     Returns (renamed_count, skipped_count, error_count).
@@ -276,8 +326,8 @@ def rename_with_glat_glon(siril, process_dir):
     if not pp_files:
         return 0, 0, 0
 
-    # Pass 1: read all coordinates to compute wrap-around offset
-    file_coords = {}   # path -> (b, l_raw)
+    # Pass 1: read all coordinates, round, compute wrap-around offset
+    file_coords = {}   # path -> (glat_rounded, glon_rounded)
     glon_values = []
     for fits_path in pp_files:
         try:
@@ -293,9 +343,10 @@ def rename_with_glat_glon(siril, process_dir):
             continue
         ra_deg, dec_deg = coords
         l, b = radec_to_galactic(ra_deg, dec_deg)
-        l_int = int(round(l)) % 360
-        file_coords[fits_path] = (b, l, l_int)
-        glon_values.append(l_int)
+        glon_rounded = round_coord(l, RENAME_DECIMALS) % 360
+        glat_rounded = round_coord(b, RENAME_DECIMALS)
+        file_coords[fits_path] = (glat_rounded, glon_rounded)
+        glon_values.append(glon_rounded)
 
     # Compute wrap-corrected GLON mapping
     glon_offset_map = find_glon_offset(glon_values)
@@ -304,10 +355,14 @@ def rename_with_glat_glon(siril, process_dir):
         siril_log(siril, "  Wrap-around detected -- adjusting GLON values: "
                   + ", ".join(str(k) + "->" + str(v) for k, v in sorted(adjusted.items())))
 
-    # Pass 2: rename with corrected GLON
-    for fits_path, (b, l, l_int) in file_coords.items():
-        glon_adjusted = glon_offset_map.get(l_int, l_int)
-        prefix = make_glat_glon_prefix(b, glon_adjusted, RENAME_DECIMALS)
+    # Pass 2: rename with corrected GLON, then apply any manual merge override
+    merged_count = 0
+    for fits_path, (glat_rounded, glon_rounded) in file_coords.items():
+        glon_adjusted = glon_offset_map.get(glon_rounded, glon_rounded)
+        prefix = make_glat_glon_prefix(glat_rounded, glon_adjusted)
+        if prefix in MERGE_LABELS:
+            merged_count += 1
+            prefix = MERGE_LABELS[prefix]
         new_path = fits_path.with_name(prefix + fits_path.name)
 
         # Retry rename up to 5 times -- Windows releases Siril's file lock
@@ -326,6 +381,9 @@ def rename_with_glat_glon(siril, process_dir):
                     siril_log(siril, "  ERROR renaming " + fits_path.name
                               + ": " + str(exc))
                     errors += 1
+
+    if merged_count:
+        siril_log(siril, "  Manual merge override applied to " + str(merged_count) + " file(s).")
 
     return renamed, skipped, errors
 
