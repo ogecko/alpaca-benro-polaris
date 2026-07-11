@@ -407,6 +407,45 @@ def apply_crop(fits_path, mode=CROP_MODE, fixed_percent=CROP_FIXED_PERCENT):
         return False, 0, 0, 0, 0
 
 
+def _parse_exposure_seconds(stem):
+    """
+    If stem ends with an exposure postfix (e.g. "..._300s", as written by
+    Galactic_1_Stack.py), return the integer seconds. Otherwise None.
+    """
+    import re
+    m = re.search(r'_(\d+)s$', stem)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+def sum_exposure_across_channels(files):
+    """
+    Sum the exposure postfix parsed from each channel's stacked filename.
+    Returns (total_seconds, any_missing) -- any_missing is True if any
+    channel's file had no parseable exposure postfix (e.g. it was stacked
+    before RUN_EXPOSURE_POSTFIX existed), in which case the composite's
+    own postfix should be omitted rather than showing an undercounted
+    total.
+    """
+    total = 0
+    any_missing = False
+    for f in files.values():
+        secs = _parse_exposure_seconds(f.stem)
+        if secs is None:
+            any_missing = True
+        else:
+            total += secs
+    return total, any_missing
+
+
+def exposure_postfix(total_seconds, any_missing):
+    """Format "_1200s", or "" if the total is unknown/zero."""
+    if any_missing or total_seconds <= 0:
+        return ""
+    return "_{}s".format(int(total_seconds))
+
+
 def process_panel(siril, prefix, files, home_dir, mode):
     """
     Run the full LRGB pipeline for one panel prefix.
@@ -424,7 +463,11 @@ def process_panel(siril, prefix, files, home_dir, mode):
     composites_dir.mkdir(exist_ok=True)
 
     composite_suffix = SUFFIX_BY_MODE[mode]
-    lrgb_out = composites_dir / (prefix + composite_suffix + ".fits")
+    total_exp, exp_missing = sum_exposure_across_channels(files)
+    exp_suffix = exposure_postfix(total_exp, exp_missing)
+    if exp_suffix:
+        siril_log(siril, "  Total exposure (summed across channels): " + str(total_exp) + "s")
+    lrgb_out = composites_dir / (prefix + composite_suffix + exp_suffix + ".fits")
 
     # Skip if composite already exists in composites/
     # (Galactic_3 skip is separate -- it checks for _stretched_result in result_fits/)
@@ -439,15 +482,15 @@ def process_panel(siril, prefix, files, home_dir, mode):
     # Step 1: Align channels then LRGB compose
     #
     # rgbcomp has NO built-in alignment -- it is purely a pixel combiner.
-    # The correct approach (per Siril docs) is to:
-    #   a) Build a 4-image sequence (L, R, G, B stacks)
-    #   b) Register them against each other (L as reference)
-    #   c) Feed the registered r_ files to rgbcomp
+    # All channels are registered together in ONE sequence (not pairwise)
+    # specifically so a single seqapplyreg -framing=min crop can be
+    # applied consistently across all of them -- see below for why this
+    # replaced the earlier pairwise approach.
     #
     # We use a temporary work directory to avoid polluting the home dir
     # with sequence files, then clean it up afterwards.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [1/8] Aligning channels then LRGB composition...")
+    siril_log(siril, "  [1/3] Aligning channels then LRGB composition...")
 
     if not cmd_safe(siril, "cd", str(home_dir)):
         return False
@@ -462,129 +505,118 @@ def process_panel(siril, prefix, files, home_dir, mode):
     if not cmd_safe(siril, "cd", str(align_dir)):
         return False
 
-    # Copy each channel into the align dir with a clear filter-named sequence.
-    # Each channel is a single-frame sequence named after its filter:
-    #   L_00001.<ext>, R_00001.<ext>, G_00001.<ext>, B_00001.<ext>
-    # After registration against L, Siril writes:
-    #   r_L_00001.<ext>  (L reference -- copy of original, no transform)
-    #   r_R_00001.<ext>, r_G_00001.<ext>, r_B_00001.<ext>  (aligned to L)
-    # This naming makes it immediately obvious which file is which if you
-    # need to inspect the temp dir after an interrupted run.
-    #
-    # Strategy: build a 4-frame sequence where each frame is named with
-    # its filter letter as the sequence basename, padded to 5 digits.
-    # To get named registered outputs we register each colour channel as
-    # a 2-frame sequence paired with L, so the r_ prefix is filter-labelled.
-    # Siril always names the registered output r_<seqname>_NNNNN.<ext>.
-    # We therefore use three 2-frame sequences: LR, LG, LB -- each with L
-    # as frame 1 (reference).  This gives r_LR_00001 (L), r_LR_00002 (R),
-    # r_LG_00002 (G), r_LB_00002 (B), all clearly labelled.
-
     # Determine reference and colour channels from mode
     if mode == "LRGB":
         # L is the luminance reference; R/G/B are colour channels
-        ref_ch        = "L"
+        ref_ch = "L"
         colour_channels = ["R", "G", "B"]
     else:
         # Narrowband: use G as the reference (Ha in SHO, Sii in HSO).
-        # All three filters are aligned in one pass: R and B align to G.
-        # This gives a single consistent registration across all channels.
-        ref_ch        = "G"
+        ref_ch = "G"
         colour_channels = ["R", "B"]
+
+    all_channels = [ref_ch] + colour_channels   # frame order in the sequence
 
     src_ext = files[ref_ch].suffix
     ext_no_dot = src_ext.lstrip(".")
     cmd_safe(siril, "setext", ext_no_dot)
 
-    # Copy reference channel
-    ref_copy = align_dir / (ref_ch + "_00001" + src_ext)
-    try:
-        _shutil.copy2(files[ref_ch], ref_copy)
-    except Exception as exc:
-        siril_log(siril, "  [ERROR] Could not copy " + ref_ch + " channel: " + str(exc))
+    # ------------------------------------------------------------------
+    # Build ONE sequence containing every channel (reference first), all
+    # named with a shared basename so they're one Siril sequence:
+    #   <seq>_00001.<ext> = reference (L, or G for narrowband)
+    #   <seq>_00002.<ext>, 00003, 00004 = the other channels, in order
+    #
+    # Registering them together (rather than the earlier approach of
+    # three separate 2-frame LR/LG/LB pairs) is what makes a SINGLE
+    # seqapplyreg -framing=min crop meaningful: framing=min crops to the
+    # common overlap across every frame in the sequence it's given. Run
+    # per-pair, each pair would get its OWN (different) overlap crop,
+    # leaving the channels at mismatched sizes -- rgbcomp requires them
+    # all to match. Registering everything together and cropping once
+    # guarantees a single, consistent crop across every channel.
+    #
+    # This also fixes a real bug found in production: the previous
+    # approach tried to detect misaligned borders by scanning for exact
+    # zero pixels after the fact, but Siril's registration doesn't
+    # necessarily zero-fill out-of-frame regions (its own log reports
+    # "Interpolation clamping active", consistent with edge-extension
+    # rather than zero-fill) -- so real several-pixel misalignment
+    # borders were going completely undetected. Using Siril's own
+    # transform-based -framing=min instead sidesteps that assumption
+    # entirely: it crops from the actual geometry of the computed
+    # transform, not from inspecting output pixel values.
+    # ------------------------------------------------------------------
+    seq_name = "".join(all_channels)   # e.g. "LRGB" or "GRB"
+
+    for i, ch_name in enumerate(all_channels, start=1):
+        ch_copy = align_dir / ("{}_{:05d}{}".format(seq_name, i, src_ext))
+        try:
+            _shutil.copy2(files[ch_name], ch_copy)
+        except Exception as exc:
+            siril_log(siril, "  [ERROR] Could not copy " + ch_name + " channel: " + str(exc))
+            if not DEBUG_KEEP_TEMP:
+                _shutil.rmtree(align_dir, ignore_errors=True)
+            cmd_safe(siril, "cd", str(home_dir))
+            return False
+
+    siril_log(siril, "  Registering " + "+".join(colour_channels)
+              + " against " + ref_ch + " (seq=" + seq_name + ")...")
+    # NOTE: -2pass runs its own preliminary quality/framing-based reference
+    # selection, which may pick a different frame than this explicit setref
+    # regardless -- Siril's docs don't fully specify whether a prior setref
+    # is respected or superseded by -2pass. Placing the intended reference
+    # channel (L, or G for narrowband) as frame 1 gives it the best chance
+    # of being chosen either way, since quality-based selection tends to
+    # favour earlier/first frames when quality is comparable, but this
+    # isn't a hard guarantee.
+    cmd_safe(siril, "setref", seq_name, "1")   # frame 1 = reference channel
+
+    reg_ok = cmd_safe(siril, "register", seq_name, "-2pass", "-transf=homography")
+    if reg_ok:
+        reg_ok = cmd_safe(siril, "seqapplyreg", seq_name, "-framing=min")
+    if not reg_ok:
+        # Homography failed (poor seeing, elongated stars, few matches).
+        # Fall back through progressively simpler transforms, for the
+        # whole sequence (all channels registered together, so the
+        # fallback applies to all of them together too).
+        for fallback in ("affine", "similarity", "shift"):
+            siril_log(siril, "  Retrying with -transf=" + fallback + "...")
+            reg_ok = cmd_safe(siril, "register", seq_name, "-2pass", "-transf=" + fallback)
+            if reg_ok:
+                reg_ok = cmd_safe(siril, "seqapplyreg", seq_name, "-framing=min")
+            if reg_ok:
+                siril_log(siril, "  Registered with fallback -transf=" + fallback)
+                break
+    if not reg_ok:
+        siril_log(siril, "  [ERROR] Registration failed -- all transforms tried.")
         if not DEBUG_KEEP_TEMP:
             _shutil.rmtree(align_dir, ignore_errors=True)
         cmd_safe(siril, "cd", str(home_dir))
         return False
-    # Keep backward compat alias
-    l_copy = ref_copy
 
-    reg_colour = {}
-    for ch_name, ch_file in [(c, files[c]) for c in colour_channels]:
-        seq = ref_ch + ch_name        # sequence basename: LR/LG/LB or RG/RB
-        ch_copy = align_dir / (ch_name + "_00002" + src_ext)
-        try:
-            _shutil.copy2(ch_file, ch_copy)
-        except Exception as exc:
-            siril_log(siril, "  [ERROR] Could not copy " + ch_name
-                      + " channel: " + str(exc))
+    # Read back the registered+cropped frame for each channel by its
+    # position in the sequence.
+    reg_path = {}
+    for i, ch_name in enumerate(all_channels, start=1):
+        r_path = None
+        for ext in FITS_EXTENSIONS:
+            candidate = align_dir / ("r_{}_{:05d}{}".format(seq_name, i, ext))
+            if candidate.exists():
+                r_path = candidate
+                break
+        if r_path is None:
+            siril_log(siril, "  [ERROR] Registered " + ch_name + " output not found.")
             if not DEBUG_KEEP_TEMP:
                 _shutil.rmtree(align_dir, ignore_errors=True)
             cmd_safe(siril, "cd", str(home_dir))
             return False
+        reg_path[ch_name] = r_path
+        siril_log(siril, "  Registered: " + ch_name + " -> " + r_path.name)
 
-        # Copy reference to match this pair sequence (L_00001 -> LR_00001 etc.)
-        l_seq_copy = align_dir / (seq + "_00001" + src_ext)
-        try:
-            _shutil.copy2(ref_copy, l_seq_copy)
-        except Exception as exc:
-            siril_log(siril, "  [ERROR] Could not stage L for " + seq
-                      + ": " + str(exc))
-            if not DEBUG_KEEP_TEMP:
-                _shutil.rmtree(align_dir, ignore_errors=True)
-            cmd_safe(siril, "cd", str(home_dir))
-            return False
-
-        # Rename colour copy to match sequence name (R_00002 -> LR_00002 etc.)
-        ch_seq_copy = align_dir / (seq + "_00002" + src_ext)
-        ch_copy.rename(ch_seq_copy)
-
-        siril_log(siril, "  Registering " + ch_name + " against L (seq=" + seq + ")...")
-        reg_ok = cmd_safe(siril, "register", seq, "-transf=homography")
-        if not reg_ok:
-            # Homography failed (poor seeing, elongated stars, few matches).
-            # Fall back through progressively simpler transforms.
-            for fallback in ("affine", "similarity", "shift"):
-                siril_log(siril, "  Retrying " + ch_name
-                          + " with -transf=" + fallback + "...")
-                reg_ok = cmd_safe(siril, "register", seq, "-transf=" + fallback)
-                if reg_ok:
-                    siril_log(siril, "  Registered " + ch_name
-                              + " with fallback -transf=" + fallback)
-                    break
-        if not reg_ok:
-            siril_log(siril, "  [ERROR] Registration failed for channel "
-                      + ch_name + " -- all transforms tried.")
-            if not DEBUG_KEEP_TEMP:
-                _shutil.rmtree(align_dir, ignore_errors=True)
-            cmd_safe(siril, "cd", str(home_dir))
-            return False
-
-        # Registered colour frame is r_<seq>_00002.<ext>
-        r_ch = align_dir / ("r_" + seq + "_00002" + src_ext)
-        if not r_ch.exists():
-            # Try alternate extension
-            for alt in (".fits", ".fit", ".fts"):
-                candidate = align_dir / ("r_" + seq + "_00002" + alt)
-                if candidate.exists():
-                    r_ch = candidate
-                    break
-            else:
-                siril_log(siril, "  [ERROR] Registered " + ch_name
-                          + " output not found: " + r_ch.name)
-                if not DEBUG_KEEP_TEMP:
-                    _shutil.rmtree(align_dir, ignore_errors=True)
-                cmd_safe(siril, "cd", str(home_dir))
-                return False
-
-        reg_colour[ch_name] = r_ch
-        siril_log(siril, "  Registered: " + r_ch.name)
-
-    # Reference channel is used as-is (no transform needed)
-    r_ref = ref_copy
-    siril_log(siril, "  All channels aligned:")
-    siril_log(siril, "    " + ref_ch + "=" + r_ref.name + "  "
-              + "  ".join(ch + "=" + p.name for ch, p in reg_colour.items()))
+    r_ref = reg_path[ref_ch]
+    reg_colour = {ch: reg_path[ch] for ch in colour_channels}
+    siril_log(siril, "  All channels aligned and cropped to common overlap.")
 
     # ------------------------------------------------------------------
     # Pre-composition linear_match removed.
@@ -675,9 +707,28 @@ def process_panel(siril, prefix, files, home_dir, mode):
         return False
     siril_log(siril, "  Saved: " + lrgb_out.name)
 
+    # Clean up the intermediate rgbcomp output (named without the exposure
+    # postfix) now that the final, exposure-suffixed file has been saved
+    # successfully -- otherwise both versions of the same composite sit
+    # side by side in composites/ indefinitely. Guard against the case
+    # where they're actually the same file (e.g. exposure was unknown, so
+    # lrgb_out has no postfix either) so we don't delete what we just saved.
+    if lrgb_path.resolve() != lrgb_out.resolve():
+        try:
+            lrgb_path.unlink()
+            siril_log(siril, "  Removed intermediate: " + lrgb_path.name)
+        except OSError as exc:
+            siril_log(siril, "  [WARNING] Could not remove intermediate "
+                      + lrgb_path.name + ": " + str(exc))
+
     # ------------------------------------------------------------------
-    # Step 3: Optional border crop -- removes registration/compositing
-    # artifacts at the edges (see "Optional border crop" config comment).
+    # Step 3: Optional SUPPLEMENTARY border crop (see "Optional border
+    # crop" config comment). The channel registration above already
+    # crops to the common overlap via Siril's own -framing=min, which is
+    # the primary, geometrically-precise fix for registration-border
+    # artifacts. This step is a secondary safety net for anything that
+    # slips through that -- e.g. minor per-channel PSF/colour differences
+    # right at the new edge, or artifacts from some other source entirely.
     # Safe to do here since no WCS exists yet (ASTAP plate-solves AFTER
     # this script runs), so there's nothing to invalidate.
     # ------------------------------------------------------------------
@@ -764,17 +815,22 @@ def main():
         ok = fail = skip = 0
         results = []
         for prefix, files in panels.items():
-            # Check skip before calling -- lrgb_out path
+            # Check skip before calling -- lrgb_out path. Exposure postfix
+            # has to be computed first (same reasoning as Galactic_1_Stack.py):
+            # the expected filename depends on it, so the skip-check has to
+            # know it before it can look for the right file.
             composite_suffix = {
                 "LRGB": "_LRGB", "HSO": "_HSO", "SHO": "_SHO"
             }[mode]
+            total_exp, exp_missing = sum_exposure_across_channels(files)
+            exp_suffix = exposure_postfix(total_exp, exp_missing)
             composites_dir = home_dir / "composites"
             already = any(
-                (composites_dir / (prefix + composite_suffix + ext)).exists()
+                (composites_dir / (prefix + composite_suffix + exp_suffix + ext)).exists()
                 for ext in (".fits", ".fit", ".fts")
             )
             if already:
-                siril_log(siril, "SKIP: " + prefix + composite_suffix + " already exists.")
+                siril_log(siril, "SKIP: " + prefix + composite_suffix + exp_suffix + " already exists.")
                 skip += 1
                 results.append((prefix, "SKIP"))
             elif process_panel(siril, prefix, files, home_dir, mode):

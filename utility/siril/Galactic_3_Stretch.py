@@ -465,19 +465,31 @@ def universal_ghs_stretch(fits_path, out_path, n_bins=GHS_PEAK_HIST_BINS):
 
 def scan_all_panels(home_dir):
     """
-    Scan home_dir/composites/ for GLAT*_(LRGB|HSO|SHO).fits files and
-    report the status of EVERY one found -- "SKIP" if its result_fits/
+    Scan home_dir/composites/ for GLAT*_(LRGB|HSO|SHO)[_NNNs].fits files
+    and report the status of EVERY one found -- "SKIP" if its result_fits/
     output already exists, "QUEUED" if it still needs to be processed.
 
-    Returns a list of dicts: {prefix, composite_suffix, path, result_path,
-    status}, sorted by filename. This is the single source of truth for
-    what will run -- printed in full before any processing starts, so
-    it's never ambiguous why more (or fewer) panels ran than expected.
+    The optional trailing exposure postfix (e.g. "_1200s", written by
+    Galactic_2_Composite.py) is matched via regex rather than a simple
+    .endswith() check on the composite suffix, since the postfix sits
+    AFTER "_LRGB"/"_HSO"/"_SHO" and would otherwise break detection
+    entirely. The exposure postfix (if present) is carried forward into
+    the result_fits output filename too, so it stays visible at every
+    pipeline stage.
+
+    Returns a list of dicts: {prefix, composite_suffix, exposure_suffix,
+    path, result_path, status}, sorted by filename. This is the single
+    source of truth for what will run -- printed in full before any
+    processing starts, so it's never ambiguous why more (or fewer) panels
+    ran than expected.
     """
+    import re
     composites_dir = home_dir / "composites"
     if not composites_dir.is_dir():
         return []
     entries = []
+    suf_pattern = "|".join(re.escape(s) for s in COMPOSITE_SUFFIXES)
+    regex = re.compile(r"^(.*)(" + suf_pattern + r")(_\d+s)?$")
     for p in sorted(composites_dir.iterdir()):
         if not p.is_file():
             continue
@@ -485,19 +497,17 @@ def scan_all_panels(home_dir):
             continue
         if not p.stem.startswith("GLAT"):
             continue
-        composite_suffix = None
-        for suf in COMPOSITE_SUFFIXES:
-            if p.stem.endswith(suf):
-                composite_suffix = suf
-                break
-        if composite_suffix is None:
+        m = regex.match(p.stem)
+        if not m:
             continue
-        prefix = p.stem[: -len(composite_suffix)]
-        result_path = home_dir / "result_fits" / (prefix + composite_suffix + SUFFIX_RESULT + ".fits")
+        prefix, composite_suffix, exposure_suffix = m.group(1), m.group(2), m.group(3) or ""
+        result_path = home_dir / "result_fits" / (
+            prefix + composite_suffix + exposure_suffix + SUFFIX_RESULT + ".fits")
         status = "SKIP" if result_path.exists() else "QUEUED"
         entries.append({
             "prefix": prefix,
             "composite_suffix": composite_suffix,
+            "exposure_suffix": exposure_suffix,
             "path": p,
             "result_path": result_path,
             "status": status,
@@ -505,11 +515,12 @@ def scan_all_panels(home_dir):
     return entries
 
 
-def process_panel(siril, prefix, composite_suffix, lrgb_path, home_dir):
+def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, home_dir):
     """Run steps 1-4 for one plate-solved composite panel."""
     siril_log(siril, " ")
     siril_log(siril, "=" * 60)
-    siril_log(siril, "Panel: " + prefix + "  [" + composite_suffix.strip("_") + "]")
+    siril_log(siril, "Panel: " + prefix + "  [" + composite_suffix.strip("_") + "]"
+              + (" " + exposure_suffix.strip("_") if exposure_suffix else ""))
     siril_log(siril, "Input: " + lrgb_path.name)
     siril_log(siril, "=" * 60)
 
@@ -522,8 +533,11 @@ def process_panel(siril, prefix, composite_suffix, lrgb_path, home_dir):
     result_tiff_dir.mkdir(exist_ok=True)
 
     cs = composite_suffix
-    result_out = result_fits_dir / (prefix + cs + SUFFIX_RESULT + ".fits")
-    cc_linear_path = process_dir / (prefix + cs + SUFFIX_CC_LINEAR + ".fits")
+    es = exposure_suffix   # e.g. "_1200s", or "" if unknown -- carried
+                           # forward from the composite filename so total
+                           # exposure stays visible at every pipeline stage
+    result_out = result_fits_dir / (prefix + cs + es + SUFFIX_RESULT + ".fits")
+    cc_linear_path = process_dir / (prefix + cs + es + SUFFIX_CC_LINEAR + ".fits")
 
     cmd_safe(siril, "cd", str(home_dir))
 
@@ -644,7 +658,7 @@ def main():
         for e in all_entries:
             siril_log(siril, "  [{}] {}".format(e["status"], e["path"].name))
 
-        panels = [(e["prefix"], e["composite_suffix"], e["path"])
+        panels = [(e["prefix"], e["composite_suffix"], e["exposure_suffix"], e["path"])
                   for e in all_entries if e["status"] == "QUEUED"]
         n_skip = len(all_entries) - len(panels)
 
@@ -658,18 +672,18 @@ def main():
         siril_log(siril, " ")
         siril_log(siril, str(len(panels)) + " panel(s) queued to process, "
                   + str(n_skip) + " skipped (already done):")
-        for prefix, composite_suffix, p in panels:
+        for prefix, composite_suffix, exposure_suffix, p in panels:
             siril_log(siril, "  " + p.name)
 
         ok = fail = 0
         results = []
-        for prefix, composite_suffix, lrgb_path in panels:
-            if process_panel(siril, prefix, composite_suffix, lrgb_path, home_dir):
+        for prefix, composite_suffix, exposure_suffix, lrgb_path in panels:
+            if process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, home_dir):
                 ok += 1
-                results.append((prefix + composite_suffix, "OK"))
+                results.append((prefix + composite_suffix + exposure_suffix, "OK"))
             else:
                 fail += 1
-                results.append((prefix + composite_suffix, "FAIL"))
+                results.append((prefix + composite_suffix + exposure_suffix, "FAIL"))
 
         siril_log(siril, " ")
         siril_log(siril, "=" * 60)

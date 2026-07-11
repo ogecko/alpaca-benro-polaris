@@ -64,6 +64,15 @@ STACK_NORM       = "addscale"  # normalisation: addscale / add / mul / no
 FITS_EXTENSIONS  = {".fits", ".fit", ".fts"}
 PREFIX_LENGTH    = 16       # number of filename characters used to group files
 
+# RUN_EXPOSURE_POSTFIX = True appends the total summed exposure time to
+# stack output filenames, e.g. 10x30s subs -> "..._stack_300s.fits". Reads
+# each input file's own exposure header (summed, not count x nominal
+# value, so it's still correct if subs have mixed exposure times) --
+# EXPOSURE_KEYS lists the header keywords tried, in order, since different
+# capture software uses different names.
+RUN_EXPOSURE_POSTFIX = True
+EXPOSURE_KEYS = ["EXPTIME", "EXPOSURE", "EXPTIME1"]
+
 # Set RUN_DENOISE = False to skip GraXpert denoising (default: True).
 RUN_DENOISE = True
 
@@ -134,8 +143,9 @@ def cmd_safe(siril, *args):
 
 
 # Suffixes that identify output files produced by this script.
-# Any FITS file whose stem ends with one of these is skipped on re-runs
-# so that previous stacks are never mixed back into the input data.
+# Any FITS file whose stem ends with one of these (optionally followed by
+# an exposure postfix, e.g. "_stack_300s") is skipped on re-runs so that
+# previous stacks are never mixed back into the input data.
 OUTPUT_SUFFIXES = ("_stack",)
 
 # Prefixes that identify intermediate files from Galactic_0_Calibration.py.
@@ -146,19 +156,83 @@ INTERMEDIATE_PREFIXES = ("light_", "flat_", "dark_", "bias_",
                          "pp_flat_", "pp_dark_", "pp_bias_")
 
 
+def _strip_exposure_postfix(stem):
+    """
+    If stem ends with an exposure postfix (e.g. "..._300s"), return
+    (stem_without_it, seconds). Otherwise return (stem, None).
+    """
+    import re
+    m = re.search(r'^(.*)_(\d+)s$', stem)
+    if m:
+        return m.group(1), int(m.group(2))
+    return stem, None
+
+
 def is_output_file(path):
     """Return True if *path* looks like a file this script already produced
     or an intermediate calibration file that should be excluded."""
     stem = path.stem
-    # Skip our own stack output files
+    stem_no_exp, _ = _strip_exposure_postfix(stem)
+    # Skip our own stack output files (with or without an exposure postfix)
     for suffix in OUTPUT_SUFFIXES:
-        if stem.endswith(suffix):
+        if stem.endswith(suffix) or stem_no_exp.endswith(suffix):
             return True
     # Skip intermediate convert/calibrate files from Galactic_0_Calibration
     for prefix in INTERMEDIATE_PREFIXES:
         if stem.startswith(prefix):
             return True
     return False
+
+
+def read_exposure_seconds(fits_path):
+    """
+    Read this file's own exposure time from its FITS header, trying each
+    key in EXPOSURE_KEYS in order. Returns float seconds, or None if no
+    recognised keyword is present/readable.
+    """
+    try:
+        from astropy.io import fits as _afits
+        header = _afits.getheader(str(fits_path))
+        for key in EXPOSURE_KEYS:
+            if key in header:
+                try:
+                    return float(header[key])
+                except (ValueError, TypeError):
+                    continue
+    except Exception:
+        pass
+    return None
+
+
+def compute_total_exposure(files):
+    """
+    Sum each file's own exposure time (not count x nominal value, so this
+    stays correct even with mixed exposure times within a group). Returns
+    (total_seconds, any_missing) -- any_missing is True if at least one
+    file had no readable exposure header, in which case the total is a
+    partial/undercount and the caller should treat the postfix as unknown
+    rather than reporting a misleadingly-precise wrong number.
+    """
+    total = 0.0
+    any_missing = False
+    for f in files:
+        secs = read_exposure_seconds(f)
+        if secs is None:
+            any_missing = True
+        else:
+            total += secs
+    return total, any_missing
+
+
+def exposure_postfix(total_seconds, any_missing):
+    """
+    Format an exposure postfix like "_300s", or "" if the total is unknown
+    (any input file was missing a readable exposure header) or zero --
+    omitting the postfix is safer than showing a confidently-wrong number.
+    """
+    if any_missing or total_seconds <= 0 or not RUN_EXPOSURE_POSTFIX:
+        return ""
+    return "_{}s".format(int(round(total_seconds)))
 
 
 def group_fits_by_channel(home_dir):
@@ -233,9 +307,14 @@ def cleanup_group_dir(siril, group_dir, work_dir):
         siril_log(siril, "  [WARNING] Could not remove " + str(group_dir) + ": " + str(exc))
 
 
-def process_group(siril, group_prefix, files, work_dir):
+def process_group(siril, group_prefix, files, work_dir, stack_out):
     """
     Run the full register -> stack -> denoise pipeline for one prefix group.
+    stack_out is the exact output basename (already includes any exposure
+    postfix) computed once by the caller, so it stays consistent between
+    the skip-check, the actual save, and main()'s own pre-loop skip-check
+    -- all three need to agree on the exact filename or resume/skip logic
+    breaks.
     Returns True on success, False if a critical step failed.
     """
     n = len(files)
@@ -244,12 +323,37 @@ def process_group(siril, group_prefix, files, work_dir):
     siril_log(siril, "Group: " + group_prefix + "  (" + str(n) + " file(s))")
     siril_log(siril, "=" * 60)
 
+    safe_prefix = "".join(c if (c.isalnum() or c == "_") else "_" for c in group_prefix)
+
+    def _remove_stale_legacy_output(legacy_prefix, final_path):
+        """
+        Remove any old-style leftover from before channel names (and
+        before that, exposure postfixes) were added to this filename --
+        matched as "anything starting with <legacy_prefix>_stack" that
+        isn't the current final_path. The current naming always inserts
+        the channel name between the panel prefix and "_stack"
+        (e.g. "..._G_stack_150s"), so a bare "<prefix>_stack*" match can
+        only be an older-generation name, never a false positive against
+        a different channel's current file.
+        """
+        target = legacy_prefix + "_stack"
+        try:
+            for candidate in work_dir.glob(target + "*"):
+                if candidate.is_file() and candidate.resolve() != final_path.resolve():
+                    try:
+                        candidate.unlink()
+                        siril_log(siril, "  Removed stale leftover from an older naming: "
+                                  + candidate.name)
+                    except OSError as exc:
+                        siril_log(siril, "  [WARNING] Could not remove stale leftover "
+                                  + candidate.name + ": " + str(exc))
+        except OSError:
+            pass
+
     if n < 2:
         # Single frame -- skip stacking/registration but copy it through
         # so downstream scripts (Galactic_2_Composite) can find it.
         siril_log(siril, "  Single frame -- copying as _stack (no stacking possible).")
-        safe_prefix  = "".join(c if (c.isalnum() or c == "_") else "_" for c in group_prefix)
-        stack_out = safe_prefix + "_stack"
         # Check skip first
         for ext in (".fits", ".fit", ".fts"):
             existing = work_dir / (stack_out + ext)
@@ -262,6 +366,7 @@ def process_group(siril, group_prefix, files, work_dir):
             import shutil as _shutil
             _shutil.copy2(src_file, dest_file)
             siril_log(siril, "  Copied: " + src_file.name + " -> " + dest_file.name)
+            _remove_stale_legacy_output(safe_prefix, dest_file)
             return True
         except Exception as exc:
             siril_log(siril, "  [ERROR] Could not copy single frame: " + str(exc))
@@ -271,12 +376,11 @@ def process_group(siril, group_prefix, files, work_dir):
     # Build names. Each group gets its own clean temp directory so
     # leftover files from a previous run can never bleed into this one.
     # ------------------------------------------------------------------
-    safe_prefix  = "".join(c if (c.isalnum() or c == "_") else "_" for c in group_prefix)
     group_dir    = work_dir / ("_grp_" + safe_prefix)
 
     seq_name      = safe_prefix
     reg_seq_name  = "r_" + safe_prefix
-    stack_out     = safe_prefix + "_stack"
+    # stack_out passed in by caller (already includes exposure postfix, if any)
 
     # Skip if the denoised output already exists (any extension).
     # Check BEFORE creating the group_dir so no empty directory is left.
@@ -471,6 +575,8 @@ def process_group(siril, group_prefix, files, work_dir):
     if ab_ok:      steps_done.append("aberration corrected")
     siril_log(siril, "  OK  Saved (" + " + ".join(steps_done) + "): " + final_path.name)
 
+    _remove_stale_legacy_output(safe_prefix, final_path)
+
     # Clean up the temporary group directory
     cleanup_group_dir(siril, group_dir, work_dir)
     return True
@@ -529,15 +635,28 @@ def main():
                 siril_log(siril, " ")
                 siril_log(siril, "Channel " + channel + " / " + prefix
                           + " (" + str(len(files)) + " file(s))")
-                # Check skip before calling so we can count it
-                stack_out = ("".join(c if (c.isalnum() or c == "_") else "_"
-                                        for c in prefix) + "_stack")
+                # Exposure postfix has to be computed BEFORE the skip-check
+                # (not after), since the expected filename depends on it --
+                # otherwise the skip-check would look for the wrong name
+                # and never find an already-completed group.
+                safe_prefix = "".join(c if (c.isalnum() or c == "_") else "_"
+                                     for c in prefix)
+                total_exp, exp_missing = compute_total_exposure(files)
+                exp_suffix = exposure_postfix(total_exp, exp_missing)
+                # Channel/filter name is included so files from different
+                # channels are never identically named (they used to be --
+                # e.g. R, G, and B stacks for the same panel would ALL be
+                # "GLAT004N_GLON307_stack_150s.fits", distinguishable only
+                # by which directory they were in, which is easy to mix up
+                # when browsing/uploading them outside that folder context).
+                stack_out = safe_prefix + "_" + channel + "_stack" + exp_suffix
+
                 already_done = any((work_dir / (stack_out + ext)).exists()
                                    for ext in (".fits", ".fit", ".fts"))
                 if already_done:
                     skip += 1
                     results.append((channel, prefix, len(files), "SKIP"))
-                elif process_group(siril, prefix, files, work_dir):
+                elif process_group(siril, prefix, files, work_dir, stack_out):
                     ok += 1
                     results.append((channel, prefix, len(files), "OK"))
                 else:
