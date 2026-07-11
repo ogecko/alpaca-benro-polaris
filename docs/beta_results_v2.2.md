@@ -83,12 +83,19 @@ Notes: feedback on MacOS and Raspberry Pi 4
 ### Test Areas
 ### Results
 4 July 2028
-* Elevation offset - started Alpaca but I forgot to fully deploy the Polaris to be horizontal and did the usual setup. But now there is a 45 degrees offset in elevation - JDM This is likely MPA/Quest model causing an offset from the home position. In v2.2 MPA is persisted to allow restarts without re-aligning. To fix, typically just toggle to SPA and back to MPA
-* Latitude data entry - When a 0 is typed in lat/lon, it disappears when it’s the last digit - JDM I've increased the debounce to 1.5s to allow for trailing zero data entry on lat/lon. This is fixed in the latest dev2_2
-* No Astro Module - The blue tag was displaying astro v, maybe it should not be displayed at all - JDM Connect page highlights missing astro module. This is fixed in the latest dev2_2
-* M2 Speed Calibration - When trying to calibrate the motor M2 I an errorP - JDM roblem with legacy code not updated for new kinematics. This is fixed in the latest dev2_2
-* Reset Astro Axis - I don’t know how to reset the astro axe - JDM Home or Connect Page Reset should reset all axis to zero position.
-* SP / PV deviation - It is idle but the white and green arrow are not aligned - JDM When in idle, if the motors are moved the present value will deviate from the SP. pressing the vertical bar with arrows will realign the SP's.
+* Elevation offset - started Alpaca but I forgot to fully deploy the Polaris to be horizontal and did the usual setup. But now there is a 45 degrees offset in elevation
+    > JDM - This is likely MPA/Quest model causing an offset from the home position. In v2.2 MPA is persisted to allow restarts without re-aligning. To fix, typically just toggle to SPA and back to MPA
+* Latitude data entry - When a 0 is typed in lat/lon, it disappears when it’s the last digit
+    > JDM - I've increased the debounce to 1.5s to allow for trailing zero data entry on lat/lon. This is fixed in the latest dev2_2
+* No Astro Module - The blue tag was displaying astro v, maybe it should not be displayed at all
+    > JDM - Connect page highlights missing astro module. This is fixed in the latest dev2_2
+* M2 Speed Calibration - When trying to calibrate the motor M2 I an errorP
+    > JDM - problem with legacy code not updated for new kinematics. This is fixed in the latest dev2_2
+* Reset Astro Axis - I don’t know how to reset the astro axes
+    > JDM - Home or Connect Page Reset should reset all axis to zero position.
+* SP / PV deviation - It is idle but the white and green arrow are not aligned
+    > JDM - When in idle, if the motors are moved the present value will deviate from the SP. pressing the vertical bar with arrows will realign the SP's.
+
 ### Feedback Summary
 
 
