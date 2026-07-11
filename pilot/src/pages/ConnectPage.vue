@@ -131,21 +131,21 @@
                 <q-item-section>Connecting...</q-item-section>
               </q-item>
 
-              <!-- Polaris Connected -->
+              <!-- Polaris Versions -->
               <q-item v-else-if="isPolarisConnected">
                 <q-item-section thumbnail>
-                  <q-icon name="mdi-check-circle" color="green" />
+                  <q-icon :name="isAstroModuleOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isAstroModuleOk ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>
-                    Benro Polaris
-                    <span class="q-gutter-sm q-pl-sm">
-                      <q-badge>hw v{{ p.polarishwver }}</q-badge>
-                      <q-badge>sw v{{ p.polarisswver }}</q-badge> 
-                      <q-badge v-if="p.polarisastrover">astro v{{ p.polarisastrover }}</q-badge> 
-                      <q-badge v-else color="warning">missing astro module</q-badge> 
-                    </span>
-                  </q-item-label>
+                  <q-item-label>Benro Polaris Versions</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <span class="q-gutter-sm q-pl-sm">
+                    <q-badge>hw v{{ p.polarishwver }}</q-badge>
+                    <q-badge>sw v{{ p.polarisswver }}</q-badge> 
+                    <q-badge v-if="isAstroModuleOk">astro v{{ p.polarisastrover }}</q-badge> 
+                    <q-badge v-else color="warning">missing astro module</q-badge> 
+                  </span>
                 </q-item-section>
               </q-item>
 
@@ -180,6 +180,25 @@
                 </q-item>
               </div>
 
+              <!-- Observing Site  -->
+              <q-item v-if="p.connected">
+                <q-item-section thumbnail>
+                  <q-icon :name="isLocationOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isLocationOk ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Check Observing Site Location </q-item-label>
+                </q-item-section>
+                <q-item-section v-if="cfg.location_list" side>
+                  <q-select
+                    label="Location" :model-value="cfg.location" @update:model-value="onLocationSelect" 
+                    dense options-dense :options="locationOptions"  
+                  />
+                </q-item-section>
+                <q-item-section v-else side>
+                  <q-btn label="Settings" icon="mdi-crosshairs-gps"  class="fixedWidth" to="/config"/>
+                </q-item-section>
+              </q-item>
+
               <!-- Select Astro Mode -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
@@ -190,8 +209,9 @@
                   <q-item-label caption>{{ astroCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-select label="Mode" v-model="p.polarismode" @update:modelValue="onModeUpdate" :options="polarisModeOptions" :display-value="`${p.polarismodestr}`"
-                             emit-value map-options dense options-dense  class="fixedWidth" color="secondary">
+                  <q-select label="Mode" v-model="p.polarismode" @update:modelValue="onModeUpdate" 
+                            :options="polarisModeOptions" :display-value="`${p.polarismodestr}`"
+                            dense options-dense map-options emit-value class="fixedWidth" color="secondary">
                     <template>
                       <q-icon name="mdi-satellite-variant"></q-icon>
                     </template>
@@ -209,6 +229,22 @@
                 </q-item-section>
                 <q-item-section side>
                   <q-btn label="Reset" icon="mdi-backup-restore"  class="fixedWidth" @click="onResetAxes"/>
+                </q-item-section>
+              </q-item>
+
+
+              <!-- L-Bracket -->
+              <q-item v-if="p.connected">
+                <q-item-section thumbnail>
+                  <q-icon :name="isCheckLBracket ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isCheckLBracket ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Check Camera Orientation (Az: {{ p.azimuth.toFixed(0) }}, Alt: {{p.altitude.toFixed(0)}}, Roll: {{p.roll.toFixed(0)}})</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="row items-center q-gutter-sm">
+                    <q-toggle v-model="p.polarislbracket" label="L - Bracket" @update:modelValue="onLBracket"/>
+                  </div>
                 </q-item-section>
               </q-item>
 
@@ -270,41 +306,6 @@
                 </q-item-section>
               </q-item>
 
-              <!-- L-Bracket -->
-              <q-item v-if="p.connected">
-                <q-item-section thumbnail>
-                  <q-icon :name="isCheckLBracket ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isCheckLBracket ? 'green' : 'red'" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Check Camera Orientation (Az: {{ p.azimuth.toFixed(0) }}, Alt: {{p.altitude.toFixed(0)}}, Roll: {{p.roll.toFixed(0)}})</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <div class="row items-center q-gutter-sm">
-                    <q-toggle v-model="p.polarislbracket" label="L - Bracket" @update:modelValue="onLBracket"/>
-                  </div>
-                </q-item-section>
-              </q-item>
-
-              <!-- Observing Site  -->
-              <q-item v-if="p.connected">
-                <q-item-section thumbnail>
-                  <q-icon :name="isLocationOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isLocationOk ? 'green' : 'red'" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>Check Observing Site Location </q-item-label>
-                </q-item-section>
-                <q-item-section v-if="cfg.location_list" side>
-                  <q-select
-                    label="Location" dense filled :model-value="cfg.location" :options="locationOptions" 
-                    @update:model-value="onLocationSelect"  
-                  />
-                </q-item-section>
-                <q-item-section v-else side>
-                  <q-btn label="Settings" icon="mdi-crosshairs-gps"  class="fixedWidth" to="/config"/>
-                </q-item-section>
-              </q-item>
-
-
               <!-- Multi Point Align -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
@@ -363,6 +364,7 @@ const restAPIPort = computed({
 const isMultiPointAligned = computed(() => p.aligned_count>=3);
 const bleLen = computed(() => p.bledevices.length);
 const isPolarisConnected = computed(() => (!!p.connected));
+const isAstroModuleOk = computed(() => (!!p.connected && !!p.polarisastrover));
 const isBLESelected = computed(() => (!!p.connected) || (!!p.bleselected && bleLen.value>0));
 const bleCaption = computed(() => {
   return (bleLen.value==0) ? 'Check Power or Bluetooth, no devices discovered.' :
@@ -370,7 +372,7 @@ const bleCaption = computed(() => {
          (isBLESelected.value) ? '' : 'Please select device.'
 });
 const isAstroMode = computed(() => p.polarismode==8);
-const isCheckLBracket = computed(() => p.aligned && !p.iszetamoving)
+const isCheckLBracket = computed(() => p.isreset && !p.iszetamoving)
 const astroCaption = computed(() => {
   return (isAstroMode.value) ? '' : 'Change Polaris Mode to Astro.'
 });
