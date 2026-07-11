@@ -82,7 +82,7 @@ Notes: feedback on MacOS and Raspberry Pi 4
 * Tripod: Manfrotto 190XPROB, precise hardware level
 ### Test Areas
 ### Results
-4 July 2028
+4 July 2028 - Beta 1 Release
 * Elevation offset - started Alpaca but I forgot to fully deploy the Polaris to be horizontal and did the usual setup. But now there is a 45 degrees offset in elevation
     > JDM - This is likely MPA/Quest model causing an offset from the home position. In v2.2 MPA is persisted to allow restarts without re-aligning. To fix, typically just toggle to SPA and back to MPA
 * Latitude data entry - When a 0 is typed in lat/lon, it disappears when it’s the last digit
@@ -111,12 +111,16 @@ Notes: feedback on MacOS and Raspberry Pi 4
 ### Test Areas
 * Indoor slew/movement tests via Alpaca Pilot
 ### Results
-June 2026
-* Early dev2_2 build 19-Jun-26; at Az=0; changing Az around 360/0 can cause unecessary "unwind" operations. JDM - fixed in dev2_2
-* When switching between the Dashboard and Multi-Point Alignment windows in the Pilot App, the coordinates on the Dashboard keep switching back to alt/az (a bit of an annoyance). JDM - Fixed in dev2_2
-* On the Mac running dev2_2 with Stellarium 26.1, the RA/DEC/PA method to add SYNC points does't seem to work.  - JDM Unfortunately, Stellarium Desktop doesn't support the SynSCAN Sync command eg “S34AB,12CE”. Not sure why they don't, but Stellarium Mobile does.
+June 2026 - Alpha 1 Release
+* Early dev2_2 build 19-Jun-26; at Az=0; changing Az around 360/0 can cause unecessary "unwind" operations. 
+    > JDM - fixed in dev2_2
+* When switching between the Dashboard and Multi-Point Alignment windows in the Pilot App, the coordinates on the Dashboard keep switching back to alt/az (a bit of an annoyance). 
+    > JDM - Fixed in dev2_2
+* On the Mac running dev2_2 with Stellarium 26.1, the RA/DEC/PA method to add SYNC points does't seem to work. 
+    > JDM - Unfortunately, Stellarium Desktop doesn't support the SynSCAN Sync command eg “S34AB,12CE”. Not sure why they don't, but Stellarium Mobile does.
 July 2026
-* I was trying to perform the motor speed calibration as shown in the video and it didnt work. JDM - Fixed in dev2_2
+* I was trying to perform the motor speed calibration as shown in the video and it didnt work. 
+    > JDM - Fixed in dev2_2
 ### Feedback Summary
 
 
