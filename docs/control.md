@@ -24,7 +24,7 @@ With version 2.0 of the Alpaca Driver, we introduce a complete rewrite of the mo
 
 This guide provides an overview of the new motion control concepts introduced in V2.0.
 
-For a comprehensive technical reference on the updated kinematics, refer to [kinematics.md](./kinemtaics.md).
+For a comprehensive technical reference on the updated kinematics, refer to [kinematics.md](./kinemtatics.md).
 
 <br>
 <br>
