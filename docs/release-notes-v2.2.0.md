@@ -80,6 +80,7 @@
 - **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
 - **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
 - **[HTTPS Support]**: Alpaca Pilot now support https, enabling location and clipboard services in the browser.
+- **[Peak Finder]**: Added Sky Conditions link to identify a mountain peak that Polaris is pointing toward and determine its elevation.
 
 ### Diagnostics and System
 - **[Heartbeat Diagnostics]**: Introduce a heartbeat monitor and additional telemetry statistics to assist in diagnosing late position updates.

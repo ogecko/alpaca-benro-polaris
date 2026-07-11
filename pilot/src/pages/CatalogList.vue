@@ -216,7 +216,9 @@ function check(query: string, criteria: RegExp[]): boolean {
   return criteria.some(regex => regex.test(query.trim()))
 }
 
-
+function nowISOString(): string {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
+}
 
 
 // ---------- Computed
@@ -335,6 +337,11 @@ const allLinks = computed(() => [
     C1: 11 as DsoType, icon: "mdi-lightbulb-on-outline", title: 'Light Polution',
     caption: 'Find the best dark sky locations for Astrophotography (external site).',
     href: `https://lightpollutionmap.app/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&zoom=10`,
+  },  
+  {
+    C1: 11 as DsoType, icon: "mdi-image-filter-hdr", title: 'Peak Finder',
+    caption: 'Identify a mountain peak that Polaris is pointing toward and determine its elevation (external site).',
+    href: `https://www.peakfinder.com/fr/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&ele=${cfg.site_elevation}&azi=${p.azimuth}&alt=-15&teleazi=${p.azimuth}&telealt=${p.altitude}&fov=110&date=${nowISOString()}&cfg=es&name=${cfg.location}`,
   },
   {
     C1: 11 as DsoType, icon: "mdi-aurora", title: 'Space Weather Prediction Center',
