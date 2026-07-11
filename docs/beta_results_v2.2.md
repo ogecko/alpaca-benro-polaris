@@ -41,6 +41,31 @@ Notes: connect ok, tracking pulsing, top 360
 ### Results
 4 July 2026
 * On the Connect page, most items are ‘red’ until they have been selected. However, RESET has always had a green tick (even before it is selected). - JDM fixed in dev2_2
+#### 10 July 2026 - Beta 1 Release
+* Settings - 90 x 60s exposures at 400mm on NGC292 SMC. Set up went really well with no issues at all - very smooth. Advanced Sequencer using solve and sync guiding (45 iterations of 2 x 60 sec exposures)
+solving every 2 minutes (after 2 exposures). MAC off for the entire test and logging for PEC on.
+* 55 Used / 23 Failed Light frames - when zoomed in, a high number of images show unusual shaped stars with squiggles, indicating some kind of movement during the session (but there was no wind).
+Almost as if there may have been some form of vibration or oscillation during the imaging. Using PixInsight for Weighted Batch Preprocessing (see image), shows only 55 light frames
+were used (23 failed and 12 rejected due to squiggles?) - see image1
+    > JDM - I analysed the logs with fits_pec.ipynb and it show excellent PEC tracking after about 10min of learning. RA drift 111 '/hr +/- 10 H1 cycle , Dec drift 22 '/hr +/- 4.4 H1 cycle. Given the good results I have a hunch that the Failed frames are due to wiggle after some of the Sync Guides. On my setup I change filters after each Sync Guide so this gives it time to settle, but with OSC there is potentially too little time to settle. You could try adding a "Wait for Time Span" instruction after the "Solve and Sync" to check whether this helps. Start with say 30s to see if it eliminate wiggle, then reduce and optimise. Let me know if this helps, I will try as well without filters. 
+* MPA - as an experiment, I changed the usual existing workflow. This resulted in the best residuals I have ever had (see image2) ... not sure if this is down to the revised workflow or other factors with the Beta version.
+    * Existing: (1) South Celestial Pole (2) Future Target (d-2) (3) NINA
+    * Revised:(1) South Celestial Pole (2) Target (i.e NGC292 SMC) (3) T Future Target (d-2) (4) NINA
+    > JDM - More spread out sync points should help and doing a sync at target is definely worth it. There is also a slighly random factor of where the worm gear positions will be at each sync point.
+* Calibration Frames - At the end of the imaging session, after stopping the tracking, I adjust the Alt position to point upwards. This facilitates taking the calibration frames (Darks, Bias, Flats, Flat Darks) - when using an iPhone as a flat panel for the Flats.
+* Park Position - I would expect this to return the Benro Polaris to its start position (after the
+initial Reset, which mirrors the original double joystick tap on the Benro Connect App). The
+unit did not return to +180° +045° -000° .,..... instead it was +191° +042° +001° (see image3)
+Using the Home and Park again made no difference
+    > JDM - This Park Position offset is due to the accumulated drift that has been corrected for by PEC. Given the large drift of RA 111 '/hr, this can greatly effect its position when the motors are returned to their 0,0,0 position. A solve and sync will fix this.
+* MPA Persistence - Next Morning when the Mini PC was switched on (in order to copy the image files and Logs
+onto USB drive), I also tried the set up process with Polaris and found that it was already set
+for ‘Multipoint Alignment’ and I presume this is intentional, in case the equipment and target
+were to remain the same for another session.
+    > JDM - In v2.2 when the driver persists the MPA sync points and reloads them whenever the driver restarts. This preserves the alignment through driver restarts, like you experienced the next morning.
+* Alignment reset - Furthermore, after the (180° 45° alignment) the start position showed its starting position as +179° +044° -001° (see image4). Selecting Park, changed this to +178° +045° -000° (see image5). Not sure why these figures aren’t always +180° +045° -000° ??
+    > JDM - this may be due to rounding error as 179°59'50" is very close to 180°
+
 ### Summary
 
 
