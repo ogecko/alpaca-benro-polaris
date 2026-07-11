@@ -1,53 +1,56 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_0_Calibration.py
-# Version: 1.0.1
+# Version: 1.1.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
-# Description
-# -----------
-# Performs calibration, preprocessing and GLAT/GLON renaming for all filter
-# channels found under the Siril home directory.
+# ==============================================================================
+# OVERVIEW
+# ==============================================================================
+# Calibrates and preprocesses light frames for every filter found under the
+# Siril home directory, then renames each calibrated light with a GLAT/GLON
+# panel label derived from its own RA/Dec header. Output is ready for
+# Galactic_1_Stack.py.
 #
-# Expected directory structure:
+# Steps, in order:
+#   0. Normalise capture-software directory names       (optional, RUN_NINA_DIR_NORMALIZE)
+#   1. Scan and report available calibration/light data
+#   2. Build master bias and master dark (shared across all filters)
+#   3. Build master flat (per filter)
+#   4. Calibrate lights -> <filter>/process/pp_light_NNNNN.fits
+#   5. Rename each calibrated light with its GLAT/GLON panel label
 #
+# ==============================================================================
+# DIRECTORY STRUCTURE
+# ==============================================================================
 #   <home>/
-#     L/lights/         <- light frames (optional, any filter may be absent)
+#     L/lights/              <- light frames (any filter may be absent)
 #     R/lights/
 #     G/lights/
 #     B/lights/
 #     Ha/lights/
 #     Sii/lights/
 #     Oiii/lights/
+#     OSC/lights/            <- one-shot-colour camera (no filter wheel)
 #     calibration/
 #       X/
-#         darks/        <- darks (shared across all filters)
-#         biases/       <- biases (shared across all filters)
-#       L/flats/        <- per-filter flats (optional)
+#         darks/             <- darks, shared across all filters (incl. OSC)
+#         biases/            <- biases, shared across all filters (incl. OSC)
+#       L/flats/              <- per-filter flats (optional)
 #       R/flats/
 #       G/flats/
 #       B/flats/
 #       Ha/flats/
 #       Sii/flats/
 #       Oiii/flats/
+#       OSC/flats/
 #
-# For each present filter this script:
-#   1.  Scans and reports what is available (lights / flats / darks / biases)
-#   2.  Builds master bias  (shared, built once)
-#   3.  Builds master dark  (shared, calibrated with master bias)
-#   4.  Builds master flat  (per-filter, calibrated with master bias)
-#   5.  Preprocesses lights -> <filter>/process/pp_light_NNNNN.fits
-#   6.  Plate-solves each pp_light_*.fits
-#   7.  Renames pp_light_*.fits with GLAT/GLON prefix using the RA/Dec
-#       from the FITS header (replaces fits_galactic.py)
-#
-# Output is ready for Galactic_1_Stack.py.
-#
-# Configuration
-# -------------
-# Edit the constants in the CONFIGURATION block below.
+# If your capture software writes LIGHT/DARK/BIAS/FLAT folders instead --
+# including an OSC layout with no filter subfolder at all -- Step 0
+# reorganises them into the structure above automatically.
 
 import sirilpy as s
 import math
+import os
 import traceback
 from pathlib import Path
 from collections import defaultdict
@@ -56,74 +59,77 @@ from astropy.io import fits as _afits
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as _u
 
-# ---------------------------------------------------------------------------
+# ==============================================================================
 # CONFIGURATION
-# ---------------------------------------------------------------------------
-# Filter directories to scan under home (order determines processing order)
-FILTER_DIRS = ["L", "R", "G", "B", "Ha", "Sii", "Oiii"]
+# ==============================================================================
 
-# Calibration root directory name
-CALIB_DIR     = "calibration"
-SHARED_DIR    = "X"          # subdirectory containing darks/ and biases/
+# ------------------------------------------------------------------------
+# Directory layout (used throughout)
+# ------------------------------------------------------------------------
+FILTER_DIRS = ["L", "R", "G", "B", "Ha", "Sii", "Oiii", "OSC"]   # processing order
 
-# Subdirectory names within each filter/shared directory
+CALIB_DIR  = "calibration"
+SHARED_DIR = "X"              # darks/ and biases/ live here, shared by all filters
+
 LIGHTS_SUBDIR  = "lights"
 FLATS_SUBDIR   = "flats"
 DARKS_SUBDIR   = "darks"
 BIASES_SUBDIR  = "biases"
 PROCESS_SUBDIR = "process"
 
-# Master calibration frame names (written into calibration/X/)
-MASTER_BIAS_NAME = "master_bias"
-MASTER_DARK_NAME = "master_dark"    # calibrated dark (bias subtracted)
+FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
 
-# Master flat name written into calibration/<filter>/
-MASTER_FLAT_NAME = "master_flat"
+# ------------------------------------------------------------------------
+# Step 0: Directory normalisation -- RUN_NINA_DIR_NORMALIZE
+# ------------------------------------------------------------------------
+# Renames capture-software LIGHT/DARK/BIAS/FLAT folders to
+# lights/darks/biases/flats. An OSC layout (these folders sitting directly
+# under <home>, with no filter subfolder) is moved into the OSC pseudo-filter
+# structure above; any other match is renamed in place. Set False if your
+# folders are already named correctly.
+RUN_NINA_DIR_NORMALIZE = True
 
-# Plate solving removed -- RA/Dec from capture software FITS headers
-# is preserved through calibrate and used directly for GLAT/GLON rename.
-# Full WCS plate solve is done by Galactic_2_Composite.py on the stack.
+NINA_RENAME_MAP = {
+    "LIGHT": LIGHTS_SUBDIR,
+    "DARK":  DARKS_SUBDIR,
+    "BIAS":  BIASES_SUBDIR,
+    "FLAT":  FLATS_SUBDIR,
+}
+OSC_FILTER_NAME = "OSC"        # must match an entry in FILTER_DIRS above
 
-# GLAT/GLON rename settings (mirrors fits_galactic.py --rename behaviour).
-#
-# RENAME_DECIMALS controls how finely GLAT/GLON get rounded before being
-# used as the panel label -- this is what determines which subs get
-# grouped into the same panel. 0 = nearest whole degree (the old default).
-# Negative values round to a coarser unit instead -- e.g. -1 rounds to the
-# nearest 10 degrees -- which is the main knob to reach for if subs from
-# what's clearly the same panel are landing on opposite sides of a
-# rounding boundary (e.g. GLON 119.9 and 120.1 rounding to 120 and 120 is
-# fine, but 119.4 and 119.6 rounding to 119 and 120 is the problem this
-# fixes: pick a coarser unit and both fall inside the same bucket).
-# Positive values are also supported (e.g. 1 keeps one decimal place) if
-# you need finer-grained panels than a whole degree.
+# ------------------------------------------------------------------------
+# Step 2: Master calibration frames
+# ------------------------------------------------------------------------
+MASTER_BIAS_NAME = "master_bias"      # written into calibration/X/
+MASTER_DARK_NAME = "master_dark"      # written into calibration/X/ (bias-subtracted)
+MASTER_FLAT_NAME = "master_flat"      # written into calibration/<filter>/
+
+# ------------------------------------------------------------------------
+# Step 5: GLAT/GLON panel renaming
+# ------------------------------------------------------------------------
+PREFIX_LENGTH = 16             # characters in the prefix, e.g. GLAT007N_GLON344
+
+# Rounding precision for the panel label. 0 = nearest whole degree. Negative
+# values round to a coarser unit (-1 = nearest 10 degrees) -- use this if subs
+# from the same panel are landing on opposite sides of a rounding boundary.
+# Positive values keep decimal places for finer-grained panels.
 RENAME_DECIMALS = 0
 
-# MANUAL MERGE OVERRIDE -- for one-off anomalies (e.g. a mount slip meant
-# two batches of subs for the same intended panel ended up far enough
-# apart that no reasonable RENAME_DECIMALS choice would group them
-# together without also merging genuinely separate, adjacent panels
-# elsewhere in the same session). Deliberately manual, not automatic --
-# there's no general distance rule that can tell "this is a one-off
-# mistake" apart from "these are two real adjacent panels" on its own.
-#
-# Each entry maps a prefix EXACTLY as make_glat_glon_prefix generates it
-# (including the trailing underscore) to the prefix you want instead, e.g.:
+# Manual override for one-off anomalies (e.g. a mount slip put two batches of
+# the same intended panel further apart than any RENAME_DECIMALS setting could
+# safely group without also merging genuinely separate panels elsewhere).
+# Maps a generated prefix (including its trailing underscore) to the prefix
+# you want instead, e.g.:
 #   MERGE_LABELS = {"GLAT007N_GLON123_": "GLAT007N_GLON120_"}
-# Check the Siril log after a run to see the exact prefixes being
-# generated if you need to copy one here. Leave empty ({}) if not needed.
+# Check the Siril log for the exact generated prefixes. Leave {} if not needed.
 MERGE_LABELS = {}
 
-PREFIX_LENGTH = 16          # characters in the prefix e.g. GLAT007N_GLON344
-
-# RA/Dec header keyword candidates (tried in priority order)
-RA_KEYS_DEG  = ["RA",      "RA_OBJ",  "CRVAL1"]
-DEC_KEYS_DEG = ["DEC",     "DEC_OBJ", "CRVAL2"]
+# RA/Dec header keywords, tried in priority order
+RA_KEYS_DEG  = ["RA", "RA_OBJ", "CRVAL1"]
+DEC_KEYS_DEG = ["DEC", "DEC_OBJ", "CRVAL2"]
 RA_KEYS_STR  = ["OBJCTRA"]
 DEC_KEYS_STR = ["OBJCTDEC"]
-
-FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
-# ---------------------------------------------------------------------------
+# ==============================================================================
 
 
 # ---------------------------------------------------------------------------
@@ -181,6 +187,132 @@ def count_fits(directory):
         return 0
     return sum(1 for p in directory.iterdir()
                if p.is_file() and p.suffix.lower() in FITS_EXTENSIONS)
+
+
+# ---------------------------------------------------------------------------
+# NINA directory normalisation (see RUN_NINA_DIR_NORMALIZE config comment)
+# ---------------------------------------------------------------------------
+
+def _merge_or_move_dir(siril, src_dir, dst_dir):
+    """
+    Move src_dir's contents into dst_dir. If dst_dir doesn't exist yet,
+    this is a fast, simple rename of the whole directory. If dst_dir
+    already has content (e.g. a previous night's session already
+    populated it), files are merged in one at a time instead -- any
+    individual filename collision is left in place and skipped (with a
+    warning) rather than silently overwritten, since calibration frames
+    or lights from a different session might not actually be compatible
+    even if the folder name matches.
+    Returns the number of files moved.
+    """
+    if not dst_dir.exists():
+        dst_dir.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            src_dir.rename(dst_dir)
+            n = sum(1 for p in dst_dir.iterdir() if p.is_file())
+            siril_log(siril, "  Moved: " + str(src_dir) + "  ->  " + str(dst_dir)
+                      + "  (" + str(n) + " file(s))")
+            return n
+        except OSError as exc:
+            siril_log(siril, "  [WARNING] Could not move " + str(src_dir)
+                      + " -> " + str(dst_dir) + ": " + str(exc))
+            return 0
+
+    # Destination already exists -- merge file by file.
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    moved = skipped = 0
+    for item in list(src_dir.iterdir()):
+        target = dst_dir / item.name
+        if target.exists():
+            skipped += 1
+            continue
+        try:
+            item.rename(target)
+            moved += 1
+        except OSError as exc:
+            siril_log(siril, "  [WARNING] Could not move " + str(item) + ": " + str(exc))
+    siril_log(siril, "  Merged into existing " + str(dst_dir) + ": "
+              + str(moved) + " file(s) moved, " + str(skipped) + " skipped (already present)")
+    try:
+        next(src_dir.iterdir())
+    except StopIteration:
+        src_dir.rmdir()
+    except OSError:
+        pass
+    return moved
+
+
+def normalize_nina_directories(siril, home_dir):
+    """
+    Rename/reorganise NINA-style LIGHT/DARK/BIAS/FLAT folders into what
+    this pipeline (and Siril generally) expects -- see the
+    RUN_NINA_DIR_NORMALIZE config comment for the two passes this does.
+    """
+    calib_root = home_dir / CALIB_DIR
+    shared_dir = calib_root / SHARED_DIR
+
+    # ------------------------------------------------------------------
+    # Pass 1: OSC layout -- LIGHT/DARK/BIAS/FLAT directly under home,
+    # with no filter subfolder. Move + rename into the OSC pseudo-filter
+    # structure so the rest of the pipeline treats OSC like any other
+    # filter, with no special-casing needed anywhere else.
+    # ------------------------------------------------------------------
+    osc_targets = {
+        "LIGHT": home_dir / OSC_FILTER_NAME / LIGHTS_SUBDIR,
+        "FLAT":  calib_root / OSC_FILTER_NAME / FLATS_SUBDIR,
+        "DARK":  shared_dir / DARKS_SUBDIR,
+        "BIAS":  shared_dir / BIASES_SUBDIR,
+    }
+    any_osc = False
+    handled_paths = set()
+    for raw_name, dst_dir in osc_targets.items():
+        src_dir = home_dir / raw_name
+        if src_dir.is_dir():
+            if not any_osc:
+                siril_log(siril, "  Detected OSC-style layout (no filter subfolder) --"
+                          + " reorganising into " + OSC_FILTER_NAME + "/ structure.")
+                any_osc = True
+            handled_paths.add(src_dir.resolve())
+            _merge_or_move_dir(siril, src_dir, dst_dir)
+            if src_dir.is_dir():
+                siril_log(siril, "  [WARNING] " + str(src_dir)
+                          + " still has unmerged file(s) left behind (name collisions"
+                          + " with existing files at the destination) -- check it manually.")
+
+    # ------------------------------------------------------------------
+    # Pass 2: general case -- rename any OTHER directory literally named
+    # LIGHT/DARK/BIAS/FLAT anywhere in the tree, in place (no moving).
+    # This is the normal filter-wheel case, where NINA already nests
+    # these under the right filter/shared folder, just with the wrong
+    # name. topdown=False so renaming a directory doesn't disrupt os.walk
+    # part-way through iterating its parent.
+    # ------------------------------------------------------------------
+    renamed = 0
+    for current_path, dirnames, _filenames in os.walk(str(home_dir), topdown=False):
+        for dirname in dirnames:
+            if dirname not in NINA_RENAME_MAP:
+                continue
+            old_path = Path(current_path) / dirname
+            if not old_path.is_dir():
+                continue
+            if old_path.resolve() in handled_paths:
+                continue   # already dealt with (or deliberately left) by Pass 1
+            new_path = Path(current_path) / NINA_RENAME_MAP[dirname]
+            if new_path.exists():
+                # Merge rather than skip -- consistent with the OSC pass,
+                # and handles re-running this across multiple sessions.
+                _merge_or_move_dir(siril, old_path, new_path)
+            else:
+                try:
+                    old_path.rename(new_path)
+                    siril_log(siril, "  Renamed: " + str(old_path) + "  ->  " + str(new_path))
+                    renamed += 1
+                except OSError as exc:
+                    siril_log(siril, "  [WARNING] Could not rename " + str(old_path)
+                              + ": " + str(exc))
+
+    if not any_osc and renamed == 0:
+        siril_log(siril, "  No NINA-style LIGHT/DARK/BIAS/FLAT directories found -- nothing to do.")
 
 
 # ---------------------------------------------------------------------------
@@ -579,6 +711,19 @@ def main():
     try:
         home_dir = Path(siril.get_siril_wd())
         siril_log(siril, "Home directory: " + str(home_dir))
+
+        # ------------------------------------------------------------------
+        # Step 0: Normalise NINA-style directory names (LIGHT/DARK/BIAS/FLAT
+        # -> lights/darks/biases/flats), including reorganising an OSC
+        # (no filter subfolder) layout into the OSC pseudo-filter structure.
+        # Must happen before any scanning below.
+        # ------------------------------------------------------------------
+        if RUN_NINA_DIR_NORMALIZE:
+            siril_log(siril, " ")
+            siril_log(siril, "=" * 60)
+            siril_log(siril, "Normalising capture directory names...")
+            siril_log(siril, "=" * 60)
+            normalize_nina_directories(siril, home_dir)
 
         # ------------------------------------------------------------------
         # Step 1: Scan and report availability

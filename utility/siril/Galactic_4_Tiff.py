@@ -1,67 +1,40 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_4_Tiff.py
-# Version: 4.0.1
+# Version: 4.1.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
-# Description
-# -----------
-# Converts every FITS file in result_fits/ to a 16-bit TIFF in result_tiff/.
-# Uses astropy + tifffile directly for explicit pixel control.
+# ==============================================================================
+# OVERVIEW
+# ==============================================================================
+# Converts every FITS file in result_fits/ to a 16-bit TIFF in result_tiff/,
+# ready for stitching. result_fits/ is never modified -- all corrections
+# below only ever affect the exported TIFFs, so this script is always safe
+# and cheap to re-run.
 #
-# Orientation normalisation
-# -------------------------
-# PANO_MODE = "GALACTIC" (default):
-#   The camera may be in portrait or landscape orientation -- we cannot
-#   assume galactic longitude maps to pixel X or Y. Instead:
+#   0. Green noise removal              (optional, RUN_REMOVE_GREEN_NOISE)
+#   1. Cross-panel harmonization        (optional, RUN_HARMONIZE_PANELS)
+#   2. Orientation normalisation        (PANO_MODE)
+#   3. Export to 16-bit TIFF
 #
-#   Pass 1: Compute the galactic orientation for every panel:
-#     - glon_vec: 2D unit vector showing which pixel direction GLON increases
-#     - glat_vec: 2D unit vector showing which pixel direction GLAT increases
-#   Pass 2: Use the FIRST panel as the orientation reference. For each
-#     subsequent panel, compute whether its galactic axes are consistent
-#     with the reference. If GLON is flipped relative to reference, apply
-#     an hflip or vflip (whichever axis GLON runs along) to normalise it.
+# Orientation normalisation (PANO_MODE)
+# --------------------------------------
+# "GALACTIC" (default): the camera may be portrait or landscape, so galactic
+#   longitude isn't guaranteed to map to a fixed pixel axis. The first panel
+#   processed sets the orientation reference; every other panel is flipped
+#   (horizontally and/or vertically) as needed to match it. Works for any
+#   camera orientation and any panorama arc length, including >180 degrees.
 #
-#   This works correctly regardless of camera orientation (portrait/landscape)
-#   and for panoramas spanning any arc length including >180 degrees.
+# "RADEC": uses the WCS CD matrix determinant sign instead (target: negative,
+#   i.e. East left / North up). Suited to small RA/Dec panoramas.
 #
-# PANO_MODE = "RADEC":
-#   Uses RA/Dec CD matrix determinant sign. Suitable for small RA/Dec panos.
-#   Target: negative determinant (standard: East left, North up).
+# "NONE": no orientation normalisation (e.g. Alt/Az panoramas, or when
+#   already consistent).
 #
-# PANO_MODE = "NONE":
-#   No orientation normalisation. Use for AzAlt panos or when already consistent.
-#
-# FITS ROWORDER=BOTTOM-UP is always corrected to top-down raster order
-# regardless of PANO_MODE.
-#
-# Optional cross-panel colour steps
-# ----------------------------------
-# Both run here (rather than in Galactic_3_Stretch.py) specifically so
-# they can be tuned and re-run without re-running the stretch on every
-# panel -- they read from result_fits/ but never modify it; corrections
-# only ever land in the exported result_tiff/ files, so re-running this
-# script is always cheap and safe.
-#
-# RUN_REMOVE_GREEN_NOISE (optional, default False): runs Siril's rmgreen
-#   (SCNR) on each panel before export. Green is essentially never a real
-#   deep-sky colour outside a few emission nebulae, so residual green
-#   after stretching a wideband RGB image is almost always noise or a
-#   calibration artefact.
-#
-# RUN_HARMONIZE_PANELS (optional, default False): evens out panel-to-panel
-#   colour/brightness differences (e.g. one panel reading "too green" or
-#   "too dark" next to its neighbours) that Kolor Giga Panel's own
-#   blending can't fix, by nudging each panel's per-channel level to match
-#   the consensus across all panels. This is a mosaic-consistency
-#   correction, not a colour-accuracy one -- it deliberately trades
-#   absolute per-panel truth for a seamless-looking stitch. See
-#   HARMONIZE_MAX_GAIN to bound how aggressive the correction can get for
-#   any one panel.
+# FITS ROWORDER=BOTTOM-UP is always corrected to top-down, regardless of mode.
 #
 # Usage
 # -----
-#   Make any final adjustments to result_fits/*.fits then run from Scripts menu.
+#   Make any final adjustments to result_fits/*.fits, then run from Scripts menu.
 
 import sirilpy as s
 import traceback
@@ -69,66 +42,64 @@ from pathlib import Path
 
 FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
 
-# ---------------------------------------------------------------------------
+# ==============================================================================
 # CONFIGURATION
-# ---------------------------------------------------------------------------
-PANO_MODE = "GALACTIC"   # "GALACTIC" | "RADEC" | "NONE"
+# ==============================================================================
 
-# Manual overrides for panels where VeraLux wrote incorrect metadata.
-# List FITS stems (without extension) that need a forced flip regardless
-# of what WCS or HISTORY says. Use when a panel stubbornly stitches wrong.
-# Example: FORCE_VFLIP = ["GLAT007N_GLON360_2_LRGB_stretched_result"]
-# NOTE: if Galactic_1/2's exposure postfix feature is enabled, stems now
-# include it (e.g. "GLAT007N_GLON360_2_LRGB_1200s_stretched_result") --
-# check the Siril log or the actual filename in result_fits/ for the
-# exact current stem before adding entries here, since this is an exact
-# string match, not a prefix match.
-FORCE_VFLIP = []   # stems that need an extra vertical flip
-FORCE_HFLIP = []   # stems that need an extra horizontal flip
-
-# -- Optional green noise removal (Siril's rmgreen/SCNR) --
+# ------------------------------------------------------------------------
+# Step 0: Green noise removal -- RUN_REMOVE_GREEN_NOISE
+# ------------------------------------------------------------------------
+# Runs Siril's rmgreen (SCNR) on each panel before export. Green is
+# essentially never a real deep-sky colour outside a few emission nebulae,
+# so residual green after stretching a wideband RGB image is almost always
+# noise or a calibration artefact.
 RUN_REMOVE_GREEN_NOISE = False
 GREEN_NOISE_TYPE = 0        # 0=average neutral, 1=maximum neutral,
                             # 2=maximum mask, 3=additive mask
 GREEN_NOISE_AMOUNT = 1.0    # only used for type 2/3, range 0-1
 GREEN_NOISE_PRESERVE_LIGHTNESS = True   # False passes -nopreserve to rmgreen
 
-# -- Optional cross-panel harmonization --
-RUN_HARMONIZE_PANELS = True
-HARMONIZE_STAT = "median"
-                              # How to characterise each panel's level per
-                              # channel for cross-panel matching:
-                              #   "background_peak" (default, recommended):
-                              #     the histogram-peak sky background level
-                              #     (same method the stretch step uses to
-                              #     find its own reference point) -- stays
-                              #     anchored to the true background
-                              #     regardless of how much nebulosity/dust
-                              #     is elsewhere in the panel. This is what
-                              #     you want for "make panels' backgrounds
-                              #     match" without distorting panels that
-                              #     legitimately contain more real content
-                              #     (e.g. a panel with dense MW dust or a
-                              #     bright emission nebula shouldn't be
-                              #     forced to match an empty starfield
-                              #     panel's overall brightness/colour).
-                              #   "median" / "mean": whole-panel statistics.
-                              #     NOT recommended if panels vary a lot in
-                              #     how much nebulosity they contain --
-                              #     confirmed this actively distorts panels
-                              #     with real extended emission (e.g. a
-                              #     panel with Cat's Paw-style red nebulae
-                              #     got its R channel suppressed ~30% to
-                              #     match emptier neighbours, making
-                              #     everything -- including bright stars --
-                              #     read more blue than it should).
-HARMONIZE_PEAK_HIST_BINS = 3000   # histogram resolution for "background_peak"
-HARMONIZE_MAX_GAIN = 1.5     # clamp on the per-channel correction factor,
-                              # so one very different panel (e.g. genuinely
-                              # dominated by bright nebulosity) can't get
-                              # pushed to an extreme correction -- gain is
-                              # clipped to [1/HARMONIZE_MAX_GAIN, HARMONIZE_MAX_GAIN]
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+# Step 1: Cross-panel harmonization -- RUN_HARMONIZE_PANELS
+# ------------------------------------------------------------------------
+# Evens out panel-to-panel colour/brightness differences that a stitcher's
+# own blending can't fix, by nudging each panel's per-channel level to match
+# the consensus across all panels. This is a mosaic-consistency correction,
+# not a colour-accuracy one -- it deliberately trades absolute per-panel
+# truth for a seamless-looking stitch.
+RUN_HARMONIZE_PANELS = False
+
+# How to characterise each panel's level per channel for cross-panel
+# matching. "background_peak" (recommended) uses the same histogram-peak
+# method the stretch step uses to find its own reference point, so it stays
+# anchored to the true sky background regardless of how much nebulosity is
+# in the panel. "median"/"mean" use whole-panel statistics instead, which is
+# NOT recommended if panels vary a lot in how much nebulosity they contain --
+# a panel with real extended emission can get that channel wrongly
+# suppressed to match emptier neighbours.
+HARMONIZE_STAT = "background_peak"   # "background_peak" | "median" | "mean"
+HARMONIZE_PEAK_HIST_BINS = 3000      # histogram resolution for "background_peak"
+
+# Clamp on the per-channel correction factor, so one very different panel
+# (e.g. genuinely dominated by bright nebulosity) can't get pushed to an
+# extreme correction. Gain is clipped to [1/HARMONIZE_MAX_GAIN, HARMONIZE_MAX_GAIN].
+HARMONIZE_MAX_GAIN = 1.5
+
+# ------------------------------------------------------------------------
+# Step 2: Orientation normalisation
+# ------------------------------------------------------------------------
+PANO_MODE = "GALACTIC"   # "GALACTIC" | "RADEC" | "NONE"
+
+# Manual overrides for panels where automatic orientation detection gets it
+# wrong. List FITS stems (without extension) that need a forced flip
+# regardless of what WCS/HISTORY says.
+# Example: FORCE_VFLIP = ["GLAT007N_GLON360_2_LRGB_stretched_result"]
+# This is an exact string match -- check the actual filename in result_fits/
+# (stems include the exposure postfix, if Galactic_1/2's RUN_EXPOSURE_POSTFIX
+# is enabled, e.g. "..._LRGB_1200s_stretched_result").
+FORCE_VFLIP = []   # stems that need an extra vertical flip
+FORCE_HFLIP = []   # stems that need an extra horizontal flip
+# ==============================================================================
 
 
 
@@ -311,9 +282,9 @@ def galactic_orientation(header):
 
 def count_mirror_ops(header):
     """
-    Count net horizontal and vertical flip operations recorded in FITS HISTORY.
-
-    VeraLux uses inconsistent terminology across versions:
+    Count net horizontal and vertical flip operations recorded in FITS
+    HISTORY -- for compatibility with files processed by an older version
+    of this pipeline, whose HISTORY entries used varying terminology:
       Vertical flip:   'TOP-DOWN mirror'  OR  'Mirror Y'
       Horizontal flip: 'Mirror X'         OR  'Left-right mirror'
 
@@ -442,7 +413,7 @@ def fits_to_tiff(fits_path, tiff_path, siril,
         hist_hflip, hist_vflip = count_mirror_ops(header)
 
         if glon_vec is not None:
-            # Correct WCS vectors for net pixel flips VeraLux applied
+            # Correct WCS vectors for net pixel flips recorded in HISTORY
             gx, gy = glon_vec
             bx, by = glat_vec
             if hist_hflip:

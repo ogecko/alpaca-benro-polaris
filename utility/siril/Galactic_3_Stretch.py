@@ -1,67 +1,34 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_3_Stretch.py
-# Version: 2.0.0
+# Version: 2.1.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
-# Description
-# -----------
-# Processes plate-solved GLAT*_(LRGB|SHO|HSO).fits files from composites/
-# through: GraXpert background extraction -> SPCC colour calibration ->
-# a single calibrated stretch curve, replacing the earlier StarNet +
-# VeraLux HMS + StarComposer pipeline entirely.
+# ==============================================================================
+# OVERVIEW
+# ==============================================================================
+# Processes each plate-solved composite from composites/ into a final
+# stretched result, ready for Galactic_4_Tiff.py:
 #
-# Why the architecture changed
-# -----------------------------
-# The previous version split each image into a starless layer (stretched
-# with an arcsinh/IHS curve) and a star mask (StarNet-extracted, stretched
-# and recombined separately). That split was the root cause of a long
-# chain of problems: StarNet extraction noise contaminating black-point
-# statistics, hard edges at star boundaries needing a blur fix, background
-# colour speckle in empty starfields, and none of it ever quite matching
-# the quality of doing the stretch directly.
+#   1. GraXpert background extraction         (optional, RUN_BGE)
+#   2. GraXpert denoise                       (optional, RUN_DENOISE)
+#   3. SPCC colour calibration                (optional, RUN_SPCC)
+#   4. Calibrated stretch, applied per channel, then saved to
+#      result_fits/GLAT*_stretched_result.fits
 #
-# The current approach instead applies ONE curve directly to the whole
-# composited image, per channel -- exactly matching a manual workflow of
-# repeated Generalized Hyperbolic Stretch (GHS) passes in Siril, each
-# with the symmetry point set at the current histogram peak, plus an
-# occasional highlight-taming pass to keep the black point from drifting
-# too light. That curve was calibrated directly from a real
-# linear/stretched image pair (5 manual passes, SP at histogram peak,
-# modest stretch factor ~1.35, occasional darken-from-0.95 pass to hold
-# the peak near 0.12) and reproduces it with a mean pixel error of ~0.0006
-# (visually indistinguishable) when reapplied. The curve is expressed in
-# coordinates RELATIVE to each channel's own histogram peak, so a new
-# image's own peak/background level re-anchors the same curve shape --
-# this is what makes it generalise across panels with different exposure
-# or background levels, the same way manually re-picking the peak as SP
-# for a new image would.
-#
-# Steps (all 4 always logged; skipped steps say "skipped"):
-#
-#   [1/4]  GraXpert BGE          -- optional: RUN_BGE = True (default)
-#          Background extraction on the linear composite before SPCC.
-#
-#   [2/4]  GraXpert Denoise      -- optional: RUN_DENOISE = False (default)
-#          Denoising after BGE on gradient-free data.
-#
-#   [3/4]  SPCC colour calibration -- optional: RUN_SPCC = True (default)
-#          Auto-detects wideband (LRGB) vs narrowband (SHO/HSO).
-#          Set False for SHO after running VeraLux Alchemy manually.
-#
-#   [4/4]  Universal calibrated stretch, per channel, then save 32-bit
-#          FITS -> result_fits/GLAT*_stretched_result.fits
+# The stretch curve (GHS_LUT_X/GHS_LUT_Y below) is calibrated data, not a
+# formula -- see the comment above it for what it represents and how it's
+# applied.
 #
 # Prerequisites
 # -------------
-#   - Run Galactic_2_Composite.py first -> composites/GLAT*_(LRGB|SHO|HSO).fits
-#   - Plate-solve each composite with ASTAP
-#   - Crop registration border artifacts consistently across all panels
-#   - Siril 1.4.0 or later
+#   Siril 1.4.0 or later.
+#   Run Galactic_2_Composite.py first, then plate-solve each composite
+#   with ASTAP.
 #
-# SHO workflow (VeraLux Alchemy + manual SPCC)
-# --------------------------------------------
-# For SHO, run Alchemy and SPCC manually in the GUI before this script,
-# then set RUN_SPCC = False in the config section below.
+# SHO workflow
+# ------------
+# For SHO, run VeraLux Alchemy and SPCC manually in the GUI before this
+# script, then set RUN_SPCC = False below.
 #
 # Skip logic
 # ----------
@@ -73,45 +40,44 @@ import traceback
 from pathlib import Path
 
 
-# ---------------------------------------------------------------------------
+# ==============================================================================
 # CONFIGURATION
-# ---------------------------------------------------------------------------
+# ==============================================================================
 
-# Optional processing steps -- set False to skip
-RUN_BGE     = True    # GraXpert background extraction before SPCC
-RUN_DENOISE = False   # GraXpert denoise after BGE
+# ------------------------------------------------------------------------
+# Directory layout / file matching (used throughout)
+# ------------------------------------------------------------------------
+COMPOSITE_SUFFIXES = ("_LRGB", "_HSO", "_SHO")   # matches Galactic_2_Composite SUFFIX_BY_MODE
 
-# Set RUN_SPCC = True  to run SPCC automatically (default for LRGB and HSO).
-# Set RUN_SPCC = False to skip SPCC -- use this for SHO where you have
-# already run colour calibration manually (via VeraLux Alchemy + SPCC in
-# the GUI) before running this script. The manual workflow for SHO is:
-#   1. Galactic_2_Composite.py  -> produces composites/GLAT*_LRGB.fits
-#   2. Plate-solve with ASTAP
-#   3. Crop registration borders
-#   4. Run VeraLux Alchemy manually in Siril GUI
-#   5. Run SPCC manually in Siril GUI
-#   6. Save the result back to composites/GLAT*_LRGB.fits
-#   7. Run Galactic_3_Stretch.py with RUN_SPCC = False
+SUFFIX_CC_LINEAR = "_cc_linear"         # post-BGE/SPCC linear result, kept for diagnosis
+SUFFIX_RESULT    = "_stretched_result"
+
+FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
+
+# ------------------------------------------------------------------------
+# Step 1: Background extraction -- RUN_BGE
+# ------------------------------------------------------------------------
+RUN_BGE = True
+
+# ------------------------------------------------------------------------
+# Step 2: Denoise -- RUN_DENOISE
+# ------------------------------------------------------------------------
+RUN_DENOISE = False
+
+# ------------------------------------------------------------------------
+# Step 3: SPCC colour calibration -- RUN_SPCC
+# ------------------------------------------------------------------------
+# For SHO, set False once colour calibration has been done manually (see
+# "SHO workflow" above).
 RUN_SPCC = True
 
-# SPCC sensor and filter names -- these MUST match EXACTLY (including
-# case and spacing) the names shown in Siril's SPCC dialog combo boxes,
-# since Siril requires an exact string match. To find the exact names
-# for your gear, run these commands in Siril's own command line (not in
-# this script) and read the printed list:
+# Sensor and filter names MUST match exactly (case and spacing) the names in
+# Siril's SPCC dialog combo boxes. Find the exact strings for your gear by
+# running these in Siril's own command line:
 #   spcc_list monosensor      (or oscsensor for one-shot-colour cameras)
-#   spcc_list redfilter
-#   spcc_list greenfilter
-#   spcc_list bluefilter
-# Then copy the exact strings below. If a name has spaces (most do), keep
-# them here as plain strings -- this script's own quoting (_quote_if_needed)
-# already wraps whole arguments containing spaces correctly for Siril.
-#
-# Once set here, SPCC is told the sensor/filters explicitly on every run,
-# rather than depending on whatever was last selected in the GUI (which is
-# what was silently wrong before -- Siril remembers the last-used GUI
-# selection across sessions, so a wrong one-time selection quietly stays
-# wrong for every subsequent script run until corrected).
+#   spcc_list redfilter / greenfilter / bluefilter
+# Setting these here means SPCC always uses the values below rather than
+# whatever was last selected in the GUI.
 SPCC_SENSOR_MODE = "mono"     # "mono" or "osc"
 
 # -- mono sensor + per-channel filters (used when SPCC_SENSOR_MODE="mono") --
@@ -125,74 +91,33 @@ SPCC_OSC_SENSOR = ""     # exact name from `spcc_list oscsensor`
 SPCC_OSC_FILTER = ""     # exact name from `spcc_list oscfilter` (optional)
 SPCC_OSC_LPF    = ""     # exact name from `spcc_list osclpf` (optional)
 
-# Optional: white reference (default "Average Spiral Galaxy" if left blank).
-# Exact name from `spcc_list whiteref`.
-SPCC_WHITEREF = ""
+SPCC_WHITEREF = ""   # exact name from `spcc_list whiteref`; blank = Siril default
 
-# Optional background tolerance for SPCC's own automatic background
-# sampling (used internally for its background-neutralization step --
-# SPCC always tries to realign the background to neutral gray as part of
-# its calibration, using whatever pixels it decides count as "background").
-# If different panels show different colour casts (e.g. "too purple" vs
-# "too green" vs "too dark" on the same mosaic), a likely cause is this
-# automatic sample picking up different amounts of faint nebulosity/gradient
-# in some panels but not others, skewing their calibration slightly
-# differently. Tightening this (smaller values = more conservative, only
-# very dim/uniform pixels count as background) can make SPCC's background
-# selection -- and therefore the calibration -- more consistent panel to
-# panel. Format is "lower,upper" as Siril expects; leave blank to use
-# Siril's own default.
-SPCC_BGTOL = ""    # e.g. "0.01,0.1" -- tune to taste, blank = Siril default
+# Background tolerance for SPCC's own automatic background sampling (used
+# internally for its background-neutralisation step). Tightening this
+# (smaller values = more conservative, only very dim/uniform pixels count as
+# background) makes SPCC's background selection -- and so its calibration --
+# more consistent panel to panel. Format is "lower,upper"; blank = Siril default.
+SPCC_BGTOL = ""    # e.g. "0.01,0.1"
 
-# GHS_PEAK_HIST_BINS controls the resolution of the histogram used to find
-# each channel's background peak (the reference point the calibrated
-# curve is anchored to, matching "pick the peak as the symmetry point").
-# Higher = more precise peak location but slightly slower; 3000 is a good
-# default for typical panel sizes.
+# ------------------------------------------------------------------------
+# Step 4: Calibrated stretch
+# ------------------------------------------------------------------------
+# Resolution of the histogram used to find each channel's background peak
+# (the point the stretch curve is anchored to). Higher = more precise but
+# slightly slower; 3000 suits typical panel sizes.
 GHS_PEAK_HIST_BINS = 3000
 
-# Neutral-lock correction for the "shoulder" brightness zone
-# --------------------------------------------------------------
-# Discovered by direct comparison against a real linear/stretched pair:
-# a pixel with only ~9% relative difference between its raw R/G/B values
-# (essentially neutral, e.g. raw [0.0127, 0.0117, 0.0116]) can come out
-# of the stretch as [0.77, 0.72, 0.73] -- a much larger, visibly-coloured
-# gap. This isn't unique to this script's reconstruction; the SAME
-# divergence was confirmed present in the real manually-stretched
-# reference image too, to within 0.001. It happens because ANY strongly
-# compressive curve amplifies small relative input differences wherever
-# its slope is still steep -- true independent of whether channels are
-# stretched independently or via a shared luminance ratio (both were
-# tested; luminance-ratio was actually slightly worse for this case).
-#
-# The fix: detect pixels whose RAW channels are already close to each
-# other (likely genuinely neutral, or a calibration-noise-level
-# difference that shouldn't be dramatised) within a brightness "shoulder"
-# window -- background itself doesn't need this (already forced neutral
-# by the per-channel peak match) and clearly-coloured bright stars don't
-# need it either (their raw spread is well above the threshold, so they
-# pass through completely unaffected) -- and pull just that shoulder
-# region toward a shared neutral (luminance) output. Verified: this
-# reduces a 0.049 output spread down to 0.002 for the discovered example,
-# while genuinely coloured stars (raw spread > NEUTRAL_LOCK_SPREAD_HIGH)
-# were confirmed pixel-for-pixel UNCHANGED, and overall reconstruction
-# fidelity against the real reference only softened from 0.0006 to 0.0007
-# mean absolute error.
-NEUTRAL_LOCK_XREL_RISE = (1.2, 3.0)     # brightness window (in x_rel) where
-NEUTRAL_LOCK_XREL_FALL = (10.0, 40.0)   # the correction ramps on, then off
-NEUTRAL_LOCK_SPREAD_LOW  = 0.15   # raw relative spread below this -> treat
-                                  # as neutral, pull toward gray
-NEUTRAL_LOCK_SPREAD_HIGH = 0.40   # raw relative spread above this -> treat
-                                  # as genuinely coloured, leave untouched
-
-# Composite suffixes -- matches Galactic_2_Composite SUFFIX_BY_MODE
-COMPOSITE_SUFFIXES = ("_LRGB", "_HSO", "_SHO")
-
-SUFFIX_CC_LINEAR = "_cc_linear"    # post-BGE/SPCC linear result, kept for diagnosis
-SUFFIX_RESULT    = "_stretched_result"
-
-FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
-# ---------------------------------------------------------------------------
+# Neutral-lock: pulls the mid-brightness "shoulder" region toward neutral
+# colour when a pixel's raw R/G/B are already close together (likely
+# noise-level variation rather than real colour), tapering off outside a
+# brightness window so background (already neutral) and clearly-coloured
+# stars (raw spread above NEUTRAL_LOCK_SPREAD_HIGH) are left untouched.
+NEUTRAL_LOCK_XREL_RISE   = (1.2, 3.0)     # brightness window (in x_rel) where
+NEUTRAL_LOCK_XREL_FALL   = (10.0, 40.0)   # the correction ramps on, then off
+NEUTRAL_LOCK_SPREAD_LOW  = 0.15   # raw relative spread below this -> pull toward neutral
+NEUTRAL_LOCK_SPREAD_HIGH = 0.40   # raw relative spread above this -> leave untouched
+# ==============================================================================
 
 
 def siril_log(siril, msg):
@@ -283,24 +208,15 @@ def _build_spcc_args(narrowband):
 # ---------------------------------------------------------------------------
 # Calibrated universal stretch curve
 #
-# Derived from a real linear/stretched image pair: 5 manual GHS passes in
-# Siril, symmetry point re-picked at the current histogram peak each time,
-# modest stretch factor (~1.35), with an occasional highlight-taming pass
-# (SP=0.95, darkening) to hold the peak near 0.12 when darks drifted too
-# light. Fitted via isotonic regression against >1M sampled pixel pairs
-# across all three channels (pooled, since per-channel curves in
-# peak-relative coordinates were found to be nearly identical), then
-# compressed to a 152-point monotonic lookup table.
+# A 152-point monotonic lookup table, calibrated from a real linear/stretched
+# image pair (5 manual Generalized Hyperbolic Stretch passes in Siril,
+# symmetry point re-picked at the histogram peak each time). Fitted via
+# isotonic regression, reproducing the reference result with a mean absolute
+# pixel error of ~0.0006.
 #
-# Reapplying this exact curve to the calibration image reproduces the
-# real stretched result with a mean absolute pixel error of ~0.0006
-# (visually indistinguishable) -- see chat history for the validation.
-#
-# The X axis is in units of "multiples of this channel's own histogram
-# peak" (x_rel = raw_value / channel_peak), NOT absolute pixel value --
-# this is what lets the same curve re-anchor itself to a different
-# panel's own background level, the same way manually re-picking the
-# peak as SP for a new image would.
+# X is in units of "multiples of this channel's own histogram peak"
+# (x_rel = raw_value / channel_peak), not absolute pixel value -- this lets
+# the same curve re-anchor to each panel's own background level.
 # ---------------------------------------------------------------------------
 GHS_LUT_X = [
     0.000000, 0.438443, 0.438882, 0.457427, 0.476756, 0.496902, 0.517899, 0.539783,
@@ -466,22 +382,17 @@ def universal_ghs_stretch(fits_path, out_path, n_bins=GHS_PEAK_HIST_BINS):
 def scan_all_panels(home_dir):
     """
     Scan home_dir/composites/ for GLAT*_(LRGB|HSO|SHO)[_NNNs].fits files
-    and report the status of EVERY one found -- "SKIP" if its result_fits/
-    output already exists, "QUEUED" if it still needs to be processed.
+    and report the status of every one found -- "SKIP" if its result_fits/
+    output already exists, "QUEUED" if it still needs processing.
 
-    The optional trailing exposure postfix (e.g. "_1200s", written by
-    Galactic_2_Composite.py) is matched via regex rather than a simple
-    .endswith() check on the composite suffix, since the postfix sits
-    AFTER "_LRGB"/"_HSO"/"_SHO" and would otherwise break detection
-    entirely. The exposure postfix (if present) is carried forward into
-    the result_fits output filename too, so it stays visible at every
-    pipeline stage.
+    Matched via regex (not a simple suffix check) since the optional
+    exposure postfix (e.g. "_1200s", written by Galactic_2_Composite.py)
+    sits after "_LRGB"/"_HSO"/"_SHO". The postfix, if present, is carried
+    forward into the result_fits output filename too.
 
     Returns a list of dicts: {prefix, composite_suffix, exposure_suffix,
-    path, result_path, status}, sorted by filename. This is the single
-    source of truth for what will run -- printed in full before any
-    processing starts, so it's never ambiguous why more (or fewer) panels
-    ran than expected.
+    path, result_path, status}, sorted by filename -- printed in full
+    before any processing starts, so it's clear what will run.
     """
     import re
     composites_dir = home_dir / "composites"

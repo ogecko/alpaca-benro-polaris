@@ -1,36 +1,30 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_1_Stack.py
-# Version: 1.1.1
-# Author:  Generated for alpaca-benro-polaris utility suite
-# Contact: https://github.com/scriptable
+# Version: 1.2.0
+# Part of the Galactic pipeline for panoramic astrophotography automation.
 #
-# Description
-# -----------
-# Groups all FITS files in the Siril working directory by the first 16
-# characters of their filename (e.g. GLAT022N_GLON344 -> one group), then
-# for every group:
-#   1.  Converts the group's files into a Siril sequence
-#   2.  Registers (aligns) the sequence with global star-matching
-#   3.  Stacks with sigma-clipping rejection and average combination
-#   4.  Loads the stacked image and applies GraXpert AI denoising
-#   5.  Saves the denoised result as <prefix>_stack.fits
+# ==============================================================================
+# OVERVIEW
+# ==============================================================================
+# Groups the calibrated lights in each channel/process/ directory by their
+# GLAT/GLON panel prefix (the first 16 characters of the filename, e.g.
+# GLAT022N_GLON344), then for every group:
+#
+#   1. Converts the group's files into a Siril sequence
+#   2. Registers the sequence (global star alignment)
+#   3. Stacks with sigma-clipping rejection
+#   4. Denoises the stack                          (optional, RUN_DENOISE)
+#   5. Runs aberration correction                   (optional, RUN_ABERRATION_REMOVER)
+#   6. Saves as <prefix>_<channel>_stack[_NNNs].fits
+#
+# Output goes to <channel>/stacked/, ready for Galactic_2_Composite.py.
 #
 # Prerequisites
 # -------------
-#   Siril 1.4.0 or later with the built-in sirilpy module.
-#   GraXpert-AI.py installed via Scripts -> Get Scripts.
+#   Siril 1.4.0 or later.
+#   GraXpert-AI.py installed via Scripts -> Get Scripts (if RUN_DENOISE).
 #   GraXpert executable path set in Preferences -> Miscellaneous.
-#   FITS files renamed with GLAT/GLON prefix by fits_add_galactic.py --rename
-#   e.g.  GLAT019S_GLON209_Light_001.fits
-#
-# Usage
-# -----
-#   Set the Siril working directory to the folder containing your renamed
-#   FITS files, then run from the Scripts menu.
-#
-# Configuration
-# -------------
-#   Edit the constants in the CONFIGURATION block below.
+#   Run Galactic_0_Calibration.py first.
 
 import sirilpy as s
 import os
@@ -38,57 +32,66 @@ import traceback
 from pathlib import Path
 from collections import defaultdict
 
-# ---------------------------------------------------------------------------
-# CONFIGURATION -- edit these values as needed
-# ---------------------------------------------------------------------------
-DENOISE_STRENGTH = 1.0      # GraXpert denoising strength: 0.0 (none) to 1.0 (max)
-REGISTER_TRANSF  = "homography" # registration transform: shift / similarity / affine / homography
+# ==============================================================================
+# CONFIGURATION
+# ==============================================================================
 
-# STACK_FRAMING controls whether frames get cropped to their common overlap
-# area before stacking -- this removes the ragged/partial-coverage borders
-# that dithering between subs leaves at the edges (some edge pixels only
-# have data from a few of the N subs, rather than all of them). Confirmed
-# via Siril's own docs as the standard approach for this:
-#   register seq -2pass  (compute transforms only)
-#   seqapplyreg seq -framing=min   (apply + crop to the common overlap area)
-# "min" -- crop to the common overlap (recommended for this pipeline: each
-#   panel's subs all point at the same target, so there's no reason to keep
-#   the partial-coverage edges).
-# "current" -- old behaviour: single-pass register, no cropping. Frames stay
-#   at their original size regardless of per-sub coverage differences.
+# ------------------------------------------------------------------------
+# Directory layout
+# ------------------------------------------------------------------------
+# Channel subdirectories to scan (relative to Siril home directory). Stacked
+# outputs are saved back into the same directory they were found in. Only
+# directories that exist are processed -- missing filters are skipped.
+CHANNEL_DIRS = ["L/stacked", "R/stacked", "G/stacked", "B/stacked",
+                "Ha/stacked", "Sii/stacked", "Oiii/stacked", "OSC/stacked"]
+
+FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
+PREFIX_LENGTH   = 16       # filename characters used to group files into a panel
+
+# ------------------------------------------------------------------------
+# Step 2: Registration
+# ------------------------------------------------------------------------
+REGISTER_TRANSF = "homography"   # shift / similarity / affine / homography
+
+# STACK_FRAMING="min" crops each group to the common overlap area across all
+# its subs before stacking, removing the ragged partial-coverage borders that
+# dithering leaves at the edges. "current" disables this (single-pass
+# register, no cropping).
 STACK_FRAMING = "min"   # "min" | "current"
-STACK_TYPE       = "rej"    # stacking type (rej = sigma-clipping rejection)
-STACK_SIGMA_LOW  = 3        # lower sigma threshold for rejection
-STACK_SIGMA_HIGH = 3        # upper sigma threshold for rejection
-STACK_NORM       = "addscale"  # normalisation: addscale / add / mul / no
-FITS_EXTENSIONS  = {".fits", ".fit", ".fts"}
-PREFIX_LENGTH    = 16       # number of filename characters used to group files
 
-# RUN_EXPOSURE_POSTFIX = True appends the total summed exposure time to
-# stack output filenames, e.g. 10x30s subs -> "..._stack_300s.fits". Reads
-# each input file's own exposure header (summed, not count x nominal
-# value, so it's still correct if subs have mixed exposure times) --
+# ------------------------------------------------------------------------
+# Step 3: Stacking
+# ------------------------------------------------------------------------
+STACK_TYPE       = "rej"        # stacking type (rej = sigma-clipping rejection)
+STACK_SIGMA_LOW  = 3            # lower sigma threshold for rejection
+STACK_SIGMA_HIGH = 3            # upper sigma threshold for rejection
+STACK_NORM       = "addscale"   # normalisation: addscale / add / mul / no
+
+# ------------------------------------------------------------------------
+# Step 4: Denoise -- RUN_DENOISE
+# ------------------------------------------------------------------------
+RUN_DENOISE      = True
+DENOISE_STRENGTH = 1.0     # GraXpert denoising strength: 0.0 (none) to 1.0 (max)
+
+# ------------------------------------------------------------------------
+# Step 5: Aberration correction -- RUN_ABERRATION_REMOVER
+# ------------------------------------------------------------------------
+# Opens a GUI dialog for each panel group -- only enable when you need to
+# correct specific panels (delete their _stack file and rerun with this on).
+# Leave False for normal automated runs.
+RUN_ABERRATION_REMOVER = False
+
+# ------------------------------------------------------------------------
+# Step 6: Save / naming -- RUN_EXPOSURE_POSTFIX
+# ------------------------------------------------------------------------
+# Appends the total summed exposure time to stack filenames, e.g. 10x30s subs
+# -> "..._stack_300s.fits". Sums each input file's own exposure header (not
+# count x nominal value, so it's correct even with mixed exposure times).
 # EXPOSURE_KEYS lists the header keywords tried, in order, since different
 # capture software uses different names.
 RUN_EXPOSURE_POSTFIX = True
 EXPOSURE_KEYS = ["EXPTIME", "EXPOSURE", "EXPTIME1"]
-
-# Set RUN_DENOISE = False to skip GraXpert denoising (default: True).
-RUN_DENOISE = True
-
-# Set RUN_ABERRATION_REMOVER = True to run AberrationRemover.py after denoise.
-# AberrationRemover opens a GUI dialog for each panel group -- only enable
-# this when you need to correct specific panels (delete their _stack
-# and rerun with this flag on). Leave False for normal automated runs.
-RUN_ABERRATION_REMOVER = False
-
-# Channel subdirectories to scan (relative to Siril home directory).
-# Stacked outputs are saved back into the same directory they were found in
-# so that Galactic_2_Composite.py can find them in channel/stacked/.
-# Only directories that exist are processed -- missing filters are skipped.
-CHANNEL_DIRS = ["L/stacked", "R/stacked", "G/stacked", "B/stacked",
-                "Ha/stacked", "Sii/stacked", "Oiii/stacked"]
-# ---------------------------------------------------------------------------
+# ==============================================================================
 
 
 def siril_log(siril, msg):
@@ -327,14 +330,9 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
 
     def _remove_stale_legacy_output(legacy_prefix, final_path):
         """
-        Remove any old-style leftover from before channel names (and
-        before that, exposure postfixes) were added to this filename --
-        matched as "anything starting with <legacy_prefix>_stack" that
-        isn't the current final_path. The current naming always inserts
-        the channel name between the panel prefix and "_stack"
-        (e.g. "..._G_stack_150s"), so a bare "<prefix>_stack*" match can
-        only be an older-generation name, never a false positive against
-        a different channel's current file.
+        Remove any file matching "<legacy_prefix>_stack*" that isn't the
+        current final_path -- cleans up leftovers from an older naming
+        convention still sitting in the output directory.
         """
         target = legacy_prefix + "_stack"
         try:
@@ -442,16 +440,11 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
     # ------------------------------------------------------------------
     siril_log(siril, "  [2/4] Registering (-transf=" + REGISTER_TRANSF
               + ", framing=" + STACK_FRAMING + ")...")
-    # Set the last frame as reference before registering.
-    # The first frame can be wobbly due to mount settling after a slew.
-    # setref seqname N sets frame N (1-based) as the reference.
-    # NOTE: -2pass runs its own preliminary quality/framing-based reference
-    # selection, which may pick a different (likely better-informed) frame
-    # than this manual setref regardless -- Siril's docs don't fully specify
-    # whether a prior setref is respected or superseded by -2pass. Either
-    # way this should be a fine or better outcome than the single-pass
-    # setref-driven choice, since -2pass's selection is explicitly quality-
-    # based rather than just "avoid the first frame".
+    # Set the last frame as reference (the first can be wobbly from mount
+    # settling after a slew). NOTE: -2pass runs its own quality-based
+    # reference selection, which may override this setref -- Siril's docs
+    # don't specify which takes precedence, but -2pass's choice should be
+    # at least as good.
     cmd_safe(siril, "setref", seq_name, str(n))
 
     if STACK_FRAMING == "min":
@@ -643,12 +636,8 @@ def main():
                                      for c in prefix)
                 total_exp, exp_missing = compute_total_exposure(files)
                 exp_suffix = exposure_postfix(total_exp, exp_missing)
-                # Channel/filter name is included so files from different
-                # channels are never identically named (they used to be --
-                # e.g. R, G, and B stacks for the same panel would ALL be
-                # "GLAT004N_GLON307_stack_150s.fits", distinguishable only
-                # by which directory they were in, which is easy to mix up
-                # when browsing/uploading them outside that folder context).
+                # Channel name included so files for different channels of
+                # the same panel are never identically named.
                 stack_out = safe_prefix + "_" + channel + "_stack" + exp_suffix
 
                 already_done = any((work_dir / (stack_out + ext)).exists()

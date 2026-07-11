@@ -1,162 +1,120 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_2_Composite.py
-# Version: 2.0.1
+# Version: 2.1.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
-# Description
-# -----------
-# Scans the Siril home directory for stacked channel subdirectories and
-# automatically selects the composite mode based on what is available:
+# ==============================================================================
+# OVERVIEW
+# ==============================================================================
+# Combines each panel's stacked channels into a single composite image.
+# Composite mode is auto-detected from the stacked directories present:
 #
-#   LRGB  -- L/R/G/B stacked dirs -> luminance + colour composition
-#   SHO   -- Ha/Sii/Oiii stacked dirs -> Hubble palette (SII=R Ha=G OIII=B)
-#   HSO   -- as SHO but Ha=R SII=G OIII=B (set COMPOSITE_MODE manually)
+#   LRGB : L/R/G/B stacked dirs -> luminance + colour composition
+#   SHO  : Ha/Sii/Oiii stacked dirs -> Hubble palette (SII=R, Ha=G, OIII=B)
+#   HSO  : as SHO but Ha=R, SII=G, OIII=B (set COMPOSITE_MODE manually)
 #
-# For each GLAT/GLON prefix where all required channels have a matching
-# _stack.fits file, this script:
+# For each panel where every required channel is present:
 #
-#   1.  Align channels -- register against reference (homography with fallbacks)
-#   2.  Compose        -- rgbcomp (LRGB with luminance, or RGB for narrowband)
-#   3.  Save GLATnnnX_GLONnnn_(LRGB|SHO|HSO).fits into composites/ subdir
+#   1. Align every channel together in one sequence, then crop to their
+#      common overlap                                (RUN_CROP handles any
+#                                                       residual border after)
+#   2. Compose with rgbcomp
+#   3. Save GLATnnnX_GLONnnn_(LRGB|SHO|HSO)[_NNNs].fits to composites/
+#   4. Crop any remaining border artifacts            (optional, RUN_CROP)
 #
-# After this script completes -- BEFORE running Galactic_3_Stretch.py:
+# Note: an OSC panel's stack is already a complete colour image and doesn't
+# need this script -- feed it directly into Galactic_3_Stretch.py instead.
 #
-#   Step A: Batch plate-solve all process/GLAT*_LRGB.fits with ASTAP.
-#           In ASTAP: File -> Batch plate-solve, point at the process/
-#           folder and solve all _LRGB.fits files. ASTAP writes the WCS
-#           solution back into each FITS header. This is required for
-#           SPCC colour calibration in Galactic_3_Stretch.py.
-#
-#   Step B: Crop the border artifacts from each plate-solved _LRGB.fits.
-#           After LRGB composition the edges contain registration
-#           border artifacts -- black or noisy triangular corners where
-#           the four channels did not fully overlap after alignment
-#           (each channel shift is slightly different, leaving uncovered
-#           corner regions with no data or data from only some channels).
-#           Open each _LRGB.fits in Siril, draw a crop selection that
-#           removes these borders and save. Use a consistent crop margin
-#           (e.g. 100px on each side) across all panels -- uneven borders
-#           will create visible seams when the panels are mosaicked.
+# After this script, before running Galactic_3_Stretch.py:
+#   Batch plate-solve composites/GLAT*_(LRGB|HSO|SHO)*.fits with ASTAP
+#   (File -> Batch plate-solve). This writes the WCS needed for SPCC.
 #
 # Prerequisites
 # -------------
 #   Siril 1.4.0 or later.
 #   ASTAP installed with a star database (D50 recommended).
-#
-# Usage
-# -----
-#   Set Siril home directory to the session root (containing L/, R/, G/, B/).
-#   Run from Scripts menu.  The script processes each GLAT/GLON panel in turn.
-#
-# Output files (all in <home>/composites/):
-#   GLATnnnX_GLONnnn_LRGB.fits    (linear composite, ready for ASTAP + crop)
+#   Run Galactic_1_Stack.py first.
 
 import sirilpy as s
 import traceback
 from pathlib import Path
 from collections import defaultdict
 
-# ---------------------------------------------------------------------------
-# CONFIGURATION -- edit these values as needed
-# ---------------------------------------------------------------------------
+# ==============================================================================
+# CONFIGURATION
+# ==============================================================================
 
-# COMPOSITE MODE -- determines which filters are combined and how.
-#
-# "LRGB" : Luminance + RGB broadband (L as lum, R/G/B as colour).
-#           Auto-selected when L/R/G/B stacked dirs are present.
-#           SPCC uses wideband (solar analogue) photometry.
-#
-# "SHO"  : Hubble/HST palette -- SII=R, Ha=G, OIII=B.
-#           Auto-selected when Ha/Sii/Oiii dirs are present and LRGB absent.
-#           SPCC uses narrowband (7nm) photometry.
-#           NOTE: This is the standard Hubble Space Telescope palette.
-#
-# "HSO"  : Ha=R, SII=G, OIII=B -- alternative narrowband mapping.
-#           Select manually to override auto-detection.
-#           SPCC uses narrowband (7nm) photometry.
-#           NOTE: For best results with HSO, use VeraLux Alchemy for
-#           colour remapping before running Galactic_3_Stretch.py.
-#
-# Set to None to auto-detect from available stacked directories.
+# ------------------------------------------------------------------------
+# Step 0: Composite mode selection
+# ------------------------------------------------------------------------
+# Set to None to auto-detect from available stacked directories, or force a
+# specific mode. "HSO" always needs to be set manually since its stacked
+# directories are the same as "SHO" -- only the R/B mapping differs.
 COMPOSITE_MODE = None   # None = auto-detect, or "LRGB" / "HSO" / "SHO"
 
-# Channel directories per composite mode (relative to Siril home directory)
-# Keys match what rgbcomp expects: for LRGB -- L (lum), R, G, B (colour).
-# For narrowband -- the filter names map to R/G/B display channels.
+# Channel directories per composite mode (relative to Siril home directory).
+# Keys match what rgbcomp expects: L (luminance) + R/G/B for LRGB, or R/G/B
+# (mapped from the narrowband filters) for SHO/HSO.
 CHANNEL_DIRS_LRGB = {
-    "L":  "L/stacked",
-    "R":  "R/stacked",
-    "G":  "G/stacked",
-    "B":  "B/stacked",
+    "L": "L/stacked",
+    "R": "R/stacked",
+    "G": "G/stacked",
+    "B": "B/stacked",
 }
-CHANNEL_DIRS_SHO = {        # Hubble palette: SII->R, Ha->G, OIII->B
-    "R":  "Sii/stacked",
-    "G":  "Ha/stacked",
-    "B":  "Oiii/stacked",
+CHANNEL_DIRS_SHO = {          # Hubble palette: SII->R, Ha->G, OIII->B
+    "R": "Sii/stacked",
+    "G": "Ha/stacked",
+    "B": "Oiii/stacked",
 }
-CHANNEL_DIRS_HSO = {        # Alternative: Ha->R, SII->G, OIII->B
-    "R":  "Ha/stacked",
-    "G":  "Sii/stacked",
-    "B":  "Oiii/stacked",
+CHANNEL_DIRS_HSO = {          # Alternative: Ha->R, SII->G, OIII->B
+    "R": "Ha/stacked",
+    "G": "Sii/stacked",
+    "B": "Oiii/stacked",
 }
 
-# Input file suffix to look for in each channel directory
-INPUT_SUFFIX = "_stack"      # e.g. GLAT007N_GLON344_stack.fits
+# ------------------------------------------------------------------------
+# Directory layout / file matching (used throughout)
+# ------------------------------------------------------------------------
+INPUT_SUFFIX    = "_stack"                    # e.g. GLAT007N_GLON344_stack.fits
 FITS_EXTENSIONS = (".fits", ".fit", ".fts")
+PREFIX_LENGTH   = 16                          # panel prefix length, e.g. "GLAT007N_GLON344"
 
-# First N characters of filename used as the panel prefix key
-PREFIX_LENGTH = 16   # e.g. "GLAT007N_GLON344"
-
-# Output suffixes per composite mode -- written into process/ subdir
-SUFFIX_BY_MODE = {
+SUFFIX_BY_MODE = {             # output suffix per mode, written into composites/
     "LRGB": "_LRGB",
     "HSO":  "_HSO",
     "SHO":  "_SHO",
 }
 
-STARNET_STARMASK_PREFIX = "starmask_"
-
-# ---------------------------------------------------------------------------
-# Optional border crop -- removes registration/compositing artifacts at the
-# panel edges (see "Step B" in the header comment above: the corners/edges
-# where L/R/G/B didn't all perfectly overlap after independent registration,
-# leaving black or partial-colour borders). Doing this here, before ASTAP
-# plate-solving, is safe -- there's no WCS in the file yet at this point, so
-# there's nothing to invalidate, and it also means you can skip the manual
-# "Step B" crop afterward if you enable this.
-RUN_CROP = True
+# ------------------------------------------------------------------------
+# Step 4: Border crop -- RUN_CROP
+# ------------------------------------------------------------------------
+# The channel alignment step already crops to the common overlap across all
+# channels, so this is a secondary safety net for anything that slips
+# through (e.g. minor per-channel PSF/colour differences right at the edge).
+# Safe to run before ASTAP plate-solving -- there's no WCS yet to invalidate.
+RUN_CROP  = True
 CROP_MODE = "auto"    # "fixed" | "auto" | "auto_or_fixed_min"
-                       #   "fixed": always crop CROP_FIXED_PERCENT from every edge.
-                       #   "auto": detect the artifact border automatically per
-                       #     edge (see CROP_AUTO_* below) and crop exactly that,
-                       #     independently per side.
-                       #   "auto_or_fixed_min": auto-detect, but never crop less
-                       #     than CROP_FIXED_PERCENT even if auto-detection finds
-                       #     a smaller (or no) artifact -- a safety floor.
-CROP_FIXED_PERCENT = 2.5   # percent of width/height cropped from EACH edge in
-                           # "fixed" mode, or the floor in "auto_or_fixed_min".
+                       #   fixed: always crop CROP_FIXED_PERCENT from every edge
+                       #   auto: detect the artifact border per edge automatically
+                       #   auto_or_fixed_min: auto-detect, floored at CROP_FIXED_PERCENT
+CROP_FIXED_PERCENT = 2.5   # percent cropped from each edge in "fixed" mode,
+                           # or the floor in "auto_or_fixed_min"
 
-# Auto-detection: a pixel counts as a compositing artifact if ANY channel is
-# at/near exactly 0 there (real background noise in linear data is never
-# exactly 0.0, so this is a reliable signal for "at least one channel had no
-# data here after registration"). Scans inward from each edge row/column at a
-# time; an edge stops being "bad" once CROP_AUTO_CONSECUTIVE_GOOD rows/columns
-# in a row fall below CROP_AUTO_INVALID_FRAC.
-CROP_AUTO_INVALID_FRAC = 0.02        # fraction of a row/column allowed to be
-                                     # zero-in-any-channel before that row/
-                                     # column still counts as "artifact"
+# Auto-detection: a pixel counts as an artifact if any channel is at/near
+# exactly 0 there (real background noise in linear data is never exactly
+# 0.0). Scans inward from each edge; an edge is considered clean once
+# CROP_AUTO_CONSECUTIVE_GOOD rows/columns in a row fall below
+# CROP_AUTO_INVALID_FRAC.
+CROP_AUTO_INVALID_FRAC     = 0.02    # fraction of a row/column allowed to be
+                                     # zero-in-any-channel and still count as clean
 CROP_AUTO_CONSECUTIVE_GOOD = 5       # consecutive clean rows/columns needed
-                                     # before declaring that edge's artifact
-                                     # zone has ended
-CROP_AUTO_MAX_PERCENT = 10.0         # safety cap -- auto-detection can never
-                                     # crop more than this from any one edge,
-                                     # regardless of what it finds
-# ---------------------------------------------------------------------------
+CROP_AUTO_MAX_PERCENT      = 10.0    # safety cap on auto-detected crop, per edge
 
-# ---------------------------------------------------------------------------
-# DEBUG -- set True to keep _lrgb_align_* temp directories for inspection
-DEBUG_KEEP_TEMP = False
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+# Debug
+# ------------------------------------------------------------------------
+DEBUG_KEEP_TEMP = False   # keep _lrgb_align_* temp directories for inspection
+# ==============================================================================
 
 
 def detect_composite_mode(home_dir):
@@ -481,14 +439,13 @@ def process_panel(siril, prefix, files, home_dir, mode):
     # ------------------------------------------------------------------
     # Step 1: Align channels then LRGB compose
     #
-    # rgbcomp has NO built-in alignment -- it is purely a pixel combiner.
-    # All channels are registered together in ONE sequence (not pairwise)
-    # specifically so a single seqapplyreg -framing=min crop can be
-    # applied consistently across all of them -- see below for why this
-    # replaced the earlier pairwise approach.
+    # rgbcomp has no built-in alignment -- it's purely a pixel combiner. All
+    # channels are registered together in one sequence (reference first),
+    # then cropped to their common overlap with seqapplyreg -framing=min, so
+    # every channel is the same size before rgbcomp combines them.
     #
-    # We use a temporary work directory to avoid polluting the home dir
-    # with sequence files, then clean it up afterwards.
+    # A temporary work directory avoids polluting the home dir with sequence
+    # files, cleaned up afterwards.
     # ------------------------------------------------------------------
     siril_log(siril, "  [1/3] Aligning channels then LRGB composition...")
 
@@ -521,32 +478,9 @@ def process_panel(siril, prefix, files, home_dir, mode):
     ext_no_dot = src_ext.lstrip(".")
     cmd_safe(siril, "setext", ext_no_dot)
 
-    # ------------------------------------------------------------------
-    # Build ONE sequence containing every channel (reference first), all
-    # named with a shared basename so they're one Siril sequence:
+    # Build one sequence containing every channel (reference first):
     #   <seq>_00001.<ext> = reference (L, or G for narrowband)
     #   <seq>_00002.<ext>, 00003, 00004 = the other channels, in order
-    #
-    # Registering them together (rather than the earlier approach of
-    # three separate 2-frame LR/LG/LB pairs) is what makes a SINGLE
-    # seqapplyreg -framing=min crop meaningful: framing=min crops to the
-    # common overlap across every frame in the sequence it's given. Run
-    # per-pair, each pair would get its OWN (different) overlap crop,
-    # leaving the channels at mismatched sizes -- rgbcomp requires them
-    # all to match. Registering everything together and cropping once
-    # guarantees a single, consistent crop across every channel.
-    #
-    # This also fixes a real bug found in production: the previous
-    # approach tried to detect misaligned borders by scanning for exact
-    # zero pixels after the fact, but Siril's registration doesn't
-    # necessarily zero-fill out-of-frame regions (its own log reports
-    # "Interpolation clamping active", consistent with edge-extension
-    # rather than zero-fill) -- so real several-pixel misalignment
-    # borders were going completely undetected. Using Siril's own
-    # transform-based -framing=min instead sidesteps that assumption
-    # entirely: it crops from the actual geometry of the computed
-    # transform, not from inspecting output pixel values.
-    # ------------------------------------------------------------------
     seq_name = "".join(all_channels)   # e.g. "LRGB" or "GRB"
 
     for i, ch_name in enumerate(all_channels, start=1):
@@ -562,14 +496,9 @@ def process_panel(siril, prefix, files, home_dir, mode):
 
     siril_log(siril, "  Registering " + "+".join(colour_channels)
               + " against " + ref_ch + " (seq=" + seq_name + ")...")
-    # NOTE: -2pass runs its own preliminary quality/framing-based reference
-    # selection, which may pick a different frame than this explicit setref
-    # regardless -- Siril's docs don't fully specify whether a prior setref
-    # is respected or superseded by -2pass. Placing the intended reference
-    # channel (L, or G for narrowband) as frame 1 gives it the best chance
-    # of being chosen either way, since quality-based selection tends to
-    # favour earlier/first frames when quality is comparable, but this
-    # isn't a hard guarantee.
+    # NOTE: -2pass runs its own quality-based reference selection, which may
+    # override this setref -- Siril's docs don't specify which takes
+    # precedence, but -2pass's choice should be at least as good.
     cmd_safe(siril, "setref", seq_name, "1")   # frame 1 = reference channel
 
     reg_ok = cmd_safe(siril, "register", seq_name, "-2pass", "-transf=homography")
@@ -618,26 +547,9 @@ def process_panel(siril, prefix, files, home_dir, mode):
     reg_colour = {ch: reg_path[ch] for ch in colour_channels}
     siril_log(siril, "  All channels aligned and cropped to common overlap.")
 
-    # ------------------------------------------------------------------
-    # Pre-composition linear_match removed.
-    #
-    # linear_match on raw stacked data causes the red spot problem:
-    #   - R and B channels have pixels saturated at max (65535)
-    #   - G channel is NOT saturated (observed max 56879)
-    #   - linear_match sees R/B clipped at ceiling, G not clipped
-    #   - The fit drives R and B upward toward G's higher median
-    #   - This amplifies already-clipped pixels, spreading saturation
-    #   - Result: orange stars become pure red squares
-    #
-    # The GUI "Linear Fit" works because it runs on display-scaled data
-    # AFTER colour calibration where saturation behaves differently.
-    # On raw pre-SPCC stacks it makes saturation worse, not better.
-    #
-    # SPCC handles colour balance correctly via stellar photometry.
-    # We pass the aligned channels directly to rgbcomp without
-    # pre-distorting the levels.
-    # ------------------------------------------------------------------
-    siril_log(siril, "  Channels aligned -- proceeding to rgbcomp (no linear_match).")
+    # SPCC (run in Galactic_3_Stretch.py) handles colour balance via stellar
+    # photometry, so the aligned channels are passed to rgbcomp unmodified.
+    siril_log(siril, "  Channels aligned -- proceeding to rgbcomp.")
 
     # Compose channels using rgbcomp
     cmd_safe(siril, "cd", str(composites_dir))
@@ -722,15 +634,9 @@ def process_panel(siril, prefix, files, home_dir, mode):
                       + lrgb_path.name + ": " + str(exc))
 
     # ------------------------------------------------------------------
-    # Step 3: Optional SUPPLEMENTARY border crop (see "Optional border
-    # crop" config comment). The channel registration above already
-    # crops to the common overlap via Siril's own -framing=min, which is
-    # the primary, geometrically-precise fix for registration-border
-    # artifacts. This step is a secondary safety net for anything that
-    # slips through that -- e.g. minor per-channel PSF/colour differences
-    # right at the new edge, or artifacts from some other source entirely.
-    # Safe to do here since no WCS exists yet (ASTAP plate-solves AFTER
-    # this script runs), so there's nothing to invalidate.
+    # Step 3: Optional supplementary border crop -- see RUN_CROP config.
+    # Safe here since no WCS exists yet (ASTAP plate-solves after this
+    # script runs), so there's nothing to invalidate.
     # ------------------------------------------------------------------
     if RUN_CROP:
         siril_log(siril, "  [3/3] Cropping borders (mode=" + CROP_MODE + ")...")
