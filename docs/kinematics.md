@@ -309,7 +309,7 @@ While software like PHD2 offers its own "Predictive PEC," the Alpaca Driver's im
     *   **Warmup/Adapt:** Insufficient or high-variance data.
     *   **RMSE/Poor:** High model error or low quality.
     *   **Active (Numeric Value):** When the model is being applied, it displays a value between 0 and 1, where values closer to 1 indicate a near-perfect fit.
-4. **PEC Analysis:** The utilities folder includes a Juypeter Notebook to analyse a log file's PEC data. This can show the accumulated drift error and how well the PEC fitted it. It also shows the Instantaneous PEC Rate and its various components, the R2 quality and rmse plots.
+4. **PEC Analysis:** The utilities folder includes a Jupyter Notebook to analyse a log file's PEC data. This can show the accumulated drift error and how well the PEC fitted it. It also shows the Instantaneous PEC Rate and its various components, the R2 quality and rmse plots.
 ![Software Layers](images/abp-pec-analysis.png)
 
 #### **VI. Important Considerations**
