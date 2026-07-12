@@ -65,6 +65,28 @@ were to remain the same for another session.
     > JDM - In v2.2 when the driver persists the MPA sync points and reloads them whenever the driver restarts. This preserves the alignment through driver restarts, like you experienced the next morning.
 * Alignment reset - Furthermore, after the (180° 45° alignment) the start position showed its starting position as +179° +044° -001° (see image4). Selecting Park, changed this to +178° +045° -000° (see image5). Not sure why these figures aren’t always +180° +045° -000° ??
     > JDM - this may be due to rounding error as 179°59'50" is very close to 180°
+#### 11 July 2026 - Beta 1 Release
+* 90 x 60s exposures at 400mm on C92 Carina Nebula. MAC off for the entire test and logging for PEC on. Set up went really well with no issues at all - very smooth
+* MPA Settings - I used the previous revised MPA Workflow:
+(1) South Celestial Pole (2) Target (i.e C92 Carina Nebula) (3) Future Target (d-2) (4) NINA
+Again, this resulted in good residuals, which may be attributable to the version.
+* Advanced Sequencer using solve and sync guiding (45 iterations of 2 x 60 sec exposures) solving every 2 minutes (after 2 exposures)
+* "Wait for Time Span" instruction after the "Solve and Sync, was added to the NINA Template. However, it did not work correctly, in this position in the sequence. The solution was to add it before “Smart Exposure” ..... This meant that after a “Solve and Sync” had completed, there was am intentional delay, before the next set of “Smart Exposure” (in may case 2 x 60 sec). With a "Wait for Time Span” of 15s, sufficient time was available to al.low the plate solve (from “Solve and Sync”) to complete and disappear off the screen, before running the “Smart
+Exposure”
+* Light frames - despite these changes, when zoomed in, a high number of images show unusual shaped stars with squiggles, indicating some kind of movement during the session (but there was no wind) -‘Winged birds, tadpoles and small streaks’ were evident in many frames. Almost as if there may have been some form of vibration or oscillation during the imaging.
+* Having previously used “Solve and Sync” successfully on C/2025 R3 (PANSTARRS) using feature-pec_refactor (15 May 26 ) with 30sec exposures at 300mm, I’m wondering if my recent 60s exposures at 400mm may be pushing things?
+* Using PixInsight for Weighted Batch Preprocessing, shows only 36 light frames out of 90,
+could be used.
+* Thoughts - since the Carina Nebula is in close proximity to the South Celestial Pole, I’m
+wondering whether the MPA sync points were too close together, to get a good alignment?
+Perhaps the MPA workflow may have benefited from being adjusted to:
+(1) South Celestial Pole
+(2) Target (i.e C92 Carina Nebula)
+(3) Future Target (d-2)
+(4) Future Target (d-2)
+(5) NINA
+This may have given a better ‘spread’ of the MPA manual plate solves and sync
+    > JDM - I checked log files and could not see any Heartbeat or Event Loop lags.
 
 ### Summary
 
@@ -96,6 +118,16 @@ Notes: feedback on MacOS and Raspberry Pi 4
 * SP / PV deviation - It is idle but the white and green arrow are not aligned
     > JDM - When in idle, if the motors are moved the present value will deviate from the SP. pressing the vertical bar with arrows will realign the SP's.
 
+11 July 2026 - Beta 1 Release
+* I have a question about Sync Guiding: how Alpaca is managing to not interfere with the ongoing shooting ? Does this needs a special step in the sequence ? I think so, but is this possible with CCDCiel ? 
+When taking a sequence I'm usually asking CCDCiel to plate solve from time to time the last taken picture without stopping the sequence, I now understand that this may introduce some shaking from the mount if Alpaca issue a correction when a frame is being captured ?
+    > JDM - When the Driver interprets a sync as a sync guide, it updates its position and lets the PID controller shift it back to the current SP. This might cause a disturbance if the shift is significant, but PEC should be keeping this small. Havent tried with CCDciel yet but you may need to add a small delay after the sync to allow the PID to resettle.
+* Do you have some special advice helping to setup Polaris with Alpca in daytime for tracking the Sun ?
+I'll use a ND 100 000 filter before and after the totality but will be taking it away at the totality to have a chance to capture the Sun corona ! Maybe you might release an Alpaca Total Eclipse Edition
+    > JDM - I havent tried using Polaris for solar at all yet. Let me know if you learn any insights.
+* You may integrate PeakFinder in the Sky Conditions tab : https://www.peakfinder.com
+    > JDM - Great idea. I've added it in dev2_2 and included the site info, and telescope pointing direction in the link!
+
 ### Feedback Summary
 
 
@@ -124,6 +156,37 @@ July 2026
 ### Feedback Summary
 
 
+
+
+
+## Beta Tester: John Phantom
+(Dis: John/Phantom/Phantomcnt; GH: , KS: , FB: )
+### Platform & Environment
+* Applications: 
+* Platform: 
+* Hardware: 
+* Optics: 
+### Test Areas
+### Results
+4 June 2026 - Alpha 1
+* Pano Portrait/Landscape - switching between landscape and vertical panos is on my wish list
+    > JDM - I've included a swap button on the Pano Settings page
+19 June 2026 - Alpha 1
+* Pano Presets - is it worth being able to save the settings for later use? 
+    > JDM - We could add a Save/Load feature like we did for Locations, but I think this is for a future releases consideration. I spoke too early before. I made the location save/restore into a more generic preset save/restore feature. Now we can save preconfigured Panoramas and restore them easily.
+
+5 July 2026 - Beta 1 Release
+* Easier Connect for non DSO Users - The l bracket is a bug I suffer with and I know at least a handful of people also have the same issue. I'd guess it'll be at least a few dozen with the same issue. You could potentially allow people to toggle on and off what they want to see.
+    > JDM - I've added L-Bracket and Site Location to the Connect Page checklist. 
+
+11 June 2026 - Beta 1 Release
+* Catalog Filter Persistence - something I noted from last night, if you set a filter in the catalogue, hit goto and then come back, the filter is then cleared on your return. 
+    > JDM - fixed in dev2_2. Catalog Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).
+* Residuals - I had a residual with an orange triangle next to it. Obviously that means bad 😂. But I couldn't specifically find the meaning of it in the document. 
+    > JDM - Fixed in dev2_2. Expanded on meaning of outlier residuals in control.md at https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/control.md#e-review-model-residuals
+### Feedback Summary
+
+
 ## Beta Tester: John
 (FB: John Harrison; GH: 5x5Stuido)
 Notes: Ireland Week43, New 5nm filters.
@@ -136,9 +199,32 @@ Notes: Ireland Week43, New 5nm filters.
 ### Test Areas
 ...
 ### Results
-8-Jul-2026 Even after setup the connect Polaris icon stays red instead of turning green. Reproduced several times tonight just going through the connection process - JDM fixed in dev2_2
+8-Jul-2026 Even after setup the connect Polaris icon stays red instead of turning green. Reproduced several times tonight just going through the connection process
+> JDM fixed in dev2_2
 ### Feedback Summary
 ...
+
+
+## Beta Tester: lowend1hz
+(Dis: lowend1hz; FB:  GH: , KS: )
+### Platform & Environment
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+### Test Areas
+### Results
+26 May 2026 - Alpha 1
+* Vertical Panos - I'm going to start thinking about to implement this myself, but I started thinking yesterday about how to execute it and figured I would mention it to you as well.  Currently, the panorama implementation is focused primarily on multicolumn panoramas with some support for multiple rows to create panoramas that are horizontally oriented.  However, creating vertically oriented panorama requires a slightly different implementation due to the mechanical limitations of the device.  For example, capturing a vertical panorama with a 180° FoV (effectively 180° of rotation in the altitude direction) would requires a different mechanical implementation compared to a horizontal panorama with a 180° FoV (requiring 180° of rotation in the azimuth direction).  There won't be a way to allow this for all focal lengths due to the mechanical limitations of the device, but for short enough focal lengths it should be possible to provide the requisite coverage.  With a panoramic head like the Nodal Ninja M2 (https://www.nodalninja.com/m2-no-rotator/F8000#top_c) it is fairly trivial to do this since there is no mechanical limitation, but for the Polaris we would need a way to first determine whether there would be sufficient overlap at the mechanical limits and then should be able to achieve the same.  The post-processing would be a bit more difficult since some of the frames would have the orientation shifted, but I imagine it should still be feasible.  One challenge would be determining if it would be better to treat this like a separate "mode"/"module" or to try incorporating it directly into the existing panorama code base.  Given that these types of panorama are less common, my inclination would be to implement it as a separate "mode"/"module" with a toggle in the UI, if nothing else to avoid introducing regressions into the existing panorama functionality.  Do you have any thoughts/ideas about something like this?
+> JDM - Added Galactic Panos with multiple changes. The kinematics now properly adjust the roll or alt so that the panel is always reachable even when it is at an Alt of say 120. The logic wraps altitudes over the top, and also wraps roll angles to upside down if it cannot reach it. The PanoGrids can now work in Topocentric, Equatorial or Galactic Reference Frames. Changing the reference frame changes the anchor co-ord as well as what vstep/hstep adjust between panels. For topo, its a Az/Alt grid; for equatorial its a RA/Dec grid, for galactic its a glat/glon grid.
+* Polaris is challenged vertically and never reached panels near the zenith | The driver now understands its limits and gives priority to Az/Alt, but will compromise rotation and then Alt if necessary.
+* Couldn't find a Siril script to handle mosaics, especially the more tedious mono workflow. | We now have Siril scripts to preprocess, stack, compose, stretch, and convert using Siril, Graxpert and Veralux (feel free to tailor)
+* When multiple panels are involved, it gets even worse with stacking images, especially when Siril renames them pp_00001, etc | Now the Siril script automatically adds a prefix to each file, clearly identifying what panel it belongs to eg  GLATNNN_GLONNNN_
+* Dealing with the flat wizard, darks and biases between Nina and Sirils expectations meant a lot of file copying and directory renaming. |Now a script can rename directories and the Siril scripts will work off a standard calibration subdirectory.
+* Over the top Altitude and meridian flips really confused the stitching software, not understanding how to mirror the images. | Now all panel tiffs are flipped automatically to align in the same way as the first panel, making it easier for Kolor Giga Pano.
+
+### Feedback Summary
+
 
 
 
