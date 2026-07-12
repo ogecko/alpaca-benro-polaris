@@ -796,8 +796,7 @@ class Polaris:
                 self._polaris_sw_ver = arg_dict.get('sw')
                 self._polaris_hw_ver = arg_dict.get('hw')
                 self._polaris_astro_ver = arg_dict.get('exAxis')
-            if Config.log_polaris_protocol:
-                self.logger.info(f"<<- Polaris: VERSION status changed: {cmd} {arg_dict}")
+            self.logger.info(f"<<- Polaris: VERSION status response: {cmd} {arg_dict}")
 
         # return result of SECURITY request {'step': '1', 'password': 'YmVucm8=', 'securityQ': '2', 'securityA': 'QnJhaW4='}
         elif cmd == "790":
