@@ -337,6 +337,20 @@ Notes: Last week RC1 tester.
 
 
 
+## Beta Tester: JavaVM
+(Dis: JavaVM / Steve Egge; FB:  GH: , KS: )
+### Platform & Environment
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
+### Test Areas
+### Results
+11 July 2026 - Beta 1 Release
+* Still trying to get Alpaca to work with my Benro. reinstalled everthing once again .... separating with login's on the mele as I also have a AM5N mount I bought out of frustration with a thought of moving on .... but the BP is SO much lighter .... at any rate here are my latest from trying to connect.
+### Feedback Summary
+
+
 
 ## RFC
 FB: Andrew Sargent; GH: CynicalSarge
