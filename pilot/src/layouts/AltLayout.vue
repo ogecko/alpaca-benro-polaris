@@ -232,7 +232,7 @@ watch(() => cat.searchFor, (newVal) => {
 
 const triggerSearch = debounce(async () => {
   const searchFor = searchBoxString.value.trim()
-  await router.push({ path: '/catalogList', query: { ...route.query, q: searchFor } }) 
+  await router.push({ path: '/catalog', query: { ...route.query, q: searchFor } }) 
 }, 300) // 300ms debounce
 
 
@@ -275,7 +275,7 @@ function getBatteryIcon(): string {
 
 
 function isCatalogActive(link: CatalogLink): boolean {
-  if (route.path.toLowerCase() !== '/cataloglist') {
+  if (route.path.toLowerCase() !== '/catalog') {
     return false
   }
 
@@ -318,21 +318,21 @@ interface CatalogLink {
 }
 
 const links2 = [
-  { icon: 'mdi-library', text: 'Catalog', to: '/cataloglist' },
-  { icon: 'mdi-nfc-tap', text: 'Nearby', to: { path: '/catalogList', query: { sort:'Proximity' } } },
-  { icon: 'mdi-flare', text: 'Stars', to: { path: '/catalogList', query: { C1:3 } } },
-  { icon: 'mdi-horse-variant', text: 'Nebulae', to: { path: '/catalogList', query: { C1:0 } } },
-  { icon: 'mdi-cryengine', text: 'Galaxies', to: { path: '/catalogList', query: { C1:1 } } },
-  { icon: 'mdi-blur', text: 'Clusters', to: { path: '/catalogList', query: { C1:2 } } },
+  { icon: 'mdi-library', text: 'Catalog', to: '/catalog' },
+  { icon: 'mdi-nfc-tap', text: 'Nearby', to: { path: '/catalog', query: { sort:'Proximity' } } },
+  { icon: 'mdi-flare', text: 'Stars', to: { path: '/catalog', query: { C1:3 } } },
+  { icon: 'mdi-horse-variant', text: 'Nebulae', to: { path: '/catalog', query: { C1:0 } } },
+  { icon: 'mdi-cryengine', text: 'Galaxies', to: { path: '/catalog', query: { C1:1 } } },
+  { icon: 'mdi-blur', text: 'Clusters', to: { path: '/catalog', query: { C1:2 } } },
 ]
 
 const links3: CatalogLink[] = [
-  { icon: 'mdi-moon-full', text: 'Planets', to: { path: '/catalogList', query: { C1:4 } } },
-  { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: { path: '/catalogList', query: { C1:5 } } },
-  { icon: 'mdi-satellite-variant', text: 'Satellites', to: { path: '/catalogList', query: { C1:6 } } },
-  { icon: 'mdi-cookie', text: 'Asteroids', to: { path: '/catalogList', query: { C1:8 } } },
-  { icon: 'mdi-magic-staff', text: 'Comets', to: { path: '/catalogList', query: { C1:7 } } },
-  { icon: 'mdi-cloud-clock-outline', text: 'Sky Conditions', to: { path: '/catalogList', query: { C1:11 } } },
+  { icon: 'mdi-moon-full', text: 'Planets', to: { path: '/catalog', query: { C1:4 } } },
+  { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: { path: '/catalog', query: { C1:5 } } },
+  { icon: 'mdi-satellite-variant', text: 'Satellites', to: { path: '/catalog', query: { C1:6 } } },
+  { icon: 'mdi-cookie', text: 'Asteroids', to: { path: '/catalog', query: { C1:8 } } },
+  { icon: 'mdi-magic-staff', text: 'Comets', to: { path: '/catalog', query: { C1:7 } } },
+  { icon: 'mdi-cloud-clock-outline', text: 'Sky Conditions', to: { path: '/catalog', query: { C1:11 } } },
 ]
 
 const links4 = [
