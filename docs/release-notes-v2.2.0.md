@@ -53,6 +53,7 @@
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart, allowing imagaging sessions to continue, uninterupted.
 - **[Persist Co-ordinate Frame]** Dashboard co-ordinate frame is persisted across F5 refresh and page changes, while separate for each browser tab.
 - **[Persist Zoom Range]** Each radial dial on the Dashboard retains its zoom range when navigating between pages.
+- **[Persist Filters]** Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).
 - **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
 - **[Flat White]** Added support for capturing flat frames from a display screen via the new Flat White menu item.
 

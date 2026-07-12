@@ -7,6 +7,8 @@ export const useUIStore = defineStore('ui', {
   state: () => ({
     coordFrame: parseInt(sessionStorage.getItem('ui.coordFrame') ?? '0') as 0 | 1 | 2,
     scaleRanges: {} as Record<string, number>,
+    catalogFilter: JSON.parse(sessionStorage.getItem('ui.catalogFilter') ?? '{}') as Record<string, number[]>,
+    catalogSort: sessionStorage.getItem('ui.catalogSort') ?? '',
   }),
   actions: {
     setCoordFrame(val: 0 | 1 | 2) {
@@ -23,6 +25,14 @@ export const useUIStore = defineStore('ui', {
     },
     getScaleRange(label: string, defaultRange: number): number {
       return this.scaleRanges[label] ?? defaultRange
+    },
+    setCatalogFilter(filter: Record<string, number[] | undefined>) {
+      this.catalogFilter = JSON.parse(JSON.stringify(filter))
+      sessionStorage.setItem('ui.catalogFilter', JSON.stringify(this.catalogFilter))
+    },
+    setCatalogSort(sort: string) {
+      this.catalogSort = sort
+      sessionStorage.setItem('ui.catalogSort', sort)
     },
   }
 })

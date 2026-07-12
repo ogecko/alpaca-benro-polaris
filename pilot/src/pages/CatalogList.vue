@@ -175,9 +175,10 @@ import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude, DsoConstellation, D
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
 import { useCatalogStore, typeLookupIcon, typeLookup } from 'src/stores/catalog'
+import { useConfigStore } from 'src/stores/config'
+import { useUIStore } from 'src/stores/ui'
 import VBar from 'src/components/VBar.vue'
 import MultiSelect from 'src/components/MultiSelect.vue'
-import { useConfigStore } from 'src/stores/config'
 
 const $q = useQuasar()
 const route = useRoute()
@@ -186,6 +187,7 @@ const dev = useDeviceStore()
 const cat = useCatalogStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
+const ui = useUIStore()
 const showFilters = ref<boolean>(false)
 
 
@@ -359,7 +361,13 @@ watch(() => route.query.q, (newQ) => {
   { immediate: true }
 )
 
+watch(() => cat.filter, (f) => {
+  ui.setCatalogFilter(f)
+}, { deep: true })
 
+watch(isProxSort, (isProx) => {
+  ui.setCatalogSort(isProx ? 'Proximity' : '')
+})
 
 // ---------- Helpers
 const altLookupColor: Record<DsoAltitude, string>  = {
@@ -382,24 +390,48 @@ function parseNumberArray(param: unknown): number[] {
   return []
 }
 
-function syncFiltersFromRoute(query = route.query) {
-  cat.filter.C1 = parseNumberArray(query.C1) as DsoType[]
-  cat.filter.C2 = parseNumberArray(query.C2) as DsoSubtype[]
-  cat.filter.Cn = parseNumberArray(query.Cn) as DsoConstellation[]
-  cat.filter.Rt = parseNumberArray(query.Rt) as DsoRating[]
-  cat.filter.Sz = parseNumberArray(query.Sz) as DsoSize[]
-  cat.filter.Vz = parseNumberArray(query.Vz) as DsoBrightness[]
-  cat.filter.Az = parseNumberArray(query.Az) as DsoAltitude[]
-  cat.filter.Alt = parseNumberArray(query.Alt) as DsoAltitude[]
+const FILTER_KEYS = ['C1', 'C2', 'Cn', 'Rt', 'Sz', 'Vz', 'Az', 'Alt'] as const
 
-  if (query.sort === 'Proximity') {
-    cat.updateDsoProximity(p.rightascension, p.declination);
-    cat.sorting = [{ field: 'Proximity', direction: 'asc' }];
+function syncFiltersFromRoute(query = route.query) {
+  const hasExplicitFilter = FILTER_KEYS.some(k => k in query) || 'sort' in query
+  const source = hasExplicitFilter
+    ? {
+        C1: parseNumberArray(query.C1),
+        C2: parseNumberArray(query.C2),
+        Cn: parseNumberArray(query.Cn),
+        Rt: parseNumberArray(query.Rt),
+        Sz: parseNumberArray(query.Sz),
+        Vz: parseNumberArray(query.Vz),
+        Az: parseNumberArray(query.Az),
+        Alt: parseNumberArray(query.Alt),
+      }
+    : {
+        C1: ui.catalogFilter.C1 ?? [],
+        C2: ui.catalogFilter.C2 ?? [],
+        Cn: ui.catalogFilter.Cn ?? [],
+        Rt: ui.catalogFilter.Rt ?? [],
+        Sz: ui.catalogFilter.Sz ?? [],
+        Vz: ui.catalogFilter.Vz ?? [],
+        Az: ui.catalogFilter.Az ?? [],
+        Alt: ui.catalogFilter.Alt ?? [],
+      }
+  cat.filter.C1 = source.C1 as DsoType[]
+  cat.filter.C2 = source.C2 as DsoSubtype[]
+  cat.filter.Cn = source.Cn as DsoConstellation[]
+  cat.filter.Rt = source.Rt as DsoRating[]
+  cat.filter.Sz = source.Sz as DsoSize[]
+  cat.filter.Vz = source.Vz as DsoBrightness[]
+  cat.filter.Az = source.Az as DsoAltitude[]
+  cat.filter.Alt = source.Alt as DsoAltitude[]
+
+  const sortProximityWanted = hasExplicitFilter ? query.sort === 'Proximity' : ui.catalogSort === 'Proximity'
+  if (sortProximityWanted) {
+    cat.updateDsoProximity(p.rightascension, p.declination)
+    cat.sorting = [{ field: 'Proximity', direction: 'asc' }]
   } else {
-    cat.sorting = [];
+    cat.sorting = []
   }
 }
-
 
 function onClickDSO(dso: CatalogItem) {
   const actions = [
