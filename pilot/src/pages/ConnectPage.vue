@@ -239,7 +239,7 @@
                   <q-icon :name="isCheckLBracket ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isCheckLBracket ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Check Camera Orientation (Az: {{ p.azimuth.toFixed(0) }}, Alt: {{p.altitude.toFixed(0)}}, Roll: {{p.roll.toFixed(0)}})</q-item-label>
+                  <q-item-label>Check Camera Orientation (M3: {{zetameas(2)}})</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <div class="row items-center q-gutter-sm">
@@ -378,6 +378,8 @@ const astroCaption = computed(() => {
 });
 const isLocationOk = computed(() => cfg.location)
 const locationOptions = computed<string[]>(() => cfg.location_list ? cfg.location_list.split('|').filter(Boolean)  : [] )
+const zetameas = (m: number):string => p.zetameas?.[m]?.toFixed(0) ?? '0'
+
 
 // ------------------- Lifecycle Events ---------------------
 
