@@ -369,6 +369,10 @@ watch(isProxSort, (isProx) => {
   ui.setCatalogSort(isProx ? 'Proximity' : '')
 })
 
+watch(() => [cat.filter, cat.sorting], () => {
+  cat.page = 1
+}, { deep: true })
+
 // ---------- Helpers
 const altLookupColor: Record<DsoAltitude, string>  = {
   0: 'negative', 
