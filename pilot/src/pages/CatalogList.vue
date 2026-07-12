@@ -431,6 +431,13 @@ function syncFiltersFromRoute(query = route.query) {
   } else {
     cat.sorting = []
   }
+
+  // Show filter bar when there are filters, but not on precanned link 
+  const otherKeysPresent = FILTER_KEYS.some(k => k !== 'C1' && k in query)
+  const c1Count = parseNumberArray(query.C1).length
+  const isPrecannedLink = hasExplicitFilter && !otherKeysPresent && c1Count <= 1
+
+  showFilters.value = !isPrecannedLink && cat.isFiltered
 }
 
 function onClickDSO(dso: CatalogItem) {
