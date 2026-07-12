@@ -220,11 +220,13 @@ Any remaining points in the model should be placed along the trajectory of your 
 
 ### E. Review Model Residuals
 
-After you add any additional sync points to the model, you should review the model residuals on the Alignment page in Alpaca Pilot. When the Driver updates the model, it recalculates how well it fits all of the sync points. Any slight deviation between what that sync point said it was and what the model thinks it should have been, will be listed as a residual. The last sync point will always have zero residual. 
+After you add any additional sync points to the model, you should review the model residuals on the Alignment page in Alpaca Pilot. Each sync point in this list shows a **residual**; the angular difference between where the mount reported it was pointing and where the multi-point alignment (QUEST) model predicts it should point, given the other sync points. Lower residuals indicate a better fit.
 
 ![Alignment Residuals](images/control-alignment1.png)
 
-The other sync points in this list, will likely have varying residuals. The lower the better. If you see anything above 5°, then you might want to consider deleting that point. You really want to keep them down in the arc minutes. And these are arc seconds. 
+Outlier residuals are flagged with an alert icon, **Amber** for residual above 5°, and **Red** for residual above 10°. The likely causes of high residuals include: poor centering before sync, mount movement during sync, sparce or clustered geometry, site location incorrect, or tripod movement. Amber and red sync points don't fit the alignment model well and should be reviewed for deletion, since including them will pull the model's accuracy down across the whole sky. 
+
+![Alignment Residuals](images/control-alignment1b.png)
 
 Delete a sync point by clicking on the cross next to the point. Note that if tracking is enabled when you delete a sync point, the model will adjust, and the mount will shift the head to its new understanding of where the current target is located. If this varies from its current location, then perform another manually initiated plate-solve and sync.
 
