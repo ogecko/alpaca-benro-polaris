@@ -4,18 +4,19 @@
 ## Result Summary
 |Tester|Platform|Results|Summary|
 |--|--|--|--|
-| [Mark](#beta-tester-mark)| [X] Platform | [ ] Results | [ ] Summary
-| [Vladimir](#beta-tester-vladimir)| [X] Platform | [ ] Results | [ ] Summary
-| [Greg](#beta-tester-greg-stark)| [X] Platform | [ ] Results | [ ] Summary
-| [John](#beta-tester-john)| [ ] Platform | [ ] Results | [ ] Summary
-| [Daniel](#beta-tester-daniel)| [ ] Platform | [ ] Results | [ ] Summary
-| [Alex](#beta-tester-alex)| [ ] Platform | [ ] Results | [ ] Summary
-| [William](#beta-tester-william)| [ ] Platform | [ ] Results | [ ] Summary
-| [Paul](#beta-tester-paul)| [ ] Platform | [ ] Results | [ ] Summary
-| [Steve](#beta-tester-steve)| [ ] Platform | [ ] Results | [ ] Summary
-| [Shiv](#beta-tester-shiv)| [ ] Platform | [ ] Results | [ ] Summary
-| [Mauricio](#beta-tester-mauricio)| [ ] Platform | [ ] Results | [ ] Summary
-| [Greg](#beta-tester-greg-stark)| [X] Platform | [ ] Results | [ ] Summary
+| [Mark](#beta-tester-mark)           | [X] Platform | [ ] Results | [ ] Summary
+| [Vladimir](#beta-tester-vladimir)   | [X] Platform | [ ] Results | [ ] Summary
+| [Greg](#beta-tester-greg-stark)     | [X] Platform | [ ] Results | [ ] Summary
+| [John](#beta-tester-johnphantom)    | [ ] Platform | [ ] Results | [ ] Summary
+| [lowend1hz](#beta-tester-lowend1hz) | [ ] Platform | [ ] Results | [ ] Summary
+| [Daniel](#beta-tester-daniel)       | [ ] Platform | [ ] Results | [ ] Summary
+| [Alex](#beta-tester-alex)           | [ ] Platform | [ ] Results | [ ] Summary
+| [William](#beta-tester-william)     | [ ] Platform | [ ] Results | [ ] Summary
+| [Paul](#beta-tester-paul)           | [ ] Platform | [ ] Results | [ ] Summary
+| [Steve](#beta-tester-steve)         | [ ] Platform | [ ] Results | [ ] Summary
+| [Shiv](#beta-tester-shiv)           | [ ] Platform | [ ] Results | [ ] Summary
+| [Mauricio](#beta-tester-mauricio)   | [ ] Platform | [ ] Results | [ ] Summary
+| [Greg](#beta-tester-greg-stark)     | [X] Platform | [ ] Results | [ ] Summary
 
 
 
@@ -159,13 +160,14 @@ July 2026
 
 
 
-## Beta Tester: John Phantom
-(Dis: John/Phantom/Phantomcnt; GH: , KS: , FB: )
+## Beta Tester: John/Phantom
+(Dis: John Harrison/Phantom/Phantomcnt; GH: 5x5Stuido, KS: , FB: )
+Notes: England, New 5nm filters.
 ### Platform & Environment
-* Applications: 
-* Platform: 
-* Hardware: 
-* Optics: 
+* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
+* Platform: OS Version, Browser Version, etc.
+* Hardware: MiniPC model, Tablet model, Phone model.
+* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
 ### Test Areas
 ### Results
 4 June 2026 - Alpha 1
@@ -175,9 +177,11 @@ July 2026
 * Pano Presets - is it worth being able to save the settings for later use? 
     > JDM - We could add a Save/Load feature like we did for Locations, but I think this is for a future releases consideration. I spoke too early before. I made the location save/restore into a more generic preset save/restore feature. Now we can save preconfigured Panoramas and restore them easily.
 
-5 July 2026 - Beta 1 Release
+5-8 July 2026 - Beta 1 Release
 * Easier Connect for non DSO Users - The l bracket is a bug I suffer with and I know at least a handful of people also have the same issue. I'd guess it'll be at least a few dozen with the same issue. You could potentially allow people to toggle on and off what they want to see.
     > JDM - I've added L-Bracket and Site Location to the Connect Page checklist. 
+* Even after setup the connect Polaris icon stays red instead of turning green. Reproduced several times tonight just going through the connection process
+> JDM fixed in dev2_2
 
 11 June 2026 - Beta 1 Release
 * Catalog Filter Persistence - something I noted from last night, if you set a filter in the catalogue, hit goto and then come back, the filter is then cleared on your return. 
@@ -186,23 +190,6 @@ July 2026
     > JDM - Fixed in dev2_2. Expanded on meaning of outlier residuals in control.md at https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/control.md#e-review-model-residuals
 ### Feedback Summary
 
-
-## Beta Tester: John
-(FB: John Harrison; GH: 5x5Stuido)
-Notes: Ireland Week43, New 5nm filters.
-### Platform & Environment
-* Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
-* Platform: OS Version, Browser Version, etc.
-* Hardware: MiniPC model, Tablet model, Phone model.
-* Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
-
-### Test Areas
-...
-### Results
-8-Jul-2026 Even after setup the connect Polaris icon stays red instead of turning green. Reproduced several times tonight just going through the connection process
-> JDM fixed in dev2_2
-### Feedback Summary
-...
 
 
 ## Beta Tester: lowend1hz
