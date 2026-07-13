@@ -7,6 +7,7 @@
       <MoveButton rounded size="xl" :opacity="0.8" icon="mdi-arrow-down-left-bold" color="positive" upcolor="primary" iupcolor="white" @push="e=>onMove({...e, axis:2, dir: -1})"/>
       <MoveButton rounded size="xl" :opacity="0.8" icon="mdi-arrow-up-bold" color="positive" upcolor="primary" iupcolor="white" @push="e=>onMove({...e, axis:1, dir: +1})"/>
       <MoveButton rounded size="xl" :opacity="0.8" icon="mdi-arrow-down-right-bold" color="positive" upcolor="primary" iupcolor="white" @push="e=>onMove({...e, axis:2, dir: +1})"/>
+      <q-btn outline size="xl" color="green" label="Sync" @click="sendCommand('sync')" />
 
       <!-- Row 2 -->
       <q-btn outline size="xl" color="primary" icon="mdi-parking" @click="sendCommand('park')" />
@@ -16,13 +17,15 @@
         <div  class="text-caption text-positive q-mt-xs">Speed</div>
       </div>
       <MoveButton rounded size="xl" :opacity="0.8" icon="mdi-arrow-right-bold" color="positive" upcolor="primary" iupcolor="white" @push="e=>onMove({...e, axis:0, dir: +1})"/>
+      <q-btn outline size="xl" color="primary" label="Horz" @click="sendCommand('level')" />
 
 
       <!-- Row 3 -->
       <q-btn outline size="xl" color="primary" icon="mdi-stop" @click="sendCommand('stop')" />
       <q-btn outline size="xl" color="secondary" icon="mdi-star-shooting-outline" @click="sendCommand('track')" />
       <MoveButton rounded size="xl" :opacity="0.8" icon="mdi-arrow-down-bold" color="positive" upcolor="primary" iupcolor="white" @push="e=>onMove({...e, axis:1, dir: -1})"/>
-      <q-btn outline size="xl" color="primary" icon="mdi-format-vertical-align-center" @click="sendCommand('level')" />
+      <q-btn outline size="xl" color="primary" label="RA-2" @click="sendCommand('rap2')" />
+      <q-btn outline size="xl" color="primary" label="RA+2" @click="sendCommand('ram2')" />
     </div>
   </div>
 </template>
@@ -55,9 +58,9 @@ function sendCommand(command:string) {
 
 .control-grid {
   display: grid;
-  grid-template-columns: repeat(4, 100px);
+  grid-template-columns: repeat(5, 100px);
   grid-template-rows: repeat(3, 100px);
-  gap: 6px;
+  gap: 0px;
   align-items: center;
   justify-items: center;
 }
