@@ -7,9 +7,13 @@
 # OVERVIEW
 # ==============================================================================
 # Calibrates and preprocesses light frames for every filter found under the
-# Siril home directory, then renames each calibrated light with a GLAT/GLON
-# panel label derived from its own RA/Dec header. Output is ready for
-# Galactic_1_Stack.py.
+# Siril home directory. Output is ready for Galactic_1_Stack.py, which
+# renames each calibrated light with a GLAT/GLON panel label (derived from
+# its own RA/Dec header) and groups panels as its first step.
+#
+# Lights/darks/biases/flats can be FITS or camera RAW (e.g. Canon CR3) --
+# see RAW_EXTENSIONS. Siril's own convert step does the conversion; OSC RAW
+# frames are also debayered as part of calibration (see preprocess_filter).
 #
 # Steps, in order:
 #   0. Normalise capture-software directory names       (optional, RUN_NINA_DIR_NORMALIZE)
@@ -17,7 +21,12 @@
 #   2. Build master bias and master dark (shared across all filters)
 #   3. Build master flat (per filter)
 #   4. Calibrate lights -> <filter>/process/pp_light_NNNNN.fits
-#   5. Rename each calibrated light with its GLAT/GLON panel label
+#
+# GLAT/GLON renaming happens in Galactic_1_Stack.py instead of here, so you
+# can plate-solve the calibrated FITS files in between if your capture
+# software didn't record RA/Dec (e.g. a camera RAW format like CR3 has
+# nowhere to store a plate-solve solution, but the calibrated FITS output
+# does).
 #
 # ==============================================================================
 # DIRECTORY STRUCTURE
@@ -55,10 +64,6 @@ import traceback
 from pathlib import Path
 from collections import defaultdict
 
-from astropy.io import fits as _afits
-from astropy.coordinates import SkyCoord, Angle
-import astropy.units as _u
-
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
@@ -78,6 +83,14 @@ BIASES_SUBDIR  = "biases"
 PROCESS_SUBDIR = "process"
 
 FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
+
+# Camera RAW formats Siril can convert directly (via convert, using its
+# bundled libraw) -- lights/darks/biases/flats can be in any of these, or
+# FITS, or a mix. Used only for counting/reporting what's available before
+# conversion; Siril's own convert command does the actual work regardless
+# of which of these are present.
+RAW_EXTENSIONS = {".cr2", ".cr3", ".nef", ".arw", ".orf", ".raf",
+                  ".rw2", ".pef", ".dng", ".srw", ".x3f"}
 
 # ------------------------------------------------------------------------
 # Step 0: Directory normalisation -- RUN_NINA_DIR_NORMALIZE
@@ -103,32 +116,6 @@ OSC_FILTER_NAME = "OSC"        # must match an entry in FILTER_DIRS above
 MASTER_BIAS_NAME = "master_bias"      # written into calibration/X/
 MASTER_DARK_NAME = "master_dark"      # written into calibration/X/ (bias-subtracted)
 MASTER_FLAT_NAME = "master_flat"      # written into calibration/<filter>/
-
-# ------------------------------------------------------------------------
-# Step 5: GLAT/GLON panel renaming
-# ------------------------------------------------------------------------
-PREFIX_LENGTH = 16             # characters in the prefix, e.g. GLAT007N_GLON344
-
-# Rounding precision for the panel label. 0 = nearest whole degree. Negative
-# values round to a coarser unit (-1 = nearest 10 degrees) -- use this if subs
-# from the same panel are landing on opposite sides of a rounding boundary.
-# Positive values keep decimal places for finer-grained panels.
-RENAME_DECIMALS = 0
-
-# Manual override for one-off anomalies (e.g. a mount slip put two batches of
-# the same intended panel further apart than any RENAME_DECIMALS setting could
-# safely group without also merging genuinely separate panels elsewhere).
-# Maps a generated prefix (including its trailing underscore) to the prefix
-# you want instead, e.g.:
-#   MERGE_LABELS = {"GLAT007N_GLON123_": "GLAT007N_GLON120_"}
-# Check the Siril log for the exact generated prefixes. Leave {} if not needed.
-MERGE_LABELS = {}
-
-# RA/Dec header keywords, tried in priority order
-RA_KEYS_DEG  = ["RA", "RA_OBJ", "CRVAL1"]
-DEC_KEYS_DEG = ["DEC", "DEC_OBJ", "CRVAL2"]
-RA_KEYS_STR  = ["OBJCTRA"]
-DEC_KEYS_STR = ["OBJCTDEC"]
 # ==============================================================================
 
 
@@ -187,6 +174,21 @@ def count_fits(directory):
         return 0
     return sum(1 for p in directory.iterdir()
                if p.is_file() and p.suffix.lower() in FITS_EXTENSIONS)
+
+
+def count_images(directory):
+    """
+    Return number of FITS or camera RAW files in directory, or 0 if absent.
+    Use this (not count_fits) for lights/darks/biases/flats directories
+    before conversion -- they may contain RAW files (e.g. Canon CR3) that
+    Siril's own convert step will handle, but count_fits alone would miss,
+    making the directory look empty and skipping it entirely.
+    """
+    if not directory or not directory.is_dir():
+        return 0
+    exts = FITS_EXTENSIONS | RAW_EXTENSIONS
+    return sum(1 for p in directory.iterdir()
+               if p.is_file() and p.suffix.lower() in exts)
 
 
 # ---------------------------------------------------------------------------
@@ -313,211 +315,6 @@ def normalize_nina_directories(siril, home_dir):
 
     if not any_osc and renamed == 0:
         siril_log(siril, "  No NINA-style LIGHT/DARK/BIAS/FLAT directories found -- nothing to do.")
-
-
-# ---------------------------------------------------------------------------
-# GLAT/GLON coordinate helpers (from fits_galactic.py)
-# ---------------------------------------------------------------------------
-
-def extract_ra_dec(header):
-    """Pull RA/Dec from a FITS header. Returns (ra_deg, dec_deg) or None."""
-    ra_deg = dec_deg = None
-    for key in RA_KEYS_DEG:
-        if key in header:
-            try:
-                ra_deg = float(header[key]); break
-            except (ValueError, TypeError):
-                pass
-    for key in DEC_KEYS_DEG:
-        if key in header:
-            try:
-                dec_deg = float(header[key]); break
-            except (ValueError, TypeError):
-                pass
-    if ra_deg is None:
-        for key in RA_KEYS_STR:
-            if key in header:
-                try:
-                    ra_deg = Angle(str(header[key]), unit=_u.hourangle).deg; break
-                except (ValueError, TypeError):
-                    pass
-    if dec_deg is None:
-        for key in DEC_KEYS_STR:
-            if key in header:
-                try:
-                    dec_deg = Angle(str(header[key]), unit=_u.degree).deg; break
-                except (ValueError, TypeError):
-                    pass
-    if ra_deg is None or dec_deg is None:
-        return None
-    if not (0.0 <= ra_deg < 360.0) or not (-90.0 <= dec_deg <= 90.0):
-        return None
-    return ra_deg, dec_deg
-
-
-def round_coord(value, decimals):
-    """
-    Round a coordinate to RENAME_DECIMALS places. Negative decimals round
-    to a coarser unit (e.g. -1 -> nearest 10), which is the main lever for
-    fixing subs of the same intended panel landing on opposite sides of a
-    rounding boundary -- see the RENAME_DECIMALS config comment.
-    """
-    return round(value, decimals)
-
-
-def radec_to_galactic(ra_deg, dec_deg):
-    """Convert equatorial J2000 to Galactic (l, b) in degrees via astropy."""
-    c = SkyCoord(ra=ra_deg * _u.degree, dec=dec_deg * _u.degree, frame="icrs")
-    g = c.galactic
-    return g.l.deg % 360.0, g.b.deg
-
-
-def find_glon_offset(glon_values):
-    """
-    Given a list of GLON values (0-359), find the offset to apply to each
-    so that the values are monotonically increasing across the panorama.
-
-    Algorithm: find the largest gap between consecutive values around the
-    circle. The panel after that gap is the start of the panorama. Any
-    panel whose GLON is less than the start value gets +360 added.
-
-    Example: [318, 327, 335, 343, 351, 0, 8]
-      Sorted: [0, 8, 318, 327, 335, 343, 351]
-      Gaps (circular): 8, 310, 9, 8, 8, 8, 9  (gap from 351 back to 0 = 9)
-      Largest gap: 310 (between 8 and 318) -> panorama starts at 318
-      Result: 0->360, 8->368, rest unchanged
-    """
-    if not glon_values:
-        return {}
-    unique = sorted(set(glon_values))
-    if len(unique) == 1:
-        return {unique[0]: unique[0]}
-
-    # Compute gaps between consecutive values (circular)
-    gaps = []
-    n = len(unique)
-    for i in range(n):
-        gap = (unique[(i + 1) % n] - unique[i]) % 360
-        gaps.append((gap, i))
-
-    # Largest gap -- the panorama starts at the value AFTER this gap
-    largest_gap_idx = max(gaps, key=lambda x: x[0])[1]
-    start_val = unique[(largest_gap_idx + 1) % n]
-
-    # Build offset map: values before start_val (i.e. that wrapped) get +360
-    result = {}
-    for v in unique:
-        if v < start_val:
-            result[v] = v + 360
-        else:
-            result[v] = v
-    return result
-
-
-def make_glat_glon_prefix(glat_snapped, glon_adjusted):
-    """
-    Build the GLAT/GLON filename prefix from already-snapped/rounded
-    values. e.g. glat_snapped=-7, glon_adjusted=368 -> GLAT007S_GLON368_
-    """
-    ns = "S" if glat_snapped < 0 else "N"
-    glat_int = int(round(abs(glat_snapped)))
-    glon_int = int(round(glon_adjusted))
-    return "GLAT{:03d}{}_GLON{:03d}_".format(glat_int, ns, glon_int)
-
-
-def rename_with_glat_glon(siril, process_dir):
-    """
-    Read each pp_light*.fits in process_dir and rename with GLAT/GLON prefix.
-
-    Each file's GLAT/GLON is snapped to the nearest intended grid position
-    (GRID_GLON_STEP/GRID_GLAT_STEP, if set) or simply rounded
-    (RENAME_DECIMALS, if not) BEFORE wrap-around correction and panel
-    labelling -- see the config comments for why grid snapping is
-    recommended: it avoids two subs of the same intended panel landing on
-    opposite sides of an arbitrary rounding boundary just from ordinary
-    mount jitter.
-
-    GLON values are then wrap-corrected so files sort monotonically across
-    the panorama (e.g. 351->351, 0->360, 8->368 when the gap is at ~180
-    deg), and finally MERGE_LABELS is applied for any explicit manual
-    overrides.
-
-    Opens files read-only so Python doesn't hold a write lock during rename.
-    Uses a retry loop for Windows file lock release timing after Siril closes.
-    Returns (renamed_count, skipped_count, error_count).
-    """
-    import time as _time
-
-    renamed = skipped = errors = 0
-    pp_files = sorted(p for p in process_dir.iterdir()
-                      if p.is_file()
-                      and p.suffix.lower() in FITS_EXTENSIONS
-                      and p.stem.startswith("pp_")
-                      and not p.stem[:4].upper() == "GLAT")
-
-    if not pp_files:
-        return 0, 0, 0
-
-    # Pass 1: read all coordinates, round, compute wrap-around offset
-    file_coords = {}   # path -> (glat_rounded, glon_rounded)
-    glon_values = []
-    for fits_path in pp_files:
-        try:
-            with _afits.open(str(fits_path), mode="readonly") as hdul:
-                coords = extract_ra_dec(hdul[0].header)
-        except Exception as exc:
-            siril_log(siril, "  ERROR reading " + fits_path.name + ": " + str(exc))
-            errors += 1
-            continue
-        if coords is None:
-            siril_log(siril, "  SKIP (no RA/Dec): " + fits_path.name)
-            skipped += 1
-            continue
-        ra_deg, dec_deg = coords
-        l, b = radec_to_galactic(ra_deg, dec_deg)
-        glon_rounded = round_coord(l, RENAME_DECIMALS) % 360
-        glat_rounded = round_coord(b, RENAME_DECIMALS)
-        file_coords[fits_path] = (glat_rounded, glon_rounded)
-        glon_values.append(glon_rounded)
-
-    # Compute wrap-corrected GLON mapping
-    glon_offset_map = find_glon_offset(glon_values)
-    if any(v != k for k, v in glon_offset_map.items()):
-        adjusted = {k: v for k, v in glon_offset_map.items() if v != k}
-        siril_log(siril, "  Wrap-around detected -- adjusting GLON values: "
-                  + ", ".join(str(k) + "->" + str(v) for k, v in sorted(adjusted.items())))
-
-    # Pass 2: rename with corrected GLON, then apply any manual merge override
-    merged_count = 0
-    for fits_path, (glat_rounded, glon_rounded) in file_coords.items():
-        glon_adjusted = glon_offset_map.get(glon_rounded, glon_rounded)
-        prefix = make_glat_glon_prefix(glat_rounded, glon_adjusted)
-        if prefix in MERGE_LABELS:
-            merged_count += 1
-            prefix = MERGE_LABELS[prefix]
-        new_path = fits_path.with_name(prefix + fits_path.name)
-
-        # Retry rename up to 5 times -- Windows releases Siril's file lock
-        # asynchronously after close/cd, so a short wait may be needed
-        for attempt in range(5):
-            try:
-                if new_path.exists():
-                    new_path.unlink()
-                fits_path.rename(new_path)
-                renamed += 1
-                break
-            except OSError as exc:
-                if attempt < 4:
-                    _time.sleep(0.5)
-                else:
-                    siril_log(siril, "  ERROR renaming " + fits_path.name
-                              + ": " + str(exc))
-                    errors += 1
-
-    if merged_count:
-        siril_log(siril, "  Manual merge override applied to " + str(merged_count) + " file(s).")
-
-    return renamed, skipped, errors
 
 
 # ---------------------------------------------------------------------------
@@ -670,12 +467,23 @@ def preprocess_filter(siril, filter_name, lights_dir, process_dir,
     #   shows: "Cosmetic correction from masterdark: using sigma 3.00 for
     #   hot pixels. 953 corrected pixels". Without this, hot pixels remain
     #   as white specks in calibrated images.
+    #
+    # For OSC (one-shot-colour) lights, the RAW/converted frames are still
+    # Bayer-pattern mono data at this point -- -cfa tells calibrate to treat
+    # them as such, -equalize_cfa equalises the 4 Bayer channels' mean level
+    # in the flat before applying it (avoids a colour cast from the flat),
+    # and -debayer demosaics into an RGB image as the last step. Without
+    # these, OSC output would silently stay as flat, uncoloured Bayer data.
     pp_args = ["calibrate", "light"]
     if master_dark_path and master_dark_path.exists():
         pp_args.append("-dark=" + str(master_dark_path))
         pp_args.append("-cc=dark")   # hot pixel cosmetic correction from dark
     if master_flat_path and master_flat_path.exists():
         pp_args.append("-flat=" + str(master_flat_path))
+    if filter_name == OSC_FILTER_NAME:
+        pp_args.append("-cfa")
+        pp_args.append("-equalize_cfa")
+        pp_args.append("-debayer")
     # prefix=pp_ gives pp_light_00001.fits (sequence name "light" appended by Siril)
     pp_args.append("-prefix=pp_")
 
@@ -738,8 +546,8 @@ def main():
         darks_dir   = shared_dir / DARKS_SUBDIR
         biases_dir  = shared_dir / BIASES_SUBDIR
 
-        n_darks  = count_fits(darks_dir)
-        n_biases = count_fits(biases_dir)
+        n_darks  = count_images(darks_dir)
+        n_biases = count_images(biases_dir)
 
         siril_log(siril, "Calibration frames (shared):")
         siril_log(siril, "  Biases : " + str(n_biases)
@@ -757,8 +565,8 @@ def main():
             lights_dir  = home_dir / filt / LIGHTS_SUBDIR
             process_dir = home_dir / filt / PROCESS_SUBDIR
             flats_dir   = calib_root / filt / FLATS_SUBDIR
-            n_lights = count_fits(lights_dir)
-            n_flats  = count_fits(flats_dir)
+            n_lights = count_images(lights_dir)
+            n_flats  = count_images(flats_dir)
             if n_lights == 0:
                 continue   # filter not present
             filter_info[filt] = {
@@ -804,11 +612,10 @@ def main():
             siril_log(siril, "  No darks -- skipping master dark.")
 
         # ------------------------------------------------------------------
-        # Steps 3-7: Per-filter processing
+        # Steps 3-4: Per-filter processing
         # ------------------------------------------------------------------
         ok_filters = []
         fail_filters = []
-        filter_renamed = {}  # filt -> count of renamed files
 
         for filt, info in filter_info.items():
             siril_log(siril, " ")
@@ -843,25 +650,6 @@ def main():
                 fail_filters.append(filt)
                 continue
 
-            # Step 5: Rename with GLAT/GLON prefix
-            # RA/Dec is preserved in pp_light headers from the original
-            # capture software -- no plate solve needed before renaming.
-            # cd to home_dir first, then close -- on Windows, moving away
-            # from the directory before closing releases file locks reliably.
-            siril_log(siril, "  [5] Renaming with GLAT/GLON prefix...")
-            # Release Siril file locks before renaming:
-            # 1. cd away from the process directory
-            # 2. close the current image
-            # 3. brief sleep to let Windows release handles
-            cmd_safe(siril, "cd", str(home_dir))
-            cmd_safe(siril, "close")
-            renamed, skipped, errors = rename_with_glat_glon(
-                siril, info["process_dir"])
-            siril_log(siril, "  Renamed: " + str(renamed)
-                      + "  Skipped: " + str(skipped)
-                      + "  Errors: " + str(errors))
-            filter_renamed[filt] = renamed
-
             ok_filters.append(filt)
 
         # Restore home directory
@@ -878,25 +666,27 @@ def main():
         siril_log(siril, "  Master dark: "
                   + (str(master_dark_path.name) if master_dark_path else "not built"))
         siril_log(siril, " ")
-        siril_log(siril, "  {:<8} {:>8} {:>8} {:>10} {:>8}".format(
-                  "Filter", "Lights", "Flats", "Calibrated", "Renamed"))
-        siril_log(siril, "  " + "-" * 48)
+        siril_log(siril, "  {:<8} {:>8} {:>8} {:>10}".format(
+                  "Filter", "Lights", "Flats", "Calibrated"))
+        siril_log(siril, "  " + "-" * 38)
         for filt in ok_filters:
             info = filter_info[filt]
-            # Count calibrated files: pp_light_* before rename, GLAT*_pp_light_* after
             n_cal = sum(1 for p in info["process_dir"].iterdir()
                         if p.is_file()
                         and p.suffix.lower() in {".fits", ".fit", ".fts"}
-                        and ("pp_light_" in p.stem or p.stem.startswith("pp_")))
-            n_ren = filter_renamed.get(filt, 0)
-            siril_log(siril, "  {:<8} {:>8} {:>8} {:>10} {:>8}".format(
-                      filt, info["n_lights"], info["n_flats"], n_cal, n_ren))
+                        and p.stem.startswith("pp_"))
+            siril_log(siril, "  {:<8} {:>8} {:>8} {:>10}".format(
+                      filt, info["n_lights"], info["n_flats"], n_cal))
         for filt in fail_filters:
             siril_log(siril, "  {:<8}   FAILED".format(filt))
         siril_log(siril, " ")
         siril_log(siril, "  Filters OK    : " + (", ".join(ok_filters) if ok_filters else "none"))
         siril_log(siril, "  Filters failed: " + (", ".join(fail_filters) if fail_filters else "none"))
-        siril_log(siril, "  Next: run Galactic_1_Stack.py")
+        siril_log(siril, "  Next: if your capture software didn't record RA/Dec (e.g. a"
+                  + " camera RAW format with nowhere to store it), plate-solve the"
+                  + " pp_light_*.fits files in each <filter>/process/ directory now"
+                  + " (e.g. with ASTAP's bulk solve). Then run Galactic_1_Stack.py,"
+                  + " which renames and groups panels as its first step.")
         siril_log(siril, "=" * 60)
 
     except Exception as exc:

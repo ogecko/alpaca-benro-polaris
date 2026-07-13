@@ -6,9 +6,9 @@
 # ==============================================================================
 # OVERVIEW
 # ==============================================================================
-# Groups the calibrated lights in each channel/process/ directory by their
-# GLAT/GLON panel prefix (the first 16 characters of the filename, e.g.
-# GLAT022N_GLON344), then for every group:
+# Renames each channel's calibrated lights with a GLAT/GLON panel prefix
+# (Step 0), then groups them by that prefix (the first 16 characters of the
+# filename, e.g. GLAT022N_GLON344) and for every group:
 #
 #   1. Converts the group's files into a Siril sequence
 #   2. Registers the sequence (global star alignment)
@@ -18,6 +18,17 @@
 #   6. Saves as <prefix>_<channel>_stack[_NNNs].fits
 #
 # Output goes to <channel>/stacked/, ready for Galactic_2_Composite.py.
+#
+# If your calibrated lights have no RA/Dec (e.g. capture software that
+# doesn't record it, or a camera RAW format like CR3 with nowhere to store
+# a plate-solve solution), plate-solve the FITS files in each
+# <channel>/process/ directory (e.g. with ASTAP's bulk solve) before running
+# this script -- Step 0 reads CRVAL1/CRVAL2 (WCS) as well as dedicated
+# RA/Dec keywords, so a plate-solved file works either way. Individual
+# subs are often too short/noisy for ASTAP to solve at all, even when a
+# stack of them would solve fine -- files where no RA/Dec can be found are
+# grouped into one "unsolved" stack per channel instead (RUN_GROUP_UNSOLVED),
+# rather than each becoming its own single-frame group.
 #
 # Prerequisites
 # -------------
@@ -31,6 +42,10 @@ import os
 import traceback
 from pathlib import Path
 from collections import defaultdict
+
+from astropy.io import fits as _afits
+from astropy.coordinates import SkyCoord, Angle
+import astropy.units as _u
 
 # ==============================================================================
 # CONFIGURATION
@@ -49,6 +64,51 @@ FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
 PREFIX_LENGTH   = 16       # filename characters used to group files into a panel
 
 # ------------------------------------------------------------------------
+# Step 0: GLAT/GLON panel renaming
+# ------------------------------------------------------------------------
+# Renames each channel's calibrated lights (<channel>/process/pp_light_*.fits,
+# from Galactic_0_Calibration.py) with a GLAT/GLON panel prefix, computed
+# from each file's own RA/Dec header -- this is what determines which subs
+# get grouped into the same panel below. Runs here rather than in
+# Galactic_0_Calibration.py so you can batch plate-solve the calibrated
+# FITS files in between (e.g. with ASTAP) if your capture software didn't
+# record RA/Dec -- a camera RAW format like Canon's CR3 has nowhere to
+# store a plate-solve solution, but the calibrated FITS output does.
+
+# Rounding precision for the panel label. 0 = nearest whole degree. Negative
+# values round to a coarser unit (-1 = nearest 10 degrees) -- use this if subs
+# from the same panel are landing on opposite sides of a rounding boundary.
+# Positive values keep decimal places for finer-grained panels.
+RENAME_DECIMALS = 0
+
+# Manual override for one-off anomalies (e.g. a mount slip put two batches of
+# the same intended panel further apart than any RENAME_DECIMALS setting could
+# safely group without also merging genuinely separate panels elsewhere).
+# Maps a generated prefix (including its trailing underscore) to the prefix
+# you want instead, e.g.:
+#   MERGE_LABELS = {"GLAT007N_GLON123_": "GLAT007N_GLON120_"}
+# Check the Siril log for the exact generated prefixes. Leave {} if not needed.
+MERGE_LABELS = {}
+
+# RA/Dec header keywords, tried in priority order. CRVAL1/CRVAL2 (WCS) are
+# included so a plate-solved file works even without dedicated RA/Dec keys.
+RA_KEYS_DEG  = ["RA", "RA_OBJ", "CRVAL1"]
+DEC_KEYS_DEG = ["DEC", "DEC_OBJ", "CRVAL2"]
+RA_KEYS_STR  = ["OBJCTRA"]
+DEC_KEYS_STR = ["OBJCTDEC"]
+
+# If True, files with no RA/Dec (e.g. individual subs too short/noisy for
+# ASTAP to solve, common for DSLR exposures) are grouped into a single
+# "unsolved" stack per channel instead of being left unrenamed (which
+# previously meant each one became its own single-frame group, since an
+# unrenamed "pp_light_NNNNN.fits" has a different filename prefix for
+# every N). Set False to restore skip-and-leave-unrenamed behaviour.
+RUN_GROUP_UNSOLVED = True
+UNSOLVED_PREFIX = "UNSOLVED_PANEL__"   # >= PREFIX_LENGTH chars, so every
+                                       # unsolved file groups together
+                                       # regardless of its original name
+
+# ------------------------------------------------------------------------
 # Step 2: Registration
 # ------------------------------------------------------------------------
 REGISTER_TRANSF = "homography"   # shift / similarity / affine / homography
@@ -57,6 +117,10 @@ REGISTER_TRANSF = "homography"   # shift / similarity / affine / homography
 # its subs before stacking, removing the ragged partial-coverage borders that
 # dithering leaves at the edges. "current" disables this (single-pass
 # register, no cropping).
+#
+# If a group has accumulated enough drift that no single region is shared by
+# every frame (common on a long, undithered session), "min" automatically
+# falls back to no cropping for that group rather than failing it entirely.
 STACK_FRAMING = "min"   # "min" | "current"
 
 # ------------------------------------------------------------------------
@@ -143,6 +207,232 @@ def cmd_safe(siril, *args):
         siril_log(siril, "  [WARNING] Command failed: " + " ".join(str(a) for a in args))
         siril_log(siril, "            " + str(exc))
         return False
+
+
+# ---------------------------------------------------------------------------
+# GLAT/GLON panel renaming (Step 0)
+# ---------------------------------------------------------------------------
+
+def extract_ra_dec(header):
+    """Pull RA/Dec from a FITS header. Returns (ra_deg, dec_deg) or None."""
+    ra_deg = dec_deg = None
+    for key in RA_KEYS_DEG:
+        if key in header:
+            try:
+                ra_deg = float(header[key]); break
+            except (ValueError, TypeError):
+                pass
+    for key in DEC_KEYS_DEG:
+        if key in header:
+            try:
+                dec_deg = float(header[key]); break
+            except (ValueError, TypeError):
+                pass
+    if ra_deg is None:
+        for key in RA_KEYS_STR:
+            if key in header:
+                try:
+                    ra_deg = Angle(str(header[key]), unit=_u.hourangle).deg; break
+                except (ValueError, TypeError):
+                    pass
+    if dec_deg is None:
+        for key in DEC_KEYS_STR:
+            if key in header:
+                try:
+                    dec_deg = Angle(str(header[key]), unit=_u.degree).deg; break
+                except (ValueError, TypeError):
+                    pass
+    if ra_deg is None or dec_deg is None:
+        return None
+    if not (0.0 <= ra_deg < 360.0) or not (-90.0 <= dec_deg <= 90.0):
+        return None
+    return ra_deg, dec_deg
+
+
+def round_coord(value, decimals):
+    """
+    Round a coordinate to RENAME_DECIMALS places. Negative decimals round
+    to a coarser unit (e.g. -1 -> nearest 10), which is the main lever for
+    fixing subs of the same intended panel landing on opposite sides of a
+    rounding boundary -- see the RENAME_DECIMALS config comment.
+    """
+    return round(value, decimals)
+
+
+def radec_to_galactic(ra_deg, dec_deg):
+    """Convert equatorial J2000 to Galactic (l, b) in degrees via astropy."""
+    c = SkyCoord(ra=ra_deg * _u.degree, dec=dec_deg * _u.degree, frame="icrs")
+    g = c.galactic
+    return g.l.deg % 360.0, g.b.deg
+
+
+def find_glon_offset(glon_values):
+    """
+    Given a list of GLON values (0-359), find the offset to apply to each
+    so that the values are monotonically increasing across the panorama.
+
+    Finds the largest gap between consecutive values around the circle; the
+    panel after that gap is the start of the panorama, and any panel whose
+    GLON is less than the start value gets +360 added.
+
+    Example: [318, 327, 335, 343, 351, 0, 8]
+      Sorted: [0, 8, 318, 327, 335, 343, 351]
+      Gaps (circular): 8, 310, 9, 8, 8, 8, 9  (gap from 351 back to 0 = 9)
+      Largest gap: 310 (between 8 and 318) -> panorama starts at 318
+      Result: 0->360, 8->368, rest unchanged
+    """
+    if not glon_values:
+        return {}
+    unique = sorted(set(glon_values))
+    if len(unique) == 1:
+        return {unique[0]: unique[0]}
+
+    gaps = []
+    n = len(unique)
+    for i in range(n):
+        gap = (unique[(i + 1) % n] - unique[i]) % 360
+        gaps.append((gap, i))
+
+    largest_gap_idx = max(gaps, key=lambda x: x[0])[1]
+    start_val = unique[(largest_gap_idx + 1) % n]
+
+    result = {}
+    for v in unique:
+        if v < start_val:
+            result[v] = v + 360
+        else:
+            result[v] = v
+    return result
+
+
+def make_glat_glon_prefix(glat_snapped, glon_adjusted):
+    """
+    Build the GLAT/GLON filename prefix from already-snapped/rounded
+    values. e.g. glat_snapped=-7, glon_adjusted=368 -> GLAT007S_GLON368_
+    """
+    ns = "S" if glat_snapped < 0 else "N"
+    glat_int = int(round(abs(glat_snapped)))
+    glon_int = int(round(glon_adjusted))
+    return "GLAT{:03d}{}_GLON{:03d}_".format(glat_int, ns, glon_int)
+
+
+def _rename_with_retry(siril, fits_path, new_path):
+    """
+    Rename fits_path to new_path, retrying up to 5 times -- Windows
+    releases Siril's file lock asynchronously after close/cd, so a short
+    wait may be needed. Returns True on success.
+    """
+    import time as _time
+    for attempt in range(5):
+        try:
+            if new_path.exists():
+                new_path.unlink()
+            fits_path.rename(new_path)
+            return True
+        except OSError as exc:
+            if attempt < 4:
+                _time.sleep(0.5)
+            else:
+                siril_log(siril, "  ERROR renaming " + fits_path.name + ": " + str(exc))
+                return False
+    return False
+
+
+def rename_with_glat_glon(siril, process_dir):
+    """
+    Read each pp_light*.fits in process_dir and rename with GLAT/GLON prefix.
+
+    Each file's GLAT/GLON is rounded (RENAME_DECIMALS) before wrap-around
+    correction and panel labelling. GLON values are then wrap-corrected so
+    files sort monotonically across the panorama (e.g. 351->351, 0->360,
+    8->368 when the gap is at ~180 deg), and MERGE_LABELS is applied for
+    any explicit manual overrides.
+
+    Files with no readable RA/Dec (e.g. individual subs too short/noisy for
+    ASTAP to solve) are, if RUN_GROUP_UNSOLVED, all renamed with the same
+    fixed UNSOLVED_PREFIX instead -- grouping them into one stack per
+    channel rather than each becoming its own single-frame group (since an
+    unrenamed "pp_light_NNNNN.fits" has a different prefix for every N).
+    If RUN_GROUP_UNSOLVED is False, they're left unrenamed and skipped, as
+    before.
+
+    Returns (renamed_count, skipped_count, error_count).
+    """
+    renamed = skipped = errors = 0
+    pp_files = sorted(p for p in process_dir.iterdir()
+                      if p.is_file()
+                      and p.suffix.lower() in FITS_EXTENSIONS
+                      and p.stem.startswith("pp_")
+                      and not p.stem[:4].upper() == "GLAT")
+
+    if not pp_files:
+        return 0, 0, 0
+
+    # Pass 1: read all coordinates, round, compute wrap-around offset.
+    # Files with no RA/Dec go into unsolved_files instead.
+    file_coords = {}   # path -> (glat_rounded, glon_rounded)
+    unsolved_files = []
+    glon_values = []
+    for fits_path in pp_files:
+        try:
+            with _afits.open(str(fits_path), mode="readonly") as hdul:
+                coords = extract_ra_dec(hdul[0].header)
+        except Exception as exc:
+            siril_log(siril, "  ERROR reading " + fits_path.name + ": " + str(exc))
+            errors += 1
+            continue
+        if coords is None:
+            unsolved_files.append(fits_path)
+            continue
+        ra_deg, dec_deg = coords
+        l, b = radec_to_galactic(ra_deg, dec_deg)
+        glon_rounded = round_coord(l, RENAME_DECIMALS) % 360
+        glat_rounded = round_coord(b, RENAME_DECIMALS)
+        file_coords[fits_path] = (glat_rounded, glon_rounded)
+        glon_values.append(glon_rounded)
+
+    # Compute wrap-corrected GLON mapping
+    glon_offset_map = find_glon_offset(glon_values)
+    if any(v != k for k, v in glon_offset_map.items()):
+        adjusted = {k: v for k, v in glon_offset_map.items() if v != k}
+        siril_log(siril, "  Wrap-around detected -- adjusting GLON values: "
+                  + ", ".join(str(k) + "->" + str(v) for k, v in sorted(adjusted.items())))
+
+    # Pass 2: rename with corrected GLON, then apply any manual merge override
+    merged_count = 0
+    for fits_path, (glat_rounded, glon_rounded) in file_coords.items():
+        glon_adjusted = glon_offset_map.get(glon_rounded, glon_rounded)
+        prefix = make_glat_glon_prefix(glat_rounded, glon_adjusted)
+        if prefix in MERGE_LABELS:
+            merged_count += 1
+            prefix = MERGE_LABELS[prefix]
+        new_path = fits_path.with_name(prefix + fits_path.name)
+        if _rename_with_retry(siril, fits_path, new_path):
+            renamed += 1
+        else:
+            errors += 1
+
+    if merged_count:
+        siril_log(siril, "  Manual merge override applied to " + str(merged_count) + " file(s).")
+
+    # Pass 3: unsolved files -- group into one stack, or skip, per config
+    if unsolved_files:
+        if RUN_GROUP_UNSOLVED:
+            siril_log(siril, "  " + str(len(unsolved_files))
+                      + " file(s) with no RA/Dec -- grouping into one "
+                      + UNSOLVED_PREFIX.strip('_') + " stack.")
+            for fits_path in unsolved_files:
+                new_path = fits_path.with_name(UNSOLVED_PREFIX + fits_path.name)
+                if _rename_with_retry(siril, fits_path, new_path):
+                    renamed += 1
+                else:
+                    errors += 1
+        else:
+            for fits_path in unsolved_files:
+                siril_log(siril, "  SKIP (no RA/Dec): " + fits_path.name)
+            skipped += len(unsolved_files)
+
+    return renamed, skipped, errors
 
 
 # Suffixes that identify output files produced by this script.
@@ -452,8 +742,18 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
             siril_log(siril, "  [ERROR] registration (2-pass) failed -- skipping group.")
             return False
         if not cmd_safe(siril, "seqapplyreg", seq_name, "-framing=min"):
-            siril_log(siril, "  [ERROR] seqapplyreg (framing=min) failed -- skipping group.")
-            return False
+            # Long/undithered sessions can accumulate enough drift that no
+            # single region is shared by every frame at once -- Siril's
+            # own error is "intersection of all images is null or
+            # negative". The transforms from the -2pass above are still
+            # valid, so fall back to applying them without cropping
+            # (framing=current) rather than losing the whole group.
+            siril_log(siril, "  [WARNING] seqapplyreg -framing=min found no common"
+                      + " overlap across all frames (likely a long/undithered"
+                      + " session) -- falling back to no cropping.")
+            if not cmd_safe(siril, "seqapplyreg", seq_name, "-framing=current"):
+                siril_log(siril, "  [ERROR] seqapplyreg fallback also failed -- skipping group.")
+                return False
     else:
         if not cmd_safe(siril, "register", seq_name, "-transf=" + REGISTER_TRANSF):
             siril_log(siril, "  [ERROR] registration failed -- skipping group.")
@@ -598,6 +898,35 @@ def main():
     try:
         home_dir = Path(siril.get_siril_wd())
         siril_log(siril, "Home directory: " + str(home_dir))
+
+        # ------------------------------------------------------------------
+        # Step 0: Rename each channel's calibrated lights with a GLAT/GLON
+        # panel prefix, before grouping. See the config comment above
+        # RENAME_DECIMALS for why this lives here rather than in
+        # Galactic_0_Calibration.py.
+        # ------------------------------------------------------------------
+        siril_log(siril, " ")
+        siril_log(siril, "=" * 60)
+        siril_log(siril, "Step 0: Renaming panels with GLAT/GLON prefix...")
+        siril_log(siril, "=" * 60)
+        total_renamed = total_skipped = total_errors = 0
+        for rel_dir in CHANNEL_DIRS:
+            channel = rel_dir.split("/")[0]
+            process_dir = home_dir / channel / "process"
+            if not process_dir.is_dir():
+                continue
+            renamed, skipped, errors = rename_with_glat_glon(siril, process_dir)
+            if renamed or skipped or errors:
+                siril_log(siril, "  " + channel + ": renamed " + str(renamed)
+                          + "  skipped (no RA/Dec) " + str(skipped)
+                          + "  errors " + str(errors))
+            total_renamed += renamed
+            total_skipped += skipped
+            total_errors += errors
+        if total_skipped:
+            siril_log(siril, "  " + str(total_skipped) + " file(s) had no RA/Dec and were left"
+                      + " unrenamed -- plate-solve them (e.g. with ASTAP) and re-run to include them.")
+
         channels_scanned = [rel_dir.split("/")[0] + "/process" for rel_dir in CHANNEL_DIRS]
         siril_log(siril, "Scanning: " + ", ".join(channels_scanned))
         siril_log(siril, "Output to: " + ", ".join(CHANNEL_DIRS))
