@@ -67,6 +67,7 @@ were to remain the same for another session.
 * Alignment reset - Furthermore, after the (180° 45° alignment) the start position showed its starting position as +179° +044° -001° (see image4). Selecting Park, changed this to +178° +045° -000° (see image5). Not sure why these figures aren’t always +180° +045° -000° ??
     > JDM - this may be due to rounding error as 179°59'50" is very close to 180°
 #### 11 July 2026 - Beta 1 Release
+* As expected 30s at 400mm was absolutely fine. I tried Wait for Time Span before each and every exposure at 60s but these delays did not eliminate the squiggles … tried 10s, 20s, 30s, 45s, 60s … things improved with a longer delay but still not great (see attached image). I guess delays of 60s and beyond, before every exposure simply eats into the overall time for the imaging sequence. That being said, I’m really happy with solve and sync at 30s in my light poluuted city
 * 90 x 60s exposures at 400mm on C92 Carina Nebula. MAC off for the entire test and logging for PEC on. Set up went really well with no issues at all - very smooth
 * MPA Settings - I used the previous revised MPA Workflow:
 (1) South Celestial Pole (2) Target (i.e C92 Carina Nebula) (3) Future Target (d-2) (4) NINA
@@ -88,6 +89,50 @@ Perhaps the MPA workflow may have benefited from being adjusted to:
 (5) NINA
 This may have given a better ‘spread’ of the MPA manual plate solves and sync
     > JDM - I checked log files and could not see any Heartbeat or Event Loop lags.
+
+#### 15 July 2026 - Beta 1 Release
+* Exposures at 400mm on C92 Carina Nebula. Set up went really well with no issues at all - very smooth
+*  Advanced Sequencer using solve and sync guiding and tests performed at both 30s and 60s
+to try and identify potential slight ‘wiggle’ after Nina finishes an exposure (disturbance to the
+PID controller?). maybe this causes a slight wiggle. (iterations of 2 x 60 sec exposures) solving
+every 2 minutes (after 2 exposures). NINA Advanced Sequencer was used for several runs, each using ‘Solve and sync’ every 2
+minutes
+* First run, using settings (known to be fine) as a control sample:
+Loop For Iterations - 10.
+Smart Exposure - 4 x 30s.
+Solve and Sync.
+No issues whatsoever and all stars sharp
+* Second run, increasing exposure time and adding a delay before each exposure:
+Loop For Iterations - 10.
+Wait for Time Span - 10s.
+Take Exposure - 60s.
+Wait for Time Span - 10s.
+Take Exposure - 60s.
+Solve and Sync.
+All images show ‘squiggles, winged birds and tadpoles’, indicating movement during the
+exposure. There was no wind or vibration from any other source to cause this.
+* Subsequent runs used increasing time delay, before each exposure:
+20s, 30s, 45s and 60s
+*  Light frames - despite these changes, when zoomed in, a high number of images show the
+unusual shaped stars; indicating some form of oscillation during the imaging.
+* Previous imaging sessions at 400mm and 30s (using Solve and sync), have been fine in several
+different versions of the driver, including this latest Beta 1. Perhaps 60s exposures is pushing things and if a delay in excess of 60s (Wait for Time Span) is required between every single exposure, this substantially increases the total imaging session time.
+* At this stage, I am unsure what changes can be made, in order to eliminate the apparent
+movement during exposures. Despite this, 30s exposures is perhaps all that is needed,
+especially in light polluted city areas - this always gives fantastic results
+* The target used for testing (C92 Carina Nebula/Caldwell) in close proximity to the South
+Celestial Pole and I’m wondering whether the MPA sync points were too close together, to get
+a good alignment? With 30s exposures this may not be as crucial, compared to longer exposures?
+* Perhaps the MPA workflow may have benefited from being adjusted to:
+(1) South Celestial Pole
+(2) Target (i.e C92 Carina Nebula)
+(3) Future Target (d-2)
+(4) Future Target (d-2)
+(5) NINA
+This may have given a better ‘spread’ of the MPA manual plate solves and sync
+    > JDM - Mark, you are the greatest, thanks for exploring the cause of the 60s subexposure anomalies. 
+    Your latest results confirm there's an issue on subs greater than 30s. The last change to PEC was 3-June, adding the harmonics, which was necessary to cater for the oscillations in the drift rate. If you get a chance, can you compare the current dev2_2 to this old version from 3-June and see if the problem disappears? I've re-created the feature/pec_refactor branch so you can refetch the old version.
+
 
 ### Summary
 
