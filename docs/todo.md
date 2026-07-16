@@ -66,7 +66,7 @@
             - Site Location dropdown
             - Astro Module presence
         - New Co-ordinate Frame
-            - Galactic Lat, Lon, PA; easier to remember
+            - Galactic Lat, Lon, PA; Show in Stellarium, smartest way to shoot panoramas of the Milky Way because the coordinate grid aligns perfectly with the galactic disk.
             - Lat - Finding star filled area for focus
             - Lon - Finding galactic core
             - PA - 0, 90, -90
