@@ -44,7 +44,9 @@
 - [X] MAC - Add autotune to Mechanical Alignment Correction
 - [X] Orbitals - Add ability to save orbital parameters for offline use
 - [X] Connection - why does L-Bracket get initialised incorrectly sometimes?
+- [ ] PEC - Ensure Harmonics are not introducing degredation in tracking performance 
 - [ ] Close candidate enhancement list
+    - [ ] Manual Align - Direct Control and List of targets
     - [ ] Goto - Determine ideal settle time for Benro Polaris and v2.2
     - [ ] CCDCiel - Auto install Alpaca Driver scripts for CCDCiel
     - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
@@ -55,40 +57,36 @@
     - [ ] Sync Guiding - Check whether immediate pulse guide return is cause of bad subexposure. ie detail till converged.
     - [ ] Connection - why does changing IP address allow connection to proceed?
 - [ ] Create youtube videos for v2.2 content
-    - [X] Create video on install and connect
+    - [X] Create video on Win11 install and connect
+    - [ ] Create video on Pi install and connect
+    - [X] Create video on Galactric Pano, Panoramas and scripting
     - [ ] Create video on dashboard and motion changes
-        - Quality of Life Features
-            - Flat White - Added support for capturing flat frames from a display screen via the new Flat White menu item.
-            - PanoGrid - PanoGrid Recenter, PanoGrid Step 80%, Navigating Pano, PanoGrid Copy
-            - Connection Checklist - Add Checks for L-Bracket Orientation, Site Location and tracking of Reset All Axes to Connect page. 
-            - Presist dashboard settings - Ability to configure, save and load Panoramas presets
-            - Chart Axes and Deviation Charts - dd ΔTopographic and ΔMotor charts to PID Tuning page to remove underlying sidereal trends and show SP deviation only.
+        - Connetion checks
+            - L-Bracket
+            - Site Location dropdown
+            - Astro Module presence
+        - New Co-ordinate Frame
+            - Galactic Lat, Lon, PA; easier to remember
+            - Lat - Finding star filled area for focus
+            - Lon - Finding galactic core
+            - PA - 0, 90, -90
+            - Isnt just pointing, new Pano Grid type for capturing Galactic Panoramas
+        - Pointing, Tracking and Guiding
+            - Goto completion and reachable targets (Reachable chart), scale warnings
+            - Zenith/Horizon Crossing - Supports below horizon pointing
+            - Gimbal Lock - Loss of degree of freedom, Enter Alt < 1 deg, exit when Alt > 3 deg 
+            - Windup Prevention - Normally shortest path, unless it predicts it will exceed motor angle limit, then reroutes 360°. Not foolproof.
+            - Kinematics page Improvements in tracking, guiding in another video
         - Dark Site / offline features
             - Saved Locations - saved locations can be recalled without internet
-            - Saved Orbitals - every successful search is saved to the catalog, can be recalled without internet. Can be searched. Will refresh when you goto if internet avail.  
-            - Saved Multi-Point Alignment - restart will reload all MPA sync points, so you can continue imaging without redoing MPA. If you move the tripod though you will need to re-align.
-            - Saved Panos - plan ahead of time, future walkhrough of Galactic Panos
-        - New co-ordinate system
-            - Az/Alt/Roll and RA/Dec/PA
-            - new Galactic Co-ordinates
-                - GLat how far above or below the MW plane, 0 is on the Milky way plane. +ve obove it, -ve below it.
-                - GLon where on the MW disc you are pointing, 0 is towards its center Sagg A
-                - GPA how it is rotated relative to the MW plane, A value of 0 means the Camera Frame Top points up to Galactic North (or perpendicular with the MW plane), +/-90 means its aligned with the MW plane
+            - Saved Orbitals - every successful search is saved to the catalog, can be recalled without internet.
+            - Restart and continue with alignment (MPA persisted)
+        - Quality of life
+            - Flat White capture from a tablet screen
+            - Peak Finder added to Sky Condition links to identify what Polaris is pointing towards
+            - Relative Movement PanoGrid recenter button snapping the grid to current orientation
+            - Deviation charts on the PID tuning page
         - Pointing and Motion Control
-            - At Home - Telescope v4, async, 
-            - Goto Completion - New Progress Indicator, logrithmic scale completes max axis deviation within Goto Tollerance Kc, Tracking Tollerance Kc/20 
-            - Scale Warning Bars - Now change in real time to reflect Polaris Mechanical Limits, Roll = fn(Alt), Also added RA = fn(lat, LST); Dec = fn(lat), Notice Alt opened up 
-            - Reachable Targets - Resolve Target Orientation to a reachable orientation given Polaris Limits in Alt and Roll
-            - Zenith/Horizon Crossing - Supports below horizon pointing, transitioning through horizon flip (eqiv of meridian flip for Equatorial)
-            - Gimbal Lock - Loss of degree of freedom as M1&M3 aligned, Enter Gimbal Lock when Alt < 1 deg, exit when Alt > 3 deg; Status icon, may not reach Low Rolls at Alt=0
-            - Windup Prevention - Normally shortest path, unless it predicts it will exceed motor angle limit, then reroutes 360°. Not foolproof.
-            - Motion Planning - Typically Shortest Path in SO3 space, Caters for Zenith Singularity, Rotate maintains direction 
-    - [ ] Create video on Galactric Pano, Panoramas and scripting
-        - MPA
-            - Demo Advanced Sequence for MPA following targets RA movement
-        - Utilities
-            - Advanced Scheduler - Rename_dirs, RotateRelative, FindHome/Wait/Polaris:AbortSlew
-            - Siril Scripts
     - [ ] Create video on kinematics, tracking, guiding
         - Kinematics
             - Settings Page - enabling different correction features, show alongside kinematics page, toggling on/off
@@ -99,7 +97,6 @@
         - Tracking
             - PID - PID axes in dms, De-Trenmded Charts
             - PID - Improved RMS Error, Cyclic bump removed, 
-            - Orbitals - tracking See PA changing, Roll Angle fixed.
         - Guiding
             - Sync Guiding - Plate-Solve/Sync using Nina in a 2-5min cycle, Before smart exposure - PID steadies while filter changing.
             - Sync Roll - How to copy Plate-Solve Roll and manual Roll Sync
