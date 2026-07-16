@@ -86,7 +86,6 @@
             - Peak Finder added to Sky Condition links to identify what Polaris is pointing towards
             - Relative Movement PanoGrid recenter button snapping the grid to current orientation
             - Deviation charts on the PID tuning page
-        - Pointing and Motion Control
     - [ ] Create video on kinematics, tracking, guiding
         - Kinematics
             - Settings Page - enabling different correction features, show alongside kinematics page, toggling on/off
