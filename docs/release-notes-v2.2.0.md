@@ -85,6 +85,7 @@
 
 ### Diagnostics and System
 - **[Heartbeat Diagnostics]**: Introduce a heartbeat monitor and additional telemetry statistics to assist in diagnosing late position updates.
+- **[Smoother Control]** Improve PID robustness to irregular 518 messages from CPU hogs (drop stale 518 msgs and guard against backlog flushing that may cause spikes in control)
 - **[Auto Reload]**: Alpaca Pilot will automatically reload when it detects it is on a different version or protocol than the Driver
 - **[IPv6 Discovery]**: Revamped IPv6 Alpaca Discovery for support on MacOS, Linux and Windows.
 - **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
