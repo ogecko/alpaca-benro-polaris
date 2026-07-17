@@ -165,7 +165,7 @@
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_alignment', 'Multi-Point Alignment')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_align_mac', 'Meachnical Alignment Correction')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_align_mac', 'Mechanical Alignment Correction')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_scc_enabled', 'Slew & Center Correction')"/>
