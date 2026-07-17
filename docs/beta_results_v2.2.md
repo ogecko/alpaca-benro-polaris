@@ -233,6 +233,19 @@ Notes: England, New 5nm filters.
     > JDM - fixed in dev2_2. Catalog Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).
 * Residuals - I had a residual with an orange triangle next to it. Obviously that means bad 😂. But I couldn't specifically find the meaning of it in the document. 
     > JDM - Fixed in dev2_2. Expanded on meaning of outlier residuals in control.md at https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/control.md#e-review-model-residuals
+
+16 July 2026 - Galactic Panorama Video feedback
+* Quick description of galactic coords and why. Maybe brief image in framing assistant to show how each mode would layout Pano to get the same image 
+* 3rd axis for roll. Benro don't use this function so it will be worth a mention that alpaca does 
+* Copy and paste coords to Nina is an excellent addition. Maybe an annotation to the name of the plugin needed for those extras Polaris commands
+* Mention a pano like this all can be done manually with a device like a tablet, pi zero 2 paired with your phone. Nina is used to increase efficiency and better supports DSO functions. Useful but not necessary for all.
+* Flat white feature is excellent. I did get a surprise when I first clicked on it 😂
+* Maybe a skip to autopano chapter mark for those with lights only. I think it would be safe to assume a non Nina shooter would be checking images as they take them and so would cull in the field. 
+* Mention where to get autopano on GitHub
+* Siril scripts excellent 
+* I think it's outside the scope of the tutorials, but I did have the thought that osc processing vid could be useful
+* I am getting a kick out of you shoot from Aus, so many DSO I don't know! Running chicken nebula 
+
 ### Feedback Summary
 
 
@@ -382,8 +395,8 @@ Notes: Last week RC1 tester.
 
 
 
-## Beta Tester: JavaVM
-(Dis: JavaVM / Steve Egge; FB:  GH: , KS: )
+## Beta Tester: JavaMD
+(Dis: JavaMD / Steve Egge; FB:  GH: , KS: )
 ### Platform & Environment
 * Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
 * Platform: OS Version, Browser Version, etc.
@@ -393,6 +406,8 @@ Notes: Last week RC1 tester.
 ### Results
 11 July 2026 - Beta 1 Release
 * Still trying to get Alpaca to work with my Benro. reinstalled everthing once again .... separating with login's on the mele as I also have a AM5N mount I bought out of frustration with a thought of moving on .... but the BP is SO much lighter .... at any rate here are my latest from trying to connect.
+> JDM - Have you tried walking through the troubleshooting guide on communications? 
+* Thanks ... got connected by turning ipv6 off.  Now need to see why NINA doesn't recognize the Nikon z6ii connected to the polaris.
 ### Feedback Summary
 
 
