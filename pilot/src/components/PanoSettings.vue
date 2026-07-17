@@ -135,8 +135,8 @@ const panoRefAlignOptions = computed(() => {
 const r1Label = computed(() => `${(cfg.ref==2)?'Galactic longitude': (cfg.ref==1)?'Right Ascension' :'Azimuth'}`)
 const r2Label = computed(() => `${(cfg.ref==2)?'Galactic latitude': (cfg.ref==1)?'Declination'     :'Altitude'}`)
 const r3Label = computed(() => `${(cfg.ref==2)?'Galactic PA':  (cfg.ref==1)?'Position Angle'  :'Roll Angle'}`)
-const hStepLabel = computed(() => `${(cfg.ref==2)?'Galactic Lon Step':  (cfg.ref==1)?'Right Ascension Step'  :'Horizontal Step'}`)
-const vStepLabel = computed(() => `${(cfg.ref==2)?'Galactic Lat Step':  (cfg.ref==1)?'Declination Step'  :'Vertical Step'}`)
+const hStepLabel = computed(() => `${(cfg.ref==2)?'Galactic Lon Step':  (cfg.ref==1)?'Right Ascension Step'  :'Azimuth Step'}`)
+const vStepLabel = computed(() => `${(cfg.ref==2)?'Galactic Lat Step':  (cfg.ref==1)?'Declination Step'  :'Altitude Step'}`)
 
 function swapStepSettings() {
   const vstep = cfg.hstep
