@@ -54,6 +54,9 @@ class KalmanFilter:
         # use time interval since last call as dt
         new_time = time.monotonic()
         dt = new_time - self._time
+        if dt < 0.05:
+            return
+
         self._time = new_time
         self.A = np.block([
             [np.eye(3), dt * np.eye(3)],
@@ -1300,6 +1303,8 @@ class PID_Controller():
         now = time.monotonic()
         if self.control_loop_duration:
             self.dt = now - self.time_step
+            if self.dt < 0.05:
+                return
         self.time_step = now
         if Config.advanced_pec:
             self.polaris._sm.apply_pec_drift_correction()
