@@ -12,7 +12,7 @@
           <q-btn-group >
             <q-btn
               :icon="ui.coordFrame === 0 ? 'mdi-compass' : ui.coordFrame === 1 ? 'mdi-telescope' : 'mdi-cryengine'"
-              glossy :dense="btnDense" :size="btnSize" color="secondary" push
+              glossy :dense="btnDense" :size="btnSize" color="secondary" push outline
               @click="ui.cycleCoordFrame()"
             >
               <q-tooltip>
