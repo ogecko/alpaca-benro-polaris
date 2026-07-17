@@ -36,6 +36,7 @@ import re
 import asyncio
 import ephem
 import numpy as np
+import itertools
 from collections import deque
 from quaternion import Q as Quaternion
 from threading import Lock
@@ -583,17 +584,31 @@ class Polaris:
 
                     buffer += data.decode()
 
-                # Parse all messages in the buffer
+                # Drain every complete frame currently in the buffer
+                frames = []
                 while True:
                     cmd, args, new_buffer = self.parse_msg(buffer)
-                    if cmd:
-                        buffer = new_buffer
-                        ispoll = cmd in POLARIS_POLL_COMMANDS
-                        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
-                            self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
-                        self.polaris_parse_cmd(cmd, args)
+                    if not cmd:
+                        break
+                    buffer = new_buffer
+                    frames.append((cmd, args))
+
+                # Collapse stale "518" telemetry frames down to just the latest one (in case we get a burst)
+                dispatch_list = []
+                for cmd, group in itertools.groupby(frames, key=lambda f: f[0]):
+                    group = list(group)
+                    if cmd == '518' and len(group) > 1:
+                        self.logger.warning(f"Coalesced {len(group)-1} stale 518 frame(s) in this read cycle")
+                        dispatch_list.append(group[-1])  # append only last grouped 518 frame
                     else:
-                        break  # No complete message yet — wait for more data
+                        dispatch_list.extend(group)      # append all grouped frames
+
+                # dispatch all the coalesced frames
+                for cmd, args in dispatch_list:
+                    ispoll = cmd in POLARIS_POLL_COMMANDS
+                    if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
+                        self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
+                    self.polaris_parse_cmd(cmd, args)
 
                 # Avoid tight loop
                 await asyncio.sleep(0.05)
