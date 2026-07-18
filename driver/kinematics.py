@@ -705,7 +705,7 @@ def wrap_to_nearest(angle: float, target: float = 0.0) -> float:
     return target + diff
 
 
-def reachable_azaltroll(az: float, alt: float, roll: float) -> tuple[float, float, float]:
+def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.0) -> tuple[float, float, float]:
     """
     Map any (az, alt, roll) to a mechanically reachable (az, alt, roll).
 
@@ -762,20 +762,23 @@ def reachable_azaltroll(az: float, alt: float, roll: float) -> tuple[float, floa
     # Compute the roll limit at the resolved altitude
     max_roll = altitude_to_maxroll(alt_resolved, THETA2_MAX)
 
-    # Resolve roll
-    roll_total = wrap_to_nearest(roll + roll_flip, target=0.0)
+    # Resolve mechanical roll angle
+    roll_total = wrap_to_nearest(roll + roll_flip - roll_adj, target=0.0)
 
     if abs(roll_total) <= max_roll:
-        roll_resolved = roll_total
+        roll_resolved_mech = roll_total
     else:
         # Try the upside-down equivalent: rotate 180° around boresight
         sign = 1.0 if roll_total >= 0 else -1.0
         roll_flipped = roll_total - sign * 180.0
         if abs(roll_flipped) <= max_roll:
-            roll_resolved = roll_flipped
+            roll_resolved_mech = roll_flipped
         else:
             # Neither orientation reaches the target — clamp to nearest limit
-            roll_resolved = float(np.clip(roll_total, -max_roll, max_roll))
+            roll_resolved_mech = float(np.clip(roll_total, -max_roll, max_roll))
+
+    # shift back to ASCOM roll angle (not mechanical roll angle)
+    roll_resolved = wrap180(roll_resolved_mech + roll_adj)
 
     return az_resolved, alt_resolved, roll_resolved
 

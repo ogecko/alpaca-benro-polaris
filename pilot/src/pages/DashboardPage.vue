@@ -136,13 +136,16 @@ const rollWarnings = computed((): [number, number][] => {
     const altRounded = Math.round((p.altitude ?? 0) * 2) / 2 // round to 0.5 deg
     const maxRoll = altitudeToMaxRoll(altRounded)
     if (maxRoll <= 0) return []
-    return [[maxRoll, 200], [-maxRoll, -200]]
+    const rollAdj = p.roll_adj ?? 0
+    return [[maxRoll + rollAdj, 270], [-maxRoll + rollAdj, -270]]
 })
 const altWarnings = computed((): [number, number][] => {
-    const rollRounded = Math.round((p.roll ?? 0) * 2) / 2 // round to 0.5 deg
+    const rollAdj = p.roll_adj ?? 0
+    const mechRoll = (p.roll ?? 0) - rollAdj
+    const rollRounded = Math.round(mechRoll * 2) / 2 // round to 0.5 deg
     const maxAlt = altitudeToMaxRoll(rollRounded)
     if (maxAlt <= 0) return []
-    return [[maxAlt, 200], [-maxAlt, -200]]
+    return [[maxAlt, 270], [-maxAlt, -270]]
 })
 const raWarnings = computed((): [number, number][] => {
     const lst = Math.round((p.siderealtime ?? 0) * 4) / 4

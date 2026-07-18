@@ -1069,7 +1069,7 @@ class PID_Controller():
 
         
         # Remember cameraQ_ref and last cameraQ_ref for calculating FF
-        self.alpha_ref = np.array(reachable_azaltroll(*self.alpha_ref))
+        self.alpha_ref = np.array(reachable_azaltroll(*self.alpha_ref, roll_adj=self.polaris._sm.roll_adj))
         self.gamma_sp = delta_to_gamma(self.delta_ref)
         cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
         if self.cameraQ_ref is None:
