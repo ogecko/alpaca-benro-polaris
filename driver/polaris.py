@@ -219,7 +219,7 @@ class Polaris:
         #
         # Telescope method constants
         #
-        self._axisrates = [{ "Maximum":9, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
+        self._axisrates = [{ "Maximum":9, "Minimum":0.1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
         self._axis_ASCOM_slewing_rates = [ 0, 0, 0 ]     # Records the ASCOM move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
 
