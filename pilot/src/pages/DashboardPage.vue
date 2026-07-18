@@ -131,13 +131,18 @@ const isStopOutline = ref<boolean>(true)
 // ------------------- Layout Configuration Data ---------------------
 
 const noWarnings:     [number, number][] = []
-const altWarnings:    [number, number][] = [[81.5, 200], [-200, -81.5]]
 const glatWarnings:   [number, number][] = [[90,200],[-90,-200]]
 const rollWarnings = computed((): [number, number][] => {
     const altRounded = Math.round((p.altitude ?? 0) * 2) / 2 // round to 0.5 deg
     const maxRoll = altitudeToMaxRoll(altRounded)
     if (maxRoll <= 0) return []
     return [[maxRoll, 200], [-maxRoll, -200]]
+})
+const altWarnings = computed((): [number, number][] => {
+    const rollRounded = Math.round((p.roll ?? 0) * 2) / 2 // round to 0.5 deg
+    const maxAlt = altitudeToMaxRoll(rollRounded)
+    if (maxAlt <= 0) return []
+    return [[maxAlt, 200], [-maxAlt, -200]]
 })
 const raWarnings = computed((): [number, number][] => {
     const lst = Math.round((p.siderealtime ?? 0) * 4) / 4
@@ -183,7 +188,7 @@ const displayConfig = computed(() => {
     ]
     return [
         { label: 'Azimuth',  pv: p.azimuth,  sp: p.alpharef[0], domain: 'az_360' as DomainStyleType,   warnings: noWarnings },
-        { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType,   warnings: altWarnings },
+        { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType,   warnings: altWarnings.value },
         { label: 'Roll',     pv: p.roll,     sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType, warnings: rollWarnings.value }
     ]
 })

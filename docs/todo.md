@@ -44,6 +44,7 @@
 - [X] MAC - Add autotune to Mechanical Alignment Correction
 - [X] Orbitals - Add ability to save orbital parameters for offline use
 - [X] Connection - why does L-Bracket get initialised incorrectly sometimes?
+- [X] Alt Warning - Update Alt Warning indicator based on reachable envelope.
 - [ ] PEC - Ensure Harmonics are not introducing degredation in tracking performance 
 - [ ] Close candidate enhancement list
     - [ ] Manual Align - Direct Control and List of targets
