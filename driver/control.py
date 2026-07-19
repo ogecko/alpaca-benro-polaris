@@ -2266,6 +2266,9 @@ class SyncManager:
         self._pec_interval    = 0.2          # EMA of interval between pec model updates (seconds), only count ra updates (as pulses come in separately)
 
         # Config-driven thresholds (read once so update/apply don't need getattr)
+        self._pec_mode        = PecMode(getattr(Config, 'pec_mode', 'ema'))               # 'rls' or 'ema'
+        self._pec_ema_alpha   = getattr(Config, 'pec_ema_alpha', 0.3)
+        self._pec_ema_min_dt  = getattr(Config, 'pec_ema_min_dt', 5.0)
         self._pec_lambda      = getattr(Config, 'pec_forgetting_factor',   0.98)          # Lambda = 1 - 1 / n_memory; n_memory = T_forget / dt_avg
         self._pec_min_obs     = getattr(Config, 'pec_min_observations',    3)             # inhibit until n > min_obs
         self._pec_max_resid   = getattr(Config, 'pec_max_resid_arcmin',    10.0)  / 60.0  # ignore guide update if resid > max_resid degrees
@@ -2277,13 +2280,24 @@ class SyncManager:
         self._pec_T_sec       = getattr(Config, 'pec_T_sec',               34*60)         # T: worm period in seconds (default 34 min = 2040s)
         self._pec_n_harmonics = getattr(Config, 'pec_n_harmonics',         2)             # n_harmonics: 1, 2, or 3 (adds pairs of sin/cos terms)
 
-        self._pec_ra          = PecAxis(T=self._pec_T_sec, n_harmonics=self._pec_n_harmonics) 
-        self._pec_dec         = PecAxis(T=self._pec_T_sec, n_harmonics=self._pec_n_harmonics)
+        self._pec_ra  = PecAxis(T=self._pec_T_sec, n_harmonics=self._pec_n_harmonics,
+                                 mode=self._pec_mode, ema_alpha=self._pec_ema_alpha,
+                                 ema_min_dt=self._pec_ema_min_dt)
+        self._pec_dec = PecAxis(T=self._pec_T_sec, n_harmonics=self._pec_n_harmonics,
+                                 mode=self._pec_mode, ema_alpha=self._pec_ema_alpha,
+                                 ema_min_dt=self._pec_ema_min_dt)
 
         self._pec_interv_alpha= 0.3           # EMA factor for _pec_interval estimate
         self._pec_var_alpha  = 0.05           # EMA factor for var estimate, more stable R2
         self._pec_sse_alpha  = 0.15           # EMA factor for sse estimate, faster tracking decay
         self._pec_active      = False
+
+        if Config.log_pec:
+            self.logger.info(
+                f"PECCONFIG mode,{self._pec_mode.value},n_harmonics,{self._pec_n_harmonics},"
+                f"T,{self._pec_T_sec},forget_horz,{self._pec_forget_horz},"
+                f"ema_alpha,{self._pec_ema_alpha},ema_min_dt,{self._pec_ema_min_dt}"
+            )
 
 
     def reset_pec_model(self):
@@ -2428,7 +2442,7 @@ class SyncManager:
 
 
 
-from enum import IntEnum
+from enum import IntEnum, Enum
 class PecInhibit(IntEnum):
     IDLE         = 0
     VALID        = 1
@@ -2436,55 +2450,70 @@ class PecInhibit(IntEnum):
     NOT_CONVERGED = 3
     HIGH_RMSE    = 4
     LOW_R2       = 5
-    
+
+class PecMode(str, Enum):
+    RLS = "rls"
+    EMA = "ema"
+
+
 class PecAxis:
     """
-    Multi-harmonic Recursive Least Squares.
-    Fits: y(t)  = a*t + b1*sin(wt)   + c1*cos(wt)   + b2*sin(2wt)    + c2*cos(2wt) + ...
-          dy/dt = a   + b1*w*cos(wt) - c1*w*sin(wt) + b2*2w*cos(2wt) - c2*2w*sin(2wt) ...
-    
+    Two interchangeable drift estimators behind one interface:
+      RLS mode: multi-harmonic recursive least squares (n_harmonics=0 -> pure linear, same as old DC-only RLS)
+                Fits: y(t)  = a*t + b1*sin(wt)   + c1*cos(wt)   + b2*sin(2wt)    + c2*cos(2wt) + ...
+                      dy/dt = a   + b1*w*cos(wt) - c1*w*sin(wt) + b2*2w*cos(2wt) - c2*2w*sin(2wt) ...
+                T: worm period in seconds (default 34 min = 2040s)
+                n_harmonics: 1, 2, or 3 (adds pairs of sin/cos terms)
+      EMA mode: exponential moving average of the observed instantaneous rate, no phase/harmonics
+
     Primary output: self.theta in deg/sec — estimated instanteous drift rate for apply_pec_drift_correction()
     Secondary outputs: amplitude at each harmonic, R², rmse
-    
-    T: worm period in seconds (default 34 min = 2040s)
-    n_harmonics: 1, 2, or 3 (adds pairs of sin/cos terms)
     """
 
-    def __init__(self, T=34*60, n_harmonics=2):
+    def __init__(self, T=34*60, n_harmonics=2, mode=PecMode.RLS, ema_alpha=0.3, ema_min_dt=5.0):
         self.T           = T
-        self.n_harmonics = n_harmonics
-        self.n_params    = 1 + 2 * n_harmonics    # drift + sin/cos pairs
+        self.mode        = mode
+        self.n_harmonics = n_harmonics if mode == PecMode.RLS else 0   # EMA never uses harmonics
+        self.n_params    = 1 + 2 * self.n_harmonics                    # only meaningful in RLS mode
 
-        self._theta  = np.zeros(self.n_params)    # internal: full parameter vector
-        self.P       = np.eye(self.n_params)      # RLS covariance matrix
-        self.sse     = 0.0                        # EMA squared prediction error
-        self.var     = 0.0                        # EMA y²
-        self.r2      = 0.0
-        self.applied = 0.0
+        # RLS state (unused but harmless in EMA mode)
+        self._theta = np.zeros(self.n_params)
+        self.P      = np.eye(self.n_params)
+
+        # EMA state
+        self.rate       = 0.0     # deg/sec — the EMA-tracked rate
+        self.ema_alpha  = ema_alpha
+        self.ema_min_dt = ema_min_dt   # ignore rate_obs from intervals shorter than this (noise guard)
+        self._y_last    = None
+
+        # shared fit-quality state
+        self.sse = 0.0
+        self.var = 0.0
+        self.r2  = 0.0
         self.inhibit = PecInhibit.IDLE
 
-        # accounting — private, managed via methods
-        self._t_last     = 0.0   # last t seen by update()
-        self._ref        = 0.0   # accum corrections at t0
-        self._accum      = 0.0   # running total of all corrections seen, guide and PEC (deg)
-        self._applied_accum = 0.0   # PEC corrections applied since last ingest (deg)
-        self._applied_rate  = 0.0   # PEC instantaneous drift rate, last applied (deg/s)
+        self._t_last = 0.0
+        self._ref    = 0.0
+        self._accum  = 0.0
+        self._applied_accum = 0.0
+        self._applied_rate  = 0.0   # last applied instantaneous rate, deg/s — for status reporting
+
 
     def reset(self):
         self.__init__(T=self.T, n_harmonics=self.n_harmonics)
 
     def reset_fit(self):
-        """Reset fit statistics but preserve parameter estimates as warm start."""
         self.P   = np.eye(self.n_params)
         self.sse = 0.0
         self.var = 0.0
         self.r2  = 0.0
+        # theta / rate deliberately preserved as warm start, both modes
 
     def reset_seed(self, accum_deg=0.0):
-        """Set the reference point at t=0."""
-        self._accum   = accum_deg
-        self._ref     = accum_deg
+        self._accum  = accum_deg
+        self._ref    = accum_deg
         self._applied_accum = 0.0
+        self._y_last = None
 
     # ── primary methods ─────────────────────────────────────────────────────────
     def ingest(self, resid_deg, t, lam, var_alpha, sse_alpha):
@@ -2496,19 +2525,112 @@ class PecAxis:
         # reconcile: total drift = residual seen from autoguiding + what PEC already corrected
         self._accum += resid_deg + self._applied_accum
         self._applied_accum = 0.0
-
-        # update the RLS model
         y = self._accum - self._ref
-        self._update_rls(lam, var_alpha, sse_alpha, t, y)
+
+        if self.mode == PecMode.RLS:
+            self._update_rls(lam, var_alpha, sse_alpha, t, y)
+        else:
+            self._update_ema(var_alpha, sse_alpha, t, y)
 
     def ingest_accum(self, accum_deg, t, lam, var_alpha, sse_alpha):
-        """
-        Direct accum ingestion for notebook replay — bypasses delta accounting.
-        accum_deg: absolute cumulative correction in degrees from session start.
-        """
+        """Direct accum ingestion for notebook replay."""
         self._accum = accum_deg
         y = self._accum - self._ref
-        self._update_rls(lam, var_alpha, sse_alpha, t, y)
+        if self.mode == PecMode.RLS:
+            self._update_rls(lam, var_alpha, sse_alpha, t, y)
+        else:
+            self._update_ema(var_alpha, sse_alpha, t, y)
+
+    # ── EMA internals ────────────────────────────────────────────────────────
+    def _update_ema(self, var_alpha, sse_alpha, t, y):
+        dt = t - self._t_last
+        if dt < 1e-6:
+            return
+
+        y_pred = (self._y_last + self.rate * dt) if self._y_last is not None else y
+        err    = y - y_pred
+
+        self.var = var_alpha * y * y   + (1 - var_alpha) * self.var
+        self.sse = sse_alpha * err * err + (1 - sse_alpha) * self.sse
+        self.r2  = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
+
+        if self._y_last is not None and dt >= self.ema_min_dt:
+            rate_obs = (y - self._y_last) / dt
+            self.rate = self.ema_alpha * rate_obs + (1 - self.ema_alpha) * self.rate
+
+        self._t_last = t
+        self._y_last = y
+
+    # ── RLS internals (unchanged from your harmonic version) ────────────────
+    def _update_rls(self, lam, var_alpha, sse_alpha, t, y):
+        self._t_last = t
+        phi = self._phi(t)
+        err = y - float(phi @ self._theta)
+
+        self.var = var_alpha * y * y     + (1 - var_alpha) * self.var
+        self.sse = sse_alpha * err * err + (1 - sse_alpha) * self.sse
+
+        Pp = self.P @ phi
+        S  = lam + float(phi @ Pp)
+        K  = Pp / S
+
+        self._theta += K * err
+        self.P       = (self.P - np.outer(K, phi @ self.P)) / lam
+        self.r2      = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
+
+    def _phi(self, t):
+        w   = 2 * math.pi / self.T
+        phi = np.zeros(self.n_params)
+        phi[0] = t
+        for h in range(1, self.n_harmonics + 1):
+            phi[1 + 2*(h-1)] = math.sin(h * w * t)
+            phi[2 + 2*(h-1)] = math.cos(h * w * t)
+        return phi
+
+    def _drift_rate(self, t):
+        w = 2 * math.pi / self.T
+        rate = self._theta[0]
+        for h in range(1, self.n_harmonics + 1):
+            i  = 1 + 2 * (h - 1)
+            b, c = self._theta[i], self._theta[i+1]
+            hw = h * w
+            rate += b * hw * math.cos(hw * t) - c * hw * math.sin(hw * t)
+        return rate
+    
+    # ── primary output ─────────────────────────────────────────────────────────
+    @property
+    def theta(self):
+        """Instantaneous drift rate, deg/sec — the one thing eval_correction() needs."""
+        return self._drift_rate(self._t_last) if self.mode == PecMode.RLS else self.rate
+
+    # ── secondary outputs ──────────────────────────────────────────────────────
+
+    def dc_rate(self):
+        return self._theta[0] if self.mode == PecMode.RLS else self.rate
+
+    def harmonic_rate(self, harmonic=1):
+        if self.mode != PecMode.RLS or harmonic < 1 or harmonic > self.n_harmonics:
+            return 0.0
+        i  = 1 + 2 * (harmonic - 1)
+        hw = harmonic * 2 * math.pi / self.T
+        return hw * math.sqrt(self._theta[i]**2 + self._theta[i+1]**2)
+
+    def phase(self, harmonic=1):
+        if self.mode != PecMode.RLS or harmonic < 1 or harmonic > self.n_harmonics:
+            return 0.0
+        i = 1 + 2 * (harmonic - 1)
+        return math.atan2(self._theta[i+1], self._theta[i])
+
+    def predicted_rate(self, t):
+        return self._drift_rate(t) if self.mode == PecMode.RLS else self.rate
+
+    def predicted_accum(self, t):
+        if self.mode == PecMode.RLS:
+            return float(self._phi(t) @ self._theta)
+        # EMA has no phase model — linear extrapolation from the last observation
+        if self._y_last is None:
+            return 0.0
+        return self._y_last + self.rate * (t - self._t_last)
 
     def eval_correction(self, t, dt, cap):
         """
@@ -2518,102 +2640,19 @@ class PecAxis:
         """
         if not self.converged():
             return 0.0, False
-        self._applied_rate = self._drift_rate(t)
-        d = max(-cap, min(cap, self._applied_rate * dt))
+        self._applied_rate = self.theta          # cache for getStatus() / external reporting
+        d = max(-cap, min(cap, self.theta * dt))
         if abs(d) < 1e-7:
             return 0.0, False
         self._applied_accum += d
         return d, True
-
-
-    # ── primary output ─────────────────────────────────────────────────────────
-    @property
-    def theta(self):
-        """Instantaneous total drift rate in deg/sec at current time (linear plus harmonics)"""
-        return self._drift_rate(self._t_last)
-
-    def _drift_rate(self, t):
-        """dy/dt of the full model at time t, in deg/sec."""
-        w    = 2 * math.pi / self.T
-        rate = self._theta[0]   # linear drift term
-        for h in range(1, self.n_harmonics + 1):
-            i     = 1 + 2 * (h - 1)
-            b     = self._theta[i]
-            c     = self._theta[i + 1]
-            hw    = h * w
-            rate += b * hw * math.cos(hw * t) - c * hw * math.sin(hw * t)
-        return rate
-
-    # ── secondary outputs ──────────────────────────────────────────────────────
-
-    def dc_rate(self):
-        """Steady-state drift rate in deg/sec (linear component, excluding harmonics)."""
-        return self._theta[0]
-
-    def harmonic_rate(self, harmonic=1):
-        """Amplitude/Peak contribution rate in deg/sec of the given harmonic (1-indexed)."""
-        if harmonic < 1 or harmonic > self.n_harmonics:
-            return 0.0
-        i  = 1 + 2 * (harmonic - 1)
-        hw = harmonic * 2 * math.pi / self.T
-        return hw * math.sqrt(self._theta[i]**2 + self._theta[i+1]**2)
-
-    def phase(self, harmonic=1):
-        """PEC phase in radians of the given harmonic."""
-        if harmonic < 1 or harmonic > self.n_harmonics:
-            return 0.0
-        i = 1 + 2 * (harmonic - 1)
-        return math.atan2(self._theta[i+1], self._theta[i])
-
-    def predicted_rate(self, t):
-        """Instantaneous rate at arbitrary t — for plotting the fitted curve."""
-        return self._drift_rate(t)
-
-    def predicted_accum(self, t):
-        """Predicted cumulative correction at t — for comparing against raw cumul."""
-        phi = self._phi(t)
-        return float(phi @ self._theta)
-
-    # ── RLS internals ──────────────────────────────────────────────────────────
-    def _phi(self, t):
-        """Feature vector: [t, sin(wt), cos(wt), sin(2wt), cos(2wt), ...]"""
-        w   = 2 * math.pi / self.T
-        phi = np.zeros(self.n_params)
-        phi[0] = t
-        for h in range(1, self.n_harmonics + 1):
-            phi[1 + 2*(h-1)] = math.sin(h * w * t)
-            phi[2 + 2*(h-1)] = math.cos(h * w * t)
-        return phi
-
-    def _update_rls(self, lam, var_alpha, sse_alpha, t, y):
-        """
-        Multi-harmonic RLS update.
-        t: seconds since session start (grows monotonically)
-        y: accum - ref in degrees
-        """
-        self._t_last = t
-        phi  = self._phi(t)
-        err  = y - float(phi @ self._theta)
-
-        self.var = var_alpha * y * y   + (1 - var_alpha) * self.var
-        self.sse = sse_alpha * err * err + (1 - sse_alpha) * self.sse
-
-        # RLS gain
-        Pp   = self.P @ phi
-        S    = lam + float(phi @ Pp)
-        K    = Pp / S
-
-        self._theta += K * err
-        self.P       = (self.P - np.outer(K, phi @ self.P)) / lam
-        self.r2      = 1.0 - self.sse / self.var if self.var > 1e-10 else 0.0
-
 
     def eval_inhibit(self, n, min_obs, max_rmse, min_r2=0.5):
         if n < min_obs:
             self.inhibit = PecInhibit.TOO_FEW_OBS
         elif math.sqrt(self.sse) >= max_rmse:
             self.inhibit = PecInhibit.HIGH_RMSE
-        elif self.r2 < min_r2 and self.var > self.sse:  # skip R² check if signal variance too small
+        elif self.r2 < min_r2 and self.var > self.sse:
             self.inhibit = PecInhibit.LOW_R2
         else:
             self.inhibit = PecInhibit.VALID
@@ -2623,4 +2662,3 @@ class PecAxis:
 
     def rmse_arcmin(self):
         return math.sqrt(self.sse) * 60
-
