@@ -597,7 +597,7 @@ class Polaris:
                 dispatch_list = []
                 for cmd, group in itertools.groupby(frames, key=lambda f: f[0]):
                     group = list(group)
-                    if cmd == '518' and len(group) > 1:
+                    if cmd == '518' and len(group) > 1 and Config.log_polaris_polling:
                         self.logger.warning(f"Coalesced {len(group)-1} stale 518 frame(s) in this read cycle")
                         dispatch_list.append(group[-1])  # append only last grouped 518 frame
                     else:
