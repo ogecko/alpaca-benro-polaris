@@ -350,6 +350,7 @@ const links5 = [
   { icon: 'mdi-camera-control', text: 'Control', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/control.md' },
   { icon: 'mdi-alert', text: 'Warnings', to: '/warning' },
   { icon: 'mdi-stethoscope', text: 'Troubleshooting', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/troubleshooting.md' },
+  { icon: 'mdi-alpha-k-box', text: 'Kickstarter', toExternal: 'https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=6bp9my' },
   { icon: 'mdi-youtube', text: 'Videos', toExternal: 'https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D' },
   { icon: 'mdi-frequently-asked-questions', text: 'FAQ', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/faq.md' },
   { icon: 'mdi-information-variant', text: 'About', to: '/about' },
