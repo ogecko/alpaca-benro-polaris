@@ -60,33 +60,9 @@
 - [ ] Create youtube videos for v2.2 content
     - [X] Create video on Win11 install and connect
     - [ ] Create video on Pi install and connect
-    - [X] Create video on Galactric Pano, Panoramas and scripting
-    - [ ] Create video on dashboard and motion changes
-        - Connetion checks
-            - L-Bracket
-            - Site Location dropdown
-            - Astro Module presence
-        - New Co-ordinate Frame
-            - Galactic Lat, Lon, PA; Show in Stellarium, smartest way to shoot panoramas of the Milky Way because the coordinate grid aligns perfectly with the galactic disk.
-            - Lat - Finding star filled area for focus
-            - Lon - Finding galactic core
-            - PA - 0, 90, -90
-            - Isnt just pointing, new Pano Grid type for capturing Galactic Panoramas
-        - Pointing, Tracking and Guiding
-            - Goto completion and reachable targets (Reachable chart), scale warnings
-            - Zenith/Horizon Crossing - Supports below horizon pointing
-            - Gimbal Lock - Loss of degree of freedom, Enter Alt < 1 deg, exit when Alt > 3 deg 
-            - Windup Prevention - Normally shortest path, unless it predicts it will exceed motor angle limit, then reroutes 360°. Not foolproof.
-            - Kinematics page Improvements in tracking, guiding in another video
-        - Dark Site / offline features
-            - Saved Locations - saved locations can be recalled without internet
-            - Saved Orbitals - every successful search is saved to the catalog, can be recalled without internet.
-            - Restart and continue with alignment (MPA persisted)
-        - Quality of life
-            - Flat White capture from a tablet screen
-            - Peak Finder added to Sky Condition links to identify what Polaris is pointing towards
-            - Relative Movement PanoGrid recenter button snapping the grid to current orientation
-            - Deviation charts on the PID tuning page
+    - [X] Create video on dashboard and motion changes
+    - [X] Create video on Galactric Panorama Workflow
+    - [ ] Create video on CCDCiel
     - [ ] Create video on kinematics, tracking, guiding
         - Kinematics
             - Settings Page - enabling different correction features, show alongside kinematics page, toggling on/off
@@ -101,8 +77,6 @@
             - Sync Guiding - Plate-Solve/Sync using Nina in a 2-5min cycle, Before smart exposure - PID steadies while filter changing.
             - Sync Roll - How to copy Plate-Solve Roll and manual Roll Sync
             - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
-    - [ ] Create video on RaspberryPi installation
-    - [ ] Create video on CCDCiel
 
 ## Final Release Checklist
 - [ ] Complete todo checklist
