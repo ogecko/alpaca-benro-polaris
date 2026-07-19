@@ -32,6 +32,11 @@
 #
 # FITS ROWORDER=BOTTOM-UP is always corrected to top-down, regardless of mode.
 #
+# A panel shot in a different orientation to the rest of the mosaic (e.g.
+# one taken in portrait while most are landscape, so GLON runs along its
+# height instead of its width) gets an actual 90 degree rotation before
+# flipping, not just hflip/vflip -- see RUN_AUTO_ROTATE.
+#
 # Usage
 # -----
 #   Make any final adjustments to result_fits/*.fits, then run from Scripts menu.
@@ -89,6 +94,31 @@ HARMONIZE_MAX_GAIN = 1.5
 # Step 2: Orientation normalisation
 # ------------------------------------------------------------------------
 PANO_MODE = "GALACTIC"   # "GALACTIC" | "RADEC" | "NONE"
+
+# GALACTIC mode checks every panel against a fixed convention -- GLON
+# increasing left, GLAT increasing up -- the same East-left/North-up sense
+# RADEC mode targets. This is intentionally NOT taken from whichever panel
+# happens to be processed first: a first-panel reference is only as
+# reliable as that one panel's own orientation detection, and if it's
+# wrong (e.g. a landscape panel that got misdetected), every other panel
+# gets aligned to match the mistake instead of it being caught.
+# Set True only if your project genuinely needs the opposite convention
+# (GLON increasing right).
+GALACTIC_MIRROR_CONVENTION = False
+
+GALACTIC_REF_GLON_VEC = (1.0, 0.0) if GALACTIC_MIRROR_CONVENTION else (-1.0, 0.0)
+GALACTIC_REF_GLAT_VEC = (0.0, -1.0)   # GLAT increasing up is not mirrored
+
+# If a panel was shot in the opposite orientation to most of the mosaic
+# (e.g. one panel taken in portrait while the rest are landscape, so GLON
+# runs along its height instead of its width), hflip/vflip alone can't fix
+# it -- flips only correct direction along whichever axis a coordinate
+# already runs along, not which axis it runs along in the first place.
+# RUN_AUTO_ROTATE detects this (GLON's dominant pixel axis doesn't match
+# the fixed canonical convention) and rotates the panel 90 degrees before
+# flipping, so every output TIFF ends up with a consistent width/height
+# axis assignment regardless of how that panel was physically shot.
+RUN_AUTO_ROTATE = True
 
 # Manual overrides for panels where automatic orientation detection gets it
 # wrong. List FITS stems (without extension) that need a forced flip
@@ -305,6 +335,9 @@ def count_mirror_ops(header):
         if 'Mirror X' in val or 'Left-right mirror' in val:
             n_hflip += 1
     return (n_hflip % 2 == 1), (n_vflip % 2 == 1)
+
+
+def cd_determinant(header):
     """Compute WCS CD matrix determinant for RADEC mode."""
     try:
         if 'CD1_1' in header:
@@ -374,11 +407,11 @@ def compute_flips(glon_vec, glat_vec, ref_glon_vec, ref_glat_vec):
 
 
 def fits_to_tiff(fits_path, tiff_path, siril,
-                 pano_mode, ref_glon_vec=None, ref_glat_vec=None,
+                 pano_mode, ref_glon_vec=GALACTIC_REF_GLON_VEC,
+                 ref_glat_vec=GALACTIC_REF_GLAT_VEC,
                  target_det_sign=None, channel_gain=None):
     """
     Read a FITS, normalise orientation, write 16-bit TIFF.
-    Returns (glon_vec, glat_vec) for use as reference by subsequent panels.
 
     channel_gain, if given, is a list of per-channel multipliers applied
     right after reading the data (before flips/clipping) -- this is how
@@ -404,6 +437,7 @@ def fits_to_tiff(fits_path, tiff_path, siril,
     roworder     = str(header.get('ROWORDER', 'BOTTOM-UP')).strip().upper()
     need_vflip   = False
     need_hflip   = False
+    need_rotate  = False
     glon_vec     = glat_vec = None
     hist_hflip   = hist_vflip = False
     diag         = []   # collect diagnostic lines, print at end
@@ -429,18 +463,32 @@ def fits_to_tiff(fits_path, tiff_path, siril,
                             + "  CORR glon=({:.3f},{:.3f})".format(*glon_vec)
                             + " glat=({:.3f},{:.3f})".format(*glat_vec))
 
-            if ref_glon_vec is None:
-                # This is the reference panel
-                need_vflip = (glat_vec[1] > 0)
-                need_hflip = False
-                diag.append("  REFERENCE")
-            else:
-                # Compare to reference
-                glon_dot = glon_vec[0]*ref_glon_vec[0] + glon_vec[1]*ref_glon_vec[1]
-                glat_dot = glat_vec[0]*ref_glat_vec[0] + glat_vec[1]*ref_glat_vec[1]
-                diag.append("  DOT glon={:.3f} glat={:.3f}".format(glon_dot, glat_dot))
-                need_hflip, need_vflip = compute_flips(
-                    glon_vec, glat_vec, ref_glon_vec, ref_glat_vec)
+            # If this panel's GLON runs predominantly along the vertical
+            # pixel axis instead of horizontal (e.g. shot in portrait while
+            # most of the mosaic is landscape), a 90 degree rotation is
+            # needed before flipping -- flips alone can't swap which axis a
+            # coordinate runs along, only its direction along that axis.
+            if RUN_AUTO_ROTATE and abs(glon_vec[0]) < abs(glon_vec[1]):
+                need_rotate = True
+                # Vector transform matching a 90 deg CCW pixel rotation
+                # (np.rot90, k=1): (x, y) -> (y, -x). Subsequent flip
+                # determination then corrects any remaining sign mismatch,
+                # regardless of which rotation direction was used here.
+                glon_vec = (glon_vec[1], -glon_vec[0])
+                glat_vec = (glat_vec[1], -glat_vec[0])
+                diag.append("  ROTATE 90 -- GLON ran along vertical axis;"
+                            + " rotated glon=({:.3f},{:.3f})".format(*glon_vec)
+                            + " glat=({:.3f},{:.3f})".format(*glat_vec))
+
+            # Every panel is checked against the same fixed reference
+            # (GALACTIC_REF_GLON_VEC/GALACTIC_REF_GLAT_VEC by default) --
+            # never against another panel -- so the result never depends
+            # on processing order or on any one panel's own detection.
+            glon_dot = glon_vec[0]*ref_glon_vec[0] + glon_vec[1]*ref_glon_vec[1]
+            glat_dot = glat_vec[0]*ref_glat_vec[0] + glat_vec[1]*ref_glat_vec[1]
+            diag.append("  DOT glon={:.3f} glat={:.3f}".format(glon_dot, glat_dot))
+            need_hflip, need_vflip = compute_flips(
+                glon_vec, glat_vec, ref_glon_vec, ref_glat_vec)
         else:
             # No WCS -- fall back to ROWORDER
             need_vflip = (roworder == 'BOTTOM-UP')
@@ -470,12 +518,16 @@ def fits_to_tiff(fits_path, tiff_path, siril,
                 ("det" if pano_mode == "RADEC" else "none"))
     siril_log(siril, "  " + fits_path.stem[-44:]
               + "  " + glon_str
+              + "  rotate=" + str(need_rotate)
               + "  vflip=" + str(need_vflip)
               + "  hflip=" + str(need_hflip))
     for d in diag:
         siril_log(siril, "  " + d)
 
-    # Apply flips
+    # Apply rotation (must match the vector transform used above: k=1 is
+    # a 90 deg CCW pixel rotation), then flips
+    if need_rotate:
+        data = np.rot90(data, k=1, axes=(1, 2))
     if need_vflip:
         data = data[:, ::-1, :]
     if need_hflip:
@@ -641,14 +693,24 @@ def main():
         # ------------------------------------------------------------
         siril_log(siril, " ")
 
-        # For GALACTIC mode: first panel sets the reference orientation
-        # For RADEC mode: target is always negative determinant
-        ref_glon_vec = ref_glat_vec = None
+        # For GALACTIC mode: every panel is checked against a fixed
+        # canonical convention (GLON increasing left, GLAT increasing up --
+        # the same East-left/North-up sense RADEC mode targets), rather
+        # than against whichever panel happens to be processed first. A
+        # reference taken from the first panel is only as reliable as that
+        # one panel's own orientation detection; if it happens to be wrong
+        # (e.g. a landscape panel that got misdetected), every other panel
+        # gets aligned to match the mistake instead of the mistake being
+        # caught. GALACTIC_MIRROR_CONVENTION flips this fixed convention if
+        # your project genuinely needs the opposite sense.
+        ref_glon_vec = GALACTIC_REF_GLON_VEC
+        ref_glat_vec = GALACTIC_REF_GLAT_VEC
         target_det_sign = -1
 
         if PANO_MODE == "GALACTIC":
-            siril_log(siril, "Reference orientation from first panel.")
-            siril_log(siril, "All panels normalised to match reference.")
+            siril_log(siril, "Reference: GLON increases "
+                      + ("right" if GALACTIC_MIRROR_CONVENTION else "left")
+                      + ", GLAT increases up (fixed convention, not panel-dependent).")
         elif PANO_MODE == "RADEC":
             siril_log(siril, "Target: negative CD matrix determinant.")
         else:
@@ -666,21 +728,6 @@ def main():
                     src, tiff_path, siril,
                     PANO_MODE, ref_glon_vec, ref_glat_vec,
                     target_det_sign, channel_gain=gain)
-
-                # First valid panel sets the reference.
-                # If we vflipped it, invert dy components so subsequent
-                # panels compare against the corrected orientation.
-                if (PANO_MODE == "GALACTIC"
-                        and ref_glon_vec is None
-                        and glon_vec is not None):
-                    need_vflip_ref = (glat_vec[1] > 0) if glat_vec else False
-                    if need_vflip_ref:
-                        ref_glon_vec = (glon_vec[0], -glon_vec[1])
-                        ref_glat_vec = (glat_vec[0], -glat_vec[1])
-                    else:
-                        ref_glon_vec = glon_vec
-                        ref_glat_vec = glat_vec
-                    siril_log(siril, "  Reference set from: " + fits_path.stem[-44:])
 
                 ok += 1
             except Exception as exc:
