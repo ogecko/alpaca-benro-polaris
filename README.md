@@ -72,7 +72,7 @@ We have included a comprehensive [Troubleshooting Guide](./docs/troubleshooting.
 A list of [Frequently Asked Questions](./docs/faq.md) addresses common questions about the Alpaca standard, the Benro Polaris's capabilities, and the use of Nina and Stellarium for astrophotography. It clarifies misconceptions about Alpaca and provides realistic expectations for using the Benro Polaris for deep-sky photography, emphasizing the importance of proper equipment and settings.
 
 ## [Beta Test Results](./docs/beta_results_v2.2.md)
-The [Beta Test Results](./docs/betatest_v2.md) provides an analysis and summary of the beta test results and feedback for the Alpaca Benro Polaris Driver, highlighting its strengths and areas for improvement. Additionally, it outlines the guidelines followed during the beta testing phase and lists the individuals involved along with their testing environments and experiences.
+The [Beta Test Results](./docs/beta_results_v2.2.md) provides an analysis and summary of the beta test results and feedback for the Alpaca Benro Polaris Driver, highlighting its strengths and areas for improvement. Additionally, it outlines the guidelines followed during the beta testing phase and lists the individuals involved along with their testing environments and experiences.
 
 # Recognition
 I'd like to thank the following people who helped make this project a reality:
