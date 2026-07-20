@@ -173,23 +173,53 @@ The model identifies several fixed mechanical parameters of the mount hardware, 
     *   **Azimuth Component (`m3_tilt_dm1`):** Sweeps the camera boresight in azimuth as the M3 axis rotates, an effect modulated by the current altitude. Introduces residual errors into the M1 axis.
     *   **Roll Component (`m3_tilt_dm3`):** Sweeps the camera boresight in roll, geometrically linked to the Azimuth Axis residual. Introduces residual errors into the M3 axis.
 
-#### **IV. The `fits_extract.py` Cailibration Workflow**
-While these parameters can be enabled and adjusted from the Alpaca Pilot Page, the Driver provides a utility **`fits_extract.py`** to calibrate these paramters for your specific mount. You will need an astro camera capable of storing FITS file. This is intended for advanced users only.
+#### **IV. Autotuning the MAC parametrers**
+
+Although the Mechanical Alignment Correction (MAC) parameters can be enabled and adjusted manually from the Alpaca Pilot Alignment page, the driver also provides an **Autotune** feature that can refine these parameters for your specific mount.
+
+Autotune works by optimizing the MAC parameters to **minimize** the QUEST model's total residual error. The process iteratively adjusts individual parameters, recalculates the QUEST model, and evaluates whether the change improves the fit. It then continues refining other parameters until a locally optimal solution is found. While the final solution may not be the global optimum, it is often sufficient to significantly improve alignment accuracy.
+
+To autotune the MAC parameters:
+
+1. Open the **Alpaca Pilot Alignment** page.
+
+2. Click the **Autotune** button in the **Mechanical Alignment Correction Model** section.
+
+3. The driver will verify that the prerequisites for autotuning have been met:
+
+   * At least **5 sync points** are required (**10 or more** are recommended).
+   * The sync points must be distributed across different **altitudes** and **roll angles**.
+   * You can use a N.I.N.A. Advanced Sequence similar to the example below to generate additional sync points.
+
+   ![Gathering Autotune Sync Points](images/control-autotune.png)
+
+4. Ensure all prerequisite checks show **three green checkmarks** before proceeding.
+
+5. Click **Run** to start the autotuning process.
+
+6. Review the proposed results:
+
+   * Verify that the fit quality is acceptable.
+   * Verify that the improvement in the QUEST RMS residual is satisfactory.
+   * Click **Apply** to activate the new parameters.
+
+   ![Autotune Results](images/control-autotune-results.png)
+
+7. Applying the results makes the new parameters active immediately, but they are **not yet saved**. 
+8. To persist the changes, click **Save** on the **Alpaca Pilot Settings** page.
+
+
+#### **V. Calibrating the MAC parameters**
+In addition to the **Autotune** feature, the driver also provides a `fits_extract.py` utility to emperically fit the MAC Parameters to plate-solved images taken with your mount. You will need an astro camera capable of storing FITS file. This is intended for advanced users only.
 
 The workflow to calibrate your mount includes:
 
-1.  **`-extract`:** Processes a directory of FITS images to read WCS (World Coordinate System) headers from plate solves and creates a permanent CSV of raw observations comparing Polaris's predicted position (`p_*`) with the solved truth (`s_*`).
-2.  **`-model`:** Uses the extracted CSV to fit the mechanical coefficients listed above alongside the QUEST alignment. It generates a `{prefix}model.txt` containing the optimized parameters.
-3.  **`-validate`:** Compares the fitted model against the original data (or a subset of "out-of-sample" data) to confirm the reduction in residuals before you commit the values to your configuration.
-
-#### **V. How to Perform Your Own Calibration**
-While default coefficients are provided, advanced users can fine-tune their mount using the following workflow:
-
 1. **Data Collection:** Using a pano grid with roll variation, capture FITS images covering a wide range of altitude, azimuth, and roll positions. Aim for full coverage of the roll range (±50°) at multiple altitudes (20°–65°). Ensure all corrections are disabled while collecting the images ie only SPA, disable MPA, SCC, LGA, ZLR, MAC, PEC.
 2. **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
-3. **Extraction:** Run `python fits_extract.py -extract`. This reads the FITS headers and builds a CSV comparing predicted positions with plate-solved ground truth.
-4. **Modelling:** Run `python fits_extract.py -model`. This fits the mechnical coefficients (`m3_tilt_dm2`, `m3_tilt_dm1`, `m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`) to your data and writes them to a JSON file.
-5. **Application:** Copy the fitted parameters into your **`config.toml`** file.
+3. **Extraction:** Run `python fits_extract.py -extract`. ThispProcesses a directory of FITS images to read WCS (World Coordinate System) headers from plate solves and creates a permanent CSV of raw observations comparing Polaris's predicted position (`p_*`) with the solved truth (`s_*`). 
+4. **Modelling:** Run `python fits_extract.py -model`. This uses the extracted CSV to fit the mechanical coefficients listed above alongside the QUEST alignment. It generates a `{prefix}model.txt` containing the optimized parameters (`m3_tilt_dm2`, `m3_tilt_dm1`, `m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`).
+5.  **Validation** Run `python fits_extract.py -validate`. Compares the fitted model against the original data (or a subset of "out-of-sample" data) to confirm the reduction in residuals before you commit the values to your configuration.
+6. **Application:** Copy the fitted parameters into your **`config.toml`** file.
 
 
 #### **VI. Important Implementation Details**
