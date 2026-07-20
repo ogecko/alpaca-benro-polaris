@@ -28,7 +28,7 @@ The priorities of this open-source project reflect feedback from the [Polaris Ca
 The Alpaca Benro Polaris has documentation to help you prepare your hardware, install software and use the features in Stellarium and Nina. Since the ABP is an ASCOM standard driver, many other applications can make use of it. Let us know what you've found that works.
 
 ## [Release Notes](./docs/release-notes-v2.2.0.md)
-The [Release Notes v2.2.0](./docs/release-notes-v2.2.0.md) is a reference document that outlines new features, compatible software, bug fixes, known issues and untested features of the Alpaca Benro Polaris Driver. The new features are organised by application to help document what new capabilities are enabled by using the driver with a given application. 
+The [Release Notes v2.2](./docs/release-notes-v2.2.0.md) is a reference document that outlines new features, compatible software, bug fixes, known issues and untested features of the Alpaca Benro Polaris Driver. The new features are organised by application to help document what new capabilities are enabled by using the driver with a given application. 
 
 ## [Video Playlists](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d)
 We have a range of demonstration videos included on Youtube to help familiarise yourself with the Alpaca Driver and Alpaca Pilot Application.
@@ -71,7 +71,7 @@ We have included a comprehensive [Troubleshooting Guide](./docs/troubleshooting.
 
 A list of [Frequently Asked Questions](./docs/faq.md) addresses common questions about the Alpaca standard, the Benro Polaris's capabilities, and the use of Nina and Stellarium for astrophotography. It clarifies misconceptions about Alpaca and provides realistic expectations for using the Benro Polaris for deep-sky photography, emphasizing the importance of proper equipment and settings.
 
-## [Beta Test Results](./docs/betatest_v2.md)
+## [Beta Test Results](./docs/beta_results_v2.2.md)
 The [Beta Test Results](./docs/betatest_v2.md) provides an analysis and summary of the beta test results and feedback for the Alpaca Benro Polaris Driver, highlighting its strengths and areas for improvement. Additionally, it outlines the guidelines followed during the beta testing phase and lists the individuals involved along with their testing environments and experiences.
 
 # Recognition
