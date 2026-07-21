@@ -543,8 +543,6 @@ def process_panel(siril, prefix, files, home_dir, mode):
         reg_path[ch_name] = r_path
         siril_log(siril, "  Registered: " + ch_name + " -> " + r_path.name)
 
-    r_ref = reg_path[ref_ch]
-    reg_colour = {ch: reg_path[ch] for ch in colour_channels}
     siril_log(siril, "  All channels aligned and cropped to common overlap.")
 
     # SPCC (run in Galactic_3_Stretch.py) handles colour balance via stellar
@@ -560,21 +558,23 @@ def process_panel(siril, prefix, files, home_dir, mode):
         compose_ok = cmd_safe(
             siril,
             "rgbcomp",
-            "-lum=" + str(r_ref),
-            str(reg_colour["R"]),
-            str(reg_colour["G"]),
-            str(reg_colour["B"]),
+            "-lum=" + str(reg_path["L"]),
+            str(reg_path["R"]),
+            str(reg_path["G"]),
+            str(reg_path["B"]),
             "-out=" + lrgb_stem,
         )
     else:
-        # Narrowband (HSO or SHO): no luminance -- pure RGB composition
-        # R/G/B are already mapped to display colours via CHANNEL_DIRS_*
+        # Narrowband (HSO or SHO): no luminance -- pure RGB composition.
+        # R/G/B here are the rgbcomp POSITIONS (already mapped to display
+        # colours via CHANNEL_DIRS_SHO/HSO), which is independent of which
+        # one of them was used as the registration reference above.
         compose_ok = cmd_safe(
             siril,
             "rgbcomp",
-            str(r_ref),              # R channel (Ha or Sii)
-            str(reg_colour["G"]),    # G channel (Sii or Ha)
-            str(reg_colour["B"]),    # B channel (Oiii)
+            str(reg_path["R"]),      # R channel (Sii for SHO, Ha for HSO)
+            str(reg_path["G"]),      # G channel (Ha for SHO, Sii for HSO)
+            str(reg_path["B"]),      # B channel (Oiii)
             "-out=" + lrgb_stem,
         )
 
