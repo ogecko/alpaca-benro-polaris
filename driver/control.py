@@ -662,6 +662,7 @@ class PID_Controller():
         self.omega_ki = np.zeros(3, dtype=float)       # omega1-3 due to integrated error
         self.omega_kd = np.zeros(3, dtype=float)       # omega1-3 due to velocity damping (derivative of position)
         self.omega_ff = np.zeros(3, dtype=float)       # omega1-3 due to requested velocity feed forward (slew, tracking)
+        self.omega_pec = np.zeros(3, dtype=float)
         self.omega_min = np.zeros(3, dtype=float)      # omega1-3 min allowable angular velocity (0=axis at limit, no more -ve)
         self.omega_max = np.zeros(3, dtype=float)      # omega1-3 max allowable angular velocity (0=axis at limit, no more +ve)
         self.omega_tgt = np.zeros(3, dtype=float)      # omega1-3 motor angular velocity raw pid output
@@ -1131,6 +1132,18 @@ class PID_Controller():
         elif self.mode == "AUTO":
             self.omega_ff = self.alpha_v_sp
 
+        # PEC contribution — independent of ff_inhibit gating (that's for setpoint-
+        # change transients, unrelated to PEC), added as its own velocity term.
+        self.omega_pec = np.zeros(3, dtype=float)
+        if Config.advanced_pec and self.mode == "TRACK":
+            omega_pec_B = getattr(self.polaris._sm, 'omega_pec_B', None)
+            if omega_pec_B is not None and np.any(omega_pec_B):
+                J = theta_to_jacobian(*self.theta_pv)
+                theta_dot_pec = np.linalg.solve(J, np.radians(omega_pec_B))
+                self.omega_pec = np.degrees(theta_dot_pec)
+                if self.polaris._trackingrate != 0:
+                    self.omega_pec[2] = 0            
+
     def prevent_windup(self):
         if self.theta_ref_cache is not None or self.zeta_meas is None or self.mode == 'LIMIT':
             return
@@ -1232,7 +1245,7 @@ class PID_Controller():
         self.omega_kp = np.array(Config.pid_Kp, dtype=float) * self.error_signal    # increase control proportional to error
         self.omega_ki = np.array(Config.pid_Ki, dtype=float) * self.error_integral  # increase control when integral error is high
         self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * self.omega_op      # dampen control when velocity high
-        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff
+        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff + self.omega_pec
 
     def constrain(self):
         self.set_Ka_array(Config.pid_Ka) 
@@ -2388,12 +2401,19 @@ class SyncManager:
 
     def apply_pec_drift_correction(self):
         """
-        Called every ~200ms from PID loop.
-        Computes PEC corrections d_ra, d_dec in degrees (= rate [deg/s] * dt [s]),
-        evaluated at the CURRENT time t so harmonic phase keeps advancing between
-        sparse ingests (see PecAxis.eval_correction).
-        Passes to accumulate_sync_guiding_residuals which expects degrees.
+        Called every control tick. Computes the current PEC rate once, then:
+        1. Publishes it as omega_pec_B for feed_forward() to solve through the
+            Jacobian and add proactively to omega_tgt (minimizes transient/lag).
+        2. Injects the same rate into the measurement chain via
+            accumulate_sync_guiding_residuals (original design) so the loop's
+            notion of "on target" advances in lockstep with the FF-induced
+            motion — this is what stops Ki from seeing a sustained error and
+            rejecting the correction over time.
+        delta_sp/delta_ref are never touched — sidereal target identity is
+        preserved exactly as before.
         """
+        self.omega_pec_B = np.zeros(3, dtype=float)   # deg/sec, Base frame — read by feed_forward()
+
         if not getattr(self, '_pec_active', False):
             return
         if self.equatorial_axes_B[0] is None:
@@ -2403,8 +2423,7 @@ class SyncManager:
         if self._pec_last_apply is None:
             self._pec_last_apply = now
             return
-
-        t = now - self._pec_t0
+        t  = now - self._pec_t0
         dt = now - self._pec_last_apply
         self._pec_last_apply = now
         if dt <= 0 or dt > 5.0:
@@ -2415,8 +2434,11 @@ class SyncManager:
         d_dec, dec_applied = self._pec_dec.eval_correction(t, dt, cap)
 
         if ra_applied or dec_applied:
+            # apply as correction to PV
             self.accumulate_sync_guiding_residuals(d_ra, d_dec)
-
+            # apply as correction to omega_pec feed forward
+            ra_axis_B, dec_axis_B, _ = self.equatorial_axes_B
+            self.omega_pec_B = (d_ra/dt) * ra_axis_B + (d_dec/dt) * dec_axis_B
 
 
 from enum import IntEnum, Enum
