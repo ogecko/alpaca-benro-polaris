@@ -2628,10 +2628,10 @@ class PecAxis:
     def predicted_accum(self, t):
         """Predicted cumulative correction at t — for comparing against raw cumul."""
         if self.mode == PecMode.RLS:
-            return float(self._phi(t) @ self._theta)
+            return float(self._phi(t) @ self._theta) + self._ref
         if self._y_last is None:
-            return 0.0
-        return self._y_last + self.rate * (t - self._t_last)
+            return self._ref
+        return self._y_last + self.rate * (t - self._t_last) + self._ref
 
     def eval_correction(self, t, dt, cap):
         """
