@@ -216,7 +216,7 @@ The workflow to calibrate your mount includes:
 
 1. **Data Collection:** Using a pano grid with roll variation, capture FITS images covering a wide range of altitude, azimuth, and roll positions. Aim for full coverage of the roll range (±50°) at multiple altitudes (20°–65°). Ensure all corrections are disabled while collecting the images ie only SPA, disable MPA, SCC, LGA, ZLR, MAC, PEC.
 2. **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
-3. **Extraction:** Run `python fits_extract.py -extract`. ThispProcesses a directory of FITS images to read WCS (World Coordinate System) headers from plate solves and creates a permanent CSV of raw observations comparing Polaris's predicted position (`p_*`) with the solved truth (`s_*`). 
+3. **Extraction:** Run `python fits_extract.py -extract`. This processes a directory of FITS images to read WCS (World Coordinate System) headers from plate solves and creates a permanent CSV of raw observations comparing Polaris's predicted position (`p_*`) with the solved truth (`s_*`). 
 4. **Modelling:** Run `python fits_extract.py -model`. This uses the extracted CSV to fit the mechanical coefficients listed above alongside the QUEST alignment. It generates a `{prefix}model.txt` containing the optimized parameters (`m3_tilt_dm2`, `m3_tilt_dm1`, `m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`).
 5.  **Validation** Run `python fits_extract.py -validate`. Compares the fitted model against the original data (or a subset of "out-of-sample" data) to confirm the reduction in residuals before you commit the values to your configuration.
 6. **Application:** Copy the fitted parameters into your **`config.toml`** file.
