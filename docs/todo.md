@@ -45,7 +45,13 @@
 - [X] Orbitals - Add ability to save orbital parameters for offline use
 - [X] Connection - why does L-Bracket get initialised incorrectly sometimes?
 - [X] Alt Warning - Update Alt Warning indicator based on reachable envelope.
-- [ ] PEC - Ensure Harmonics are not introducing degredation in tracking performance 
+- [X] PEC - Apply PEC as a Measurement Correction and a FF signal (to stop wiggle)
+- [ ] PEC - Add PEC FF signal to PID Tuning charts
+- [ ] SG - Explore applying Sync Guide with FF signal
+- [ ] SG - Explore applying Sync Guide over a time period based on guide rate
+- [ ] SG - Persist current sycn guiding correction on a regular basis for better aligned restarts
+- [ ] HTTPS - Debug client to Driver connection loss - Retest REST API proxy over protocol switching, remove local storage
+- [ ] CCDCiel - Confirm Rotator Sync works correctly on CCDCiel
 - [ ] Close candidate enhancement list
     - [ ] Manual Align - Direct Control and List of targets
     - [ ] Goto - Determine ideal settle time for Benro Polaris and v2.2
@@ -64,6 +70,8 @@
     - [X] Create video on Galactric Panorama Workflow
     - [ ] Create video on CCDCiel
     - [ ] Create video on kinematics, tracking, guiding
+        - Manual Sync
+            - Manual Sync of Position Angle
         - Kinematics
             - Settings Page - enabling different correction features, show alongside kinematics page, toggling on/off
             - Kinematics Page - better understanding and total rewrite 
