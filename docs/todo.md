@@ -82,6 +82,8 @@
             - PID - PID axes in dms, De-Trenmded Charts
             - PID - Improved RMS Error, Cyclic bump removed, 
         - Guiding
+            - Tune PEC with sync guiding, before calibrating to remove drift. Cannot calibrate if drift too high.
+            - 
             - Sync Guiding - Plate-Solve/Sync using Nina in a 2-5min cycle, Before smart exposure - PID steadies while filter changing.
             - Sync Roll - How to copy Plate-Solve Roll and manual Roll Sync
             - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
