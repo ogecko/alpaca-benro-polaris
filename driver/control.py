@@ -1636,7 +1636,7 @@ class SyncManager:
         p_az, p_alt = vector_to_az_alt(v_pred)
         return p_az, p_alt
 
-    def optimize_alignQ_B2T(self):
+    def optimize_alignQ_B2T(self, persist=True):
         """
         Implement the QUEST algorithm to find the optimal rotation quaternion
         that minimizes the misalignment between predicted (Polaris) and observed (Plate Solved/ASCOM) vectors.
@@ -1651,7 +1651,7 @@ class SyncManager:
         pairs = []
         weights = []
         self.params_RBC = MountModelParams.from_config(Config)
-        self.clear_guide_pulses()
+        self.clear_guide_pulses(persist=persist)
 
         v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
 
@@ -2065,34 +2065,50 @@ class SyncManager:
 
     def saveSyncDataToFile(self, path=SYNC_POINTS_PATH):
         ensure_data_dir_exists()
-        # Only persist non-deleted entries, and only the fields needed to reconstruct the model
         entries_to_save = [
             {k: v for k, v in entry.items() if k not in ('w_recency', 'w_proximity', 'w_polar', 'w_total', 'residual_vector', 'residual_magnitude')}
             for entry in self.sync_history
             if not entry.get('deleted', False)
         ]
+        guide_state = {
+            "q_guide_B":          list(self.q_guide_B.q),
+            "q_syncguide_B":      list(self.q_syncguide_B.q),
+            "valid_sync_guide":   bool(self.valid_sync_guide),
+        }
+        data = {"sync_points": entries_to_save, "guide_state": guide_state}
         with open(path, 'w') as f:
-            json.dump(entries_to_save, f, indent=2)
+            json.dump(data, f, indent=2)
 
     def loadSyncDataFromFile(self, path=SYNC_POINTS_PATH):
         if not os.path.exists(path):
             return False
         try:
             with open(path, 'r') as f:
-                entries = json.load(f)
-            if not isinstance(entries, list):
-                self.logger.warning("sync_points.json: expected a list, ignoring.")
+                loaded = json.load(f)
+
+            # Backward compatibility: old files are a bare list (sync points only, no guide state). New files are a dict with both.
+            if isinstance(loaded, list):
+                entries, guide_state = loaded, None
+            elif isinstance(loaded, dict):
+                entries = loaded.get('sync_points', [])
+                guide_state = loaded.get('guide_state')
+            else:
+                self.logger.warning("sync_points.json: unexpected format, ignoring.")
                 return False
+
+            if not isinstance(entries, list):
+                self.logger.warning("sync_points.json: expected a list of sync points, ignoring.")
+                return False
+
             self.sync_history = []
             for entry in entries:
                 if not isinstance(entry, dict):
                     continue
-                if entry.get('timestamp') == 'reset':   # skip sentinel entries
+                if entry.get('timestamp') == 'reset':
                     continue
-                # Ensure required fields are present with safe defaults
                 clean = {
                     'timestamp':  entry.get('timestamp', format_timestamp()),
-                    'deleted':    False,   # never restore deleted entries
+                    'deleted':    False,
                     'p_az':       float(entry['p_az']),
                     'p_alt':      float(entry['p_alt']),
                     'p_roll':     float(entry['p_roll']),
@@ -2105,19 +2121,56 @@ class SyncManager:
                 }
                 self.sync_history.append(clean)
 
-            payload = {'advanced_alignment': True if len(self.sync_history)>0 else False }
+            payload = {'advanced_alignment': True if len(self.sync_history) > 0 else False}
             Config.apply_changes(payload)
-            # Rerun optimisers to reconstruct alignQ_B2T and roll_adj from loaded data
-            self.logger.info(f"==STARTUP== Loading Alignment Model ({len(self.sync_history)} sync points).")
-            self.optimize_alignQ_B2T()
+            self.logger.info(f"==STARTUP== Loading Alignment Model ({len(self.sync_history)} sync points{', and guide state' if guide_state else ''}).")
+            self.optimize_alignQ_B2T(persist=False)
             self.optimize_roll_adj()
             self.refresh_pid_setpoints_from_q1()
             self.last_sync_time = time.monotonic()
+
+            # Restore guide correction state, if present (older files won't have it —
+            # q_guide_B/q_syncguide_B simply stay at identity, same as before this change).
+            if guide_state:
+                try:
+                    self.q_guide_B     = Quaternion(*guide_state['q_guide_B']).normalised
+                    self.q_syncguide_B = Quaternion(*guide_state['q_syncguide_B']).normalised
+                    self.valid_sync_guide  = guide_state.get('valid_sync_guide', False)
+                except Exception as e:
+                    self.logger.warning(f"Failed to restore guide state, continuing at identity: {e}")
+
             self.streamSyncData(persist=False)
             return True
         except Exception as e:
             self.logger.warning(f"Failed to load sync_points.json: {e}")
             return False
+
+    def _request_persist_guide_state(self, throttle_sec=60):
+        """
+        Throttled save of guide correction state (q_guide_B, q_syncguide_B).
+        Called from every guide/PEC accumulation point, which can fire many times
+        per second (PEC ticks every ~200ms) — so this must not write to disk on
+        every call. Saves immediately if throttle_sec has elapsed since the last
+        save; otherwise defers a single trailing save so the final state is never
+        more than throttle_sec stale, without hammering the filesystem.
+        """
+        now = time.monotonic()
+        last = getattr(self, '_last_persist_time', None)
+        if last is None or (now - last) >= throttle_sec:
+            self._last_persist_time = now
+            self._persist_pending = False
+            self.saveSyncDataToFile()
+        elif not getattr(self, '_persist_pending', False):
+            self._persist_pending = True
+            remaining = throttle_sec - (now - last)
+            asyncio.create_task(self._deferred_persist_guide_state(remaining))
+
+    async def _deferred_persist_guide_state(self, delay):
+        await asyncio.sleep(delay)
+        if getattr(self, '_persist_pending', False):
+            self._last_persist_time = time.monotonic()
+            self._persist_pending = False
+            self.saveSyncDataToFile()
 
 # ── Pulse Guiding ──────────────────────────────────────────────────────────
 
@@ -2167,12 +2220,14 @@ class SyncManager:
         self.q_guide_B = (q_pulse * self.q_guide_B).normalised
         self.delta_guide_accum[axis] += angle_deg
         self.delta_guide_pulse[axis] = angle_deg
-
+        self._request_persist_guide_state()
     
-    def clear_guide_pulses(self):
+    def clear_guide_pulses(self, persist=True):
         self.delta_guide_accum = np.zeros(3, dtype=float)
         self.q_guide_B = Quaternion(1,0,0,0)
         self.delta_guide_pulse = np.zeros(3, dtype=float)
+        if persist:
+            self._request_persist_guide_state()
 
 
 # ── Sync Guiding ──────────────────────────────────────────────────────────
@@ -2209,6 +2264,7 @@ class SyncManager:
         self.delta_guide_accum = np.zeros(3, dtype=float) 
         if Config.advanced_scc_enabled and Config.advanced_scc_choice==2:
             self.scc_error = 0
+        self._request_persist_guide_state()
 
     def enable_sync_guiding(self):
         """ Enabled from a valid QUEST sync and sidereal tracking enabled """
@@ -2226,6 +2282,7 @@ class SyncManager:
         self.delta_guide_accum[1] += dec_resid
         self.delta_guide_pulse[0] = ra_resid
         self.delta_guide_pulse[1] = dec_resid
+        self._request_persist_guide_state()
         
     def get_sync_guiding_correction_q(self):
         return self.q_syncguide_B
@@ -2264,6 +2321,7 @@ class SyncManager:
         self.q_syncguide_B = q_corr_B.normalised
         self.delta_guide_accum[0] = 0
         self.delta_guide_accum[1] = 0
+        self._request_persist_guide_state()
 
 
 
