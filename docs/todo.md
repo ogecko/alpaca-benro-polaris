@@ -47,6 +47,7 @@
 - [X] Alt Warning - Update Alt Warning indicator based on reachable envelope.
 - [X] PEC - Apply PEC as a Measurement Correction and a FF signal (to stop wiggle)
 - [ ] PEC - Add PEC FF signal to PID Tuning charts
+- [ ] PEC - Add PEC status and Guiding Status to Dashboard
 - [ ] SG - Explore applying Sync Guide with FF signal
 - [ ] SG - Explore applying Sync Guide over a time period based on guide rate
 - [ ] SG - Persist current sycn guiding correction on a regular basis for better aligned restarts
@@ -83,7 +84,7 @@
             - PID - Improved RMS Error, Cyclic bump removed, 
         - Guiding
             - Tune PEC with sync guiding, before calibrating to remove drift. Cannot calibrate if drift too high.
-            - 
+            - MUST turn OFF PEC when calibrating!!!!
             - Sync Guiding - Plate-Solve/Sync using Nina in a 2-5min cycle, Before smart exposure - PID steadies while filter changing.
             - Sync Roll - How to copy Plate-Solve Roll and manual Roll Sync
             - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
