@@ -2156,14 +2156,26 @@ class SyncManager:
         """
         now = time.monotonic()
         last = getattr(self, '_last_persist_time', None)
+        # if last persist was a long time ago then save state
         if last is None or (now - last) >= throttle_sec:
             self._last_persist_time = now
             self._persist_pending = False
             self.saveSyncDataToFile()
-        elif not getattr(self, '_persist_pending', False):
-            self._persist_pending = True
-            remaining = throttle_sec - (now - last)
-            asyncio.create_task(self._deferred_persist_guide_state(remaining))
+            return
+        # if we already have a save state pending then return
+        if getattr(self, '_persist_pending', False):
+            return
+        # if none pending, then setup a deferred call to save guide state
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # No event loop running (e.g. synchronous test), fall back to an immediate save rather than losing the write entirely.
+            self._last_persist_time = now
+            self.saveSyncDataToFile()
+            return
+        self._persist_pending = True
+        remaining = throttle_sec - (now - last)
+        asyncio.create_task(self._deferred_persist_guide_state(remaining))
 
     async def _deferred_persist_guide_state(self, delay):
         await asyncio.sleep(delay)
