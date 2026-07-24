@@ -28,6 +28,7 @@ def mock_config():
         "advanced_scc_choice":      0,
         "advanced_pec":             True,
         "log_quest_model":          False,
+        "log_pec":                  False,
         "pec_forgetting_factor":    0.98,
         "pec_min_observations":     3,
         "pec_max_step_arcmin":      0.5,

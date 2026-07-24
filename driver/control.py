@@ -1415,7 +1415,7 @@ class SyncManager:
         self.alignQ_B2T = Quaternion(1,0,0,0)       # cached adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # cached inverse adjustment quaternion for azalt syncing, initially identity
         self.alignQ_B2T_message = ""                # message from last optimisation
-        self.q_guide_B = Quaternion(1,0,0,0)        # accumulation of pulse guide corrections
+        self.q_pulseguide_B = Quaternion(1,0,0,0)   # accumulation of pulse guide corrections
         self.q_syncguide_B = Quaternion(1,0,0,0)    # accumulation of sync guide corrections
         self.valid_sync_guide = False               # flag to indicate pure sidereal tracking since last sync
         self.delta_guide_accum = np.zeros(3, dtype=float) 
@@ -1474,10 +1474,10 @@ class SyncManager:
             motorQ_C2B_pv = self.corrQ_RBC * motorQ_C2B_state
 
         # Apply Sync Guide Corrections (SGC)
-        motorQ_C2B_pv = self.get_sync_guiding_correction_q() * motorQ_C2B_pv
+        motorQ_C2B_pv = self.q_syncguide_B * motorQ_C2B_pv
 
         # Apply Pulse Guide Corrections (PGC)
-        motorQ_C2B_pv = self.q_guide_B * motorQ_C2B_pv
+        motorQ_C2B_pv = self.q_pulseguide_B * motorQ_C2B_pv
 
         # Apply alignQ_B2T model (QUEST)
         cameraQ_C2T_pv = self.alignQ_B2T * motorQ_C2B_pv
@@ -2071,7 +2071,7 @@ class SyncManager:
             if not entry.get('deleted', False)
         ]
         guide_state = {
-            "q_guide_B":          list(self.q_guide_B.q),
+            "q_pulseguide_B":     list(self.q_pulseguide_B.q),
             "q_syncguide_B":      list(self.q_syncguide_B.q),
             "valid_sync_guide":   bool(self.valid_sync_guide),
         }
@@ -2130,11 +2130,11 @@ class SyncManager:
             self.last_sync_time = time.monotonic()
 
             # Restore guide correction state, if present (older files won't have it —
-            # q_guide_B/q_syncguide_B simply stay at identity, same as before this change).
+            # q_pulseguide_B/q_syncguide_B simply stay at identity, same as before this change).
             if guide_state:
                 try:
-                    self.q_guide_B     = Quaternion(*guide_state['q_guide_B']).normalised
-                    self.q_syncguide_B = Quaternion(*guide_state['q_syncguide_B']).normalised
+                    self.q_pulseguide_B    = Quaternion(*guide_state['q_pulseguide_B']).normalised
+                    self.q_syncguide_B     = Quaternion(*guide_state['q_syncguide_B']).normalised
                     self.valid_sync_guide  = guide_state.get('valid_sync_guide', False)
                 except Exception as e:
                     self.logger.warning(f"Failed to restore guide state, continuing at identity: {e}")
@@ -2147,7 +2147,7 @@ class SyncManager:
 
     def _request_persist_guide_state(self, throttle_sec=60):
         """
-        Throttled save of guide correction state (q_guide_B, q_syncguide_B).
+        Throttled save of guide correction state (q_pulseguide_B, q_syncguide_B).
         Called from every guide/PEC accumulation point, which can fire many times
         per second (PEC ticks every ~200ms) — so this must not write to disk on
         every call. Saves immediately if throttle_sec has elapsed since the last
@@ -2185,7 +2185,7 @@ class SyncManager:
             self.logger.warning(f"Invalid pulse guide direction: {direction}")
             return
 
-        # accumulate the pulse guide durations into q_guide_B for baseQ_to_topoQ to apply as a correction
+        # accumulate the pulse guide durations into q_pulseguide_B for baseQ_to_topoQ to apply as a correction
         step_sec = abs(duration)/1000
         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
         self.accumulate_guide_pulses(axis, step_sec, velocity)
@@ -2217,14 +2217,14 @@ class SyncManager:
         if abs(angle_deg) < 1e-9:
             return Quaternion()
         q_pulse = Quaternion(axis=axis_base, degrees=angle_deg)
-        self.q_guide_B = (q_pulse * self.q_guide_B).normalised
+        self.q_pulseguide_B = (q_pulse * self.q_pulseguide_B).normalised
         self.delta_guide_accum[axis] += angle_deg
         self.delta_guide_pulse[axis] = angle_deg
         self._request_persist_guide_state()
     
     def clear_guide_pulses(self, persist=True):
         self.delta_guide_accum = np.zeros(3, dtype=float)
-        self.q_guide_B = Quaternion(1,0,0,0)
+        self.q_pulseguide_B = Quaternion(1,0,0,0)
         self.delta_guide_pulse = np.zeros(3, dtype=float)
         if persist:
             self._request_persist_guide_state()
@@ -2283,9 +2283,6 @@ class SyncManager:
         self.delta_guide_pulse[0] = ra_resid
         self.delta_guide_pulse[1] = dec_resid
         self._request_persist_guide_state()
-        
-    def get_sync_guiding_correction_q(self):
-        return self.q_syncguide_B
         
     def seed_sync_guide_from_quest_residual(self):
         if self.last_sync_time is None:
