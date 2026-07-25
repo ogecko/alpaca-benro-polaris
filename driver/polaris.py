@@ -1393,7 +1393,7 @@ class Polaris:
                 'polarisastrover': self._polaris_astro_ver,
                 'rbcerror': self._sm.rbc_error,
                 'sccerror': self._sm.scc_error,
-                'mpaerror': self._sm.mpa_error,
+                'mpastatus': [self._sm.aligned_count, self._sm.mpa_error],
                 'pec': [pec_ra._applied_rate*3600, pec_dec._applied_rate*3600, pec_ra_status, pec_dec_status],
                 'pidKc': Config.pid_Kc,
             }

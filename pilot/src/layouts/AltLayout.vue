@@ -336,7 +336,7 @@ const links3: CatalogLink[] = [
 ]
 
 const links4 = [
-  { icon: 'mdi-format-vertical-align-top', text: 'Alignment', to: '/sync' },
+  { icon: 'mdi-globe-model', text: 'Alignment', to: '/sync' },
   { icon: 'mdi-set-split', text: 'Calibration', to: '/speed' },
   { icon: 'mdi-wall-sconce-flat-variant-outline', text: 'Flat White', to: '/flatwhite' },
   { icon: 'mdi-chart-line', text: 'KF Tuning', to: '/kalman' },

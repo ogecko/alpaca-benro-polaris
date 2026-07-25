@@ -92,7 +92,7 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
               <q-item-section>Alignment RMS Error (n={{ telescope_syncs.length }})</q-item-section>
               <q-item-section side>
                   <q-item-label>
-                    <span>RMS Residual {{(p.mpaerror*60).toFixed(1)}}'</span> 
+                    <span>RMS Residual {{mpaerror}}'</span> 
                   </q-item-label>
               </q-item-section>              
               <q-item-section side>
@@ -316,6 +316,8 @@ const PA = computed(() => dms2deg(PA_str.value, 'deg'))
 const Az = computed(() => dms2deg(Az_Str.value, 'deg'))
 const Alt = computed(() => dms2deg(Alt_str.value, 'deg'))
 const Roll = computed(() => dms2deg(Roll_str.value, 'deg'))
+
+const mpaerror = computed(() => p.mpastatus?.[1] != null ? (p.mpastatus[1] * 60).toFixed(1) : "")
 
 const telescope_syncs = computed(() =>
   Array.from(socket.syncPoints.values())

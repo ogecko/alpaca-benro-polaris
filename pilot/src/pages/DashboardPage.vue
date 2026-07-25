@@ -92,11 +92,60 @@
           </div>
           <PanoNavigation />
         </div>
-        <div v-if="!(p.pidmode=='PARK')" class="col-12 col-md-6 col-lg-4  col-xl-3 row justify-center ">
-          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[0]" :position="p.zetameas[0]" label="M1" />
-          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[1]" :position="p.zetameas[1]" label="M2" />
-          <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[2]" :position="p.zetameas[2]" label="M3" />
-        </div>
+        <q-list  class="col-12 col-md-6 col-lg-4  col-xl-3">
+          <q-item>
+              <q-item-section avatar>
+                <q-icon size="md" color="primary" name="mdi-engine" />
+              </q-item-section>
+              <q-item-section>Motor Speed & Position</q-item-section>
+              <q-item-section side>
+                <div class="row q-bt-nont">
+                  <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[0]" :position="p.zetameas[0]" label="M1" />
+                  <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[1]" :position="p.zetameas[1]" label="M2" />
+                  <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[2]" :position="p.zetameas[2]" label="M3" />
+                </div>
+              </q-item-section>
+         </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-icon size="md" color="primary" name="mdi-globe-model" />
+              </q-item-section>
+              <q-item-section>Alignment Model</q-item-section>
+              <q-item-section side><StatusAlignment /></q-item-section>
+          </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-icon size="md" color="grey-9" name="mdi-pulse" />
+              </q-item-section>
+              <q-item-section>Pulse Guiding</q-item-section>
+              <q-item-section side>
+              <q-chip color="positive"  icon="mdi-pulse" class="q-pa-md">
+                last pulse 2"
+              </q-chip>
+              </q-item-section>
+          </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-icon size="md" color="primary" name="mdi-sync" />
+              </q-item-section>
+              <q-item-section>Sync Guiding</q-item-section>
+              <q-item-section side>
+              <q-chip color="positive"  icon="mdi-sync" class="q-pa-md">
+                every 120s
+              </q-chip>
+              </q-item-section>
+          </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-icon size="md" color="primary" name="mdi-sine-wave" />
+              </q-item-section>
+              <q-item-section>Periodic Error Correction</q-item-section>
+              <q-item-section side>
+              <q-chip color="negative"  icon="mdi-sine-wave" class="q-pa-md">
+                R² 0.72 | 0.92
+              </q-chip>              </q-item-section>
+          </q-item>
+        </q-list>
       </div>
 
   </q-page>
@@ -116,6 +165,7 @@ import StatusBanners from 'src/components/StatusBanners.vue'
 import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
 import PanoNavigation from 'src/components/PanoNavigation.vue'
 import PIDStatus from 'src/components/PIDStatus.vue'
+import StatusAlignment from 'src/components/statusAlignment.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 import { angularDifference } from 'src/utils/angles'
 
