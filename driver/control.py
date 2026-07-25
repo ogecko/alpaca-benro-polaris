@@ -2203,10 +2203,11 @@ class SyncManager:
         self.accumulate_guide_pulses(axis, step_sec, velocity)
         
         # update the drift and PEC model
-        angle_deg = velocity*step_sec
-        ra_resid = angle_deg if axis==0 else None
-        dec_resid = angle_deg if axis==1 else None
-        self.update_pec_model(ra_resid, dec_resid)
+        if Config.advanced_pulse_pec_tuning:
+            angle_deg = velocity*step_sec
+            ra_resid = angle_deg if axis==0 else None
+            dec_resid = angle_deg if axis==1 else None
+            self.update_pec_model(ra_resid, dec_resid)
 
         # make immediate update to ra and dec for conformU tests
         cameraQ_pv, _ = self.polaris._sm.baseQ_to_topoQ(self.polaris._motorQ_state)

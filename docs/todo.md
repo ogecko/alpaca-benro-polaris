@@ -46,6 +46,7 @@
 - [X] Connection - why does L-Bracket get initialised incorrectly sometimes?
 - [X] Alt Warning - Update Alt Warning indicator based on reachable envelope.
 - [X] PEC - Apply PEC as a Measurement Correction and a FF signal (to stop wiggle)
+- [X] PEC - Default to not tuning the PEC model from ASCOM Pulse Guiding Commands ie PHD2
 - [ ] PEC - Add PEC FF signal to PID Tuning charts
 - [ ] PEC - Add PEC status and Guiding Status to Dashboard
 - [ ] SG - Explore applying Sync Guide with FF signal
