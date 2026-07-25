@@ -20,10 +20,11 @@ const last = computed(() => p.sgstatus ? p.sgstatus[2] : 0)
 const isfirst = computed(() => ((interval.value??0)==0) && ((last.value??0) > 0))
 const islate = computed(() => ((interval.value??0) > 0) && ((last.value??0) > (interval.value??0)*2))
 const isnone = computed(() => (last.value??0) > MAX_SYNC_INTERVAL_SEC)
+const isIdle = computed(() => valid.value==0 || !p.tracking)
 
 const statusLabel = computed(() => 
   cfg.advanced_sync_guiding==false ? "Disabled" :
-                    valid.value==0 ? "Idle" :
+                      isIdle.value ? "Idle" :
                       isnone.value ? `None for ${Math.floor((last.value??0)/60)} min` :
                       islate.value ? `Missed for ${last.value??0}s` :
                       isfirst.value ? `Received ${last.value??0}s ago` :
@@ -33,7 +34,7 @@ const statusLabel = computed(() =>
 
 const statusColor = computed(() =>
   cfg.advanced_sync_guiding==false ? "grey-8" :
-                    valid.value==0 ? "primary" :
+                      isIdle.value  ? "primary" :
                       isnone.value ? "warning" :
                       islate.value ? "warning" :
                                      "positive"
@@ -41,7 +42,7 @@ const statusColor = computed(() =>
 
 const statusOutline = computed(() => (
   cfg.advanced_sync_guiding==false ? true :
-                    valid.value==0 ? true :
+                     isIdle.value  ? true :
                                     false
 
 ))

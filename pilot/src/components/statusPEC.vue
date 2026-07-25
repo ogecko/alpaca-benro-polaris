@@ -40,12 +40,14 @@ function col_r2(r2ra: unknown, r2dec: unknown) {
          'primary'
 }
 
+const isIdle = computed(() => (p.pec[2] == 0 && p.pec[3] == 0)  || !p.tracking)
+const isWarmup = computed(() => (p.pec[2] == -2 && p.pec[3] == -2)  || !p.tracking)
 
 const statusLabel = computed(() =>  
    cfg.advanced_pec==false ? "Disabled" : 
-            p.pec[2] == 0 && p.pec[3] == 0 ? 'Idle' :
-           p.pec[2] == -2 && p.pec[3] == -2 ? 'Warmup' :
-                            `${fmt_r2(p.pec[2])} | ${fmt_r2(p.pec[3])}`
+              isIdle.value ? 'Idle' :
+            isWarmup.value ? 'Warmup' :
+                             `${fmt_r2(p.pec[2])} | ${fmt_r2(p.pec[3])}`
 )
 
 const statusColor = computed(() =>
@@ -55,7 +57,7 @@ const statusColor = computed(() =>
 
 const statusOutline = computed(() => 
            cfg.advanced_pec==false ? true :
-    p.pec[2] == 0 && p.pec[3] == 0 ? true :
+                      isIdle.value ? true :
                                      false
 )
 

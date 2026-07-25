@@ -127,11 +127,8 @@
                 <q-icon size="md" color="primary" name="mdi-pulse" />
               </q-item-section>
               <q-item-section>Pulse Guiding</q-item-section>
-              <q-item-section side>
-              <q-chip color="positive"  icon="mdi-pulse" class="q-pa-md">
-                last pulse 2"
-              </q-chip>
-              </q-item-section>
+              <q-item-section side><StatusPulseGuiding /></q-item-section>
+
           </q-item>
           <q-item>
               <q-item-section avatar>
@@ -168,6 +165,7 @@ import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
 import PanoNavigation from 'src/components/PanoNavigation.vue'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import StatusAlignment from 'src/components/statusAlignment.vue'
+import StatusPulseGuiding from 'src/components/statusPulseGuiding.vue'
 import StatusSyncGuiding from 'src/components/statusSyncGuiding.vue'
 import StatusPEC from 'src/components/statusPEC.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'

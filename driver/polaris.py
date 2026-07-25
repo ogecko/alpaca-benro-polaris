@@ -1402,7 +1402,7 @@ class Polaris:
                 'pidKc': Config.pid_Kc,
             }
         # clear after sent to Pilot
-        self._sm.delta_guide_pulse =  np.zeros(3, dtype=float) 
+        # self._sm.delta_guide_pulse =  np.zeros(3, dtype=float) 
         self._ispulseguiding = False
 
         return res
