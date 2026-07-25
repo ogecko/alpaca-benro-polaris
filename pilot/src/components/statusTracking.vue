@@ -17,19 +17,16 @@ const dev = computed(() => Math.hypot((p.deltaref[0] ?? 0) - p.rightascension*15
 const isIdle = computed(() => !p.tracking)
 
 const statusLabel = computed(() => 
-  cfg.advanced_pulse_guiding==false ? "Disabled" :
                        isIdle.value ? "Idle" :
                                      `Deviation ${(dev.value??0).toFixed(1)}"`
 )
 
 const statusColor = computed(() =>
-  cfg.advanced_pulse_guiding==false ? "grey-8" :
                         isIdle.value? "primary" :
                                       "positive"
 )
 
 const statusOutline = computed(() => (
-  cfg.advanced_pulse_guiding==false ? true :
                        isIdle.value ? true :
                                     false
 
