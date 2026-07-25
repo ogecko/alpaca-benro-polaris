@@ -111,9 +111,7 @@
                 <q-icon size="md" color="primary" name="mdi-star-shooting-outline" />
               </q-item-section>
               <q-item-section>Tracking Performance</q-item-section>
-              <q-chip color="positive"  icon="mdi-star-shooting-outline" class="q-pa-md">
-                RA Deviation 2.3'"
-              </q-chip>
+              <q-item-section side><StatusTracking /></q-item-section>
           </q-item>
           <q-item>
               <q-item-section avatar>
@@ -167,6 +165,7 @@ import PIDStatus from 'src/components/PIDStatus.vue'
 import StatusAlignment from 'src/components/statusAlignment.vue'
 import StatusPulseGuiding from 'src/components/statusPulseGuiding.vue'
 import StatusSyncGuiding from 'src/components/statusSyncGuiding.vue'
+import StatusTracking from 'src/components/statusTracking.vue'
 import StatusPEC from 'src/components/statusPEC.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 import { angularDifference } from 'src/utils/angles'
