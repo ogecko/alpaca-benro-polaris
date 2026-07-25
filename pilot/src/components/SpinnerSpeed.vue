@@ -1,6 +1,6 @@
 <template>
   <div class="row items-center no-wrap ">
-    <svg ref="svgRef" class="q-spinner text-primary" width="50px" height="80px" viewBox="0 0 100 130"
+    <svg ref="svgRef" class="q-spinner text-primary" width="50px" height="80px" viewBox="0 0 100 122"
          preserveAspectRatio="xMidYMid" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="44" fill="none" stroke-width="4" stroke-opacity=".5" stroke="currentColor" />
       <text x="50" y="50" text-anchor="middle" dominant-baseline="middle" fill="currentColor" font-size="35px">
