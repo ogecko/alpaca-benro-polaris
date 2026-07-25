@@ -7,11 +7,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useStatusStore } from 'src/stores/status'
+import { angularDifference } from 'src/utils/angles'
 
 
 const p = useStatusStore()
 
-const dev = computed(() => Math.hypot((p.deltaref[0] ?? 0) - p.rightascension*15, (p.deltaref[1] ?? 0) - p.declination, (p.deltaref[2] ?? 0)- p.positionangle) * 3600 )
+const dev = computed(() => Math.hypot(
+  angularDifference(p.deltaref[0] ?? 0, p.rightascension*15), 
+  angularDifference(p.deltaref[1] ?? 0, p.declination),
+  angularDifference(p.deltaref[2] ?? 0, p.positionangle) ) * 3600
+)
 const isIdle = computed(() => !p.tracking)
 
 const statusLabel = computed(() => 

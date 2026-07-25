@@ -115,18 +115,18 @@
           </q-item>
           <q-item>
               <q-item-section avatar>
-                <q-icon size="md" color="primary" name="mdi-globe-model" />
-              </q-item-section>
-              <q-item-section>Alignment Model</q-item-section>
-              <q-item-section side><StatusAlignment /></q-item-section>
-          </q-item>
-          <q-item>
-              <q-item-section avatar>
                 <q-icon size="md" color="primary" name="mdi-pulse" />
               </q-item-section>
               <q-item-section>Pulse Guiding</q-item-section>
               <q-item-section side><StatusPulseGuiding /></q-item-section>
 
+          </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-icon size="md" color="primary" name="mdi-sine-wave" />
+              </q-item-section>
+              <q-item-section>Periodic Error Correction</q-item-section>
+              <q-item-section side><StatusPEC /></q-item-section>
           </q-item>
           <q-item>
               <q-item-section avatar>
@@ -137,10 +137,10 @@
           </q-item>
           <q-item>
               <q-item-section avatar>
-                <q-icon size="md" color="primary" name="mdi-sine-wave" />
+                <q-icon size="md" color="primary" name="mdi-globe-model" />
               </q-item-section>
-              <q-item-section>Periodic Error Correction</q-item-section>
-              <q-item-section side><StatusPEC /></q-item-section>
+              <q-item-section>Alignment Model</q-item-section>
+              <q-item-section side><StatusAlignment /></q-item-section>
           </q-item>
         </q-list>
       </div>

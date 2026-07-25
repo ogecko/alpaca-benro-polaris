@@ -187,11 +187,11 @@
                 </div>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_sync_guiding', 'Plate-solve/Sync Guiding')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_sync_guiding', 'Sync Guiding (Plate-solve)')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Periodic Error Correction (PEC)')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_pulse_guiding', 'Guide-camera/Pulse Guiding')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_pulse_guiding', 'Pulse Guiding (Guide-camera)')"/>
               </div>
               <div v-if="cfg.advanced_pulse_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
                 <q-select
