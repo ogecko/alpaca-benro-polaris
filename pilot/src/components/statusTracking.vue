@@ -7,11 +7,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useStatusStore } from 'src/stores/status'
-import { useConfigStore } from 'stores/config';
 
 
 const p = useStatusStore()
-const cfg = useConfigStore()
 
 const dev = computed(() => Math.hypot((p.deltaref[0] ?? 0) - p.rightascension*15, (p.deltaref[1] ?? 0) - p.declination, (p.deltaref[2] ?? 0)- p.positionangle) * 3600 )
 const isIdle = computed(() => !p.tracking)
