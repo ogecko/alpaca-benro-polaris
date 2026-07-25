@@ -1303,6 +1303,9 @@ class Polaris:
             raise Exception(self._task_errorstr)
 
     def getStatus(self) -> dict:
+        now = time.monotonic()
+        sg_interval = round(self._sm._sync_guide_interval,0) if self._sm._sync_guide_interval else 0
+        sg_last_time = round(now - self._sm._sync_guide_last_time,0) if self._sm._sync_guide_last_time else 0
         pec_ra, pec_dec = self._sm._pec_ra, self._sm._pec_dec
         pec_ra_status = pec_ra.r2   if pec_ra.converged() else -pec_ra.inhibit
         pec_dec_status = pec_dec.r2 if pec_dec.converged() else -pec_dec.inhibit
@@ -1394,6 +1397,7 @@ class Polaris:
                 'rbcerror': self._sm.rbc_error,
                 'sccerror': self._sm.scc_error,
                 'mpastatus': [self._sm.aligned_count, self._sm.mpa_error],
+                'sgstatus': [self._sm.valid_sync_guide, sg_interval, sg_last_time],
                 'pec': [pec_ra._applied_rate*3600, pec_dec._applied_rate*3600, pec_ra_status, pec_dec_status],
                 'pidKc': Config.pid_Kc,
             }

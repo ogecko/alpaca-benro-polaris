@@ -1425,6 +1425,8 @@ class SyncManager:
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
+        self._sync_guide_last_time = None       # Monotomic time of last sync guide
+        self._sync_guide_interval = None        # EMA interval between sync guides in seconds
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncDataReset()
         self.init_pec_model()
@@ -2253,7 +2255,17 @@ class SyncManager:
         ra_resid = clamp_error(a_ra*15, self.polaris.rightascension*15)
         dec_resid = clamp_error(a_dec, self.polaris.declination)
         if (abs(ra_resid) > MAX_SYNC_GUIDE_DEG or abs(dec_resid) > MAX_SYNC_GUIDE_DEG):
+            self.logger.info(f"->> Polaris: SYNC GUIDING Residual too large   Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)} Residuals")
             return False
+
+        now = time.monotonic()
+        if self._sync_guide_last_time is not None:
+            dt = now - self._sync_guide_last_time
+            if 1.0 < dt < 3600:   # sanity bounds, same pattern as PEC's interval EMA
+                alpha = 0.3
+                self._sync_guide_interval = (alpha * dt + (1 - alpha) * self._sync_guide_interval
+                                            if self._sync_guide_interval is not None else dt)
+        self._sync_guide_last_time = now
 
         self.logger.info(f"->> Polaris: SYNC GUIDING    Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)} Residuals")
         self.accumulate_sync_guiding_residuals(ra_resid, dec_resid)
@@ -2267,12 +2279,17 @@ class SyncManager:
         """ Next sync is not to be used for sync guiding, but keep q_syncguide_B """
         self.reset_pec_model()
         self.valid_sync_guide = False
+        self._sync_guide_interval = None
+        self._sync_guide_last_time = None
+
 
     def clear_sync_guiding(self):
         """ Cleared whenever Tracking disabled, Panning, Rolling 
             Although Gotos only invalidate, as the q_syncguide_B is used for scc """
         self.reset_pec_model()
         self.valid_sync_guide = False
+        self._sync_guide_interval = None
+        self._sync_guide_last_time = None
         self.q_syncguide_B = Quaternion(1,0,0,0)
         self.delta_guide_accum = np.zeros(3, dtype=float) 
         if Config.advanced_scc_enabled and Config.advanced_scc_choice==2:

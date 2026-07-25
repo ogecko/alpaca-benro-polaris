@@ -124,7 +124,7 @@
           </q-item>
           <q-item>
               <q-item-section avatar>
-                <q-icon size="md" color="grey-9" name="mdi-pulse" />
+                <q-icon size="md" color="primary" name="mdi-pulse" />
               </q-item-section>
               <q-item-section>Pulse Guiding</q-item-section>
               <q-item-section side>
@@ -138,11 +138,7 @@
                 <q-icon size="md" color="primary" name="mdi-sync" />
               </q-item-section>
               <q-item-section>Sync Guiding</q-item-section>
-              <q-item-section side>
-              <q-chip color="positive"  icon="mdi-sync" class="q-pa-md">
-                every 120s
-              </q-chip>
-              </q-item-section>
+              <q-item-section side><StatusSyncGuiding /></q-item-section>
           </q-item>
           <q-item>
               <q-item-section avatar>
@@ -172,6 +168,7 @@ import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
 import PanoNavigation from 'src/components/PanoNavigation.vue'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import StatusAlignment from 'src/components/statusAlignment.vue'
+import StatusSyncGuiding from 'src/components/statusSyncGuiding.vue'
 import StatusPEC from 'src/components/statusPEC.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 import { angularDifference } from 'src/utils/angles'

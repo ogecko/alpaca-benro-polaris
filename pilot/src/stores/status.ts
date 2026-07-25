@@ -106,6 +106,7 @@ export const useStatusStore = defineStore('status', {
         rbcerror: 0,
         sccerror: 0,
         mpastatus: [0,0],
+        sgstatus: [0,0,0],
         pec: [0,0,0,0],
         pidKc: 0.75,
     }),
