@@ -67,6 +67,7 @@ const statusColor = computed(() =>
   p.pidmode=='PRESETUP' ? "negative" :
   p.pidmode=='LIMIT' ? "negative" : 
   p.orbitalstatus[0] == 1 && p.pidmode == 'TRACK' ? "warning" : 
+  statusLabel.value==="Idle" ? "primary" :
   "positive"
 )
 

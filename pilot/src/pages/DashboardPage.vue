@@ -99,13 +99,22 @@
               </q-item-section>
               <q-item-section>Motor Speed & Position</q-item-section>
               <q-item-section side>
-                <div class="row q-bt-nont">
-                  <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[0]" :position="p.zetameas[0]" label="M1" />
-                  <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[1]" :position="p.zetameas[1]" label="M2" />
-                  <SpinnerSpeed class="q-pa-sm" :speed="p.motorref[2]" :position="p.zetameas[2]" label="M3" />
+                <div class="row q-bt-none">
+                  <SpinnerSpeed class="q-pl-md" :speed="p.motorref[0]" :position="p.zetameas[0]" label="M1" />
+                  <SpinnerSpeed class="q-pl-md" :speed="p.motorref[1]" :position="p.zetameas[1]" label="M2" />
+                  <SpinnerSpeed class="q-pl-md" :speed="p.motorref[2]" :position="p.zetameas[2]" label="M3" />
                 </div>
               </q-item-section>
          </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-icon size="md" color="primary" name="mdi-star-shooting-outline" />
+              </q-item-section>
+              <q-item-section>Tracking Performance</q-item-section>
+              <q-chip color="positive"  icon="mdi-star-shooting-outline" class="q-pa-md">
+                RA Deviation 2.3'"
+              </q-chip>
+          </q-item>
           <q-item>
               <q-item-section avatar>
                 <q-icon size="md" color="primary" name="mdi-globe-model" />
@@ -140,10 +149,7 @@
                 <q-icon size="md" color="primary" name="mdi-sine-wave" />
               </q-item-section>
               <q-item-section>Periodic Error Correction</q-item-section>
-              <q-item-section side>
-              <q-chip color="negative"  icon="mdi-sine-wave" class="q-pa-md">
-                R² 0.72 | 0.92
-              </q-chip>              </q-item-section>
+              <q-item-section side><StatusPEC /></q-item-section>
           </q-item>
         </q-list>
       </div>
@@ -166,6 +172,7 @@ import SpinnerSpeed from 'src/components/SpinnerSpeed.vue'
 import PanoNavigation from 'src/components/PanoNavigation.vue'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import StatusAlignment from 'src/components/statusAlignment.vue'
+import StatusPEC from 'src/components/statusPEC.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 import { angularDifference } from 'src/utils/angles'
 

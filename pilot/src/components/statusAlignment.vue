@@ -12,7 +12,6 @@ import { useConfigStore } from 'stores/config';
 const p = useStatusStore()
 const cfg = useConfigStore()
 
-
 const mpaerror = computed(() => p.mpastatus ? p.mpastatus[1] : 0)
 const mpacount = computed(() => p.mpastatus ? p.mpastatus[0] : 0)
 const statusLabel = computed(() => 
@@ -25,6 +24,7 @@ const statusLabel = computed(() =>
 )
 
 const statusColor = computed(() =>
+  cfg.advanced_alignment==false ? "primary" :
   (mpacount.value ?? 0) < 3  ? "warning" :
   (mpaerror.value ?? 0) > 5  ? "warning" :
   "positive"
@@ -36,7 +36,7 @@ const statusOutline = computed(() => (
 
 const statusIcon = computed(() => 
   cfg.advanced_alignment==false ? "mdi-star" :
-               "mdi-globe-model"
+  "mdi-globe-model"
 )
 
 
