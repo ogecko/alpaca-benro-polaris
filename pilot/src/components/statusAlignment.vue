@@ -19,7 +19,7 @@ const statusLabel = computed(() =>
   mpacount.value==0 ? "add points" :
   mpacount.value==1 ? "1 point" :
   mpacount.value==2 ? "2 points" :
-  (mpaerror.value ?? 0) > 5 ? `${mpaerror.value?.toFixed(1)}° residual` :
+  (mpaerror.value ?? 0) > 5 ? `${mpaerror.value?.toFixed(1)}° Residual` :
                       `${mpacount.value} points`
 )
 
@@ -36,6 +36,7 @@ const statusOutline = computed(() => (
 
 const statusIcon = computed(() => 
   cfg.advanced_alignment==false ? "mdi-star" :
+  (mpaerror.value ?? 0) > 5 ? "mdi-alert" :
   "mdi-globe-model"
 )
 
