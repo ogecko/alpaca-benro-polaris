@@ -9,6 +9,7 @@ export const useUIStore = defineStore('ui', {
     scaleRanges: {} as Record<string, number>,
     catalogFilter: JSON.parse(sessionStorage.getItem('ui.catalogFilter') ?? '{}') as Record<string, number[]>,
     catalogSort: sessionStorage.getItem('ui.catalogSort') ?? '',
+    showStatusPanel: sessionStorage.getItem('ui.showStatusPanel') === 'true',
   }),
   actions: {
     setCoordFrame(val: 0 | 1 | 2) {
@@ -33,6 +34,10 @@ export const useUIStore = defineStore('ui', {
     setCatalogSort(sort: string) {
       this.catalogSort = sort
       sessionStorage.setItem('ui.catalogSort', sort)
+    },
+    toggleShowStatusPanel() {
+      this.showStatusPanel = !this.showStatusPanel
+      sessionStorage.setItem('ui.showStatusPanel', String(this.showStatusPanel))
     },
   }
 })
