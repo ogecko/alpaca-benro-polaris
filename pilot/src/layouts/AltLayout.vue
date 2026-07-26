@@ -320,6 +320,7 @@ interface CatalogLink {
 const links2 = [
   { icon: 'mdi-library', text: 'Catalog', to: '/catalog' },
   { icon: 'mdi-nfc-tap', text: 'Nearby', to: { path: '/catalog', query: { sort:'Proximity' } } },
+  { icon: 'mdi-brightness-7', text: 'Brightest', to: { path: '/catalog', query: { C1:"2,3,4",Vz:6,sort:'Proximity' } } },
   { icon: 'mdi-flare', text: 'Stars', to: { path: '/catalog', query: { C1:3 } } },
   { icon: 'mdi-horse-variant', text: 'Nebulae', to: { path: '/catalog', query: { C1:0 } } },
   { icon: 'mdi-cryengine', text: 'Galaxies', to: { path: '/catalog', query: { C1:1 } } },
