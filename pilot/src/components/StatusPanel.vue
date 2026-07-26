@@ -27,7 +27,7 @@
                         :color="isEnabled(p.tracking)"  @click="onTrack"/>
               </q-item-section>
               <q-item-section>Tracking Performance</q-item-section>
-              <q-item-section side @click="router.push('/pidall')"><StatusTracking /></q-item-section>
+              <q-item-section side class="cursor-pointer" @click="router.push('/pidall')"><StatusTracking /></q-item-section>
           </q-item>
           <q-item>
               <q-item-section avatar>
@@ -35,7 +35,7 @@
                         :color="isEnabled(cfg.advanced_pulse_guiding)" @click="toggle('advanced_pulse_guiding')" />
               </q-item-section>
               <q-item-section>Pulse Guiding</q-item-section>
-              <q-item-section side @click="router.push('/position')"><StatusPulseGuiding /></q-item-section>
+              <q-item-section side class="cursor-pointer" @click="router.push('/position')"><StatusPulseGuiding /></q-item-section>
           </q-item>
           <q-item>
               <q-item-section avatar>
@@ -43,7 +43,7 @@
                         :color="isEnabled(cfg.advanced_pec)" @click="toggle('advanced_pec')" />
               </q-item-section>
               <q-item-section>Periodic Error Correction</q-item-section>
-              <q-item-section side @click="router.push('/position')"><StatusPEC /></q-item-section>
+              <q-item-section side class="cursor-pointer" @click="router.push('/position')"><StatusPEC /></q-item-section>
           </q-item>
           <q-item>
               <q-item-section avatar>
@@ -51,7 +51,7 @@
                         :color="isEnabled(cfg.advanced_sync_guiding)" @click="toggle('advanced_sync_guiding')" />
               </q-item-section>
               <q-item-section>Sync Guiding</q-item-section>
-              <q-item-section side @click="router.push('/position')"><StatusSyncGuiding /></q-item-section>
+              <q-item-section side class="cursor-pointer" @click="router.push('/position')"><StatusSyncGuiding /></q-item-section>
           </q-item>
           <q-item>
               <q-item-section avatar>
@@ -59,7 +59,7 @@
                         :color="isEnabled(cfg.advanced_alignment)" @click="toggle('advanced_alignment')" />
               </q-item-section>
               <q-item-section>Alignment Model</q-item-section>
-              <q-item-section side @click="router.push('/sync')"><StatusAlignment /></q-item-section>
+              <q-item-section side class="cursor-pointer" @click="router.push('/sync')"><StatusAlignment /></q-item-section>
           </q-item>
         </div>
       </q-slide-transition>
