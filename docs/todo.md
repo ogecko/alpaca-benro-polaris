@@ -52,6 +52,7 @@
 - [X] PEC - Add PEC FF signal to PID Tuning charts
 - [X] SG - Explore applying Sync Guide with FF signal - Explored but unsuccessful. Retained current approach
 - [X] SG - Persist current sycn guiding correction on a regular basis for better aligned restarts
+- [ ] Slew - Fix fine adj of Moon tracking in Az/Alt
 - [ ] HTTPS - Debug client to Driver connection loss - Retest REST API proxy over protocol switching, remove local storage
 - [ ] CCDCiel - Confirm Rotator Sync works correctly on CCDCiel
 - [ ] Close candidate enhancement list
