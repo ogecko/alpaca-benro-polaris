@@ -25,6 +25,27 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
+## What's new in v2.2 Beta2
+- **[Brightest Catalog]** Quickly find alignment targets with a list of the brightest nearby stars, planets, star clusters, and celestial poles.
+- **[Dashboard Status]** Monitor the health and status of the Alignment Model, Sync Guiding, Pulse Guiding, Periodic Error Correction (PEC), and Tracking Performance from the dashboard.
+- **[PEC Performance]** Integrate Periodic Error Correction (PEC) into the PID feed-forward signal to reduce micro "wiggles" in star shapes.
+- **[PEC EMA Model]** Added optional PEC Expotential Moving Average Model (retain default as Recursive Least Squares Model with 2 Harmonics)
+- **[MAC Autotune Docs]** Add documentation on how to use Mechanical Alignment Correction Autotune.
+- **[Scale Warnings]** Adjust scale warning indicators to consider Roll Sync Adjustments.
+- **[CPU Resiliance]** Better resilience to CPU-intensive applications (such as Hocus Focus) by collapsing queued message bursts into a single, up-to-date refresh.
+- **[Flat White]** Added support for capturing flat frames from a display screen via the new Flat White menu item.
+- **[Peak Finder]**: Added Sky Conditions link to identify a mountain peak that Polaris is pointing toward and determine its elevation.
+- **[Connect Checklist]** Add Checks for L-Bracket Orientation, Site Location and tracking of Reset All Axes to Connect page. 
+- **[Connect Reliability]** Improve Alpaca Pilot connection setup to the Driver by proxying websockets via http(s)
+- **[Connect Astro Module]** Connect page highlights missing Astro Module
+- **[Persist Guide State]** Persist Guide State between Driver restarts
+- **[Persist Co-ordinate Frame]** Dashboard co-ordinate frame is persisted across F5 refresh and page changes, while separate for each browser tab.
+- **[Persist Zoom Range]** Each radial dial on the Dashboard retains its zoom range when navigating between pages.
+- **[Persist Filters]** Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).
+- **[Siril Scripts]** Add Siril Python Scripts to help automate Galactric Panorama processing
+- **[Lat/Lon Data Entry]** Increased debounce to allow for trailing zeros in lat/lon data entry
+- **[Catalog Updates]** Minor updates to catalog data on some entities brightness and classification
+
 ## What's new in v2.2.0
 
 ### Refactored Kinematics
@@ -47,15 +68,10 @@
 - **[Zenith/Horizon Crossing]** Handles the physical axis flip needed when pointing through zenith or to negative altitudes, equivalent to a meridian flip
 
 ### Dark Site Operations
-- **[Connect Checklist]** Add Checks for L-Bracket Orientation, Site Location and tracking of Reset All Axes to Connect page. 
 - **[Persist Locations]** Pilot Settings allows multiple Observing Site Locations to be saved, loaded and deleted for offline use.
 - **[Persist Orbitals]** Orbitals fetched successfully are stored in the catalog, allowing offline use and later retrieval, refresh, or deletion. 
 - **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart, allowing imagaging sessions to continue, uninterupted.
-- **[Persist Co-ordinate Frame]** Dashboard co-ordinate frame is persisted across F5 refresh and page changes, while separate for each browser tab.
-- **[Persist Zoom Range]** Each radial dial on the Dashboard retains its zoom range when navigating between pages.
-- **[Persist Filters]** Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).
 - **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
-- **[Flat White]** Added support for capturing flat frames from a display screen via the new Flat White menu item.
 
 ### Auto-Guiding Improvements
 - **[Sync Guiding]** Drift correction made simple; no guide camera, no extra PHD2 software, just plate-solving.
@@ -81,7 +97,6 @@
 - **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
 - **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
 - **[HTTPS Support]**: Alpaca Pilot now support https, enabling location and clipboard services in the browser.
-- **[Peak Finder]**: Added Sky Conditions link to identify a mountain peak that Polaris is pointing toward and determine its elevation.
 
 ### Diagnostics and System
 - **[Heartbeat Diagnostics]**: Introduce a heartbeat monitor and additional telemetry statistics to assist in diagnosing late position updates.

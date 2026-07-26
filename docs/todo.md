@@ -47,11 +47,11 @@
 - [X] Alt Warning - Update Alt Warning indicator based on reachable envelope.
 - [X] PEC - Apply PEC as a Measurement Correction and a FF signal (to stop wiggle)
 - [X] PEC - Default to not tuning the PEC model from ASCOM Pulse Guiding Commands ie PHD2
-- [ ] PEC - Add PEC FF signal to PID Tuning charts
-- [ ] PEC - Add PEC status and Guiding Status to Dashboard
-- [ ] SG - Explore applying Sync Guide with FF signal
-- [ ] SG - Explore applying Sync Guide over a time period based on guide rate
-- [ ] SG - Persist current sycn guiding correction on a regular basis for better aligned restarts
+- [X] Catalog - Add Brightest catalog menu item
+- [X] Status - Add Alignment Model, Sync Guiding, Pulse Guiding, PEC, and Tracking Performance status badges to the dashboard.
+- [X] PEC - Add PEC FF signal to PID Tuning charts
+- [X] SG - Explore applying Sync Guide with FF signal - Explored but unsuccessful. Retained current approach
+- [X] SG - Persist current sycn guiding correction on a regular basis for better aligned restarts
 - [ ] HTTPS - Debug client to Driver connection loss - Retest REST API proxy over protocol switching, remove local storage
 - [ ] CCDCiel - Confirm Rotator Sync works correctly on CCDCiel
 - [ ] Close candidate enhancement list
@@ -71,7 +71,7 @@
     - [X] Create video on dashboard and motion changes
     - [X] Create video on Galactric Panorama Workflow
     - [ ] Create video on CCDCiel
-    - [ ] Create video on kinematics, tracking, guiding
+    - [ ] Create video on kinematics, tracking, guiding performance improvements
         - Manual Sync
             - Manual Sync of Position Angle
         - Kinematics
