@@ -2,60 +2,67 @@
   <div class="col-12 col-md-6 col-lg-4  col-xl-3">
     <q-list  >
       <q-item>
-          <q-item-section avatar>
-            <q-btn size="lg" dense round flat icon="mdi-engine" 
-                   :color="isEnabled(p.pidmode!='IDLE')" @click="onAbort"/>
-          </q-item-section>
-          <q-item-section>Motor Speed & Position</q-item-section>
-          <q-item-section side @click="router.push('/pidall')">
-            <div class="row q-bt-none">
+          <div class="motor-row-outer row items-center no-wrap full-width">
+            <div class="motor-info row items-center no-wrap" :class="{ 'motor-info--collapsed': !ui.showStatusPanel }" >
+              <q-item-section avatar>
+                <q-btn size="lg" dense round flat icon="mdi-engine" 
+                       :color="isEnabled(p.pidmode!='IDLE')" @click="onAbort"/>
+              </q-item-section>
+              <q-item-section>Motor Speed & Position</q-item-section>
+            </div>
+            <div
+              class="row justify-center motor-spinners cursor-pointer" :class="{ 'motor-spinners--grow': !ui.showStatusPanel }" @click="ui.toggleShowStatusPanel()" >
               <SpinnerSpeed class="q-pl-md" :speed="p.motorref[0]" :position="p.zetameas[0]" label="M1" />
               <SpinnerSpeed class="q-pl-md" :speed="p.motorref[1]" :position="p.zetameas[1]" label="M2" />
               <SpinnerSpeed class="q-pl-md" :speed="p.motorref[2]" :position="p.zetameas[2]" label="M3" />
             </div>
-          </q-item-section>
+          </div>
       </q-item>
-      <q-item>
-          <q-item-section avatar>
-            <q-btn size="lg" dense round flat icon="mdi-star-shooting-outline" 
-                    :color="isEnabled(p.tracking)"  @click="onTrack"/>
-          </q-item-section>
-          <q-item-section>Tracking Performance</q-item-section>
-          <q-item-section side @click="router.push('/pidall')"><StatusTracking /></q-item-section>
-      </q-item>
-      <q-item>
-          <q-item-section avatar>
-            <q-btn size="lg" dense round flat icon="mdi-pulse" 
-                    :color="isEnabled(cfg.advanced_pulse_guiding)" @click="toggle('advanced_pulse_guiding')" />
-          </q-item-section>
-          <q-item-section>Pulse Guiding</q-item-section>
-          <q-item-section side @click="router.push('/position')"><StatusPulseGuiding /></q-item-section>
 
-      </q-item>
-      <q-item>
-          <q-item-section avatar>
-            <q-btn size="lg" dense round flat icon="mdi-sine-wave" 
-                    :color="isEnabled(cfg.advanced_pec)" @click="toggle('advanced_pec')" />
-          </q-item-section>
-          <q-item-section>Periodic Error Correction</q-item-section>
-          <q-item-section side @click="router.push('/position')"><StatusPEC /></q-item-section>
-      </q-item>
-      <q-item>
-          <q-item-section avatar>
-            <q-btn size="lg" dense round flat icon="mdi-sync" 
-                    :color="isEnabled(cfg.advanced_sync_guiding)" @click="toggle('advanced_sync_guiding')" />
-          </q-item-section>
-          <q-item-section>Sync Guiding</q-item-section>
-          <q-item-section side @click="router.push('/position')"><StatusSyncGuiding /></q-item-section>
-      </q-item>
-      <q-item>
-          <q-item-section avatar>
-            <q-btn size="lg" dense round flat icon="mdi-globe-model" 
-                    :color="isEnabled(cfg.advanced_alignment)" @click="toggle('advanced_alignment')" />
-          </q-item-section>
-          <q-item-section>Alignment Model</q-item-section>
-          <q-item-section side @click="router.push('/sync')"><StatusAlignment /></q-item-section>
-      </q-item>
+      <q-slide-transition>
+        <div v-show="ui.showStatusPanel">
+          <q-item>
+              <q-item-section avatar>
+                <q-btn size="lg" dense round flat icon="mdi-star-shooting-outline" 
+                        :color="isEnabled(p.tracking)"  @click="onTrack"/>
+              </q-item-section>
+              <q-item-section>Tracking Performance</q-item-section>
+              <q-item-section side @click="router.push('/pidall')"><StatusTracking /></q-item-section>
+          </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-btn size="lg" dense round flat icon="mdi-pulse" 
+                        :color="isEnabled(cfg.advanced_pulse_guiding)" @click="toggle('advanced_pulse_guiding')" />
+              </q-item-section>
+              <q-item-section>Pulse Guiding</q-item-section>
+              <q-item-section side @click="router.push('/position')"><StatusPulseGuiding /></q-item-section>
+          </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-btn size="lg" dense round flat icon="mdi-sine-wave" 
+                        :color="isEnabled(cfg.advanced_pec)" @click="toggle('advanced_pec')" />
+              </q-item-section>
+              <q-item-section>Periodic Error Correction</q-item-section>
+              <q-item-section side @click="router.push('/position')"><StatusPEC /></q-item-section>
+          </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-btn size="lg" dense round flat icon="mdi-sync" 
+                        :color="isEnabled(cfg.advanced_sync_guiding)" @click="toggle('advanced_sync_guiding')" />
+              </q-item-section>
+              <q-item-section>Sync Guiding</q-item-section>
+              <q-item-section side @click="router.push('/position')"><StatusSyncGuiding /></q-item-section>
+          </q-item>
+          <q-item>
+              <q-item-section avatar>
+                <q-btn size="lg" dense round flat icon="mdi-globe-model" 
+                        :color="isEnabled(cfg.advanced_alignment)" @click="toggle('advanced_alignment')" />
+              </q-item-section>
+              <q-item-section>Alignment Model</q-item-section>
+              <q-item-section side @click="router.push('/sync')"><StatusAlignment /></q-item-section>
+          </q-item>
+        </div>
+      </q-slide-transition>
     </q-list>
   </div>
 
@@ -110,5 +117,29 @@ function toggle(key:string) {
 </script>
 
 <style scoped>
+.motor-row-outer {
+  flex-wrap: nowrap;
+}
 
+.motor-info {
+  flex: 1 1 800px;
+  max-width: 800px;
+  overflow: hidden;
+  transition: flex-grow 0.3s ease, max-width 0.3s ease, opacity 0.2s ease;
+}
+
+.motor-info--collapsed {
+  flex-grow: 0;
+  max-width: 0;
+  opacity: 0;
+}
+
+.motor-spinners {
+  flex: 0 0 auto;
+  transition: flex-grow 0.3s ease;
+}
+
+.motor-spinners--grow {
+  flex-grow: 1;
+}
 </style>
