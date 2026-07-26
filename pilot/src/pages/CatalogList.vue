@@ -466,7 +466,7 @@ async function onClickSync(dso: CatalogItem) {
   $q.notify({ message:`Sync issued for ${dso.MainID} ${name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   cat.dsoGotoed = dso
-  await router.push({ path: '/sync', query: { ...route.query, q: cat.searchFor } }) 
+  await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
 
 }
 
