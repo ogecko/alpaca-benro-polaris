@@ -1380,7 +1380,7 @@ class PID_Controller():
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 
-            "ω_ff": self.omega_ff.tolist(), 
+            "ω_ff": (self.omega_ff + self.omega_pec).tolist(), 
             "ω_op": self.omega_op.tolist(), 
         }
         pidlogger = logging.getLogger('pid') 
@@ -1425,7 +1425,9 @@ class SyncManager:
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
-        self._sync_guide_last_time = None       # Monotomic time of last sync guide
+        self._pec_guide_last_time = None        # Monotomic time of last pec guide application for dashboard status badges
+        self._pulse_guide_last_time = None      # Monotomic time of last pulse guide application for dashboard status badges
+        self._sync_guide_last_time = None       # Monotomic time of last sync guide application for dashboard status badges
         self._sync_guide_interval = None        # EMA interval between sync guides in seconds
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncDataReset()
@@ -2199,6 +2201,8 @@ class SyncManager:
             self.logger.warning(f"Invalid pulse guide direction: {direction}")
             return
 
+        self._pulse_guide_last_time = now
+
         # accumulate the pulse guide durations into q_pulseguide_B for baseQ_to_topoQ to apply as a correction
         step_sec = abs(duration)/1000
         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
@@ -2360,6 +2364,7 @@ class SyncManager:
         self._pec_n           = 0
         self._pec_t0          = None
         self._pec_last_apply  = None
+        self._pec_guide_last_time  = None
 
         # Config-driven thresholds (read once so update/apply don't need getattr)
         self._pec_mode        = PecMode(getattr(Config, 'pec_mode', 'rls'))               # 'rls' or 'ema'
@@ -2519,6 +2524,7 @@ class SyncManager:
         d_dec, dec_applied = self._pec_dec.eval_correction(t, dt, cap)
 
         if ra_applied or dec_applied:
+            self._pec_guide_last_time = now
             # apply as correction to PV
             self.accumulate_sync_guiding_residuals(d_ra, d_dec)
             # apply as correction to omega_pec feed forward
@@ -2758,12 +2764,12 @@ class PecAxis:
         self._applied_accum += d
         return d, True
 
-    def eval_inhibit(self, n, min_obs, max_rmse, min_r2=0.5):
+    def eval_inhibit(self, n, min_obs, max_rmse, min_r2=0.5, var_floor=1e-8):
         if n < min_obs:
             self.inhibit = PecInhibit.TOO_FEW_OBS
         elif math.sqrt(self.sse) >= max_rmse:
             self.inhibit = PecInhibit.HIGH_RMSE
-        elif self.r2 < min_r2 and self.var > self.sse:  # skip R² check if signal variance too small
+        elif self.r2 < min_r2 and self.var > var_floor:   # only trust R2 when there's real signal variance to judge against
             self.inhibit = PecInhibit.LOW_R2
         else:
             self.inhibit = PecInhibit.VALID
