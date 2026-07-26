@@ -2201,7 +2201,7 @@ class SyncManager:
             self.logger.warning(f"Invalid pulse guide direction: {direction}")
             return
 
-        self._pulse_guide_last_time = now
+        self._pulse_guide_last_time = time.monotonic()
 
         # accumulate the pulse guide durations into q_pulseguide_B for baseQ_to_topoQ to apply as a correction
         step_sec = abs(duration)/1000
