@@ -26,22 +26,22 @@
           Calculated PanoGrid Field of View:
         </div>    
         <div class="row q-col-gutter-lg  items-center  ">
-          <q-input class="col-6" label="Horizontal FOV" suffix="°" readonly v-model="calc_hGridFOV_display" input-class="text-right" dense/>
-          <q-input class="col-6" label="Vertical FOV" suffix="°" readonly v-model="calc_vGridFOV_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r1FOVLabel" suffix="°" readonly v-model="calc_hGridFOV_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r2FOVLabel" suffix="°" readonly v-model="calc_vGridFOV_display" input-class="text-right" dense/>
         </div>
         <div class="text-subtitle2 text-grey-6 q-mt-md">
           Calculated Sensor Field of View:
         </div>    
         <div class="row q-col-gutter-lg  items-center  ">
-          <q-input class="col-6" label="Horizontal FOV" suffix="°" readonly v-model="calc_hFOV_display" input-class="text-right" dense/>
-          <q-input class="col-6" label="Vertical FOV" suffix="°" readonly v-model="calc_vFOV_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r1FOVLabel" suffix="°" readonly v-model="calc_hFOV_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r2FOVLabel" suffix="°" readonly v-model="calc_vFOV_display" input-class="text-right" dense/>
         </div>
         <div class="text-subtitle2 text-grey-6 q-mt-md">
           Recommended Panel Step ({{panel_overlap}} overlap):
         </div>    
         <div class="row q-col-gutter-lg  items-center  ">
-          <q-input class="col-6" label="Horizontal Step" suffix="°" readonly v-model="calc_hstep_display" input-class="text-right" dense/>
-          <q-input class="col-6" label="Vertical Step" suffix="°" readonly v-model="calc_vstep_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r1StepLabel" suffix="°" readonly v-model="calc_hstep_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r2StepLabel" suffix="°" readonly v-model="calc_vstep_display" input-class="text-right" dense/>
         </div>
 
     </div>    
@@ -88,6 +88,14 @@ function parseSensorXY(str?: string): { x: number | null; y: number | null } {
 }
 
 // ---------------- Computed functions
+
+const r1Label = computed(() => `${(cfg.ref==2)?'Galactic Lon': (cfg.ref==1)?'Right Ascension' :'Azimuth'}`)
+const r2Label = computed(() => `${(cfg.ref==2)?'Galactic Lat': (cfg.ref==1)?'Declination'     :'Altitude'}`)
+const r1FOVLabel = computed(() => `${r1Label.value} FOV`)
+const r2FOVLabel = computed(() => `${r2Label.value} FOV`)
+const r1StepLabel = computed(() => `${r1Label.value} Step`)
+const r2StepLabel = computed(() => `${r2Label.value} Step`)
+
 
 function defaultPanoPresetName() {
   const size = `${cfg.cols} x ${cfg.rows}`
