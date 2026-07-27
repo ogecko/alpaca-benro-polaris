@@ -25,7 +25,7 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in v2.2 Beta2
+## What's new in v2.2 Beta 3
 - **[Brightest Catalog]** Quickly find alignment targets with a list of the brightest nearby stars, planets, star clusters, and celestial poles.
 - **[Dashboard Status]** Monitor the health and status of the Alignment Model, Sync Guiding, Pulse Guiding, Periodic Error Correction (PEC), and Tracking Performance from the dashboard.
 - **[PEC Performance]** Integrate Periodic Error Correction (PEC) into the PID feed-forward signal to reduce micro "wiggles" in star shapes.
@@ -45,6 +45,7 @@
 - **[Siril Scripts]** Add Siril Python Scripts to help automate Galactric Panorama processing
 - **[Lat/Lon Data Entry]** Increased debounce to allow for trailing zeros in lat/lon data entry
 - **[Catalog Updates]** Minor updates to catalog data on some entities brightness and classification
+- **[Panel Spacing Calculator]** Added a 16mm option, updated FOV labels to use the Reference Frame, and added controls to adjust the number of rows and columns directly within the calculator.
 
 ## What's new in v2.2.0
 
