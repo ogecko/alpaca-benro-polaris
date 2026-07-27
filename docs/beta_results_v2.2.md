@@ -251,7 +251,8 @@ Notes: England, New 5nm filters.
 
 
 ## Beta Tester: lowend1hz
-(Dis: lowend1hz; FB:  GH: , KS: )
+(Dis: lowend1hz; FB:  GH: wbuchanan, William Buchanan, KS: )
+(https://github.com/wbuchanan/NikonCameraSettings)
 ### Platform & Environment
 * Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
 * Platform: OS Version, Browser Version, etc.
