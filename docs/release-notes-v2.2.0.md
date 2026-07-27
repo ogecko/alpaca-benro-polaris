@@ -26,6 +26,7 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.2 Beta 3
+- **[Download Links]** Updated all documentation download links to refer explicitly to v2.2 Beta 3
 - **[Brightest Catalog]** Quickly find alignment targets with a list of the brightest nearby stars, planets, star clusters, and celestial poles.
 - **[Dashboard Status]** Monitor the health and status of the Alignment Model, Sync Guiding, Pulse Guiding, Periodic Error Correction (PEC), and Tracking Performance from the dashboard.
 - **[PEC Performance]** Integrate Periodic Error Correction (PEC) into the PID feed-forward signal to reduce micro "wiggles" in star shapes.
