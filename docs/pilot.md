@@ -1017,7 +1017,7 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 - **① Columns `"cols":`**  Number of horizontal panels across the panorama. Range: **2–14**. 
 - **② Rows `"rows":`**  Number of vertical panels in the panorama. Range: **1–3**.
 
-- **③ Calc:** Panel Spacing Calculator used to calculate **Sensor Field of View** including recommended Horizontal and Vertical Step. See below.
+- **③ Calc:** Panel Spacing Calculator used to calculate **Sensor Field of View** including recommended Horizontal and Vertical Step. To capture the MW you will likely need a "Galactic Lon FOV" of at least 180 degrees. If you use a full-frame camera and a 35mm lens in landscape mode (wider along the MW spine), you can get by with just a 4 x 1 grid. See below.
 
 - **③ Swap:** Changes the spacing between panels for either a Landscape or Portrait orientation, by  swaping the `"hstep"` and `"vstep"` values. Landscape orientation will have a larger `"hstep"`, while Portrait orientation will have a larger `"vstep"`. This button only changes the spacing of the panels, you will need to use a lens collar to rotate your camera's sensor to match the orientation. 
 
@@ -1133,13 +1133,14 @@ The Panorama Grid is designed to be simple, with the minimum number of parameter
 
 A calculator is provided calculate these properties:
 * Click on the Calculator icon on the Panorama Settings Card
+* Adjust the number of Rows and Columns.
 * Select your sensor size. 
    > You can also enter a custom sensor size by typing `ww x hh` and pressing *Enter*.  For example typing `16 x 9` and pressing *Enter*, sets a 16 x 9 mm sesnor size.
 * Select your lens focal length in mm.
 * Select the percentage of overlap between each panel
    > You can also enter a custom focal length or overlap value by typing a number and pressing *Enter*. For example, typing `16` and pressing *Enter* in the Focal Length field will set the focal length to 16 mm.
-* The calculator with determine the Sensors Field of View in Degrees as well as the Recommended Panel Step, given your desired overlap.
-* Click `Apply` to set the Horizontal Step and Vertical Step for the Panorama Grid. This will also store the Sensor Size, Focal Length and Overlap for next time you use the calculator.
+* The calculator will determine the Field of View of the Sensor and Full PanoGrid in Degrees, as well as the Recommended Panel Step, given your desired overlap.
+* Click `Apply` to set the Rows, Columns, Horizontal Step and Vertical Step for the Panorama Grid. This will also store the Sensor Size, Focal Length and Overlap for next time you use the calculator.
 
 ![Astronomy Tools](./images/pilot-panocalc.png)
 
