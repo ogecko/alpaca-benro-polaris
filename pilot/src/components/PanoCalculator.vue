@@ -16,7 +16,7 @@
 
     <q-select
       v-model="focal_length" class="q-mt-sm" label="Focal Length" new-value-mode="add-unique" use-input use-chips dense emit-value map-options
-      :options="['14 mm', '24 mm', '35 mm', '50 mm', '85 mm', '100 mm', '135 mm', '200 mm', '300 mm', '400 mm', '500 mm', '600 mm', '800 mm']"
+      :options="['14 mm', '16 mm', '24 mm', '35 mm', '50 mm', '85 mm', '100 mm', '135 mm', '200 mm', '300 mm', '400 mm', '500 mm', '600 mm', '800 mm']"
     />
 
     <q-select
