@@ -30,20 +30,20 @@
 - **[Brightest Catalog]** Quickly find alignment targets with a list of the brightest nearby stars, planets, star clusters, and celestial poles.
 - **[Dashboard Status]** Monitor the health and status of the Alignment Model, Sync Guiding, Pulse Guiding, Periodic Error Correction (PEC), and Tracking Performance from the dashboard.
 - **[PEC Performance]** Integrate Periodic Error Correction (PEC) into the PID feed-forward signal to reduce micro "wiggles" in star shapes.
-- **[PEC EMA Model]** Added optional PEC Expotential Moving Average Model (retain default as Recursive Least Squares Model with 2 Harmonics)
+- **[PEC EMA Model]** Added optional PEC Exponential Moving Average Model (retain default as Recursive Least Squares Model with 2 Harmonics)
 - **[MAC Autotune Docs]** Add documentation on how to use Mechanical Alignment Correction Autotune.
 - **[Scale Warnings]** Adjust scale warning indicators to consider Roll Sync Adjustments.
-- **[CPU Resiliance]** Better resilience to CPU-intensive applications (such as Hocus Focus) by collapsing queued message bursts into a single, up-to-date refresh.
+- **[CPU Resilience]** Better resilience to CPU-intensive applications (such as Hocus Focus) by collapsing queued message bursts into a single, up-to-date refresh.
 - **[Flat White]** Added support for capturing flat frames from a display screen via the new Flat White menu item.
 - **[Peak Finder]**: Added Sky Conditions link to identify a mountain peak that Polaris is pointing toward and determine its elevation.
 - **[Connect Checklist]** Add Checks for L-Bracket Orientation, Site Location and tracking of Reset All Axes to Connect page. 
-- **[Connect Reliability]** Improve Alpaca Pilot connection setup to the Driver by proxying websockets via http(s)
+- **[Connect Reliability]** Improve Alpaca Pilot connection setup to the Driver by proxying web sockets via http(s)
 - **[Connect Astro Module]** Connect page highlights missing Astro Module
 - **[Persist Guide State]** Persist Guide State between Driver restarts
 - **[Persist Co-ordinate Frame]** Dashboard co-ordinate frame is persisted across F5 refresh and page changes, while separate for each browser tab.
 - **[Persist Zoom Range]** Each radial dial on the Dashboard retains its zoom range when navigating between pages.
 - **[Persist Filters]** Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).
-- **[Siril Scripts]** Add Siril Python Scripts to help automate Galactric Panorama processing
+- **[Siril Scripts]** Add Siril Python Scripts to help automate Galactic Panorama processing
 - **[Lat/Lon Data Entry]** Increased debounce to allow for trailing zeros in lat/lon data entry
 - **[Catalog Updates]** Minor updates to catalog data on some entities brightness and classification
 - **[Panel Spacing Calculator]** Added a 16mm option, updated FOV labels to use the Reference Frame, and added controls to adjust the number of rows and columns directly within the calculator.
