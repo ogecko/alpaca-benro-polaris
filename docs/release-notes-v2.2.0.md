@@ -3,9 +3,9 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.2.0 Beta2
-* **Release Date:** TBD
-* **Availability:** Download from [Alpaca Driver v2.2 Latest Download ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
+* **Version:** 2.2.0 Beta 3
+* **Release Date:** 27-Jul-2026
+* **Availability:** Download from [Alpaca Driver v2.2 Beta 3 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/releases/2_2_beta3.zip)
 * **License:** Distributed exclusively for backers of the [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v)
 * **Current Branch:** dev2_2
 
