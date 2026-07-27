@@ -5,7 +5,10 @@
     <div class="text-h6 q-mb-xs q-mt-md">
       Panel Spacing Calculator 
     </div>
-
+      <div class="row q-col-gutter-lg  items-center  ">
+        <q-input class="col-6" label="Columns" v-model="local_cols" type="number" input-class="text-right" dense/>
+        <q-input class="col-6" label="Rows" v-model="local_rows" type="number" input-class="text-right" dense/>
+      </div>
     <q-select
       v-model="sensor_size" label="Sensor Size" new-value-mode="add-unique" use-input use-chips dense emit-value map-options
       :options="sensor_size_options"
@@ -63,9 +66,14 @@ import { useDeviceStore } from 'src/stores/device';
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 
+
+const local_cols = ref<number>(cfg.cols)
+const local_rows = ref<number>(cfg.rows)
 const sensor_size = ref<string>(cfg.sensor_size)
 const focal_length = ref<string>(`${cfg.focal_length} mm`)
 const panel_overlap = ref<string>(cfg.panel_overlap)
+
+
 
 // ---------------- Helper functions
 function parseFirstNumber(str?: string): number | null {
@@ -98,7 +106,7 @@ const r2StepLabel = computed(() => `${r2Label.value} Step`)
 
 
 function defaultPanoPresetName() {
-  const size = `${cfg.cols} x ${cfg.rows}`
+  const size = `${local_cols.value} x ${local_rows.value}`
   const sensor = sensor_size.value.replace(/\s*\([^)]*mm\)/i, '').trim()
   const lens = focal_length.value
   const overlap = `${panel_overlap.value} overlap`
@@ -156,12 +164,12 @@ const calc_vstep = computed<number>(() => {
 
 const calc_vGridFOV = computed<number>(() => {
   if (!calc_vFOV.value || calc_vstep.value === null) return NaN
-  return calc_vFOV.value + calc_vstep.value * (cfg.rows - 1) 
+  return calc_vFOV.value + calc_vstep.value * (local_rows.value - 1) 
 })
 
 const calc_hGridFOV = computed<number>(() => {
   if (!calc_hFOV.value || calc_hstep.value === null) return NaN
-  return calc_hFOV.value + calc_hstep.value * (cfg.cols - 1) 
+  return calc_hFOV.value + calc_hstep.value * (local_cols.value - 1) 
 })
 
 const calc_hFOV_display = computed(() =>
@@ -214,6 +222,8 @@ async function onApply() {
   // simplest: reset inputs to defaults or close dialog
   // example reset:
   const payload = { 
+    rows: local_rows.value,
+    cols: local_cols.value,
     hstep: calc_hstep.value, 
     vstep: calc_vstep.value,
     sensor_size: sensor_size.value,
