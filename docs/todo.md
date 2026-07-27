@@ -113,8 +113,8 @@
 - [X]     No AI findings that have not been addressed
 - [X]     Confirmed any open GitHub issues are acceptable for release
 - [ ] Final Changes - git checkout dev2_2, git pull origin dev2_2
-- [ ]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, download link in 2xinstallation.md and release-notes, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
-- [ ]     Check download links in readme.md, release-notes-vX.X.X.md
+- [ ]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, installation.md, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
+- [ ]     Check download links in release-notes-vX.X.X.md, installation.md x 2
 - [ ]     Build Pilot for release
 - [ ]     Confirm all Alpaca ConformU tests pass
 - [ ]     Confirm all Alpaca Driver unit tests pass
