@@ -243,7 +243,7 @@ const Ka_var = ref<number>(0)
 type TestCaseOption = {
   label: string
   value: number
-  case: 'goto' | 'slew' | 'pulse'
+  case: 'goto' | 'slew' | 'pulse' | 'sync'
   icon: string
 }
 
@@ -270,6 +270,9 @@ const testcaseOptionsData:TestCaseOption[] = [
   { label: '200ms Pulse', value: 200, case: 'pulse', icon: 'mdi-pulse' },
   { label: '2000ms Pulse', value: 2000, case: 'pulse', icon: 'mdi-pulse' },
   { label: '5000ms Pulse', value: 5000, case: 'pulse', icon: 'mdi-pulse' },
+  { label: '2" Sync', value: 2, case: 'sync', icon: 'mdi-sync' },
+  { label: '20" Sync', value: 20, case: 'sync', icon: 'mdi-sync' },
+  { label: '100" Sync', value: 100, case: 'sync', icon: 'mdi-sync' },
 ]
 const testcase = ref<TestCaseOption | undefined>(testcaseOptionsData[1])
 
@@ -365,6 +368,19 @@ async function runTestCase(payload: { isPressed: boolean }, sign:number) {
       } else if (axis.value==0) {
         const dir = (sign>0) ? 2 : 3
         await dev.alpacaPulseGuide(testVal, dir)
+      } else {
+        console.log('pulse test case not implemented for PA axis')
+        return
+      }
+
+    // Sync Test Case
+    } else if (testcase.value?.case=='sync' && payload.isPressed) {
+      if (axis.value==0) {
+        const offset = testVal + (Math.random() - 0.5)*testVal*0.1
+        await dev.alpacaSyncToRADec(p.rightascension + offset/3600*sign/15, p.declination)
+      } else if (axis.value==1) {
+        const offset = testVal + (Math.random() - 0.5)*testVal*0.1
+        await dev.alpacaSyncToRADec(p.rightascension, p.declination + offset/3600*sign)
       } else {
         console.log('pulse test case not implemented for PA axis')
         return
