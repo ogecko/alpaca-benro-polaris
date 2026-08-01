@@ -118,7 +118,7 @@
     - where: h=decimal hours, d=decimal degrees; h and d can also be strings with dms format eg "14:30:10" or "180d30m15s" or "90d30m"
 
 ### New Features (enabled by Stellarium)
-- **[Stellarium 26.1]** Improved ASCOM Telescope support, fixing stability, and improving ease of telescope selection. 
+- **[Stellarium 26.2]** Improved ASCOM Telescope support, fixing stability, and improving ease of telescope selection. 
 
 ## Upgraded Win11 Requirements.txt Compatibility
 - **[Python 3.13.14]**: Upgraded Python support from 3.13.9.
