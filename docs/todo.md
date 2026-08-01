@@ -53,14 +53,12 @@
 - [X] SG - Explore applying Sync Guide with FF signal - Explored but unsuccessful. Retained current approach
 - [X] SG - Persist current sycn guiding correction on a regular basis for better aligned restarts
 - [ ] Slew - Fix fine adj of Moon tracking in Az/Alt
-- [ ] HTTPS - Debug client to Driver connection loss - Retest REST API proxy over protocol switching, remove local storage
 - [ ] CCDCiel - Confirm Rotator Sync works correctly on CCDCiel
 - [ ] Close candidate enhancement list
     - [ ] Manual Align - Direct Control and List of targets
     - [ ] Goto - Determine ideal settle time for Benro Polaris and v2.2
     - [ ] CCDCiel - Auto install Alpaca Driver scripts for CCDCiel
     - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
-    - [ ] Nina - Test session using Nina and document Sync Guiding workflow
 - [ ] Close open questions
     - [ ] Flip - Can we improve horizon flip/windup prevention at Az 30 or Az 0?
     - [ ] PEC - Can we identify Guiding Application Calibration pulses so PEC can ignore them?
@@ -68,28 +66,11 @@
     - [ ] Connection - why does changing IP address allow connection to proceed?
 - [ ] Create youtube videos for v2.2 content
     - [X] Create video on Win11 install and connect
-    - [ ] Create video on Pi install and connect
     - [X] Create video on dashboard and motion changes
     - [X] Create video on Galactric Panorama Workflow
+    - [X] Create video on improving pointing, tracking, guiding performance
+    - [ ] Create video on Pi install and connect
     - [ ] Create video on CCDCiel
-    - [ ] Create video on kinematics, tracking, guiding performance improvements
-        - Manual Sync
-            - Manual Sync of Position Angle
-        - Kinematics
-            - Settings Page - enabling different correction features, show alongside kinematics page, toggling on/off
-            - Kinematics Page - better understanding and total rewrite 
-        - Slewing
-            - Mechanical Corrections - Turn on off on Alignment page, see Residuals change
-            - Slew and Center - Last MPA Residual, no completion, ZLR force it, LGA on Kinematics
-        - Tracking
-            - PID - PID axes in dms, De-Trenmded Charts
-            - PID - Improved RMS Error, Cyclic bump removed, 
-        - Guiding
-            - Tune PEC with sync guiding, before calibrating to remove drift. Cannot calibrate if drift too high.
-            - MUST turn OFF PEC when calibrating!!!!
-            - Sync Guiding - Plate-Solve/Sync using Nina in a 2-5min cycle, Before smart exposure - PID steadies while filter changing.
-            - Sync Roll - How to copy Plate-Solve Roll and manual Roll Sync
-            - Guiding - Pulse Guide Cross-coupling, Suspend Integral, Guiding Calibration x1.5
 
 ## Final Release Checklist
 - [ ] Complete todo checklist
