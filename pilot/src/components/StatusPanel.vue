@@ -15,6 +15,7 @@
               <SpinnerSpeed class="q-pl-md" :speed="p.motorref[0]" :position="p.zetameas[0]" label="M1" />
               <SpinnerSpeed class="q-pl-md" :speed="p.motorref[1]" :position="p.zetameas[1]" label="M2" />
               <SpinnerSpeed class="q-pl-md" :speed="p.motorref[2]" :position="p.zetameas[2]" label="M3" />
+              <q-icon v-if="!ui.showStatusPanel" color="primary" size="md" name="mdi-information" />
             </div>
           </div>
       </q-item>
