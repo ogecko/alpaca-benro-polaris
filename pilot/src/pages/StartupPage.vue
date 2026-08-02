@@ -18,13 +18,11 @@
 <script setup lang="ts" >
 
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useRouter } from 'vue-router'
 
 
 const router = useRouter()
-const route = useRoute()
 const dev = useDeviceStore()
 
 const show = ref(false)
@@ -32,25 +30,7 @@ const show = ref(false)
 // ------------------- Lifecycle Events ---------------------
 
 onMounted(async () => {
-  const apiParam = Array.isArray(route.query.api)
-    ? route.query.api[0]
-    : route.query.api
-
-  if (apiParam) {
-    dev.restAPIPort = parseInt(apiParam)
-  }
-
-  if (!dev.alpacaHost && window.location.hostname) {
-    dev.alpacaHost = window.location.hostname
-  }
-
-  if (!dev.restAPIPort && window.location.port) {
-    dev.restAPIPort = parseInt(window.location.port)
-  }
-
-  if (dev.alpacaHost && dev.restAPIPort) {
-    await dev.connectRestAPI()
-  }
+  await dev.connectRestAPI()
   show.value=true
   setTimeout(() => { void router.push('/dashboard') }, 2000)  // 2 seconds delay
 })

@@ -10,8 +10,6 @@ import { AppVisibility } from 'quasar'
 export const useDeviceStore = defineStore('device', {
   state: () => ({
     _connecting: false,             // used in connectRestAPI to manage connecting state
-    alpacaHost: localStorage.getItem('alpacaHost') || '',                 // Hostname of Alpaca Driver
-    restAPIPort: localStorage.getItem('restAPIPort') || 5555,              // Port of Alpaca REST API
     socketAPIPort: 5556,            // Port of Alpaca Socket API
     restAPIConnectingMsg: '',       // Message to show while connecting in progress
     restAPIConnectErrorMsg: '',     // Message to show when there is a connection error
@@ -32,17 +30,6 @@ export const useDeviceStore = defineStore('device', {
   },
 
   actions: {
-    setAlpacaHost(host: string) {
-      this.alpacaHost = host
-      localStorage.setItem('alpacaHost', host)
-      console.log('setAlpacaHost:', host, '→ stored:', localStorage.getItem('alpacaHost'))
-    },
-
-    setRestAPIPort(port: number) {
-      this.restAPIPort = port
-      localStorage.setItem('restAPIPort', port.toString())
-      console.log('setRestAPIPort:', port, '→ stored:', localStorage.getItem('restAPIPort'))
-    },
 
     async connectRestAPI(retries = 5, delayMs = 500) {
       if (this._connecting) return

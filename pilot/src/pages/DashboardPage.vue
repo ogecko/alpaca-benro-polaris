@@ -103,7 +103,6 @@
 
 import { useQuasar } from 'quasar'
 import { onMounted, computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
 import { useConfigStore } from 'src/stores/config'
@@ -118,7 +117,6 @@ import { angularDifference } from 'src/utils/angles'
 
 
 const $q = useQuasar()
-const route = useRoute()
 const dev = useDeviceStore()
 const p = useStatusStore()
 const cfg= useConfigStore()
@@ -220,26 +218,7 @@ const centerPanel = computed(() => Math.floor((cfg.rows * cfg.cols + 1) / 2))
 onMounted(async () => {
   const shouldFetch =  dev.restAPIConnected && dev.restAPIConnectedAt &&cfg.fetchedAt < dev.restAPIConnectedAt
   if (shouldFetch) await cfg.configFetch()
-
-  const apiParam = Array.isArray(route.query.api)
-    ? route.query.api[0]
-    : route.query.api
-
-  if (apiParam) {
-    dev.restAPIPort = parseInt(apiParam)
-  }
-
-  if (!dev.alpacaHost && window.location.hostname) {
-    dev.alpacaHost = window.location.hostname
-  }
-
-  if (!dev.restAPIPort && window.location.port) {
-    dev.restAPIPort = parseInt(window.location.port)
-  }
-
-  if (dev.alpacaHost && dev.restAPIPort) {
-    await dev.connectRestAPI()
-  }
+  await dev.connectRestAPI()
 })
 
 // ------------------- Helper Functions ---------------------

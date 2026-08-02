@@ -54,9 +54,6 @@
         <q-banner v-if="!cfg.enable_restapi" inline-actions rounded class="bg-warning">
             WARNING: The Alpaca REST API is required for Nina, Stellarium and Alpaca Pilot.
         </q-banner>
-        <q-banner v-if="cfg.alpaca_restapi_port!=dev.restAPIPort" inline-actions rounded class="bg-warning">
-            WARNING: The Alpaca REST API port will change. Please reconnect Alpaca Pilot when prompted. 
-        </q-banner>
         <!-- Rest Discovery Services -->
         <div class="row q-col-gutter-sm no-wrap">
             <q-toggle class='col-8' v-bind="bindField('enable_discovery', 'Alpaca Discovery Service')"/>

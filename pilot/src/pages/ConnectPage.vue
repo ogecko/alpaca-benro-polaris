@@ -69,7 +69,7 @@
 
               <!-- Alpaca Driver RESTART and STOP -->
               <q-item v-if="dev.restAPIConnected" :inset-level="0.5">
-                <q-item-section><q-item-label>Control the Alpaca Driver at {{ alpacaHost }}:{{ restAPIPort }}</q-item-label></q-item-section>
+                <q-item-section><q-item-label>Control the Alpaca Driver on this connection</q-item-label></q-item-section>
                 <q-item-section side >
                   <div class="row">
                     <q-btn label="RESTART" icon="mdi-restart"  stack class="fixedWidth" @click="onRestartDriver"/>
@@ -340,16 +340,6 @@ const p = useStatusStore()
 const router = useRouter()
 
 // ------------------- Computed Resources ---------------------
-
-const alpacaHost = computed({
-  get: () => dev.alpacaHost,
-  set: (val) => dev.setAlpacaHost(val)
-})
-
-const restAPIPort = computed({
-  get: () => dev.restAPIPort,
-  set: (val) => dev.setRestAPIPort(Number(val))
-})
 
 const isMultiPointAligned = computed(() => p.aligned_count>=3);
 const bleLen = computed(() => p.bledevices.length);
