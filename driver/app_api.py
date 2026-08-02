@@ -44,6 +44,9 @@ class RedirectResource:
 
 
 async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
+    if not Config.enable_restapi:
+        logger.info("==STARTUP== Alpaca REST API disabled by config, not starting.")
+        return        
     rest_app = asgi.App(middleware=[CORSMiddleware()])
 
     init_routes(rest_app, 'telescope', telescope)
