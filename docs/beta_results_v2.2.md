@@ -133,6 +133,187 @@ This may have given a better ‘spread’ of the MPA manual plate solves and syn
     > JDM - Mark, you are the greatest, thanks for exploring the cause of the 60s subexposure anomalies. 
     Your latest results confirm there's an issue on subs greater than 30s. The last change to PEC was 3-June, adding the harmonics, which was necessary to cater for the oscillations in the drift rate. If you get a chance, can you compare the current dev2_2 to this old version from 3-June and see if the problem disappears? I've re-created the feature/pec_refactor branch so you can refetch the old version.
 
+#### feature-pec_ff_status - 26 July 2026
+1. 60s exposures at 400mm on Caldwell C92 (Carina Nebula)
+2. Initial setup went really well, with no connectivity issues at all. As always, tripod was perfectly
+aligned to face South (180°) and levelled. Whilst probably unnecessary, I wanted to eliminate
+any possible links in the ‘error chain’
+3. Alignment workflow (following AF run using ‘LensAF’ and ‘Hocus Focus' N.I.N.A Plugins)
+a. Initial single point alignment (image>plate solve in N.I.N.A)
+b. Multipoint set and slew to South Celestial Pole (second plate solve in N.I.N.A)
+c. Slew to target C92 Caldwell (third plate solve in N.I.N.A)
+d. EQ RA coordinates set to d-2 (fourth plate solve in N.I.N.A)
+e. N.I.N.A > Framing assistant > target > Slew and Centre (fifth plate solve in N.I.N.A)
+NB. The target used for testing (Caldwell C92) is in close proximity to the South Celestial Pole
+and was deliberately chosen to test for any streaks in the images (due to proximity to pole)
+4. Perform Autotune Pec sequence x10 iterations to facilitate learning of PEC
+5. N.I.N.A Advanced Sequencer - add target to Sequence (existing template) for ‘Solve and sync’
+every 2 minutes (after every 2 exposures of 60s)
+Loop For Iterations - 20
+Smart Exposure - 2 x 60s
+Solve and Sync
+6. Following first run, driver was stopped to allow addition to be made to config.toml
+(pec_n_harmonics = 1)
+7. Polaris WiFi had to be restarted using Benro Connect App on iPhone
+8. Driver restarted and multipoint alignment from first run had been automatically saved (green
+check)
+9. NINA - Equipment > reconnected both rotator and telescope (since driver had been stopped
+and Polaris WiFi had disconnected) ..... connections for both camera and LensAF were still ok
+10. Performed a manual plate solve, so that position in sky could be ascertained and then used
+NINA Framing Assistant, to ‘slew and centre’ target.
+11. Perform Autotune Pec sequence x10 iterations to facilitate learning of PEC
+12. N.I.N.A Advanced Sequencer - add target to Sequence (existing template) for ‘Solve and sync’
+every 2 minutes (after every 2 exposures of 60s)
+Loop For Iterations - 10
+Smart Exposure - 2 x 60s
+Solve and Sync
+13. Light frames - when zoomed in (200%), all 20 images are showing the unusual shaped stars
+and squiggles; indicating some form of oscillation during the imaging. There was an
+occasional light wind, but no vibration from any other source.
+
+#### releases-2_2_beta3 - 28 July 2026
+1. 60s exposures at 400mm on SMC and then Caldwell C92 (Carina Nebula)
+2. Focus using LensAF and Hocus Focus
+3. Run Multi-Point Alignment (SPole and 5 x Points) Template
+4. Run MAC Autotune in Pilot and Apply
+5. NINA Framing Assistant - Slew and Centre on first target (SMC)
+6. Run PEC Tune Template (15x iterations)
+7. NINA Framing Assistant - Add target to Advanced Sequencer (existing template) for ‘Solve
+and sync’ every 2 minutes (after every 2 exposures of 60s)
+Loop For Iterations - 10
+Smart Exposure - 2 x 60s
+Solve and Sync
+8. NINA Framing Assistant - Slew and Centre on second target (Caldwell C92)
+9. Run PEC Tune Template (15x iterations)
+10. NINA Framing Assistant - Add target to Advanced Sequencer (existing template) for ‘Solve
+and sync’ every 2 minutes (after every 2 exposures of 60s)
+Loop For Iterations - 10
+Smart Exposure - 2 x 60s
+Solve and Sync
+11. Light frames -there was no wind, but no vibration from any other source.
+First run of 20 images on SMC - fantastic
+18/20 perfect images (90%) and that was being really pedantic (well zoomed in at 300%)
+Second run of 20 images on Caldwell C92 - not good
+4/20 perfect images (20%) many showing winged and vertical tadpole misshaped stars
+12. Observations - at the end of the first run (SMC), the camera was angled sideways (M3 rotator)
+and it appeared that the M1 motor hadn’t moved ..... being positioned about 30° from the
+original set up point. Even when the slew and centre was actioned for the second target
+(Caldwell C92), it did not move. Looks as if only the M3 was ‘tracking’ the target.
+Haven’t noticed this behaviour before and the camera is usually pretty level when imaging.
+I’ve attached a few images showing the position of the mount and camera, between each
+imaging run
+13. Imaging on the first target was absolutely excellent and not sure whether my workflow for the
+second target was correct (between bullet point 7 and 8, perhaps I should have parked the
+mount?)
+
+
+#### releases-2_2_beta3 - 29 July 2026
+1. 60s exposures at 400mm on Caldwell C92 (Carina Nebula)
+2. Focus using LensAF and Hocus Focus
+3. Run Multi-Point Alignment (SPole and 5 x Points) template
+4. Run MAC Autotune in Pilot and Apply
+5. NINA Framing Assistant - Slew and Centre on Caldwell 92
+6. Run PEC Tune Template (15x iterations)
+7. NINA Framing Assistant - Add target to Advanced Sequencer (existing template) for ‘Solve
+and sync’ every 2 minutes (after every 2 exposures of 60s)
+Loop For Iterations - 10
+Smart Exposure - 2 x 60s
+Solve and Sync
+8. Light frames -there was no wind or vibration from any other source.
+8/20 perfect images (40%) when zoomed in at 200%
+Several showing winged and misshaped stars, whilst others had small streaks and tadpoles,
+Despite this, PixInsight was able to stack 14/20 (56%) images to produce great results
+Effectively, this gives just over 50% success rate
+9. Observations - on completion of the “Multi-Point Alignment (SPole and 5 x Points)” template,
+the camera was angled sideways (M3 rotator) and it appeared that the M1 motor hadn’t
+moved. Even when the slew and centre was actioned for the target in NINA (Caldwell 92) it did
+not move. Looks as if only the M3 was ‘tracking’ the target (photo attached)
+10. Residuals were extremely high (see image) and I guess this wouldn’t have helped the tracking
+... though it’s interesting that the first six images in the imaging sequence, were perfect and it
+deteriorated thereafter. It was random as to when a sharp image was produced and then a
+misshaped star image occurred (no specific pattern)
+11. With my previous MPA workflow, all motors have moved and the camera has always been
+level and in line with the top of the Benro Astro Module, throughout the imaging. With the new
+“Multi-Point Alignment (SPole and 5 x Points)” template, the camera is always tilted and
+twisted at strange angles, throughout the imaging and looks as if only M3 (field rotator) is
+tracking the target.
+12. As a suggestion, I was wondering if it would be possible to realign the ‘twisted’ camera
+position, straight after the new “Multi-Point Alignment” template run .... Something similar to
+PARK (but that actually stops the tracking). Then the NINA ‘slew and centre’ would put the
+camera on target as before (i.e. camera not twisted) and all three motors would be able to
+track the target.
+With the current twisted camera angles, it will probably make it difficult to use the NINA to
+change the framing of the target. Speaking of which, I always connect the ‘Rotator’ (ASCOM)
+within NINA ..... but wondering whether this could possibly impact on something, even though
+I’m not currently changing the framing angle (?) ... just trying to consider all the variables, that
+may be contributing to the issue.
+13. Generally, I think that the new methodology to perform the MPA is absolutely brilliant .... No
+longer faffing about, entering targets (pole, target, switching to EQ mode and entering d-2 etc)
+and repeatedly needing to complete manual plate solves and syncs within NINA. It’s genius,
+but just need to find a way to incorporate the M1 motor in the sequence and eliminate the
+apparent M3 being the only tracking motor - though I fully accept there may be valid reasons
+behind this.
+
+
+#### releases-2_2_beta3 - 02 August 2026
+1. 60s exposures at 400mm on Caldwell C92 (Carina Nebula)
+2. Focus using LensAF and Hocus Focus
+3. Run Multi-Point Alignment (SPole and 5 x Points) template
+4. Run MAC Autotune in Pilot - not applied (red warning with autotune results showing ‘Weak’ -
+image already sent earlier via FB messenger)
+5. NINA Framing Assistant - Slew and Centre on Caldwell 92
+6. Run PEC Tune Template (15x iterations)
+7. Plate solve issues due trees being visible at bottom of frame (as per earlier FB messenger)
+8. Clear run and select new target. Slew and centre to LMC
+9. Run PEC Tune Template (15x iterations)
+10. Plate solve issues again, possibly due to full moon? (as per FB messenger)
+11. Clear run and select new target. Slew and centre to SMC
+12. Run PEC Tune Template (15x iterations) - plate solving absolutely fine (even with full moon)
+13. NINA Framing Assistant - Add target to Advanced Sequencer (existing template) for ‘Solve
+and sync’ every 2 minutes (after every 2 exposures of 60s)
+Loop For Iterations - 10
+Smart Exposure - 2 x 60s
+Solve and Sync
+14. Light frames -there was partial wind, but no vibration from any other source (mechanical or
+footsteps etc)
+Many showing winged and misshaped stars, whilst others had small streaks and tadpoles (as
+per earlier FB messenger)
+15. Observations - on completion of the “Multi-Point Alignment (SPole and 5 x Points)” template,
+the camera was now back to its start point (az180 alt 33 roll 0) - perfect. However, when using
+NINA to slew and centre to target, it struggled and was needing many plate solves. Cancelled
+this process and used Pilot to goto SMC ..... NINA was then fine with slew and centre.
+16. Residuals were extremely high (images already sent earlier via FB messenger)
+17. With my previous MPA workflow (d-2 etc), residuals were superior compared to the new MPA
+template script. The tripod is always set up in the same location (with dots of paint on the
+driveway, to mark the position of the 3 spiked feet on the tripod). The tripod adjustable base
+ensures that the Benro Polaris is always in the same ‘fixed’ position and its bubble level is
+centred) - this has remained the same throughout all the weeks of testing
+18. MPA Template Script - noticed that the position of the M1 motor did not always reflect the
+“az” figure in the script. Difficult to ascertain its movement properly during the dark, so ran the
+template in the daytime to visually monitor the mount position (albeit without solve and sync
+succeeding)
+19. Here are my findings:
+
+    | Point | Az | Alt | Roll | Comments
+    | -- | -- | -- | -- | --
+    |1| 180| 33| 0| Ok
+    |2| 105| 50| 45| Ok
+    |3| 135| 35| 65| Az 225
+    |4| 156| 67| 0| Az 105
+    |5| 224| 52| -65| Az doesn’t move (still at 105)
+    |6| 254| 62| -45| ? Az looks like 225 but maybe Ok
+    |7| 180| 33| 0| Ok
+20. The actual figures “Az” within ‘comments’ are based on physically looking at the position of
+the mount and may not be accurate.
+Point 3 - shows a completely different position (225) to the template figure (135)
+Point 4 - shows a completely different position (105) to the template figure (156)
+Point 5 - the Az position did not move (stayed at 105) - template figure should be (224)
+Point 6 - visually difficult to ascertain position but appears different position (225) to the
+template figure (254)
+21. Whilst this figures are approximations (‘by eye’), they show clear differences and I;’m
+wondering if this is impacting on the success of the MPA etc
+
+
 
 ### Summary
 
@@ -245,6 +426,8 @@ Notes: England, New 5nm filters.
 * Siril scripts excellent 
 * I think it's outside the scope of the tutorials, but I did have the thought that osc processing vid could be useful
 * I am getting a kick out of you shoot from Aus, so many DSO I don't know! Running chicken nebula 
+
+
 
 ### Feedback Summary
 
