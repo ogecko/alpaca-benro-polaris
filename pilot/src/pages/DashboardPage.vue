@@ -216,9 +216,6 @@ const centerPanel = computed(() => Math.floor((cfg.rows * cfg.cols + 1) / 2))
 // ------------------- Lifecycle Events ---------------------
 
 onMounted(async () => {
-  const shouldFetch =  dev.restAPIConnected && dev.restAPIConnectedAt &&cfg.fetchedAt < dev.restAPIConnectedAt
-  if (shouldFetch) await cfg.configFetch()
-  await dev.connectRestAPI()
 })
 
 // ------------------- Helper Functions ---------------------

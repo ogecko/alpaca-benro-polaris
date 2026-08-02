@@ -83,22 +83,12 @@
 import { useQuasar } from 'quasar'
 import { onMounted } from 'vue'
 import { useConfigStore } from 'stores/config';
-import { useDeviceStore } from 'src/stores/device';
 import { debounce } from 'quasar'
 
 const $q = useQuasar()
-const dev = useDeviceStore()
 const cfg = useConfigStore()
 
 onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
 })
 
 

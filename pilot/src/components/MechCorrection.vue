@@ -61,11 +61,9 @@
 // import axios from 'axios'
 import { onMounted, ref, computed, watch } from 'vue'
 import { useConfigStore } from 'stores/config';
-import { useDeviceStore } from 'src/stores/device';
 import { deg2min, dms2deg } from 'src/utils/angles'
 import MechAutotune from 'src/components/MechAutotune.vue';
 
-const dev = useDeviceStore()
 const cfg = useConfigStore()
 
 const m3_tilt_dm1_str       = ref('0.0')
@@ -121,15 +119,7 @@ async function apply_params() {
 }
 
 
-onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
+onMounted(() => {
   load_params()
 })
 

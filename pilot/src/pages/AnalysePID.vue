@@ -439,18 +439,13 @@ function formatVelData(d: TelemetryRecord):DataPoint {
 }
 
 
-onMounted(async () => {
-  
+onMounted(() => {
   // Parse and validate the query parameter
   const a = parseInt(route.query.a as string)
   axis.value = [0, 1, 2].includes(a) ? a : 0
   
-  await cfg.configFetch()
   socket.subscribe('pid')
   setKnobValues()
-
-
-
 })
 
 onUnmounted(() => {

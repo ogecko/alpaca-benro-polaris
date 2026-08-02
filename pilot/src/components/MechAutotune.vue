@@ -92,7 +92,7 @@
 <script setup lang="ts">
 // import axios from 'axios'
 import { useQuasar } from 'quasar'
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, onUnmounted, computed, ref } from 'vue'
 import { useConfigStore } from 'stores/config';
 import { useDeviceStore } from 'src/stores/device';
 import { useStreamStore } from 'src/stores/stream'
@@ -227,10 +227,12 @@ const stat = computed(() => {
 
 // ----------------- Lifecycle Functions
 
-onMounted(async () => {
-  const shouldFetch =  dev.restAPIConnected && dev.restAPIConnectedAt &&cfg.fetchedAt < dev.restAPIConnectedAt
-  if (shouldFetch) await cfg.configFetch()
+onMounted(() => {
   socket.subscribe('sm')
+})
+
+onUnmounted(() => {
+  socket.unsubscribe('sm')
 })
 
 async function onRunAutotune() {

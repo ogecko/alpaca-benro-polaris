@@ -68,21 +68,11 @@
 // import axios from 'axios'
 import { onMounted } from 'vue'
 import { useConfigStore } from 'stores/config';
-import { useDeviceStore } from 'src/stores/device';
 import { debounce } from 'quasar'
 
-const dev = useDeviceStore()
 const cfg = useConfigStore()
 
 onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
 })
 
 function bindField(key: string, label: string, suffix?: string) {

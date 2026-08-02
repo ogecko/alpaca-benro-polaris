@@ -292,8 +292,7 @@ function formatVelData(d: TelemetryRecord):DataPoint {
 }
 
 
-onMounted(async () => {
-  await cfg.configFetch()
+onMounted(() => {
   socket.subscribe('kf')
   setKnobValues()
   isInitializing.value = false

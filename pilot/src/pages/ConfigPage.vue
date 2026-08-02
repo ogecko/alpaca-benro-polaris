@@ -284,15 +284,7 @@ const scc_options = [
   { label: 'Sync Guiding Adjustment', value: 2, icon: 'mail', description: 'Initialize guiding corrections using the last measured residual'},
 ]
 
-onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
+onMounted(() => {
   poll.startPolling(() => { void cfg.configFetch() }, 10, 'configFetch')
 })
 

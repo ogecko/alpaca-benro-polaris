@@ -79,14 +79,12 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
 import { useStatusStore } from 'src/stores/status'
 import { useStreamStore } from 'src/stores/stream'
-import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, PIDMessage }from 'src/stores/stream'
 
 const socket = useStreamStore()
-const cfg = useConfigStore()
 const dev = useDeviceStore()
 const p = useStatusStore()
 
@@ -177,8 +175,7 @@ function formatVelData(n: number) {
 }
 
 
-onMounted(async () => {
-  await cfg.configFetch()
+onMounted(() => {
   socket.subscribe('pid')
 })
 

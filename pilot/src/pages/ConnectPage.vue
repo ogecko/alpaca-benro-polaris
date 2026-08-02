@@ -364,18 +364,9 @@ const zetameas = (m: number):string => p.zetameas?.[m]?.toFixed(0) ?? '0'
 // ------------------- Lifecycle Events ---------------------
 
 onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
 })
 
 onUnmounted(() => {
-
 })
 
 

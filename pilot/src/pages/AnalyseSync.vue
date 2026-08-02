@@ -352,9 +352,8 @@ function formatSyncData(data:SyncMessage):TableRow {
   return { timestamp, deleted, time, a_az, a_alt, a_roll, residual, resmag, resvec }
 }
 
-onMounted(async () => {
+onMounted(() => {
   socket.subscribe('sm')
-  await cfg.configFetch()
 })
 
 onUnmounted(() => {

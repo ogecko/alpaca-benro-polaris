@@ -138,6 +138,7 @@ import { ref, onMounted, onUnmounted, watch  } from 'vue'
 import { useStatusStore } from 'stores/status'
 import { useRouter, useRoute,  } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
+import { useConfigStore } from 'src/stores/config'
 import { useStreamStore } from 'src/stores/stream'
 import { debounce } from 'quasar'
 import { useCatalogStore } from 'src/stores/catalog'
@@ -148,6 +149,7 @@ import type { RouteLocationRaw } from 'vue-router'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
+const cfg = useConfigStore()
 const p = useStatusStore()
 const socket = useStreamStore()
 const vw = useVersionWatch()
@@ -204,9 +206,12 @@ onUnmounted(() => {
 
 watch(
   [() => dev.restAPIConnected, () => socket.socketURL, () => dev.isVisible],
-  () => {
+  async () => {
     if (dev.isVisible) {
       if (dev.restAPIConnected && socket) {
+        if (cfg.fetchedAt < dev.restAPIConnectedAt) {
+          await cfg.configFetch()
+        }
         socket.connectSocket()
         socket.subscribe('status')
         socket.subscribe('cfg')

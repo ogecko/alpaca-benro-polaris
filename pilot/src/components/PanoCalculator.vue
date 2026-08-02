@@ -60,10 +60,8 @@
 // import axios from 'axios'
 import { onMounted, ref, computed } from 'vue'
 import { useConfigStore } from 'stores/config';
-import { useDeviceStore } from 'src/stores/device';
 // import { debounce } from 'quasar'
 
-const dev = useDeviceStore()
 const cfg = useConfigStore()
 
 
@@ -213,8 +211,6 @@ const show_result = computed<boolean>(() => {
 // ----------------- Lifecycle Functions
 
 onMounted(async () => {
-  const shouldFetch =  dev.restAPIConnected && dev.restAPIConnectedAt &&cfg.fetchedAt < dev.restAPIConnectedAt
-  if (shouldFetch) await cfg.configFetch()
 })
 
 

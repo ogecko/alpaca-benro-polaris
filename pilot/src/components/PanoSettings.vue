@@ -87,13 +87,11 @@
 // import axios from 'axios'
 import { onMounted, computed, ref } from 'vue';
 import { useConfigStore } from 'stores/config';
-import { useDeviceStore } from 'src/stores/device';
 import { useQuasar, debounce } from 'quasar';
 import PanoNavigation from 'src/components/PanoNavigation.vue';
 import PanoCalculator from 'src/components/PanoCalculator.vue';
 
 const $q = useQuasar()
-const dev = useDeviceStore();
 const cfg = useConfigStore();
 // cfg properties {"cols":5, "rows":3, "hstep": 50, "vstep": 30, "first":0, "order":2, "track":2, "anchor":3, "ref":0, "r1":180, "r2":30, "r3":10, "panel":2 }
 
@@ -173,9 +171,6 @@ async function copyPanoSettings() {
 
 
 onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected && dev.restAPIConnectedAt && cfg.fetchedAt < dev.restAPIConnectedAt;
-  if (shouldFetch) await cfg.configFetch();
 });
 
 

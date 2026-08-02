@@ -313,13 +313,11 @@ import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { PollingManager } from 'src/utils/polling';
 import { useStatusStore } from 'src/stores/status'
 import { useConfigStore } from 'src/stores/config';
-import { useDeviceStore } from 'src/stores/device';
 import PIDStatus from 'src/components/PIDStatus.vue'
 import VField from 'src/components/VField.vue'
 
 
 const p = useStatusStore()
-const dev = useDeviceStore()
 const cfg = useConfigStore()
 const selected = ref([])
 const axis = ref<number>(0)
@@ -327,15 +325,7 @@ const poll = new PollingManager()
 
 watch(axis, ()=>selected.value=[])
 
-onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
+onMounted(() => {
   poll.startPolling(() => { void cfg.configFetch() }, 10, 'configFetch')
 })
 

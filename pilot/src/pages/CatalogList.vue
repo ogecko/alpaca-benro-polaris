@@ -521,15 +521,6 @@ async function onClickSearchOrbital(c1:DsoType=6) {
 
 onMounted(async () => {
     await cat.catalogFetch()
-    const shouldFetch =
-      dev.restAPIConnected &&
-      dev.restAPIConnectedAt &&
-      cfg.fetchedAt < dev.restAPIConnectedAt
-
-    if (shouldFetch) {
-      await cfg.configFetch()
-    }
-
     syncFiltersFromRoute()
     cat.startPositionUpdater();
 })
