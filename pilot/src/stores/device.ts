@@ -9,6 +9,7 @@ import { AppVisibility } from 'quasar'
 
 export const useDeviceStore = defineStore('device', {
   state: () => ({
+    _connecting: false,             // used in connectRestAPI to manage connecting state
     alpacaHost: localStorage.getItem('alpacaHost') || '',                 // Hostname of Alpaca Driver
     restAPIPort: localStorage.getItem('restAPIPort') || 5555,              // Port of Alpaca REST API
     socketAPIPort: 5556,            // Port of Alpaca Socket API
@@ -43,34 +44,45 @@ export const useDeviceStore = defineStore('device', {
       console.log('setRestAPIPort:', port, '→ stored:', localStorage.getItem('restAPIPort'))
     },
 
-    async connectRestAPI() {
-      console.log('connectRestAPI: alpacaHost=', this.alpacaHost, 'restAPIPort=', this.restAPIPort)
-      console.log('localStorage at connect: host=', localStorage.getItem('alpacaHost'), 'port=', localStorage.getItem('restAPIPort'))
+    async connectRestAPI(retries = 5, delayMs = 500) {
+      if (this._connecting) return
+      this._connecting = true
       this.$patch({
         restAPIConnectingMsg: 'Connecting...',
-        alpacaClientID: 8000+Math.floor(Math.random()*1000),
+        alpacaClientID: 8000 + Math.floor(Math.random() * 1000),
         restAPIConnectErrorMsg: '',
         alpacaServerName: '',
         alpacaServerVersion: '',
         alpacaDevices: []
-      });
+      })
       try {
-          await sleep(200);  // some time to see connecting message
-          await this.fetchServerDescription();
-          await this.fetchConfiguredDevices();
-          await this.fetchSupportedActions();
-          const response = await this.apiAction<ConfigResponse>('Polaris:ConfigFetch', '{"configNames": ["alpaca_socket_port"]}'); 
-          this.socketAPIPort = response.alpaca_socket_port || 5556
-          this.restAPIConnected = true;
-          this.restAPIConnectedAt = Date.now();
-          this.restAPIConnectErrorMsg = ''
-        } catch {
-          // restAPIConnectErrorMsg is already set inside apiGet
-          this.restAPIConnected = false;
-        } finally {
-          this.restAPIConnectingMsg = '';
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            console.log('connectRestAPI: connecting to Alpaca Driver Proxy, attempt = ', attempt)
+            await this.fetchServerDescription()
+            await this.fetchConfiguredDevices()
+            await this.fetchSupportedActions()
+            const response = await this.apiAction<ConfigResponse>(
+              'Polaris:ConfigFetch', '{"configNames": ["alpaca_socket_port"]}'
+            )
+            this.socketAPIPort = response.alpaca_socket_port || 5556
+            this.restAPIConnected = true
+            this.restAPIConnectedAt = Date.now()
+            this.restAPIConnectErrorMsg = ''
+            return
+          } catch (err) {
+            if (attempt === retries) throw err
+            await sleep(delayMs * (attempt + 1)) // simple backoff
+          }
         }
+      } catch {
+        this.restAPIConnected = false
+      } finally {
+        this.restAPIConnectingMsg = ''
+        this._connecting = false
+      }
     },
+
 
     disconnectRestAPI() {
       this.restAPIConnected = false
