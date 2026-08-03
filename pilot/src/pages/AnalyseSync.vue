@@ -75,7 +75,7 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
                   <q-item-label >SYNC @ {{data.time}}</q-item-label>
               </q-item-section>
               <q-item-section>
-                  <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} </q-item-label>
+                  <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} Roll {{data.p_roll}} </q-item-label>
               </q-item-section>
               <q-item-section side>
                   <q-item-label color="negative">
@@ -335,7 +335,7 @@ const rotator_syncs = computed(() =>
 watch(axis, ()=>selected.value=[])
 
 type TableRow = {
-  timestamp:string, deleted:boolean, time:string, a_az:string, a_alt:string, a_roll:string, residual:number, resmag:string, resvec:[number, number] 
+  timestamp:string, deleted:boolean, time:string, a_az:string, a_alt:string, a_roll:string, p_roll:string, residual:number, resmag:string, resvec:[number, number] 
 }
 
 
@@ -346,10 +346,11 @@ function formatSyncData(data:SyncMessage):TableRow {
   const a_az = data.a_az != null ? formatAngle(data.a_az, 'deg', 1) : ''
   const a_alt = data.a_alt != null  ? formatAngle(data.a_alt, 'deg', 1) : ''
   const a_roll = data.a_roll != null ? formatAngle(data.a_roll, 'deg', 1) : ''
+  const p_roll = data.p_roll != null ? formatAngle(data.p_roll, 'deg', 1) : ''
   const residual = data.residual_magnitude ? data.residual_magnitude : 0
   const resmag = data.residual_magnitude ? formatAngle(data.residual_magnitude, 'deg', 1) : ''
   const resvec = data.residual_vector ?? [0,0]
-  return { timestamp, deleted, time, a_az, a_alt, a_roll, residual, resmag, resvec }
+  return { timestamp, deleted, time, a_az, a_alt, a_roll, p_roll, residual, resmag, resvec }
 }
 
 onMounted(() => {
