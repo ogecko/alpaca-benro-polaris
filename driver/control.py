@@ -1227,11 +1227,12 @@ class PID_Controller():
             # Preload to cancel derivative term: omega_kd = -Kd * omega_op, or use last integral value
             preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
             preload_masked = np.where(self.is_axis_preloading, preload, self.error_integral)
+            is_syncguiding = (self.polaris._sm._sync_guide_last_time is not None ) and (time.monotonic() - self.polaris._sm._sync_guide_last_time < 3.0)
             # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
             can_integrate = np.logical_or(
                 np.logical_and(self.omega_tgt >= self.omega_min, self.omega_tgt <= self.omega_max),
                 np.sign(self.error_signal) != np.sign(self.omega_tgt)
-            ) & (~self.polaris._ispulseguiding)
+            ) & (~self.polaris._ispulseguiding) & (~is_syncguiding)
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
             updated_integral = preload_masked + delta_integral * self.dt
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
