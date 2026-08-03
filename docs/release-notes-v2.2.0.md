@@ -3,11 +3,11 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.2.0 Beta 3
-* **Release Date:** 27-Jul-2026
-* **Availability:** Download from [Alpaca Driver v2.2 Beta 3 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/releases/2_2_beta3.zip)
+* **Version:** 2.2.0 Beta 3.1
+* **Release Date:** TBD
+* **Availability:** Download from [Alpaca Driver v2.2 Beta 3 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
 * **License:** Distributed exclusively for backers of the [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v)
-* **Current Branch:** releases/2_2_beta3
+* **Current Branch:** dev2_2
 
 ## Demonstration Videos
 * **40 - Podcast Video:** Podcast Video at https://youtu.be/ouJ52WcTY2M
@@ -24,6 +24,10 @@
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.x
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
+
+## What's new in v2.2 Beta 3.1
+- **[Pilot Proxy]** Improved the Alpaca Pilot connection to the Alpaca Driver by using a proxy that no longer requires a hostname or port for the REST API
+- **[Alignment Roll]** Added the Roll angle to the list of Sync Points on the Alpaca Pilot Alignment page
 
 ## What's new in v2.2 Beta 3
 - **[Download Links]** Updated all documentation download links to refer explicitly to v2.2 Beta 3
