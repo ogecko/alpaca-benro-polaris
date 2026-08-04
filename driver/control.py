@@ -1229,7 +1229,7 @@ class PID_Controller():
             preload_masked = np.where(self.is_axis_preloading, preload, self.error_integral)
             now = time.monotonic()
             no_recent_syncguide = (self.polaris._sm._sync_guide_last_time is None)   or (now - self.polaris._sm._sync_guide_last_time > 3.0)
-            no_recent_pulseguide = (self.polaris._sm._pulse_guide_last_time is None) or (now - self.polaris._sm._pulse_guide_last_time > self.polaris._sm._pulse_guide_last_step_sec)
+            no_recent_pulseguide = now > np.max(self.polaris._sm._pulse_guide_end_time)
             # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
             can_integrate = np.logical_or(
                 np.logical_and(self.omega_tgt >= self.omega_min, self.omega_tgt <= self.omega_max),
@@ -1430,6 +1430,7 @@ class SyncManager:
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
         self._pec_guide_last_time = None        # Monotomic time of last pec guide application for dashboard status badges
         self._pulse_guide_last_time = None      # Monotomic time of last pulse guide application for dashboard status badges
+        self._pulse_guide_end_time = np.full(2, -np.inf)   # index 0=RA, 1=Dec
         self._sync_guide_last_time = None       # Monotomic time of last sync guide application for dashboard status badges
         self._sync_guide_interval = None        # EMA interval between sync guides in seconds
         self._pulse_guide_last_step_sec = 0     # last pulse guide request's duration in seconds
@@ -2205,16 +2206,18 @@ class SyncManager:
             self.logger.warning(f"Invalid pulse guide direction: {direction}")
             return
 
-        self._pulse_guide_last_time = time.monotonic()
+        now = time.monotonic()
+        step_sec = abs(duration)/1000
+        self._pulse_guide_last_time = now
+        self._pulse_guide_end_time[axis] = now + step_sec
 
         # accumulate the pulse guide durations into q_pulseguide_B for baseQ_to_topoQ to apply as a correction
-        self._pulse_guide_last_step_sec = abs(duration)/1000
         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
-        self.accumulate_guide_pulses(axis, self._pulse_guide_last_step_sec, velocity)
+        self.accumulate_guide_pulses(axis, step_sec, velocity)
         
         # update the drift and PEC model
         if Config.advanced_pulse_pec_tuning:
-            angle_deg = velocity*self._pulse_guide_last_step_sec
+            angle_deg = velocity * step_sec
             ra_resid = angle_deg if axis==0 else None
             dec_resid = angle_deg if axis==1 else None
             self.update_pec_model(ra_resid, dec_resid)
