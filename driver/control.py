@@ -1227,12 +1227,14 @@ class PID_Controller():
             # Preload to cancel derivative term: omega_kd = -Kd * omega_op, or use last integral value
             preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
             preload_masked = np.where(self.is_axis_preloading, preload, self.error_integral)
-            is_syncguiding = (self.polaris._sm._sync_guide_last_time is not None ) and (time.monotonic() - self.polaris._sm._sync_guide_last_time < 3.0)
+            now = time.monotonic()
+            no_recent_syncguide = (self.polaris._sm._sync_guide_last_time is None)   or (now - self.polaris._sm._sync_guide_last_time > 3.0)
+            no_recent_pulseguide = (self.polaris._sm._pulse_guide_last_time is None) or (now - self.polaris._sm._pulse_guide_last_time > self.polaris._sm._pulse_guide_last_step_sec)
             # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
             can_integrate = np.logical_or(
                 np.logical_and(self.omega_tgt >= self.omega_min, self.omega_tgt <= self.omega_max),
                 np.sign(self.error_signal) != np.sign(self.omega_tgt)
-            ) & (~self.polaris._ispulseguiding) & (~is_syncguiding)
+            )  & no_recent_syncguide & no_recent_pulseguide
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
             updated_integral = preload_masked + delta_integral * self.dt
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
@@ -1430,6 +1432,7 @@ class SyncManager:
         self._pulse_guide_last_time = None      # Monotomic time of last pulse guide application for dashboard status badges
         self._sync_guide_last_time = None       # Monotomic time of last sync guide application for dashboard status badges
         self._sync_guide_interval = None        # EMA interval between sync guides in seconds
+        self._pulse_guide_last_step_sec = 0     # last pulse guide request's duration in seconds
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncDataReset()
         self.init_pec_model()
@@ -2205,13 +2208,13 @@ class SyncManager:
         self._pulse_guide_last_time = time.monotonic()
 
         # accumulate the pulse guide durations into q_pulseguide_B for baseQ_to_topoQ to apply as a correction
-        step_sec = abs(duration)/1000
+        self._pulse_guide_last_step_sec = abs(duration)/1000
         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
-        self.accumulate_guide_pulses(axis, step_sec, velocity)
+        self.accumulate_guide_pulses(axis, self._pulse_guide_last_step_sec, velocity)
         
         # update the drift and PEC model
         if Config.advanced_pulse_pec_tuning:
-            angle_deg = velocity*step_sec
+            angle_deg = velocity*self._pulse_guide_last_step_sec
             ra_resid = angle_deg if axis==0 else None
             dec_resid = angle_deg if axis==1 else None
             self.update_pec_model(ra_resid, dec_resid)
