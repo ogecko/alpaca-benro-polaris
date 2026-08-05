@@ -211,7 +211,7 @@ STAT_TARGET_MEDIAN        = 0.20    # Target median (0.01 - 0.99)
 STAT_NO_BLACK_CLIP        = False   # No black clipping
 STAT_LINKED_STRETCH       = False   # Linked stretch (RGB channels together)
 STAT_NORMALIZE            = True    # Normalize
-STAT_HDR_COMPRESS         = False   # Enable HDR highlight compress
+STAT_HDR_COMPRESS         = True   # Enable HDR highlight compress
 STAT_HDR_AMOUNT           = 0.15    # HDR Amount (0.0 - 1.0)
 STAT_HDR_KNEE             = 0.30    # HDR Knee (0.1 - 0.95)
 STAT_APPLY_CURVES_BOOST   = False   # Apply curves boost
@@ -272,7 +272,7 @@ NBN_BRIGHTNESS          = 1.0        # 0.1 - 3.0
 # automatic step also ran.
 RUN_VERALUX_RECOMBINE = True
 
-VERALUX_STAR_INTENSITY_LOGD = 11.0     # "Star Intensity (Log D)", 1.0 - 21.0
+VERALUX_STAR_INTENSITY_LOGD = 13.0     # "Star Intensity (Log D)", 1.0 - 21.0
 VERALUX_PROFILE_HARDNESS    = 50.0    # "Profile Hardness (b)", 1.0 - 100.0
 VERALUX_COLOR_GRIP          = 0.50    # "Color Grip (Blend)", 0.0 - 1.0 (0-100%)
 VERALUX_SHADOW_CONVERGENCE  = 0.00    # "Shadow Conv (Hide Artifacts)", 0.0 - 3.0

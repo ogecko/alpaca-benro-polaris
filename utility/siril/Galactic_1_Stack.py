@@ -1,14 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_1_Stack.py
-# Version: 1.2.0
+# Version: 1.3.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
 # ==============================================================================
 # OVERVIEW
 # ==============================================================================
 # Renames each channel's calibrated lights with a GLAT/GLON panel prefix
-# (Step 0), then groups them by that prefix (the first 16 characters of the
-# filename, e.g. GLAT022N_GLON344) and for every group:
+# (Step 0), then groups them by that prefix (see extract_panel_prefix --
+# the GLAT.../GLON..._ label itself, decimals and all, not a fixed
+# character count) and for every group:
 #
 #   1. Converts the group's files into a Siril sequence
 #   2. Registers the sequence (global star alignment)
@@ -30,6 +31,12 @@
 # grouped into one "unsolved" stack per channel instead (RUN_GROUP_UNSOLVED),
 # rather than each becoming its own single-frame group.
 #
+# IMPORTANT for Galactic_2_Composite.py: that script groups its own input
+# (this script's _stack output files) the same way, via its own copy of
+# extract_panel_prefix() -- if you ever change how panel prefixes are
+# built here, mirror the change there too, or panels will silently stop
+# lining up between the two scripts.
+#
 # Prerequisites
 # -------------
 #   Siril 1.4.0 or later.
@@ -39,6 +46,7 @@
 
 import sirilpy as s
 import os
+import re
 import traceback
 from pathlib import Path
 from collections import defaultdict
@@ -61,7 +69,6 @@ CHANNEL_DIRS = ["L/stacked", "R/stacked", "G/stacked", "B/stacked",
                 "Ha/stacked", "Sii/stacked", "Oiii/stacked", "OSC/stacked"]
 
 FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
-PREFIX_LENGTH   = 16       # filename characters used to group files into a panel
 
 # ------------------------------------------------------------------------
 # Step 0: GLAT/GLON panel renaming
@@ -78,8 +85,20 @@ PREFIX_LENGTH   = 16       # filename characters used to group files into a pane
 # Rounding precision for the panel label. 0 = nearest whole degree. Negative
 # values round to a coarser unit (-1 = nearest 10 degrees) -- use this if subs
 # from the same panel are landing on opposite sides of a rounding boundary.
-# Positive values keep decimal places for finer-grained panels.
-RENAME_DECIMALS = 0
+# Positive values keep decimal places for finer-grained panels -- IMPORTANT:
+# unlike earlier versions of this script, the decimal places are now encoded
+# directly into the GLAT/GLON filename label (e.g. decimals=1 ->
+# "GLAT007.2S_GLON344.5_"), not silently discarded. This matters whenever
+# your mosaic's row/column spacing is small relative to the sensor's own
+# FOV on that axis (e.g. a long-focal-length setup with sub-1-degree FOV
+# and ~0.7 degree dithered row spacing) -- with decimals=0, two genuinely
+# different rows could round to the very same whole-degree label and get
+# wrongly merged into one group, which then register/stacks to only their
+# thin sliver of common overlap instead of two full-size separate panels.
+# If your panels are landing on opposite sides of a rounding boundary AND
+# genuinely different panels are colliding at low precision, raise
+# RENAME_DECIMALS (e.g. to 1) before reaching for MERGE_LABELS.
+RENAME_DECIMALS = 1
 
 # Manual override for one-off anomalies (e.g. a mount slip put two batches of
 # the same intended panel further apart than any RENAME_DECIMALS setting could
@@ -87,6 +106,8 @@ RENAME_DECIMALS = 0
 # Maps a generated prefix (including its trailing underscore) to the prefix
 # you want instead, e.g.:
 #   MERGE_LABELS = {"GLAT007N_GLON123_": "GLAT007N_GLON120_"}
+# or, with RENAME_DECIMALS > 0:
+#   MERGE_LABELS = {"GLAT007.2N_GLON123.4_": "GLAT007.2N_GLON120.1_"}
 # Check the Siril log for the exact generated prefixes. Leave {} if not needed.
 MERGE_LABELS = {}
 
@@ -104,8 +125,9 @@ DEC_KEYS_STR = ["OBJCTDEC"]
 # unrenamed "pp_light_NNNNN.fits" has a different filename prefix for
 # every N). Set False to restore skip-and-leave-unrenamed behaviour.
 RUN_GROUP_UNSOLVED = True
-UNSOLVED_PREFIX = "UNSOLVED_PANEL__"   # >= PREFIX_LENGTH chars, so every
-                                       # unsolved file groups together
+UNSOLVED_PREFIX = "UNSOLVED_PANEL__"   # matched as a literal prefix by
+                                       # extract_panel_prefix() below, so
+                                       # every unsolved file groups together
                                        # regardless of its original name
 
 # ------------------------------------------------------------------------
@@ -268,8 +290,9 @@ def radec_to_galactic(ra_deg, dec_deg):
 
 def find_glon_offset(glon_values):
     """
-    Given a list of GLON values (0-359), find the offset to apply to each
-    so that the values are monotonically increasing across the panorama.
+    Given a list of GLON values (0-359, possibly with decimals), find the
+    offset to apply to each so that the values are monotonically
+    increasing across the panorama.
 
     Finds the largest gap between consecutive values around the circle; the
     panel after that gap is the start of the panorama, and any panel whose
@@ -305,15 +328,57 @@ def find_glon_offset(glon_values):
     return result
 
 
-def make_glat_glon_prefix(glat_snapped, glon_adjusted):
+def make_glat_glon_prefix(glat_snapped, glon_adjusted, decimals=RENAME_DECIMALS):
     """
     Build the GLAT/GLON filename prefix from already-snapped/rounded
-    values. e.g. glat_snapped=-7, glon_adjusted=368 -> GLAT007S_GLON368_
+    values, e.g. decimals=0, glat_snapped=-7, glon_adjusted=368 ->
+    "GLAT007S_GLON368_".
+
+    When decimals > 0, the decimal places are encoded directly into the
+    filename too, e.g. decimals=1, glat_snapped=-7.2, glon_adjusted=368.5
+    -> "GLAT007.2S_GLON368.5_". This matters: two panels correctly kept
+    apart by round_coord() at, say, 0.7 degrees of separation could still
+    collapse onto the very same integer-only label here and get wrongly
+    merged into one group -- which is exactly what happens with a small
+    (sub-1-degree) sensor FOV and dithered row/column spacing close to
+    that FOV, e.g. a long-focal-length setup on a small sensor.
+
+    Every prefix this produces is a fixed width for a given `decimals`
+    (zero-padded), which extract_panel_prefix()'s regex relies on to find
+    the label reliably regardless of what RENAME_DECIMALS is set to.
     """
     ns = "S" if glat_snapped < 0 else "N"
-    glat_int = int(round(abs(glat_snapped)))
-    glon_int = int(round(glon_adjusted))
-    return "GLAT{:03d}{}_GLON{:03d}_".format(glat_int, ns, glon_int)
+    if decimals > 0:
+        width = 3 + 1 + decimals   # 3 integer digits + '.' + decimal digits
+        glat_str = "{:0{w}.{d}f}".format(abs(glat_snapped), w=width, d=decimals)
+        glon_str = "{:0{w}.{d}f}".format(glon_adjusted, w=width, d=decimals)
+    else:
+        glat_str = "{:03d}".format(int(round(abs(glat_snapped))))
+        glon_str = "{:03d}".format(int(round(glon_adjusted)))
+    return "GLAT{}{}_GLON{}_".format(glat_str, ns, glon_str)
+
+
+# Matches a GLAT/GLON panel label at the start of a filename, decimals and
+# all, e.g. "GLAT007N_GLON344_..." or "GLAT007.2S_GLON344.5_...". Used by
+# extract_panel_prefix() below instead of a fixed character count (see the
+# RENAME_DECIMALS config comment for why a fixed count breaks once decimals
+# are involved). Galactic_2_Composite.py has its own copy of this same
+# regex/function for matching this script's _stack output filenames -- keep
+# them in sync if this pattern ever changes.
+_PANEL_PREFIX_RE = re.compile(r'^(GLAT\d+(?:\.\d+)?[NS]_GLON\d+(?:\.\d+)?)_')
+
+
+def extract_panel_prefix(filename):
+    """
+    Extract the panel-group key from a filename: the UNSOLVED_PREFIX label
+    for unsolved files, or the GLAT/GLON label (with however many decimals
+    RENAME_DECIMALS produced) for solved ones. Returns None if filename
+    matches neither -- the caller should treat that as "leave ungrouped".
+    """
+    if filename.startswith(UNSOLVED_PREFIX):
+        return UNSOLVED_PREFIX.rstrip("_")
+    m = _PANEL_PREFIX_RE.match(filename)
+    return m.group(1) if m else None
 
 
 def _rename_with_retry(siril, fits_path, new_path):
@@ -454,7 +519,6 @@ def _strip_exposure_postfix(stem):
     If stem ends with an exposure postfix (e.g. "..._300s"), return
     (stem_without_it, seconds). Otherwise return (stem, None).
     """
-    import re
     m = re.search(r'^(.*)_(\d+)s$', stem)
     if m:
         return m.group(1), int(m.group(2))
@@ -531,7 +595,10 @@ def exposure_postfix(total_seconds, any_missing):
 def group_fits_by_channel(home_dir):
     """
     Scan each channel's process/ subdirectory for FITS input files and group
-    them by the first PREFIX_LENGTH characters of the filename.
+    them by their GLAT/GLON (or UNSOLVED) panel label -- see
+    extract_panel_prefix(). Any file that doesn't match either pattern
+    (e.g. Step 0 somehow left it unrenamed) is put in "_ungrouped_" and
+    excluded from the result below, same as before.
 
     The stacked/ output directory is created if it doesn't exist.
 
@@ -561,7 +628,7 @@ def group_fits_by_channel(home_dir):
                 continue
             if is_output_file(p):
                 continue
-            prefix = p.name[:PREFIX_LENGTH] if len(p.name) >= PREFIX_LENGTH else "_ungrouped_"
+            prefix = extract_panel_prefix(p.name) or "_ungrouped_"
             groups[prefix].append(p)
         if groups:
             per_channel[channel] = {"groups": dict(groups), "work_dir": stacked_dir}
@@ -616,7 +683,12 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
     siril_log(siril, "Group: " + group_prefix + "  (" + str(n) + " file(s))")
     siril_log(siril, "=" * 60)
 
-    safe_prefix = "".join(c if (c.isalnum() or c == "_") else "_" for c in group_prefix)
+    # "." is allowed through unsanitized (not just alnum/"_") so a
+    # decimal GLAT/GLON label (RENAME_DECIMALS > 0) survives into the
+    # output filename exactly as extract_panel_prefix() expects it --
+    # Galactic_2_Composite.py matches on this same "GLATnnn.nS_GLONnnn.n"
+    # pattern when reading _stack.fits files back in.
+    safe_prefix = "".join(c if (c.isalnum() or c in "_.") else "_" for c in group_prefix)
 
     def _remove_stale_legacy_output(legacy_prefix, final_path):
         """
@@ -880,7 +952,7 @@ def main():
 
     try:
         siril.connect()
-        siril_log(siril, "GalacticStack-AI v1.1.1 connected.")
+        siril_log(siril, "GalacticStack-AI v1.3.0 connected.")
     except Exception as exc:
         # connect() failed -- siril.log() won't work, so print only
         print("GalacticStack-AI: could not connect to Siril: " + str(exc))
@@ -961,7 +1033,9 @@ def main():
                 # (not after), since the expected filename depends on it --
                 # otherwise the skip-check would look for the wrong name
                 # and never find an already-completed group.
-                safe_prefix = "".join(c if (c.isalnum() or c == "_") else "_"
+                # See the matching comment in process_group() -- "." must
+                # survive unsanitized here too, for the same reason.
+                safe_prefix = "".join(c if (c.isalnum() or c in "_.") else "_"
                                      for c in prefix)
                 total_exp, exp_missing = compute_total_exposure(files)
                 exp_suffix = exposure_postfix(total_exp, exp_missing)

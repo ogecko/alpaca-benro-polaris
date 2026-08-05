@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_2_Composite.py
-# Version: 2.1.0
+# Version: 2.2.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
 # ==============================================================================
@@ -29,6 +29,14 @@
 #   Batch plate-solve composites/GLAT*_(LRGB|HSO|SHO)*.fits with ASTAP
 #   (File -> Batch plate-solve). This writes the WCS needed for SPCC.
 #
+# Panels are grouped by their GLAT/GLON label via extract_panel_prefix()
+# below, matching whatever precision Galactic_1_Stack.py's RENAME_DECIMALS
+# produced (e.g. "GLAT007.2S_GLON344.5" with decimals, or
+# "GLAT007S_GLON344" without) -- this is a copy of the same function from
+# Galactic_1_Stack.py; keep them in sync if that pattern ever changes,
+# since a mismatch here would silently fail to group panels this script
+# is supposed to be able to see.
+#
 # Prerequisites
 # -------------
 #   Siril 1.4.0 or later.
@@ -36,6 +44,7 @@
 #   Run Galactic_1_Stack.py first.
 
 import sirilpy as s
+import re
 import traceback
 from pathlib import Path
 from collections import defaultdict
@@ -50,7 +59,7 @@ from collections import defaultdict
 # Set to None to auto-detect from available stacked directories, or force a
 # specific mode. "HSO" always needs to be set manually since its stacked
 # directories are the same as "SHO" -- only the R/B mapping differs.
-COMPOSITE_MODE = None   # None = auto-detect, or "LRGB" / "HSO" / "SHO"
+COMPOSITE_MODE = "SHO"   # None = auto-detect, or "LRGB" / "HSO" / "SHO"
 
 # Channel directories per composite mode (relative to Siril home directory).
 # Keys match what rgbcomp expects: L (luminance) + R/G/B for LRGB, or R/G/B
@@ -77,7 +86,6 @@ CHANNEL_DIRS_HSO = {          # Alternative: Ha->R, SII->G, OIII->B
 # ------------------------------------------------------------------------
 INPUT_SUFFIX    = "_stack"                    # e.g. GLAT007N_GLON344_stack.fits
 FITS_EXTENSIONS = (".fits", ".fit", ".fts")
-PREFIX_LENGTH   = 16                          # panel prefix length, e.g. "GLAT007N_GLON344"
 
 SUFFIX_BY_MODE = {             # output suffix per mode, written into composites/
     "LRGB": "_LRGB",
@@ -115,6 +123,28 @@ CROP_AUTO_MAX_PERCENT      = 10.0    # safety cap on auto-detected crop, per edg
 # ------------------------------------------------------------------------
 DEBUG_KEEP_TEMP = False   # keep _lrgb_align_* temp directories for inspection
 # ==============================================================================
+
+
+# Matches a GLAT/GLON panel label at the start of a filename, with or
+# without decimal places, e.g. "GLAT007N_GLON344_..." or
+# "GLAT007.2S_GLON344.5_...". This is a copy of the same regex in
+# Galactic_1_Stack.py's extract_panel_prefix() -- see that script's
+# RENAME_DECIMALS config comment for why matching on the label itself
+# (rather than a fixed character count) matters: a fixed-width slice
+# can't tell "GLAT007.2S_GLON344.5" and "GLAT008.4S_GLON344.5" apart at
+# the same cut point it used for the old integer-only format, so panels
+# that Stack correctly kept separate could still get merged back together
+# here.
+_PANEL_PREFIX_RE = re.compile(r'^(GLAT\d+(?:\.\d+)?[NS]_GLON\d+(?:\.\d+)?)_')
+
+
+def extract_panel_prefix(filename):
+    """Extract the GLAT/GLON panel label from a filename, or None if it
+    doesn't match (e.g. an UNSOLVED_PANEL__ stack, or anything else that
+    doesn't carry a GLAT/GLON prefix -- such files are simply not
+    composited, same as before)."""
+    m = _PANEL_PREFIX_RE.match(filename)
+    return m.group(1) if m else None
 
 
 def detect_composite_mode(home_dir):
@@ -200,8 +230,10 @@ def find_panel_files(home_dir, mode, channel_dirs):
     channel_dirs: dict mapping channel key -> relative dir (from CHANNEL_DIRS_*)
 
     Returns a dict:
-        { prefix_16char: { channel_key: Path, ... } }
-    Only entries where ALL required channels are present are included.
+        { prefix: { channel_key: Path, ... } }
+    where prefix is the GLAT/GLON label from extract_panel_prefix() (see
+    module docstring). Only entries where ALL required channels are
+    present are included.
     """
     channel_map = {}
     for channel, rel_dir in channel_dirs.items():
@@ -216,9 +248,9 @@ def find_panel_files(home_dir, mode, channel_dirs):
                 continue
             if INPUT_SUFFIX not in p.stem:
                 continue
-            if len(p.name) < PREFIX_LENGTH:
+            prefix = extract_panel_prefix(p.name)
+            if prefix is None:
                 continue
-            prefix = p.name[:PREFIX_LENGTH]
             channel_map[channel][prefix] = p
 
     # Intersect: only prefixes present in ALL channels
@@ -370,7 +402,6 @@ def _parse_exposure_seconds(stem):
     If stem ends with an exposure postfix (e.g. "..._300s", as written by
     Galactic_1_Stack.py), return the integer seconds. Otherwise None.
     """
-    import re
     m = re.search(r'_(\d+)s$', stem)
     if m:
         return int(m.group(1))
@@ -665,7 +696,7 @@ def main():
 
     try:
         siril.connect()
-        siril_log(siril, "AlpacaPano-LRGB v1.0.1 connected.")
+        siril_log(siril, "AlpacaPano-LRGB v2.2.0 connected.")
     except Exception as exc:
         print("AlpacaPano-LRGB: could not connect to Siril: " + str(exc))
         return
