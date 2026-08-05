@@ -134,7 +134,7 @@ STACK_NORM       = "addscale"   # normalisation: addscale / add / mul / no
 # ------------------------------------------------------------------------
 # Step 4: Denoise -- RUN_DENOISE
 # ------------------------------------------------------------------------
-RUN_DENOISE      = False
+RUN_DENOISE      = True
 DENOISE_STRENGTH = 1.0     # GraXpert denoising strength: 0.0 (none) to 1.0 (max)
 
 # ------------------------------------------------------------------------

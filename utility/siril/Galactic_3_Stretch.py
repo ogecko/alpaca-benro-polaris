@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_3_Stretch.py
-# Version: 3.0.0
+# Version: 5.0.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
 # ==============================================================================
@@ -14,11 +14,24 @@
 #   3. RC-Astro NoiseXTerminator               (optional, RUN_NOISEXTERMINATOR)
 #   4. RC-Astro StarXTerminator                (optional, RUN_STARXTERMINATOR)
 #      -- splits the composite into stars_*.fits / stars_none_*.fits in
-#      star_removal/, ready to be recombined with VeraLux StarComposer
-#      once the stretch below is done.
+#      star_removal/.
 #   5. Statistical stretch (see STAT_* below), applied to stars_none_*.fits
 #      if StarXTerminator ran, otherwise to the composite itself, then
-#      saved to result_fits/GLAT*_stretched_result.fits
+#      saved to result_fits/GLAT*_stretched_result.fits. If StarXTerminator
+#      ran, stars_none_*.fits is updated with this stretched result too, so
+#      star_removal/ always holds the stretched starless + linear stars
+#      pair, kept untouched by steps 6-7 below -- e.g. to run Narrowband
+#      Neutralisation on stars_none_*.fits manually and recombine yourself
+#      in the VeraLux StarComposer GUI, instead of the automatic steps.
+#   6. Narrowband Normalization                (optional, RUN_NARROWBAND_NORMALIZATION)
+#      -- _SHO/_HSO composites only (palette chosen automatically from the
+#      panel's own composite suffix); applied to result_out and, if step 4
+#      ran, to stars_none_*.fits too.
+#   7. VeraLux StarComposer recombination      (optional, RUN_VERALUX_RECOMBINE)
+#      -- only runs when step 4 produced a stars_*/stars_none_* pair;
+#      recombines them with a headless port of VeraLux StarComposer's own
+#      maths and OVERWRITES result_fits/GLAT*_stretched_result.fits with
+#      the recombined (stars back in) result.
 #
 # Steps 2-4 run via Siril's `pyscript` command, which drives RC-Astro's
 # stand-alone command-line tool through the BlurXTerminator.py /
@@ -27,6 +40,13 @@
 # licensed independently; these scripts must be discoverable by Siril's
 # `pyscript` command (working directory, user script paths, or the
 # siril-scripts repo).
+#
+# Steps 6 and 7 do NOT call the NarrowbandNormalization.py / VeraLux
+# StarComposer.py scripts themselves (both are GUI-only, with no
+# headless/CLI mode) -- instead their own maths (process_image() for step
+# 6, VeraLuxCore + process_star_pipeline for step 7) is ported directly
+# into this script below, driven by the NBN_* / VERALUX_* config instead
+# of sliders.
 #
 # Prerequisites
 # -------------
@@ -46,13 +66,15 @@
 
 import sirilpy as s
 
-s.ensure_installed("numpy", "astropy")
+s.ensure_installed("numpy", "astropy", "opencv-python")
 
 import shutil
 import traceback
+import math
 from pathlib import Path
 
 import numpy as np
+import cv2
 from astropy.io import fits as _afits
 
 
@@ -200,6 +222,104 @@ STAT_CURVES_BOOST_STRENGTH = 0.00   # Curves boost strength (0.0 - 1.0)
 # the robust background median used to find the black point, unless
 # STAT_NO_BLACK_CLIP is True. 5.0 matches the dialog's own default.
 STAT_BLACKPOINT_SIGMA = 5.0
+
+# ------------------------------------------------------------------------
+# Step 6: Narrowband Normalization -- RUN_NARROWBAND_NORMALIZATION
+# ------------------------------------------------------------------------
+# Runs after the stretch (step 5), before VeraLux recombination (step 7),
+# and only for _SHO/_HSO composites -- the palette is chosen automatically
+# from the panel's own composite suffix (SHO or HSO), matching the R/G/B
+# channel order SPCC (step 1) already calibrated them into, so there's
+# nothing to set manually here. Applied to result_out, and also to
+# star_removal/stars_none_*.fits if StarXTerminator ran, so VeraLux
+# recombination (step 7) still composites against the normalized starless.
+#
+# Headless port of Cuiv's NarrowbandNormalization script (like VeraLux
+# StarComposer below, that script is GUI-only with no CLI mode).
+RUN_NARROWBAND_NORMALIZATION = True
+
+NBN_LIGHTNESS           = "Ha"       # "Off" | "Original" | "Ha" | "SII" | "OIII"
+NBN_BLEND_MODE          = "Mode 1"   # "Mode 1" | "Mode 2" | "Mode 3"
+                                      # (HOO-palette-only setting; SHO/HSO
+                                      # always have a real SII channel, so
+                                      # this is unused for this pipeline --
+                                      # kept here to document the intended
+                                      # value if palette handling is ever
+                                      # extended to HOO composites)
+NBN_BLEND_AMOUNT        = 0.6        # 0.0 - 1.0 (HOO-palette-only, see above)
+NBN_SCNR                = 1.0        # 0.0 - 1.0
+NBN_OIII_BOOST          = 1.0        # 0.5 - 2.0
+NBN_SII_BOOST           = 1.0        # 0.5 - 2.0
+NBN_SHADOW_POINT        = 1.0        # 0.0 - 1.0
+NBN_HIGHLIGHT_REDUCTION = 1.0        # 0.1 - 3.0
+NBN_BRIGHTNESS          = 1.0        # 0.1 - 3.0
+
+# ------------------------------------------------------------------------
+# Step 7: VeraLux StarComposer recombination -- RUN_VERALUX_RECOMBINE
+# ------------------------------------------------------------------------
+# Only runs when RUN_STARXTERMINATOR (step 4) actually produced a
+# stars_*.fits / stars_none_*.fits pair for this panel. Recombines them
+# with a headless port of VeraLux StarComposer's own maths (same
+# LogD-controlled rational tone-mapping core, "Hybrid Scalar/Vector"
+# engine and Screen/Linear Add compositing), and OVERWRITES
+# result_fits/*_stretched_result.fits with the recombined (stars back in)
+# result.
+#
+# star_removal/stars_none_*.fits is left holding the plain STRETCHED
+# starless (no stars recombined in) regardless of this setting -- so you
+# can always run e.g. Narrowband Neutralisation on it manually and
+# recombine yourself in the VeraLux GUI instead, whether or not this
+# automatic step also ran.
+RUN_VERALUX_RECOMBINE = True
+
+VERALUX_STAR_INTENSITY_LOGD = 11.0     # "Star Intensity (Log D)", 1.0 - 21.0
+VERALUX_PROFILE_HARDNESS    = 50.0    # "Profile Hardness (b)", 1.0 - 100.0
+VERALUX_COLOR_GRIP          = 0.50    # "Color Grip (Blend)", 0.0 - 1.0 (0-100%)
+VERALUX_SHADOW_CONVERGENCE  = 0.00    # "Shadow Conv (Hide Artifacts)", 0.0 - 3.0
+VERALUX_ADAPTIVE_ANCHOR     = True    # "Adaptive Anchor"
+VERALUX_BLEND_MODE          = "screen"   # "screen" | "add" ("Screen (Safe)" /
+                                          # "Linear Add (Physical)" in the GUI)
+
+# Star Surgery (advanced) -- disabled by default, matching the GUI's own
+# "Show Star Surgery" section left unchecked (all sliders default to 0):
+VERALUX_CORE_REJECTION_LSR  = 0.0     # "Core Rejection (LSR)", 0.0 - 1.0 (0-100%)
+VERALUX_REDUCTION           = 0.0     # "Reduction (Erosion)", 0.0 - 1.0 (0-100%)
+VERALUX_OPTICAL_HEALING     = 0.0     # "Optical Healing (Halos)", 0.0 - 20.0
+
+# Sensor profile used for luminance weighting -- must exactly match a key
+# in VERALUX_SENSOR_PROFILES below (copied verbatim from VeraLux
+# StarComposer's own SENSOR_PROFILES database).
+VERALUX_SENSOR_PROFILE = "Sony IMX585 (ASI585) - STARVIS 2"
+
+VERALUX_SENSOR_PROFILES = {
+    "Rec.709 (Recommended)": (0.2126, 0.7152, 0.0722),
+    "Sony IMX571 (ASI2600/QHY268)": (0.2944, 0.5021, 0.2035),
+    "Sony IMX533 (ASI533)": (0.2910, 0.5072, 0.2018),
+    "Sony IMX455 (ASI6200/QHY600)": (0.2987, 0.5001, 0.2013),
+    "Sony IMX410 (ASI2400)": (0.3015, 0.5050, 0.1935),
+    "Sony IMX269 (Altair/ToupTek)": (0.3040, 0.5010, 0.1950),
+    "Sony IMX294 (ASI294)": (0.3068, 0.5008, 0.1925),
+    "Sony IMX676 (ASI676)": (0.2880, 0.5100, 0.2020),
+    "Sony IMX183 (ASI183)": (0.2967, 0.4983, 0.2050),
+    "Sony IMX178 (ASI178)": (0.2346, 0.5206, 0.2448),
+    "Sony IMX224 (ASI224)": (0.3402, 0.4765, 0.1833),
+    "Sony IMX585 (ASI585) - STARVIS 2": (0.3431, 0.4822, 0.1747),
+    "Sony IMX662 (ASI662) - STARVIS 2": (0.3430, 0.4821, 0.1749),
+    "Sony IMX678 (ASI678) - STARVIS 2": (0.3426, 0.4825, 0.1750),
+    "Sony IMX715 (ASI715) - STARVIS 2": (0.3410, 0.4840, 0.1750),
+    "Sony IMX462 (ASI462)": (0.3333, 0.4866, 0.1801),
+    "Sony IMX482 (ASI482)": (0.3150, 0.4950, 0.1900),
+    "Panasonic MN34230 (ASI1600/QHY163)": (0.2650, 0.5250, 0.2100),
+    "Canon EOS (Modern - 60D/600D/500D)": (0.2600, 0.5200, 0.2200),
+    "Canon EOS (Legacy - 300D/40D/20D)": (0.2450, 0.5350, 0.2200),
+    "Nikon DSLR (Modern - D5100/D7200)": (0.2650, 0.5100, 0.2250),
+    "Nikon DSLR (Legacy - D3/D300/D90)": (0.2500, 0.5300, 0.2200),
+    "Fujifilm X-Trans 5 HR": (0.2800, 0.5100, 0.2100),
+    "ZWO Seestar S50": (0.3333, 0.4866, 0.1801),
+    "ZWO Seestar S30": (0.2928, 0.5053, 0.2019),
+    "Narrowband HOO": (0.5000, 0.2500, 0.2500),
+    "Narrowband SHO": (0.3333, 0.3400, 0.3267),
+}
 # ==============================================================================
 
 
@@ -827,6 +947,577 @@ def statistical_stretch(fits_path, out_path):
         return False, None
 
 
+# ---------------------------------------------------------------------------
+# Narrowband Normalization (headless port of Yannick Dutertre / Cuiv's
+# NarrowbandNormalization script -- itself a clean-room port of Bill
+# Blanshan & Mike Cranfield's PixelMath process). That script is GUI-only
+# too (no CLI/headless mode), so its pure numpy core -- process_image() and
+# everything it calls -- is ported here unchanged and driven by the NBN_*
+# config instead of sliders. process_image() itself works on (H, W, 3)
+# arrays (channels-last), unlike the rest of this file's native (C, H, W)
+# FITS layout, so narrowband_normalize() below converts on the way in/out.
+# ---------------------------------------------------------------------------
+
+_NBN_EPS = 1e-6
+
+_NBN_PALETTE_SLOTS = {
+    "HOO": {"Ha": 0, "OIII": 2},
+    "SHO": {"SII": 0, "Ha": 1, "OIII": 2},
+    "HSO": {"Ha": 0, "SII": 1, "OIII": 2},
+    "HOS": {"Ha": 0, "OIII": 1, "SII": 2},
+}
+
+
+def _nbn_mtf(m, x):
+    x = np.asarray(x, dtype=np.float32)
+    if abs(m - 0.5) < 1e-9:
+        return x.copy()
+    denom = (2.0 * m - 1.0) * x - m
+    denom = np.where(np.abs(denom) < _NBN_EPS, np.copysign(_NBN_EPS, denom), denom)
+    return ((m - 1.0) * x) / denom
+
+
+def _nbn_rescale(x, lo, hi):
+    if abs(hi - lo) < _NBN_EPS:
+        return np.clip(x - lo, 0.0, 1.0)
+    return np.clip((x - lo) / (hi - lo), 0.0, 1.0)
+
+
+def _nbn_normalize_range(data):
+    data = np.asarray(data, dtype=np.float32)
+    if data.size and float(np.nanmax(data)) > 1.5:
+        return data / 65535.0
+    return data
+
+
+def _nbn_channel_stats(ch, blackpoint):
+    mn = float(np.min(ch))
+    med = float(np.median(ch))
+    M = mn + blackpoint * (med - mn)
+    mean = float(np.mean(ch, dtype=np.float64))
+    adev = float(np.mean(np.abs(ch - mean), dtype=np.float64))
+    E0 = adev / 1.2533 + mean - M
+    return M, E0
+
+
+def _nbn_boost_factor(a_target, a_ref, boost):
+    denom = a_target - 2.0 * a_target * a_ref + a_ref
+    if abs(denom) < 1e-9:
+        denom = 1e-9
+    return (a_target * (1.0 - a_ref) / denom) / boost
+
+
+def _nbn_normalize_channel(ch, M_ch, strength):
+    rescaled = _nbn_rescale(ch, M_ch, 1.0)
+    stretched = _nbn_mtf(strength, rescaled)
+    floor_part = np.minimum(ch, M_ch)
+    out = 1.0 - (1.0 - stretched) * (1.0 - floor_part)
+    return np.clip(out, 0.0, 1.0)
+
+
+def _nbn_srgb_to_linear(c):
+    c = np.clip(c, 0.0, None)
+    return np.where(c > 0.04045, ((c + 0.055) / 1.055) ** 2.4, c / 12.92)
+
+
+def _nbn_linear_to_srgb(c):
+    c = np.clip(c, 0.0, None)
+    return np.where(c > 0.0031308, 1.055 * (c ** (1.0 / 2.4)) - 0.055, 12.92 * c)
+
+
+def _nbn_rgb_to_xyz(r, g, b):
+    r1, g1, b1 = _nbn_srgb_to_linear(r), _nbn_srgb_to_linear(g), _nbn_srgb_to_linear(b)
+    X = r1 * 0.4360747 + g1 * 0.3850649 + b1 * 0.1430804
+    Y = r1 * 0.2225045 + g1 * 0.7168786 + b1 * 0.0606169
+    Z = r1 * 0.0139322 + g1 * 0.0971045 + b1 * 0.7141733
+    return X, Y, Z
+
+
+def _nbn_f_lab(t):
+    return np.where(t > 0.008856, np.cbrt(t), (7.787 * t) + 16.0 / 116.0)
+
+
+def _nbn_f_lab_inv(t):
+    return np.where(t > 0.206893, t ** 3, (t - 16.0 / 116.0) / 7.787)
+
+
+def _nbn_xyz_to_lab(X, Y, Z):
+    X1, Y1, Z1 = _nbn_f_lab(X), _nbn_f_lab(Y), _nbn_f_lab(Z)
+    L = 116.0 * Y1 - 16.0
+    a = 500.0 * (X1 - Y1)
+    b = 200.0 * (Y1 - Z1)
+    return L, a, b
+
+
+def _nbn_xyz_to_rgb(X, Y, Z):
+    R = X * 3.1338561 + Y * -1.6168667 + Z * -0.4906146
+    G = X * -0.9787684 + Y * 1.9161415 + Z * 0.0334540
+    B = X * 0.0719453 + Y * -0.2289914 + Z * 1.4052427
+    return _nbn_linear_to_srgb(R), _nbn_linear_to_srgb(G), _nbn_linear_to_srgb(B)
+
+
+def _nbn_cie_l_only(r, g, b):
+    X, Y, Z = _nbn_rgb_to_xyz(r, g, b)
+    L, _, _ = _nbn_xyz_to_lab(X, Y, Z)
+    return (L + 16.0) / 116.0
+
+
+def _nbn_synthetic_green(ha, oiii, mode, amount):
+    amount = float(np.clip(amount, 0.0, 1.0))
+    if mode == "Mode 1":
+        g = amount * ha + (1.0 - amount) * oiii
+    elif mode == "Mode 2":
+        g = (np.clip(ha, 0, 1) ** amount) * (np.clip(oiii, 0, 1) ** (1.0 - amount))
+    else:
+        g = 1.0 - (1.0 - amount * ha) * (1.0 - (1.0 - amount) * oiii)
+    return np.clip(g, 0.0, 1.0)
+
+
+def _nbn_highlight_reduction(x, hl_reduction):
+    hl_reduction = max(hl_reduction, 1e-3)
+    m = 1.0 - 0.5 / hl_reduction
+    term_a = _nbn_mtf(m, x) * x
+    term_b = x * (1.0 - x)
+    return term_a + term_b
+
+
+def _nbn_brightness_stretch(x, brightness):
+    brightness = max(brightness, 1e-3)
+    return _nbn_mtf(1.0 / brightness * 0.5, x)
+
+
+def _nbn_process_image(data, params):
+    """data: (H, W, 3) float array in [0,1], R/G/B slots already arranged
+    per the chosen palette's letter order. Returns an (H, W, 3) array."""
+    palette = params["palette"]
+    slots = _NBN_PALETTE_SLOTS[palette]
+    data = np.asarray(data, dtype=np.float32)
+
+    ha = data[:, :, slots["Ha"]]
+    oiii = data[:, :, slots["OIII"]]
+    sii = data[:, :, slots["SII"]] if "SII" in slots else None
+
+    blackpoint = params["shadow_point"]
+
+    M_ha, E0_ha = _nbn_channel_stats(ha, blackpoint)
+    M_o, E0_o = _nbn_channel_stats(oiii, blackpoint)
+    ref_denom = 1.0 - M_o
+    if abs(ref_denom) < 1e-9:
+        ref_denom = 1e-9
+    A0_ha = E0_ha / ref_denom
+    A0_o = E0_o / ref_denom
+
+    E1 = _nbn_boost_factor(A0_o, A0_ha, params["oiii_boost"])
+    oiii_norm = _nbn_normalize_channel(oiii, M_o, E1)
+
+    if sii is not None:
+        M_s, E0_s = _nbn_channel_stats(sii, blackpoint)
+        A0_s = E0_s / ref_denom
+        E4 = _nbn_boost_factor(A0_s, A0_ha, params["sii_boost"])
+        sii_norm = _nbn_normalize_channel(sii, M_s, E4)
+    else:
+        sii_norm = None
+
+    out = np.empty_like(data)
+    out[:, :, slots["Ha"]] = ha
+    out[:, :, slots["OIII"]] = oiii_norm
+
+    if sii is not None:
+        out[:, :, slots["SII"]] = sii_norm
+    else:
+        green = _nbn_synthetic_green(ha, oiii_norm, params["blend_mode"], params["blend_amount"])
+        out[:, :, 1] = green
+
+    if sii is not None:
+        scnr_amt = float(np.clip(params["scnr"], 0.0, 1.0))
+        if scnr_amt > 0.0:
+            r_ch, g_ch, b_ch = out[:, :, 0], out[:, :, 1], out[:, :, 2]
+            reduced = np.minimum(np.mean(np.stack([r_ch, b_ch]), axis=0), g_ch)
+            out[:, :, 1] = (1.0 - scnr_amt) * g_ch + scnr_amt * reduced
+
+    lightness = params["lightness"]
+    if lightness != "Off":
+        r, g, b = out[:, :, 0], out[:, :, 1], out[:, :, 2]
+        X, Y, Z = _nbn_rgb_to_xyz(r, g, b)
+        L, a, bb = _nbn_xyz_to_lab(X, Y, Z)
+        del X, Y, Z, L
+
+        if lightness == "Original":
+            Y2 = _nbn_cie_l_only(data[:, :, 0], data[:, :, 1], data[:, :, 2])
+        elif lightness == "Ha":
+            Y2 = (ha + 0.16) / 1.16
+        elif lightness == "SII" and sii is not None:
+            Y2 = (sii + 0.16) / 1.16
+        elif lightness == "SII" and sii is None:
+            Y2 = (oiii + 0.16) / 1.16
+        else:
+            Y2 = (oiii + 0.16) / 1.16
+
+        X2 = (a / 500.0) + Y2
+        Z2 = Y2 - (bb / 200.0)
+        del a, bb
+
+        X3, Y3, Z3 = _nbn_f_lab_inv(X2), _nbn_f_lab_inv(Y2), _nbn_f_lab_inv(Z2)
+        del X2, Y2, Z2
+
+        r3, g3, b3 = _nbn_xyz_to_rgb(X3, Y3, Z3)
+        del X3, Y3, Z3
+
+        out[:, :, 0] = np.clip(r3, 0.0, 1.0)
+        out[:, :, 1] = np.clip(g3, 0.0, 1.0)
+        out[:, :, 2] = np.clip(b3, 0.0, 1.0)
+        del r3, g3, b3
+
+    out = _nbn_highlight_reduction(out, params["highlight_reduction"])
+    out = _nbn_brightness_stretch(out, params["brightness"])
+    out = _nbn_rescale(out, 0.0, 1.0)
+
+    return out.astype(np.float32)
+
+
+def narrowband_normalize(fits_path, out_path, palette):
+    """
+    Apply Narrowband Normalization (see NBN_* config above) to a stretched
+    RGB FITS file whose R/G/B channels are already in the given palette's
+    slot order (SHO: R=SII G=Ha B=OIII; HSO: R=Ha G=SII B=OIII -- matching
+    how SPCC, step 1, calibrated the composite), writing the result to
+    out_path. fits_path and out_path may be the same file.
+
+    Returns (ok, info) -- info is a short diagnostic string for logging, or
+    the error message on failure.
+    """
+    try:
+        if palette not in _NBN_PALETTE_SLOTS:
+            return False, "Unknown palette " + repr(palette)
+
+        with _afits.open(str(fits_path)) as hdul:
+            header = hdul[0].header.copy()
+            data = hdul[0].data.astype(np.float32)   # copy, decoupled from the file
+
+        if data.ndim != 3 or data.shape[0] != 3:
+            return False, ("Narrowband Normalization needs a 3-channel image, got shape "
+                           + str(data.shape))
+
+        img_hwc = np.moveaxis(data, 0, -1)
+        img_hwc = _nbn_normalize_range(img_hwc)
+        img_hwc = np.clip(img_hwc, 0.0, 1.0)
+
+        params = dict(
+            palette=palette,
+            lightness=NBN_LIGHTNESS,
+            blend_mode=NBN_BLEND_MODE,
+            blend_amount=NBN_BLEND_AMOUNT,
+            scnr=NBN_SCNR,
+            oiii_boost=NBN_OIII_BOOST,
+            sii_boost=NBN_SII_BOOST,
+            shadow_point=NBN_SHADOW_POINT,
+            highlight_reduction=NBN_HIGHLIGHT_REDUCTION,
+            brightness=NBN_BRIGHTNESS,
+        )
+
+        out_hwc = _nbn_process_image(img_hwc, params)
+        out_chw = np.moveaxis(out_hwc, -1, 0)
+
+        out_hdu = _afits.PrimaryHDU(out_chw.astype(np.float32), header=header)
+        out_hdu.writeto(str(out_path), overwrite=True)
+
+        info = ("palette={} lightness={} scnr={:.2f} oiii_boost={:.2f} sii_boost={:.2f} "
+                "shadow={:.2f} hl_reduction={:.2f} brightness={:.2f}").format(
+            palette, NBN_LIGHTNESS, NBN_SCNR, NBN_OIII_BOOST, NBN_SII_BOOST,
+            NBN_SHADOW_POINT, NBN_HIGHLIGHT_REDUCTION, NBN_BRIGHTNESS)
+        return True, info
+
+    except Exception as exc:
+        return False, str(exc)
+
+
+# ---------------------------------------------------------------------------
+# VeraLux StarComposer recombination (headless port of Riccardo Paterniti's
+# VeraLux StarComposer script). VeraLux StarComposer.py itself is GUI-only
+# (no CLI/headless mode), so instead of running it via pyscript, its own
+# pure numpy/OpenCV recombination core -- VeraLuxCore + process_star_pipeline
+# and the three "surgery" helpers -- is ported here unchanged and driven by
+# the VERALUX_* config at the top of this file instead of sliders. Data
+# stays in Siril/FITS's native channels-first (C, H, W) layout throughout,
+# unlike the Statistical Stretch port above, since that's what VeraLux's own
+# FITS loader (and this script's FITS files) already use.
+# ---------------------------------------------------------------------------
+
+def _veralux_normalize_input(img_data):
+    input_dtype = img_data.dtype
+    img_float = img_data.astype(np.float32)
+    img_float = np.nan_to_num(img_float, nan=0.0, posinf=1.0, neginf=0.0)
+    if np.issubdtype(input_dtype, np.integer):
+
+        if input_dtype == np.uint8:
+            return img_float / 255.0
+        elif input_dtype == np.uint16:
+            return img_float / 65535.0
+        else:
+            return img_float / float(np.iinfo(input_dtype).max)
+    elif np.issubdtype(input_dtype, np.floating):
+        current_max = np.max(img_data) if img_data.size else 0.0
+        if current_max > 1.0 + 1e-5:
+            if current_max <= 65535.0:
+                return img_float / 65535.0
+            return img_float / current_max
+    return np.clip(img_float, 0.0, 1.0)
+
+
+def _veralux_calculate_anchor_adaptive(data_norm, weights):
+    stride = max(1, data_norm.size // 1000000)
+    if data_norm.ndim == 3:
+        r, g, b = weights
+        L = r * data_norm[0] + g * data_norm[1] + b * data_norm[2]
+        sample = L.flatten()[::stride]
+    else:
+        sample = data_norm.flatten()[::stride]
+
+    valid = sample[sample > 0]
+    if valid.size == 0:
+        return 0.0
+
+    sparsity = valid.size / sample.size
+    if sparsity < 0.05:
+        return 0.0
+
+    return max(0.0, np.percentile(valid, 5.0))
+
+
+def _veralux_extract_luminance(data_norm, anchor, weights):
+    r_w, g_w, b_w = weights
+    img_anchored = np.maximum(data_norm - anchor, 0.0)
+    if data_norm.ndim == 3:
+        L = (r_w * img_anchored[0] + g_w * img_anchored[1] + b_w * img_anchored[2])
+    else:
+        L = img_anchored
+    return L, img_anchored
+
+
+def _veralux_rational_tonemap(data, D, b):
+    """VeraLux StarComposer's stretch core: a bounded rational tone-mapping
+    curve (0 -> 0, 1 -> 1), controlled by D = 10**LogD and a toe-based
+    Profile Hardness 'b'."""
+    x = np.clip(data, 0.0, 1.0).astype(np.float32)
+    D = float(max(D, 1e-12))
+    b = float(max(b, 0.1))
+
+    logD = math.log10(D)
+
+    sf = (logD - 1.0) / 2.0
+    sf = max(0.0, min(sf, 12.0))
+
+    a = 3.0
+    k = a ** sf
+
+    u = (b - 50.0) / 50.0
+    u = max(-1.5, min(1.5, u))
+    s = u * u * u
+
+    strength = 0.60
+    t = 1.0 + strength * s
+    t = max(t, 1e-3)
+
+    eps_toe = 1e-9
+    denom = x + t * (1.0 - x)
+    denom = np.maximum(denom, eps_toe)
+    x_n = x / denom
+    x_n = np.clip(x_n, 0.0, 1.0)
+
+    den = ((k - 1.0) * x_n) + 1.0
+    y = (k * x_n) / den
+
+    return np.clip(y, 0.0, 1.0).astype(np.float32)
+
+
+def _veralux_apply_optical_healing(img_rgb, strength):
+    if strength <= 0:
+        return img_rgb
+    img_cv = img_rgb.transpose(1, 2, 0)
+    ycrcb = cv2.cvtColor(img_cv, cv2.COLOR_RGB2YCrCb)
+    y, cr, cb = cv2.split(ycrcb)
+    ksize = int(strength * 2) + 1
+    if ksize % 2 == 0:
+        ksize += 1
+    cr = cv2.GaussianBlur(cr, (ksize, ksize), 0)
+    cb = cv2.GaussianBlur(cb, (ksize, ksize), 0)
+    merged = cv2.merge([y, cr, cb])
+    rgb_heal = cv2.cvtColor(merged, cv2.COLOR_YCrCb2RGB)
+    return rgb_heal.transpose(2, 0, 1)
+
+
+def _veralux_apply_star_reduction(img_rgb, intensity):
+    if intensity <= 0:
+        return img_rgb
+    k_size = 3 if intensity < 0.5 else 5
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_size, k_size))
+    img_hwc = img_rgb.transpose(1, 2, 0)
+    eroded = cv2.erode(img_hwc, kernel, iterations=1)
+    return (img_hwc * (1.0 - intensity) + eroded * intensity).transpose(2, 0, 1)
+
+
+def _veralux_apply_large_structure_rejection(img_rgb, intensity):
+    """Core Rejection (LSR): removes large blobs (e.g. galaxy cores) from
+    the starmask via Difference of Gaussians, with a kernel size that
+    scales with the image so it targets actual large-scale structures."""
+    if intensity <= 0:
+        return img_rgb
+
+    h, w = img_rgb.shape[1], img_rgb.shape[2]
+    k_size_val = int(min(h, w) / 15.0)
+    if k_size_val % 2 == 0:
+        k_size_val += 1
+    if k_size_val < 3:
+        k_size_val = 3
+
+    img_hwc = img_rgb.transpose(1, 2, 0)
+    low_pass = cv2.GaussianBlur(img_hwc, (k_size_val, k_size_val), 0)
+    high_pass = np.maximum(img_hwc - low_pass, 0.0)
+    result = img_hwc * (1.0 - intensity) + high_pass * intensity
+
+    return result.transpose(2, 0, 1)
+
+
+def _veralux_process_star_pipeline(starmask, D, b, grip, shadow, reduction,
+                                   healing, lsr, weights, use_adaptive):
+    """VeraLux StarComposer's Hybrid Scalar/Vector engine: stretches a
+    linear starmask (C, H, W) into a developed star layer, ready to be
+    composited onto a stretched starless image."""
+    img = _veralux_normalize_input(starmask)
+    if img.ndim == 2:
+        img = np.array([img, img, img])
+
+    img = np.clip(img, 0.0, 1.0)
+
+    # Transition smoothing (micro-blur)
+    img_hwc = img.transpose(1, 2, 0)
+    img_hwc = cv2.GaussianBlur(img_hwc, (0, 0), 0.5)
+    img = img_hwc.transpose(2, 0, 1)
+
+    anchor = _veralux_calculate_anchor_adaptive(img, weights) if use_adaptive else 0.0
+    img_anchored = np.maximum(img - anchor, 0.0)
+
+    D_val = 10.0 ** D
+
+    # A. Scalar mapping (per-channel rational tone mapping)
+    scalar = np.zeros_like(img)
+    scalar[0] = _veralux_rational_tonemap(img_anchored[0], D_val, b)
+    scalar[1] = _veralux_rational_tonemap(img_anchored[1], D_val, b)
+    scalar[2] = _veralux_rational_tonemap(img_anchored[2], D_val, b)
+    scalar = np.clip(scalar, 0.0, 1.0)
+
+    # B. Vector mapping (luminance-driven, ratio-preserving)
+    if grip > 0.001:
+        L_anchored, _ = _veralux_extract_luminance(img, anchor, weights)
+        L_str = _veralux_rational_tonemap(L_anchored, D_val, b)
+        L_str = np.clip(L_str, 0.0, 1.0)
+
+        epsilon = 1e-9
+        L_safe = L_anchored + epsilon
+        r_ratio = img_anchored[0] / L_safe
+        g_ratio = img_anchored[1] / L_safe
+        b_ratio = img_anchored[2] / L_safe
+
+        vector = np.zeros_like(img)
+        vector[0] = L_str * r_ratio
+        vector[1] = L_str * g_ratio
+        vector[2] = L_str * b_ratio
+        vector = np.clip(vector, 0.0, 1.0)
+    else:
+        vector = scalar
+
+    # Blending and Shadow Convergence
+    if grip > 0.001:
+        grip_map = np.full_like(scalar[0], grip)
+        if shadow > 0.01:
+            r_w, g_w, b_w = weights
+            L_ref = (r_w * scalar[0]) + (g_w * scalar[1]) + (b_w * scalar[2])
+            damping = np.power(L_ref, shadow)
+            grip_map = grip_map * damping
+        final = (vector * grip_map) + (scalar * (1.0 - grip_map))
+    else:
+        final = scalar
+
+    final = np.clip(final, 0.0, 1.0).astype(np.float32)
+
+    # Star Surgery
+    if lsr > 0:
+        final = _veralux_apply_large_structure_rejection(final, lsr)
+    if healing > 0:
+        final = _veralux_apply_optical_healing(final, healing)
+    if reduction > 0:
+        final = _veralux_apply_star_reduction(final, reduction)
+
+    return final
+
+
+def veralux_recombine(starmask_path, starless_path, out_path):
+    """
+    Recombine a linear star mask (starmask_path, from StarXTerminator) with
+    an already-stretched starless image (starless_path) using the VeraLux
+    StarComposer maths above, driven by the VERALUX_* config. Writes the
+    recombined RGB result to out_path (header copied from starless_path).
+
+    Returns (ok, info) -- info is a short diagnostic string for logging, or
+    the error message on failure.
+    """
+    try:
+        weights = VERALUX_SENSOR_PROFILES.get(VERALUX_SENSOR_PROFILE)
+        if weights is None:
+            return False, ("Unknown VERALUX_SENSOR_PROFILE " + repr(VERALUX_SENSOR_PROFILE)
+                           + " -- check it matches a key in VERALUX_SENSOR_PROFILES exactly.")
+
+        with _afits.open(str(starless_path)) as hdul:
+            header = hdul[0].header.copy()
+            starless = hdul[0].data.astype(np.float32)
+        with _afits.open(str(starmask_path)) as hdul:
+            starmask = hdul[0].data.astype(np.float32)
+
+        starless = _veralux_normalize_input(starless)
+        starmask = _veralux_normalize_input(starmask)
+
+        if starless.ndim == 2:
+            starless = np.stack([starless] * 3, axis=0)
+        if starmask.ndim == 2:
+            starmask = np.stack([starmask] * 3, axis=0)
+
+        stars = _veralux_process_star_pipeline(
+            starmask,
+            D=VERALUX_STAR_INTENSITY_LOGD,
+            b=VERALUX_PROFILE_HARDNESS,
+            grip=VERALUX_COLOR_GRIP,
+            shadow=VERALUX_SHADOW_CONVERGENCE,
+            reduction=VERALUX_REDUCTION,
+            healing=VERALUX_OPTICAL_HEALING,
+            lsr=VERALUX_CORE_REJECTION_LSR,
+            weights=weights,
+            use_adaptive=VERALUX_ADAPTIVE_ANCHOR,
+        )
+
+        if starless.shape != stars.shape:
+            h = min(starless.shape[1], stars.shape[1])
+            w = min(starless.shape[2], stars.shape[2])
+            starless = starless[:, :h, :w]
+            stars = stars[:, :h, :w]
+
+        if VERALUX_BLEND_MODE == "add":
+            final = np.clip(starless + stars, 0.0, 1.0)
+        else:
+            final = 1.0 - (1.0 - starless) * (1.0 - stars)
+
+        out_hdu = _afits.PrimaryHDU(final.astype(np.float32), header=header)
+        out_hdu.writeto(str(out_path), overwrite=True)
+
+        info = ("LogD={:.2f} b={:.1f} grip={:.2f} shadow={:.2f} blend={} sensor={}".format(
+            VERALUX_STAR_INTENSITY_LOGD, VERALUX_PROFILE_HARDNESS,
+            VERALUX_COLOR_GRIP, VERALUX_SHADOW_CONVERGENCE,
+            VERALUX_BLEND_MODE, VERALUX_SENSOR_PROFILE))
+        return True, info
+
+    except Exception as exc:
+        return False, str(exc)
+
+
 def scan_all_panels(home_dir):
     """
     Scan home_dir/composites/ for GLAT*_(LRGB|HSO|SHO)[_NNNs].fits files
@@ -915,10 +1606,10 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
         return False
 
     if not RUN_SPCC:
-        siril_log(siril, "  [1/5] Colour calibration SKIPPED (RUN_SPCC = False).")
+        siril_log(siril, "  [1/7] Colour calibration SKIPPED (RUN_SPCC = False).")
         siril_log(siril, "  Assuming SPCC/Alchemy was already applied manually.")
     else:
-        siril_log(siril, "  [1/5] Colour calibration (SPCC -> PCC fallback)...")
+        siril_log(siril, "  [1/7] Colour calibration (SPCC -> PCC fallback)...")
 
         if cs == "_SHO":
             siril_log(siril, "  SHO composite -- narrowband SPCC with "
@@ -952,20 +1643,20 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
             siril_log(siril, "  Colour calibration succeeded.")
 
     if RUN_BLURXTERMINATOR:
-        siril_log(siril, "  [2/5] RC-Astro BlurXTerminator...")
+        siril_log(siril, "  [2/7] RC-Astro BlurXTerminator...")
         bxt_ok = cmd_safe(siril, "pyscript", "BlurXTerminator.py", *_build_bxt_args())
         if not bxt_ok:
             siril_log(siril, "  [WARNING] BlurXTerminator failed -- continuing without it.")
     else:
-        siril_log(siril, "  [2/5] BlurXTerminator skipped (RUN_BLURXTERMINATOR = False).")
+        siril_log(siril, "  [2/7] BlurXTerminator skipped (RUN_BLURXTERMINATOR = False).")
 
     if RUN_NOISEXTERMINATOR:
-        siril_log(siril, "  [3/5] RC-Astro NoiseXTerminator...")
+        siril_log(siril, "  [3/7] RC-Astro NoiseXTerminator...")
         nxt_ok = cmd_safe(siril, "pyscript", "NoiseXTerminator.py", *_build_nxt_args())
         if not nxt_ok:
             siril_log(siril, "  [WARNING] NoiseXTerminator failed -- continuing without it.")
     else:
-        siril_log(siril, "  [3/5] NoiseXTerminator skipped (RUN_NOISEXTERMINATOR = False).")
+        siril_log(siril, "  [3/7] NoiseXTerminator skipped (RUN_NOISEXTERMINATOR = False).")
 
     if not cmd_safe(siril, "save", str(cc_linear_path)):
         siril_log(siril, "  [ERROR] Cannot save cc_linear.")
@@ -980,7 +1671,7 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
     stretch_input_path = cc_linear_path
     star_removed = False
     if RUN_STARXTERMINATOR:
-        siril_log(siril, "  [4/5] RC-Astro StarXTerminator...")
+        siril_log(siril, "  [4/7] RC-Astro StarXTerminator...")
         sxt_ok = cmd_safe(siril, "pyscript", "StarXTerminator.py", *_build_sxt_args())
         if not sxt_ok:
             siril_log(siril, "  [WARNING] StarXTerminator failed -- stretching the "
@@ -1010,12 +1701,12 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
                 siril_log(siril, "  [WARNING] Could not save the starless image; "
                           "stretching the composite instead.")
     else:
-        siril_log(siril, "  [4/5] StarXTerminator skipped (RUN_STARXTERMINATOR = False).")
+        siril_log(siril, "  [4/7] StarXTerminator skipped (RUN_STARXTERMINATOR = False).")
 
     # ------------------------------------------------------------------
     # Step 5: Statistical stretch (see STAT_* config above), then save.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [5/5] Applying statistical stretch...")
+    siril_log(siril, "  [5/7] Applying statistical stretch...")
     ok, info = statistical_stretch(stretch_input_path, result_out)
     if not ok:
         siril_log(siril, "  [ERROR] Stretch failed.")
@@ -1024,14 +1715,13 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
     siril_log(siril, "  " + (info or ""))
     siril_log(siril, "  Stretched from: " + stretch_input_path.name)
     siril_log(siril, "  Saved: " + result_out.name)
-    siril_log(siril, "  Next: run Galactic_4_Tiff.py to export TIFFs for stitching.")
 
-    # If StarXTerminator ran, keep star_removal/ self-contained and ready
-    # for recombination with VeraLux StarComposer: stars_none_*.fits above
-    # was saved BEFORE the stretch (still linear), so overwrite it with the
-    # actual stretched result too -- it and stars_*.fits alongside it then
-    # both reflect the finished, stretched state. The viewer is then left
-    # showing this file rather than the result_fits/ copy.
+    # If StarXTerminator ran, keep star_removal/ self-contained: stars_none_
+    # above was saved BEFORE the stretch (still linear), so overwrite it with
+    # the actual stretched result too -- it (and stars_*.fits alongside it,
+    # untouched, still linear) then stay ready for manual work at any time
+    # (e.g. Narrowband Neutralisation then a manual VeraLux recombine),
+    # regardless of whether steps 6-7 below also run automatically.
     final_view_path = result_out
     if star_removed:
         try:
@@ -1042,13 +1732,64 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
             siril_log(siril, "  [WARNING] Could not update " + stars_none_path.name
                       + " with the stretched result: " + str(exc))
 
-    # statistical_stretch() writes result_out directly via astropy, bypassing
-    # Siril's own loaded image entirely -- so without this, the viewer would
-    # be left showing stretch_input_path (cc_linear/stars_none, still
-    # linear) rather than the actual stretched result. Load it back in so
-    # what's on screen matches what was just saved.
+    # ------------------------------------------------------------------
+    # Step 6: Narrowband Normalization (optional, _SHO/_HSO composites
+    # only -- see NBN_* config above). Applied to result_out, and to
+    # star_removal/stars_none_*.fits too if StarXTerminator ran, so step 7
+    # (VeraLux recombination) below still composites against the
+    # normalized starless rather than the pre-normalization one.
+    # ------------------------------------------------------------------
+    if RUN_NARROWBAND_NORMALIZATION and cs in ("_SHO", "_HSO"):
+        palette = cs.strip("_")
+        siril_log(siril, "  [6/7] Narrowband Normalization (" + palette + ")...")
+        nbn_ok, nbn_info = narrowband_normalize(result_out, result_out, palette)
+        if not nbn_ok:
+            siril_log(siril, "  [WARNING] Narrowband Normalization failed: " + str(nbn_info))
+        else:
+            siril_log(siril, "  " + nbn_info)
+            if star_removed:
+                nbn_ok2, nbn_info2 = narrowband_normalize(
+                    stars_none_path, stars_none_path, palette)
+                if not nbn_ok2:
+                    siril_log(siril, "  [WARNING] Could not apply Narrowband Normalization to "
+                              + stars_none_path.name + ": " + str(nbn_info2))
+    elif RUN_NARROWBAND_NORMALIZATION:
+        siril_log(siril, "  [6/7] Narrowband Normalization skipped (not an SHO/HSO composite).")
+    else:
+        siril_log(siril, "  [6/7] Narrowband Normalization skipped "
+                  "(RUN_NARROWBAND_NORMALIZATION = False).")
+
+    # ------------------------------------------------------------------
+    # Step 7: VeraLux StarComposer recombination (optional, only when step
+    # 4 produced a stars_*/stars_none_* pair for this panel). OVERWRITES
+    # result_out with the recombined result; stars_*.fits and
+    # stars_none_*.fits above are left exactly as they were, untouched by
+    # this step.
+    # ------------------------------------------------------------------
+    if star_removed and RUN_VERALUX_RECOMBINE:
+        siril_log(siril, "  [7/7] VeraLux StarComposer recombination...")
+        vlx_ok, vlx_info = veralux_recombine(stars_path, stars_none_path, result_out)
+        if not vlx_ok:
+            siril_log(siril, "  [WARNING] VeraLux recombination failed: " + str(vlx_info)
+                      + " -- result_fits/ keeps the starless-only stretch.")
+        else:
+            siril_log(siril, "  " + vlx_info)
+            siril_log(siril, "  Recombined result saved: " + result_out.name)
+            final_view_path = result_out
+    elif star_removed:
+        siril_log(siril, "  [7/7] VeraLux recombination skipped (RUN_VERALUX_RECOMBINE = False).")
+    else:
+        siril_log(siril, "  [7/7] VeraLux recombination skipped (no star removal for this panel).")
+
+    siril_log(siril, "  Next: run Galactic_4_Tiff.py to export TIFFs for stitching.")
+
+    # statistical_stretch()/veralux_recombine() write result_out directly via
+    # astropy, bypassing Siril's own loaded image entirely -- so without
+    # this, the viewer would be left showing stretch_input_path or
+    # stars_none_path rather than the actual final result. Load it back in
+    # so what's on screen matches what was just saved.
     if not cmd_safe(siril, "load", str(final_view_path)):
-        siril_log(siril, "  [WARNING] Could not load the stretched result back into Siril.")
+        siril_log(siril, "  [WARNING] Could not load the final result back into Siril.")
 
     cmd_safe(siril, "cd", str(home_dir))
     siril_log(siril, "  Panel " + prefix + " complete.")
@@ -1059,7 +1800,7 @@ def main():
     siril = s.SirilInterface()
     try:
         siril.connect()
-        siril_log(siril, "Galactic_3_Stretch v3.0.0 connected.")
+        siril_log(siril, "Galactic_3_Stretch v5.0.0 connected.")
     except Exception as exc:
         print("Galactic_3_Stretch: could not connect: " + str(exc))
         return
