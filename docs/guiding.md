@@ -241,7 +241,7 @@ Calibration determines how your mount responds to guide pulses in Right Ascensio
 For best results, calibration should be performed under the following conditions:
 
 * **CRITICAL: Disable PEC during calibration** - 
-We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own Predictive PEC algorithm. the Driver’s version models both the RA and Dec axes independently and applies corrections directly within the mount's tracking loop. This can reduce the size of guide corrections and produce smoother tracking. To use PEC:
+We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own Predictive PEC algorithm. The Driver’s version models both the RA and Dec axes independently and applies corrections directly within the mount's tracking loop. This can reduce the size of guide corrections and produce smoother tracking. To use PEC with an autoguider:
     * Let PEC run and converge first, then disable it before you calibrate the autoguider.
     * That might sound backward;  why run PEC and then disable it right before calibration? Here's the reasoning: PEC's corrections get baked into the correction quaternion as they're applied, so they don't disappear when you disable PEC. Disabling it only stops the ongoing learning and application of new corrections. Everything it's already corrected up to that point stays in effect. So calibration starts from a mount that's already had its periodic error largely removed, making it easier to calibrate (especially with lower guiding rates). Disabling PEC during calibration stops it from learning the autoguider app's calibration steps.
     * TL;DR: run PEC until it converges → disable PEC → calibrate the autoguider → re-enable PEC.
