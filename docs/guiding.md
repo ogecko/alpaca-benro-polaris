@@ -240,23 +240,24 @@ Calibration determines how your mount responds to guide pulses in Right Ascensio
 
 For best results, calibration should be performed under the following conditions:
 
-* **CRITICAL: Disable PEC during calibration**
+* **CRITICAL: Disable PEC during calibration** - 
 We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own Predictive PEC algorithm. the Driver’s version models both the RA and Dec axes independently and applies corrections directly within the mount's tracking loop. This can reduce the size of guide corrections and produce smoother tracking. To use PEC:
     * Let PEC run and converge first, then disable it before you calibrate the autoguider.
     * That might sound backward;  why run PEC and then disable it right before calibration? Here's the reasoning: PEC's corrections get baked into the correction quaternion as they're applied, so they don't disappear when you disable PEC. Disabling it only stops the ongoing learning and application of new corrections. Everything it's already corrected up to that point stays in effect. So calibration starts from a mount that's already had its periodic error largely removed, making it easier to calibrate (especially with lower guiding rates). Disabling PEC during calibration stops it from learning the autoguider app's calibration steps.
     * TL;DR: run PEC until it converges → disable PEC → calibrate the autoguider → re-enable PEC.
 
-* **Within ±20° of the celestial equator (Dec ≈ 0°)**
-  Near the celestial equator, guide pulses produce the largest and most measurable star movement, resulting in more accurate calibration data.
-
-* **Within one hour of the celestial meridian**
-  Calibrating near the meridian minimizes atmospheric refraction and mechanical flexure effects, providing a more stable and representative measurement of mount behavior.
-
-* **Using the same Position Angle as the intended imaging target**
+* **CRITICAL: Use the same Position Angle as the intended imaging target** - 
   The guide camera orientation must match the equatorial rotation orientation used during imaging so that the calibrated RA and Dec movement vectors align correctly with the image axes.
 
-* **Close to the intended imaging target** 
-  RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. If the mount is slewed after calibration, avoid large pointing changes and maintain the same position angle.
+* **Close to the intended imaging target** - 
+  RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. If the mount is slewed after calibration, avoid large pointing changes and **maintain the same position angle**.
+
+* **Within ±20° of the celestial equator (Dec ≈ 0°)** - 
+  Near the celestial equator, guide pulses produce the largest and most measurable star movement, resulting in more accurate calibration data.
+
+* **Within one hour of the celestial meridian** - 
+  Calibrating near the meridian minimizes atmospheric refraction and mechanical flexure effects, providing a more stable and representative measurement of mount behavior.
+
 
 Following these guidelines ensures calibration is accurate, reliable, and representative of actual guiding conditions.
 
