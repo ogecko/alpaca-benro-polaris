@@ -194,7 +194,8 @@
 * Benro Connect Android App v3.0.30, iOS App v1.5.0
 * Benro Polaris Android App v3.0.27, iOS App v1.4.4
 * Stellarium Mobile PLUS v1.12.9 Android and iOS.
-* Stellarium Desktop v26.1 Qt6 Windows (requires ASCOM Platform 7)
+* Stellarium Desktop v26.2 Qt6 Windows (recommended)
+* Stellarium Desktop v26.1 Qt6 Windows (DO NOT USE - unstable, prone to crash)
 * Stellarium Desktop v25.2 Qt6 Windows (requires ASCOM Platform 7)
 * Stellarium Desktop v24.3 Qt5 Windows (not Qt6 version)
 * Stellarium Desktop v24.2 Windows
