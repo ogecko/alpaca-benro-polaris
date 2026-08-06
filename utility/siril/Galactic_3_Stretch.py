@@ -1,20 +1,31 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Galactic_3_Stretch.py
-# Version: 5.0.0
+# Version: 6.0.0
 # Part of the Galactic pipeline for panoramic astrophotography automation.
 #
 # ==============================================================================
 # OVERVIEW
 # ==============================================================================
 # Processes each plate-solved composite from composites/ into a final
-# stretched result, ready for Galactic_4_Tiff.py:
+# stretched result, ready for Galactic_4_Tiff.py. Runs in two passes over
+# every queued panel (see PASS 1/2 and PASS 2/2 in main()), so that
+# RUN_STAR_HARMONIZE can compare every panel's linear star layer before
+# any of them are stretched:
 #
+# PASS 1/2 (steps 1-4, process_panel_part1):
 #   1. SPCC colour calibration                (optional, RUN_SPCC)
 #   2. RC-Astro BlurXTerminator                (optional, RUN_BLURXTERMINATOR)
 #   3. RC-Astro NoiseXTerminator               (optional, RUN_NOISEXTERMINATOR)
 #   4. RC-Astro StarXTerminator                (optional, RUN_STARXTERMINATOR)
 #      -- splits the composite into stars_*.fits / stars_none_*.fits in
 #      star_removal/.
+#
+# Between passes: cross-panel star brightness harmonization (optional,
+# RUN_STAR_HARMONIZE) -- compares every panel's stars_*.fits from pass 1
+# and computes a per-panel linear gain, applied in pass 2 before the Log D
+# stretch (see that config comment for why).
+#
+# PASS 2/2 (steps 5-7, process_panel_part2):
 #   5. Statistical stretch (see STAT_* below), applied to stars_none_*.fits
 #      if StarXTerminator ran, otherwise to the composite itself, then
 #      saved to result_fits/GLAT*_stretched_result.fits. If StarXTerminator
@@ -30,8 +41,13 @@
 #   7. VeraLux StarComposer recombination      (optional, RUN_VERALUX_RECOMBINE)
 #      -- only runs when step 4 produced a stars_*/stars_none_* pair;
 #      recombines them with a headless port of VeraLux StarComposer's own
-#      maths and OVERWRITES result_fits/GLAT*_stretched_result.fits with
-#      the recombined (stars back in) result.
+#      maths (including the harmonization gain from between the passes)
+#      and OVERWRITES result_fits/GLAT*_stretched_result.fits with the
+#      recombined (stars back in) result.
+#
+# With RUN_STARXTERMINATOR = False, no panel ever has a star layer, so
+# harmonization between the passes is always a no-op and pass 2 behaves
+# exactly as a single-pass run of steps 5-6 always has.
 #
 # Steps 2-4 run via Siril's `pyscript` command, which drives RC-Astro's
 # stand-alone command-line tool through the BlurXTerminator.py /
@@ -62,7 +78,8 @@
 # Skip logic
 # ----------
 # Panels where result_fits/GLAT*_stretched_result.fits already exists are
-# skipped. Delete that file to reprocess a panel.
+# filtered out before pass 1 even starts. Delete that file to reprocess a
+# panel.
 
 import sirilpy as s
 
@@ -211,7 +228,7 @@ STAT_TARGET_MEDIAN        = 0.20    # Target median (0.01 - 0.99)
 STAT_NO_BLACK_CLIP        = False   # No black clipping
 STAT_LINKED_STRETCH       = False   # Linked stretch (RGB channels together)
 STAT_NORMALIZE            = True    # Normalize
-STAT_HDR_COMPRESS         = True   # Enable HDR highlight compress
+STAT_HDR_COMPRESS         = False   # Enable HDR highlight compress
 STAT_HDR_AMOUNT           = 0.15    # HDR Amount (0.0 - 1.0)
 STAT_HDR_KNEE             = 0.30    # HDR Knee (0.1 - 0.95)
 STAT_APPLY_CURVES_BOOST   = False   # Apply curves boost
@@ -247,7 +264,7 @@ NBN_BLEND_MODE          = "Mode 1"   # "Mode 1" | "Mode 2" | "Mode 3"
                                       # value if palette handling is ever
                                       # extended to HOO composites)
 NBN_BLEND_AMOUNT        = 0.6        # 0.0 - 1.0 (HOO-palette-only, see above)
-NBN_SCNR                = 1.0        # 0.0 - 1.0
+NBN_SCNR                = 0.9        # 0.0 - 1.0
 NBN_OIII_BOOST          = 1.0        # 0.5 - 2.0
 NBN_SII_BOOST           = 1.0        # 0.5 - 2.0
 NBN_SHADOW_POINT        = 1.0        # 0.0 - 1.0
@@ -276,7 +293,25 @@ VERALUX_STAR_INTENSITY_LOGD = 13.0     # "Star Intensity (Log D)", 1.0 - 21.0
 VERALUX_PROFILE_HARDNESS    = 50.0    # "Profile Hardness (b)", 1.0 - 100.0
 VERALUX_COLOR_GRIP          = 0.50    # "Color Grip (Blend)", 0.0 - 1.0 (0-100%)
 VERALUX_SHADOW_CONVERGENCE  = 0.00    # "Shadow Conv (Hide Artifacts)", 0.0 - 3.0
-VERALUX_ADAPTIVE_ANCHOR     = True    # "Adaptive Anchor"
+# Adaptive Anchor computes its black point from THIS PANEL's own star
+# pixels (5th percentile of the nonzero ones) before applying Log D --
+# fine for a raw, undifferenced starmask that still carries residual sky
+# glow, but stars_*.fits here is already a differential image (composite
+# minus starless, from StarXTerminator's --stars), so its background
+# should already sit near zero and there's little floor left to remove.
+# Left on, two panels with identical Log D can still end up with visibly
+# different star intensity, since each panel's anchor is computed
+# independently and a higher anchor makes that panel's stars come out
+# dimmer under the same curve. Off by default here for exactly that
+# reason -- every panel then gets the same, absolute Log D curve.
+VERALUX_ADAPTIVE_ANCHOR     = False   # "Adaptive Anchor"
+# Used instead of the adaptive value when VERALUX_ADAPTIVE_ANCHOR is
+# False: a fixed anchor, identical for every panel, if you still want a
+# bit of floor suppression without the per-panel drift above. 0.0 (no
+# subtraction at all) is the right starting point given stars_*.fits is
+# already background-near-zero; raise it a little only if faint residual
+# noise in the star layer is visibly showing through after the stretch.
+VERALUX_MANUAL_ANCHOR       = 0.0
 VERALUX_BLEND_MODE          = "screen"   # "screen" | "add" ("Screen (Safe)" /
                                           # "Linear Add (Physical)" in the GUI)
 
@@ -320,6 +355,47 @@ VERALUX_SENSOR_PROFILES = {
     "Narrowband HOO": (0.5000, 0.2500, 0.2500),
     "Narrowband SHO": (0.3333, 0.3400, 0.3267),
 }
+
+# ------------------------------------------------------------------------
+# Cross-panel star brightness harmonization -- RUN_STAR_HARMONIZE
+# ------------------------------------------------------------------------
+# Corrects for real differences in the linear star flux ITSELF between
+# panels (different nights/sky conditions/exposure), which SPCC does not
+# normalize -- SPCC only balances relative per-channel colour (its
+# white-balance factors fix the reference channel's own scale at 1.0 and
+# adjust the others relative to it), not the absolute brightness scale
+# across panels/sessions. Left uncorrected, identical VERALUX_* settings
+# (Log D especially) can still produce visibly different star intensity
+# panel to panel, confirmed by comparing real stars_*.fits pairs: the same
+# panel-to-panel percentile of star pixels differed by 3-4x even though
+# the post-stretch background/nebula (already independently normalized by
+# the statistical stretch's own per-panel target median) matched closely.
+#
+# This is computed once, across every panel queued in a given run, from
+# each panel's own linear stars_*.fits, BEFORE the Log D stretch runs --
+# see PASS 1 / PASS 2 in main() below. A linear gain only has a clean,
+# predictable effect when applied before a strongly nonlinear curve like
+# VeraLux's rational tone-map; applying an equivalent correction after
+# stretching (e.g. Galactic_4_Tiff.py's RUN_HARMONIZE_PANELS) can't undo
+# this properly, since bright and dim regions would already have been
+# compressed disproportionately by the time a linear gain could reach them.
+RUN_STAR_HARMONIZE = True
+
+# Percentile of each panel's own nonzero star-layer pixels used as its
+# "brightness level" for comparison. Deliberately NOT the max/near-max: in
+# practice a panel's single brightest star is often already close to
+# saturation regardless of overall exposure/sky differences, so it barely
+# discriminates between panels; a slightly lower (but still high)
+# percentile like 99.9 reflects the general star population instead.
+STAR_HARMONIZE_PERCENTILE = 99.9
+
+# The reference every panel is harmonized toward is the MEDIAN of that
+# percentile across all star-removed panels in this run (consistent with
+# how Galactic_4_Tiff.py's own harmonization picks its reference). Each
+# panel's gain (reference / that panel's own level) is then clamped to
+# [1/this, this], so one genuinely unusual panel can't get pushed to an
+# extreme correction.
+STAR_HARMONIZE_MAX_GAIN = 4.0
 # ==============================================================================
 
 
@@ -1379,22 +1455,34 @@ def _veralux_apply_large_structure_rejection(img_rgb, intensity):
 
 
 def _veralux_process_star_pipeline(starmask, D, b, grip, shadow, reduction,
-                                   healing, lsr, weights, use_adaptive):
+                                   healing, lsr, weights, use_adaptive,
+                                   manual_anchor=0.0, star_gain=1.0):
     """VeraLux StarComposer's Hybrid Scalar/Vector engine: stretches a
     linear starmask (C, H, W) into a developed star layer, ready to be
-    composited onto a stretched starless image."""
+    composited onto a stretched starless image.
+
+    manual_anchor is used in place of the adaptive (per-panel) anchor
+    when use_adaptive is False -- see the VERALUX_ADAPTIVE_ANCHOR /
+    VERALUX_MANUAL_ANCHOR config comments for why a fixed anchor, shared
+    across every panel, gives more consistent star intensity than letting
+    each panel compute its own.
+
+    star_gain (see RUN_STAR_HARMONIZE) is a linear multiplier applied to
+    the normalized star layer BEFORE the Log D curve -- the only point a
+    simple multiplicative correction is meaningful, since it's applied
+    before the strongly nonlinear tone-mapping rather than after it."""
     img = _veralux_normalize_input(starmask)
     if img.ndim == 2:
         img = np.array([img, img, img])
 
-    img = np.clip(img, 0.0, 1.0)
+    img = np.clip(img * float(star_gain), 0.0, 1.0)
 
     # Transition smoothing (micro-blur)
     img_hwc = img.transpose(1, 2, 0)
     img_hwc = cv2.GaussianBlur(img_hwc, (0, 0), 0.5)
     img = img_hwc.transpose(2, 0, 1)
 
-    anchor = _veralux_calculate_anchor_adaptive(img, weights) if use_adaptive else 0.0
+    anchor = _veralux_calculate_anchor_adaptive(img, weights) if use_adaptive else manual_anchor
     img_anchored = np.maximum(img - anchor, 0.0)
 
     D_val = 10.0 ** D
@@ -1451,12 +1539,18 @@ def _veralux_process_star_pipeline(starmask, D, b, grip, shadow, reduction,
     return final
 
 
-def veralux_recombine(starmask_path, starless_path, out_path):
+def veralux_recombine(starmask_path, starless_path, out_path, star_gain=1.0):
     """
     Recombine a linear star mask (starmask_path, from StarXTerminator) with
     an already-stretched starless image (starless_path) using the VeraLux
     StarComposer maths above, driven by the VERALUX_* config. Writes the
     recombined RGB result to out_path (header copied from starless_path).
+
+    star_gain (see RUN_STAR_HARMONIZE / compute_star_harmonization_gains())
+    is a linear brightness correction for this panel's star layer,
+    computed once across all panels in the run before any of them are
+    stretched -- 1.0 (no change) if harmonization is off or wasn't
+    computed for this panel.
 
     Returns (ok, info) -- info is a short diagnostic string for logging, or
     the error message on failure.
@@ -1492,6 +1586,8 @@ def veralux_recombine(starmask_path, starless_path, out_path):
             lsr=VERALUX_CORE_REJECTION_LSR,
             weights=weights,
             use_adaptive=VERALUX_ADAPTIVE_ANCHOR,
+            manual_anchor=VERALUX_MANUAL_ANCHOR,
+            star_gain=star_gain,
         )
 
         if starless.shape != stars.shape:
@@ -1508,14 +1604,71 @@ def veralux_recombine(starmask_path, starless_path, out_path):
         out_hdu = _afits.PrimaryHDU(final.astype(np.float32), header=header)
         out_hdu.writeto(str(out_path), overwrite=True)
 
-        info = ("LogD={:.2f} b={:.1f} grip={:.2f} shadow={:.2f} blend={} sensor={}".format(
+        anchor_str = ("adaptive" if VERALUX_ADAPTIVE_ANCHOR
+                     else "fixed={:.4f}".format(VERALUX_MANUAL_ANCHOR))
+        info = ("LogD={:.2f} b={:.1f} grip={:.2f} shadow={:.2f} anchor={} "
+                "star_gain={:.3f}x blend={} sensor={}".format(
             VERALUX_STAR_INTENSITY_LOGD, VERALUX_PROFILE_HARDNESS,
-            VERALUX_COLOR_GRIP, VERALUX_SHADOW_CONVERGENCE,
-            VERALUX_BLEND_MODE, VERALUX_SENSOR_PROFILE))
+            VERALUX_COLOR_GRIP, VERALUX_SHADOW_CONVERGENCE, anchor_str,
+            star_gain, VERALUX_BLEND_MODE, VERALUX_SENSOR_PROFILE))
         return True, info
 
     except Exception as exc:
         return False, str(exc)
+
+
+def _star_layer_level(fits_path, percentile):
+    """
+    Robust brightness statistic for a linear star layer (stars_*.fits from
+    StarXTerminator): the given percentile of its nonzero pixels, pooled
+    across all channels together. See RUN_STAR_HARMONIZE's config comment
+    for why a high-but-not-extreme percentile (not the max) is used.
+
+    Returns the percentile value, or None if the file has no nonzero
+    pixels or can't be read.
+    """
+    try:
+        with _afits.open(str(fits_path)) as hdul:
+            data = hdul[0].data.astype(np.float32)
+        nz = data[data > 1e-9]
+        if nz.size == 0:
+            return None
+        return float(np.percentile(nz, percentile))
+    except Exception:
+        return None
+
+
+def compute_star_harmonization_gains(panel_states):
+    """
+    Compute a per-panel linear gain (see RUN_STAR_HARMONIZE) to bring
+    every star-removed panel's stars_*.fits onto a common brightness
+    scale, from the pass-1 results across the whole run (panel_states is
+    the list of dicts returned by process_panel_part1()).
+
+    Returns {key: gain} -- only for panels with star_removed=True and a
+    readable star_level. A panel missing from the returned dict (star
+    removal off/failed for it, harmonization off, or fewer than 2
+    star-removed panels this run to compare against) should be treated as
+    gain=1.0 by the caller.
+    """
+    levels = {}
+    for st in panel_states:
+        if not st.get("ok") or not st.get("star_removed"):
+            continue
+        lvl = st.get("star_level")
+        if lvl is not None and lvl > 0:
+            levels[st["key"]] = lvl
+
+    if len(levels) < 2:
+        return {}
+
+    reference = float(np.median(list(levels.values())))
+    gains = {}
+    for key, lvl in levels.items():
+        g = reference / lvl
+        g = min(max(g, 1.0 / STAR_HARMONIZE_MAX_GAIN), STAR_HARMONIZE_MAX_GAIN)
+        gains[key] = g
+    return gains
 
 
 def scan_all_panels(home_dir):
@@ -1565,12 +1718,28 @@ def scan_all_panels(home_dir):
     return entries
 
 
-def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, home_dir):
-    """Run steps 1-5 for one plate-solved composite panel."""
+def process_panel_part1(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, home_dir):
+    """
+    PASS 1 (steps 1-4) for one plate-solved composite panel: colour
+    calibration, RC-Astro sharpening/denoising, and (optionally) star
+    removal. Split out from the stretch/recombine steps (process_panel_part2)
+    so RUN_STAR_HARMONIZE can compare every panel's linear star layer
+    against every other panel's BEFORE any of them go through the Log D
+    stretch -- see that config comment for why this has to happen before
+    stretching rather than after.
+
+    Returns a dict describing the outcome (consumed by
+    compute_star_harmonization_gains() and process_panel_part2()):
+      key, prefix, cs, es, ok, result_out, cc_linear_path,
+      stretch_input_path, star_removed, stars_path, stars_none_path,
+      star_level
+    ok=False means this panel failed pass 1 and pass 2 should skip it.
+    """
     siril_log(siril, " ")
     siril_log(siril, "=" * 60)
     siril_log(siril, "Panel: " + prefix + "  [" + composite_suffix.strip("_") + "]"
-              + (" " + exposure_suffix.strip("_") if exposure_suffix else ""))
+              + (" " + exposure_suffix.strip("_") if exposure_suffix else "")
+              + "  (pass 1/2)")
     siril_log(siril, "Input: " + lrgb_path.name)
     siril_log(siril, "=" * 60)
 
@@ -1590,10 +1759,14 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
     es = exposure_suffix   # e.g. "_1200s", or "" if unknown -- carried
                            # forward from the composite filename so total
                            # exposure stays visible at every pipeline stage
+    key = prefix + cs + es
     result_out = result_fits_dir / (prefix + cs + es + SUFFIX_RESULT + ".fits")
     cc_linear_path = process_dir / (prefix + cs + es + SUFFIX_CC_LINEAR + ".fits")
     stars_path = star_dir / ("stars_" + prefix + cs + es + ".fits")
     stars_none_path = star_dir / ("stars_none_" + prefix + cs + es + ".fits")
+
+    failed = {"key": key, "prefix": prefix, "cs": cs, "es": es,
+              "ok": False, "result_out": result_out}
 
     cmd_safe(siril, "cd", str(home_dir))
 
@@ -1603,7 +1776,7 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
     # ------------------------------------------------------------------
     if not cmd_safe(siril, "load", str(lrgb_path)):
         siril_log(siril, "  [ERROR] Cannot load " + lrgb_path.name)
-        return False
+        return failed
 
     if not RUN_SPCC:
         siril_log(siril, "  [1/7] Colour calibration SKIPPED (RUN_SPCC = False).")
@@ -1660,16 +1833,19 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
 
     if not cmd_safe(siril, "save", str(cc_linear_path)):
         siril_log(siril, "  [ERROR] Cannot save cc_linear.")
-        return False
+        return failed
 
     # ------------------------------------------------------------------
     # Step 4: RC-Astro StarXTerminator (optional) -- splits the composite
     # into a starless image and a stars-only image, saved into
     # star_removal/ so they can be recombined with VeraLux StarComposer
-    # once the stretch (step 5) is done.
+    # once the stretch (step 5, in pass 2) is done. Also where each
+    # panel's star-brightness level gets measured for RUN_STAR_HARMONIZE,
+    # since that has to happen before any panel is stretched.
     # ------------------------------------------------------------------
     stretch_input_path = cc_linear_path
     star_removed = False
+    star_level = None
     if RUN_STARXTERMINATOR:
         siril_log(siril, "  [4/7] RC-Astro StarXTerminator...")
         sxt_ok = cmd_safe(siril, "pyscript", "StarXTerminator.py", *_build_sxt_args())
@@ -1697,11 +1873,47 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
                 stretch_input_path = stars_none_path
                 star_removed = True
                 siril_log(siril, "  Starless image saved: " + stars_none_path.name)
+                if matches:
+                    star_level = _star_layer_level(stars_path, STAR_HARMONIZE_PERCENTILE)
+                    if star_level is not None:
+                        siril_log(siril, "  Star layer level (p{:.1f} of nonzero px): "
+                                  "{:.6f}".format(STAR_HARMONIZE_PERCENTILE, star_level))
             else:
                 siril_log(siril, "  [WARNING] Could not save the starless image; "
                           "stretching the composite instead.")
     else:
         siril_log(siril, "  [4/7] StarXTerminator skipped (RUN_STARXTERMINATOR = False).")
+
+    cmd_safe(siril, "cd", str(home_dir))
+
+    return {
+        "key": key, "prefix": prefix, "cs": cs, "es": es, "ok": True,
+        "result_out": result_out, "cc_linear_path": cc_linear_path,
+        "stretch_input_path": stretch_input_path, "star_removed": star_removed,
+        "stars_path": stars_path, "stars_none_path": stars_none_path,
+        "star_level": star_level,
+    }
+
+
+def process_panel_part2(siril, state, star_gain, home_dir):
+    """
+    PASS 2 (steps 5-7) for one panel already run through
+    process_panel_part1(): statistical stretch, Narrowband Normalization,
+    and VeraLux recombination. star_gain (see RUN_STAR_HARMONIZE /
+    compute_star_harmonization_gains()) is applied to this panel's linear
+    star layer before VeraLux's Log D curve, if it had its stars removed;
+    pass 1.0 when harmonization is off or wasn't computed for this panel.
+    """
+    prefix = state["prefix"]
+    cs = state["cs"]
+    result_out = state["result_out"]
+    stretch_input_path = state["stretch_input_path"]
+    star_removed = state["star_removed"]
+    stars_path = state["stars_path"]
+    stars_none_path = state["stars_none_path"]
+
+    siril_log(siril, " ")
+    siril_log(siril, "  Panel " + prefix + "  (pass 2/2)")
 
     # ------------------------------------------------------------------
     # Step 5: Statistical stretch (see STAT_* config above), then save.
@@ -1768,7 +1980,10 @@ def process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, h
     # ------------------------------------------------------------------
     if star_removed and RUN_VERALUX_RECOMBINE:
         siril_log(siril, "  [7/7] VeraLux StarComposer recombination...")
-        vlx_ok, vlx_info = veralux_recombine(stars_path, stars_none_path, result_out)
+        if RUN_STAR_HARMONIZE and abs(star_gain - 1.0) > 1e-6:
+            siril_log(siril, "  Star brightness harmonization gain: {:.3f}x".format(star_gain))
+        vlx_ok, vlx_info = veralux_recombine(stars_path, stars_none_path, result_out,
+                                             star_gain=star_gain)
         if not vlx_ok:
             siril_log(siril, "  [WARNING] VeraLux recombination failed: " + str(vlx_info)
                       + " -- result_fits/ keeps the starless-only stretch.")
@@ -1800,7 +2015,7 @@ def main():
     siril = s.SirilInterface()
     try:
         siril.connect()
-        siril_log(siril, "Galactic_3_Stretch v5.0.0 connected.")
+        siril_log(siril, "Galactic_3_Stretch v6.0.0 connected.")
     except Exception as exc:
         print("Galactic_3_Stretch: could not connect: " + str(exc))
         return
@@ -1847,15 +2062,68 @@ def main():
         for prefix, composite_suffix, exposure_suffix, p in panels:
             siril_log(siril, "  " + p.name)
 
+        # ------------------------------------------------------------------
+        # PASS 1/2: colour calibration, sharpening/denoising, star removal
+        # (steps 1-4) for every queued panel. Split from pass 2 so every
+        # panel's linear star layer exists before RUN_STAR_HARMONIZE
+        # compares them -- see that config comment. With
+        # RUN_STARXTERMINATOR = False this pass just runs steps 1-3 for
+        # every panel as before; no star layers exist, so harmonization
+        # below is a no-op and pass 2 proceeds exactly as it always has.
+        # ------------------------------------------------------------------
+        siril_log(siril, " ")
+        siril_log(siril, "=" * 60)
+        siril_log(siril, "PASS 1/2: colour calibration, sharpening/denoising, star removal")
+        siril_log(siril, "=" * 60)
+
+        pass1_states = []
+        for prefix, composite_suffix, exposure_suffix, lrgb_path in panels:
+            pass1_states.append(process_panel_part1(
+                siril, prefix, composite_suffix, exposure_suffix, lrgb_path, home_dir))
+
+        # ------------------------------------------------------------------
+        # Cross-panel star brightness harmonization -- see RUN_STAR_HARMONIZE
+        # config comment. Computed once here, from every panel's star layer,
+        # before any of them are stretched.
+        # ------------------------------------------------------------------
+        gains = {}
+        if RUN_STARXTERMINATOR and RUN_STAR_HARMONIZE:
+            gains = compute_star_harmonization_gains(pass1_states)
+            siril_log(siril, " ")
+            if gains:
+                siril_log(siril, "Star brightness harmonization (p{:.1f} percentile, "
+                          "reference = median across panels):".format(STAR_HARMONIZE_PERCENTILE))
+                for st in pass1_states:
+                    if st["key"] in gains:
+                        siril_log(siril, "  " + st["key"] + "  gain={:.3f}x".format(gains[st["key"]]))
+            else:
+                siril_log(siril, "Star brightness harmonization: nothing to harmonize this run "
+                          "(need at least 2 star-removed panels with a readable level).")
+
+        # ------------------------------------------------------------------
+        # PASS 2/2: statistical stretch, Narrowband Normalization, VeraLux
+        # recombination (steps 5-7) for every panel pass 1 succeeded on.
+        # ------------------------------------------------------------------
+        siril_log(siril, " ")
+        siril_log(siril, "=" * 60)
+        siril_log(siril, "PASS 2/2: stretch, narrowband normalization, star recombination")
+        siril_log(siril, "=" * 60)
+
         ok = fail = 0
         results = []
-        for prefix, composite_suffix, exposure_suffix, lrgb_path in panels:
-            if process_panel(siril, prefix, composite_suffix, exposure_suffix, lrgb_path, home_dir):
+        for state in pass1_states:
+            label = state["prefix"] + state["cs"] + state["es"]
+            if not state["ok"]:
+                fail += 1
+                results.append((label, "FAIL"))
+                continue
+            gain = gains.get(state["key"], 1.0)
+            if process_panel_part2(siril, state, gain, home_dir):
                 ok += 1
-                results.append((prefix + composite_suffix + exposure_suffix, "OK"))
+                results.append((label, "OK"))
             else:
                 fail += 1
-                results.append((prefix + composite_suffix + exposure_suffix, "FAIL"))
+                results.append((label, "FAIL"))
 
         siril_log(siril, " ")
         siril_log(siril, "=" * 60)
