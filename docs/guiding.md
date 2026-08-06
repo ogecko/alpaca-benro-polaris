@@ -247,7 +247,7 @@ We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own
     * TL;DR: run PEC until it converges → disable PEC → calibrate the autoguider → re-enable PEC.
 
 * **CRITICAL: Use the same Position Angle as the intended imaging target** - 
-  The guide camera orientation must match the equatorial rotation orientation used during imaging so that the calibrated RA and Dec movement vectors align correctly with the image axes.
+The recommended approach is to calibrate at your imaging target and simply ignore PHD2's calibration location warning. Just slew to your target and click Calibrate. PHD2 will make a small slew to remove backlash before starting the calibration. This ensures the position angle remains the same between calibration and imaging, which is important for the Benro Polaris (though not for a typical equatorial mount).
 
 * **Close to the intended imaging target** - 
   RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. If the mount is slewed after calibration, avoid large pointing changes and **maintain the same position angle**.
