@@ -989,13 +989,33 @@ This guide explains how to plan, configure, and capture panoramas using the **Al
 
 ### 1. Why Use the Alpaca Driver for Panoramas
 
-While the Benro Polaris Standard Panorama and Pro Panorama modes are excellent for capturing wide-field panoramas, more advanced composite panoramas often move beyond this simple model. These workflows may involve mixing tracked and untracked panels, revisiting the same framing over extended periods, or coordinating multiple capture passes with different exposure strategies or even focus stacking. In such cases, the limitations of a fixed, single-pass panorama workflow become apparent.
+The Benro Polaris **Standard Panorama** and **Pro Panorama** modes are excellent tools for quickly capturing wide-field panoramas. They are designed around a simple workflow: define a panorama, capture the panels in sequence, and stitch the result. For many situations, this is all that is required.
 
-The Alpaca Driver approaches panoramas from a different perspective. Rather than treating a panorama as a one-shot operation, it defines a deterministic grid of pointings anchored in space, that can be revisited, reordered, and reused. Panel geometry is defined explicitly, slews are repeatable, and camera orientation is controlled in a predictable way. This allows the same panorama definition to be reused hours or even days later, or embedded cleanly into larger automated workflows.
+NINA's **Framing Assistant Mosaic Panels** provide a similar capability for planning astronomical mosaics. They are particularly well suited for fixed equatorial mosaics of large Deep Sky Objects, where a set of RA/Dec panels is defined around a target and captured as part of an imaging sequence.
 
-In addition, the Alpaca Driver provides finer control over capture sequencing, tracking state, roll angle, and anchor positioning. This makes it possible to deliberately structure separate capture passes. For example, an untracked foreground landscape pass, a tracked sky pass, or even the inclusion of an orbital layer within the same overall composition.
+The Alpaca Driver takes a different approach. Instead of treating a panorama as a one-time capture operation, it defines a **deterministic panorama grid anchored in space**. This grid can be saved, revisited, reordered, modified during imaging, and reused across multiple capture sessions. The result is a more flexible workflow for complex astro-landscape projects where the foreground, sky, and other elements may be captured separately, often at different times and with different tracking requirements.
 
-In short, while the Benro Polaris hardware is already capable of producing excellent panoramas, the Alpaca Driver extends that capability by turning panoramas into a first-class, automatable imaging primitive rather than a single-pass capture mode.
+Like NINA's Mosaic Panels, the Alpaca Driver can define panels using an **Equatorial Reference Frame** (RA/Dec). However, it extends this concept with additional reference frames and controls better suited to astro-landscape imaging:
+
+* **Topocentric Reference Frame (Az/Alt/Roll)** – Defines panels relative to the local horizon, making it easier to create level foregrounds and horizon-aligned sky panoramas without requiring manual rotation adjustments.
+* **Galactic Reference Frame (Galactic Longitude/Latitude/Position Angle)** – Defines panels relative to the Milky Way itself, allowing large mosaics to follow the galactic plane rather than the celestial coordinate grid.
+
+The Alpaca Driver also provides additional control over how a panorama is planned and captured:
+
+* **Multi-pass capture workflows** – The same panorama grid can be reused for different capture passes, such as an untracked foreground, a tracked sky background, or additional layers such as the Moon or other orbitals.
+* **Camera orientation control** – Panel positions and camera roll can be managed consistently between captures, which is important when combining foreground and sky layers or when revisiting a composition later.
+* **Dynamic grid changes** – The active panorama grid can be adjusted during imaging, allowing different panel layouts, recapture strategies, or additional coverage without rebuilding the entire workflow.
+* **Custom panel sequencing** – Capture order can be controlled using Row Major, Column Major, or Serpentine ordering, with the ability to choose the starting panel. This is useful when timing matters, such as capturing a changing Milky Way composition before it moves beyond the optimal framing.
+* **Repeatable planning** – Complete panorama definitions can be saved as presets and recalled later, allowing a planned composition to be reproduced across multiple sessions.
+* **Interactive verification** – Individual panels can be selected and previewed before or during capture, making it easier to confirm coverage, overlap, and framing in the field.
+
+The key difference is that the Alpaca Driver is not limited to a single panorama capture operation or a single type of mosaic. It provides a common framework for simple panoramas, astronomical mosaics, and complex astro-landscape compositions where the foreground, sky, and other elements must remain precisely aligned.
+
+In short, NINA Mosaic Panels and the Benro Polaris panorama modes solve important parts of the panorama problem. The Alpaca Driver combines these concepts into a reusable panorama system that understands different celestial reference frames, physical camera orientation, and multi-stage imaging workflows.
+
+
+
+
 
 ## 2. Defining a Panorama Grid
 
