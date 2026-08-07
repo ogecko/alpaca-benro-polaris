@@ -102,7 +102,9 @@ async def main():
                 try:
                     os.execv(sys.executable, [sys.executable] + sys.argv)
                 except Exception as e:
+                    log.init_logging()
                     logger.exception(f"==MAIN== Fatal error when restarting: {e}")
+                    break
                 continue
             elif lifecycle._event == shr.LifecycleEvent.INTERRUPT:
                 logger.info("==MAIN== Interrupt. Exiting.")
