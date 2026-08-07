@@ -262,19 +262,15 @@ The recommended approach is to calibrate at your imaging target and simply ignor
 Following these guidelines ensures calibration is accurate, reliable, and representative of actual guiding conditions.
 
 ### 4.1 Calibration Process
-To Calibrate PHD2, use the Calibration Assistant:
-1. Considering the guidelines, slew the Polaris close to your imaging target, using Nina, Stellarium or Alpaca Pilot.
-2. Enable Sidereal Tracking.
-3. Using **PHD2**, connect all equipment.
-4. Click **Calibration Assistant** from the **Tools** menu item.
-4. Note the current **Pointing Location**
-6. Enter the **Calibration Location**
-    - Enter a **Declination** the same as your current **Pointing Location Declination**
-    - Enter a **Meridian offset** greater than ±25°, but below ±80°. ie Exclude near vertical, and near Horizon.  
-    - Click **Slew** to move the mount to the **Calibration Location**
-7. Click **Calibrate** to being the calibration process, typically takes 1–3 minutes
+To Calibrate **PHD2**, use the Calibration Assistant:
+1. Following the guidelines above, slew the Polaris close to your intended imaging target using NINA, Stellarium, or Alpaca Pilot.
+2. Enable **Sidereal Tracking**.
+3. In **PHD2**, connect to all required equipment.
+4. From the **Tools** menu, select **Calibration Assistant**.
+5. We no longer recommend clicking **Slew** or manually entering a **Calibration Location**. Instead, calibrate using your current telescope pointing.
+6. Click **Calibrate** to begin the calibration process.
 
-PHD2 will then start sending a sequence of pulse guide commands, monitoring how the mount moves in response to the commands. It will walk out the Right Ascension axis and back, then do the same for the Declination axis. You can monitor its progress with Alpaca Pilot.
+PHD2 will perform a small slew to remove backlash, then start sending a sequence of pulse guide commands, monitoring how the mount moves in response to the commands. It will walk out the Right Ascension axis and back, then do the same for the Declination axis. You can monitor its progress with Alpaca Pilot. The process typically takes 1-3 minutes.
 
 Once the calibration process is complete, PHD2 will sumamrise the results in a popup window. You can then decide whether to **Accept calibration** or **Discard calibration**. You can also review the most recent calibration data by choosing **Review Calibration Data** from the **Tools** menu item.
 
