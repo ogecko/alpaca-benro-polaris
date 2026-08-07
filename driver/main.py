@@ -52,6 +52,7 @@ import traceback
 from pathlib import Path
 import os
 import sys
+import subprocess
 from polaris import Polaris
 import signal
 polaris: Polaris = None
@@ -99,12 +100,18 @@ async def main():
                 await asyncio.sleep(2)
                 logger.info(f"==MAIN== Restarting now... {[sys.executable] + sys.argv}" )
                 log.shutdown_logging()
-                try:
-                    os.execv(sys.executable, [sys.executable] + sys.argv)
-                except Exception as e:
-                    log.init_logging()
-                    logger.exception(f"==MAIN== Fatal error when restarting: {e}")
-                    break
+                if sys.platform.startswith("win"):
+                    # os.execv is unreliable on Windows when paths contain spaces
+                    # (no real exec syscall — CPython fakes it via unquoted _spawnv)
+                    subprocess.Popen([sys.executable] + sys.argv, close_fds=True)
+                    os._exit(0)   # hard exit; don't run atexit/cleanup twice
+                else:
+                    try:
+                        os.execv(sys.executable, [sys.executable] + sys.argv)
+                    except Exception as e:
+                        log.init_logging()
+                        logger.exception(f"==MAIN== Fatal error when restarting: {e}")
+                        break
                 continue
             elif lifecycle._event == shr.LifecycleEvent.INTERRUPT:
                 logger.info("==MAIN== Interrupt. Exiting.")
