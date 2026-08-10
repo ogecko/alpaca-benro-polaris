@@ -1165,3 +1165,95 @@ def calc_equatorial_axes_B(cameraQ_C2T: Quaternion, alignQ_B2T_inv: Quaternion, 
         dec_axis_B / np.linalg.norm(dec_axis_B),
         pa_axis_B  / np.linalg.norm(pa_axis_B),
     )
+
+
+def calc_pole_axes_B(pole_topo: np.ndarray, cameraQ_C2T: Quaternion, alignQ_B2T_inv: Quaternion):
+    """
+    Generalisation of calc_equatorial_axes_B's geometry to any 'pole' direction.
+
+    Given a pole vector in the topocentric frame (celestial pole, zenith, galactic
+    pole, ...) and the camera's current orientation, returns three orthogonal axes
+    expressed in the Base (motor) frame:
+        pole_axis : rotation that changes 'longitude' about the pole (RA / Az / Gal-l)
+        perp_axis : rotation that changes 'latitude' from the pole   (Dec / Alt / Gal-b)
+        bore_axis : rotation about the boresight itself              (Roll / PA / GPA)
+
+    perp_axis is NOT ambiguous despite depending on only one 'pole' input: it is
+    derived from pole x boresight, i.e. it's the axis that moves the CURRENT
+    boresight directly toward/away from the pole -- identical in spirit to how
+    calc_equatorial_axes_B already derives Dec from the current pointing, not a
+    fixed direction in the sky. Degenerates (returns [1,0,0]) only when the
+    boresight is pointing exactly at the pole, same as the original function.
+    """
+    pole_topo = np.asarray(pole_topo, dtype=float)
+    pole_topo = pole_topo / np.linalg.norm(pole_topo)
+
+    bore_topo = np.array(cameraQ_C2T.rotate([0.0, 0.0, -1.0]))
+
+    perp_topo = np.cross(pole_topo, bore_topo)
+    n = np.linalg.norm(perp_topo)
+    if n < 1e-6:
+        perp_topo = np.array([1.0, 0.0, 0.0])
+    else:
+        perp_topo /= n
+
+    angle = 1e-3
+    c, s = np.cos(angle), np.sin(angle)
+    nudged = (c * bore_topo
+              + s * np.cross(perp_topo, bore_topo)
+              + (1 - c) * np.dot(perp_topo, bore_topo) * perp_topo)
+    if np.dot(nudged, pole_topo) < np.dot(bore_topo, pole_topo):
+        perp_topo = -perp_topo
+
+    pole_B = alignQ_B2T_inv.rotate(pole_topo)
+    perp_B = alignQ_B2T_inv.rotate(perp_topo)
+    bore_B = alignQ_B2T_inv.rotate(bore_topo)
+
+    return (pole_B / np.linalg.norm(pole_B),
+            perp_B / np.linalg.norm(perp_B),
+            bore_B / np.linalg.norm(bore_B))
+
+GALACTIC_POLE_RA_J2000  = 192.85948   # degrees, North Galactic Pole (J2000)
+GALACTIC_POLE_DEC_J2000 = 27.12825    # degrees, North Galactic Pole (J2000)
+
+def calc_galactic_pole_topo(observer_date, lat_deg, lon_deg):
+    """Topocentric unit vector toward the North Galactic Pole. Unlike the
+    celestial pole, this moves through Alt/Az as sidereal time advances
+    (fixed RA/Dec, rotating local frame), so it needs an ephem lookup."""
+    obs = ephem.Observer()
+    obs.lat, obs.long = math.radians(lat_deg), math.radians(lon_deg)
+    obs.date = observer_date
+    body = ephem.FixedBody()
+    body._ra    = math.radians(GALACTIC_POLE_RA_J2000)
+    body._dec   = math.radians(GALACTIC_POLE_DEC_J2000)
+    body._epoch = ephem.J2000
+    body.compute(obs)
+    return azalt_to_vector(math.degrees(float(body.az)), math.degrees(float(body.alt)))
+
+
+def calc_galactic_axes_B(cameraQ_C2T, alignQ_B2T_inv, lat_deg, lon_deg, observer_date):
+    """
+    L/B/GPA axes in Base frame. 'Pole' = North Galactic Pole.
+
+    Sign convention (proven against ephem.Galactic -- see test_pole_axes.py):
+      +l   -> +rotation about l_axis    (same prograde sense as RA -- no negation)
+      +b   -> +rotation about b_axis    (same sense as Dec -- no negation)
+      +gpa -> -rotation about gpa_axis  (same underlying boresight axis as roll/PA;
+                                          gpa_axis is pole-independent and identical
+                                          to roll_axis/pa_axis for the same cameraQ,
+                                          so it inherits their negation -- negation needed)
+    """
+    pole_topo = calc_galactic_pole_topo(observer_date, lat_deg, lon_deg)
+    return calc_pole_axes_B(pole_topo, cameraQ_C2T, alignQ_B2T_inv)
+
+
+
+def calc_topocentric_axes_B(cameraQ_C2T, alignQ_B2T_inv):
+    """
+    Az/Alt/Roll axes in Base frame. 'Pole' = local zenith (time-invariant).
+    Sign convention (proven in tests/test_pole_axes.py):
+        +az   -> -rotation about az_axis    (Az is clockwise; opposite handedness to RA)
+        +alt  -> +rotation about alt_axis
+        +roll -> -rotation about roll_axis  (same vector as pa_axis/gpa_axis)
+    """
+    return calc_pole_axes_B([0.0, 0.0, 1.0], cameraQ_C2T, alignQ_B2T_inv)

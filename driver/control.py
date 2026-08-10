@@ -15,11 +15,12 @@ from shr import rad2deg, deg2rad, deg2dms, format_timestamp, ratio_string
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl, ensure_data_dir_exists
 from kinematics import wrap360, wrap180, calc_parallactic_angle, wrap_angle_residual, wrap_state_angles
-from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams, calc_equatorial_axes_B
+from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma
+from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -1435,6 +1436,8 @@ class SyncManager:
         self.delta_guide_accum = np.zeros(3, dtype=float) 
         self.delta_guide_pulse = np.zeros(3, dtype=float) 
         self.equatorial_axes_B = (None, None, None)
+        self.topocentric_axes_B= (None, None, None)
+        self.galactic_axes_B   = (None, None, None)
         self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)    
         self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
         self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
@@ -2241,10 +2244,14 @@ class SyncManager:
         self.polaris._declination = float(dec)
         self.polaris._ispulseguiding = True
 
-    def cache_equatorial_axes_B(self, cameraQ_pv, lat):
-        """ cache equatorial axes in B Frame, when ever PV changes, ie called from 518 handler """
+    def cache_axes_B(self, cameraQ_pv):
+        """ cache equatorial/topocentric/galactic axes in B Frame, whenever PV changes, ie called from 518 handler """
+        lat = self.polaris._sitelatitude
+        lon = self.polaris._sitelongitude
         alignQ_B2T_inv = self.alignQ_B2T_inv
-        self.equatorial_axes_B = calc_equatorial_axes_B(cameraQ_pv, alignQ_B2T_inv, lat)
+        self.equatorial_axes_B  = calc_equatorial_axes_B(cameraQ_pv, alignQ_B2T_inv, lat)
+        self.topocentric_axes_B = calc_topocentric_axes_B(cameraQ_pv, alignQ_B2T_inv)
+        self.galactic_axes_B    = calc_galactic_axes_B(cameraQ_pv, alignQ_B2T_inv, lat, lon, ephem.now())
 
     def accumulate_guide_pulses(self, axis, step_sec, velocity):
         axis_base = self.equatorial_axes_B[axis]
@@ -2344,7 +2351,7 @@ class SyncManager:
         
         # Update cameraQ_pv based on recalculated QUEST model
         cameraQ_pv, _ = self.baseQ_to_topoQ(self.polaris._motorQ_state)
-        self.cache_equatorial_axes_B(cameraQ_pv, self.polaris._sitelatitude)
+        self.cache_axes_B(cameraQ_pv)
 
         az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
         if v_pred_rot is None:
