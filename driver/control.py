@@ -20,7 +20,7 @@ from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, ca
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma
-from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B
+from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -715,6 +715,7 @@ class PID_Controller():
     def reset_offsets(self, axes=None):
         """Reset alpha/delta_v_sp, _offset, _ref_last for each axes. 
            Where axes is a list from ["ra", "dec", "pa", "alt", "az", "roll"], and defaults to all"""
+        self.reset_gamma_offsets(axes)
         self.reset_delta_offsets(axes)
         self.reset_alpha_offsets(axes)
         self.clear_theta_ref_cache()
@@ -727,6 +728,15 @@ class PID_Controller():
         for key in axes:
             if key in self.axis_v_sp:
                 self.axis_v_sp[key] = 0.0
+
+    def reset_gamma_offsets(self, axes):
+        if axes is None:
+            self.gamma_offst = np.zeros(3, dtype=float)
+            return
+        GAMMA_MAP = {'l': 0, 'b': 1, 'gpa': 2}
+        for key, idx in GAMMA_MAP.items():
+            if key in axes:
+                self.gamma_offst[idx] = 0.0
 
     def reset_delta_offsets(self, axes):
         if axes is None:
@@ -782,49 +792,18 @@ class PID_Controller():
         sign = -1.0 if axis_name in AXIS_NEGATE else 1.0
         return sign * np.radians(rate_dps) * np.array(triad[idx])
 
-    def _axis_v_sp_to_delta_v_sp(self):
-        """Project ALL active jog axes (az/alt/roll/ra/dec/pa/l/b/gpa) onto the
-        equatorial (ra/dec/pa) basis, giving an effective RA/Dec/PA rate. This is
-        what makes ANY jog axis correctly ride along with sidereal OR orbital
-        tracking once released - used in TRACK mode."""
-        ra_axis_B, dec_axis_B, pa_axis_B = self.polaris._sm.equatorial_axes_B
-        if ra_axis_B is None:
-            return np.zeros(3, dtype=float)
+    def _native_alpha_v_sp(self):
+        """az/alt/roll jog rates -- straight passthrough. No AXIS_NEGATE here:
+        that sign only applies when converting into/out of the Base-frame VECTOR
+        representation (see _axis_omega_B). Here axis_v_sp and alpha_offst are
+        both already in native az/alt/roll value-space, so no conversion needed."""
+        return np.array([self.axis_v_sp['az'], self.axis_v_sp['alt'], self.axis_v_sp['roll']])
 
-        omega_total_B = np.zeros(3, dtype=float)
-        for axis_name, rate_dps in self.axis_v_sp.items():
-            if rate_dps == 0.0:
-                continue
-            contrib = self._axis_omega_B(axis_name, rate_dps)   # already-signed, rad/s, Base frame
-            if contrib is not None:
-                omega_total_B += contrib
+    def _native_delta_v_sp(self):
+        return np.array([self.axis_v_sp['ra'], self.axis_v_sp['dec'], self.axis_v_sp['pa']])
 
-        d_ra  = np.degrees(np.dot(omega_total_B, ra_axis_B))
-        d_dec = np.degrees(np.dot(omega_total_B, dec_axis_B))
-        d_pa  = -np.degrees(np.dot(omega_total_B, pa_axis_B))   # PA needs the same negation as roll/gpa
-        return np.array([d_ra, d_dec, d_pa])
-
-    def _axis_v_sp_to_alpha_v_sp(self):
-        """Project ALL active jog axes onto the topocentric (az/alt/roll) basis,
-        giving an effective az/alt/roll rate. Mirrors _axis_v_sp_to_delta_v_sp,
-        but onto topocentric_axes_B instead of equatorial_axes_B -- used in AUTO
-        mode."""
-        az_axis_B, alt_axis_B, roll_axis_B = self.polaris._sm.topocentric_axes_B
-        if az_axis_B is None:
-            return np.zeros(3, dtype=float)
-
-        omega_total_B = np.zeros(3, dtype=float)
-        for axis_name, rate_dps in self.axis_v_sp.items():
-            if rate_dps == 0.0:
-                continue
-            contrib = self._axis_omega_B(axis_name, rate_dps)   # already AXIS_NEGATE-signed, rad/s, Base frame
-            if contrib is not None:
-                omega_total_B += contrib
-
-        d_az   = -np.degrees(np.dot(omega_total_B, az_axis_B))    # az needs the same negation as roll/pa/gpa
-        d_alt  =  np.degrees(np.dot(omega_total_B, alt_axis_B))
-        d_roll = -np.degrees(np.dot(omega_total_B, roll_axis_B))
-        return np.array([d_az, d_alt, d_roll])
+    def _native_gamma_v_sp(self):
+        return np.array([self.axis_v_sp['l'], self.axis_v_sp['b'], self.axis_v_sp['gpa']])
 
     def set_axis_velocities(self, rates: dict):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
@@ -1147,28 +1126,37 @@ class PID_Controller():
             self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
-            jog_delta_v_sp = self._axis_v_sp_to_delta_v_sp()
-            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + jog_delta_v_sp))
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + self._native_delta_v_sp()))
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
             # when in AUTO ignore body, and use the alpha_sp + alpha_offset
             jog_alpha_v_sp = self._axis_v_sp_to_alpha_v_sp()
-            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * (self.alpha_v_sp + jog_alpha_v_sp))
+            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * self._native_alpha_v_sp())
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
 
         elif self.mode == 'TRACK':
-            # update delta_sp based on any non-sidereal tracking (Lunar, Solar, Other)
             self.orbital2delta()
-            # Apply relevant delta slew velocities
-            jog_delta_v_sp = self._axis_v_sp_to_delta_v_sp()
-            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + jog_delta_v_sp))
+            # RA/Dec/PA jog
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + self._native_delta_v_sp()))
+            delta_with_radec_jog = clamp_delta(self.delta_sp + self.delta_offst)
+            # Glat/Glon/GPA jog -- composed on top of RA/Dec/PA jog, via nonlinear gamma<->delta
+            self.gamma_offst = clamp_offset(self.gamma_offst + self.dt * self._native_gamma_v_sp())
+            if np.any(self.gamma_offst):
+                gamma_base = delta_to_gamma(delta_with_radec_jog)
+                delta_from_gamma = gamma_to_delta(gamma_base + self.gamma_offst)
+                delta_ref_final = delta_from_gamma if delta_from_gamma is not None else delta_with_radec_jog
+            else:
+                delta_ref_final = delta_with_radec_jog
             self.delta_ref_last = self.delta_ref
-            self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
+            self.delta_ref = delta_ref_final
             self.delta2body(self.delta_ref)
-            self.alpha_ref = clamp_alpha(self.body2alpha())
-            self.alpha_sp = self.alpha_pv             # in case we switch to AUTO
+            # Az/Alt/Roll jog -- composed in alpha VALUE space, on top of the live
+            # tracked position (this is the piece that got dropped last turn)
+            tracked_alpha = self.body2alpha()
+            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * self._native_alpha_v_sp())
+            self.alpha_ref = clamp_alpha(tracked_alpha + self.alpha_offst)
+            self.alpha_sp = self.alpha_pv        
 
-        
         # Remember cameraQ_ref and last cameraQ_ref for calculating FF
         self.alpha_ref = np.array(reachable_azaltroll(*self.alpha_ref, roll_adj=self.polaris._sm.roll_adj))
         self.gamma_sp = delta_to_gamma(self.delta_ref)
