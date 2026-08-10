@@ -805,6 +805,11 @@ class PID_Controller():
     def _native_gamma_v_sp(self):
         return np.array([self.axis_v_sp['l'], self.axis_v_sp['b'], self.axis_v_sp['gpa']])
 
+    def _has_active_jog(self):
+        return (any(v != 0.0 for v in self.axis_v_sp.values())
+                or np.any(self.alpha_v_sp)
+                or np.any(self.delta_v_sp))
+
     def set_axis_velocities(self, rates: dict):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
@@ -1126,11 +1131,16 @@ class PID_Controller():
             self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
-            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + self._native_delta_v_sp()))
+            # delta_v_sp / ra,dec,pa,l,b,gpa jog can never be active here --
+            # set_delta_axis_velocity and set_axis_velocities (is_sky_axis check)
+            # both force a promotion to TRACK the moment any sky-relative axis is
+            # jogged. This block never influences alpha_ref (built below from
+            # alpha_sp + alpha_offst); kept only for self.body/body_pa_offset side
+            # effects -- see note below.
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * self.delta_v_sp)
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
-            # when in AUTO ignore body, and use the alpha_sp + alpha_offset
-            jog_alpha_v_sp = self._axis_v_sp_to_alpha_v_sp()
+            # az/alt/roll jog -- native offset passthrough
             self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * self._native_alpha_v_sp())
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
 
@@ -1440,9 +1450,6 @@ class PID_Controller():
         # send control to motor when moving
         if self.is_moving and self.mode in ['AUTO', 'TRACK', 'HOMING', 'PARKING']:
             for axis in range(3):
-                # if Config.log_polaris_ble and axis==1:
-                #     q = self.polaris._q1
-                #     self.logger.info(f"Motor 2 omega_meas1-3: {self.polaris._omega_raw[0]:+.5f} {self.polaris._omega_raw[1]:+.5f} {self.polaris._omega_raw[2]:+.5f}, t_meas: {self.theta_meas[1]:.4f}, t_ref: {self.theta_ref[1]:.4f}, kp: {self.omega_kp[1]:.4f}, ki: {self.omega_ki[1]:.4f}, kd: {self.omega_kd[1]:.4f}, ff: {self.omega_ff[1]:.4f}, op: {self.omega_op[1]:.4f}")
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
         # If we have goto timeout or stopped moving; while  in AUTO, HOMING or PARKING, go to IDLE
         if (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']:
@@ -1450,6 +1457,13 @@ class PID_Controller():
             self.was_moving = True
             self.is_moving = False
             self.time_goto = None
+        # If in PID TRACK mode but polaris is not tracking (ie promoted by jog), demote to IDLE when jog stops
+        if self.mode == 'TRACK' and not self.polaris._tracking and not self._has_active_jog():
+            self.set_pid_mode('IDLE')
+            self.reset_sp()
+            self.was_moving = True
+            self.is_moving = False
+            self.time_goto = None            
         # Stop motors when transitioning from moving to stopped
         if self.was_moving and not self.is_moving:
             for axis in range(3):
