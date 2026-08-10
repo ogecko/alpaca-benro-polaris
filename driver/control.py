@@ -1124,8 +1124,7 @@ class PID_Controller():
                     SIDEREAL_RATE_RAD_S = 7.292115855e-5  # Earth's sidereal rotation rate, rad/s (2π / 86164.0905 s)
                     ra_axis_B = self.polaris._sm.equatorial_axes_B[0]
                     q_delta = Quaternion(axis=ra_axis_B, radians= -SIDEREAL_RATE_RAD_S * self.dt)
-                    cameraQ_ref_predicted = q_delta * self.cameraQ_ref
-                    motorQ_next = self.polaris._sm.topoQ_to_baseQ(cameraQ_ref_predicted)
+                    motorQ_next = q_delta * motorQ_now
                     omega_base = calculate_angular_velocity_vector(motorQ_now, motorQ_next, self.dt)
                 else:
                     # Lunar/solar/orbital: rate isn't fixed, keep the measured delta.
