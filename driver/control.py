@@ -1116,10 +1116,21 @@ class PID_Controller():
         self.omega_ff = np.zeros(3, dtype=float)
         if self.mode == "TRACK":
             if self.dt > 0 and self.polaris._tracking:
-                # Desired angular velocity vector based on change in cameraQ_ref
                 motorQ_now  = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref)
-                motorQ_last = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref_last)
-                omega_base = calculate_angular_velocity_vector(motorQ_last, motorQ_now, self.dt)
+                if self.polaris._trackingrate == 0:
+                    # Sidereal: rotate cameraQ_ref forward by the exact sidereal
+                    # rate about the topocentric pole vector, instead of
+                    # finite-differencing cameraQ_ref/cameraQ_ref_last.
+                    SIDEREAL_RATE_RAD_S = 7.292115855e-5  # Earth's sidereal rotation rate, rad/s (2π / 86164.0905 s)
+                    ra_axis_B = self.polaris._sm.equatorial_axes_B[0]
+                    q_delta = Quaternion(axis=ra_axis_B, radians= -SIDEREAL_RATE_RAD_S * self.dt)
+                    cameraQ_ref_predicted = q_delta * self.cameraQ_ref
+                    motorQ_next = self.polaris._sm.topoQ_to_baseQ(cameraQ_ref_predicted)
+                    omega_base = calculate_angular_velocity_vector(motorQ_now, motorQ_next, self.dt)
+                else:
+                    # Lunar/solar/orbital: rate isn't fixed, keep the measured delta.
+                    motorQ_last = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref_last)
+                    omega_base = calculate_angular_velocity_vector(motorQ_last, motorQ_now, self.dt)
                 # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
                 J = theta_to_jacobian(*self.theta_pv)
                 # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
