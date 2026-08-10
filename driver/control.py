@@ -826,12 +826,12 @@ class PID_Controller():
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         if self.mode=='AUTO':
-            track_target = self.alpha_ref.copy()
+            alpha_target = self.alpha_ref.copy()
         else:
-            track_target = self.alpha_pv.copy()
+            alpha_target = self.alpha_pv.copy()
         self.reset_offsets()
-        self.alpha_sp = track_target
-        self.alpha2body(track_target)
+        self.alpha_sp = alpha_target
+        self.alpha2body(alpha_target)
         self.delta_sp = self.body2delta()
         self.set_pid_mode('TRACK')
     
