@@ -378,7 +378,7 @@ async function onClickMove(e: { label: string, rateScale: number}) {
   if (!Object.keys(axisMap).includes(e.label)) return
   const axis = axisMap[e.label as AxisLabel] ?? -1
   const rate = (axis!=3) ? (e.rateScale / 200)*9 : (e.rateScale / 12)*9
-  if (axis>=0 && axis<=5) {
+  if (axis>=0 && axis<=8) {
     await dev.apiAction('Polaris:MoveAxis', `{"axis":${axis},"rate":${rate}}`)
   }
   //   // const result = await dev.alpacaMoveAxis(axis, rate)

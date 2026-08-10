@@ -610,7 +610,23 @@ class MoveAxisMessenger:
 ########################## 
 #  PID CONTROL STRATEGY  #
 ########################## 
+SIDEREAL_RATE_RAD_S = 7.292115855e-5  # rad/s
 
+AXIS_MAP = {
+    'az':   ('topocentric_axes_B', 0),
+    'alt':  ('topocentric_axes_B', 1),
+    'roll': ('topocentric_axes_B', 2),
+    'ra':   ('equatorial_axes_B',  0),
+    'dec':  ('equatorial_axes_B',  1),
+    'pa':   ('equatorial_axes_B',  2),
+    'l':    ('galactic_axes_B',    0),
+    'b':    ('galactic_axes_B',    1),
+    'gpa':  ('galactic_axes_B',    2),
+}
+
+# Axes whose positive direction is OPPOSITE a positive rotation about the
+# vector returned by calc_pole_axes_B (proven in tests/test_pole_axes.py).
+AXIS_NEGATE = {'az', 'roll', 'pa', 'gpa'}
 
 class PID_Controller():
     def __init__(self, logger, polaris, dt=0.2, loop=None):
@@ -631,6 +647,7 @@ class PID_Controller():
         self.orbital_sp_name = None                    # name of pyephem body tracking for Lunar, Solar, Custom rates
         self.orbital_sp_fetchmsg  = None               # result msg from last http fetch of orbital parameters
         self.orbital_sp_status = [0, 0, 0]             # status of orbital tracking [is_orb_trackable (0=N/A, 1=toolow, 2=ok), orb_az, orb_alt]
+        self.axis_v_sp = {k: 0.0 for k in AXIS_MAP}    # deg/sec jog rate per named axis in AXIS_MAP
         self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, pa   - user set target equatorial co-ordinates
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll - user set target topocentric co-ordinates
@@ -701,6 +718,15 @@ class PID_Controller():
         self.reset_delta_offsets(axes)
         self.reset_alpha_offsets(axes)
         self.clear_theta_ref_cache()
+        self.reset_axis_velocities(axes)
+
+    def reset_axis_velocities(self, axes=None):
+        if axes is None:
+            self.axis_v_sp = {k: 0.0 for k in AXIS_MAP}
+            return
+        for key in axes:
+            if key in self.axis_v_sp:
+                self.axis_v_sp[key] = 0.0
 
     def reset_delta_offsets(self, axes):
         if axes is None:
@@ -740,6 +766,77 @@ class PID_Controller():
         self.alpha_sp = self.alpha_pv                  
         self.reset_offsets() 
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+
+
+    def _axis_omega_B(self, axis_name, rate_dps):
+        """rate_dps of angular velocity about axis_name, in Base-frame rad/sec,
+        with AXIS_NEGATE sign applied. Pure vector output -- fed straight into
+        the Jacobian, never composed onto a quaternion here, so this can never
+        carry the topo/base frame-mismatch bug we found in the sidereal term."""
+        triad_attr, idx = AXIS_MAP.get(axis_name, (None, None))
+        if triad_attr is None:
+            return None
+        triad = getattr(self.polaris._sm, triad_attr, None)
+        if triad is None or triad[idx] is None:
+            return None
+        sign = -1.0 if axis_name in AXIS_NEGATE else 1.0
+        return sign * np.radians(rate_dps) * np.array(triad[idx])
+
+    def _axis_v_sp_to_delta_v_sp(self):
+        """Project ALL active jog axes (az/alt/roll/ra/dec/pa/l/b/gpa) onto the
+        equatorial (ra/dec/pa) basis, giving an effective RA/Dec/PA rate. This is
+        what makes ANY jog axis correctly ride along with sidereal OR orbital
+        tracking once released - used in TRACK mode."""
+        ra_axis_B, dec_axis_B, pa_axis_B = self.polaris._sm.equatorial_axes_B
+        if ra_axis_B is None:
+            return np.zeros(3, dtype=float)
+
+        omega_total_B = np.zeros(3, dtype=float)
+        for axis_name, rate_dps in self.axis_v_sp.items():
+            if rate_dps == 0.0:
+                continue
+            contrib = self._axis_omega_B(axis_name, rate_dps)   # already-signed, rad/s, Base frame
+            if contrib is not None:
+                omega_total_B += contrib
+
+        d_ra  = np.degrees(np.dot(omega_total_B, ra_axis_B))
+        d_dec = np.degrees(np.dot(omega_total_B, dec_axis_B))
+        d_pa  = -np.degrees(np.dot(omega_total_B, pa_axis_B))   # PA needs the same negation as roll/gpa
+        return np.array([d_ra, d_dec, d_pa])
+
+    def _axis_v_sp_to_alpha_v_sp(self):
+        """Project ALL active jog axes onto the topocentric (az/alt/roll) basis,
+        giving an effective az/alt/roll rate. Mirrors _axis_v_sp_to_delta_v_sp,
+        but onto topocentric_axes_B instead of equatorial_axes_B -- used in AUTO
+        mode."""
+        az_axis_B, alt_axis_B, roll_axis_B = self.polaris._sm.topocentric_axes_B
+        if az_axis_B is None:
+            return np.zeros(3, dtype=float)
+
+        omega_total_B = np.zeros(3, dtype=float)
+        for axis_name, rate_dps in self.axis_v_sp.items():
+            if rate_dps == 0.0:
+                continue
+            contrib = self._axis_omega_B(axis_name, rate_dps)   # already AXIS_NEGATE-signed, rad/s, Base frame
+            if contrib is not None:
+                omega_total_B += contrib
+
+        d_az   = -np.degrees(np.dot(omega_total_B, az_axis_B))    # az needs the same negation as roll/pa/gpa
+        d_alt  =  np.degrees(np.dot(omega_total_B, alt_axis_B))
+        d_roll = -np.degrees(np.dot(omega_total_B, roll_axis_B))
+        return np.array([d_az, d_alt, d_roll])
+
+    def set_axis_velocities(self, rates: dict):
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
+            return
+        for k, v in rates.items():
+            if k in self.axis_v_sp:
+                self.axis_v_sp[k] = float(v)
+        is_sky_axis = any(self.axis_v_sp[k] != 0.0 for k in ('ra', 'dec', 'pa', 'l', 'b', 'gpa'))
+        if self.mode == 'IDLE':
+            self.set_pid_mode('TRACK' if is_sky_axis else 'AUTO')
+        elif self.mode == 'AUTO' and is_sky_axis:
+            self.set_pid_mode('TRACK')
 
     def body_pa(self):
         return wrap180(0.0 - rad2deg(self.body.parallactic_angle()))
@@ -1050,19 +1147,21 @@ class PID_Controller():
             self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
-            self.delta_offst = clamp_offset(self.delta_offst + self.dt * self.delta_v_sp)
+            jog_delta_v_sp = self._axis_v_sp_to_delta_v_sp()
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + jog_delta_v_sp))
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
             # when in AUTO ignore body, and use the alpha_sp + alpha_offset
-            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * self.alpha_v_sp)
+            jog_alpha_v_sp = self._axis_v_sp_to_alpha_v_sp()
+            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * (self.alpha_v_sp + jog_alpha_v_sp))
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
 
         elif self.mode == 'TRACK':
             # update delta_sp based on any non-sidereal tracking (Lunar, Solar, Other)
             self.orbital2delta()
-
             # Apply relevant delta slew velocities
-            self.delta_offst = clamp_offset(self.delta_offst + self.dt * self.delta_v_sp)
+            jog_delta_v_sp = self._axis_v_sp_to_delta_v_sp()
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + jog_delta_v_sp))
             self.delta_ref_last = self.delta_ref
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
@@ -1088,6 +1187,23 @@ class PID_Controller():
         
         # IK from the stepped alpha
         motorQ_ref   = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
+
+        # Apply any jog contributions (in Base frame) to the motorQ_ref
+        if self.dt > 0 and any(v != 0.0 for v in self.axis_v_sp.values()):
+            q_jog = Quaternion(1, 0, 0, 0)
+            for axis_name, rate_dps in self.axis_v_sp.items():
+                if rate_dps == 0.0:
+                    continue
+                triad_attr, idx = AXIS_MAP[axis_name]
+                triad = getattr(self.polaris._sm, triad_attr, None)
+                if triad is None or triad[idx] is None:
+                    continue
+                sign = -1.0 if axis_name in AXIS_NEGATE else 1.0
+                # composed onto motorQ_ref -- Base frame axis onto Base frame
+                # quaternion, matching the pattern verified in feed_forward
+                q_jog = Quaternion(axis=triad[idx], degrees=sign * rate_dps * self.dt) * q_jog
+            motorQ_ref = (q_jog * motorQ_ref).normalised
+
         self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
 
 
@@ -1110,38 +1226,62 @@ class PID_Controller():
         self.time_meas = self.time_meas + self.dt
 
     def feed_forward(self):
-        # inhibit FF after any step SP change.
         if self.ff_inhibit_ticks > 0:
             self.ff_inhibit_ticks -= 1
             return
         self.omega_ff = np.zeros(3, dtype=float)
-        if self.mode == "TRACK":
-            if self.dt > 0 and self.polaris._tracking:
-                motorQ_now  = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref)
+        have_jog = any(v != 0.0 for v in self.axis_v_sp.values())
+
+        if self.mode == "TRACK" and self.dt > 0:
+            # Sidereal or orbital tracking
+            omega_base = np.zeros(3, dtype=float)
+            if self.polaris._tracking:
+                motorQ_now = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref)
                 if self.polaris._trackingrate == 0:
-                    # Sidereal: rotate cameraQ_ref forward by the exact sidereal
-                    # rate about the topocentric pole vector, instead of
-                    # finite-differencing cameraQ_ref/cameraQ_ref_last.
-                    SIDEREAL_RATE_RAD_S = 7.292115855e-5  # Earth's sidereal rotation rate, rad/s (2π / 86164.0905 s)
+                    # Sidereal: entirely Base frame -- q_delta applied directly to
+                    # motorQ_now, NEVER to cameraQ_ref (that mixing was the bug:
+                    # invisible at identity alignment, catastrophic otherwise --
+                    # see tests/test_sidereal_ff_regression.py).
                     ra_axis_B = self.polaris._sm.equatorial_axes_B[0]
-                    q_delta = Quaternion(axis=ra_axis_B, radians= -SIDEREAL_RATE_RAD_S * self.dt)
-                    motorQ_next = q_delta * motorQ_now
-                    omega_base = calculate_angular_velocity_vector(motorQ_now, motorQ_next, self.dt)
+                    if ra_axis_B is not None:
+                        q_delta = Quaternion(axis=ra_axis_B, radians=-SIDEREAL_RATE_RAD_S * self.dt)
+                        motorQ_next = q_delta * motorQ_now
+                        omega_base += calculate_angular_velocity_vector(motorQ_now, motorQ_next, self.dt)
                 else:
-                    # Lunar/solar/orbital: rate isn't fixed, keep the measured delta.
                     motorQ_last = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref_last)
-                    omega_base = calculate_angular_velocity_vector(motorQ_last, motorQ_now, self.dt)
-                # Compute Jacobian (converts joint rates into physical motion) ie ω = J(θ) · θ_dot
+                    omega_base += calculate_angular_velocity_vector(motorQ_last, motorQ_now, self.dt)
+
+            # Add any jog contributions (in Base frame) to the feedforward
+            for axis_name, rate_dps in self.axis_v_sp.items():
+                if rate_dps == 0.0:
+                    continue
+                contrib = self._axis_omega_B(axis_name, rate_dps)
+                if contrib is not None:
+                    omega_base += contrib
+
+            # If any Base-frame angular velocity is non-zero, convert to theta_dot via the Jacobian
+            if np.any(omega_base):
                 J = theta_to_jacobian(*self.theta_pv)
-                # Solve inverse Jacobian to calc joint rates for given physical motion ie omega_ff = θ_dot = J⁻¹ ω
                 theta_dot = np.linalg.solve(J, omega_base)
                 self.omega_ff = np.degrees(theta_dot)
-                # for non sidereal tracking,  ensure M3 ff is zero
-                if self.polaris._trackingrate != 0: 
-                    self.omega_ff[2] = 0                                 
-        # Feed forward slew velocities when in auto mode
+                if self.polaris._trackingrate != 0:
+                    self.omega_ff[2] = 0
+
         elif self.mode == "AUTO":
-            self.omega_ff = self.alpha_v_sp
+            if have_jog:
+                omega_base = np.zeros(3, dtype=float)
+                for axis_name, rate_dps in self.axis_v_sp.items():
+                    if rate_dps == 0.0:
+                        continue
+                    contrib = self._axis_omega_B(axis_name, rate_dps)
+                    if contrib is not None:
+                        omega_base += contrib
+                if np.any(omega_base):
+                    J = theta_to_jacobian(*self.theta_pv)
+                    theta_dot = np.linalg.solve(J, omega_base)
+                    self.omega_ff = np.degrees(theta_dot)
+            else:
+                self.omega_ff = self.alpha_v_sp   # unchanged legacy path
 
         # PEC contribution — independent of ff_inhibit gating (that's for setpoint-
         # change transients, unrelated to PEC), added as its own velocity term.
@@ -1221,7 +1361,8 @@ class PID_Controller():
         # calc cost signal and flags
         self.is_deviating = np.any(self.is_axis_deviating)
         self.cost_signal = np.sum(self.error_signal ** 2)
-        self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
+        self.is_slewing = (np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
+                           or any(v != 0.0 for v in self.axis_v_sp.values()))
         self.was_moving = self.is_moving
         self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
 

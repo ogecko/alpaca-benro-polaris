@@ -47,7 +47,7 @@ from log import update_log_level
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, calculate_angular_velocity
-from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
+from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache
 
@@ -2123,20 +2123,22 @@ class Polaris:
 
     async def move_axis(self, axis:int, rate:float, units="ASCOM"):
         # axis 0,1,2 = Az,Alt,Roll (alpha space)
-        # axis 3,4,5 = RA,Dec,PA (delta space) — maps to motor 0,1,2 via % 3
-        # axis 6,7,8 = GLon, GLat, GPA - no move available
+        # axis 3,4,5 = RA,Dec,PA (delta space) 
+        # axis 6,7,8 = GLon, GLat, GPA (gamma space)
+        AXIS_INT_TO_NAME = {0: 'az', 1: 'alt', 2: 'roll', 3: 'ra', 4: 'dec', 5: 'pa', 6: 'l', 7: 'b', 8: 'gpa'}
         self._sm.clear_sync_guiding()
-        if axis not in (0, 1, 2, 3, 4, 5):
+        if axis not in (0, 1, 2, 3, 4, 5, 6, 7, 8):
             return
         motor = self._motors[axis % 3]
         if Config.advanced_control and Config.advanced_slewing:
-            # if tracking is enabled then we must slew RA/Dec/PA
-            if self.tracking and axis<3:
-                axis = axis + 3
+            # # if tracking is enabled then we must slew RA/Dec/PA
+            # if self.tracking and axis<3:
+            #     axis = axis + 3
             raw = motor._model.interpolate[units].toRAW(rate)
             dps = motor._model.interpolate["RAW"].toDPS(raw)
             self.markSlewAsUnderway()
-            self._pid.set_alpha_axis_velocity(axis % 3, dps) if axis<3 else self._pid.set_delta_axis_velocity(axis % 3, dps)
+            axis_name = AXIS_INT_TO_NAME[axis]
+            await self.move_axis_v2({axis_name: dps}, units="DPS")
             self._pid.set_slew_complete_callback(self.markSlewAsComplete)
         else:
             self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {rate} Units {units}")
@@ -2145,6 +2147,39 @@ class Polaris:
                 self._slewing = any(self._axis_ASCOM_slewing_rates)
             if not (self._tracking and Config.advanced_control and Config.advanced_tracking):
                 await motor.set_motor_speed(rate, units)
+
+    async def move_axis_v2(self, rates: dict, units: str = "DPS"):
+        """
+        Continuous-velocity jog across any of: az, alt, roll, ra, dec, pa, l, b, gpa
+        (degrees/sec). Feeds PID_Controller.feed_forward's analytic velocity path
+        (axis_v_sp), entirely in Base frame -- see AXIS_MAP/_axis_omega_B and the
+        sidereal-frame regression tests for why that matters.
+        Requires advanced_control + advanced_slewing.
+        """
+        self._sm.clear_sync_guiding()
+        VALID = set(AXIS_MAP)
+        unknown = set(rates) - VALID
+        if unknown:
+            self.logger.warning(f"move_axis_v2: ignoring unknown axes {unknown}")
+            rates = {k: v for k, v in rates.items() if k in VALID}
+
+        if not (Config.advanced_control and Config.advanced_slewing):
+            self.logger.warning("move_axis_v2 requires advanced_control + advanced_slewing")
+            return
+
+        TOPO_AXIS_MOTOR = {'az': 0, 'alt': 1, 'roll': 2}
+        dps_rates = {}
+        for axis, rate in rates.items():
+            if axis in TOPO_AXIS_MOTOR and units != "DPS":
+                motor = self._motors[TOPO_AXIS_MOTOR[axis]]
+                raw = motor._model.interpolate[units].toRAW(rate)
+                dps_rates[axis] = float(motor._model.interpolate['RAW'].toDPS(raw))
+            else:
+                dps_rates[axis] = float(rate)
+
+        self.markSlewAsUnderway()
+        self._pid.set_axis_velocities(dps_rates)
+        self._pid.set_slew_complete_callback(self.markSlewAsComplete)
 
     def slew_axis(self, coords: dict, relative: bool = False) -> None:
         """
