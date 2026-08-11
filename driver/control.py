@@ -726,7 +726,6 @@ class PID_Controller():
         self.reset_alpha_offsets(axes)
         self.clear_theta_ref_cache()
         self.reset_axis_velocities(axes)
-        self.reset_axis_offsets(axes)
 
     def reset_axis_velocities(self, axes=None):
         if axes is None:
@@ -735,15 +734,6 @@ class PID_Controller():
         for key in axes:
             if key in self.axis_v_sp:
                 self.axis_v_sp[key] = 0.0
-
-    def reset_axis_offsets(self, axes=None):
-        if axes is None:
-            self.axis_offst = {k: 0.0 for k in AXIS_MAP}
-            self._jog_was_active = {'alpha': False, 'delta': False, 'gamma': False}
-        else:
-            for key in axes:
-                if key in self.axis_offst:
-                    self.axis_offst[key] = 0.0
 
     def reset_gamma_offsets(self, axes):
         if axes is None:
@@ -806,35 +796,18 @@ class PID_Controller():
         sign = -1.0 if axis_name in AXIS_NEGATE else 1.0
         return sign * np.radians(rate_dps) * np.array(triad[idx])
 
-    def _family_v_sp(self, family):
-        return np.array([self.axis_v_sp[k] for k in FAMILY_AXES[family]])
+    def _native_alpha_v_sp(self):
+        """az/alt/roll jog rates -- straight passthrough. No AXIS_NEGATE here:
+        that sign only applies when converting into/out of the Base-frame VECTOR
+        representation (see _axis_omega_B). Here axis_v_sp and alpha_offst are
+        both already in native az/alt/roll value-space, so no conversion needed."""
+        return np.array([self.axis_v_sp['az'], self.axis_v_sp['alt'], self.axis_v_sp['roll']])
 
-    def _family_offst(self, family):
-        return np.array([self.axis_offst[k] for k in FAMILY_AXES[family]])
+    def _native_delta_v_sp(self):
+        return np.array([self.axis_v_sp['ra'], self.axis_v_sp['dec'], self.axis_v_sp['pa']])
 
-    def _set_family_offst(self, family, values):
-        for k, v in zip(FAMILY_AXES[family], values):
-            self.axis_offst[k] = float(v)
-
-    def _update_offset(self, family, pv, target):
-        """
-        Advance axis_offst for one family (alpha/delta/gamma) by this tick's jog
-        velocity. On the tick jog releases (active last tick, not this), snaps
-        the offset first so target+offset == pv exactly -- eliminates the
-        accel-limited catch-up gap without discarding wherever the jog got to.
-        """
-        v_sp = self._family_v_sp(family)
-        was_active = self._jog_was_active[family]
-        is_active = np.any(v_sp != 0.0)
-
-        offst = self._family_offst(family)
-        if was_active and not is_active:
-            offst = clamp_offset(pv - target)
-        offst = clamp_offset(offst + self.dt * v_sp)
-
-        self._set_family_offst(family, offst)
-        self._jog_was_active[family] = is_active
-        return offst
+    def _native_gamma_v_sp(self):
+        return np.array([self.axis_v_sp['l'], self.axis_v_sp['b'], self.axis_v_sp['gpa']])
 
     def _has_active_jog(self):
         return (any(v != 0.0 for v in self.axis_v_sp.values())
@@ -1018,12 +991,21 @@ class PID_Controller():
             self.set_pid_mode('TRACK')
     
     def set_pano_offset(self, offsets):
+        dictmap = {
+            'ra': (self.delta_offst, 0),
+            'dec': (self.delta_offst, 1),
+            'pa': (self.delta_offst, 2),
+            'az': (self.alpha_offst, 0),
+            'alt': (self.alpha_offst, 1),
+            'roll': (self.alpha_offst, 2),
+        }
         for key, val in offsets.items():
-            if key in self.axis_offst:
-                self.axis_offst[key] = 0.0 if val == 0 else self.axis_offst[key] + val
+            if key in dictmap:
+                arr, idx = dictmap[key]
+                arr[idx] = 0.0 if val == 0 else arr[idx] + val
             else:
                 self.logger.info(f'PanoOffset key "{key}":{val} is invalid')
-        if self.mode == "IDLE":
+        if self.mode=="IDLE":
             self.set_pid_mode("AUTO")
 
     def set_zeta_ref_to_home(self):
@@ -1153,39 +1135,33 @@ class PID_Controller():
             self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
-            # delta_v_sp / ra,dec,pa,l,b,gpa jog can never be active here --
-            # set_delta_axis_velocity and set_axis_velocities (is_sky_axis check)
-            # both force a promotion to TRACK the moment any sky-relative axis is
-            # jogged. This block never influences alpha_ref (built below from
-            # alpha_sp + alpha_offst); kept only for self.body/body_pa_offset side
-            # effects -- see note below.
-            self.delta_offst = self._update_offset('delta', pv=self.delta_pv, target=clamp_delta(self.delta_sp))
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + self._native_delta_v_sp()))
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
             # az/alt/roll jog -- native offset passthrough
-            self.alpha_offst = self._update_offset('alpha', pv=self.alpha_pv, target=self.alpha_sp)
+            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * self._native_alpha_v_sp())
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
             
         elif self.mode == 'TRACK':
             self.orbital2delta()
-            # RA/Dec/PA jog
-            self.delta_offst = self._update_offset('delta', pv=self.delta_pv, target=clamp_delta(self.delta_sp))
-            delta_with_radec_jog = clamp_delta(self.delta_sp + self.delta_offst)
-            # Glat/Glon/GPA jog -- composed on top of RA/Dec/PA jog, via nonlinear gamma<->delta
-            self.gamma_offst = self._update_offset('gamma', pv=delta_to_gamma(self.delta_pv), target=delta_to_gamma(delta_with_radec_jog))
+
+            # Glat/Glon/GPA jog
+            delta_sp_clamped = clamp_delta(self.delta_sp)
+            self.gamma_offst = clamp_offset(self.gamma_offst + self.dt * self._native_gamma_v_sp())
             if np.any(self.gamma_offst):
-                gamma_base = delta_to_gamma(delta_with_radec_jog)
-                delta_from_gamma = gamma_to_delta(gamma_base + self.gamma_offst)
-                delta_ref_final = delta_from_gamma if delta_from_gamma is not None else delta_with_radec_jog
+                gamma_base_sp = delta_to_gamma(delta_sp_clamped)
+                delta_from_gamma = gamma_to_delta(gamma_base_sp + self.gamma_offst)
+                delta_with_gamma_jog = delta_from_gamma if delta_from_gamma is not None else delta_sp_clamped
             else:
-                delta_ref_final = delta_with_radec_jog
-            # Store into body
+                delta_with_gamma_jog = delta_sp_clamped
+            # RA/Dec/PA jog
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + self._native_delta_v_sp()))
             self.delta_ref_last = self.delta_ref
-            self.delta_ref = delta_ref_final
+            self.delta_ref = clamp_delta(delta_with_gamma_jog + self.delta_offst)
             self.delta2body(self.delta_ref)
-            # Az/Alt/Roll jog -- composed in alpha VALUE space, on top of the live
+            # Az/Alt/Roll jog 
             tracked_alpha = self.body2alpha()
-            self.alpha_offst = self._update_offset('alpha', pv=self.alpha_pv, target=tracked_alpha)
+            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * self._native_alpha_v_sp())
             self.alpha_ref = clamp_alpha(tracked_alpha + self.alpha_offst)
             self.alpha_sp = self.alpha_pv
 
