@@ -1367,26 +1367,23 @@ class PID_Controller():
     def errintegral(self):
         # setup some constants for calcs below
         Ki = np.array(Config.pid_Ki, dtype=float) 
-        Kd = np.array(Config.pid_Kd, dtype=float)
-        integration_rate_limit = 1/60                                                            # max deg per sec for the integration component
+        integration_rate_limit = 1/60                                                         # max deg per sec for the integration component
         self.is_axis_preloading = np.abs(self.error_signal) > integration_rate_limit * 1      # preload when greater than integration limit over 1 sec
-        i_limit = np.where(Ki != 0, integration_rate_limit / Ki, 0)    # limit integral rate / Ki
+        i_limit = np.where(Ki != 0, integration_rate_limit / Ki, 0)                           # limit integral rate / Ki
 
-        # calc the integral error if tracking or slewing
-        if self.mode=='TRACK' or self.is_slewing:
-            # Preload to cancel derivative term: omega_kd = -Kd * omega_op, or use last integral value
-            preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
-            preload_masked = np.where(self.is_axis_preloading, preload, self.error_integral)
+        # calc the integral error if tracking 
+        if self.mode=='TRACK':
             now = time.monotonic()
             no_recent_syncguide = (self.polaris._sm._sync_guide_last_time is None)   or (now - self.polaris._sm._sync_guide_last_time > 3.0)
             no_recent_pulseguide = now > np.max(self.polaris._sm._pulse_guide_end_time)
+            not_jogging = not self._has_active_jog()
             # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
             can_integrate = np.logical_or(
                 np.logical_and(self.omega_tgt >= self.omega_min, self.omega_tgt <= self.omega_max),
                 np.sign(self.error_signal) != np.sign(self.omega_tgt)
-            )  & no_recent_syncguide & no_recent_pulseguide
+            )  & no_recent_syncguide & no_recent_pulseguide & not_jogging
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
-            updated_integral = preload_masked + delta_integral * self.dt
+            updated_integral = self.error_integral + delta_integral * self.dt
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
             if self.polaris._trackingrate != 0: 
                 self.error_integral[2] = 0                                 # for non sidereal tracking,  ensure M3 integral is zero
@@ -1398,7 +1395,8 @@ class PID_Controller():
         self.omega_kp = np.array(Config.pid_Kp, dtype=float) * self.error_signal    # increase control proportional to error
         self.omega_ki = np.array(Config.pid_Ki, dtype=float) * self.error_integral  # increase control when integral error is high
         self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * self.omega_op      # dampen control when velocity high
-        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff + self.omega_pec
+        self.omega_kd_ff = np.array(Config.pid_Kd, dtype=float) * self.omega_ff     # cancels omega_kd's steady-state bias 
+        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_kd_ff + self.omega_ff + self.omega_pec
 
     def constrain(self):
         self.set_Ka_array(Config.pid_Ka) 
