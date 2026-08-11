@@ -1132,7 +1132,6 @@ class PID_Controller():
         elif self.mode in ['IDLE']:
             if (self.alpha_ref[0]==0):                       # only reset sp in special case
                 self.reset_sp()
-            self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
             self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + self._native_delta_v_sp()))
