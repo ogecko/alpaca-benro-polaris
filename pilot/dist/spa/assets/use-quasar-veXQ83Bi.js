@@ -1,0 +1,1 @@
+import{E as e}from"./create-DDVPkVBM.js";function t(){return e(`_q_`)}export{t};
