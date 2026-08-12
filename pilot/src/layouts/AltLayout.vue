@@ -140,6 +140,9 @@ import { useRouter, useRoute,  } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useConfigStore } from 'src/stores/config'
 import { useStreamStore } from 'src/stores/stream'
+import { useActionRegistry } from 'src/composables/useActionRegistry'
+import { useKeyMap } from 'src/composables/useKeyMap'
+import { useKeyHandler } from 'src/composables/useKeyHandler'
 import { debounce } from 'quasar'
 import { useCatalogStore } from 'src/stores/catalog'
 import { useVersionWatch } from 'src/composables/useVersionWatch'
@@ -156,6 +159,9 @@ const vw = useVersionWatch()
 const router = useRouter()
 const route = useRoute()
 const cat = useCatalogStore()
+const registry = useActionRegistry()
+const keymap = useKeyMap()
+const keyHandler = useKeyHandler(registry, keymap.current)
 
 const isFullscreen = ref(false)
 const leftDrawerOpen = ref(false)
@@ -202,6 +208,7 @@ onMounted(() => {
 onUnmounted(() => {
   socket.unsubscribe('status')
   socket.disconnectSocket()
+  keyHandler.releaseAll()
 })
 
 watch(
