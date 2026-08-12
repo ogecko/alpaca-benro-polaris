@@ -165,6 +165,10 @@ export function useActionRegistry(): ActionRegistry {
         type: 'trigger',
         onFire: async () => { await router.push('/sync'); },
       },
+      pidTuning: {
+        type: 'trigger',
+        onFire: async () => { await router.push('/pidall'); },
+      },
       log: {
         type: 'trigger',
         onFire: async () => { await router.push({ path: '/log' }); },
@@ -180,6 +184,14 @@ export function useActionRegistry(): ActionRegistry {
       moons: {
         type: 'trigger',
         onFire: async () => { await router.push({ path: '/catalog', query: { C1:5 } }); },
+      },
+      planets: {
+        type: 'trigger',
+        onFire: async () => { await router.push({ path: '/catalog', query: { C1:4 } }); },
+      },
+      skyConditions: {
+        type: 'trigger',
+        onFire: async () => { await router.push({ path: '/catalog', query: { C1:11 } }); },
       },
       togglePEC: {
         type: 'trigger',
