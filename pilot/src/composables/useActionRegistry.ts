@@ -1,6 +1,7 @@
 import type { ActionRegistry } from './types';
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
+import { useUIStore } from 'src/stores/ui'
 
 let registry: ActionRegistry | null = null;
 
@@ -21,6 +22,7 @@ export function useActionRegistry(): ActionRegistry {
 
   const dev = useDeviceStore()
   const p = useStatusStore()
+  const ui = useUIStore()
 
   registry = {
     slewNorth: {
@@ -42,6 +44,28 @@ export function useActionRegistry(): ActionRegistry {
       type: 'trigger',
       onFire: () => console.log('mount: sync'),
     },
+    cycleCoordFrame: {
+      type: 'trigger',
+      onFire: () => ui.cycleCoordFrame(),
+    },
+    resetSP: {
+      type: 'trigger',
+      onFire: async () => { await dev.alpacaResetSP(); },
+    },
+    findHome: {
+      type: 'trigger',
+      onFire: async () => { await dev.alpacaFindHome(); },
+    },
+    togglePark: {
+      type: 'trigger',
+      onFire: async () => { if (p.atpark) { await dev.alpacaUnPark() } else { await dev.alpacaPark() } },
+    },
+    abortSlew: {
+      type: 'trigger',
+      onFire: async () => { await dev.alpacaAbortSlew(); },
+    },
+
+
 
     // Add more actions here as the app grows — this is the one place
     // to look for "what can be bound to a key or a button".

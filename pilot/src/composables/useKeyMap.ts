@@ -38,4 +38,10 @@ const defaultKeyMap: KeyMap = {
   ArrowDown: 'slewSouth',
   t: 'toggleTracking',
   s: 'syncHere',
+  c: 'cycleCoordFrame',
+  r: 'resetSP',
+  h: 'findHome',
+  p: 'togglePark',
+  Escape: 'abortSlew',
+  Backspace: 'abortSlew',
 };
