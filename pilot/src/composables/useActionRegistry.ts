@@ -5,6 +5,7 @@ import { useUIStore } from 'src/stores/ui';
 import { useConfigStore } from 'src/stores/config';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { debounce } from 'quasar'
 
 let registry: ActionRegistry | undefined;
 
@@ -66,12 +67,21 @@ export function useActionRegistry(): ActionRegistry {
       }
     }
 
+    const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put for toggles
+
+    function toggleConfig(key:string) {
+        // @ts-expect-error: dynamic key access on cfg
+        const val = cfg[key];
+        const payload = { [key]: !val }
+        put(payload)
+    }
+
     registry = {
         referenceFrame: {
         type: 'trigger',
         onFire: () => ui.cycleCoordFrame(),
       },
-      resetSP: {
+      resetSetPoint: {
         type: 'trigger',
         onFire: async () => { await dev.alpacaResetSP(); },
       },
@@ -79,7 +89,7 @@ export function useActionRegistry(): ActionRegistry {
         type: 'trigger',
         onFire: async () => { await dev.alpacaFindHome(); },
       },
-      togglePark: {
+      parkUnPark: {
         type: 'trigger',
         onFire: async () => {
           if (p.atpark) { await dev.alpacaUnPark(); } else { await dev.alpacaPark(); }
@@ -130,7 +140,7 @@ export function useActionRegistry(): ActionRegistry {
         onStart: async () => moveAxis(2, -1),
         onStop: async () => moveAxis(2, 0),
       },
-      speed1: { type: 'trigger', onFire: () => setMoveSpeed(1) },
+      speedSlow: { type: 'trigger', onFire: () => setMoveSpeed(1) },
       speed2: { type: 'trigger', onFire: () => setMoveSpeed(2) },
       speed3: { type: 'trigger', onFire: () => setMoveSpeed(3) },
       speed4: { type: 'trigger', onFire: () => setMoveSpeed(4) },
@@ -138,7 +148,7 @@ export function useActionRegistry(): ActionRegistry {
       speed6: { type: 'trigger', onFire: () => setMoveSpeed(6) },
       speed7: { type: 'trigger', onFire: () => setMoveSpeed(7) },
       speed8: { type: 'trigger', onFire: () => setMoveSpeed(8) },
-      speed9: { type: 'trigger', onFire: () => setMoveSpeed(9) },
+      speedFast: { type: 'trigger', onFire: () => setMoveSpeed(9) },
       dashboard: {
         type: 'trigger',
         onFire: async () => { await router.push('/dashboard'); },
@@ -170,6 +180,22 @@ export function useActionRegistry(): ActionRegistry {
       moons: {
         type: 'trigger',
         onFire: async () => { await router.push({ path: '/catalog', query: { C1:5 } }); },
+      },
+      togglePEC: {
+        type: 'trigger',
+        onFire: () => toggleConfig('advanced_pec'),   
+      },
+      syncGuiding: {
+        type: 'trigger',
+        onFire: () => toggleConfig('advanced_sync_guiding'),
+      },
+      pulseGuiding: {
+        type: 'trigger',
+        onFire: () => toggleConfig('advanced_pulse_guiding'),
+      },
+      toggleMPA: {
+        type: 'trigger',
+        onFire: () => toggleConfig('advanced_alignment'),
       },
 
       // Add more actions here as the app grows — this is the one place
