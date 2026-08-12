@@ -1446,13 +1446,10 @@ class PID_Controller():
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
         # If we have goto timeout or stopped moving; while  in AUTO, HOMING or PARKING, go to IDLE
-        if (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']:
-            self.set_pid_mode('IDLE')
-            self.was_moving = True
-            self.is_moving = False
-            self.time_goto = None
+        is_goto_finished = (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']
         # If in PID TRACK mode but polaris is not tracking (ie promoted by jog), demote to IDLE when jog stops
-        if self.mode == 'TRACK' and not self.polaris._tracking and not self._has_active_jog():
+        is_jog_finished = self.mode == 'TRACK' and not self.polaris._tracking and not self._has_active_jog()
+        if is_goto_finished or is_jog_finished:
             self.set_pid_mode('IDLE')
             self.was_moving = True
             self.is_moving = False
