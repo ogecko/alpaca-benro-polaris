@@ -28,7 +28,7 @@ The Alpaca Benro Polaris requires Python 3+ and some libraries to be installed b
    >Note: Python 3.14 is not supported as of February 2026, as pyephem has not yet been compiled for this release.
 
 
-2. Download the [Alpaca Driver v2.2 Beta 3 ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/releases/2_2_beta3.zip) from this Github repository.
+2. Download the [Alpaca Driver v2.2 Beta 4 ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/releases/2_2_beta4.zip) from this Github repository.
 
 3. Expand the zip file to a location of your choice. We reccommend `C:\Users\`Username`\Documents`. Using Windows Explorer, right-click on the folder you just expanded to, and select `Open in Terminal` to open a Command Window. If you cant see `Open in Terminal` try right clicking a second time. Enter the following: 
   
@@ -144,7 +144,7 @@ If you don't see the `communications init... done` message then you may want to 
 
 ### Updating the Driver
 To update the Alpaca Benro Polaris Driver to the latest version:
-1. Download the latest [Alpaca Benro Polaris v2.2 Beta 3 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/releases/2_2_beta3.zip) from this Github repository.
+1. Download the latest [Alpaca Benro Polaris v2.2 Beta 4 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/releases/2_2_beta4.zip) from this Github repository.
 2. Stop the driver by selecting its Window and pressing Ctrl+C.
 3. Extract the files, overwriting the old files.
 4. Install any new pre-requisites using `pip install -r platforms/win/requirements.txt`

@@ -52,7 +52,7 @@
 - [X] PEC - Add PEC FF signal to PID Tuning charts
 - [X] SG - Explore applying Sync Guide with FF signal - Explored but unsuccessful. Retained current approach
 - [X] SG - Persist current sycn guiding correction on a regular basis for better aligned restarts
-- [ ] Slew - Fix fine adj of Moon tracking in Az/Alt
+- [X] Slew - Fix fine adj of Moon tracking in Az/Alt
 - [ ] CCDCiel - Confirm Rotator Sync works correctly on CCDCiel
 - [ ] Close candidate enhancement list
     - [ ] Manual Align - Direct Control and List of targets
