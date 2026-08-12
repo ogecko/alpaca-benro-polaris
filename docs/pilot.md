@@ -16,6 +16,8 @@ The **Alpaca Pilot App** is a responsive, single-page web application designed t
 
 ![Alpaca Pilot App](images/dashboard-dial0.png)
 
+![Alpaca Pilot App](images/keyboard-map.png)
+
 
 The Pilot App is completely optional. You can continue using Stellarium, NINA and CCDCiel with the Alpaca Driver just as you did in version 1.0, no changes required. However, choosing not to use the Pilot App means missing out on a range of enhancements that are available to you. 
 
