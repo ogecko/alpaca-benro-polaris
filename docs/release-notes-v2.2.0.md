@@ -25,9 +25,18 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in v2.2 Beta 3.1
-- **[Pilot Proxy]** Improved the Alpaca Pilot connection to the Alpaca Driver by using a proxy that no longer requires a hostname or port for the REST API
+## What's new in v2.2 Beta 4
+- **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 
+- **[Non Tracked Jogging]** Fine motion jogging when tracking is enabled or disabled.
+- **[Keyboard Map]** Control the Benro Polaris and Alpaca Pilot directly using the keyboard commands (see pilot.md for keymap)
+- **[Sidereal Tracking]** Smoother Sidereal tracking by changing non-orbital motion to pure RA rotation.
+- **[PID Ki]** Faster PID settling as Ki is inhibited during jogging, sync guiding and pulse guiding. 
+- **[PID Kd]** Improved response to jogging and sync pulses as Kd now damps velocity error and eliminates steady state bias
 - **[Alignment Roll]** Added the Roll angle to the list of Sync Points on the Alpaca Pilot Alignment page
+- **[Chart Scales]** Simplify Y axis chart scales to reduce duplication of co-ordinate precision
+- **[Restart Robustness]** Workaround Win11 path issue when user name has spaces
+- **[Siril Scripts]** Incorporated RC Astro Tools, Veralux Star Composer and Statistical Stretch into scripts.
+- **[Pilot Proxy]** Improved the Alpaca Pilot connection to the Alpaca Driver by using a proxy that no longer requires a hostname or port for the REST API
 
 ## What's new in v2.2 Beta 3
 - **[Download Links]** Updated all documentation download links to refer explicitly to v2.2 Beta 3
