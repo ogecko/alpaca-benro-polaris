@@ -1454,7 +1454,6 @@ class PID_Controller():
         # If in PID TRACK mode but polaris is not tracking (ie promoted by jog), demote to IDLE when jog stops
         if self.mode == 'TRACK' and not self.polaris._tracking and not self._has_active_jog():
             self.set_pid_mode('IDLE')
-            self.reset_sp()
             self.was_moving = True
             self.is_moving = False
             self.time_goto = None            
