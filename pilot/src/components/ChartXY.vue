@@ -130,6 +130,35 @@ function initChart() {
   drawLegend(svg, width)
 }
 
+function shortTickMarks(fullFormat: (d: number) => string) {
+  let prevLabel: string | null = null
+
+  return (d: d3.NumberValue) => {
+    const full = fullFormat(+d)
+    if (prevLabel === null) {
+      prevLabel = full
+      return full
+    }
+
+    const splitUnits = (s: string) => s.match(/[^°′ʰᵐ]*[°′ʰᵐ]|[^°′ʰᵐ]+$/g) ?? [s]
+    const fullParts = splitUnits(full)
+    const prevParts = splitUnits(prevLabel)
+
+    let i = 0
+    const maxCompare = Math.min(fullParts.length, prevParts.length) - 1
+    while (i < maxCompare && fullParts[i] === prevParts[i]) i++
+
+    prevLabel = full
+    let truncated = fullParts.slice(i).join('')
+    // Re-attach the -ve sign for clarity.
+    if (full.startsWith('-') && !truncated.startsWith('-')) {
+      truncated = '-' + truncated
+    }
+
+    return truncated
+  }
+}
+
 function updateChart() {
   if (!props.data?.length || !svg) return
   const width = chart.value?.clientWidth ?? 500
@@ -155,10 +184,10 @@ function updateChart() {
   tX.call(d3.axisBottom(zx)).style('color', '#aaa')
   const yAxis = d3.axisLeft(zy)
   if (props.y1Type === 'dms') {
-    yAxis.tickFormat((d: d3.NumberValue) => deg2fulldms(+d, 1, 'deg'))
+    yAxis.tickFormat(shortTickMarks((d: d3.NumberValue) => deg2fulldms(+d, 1, 'deg')))
   }
   else if (props.y1Type === 'hms') {
-    yAxis.tickFormat((d: d3.NumberValue) => deg2fulldms(+d/15, 1, 'hr'))
+    yAxis.tickFormat(shortTickMarks((d: d3.NumberValue) => deg2fulldms(+d/15, 1, 'hr')))
   }
   tY.call(yAxis).style('color', '#aaa')
 
