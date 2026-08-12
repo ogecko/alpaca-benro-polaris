@@ -34,6 +34,7 @@ export function useKeyMap(fallback: KeyMap = defaultKeyMap) {
 }
 
 const defaultKeyMap: KeyMap = {
+  'Space': 'abortSlew',
   'ArrowLeft': 'moveLeft',
   'ArrowRight': 'moveRight',
   'ArrowUp': 'moveUp',
@@ -58,7 +59,7 @@ const defaultKeyMap: KeyMap = {
   'f': 'referenceFrame',
   'g': 'centerGrid',
   'h': 'findHome',
-  'k': 'abortSlew',
+  'l': 'log',
   'r': 'resetSP',
   't': 'toggleTracking',
   'p': 'togglePark',
@@ -68,6 +69,7 @@ const defaultKeyMap: KeyMap = {
   'x': 'alignment',
   'c': 'connect',
   'v': 'settings',
-  'l': 'log',
+  'b': 'brightest',
   'n': 'nearby',
+  'm': 'moons',
 };

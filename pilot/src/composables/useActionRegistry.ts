@@ -163,6 +163,14 @@ export function useActionRegistry(): ActionRegistry {
         type: 'trigger',
         onFire: async () => { await router.push({ path: '/catalog', query: { sort: 'Proximity' } }); },
       },
+      brightest: {
+        type: 'trigger',
+        onFire: async () => { await router.push({ path: '/catalog', query: { C1:"2,3,4",Vz:6,sort:'Proximity' } }); },
+      },
+      moons: {
+        type: 'trigger',
+        onFire: async () => { await router.push({ path: '/catalog', query: { C1:5 } }); },
+      },
 
       // Add more actions here as the app grows — this is the one place
       // to look for "what can be bound to a key or a button".
