@@ -81,4 +81,6 @@ const defaultKeyMap: KeyMap = {
   'Home': 'findHome',
   'End': 'parkUnPark',
   '`': 'showSidebar',
+  'Control+`': 'showStatus',
+  'Shift+~': 'showPanoGrid',
 };

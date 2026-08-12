@@ -213,7 +213,15 @@ export function useActionRegistry(): ActionRegistry {
         type: 'trigger',
         onFire: () => ui.toggleShowLeftDrawer(),
       },
-
+      showStatus: {
+        type: 'trigger',
+        onFire: () => ui.toggleShowStatusPanel(),
+      },
+      showPanoGrid: {
+        type: 'trigger',
+        onFire: () => toggleConfig('show_panels'),
+      },
+  
       // Add more actions here as the app grows — this is the one place
       // to look for "what can be bound to a key or a button".
     };
