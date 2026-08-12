@@ -80,4 +80,5 @@ const defaultKeyMap: KeyMap = {
   'Backspace': 'abortSlew',
   'Home': 'findHome',
   'End': 'parkUnPark',
+  '`': 'showSidebar',
 };

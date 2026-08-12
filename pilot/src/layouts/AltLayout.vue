@@ -4,7 +4,7 @@
     <q-header elevated height-hint="58">
       <q-toolbar>
         <!-- Alpaca Pilot Icon/Menu -->
-        <q-btn flat dense round @click="toggleLeftDrawer" aria-label="Menu" >
+        <q-btn flat dense round @click="ui.toggleShowLeftDrawer" aria-label="Menu" >
           <q-avatar>
             <q-img src="icons/favicon-128x128.png" style="width: 35px; height: 35px;"/>
           </q-avatar>
@@ -44,7 +44,7 @@
     </q-header>
 
     <!-- LHS Draw menu -->
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered class="dark-page" :width="200" >
+    <q-drawer v-model="ui.showLeftDrawer" bordered class="dark-page" :width="200" >
       <q-scroll-area class="fit">
         <!-- Deep Sky Objects -->
         <q-list dense>
@@ -140,6 +140,7 @@ import { useRouter, useRoute,  } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
 import { useConfigStore } from 'src/stores/config'
 import { useStreamStore } from 'src/stores/stream'
+import { useUIStore } from 'src/stores/ui'
 import { useActionRegistry } from 'src/composables/useActionRegistry'
 import { useKeyMap } from 'src/composables/useKeyMap'
 import { useKeyHandler } from 'src/composables/useKeyHandler'
@@ -155,6 +156,7 @@ const dev = useDeviceStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
 const socket = useStreamStore()
+const ui = useUIStore()
 const vw = useVersionWatch()
 const router = useRouter()
 const route = useRoute()
@@ -164,7 +166,6 @@ const keymap = useKeyMap()
 const keyHandler = useKeyHandler(registry, keymap.current)
 
 const isFullscreen = ref(false)
-const leftDrawerOpen = ref(false)
 const searchBoxString = ref<string>('')
 const isRoomy = ref(true)
 
@@ -247,10 +248,6 @@ const triggerSearch = debounce(async () => {
   await router.push({ path: '/catalog', query: { ...route.query, q: searchFor } }) 
 }, 300) // 300ms debounce
 
-
-function toggleLeftDrawer () {
-  leftDrawerOpen.value = !leftDrawerOpen.value
-}
 
 function getBatteryColor(): string {
   if (p.battery_level >= 50) {

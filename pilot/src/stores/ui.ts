@@ -10,6 +10,7 @@ export const useUIStore = defineStore('ui', {
     catalogFilter: JSON.parse(sessionStorage.getItem('ui.catalogFilter') ?? '{}') as Record<string, number[]>,
     catalogSort: sessionStorage.getItem('ui.catalogSort') ?? '',
     showStatusPanel: sessionStorage.getItem('ui.showStatusPanel') === 'true',
+    showLeftDrawer: (sessionStorage.getItem('ui.showLeftDrawer') ?? 'true')=== 'true',
   }),
   actions: {
     setCoordFrame(val: 0 | 1 | 2) {
@@ -39,5 +40,9 @@ export const useUIStore = defineStore('ui', {
       this.showStatusPanel = !this.showStatusPanel
       sessionStorage.setItem('ui.showStatusPanel', String(this.showStatusPanel))
     },
+    toggleShowLeftDrawer() {
+      this.showLeftDrawer = !this.showLeftDrawer
+      sessionStorage.setItem('ui.showLeftDrawer', String(this.showLeftDrawer))
+    }
   }
 })
