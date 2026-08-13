@@ -2445,8 +2445,8 @@ class SyncManager:
 
 
     def clear_sync_guiding(self):
-        """ Cleared whenever Tracking disabled, Panning, Rolling 
-            Although Gotos only invalidate, as the q_syncguide_B is used for scc """
+        """ Cleared whenever Tracking disabled or settings changed. 
+            Gotos, Panning, Rolling only invalidate, as the q_syncguide_B is used for scc """
         self.reset_pec_model()
         self.valid_sync_guide = False
         self._sync_guide_interval = None

@@ -1977,7 +1977,7 @@ class Polaris:
 # ── Alpaca Telescope Advanced Control Aware Methods ─────────────────────────────────────────────────────────────
 
     async def trackOrbital(self, name, category):
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         if Config.advanced_orbitals and Config.advanced_control:
             self._pid.orbital_sp_fetchmsg = ''
             await self.start_tracking()                         # start tracking
@@ -1995,26 +1995,26 @@ class Polaris:
             self.logger.info("Advanced Orbital Tracking is currently disabled")
 
     def RotateToRelativeRollAngle(self, rel_roll_angle):
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         self.logger.info(f"->> Polaris: Rotate Relative Observed   RollAngle {deg2dms(self._pid.alpha_sp[2])} PLUS {deg2dms(rel_roll_angle)}")
         roll_angle = self._pid.alpha_sp[2] + rel_roll_angle
         self.RotateToRollAngle(roll_angle)
 
     def RotateToRelativePositionAngle(self, rel_position_angle):
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         self.logger.info(f"->> Polaris: Rotate Relative Observed   PositionAngle {deg2dms(self.positionangle)} PLUS {deg2dms(rel_position_angle)}")
         position_angle = self.positionangle + rel_position_angle
         self.RotateToAbsolutePositionAngle(position_angle)
 
 
     def RotateToAbsolutePositionAngle(self, position_angle):
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         self.logger.info(f"->> Polaris: Rotate Absolute Observed   PositionAngle {deg2dms(position_angle)}")
         roll = self._sm.pa2roll(self._pid.alpha_sp[0], self._pid.alpha_sp[1], position_angle)
         self.RotateToRollAngle(roll)
 
     def RotateToRollAngle(self, roll):
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         if Config.advanced_rotator and Config.advanced_control:
             self.logger.info(f"->> Polaris: Rotate Absolute Observed   RollAngle {deg2dms(roll)}")
             self.markRotateAsUnderway()
@@ -2126,7 +2126,7 @@ class Polaris:
         # axis 3,4,5 = RA,Dec,PA (delta space) 
         # axis 6,7,8 = GLon, GLat, GPA (gamma space)
         AXIS_INT_TO_NAME = {0: 'az', 1: 'alt', 2: 'roll', 3: 'ra', 4: 'dec', 5: 'pa', 6: 'l', 7: 'b', 8: 'gpa'}
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         if axis not in (0, 1, 2, 3, 4, 5, 6, 7, 8):
             return
         motor = self._motors[axis % 3]
@@ -2156,7 +2156,7 @@ class Polaris:
         sidereal-frame regression tests for why that matters.
         Requires advanced_control + advanced_slewing.
         """
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         VALID = set(AXIS_MAP)
         unknown = set(rates) - VALID
         if unknown:
@@ -2209,7 +2209,7 @@ class Polaris:
         alpha_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'alpha'}
         delta_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'delta'}
         gamma_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'gamma'}
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
 
         if alpha_updates:
             if relative:
@@ -2256,7 +2256,7 @@ class Polaris:
                 if k in VALID_KEYS and (v := parse_val(k, val)) is not None}
 
     async def stop_all_axes(self):
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         with self._lock:
             self._axis_ASCOM_slewing_rates = [0,0,0]
             self._slewing = False
@@ -2269,7 +2269,7 @@ class Polaris:
         await self._motors[2].set_motor_speed(0, "DPS")
 
     async def stop_astro_axis(self):
-        self._sm.clear_sync_guiding()
+        self._sm.invalidate_sync_guiding()
         with self._lock:
             self._axis_ASCOM_slewing_rates[2] = 0
             self._slewing = False
