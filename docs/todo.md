@@ -53,6 +53,7 @@
 - [X] SG - Explore applying Sync Guide with FF signal - Explored but unsuccessful. Retained current approach
 - [X] SG - Persist current sycn guiding correction on a regular basis for better aligned restarts
 - [X] Slew - Fix fine adj of Moon tracking in Az/Alt
+- [X] SCC - Dont clear sync guiding with panning or rotation, as it loses SCC
 - [ ] CCDCiel - Confirm Rotator Sync works correctly on CCDCiel
 - [ ] Close candidate enhancement list
     - [ ] Manual Align - Direct Control and List of targets
