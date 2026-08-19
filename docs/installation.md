@@ -159,11 +159,10 @@ Once Python and the required libraries are installed, continue with these option
 With the Alpaca Driver running you can now start the Alpaca Pilot App from any browser. 
 
 8.  Open **Chrome**, **Edge**, **Firefox**, or your preferred browser.
-9.  Enter the following into the address bar, where hostname is the name of the MiniPC you are running the Driver on. 
+9.  Enter the following into the address bar. 
    ```
-   http://hostname
+   http://ap.local
    ```
-   > Note you can find the hostname of a machine by typing the command `hostname` into a terminal window.
 10.  The Alpaca Pilot App should look like this:
 ![Pilot Startup](images/pilot-startup.png)
 11. Click **Connect** on the top toolbar of the Alpaca Pilot Window. This page will allow you to follow through the steps to connect the Driver to the Benro Polaris device.
