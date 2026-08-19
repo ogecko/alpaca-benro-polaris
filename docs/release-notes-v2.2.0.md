@@ -142,7 +142,7 @@
 - **[Python 3.13.14]**: Upgraded Python support from 3.13.9.
 - **[Python 3.11]**: Minimum Python version supported.
 - **[starlette 1.3.1]**: Upgraded aiohttp support from 0.49.1.
-- **[aiohttp 3.14.1]**: Upgraded aiohttp support from 3.13.3.
+- **[aiohttp 3.14.3]**: Upgraded aiohttp support from 3.13.3.
 - **[urlib3 2.7.0]**: Upgraded urlib3 support from 2.6.3.
 - **[psutil 7.0.0]**: New dependency in Alpaca Driver v2.2.
 - **[cryptography 48.0.1]**: New dependency in Alpaca Driver v2.2.
