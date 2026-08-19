@@ -27,7 +27,7 @@
 
 ## What's new in v2.2 Beta 5 
 - **[zeroconf dependancy]** Installation requires `pip install -r platforms/win/requirements.txt` to pickup new zeroconf dependancy
-- **[mDNS Service]** Advertise the configurable Alpaca Pilot hostname via multicast DNS for easy discovery from iPads and other devices on the local network.
+- **[mDNS Service]** Advertise Alpaca Pilot hostname as `ap.local` (configurable via Network Settings) for easy discovery from iPads and other devices on the local network.
 - **[mDNS Certificate]** Changing mDNS hostname from Network Settings regenerates HTTPS root certificate, requiring reinstallation.
 
 ## What's new in v2.2 Beta 4
