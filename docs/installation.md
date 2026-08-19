@@ -143,8 +143,7 @@ Once Python and the required libraries are installed, continue with these option
       * In the new Terminal Window, if you used Method 4.A (uv) then run the driver with:
 
          ```
-         ../.venv/Scripts/activate
-         python main.py
+         uv run main.py
          ```
       * if you used Method 4.B (Windows Installer) then run the driver with:
          ```
