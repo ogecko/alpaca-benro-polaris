@@ -29,7 +29,7 @@ Download and expand the Alpaca Benro Polaris Driver software.
 
 3. Using Windows Explorer, right-click on the folder you just expanded to, and select `Open in Terminal` to open a Command Window. If you cant see `Open in Terminal` try right clicking a second time, holding the Shift key. 
 
-The Alpaca Benro Polaris requires Python 3.13.15 and some libraries to be installed before it can run. (Note that Python 3.14 is not supported as of February 2026, as pyephem has not yet been compiled for this release).
+The Alpaca Benro Polaris requires Python 3.13.15 and some libraries to be installed before it can run. (Note that Python 3.14.x is not supported as of February 2026, as pyephem has not yet been compiled for this release).
 
 4. Install Python using one of the two methods below:
 
