@@ -120,6 +120,14 @@ def _build_san_entries(host: str):
             if name and name not in san_dns:    san_dns.append(name)
     except Exception:
         pass
+    # Add the configured mDNS hostname (Config.mdns_name) advertised by discovery_mdns.py
+    try:
+        from discovery_mdns import normalise_mdns_name
+        mdns_name = normalise_mdns_name(getattr(Config, 'mdns_name', None))
+        if mdns_name not in san_dns:
+            san_dns.append(mdns_name)
+    except Exception:
+        pass
     # Add all current LAN IPs for direct IP access
     for lan_ip in _get_local_ips():
         if lan_ip not in san_ip:                san_ip.append(lan_ip)
@@ -193,7 +201,12 @@ def _load_or_generate_server_cert(host: str, ca_cert, ca_key, ca_name, logger) -
             pem = TLS_CERT_PATH.read_bytes()
             cert = x509.load_pem_x509_certificate(pem, default_backend())
             remaining = cert.not_valid_after_utc - datetime.datetime.now(datetime.timezone.utc)
-            if remaining.days > 30:
+            # Also check the mDNS name is present 
+            from discovery_mdns import normalise_mdns_name
+            wanted_mdns = normalise_mdns_name(getattr(Config, 'mdns_name', None))
+            san_ext = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+            existing_dns = set(san_ext.get_values_for_type(x509.DNSName))
+            if remaining.days > 30 and wanted_mdns in existing_dns:
                 return True
         except Exception:
             pass

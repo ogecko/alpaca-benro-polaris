@@ -54,6 +54,7 @@
 - [X] SG - Persist current sycn guiding correction on a regular basis for better aligned restarts
 - [X] Slew - Fix fine adj of Moon tracking in Az/Alt
 - [X] SCC - Dont clear sync guiding with panning or rotation, as it loses SCC
+- [X] mDNS - Explore need to setup mDNS to provide hostname.local lookup
 - [ ] CCDCiel - Confirm Rotator Sync works correctly on CCDCiel
 - [ ] Close candidate enhancement list
     - [ ] Manual Align - Direct Control and List of targets

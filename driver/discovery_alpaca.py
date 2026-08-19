@@ -97,8 +97,6 @@ class AlpacaDiscoveryResponder:
             try:
                 mreq = group_bin + struct.pack("@I", if_index)
                 sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, mreq)
-                if Config.log_alpaca_discovery:
-                    self.logger.info(f"Joined IPv6 multicast group {IPV6_GROUP} on {if_name}")
                 joined = True
             except OSError as e:
                 self.logger.debug(f"Skipping {if_name} for IPv6 multicast: {e}")
