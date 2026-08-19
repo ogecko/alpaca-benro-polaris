@@ -1,1 +1,0 @@
-import{N as e,j as t,x as n}from"./create-DDVPkVBM.js";import{i as r}from"./vm-BD_PDyLK.js";function i(){let i=null,a=n();function o(){i!==null&&(clearTimeout(i),i=null)}return e(o),t(o),{removeTimeout:o,registerTimeout(e,t){o(),r(a)||(i=setTimeout(()=>{i=null,e()},t))}}}export{i as t};

@@ -1,1 +1,0 @@
-import{t as e}from"./device-Bnk375Q1.js";var t=async()=>{await e().connectRestAPI()};export{t as default};

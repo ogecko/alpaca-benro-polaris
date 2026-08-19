@@ -1,1 +1,0 @@
-import{t as e,w as t}from"./create-DDVPkVBM.js";var n=e({name:`QSpace`,setup(){let e=t(`div`,{class:`q-space`});return()=>e}});export{n as t};
