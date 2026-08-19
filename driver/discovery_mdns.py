@@ -2,8 +2,8 @@
 # -----------------------------------------------------------------------------
 # discovery_mdns.py - mDNS (Bonjour/Zeroconf) hostname advertisement module
 #
-# Publishes Config.mdns_name (e.g. "alpacapilot.local") on this host's LAN-facing
-# IPv4 address, so an iPad/browser typing http://alpacapilot.local resolves
+# Publishes Config.mdns_name (e.g. "ap.local") on this host's LAN-facing
+# IPv4 address, so an iPad/browser typing http://ap.local resolves
 # straight to the Alpaca Pilot web server rather than to a stray IPv6 record,
 # or to the Benro Polaris's own Wifi adapter (the driver host has two adapters).
 #
@@ -40,7 +40,7 @@ def normalise_mdns_name(name: str) -> str:
     """
     name = (name or '').strip().rstrip('.')
     if not name:
-        name = 'alpacapilot'
+        name = 'ap'
     if not name.lower().endswith('.local'):
         name += '.local'
     return name
@@ -113,7 +113,7 @@ class MdnsResponder:
 
         # Registering a ServiceInfo with `server=` also answers plain A-record
         # queries for that hostname directly (not just _http._tcp discovery),
-        # which is what lets a browser resolve "http://alpacapilot.local".
+        # which is what lets a browser resolve "http://ap.local".
         self.service_info = ServiceInfo(
             type_="_http._tcp.local.",
             name=f"{short_name}._http._tcp.local.",

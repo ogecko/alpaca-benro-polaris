@@ -25,8 +25,10 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in v2.2 Beta 5
+## What's new in v2.2 Beta 5 
+- **[zeroconf dependancy]** Installation requires `pip install -r platforms/win/requirements.txt` to pickup new zeroconf dependancy
 - **[mDNS Service]** Advertise the configurable Alpaca Pilot hostname via multicast DNS for easy discovery from iPads and other devices on the local network.
+- **[mDNS Certificate]** Changing mDNS hostname from Network Settings regenerates HTTPS root certificate, requiring reinstallation.
 
 ## What's new in v2.2 Beta 4
 - **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 

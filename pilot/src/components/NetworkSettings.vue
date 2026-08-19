@@ -19,6 +19,14 @@
                 </div>
             </div>
         </div>
+        <!-- Alpaca Pilot mDNS Services -->
+        <div class="row q-col-gutter-sm no-wrap">
+            <q-toggle class='col-8' v-bind="bindField('enable_mdns', 'Alpaca Pilot mDNS Service')"/>
+            <q-input class="col-4" v-bind="bindField('mdns_name', 'Hostname')"
+                :style="{ visibility: cfg.enable_mdns ? 'visible' : 'hidden' }">
+                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
+            </q-input>
+        </div>
         <!-- Alpaca Pilot Web Services -->
         <div class="row q-col-gutter-sm no-wrap">
             <q-toggle class='col' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>

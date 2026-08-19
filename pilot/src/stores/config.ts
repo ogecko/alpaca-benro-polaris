@@ -20,6 +20,7 @@ export const useConfigStore = defineStore('config', {
     enable_restapi: true,
     enable_socket: true,
     enable_discovery: true,
+    enable_mdns: true,
     enable_pilot: true,
     enable_synscan: true,
     alpaca_restapi_port: 5555,
@@ -31,6 +32,7 @@ export const useConfigStore = defineStore('config', {
     stellarium_synscan_port: 10001,
     stellarium_synscan_ip_address: '',
     alpaca_restapi_ip_address: '',
+    mdns_name: 'alpacapailot.local',
 
     // Site Info
     location: 'Unknown',
@@ -185,7 +187,7 @@ export const useConfigStore = defineStore('config', {
         }
         // Check if any updated key requires restart
         const restartKeys = [
-          'polaris_auto_retry', 'enable_restapi', 'enable_socket', 'enable_discovery', 'enable_pilot', 'enable_synscan',
+          'polaris_auto_retry', 'enable_restapi', 'enable_socket', 'enable_discovery', 'enable_pilot', 'enable_synscan', 'enable_mdns', 'mdns_name',
           'alpaca_restapi_port', 'alpaca_socket_port', 'alpaca_discovery_port', 'enable_https', 'alpaca_pilot_http_port', 'alpaca_pilot_https_port', 'stellarium_synscan_port',
         ]
         const updatedKeys = Object.keys(updated)
