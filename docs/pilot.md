@@ -79,12 +79,14 @@ If you are using NINA, you can launch the Alpaca Pilot App directly from the NIN
 
 ### Method B: Launching via Web Browser
 
-You can access the Alpaca Pilot App directly from any browser using the driver's hostname or IP address.
+You can access Alpaca Pilot from any browser on a device connected to the same network as the Mini-PC.
 
-1. **Start Driver:** Ensure the driver is running on your Mini-PC
-1. **Open Browser:** On your phone, table, or laptap that has network access to your Mini-PC, open a Browser of your choice. You can use Chrome, Firefox, Safari, Edge or any modern browser.
-1.  **Use Hostname:** Enter the Mini-PC hostname into the address bar. eg http://hostname
-2.  **Use IP Address:** Alternatively, you can type in the IP address of the Mini-PC. eg http://192.168.10.250
+1. **Start Driver:** Make sure the driver is running on the Mini-PC.
+2. **Open Browser:** On your phone, tablet, or laptop, open any modern browser.
+3. **Open Alpaca Pilot:** Enter one of the following in the browser's address bar:
+   1.  **Recommended:** `http://ap.local`
+   2.  **Hostname:** eg `http://hostname`
+   3.  **IP Address:** eg `http://192.168.10.250`
 4.  **Full Screen Feature:** On a phone, you can click on the battery icon to make the application go **full screen** to take up the full real estate available.
 
 ### Method C: Launching Multiple Instances
