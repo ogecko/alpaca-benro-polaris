@@ -6,7 +6,7 @@
 ## Alpaca Install Troubleshooting
 
 ### A1 - Cannot Run pip to Install Prerequisites
-Check that you have installed Python 3.13.14 and pip 26.0.x. You can verify that python and pip are installed and accessible with the following commands:
+Check that you have installed Python 3.13.15 and pip 26.0.x. You can verify that python and pip are installed and accessible with the following commands:
 
 ```
 python --version
@@ -19,7 +19,7 @@ python -m ensurepip --default-pip
 
 If the above step doesn't work, try reinstalling Python and ensure that the option to install pip is checked during the installation process.
 
-1. Download the Python 3.13.14 installer from the official Python website.
+1. Download the Python 3.13.15 installer from the official Python website.
 2. Run the installer and make sure to check the box that says “Add Python to PATH.”
 3. Select “Customize installation” and ensure that the option to install pip is checked.
 

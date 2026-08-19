@@ -14,7 +14,7 @@
 * **41 - Installation Video:** Installation Video at https://youtu.be/qXRiTLS2EaY
 
 ## Win11 Upgrade Instructions
-* Upgrade Python to 3.13.14 by downloading Windows Installer (64 bit) for Python 3.13.14 and running the install program.
+* Upgrade Python to 3.13.15 by downloading Windows Installer (64 bit) for Python 3.13.15 and running the install program.
 * Upgrade pip using the command `python -m pip install --upgrade pip`
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
@@ -139,7 +139,7 @@
 - **[Stellarium 26.2]** Improved ASCOM Telescope support, fixing stability, and improving ease of telescope selection. 
 
 ## Upgraded Win11 Requirements.txt Compatibility
-- **[Python 3.13.14]**: Upgraded Python support from 3.13.9.
+- **[Python 3.13.15]**: Upgraded Python support from 3.13.9.
 - **[Python 3.11]**: Minimum Python version supported.
 - **[starlette 1.3.1]**: Upgraded aiohttp support from 0.49.1.
 - **[aiohttp 3.14.3]**: Upgraded aiohttp support from 3.13.3.
@@ -258,7 +258,7 @@ Please let us know if you can try any of these features.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Known Issues
-- **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.14 instead.
+- **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.15 instead.
 
 ## Potential Future Enhancements
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
