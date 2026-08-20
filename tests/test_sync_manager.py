@@ -68,13 +68,12 @@ class Polaris:
     def __init__(self):
         self.update(180, 45, 0)
         self._sitelatitude = -33.65528161613541
+        self._sitelongitude = DEFAULT_LON 
         self.azimuth = 180
         self.rightascension = 0
         self.declination= -75
         self._pid = PID_Controller()
         self._motorQ_state = Quaternion([1,0,0,0])
-        self._sitelatitude = DEFAULT_LAT
-        self._sitelongitude = DEFAULT_LON 
 
     def update_ascom_from_new_alignQ_B2T(self, q1s):
         a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s)
