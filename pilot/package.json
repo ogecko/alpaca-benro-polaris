@@ -1,7 +1,7 @@
 {
   "name": "pilot",
   "version": "2.2.0",
-  "description": "Advanced Position Control Reimagined",
+  "description": "Alpaca Pilot for the Benro Polaris",
   "productName": "Alpaca Pilot App",
   "author": "David Morrison",
   "type": "module",

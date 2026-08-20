@@ -27,6 +27,7 @@ platforms/docker/driver/
 platforms/docker/getopts_long/
 
 # Distribution / packaging
+.pytest-tmp
 .Python
 build/
 develop-eggs/
