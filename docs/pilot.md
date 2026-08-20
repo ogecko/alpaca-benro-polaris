@@ -262,15 +262,25 @@ Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser 
 4. Expand the **Trust** section and set **When using this certificate** to **Always Trust**.
 5. Close the dialog and enter your password to confirm the changes.
 
+#### Install the CA Certificate on iOS / iPadOS
+
+1. Open the **Alpaca Pilot Connect** page in **Safari** and download the CA certificate (Safari will prompt that a profile is ready to install).
+2. Go to **Settings → General → VPN & Device Management**, tap the **alpaca-pilot-ca** profile, then tap **Install** in the top-right corner (you'll be prompted for your device passcode).
+3. **This alone is not enough — the CA is installed but not yet trusted.** Go to **Settings → General → About → Certificate Trust Settings**.
+4. Under **Enable Full Trust for Root Certificates**, toggle **alpaca-pilot-ca** to **on**.
+
+
 #### Restart Your Browser to pickup the new CA Certificate
 
 * **Chrome:** Navigate to `chrome://restart`
+* **Safari:** Fully close Safari (swipe it away from the App Switcher)
 * **Firefox:**
 
   1. Open `about:config`
   2. Search for `security.enterprise_roots.enabled`
   3. Set the value to `true`
   4. Restart Firefox
+
 
 #### Enable HTTPS in Alpaca Pilot
 
