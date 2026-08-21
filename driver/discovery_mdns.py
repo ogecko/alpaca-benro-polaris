@@ -68,6 +68,12 @@ def pick_lan_ipv4(log: Logger) -> str:
     candidates = []
     try:
         for if_name, addrs in psutil.net_if_addrs().items():
+            if if_name == 'lo':
+                # WSL2 aliases its internal DNS-tunneling stub resolver (e.g.
+                # 10.255.255.254, from /etc/resolv.conf) onto loopback under a
+                # real-looking private address, so ip.is_loopback below can't
+                # catch it - exclude the whole interface by name instead.
+                continue
             for addr in addrs:
                 if addr.family != socket.AF_INET:
                     continue
