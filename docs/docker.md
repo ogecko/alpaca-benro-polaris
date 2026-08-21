@@ -137,9 +137,9 @@ The Alpaca Pilot web interface can be accessed from a web browser by navigating 
 http://ap.local
 ```
 
-This works from any other device on your network with mDNS support (iPad, Mac, Linux, other Windows PCs) once the `-n` option and the firewall rule above are in place. `-n` (Docker host networking) is what lets the mDNS advertisement use the host's real network instead of Docker's isolated one.
+This works from any other device on your network with mDNS support (iPad, Mac, Linux, other Windows PCs) once the `-n` option and the firewall rule above are in place. 
 
-**Exception:** on the Windows PC running Docker itself, browse to `http://localhost` instead of the mDNS name or IP address — WSL2 mirrored networking has a known bug that blocks the host from reaching its own mirrored network, and `localhost` is unaffected by it.
+**Exception:** on the Windows PC running Docker itself, browse to `http://localhost` instead of the mDNS name or IP address. WSL2 mirrored networking has a known bug that blocks the host from reaching its own mirrored network, and `localhost` is unaffected by it.
 
 If a device can't resolve mDNS names, use the host computer's IP address instead:
 
