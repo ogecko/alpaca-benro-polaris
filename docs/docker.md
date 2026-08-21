@@ -9,11 +9,21 @@ Docker provides a portable way to run the driver on any OS and architecture with
 Install Docker Engine using the [official instructions](https://docs.docker.com/engine/install/) for your distribution, e.g. `sudo apt install docker.io`.
 
 ## Windows
-1. **Install WSL2.** Open PowerShell **as Administrator** and run:
+1. **Install WSL2 with mirrored networking.** Open PowerShell **as Administrator** and run:
    ```
    wsl --install
+   @"
+   [wsl2]
+   networkingMode=mirrored
+   "@ | Set-Content -Path "$env:USERPROFILE\.wslconfig"
    ```
-   Reboot if prompted, then let Ubuntu finish its first-run setup and create a Unix username/password when asked.
+   Mirrored networking makes the driver reachable from other devices on your network — an iPad, another PC — not just this computer.
+
+   If Windows prompts you to reboot (first-time WSL install only), do that now. Either way, finish with:
+   ```
+   wsl --shutdown
+   ```
+   so the mirrored networking config is picked up. Then open a WSL terminal and let Ubuntu finish its first-run setup, creating a Unix username/password when asked.
 
 2. **Open a WSL terminal** — run `wsl` from PowerShell/cmd, or launch "Ubuntu" from the Start menu — and install Docker Engine directly inside it:
    ```
@@ -70,14 +80,15 @@ To reach the driver from another device, use your host computer's own network IP
 - **macOS/Linux/Raspberry Pi:** `ip addr` or `hostname -I`
 
 ## Connecting via mDNS and http://ap.local
-To reach the driver via the mDNS name, you will need to be on the same network as the Docker container. By default Docker isolates the containers network through a NAT. To overcome this you can use the `-n` option to use host networking.
-
-On **Linux and Raspberry Pi**, running with `-n` make the container share your computer's real network directly. This should allow mDNS to work correctly:
+Reaching the driver by its mDNS name from another device needs the container on your computer's real network — by default Docker isolates it behind a NAT. Run with `-n`:
 ```
 ./platforms/docker/run.sh -n -t "America/Vancouver"
 ```
+Supported on:
+- **Linux / Raspberry Pi**
+- **Windows**, with WSL2 mirrored networking (see install steps above)
 
-On **Windows**, `-n` doesn't extend past WSL2's own network, it won't reach other devices like an iPad, since WSL2 sits behind an extra layer of network address translation that mDNS can't cross. There's currently no way to make `ap.local` reachable from another device when running under WSL2; use your computer's IP address instead (see above). `-n` isn't available on **macOS** at all.
+Not supported on **macOS**.
 
 If you're running more than one instance of the driver on your network (e.g. one on a mini-PC, one in Docker), give each a different hostname in the Alpaca Pilot **Network Settings**. Otherwise they'll silently compete for the same `ap.local` name and which one you reach becomes unpredictable.
 
