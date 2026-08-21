@@ -131,13 +131,13 @@ The `-n` option enables Docker host networking, which removes the network isolat
 
 ### Connecting to the driver
 
-The Alpaca Pilot web interface can be accessed from a web browser by navigating to the driver's mDNS hostname, `ap.local` by default. Enter `ap.local` in your browser's address bar.
+The Alpaca Pilot web interface can be accessed from a web browser by navigating to the driver's mDNS hostname, `ap.local` by default. Enter `ap.local` in your browser's address bar. This works from any other device on your network with mDNS support (iPad, Mac, Linux, other Windows PCs) once the `-n` option and the firewall rule above are in place. 
 
 ```text
 http://ap.local
 ```
 
-This works from any other device on your network with mDNS support (iPad, Mac, Linux, other Windows PCs) once the `-n` option and the firewall rule above are in place. 
+
 
 **Exception:** on the Windows PC running Docker itself, browse to `http://localhost` instead of the mDNS name or IP address. WSL2 mirrored networking has a known bug that blocks the host from reaching its own mirrored network, and `localhost` is unaffected by it.
 
