@@ -195,6 +195,7 @@ Open a PowerShell window, entering the following commands, substituting your nam
 git config --global user.name "FIRST_NAME LAST_NAME"
 git config --global user.email "MY_NAME@gmail.com"
 git config --global fetch.prune true
+git clone https://github.com/ogecko/alpaca-benro-polaris.git
 ```
 ### Installing the ASCOM Platform (OPTIONAL)
 ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. This `Alpaca Benro Polaris Driver (ABP) commplies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
