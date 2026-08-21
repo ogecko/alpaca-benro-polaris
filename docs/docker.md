@@ -6,7 +6,7 @@
 
 Docker provides a portable and consistent way to run the driver across supported operating systems and hardware architectures. Instead of installing Python and the driver's dependencies directly on the host system, Docker packages the driver and its runtime environment into a container.
 
-This approach keeps the host system clean, makes installation and updates more predictable, and helps ensure that the driver behaves consistently across different platforms. Docker is particularly useful on systems such as Raspberry Pi, where managing Python versions and native dependencies can otherwise require additional setup.
+This approach keeps the host system clean, makes installation and updates more predictable, and helps ensure that the driver behaves consistently across different platforms. Docker is particularly useful on systems such as Linux, where managing Python versions and native dependencies can otherwise require additional setup.
 
 Follow the instructions below for your operating system. **Windows users should complete the additional WSL2, networking, and firewall configuration** to allow the driver's network services to be accessed by other devices on the local network.
 
@@ -42,8 +42,8 @@ The Windows setup uses WSL2, which provides a Linux environment for running Dock
 
    2. Enable WSL2 mirrored networking
 
-      Mirrored networking makes the driver reachable from other devices on your local network, rather than only from the Windows host.
-
+      Mirrored networking shares your Windows host's network interfaces directly with your Linux environment. This will allow the Driver to communicate with the Benro Polaris and provide netork services to other devices eg. running Alpaca Pilot. 
+      
       Create `%USERPROFILE%\.wslconfig` with mirrored networking enabled:
 
       ```powershell
@@ -108,9 +108,7 @@ The Docker scripts in the repository need to be executable before they can be ru
 chmod +x platforms/docker/run.sh platforms/docker/util.sh platforms/docker/entrypoint.sh
 ```
 
-The Docker image is built automatically the first time you run `run.sh`. You normally do not need to build it separately.
-
-To force the image to be rebuilt (for example, after pulling changes that affect the Docker image) use the `-b` option:
+The Docker image is built automatically the first time you run `run.sh`. You normally do not need to build it separately. To force the image to be rebuilt (for example, after pulling changes that affect the Docker image) use the `-b` option:
 
 ```bash
 ./platforms/docker/run.sh -b -t "America/Vancouver"
@@ -118,19 +116,45 @@ To force the image to be rebuilt (for example, after pulling changes that affect
 
 The `-t` option sets the driver's local time zone. Replace `America/Vancouver` with your own [TZ database time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
 
+
 # 4. Run
 
-Start the driver with:
+Start the driver from the repository directory:
 
 ```bash
-./platforms/docker/run.sh -t "America/Vancouver"
+./platforms/docker/run.sh -n -t "America/Vancouver"
 ```
 
-Replace the time zone with the one appropriate for your location.
+Replace `America/Vancouver` with your local [TZ database time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
 
-Once started, the Alpaca Pilot is available at `http://localhost` on the computer running Docker. Other devices on the same network can connect using the host computer's network IP address or the mDNS name `http://ap.local`.
+The `-n` option enables Docker host networking, which removes the network isolation between the container and the host. This allows the driver's network services to be accessed directly through the host's network interfaces. For most users, **use `-n`**. It is required when using Alpaca Pilot, Stellarium, or another client on a different computer or device to connect to the Docker driver.
 
-The container exposes the following services:
+### Connecting to the driver
+
+When connecting from another device, use the **IP address of the computer running Docker**. For example:
+
+```text
+http://192.168.1.50
+```
+
+You can find the host computer's IP address using:
+
+* **Windows / WSL:** `ipconfig`
+* **macOS / Linux / Raspberry Pi:** `ip addr` or `hostname -I`
+
+If you start the driver without `-n`, it will normally only be accessible locally through the Docker host. Docker's default networking places the container behind its own network, so the container's network services are not directly exposed on the host's physical network.
+
+### Connecting Alpaca Client using `ap.local`
+
+The `-n` option (Docker host networking) also allows the driver's mDNS advertisement to use the host's network. This allows other devices to discover the driver using ap.local or the hostname configured in Alpaca Pilot Network Settings:
+
+```text
+http://ap.local
+```
+
+### Network ports
+
+With the driver running, the following services are available:
 
 |  Port | Protocol | Service                            |
 | ----: | :------: | ---------------------------------- |
@@ -141,6 +165,15 @@ The container exposes the following services:
 | 10001 |    TCP   | Stellarium / SynScan Telescope API |
 | 32227 |    UDP   | Alpaca Discovery                   |
 |  5353 |    UDP   | mDNS — advertises `ap.local`       |
+
+### Using a dedicated Wi-Fi adapter with the Benro Polaris
+
+If your computer needs a dedicated USB Wi-Fi adapter to communicate with the Benro Polaris, connect that adapter to the Polaris `polaris_XXXXXX` hotspot as normal.
+
+The driver can communicate with the Polaris through one network interface while making its services available through another. In other words, the computer does not need to be connected to the Polaris and the rest of your network through the same Wi-Fi adapter.
+
+See [Hardware — Using a laptop with Stellarium Desktop](./hardware.md#using-a-laptop-with-stellarium-desktop) for more information.
+
 
 
 
