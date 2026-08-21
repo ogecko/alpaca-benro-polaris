@@ -69,32 +69,37 @@ parse_args() {
 
 
 main() {
-    if [ ! -f "${SCRIPT_DIR}/driver/main.py" ]; then
-        cp -r ${SCRIPT_DIR}/../../driver ${SCRIPT_DIR}
-    fi
     docker_build \
         DOCKER_BUILD_IMAGE \
         "true" \
         "${SCRIPT_DIR}/Dockerfile" \
         POLARIS_IMAGE_FULL \
         ASTRO_PLATFORM \
-        "${SCRIPT_DIR}/../"
-
-    if [ ! -f "${SCRIPT_DIR}/config.toml" ]; then
-        echo "S{SCRIPT_DIR}/config.toml doesn't exist.  Copy and customize ${SCRIPT_DIR}/config.toml.example."
+        "${SCRIPT_DIR}/../../"
+    if [ $? -ne 0 ]; then
+        echo "Docker build failed."
         return 1
     fi
-
 
     if [ -z "${TIME_ZONE}" ]; then
         echo "TIME_ZONE has not been set - see arguments in run.sh"
         return 1
     fi
-    
+
+    # data/ holds everything the driver generates or that Alpaca Pilot saves at runtime
+    # (config overrides, presets, calibration, TLS certs, ...). Bind-mounting it from the
+    # host means it survives container restarts/rebuilds.
+    mkdir -p "${SCRIPT_DIR}/data"
+
     read -d '' DOCKER_RUN_OPTIONS <<EOM
-        --mount type=bind,source="${SCRIPT_DIR}/config.toml",target="/home/polaris/aplaca/device/config.toml" \
-        -p 5432:5432 \
-        -p 5555:5555
+        --mount type=bind,source="${SCRIPT_DIR}/data",target="/home/polaris/alpaca/data" \
+        -p 5555:5555 \
+        -p 5556:5556 \
+        -p 80:80 \
+        -p 443:443 \
+        -p 32227:32227/udp \
+        -p 10001:10001 \
+        -p 5353:5353/udp
 EOM
 
     docker_run \

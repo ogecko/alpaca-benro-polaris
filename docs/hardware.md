@@ -7,6 +7,7 @@ If you want to run the Alpaca Driver on a mobile device or iPad, please read  [F
 # Recommended Hardware Platform
 [Laptop](#using-a-laptop-with-stellarium-desktop) | 
 [Raspberry Pi](#using-a-raspberry-pi-for-the-driver) | 
+[Docker](#using-a-docker-container-for-the-driver) | 
 [Mini-PC](#a-mini-pc-to-control-all-your-astronomy-equipment-recommended) |
 [Powerbank](#powering-the-mini-pc-and-camera-overnight) | 
 [Cabling](#connecting-up-the-ninaair) | 
@@ -23,6 +24,9 @@ Unfortunately some laptop Wifi controllers dont support connecting with the Benr
 You can install the Alpaca Benro Polaris Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
 
 ![Hardware Architecture](images/abp-hardware2.png)
+
+## Using a Docker Container for the driver
+You can also run the Alpaca Benro Polaris Driver in a Docker container, on any OS and architecture that supports Docker (Windows via WSL2, macOS, Linux, mini-PC, Raspberry Pi, etc.), without installing Python or its dependencies directly on the host. See the [Docker Installation Guide](./docker.md) for more information.
 
 ## A Mini-PC to control all your astronomy equipment (Recommended)
 To leverage more of the capabilities of the Alpaca Benro Polaris Driver, I'd recommend installing it on a mini-PC you can mount or hang from your tripod. This way, you can create an equivalent of a  [ZWO ASIAIR plus](https://www.zwoastro.com/product/asiair-plus/) that can control all your astronomy equipment. Let's call it a `NinaAir` instead of an ASIAir!
