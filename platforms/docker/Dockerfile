@@ -35,7 +35,8 @@ RUN apt-get update && \
         ca-certificates \
         vim \
         git \
-        tzdata && \
+        tzdata \
+        libcap2-bin && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
@@ -71,6 +72,14 @@ COPY --chown=${POLARIS_USER}:${POLARIS_USER} platforms/docker/entrypoint.sh ${PO
 USER root
 
 RUN chmod +x ${POLARIS_USER_HOME}/entrypoint.sh
+
+# Alpaca Pilot's web UI binds ports 80/443 by default. Under bridge networking Docker's
+# own default capability set already lets a non-root process bind them; under
+# --network host (needed for mDNS/discovery and for reaching a specific host WiFi
+# adapter), the host kernel enforces the privileged-port restriction directly, so grant
+# the capability to the real interpreter binary itself.
+RUN PYBIN=$(readlink -f ${POLARIS_DIR}/.venv/bin/python3) && \
+    setcap cap_net_bind_service=+ep "${PYBIN}"
 
 USER ${POLARIS_USER}
 

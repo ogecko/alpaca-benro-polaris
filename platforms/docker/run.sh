@@ -11,6 +11,7 @@ POLARIS_IMAGE_FULL=${POLARIS_REGISTRY}/${POLARIS_IMAGE_NAME}:${POLARIS_IMAGE_VER
 
 # Arguments
 DOCKER_BUILD_IMAGE="false"
+DOCKER_NETWORK_HOST="false"
 ASTRO_PLATFORM="ALPACA"
 
 # Set local time zone - choose from TZ identifier listed at 
@@ -30,6 +31,11 @@ Usage: ${define_usage_SCRIPT_NAME} [OPTIONS]
 Options:
     -t <TZ>    Set the timezone (default: ${TIME_ZONE})
     -b         Build the image before running.
+    -n         Use host networking instead of publishing individual ports.
+               Needed for mDNS/discovery to work properly, and for the driver
+               to reach the Benro Polaris over a specific host WiFi adapter
+               (e.g. a USB dongle). Linux/Raspberry Pi only -- not supported
+               by Docker Desktop on Windows or macOS.
     -h         Print help and exit.
 
 EOM
@@ -38,7 +44,7 @@ EOM
 parse_args() {
     local OPTIND=1
 
-    while getopts ":t:bh" option; do
+    while getopts ":t:bnh" option; do
         case "${option}" in
             "t")
                 TIME_ZONE=${OPTARG}
@@ -47,6 +53,10 @@ parse_args() {
             "b")
                 DOCKER_BUILD_IMAGE="true"
                 echo "Docker build enabled"
+                ;;
+            "n")
+                DOCKER_NETWORK_HOST="true"
+                echo "Host networking enabled"
                 ;;
             "h")
                 help_exit "true"
@@ -87,7 +97,15 @@ main() {
     # host means it survives container restarts/rebuilds.
     mkdir -p "${SCRIPT_DIR}/data"
 
-    read -d '' DOCKER_RUN_OPTIONS <<EOM
+    if [ "${DOCKER_NETWORK_HOST}" == "true" ]; then
+        # Host networking shares the host's network stack directly -- no port
+        # publishing needed (and -p is meaningless/ignored alongside it).
+        read -d '' DOCKER_RUN_OPTIONS <<EOM
+        --network host \
+        --mount type=bind,source="${SCRIPT_DIR}/data",target="/home/polaris/alpaca/data"
+EOM
+    else
+        read -d '' DOCKER_RUN_OPTIONS <<EOM
         --mount type=bind,source="${SCRIPT_DIR}/data",target="/home/polaris/alpaca/data" \
         -p 5555:5555 \
         -p 5556:5556 \
@@ -97,6 +115,7 @@ main() {
         -p 10001:10001 \
         -p 5353:5353/udp
 EOM
+    fi
 
     docker_run \
         POLARIS_IMAGE_NAME \

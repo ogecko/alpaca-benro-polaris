@@ -47,7 +47,7 @@ Run the following from a terminal, setting your local time zone using one of the
 ```
 ./platforms/docker/run.sh -t "America/Vancouver"
 ```
-This publishes the ports the driver needs, and bind-mounts a `platforms/docker/data` directory into the container:
+This starts the driver and makes it reachable at your computer's IP address (or `http://localhost` from the same machine), covering all of the services below. For most people, this is all you need — skip ahead to [Configuration](#configuration).
 
 | Port  | Protocol | Service                          |
 |-------|----------|-----------------------------------|
@@ -57,9 +57,19 @@ This publishes the ports the driver needs, and bind-mounts a `platforms/docker/d
 | 443   | TCP      | Alpaca Pilot Web UI (HTTPS)        |
 | 32227 | UDP      | Alpaca Discovery                  |
 | 10001 | TCP      | Stellarium / SynScan Telescope API |
-| 5353  | UDP      | mDNS (advertises `ap.local`, etc.) |
+| 5353  | UDP      | mDNS (advertises `ap.local`)       |
 
-> **Note:** mDNS relies on multicast (224.0.0.251), which Docker's default bridge network does not reliably forward even with the port published above. If `http://ap.local` doesn't resolve from another device, use the host's IP address directly, or run the container with `--network host` (Linux only) for full mDNS support.
+## Host Networking `-n`
+The `-n` option makes the container share your computer's real network directly instead of its own private one, which fixes both issues below. It only works on **Linux and Raspberry Pi**. It isn't available through macOS or Docker Desktop on Windows (including when using WSL2). On those platforms, you're limited to reaching the driver by IP address and can't use a USB WiFi adapter from inside the container.
+
+Add `-n` to the command above if either of these applies to you:
+
+- **You want to reach the driver at `http://ap.local` from another device, like an iPad, instead of typing in a docker container IP address.** This does not work by default with Docker. Docker's normal networking mode blocks multicast traffic that mDNS needs to announce `ap.local` to other devices on your network. 
+- **Your computer needs a separate USB WiFi adapter to talk to the Benro Polaris**, and the driver isn't able to reach it. Docker's normal networking mode puts the container on its own private, isolated network, separate from your computer's real network adapters. So even once your computer itself is connected to the Polaris over that adapter, the container still can't see it.
+
+```
+./platforms/docker/run.sh -n -t "America/Vancouver"
+```
 
 # Configuration
 There's no config file to prepare beforehand as the image ships with the driver's default `config.toml`. Once the container is running, open the Alpaca Pilot web UI at `http://localhost` (or `https://localhost` if you later enable HTTPS) and set your Benro Polaris's WiFi hotspot IP address, along with anything else, from there.
