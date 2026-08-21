@@ -188,7 +188,7 @@ Set-Service -Name sshd -StartupType 'Automatic'
 Get-Service sshd
 New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
 ```
-#### Download git for Windows
+#### Download git for Windows and clone repository
 Download git for use with VS Code from https://git-scm.com/download/win, following the default installation settings.
 Open a PowerShell window, entering the following commands, substituting your name and email address.
 ```
