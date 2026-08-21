@@ -28,43 +28,39 @@ define_usage() {
 Usage: ${define_usage_SCRIPT_NAME} [OPTIONS]
 
 Options:
-    -t <TZ>, --timezone=<TZ>    Set the timezone (default: ${TIME_ZONE})
-    -b, --build                 Build the image before running.
-    -h, --help                  Print help and exit.
+    -t <TZ>    Set the timezone (default: ${TIME_ZONE})
+    -b         Build the image before running.
+    -h         Print help and exit.
 
 EOM
 }
 
 parse_args() {
-    local OPTIND
+    local OPTIND=1
 
-    while getopts_long "biht: build indi help timezone:" option "${@}"; do
+    while getopts ":t:bh" option; do
         case "${option}" in
-            "t" | "timezone")
+            "t")
                 TIME_ZONE=${OPTARG}
                 echo "TIME_ZONE set to ${TIME_ZONE}"
                 ;;
-            "b" | "build")
+            "b")
                 DOCKER_BUILD_IMAGE="true"
                 echo "Docker build enabled"
                 ;;
-            "h" | "help")
+            "h")
                 help_exit "true"
                 ;;
             "?")
-                echo "Error: invalid option (${OPTARG})."
+                echo "Error: invalid option (-${OPTARG})."
                 help_exit "false"
                 ;;
             ":")
                 echo "Error: -${OPTARG} requires an argument."
                 help_exit "false"
                 ;;
-            *)
-                help_exit "false"
-                ;;
         esac
     done
-    shift $(( OPTIND - 1 ))
 }
 
 
@@ -110,11 +106,10 @@ EOM
 }
 
 # Setup
-setup SCRIPT_DIR SCRIPT_NAME
+define_usage SCRIPT_NAME
 
 # Parse arguments
 parse_args "${@}"
-shift $(( OPTIND - 1 ))
 
 # Main
 main

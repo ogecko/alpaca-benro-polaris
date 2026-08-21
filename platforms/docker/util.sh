@@ -63,20 +63,3 @@ help_exit() {
     exit 1
 }
 
-install_getopts_long() {
-    local -n install_getopts_long_SCRIPT_DIR=${1:?}
-
-    if [ ! -d "${install_getopts_long_SCRIPT_DIR}/getopts_long" ]; then
-        git clone https://github.com/UrsaDK/getopts_long.git "${install_getopts_long_SCRIPT_DIR}/getopts_long"
-    fi
-
-    source "${install_getopts_long_SCRIPT_DIR}/getopts_long/lib/getopts_long.bash"
-}
-
-setup() {
-    local -n setup_SCRIPT_DIR="${1:?}"
-    local -n setup_SCRIPT_NAME="${2:?}"
-
-    define_usage setup_SCRIPT_NAME
-    install_getopts_long setup_SCRIPT_DIR
-}

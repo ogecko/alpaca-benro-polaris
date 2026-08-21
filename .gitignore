@@ -23,7 +23,6 @@ alpaca*.csv
 alpaca*.csv.*
 Thumbs.db
 platforms/docker/data/
-platforms/docker/getopts_long/
 
 # Distribution / packaging
 .pytest-tmp
