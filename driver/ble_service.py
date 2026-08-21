@@ -19,6 +19,18 @@ CONNECT_TIMEOUT    = 15.0 if IS_LINUX else 10.0
 POST_CONNECT_SLEEP = 1.0  if IS_LINUX else 0.3
 NOTIFY_TIMEOUT     = 5.0
 
+# Substrings identifying "no usable Bluetooth" conditions, as opposed to unexpected
+# scanner errors. Includes the FileNotFoundError bleak/dbus_fast raise when there's no
+# D-Bus/BlueZ to connect to at all (e.g. containers, WSL2) rather than an adapter that's
+# merely off.
+BT_UNAVAILABLE_MESSAGES = (
+    "Bluetooth device is turned off",
+    "Failed to start scanner",
+    "No powered Bluetooth adapters found",
+    "device is not ready",
+    "No such file or directory",
+)
+
 
 class BLE_Controller:
     def __init__(self, logger, lifecycle: LifecycleController, isConnectedFn):
@@ -30,6 +42,7 @@ class BLE_Controller:
         self.isEnablingWifi = False
         self.isWifiEnabled  = False
         self._wifi_lock     = asyncio.Lock()
+        self._bt_unavailable_logged = False
         self._scanner: BleakScanner | None = None
         self._scanning      = False
 
@@ -77,17 +90,15 @@ class BLE_Controller:
             self._scanner = BleakScanner(self.scannerCallback, service_uuids=[POLARIS_ADVERTISED_UUID])
             await self._scanner.start()
             self._scanning = True
+            self._bt_unavailable_logged = False
             if Config.log_polaris_ble:
                 self.logger.info("BLE scanner started")
         except (BleakError, OSError) as e:
             msg = str(e)
-            if any(s in msg for s in (
-                "Bluetooth device is turned off",
-                "Failed to start scanner",
-                "No powered Bluetooth adapters found",
-                "device is not ready",
-            )):
-                self.logger.warning(f"Bluetooth unavailable, cannot start scanner: {e}")
+            if any(s in msg for s in BT_UNAVAILABLE_MESSAGES):
+                if not self._bt_unavailable_logged:
+                    self.logger.warning(f"Bluetooth unavailable, cannot start scanner: {e}")
+                    self._bt_unavailable_logged = True
             else:
                 self.logger.exception(f"BLE scanner start failed: {e}")
 
@@ -155,12 +166,7 @@ class BLE_Controller:
 
         except (BleakError, OSError) as e:
             msg = str(e)
-            if any(s in msg for s in (
-                "Bluetooth device is turned off",
-                "Failed to start scanner",
-                "No powered Bluetooth adapters found",
-                "device is not ready",
-            )):
+            if any(s in msg for s in BT_UNAVAILABLE_MESSAGES):
                 self.logger.warning("Bluetooth is off -- skipping BLE scan.")
             else:
                 self.logger.exception(f"BLE scan failed: {e}")
