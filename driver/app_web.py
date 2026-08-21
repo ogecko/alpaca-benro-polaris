@@ -9,6 +9,7 @@ import asyncio
 import aiohttp
 import uvicorn
 import socket
+import psutil
 from falcon import asgi, HTTP_200, HTTP_301, WebSocketDisconnected
 from config import Config
 from pathlib import Path
@@ -94,18 +95,33 @@ def _chmod(path: Path, mode: int):
 # ── SAN / network helpers ─────────────────────────────────────────────────────────────
 
 def _get_local_ips() -> list:
+    """
+    Enumerate this host's real IPv4 addresses across all network interfaces.
+
+    Deliberately does NOT use socket.getaddrinfo(socket.gethostname()) -- under
+    Docker (even with --network host) the container's own /etc/hosts maps its
+    hostname to a 127.0.1.1-style loopback address, so getaddrinfo returns only
+    that loopback IP and every real LAN address silently gets left out of the
+    cert's SAN. Enumerate interfaces directly instead, mirroring the approach
+    discovery_mdns.pick_lan_ipv4() already uses successfully for the same
+    Docker/WSL2 environment.
+    """
     ips = []
     try:
-        for info in socket.getaddrinfo(socket.gethostname(), None):
-            addr = info[4][0]
-            if not addr or not addr.strip():   
+        for if_name, addrs in psutil.net_if_addrs().items():
+            if if_name == 'lo':
                 continue
-            try:
-                ip = ipaddress.IPv4Address(addr)
-                if not ip.is_loopback:
+            for addr in addrs:
+                if addr.family != socket.AF_INET:
+                    continue
+                try:
+                    ip = ipaddress.IPv4Address(addr.address)
+                except ValueError:
+                    continue
+                if ip.is_loopback or ip.is_link_local:
+                    continue
+                if ip not in ips:
                     ips.append(ip)
-            except ValueError:
-                pass
     except Exception:
         pass
     return ips
