@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ARG ASTRO_PLATFORM="ALPACA"
 ARG PYTHON_VERSION=3.13
@@ -16,6 +16,11 @@ SHELL ["/bin/bash", "-c"]
 
 ENV POLARIS_USER=polaris
 ENV POLARIS_USER_HOME=/home/polaris
+
+# Ubuntu 24.04's base image ships a default "ubuntu" user/group at 1000:1000, which
+# collides with the polaris user/group we want at the same ids by default.
+RUN if id -u ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi && \
+    if getent group ubuntu >/dev/null 2>&1; then groupdel ubuntu; fi
 
 RUN groupadd -g ${POLARIS_UID} ${POLARIS_USER} && \
     useradd ${POLARIS_USER} -u ${POLARIS_UID} -g ${POLARIS_GID} -r -m -d ${POLARIS_USER_HOME} -s /bin/bash
@@ -35,7 +40,7 @@ RUN apt-get update && \
     apt-get clean
 
 # uv manages its own Python toolchain, so we don't need a system python3 package
-# (the project requires Python >=3.13, which Ubuntu 22.04 doesn't ship).
+# (the project requires Python >=3.13, which no current Ubuntu LTS ships by default).
 COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /uvx /usr/local/bin/
 
 USER ${POLARIS_USER}
