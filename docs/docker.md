@@ -131,7 +131,7 @@ The `-n` option enables Docker host networking, which removes the network isolat
 
 ### Connecting to the driver
 
-The Alpaca Pilot web interface can be accessed from a web browser by navigating to the driver's mDNS hostname, `ap.local` by default. Enter `ap.local` in your browser's address bar. This works from any other device on your network with mDNS support (iPad, Mac, Linux, other Windows PCs) once the `-n` option and the firewall rule above are in place. 
+The Alpaca Pilot web interface can be accessed from a web browser by navigating to the driver's mDNS hostname, `ap.local` by default. This works from any other device on your network with mDNS support (iPad, Mac, Linux, other Windows PCs) once the `-n` option and the firewall rule above are in place. Enter `ap.local` in your browser's address bar. 
 
 ```text
 http://ap.local
