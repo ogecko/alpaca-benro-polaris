@@ -127,30 +127,29 @@ Start the driver from the repository directory:
 
 Replace `America/Vancouver` with your local [TZ database time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
 
-The `-n` option enables Docker host networking, which removes the network isolation between the container and the host. This allows the driver's network services to be accessed directly through the host's network interfaces. For most users, **use `-n`**. It is required when using Alpaca Pilot, Stellarium, or another client on a different computer or device to connect to the Docker driver.
+The `-n` option enables Docker host networking, which removes the network isolation between the container and the host. This allows the driver's network services to be accessed directly through the host's network interfaces. For most users, **use `-n`**. It is required when using Alpaca Pilot, Stellarium, or another client on a different computer or device to connect to the driver running in the Docker container.
 
 ### Connecting to the driver
 
-When connecting from another device, use the **IP address of the computer running Docker**. For example:
+The Alpaca Pilot web interface can be accessed from a web browser by navigating to the driver's mDNS hostname, `ap.local` by default. Enter `ap.local` in your browser's address bar.
+
+```text
+http://ap.local
+```
+
+This works from any other device on your network with mDNS support (iPad, Mac, Linux, other Windows PCs) once the `-n` option and the firewall rule above are in place. `-n` (Docker host networking) is what lets the mDNS advertisement use the host's real network instead of Docker's isolated one.
+
+**Exception:** on the Windows PC running Docker itself, browse to `http://localhost` instead of the mDNS name or IP address — WSL2 mirrored networking has a known bug that blocks the host from reaching its own mirrored network, and `localhost` is unaffected by it.
+
+If a device can't resolve mDNS names, use the host computer's IP address instead:
 
 ```text
 http://192.168.1.50
 ```
 
-You can find the host computer's IP address using:
-
 * **Windows / WSL:** `ipconfig`
 * **macOS / Linux / Raspberry Pi:** `ip addr` or `hostname -I`
 
-If you start the driver without `-n`, it will normally only be accessible locally through the Docker host. Docker's default networking places the container behind its own network, so the container's network services are not directly exposed on the host's physical network.
-
-### Connecting Alpaca Client using `ap.local`
-
-The `-n` option (Docker host networking) also allows the driver's mDNS advertisement to use the host's network. This allows other devices to discover the driver using ap.local or the hostname configured in Alpaca Pilot Network Settings:
-
-```text
-http://ap.local
-```
 
 ### Network ports
 
