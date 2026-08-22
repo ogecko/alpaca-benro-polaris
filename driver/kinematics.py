@@ -113,27 +113,22 @@ def is_angle_between(angle: float, min_angle: float, max_angle: float) -> bool:
 
 def calculate_angular_velocity(history, nominal_dt=None, catchup_max_dt=None):
     """
-    Computes angular velocity as the median of the pairwise slopes between consecutive
-    entries in a history buffer. Each entry must be a list or tuple:
-    [timemonotomic, theta1, theta2, theta3]
+    Computes angular velocity from the first and last entries in a history buffer.
+    Each entry must be a list or tuple: [timemonotomic, theta1, theta2, theta3]
 
-    Using the median of adjacent-pair slopes, rather than a single slope between the
-    first and last entries, means one noisy sample can corrupt at most the two slopes
-    it's involved in -- the median stays clean as long as it's not a majority of the
-    window's pairs.
-
-    nominal_dt: if given, the fixed real interval assumed between EVERY consecutive
-    pair (e.g. Polaris' 200ms hardware cadence), used instead of each pair's raw
-    wall-clock gap -- wall-clock time between entries reflects how the read loop
-    happened to batch/pace its reads, not the real per-measurement interval, so a
-    backlog-draining burst that lands some entries only ms apart in wall-clock time
-    would otherwise corrupt just that pair's slope. None (default) falls back to the
-    raw wall-clock span between the first and last entries, e.g. for callers without a
-    known fixed sample cadence.
-    catchup_max_dt: if the overall span (first to last) exceeds this, assume a genuine
-    outage rather than ordinary backlog draining, and fall back to a single first-to-last
-    slope over the real wall-clock span instead of the pairwise-median approach. Ignored
-    if nominal_dt is None.
+    nominal_dt: if given, the fixed real interval between consecutive history entries
+    (e.g. Polaris' 200ms hardware cadence) -- the span used is (n-1)*nominal_dt rather
+    than the raw wall-clock span between the first and last entries. Wall-clock time
+    between entries reflects how the read loop happened to batch/pace its reads, not
+    the real per-measurement interval, so a backlog-draining burst that lands some
+    entries only ms apart in wall-clock time would otherwise dilute/inflate this
+    average (the window's total span shrinks or stretches for reasons unrelated to how
+    much the target actually moved). None (default) falls back to the raw wall-clock
+    span, e.g. for callers without a known fixed sample cadence.
+    catchup_max_dt: above this raw wall-clock span, assume a genuine outage rather than
+    ordinary backlog draining (nothing to attribute to catch-up, since the gap is too
+    large to be explained by it) and use the real wall-clock span instead. Ignored if
+    nominal_dt is None.
 
     Returns omega : ndarray
         Angular velocity vector [ω₁, ω₂, ω₃] in degrees per second.
@@ -143,27 +138,24 @@ def calculate_angular_velocity(history, nominal_dt=None, catchup_max_dt=None):
         if history is None or len(history) < 2:
             return np.zeros(3)
 
+        # Use first and last entries
         t_start, *theta_start = history[0]
         t_end,   *theta_end   = history[-1]
 
-        raw_span = t_end - t_start
-        if raw_span <= 0:
+        raw_dt = (t_end - t_start)
+        if raw_dt <= 0:
             return np.zeros(3)
 
-        if nominal_dt is not None and not (catchup_max_dt is not None and raw_span > catchup_max_dt):
-            # Normal case: median of pairwise slopes, each assumed nominal_dt apart.
-            slopes = [
-                [angular_difference(a, b) / nominal_dt for a, b in zip(theta0, theta1)]
-                for (_, *theta0), (_, *theta1) in zip(history, history[1:])
-            ]
-            omega = np.median(np.array(slopes), axis=0)
+        if nominal_dt is not None and not (catchup_max_dt is not None and raw_dt > catchup_max_dt):
+            dt = (len(history) - 1) * nominal_dt
         else:
-            # No fixed cadence given, or gap too large to be ordinary backlog draining:
-            # fall back to a single slope over the real first-to-last wall-clock span.
-            omega = np.array([
-                angular_difference(start, end) / raw_span
-                for start, end in zip(theta_start, theta_end)
-            ])
+            dt = raw_dt
+
+        # Wrap-safe angular velocity
+        omega = np.array([
+            angular_difference(start, end) / dt
+            for start, end in zip(theta_start, theta_end)
+        ])
         return omega
 
     except Exception:
