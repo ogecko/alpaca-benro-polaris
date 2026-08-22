@@ -281,7 +281,6 @@ Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser 
   3. Set the value to `true`
   4. Restart Firefox
 
-
 #### Enable HTTPS in Alpaca Pilot
 
 1. Open the **Alpaca Pilot Connect** page.
@@ -290,6 +289,14 @@ Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser 
 4. The Driver will restart with HTTPS enabled.
 5. Alpaca Pilot will detect the restart and redirect to HTTPS.
 
+#### Persistent Certificate Warnings
+If you're upgrading from an earlier driver version and still see certificate warnings or connection failures after following the steps above, the browser or the OS may be holding onto stale security state from before the upgrade.
+
+On Windows, do a full power-off rather than Restart. Windows 11 enables "Fast Startup" by default, which hibernates the session instead of fully reinitializing it on Restart. Leftover network state can persist across a restart; only a genuine power-off clears it. 
+
+On any device that connected to an earlier version of the driver, also clear that browser's site data
+* **Chrome/Edge**: Settings → Privacy and security → find the site under "All sites" and delete its data; 
+* **Safari on iOS/iPadOS**: Settings → Safari → Clear History and Website Data
 
 <br>
 <br>
