@@ -166,7 +166,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
 <script setup lang="ts">
 import { useQuasar, debounce } from 'quasar'
 import StatusBanners from 'src/components/StatusBanners.vue'
-import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch, nextTick } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
@@ -242,7 +242,15 @@ watch([pos_meas_var, vel_meas_var, pos_proc_var, vel_proc_var], (newVal)=>{
   putdb(payload)
 })
 
-watch(axis, () => setKnobValues())
+watch(axis, () => {
+  // Switching axis tabs re-syncs the knob refs from cfg -- that's a programmatic
+  // update, not a user edit, so guard it the same way onMounted does or it'll
+  // trigger the save watcher below and round-trip the (possibly stale) whole
+  // array back to the server just from clicking between M1/M2/M3.
+  isInitializing.value = true
+  setKnobValues()
+  void nextTick(() => { isInitializing.value = false })
+})
 
 async function onPlus(payload: { isPressed: boolean }) {
     const isPressed = payload.isPressed
@@ -292,8 +300,13 @@ function formatVelData(d: TelemetryRecord):DataPoint {
 }
 
 
-onMounted(() => {
+onMounted(async () => {
   socket.subscribe('kf')
+  // Pull the real kf_measure_noise/kf_process_noise from the server before showing
+  // or allowing edits -- without this, the knobs (and any save while on this page)
+  // work off the store's hardcoded placeholder defaults instead of what config.toml
+  // actually shipped, silently clobbering untouched axes on the next save.
+  await cfg.configFetch(['kf_measure_noise', 'kf_process_noise'])
   setKnobValues()
   isInitializing.value = false
 })
@@ -315,9 +328,11 @@ async function save() {
 
 async function restore() {
   const ok = await cfg.configRestore()
-  $q.notify({ message:`Configuration restore ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
+  $q.notify({ message:`Configuration restore ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative',
     position: 'top', timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }] })
+  isInitializing.value = true
   setKnobValues()
+  void nextTick(() => { isInitializing.value = false })
 }
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 
