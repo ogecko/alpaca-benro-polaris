@@ -41,7 +41,7 @@ class KalmanFilter:
 
         self.z = np.zeros((6,1))
         self.x = initial_state.reshape(6, 1)    # State: [theta1, theta2, theta3, omega1, omega2, omega3]
-        self.set_state_transition_matrix_A()    # State transition matrix (A): position + dt * velocity 
+        self.A = np.eye(6)                      # State transition matrix (A): position + dt * velocity -- rebuilt each predict()
         self.set_control_matrix_B()             # Control matrix (B): nudge state velocity by acceleration (omega_ref - omega_state)
         self.H = np.eye(6)                      # Measurement matrix (H): measures both position and velocity
         self.set_process_noise_model_Q()        # Process noise models matrix (Q) 
@@ -49,21 +49,6 @@ class KalmanFilter:
         self.P = np.eye(6)                      # Initial estimate covariance
         self.I = np.eye(6)
         self.K = np.zeros((6, 6))
-
-    def set_state_transition_matrix_A(self):
-        # recalc State transition matrix (A): position + dt * velocity
-        # use time interval since last call as dt
-        new_time = time.monotonic()
-        dt = new_time - self._time
-
-        # There's no mathematical reason to guard a small/zero dt here, always recomput from real dr
-        # skipping small dt's has problems when backlog draining, compouinding the large initial position shift
-
-        self._time = new_time
-        self.A = np.block([
-            [np.eye(3), dt * np.eye(3)],
-            [np.zeros((3, 3)), np.eye(3)]
-        ])
 
     def set_control_matrix_B(self, accel_nudge_vel=0.5):
         # Control matrix (B): acceleration nudging velocity
@@ -79,12 +64,32 @@ class KalmanFilter:
         # The Astro axis2 (theta3 and omega3) tend to have more noisy measurements
         self.R = np.diag([ pos, pos, pos*10, vel, vel, vel*10 ])
 
-    def predict(self, control_input):
+    def predict(self, control_input, coalesced=0):
+        """
+        coalesced: how many stale 518 frames polaris.read_msgs collapsed away to produce the
+        measurement this predict() call is about to observe() (0 if none). Polaris' microcontroller
+        emits 518 updates on a fixed hardware cadence (Config.measurement_dt) but the frame carries
+        no timestamp of its own, so dt is derived from that cadence and this count -- (1+coalesced)
+        intervals -- rather than wall-clock time since our last call, which reflects how our own
+        read loop happened to batch/pace its reads, not the real per-measurement interval. The one
+        case that count can't reveal is a genuine outage (nothing arrived to coalesce at all), so
+        wall-clock dt is used instead whenever it's implausibly larger than the coalesced count
+        alone would predict.
+        """
         self.Q = np.diag(Config.kf_process_noise)
-        self.set_state_transition_matrix_A()
         control_input = np.array(control_input).reshape(3, 1)
-        omega_state = self.x[3:]                    # stateimated velocity
-        u = control_input - omega_state             # Acceleration signal
+
+        new_time = time.monotonic()
+        raw_dt = new_time - self._time
+        self._time = new_time      # always advance, regardless of raw_dt
+        dt = raw_dt if raw_dt > Config.measurement_catchup_max_dt else (1 + coalesced) * Config.measurement_dt
+
+        self.A = np.block([
+            [np.eye(3), dt * np.eye(3)],
+            [np.zeros((3, 3)), np.eye(3)]
+        ])
+        omega_state = self.x[3:]                    # current estimated velocity
+        u = control_input - omega_state              # Acceleration signal
         self.x = self.A @ self.x + self.B @ u
         self.P = self.A @ self.P @ self.A.T + self.Q
         self.x = wrap_state_angles(self.x)
@@ -92,6 +97,12 @@ class KalmanFilter:
 
     def observe(self, theta, omega, omega_ref, theta_ref=None):
         """
+        omega: real, position-differenced velocity measurement (polaris.calculate_angular_velocity
+        over the recent theta history), not the commanded rate -- the filter needs an independent
+        measurement here to ever detect when achieved velocity differs from commanded (backlash,
+        friction, etc); echoing the command back would anchor the velocity state to it and leave
+        predict()'s position extrapolation systematically wrong whenever the two diverge.
+
         theta_ref: PID control target (same Base-frame theta space), passed only while
         actively tracking. When given, θ_meas/θ_state are sent as deltas from it instead
         of absolute position -- while tracking, the absolute values constantly drift with

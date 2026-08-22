@@ -95,6 +95,7 @@ class Polaris:
         self._last_518_timesec = time.monotonic()   # Timesec for last 518 Position Update message from Polaris.
         self._age_517_seconds = 0.0                 # Age in seconds of last 517 message.
         self._age_518_seconds = 0.0                 # Age in seconds of last 518 message.
+        self._last_518_coalesced = 0                 # Stale 518 frames collapsed into the next dispatched one (see read_msgs, KalmanFilter.predict)
         self._performance_data_start_timestamp = None      # Timestamp for Performance Data logging.
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
@@ -593,12 +594,18 @@ class Polaris:
                     buffer = new_buffer
                     frames.append((cmd, args))
 
-                # Collapse stale "518" telemetry frames down to just the latest one (in case we get a burst)
+                # Collapse stale "518" telemetry frames down to just the latest one (in case we get a burst).
+                # This was previously gated behind Config.log_polaris_polling (a logging flag, default false)
+                # so it silently never ran in normal operation -- coalescing itself must always happen
+                # regardless of whether we're also logging about it, since KalmanFilter.predict() now derives
+                # its dt from how many frames got coalesced away (see _last_518_coalesced below).
                 dispatch_list = []
                 for cmd, group in itertools.groupby(frames, key=lambda f: f[0]):
                     group = list(group)
-                    if cmd == '518' and len(group) > 1 and Config.log_polaris_polling:
-                        self.logger.warning(f"Coalesced {len(group)-1} stale 518 frame(s) in this read cycle")
+                    if cmd == '518' and len(group) > 1:
+                        self._last_518_coalesced = len(group) - 1
+                        if Config.log_polaris_polling:
+                            self.logger.warning(f"Coalesced {len(group)-1} stale 518 frame(s) in this read cycle")
                         dispatch_list.append(group[-1])  # append only last grouped 518 frame
                     else:
                         dispatch_list.extend(group)      # append all grouped frames
@@ -719,12 +726,13 @@ class Polaris:
         elif cmd == "518":
 
             # parse the 518 message args to determine motor angles and velocities
-            theta_raw, omega_raw, omega_ref = self.decode_518position_measurement(args)
+            theta_raw, omega_raw, omega_ref, omega_meas = self.decode_518position_measurement(args)
+            coalesced, self._last_518_coalesced = self._last_518_coalesced, 0
 
             # Process through the Kalman Filter [KF] to determine Polaris theta_state
-            self._kf.predict(omega_ref)
+            self._kf.predict(omega_ref, coalesced)
             is_tracking = self._pid.mode == 'TRACK'
-            self._kf.observe(theta_raw, omega_raw, omega_ref,
+            self._kf.observe(theta_raw, omega_meas, omega_ref,
                               theta_ref=(self._pid.theta_ref if is_tracking else None))
 
             self._theta_state, _ = self._kf.get_state()
@@ -859,9 +867,9 @@ class Polaris:
 
         theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp))
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
-        omega_raw = omega_ref                          # this is our best measurement of omega, dont use calc from histoy ωt - ωt-6
+        omega_raw = omega_ref                          # commanded rate echoed back -- not an independent measurement, kept for status/UI only
         self._history.append([dt_now, float(theta_raw[0]), float(theta_raw[1]), float(theta_raw[2])])          # deque collection, so it automatically throws away stuff older than 6 samples ago
-        omega_meas = calculate_angular_velocity(self._history)
+        omega_meas = calculate_angular_velocity(self._history, Config.measurement_dt, Config.measurement_catchup_max_dt)     # real, position-differenced velocity -- fed to the KF as its velocity measurement
 
         # Store all the polaris mechanical angles and velocities
         with self._lock:
@@ -871,7 +879,7 @@ class Polaris:
             self._omega_raw = omega_raw
             self._omega_meas = omega_meas
 
-        return theta_raw, omega_raw, omega_ref
+        return theta_raw, omega_raw, omega_ref, omega_meas
 
     def extract_sky_positions(self, q):
         az, alt, roll = q_to_azaltroll(q)
