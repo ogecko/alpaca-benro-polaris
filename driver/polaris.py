@@ -868,7 +868,12 @@ class Polaris:
         theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp))
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
         omega_raw = omega_ref                          # commanded rate echoed back -- not an independent measurement, kept for status/UI only
-        self._history.append([dt_now, float(theta_raw[0]), float(theta_raw[1]), float(theta_raw[2])])          # deque collection, so it automatically throws away stuff older than 6 samples ago
+        # self._last_518_coalesced still holds THIS sample's own coalesced count here -- read_msgs sets it
+        # when this frame is dispatched, and it isn't consumed/reset until after we return (see the "518"
+        # handler). Carrying it in the history entry lets calculate_angular_velocity know, for every pair of
+        # consecutive samples in the window, exactly how many nominal intervals that specific transition
+        # spans -- a single per-tick scalar can't do that once several ticks have accumulated in history.
+        self._history.append([dt_now, self._last_518_coalesced, float(theta_raw[0]), float(theta_raw[1]), float(theta_raw[2])])          # deque collection, so it automatically throws away stuff older than 6 samples ago
         omega_meas = calculate_angular_velocity(self._history, Config.measurement_dt, Config.measurement_catchup_max_dt)     # real, position-differenced velocity -- fed to the KF as its velocity measurement
 
         # Store all the polaris mechanical angles and velocities

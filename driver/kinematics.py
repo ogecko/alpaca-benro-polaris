@@ -114,17 +114,23 @@ def is_angle_between(angle: float, min_angle: float, max_angle: float) -> bool:
 def calculate_angular_velocity(history, nominal_dt=None, catchup_max_dt=None):
     """
     Computes angular velocity from the first and last entries in a history buffer.
-    Each entry must be a list or tuple: [timemonotomic, theta1, theta2, theta3]
+    Each entry must be a list or tuple: [timemonotonic, coalesced, theta1, theta2, theta3],
+    where `coalesced` is the number of stale hardware samples collapsed away immediately
+    before this entry was dispatched (see Polaris.read_msgs / KalmanFilter.predict) --
+    i.e. how many *extra* nominal_dt intervals this entry's own transition actually spans,
+    beyond the usual one.
 
-    nominal_dt: if given, the fixed real interval between consecutive history entries
-    (e.g. Polaris' 200ms hardware cadence) -- the span used is (n-1)*nominal_dt rather
+    nominal_dt: if given, the fixed real hardware sample interval (e.g. Polaris' 200ms
+    cadence). The dt used is the total number of nominal intervals spanned by the whole
+    window -- one per consecutive pair, plus each entry's own coalesced count -- rather
     than the raw wall-clock span between the first and last entries. Wall-clock time
     between entries reflects how the read loop happened to batch/pace its reads, not
     the real per-measurement interval, so a backlog-draining burst that lands some
     entries only ms apart in wall-clock time would otherwise dilute/inflate this
     average (the window's total span shrinks or stretches for reasons unrelated to how
     much the target actually moved). None (default) falls back to the raw wall-clock
-    span, e.g. for callers without a known fixed sample cadence.
+    span, e.g. for callers without a known fixed sample cadence or per-entry coalesced
+    counts.
     catchup_max_dt: above this raw wall-clock span, assume a genuine outage rather than
     ordinary backlog draining (nothing to attribute to catch-up, since the gap is too
     large to be explained by it) and use the real wall-clock span instead. Ignored if
@@ -138,16 +144,20 @@ def calculate_angular_velocity(history, nominal_dt=None, catchup_max_dt=None):
         if history is None or len(history) < 2:
             return np.zeros(3)
 
+        hist_list = list(history)
+
         # Use first and last entries
-        t_start, *theta_start = history[0]
-        t_end,   *theta_end   = history[-1]
+        t_start, _, *theta_start = hist_list[0]
+        t_end,   _, *theta_end   = hist_list[-1]
 
         raw_dt = (t_end - t_start)
         if raw_dt <= 0:
             return np.zeros(3)
 
         if nominal_dt is not None and not (catchup_max_dt is not None and raw_dt > catchup_max_dt):
-            dt = (len(history) - 1) * nominal_dt
+            # One nominal interval per consecutive pair, plus each entry's own coalesced count.
+            intervals = (len(hist_list) - 1) + sum(entry[1] for entry in hist_list[1:])
+            dt = intervals * nominal_dt
         else:
             dt = raw_dt
 
