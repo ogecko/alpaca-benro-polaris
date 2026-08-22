@@ -55,8 +55,9 @@ class KalmanFilter:
         # use time interval since last call as dt
         new_time = time.monotonic()
         dt = new_time - self._time
-        if dt < 0.05:
-            return
+
+        # There's no mathematical reason to guard a small/zero dt here, always recomput from real dr
+        # skipping small dt's has problems when backlog draining, compouinding the large initial position shift
 
         self._time = new_time
         self.A = np.block([
@@ -89,7 +90,14 @@ class KalmanFilter:
         self.x = wrap_state_angles(self.x)
 
 
-    def observe(self, theta, omega, omega_ref):
+    def observe(self, theta, omega, omega_ref, theta_ref=None):
+        """
+        theta_ref: PID control target (same Base-frame theta space), passed only while
+        actively tracking. When given, θ_meas/θ_state are sent as deltas from it instead
+        of absolute position -- while tracking, the absolute values constantly drift with
+        sidereal motion, which buries any small deviation. Same telemetry keys either way,
+        so no frontend change is needed to see it. Not fed into the filter -- display only.
+        """
         self.R = np.diag(Config.kf_measure_noise)
         if self._need_first_measurement:
             self._need_first_measurement = False
@@ -110,16 +118,28 @@ class KalmanFilter:
         self.P = (self.I - self.K @ self.H) @ self.P
         self.x = wrap_state_angles(self.x)
 
-        # Log meas, state and ref for websocket streaming
-        payload = { 
-            "θ_meas":  theta_meas.flatten().tolist(), 
-            "θ_state": self.x[:3].flatten().tolist(), 
+        # Log meas, state and ref for websocket streaming. While tracking, report
+        # θ_meas/θ_state as deltas from theta_ref instead of absolute position --
+        # see docstring above.
+        if theta_ref is not None:
+            # value - ref (PV - SP), flipped from the (SP - PV) convention originally tried
+            # here, to match the sign shown on the existing Alpaca Pilot PID/ΔM1 chart.
+            theta_ref_arr = np.asarray(theta_ref).reshape(3, 1)
+            theta_meas_out  = wrap_angle_residual(theta_meas, theta_ref_arr).flatten().tolist()
+            theta_state_out = wrap_angle_residual(self.x[:3], theta_ref_arr).flatten().tolist()
+        else:
+            theta_meas_out  = theta_meas.flatten().tolist()
+            theta_state_out = self.x[:3].flatten().tolist()
+
+        payload = {
+            "θ_meas":  theta_meas_out,
+            "θ_state": theta_state_out,
             "K_gain":  np.diag(self.K).tolist(),
-            "ω_meas":  omega_meas.flatten().tolist(), 
-            "ω_state": self.x[3:].flatten().tolist(), 
-            "ω_ref":   omega_ref.tolist(),  
+            "ω_meas":  omega_meas.flatten().tolist(),
+            "ω_state": self.x[3:].flatten().tolist(),
+            "ω_ref":   omega_ref.tolist(),
         }
-        kflogger = logging.getLogger('kf') 
+        kflogger = logging.getLogger('kf')
         kflogger.info(payload)
 
 
@@ -1527,8 +1547,8 @@ class PID_Controller():
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 
-            "ω_ff": (self.omega_ff + self.omega_pec).tolist(), 
-            "ω_op": self.omega_op.tolist(), 
+            "ω_ff": (self.omega_ff + self.omega_pec).tolist(),
+            "ω_op": self.omega_op.tolist(),
         }
         pidlogger = logging.getLogger('pid') 
         pidlogger.info(payload)

@@ -723,7 +723,10 @@ class Polaris:
 
             # Process through the Kalman Filter [KF] to determine Polaris theta_state
             self._kf.predict(omega_ref)
-            self._kf.observe(theta_raw, omega_raw, omega_ref)
+            is_tracking = self._pid.mode == 'TRACK'
+            self._kf.observe(theta_raw, omega_raw, omega_ref,
+                              theta_ref=(self._pid.theta_ref if is_tracking else None))
+
             self._theta_state, _ = self._kf.get_state()
             motorQ_state = theta_to_q(*self._theta_state)
 
