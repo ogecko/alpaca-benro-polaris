@@ -201,6 +201,14 @@ git config --global user.email "MY_NAME@gmail.com"
 git config --global fetch.prune true
 git clone https://github.com/ogecko/alpaca-benro-polaris.git
 ```
+#### Download nodejs and npm for rebuilding Pilot
+Download nodejs and npm to be able to rebuild the Alpaca Pilot application
+``` 
+cd pilot
+sudo apt install -y nodejs npm 
+npm install
+```
+
 ### Installing the ASCOM Platform (OPTIONAL)
 ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. This `Alpaca Benro Polaris Driver (ABP) commplies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
 
