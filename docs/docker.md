@@ -176,7 +176,7 @@ See [Hardware — Using a laptop with Stellarium Desktop](./hardware.md#using-a-
 
 
 
-# 5. Configuration
+# 5. Configuration Data and Logs
 
 Alpaca Pilot settings are stored as an overlay on top of the driver's shipped default configuration. The driver also generates and stores persistent data such as:
 
@@ -186,13 +186,9 @@ Alpaca Pilot settings are stored as an overlay on top of the driver's shipped de
 * TLS certificates
 * other runtime state
 
-For Docker installations, this data is stored on the host in:
+For Docker installations, this data is stored on the host in `data/`, and logs in `logs/`. The same locations a native driver install uses, at the root of the repository.
 
-```text
-platforms/docker/data
-```
-
-Because this directory is outside the Docker container, the data survives:
+Because these directories are outside the Docker container, their contents survives:
 
 * container restarts
 * Docker image rebuilds

@@ -11,6 +11,7 @@ __pycache__/
 
 # Alpaca Logs, Performance and Custom data
 data/*
+logs/*
 *_extract.csv
 *_extract.txt
 *_model.txt
@@ -22,7 +23,6 @@ data/*
 alpaca*.csv
 alpaca*.csv.*
 Thumbs.db
-platforms/docker/data/
 
 # Distribution / packaging
 .pytest-tmp

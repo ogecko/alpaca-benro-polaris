@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SCRIPT_NAME="${0}"
 
 POLARIS_REGISTRY=docker.io/library
@@ -93,20 +94,24 @@ main() {
     fi
 
     # data/ holds everything the driver generates or that Alpaca Pilot saves at runtime
-    # (config overrides, presets, calibration, TLS certs, ...). Bind-mounting it from the
-    # host means it survives container restarts/rebuilds.
-    mkdir -p "${SCRIPT_DIR}/data"
+    # (config overrides, presets, calibration, TLS certs, ...), and logs/ holds the
+    # driver's log files. Bind-mounting both from the repo root -- the same paths used
+    # by a native install -- means they survive container restarts/rebuilds and keeps
+    # the documentation consistent across install methods.
+    mkdir -p "${REPO_ROOT}/data" "${REPO_ROOT}/logs"
 
     if [ "${DOCKER_NETWORK_HOST}" == "true" ]; then
         # Host networking shares the host's network stack directly -- no port
         # publishing needed (and -p is meaningless/ignored alongside it).
         read -d '' DOCKER_RUN_OPTIONS <<EOM
         --network host \
-        --mount type=bind,source="${SCRIPT_DIR}/data",target="/home/polaris/alpaca/data"
+        --mount type=bind,source="${REPO_ROOT}/data",target="/home/polaris/alpaca/data" \
+        --mount type=bind,source="${REPO_ROOT}/logs",target="/home/polaris/alpaca/logs"
 EOM
     else
         read -d '' DOCKER_RUN_OPTIONS <<EOM
-        --mount type=bind,source="${SCRIPT_DIR}/data",target="/home/polaris/alpaca/data" \
+        --mount type=bind,source="${REPO_ROOT}/data",target="/home/polaris/alpaca/data" \
+        --mount type=bind,source="${REPO_ROOT}/logs",target="/home/polaris/alpaca/logs" \
         -p 5555:5555 \
         -p 5556:5556 \
         -p 80:80 \
