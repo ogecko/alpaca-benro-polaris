@@ -1551,7 +1551,7 @@ class PID_Controller():
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
             "ω_kd": self.omega_kd.tolist(), 
-            "ω_ff": (self.omega_ff + self.omega_pec).tolist(),
+            "ω_ff": (self.omega_ff - self.omega_pec).tolist(),
             "ω_op": self.omega_op.tolist(),
         }
         pidlogger = logging.getLogger('pid') 
