@@ -29,6 +29,10 @@
 - **[zeroconf dependancy]** Installation requires `pip install -r platforms/win/requirements.txt` to pickup new zeroconf dependancy
 - **[mDNS Service]** Advertise Alpaca Pilot hostname as `ap.local` (configurable via Network Settings) for easy discovery from iPads and other devices on the local network.
 - **[mDNS Certificate]** Changing mDNS hostname from Network Settings regenerates HTTPS root certificate, requiring reinstallation.
+- **[Kalman Filter]** Improve KF performance (fixed measurement cadence, use true velocity measurement, robust to protocol backlog draining)
+- **[KF Tuning Page]** Allow page to monitor trending signals during tracking and fix bug where page callup could reset KF Tuning Parameters
+- **[Docker Images]** Documented how to Install, Clone, Build and Run the driver in a docker image using platforms/docker/run.sh 
+- **[Python dependencies]** Add option to install using UV to manage python.exe and package dependancies with uv.lock
 
 ## What's new in v2.2 Beta 4
 - **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 
