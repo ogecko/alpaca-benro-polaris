@@ -36,7 +36,6 @@ import re
 import asyncio
 import ephem
 import numpy as np
-import itertools
 from collections import deque
 from quaternion import Q as Quaternion
 from threading import Lock
@@ -95,7 +94,7 @@ class Polaris:
         self._last_518_timesec = time.monotonic()   # Timesec for last 518 Position Update message from Polaris.
         self._age_517_seconds = 0.0                 # Age in seconds of last 517 message.
         self._age_518_seconds = 0.0                 # Age in seconds of last 518 message.
-        self._last_518_coalesced = 0                 # Stale 518 frames collapsed into the next dispatched one (see read_msgs, KalmanFilter.predict)
+        self._is_last_518_in_batch = True           # Whether the "518" currently being handled is the last of a same-read batch (see read_msgs)
         self._performance_data_start_timestamp = None      # Timestamp for Performance Data logging.
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
@@ -594,27 +593,18 @@ class Polaris:
                     buffer = new_buffer
                     frames.append((cmd, args))
 
-                # Collapse stale "518" telemetry frames down to just the latest one (in case we get a burst).
-                # This was previously gated behind Config.log_polaris_polling (a logging flag, default false)
-                # so it silently never ran in normal operation -- coalescing itself must always happen
-                # regardless of whether we're also logging about it, since KalmanFilter.predict() now derives
-                # its dt from how many frames got coalesced away (see _last_518_coalesced below).
-                dispatch_list = []
-                for cmd, group in itertools.groupby(frames, key=lambda f: f[0]):
-                    group = list(group)
-                    if cmd == '518' and len(group) > 1:
-                        self._last_518_coalesced = len(group) - 1
-                        if Config.log_polaris_polling:
-                            self.logger.warning(f"Coalesced {len(group)-1} stale 518 frame(s) in this read cycle")
-                        dispatch_list.append(group[-1])  # append only last grouped 518 frame
-                    else:
-                        dispatch_list.extend(group)      # append all grouped frames
+                # Dispatch every 518 frame to KF, no collapsing. but flag the last 518 msg for PID processing as well
+                last_518_idx = None
+                for idx, (cmd, args) in enumerate(frames):
+                    if cmd == '518':
+                        last_518_idx = idx
 
-                # dispatch all the coalesced frames
-                for cmd, args in dispatch_list:
+                for idx, (cmd, args) in enumerate(frames):
                     ispoll = cmd in POLARIS_POLL_COMMANDS
                     if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
                         self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
+                    if cmd == '518':
+                        self._is_last_518_in_batch = (idx == last_518_idx)
                     self.polaris_parse_cmd(cmd, args)
 
                 # Avoid tight loop
@@ -727,15 +717,18 @@ class Polaris:
 
             # parse the 518 message args to determine motor angles and velocities
             theta_raw, omega_raw, omega_ref, omega_meas = self.decode_518position_measurement(args)
-            coalesced, self._last_518_coalesced = self._last_518_coalesced, 0
 
-            # Process through the Kalman Filter [KF] to determine Polaris theta_state
-            self._kf.predict(omega_ref, coalesced)
+            # Process all 518 msgs through the Kalman Filter [KF] to determine Polaris theta_state. 
+            self._kf.predict(omega_ref)
             is_tracking = self._pid.mode == 'TRACK'
-            self._kf.observe(theta_raw, omega_meas, omega_ref,
-                              theta_ref=(self._pid.theta_ref if is_tracking else None))
-
+            self._kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self._pid.theta_ref if is_tracking else None))
             self._theta_state, _ = self._kf.get_state()
+
+            # Only process the last 518 msg of a batch through PID control step and motor actuation
+            # A stale-but-real sample would just be wasted work immediately superseded by the next iteration.
+            if not self._is_last_518_in_batch:
+                return
+
             motorQ_state = theta_to_q(*self._theta_state)
 
             # Translate from Base Frame to Topo Frame [MAC] -> QUEST -> [LGA] -> [RollAdj]
@@ -868,12 +861,7 @@ class Polaris:
         theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp))
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
         omega_raw = omega_ref                          # commanded rate echoed back -- not an independent measurement, kept for status/UI only
-        # self._last_518_coalesced still holds THIS sample's own coalesced count here -- read_msgs sets it
-        # when this frame is dispatched, and it isn't consumed/reset until after we return (see the "518"
-        # handler). Carrying it in the history entry lets calculate_angular_velocity know, for every pair of
-        # consecutive samples in the window, exactly how many nominal intervals that specific transition
-        # spans -- a single per-tick scalar can't do that once several ticks have accumulated in history.
-        self._history.append([dt_now, self._last_518_coalesced, float(theta_raw[0]), float(theta_raw[1]), float(theta_raw[2])])          # deque collection, so it automatically throws away stuff older than 6 samples ago
+        self._history.append([dt_now, float(theta_raw[0]), float(theta_raw[1]), float(theta_raw[2])])          # deque collection, so it automatically throws away stuff older than 6 samples ago
         omega_meas = calculate_angular_velocity(self._history, Config.measurement_dt, Config.measurement_catchup_max_dt)     # real, position-differenced velocity -- fed to the KF as its velocity measurement
 
         # Store all the polaris mechanical angles and velocities

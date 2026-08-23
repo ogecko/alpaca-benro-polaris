@@ -64,25 +64,18 @@ class KalmanFilter:
         # The Astro axis2 (theta3 and omega3) tend to have more noisy measurements
         self.R = np.diag([ pos, pos, pos*10, vel, vel, vel*10 ])
 
-    def predict(self, control_input, coalesced=0):
+    def predict(self, control_input):
         """
-        coalesced: how many stale 518 frames polaris.read_msgs collapsed away to produce the
-        measurement this predict() call is about to observe() (0 if none). Polaris' microcontroller
-        emits 518 updates on a fixed hardware cadence (Config.measurement_dt) but the frame carries
-        no timestamp of its own, so dt is derived from that cadence and this count -- (1+coalesced)
-        intervals -- rather than wall-clock time since our last call, which reflects how our own
-        read loop happened to batch/pace its reads, not the real per-measurement interval. The one
-        case that count can't reveal is a genuine outage (nothing arrived to coalesce at all), so
-        wall-clock dt is used instead whenever it's implausibly larger than the coalesced count
-        alone would predict.
+        Called once per dispatched 518 message, no coalescing allowed as it effects KF performance
         """
-        self.Q = np.diag(Config.kf_process_noise)
         control_input = np.array(control_input).reshape(3, 1)
 
         new_time = time.monotonic()
         raw_dt = new_time - self._time
         self._time = new_time      # always advance, regardless of raw_dt
-        dt = raw_dt if raw_dt > Config.measurement_catchup_max_dt else (1 + coalesced) * Config.measurement_dt
+        dt = raw_dt if raw_dt > Config.measurement_catchup_max_dt else Config.measurement_dt
+
+        self.Q = np.diag(Config.kf_process_noise)
 
         self.A = np.block([
             [np.eye(3), dt * np.eye(3)],
