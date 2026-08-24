@@ -1416,7 +1416,7 @@ class PID_Controller():
         self.omega_kp = np.array(Config.pid_Kp, dtype=float) * self.error_signal    # increase control proportional to error
         self.omega_ki = np.array(Config.pid_Ki, dtype=float) * self.error_integral  # increase control when integral error is high
         self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * (self.omega_op - self.omega_ff)      # dampen control when velocity error is high
-        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff + self.omega_pec
+        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff - self.omega_pec
 
     def constrain(self):
         self.set_Ka_array(Config.pid_Ka) 
@@ -1550,9 +1550,11 @@ class PID_Controller():
             "θ_pv": self.theta_pv.tolist(), 
             "ω_kp": self.omega_kp.tolist(), 
             "ω_ki": self.omega_ki.tolist(),  
-            "ω_kd": self.omega_kd.tolist(), 
+            "ω_kd": self.omega_kd.tolist(),
             "ω_ff": (self.omega_ff - self.omega_pec).tolist(),
             "ω_op": self.omega_op.tolist(),
+            "ω_ff_raw": self.omega_ff.tolist(),   # diagnostic only: omega_ff before the -pec adjustment above
+            "ω_pec": self.omega_pec.tolist(),     # diagnostic only: raw PEC velocity contribution
         }
         pidlogger = logging.getLogger('pid') 
         pidlogger.info(payload)
