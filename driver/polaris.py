@@ -1279,7 +1279,6 @@ class Polaris:
         s_lon = self._sitelongitude
         self.logger.info("Polaris communication init... done")
         self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
-        self.logger.warning(f'Change site_latitude and site_longitude in Alpaca Pilot App.')
 
 
 # ── Alpaca Telescope Device State ─────────────────────────────────────────────────────────────
