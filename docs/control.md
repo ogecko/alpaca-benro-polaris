@@ -8,7 +8,8 @@
 [Filtering](#kalman-filter) | 
 [Calibration](#motor-speed-calibration) | 
 [PID Controller](#pid-controller-and-performance-tuning) | 
-[Orbitals](#orbitals-and-non-sidereal-tracking) 
+[Orbitals](#orbitals-and-non-sidereal-tracking) | 
+[Dev: API Testing](#developer-automated-pidpec-testing-via-alpaca-api) 
 
 # Challenges with existing Control
 >PODCAST LINK: [20 - Deep Dive Podcast on Alpaca Benro Polaris V2.0](https://youtu.be/KUBCTnEsnlE)
@@ -724,4 +725,153 @@ Artificial satellites present unique challenges due to their speed.
 
 <br>
 <br>
+
+---
+
+# Developer: Automated PID/PEC Testing via Alpaca API
+
+This section documents how to drive the driver programmatically for regression-testing the PID controller and PEC (Periodic Error Correction) — useful for a developer or an AI coding assistant picking up an in-progress investigation without a human at the Pilot UI.
+
+## 1. Running the Driver Natively (WSL2/Linux/macOS)
+
+For fast iterate-test-repeat cycles, run the driver directly instead of via Docker:
+
+```bash
+cd ~/projects/alpaca-benro-polaris
+uv run driver
+```
+
+Requires `uv` installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`) and `uv sync` run once. The mount's WiFi hotspot (`polaris_XXXXXX`) must already be joined by the host — see `platforms/win/connect.py` on Windows.
+
+Ports are read from `driver/config.toml` with overrides in `data/config.pilot.json` (shared with any Docker setup on the same checkout — be careful changing ports there). This project's dev instance uses non-default Pilot ports (`8543`/`8180`) since `443`/`80` need elevated privileges — check `data/config.pilot.json` for the ports currently in use before assuming the ASCOM defaults.
+
+Fixed ports regardless of config: REST API `5555`, Pilot WebSocket `5556`.
+
+Restart the running driver cleanly via the Alpaca custom action `Polaris:RestartDriver` (see §3) rather than killing/relaunching — it's an in-process `os.execv()` restart that preserves the alignment model.
+
+## 2. Monitoring Live PID Telemetry
+
+The Pilot UI's PID Tuning page (§ PID Controller and Performance Tuning, above) subscribes to a `pid` topic over the Alpaca Pilot WebSocket (`wss://localhost:5556/ws`). For scripted access without a browser, connect directly and subscribe the same way. The server expects a `ping` at least every ~10s or it drops the connection (`cleanup_inactive_clients` in `app_socket.py`).
+
+Minimal Python client (stdlib only, no `websockets` package needed):
+
+```python
+import socket, ssl, base64, os, struct, json, sys, time
+
+HOST, PORT, PATH = "localhost", 5556, "/ws"
+
+def connect():
+    raw = socket.create_connection((HOST, PORT), timeout=10)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+    sock = ctx.wrap_socket(raw, server_hostname=HOST)
+    key = base64.b64encode(os.urandom(16)).decode()
+    sock.sendall((f"GET {PATH} HTTP/1.1\r\nHost: {HOST}:{PORT}\r\n"
+                  f"Upgrade: websocket\r\nConnection: Upgrade\r\n"
+                  f"Sec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n").encode())
+    resp = b""
+    while b"\r\n\r\n" not in resp: resp += sock.recv(4096)
+    return sock
+
+def send_text(sock, msg):
+    payload = msg.encode(); mask = os.urandom(4)
+    masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+    n = len(payload)
+    hdr = struct.pack("!BB", 0x81, 0x80 | n) if n < 126 else struct.pack("!BBH", 0x81, 0x80|126, n)
+    sock.sendall(hdr + mask + masked)
+
+def recv_frames(buf):
+    frames = []
+    while len(buf) >= 2:
+        b0, b1 = buf[0], buf[1]; length = b1 & 0x7F; idx = 2
+        if length == 126:
+            if len(buf) < 4: return frames
+            length = struct.unpack("!H", buf[2:4])[0]; idx = 4
+        if len(buf) < idx + length: return frames
+        payload = bytes(buf[idx:idx+length]); del buf[:idx+length]
+        frames.append((b0 & 0x0F, payload))
+    return frames
+
+sock = connect()
+send_text(sock, json.dumps({"type": "subscribe", "topic": "pid"}))
+sock.settimeout(0.5)
+buf = bytearray(); last_ping = time.time()
+while True:
+    if time.time() - last_ping > 3.0:
+        send_text(sock, json.dumps({"type": "ping"})); last_ping = time.time()
+    try: buf.extend(sock.recv(65536))
+    except socket.timeout: pass
+    for opcode, payload in recv_frames(buf):
+        if opcode == 0x1:
+            msg = json.loads(payload)
+            if isinstance(msg.get("data"), dict) and "ω_op" in msg["data"]:
+                print(msg["data"])  # ω_kp, ω_ki, ω_kd, ω_ff, ω_pec, ω_op — arrays of 3 (M1/M2/M3)
+```
+
+Other useful topics: `status` (mount/PEC/alignment state, `polaris.getStatus()`), `kf` (Kalman filter), `log` (general log stream).
+
+## 3. Controlling Tracking and Advanced Settings via API
+
+Standard ASCOM Alpaca `Telescope` device (`devicenumber=0`), plus custom `Polaris:*` actions. All PUTs are form-encoded with `ClientID`/`ClientTransactionID`.
+
+```bash
+BASE="http://localhost:5555/api/v1/telescope/0"
+
+# Connect (usually already true)
+curl -s "$BASE/connected?ClientID=1&ClientTransactionID=1"
+
+# Tracking on/off
+curl -s -X PUT "$BASE/tracking" -d "Tracking=true" -d "ClientID=1" -d "ClientTransactionID=2"
+curl -s "$BASE/tracking?ClientID=1&ClientTransactionID=3"
+
+# Read config
+curl -s -X PUT "$BASE/action" \
+  -d 'Action=Polaris:ConfigFetch' \
+  -d 'Parameters={"configNames":["advanced_pec","advanced_sync_guiding","advanced_alignment"]}' \
+  -d 'ClientID=1' -d 'ClientTransactionID=4'
+
+# Enable Multi-Point Alignment, PEC, and Sync Guiding (all required for the PEC test below)
+curl -s -X PUT "$BASE/action" \
+  -d 'Action=Polaris:ConfigUpdate' \
+  -d 'Parameters={"advanced_alignment":true,"advanced_pec":true,"advanced_sync_guiding":true}' \
+  -d 'ClientID=1' -d 'ClientTransactionID=5'
+
+# Clean in-process restart (preserves alignment model; NOT the same as killing the process)
+curl -s -X PUT "$BASE/action" -d 'Action=Polaris:RestartDriver' -d 'Parameters={}' \
+  -d 'ClientID=1' -d 'ClientTransactionID=6'
+```
+
+## 4. Running a PEC Convergence Test
+
+PEC learns from **Sync** corrections (the same "RA Sync Test Case" buttons on the PID Tuning page — see `pilot/src/pages/AnalysePID.vue`'s `runTestCase()`). To drive it from a script, repeatedly nudge the mount's believed RA by a small, realistic offset via `synctocoordinates`:
+
+```bash
+# Repeat ~5x, spaced ~5s apart. testVal ≈ 20" is realistic; going much larger/faster
+# (e.g. 80"@4s) can visibly destabilize the real mount -- seen firsthand this session.
+RA=$(curl -s "$BASE/rightascension?ClientID=1&ClientTransactionID=1" | python3 -c "import json,sys;print(json.load(sys.stdin)['Value'])")
+DEC=$(curl -s "$BASE/declination?ClientID=1&ClientTransactionID=2" | python3 -c "import json,sys;print(json.load(sys.stdin)['Value'])")
+NEWRA=$(python3 -c "print($RA + 20/3600/15)")   # +20 arcsec of RA, in hours
+curl -s -X PUT "$BASE/synctocoordinates" -d "RightAscension=$NEWRA" -d "Declination=$DEC" \
+  -d "ClientID=1" -d "ClientTransactionID=3"
+```
+
+Watch the driver's `PECLOG` log lines for convergence: `R2` should climb above `0.5` (status flips `TOO_FEW_OBS` → `LOW_R2` → `VALID`), and `Rate` (deg/hr) reflects the fitted drift.
+
+**Getting a clean baseline before each test run matters:** don't rely on `Polaris:RestartDriver` to reset PEC — it reloads persisted `q_syncguide_B` guide-correction state from `data/sync_points.json`, which can carry over contamination from a previous test. Instead, toggle `Tracking` off/on (calls `clear_sync_guiding()`, which resets both the PEC model and `q_syncguide_B` to identity in-memory) or perform a small GOTO to the current position.
+
+## 5. Known Issue Under Investigation: PID Telemetry vs. PEC
+
+**Symptom:** once PEC starts applying a correction, the PID Tuning page's OP (cyan) and FF (green) velocity lines diverge, and the Ki (olive) trace sits persistently off zero instead of flat — both contrary to the "ideal steady state" behavior described in §3 above.
+
+**Current code state** (`driver/control.py`):
+- `omega_tgt = kp + ki + kd + ff + pec` (`pid()`, ~line 1419) — the commanded target legitimately includes `+pec`.
+- `omega_kd = -Kd * (omega_op - omega_ff)` (~line 1418) — does **not** subtract `omega_pec`, unlike `omega_ff`.
+- PID chart telemetry ω_ff field is `(omega_ff - omega_pec)` (~line 1554, from commit `f87a0b91`).
+
+**Findings so far:**
+- Offline sign-consistency check (using the real `theta_to_q`/`theta_to_jacobian`/`calc_equatorial_axes_B` functions, not hand-derived math) confirms PEC's position-path (`accumulate_sync_guiding_residuals` → `q_syncguide_B`) and velocity-path (`omega_pec_B` → Jacobian solve → `omega_tgt`) are self-consistently signed. **This is not a sign bug in PEC's application.**
+- On real hardware, with the *original* (unfixed) `omega_kd` formula and a clean baseline, OP settles closer to `ff − pec` than `ff + pec` — i.e. `f87a0b91`'s telemetry sign happens to match what OP actually does, but that doesn't make `+pec` wrong as the *commanded target* (which it clearly is, per the code above).
+- Adding `omega_pec` into the `omega_kd` cancellation (mirroring how `omega_ff` is already handled there) was tried and, at a large synthetic PEC magnitude, caused visible oscillation across axes on the real mount — needs retesting at a small/realistic PEC magnitude with a guaranteed-clean baseline (§4) before drawing conclusions; earlier attempts were confounded by contaminated restart state (see §4) and haven't been cleanly repeated since.
+
+**Suggested next step:** with the native driver setup (§1) and telemetry script (§2), capture Kd/Ki/OP/FF over several minutes of real, converged PEC (small sync offsets only) *before* changing any code, to establish the true steady-state relationship between OP and (`ff`, `pec`) under the current, unmodified formulas — then revisit whether `omega_kd` needs the `pec` term and what the telemetry sign should be, together, rather than independently.
 
