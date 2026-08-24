@@ -370,10 +370,13 @@ onBeforeUnmount(() => {
 svg {
   background-color: #1e1e1e;
 
-  .line {
-    transition: d 0.2s ease-in-out;
-  }
-
+  // Intentionally no `transition: d` here -- the chart redraws every ~170ms (see the
+  // throttled watch below), faster than a d-attribute transition could ever complete,
+  // so it would perpetually restart and keep these paths pinned to their own GPU
+  // compositor layer indefinitely. That's a real, session-duration-scaling GPU/compositor
+  // leak (was previously bad enough to freeze mouse/keyboard input system-wide on long
+  // sessions). The intended scroll animation is already handled correctly in JS via
+  // drawLines()'s explicit transform transition below -- this CSS rule was redundant.
 
   // Axis lines
   .x-axis path,
