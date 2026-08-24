@@ -10,14 +10,38 @@ import os
 logger = None
 
 _log_queue_listener: logging.handlers.QueueListener = None  # keep reference for shutdown
+_blocking_handlers: list = []  # stdout/file handlers owned by the queue listener -- closed in shutdown_logging()
+
+
+class _SuppressBenignUvicornShutdown(logging.Filter):
+    """
+    uvicorn's Server.shutdown() logs "Cancel %s running task(s), timeout graceful
+    shutdown exceeded" whenever its bounded timeout_graceful_shutdown elapses --
+    including the common, harmless case where the count is 0 (all connections had
+    already finished by the time the timeout's polling loop noticed). That's an
+    expected side effect of bounding the shutdown wait, not a real problem, so it's
+    suppressed here. A count > 0 (something genuinely had to be force-cancelled)
+    still logs normally.
+    """
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.name == 'uvicorn.error' and record.msg == 'Cancel %s running task(s), timeout graceful shutdown exceeded':
+            count = record.args[0] if record.args else None
+            return count != 0
+        return True
 
 
 def init_logging():
+    logpath = None
     try:
         logging.basicConfig(level=Config.log_level)
         root_logger = logging.getLogger()
         formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s %(message)s', '%Y-%m-%dT%H:%M:%S')
         formatter.converter = time.gmtime
+
+        # uvicorn.Config(log_config=None) leaves this logger unconfigured by uvicorn,
+        # so its records propagate up to root and pick up our formatting/handlers
+        # like everything else -- see _SuppressBenignUvicornShutdown above.
+        logging.getLogger('uvicorn.error').addFilter(_SuppressBenignUvicornShutdown())
 
         # Collect all the blocking handlers (stdout, file)
         blocking_handlers = []
@@ -57,21 +81,21 @@ def init_logging():
             root_logger.addHandler(queue_handler)
 
             # QueueListener runs blocking handlers in a background thread
-            global _log_queue_listener
+            global _log_queue_listener, _blocking_handlers
             _log_queue_listener = logging.handlers.QueueListener(
                 log_queue,
                 *blocking_handlers,
                 respect_handler_level=True
             )
             _log_queue_listener.start()
+            _blocking_handlers = blocking_handlers
 
         root_logger.setLevel(Config.log_level)
         return root_logger
 
     except Exception as e:
         print("\n==ERROR== Unable to start the Alpaca Driver.\n")
-        print("The log file is currently in use by another program:")
-        print(f"{logpath}\n")
+        print(f"The log file is currently in use by another program: {'None' if logpath is None else logpath}\n")
         print("This usually means:")
         print(" • Another instance of the Alpaca Driver is running, or")
         print(" • The log file is open in another program (such as Notepad).\n")
@@ -84,10 +108,13 @@ def init_logging():
 
 def shutdown_logging():
     """Call this during app shutdown to flush and stop the queue listener."""
-    global _log_queue_listener
+    global _log_queue_listener, _blocking_handlers
     if _log_queue_listener:
         _log_queue_listener.stop()
         _log_queue_listener = None
+    for handler in _blocking_handlers:
+        handler.close()   # stop() doesn't close its handlers itself -- release the file/stream here
+    _blocking_handlers = []
 
 
 def update_log_level(level_name: str):
