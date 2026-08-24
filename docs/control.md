@@ -730,7 +730,7 @@ Artificial satellites present unique challenges due to their speed.
 
 # Developer: Automated PID/PEC Testing via Alpaca API
 
-This section documents how to drive the driver programmatically for regression-testing the PID controller and PEC (Periodic Error Correction) — useful for a developer or an AI coding assistant picking up an in-progress investigation without a human at the Pilot UI.
+This section documents how to control the driver programmatically for regression-testing the PID controller and PEC (Periodic Error Correction).
 
 ## 1. Running the Driver Natively (WSL2/Linux/macOS)
 
