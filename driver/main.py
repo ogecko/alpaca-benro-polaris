@@ -71,7 +71,12 @@ async def main():
         Config.apply_changes({ "log_dir": default_log_dir })
 
     # Ensure the directory exists and initialise
-    os.makedirs(Config.log_dir, exist_ok=True)
+    try:
+        os.makedirs(Config.log_dir, exist_ok=True)
+    except OSError as e:
+        print(f"FATAL: cannot create log directory '{Config.log_dir}': {e}\n"
+              f"Fix its permissions, or change the parameter log_dir in data/config.pilot.json", file=sys.stderr)
+        sys.exit(1)
     logger = log.init_logging()
     log.logger = exceptions.logger = discovery_alpaca.logger = discovery_mdns.logger = telescope.logger = rotator.logger = shr.logger = logger
 
@@ -287,18 +292,21 @@ if __name__ == '__main__':
 
     try:
         asyncio.run(main())
-        
+
     except ValueError as value:
         print(f"{value}\nQuit.")
-        asyncio.run(polaris.shutdown())
+        if polaris is not None:
+            asyncio.run(polaris.shutdown())
 
     except Exception as error:
         print(f"Error {error}, quit.")
-        asyncio.run(polaris.shutdown())
+        if polaris is not None:
+            asyncio.run(polaris.shutdown())
 
     except KeyboardInterrupt:
         print("Keyboard interrupt.")
-        asyncio.run(polaris.shutdown())
+        if polaris is not None:
+            asyncio.run(polaris.shutdown())
    
 
 
