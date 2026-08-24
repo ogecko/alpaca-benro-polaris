@@ -12,6 +12,12 @@ __pycache__/
 # Alpaca Logs, Performance and Custom data
 data/*
 logs/*
+
+# PID tuning harness: keep results.jsonl (small, durable summary log) in git,
+# but not the raw per-run telemetry captures (can grow large over a tuning sweep)
+# or the generated HTML report (regenerate anytime with report.py)
+utility/pid_tuning/captures/*.jsonl
+utility/pid_tuning/report.html
 *_extract.csv
 *_extract.txt
 *_model.txt
