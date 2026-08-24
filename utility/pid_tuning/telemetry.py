@@ -15,11 +15,23 @@ import websockets
 
 HOST = "localhost"
 WS_PORT = 5556
-WS_URL = f"wss://{HOST}:{WS_PORT}/ws"
 
 _ssl_ctx = ssl.create_default_context()
 _ssl_ctx.check_hostname = False
 _ssl_ctx.verify_mode = ssl.CERT_NONE
+
+
+def _ws_url():
+    """wss:// or ws:// depending on the driver's current enable_https setting --
+    this has been observed to change between driver restarts within a single
+    session, so don't hardcode the scheme."""
+    try:
+        import alpaca_client as ac
+        https = ac.config_fetch(["enable_https"])["enable_https"]
+    except Exception:
+        https = True  # driver default
+    scheme = "wss" if https else "ws"
+    return f"{scheme}://{HOST}:{WS_PORT}/ws"
 
 
 def _dedupe_key(topic, data):
@@ -33,10 +45,13 @@ def _dedupe_key(topic, data):
 async def _capture_async(duration_s, topics=("pid", "kf")):
     records = []
     seen = set()
+    url = _ws_url()
+    ssl_arg = _ssl_ctx if url.startswith("wss:") else None
     deadline = time.monotonic() + duration_s
+    consecutive_failures = 0
     while time.monotonic() < deadline:
         try:
-            async with websockets.connect(WS_URL, ssl=_ssl_ctx, open_timeout=10) as ws:
+            async with websockets.connect(url, ssl=ssl_arg, open_timeout=10) as ws:
                 for topic in topics:
                     await ws.send(json.dumps({"type": "subscribe", "topic": topic}))
                 last_ping = time.monotonic()
@@ -58,9 +73,16 @@ async def _capture_async(duration_s, topics=("pid", "kf")):
                         continue
                     seen.add(key)
                     records.append({"topic": topic, "t": time.time(), **data})
-        except (OSError, websockets.exceptions.WebSocketException):
+        except (OSError, websockets.exceptions.WebSocketException) as ex:
+            consecutive_failures += 1
+            if consecutive_failures in (1, 5) or consecutive_failures % 20 == 0:
+                import sys
+                print(f"telemetry.capture: connection to {url} failing ({ex!r}), "
+                      f"attempt {consecutive_failures}", file=sys.stderr)
             await asyncio.sleep(0.5)
             continue
+        else:
+            consecutive_failures = 0
     return records
 
 

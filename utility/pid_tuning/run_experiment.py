@@ -69,6 +69,17 @@ def parse_triple(s):
     return parts
 
 
+def parse_six(s):
+    if s is None:
+        return None
+    parts = [float(x) for x in s.split(",")]
+    if len(parts) != 6:
+        raise argparse.ArgumentTypeError(
+            "expected 6 comma-separated values [pos1,pos2,pos3,vel1,vel2,vel3], e.g. "
+            "0.003,0.006,0.006,0.0016,0.003,0.0016")
+    return parts
+
+
 def apply_gain_overrides(args):
     changes = {}
     if args.kp is not None:
@@ -77,6 +88,10 @@ def apply_gain_overrides(args):
         changes["pid_Ki"] = parse_triple(args.ki)
     if args.kd is not None:
         changes["pid_Kd"] = parse_triple(args.kd)
+    if args.kf_measure_noise is not None:
+        changes["kf_measure_noise"] = parse_six(args.kf_measure_noise)
+    if args.kf_process_noise is not None:
+        changes["kf_process_noise"] = parse_six(args.kf_process_noise)
     if changes:
         ac.config_update(changes)
 
@@ -168,6 +183,8 @@ def main():
     p.add_argument("--kp", help="override pid_Kp as 'M1,M2,M3', e.g. 1.0,1.0,1.0")
     p.add_argument("--ki", help="override pid_Ki as 'M1,M2,M3'")
     p.add_argument("--kd", help="override pid_Kd as 'M1,M2,M3'")
+    p.add_argument("--kf-measure-noise", help="override kf_measure_noise as 'pos1,pos2,pos3,vel1,vel2,vel3' (6 values)")
+    p.add_argument("--kf-process-noise", help="override kf_process_noise as 'pos1,pos2,pos3,vel1,vel2,vel3' (6 values)")
     p.add_argument("--events", type=int, default=5, help="[disturbance] number of events")
     p.add_argument("--event-interval", type=float, default=15.0, help="[disturbance] seconds between events")
     p.add_argument("--disturbance-kind", choices=DISTURBANCE_KINDS, default="step",
@@ -227,6 +244,13 @@ def main():
         records, result, event_times = run_disturbance_test(
             args.duration, args.events, args.event_interval, args.pre_settle, args.disturbance_kind,
             args.event_arcsec, args.pulseguide_direction, args.pulseguide_duration_ms)
+
+    expected_min = args.duration * 2  # ~5-6Hz combined pid+kf rate; well under half that means something's wrong
+    if len(records) < expected_min * 0.2:
+        print(f"WARNING: only {len(records)} telemetry records captured over {args.duration}s "
+              f"(expected order of {expected_min:.0f}+) -- the websocket connection likely failed "
+              f"for some/all of this run (e.g. ws://↔wss:// scheme mismatch after a driver restart). "
+              f"This result is probably NOT trustworthy -- check before relying on it.")
 
     CAPTURES_DIR.mkdir(exist_ok=True)
     capture_path = CAPTURES_DIR / f"{run_id}.jsonl"

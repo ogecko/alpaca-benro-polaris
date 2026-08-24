@@ -2,40 +2,49 @@
 Metrics for the two standard PID test scenarios:
 
 - "steady": undisturbed sidereal tracking -- measures test (d), the priority
-  case. Just RMS/max/mean of error_signal (theta_sp - theta_pv) once past the
-  initial settle.
+  case. Just RMS/max/mean of position error once past the initial settle.
 - "disturbance": a train of known sync-offset events -- measures test (c),
   disturbance rejection. Per event: peak overshoot and settling time (first
   moment error stays under threshold for hold_s continuously), correlated to
   each event by wall-clock time.
 
-Axis order throughout is [M1(az), M2(alt), M3(roll)], matching theta1-3 /
-the pid telemetry's θ_sp/θ_pv arrays.
+Two coordinate frames are reported, from two different telemetry field pairs:
+
+- Motor/base-frame (theta1-3, θ_sp/θ_pv) -- AXES/MOTOR_FIELDS. Useful for
+  per-axis mechanical diagnosis (which motor is doing the work), but doesn't
+  map 1:1 onto sky-tracking accuracy.
+- Equatorial (RA/Dec/PA, Δ_sp/Δ_pv) -- EQ_AXES/EQ_FIELDS. This is what
+  actually matters for tracking quality -- RA/Dec error is what shows up as
+  star trailing; Position Angle error (field rotation) matters less. Prefer
+  this frame when judging whether a gain change is actually an improvement.
 """
 import statistics as st
 
 AXES = ["M1_az", "M2_alt", "M3_roll"]
+MOTOR_FIELDS = ("θ_sp", "θ_pv")
+
+EQ_AXES = ["RA", "Dec", "PA"]
+EQ_FIELDS = ("Δ_sp", "Δ_pv")
 
 
 def _pid_records(records):
     return [r for r in records if r.get("topic") == "pid"]
 
 
-def error_signal_arcsec(r, axis_i):
-    return (r["θ_sp"][axis_i] - r["θ_pv"][axis_i]) * 3600
+def error_arcsec(r, axis_i, fields=MOTOR_FIELDS):
+    sp_key, pv_key = fields
+    return (r[sp_key][axis_i] - r[pv_key][axis_i]) * 3600
 
 
-def steady_state_metrics(records, t_start=None, settle_skip_s=10.0):
-    """RMS/max/mean position error per axis, skipping the first settle_skip_s
-    seconds after t_start (defaults to the first record's timestamp)."""
+def _axis_stats(records, axes, fields, t_start, settle_skip_s):
     pid = _pid_records(records)
     if not pid:
         return {}
     t0 = t_start if t_start is not None else pid[0]["t"]
     steady = [r for r in pid if r["t"] - t0 > settle_skip_s]
     out = {}
-    for i, axis in enumerate(AXES):
-        errs = [error_signal_arcsec(r, i) for r in steady]
+    for i, axis in enumerate(axes):
+        errs = [error_arcsec(r, i, fields) for r in steady]
         if not errs:
             continue
         rms = (sum(e * e for e in errs) / len(errs)) ** 0.5
@@ -48,18 +57,22 @@ def steady_state_metrics(records, t_start=None, settle_skip_s=10.0):
     return out
 
 
-def disturbance_metrics(records, event_times, threshold_arcsec=1.5, hold_s=3.0, window_after_s=25.0):
-    """For each event time (wall-clock, matching telemetry's 't'), find the
-    peak |error| in the window after it, and the settling time -- how long
-    until the error is LAST outside +-threshold_arcsec (i.e. it never leaves
-    the band again before the window ends, or the next event fires). If the
-    error is still outside the band within hold_s of the window's end, the
-    event is marked unsettled (None). Returns per-axis list of per-event
-    dicts plus median/mean summaries."""
+def steady_state_metrics(records, t_start=None, settle_skip_s=10.0):
+    """RMS/max/mean position error per axis, skipping the first settle_skip_s
+    seconds after t_start (defaults to the first record's timestamp). Returns
+    both frames: motor-space (M1_az/M2_alt/M3_roll keys) and equatorial
+    (RA/Dec/PA keys) -- the latter is the one that reflects actual sky-tracking
+    quality; treat the former as mechanical diagnosis, not the scoring metric."""
+    out = _axis_stats(records, AXES, MOTOR_FIELDS, t_start, settle_skip_s)
+    out.update(_axis_stats(records, EQ_AXES, EQ_FIELDS, t_start, settle_skip_s))
+    return out
+
+
+def _disturbance_axis_stats(records, axes, fields, event_times, threshold_arcsec, hold_s, window_after_s):
     pid = sorted(_pid_records(records), key=lambda r: r["t"])
     event_times = sorted(event_times)
     out = {}
-    for i, axis in enumerate(AXES):
+    for i, axis in enumerate(axes):
         events = []
         for idx, ev_t in enumerate(event_times):
             # Clip at the next event so one event's settling window can't bleed into
@@ -69,7 +82,7 @@ def disturbance_metrics(records, event_times, threshold_arcsec=1.5, hold_s=3.0, 
             window = [r for r in pid if ev_t <= r["t"] < window_end]
             if not window:
                 continue
-            errs = [(r["t"], error_signal_arcsec(r, i)) for r in window]
+            errs = [(r["t"], error_arcsec(r, i, fields)) for r in window]
             overshoot = max(abs(e) for _, e in errs)
             # Settling time = how long until the error is LAST outside the threshold band
             # (i.e. it never leaves the band again within the window). Using "last exceedance"
@@ -81,8 +94,8 @@ def disturbance_metrics(records, event_times, threshold_arcsec=1.5, hold_s=3.0, 
                 settle_t = 0.0
             else:
                 last_exceed = max(exceed_times)
-                window_end = errs[-1][0]
-                if window_end - last_exceed < hold_s:
+                w_end = errs[-1][0]
+                if w_end - last_exceed < hold_s:
                     settle_t = None   # still (or again) outside the band near the end of the window
                 else:
                     settle_t = last_exceed - ev_t
@@ -98,4 +111,13 @@ def disturbance_metrics(records, event_times, threshold_arcsec=1.5, hold_s=3.0, 
             "mean_overshoot_arcsec": st.mean([e["overshoot_arcsec"] for e in events]) if events else None,
             "n_unsettled": sum(1 for e in events if e["settling_time_s"] is None),
         }
+    return out
+
+
+def disturbance_metrics(records, event_times, threshold_arcsec=1.5, hold_s=3.0, window_after_s=25.0):
+    """Per-event peak overshoot and settling time, both frames (see module
+    docstring) -- motor-space (M1_az/M2_alt/M3_roll) and equatorial (RA/Dec/PA,
+    the one that reflects actual sky-tracking quality)."""
+    out = _disturbance_axis_stats(records, AXES, MOTOR_FIELDS, event_times, threshold_arcsec, hold_s, window_after_s)
+    out.update(_disturbance_axis_stats(records, EQ_AXES, EQ_FIELDS, event_times, threshold_arcsec, hold_s, window_after_s))
     return out

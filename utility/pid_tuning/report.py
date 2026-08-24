@@ -16,7 +16,13 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 RESULTS_PATH = HERE / "results.jsonl"
-AXES = [("M1_az", "M1"), ("M2_alt", "M2"), ("M3_roll", "M3")]
+# Equatorial (RA/Dec/PA) is the primary decision metric -- it's what actually reflects
+# sky-tracking quality (RA/Dec error is star trailing; PA matters less, it's field
+# rotation). Motor/base-frame (M1/M2/M3) is secondary -- useful for mechanical diagnosis
+# (which axis is doing the work) but doesn't map 1:1 onto tracking accuracy.
+EQ_AXES = [("RA", "RA"), ("Dec", "Dec"), ("PA", "PA")]
+MOTOR_AXES = [("M1_az", "M1"), ("M2_alt", "M2"), ("M3_roll", "M3")]
+AXES = EQ_AXES + MOTOR_AXES
 
 
 def load_results():
@@ -58,6 +64,18 @@ def fmt_gain(gains, key):
     return "/".join(f"{x:g}" for x in v)
 
 
+def fmt_kf_triple(kf_params, key, offset):
+    """kf_measure_noise/kf_process_noise are 6-element [pos1,pos2,pos3,vel1,vel2,vel3]
+    arrays -- pull out the M1/M2/M3 sub-triple (offset 0=pos, 3=vel) as a compact
+    'x/x/x' string, 2 significant figures (these values span orders of magnitude,
+    e.g. 5e-05 to 0.02, so fixed decimals would either truncate or pad uselessly --
+    but this is a scan/compare display, not the source of truth, so keep it terse)."""
+    v = kf_params.get(key)
+    if v is None or len(v) < offset + 3:
+        return "&mdash;"
+    return "/".join(f"{x:.2g}" for x in v[offset:offset + 3])
+
+
 def fmt_num(v, unit, decimals=2):
     if v is None:
         return '<span class="na">&mdash;</span>'
@@ -91,19 +109,31 @@ def build_row(run, best):
     o = run["actual_orientation"]
     orientation = f"Az{o['az']:.0f}/Alt{o['alt']:.0f}/Roll{o['roll']:.0f}"
     gains = run["gains"]
+    kf_params = run.get("kf_params", {})
     notes = html.escape(run.get("notes", "") or "")
     align_reset = run.get("alignment_reset", None)
 
     cells_html = []
-    for ax_key, _ in AXES:
+    for axis_idx, (ax_key, _) in enumerate(AXES):
         rms, ov, settle, unsettled = axis_stats(run, ax_key)
+        secondary = axis_idx >= len(EQ_AXES)
+        major_boundary = axis_idx == len(EQ_AXES)  # divider between Equatorial and Motor groups
         for metric_i, (val, unit, dec) in enumerate([(rms, '&Prime;', 2), (ov, '&Prime;', 2), (settle, 's', 1)]):
             is_best = val is not None and best.get((ax_key, metric_i)) == val
             flag = ""
             if metric_i == 2 and unsettled:
                 flag = f'<span class="flag" title="{unsettled} event(s) did not settle">&#9888;{unsettled}</span>'
-            cls = "cell" + (" best" if is_best else "")
-            cells_html.append(f'<td class="{cls}">{fmt_num(val, unit, dec)}{flag}</td>')
+            classes = ["cell"]
+            if is_best:
+                classes.append("best")
+            if secondary:
+                classes.append("secondary")
+            if metric_i == 0:
+                classes.append("group-start")
+            if major_boundary and metric_i == 0:
+                classes.append("major-boundary")
+            group = "motor" if secondary else "eq"
+            cells_html.append(f'<td data-group="{group}" class="{" ".join(classes)}">{fmt_num(val, unit, dec)}{flag}</td>')
 
     extra_lines = []
     if notes:
@@ -123,6 +153,12 @@ def build_row(run, best):
           <span><b>Ki</b> {fmt_gain(gains, 'pid_Ki')}</span>
           <span><b>Kd</b> {fmt_gain(gains, 'pid_Kd')}</span>
         </div>
+        <div class="ctx-gains ctx-kf">
+          <span><b>KFmeas</b> P{fmt_kf_triple(kf_params, 'kf_measure_noise', 0)} V{fmt_kf_triple(kf_params, 'kf_measure_noise', 3)}</span>
+        </div>
+        <div class="ctx-gains ctx-kf">
+          <span><b>KFproc</b> P{fmt_kf_triple(kf_params, 'kf_process_noise', 0)} V{fmt_kf_triple(kf_params, 'kf_process_noise', 3)}</span>
+        </div>
         <div class="ctx-meta">{orientation} &middot; {run_id}</div>
         {"".join(extra_lines)}
       </td>
@@ -131,11 +167,14 @@ def build_row(run, best):
 
 
 def build_summary(rows):
+    """Best steady-state RMS per axis, Equatorial (RA/Dec/PA) only -- that's the
+    metric that actually reflects sky-tracking quality; M1/M2/M3 stays out of this
+    summary since it's secondary/diagnostic (see AXES comment above)."""
     steady = [r for r in rows if r["test"] == "steady"]
     if not steady:
         return ""
     best_per_axis = {}
-    for ax_key, ax_label in AXES:
+    for ax_key, ax_label in EQ_AXES:
         candidates = [(r, axis_stats(r, ax_key)[0]) for r in steady]
         candidates = [(r, v) for r, v in candidates if v is not None]
         if candidates:
@@ -143,7 +182,7 @@ def build_summary(rows):
     if not best_per_axis:
         return ""
     cells = []
-    for ax_key, ax_label in AXES:
+    for ax_key, ax_label in EQ_AXES:
         if ax_key not in best_per_axis:
             continue
         r, v = best_per_axis[ax_key]
@@ -155,9 +194,36 @@ def build_summary(rows):
         </div>''')
     return f'''
     <section class="summary">
-      <h2>Best steady-state RMS seen, per axis</h2>
+      <h2>Best steady-state RMS seen &middot; Equatorial (RA / Dec / PA)</h2>
       <div class="summary-grid">{"".join(cells)}</div>
     </section>'''
+
+
+def build_header():
+    group_cells = []
+    sub_cells = []
+    for axis_idx, (_, ax_label) in enumerate(AXES):
+        secondary = axis_idx >= len(EQ_AXES)
+        major_boundary = axis_idx == len(EQ_AXES)
+        group = "motor" if secondary else "eq"
+        th_classes = (" secondary" if secondary else "") + (" major-boundary" if major_boundary else "")
+        group_cells.append(f'<th colspan="3" data-group="{group}" class="{th_classes.strip()}">{ax_label}</th>')
+        for metric_i, metric_label in enumerate(["RMS", "Overshoot", "Settle"]):
+            sub_classes = []
+            if metric_i == 0:
+                sub_classes.append("group-start")
+            if major_boundary and metric_i == 0:
+                sub_classes.append("major-boundary")
+            sub_cells.append(f'<th data-group="{group}" class="{" ".join(sub_classes)}">{metric_label}</th>')
+    return f'''
+        <tr class="group-row">
+          <th class="ctx-head"></th>
+          {"".join(group_cells)}
+        </tr>
+        <tr class="sub-row">
+          <th class="ctx-head">Run</th>
+          {"".join(sub_cells)}
+        </tr>'''
 
 
 PAGE_TEMPLATE = '''<title>TRACK PID Tuning</title>
@@ -232,6 +298,37 @@ body {{
 .wrap {{ max-width: 1180px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }}
 
 .masthead {{ margin-bottom: 2rem; }}
+.masthead-top {{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}}
+.coord-select {{
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}}
+.coord-select select {{
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 0.85rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+}}
+.coord-select select:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 1px; }}
 .masthead .eyebrow {{
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.75rem;
@@ -295,13 +392,19 @@ body {{
 table.runs {{
   border-collapse: collapse;
   width: 100%;
-  min-width: 920px;
+  min-width: 900px;
 }}
+table.runs[data-coord="both"] {{ min-width: 1650px; }}
 table.runs th, table.runs td {{
   padding: 0.5rem 0.6rem;
   text-align: left;
   vertical-align: top;
 }}
+/* Coordinate-frame selector: hide the non-selected group's columns entirely.
+   Default (no data-coord yet, before the init script runs) matches "eq". */
+table.runs[data-coord="eq"] [data-group="motor"],
+table.runs:not([data-coord]) [data-group="motor"] {{ display: none; }}
+table.runs[data-coord="motor"] [data-group="eq"] {{ display: none; }}
 thead .group-row th {{
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -314,6 +417,7 @@ thead .group-row th {{
 }}
 thead .group-row th.ctx-head {{ border-bottom-color: transparent; }}
 thead .group-row th[colspan] {{ text-align: center; border-left: 1px solid var(--border); }}
+thead .group-row th.major-boundary {{ border-left: 2px solid var(--accent); }}
 thead .sub-row th {{
   font-size: 0.68rem;
   text-transform: uppercase;
@@ -326,9 +430,9 @@ thead .sub-row th {{
   text-align: center;
   white-space: nowrap;
 }}
-thead .sub-row th:nth-child(2),
-thead .sub-row th:nth-child(5),
-thead .sub-row th:nth-child(8) {{ border-left: 1px solid var(--border); }}
+thead .sub-row th.group-start {{ border-left: 1px solid var(--border); }}
+thead .sub-row th.major-boundary {{ border-left: 2px solid var(--accent); }}
+thead .group-row th.secondary {{ color: var(--muted); }}
 
 tbody tr {{ border-bottom: 1px solid var(--border); }}
 tbody tr:last-child {{ border-bottom: none; }}
@@ -362,6 +466,8 @@ td.ctx {{
   margin-bottom: 0.25rem;
 }}
 .ctx-gains b {{ color: var(--ink); font-weight: 600; margin-right: 0.15rem; }}
+.ctx-gains.ctx-kf {{ font-size: 0.68rem; opacity: 0.75; margin-bottom: 0.15rem; }}
+.ctx-gains.ctx-kf b {{ color: var(--muted); font-weight: 600; }}
 .ctx-meta {{
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.7rem;
@@ -380,8 +486,11 @@ td.cell {{
   white-space: nowrap;
   width: 4.6rem;
 }}
-td.cell:nth-child(2), td.cell:nth-child(5), td.cell:nth-child(8) {{ border-left: 1px solid var(--border); }}
+td.cell.group-start {{ border-left: 1px solid var(--border); }}
+td.cell.major-boundary {{ border-left: 2px solid var(--accent); }}
 td.cell.best {{ background: var(--good-tint); color: var(--good); font-weight: 600; }}
+td.cell.secondary {{ opacity: 0.7; font-size: 0.8rem; }}
+td.cell.secondary.best {{ opacity: 1; }}
 td.cell .unit {{ font-size: 0.72em; color: inherit; opacity: 0.7; margin-left: 0.1em; }}
 td.cell .na {{ color: var(--muted); opacity: 0.4; }}
 .flag {{
@@ -398,30 +507,33 @@ td.cell .na {{ color: var(--muted); opacity: 0.4; }}
 
 <div class="wrap">
   <div class="masthead">
-    <p class="eyebrow">Alpaca Benro Polaris &middot; PID Tuning</p>
-    <h1>TRACK-mode gain sweep</h1>
+    <div class="masthead-top">
+      <div>
+        <p class="eyebrow">Alpaca Benro Polaris &middot; PID Tuning</p>
+        <h1>TRACK-mode gain sweep</h1>
+      </div>
+      <label class="coord-select">
+        <span>Coordinates</span>
+        <select id="coordSelect" onchange="document.querySelector('table.runs').setAttribute('data-coord', this.value); try {{ localStorage.setItem('pidReportCoord', this.value) }} catch (e) {{}}">
+          <option value="eq">Equatorial (RA/Dec/PA)</option>
+          <option value="motor">Motor (M1/M2/M3)</option>
+          <option value="both">Both</option>
+        </select>
+      </label>
+    </div>
     <p>Every run below slews to its stated orientation, resets the alignment model for a
     clean baseline, then measures steady-state tracking error (RMS) or disturbance-rejection
-    (overshoot / settling time) per axis. M1/M2/M3 are the driver's raw motor/base-frame axes
-    (theta1-3) &mdash; loosely Az/Alt/Roll, not a strict match. Green cells mark the best value
-    seen for that axis and metric across all runs so far. Newest run first.</p>
+    (overshoot / settling time) per axis. <b>RA / Dec / PA</b> (equatorial) is the metric that
+    actually reflects sky-tracking quality &mdash; RA/Dec error is star trailing, PA matters less
+    (field rotation). <b>M1 / M2 / M3</b> are the driver's raw motor/base-frame axes (theta1-3)
+    &mdash; useful for mechanical diagnosis, not the scoring metric. Green cells mark the best
+    value seen for that axis and metric across all runs so far. Newest run first.</p>
   </div>
   {summary}
   <div class="table-scroll">
     <table class="runs">
       <thead>
-        <tr class="group-row">
-          <th class="ctx-head"></th>
-          <th colspan="3">M1 &middot; Azimuth</th>
-          <th colspan="3">M2 &middot; Altitude</th>
-          <th colspan="3">M3 &middot; Roll</th>
-        </tr>
-        <tr class="sub-row">
-          <th class="ctx-head">Run</th>
-          <th>RMS</th><th>Overshoot</th><th>Settle</th>
-          <th>RMS</th><th>Overshoot</th><th>Settle</th>
-          <th>RMS</th><th>Overshoot</th><th>Settle</th>
-        </tr>
+        {header}
       </thead>
       <tbody>
         {rows}
@@ -429,6 +541,16 @@ td.cell .na {{ color: var(--muted); opacity: 0.4; }}
     </table>
   </div>
 </div>
+<script>
+  (function () {{
+    var saved = 'eq';
+    try {{ saved = localStorage.getItem('pidReportCoord') || 'eq'; }} catch (e) {{}}
+    var table = document.querySelector('table.runs');
+    var select = document.getElementById('coordSelect');
+    if (table) table.setAttribute('data-coord', saved);
+    if (select) select.value = saved;
+  }})();
+</script>
 '''
 
 
@@ -441,11 +563,13 @@ def main():
     rows.sort(key=lambda r: r["timestamp"], reverse=True)
     best = compute_bests(rows)
 
+    n_cols = 1 + len(AXES) * 3
     rows_html = "\n".join(build_row(r, best) for r in rows) if rows else \
-        '<tr><td colspan="10" style="color:var(--muted); text-align:center; padding:2rem;">No runs yet.</td></tr>'
+        f'<tr><td colspan="{n_cols}" style="color:var(--muted); text-align:center; padding:2rem;">No runs yet.</td></tr>'
     summary_html = build_summary(rows)
+    header_html = build_header()
 
-    out = PAGE_TEMPLATE.format(rows=rows_html, summary=summary_html)
+    out = PAGE_TEMPLATE.format(rows=rows_html, summary=summary_html, header=header_html)
     Path(args.output).write_text(out)
     print(f"wrote {args.output} ({len(rows)} runs)")
 
