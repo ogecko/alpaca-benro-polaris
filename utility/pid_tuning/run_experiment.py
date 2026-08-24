@@ -4,11 +4,11 @@ Standardized, repeatable PID tuning experiment for TRACK mode.
 
 Two test types (see docs/control.md's PID/PEC sections for background):
 
-  steady       -- test (d): undisturbed sidereal tracking. No injected
-                  disturbance; measures steady-state RMS/max error per axis.
-                  This is the priority scenario.
+  steady       -- undisturbed sidereal tracking. No injected disturbance;
+                  measures steady-state RMS/max error per axis. This is
+                  the priority scenario.
 
-  disturbance  -- test (c): disturbance rejection. Injects a train of events
+  disturbance  -- disturbance rejection. Injects a train of events
                   and measures peak overshoot + settling time per axis, per
                   event. Three interchangeable disturbance mechanisms
                   (--disturbance-kind):
@@ -115,6 +115,14 @@ def run_steady_test(duration_s, settle_skip_s):
 
 
 DISTURBANCE_KINDS = ("step", "sync", "pulseguide")
+
+
+def _disturbance_axis(kind, pulseguide_direction):
+    """step/sync always perturb RA (ac.step_ra_arcsec/sync_ra_offset_arcsec); pulseguide's
+    axis depends on direction (0=N/1=S -> Dec, 2=E/3=W -> RA)."""
+    if kind == "pulseguide":
+        return "Dec" if pulseguide_direction in (ac.PULSEGUIDE_NORTH, ac.PULSEGUIDE_SOUTH) else "RA"
+    return "RA"
 
 
 def _inject_disturbance(kind, event_arcsec, pulseguide_direction, pulseguide_duration_ms):
@@ -278,6 +286,7 @@ def main():
     if args.test == "disturbance":
         summary["disturbance_params"] = {
             "kind": args.disturbance_kind,
+            "axis": _disturbance_axis(args.disturbance_kind, args.pulseguide_direction),
             "n_events": args.events, "interval_s": args.event_interval, "event_arcsec": args.event_arcsec,
             "pulseguide_direction": args.pulseguide_direction, "pulseguide_duration_ms": args.pulseguide_duration_ms,
             "event_times": event_times,

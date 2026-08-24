@@ -1,9 +1,9 @@
 """
 Metrics for the two standard PID test scenarios:
 
-- "steady": undisturbed sidereal tracking -- measures test (d), the priority
-  case. Just RMS/max/mean of position error once past the initial settle.
-- "disturbance": a train of known sync-offset events -- measures test (c),
+- "steady": undisturbed sidereal tracking -- the priority case. Just
+  RMS/max/mean of position error once past the initial settle.
+- "disturbance": a train of known sync-offset events -- measures
   disturbance rejection. Per event: true overshoot (the peak error *after* the
   response first crosses back through zero -- excludes the initial step itself,
   which for a 'step'-kind disturbance would otherwise dominate and isn't

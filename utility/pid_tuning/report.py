@@ -92,6 +92,8 @@ def test_badge(run):
     kind = dp.get("kind")
     if not kind:
         return "disturbance", "dist-unknown"
+    axis = dp.get("axis")
+    axis_str = f" [{html.escape(axis)}]" if axis else ""
     if kind == "pulseguide":
         direction = PULSEGUIDE_DIR_LABEL.get(dp.get("pulseguide_direction"), "?")
         duration = dp.get("pulseguide_duration_ms")
@@ -99,7 +101,7 @@ def test_badge(run):
     else:
         arcsec = dp.get("event_arcsec")
         magnitude = f"{arcsec:g}&Prime;" if arcsec is not None else "?"
-    return f"disturbance &middot; {kind} {magnitude}", f"dist-{kind}"
+    return f"disturbance &middot; {kind} {magnitude}{axis_str}", f"dist-{kind}"
 
 
 def build_row(run, best):

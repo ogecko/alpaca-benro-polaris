@@ -37,10 +37,27 @@ def recompute(run):
         return metrics.disturbance_metrics(records, event_times)
 
 
+def backfill_axis(run):
+    """Old runs predate disturbance_params.axis -- step/sync always perturbed RA
+    (ac.step_ra_arcsec/sync_ra_offset_arcsec); pulseguide's axis depends on direction
+    (0=N/1=S -> Dec, 2=E/3=W -> RA)."""
+    dp = run.get("disturbance_params")
+    if not dp or "axis" in dp:
+        return False
+    if dp.get("kind") == "pulseguide":
+        dp["axis"] = "Dec" if dp.get("pulseguide_direction") in (0, 1) else "RA"
+    else:
+        dp["axis"] = "RA"
+    return True
+
+
 def main():
     lines = [json.loads(l) for l in open(RESULTS_PATH) if l.strip()]
     updated = 0
+    axis_backfilled = 0
     for run in lines:
+        if backfill_axis(run):
+            axis_backfilled += 1
         new_metrics = recompute(run)
         if new_metrics is None:
             continue
@@ -49,7 +66,7 @@ def main():
     with open(RESULTS_PATH, "w") as f:
         for run in lines:
             f.write(json.dumps(run) + "\n")
-    print(f"recomputed metrics for {updated}/{len(lines)} runs")
+    print(f"recomputed metrics for {updated}/{len(lines)} runs, backfilled axis for {axis_backfilled} runs")
 
 
 if __name__ == "__main__":

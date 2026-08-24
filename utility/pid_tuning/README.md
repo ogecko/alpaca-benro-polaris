@@ -13,11 +13,11 @@ on hardware.
 
 ## Two test types
 
-- **`steady`** -- test (d), the priority case. Undisturbed sidereal tracking at a fixed
-  orientation; no injected disturbance. Measures steady-state RMS/max/mean position error
-  per axis (M1/az, M2/alt, M3/roll).
+- **`steady`** -- the priority case. Undisturbed sidereal tracking at a fixed orientation; no
+  injected disturbance. Measures steady-state RMS/max/mean position error per axis (M1/az,
+  M2/alt, M3/roll).
 
-- **`disturbance`** -- test (c). Injects a train of events and measures, per axis per event:
+- **`disturbance`** -- disturbance rejection. Injects a train of events and measures, per axis per event:
   peak overshoot and settling time (how long until the error is last outside a threshold
   band). This is disturbance *rejection*, distinct from steady-state quality -- a gain set
   can be excellent at one and mediocre at the other. Three interchangeable disturbance
@@ -55,24 +55,82 @@ tests).
 
 ## Usage
 
+Requires the driver running natively and reachable at `localhost:5555`/`5556` (see
+`docs/control.md` section 1). All commands below run from the repo root:
+
 ```bash
 cd /home/jdm/projects/alpaca-benro-polaris
+```
+
+Gain overrides (`--kp`/`--ki`/`--kd`, each `M1,M2,M3`) and KF noise overrides
+(`--kf-measure-noise`/`--kf-process-noise`, each 6 values `pos1,pos2,pos3,vel1,vel2,vel3`) are
+applied live via `Polaris:ConfigUpdate` -- no restart needed. Omit them to test whatever gains
+are currently live (still recorded in the result). Overrides are **not** persisted back to
+`driver/config.toml` -- promote a winning gain/KF set there manually once chosen.
+
+`--duration` must cover the whole event schedule -- roughly
+`pre_settle + (events-1)*event_interval + 25`, or the last event(s) will look artificially
+"unsettled" just from running out of capture time (the harness warns if you undershoot this).
+
+### Examples
+
+**Steady-state** -- undisturbed sidereal tracking, RMS/max/mean error per axis:
+
+```bash
 uv run python utility/pid_tuning/run_experiment.py \
     --label baseline --test steady --az 240 --alt 45 --roll 0 --duration 90
+```
 
+**Disturbance, `step` kind (default)** -- instant setpoint jump via `Polaris:SlewRelative`,
+always on RA. Good for general Kp/Ki/Kd characterization; unlike `sync`, it never touches
+`sync_history`/the alignment model, so it's safe to repeat many times in a sweep:
+
+```bash
 uv run python utility/pid_tuning/run_experiment.py \
     --label kd_roll_0.6 --test disturbance --az 240 --alt 45 --roll 0 \
     --kd 0.5,0.5,0.6 --disturbance-kind step \
-    --events 5 --event-interval 15 --event-arcsec 20 --duration 150
+    --events 5 --event-interval 30 --event-arcsec 20 --pre-settle 5 --duration 160
 ```
 
-Gain overrides (`--kp`/`--ki`/`--kd`, each `M1,M2,M3`) are applied live via
-`Polaris:ConfigUpdate` -- no restart needed. Omit them to test whatever gains are currently
-live (still recorded in the result). Overrides are **not** persisted back to
-`driver/config.toml` -- promote a winning gain set there manually once chosen.
+**Disturbance, `sync` kind** -- exercises the real sync-guiding path (`q_syncguide_B`); needs
+`advanced_sync_guiding` on to be a real test rather than an instant re-alignment, and pollutes
+`sync_history`/the live MPA fit, so use sparingly against a real alignment model (see MPA reset
+note below):
 
-Requires the driver running natively and reachable at `localhost:5555`/`5556` (see
-`docs/control.md` section 1).
+```bash
+uv run python utility/pid_tuning/run_experiment.py \
+    --label sync_baseline --test disturbance --az 240 --alt 45 --roll 0 \
+    --disturbance-kind sync --event-arcsec 20 \
+    --events 5 --event-interval 30 --pre-settle 5 --duration 160
+```
+
+**Disturbance, `pulseguide` kind** -- the real ASCOM `PulseGuide` API, what autoguiders like
+PHD2 actually send. `--pulseguide-direction` picks the axis (`0`=N, `1`=S -> Dec; `2`=E,
+`3`=W -> RA) and `--pulseguide-duration-ms` the pulse length -- a typical short guide
+correction is a few hundred ms, not seconds (at 1x sidereal guide rate, 500ms ~= 7.5"):
+
+```bash
+# RA axis, realistic short pulse
+uv run python utility/pid_tuning/run_experiment.py \
+    --label pulseguide_ra_500ms --test disturbance --az 240 --alt 45 --roll 0 \
+    --disturbance-kind pulseguide --pulseguide-direction 2 --pulseguide-duration-ms 500 \
+    --events 5 --event-interval 20 --pre-settle 5 --duration 110
+
+# Dec axis, same magnitude
+uv run python utility/pid_tuning/run_experiment.py \
+    --label pulseguide_dec_500ms --test disturbance --az 240 --alt 45 --roll 0 \
+    --disturbance-kind pulseguide --pulseguide-direction 0 --pulseguide-duration-ms 500 \
+    --events 5 --event-interval 20 --pre-settle 5 --duration 110
+```
+
+**KF noise override** -- e.g. widening measurement noise to trust the model more than raw
+sensor readings:
+
+```bash
+uv run python utility/pid_tuning/run_experiment.py \
+    --label kf_measure_wide --test steady --az 240 --alt 45 --roll 0 --duration 90 \
+    --kf-measure-noise 0.01,0.02,0.03,0.005,0.01,0.01
+```
 
 ## Reading results
 
