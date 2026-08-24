@@ -4,9 +4,13 @@ Metrics for the two standard PID test scenarios:
 - "steady": undisturbed sidereal tracking -- measures test (d), the priority
   case. Just RMS/max/mean of position error once past the initial settle.
 - "disturbance": a train of known sync-offset events -- measures test (c),
-  disturbance rejection. Per event: peak overshoot and settling time (first
-  moment error stays under threshold for hold_s continuously), correlated to
-  each event by wall-clock time.
+  disturbance rejection. Per event: true overshoot (the peak error *after* the
+  response first crosses back through zero -- excludes the initial step itself,
+  which for a 'step'-kind disturbance would otherwise dominate and isn't
+  overshoot, it's the disturbance) and settling time (last moment error is
+  outside the threshold band), correlated to each event by wall-clock time.
+  `peak_error_arcsec` is kept alongside as a diagnostic -- roughly the raw
+  event magnitude, useful as a sanity check but not the scoring metric.
 
 Two coordinate frames are reported, from two different telemetry field pairs:
 
@@ -83,7 +87,15 @@ def _disturbance_axis_stats(records, axes, fields, event_times, threshold_arcsec
             if not window:
                 continue
             errs = [(r["t"], error_arcsec(r, i, fields)) for r in window]
-            overshoot = max(abs(e) for _, e in errs)
+            peak_error = max(abs(e) for _, e in errs)
+            # True overshoot excludes the initial step itself (dominant for a 'step'-kind
+            # disturbance -- the raw setpoint jump appears as a huge instantaneous error
+            # before the loop has had any chance to react, which isn't overshoot, it's the
+            # disturbance). Only count the peak error *after* the response first crosses back
+            # through zero -- that's the genuine control-induced swing past the target.
+            initial_sign = 1 if errs[0][1] >= 0 else -1
+            crossing_idx = next((j for j, (_, e) in enumerate(errs) if (1 if e >= 0 else -1) != initial_sign), None)
+            overshoot = max((abs(e) for _, e in errs[crossing_idx:]), default=0.0) if crossing_idx is not None else 0.0
             # Settling time = how long until the error is LAST outside the threshold band
             # (i.e. it never leaves the band again within the window). Using "last exceedance"
             # rather than scanning forward for the first quiet hold_s window avoids locking
@@ -102,6 +114,7 @@ def _disturbance_axis_stats(records, axes, fields, event_times, threshold_arcsec
             events.append({
                 "event_t": ev_t,
                 "overshoot_arcsec": overshoot,
+                "peak_error_arcsec": peak_error,  # diagnostic: includes the step itself, ~= event magnitude
                 "settling_time_s": settle_t,   # None = did not settle within window_after_s
             })
         settled = [e["settling_time_s"] for e in events if e["settling_time_s"] is not None]
@@ -109,12 +122,13 @@ def _disturbance_axis_stats(records, axes, fields, event_times, threshold_arcsec
             "events": events,
             "median_settling_time_s": st.median(settled) if settled else None,
             "mean_overshoot_arcsec": st.mean([e["overshoot_arcsec"] for e in events]) if events else None,
+            "mean_peak_error_arcsec": st.mean([e["peak_error_arcsec"] for e in events]) if events else None,
             "n_unsettled": sum(1 for e in events if e["settling_time_s"] is None),
         }
     return out
 
 
-def disturbance_metrics(records, event_times, threshold_arcsec=1.5, hold_s=3.0, window_after_s=25.0):
+def disturbance_metrics(records, event_times, threshold_arcsec=3.0, hold_s=3.0, window_after_s=25.0):
     """Per-event peak overshoot and settling time, both frames (see module
     docstring) -- motor-space (M1_az/M2_alt/M3_roll) and equatorial (RA/Dec/PA,
     the one that reflects actual sky-tracking quality)."""
