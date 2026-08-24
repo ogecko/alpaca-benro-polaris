@@ -29,6 +29,7 @@ BT_UNAVAILABLE_MESSAGES = (
     "No powered Bluetooth adapters found",
     "device is not ready",
     "No such file or directory",
+    "was not provided by any .service files",   # BlueZ/D-Bus service not installed or not running (e.g. native WSL2)
 )
 
 
