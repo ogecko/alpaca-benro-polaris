@@ -1553,8 +1553,6 @@ class PID_Controller():
             "ω_kd": self.omega_kd.tolist(),
             "ω_ff": (self.omega_ff - self.omega_pec).tolist(),
             "ω_op": self.omega_op.tolist(),
-            "ω_ff_raw": self.omega_ff.tolist(),   # diagnostic only: omega_ff before the -pec adjustment above
-            "ω_pec": self.omega_pec.tolist(),     # diagnostic only: raw PEC velocity contribution
         }
         pidlogger = logging.getLogger('pid') 
         pidlogger.info(payload)
