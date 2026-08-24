@@ -13,7 +13,7 @@ import psutil
 from falcon import asgi, HTTP_200, HTTP_301, WebSocketDisconnected
 from config import Config
 from pathlib import Path
-from shr import LifecycleController, DeviceMetadata
+from shr import LifecycleController, LifecycleEvent, DeviceMetadata, check_port_bindable, describe_bind_error
 import datetime
 import ipaddress
 import hashlib
@@ -492,6 +492,15 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     https_port  = getattr(Config, 'alpaca_pilot_https_port', 443)
     http_port   = getattr(Config, 'alpaca_pilot_http_port', 80)
 
+    # Both ports are used regardless of which branch (HTTPS+redirect or HTTP+redirect)
+    # runs below, so check both up front and fail with one clear message.
+    for port in (https_port, http_port):
+        bind_err = check_port_bindable(bind_host, port)
+        if bind_err is not None:
+            logger.error("==STARTUP FAILED== " + describe_bind_error(bind_err, bind_host, port, "Alpaca Pilot Web"))
+            await lifecycle.signal(LifecycleEvent.SHUTDOWN)
+            return
+
     # --- TLS cert -----------------------------------------------------------
     tls_ok = Config.enable_https and ensure_tls_cert(bind_host, logger)
     version_resource = VersionResource()
@@ -518,7 +527,10 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
 
     if tls_ok:
         # HTTPS server for the Quasar SPA
-        https_cfg = uvicorn.Config(main_app, host=bind_host, port=https_port, ssl_certfile=str(TLS_CERT_PATH), ssl_keyfile=str(TLS_KEY_PATH), log_level="error")
+        # timeout_graceful_shutdown bounds the connection-drain wait; default is None
+        # (waits forever for open connections) -- a browser tab left open on the Pilot
+        # SPA holds a keep-alive/WSS connection that would otherwise hang shutdown indefinitely.
+        https_cfg = uvicorn.Config(main_app, host=bind_host, port=https_port, ssl_certfile=str(TLS_CERT_PATH), ssl_keyfile=str(TLS_KEY_PATH), log_level="error", log_config=None, timeout_graceful_shutdown=3)
         https_server = uvicorn.Server(https_cfg)
         servers_to_run.append(('HTTPS', https_server, https_port))
 
@@ -527,14 +539,14 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
         redirect_resource = HttpsRedirectResource(https_port)
         redirect_app.add_route('/version',             version_resource)
         redirect_app.add_sink(redirect_resource.on_get, prefix='/')
-        http_redirect_cfg = uvicorn.Config(redirect_app, host=bind_host, port=http_port, log_level="error" )
+        http_redirect_cfg = uvicorn.Config(redirect_app, host=bind_host, port=http_port, log_level="error", log_config=None, timeout_graceful_shutdown=3)
         http_server = uvicorn.Server(http_redirect_cfg)
         servers_to_run.append(('HTTP-redirect', http_server, http_port))
         logger.info(f"==STARTUP== Serving Alpaca Pilot Web (HTTPS) on {bind_host}:{https_port} | (HTTP) redirect on {bind_host}:{http_port}")
 
     else:
         # HTTP server for the Quasar SPA
-        http_cfg = uvicorn.Config(main_app, host=bind_host, port=http_port, log_level="error" )
+        http_cfg = uvicorn.Config(main_app, host=bind_host, port=http_port, log_level="error", log_config=None, timeout_graceful_shutdown=3)
         http_server = uvicorn.Server(http_cfg)
         servers_to_run.append(('HTTP', http_server, https_port))
 
@@ -544,7 +556,7 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
             redirect_app = asgi.App()
             redirect_app.add_route('/version',             version_resource)
             redirect_app.add_sink(HttpRedirectResource(http_port).on_get, prefix='/')
-            https_redirect_cfg = uvicorn.Config(redirect_app, host=bind_host, port=https_port, ssl_certfile=str(TLS_CERT_PATH), ssl_keyfile=str(TLS_KEY_PATH), log_level="error")
+            https_redirect_cfg = uvicorn.Config(redirect_app, host=bind_host, port=https_port, ssl_certfile=str(TLS_CERT_PATH), ssl_keyfile=str(TLS_KEY_PATH), log_level="error", log_config=None, timeout_graceful_shutdown=3)
             https_redirect_server = uvicorn.Server(https_redirect_cfg)
             servers_to_run.append(('HTTPS-redirect', https_redirect_server, https_port))
 

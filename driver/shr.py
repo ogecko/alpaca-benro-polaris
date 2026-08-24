@@ -455,6 +455,10 @@ class LifecycleController:
     async def shutdown_tasks(self, timeout: float = 8.0):
         if self._event == LifecycleEvent.NONE:
             await self.signal(LifecycleEvent.SHUTDOWN)
+        # Cancelling immediately can catch a sub-task before its first step.
+        # This may leave a coroutine it wraps never truly started or awaited, 
+        # So perform a sleep here to allow their first step to complete.
+        await asyncio.sleep(0)
         for task in list(self._tasks):
             task.cancel()
         try:
@@ -508,6 +512,49 @@ class LifecycleController:
     def reset(self):
         self._event = LifecycleEvent.NONE
 
+
+# ── Port preflight ─────────────────────────────────────────────────────────────
+
+def describe_bind_error(e: OSError, host: str, port: int, purpose: str) -> str:
+    """Turn a bind-time OSError into a single-line, actionable diagnostic (no traceback)."""
+    import errno
+    if e.errno == errno.EADDRINUSE:
+        return (f"{purpose}: port {port} is already in use on {host} "
+                f"(another instance already running, or another app on this port?).")
+    if e.errno == errno.EACCES:
+        return (f"{purpose}: permission denied binding port {port} on {host} "
+                f"(ports below 1024 need elevated privileges on most OSes -- run as "
+                f"administrator/root, or choose a port >= 1024 in data/config.pilot.json).")
+    return f"{purpose}: failed to bind {host}:{port}: {e}"
+
+
+def check_port_bindable(host: str, port: int) -> Optional[OSError]:
+    """
+    Try to bind+immediately release a socket at (host, port), mirroring the
+    dual-stack behaviour asyncio's create_server uses for a wildcard host.
+    Returns the OSError if binding failed (address in use, permission denied,
+    etc.), or None if the port is free. Meant to be checked BEFORE handing a
+    port to uvicorn, so bind failures produce one clean log line instead of
+    an internal SystemExit cascading up through nested server/lifespan tasks.
+    """
+    import socket
+    is_v6 = (not host) or (':' in host)
+    family = socket.AF_INET6 if is_v6 else socket.AF_INET
+    bind_host = host if host else ('::' if is_v6 else '0.0.0.0')
+    try:
+        with socket.socket(family, socket.SOCK_STREAM) as s:
+            # Match uvicorn's own Config.bind_socket(), which also sets this --
+            # without it, this probe is *stricter* than the real server it's
+            # guarding: a bind that would succeed past a lingering TIME_WAIT
+            # connection on this port (completely normal after any connection
+            # closes) fails here first and aborts startup unnecessarily.
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            if is_v6:
+                s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            s.bind((bind_host, port))
+        return None
+    except OSError as e:
+        return e
 
 
 # ── System Statistics ─────────────────────────────────────────────────────────────
