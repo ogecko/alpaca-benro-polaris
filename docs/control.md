@@ -812,7 +812,7 @@ Other useful topics: `status` (mount/PEC/alignment state, `polaris.getStatus()`)
 
 ## 3. Controlling Tracking and Advanced Settings via API
 
-Standard ASCOM Alpaca `Telescope` device (`devicenumber=0`), plus custom `Polaris:*` actions. All PUTs are form-encoded with `ClientID`/`ClientTransactionID`.
+Standard ASCOM Alpaca `Telescope` device (`devicenumber=0`), plus custom `Polaris:*` actions. All PUTs are form-encoded with `ClientID`/`ClientTransactionID`. Topocentric Roll Angle is limited between -60 and +60. Topocentric Altitude is limited between 0 and 70 degrees.
 
 ```bash
 BASE="http://localhost:5555/api/v1/telescope/0"
@@ -840,6 +840,20 @@ curl -s -X PUT "$BASE/action" \
 curl -s -X PUT "$BASE/action" -d 'Action=Polaris:RestartDriver' -d 'Parameters={}' \
   -d 'ClientID=1' -d 'ClientTransactionID=6'
 ```
+
+### Positioning with `Polaris:SlewAbsolute`
+
+Unlike the standard ASCOM `slewtoaltazasync` (Az/Alt only) or the Rotator device's `moveabsolute` (Position Angle only), the custom `Polaris:SlewAbsolute` action accepts any combination of the driver's 9 coordinate-axis keys in one call: `ra`, `dec`, `pa` (equatorial: RA/Dec/Position Angle), `az`, `alt`, `roll` (topocentric: Az/Alt/Roll Angle), and `l`, `b`, `gpa` (galactic). Values are decimal degrees (hours for `ra`) or `"dms"`/`"hms"`-style strings. Set `isasync` to return immediately, or omit/`false` to block until the slew completes.
+
+```bash
+# Slew directly to topocentric Az/Alt/Roll in one call (respects the Roll ±60° and Altitude 0-70° limits above)
+curl -s -X PUT "$BASE/action" \
+  -d 'Action=Polaris:SlewAbsolute' \
+  -d 'Parameters={"az":240,"alt":45,"roll":0,"isasync":true}' \
+  -d 'ClientID=1' -d 'ClientTransactionID=7'
+```
+
+**Roll gotcha:** the Rotator device's `position`/`moveabsolute` properties operate on **Position Angle**, not Roll Angle (see § Roll Angle vs. Position Angle, above) — moving `moveabsolute` to `0` will *not* set Roll to `0` except by coincidence. To target Roll Angle directly, either pass `roll` to `Polaris:SlewAbsolute` as above, or use the Rotator device's `movemechanical`/`mechanicalposition` endpoints, which operate on Roll Angle directly.
 
 ## 4. Running a PEC Convergence Test
 
