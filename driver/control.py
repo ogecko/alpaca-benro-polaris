@@ -28,6 +28,18 @@ CALIBRATION_PATH = DATA_DIR / 'speed_calibration.json'
 TESTDATA_PATH = DATA_DIR / 'speed_testdata.json'
 SYNC_POINTS_PATH = DATA_DIR / 'sync_points.json'
 
+KI_INHIBIT_GRACE_S = 3.0        # anti-windup grace period appended after a setpoint change or sync
+                                 # guide correction before Ki integration resumes
+KI_INHIBIT_PULSE_FLOOR_S = 0.1  # pulse guide gets no added grace -- inhibit only for the pulse's own
+                                 # duration (a real PHD2 PECLOG shows RA/Dec corrections landing
+                                 # every ~0.7-1.1s combined, sharing this one gate; any fixed grace
+                                 # added on top of every pulse compounds at that cadence and can
+                                 # starve Ki almost entirely during continuous active guiding). This
+                                 # is just a floor so a near-zero-duration pulse still gets one
+                                 # control tick of protection. TODO: validate against a real PHD2
+                                 # session on a clear night -- reasoned from a PECLOG excerpt, not
+                                 # yet confirmed against a live guiding run with this code in place.
+
 
 
 # ************* Kalman Filter *************
@@ -706,7 +718,8 @@ class PID_Controller():
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
         self.ff_inhibit_ticks = 0                            # number of ticks to supress FF after any SP change
-        self.ki_inhibit_until = 0.0                          # monotonic time until which Ki integration is suppressed after any SP change
+        self.ki_inhibit_until = 0.0                          # monotonic time until which Ki integration is suppressed -- the single
+                                                               # anti-windup gate; SP changes, sync guide, and pulse guide all extend it
         self.omega_kp = np.zeros(3, dtype=float)       # omega1-3 due to proportional error
         self.omega_ki = np.zeros(3, dtype=float)       # omega1-3 due to integrated error
         self.omega_kd = np.zeros(3, dtype=float)       # omega1-3 due to velocity damping (derivative of position)
@@ -807,7 +820,7 @@ class PID_Controller():
         self.alpha_sp = self.alpha_pv                  
         self.reset_offsets()
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
-        self.ki_inhibit_until = time.monotonic() + 3.0  # suppress Ki briefly after any SP change (anti-windup, mirrors sync/pulse-guide gate)
+        self.ki_inhibit_until = max(self.ki_inhibit_until, time.monotonic() + KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
 
 
     def _axis_omega_B(self, axis_name, rate_dps):
@@ -957,7 +970,7 @@ class PID_Controller():
         if newMode in ['PRESETUP', 'HOMING', 'PARKING', 'PARK', 'IDLE', 'AUTO', 'TRACK', 'LIMIT', ]:
             self.mode = newMode
             self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
-            self.ki_inhibit_until = time.monotonic() + 3.0  # suppress Ki briefly after any SP change (anti-windup, mirrors sync/pulse-guide gate)
+            self.ki_inhibit_until = max(self.ki_inhibit_until, time.monotonic() + KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
             self.clear_theta_ref_cache()
 
 
@@ -981,7 +994,7 @@ class PID_Controller():
         self.alpha2body(alpha)
         self.delta_sp[:] = self.body2delta()
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
-        self.ki_inhibit_until = time.monotonic() + 3.0  # suppress Ki briefly after any SP change (anti-windup, mirrors sync/pulse-guide gate)
+        self.ki_inhibit_until = max(self.ki_inhibit_until, time.monotonic() + KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1008,7 +1021,7 @@ class PID_Controller():
         self.delta2body(delta)
         self.alpha_sp[:] = self.body2alpha()
         self.ff_inhibit_ticks = 2
-        self.ki_inhibit_until = time.monotonic() + 3.0  # suppress Ki briefly after any SP change (anti-windup, mirrors sync/pulse-guide gate)
+        self.ki_inhibit_until = max(self.ki_inhibit_until, time.monotonic() + KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1400,15 +1413,13 @@ class PID_Controller():
         # calc the integral error if tracking 
         if self.mode=='TRACK':
             now = time.monotonic()
-            no_recent_syncguide = (self.polaris._sm._sync_guide_last_time is None)   or (now - self.polaris._sm._sync_guide_last_time > 3.0)
-            no_recent_pulseguide = now > np.max(self.polaris._sm._pulse_guide_end_time)
-            no_recent_sp_change = now > self.ki_inhibit_until
+            no_recent_disturbance = now > self.ki_inhibit_until   # set/extended by SP changes, sync guide, pulse guide
             not_jogging = not self._has_active_jog()
             # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
             can_integrate = np.logical_or(
                 np.logical_and(self.omega_tgt >= self.omega_min, self.omega_tgt <= self.omega_max),
                 np.sign(self.error_signal) != np.sign(self.omega_tgt)
-            )  & no_recent_syncguide & no_recent_pulseguide & no_recent_sp_change & not_jogging
+            )  & no_recent_disturbance & not_jogging
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
             updated_integral = self.error_integral + delta_integral * self.dt
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
@@ -1606,7 +1617,6 @@ class SyncManager:
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
         self._pec_guide_last_time = None        # Monotomic time of last pec guide application for dashboard status badges
         self._pulse_guide_last_time = None      # Monotomic time of last pulse guide application for dashboard status badges
-        self._pulse_guide_end_time = np.full(2, -np.inf)   # index 0=RA, 1=Dec
         self._sync_guide_last_time = None       # Monotomic time of last sync guide application for dashboard status badges
         self._sync_guide_interval = None        # EMA interval between sync guides in seconds
         self._pulse_guide_last_step_sec = 0     # last pulse guide request's duration in seconds
@@ -2385,7 +2395,11 @@ class SyncManager:
         now = time.monotonic()
         step_sec = abs(duration)/1000
         self._pulse_guide_last_time = now
-        self._pulse_guide_end_time[axis] = now + step_sec
+        # anti-windup: suppress Ki for the pulse's own duration only (no added grace -- see
+        # KI_INHIBIT_PULSE_FLOOR_S). RA/Dec pulses share this one gate and typically land as a
+        # pair ~tens-of-ms apart; max() means the pair collapses to one combined window ending
+        # at the later of the two, not two stacked windows.
+        self.polaris._pid.ki_inhibit_until = max(self.polaris._pid.ki_inhibit_until, now + max(step_sec, KI_INHIBIT_PULSE_FLOOR_S))
 
         # accumulate the pulse guide durations into q_pulseguide_B for baseQ_to_topoQ to apply as a correction
         velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
@@ -2457,6 +2471,8 @@ class SyncManager:
                 self._sync_guide_interval = (alpha * dt + (1 - alpha) * self._sync_guide_interval
                                             if self._sync_guide_interval is not None else dt)
         self._sync_guide_last_time = now
+        # anti-windup: suppress Ki until the sync correction's smoothed application has settled
+        self.polaris._pid.ki_inhibit_until = max(self.polaris._pid.ki_inhibit_until, now + KI_INHIBIT_GRACE_S)
 
         self.logger.info(f"->> Polaris: SYNC GUIDING    Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)} Residuals")
         self.accumulate_sync_guiding_residuals(ra_resid, dec_resid)
