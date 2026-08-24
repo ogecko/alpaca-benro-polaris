@@ -706,6 +706,7 @@ class PID_Controller():
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
         self.ff_inhibit_ticks = 0                            # number of ticks to supress FF after any SP change
+        self.ki_inhibit_until = 0.0                          # monotonic time until which Ki integration is suppressed after any SP change
         self.omega_kp = np.zeros(3, dtype=float)       # omega1-3 due to proportional error
         self.omega_ki = np.zeros(3, dtype=float)       # omega1-3 due to integrated error
         self.omega_kd = np.zeros(3, dtype=float)       # omega1-3 due to velocity damping (derivative of position)
@@ -804,8 +805,9 @@ class PID_Controller():
         self.delta_sp = self.delta_ref            
         self.alpha_ref = self.alpha_pv
         self.alpha_sp = self.alpha_pv                  
-        self.reset_offsets() 
+        self.reset_offsets()
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+        self.ki_inhibit_until = time.monotonic() + 3.0  # suppress Ki briefly after any SP change (anti-windup, mirrors sync/pulse-guide gate)
 
 
     def _axis_omega_B(self, axis_name, rate_dps):
@@ -955,6 +957,7 @@ class PID_Controller():
         if newMode in ['PRESETUP', 'HOMING', 'PARKING', 'PARK', 'IDLE', 'AUTO', 'TRACK', 'LIMIT', ]:
             self.mode = newMode
             self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+            self.ki_inhibit_until = time.monotonic() + 3.0  # suppress Ki briefly after any SP change (anti-windup, mirrors sync/pulse-guide gate)
             self.clear_theta_ref_cache()
 
 
@@ -978,6 +981,7 @@ class PID_Controller():
         self.alpha2body(alpha)
         self.delta_sp[:] = self.body2delta()
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+        self.ki_inhibit_until = time.monotonic() + 3.0  # suppress Ki briefly after any SP change (anti-windup, mirrors sync/pulse-guide gate)
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1004,6 +1008,7 @@ class PID_Controller():
         self.delta2body(delta)
         self.alpha_sp[:] = self.body2alpha()
         self.ff_inhibit_ticks = 2
+        self.ki_inhibit_until = time.monotonic() + 3.0  # suppress Ki briefly after any SP change (anti-windup, mirrors sync/pulse-guide gate)
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1397,12 +1402,13 @@ class PID_Controller():
             now = time.monotonic()
             no_recent_syncguide = (self.polaris._sm._sync_guide_last_time is None)   or (now - self.polaris._sm._sync_guide_last_time > 3.0)
             no_recent_pulseguide = now > np.max(self.polaris._sm._pulse_guide_end_time)
+            no_recent_sp_change = now > self.ki_inhibit_until
             not_jogging = not self._has_active_jog()
             # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
             can_integrate = np.logical_or(
                 np.logical_and(self.omega_tgt >= self.omega_min, self.omega_tgt <= self.omega_max),
                 np.sign(self.error_signal) != np.sign(self.omega_tgt)
-            )  & no_recent_syncguide & no_recent_pulseguide & not_jogging
+            )  & no_recent_syncguide & no_recent_pulseguide & no_recent_sp_change & not_jogging
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
             updated_integral = self.error_integral + delta_integral * self.dt
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
