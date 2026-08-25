@@ -33,6 +33,7 @@
 - **[KF Tuning Page]** Allow page to monitor trending signals during tracking and fix bug where page callup could reset KF Tuning Parameters
 - **[Docker Images]** Documented how to Install, Clone, Build and Run the driver in a docker image using platforms/docker/run.sh 
 - **[Python dependencies]** Add option to install using UV to manage python.exe and package dependancies with uv.lock
+- **[numpy Compatibility]** Pin numpy to `>=2.3.5,<2.4.0` (fix #89). Note 2.4+ requires x86-64-v2, SIGILLs on pre-2009 CPUs
 
 ## What's new in v2.2 Beta 4
 - **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 
@@ -152,6 +153,7 @@
 - **[cryptography 48.0.1]**: New dependency in Alpaca Driver v2.2.
 - **[requests 2.33.0]**: Made transitive dependency explicit in Alpaca Driver v2.2.
 - **[idna 3.15]**: Made transitive dependency explicit in Alpaca Driver v2.2.
+- **[numpy 2.3.5]**: Downgraded from 2.4.2. Note 2.4+ requires x86-64-v2, SIGILLs on pre-2009 CPUs. See issue #89.
 
 ## Documentation (Alpaca Driver)
 - **[CCDciel Guide]**: Add the CCDciel users guide for the Benro Polaris (ccdciel.md)
