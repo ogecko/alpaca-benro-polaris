@@ -72,7 +72,22 @@ export const useStreamStore = defineStore('telemetry', () => {
       disconnectSocket()
     }
 
-    if (_socket.value) return
+    if (_socket.value) {
+      if (_socket.value.readyState === WebSocket.OPEN || _socket.value.readyState === WebSocket.CONNECTING) {
+        return
+      }
+      // Stale reference: readyState reached CLOSING/CLOSED at the browser-engine level
+      // without our onclose handler ever running to clean it up -- eg. the tab was
+      // frozen while backgrounded and the connection died before it could resume JS
+      // execution to process the event. Detach handlers so a late/queued event from
+      // this dead socket can't fire cleanupSocket() against the new connection below.
+      console.warn(`Discarding stale WebSocket (readyState=${_socket.value.readyState})`)
+      _socket.value.onopen = null
+      _socket.value.onmessage = null
+      _socket.value.onerror = null
+      _socket.value.onclose = null
+      _socket.value = null
+    }
 
     socketConnectionStatus.value = url ? 'connecting' : 'reconnecting'
     _socket.value = new WebSocket(targetUrl)
