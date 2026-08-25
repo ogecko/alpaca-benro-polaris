@@ -1041,3 +1041,62 @@ orientation-sweep findings referenced in issue #88). A gain set tuned at one poi
 guaranteed to generalize; the moderate-altitude, away-from-horizon-and-pole points used so
 far in this investigation include Az240/Alt45, Az240/Alt45/Roll-60, and Az60/Alt50.
 
+### Known issue under investigation: elevated RA/PA noise near meridian (Az≈178°)
+
+**Symptom:** at Az178/Alt51/Roll0 (near due south / meridian transit), equatorial-frame RA
+and PA tracking error is 3-4x worse than at every other orientation tested, while the
+underlying motor axes (M1/M2/M3) and Dec all look completely normal.
+
+**Evidence** (`results.jsonl` run IDs `20260825T000409_steady_az178_alt51_roll0` and
+`20260825T000715_disturbance_step_az178_alt51_roll0` -- summary metrics are in git history,
+raw `captures/*.jsonl` are gitignored/local-only and were not committed):
+
+- Steady-state RMS at Az178/Alt51/Roll0: RA=3.75", PA=3.68" -- vs. RA=0.6-1.1", PA=0.4-0.75"
+  at every other orientation tested that session (Az240/Alt45/Roll0, Az280/Alt30/Roll15,
+  Az292/Alt30/Roll-40). Dec (0.54") and all three motors (M1=0.77", M2=0.55", M3=1.18")
+  were normal at Az178 too -- only the RA/PA *combination* is affected.
+- A 20" step disturbance at the same orientation recovers fast and cleanly at first
+  (RA back near zero by ~3.2s), but RA/PA then settle into a **continuous, ongoing
+  oscillation** for the rest of the window -- not a disturbance-recovery tail. Roughly
+  4-5s period, ±3-5" amplitude, RA and PA moving as near-exact mirror images of each other
+  (e.g. one sample pair: RA=+5.27", PA=-5.09"). M1/M2/M3 stay quiet (<1.5") throughout this
+  same window. Because "settled" requires staying inside a threshold band continuously, every
+  RA/PA event in that run showed as never settling (n_unsettled=5/5), while M1/M2/Dec showed
+  n_unsettled=0.
+- Ruled out as a telemetry artifact: checked both captures for gaps in the `t` field (the
+  kind of 518-dropout gap that produced a separate, unrelated false-positive at
+  Az292/Alt30/Roll-40 that session -- see below) and found none in either Az178 capture.
+  This is real data.
+
+**Leading hypothesis (not yet confirmed):** a geometric/kinematic sensitivity specific to
+near-meridian transit. RA and PA being anti-correlated while Dec stays clean suggests a
+near-singular direction in the motor-space-to-equatorial-space transform (`kinematics.py`:
+`theta_to_jacobian`, `calc_equatorial_axes_B`, `azaltroll_to_q`/`q_to_azaltroll`) around
+Az=180°, where ordinary small motor-space noise gets amplified into a larger apparent RA/PA
+wobble. Possibly related to parallactic-angle rotation rate being at its local maximum near
+transit. This has **not** been traced into the kinematics code yet -- it's inferred purely
+from the telemetry symmetry (Dec unaffected, RA/PA mirrored, motors clean).
+
+**Suggested next steps:**
+1. Bracket the effect: repeat the steady/disturbance pair from
+   `utility/pid_tuning/run_experiment.py` (see Usage above) at a few Az values either side of
+   178° (e.g. 160, 170, 190, 200) at the same Alt/Roll, to see how localized to the meridian
+   it is.
+2. Vary Alt/Roll at Az≈178° to check whether the effect is purely Az-driven or also
+   Alt/Roll-dependent.
+3. Read through the kinematics transform functions listed above looking for a term that goes
+   through zero or a local extremum near Az=180° (a classic sign of this kind of amplification).
+4. This is very likely the same issue the user (David) described independently before these
+   tests were run ("I have previously had issue tracking at a different orientation") --
+   worth confirming with him whether Az≈178-180° (near-meridian, roughly the pointing used
+   for 47 Tucanae from this site) matches his prior experience.
+
+**Separately, an intermittent, unrelated hardware/comms issue was also confirmed this
+session:** the Polaris sometimes stops sending 518 telemetry messages for a few seconds,
+during which `θ_pv` visibly freezes while `θ_sp` keeps advancing -- producing large but
+spurious error readings once telemetry resumes and the estimate snaps to catch up (seen as a
+~4.3s gap that inflated one disturbance run's overshoot to 60-65" before a clean retest
+confirmed the underlying orientation, Az292/Alt30/Roll-40, was actually fine). Not a PID/control
+bug -- flagged here only so it isn't mistaken for one if it recurs. Check for gaps in the raw
+capture's `t` field before trusting any one run's "huge" overshoot number.
+
