@@ -44,7 +44,7 @@
     </q-header>
 
     <!-- LHS Draw menu -->
-    <q-drawer v-model="ui.showLeftDrawer" bordered class="dark-page" :width="200" >
+    <q-drawer :model-value="ui.showLeftDrawer" @update:model-value="ui.setShowLeftDrawer" bordered class="dark-page" :width="200" >
       <q-scroll-area class="fit">
         <!-- Deep Sky Objects -->
         <q-list dense>

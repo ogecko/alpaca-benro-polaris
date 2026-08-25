@@ -41,8 +41,15 @@ export const useUIStore = defineStore('ui', {
       sessionStorage.setItem('ui.showStatusPanel', String(this.showStatusPanel))
     },
     toggleShowLeftDrawer() {
-      this.showLeftDrawer = !this.showLeftDrawer
-      sessionStorage.setItem('ui.showLeftDrawer', String(this.showLeftDrawer))
+      this.setShowLeftDrawer(!this.showLeftDrawer)
+    },
+    setShowLeftDrawer(val: boolean) {
+      // Dedicated setter (rather than relying on q-drawer's v-model to mutate
+      // showLeftDrawer directly) so every path that changes it -- including the
+      // drawer dismissing itself, eg. clicking its own backdrop in overlay mode --
+      // persists to sessionStorage, not just the explicit toggle button.
+      this.showLeftDrawer = val
+      sessionStorage.setItem('ui.showLeftDrawer', String(val))
     }
   }
 })
