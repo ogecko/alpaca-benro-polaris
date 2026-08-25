@@ -142,8 +142,7 @@ log_quest_model = true                      # log weights in multi-point sync mo
 log_orbital_queries = true                  # log information related to JPL and Celestrak orbital parameter queries
 log_pec = true                              # log information related to Predictive Error Correction
 log_heartbeat = false                       # log the stack track whenever there is a heartbeat skip
-log_position = false                        # log the alpha and theta state of the pid loop 
-log_position_rate = 2                       # log the position every X seconds
+log_position = false                        # log full KF (KFLOG) and PID (PIDLOG) telemetry to file every control tick (~200ms while tracking)
 
 max_size_mb = 10                            # maximum log file size.
 num_keep_logs = 9                           # maximum number of log files to rotate through.

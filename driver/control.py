@@ -147,6 +147,8 @@ class KalmanFilter:
         }
         kflogger = logging.getLogger('kf')
         kflogger.info(payload)
+        if Config.log_position:
+            self._logger.info(f"KFLOG {payload}")
 
 
     def get_state(self):
@@ -1368,20 +1370,6 @@ class PID_Controller():
                 # if close to cached target then reset the cache
                 if abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10:
                     self.clear_theta_ref_cache()
-        # Log every position for debugging
-        if Config.log_position:
-            now = time.monotonic()
-            every_Xs = not hasattr(self, '_last_log_time') or now - self._last_log_time > Config.log_position_rate
-            if every_Xs:
-                self._last_log_time = now
-                self.logger.info(f"POSLOG"
-                    f", | alpha_ref: ,{self.alpha_ref[0]:+.1f},{self.alpha_ref[1]:+.1f},{self.alpha_ref[2]:+.1f}"
-                    f", | alpha_pv: ,{self.alpha_pv[0]:+.1f},{self.alpha_pv[1]:+.1f},{self.alpha_pv[2]:+.1f}"
-                    f", | theta_ref: ,{self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}"
-                    f", | theta_pv: ,{self.theta_pv[0]:+.1f},{self.theta_pv[1]:+.1f},{self.theta_pv[2]:+.1f}"
-                    f", | zeta_pv: ,{self.zeta_meas[0]:+.1f},{self.zeta_meas[1]:+.1f},{self.zeta_meas[2]:+.1f}"
-                    f", | motors: ,{[motor.get_cmdstr() for motor in self.polaris._motors.values()]}"
-                )
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
         self.is_axis_deviating = np.abs(self.error_signal) > tollerance
@@ -1567,8 +1555,10 @@ class PID_Controller():
             "ω_ff": (self.omega_ff - self.omega_pec).tolist(),
             "ω_op": self.omega_op.tolist(),
         }
-        pidlogger = logging.getLogger('pid') 
+        pidlogger = logging.getLogger('pid')
         pidlogger.info(payload)
+        if Config.log_position:
+            self.logger.info(f"PIDLOG {payload}")
 
     async def stop_control_loop_task(self):
         with self._lock:

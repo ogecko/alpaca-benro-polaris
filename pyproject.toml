@@ -31,6 +31,12 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
 ]
+notebooks = [
+    "ipykernel>=6.29.0",
+    "nbformat>=5.10.0",
+    "pandas>=2.2.0",
+    "plotly>=5.24.0",
+]
 
 [project.scripts]
 driver = "alpaca_benro_polaris:main"
