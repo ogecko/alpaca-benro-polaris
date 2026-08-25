@@ -62,7 +62,8 @@ def init_logging():
                 mode='w',
                 delay=False,
                 maxBytes=Config.max_size_mb * 1000000,
-                backupCount=Config.num_keep_logs
+                backupCount=Config.num_keep_logs,
+                encoding='utf-8'
             )
             file_handler.setLevel(Config.log_level)
             file_handler.setFormatter(formatter)
