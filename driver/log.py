@@ -43,10 +43,23 @@ class _SuppressBenignZeroconfSocketError(logging.Filter):
     scoped narrowly to this exact WinError so any other, less expected zeroconf
     socket error (the "or IPv6" half of that docstring, or anything else) still
     logs normally.
+
+    Same story on macOS, different errno: on the very first run, until the
+    user answers the OS's "allow app to find devices on local networks?"
+    prompt, outbound multicast sendto() on the mDNS socket fails with
+    "[Errno 65] No route to host" (EHOSTUNREACH). mDNS's own poll loop
+    (discovery_mdns.mdns_client) already retries every MDNS_POLL_INTERVAL_SEC
+    and succeeds as soon as the user grants -- or the OS silently grants --
+    local network access, so this is a one-time, self-healing startup
+    artefact rather than a real problem.
     """
     def filter(self, record: logging.LogRecord) -> bool:
-        if record.name == 'zeroconf' and 'Error with socket' in record.getMessage() \
-                and 'WinError 59' in record.getMessage():
+        if record.name != 'zeroconf' or 'Error with socket' not in record.getMessage():
+            return True
+        message = record.getMessage()
+        if 'WinError 59' in message:
+            return False
+        if 'Errno 65' in message and 'No route to host' in message:
             return False
         return True
 
