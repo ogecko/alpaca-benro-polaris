@@ -36,6 +36,7 @@ As a library, the entry point most callers want:
                        prefer_keywords=("usb",))
 """
 
+import logging
 import re
 import subprocess
 import sys
@@ -48,6 +49,14 @@ from typing import List, Optional
 IS_WINDOWS = sys.platform == "win32"
 IS_LINUX   = sys.platform == "linux"
 IS_MACOS   = sys.platform == "darwin"
+
+# Propagates to root -- picks up the driver's own timestamp/level formatting
+# and file/queue handlers automatically when imported into the driver process
+# (see ble_service.py), with zero extra wiring needed there, the same way the
+# zeroconf/uvicorn loggers already do (see log.py). CLI/standalone use (the
+# __main__ block below) configures its own plain handler so this isn't silently
+# dropped when run outside the driver.
+logger = logging.getLogger(__name__)
 
 PROFILE_TEMPLATE_WPA2 = """<?xml version="1.0"?>
 <WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
@@ -229,6 +238,21 @@ def _add_profile_win(ssid: str, password: str = "", interface: Optional[str] = N
         profile_path = f.name
 
     try:
+        # Delete any pre-existing profile of this name first, in both scopes
+        # (best-effort -- failure here is expected/harmless, eg. it doesn't
+        # exist in that particular scope). Without this, `add profile
+        # user=current` fails with "already exists in group policy or
+        # different user scope and cannot be overwritten" whenever the SSID
+        # was previously joined manually via Windows' own WiFi UI, which
+        # defaults to all-users scope rather than user=current -- ie. every
+        # user who ever connected to their Polaris hotspot before this
+        # feature existed.
+        del_cmd = ["netsh.exe", "wlan", "delete", "profile", f"name={ssid}"]
+        if interface:
+            del_cmd.append(f"interface={interface}")
+        _run(del_cmd + ["user=current"])
+        _run(del_cmd)  # default (all-users) scope
+
         cmd = ["netsh.exe", "wlan", "add", "profile",
                f"filename={profile_path}", "user=current"]
         if interface:
@@ -245,25 +269,25 @@ def _diagnose_win(ssid: str, interface: Optional[str] = None) -> None:
     now - the real authentication type it detected, signal strength, and
     the interface's own connection state/reason. Called on join failure so
     there's something actionable in the log beyond "it didn't work"."""
-    print("\n--- netsh wlan show interfaces ---")
+    logger.info("--- netsh wlan show interfaces ---")
     _, out, _ = _run(["netsh.exe", "wlan", "show", "interfaces"])
-    print(out)
+    logger.info(out)
 
-    print(f"--- netsh wlan show networks mode=bssid (filtered to '{ssid}') ---")
+    logger.info(f"--- netsh wlan show networks mode=bssid (filtered to '{ssid}') ---")
     _, out, _ = _run(["netsh.exe", "wlan", "show", "networks", "mode=bssid"])
     blocks = out.split("\n\n")
     matched = [b for b in blocks if ssid in b]
-    print("\n\n".join(matched) if matched else
-          f"'{ssid}' was NOT found in the current scan results at all.")
+    logger.info("\n\n".join(matched) if matched else
+                f"'{ssid}' was NOT found in the current scan results at all.")
 
-    print("\n--- Recent WLAN-AutoConfig events (association/auth failures) ---")
+    logger.info("--- Recent WLAN-AutoConfig events (association/auth failures) ---")
     ps_cmd = (
         "Get-WinEvent -LogName 'Microsoft-Windows-WLAN-AutoConfig/Operational' "
         "-MaxEvents 15 | Where-Object {$_.Id -in 8001,8002,8003,11001,11002} "
         "| Select-Object TimeCreated,Id,Message | Format-List"
     )
     _, out, err = _run(["powershell.exe", "-NoProfile", "-Command", ps_cmd])
-    print(out or err or "(no matching events, or Event Viewer access denied)")
+    logger.info(out or err or "(no matching events, or Event Viewer access denied)")
 
 
 def _connect_win(ssid: str, interface: str, timeout: float = 15.0, retries: int = 3) -> bool:
@@ -291,7 +315,7 @@ def _connect_win(ssid: str, interface: str, timeout: float = 15.0, retries: int 
             time.sleep(1)
 
         if attempt < retries:
-            print(f"Attempt {attempt}/{retries} timed out, retrying...")
+            logger.info(f"Attempt {attempt}/{retries} timed out, retrying...")
 
     return False
 
@@ -307,10 +331,10 @@ def _join_wifi_network_win(ssid: str, password: str = "", timeout: float = 15.0,
     # target network -- avoids a spurious brief re-association on every
     # click of the Alpaca Pilot Wi-Fi button.
     if chosen.state.lower() == "connected" and chosen.ssid == ssid:
-        print(f"Already joined to '{ssid}' on {chosen.name}.")
+        logger.info(f"Already joined to '{ssid}' on {chosen.name}.")
         return True
 
-    print(f"Using WiFi interface: {chosen.name} ({chosen.description})")
+    logger.info(f"Using WiFi interface: {chosen.name} ({chosen.description})")
 
     _add_profile_win(ssid, password, interface=chosen.name)
     ok = _connect_win(ssid, interface=chosen.name, timeout=timeout)
@@ -416,6 +440,12 @@ def find_and_join_wifi_network(password: str = "", timeout: float = 15.0,
 
 
 if __name__ == "__main__":
+    # Standalone/CLI use has no driver logging set up (init_logging() in
+    # log.py never runs outside the full driver process), so without this
+    # the logger.info() calls above would go nowhere. Plain "%(message)s" to
+    # match the original print()-based console UX.
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     if len(sys.argv) > 3:
         print("Usage: join_wifi.py [SSID] [PASSWORD]")
         print("Omit SSID to auto-discover nearby Polaris hotspot(s).")
