@@ -975,6 +975,23 @@ class Polaris:
 
 # ── Sending Polaris Communication Messages ─────────────────────────────────────────────────────────────
 
+    async def _await_cmd_response(self, cmd: str, timeout: float = 5.0):
+        """
+        Wait for a queued reply to `cmd`, bounded by `timeout`. A dropped/lost reply
+        (flaky Wi-Fi, Polaris hiccup) must not hang the caller forever -- for cmd 284,
+        called from polaris_init(), an unbounded wait here wedges the whole connection
+        cycle permanently with no error and no retry.
+        On timeout this also flags the connection as bad so read_msgs()/the watchdog
+        recycle it, since a lost reply is itself a sign the link is dead.
+        """
+        try:
+            return await asyncio.wait_for(self._response_queues[cmd].get(), timeout=timeout)
+        except asyncio.TimeoutError:
+            err = asyncio.TimeoutError(f"No response to Polaris cmd {cmd} within {timeout:.0f}s -- connection likely lost.")
+            self._task_exception = err
+            self.logger.error(f"==TIMEOUT== {err}")
+            raise err
+
     async def skip_compass_alignment(self, compass):
             await self.send_cmd_compass_alignment(compass)
             await self.send_cmd_284_query_current_mode()
@@ -994,7 +1011,7 @@ class Polaris:
             self.logger.info(f"->> Polaris: TRACK request change to {state}")
         empty_queue(self._response_queues[cmd])
         await self.send_msg(f"1&{cmd}&3&state:{state};speed:0;#")
-        await self._response_queues[cmd].get() 
+        await self._await_cmd_response(cmd)
 
     # Abort Slew
     # eg state:0;yaw:0.0;pitch:0.0;lat:-33.655422;track:0;speed:0;lng:151.12244;
@@ -1046,12 +1063,13 @@ class Polaris:
         await self.send_msg(msg)
 
         # Wait for 1st response of slew started
-        ret_dict = await self._response_queues[cmd].get()
+        ret_dict = await self._await_cmd_response(cmd)
         if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO starting slew: {cmd} {ret_dict}")
-            
-        # wait for 2nd response of slew stopped
-        ret_dict = await self._response_queues[cmd].get()
+
+        # wait for 2nd response of slew stopped -- long timeout since a real slew can
+        # legitimately take tens of seconds; this only guards against a dead connection
+        ret_dict = await self._await_cmd_response(cmd, timeout=120.0)
         if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO stopping slew: {cmd} {ret_dict}")
 
@@ -1249,7 +1267,7 @@ class Polaris:
         msg = f"1&{cmd}&2&-1#"
         empty_queue(self._response_queues[cmd])
         await self.send_msg(msg)
-        ret_dict = await self._response_queues[cmd].get()
+        ret_dict = await self._await_cmd_response(cmd)
         return ret_dict
 
     async def send_cmd_284_query_current_mode_async(self):

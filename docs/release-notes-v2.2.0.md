@@ -35,6 +35,7 @@
 - **[Python dependencies]** Add option to install using UV to manage python.exe and package dependancies with uv.lock
 - **[numpy Compatibility]** Pin numpy to `>=2.3.5,<2.4.0` (fix #89). Note 2.4+ requires x86-64-v2, SIGILLs on pre-2009 CPUs
 - **[Wi-Fi Join]** The Wi-Fi button, on the connect page, now enables, **and automatically joins** the Polaris Wifi network - no more manually finding `polaris_xxxxxx` in Windows' Wi-Fi list.
+- **[Protocol Handling]** Added reply timeouts, ensuring dropped or lost Polaris responses no longer have potential to block the driver.
 
 ## What's new in v2.2 Beta 4
 - **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 
