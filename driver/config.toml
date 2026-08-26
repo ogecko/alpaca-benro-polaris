@@ -145,5 +145,5 @@ log_pec = true                              # log information related to Predict
 log_heartbeat = false                       # log the stack track whenever there is a heartbeat skip
 log_position = false                        # log full KF (KFLOG) and PID (PIDLOG) telemetry to file every control tick (~200ms while tracking)
 
-max_size_mb = 10                            # maximum log file size.
-num_keep_logs = 9                           # maximum number of log files to rotate through.
+max_size_mb = 80                            # maximum log file size.
+num_keep_logs = 19                          # maximum number of log files to rotate through.
