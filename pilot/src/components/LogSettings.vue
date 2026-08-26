@@ -29,15 +29,15 @@
         <!-- Logging Flags -->
         <div class="q-gutter-y-sm">
             <div class="row">
-            <q-toggle class='col-6' v-bind="bindField('log_alpaca_protocol', 'Log Alpaca Protocol')"/>
-            <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Alpaca Polling')"/>
-            </div>
-            <div class="row">
-            <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Action Invokation')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_alpaca_protocol', 'Log Telescope Protocol')"/>
             <q-toggle class='col-6' v-bind="bindField('log_alpaca_discovery', 'Log Alpaca Discovery')"/>
             </div>
             <div class="row">
             <q-toggle class='col-6' v-bind="bindField('log_rotator_protocol', 'Log Rotator Protocol')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Alpaca Polling')"/>
+            </div>
+            <div class="row">
+            <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Action Invokation')"/>
             <q-toggle class='col-6' v-bind="bindField('log_pulse_guiding', 'Log Pulse Guiding')"/>
             </div>
             <div class="row">
