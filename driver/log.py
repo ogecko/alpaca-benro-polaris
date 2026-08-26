@@ -30,6 +30,27 @@ class _SuppressBenignUvicornShutdown(logging.Filter):
         return True
 
 
+class _SuppressBenignZeroconfSocketError(logging.Filter):
+    """
+    zeroconf's DatagramProtocol.error_received() (zeroconf/_listener.py) logs
+    "Error with socket ...): [WinError 59] An unexpected network error occurred"
+    whenever a per-interface mDNS socket's underlying network interface changes
+    state -- a WiFi disconnect/reconnect, a new adapter (eg. a VPN) appearing,
+    etc. zeroconf's own docstring for this callback says "Likely socket closed
+    or IPv6", ie. an anticipated condition, not a crash -- the exception never
+    propagates out of zeroconf, so there's nothing for driver code to catch or
+    retry. Suppressed here the same way as _SuppressBenignUvicornShutdown above,
+    scoped narrowly to this exact WinError so any other, less expected zeroconf
+    socket error (the "or IPv6" half of that docstring, or anything else) still
+    logs normally.
+    """
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.name == 'zeroconf' and 'Error with socket' in record.getMessage() \
+                and 'WinError 59' in record.getMessage():
+            return False
+        return True
+
+
 def init_logging():
     logpath = None
     try:
@@ -42,6 +63,10 @@ def init_logging():
         # so its records propagate up to root and pick up our formatting/handlers
         # like everything else -- see _SuppressBenignUvicornShutdown above.
         logging.getLogger('uvicorn.error').addFilter(_SuppressBenignUvicornShutdown())
+
+        # zeroconf's own logger, propagates to root the same way -- see
+        # _SuppressBenignZeroconfSocketError above.
+        logging.getLogger('zeroconf').addFilter(_SuppressBenignZeroconfSocketError())
 
         # Collect all the blocking handlers (stdout, file)
         blocking_handlers = []
