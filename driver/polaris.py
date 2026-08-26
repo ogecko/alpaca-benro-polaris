@@ -99,6 +99,7 @@ class Polaris:
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
+        self._reconnect_now = asyncio.Event()       # set to interrupt run_connection_cycle()'s retry backoff sleep immediately (see ensure_connection_cycle)
         self._N_point_alignment_results = {}        # record of all sync results for N point alignment
         self._test_underway = False                 # flag to mark that a test is underway and executing
         #
@@ -257,6 +258,12 @@ class Polaris:
 # ── Connection Helper Methods ─────────────────────────────────────────────────────────────
 
     def _format_connection_error(self, e: Exception) -> str:
+        if isinstance(e, asyncio.TimeoutError):
+            # asyncio.TimeoutError is a bare TimeoutError (an OSError subclass with
+            # no errno/winerror set) -- without this it would silently fall through
+            # every OSError check below and land on the generic "Unexpected error: "
+            # fallback with an empty message.
+            return "Connect timed out. Check the Polaris is powered on and the host is joined to its Wi-Fi network."
         if isinstance(e, ConnectionAbortedError):
             return "The Polaris network connection was aborted."
         if isinstance(e, OSError):
@@ -308,7 +315,10 @@ class Polaris:
             self._battery_is_available = False  # set to true when we get a battery status message
             self._task_exception = None
         try:
-            client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
+            client_reader, client_writer = await asyncio.wait_for(
+                asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port),
+                timeout=5.0,
+            )
             self._reader = client_reader
             self._writer = client_writer
             init_task = asyncio.create_task(self.polaris_init())
@@ -322,6 +332,20 @@ class Polaris:
             self._connecting = False
             return None, None
     
+    def ensure_connection_cycle(self):
+        """
+        Start run_connection_cycle() unless one is already running. 
+        If a cycle is already running but idle, wake it up with self._reconnect_now event.
+
+        Called from both
+        * Startup path (client(), below)
+        * Manual Connect action (Polaris:ConnectPolaris in telescope.py)
+        """
+        existing = self.lifecycle.get_task("PolarisConnectionCycle")
+        if existing is not None and not existing.done():
+            self._reconnect_now.set()
+            return
+        self.lifecycle.create_task(self.run_connection_cycle(), name="PolarisConnectionCycle")
 
     async def run_connection_cycle(self):
         init_task = None
@@ -346,11 +370,19 @@ class Polaris:
 
             finally:
                 if Config.polaris_auto_retry and not self.lifecycle.should_shutdown():
-                    await asyncio.sleep(10)
+                    # Interruptible backoff: normally waits out the full 10s between
+                    # retries, but a manual Connect click (ensure_connection_cycle)
+                    # can wake this immediately via _reconnect_now rather than
+                    # leaving the user waiting on a backoff they can't see.
+                    self._reconnect_now.clear()
+                    try:
+                        await asyncio.wait_for(self._reconnect_now.wait(), timeout=10)
+                    except asyncio.TimeoutError:
+                        pass
                     if self._connected:                # if it was manually reconnected in the meantime then stop
                         should_break = True
                 else:                                  # if auto_retry is disabled then stop
-                    should_break = True 
+                    should_break = True
 
             if should_break:
                 break                             
@@ -364,7 +396,7 @@ class Polaris:
         self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisKeepalive")
 
         if Config.polaris_auto_retry:
-            self.lifecycle.create_task(self.run_connection_cycle(), name="PolarisConnectionCycle")
+            self.ensure_connection_cycle()
         else:
             self.logger.info("==STARTUP== Auto-restart disabled. Awaiting manual connection trigger.")
 
