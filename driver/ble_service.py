@@ -400,7 +400,12 @@ class BLE_Controller:
         join_wifi.join_wifi_network() is synchronous and can block for
         several seconds per attempt, so it's run in a thread rather than
         awaited directly -- otherwise it would stall the driver's event
-        loop (PID control loop included) for the duration."""
+        loop (PID control loop included) for the duration.
+
+        Only logs on failure here -- join_wifi already logs the specific
+        outcome on success (freshly joined vs. already joined), and
+        duplicating a generic "Joined" message on top of that just reads as
+        confusing ("Already joined" immediately followed by "Joined")."""
         ssid = self.selectedDevice
         if not ssid:
             return
@@ -411,9 +416,7 @@ class BLE_Controller:
         except Exception as e:
             self.logger.warning(f"Failed to join WiFi network '{ssid}': {e}")
             return
-        if ok:
-            self.logger.info(f"Joined WiFi network '{ssid}'")
-        else:
+        if not ok:
             self.logger.warning(
                 f"Failed to join WiFi network '{ssid}' -- see diagnostics above, "
                 "or join manually from the OS's WiFi list"
@@ -423,7 +426,22 @@ class BLE_Controller:
         """Full Wi-Fi button flow: enable the mount's hotspot over BLE, then
         join this host to it. Used only by the explicit Polaris:bleEnableWifi
         action -- the automatic background paths call enableWifi() alone,
-        since they shouldn't be silently touching the host's own network."""
+        since they shouldn't be silently touching the host's own network.
+
+        Always logs a clear outcome, including the "nothing to do" cases --
+        this is the one entry point a user explicitly clicked a button for,
+        so silence here just looks like the button didn't do anything. The
+        automatic paths deliberately don't get this same verbosity: their
+        "already connected" case is the normal steady state, checked every
+        30s, and would spam the log if logged unconditionally there.
+        """
+        if not self.selectedDevice:
+            self.logger.warning("Join Wi-Fi: Select Polaris device before joining network - nothing to do")
+            return
+        if self.isConnectedFn():
+            self.logger.info(f"Join Wi-Fi: Already connected to '{self.selectedDevice}' - nothing to do")
+            return
         await self.enableWifi()
         if self.isWifiEnabled:
             await self.joinWifiNetwork()
+        # else: enableWifi() already logs an unconditional error on BLE failure

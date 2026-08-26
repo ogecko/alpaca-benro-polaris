@@ -338,7 +338,9 @@ def _join_wifi_network_win(ssid: str, password: str = "", timeout: float = 15.0,
 
     _add_profile_win(ssid, password, interface=chosen.name)
     ok = _connect_win(ssid, interface=chosen.name, timeout=timeout)
-    if not ok:
+    if ok:
+        logger.info(f"Joined WiFi'{ssid}' on {chosen.name}.")
+    else:
         _diagnose_win(ssid, interface=chosen.name)
     return ok
 
