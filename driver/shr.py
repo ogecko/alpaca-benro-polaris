@@ -95,8 +95,9 @@ def should_log(req: Request, log_flags):
     for name in log_flags:
         if getattr(Config, name, False):
             return True  # explicitly enabled
-        if req.method == 'PUT' and name == 'log_alpaca_polling' and Config.log_alpaca_protocol:
-            return True  # allow polling logs on PUT even if disabled
+        if req.method == 'PUT' and name == 'log_alpaca_polling' and Config.log_alpaca_protocol and not req.path.endswith('/action'):
+            return True  # allow polling logs on PUT even if disabled (excludes the multiplexed /action endpoint,
+                         # where a PUT can be a frequently-polled read like Polaris:ConfigFetch, not a real command)
     return False  # skip logging
 #
 # Log the request as soon as the resource handler gets it so subsequent

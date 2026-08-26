@@ -20,7 +20,7 @@ import ephem
 import asyncio
 from logging import Logger
 from config import Config
-from shr import PropertyResponse, MethodResponse, HTTPBadRequest,  PreProcessRequest, get_request_field, to_bool, deg2rad, rad2deg, rad2hr, hr2rad
+from shr import PropertyResponse, MethodResponse, HTTPBadRequest,  PreProcessRequest, get_request_field, to_bool, deg2rad, rad2deg, rad2hr, hr2rad, log_request
 from exceptions import NotImplementedException, DriverException, NotConnectedException, InvalidValueException, InvalidOperationException
 import math
 import json
@@ -1507,7 +1507,7 @@ class unpark:
                             DriverException(0x500, 'Telescope.Unpark failed', ex))
 
 
-@before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
+@before(PreProcessRequest(maxdev, 'log_alpaca_discovery'))
 class supportedactions:
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([
@@ -1526,11 +1526,18 @@ class supportedactions:
         ], req)  
 
 
-@before(PreProcessRequest(maxdev, 'log_alpaca_actions'))
+#
+# Actions that are polled frequently (eg by the Pilot config/status pages) are logged
+# under log_alpaca_polling instead of log_alpaca_actions, to avoid flooding the log.
+#
+_polling_actions = {"Polaris:ConfigFetch", "Polaris:StatusFetch"}
+
+@before(PreProcessRequest(maxdev))
 class action:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         actionName = await get_request_field('Action', req)
         raw_params = await get_request_field('Parameters', req)
+        await log_request(req, 'log_alpaca_polling' if actionName in _polling_actions else 'log_alpaca_actions')
         try:
             if isinstance(raw_params, dict):
                 parameters = raw_params

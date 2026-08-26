@@ -51,7 +51,7 @@ async def socket_handler(websocket: WebSocket):
                 await ws_safe_send_json(websocket, {"type": "pong"})
                 continue
 
-            if Config.log_alpaca_actions:
+            if Config.log_alpaca_discovery:
                 logger.info(f"==WS== Received message: {msg}")
 
             if msg_type == "subscribe":
@@ -104,7 +104,7 @@ async def cleanup_inactive_clients(timeout_seconds: int = 10):
             if (now - last_seen) > timedelta(seconds=timeout_seconds)
         ]
         for ws in stale:
-            if Config.log_alpaca_actions:
+            if Config.log_alpaca_discovery:
                 logging.getLogger().info(f"==TIMEOUT== Removing inactive client: {ws}")
             await _remove_client(ws)
 

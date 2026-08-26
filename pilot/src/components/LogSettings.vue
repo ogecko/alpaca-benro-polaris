@@ -33,8 +33,8 @@
             <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Alpaca Polling')"/>
             </div>
             <div class="row">
-            <q-toggle class='col-6' v-bind="bindField('log_alpaca_discovery', 'Log Alpaca Discovery')"/>
             <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Action Invokation')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_alpaca_discovery', 'Log Alpaca Discovery')"/>
             </div>
             <div class="row">
             <q-toggle class='col-6' v-bind="bindField('log_rotator_protocol', 'Log Rotator Protocol')"/>
