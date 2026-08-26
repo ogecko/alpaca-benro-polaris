@@ -101,8 +101,19 @@ function onResize(size: { width: number; height: number }) {
 // }
 
 
+function formatLocalTs(ts: string): string {
+  const d = new Date(ts)
+  if (isNaN(d.getTime())) return ts
+  const pad = (n: number, w = 2) => String(n).padStart(w, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T` +
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`
+}
+
 function format(entry: TelemetryRecord): string {
-  const ts = entry.ts || ''
+  // Wire format is always UTC ISO-8601 ('Z') -- shr.format_timestamp() on the
+  // driver side is shared with non-display telemetry that must stay UTC, so
+  // the local-time conversion happens here, display-only.
+  const ts = entry.ts ? formatLocalTs(entry.ts) : ''
   const level = entry.level || ''
   const msg = ('text' in entry.data) ? entry.data.text : JSON.stringify(entry.data)
   return `[${ts}] [${level}] ${msg}`

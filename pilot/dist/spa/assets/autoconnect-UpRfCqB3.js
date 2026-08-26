@@ -1,0 +1,1 @@
+import{t as e}from"./device-C4irb_gj.js";var t=async()=>{await e().connectRestAPI()};export{t as default};
