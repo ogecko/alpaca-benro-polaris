@@ -70,7 +70,7 @@ def init_logging():
         logging.basicConfig(level=Config.log_level)
         root_logger = logging.getLogger()
         formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(levelname)s %(message)s', '%Y-%m-%dT%H:%M:%S')
-        formatter.converter = time.gmtime
+        formatter.converter = time.localtime  # local time, not UTC -- correlates with locally-timestamped session images, not other devices' clocks
 
         # uvicorn.Config(log_config=None) leaves this logger unconfigured by uvicorn,
         # so its records propagate up to root and pick up our formatting/handlers
