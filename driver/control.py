@@ -1542,18 +1542,30 @@ class PID_Controller():
 
     def telemetry(self):
         # Log meas, state and ref for websocket streaming
-        payload = { 
+        payload = {
             "Δ_sp": self.delta_ref.tolist(),
             "Δ_pv": self.delta_pv.tolist(),
             "α_sp": self.alpha_ref.tolist(),
             "α_pv": self.alpha_pv.tolist(),
-            "θ_sp": self.theta_ref.tolist(), 
-            "θ_pv": self.theta_pv.tolist(), 
-            "ω_kp": self.omega_kp.tolist(), 
-            "ω_ki": self.omega_ki.tolist(),  
+            "θ_sp": self.theta_ref.tolist(),
+            "θ_pv": self.theta_pv.tolist(),
+            "ω_kp": self.omega_kp.tolist(),
+            "ω_ki": self.omega_ki.tolist(),
             "ω_kd": self.omega_kd.tolist(),
             "ω_ff": (self.omega_ff - self.omega_pec).tolist(),
+            "ω_pec": self.omega_pec.tolist(),  # PEC's own per-tick contribution, recomputed every tick in feed_forward() --
+                                                # currently only visible indirectly via ω_ff above (which has it subtracted out);
+                                                # this is the continuously-evolving signal, unlike PECLOG's fit_rate/applied_rate,
+                                                # which only sample once per (much sparser) guide-sync
             "ω_op": self.omega_op.tolist(),
+            # mode/age_518/connected let analysis tell a genuinely stale tick (control loop still
+            # ticking on its own timer while 518 telemetry has stopped -- theta_pv frozen, see
+            # docs/control.md) from a fresh one, and a non-TRACK tick (slew/park/idle) from real
+            # tracking -- both of which otherwise silently distort any std/variance-based metric
+            # computed over a whole session.
+            "mode": self.mode,
+            "age_518": float(self.polaris._age_518_seconds),
+            "connected": self.polaris._connected,
         }
         pidlogger = logging.getLogger('pid')
         pidlogger.info(payload)
@@ -2604,8 +2616,13 @@ class SyncManager:
             return
 
         t = now - self._pec_t0
+        # Snapshot the PEC-only accumulator *before* _pec_update_axes() -> ingest() folds it into
+        # _accum (the total-drift reconstruction) and resets it to 0.0 -- read after that call,
+        # it would always log as ~0 regardless of how much PEC actually applied since the
+        # previous PECLOG entry.
+        pec_accum_snapshot = (self._pec_ra._applied_accum, self._pec_dec._applied_accum)
         self._pec_update_axes(ra_resid, dec_resid, t)
-        self._pec_log(ra_resid, dec_resid)
+        self._pec_log(ra_resid, dec_resid, pec_accum_snapshot)
 
     def _pec_validate_resid(self, resid):
         """Returns float residual if valid, None if missing or outlier."""
@@ -2647,32 +2664,71 @@ class SyncManager:
         self._pec_dec.eval_inhibit(self._pec_n, self._pec_min_obs, self._pec_max_rmse, self._pec_min_r2)
         self._pec_active = self._pec_ra.converged() or self._pec_dec.converged()
 
-    def _pec_log(self, ra_resid, dec_resid):
+    def _pec_log(self, ra_resid, dec_resid, pec_accum_snapshot):
         if not Config.log_pec:
             return
         ra, dec = self._pec_ra, self._pec_dec
         pv_deg = self.polaris._pid.alpha_pv
-        ra_accum_arcmin = ra._accum*60
-        dec_accum_arcmin = dec._accum*60
-        ra_guide_arcmin  = ra_resid*60 if ra_resid is not None else float('nan')
-        dec_guide_arcmin = dec_resid*60 if dec_resid is not None else float('nan')
-        ra_fit  = f"{ra.dc_rate()*3600:+.4f}"
-        dec_fit = f"{dec.dc_rate()*3600:+.4f}"
-        for h in range(1, ra.n_harmonics + 1):
-            ra_fit  += f",{ra.harmonic_rate(h)*3600:.4f}"
-            dec_fit += f",{dec.harmonic_rate(h)*3600:.4f}"
-        self.logger.info(
-            f"PECLOG  n,{self._pec_n},{ra.inhibit.name},{dec.inhibit.name}"
-            f", | R2,{ra.r2:.3f},{dec.r2:.3f}"
-            f", | rmse,{ra.rmse_arcmin():.4f},{dec.rmse_arcmin():.4f}"
-            f", | Rate,{ra.theta*3600:+.4f},{dec.theta*3600:+.4f}"
-            f", | Guide,{ra_guide_arcmin:+.5f},{dec_guide_arcmin:+.5f}"
-            f", | Accum,{ra_accum_arcmin:+.5f},{dec_accum_arcmin:+.5f}"
-            f", | Pos,{pv_deg[0]:.2f},{pv_deg[1]:.2f},{pv_deg[2]:+.2f}"
-            f", | RA_model,{ra_fit}"
-            f", | Dec_model,{dec_fit}"
-            f", | lambda,{ra.lam:.5f},{dec.lam:.5f}"
-        )
+        pec_accum_ra, pec_accum_dec = pec_accum_snapshot
+        # float(): several values below (pv_deg elements, dc_rate()) are numpy scalars, whose
+        # numpy-2.x repr (e.g. np.float64(1.23)) breaks ast.literal_eval() on readback.
+        # Paired fields are [ra, dec] lists -- matching PIDLOG/KFLOG's axis-indexed convention
+        # (there, 1/2/3 = M1/M2/M3; here, 1/2 = ra/dec via the standard "_i+1" flattening).
+        # Rounded for readability -- re-derive from PecAxis state directly if you need full
+        # precision (e.g. via analyse_pec.ipynb).
+        ARCMIN_PER_HOUR = 3600 * 60   # deg/sec -> arcmin/hr
+        payload = {
+            # guide-sync counter, resets after a goto
+            "n": self._pec_n,
+
+            # per-axis fit status: TOO_FEW_OBS -> LOW_R2/HIGH_RMSE -> VALID
+            "inhibit": [ra.inhibit.name, dec.inhibit.name],
+
+            # fit quality, 0-1, dimensionless
+            "r2": [round(float(ra.r2), 4), round(float(dec.r2), 4)],
+
+            # arcmin, fit residual noise
+            "rmse": [round(float(ra.rmse_arcmin()), 4), round(float(dec.rmse_arcmin()), 4)],
+
+            # arcmin, this sync's raw guide error -- should shrink as PEC improves.
+            "resid": [
+                round(float(ra_resid * 60), 4)  if ra_resid  is not None else None,
+                round(float(dec_resid * 60), 4) if dec_resid is not None else None,
+            ],
+            # arcmin/hr, model's rate as of the last ingest (frozen between syncs)
+            "fit_rate": [round(float(ra.theta*ARCMIN_PER_HOUR), 3), round(float(dec.theta*ARCMIN_PER_HOUR), 3)],
+
+            # arcmin/hr, rate actually driving the motors as of the last successful control tick
+            "applied_rate": [round(float(ra._applied_rate*ARCMIN_PER_HOUR), 3), round(float(dec._applied_rate*ARCMIN_PER_HOUR), 3)],
+
+            # arcmin, PEC correction actually applied since the *previous* PECLOG entry only (resets every sync)
+            # Euler-integration of the continuously-advancing predicted_rate(t)
+            "pec_accum": [round(float(pec_accum_ra*60), 4), round(float(pec_accum_dec*60), 4)],
+
+            # arcmin, (resid + pec_accum) accumulated across every sync since the PEC model was last reset (goto/rotate/jog/stop-tracking/config change), not since the last sync
+            # The fit's training signal; deliberately doesn't shrink as PEC improves (see docs/control.md)
+            "total_accum": [round(float(ra._accum*60), 4), round(float(dec._accum*60), 4)],
+
+            # arcmin/hr, PEC Model parameters [DC, harmonic 1, 2, ...]
+            "ra_model": [round(float(ra.dc_rate()*ARCMIN_PER_HOUR), 3)] + [round(float(ra.harmonic_rate(h)*ARCMIN_PER_HOUR), 3) for h in range(1, ra.n_harmonics + 1)],
+            "dec_model": [round(float(dec.dc_rate()*ARCMIN_PER_HOUR), 3)] + [round(float(dec.harmonic_rate(h)*ARCMIN_PER_HOUR), 3) for h in range(1, dec.n_harmonics + 1)],
+
+            # degrees, current topocentric position
+            "az": round(float(pv_deg[0]), 3), "alt": round(float(pv_deg[1]), 3), "roll": round(float(pv_deg[2]), 3),
+
+            # RLS forgetting factor, dimensionless
+            "lambda": [round(float(ra.lam), 5), round(float(dec.lam), 5)],
+
+            # ra.converged() or dec.converged() -- gates apply_pec_drift_correction() as a
+            # whole, but is not per-axis: check inhibit[0]/[1] for whether RA/Dec specifically
+            # is actually being corrected (see docs/control.md)
+            "pec_active": self._pec_active,
+
+            # seconds since the last real 518 telemetry -- large value means this entry landed
+            # in a telemetry gap
+            "age_518": round(float(self.polaris._age_518_seconds), 3),
+        }
+        self.logger.info(f"PECLOG {payload}")
 
 
     def apply_pec_drift_correction(self):
