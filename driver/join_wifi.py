@@ -339,7 +339,15 @@ def _join_wifi_network_win(ssid: str, password: str = "", timeout: float = 15.0,
     _add_profile_win(ssid, password, interface=chosen.name)
     ok = _connect_win(ssid, interface=chosen.name, timeout=timeout)
     if ok:
-        logger.info(f"Joined WiFi'{ssid}' on {chosen.name}.")
+        # netsh reporting state=connected means association completed, not that
+        # DHCP/ARP have settled yet -- a connection attempt (eg. the driver's own
+        # background Polaris-connect retry loop) landing in that gap can get a
+        # fast failure (WinError 121/semaphore timeout) even though the join
+        # itself was genuinely successful. Only needed on the fresh-join path;
+        # the idempotent already-joined branch above returns before this, since
+        # nothing just changed there and the network's already long settled.
+        time.sleep(3)
+        logger.info(f"Joined '{ssid}' on {chosen.name}.")
     else:
         _diagnose_win(ssid, interface=chosen.name)
     return ok
