@@ -1669,8 +1669,8 @@ class action:
 
         elif actionName == "Polaris:bleEnableWifi":
             logger.info(f'BLE Enable Wifi {parameters}')
-            lifecycle.create_task(polaris._ble.enableWifi(), name="bleEnableWifi")
-            resp.text = await PropertyResponse('bleEnableWifi ok', req)  
+            lifecycle.create_task(polaris._ble.enableWifiAndJoin(), name="bleEnableWifi")
+            resp.text = await PropertyResponse('bleEnableWifi ok', req)
             return
 
         elif actionName == "Polaris:bleSelectDevice":

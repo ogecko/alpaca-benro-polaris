@@ -6,6 +6,7 @@ from bleak import BleakScanner, BleakClient
 from bleak.exc import BleakError
 from shr import LifecycleController, bytes2hexascii
 from config import Config
+import join_wifi
 
 POLARIS_ADVERTISED_UUID = "00007370-0000-1000-8000-00805f9b34fb"
 SEND_UUID = "0000fff1-0000-1000-8000-00805f9b34fb"
@@ -383,3 +384,46 @@ class BLE_Controller:
                 await self._start_scanner()
             except Exception as e:
                 self.logger.warning(f"BLE failed to restart scanner: {e}")
+
+    # ------------------------------------------------------------------
+    # Join host OS to the Polaris WiFi network -- distinct from the
+    # BLE-level "enable Wi-Fi on the mount" above; see join_wifi.py's
+    # module docstring for why this is "join", never "connect".
+    # ------------------------------------------------------------------
+
+    async def joinWifiNetwork(self):
+        """Join this host machine to the Polaris hotspot that enableWifi()
+        just turned on. Explicit-trigger only -- never called from the
+        automatic background scan loop or setSelectedDevice(), since unlike
+        the BLE enable step this changes the host's own network state and
+        could silently disrupt whatever else that adapter was doing.
+        join_wifi.join_wifi_network() is synchronous and can block for
+        several seconds per attempt, so it's run in a thread rather than
+        awaited directly -- otherwise it would stall the driver's event
+        loop (PID control loop included) for the duration."""
+        ssid = self.selectedDevice
+        if not ssid:
+            return
+        try:
+            ok = await asyncio.to_thread(
+                join_wifi.join_wifi_network, ssid, Config.polaris_wifi_password
+            )
+        except Exception as e:
+            self.logger.warning(f"Failed to join WiFi network '{ssid}': {e}")
+            return
+        if ok:
+            self.logger.info(f"Joined WiFi network '{ssid}'")
+        else:
+            self.logger.warning(
+                f"Failed to join WiFi network '{ssid}' -- see diagnostics above, "
+                "or join manually from the OS's WiFi list"
+            )
+
+    async def enableWifiAndJoin(self):
+        """Full Wi-Fi button flow: enable the mount's hotspot over BLE, then
+        join this host to it. Used only by the explicit Polaris:bleEnableWifi
+        action -- the automatic background paths call enableWifi() alone,
+        since they shouldn't be silently touching the host's own network."""
+        await self.enableWifi()
+        if self.isWifiEnabled:
+            await self.joinWifiNetwork()

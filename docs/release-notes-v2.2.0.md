@@ -34,6 +34,7 @@
 - **[Docker Images]** Documented how to Install, Clone, Build and Run the driver in a docker image using platforms/docker/run.sh 
 - **[Python dependencies]** Add option to install using UV to manage python.exe and package dependancies with uv.lock
 - **[numpy Compatibility]** Pin numpy to `>=2.3.5,<2.4.0` (fix #89). Note 2.4+ requires x86-64-v2, SIGILLs on pre-2009 CPUs
+- **[Wi-Fi Auto-Join]** The Alpaca Pilot Wi-Fi button now also joins the mini-PC itself to the Polaris hotspot on Windows, not just enabling it via BLE — no more manually finding `polaris_xxxxxx` in Windows' Wi-Fi list in the normal case
 
 ## What's new in v2.2 Beta 4
 - **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 

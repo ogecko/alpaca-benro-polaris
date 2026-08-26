@@ -1,38 +1,39 @@
 """
-connect.py
+join_wifi.py
 
-Programmatically join a Windows PC to a Benro Polaris' WiFi hotspot,
-mirroring what the Benro app does automatically before it opens a
-socket to the mount.
+Joins the host OS to a Benro Polaris' WiFi hotspot -- the network layer,
+distinct from the driver's own application-level *connection* to the
+Polaris firmware on :9090 (see polaris.py / Polaris.client(), p.connected
+in Alpaca Pilot). 
 
-Auto-discovers nearby polaris_XXXXXX hotspots, connects automatically
-if only one is found, or prompts you to pick when several are in
-range. Multi-adapter aware: if the PC has more than one WiFi
-interface (e.g. a built-in adapter plus a dedicated USB dongle - many
-built-in chipsets can't associate with the Polaris' onboard AP at
-all), it prefers a USB adapter and won't drop an unrelated active
-WiFi connection on another adapter.
+Owns WiFi-join logic for every platform the driver supports. Today only
+Windows is implemented (via netsh wlan, mirroring what the Benro app does
+automatically before it opens a socket to the mount). Linux/Raspberry Pi
+and macOS are stubs pending platform-specific implementations -- see
+platforms/raspberry_pi/wifi.sh for prior art on the Linux/RPi side
+(wpa_supplicant-based, a different mechanism entirely); macOS has none yet
+and would need networksetup(8).
 
-Simplest usage - auto-discover and connect, open network:
-    python connect.py
+join_wifi_network() is the entry point other driver modules should call
+(BLE_Controller.enableWifiAndJoin(), ble_service.py). Its implementation is
+synchronous -- it shells out to platform CLI network tools and can block
+for several seconds per attempt -- so callers on the driver's asyncio loop
+MUST wrap it in asyncio.to_thread(), never await it directly, or it will
+stall the PID control loop and everything else for the duration.
+
+CLI usage -- auto-discover and join, open network:
+    python join_wifi.py
 
 With a password (network is WPA2, not open):
-    python connect.py "" mypassword123
+    python join_wifi.py "" mypassword123
 
 Target a specific SSID directly, skipping discovery:
-    python connect.py polaris_b83c06
-    python connect.py polaris_b83c06 mypassword123
+    python join_wifi.py polaris_b83c06
+    python join_wifi.py polaris_b83c06 mypassword123
 
-All optional parameters, for use as a library from main.py:
-    find_and_connect_to_polaris(
-        password="",            # omit/empty for an open network
-        timeout=15.0,           # seconds to wait per connection attempt
-        interface=None,         # force a specific adapter name, e.g. "Wi-Fi 2"
-        prefer_keywords=("usb",),   # adapter description keywords to prefer
-        ssid_pattern=r"^polaris_[0-9a-zA-Z]+$",  # override SSID matching
-    )
-    connect_to_polaris(ssid, password="", timeout=15.0, interface=None,
-                        prefer_keywords=("usb",))  # connect to a known SSID directly
+As a library, the entry point most callers want:
+    join_wifi_network(ssid, password="", timeout=15.0, interface=None,
+                       prefer_keywords=("usb",))
 """
 
 import re
@@ -43,6 +44,10 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
+
+IS_WINDOWS = sys.platform == "win32"
+IS_LINUX   = sys.platform == "linux"
+IS_MACOS   = sys.platform == "darwin"
 
 PROFILE_TEMPLATE_WPA2 = """<?xml version="1.0"?>
 <WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
@@ -75,7 +80,9 @@ PROFILE_TEMPLATE_WPA2 = """<?xml version="1.0"?>
 
 # Open networks (no password) can't carry a sharedKey block at all -
 # WPA2PSK requires an 8-63 char PSK, so an empty/missing password must
-# use authentication=open, encryption=none instead.
+# use authentication=open, encryption=none instead. The Polaris hotspot is
+# always open in practice, but this is kept for forward-compatibility and
+# for anyone running the driver against a secured network of their own.
 PROFILE_TEMPLATE_OPEN = """<?xml version="1.0"?>
 <WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
     <name>{ssid}</name>
@@ -114,10 +121,14 @@ def _run(cmd: List[str]):
     return result.returncode, result.stdout, result.stderr
 
 
-def list_interfaces() -> List[WifiInterface]:
+# ──────────────────────────────────────────────────────────────────────────
+# Windows (netsh wlan)
+# ──────────────────────────────────────────────────────────────────────────
+
+def _list_interfaces_win() -> List[WifiInterface]:
     """Parses `netsh wlan show interfaces` into structured records. Handles
     zero, one, or many WiFi adapters present on the machine."""
-    _, out, _ = _run(["netsh", "wlan", "show", "interfaces"])
+    _, out, _ = _run(["netsh.exe", "wlan", "show", "interfaces"])
 
     interfaces = []
     current = {}
@@ -151,10 +162,10 @@ def list_interfaces() -> List[WifiInterface]:
     ]
 
 
-def choose_interface(interfaces: List[WifiInterface],
-                      explicit_name: Optional[str] = None,
-                      prefer_keywords: tuple = ("usb",)) -> WifiInterface:
-    """Picks which WiFi adapter to use for the Polaris connection.
+def _choose_interface_win(interfaces: List[WifiInterface],
+                           explicit_name: Optional[str] = None,
+                           prefer_keywords: tuple = ("usb",)) -> WifiInterface:
+    """Picks which WiFi adapter to use for the Polaris join.
 
     - If the caller named one explicitly, use that.
     - If there's only one adapter, use it (matches the original
@@ -194,7 +205,7 @@ def choose_interface(interfaces: List[WifiInterface],
     return max(interfaces, key=score)
 
 
-def add_profile(ssid: str, password: str = "", interface: Optional[str] = None) -> None:
+def _add_profile_win(ssid: str, password: str = "", interface: Optional[str] = None) -> None:
     """Registers (or overwrites) a WLAN profile scoped to the current user
     (no admin prompt needed), optionally scoped to a specific adapter.
 
@@ -218,7 +229,7 @@ def add_profile(ssid: str, password: str = "", interface: Optional[str] = None) 
         profile_path = f.name
 
     try:
-        cmd = ["netsh", "wlan", "add", "profile",
+        cmd = ["netsh.exe", "wlan", "add", "profile",
                f"filename={profile_path}", "user=current"]
         if interface:
             cmd.append(f"interface={interface}")
@@ -229,16 +240,17 @@ def add_profile(ssid: str, password: str = "", interface: Optional[str] = None) 
         Path(profile_path).unlink(missing_ok=True)
 
 
-def diagnose(ssid: str, interface: Optional[str] = None) -> None:
+def _diagnose_win(ssid: str, interface: Optional[str] = None) -> None:
     """Prints what Windows actually sees for this SSID and interface right
     now - the real authentication type it detected, signal strength, and
-    the interface's own connection state/reason."""
+    the interface's own connection state/reason. Called on join failure so
+    there's something actionable in the log beyond "it didn't work"."""
     print("\n--- netsh wlan show interfaces ---")
-    _, out, _ = _run(["netsh", "wlan", "show", "interfaces"])
+    _, out, _ = _run(["netsh.exe", "wlan", "show", "interfaces"])
     print(out)
 
     print(f"--- netsh wlan show networks mode=bssid (filtered to '{ssid}') ---")
-    _, out, _ = _run(["netsh", "wlan", "show", "networks", "mode=bssid"])
+    _, out, _ = _run(["netsh.exe", "wlan", "show", "networks", "mode=bssid"])
     blocks = out.split("\n\n")
     matched = [b for b in blocks if ssid in b]
     print("\n\n".join(matched) if matched else
@@ -250,21 +262,21 @@ def diagnose(ssid: str, interface: Optional[str] = None) -> None:
         "-MaxEvents 15 | Where-Object {$_.Id -in 8001,8002,8003,11001,11002} "
         "| Select-Object TimeCreated,Id,Message | Format-List"
     )
-    _, out, err = _run(["powershell", "-NoProfile", "-Command", ps_cmd])
+    _, out, err = _run(["powershell.exe", "-NoProfile", "-Command", ps_cmd])
     print(out or err or "(no matching events, or Event Viewer access denied)")
 
 
-def connect(ssid: str, interface: str, timeout: float = 15.0, retries: int = 3) -> bool:
-    """Connects on a specific named interface, with retries - netsh wlan
+def _connect_win(ssid: str, interface: str, timeout: float = 15.0, retries: int = 3) -> bool:
+    """Joins a specific named interface to ssid, with retries - netsh wlan
     connect can fire before the WLAN service's internal scan cache has
     refreshed, producing a spurious 'specific network not available'
     even when the SSID is genuinely in range."""
     for attempt in range(1, retries + 1):
-        _run(["netsh", "wlan", "show", "networks", "mode=bssid"])
+        _run(["netsh.exe", "wlan", "show", "networks", "mode=bssid"])
         time.sleep(2)
 
         code, out, err = _run([
-            "netsh", "wlan", "connect",
+            "netsh.exe", "wlan", "connect",
             f"name={ssid}", f"ssid={ssid}", f"interface={interface}",
         ])
         if code != 0:
@@ -272,7 +284,7 @@ def connect(ssid: str, interface: str, timeout: float = 15.0, retries: int = 3) 
 
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            for iface in list_interfaces():
+            for iface in _list_interfaces_win():
                 if iface.name == interface and iface.state.lower() == "connected" \
                         and iface.ssid == ssid:
                     return True
@@ -284,13 +296,69 @@ def connect(ssid: str, interface: str, timeout: float = 15.0, retries: int = 3) 
     return False
 
 
+def _join_wifi_network_win(ssid: str, password: str = "", timeout: float = 15.0,
+                            interface: Optional[str] = None,
+                            prefer_keywords: tuple = ("usb",)) -> bool:
+    interfaces = _list_interfaces_win()
+    chosen = _choose_interface_win(interfaces, explicit_name=interface,
+                                    prefer_keywords=prefer_keywords)
+
+    # Idempotency: skip the whole dance if this adapter is already on the
+    # target network -- avoids a spurious brief re-association on every
+    # click of the Alpaca Pilot Wi-Fi button.
+    if chosen.state.lower() == "connected" and chosen.ssid == ssid:
+        print(f"Already joined to '{ssid}' on {chosen.name}.")
+        return True
+
+    print(f"Using WiFi interface: {chosen.name} ({chosen.description})")
+
+    _add_profile_win(ssid, password, interface=chosen.name)
+    ok = _connect_win(ssid, interface=chosen.name, timeout=timeout)
+    if not ok:
+        _diagnose_win(ssid, interface=chosen.name)
+    return ok
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Public, platform-dispatching entry point
+# ──────────────────────────────────────────────────────────────────────────
+
+def join_wifi_network(ssid: str, password: str = "", timeout: float = 15.0,
+                       interface: Optional[str] = None,
+                       prefer_keywords: tuple = ("usb",)) -> bool:
+    """Join the host OS to a known Polaris SSID -- the entry point other
+    driver modules should call (synchronous; wrap in asyncio.to_thread()
+    from async callers). Returns False on unsupported platforms rather than
+    raising; callers are responsible for logging that outcome.
+
+    interface: force a specific adapter name (e.g. 'Wi-Fi 2', Windows only
+    today). Leave as None to auto-select.
+    prefer_keywords: when auto-selecting among multiple adapters, rank ones
+    whose description matches these (default: "usb") above others.
+    """
+    if IS_WINDOWS:
+        return _join_wifi_network_win(ssid, password, timeout=timeout,
+                                       interface=interface, prefer_keywords=prefer_keywords)
+    # Linux/Raspberry Pi: platforms/raspberry_pi/wifi.sh covers this today as a
+    # separate standalone script (wpa_supplicant-based); not yet wired in here.
+    # macOS: not yet implemented (would use networksetup(8)).
+    return False
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Discovery + CLI (standalone/manual use -- not called by the driver itself,
+# which always already knows the target SSID from the BLE-selected device)
+# ──────────────────────────────────────────────────────────────────────────
+
 def discover_polaris_networks(ssid_pattern: str = r"^polaris_[0-9a-zA-Z]+$") -> List[str]:
     """Scans for currently-visible SSIDs matching the Polaris naming
-    pattern (e.g. polaris_b83c06). Returns a de-duplicated, sorted list
-    of matching SSID names."""
-    _run(["netsh", "wlan", "show", "networks", "mode=bssid"])  # refresh scan cache
+    pattern (e.g. polaris_b83c06). Windows only. Returns a de-duplicated,
+    sorted list of matching SSID names."""
+    if not IS_WINDOWS:
+        raise RuntimeError("discover_polaris_networks() is only implemented on Windows.")
+    _run(["netsh.exe", "wlan", "show", "networks", "mode=bssid"])  # refresh scan cache
     time.sleep(1)
-    _, out, _ = _run(["netsh", "wlan", "show", "networks"])
+    _, out, _ = _run(["netsh.exe", "wlan", "show", "networks"])
 
     pattern = re.compile(ssid_pattern, re.IGNORECASE)
     found = set()
@@ -304,8 +372,10 @@ def discover_polaris_networks(ssid_pattern: str = r"^polaris_[0-9a-zA-Z]+$") -> 
 
 def select_polaris_network(ssid_pattern: str = r"^polaris_[0-9a-zA-Z]+$") -> str:
     """Finds visible Polaris hotspots. Auto-picks the only one if there's
-    exactly one; otherwise prompts the user to choose. Raises if none
-    are visible."""
+    exactly one; otherwise prompts the user to choose. CLI/interactive use
+    only -- raises if none are visible. Never called by the driver itself
+    (which already knows the exact SSID from the BLE-selected device, and
+    has no console to prompt on)."""
     candidates = discover_polaris_networks(ssid_pattern)
 
     if not candidates:
@@ -333,47 +403,21 @@ def select_polaris_network(ssid_pattern: str = r"^polaris_[0-9a-zA-Z]+$") -> str
         print("Invalid selection, try again.")
 
 
-def find_and_connect_to_polaris(password: str = "", timeout: float = 15.0,
-                                 interface: Optional[str] = None,
-                                 prefer_keywords: tuple = ("usb",),
-                                 ssid_pattern: str = r"^polaris_[0-9a-zA-Z]+$") -> bool:
-    """Discovers nearby Polaris hotspot(s), resolves which one to use
-    (auto if unambiguous, prompts otherwise), then connects. This is the
-    entry point most callers want; use connect_to_polaris() directly if
-    you already know the exact SSID."""
+def find_and_join_wifi_network(password: str = "", timeout: float = 15.0,
+                                interface: Optional[str] = None,
+                                prefer_keywords: tuple = ("usb",),
+                                ssid_pattern: str = r"^polaris_[0-9a-zA-Z]+$") -> bool:
+    """Discovers nearby Polaris hotspot(s), resolves which one to use (auto
+    if unambiguous, prompts otherwise), then joins. CLI/interactive use
+    only -- see select_polaris_network()."""
     ssid = select_polaris_network(ssid_pattern)
-    return connect_to_polaris(ssid, password, timeout=timeout,
-                               interface=interface, prefer_keywords=prefer_keywords)
-
-
-def connect_to_polaris(ssid: str, password: str = "", timeout: float = 15.0,
-                        interface: Optional[str] = None,
-                        prefer_keywords: tuple = ("usb",)) -> bool:
-    """Add/refresh the profile then connect. Call this at the top of
-    main.py before opening any socket to the mount.
-
-    interface: force a specific adapter name (e.g. 'Wi-Fi 2'). Leave
-    as None to auto-select.
-    prefer_keywords: when auto-selecting among multiple adapters, rank
-    ones whose description matches these (default: "usb") above others.
-    Override e.g. prefer_keywords=("realtek",) if that suits a
-    particular user's hardware better.
-    """
-    interfaces = list_interfaces()
-    chosen = choose_interface(interfaces, explicit_name=interface,
-                               prefer_keywords=prefer_keywords)
-    print(f"Using WiFi interface: {chosen.name} ({chosen.description})")
-
-    add_profile(ssid, password, interface=chosen.name)
-    ok = connect(ssid, interface=chosen.name, timeout=timeout)
-    if not ok:
-        diagnose(ssid, interface=chosen.name)
-    return ok
+    return join_wifi_network(ssid, password, timeout=timeout,
+                              interface=interface, prefer_keywords=prefer_keywords)
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 3:
-        print("Usage: connect_polaris.py [SSID] [PASSWORD]")
+        print("Usage: join_wifi.py [SSID] [PASSWORD]")
         print("Omit SSID to auto-discover nearby Polaris hotspot(s).")
         print("Omit PASSWORD if the Polaris hotspot is open/unsecured.")
         sys.exit(1)
@@ -383,9 +427,9 @@ if __name__ == "__main__":
 
     try:
         if ssid_arg:
-            ok = connect_to_polaris(ssid_arg, password_arg)
+            ok = join_wifi_network(ssid_arg, password_arg)
         else:
-            ok = find_and_connect_to_polaris(password_arg)
+            ok = find_and_join_wifi_network(password_arg)
     except RuntimeError as e:
         # Expected/anticipated failures (no device found, netsh errors,
         # no WiFi interfaces, etc.) - print just the message, no traceback.
@@ -396,5 +440,5 @@ if __name__ == "__main__":
         print(f"Error: {e}")
         sys.exit(1)
 
-    print("Connected." if ok else "Failed to connect within timeout.")
+    print("Joined." if ok else "Failed to join within timeout.")
     sys.exit(0 if ok else 1)

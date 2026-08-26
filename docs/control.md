@@ -742,7 +742,7 @@ cd ~/projects/alpaca-benro-polaris
 uv run driver
 ```
 
-Requires `uv` installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`) and `uv sync` run once. The mount's WiFi hotspot (`polaris_XXXXXX`) must already be joined by the host — see `platforms/win/connect.py` on Windows.
+Requires `uv` installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`) and `uv sync` run once. The mount's WiFi hotspot (`polaris_XXXXXX`) must already be joined by the host — the Alpaca Pilot Wi-Fi button (`Polaris:bleEnableWifi`) does this automatically on Windows via `driver/join_wifi.py`; to join manually, run `python driver/join_wifi.py` directly (Windows only today — see that module's docstring for other platforms).
 
 Ports are read from `driver/config.toml` with overrides in `data/config.pilot.json` (shared with any Docker setup on the same checkout — be careful changing ports there). This project's dev instance uses non-default Pilot ports (`8543`/`8180`) since `443`/`80` need elevated privileges — check `data/config.pilot.json` for the ports currently in use before assuming the ASCOM defaults.
 
