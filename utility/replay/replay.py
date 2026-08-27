@@ -16,12 +16,29 @@ import itertools
 import json
 import math
 import re
+import sys
 import time
 from dataclasses import dataclass
 from typing import Optional
 from urllib.parse import parse_qsl
 
 import requests
+
+
+def _fmt_duration(seconds):
+    seconds = max(0, seconds)
+    h, rem = divmod(int(seconds), 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}h{m:02d}m{s:02d}s" if h else (f"{m}m{s:02d}s" if m else f"{s}s")
+
+
+def _progress(out, msg, final=False):
+    """Print a countdown/progress line that overwrites itself via \\r, so a long-running
+    command doesn't sit silent -- padded to clear any leftover text from a longer previous
+    line, and terminated with a real newline once (final=True) so later log() calls start
+    clean rather than appending to the countdown line."""
+    out.write(f"\r{msg}{' ' * 12}" + ("\n" if final else ""))
+    out.flush()
 
 
 # ── Line parsing ─────────────────────────────────────────────────────────────
@@ -308,7 +325,7 @@ class PEState:
         self.applied_ra_deg += pec_accum_ra_arcmin / ARCMIN_PER_DEG
         self.applied_dec_deg += pec_accum_dec_arcmin / ARCMIN_PER_DEG
 
-    def advance(self, session, keyword, payload, sleep=time.sleep, clock=time.monotonic):
+    def advance(self, session, keyword, payload, sleep=time.sleep, clock=time.monotonic, out=sys.stdout):
         ra_model = payload["ra_model"]
         dec_model = payload["dec_model"]
         exposure_s = payload["exposure_s"]
@@ -350,12 +367,17 @@ class PEState:
 
             prev_ra_total, prev_dec_total = total_ra, total_dec
 
+            remaining_s = (n_steps - 1 - i) * exposure_s
+            _progress(out, f"{keyword}: tick {i + 1}/{n_steps}  t={_fmt_duration(t)}"
+                           f"  ~{_fmt_duration(remaining_s)} remaining...")
+
             next_at = t0 + (i + 1) * exposure_s
             sleep_for = next_at - clock()
             if sleep_for > 0:
                 sleep(sleep_for)
 
         self.ra_offset_deg, self.dec_offset_deg = prev_ra_total, prev_dec_total
+        _progress(out, f"{keyword}: complete ({n_steps} ticks, {_fmt_duration(n_steps * exposure_s)}).", final=True)
 
         session.action("Polaris:ReplayMark", {
             "event": f"{keyword}_end", "mechanism": keyword,
@@ -400,17 +422,36 @@ def _send_pulses(session, delta_ra_deg, delta_dec_deg, guide_rates):
         session.put_property("pulseguide", {"Direction": direction, "Duration": duration_ms})
 
 
-def wait_settled(session, timeout_s=60, poll_s=1.0, sleep=time.sleep, clock=time.monotonic):
+def countdown_sleep(total_seconds, sleep=time.sleep, clock=time.monotonic, out=sys.stdout, tick_s=1.0):
+    """time.sleep(), but prints a live remaining-time countdown on one line instead of sitting
+    silent -- see SLEEP in run()."""
+    deadline = clock() + total_seconds
+    while True:
+        remaining = deadline - clock()
+        if remaining <= 0:
+            break
+        _progress(out, f"SLEEP: {_fmt_duration(remaining)} remaining...")
+        sleep(min(tick_s, remaining))
+    _progress(out, "SLEEP: done.", final=True)
+
+
+def wait_settled(session, timeout_s=60, poll_s=1.0, sleep=time.sleep, clock=time.monotonic, out=sys.stdout):
     """Poll telescope/0/slewing until it clears, instead of guessing a fixed SLEEP duration.
     Matches how a real client (e.g. Nina) actually sequences a goto -- fire it, then wait for
     completion -- rather than relying on a captured SlewAbsolute line's isasync value, which is
     both implicit (easy to silently lose if a captured line's isasync gets edited) and blocks
     inside the HTTP call itself rather than being a visible step in the test file."""
-    deadline = clock() + timeout_s
+    start = clock()
+    deadline = start + timeout_s
     while session.get_property("slewing"):
-        if clock() >= deadline:
+        remaining = deadline - clock()
+        if remaining <= 0:
+            _progress(out, f"WAIT_SETTLED: still slewing after {timeout_s}s", final=True)
             raise TimeoutError(f"WAIT_SETTLED: still slewing after {timeout_s}s")
+        _progress(out, f"WAIT_SETTLED: slewing {_fmt_duration(clock() - start)} "
+                        f"(timeout in {_fmt_duration(remaining)})...")
         sleep(poll_s)
+    _progress(out, f"WAIT_SETTLED: settled after {_fmt_duration(clock() - start)}.", final=True)
 
 
 # ── Location-dependent commands ───────────────────────────────────────────────
@@ -481,7 +522,7 @@ def run(instructions, session, pe_state=None, log=print, allow_equatorial=False)
         if isinstance(instr, KeywordLine):
             if instr.keyword == "SLEEP":
                 log(f"[{line_no}] SLEEP {instr.payload['seconds']}s")
-                time.sleep(instr.payload["seconds"])
+                countdown_sleep(instr.payload["seconds"])
             elif instr.keyword == "WAIT_SETTLED":
                 log(f"[{line_no}] WAIT_SETTLED {instr.payload}")
                 wait_settled(session, **{k: v for k, v in instr.payload.items() if k in ("timeout_s", "poll_s")})
