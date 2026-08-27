@@ -1,2 +1,19 @@
-2026-08-27T11:12:25.097 INFO 127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'false', 'ClientID': '8181', 'ClientTransactionID': '1007'}
-2026-08-27T11:12:25.097 INFO 127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'true', 'ClientID': '8181', 'ClientTransactionID': '1007'}
+# PEC AUTOTUNE (first real test case): dc-only periodic-error model, distinct RA/Dec drift
+# rates. Checks that PECLOG's fitted dc term converges to what we told it to expect. No
+# harmonics -- deliberately the simplest possible case before building up to a real
+# steady-state session. Slews async then WAIT_SETTLED (matches how Nina actually sequences a
+# goto, rather than relying on a captured SlewAbsolute line's isasync value), plus an extra 15s
+# settle after slewing clears -- post-toggle/post-slew settling can run 20-40s on real hardware
+# per docs/control.md, and slewing==false alone doesn't capture backlash/oscillation settling.
+# dc magnitude doubled from the first attempt (60/24 arcmin/hr) to sit well above the noise
+# floor, session length 20 cycles. log_position (PIDLOG/KFLOG) left off -- not needed for PEC
+# analysis, just floods the log; log_pec (PECLOG) is enough.
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_alignment": false}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_alignment": true}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_pec": true, "advanced_sync_guiding": true, "log_pec": true}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'false'}
+127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'true'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:SlewAbsolute', 'Parameters': '{"az": 240, "alt": 45, "roll": 0, "isasync": true}'}
+REPLAY WAIT_SETTLED {"timeout_s": 60}
+REPLAY SLEEP {"seconds": 15}
+REPLAY SYNCGUIDE_PE {"ra_model": [60, 0, 0], "dec_model": [24, 0, 0], "exposure_s": 15, "session_min": 5}

@@ -108,6 +108,7 @@ export const useStatusStore = defineStore('status', {
         mpastatus: [0,0],
         sgstatus: [0,0,0,0,0],
         pec: [0,0,0,0],
+        pec_accum: [0,0],
         pidKc: 0.75,
     }),
 

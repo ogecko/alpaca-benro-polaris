@@ -71,6 +71,16 @@ def test_pulseguide_pe_keyword_line():
     assert instr.keyword == "PULSEGUIDE_PE"
 
 
+def test_wait_settled_keyword_line():
+    instr = parse_line('REPLAY WAIT_SETTLED {"timeout_s": 60}')
+    assert instr == KeywordLine("WAIT_SETTLED", {"timeout_s": 60})
+
+
+def test_wait_settled_keyword_line_with_empty_payload():
+    instr = parse_line('WAIT_SETTLED {}')
+    assert instr == KeywordLine("WAIT_SETTLED", {})
+
+
 @pytest.mark.parametrize("line", [
     "2026-08-27T09:00:56.880 INFO ==STARTUP== ALPACA BENRO POLARIS DRIVER v2.2.0 Beta 4.3 ===========",
     "2026-08-27T10:24:01.543 INFO PECLOG {'n': 2, 'inhibit': ['TOO_FEW_OBS', 'TOO_FEW_OBS']}",

@@ -48,7 +48,7 @@ _REQUEST_RE = re.compile(r'->\s+(GET|PUT)\s+(\S+?)(?:\s+(\{.*\}))?\s*$')
 
 # Matches "KEYWORD {json payload}" anywhere in the line -- the leading timestamp/level word
 # (real or hand-written, e.g. "REPLAY" instead of "INFO") is ignored, not parsed.
-_KEYWORD_RE = re.compile(r'\b(SLEEP|SYNCGUIDE_PE|PULSEGUIDE_PE)\s+(\{.*\})\s*$')
+_KEYWORD_RE = re.compile(r'\b(SLEEP|WAIT_SETTLED|SYNCGUIDE_PE|PULSEGUIDE_PE)\s+(\{.*\})\s*$')
 
 # Not replayed -- a fresh pair is minted per request by DriverSession.
 _SESSION_KEYS = {'ClientID', 'ClientTransactionID'}
@@ -107,7 +107,16 @@ def parse_file(path):
 # ── HTTP session against the target driver ───────────────────────────────────
 
 class DriverError(RuntimeError):
-    pass
+    def __init__(self, error_number, message):
+        self.error_number = error_number
+        super().__init__(f"ErrorNumber {error_number}: {message}")
+
+
+# Alpaca ErrorNumbers safe to retry rather than fail the whole run over: 1031 is
+# NotConnectedException, observed in practice as a brief, self-recovering state flip on a real
+# WiFi-connected mount (correlates with the driver's own "position update lag"/NetDrops
+# warnings), not a genuine bad request.
+_TRANSIENT_ALPACA_ERRORS = {1031}
 
 
 class DriverSession:
@@ -115,10 +124,13 @@ class DriverSession:
     incrementing ClientTransactionID per request -- the values in a captured log line are
     never reused, since they aren't meaningful outside the session they were captured in."""
 
-    def __init__(self, base_url, client_id=None, timeout=30):
+    def __init__(self, base_url, client_id=None, timeout=30, retries=3, retry_backoff_s=1.5, sleep=time.sleep):
         self.base_url = base_url.rstrip('/')
         self.client_id = client_id if client_id is not None else (int(time.time()) % 100000)
         self.timeout = timeout
+        self.retries = retries
+        self.retry_backoff_s = retry_backoff_s
+        self._sleep = sleep
         self._txn = itertools.count(1)
 
     def _ids(self):
@@ -127,20 +139,39 @@ class DriverSession:
     @staticmethod
     def _unwrap(body):
         if body.get('ErrorNumber'):
-            raise DriverError(f"ErrorNumber {body['ErrorNumber']}: {body.get('ErrorMessage')}")
+            raise DriverError(body['ErrorNumber'], body.get('ErrorMessage'))
         return body.get('Value')
 
+    def _with_retry(self, attempt_fn):
+        """Retries a request on a network-level failure or a known-transient Alpaca error
+        (see _TRANSIENT_ALPACA_ERRORS) -- anything else (a genuine bad request, an unexpected
+        ErrorNumber) fails immediately, since retrying it would just fail again."""
+        for attempt in range(1, self.retries + 1):
+            try:
+                return attempt_fn()
+            except requests.RequestException:
+                if attempt == self.retries:
+                    raise
+            except DriverError as e:
+                if e.error_number not in _TRANSIENT_ALPACA_ERRORS or attempt == self.retries:
+                    raise
+            self._sleep(self.retry_backoff_s)
+
     def get(self, path, query=None):
-        params = {**(query or {}), **self._ids()}
-        r = requests.get(f"{self.base_url}{path}", params=params, timeout=self.timeout)
-        r.raise_for_status()
-        return self._unwrap(r.json())
+        def attempt():
+            params = {**(query or {}), **self._ids()}
+            r = requests.get(f"{self.base_url}{path}", params=params, timeout=self.timeout)
+            r.raise_for_status()
+            return self._unwrap(r.json())
+        return self._with_retry(attempt)
 
     def put(self, path, body=None):
-        data = {**(body or {}), **self._ids()}
-        r = requests.put(f"{self.base_url}{path}", data=data, timeout=self.timeout)
-        r.raise_for_status()
-        return self._unwrap(r.json())
+        def attempt():
+            data = {**(body or {}), **self._ids()}
+            r = requests.put(f"{self.base_url}{path}", data=data, timeout=self.timeout)
+            r.raise_for_status()
+            return self._unwrap(r.json())
+        return self._with_retry(attempt)
 
     def action(self, name, parameters):
         return self.put("/api/v1/telescope/0/action",
@@ -192,6 +223,9 @@ class PEState:
         self.ra_offset_deg = 0.0
         self.dec_offset_deg = 0.0
         self._pec_T_sec = None  # resolved lazily from the driver, cached for the whole run
+        self._sync_baseline = None  # (ra_hours, dec_deg), captured once -- see _resolve_sync_baseline
+        self.applied_ra_deg = 0.0   # running total of what the driver's own PEC correction has
+        self.applied_dec_deg = 0.0  # already applied to the real motors -- see _credit_applied_pec
 
     def _resolve_pec_T_sec(self, session, override):
         if override is not None:
@@ -200,6 +234,34 @@ class PEState:
             cfg = session.action("Polaris:ConfigFetch", {"configNames": ["pec_T_sec"]})
             self._pec_T_sec = cfg["pec_T_sec"]
         return self._pec_T_sec
+
+    def _resolve_sync_baseline(self, session):
+        """The RA/Dec every SYNCGUIDE_PE target is computed relative to -- captured once, from
+        the driver's live position the first time it's needed, and never re-read after that.
+        Re-reading it on every tick would be wrong: the driver applies its own PEC-fitted
+        correction to the real motors between our syncs (trained on our *previous* syncs), so
+        its live position already reflects that correction. Basing our next target on it would
+        double-count the driver's own contribution on top of ours and diverge instead of
+        converging -- exactly what was observed the first time this ran for real (fit_rate grew
+        unbounded instead of settling near the declared dc)."""
+        if self._sync_baseline is None:
+            self._sync_baseline = (session.get_property("rightascension"), session.get_property("declination"))
+        return self._sync_baseline
+
+    def _credit_applied_pec(self, session):
+        """A real autoguider plate-solves the real sky, so its measured residual already
+        reflects however much the driver's own PEC correction has physically moved the real
+        motors since the last sync -- our simulated mount doesn't move on its own, so we have
+        to credit that correction manually or every sync would re-report the full raw
+        uncorrected drift, which is what caused the fit to run away instead of converging.
+        Polaris:StatusFetch's pec_accum is the driver's own precise account of exactly that
+        (arcmin applied since its previous guide-sync ingest, resets each time) -- reading it
+        right before each sync and folding it into a running total is the live equivalent of
+        what a real plate-solve would show."""
+        status = session.action("Polaris:StatusFetch", {})
+        pec_accum_ra_arcmin, pec_accum_dec_arcmin = status["pec_accum"]
+        self.applied_ra_deg += pec_accum_ra_arcmin / ARCMIN_PER_DEG
+        self.applied_dec_deg += pec_accum_dec_arcmin / ARCMIN_PER_DEG
 
     def advance(self, session, keyword, payload, sleep=time.sleep, clock=time.monotonic):
         ra_model = payload["ra_model"]
@@ -229,7 +291,12 @@ class PEState:
             total_dec = dec_phase_start + pe_offset_deg(dec_model, T_sec, t)
 
             if keyword == "SYNCGUIDE_PE":
-                _send_sync(session, total_ra, total_dec)
+                if i > 0:
+                    self._credit_applied_pec(session)
+                ra_base_h, dec_base_deg = self._resolve_sync_baseline(session)
+                net_ra = total_ra - self.applied_ra_deg
+                net_dec = total_dec - self.applied_dec_deg
+                _send_sync(session, ra_base_h, dec_base_deg, net_ra, net_dec)
             else:
                 if guide_rates is None:
                     guide_rates = (session.get_property("guideraterightascension"),
@@ -252,12 +319,10 @@ class PEState:
         })
 
 
-def _send_sync(session, ra_offset_deg, dec_offset_deg):
-    ra_h = session.get_property("rightascension")
-    dec_d = session.get_property("declination")
+def _send_sync(session, ra_base_h, dec_base_deg, ra_offset_deg, dec_offset_deg):
     session.put_property("synctocoordinates", {
-        "RightAscension": ra_h + ra_offset_deg / 15.0,
-        "Declination": dec_d + dec_offset_deg,
+        "RightAscension": ra_base_h + ra_offset_deg / 15.0,
+        "Declination": dec_base_deg + dec_offset_deg,
     })
 
 
@@ -277,6 +342,19 @@ def _send_pulses(session, delta_ra_deg, delta_dec_deg, guide_rates):
         session.put_property("pulseguide", {"Direction": direction, "Duration": duration_ms})
 
 
+def wait_settled(session, timeout_s=60, poll_s=1.0, sleep=time.sleep, clock=time.monotonic):
+    """Poll telescope/0/slewing until it clears, instead of guessing a fixed SLEEP duration.
+    Matches how a real client (e.g. Nina) actually sequences a goto -- fire it, then wait for
+    completion -- rather than relying on a captured SlewAbsolute line's isasync value, which is
+    both implicit (easy to silently lose if a captured line's isasync gets edited) and blocks
+    inside the HTTP call itself rather than being a visible step in the test file."""
+    deadline = clock() + timeout_s
+    while session.get_property("slewing"):
+        if clock() >= deadline:
+            raise TimeoutError(f"WAIT_SETTLED: still slewing after {timeout_s}s")
+        sleep(poll_s)
+
+
 # ── Execution ─────────────────────────────────────────────────────────────────
 
 def run(instructions, session, pe_state=None, log=print):
@@ -286,6 +364,9 @@ def run(instructions, session, pe_state=None, log=print):
             if instr.keyword == "SLEEP":
                 log(f"[{line_no}] SLEEP {instr.payload['seconds']}s")
                 time.sleep(instr.payload["seconds"])
+            elif instr.keyword == "WAIT_SETTLED":
+                log(f"[{line_no}] WAIT_SETTLED {instr.payload}")
+                wait_settled(session, **{k: v for k, v in instr.payload.items() if k in ("timeout_s", "poll_s")})
             else:
                 log(f"[{line_no}] {instr.keyword} {instr.payload}")
                 pe_state.advance(session, instr.keyword, instr.payload)

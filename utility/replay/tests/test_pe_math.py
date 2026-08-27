@@ -61,7 +61,7 @@ class FakeSession:
     holding still at a fixed RA/Dec so synctocoordinates offsets are easy to check."""
 
     def __init__(self, pec_T_sec=2040, ra_h=10.0, dec_d=-30.0,
-                 guide_rate_ra=0.0008, guide_rate_dec=0.0008):
+                 guide_rate_ra=0.0008, guide_rate_dec=0.0008, pec_accum_arcmin=(0.0, 0.0)):
         self.actions = []
         self.puts = []
         self._pec_T_sec = pec_T_sec
@@ -69,11 +69,14 @@ class FakeSession:
         self._dec_d = dec_d
         self._guide_rate_ra = guide_rate_ra
         self._guide_rate_dec = guide_rate_dec
+        self.pec_accum_arcmin = pec_accum_arcmin  # what Polaris:StatusFetch reports each call
 
     def action(self, name, parameters):
         self.actions.append((name, parameters))
         if name == "Polaris:ConfigFetch":
             return {"pec_T_sec": self._pec_T_sec}
+        if name == "Polaris:StatusFetch":
+            return {"pec_accum": list(self.pec_accum_arcmin)}
         return {}
 
     def get_property(self, name):
@@ -119,7 +122,86 @@ def test_syncguide_pe_sends_one_sync_per_step_and_marks_start_and_end():
     assert mark_events == ["SYNCGUIDE_PE_start", "SYNCGUIDE_PE_end"]
 
 
-def test_syncguide_pe_offset_applied_relative_to_live_position():
+class DriftingFakeSession(FakeSession):
+    """Simulates the driver's own live position moving between ticks -- e.g. because it's
+    applying its own PEC-fitted correction to the real motors in between our syncs. Used to
+    prove SYNCGUIDE_PE captures its sync baseline once and never re-reads live position after
+    that: re-reading it would double-count the driver's own contribution on top of ours and
+    diverge instead of converging -- the actual failure mode observed the first time this ran
+    for real (fit_rate grew unbounded instead of settling near the declared dc)."""
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.ra_reads = 0
+        self.dec_reads = 0
+
+    def get_property(self, name):
+        if name == "rightascension":
+            self.ra_reads += 1
+            return self._ra_h + self.ra_reads  # drifts by a whole hour per read -- any
+        if name == "declination":              # accidental re-read would be obvious in the result
+            self.dec_reads += 1
+            return self._dec_d + self.dec_reads
+        return super().get_property(name)
+
+
+def test_syncguide_pe_baseline_captured_once_not_reread_per_tick():
+    session = DriftingFakeSession(ra_h=10.0, dec_d=-30.0, pec_T_sec=2040)
+    clock, sleep = _fake_clock()
+    state = PEState()
+
+    state.advance(session, "SYNCGUIDE_PE", {
+        "ra_model": [30, 0, 0], "dec_model": [12, 0, 0],
+        "exposure_s": 10, "session_min": 1,  # 6 steps
+    }, sleep=sleep, clock=clock)
+
+    assert session.ra_reads == 1
+    assert session.dec_reads == 1
+
+    sync_calls = [p for name, p in session.puts if name == "synctocoordinates"]
+    assert len(sync_calls) == 6
+    # The captured baseline is whatever that single call returned (10.0+1, -30.0+1 -- the
+    # drifting mock's own first-call value), not the constructor's raw 10.0/-30.0.
+    captured_ra_base, captured_dec_base = 11.0, -29.0
+    for i, body in enumerate(sync_calls):
+        t = i * 10
+        expected_ra = captured_ra_base + pe_offset_deg([30, 0, 0], 2040, t) / 15.0
+        expected_dec = captured_dec_base + pe_offset_deg([12, 0, 0], 2040, t)
+        assert body["RightAscension"] == pytest.approx(expected_ra)
+        assert body["Declination"] == pytest.approx(expected_dec)
+
+
+def test_syncguide_pe_credits_already_applied_pec_correction():
+    # A fixed 0.5 arcmin/tick of RA correction and 0.2 arcmin/tick of Dec correction is
+    # reported by Polaris:StatusFetch as already applied since our last sync -- each new sync
+    # target should net that out of the raw model, not report the full raw drift again.
+    session = FakeSession(ra_h=10.0, dec_d=-30.0, pec_T_sec=2040, pec_accum_arcmin=(0.5, 0.2))
+    clock, sleep = _fake_clock()
+    state = PEState()
+
+    state.advance(session, "SYNCGUIDE_PE", {
+        "ra_model": [30, 0, 0], "dec_model": [12, 0, 0],
+        "exposure_s": 10, "session_min": 1,  # 6 steps
+    }, sleep=sleep, clock=clock)
+
+    status_fetch_calls = [p for name, p in session.actions if name == "Polaris:StatusFetch"]
+    assert len(status_fetch_calls) == 5  # once per tick after the first (i=1..5)
+
+    sync_calls = [p for name, p in session.puts if name == "synctocoordinates"]
+    for i, body in enumerate(sync_calls):
+        t = i * 10
+        raw_ra = pe_offset_deg([30, 0, 0], 2040, t)
+        raw_dec = pe_offset_deg([12, 0, 0], 2040, t)
+        # Applied correction only starts accumulating from the 2nd sync onward (i=1), i arcmin*i
+        # ticks credited by the time this tick's target is sent.
+        applied_ra_deg = (0.5 / 60) * i
+        applied_dec_deg = (0.2 / 60) * i
+        expected_ra = 10.0 + (raw_ra - applied_ra_deg) / 15.0
+        expected_dec = -30.0 + (raw_dec - applied_dec_deg)
+        assert body["RightAscension"] == pytest.approx(expected_ra)
+        assert body["Declination"] == pytest.approx(expected_dec)
+
+
+def test_syncguide_pe_offset_applied_relative_to_baseline_position():
     session = FakeSession(ra_h=10.0, dec_d=-30.0, pec_T_sec=2040)
     clock, sleep = _fake_clock()
     state = PEState()

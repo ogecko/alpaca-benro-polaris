@@ -68,6 +68,21 @@ Pause for a fixed number of seconds before continuing to the next line.
 SLEEP {"seconds": 5}
 ```
 
+### `WAIT_SETTLED`
+
+Wait for a slew to finish, by polling `telescope/0/slewing` rather than guessing a fixed pause.
+This matches how a real client (e.g. Nina) actually sequences a goto: fire it, then wait for
+completion, rather than relying on a captured `SlewAbsolute` line's `isasync` value (which
+blocks invisibly inside the request itself, and silently stops waiting at all if that value
+ever gets edited to `true`).
+
+```
+WAIT_SETTLED {"timeout_s": 60}
+```
+
+`timeout_s` defaults to 60 if omitted; `poll_s` (default 1) controls how often it checks.
+Raises an error if the mount is still slewing when the timeout is reached.
+
 ### `SYNCGUIDE_PE` and `PULSEGUIDE_PE`
 
 Simulate a periodic error (PE) signal and the guide corrections an autoguider or plate-solver would send in response, without needing PHD2 or Nina/ASTAP. Both keywords describe the *same* synthetic PE waveform — they only differ in which real Alpaca command is used to feed it to the driver:

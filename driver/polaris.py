@@ -1457,6 +1457,9 @@ class Polaris:
                 'mpastatus': [self._sm.aligned_count, self._sm.mpa_error],
                 'sgstatus': [self._sm.valid_sync_guide, sg_interval, sg_last_time, pulseg_last_time, pecg_last_time],
                 'pec': [pec_ra._applied_rate*3600, pec_dec._applied_rate*3600, pec_ra_status, pec_dec_status],
+                # arcmin, PEC correction actually applied since the *previous* guide-sync only (resets on
+                # each sync ingest) -- same value/units as PECLOG's pec_accum field, but live between syncs.
+                'pec_accum': [pec_ra._applied_accum*60, pec_dec._applied_accum*60],
                 'pidKc': Config.pid_Kc,
             }
         # clear after sent to Pilot
