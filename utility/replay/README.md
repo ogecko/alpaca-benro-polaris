@@ -33,6 +33,20 @@ A replay file is a plain text file, one instruction per line. Two kinds of line 
 `ClientID`/`ClientTransactionID` in the line are not reused — a fresh ID is generated for the replay session,
 since the original values aren't meaningful outside the session they were captured in.
 
+**Location-dependent commands are skipped by default.** A `slewtocoordinates` (or
+`Polaris:SlewAbsolute`/`SlewRelative` using `ra`/`dec`/`pa`/`l`/`b`/`gpa`, or catalog/orbital actions like
+`Polaris:J2000Goto`/`TrackOrbital`) is only meaningful relative to the site lat/lon *and local sidereal time*
+(site longitude + time of day/date) it was captured at, since RA/Dec → Alt/Az depends on both — a log captured
+in the Northern Hemisphere replayed against a Southern Hemisphere site could point at the ground; even at the
+*same* site, replaying at a different time of day can put the same RA/Dec below the horizon or on the wrong
+side of the meridian (a DSO near the celestial equator is especially sensitive to this — its Alt/Az moves fast
+with time even though its RA/Dec never changes). `replay.py` detects these and skips them, printing a warning,
+rather than silently sending a bad target. Topocentric `az`/`alt`/`roll` commands (what
+`SYNCGUIDE_PE`/`PULSEGUIDE_PE` and this project's own test files use) are already relative to the local
+horizon and always safe to replay anywhere, any time. `--allow-equatorial` replays these commands instead of
+skipping them — only use it once you've checked *both* that the site lat/lon matches *and* that the target is
+actually above the horizon right now; matching the site alone isn't enough.
+
 **Replay keyword lines** — instructions to `replay.py` itself, not real driver traffic. These use a keyword in
 place of the normal `IP -> ...`/`IP <- ...` text, for example:
 
@@ -82,6 +96,25 @@ WAIT_SETTLED {"timeout_s": 60}
 
 `timeout_s` defaults to 60 if omitted; `poll_s` (default 1) controls how often it checks.
 Raises an error if the mount is still slewing when the timeout is reached.
+
+### `SYNC_RESIDUAL`
+
+Not usually written by hand — `parse_file` generates this automatically when it finds a
+captured `synctocoordinates` PUT immediately followed by the driver's own `SYNC GUIDING ...
+Residuals` log line (a real, guide-clamped correction, as opposed to one that fell through to
+a full alignment-model update — see below). That residual is a small delta, not an absolute
+sky position, so it's portable across sites and times the same way `SYNCGUIDE_PE` is: it gets
+applied against the replay target's own *current* RA/Dec, not the original capture's.
+
+```
+SYNC_RESIDUAL {"ra_resid_deg": 0.00025833, "dec_resid_deg": -0.0011555}
+```
+
+This is why `synctocoordinates` doesn't need `--allow-equatorial` for the common case (real
+sync-guiding/PEC sessions) — the parser already extracts the portable part automatically. A
+captured `synctocoordinates` line with *no* matching residual line went through the real
+alignment-model update instead (`process_quest_sync`, not `process_guide_sync`) and is left as
+a normal request, where it's still blocked by default like any other equatorial command.
 
 ### `SYNCGUIDE_PE` and `PULSEGUIDE_PE`
 
