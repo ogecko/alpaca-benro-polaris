@@ -1,4 +1,4 @@
-# TELEMETRY SOAK TEST (companion to a real 2hr full-telemetry session): exercises
+# TELEMETRY SOAK TEST (companion to a real 1hr full-telemetry session): exercises
 # advanced_pec + advanced_sync_guiding + log_position (PIDLOG/KFLOG) together for a full 2
 # hours, so the logging/rotation pipeline gets a genuine, repeatable PEC-active workout without
 # needing clear sky or a real target. Default pec_n_harmonics (2) is left alone here -- unlike

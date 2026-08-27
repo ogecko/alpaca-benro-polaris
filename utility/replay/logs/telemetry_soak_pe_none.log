@@ -1,4 +1,4 @@
-# TELEMETRY SOAK TEST (companion to a real 2hr full-telemetry session): exercises
+# TELEMETRY SOAK TEST (companion to a real 1hr full-telemetry session): exercises
 # sidereal tracking + log_position (PIDLOG/KFLOG) together for a full 2
 # hours, so the logging/rotation pipeline gets a genuine, repeatable Pworkout without
 # needing clear sky or a real target. 
