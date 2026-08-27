@@ -1,0 +1,26 @@
+# TELEMETRY SOAK TEST (companion to a real 2hr full-telemetry session): exercises
+# advanced_pec + advanced_sync_guiding + log_position (PIDLOG/KFLOG) together for a full 2
+# hours, so the logging/rotation pipeline gets a genuine, repeatable PEC-active workout without
+# needing clear sky or a real target. Default pec_n_harmonics (2) is left alone here -- unlike
+# syncguide_pec.log, this is meant to look like ordinary operation, not isolate the dc term.
+#
+# Injected PE is not an arbitrary round number -- it's read off the well-settled stretch
+# (13:14-18:03) of a real ~11h session, logs/logs/alpaca.jdm_Beta3.1_08_02.log: RA dc/h1/h2
+# hovered around -0.6/0.5/0.3 arcmin/hr there, Dec around 0.05/0.3/0.2. Real captured sessions
+# (see the PEC investigation this session) never showed dc beyond roughly -15..+8 arcmin/hr even
+# at their most extreme, so this sits well inside a realistic range -- unlike an earlier attempt
+# at 60/24, which caused the fit to diverge because it was 20-1000x larger than anything the
+# algorithm has actually had to handle.
+#
+# 2 hours, 15s cadence (matches real PHD2 cadence seen in logs/logs/*pulseguide_pec*.log) -> 480
+# sync cycles, comparable in both duration and sample density to a real imaging session.
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_alignment": false}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_alignment": true}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_pec": true, "advanced_sync_guiding": true, "log_pec": true, "log_position": true}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'false'}
+127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'true'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:SlewAbsolute', 'Parameters': '{"az": 240, "alt": 45, "roll": 0, "isasync": true}'}
+REPLAY WAIT_SETTLED {"timeout_s": 60}
+REPLAY SLEEP {"seconds": 15}
+REPLAY SYNCGUIDE_PE {"ra_model": [-0.6, 0.5, 0.3], "dec_model": [0.05, 0.3, 0.2], "exposure_s": 15, "session_min": 120}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"log_position": false}'}
