@@ -10,5 +10,5 @@
 127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'true'}
 127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:SlewAbsolute', 'Parameters': '{"az": 175, "alt": 50, "roll": 0}'}
 REPLAY WAIT_SETTLED {"timeout_s": 60}
-REPLAY SLEEP {"seconds": 7200}
+REPLAY SLEEP {"seconds": 3600}
 127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"log_position": false}'}
