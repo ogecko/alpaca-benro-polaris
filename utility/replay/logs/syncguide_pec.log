@@ -1,0 +1,2 @@
+2026-08-27T11:12:25.097 INFO 127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'false', 'ClientID': '8181', 'ClientTransactionID': '1007'}
+2026-08-27T11:12:25.097 INFO 127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'true', 'ClientID': '8181', 'ClientTransactionID': '1007'}

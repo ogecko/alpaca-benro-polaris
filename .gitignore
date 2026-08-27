@@ -186,3 +186,8 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# replay.py system-test cases: unlike the driver's own runtime logs/*, these are curated,
+# version-controlled test scripts (see utility/replay/README.md), not ephemeral output.
+!utility/replay/logs/
+!utility/replay/logs/*.log
