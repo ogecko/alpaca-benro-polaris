@@ -38,6 +38,7 @@
 - **[Wi-Fi Join]** The Wi-Fi button, on the connect page, now enables, **and automatically joins** the Polaris Wifi network - no more manually finding `polaris_xxxxxx` in Windows' Wi-Fi list.
 - **[Protocol Handling]** Added reply timeouts, ensuring dropped or lost Polaris responses no longer have potential to block the driver.
 - **[Local Timezone]** Show all log messages with local timestamp (rather than UTC), both in alpaca.log and in Alpaca Pilot
+- **[Log Replay]** New replay.py tool to allow a captured log file to be replayed on another mount for system testing and diagnosis.
 
 ## What's new in v2.2 Beta 4
 - **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 
