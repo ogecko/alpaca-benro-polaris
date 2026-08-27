@@ -1,0 +1,14 @@
+# TELEMETRY SOAK TEST (companion to a real 2hr full-telemetry session): exercises
+# sidereal tracking + log_position (PIDLOG/KFLOG) together for a full 2
+# hours, so the logging/rotation pipeline gets a genuine, repeatable Pworkout without
+# needing clear sky or a real target. 
+#
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_alignment": false}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_alignment": true}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_pec": true, "advanced_sync_guiding": true, "log_pec": true, "log_position": true}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'false'}
+127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'true'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:SlewAbsolute', 'Parameters': '{"az": 175, "alt": 50, "roll": 0}'}
+REPLAY WAIT_SETTLED {"timeout_s": 60}
+REPLAY SLEEP {"seconds": 7200}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"log_position": false}'}
