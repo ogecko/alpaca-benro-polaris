@@ -1517,6 +1517,7 @@ class supportedactions:
             "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", 
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:StatusFetch", "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
+            "Polaris:ReplayMark",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove", "Polaris:AutotuneMAC",
             "Polaris:J2000Sync", "Polaris:J2000Goto",
@@ -1532,12 +1533,20 @@ class supportedactions:
 #
 _polling_actions = {"Polaris:ConfigFetch", "Polaris:StatusFetch"}
 
+# Actions whose raw PUT/response wrapper is pure noise -- ReplayMark's own REPLAYLOG line
+# (below) is already the complete, unconditionally-logged record; the generic "-> PUT ..."/
+# "<- ... ok" wrapper around it would just duplicate that with no extra information.
+_silent_actions = {"Polaris:ReplayMark"}
+
 @before(PreProcessRequest(maxdev))
 class action:
     async def on_put(self, req: Request, resp: Response, devnum: int):
         actionName = await get_request_field('Action', req)
         raw_params = await get_request_field('Parameters', req)
-        await log_request(req, 'log_alpaca_polling' if actionName in _polling_actions else 'log_alpaca_actions')
+        if actionName in _silent_actions:
+            await log_request(req, [])
+        else:
+            await log_request(req, 'log_alpaca_polling' if actionName in _polling_actions else 'log_alpaca_actions')
         try:
             if isinstance(raw_params, dict):
                 parameters = raw_params
@@ -1594,8 +1603,18 @@ class action:
             resp.text = await PropertyResponse(changed_params, req)
             return
 
-        elif actionName == "Polaris:StatusFetch":       # (DO NOT USE) Replaced by WebSockets 
+        elif actionName == "Polaris:StatusFetch":       # (DO NOT USE) Replaced by WebSockets
             resp.text = await PropertyResponse(polaris.getStatus(), req)
+            return
+
+        elif actionName == "Polaris:ReplayMark":
+            # Marker written by utility/replay/replay.py -- records whatever context it's given
+            # (e.g. a SYNCGUIDE_PE/PULSEGUIDE_PE definition) into this driver's own log, on the
+            # same timeline as PECLOG/PIDLOG, so a replay run's synthetic input and the driver's
+            # actual fitted output can be compared later without cross-referencing separate files.
+            # Deliberately not gated behind a log_xxx flag -- see utility/replay/README.md.
+            logger.info(f'REPLAYLOG {parameters}')
+            resp.text = await PropertyResponse('Polaris:ReplayMark ok', req)
             return
         
         elif actionName == "Polaris:MoveAxis":
