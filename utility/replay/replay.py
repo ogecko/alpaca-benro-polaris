@@ -16,12 +16,29 @@ import itertools
 import json
 import math
 import re
+import sys
 import time
 from dataclasses import dataclass
 from typing import Optional
 from urllib.parse import parse_qsl
 
 import requests
+
+
+def _fmt_duration(seconds):
+    seconds = max(0, seconds)
+    h, rem = divmod(int(seconds), 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}h{m:02d}m{s:02d}s" if h else (f"{m}m{s:02d}s" if m else f"{s}s")
+
+
+def _progress(out, msg, final=False):
+    """Print a countdown/progress line that overwrites itself via \\r, so a long-running
+    command doesn't sit silent -- padded to clear any leftover text from a longer previous
+    line, and terminated with a real newline once (final=True) so later log() calls start
+    clean rather than appending to the countdown line."""
+    out.write(f"\r{msg}{' ' * 12}" + ("\n" if final else ""))
+    out.flush()
 
 
 # ── Line parsing ─────────────────────────────────────────────────────────────
@@ -48,10 +65,37 @@ _REQUEST_RE = re.compile(r'->\s+(GET|PUT)\s+(\S+?)(?:\s+(\{.*\}))?\s*$')
 
 # Matches "KEYWORD {json payload}" anywhere in the line -- the leading timestamp/level word
 # (real or hand-written, e.g. "REPLAY" instead of "INFO") is ignored, not parsed.
-_KEYWORD_RE = re.compile(r'\b(SLEEP|WAIT_SETTLED|SYNCGUIDE_PE|PULSEGUIDE_PE)\s+(\{.*\})\s*$')
+_KEYWORD_RE = re.compile(r'\b(SLEEP|WAIT_SETTLED|SYNC_RESIDUAL|SYNCGUIDE_PE|PULSEGUIDE_PE)\s+(\{.*\})\s*$')
 
 # Not replayed -- a fresh pair is minted per request by DriverSession.
 _SESSION_KEYS = {'ClientID', 'ClientTransactionID'}
+
+# A captured synctocoordinates PUT is immediately followed by the driver's own
+# "SYNC Observed" then "SYNC GUIDING ... Residuals" lines *only* when process_guide_sync()
+# actually accepted it as a small, clamped guide correction (control.py's sync_az_alt() --
+# the alternative path, process_quest_sync(), never logs this). That residual is the
+# location/time-invariant delta a real autoguider's correction represents -- see
+# _pair_sync_residual() below, which extracts it so the raw (non-portable) absolute RA/Dec
+# never needs to be replayed at all for this, the common, case.
+_SYNC_GUIDING_RESIDUAL_RE = re.compile(
+    r"SYNC GUIDING\s+Ra\s+([+-])(\d+)d(\d+)'([\d.]+)\",\s*Dec\s+([+-])(\d+)d(\d+)'([\d.]+)\"\s+Residuals"
+)
+
+
+def _dms_to_deg(sign, d, m, s):
+    val = float(d) + float(m) / 60 + float(s) / 3600
+    return -val if sign == '-' else val
+
+
+def _pair_sync_residual(lines, put_line_idx):
+    """Look up to 3 lines past a captured synctocoordinates PUT (0-based index) for the
+    driver's own SYNC GUIDING residual line. Returns (ra_resid_deg, dec_resid_deg) or None."""
+    for line in lines[put_line_idx + 1: put_line_idx + 4]:
+        m = _SYNC_GUIDING_RESIDUAL_RE.search(line)
+        if m:
+            ra_sign, ra_d, ra_m, ra_s, dec_sign, dec_d, dec_m, dec_s = m.groups()
+            return (_dms_to_deg(ra_sign, ra_d, ra_m, ra_s), _dms_to_deg(dec_sign, dec_d, dec_m, dec_s))
+    return None
 
 
 def parse_line(line: str):
@@ -91,16 +135,34 @@ def parse_line(line: str):
 
 def parse_file(path):
     """Parse a replay file into a list of (line_no, instruction) pairs. Lines that parse to
-    None (not recognised) are dropped."""
-    instructions = []
+    None (not recognised) are dropped.
+
+    A captured synctocoordinates PUT paired with the driver's own SYNC GUIDING residual line
+    (see _pair_sync_residual) is converted to a SYNC_RESIDUAL keyword instruction instead of a
+    plain RequestLine -- replaying the residual against the target's own current position,
+    rather than the original absolute RA/Dec, which isn't portable across sites/times. An
+    unpaired synctocoordinates (no residual line -- it went through the real alignment-model
+    update path instead) is left as a normal RequestLine, where is_location_dependent() will
+    catch it."""
     with open(path) as f:
-        for line_no, line in enumerate(f, start=1):
-            try:
-                instr = parse_line(line)
-            except ValueError as e:
-                raise ValueError(f"{path}:{line_no}: {e}") from e
-            if instr is not None:
-                instructions.append((line_no, instr))
+        lines = f.readlines()
+
+    instructions = []
+    for i, line in enumerate(lines):
+        line_no = i + 1
+        if '-> PUT' in line and '/synctocoordinates' in line:
+            residual = _pair_sync_residual(lines, i)
+            if residual is not None:
+                ra_resid_deg, dec_resid_deg = residual
+                instructions.append((line_no, KeywordLine(
+                    "SYNC_RESIDUAL", {"ra_resid_deg": ra_resid_deg, "dec_resid_deg": dec_resid_deg})))
+                continue
+        try:
+            instr = parse_line(line)
+        except ValueError as e:
+            raise ValueError(f"{path}:{line_no}: {e}") from e
+        if instr is not None:
+            instructions.append((line_no, instr))
     return instructions
 
 
@@ -263,7 +325,7 @@ class PEState:
         self.applied_ra_deg += pec_accum_ra_arcmin / ARCMIN_PER_DEG
         self.applied_dec_deg += pec_accum_dec_arcmin / ARCMIN_PER_DEG
 
-    def advance(self, session, keyword, payload, sleep=time.sleep, clock=time.monotonic):
+    def advance(self, session, keyword, payload, sleep=time.sleep, clock=time.monotonic, out=sys.stdout):
         ra_model = payload["ra_model"]
         dec_model = payload["dec_model"]
         exposure_s = payload["exposure_s"]
@@ -305,12 +367,17 @@ class PEState:
 
             prev_ra_total, prev_dec_total = total_ra, total_dec
 
+            remaining_s = (n_steps - 1 - i) * exposure_s
+            _progress(out, f"{keyword}: tick {i + 1}/{n_steps}  t={_fmt_duration(t)}"
+                           f"  ~{_fmt_duration(remaining_s)} remaining...")
+
             next_at = t0 + (i + 1) * exposure_s
             sleep_for = next_at - clock()
             if sleep_for > 0:
                 sleep(sleep_for)
 
         self.ra_offset_deg, self.dec_offset_deg = prev_ra_total, prev_dec_total
+        _progress(out, f"{keyword}: complete ({n_steps} ticks, {_fmt_duration(n_steps * exposure_s)}).", final=True)
 
         session.action("Polaris:ReplayMark", {
             "event": f"{keyword}_end", "mechanism": keyword,
@@ -323,6 +390,19 @@ def _send_sync(session, ra_base_h, dec_base_deg, ra_offset_deg, dec_offset_deg):
     session.put_property("synctocoordinates", {
         "RightAscension": ra_base_h + ra_offset_deg / 15.0,
         "Declination": dec_base_deg + dec_offset_deg,
+    })
+
+
+def send_sync_residual(session, ra_resid_deg, dec_resid_deg):
+    """Replay a real captured guide-sync residual (see parse_file/_pair_sync_residual) against
+    the replay target's own current position, instead of the raw absolute RA/Dec that residual
+    was originally captured relative to -- portable across sites and times, unlike the raw
+    sync would be."""
+    ra_h = session.get_property("rightascension")
+    dec_d = session.get_property("declination")
+    session.put_property("synctocoordinates", {
+        "RightAscension": ra_h + ra_resid_deg / 15.0,
+        "Declination": dec_d + dec_resid_deg,
     })
 
 
@@ -342,35 +422,123 @@ def _send_pulses(session, delta_ra_deg, delta_dec_deg, guide_rates):
         session.put_property("pulseguide", {"Direction": direction, "Duration": duration_ms})
 
 
-def wait_settled(session, timeout_s=60, poll_s=1.0, sleep=time.sleep, clock=time.monotonic):
+def countdown_sleep(total_seconds, sleep=time.sleep, clock=time.monotonic, out=sys.stdout, tick_s=1.0):
+    """time.sleep(), but prints a live remaining-time countdown on one line instead of sitting
+    silent -- see SLEEP in run()."""
+    deadline = clock() + total_seconds
+    while True:
+        remaining = deadline - clock()
+        if remaining <= 0:
+            break
+        _progress(out, f"SLEEP: {_fmt_duration(remaining)} remaining...")
+        sleep(min(tick_s, remaining))
+    _progress(out, "SLEEP: done.", final=True)
+
+
+def wait_settled(session, timeout_s=60, poll_s=1.0, sleep=time.sleep, clock=time.monotonic, out=sys.stdout):
     """Poll telescope/0/slewing until it clears, instead of guessing a fixed SLEEP duration.
     Matches how a real client (e.g. Nina) actually sequences a goto -- fire it, then wait for
     completion -- rather than relying on a captured SlewAbsolute line's isasync value, which is
     both implicit (easy to silently lose if a captured line's isasync gets edited) and blocks
     inside the HTTP call itself rather than being a visible step in the test file."""
-    deadline = clock() + timeout_s
+    start = clock()
+    deadline = start + timeout_s
     while session.get_property("slewing"):
-        if clock() >= deadline:
+        remaining = deadline - clock()
+        if remaining <= 0:
+            _progress(out, f"WAIT_SETTLED: still slewing after {timeout_s}s", final=True)
             raise TimeoutError(f"WAIT_SETTLED: still slewing after {timeout_s}s")
+        _progress(out, f"WAIT_SETTLED: slewing {_fmt_duration(clock() - start)} "
+                        f"(timeout in {_fmt_duration(remaining)})...")
         sleep(poll_s)
+    _progress(out, f"WAIT_SETTLED: settled after {_fmt_duration(clock() - start)}.", final=True)
+
+
+# ── Location-dependent commands ───────────────────────────────────────────────
+#
+# Anything expressed in equatorial (RA/Dec) or galactic (l/b/gpa) coordinates is only
+# meaningful relative to the site lat/lon *and* local sidereal time (site longitude + time of
+# day/date) it was captured at -- RA/Dec -> Alt/Az depends on both. Replaying it verbatim
+# elsewhere, or even at the same site but a different time, can point at a completely
+# different or unreachable part of the sky -- a DSO near the celestial equator is
+# particularly sensitive to this, since its Alt/Az (and which side of the meridian it's on)
+# changes fast with time even when RA/Dec stay fixed. Topocentric az/alt/roll is the one frame
+# that's already relative to the local horizon and safe to replay anywhere, any time. Skipped
+# by default; --allow-equatorial replays these anyway -- only meaningful if you've checked
+# both the site lat/lon *and* that the target is actually above the horizon right now, not
+# just that the site matches.
+
+# Standard ASCOM Telescope endpoints that carry an absolute equatorial target.
+_EQUATORIAL_PATHS = {
+    '/api/v1/telescope/0/synctocoordinates',
+    '/api/v1/telescope/0/slewtocoordinates',
+    '/api/v1/telescope/0/slewtocoordinatesasync',
+    '/api/v1/telescope/0/synctotarget',
+    '/api/v1/telescope/0/slewtotarget',
+    '/api/v1/telescope/0/slewtotargetasync',
+    '/api/v1/telescope/0/targetrightascension',
+    '/api/v1/telescope/0/targetdeclination',
+}
+
+# Polaris: actions that are always sky/time-dependent regardless of parameters (named
+# catalog/orbital targets, J2000 catalog syncs) -- not just "might carry ra/dec".
+_ALWAYS_LOCATION_DEPENDENT_ACTIONS = {
+    'Polaris:J2000Sync', 'Polaris:J2000Goto',
+    'Polaris:TrackOrbital', 'Polaris:GetOrbitals',
+}
+
+# Polaris: actions that accept a mix of coordinate frames in one call (see
+# Polaris:SlewAbsolute's az/alt/roll vs ra/dec/pa vs l/b/gpa) -- only location-dependent if
+# the specific call actually used a non-topocentric key.
+_MIXED_FRAME_ACTIONS = {'Polaris:SlewAbsolute', 'Polaris:SlewRelative'}
+_NON_TOPOCENTRIC_KEYS = {'ra', 'dec', 'pa', 'l', 'b', 'gpa'}
+
+
+def is_location_dependent(instr: RequestLine) -> bool:
+    if instr.method != "PUT" or not instr.body:
+        return False
+    if instr.path in _EQUATORIAL_PATHS:
+        return True
+    if instr.path.endswith('/action'):
+        action = instr.body.get('Action')
+        if action in _ALWAYS_LOCATION_DEPENDENT_ACTIONS:
+            return True
+        if action in _MIXED_FRAME_ACTIONS:
+            raw_params = instr.body.get('Parameters')
+            try:
+                params = json.loads(raw_params) if isinstance(raw_params, str) else (raw_params or {})
+            except (TypeError, json.JSONDecodeError):
+                params = {}
+            if isinstance(params, dict) and any(k in params for k in _NON_TOPOCENTRIC_KEYS):
+                return True
+    return False
 
 
 # ── Execution ─────────────────────────────────────────────────────────────────
 
-def run(instructions, session, pe_state=None, log=print):
+def run(instructions, session, pe_state=None, log=print, allow_equatorial=False):
     pe_state = pe_state or PEState()
     for line_no, instr in instructions:
         if isinstance(instr, KeywordLine):
             if instr.keyword == "SLEEP":
                 log(f"[{line_no}] SLEEP {instr.payload['seconds']}s")
-                time.sleep(instr.payload["seconds"])
+                countdown_sleep(instr.payload["seconds"])
             elif instr.keyword == "WAIT_SETTLED":
                 log(f"[{line_no}] WAIT_SETTLED {instr.payload}")
                 wait_settled(session, **{k: v for k, v in instr.payload.items() if k in ("timeout_s", "poll_s")})
+            elif instr.keyword == "SYNC_RESIDUAL":
+                log(f"[{line_no}] SYNC_RESIDUAL {instr.payload}")
+                send_sync_residual(session, instr.payload["ra_resid_deg"], instr.payload["dec_resid_deg"])
             else:
                 log(f"[{line_no}] {instr.keyword} {instr.payload}")
                 pe_state.advance(session, instr.keyword, instr.payload)
         elif isinstance(instr, RequestLine):
+            if not allow_equatorial and is_location_dependent(instr):
+                log(f"[{line_no}] SKIPPED (location/time-dependent, not portable across sites or times): "
+                    f"{instr.method} {instr.path} {instr.body} -- pass --allow-equatorial only if the "
+                    f"replay target is at the same site lat/lon AND the target is actually above the "
+                    f"horizon right now")
+                continue
             log(f"[{line_no}] {instr.method} {instr.path} {instr.body or instr.query or ''}")
             if instr.method == "GET":
                 session.get(instr.path, instr.query)
@@ -385,12 +553,18 @@ def main():
     p.add_argument("--host", default="localhost", help="Target driver host (default: localhost)")
     p.add_argument("--port", type=int, default=5555, help="Target driver Alpaca REST port (default: 5555)")
     p.add_argument("--client-id", type=int, default=None, help="Alpaca ClientID to use for this replay session (default: derived from current time)")
+    p.add_argument("--allow-equatorial", action="store_true",
+                    help="Replay RA/Dec, galactic, and orbital/catalog commands too, instead of skipping them. "
+                         "Only safe if the replay target is at the same site lat/lon AND the target is "
+                         "actually above the horizon right now -- same lat/lon alone isn't enough, since "
+                         "RA/Dec -> Alt/Az also depends on time (a DSO near the celestial equator can be "
+                         "unreachable at a different time of day even at the same site).")
     args = p.parse_args()
 
     instructions = parse_file(args.log)
     session = DriverSession(f"http://{args.host}:{args.port}", client_id=args.client_id)
     print(f"Replaying {len(instructions)} instruction(s) from {args.log} against {session.base_url} (ClientID={session.client_id})")
-    run(instructions, session)
+    run(instructions, session, allow_equatorial=args.allow_equatorial)
     print("Done.")
 
 
