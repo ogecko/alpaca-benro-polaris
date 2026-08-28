@@ -1101,7 +1101,7 @@ orientation-sweep findings referenced in issue #88). A gain set tuned at one poi
 guaranteed to generalize; the moderate-altitude, away-from-horizon-and-pole points used so
 far in this investigation include Az240/Alt45, Az240/Alt45/Roll-60, and Az60/Alt50.
 
-### Known issue under investigation: elevated RA/PA noise near meridian (Az≈178°)
+### Observation: elevated RA/PA noise near meridian (Az≈178°)
 
 **Symptom:** at Az178/Alt51/Roll0 (near due south / meridian transit), equatorial-frame RA
 and PA tracking error is 3-4x worse than at every other orientation tested, while the
@@ -1138,6 +1138,7 @@ transit. This has **not** been traced into the kinematics code yet -- it's infer
 from the telemetry symmetry (Dec unaffected, RA/PA mirrored, motors clean).
 
 **Suggested next steps:**
+1. Futher tests using PID Tuning and Telemetry monitoring at different orientations to reproduce oscillation and confirm it is meridian related.
 1. Bracket the effect: repeat the steady/disturbance pair from
    `utility/pid_tuning/run_experiment.py` (see Usage above) at a few Az values either side of
    178° (e.g. 160, 170, 190, 200) at the same Alt/Roll, to see how localized to the meridian
@@ -1146,10 +1147,6 @@ from the telemetry symmetry (Dec unaffected, RA/PA mirrored, motors clean).
    Alt/Roll-dependent.
 3. Read through the kinematics transform functions listed above looking for a term that goes
    through zero or a local extremum near Az=180° (a classic sign of this kind of amplification).
-4. This is very likely the same issue the user (David) described independently before these
-   tests were run ("I have previously had issue tracking at a different orientation") --
-   worth confirming with him whether Az≈178-180° (near-meridian, roughly the pointing used
-   for 47 Tucanae from this site) matches his prior experience.
 
 **Separately, an intermittent, unrelated hardware/comms issue was also confirmed this
 session:** the Polaris sometimes stops sending 518 telemetry messages for a few seconds,
