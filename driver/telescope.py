@@ -1637,7 +1637,7 @@ class action:
             coords = polaris.parse_slew_parameters(parameters)
             polaris.slew_axis(coords, relative=False)
             if not isasync:
-                await polaris._goto_complete_event.wait()
+                await polaris.wait_for_goto_complete()
             resp.text = await PropertyResponse('Polaris:SlewAbsolute ok', req)
             return
 
@@ -1647,7 +1647,7 @@ class action:
             coords = polaris.parse_slew_parameters(parameters)
             polaris.slew_axis(coords, relative=True)
             if not isasync:
-                await polaris._goto_complete_event.wait()
+                await polaris.wait_for_goto_complete()
             resp.text = await PropertyResponse('Polaris:SlewRelative ok', req)
             return
         

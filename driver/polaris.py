@@ -247,13 +247,12 @@ class Polaris:
         restore_orbital_bodies_from_orbital_cache()
         
     async def shutdown(self):
-        self.logger.info(f'==SHUTDOWN== Polaris stopping all tasks.')
         for pid in [self._pid]:
             await pid.stop_control_loop_task()
-
         for axis in range(3):
             motor = self._motors[axis]
             await motor.stop_disspatch_loop_task()
+        self.logger.info(f'==SHUTDOWN== Polaris stopped all tasks.')
 
 # ── Connection Helper Methods ─────────────────────────────────────────────────────────────
 
@@ -1989,6 +1988,25 @@ class Polaris:
             if self._slew_complete_event:
                 self._slew_complete_event.set()
 
+    async def _await_complete_event(self, event: asyncio.Event, label: str) -> None:
+        """Await a *_complete_event, swallowing cancellation rather than letting it propagate as an
+        unhandled CancelledError out through uvicorn's ASGI exception logging. This happens when the
+        HTTP request awaiting it gets force-cancelled -- a driver restart/shutdown mid-goto, or the
+        client disconnecting -- same treatment LifecycleController._wrap() gives background tasks."""
+        try:
+            await event.wait()
+        except asyncio.CancelledError:
+            self.logger.info(f"==CANCELLED== Task waiting for {label}")
+
+    async def wait_for_goto_complete(self) -> None:
+        await self._await_complete_event(self._goto_complete_event, "Goto complete")
+
+    async def wait_for_rotate_complete(self) -> None:
+        await self._await_complete_event(self._rotate_complete_event, "Rotate complete")
+
+    async def wait_for_slew_complete(self) -> None:
+        await self._await_complete_event(self._slew_complete_event, "Slew complete")
+
     def markParkingAsUnderway(self):
         with self._lock:
             self._slewing = True
@@ -2160,7 +2178,7 @@ class Polaris:
             self._pid.set_alpha_target({ "az": a_az, "alt": a_alt })
             self._pid.set_goto_complete_callback(self.markGotoAsComplete)
             if not isasync:
-                await self._goto_complete_event.wait()
+                await self.wait_for_goto_complete()
         else:
             if isasync:
                     asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
