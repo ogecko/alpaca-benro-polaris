@@ -773,7 +773,7 @@ class Polaris:
 
             # update all the Sky Positions (p_*=kf_state;  a_*= pid_pv) and the PID loop
             delta_pv, alpha_pv = self.update_sky_positions(motorQ_state, cameraQ_pv)
-            self._pid.measure(delta_pv, alpha_pv, theta_pv, self._zeta_meas)
+            self._pid.measure(delta_pv, alpha_pv, theta_pv, self._zeta_meas, measurement_lag_s=self._kf.measurement_lag_s)
             self._pid.control_step_calculate()
             asyncio.create_task(self._pid.control_step_execute())
 

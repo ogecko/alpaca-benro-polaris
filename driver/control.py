@@ -39,6 +39,7 @@ class KalmanFilter:
     def __init__(self, logger, initial_state):
         self._logger = logger
         self._time = time.monotonic()
+        self.measurement_lag_s = 0.0            # how late the most recent message's own receipt was -- see predict()
         self._need_first_measurement = True
 
         self.z = np.zeros((6,1))
@@ -68,14 +69,30 @@ class KalmanFilter:
 
     def predict(self, control_input):
         """
-        Called once per dispatched 518 message, no coalescing allowed as it effects KF performance
+        Called once per dispatched 518 message, no coalescing allowed as it effects KF performance.
+
+        dt for the state propagation is always the nominal hardware sample interval, not the
+        wall-clock gap since the last message -- the microcontroller samples on a fixed 0.2s
+        cadence, and how long a given message took to reach us says nothing about when it was
+        actually sampled, except in the case of a genuine outage (raw_dt beyond
+        measurement_catchup_max_dt), where messages really were missed and the observed gap is
+        the only honest estimate of elapsed time.
         """
         control_input = np.array(control_input).reshape(3, 1)
 
-        new_time = time.monotonic()
-        raw_dt = new_time - self._time
-        self._time = new_time      # always advance, regardless of raw_dt
+        clock_now = time.monotonic()
+        raw_dt = clock_now - self._time
+        self._time = clock_now      # always advance, regardless of raw_dt
         dt = raw_dt if raw_dt > Config.measurement_catchup_max_dt else Config.measurement_dt
+
+        # How late THIS message's own receipt was, and nothing else -- stateless, no memory of
+        # prior ticks. Deliberately not an accumulator: a running "credited vs. true elapsed
+        # time" balance turns ordinary two-sided receipt jitter into an unbounded random walk
+        # (variance grows with session length), and clamping that at zero for display only
+        # keeps the positive half, so its average keeps climbing even with zero true bias --
+        # see the investigation in this file's git history. This tick-local measure can't
+        # accumulate anything, so jitter alone can never make it drift.
+        self.measurement_lag_s = min(Config.measurement_catchup_max_dt, max(0.0, raw_dt - Config.measurement_dt))
 
         self.Q = np.diag(Config.kf_process_noise)
 
@@ -88,7 +105,6 @@ class KalmanFilter:
         self.x = self.A @ self.x + self.B @ u
         self.P = self.A @ self.P @ self.A.T + self.Q
         self.x = wrap_state_angles(self.x)
-
 
     def observe(self, theta, omega, omega_ref, theta_ref=None):
         """
@@ -103,6 +119,12 @@ class KalmanFilter:
         of absolute position -- while tracking, the absolute values constantly drift with
         sidereal motion, which buries any small deviation. Same telemetry keys either way,
         so no frontend change is needed to see it. Not fed into the filter -- display only.
+
+        theta_ref is backdated by measurement_lag_s worth of omega_ref before the delta is
+        taken: theta_ref reflects the target's position as of *now*, but theta/omega may
+        describe a measurement sampled some time before now -- diffing against theta_ref
+        as-is compares two different instants and shows a spurious deviation that's really
+        just the target's own motion during the lag, not a real tracking error.
         """
         self.R = np.diag(Config.kf_measure_noise)
         if self._need_first_measurement:
@@ -127,23 +149,31 @@ class KalmanFilter:
         # Log meas, state and ref for websocket streaming. While tracking, report
         # θ_meas/θ_state as deltas from theta_ref instead of absolute position --
         # see docstring above.
+        measurement_lag_s = self.measurement_lag_s   # captured once -- reused below so the backdate
+                                                       # applied and the value logged always match
         if theta_ref is not None:
             # value - ref (PV - SP), flipped from the (SP - PV) convention originally tried
             # here, to match the sign shown on the existing Alpaca Pilot PID/ΔM1 chart.
             theta_ref_arr = np.asarray(theta_ref).reshape(3, 1)
-            theta_meas_out  = wrap_angle_residual(theta_meas, theta_ref_arr).flatten().tolist()
-            theta_state_out = wrap_angle_residual(self.x[:3], theta_ref_arr).flatten().tolist()
+            theta_ref_backdated = theta_ref_arr - omega_ref.reshape(3, 1) * measurement_lag_s
+            theta_meas_out  = wrap_angle_residual(theta_meas, theta_ref_backdated).flatten().tolist()
+            theta_state_out = wrap_angle_residual(self.x[:3], theta_ref_backdated).flatten().tolist()
+            theta_ref_out = theta_ref_arr.flatten().tolist()
         else:
             theta_meas_out  = theta_meas.flatten().tolist()
             theta_state_out = self.x[:3].flatten().tolist()
+            theta_ref_out = None
 
         payload = {
-            "θ_meas":  theta_meas_out,
-            "θ_state": theta_state_out,
+            "θ_meas":  theta_meas_out,                      # measurement relative to theta_ref_backdataed
+            "θ_state": theta_state_out,                     # state relative to theta_ref_backdataed
             "K_gain":  np.diag(self.K).tolist(),
             "ω_meas":  omega_meas.flatten().tolist(),
             "ω_state": self.x[3:].flatten().tolist(),
             "ω_ref":   omega_ref.tolist(),
+            "measurement_lag_s": measurement_lag_s,         # estimated time lag since measurement
+            "θ_meas_raw": theta_meas.flatten().tolist(),    # absolute, pre-backdate measure
+            "θ_ref_raw":  theta_ref_out,                    # absolute, pre-backdate reference
         }
         kflogger = logging.getLogger('kf')
         kflogger.info(payload)
@@ -725,6 +755,7 @@ class PID_Controller():
         self.reset_offsets()
         self.reset_theta()
         self.time_meas = None                # Time of measurement
+        self.measurement_lag_s = 0.0         # how stale theta_pv was when last measured -- see errsignal()
         self.time_goto = None                # Time that goto callback was set
         self.time_step = time.monotonic()    # Time that control step was done
         self.dt = dt    # Time interval since last control step in seconds
@@ -1236,7 +1267,7 @@ class PID_Controller():
         self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
 
 
-    def measure(self, delta_pv, alpha_pv, theta_pv, zeta_meas):
+    def measure(self, delta_pv, alpha_pv, theta_pv, zeta_meas, measurement_lag_s=0.0):
         now = ephem.now()
         # if not self.time_meas:
         #     self.alpha_sp = alpha_meas     # initialise alpha_sp with first measurement
@@ -1245,6 +1276,7 @@ class PID_Controller():
         self.theta_pv = theta_pv
         self.zeta_meas = zeta_meas
         self.time_meas = now
+        self.measurement_lag_s = measurement_lag_s   # how stale theta_pv is -- see errsignal()
         self._lp.update(*theta_pv)
         self._lp.update_zeta(zeta_meas)
         self._lp.check_for_gimbal_lock()
@@ -1360,13 +1392,19 @@ class PID_Controller():
         # calc the error signal off theta (aligned motor angles) or zeta (raw motor angles)
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
-        else:        
+        else:
+            # theta_pv may describe a measurement sampled measurement_lag_s before now, while
+            # theta_ref (and theta_ref_cache) reflect the target's position as of now -- diff
+            # against a backdated copy so a stale measurement isn't compared against a target
+            # that's since moved on, without touching theta_ref itself (used elsewhere as-is).
             if self.theta_ref_cache is None:
                 self.prevent_windup()
-                self.error_signal = self.theta_ref - self.theta_pv
+                theta_ref_backdated = self.theta_ref - self.omega_ff * self.measurement_lag_s
+                self.error_signal = theta_ref_backdated - self.theta_pv
             else:
                 self.theta_ref = self.theta_ref_cache
-                self.error_signal = self.theta_ref_cache - self.theta_pv
+                theta_ref_backdated = self.theta_ref_cache - self.omega_ff * self.measurement_lag_s
+                self.error_signal = theta_ref_backdated - self.theta_pv
                 # if close to cached target then reset the cache
                 if abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10:
                     self.clear_theta_ref_cache()
@@ -1566,6 +1604,7 @@ class PID_Controller():
             "mode": self.mode,
             "age_518": float(self.polaris._age_518_seconds),
             "connected": self.polaris._connected,
+            "measurement_lag_s": self.measurement_lag_s,
         }
         pidlogger = logging.getLogger('pid')
         pidlogger.info(payload)
