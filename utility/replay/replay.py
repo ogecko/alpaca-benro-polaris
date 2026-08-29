@@ -34,10 +34,11 @@ def _fmt_duration(seconds):
 
 def _progress(out, msg, final=False):
     """Print a countdown/progress line that overwrites itself via \\r, so a long-running
-    command doesn't sit silent -- padded to clear any leftover text from a longer previous
-    line, and terminated with a real newline once (final=True) so later log() calls start
-    clean rather than appending to the countdown line."""
-    out.write(f"\r{msg}{' ' * 12}" + ("\n" if final else ""))
+    command doesn't sit silent -- \\x1b[K (clear to end of line) wipes any leftover text
+    from a longer previous line regardless of how much shorter this one is, and it's
+    terminated with a real newline once (final=True) so later log() calls start clean
+    rather than appending to the countdown line."""
+    out.write(f"\r{msg}\x1b[K" + ("\n" if final else ""))
     out.flush()
 
 
@@ -443,6 +444,7 @@ def wait_settled(session, timeout_s=60, poll_s=1.0, sleep=time.sleep, clock=time
     inside the HTTP call itself rather than being a visible step in the test file."""
     start = clock()
     deadline = start + timeout_s
+    _progress(out, f"WAIT_SETTLED: waiting for slew to settle (timeout {_fmt_duration(timeout_s)})...")
     while session.get_property("slewing"):
         remaining = deadline - clock()
         if remaining <= 0:
