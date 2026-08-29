@@ -8,7 +8,7 @@
 127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"advanced_pec": true, "advanced_sync_guiding": true, "log_pec": true, "log_position": true}'}
 127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'false'}
 127.0.0.1 -> PUT /api/v1/telescope/0/tracking {'Tracking': 'true'}
-127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:SlewAbsolute', 'Parameters': '{"az": 175, "alt": 50, "roll": 0}'}
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:SlewAbsolute', 'Parameters': '{"az": 240, "alt": 50, "roll": 0}'}
 REPLAY WAIT_SETTLED {"timeout_s": 60}
 REPLAY SLEEP {"seconds": 3600}
 127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigUpdate', 'Parameters': '{"log_position": false}'}
