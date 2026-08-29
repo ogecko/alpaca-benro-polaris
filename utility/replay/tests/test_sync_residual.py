@@ -83,6 +83,11 @@ class RecordingSession:
         self._ra_h = ra_h
         self._dec_d = dec_d
         self.puts = []
+        self.actions = []
+
+    def action(self, name, parameters):
+        self.actions.append((name, parameters))
+        return f"{name} ok"
 
     def get_property(self, name):
         return {"rightascension": self._ra_h, "declination": self._dec_d}[name]

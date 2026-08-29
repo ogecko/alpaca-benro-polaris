@@ -14,6 +14,11 @@ class FakeSlewSession:
     def __init__(self, slewing_ticks):
         self.slewing_ticks = slewing_ticks
         self.polls = 0
+        self.actions = []
+
+    def action(self, name, parameters):
+        self.actions.append((name, parameters))
+        return f"{name} ok"
 
     def get_property(self, name):
         assert name == "slewing"

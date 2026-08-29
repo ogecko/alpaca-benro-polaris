@@ -518,18 +518,32 @@ def is_location_dependent(instr: RequestLine) -> bool:
 
 # ── Execution ─────────────────────────────────────────────────────────────────
 
+def mark_replay_run(session, event, script_path, num_instructions):
+    """Write a Polaris:ReplayMark header/footer into the driver's own log at the start and end
+    of a replay run, so a captured alpaca.log makes it obvious -- without cross-referencing
+    anything else -- that the traffic on it was replay.py driving a specific script, not a real
+    observing session. Same marker mechanism PEState.advance() already uses per-phase; this is
+    just the whole-run bookend around it."""
+    session.action("Polaris:ReplayMark", {
+        "event": event, "script": str(script_path), "instructions": num_instructions,
+    })
+
+
 def run(instructions, session, pe_state=None, log=print, allow_equatorial=False):
     pe_state = pe_state or PEState()
     for line_no, instr in instructions:
         if isinstance(instr, KeywordLine):
             if instr.keyword == "SLEEP":
                 log(f"[{line_no}] SLEEP {instr.payload['seconds']}s")
+                session.action("Polaris:ReplayMark", {"event": "SLEEP", "line_no": line_no, **instr.payload})
                 countdown_sleep(instr.payload["seconds"])
             elif instr.keyword == "WAIT_SETTLED":
                 log(f"[{line_no}] WAIT_SETTLED {instr.payload}")
+                session.action("Polaris:ReplayMark", {"event": "WAIT_SETTLED", "line_no": line_no, **instr.payload})
                 wait_settled(session, **{k: v for k, v in instr.payload.items() if k in ("timeout_s", "poll_s")})
             elif instr.keyword == "SYNC_RESIDUAL":
                 log(f"[{line_no}] SYNC_RESIDUAL {instr.payload}")
+                session.action("Polaris:ReplayMark", {"event": "SYNC_RESIDUAL", "line_no": line_no, **instr.payload})
                 send_sync_residual(session, instr.payload["ra_resid_deg"], instr.payload["dec_resid_deg"])
             else:
                 log(f"[{line_no}] {instr.keyword} {instr.payload}")
@@ -566,7 +580,11 @@ def main():
     instructions = parse_file(args.log)
     session = DriverSession(f"http://{args.host}:{args.port}", client_id=args.client_id)
     print(f"Replaying {len(instructions)} instruction(s) from {args.log} against {session.base_url} (ClientID={session.client_id})")
-    run(instructions, session, allow_equatorial=args.allow_equatorial)
+    mark_replay_run(session, "==== REPLAY === replay_run_start", args.log, len(instructions))
+    try:
+        run(instructions, session, allow_equatorial=args.allow_equatorial)
+    finally:
+        mark_replay_run(session, "==== REPLAY === replay_run_end", args.log, len(instructions))
     print("Done.")
 
 
