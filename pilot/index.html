@@ -17,6 +17,17 @@
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png" />
     <link rel="icon" type="image/ico" href="favicon.ico" />
+
+    <!-- Home-screen / standalone-app presentation (iOS reads the apple- tags
+         directly; Android/Chrome reads manifest.json). No service worker --
+         this app needs a live connection to the driver regardless, so
+         there's nothing worth caching offline. -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Pilot" />
+    <meta name="theme-color" content="#3174df" />
   </head>
   <body>
     <!-- quasar:entry-point -->
