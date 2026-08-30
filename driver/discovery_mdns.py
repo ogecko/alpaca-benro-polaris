@@ -56,13 +56,24 @@ def get_polaris_network() -> ipaddress.IPv4Network:
     return ipaddress.ip_network(f'{polaris_ip}/24', strict=False)
 
 
+# Windows hardcodes 192.168.137.1/24 as the address of its Internet
+# Connection Sharing / "Wi-Fi Direct Virtual Adapter", which most WiFi
+# chipsets auto-create regardless of whether Mobile Hotspot is ever turned
+# on. It's RFC1918-private like a real LAN adapter, so without this
+# exclusion it can spuriously outrank the real LAN adapter once it comes up
+# a few seconds after boot, flipping the mDNS advertisement to an address
+# nothing on the venue LAN can reach.
+WINDOWS_ICS_NETWORK = ipaddress.ip_network('192.168.137.0/24')
+
+
 def pick_lan_ipv4(log: Logger) -> str:
     """
     Pick this host's IPv4 address on the LAN-facing adapter (the one the
     iPad/browser is actually on) — never the Benro Polaris adapter's subnet,
-    never loopback/link-local, and never IPv6. The box may have two Wifi adapters
+    never Windows' ICS/Wi-Fi Direct virtual adapter subnet, never
+    loopback/link-local, and never IPv6. The box may have two Wifi adapters
     so "the" local IP is ambiguous; we resolve the ambiguity explicitly by
-    excluding the Polaris subnet rather than guessing.
+    excluding those subnets rather than guessing.
     """
     polaris_net = get_polaris_network()
     candidates = []
@@ -84,6 +95,8 @@ def pick_lan_ipv4(log: Logger) -> str:
                 if ip.is_loopback or ip.is_link_local:
                     continue
                 if ip in polaris_net:
+                    continue
+                if ip in WINDOWS_ICS_NETWORK:
                     continue
                 candidates.append((if_name, ip))
     except Exception as e:
