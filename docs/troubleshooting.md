@@ -670,6 +670,37 @@ You can use the following commands from a PowerShell window, to check the status
     ```
     > NOTE: This command requires Administrator privellages
 
+7. To check which address family the TP-Link adapter actually obtained. If there is no `IPv4` row at all (only `IPv6`), the adapter has come up IPv6-only against the Polaris (see C1c) and needs to be reconnected/reconfigured for IPv4.
+    ```
+    PS C:\> Get-NetIPAddress -InterfaceAlias "Wi-Fi 2" | Format-Table AddressFamily, IPAddress, PrefixOrigin, SuffixOrigin
+
+    AddressFamily IPAddress      PrefixOrigin SuffixOrigin
+    ------------- ---------      ------------ ------------
+    IPv4          192.168.0.100  Dhcp         Dhcp
+    ```
+
+8. To check the DHCP lease detail for the TP-Link adapter. Confirm `DHCP Enabled: Yes`, `DHCP Server: 192.168.0.1`, and that the `IPv4 Address` is `192.168.0.x` and not a `169.254.x.x` APIPA address (which means DHCP failed and Windows self-assigned an address).
+    ```
+    PS C:\> ipconfig /all
+    ```
+
+9. To force a DHCP release/renew on the TP-Link adapter and watch it fail live, which is useful if the connection is currently stuck. An error such as "unable to contact your DHCP server" confirms the Polaris's own DHCP server is refusing the request (see C3-2).
+    ```
+    PS C:\> ipconfig /release "Wi-Fi 2"
+    PS C:\> ipconfig /renew "Wi-Fi 2"
+    ```
+
+10. To pull the DHCP client's own event log entries and look for a `DHCPNACK` (lease rejected by the Polaris, see C3-2). Cross-reference the `TimeCreated` timestamps against the Driver log's `[WinError 1236]` entries to confirm they line up.
+    ```
+    PS C:\> Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-Dhcp-Client'} -MaxEvents 30 |
+        Select-Object TimeCreated, Id, Message | Format-List
+    ```
+
+11. To check whether Windows power management is allowed to turn off the TP-Link adapter (see C3-3). If `AllowComputerToTurnOffDevice` is not `Disabled`, this can silently drop the connection independently of any DHCP issue.
+    ```
+    PS C:\> Get-NetAdapterPowerManagement -Name "Wi-Fi 2"
+    ```
+
 ## Nina Troubleshooting
 
 ### N1 - Cannot Remote Desktop to MiniPC running Nina
