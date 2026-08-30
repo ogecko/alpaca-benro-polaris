@@ -13,7 +13,7 @@ import psutil
 from falcon import asgi, HTTP_200, HTTP_301, WebSocketDisconnected
 from config import Config
 from pathlib import Path
-from shr import LifecycleController, LifecycleEvent, DeviceMetadata, check_port_bindable, describe_bind_error
+from shr import LifecycleController, LifecycleEvent, DeviceMetadata, check_port_bindable, describe_bind_error, client_ip
 import datetime
 import ipaddress
 import hashlib
@@ -378,8 +378,11 @@ class AlpacaProxyResource:
         body = await req.bounded_stream.read() if method == 'PUT' else None
         # Stamp the real client IP so shr.py's client_ip() can recover it on
         # the far side -- otherwise the REST API only ever sees this proxy's
-        # own loopback connection as the remote address.
-        headers = {'X-Forwarded-For': req.remote_addr}
+        # own loopback connection as the remote address. client_ip(req) also
+        # unwraps an *external* reverse proxy in front of this web server
+        # (e.g. nginx/Caddy terminating TLS on the same host), which would
+        # otherwise leave req.remote_addr as loopback here too.
+        headers = {'X-Forwarded-For': client_ip(req)}
         if body:
             headers['Content-Type'] = req.content_type
         try:
