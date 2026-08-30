@@ -376,7 +376,12 @@ class AlpacaProxyResource:
         if req.query_string:
             url += f'?{req.query_string}'
         body = await req.bounded_stream.read() if method == 'PUT' else None
-        headers = {'Content-Type': req.content_type} if body else {}
+        # Stamp the real client IP so shr.py's client_ip() can recover it on
+        # the far side -- otherwise the REST API only ever sees this proxy's
+        # own loopback connection as the remote address.
+        headers = {'X-Forwarded-For': req.remote_addr}
+        if body:
+            headers['Content-Type'] = req.content_type
         try:
             async with self._get_session().request(method, url, data=body, headers=headers) as r:
                 resp.status = str(r.status)

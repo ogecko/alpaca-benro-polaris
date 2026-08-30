@@ -90,8 +90,23 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
             raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
         return default
 
+def client_ip(req: Request) -> str:
+    """
+    The originating client's IP, unwrapping app_web.py's internal
+    AlpacaProxyResource hop. That proxy always connects in over loopback and
+    stamps X-Forwarded-For with the real client address (see
+    AlpacaProxyResource._proxy in app_web.py) -- so the header is only
+    trusted when the direct TCP peer is loopback, never for a request that
+    arrived directly from an external address, where a client could forge it.
+    """
+    if req.remote_addr in ('127.0.0.1', '::1'):
+        forwarded = req.get_header('X-Forwarded-For')
+        if forwarded:
+            return forwarded.split(',')[0].strip()
+    return req.remote_addr
+
 # Should we log this HTTP req or response
-def should_log(req: Request, log_flags): 
+def should_log(req: Request, log_flags):
     for name in log_flags:
         if getattr(Config, name, False):
             return True  # explicitly enabled
@@ -114,7 +129,7 @@ async def log_request(req: Request, log_flag_names: list[str] | str | None = Non
     if not should_log(req, log_flags):
         return   # skip logging
 
-    msg = f'{req.remote_addr} -> {req.method} {req.path}'
+    msg = f'{client_ip(req)} -> {req.method} {req.path}'
     if req.query_string != '':
         msg += f'?{req.query_string}'
     if req.method == 'PUT' and req.content_length != 0:
@@ -126,7 +141,7 @@ def log_response(req: Request, valuestr: str):
     if not should_log(req, log_flags):
         return   # skip logging
 
-    logger.info(f'{req.remote_addr} <- {valuestr}')
+    logger.info(f'{client_ip(req)} <- {valuestr}')
 
 # ------------------------------------------------
 # Incoming Pre-Logging and Request Quality Control
@@ -229,7 +244,7 @@ async def MethodResponse(req: Request, err = Success(), value = None): # value u
     }
     if err.Number == 0 and not value is None:
         res["Value"] = value
-        logger.info(f'{req.remote_addr} <- {str(value)}')
+        logger.info(f'{client_ip(req)} <- {str(value)}')
 
     return json.dumps(res)
 
