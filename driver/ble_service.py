@@ -20,6 +20,27 @@ CONNECT_TIMEOUT    = 15.0 if IS_LINUX else 10.0
 POST_CONNECT_SLEEP = 1.0  if IS_LINUX else 0.3
 NOTIFY_TIMEOUT     = 5.0
 
+def _is_known_bleak_winrt_assertion(e: BaseException) -> bool:
+    """
+    True only for the specific known bleak WinRT-backend race: `assert
+    self._result` inside FutureLike.result() (bleak/backends/winrt/client.py),
+    which can fire before the WinRT completion callback has populated
+    `_result`, typically under CPU load right after connect. Checked by
+    walking the traceback for that exact file/function rather than matching
+    on AssertionError alone, so an unrelated assertion failure elsewhere in
+    the connect block still surfaces with its full traceback.
+    """
+    tb = e.__traceback__
+    while tb is not None:
+        code = tb.tb_frame.f_code
+        if code.co_name == "result" and code.co_filename.replace("\\", "/").endswith(
+            "bleak/backends/winrt/client.py"
+        ):
+            return True
+        tb = tb.tb_next
+    return False
+
+
 # Substrings identifying "no usable Bluetooth" conditions, as opposed to unexpected
 # scanner errors. Includes the FileNotFoundError bleak/dbus_fast raise when there's no
 # D-Bus/BlueZ to connect to at all (e.g. containers, WSL2) rather than an adapter that's
@@ -362,6 +383,17 @@ class BLE_Controller:
                 else:
                     if Config.log_polaris_ble:
                         self.logger.warning(f"BLE attempt {attempt} failed for {address}: {e}")
+
+            except AssertionError as e:
+                if IS_WINDOWS and _is_known_bleak_winrt_assertion(e):
+                    self.logger.info(
+                        f"BLE attempt {attempt}: known bleak/WinRT race connecting "
+                        f"to {address}, will retry..."
+                    )
+                else:
+                    self.logger.exception(
+                        f"Unexpected BLE error on attempt {attempt}: {e}"
+                    )
 
             except Exception as e:
                 self.logger.exception(
