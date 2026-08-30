@@ -39,6 +39,7 @@
 - **[Protocol Handling]** Added reply timeouts, ensuring dropped or lost Polaris responses no longer have potential to block the driver.
 - **[Local Timezone]** Show all log messages with local timestamp (rather than UTC), both in alpaca.log and in Alpaca Pilot
 - **[Log Replay]** New replay.py tool to allow a captured log file to be replayed on another mount for system testing and diagnosis.
+- **[Mobile App]** Support mobile home screen install. On iOS or iPadOS use Safari / Share / Add to Home Screen. On Android use Chrome / Install and create shortcut.
 
 ## What's new in v2.2 Beta 4
 - **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 
