@@ -104,6 +104,87 @@ def parse_payload_line(line, tag):
     return rec
 
 
+_LEGACY_PECLOG_FIELD_MAP = {
+    "R2": "r2", "rmse": "rmse", "Rate": "fit_rate", "Guide": "pec_accum",
+    "Accum": "total_accum", "RA_model": "ra_model", "Dec_model": "dec_model", "lambda": "lambda",
+}
+
+
+def parse_peclog_legacy(line):
+    """
+    Parse the pre-dict PECLOG format used by older driver versions, e.g.:
+    'PECLOG  n,2,TOO_FEW_OBS,TOO_FEW_OBS, | R2,-2.000,-2.000, | rmse,0.3365,0.7011, |
+    Rate,-3.2267,+6.7222, | Guide,-0.86894,+1.81028, | Accum,-0.86894,+1.81028, |
+    Pos,205.79,17.30,-0.68, | RA_model,-3.2267,0.0006,0.0012, | Dec_model,+6.7222,0.0013,0.0026, |
+    lambda,0.98740,0.98740'
+
+    Field names map onto the modern dict format's keys (see parse_payload_line()):
+    R2->r2, rmse->rmse, Rate->fit_rate, Guide->pec_accum, Accum->total_accum, Pos->az/alt/roll,
+    RA_model/Dec_model->ra_model/dec_model, lambda->lambda -- checked consistent across every
+    old-format session in this project's logs, no field-name variants found. This format
+    predates a logged 'resid' field entirely -- see parse_sync_guiding_residual_line(), which
+    recovers it from a separate, always-present line and must be merged in by timestamp by the
+    caller (load_pec() does this automatically).
+    """
+    if ' PECLOG ' not in line or ' PECLOG {' in line:
+        return None
+    ts, _, body = line.partition(' PECLOG ')
+    ts = ts.split(' INFO')[0].strip()
+
+    rec = {'timestamp': ts}
+    for field in body.strip().split('|'):
+        parts = [p.strip() for p in field.split(',') if p.strip() != '']
+        if not parts:
+            continue
+        name, vals = parts[0], parts[1:]
+        if name == 'n':
+            if len(vals) < 3:
+                return None
+            rec['n'] = int(float(vals[0]))
+            rec['inhibit_1'], rec['inhibit_2'] = vals[1], vals[2]
+        elif name == 'Pos':
+            if len(vals) < 3:
+                return None
+            rec['az'], rec['alt'], rec['roll'] = (parse_val(v) for v in vals[:3])
+        elif name in _LEGACY_PECLOG_FIELD_MAP:
+            key = _LEGACY_PECLOG_FIELD_MAP[name]
+            for i, v in enumerate(vals, start=1):
+                rec[f'{key}_{i}'] = parse_val(v)
+    return rec if len(rec) > 1 else None
+
+
+_SYNC_GUIDING_RESID_RE = re.compile(
+    r'SYNC GUIDING\s+Ra\s+([+-]\d+)d(\d+)\'([\d.]+)"\s*,\s*Dec\s+([+-]\d+)d(\d+)\'([\d.]+)"\s+Residuals'
+)
+
+
+def _dms_to_deg(sign_deg, minutes, seconds):
+    """Inverse of shr.py's deg2dms() -- sign_deg carries the sign (e.g. '-000')."""
+    sign = -1.0 if sign_deg.strip().startswith('-') else 1.0
+    return sign * (abs(int(sign_deg)) + int(minutes) / 60 + float(seconds) / 3600)
+
+
+def parse_sync_guiding_residual_line(line):
+    """
+    Parse the always-present '->> Polaris: SYNC GUIDING Ra <dms>, Dec <dms> Residuals' line
+    (control.py's process_guide_sync(), logged unconditionally regardless of Config.advanced_pec
+    or PECLOG format/version) back into decimal-degree ra_resid_deg/dec_resid_deg -- the inverse
+    of shr.py's deg2dms(). This is the only place a legacy (pre-dict-format) PECLOG session's
+    'resid' survives; parse_peclog_legacy()'s own payload doesn't carry it.
+    """
+    if 'SYNC GUIDING' not in line or 'too large' in line:
+        return None
+    ts = line.split(' INFO')[0].strip()
+    m = _SYNC_GUIDING_RESID_RE.search(line)
+    if not m:
+        return None
+    return {
+        'timestamp': ts,
+        'ra_resid_deg': _dms_to_deg(m.group(1), m.group(2), m.group(3)),
+        'dec_resid_deg': _dms_to_deg(m.group(4), m.group(5), m.group(6)),
+    }
+
+
 def parse_pecconfig(line):
     """Extract the PECCONFIG line emitted once per session, if present."""
     m = re.search(
@@ -143,6 +224,13 @@ def load_pec(log_filenames, log_dir='.'):
     emitted once per session and shouldn't change across a session's rotated logs. See
     resolve_log_files() for how log_filenames is resolved against log_dir.
 
+    Transparently handles both the modern 'PECLOG {dict}' format and the legacy
+    comma-separated format used by older driver versions (see parse_peclog_legacy()) -- a
+    session can even mix both if its rotated logs span a driver upgrade. The legacy format
+    predates a logged 'resid' field, so for any row that comes back without one, resid_1/2 is
+    backfilled from the separate, always-present 'SYNC GUIDING ... Residuals' line by
+    nearest-timestamp match (within 2s; see parse_sync_guiding_residual_line()).
+
     Raises if no PECLOG lines are found at all -- PECLOG is the primary signal for whichever
     notebook calls this, so silently returning an empty result would hide a real problem
     (wrong log, wrong Config.log_pec) rather than surface it. A caller for whom PECLOG is
@@ -154,6 +242,7 @@ def load_pec(log_filenames, log_dir='.'):
         raise FileNotFoundError(f"No log files matched: {log_filenames!r} (log_dir={log_dir!r})")
 
     rows = []
+    sync_resid_rows = []
     pec_config = None
     for log_path in paths:
         if not os.path.exists(log_path):
@@ -171,17 +260,101 @@ def load_pec(log_filenames, log_dir='.'):
                         if cfg is not None:
                             pec_config = cfg
                     continue
-                if ' PECLOG ' not in line:
+                if ' PECLOG {' in line:
+                    rec = parse_payload_line(line, "PECLOG")
+                    if rec is not None:
+                        rows.append(rec)
                     continue
-                rec = parse_payload_line(line, "PECLOG")
-                if rec is None:
+                if ' PECLOG ' in line:
+                    rec = parse_peclog_legacy(line)
+                    if rec is not None:
+                        rows.append(rec)
                     continue
-                rows.append(rec)
+                if 'SYNC GUIDING' in line:
+                    sr = parse_sync_guiding_residual_line(line)
+                    if sr is not None:
+                        sync_resid_rows.append(sr)
 
     if not rows:
         raise ValueError(f"No PECLOG lines found in {paths!r}")
 
-    return _finalize_log_df(rows), pec_config
+    df = _finalize_log_df(rows)
+
+    if sync_resid_rows:
+        resid_df = pd.DataFrame(sync_resid_rows)
+        resid_df['timestamp'] = pd.to_datetime(resid_df['timestamp'])
+        resid_df = resid_df.sort_values('timestamp', kind='stable').reset_index(drop=True)
+        merged = pd.merge_asof(df[['timestamp']], resid_df, on='timestamp',
+                                direction='nearest', tolerance=pd.Timedelta('2s'))
+        # deg -> arcmin, matching the modern PECLOG payload's own resid convention
+        legacy_resid_1 = merged['ra_resid_deg'] * 60
+        legacy_resid_2 = merged['dec_resid_deg'] * 60
+        if 'resid_1' in df.columns:
+            df['resid_1'] = df['resid_1'].fillna(legacy_resid_1)
+            df['resid_2'] = df['resid_2'].fillna(legacy_resid_2)
+        else:
+            df['resid_1'] = legacy_resid_1
+            df['resid_2'] = legacy_resid_2
+
+    return df, pec_config
+
+
+_TRACKING_BOUNDARY_RE = re.compile(
+    r"PUT /api/v1/telescope/0/(slewtocoordinatesasync|slewtoaltazasync|slewtocoordinates|"
+    r"slewtoaltaz|tracking|park|unpark|findhome|abortslew)\b"
+)
+
+
+def find_tracking_segments(log_filenames, log_dir='.', min_duration_min=20):
+    """
+    Split one or more rotated driver logs into continuous-tracking segments, treating any
+    slew/goto, tracking on/off, park/unpark, findhome, or abortslew REST call as a boundary --
+    a real capture session routinely includes several of these (retargeting, dithering,
+    meridian flips), and a segment spanning one would inject a large non-periodic-error
+    discontinuity into any cumulative-motor-angle analysis (see
+    docs/pec_theta_space_plan.md Phase 0.2). Returns a list of (start_ts, end_ts,
+    duration_min) tuples for segments at least min_duration_min long, sorted chronologically;
+    shorter segments are dropped rather than returned as noise.
+
+    This only looks at REST-command timestamps, not driver behavior, so it can't tell a
+    boundary event that actually changed the mount's target from one that didn't (e.g. a
+    tracking-on call confirming an already-on state). In practice these cluster within
+    seconds of the real retargeting event they're part of, so they don't meaningfully split
+    an otherwise-clean segment on their own; only genuine gaps between clusters do.
+    """
+    paths = resolve_log_files(log_filenames, log_dir=log_dir)
+    if not paths:
+        raise FileNotFoundError(f"No log files matched: {log_filenames!r} (log_dir={log_dir!r})")
+
+    ts_re = re.compile(r'^(\S+)')
+    boundaries = []
+    first_ts = last_ts = None
+    for log_path in paths:
+        if not os.path.exists(log_path):
+            raise FileNotFoundError(f"log_path does not exist: {log_path!r}")
+        with open(log_path, encoding="utf-8") as f:
+            for line in f:
+                m = ts_re.match(line)
+                if not m:
+                    continue
+                ts = m.group(1)
+                if first_ts is None:
+                    first_ts = ts
+                last_ts = ts
+                if _TRACKING_BOUNDARY_RE.search(line):
+                    boundaries.append(ts)
+
+    if first_ts is None:
+        return []
+
+    edges = pd.to_datetime(sorted(set([first_ts] + boundaries + [last_ts])))
+
+    segments = []
+    for start, end in zip(edges[:-1], edges[1:]):
+        dur_min = (end - start).total_seconds() / 60
+        if dur_min >= min_duration_min:
+            segments.append((start, end, dur_min))
+    return segments
 
 
 def load_kf_pid(log_filenames, log_dir='.'):
