@@ -12,7 +12,9 @@ import re
 import ast
 from glob import glob
 
+import numpy as np
 import pandas as pd
+from scipy import signal as _scipy_signal
 
 
 def _has_glob_magic(s: str) -> bool:
@@ -511,6 +513,203 @@ def derive_theta_ground_truth(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
         out[f'theta_resid_{i}'] = (raw_diff + 180) % 360 - 180
 
     return out
+
+
+def derive_theta_from_total_accum(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
+    """
+    PEC-correction-independent per-motor drift trajectory, reconstructed from PECLOG's
+    total_accum -- NOT resid. This exists because of a real gap found in derive_theta_
+    ground_truth(): resid/theta_resid measures whatever pointing error remains AFTER PEC's own
+    RA/Dec-space correction has already been applied to the logged az/alt/roll (checked
+    empirically: `inhibit_1` was VALID, i.e. PEC actively correcting, for 95%+ of the rows in
+    the session this was validated against) -- so it's not a clean measurement of the true,
+    uncorrected mechanical periodic error, it's contaminated by however well or badly the
+    current (wrong-domain) RA/Dec model happens to be doing at each moment. total_accum is the
+    field the driver's own code deliberately keeps free of this: "The fit's training signal;
+    deliberately doesn't shrink as PEC improves" (control.py's _pec_log() docstring). This
+    mirrors what analyse_pec.ipynb's own existing "Right Ascension/Declination Period" cells
+    already do -- periodogram total_accum directly, not resid, for exactly this reason -- just
+    projected into theta-space instead of staying in RA/Dec.
+
+    For each PEC-model segment (split at every 'n' counter reset -- goto/rotate/jog/stop-
+    tracking/config change, the same reset detection used by the reset-aware cells elsewhere
+    in analyse_pec.ipynb):
+      1. Anchor ra0/dec0 at the segment's first usable row (az/alt/roll -> ra/dec, same
+         kinematics.azalt_to_radec() conversion as derive_theta_ground_truth()).
+      2. true_ra/dec(t) = ra0/dec0 + total_accum_1/2(t)/60 (arcmin -> degrees) -- the sky
+         position the mount would be pointing at if it had run open-loop with zero correction
+         since this segment's reset.
+      3. true_az/alt(t) = true_ra/dec(t) -> az/alt via kinematics.radec_to_altaz(), combined
+         with this row's own logged roll.
+      4. theta_true_1/2/3(t) = azaltroll_to_theta(true_az, true_alt, roll, lastPos) -- one
+         running LastPosition per segment (a fresh one at each reset), same reasoning as
+         derive_theta_ground_truth()'s single running instance.
+
+    theta_true_i(t) is dominated by the same real tracking motion theta_pred_i was (total_accum
+    is a small arcmin-scale perturbation on top of the much larger intentional slew/track
+    motion baked into az/alt/roll), so it can be used the same way theta_pred_i was: as its own
+    angle-domain x-axis (paired with itself as the y-signal, `lombscargle_periodogram()`'s
+    built-in detrend removes the large-scale tracking trend, leaving the periodic wobble).
+
+    Adds theta_true_1/2/3 (degrees) to a copy of df; NaN for rows missing az/alt/roll/
+    total_accum_1/2, where the kinematics solve fails, or (same guard as
+    derive_theta_ground_truth(), same justification) near the theta2 near-singularity.
+    """
+    import sys
+    driver_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver'))
+    if driver_dir not in sys.path:
+        sys.path.insert(0, driver_dir)
+    from kinematics import azalt_to_radec, radec_to_altaz, azaltroll_to_theta, LastPosition
+
+    out = df.copy().reset_index(drop=True)
+    theta_true = {i: [float('nan')] * len(out) for i in (1, 2, 3)}
+
+    def _isnan(v):
+        return v is None or (isinstance(v, float) and pd.isna(v))
+
+    n_col = out['n'].values
+    seg_starts = [0] + [i for i in range(1, len(out)) if n_col[i] < n_col[i - 1]]
+    seg_bounds = list(zip(seg_starts, seg_starts[1:] + [len(out)]))
+
+    for seg_start, seg_end in seg_bounds:
+        anchor_ra = anchor_dec = None
+        last_pos = LastPosition()
+        for idx in range(seg_start, seg_end):
+            row = out.iloc[idx]
+            az, alt, roll = row.get('az'), row.get('alt'), row.get('roll')
+            ta1, ta2 = row.get('total_accum_1'), row.get('total_accum_2')
+            ts = row['timestamp']
+
+            if any(_isnan(v) for v in (az, alt, roll, ta1, ta2)):
+                continue
+
+            date_obs_utc = ts.strftime('%Y-%m-%dT%H:%M:%S.%f')
+
+            if anchor_ra is None:
+                anchor_ra, anchor_dec = azalt_to_radec(az, alt, lat_deg, lon_deg, date_obs_utc)
+                if anchor_ra is None:
+                    continue
+
+            true_ra = anchor_ra + ta1 / 60
+            true_dec = anchor_dec + ta2 / 60
+            true_az, true_alt = radec_to_altaz(true_ra, true_dec, lat_deg, lon_deg, date_obs_utc)
+            if true_az is None:
+                continue
+
+            t_true = azaltroll_to_theta(true_az, true_alt, roll, last_pos)
+            if t_true[0] is None or t_true[1] > theta2_exclude_above:
+                continue
+
+            last_pos.update(*t_true)
+            for i in (1, 2, 3):
+                theta_true[i][idx] = t_true[i - 1]
+
+    for i in (1, 2, 3):
+        out[f'theta_true_{i}'] = theta_true[i]
+
+    return out
+
+
+def lombscargle_periodogram(x, y, min_period=None, max_period=None, n_periods=2000, detrend=True):
+    """
+    Lomb-Scargle periodogram of y against x, for irregularly-sampled data -- PECLOG's own
+    guide-sync cadence isn't uniform, and this is used for both the time-domain (x=t_sec) and
+    angle-domain (x=cumulative motor rotation, e.g. theta_pred_i) periodicity tests in
+    docs/pec_theta_space_plan.md Phase 0.2, so it needs to handle irregular spacing in either
+    axis without resampling artifacts. Returns (periods, power) with `periods` in the same
+    units as `x` (minutes if x is t_sec/60, degrees if x is a theta_pred_i column) and `power`
+    scipy's normalized Lomb-Scargle power at each period -- comparable in shape to (though not
+    numerically identical to) the scipy.signal.periodogram plots already used elsewhere in
+    analyse_pec.ipynb.
+
+    detrend=True (default) removes a linear fit of y against x before the periodogram, same
+    convention as those existing cells (`ra_detrended = ra - polyval(polyfit(t, ra, 1), t)`)
+    -- confirmed empirically to matter, not just for consistency: theta_resid does carry a
+    real linear trend against theta_pred, and without removing it the periodogram's power
+    rises monotonically all the way to max_period with no local peak at all (a textbook
+    slow-trend signature), which read as a spurious "period == exactly half the data span"
+    for almost every motor/segment tried before this was added.
+
+    min_period/max_period default to [4x the median sample spacing, half the x-span]: a period
+    under ~4 samples isn't reliably resolvable, and one over half the available span is really
+    just a trend within the data, not a repeating period.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    mask = ~(np.isnan(x) | np.isnan(y))
+    x, y = x[mask], y[mask]
+    order = np.argsort(x)
+    x, y = x[order], y[order]
+    if len(x) < 8:
+        raise ValueError(f"Not enough points for a periodogram: {len(x)}")
+    if detrend:
+        y = y - np.polyval(np.polyfit(x, y, 1), x)
+    y = y - np.mean(y)
+
+    dx = np.diff(x)
+    dx = dx[dx > 0]
+    median_dx = np.median(dx) if len(dx) else 1.0
+    span = x[-1] - x[0]
+
+    if min_period is None:
+        min_period = 4 * median_dx
+    if max_period is None:
+        max_period = span / 2
+    if not (0 < min_period < max_period):
+        raise ValueError(f"Invalid period range: min={min_period}, max={max_period} (span={span}, median spacing={median_dx})")
+
+    periods = np.linspace(min_period, max_period, n_periods)
+    ang_freqs = 2 * np.pi / periods
+    power = _scipy_signal.lombscargle(x, y, ang_freqs, normalize=True)
+    return periods, power
+
+
+def periodogram_peak(periods, power):
+    """(peak_period, peak_power) -- the strongest periodicity found by lombscargle_periodogram()."""
+    idx = int(np.argmax(power))
+    return periods[idx], power[idx]
+
+
+def periodogram_false_alarm_probability(x, y, n_shuffles=200, rng=None, **periodogram_kwargs):
+    """
+    False-alarm probability (FAP) for the strongest peak in lombscargle_periodogram(x, y): the
+    fraction of random shufflings of y (x held fixed, so the same sampling/detrending/search
+    range is reused) whose own strongest peak power meets or beats the real data's. A low FAP
+    means the real peak is unusually strong for this sample size/spacing; a high one means
+    noise alone regularly produces a peak just as strong, i.e. the "peak" isn't trustworthy.
+
+    This exists because of a real failure mode found while validating Phase 0.2 (see
+    docs/pec_theta_space_plan.md): with the small sample sizes PECLOG-cadence segments give
+    (tens to a few hundred points), the raw peak period/power alone kept landing near
+    suspiciously round numbers of cycles across unrelated motors/segments even after
+    detrending -- a classic small-sample periodogram bias (a long period has more freedom to
+    fit noise relative to how few independent cycles are actually observed), not evidence of
+    real periodicity. A permutation test is the direct way to tell the difference: it directly
+    answers "how easily does noise alone produce a peak this strong here," rather than relying
+    on power alone, which isn't comparable in meaning across different sample sizes/spans.
+
+    Returns (fap, real_peak_period, real_peak_power). rng: a numpy Generator, or None to use
+    a fresh default_rng() (results then vary run to run -- pass one explicitly to reproduce).
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+    periods, power = lombscargle_periodogram(x, y, **periodogram_kwargs)
+    real_peak_period, real_peak_power = periodogram_peak(periods, power)
+
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    mask = ~(np.isnan(x) | np.isnan(y))
+    x, y = x[mask], y[mask]
+
+    n_meets_or_beats = 0
+    for _ in range(n_shuffles):
+        y_shuffled = rng.permutation(y)
+        _, shuffled_power = lombscargle_periodogram(x, y_shuffled, **periodogram_kwargs)
+        if shuffled_power.max() >= real_peak_power:
+            n_meets_or_beats += 1
+
+    fap = n_meets_or_beats / n_shuffles
+    return fap, real_peak_period, real_peak_power
 
 
 def load_kf_pid(log_filenames, log_dir='.'):

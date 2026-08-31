@@ -166,26 +166,142 @@ points (KFLOG isn't available on these two files to do this the original way) �
 lighter sanity pass (e.g. first-sync-of-session values should be small) before leaning on this
 heavily in 0.2.
 
-### 0.2 Angle-domain vs time-domain periodogram, per motor, per session
+### 0.2 Angle-domain vs time-domain periodogram, per motor, per session — 🟡 In progress, promising but not conclusive yet
 
-For each existing PEC session log with enough duration/samples: compute each motor's own
-cumulative rotation angle θᵢ(t) from KFLOG, and run a periodogram of `theta_resid_i` (or of the
-higher-rate `θ_meas_raw − θ_ref_raw`, with sync-guide correction events excised — see the
-contamination note in the investigation history) in **both** domains:
+**Revised from the original plan**: runs on `theta_resid_i` from 0.1's PECLOG-only derivation
+(no KFLOG needed, since neither of our two files has any), using `lombscargle_periodogram()`
+(new, in `analyse_helpers.py`) rather than `scipy.signal.periodogram` — PECLOG's guide-sync
+cadence is irregular, which a standard FFT-based periodogram assumes away.
 
-- Time domain (current approach): periodogram of the residual vs elapsed time.
-- Angle domain (new): resample/reparametrize the residual by θᵢ instead of t, periodogram vs
-  angle.
+**Two real methodological bugs found and fixed by testing against real data before trusting
+any result, not by inspecting the numbers once and moving on:**
 
-**Pass criterion for the hypothesis:** the angle-domain period for a given motor should be
-consistent (within some tolerance, e.g. ±10%) across sessions/orientations where the *time*
-period is not, and — if the shared-motor suspicion is right — M1 and M3 (at minimum) should
-converge to a *similar* angular period as each other. Record whatever M2 shows too; a flat/no
-strong periodicity result for M2 is itself informative, matching the KFLOG shift chart.
+- **No detrending, at first.** The very first real-data run showed power rising monotonically
+  all the way to `max_period` (the search cap, `span/2`) with no local peak at all, for every
+  motor/segment tried — a textbook slow-trend signature. Confirmed synthetically: adding a
+  linear trend to a clean known-period test signal reproduced the exact same failure (spurious
+  peak at the range edge, weak power) until `lombscargle_periodogram()` was given a
+  `detrend=True` default (matching `analyse_pec.ipynb`'s own existing periodogram cells).
+- **Raw peak power isn't comparable across different sample sizes.** Even after detrending,
+  results kept landing near suspiciously round cycle-counts across unrelated
+  motors/segments — a known small-sample periodogram bias (a long period has more freedom to
+  fit noise relative to how few independent cycles are actually observed). Fixed by adding
+  `periodogram_false_alarm_probability()` — a permutation test (shuffle `y`, x held fixed,
+  see how often noise alone beats the real peak) — validated against synthetic clean-signal
+  (FAP=0.000) and pure-noise (FAP=0.520, i.e. "not significant," exactly as it should be)
+  cases before trusting it on real data.
 
-This is the single most important check in the whole plan — it's cheap (pure offline analysis,
-data already on disk), falsifiable, and directly tests the core hypothesis before any driver
-code is written.
+**Results so far, with FAP (lower = more trustworthy):**
+
+| File | Segment | n | Motor | Peak period | Power | FAP |
+|---|---|---|---|---|---|---|
+| `08_02.log` | 12:43→19:20 (6.62h) | 567 | M1 | 45.55° | 0.083 | **0.000** |
+| `08_02.log` | 12:43→19:20 (6.62h) | 567 | M2 | 13.47° | 0.206 | **0.000** |
+| `08_02.log` | 12:43→19:20 (6.62h) | 567 | M3 | 34.63° | 0.150 | **0.000** |
+| `08_02.log` | 09:29→12:32 (3.03h) | 84 | M1/M2/M3 | — | — | 0.29–0.83 (not significant — too few points) |
+| `syncguide1.log` | 08:09→09:10 (1.0h) | 45 | M1 | 6.66° | 0.496 | **0.000** |
+| `syncguide1.log` | 08:09→09:10 (1.0h) | 45 | M3 | 7.16° | 0.411 | **0.000** |
+| `syncguide1.log` | 08:09→09:10 (1.0h) | 45 | M2 | 0.57° | 0.301 | 0.005 (borderline) |
+| `syncguide1.log` | 09:25→11:43 (2.3h) | 51 | all | — | — | 0.04–0.96 (not significant) |
+
+`08_02.log`'s best segment gives a statistically significant angle-domain period for **all
+three motors** — a real finding worth having, on its own. `syncguide1.log`'s 1-hour segment
+also finds a significant (M1/M3) short-period signal, but **this is not a genuine
+cross-session disagreement**: that segment's angular span is only 15.9°/14.3° (M1/M3), capping
+its searchable period range at 7.95°/7.16° — it is *structurally incapable* of finding `08_02`'s
+45.5°/34.6° periods at all, so the two results aren't comparable and this pairing can't confirm
+or refute cross-session consistency either way. Checked this explicitly before writing it up as
+a finding, rather than reporting the raw numbers as a disagreement.
+
+**Update: ran the same analysis across 4 more sessions/nights (`tarantula1`, `07_20`
+[`master.log`/`h2.log` confirmed identical — same underlying capture], `08_03`), filtered to
+only compare findings whose testable range (`span/2`) actually covers the peak being compared
+against (avoids the exact `syncguide1`-vs-`08_02` mistake above). Sorting all FAP<0.05 results
+by peak period reveals a real cross-session pattern:**
+
+- **M1**: three *independent, mutually-testable* sessions across two different nights (July 22
+  `syncguide1`, July 25 `tarantula1`'s two segments) all land at **6.44°–7.40°** — a tight
+  cluster given these are independent noisy estimates, and none of them are anywhere near
+  their own testable-range ceiling (7.95°/18.26°/30.61° vs peaks of 6.66°/7.40°/6.44° — not an
+  edge artifact this time). `08_02`'s headline 45.55° doesn't match this directly, **but its
+  own periodogram's second-strongest local peak, checked explicitly, is at 7.130°** (power
+  0.064, vs 0.083 for the 45.55° global max) — the ~7° signal is present in that session too,
+  just outcompeted by something stronger, not absent.
+- **M3**: four sessions cluster at **4.99°–7.16°** (`08_03`, `07_20`, `tarantula1`, and
+  `syncguide1` again, the last right at its own testable ceiling so weaker evidence on its
+  own). `08_02`'s M3 periodogram, checked the same way as M1's, does **not** show a
+  corresponding secondary peak near 5–7° (its top three local peaks are 34.63°/23.65°/10.28°)
+  — a genuine gap in the corroboration, not glossed over.
+- **M2** stays scattered (0.57°, 0.78°, 5.94°, 13.47° — no cluster), consistent with the
+  earlier KFLOG shift finding that M2 looks mechanically different from M1/M3.
+
+**Read on this at the time:** M1 and M3 both show a period in roughly the same 5–7.5° range,
+found independently across four sessions spanning three different nights, with testable ranges
+that genuinely cover it. Ratio check on `08_02`'s two dominant (not the ~6-7°) peaks: M1=45.55°
+vs M3=34.63° are 27.2% apart, not a close match, and not a clean small-integer ratio either
+(nearest 4/3, 1.3% off — too loose to read into).
+
+### ⚠️ Correction: the above used the wrong signal — resid is PEC-contaminated
+
+Caught by a direct question ("did you remove any effect of PEC from the logs?") that turned
+out to matter a lot. Checked: `inhibit_1` was `VALID` (PEC actively correcting, real per-cycle
+corrections up to 7.2 arcmin) for 542/567 rows (95.6%) of `08_02`'s segment. `theta_pred`/
+`theta_resid` above are built from PECLOG's `az`/`alt`/`roll`, which is the PID's *already
+PEC-corrected* present value (it flows through `q_syncguide_B`) — so `theta_resid` measures
+whatever error is left over **after** PEC's current RA/Dec-space correction, not the raw
+mechanical periodic error. Everything in the table above is potentially contaminated by
+however well or badly the *current, RA/Dec-space* model happens to be doing.
+
+**Fix**: `total_accum` is the field the driver's own code deliberately keeps free of this
+("the fit's training signal; deliberately doesn't shrink as PEC improves" — `_pec_log()`'s own
+docstring) — it's also exactly what `analyse_pec.ipynb`'s existing "Right Ascension/Declination
+Period" cells already periodogram, for the same reason, just in RA/Dec instead of theta-space.
+Added `derive_theta_from_total_accum()`, reconstructing a PEC-independent theta trajectory by
+anchoring each PEC-model segment's start position and adding `total_accum`'s RA/Dec drift onto
+it, run through the same kinematics chain.
+
+**Re-ran everything with the corrected signal — and it exposed a second, more fundamental
+problem, not just a domain question.** Pairing `theta_pred` (x) against the new `theta_true`
+(y) directly doesn't work: they correlate at 1.0000 (PEC's correction is tiny — arcmin-scale —
+against ~100° of real tracking motion), so `lombscargle_periodogram`'s internal linear detrend
+strips out nearly everything, and the tiny leftover reproduced the exact edge-of-range bias
+already fixed once before. Fixed properly by detrending `theta_true` against **time** first
+(matching the existing RA/Dec cells' own convention) before pairing with `theta_pred` — this
+dropped their correlation to ~0.07–0.09 for M1/M3 (0.76 for M2, still elevated).
+
+That fix did *not* recover a clean result, though — quite the opposite. Recomputing peak/
+testable_max ratios across every session/motor: **old (resid-based) mean ratio 0.58, spread
+0.20–1.00** (genuinely varied, several well clear of the edge) vs **new (total_accum-based,
+time-detrended) mean ratio 0.90**, almost every single result between 0.67–1.00. Tried
+higher-order (quadratic, cubic, quintic) detrending against time to see if it was just
+under-fit curvature — made it *worse*: peaks stayed pinned near the edge while `wobble_std`
+collapsed from 7555→169 arcsec (degree 5), a clear overfitting signature, not a fix.
+
+**Conclusion: `total_accum`'s residual, even properly detrended, is dominated by non-periodic
+structure — real secular drift curvature and/or one-off disturbances (the kind found earlier
+in this investigation, e.g. the RA-specific dip in `08_29m.log`) — that overwhelms any genuine
+short-period signal at these segment durations.** This is not a time-vs-angle domain question
+any more; it's a data-sufficiency problem that affects both domains equally. The earlier ~6-7°
+cross-session cluster should be treated as a weaker, not-yet-validated hint rather than the
+promising finding it was reported as — it came from the contaminated signal, and the properly
+corrected one isn't yet clean enough at these durations to confirm or refute it either way.
+
+**This raises the bar for Phase 0.2, and for tonight's planned capture** (see below): what's
+needed isn't just "comparable angular coverage to `08_02`," it's enough continuous duration for
+`total_accum`'s non-periodic secular component to be small relative to many repeats of
+whatever the true periodic component is — likely several times longer than anything captured
+so far, on a single uninterrupted target.
+
+**Pass criterion for the hypothesis (unchanged):** the angle-domain period for a given motor
+should be consistent (within some tolerance, e.g. ±10%) across sessions/orientations with
+*comparable angular coverage* where the *time* period is not, and — if the shared-motor
+suspicion is right — M1 and M3 should converge to a similar angular period as each other.
+**Provisionally met for the ~6-7° signal** (M1 cluster tight and clean; M3 cluster present but
+`08_02` doesn't corroborate it internally) — promising enough to justify continuing, not yet
+strong enough to call confirmed. Next useful step: find or capture a session with `08_02`-scale
+angular coverage (several hours, ~100°) on a *different* night, to see whether a long session
+can be found where ~6-7° is the dominant peak rather than 08_02's odd-one-out ~35-45° result,
+which would settle whether that's session-specific noise or a second real component.
 
 ### 0.3 Fit quality / generalization comparison: per-motor vs RA/Dec
 
@@ -346,3 +462,120 @@ rather than discovering it mid-implementation.
    given how much it strengthens field validation.
 4. Confirm the exact safe injection point for the PV correction (Phase 1.3) by tracing all
    readers of `self._theta_state` between the KF and `theta_to_q(*self._theta_state)`.
+
+---
+
+## Log inventory update (logs2 import)
+
+Scanned a new `logs/logs2` drop (81 files across a top level plus 4 subdirectories with
+generic `alpaca.log.N` names). Most duplicated existing content exactly (same basename, same
+byte size — confirmed via full comparison, not assumed). Moved only the genuinely new,
+PECLOG-qualifying files/directories into `logs/logs` (not copied — originals no longer in
+logs2): `alpaca.greg_Beta3_08_02.log`, `alpaca.log.1/.2/.3` (no collision with anything
+existing under those names), and whole subdirectories `vlogs/`, `Logs AutotuneMAC/`,
+`Logs10-Jun-2026_PEC/`, plus `logs/` renamed to `logs2_logs/` to avoid a confusing
+`logs/logs/logs/` nesting. Notable find: `vlogs/alpaca.log.4`, 3246 legacy-format PECLOG
+entries — but only 2.13h span / 1.16h continuous segment, and **from a different site**
+(43.75°N, 6.92°E — northern hemisphere, matching the earlier "first time on a northern target"
+context) — `find_site_location()` picked this up correctly per-file, no manual handling
+needed. Re-scanned the full expanded set for continuous PECLOG duration: `08_02.log`'s 11.19h
+remains the longest available by a wide margin; nothing in the new import beats it.
+
+## Recommended target for tonight's confirmation capture
+
+Simulated candidate starting Az/Alt across a grid, holding RA/Dec fixed (pure sidereal
+tracking, no PEC) and running the real kinematics chain (`azalt_to_radec` → track forward →
+`radec_to_altaz` → `calc_parallactic_angle` for roll → `azaltroll_to_theta`) forward several
+hours, maximizing M1+M3 total angular travel subject to keeping `theta_pred_2` (M2) below 79°
+(clear of the confirmed `THETA2_MAX=81.5` near-singularity) and altitude above 10°.
+
+**Best found: start at Az=176°, Alt=35°** (a target deep in the south circumpolar region for
+this site, ~Dec=-86.6° at the reference time used — in practice just slew to this Az/Alt at
+tonight's actual start time, no need to match a specific star or date). Mechanism: this close
+to the pole, Az/Alt barely change over the session, but **roll has to sweep hard** (+69° to
+-85° over the simulated 9h) to compensate for the fast-changing parallactic angle near a pole —
+and that roll sweep, not Az/Alt translation, is what drives large M1/M3 motion, so alt (and
+hence M2) stays comfortably moderate (~35-74°) for most of the session instead of climbing
+toward the ceiling the way a more conventional near-zenith target would.
+
+Simulated over a 9-hour window from this start: **M1 travels 147.9° (vs 101° in `08_02.log`'s
+real 6.62h segment), M3 travels 106.5° (vs 83.8°)**, both comfortably better than anything
+captured so far, with M2 staying in [37.2°, 73.9°] throughout — safely clear of the boundary.
+At 9.5h, M2 reaches 79.97° (borderline); at 10h, 83° (past the safe margin) — so **~9 hours
+continuous is the recommended session length** from this start.
+
+Caveats: roll sign/convention here uses `-calc_parallactic_angle()`, matching the convention
+used elsewhere in this investigation but not independently re-verified against the driver's
+own live roll-tracking code path; mechanical corrections (MAC) and QUEST alignment aren't
+included (both are normally small perturbations, shouldn't change the big picture, but haven't
+been checked). Keep sidereal tracking + field derotation on throughout, avoid any
+goto/jog/tracking-toggle for the full session (see `find_tracking_segments()` — a single
+interruption would split this into separate, shorter segments for analysis purposes).
+
+**Confirmed for tonight**: starting at Az=176°, Alt=35°, Roll=+60° (close to the simulated
+t=0 roll of ~69° — small offset shouldn't matter, roll evolves via normal field-derotation
+tracking from there, not fixed).
+
+**Superseded** — Dec=-86.6° (the original recommendation above) is only ~3.4° from the SCP,
+correctly flagged as unrealistic (essentially no real targets there, unusual mechanically).
+Redone anchored on 47 Tucanae (NGC 104, RA=00h24m05.67s, Dec=-72°04'52.6" — still circumpolar
+from this site, circumpolar limit is Dec ≤ -56.3° at lat=-33.655°), searching over start
+time/hour-angle instead of free Dec:
+
+**Start when 47 Tuc is at Az≈159°, Alt≈41°, Roll≈+73°** — ~4h before it transits due south
+(transit: Az=180°, Alt=51.7°, the session's highest point). Since the simulation's reference
+date (2026-08-31) is today, this converts directly to a real clock time: ≈9:40 PM AEST
+tonight (Sydney, UTC+10, no DST until October) — not independently verified beyond the
+`ephem` calculation itself, worth a sanity check against a planetarium app before committing.
+Track 8 hours through transit and beyond, naturally symmetric around it.
+
+Simulated: **M1 travels 115.4°, M3 travels 95.5°** (both better than `08_02.log`'s real
+101°/83.8°), M2 in [51.7°, 77.9°] — but M2 starts at 77.4° already close to the 81.5°
+boundary and climbs back to 76.9° by hour 8, so *both* ends of the session are somewhat close
+to the ceiling, not just one — starting a bit later (closer to transit) trades span for more
+margin if wanted.
+
+---
+
+## Historical RLS/EMA context (from the user, confirms the code-level analysis above)
+
+"RLS with no harmonics" (`n_harmonics=0`, pure `a*t` linear fit) is "our old non-harmonic
+correction" — confirmed: it didn't handle the trend flattening, exactly as the code structure
+predicts (a single constant-rate parameter can't represent a rate that changes shape over
+time). RLS with 2 harmonics (current default) wasn't satisfying either. EMA was tried and
+gave "quite poor" results in practice, abandoned — "maybe prematurely." This matches the
+mechanism found by reading `_update_ema()`: EMA smooths the *raw combined* observed rate with
+no periodic/secular separation at all, so it's structurally unable to tell a genuine secular
+stop from the periodic component's own rate crossing zero — a real, expected failure mode, not
+just a tuning problem. This is independent supporting evidence for the decoupled-adaptation-
+rate design direction proposed above (give the secular/trend term its own process-noise rate,
+separate from the harmonics, rather than either a single shared RLS λ or EMA's total
+conflation) — EMA's failure doesn't rule out a Kalman-style local-linear-trend + harmonics
+model; it's closer to a data point for *why* that decoupling matters.
+
+## Additional data point: `alpaca.pec_rls_Alpha_06_03_pulseguide_pec.log`
+
+User-flagged: multiple PEC restarts (11 `n`-resets found), and "very clear periodic
+behaviour." Investigated the largest clean segment (rows 249:8727, n=8478, 98.5min,
+~0.7s cadence — over 10x denser than any sync-guide session analyzed so far). Confirmed
+directly from the raw data: Dec's `total_accum` climbs almost monotonically (0→70.7 arcmin
+over 98.5min, ~43 arcmin/hr) — a strong secular drift, visually obvious even without a
+periodogram. RA's `total_accum` shows genuine wave-like oscillation on top. Both signatures
+the user described, in the same dataset.
+
+Time-domain periodogram of raw `total_accum` (matching the notebook's existing RA/Dec period
+cells) gives, for the first time in this investigation, a **clean, single, dominant,
+highly-significant peak with no competing secondary peaks**: RA period=31.47min (power=0.758,
+FAP=0.000), Dec period=44.61min (power=0.660, FAP=0.000) — RA's is close to the driver's
+configured 34min worm period. Far cleaner than anything from the sparser sync-guide sessions,
+attributable to the much higher sample density.
+
+Angle-domain (properly corrected: `total_accum`→theta, time-detrended, x-axis computed
+directly from az/alt/roll with no `resid` dependency — pulse-guide mode logs mostly
+no-fresh-observation status lines, `resid` is NaN on 8408/8478 rows even though
+`total_accum` isn't, so the x-axis must not require `resid` or it throws away 99% of the
+data for no reason): **M1 peak=7.96° (power 0.145), M3 peak=7.50° (power 0.188)** — close to
+each other (~6% apart) and in a similar range to the earlier (now-downgraded) cross-session
+~6-7° cluster. Peak/testable_max ratios are 0.82-0.88 — better than the worst edge-biased
+results seen earlier, but not as clean as the time-domain result above, so treat as a
+tentative further data point for the ~6-7° hypothesis, not confirmation on its own.
