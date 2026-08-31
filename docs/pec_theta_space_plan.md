@@ -114,22 +114,57 @@ Scanned all 69 `alpaca*.log*` files under `logs/` and `logs/logs/`. Findings:
     continuous 08:09→19:21 PECLOG-activity window — but this intersection should be made
     explicit in code (not just eyeballed per-file) before it's relied on generally.
 
-### 0.1 Derive per-motor "observed theta" ground truth from existing PECLOG+KFLOG data
+### 0.1 Derive per-motor "observed theta" ground truth from existing PECLOG data ✅ Done
 
-For each PECLOG guide-sync cycle: `observed_RA/Dec = predicted_RA/Dec (from that entry's
-az/alt/roll, converted via site+time) + resid`. Forward that through the same kinematics chain
-the driver itself uses (`azaltroll_to_theta`, `apply_mechanical_corrections` — already imported
-in `analyse_pec.ipynb`) to get `theta_observed`. Diff against the nearest `θ_meas_raw` KFLOG
-sample at that timestamp → `theta_resid_1/2/3`, one per motor, once per sync cycle. This is the
-per-motor analogue of today's `resid_1`/`resid_2`.
+**Revised from the original plan**: doesn't depend on KFLOG (`θ_meas_raw`) at all, which turned
+out to matter — neither `08_02.log` nor `syncguide1.log` has any KFLOG data, and long real
+imaging sessions with `Config.log_position` on appear to be the exception, not the rule, in
+this project's logs. Instead, `derive_theta_ground_truth(df, lat_deg, lon_deg)` in
+`analyse_helpers.py` works entirely from PECLOG's own fields plus site location:
 
-- Implementation note: build this as reusable functions in `analyse_helpers.py` (not just
-  inline in a notebook cell), since Phase 0.2–0.4 and any later replay-comparison notebook all
-  need it.
-- Sanity check before trusting it: verify `theta_resid_i` is near-zero at a session's very first
-  sync (nothing to explain yet) and does not blow up unless a genuine large disturbance is
-  present — cross-check a few points by hand against the existing RA/Dec `resid` for the same
-  cycles.
+1. `predicted_ra/dec` = this row's `az`/`alt`/`roll` (the PID's PV) → ra/dec, via
+   `kinematics.azalt_to_radec()` (exact `ephem`-based conversion, the same the driver itself
+   uses — better than the parallactic-angle small-rotation approximation originally
+   considered, and avoids needing `alignQ_B2T`, which isn't recoverable from the logs at all).
+2. `observed_ra/dec` = `predicted_ra/dec` + `resid` (confirmed: `resid_1`/`resid_2` are exactly
+   `process_guide_sync()`'s `ra_resid`/`dec_resid`, in arcmin of degrees — `/60` recovers
+   degrees directly, no unit surprises).
+3. `observed_az/alt` = `observed_ra/dec` → az/alt, via `kinematics.radec_to_altaz()`.
+4. `theta_pred`/`theta_obs` = `azaltroll_to_theta(az, alt, roll)` for each pose (roll held
+   fixed — a small RA/Dec offset doesn't meaningfully change field rotation).
+
+Also needed **site latitude/longitude**, which isn't computable from anything in the plan —
+resolved by finding it's actually logged, just not where first searched: a startup
+`Site lat = ... | lon = ...` line, present in 31/69 of this project's logs (including both
+files used to validate this). `find_site_location()` recovers it per-file (so a different
+site/user is handled automatically, not a global constant).
+
+**Two real bugs found and fixed while validating against `08_02.log` and `syncguide1.log`, not
+just by reading the kinematics code:**
+- `kinematics.azaltroll_to_theta()` called without an explicit `lastPos` silently returns
+  `(None, None, None)` for *every* row — its own default argument passes a literal `None`
+  through to `q_to_theta()`, which then fails internally and gets swallowed by the wrapper's
+  `except Exception`. Fixed by carrying one `LastPosition` across all rows (mirroring the
+  driver's own persistent `self._pid._lp`), advanced by `theta_pred` only after both
+  `theta_pred`/`theta_obs` are computed against it each row.
+- Near `kinematics.py`'s own `THETA2_MAX = 81.5` mechanical near-singularity, the IK's branch
+  selection can differ between the predicted and observed pose even though the true
+  positional difference is tiny — produced outliers up to ~345° before this was caught.
+  `derive_theta_ground_truth()` now excludes rows with `theta_pred_2`/`theta_obs_2` above 80°
+  (default, overridable), confirmed against both files: every extreme outlier found while
+  debugging clustered at `theta_pred_2` ≈ 81.49–81.52°, none survived the exclusion, and the
+  remaining largest residuals (a few hundred arcsec) show no such clustering — they range
+  across alt 34–77°, look like genuine amplified signal rather than a numerical artifact.
+
+Also fixed in passing: `load_pec`/`load_kf_pid`/`find_tracking_segments`/`find_site_location`
+now open files with `errors="replace"`, not just `encoding="utf-8"` — `syncguide1.log` has a
+genuinely non-UTF-8 byte in it (a `°` written as Latin-1 somewhere), which previously aborted
+parsing the whole file.
+
+Not yet done: cross-checking `theta_resid_i` against an independent source for a handful of
+points (KFLOG isn't available on these two files to do this the original way) — worth a
+lighter sanity pass (e.g. first-sync-of-session values should be small) before leaning on this
+heavily in 0.2.
 
 ### 0.2 Angle-domain vs time-domain periodogram, per motor, per session
 

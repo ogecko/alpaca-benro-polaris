@@ -185,6 +185,42 @@ def parse_sync_guiding_residual_line(line):
     }
 
 
+_SITE_LOCATION_RE = re.compile(
+    r"Site lat = (-?[\d.]+) \([^)]*\) \| lon = (-?[\d.]+) \([^)]*\)\."
+)
+
+
+def parse_site_location(line):
+    """Extract site lat/lon (decimal degrees) from the driver's startup 'Site lat = ... |
+    lon = ...' log line, if present on this line."""
+    m = _SITE_LOCATION_RE.search(line)
+    if not m:
+        return None
+    return dict(lat_deg=float(m.group(1)), lon_deg=float(m.group(2)))
+
+
+def find_site_location(log_filenames, log_dir='.'):
+    """
+    Scan one or more rotated driver logs for the first 'Site lat = ... | lon = ...' line and
+    return {'lat_deg':..., 'lon_deg':...}, or None if not present (this line isn't written by
+    every driver version/config, e.g. it's absent when the site is left at its default and
+    never explicitly set for that session). Needed to convert a PECLOG resid (RA/Dec) into an
+    Alt/Az/theta delta via the parallactic angle -- see docs/pec_theta_space_plan.md Phase 0.1.
+    """
+    paths = resolve_log_files(log_filenames, log_dir=log_dir)
+    if not paths:
+        raise FileNotFoundError(f"No log files matched: {log_filenames!r} (log_dir={log_dir!r})")
+    for log_path in paths:
+        if not os.path.exists(log_path):
+            raise FileNotFoundError(f"log_path does not exist: {log_path!r}")
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                loc = parse_site_location(line)
+                if loc is not None:
+                    return loc
+    return None
+
+
 def parse_pecconfig(line):
     """Extract the PECCONFIG line emitted once per session, if present."""
     m = re.search(
@@ -251,8 +287,12 @@ def load_pec(log_filenames, log_dir='.'):
             raise ValueError(f"log_path exists but is empty (0 bytes): {log_path!r}")
         # encoding='utf-8': the driver's RotatingFileHandler writes utf-8 explicitly (log.py), but
         # open() without an explicit encoding falls back to the OS default -- cp1252 on Windows --
-        # which can silently corrupt any non-ASCII content instead of raising.
-        with open(log_path, encoding="utf-8") as f:
+        # which can silently corrupt any non-ASCII content instead of raising. errors='replace':
+        # some old logs carry an occasional genuinely non-UTF-8 byte (e.g. a '°' written as
+        # Latin-1 by an older tool/version) -- one bad byte shouldn't abort parsing an otherwise
+        # good multi-hour file, and the replacement char only ever lands in free-text content,
+        # never in a field this module actually extracts.
+        with open(log_path, encoding="utf-8", errors="replace") as f:
             for line in f:
                 if 'PECCONFIG' in line:
                     if pec_config is None:
@@ -332,7 +372,7 @@ def find_tracking_segments(log_filenames, log_dir='.', min_duration_min=20):
     for log_path in paths:
         if not os.path.exists(log_path):
             raise FileNotFoundError(f"log_path does not exist: {log_path!r}")
-        with open(log_path, encoding="utf-8") as f:
+        with open(log_path, encoding="utf-8", errors="replace") as f:
             for line in f:
                 m = ts_re.match(line)
                 if not m:
@@ -355,6 +395,122 @@ def find_tracking_segments(log_filenames, log_dir='.', min_duration_min=20):
         if dur_min >= min_duration_min:
             segments.append((start, end, dur_min))
     return segments
+
+
+def derive_theta_ground_truth(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
+    """
+    Per-motor pointing-error ground truth for each PECLOG guide-sync cycle, derived from the
+    plate-solve's true observed sky position rather than the RA/Dec resid alone (see
+    docs/pec_theta_space_plan.md Phase 0.1). For each row:
+      1. predicted_ra/dec = this row's az/alt/roll (the PID's PV) -> ra/dec, via
+         kinematics.azalt_to_radec() -- the same conversion the driver itself uses.
+      2. observed_ra/dec = predicted_ra/dec + resid (resid_1=RA, resid_2=Dec, both arcmin of
+         degrees -- PECLOG's own convention: control.py's process_guide_sync() computes
+         ra_resid = clamp_error(a_ra*15, rightascension*15), already in degrees before the
+         *60-to-arcmin the PECLOG payload applies, so resid_i/60 recovers degrees directly).
+      3. observed_az/alt = observed_ra/dec -> az/alt, via kinematics.radec_to_altaz().
+      4. theta_pred = azaltroll_to_theta(az, alt, roll); theta_obs =
+         azaltroll_to_theta(observed_az, observed_alt, roll) -- roll held fixed, since a small
+         RA/Dec offset doesn't meaningfully change field rotation.
+
+    Adds theta_pred_1/2/3, theta_obs_1/2/3, and theta_resid_1/2/3 (= obs - pred, degrees) to a
+    copy of df. A row missing az/alt/roll/resid_1/resid_2, or where the kinematics solve fails
+    (returns None -- e.g. an unreachable geometry), comes back NaN rather than raising, since a
+    handful of bad rows in a multi-hour session shouldn't abort the whole derivation.
+
+    theta2_exclude_above: rows with theta_pred_2 beyond this (degrees) get NaN'd out too, not
+    just missing/failed ones. kinematics.py's own THETA2_MAX=81.5 is a real, hard mechanical
+    near-singularity -- confirmed empirically (not assumed) against real sessions: every large
+    theta_resid_1 outlier found while validating this function (up to ~345 degrees before this
+    guard existed) had theta_pred_2 clustered at 81.49-81.52. Right at that boundary, the IK's
+    branch selection (kinematics.q_to_theta()'s validA/validB) can differ between the predicted
+    and observed pose even though the true positional difference is tiny (a few arcmin), since
+    theta_pred and theta_obs are unwrapped independently -- see the LastPosition note below.
+    The default (80.0) sits ~1.5deg clear of the observed instability zone.
+
+    Requires driver/kinematics.py importable -- adds '<repo>/driver' to sys.path if not
+    already present, matching the notebooks' own convention. lat_deg/lon_deg: see
+    find_site_location(), which recovers these from the log itself where present.
+
+    kinematics.azaltroll_to_theta()'s IK is multi-valued (two mechanically-distinct motor
+    poses can point at the same sky position) and needs a LastPosition to pick the branch
+    continuous with the previous row and to unwrap through +/-360 -- called with no lastPos
+    at all it silently returns (None, None, None) for *every* row (its own default argument
+    is passed through as a literal None to kinematics.q_to_theta(), which then fails on
+    None.unwrap() and gets swallowed by azaltroll_to_theta()'s try/except; found by testing
+    this function empirically, not from reading the signature). A single LastPosition is
+    carried across rows here, advanced by theta_pred only (the real trajectory) after both
+    theta_pred and theta_obs are computed against it -- mirroring how the driver carries one
+    persistent self._pid._lp across a session, and keeping theta_obs from ever nudging the
+    continuity anchor on its own.
+    """
+    import sys
+    driver_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver'))
+    if driver_dir not in sys.path:
+        sys.path.insert(0, driver_dir)
+    from kinematics import azalt_to_radec, radec_to_altaz, azaltroll_to_theta, LastPosition
+
+    out = df.copy()
+    theta_pred = {1: [], 2: [], 3: []}
+    theta_obs = {1: [], 2: [], 3: []}
+    last_pos = LastPosition()
+
+    def _isnan(v):
+        return v is None or (isinstance(v, float) and pd.isna(v))
+
+    for row in out.itertuples(index=False):
+        az, alt, roll = getattr(row, 'az', None), getattr(row, 'alt', None), getattr(row, 'roll', None)
+        resid_1, resid_2 = getattr(row, 'resid_1', None), getattr(row, 'resid_2', None)
+        ts = row.timestamp
+
+        if any(_isnan(v) for v in (az, alt, roll, resid_1, resid_2)):
+            for i in (1, 2, 3):
+                theta_pred[i].append(float('nan'))
+                theta_obs[i].append(float('nan'))
+            continue
+
+        date_obs_utc = ts.strftime('%Y-%m-%dT%H:%M:%S.%f')
+        ra_deg, dec_deg = azalt_to_radec(az, alt, lat_deg, lon_deg, date_obs_utc)
+        t_pred = azaltroll_to_theta(az, alt, roll, last_pos)
+
+        if ra_deg is None or t_pred[0] is None:
+            for i in (1, 2, 3):
+                theta_pred[i].append(float('nan'))
+                theta_obs[i].append(float('nan'))
+            continue
+
+        obs_ra_deg = ra_deg + resid_1 / 60
+        obs_dec_deg = dec_deg + resid_2 / 60
+        obs_az, obs_alt = radec_to_altaz(obs_ra_deg, obs_dec_deg, lat_deg, lon_deg, date_obs_utc)
+        t_obs = azaltroll_to_theta(obs_az, obs_alt, roll, last_pos) if obs_az is not None else (None, None, None)
+
+        # last_pos still advances here even when the row gets excluded below -- continuity for
+        # *later* rows shouldn't depend on whether this one was near the singularity.
+        last_pos.update(*t_pred)
+
+        if t_pred[1] > theta2_exclude_above or (t_obs[1] is not None and t_obs[1] > theta2_exclude_above):
+            for i in (1, 2, 3):
+                theta_pred[i].append(float('nan'))
+                theta_obs[i].append(float('nan'))
+            continue
+
+        for i in (1, 2, 3):
+            theta_pred[i].append(t_pred[i - 1] if t_pred[i - 1] is not None else float('nan'))
+            theta_obs[i].append(t_obs[i - 1] if t_obs[i - 1] is not None else float('nan'))
+
+    for i in (1, 2, 3):
+        out[f'theta_pred_{i}'] = theta_pred[i]
+        out[f'theta_obs_{i}'] = theta_obs[i]
+        # theta_pred/theta_obs are unwrapped independently (each call resolves its own IK
+        # branch against the shared last_pos), so near a +/-360 boundary they can occasionally
+        # land a whole revolution apart even though the true difference is tiny -- resid is at
+        # most a few arcmin, so theta_resid can never legitimately approach even a few degrees.
+        # Wrap the raw difference into (-180, 180] rather than subtracting directly, to remove
+        # that artifact instead of letting it dominate any later mean/std over the session.
+        raw_diff = out[f'theta_obs_{i}'] - out[f'theta_pred_{i}']
+        out[f'theta_resid_{i}'] = (raw_diff + 180) % 360 - 180
+
+    return out
 
 
 def load_kf_pid(log_filenames, log_dir='.'):
@@ -382,7 +538,7 @@ def load_kf_pid(log_filenames, log_dir='.'):
         # RotatingFileHandler is pinned to utf-8), but open() without an explicit encoding
         # falls back to the OS default -- cp1252 on Windows -- which silently mangles those
         # keys instead of raising, so columns like "θ_sp_1" quietly never get created.
-        with open(log_path, encoding="utf-8") as f:
+        with open(log_path, encoding="utf-8", errors="replace") as f:
             for line in f:
                 if " KFLOG " in line:
                     rec = parse_payload_line(line, "KFLOG")
