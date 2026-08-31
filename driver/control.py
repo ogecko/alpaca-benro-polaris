@@ -2791,7 +2791,7 @@ class SyncManager:
             return
 
         now = time.monotonic()
-        if self._pec_last_apply is None:
+        if self._pec_last_apply is None or self._pec_t0 is None:
             self._pec_last_apply = now
             return
         t  = now - self._pec_t0
