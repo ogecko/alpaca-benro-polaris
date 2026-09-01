@@ -341,6 +341,79 @@ def load_pec(log_filenames, log_dir='.'):
     return df, pec_config
 
 
+def load_sync_guiding_residuals(log_filenames, log_dir='.'):
+    """
+    Parse every '->> Polaris: SYNC GUIDING Ra <dms>, Dec <dms> Residuals' line into a
+    DataFrame with timestamp/resid_1 (RA, arcmin)/resid_2 (Dec, arcmin) -- same convention as
+    PECLOG's own resid_1/resid_2. Unlike load_pec(), this works with Config.advanced_pec off
+    (a session with PEC disabled, sync-guiding enabled -- e.g. for a clean, uncontaminated
+    ground-truth capture per docs/pec_theta_space_plan.md): process_guide_sync() logs this
+    line unconditionally, whether or not PECLOG exists at all for the session.
+
+    Raises if no such lines are found -- if you have PECLOG for this session, use load_pec()
+    instead, which already backfills resid this same way for legacy-format logs and carries
+    the rest of PECLOG's fields too; this is for when there's no PECLOG at all to load.
+    """
+    paths = resolve_log_files(log_filenames, log_dir=log_dir)
+    if not paths:
+        raise FileNotFoundError(f"No log files matched: {log_filenames!r} (log_dir={log_dir!r})")
+    rows = []
+    for log_path in paths:
+        if not os.path.exists(log_path):
+            raise FileNotFoundError(f"log_path does not exist: {log_path!r}")
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if 'SYNC GUIDING' not in line:
+                    continue
+                sr = parse_sync_guiding_residual_line(line)
+                if sr is not None:
+                    rows.append(sr)
+    if not rows:
+        raise ValueError(f"No 'SYNC GUIDING ... Residuals' lines found in {paths!r}")
+    df = pd.DataFrame(rows)
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df = df.sort_values('timestamp', kind='stable').drop_duplicates().reset_index(drop=True)
+    df['resid_1'] = df.pop('ra_resid_deg') * 60
+    df['resid_2'] = df.pop('dec_resid_deg') * 60
+    df['t_sec'] = (df['timestamp'] - df['timestamp'].iloc[0]).dt.total_seconds()
+    return df
+
+
+def load_sglog(log_filenames, log_dir='.'):
+    """
+    Parse 'SGLOG {dict}' lines (control.py's process_guide_sync(), added specifically so a
+    session with PEC -- and hence PECLOG -- off, and log_position off to avoid KFLOG/PIDLOG's
+    much higher control-tick-rate log volume, still carries enough for theta-space analysis)
+    into a DataFrame. Schema (az/alt/roll, resid_1/2, total_accum_1/2) matches load_pec()'s
+    output closely enough that derive_theta_from_total_accum() works on it directly --
+    SGLOG's total_accum already excludes any PEC contribution by construction (see the
+    field's own comment in control.py), which is exactly the assumption that function makes
+    for the PEC-off case. theta_raw_1/2/3 is also carried directly, avoiding the
+    nearest-KFLOG-sample reconstruction load_sync_guiding_residuals() +
+    derive_theta_from_sync_residuals() need for logs that predate SGLOG.
+
+    Raises if no SGLOG lines are found -- for an older log without it, use
+    load_sync_guiding_residuals() + derive_theta_from_sync_residuals() instead.
+    """
+    paths = resolve_log_files(log_filenames, log_dir=log_dir)
+    if not paths:
+        raise FileNotFoundError(f"No log files matched: {log_filenames!r} (log_dir={log_dir!r})")
+    rows = []
+    for log_path in paths:
+        if not os.path.exists(log_path):
+            raise FileNotFoundError(f"log_path does not exist: {log_path!r}")
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if ' SGLOG {' not in line:
+                    continue
+                rec = parse_payload_line(line, "SGLOG")
+                if rec is not None:
+                    rows.append(rec)
+    if not rows:
+        raise ValueError(f"No SGLOG lines found in {paths!r}")
+    return _finalize_log_df(rows)
+
+
 _TRACKING_BOUNDARY_RE = re.compile(
     r"PUT /api/v1/telescope/0/(slewtocoordinatesasync|slewtoaltazasync|slewtocoordinates|"
     r"slewtoaltaz|tracking|park|unpark|findhome|abortslew)\b"
@@ -605,6 +678,115 @@ def derive_theta_from_total_accum(df, lat_deg, lon_deg, theta2_exclude_above=80.
                 theta_true[i][idx] = t_true[i - 1]
 
     for i in (1, 2, 3):
+        out[f'theta_true_{i}'] = theta_true[i]
+
+    return out
+
+
+def derive_theta_from_sync_residuals(resid_df, kf_df, lat_deg, lon_deg, theta2_exclude_above=80.0,
+                                      match_tolerance='2s'):
+    """
+    PEC-independent per-motor drift trajectory for a session with NO PECLOG at all (PEC
+    disabled, sync-guiding enabled -- see load_sync_guiding_residuals()) -- the
+    load_pec()/total_accum-based derive_theta_from_total_accum() can't be used here since
+    there's no az/alt/roll or total_accum logged anywhere without PECLOG. Sourced instead
+    from raw KFLOG telemetry:
+      1. For each sync-guiding residual event (resid_df, from load_sync_guiding_residuals()),
+         find the nearest KFLOG sample (within match_tolerance) and take its θ_meas_raw_1/2/3
+         -- the real, physical motor position at that moment.
+      2. Convert θ_meas_raw -> az/alt/roll via kinematics.theta_to_azaltroll() (the forward
+         counterpart of azaltroll_to_theta()), then az/alt -> ra/dec via azalt_to_radec().
+      3. Anchor ra0/dec0 at the first usable event, then true_ra/dec(t) = ra0/dec0 +
+         cumsum(resid_1/2)(t)/60 (arcmin -> degrees) -- note this has no separate PEC term to
+         add back (PEC is off, cumsum(resid) alone is the true uncorrected drift; see the
+         no-hidden-term reasoning for total_accum in docs/pec_theta_space_plan.md -- the same
+         applies here even more directly, since resid is the *only* correction mechanism
+         active).
+      4. true_az/alt(t) = true_ra/dec(t) -> az/alt via radec_to_altaz(), combined with this
+         event's own roll (from step 2).
+      5. theta_true_1/2/3(t) = azaltroll_to_theta(true_az, true_alt, roll, lastPos) -- one
+         running LastPosition across the whole df (caller should pre-split by tracking
+         segment/reset first -- unlike derive_theta_from_total_accum(), this doesn't split on
+         PECLOG's 'n' counter, since there is none; a goto/reslew mid-session, e.g. after a
+         reconnection, would need excluding by the caller beforehand).
+
+    Also adds theta_meas_1/2/3 -- θ_meas_raw converted straight to theta via the matched
+    KFLOG row, no resid/cumsum involved -- for use as an angle-domain x-axis (dominated by
+    real tracking motion, same role theta_pred_i played for the PECLOG-based derivation).
+
+    Returns a copy of resid_df with these columns added; NaN for events with no KFLOG match
+    within tolerance, a failed kinematics solve, or near the theta2 near-singularity (same
+    guard and justification as derive_theta_ground_truth()).
+    """
+    import sys
+    driver_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver'))
+    if driver_dir not in sys.path:
+        sys.path.insert(0, driver_dir)
+    from kinematics import azalt_to_radec, radec_to_altaz, azaltroll_to_theta, theta_to_azaltroll, LastPosition
+
+    out = resid_df.copy().reset_index(drop=True)
+    kf_cols = ['timestamp'] + [f'θ_meas_raw_{i}' for i in (1, 2, 3)]
+    kf_sub = kf_df.dropna(subset=[f'θ_meas_raw_{i}' for i in (1, 2, 3)])[kf_cols].sort_values('timestamp')
+    matched = pd.merge_asof(out[['timestamp']], kf_sub, on='timestamp',
+                             direction='nearest', tolerance=pd.Timedelta(match_tolerance))
+
+    theta_meas = {i: [] for i in (1, 2, 3)}
+    theta_true = {i: [] for i in (1, 2, 3)}
+    anchor_ra = anchor_dec = None
+    last_pos = LastPosition()
+
+    def _isnan(v):
+        return v is None or (isinstance(v, float) and pd.isna(v))
+
+    cum_resid_1 = cum_resid_2 = 0.0
+    for idx in range(len(out)):
+        m1, m2, m3 = matched.loc[idx, 'θ_meas_raw_1'], matched.loc[idx, 'θ_meas_raw_2'], matched.loc[idx, 'θ_meas_raw_3']
+        r1, r2 = out.loc[idx, 'resid_1'], out.loc[idx, 'resid_2']
+        cum_resid_1 += 0.0 if _isnan(r1) else r1
+        cum_resid_2 += 0.0 if _isnan(r2) else r2
+
+        if any(_isnan(v) for v in (m1, m2, m3)):
+            for i in (1, 2, 3):
+                theta_meas[i].append(float('nan'))
+                theta_true[i].append(float('nan'))
+            continue
+
+        az, alt, roll = theta_to_azaltroll(m1, m2, m3)
+        if az is None:
+            for i in (1, 2, 3):
+                theta_meas[i].append(float('nan'))
+                theta_true[i].append(float('nan'))
+            continue
+
+        ts = out.loc[idx, 'timestamp']
+        date_obs_utc = ts.strftime('%Y-%m-%dT%H:%M:%S.%f')
+        if anchor_ra is None:
+            anchor_ra, anchor_dec = azalt_to_radec(az, alt, lat_deg, lon_deg, date_obs_utc)
+            if anchor_ra is None:
+                for i in (1, 2, 3):
+                    theta_meas[i].append(float('nan'))
+                    theta_true[i].append(float('nan'))
+                continue
+
+        true_ra = anchor_ra + cum_resid_1 / 60
+        true_dec = anchor_dec + cum_resid_2 / 60
+        true_az, true_alt = radec_to_altaz(true_ra, true_dec, lat_deg, lon_deg, date_obs_utc)
+        t_true = azaltroll_to_theta(true_az, true_alt, roll, last_pos) if true_az is not None else (None, None, None)
+
+        if t_true[0] is None or t_true[1] > theta2_exclude_above:
+            for i in (1, 2, 3):
+                theta_meas[i].append(float('nan'))
+                theta_true[i].append(float('nan'))
+            continue
+
+        last_pos.update(*t_true)
+        for i, v in zip((1, 2, 3), (m1, m2, m3)):
+            theta_meas[i].append(v)
+        for i in (1, 2, 3):
+            theta_true[i].append(t_true[i - 1])
+
+    for i in (1, 2, 3):
+        out[f'theta_meas_{i}'] = theta_meas[i]
         out[f'theta_true_{i}'] = theta_true[i]
 
     return out

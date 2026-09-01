@@ -1643,7 +1643,9 @@ class SyncManager:
         self.q_pulseguide_B = Quaternion(1,0,0,0)   # accumulation of pulse guide corrections
         self.q_syncguide_B = Quaternion(1,0,0,0)    # accumulation of sync guide corrections
         self.valid_sync_guide = False               # flag to indicate pure sidereal tracking since last sync
-        self.delta_guide_accum = np.zeros(3, dtype=float) 
+        self.sg_accum_ra  = 0.0                     # arcmin, cumsum(ra_resid) since last reset -- see SGLOG in process_guide_sync()
+        self.sg_accum_dec = 0.0                     # arcmin, cumsum(dec_resid) since last reset -- same convention as PECLOG's total_accum, but independent of PEC/PECLOG so it's usable with Config.advanced_pec off
+        self.delta_guide_accum = np.zeros(3, dtype=float)
         self.delta_guide_pulse = np.zeros(3, dtype=float) 
         self.equatorial_axes_B = (None, None, None)
         self.topocentric_axes_B= (None, None, None)
@@ -2509,6 +2511,38 @@ class SyncManager:
         self.polaris._pid.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)
 
         self.logger.info(f"->> Polaris: SYNC GUIDING    Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)} Residuals")
+
+        # SGLOG: structured record of this correction -- logged unconditionally (like the text
+        # line above), independent of Config.log_pec/log_position, so a session run with PEC
+        # (and hence PECLOG) off, and log_position off to avoid flooding the logs at KFLOG/
+        # PIDLOG's control-tick rate, still has enough to reconstruct per-motor drift: the
+        # resid itself, a running cumulative total (same convention as PECLOG's total_accum,
+        # but tracked independently so it's valid even without PECLOG), and the raw motor
+        # position at this exact moment (theta_raw) -- avoiding the nearest-KFLOG-sample
+        # matching a notebook would otherwise need to reconstruct position from az/alt/roll.
+        self.sg_accum_ra  += ra_resid * 60
+        self.sg_accum_dec += dec_resid * 60
+        theta_raw = self.polaris._theta_raw
+        pv_deg = self.polaris._pid.alpha_pv
+        sg_payload = {
+            # arcmin, this sync's raw guide error -- same convention as PECLOG's resid
+            "resid": [round(float(ra_resid * 60), 4), round(float(dec_resid * 60), 4)],
+            # arcmin, cumsum(resid) since the last reset -- does NOT include any PEC
+            # correction; if PEC is also active this session, PECLOG's own total_accum already
+            # covers the combined (resid + pec_accum) case, and will differ from this by
+            # however much PEC has applied so far
+            "total_accum": [round(float(self.sg_accum_ra), 4), round(float(self.sg_accum_dec), 4)],
+            # degrees, raw motor encoder position [M1, M2, M3] as of the last 518 message
+            "theta_raw": [round(float(v), 5) for v in theta_raw] if theta_raw is not None else [None, None, None],
+            # degrees, current topocentric PV -- same convention as PECLOG's az/alt/roll
+            "az": round(float(pv_deg[0]), 3), "alt": round(float(pv_deg[1]), 3), "roll": round(float(pv_deg[2]), 3),
+            # seconds, smoothed EMA interval between successful syncs (None until the 2nd one)
+            "interval_sec": round(float(self._sync_guide_interval), 3) if self._sync_guide_interval is not None else None,
+            # seconds since the last real 518 telemetry -- same staleness diagnostic PECLOG carries
+            "age_518": round(float(self.polaris._age_518_seconds), 3),
+        }
+        self.logger.info(f"SGLOG {sg_payload}")
+
         self.accumulate_sync_guiding_residuals(ra_resid, dec_resid)
 
         # update the drift and PEC model
@@ -2532,7 +2566,9 @@ class SyncManager:
         self._sync_guide_interval = None
         self._sync_guide_last_time = None
         self.q_syncguide_B = Quaternion(1,0,0,0)
-        self.delta_guide_accum = np.zeros(3, dtype=float) 
+        self.sg_accum_ra  = 0.0
+        self.sg_accum_dec = 0.0
+        self.delta_guide_accum = np.zeros(3, dtype=float)
         if Config.advanced_scc_enabled and Config.advanced_scc_choice==2:
             self.scc_error = 0
         self._request_persist_guide_state()

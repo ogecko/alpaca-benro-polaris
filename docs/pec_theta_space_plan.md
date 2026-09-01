@@ -579,3 +579,132 @@ each other (~6% apart) and in a similar range to the earlier (now-downgraded) cr
 ~6-7° cluster. Peak/testable_max ratios are 0.82-0.88 — better than the worst edge-biased
 results seen earlier, but not as clean as the time-domain result above, so treat as a
 tentative further data point for the ~6-7° hypothesis, not confirmation on its own.
+
+---
+
+## Dedicated PEC-off, sync-guide-on capture: `logs/archive/alpaca.soak_nopec_Beta4.3_08_31a*.log`
+
+Exactly the missing dataset from 0.0's log inventory — Config.advanced_pec off,
+advanced_sync_guiding on, log_position on (KFLOG available). 20 rotated files, 366MB,
+232416 KFLOG rows, 2026-08-31 19:08:52 → 2026-09-01 08:41:33 (~13.5h nominal span). Site:
+same as before (-33.655°, 151.122°, Sydney).
+
+**Real interruption found and precisely bounded** (not from `find_tracking_segments()`'s
+REST-command boundaries, which found a different, spurious split — from the raw KFLOG/PIDLOG
+timestamp gaps directly): driver telemetry gap 2026-09-01 00:41:42.411 → 00:57:12.591
+(15.5min — the reboot). A second disruption follows at 03:30:24: `synctocoordinates` to
+RA=0.394h/Dec=-71.75° (essentially 47 Tuc) immediately followed by `findhome` +
+`"Advanced Control: STOP tracking"` — almost certainly the point the TP-Link IP fix actually
+completed and reconnection finished (matches the user's account of a longer recovery than the
+15.5min driver-process gap alone suggests).
+
+**Tracking stopping at 03:30:24 is expected, not a bug — user stopped the session there
+deliberately (3:30 AM).** `θ_ref_raw` (only populated "while actively tracking") has exactly
+5 non-NaN rows in all 93231 KFLOG rows of the 03:30→08:41 window — all in the last second
+before the stop took effect — and no "START tracking" appears anywhere afterward, confirming
+tracking genuinely didn't resume, but that's simply because the session ended there.
+**The 03:30→08:41 log content is not usable for tracking/PE analysis** (nothing to analyze,
+not "went wrong") — user is removing these later log files from the archive.
+
+**Also found: sync-guiding stopped at the same point, for the same reason.** Cross-checked via
+`load_sync_guiding_residuals()` (430 total corrections across the whole file set) — the very
+last one is at 03:30:21.876, matching the reconnection's `synctocoordinates` to the
+millisecond. Zero corrections after that, simply because the session ended there (not a
+re-arming failure — originally misread as one before the user clarified).
+
+**Net usable data: two segments**, not one continuous ~13.5h run:
+- **Segment 1**: 19:08:52 → 00:41:42 (~5.5h), 295 sync-guide residual events, 93756 KFLOG rows.
+- **Segment 2**: 00:57:12 → 03:30:21 (~2.5h), 135 residual events (87 usable after the theta2
+  guard — this window overlaps the earlier-noted noisier PID-error stretch), ~45418 KFLOG rows.
+- Segment 3 (03:30→08:41): KFLOG exists but is not usable (no tracking, see above).
+
+**Methodological correction needed before analyzing Segments 1/2, found by reasoning through
+what a *long*, actively-guided session actually means for the KFLOG-based ground truth**:
+`θ_meas_raw − θ_ref_raw` (the original Phase 0.1 plan, and what `analyse_pec.ipynb`'s
+existing "Base vs Corrected Frame Shift" section uses) is *not* clean here the way it looked
+in earlier, shorter investigations. Traced why: `topoQ_to_baseQ()` (which builds `theta_ref`)
+explicitly does not undo Sync Guiding Corrections (SGC) — confirmed from its own docstring
+("no undo Sync Guiding Corrections (SGC)") — but `θ_meas_raw` *does* physically reflect every
+sync-guide correction ever applied (they cause real motor motion, as established earlier in
+this investigation). Over a session with hundreds of real corrections, this means
+`θ_meas_raw − θ_ref_raw` isn't "raw uncorrected PE" — it's raw PE *plus the ever-growing
+cumulative effect of every correction ever applied*, since `θ_ref_raw` never learns about
+them. Confirmed empirically before trusting it: Segment 1's raw shift reaches tens of
+thousands of arcsec (multiple degrees) with a smooth, U-shaped/reversing trajectory — real
+secular drift, not noise, but the wrong signal for isolating PE, for the same structural
+reason `resid` was the wrong signal before PEC's contamination was found (same shape of bug,
+different mechanism: SGC this time, not PEC's feed-forward).
+
+**Fix, mirroring the `total_accum` fix**: since there's no PECLOG here (no `total_accum`
+either), added `load_sync_guiding_residuals()` (parses `SYNC GUIDING ... Residuals` lines
+directly — works with zero PECLOG, since `process_guide_sync()` logs this line
+unconditionally) and `derive_theta_from_sync_residuals()` (anchors each session/segment's
+first usable event, reconstructs `true_ra/dec(t) = anchor + cumsum(resid)(t)/60`, converts to
+theta via the same kinematics chain — position source is `θ_meas_raw`, converted to az/alt/roll
+via `kinematics.theta_to_azaltroll()`, since there's no PECLOG `az`/`alt`/`roll` to use here).
+No separate "add back PEC's correction" term needed — with PEC off, `resid` alone is already
+the complete uncorrected-drift signal, an even more direct case than `total_accum`'s.
+
+**Results** (`periodogram_false_alarm_probability`, `n_shuffles=200`, linear-detrended before
+the call since the periodogram function's own detrend is against x, not t):
+
+| Segment | Motor | n | x span | TIME peak | TIME power/FAP | ANGLE peak | ANGLE power/FAP | testable_max |
+|---|---|---|---|---|---|---|---|---|
+| 1 (5.5h) | M1 | 295 | 97.3° | 132.44min | 0.124 / 0.000 | 42.75° | 0.280 / 0.000 | 48.63° |
+| 1 | M2 | 295 | 23.7° | 134.50min | 0.164 / 0.000 | 11.84° | 0.250 / 0.000 | 11.84° (edge) |
+| 1 | M3 | 295 | 79.1° | 132.36min | 0.124 / 0.000 | 35.08° | 0.317 / 0.000 | 39.57° |
+| 2 (2.5h) | M1 | 87 | 19.2° | 46.22min | 0.571 / 0.000 | 8.83° | 0.664 / 0.000 | 9.62° |
+| 2 | M2 | 87 | 20.0° | 29.16min | 0.114 / 0.290 (n.s.) | 8.66° | 0.115 / 0.300 (n.s.) | 10.01° |
+| 2 | M3 | 87 | 11.4° | 43.76min | 0.276 / 0.000 | 5.05° | 0.353 / 0.000 | 5.71° |
+
+**Read on this**: M1≈M3 (not M2) holds up again, in both segments, on a fifth and sixth
+independent measurement (now across five different nights total counting the earlier ones) —
+Segment 1: 132.44 vs 132.36min (essentially identical). Segment 2: 46.22 vs 43.76min (also
+close to each other). That cross-motor consistency-within-a-segment is the most repeatable
+signal in this whole investigation so far. What is *not* yet resolved: Segment 2's time-domain
+period is roughly 1/3 of Segment 1's (44-46min vs 132min) — could be genuine harmonic
+aliasing (a shorter segment latching onto a higher harmonic of the same true period a longer
+one resolves as fundamental) or could be two genuinely different measurements not yet
+reconciled; not distinguished yet. Angle-domain peaks remain closer to their testable_max
+ceilings than ideal (88-100%), so the *absolute* angular period numbers from this data still
+carry the same caveat as before — the cross-motor pattern is the reliable part, not yet the
+specific degree value.
+
+## New driver feature: `SGLOG` — self-sufficient sync-guide telemetry without `log_position`
+
+Motivated directly by the previous section: the 08_31 capture needed `log_position` (KFLOG)
+on just to recover motor position for `derive_theta_from_sync_residuals()`, which is what
+produced 20 rotated 20MB files for a single overnight run. That's avoidable — `process_guide_sync()`
+already computes everything needed at the moment of each sync-guide correction, it just wasn't
+being logged in structured form.
+
+**`driver/control.py` changes** (`process_guide_sync()`, plus new state):
+- New per-session state `self.sg_accum_ra` / `self.sg_accum_dec` (arcmin, cumsum of `resid`
+  since the last reset), reset alongside `self.q_syncguide_B` in `clear_sync_guiding()`.
+- A new `SGLOG {dict}` line, logged unconditionally right after the existing plain-text
+  `"SYNC GUIDING ... Residuals"` line (same as PECLOG's own logging — independent of
+  `Config.log_pec`/`Config.log_position`, so it's available even with both off). Fields:
+  `resid` (this correction, arcmin, same convention as PECLOG's `resid`), `total_accum`
+  (cumsum since reset — deliberately independent of PEC's own `total_accum`, valid even with
+  PEC off, same convention as `derive_theta_from_sync_residuals()` already assumed for the
+  08_31 data), `theta_raw` ([M1,M2,M3] degrees, straight from `self.polaris._theta_raw` — no
+  more need to nearest-match against KFLOG to get a position), `az`/`alt`/`roll` (topocentric
+  PV, same convention as PECLOG), `interval_sec` (smoothed EMA time between syncs), and
+  `age_518` (telemetry staleness, same diagnostic PECLOG carries).
+- Verified with `compile()`; not yet exercised against a live driver run (no capture has used
+  it yet — it's brand new).
+
+**`utility/analyse_helpers.py`**: added `load_sglog(log_filenames, log_dir='.')`, parsing
+`SGLOG {dict}` lines into a DataFrame with the same `resid_1/2`/`az`/`alt`/`roll`/
+`total_accum_1/2` column shape `load_pec()` produces, so `derive_theta_from_total_accum()`
+works on SGLOG output directly (its PEC-independence assumption already matches how SGLOG's
+`total_accum` is constructed). `theta_raw_1/2/3` is carried straight through, so for a
+PEC-off/log_position-off session, SGLOG alone is now sufficient for the theta-space pipeline —
+no KFLOG needed, and no nearest-timestamp matching (`load_sync_guiding_residuals()` +
+`derive_theta_from_sync_residuals()` remain the fallback path for logs captured before this
+change). Raises if no SGLOG lines are found, matching `load_pec()`'s behavior.
+
+**Not yet done**: no real SGLOG data exists to validate against (next capture will be the
+first). Once one exists, worth a quick sanity check that `load_sglog()`'s `total_accum` column
+reproduces `cumsum(resid)` to rounding precision, the same check already done for PECLOG's
+`total_accum` against `08_29` data.
