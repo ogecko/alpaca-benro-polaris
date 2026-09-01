@@ -14,9 +14,16 @@
 #   1. Converts the group's files into a Siril sequence
 #   2. Registers the sequence (global star alignment)
 #   3. Stacks with sigma-clipping rejection
-#   4. Denoises the stack                          (optional, RUN_DENOISE)
-#   5. Runs aberration correction                   (optional, RUN_ABERRATION_REMOVER)
-#   6. Saves as <prefix>_<channel>_stack[_NNNs].fits
+#   4. Deconvolves with BlurXTerminator              (optional, RUN_BLURXTERMINATOR)
+#   5. Denoises the stack                            (optional, RUN_DENOISE)
+#   6. Runs aberration correction                    (optional, RUN_ABERRATION_REMOVER)
+#   7. Saves as <prefix>_<channel>_stack[_NNNs].fits
+#
+# BlurXTerminator runs before denoising (step 4, ahead of step 5) because
+# deconvolution wants the cleanest, most detailed data it can get and can
+# amplify residual noise -- GraXpert then cleans that up afterwards. Both
+# are independent on/off switches, so any combination of the two (or
+# neither) works.
 #
 # Output goes to <channel>/stacked/, ready for Galactic_2_Composite.py.
 #
@@ -42,6 +49,9 @@
 #   Siril 1.4.0 or later.
 #   GraXpert-AI.py installed via Scripts -> Get Scripts (if RUN_DENOISE).
 #   GraXpert executable path set in Preferences -> Miscellaneous.
+#   BlurXTerminator.py installed via Scripts -> Get Scripts, the RC-Astro
+#   stand-alone CLI tool installed, and your BlurXTerminator license
+#   activated (if RUN_BLURXTERMINATOR).
 #   Run Galactic_0_Calibration.py first.
 
 import sirilpy as s
@@ -98,7 +108,7 @@ FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
 # If your panels are landing on opposite sides of a rounding boundary AND
 # genuinely different panels are colliding at low precision, raise
 # RENAME_DECIMALS (e.g. to 1) before reaching for MERGE_LABELS.
-RENAME_DECIMALS = 1
+RENAME_DECIMALS = -1
 
 # Manual override for one-off anomalies (e.g. a mount slip put two batches of
 # the same intended panel further apart than any RENAME_DECIMALS setting could
@@ -154,13 +164,40 @@ STACK_SIGMA_HIGH = 3            # upper sigma threshold for rejection
 STACK_NORM       = "addscale"   # normalisation: addscale / add / mul / no
 
 # ------------------------------------------------------------------------
-# Step 4: Denoise -- RUN_DENOISE
+# Step 4: BlurXTerminator deconvolution -- RUN_BLURXTERMINATOR
 # ------------------------------------------------------------------------
-RUN_DENOISE      = True
+# Runs RC-Astro's BlurXTerminator (via its Siril script, same mechanism as
+# GraXpert-AI.py below) on the stack right after stacking and before
+# denoise. Requires the RC-Astro stand-alone CLI tool and an activated
+# BlurXTerminator license (see Prerequisites above) -- Siril's own
+# BlurXTerminator.py script just drives that CLI tool under the hood.
+#
+# Config names and CLI flags below match Galactic_3_Stretch.py's own
+# BXT_* config/_build_bxt_args() exactly (that script also calls
+# BlurXTerminator.py) -- keep the two in sync if RC-Astro ever renames a
+# flag again (it has happened before: --ansr became --ansp).
+RUN_BLURXTERMINATOR = False
+
+BXT_SHARPEN_STARS      = 0.0     # --ss    (0.0 - 0.7)
+BXT_ADJUST_STAR_HALOS  = 0.0     # --ash   (-0.5 - 0.5)
+BXT_AUTOMATIC_PSF      = True    # --ansp / --no-ansp (Auto Nonstellar PSF)
+BXT_SHARPEN_NONSTELLAR = 0.5     # --sn    (0.0 - 1.0)
+BXT_CORRECT_ONLY       = False   # --correct-only; when True every other
+                                  # BXT_* setting above is ignored (pinned
+                                  # by the tool itself) and only PSF
+                                  # aberration correction is applied.
+# Only used if BXT_AUTOMATIC_PSF is False (manual nonstellar PSF diameter,
+# in pixels, 0.0 - 8.0):
+BXT_NONSTELLAR_RADIUS = 0.0
+
+# ------------------------------------------------------------------------
+# Step 5: Denoise -- RUN_DENOISE
+# ------------------------------------------------------------------------
+RUN_DENOISE      = False
 DENOISE_STRENGTH = 1.0     # GraXpert denoising strength: 0.0 (none) to 1.0 (max)
 
 # ------------------------------------------------------------------------
-# Step 5: Aberration correction -- RUN_ABERRATION_REMOVER
+# Step 6: Aberration correction -- RUN_ABERRATION_REMOVER
 # ------------------------------------------------------------------------
 # Opens a GUI dialog for each panel group -- only enable when you need to
 # correct specific panels (delete their _stack file and rerun with this on).
@@ -168,7 +205,7 @@ DENOISE_STRENGTH = 1.0     # GraXpert denoising strength: 0.0 (none) to 1.0 (max
 RUN_ABERRATION_REMOVER = False
 
 # ------------------------------------------------------------------------
-# Step 6: Save / naming -- RUN_EXPOSURE_POSTFIX
+# Step 7: Save / naming -- RUN_EXPOSURE_POSTFIX
 # ------------------------------------------------------------------------
 # Appends the total summed exposure time to stack filenames, e.g. 10x30s subs
 # -> "..._stack_300s.fits". Sums each input file's own exposure header (not
@@ -763,7 +800,7 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
     # and register agree on the filename suffix -- without this, convert
     # may write .fit while register looks for .fits (or vice-versa).
     # ------------------------------------------------------------------
-    siril_log(siril, "  [1/4] Converting " + str(n) + " files into sequence '" + seq_name + "'...")
+    siril_log(siril, "  [1/5] Converting " + str(n) + " files into sequence '" + seq_name + "'...")
 
     if not cmd_safe(siril, "cd", str(group_dir)):
         return False
@@ -800,7 +837,7 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
     # STACK_FRAMING="current" keeps the old single-pass register, which
     # writes the r_ files directly with no cropping.
     # ------------------------------------------------------------------
-    siril_log(siril, "  [2/4] Registering (-transf=" + REGISTER_TRANSF
+    siril_log(siril, "  [2/5] Registering (-transf=" + REGISTER_TRANSF
               + ", framing=" + STACK_FRAMING + ")...")
     # Set the last frame as reference (the first can be wobbly from mount
     # settling after a slew). NOTE: -2pass runs its own quality-based
@@ -848,7 +885,7 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
     MIN_FRAMES_FOR_REJECTION = 5
     if n < MIN_FRAMES_FOR_REJECTION:
         stack_type_used = "med"   # median -- inherent single-outlier rejection
-        siril_log(siril, "  [3/4] Stacking " + str(n) + " frames -> median"
+        siril_log(siril, "  [3/5] Stacking " + str(n) + " frames -> median"
                   + " (too few for sigma rejection) -> " + stack_out + " ...")
         if not cmd_safe(
             siril,
@@ -862,7 +899,7 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
             return False
     else:
         stack_type_used = STACK_TYPE
-        siril_log(siril, "  [3/4] Stacking " + str(n) + " frames -> "
+        siril_log(siril, "  [3/5] Stacking " + str(n) + " frames -> "
                   + STACK_TYPE + " rejection -> " + stack_out + " ...")
         if not cmd_safe(
             siril,
@@ -878,7 +915,7 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
             return False
 
     # ------------------------------------------------------------------
-    # Step 4: GraXpert Denoise only
+    # Step 4/5: BlurXTerminator deconvolution, then GraXpert Denoise
     # BGE is done after LRGB recomposition in Galactic_3_Stretch.py --
     # per-channel BGE before recomposition causes colour casts at panel
     # edges because each channel gets a different background model.
@@ -895,7 +932,7 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
             break
 
     if stack_path is None:
-        siril_log(siril, "  [ERROR] Stacked file not found -- skipping denoise.")
+        siril_log(siril, "  [ERROR] Stacked file not found -- skipping post-processing.")
         cleanup_group_dir(siril, group_dir, work_dir)
         return False
 
@@ -905,10 +942,43 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
         cleanup_group_dir(siril, group_dir, work_dir)
         return False
 
+    # BlurXTerminator deconvolution (optional -- see RUN_BLURXTERMINATOR
+    # config). Runs on the linear stack, before denoise, since
+    # deconvolution wants the cleanest data available and GraXpert
+    # afterwards cleans up any noise it amplifies.
+    bxt_ok = False
+    if RUN_BLURXTERMINATOR:
+        if BXT_CORRECT_ONLY:
+            siril_log(siril, "  [4/5] BlurXTerminator: optical-aberration correction only...")
+            bxt_ok = cmd_safe(
+                siril,
+                "pyscript", "BlurXTerminator.py",
+                "--correct-only",
+            )
+        else:
+            siril_log(siril, "  [4/5] BlurXTerminator (--ss=" + str(BXT_SHARPEN_STARS)
+                      + " --sn=" + str(BXT_SHARPEN_NONSTELLAR)
+                      + " --ash=" + str(BXT_ADJUST_STAR_HALOS)
+                      + ", auto_psf=" + str(BXT_AUTOMATIC_PSF) + ")...")
+            bxt_args = [
+                "--ss", str(BXT_SHARPEN_STARS),
+                "--ash", str(BXT_ADJUST_STAR_HALOS),
+                "--sn", str(BXT_SHARPEN_NONSTELLAR),
+            ]
+            if BXT_AUTOMATIC_PSF:
+                bxt_args.append("--ansp")
+            else:
+                bxt_args += ["--no-ansp", "--nsd", str(BXT_NONSTELLAR_RADIUS)]
+            bxt_ok = cmd_safe(siril, "pyscript", "BlurXTerminator.py", *bxt_args)
+        if not bxt_ok:
+            siril_log(siril, "  [WARNING] BlurXTerminator failed -- continuing without it.")
+    else:
+        siril_log(siril, "  [4/5] BlurXTerminator skipped (RUN_BLURXTERMINATOR = False).")
+
     # Denoise (optional -- see RUN_DENOISE config)
     denoise_ok = False
     if RUN_DENOISE:
-        siril_log(siril, "  [4/4] Denoising via GraXpert-AI.py -denoise (strength=" + str(DENOISE_STRENGTH) + ")...")
+        siril_log(siril, "  [5/5] Denoising via GraXpert-AI.py -denoise (strength=" + str(DENOISE_STRENGTH) + ")...")
         denoise_ok = cmd_safe(
             siril,
             "pyscript", "GraXpert-AI.py",
@@ -916,7 +986,7 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
             "-strength=" + str(DENOISE_STRENGTH),
         )
     else:
-        siril_log(siril, "  [4/4] Denoising skipped (RUN_DENOISE = False).")
+        siril_log(siril, "  [5/5] Denoising skipped (RUN_DENOISE = False).")
 
     # Optional: Aberration Removal (GUI dialog -- see RUN_ABERRATION_REMOVER config)
     ab_ok = False
@@ -936,6 +1006,7 @@ def process_group(siril, group_prefix, files, work_dir, stack_out):
         return False
 
     steps_done = ["stacked"]
+    if bxt_ok:     steps_done.append("BlurXTerminator")
     if denoise_ok: steps_done.append("denoised")
     if ab_ok:      steps_done.append("aberration corrected")
     siril_log(siril, "  OK  Saved (" + " + ".join(steps_done) + "): " + final_path.name)
