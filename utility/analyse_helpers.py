@@ -384,13 +384,12 @@ def load_sglog(log_filenames, log_dir='.'):
     Parse 'SGLOG {dict}' lines (control.py's process_guide_sync(), added specifically so a
     session with PEC -- and hence PECLOG -- off, and log_position off to avoid KFLOG/PIDLOG's
     much higher control-tick-rate log volume, still carries enough for theta-space analysis)
-    into a DataFrame. Schema (az/alt/roll, resid_1/2, total_accum_1/2) matches load_pec()'s
-    output closely enough that derive_theta_from_total_accum() works on it directly --
-    SGLOG's total_accum already excludes any PEC contribution by construction (see the
-    field's own comment in control.py), which is exactly the assumption that function makes
-    for the PEC-off case. theta_raw_1/2/3 is also carried directly, avoiding the
-    nearest-KFLOG-sample reconstruction load_sync_guiding_residuals() +
-    derive_theta_from_sync_residuals() need for logs that predate SGLOG.
+    into a DataFrame with az/alt/roll, resid_1/2, total_accum_1/2, and theta_raw_1/2/3 (the
+    real motor position at the moment of each sync -- no nearest-KFLOG-sample matching needed,
+    unlike load_sync_guiding_residuals() + derive_theta_from_sync_residuals() for logs that
+    predate SGLOG). Use derive_theta_from_sglog() on the result, not
+    derive_theta_from_total_accum() -- SGLOG carries no 'n' PEC-model-reset counter for that
+    function's internal segment splitting to key off.
 
     Raises if no SGLOG lines are found -- for an older log without it, use
     load_sync_guiding_residuals() + derive_theta_from_sync_residuals() instead.
@@ -792,6 +791,102 @@ def derive_theta_from_sync_residuals(resid_df, kf_df, lat_deg, lon_deg, theta2_e
     return out
 
 
+def derive_theta_from_sglog(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
+    """
+    PEC-independent per-motor drift trajectory from SGLOG alone (load_sglog()) -- no KFLOG or
+    PECLOG needed. Simpler than derive_theta_from_sync_residuals(): SGLOG already carries
+    theta_raw_1/2/3 (the real motor position at the moment of each sync) and az/alt/roll (the
+    PID's PV) directly on every row, so there's no nearest-sample matching to do, and no
+    separate cumsum(resid) bookkeeping either -- total_accum_1/2 (backed by the driver's own
+    delta_guide_accum, see docs/pec_theta_space_plan.md) is already that cumulative sum,
+    tracked live in the driver.
+
+    For each row:
+      1. theta_meas_1/2/3 = theta_raw_1/2/3 directly -- already in motor space, no conversion
+         needed. Use as the angle-domain x-axis (dominated by real tracking motion), the same
+         role theta_pred_i/theta_meas_i play in the PECLOG/sync-residual derivations.
+      2. Anchor ra0/dec0 at the first usable row: this row's logged az/alt (PV) -> ra/dec via
+         kinematics.azalt_to_radec().
+      3. true_ra/dec(t) = ra0/dec0 + total_accum_1/2(t)/60 (arcmin -> degrees) -- the sky
+         position the mount would be pointing at if it had run open-loop with zero correction
+         since total_accum's last reset.
+      4. true_az/alt(t) = true_ra/dec(t) -> az/alt via kinematics.radec_to_altaz(), combined
+         with this row's own logged roll.
+      5. theta_true_1/2/3(t) = azaltroll_to_theta(true_az, true_alt, roll, lastPos) -- one
+         running LastPosition across the whole df.
+
+    Unlike derive_theta_from_total_accum(), this does NOT split internally on any reset
+    counter -- SGLOG carries no 'n' field (there's no PEC model here to reset against).
+    total_accum can still jump discontinuously within a session (clear_sync_guiding(), or any
+    optimize_alignQ_B2T() realignment -- see load_sglog()); if this session spans a
+    goto/reslew/reconnection, pre-split the df yourself first (e.g. one find_tracking_segments()
+    segment at a time), the same convention derive_theta_from_sync_residuals() documents.
+
+    Adds theta_meas_1/2/3 and theta_true_1/2/3 (degrees) to a copy of df; NaN for rows missing
+    az/alt/roll/total_accum_1/2/theta_raw_1/2/3, where the kinematics solve fails, or near the
+    theta2 near-singularity (same guard and justification as derive_theta_ground_truth()).
+    """
+    import sys
+    driver_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver'))
+    if driver_dir not in sys.path:
+        sys.path.insert(0, driver_dir)
+    from kinematics import azalt_to_radec, radec_to_altaz, azaltroll_to_theta, LastPosition
+
+    out = df.copy().reset_index(drop=True)
+    theta_meas = {i: [] for i in (1, 2, 3)}
+    theta_true = {i: [] for i in (1, 2, 3)}
+    anchor_ra = anchor_dec = None
+    last_pos = LastPosition()
+
+    def _isnan(v):
+        return v is None or (isinstance(v, float) and pd.isna(v))
+
+    for idx in range(len(out)):
+        row = out.iloc[idx]
+        az, alt, roll = row.get('az'), row.get('alt'), row.get('roll')
+        ta1, ta2 = row.get('total_accum_1'), row.get('total_accum_2')
+        m1, m2, m3 = row.get('theta_raw_1'), row.get('theta_raw_2'), row.get('theta_raw_3')
+        ts = row['timestamp']
+
+        if any(_isnan(v) for v in (az, alt, roll, ta1, ta2, m1, m2, m3)):
+            for i in (1, 2, 3):
+                theta_meas[i].append(float('nan'))
+                theta_true[i].append(float('nan'))
+            continue
+
+        date_obs_utc = ts.strftime('%Y-%m-%dT%H:%M:%S.%f')
+        if anchor_ra is None:
+            anchor_ra, anchor_dec = azalt_to_radec(az, alt, lat_deg, lon_deg, date_obs_utc)
+            if anchor_ra is None:
+                for i in (1, 2, 3):
+                    theta_meas[i].append(float('nan'))
+                    theta_true[i].append(float('nan'))
+                continue
+
+        true_ra = anchor_ra + ta1 / 60
+        true_dec = anchor_dec + ta2 / 60
+        true_az, true_alt = radec_to_altaz(true_ra, true_dec, lat_deg, lon_deg, date_obs_utc)
+        t_true = azaltroll_to_theta(true_az, true_alt, roll, last_pos) if true_az is not None else (None, None, None)
+
+        if t_true[0] is None or t_true[1] > theta2_exclude_above:
+            for i in (1, 2, 3):
+                theta_meas[i].append(float('nan'))
+                theta_true[i].append(float('nan'))
+            continue
+
+        last_pos.update(*t_true)
+        for i, v in zip((1, 2, 3), (m1, m2, m3)):
+            theta_meas[i].append(v)
+        for i in (1, 2, 3):
+            theta_true[i].append(t_true[i - 1])
+
+    for i in (1, 2, 3):
+        out[f'theta_meas_{i}'] = theta_meas[i]
+        out[f'theta_true_{i}'] = theta_true[i]
+
+    return out
+
+
 def lombscargle_periodogram(x, y, min_period=None, max_period=None, n_periods=2000, detrend=True):
     """
     Lomb-Scargle periodogram of y against x, for irregularly-sampled data -- PECLOG's own
@@ -931,3 +1026,301 @@ def load_kf_pid(log_filenames, log_dir='.'):
     kf_df  = _finalize_log_df(kf_rows)  if kf_rows  else pd.DataFrame()
     pid_df = _finalize_log_df(pid_rows) if pid_rows else pd.DataFrame()
     return kf_df, pid_df
+
+
+# ── Comms / dropout / restart diagnostics ───────────────────────────────────────────────────
+
+_VITALS_RE = re.compile(
+    r"^(?P<ts>\S+) WARNING ->> (?P<kind>Polaris position update|Heartbeat lag detected|"
+    r"Event loop lag detected):\s+"
+    r"(?:lag|pulse|slept) (?P<lag>[\d.]+)s \(expected [\d.]+s\) "
+    r"CPU:\s*(?P<cpu>[\d.]+)% Mem:\s*(?P<mem>[\d.]+)% \((?P<mem_mb>\d+)MB\) "
+    r"Swap:\s*(?P<swap>[\d.]+)% Threads: (?P<threads>\d+) "
+    r"NetDrops: (?P<dropin>\d+)/(?P<dropout>\d+) NetErr: (?P<errin>\d+)/(?P<errout>\d+)"
+)
+
+
+def load_vitals(log_filenames, log_dir='.'):
+    """
+    Parse the driver's shr.system_vitals()-carrying WARNING lines into a DataFrame -- three
+    distinct triggers, all sharing the same CPU/Mem/Swap/thread-count/network-counter
+    snapshot format:
+      - 'Polaris position update' -- polaris.py's 500ms watchdog (_every_500ms_watchdog_check),
+        fires whenever 518 telemetry itself is running late (>0.5s).
+      - 'Heartbeat lag detected' -- main.py's asyncio event-loop watchdog thread, fires when
+        the event loop's own heartbeat coroutine hasn't pulsed recently -- a sign the loop is
+        stalled on something CPU-bound, not a network symptom.
+      - 'Event loop lag detected' -- polaris.py's own watchdog-cycle sleep overrun check
+        (expected to sleep 0.5s between cycles; fires when it actually took meaningfully
+        longer) -- same root cause as heartbeat lag, different call site.
+
+    Each is a genuine discrete event with its own system snapshot at the moment it fired --
+    exactly the context needed to tell a real network/Polaris-side problem apart from local
+    system resource pressure on the machine running the driver. NetDrops/NetErr are
+    psutil.net_io_counters() system-wide cumulative counters (interface-level hard drops/
+    errors) -- they won't catch WiFi RSSI degradation, TCP-level retransmission, or CPU
+    contention from another process, only a hard interface-level drop, so 0/0 here doesn't by
+    itself rule out a real problem; see load_high_cpu_events() for the CPU-contention case
+    specifically (system_vitals() triggers a one-shot top-5-process probe whenever it
+    observes CPU > 95%, logged separately as its own 'HIGH CPU LOAD breakdown' line).
+
+    Returns an empty DataFrame, not an error, when none are found.
+    """
+    paths = resolve_log_files(log_filenames, log_dir=log_dir)
+    rows = []
+    for log_path in paths:
+        if not os.path.exists(log_path):
+            raise FileNotFoundError(f"log_path does not exist: {log_path!r}")
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = _VITALS_RE.match(line)
+                if not m:
+                    continue
+                d = m.groupdict()
+                rows.append(dict(
+                    timestamp=d["ts"], kind=d["kind"],
+                    lag_s=float(d["lag"]), cpu_pct=float(d["cpu"]),
+                    mem_pct=float(d["mem"]), mem_mb=int(d["mem_mb"]),
+                    swap_pct=float(d["swap"]), threads=int(d["threads"]),
+                    net_dropin=int(d["dropin"]), net_dropout=int(d["dropout"]),
+                    net_errin=int(d["errin"]), net_errout=int(d["errout"]),
+                ))
+    df = pd.DataFrame(rows)
+    if len(df):
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df.sort_values("timestamp", kind="stable").drop_duplicates().reset_index(drop=True)
+    return df
+
+
+_HIGH_CPU_RE = re.compile(r"^(?P<ts>\S+) WARNING ->> HIGH CPU LOAD breakdown:\s+(?P<procs>.*)$")
+_HIGH_CPU_PROC_RE = re.compile(r"^(?P<name>.+?)\s+(?P<pct>[\d.]+)%$")
+
+
+def load_high_cpu_events(log_filenames, log_dir='.'):
+    """
+    Parse 'HIGH CPU LOAD breakdown: <Name X.X%, Name X.X%, ...>' WARNING lines (main.py's
+    heartbeat-monitor thread, via shr.system_cpu(): a one-shot top-5-process-by-CPU% probe,
+    triggered whenever a system_vitals() call -- i.e. any of load_vitals()'s three warning
+    kinds -- observes CPU > 95%). This is the single most direct signal for "was this dropout
+    caused by CPU contention on the machine running the driver" -- found essential while
+    investigating a real overnight dropout (docs/pec_theta_space_plan.md): the disconnect at
+    2026-09-01T00:21:52 was preceded by NINA.exe (imaging software) and the driver's own
+    python.exe pushing CPU to 100%, starving the driver's asyncio event loop long enough that
+    the connection was forcibly closed.
+
+    Returns a long-form DataFrame (one row per ranked process per event: timestamp, rank
+    (1=highest), process, cpu_pct) -- easier to plot/filter/join than the raw comma-joined
+    string. Empty DataFrame, not an error, when none are found (a session with no CPU
+    contention has none, and that's the expected/good case).
+    """
+    paths = resolve_log_files(log_filenames, log_dir=log_dir)
+    rows = []
+    for log_path in paths:
+        if not os.path.exists(log_path):
+            raise FileNotFoundError(f"log_path does not exist: {log_path!r}")
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = _HIGH_CPU_RE.match(line)
+                if not m:
+                    continue
+                procs = m.group("procs").strip()
+                if not procs:
+                    continue
+                for rank, part in enumerate(procs.split(", "), start=1):
+                    pm = _HIGH_CPU_PROC_RE.match(part.strip())
+                    if pm:
+                        rows.append(dict(timestamp=m.group("ts"), rank=rank,
+                                          process=pm.group("name"), cpu_pct=float(pm.group("pct"))))
+    df = pd.DataFrame(rows)
+    if len(df):
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df.sort_values(["timestamp", "rank"], kind="stable").drop_duplicates().reset_index(drop=True)
+    return df
+
+
+_CONN_EVENT_PATTERNS = [
+    ('driver_start', re.compile(r"^(?P<ts>\S+) INFO ==STARTUP== ALPACA BENRO POLARIS DRIVER (?P<detail>.+?)\s*=+"), None),
+    ('disconnect', re.compile(r"^(?P<ts>\S+) ERROR ==DISCONNECT== Polaris socket error: (?P<detail>.*)$"), None),
+    ('disconnect', re.compile(r"^(?P<ts>\S+) WARNING ==DISCONNECT== Polaris socket closed\.$"),
+        lambda m: {'detail': 'socket closed (no data)'}),
+    ('reconnect_error', re.compile(r"^(?P<ts>\S+) ERROR ==STARTUP== Connection error: (?P<detail>.*)$"), None),
+    ('connect_attempt_failed', re.compile(
+        r"^(?P<ts>\S+) ERROR (?!==)(?P<detail>Connect timed out\..*|Connection .*|"
+        r"Check (?:Network|Hostname).*|Polaris not .*|Unexpected error:.*)$"), None),
+    ('init_start', re.compile(r"^(?P<ts>\S+) INFO Polaris communication init\.\.\.$"),
+        lambda m: {'detail': None}),
+    ('init_done', re.compile(r"^(?P<ts>\S+) INFO Polaris communication init\.\.\. done$"),
+        lambda m: {'detail': None}),
+    ('wifi_join_failed', re.compile(r"^(?P<ts>\S+) WARNING Failed to join WiFi network '(?P<ssid>[^']+)': (?P<detail>.*)$"), None),
+    ('wifi_interface', re.compile(r"^(?P<ts>\S+) INFO Using WiFi interface: (?P<detail>.*)$"), None),
+    ('sync_observed', re.compile(r"^(?P<ts>\S+) INFO ->> Polaris: SYNC Observed\s+(?P<detail>.*)$"), None),
+]
+
+_CLIENT_ACTION_RE = re.compile(
+    r"^(?P<ts>\S+) INFO (?P<client_ip>\S+) -> PUT /api/v1/telescope/0/action (?P<body>\{.*\})\s*$"
+)
+_INTERESTING_ACTIONS = {
+    'Polaris:ConnectPolaris', 'Polaris:DeviceConnect', 'Polaris:DeviceDisconnect',
+    'Polaris:bleEnableWifi', 'Polaris:ConfigUpdate', 'Polaris:RestartDriver', 'Polaris:StopDriver',
+}
+
+
+def load_connection_events(log_filenames, log_dir='.'):
+    """
+    Parse the driver's connection-lifecycle log lines -- process (re)starts, socket
+    disconnects, reconnect attempts (both flavors -- see below), successful re-inits, WiFi
+    interface/join events, and the client REST actions that drive/observe reconnection
+    (Polaris:ConnectPolaris, ConfigUpdate, etc.) -- into a single DataFrame, sorted by the
+    timestamp *embedded in each line*, not by which file it came from.
+
+    That sort is not optional: rotated log files are numbered by *reverse* recency (a fresh
+    'alpaca.log' plus '.1', '.2', ... or an equivalent NN-suffixed archive naming), so
+    concatenating them in filename order silently interleaves events backwards -- confirmed
+    the hard way while diagnosing a real overnight dropout (docs/pec_theta_space_plan.md): the
+    file holding the disconnect (...a12.log) chronologically *precedes* the file holding the
+    successful reconnect (...a11.log), the opposite of their filename order.
+
+    Two distinct connect-failure 'kind's, both surfaced by control.py/polaris.py's own
+    error-formatting (_format_connection_error), worth telling apart:
+      - 'connect_attempt_failed' -- a fresh TCP connect attempt itself failed/timed out
+        (attempt_polaris_connect()) -- there was no established connection to lose, so this
+        repeats every ~15s during the retry backoff with no driver restart in between.
+      - 'reconnect_error' -- an *established* connection broke, caught in
+        run_connection_cycle()'s own except block. This includes the 5s-no-518-telemetry
+        watchdog specifically (detail == 'Polaris not communicating. Resetting connection.',
+        from polaris.py's _every_500ms_watchdog_check() raising WatchdogError) as well as any
+        other send/receive failure on an already-open socket.
+    'disconnect' is the raw socket-level event itself (read_msgs()'s own except block,
+    carrying the raw OS/Python exception text, e.g. a WinError) -- usually immediately
+    followed by a run of 'connect_attempt_failed' events as the retry loop tries to
+    re-establish a fresh connection. Note a hard 'disconnect' can happen *before* the 5s
+    watchdog ever gets a chance to fire -- distinguish the two from trigger_kind/
+    trigger_detail, don't assume every outage is the 5s-watchdog case.
+
+    'config_update' rows additionally carry every key of the REST call's own Parameters dict
+    as a 'param_<key>' column (e.g. param_log_position) -- added because a config toggle
+    mid-outage (e.g. log_position turned off while troubleshooting, then back on later) can
+    otherwise look exactly like a real KFLOG/PIDLOG data gap to another notebook; cross-check
+    against this table (or use reconstruct_outages(), which does this automatically) before
+    treating a coincident gap as itself evidence of an outage's true start/end.
+
+    Returns an empty DataFrame, not an error, when none are found.
+    """
+    paths = resolve_log_files(log_filenames, log_dir=log_dir)
+    rows = []
+    for log_path in paths:
+        if not os.path.exists(log_path):
+            raise FileNotFoundError(f"log_path does not exist: {log_path!r}")
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = _CLIENT_ACTION_RE.match(line)
+                if m:
+                    try:
+                        body = ast.literal_eval(m.group("body"))
+                    except (ValueError, SyntaxError):
+                        body = None
+                    action = body.get('Action') if isinstance(body, dict) else None
+                    if action in _INTERESTING_ACTIONS:
+                        kind = 'config_update' if action == 'Polaris:ConfigUpdate' else 'client_action'
+                        row = dict(timestamp=m.group("ts"), kind=kind, action=action,
+                                   client=body.get('ClientID'), detail=action)
+                        if kind == 'config_update':
+                            params = body.get('Parameters')
+                            if isinstance(params, dict):
+                                for k, v in params.items():
+                                    row[f'param_{k}'] = v
+                        rows.append(row)
+                    continue
+                for kind, pattern, extractor in _CONN_EVENT_PATTERNS:
+                    pm = pattern.match(line)
+                    if not pm:
+                        continue
+                    row = dict(timestamp=pm.group("ts"), kind=kind)
+                    row.update(extractor(pm) if extractor else
+                               {k: v for k, v in pm.groupdict().items() if k != 'ts'})
+                    rows.append(row)
+                    break
+
+    df = pd.DataFrame(rows)
+    if len(df):
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df.sort_values("timestamp", kind="stable").drop_duplicates().reset_index(drop=True)
+        df["t_sec"] = (df["timestamp"] - df["timestamp"].iloc[0]).dt.total_seconds()
+    return df
+
+
+def reconstruct_outages(connection_events_df):
+    """
+    Walk load_connection_events()'s chronological event stream and collapse it into discrete
+    outage spans -- a 'disconnect'/'reconnect_error' event through to the next 'init_done' --
+    with full context on what happened in between. Exists because a real multi-file overnight
+    outage (docs/pec_theta_space_plan.md) turned out to span two separate driver-restart
+    attempts and a client config change (log_position toggled off, then back on, mid-outage),
+    none of which is obvious from any single line. It also matters for a subtler reason: a
+    naive KFLOG-gap-based estimate of "how long was the outage" can undershoot badly -- in
+    that same incident, the driver's KF/PID control loop kept ticking and being logged for
+    roughly 20 more minutes on dead-reckoned predictions alone after the real connection had
+    already died, only actually stopping when a client happened to also toggle
+    Config.log_position off mid-outage -- so the true connection-level outage (~30 min) was
+    nearly double what the KFLOG-visible gap alone suggested (~15 min). Always prefer this
+    reconstruction's outage_start/outage_end over a raw telemetry-gap boundary when the two
+    disagree.
+
+    For each outage: trigger_kind/trigger_detail (what broke it -- see load_connection_events()
+    for the 'disconnect' vs 'reconnect_error' vs 'connect_attempt_failed' distinction),
+    n_connect_attempts_failed (retry count during the outage), driver_restarted (whether a
+    fresh ==STARTUP== happened mid-outage -- a real process/OS restart, not just a retry),
+    n_driver_restarts, wifi_join_failed (whether a WiFi rejoin was attempted and failed during
+    it), config_changes (list of {timestamp, params} for any Polaris:ConfigUpdate seen
+    mid-outage). An outage still open when the event stream ends (no 'init_done' after the
+    last trigger) gets outage_end=NaT, ongoing=True -- e.g. the capture was stopped, or the
+    log files loaded don't extend far enough to see the eventual recovery.
+    """
+    if not len(connection_events_df):
+        return pd.DataFrame()
+
+    events = connection_events_df.sort_values('timestamp', kind='stable').reset_index(drop=True)
+    outages = []
+    down = False
+    cur = None
+
+    def _new_outage(ev):
+        return dict(
+            outage_start=ev.timestamp, trigger_kind=ev.kind,
+            trigger_detail=ev.get('detail'),
+            n_connect_attempts_failed=0, driver_restarted=False, n_driver_restarts=0,
+            wifi_join_failed=False, config_changes=[],
+        )
+
+    for _, ev in events.iterrows():
+        if ev.kind in ('disconnect', 'reconnect_error'):
+            if not down:
+                cur = _new_outage(ev)
+                down = True
+        elif ev.kind == 'connect_attempt_failed' and down:
+            cur['n_connect_attempts_failed'] += 1
+        elif ev.kind == 'driver_start' and down:
+            cur['driver_restarted'] = True
+            cur['n_driver_restarts'] += 1
+        elif ev.kind == 'wifi_join_failed' and down:
+            cur['wifi_join_failed'] = True
+        elif ev.kind == 'config_update' and down:
+            params = {k[len('param_'):]: ev[k] for k in ev.index
+                      if k.startswith('param_') and pd.notna(ev[k])}
+            cur['config_changes'].append(dict(timestamp=ev.timestamp, params=params))
+        elif ev.kind == 'init_done' and down:
+            cur['outage_end'] = ev.timestamp
+            cur['ongoing'] = False
+            outages.append(cur)
+            down = False
+            cur = None
+
+    if down and cur is not None:
+        cur['outage_end'] = pd.NaT
+        cur['ongoing'] = True
+        outages.append(cur)
+
+    out = pd.DataFrame(outages)
+    if len(out):
+        out['duration_min'] = (out['outage_end'] - out['outage_start']).dt.total_seconds() / 60
+    return out

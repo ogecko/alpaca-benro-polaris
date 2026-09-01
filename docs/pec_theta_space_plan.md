@@ -589,14 +589,58 @@ advanced_sync_guiding on, log_position on (KFLOG available). 20 rotated files, 3
 232416 KFLOG rows, 2026-08-31 19:08:52 → 2026-09-01 08:41:33 (~13.5h nominal span). Site:
 same as before (-33.655°, 151.122°, Sydney).
 
-**Real interruption found and precisely bounded** (not from `find_tracking_segments()`'s
-REST-command boundaries, which found a different, spurious split — from the raw KFLOG/PIDLOG
-timestamp gaps directly): driver telemetry gap 2026-09-01 00:41:42.411 → 00:57:12.591
-(15.5min — the reboot). A second disruption follows at 03:30:24: `synctocoordinates` to
-RA=0.394h/Dec=-71.75° (essentially 47 Tuc) immediately followed by `findhome` +
-`"Advanced Control: STOP tracking"` — almost certainly the point the TP-Link IP fix actually
-completed and reconnection finished (matches the user's account of a longer recovery than the
-15.5min driver-process gap alone suggests).
+**Real interruption found and precisely bounded — corrected.** Originally reported (from raw
+KFLOG/PIDLOG timestamp gaps directly, not `find_tracking_segments()`'s REST-command
+boundaries, which found a different, spurious split) as a 15.5min driver telemetry gap
+2026-09-01 00:41:42.411 → 00:57:12.591. **That gap boundary is real but was the wrong signal
+to trust for the outage's true extent** — found while building `utility/analyse_comms.ipynb`
+(new notebook; see the section below) and its `load_connection_events()`/
+`reconstruct_outages()` helpers, which parse the driver's own connection-lifecycle log lines
+(`==DISCONNECT==`, `Connect timed out`, `==STARTUP==`, `Polaris communication init... done`,
+client REST actions) across all rotated files, sorted by each line's own embedded timestamp
+rather than file order (rotated files are numbered newest-to-oldest here, so naively
+concatenating by filename silently interleaves events backwards).
+
+The reconstructed outage is **2026-09-01 00:21:52.445 → 00:51:43.158 (~29.8min)** — starting
+~20 minutes earlier than previously documented, and ending ~5.5 minutes earlier too:
+1. `HIGH CPU LOAD breakdown` at 00:21:59 shows NINA.exe (38.5%) + the driver's own python.exe
+   (23.4%) pushing the host CPU near 100%, corroborated by escalating `Heartbeat lag
+   detected`/`Event loop lag detected` vitals warnings in the preceding ~10s (pulse lag
+   0.447s → 5.955s; event-loop sleep overrun up to 3.237s against a 500ms budget).
+2. That starved the driver's asyncio event loop long enough that at 00:21:52.445,
+   `==DISCONNECT== Polaris socket error: [WinError 10054] An existing connection was forcibly
+   closed by the remote host` — the remote side (or the OS/network stack under load) reset the
+   connection. **Not** the driver's own 5s-no-518-telemetry watchdog (`age_518` was only
+   ~1.1s at the last position-update-lag warning immediately before this) — a harder failure
+   preempted it.
+3. 110 `Connect timed out` reconnect attempts followed, all failing, for ~25 minutes.
+4. A WiFi rejoin was attempted via `Polaris:bleEnableWifi`/`Polaris:ConnectPolaris` REST
+   actions at 00:41:12–00:41:29 and failed (`Failed to join WiFi network 'polaris_b83c06':
+   netsh wlan connect failed: ... error 0x57`). The client also toggled `log_position` off at
+   00:41:43.836 mid-outage — **this, not the connection recovering, is what actually stopped
+   KFLOG/PIDLOG at 00:41:42** (the KF/PID control loop had kept ticking and being logged on
+   dead-reckoned predictions for the ~20 minutes since the real disconnect, past the point the
+   connection had already died).
+5. A fresh driver process started at 00:47:07 (`==STARTUP==` — the miniPC/driver restart) but
+   still couldn't connect for another ~4.5 minutes.
+6. `Polaris:ConnectPolaris` at 00:51:42 finally succeeded; `Polaris communication init...
+   done` at 00:51:43.158 closes the outage. `log_position` wasn't turned back on until
+   00:57:12.543 — five and a half minutes *after* the connection was already back up — which
+   is what actually produced the 00:57:12 boundary in the original KFLOG-gap-based finding.
+
+**Net effect: the previously-reported 00:41:42→00:57:12 "gap" was never the outage's true
+start/end — it was a `log_position` logging toggle that happened to span part of a longer
+outage that had already started 20 minutes earlier and (partially) resolved 5.5 minutes
+earlier.** Segment 1/Segment 2 below were split at the old (wrong) boundary; a re-split at the
+corrected 00:21:52/00:51:43 boundary hasn't been redone here — `analyse_pec_theta.ipynb`'s own
+`find_tracking_segments()`-based split (00:21:34→00:57:39) already lands close to the
+corrected reality independently, which is reassuring, but the periodogram results in this
+section below still reflect the original (slightly wrong) segment boundaries and haven't been
+rerun against the correction.
+
+A second disruption follows at 03:30:24: `synctocoordinates` to RA=0.394h/Dec=-71.75°
+(essentially 47 Tuc) immediately followed by `findhome` + `"Advanced Control: STOP tracking"`
+— see below, this is the deliberate session stop, unrelated to the outage above.
 
 **Tracking stopping at 03:30:24 is expected, not a bug — user stopped the session there
 deliberately (3:30 AM).** `θ_ref_raw` (only populated "while actively tracking") has exactly
@@ -706,16 +750,103 @@ being logged in structured form.
   it yet — it's brand new).
 
 **`utility/analyse_helpers.py`**: added `load_sglog(log_filenames, log_dir='.')`, parsing
-`SGLOG {dict}` lines into a DataFrame with the same `resid_1/2`/`az`/`alt`/`roll`/
-`total_accum_1/2` column shape `load_pec()` produces, so `derive_theta_from_total_accum()`
-works on SGLOG output directly (its PEC-independence assumption already matches how SGLOG's
-`total_accum` is constructed). `theta_raw_1/2/3` is carried straight through, so for a
-PEC-off/log_position-off session, SGLOG alone is now sufficient for the theta-space pipeline —
-no KFLOG needed, and no nearest-timestamp matching (`load_sync_guiding_residuals()` +
-`derive_theta_from_sync_residuals()` remain the fallback path for logs captured before this
-change). Raises if no SGLOG lines are found, matching `load_pec()`'s behavior.
+`SGLOG {dict}` lines into a DataFrame with `resid_1/2`/`az`/`alt`/`roll`/`total_accum_1/2`/
+`theta_raw_1/2/3`. **Not** a drop-in for `derive_theta_from_total_accum()` — caught in review:
+that function splits internally on PECLOG's `n` reset counter, which SGLOG has no equivalent
+of (there's no PEC model resetting here). Added a dedicated `derive_theta_from_sglog()`
+instead — same open-loop reconstruction math as `derive_theta_from_total_accum()` (anchor
+ra0/dec0, `true_ra/dec(t) = anchor + total_accum(t)/60`, convert to theta via the kinematics
+chain), but simpler than `derive_theta_from_sync_residuals()`'s KFLOG-matching path: SGLOG
+already carries `theta_raw_1/2/3` (the real motor position) on every row, so `theta_meas_i =
+theta_raw_i` directly, no nearest-sample matching needed. Doesn't split internally at all —
+caller pre-splits by tracking segment (e.g. one `find_tracking_segments()` window at a time),
+same convention `derive_theta_from_sync_residuals()` already documents. For a
+PEC-off/log_position-off session, SGLOG + `derive_theta_from_sglog()` is now sufficient for
+the theta-space pipeline — no KFLOG needed (`load_sync_guiding_residuals()` +
+`derive_theta_from_sync_residuals()` remain the fallback for logs captured before SGLOG
+existed).
+
+**New notebook: `utility/analyse_pec_theta.ipynb`.** Split the theta-space harmonic analysis
+out of ad-hoc in-conversation scripts (it was never actually saved into any notebook before
+this) into its own dedicated one, separate from `analyse_kf_pid.ipynb`/`analyse_pec.ipynb`'s
+own KFLOG/PIDLOG/PECLOG-plotting cells. Auto-detects and falls through PECLOG →
+SGLOG → sync-residual+KFLOG in preference order — **falls through on a source producing zero
+usable segments, not just on a load error**, found necessary by testing against real data: the
+08_31 PEC-off capture actually has 2 stray PECLOG rows (from just before PEC was disabled that
+session), so an exception-only fallback silently picked the PECLOG path and produced nothing
+useful instead of falling through to the sync-residual+KFLOG path that actually has the data.
+Runs the angle-domain periodogram as `x = theta_true_i` (raw), `y = theta_true_i` pre-detrended
+against **time** first (not against `x` — self-pairing `x`/`y` from the same array and letting
+`lombscargle_periodogram()`'s own linear detrend run against `x` is the exact degenerate case
+found and fixed earlier in this investigation, since `y ≈ x` almost perfectly and detrending
+zeroes out the whole signal). Verified end-to-end against real data (no notebook-execution
+tooling available in this environment, so verified by concatenating the notebook's own code
+cells into a script and running it): the sync-residual+KFLOG path against the 08_31 capture
+reproduces the M1≈M3-vs-scattered-M2 pattern already established above (FAP=0.000 for M1/M3 in
+both segments, M2 non-significant in segment 2), and the PECLOG path runs cleanly against the
+`08_29n` session too.
 
 **Not yet done**: no real SGLOG data exists to validate against (next capture will be the
-first). Once one exists, worth a quick sanity check that `load_sglog()`'s `total_accum` column
-reproduces `cumsum(resid)` to rounding precision, the same check already done for PECLOG's
-`total_accum` against `08_29` data.
+first — the new notebook's SGLOG branch itself is therefore untested against real data, only
+compile-checked and reasoned through). Once one exists, worth a quick sanity check that
+`load_sglog()`'s `total_accum` column reproduces `cumsum(resid)` to rounding precision, the
+same check already done for PECLOG's `total_accum` against `08_29` data.
+
+## New notebook: `utility/analyse_comms.ipynb` — comms/dropout/restart diagnosis
+
+Split out of `analyse_kf_pid.ipynb`'s "Driver vitals events" and "Comms Anomaly" sections
+(removed from there; `analyse_kf_pid.ipynb` keeps its own "Telemetry gaps"/"Gap masking"
+cells, since those are still needed there purely as plot-masking infrastructure, not as
+diagnosis). Motivated directly by needing to actually answer "why did the 08_31 capture drop
+out at 2026-09-01T00:21:52" with evidence, not a guess — see the correction above, which this
+notebook's tooling produced.
+
+**New parsers in `utility/analyse_helpers.py`:**
+- `load_vitals()` — moved from an inline notebook function, and extended to also catch `Event
+  loop lag detected` (polaris.py's own watchdog-cycle sleep-overrun check) alongside the
+  existing `Polaris position update`/`Heartbeat lag detected` kinds — a real gap in the
+  original inline version, which only matched two of the three `shr.system_vitals()` call
+  sites and so silently missed a warning kind that turned out to be directly relevant to the
+  08_31 incident.
+- `load_high_cpu_events()` — new. Parses `HIGH CPU LOAD breakdown: <Name X.X%, ...>` lines
+  (`shr.system_cpu()`, a one-shot top-5-process probe the driver triggers whenever it sees
+  CPU > 95%) into a long-form per-process DataFrame. This was the single most direct clue in
+  the 08_31 incident (NINA.exe + the driver's own python.exe near 100% CPU) and wasn't parsed
+  anywhere before.
+- `load_connection_events()` — new. Parses the full connection-lifecycle event stream
+  (`==STARTUP==`, `==DISCONNECT==`, both flavors of connect failure — `connect_attempt_failed`
+  vs `reconnect_error`, see the function's own docstring for the distinction and how each maps
+  to `_format_connection_error()` in `driver/polaris.py` — `Polaris communication init...
+  done`, WiFi interface/join events, and interesting client REST actions including
+  `Polaris:ConfigUpdate`, flattened to `param_*` columns) into one DataFrame, chronologically
+  sorted by each line's own embedded timestamp. **Sorting by embedded timestamp rather than
+  file order is not optional** — confirmed the hard way building this: this project's rotated
+  log naming runs newest-to-oldest (`..._aNN.log`, and default `alpaca.log`/`.1`/`.2`/...
+  rotation too), so the file holding the 08_31 disconnect (`...a12.log`) chronologically
+  *precedes* the file holding its resolution (`...a11.log`) — the opposite of filename order.
+- `reconstruct_outages()` — new. Collapses the connection-event stream into discrete outage
+  spans with full context (trigger, failed-retry count, whether a driver restart happened
+  mid-outage, WiFi rejoin failures, config changes mid-outage). Exists because neither a
+  single log line nor a raw KFLOG-gap estimate told the true story for 08_31: the KF/PID
+  control loop kept ticking and being logged on dead-reckoned predictions for ~20 minutes
+  *after* the real connection died, only actually stopping when a client happened to also
+  toggle `Config.log_position` off mid-outage — so trusting the KFLOG-visible gap alone
+  produced a materially wrong outage boundary (see the correction above). All four new
+  functions validated end-to-end against the real 08_31 capture (13 rotated files, ~500min),
+  including one bug caught by that testing: `high_cpu_df.rank` silently collided with
+  pandas' own `DataFrame.rank()` method in the first draft (same class of gotcha already
+  documented elsewhere in this codebase for `ev.axes` vs `Series.axes`) — fixed to bracket
+  access (`high_cpu_df['rank']`).
+
+**`utility/analyse_comms.ipynb`** covers: Driver vitals events, HIGH CPU LOAD breakdown
+(new), Telemetry gaps, Connection lifecycle events (new), Outage reconstruction (new, the key
+diagnostic — cross-references its own outage spans against the Telemetry-gaps table and notes
+when they diverge and why, rather than assuming one is simply wrong), and the Comms Anomaly
+interactive hunter (ported from `analyse_kf_pid.ipynb`, self-contained). Ends with the 08_31
+incident as a worked-example writeup. Verified end-to-end against the real 08_31 capture.
+
+**`analyse_kf_pid.ipynb` changes**: removed "Driver vitals events" and "Comms Anomaly"
+(detection + hunter) sections entirely; the Spike/Oscillation hunters' own optional vitals
+overlay already guarded on `"vitals_df" in globals()`, so they degrade gracefully now that
+vitals aren't loaded there. Re-verified end-to-end against the same 08_31 capture after the
+trim — no errors, 1758 Spike + 1364 Oscillation events still flagged as before.
