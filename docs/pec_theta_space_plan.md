@@ -678,19 +678,30 @@ produced 20 rotated 20MB files for a single overnight run. That's avoidable — 
 already computes everything needed at the moment of each sync-guide correction, it just wasn't
 being logged in structured form.
 
-**`driver/control.py` changes** (`process_guide_sync()`, plus new state):
-- New per-session state `self.sg_accum_ra` / `self.sg_accum_dec` (arcmin, cumsum of `resid`
-  since the last reset), reset alongside `self.q_syncguide_B` in `clear_sync_guiding()`.
+**`driver/control.py` changes** (`process_guide_sync()`):
 - A new `SGLOG {dict}` line, logged unconditionally right after the existing plain-text
   `"SYNC GUIDING ... Residuals"` line (same as PECLOG's own logging — independent of
   `Config.log_pec`/`Config.log_position`, so it's available even with both off). Fields:
   `resid` (this correction, arcmin, same convention as PECLOG's `resid`), `total_accum`
-  (cumsum since reset — deliberately independent of PEC's own `total_accum`, valid even with
-  PEC off, same convention as `derive_theta_from_sync_residuals()` already assumed for the
-  08_31 data), `theta_raw` ([M1,M2,M3] degrees, straight from `self.polaris._theta_raw` — no
-  more need to nearest-match against KFLOG to get a position), `az`/`alt`/`roll` (topocentric
-  PV, same convention as PECLOG), `interval_sec` (smoothed EMA time between syncs), and
-  `age_518` (telemetry staleness, same diagnostic PECLOG carries).
+  (cumsum since reset, arcmin), `theta_raw` ([M1,M2,M3] degrees, straight from
+  `self.polaris._theta_raw` — no more need to nearest-match against KFLOG to get a position),
+  `az`/`alt`/`roll` (topocentric PV, same convention as PECLOG), `interval_sec` (smoothed EMA
+  time between syncs), and `age_518` (telemetry staleness, same diagnostic PECLOG carries).
+- **`total_accum` reuses the existing `self.delta_guide_accum[0]`/`[1]` state, not a new
+  counter.** First cut of this added a dedicated `sg_accum_ra`/`sg_accum_dec` pair — caught in
+  review as redundant: `accumulate_sync_guiding_residuals()` (called right before the SGLOG
+  block, same as before) already does `delta_guide_accum[0] += ra_resid` /
+  `[1] += dec_resid`, the identical cumulative sum, just in degrees rather than arcmin
+  (scaled ×60 when logged). Tracing the reset call sites showed `delta_guide_accum`'s
+  semantics are actually *more* correct for this than a dedicated counter would have been: it
+  resets in `clear_sync_guiding()` (same as a dedicated counter would), but *also* in
+  `clear_guide_pulses()` — called from `optimize_alignQ_B2T()` whenever the QUEST `alignQ_B2T`
+  model is recomputed (only happens on the non-sync-guiding path through `sync_az_alt()`,
+  i.e. rare during steady guiding) — exactly the moment a stale cumulative total would
+  otherwise silently mean something different against the new alignment model. A separate
+  counter reset only by `clear_sync_guiding()` would have kept summing straight through an
+  alignment change. Removed the dedicated state entirely; SGLOG now just reads
+  `delta_guide_accum` after `accumulate_sync_guiding_residuals()` has updated it.
 - Verified with `compile()`; not yet exercised against a live driver run (no capture has used
   it yet — it's brand new).
 

@@ -1643,8 +1643,6 @@ class SyncManager:
         self.q_pulseguide_B = Quaternion(1,0,0,0)   # accumulation of pulse guide corrections
         self.q_syncguide_B = Quaternion(1,0,0,0)    # accumulation of sync guide corrections
         self.valid_sync_guide = False               # flag to indicate pure sidereal tracking since last sync
-        self.sg_accum_ra  = 0.0                     # arcmin, cumsum(ra_resid) since last reset -- see SGLOG in process_guide_sync()
-        self.sg_accum_dec = 0.0                     # arcmin, cumsum(dec_resid) since last reset -- same convention as PECLOG's total_accum, but independent of PEC/PECLOG so it's usable with Config.advanced_pec off
         self.delta_guide_accum = np.zeros(3, dtype=float)
         self.delta_guide_pulse = np.zeros(3, dtype=float) 
         self.equatorial_axes_B = (None, None, None)
@@ -2512,16 +2510,22 @@ class SyncManager:
 
         self.logger.info(f"->> Polaris: SYNC GUIDING    Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)} Residuals")
 
+        self.accumulate_sync_guiding_residuals(ra_resid, dec_resid)
+
         # SGLOG: structured record of this correction -- logged unconditionally (like the text
         # line above), independent of Config.log_pec/log_position, so a session run with PEC
         # (and hence PECLOG) off, and log_position off to avoid flooding the logs at KFLOG/
         # PIDLOG's control-tick rate, still has enough to reconstruct per-motor drift: the
-        # resid itself, a running cumulative total (same convention as PECLOG's total_accum,
-        # but tracked independently so it's valid even without PECLOG), and the raw motor
-        # position at this exact moment (theta_raw) -- avoiding the nearest-KFLOG-sample
-        # matching a notebook would otherwise need to reconstruct position from az/alt/roll.
-        self.sg_accum_ra  += ra_resid * 60
-        self.sg_accum_dec += dec_resid * 60
+        # resid itself, a running cumulative total, and the raw motor position at this exact
+        # moment (theta_raw) -- avoiding the nearest-KFLOG-sample matching a notebook would
+        # otherwise need to reconstruct position from az/alt/roll.
+        #
+        # total_accum reuses delta_guide_accum (already maintained by
+        # accumulate_sync_guiding_residuals above) rather than a separate counter -- it resets
+        # in clear_sync_guiding() same as a dedicated counter would, but *also* in
+        # clear_guide_pulses() whenever optimize_alignQ_B2T() recomputes alignQ_B2T, which is
+        # exactly when a stale cumulative total would otherwise silently mean something
+        # different against the new alignment model.
         theta_raw = self.polaris._theta_raw
         pv_deg = self.polaris._pid.alpha_pv
         sg_payload = {
@@ -2531,7 +2535,7 @@ class SyncManager:
             # correction; if PEC is also active this session, PECLOG's own total_accum already
             # covers the combined (resid + pec_accum) case, and will differ from this by
             # however much PEC has applied so far
-            "total_accum": [round(float(self.sg_accum_ra), 4), round(float(self.sg_accum_dec), 4)],
+            "total_accum": [round(float(self.delta_guide_accum[0] * 60), 4), round(float(self.delta_guide_accum[1] * 60), 4)],
             # degrees, raw motor encoder position [M1, M2, M3] as of the last 518 message
             "theta_raw": [round(float(v), 5) for v in theta_raw] if theta_raw is not None else [None, None, None],
             # degrees, current topocentric PV -- same convention as PECLOG's az/alt/roll
@@ -2542,8 +2546,6 @@ class SyncManager:
             "age_518": round(float(self.polaris._age_518_seconds), 3),
         }
         self.logger.info(f"SGLOG {sg_payload}")
-
-        self.accumulate_sync_guiding_residuals(ra_resid, dec_resid)
 
         # update the drift and PEC model
         self.update_pec_model(ra_resid,dec_resid)
@@ -2566,8 +2568,6 @@ class SyncManager:
         self._sync_guide_interval = None
         self._sync_guide_last_time = None
         self.q_syncguide_B = Quaternion(1,0,0,0)
-        self.sg_accum_ra  = 0.0
-        self.sg_accum_dec = 0.0
         self.delta_guide_accum = np.zeros(3, dtype=float)
         if Config.advanced_scc_enabled and Config.advanced_scc_choice==2:
             self.scc_error = 0
