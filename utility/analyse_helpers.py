@@ -1144,6 +1144,19 @@ _CONN_EVENT_PATTERNS = [
     ('disconnect', re.compile(r"^(?P<ts>\S+) WARNING ==DISCONNECT== Polaris socket closed\.$"),
         lambda m: {'detail': 'socket closed (no data)'}),
     ('reconnect_error', re.compile(r"^(?P<ts>\S+) ERROR ==STARTUP== Connection error: (?P<detail>.*)$"), None),
+    # read_msgs()'s own except block -- the canonical "an established connection died"
+    # trigger. Covers three distinct root causes sharing this one log format: the 5s-no-
+    # 518 watchdog (WatchdogError, detail startswith '==ERROR==: No position update...'),
+    # a cmd-response timeout re-raised from _await_cmd_response, and a raw send/receive
+    # failure -- see _CONNECTION_ERROR_TAXONOMY below for telling them apart via `detail`.
+    ('reconnect_error', re.compile(r"^(?P<ts>\S+) ERROR ==ERROR== read_msgs failed: (?P<detail>.*)$"), None),
+    # ==TIMEOUT==/==SEND== both set the same _task_exception that read_msgs() picks up and
+    # re-logs (with identical detail text) as the 'reconnect_error' above one loop tick
+    # later -- kept as their own non-triggering kinds (reconstruct_outages() only treats
+    # 'disconnect'/'reconnect_error' as outage starts) purely for taxonomy/context, so a
+    # real outage isn't double-counted just because both lines appear for it.
+    ('cmd_timeout', re.compile(r"^(?P<ts>\S+) ERROR ==TIMEOUT== (?P<detail>.*)$"), None),
+    ('send_error', re.compile(r"^(?P<ts>\S+) ERROR ==SEND== Failed to send message: (?P<detail>.*)$"), None),
     ('connect_attempt_failed', re.compile(
         r"^(?P<ts>\S+) ERROR (?!==)(?P<detail>Connect timed out\..*|Connection .*|"
         r"Check (?:Network|Hostname).*|Polaris not .*|Unexpected error:.*)$"), None),
@@ -1152,9 +1165,165 @@ _CONN_EVENT_PATTERNS = [
     ('init_done', re.compile(r"^(?P<ts>\S+) INFO Polaris communication init\.\.\. done$"),
         lambda m: {'detail': None}),
     ('wifi_join_failed', re.compile(r"^(?P<ts>\S+) WARNING Failed to join WiFi network '(?P<ssid>[^']+)': (?P<detail>.*)$"), None),
+    # BLE-mediated Wi-Fi-radio-enable failures (Polaris:bleEnableWifi) -- a distinct WiFi
+    # lifecycle event from wifi_join_failed above (that one is the *host's* netsh join to
+    # the Polaris hotspot; this one is telling the Polaris itself, over Bluetooth, to turn
+    # its Wi-Fi radio on in the first place).
+    ('ble_wifi_failed', re.compile(r"^(?P<ts>\S+) ERROR (?P<detail>BLE failed to enable Wi-Fi after \d+ attempts for \S+)$"), None),
+    ('ble_error', re.compile(r"^(?P<ts>\S+) ERROR (?P<detail>Unexpected BLE error on attempt \d+:.*)$"), None),
     ('wifi_interface', re.compile(r"^(?P<ts>\S+) INFO Using WiFi interface: (?P<detail>.*)$"), None),
     ('sync_observed', re.compile(r"^(?P<ts>\S+) INFO ->> Polaris: SYNC Observed\s+(?P<detail>.*)$"), None),
 ]
+
+
+# ── Connection-error taxonomy ───────────────────────────────────────────────────────────
+#
+# Maps the free-text `detail` captured by the patterns above to a short, stable
+# `error_code` + one-line `error_meaning` + broader `error_category` (for grouping/
+# charting). Built by grepping every capture in logs/archive for its unique connect_
+# attempt_failed/reconnect_error/disconnect/wifi_join_failed/ble_* detail strings, then
+# cross-referencing driver/polaris.py's own `_format_connection_error()` (the only place
+# that turns a raw exception into the text that ends up in these log lines) and
+# docs/troubleshooting.md's C0/C1/C3 sections (written from field reports of the same
+# failures) for what each one actually means and how to chase it down.
+#
+# Deliberately keyed on regexes matched against the *rendered* message, not the exception
+# class -- that's all a log line gives us to go on, and it's what `detail` already is.
+# Ordered most-specific first; first match wins. Entries: (code, meaning, category, regex).
+_CONNECTION_ERROR_TAXONOMY = [
+    ('WATCHDOG_NO_TELEMETRY',
+     "Driver's 5s-no-518-telemetry watchdog fired on an already-established connection -- "
+     "Polaris stopped sending position updates even though the socket itself looked fine.",
+     'watchdog', re.compile(r'No position update for over 5s')),
+
+    ('CMD_RESPONSE_TIMEOUT',
+     'A specific command (usually cmd 284, the current-mode query during init) got no reply '
+     'within its timeout and the link was declared dead.',
+     'watchdog', re.compile(r'No response to Polaris cmd \d+')),
+
+    ('CONNECTION_LOST',
+     'The socket reported the connection already gone when the driver next tried to use it '
+     '(send or read) -- same underlying loss as a disconnect/reset, just observed on the '
+     'send/receive path rather than the raw socket-error handler.',
+     'peer_reset', re.compile(r'^Connection lost\b')),
+
+    ('SOCKET_CLOSED_CLEAN',
+     'Peer closed the TCP connection cleanly (zero-byte read, no error) -- Polaris or the '
+     'app-side ended the session outright rather than the link failing underneath it.',
+     'closed_clean', re.compile(r'socket closed \(no data\)|Polaris socket closed')),
+
+    ('WSAECONNRESET',
+     'Peer forcibly reset an established connection (WSAECONNRESET/WinError 10054) -- often '
+     'the OS/network stack timing out the socket after the event loop was starved too long '
+     'to service it. See docs/troubleshooting.md C3-1 (CPU/resource starvation).',
+     'peer_reset', re.compile(r'WinError\s*10054|winerror=10054')),
+
+    ('NETNAME_DELETED',
+     'The network adapter/name disappeared out from under the socket (WinError 64) -- '
+     'typically a Wi-Fi adapter reset or driver crash. See docs/troubleshooting.md C3-6.',
+     'adapter_reset', re.compile(r'WinError\s*64\b')),
+
+    ('CONN_ABORTED_LOCAL',
+     'Windows tore the TCP connection down locally (WinError 1236) -- most often a DHCP '
+     'lease rejection (DHCPNACK) or an adapter/IP change. See docs/troubleshooting.md C3-2.',
+     'local_abort', re.compile(r'WinError\s*1236|winerror=1236')),
+
+    ('CONN_REFUSED',
+     'Polaris actively refused the connection attempt (WinError 1225) -- nothing was '
+     'listening on the expected port (Astro Mode not active, or Polaris still booting).',
+     'refused', re.compile(r'WinError\s*1225|winerror=1225')),
+
+    ('SEM_TIMEOUT',
+     'A network operation timed out mid-flight (winerror=121, ERROR_SEM_TIMEOUT) -- usually '
+     'a degraded/weak Wi-Fi link rather than a hard disconnect. See docs/troubleshooting.md '
+     'C3-5 (RF interference/signal strength).',
+     'link_degraded', re.compile(r'winerror=121\b|WinError\s*121\b')),
+
+    ('NET_UNREACHABLE',
+     'No route to the Polaris subnet at all -- the Wi-Fi adapter is not associated to the '
+     'Polaris hotspot. See docs/troubleshooting.md C1a.',
+     'unreachable', re.compile(r'WinError\s*1231|errno=51\b')),
+
+    ('HOST_UNREACHABLE',
+     'Associated to the Polaris Wi-Fi but no IP route to the Polaris host -- wrong IP '
+     'config, IPv6-only association, or DHCP failure. See docs/troubleshooting.md C1b/C1c.',
+     'unreachable', re.compile(r'WinError\s*1232|errno=(?:60|64)\b')),
+
+    ('CONNECT_TIMEOUT',
+     "Fresh TCP connect() itself never completed within the 5s attempt window -- Polaris is "
+     "off, not yet booted, or the host hasn't joined the polaris_XXXXXX hotspot yet.",
+     'connect_timeout', re.compile(r'^Connect timed out\.')),
+
+    ('CONN_ABORTED_GENERIC',
+     'Local OS aborted the connection (bare ConnectionAbortedError, no specific winerror).',
+     'local_abort', re.compile(r'network connection was aborted')),
+
+    ('NOT_ASTRO_MODE',
+     "Polaris isn't in Astro Mode -- a mount-config state, not a network failure. Use the "
+     'Polaris App to change mode.',
+     'config_state', re.compile(r'not in Astro Mode')),
+
+    ('NOT_ALIGNED',
+     "Polaris alignment isn't complete -- a mount-config state, not a network failure. "
+     'Complete alignment in the Polaris App.',
+     'config_state', re.compile(r'not aligned')),
+
+    ('BLE_WIFI_ENABLE_FAILED',
+     "bleEnableWifi couldn't turn the Polaris's Wi-Fi radio on via Bluetooth after repeated "
+     'attempts -- phone/app still holding the BLE connection, out of range, or the Polaris '
+     'BLE stack wedged.',
+     'ble', re.compile(r'BLE failed to enable Wi-Fi')),
+
+    ('BLE_ERROR',
+     'An unclassified error occurred talking to the Polaris over Bluetooth.',
+     'ble', re.compile(r'Unexpected BLE error')),
+]
+
+# Generic fallback for a WinError/winerror/errno number this taxonomy hasn't seen yet --
+# keeps it groupable by code instead of silently collapsing into 'UNCLASSIFIED'.
+_WINCODE_FALLBACK_RE = re.compile(r'WinError\s*(-?\d+)|winerror=(-?\d+)|errno=(-?\d+)')
+
+
+def classify_connection_error(detail, kind=None):
+    """
+    Map one load_connection_events() row's `detail` (+ its `kind`, for the wifi_join_failed
+    special case below) to (error_code, error_meaning, error_category) via
+    _CONNECTION_ERROR_TAXONOMY. Returns (None, None, None) for a missing/empty detail --
+    e.g. driver_start/init_start/init_done/sync_observed/config_update rows, which carry no
+    error to classify.
+
+    Falls back to extracting a bare WinError/winerror/errno number for anything not
+    explicitly enumerated in the taxonomy (a 'WINERR_<n>'/'ERRNO_<n>' code with a generic
+    meaning), and to ('UNCLASSIFIED', None, 'other') when even that fails -- so a brand new
+    error string this taxonomy hasn't been taught yet still lands in the table with *some*
+    code, rather than crashing or vanishing.
+    """
+    if not detail:
+        return (None, None, None)
+    if kind == 'wifi_join_failed':
+        return ('WIFI_JOIN_FAILED',
+                "The host's own Wi-Fi join to the Polaris hotspot (netsh) failed -- see "
+                'docs/troubleshooting.md C0 (adapter compatibility) / C3-4 (adapter hardware).',
+                'wifi_join')
+    for code, meaning, category, pattern in _CONNECTION_ERROR_TAXONOMY:
+        if pattern.search(detail):
+            return (code, meaning, category)
+    m = _WINCODE_FALLBACK_RE.search(detail)
+    if m:
+        n = next(g for g in m.groups() if g is not None)
+        return (f'WINERR_{n}',
+                f'Windows/OS error code {n} -- not yet in the taxonomy, see the raw detail text.',
+                'other')
+    return ('UNCLASSIFIED', None, 'other')
+
+
+# kinds from _CONN_EVENT_PATTERNS that represent an actual failure worth classifying --
+# everything else (driver_start, init_start/done, wifi_interface, sync_observed,
+# config_update, client_action) carries no error in its `detail`.
+_CLASSIFIABLE_ERROR_KINDS = {
+    'disconnect', 'reconnect_error', 'connect_attempt_failed', 'wifi_join_failed',
+    'cmd_timeout', 'send_error', 'ble_wifi_failed', 'ble_error',
+}
 
 _CLIENT_ACTION_RE = re.compile(
     r"^(?P<ts>\S+) INFO (?P<client_ip>\S+) -> PUT /api/v1/telescope/0/action (?P<body>\{.*\})\s*$"
@@ -1185,17 +1354,37 @@ def load_connection_events(log_filenames, log_dir='.'):
       - 'connect_attempt_failed' -- a fresh TCP connect attempt itself failed/timed out
         (attempt_polaris_connect()) -- there was no established connection to lose, so this
         repeats every ~15s during the retry backoff with no driver restart in between.
-      - 'reconnect_error' -- an *established* connection broke, caught in
-        run_connection_cycle()'s own except block. This includes the 5s-no-518-telemetry
-        watchdog specifically (detail == 'Polaris not communicating. Resetting connection.',
-        from polaris.py's _every_500ms_watchdog_check() raising WatchdogError) as well as any
-        other send/receive failure on an already-open socket.
-    'disconnect' is the raw socket-level event itself (read_msgs()'s own except block,
-    carrying the raw OS/Python exception text, e.g. a WinError) -- usually immediately
-    followed by a run of 'connect_attempt_failed' events as the retry loop tries to
-    re-establish a fresh connection. Note a hard 'disconnect' can happen *before* the 5s
-    watchdog ever gets a chance to fire -- distinguish the two from trigger_kind/
+      - 'reconnect_error' -- an *established* connection broke, from read_msgs()'s own
+        except-Exception block (`==ERROR== read_msgs failed: ...`). This includes the
+        5s-no-518-telemetry watchdog specifically (detail starts with '==ERROR==: No
+        position update for over 5s...', from polaris.py's _every_500ms_watchdog_check()
+        raising WatchdogError) as well as any other send/receive failure on an
+        already-open socket -- see _CONNECTION_ERROR_TAXONOMY / the error_code column for
+        telling them apart.
+    'disconnect' is the raw socket-level event itself (read_msgs()'s own read-loop except
+    block, carrying the raw OS/Python exception text, e.g. a WinError) -- usually
+    immediately followed by a run of 'connect_attempt_failed' events as the retry loop
+    tries to re-establish a fresh connection. Note a hard 'disconnect' can happen *before*
+    the 5s watchdog ever gets a chance to fire -- distinguish the two from trigger_kind/
     trigger_detail, don't assume every outage is the 5s-watchdog case.
+
+    Two more non-outage-triggering kinds exist purely for context/taxonomy, because
+    read_msgs() re-logs (and reconstruct_outages() re-counts) the same failure a moment
+    later as 'reconnect_error': 'cmd_timeout' (a _await_cmd_response() timeout, usually
+    cmd 284 during init) and 'send_error' (a failed socket write). 'ble_wifi_failed'/
+    'ble_error' cover Polaris:bleEnableWifi failing to turn the Polaris's own Wi-Fi radio
+    on over Bluetooth -- distinct from 'wifi_join_failed', which is the *host's* netsh
+    join to the Polaris hotspot failing.
+
+    Every row whose kind represents an actual failure (disconnect, reconnect_error,
+    connect_attempt_failed, wifi_join_failed, cmd_timeout, send_error, ble_wifi_failed,
+    ble_error) gets three extra columns via classify_connection_error() applied to its
+    `detail`: 'error_code' (a short stable id, e.g. 'WSAECONNRESET'), 'error_meaning' (a
+    one-line human explanation, with a docs/troubleshooting.md section reference where one
+    exists), and 'error_category' (a coarser grouping for charting -- 'watchdog',
+    'peer_reset', 'link_degraded', 'unreachable', 'wifi_join', 'ble', 'config_state',
+    'other', ...). NaN for every other kind (driver_start, init_start/done, sync_observed,
+    config_update, client_action) -- there's no error to classify on those.
 
     'config_update' rows additionally carry every key of the REST call's own Parameters dict
     as a 'param_<key>' column (e.g. param_log_position) -- added because a config toggle
@@ -1244,8 +1433,25 @@ def load_connection_events(log_filenames, log_dir='.'):
     df = pd.DataFrame(rows)
     if len(df):
         df["timestamp"] = pd.to_datetime(df["timestamp"])
-        df = df.sort_values("timestamp", kind="stable").drop_duplicates().reset_index(drop=True)
+        df = df.sort_values("timestamp", kind="stable").reset_index(drop=True)
+        # Plain drop_duplicates() fails outright on a config_update row whose param_<key>
+        # value is a list (e.g. Polaris:ConfigUpdate's kf_measure_noise/kf_process_noise
+        # arrays) -- pandas can't hash a list to dedupe on it. Dedupe on the stringified
+        # row instead; harmless for every other row, whose values are already scalar.
+        df = df.loc[~df.astype(str).duplicated()].reset_index(drop=True)
         df["t_sec"] = (df["timestamp"] - df["timestamp"].iloc[0]).dt.total_seconds()
+
+        # A plain index loop, not df.apply(axis=1) -- apply() collapses to a DataFrame
+        # instead of a Series of tuples whenever exactly one row is classifiable (a common
+        # case for a single short capture), silently breaking the zip-into-columns below.
+        idx = df.index[df["kind"].isin(_CLASSIFIABLE_ERROR_KINDS)]
+        codes, meanings, categories = [], [], []
+        for i in idx:
+            code, meaning, category = classify_connection_error(df.at[i, "detail"], df.at[i, "kind"])
+            codes.append(code); meanings.append(meaning); categories.append(category)
+        df["error_code"] = pd.Series(codes, index=idx, dtype="object")
+        df["error_meaning"] = pd.Series(meanings, index=idx, dtype="object")
+        df["error_category"] = pd.Series(categories, index=idx, dtype="object")
     return df
 
 
