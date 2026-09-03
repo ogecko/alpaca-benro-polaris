@@ -83,7 +83,7 @@ kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254
 measurement_dt = 0.2                        # KF Polaris' microcontroller emits 518 position updates on this fixed hardware cadence (seconds)
 measurement_catchup_max_dt = 2.0            # KF Maximum delay allowed before genuine 518 protocol outage flagging
 pid_Kp = [1.0, 1.0, 1.0]                    # PID Proportional Gain for M1, M2, M3 - increase control in proportion to position deviation (error)
-pid_Ki = [0.25, 0.25, 0.25]                 # PID Integral Gain for M1, M2, M3 - increase control when error is accumulating and persistent
+pid_Ki = [0.07, 0.07, 0.07]                 # PID Integral Gain for M1, M2, M3 - increase control when error is accumulating and persistent
 pid_Kd = [0.5, 0.5, 0.8]                    # PID Derivative Gain for M1, M2, M3 - reduce control when angular velocity higher (damping)
 pid_Ke = 0.4                                # PID Expotential Smoothing Gain for OP (0=None, 0.4=mix 40% of old OP)
 pid_Kc = 0.75                               # PID Arc-minutes tollerance to accept as not deviating
