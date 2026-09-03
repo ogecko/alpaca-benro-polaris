@@ -1039,14 +1039,20 @@ _VITALS_RE = re.compile(
     r"NetDrops: (?P<dropin>\d+)/(?P<dropout>\d+) NetErr: (?P<errin>\d+)/(?P<errout>\d+)"
 )
 
+# Display name shown downstream for each raw 'kind' matched above -- keyed by the literal
+# text the driver actually logs (unchanged there), so renaming a label here never breaks
+# _VITALS_RE's ability to match real log lines.
+_VITALS_KIND_DISPLAY_NAMES = {"Polaris position update": "518 lag detected"}
+
 
 def load_vitals(log_filenames, log_dir='.'):
     """
     Parse the driver's shr.system_vitals()-carrying WARNING lines into a DataFrame -- three
     distinct triggers, all sharing the same CPU/Mem/Swap/thread-count/network-counter
     snapshot format:
-      - 'Polaris position update' -- polaris.py's 500ms watchdog (_every_500ms_watchdog_check),
-        fires whenever 518 telemetry itself is running late (>0.5s).
+      - '518 lag detected' (raw log text: 'Polaris position update') -- polaris.py's 500ms
+        watchdog (_every_500ms_watchdog_check), fires whenever 518 telemetry itself is
+        running late (>0.5s).
       - 'Heartbeat lag detected' -- main.py's asyncio event-loop watchdog thread, fires when
         the event loop's own heartbeat coroutine hasn't pulsed recently -- a sign the loop is
         stalled on something CPU-bound, not a network symptom.
@@ -1078,7 +1084,7 @@ def load_vitals(log_filenames, log_dir='.'):
                     continue
                 d = m.groupdict()
                 rows.append(dict(
-                    timestamp=d["ts"], kind=d["kind"],
+                    timestamp=d["ts"], kind=_VITALS_KIND_DISPLAY_NAMES.get(d["kind"], d["kind"]),
                     lag_s=float(d["lag"]), cpu_pct=float(d["cpu"]),
                     mem_pct=float(d["mem"]), mem_mb=int(d["mem_mb"]),
                     swap_pct=float(d["swap"]), threads=int(d["threads"]),
