@@ -762,7 +762,7 @@ class Polaris:
 
             motorQ_state = theta_to_q(*self._theta_state)
 
-            # Translate from Base Frame to Topo Frame [MAC] -> QUEST -> [LGA] -> [RollAdj]
+            # Translate from Base Frame to Topo Frame [MAC] -> [SGC] => [PGC] -> QUEST -> [LGA] -> [RollAdj]
             cameraQ_pv, motorQ_pv = self._sm.baseQ_to_topoQ(motorQ_state)
             theta_pv = np.array(q_to_theta(motorQ_pv, self._pid._lp))
 
