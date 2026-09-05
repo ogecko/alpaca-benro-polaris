@@ -313,7 +313,16 @@ template figure (254)
 21. Whilst this figures are approximations (‘by eye’), they show clear differences and I;’m
 wondering if this is impacting on the success of the MPA etc
 
-
+#### releases-2_2_beta4.3- 04 September 2026
+* See alpaca.mark_Beta4.3_09_04_a*.log; Includes issue #88 fixes 1-13, not 14
+* Report on the 2 hour session, without PEC
+* The issue at 20:50 was actually not footfall, but it was me switching on the camera whilst connecting to NINA (I had omitted to do this) - so this resulted in the erratic movement of the mount etc. My fault completely
+* First  image was taken at 20:56 and the images were a bit mixed (some okay, others with squiggles etc)
+* Images zoomed in to 200% and showing time stamp
+* From 21:33 virtually all good until 21:46 … fine for another 5 mins (21:51), then good for 8 mins (21:59 until 22:02)
+* Thereafter, virtually every image from 22:09 were excellent, right until the end of the session at 23:03 - about 70 images over almost an hour
+* There was some wind at times, which might explain the squiggles - but brilliant performance for the last hour 
+* On the face of it, dev2_2 (wiithout PEC) is much improved
 
 ### Summary
 
