@@ -2641,8 +2641,8 @@ class SyncManager:
 
         # Config-driven thresholds (read once so update/apply don't need getattr)
         self._pec_mode        = PecMode(getattr(Config, 'pec_mode', 'rls'))               # 'rls' or 'ema'
-        self._pec_tau         = getattr(Config, 'pec_tau_sec',            21*60)         # single smoothing time constant (sec), both modes
-        self._pec_min_dt      = getattr(Config, 'pec_min_dt_sec',         0.05)          # ignore an axis update if it arrives sooner than this since that axis's own last update
+        self._pec_tau         = getattr(Config, 'pec_tau_sec',            7*60)           # single smoothing time constant (sec), both modes
+        self._pec_min_dt      = getattr(Config, 'pec_min_dt_sec',         0.05)           # ignore an axis update if it arrives sooner than this since that axis's own last update
         self._pec_min_obs     = getattr(Config, 'pec_min_observations',   3)              # inhibit until n > min_obs
         self._pec_max_resid   = getattr(Config, 'pec_max_resid_arcmin',   10.0)  / 60.0   # ignore guide update if resid > max_resid degrees
         self._pec_max_step    = getattr(Config, 'pec_max_step_arcmin',    0.5)   / 60.0   # clamp +/-correction step to max_step degrees every 200ms
