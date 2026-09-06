@@ -324,6 +324,14 @@ wondering if this is impacting on the success of the MPA etc
 * There was some wind at times, which might explain the squiggles - but brilliant performance for the last hour 
 * On the face of it, dev2_2 (wiithout PEC) is much improved
 
+
+#### releases-2_2_beta4.4- 05 September 2026
+* See alpaca.mark_Beta4.4_09_05_a*.log; Includes issue #88 fixes 1-14
+* Brilliant performance from dev2_2 using PEC
+* I’ve emailed you the Logs and some images (time stamped) as well as uploading to dropbox (in case the file attachments are too large for email) 
+* There were only 4 images that PixInsight didn’t used for the stacking … 98% success! 😀
+
+
 ### Summary
 
 
