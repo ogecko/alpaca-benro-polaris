@@ -315,9 +315,15 @@ wondering if this is impacting on the success of the MPA etc
 
 #### releases-2_2_beta4.3- 04 September 2026
 * See alpaca.mark_Beta4.3_09_04_a*.log; Includes issue #88 fixes 1-13, not 14
-* Report on the 2 hour session, without PEC
+* Report on the 2 hour session, without PEC, approx 160 images
+* 30s exposures at 400mm on 75 Tucanae
+* Solve and sync every minute (after each 2x 30s exposures)
+* 80% success rate with squiggles and other odd star shapes
+* The last 70 images (taken during second hour) were excellent
+* Target centred in frame - noticeable drift during the sequence
 * The issue at 20:50 was actually not footfall, but it was me switching on the camera whilst connecting to NINA (I had omitted to do this) - so this resulted in the erratic movement of the mount etc. My fault completely
 * First  image was taken at 20:56 and the images were a bit mixed (some okay, others with squiggles etc)
+* Without PEC, it is interesting that the final 70 images were excellent - Perhaps this is because the target was higher in the sky, for the second hour of imaging?
 * Images zoomed in to 200% and showing time stamp
 * From 21:33 virtually all good until 21:46 … fine for another 5 mins (21:51), then good for 8 mins (21:59 until 22:02)
 * Thereafter, virtually every image from 22:09 were excellent, right until the end of the session at 23:03 - about 70 images over almost an hour
@@ -328,8 +334,30 @@ wondering if this is impacting on the success of the MPA etc
 #### releases-2_2_beta4.4- 05 September 2026
 * See alpaca.mark_Beta4.4_09_05_a*.log; Includes issue #88 fixes 1-14
 * Brilliant performance from dev2_2 using PEC
+* x45 iterations (PEC Autotune learning)
+* 95% success rate with hardly any squiggles etc
+* Target centred in frame - negligible drift during the sequence
+* PEC certainly improved matters - virtually eliminating any drift of the target in frame and hardly any poor images (squiggles etc). 
+* This was using x45 iterations of PEC learning (took around 12 minutes to run). It may actually give further improvement with x60 iterations (estimate 16 minutes to run)
 * I’ve emailed you the Logs and some images (time stamped) as well as uploading to dropbox (in case the file attachments are too large for email) 
 * There were only 4 images that PixInsight didn’t used for the stacking … 98% success! 😀
+* Each 2 hour imaging session, produced around 160 x 30s exposures, which equates to 80 minutes of total imaging time (out of the 120 minutes run time). 
+* This means that 40 minutes was required for the ‘Solve & Sync’ process ….. 33% of the available time (2 hours)
+* This 33% loss of imaging time is unfortunate, but would be improved by changing the ‘Solve & Sync’ to run every 2 minutes (after 4x 30s exposures). 
+* There would probably be a trade off, however, with more squiggles and lost frames. So I guess it’s a balance with compromises either way
+
+
+
+#### releases-2_2_beta4.4- 09 September 2026
+* A. Great news … last night I ran the Helix Nebula session again, but changed solve and sync to every 2 mins (instead of the previous 1 min)
+* Out of the 240 exposures, PixInsight reported only 3 star alignments failed. Zooming 200% into these 3 images, showed slight squiggles. Everything else was absolutely fine.
+* My solve and syncs are now taking less than 8 seconds 😀
+* B. Something else ... During the session, I noticed a few times where there may possibly have been conection issues between Polaris and Mele PC. 
+* At the bottom rhs of the Windows 11 screen, the ‘globe’ (indicating the WiFi2 connection) would occasionally  look as if it was searching for a WiFi signal … 
+* wifi signal symbol would appear for a few seconds (fan-shaped icon with a dot at the bottom and curved arcs spreading upward)
+* Not sure if this is an issue, but noticed it on both imaging nights. Seems to occur during the solve sync ASTAP plate solves … this is only intermittent and certainly doesn’t happen all the time.
+* C. Summary….PEC Autotune with x60 interations now takes only 12 minutes and for 30s exposures, solve sync works exceedingly well at 2 minute intervals (every x4 exposues) 
+
 
 
 ### Summary
