@@ -345,6 +345,8 @@ While software like PHD2 offers its own "Predictive PEC," the Alpaca Driver's im
 #### **VI. Important Considerations**
 PEC is designed exclusively for **sidereal tracking** of Deep Sky Objects (DSOs) and stars. It is not suitable for tracking Lunar, Solar, or custom orbital targets. Additionally, while PEC is a powerful tool for fine mechanical correction, it cannot compensate for gross mechanical failures such as cable drag, tripod instability, or wind effects.
 
+> For exactly how a sync guide residual reaches `q_syncguide_B`, how a PID tick evaluates the PEC rate, and how the next `518` message folds that correction into `theta_pv`, see [§4. Kinemtaics Flows](#4-kinemtaics-flows), sections 4.4–4.6.
+
 ### **2.7 Reachable Altitude and Roll Envelope**
 #### I. What it is and What it Solves
 
@@ -523,11 +525,10 @@ motorQ_state            KF smoother motor orientation quaternion C→B
 alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
     ▼ Mechanical Corrections             (corrQ_RBC)      B Frame
-    ▼ Sync Guiding Accum Corrections     (q_syncguide_B)  B Frame
-    ▼ Pulse Guiding Accum Corrections    (q_pulse_B)      B Frame
-    ▼ Periodic Error Correction
-motorQ_pv              MAC, Pulse and PEC corrected only (B Frame)
-theta_pv               MAC, Pulse and PEC corrected only (B Frame)
+    ▼ Sync Guiding + PEC Accum Corrections (q_syncguide_B) B Frame   PEC has no quaternion of its own —
+    ▼ Pulse Guiding Accum Corrections    (q_pulseguide_B)  B Frame   it folds into q_syncguide_B here, see §4.4-4.6
+motorQ_pv              MAC, Sync/PEC and Pulse corrected only (B Frame)
+theta_pv               MAC, Sync/PEC and Pulse corrected only (B Frame)
     │
     ▼ Frame Transform baseQ_to_topoQ = corrQ_roll ∘ corrQ_LGA ∘ alignQ_B2T ∘ motorQ_pv
     ▼     QUEST Alignment                (alignQ_B2T) B→T
@@ -576,11 +577,12 @@ error_signal            = theta_ref - theta_pv
     │
     ├── omega_kp        = +Kp · error_signal             Proportional
     ├── omega_ki        = +Ki · ∫ error_signal dt        Integral
-    ├── omega_kd        = -Kd · omega_op                 Derivative (velocity damping)
-    ├── omega_ff        = -Kf · omega_ff                 Tracking joint rates
+    ├── omega_kd        = -Kd · (omega_op - omega_ff)    Derivative (damps velocity error vs FF, not raw output)
+    ├── omega_ff        = tracking/jog joint rates from feed_forward() (§4.3)
+    ├── omega_pec       = J(theta_pv)⁻¹ · omega_pec_B     PEC's own proactive rate, see §4.5
     │
     ▼  PID + Feed Forward
-omega_tgt               = omega_kp + omega_ki + omega_kd + omega_ff
+omega_tgt               = omega_kp + omega_ki + omega_kd + omega_ff - omega_pec
     │
     ▼  Constrain (acceleration limit Ka, velocity limit Kv, position limit Config.z_min/max_limit)
 omega_ctl                Desired motor control velocities
@@ -616,7 +618,120 @@ theta_dot               Motor joint rates (radians)
 omega_ff                Feed-forward motor joint rates
 ```
 
+---
 
+### 4.4 Sync Guide Ingestion — Residual → `q_syncguide_B` and PEC Learning
+
+The interaction between Sync/Pulse Guiding and PEC is easy to misread because they don't hold
+separate state: PEC never gets its own correction quaternion. It learns a drift-rate model from
+guide residuals, then re-injects its predicted correction through the *exact same* function a
+manual sync guide uses (`accumulate_sync_guiding_residuals`), so both land in one accumulator,
+`q_syncguide_B`. The "Periodic Error Correction" step folded into `[SGC]` in §4.1's forward chain
+is this accumulator, not a separate quaternion.
+
+```
+SyncManager.sync_az_alt(a_ra, a_dec, a_az, a_alt)     ASCOM SyncToCoordinates, TRACK + valid_sync_guide
+    │
+    ▼  process_guide_sync()
+ra_resid  = clamp_error(a_ra·15°, RA_pv)              observed − predicted, wrapped to ±180°
+dec_resid = clamp_error(a_dec,    Dec_pv)
+    │   reject this sync guide if |ra_resid| or |dec_resid| > MAX_SYNC_GUIDE_DEG (3°)
+    │
+    ├─▼ accumulate_sync_guiding_residuals(ra_resid, dec_resid)
+    │     q_ra_corr  = Quaternion(axis=ra_axis_B,  degrees=ra_resid)     axes from equatorial_axes_B
+    │     q_dec_corr = Quaternion(axis=dec_axis_B, degrees=dec_resid)    (cached every 518 tick, see §4.6)
+    │     q_adj = (q_ra_corr · q_dec_corr).normalised
+    │     q_syncguide_B ← (q_adj · q_syncguide_B).normalised             ← left-composition, B frame
+    │     delta_guide_accum += [ra_resid, dec_resid]                     (telemetry only)
+    │
+    └─▼ update_pec_model(ra_resid, dec_resid)
+          reject if |resid| > pec_max_resid_arcmin
+          PecAxis.ingest(resid, t, var_alpha, sse_alpha)   per-axis RLS or EMA fit update (§2.6.III)
+          PecAxis.eval_inhibit(n, min_obs, max_rmse, min_r2)
+                 → TOO_FEW_OBS | HIGH_RMSE | LOW_R2 | VALID
+          _pec_active = ra.converged() or dec.converged()  gates apply_pec_drift_correction() in §4.5
+          _pec_log()  → PECLOG entry
+```
+
+Pulse guides train the same `PecAxis` models via the identical `update_pec_model()` call, from
+`process_pulse_guide_axis()`, whenever `Config.advanced_pulse_pec_tuning` is enabled — that's the
+"dual guiding support" in §2.6.II: one model, fed by whichever guide source is active.
+
+---
+
+### 4.5 PID Tick — PEC Rate Evaluation → `q_syncguide_B` and `omega_tgt`
+
+Every control tick, `PID_Controller.control_step_calculate()` calls
+`apply_pec_drift_correction()` first, ahead of `feed_forward()` / `pid()`:
+
+```
+PID_Controller.control_step_calculate()                          every ~200ms
+    │
+    ▼  SyncManager.apply_pec_drift_correction()                   no-op unless _pec_active
+    │     t  = now − _pec_t0            dt = now − _pec_last_apply   (skipped if dt ≤ 0 or dt > 5s)
+    │     d_ra,  ra_applied  = _pec_ra.eval_correction(t, dt, cap=_pec_max_step_arcmin)
+    │     d_dec, dec_applied = _pec_dec.eval_correction(t, dt, cap)
+    │
+    │         rate = predicted_rate(t)     RLS: dy/dt = a + Σₖ [kω·bₖ·cos(kωt) − kω·cₖ·sin(kωt)],  ω = 2π/T
+    │                                      EMA: rate  (already an exponential average of observed rate)
+    │         d = clip(rate · dt, −cap, +cap)                     capped correction step for this tick
+    │
+    │     if ra_applied or dec_applied:
+    │         accumulate_sync_guiding_residuals(d_ra, d_dec)      ← same fn as §4.4 — PEC's own predicted
+    │                                                                step folds into q_syncguide_B here
+    │         omega_pec_B = (d_ra/dt)·ra_axis_B + (d_dec/dt)·dec_axis_B     B frame, deg/sec
+    │
+    ▼  track_target() → feed_forward()
+    │     if advanced_pec and mode == TRACK and any(omega_pec_B):
+    │         theta_dot_pec = J(theta_pv)⁻¹ · radians(omega_pec_B)          same Jacobian as omega_ff
+    │         omega_pec = degrees(theta_dot_pec)
+    │         if trackingrate ≠ 0: omega_pec[2] = 0                         (M3/roll — non-sidereal target)
+    │
+    ▼  errsignal() → errintegral() → pid()
+omega_tgt = omega_kp + omega_ki + omega_kd + omega_ff − omega_pec
+```
+
+Folding `d_ra`/`d_dec` into `q_syncguide_B` (rather than only publishing `omega_pec_B`) is what
+keeps the loop's own notion of "on target" advancing in lockstep with the PEC-induced PV motion:
+without it, `errintegral()`'s Ki term would see a sustained error re-appear every tick and fight
+the correction. `omega_pec_B` is the same rate published separately so `feed_forward()` can solve
+it through the Jacobian and apply it proactively via `omega_tgt`, instead of waiting for the error
+loop to react to it after the fact.
+
+---
+
+### 4.6 518 Message Processing — `q_syncguide_B` Corrects `theta_pv`
+
+```
+Polaris._msg_handler("518", args)
+    │
+    ▼  decode_518position_measurement(args) → theta_raw, omega_raw, omega_ref, omega_meas
+    ▼  KalmanFilter.predict(omega_ref) → .observe(theta_raw, omega_meas, omega_ref, theta_ref)
+theta_state        KF-smoothed motor angles
+motorQ_state       = theta_to_q(*theta_state)                  raw C→B quaternion, uncorrected
+    │
+    ▼  SyncManager.baseQ_to_topoQ(motorQ_state)
+    │     motorQ_C2B_pv = corrQ_RBC · motorQ_state                     [MAC]
+    │     motorQ_C2B_pv = q_syncguide_B · motorQ_C2B_pv                [SGC]  ← sync guide + PEC land here
+    │     motorQ_C2B_pv = q_pulseguide_B · motorQ_C2B_pv               [PGC]
+    │     cameraQ_C2T_pv = alignQ_B2T · motorQ_C2B_pv  → [LGA] → [roll_adj]
+    │
+cameraQ_pv, motorQ_pv  = (cameraQ_C2T_pv, motorQ_C2B_pv)
+    │
+    ▼  theta_pv = q_to_theta(motorQ_pv, ...)          ← the corrected PV the PID actually tracks against
+    ▼  cache_axes_B(pointingQ)                        refreshes equatorial/topocentric/galactic axes_B
+    ▼  update_sky_positions(motorQ_state, cameraQ_pv) → delta_pv, alpha_pv
+    │
+    ▼  PID_Controller.measure(delta_pv, alpha_pv, theta_pv, zeta_meas, measurement_lag_s)
+error_signal = theta_ref_backdated − theta_pv                   consumed by §4.5's next tick
+    ▼  control_step_calculate() / control_step_execute()                       — flow §4.5 above
+```
+
+Because `q_syncguide_B` is applied to `motorQ_state` *before* `theta_pv` is derived, every sync
+guide or PEC correction shows up as an instantaneous step in `theta_pv` on the very next `518`
+message — the mount does not have to physically move for the PV to reflect the correction; only
+`error_signal` (and hence the PID's real motor command) responds afterward, which is exactly the
+transient that §4.5's `omega_pec` feed-forward term exists to pre-empt.
 
 ---
 ## 5. Summary — Full Kinematic Chain
