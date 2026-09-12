@@ -3,6 +3,26 @@
 
 import { defineConfig } from '#q-app/wrappers';
 
+// Per-machine proxy override:
+// Quasar dev server proxies /proxy, /version and /alpaca_pilot_ca.crt to nina01:80 by default.
+// /proxy    - generic passthrough to the driver's Alpaca Device API (api/v1/...), Management API (management/v1/...), and WebSocket (/proxy/ws).
+//             (Alpaca Discovery is a separate UDP service on port 32227 - not proxied here.)
+// /version  - version-check polling (useVersionWatch.ts)
+// /alpaca_pilot_ca.crt - HTTPS CA cert download
+// To override this, create a file quasar.env.local (gitignored) with
+//   PILOT_API_HOST=localhost
+//   PILOT_API_PORT=8180
+// e.g. on Linux/WSL2 the driver can't bind port 80 without root
+// so its pilot override (data/config.pilot.json) moves alpaca_pilot_http_port to 8180
+try {
+  process.loadEnvFile('quasar.env.local');
+} catch {
+  // no quasar.env.local present - fall back to the defaults below
+}
+
+const apiHost = process.env.PILOT_API_HOST ?? 'nina01';
+const apiPort = process.env.PILOT_API_PORT ?? '80';
+
 export default defineConfig((/* ctx */) => {
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
@@ -86,16 +106,16 @@ export default defineConfig((/* ctx */) => {
       open: false, // opens browser window automatically
       proxy: {
         '/proxy': {
-          target: 'http://nina01:80',    // Let Falcon web server proxy it to REST API port
+          target: `http://${apiHost}:${apiPort}`,    // Let Falcon web server proxy it to REST API port
           changeOrigin: true,
-          ws: true,                      // Let Falcon web server proxy ws to app_socket.py
+          ws: true,                                  // Let Falcon web server proxy ws to app_socket.py
         },
         '/version': {
-          target: 'http://nina01:80',    // Falcon web server port
+          target: `http://${apiHost}:${apiPort}`,    // Falcon web server port
           changeOrigin: true,
         },
         '/alpaca_pilot_ca.crt': {
-          target: 'http://nina01:80',
+          target: `http://${apiHost}:${apiPort}`,
           changeOrigin: true,
         },
       }
