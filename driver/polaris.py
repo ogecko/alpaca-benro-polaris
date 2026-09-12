@@ -45,7 +45,7 @@ from presets import PresetManager
 from log import update_log_level
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
-from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, calculate_angular_velocity
+from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache
@@ -229,6 +229,10 @@ class Polaris:
         self._motorQ_state = None                   # The KF corrected C2B quaternion in B Frame
         self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
+        self._zeta_theta_offset = None               # [theta1,theta2,theta3] - [zeta1,zeta2,zeta3], refreshed on each "517". The Benro
+                                                      # Polaris firmware performs its own Single Point Alignment (Compass/Single Star),
+                                                      # which shifts its "517" zeta reporting independently of our theta_state (518/KF)
+                                                      # pipeline -- this offset lets us re-express a stored zeta (M1/M2/M3) in theta space.
         self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
         self._theta_raw = None                      # Latest Motor Angles Raw  [theta1, theta2, theta3] from 518 msg q1
         self._theta_state = None                    # Latest Motor Angles Kalman Filtered [theta1, theta2, theta3] = KF(theta_raw)
@@ -738,6 +742,11 @@ class Polaris:
                     if self._zeta_is_moving:
                         self._athome = False
                 self._zeta_meas = new_zeta
+                # Cache the offset from raw zeta (this "517") to theta_pv (fully alignment-corrected:
+                # MAC/SGC/PGC/MPA/SCC, etc), so a stored zeta can later be re-expressed as an equivalent
+                # theta_pv under whatever alignment model is active at that later time -- see motor_to_azaltroll().
+                if self._theta_state is not None:
+                    self._zeta_theta_offset = [tp - z for tp, z in zip(self._pid.theta_pv, new_zeta)]
 
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
@@ -1419,6 +1428,7 @@ class Polaris:
                 'qpv':     [0,0,0,0] if self._cameraQ_pv is None else [self._cameraQ_pv[0],self._cameraQ_pv[1],self._cameraQ_pv[2],self._cameraQ_pv[3]],
                 'lotameas':[0,0,0,0,0] if self._theta_raw is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],
                 'zetameas':[0,0,0] if self._zeta_meas is None else self._zeta_meas,
+                'zetaoffset':[0,0,0] if self._zeta_theta_offset is None else self._zeta_theta_offset,
                 'traw':    [0,0,0] if self._theta_raw is None else self._theta_raw.tolist(),
                 'tstate':  [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
                 'astate':  [0,0,0] if self._alpha_state is None else self._alpha_state.tolist(),
@@ -1506,8 +1516,14 @@ class Polaris:
                         case 0: Config.apply_changes({"r1": self.azimuth, "r2": self.altitude,  "r3": self.roll, "ref_action": '' })
                         case 1: Config.apply_changes({"r1": self.rightascension, "r2": self.declination,  "r3": self.positionangle, "ref_action": '' })
                         case 2: Config.apply_changes({"r1": self._pid.gamma_pv[0], "r2": self._pid.gamma_pv[1],  "r3": self._pid.gamma_pv[2], "ref_action": '' })
+                        case 3:
+                            if self._zeta_meas is not None:
+                                Config.apply_changes({"r1": self._zeta_meas[0], "r2": self._zeta_meas[1], "r3": self._zeta_meas[2], "ref_action": '' })
+                            else:
+                                self.logger.warning("Cannot update Motor Position anchor: no '517' orientation received yet.")
+                                Config.apply_changes({"ref_action": '' })
             elif param == "track":
-                if Config.track == 0:   Config.apply_changes({ "ref": 0 }) # For Landscape - Untracked, set Reference Frame Topo 
+                if Config.track == 0 and Config.ref != 3:  Config.apply_changes({ "ref": 0 }) # For Landscape - Untracked, set Reference Frame Topo (unless Motor Position is deliberately selected)
                 if Config.track == 3:   Config.apply_changes({ "ref": 2 }) # For Sky - Milky Way,       set Reference Frame Galactic
                 
 
@@ -2522,9 +2538,19 @@ class Polaris:
         ref_x = getattr(Config, "r1", 0.0)
         ref_y = getattr(Config, "r2", 0.0)
         ref_z = getattr(Config, "r3", 0.0)  # degrees
+        # Motor Position: resolve stored M1/M2/M3 to their current-best equivalent Az/Alt/Roll
+        if Config.ref == 3:
+            corrQ_LGA = self._sm.corrQ_LGA if (Config.advanced_scc_enabled and Config.advanced_scc_choice == 1) else None
+            ref_x, ref_y, ref_z = motor_to_azaltroll(
+                ref_x, ref_y, ref_z,
+                self._zeta_theta_offset,
+                self._sm.alignQ_B2T,
+                corrQ_LGA,
+                self._sm.roll_adj,
+            )
         # if "Sky - Milky Way" Convert to Galactic co-ordinates (l, b, gpa)
         if Config.track == 3:
-            if (Config.ref == 0):    # Topo to Galactic
+            if (Config.ref == 0 or Config.ref == 3):    # Topo (or resolved Motor Position) to Galactic
                 rah, dec = self.altaz2radec(ref_y, ref_x)
                 posa, para = self._sm.roll2pa(ref_x, ref_y, ref_z)
                 ref_x, ref_y, ref_z = delta_to_gamma([rah*15, dec, posa])

@@ -686,6 +686,58 @@ def theta_to_azaltroll(theta1: float, theta2: float, theta3: float):
     except Exception:
         return None, None, None
 
+def motor_to_azaltroll(m1: float, m2: float, m3: float,
+                        zeta_theta_offset: Optional[Tuple[float, float, float]],
+                        alignQ_B2T: Quaternion,
+                        corrQ_LGA: Optional[Quaternion] = None,
+                        roll_adj: float = 0.0) -> Tuple[float, float, float]:
+    """
+    Reconstruct topocentric Az/Alt/Roll for a stored M1/M2/M3 motor position ("zeta", as
+    read from a "517" response), correcting for whatever alignment model is active right
+    now rather than whatever was in effect when the position was captured.
+
+    M1/M2/M3 is a direct mechanical readout of the mount's physical orientation, so this
+    is what lets a "Motor Position" pano anchor keep pointing at the exact same physical
+    spot even after a fresh multi-point alignment shifts the az/alt that pose maps to.
+
+    This mirrors SyncManager.baseQ_to_topoQ()'s pipeline in two stages, run in reverse
+    order of how confusing they are:
+
+    Stage 1 -- zeta -> Base frame (motorQ_C2B_pv), via the cached offset:
+        zeta ("517", firmware's own raw readout) and theta_pv (the PID's Base-frame
+        process value) are two independent measurements of the same physical axes, so
+        they don't agree in absolute terms -- the Benro Polaris firmware applies its own
+        Single Point Alignment (Compass/Single Star) to zeta, and theta_pv separately has
+        MAC/SGC/PGC baked in (see SyncManager.baseQ_to_topoQ). `zeta_theta_offset` is
+        (theta_pv - zeta), cached fresh on every "517", so adding it to a stored zeta gives
+        the theta_pv-equivalent that pose would read right now, MAC/SGC/PGC included.
+
+    Stage 2 -- Base frame -> Topocentric frame (cameraQ_C2T_pv), via QUEST/LGA/roll_adj:
+        theta_pv is a Base-frame ("C2B") value -- baseQ_to_topoQ() computes it *before*
+        applying alignQ_B2T (QUEST/MPA), corrQ_LGA (SCC) and roll_adj, because the PID
+        loop drives motors in Base frame and compares theta_pv against theta_ref there.
+        Those three corrections only ever get applied to the *other* value that function
+        returns (cameraQ_C2T_pv) -- so reaching Topocentric frame here means applying them
+        again explicitly, exactly as baseQ_to_topoQ() does for its cameraQ_C2T_pv output.
+        corrQ_LGA/roll_adj are orientation-dependent and are reused here as last computed
+        for the live pose (an approximation) rather than recomputed for this stored one,
+        since that recomputation needs SyncManager's sync-history state.
+    """
+    offset = zeta_theta_offset or (0.0, 0.0, 0.0)
+    theta1, theta2, theta3 = (m + o for m, o in zip((m1, m2, m3), offset))
+    motorQ_C2B_pv = theta_to_q(theta1, theta2, theta3)
+
+    cameraQ_C2T_pv = alignQ_B2T * motorQ_C2B_pv                      # QUEST (MPA)
+    if corrQ_LGA is not None:
+        cameraQ_C2T_pv = corrQ_LGA * cameraQ_C2T_pv                  # LGA (SCC)
+    if roll_adj != 0:
+        boresight_T = cameraQ_C2T_pv.rotate([0, 0, -1])
+        corrQ_roll = Quaternion(axis=boresight_T, degrees=-roll_adj)
+        cameraQ_C2T_pv = corrQ_roll * cameraQ_C2T_pv                 # roll sync adj
+
+    return q_to_azaltroll(cameraQ_C2T_pv)
+
+
 def altitude_to_maxroll(alt_deg, theta2_max=81.5):
     """
     Maximum achievable camera roll at a given sky altitude.

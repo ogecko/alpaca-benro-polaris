@@ -119,6 +119,7 @@ const panoRefTypeOptions = [
   { label: 'Topocentric', value: 0 },
   { label: 'Equatorial', value: 1 },
   { label: 'Galactic', value: 2 },
+  { label: 'Motor Position', value: 3 },
 ];
 
 const panoRefAlignOptions = computed(() => {
@@ -130,9 +131,9 @@ const panoRefAlignOptions = computed(() => {
   return options;
 });
 
-const r1Label = computed(() => `${(cfg.ref==2)?'Galactic longitude': (cfg.ref==1)?'Right Ascension' :'Azimuth'}`)
-const r2Label = computed(() => `${(cfg.ref==2)?'Galactic latitude': (cfg.ref==1)?'Declination'     :'Altitude'}`)
-const r3Label = computed(() => `${(cfg.ref==2)?'Galactic PA':  (cfg.ref==1)?'Position Angle'  :'Roll Angle'}`)
+const r1Label = computed(() => `${(cfg.ref==3)?'M1 Position': (cfg.ref==2)?'Galactic longitude': (cfg.ref==1)?'Right Ascension' :'Azimuth'}`)
+const r2Label = computed(() => `${(cfg.ref==3)?'M2 Position': (cfg.ref==2)?'Galactic latitude': (cfg.ref==1)?'Declination'     :'Altitude'}`)
+const r3Label = computed(() => `${(cfg.ref==3)?'M3 Position': (cfg.ref==2)?'Galactic PA':  (cfg.ref==1)?'Position Angle'  :'Roll Angle'}`)
 const hStepLabel = computed(() => `${(cfg.ref==2)?'Galactic Lon Step':  (cfg.ref==1)?'Right Ascension Step'  :'Azimuth Step'}`)
 const vStepLabel = computed(() => `${(cfg.ref==2)?'Galactic Lat Step':  (cfg.ref==1)?'Declination Step'  :'Altitude Step'}`)
 

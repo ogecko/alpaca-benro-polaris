@@ -1021,6 +1021,7 @@ Like NINA's Mosaic Panels, the Alpaca Driver can define panels using an **Equato
 
 * **Topocentric Reference Frame (Az/Alt/Roll)** – Defines panels relative to the local horizon, making it easier to create level foregrounds and horizon-aligned sky panoramas without requiring manual rotation adjustments.
 * **Galactic Reference Frame (Galactic Longitude/Latitude/Position Angle)** – Defines panels relative to the Milky Way itself, allowing large mosaics to follow the galactic plane rather than the celestial coordinate grid.
+* **Motor Position Reference Frame (M1/M2/M3)** – Anchors panels to the mount's raw motor position instead of a sky coordinate, so the anchor keeps pointing at the same physical spot even if the alignment model changes afterwards. Purpose-built for astro-landscape blue-hour shoots, where landscape panels are captured before any celestial alignment is available.
 
 The Alpaca Driver also provides additional control over how a panorama is planned and captured:
 
@@ -1101,6 +1102,8 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
    * **0 – Az / Alt / Roll** Topocentric coordinates.
    * **1 – RA / Dec / PA** Equatorial coordinates.
    * **2 – Glon / Glat / GPA**  Galactic coordinates.
+   * **3 – M1 / M2 / M3**  Motor Position. Anchors the panorama to the mount's raw motor position instead of a sky coordinate. Panel Az/Alt/Roll are still calculated using `hstep`/`vstep` exactly as in the Topocentric Reference Frame — the only difference is where the anchor's Az/Alt/Roll comes from: it is re-derived from the stored M1/M2/M3 using whatever alignment corrections (Compass/Single Star Alignment, Multi-Point Alignment, etc) are active *right now*, rather than trusting a previously-stored Az/Alt/Roll value.
+      *Use this for astro-landscape blue-hour shoots: there are usually no celestial targets available to align on yet, so you calibrate azimuth with just the Compass and Single Star Alignment, capture your landscape panels, and store the anchor as a Motor Position. If you later run a Multi-Point Alignment for more accurate sky tracking (which shifts what azimuth the software attributes to that same physical pose), the Motor Position anchor still resolves back to the exact same physical direction — so your sky panels line up with the landscape panels you already shot, with no need to crop for misalignment.*
 
 - **&#9322; Rotation and Tracking `"track":`** Defines how the mount tracks and how camera roll is handled **after moving to each panel**:
    * **0 – Landscape · Untracked**: Tracking is disabled. The camera frame remains fixed relative to the horizon. Typically used in the Topocenteric Reference Frame.
@@ -1118,10 +1121,10 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 
 - ** &#9323;Anchor Position:** Defines the sky position for the anchor:
 
-   * **Update Button**: Updates the anchor position with the mounts current orientation
-   * **Reference Axis 1 `"r1":`**: Azimuth, Right Ascension, or Galactic Lon
-   * **Reference Axis 2 `"r2":`**: Altitude, Declination, or Galactic Lat (decimal degrees)
-   * **Reference Axis 3 `"r3":`**: Roll, Position Angle, or Galactic PA (decimal degrees)
+   * **Update Button**: Updates the anchor position with the mounts current orientation. In the Motor Position Reference Frame, this stores the mount's current raw M1/M2/M3 motor position rather than a sky coordinate.
+   * **Reference Axis 1 `"r1":`**: Azimuth, Right Ascension, Galactic Lon, or M1 Position
+   * **Reference Axis 2 `"r2":`**: Altitude, Declination, Galactic Lat, or M2 Position (decimal degrees)
+   * **Reference Axis 3 `"r3":`**: Roll, Position Angle, Galactic PA, or M3 Position (decimal degrees)
 
 - **Panel Navigation:** The Panel Navigation grid provides a visual representation of the panorama layout and allows you to click any panel number to slew the mount directly to that position. For Topocentric Reference Frame, the grid follows the panorama layout convention where the **bottom-left panel represents the lowest Altitude and lowest Azimuth**. As you move **to the right**, Azimuth increases; as you move **upward**, Altitude increases. The numbering and progression reflect the selected First Panel and Panel Order settings, while symbols indicate the next panel in the capture sequence and the anchor panel tied to the anchor position.
  

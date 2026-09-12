@@ -72,6 +72,7 @@ export const useStatusStore = defineStore('status', {
         qalign: [0,0,0,0],
         qpv: [0,0,0,0],
         zetameas: [0,0,0],
+        zetaoffset: [0,0,0],
         lotameas: [0,0,0,0,0],
         traw: [0,0,0],
         tstate: [0,0,0],
