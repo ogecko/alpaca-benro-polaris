@@ -773,7 +773,7 @@ class Polaris:
 
             # Translate from Base Frame to Topo Frame [MAC] -> [SGC] => [PGC] -> QUEST -> [LGA] -> [RollAdj]
             cameraQ_pv, motorQ_pv = self._sm.baseQ_to_topoQ(motorQ_state)
-            theta_pv = np.array(q_to_theta(motorQ_pv, self._pid._lp))
+            theta_pv = np.array(q_to_theta(motorQ_pv, self._pid._lp))   # Beware: theta_pv only has [MAC] -> [SGC] => [PGC] corrections
 
             # update cache of equatorial axes, used by pulse guiding and MAC corrections
             # use the cameraQ_ref as a more steady reference, falling back to cameraQ_pv when not set
