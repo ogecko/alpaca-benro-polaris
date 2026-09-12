@@ -698,6 +698,13 @@ the correction. `omega_pec_B` is the same rate published separately so `feed_for
 it through the Jacobian and apply it proactively via `omega_tgt`, instead of waiting for the error
 loop to react to it after the fact.
 
+Note the `−` in `omega_tgt`'s formula: `error_signal = theta_ref (SP) − theta_pv (PV)`, and the
+correction above lands on the **PV** side (`q_syncguide_B` is folded into `motorQ_pv`, §4.6),
+while `omega_pec` contributes on the **SP** side of that same subtraction, the same role
+`omega_ff` plays for sidereal tracking. A correction landing on the PV side and one landing on
+the SP side must carry opposite sign to represent the same physical correction consistently —
+hence `+ omega_ff − omega_pec`, not `+ omega_pec`.
+
 ---
 
 ### 4.6 518 Message Processing — `q_syncguide_B` Corrects `theta_pv`
