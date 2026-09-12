@@ -497,6 +497,19 @@ Notes: England, New 5nm filters.
 * Dealing with the flat wizard, darks and biases between Nina and Sirils expectations meant a lot of file copying and directory renaming. |Now a script can rename directories and the Siril scripts will work off a standard calibration subdirectory.
 * Over the top Altitude and meridian flips really confused the stitching software, not understanding how to mirror the images. | Now all panel tiffs are flipped automatically to align in the same way as the first panel, making it easier for Kolor Giga Pano.
 
+### Feature request
+Problem: generally those of us incorporating the landscape into photography that includes the night sky will try to capture the landscape features during blue hour (while the sun is 4-8° below the horizon).  This means there generally aren’t any celestial targets available to use to set up the Polaris for tracking, but it is still feasible to “calibrate” the azimuth of the device using the compass of a mobile device connected to the Benro Connect application.  However, once a single and multistar alignment process is used it results in a change to the azimuth (since it is presumably more accurate and less error prone than the compass built into mobile devices, which can definitely be off by quite a bit).  This makes it nearly impossible to return to the exact same field of view that was used to capture the landscape features and makes it more difficult to blend the two images together without having to crop the image to correct for the misalignment.
+
+User story: as a nightscape photographer, I need a way to position the Polaris at the exact azimuth at which it was positioned when capturing the landscape features so the images of the sky are correctly aligned with the landscape features.
+
+My thinking is that there may be some way to persist the state of the device prior to doing any single or multistar alignment and then compute the change in azimuth that results from the alignment so it would be possible to return to the same azimuth used for the landscape feature photo(s).  Do you have any immediate thoughts/ideas about how feasible this might be?
+
+> JDM - ok, I've released Alpaca Driver v2.2 Beta5 which includes a new "Motor Position" reference frame for panoramas. Can you do some in-house testing to check if it's performing as expected? Thanks..
+
+*Motor Position Reference Frame – M1 / M2 / M3:*  Motor Position anchors the panorama to the mount's raw motor position instead of a sky coordinate, so the anchor keeps pointing at the same physical spot even if the alignment model changes afterward. Panel Az/Alt/Roll are still calculated using hstep/vstep exactly as in the Topocentric Reference Frame; the only difference is where the anchor's Az/Alt/Roll comes from: it is re-derived from the stored M1/M2/M3 using whatever alignment corrections (Compass/Single Star Alignment, Multi-Point Alignment, etc) are active right now, rather than trusting a previously stored Az/Alt/Roll value.
+
+Use this for astro-landscape blue-hour shoots: there are usually no celestial targets available to align on yet, so you calibrate azimuth with just the Compass and Single Star Alignment, capture your landscape panels, and store the anchor as a Motor Position. If you later run a Multi-Point Alignment for more accurate sky tracking (which shifts what azimuth the software attributes to that same physical pose), the Motor Position anchor still resolves back to the exact same physical direction — so your sky panels line up with the landscape panels you already shot, with no need to crop for misalignment.
+
 ### Feedback Summary
 
 
