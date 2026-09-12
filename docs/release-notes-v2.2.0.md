@@ -3,9 +3,9 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.2.0 Beta 4
+* **Version:** 2.2.0 Beta 5
 * **Release Date:** 12-Aug-2026
-* **Availability:** Download from [Alpaca Driver v2.2 Beta 4 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
+* **Availability:** Download from [Alpaca Driver v2.2 Beta 5 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
 * **License:** Distributed exclusively for backers of the [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v)
 * **Current Branch:** dev2_2
 
@@ -40,6 +40,7 @@
 - **[Local Timezone]** Show all log messages with local timestamp (rather than UTC), both in alpaca.log and in Alpaca Pilot
 - **[Log Replay]** New replay.py tool to allow a captured log file to be replayed on another mount for system testing and diagnosis.
 - **[Mobile App]** Support mobile home screen install. On iOS or iPadOS use Safari / Share / Add to Home Screen. On Android use Chrome / Install and create shortcut.
+- **[Pano Motor Position]** Use "Motor Position" as a fixed reference frame for blue-hour lansdcape panels, preserving the anchor through celestrial alignment.
 
 ## What's new in v2.2 Beta 4
 - **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 
