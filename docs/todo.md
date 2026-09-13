@@ -55,6 +55,8 @@
 - [X] Slew - Fix fine adj of Moon tracking in Az/Alt
 - [X] SCC - Dont clear sync guiding with panning or rotation, as it loses SCC
 - [X] mDNS - Explore need to setup mDNS to provide hostname.local lookup
+- [X] RPi - Update setup.sh for Raspberry Pi to use UV rather than pip and refresh to latset trixy distro
+- [ ] Win - Create setup.bat for Windows and move to UV
 - [ ] CCDCiel - Confirm Rotator Sync works correctly on CCDCiel
 - [ ] Close candidate enhancement list
     - [ ] Manual Align - Direct Control and List of targets

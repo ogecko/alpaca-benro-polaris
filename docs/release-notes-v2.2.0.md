@@ -27,6 +27,7 @@
 
 ## What's new in v2.2 Beta 6
 **[Raspberry Pi Install]** major refresh of Raspberry Pi installation (now uses UV, shared uv.lock across platforms) and network setup (join Wifi, no driver build, Bluetooth auto-enabled)
+**[Linux BLE]** correct for Benro Polaris' invalid BLE advertisements (forces the adapter into LE-only mode, fixing BLE enable-Wifi failures on Raspberry Pi)
 
 ## What's new in v2.2 Beta 5 
 - **[zeroconf dependancy]** Installation requires `pip install -r platforms/win/requirements.txt` to pickup new zeroconf dependancy
@@ -38,7 +39,7 @@
 - **[Python dependencies]** Add option to install using UV to manage python.exe and package dependancies with uv.lock
 - **[numpy Compatibility]** Pin numpy to `>=2.3.5,<2.4.0` (fix #89). Note 2.4+ requires x86-64-v2, SIGILLs on pre-2009 CPUs
 - **[Connection Handling]** Faster connection timeouts, duplicate-cycle prevention, and immediate manual reconnects.
-- **[Wi-Fi Join]** The Connect Page’s Wi-Fi button instructs the driver to enable **and join** the Polaris Wi-Fi network. No more manually finding `polaris_xxxxxx` in Windows’ Wi-Fi list.
+- **[Wi-Fi Join]** The Connect Page’s Wi-Fi button instructs the driver to enable **and join** the Polaris Wi-Fi network. No more manually finding `polaris_xxxxxx` in Windows’ or Raspberry Pi Wi-Fi list.
 - **[Protocol Handling]** Added reply timeouts, ensuring dropped or lost Polaris responses no longer have potential to block the driver.
 - **[Local Timezone]** Show all log messages with local timestamp (rather than UTC), both in alpaca.log and in Alpaca Pilot
 - **[Log Replay]** New replay.py tool to allow a captured log file to be replayed on another mount for system testing and diagnosis.
