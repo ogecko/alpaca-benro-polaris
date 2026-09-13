@@ -423,14 +423,15 @@ You can use wlan0 to connect the Raspberry Pi to one of multiple access points. 
     ```
 
 ### P5 - Manual Configuration of Alpaca Pilot Port
-On Linux (including Raspberry Pi OS), ports below 1024 (like port 80) require root privileges. We need to change the default Web Server Port for Alpaca Pilot to a free port number. 
+On Linux (including Raspberry Pi OS), ports below 1024 (like port 80 and 443) require root privileges. We need to change the default Web Server Ports for Alpaca Pilot to free, unprivileged port numbers. Note that both `alpaca_pilot_http_port` and `alpaca_pilot_https_port` must be changed, even if you leave `enable_https = false`, since the driver checks that both ports are bindable at startup.
 
 This is done automatically in setup.sh, but if you did not use this method, then use the following manual procedure.
 
-1. Update Web Server Port  
-     Change the setting in the file  `driver/config.toml` to the following.
+1. Update Web Server Ports  
+     Change the settings in the file  `driver/config.toml` to the following.
     ```driver/config.toml
     alpaca_pilot_http_port = 8080
+    alpaca_pilot_https_port = 8443
     ```
 
 ### P6 - Optionally install build tools  

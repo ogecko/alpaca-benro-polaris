@@ -73,8 +73,13 @@ uv pip install -r requirements.txt --only-binary numpy,scipy
 
 
 
-echo "==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080' =="
-sudo sed -i 's/^alpaca_pilot_http_port = 80 .*/alpaca_pilot_http_port = 8080/' "$src_home/driver/config.toml"
+echo "==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080' and 'alpaca_pilot_https_port = 8443' =="
+# Ports below 1024 need root, and app_web.py checks both the http and https ports are
+# bindable at startup regardless of enable_https, so both need to move off the privileged range.
+sudo sed -i -E \
+    -e 's/^(alpaca_pilot_http_port[[:space:]]*=[[:space:]]*)80([[:space:]]|$)/\18080\2/' \
+    -e 's/^(alpaca_pilot_https_port[[:space:]]*=[[:space:]]*)443([[:space:]]|$)/\18443\2/' \
+    "$src_home/driver/config.toml"
 
 
 SERVICE_FILE="/etc/systemd/system/polaris-driver.service"
