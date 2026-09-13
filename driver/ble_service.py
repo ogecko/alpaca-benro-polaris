@@ -122,6 +122,11 @@ class BLE_Controller:
                 if not self._bt_unavailable_logged:
                     self.logger.warning(f"Bluetooth unavailable, cannot start scanner: {e}")
                     self._bt_unavailable_logged = True
+            elif "org.bluez.Error.InProgress" in msg:
+                # BlueZ hasn't finished tearing down the previous discovery session yet,
+                # e.g. we're restarting the scanner right after _stop_scanner() inside
+                # enableWifi() -- transient, self-heals on the next scan attempt.
+                self.logger.info(f"BLE scanner start deferred, BlueZ discovery still winding down: {e}")
             else:
                 self.logger.exception(f"BLE scanner start failed: {e}")
 
