@@ -150,11 +150,13 @@ If a connection issue is detected, a warning banner will appear. You can then na
    - You can also manually trigger this by clicking the **Wi-Fi button** next to the device dropdown.  
    - If the Blue LED on the Polaris does not illumunate after 30s, you may need to use the **Benro Polaris App** to discover nearby devices, and enable its Wifi. 
    - Once Wi-Fi is successfully enabled, the Blue LED on the Polaris should illumunate.
-   - On Windows, the Wi-Fi button also automatically joins the mini-PC itself to the Polaris hotspot once it's enabled — you shouldn't need to touch Windows' own Wi-Fi list at all in the normal case.
+   - On Windows and Raspberry Pi, the Wi-Fi button also automatically joins the host itself to the Polaris hotspot once it's enabled — you shouldn't need to touch the OS's own Wi-Fi settings at all in the normal case. (macOS doesn't yet auto-join — see below.)
 
-- **Confirm Wifi Connection:** If the mini-PC hasn't joined automatically after step ③ (not yet supported on Linux/macOS, or the automatic join failed — check the Log page for a "Failed to join WiFi network" message), join it manually: on Win11, monitor the Wifi List for a polaris_xxxxxx hotspot, click on it, enable automatic connection, and click Connect. Once the Mini-PC has connected to the Polaris Wifi Hotspot, it should appear as follows:
-
+- **Confirm Wifi Connection:** If the drivers host hasn't joined automatically after step ③, check the Log page for a "Failed to join WiFi network" message. To join the Polaris network manually: 
+  - on Win11, monitor the systems Wifi List for a polaris_xxxxxx hotspot, click on it, enable automatic connection, and click Connect. Once the host has connected to the Polaris Wifi Hotspot, it should appear as follows:
    ![alt text](images/abp-troubleshoot-wifi1.png)
+
+  - On Raspberry Pi, see [raspberrypi.md's network troubleshooting](./raspberrypi.md#p1---diagnosing-wifi-and-bluetooth-network-issues) to join manually via `join_wifi.py` or `nmcli`. 
 
 ### D. Connect to Polaris
 

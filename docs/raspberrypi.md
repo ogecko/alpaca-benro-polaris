@@ -4,7 +4,6 @@
 [Versions](#which-pi-should-i-buy) | 
 [Image Creation](#install-raspberry-pi-os-image) | 
 [Alpaca Installation](#installation-of-pre-requisites-and-alpaca-driver) | 
-[TPLink Installation](#installing-tplink-driver-on-pi-zero-2-optional) | 
 [Troubleshooting](#troubleshooting-the-raspberry-pi)
 
 
@@ -77,16 +76,23 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     * ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
     * ==SETUP== 3. Install uv, adding it to ~/.bashrc.
     * ==SETUP== 4. Sync the python dependencies needed for the application with uv.
-    * ==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080'
+    * ==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080' and 'alpaca_pilot_https_port = 8443'
     * ==SETUP== 6. Ensure Bluetooth is powered on, needed for BLE communication with the Polaris.
-    * ==SETUP== 7. Set up [systemd] services to start the Polaris Driver at boot time
-    * ==SETUP== 8. Starts the polaris-driver service.
+    * ==SETUP== 7. Grant passwordless nmcli access, needed for join_wifi.py to join the Polaris hotspot.
+    * ==SETUP== 8. Set up [systemd] services to start the Polaris Driver at boot time
+    * ==SETUP== 9. Starts the polaris-driver service.
 
     [uv](https://docs.astral.sh/uv/) is a fast Python package/project manager. The script installs it automatically (equivalent to running `curl -LsSf https://astral.sh/uv/install.sh | sh`) if it isn't already on your system, then runs `uv sync` to create the virtual environment (`.venv`) and install the exact dependency versions pinned in `uv.lock` — no separate `pip`, `python3-venv` or platform `requirements.txt` is required.
 
-9. The Alpaca Driver should now be installed and setup
+9. Start Alpaca Pilot and Connect to the Polaris
 
-    Open a browser and navigate to `http://<hostname>:8080` (e.g. `http://alpaca:8080`) or `http://ap.local:8080`. Note the `:8080` is required on the Pi — unlike the Windows/Mac installs, which default to the standard port 80, the Pi setup script moves Alpaca Pilot to port 8080 (see [P5](#p5---manual-configuration-of-alpaca-pilot-port)) since Linux won't let a non-root process bind ports below 1024. mDNS (`ap.local`) only resolves the hostname to an IP address — it doesn't tell the browser which port to use — so a bare `http://ap.local` will try the default port 80 and fail to connect, even though `ping ap.local` succeeds (ICMP has no concept of ports, so it isn't affected).
+    The Alpaca Driver should now be installed and running. To open Alpaca Pilot, open a browser and navigate to `http://<hostname>:8080` (e.g. `http://alpaca:8080`) or `http://ap.local:8080`. Note the `:8080` is required on the Raspberry Pi (see [P5](#p5---manual-configuration-of-alpaca-pilot-port)) since Linux won't let a non-root process bind ports below 1024. 
+
+    A dedicated USB Wifi adapter (e.g. TP-Link Archer T2U PLUS) is recommended for connecting to the Polaris. The onboard Wifi on a Pi Zero 2 W can't associate with the Polaris' own hotspot. 
+
+    Click **Connect** on the toolbar, then follow the Connect page: power on the Polaris, select it from the **Device** dropdown, and click the **Wi-Fi** button. The Driver enables the Polaris' Wi-Fi hotspot over Bluetooth, then joins the Polaris network. Once connected, the Driver should automatically connect to the Polaris too. See the [Alpaca Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for the full step-by-step, including what each button and indicator on the Connect page does.
+
+    If the Pi doesn't join the Polaris hotspot automatically, see [P1](#p1---diagnosing-wifi-and-bluetooth-network-issues) for how to diagnose and join manually.
 
 ## Monitoring and Diagnostic commands
 
@@ -102,194 +108,55 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     journalctl -u polaris-driver -f            # View the logs
     ```
 
-    
-## Installing TPLink Driver on Pi Zero 2 (OPTIONAL)
-The TPLink Wifi Adapter chipset may not be supported natively on the Pi Zero 2 kernel. You may meed to build and install a suitable driver using the following procedure. 
-
-12. Connect the TPLink to the Raspberry Pi Zero 2 and list the usb devices connected. This is to confirm the chipset is RTL8821AU.
-    ```Bash
-    $ lsusb
-    Bus 001 Device 002: ID 2357:0120 TP-Link Archer T2U PLUS [RTL8821AU]
-    Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
-    ```
-13. Install the dkms kernel build tools
-    ```Bash
-    echo "deb http://archive.raspberrypi.org/debian/ bookworm main" | sudo tee /etc/apt/sources.list.d/raspi.list
-    sudo apt update
-    sudo apt install -y dkms git build-essential raspberrypi-kernel-headers
-    # optionally upgrade all packages to latest
-    sudo apt upgrade
-    ```
-    > Note: Raspberry Pi Foundation builds kernel packages against Bookworm (not Trixie). This is why we add the bookworm archive, so we can install the raspberrypi-kernel-headers.
-
-14. Get the drivers source code
-    ```Bash
-    git clone https://github.com/aircrack-ng/rtl8812au.git
-    cd rtl8812au
-    ```
-
-15. Build and install with DKMS
-    ```Bash
-    sudo dkms add .
-    dkms status
-    ```
-    Use the registered name from `dmks status` to build and install. Both commands should show "done." when complete.
-    ```Bash
-    sudo dkms build realtek-rtl88xxau/5.6.4.2~20230501
-    sudo dkms install realtek-rtl88xxau/5.6.4.2~20230501
-    ```
-    If the build fails half way through on a Raspberry Pi Zero 2 W, you may need to increase the swap size with the following commands, then repeat the build and install commands above.
-
-    To create a temporary file-backed swap
-    ```
-    sudo fallocate -l 2G /swapfile
-    sudo chmod 600 /swapfile
-    sudo mkswap /swapfile
-    sudo swapon /swapfile
-    swapon --show
-    # To remove swap (after you have build and installed the module)
-    sudo swapoff /swapfile
-    sudo rm /swapfile
-    ```
-    Or use a memory based swap.
-    ```
-    sudo systemctl stop polaris
-    sudo swapoff /dev/zram0
-    echo $((2*1024*1024*1024)) | sudo tee /sys/block/zram0/disksize
-    sudo mkswap /dev/zram0
-    sudo swapon /dev/zram0
-    swapon --show
-    ``` 
-    
-16. Load the module
-    ```Bash
-    sudo modprobe 88XXau
-    ````
-17. Verify the network interface is active  
-    You should see wlan0, and another auto-generated name like **wlan0** or **wlxe4fac4e6dea5**.
-    ```Bash
-    $ ip link show
-    1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
-        link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    2: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DORMANT group default qlen 1000
-        link/ether d8:3a:dd:65:71:2e brd ff:ff:ff:ff:ff:ff
-    3: wlan1: <NO-CARRIER,BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state DORMANT mode DORMANT group default qlen 1000
-        link/ether e4:fa:c4:e6:de:a5 brd ff:ff:ff:ff:ff:ff
-    ````
-
-
-## Identify Wifi Interface and Polaris SSID
-18. List all Wifi Network Interfaces/Adapters available. It should show `wlan0` for the standard Pi Zero interface and something like `wlan1` for the TPLink. Remember the TPLink interface name for the next section.
-    ```Bash
-    iw dev | grep Interface
-    ```
-19. Ensure the Polaris is powered on and list all Wifi Networks SSID visible, replacing `wlan1` with your TPLINK Interface name (if it is different). Look for a Polaris SSID of `polaris_xxxxxxx`. Remember the Polaris SSID for the next section.
-    ```Bash
-    sudo iw wlan1 scan | grep SSID
-    ```
-
-
-
-## Setup of Wifi Connection to Polaris
-The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLINK adapter, to connect to the Polaris automatically.
-
-20. Change to the platforms/raspberry_pi directory and make the wifi.sh script executable.
-    ```
-    cd platforms/raspberry_pi
-    chmod +x wifi.sh
-    ```
-21. Run the WiFi Setup script, changing the interface **wlan1** and SSID name **polaris_3b3906** according
-    ```
-    sudo ./wifi.sh wlan1 polaris_b83c06
-    ```
-
-22. Wait for the following tasks to complete
-    * == STEP == 1. Create wpa_supplicant config file 
-    * == STEP == 2. Create [systemd] service to connect to wlan1
-    * == STEP == 3. Create [systemd] service to set static IP address on wlan1
-
-23. Check connectivity to the Polaris device
-    ```
-    $ ip addr show wlan1
-    3: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state UP group default qlen 1000
-        link/ether e4:fa:c4:e6:de:a5 brd ff:ff:ff:ff:ff:ff
-        inet 192.168.0.100/24 scope global wlan1
-        valid_lft forever preferred_lft forever
-
-    $ iw dev
-    phy#1
-            Interface wlan1
-                    ifindex 3
-                    wdev 0x100000001
-                    addr e4:fa:c4:e6:de:a5
-                    ssid polaris_3b3906
-                    type managed
-                    channel 36 (5180 MHz), width: 80 MHz, center1: 5210 MHz
-                    txpower 20.00 dBm
-    phy#0
-            Unnamed/non-netdev interface
-                    wdev 0x2
-                    addr da:3a:dd:65:71:2e
-                    type P2P-device
-                    txpower 31.00 dBm
-            Interface wlan0
-                    ifindex 2
-                    wdev 0x1
-                    addr d8:3a:dd:65:71:2e
-                    ssid atlas_6G
-                    type managed
-                    channel 7 (2442 MHz), width: 20 MHz, center1: 2442 MHz
-                    txpower 31.00 dBm
-
-    $ ping 192.168.0.1
-    PING 192.168.0.1 (192.168.0.1) 56(84) bytes of data.
-    64 bytes from 192.168.0.1: icmp_seq=1 ttl=64 time=3.94 ms
-    64 bytes from 192.168.0.1: icmp_seq=2 ttl=64 time=1.63 ms
-    64 bytes from 192.168.0.1: icmp_seq=3 ttl=64 time=1.59 ms
-    64 bytes from 192.168.0.1: icmp_seq=4 ttl=64 time=1.59 ms
-
-    ```
-
-24. To monitor and control the status of the Polaris Wifi Connection Service
-    ```Bash
-    sudo systemctl status polaris-wlan1       # Check the wlan1 connect service status 
-    sudo systemctl stop polaris-wlan1         # Stop the wlan1 connect service 
-    sudo systemctl start polaris-wlan1        # Start the wlan1 connect service  
-    journalctl -u polaris-wlan1 -f            # View the wlan1 connect logs
-    journalctl -u polaris-ip                  # View the wlan1 assign static ip logs
-    ```
-
 ## Troubleshooting the Raspberry Pi
-### P1 - Diagnosing Wifi and Bluetooth RF status
-Setup.sh automatically unblocks and powers on Bluetooth (needed for BLE communication with the Polaris), but if you still see `Bluetooth unavailable, cannot start scanner` in the logs, or need to check Wifi, use the steps below.
+### P1 - Diagnosing Wifi and Bluetooth Network Issues
+The Alpaca Pilot's Connect page (see the [Users Guide](./pilot.md#ii-connecting-devices)) handles Wifi and Bluetooth automatically: Bluetooth discovers the Polaris and enables its hotspot, then the Driver joins the Pi to that hotspot via `driver/join_wifi.py` (NetworkManager/`nmcli` under the hood) and assigns it a static IP. Use the commands below to diagnose when something isn't working.
 
-The `rfkill` command isn't installed by default on Raspberry Pi OS Lite (`sudo apt install rfkill` to get it). To check whether the Raspberry Pi Wifi or Bluetooth is blocked: 
+**Bluetooth** (BLE discovery / enabling the Polaris' Wi-Fi hotspot)
+```Bash
+rfkill list                             # check for a soft/hard block (apt install rfkill if missing)
+sudo rfkill unblock bluetooth           # or: echo 0 | sudo tee /sys/class/rfkill/rfkill0/soft
+sudo hciconfig hci0 up
 ```
-$ rfkill list
-0: hci0: Bluetooth
-        Soft blocked: yes
-        Hard blocked: no
-1: phy0: Wireless LAN
-        Soft blocked: no
-        Hard blocked: no
-2: phy1: Wireless LAN
-        Soft blocked: no
-        Hard blocked: no
+
+**USB Wifi adapter** — the Pi's onboard Wifi can't associate with the Polaris' own hotspot, so a dedicated USB adapter (e.g. TP-Link Archer T2U PLUS, chipset RTL8821AU) is recommended. Connect it to the port labelled `USB`, not `PWR IN` (power only, no data lines). Raspberry Pi OS Trixie's `rtw88` driver family auto-loads this chipset — no build required.
+```Bash
+lsusb                        # confirm it's detected, note the chipset
+dmesg | grep -i rtw88        # confirm the driver loaded and got firmware
+ip link show                 # confirm a new wlan* interface appeared (e.g. wlan1 alongside onboard wlan0)
+sudo ip link set wlan1 up    # bring it up if needed
 ```
-To unblock Raspberry Pi Bluetooth and Wifi:
+If `lsusb` sees the adapter but no `wlan*` interface appears, your kernel doesn't have `rtw88` mainlined (older Raspberry Pi OS releases) — build it with DKMS from [aircrack-ng/rtl8812au](https://github.com/aircrack-ng/rtl8812au) instead. On a Pi Zero 2 W the build can exhaust RAM; add temporary swap first if it fails partway through, then remove it once the build succeeds:
+```Bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+# ... retry the DKMS build, then:
+sudo swapoff /swapfile && sudo rm /swapfile
 ```
-$ sudo rfkill unblock bluetooth
-$ sudo rfkill unblock wifi
+
+**Confirm the Polaris hotspot is visible**
+```Bash
+iw dev | grep Interface           # apt install iw if missing
+sudo iw wlan1 scan | grep SSID    # look for polaris_xxxxxx
 ```
-Without installing `rfkill`, you can do the same directly via sysfs (this is what setup.sh does for Bluetooth):
+
+**Manually join, or re-run the join** — `join_wifi.py` is exactly what the Alpaca Pilot's Wi-Fi button calls; run it directly for more detail than the button's log line, or to join without opening Alpaca Pilot at all. It's idempotent, so re-running is always safe.
+```Bash
+cd ~/alpaca-benro-polaris
+.venv/bin/python3 driver/join_wifi.py polaris_b83c06   # or omit the SSID to auto-discover
 ```
-$ cat /sys/class/rfkill/rfkill0/soft   # 1 = blocked, 0 = unblocked
-$ echo 0 | sudo tee /sys/class/rfkill/rfkill0/soft
-$ sudo hciconfig hci0 up
+If it fails with `Insufficient privileges`: NetworkManager's own polkit rule only allows unauthenticated connection changes from a "local and active" seat session — neither an SSH session nor the Driver's own systemd service (`User=pi`, no seat at all) qualifies, even though the `pi` user can otherwise `sudo` freely. setup.sh installs a scoped passwordless sudo rule for this (`/etc/sudoers.d/polaris-nmcli`); recreate it manually if missing:
+```Bash
+echo "pi ALL=(ALL) NOPASSWD: $(command -v nmcli)" | sudo tee /etc/sudoers.d/polaris-nmcli
+sudo chmod 440 /etc/sudoers.d/polaris-nmcli
+sudo visudo -cf /etc/sudoers.d/polaris-nmcli   # validates the file before it's trusted
 ```
-To bring up the wlan1 wifi interface:
-```
-$ sudo ip link set wlan1 up
+
+**Check connection status**
+```Bash
+nmcli -t -f DEVICE,STATE,CONNECTION device status   # is wlan1 connected to the right SSID?
+ip addr show wlan1                                  # confirm the static IP (192.168.0.100/24 by default)
+ping 192.168.0.1                                    # confirm reachability
+journalctl -u NetworkManager -f                     # NetworkManager logs
 ```
 ### P2 - Diagnosing Wifi Connections
 To check the network status. The `ip a` command displays all network interfaces and their assigned IP addresses (IPv4 and IPv6), including interface state and MAC address.:
@@ -355,16 +222,14 @@ To check polaris services:
 ```
 $ systemctl list-unit-files | grep polaris
 polaris-driver.service                       enabled         enabled
-polaris-ip.service                           enabled         enabled
-polaris-wlan1.service                        enabled         enabled
 
 $ systemctl status | grep polaris
            │ ├─polaris-driver.service
            │ │ └─2646 /home/pi/alpaca-benro-polaris/.venv/bin/python3 /home/pi/alpaca-benro-polaris/driver/main.py
-           │ ├─polaris-wlan1.service
                │ └─2667 grep --color=auto polaris
 
 ```
+The Wifi connection to the Polaris is a NetworkManager connection profile, not a systemd service -- see [P1](#p1---diagnosing-wifi-and-bluetooth-network-issues) above for how to check its status instead.
 ### P4 - Adding additional access points to wlan0
 You can use wlan0 to connect the Raspberry Pi to one of multiple access points. For example, you may want to it to connect to your home network while at home, and your laptops hotspot while at a dark sky site.
 

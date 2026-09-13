@@ -6,13 +6,16 @@ distinct from the driver's own application-level *connection* to the
 Polaris firmware on :9090 (see polaris.py / Polaris.client(), p.connected
 in Alpaca Pilot). 
 
-Owns WiFi-join logic for every platform the driver supports. Today only
-Windows is implemented (via netsh wlan, mirroring what the Benro app does
-automatically before it opens a socket to the mount). Linux/Raspberry Pi
-and macOS are stubs pending platform-specific implementations -- see
-platforms/raspberry_pi/wifi.sh for prior art on the Linux/RPi side
-(wpa_supplicant-based, a different mechanism entirely); macOS has none yet
-and would need networksetup(8).
+Owns WiFi-join logic for every platform the driver supports. Windows (via
+netsh wlan, mirroring what the Benro app does automatically before it opens
+a socket to the mount) and Linux/Raspberry Pi (via nmcli, NetworkManager
+being the network stack Raspberry Pi OS Trixie ships and this project
+targets -- see docs/raspberrypi.md) are implemented. macOS has none yet and
+would need networksetup(8).
+
+The Linux path also assigns a static IP to the interface after joining
+(default 192.168.0.100/24) -- the Polaris hotspot's own DHCP is slow/absent
+enough to warrant this.
 
 join_wifi_network() is the entry point other driver modules should call
 (BLE_Controller.enableWifiAndJoin(), ble_service.py). Its implementation is
@@ -37,6 +40,7 @@ As a library, the entry point most callers want:
 """
 
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -130,6 +134,17 @@ def _run(cmd: List[str]):
     return result.returncode, result.stdout, result.stderr
 
 
+def _run_nmcli(args: List[str]):
+    """Runs nmcli via `sudo -n`. NetworkManager's own polkit rule only
+    grants unauthenticated access to a "local and active" seat session --
+    neither an SSH session nor the driver's own systemd service (User=pi,
+    no seat at all) qualifies, so even read-only queries would otherwise
+    prompt for a password that never comes. `-n` fails fast with a clear
+    stderr instead of hanging if the NOPASSWD sudoers rule setup.sh installs
+    for nmcli (see platforms/raspberry_pi/setup.sh) isn't in place."""
+    return _run(["sudo", "-n", "nmcli"] + args)
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Windows (netsh wlan)
 # ──────────────────────────────────────────────────────────────────────────
@@ -171,10 +186,12 @@ def _list_interfaces_win() -> List[WifiInterface]:
     ]
 
 
-def _choose_interface_win(interfaces: List[WifiInterface],
-                           explicit_name: Optional[str] = None,
-                           prefer_keywords: tuple = ("usb",)) -> WifiInterface:
-    """Picks which WiFi adapter to use for the Polaris join.
+def _choose_interface(interfaces: List[WifiInterface],
+                       explicit_name: Optional[str] = None,
+                       prefer_keywords: tuple = ("usb",)) -> WifiInterface:
+    """Picks which WiFi adapter to use for the Polaris join. Shared by
+    Windows and Linux -- WifiInterface is the same shape on both, only how
+    the list gets built differs (netsh vs nmcli/sysfs).
 
     - If the caller named one explicitly, use that.
     - If there's only one adapter, use it (matches the original
@@ -182,7 +199,7 @@ def _choose_interface_win(interfaces: List[WifiInterface],
     - Otherwise, rank candidates by:
         1) description matches one of prefer_keywords (default: "usb") -
            dedicated USB WiFi dongles are what ABP recommends for the
-           Polaris, since most built-in laptop chipsets fail to
+           Polaris, since most built-in/onboard chipsets fail to
            associate with its onboard AP at all. Matching on "usb"
            rather than a specific vendor keeps this generic across
            whatever dongle brand a given user has (TP-Link, Realtek,
@@ -324,8 +341,8 @@ def _join_wifi_network_win(ssid: str, password: str = "", timeout: float = 15.0,
                             interface: Optional[str] = None,
                             prefer_keywords: tuple = ("usb",)) -> bool:
     interfaces = _list_interfaces_win()
-    chosen = _choose_interface_win(interfaces, explicit_name=interface,
-                                    prefer_keywords=prefer_keywords)
+    chosen = _choose_interface(interfaces, explicit_name=interface,
+                                prefer_keywords=prefer_keywords)
 
     # Idempotency: skip the whole dance if this adapter is already on the
     # target network -- avoids a spurious brief re-association on every
@@ -346,27 +363,168 @@ def _join_wifi_network_win(ssid: str, password: str = "", timeout: float = 15.0,
 
 
 # ──────────────────────────────────────────────────────────────────────────
+# Linux/Raspberry Pi (nmcli)
+# ──────────────────────────────────────────────────────────────────────────
+
+def _describe_interface_linux(iface: str) -> str:
+    """Best-effort hardware description used for prefer_keywords matching
+    (default "usb") -- built from the interface's sysfs bus path rather than
+    a vendor string, since that's reliably available for every adapter and
+    distinguishes a USB WiFi dongle from the Pi's onboard SDIO chip without
+    hardcoding any particular vendor."""
+    try:
+        bus_path = os.path.realpath(f"/sys/class/net/{iface}/device")
+    except OSError:
+        return iface
+    return f"{iface} (usb)" if "/usb" in bus_path else f"{iface} (onboard)"
+
+
+def _active_ssid_linux(iface: str) -> Optional[str]:
+    _, out, _ = _run_nmcli(["-t", "-f", "active,ssid", "device", "wifi", "list", "ifname", iface])
+    for line in out.splitlines():
+        if line.startswith("yes:"):
+            return line.split(":", 1)[1]
+    return None
+
+
+def _list_interfaces_linux() -> List[WifiInterface]:
+    """Parses `nmcli device status` into structured records, one per WiFi
+    interface NetworkManager manages. Skips wifi-p2p pseudo-devices (e.g.
+    p2p-dev-wlan0), which show up as their own DEVICE row but aren't real
+    adapters you can join a network on."""
+    _, out, _ = _run_nmcli(["-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device", "status"])
+
+    interfaces = []
+    for line in out.splitlines():
+        parts = line.strip().split(":")
+        if len(parts) < 3 or parts[1] != "wifi":
+            continue
+        name, state = parts[0], parts[2]
+        connection = ":".join(parts[3:])
+        ssid = _active_ssid_linux(name) if state == "connected" and connection else None
+        interfaces.append(WifiInterface(
+            name=name, description=_describe_interface_linux(name),
+            state=state, ssid=ssid,
+        ))
+    return interfaces
+
+
+def _connection_name(ssid: str) -> str:
+    return f"polaris-{ssid}"
+
+
+def _add_and_connect_linux(ssid: str, password: str, interface: str,
+                            static_ip: Optional[str], timeout: float) -> bool:
+    """Creates (or replaces) an nmcli connection profile scoped to
+    `interface` for `ssid`, optionally pins a static IP, and brings it up.
+    Mirrors _add_profile_win()/_connect_win() on the Windows side.
+
+    Replaces any pre-existing profile of this name outright rather than
+    trying to diff/modify one in place -- simpler and more robust against
+    a profile left over from a previous run with different settings.
+    """
+    con_name = _connection_name(ssid)
+    _run_nmcli(["connection", "delete", con_name])  # best-effort, may not exist
+
+    code, out, err = _run_nmcli([
+        "connection", "add", "type", "wifi", "con-name", con_name,
+        "ifname", interface, "ssid", ssid,
+    ])
+    if code != 0:
+        raise RuntimeError(f"Failed to add nmcli connection: {out}{err}")
+
+    if password:
+        if not (8 <= len(password) <= 63):
+            raise ValueError(
+                f"WPA2 PSK must be 8-63 characters, got {len(password)}. "
+                "If the Polaris hotspot has no password, pass password=''."
+            )
+        _run_nmcli(["connection", "modify", con_name,
+                    "wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", password])
+
+    if static_ip:
+        _run_nmcli(["connection", "modify", con_name,
+                    "ipv4.method", "manual", "ipv4.addresses", static_ip])
+
+    code, out, err = _run_nmcli(["-w", str(max(1, int(timeout))), "connection", "up", con_name])
+    return code == 0
+
+
+def _diagnose_linux(ssid: str, interface: str) -> None:
+    """Prints what NetworkManager/the adapter actually see for this SSID
+    and interface right now. Called on join failure so there's something
+    actionable in the log beyond "it didn't work"."""
+    logger.info("--- nmcli device show ---")
+    _, out, _ = _run_nmcli(["device", "show", interface])
+    logger.info(out)
+
+    logger.info(f"--- nmcli device wifi list (filtered to '{ssid}') ---")
+    _, out, _ = _run_nmcli(["-t", "-f", "SSID,SIGNAL,SECURITY", "device", "wifi", "list", "ifname", interface])
+    matched = [line for line in out.splitlines() if ssid in line]
+    logger.info("\n".join(matched) if matched else
+                f"'{ssid}' was NOT found in the current scan results at all.")
+
+    logger.info("--- journalctl -u NetworkManager (recent) ---")
+    _, out, err = _run(["journalctl", "-u", "NetworkManager", "-n", "20", "--no-pager"])
+    logger.info(out or err or "(no logs, or journalctl access denied)")
+
+
+def _join_wifi_network_linux(ssid: str, password: str = "", timeout: float = 15.0,
+                              interface: Optional[str] = None,
+                              prefer_keywords: tuple = ("usb",),
+                              static_ip: Optional[str] = "192.168.0.100/24") -> bool:
+    interfaces = _list_interfaces_linux()
+    chosen = _choose_interface(interfaces, explicit_name=interface,
+                                prefer_keywords=prefer_keywords)
+
+    # Idempotency: skip the whole dance if this adapter is already on the
+    # target network -- avoids a spurious brief re-association on every
+    # click of the Alpaca Pilot Wi-Fi button.
+    if chosen.state == "connected" and chosen.ssid == ssid:
+        logger.info(f"Already joined to '{ssid}' on {chosen.name}.")
+        return True
+
+    logger.info(f"Using WiFi interface: {chosen.name} ({chosen.description})")
+
+    ok = _add_and_connect_linux(ssid, password, chosen.name, static_ip, timeout)
+    if ok:
+        suffix = f", static IP {static_ip}" if static_ip else ""
+        logger.info(f"Joined '{ssid}' on {chosen.name}{suffix}.")
+    else:
+        _diagnose_linux(ssid, chosen.name)
+    return ok
+
+
+# ──────────────────────────────────────────────────────────────────────────
 # Public, platform-dispatching entry point
 # ──────────────────────────────────────────────────────────────────────────
 
 def join_wifi_network(ssid: str, password: str = "", timeout: float = 15.0,
                        interface: Optional[str] = None,
-                       prefer_keywords: tuple = ("usb",)) -> bool:
+                       prefer_keywords: tuple = ("usb",),
+                       static_ip: Optional[str] = "192.168.0.100/24") -> bool:
     """Join the host OS to a known Polaris SSID -- the entry point other
     driver modules should call (synchronous; wrap in asyncio.to_thread()
     from async callers). Returns False on unsupported platforms rather than
     raising; callers are responsible for logging that outcome.
 
-    interface: force a specific adapter name (e.g. 'Wi-Fi 2', Windows only
-    today). Leave as None to auto-select.
+    interface: force a specific adapter name (e.g. 'Wi-Fi 2' on Windows,
+    'wlan1' on Linux). Leave as None to auto-select.
     prefer_keywords: when auto-selecting among multiple adapters, rank ones
     whose description matches these (default: "usb") above others.
+    static_ip: Linux only -- static IPv4 address (CIDR, e.g.
+    '192.168.0.100/24') to assign after joining, since the Polaris hotspot's
+    own DHCP is slow/absent enough in practice that a static address is the
+    reliable option. Pass None to take whatever DHCP hands out instead.
+    Ignored on Windows.
     """
     if IS_WINDOWS:
         return _join_wifi_network_win(ssid, password, timeout=timeout,
                                        interface=interface, prefer_keywords=prefer_keywords)
-    # Linux/Raspberry Pi: platforms/raspberry_pi/wifi.sh covers this today as a
-    # separate standalone script (wpa_supplicant-based); not yet wired in here.
+    if IS_LINUX:
+        return _join_wifi_network_linux(ssid, password, timeout=timeout,
+                                         interface=interface, prefer_keywords=prefer_keywords,
+                                         static_ip=static_ip)
     # macOS: not yet implemented (would use networksetup(8)).
     return False
 
@@ -378,20 +536,29 @@ def join_wifi_network(ssid: str, password: str = "", timeout: float = 15.0,
 
 def discover_polaris_networks(ssid_pattern: str = r"^polaris_[0-9a-zA-Z]+$") -> List[str]:
     """Scans for currently-visible SSIDs matching the Polaris naming
-    pattern (e.g. polaris_b83c06). Windows only. Returns a de-duplicated,
-    sorted list of matching SSID names."""
-    if not IS_WINDOWS:
-        raise RuntimeError("discover_polaris_networks() is only implemented on Windows.")
-    _run(["netsh.exe", "wlan", "show", "networks", "mode=bssid"])  # refresh scan cache
-    time.sleep(1)
-    _, out, _ = _run(["netsh.exe", "wlan", "show", "networks"])
-
+    pattern (e.g. polaris_b83c06) on Windows or Linux. Returns a
+    de-duplicated, sorted list of matching SSID names."""
     pattern = re.compile(ssid_pattern, re.IGNORECASE)
     found = set()
-    for line in out.splitlines():
-        m = re.match(r"^\s*SSID\s+\d+\s*:\s*(.+?)\s*$", line)
-        if m and pattern.match(m.group(1)):
-            found.add(m.group(1))
+
+    if IS_WINDOWS:
+        _run(["netsh.exe", "wlan", "show", "networks", "mode=bssid"])  # refresh scan cache
+        time.sleep(1)
+        _, out, _ = _run(["netsh.exe", "wlan", "show", "networks"])
+        for line in out.splitlines():
+            m = re.match(r"^\s*SSID\s+\d+\s*:\s*(.+?)\s*$", line)
+            if m and pattern.match(m.group(1)):
+                found.add(m.group(1))
+    elif IS_LINUX:
+        _run_nmcli(["device", "wifi", "rescan"])  # best-effort, refreshes the scan cache
+        time.sleep(1)
+        _, out, _ = _run_nmcli(["-t", "-f", "SSID", "device", "wifi", "list"])
+        for line in out.splitlines():
+            ssid = line.strip()
+            if ssid and pattern.match(ssid):
+                found.add(ssid)
+    else:
+        raise RuntimeError("discover_polaris_networks() is only implemented on Windows and Linux.")
 
     return sorted(found)
 

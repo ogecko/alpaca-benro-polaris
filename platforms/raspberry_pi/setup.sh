@@ -86,8 +86,19 @@ if command -v hciconfig >/dev/null 2>&1; then
     sudo hciconfig hci0 up 2>/dev/null || true
 fi
 
+echo "==SETUP== 7. Grant passwordless nmcli access, needed for join_wifi.py to join the Polaris hotspot."
+# NetworkManager's own polkit rule only allows unauthenticated connection
+# changes from a "local and active" seat session -- the polaris-driver
+# service (User=pi, no seat) never qualifies, so join_wifi.py's nmcli calls
+# would otherwise hang waiting for a sudo password that never comes.
+NMCLI_SUDOERS="/etc/sudoers.d/polaris-nmcli"
+NMCLI_PATH="$(command -v nmcli)"
+echo "pi ALL=(ALL) NOPASSWD: ${NMCLI_PATH}" | sudo tee "$NMCLI_SUDOERS" > /dev/null
+sudo chmod 440 "$NMCLI_SUDOERS"
+sudo visudo -cf "$NMCLI_SUDOERS"
+
 SERVICE_FILE="/etc/systemd/system/polaris-driver.service"
-echo "==SETUP== 7. Set up [systemd] services to start the Polaris Driver at boot time."
+echo "==SETUP== 8. Set up [systemd] services to start the Polaris Driver at boot time."
 
 sudo systemctl stop polaris-driver.service 2>/dev/null || true
 sudo systemctl disable polaris-driver.service 2>/dev/null || true
@@ -111,7 +122,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-echo "==SETUP== 8. Starts the polaris-driver service."
+echo "==SETUP== 9. Starts the polaris-driver service."
 sudo systemctl daemon-reload
 sudo systemctl enable polaris-driver.service
 sudo systemctl restart polaris-driver.service
