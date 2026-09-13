@@ -55,7 +55,7 @@ MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
 4. Remove the SD Card storage device and insert it into your Raspberry Pi
 
 ## Installation of Pre-Requisites and Alpaca Driver
-These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Connect a **keyboard** and **monitor** directly to the Raspberry Pi, or setup a remote terminal program such as **MobaXterm** or **VS Code**. Login with the username and password you configured during image creation, and then follow the instructions below.
+These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Connect a **keyboard** and **monitor** directly to the Raspberry Pi, or setup a remote terminal program such as **Powershell ssh**,  **MobaXterm** or **VS Code**. Login with the username and password you configured during image creation, and then follow the instructions below.
 
 5. Connect a keyboard/screen to the Raspberry Pi, or connect a remote terminal like MobaXterm. Logon to the Raspberry Pi using the credentials you setup in the imager.
 6. Download the setup script
