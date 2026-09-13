@@ -73,13 +73,15 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     ./setup.sh dev2_2
     ```
 8. Wait for the following tasks to complete
-    * ==SETUP== 1. Update the software on the system, and install dependencies needed for git
+    * ==SETUP== 1. Update the software on the system, and install dependencies needed for git and uv
     * ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
-    * ==SETUP== 3. Create a pyenv and add to ~/.bashrc.
+    * ==SETUP== 3. Install uv and create a pyenv, adding it to ~/.bashrc.
     * ==SETUP== 4. Install the python dependencies needed for the application.
     * ==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080'
     * ==SETUP== 6. Set up [systemd] services to start the Polaris Driver at boot time
     * ==SETUP== 7. Starts the polaris-driver service.
+
+    [uv](https://docs.astral.sh/uv/) is a fast Python package/project manager. The script installs it automatically (equivalent to running `curl -LsSf https://astral.sh/uv/install.sh | sh`) if it isn't already on your system, then uses it to create the virtual environment (`pyenv`) and install dependencies — no separate `pip` or `python3-venv` install is required.
 
 9. The Alpaca Driver should now be installed and setup
 
@@ -432,9 +434,9 @@ This is done automatically in setup.sh, but if you did not use this method, then
     ```
 
 ### P6 - Optionally install build tools  
-On some Raspberry Pi platforms you may encounter issues when installing the `requirements.txt`, where a package is not available for your platform. For example, on the **Raspberry Pi Zero 2 W**, there is no compiled version of **numpy** or **scipi** available for pip to install. The script works around this issue by using apt-get to install both of these packages globally outside of pip. 
-    
-If you encounter other package dependancy issues you may need to install build tools to generate any missing package from scratch.
+The setup script installs Python dependencies with `uv pip install -r requirements.txt --only-binary numpy,scipy`, which forces **numpy** and **scipy** to come from pre-built wheels rather than being compiled from source. Pre-built `aarch64` wheels for these packages are available on PyPI for the **Raspberry Pi Zero 2 W** and **Raspberry Pi 4**, so this should succeed without any extra build tools.
+
+If you encounter other package dependency issues (for example a new dependency without a pre-built wheel for your platform), you may need to install build tools to compile it from scratch.
 ```Bash
 sudo apt install gfortran
 sudo apt install libopenblas-dev

@@ -10,8 +10,8 @@ REPO_URL="https://github.com/ogecko/alpaca-benro-polaris.git"
 
 echo "==SETUP== Alpaca Benro Polaris Raspberry Pi Setup ======================================."
 
-echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git."
-for pkg in git python3-pip python3-numpy python3-scipy; do
+echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git and uv."
+for pkg in git curl; do
     if ! dpkg -s "$pkg" >/dev/null 2>&1; then
         echo "Installing $pkg..."
         sudo apt-get update -qq   # run update only if a package is missing
@@ -38,11 +38,15 @@ src_home=$(pwd)
 mkdir -p logs
 mkdir -p data
 
-echo "==SETUP== 3. Create a pyenv and add to ~/.bashrc."
-sudo apt-get install python3-venv 
+echo "==SETUP== 3. Install uv and create a pyenv, adding it to ~/.bashrc."
+if ! command -v uv >/dev/null 2>&1; then
+    echo "Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
+source "$HOME/.local/bin/env"
 if [ ! -d "$src_home/pyenv" ]; then
-    echo "Creating Python virtual environment..."
-    python3 -m venv "$src_home/pyenv" --system-site-packages
+    echo "Creating Python virtual environment with uv..."
+    uv venv "$src_home/pyenv" --python 3.13
 else
     echo "Python venv already exists — skipping creation."
 fi
@@ -65,17 +69,16 @@ source "$src_home/pyenv/bin/activate"
 
 echo "==SETUP== 4. Install the python dependencies needed for the application."
 cd "$src_home/platforms/raspberry_pi"
-pip install -r requirements.txt -c constraints.txt
+uv pip install -r requirements.txt --only-binary numpy,scipy
 
 
 
-# 0. Update Alpaca Pilot port in config.toml
-echo "==SETUP== 6.Updating config.toml with 'alpaca_pilot_http_port = 8080' =="
+echo "==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080' =="
 sudo sed -i 's/^alpaca_pilot_http_port = 80 .*/alpaca_pilot_http_port = 8080/' "$src_home/driver/config.toml"
 
 
 SERVICE_FILE="/etc/systemd/system/polaris-driver.service"
-echo "==SETUP== 7. Set up [systemd] services to start the Polaris Driver at boot time."
+echo "==SETUP== 6. Set up [systemd] services to start the Polaris Driver at boot time."
 
 sudo systemctl stop polaris-driver.service 2>/dev/null || true
 sudo systemctl disable polaris-driver.service 2>/dev/null || true
@@ -99,7 +102,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-echo "==SETUP== 8. Starts the polaris-driver service."
+echo "==SETUP== 7. Starts the polaris-driver service."
 sudo systemctl daemon-reload
 sudo systemctl enable polaris-driver.service
 sudo systemctl restart polaris-driver.service
