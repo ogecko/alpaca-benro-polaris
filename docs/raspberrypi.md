@@ -54,9 +54,9 @@ MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
 4. Remove the SD Card storage device and insert it into your Raspberry Pi
 
 ## Installation of Pre-Requisites and Alpaca Driver
-These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Connect a **keyboard** and **monitor** directly to the Raspberry Pi, or setup a remote terminal program such as **Powershell ssh**,  **MobaXterm** or **VS Code**. Login with the username and password you configured during image creation, and then follow the instructions below.
+These insructions are based from a fresh install of Raspberry Pi OS Lite, written by the [Raspberry Pi imager](https://www.raspberrypi.com/software/). Connect a **keyboard** and **monitor** directly to the Raspberry Pi, or setup a remote terminal program such as **Powershell ssh**,  or **MobaXterm** or **VS Code Plugin SSH FS**. Login with the username and password you configured during image creation, and then follow the instructions below.
 
-5. Connect a keyboard/screen to the Raspberry Pi, or connect a remote terminal like MobaXterm. Logon to the Raspberry Pi using the credentials you setup in the imager.
+5. Connect a keyboard/screen to the Raspberry Pi, or connect a remote terminal like **ssh**. Logon to the Raspberry Pi using the credentials you setup in the imager.
 6. Download the setup script
     ```Bash
     cd ~
@@ -83,15 +83,19 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     * ==SETUP== 9. Set up [systemd] services to start the Polaris Driver at boot time
     * ==SETUP== 10. Starts the polaris-driver service.
 
-    [uv](https://docs.astral.sh/uv/) is a fast Python package/project manager. The script installs it automatically (equivalent to running `curl -LsSf https://astral.sh/uv/install.sh | sh`) if it isn't already on your system, then runs `uv sync` to create the virtual environment (`.venv`) and install the exact dependency versions pinned in `uv.lock` — no separate `pip`, `python3-venv` or platform `requirements.txt` is required.
+    > Note: [uv](https://docs.astral.sh/uv/) is a fast Python package/project manager. The script installs `uv` automatically if it isn't already on your system, then runs `uv sync` to create the virtual environment (`.venv`) and install the exact dependency versions pinned in `uv.lock`. No longer need to run `pip install -r requirements.txt`.
 
 9. Start Alpaca Pilot and Connect to the Polaris
 
-    The Alpaca Driver should now be installed and running. To open Alpaca Pilot, open a browser and navigate to `http://<hostname>:8080` (e.g. `http://alpaca:8080`) or `http://ap.local:8080`. Note the `:8080` is required on the Raspberry Pi (see [P5](#p5---manual-configuration-of-alpaca-pilot-port)) since Linux won't let a non-root process bind ports below 1024. 
+    The Alpaca Driver should now be installed and running. 
+    
+    To open Alpaca Pilot, open a browser and navigate to `http://ap.local:8080`. 
+    > Note the `:8080` is required when the driver is running on the Raspberry Pi (see [P5](#p5---manual-configuration-of-alpaca-pilot-port)) since Linux won't let a non-root process bind ports below 1024. 
 
-    A dedicated USB Wifi adapter (e.g. TP-Link Archer T2U PLUS) is recommended for connecting to the Polaris. The onboard Wifi on a Pi Zero 2 W can't associate with the Polaris' own hotspot. 
-
-    Click **Connect** on the toolbar, then follow the Connect page: power on the Polaris, select it from the **Device** dropdown, and click the **Wi-Fi** button. The Driver enables the Polaris' Wi-Fi hotspot over Bluetooth, then joins the Polaris network. Once connected, the Driver should automatically connect to the Polaris too. See the [Alpaca Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for the full step-by-step, including what each button and indicator on the Connect page does.
+    To enable and join the Polaris network, using Alpaca Pilot:
+    * Click **Connect** on the toolbar, then follow the Connect page steos.
+    * Power on the Polaris and wait for BLE to discover its name and list it in the dropdown.
+    * Click the **Wi-Fi** button to get the Raspberry Pi to join the Polaris hotspot. 
 
     If the Pi doesn't join the Polaris hotspot automatically, see [P1](#p1---diagnosing-wifi-and-bluetooth-network-issues) for how to diagnose and join manually.
 
@@ -119,13 +123,9 @@ rfkill list                             # check for a soft/hard block (apt insta
 sudo rfkill unblock bluetooth           # or: echo 0 | sudo tee /sys/class/rfkill/rfkill0/soft
 sudo hciconfig hci0 up
 ```
-setup.sh also forces the adapter into LE-only mode (`ControllerMode = le` in `/etc/bluetooth/main.conf`). This is required, not optional: the Polaris' own `bluetoothd` advertises classic-audio profiles (`Source,Sink,Media,Broadcast` — almost certainly leftover reference-BSP config, confirmed on the mount itself) it never actually services. BlueZ, correctly per spec, tries a classic BR/EDR connection alongside the LE one for any device advertising dual-mode capability, and that classic attempt fails and takes the whole connection down with it (`org.bluez.Error.NotAvailable: br-connection-profile-unavailable` in the logs), even though the LE/GATT side works fine on its own. This is Linux/BlueZ-specific — Windows, iOS and Android's BLE stacks are LE-only by construction and never attempt a classic bearer, which is why they don't hit this at all. If you see `br-connection-profile-unavailable` and `grep ControllerMode /etc/bluetooth/main.conf` comes back empty, re-run setup.sh or add the line manually and restart bluetoothd:
-```Bash
-grep ControllerMode /etc/bluetooth/main.conf || \
-  (sudo sed -i '/^\[General\]/a ControllerMode = le' /etc/bluetooth/main.conf && sudo systemctl restart bluetooth)
-```
 
-**USB Wifi adapter** — the Pi's onboard Wifi can't associate with the Polaris' own hotspot, so a dedicated USB adapter (e.g. TP-Link Archer T2U PLUS, chipset RTL8821AU) is recommended. Connect it to the port labelled `USB`, not `PWR IN` (power only, no data lines). Raspberry Pi OS Trixie's `rtw88` driver family auto-loads this chipset — no build required.
+
+**USB Wifi adapter** — the Pi's onboard Wifi may not be able to associate with the Polaris' own hotspot, so a dedicated USB adapter (e.g. TP-Link Archer T2U PLUS, chipset RTL8821AU) is recommended. Connect it to the port labelled `USB`, not `PWR IN` (power only, no data lines). Raspberry Pi OS Trixie's `rtw88` driver family auto-loads this chipset — no build required.
 ```Bash
 lsusb                        # confirm it's detected, note the chipset
 dmesg | grep -i rtw88        # confirm the driver loaded and got firmware
