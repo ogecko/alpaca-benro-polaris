@@ -25,7 +25,7 @@ The Alpaca Driver has been validated on the following platforms:
 
 For reference, when running advanced motion control algorithms and tracking a sidereal target, the Alpaca Driver uses roughly 22% of the CPU and 26% of the available memory on a **Raspberry Pi Zero 2 W**.
 ```
-(pyenv) pi@alpaca:~/alpaca-benro-polaris $ top
+(.venv) pi@alpaca:~/alpaca-benro-polaris $ top
 
 top - 22:38:21 up  8:03,  2 users,  load average: 0.42, 0.46, 0.46
 Tasks: 150 total,   2 running, 148 sleeping,   0 stopped,   0 zombie
@@ -75,19 +75,19 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
 8. Wait for the following tasks to complete
     * ==SETUP== 1. Update the software on the system, and install dependencies needed for git and uv
     * ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
-    * ==SETUP== 3. Install uv and create a pyenv, adding it to ~/.bashrc.
-    * ==SETUP== 4. Install the python dependencies needed for the application.
+    * ==SETUP== 3. Install uv, adding it to ~/.bashrc.
+    * ==SETUP== 4. Sync the python dependencies needed for the application with uv.
     * ==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080'
     * ==SETUP== 6. Set up [systemd] services to start the Polaris Driver at boot time
     * ==SETUP== 7. Starts the polaris-driver service.
 
-    [uv](https://docs.astral.sh/uv/) is a fast Python package/project manager. The script installs it automatically (equivalent to running `curl -LsSf https://astral.sh/uv/install.sh | sh`) if it isn't already on your system, then uses it to create the virtual environment (`pyenv`) and install dependencies — no separate `pip` or `python3-venv` install is required.
+    [uv](https://docs.astral.sh/uv/) is a fast Python package/project manager. The script installs it automatically (equivalent to running `curl -LsSf https://astral.sh/uv/install.sh | sh`) if it isn't already on your system, then runs `uv sync` to create the virtual environment (`.venv`) and install the exact dependency versions pinned in `uv.lock` — no separate `pip`, `python3-venv` or platform `requirements.txt` is required.
 
 9. The Alpaca Driver should now be installed and setup
 
 ## Monitoring and Diagnostic commands
 
-10. To activate the pyenv created by the setup script and added to the .bashrc
+10. To activate the .venv created by the setup script and added to the .bashrc
     ```Bash
     source ~/.bashrc
     ```
@@ -349,7 +349,7 @@ polaris-wlan1.service                        enabled         enabled
 
 $ systemctl status | grep polaris
            │ ├─polaris-driver.service
-           │ │ └─2646 /home/pi/alpaca-benro-polaris/pyenv/bin/python3 /home/pi/alpaca-benro-polaris/driver/main.py
+           │ │ └─2646 /home/pi/alpaca-benro-polaris/.venv/bin/python3 /home/pi/alpaca-benro-polaris/driver/main.py
            │ ├─polaris-wlan1.service
                │ └─2667 grep --color=auto polaris
 
@@ -435,7 +435,7 @@ This is done automatically in setup.sh, but if you did not use this method, then
     ```
 
 ### P6 - Optionally install build tools  
-The setup script installs Python dependencies with `uv pip install -r requirements.txt --only-binary numpy,scipy`, which forces **numpy** and **scipy** to come from pre-built wheels rather than being compiled from source. Pre-built `aarch64` wheels for these packages are available on PyPI for the **Raspberry Pi Zero 2 W** and **Raspberry Pi 4**, so this should succeed without any extra build tools.
+The setup script installs Python dependencies with `uv sync --no-dev --locked --no-build-package numpy --no-build-package scipy`, which forces **numpy** and **scipy** to come from pre-built wheels rather than being compiled from source. Pre-built `aarch64` wheels for these packages are available on PyPI for the **Raspberry Pi Zero 2 W** and **Raspberry Pi 4**, so this should succeed without any extra build tools.
 
 If you encounter other package dependency issues (for example a new dependency without a pre-built wheel for your platform), you may need to install build tools to compile it from scratch.
 ```Bash

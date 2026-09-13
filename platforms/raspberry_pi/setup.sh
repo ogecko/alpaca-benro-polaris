@@ -38,25 +38,19 @@ src_home=$(pwd)
 mkdir -p logs
 mkdir -p data
 
-echo "==SETUP== 3. Install uv and create a pyenv, adding it to ~/.bashrc."
+echo "==SETUP== 3. Install uv, adding it to ~/.bashrc."
 if ! command -v uv >/dev/null 2>&1; then
     echo "Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 source "$HOME/.local/bin/env"
-if [ ! -d "$src_home/pyenv" ]; then
-    echo "Creating Python virtual environment with uv..."
-    uv venv "$src_home/pyenv" --python 3.13
-else
-    echo "Python venv already exists — skipping creation."
-fi
 if ! grep -q "alpaca-benro-polaris edits" ~/.bashrc; then
     echo "Adding venv auto-activation to ~/.bashrc..."
     cat <<_EOF >> ~/.bashrc
 
 # start of alpaca-benro-polaris edits
-if [ -d "$src_home/pyenv" ]; then
-    source "$src_home/pyenv/bin/activate"
+if [ -d "$src_home/.venv" ]; then
+    source "$src_home/.venv/bin/activate"
     cd "$src_home"
 fi
 # end of alpaca-benro-polaris edits
@@ -65,11 +59,10 @@ _EOF
 else
     echo "~/.bashrc already contains venv activation — skipping."
 fi
-source "$src_home/pyenv/bin/activate"
 
-echo "==SETUP== 4. Install the python dependencies needed for the application."
-cd "$src_home/platforms/raspberry_pi"
-uv pip install -r requirements.txt --only-binary numpy,scipy
+echo "==SETUP== 4. Sync the python dependencies needed for the application with uv (creates $src_home/.venv)."
+uv sync --no-dev --locked --no-build-package numpy --no-build-package scipy
+source "$src_home/.venv/bin/activate"
 
 
 
@@ -99,7 +92,7 @@ Wants=network-online.target
 Type=simple
 User=pi
 WorkingDirectory=${src_home}/driver
-ExecStart=${src_home}/pyenv/bin/python3 ${src_home}/driver/main.py
+ExecStart=${src_home}/.venv/bin/python3 ${src_home}/driver/main.py
 Restart=always
 RestartSec=5
 
