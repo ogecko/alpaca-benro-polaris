@@ -75,8 +75,19 @@ sudo sed -i -E \
     "$src_home/driver/config.toml"
 
 
+echo "==SETUP== 6. Ensure Bluetooth is powered on, needed for BLE communication with the Polaris."
+for rfk in /sys/class/rfkill/rfkill*; do
+    if [ "$(cat "$rfk/type" 2>/dev/null)" = "bluetooth" ] && [ "$(cat "$rfk/soft" 2>/dev/null)" = "1" ]; then
+        echo "Bluetooth is soft-blocked — unblocking $rfk..."
+        echo 0 | sudo tee "$rfk/soft" > /dev/null
+    fi
+done
+if command -v hciconfig >/dev/null 2>&1; then
+    sudo hciconfig hci0 up 2>/dev/null || true
+fi
+
 SERVICE_FILE="/etc/systemd/system/polaris-driver.service"
-echo "==SETUP== 6. Set up [systemd] services to start the Polaris Driver at boot time."
+echo "==SETUP== 7. Set up [systemd] services to start the Polaris Driver at boot time."
 
 sudo systemctl stop polaris-driver.service 2>/dev/null || true
 sudo systemctl disable polaris-driver.service 2>/dev/null || true
@@ -100,7 +111,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-echo "==SETUP== 7. Starts the polaris-driver service."
+echo "==SETUP== 8. Starts the polaris-driver service."
 sudo systemctl daemon-reload
 sudo systemctl enable polaris-driver.service
 sudo systemctl restart polaris-driver.service

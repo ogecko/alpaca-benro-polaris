@@ -78,8 +78,9 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
     * ==SETUP== 3. Install uv, adding it to ~/.bashrc.
     * ==SETUP== 4. Sync the python dependencies needed for the application with uv.
     * ==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080'
-    * ==SETUP== 6. Set up [systemd] services to start the Polaris Driver at boot time
-    * ==SETUP== 7. Starts the polaris-driver service.
+    * ==SETUP== 6. Ensure Bluetooth is powered on, needed for BLE communication with the Polaris.
+    * ==SETUP== 7. Set up [systemd] services to start the Polaris Driver at boot time
+    * ==SETUP== 8. Starts the polaris-driver service.
 
     [uv](https://docs.astral.sh/uv/) is a fast Python package/project manager. The script installs it automatically (equivalent to running `curl -LsSf https://astral.sh/uv/install.sh | sh`) if it isn't already on your system, then runs `uv sync` to create the virtual environment (`.venv`) and install the exact dependency versions pinned in `uv.lock` — no separate `pip`, `python3-venv` or platform `requirements.txt` is required.
 
@@ -260,7 +261,9 @@ The following procedure describes how to setup a Raspberry Pi Zero 2 with a TPLI
 
 ## Troubleshooting the Raspberry Pi
 ### P1 - Diagnosing Wifi and Bluetooth RF status
-To check whether the Raspberry Pi Wifi or Bluetooth is blocked: 
+Setup.sh automatically unblocks and powers on Bluetooth (needed for BLE communication with the Polaris), but if you still see `Bluetooth unavailable, cannot start scanner` in the logs, or need to check Wifi, use the steps below.
+
+The `rfkill` command isn't installed by default on Raspberry Pi OS Lite (`sudo apt install rfkill` to get it). To check whether the Raspberry Pi Wifi or Bluetooth is blocked: 
 ```
 $ rfkill list
 0: hci0: Bluetooth
@@ -277,6 +280,12 @@ To unblock Raspberry Pi Bluetooth and Wifi:
 ```
 $ sudo rfkill unblock bluetooth
 $ sudo rfkill unblock wifi
+```
+Without installing `rfkill`, you can do the same directly via sysfs (this is what setup.sh does for Bluetooth):
+```
+$ cat /sys/class/rfkill/rfkill0/soft   # 1 = blocked, 0 = unblocked
+$ echo 0 | sudo tee /sys/class/rfkill/rfkill0/soft
+$ sudo hciconfig hci0 up
 ```
 To bring up the wlan1 wifi interface:
 ```
