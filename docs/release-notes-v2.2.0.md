@@ -32,7 +32,7 @@
 ## What's new in v2.2 Beta 5 
 - **[zeroconf dependancy]** Installation requires `pip install -r platforms/win/requirements.txt` to pickup new zeroconf dependancy
 - **[mDNS Service]** Advertise Alpaca Pilot hostname as `ap.local` (configurable via Network Settings) for easy discovery from iPads and other devices on the local network.
-- **[mDNS Certificate]** Changing mDNS hostname from Network Settings regenerates HTTPS root certificate, requiring reinstallation.
+- **[mDNS Certificate]** Changing mDNS hostname from Network Settings regenerates the HTTPS site certificate to cover the new hostname. The root CA certificate is unaffected and stays trusted — no reinstallation needed.
 - **[Kalman Filter]** Improve KF performance (fixed measurement cadence, use true velocity measurement, robust to protocol backlog draining)
 - **[KF Tuning Page]** Allow page to monitor trending signals during tracking and fix bug where page callup could reset KF Tuning Parameters
 - **[Docker Images]** Documented how to Install, Clone, Build and Run the driver in a docker image using platforms/docker/run.sh 
