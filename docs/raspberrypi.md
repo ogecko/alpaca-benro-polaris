@@ -85,6 +85,8 @@ These insructions are based from a fresh install of Raspberry Pi OS Lite, writte
 
 9. The Alpaca Driver should now be installed and setup
 
+    Open a browser and navigate to `http://<hostname>:8080` (e.g. `http://alpaca:8080`) or `http://ap.local:8080`. Note the `:8080` is required on the Pi — unlike the Windows/Mac installs, which default to the standard port 80, the Pi setup script moves Alpaca Pilot to port 8080 (see [P5](#p5---manual-configuration-of-alpaca-pilot-port)) since Linux won't let a non-root process bind ports below 1024. mDNS (`ap.local`) only resolves the hostname to an IP address — it doesn't tell the browser which port to use — so a bare `http://ap.local` will try the default port 80 and fail to connect, even though `ping ap.local` succeeds (ICMP has no concept of ports, so it isn't affected).
+
 ## Monitoring and Diagnostic commands
 
 10. To activate the .venv created by the setup script and added to the .bashrc
@@ -442,4 +444,7 @@ If you encounter other package dependency issues (for example a new dependency w
 sudo apt install gfortran
 sudo apt install libopenblas-dev
 ```
+
+### P7 - `ping ap.local` works but the browser can't reach Alpaca Pilot
+On the Pi, Alpaca Pilot runs on port 8080 rather than the standard port 80 (see [P5](#p5---manual-configuration-of-alpaca-pilot-port)). `ping ap.local` only tests that the `ap.local` mDNS name resolves to the Pi's IP address — ICMP has no concept of ports, so it succeeds regardless. A browser given a bare `http://ap.local` (no port) will instead try to connect on the default port 80, where nothing is listening, and fail. Always include the port: `http://ap.local:8080`.
 
