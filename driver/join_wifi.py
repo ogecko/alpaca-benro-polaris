@@ -186,17 +186,27 @@ def _list_interfaces_win() -> List[WifiInterface]:
     ]
 
 
-def _choose_interface(interfaces: List[WifiInterface],
+def _choose_interface(interfaces: List[WifiInterface], ssid: str,
                        explicit_name: Optional[str] = None,
                        prefer_keywords: tuple = ("usb",)) -> WifiInterface:
     """Picks which WiFi adapter to use for the Polaris join. Shared by
     Windows and Linux -- WifiInterface is the same shape on both, only how
     the list gets built differs (netsh vs nmcli/sysfs).
 
-    - If the caller named one explicitly, use that.
-    - If there's only one adapter, use it (matches the original
-      single-adapter behaviour - will take over whatever it's doing).
-    - Otherwise, rank candidates by:
+    Hard safety rule, applied before anything else: never auto-select an
+    interface that is currently connected to some *other* network -- e.g.
+    the Pi's onboard wlan0 on the user's home Wifi, which might be the only
+    thing keeping the host reachable at all. An interface
+    already connected to our own target ssid counts as safe (that's the
+    idempotency-check path in the caller); a caller-supplied explicit_name
+    is trusted and bypasses this filter entirely.
+
+    - If the caller named one explicitly, use that -- no filtering.
+    - Otherwise, only ever consider interfaces that are disconnected, or
+      already connected to `ssid`. If none qualify, raise rather than
+      guess -- the caller should pass an explicit interface to force it.
+    - Among the survivors, if there's only one, use it.
+    - Otherwise, rank by:
         1) description matches one of prefer_keywords (default: "usb") -
            dedicated USB WiFi dongles are what ABP recommends for the
            Polaris, since most built-in/onboard chipsets fail to
@@ -204,8 +214,8 @@ def _choose_interface(interfaces: List[WifiInterface],
            rather than a specific vendor keeps this generic across
            whatever dongle brand a given user has (TP-Link, Realtek,
            Alfa, etc.) rather than hardcoding one.
-        2) currently disconnected - so we don't tear down the user's
-           existing WiFi connection on their main adapter.
+        2) currently disconnected over already-connected-to-ssid, so a
+           free adapter is preferred over reusing one mid-session.
       Highest-ranked candidate wins.
     """
     if not interfaces:
@@ -220,15 +230,23 @@ def _choose_interface(interfaces: List[WifiInterface],
             f"{[i.name for i in interfaces]}"
         )
 
-    if len(interfaces) == 1:
-        return interfaces[0]
+    safe = [i for i in interfaces if i.state.lower() != "connected" or i.ssid == ssid]
+    if not safe:
+        raise RuntimeError(
+            "All WiFi interfaces are already connected to a different network -- "
+            "refusing to disconnect one automatically. Pass interface=... to force "
+            f"a choice. Interfaces seen: {[(i.name, i.state, i.ssid) for i in interfaces]}"
+        )
+
+    if len(safe) == 1:
+        return safe[0]
 
     def score(i: WifiInterface):
         is_preferred_hw = any(k.lower() in i.description.lower() for k in prefer_keywords)
         is_disconnected = i.state.lower() == "disconnected"
         return (is_preferred_hw, is_disconnected)
 
-    return max(interfaces, key=score)
+    return max(safe, key=score)
 
 
 def _add_profile_win(ssid: str, password: str = "", interface: Optional[str] = None) -> None:
@@ -341,7 +359,7 @@ def _join_wifi_network_win(ssid: str, password: str = "", timeout: float = 15.0,
                             interface: Optional[str] = None,
                             prefer_keywords: tuple = ("usb",)) -> bool:
     interfaces = _list_interfaces_win()
-    chosen = _choose_interface(interfaces, explicit_name=interface,
+    chosen = _choose_interface(interfaces, ssid, explicit_name=interface,
                                 prefer_keywords=prefer_keywords)
 
     # Idempotency: skip the whole dance if this adapter is already on the
@@ -372,9 +390,14 @@ def _describe_interface_linux(iface: str) -> str:
     a vendor string, since that's reliably available for every adapter and
     distinguishes a USB WiFi dongle from the Pi's onboard SDIO chip without
     hardcoding any particular vendor."""
+    # os.readlink() raises on a missing/unresolvable symlink, unlike
+    # os.path.realpath() which silently returns the input path unchanged --
+    # that silence previously made a resolve failure indistinguishable from
+    # a genuine onboard adapter, dropping the "usb" match with no warning.
     try:
-        bus_path = os.path.realpath(f"/sys/class/net/{iface}/device")
-    except OSError:
+        bus_path = os.readlink(f"/sys/class/net/{iface}/device")
+    except OSError as e:
+        logger.warning(f"Could not resolve bus path for {iface}, treating as unknown hardware: {e}")
         return iface
     return f"{iface} (usb)" if "/usb" in bus_path else f"{iface} (onboard)"
 
@@ -474,7 +497,7 @@ def _join_wifi_network_linux(ssid: str, password: str = "", timeout: float = 15.
                               prefer_keywords: tuple = ("usb",),
                               static_ip: Optional[str] = "192.168.0.100/24") -> bool:
     interfaces = _list_interfaces_linux()
-    chosen = _choose_interface(interfaces, explicit_name=interface,
+    chosen = _choose_interface(interfaces, ssid, explicit_name=interface,
                                 prefer_keywords=prefer_keywords)
 
     # Idempotency: skip the whole dance if this adapter is already on the
