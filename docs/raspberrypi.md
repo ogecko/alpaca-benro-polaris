@@ -118,6 +118,11 @@ rfkill list                             # check for a soft/hard block (apt insta
 sudo rfkill unblock bluetooth           # or: echo 0 | sudo tee /sys/class/rfkill/rfkill0/soft
 sudo hciconfig hci0 up
 ```
+setup.sh also forces the adapter into LE-only mode (`ControllerMode = le` in `/etc/bluetooth/main.conf`). This is required, not optional: the Polaris' own `bluetoothd` advertises classic-audio profiles (`Source,Sink,Media,Broadcast` — almost certainly leftover reference-BSP config, confirmed on the mount itself) it never actually services. BlueZ, correctly per spec, tries a classic BR/EDR connection alongside the LE one for any device advertising dual-mode capability, and that classic attempt fails and takes the whole connection down with it (`org.bluez.Error.NotAvailable: br-connection-profile-unavailable` in the logs), even though the LE/GATT side works fine on its own. This is Linux/BlueZ-specific — Windows, iOS and Android's BLE stacks are LE-only by construction and never attempt a classic bearer, which is why they don't hit this at all. If you see `br-connection-profile-unavailable` and `grep ControllerMode /etc/bluetooth/main.conf` comes back empty, re-run setup.sh or add the line manually and restart bluetoothd:
+```Bash
+grep ControllerMode /etc/bluetooth/main.conf || \
+  (sudo sed -i '/^\[General\]/a ControllerMode = le' /etc/bluetooth/main.conf && sudo systemctl restart bluetooth)
+```
 
 **USB Wifi adapter** — the Pi's onboard Wifi can't associate with the Polaris' own hotspot, so a dedicated USB adapter (e.g. TP-Link Archer T2U PLUS, chipset RTL8821AU) is recommended. Connect it to the port labelled `USB`, not `PWR IN` (power only, no data lines). Raspberry Pi OS Trixie's `rtw88` driver family auto-loads this chipset — no build required.
 ```Bash

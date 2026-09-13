@@ -86,7 +86,29 @@ if command -v hciconfig >/dev/null 2>&1; then
     sudo hciconfig hci0 up 2>/dev/null || true
 fi
 
-echo "==SETUP== 7. Grant passwordless nmcli access, needed for join_wifi.py to join the Polaris hotspot."
+echo "==SETUP== 7. Force the Bluetooth adapter into LE-only mode, needed for reliable BLE to the Polaris."
+# The Polaris's own bluetoothd advertises classic-audio profiles (Source/Sink/Media/
+# Broadcast, confirmed on the mount's own /app/bluetooth/config/main.conf) that it
+# never actually services -- almost certainly leftover reference-BSP config. BlueZ,
+# correctly per spec, tries a classic BR/EDR connection alongside the LE one for any
+# device advertising dual-mode capability; that classic attempt fails and takes the
+# whole Connect() down with it ("br-connection-profile-unavailable"), even though the
+# LE/GATT side works fine on its own. Windows/iOS/Android's BLE stacks are LE-only by
+# construction and never hit this -- it isn't specific to this driver. Forcing the
+# Pi's own adapter into LE-only mode stops BlueZ from ever attempting the classic
+# bearer, which is what actually breaks the connection.
+BT_CONF="/etc/bluetooth/main.conf"
+if ! grep -q "^ControllerMode" "$BT_CONF" 2>/dev/null; then
+    echo "Setting ControllerMode = le in $BT_CONF..."
+    sudo sed -i '/^\[General\]/a ControllerMode = le' "$BT_CONF"
+    sudo systemctl restart bluetooth
+    sleep 2
+    sudo hciconfig hci0 up 2>/dev/null || true
+else
+    echo "ControllerMode already set in $BT_CONF — skipping."
+fi
+
+echo "==SETUP== 8. Grant passwordless nmcli access, needed for join_wifi.py to join the Polaris hotspot."
 # NetworkManager's own polkit rule only allows unauthenticated connection
 # changes from a "local and active" seat session -- the polaris-driver
 # service (User=pi, no seat) never qualifies, so join_wifi.py's nmcli calls
@@ -98,7 +120,7 @@ sudo chmod 440 "$NMCLI_SUDOERS"
 sudo visudo -cf "$NMCLI_SUDOERS"
 
 SERVICE_FILE="/etc/systemd/system/polaris-driver.service"
-echo "==SETUP== 8. Set up [systemd] services to start the Polaris Driver at boot time."
+echo "==SETUP== 9. Set up [systemd] services to start the Polaris Driver at boot time."
 
 sudo systemctl stop polaris-driver.service 2>/dev/null || true
 sudo systemctl disable polaris-driver.service 2>/dev/null || true
@@ -122,7 +144,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-echo "==SETUP== 9. Starts the polaris-driver service."
+echo "==SETUP== 10. Starts the polaris-driver service."
 sudo systemctl daemon-reload
 sudo systemctl enable polaris-driver.service
 sudo systemctl restart polaris-driver.service
