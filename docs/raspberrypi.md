@@ -44,12 +44,13 @@ MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
     1. Select your Raspberry Pi Device eg Raspberry Pi Zero 2 W, then click **NEXT**
     2. Choose your Operating System as **Raspberry Pi OS (64-bit)**, then click **NEXT**. If you are using a Raspberry Pi Zero 2 W and want a "headless Pi", select **Raspberry Pi OS (other)**, then choose **Raspberry Pi OS Lite (64-bit)**, then click **NEXT**
     3. Select your Storage Device that will hold the OS, then click **NEXT**
+   > Do not format the SD card as FAT32, as Windows may automatically mount and lock it, preventing the imager from writing to the card. Instead, use Disk Management to carefully delete any existing partitions on the SD card before proceeding.
     4. Enter the device hostname eg **alpaca**, then click **NEXT**
     5. Choose your localisation settings, then click **NEXT**
     6. Choose your user name and password, then click **NEXT**
     7. Choose your local wifi network you want the Pi to connect to, then click **NEXT**
     8. Enable SSH. Use default password authtication, then click **NEXT**
-    9. Use default disabled Raspberry Pi Connect, then click **NEXT**
+    9.  Use default disabled Raspberry Pi Connect, then click **NEXT**
     10. Write the image to the SD Card, click **WRITE**
 4. Remove the SD Card storage device and insert it into your Raspberry Pi
 
