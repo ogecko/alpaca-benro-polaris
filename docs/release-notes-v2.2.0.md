@@ -25,6 +25,9 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
+## What's new in v2.2 Beta 6
+**[Raspberry Pi Install]** major refresh of Raspberry Pi installation (now uses UV, shared uv.lock across platforms) and network setup (join Wifi, no driver build, Bluetooth auto-enabled)
+
 ## What's new in v2.2 Beta 5 
 - **[zeroconf dependancy]** Installation requires `pip install -r platforms/win/requirements.txt` to pickup new zeroconf dependancy
 - **[mDNS Service]** Advertise Alpaca Pilot hostname as `ap.local` (configurable via Network Settings) for easy discovery from iPads and other devices on the local network.
