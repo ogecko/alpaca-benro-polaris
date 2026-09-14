@@ -1290,6 +1290,17 @@ _CONNECTION_ERROR_TAXONOMY = [
 _WINCODE_FALLBACK_RE = re.compile(r'WinError\s*(-?\d+)|winerror=(-?\d+)|errno=(-?\d+)')
 
 
+def _param_present(v):
+    """
+    True if a config_update 'param_<key>' value should be treated as present.
+    Plain pd.notna(v)/pd.isna(v) raises ValueError on a list/array value (e.g. the
+    kf_measure_noise/kf_process_noise arrays Polaris:ConfigUpdate can carry) since
+    those compare elementwise. Non-scalars are never NaN, so only scalars need the
+    notna check.
+    """
+    return not np.isscalar(v) or pd.notna(v)
+
+
 def classify_connection_error(detail, kind=None):
     """
     Map one load_connection_events() row's `detail` (+ its `kind`, for the wifi_join_failed
@@ -1518,7 +1529,7 @@ def reconstruct_outages(connection_events_df):
             cur['wifi_join_failed'] = True
         elif ev.kind == 'config_update' and down:
             params = {k[len('param_'):]: ev[k] for k in ev.index
-                      if k.startswith('param_') and pd.notna(ev[k])}
+                      if k.startswith('param_') and _param_present(ev[k])}
             cur['config_changes'].append(dict(timestamp=ev.timestamp, params=params))
         elif ev.kind == 'init_done' and down:
             cur['outage_end'] = ev.timestamp
