@@ -113,38 +113,55 @@ def is_angle_between(angle: float, min_angle: float, max_angle: float) -> bool:
 
 def calculate_angular_velocity(history, nominal_dt=None, catchup_max_dt=None):
     """
-    Computes angular velocity from the first and last entries in a history buffer.
-    Each entry must be a list or tuple: [timemonotomic, theta1, theta2, theta3]
+    Computes angular velocity from a history buffer via Theil-Sen: the median of the slopes
+    between every pair of entries, rather than a single first/last two-point secant.
+    Each entry must be a list or tuple: [timemonotonic, theta1, theta2, theta3]
+
+    A two-point secant divides the whole window's outlier risk onto exactly the two samples
+    it uses, so one bad position read at either end (protocol glitch, single quantization
+    jump) fully corrupts the result -- and does so twice, since a fixed-length sliding window
+    then also loses that same sample off its other end len(history)-1 ticks later, producing a
+    second, opposite-sign corrupted reading. That is a real, observed failure mode: paired
+    +/- spikes exactly len(history)-1 samples apart in the field, matching a single bad sample
+    entering then leaving the window. Taking the median over all pairwise slopes instead means
+    a lone bad sample (which only participates in len(history)-1 of the C(N,2) pairs) is
+    outvoted by the majority of pairs that never touch it, while still reducing to essentially
+    the same estimate as the old secant when every sample is clean. Cost is O(N^2) pairs, e.g.
+    15 for a 6-entry history -- negligible next to the 0.2s sample cadence.
 
     nominal_dt: if given, the fixed real interval between consecutive history entries
-    catchup_max_dt: above this raw wall-clock span, assume a genuine 518 protocol outage 
+    catchup_max_dt: above this raw wall-clock span, assume a genuine 518 protocol outage
     Returns omega : ndarray
         Angular velocity vector [ω₁, ω₂, ω₃] in degrees per second.
         Returns [0.0, 0.0, 0.0] if input is insufficient or invalid.
     """
     try:
-        if history is None or len(history) < 2:
+        n = len(history) if history is not None else 0
+        if n < 2:
             return np.zeros(3)
 
-        # Use first and last entries
-        t_start, *theta_start = history[0]
-        t_end,   *theta_end   = history[-1]
+        slopes = [[], [], []]
+        for i in range(n - 1):
+            t_i, *theta_i = history[i]
+            for j in range(i + 1, n):
+                t_j, *theta_j = history[j]
 
-        raw_dt = (t_end - t_start)
-        if raw_dt <= 0:
+                raw_dt = t_j - t_i
+                if raw_dt <= 0:
+                    continue
+
+                if nominal_dt is not None and not (catchup_max_dt is not None and raw_dt > catchup_max_dt):
+                    dt = (j - i) * nominal_dt
+                else:
+                    dt = raw_dt
+
+                for axis in range(3):
+                    slopes[axis].append(angular_difference(theta_i[axis], theta_j[axis]) / dt)
+
+        if not slopes[0]:
             return np.zeros(3)
 
-        if nominal_dt is not None and not (catchup_max_dt is not None and raw_dt > catchup_max_dt):
-            dt = (len(history) - 1) * nominal_dt
-        else:
-            dt = raw_dt
-
-        # Wrap-safe angular velocity
-        omega = np.array([
-            angular_difference(start, end) / dt
-            for start, end in zip(theta_start, theta_end)
-        ])
-        return omega
+        return np.array([np.median(axis_slopes) for axis_slopes in slopes])
 
     except Exception:
         return np.zeros(3)
