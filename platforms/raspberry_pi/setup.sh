@@ -2,11 +2,76 @@
 #
 # This bootstraps the unified application on a Raspberry Pi.
 #
-BRANCH="${1:-main}"   # Use first argument as branch name, default to 'main'
+AP_SSID="alpaca-hotspot"
+DEFAULT_AP_PASSWORD="alpacabp"
+STA_SSID=""
+STA_PASSWORD=""
+AP_PASSWORD=""
+BRANCH="main"
 REPO_DIR="alpaca-benro-polaris"
 REPO_URL="https://github.com/ogecko/alpaca-benro-polaris.git"
 
+define_usage() {
+    read -r -d '' USAGE <<EOM || true
 
+Usage: $0 [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-h] [branch]
+
+Options:
+    -n <ssid>      Wifi network SSID to prioritise in Station Mode (STA) on wlan0 --
+                   creates it (using -w as its password) if it doesn't already exist,
+                   otherwise just prioritises the existing one and ignores -w. Default:
+                   whichever network wlan0 is currently connected to (on a freshly-
+                   imaged Pi, that's already the Raspberry Pi Imager's own network) --
+                   so -n is normally only needed to add an *additional* known network.
+    -w <password>  Password for the network named by -n (only used when creating it).
+    -a <ssid>      SSID for the Access Point (AP) fallback wlan0 broadcasts when no
+                   known STA network is in range, e.g. at a dark site.
+                   (default: ${AP_SSID})
+    -p <password>  Password for the AP fallback, min 8 chars for WPA2.
+                   (default: prompted interactively, or '${DEFAULT_AP_PASSWORD}' if
+                   not running in a terminal)
+    -h             Print this help and exit.
+    branch         Git branch to install, as a plain trailing argument.
+                   (default: ${BRANCH})
+
+EOM
+}
+
+help_exit() {
+    echo "${USAGE}"
+    [ "${1:?}" == "true" ] && exit 0
+    exit 1
+}
+
+parse_args() {
+    while getopts ":n:w:a:p:h" opt; do
+        case "$opt" in
+            n) STA_SSID="$OPTARG" ;;
+            w) STA_PASSWORD="$OPTARG" ;;
+            a) AP_SSID="$OPTARG" ;;
+            p) AP_PASSWORD="$OPTARG" ;;
+            h) help_exit "true" ;;
+            \?) echo "Error: invalid option (-$OPTARG)."; help_exit "false" ;;
+            :)  echo "Error: -$OPTARG requires an argument."; help_exit "false" ;;
+        esac
+    done
+    shift $((OPTIND - 1))
+    BRANCH="${1:-$BRANCH}"   # First remaining (non-flag) argument is the branch name
+}
+
+define_usage
+parse_args "$@"
+
+# Access Point (AP) mode fallback (see ==SETUP== step below) -- wlan0 broadcasts its own
+# network so you can still reach the Pi from a phone/laptop at a dark site with no Station
+# Mode (STA) network in range. wlan1 (TPLink) keeps connecting to the Polaris either way.
+if [ -z "$AP_PASSWORD" ] && [ -t 0 ]; then
+    read -r -p "Password for AP mode fallback '$AP_SSID' (min 8 chars) [default: $DEFAULT_AP_PASSWORD]: " AP_PASSWORD
+fi
+if [ -z "$AP_PASSWORD" ] || [ "${#AP_PASSWORD}" -lt 8 ]; then
+    [ -n "$AP_PASSWORD" ] && echo "Password too short for WPA2 (min 8 characters) -- using default instead."
+    AP_PASSWORD="$DEFAULT_AP_PASSWORD"
+fi
 
 echo "==SETUP== Alpaca Benro Polaris Raspberry Pi Setup ======================================."
 
@@ -119,8 +184,69 @@ echo "pi ALL=(ALL) NOPASSWD: ${NMCLI_PATH}" | sudo tee "$NMCLI_SUDOERS" > /dev/n
 sudo chmod 440 "$NMCLI_SUDOERS"
 sudo visudo -cf "$NMCLI_SUDOERS"
 
+echo "==SETUP== 9. Configure wlan0 for Station Mode (STA) at home, falling back to Access Point Mode (AP) at a dark site."
+# nmcli's connection-list view has no direct SSID column, so finding a wlan0 profile by
+# SSID means checking each profile's own 802-11-wireless.ssid property individually.
+find_wlan0_conn_by_ssid() {
+    for name in $(nmcli -t -f NAME connection show); do
+        if [ "$(nmcli -g 802-11-wireless.ssid connection show "$name" 2>/dev/null)" = "$1" ]; then
+            echo "$name"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Find (or create) the STA connection profile to prioritise. If -n named a specific
+# SSID: use the existing wlan0 profile for it if one exists (ignoring -w -- we don't
+# overwrite a working password just because -w was also passed), otherwise create a
+# new one using -w as its password (left open if -w wasn't given). If -n wasn't given
+# at all, fall back to whichever wlan0 connection is currently active -- on a
+# freshly-imaged Pi, that's already whatever network the Imager itself joined.
+STA_CONN=""
+if [ -n "$STA_SSID" ]; then
+    STA_CONN=$(find_wlan0_conn_by_ssid "$STA_SSID") || true
+    if [ -z "$STA_CONN" ]; then
+        STA_CONN="sta-$STA_SSID"
+        sudo nmcli connection add type wifi ifname wlan0 con-name "$STA_CONN" autoconnect yes ssid "$STA_SSID"
+        [ -n "$STA_PASSWORD" ] && sudo nmcli connection modify "$STA_CONN" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$STA_PASSWORD"
+        echo "Added new STA network '$STA_SSID' on wlan0."
+    else
+        echo "STA network '$STA_SSID' already exists as '$STA_CONN'."
+    fi
+else
+    STA_CONN=$(nmcli -t -f NAME,DEVICE,TYPE connection show --active | awk -F: '$2=="wlan0" && $3=="802-11-wireless" {print $1; exit}')
+fi
+if [ -n "$STA_CONN" ]; then
+    # Pin explicitly to wlan0 and give it priority over the AP fallback below, so
+    # NetworkManager always prefers it when the network is in range. Raspberry Pi
+    # Imager's netplan-rendered connection does NOT set connection.interface-name by
+    # default -- confirmed live: without this, nmcli can (and did) hand this profile to
+    # whichever wifi device happens to be free, including wlan1 (meant only for the
+    # Polaris), scrambling both interfaces' roles.
+    sudo nmcli connection modify "$STA_CONN" connection.interface-name wlan0 connection.autoconnect-priority 10
+    echo "Pinned STA connection '$STA_CONN' to wlan0 with priority 10 (preferred over AP mode fallback)."
+else
+    echo "No active wlan0 connection found -- skipping STA setup (AP mode fallback will still be configured)."
+fi
+
+AP_CONN="alpaca-ap-fallback"
+if ! nmcli -t -f NAME connection show | grep -qx "$AP_CONN"; then
+    sudo nmcli connection add type wifi ifname wlan0 con-name "$AP_CONN" autoconnect yes ssid "$AP_SSID"
+    echo "Created AP mode fallback connection '$AP_CONN'."
+else
+    echo "AP mode fallback connection '$AP_CONN' already exists — updating it."
+fi
+sudo nmcli connection modify "$AP_CONN" \
+    connection.interface-name wlan0 \
+    802-11-wireless.mode ap 802-11-wireless.band bg \
+    ipv4.method shared \
+    wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$AP_PASSWORD" \
+    connection.autoconnect-priority 0
+echo "AP mode fallback '$AP_SSID' will activate automatically on wlan0 whenever no known STA network is in range."
+
 SERVICE_FILE="/etc/systemd/system/polaris-driver.service"
-echo "==SETUP== 9. Set up [systemd] services to start the Polaris Driver at boot time."
+echo "==SETUP== 10. Set up [systemd] services to start the Polaris Driver at boot time."
 
 sudo systemctl stop polaris-driver.service 2>/dev/null || true
 sudo systemctl disable polaris-driver.service 2>/dev/null || true
@@ -144,7 +270,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-echo "==SETUP== 10. Starts the polaris-driver service."
+echo "==SETUP== 11. Starts the polaris-driver service."
 sudo systemctl daemon-reload
 sudo systemctl enable polaris-driver.service
 sudo systemctl restart polaris-driver.service
