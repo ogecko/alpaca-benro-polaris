@@ -103,7 +103,7 @@ mkdir -p logs
 mkdir -p data
 
 if [ ! -f pyproject.toml ]; then
-    echo "Error: branch '$BRANCH' doesn't have a pyproject.toml >&2
+    echo "Error: branch '$BRANCH' doesn't have a pyproject.toml" >&2
     echo "This script only supports Alpaca Driver v2.2 Beta 5 or above." >&2
     echo "'$BRANCH' is either an older version or an unrelated branch." >&2
     echo "Try a different version/branch, e.g.:" >&2
