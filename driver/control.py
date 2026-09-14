@@ -83,16 +83,10 @@ class KalmanFilter:
         clock_now = time.monotonic()
         raw_dt = clock_now - self._time
         self._time = clock_now      # always advance, regardless of raw_dt
-        dt = raw_dt if raw_dt > Config.measurement_catchup_max_dt else Config.measurement_dt
-
-        # How late THIS message's own receipt was, and nothing else -- stateless, no memory of
-        # prior ticks. Deliberately not an accumulator: a running "credited vs. true elapsed
-        # time" balance turns ordinary two-sided receipt jitter into an unbounded random walk
-        # (variance grows with session length), and clamping that at zero for display only
-        # keeps the positive half, so its average keeps climbing even with zero true bias --
-        # see the investigation in this file's git history. This tick-local measure can't
-        # accumulate anything, so jitter alone can never make it drift.
-        self.measurement_lag_s = min(Config.measurement_catchup_max_dt, max(0.0, raw_dt - Config.measurement_dt))
+        is_outage = raw_dt > Config.measurement_catchup_max_dt
+        dt = raw_dt if is_outage else Config.measurement_dt
+        # No measurable improvement by backdating theta_ref, unable to attribute lag from just msg delay
+        self.measurement_lag_s = 0   # always assume measurement_lag_s is zero and don't backdate
 
         self.Q = np.diag(Config.kf_process_noise)
 
@@ -118,7 +112,12 @@ class KalmanFilter:
         actively tracking. When given, θ_meas/θ_state are sent as deltas from it instead
         of absolute position -- while tracking, the absolute values constantly drift with
         sidereal motion, which buries any small deviation. Same telemetry keys either way,
-        so no frontend change is needed to see it. Not fed into the filter -- display only.
+        so no frontend change is needed to see it. theta_ref itself is not fed into this
+        filter's own state (self.x/self.P) -- only used here to build the KFLOG display
+        payload below. self.measurement_lag_s, however, is also read back out by polaris.py
+        and handed to the PID controller's own errsignal() backdate, which *does* drive the
+        real control output -- so it isn't purely a display quantity overall, only within
+        this method.
 
         theta_ref is backdated by measurement_lag_s worth of omega_ref before the delta is
         taken: theta_ref reflects the target's position as of *now*, but theta/omega may
