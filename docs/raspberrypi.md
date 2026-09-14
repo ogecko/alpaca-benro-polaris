@@ -177,23 +177,23 @@ sudo iw wlan1 scan | grep SSID    # look for a name starting with "polaris_"
 **To manually join the Polaris' network** — this is the exact same thing the **Wi-Fi** button in Alpaca Pilot does; running it yourself here just shows you more detail if something's going wrong. It's safe to run more than once.
 ```Bash
 cd ~/alpaca-benro-polaris
-.venv/bin/python3 driver/join_wifi.py polaris_b83c06   # replace with your Polaris' actual name, found in step 9
+.venv/bin/python3 driver/join_wifi.py polaris_b83c06                # replace with your Polaris' actual name, found in step 9
 ```
 **To list the configured network connections:**
 ```Bash
-nmcli connection                                       # should show alpaca-station-xxxx and alpaca-hotspot-fallback
+nmcli connection                                                    # should show alpaca-station-xxxx and alpaca-hotspot-fallback
 ```
 **To request the alpaca-hotspot-fallback to be used:**
 ```Bash
-nmcli connection up alpaca-hotspot-fallback            # should show alpaca-station-xxxx and alpaca-hotspot-fallback
+sudo nmcli connection up alpaca-hotspot-fallback -ifname wlan0      # should show alpaca-station-xxxx and alpaca-hotspot-fallback
 ```
 
 **To check the current connection status:**
 ```Bash
-nmcli -t -f DEVICE,STATE,CONNECTION device status   # is wlan1 connected to something starting with "polaris"?
-ip addr show wlan1                                  # confirm it has an address (192.168.0.100 by default)
-ping 192.168.0.1                                    # confirm the Pi can actually reach the Polaris
-journalctl -u NetworkManager -f                     # NetworkManager logs
+nmcli -t -f DEVICE,STATE,CONNECTION device status                   # is wlan1 connected to something starting with "polaris"?
+ip addr show wlan1                                                  # confirm it has an address (192.168.0.100 by default)
+ping 192.168.0.1                                                    # confirm the Pi can actually reach the Polaris
+journalctl -u NetworkManager -f                                     # NetworkManager logs
 ```
 ### P2 - Diagnosing Wifi Connections
 These commands show more detail about the Pi's network connections generally, useful if P1 above didn't solve things. `ip a` lists every network connection the Pi has and the address each one was given — look for `wlan0` (built-in Wifi, should show your home network's address) and `wlan1` (the USB adapter, should show `192.168.0.100` when connected to the Polaris):
