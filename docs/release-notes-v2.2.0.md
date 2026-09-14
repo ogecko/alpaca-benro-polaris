@@ -28,6 +28,7 @@
 ## What's new in v2.2 Beta 6
 **[Raspberry Pi Install]** major refresh of Raspberry Pi installation (now uses UV, shared uv.lock across platforms) and network setup (join Wifi, no driver build, Bluetooth auto-enabled)
 **[Linux BLE]** correct for Benro Polaris' invalid BLE advertisements (forces the adapter into LE-only mode, fixing BLE enable-Wifi failures on Raspberry Pi)
+- **[Troublshooting C3-7]**: Added troubleshooting on mesh network Roaming Assistant potentially causing intermittant dropouts.
 
 ## What's new in v2.2 Beta 5 
 - **[zeroconf dependancy]** Installation requires `pip install -r platforms/win/requirements.txt` to pickup new zeroconf dependancy

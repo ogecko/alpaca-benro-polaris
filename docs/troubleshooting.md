@@ -399,19 +399,23 @@ Event Viewer → Windows Logs → System Filter for:
 
 ### C3-7. Roaming or Auto-Switching Networks
 
-If the Mini-PC has:
+This can come from either side of the connection:
 
-* Multiple saved Wi-Fi networks
-* Ethernet connected simultaneously
-* Internet Connection Sharing enabled
+* **The Mini-PC itself**, if it has multiple saved Wi-Fi networks, Ethernet connected simultaneously, or Internet Connection Sharing enabled — Windows may switch interfaces automatically.
+* **Your home mesh Wi-Fi system** (multiple access points sharing one network name), if it has a feature often called "Roaming Assistant," "Smart Connect," or "Band Steering." This disconnects a device it judges to have a weak signal, hoping it reconnects to a closer access point — some Wi-Fi adapters don't handle this well and get bumped repeatedly, even when their signal is actually strong.
 
-Windows may switch interfaces automatically.
+#### Symptoms (mesh bumping specifically):
+
+* The connection drops and reconnects every 30–90 seconds, indefinitely
+* It happens even close to the router, with no obvious signal problem
+* Your router/mesh app's own system log shows repeated "disconnect weak signal" entries for the device, even though the signal at each reconnect looks fine
 
 #### Fix:
 
 * Disable unused network adapters
 * Set Polaris network to “Private”
 * Forget other Wi-Fi networks during testing
+* If your router/mesh shows signs of the bumping behaviour above: in your router/mesh app's Wi-Fi settings, find "Roaming Assistant" / "Smart Connect" / "Band Steering" and disable it (or raise its signal threshold well past the device's actual signal, if disabling isn't an option). This is a router-side setting — no change is needed on the device itself.
 
 ---
 
