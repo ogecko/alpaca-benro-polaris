@@ -102,6 +102,15 @@ src_home=$(pwd)
 mkdir -p logs
 mkdir -p data
 
+if [ ! -f pyproject.toml ]; then
+    echo "Error: branch '$BRANCH' doesn't have a pyproject.toml -- this script needs" >&2
+    echo "Alpaca Driver v2.2 Beta 5 or above, which is where uv-based setup (this script)" >&2
+    echo "was introduced. '$BRANCH' is either an older version or an unrelated branch." >&2
+    echo "Try a branch that has it, e.g.:" >&2
+    echo "    $0 dev2_2" >&2
+    exit 1
+fi
+
 echo "==SETUP== 3. Install uv, adding it to ~/.bashrc."
 if ! command -v uv >/dev/null 2>&1; then
     echo "Installing uv..."
