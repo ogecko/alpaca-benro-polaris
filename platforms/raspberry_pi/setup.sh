@@ -17,20 +17,19 @@ define_usage() {
 Usage: $0 [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-h] [branch]
 
 Options:
-    -n <ssid>      Wifi network SSID to prioritise in Station Mode (STA) on wlan0 --
-                   creates it (using -w as its password) if it doesn't already exist,
-                   otherwise just prioritises the existing one and ignores -w. Default:
-                   whichever network wlan0 is currently connected to (on a freshly-
-                   imaged Pi, that's already the Raspberry Pi Imager's own network) --
-                   so -n is normally only needed to add an *additional* known network.
+    -n <ssid>      Defines the network SSID for the Alpaca Station Mode Wifi connection. 
+                   Normally only needed to add *additional* known networks to automatically join.
+                   (default:the network SSID defined in the freshly-imaged Pi). 
     -w <password>  Password for the network named by -n (only used when creating it).
-    -a <ssid>      SSID for the Access Point (AP) fallback wlan0 broadcasts when no
-                   known STA network is in range, e.g. at a dark site.
+
+    -a <ssid>      Defines the network SSID for the Alpaca Hotspot Fallback connection on wlan0. 
+                   Only used when no known STA network is in range, e.g. at a dark site.
                    (default: ${AP_SSID})
-    -p <password>  Password for the AP fallback, min 8 chars for WPA2.
-                   (default: prompted interactively, or '${DEFAULT_AP_PASSWORD}' if
-                   not running in a terminal)
+    -p <password>  Password for the network named by -a, min 8 chars for WPA2.
+                   (default: prompted interactively, or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
+
     -h             Print this help and exit.
+
     branch         Git branch to install, as a plain trailing argument.
                    (default: ${BRANCH})
 
@@ -197,40 +196,98 @@ find_wlan0_conn_by_ssid() {
     return 1
 }
 
+# Any currently-active Wifi connection except our own AP fallback / Polaris profiles --
+# used to find "the home network" when -n wasn't given, regardless of which radio
+# (wlan0 or wlan1) happens to be carrying it right now. Deliberately not restricted to
+# wlan0 -- if this profile has already drifted onto wlan1 (see netplan note below),
+# restricting the search to wlan0 would never find it, and this whole step would
+# silently no-op forever instead of fixing it.
+find_active_home_conn() {
+    nmcli -t -f NAME,TYPE connection show --active | awk -F: '$2=="802-11-wireless"{print $1}' \
+        | grep -vx 'alpaca-hotspot-fallback' | grep -v '^polaris' | head -n1
+}
+
+# Raspberry Pi Imager's own Wifi setup is rendered via netplan (connection names
+# starting with "netplan-"), which regenerates its NetworkManager profile straight from
+# /etc/netplan/*.yaml on every `netplan apply` -- including at every boot -- silently
+# wiping out any connection.interface-name pin applied via nmcli. That's what let this
+# profile drift onto wlan1 (meant only for the Polaris) in the first place: pinning it
+# worked until the next reboot, then reverted. Rather than fight netplan forever, copy
+# its SSID/password into our own plain nmcli profile (netplan never touches those) and
+# retire the netplan one for good.
+#
+# Deleting the YAML source is just a file removal -- it doesn't touch the live
+# connection, so it's safe to do here in the foreground even while that connection is
+# actively carrying this very SSH session (unlike the nmcli teardown below, which is
+# not safe to do here -- see the NETPLAN_MIGRATE block further down).
+retire_netplan_yaml() {
+    local name="$1" uuid f
+    uuid=$(nmcli -g connection.uuid connection show "$name" 2>/dev/null)
+    [ -n "$uuid" ] || return 0
+    for f in /etc/netplan/*.yaml; do
+        [ -f "$f" ] && sudo grep -q "$uuid" "$f" 2>/dev/null && sudo rm -f "$f"
+    done
+}
+
 # Find (or create) the STA connection profile to prioritise. If -n named a specific
 # SSID: use the existing wlan0 profile for it if one exists (ignoring -w -- we don't
 # overwrite a working password just because -w was also passed), otherwise create a
 # new one using -w as its password (left open if -w wasn't given). If -n wasn't given
-# at all, fall back to whichever wlan0 connection is currently active -- on a
-# freshly-imaged Pi, that's already whatever network the Imager itself joined.
+# at all, fall back to whichever Wifi connection is currently active -- on a
+# freshly-imaged Pi, that's already whatever network the Imager itself joined. Either
+# way, a netplan-rendered match gets migrated to a plain profile (see above) rather
+# than reused directly.
 STA_CONN=""
+NETPLAN_MIGRATE=""
 if [ -n "$STA_SSID" ]; then
-    STA_CONN=$(find_wlan0_conn_by_ssid "$STA_SSID") || true
-    if [ -z "$STA_CONN" ]; then
-        STA_CONN="sta-$STA_SSID"
+    SRC_CONN=$(find_wlan0_conn_by_ssid "$STA_SSID") || true
+    if [ -z "$SRC_CONN" ]; then
+        STA_CONN="alpaca-station-$STA_SSID"
         sudo nmcli connection add type wifi ifname wlan0 con-name "$STA_CONN" autoconnect yes ssid "$STA_SSID"
         [ -n "$STA_PASSWORD" ] && sudo nmcli connection modify "$STA_CONN" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$STA_PASSWORD"
         echo "Added new STA network '$STA_SSID' on wlan0."
+    elif [[ "$SRC_CONN" == netplan-* ]]; then
+        STA_CONN="alpaca-station-$STA_SSID"
+        if ! nmcli -t -f NAME connection show | grep -qx "$STA_CONN"; then
+            SRC_PSK=$(sudo nmcli -s -g 802-11-wireless-security.psk connection show "$SRC_CONN" 2>/dev/null)
+            PW="${STA_PASSWORD:-$SRC_PSK}"
+            sudo nmcli connection add type wifi ifname wlan0 con-name "$STA_CONN" autoconnect yes ssid "$STA_SSID"
+            [ -n "$PW" ] && sudo nmcli connection modify "$STA_CONN" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$PW"
+        fi
+        NETPLAN_MIGRATE="$SRC_CONN"
+        retire_netplan_yaml "$SRC_CONN"
     else
+        STA_CONN="$SRC_CONN"
         echo "STA network '$STA_SSID' already exists as '$STA_CONN'."
     fi
 else
-    STA_CONN=$(nmcli -t -f NAME,DEVICE,TYPE connection show --active | awk -F: '$2=="wlan0" && $3=="802-11-wireless" {print $1; exit}')
+    SRC_CONN=$(find_active_home_conn) || true
+    if [ -n "$SRC_CONN" ] && [[ "$SRC_CONN" == netplan-* ]]; then
+        SRC_SSID=$(nmcli -g 802-11-wireless.ssid connection show "$SRC_CONN")
+        STA_CONN="alpaca-station-$SRC_SSID"
+        if ! nmcli -t -f NAME connection show | grep -qx "$STA_CONN"; then
+            SRC_PSK=$(sudo nmcli -s -g 802-11-wireless-security.psk connection show "$SRC_CONN" 2>/dev/null)
+            sudo nmcli connection add type wifi ifname wlan0 con-name "$STA_CONN" autoconnect yes ssid "$SRC_SSID"
+            [ -n "$SRC_PSK" ] && sudo nmcli connection modify "$STA_CONN" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$SRC_PSK"
+        fi
+        NETPLAN_MIGRATE="$SRC_CONN"
+        retire_netplan_yaml "$SRC_CONN"
+    else
+        STA_CONN="$SRC_CONN"
+    fi
 fi
 if [ -n "$STA_CONN" ]; then
     # Pin explicitly to wlan0 and give it priority over the AP fallback below, so
-    # NetworkManager always prefers it when the network is in range. Raspberry Pi
-    # Imager's netplan-rendered connection does NOT set connection.interface-name by
-    # default -- confirmed live: without this, nmcli can (and did) hand this profile to
-    # whichever wifi device happens to be free, including wlan1 (meant only for the
-    # Polaris), scrambling both interfaces' roles.
+    # NetworkManager always prefers it when the network is in range. Safe to run even
+    # while some other connection is currently active on wlan0 -- this only sets
+    # metadata, it doesn't force a live switch.
     sudo nmcli connection modify "$STA_CONN" connection.interface-name wlan0 connection.autoconnect-priority 10
     echo "Pinned STA connection '$STA_CONN' to wlan0 with priority 10 (preferred over AP mode fallback)."
 else
-    echo "No active wlan0 connection found -- skipping STA setup (AP mode fallback will still be configured)."
+    echo "No active Wifi connection found -- skipping STA setup (AP mode fallback will still be configured)."
 fi
 
-AP_CONN="alpaca-ap-fallback"
+AP_CONN="alpaca-hotspot-fallback"
 if ! nmcli -t -f NAME connection show | grep -qx "$AP_CONN"; then
     sudo nmcli connection add type wifi ifname wlan0 con-name "$AP_CONN" autoconnect yes ssid "$AP_SSID"
     echo "Created AP mode fallback connection '$AP_CONN'."
@@ -245,8 +302,47 @@ sudo nmcli connection modify "$AP_CONN" \
     connection.autoconnect-priority 0
 echo "AP mode fallback '$AP_SSID' will activate automatically on wlan0 whenever no known STA network is in range."
 
+if [ -n "$NETPLAN_MIGRATE" ]; then
+    echo "'$NETPLAN_MIGRATE' is netplan-managed and would silently re-unpin itself on the next reboot -- retiring it now that '$STA_CONN' has taken over."
+    echo "NOTE: if that network is what's carrying this SSH session right now, it may drop for a few seconds while it switches over -- that's expected, just reconnect."
+    # Deleting this connection and forcing the new one onto wlan0 may drop the very SSH
+    # session running this script, if that's the network carrying it. A plain
+    # `cmd & disown` does NOT survive that: once sshd notices the session's connection
+    # die, systemd-logind tears down the whole login session's cgroup, which kills
+    # every process in it -- disowned or not, since disown only detaches from the
+    # shell's own job control, not from that cgroup. `systemd-run` starts a transient
+    # unit in its own scope, outside the login session, so it survives regardless.
+    sudo systemd-run --unit="alpaca-sta-migrate-$$" --collect -- bash -c "
+        nmcli connection delete $(printf %q "$NETPLAN_MIGRATE")
+        nmcli connection up $(printf %q "$STA_CONN") ifname wlan0
+    "
+fi
+
+echo "==SETUP== 10. Disable Wifi power-saving, which can make the onboard chip randomly stop responding entirely."
+# The Pi's onboard BCM43430 chip (Zero W / Zero 2 W) is known to sometimes hang and
+# drop off the network completely -- neither Station nor the AP fallback reachable --
+# until power-cycled, when its power-saving mode is left enabled. This is worse
+# combined with the heavy Bluetooth/BLE coexistence this driver relies on for the
+# Polaris. Disabled globally via a NetworkManager conf.d drop-in, applying to every
+# Wifi connection (present and future) rather than just the ones this script manages.
+POWERSAVE_CONF="/etc/NetworkManager/conf.d/wifi-powersave-off.conf"
+if ! grep -q "wifi.powersave" "$POWERSAVE_CONF" 2>/dev/null; then
+    sudo mkdir -p "$(dirname "$POWERSAVE_CONF")"
+    sudo tee "$POWERSAVE_CONF" > /dev/null <<EOF
+[connection]
+wifi.powersave = 2
+EOF
+    echo "Wrote $POWERSAVE_CONF (wifi.powersave = 2, disabled) -- restarting NetworkManager to apply."
+    # Restarting NetworkManager briefly drops every active connection, possibly
+    # including the SSH session running this script -- same reasoning as the netplan
+    # migration above, so it runs the same way (detached, surviving that drop).
+    sudo systemd-run --unit="alpaca-nm-restart-$$" --collect -- systemctl restart NetworkManager
+else
+    echo "$POWERSAVE_CONF already configured -- skipping."
+fi
+
 SERVICE_FILE="/etc/systemd/system/polaris-driver.service"
-echo "==SETUP== 10. Set up [systemd] services to start the Polaris Driver at boot time."
+echo "==SETUP== 11. Set up [systemd] services to start the Polaris Driver at boot time."
 
 sudo systemctl stop polaris-driver.service 2>/dev/null || true
 sudo systemctl disable polaris-driver.service 2>/dev/null || true
@@ -270,7 +366,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-echo "==SETUP== 11. Starts the polaris-driver service."
+echo "==SETUP== 12. Starts the polaris-driver service."
 sudo systemctl daemon-reload
 sudo systemctl enable polaris-driver.service
 sudo systemctl restart polaris-driver.service

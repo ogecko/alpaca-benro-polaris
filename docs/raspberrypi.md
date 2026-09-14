@@ -84,7 +84,7 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
     | Wifi Mode | Description | 
     | --------- | ----------- |
     | Alpaca Station Mode (wlan0, STA)| By default the Raspberry Pi will attempt to join to an existing wireless network or router. This may be your home network or a travel router. |
-    | Alpaca Hotspot Mode (wlan0, AP) | As a fallback, if it cannot join in Station Mode, the Raspberry Pi will act as its own hotspot with an SSID called `alpaca-hotspot` by default. This allows other devices to join to it directly to access Alpaca Pilot and the Alpaca Rest API. This is useful at a dark site where you may not have any internet connection.|
+    | Alpaca Hotspot Mode (wlan0, AP) | As a fallback, if it cannot join in Station Mode, the Raspberry Pi will act as its own hotspot with an SSID called `alpaca-hotspot` and subnet `10.42.0.x` by default. This allows other devices to join to it directly to access Alpaca Pilot and the Alpaca Rest API. This is useful at a dark site where you may not have any internet connection.|
     | Polaris Hotspot (wlan1)| The Raspberry Pi will attempt to use the TPLink USB Wifi Adapter (wlan1) to join the Polaris Hotspot with SSID `polaris_xxxxxx`. This is used by the driver to communicate with the Polaris.|
 
     The setup script will first ask you to set a password for the fallback Alpaca Hotspot — press **Enter** to accept the suggested default, or type your own (must be at least 8 characters). The script then works through a series of setup tasks automatically, each printed as a line starting with `==SETUP==`. This can take a few minutes, especially the first time. When it's done, you'll see a box confirming the setup is complete.
@@ -113,22 +113,21 @@ You won't normally need any of these options — running `./setup.sh` on its own
 Usage: setup.sh [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-h] [branch]
 
 Options:
-    -n <ssid>      Wifi network SSID to prioritise in Station Mode (STA) on wlan0 --
-                   creates it (using -w as its password) if it doesn't already exist,
-                   otherwise just prioritises the existing one and ignores -w. Default:
-                   whichever network wlan0 is currently connected to (on a freshly-
-                   imaged Pi, that's already the Raspberry Pi Imager's own network) --
-                   so -n is normally only needed to add an *additional* known network.
+    -n <ssid>      Defines the network SSID for the Alpaca Station Mode Wifi connection. 
+                   Normally only needed to add *additional* known networks to automatically join.
+                   (default:the network SSID defined in the freshly-imaged Pi). 
     -w <password>  Password for the network named by -n (only used when creating it).
-    -a <ssid>      SSID for the Access Point (AP) fallback wlan0 broadcasts when no
-                   known STA network is in range, e.g. at a dark site.
-                   (default: alpaca-hotspot)
-    -p <password>  Password for the AP fallback, min 8 chars for WPA2.
-                   (default: prompted interactively, or 'alpacabp' if
-                   not running in a terminal)
+
+    -a <ssid>      Defines the network SSID for the Alpaca Hotspot Fallback connection on wlan0. 
+                   Only used when no known STA network is in range, e.g. at a dark site.
+                   (default: ${AP_SSID})
+    -p <password>  Password for the network named by -a, min 8 chars for WPA2.
+                   (default: prompted interactively, or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
+
     -h             Print this help and exit.
+
     branch         Git branch to install, as a plain trailing argument.
-                   (default: main)
+                   (default: ${BRANCH})
 ```
 Options can be combined, and it's always safe to re-run `./setup.sh` on a Pi that's already set up — it won't undo anything, it just re-applies (or updates) whatever you tell it. For example, to add a second Wi-Fi network *and* change the dark-site hotspot's name and password in one go:
 ```Bash
@@ -180,11 +179,13 @@ sudo iw wlan1 scan | grep SSID    # look for a name starting with "polaris_"
 cd ~/alpaca-benro-polaris
 .venv/bin/python3 driver/join_wifi.py polaris_b83c06   # replace with your Polaris' actual name, found in step 9
 ```
-If this fails with a message containing `Insufficient privileges`, run the following once to grant the permission it needs, then try again:
+**To list the configured network connections:**
 ```Bash
-echo "pi ALL=(ALL) NOPASSWD: $(command -v nmcli)" | sudo tee /etc/sudoers.d/polaris-nmcli
-sudo chmod 440 /etc/sudoers.d/polaris-nmcli
-sudo visudo -cf /etc/sudoers.d/polaris-nmcli   # double-checks the change is valid before it's trusted
+nmcli connection                                       # should show alpaca-station-xxxx and alpaca-hotspot-fallback
+```
+**To request the alpaca-hotspot-fallback to be used:**
+```Bash
+nmcli connection up alpaca-hotspot-fallback            # should show alpaca-station-xxxx and alpaca-hotspot-fallback
 ```
 
 **To check the current connection status:**

@@ -433,7 +433,9 @@ def _list_interfaces_linux() -> List[WifiInterface]:
 
 
 def _connection_name(ssid: str) -> str:
-    return f"polaris-{ssid}"
+    # No extra prefix -- matches _add_profile_win()'s Windows netsh profile, which is
+    # just the SSID itself (already unique enough, e.g. "polaris_b83c06").
+    return ssid
 
 
 def _add_and_connect_linux(ssid: str, password: str, interface: str,
