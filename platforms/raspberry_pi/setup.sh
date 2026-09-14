@@ -103,10 +103,10 @@ mkdir -p logs
 mkdir -p data
 
 if [ ! -f pyproject.toml ]; then
-    echo "Error: branch '$BRANCH' doesn't have a pyproject.toml -- this script needs" >&2
-    echo "Alpaca Driver v2.2 Beta 5 or above, which is where uv-based setup (this script)" >&2
-    echo "was introduced. '$BRANCH' is either an older version or an unrelated branch." >&2
-    echo "Try a branch that has it, e.g.:" >&2
+    echo "Error: branch '$BRANCH' doesn't have a pyproject.toml >&2
+    echo "This script only supports Alpaca Driver v2.2 Beta 5 or above." >&2
+    echo "'$BRANCH' is either an older version or an unrelated branch." >&2
+    echo "Try a different version/branch, e.g.:" >&2
     echo "    $0 dev2_2" >&2
     exit 1
 fi
