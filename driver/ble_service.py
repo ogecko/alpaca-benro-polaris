@@ -272,9 +272,8 @@ class BLE_Controller:
         if not address:
             return
 
-        self.isEnablingWifi = True
-        self.isWifiEnabled  = False
-        max_attempts        = 3
+        wifi_enabled = False
+        max_attempts = 3
 
         # Stop scanner: BlueZ cannot scan and connect simultaneously.
         # We also wait longer on Linux so BlueZ fully drains any in-flight
@@ -295,8 +294,7 @@ class BLE_Controller:
             if self.isConnectedFn():
                 if Config.log_polaris_ble:
                     self.logger.info("BLE wifi already connected, skipping remaining attempts")
-                self.isEnablingWifi = False
-                self.isWifiEnabled  = True
+                wifi_enabled = True
                 break
 
             try:
@@ -349,8 +347,7 @@ class BLE_Controller:
                     if Config.log_polaris_ble:
                         self.logger.info(f"BLE << read: {bytes2hexascii(data)}")
 
-                    self.isEnablingWifi = False
-                    self.isWifiEnabled  = True
+                    wifi_enabled = True
                     break
 
             except asyncio.TimeoutError:
@@ -405,16 +402,15 @@ class BLE_Controller:
                     f"Unexpected BLE error on attempt {attempt}: {e}"
                 )
 
-            if attempt < max_attempts and not self.isWifiEnabled:
+            if attempt < max_attempts and not wifi_enabled:
                 await asyncio.sleep(3)
                 await self._reset_bluetooth_adapter()
 
-        if not self.isWifiEnabled:
+        if not wifi_enabled:
             self.logger.error(
                 f"BLE failed to enable Wi-Fi after {max_attempts} attempts "
                 f"for {address}"
             )
-            self.isEnablingWifi = False
 
         if not self.isConnectedFn():
             try:
@@ -472,13 +468,20 @@ class BLE_Controller:
         "already connected" case is the normal steady state, checked every
         30s, and would spam the log if logged unconditionally there.
         """
-        if not self.selectedDevice:
-            self.logger.warning("Join Wi-Fi: Select Polaris device before joining network - nothing to do")
-            return
-        if self.isConnectedFn():
-            self.logger.info(f"Join Wi-Fi: Already connected to '{self.selectedDevice}' - nothing to do")
-            return
-        await self.enableWifi()
-        if self.isWifiEnabled:
+        self.isEnablingWifi = True
+        self.isWifiEnabled  = False
+
+        try:
+            if not self.selectedDevice:
+                self.logger.warning("Join Wi-Fi: Select Polaris device before joining network - nothing to do")
+                return
+            if self.isConnectedFn():
+                self.logger.info(f"Join Wi-Fi: Already connected to '{self.selectedDevice}' - nothing to do")
+                self.isWifiEnabled  = True
+                return
+            # await self.enableWifi()   # dont need to do this on button press as its done in automatic scan
             await self.joinWifiNetwork()
-        # else: enableWifi() already logs an unconditional error on BLE failure
+            self.isWifiEnabled  = self.isConnectedFn()
+
+        finally:
+            self.isEnablingWifi = False
