@@ -107,6 +107,19 @@ If you have created a Windows shortcut to start the Polaris Alpaca Driver and a 
 
 This process allows you to see the full error output, which may not remain visible when launching the shortcut normally.
 
+### A7 - Browser Won't Load Alpaca Pilot At All
+If Alpaca Pilot suddenly won't load in your normal browser window — even though the Driver is confirmed running (e.g. `ping` to its address works, and a raw connection test to the port succeeds) — the browser itself is holding onto stale state for that address, not a problem with the Driver or your network. This is especially common after re-imaging the Pi, or after its IP address changes.
+
+**How to tell it's this issue:** the page loads fine in an Incognito/Private window, but not in your normal one.
+
+**Fix, in your normal (non-Incognito) browser window:**
+1. Clear that site's cached data:
+   * **Chrome/Edge**: Settings → Privacy and security → Site settings → search for the address (e.g. `192.168.50.161` or `ap.local`) → click it → **Delete data**.
+   * **Safari on iOS/iPadOS**: Settings → Safari → Clear History and Website Data.
+2. Check Chrome/Edge's secure-connections setting: Settings → Privacy and security → Security → **"Always use secure connections"** (sometimes shown as *"Warns you before connecting to sites that don't use a secure connection"*). If this is on, the browser can silently try to upgrade a plain HTTP address to HTTPS and fail — since the Driver may not be running HTTPS, this makes the page look completely unreachable. Turn it off, or add an exception for the Driver's address.
+3. Always type the address with its scheme explicitly, e.g. `http://192.168.50.161:8080` rather than just `192.168.50.161:8080` — some browsers default an unscoped address to `https://`.
+4. Close and fully reopen the browser afterwards.
+
 
 ## Benro Polaris Troubleshooting
 
