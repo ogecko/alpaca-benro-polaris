@@ -441,19 +441,20 @@ class BLE_Controller:
         confusing ("Already joined" immediately followed by "Joined")."""
         ssid = self.selectedDevice
         if not ssid:
-            return
+            return False
         try:
             ok = await asyncio.to_thread(
                 join_wifi.join_wifi_network, ssid, Config.polaris_wifi_password
             )
         except Exception as e:
             self.logger.warning(f"Failed to join WiFi network '{ssid}': {e}")
-            return
+            return False
         if not ok:
             self.logger.warning(
                 f"Failed to join WiFi network '{ssid}' -- see diagnostics above, "
                 "or join manually from the OS's WiFi list"
             )
+        return ok
 
     async def enableWifiAndJoin(self):
         """Full Wi-Fi button flow: enable the mount's hotspot over BLE, then
@@ -480,8 +481,7 @@ class BLE_Controller:
                 self.isWifiEnabled  = True
                 return
             # await self.enableWifi()   # dont need to do this on button press as its done in automatic scan
-            await self.joinWifiNetwork()
-            self.isWifiEnabled  = self.isConnectedFn()
+            self.isWifiEnabled = await self.joinWifiNetwork()
 
         finally:
             self.isEnablingWifi = False
