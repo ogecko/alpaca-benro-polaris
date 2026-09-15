@@ -89,26 +89,28 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
     The setup script will first ask you to set a password for the fallback Alpaca Hotspot — press **Enter** to accept the suggested default, or type your own (must be at least 8 characters). The script then works through a series of setup tasks automatically, each printed as a line starting with `==SETUP==`. This can take a few minutes, especially the first time. When it's done, you'll see a box confirming the setup is complete.
 
-10. Start Alpaca Pilot and Connect to the Polaris
-
     The Alpaca Driver should now be installed and running.
+
+10. Start Alpaca Pilot
 
     To open Alpaca Pilot, open a web browser on any device connected to the same Wi-Fi network as the Raspberry Pi, and go to:
     ```
     http://ap.local:8080
     ```
-    > The `:8080` part is required — leaving it off will fail to load the page, even though other things (like `ping`) might still work. See [P7](#p7---ping-aplocal-works-but-the-address-wont-open-in-a-browser) if you run into this.
+    > The `:8080` part is required. Leaving it off will fail to load the page, even though other things (like `ping`) might still work. For security reasons, Linux restricts the standard web address ports (80 and 443) to programs with administrator privileges. Since the Alpaca Driver deliberately doesn't run with those extra privileges, it needs to use different port numbers instead. That's why you always go to `http://ap.local:8080` rather than plain `http://ap.local`.
 
-    To connect to the Polaris using Alpaca Pilot:
-    * Click **Connect** on the toolbar, then follow the steps on the Connect page.
-    * Power on the Polaris and wait for it to appear in the device list (found automatically over Bluetooth).
-    * Click the **Wi-Fi** button — the Raspberry Pi will automatically join the Polaris' own Wi-Fi network.
+11. Join the Polaris network
+    
+    To request the Alpaca Driver to join the Polaris network
+    * Using Alpaca Pilot, navigate to the **Connect** page.
+    * Power on the Polaris and Wait for it to appear in the device list (found automatically over Bluetooth).
+    * Click the **Wi-Fi** button to request the Raspberry Pi to join the Polaris' own Wi-Fi network.
+    * Follow the remaining setps on the **Connect** page.
 
-    If the Pi doesn't join the Polaris automatically, see [P1](#p1---diagnosing-wifi-and-bluetooth-network-issues) for how to check what's wrong.
-
+    Once you have completed compass and single star alignment, the Polaris should be ready to use.
 
 ## Setup.sh Command Reference
-You won't normally need any of these options — running `./setup.sh` on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something, such as adding a second known Wi-Fi network (see [P4](#p4---adding-an-additional-homesite-wifi-network)) or checking the current defaults. Running `./setup.sh -h` on your own Pi always shows the same thing, straight from the script itself:
+You won't normally need any of these options — running `./setup.sh` on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something. Running `./setup.sh -h` on your own Pi always shows the same thing, straight from the script itself:
 ```
 Usage: setup.sh [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-h] [branch]
 
@@ -138,7 +140,8 @@ Options can be combined, and it's always safe to re-run `./setup.sh` on a Pi tha
 
 The Alpaca Driver runs automatically in the background (even after a reboot) as what Linux calls a "service" — you don't need to start it by hand. The commands below let you check on it or restart it if needed.
 
-11. To check on or control the Alpaca Driver:
+**To check on or control the Alpaca Driver:**
+
     ```Bash
     sudo systemctl status polaris-driver       # Check whether it's running
     sudo systemctl stop polaris-driver         # Stop it
@@ -177,7 +180,7 @@ sudo iw wlan1 scan | grep SSID    # look for a name starting with "polaris_"
 **To manually join the Polaris' network** — this is the exact same thing the **Wi-Fi** button in Alpaca Pilot does; running it yourself here just shows you more detail if something's going wrong. It's safe to run more than once.
 ```Bash
 cd ~/alpaca-benro-polaris
-.venv/bin/python3 driver/join_wifi.py polaris_b83c06                # replace with your Polaris' actual name, found in step 9
+.venv/bin/python3 driver/join_wifi.py polaris_b83c06                # replace with your Polaris' actual name, found by scanning above
 ```
 **To list the configured network connections:**
 ```Bash
@@ -185,7 +188,7 @@ nmcli connection                                                    # should sho
 ```
 **To request the alpaca-hotspot-fallback to be used:**
 ```Bash
-sudo nmcli connection up alpaca-hotspot-fallback -ifname wlan0      # should show alpaca-station-xxxx and alpaca-hotspot-fallback
+sudo nmcli connection up alpaca-hotspot-fallback ifname wlan0       # forces wlan0 into the fallback hotspot manually
 ```
 
 **To check the current connection status:**
@@ -206,20 +209,20 @@ $ ip a
     inet6 ::1/128 scope host noprefixroute
        valid_lft forever preferred_lft forever
 2: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
-    link/ether d8:3a:dd:65:71:2e brd ff:ff:ff:ff:ff:ff
+    link/ether aa:bb:cc:11:22:33 brd ff:ff:ff:ff:ff:ff
     inet 192.168.50.160/24 brd 192.168.50.255 scope global dynamic noprefixroute wlan0
        valid_lft 49228sec preferred_lft 49228sec
-    inet6 fe80::da3a:ddff:fe65:712e/64 scope link proto kernel_ll
+    inet6 fe80::a8bb:ccff:fe11:2233/64 scope link proto kernel_ll
        valid_lft forever preferred_lft forever
 3: wlan1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2312 qdisc mq state UP group default qlen 1000
-    link/ether e4:fa:c4:e6:de:a5 brd ff:ff:ff:ff:ff:ff
+    link/ether aa:bb:cc:44:55:66 brd ff:ff:ff:ff:ff:ff
     inet 192.168.0.100/24 scope global wlan1
        valid_lft forever preferred_lft forever
 ```
 To check if the Raspberry Pi is connected to your network router and what routes are configured:
 ```
 $ iw dev wlan0 link
-        SSID: atlas_6G
+        SSID: YourHomeNetwork
         freq: 2432.0
         RX: 52687490 bytes (340502 packets)
         TX: 55221927 bytes (349678 packets)
@@ -231,7 +234,7 @@ $ iw dev wlan0 link
         beacon int: 100
 
 $ iw dev wlan1 link
-Connected to 94:bb:43:c9:e1:f1 (on wlan1)
+Connected to aa:bb:cc:77:88:99 (on wlan1)
         SSID: polaris_b83c06
         freq: 2452.0
         signal: -24 dBm
@@ -250,17 +253,12 @@ To scan the wlan1 wifi interface for active SSIDs:
 ```
 $ sudo iw wlan1 scan | grep SSID
         SSID: polaris_b83c06
-        SSID: atlas_6G
-        SSID: atlas_6G
-        SSID: OPTUS_734AC2_5GHz
+        SSID: YourHomeNetwork
+        SSID: YourHomeNetwork
+        SSID: NeighboursNetwork_5GHz
 ```
-### P3 - Checking whether the Alpaca Driver itself is running
-```
-sudo systemctl status polaris-driver
-```
-This is the same command from step 11 above — it tells you whether the Driver program is currently running. Note that this only checks the Driver itself, not the Wi-Fi connection to the Polaris — see [P1](#p1---diagnosing-wifi-and-bluetooth-network-issues) for that.
 
-### P4 - Adding an additional home/site Wifi network
+### P3 - Adding an additional home/site Wifi network
 By default, the Pi remembers one Wi-Fi network (whatever you set up in the Raspberry Pi Imager) and falls back to its own hotspot when that's not in range (see step 9 above). If you'd like it to also recognise a **second** network — for example, a different location you regularly visit that does have Wi-Fi — re-run the setup script and tell it about the new network:
 ```Bash
 cd ~/alpaca-benro-polaris/platforms/raspberry_pi
@@ -275,25 +273,10 @@ sudo nmcli connection modify "OtherNetworkName" wifi-sec.key-mgmt wpa-psk wifi-s
 sudo nmcli connection modify "OtherNetworkName" connection.interface-name wlan0 connection.autoconnect-priority 10
 ```
 
-### P5 - Manually setting the Alpaca Pilot web address port
-Linux normally reserves the standard web address ports (80 and 443) for programs run as an administrator, for security reasons. Since the Alpaca Driver deliberately doesn't run with those extra privileges, it needs to use different port numbers instead — that's why you always go to `http://ap.local:8080` rather than plain `http://ap.local`.
+### P4 - Raspberry Pi Station Mode connection keeps dropping 
+The Raspberry Pi Zero 2 W has been known to have problems with some **home mesh Wi-Fi systems** (multiple access points sharing one network name). Some routers include a feature often called "Roaming Assistant," "Smart Connect," or "Band Steering." This disconnects a device it judges to have a weak signal, hoping it reconnects to a closer access point. The Raspberry Pi may not handle this well and get bumped repeatedly, even when their signal is actually strong.
 
-The setup script does this for you automatically. If for some reason it didn't (or you're setting things up by hand), open the file `driver/config.toml` and change these two lines to match:
-```driver/config.toml
-alpaca_pilot_http_port = 8080
-alpaca_pilot_https_port = 8443
-```
-(Both lines need changing, even if you're not using the secure/HTTPS option — the Driver checks both when it starts up.)
-
-### P6 - If installing extra software fails
-The setup script deliberately downloads ready-made versions of two number-crunching packages (**numpy** and **scipy**) that the Driver depends on, rather than building them from source, since building them on a Raspberry Pi can take a very long time or fail. Ready-made versions are available for the Raspberry Pi Zero 2 W and Raspberry Pi 4, so this normally isn't a problem.
-
-If you ever see a *different* package fail to install because no ready-made version exists for your Pi, you may need to install some general-purpose build tools so it can be built from scratch instead:
-```Bash
-sudo apt install gfortran
-sudo apt install libopenblas-dev
-```
-
-### P7 - `ping ap.local` works, but the address won't open in a browser
-This is almost always a missing `:8080` — see [P5](#p5---manually-setting-the-alpaca-pilot-web-address-port) above for why the Pi needs it. `ping` only checks that the Pi can be found on the network at all, which works regardless of what's actually running there — it doesn't test the web page itself. Make sure you're typing the full address with the port number: `http://ap.local:8080`.
+To resolve this issue:
+* This is a router-side setting. No change is needed on the Raspberry Pi itself.
+* In your router/mesh app's Wi-Fi settings, find "Roaming Assistant" / "Smart Connect" / "Band Steering" and disable it. 
 
