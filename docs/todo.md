@@ -1,7 +1,6 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # General Final Release Checklist
-- [ ] Complete todo checklist
 - [ ] Check Driver package vulnerabilities
   - [ ] pip-audit
   - [ ] pip show urllib
