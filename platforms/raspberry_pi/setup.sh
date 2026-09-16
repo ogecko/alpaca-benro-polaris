@@ -58,6 +58,8 @@ parse_args() {
     BRANCH="${1:-$BRANCH}"   # First remaining (non-flag) argument is the branch name
 }
 
+echo "== Alpaca Benro Polaris Raspberry Pi Setup ======================================."
+
 define_usage
 parse_args "$@"
 
@@ -65,14 +67,12 @@ parse_args "$@"
 # network so you can still reach the Pi from a phone/laptop at a dark site with no Station
 # Mode (STA) network in range. wlan1 (TPLink) keeps connecting to the Polaris either way.
 if [ -z "$AP_PASSWORD" ] && [ -t 0 ]; then
-    read -r -p "Password for AP mode fallback '$AP_SSID' (min 8 chars) [default: $DEFAULT_AP_PASSWORD]: " AP_PASSWORD
+    read -r -p "Set a password for '$AP_SSID' (fallback AP Mode network), min 8 chars [default: $DEFAULT_AP_PASSWORD]: " AP_PASSWORD
 fi
 if [ -z "$AP_PASSWORD" ] || [ "${#AP_PASSWORD}" -lt 8 ]; then
     [ -n "$AP_PASSWORD" ] && echo "Password too short for WPA2 (min 8 characters) -- using default instead."
     AP_PASSWORD="$DEFAULT_AP_PASSWORD"
 fi
-
-echo "==SETUP== Alpaca Benro Polaris Raspberry Pi Setup ======================================."
 
 echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git and uv."
 for pkg in git curl; do
