@@ -97,7 +97,7 @@ Field-test across a full session, handle solve failures (clouds, filters, poor f
 
 **Goal:** Expose the Benro Polaris's own onboard camera as a standard ASCOM Alpaca `ICameraV3` device within the Driver, alongside the existing Telescope/Rotator devices — driven by the currently-unused camera protocol already visible in `polaris.py` (the `_polaris_mode` mode switch — Photo/Pano/Timelapse/HDR/Astro/Video — and the FILE (`771`)/STORAGE (`775`) responses). This gives any Alpaca-aware client (NINA, CCDciel) a standard way to capture/download images straight from the Polaris without its native app, and gives the Plate-Solving goal above a real image source instead of ad-hoc retrieval.
 
-**Benefits:** No USB tether cable to the camera — capture wirelessly straight from the Polaris through a standard Alpaca camera, usable by NINA/CCDciel and by our own driver (e.g. Plate-Solving).
+**Benefits:** No USB tether cable to the camera. Capture wirelessly straight from the Polaris through a standard Alpaca camera, usable by NINA/CCDciel and by our own Alpaca Pilot.
 
 ### Phase 0 — Risk Reduction Prototypes
 - Reverse-engineer/confirm the full capture sequence (mode switch → trigger exposure → poll for FILE ready → retrieve) standalone, outside the Alpaca layer.
