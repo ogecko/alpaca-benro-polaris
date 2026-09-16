@@ -3,37 +3,37 @@
 # General Final Release Checklist
 - [ ] Complete todo checklist
 - [ ] Check Driver package vulnerabilities
-- [ ]     pip-audit
-- [ ]     pip show urllib
-- [ ]     pipdeptree -reverse --package bleach 
-- [ ]     pip install --upgrade urllib3==2.7.0
-- [ ]     Modify all requirements.txt files accordingly
+  - [ ] pip-audit
+  - [ ] pip show urllib
+  - [ ] pipdeptree -reverse --package bleach 
+  - [ ] pip install --upgrade urllib3==2.7.0
+  - [ ] Modify all requirements.txt files accordingly
 - [ ] Check Pilot package vulnerabilities
-- [ ]     Check non-breaking updates (dry run): quasar info;  quasar upgrade;        Apply the updates: quasar upgrade -i
-- [ ]     Check major potentially breaking updates (dry run): quasar upgrade -m;     Apply the updates: quasar upgrade -m -i
-- [ ]     Check runtime dependencies:                         npm audit --omit=dev   Apply the updates: npm audit fix
-- [ ]     npm list --depth=0
-- [ ]     npm install axios@^1.13.5
-- [ ]     npm list axios
-- [ ]     Upgrade Node on win11 by downloading installer from https://nodejs.org/en/download
+  - [ ] Check non-breaking updates (dry run): quasar info;  quasar upgrade;        Apply the updates: quasar upgrade -i
+  - [ ] Check major potentially breaking updates (dry run): quasar upgrade -m;     Apply the updates: quasar upgrade -m -i
+  - [ ] Check runtime dependencies:                         npm audit --omit=dev   Apply the updates: npm audit fix
+  - [ ] npm list --depth=0
+  - [ ] npm install axios@^1.13.5
+  - [ ] npm list axios
+  - [ ] Upgrade Node on win11 by downloading installer from https://nodejs.org/en/download
 - [ ] Check GitHub open issues
-- [ ]     No CodeQL Security or Quality issues
-- [ ]     No Malware or Vulnerability issues
-- [ ]     No AI findings that have not been addressed
-- [ ]     Confirmed any open GitHub issues are acceptable for release
+  - [ ] No CodeQL Security or Quality issues
+  - [ ] No Malware or Vulnerability issues
+  - [ ] No AI findings that have not been addressed
+  - [ ] Confirmed any open GitHub issues are acceptable for release
 - [ ] Final Changes - git checkout dev2_2, git pull origin dev2_2
-- [ ]     Check version # in readme.md, release-notes-vX.X.X.md, shy.py, installation.md, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
-- [ ]     Check download links in release-notes-vX.X.X.md, installation.md x 2
-- [ ]     Build Pilot for release
-- [ ]     Confirm all Alpaca ConformU tests pass
-- [ ]     Confirm all Alpaca Driver unit tests pass
-- [ ]     Confirm all Alpaca Pilot unit tests pass
+  - [ ] Check version # in readme.md, release-notes-vX.X.X.md, shy.py, installation.md, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
+  - [ ] Check download links in release-notes-vX.X.X.md, installation.md x 2
+  - [ ] Build Pilot for release
+  - [ ] Confirm all Alpaca ConformU tests pass
+  - [ ] Confirm all Alpaca Driver unit tests pass
+  - [ ] Confirm all Alpaca Pilot unit tests pass
 - [ ] Create Branch - releases/2_2_0 based on dev2_2
 - [ ] Merge into main - git checkout main, git pull origin main, git merge releases/v2.2.0, git push origin main
 - [ ] Draft Github New Release and Tag - on main branch
-- [ ]     Release Title: Alpaca Benro Polaris Driver v2.2.0
-- [ ]     Release Notes: Refer to https://github.com/ogecko/alpaca-benro-polaris/blob/releases/2_2_0/docs/release-notes-v2.2.0.md
-- [ ]     Set as latest release
+  - [ ] Release Title: Alpaca Benro Polaris Driver v2.2.0
+  - [ ] Release Notes: Refer to https://github.com/ogecko/alpaca-benro-polaris/blob/releases/2_2_0/docs/release-notes-v2.2.0.md
+  - [ ] Set as latest release
 - [ ] Announce on Kickstarter, Facebook, Discord
 - [ ] Create new Dev Branch - dev2_3 based on dev2_2
 
@@ -59,7 +59,7 @@
     - [X] Create video on Pi install and connect
     - [ ] Create video on CCDCiel
 
-# Candidate future enhancements
+# Candidate minor enhancements for the Catalog
 - [ ] Ability to switch catalogs from settings
 - [ ] Add images of each catalog target and add a details page for each target
 - [ ] Fix J2000 co-ordinate display of 60" for Running chicken RA: +11ʰ38ᵐ60.0ˢ   |   Dec: -63°11′60.0″ 
