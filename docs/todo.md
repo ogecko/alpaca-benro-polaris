@@ -62,11 +62,13 @@
 - [ ] Ability to switch catalogs from settings
 - [ ] Add images of each catalog target and add a details page for each target
 - [ ] Fix J2000 co-ordinate display of 60" for Running chicken RA: +11ʰ38ᵐ60.0ˢ   |   Dec: -63°11′60.0″ 
+- [ ] Explore whether sky position drifts with given raw motor angle orientation over a long session. Does sync history need time/drift correction
 
 <br>
 <br>
 
 # Future Development Exploration
+
 ## 1. Plate-Solving on the Raspberry Pi Zero 2W
 
 **Goal:** Retrieve an image directly from the Benro Polaris's own camera (over the existing BLE/Wifi protocol already used for FILE/STORAGE queries in `polaris.py`), plate-solve it locally on the Pi Zero 2W, and feed the result into the Driver's existing "Plate Solved/ASCOM" sync/correction pipeline in `control.py` (see `driver/control.py:1873`). End state: on-demand and periodic plate-solve/sync entirely on-Pi, no laptop, NINA, or ASTAP required for basic pointing refinement.
@@ -173,3 +175,13 @@ Package as a systemd service alongside `polaris-driver.service`, and write INDI/
 
 ### Phase 5 — Compliance Validation
 Validate against INDI's own driver compliance/test tooling (the INDI analogue of ConformU) and add to the release checklist.
+
+
+## 5. Extend Driver to support non-Polaris mounts
+
+**Goal:** Refactor the driver architecture to support multi-protocol mount communication, moving beyond the current Polaris-only implementation.
+
+The initial phase will focus on implementing the extended Meade LX200 protocol over USB, Bluetooth, and Wi-Fi. This will establish native support for the SAL-33 (an OnStepX-based harmonic mount). As part of this refactor, the closed-source OnStepX ASCOM driver will be replaced with a pure, cross-platform Alpaca driver.
+
+**Benefits:** Universal Mount Compatibility. Enables Alpaca Pilot to control a broad range of mounts that support the extended LX200-compatible harmonic mounts (e.g., SAL-33, WD-20E, FG-17, AM5N, and others). 
+
