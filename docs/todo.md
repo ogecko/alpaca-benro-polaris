@@ -62,11 +62,13 @@
 - [ ] Ability to switch catalogs from settings
 - [ ] Add images of each catalog target and add a details page for each target
 - [ ] Fix J2000 co-ordinate display of 60" for Running chicken RA: +11ʰ38ᵐ60.0ˢ   |   Dec: -63°11′60.0″ 
+- [ ] Explore whether sky position drifts with given raw motor angle orientation over a long session. Does sync history need time/drift correction
 
 <br>
 <br>
 
 # Future Development Exploration
+
 ## 1. Plate-Solving on the Raspberry Pi Zero 2W
 
 **Goal:** Retrieve an image directly from the Benro Polaris's own camera (over the existing BLE/Wifi protocol already used for FILE/STORAGE queries in `polaris.py`), plate-solve it locally on the Pi Zero 2W, and feed the result into the Driver's existing "Plate Solved/ASCOM" sync/correction pipeline in `control.py` (see `driver/control.py:1873`). End state: on-demand and periodic plate-solve/sync entirely on-Pi, no laptop, NINA, or ASTAP required for basic pointing refinement.
@@ -173,3 +175,51 @@ Package as a systemd service alongside `polaris-driver.service`, and write INDI/
 
 ### Phase 5 — Compliance Validation
 Validate against INDI's own driver compliance/test tooling (the INDI analogue of ConformU) and add to the release checklist.
+
+
+## 5. Extend Driver to support non-Polaris mounts
+
+**Goal:** Refactor the driver architecture to support multi-protocol mount communication, moving beyond the current Polaris-only implementation.
+
+The initial phase will focus on implementing the extended Meade LX200 protocol over USB, Bluetooth, and Wi-Fi. This will establish native support for the SAL-33 (an OnStepX-based harmonic mount). As part of this refactor, the closed-source OnStepX ASCOM driver will be replaced with a pure, cross-platform Alpaca driver.
+
+**Benefits:** Universal Mount Compatibility. Enables Alpaca Pilot to control a broad range of mounts that support the extended LX200-compatible harmonic mounts (e.g., SAL-33, WD-20E, FG-17, AM5N, and others). 
+
+## 6. Sky Map
+To build a high-performance planetarium using real-world astronomical catalogs, you can achieve significantly faster performance than Stellarium by bypassing its heavy, real-time physics simulation loops. Instead, you pre-bake coordinates and leverage hardware-accelerated GPU pipelines.
+The architecture below details how to load actual cosmic data and stream deep-sky nebulae at maximum speed using WebGL 2 or WebGPU.
+### High-Performance Star Catalogs (Up to 2+ Million Stars)
+Stellarium chokes on massive catalogs because it loops through stars on the CPU. To render millions of real stars at 60+ FPS, you must process the star catalog as a Single Point Cloud Object directly inside GPU memory via a Vertex Buffer Object (VBO).
+
+* The Data Source: Use the Gaia Catalog (DR3) or the smaller Hipparcos / Yale Bright Star Catalog for visible stars.
+* The Optimization: Pre-convert the Right Ascension (RA) and Declination (Dec) coordinates into standard X, Y, Z Cartesian vectors on a unit sphere. Pack this data into a highly compressed, raw binary file (e.g., Float32Array).
+* The Shader Execution:
+* Vertex Shader: Passes the pre-computed 3D coordinates into a single GPU draw call (gl.drawArrays(gl.POINTS)). The shader calculates the camera matrix rotation instantly on the hardware.
+   * Fragment Shader: Instead of loading image sprites for stars, use the star's real-world B-V Color Index (temperature) and Apparent Magnitude (brightness) to procedurally draw sharp, anti-aliased circles that twinkle dynamically.
+
+### High-Performance Deep Sky Objects & Nebulae
+The bottleneck for real-world nebulae is network texture streaming. Stellarium Web uses HiPS (Hierarchical Progressive Surveys), which requires downloading hundreds of small image tiles as you move.
+To beat this speed, use the AAS WorldWide Telescope TOAST framework, or build a custom Texture Atlas / Cube Map pipeline:
+
+* The TOAST Format: Unlike standard spherical maps that distort at the poles and require complex pixel calculations, the TOAST format uncoils the celestial sphere into an optimized square grid layout. The GPU can sample this format lightning-fast.
+* Volumetric Shaders for DSOs: For prominent individual DSOs (like the Orion or Carina Nebula), instead of a flat 2D image plane, bind a low-resolution real-world astrophotography image to a 3D Noise/Volume raymarching shader. This creates the visual illusion of true depth as the user pans across the real coordinate space.
+
+### High-Performance Constellations (Vector Instancing)
+Connecting the stars with real-world constellation boundaries usually causes a drop in frame rates if lines are drawn one by one.
+
+* The Data Source: Use the official IAU (International Astronomical Union) Constellation Boundary dataset.
+* The Optimization: Store the line connections as a tightly bound Index Buffer Object (IBO). Use Instanced Rendering to draw all 88 constellations simultaneously. By storing the lines as structural vector indices pointing straight to your existing star data array, you draw the lines with near-zero added memory footprint or GPU overhead.
+
+### Recommended Open-Source Stack for Real-World Data
+
+[ Binary Star Catalog (Gaia/Yale) ] ---> [ WebGL2 / WebGPU Vertex Buffer ] ---> [ GPU Core ]
+                                                                                   |
+[ IAU Constellation Indices ] ---------> [ Index Buffer Object (IBO) ] ------------+--> [ 60+ FPS Real Sky ]
+                                                                                   |
+[ TOAST Nebulae Assets ] --------------> [ Seamless Cube Map Texture ] ------------+
+
+
+* The Core Engine: Three.js with its modern WebGPURenderer (for high-level scaffolding) OR regl (if you want absolute bare-metal control over the graphics pipeline).
+* The Math Parser: Use AstroJS or a lightweight epoch converter script only once at application startup to calculate the current positions of the Sun, Moon, and planets. Lock the stars into a static background matrix so the CPU never has to recalculate them during runtime navigation.
+
+
