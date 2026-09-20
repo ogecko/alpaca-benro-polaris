@@ -365,36 +365,63 @@ Near the bottom edges of the envelope, the driver often has a choice between two
 * **[Scale Warnings]**: The Roll, RA, and Dec displays on the Dashboard now show a warning markers in real time as you approach the mount's mechanical limits. You can see a limit coming before a Goto or tracking move actually hits it.
 
 
-#### III. Poor tracking at Low-Altitude with Low-Roll Angles
 
-**The issue.** Sidereal tracking demands a fixed rate of sky rotation (15.04 arcsec/s), but the motor rates needed to deliver it depend on the mount's pose. M1 (`theta1`, vertical axis) and M3 (`theta3`, the Astro axis) are separated by only `theta2` degrees. When `theta2` is small they point almost the same way, so the two motors must run in near-opposite directions to produce a small net motion. The feed-forward solve `omega_ff = J⁻¹(theta_pv) · omega_base` (see [§4.3](#43-inverse-kinematics--sky--motors-angular-velocity-feed-forward)) is then ill-conditioned: the required M1 and M3 rates are large, the tracking demand lies almost entirely along the Jacobian's weakest singular direction (`theta1_dot = -theta3_dot`), and the pid loop has little authority there.
+#### III. Poor Tracking at Low Altitudes and Low Roll Angles
 
-Amplification `1 / sin(theta2)`. Values above about 1.5 are the problem area for the PID to track:
+**The problem:** When the telescope is pointing **low in the sky** and the camera has **little or no roll angle**, tracking the stars with the Benro Polaris becomes harder.
 
-| Roll \ Alt | 10° | 20° | 30° | 40° | 50° | 60° | 70° | 80° |
-|---|---|---|---|---|---|---|---|---|
-| 0°  | 5.76 | 2.92 | 2.00 | 1.56 | 1.31 | 1.15 | 1.06 | 1.02 |
-| 10° | 4.10 | 2.64 | 1.92 | 1.52 | 1.29 | 1.15 | 1.06 | 1.01 |
-| 20° | 2.64 | 2.13 | 1.72 | 1.44 | 1.25 | 1.13 | 1.06 | 1.01 |
-| 30° | 1.92 | 1.72 | 1.51 | 1.34 | 1.20 | 1.11 | 1.05 | 1.01 |
-| 45° | 1.39 | 1.34 | 1.26 | 1.19 | 1.12 | 1.07 | 1.03 | 1.01 |
-| 60° | 1.15 | 1.13 | 1.11 | 1.08 | 1.06 | 1.03 | 1.01 | 1.00 |
+This happens because two of the mount's motors have to work together to move the telescope. When the telescope is in certain poses, those two motors are pointing in almost the same direction. To make the movement needed to track the stars, the motors have to move even move quickly in **opposite directions**.
 
-The table is symmetric in the sign of roll.
+This makes the Benro Polaris system less effective and can cause the telescope to have difficulty keeping the stars in exactly the right position.
 
-**How to resolve it.** Raise the |roll angle| of the framing, or raise the altitude, so that `theta2` moves away from 0°. The minimum |roll angle| needed at each altitude to keep the amplification at or below a chosen limit:
+In simple terms:
 
-| Altitude | ≤ 1.5× | ≤ 1.3× | ≤ 1.2× |
-|---|---|---|---|
-| 10° | 41° | 50° | 56° |
-| 20° | 38° | 47° | 54° |
-| 30° | 31° | 42° | 50° |
-| 40° | 13° | 33° | 44° |
-| 50° | any | 6° | 31° |
-| 60° and above | any | any | any |
+> **Low altitude + low camera roll = harder tracking.**
 
-* If the framing allows it, rotate the camera to a roll of about 40°–60° when tracking below about 40° altitude. Roll is free to choose for most imaging, 
-* Above about 60° altitude the amplification is under 1.2× at every roll and no action is needed.
+The closer the telescope gets to these conditions, the more the motors have to work to produce the required movement.
+
+**How serious is the problem?**
+
+The following table shows how much the motor movement is amplified at low altitude and roll. Higher numbers mean the mount has to work harder.
+
+| Camera Roll | 10° Altitude |   20° |   30° |   40° |   50° |   60° |   70° |   80° |
+| ----------- | -----------: | ----: | ----: | ----: | ----: | ----: | ----: | ----: |
+| 0°          |        5.76× | 2.92× | 2.00× | 1.56× | 1.31× | 1.15× | 1.06× | 1.02× |
+| 10°         |        4.10× | 2.64× | 1.92× | 1.52× | 1.29× | 1.15× | 1.06× | 1.01× |
+| 20°         |        2.64× | 2.13× | 1.72× | 1.44× | 1.25× | 1.13× | 1.06× | 1.01× |
+| 30°         |        1.92× | 1.72× | 1.51× | 1.34× | 1.20× | 1.11× | 1.05× | 1.01× |
+| 45°         |        1.39× | 1.34× | 1.26× | 1.19× | 1.12× | 1.07× | 1.03× | 1.01× |
+| 60°         |        1.15× | 1.13× | 1.11× | 1.08× | 1.06× | 1.03× | 1.01× | 1.00× |
+
+A value of **1.0×** means the mount is operating normally. A value of **1.5×** means the motors need to move about 50% more than they would in an ideal position. The table is the same for positive and negative roll angles. Only the **amount of roll** matters.
+
+**How to fix it:**
+
+There are two simple ways to make tracking easier:
+
+1. **Increase the camera's roll angle away from zero/horizontal**, or
+2. **Point the telescope higher in the sky.**
+
+Increasing the roll angle moves the mount away from the difficult pose where the two motors are working against each other. The table below shows approximately how much roll is needed to keep the motor amplification below different limits:
+
+| Telescope Altitude | Maximum 1.5× | Maximum 1.3× | Maximum 1.2× |
+| ------------------ | -----------: | -----------: | -----------: |
+| 10°                |     41° roll |     50° roll |     56° roll |
+| 20°                |     38° roll |     47° roll |     54° roll |
+| 30°                |     31° roll |     42° roll |     50° roll |
+| 40°                |     13° roll |     33° roll |     44° roll |
+| 50°                |     Any roll |      6° roll |     31° roll |
+| 60° and above      |     Any roll |     Any roll |     Any roll |
+
+**Practical recommendation:**
+
+If your DSO target setup allows the camera frame to be rotated, a **roll angle of roughly 40°–60°** is a good choice when tracking targets below about **40° altitude**. Once the telescope is above about **60° altitude**, the problem is essentially gone. Tracking amplification stays below **1.2× regardless of the camera's roll angle**, so no special adjustment is needed.
+
+**In short:**
+
+> **If you're imaging low in the sky, use a larget roll angle of +/- 40° to 60° when possible.** <br>
+> **The higher the target is in the sky, the less important camera roll angle becomes.**
+
 
 
 ---
