@@ -365,6 +365,38 @@ Near the bottom edges of the envelope, the driver often has a choice between two
 * **[Scale Warnings]**: The Roll, RA, and Dec displays on the Dashboard now show a warning markers in real time as you approach the mount's mechanical limits. You can see a limit coming before a Goto or tracking move actually hits it.
 
 
+#### III. Poor tracking at Low-Altitude with Low-Roll Angles
+
+**The issue.** Sidereal tracking demands a fixed rate of sky rotation (15.04 arcsec/s), but the motor rates needed to deliver it depend on the mount's pose. M1 (`theta1`, vertical axis) and M3 (`theta3`, the Astro axis) are separated by only `theta2` degrees. When `theta2` is small they point almost the same way, so the two motors must run in near-opposite directions to produce a small net motion. The feed-forward solve `omega_ff = J⁻¹(theta_pv) · omega_base` (see [§4.3](#43-inverse-kinematics--sky--motors-angular-velocity-feed-forward)) is then ill-conditioned: the required M1 and M3 rates are large, the tracking demand lies almost entirely along the Jacobian's weakest singular direction (`theta1_dot = -theta3_dot`), and the pid loop has little authority there.
+
+Amplification `1 / sin(theta2)`. Values above about 1.5 are the problem area for the PID to track:
+
+| Roll \ Alt | 10° | 20° | 30° | 40° | 50° | 60° | 70° | 80° |
+|---|---|---|---|---|---|---|---|---|
+| 0°  | 5.76 | 2.92 | 2.00 | 1.56 | 1.31 | 1.15 | 1.06 | 1.02 |
+| 10° | 4.10 | 2.64 | 1.92 | 1.52 | 1.29 | 1.15 | 1.06 | 1.01 |
+| 20° | 2.64 | 2.13 | 1.72 | 1.44 | 1.25 | 1.13 | 1.06 | 1.01 |
+| 30° | 1.92 | 1.72 | 1.51 | 1.34 | 1.20 | 1.11 | 1.05 | 1.01 |
+| 45° | 1.39 | 1.34 | 1.26 | 1.19 | 1.12 | 1.07 | 1.03 | 1.01 |
+| 60° | 1.15 | 1.13 | 1.11 | 1.08 | 1.06 | 1.03 | 1.01 | 1.00 |
+
+The table is symmetric in the sign of roll.
+
+**How to resolve it.** Raise the |roll angle| of the framing, or raise the altitude, so that `theta2` moves away from 0°. The minimum |roll angle| needed at each altitude to keep the amplification at or below a chosen limit:
+
+| Altitude | ≤ 1.5× | ≤ 1.3× | ≤ 1.2× |
+|---|---|---|---|
+| 10° | 41° | 50° | 56° |
+| 20° | 38° | 47° | 54° |
+| 30° | 31° | 42° | 50° |
+| 40° | 13° | 33° | 44° |
+| 50° | any | 6° | 31° |
+| 60° and above | any | any | any |
+
+* If the framing allows it, rotate the camera to a roll of about 40°–60° when tracking below about 40° altitude. Roll is free to choose for most imaging, 
+* Above about 60° altitude the amplification is under 1.2× at every roll and no action is needed.
+
+
 ---
 
 ## 3. Reference Frames
