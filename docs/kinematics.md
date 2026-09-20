@@ -399,7 +399,7 @@ A value of **1.0×** means the mount is operating normally. A value of **1.5×**
 
 There are two simple ways to make tracking easier:
 
-1. **Increase the camera's roll angle away from zero/horizontal**, or
+1. **Increase the camera's roll angle magnitude away from zero (horizontal)**, or
 2. **Point the telescope higher in the sky.**
 
 Increasing the roll angle moves the mount away from the difficult pose where the two motors are working against each other. The table below shows approximately how much roll is needed to keep the motor amplification below different limits:
@@ -415,11 +415,18 @@ Increasing the roll angle moves the mount away from the difficult pose where the
 
 **Practical recommendation:**
 
-If your DSO target setup allows the camera frame to be rotated, a **roll angle of roughly 40°–60°** is a good choice when tracking targets below about **40° altitude**. Once the telescope is above about **60° altitude**, the problem is essentially gone. Tracking amplification stays below **1.2× regardless of the camera's roll angle**, so no special adjustment is needed.
+When tracking targets below about **40° altitude**, use a **large roll angle** (typically **40° to 60° in magnitude**).
+
+Pay attention to the direction in which the roll angle changes during tracking:
+
+* If the roll angle is **increasing**, choose **−40° to −60°**.
+* If the roll angle is **decreasing**, choose **+40° to +60°**.
+
+Once the telescope is above about **50° altitude**, this problem is essentially eliminated. At higher altitudes, tracking amplification remains below **1.3× regardless of the camera's roll angle**, so no special adjustment is needed.
 
 **In short:**
 
-> **If you're imaging low in the sky, use a larget roll angle of +/- 40° to 60° when possible.** <br>
+> **If you're imaging low in the sky, use a large roll angle of +/- 40° to 60° when possible.** <br>
 > **The higher the target is in the sky, the less important camera roll angle becomes.**
 
 
