@@ -39,6 +39,7 @@ As a library, the entry point most callers want:
                        prefer_keywords=("usb",))
 """
 
+import getpass
 import logging
 import os
 import re
@@ -149,10 +150,32 @@ def _run_nmcli(args: List[str]):
 # Windows (netsh wlan)
 # ──────────────────────────────────────────────────────────────────────────
 
+def _no_interfaces_error_win(netsh_output: str) -> RuntimeError:
+    """Explains why `netsh wlan show interfaces` listed no adapters.
+
+    Windows 11 24H2 and later refuse the netsh Wi-Fi commands unless the user running them has
+    allowed desktop apps to access location. They say so in their output instead of listing the
+    adapters, which otherwise looks exactly like "this PC has no Wi-Fi adapter". A new Windows
+    account starts with it off, so this is easy to hit.
+    """
+    text = " ".join(netsh_output.split())
+    low = text.lower()
+    if "location" in low:
+        return RuntimeError(
+            f"Windows is blocking Wi-Fi access for the account running the driver ('{getpass.getuser()}'). "
+            'Turn on Settings > Privacy & security > Location > "Let desktop apps access your location" '
+            'for that account (and "Let apps access your location" above it, if that is off), then try again.')
+    if "wlansvc" in low or "autoconfig" in low:
+        return RuntimeError(f"The Windows WLAN AutoConfig service is not running, so Wi-Fi cannot be used. Windows said: {text[:200]}")
+    detail = f' Windows said: "{text[:200]}"' if text else ""
+    return RuntimeError("No Wi-Fi adapter found. Check that a Wi-Fi adapter is plugged in and enabled." + detail)
+
+
 def _list_interfaces_win() -> List[WifiInterface]:
     """Parses `netsh wlan show interfaces` into structured records. Handles
-    zero, one, or many WiFi adapters present on the machine."""
-    _, out, _ = _run(["netsh.exe", "wlan", "show", "interfaces"])
+    zero, one, or many WiFi adapters present on the machine. Raises an error that says why
+    when there are none (see _no_interfaces_error_win)."""
+    _, out, err = _run(["netsh.exe", "wlan", "show", "interfaces"])
 
     interfaces = []
     current = {}
@@ -174,6 +197,9 @@ def _list_interfaces_win() -> List[WifiInterface]:
 
     if current.get("Name"):
         interfaces.append(current)
+
+    if not interfaces:
+        raise _no_interfaces_error_win(f"{out} {err}")
 
     return [
         WifiInterface(
