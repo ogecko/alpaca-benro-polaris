@@ -27,8 +27,8 @@ rem
 rem It updates an existing install if it finds one (the checkout it is run from, the folder
 rem remembered from last time, the folder it is run in, or the default folder), otherwise it
 rem installs into the default folder.
-rem Administrator rights are requested (UAC) because it adds Windows Firewall rules and a
-rem Task Scheduler task.
+rem Everything runs in this one window, as you. Windows asks for administrator permission once,
+rem and only if you choose automatic startup (step 3: the firewall rules and the boot task).
 rem
 rem The few jobs cmd.exe does badly (scheduled task, shortcut, stopping the running driver) are done
 rem by platforms\win\helper.ps1, which this script calls once the driver has been downloaded.
@@ -38,6 +38,7 @@ setlocal EnableExtensions DisableDelayedExpansion
 set "BRANCH=main"
 set "BRANCH_GIVEN="
 set "ABP_PW="
+set "ABP_PW_ENC="
 set "SKIP_TASK="
 set "VERBOSE="
 set "ABP_NOPAUSE="
@@ -51,8 +52,10 @@ rem SHIFT (used to parse the options below) shifts %0 too, so anything derived f
 rem captured here, before parsing, and never read from %0 again.
 set "ABP_SELF=%~f0"
 set "ABP_HERE=%~dp0."
-set "ABP_CWD=%CD%"
-set "ABP_ARGS=%*"
+rem Started by double-clicking (cmd /c) the window closes when we finish, so pause. From a Command Prompt it stays.
+set "ABP_CL=%CMDCMDLINE:"=%"
+set "ABP_DBLCLICK="
+if not "%ABP_CL:/c=%"=="%ABP_CL%" set "ABP_DBLCLICK=1"
 
 :parse
 if "%~1"=="" goto parsed
@@ -63,8 +66,6 @@ if /i "%~1"=="-y" (set "ABP_NOPAUSE=1" & shift & goto parse)
 if /i "%~1"=="-v" (set "VERBOSE=1" & shift & goto parse)
 if /i "%~1"=="-d" (set "INSTALL_DIR=%~2" & set "DIR_GIVEN=1" & shift & shift & goto parse)
 if /i "%~1"=="-p" (set "ABP_PW=%~2" & shift & shift & goto parse)
-rem -e is internal: the encrypted password handed to the elevated window (see the password prompt below)
-if /i "%~1"=="-e" (set "ABP_PW_ENC=%~2" & shift & shift & goto parse)
 set "ARG=%~1"
 if "%ARG:~0,1%"=="-" (echo Error: invalid option %~1. & goto usage_error)
 set "BRANCH=%~1"
@@ -139,16 +140,7 @@ echo Automatic startup will not be configured.
 echo.
 :pw_done
 
-rem --- Administrator rights (relaunch elevated via UAC if needed) ---------------------
-net session >nul 2>&1
-if not errorlevel 1 goto is_admin
-rem The elevated window is a new process: hand it the answer (-s or the encrypted password), or it would ask again.
-if defined SKIP_TASK set "ABP_ARGS=%ABP_ARGS% -s"
-if defined ABP_PW_ENC set "ABP_ARGS=%ABP_ARGS% -e %ABP_PW_ENC%"
-echo Windows will now ask your permission to continue (needed for the firewall rules and startup task).
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -Verb RunAs -Wait -ArgumentList ('/c cd /d \"{0}\" && \"{1}\" {2}' -f $env:ABP_CWD, $env:ABP_SELF, $env:ABP_ARGS)"
-exit /b
-:is_admin
+rem Start a fresh log for this run (quiet mode saves the details of git, uv and winget there).
 if not defined VERBOSE type nul > "%ABP_LOG%"
 
 rem --- Never run from inside the checkout we are about to update ------------------------------
@@ -287,8 +279,24 @@ call :helper stop_driver
 if not exist data mkdir data
 if not exist logs mkdir logs
 
+rem --- 3. Automatic startup (firewall rules + start-at-boot task) ---------------------------------
+rem The only step that needs administrator rights. It runs in a hidden elevated process (Windows asks
+rem permission once, and no extra window appears), so everything else stays in this window. When
+rem automatic startup is not wanted nothing is elevated at all: a driver you start yourself gets
+rem Windows' own firewall popup, which you can answer.
+set "HAVE_TASK="
+if defined SKIP_TASK echo ==SETUP== 3. Automatic startup: skipped
+if defined SKIP_TASK goto task_checked
+echo ==SETUP== 3. Setting up automatic startup
+call :helper elevated_setup
+rem Only a successful setup counts: a failed or declined one must not fall back to an older task.
+if errorlevel 1 goto task_checked
+schtasks /Query /TN "%ABP_TASK%" >nul 2>&1
+if not errorlevel 1 set "HAVE_TASK=1"
+:task_checked
+
 rem --- 3. Python dependencies ---------------------------------------------------------------
-echo ==SETUP== 3. Installing Python and the driver's libraries (a few minutes)
+echo ==SETUP== 4. Installing Python and the driver's libraries (a few minutes)
 rem --managed-python: use a uv-managed Python 3.13 (downloaded if needed), so the driver never
 rem depends on, or is broken by changes to, any other Python installed on this PC.
 uv sync --no-dev --locked --managed-python --no-build-package numpy --no-build-package scipy %TO%
@@ -297,37 +305,16 @@ if errorlevel 1 (
     goto fail_pop
 )
 
-rem --- 4. Firewall ---------------------------------------------------------------------------
-echo ==SETUP== 4. Opening the driver's network ports in Windows Firewall
-rem Rules are by port, not by program: the python.exe path changes whenever uv moves to a newer
-rem Python, and program rules would then trigger the Windows Firewall popup all over again.
-netsh advfirewall firewall delete rule name="Alpaca Benro Polaris Driver (TCP)" >nul 2>&1
-netsh advfirewall firewall delete rule name="Alpaca Benro Polaris Driver (UDP)" >nul 2>&1
-netsh advfirewall firewall add rule name="Alpaca Benro Polaris Driver (TCP)" dir=in action=allow protocol=TCP localport=80,443,5555,5556,10001 profile=any >nul
-netsh advfirewall firewall add rule name="Alpaca Benro Polaris Driver (UDP)" dir=in action=allow protocol=UDP localport=32227,5353 profile=any >nul
-%V% Allowed TCP 80,443,5555,5556,10001 and UDP 32227,5353.
-
-rem --- 5. Start at boot -------------------------------------------------------------------------
-set "HAVE_TASK="
-if defined SKIP_TASK (
-    echo ==SETUP== 5. Automatic startup: skipped
-) else (
-    echo ==SETUP== 5. Setting up automatic startup
-    call :helper create_task
-    schtasks /Query /TN "%ABP_TASK%" >nul 2>&1
-    if not errorlevel 1 set "HAVE_TASK=1"
-)
-
-rem --- 6. Shortcut -----------------------------------------------------------------------------------
-echo ==SETUP== 6. Creating the desktop shortcut
+rem --- 5. Shortcut -----------------------------------------------------------------------------------
+echo ==SETUP== 5. Creating the desktop shortcut
 call :helper create_shortcut
 
-rem --- 7. Start the driver ---------------------------------------------------------------------------
-echo ==SETUP== 7. Starting the Alpaca Driver (the first start can take a couple of minutes)
+rem --- 6. Start the driver ---------------------------------------------------------------------------
+echo ==SETUP== 6. Starting the Alpaca Driver (the first start can take a couple of minutes)
 if defined HAVE_TASK (
     schtasks /Run /TN "%ABP_TASK%" >nul 2>&1
 ) else (
-    start "Alpaca Benro Polaris Driver" /D "%REPO%\driver" "%REPO%\.venv\Scripts\python.exe" "%REPO%\driver\main.py"
+    start "Alpaca Benro Polaris Driver" /min /D "%REPO%\driver" "%REPO%\.venv\Scripts\python.exe" "%REPO%\driver\main.py"
 )
 call :helper wait_for_driver
 
@@ -337,6 +324,7 @@ echo -------------------------------------------------------------------
 echo Alpaca Benro Polaris Setup Complete
 echo.
 echo Access Alpaca Pilot via:  http://ap.local  (or http://%COMPUTERNAME%)
+if not defined HAVE_TASK echo The driver is running in a minimized window named "Alpaca Benro Polaris Driver".
 %V% You can:
 %V% * Start the driver manually:    "Alpaca Benro Polaris Driver"  (desktop shortcut)
 %V% * Update driver with a re-run:  setup.bat                      (keeps your branch and data)
@@ -353,11 +341,11 @@ echo Setup did not complete.
 if not defined VERBOSE if exist "%ABP_LOG%" echo The end of the setup log ^(%ABP_LOG%^):
 if not defined VERBOSE if exist "%ABP_LOG%" powershell -NoProfile -Command "Get-Content -Tail 12 -LiteralPath $env:ABP_LOG"
 echo Once the problem is fixed, run setup.bat again. To see every detail, run setup.bat -v
-if not defined ABP_NOPAUSE pause
+if defined ABP_DBLCLICK if not defined ABP_NOPAUSE pause
 exit /b 1
 
 :end
-if not defined ABP_NOPAUSE pause
+if defined ABP_DBLCLICK if not defined ABP_NOPAUSE pause
 exit /b 0
 
 rem --- Run one action of platforms\win\helper.ps1 ------------------------------------------------

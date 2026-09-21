@@ -1,20 +1,25 @@
 # helper.ps1 - INTERNAL helper for platforms\win\setup.bat.
 #
 # You never need to run this yourself: setup.bat calls it for the jobs cmd.exe does badly
-# (creating the scheduled task and shortcut, stopping the running driver, checking that the
-# driver came up). To install or update the Alpaca Driver, run setup.bat.
+# (the firewall rules and scheduled task, the shortcut, stopping the running driver, checking that
+# the driver came up). To install or update the Alpaca Driver, run setup.bat.
 #
 # Usage (by setup.bat):  helper.ps1 -Action <name> -Repo <install folder> [-TaskName <name>] [-Detail]
 #
 # Quiet by default, like setup.bat: only real problems are printed. -Detail (setup.bat -v) adds progress.
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('stop_driver', 'create_task', 'create_shortcut', 'wait_for_driver')]
+    [ValidateSet('stop_driver', 'elevated_setup', 'create_shortcut', 'wait_for_driver')]
     [string]$Action,
     [Parameter(Mandatory = $true)]
     [string]$Repo,
     [string]$TaskName = 'StartupAlpacaDriver',
-    [switch]$Detail
+    [switch]$Detail,
+    # Internal to elevated_setup, which starts a hidden elevated copy of itself:
+    [switch]$Elevated,
+    [string]$PwEnc,         # the account password, encrypted for this Windows account only (DPAPI)
+    [string]$TaskUser,
+    [string]$ResultFile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,40 +65,87 @@ switch ($Action) {
         }
     }
 
-    # Start-at-boot task. Task Scheduler needs the account password to run it whether or not
-    # anyone is logged on. Unlike the manual steps it also removes the default 3 day run limit,
-    # and restarts the driver if it ever crashes (the Windows counterpart of Restart=always).
-    'create_task' {
-        # The identity, not %USERDOMAIN%\%USERNAME%: those env vars can name a network domain/workgroup that is not the account's real domain.
-        $user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-        # setup.bat asks for the password up front and passes it either as -p (plain) or, from its
-        # first window to the elevated one, encrypted for this Windows account only (DPAPI).
-        $pw   = $env:ABP_PW
-        if (-not $pw -and $env:ABP_PW_ENC) {
-            $sec = ConvertTo-SecureString $env:ABP_PW_ENC
-            $pw  = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
+    # Automatic startup: the firewall rules and the start-at-boot task, the only things that need
+    # administrator rights. The firewall rules belong here because a driver started by Task Scheduler
+    # has no desktop, so Windows cannot show its "Allow access" popup and would just block it. (A driver
+    # you start yourself does get that popup, so setup.bat does not touch the firewall without this.)
+    # Everything else in setup.bat runs as the user, in its own window. Run normally this is the
+    # launcher: it starts a hidden elevated copy of itself (Windows asks permission once, and no
+    # extra window appears) and reports what that did. The elevated copy (-Elevated) does the work.
+    'elevated_setup' {
+        if (-not $Elevated) {
+            $me    = [Security.Principal.WindowsIdentity]::GetCurrent()
+            $admin = ([Security.Principal.WindowsPrincipal]$me).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            # setup.bat asks for the password up front and passes it here as -p (plain) or already encrypted.
+            $blob  = $env:ABP_PW_ENC
+            if (-not $blob -and $env:ABP_PW) { $blob = ConvertTo-SecureString $env:ABP_PW -AsPlainText -Force | ConvertFrom-SecureString }
+            if (-not $blob) {
+                Write-Host 'No password was given, so the driver will not start automatically at boot. Run setup.bat again to add it.'
+                exit 4          # nothing was set up
+            }
+            if (-not $admin) { Write-Host 'Windows will now ask your permission (needed for automatic startup).' }
+            $result = Join-Path $env:TEMP 'abp-elevated.txt'
+            Remove-Item $result -ErrorAction SilentlyContinue
+            # Start-Process joins its arguments with spaces, so anything that may contain a space is quoted.
+            $q = { param([string]$Text) '"' + $Text + '"' }
+            $childArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (& $q $PSCommandPath),
+                           '-Action', 'elevated_setup', '-Repo', (& $q $Repo), '-TaskName', (& $q $TaskName),
+                           '-TaskUser', (& $q $me.Name), '-ResultFile', (& $q $result), '-Elevated')
+            $childArgs += @('-PwEnc', $blob)
+            try {
+                $child = Start-Process powershell -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ArgumentList $childArgs
+            } catch {
+                Write-Host 'Windows permission was not given, so the firewall rules and automatic startup were skipped.'
+                Write-Host 'The driver still works, but Windows may ask you to allow it through the firewall the first time it runs.'
+                exit 2
+            }
+            if (Test-Path $result) {
+                foreach ($line in (Get-Content $result)) {
+                    if ($child.ExitCode -eq 0) { Say $line } elseif ($line -notmatch '^(Allowed|Task) ') { Write-Host $line }     # on failure show only the problems
+                }
+                Remove-Item $result -ErrorAction SilentlyContinue
+            }
+            exit $child.ExitCode
         }
-        if (-not $pw) {
-            Write-Host 'No password was given, so the driver will not start automatically at boot. Run setup.bat again to add it.'
-            break
-        }
-        $py       = Join-Path $Repo '.venv\Scripts\python.exe'
-        $main     = Join-Path $Repo 'driver\main.py'
-        # NB: not $action - PowerShell variable names ignore case, so that would overwrite the -Action parameter.
-        $taskAction = New-ScheduledTaskAction -Execute $py -Argument ('"' + $main + '"') -WorkingDirectory (Join-Path $Repo 'driver')
-        $trigger    = New-ScheduledTaskTrigger -AtStartup
-        $settings   = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
-                        -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew `
-                        -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+
+        # ---- the elevated, hidden copy ----
+        function Report([string]$Message) { Add-Content -Path $ResultFile -Value $Message }
+        $failed = $false
         try {
-            Register-ScheduledTask -TaskName $TaskName -Action $taskAction -Trigger $trigger -Settings $settings `
-                -User $user -Password $pw -RunLevel Limited -Force `
-                -Description 'Starts the Alpaca Benro Polaris Driver at boot (created by setup.bat).' | Out-Null
-            Say "Task '$TaskName' will start the driver at boot as $user."
+            # Rules are by port, not by program: the python.exe path changes whenever uv moves to a newer
+            # Python, and program rules would then trigger the Windows Firewall popup all over again.
+            Remove-NetFirewallRule -DisplayName 'Alpaca Benro Polaris Driver (TCP)', 'Alpaca Benro Polaris Driver (UDP)' -ErrorAction SilentlyContinue
+            New-NetFirewallRule -DisplayName 'Alpaca Benro Polaris Driver (TCP)' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 80, 443, 5555, 5556, 10001 -Profile Any | Out-Null
+            New-NetFirewallRule -DisplayName 'Alpaca Benro Polaris Driver (UDP)' -Direction Inbound -Action Allow -Protocol UDP -LocalPort 32227, 5353 -Profile Any | Out-Null
+            Report 'Allowed TCP 80,443,5555,5556,10001 and UDP 32227,5353 through Windows Firewall.'
         } catch {
-            Write-Host "Could not create the task: $($_.Exception.Message)"
-            Write-Host 'Check the password (blank passwords are not supported), then re-run .\setup.bat -p <password>.'
+            Report "Could not set up the firewall rules: $($_.Exception.Message)"
+            $failed = $true
         }
+
+        # Task Scheduler needs the account password to run the task whether or not anyone is logged
+        # on. Unlike the manual steps this also removes the default 3 day run limit, and restarts the
+        # driver if it ever crashes (the Windows counterpart of Restart=always).
+        try {
+            $pw = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((ConvertTo-SecureString $PwEnc)))
+            $py         = Join-Path $Repo '.venv\Scripts\python.exe'
+            $main       = Join-Path $Repo 'driver\main.py'
+            # NB: not $action - PowerShell variable names ignore case, so that would overwrite the -Action parameter.
+            $taskAction = New-ScheduledTaskAction -Execute $py -Argument ('"' + $main + '"') -WorkingDirectory (Join-Path $Repo 'driver')
+            $trigger    = New-ScheduledTaskTrigger -AtStartup
+            $settings   = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+                            -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew `
+                            -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+            Register-ScheduledTask -TaskName $TaskName -Action $taskAction -Trigger $trigger -Settings $settings `
+                -User $TaskUser -Password $pw -RunLevel Limited -Force `
+                -Description 'Starts the Alpaca Benro Polaris Driver at boot (created by setup.bat).' | Out-Null
+            Report "Task '$TaskName' will start the driver at boot as $TaskUser."
+        } catch {
+            Report "Could not create the start-at-boot task: $($_.Exception.Message)"
+            Report 'Check the password (blank passwords are not supported), then run setup.bat again.'
+            $failed = $true
+        }
+        exit ([int]$failed * 3)
     }
 
     'create_shortcut' {
