@@ -11,9 +11,11 @@ rem
 rem   -d folder     Folder for the driver (default: %USERPROFILE%\alpaca-benro-polaris, which
 rem                 is never synced by OneDrive, unlike Documents). The folder is remembered,
 rem                 so later runs use it again without -d.
-rem   -p password   Windows password for the account that runs the driver at boot
-rem                 (default: asked for first, before anything else). Task Scheduler needs it to run the driver
-rem                 whether or not you are logged on. Blank passwords are not supported.
+rem   -p password   Windows password for the account that runs the driver at boot, which
+rem                 enables automatic startup without being asked. Task Scheduler needs it to
+rem                 run the driver whether or not you are logged on. Blank passwords are not
+rem                 supported. (Default: you are asked whether to enable automatic startup,
+rem                 and only then for the password.)
 rem   -s            Skip creating the start-at-boot task.
 rem   -y            Unattended: never pause at the end.
 rem   -h            Print this help and exit.
@@ -74,7 +76,7 @@ echo Options:
 echo     -d ^<folder^>    Folder for the driver, remembered for next time.
 echo                    (default: %%USERPROFILE%%\alpaca-benro-polaris)
 echo     -p ^<password^>  Windows password for the account that runs the driver at boot
-echo                    (default: prompted). Needed by Task Scheduler.
+echo                    (default: asked, only if you choose automatic startup)
 echo     -s             Skip creating the start-at-boot task.
 echo     -y             Unattended, do not pause at the end.
 echo     -h             Print this help and exit.
@@ -92,23 +94,32 @@ exit /b 1
 :parsed
 echo == Alpaca Benro Polaris Windows Setup ===========================================.
 
-rem --- Ask for the Windows password first, so it is not lost among the technical output ------------
-rem It is only used to set up the Windows task that starts the driver at boot. It is kept encrypted
-rem (Windows DPAPI: readable only by this Windows account), so it can be handed safely to the
-rem elevated window below, whatever characters it contains. Never asked with -s, -p or -y.
+rem --- Ask about automatic startup first, so it is not lost among the technical output -------------
+rem Only if the answer is yes is the Windows password asked for: it is only used to set up the
+rem Windows task that starts the driver at boot. It is kept encrypted (Windows DPAPI: readable only
+rem by this Windows account), so it can be handed safely to the elevated window below, whatever
+rem characters it contains. Never asked with -s, -p or -y.
 if defined SKIP_TASK goto pw_done
 if defined ABP_PW goto pw_done
 if defined ABP_PW_ENC goto pw_done
 if defined ABP_NOPAUSE goto pw_done
 echo.
-echo Start the Alpaca Driver automatically whenever this PC starts?
-echo Type your Windows password and press Enter (Windows needs it to set this up),
-echo or just press Enter to skip.
+set "ABP_AUTO="
+set /p "ABP_AUTO=Start the Alpaca Driver automatically when Windows starts? [N/y] "
+if not defined ABP_AUTO goto pw_no
+if /i not "%ABP_AUTO:~0,1%"=="y" goto pw_no
 echo.
+echo Enter your Windows password to enable automatic startup.
 del "%TEMP%\abp_pw.tmp" >nul 2>&1
 powershell -NoProfile -Command "$s = Read-Host ('Windows password for ' + $env:USERNAME) -AsSecureString; if ($s.Length -gt 0) { $s | ConvertFrom-SecureString | Set-Content -Path (Join-Path $env:TEMP 'abp_pw.tmp') }"
 if exist "%TEMP%\abp_pw.tmp" set /p ABP_PW_ENC=<"%TEMP%\abp_pw.tmp"
 del "%TEMP%\abp_pw.tmp" >nul 2>&1
+echo.
+goto pw_done
+:pw_no
+set "SKIP_TASK=1"
+echo.
+echo Automatic startup will not be configured.
 echo.
 :pw_done
 
@@ -282,7 +293,7 @@ rem --- 5. Start at boot -------------------------------------------------------
 echo ==SETUP== 5. Set up a Task Scheduler task to start the Alpaca Driver at boot time.
 set "HAVE_TASK="
 if defined SKIP_TASK (
-    echo Skipped, as requested with -s.
+    echo Skipped. Start the driver from the desktop shortcut.
 ) else (
     call :helper create_task
     schtasks /Query /TN "%ABP_TASK%" >nul 2>&1
