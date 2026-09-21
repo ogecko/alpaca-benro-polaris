@@ -82,6 +82,9 @@
         <div class="row q-col-gutter-sm no-wrap">
             <q-toggle class='col-8' v-bind="bindField('polaris_auto_retry', 'Auto Retry Polaris Connection')"/>
         </div>
+        <div class="row q-col-gutter-sm no-wrap">
+            <q-toggle class='col-8' v-bind="bindField('enable_remote_shutdown', 'Allow Remote Shutdown of Driver Host OS')"/>
+        </div>
     </q-card>
 
 </template>

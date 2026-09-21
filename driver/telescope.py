@@ -25,7 +25,7 @@ from exceptions import NotImplementedException, DriverException, NotConnectedExc
 import math
 import json
 from polaris import Polaris
-from shr import DeviceMetadata, LifecycleController, LifecycleEvent
+from shr import DeviceMetadata, LifecycleController, LifecycleEvent, running_in_container
 from orbitals import update_orbital_positions, compose_orbital_positions_for_catalog, loadCustomCatalogDataFromFile, remove_orbital
 
 
@@ -1514,7 +1514,7 @@ class supportedactions:
             "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:SlewAbsolute", "Polaris:SlewRelative", "Polaris:AbortSlew",  
             "Polaris:MoveAxis", "Polaris:MoveMotor", "Polaris:ResetAxes",
             "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
-            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", 
+            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:ShutdownOS",
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:StatusFetch", "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
             "Polaris:ReplayMark",
@@ -1563,6 +1563,23 @@ class action:
             resp.text = await PropertyResponse('StopDriver ok', req)  
             await asyncio.sleep(2)
             await lifecycle.signal(LifecycleEvent.STOP)
+
+        elif actionName == "Polaris:ShutdownOS":
+            # Shuts down the host OS (not just the driver). Unlike StopDriver, the OS poweroff
+            # itself is run by main.py once all tasks have wound down (see LifecycleEvent.SHUTDOWN_OS).
+            if not Config.enable_remote_shutdown:
+                resp.text = await MethodResponse(req, InvalidOperationException('Remote OS shutdown is disabled (enable_remote_shutdown = false)'))
+                return
+            if running_in_container():
+                logger.warning('ShutdownOS: running in a container, cannot shut down the host OS. Stopping the driver only.')
+                resp.text = await PropertyResponse('ShutdownOS ok (container: driver stopped only)', req)
+                await asyncio.sleep(2)
+                await lifecycle.signal(LifecycleEvent.STOP)
+            else:
+                logger.warning('ShutdownOS: shutting down the host OS.')
+                resp.text = await PropertyResponse('ShutdownOS ok', req)
+                await asyncio.sleep(2)
+                await lifecycle.signal(LifecycleEvent.SHUTDOWN_OS)
 
         elif actionName == "Polaris:RestartDriver":
             await lifecycle.signal(LifecycleEvent.RESTART)

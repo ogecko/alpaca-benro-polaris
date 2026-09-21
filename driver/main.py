@@ -101,7 +101,14 @@ async def main():
             logger.exception(f"==MAIN== Fatal error in main loop: {e}")
             break
         else:
-            if lifecycle._event == shr.LifecycleEvent.RESTART:
+            event = lifecycle._event
+            if event == shr.LifecycleEvent.SHUTDOWN_OS:
+                logger.info("==MAIN== Host OS shutdown requested...")
+                if shr.shutdown_host_os(logger):
+                    break
+                logger.error("==MAIN== Host OS shutdown failed, restarting the driver instead.")
+                event = shr.LifecycleEvent.RESTART
+            if event == shr.LifecycleEvent.RESTART:
                 logger.info("==MAIN== Restarting driver stack...in 2 sec")
                 await asyncio.sleep(2)
                 logger.info(f"==MAIN== Restarting now... {[sys.executable] + sys.argv}" )
@@ -119,7 +126,7 @@ async def main():
                         logger.exception(f"==MAIN== Fatal error when restarting: {e}")
                         break
                 continue
-            elif lifecycle._event == shr.LifecycleEvent.INTERRUPT:
+            elif event == shr.LifecycleEvent.INTERRUPT:
                 logger.info("==MAIN== Interrupt. Exiting.")
                 break
             else:

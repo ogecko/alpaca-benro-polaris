@@ -122,14 +122,15 @@ Options:
 
     -a <ssid>      Defines the network SSID for the Alpaca Hotspot Fallback connection on wlan0. 
                    Only used when no known STA network is in range, e.g. at a dark site.
-                   (default: ${AP_SSID})
+                   (default: keep the existing fallback name on a re-run, otherwise ${AP_SSID})
     -p <password>  Password for the network named by -a, min 8 chars for WPA2.
-                   (default: prompted interactively, or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
+                   (default: keep the existing password on a re-run, otherwise prompted interactively,
+                   or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
 
     -h             Print this help and exit.
 
     branch         Git branch to install, as a plain trailing argument.
-                   (default: ${BRANCH})
+                   (default: stay on the branch of an existing install, otherwise ${BRANCH})
 ```
 Options can be combined, and it's always safe to re-run `./setup.sh` on a Pi that's already set up — it won't undo anything, it just re-applies (or updates) whatever you tell it. For example, to add a second Wi-Fi network *and* change the dark-site hotspot's name and password in one go:
 ```Bash

@@ -24,6 +24,10 @@ import time
 import math
 import asyncio
 import threading
+import os
+import sys
+import shutil
+import subprocess
 import psutil
 from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
@@ -417,7 +421,8 @@ from enum import Enum, auto
 
 class LifecycleEvent(Enum):
     NONE = auto()
-    SHUTDOWN = auto()           # shutdown the process
+    SHUTDOWN = auto()           # shutdown the process (internal, eg a service failed to start)
+    SHUTDOWN_OS = auto()        # user initiated shutdown of the host operating system, after the process winds down
     RESTART = auto()            # restart all network services and running async tasks
     INTERRUPT = auto()          # user initiated shutdown ^C
     START = auto()              # used initated start of a stopable procedure
@@ -490,10 +495,10 @@ class LifecycleController:
 
 
     def should_stop(self) -> bool:
-        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT, LifecycleEvent.STOP}
+        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.SHUTDOWN_OS, LifecycleEvent.INTERRUPT, LifecycleEvent.STOP}
 
     def should_shutdown(self) -> bool:
-        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT}
+        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.SHUTDOWN_OS, LifecycleEvent.INTERRUPT}
 
     async def wait_for_event(self):
         async with self._cond:
@@ -527,6 +532,51 @@ class LifecycleController:
 
     def reset(self):
         self._event = LifecycleEvent.NONE
+
+
+# ── Host OS shutdown ───────────────────────────────────────────────────────────
+
+def running_in_container() -> bool:
+    """True when the driver runs inside a Docker/Podman container, which cannot power off its host."""
+    return os.path.exists('/.dockerenv') or os.path.exists('/run/.containerenv')
+
+def _host_shutdown_commands() -> list[list[str]]:
+    """Commands to try (in order) to power off the host OS, for the current platform."""
+    if sys.platform.startswith('win'):
+        return [['shutdown', '/s', '/t', '0']]
+
+    sudo = shutil.which('sudo')
+    if sys.platform == 'darwin':
+        # sudo -n fails immediately (no password prompt) unless a sudoers rule permits it;
+        # osascript works when the driver runs inside the logged-in user's GUI session.
+        cmds = [[sudo, '-n', '/sbin/shutdown', '-h', 'now']] if sudo else []
+        cmds.append(['osascript', '-e', 'tell application "System Events" to shut down'])
+        return cmds
+
+    # Linux / Raspberry Pi. platforms/raspberry_pi/setup.sh grants the driver user passwordless
+    # sudo for exactly "systemctl poweroff". Plain systemctl works as root, or for an active
+    # local desktop session via polkit.
+    systemctl = shutil.which('systemctl') or '/usr/bin/systemctl'
+    cmds = []
+    if hasattr(os, 'geteuid') and os.geteuid() != 0 and sudo:
+        cmds.append([sudo, '-n', systemctl, 'poweroff'])
+    cmds.append([systemctl, 'poweroff'])
+    return cmds
+
+def shutdown_host_os(logger: Logger) -> bool:
+    """Power off the operating system the driver is running on. Returns True if a command was accepted."""
+    for cmd in _host_shutdown_commands():
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+        except (OSError, subprocess.SubprocessError) as ex:
+            logger.warning(f'==SHUTDOWN_OS== {" ".join(cmd)} failed: {ex}')
+            continue
+        if result.returncode == 0:
+            logger.info(f'==SHUTDOWN_OS== {" ".join(cmd)} accepted, host OS is shutting down.')
+            return True
+        logger.warning(f'==SHUTDOWN_OS== {" ".join(cmd)} returned {result.returncode}: {(result.stderr or result.stdout).strip()}')
+    logger.error('==SHUTDOWN_OS== No command could shut down the host OS, check the sudoers/permissions setup.')
+    return False
 
 
 # ── Port preflight ─────────────────────────────────────────────────────────────

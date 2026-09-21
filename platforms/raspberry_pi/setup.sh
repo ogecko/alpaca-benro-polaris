@@ -8,6 +8,9 @@ STA_SSID=""
 STA_PASSWORD=""
 AP_PASSWORD=""
 BRANCH="main"
+AP_SSID_GIVEN="false"
+BRANCH_GIVEN="false"
+AP_CONN="alpaca-hotspot-fallback"
 REPO_DIR="alpaca-benro-polaris"
 REPO_URL="https://github.com/ogecko/alpaca-benro-polaris.git"
 
@@ -24,14 +27,15 @@ Options:
 
     -a <ssid>      Defines the network SSID for the Alpaca Hotspot Fallback connection on wlan0. 
                    Only used when no known STA network is in range, e.g. at a dark site.
-                   (default: ${AP_SSID})
+                   (default: keep the existing fallback name on a re-run, otherwise ${AP_SSID})
     -p <password>  Password for the network named by -a, min 8 chars for WPA2.
-                   (default: prompted interactively, or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
+                   (default: keep the existing password on a re-run, otherwise prompted interactively,
+                   or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
 
     -h             Print this help and exit.
 
     branch         Git branch to install, as a plain trailing argument.
-                   (default: ${BRANCH})
+                   (default: stay on the branch of an existing install, otherwise ${BRANCH})
 
 EOM
 }
@@ -47,7 +51,7 @@ parse_args() {
         case "$opt" in
             n) STA_SSID="$OPTARG" ;;
             w) STA_PASSWORD="$OPTARG" ;;
-            a) AP_SSID="$OPTARG" ;;
+            a) AP_SSID="$OPTARG"; AP_SSID_GIVEN="true" ;;
             p) AP_PASSWORD="$OPTARG" ;;
             h) help_exit "true" ;;
             \?) echo "Error: invalid option (-$OPTARG)."; help_exit "false" ;;
@@ -55,13 +59,29 @@ parse_args() {
         esac
     done
     shift $((OPTIND - 1))
-    BRANCH="${1:-$BRANCH}"   # First remaining (non-flag) argument is the branch name
+    if [ -n "$1" ]; then     # First remaining (non-flag) argument is the branch name
+        BRANCH="$1"
+        BRANCH_GIVEN="true"
+    fi
 }
 
 echo "== Alpaca Benro Polaris Raspberry Pi Setup ======================================."
 
 define_usage
 parse_args "$@"
+
+# On a re-run, keep the AP fallback's existing name/password unless -a/-p say otherwise,
+# rather than prompting again or silently resetting a custom password to the default.
+if command -v nmcli >/dev/null 2>&1 && nmcli -t -f NAME connection show | grep -qx "$AP_CONN"; then
+    if [ "$AP_SSID_GIVEN" != "true" ]; then
+        AP_SSID=$(nmcli -g 802-11-wireless.ssid connection show "$AP_CONN" 2>/dev/null) || true
+        AP_SSID="${AP_SSID:-alpaca-hotspot}"
+    fi
+    if [ -z "$AP_PASSWORD" ]; then
+        AP_PASSWORD=$(sudo nmcli -s -g 802-11-wireless-security.psk connection show "$AP_CONN" 2>/dev/null) || true
+        [ -n "$AP_PASSWORD" ] && echo "Keeping the existing password for '$AP_SSID' (fallback AP Mode network)."
+    fi
+fi
 
 # Access Point (AP) mode fallback (see ==SETUP== step below) -- wlan0 broadcasts its own
 # network so you can still reach the Pi from a phone/laptop at a dark site with no Station
@@ -86,10 +106,55 @@ for pkg in git curl; do
 done
 
 echo "==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub."
-if [ -d "$REPO_DIR/.git" ]; then
+# Find an existing checkout: the one this script lives in, or the one we're run from
+# (~/.bashrc drops you into it on login), before falling back to ./$REPO_DIR beneath the
+# current directory. Without this, running from inside the repo would clone a second copy.
+find_checkout() {
+    local dir top
+    for dir in "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" "$PWD"; do
+        top=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || continue
+        if [ -f "$top/driver/main.py" ] && [ -d "$top/platforms" ]; then
+            echo "$top"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# True if driver/config.toml differs from HEAD only by the port edits made in step 5 below.
+config_is_setup_edit_only() {
+    diff -q <(sed -E \
+        -e 's/^(alpaca_pilot_http_port[[:space:]]*=[[:space:]]*)8080([[:space:]]|$)/\180\2/' \
+        -e 's/^(alpaca_pilot_https_port[[:space:]]*=[[:space:]]*)8443([[:space:]]|$)/\1443\2/' \
+        driver/config.toml) <(git show HEAD:driver/config.toml) >/dev/null
+}
+
+EXISTING_CHECKOUT="true"
+if CHECKOUT=$(find_checkout); then
+    echo "Found existing checkout at $CHECKOUT — fetching latest updates..."
+    cd "$CHECKOUT"
+elif [ -d "$REPO_DIR/.git" ]; then
     echo "Directory exists — fetching latest updates..."
     cd "$REPO_DIR"
-    git restore driver/config.toml
+else
+    EXISTING_CHECKOUT="false"
+fi
+
+if [ "$EXISTING_CHECKOUT" = "true" ]; then
+    # Undo our own port edit from a previous run, and stash (never discard) anything else
+    # changed locally, so the checkout/pull below can't fail or lose work.
+    if [ -f driver/config.toml ] && config_is_setup_edit_only; then
+        git restore driver/config.toml
+    fi
+    if ! git diff --quiet HEAD; then
+        echo "Local changes found — stashing them (get them back later with: git restore driver/config.toml && git stash pop)."
+        git -c user.name="setup.sh" -c user.email="setup@localhost" stash push -m "setup.sh auto-stash $(date +%F_%T)"
+    fi
+    # With no branch argument, stay on the branch this install is already on.
+    if [ "$BRANCH_GIVEN" != "true" ] && [ -n "$(git branch --show-current)" ]; then
+        BRANCH="$(git branch --show-current)"
+        echo "No branch given — staying on '$BRANCH'."
+    fi
     git fetch --all
     git checkout "$BRANCH"
     git pull
@@ -112,11 +177,16 @@ if [ ! -f pyproject.toml ]; then
 fi
 
 echo "==SETUP== 3. Install uv, adding it to ~/.bashrc."
+# uv installs to ~/.local/bin, which is only on PATH in login shells -- add it first so an
+# existing install is found from ssh commands, cron, sudo -u etc. and isn't reinstalled.
+export PATH="$HOME/.local/bin:$PATH"
 if ! command -v uv >/dev/null 2>&1; then
     echo "Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
+else
+    echo "uv is already installed — skipping."
 fi
-source "$HOME/.local/bin/env"
+[ -f "$HOME/.local/bin/env" ] && source "$HOME/.local/bin/env"
 if ! grep -q "alpaca-benro-polaris edits" ~/.bashrc; then
     echo "Adding venv auto-activation to ~/.bashrc..."
     cat <<_EOF >> ~/.bashrc
@@ -181,7 +251,7 @@ else
     echo "ControllerMode already set in $BT_CONF — skipping."
 fi
 
-echo "==SETUP== 8. Grant passwordless nmcli access, needed for join_wifi.py to join the Polaris hotspot."
+echo "==SETUP== 8. Grant passwordless nmcli and poweroff access, needed for join_wifi.py and the Alpaca Pilot Shutdown button."
 # NetworkManager's own polkit rule only allows unauthenticated connection
 # changes from a "local and active" seat session -- the polaris-driver
 # service (User=pi, no seat) never qualifies, so join_wifi.py's nmcli calls
@@ -191,6 +261,15 @@ NMCLI_PATH="$(command -v nmcli)"
 echo "pi ALL=(ALL) NOPASSWD: ${NMCLI_PATH}" | sudo tee "$NMCLI_SUDOERS" > /dev/null
 sudo chmod 440 "$NMCLI_SUDOERS"
 sudo visudo -cf "$NMCLI_SUDOERS"
+
+# Same reasoning for Alpaca Pilot's "Shutdown" button (Polaris:ShutdownOS): the
+# service runs as an unprivileged user with no seat, so polkit would refuse a plain
+# `systemctl poweroff`. Only this exact command is granted, nothing else.
+POWEROFF_SUDOERS="/etc/sudoers.d/polaris-poweroff"
+SYSTEMCTL_PATH="$(command -v systemctl)"
+echo "pi ALL=(ALL) NOPASSWD: ${SYSTEMCTL_PATH} poweroff" | sudo tee "$POWEROFF_SUDOERS" > /dev/null
+sudo chmod 440 "$POWEROFF_SUDOERS"
+sudo visudo -cf "$POWEROFF_SUDOERS"
 
 echo "==SETUP== 9. Configure wlan0 for Station Mode (STA) at home, falling back to Access Point Mode (AP) at a dark site."
 # nmcli's connection-list view has no direct SSID column, so finding a wlan0 profile by
@@ -296,7 +375,6 @@ else
     echo "No active Wifi connection found -- skipping STA setup (AP mode fallback will still be configured)."
 fi
 
-AP_CONN="alpaca-hotspot-fallback"
 if ! nmcli -t -f NAME connection show | grep -qx "$AP_CONN"; then
     sudo nmcli connection add type wifi ifname wlan0 con-name "$AP_CONN" autoconnect yes ssid "$AP_SSID"
     echo "Created AP mode fallback connection '$AP_CONN'."

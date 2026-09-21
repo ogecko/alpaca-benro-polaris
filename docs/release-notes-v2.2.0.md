@@ -26,8 +26,9 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.2 Beta 6
-**[Raspberry Pi Install]** major refresh of Raspberry Pi installation (now uses UV, shared uv.lock across platforms) and network setup (join Wifi, no driver build, Bluetooth auto-enabled)
-**[Linux BLE]** correct for Benro Polaris' invalid BLE advertisements (forces the adapter into LE-only mode, fixing BLE enable-Wifi failures on Raspberry Pi)
+- **[Shutdown OS]** Add "Shutdown" button to Pilot Connect page, Stop dialog. Add new device action "Polaris:ShutdownOS" to poweroff the driver and its host OS.
+- **[Raspberry Pi Install]** major refresh of Raspberry Pi installation (now uses UV, shared uv.lock across platforms) and network setup (join Wifi, no driver build, Bluetooth auto-enabled)
+- **[Linux BLE]** correct for Benro Polaris' invalid BLE advertisements (forces the adapter into LE-only mode, fixing BLE enable-Wifi failures on Raspberry Pi)
 - **[Troublshooting C3-7]**: Added troubleshooting on mesh network Roaming Assistant potentially causing intermittant dropouts.
 
 ## What's new in v2.2 Beta 5 

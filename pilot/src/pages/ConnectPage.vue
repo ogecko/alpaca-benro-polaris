@@ -384,10 +384,15 @@ async function onRestartDriver() {
 
 function onStopDriver() {
     $q.notify({
-      message: 'WARNING: Stopping the Alpaca Driver will close Alpaca Pilot as well.',
+      message: 'WARNING: Stopping the Alpaca Driver will close Alpaca Pilot as well.'
+        + (cfg.enable_remote_shutdown ? '<br>Shutdown will also power off the computer the driver is running on.' : ''),
+      html: true,   // static text only, allows the <br> line break
       type: 'negative', position: 'top', timeout: 0,
       actions: [
         { label: 'Stop', icon: 'mdi-alert-octagon', color: 'yellow', handler: () => {void onStopDriverAction()} },
+        ...(cfg.enable_remote_shutdown
+          ? [{ label: 'Shutdown', icon: 'mdi-power', color: 'yellow', handler: () => {void onShutdownOSAction()} }]
+          : []),
         { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => { /* ... */ } }
       ]
     })
@@ -395,7 +400,15 @@ function onStopDriver() {
 
 async function onStopDriverAction() {
   await dev.alpacaStopDriver()
+  showDriverStopped('Alpaca Driver stopped.')
+}
 
+async function onShutdownOSAction() {
+  await dev.alpacaShutdownOS()
+  showDriverStopped('Alpaca Driver host is shutting down.')
+}
+
+function showDriverStopped(title: string) {
   // Attempt to close the window (works if opened programmatically)
   window.close()
 
@@ -404,7 +417,7 @@ async function onStopDriverAction() {
     document.body.innerHTML = `
   <div style="display:flex;align-items:center;justify-content:center;height:100vh;">
     <div class="text-center">
-      <h4 class="q-mb-sm">Alpaca Driver stopped.</h4>
+      <h4 class="q-mb-sm">${title}</h4>
       <h6 class="q-mt-sm">You may now close this window.</h6>
     </div>
   </div>
