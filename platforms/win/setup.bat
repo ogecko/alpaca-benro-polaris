@@ -116,7 +116,13 @@ rem Only if the answer is yes is the Windows password asked for: it is only used
 rem Windows task that starts the driver at boot. It is kept encrypted (Windows DPAPI: readable only
 rem by this Windows account), so it can be handed safely to the elevated window below, whatever
 rem characters it contains. Never asked with -s, -p or -y.
+rem Only an administrator account can use it: the elevated step must run as the same account that runs
+rem the driver (a standard user would be asked for some administrator's password, and the task can only
+rem be created for the account that typed the password). An administrator's filtered token still lists
+rem the Administrators group (S-1-5-32-544, "deny only"); a standard user's does not.
 if defined SKIP_TASK goto pw_done
+whoami /groups | find "S-1-5-32-544" >nul
+if errorlevel 1 goto pw_notadmin
 if defined ABP_PW goto pw_done
 if defined ABP_PW_ENC goto pw_done
 if defined ABP_NOPAUSE goto pw_done
@@ -137,6 +143,13 @@ if defined ABP_PW_ENC goto pw_done
 set "SKIP_TASK=1"
 echo.
 echo Automatic startup will not be configured.
+echo.
+goto pw_done
+:pw_notadmin
+set "SKIP_TASK=1"
+echo.
+echo Automatic startup needs an administrator account, so it will not be configured.
+echo Start the driver from the desktop shortcut, or run setup.bat from an administrator account.
 echo.
 :pw_done
 

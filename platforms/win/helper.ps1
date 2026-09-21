@@ -110,6 +110,13 @@ switch ($Action) {
 
         # ---- the elevated, hidden copy ----
         function Report([string]$Message) { Add-Content -Path $ResultFile -Value $Message }
+        # If Windows asked for a different account's password to elevate, the task and the encrypted
+        # password belong to the account that ran setup, not this one. Say so plainly.
+        $self = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+        if ($self -ne $TaskUser) {
+            Report "Automatic startup was not set up: permission was given by a different account ($self) from the one running setup ($TaskUser). Run setup.bat from an administrator account."
+            exit 3
+        }
         $failed = $false
         try {
             # Rules are by port, not by program: the python.exe path changes whenever uv moves to a newer
