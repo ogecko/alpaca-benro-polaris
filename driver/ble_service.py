@@ -356,6 +356,8 @@ class BLE_Controller:
                 )
 
             except asyncio.CancelledError:
+                if self.lifecycle.should_shutdown():
+                    raise       # driver is stopping/restarting -- honour the cancel instead of retrying for ~1 min
                 self.logger.warning(
                     f"BLE connect cancelled on attempt {attempt} "
                     f"(possible WinRT stall)"
