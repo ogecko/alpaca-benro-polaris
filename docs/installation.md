@@ -13,17 +13,17 @@
 
 ## Software Installation
 
-### Installing Alpaca Benro Polaris and its pre-requisites
-### To install on MAC
-Please refer to the separate [MAC installation guidelines](./installation_macos.md).
+### To install on a MAC
+Please refer to the separate [MAC installation guide](./installation_macos.md).
 
-#### Windows 11 Installation Video Demonstration
-You can view a demonstration of parts of this documentation in the following YouTube Video.
-[![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
-
+### To install on a Raspberry Pi
+Please refer to the separate [Raspberry Setup guide](./raspberrypi.md).
 
 
 ### To Install on Windows 10/11
+
+You can view a demonstration of parts of this documentation in the following YouTube Video (to be updated).
+[![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
 
 The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. It uses [uv](https://docs.astral.sh/uv/) to install Python and the required libraries, and [Git](https://git-scm.com/) to download and update the driver. The setup script also configures the required network ports in Windows Firewall, sets the driver to start automatically when Windows starts, and places a shortcut to the driver on your desktop.
 
