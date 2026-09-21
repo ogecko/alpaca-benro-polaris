@@ -76,6 +76,7 @@ The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. 
    | `-p password` | Specify the Windows password on the command line instead of being prompted for it. |
    | `-s`          | Do not configure the driver to start automatically at Windows startup.             |
    | `-y`          | Run unattended and do not pause when the installation finishes.                    |
+   | `-v`          | Show every detail on screen. Without it only the steps and any errors are shown, and the details are saved to `%TEMP%\alpaca-setup.log`. |
    | `-h`          | Display the built-in help.                                                         |
 
    **Starting the driver manually**

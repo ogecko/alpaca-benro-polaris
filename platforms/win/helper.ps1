@@ -4,18 +4,24 @@
 # (creating the scheduled task and shortcut, stopping the running driver, checking that the
 # driver came up). To install or update the Alpaca Driver, run setup.bat.
 #
-# Usage (by setup.bat):  helper.ps1 -Action <name> -Repo <install folder> [-TaskName <name>]
+# Usage (by setup.bat):  helper.ps1 -Action <name> -Repo <install folder> [-TaskName <name>] [-Detail]
+#
+# Quiet by default, like setup.bat: only real problems are printed. -Detail (setup.bat -v) adds progress.
 param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('stop_driver', 'create_task', 'create_shortcut', 'wait_for_driver')]
     [string]$Action,
     [Parameter(Mandatory = $true)]
     [string]$Repo,
-    [string]$TaskName = 'StartupAlpacaDriver'
+    [string]$TaskName = 'StartupAlpacaDriver',
+    [switch]$Detail
 )
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'
+
+# Progress messages, shown only with -Detail. Problems use Write-Host directly, so they always show.
+function Say([string]$Message, [switch]$NoNewline) { if ($Detail) { Write-Host $Message -NoNewline:$NoNewline } }
 
 function Get-DriverProcesses {
     Get-CimInstance Win32_Process | Where-Object {
@@ -42,14 +48,14 @@ switch ($Action) {
             if ($_.Exception.Status -in 'ReceiveFailure', 'ConnectionClosed', 'Timeout') { $asked = $true }
         }
         if ($asked) {
-            Write-Host 'Asked the running driver to stop...'
+            Say 'Asked the running driver to stop...'
             for ($i = 0; $i -lt 12; $i++) {
                 Start-Sleep -Seconds 1
                 if (-not (Get-DriverProcesses)) { break }
             }
         }
         foreach ($p in (Get-DriverProcesses)) {
-            Write-Host "Stopping driver process $($p.ProcessId)..."
+            Say "Stopping driver process $($p.ProcessId)..."
             Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
         }
     }
@@ -83,7 +89,7 @@ switch ($Action) {
             Register-ScheduledTask -TaskName $TaskName -Action $taskAction -Trigger $trigger -Settings $settings `
                 -User $user -Password $pw -RunLevel Limited -Force `
                 -Description 'Starts the Alpaca Benro Polaris Driver at boot (created by setup.bat).' | Out-Null
-            Write-Host "Task '$TaskName' will start the driver at boot as $user."
+            Say "Task '$TaskName' will start the driver at boot as $user."
         } catch {
             Write-Host "Could not create the task: $($_.Exception.Message)"
             Write-Host 'Check the password (blank passwords are not supported), then re-run .\setup.bat -p <password>.'
@@ -99,22 +105,22 @@ switch ($Action) {
         $s.IconLocation     = Join-Path $Repo 'docs\images\abp-icon.ico'
         $s.Description      = 'Alpaca Benro Polaris Driver'
         $s.Save()
-        Write-Host "Created $lnk"
+        Say "Created $lnk"
     }
 
     # Report whether the driver's REST API came up, rather than leaving that to guesswork. The first
     # start of a fresh install is slow (cold Python imports, virus scanning of the new files, and
     # generating the TLS certificates), so say what we are waiting for and show progress.
     'wait_for_driver' {
-        Write-Host 'Waiting for the driver to start (the first start can take a couple of minutes)...' -NoNewline
+        Say 'Waiting for the driver to start...' -NoNewline
         for ($i = 0; $i -lt 90; $i++) {
             try {
                 Invoke-RestMethod 'http://localhost:5555/management/apiversions' -TimeoutSec 2 | Out-Null
-                Write-Host ''
-                Write-Host 'The Alpaca Driver is running.'
+                Say ''
+                Say 'The Alpaca Driver is running.'
                 return
             } catch {
-                Write-Host '.' -NoNewline
+                Say '.' -NoNewline
                 Start-Sleep -Seconds 2
             }
         }
