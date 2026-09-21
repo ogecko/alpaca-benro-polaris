@@ -9,7 +9,8 @@ rem
 rem Usage:  setup.bat [-d folder] [-p password] [-s] [-y] [-h] [branch]
 rem
 rem   -d folder     Folder for the driver (default: %USERPROFILE%\alpaca-benro-polaris, which
-rem                 is never synced by OneDrive, unlike Documents).
+rem                 is never synced by OneDrive, unlike Documents). The folder is remembered,
+rem                 so later runs use it again without -d.
 rem   -p password   Windows password for the account that runs the driver at boot
 rem                 (default: prompted). Task Scheduler needs it to run the driver
 rem                 whether or not you are logged on. Blank passwords are not supported.
@@ -19,8 +20,9 @@ rem   -h            Print this help and exit.
 rem   branch        Git branch to install (default: the branch of an existing install,
 rem                 otherwise main).
 rem
-rem It updates an existing install if it finds one (the checkout it is run from, or the folder
-rem it is run in, or the default folder), otherwise it installs into the default folder.
+rem It updates an existing install if it finds one (the checkout it is run from, the folder
+rem remembered from last time, the folder it is run in, or the default folder), otherwise it
+rem installs into the default folder.
 rem Administrator rights are requested (UAC) because it adds Windows Firewall rules and a
 rem Task Scheduler task.
 rem
@@ -37,6 +39,7 @@ set "ABP_NOPAUSE="
 set "REPO_DIR=alpaca-benro-polaris"
 set "INSTALL_DIR=%USERPROFILE%\alpaca-benro-polaris"
 set "DIR_GIVEN="
+set "REG_KEY=HKCU\Software\AlpacaBenroPolaris"
 set "REPO_URL=https://github.com/ogecko/alpaca-benro-polaris.git"
 set "ABP_TASK=StartupAlpacaDriver"
 rem SHIFT (used to parse the options below) shifts %0 too, so anything derived from %0 must be
@@ -66,7 +69,7 @@ echo.
 echo Usage: setup.bat [-d folder] [-p password] [-s] [-y] [-h] [branch]
 echo.
 echo Options:
-echo     -d ^<folder^>    Folder for the driver.
+echo     -d ^<folder^>    Folder for the driver, remembered for next time.
 echo                    (default: %%USERPROFILE%%\alpaca-benro-polaris)
 echo     -p ^<password^>  Windows password for the account that runs the driver at boot
 echo                    (default: prompted). Needed by Task Scheduler.
@@ -145,18 +148,28 @@ if errorlevel 1 (
 
 rem --- 2. Clone / update ------------------------------------------------------------------
 echo ==SETUP== 2. Clone/Fetch the alpaca-benro-polaris software from Git-Hub.
-rem An explicit -d folder wins. Otherwise find an existing checkout: the one this script lives in,
-rem the one we are run from, .\%REPO_DIR% beneath the current directory, or the default folder.
+rem An explicit -d folder wins. Otherwise find an existing checkout: the one this script lives in
+rem or the one we are run from, then the folder remembered from last time, then .\%REPO_DIR%
+rem beneath the current directory, then the default folder.
 set "REPO="
+set "SAVED_DIR="
 if defined DIR_GIVEN goto by_dir
 for %%D in ("%ABP_ORIGIN%" "%CD%") do if not defined REPO for /f "delims=" %%T in ('git -C "%%~D" rev-parse --show-toplevel 2^>nul') do if exist "%%T\driver\main.py" set "REPO=%%T"
 rem NOTE: %VAR% inside a ( ) block is expanded once, before the block runs, so the steps below
 rem are flat statements joined by goto, not blocks, wherever a value set earlier is used later.
 if defined REPO goto found_repo
+for /f "tokens=2,*" %%A in ('reg query "%REG_KEY%" /v InstallDir 2^>nul') do set "SAVED_DIR=%%B"
+if defined SAVED_DIR if exist "%SAVED_DIR%\.git" goto found_saved
+if defined SAVED_DIR echo Note: the install remembered from last time, %SAVED_DIR%, no longer exists.
 if exist "%CD%\%REPO_DIR%\.git" goto found_subdir
 :by_dir
 if exist "%INSTALL_DIR%\.git" goto found_install_dir
 goto clone_repo
+
+:found_saved
+set "REPO=%SAVED_DIR%"
+echo Found your existing install at %REPO% - fetching latest updates...
+goto update_repo
 
 :found_install_dir
 set "REPO=%INSTALL_DIR%"
@@ -214,6 +227,9 @@ if not exist platforms\win\helper.ps1 (
     echo     setup.bat dev2_2 1>&2
     goto fail_pop
 )
+rem Remember this folder, so the next run updates it again without needing -d.
+reg add "%REG_KEY%" /v InstallDir /t REG_SZ /d "%REPO%" /f >nul
+echo Install folder: %REPO%
 rem Stop a running driver now: it locks files in .venv, which would break uv sync below.
 call :helper stop_driver
 if not exist data mkdir data

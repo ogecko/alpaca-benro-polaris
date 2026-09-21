@@ -73,7 +73,7 @@ The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. 
 
    | Option        | Description                                                                        |
    | ------------- | ---------------------------------------------------------------------------------- |
-   | `-d folder`   | Install the driver in the specified folder instead of the default location.        |
+   | `-d folder`   | Install the driver in the specified folder instead of the default location. The folder is remembered, so later runs use it again without `-d`. |
    | `-p password` | Specify the Windows password on the command line instead of being prompted for it. |
    | `-s`          | Do not configure the driver to start automatically at Windows startup.             |
    | `-y`          | Run unattended and do not pause when the installation finishes.                    |
