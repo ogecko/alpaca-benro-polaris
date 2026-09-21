@@ -100,15 +100,23 @@ switch ($Action) {
         Write-Host "Created $lnk"
     }
 
-    # Report whether the driver's REST API came up, rather than leaving that to guesswork.
+    # Report whether the driver's REST API came up, rather than leaving that to guesswork. The first
+    # start of a fresh install is slow (cold Python imports, virus scanning of the new files, and
+    # generating the TLS certificates), so say what we are waiting for and show progress.
     'wait_for_driver' {
-        for ($i = 0; $i -lt 30; $i++) {
+        Write-Host 'Waiting for the driver to start (the first start can take a couple of minutes)...' -NoNewline
+        for ($i = 0; $i -lt 90; $i++) {
             try {
                 Invoke-RestMethod 'http://localhost:5555/management/apiversions' -TimeoutSec 2 | Out-Null
+                Write-Host ''
                 Write-Host 'The Alpaca Driver is running.'
                 return
-            } catch { Start-Sleep -Seconds 2 }
+            } catch {
+                Write-Host '.' -NoNewline
+                Start-Sleep -Seconds 2
+            }
         }
-        Write-Host "The driver did not answer on port 5555 within a minute. Check $Repo\logs\alpaca.log."
+        Write-Host ''
+        Write-Host "The driver has not answered on port 5555 after 3 minutes. It may still be starting, or it may have failed: check $Repo\logs\alpaca.log."
     }
 }
