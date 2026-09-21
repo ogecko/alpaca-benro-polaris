@@ -273,7 +273,6 @@ echo * Access Alpaca Pilot via:      http://%COMPUTERNAME%   (or http://localhos
 echo * Start the driver by hand with: the "Alpaca Benro Polaris Driver" desktop shortcut
 echo * Re-run this script at any time to update the driver (keeps your branch and data)
 echo * View the logs in:             %REPO%\logs\alpaca.log
-if defined HAVE_TASK echo * Start the driver from a terminal with:  schtasks /Run /TN %ABP_TASK%   - stop it with Stop in Alpaca Pilot
 echo -------------------------------------------------------------------
 goto end
 
