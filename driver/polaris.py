@@ -133,6 +133,7 @@ class Polaris:
         self._connected: bool = False               # Polaris connection status. True if any client is connected. False when all clients have left.
         self._connecting: bool = False              # Polaris is in the process of connecting. 
         self._network_joined: bool = False          # Host has joined the Polaris Wifi network and polaris_ip_address:polaris_port is reachable.
+        self._network_reason: str | None = None     # Why the Polaris network probe last failed (None when reachable, or before the first probe).
         self._tracking: bool = False                # The state of the ASCOM telescope's sidereal tracking drive.
         self._tracking_in_benro: bool = False       # The state of the Benro Polaris tracking mode.
         self._sideofpier: int = -1                  # Indicates the pointing state of the mount. Unknown = -1
@@ -411,8 +412,23 @@ class Polaris:
             # task.exception returns None if no exception
             self._task_exception = task.exception()
 
-    async def _probe_polaris_network(self) -> bool:
-        """True if a TCP connection to the Polaris (polaris_ip_address:polaris_port) can be opened.
+    @staticmethod
+    def _describe_probe_failure(e: Exception) -> str:
+        """One-line reason a TCP connect to the Polaris failed, phrased to point at the likely fix."""
+        port = Config.polaris_port
+        if isinstance(e, asyncio.TimeoutError):     # a bare TimeoutError, with no errno/winerror set
+            return ("Network Probe timeout. no reply.")
+        if isinstance(e, ConnectionRefusedError) or getattr(e, 'winerror', None) == 1225:
+            return f"Connection on {port} refused."
+        errno = getattr(e, 'errno', None)
+        winerror = getattr(e, 'winerror', None)
+        if errno in (101, 113, 51, 65) or winerror in (10051, 10065):   # ENETUNREACH/EHOSTUNREACH (Linux, macOS), WSAENETUNREACH/WSAEHOSTUNREACH
+            return "No address or route on the Polaris network."
+        return f"{type(e).__name__}: {e}"
+
+    async def _probe_polaris_network(self) -> str | None:
+        """None if a TCP connection to the Polaris (polaris_ip_address:polaris_port) can be opened,
+        otherwise a one-line reason why not.
 
         A plain asyncio TCP connect is used, rather than ICMP ping or an OS Wifi query, so the
         check is identical on Windows, macOS, Linux and Raspberry Pi, needs no privileges, works
@@ -424,29 +440,39 @@ class Polaris:
                 asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port),
                 timeout=1.5,
             )
-        except (OSError, asyncio.TimeoutError):
-            return False
+        except (OSError, asyncio.TimeoutError) as e:
+            return self._describe_probe_failure(e)
         writer.close()
         try:
             await writer.wait_closed()
         except Exception:
             pass
-        return True
+        return None
 
     async def _every_3s_probe_polaris_network(self):
-        """Keep self._network_joined up to date for the Alpaca Pilot 'Join Benro Polaris Network' check."""
+        """Keep self._network_joined up to date for the Alpaca Pilot 'Join Benro Polaris Network' check.
+
+        Logs when the state changes, and when the reason for being unreachable changes, so a
+        stuck network (eg Polaris DHCP not handing out an address) is visible in the log
+        without repeating the same line every 3 seconds.
+        """
         while not self.lifecycle.should_shutdown():
             try:
                 if self._connected:
-                    joined = True                       # already talking to the Polaris, no need to probe
+                    joined, reason = True, None                                   # already talking to the Polaris, no need to probe
                 elif self._connecting:
-                    joined = self._network_joined       # don't race the driver's own connection attempt
+                    joined, reason = self._network_joined, self._network_reason   # don't race the driver's own connection attempt
                 else:
-                    joined = await self._probe_polaris_network()
-                if joined != self._network_joined:
-                    self.logger.info(f'==NETWORK== Polaris network {"joined" if joined else "not reachable"} '
-                                     f'({Config.polaris_ip_address}:{Config.polaris_port}).')
+                    reason = await self._probe_polaris_network()
+                    joined = reason is None
+                if joined != self._network_joined or reason != self._network_reason:
+                    target = f'{Config.polaris_ip_address}:{Config.polaris_port}'
+                    if joined:
+                        self.logger.info(f'==NETWORK== Polaris network joined ({target}).')
+                    else:
+                        self.logger.info(f'==NETWORK== Polaris network not reachable ({target}): {reason}')
                 self._network_joined = joined
+                self._network_reason = reason
             except asyncio.CancelledError:
                 raise
             except Exception as e:
