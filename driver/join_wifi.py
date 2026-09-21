@@ -250,8 +250,14 @@ def _choose_interface(interfaces: List[WifiInterface], ssid: str,
 
 
 def _add_profile_win(ssid: str, password: str = "", interface: Optional[str] = None) -> None:
-    """Registers (or overwrites) a WLAN profile scoped to the current user
-    (no admin prompt needed), optionally scoped to a specific adapter.
+    """Registers (or overwrites) an all-users WLAN profile (no admin rights needed), optionally
+    scoped to a specific adapter.
+
+    All-users rather than current-user scope, because a profile saved for the current user cannot
+    be used to connect from a non-interactive session such as the Task Scheduler boot task
+    (WlanConnect fails with ERROR_INVALID_PARAMETER, netsh reports error 0x57), whereas an
+    all-users profile connects from any session. Verified from a background task, from an
+    administrator's desktop session and from a standard user's desktop session.
 
     If password is empty/None, builds an OPEN-network profile instead of
     a WPA2PSK one - netsh rejects WPA2PSK profiles with an empty key
@@ -273,23 +279,18 @@ def _add_profile_win(ssid: str, password: str = "", interface: Optional[str] = N
         profile_path = f.name
 
     try:
-        # Delete any pre-existing profile of this name first, in both scopes
-        # (best-effort -- failure here is expected/harmless, eg. it doesn't
-        # exist in that particular scope). Without this, `add profile
-        # user=current` fails with "already exists in group policy or
-        # different user scope and cannot be overwritten" whenever the SSID
-        # was previously joined manually via Windows' own WiFi UI, which
-        # defaults to all-users scope rather than user=current -- ie. every
-        # user who ever connected to their Polaris hotspot before this
-        # feature existed.
+        # Delete any pre-existing profile of this name first, whichever scope it is in
+        # (best-effort -- failure here is expected/harmless, eg. it doesn't exist).
+        # Without this, `add profile` fails with "already exists in group policy or
+        # different user scope and cannot be overwritten" whenever a profile of the
+        # other scope exists, eg. a per-user profile made by an earlier version of
+        # this driver. A plain `delete profile` removes it in either scope.
         del_cmd = ["netsh.exe", "wlan", "delete", "profile", f"name={ssid}"]
         if interface:
             del_cmd.append(f"interface={interface}")
-        _run(del_cmd + ["user=current"])
-        _run(del_cmd)  # default (all-users) scope
+        _run(del_cmd)
 
-        cmd = ["netsh.exe", "wlan", "add", "profile",
-               f"filename={profile_path}", "user=current"]
+        cmd = ["netsh.exe", "wlan", "add", "profile", f"filename={profile_path}"]
         if interface:
             cmd.append(f"interface={interface}")
         code, out, err = _run(cmd)
