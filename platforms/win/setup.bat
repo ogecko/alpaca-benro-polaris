@@ -318,12 +318,21 @@ if defined HAVE_TASK (
 )
 call :helper wait_for_driver
 
+rem Windows 11 24H2 (build 26100) and later refuse the Wi-Fi commands the driver uses to join the
+rem Polaris network unless Location is turned on for the signed-in user, and a new account has it
+rem off. Only warn, never change it: it is the user's own privacy setting.
+set "LOC_OFF="
+for /f "tokens=3 delims=." %%B in ('ver') do set "WINBUILD=%%B"
+for /f "tokens=3" %%V in ('reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" /v Value 2^>nul') do if /i "%%V"=="Deny" set "LOC_OFF=1"
+if defined LOC_OFF if %WINBUILD% LSS 26100 set "LOC_OFF="
+
 popd
 echo.
 echo -------------------------------------------------------------------
 echo Alpaca Benro Polaris Setup Complete
 echo.
 echo Access Alpaca Pilot via:  http://ap.local  (or http://%COMPUTERNAME%)
+if defined LOC_OFF echo NOTE: To let the driver join the Polaris Wi-Fi, turn on Settings ^> Privacy ^& security ^> Location ^> "Let desktop apps access your location".
 if not defined HAVE_TASK echo The driver is running in a minimized window named "Alpaca Benro Polaris Driver".
 %V% You can:
 %V% * Start the driver manually:    "Alpaca Benro Polaris Driver"  (desktop shortcut)
