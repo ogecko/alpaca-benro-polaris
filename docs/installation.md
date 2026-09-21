@@ -21,138 +21,57 @@ Please refer to the separate [MAC installation guidelines](./installation_macos.
 You can view a demonstration of parts of this documentation in the following YouTube Video.
 [![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
 
-#### **To Install on Windows 11**
-Download and expand the Alpaca Benro Polaris Driver software.
-1. Download the [Alpaca Driver v2.2 Beta 4 ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/releases/2_2_beta4.zip) from this Github repository.
+#### **To Install on Windows 10/11**
+A single script, `setup.bat`, does the whole installation. It installs [Git](https://git-scm.com) and [uv](https://docs.astral.sh/uv/) if they are missing (uv downloads the right version of Python and every library the driver needs, without touching any other Python on your PC), downloads the Alpaca Driver, opens the driver's network ports in Windows Firewall, starts the driver automatically whenever the PC boots, and puts a shortcut on your desktop.
 
-2. Expand the zip file to a location of your choice. We reccommend `C:\Users\`Username`\Documents`. 
+1. Choose the folder the driver will live in, for example `C:\Users\`Username`\Documents`. In Windows Explorer, open that folder, right-click an empty area and select `Open in Terminal`. If you cant see `Open in Terminal` try right clicking a second time, holding the Shift key.
 
-3. Using Windows Explorer, right-click on the folder you just expanded to, and select `Open in Terminal` to open a Command Window. If you cant see `Open in Terminal` try right clicking a second time, holding the Shift key. 
+2. Download the setup script by entering the following in the terminal. Windows 10 and 11 include `curl`, but type it as `curl.exe`: in PowerShell (the default terminal on Windows 11) plain `curl` is an alias for a different command that does not understand `-L`.
 
-The Alpaca Benro Polaris requires Python 3.13.15 and some libraries to be installed before it can run. (Note that Python 3.14.x is not supported as of February 2026, as pyephem has not yet been compiled for this release).
+   ```
+   curl.exe -L -o setup.bat https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_2/platforms/win/setup.bat
+   ```
 
-4. Install Python using one of the two methods below:
+3. Run it. The `.\` matters: PowerShell will not run a script from the current folder by name alone, and cmd accepts it too.
 
-   **Method 4.A: Install Python with uv (recommended)**
+   ```
+   .\setup.bat
+   ```
 
-   1. The [uv](https://docs.astral.sh/uv/) application manages both the Python version and the virtual environment for you, and avoids dependency conflicts with other Python installs on your machine. Using the Terminal Window opened in step 3 above, follow these steps:
+   * Accept the **User Account Control** prompt. Administrator rights are needed to add the firewall rules and the start-at-boot task.
+   * When asked, enter your **Windows password**. Task Scheduler needs it to start the driver at boot whether or not anyone is logged on, so the account must have a password. Just press Enter to skip this, and start the driver from the desktop shortcut instead.
+   * The first run takes a few minutes while Git, uv, Python and the libraries are downloaded. When it finishes it tells you the address of Alpaca Pilot.
 
-   2. Install uv by running the following command:
+   `setup.bat` creates an `alpaca-benro-polaris` folder in the folder you ran it from. Options, if you need them:
 
-         ```
-         powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-         ```
-      Close and reopen your terminal afterwards so the `uv` command is available.
-
-   3. Create a virtual environment and install the dependencies:
-
-         ```
-         uv venv --python 3.13.15
-         uv pip install -r platforms/win/requirements.txt
-         ```
-
-   **Method 4.B: Install Python with the Windows Installer**
-
-   1. Download Windows Installer (64-bit) for Python 3.13.15 from the [Python website](https://www.python.org/downloads/release/python-31315/). 
-
-   2. Run the installation file downloaded. You must check the field `Add python.exe to PATH`, then click `Install Now`.
-
-   2. In the Command Window opened in step 3 above, enter the following:
-
-         ```
-         pip install -r platforms/win/requirements.txt
-         ```
-
-Once Python and the required libraries are installed, continue with these optional steps.
-
-5. (Optional) Create a Shortcut. You can copy the file `platforms\win\Alpaca Benro Polaris Driver.lnk` to your desktop and edit it so it points to the folder where you extracted the ZIP file.
-
-   1. Right-click the shortcut → **Properties**
-   2. Update both the **Target** and **Icon** paths to match your installation method at step 4. 
-   
-      If you used Method 4.A (uv):
-
-      ```
-      Target: C:\XXXX\.venv\Scripts\python.exe C:\XXXX\driver\main.py
-      Icon:   C:\XXXX\docs\images\abp-icon.ico
-      ```
-      If you used Method 4.B (Windows Installer):
-
-      ```
-      Target: C:\XXXX\driver\main.py
-      Icon:   C:\XXXX\docs\images\abp-icon.ico
-      ```
-
-      ![Windows Shortcut](images/abp-shortcut.png)
-   3. When using the shortcut, if a message briefly appears but the driver does not launch, refer to [Troubleshooting A6](./troubleshooting.md#a6---windows-11-shortcut-startup-issue).
-
-6. (Optional) Configure the Alpaca Driver to Start Automatically. 
-
-   You can configure your MiniPC to automatically launch the Alpaca Driver when Windows starts by creating a task in **Windows Task Scheduler**.
-
-   1. Open **Task Scheduler** (press `Win + R`, type `taskschd.msc`, and press Enter).
-   2. In the left panel, right-click **Task Scheduler Library** and select **Create Task**.
-   3. On the **General** tab:
-
-      * Enter a name, for example: `StartupAlpacaDriver`
-      * Select **Run whether user is logged on or not**
-   4. On the **Triggers** tab:
-
-      * Click **New**
-      * From **Begin the task**, select **At startup**
-      * Click **OK**
-   5. On the **Actions** tab:
-
-      * Click **New**
-      * Set **Action** to **Start a program**
-      * Enter **Program/script**, depending on your installation method at step 4. 
-         If you used Method 4.A (ub), enter `C:\XXXX\.venv\Scripts\python.exe`
-         If you used Method 4.B (Windows Installer), enter `python.exe`
-      * In **Add arguments (optional)**, enter the full path to the Alpaca Driver file `main.py`
-      * In **Start in (optional)**, enter the full path to the Alpaca Driver directory, without quotes.
-      * Click **OK**
-   6. On the **Conditions** tab:
-
-      * Uncheck **Start the task only if the computer is on AC power**
-   7. On the **Settings** tab:
-
-      * Uncheck **Stop the task if it runs longer than 3 days**
-   8. Click **OK** to save the task.
-   9. When prompted, enter your Windows username and password.
-   10. To test the setup, right-click the newly created task and select **Run**.
-
-      > NOTE: If the driver does not start, try these steps:
-      >   - In Task Scheduler, click **Enable All Tasks History** in the right-hand Actions panel, re-run the task, then review its **History** tab for error codes.
-      >   - If the task fails, try replacing `python.exe` in the Program field with its full path. You can find this by opening a Command Prompt and running `where python`.
-      >   - Make sure the **Start In** field has no surrounding quotes, even if the path contains spaces.
+   | Option | Meaning |
+   |--------|---------|
+   | `.\setup.bat dev2_2` | Install a specific Git branch or release. The default is `main` for a new install, or the branch you are already on. |
+   | `-p password` | Give the Windows password on the command line instead of being asked. |
+   | `-s` | Skip creating the start-at-boot task. |
+   | `-y` | Unattended, do not pause at the end. |
+   | `-h` | Show the built-in help. |
 
 ### Running the Alpaca Driver
 
-7. To start the Polaris Driver, you can either:
+4. **Automatically at boot.** The driver starts by itself whenever the PC starts, so normally there is nothing to do. If it stops for any reason other than a request to stop it, Task Scheduler restarts it. You can also control it with:
 
-   **Method 7.A: Use the Desktop Shortcut or Startup Task**
+   ```
+   schtasks /Run /TN StartupAlpacaDriver
+   ```
+   To stop it, use `Stop` on the Alpaca Pilot **Connect** page. (After a `Restart` from Alpaca Pilot the driver carries on running on its own, outside Task Scheduler's tracking, so `schtasks /End` will no longer stop it.) The task runs without a console window. Watch what the driver is doing in the log page of Alpaca Pilot, or in the file `alpaca-benro-polaris\logs\alpaca.log`.
 
-      * Just double-click the shortcut `.lnk` file you configured in Step 4.
-      * Or, simply restart the Mini-PC if you completed Step 5.
-
-   **Method 7.B: Run from the Command Line**
-
-      * Open **File Explorer** and navigate to the folder where you extracted the ZIP file.
-      * Hold **Shift** and **Right-click** the `driver` folder. (You may need to try twice for “Open in Terminal” to appear.)
-      * Select **Open in Terminal**.
-      * In the new Terminal Window, if you used Method 4.A (uv) then run the driver with:
-
-         ```
-         uv run main.py
-         ```
-      * if you used Method 4.B (Windows Installer) then run the driver with:
-         ```
-         python main.py
-         ```
-
-
-   No matter which method you used to launch the Alpaca Driver, a console window will appear. When the Driver is running correctly, it should look like this:
+5. **By hand.** Double-click the `Alpaca Benro Polaris Driver` shortcut that `setup.bat` put on your desktop. A console window appears. It looks like this when the driver is running correctly:
    ![Driver Startup](images/abp-startup0.png)
+
+   If a message briefly appears but the driver does not launch, refer to [Troubleshooting A6](./troubleshooting.md#a6---windows-11-shortcut-startup-issue). To start it from a terminal instead, run this from the `alpaca-benro-polaris` folder:
+   ```
+   .venv\Scripts\python.exe driver\main.py
+   ```
+
+6. **Stopping and restarting.** Use the `Stop` and `Restart` buttons on the Alpaca Pilot **Connect** page. You do not need to close any window.
+
+7. If the driver does not start, see [Troubleshooting A8](./troubleshooting.md#a8---the-driver-does-not-start-at-boot).
 
 ### Starting the Alpaca Pilot App
 
@@ -179,19 +98,19 @@ There are a few preliminary steps before you can use the Polaris. You'll need to
 
 16. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for more details and a full step by step procedure. Make sure all checkmarks are green (except for the final Multi-Point Alignment step, which will only turn green after you’ve aligned on three or more stars).
 
-17. Once the Driver has connected successfully to the Polaris the Alpaca Driver window should look like this.
+17. Once the Driver has connected successfully to the Polaris, the Alpaca Pilot log (or the driver's console window if you started it from the shortcut) shows `communications init... done` and should look like this.
 ![Winidows Shortcut](images/abp-startup.png)
 
 ### Troubleshooting
 If you don't see the `communications init... done` message then you may want to check the [Troubleshooting Guide C1](./troubleshooting.md#c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected) for steps to diagnose and fix any issues.
 
 ### Updating the Driver
-To update the Alpaca Benro Polaris Driver to the latest version:
-1. Download the latest [Alpaca Benro Polaris v2.2 Beta 4 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/releases/2_2_beta4.zip) from this Github repository.
-2. Stop the driver by selecting its Window and pressing Ctrl+C.
-3. Extract the files, overwriting the old files.
-4. Install any new pre-requisites using `pip install -r platforms/win/requirements.txt`
-4. Restart the Driver.
+To update the Alpaca Benro Polaris Driver to the latest version, run `setup.bat` again from the same folder you installed it from (or from `alpaca-benro-polaris\platforms\win`):
+
+```
+.\setup.bat
+```
+It stops the running driver, downloads the latest version of the branch you are on, installs any new libraries, and starts the driver again. Your settings and data (`data\`, including alignment and calibration) are kept, and any local edits you made to the driver files are stashed (never discarded) so you can restore them with `git stash pop`. To move to a different version, add its branch name, for example `.\setup.bat dev2_2`. If the `setup.bat` you have is out of date, download a fresh copy with the `curl.exe` command in step 2 first.
 
 
 ## Imaging with Alpaca Driver V2.0 and NINA

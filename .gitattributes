@@ -1,0 +1,3 @@
+# Batch files must keep CRLF line endings exactly as committed: cmd.exe misparses labels in LF-only
+# scripts, and setup.bat is downloaded straight from raw.githubusercontent.com.
+platforms/win/setup.bat -text

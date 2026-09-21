@@ -14,22 +14,20 @@
 * **41 - Installation Video:** Installation Video at https://youtu.be/qXRiTLS2EaY
 
 ## Win11 Upgrade Instructions
-* Upgrade Python to 3.13.15 by downloading Windows Installer (64 bit) for Python 3.13.15 and running the install program.
-* Upgrade pip using the command `python -m pip install --upgrade pip`
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
-* Follow the standard [Installation Guide](./installation.md) to install the Alpaca Driver v2.2.0
-* Ensure you install all pre-requisite packages using the command `pip install -r platforms/win/requirements.txt` as v2.2 includes 3 new dependencies
+* Follow the standard [Installation Guide](./installation.md) to install the Alpaca Driver v2.2.0. The new `setup.bat` installs Git, uv, Python and every pre-requisite package for you, so there is no need to install or upgrade Python or pip yourself.
 * WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.x
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.x
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.2 Beta 6
+- **[Windows Install]** Major simplification of Windows installation with setup.bat. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also adds firewall rules, starts the driver at boot via Task Scheduler, and creates a desktop shortcut.
+- **[Raspberry Pi Install]** major refresh of Raspberry Pi installation with setup.sh. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also performs network setup (join Wifi, no driver build, Bluetooth auto-enabled) and setups up auto startup.
 - **[Network check]** The Connect page now indicates whether the Polaris Network has been joined (rather than just BLE)
 - **[Wi-Fi Join]** The Connect Page Wi-Fi button instructs the driver to enable **and join** the Polaris Wi-Fi network. No more manually finding `polaris_xxxxxx` in Windows’ or Raspberry Pi Wi-Fi list.
 - **[Shutdown OS]** Add "Shutdown" button to Pilot Connect page, Stop dialog. Add new device action "Polaris:ShutdownOS" to poweroff the driver and its host OS.
-- **[Raspberry Pi Install]** major refresh of Raspberry Pi installation (now uses UV, shared uv.lock across platforms) and network setup (join Wifi, no driver build, Bluetooth auto-enabled)
 - **[Linux BLE]** correct for Benro Polaris' invalid BLE advertisements (forces the adapter into LE-only mode, fixing BLE enable-Wifi failures on Raspberry Pi)
 - **[Troublshooting C3-7]**: Added troubleshooting on mesh network Roaming Assistant potentially causing intermittant dropouts.
 
