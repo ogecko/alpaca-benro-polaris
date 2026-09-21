@@ -121,7 +121,9 @@ find_checkout() {
     return 1
 }
 
-# True if driver/config.toml differs from HEAD only by the port edits made in step 5 below.
+# True if driver/config.toml differs from HEAD only by the port edits (80->8080, 443->8443)
+# earlier versions of this script made to it. The driver now shifts those ports itself, so
+# such an install is restored to the pristine file rather than having its edit stashed.
 config_is_setup_edit_only() {
     diff -q <(sed -E \
         -e 's/^(alpaca_pilot_http_port[[:space:]]*=[[:space:]]*)8080([[:space:]]|$)/\180\2/' \
@@ -147,7 +149,7 @@ if [ "$EXISTING_CHECKOUT" = "true" ]; then
         git restore driver/config.toml
     fi
     if ! git diff --quiet HEAD; then
-        echo "Local changes found — stashing them (get them back later with: git restore driver/config.toml && git stash pop)."
+        echo "Local changes found — stashing them (get them back later with: git stash pop)."
         git -c user.name="setup.sh" -c user.email="setup@localhost" stash push -m "setup.sh auto-stash $(date +%F_%T)"
     fi
     # With no branch argument, stay on the branch this install is already on.
@@ -209,14 +211,12 @@ source "$src_home/.venv/bin/activate"
 
 
 
-echo "==SETUP== 5. Updating config.toml with 'alpaca_pilot_http_port = 8080' and 'alpaca_pilot_https_port = 8443' =="
-# Ports below 1024 need root, and app_web.py checks both the http and https ports are
-# bindable at startup regardless of enable_https, so both need to move off the privileged range.
-sudo sed -i -E \
-    -e 's/^(alpaca_pilot_http_port[[:space:]]*=[[:space:]]*)80([[:space:]]|$)/\18080\2/' \
-    -e 's/^(alpaca_pilot_https_port[[:space:]]*=[[:space:]]*)443([[:space:]]|$)/\18443\2/' \
-    "$src_home/driver/config.toml"
-
+echo "==SETUP== 5. Alpaca Pilot ports: nothing to configure."
+# Linux only lets root bind ports below 1024, so the driver itself moves Alpaca Pilot from its
+# default ports 80/443 to 8080/8443 when it isn't permitted to bind them (see Config.load() in
+# driver/config.py). No config.toml or data/config.pilot.json change is needed, and it keeps
+# working after a git pull, or a "restore config.toml" from Alpaca Pilot.
+echo "Alpaca Pilot will be served on http://$(hostname):8080 (the driver selects this automatically)."
 
 echo "==SETUP== 6. Ensure Bluetooth is powered on, needed for BLE communication with the Polaris."
 for rfk in /sys/class/rfkill/rfkill*; do

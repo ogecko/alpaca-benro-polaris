@@ -78,6 +78,7 @@ async def main():
               f"Fix its permissions, or change the parameter log_dir in data/config.pilot.json", file=sys.stderr)
         sys.exit(1)
     logger = log.init_logging()
+    shr.shift_privileged_ports(logger)
     log.logger = exceptions.logger = discovery_alpaca.logger = discovery_mdns.logger = telescope.logger = rotator.logger = shr.logger = logger
 
 

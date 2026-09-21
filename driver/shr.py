@@ -581,6 +581,27 @@ def shutdown_host_os(logger: Logger) -> bool:
 
 # ── Port preflight ─────────────────────────────────────────────────────────────
 
+def shift_privileged_ports(logger: Logger, keys=('alpaca_pilot_http_port', 'alpaca_pilot_https_port')):
+    """
+    Move any of the given port settings the OS won't let this process bind for lack of
+    privilege (80 -> 8080, 443 -> 8443), so the driver works out of the box for a normal
+    user on Linux (which restricts ports below 1024 to root) with no config.toml edit.
+    Asks the OS by trying the bind, so it is right for root, setcap, containers and macOS
+    alike, rather than guessing from the platform. Only a permission failure counts: a port
+    that is merely in use is left for the normal startup check to report. Skipped on Windows,
+    where low ports are not privileged. Call once at startup, before servers read the ports.
+    """
+    if os.name != 'posix':
+        return
+    for key in keys:
+        port = Config.get(key)
+        if not isinstance(port, int) or not 0 < port < 1024:
+            continue
+        if isinstance(check_port_bindable(Config.alpaca_restapi_ip_address, port), PermissionError):
+            Config.apply_changes({key: port + 8000})
+            logger.info(f"==STARTUP== {key} {port} needs root on this system, using {port + 8000} instead.")
+
+
 def describe_bind_error(e: OSError, host: str, port: int, purpose: str) -> str:
     """Turn a bind-time OSError into a single-line, actionable diagnostic (no traceback)."""
     import errno
