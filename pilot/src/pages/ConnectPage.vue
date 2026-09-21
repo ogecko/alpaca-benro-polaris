@@ -93,17 +93,17 @@
           <!-- Polaris Connection Steps -->
           <div class="q-mt-md q-pl-lg">
             <q-list >
-              <!-- Select Polaris Device -->
+              <!-- Join Polaris Network -->
               <q-item>
                 <q-item-section thumbnail>
-                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                  <q-icon :name="isNetworkJoined ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isNetworkJoined ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Select Benro Polaris</q-item-label>
-                  <q-item-label caption>{{ bleCaption }}</q-item-label>
+                  <q-item-label>Join Benro Polaris Network</q-item-label>
+                  <q-item-label caption>{{ networkCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section v-if="bleLen>0" side>
-                  <q-select  label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices"  dense options-dense
+                  <q-select  label="Network" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices"  dense options-dense
                             :display-value="`${isBLESelected ? p.bleselected : 'Unselected'}`" color="secondary">
                     <template v-slot:before>
                       <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="sm" color="primary" />
@@ -346,10 +346,13 @@ const bleLen = computed(() => p.bledevices.length);
 const isPolarisConnected = computed(() => (!!p.connected));
 const isAstroModuleOk = computed(() => (!!p.connected && !!p.polarisastrover));
 const isBLESelected = computed(() => (!!p.connected) || (!!p.bleselected && bleLen.value>0));
-const bleCaption = computed(() => {
-  return (bleLen.value==0) ? 'Check Power or Bluetooth, no devices discovered.' :
+const isNetworkJoined = computed(() => (!!p.connected) || (!!p.networkjoined));
+const networkCaption = computed(() => {
+  return (isNetworkJoined.value) ? '' :
+         (bleLen.value==0) ? 'Check Power or Bluetooth, no devices discovered.' :
          (bleLen.value>1) ? 'Multiple devices discovered.' :
-         (isBLESelected.value) ? '' : 'Please select device.'
+         (!isBLESelected.value) ? 'Please select device.' :
+         `Polaris not reachable at ${cfg.polaris_ip_address}. Use the Wi-Fi button to join its network.`
 });
 const isAstroMode = computed(() => p.polarismode==8);
 const isCheckLBracket = computed(() => p.isreset && !p.iszetamoving)

@@ -132,6 +132,7 @@ class Polaris:
         self._aligning: bool = False                # Polaris is in the process of aligning single star. 
         self._connected: bool = False               # Polaris connection status. True if any client is connected. False when all clients have left.
         self._connecting: bool = False              # Polaris is in the process of connecting. 
+        self._network_joined: bool = False          # Host has joined the Polaris Wifi network and polaris_ip_address:polaris_port is reachable.
         self._tracking: bool = False                # The state of the ASCOM telescope's sidereal tracking drive.
         self._tracking_in_benro: bool = False       # The state of the Benro Polaris tracking mode.
         self._sideofpier: int = -1                  # Indicates the pointing state of the mount. Unknown = -1
@@ -397,6 +398,7 @@ class Polaris:
         self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
         self.lifecycle.create_task(self._every_500ms_watchdog_check(), name="PolarisWatchdog")
         self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisKeepalive")
+        self.lifecycle.create_task(self._every_3s_probe_polaris_network(), name="PolarisNetworkProbe")
 
         if Config.polaris_auto_retry:
             self.ensure_connection_cycle()
@@ -408,6 +410,48 @@ class Polaris:
         if not task.cancelled():
             # task.exception returns None if no exception
             self._task_exception = task.exception()
+
+    async def _probe_polaris_network(self) -> bool:
+        """True if a TCP connection to the Polaris (polaris_ip_address:polaris_port) can be opened.
+
+        A plain asyncio TCP connect is used, rather than ICMP ping or an OS Wifi query, so the
+        check is identical on Windows, macOS, Linux and Raspberry Pi, needs no privileges, works
+        however the host is attached to the Polaris network (Wifi, second adapter, static IP),
+        and shows the Polaris firmware itself is answering.
+        """
+        try:
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port),
+                timeout=1.5,
+            )
+        except (OSError, asyncio.TimeoutError):
+            return False
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except Exception:
+            pass
+        return True
+
+    async def _every_3s_probe_polaris_network(self):
+        """Keep self._network_joined up to date for the Alpaca Pilot 'Join Benro Polaris Network' check."""
+        while not self.lifecycle.should_shutdown():
+            try:
+                if self._connected:
+                    joined = True                       # already talking to the Polaris, no need to probe
+                elif self._connecting:
+                    joined = self._network_joined       # don't race the driver's own connection attempt
+                else:
+                    joined = await self._probe_polaris_network()
+                if joined != self._network_joined:
+                    self.logger.info(f'==NETWORK== Polaris network {"joined" if joined else "not reachable"} '
+                                     f'({Config.polaris_ip_address}:{Config.polaris_port}).')
+                self._network_joined = joined
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                self.logger.debug(f'==NETWORK== Polaris network probe error: {e}')
+            await asyncio.sleep(3)
 
     async def _every_500ms_watchdog_check(self):
         while True:
@@ -1454,6 +1498,7 @@ class Polaris:
                 'motorcmd': [motor.get_cmdstr() for motor in self._motors.values()],
                 'siderealtime': self._siderealtime,
                 'lifecycleevent': self.lifecycle._event.name,
+                'networkjoined': self._network_joined,
                 'bledevices' : [info["name"] for info in self._ble.devices.values()],
                 'bleselected' : self._ble.selectedDevice,
                 'bleisenablingwifi': self._ble.isEnablingWifi,

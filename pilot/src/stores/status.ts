@@ -97,6 +97,7 @@ export const useStatusStore = defineStore('status', {
         motorcmd: ['','',''],
         omegamin: [0,0,0],
         omegamax: [0,0,0],
+        networkjoined: false,
         bledevices: [] as string[],
         bleselected: '',
         bleisenablingwifi: false,
