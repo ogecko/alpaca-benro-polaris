@@ -14,90 +14,162 @@
 ## Software Installation
 
 ### Installing Alpaca Benro Polaris and its pre-requisites
-#### To install on MAC
+### To install on MAC
 Please refer to the separate [MAC installation guidelines](./installation_macos.md).
 
 #### Windows 11 Installation Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
 [![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
 
-#### **To Install on Windows 10/11**
-A single script, `setup.bat`, performs the installation and setup of the Alpaca Driver. It uses [uv](https://docs.astral.sh/uv/) to install Python and its libraries, and [Git](https://git-scm.com) to download and update the driver. The script will set up network ports in Windows Firewall, arrange for the driver to automatically start on boot, and also places a shortcut on your desktop.
 
-1. Open a Command Prompt: press the `Windows` key and `R` together, type `cmd` and press Enter.
 
-2. Download the setup script. Paste this command into the Command Prompt and press Enter:
+### To Install on Windows 10/11
 
-   ```
+The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. It uses [uv](https://docs.astral.sh/uv/) to install Python and the required libraries, and [Git](https://git-scm.com/) to download and update the driver. The setup script also configures the required network ports in Windows Firewall, sets the driver to start automatically when Windows starts, and places a shortcut to the driver on your desktop.
+
+1. **Open a Command Prompt**
+
+   Press **Windows + R**, type `cmd`, and press **Enter**.
+
+2. **Download the setup script**
+   
+   Copy and paste the following command into the Command Prompt, then press **Enter**:
+
+   ```text
    curl -fL -o setup.bat https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_2/platforms/win/setup.bat
    ```
 
-3. Run the setup script, with an optional version/branch name (the `dev2_2` selects v2.2 development branch):
+3. **Run the setup script**
 
-   ```
+   Run the setup script, optionally specifying the version or Git branch to install. In this example, `dev2_2` selects the v2.2 development branch:
+
+   ```text
    setup.bat dev2_2
    ```
 
+   During installation:
+
    * Accept the **User Account Control** prompt.
-   * When asked, enter your **Windows password**. This lets the driver start by itself whenever the PC starts. Press Enter to skip it, and start the driver by hand instead (see Advanced options below).
-   * Wait a few minutes while everything is downloaded. When it finishes, it tells you the address of Alpaca Pilot.
+   * When prompted, enter your **Windows password**. This allows the driver to start automatically whenever Windows starts.
+   * To skip automatic startup, press **Enter** without entering a password. You can start the driver manually later; see **Advanced options** below.
+   * Wait a few minutes while the required files and software are downloaded and installed.
 
-The driver is installed in `C:\Users\<Username>\alpaca-benro-polaris` by default and should be up and running.
+   When installation is complete, the driver should be up and running, and the script displays the address of the Alpaca Pilot App.
 
-If the driver does not start, see [Troubleshooting A8](./troubleshooting.md#a8---the-driver-does-not-start-at-boot).
+   By default, the driver is installed in `C:\Users\<Username>\alpaca-benro-polaris`
 
-<details>
-<summary>Advanced options</summary>
+   If the driver does not start automatically, see [Troubleshooting A8](./troubleshooting.md#a8---the-driver-does-not-start-at-boot).
 
-Add these to the command in step 3, for example `setup.bat -d D:\Astro\Bin\alpaca-benro-polaris dev2_2`.
+   <details>
+   <summary>Advanced options</summary>
 
-| Option | Meaning |
-|--------|---------|
-| `-d folder` | Install the driver in this folder instead. |
-| `-p password` | Give the Windows password here instead of being asked. |
-| `-s` | Do not set up the start-at-boot task. |
-| `-y` | Unattended, do not pause at the end. |
-| `-h` | Show the built-in help. |
+   You can provide additional options when running `setup.bat`. For example:
 
-If you skipped the start-at-boot task (with `-s`, or by pressing Enter at the password prompt), start the driver by hand in either of two ways:
+   ```text
+   setup.bat -d D:\Astro\Bin\alpaca-benro-polaris dev2_2
+   ```
 
-* **Via the desktop shortcut.** Double-click the `Alpaca Benro Polaris Driver` shortcut that `setup.bat` put on your desktop.
-* **Via a Command Prompt.** Enter these commands:
-  ```
-  cd %USERPROFILE%\alpaca-benro-polaris
-  .venv\Scripts\python.exe driver\main.py
-  ```
-  A console window appears while the driver runs.
+   | Option        | Description                                                                        |
+   | ------------- | ---------------------------------------------------------------------------------- |
+   | `-d folder`   | Install the driver in the specified folder instead of the default location.        |
+   | `-p password` | Specify the Windows password on the command line instead of being prompted for it. |
+   | `-s`          | Do not configure the driver to start automatically at Windows startup.             |
+   | `-y`          | Run unattended and do not pause when the installation finishes.                    |
+   | `-h`          | Display the built-in help.                                                         |
 
-</details>
+   **Starting the driver manually**
+
+   If you skipped automatic startup by using `-s` or by pressing **Enter** at the password prompt, you can start the driver manually in either of the following ways.
+
+   - **Using the desktop shortcut**
+
+      Double-click the **Alpaca Benro Polaris Driver** shortcut that `setup.bat` placed on your desktop.
+
+   - **Using a Command Prompt**
+
+      Run the following command:
+
+      ```text
+      cd %USERPROFILE%\alpaca-benro-polaris
+      .venv\Scripts\python.exe driver\main.py
+      ```
+
+      A console window will remain open while the driver is running.
+
+   </details>
 
 ### Starting the Alpaca Pilot App
 
-With the Alpaca Driver running you can now start the Alpaca Pilot App from any browser. 
+Once the Alpaca Benro Polaris Driver is running, you can access the Alpaca Pilot App from any web browser.
 
-4.  Open **Chrome**, **Edge**, **Firefox**, or your preferred browser.
-5.  Enter the following into the address bar. 
-   ```
+4. **Open a web browser**
+
+   Open **Chrome**, **Edge**, **Firefox**, or another supported web browser.
+
+5. **Open the Alpaca Pilot App**
+
+   Enter the following address in the browser's address bar:
+
+   ```text
    http://ap.local
    ```
-6.  The Alpaca Pilot App should look like this:
-![Pilot Startup](images/pilot-startup.png)
-7. Click **Connect** on the top toolbar of the Alpaca Pilot Window. This page will allow you to follow through the steps to connect the Driver to the Benro Polaris device.
+
+6. **Verify that the app opens**
+
+   The Alpaca Pilot App should display the startup screen and switch to the dashboard shown below.
+
+   ![Pilot Startup](images/pilot-startup.png)
 
 ### Connecting the Driver to Polaris
-There are a few preliminary steps before you can use the Polaris. You'll need to do the following:
 
-8. Set up your Benro Polaris tripod head and turn on the Benro Polaris. If you cant turn it on, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
-9. Using the Alpaca Pilot App Connect Page, follow the checkmark steps to complete the setup of the Polaris. Refer to the [Pilot Users Guide - Connecting Devices](./pilot.md#ii-connecting-devices) for more details and a full step by step procedure. Make sure all checkmarks are green (except for the final Multi-Point Alignment step, which will only turn green after you’ve aligned on three or more stars).
+Before you can use the Polaris, complete the following steps.
 
-10. Once the Driver has connected successfully to the Polaris, the Alpaca Pilot log (or the driver's console window if you started it from the shortcut) shows `communications init... done` and should look like this.
-![Driver log after connecting](images/abp-startup.png)
+7. **Open the Connect page**
 
-### Troubleshooting
-If you don't see the `communications init... done` message then you may want to check the [Troubleshooting Guide C1](./troubleshooting.md#c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected) for steps to diagnose and fix any issues.
+   Click **Connect** in the top toolbar of the Alpaca Pilot window. The Connect page guides you through the steps required to connect the driver to your Benro Polaris device.
 
-### Updating the Driver
-To update the Alpaca Benro Polaris Driver to the latest version, repeat steps 1 to 3 above. It stops the running driver, downloads the latest version, and starts it again. Your settings and data, including alignment and calibration, are kept.
+8. **Set up and power on the Polaris**
+
+   Set up your Benro Polaris tripod head and turn on the device.
+
+   If you cannot turn on the Polaris, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
+
+9. **Complete the connection procedure**
+    
+   On the **Connect** page in the Alpaca Pilot App, follow each step indicated by a checkmark.
+
+   For detailed instructions, see the [Pilot User Guide – Connecting Devices](./pilot.md#ii-connecting-devices).
+
+   Make sure all applicable checkmarks are green. The final **Multi-Point Alignment** step will remain incomplete until you have successfully aligned on three or more stars.
+
+10. **Verify the connection**
+
+      After the driver has successfully connected to the Polaris, the Alpaca Pilot log — or the driver's console window if you started it manually — should contain:
+
+      ```text
+      communications init... done
+      ```
+
+      The log should look similar to the following:
+
+      ![Driver log after connecting](images/abp-startup.png)
+
+## Troubleshooting
+
+If you do not see the `communications init... done` message, see [Troubleshooting C1](./troubleshooting.md#c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected) for steps to diagnose and resolve connection problems.
+
+## Updating the Driver
+
+To update the Alpaca Benro Polaris Driver to the latest version, repeat **steps 1–3** above.
+
+The update process will:
+
+1. Stop the currently running driver.
+2. Download the latest version.
+3. Install any required updates.
+4. Restart the driver.
+
+Your existing settings and data, including alignment and calibration data, are preserved.
 
 
 ## Imaging with Alpaca Driver V2.0 and NINA
