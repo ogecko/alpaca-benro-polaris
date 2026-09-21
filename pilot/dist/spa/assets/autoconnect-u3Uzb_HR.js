@@ -1,1 +1,0 @@
-import{t as e}from"./device-CoX7ZCYz.js";var t=async()=>{await e().connectRestAPI()};export{t as default};
