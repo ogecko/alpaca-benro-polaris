@@ -60,13 +60,15 @@ switch ($Action) {
     'create_task' {
         # The identity, not %USERDOMAIN%\%USERNAME%: those env vars can name a network domain/workgroup that is not the account's real domain.
         $user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+        # setup.bat asks for the password up front and passes it either as -p (plain) or, from its
+        # first window to the elevated one, encrypted for this Windows account only (DPAPI).
         $pw   = $env:ABP_PW
-        if (-not $pw -and [Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
-            $sec = Read-Host "Windows password for $user, needed to start the driver at boot (blank to skip)" -AsSecureString
+        if (-not $pw -and $env:ABP_PW_ENC) {
+            $sec = ConvertTo-SecureString $env:ABP_PW_ENC
             $pw  = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
         }
         if (-not $pw) {
-            Write-Host 'No password given - not creating the start-at-boot task. Re-run .\setup.bat -p <password> to add it.'
+            Write-Host 'No password was given, so the driver will not start automatically at boot. Run setup.bat again to add it.'
             break
         }
         $py       = Join-Path $Repo '.venv\Scripts\python.exe'

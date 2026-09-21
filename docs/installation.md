@@ -51,9 +51,9 @@ The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. 
 
    During installation:
 
-   * Accept the **User Account Control** prompt.
    * When prompted, enter your **Windows password**. This allows the driver to start automatically whenever Windows starts.
    * To skip automatic startup, press **Enter** without entering a password. You can start the driver manually later; see **Advanced options** below.
+   * Accept the **User Account Control** prompt.
    * Wait a few minutes while the required files and software are downloaded and installed.
 
    When installation is complete, the driver should be up and running, and the script displays the address of the Alpaca Pilot App.

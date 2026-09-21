@@ -12,7 +12,7 @@ rem   -d folder     Folder for the driver (default: %USERPROFILE%\alpaca-benro-p
 rem                 is never synced by OneDrive, unlike Documents). The folder is remembered,
 rem                 so later runs use it again without -d.
 rem   -p password   Windows password for the account that runs the driver at boot
-rem                 (default: prompted). Task Scheduler needs it to run the driver
+rem                 (default: asked for first, before anything else). Task Scheduler needs it to run the driver
 rem                 whether or not you are logged on. Blank passwords are not supported.
 rem   -s            Skip creating the start-at-boot task.
 rem   -y            Unattended: never pause at the end.
@@ -57,6 +57,8 @@ if /i "%~1"=="-s" (set "SKIP_TASK=1" & shift & goto parse)
 if /i "%~1"=="-y" (set "ABP_NOPAUSE=1" & shift & goto parse)
 if /i "%~1"=="-d" (set "INSTALL_DIR=%~2" & set "DIR_GIVEN=1" & shift & shift & goto parse)
 if /i "%~1"=="-p" (set "ABP_PW=%~2" & shift & shift & goto parse)
+rem -e is internal: the encrypted password handed to the elevated window (see the password prompt below)
+if /i "%~1"=="-e" (set "ABP_PW_ENC=%~2" & shift & shift & goto parse)
 set "ARG=%~1"
 if "%ARG:~0,1%"=="-" (echo Error: invalid option %~1. & goto usage_error)
 set "BRANCH=%~1"
@@ -90,14 +92,35 @@ exit /b 1
 :parsed
 echo == Alpaca Benro Polaris Windows Setup ===========================================.
 
+rem --- Ask for the Windows password first, so it is not lost among the technical output ------------
+rem It is only used to set up the Windows task that starts the driver at boot. It is kept encrypted
+rem (Windows DPAPI: readable only by this Windows account), so it can be handed safely to the
+rem elevated window below, whatever characters it contains. Never asked with -s, -p or -y.
+if defined SKIP_TASK goto pw_done
+if defined ABP_PW goto pw_done
+if defined ABP_PW_ENC goto pw_done
+if defined ABP_NOPAUSE goto pw_done
+echo.
+echo Start the Alpaca Driver automatically whenever this PC starts?
+echo Type your Windows password and press Enter (Windows needs it to set this up),
+echo or just press Enter to skip.
+echo.
+del "%TEMP%\abp_pw.tmp" >nul 2>&1
+powershell -NoProfile -Command "$s = Read-Host ('Windows password for ' + $env:USERNAME) -AsSecureString; if ($s.Length -gt 0) { $s | ConvertFrom-SecureString | Set-Content -Path (Join-Path $env:TEMP 'abp_pw.tmp') }"
+if exist "%TEMP%\abp_pw.tmp" set /p ABP_PW_ENC=<"%TEMP%\abp_pw.tmp"
+del "%TEMP%\abp_pw.tmp" >nul 2>&1
+echo.
+:pw_done
+
 rem --- Administrator rights (relaunch elevated via UAC if needed) ---------------------
 net session >nul 2>&1
-if errorlevel 1 (
-    echo Administrator rights are needed to add firewall rules and the start-at-boot task.
-    echo Requesting them now, please accept the User Account Control prompt...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -Verb RunAs -Wait -ArgumentList ('/c cd /d \"{0}\" && \"{1}\" {2}' -f $env:ABP_CWD, $env:ABP_SELF, $env:ABP_ARGS)"
-    exit /b
-)
+if not errorlevel 1 goto is_admin
+if defined ABP_PW_ENC set "ABP_ARGS=%ABP_ARGS% -e %ABP_PW_ENC%"
+echo Administrator rights are needed to add firewall rules and the start-at-boot task.
+echo Requesting them now, please accept the User Account Control prompt...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process cmd.exe -Verb RunAs -Wait -ArgumentList ('/c cd /d \"{0}\" && \"{1}\" {2}' -f $env:ABP_CWD, $env:ABP_SELF, $env:ABP_ARGS)"
+exit /b
+:is_admin
 
 rem --- Never run from inside the checkout we are about to update ------------------------------
 rem git pull can replace this very file while cmd.exe is still reading it, and cmd.exe re-reads a
