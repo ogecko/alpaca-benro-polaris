@@ -22,7 +22,7 @@ Please refer to the separate [Raspberry Setup guide](./raspberrypi.md).
 
 ### To Install on Windows 10/11
 
-You can view a demonstration of parts of this documentation in the following YouTube Video (to be updated).
+You can view a demonstration of parts of this documentation in the following YouTube Video (TODO - video to be updated).
 [![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
 
 The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. It uses [uv](https://docs.astral.sh/uv/) to install Python and the required libraries, and [Git](https://git-scm.com/) to download and update the driver. The setup script also configures the required network ports in Windows Firewall, sets the driver to start automatically when Windows starts, and places a shortcut to the driver on your desktop.
@@ -41,10 +41,10 @@ The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. 
 
 3. **Run the setup script**
 
-   Run the setup script, optionally specifying the version or Git branch to install. In this example, `dev2_2` selects the v2.2 development branch:
+   Run the setup script, optionally specifying the version or Git branch to install. In this example, `feature/setup_bat` selects the v2.2 branch which contains the new setup.bat procedure (TODO - CHANGE TO dev2_2):
 
    ```text
-   setup.bat dev2_2
+   setup.bat feature/setup_bat
    ```
 
    During installation:
