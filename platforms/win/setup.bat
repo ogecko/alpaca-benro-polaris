@@ -285,7 +285,7 @@ echo -------------------------------------------------------------------
 echo Alpaca Benro Polaris Setup Complete
 echo.
 echo You can:
-echo * Access Alpaca Pilot via:      http://%COMPUTERNAME%          (or http://ap.local)
+echo * Access Alpaca Pilot via:      http://ap.local                (or http://%COMPUTERNAME%)
 echo * Start the driver manually:    "Alpaca Benro Polaris Driver"  (desktop shortcut)
 echo * Update driver with a re-run:  setup.bat                      (keeps your branch and data)
 echo * View installation directory:  %REPO%
