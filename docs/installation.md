@@ -37,16 +37,15 @@ The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. 
    Copy and paste the following command into the Command Prompt, then press **Enter**: 
 
    ```text
-   curl -fL -o setup.bat https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/feature/setup_bat/platforms/win/setup.bat
+   curl -fL -o setup.bat https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_2/platforms/win/setup.bat
    ```
-   (TODO- change branch in URL above back to dev2_2 when merged)
 
 3. **Run the setup script**
 
-   Run the setup script, optionally specifying the version or Git branch to install. In this example, `feature/setup_bat` selects the v2.2 branch which contains the new setup.bat procedure (TODO - Change branch to dev2_2 when merged):
+   Run the setup script, optionally specifying the version or Git branch to install. In this example, `dev2_2` selects the v2.2 development branch:
 
    ```text
-   setup.bat feature/setup_bat
+   setup.bat dev2_2
    ```
 
    During installation:
