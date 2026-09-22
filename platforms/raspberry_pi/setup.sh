@@ -209,16 +209,13 @@ echo "==SETUP== 4. Sync the python dependencies needed for the application with 
 uv sync --no-dev --locked --no-build-package numpy --no-build-package scipy
 source "$src_home/.venv/bin/activate"
 
+# Alpaca Pilot ports: nothing to configure here. Linux only lets root bind ports below 1024, so
+# the driver itself moves Alpaca Pilot from its default ports 80/443 to 8080/8443 when it isn't
+# permitted to bind them (see shr.shift_privileged_ports(), called from main.py). No config.toml
+# or data/config.pilot.json change is needed, and it keeps working after a git pull, or a
+# "restore config.toml" from Alpaca Pilot.
 
-
-echo "==SETUP== 5. Alpaca Pilot ports: nothing to configure."
-# Linux only lets root bind ports below 1024, so the driver itself moves Alpaca Pilot from its
-# default ports 80/443 to 8080/8443 when it isn't permitted to bind them (see Config.load() in
-# driver/config.py). No config.toml or data/config.pilot.json change is needed, and it keeps
-# working after a git pull, or a "restore config.toml" from Alpaca Pilot.
-echo "Alpaca Pilot will be served on http://$(hostname):8080 (the driver selects this automatically)."
-
-echo "==SETUP== 6. Ensure Bluetooth is powered on, needed for BLE communication with the Polaris."
+echo "==SETUP== 5. Ensure Bluetooth is powered on, needed for BLE communication with the Polaris."
 for rfk in /sys/class/rfkill/rfkill*; do
     if [ "$(cat "$rfk/type" 2>/dev/null)" = "bluetooth" ] && [ "$(cat "$rfk/soft" 2>/dev/null)" = "1" ]; then
         echo "Bluetooth is soft-blocked — unblocking $rfk..."
@@ -229,7 +226,7 @@ if command -v hciconfig >/dev/null 2>&1; then
     sudo hciconfig hci0 up 2>/dev/null || true
 fi
 
-echo "==SETUP== 7. Force the Bluetooth adapter into LE-only mode, needed for reliable BLE to the Polaris."
+echo "==SETUP== 6. Force the Bluetooth adapter into LE-only mode, needed for reliable BLE to the Polaris."
 # The Polaris's own bluetoothd advertises classic-audio profiles (Source/Sink/Media/
 # Broadcast, confirmed on the mount's own /app/bluetooth/config/main.conf) that it
 # never actually services -- almost certainly leftover reference-BSP config. BlueZ,
@@ -251,7 +248,7 @@ else
     echo "ControllerMode already set in $BT_CONF — skipping."
 fi
 
-echo "==SETUP== 8. Grant passwordless nmcli and poweroff access, needed for join_wifi.py and the Alpaca Pilot Shutdown button."
+echo "==SETUP== 7. Grant passwordless nmcli and poweroff access, needed for join_wifi.py and the Alpaca Pilot Shutdown button."
 # NetworkManager's own polkit rule only allows unauthenticated connection
 # changes from a "local and active" seat session -- the polaris-driver
 # service (User=pi, no seat) never qualifies, so join_wifi.py's nmcli calls
@@ -271,7 +268,7 @@ echo "pi ALL=(ALL) NOPASSWD: ${SYSTEMCTL_PATH} poweroff" | sudo tee "$POWEROFF_S
 sudo chmod 440 "$POWEROFF_SUDOERS"
 sudo visudo -cf "$POWEROFF_SUDOERS"
 
-echo "==SETUP== 9. Configure wlan0 for Station Mode (STA) at home, falling back to Access Point Mode (AP) at a dark site."
+echo "==SETUP== 8. Configure wlan0 for Station Mode (STA) at home, falling back to Access Point Mode (AP) at a dark site."
 # nmcli's connection-list view has no direct SSID column, so finding a wlan0 profile by
 # SSID means checking each profile's own 802-11-wireless.ssid property individually.
 find_wlan0_conn_by_ssid() {
@@ -405,7 +402,7 @@ if [ -n "$NETPLAN_MIGRATE" ]; then
     "
 fi
 
-echo "==SETUP== 10. Disable Wifi power-saving, which can make the onboard chip randomly stop responding entirely."
+echo "==SETUP== 9. Disable Wifi power-saving, which can make the onboard chip randomly stop responding entirely."
 # The Pi's onboard BCM43430 chip (Zero W / Zero 2 W) is known to sometimes hang and
 # drop off the network completely -- neither Station nor the AP fallback reachable --
 # until power-cycled, when its power-saving mode is left enabled. This is worse
@@ -429,7 +426,7 @@ else
 fi
 
 SERVICE_FILE="/etc/systemd/system/polaris-driver.service"
-echo "==SETUP== 11. Set up [systemd] services to start the Polaris Driver at boot time."
+echo "==SETUP== 10. Set up [systemd] services to start the Polaris Driver at boot time."
 
 sudo systemctl stop polaris-driver.service 2>/dev/null || true
 sudo systemctl disable polaris-driver.service 2>/dev/null || true
@@ -453,21 +450,46 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-echo "==SETUP== 12. Starts the polaris-driver service."
+echo "==SETUP== 11. Starts the polaris-driver service."
 sudo systemctl daemon-reload
 sudo systemctl enable polaris-driver.service
 sudo systemctl restart polaris-driver.service
 
+# Read the actual port(s) Alpaca Pilot ends up on from the driver's own startup log, rather than
+# assuming 8080/443: privileged ports get moved automatically (see shr.shift_privileged_ports()),
+# and a bad manual override in data/config.pilot.json can land it somewhere else entirely (a real
+# support case: a hand-edited port under 1024 that "should" have been fixed still got shifted, to
+# a port nobody was told about). log.py rotates alpaca.log fresh on every start, so the current
+# file only ever has this run's lines in it.
+PILOT_URL=""
+for i in $(seq 1 30); do
+    LINE=$(grep -h "Serving Alpaca Pilot Web" "$src_home/logs/alpaca.log" 2>/dev/null | tail -1)
+    if [ -n "$LINE" ]; then
+        if [[ "$LINE" == *"(HTTPS)"* ]]; then
+            PORT=$(echo "$LINE" | sed -n 's/.*(HTTPS) on [^:]*:\([0-9]*\).*/\1/p')
+            PILOT_URL="https://$(hostname):${PORT}"
+        else
+            PORT=$(echo "$LINE" | sed -n 's/.*(HTTP) on [^:]*:\([0-9]*\).*/\1/p')
+            PILOT_URL="http://$(hostname):${PORT}"
+        fi
+        break
+    fi
+    sleep 1
+done
+if [ -z "$PILOT_URL" ]; then
+    PILOT_URL="http://$(hostname):8080  (could not confirm the actual port -- check: journalctl -u polaris-driver)"
+fi
+
 cat <<_EOF
 -------------------------------------------------------------------
-Alpaca Benro Polaris Setup Complete 
-                                     
+Alpaca Benro Polaris Setup Complete
+
 You can:
 * Check the service status with:  sudo systemctl status polaris-driver
 * Stop the service with:          sudo systemctl stop polaris-driver
 * Start the service with:         sudo systemctl start polaris-driver
 * View the logs with:             journalctl -u polaris-driver -f
-* access Alpaca Pilot via:        http://$(hostname):8080             
+* access Alpaca Pilot via:        $PILOT_URL
 
 -------------------------------------------------------------------
 _EOF
