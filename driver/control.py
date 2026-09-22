@@ -758,6 +758,7 @@ class PID_Controller():
         self.time_goto = None                # Time that goto callback was set
         self.time_step = time.monotonic()    # Time that control step was done
         self.dt = dt    # Time interval since last control step in seconds
+        self.check_latlon_configured()       # evaluate PRESETUP now from Config, don't wait for a control tick (see its docstring)
         if self.control_loop_duration:
             asyncio.create_task(self._control_loop())
 
@@ -1155,6 +1156,18 @@ class PID_Controller():
         self.theta_ref_cache = None
         self.theta_ref_cache_cause = None
         
+    def check_latlon_configured(self):
+        """Enter/leave PRESETUP mode based on whether a real observing site has been configured,
+        i.e. whether lat/lon still match the factory-default (Sydney Observatory) coordinates.
+        """
+        lat_unchanged = abs(rad2deg(float(self.observer.lat)) - -33.8598874) <= 0.00001
+        lon_unchanged = abs(rad2deg(float(self.observer.lon)) - 151.2021771) <= 0.00001
+        if lat_unchanged and lon_unchanged:
+            self.set_pid_mode('PRESETUP')
+        else:
+            if self.mode=='PRESETUP':
+                self.set_pid_mode('IDLE')
+
 
     #------- Control step functions ---------
     def alpha_limit_step(self, alpha_pv, alpha_ref, max_step_deg=12, min_frac=0.01):
@@ -1487,14 +1500,6 @@ class PID_Controller():
                 self.homing_complete_callback = None  # Cancel any homeing underway
                 self.clear_theta_ref_cache()
 
-        # Check that lat/lon has been set
-        lat_unchanged = abs(rad2deg(float(self.observer.lat)) - -33.8598874) <= 0.00001
-        lon_unchanged = abs(rad2deg(float(self.observer.lon)) - 151.2021771) <= 0.00001
-        if lat_unchanged and lon_unchanged:
-            self.set_pid_mode('PRESETUP')
-        else:
-            if self.mode=='PRESETUP':
-                self.set_pid_mode('IDLE')
 
         self.omega_ctl = np.clip(self.omega_ctl, self.omega_min, self.omega_max)
 

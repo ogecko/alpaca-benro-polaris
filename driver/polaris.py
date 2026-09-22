@@ -1560,10 +1560,14 @@ class Polaris:
                 self.sitelongitude = float(Config.site_longitude)
                 self.siteelevation = Config.site_elevation
                 self.sitepressure  = Config.site_pressure
+                # re-evaluate PRESETUP immediately, don't wait for a control tick (see check_latlon_configured())
+                self._pid.check_latlon_configured()
             elif param == "site_latitude":
                 self.sitelatitude = float(Config.site_latitude)
+                self._pid.check_latlon_configured()
             elif param == "site_longitude":
                 self.sitelongitude = float(Config.site_longitude)
+                self._pid.check_latlon_configured()
             elif param == "site_elevation":
                 self.siteelevation = Config.site_elevation
             elif param == "site_pressure":
