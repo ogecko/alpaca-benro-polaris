@@ -59,10 +59,13 @@ def mock_config():
         yield config_obj
 
 class PID_Controller:
+    alpha_pv = np.zeros(3, dtype=float)   # az, alt, roll - measured topocentric co-ordinates
     def measure(self, alpha, theta):
         return 0.0
     def reset_sp(self, alpha):
         return 0.0
+    def set_ki_inhibit_until(self, duration):
+        return None
 
 class Polaris:
     def __init__(self):
@@ -74,6 +77,7 @@ class Polaris:
         self.declination= -75
         self._pid = PID_Controller()
         self._motorQ_state = Quaternion([1,0,0,0])
+        self._age_518_seconds = 0.0   # seconds since the last real 518 telemetry -- staleness diagnostic only
 
     def update_ascom_from_new_alignQ_B2T(self, q1s):
         a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1s)
