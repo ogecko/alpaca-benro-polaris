@@ -123,6 +123,20 @@ If Alpaca Pilot suddenly won't load in your normal browser window — even thoug
 5. Read the end of `alpaca-benro-polaris\logs\alpaca.log`. A line such as `port 80 is already in use` means another program, for example IIS or a web server, is using a port the driver needs. Stop that program, or choose different ports in Alpaca Pilot Network Settings.
 6. To see Task Scheduler's own history, open **Task Scheduler** (`Win + R`, `taskschd.msc`), select `StartupAlpacaDriver`, and use **Enable All Tasks History** in the right-hand Actions panel.
 
+### A9 - setup.bat Cannot Download the Driver from GitHub
+If `setup.bat` stops at step 2 with an error like:
+```
+fatal: unable to access 'https://github.com/ogecko/alpaca-benro-polaris.git/': Failed to connect to github.com:443 after 21070 ms: Could not connect to server
+```
+then Git could not connect to GitHub, even though `setup.bat` tried twice. The cause is usually one of these:
+
+* **Security software is blocking Git.** Antivirus suites with their own firewall (Norton, McAfee, ESET, Kaspersky, Bitdefender and others) often block a newly installed program without asking. In that software, allow `C:\Program Files\Git\mingw64\libexec\git-core\git-remote-https.exe` and `C:\Program Files\Git\cmd\git.exe`, or temporarily turn its firewall off, then run `setup.bat` again.
+* **No internet, or a VPN is in the way.** Check that https://github.com opens in a browser, disconnect any VPN, and run `setup.bat` again.
+* **A proxy that needs a login.** Set it for Git yourself, then run `setup.bat` again:
+  ```
+  git config --global http.proxy http://user:password@proxyhost:port
+  ```
+
 ## Benro Polaris Troubleshooting
 
 ### B1 - Cannot start the Benro Polaris Device.

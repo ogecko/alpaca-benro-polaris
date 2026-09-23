@@ -253,6 +253,7 @@ rem With no branch argument, stay on the branch this install is already on.
 if not defined BRANCH_GIVEN for /f "delims=" %%B in ('git branch --show-current') do set "BRANCH=%%B"
 if not defined BRANCH_GIVEN %V% No branch given - staying on '%BRANCH%'.
 git fetch --all %TO%
+if errorlevel 1 call :net_diag
 if errorlevel 1 goto fail_pop
 git checkout "%BRANCH%" %TO%
 if errorlevel 1 goto fail_pop
@@ -264,7 +265,13 @@ goto repo_ready
 %V% No existing install found - cloning a fresh copy into %INSTALL_DIR%...
 set "REPO=%INSTALL_DIR%"
 git clone --branch "%BRANCH%" "%REPO_URL%" "%REPO%" %TO%
+if not errorlevel 1 goto cloned
+rem One retry covers a network that was still settling (e.g. Wi-Fi just reconnected).
+echo Could not reach GitHub - trying again...
+git clone --branch "%BRANCH%" "%REPO_URL%" "%REPO%" %TO%
+if errorlevel 1 call :net_diag
 if errorlevel 1 goto fail
+:cloned
 pushd "%REPO%"
 
 :repo_ready
@@ -370,6 +377,21 @@ exit /b 1
 :end
 if defined ABP_DBLCLICK if not defined ABP_NOPAUSE pause
 exit /b 0
+
+rem --- Explain a failed git download -----------------------------------------------------------------
+rem If PowerShell can reach GitHub but git cannot, something on this PC is blocking git itself (usually
+rem security software that does not yet trust the newly installed git). Always exits 1, so callers can
+rem write "if errorlevel 1 call :net_diag" and then test errorlevel again.
+:net_diag
+powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Method Head -TimeoutSec 15 -Uri https://github.com | Out-Null; exit 0 } catch { exit 1 }" >nul 2>&1
+if errorlevel 1 (
+    echo Error: this PC cannot reach github.com. Check the internet connection ^(and any VPN^), then re-run setup.bat.
+) else (
+    echo Error: this PC can reach github.com, but Git cannot. Security software or a firewall is probably
+    echo blocking Git. Allow "%ProgramFiles%\Git\mingw64\libexec\git-core\git-remote-https.exe" ^(and git.exe^) in it,
+    echo then re-run setup.bat. See docs\troubleshooting.md A9.
+)
+exit /b 1
 
 rem --- Run one action of platforms\win\helper.ps1 ------------------------------------------------
 :helper
