@@ -1280,6 +1280,19 @@ class Polaris:
         msg = f"1&547&3&-100#"
         await self.send_msg(msg)
 
+    # Power off the Polaris unit.
+    # 526 is the firmware's engineering/"test" command group (SP_TestMsgFromAppProc);
+    # step:6 runs SP_PmcEnterSleep -> SP_PmcSetSysSleep, which removes BLE devices,
+    # turns off wifi, sleeps the gimbal and then calls HI_SYSTEM_Poweroff(). This is a
+    # real board power-off, not a timed sleep -- the unit must be woken with the
+    # physical power button afterwards. As part of shutdown the Polaris drops its BLE
+    # connection, so expect the socket to close immediately after this is sent.
+    async def send_cmd_526_shutdown(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 526 SHUTDOWN (power off) request")
+        msg = f"1&526&3&step:6;#"
+        await self.send_msg(msg)
+
     async def send_cmd_524(self):
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 524 request")

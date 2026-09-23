@@ -1514,7 +1514,7 @@ class supportedactions:
             "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:SlewAbsolute", "Polaris:SlewRelative", "Polaris:AbortSlew",  
             "Polaris:MoveAxis", "Polaris:MoveMotor", "Polaris:ResetAxes",
             "Polaris:bleSelectDevice", "Polaris:bleEnableWifi", 
-            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:ShutdownOS",
+            "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:ShutdownOS", "Polaris:ShutdownMount",
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:StatusFetch", "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
             "Polaris:ReplayMark",
@@ -1581,9 +1581,20 @@ class action:
                 await asyncio.sleep(2)
                 await lifecycle.signal(LifecycleEvent.SHUTDOWN_OS)
 
+        elif actionName == "Polaris:ShutdownMount":
+            # Powers off the Benro Polaris mount itself (not the driver or host OS). Sends the
+            # firmware's engineering command 526/step:6, which removes BLE devices, turns off
+            # wifi, sleeps the gimbal and then calls HI_SYSTEM_Poweroff(). The Polaris drops its
+            # connection as part of shutdown, so send_msg's own error handling absorbs the socket
+            # close -- we ack the app first, then send.
+            logger.warning('ShutdownMount: powering off the Benro Polaris mount.')
+            resp.text = await PropertyResponse('ShutdownMount ok', req)
+            await polaris.send_cmd_526_shutdown()
+            return
+
         elif actionName == "Polaris:RestartDriver":
             await lifecycle.signal(LifecycleEvent.RESTART)
-            resp.text = await PropertyResponse('RestartDriver ok', req)  
+            resp.text = await PropertyResponse('RestartDriver ok', req)
 
         elif actionName == "Polaris:ConfigFetch":
             fetched_params = Config.as_dict()
