@@ -218,6 +218,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:ShutdownOS')
     },
 
+    async alpacaShutdownMount() {
+      await this.apiAction<void>('Polaris:ShutdownMount')
+    },
+
     async bleSelectDevice(name:string) {
       await this.apiAction<void>('Polaris:bleSelectDevice', `{"name": "${name}"}`)
     },

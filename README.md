@@ -6,7 +6,10 @@
 
 Are you interested in trying your hand at amateur astrophotography? Invest in a [Benro Polaris with its Astro Kit](https://www.benro-polaris.com/), and this project will transform it from a great Tripod Head to a full-featured, open Telescope Mount. 
 
-This [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o) aims to provide backers with a way to control their Benro Polaris using more advanced astrophotography software, including [Stellarium](https://stellarium.org/en/), [Nina](https://nighttime-imaging.eu/), [CCDceil](https://www.ap-i.net/ccdciel/en/start) and other applications that support the ASCOM Alpaca platform. 
+This [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o) aims to provide backers with a way to control their Benro Polaris using more advanced astrophotography software, including [Stellarium](https://stellarium.org/en/), [Nina](https://nighttime-imaging.eu/), [CCDceil](https://www.ap-i.net/ccdciel/en/start) and other applications that support the ASCOM Alpaca platform. If you've found this project useful, you can support continued
+development here:
+
+[![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=DavidMorrison&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff)](https://buymeacoffee.com/DavidMorrison)
 
 # Intended Audience
 Just starting in Astrophotography and the Benro Polaris, then check out our [Beginners and Learning Guide](docs/beginners.md) to help learn the basics. The project documentation and features target individuals familiar with astrophotography concepts and software like deep sky astronomy, image sequencing, plate solving, polar alignment, equatorial coordinates, and image stacking. The software is intended for users comfortable with technical setups involving MacOS or Windows, mini-PCs, Command Windows, and Networks, as these are presented as options for running the Alpaca-Benro-Polaris Driver.

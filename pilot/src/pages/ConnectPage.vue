@@ -73,7 +73,7 @@
                 <q-item-section side >
                   <div class="row">
                     <q-btn label="RESTART" icon="mdi-restart"  stack class="fixedWidth" @click="onRestartDriver"/>
-                    <q-btn label="STOP" icon="mdi-alert-octagon"  stack class="fixedWidth" @click="onStopDriver"/>
+                    <q-btn label="SHUTDOWN" icon="mdi-power"  stack class="fixedWidth" @click="openShutdownDialog"/>
                   </div>
                 </q-item-section>
               </q-item>
@@ -311,13 +311,64 @@
                 </q-item-section>
               </q-item>
 
+
             </q-list>
           </div>
         </q-card>
 
 
-      </div>      
+      </div>
     </div>
+
+    <!-- Consolidated Shutdown dialog -->
+    <q-dialog v-model="showShutdownDialog">
+      <q-card style="min-width: 340px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Shut Down</div>
+          <q-space />
+          <q-btn icon="mdi-close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <div class="text-subtitle2 q-mb-xs">What would you like to shut down?</div>
+          <q-list>
+            <q-item tag="label" v-ripple>
+              <q-item-section avatar>
+                <q-checkbox v-model="sdDriver" @update:model-value="onSdDriverToggle" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Driver Only</q-item-label>
+                <q-item-label class="text-grey-6" caption>Stops the Alpaca Benro Polaris Driver and closes Alpaca Pilot.</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="cfg.enable_remote_shutdown" tag="label" v-ripple>
+              <q-item-section avatar>
+                <q-checkbox v-model="sdComputer" @update:model-value="onSdComputerToggle" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Driver and Host Computer</q-item-label>
+                <q-item-label class="text-grey-6" caption>Stops the driver, closes Alpaca Pilot, and shuts down the driver's host computer.</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="p.connected" tag="label" v-ripple>
+              <q-item-section avatar>
+                <q-checkbox v-model="sdMount" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Benro Polaris Mount</q-item-label>
+                <q-item-label class="text-grey-6" caption>Shuts down the Benro Polaris mount. Turn on again using its physical power button or Bluetooth.</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn label="Shutdown" icon="mdi-power" color="negative"
+                 :disable="sdNothingSelected" @click="onShutdownConfirm" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
 </q-page>
 </template>
@@ -327,7 +378,7 @@ import { useQuasar, debounce } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
 import { useStatusStore, polarisModeOptions } from 'stores/status'
-import { watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { dms2deg } from 'src/utils/angles'
 import NetworkSettings from 'components/NetworkSettings.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
@@ -385,30 +436,57 @@ async function onRestartDriver() {
 }
 
 
-function onStopDriver() {
+// Consolidated Shutdown dialog. Each checkbox maps to one device action:
+//   sdDriver   -> Polaris:StopDriver     (stops the driver, closes Pilot)
+//   sdComputer -> Polaris:ShutdownOS     (powers off the host computer too)
+//   sdMount    -> Polaris:ShutdownMount  (powers off the Benro Polaris mount)
+// The two driver options are mutually exclusive -- "Driver and Computer" already
+// stops the driver, so we never send both. Mount is independent.
+const showShutdownDialog = ref(false)
+const sdDriver = ref(false)
+const sdComputer = ref(false)
+const sdMount = ref(false)
+
+const sdNothingSelected = computed(() => !sdDriver.value && !sdComputer.value && !sdMount.value)
+
+function openShutdownDialog() {
+  sdDriver.value = true
+  sdComputer.value = false
+  sdMount.value = false
+  showShutdownDialog.value = true
+}
+
+function onSdDriverToggle(val: boolean) {
+  if (val) sdComputer.value = false
+}
+
+function onSdComputerToggle(val: boolean) {
+  if (val) sdDriver.value = false
+}
+
+async function onShutdownConfirm() {
+  showShutdownDialog.value = false
+
+  // Power off the mount first, while the driver is still up to route the 526 command.
+  if (sdMount.value) {
+    await dev.alpacaShutdownMount()
+  }
+
+  // Then the driver / computer. ShutdownOS supersedes StopDriver (it stops the driver too).
+  if (sdComputer.value) {
+    await dev.alpacaShutdownOS()
+    showDriverStopped('Alpaca Driver host is shutting down.')
+  } else if (sdDriver.value) {
+    await dev.alpacaStopDriver()
+    showDriverStopped('Alpaca Driver stopped.')
+  } else if (sdMount.value) {
+    // Mount only -- driver keeps running, so stay in Pilot and just confirm.
     $q.notify({
-      message: 'WARNING: Stopping the Alpaca Driver will close Alpaca Pilot as well.'
-        + (cfg.enable_remote_shutdown ? '<br>Shutdown will also power off the computer the driver is running on.' : ''),
-      html: true,   // static text only, allows the <br> line break
-      type: 'negative', position: 'top', timeout: 0,
-      actions: [
-        { label: 'Stop', icon: 'mdi-alert-octagon', color: 'yellow', handler: () => {void onStopDriverAction()} },
-        ...(cfg.enable_remote_shutdown
-          ? [{ label: 'Shutdown', icon: 'mdi-power', color: 'yellow', handler: () => {void onShutdownOSAction()} }]
-          : []),
-        { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => { /* ... */ } }
-      ]
+      message: 'Benro Polaris mount is powering off. It will disconnect shortly.',
+      type: 'positive', position: 'top', timeout: 5000,
+      actions: [{ icon: 'mdi-close', color: 'white' }]
     })
-}
-
-async function onStopDriverAction() {
-  await dev.alpacaStopDriver()
-  showDriverStopped('Alpaca Driver stopped.')
-}
-
-async function onShutdownOSAction() {
-  await dev.alpacaShutdownOS()
-  showDriverStopped('Alpaca Driver host is shutting down.')
+  }
 }
 
 function showDriverStopped(title: string) {
