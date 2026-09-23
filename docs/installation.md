@@ -26,13 +26,22 @@ You can view a demonstration of parts of this documentation in the following You
 
 [![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
 
-The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. It uses [uv](https://docs.astral.sh/uv/) to install Python and the required libraries, and [Git](https://git-scm.com/) to download and update the driver. The setup script also configures the required network ports in Windows Firewall, sets the driver to start automatically when Windows starts, and places a shortcut to the driver on your desktop.
+The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. It uses [uv](https://docs.astral.sh/uv/) to install Python and the required libraries, and [Git](https://git-scm.com/) to download and update the driver. The setup script also configures the required network ports in Windows Firewall, offers to start the driver automatically when Windows starts, and places a shortcut to the driver on your desktop.
 
-1. **Open a Command Prompt**
+1. **Logon to Windows with an administrator account**
+
+   Use an administrator account so `setup.bat` can offer to start the driver automatically at Windows startup (see Step 4).
+
+   Before continuing, enable Windows Location permissions. The driver needs Location access to scan for and connect to the Polaris Wi-Fi network. Without it, Windows may block the Wi-Fi scan and the driver may report "No Wi-Fi interfaces found".
+   
+   Open **Settings > Privacy & security > Location** <br>
+   Enable **Location services**, as well as **Let apps access your location**, and **Let desktop apps access your location**.
+   
+2. **Open a Command Prompt**
 
    Press **Windows + R**, type `cmd`, and press **Enter**.
 
-2. **Download the setup script**
+3. **Download the setup script**
    
    Copy and paste the following command into the Command Prompt, then press **Enter**: 
 
@@ -40,7 +49,7 @@ The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. 
    curl -fL -o setup.bat https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_2/platforms/win/setup.bat
    ```
 
-3. **Run the setup script**
+4. **Run the setup script**
 
    Run the setup script, optionally specifying the version or Git branch to install. In this example, `dev2_2` selects the v2.2 development branch:
 
@@ -50,7 +59,7 @@ The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. 
 
    During installation:
 
-   * If you are signed in to an administrator account, you will be asked **Start the Alpaca Driver automatically when Windows starts? [N/y]**. Press Enter (the default) to start the driver manually from the desktop shortcut. Type **y** and press Enter to start it automatically; you will then need to enter your **Windows password**. On a standard (non-administrator) account this question is skipped and the driver starts manually.
+   * You will be asked **Start the Alpaca Driver automatically when Windows starts? [N/y]**. Press Enter (the default) to start the driver manually from the desktop shortcut. Type **y** and press Enter to start it automatically; you will then need to enter your **Windows password**.
    * If you chose automatic startup, also accept the **User Account Control** prompt. It is needed to set up the startup task and to open the Windows Firewall for the driver.
    * Wait a few minutes while the required files and software are downloaded and installed.
 
@@ -105,11 +114,11 @@ The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. 
 
 Once the Alpaca Benro Polaris Driver is running, you can access the Alpaca Pilot App from any web browser.
 
-4. **Open a web browser**
+5. **Open a web browser**
 
    Open **Chrome**, **Edge**, **Firefox**, or another supported web browser.
 
-5. **Open the Alpaca Pilot App**
+6. **Open the Alpaca Pilot App**
 
    Enter the following address in the browser's address bar:
 
@@ -117,7 +126,7 @@ Once the Alpaca Benro Polaris Driver is running, you can access the Alpaca Pilot
    http://ap.local
    ```
 
-6. **Verify that the app opens**
+7. **Verify that the app opens**
 
    The Alpaca Pilot App should display the startup screen and switch to the dashboard shown below.
 
