@@ -2,11 +2,12 @@
 
 # General Final Release Checklist
 - [ ] Check Driver package vulnerabilities
-  - [ ] pip-audit
-  - [ ] pip show urllib
-  - [ ] pipdeptree -reverse --package bleach 
-  - [ ] pip install --upgrade urllib3==2.7.0
-  - [ ] Modify all requirements.txt files accordingly
+  - [ ] uv audit
+  - [ ] uv pip list
+  - [ ] uv pip show urllib3
+  - [ ] uv tree --invert --package urllib3 
+  - [ ] uv tree --group notebooks               # see pyproject.toml [dependency-groups]
+  - [ ] uv add "urllib3==2.7.0" 
 - [ ] Check Pilot package vulnerabilities
   - [ ] Check non-breaking updates (dry run): quasar info;  quasar upgrade;        Apply the updates: quasar upgrade -i
   - [ ] Check major potentially breaking updates (dry run): quasar upgrade -m;     Apply the updates: quasar upgrade -m -i
