@@ -132,29 +132,33 @@ Once the Alpaca Benro Polaris Driver is running, you can access the Alpaca Pilot
 
    ![Pilot Startup](images/pilot-startup.png)
 
+8. **(Optional) Enable HTTPS**
+
+   Browser features like Location and Clipboard access only work over a secure (HTTPS) connection. If you need them, follow the [Pilot User Guide – Using Alpaca Pilot over HTTPS](./pilot.md#g-using-alpaca-pilot-over-https) to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.
+
 ### Connecting the Driver to Polaris
 
 Before you can use the Polaris, complete the following steps.
 
-7. **Open the Connect page**
+9. **Open the Connect page**
 
    Click **Connect** in the top toolbar of the Alpaca Pilot window. The Connect page guides you through the steps required to connect the driver to your Benro Polaris device.
 
-8. **Set up and power on the Polaris**
+10. **Set up and power on the Polaris**
 
-   Set up your Benro Polaris tripod head and turn on the device.
+    Set up your Benro Polaris tripod head and turn on the device.
 
-   If you cannot turn on the Polaris, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
+    If you cannot turn on the Polaris, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
 
-9. **Complete the connection procedure**
+11. **Complete the connection procedure**
     
-   On the **Connect** page in the Alpaca Pilot App, follow each step indicated by a checkmark.
+    On the **Connect** page in the Alpaca Pilot App, follow each step indicated by a checkmark.
 
-   For detailed instructions, see the [Pilot User Guide – Connecting Devices](./pilot.md#ii-connecting-devices).
+    For detailed instructions, see the [Pilot User Guide – Connecting Devices](./pilot.md#ii-connecting-devices).
 
-   Make sure all applicable checkmarks are green. The final **Multi-Point Alignment** step will remain incomplete until you have successfully aligned on three or more stars.
+    Make sure all applicable checkmarks are green. The final **Multi-Point Alignment** step will remain incomplete until you have successfully aligned on three or more stars.
 
-10. **Verify the connection**
+12. **Verify the connection**
 
       After the driver has successfully connected to the Polaris, the Alpaca Pilot log — or the driver's console window if you started it manually — should contain:
 
