@@ -1,7 +1,7 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
-import { defineConfig } from '#q-app/wrappers';
+import { defineConfig } from '#q-app';
 
 // Per-machine proxy override:
 // Quasar dev server proxies /proxy, /version and /alpaca_pilot_ca.crt to nina01:80 by default.
@@ -23,7 +23,7 @@ try {
 const apiHost = process.env.PILOT_API_HOST ?? 'nina01';
 const apiPort = process.env.PILOT_API_PORT ?? '80';
 
-export default defineConfig((/* ctx */) => {
+export default defineConfig((ctx) => {
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
@@ -57,6 +57,18 @@ export default defineConfig((/* ctx */) => {
       target: {
         browser: ['es2022', 'firefox115', 'chrome115', 'safari14'],
         node: 'node20',
+      },
+
+      // @quasar/app-vite v3 dropped the old bare-word aliases (src/, stores/, components/, etc.)
+      // in favor of a single '@' alias. Restore the ones this codebase actually uses so the
+      // existing import style (e.g. `from 'stores/device'`) keeps resolving.
+      // https://quasar.dev/quasar-cli-vite/upgrade-guide#global-search-and-replace
+      alias: {
+        src: ctx.appPaths.srcDir,
+        stores: ctx.appPaths.resolve.src('stores'),
+        components: ctx.appPaths.resolve.src('components'),
+        layouts: ctx.appPaths.resolve.src('layouts'),
+        pages: ctx.appPaths.resolve.src('pages'),
       },
 
       typescript: {

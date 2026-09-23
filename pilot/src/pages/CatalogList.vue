@@ -525,9 +525,8 @@ onMounted(async () => {
     cat.startPositionUpdater();
 })
 
-onBeforeRouteUpdate((to, from, next) => {
+onBeforeRouteUpdate((to) => {
   syncFiltersFromRoute(to.query)
-  next()
 })
 
 

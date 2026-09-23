@@ -10,8 +10,13 @@
 * **Current Branch:** dev2_2
 
 ## Demonstration Videos
-* **40 - Podcast Video:** Podcast Video at https://youtu.be/ouJ52WcTY2M
-* **41 - Installation Video:** Installation Video at https://youtu.be/qXRiTLS2EaY
+* **YouTube Channel:** The Pilot sidebar's Videos link now points to the [full YouTube channel](https://www.youtube.com/@jdm5001/featured), including v2.2 videos:
+* **40 - Deep Dive Podcast:** Deep Dive Podcast on Alpaca Benro Polaris V2.2 at https://youtu.be/ouJ52WcTY2M
+* **41 - Installation on Win11:** Installation of Alpaca Driver v2.2 on Win11 at https://youtu.be/qXRiTLS2EaY
+* **42 - Installation on Raspberry Pi:** Installation of Alpaca Driver v2.2 on a Raspberry Pi at https://youtu.be/4_zNjTEfG6Y
+* **43 - Beta Preview:** Beta Preview Demonstration of v2.2 at https://youtu.be/YfUGk_6oSYE
+* **44 - Galactic Panorama Workflow:** Galactic Panorama Workflow at https://youtu.be/f1YoKFxFse4
+* **45 - Less Drift and Better Tracking:** Less Drift and Better Tracking on the Benro Polaris at https://youtu.be/ugxQ13Z1Mu4
 
 ## Win11 Upgrade Instructions
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
@@ -30,6 +35,7 @@
 - **[Shutdown OS]** Add "Shutdown" button to Pilot Connect page, Stop dialog. Add new device action "Polaris:ShutdownOS" to poweroff the driver and its host OS.
 - **[Linux BLE]** correct for Benro Polaris' invalid BLE advertisements (forces the adapter into LE-only mode, fixing BLE enable-Wifi failures on Raspberry Pi)
 - **[Troublshooting C3-7]**: Added troubleshooting on mesh network Roaming Assistant potentially causing intermittant dropouts.
+- **[Pilot Dependencies]** Refreshed Alpaca Pilot's build tooling to the latest major versions: Quasar v2.25→v2.33, `@quasar/app-vite` v2→v3 (now built on Vite 8/Rolldown), and Vue Router v4→v5, plus other dependency updates. Resolves outstanding Dependabot security advisories.
 
 ## What's new in v2.2 Beta 5 
 - **[zeroconf dependancy]** Installation requires `pip install -r platforms/win/requirements.txt` to pickup new zeroconf dependancy
