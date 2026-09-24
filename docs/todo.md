@@ -232,15 +232,28 @@ Connecting the stars with real-world constellation boundaries usually causes a d
 * Live   - (current boresight)    - Camera Background, Zoomable, Panable, Atlas Overlay
 * Replay - (past boresight)       - Image Background, Zoomable, Panable, Atlas Overlay, Image Stats Overlay
 
+* Modes ? 
+  * Preview (quick capture, not saved) 
+  * Focus (manual or auto) 
+  * Alignment (manual, auto MPA seq) 
+  * Atlas (move target red, blue current, search, goto,sync,stop) 
+  * Guiding (focus, align w/main, exposure/gain, capture, select guide star, calib, guide start, aggr)
+  * Folders (navigate, open, delete, goto solved image RA/Dec/PA)
+  * Autorun config (target name, Light|D|B|F, meridian flip, Interval, Repeat, Filter, end sequ, estimated duration, start/pause/stop)
+  * Live 
+  * Plan 
+  * Video 
+
 * Timeline - Guiding History | Star Detection History | Image History | Catalog Search | Focus Run | Alignment Run
 * Mount Status - Radial Dials, Control Status
 * Capture Status - Progress
 
-* Exposure Control - Shutter, F-stop, ISO, WB, EV, Temp, Filter
-* Capture Control- Capture/Sequence, Start, Stop, Loop 
+* Exposure Control - Shutter, F-stop, ISO/Gain, WB, EV, Bin, Cooler, Filter
+* Capture Control- Capture/Sequence, Start, Stop, Loop, Progress 
 * Target Control - Catalog, Search, Panel | Sync | Goto | Target
 * Mount Control - N | S | W | E | Speed | Track | Home | Park | Stop
 * Focus Control - Calibrate | In | Out 
 * Guide Control - Calibrate | RA Aggr | Dec Aggr | PEC | MAC 
 
 ### Setup
+* filename - camera, filter, data, 
