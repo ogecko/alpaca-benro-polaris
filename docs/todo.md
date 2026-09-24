@@ -224,3 +224,23 @@ Connecting the stars with real-world constellation boundaries usually causes a d
 * The Math Parser: Use AstroJS or a lightweight epoch converter script only once at application startup to calculate the current positions of the Sun, Moon, and planets. Lock the stars into a static background matrix so the CPU never has to recalculate them during runtime navigation.
 
 
+## 7. UX Rationalisation
+### Connect
+### Dashboard
+* Multi Camera View               - Main Camera, Guide Camera, Whole Sky Camera, Mount Camera
+* Atlas  - (boresight + offsight) - Space Background, Overlay Labels | Stars | Constellations | DSO | Reticle | Grids
+* Live   - (current boresight)    - Camera Background, Zoomable, Panable, Atlas Overlay
+* Replay - (past boresight)       - Image Background, Zoomable, Panable, Atlas Overlay, Image Stats Overlay
+
+* Timeline - Guiding History | Star Detection History | Image History | Catalog Search | Focus Run | Alignment Run
+* Mount Status - Radial Dials, Control Status
+* Capture Status - Progress
+
+* Exposure Control - Shutter, F-stop, ISO, WB, EV, Temp, Filter
+* Capture Control- Capture/Sequence, Start, Stop, Loop 
+* Target Control - Catalog, Search, Panel | Sync | Goto | Target
+* Mount Control - N | S | W | E | Speed | Track | Home | Park | Stop
+* Focus Control - Calibrate | In | Out 
+* Guide Control - Calibrate | RA Aggr | Dec Aggr | PEC | MAC 
+
+### Setup
