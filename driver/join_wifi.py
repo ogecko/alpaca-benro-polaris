@@ -138,9 +138,9 @@ def _run(cmd: List[str]):
 def _run_nmcli(args: List[str]):
     """Runs nmcli via `sudo -n`. NetworkManager's own polkit rule only
     grants unauthenticated access to a "local and active" seat session --
-    neither an SSH session nor the driver's own systemd service (User=pi,
-    no seat at all) qualifies, so even read-only queries would otherwise
-    prompt for a password that never comes. `-n` fails fast with a clear
+    neither an SSH session nor the driver's own systemd service (User= the
+    user who ran setup.sh, no seat at all) qualifies, so even read-only queries
+    would otherwise prompt for a password that never comes. `-n` fails fast with a clear
     stderr instead of hanging if the NOPASSWD sudoers rule setup.sh installs
     for nmcli (see platforms/raspberry_pi/setup.sh) isn't in place."""
     return _run(["sudo", "-n", "nmcli"] + args)

@@ -70,6 +70,16 @@ echo "== Alpaca Benro Polaris Raspberry Pi Setup ===============================
 define_usage
 parse_args "$@"
 
+# The driver service, sudoers rules, uv install and ~/.bashrc edits all belong to whoever
+# runs this script -- the username chosen in Raspberry Pi Imager, which isn't always "pi".
+# Running it via sudo would install everything for root instead, so refuse that.
+if [ "$(id -u)" -eq 0 ]; then
+    echo "Error: run this script as your normal user (e.g. ./setup.sh), not as root or with sudo." >&2
+    echo "It calls sudo itself wherever it needs to." >&2
+    exit 1
+fi
+SERVICE_USER="$(id -un)"
+
 # On a re-run, keep the AP fallback's existing name/password unless -a/-p say otherwise,
 # rather than prompting again or silently resetting a custom password to the default.
 if command -v nmcli >/dev/null 2>&1 && nmcli -t -f NAME connection show | grep -qx "$AP_CONN"; then
@@ -251,11 +261,11 @@ fi
 echo "==SETUP== 7. Grant passwordless nmcli and poweroff access, needed for join_wifi.py and the Alpaca Pilot Shutdown button."
 # NetworkManager's own polkit rule only allows unauthenticated connection
 # changes from a "local and active" seat session -- the polaris-driver
-# service (User=pi, no seat) never qualifies, so join_wifi.py's nmcli calls
+# service (User=$SERVICE_USER, no seat) never qualifies, so join_wifi.py's nmcli calls
 # would otherwise hang waiting for a sudo password that never comes.
 NMCLI_SUDOERS="/etc/sudoers.d/polaris-nmcli"
 NMCLI_PATH="$(command -v nmcli)"
-echo "pi ALL=(ALL) NOPASSWD: ${NMCLI_PATH}" | sudo tee "$NMCLI_SUDOERS" > /dev/null
+echo "${SERVICE_USER} ALL=(ALL) NOPASSWD: ${NMCLI_PATH}" | sudo tee "$NMCLI_SUDOERS" > /dev/null
 sudo chmod 440 "$NMCLI_SUDOERS"
 sudo visudo -cf "$NMCLI_SUDOERS"
 
@@ -264,7 +274,7 @@ sudo visudo -cf "$NMCLI_SUDOERS"
 # `systemctl poweroff`. Only this exact command is granted, nothing else.
 POWEROFF_SUDOERS="/etc/sudoers.d/polaris-poweroff"
 SYSTEMCTL_PATH="$(command -v systemctl)"
-echo "pi ALL=(ALL) NOPASSWD: ${SYSTEMCTL_PATH} poweroff" | sudo tee "$POWEROFF_SUDOERS" > /dev/null
+echo "${SERVICE_USER} ALL=(ALL) NOPASSWD: ${SYSTEMCTL_PATH} poweroff" | sudo tee "$POWEROFF_SUDOERS" > /dev/null
 sudo chmod 440 "$POWEROFF_SUDOERS"
 sudo visudo -cf "$POWEROFF_SUDOERS"
 
@@ -440,7 +450,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=pi
+User=${SERVICE_USER}
 WorkingDirectory=${src_home}/driver
 ExecStart=${src_home}/.venv/bin/python3 ${src_home}/driver/main.py
 Restart=always
