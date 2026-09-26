@@ -346,10 +346,16 @@ Embed as the Atlas / Live / Replay backdrop from item 7. Replay renders the sky 
 ## 7. UX Rationalisation
 ### Connect
 ### Dashboard
-* Multi Camera View               - Main Camera, Guide Camera, Whole Sky Camera, Mount Camera
-* Atlas  - (boresight + offsight) - Space Background, Overlay Labels | Stars | Constellations | DSO | Reticle | Grids
-* Live   - (current boresight)    - Camera Background, Zoomable, Panable, Atlas Overlay
-* Replay - (past boresight)       - Image Background, Zoomable, Panable, Atlas Overlay, Image Stats Overlay
+* Multiple Views of sky map     - Main Camera, Guide Camera, Whole Sky Camera, Mount Camera, Target
+* Layers in a View
+  * Atlas (catalog)             - Oriented on sky map (Overlay Labels | Stars | Constellations | Horizon line/pano | DSO | Reticle | Grids)
+  * Live (current boresight)    - Oriented on sky map (Overlay Outline | mount stats | Camera preview )
+  * Replay (captured image(s))  - Oriented on sky map (Overlay Outline | image stats | Captured image )
+  * Background                  - Space Background
+* UX
+  * Clicking on a target selects and provides more info and actions (center/zoom on target, goto target, sync target, add to sequence/pano)
+  * Can pan/zoom freely based on current Reference framework for up/down and left/right and rotate; may be limited based on View Context
+  * Mobile first (capable in very limited screen real estate, but uses wider screen if avail)
 
 * Modes ? 
   * Preview (quick capture, not saved) 
@@ -363,9 +369,13 @@ Embed as the Atlas / Live / Replay backdrop from item 7. Replay renders the sky 
   * Plan 
   * Video 
 
+
 * Timeline - Guiding History | Star Detection History | Image History | Catalog Search | Focus Run | Alignment Run
 * Mount Status - Radial Dials, Control Status
 * Capture Status - Progress
+
+* Unified Omnibar - Search, Filters, Coordinates, Natural Language, Predictive Typeahead
+* Split-Pane-Results - Hover (pointer to object), Selection Transition (gently pans/scales map)
 
 * Exposure Control - Shutter, F-stop, ISO/Gain, WB, EV, Bin, Cooler, Filter
 * Capture Control- Capture/Sequence, Start, Stop, Loop, Progress 
@@ -373,6 +383,14 @@ Embed as the Atlas / Live / Replay backdrop from item 7. Replay renders the sky 
 * Mount Control - N | S | W | E | Speed | Track | Home | Park | Stop
 * Focus Control - Calibrate | In | Out 
 * Guide Control - Calibrate | RA Aggr | Dec Aggr | PEC | MAC 
+
+* UX Principles
+  * Prioritize Essential Information — Show the most critical data upfront; everything else is secondary.
+  * Design for Consistency — Predictable layouts help users act quickly under stress.
+  * Reduce Cognitive Load — Simple commands, chunked tasks, and progressive disclosure keep interfaces usable.
+  * Test Under Stress — Simulations with real users in realistic conditions are essential.
+  * Error Prevention Over Error Recovery — Safeguards, confirmation prompts, and redundancy prevent catastrophic mistakes.
+  * Design for Context — Interfaces must fit their environment and the task trying to be achieved.
 
 ### Setup
 * filename - camera, filter, data, 
