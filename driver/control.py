@@ -198,6 +198,9 @@ class KalmanFilter:
 
 
 # ************* Calibration Manager ************
+# DEPRECATED: speed calibration (SpeedTest actions, Pilot calibration page) has not shown a
+# benefit. The v2 speed controller (speed_controller.py) uses the firmware SLOW speed table and
+# only the baseline FAST points; this class remains for the legacy controller during the beta.
 class CalibrationManager:
     def __init__(self, liveInstance=True):
         self.liveInstance = liveInstance        # False = used for unit testing purposes
@@ -777,7 +780,7 @@ class PID_Controller():
         elif isinstance(Kv, float) and Kv>0 and Kv<10:
             self.Kv = np.array([Kv, Kv, Kv], dtype=float) 
         else:
-            self.Kv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
+            self.Kv = np.array([ self.controllers[axis].max_dps for axis in range(3) ], dtype=float)
 
     def reset_offsets(self, axes=None):
         """Reset alpha/delta_v_sp, _offset, _ref_last for each axes. 

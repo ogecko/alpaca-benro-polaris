@@ -76,6 +76,7 @@ advanced_scc_choice = 2                     # 0 = Zero Last Residual, 1=Local Ga
 advanced_align_mac = false                  # Enable Mechanical Alignment Correction models, corrects mechanical tilt on M3 and M2
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 advanced_pec = false                        # Perform Periodic Error Correction Modelling
+speed_controller_v2 = false                 # BETA: shared-level motor speed controller (driver/speed_controller.py), switchable live
 pec_T_sec = 2040                            # PEC model worm period T (seconds, 34 min default) -- the basis every fitted harmonic is relative to
 pec_n_harmonics = 2                         # PEC model harmonics fitted per axis (0 = pure linear/RLS mode, no harmonics)
 pec_tau_sec = 1260                          # PEC model smoothing time constant (seconds), used by both RLS and EMA modes

@@ -47,6 +47,7 @@ from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
+from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache
 
@@ -243,8 +244,15 @@ class Polaris:
         self._omega_meas = None                     # The latest calculated Polaris motor axis angular velocity [omega1, omega2, omega3] measured from 6 sample history
         self._cm = CalibrationManager()
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
+        # Legacy per-axis controllers and the shared-level v2 controller (BETA) run side by side;
+        # each self._motors[axis] routes to one of them, chosen by Config.speed_controller_v2
+        # and switchable live (see select_speed_controller).
+        legacy_motors = {axis: MotorSpeedController(logger, self._cm, axis, self.send_msg) for axis in (0, 1, 2)}
+        self._speed_v2 = SpeedControllerRuntime({axis: RateUnits(self._cm.baseline_data[axis]) for axis in (0, 1, 2)},
+                                                self.send_msg, log=logger)
+        use_v2 = bool(getattr(Config, 'speed_controller_v2', False))
         self._motors = {
-            axis: MotorSpeedController(logger, self._cm, axis, self.send_msg)
+            axis: SwitchableMotor(legacy_motors[axis], self._speed_v2.axis(axis), use_new=use_v2)
             for axis in (0, 1, 2)
         }
         self._pid = PID_Controller(logger, self, loop=0.2)
@@ -1561,6 +1569,13 @@ class Polaris:
 
         return res
 
+    async def select_speed_controller(self, use_v2: bool):
+        """Hot swap every motor between the legacy and the shared-level v2 speed controller.
+        Each axis is stopped on the outgoing controller first; an active PID will re-command it."""
+        for motor in self._motors.values():
+            await motor.select(use_new=bool(use_v2))
+        self.logger.info(f"Motor speed controller: {'v2 shared-level (BETA)' if use_v2 else 'legacy'}")
+
     def make_config_params_live(self, changed_params):
         # make changes live in polaris where possible
         for param in changed_params:
@@ -1585,6 +1600,8 @@ class Polaris:
                 self.siteelevation = Config.site_elevation
             elif param == "site_pressure":
                 self.sitepressure = Config.site_pressure
+            elif param == "speed_controller_v2":
+                asyncio.create_task(self.select_speed_controller(Config.speed_controller_v2))
             elif param == "max_accel_rate":        
                 self._pid.set_Ka_array(Config.max_accel_rate)
             elif param == "max_slew_rate":
@@ -2312,8 +2329,7 @@ class Polaris:
             # # if tracking is enabled then we must slew RA/Dec/PA
             # if self.tracking and axis<3:
             #     axis = axis + 3
-            raw = motor._model.interpolate[units].toRAW(rate)
-            dps = motor._model.interpolate["RAW"].toDPS(raw)
+            dps = motor.to_dps(rate, units)
             self.markSlewAsUnderway()
             axis_name = AXIS_INT_TO_NAME[axis]
             await self.move_axis_v2({axis_name: dps}, units="DPS")
@@ -2349,9 +2365,7 @@ class Polaris:
         dps_rates = {}
         for axis, rate in rates.items():
             if axis in TOPO_AXIS_MOTOR and units != "DPS":
-                motor = self._motors[TOPO_AXIS_MOTOR[axis]]
-                raw = motor._model.interpolate[units].toRAW(rate)
-                dps_rates[axis] = float(motor._model.interpolate['RAW'].toDPS(raw))
+                dps_rates[axis] = self._motors[TOPO_AXIS_MOTOR[axis]].to_dps(rate, units)
             else:
                 dps_rates[axis] = float(rate)
 
