@@ -84,7 +84,7 @@ You can access Alpaca Pilot from any browser on a device connected to the same n
 1. **Start Driver:** Make sure the driver is running on the Mini-PC.
 2. **Open Browser:** On your phone, tablet, or laptop, open any modern browser.
 3. **Open Alpaca Pilot:** Enter one of the following in the browser's address bar:
-   1.  **Recommended:** `http://ap.local`
+   1.  **Recommended:** `http://ap.local` (or `http://ap.local:8080/` for Linux/Pi installations)
    2.  **Hostname:** eg `http://hostname`
    3.  **IP Address:** eg `http://192.168.10.250`
 4.  **Full Screen Feature:** On a phone, you can click on the battery icon to make the application go **full screen** to take up the full real estate available.
@@ -94,6 +94,157 @@ You can access Alpaca Pilot from any browser on a device connected to the same n
 The Pilot application is very flexible, allowing users to open up multiple windows simultaneously to facilitate operations and monitoring. To achieve this, you can right-click or hover on any of the navigation links across the top of the application (such as Dashboard, Connections, or Settings) and choose to open them in a new tab or a new window. 
 
 For example, you might choose to open the Catalog as a new window and position it off to the right, while keeping the main Dashboard open on the left. This configuration allows for streamlined workflows, such as performing quick searches for celestial objects in the Catalog while monitoring the mount's status and coordinates on the Dashboard as you navigate to the selected target.
+
+
+<details>
+
+<summary>Frequently asked questions</summary>
+
+### What are `ap.local` and mDNS?
+
+Alpaca Driver **v2.2 and later** include an mDNS (Multicast DNS) server. mDNS allows devices on the same local network to discover the Alpaca Driver and Alpaca Pilot Web Server without requiring a central Domain Name Server (DNS).
+
+The Alpaca Pilot web interface is advertised on the local network using mDNS with the default hostname:
+
+```text
+http://ap.local
+```
+
+You can change the hostname advertised by mDNS from Alpaca Pilot's **Connect** page using the **Network Services** dialog.
+
+The `ap.local` address should work when the device running your browser and the device running the driver are connected to the same local network. It will not normally work across different networks or routed subnets.
+
+Some enterprise networks, browsers, Wi-Fi configurations, firewalls, and security policies may also block or restrict mDNS traffic. If you cannot reach Alpaca Pilot using `ap.local`, use the driver's hostname or IP address instead, as described below.
+
+mDNS is **optional** and is not required for the Alpaca Driver or Alpaca Pilot to operate. If you can already access Alpaca Pilot using the device hostname or IPv4 address, mDNS simply provides an alternative method of access.
+
+### What alternative methods can be used to reach Alpaca Pilot?
+
+There are three ways to reach Alpaca Pilot:
+
+1. **Use mDNS**
+
+   On networks where mDNS is supported by both the network and the client device, use:
+
+   ```text
+   http://ap.local
+   ```
+
+2. **Use the driver's hostname**
+
+   If the hostname can be resolved by the device running the browser, replace `<hostname>` with the driver's hostname and use:
+
+   ```text
+   http://<hostname>
+   ```
+
+3. **Use the driver's IP address**
+
+   If you know the IPv4 address allocated to the driver, replace `<ipaddress>` with the driver's IPv4 address and use:
+
+   ```text
+   http://<ipaddress>
+   ```
+
+   
+
+### How can I find the IP address of the driver?
+
+There are several ways to find the driver's IP address.
+
+1. **Use the driver's log file**
+
+   The IP address is recorded in:
+
+   ```text
+   alpaca-benro-polaris/logs/alpaca.log
+   ```
+
+   Look for the `==STARTUP==` message containing the mDNS hostname. The address following the `->` characters is the IP address of the driver.
+
+   In this example, the driver's IP address is `192.168.50.73`
+
+   ```text
+   2026-09-24T18:47:05.665 INFO ==STARTUP== Serving mDNS hostname [http://ap.local](http://ap.local) -> 192.168.50.73:80
+   ```
+
+  
+
+2. **Use your router**
+
+   Log in to your router's administration interface and look for a list of connected devices. Depending on the router, this may be called **Connected Devices**, **DHCP Clients**, **LAN Clients**, **Attached Devices**, or something similar.
+
+   Look for the hostname of the device running the Alpaca Driver. The router should display the IPv4 address assigned to it.
+
+3. **Use Windows**
+
+   If the driver is running on Windows, open **Command Prompt** and run:
+
+   ```text
+   ipconfig
+   ```
+
+   Find the network adapter that is currently connected to your local network and look for its **IPv4 Address**.
+
+   You can also use the following command to display the computer's hostname:
+
+   ```text
+   hostname
+   ```
+  
+
+4. **Use Raspberry Pi**
+
+   If the driver is running on a Raspberry Pi, open a terminal and run:
+
+   ```text
+   hostname -I
+   ```
+
+   This displays the IP addresses currently assigned to the Raspberry Pi.
+
+   You can also use the following to display the Raspberry Pi's hostname:
+
+   ```text
+   hostname
+   ```
+
+### Can you use a phone's hotspot as a network?
+
+Yes. A phone's hotspot can provide a network connection when a normal Wi-Fi network is unavailable.
+
+| Platform                      | Windows                                                                                                               | Raspberry Pi                                                      |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Join your phone's hotspot** | On the driver's Windows device, select your phone's hotspot from the Windows Wi-Fi connection list and connect to it. | Add your phone's hotspot using the setup command described below. |
+| **Example configuration**     | Use the normal Windows Wi-Fi configuration interface.                                                                 | `./setup.sh -n <ssid> -w <ssidpassword>`                          |
+
+Once configured, the driver will join the phone's hotspot whenever it is available. If the hotspot is unavailable, it will fall back to the configured home network. If no configured network is available, it will ultimately fall back to access-point mode.
+
+There is an important limitation when using an **Android phone as a hotspot**: Android browsers do not always resolve mDNS hostnames while the phone is operating as the hotspot. In this situation, `http://ap.local/` may not work even though the phone and driver are correctly connected to the same hotspot.
+
+If this occurs, find the driver's IP address and access Alpaca Pilot using the IP address instead.
+
+### How can I test mDNS?
+
+If `ap.local` does not work, you can test whether the device running the browser can resolve the hostname.
+
+On Windows, open **Command Prompt**. On Linux or macOS, open **Terminal**, and run:
+
+```text
+ping ap.local
+
+nslookup ap.local
+```
+
+If these commands cannot resolve `ap.local`, mDNS may be unavailable or blocked on your network, or the client device may not support mDNS resolution in its current configuration.
+
+Note that a successful `ping` is not required for Alpaca Pilot to work. Some devices or network configurations may block ICMP traffic while still allowing access to the web server. The important test is whether `ap.local` can be resolved to the driver's IP address.
+
+If mDNS is unavailable, use the driver's hostname or IP address instead.
+
+</details>
+
+
 
 ---
 
