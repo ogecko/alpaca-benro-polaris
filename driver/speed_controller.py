@@ -55,7 +55,7 @@ FAST_CMD = ('513', '514', '521')
 FAST_UNITS_MIN, FAST_UNITS_MAX = 100, 2500
 CYCLE_S = 0.25                        # shortest modulation cycle between same-direction speeds...
 REVERSING_CYCLE_S = 0.4               # ...and between opposite directions (reversals cost more; legacy 0.5)
-MIN_SLOW_DWELL = 0.075                # shortest time any SLOW command may run: the MCU only picks up
+MIN_SLOW_DWELL = 0.005                # shortest time any SLOW command may run: the MCU only picks up
                                       # SLOW changes on its scheduler tick; on hardware 0.045-0.055 s
                                       # dwells aliased (0.28x-0.48x) while >= 0.067 s were accurate
 
