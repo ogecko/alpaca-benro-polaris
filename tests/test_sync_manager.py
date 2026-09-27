@@ -1,4 +1,5 @@
 import sys
+import datetime
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 from unittest.mock import patch
@@ -354,8 +355,12 @@ def test_sgc_seed_from_quest_residual(mock_config):
 
     # Perform a GUIDE sync in the North with a zero residual 
 
+    # A fixed time (not now): the star then sits at alt ~49, near the alt-45 syncs above. With the wall
+    # clock it ranged over alt 19-49 through the day, and below alt ~21 the model's extrapolation from
+    # those syncs left ~0.9 deg in Alt, so the test failed between ~06:00 and 10:00 UTC.
+    ts = format_timestamp(datetime.datetime(2026, 9, 27, 19, 0, tzinfo=datetime.timezone.utc))
     a_ra, a_dec = 90, -75
-    a_az, a_alt = radec_to_altaz(a_ra, a_dec, DEFAULT_LAT, DEFAULT_LON, format_timestamp())
+    a_az, a_alt = radec_to_altaz(a_ra, a_dec, DEFAULT_LAT, DEFAULT_LON, ts)
     topoQ = azaltroll_to_q(a_az,a_alt,0)
     baseQ = sm.topoQ_to_baseQ(topoQ)
     p_az, p_alt, p_roll = q_to_azaltroll(baseQ)
@@ -363,7 +368,7 @@ def test_sgc_seed_from_quest_residual(mock_config):
     p.update(p_az, p_alt)
     cameraQ, _ = sm.baseQ_to_topoQ(p._motorQ_state)
     fk_az, fk_alt, _ = q_to_azaltroll(cameraQ)
-    fk_ra, fk_dec = azalt_to_radec(fk_az, fk_alt, DEFAULT_LAT, DEFAULT_LON, format_timestamp())
+    fk_ra, fk_dec = azalt_to_radec(fk_az, fk_alt, DEFAULT_LAT, DEFAULT_LON, ts)
     p.update_ascom_radec(fk_ra/15, fk_dec)
     # Plate solve observed
     observed_ra, observed_dec = a_ra, a_dec
