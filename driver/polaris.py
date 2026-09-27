@@ -2379,6 +2379,10 @@ class Polaris:
         Alpha keys (az, alt, roll) are applied via set_alpha_target.
         Delta keys (ra, dec, pa)   are applied via set_delta_target, ra in hours.
         Gamma keys (l, b, gpa)     are converted to delta then applied via set_delta_target.
+        Motor keys (m1, m2, m3)    are motor angles in the PID's base frame (theta, as shown by
+                                   θ_sp/θ_pv): unspecified motors keep the current theta_ref, and the
+                                   resulting pose is converted to Az/Alt/Roll for set_alpha_target.
+                                   They can't be combined with the other keys in one request.
         For relative moves, each value is added to the current PID setpoint.
         """
         if (not coords) or (not Config.advanced_goto):
@@ -2396,12 +2400,27 @@ class Polaris:
             'l':    ('gamma',  0,  1),
             'b':    ('gamma',  1,  1),
             'gpa':  ('gamma',  2,  1),
+            'm1':   ('theta',  0,  1),
+            'm2':   ('theta',  1,  1),
+            'm3':   ('theta',  2,  1),
         }
 
         alpha_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'alpha'}
         delta_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'delta'}
         gamma_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'gamma'}
+        theta_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'theta'}
+        if theta_updates and (alpha_updates or delta_updates or gamma_updates):
+            self.logger.warning('slew_axis: m1/m2/m3 cannot be combined with other axes, ignoring request.')
+            return
         self._sm.invalidate_sync_guiding()
+
+        if theta_updates:
+            theta = np.array(self._pid.theta_ref, dtype=float)
+            for k, v in theta_updates.items():
+                idx = AXES[k][1]
+                theta[idx] = theta[idx] + v if relative else v
+            az, alt, roll = self.theta_to_alpha(theta)
+            self._pid.set_alpha_target({'az': az, 'alt': alt, 'roll': roll})
 
         if alpha_updates:
             if relative:
@@ -2428,17 +2447,23 @@ class Polaris:
             else:
                 self._pid.set_delta_target({'ra': delta[0] / 15, 'dec': delta[1], 'pa': delta[2]})
 
-        if alpha_updates or delta_updates or gamma_updates:
+        if alpha_updates or delta_updates or gamma_updates or theta_updates:
             self.markGotoAsUnderway()
             self._pid.set_goto_complete_callback(self.markGotoAsComplete)
 
+
+    def theta_to_alpha(self, theta) -> tuple:
+        """Motor angles in the PID's base frame (theta1-3, deg) -> topocentric Az/Alt/Roll, through the
+        same corrections as the live position (MAC, SGC, PGC, QUEST, LGA, roll_adj)."""
+        cameraQ, _ = self._sm.baseQ_to_topoQ(theta_to_q(*theta))
+        return q_to_azaltroll(cameraQ)
 
     def parse_slew_parameters(self, parameters: dict) -> dict:
         """
         Parse a slew parameter dict whose values are either float/int (decimal degrees,
         or hours for 'ra') or str (interpreted via dms2dec). Unrecognised keys are dropped.
         """
-        VALID_KEYS = {'ra', 'dec', 'pa', 'az', 'alt', 'roll', 'l', 'b', 'gpa'}
+        VALID_KEYS = {'ra', 'dec', 'pa', 'az', 'alt', 'roll', 'l', 'b', 'gpa', 'm1', 'm2', 'm3'}
         def parse_val(key, val):
             if isinstance(val, (int, float)): return float(val)
             if isinstance(val, str): return dms2dec(val)

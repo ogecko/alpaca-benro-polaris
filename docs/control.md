@@ -858,7 +858,7 @@ curl -s -X PUT "$BASE/action" -d 'Action=Polaris:RestartDriver' -d 'Parameters={
 
 ### Positioning with `Polaris:SlewAbsolute`
 
-Unlike the standard ASCOM `slewtoaltazasync` (Az/Alt only) or the Rotator device's `moveabsolute` (Position Angle only), the custom `Polaris:SlewAbsolute` action accepts any combination of the driver's 9 coordinate-axis keys in one call: `ra`, `dec`, `pa` (equatorial: RA/Dec/Position Angle), `az`, `alt`, `roll` (topocentric: Az/Alt/Roll Angle), and `l`, `b`, `gpa` (galactic). Values are decimal degrees (hours for `ra`) or `"dms"`/`"hms"`-style strings. Set `isasync` to return immediately, or omit/`false` to block until the slew completes.
+Unlike the standard ASCOM `slewtoaltazasync` (Az/Alt only) or the Rotator device's `moveabsolute` (Position Angle only), the custom `Polaris:SlewAbsolute` action accepts any combination of the driver's 9 coordinate-axis keys in one call: `ra`, `dec`, `pa` (equatorial: RA/Dec/Position Angle), `az`, `alt`, `roll` (topocentric: Az/Alt/Roll Angle), and `l`, `b`, `gpa` (galactic). Values are decimal degrees (hours for `ra`) or `"dms"`/`"hms"`-style strings. It (and `Polaris:SlewRelative`) also accepts motor angles `m1`, `m2`, `m3` in the PID's base frame (the θ values shown on the PID pages): motors not given keep their current reference, and the resulting pose is sent to the PID as an Az/Alt/Roll target. Motor keys can't be combined with the other keys in one request. Set `isasync` to return immediately, or omit/`false` to block until the slew completes.
 
 ```bash
 # Slew directly to topocentric Az/Alt/Roll in one call (respects the Roll ±60° and Altitude 0-70° limits above)

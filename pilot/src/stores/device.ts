@@ -148,11 +148,11 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtocoordinatesasync',{ RightAscension: ra, Declination: dec });
     },
 
-    async alpacaSlewAbsolute(coords: Partial<Record<'az'|'alt'|'roll'|'ra'|'dec'|'pa'|'l'|'b'|'gpa', number>>, isasync = true) {
+    async alpacaSlewAbsolute(coords: Partial<Record<'az'|'alt'|'roll'|'ra'|'dec'|'pa'|'l'|'b'|'gpa'|'m1'|'m2'|'m3', number>>, isasync = true) {
       await this.apiAction<void>('Polaris:SlewAbsolute', JSON.stringify({ ...coords, isasync }))
     },
 
-    async alpacaSlewRelative(coords: Partial<Record<'az'|'alt'|'roll'|'ra'|'dec'|'pa'|'l'|'b'|'gpa', number>>, isasync = true) {
+    async alpacaSlewRelative(coords: Partial<Record<'az'|'alt'|'roll'|'ra'|'dec'|'pa'|'l'|'b'|'gpa'|'m1'|'m2'|'m3', number>>, isasync = true) {
       await this.apiAction<void>('Polaris:SlewRelative', JSON.stringify({ ...coords, isasync }))
     },
 
