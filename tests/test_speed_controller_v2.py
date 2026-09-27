@@ -363,6 +363,35 @@ def test_allow_pwm_false_uses_nearest_speed_without_modulation(ctrl):
         "allow_PWM=False must pick the nearest firmware speed and hold it")
 
 
+@pytest.mark.parametrize("target,expected", [
+    (0.0, "-1A 50:50 +1A"),                                   # holding: equal time each way
+    (-0.3 * SLOW_DPS[(1, 1)], "-1A 65:35 +1A"),
+    ((SLOW_DPS[(1, 1)] + SLOW_DPS[(1, 2)]) / 2, "+1A 50:50 +1B"),
+    (SLOW_DPS[(1, 2)], "+1A 0:100 +1B"),                  # steady: shown against the neighbour nearer zero
+    (-SLOW_DPS[(1, 1)], "-1A 100:0 +1A"),
+    (-SLOW_DPS[(1, 2)], "-1B 100:0 -1A"),
+])
+def test_motorcmd_shows_speeds_and_time_share(ctrl, target, expected):
+    """Display for the Pilot kinematics page: direction + level + A/B (state 1/2) and, when mixing,
+    the share of time at each speed like the legacy '-1 79:21 +1'."""
+    ctrl.set_speed(0, target, now=0.0, hold=True)
+    ctrl.tick(0.0)
+    assert ctrl.cmdstr(0) == expected, f"motorcmd for {target:+.5f} dps was {ctrl.cmdstr(0)!r}"
+
+
+def test_motorcmd_has_a_fixed_width_in_every_mode(ctrl):
+    """A fixed, right-aligned width keeps the Pilot kinematics display from jumping."""
+    seen = [ctrl.cmdstr(0)]                                   # idle
+    for dps, kw in ((0.0042, {"hold": True}), (SLOW_DPS[(2, 1)], {}), (2.0, {"ramp_duration": 1.0}), (2.0, {})):
+        ctrl.set_speed(0, dps, now=0.0, **kw)
+        ctrl.tick(0.0)
+        seen.append(ctrl.cmdstr(0))
+    assert {len(x) for x in seen} == {13}, f"motorcmd widths differ: {seen}"
+    slow = [x for x in seen if "IDLE" not in x and "FAST" not in x and "RAMP" not in x]
+    assert slow and all(x[0] in "+-" and x[3] == " " and x[9] == " " and x[10] in "+-" for x in slow), (
+        f"SLOW speeds are not in fixed columns: {slow}")
+
+
 # ---------------------------------------------------------------------------------------
 # Runtime and hot swap
 # ---------------------------------------------------------------------------------------

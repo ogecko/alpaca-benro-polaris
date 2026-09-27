@@ -22,6 +22,7 @@
 #     more ripple than legacy and made PID tracking worse at low rates.)
 #   * no axis changes direction/state sooner than MIN_SLOW_DWELL, because the MCU only samples
 #     SLOW changes on its scheduler tick;
+#   * motorcmd shows the pair and time share like legacy, with A/B for state 1/2: '-1A 79:21 +1A';
 #   * rates above the fastest SLOW speed use FAST (513/514/521), refreshed every 50 ms and
 #     optionally ramped. The FAST speed-unit interpolator is the only use of calibration data.
 #
@@ -41,6 +42,8 @@ from typing import Optional
 import numpy as np
 from scipy.interpolate import PchipInterpolator
 
+from shr import ratio_string
+
 # SLOW speeds (deg/s) by (level, state), measured on hardware (utility/state2_test.py,
 # mean of M1-M3, 2026-09-26); firmware steps are 60 x 0.0001..0.004.
 SLOW_DPS = {
@@ -50,6 +53,7 @@ SLOW_DPS = {
 LEVELS = (1, 2, 3, 4, 5)
 BAND_DPS = SLOW_DPS[(1, 2)]           # fastest rate that keeps every axis on level 1
 MAX_SLOW_DPS = SLOW_DPS[(5, 2)]       # above this, FAST is used
+CMDSTR_WIDTH = 13                     # motorcmd display width, e.g. '-2A 54:46 +2A'
 SLOW_CMD = ('532', '533', '534')
 FAST_CMD = ('513', '514', '521')
 FAST_UNITS_MIN, FAST_UNITS_MAX = 100, 2500
@@ -211,13 +215,24 @@ class SpeedCoordinator:
         a = self._axes[axis]
         if a.mode == 'FAST':
             label = 'RAMP' if a.fast_now != a.fast_to else 'FAST'
-            return f" {label} {a.fast_now:+05.0f}"
+            return f"{label} {a.fast_now:+05.0f}".rjust(CMDSTR_WIDTH)
         if a.mode == 'SLOW' and a.pair:
-            # each speed as direction + level.state, e.g. '-1.1/+1.1' (tracking dither) or '+2.2'
-            sym = lambda s: f"{'+' if s[0] > 0 else '-'}{s[3]}.{s[2]}"
-            body = sym(a.pair[0]) if a.pair[0] == a.pair[1] else f"{sym(a.pair[0])}/{sym(a.pair[1])}"
-            return f" {body}".ljust(11)
-        return " IDLE      "
+            # always '<lo> <time share> <hi>' in fixed columns: speeds as direction + level + state
+            # (A = state 1, B = state 2), share of time at each like the legacy '-1 79:21 +1'.
+            # A steady speed is shown against its neighbour nearer zero: '-2A 100:0 +2A', '+1A 0:100 +1B'.
+            sym = lambda s: f"{'+' if s[0] > 0 else '-'}{s[3]}{'AB'[s[2] - 1]}"
+            lo, hi = a.pair
+            if lo == hi:
+                speeds = _speeds_at(lo[3])
+                i = speeds.index(lo)
+                other = speeds[i - 1] if lo[0] > 0 else speeds[i + 1]
+                lo, hi = (other, lo) if lo[0] > 0 else (lo, other)
+                share = "0:100" if a.pair[0] is hi else "100:0"
+            else:
+                duty = (float(np.clip(a.target, lo[0], hi[0])) - lo[0]) / (hi[0] - lo[0])
+                share = ratio_string(duty)                     # 01:99 .. 99:01 while mixing
+            return f"{sym(lo)} {share} {sym(hi)}"
+        return "IDLE".rjust(CMDSTR_WIDTH)
 
     # ---- scheduling -----------------------------------------------------------------
     def next_wakeup(self, now: float) -> float:
