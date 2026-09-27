@@ -10,6 +10,8 @@ each motor's angle, so tests can check what the mount would actually do:
   state (1 = start, 2 = continue) are per axis. state 0 stops the axis; state > 2 counts as 0.
 - M3 (534) is driven by the astro module, which keeps its own copy of the level from each 534.
 - FAST 513/514/521 'speed:n' overrides SLOW on that axis while refreshed (watchdog).
+- Optionally (fast_lag_s) FAST speed follows the command with a first-order lag, as the MCU's own
+  EMA/slew limiting does; hardware goto captures showed ~0.35 s.
 - SLOW commands are only picked up on the MCU scheduler tick (MCU_TICK_S). Hardware shows
   commands changing every 0.1 s alias badly (0.28x-0.48x) while >= 0.25 s is accurate;
   dwells of 0.045-0.055 s aliased and >= 0.067 s were fine, so the tick is modelled as 0.05 s.
@@ -40,7 +42,9 @@ _FAST_RE = re.compile(r"^1&(51[34]|521)&3&speed:(-?\d+);#$")
 
 
 class McuModel:
-    def __init__(self):
+    def __init__(self, fast_lag_s=0.0):
+        self.fast_lag_s = fast_lag_s
+        self.fast_actual = [0.0, 0.0, 0.0]     # FAST dps actually running (lags the command when fast_lag_s)
         self.t = 0.0
         self.shared_level = None                 # K[3] as seen by M1/M2 (last valid level)
         self.astro_level = None                  # astro module's own level for M3
@@ -63,10 +67,15 @@ class McuModel:
     def _latch(self):
         self._latched = (self.shared_level, self.astro_level, tuple(self.dir), tuple(self.state))
 
+    def fast_dps(self, axis):
+        s = self.fast_speed[axis]
+        return float(np.sign(s) * _fast_to_dps(abs(s))) if s and self.t < self.fast_until[axis] else 0.0
+
     def dps(self, axis):
+        if self.fast_lag_s and (self.t < self.fast_until[axis] or abs(self.fast_actual[axis]) > 1e-4):
+            return self.fast_actual[axis]
         if self.t < self.fast_until[axis]:
-            s = self.fast_speed[axis]
-            return float(np.sign(s) * _fast_to_dps(abs(s))) if s else 0.0
+            return self.fast_dps(axis)
         return self.slow_dps(axis)
 
     def velocity(self):
@@ -79,6 +88,10 @@ class McuModel:
             tick = (math.floor(self.t / MCU_TICK_S + 1e-9) + 1) * MCU_TICK_S
             nxt = min([t, tick] + [u for u in self.fast_until if self.t < u < t])
             self.position += self.velocity() * (nxt - self.t)
+            if self.fast_lag_s:
+                k = 1 - math.exp(-(nxt - self.t) / self.fast_lag_s)
+                for a in range(3):
+                    self.fast_actual[a] += k * (self.fast_dps(a) - self.fast_actual[a])
             self.t = nxt
             if abs(self.t - tick) < 1e-9:
                 self._latch()
