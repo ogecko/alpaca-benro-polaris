@@ -1787,6 +1787,11 @@ class PID_Controller():
 
 
         self.omega_ctl = np.clip(self.omega_ctl, self.omega_min, self.omega_max)
+        if Config.coordinated_speed_control:
+            # the smoothed feedback state is the feedback part of what is actually sent (after the speed
+            # clip): taken before it, it wound up far past Kv on long moves (-39 deg/s against -8.9) and
+            # held the motor at full speed for seconds after the error reversed (large overshoots)
+            self.omega_fb = self.omega_ctl - self.omega_ff_shaped
 
     async def control(self):
         self.omega_op = np.zeros(3, dtype=float)
