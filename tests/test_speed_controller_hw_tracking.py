@@ -55,8 +55,8 @@ def mount():
     yield
     set_tracking(False)
     stop_all()
-    if original in ("legacy", "v2"):
-        set_speed_controller(original == "v2")
+    if original in ("legacy", "coordinated"):
+        set_speed_controller(original == "coordinated")
     print("\nPID tracking RMS error (arcsec) [M1, M2, M3] total:")
     for name, r in RESULTS.items():
         print(f"  {name:20s} " + "   ".join(f"{c}: {np.round(v[0], 1)} {v[1]:.1f}" for c, v in r.items()))

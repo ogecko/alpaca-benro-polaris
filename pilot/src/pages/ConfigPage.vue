@@ -192,7 +192,7 @@
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_pulse_guiding', 'Pulse Guiding (Guide-camera)')"/>
-                <q-toggle class='col-6' v-bind="bindField('speed_controller_v2', 'Coordinated Speed Control')"/>
+                <q-toggle class='col-6' v-bind="bindField('coordinated_speed_control', 'Coordinated Speed Control')"/>
               </div>
               <div v-if="cfg.advanced_pulse_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
                 <q-select

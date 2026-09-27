@@ -828,10 +828,10 @@ class PID_Controller():
         self.orbital_sp_fetchmsg  = None               # result msg from last http fetch of orbital parameters
         self.orbital_sp_status = [0, 0, 0]             # status of orbital tracking [is_orb_trackable (0=N/A, 1=toolow, 2=ok), orb_az, orb_alt]
         self.axis_v_sp = {k: 0.0 for k in AXIS_MAP}    # deg/sec jog rate per named axis in AXIS_MAP
-        self.axis_v_act = {k: 0.0 for k in AXIS_MAP}   # jog rate actually applied: ramped toward axis_v_sp (advanced_motion_planning)
+        self.axis_v_act = {k: 0.0 for k in AXIS_MAP}   # jog rate actually applied: ramped toward axis_v_sp (coordinated_speed_control)
         self.omega_ff_shaped = np.zeros(3, dtype=float)  # jog/goto feed-forward already within motor limits, added after smoothing
-        self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (advanced_motion_planning)
-        self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (advanced_motion_planning)
+        self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (coordinated_speed_control)
+        self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (coordinated_speed_control)
         self.track_move_planned = None                 # per goto while tracking: planned (small/roll move) or not
         self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, pa   - user set target equatorial co-ordinates
@@ -995,9 +995,9 @@ class PID_Controller():
         return sign * np.radians(rate_dps) * np.array(triad[idx])
 
     def _jog_rates(self):
-        """Jog rates that move the mount: with advanced_motion_planning, the rates ramped toward
+        """Jog rates that move the mount: with coordinated_speed_control, the rates ramped toward
         axis_v_sp within the motor acceleration (see ramp_jog_rates); else axis_v_sp itself."""
-        return self.axis_v_act if Config.advanced_motion_planning else self.axis_v_sp
+        return self.axis_v_act if Config.coordinated_speed_control else self.axis_v_sp
 
     def ramp_jog_rates(self):
         """Move the applied jog rates toward the requested ones by at most Ka*dt per control step."""
@@ -1408,7 +1408,7 @@ class PID_Controller():
             self.cameraQ_ref_last = self.cameraQ_ref
             self.cameraQ_ref = cameraQ_ref
 
-        # With advanced_motion_planning an AUTO goto follows a planned trajectory instead
+        # With coordinated_speed_control an AUTO goto follows a planned trajectory instead
         if self.plan_goto():
             return
 
@@ -1445,12 +1445,12 @@ class PID_Controller():
     SMALL_MOVE_RATE = 0.21                           # ...where the motors run accurately in position mode (deg/s)
 
     def plan_goto(self):
-        """advanced_motion_planning: drive theta_ref along a GotoTrajectory with its velocity as shaped
+        """coordinated_speed_control: drive theta_ref along a GotoTrajectory with its velocity as shaped
         feed-forward - for a goto when not tracking (planned in Az/Alt/Roll, holding Az/Alt through roll
         changes), and for a goto/rotate while tracking (planned in RA/Dec/PA, holding RA/Dec through PA
         changes, converted to motor angles at the current time). Returns True when it set theta_ref."""
         tracking_move = self.mode == 'TRACK' and self.move_pending()
-        active = (Config.advanced_motion_planning and (self.mode == 'AUTO' or tracking_move)
+        active = (Config.coordinated_speed_control and (self.mode == 'AUTO' or tracking_move)
                   and self.theta_ref_cache is None and not self._has_active_jog() and self.dt > 0)
         if self.goto_traj is not None and (not active or self.goto_traj.space != self.mode):
             self.goto_traj = None
@@ -1552,7 +1552,7 @@ class PID_Controller():
         self.time_meas = self.time_meas + self.dt
 
     def feed_forward(self):
-        if Config.advanced_motion_planning:
+        if Config.coordinated_speed_control:
             # jog feed-forward from the ramped jog rates, added after smoothing (see constrain);
             # a goto's shaped feed-forward was already set by plan_goto
             if not self.goto_in_progress():
@@ -1712,7 +1712,7 @@ class PID_Controller():
         if self.mode=='TRACK':
             now = time.monotonic()
             no_recent_disturbance = now > self.ki_inhibit_until   # set/extended by SP changes, sync guide, pulse guide
-            if Config.advanced_motion_planning and self.move_pending():
+            if Config.coordinated_speed_control and self.move_pending():
                 no_recent_disturbance = False                     # freeze (don't reset) the integral during a goto/rotate
             not_jogging = not self._has_active_jog()
             # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
@@ -1732,9 +1732,9 @@ class PID_Controller():
     def pid(self):
         self.omega_kp = np.array(Config.pid_Kp, dtype=float) * self.error_signal    # increase control proportional to error
         self.omega_ki = np.array(Config.pid_Ki, dtype=float) * self.error_integral  # increase control when integral error is high
-        # damping acts on the output less its feed-forward; with advanced_motion_planning the smoothed
+        # damping acts on the output less its feed-forward; with coordinated_speed_control the smoothed
         # state is the feedback part only (omega_fb) and the shaped feed-forward is added in constrain()
-        smoothed = self.omega_fb if Config.advanced_motion_planning else self.omega_op
+        smoothed = self.omega_fb if Config.coordinated_speed_control else self.omega_op
         self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * (smoothed - self.omega_ff)      # dampen control when velocity error is high
         self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff - self.omega_pec
 
@@ -1742,7 +1742,7 @@ class PID_Controller():
         self.set_Ka_array(Config.pid_Ka) 
         self.set_Kv_array(Config.pid_Kv) 
         # Compute constrained acceleration
-        smoothed = self.omega_fb if Config.advanced_motion_planning else self.omega_op
+        smoothed = self.omega_fb if Config.coordinated_speed_control else self.omega_op
         accel_clipped = np.array([0, 0, 0], dtype=float)
         if self.dt > 0:
             delta_omega = self.omega_tgt - smoothed
@@ -1751,7 +1751,7 @@ class PID_Controller():
         # Apply clipped acceleration, expotential smoothing, and clip velocity
         self.omega_ctl = smoothed + accel_clipped * self.dt
         self.omega_ctl = self.omega_ctl * (1.0 - Config.pid_Ke) + Config.pid_Ke * smoothed
-        if Config.advanced_motion_planning:
+        if Config.coordinated_speed_control:
             # jog/goto feed-forward is already shaped within the motor limits: add it after the
             # smoothing and acceleration clamp so it isn't delayed (see GotoTrajectory)
             self.omega_fb = self.omega_ctl.copy()
@@ -1811,7 +1811,7 @@ class PID_Controller():
         if Config.advanced_pec:
             self.polaris._sm.apply_pec_drift_correction()
         if self.time_meas:      # Only process if we have a measurement
-            if Config.advanced_motion_planning:
+            if Config.coordinated_speed_control:
                 self.ramp_jog_rates()
             self.track_target() # Update theta_ref with target's new position
             self.feed_forward() # Feed forward tracking velocities when in TRACK mode
@@ -1842,7 +1842,7 @@ class PID_Controller():
             await asyncio.sleep(delay)
 
     def notify(self):
-        # a planned move (advanced_motion_planning) completes only once its trajectory has finished too
+        # a planned move (coordinated_speed_control) completes only once its trajectory has finished too
         arrived = not self.is_deviating and not self.goto_in_progress()
         if (arrived or self.goto_timeout()) and self.goto_complete_callback:
             self.goto_complete_callback()

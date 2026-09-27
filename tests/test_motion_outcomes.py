@@ -5,7 +5,8 @@ the mount, on a simulated clock). Twin baselines match the mount closely (tracki
 goto-while-tracking settle times and roll-step drift in the hardware range).
 
 Guards - must hold for every change (no going backwards):
-  * sidereal tracking RMS at five poses stays within 10% of the recorded baseline
+  * sidereal tracking RMS at five poses stays within 10% of the recorded baseline, for each
+    coordinated_speed_control setting (off = legacy speed controller, on = coordinated)
 Goals - the improvements being worked on (fail until done):
   * tracking right after a goto is no worse than before it (baseline: 2.21" after vs 1.87" before,
     from the integral disturbed by the goto)
@@ -29,14 +30,16 @@ SEEDS = (0, 1, 2)
 TOL_DEG = 0.75 / 60 / 20
 ARCSEC = 3600.0
 
-# twin baselines (mean of SEEDS), 2026-09-27, v2 speed controller, advanced_motion_planning off
+# twin tracking RMS baselines (arcsec, mean of SEEDS), 2026-09-27, per coordinated_speed_control setting
 BASELINE_TRACKING_RMS = {
-    "pole_alt15_roll0": 6.49, "pole_alt20_roll0": 1.77, "pole_alt20_roll45": 1.68,
-    "north_alt15_roll0": 4.05, "mid_alt_meridian": 1.85,
+    "legacy": {"pole_alt15_roll0": 125.94, "pole_alt20_roll0": 11.2, "pole_alt20_roll45": 2.04,
+               "north_alt15_roll0": 13.71, "mid_alt_meridian": 1.96},
+    "coordinated": {"pole_alt15_roll0": 6.49, "pole_alt20_roll0": 1.77, "pole_alt20_roll45": 1.68,
+                    "north_alt15_roll0": 4.05, "mid_alt_meridian": 1.85},
 }
 GUARD = 1.10
 TRACK_POSE = (135.0, 45.0, 0.0)
-CANDIDATE = {"advanced_motion_planning": True}           # the configuration the goals are for
+CANDIDATE = {"coordinated_speed_control": True}           # the configuration the goals are for
 # Goals not yet met are expected failures (non-strict): they show as XFAIL until achieved, then XPASS.
 goal = pytest.mark.xfail(strict=False, reason="motion-control goal not yet met (see module docstring)")
 
@@ -94,22 +97,23 @@ def fmt(xs):
 # Guards
 # ---------------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["baseline_config", "candidate_config"])
+@pytest.mark.parametrize("setting", ["legacy", "coordinated"])
 @pytest.mark.parametrize("pose", ORIENTATIONS.keys())
-def test_guard_tracking_rms_not_worse_than_baseline(monkeypatch, config, pose):
+def test_guard_tracking_rms_not_worse_than_baseline(monkeypatch, setting, pose):
+    config = CANDIDATE if setting == "coordinated" else {}
     rms = []
     for seed in SEEDS:
         tw = tracking_twin(monkeypatch, config, seed, ORIENTATIONS[pose])
         rms.append(tracking_rms(tw))
         tw.close()
-    limit = GUARD * BASELINE_TRACKING_RMS[pose]
-    assert np.mean(rms) <= limit, (
-        f"sidereal tracking RMS at {pose} is {np.mean(rms):.2f}\" (seeds {np.round(rms, 2)}), worse than the "
-        f"baseline {BASELINE_TRACKING_RMS[pose]:.2f}\" + 10% = {limit:.2f}\"")
+    baseline = BASELINE_TRACKING_RMS[setting][pose]
+    assert np.mean(rms) <= GUARD * baseline, (
+        f"{setting} sidereal tracking RMS at {pose} is {np.mean(rms):.2f}\" (seeds {np.round(rms, 2)}), worse than "
+        f"its baseline {baseline:.2f}\" + 10% = {GUARD * baseline:.2f}\"")
 
 
 @goal
-@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["baseline_config", "candidate_config"])
+@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["legacy", "coordinated"])
 def test_goal_tracking_after_goto_is_no_worse_than_before(monkeypatch, config):
     before, after = [], []
     for seed in SEEDS:
@@ -124,7 +128,7 @@ def test_goal_tracking_after_goto_is_no_worse_than_before(monkeypatch, config):
         f"before it {np.mean(before):.2f}\" + 15% - goto/integral handling is disturbing tracking")
 
 
-@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["baseline_config", "candidate_config"])
+@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["legacy", "coordinated"])
 @pytest.mark.parametrize("step", ["corrective_3arcmin", "large_5deg"])
 def test_guard_goto_completes_only_on_target(monkeypatch, config, step):
     """Plate solving follows completion: when a goto while tracking reports complete, the mount must be on

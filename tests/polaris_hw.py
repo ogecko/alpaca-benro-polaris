@@ -106,9 +106,9 @@ def direction(axis):
 
 
 def speed_controller():
-    """'v2' or 'legacy', as selected in the driver config (unknown on older drivers)."""
+    """'coordinated' or 'legacy', as selected in the driver config (unknown on older drivers)."""
     try:
-        return "v2" if action("Polaris:ConfigFetch", {"configNames": ["speed_controller_v2"]}).get("speed_controller_v2") else "legacy"
+        return "coordinated" if action("Polaris:ConfigFetch", {"configNames": ["coordinated_speed_control"]}).get("coordinated_speed_control") else "legacy"
     except Exception:
         return "unknown"
 
@@ -128,7 +128,7 @@ def slew_absolute(az, alt, roll, timeout=120):
 
 
 def set_speed_controller(use_v2: bool):
-    action("Polaris:ConfigUpdate", {"speed_controller_v2": bool(use_v2)})
+    action("Polaris:ConfigUpdate", {"coordinated_speed_control": bool(use_v2)})
     time.sleep(0.5)
 
 

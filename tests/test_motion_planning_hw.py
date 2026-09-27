@@ -1,14 +1,14 @@
 """
-Hardware acceptance test for advanced_motion_planning (GotoTrajectory + jog shaping).
+Hardware acceptance test for coordinated_speed_control (GotoTrajectory + jog shaping).
 
-For each case the same move is made with advanced_motion_planning off (legacy) and on:
+For each case the same move is made with coordinated_speed_control off (legacy) and on:
   * roll-only goto at low altitude: pointing (reported Az/Alt) must stay within 10' of the start
     Az/Alt with planning, and be better than legacy;
   * Az jog released after 5 s: M1's overshoot past the reference (PID error signal) must be at most
     10' with planning, and less than legacy.
 
 Runs only when the driver allows hardware unit tests (config log_hardware_unit_tests) and the Polaris
-is connected, aligned and not slewing. Stops tracking, restores advanced_motion_planning, leaves the
+is connected, aligned and not slewing. Stops tracking, restores coordinated_speed_control, leaves the
 mount stopped. ~4 minutes.
 """
 import math
@@ -38,7 +38,7 @@ def not_ready_reason():
 
 
 def set_planning(on):
-    action("Polaris:ConfigUpdate", {"advanced_motion_planning": bool(on)})
+    action("Polaris:ConfigUpdate", {"coordinated_speed_control": bool(on)})
     time.sleep(0.5)
 
 
@@ -63,14 +63,14 @@ def mount():
     reason = hardware_tests_disabled_reason() or not_ready_reason()
     if reason:
         pytest.skip(f"Hardware test skipped: {reason}")
-    original = action("Polaris:ConfigFetch", {"configNames": ["advanced_motion_planning"]}).get("advanced_motion_planning", False)
+    original = action("Polaris:ConfigFetch", {"configNames": ["coordinated_speed_control"]}).get("coordinated_speed_control", False)
     set_tracking(False)
     stop_all()
     yield
     set_tracking(False)
     stop_all()
     set_planning(original)
-    print("\nadvanced_motion_planning acceptance:")
+    print("\ncoordinated_speed_control acceptance:")
     for name, r in RESULTS.items():
         print(f"  {name:28s} legacy {r['legacy']}   planned {r['planned']}")
 

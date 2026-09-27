@@ -9,6 +9,8 @@ sky positions -> pid.measure -> control_step_calculate -> control()).
 
 Only the small Polaris facade below is written for the twin (site, observer, flags, sky position
 extraction, goto completion). Alignment is single-point (identity), no MAC/LGA/PEC/sync guiding.
+Config coordinated_speed_control selects the motors as in the driver: on = v2 SpeedCoordinator,
+off = the legacy MotorSpeedController (synchronous mirror, tests/pid_loop_sim.py).
 """
 import asyncio
 import datetime as _dt
@@ -43,8 +45,8 @@ TWIN_CONFIG = {
     "advanced_control": True, "advanced_kf": True, "advanced_slewing": True, "advanced_goto": True,
     "advanced_tracking": True, "advanced_alignment": False, "advanced_scc_enabled": False,
     "advanced_align_mac": False, "advanced_pec": False, "advanced_sync_guiding": False,
-    "advanced_pulse_guiding": True, "advanced_orbitals": False, "advanced_motion_planning": False,
-    "speed_controller_v2": True, "log_position": False, "log_pec": False, "log_quest_model": False,
+    "advanced_pulse_guiding": True, "advanced_orbitals": False, "coordinated_speed_control": False,
+    "log_position": False, "log_pec": False, "log_quest_model": False,
     "site_latitude": LAT, "site_longitude": LON, "pid_Ka": 0.0, "pid_Kv": 0.0,
 }
 
@@ -101,6 +103,35 @@ class MotorShim:
         return self.units[self.axis].to_dps(rate, units)
 
 
+class LegacyMotorShim:
+    """Legacy per-axis MotorSpeedController, via the synchronous mirror of its dispatch loop in
+    tests/pid_loop_sim.py (LegacyDriver), on the simulated clock."""
+    def __init__(self, legacy, axis, clock):
+        self.m, self.legacy, self.axis, self.clock = legacy.motors[axis], legacy, axis, clock
+
+    async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True, tracking=False):
+        raw = self.m._model.interpolate[rate_unit].toRAW(rate)
+        self.m.pending_update = (float(raw), ramp_duration, allow_PWM, tracking, self.clock.monotonic())
+
+    @property
+    def rate_dps(self):
+        return self.m.rate_dps
+
+    @property
+    def rate_raw(self):
+        return self.m.rate_raw
+
+    @property
+    def max_dps(self):
+        return self.m._model.maxDPS
+
+    def get_cmdstr(self):
+        return self.m.get_cmdstr() if self.m.command is not None else " IDLE      "
+
+    def to_dps(self, rate, units):
+        return float(self.m._model.interpolate['RAW'].toDPS(self.m._model.interpolate[units].toRAW(rate)))
+
+
 class TwinPolaris:
     """The parts of Polaris the control code reads, backed by the twin."""
     def __init__(self, twin):
@@ -148,9 +179,16 @@ class Twin:
         self.rng = np.random.default_rng(seed)
         self.logger = logging.getLogger("twin")
         self.polaris = TwinPolaris(self)
-        units = {a: RateUnits(control.CalibrationManager(liveInstance=False).baseline_data[a]) for a in range(3)}
-        self.core = SpeedCoordinator(units)
-        self.polaris._motors = {a: MotorShim(self.core, units, a, self.clock) for a in range(3)}
+        if Config.coordinated_speed_control:
+            units = {a: RateUnits(control.CalibrationManager(liveInstance=False).baseline_data[a]) for a in range(3)}
+            self.core = SpeedCoordinator(units)
+            self.polaris._motors = {a: MotorShim(self.core, units, a, self.clock) for a in range(3)}
+            self._motor_tick = lambda t: [msg for _a, msg in self.core.tick(t)]
+        else:
+            import pid_loop_sim
+            self.core = pid_loop_sim.LegacyDriver(pid_loop_sim.calibration())
+            self.polaris._motors = {a: LegacyMotorShim(self.core, a, self.clock) for a in range(3)}
+            self._motor_tick = self.core.tick
         self.polaris._sm = SyncManager(self.logger, self.polaris)
         self.pid = PID_Controller(self.logger, self.polaris, loop=None)
         self.polaris._pid = self.pid
@@ -212,7 +250,7 @@ class Twin:
                 self._next_meas += MEASURE_DT
                 if on_measure:
                     on_measure(self)
-            for _axis, msg in self.core.tick(self.clock.t):
+            for msg in self._motor_tick(self.clock.t):
                 self.mcu.feed(self.clock.t, msg)
             self.clock.t = round(self.clock.t + SIM_DT, 9)
             self.mcu.advance(self.clock.t)

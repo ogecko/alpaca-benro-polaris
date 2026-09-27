@@ -245,12 +245,12 @@ class Polaris:
         self._cm = CalibrationManager()
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         # Legacy per-axis controllers and the shared-level v2 controller (BETA) run side by side;
-        # each self._motors[axis] routes to one of them, chosen by Config.speed_controller_v2
+        # each self._motors[axis] routes to one of them, chosen by Config.coordinated_speed_control
         # and switchable live (see select_speed_controller).
         legacy_motors = {axis: MotorSpeedController(logger, self._cm, axis, self.send_msg) for axis in (0, 1, 2)}
         self._speed_v2 = SpeedControllerRuntime({axis: RateUnits(self._cm.baseline_data[axis]) for axis in (0, 1, 2)},
                                                 self.send_msg, log=logger)
-        use_v2 = bool(getattr(Config, 'speed_controller_v2', False))
+        use_v2 = bool(getattr(Config, 'coordinated_speed_control', False))
         self._motors = {
             axis: SwitchableMotor(legacy_motors[axis], self._speed_v2.axis(axis), use_new=use_v2)
             for axis in (0, 1, 2)
@@ -1600,8 +1600,8 @@ class Polaris:
                 self.siteelevation = Config.site_elevation
             elif param == "site_pressure":
                 self.sitepressure = Config.site_pressure
-            elif param == "speed_controller_v2":
-                asyncio.create_task(self.select_speed_controller(Config.speed_controller_v2))
+            elif param == "coordinated_speed_control":
+                asyncio.create_task(self.select_speed_controller(Config.coordinated_speed_control))
             elif param == "max_accel_rate":        
                 self._pid.set_Ka_array(Config.max_accel_rate)
             elif param == "max_slew_rate":
