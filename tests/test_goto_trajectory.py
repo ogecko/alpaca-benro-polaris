@@ -186,6 +186,25 @@ def test_branch_change_on_the_path_is_flagged():
     assert not traj.branch_change, "a continuous path must not be flagged as a branch change"
 
 
+AXIS_RATES = np.array([8.92, 7.66, 8.0]) * 0.8    # per-axis planner limits (calibrated max_dps x GOTO_RATE_SHARE)
+
+
+@pytest.mark.parametrize("start,goal", [GOTOS["az_only"], GOTOS["az_alt_roll_all_change"], ROLL_MOVES["alt20_roll_0_to_45"]],
+                         ids=["az_only", "az_alt_roll_all_change", "alt20_roll_0_to_45"])
+def test_each_axis_runs_up_to_its_own_limit(start, goal):
+    """With per-axis rate limits, each motor stays within its own limit, and the path isn't held to the slowest
+    motor's: an Az-only move runs M1 at its limit (was: every axis capped at the slowest, M2's, ~6.1 deg/s)."""
+    theta = to_theta(start, np.array([180.0, 45.0, 0.0]))
+    traj = GotoTrajectory(to_theta, max_rate=AXIS_RATES, max_accel=KA)
+    traj.start(np.asarray(start, float), theta, np.asarray(goal, float))
+    refs = [traj.step(DT)[0] for _ in range(600) if not traj.done]
+    rate = np.abs(np.diff(np.array(refs), axis=0)) / DT
+    peak = rate.max(axis=0)
+    assert np.all(peak <= AXIS_RATES + 1e-6), f"axis rates {np.round(peak, 2)} exceed their limits {np.round(AXIS_RATES, 2)}"
+    if start[1] == goal[1] and start[2] == goal[2]:
+        assert peak[0] >= 0.98 * AXIS_RATES[0], f"Az-only move ran M1 at {peak[0]:.2f} deg/s, not up to its limit {AXIS_RATES[0]:.2f}"
+
+
 def test_feed_forward_is_the_reference_velocity():
     r = goto(*ROLL_MOVES["alt45_roll_0_to_45"])
     assert np.allclose(r["ffs"][:-1], np.diff(r["refs"], axis=0) / DT, atol=1e-9), (

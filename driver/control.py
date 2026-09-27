@@ -713,7 +713,7 @@ class GotoTrajectory:
     only corrects small errors.
 
     On start/retarget the path is sampled in motor space and given a speed profile: the path speed
-    (fastest axis) stays within max_rate, slows where the path curves so that per-axis acceleration
+    (fastest axis) keeps every axis within its max_rate (a limit per axis, or one for all), slows where the path curves so that per-axis acceleration
     from turning stays within half of max_accel, and speeds up / slows down within the acceleration
     that turning leaves over, from the
     current speed to a stop at the goal. step() then walks the profile.
@@ -726,7 +726,8 @@ class GotoTrajectory:
 
     def __init__(self, to_theta, max_rate, max_accel):
         self.to_theta = to_theta
-        self.max_rate = float(max_rate)
+        self.axis_rates = np.broadcast_to(np.asarray(max_rate, dtype=float), (3,)).copy()   # per-axis limits
+        self.max_rate = float(np.max(self.axis_rates))
         self.max_accel = float(max_accel)
         self.done = True
         self._at_goal = True
@@ -753,11 +754,14 @@ class GotoTrajectory:
         self.branch_change = bool(np.max(ds, initial=0.0) > self.BRANCH_JUMP_DEG)
         s = np.concatenate([[0.0], np.cumsum(ds)])
         u = seg / np.maximum(ds, 1e-12)[:, None]              # per-axis rate per unit path speed
-        v = np.full(len(s), self.max_rate)
+        # path speed cap: each axis within its own limit (axis rate = path speed * |u|)
+        seg_cap = np.min(self.axis_rates[None, :] / np.maximum(np.abs(u), 1e-12), axis=1)
+        cap = np.concatenate([[seg_cap[0]], np.minimum(seg_cap[:-1], seg_cap[1:]), [seg_cap[-1]]])
+        v = cap.copy()
         kappa = np.max(np.abs(np.diff(u, axis=0)), axis=1) / np.maximum((ds[:-1] + ds[1:]) / 2, 1e-12)
         # turning takes at most half of max_accel, leaving the rest for speeding up / slowing down
         v[1:-1] = np.minimum(v[1:-1], np.sqrt(self.TURN_SHARE * self.max_accel / np.maximum(kappa, 1e-12)))
-        v[0], v[-1] = min(self._speed, self.max_rate), 0.0
+        v[0], v[-1] = min(self._speed, v[0]), 0.0
         k = np.concatenate([[0.0], kappa, [0.0]])               # curvature at every sample
 
         def spare(i, vi):                                       # acceleration left once turning takes its share
@@ -767,7 +771,7 @@ class GotoTrajectory:
             v[i] = min(v[i], math.sqrt(v[i - 1] ** 2 + 2 * spare(i - 1, v[i - 1]) * ds[i - 1]))
         for i in range(len(s) - 2, -1, -1):                     # backward: be able to stop at the goal
             v[i] = min(v[i], math.sqrt(v[i + 1] ** 2 + 2 * spare(i + 1, v[i + 1]) * ds[i]))
-        self._start_alpha, self._fracs, self._s, self._v, self._k = self._alpha.copy(), fracs, s, v, k
+        self._start_alpha, self._fracs, self._s, self._v, self._k, self._cap = self._alpha.copy(), fracs, s, v, k, cap
         self._pos = 0.0
         self._at_goal = s[-1] < 1e-9
         self.done = False
@@ -789,12 +793,13 @@ class GotoTrajectory:
         # made the speed grow exponentially from ~0 - the reference crept for ~1.6 s before moving
         probe = self._pos + (self._speed + up_dt) * dt
         target = math.sqrt(float(np.interp(probe, self._s, self._v ** 2)))
-        speed = min(max(target, self._speed - a_dt), self._speed + up_dt, self.max_rate)
+        rate_cap = min(float(np.interp(self._pos, self._s, self._cap)), float(np.interp(probe, self._s, self._cap)))
+        speed = min(max(target, self._speed - a_dt), self._speed + up_dt, rate_cap)
         if remaining <= max(speed, a_dt) * dt:
             pos = self._s[-1]                                   # last step lands on the goal
         else:
             pos = self._pos + max(speed, 1e-6) * dt
-        cap = min(max(speed, a_dt), self.max_rate) * dt
+        cap = min(max(speed, a_dt), rate_cap) * dt
         for _ in range(4):                                      # the exact step may be a little longer than
             frac = float(np.interp(pos, self._s, self._fracs))  # the sampled profile says: shorten it to cap
             alpha = self._interp(self._start_alpha, self.goal, frac)
@@ -1515,7 +1520,7 @@ class PID_Controller():
                 self.move_planned = bool(travel <= self.SMALL_MOVE_DEG or self._is_roll_move(start, goal))
                 if not self.move_planned:
                     return False
-            rate = self.SMALL_MOVE_RATE if travel <= self.SMALL_MOVE_DEG else float(np.min(self.Kv)) * self.GOTO_RATE_SHARE
+            rate = self.SMALL_MOVE_RATE if travel <= self.SMALL_MOVE_DEG else np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
             self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
             self.goto_traj.space = self.mode
             self.goto_traj.start(start, theta_pv, goal)
@@ -1712,7 +1717,7 @@ class PID_Controller():
                 # planned straight to the target's motor angles, with the planner's speed profile
                 self.set_Ka_array(Config.pid_Ka)
                 self.set_Kv_array(Config.pid_Kv)
-                traj = MotorTrajectory(float(np.min(self.Kv)) * self.GOTO_RATE_SHARE, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
+                traj = MotorTrajectory(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
                 traj.start(np.array(self.theta_pv, dtype=float), np.array(self.theta_pv, dtype=float), theta_final)
                 self.goto_traj, self.move_planned = traj, False
                 self.logger.info(f'{cause} Transition (gimbal lock on path) | planned in motor angles to: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
