@@ -250,16 +250,145 @@ def test_guard_unwind_goto_does_not_overshoot(monkeypatch, config):
     assert max(overs) <= 5.0, f"unwind goto: M1 overshot its final angle by {fmt(overs)} deg (limit 5 deg)"
 
 
-def test_guard_goto_needing_a_flip_is_left_to_the_pid(monkeypatch):
-    """A goto to a negative altitude needs the other IK branch (theta2 < -8 is invalid): the planner can't
-    walk the reference across the 180 deg jump, so it must leave the goto to the PID and its FLIP handling
-    (as legacy). Was: the planned reference stalled at the jump - on the mount the goto fought near alt 0
-    for ~20 s before flipping."""
+def test_guard_goto_needing_a_flip_is_left_to_the_pid(monkeypatch, caplog):
+    """A goto to a negative altitude needs the other IK branch (theta2 < -8 is invalid): the Az/Alt planner
+    can't walk the reference across the 180 deg jump, so it must not plan it; the goto flips once, straight to
+    the target, and arrives. Was: the planned reference stalled at the jump - on the mount the goto fought
+    near alt 0 for ~20 s before flipping."""
+    import logging
+    caplog.set_level(logging.INFO)
     tw = Twin(monkeypatch, config=CANDIDATE, seed=0)
     tw.place(azaltroll_to_theta_ik(130.8, 30.0, 0.0))
+    theta0 = tw.theta
+    caplog.clear()
+    t0 = tw.clock.t
     tw.goto_altaz(130.8, -30.0)
     tw.run(0.4)
-    planned = tw.pid.goto_traj is not None
+    azalt_planned = tw.pid.goto_traj is not None and tw.pid.goto_traj.space != 'THETA'
+    while tw.clock.t - t0 < 90 and tw.polaris.goto_complete_at is None:
+        tw.run(0.2)
+    flips = [r.message[:60] for r in caplog.records if "FLIP" in r.message]
+    sep = azalt_sep_arcmin(130.8, -30.0, tw.polaris._p_azimuth, tw.polaris._p_altitude)
+    d1, d3 = tw.theta[0] - theta0[0], tw.theta[2] - theta0[2]
     tw.close()
-    assert not planned, "a goto across an IK branch change (to alt -30) was planned instead of left to the PID/FLIP"
+    assert d1 * d3 < 0, f"goto to alt -30 turned M1 {d1:+.0f} and M3 {d3:+.0f} deg: a flip must turn them in opposite directions (cable wrap)"
+    assert not azalt_planned, "a goto across an IK branch change (to alt -30) was planned in Az/Alt"
+    assert len(flips) == 1, f"goto to alt -30 flipped {len(flips)} times: {flips} (expected once)"
+    assert sep < 1.5, f"goto to alt -30 ended {sep:.1f}' from the target"
 
+
+@pytest.mark.parametrize("roll", [0.0, 0.6, 3.0])
+@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["legacy", "coordinated"])
+def test_guard_flip_goes_straight_to_the_target(monkeypatch, config, roll, caplog):
+    """A goto from a negative altitude (other IK branch: theta2 mirrored, M1/M3 +-180) up to a positive one
+    flips once, straight to the target. Was: the FLIP cached the 12 deg stepped reference, which landed near
+    theta2 ~ 0 (M1/M3 aligned - gimbal lock), so M1/M3 counter-rotated there with the altitude stuck near 0,
+    then a second FLIP the other way (seen on the mount 16:16:30 CCW / 16:16:34 CW). With roll != 0 the twin also
+    stalled (alt ~10, or LIMIT). Now the flip is decided at the start of the goto (the path passes near gimbal
+    lock) and goes straight to the target's motor angles."""
+    import logging
+    caplog.set_level(logging.INFO)
+    tw = Twin(monkeypatch, config=config, seed=0)
+    tw.place(azaltroll_to_theta_ik(180.0, -30.0, roll))   # alt -30 is only reachable on the flipped branch (theta2 +30)
+    theta0 = tw.theta
+    caplog.clear()
+    t0 = tw.clock.t
+    tw.goto_altaz(180.0, 30.0, roll)
+    while tw.clock.t - t0 < 90 and tw.polaris.goto_complete_at is None:
+        tw.run(0.2)
+    flips = [r.message[:60] for r in caplog.records if "FLIP" in r.message]
+    alt, done = tw.polaris._p_altitude, tw.polaris.goto_complete_at is not None
+    d1, d3 = tw.theta[0] - theta0[0], tw.theta[2] - theta0[2]
+    tw.close()
+    assert d1 * d3 < 0, f"goto alt -30 -> +30 (roll {roll}) turned M1 {d1:+.0f} and M3 {d3:+.0f} deg: a flip must turn them in opposite directions (cable wrap)"
+    assert done, f"goto alt -30 -> +30 (roll {roll}) did not complete within 90 s (at alt {alt:.2f}, flips {flips})"
+    assert len(flips) <= 1, f"goto alt -30 -> +30 (roll {roll}) flipped {len(flips)} times: {flips} (expected one flip, straight to the target)"
+    assert abs(alt - 30.0) < 0.1, f"goto alt -30 -> +30 ended at alt {alt:.2f}"
+
+
+@pytest.mark.parametrize("move", [((100.0, 40.0), (190.0, 40.0)), ((150.0, 20.0), (200.0, 70.0))], ids=["az_90", "az_alt"])
+@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["legacy", "coordinated"])
+def test_guard_goto_clear_of_gimbal_lock_does_not_flip(monkeypatch, config, move, caplog):
+    """A large goto whose path stays clear of theta2 ~ 0 needs no FLIP, and arrives."""
+    import logging
+    caplog.set_level(logging.INFO)
+    (az0, alt0), (az1, alt1) = move
+    tw = Twin(monkeypatch, config=config, seed=0)
+    tw.place(azaltroll_to_theta_ik(az0, alt0, 0.0))
+    caplog.clear()
+    t0 = tw.clock.t
+    tw.goto_altaz(az1, alt1)
+    while tw.clock.t - t0 < 90 and tw.polaris.goto_complete_at is None:
+        tw.run(0.2)
+    flips = [r.message[:60] for r in caplog.records if "FLIP" in r.message]
+    sep = azalt_sep_arcmin(az1, alt1, tw.polaris._p_azimuth, tw.polaris._p_altitude)
+    tw.close()
+    assert not flips, f"goto {move} flipped: {flips}"
+    assert sep < 1.5, f"goto {move} ended {sep:.1f}' from the target (completion tolerance 0.75' per motor)"
+
+
+@pytest.mark.parametrize("roll", [0.0, 3.0])
+@pytest.mark.parametrize("move", [(30.0, -5.0), (-30.0, 5.0)], ids=["alt30_to_-5", "alt-30_to_5"])
+@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["legacy", "coordinated"])
+def test_guard_goto_within_the_overlap_does_not_flip(monkeypatch, config, move, roll, caplog):
+    """The two sides overlap for |theta2| <= 8 (theta2 is valid from -8): from positive altitudes a target
+    down to ~-8 alt is reached without flipping, and from negative altitudes one up to ~+8."""
+    import logging
+    caplog.set_level(logging.INFO)
+    alt0, alt1 = move
+    tw = Twin(monkeypatch, config=config, seed=0)
+    tw.place(azaltroll_to_theta_ik(180.0, alt0, roll))
+    theta0 = tw.theta
+    caplog.clear()
+    t0 = tw.clock.t
+    tw.goto_altaz(180.0, alt1, roll)
+    while tw.clock.t - t0 < 90 and tw.polaris.goto_complete_at is None:
+        tw.run(0.2)
+    flips = [r.message[:60] for r in caplog.records if "FLIP" in r.message]
+    sep = azalt_sep_arcmin(180.0, alt1, tw.polaris._p_azimuth, tw.polaris._p_altitude)
+    m1_turn = abs(tw.theta[0] - theta0[0])
+    tw.close()
+    assert not flips, f"goto alt {alt0} -> {alt1} (roll {roll}) flipped: {flips}"
+    assert m1_turn < 90, f"goto alt {alt0} -> {alt1} (roll {roll}) turned M1 {m1_turn:.0f} deg (a flip)"
+    assert sep < 1.5, f"goto alt {alt0} -> {alt1} (roll {roll}) ended {sep:.1f}' from the target (completion tolerance 0.75' per motor)"
+
+
+@pytest.mark.parametrize("wind", [(0, 0), (360, 0), (0, -360), (360, -360)], ids=["m1_0_m3_0", "m1_+360", "m3_-360", "m1_+360_m3_-360"])
+@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["legacy", "coordinated"])
+def test_guard_flip_turns_m1_and_m3_in_opposite_directions(monkeypatch, config, wind, caplog):
+    """A flip turns M1 and M3 by ~180 deg each: they must turn in opposite directions (else the cables wrap)
+    whenever that fits within the motor limits (z +-270, 10 deg margin). From z1, z3 both ~+180 (or both ~-180)
+    it can't (an unwind first would take ~1.5 min): then the flip stays within the limits and a warning is logged."""
+    import logging
+    caplog.set_level(logging.INFO)
+    tw = Twin(monkeypatch, config=config, seed=0)
+    theta = np.array(azaltroll_to_theta_ik(180.0, -30.0, 0.0), dtype=float) + np.array([wind[0], 0.0, wind[1]])
+    tw.place(theta)                                          # alt -30: flipped branch, theta ~ (0+w1, 30, 180+w3)
+    theta0 = tw.theta
+    caplog.clear()
+    t0, zmax, same = tw.clock.t, [0.0, 0.0], [0.0]
+    prev = [tw.theta]
+    tw.goto_altaz(180.0, 30.0)
+
+    def watch(t):
+        z = t.polaris._zeta_meas
+        zmax[0], zmax[1] = max(zmax[0], abs(z[0])), max(zmax[1], abs(z[2]))
+        d = t.theta - prev[0]
+        prev[0] = t.theta
+        if d[0] * d[2] > 0:                                  # M1 and M3 turning the same way this sample
+            same[0] += min(abs(d[0]), abs(d[2]))
+
+    while tw.clock.t - t0 < 90 and tw.polaris.goto_complete_at is None:
+        tw.run(0.2, on_measure=watch)
+    alt = tw.polaris._p_altitude
+    warned = any("same direction" in r.message for r in caplog.records)
+    tw.close()
+    z1, z3 = theta0[0] - 180.0, theta0[2]
+    opposite_fits = any(abs(z1 + s1 * 180) <= 260 and abs(z3 - s1 * 180) <= 260 for s1 in (1, -1))
+    assert abs(alt - 30.0) < 0.1, f"flip from wind {wind} ended at alt {alt:.2f}"
+    assert zmax[0] <= 270 and zmax[1] <= 270, f"flip from wind {wind} reached |z1| {zmax[0]:.0f} / |z3| {zmax[1]:.0f} (limit 270)"
+    if opposite_fits:
+        assert same[0] < 5.0, f"flip from wind {wind} turned M1 and M3 in the same direction together by {same[0]:.0f} deg (cable wrap)"
+    else:
+        assert warned, f"flip from wind {wind} (z1 {z1:+.0f}, z3 {z3:+.0f}) can't turn M1/M3 opposite within the limits: expected a warning"
+    assert zmax[0] <= 270 and zmax[1] <= 270, f"flip from wind {wind} reached |z1| {zmax[0]:.0f} / |z3| {zmax[1]:.0f} (limit 270)"

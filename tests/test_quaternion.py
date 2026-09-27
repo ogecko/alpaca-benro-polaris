@@ -6,7 +6,7 @@ import pytest
 import numpy as np
 from quaternion import Q as Quaternion
 from kinematics import calculate_angular_velocity_vector, quaternion_to_angles, azaltroll_to_q,  q_to_azaltroll
-from kinematics import theta_to_q, q_to_theta, LastPosition, theta_to_jacobian
+from kinematics import theta_to_q, q_to_theta, LastPosition, theta_to_jacobian, THETA2_MIN_MEAS
 
 def approx_quaternion_to_angles(w,x,y,z):
     q1=Quaternion(w,x,y,z)
@@ -319,3 +319,14 @@ def test_jacobian_matches_finite_difference(theta1, theta2, theta3):
 def test_calculate_angular_velocity_vector(q0, q1, dt, expected):
     omega = calculate_angular_velocity_vector(q0, q1, dt)
     assert np.allclose(omega, expected, atol=1e-9)
+
+def test_measured_theta_stays_on_its_side_down_to_the_physical_limit():
+    """The reference keeps theta2 >= -8 (flipping to the other side below it), but a measurement between -8
+    and the physical limit (~-10) must stay on the side the motors are on: re-expressing it on the other side
+    (M1/M3 +-180) mid-move made a goto into the -8..+8 overlap run on into LIMIT."""
+    q = theta_to_q(180.0, -9.0, 0.0)
+    near = LastPosition(180.0, -8.5, 0.0)
+    t1, t2, t3 = q_to_theta(q, lastPos=near, theta2_min=THETA2_MIN_MEAS)
+    assert (round(t1), round(t2), round(t3)) == (180, -9, 0), f"measured theta {t1:.1f},{t2:.1f},{t3:.1f} left its side"
+    t1, t2, t3 = q_to_theta(q, lastPos=LastPosition(180.0, -8.5, 0.0))
+    assert round(t2) == 9, f"reference theta2 {t2:.1f} should flip to the other side below -8"

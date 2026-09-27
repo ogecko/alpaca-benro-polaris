@@ -45,6 +45,7 @@ from presets import PresetManager
 from log import update_log_level
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
 from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
+from kinematics import THETA2_MIN_MEAS
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
@@ -851,7 +852,7 @@ class Polaris:
 
             # Translate from Base Frame to Topo Frame [MAC] -> [SGC] => [PGC] -> QUEST -> [LGA] -> [RollAdj]
             cameraQ_pv, motorQ_pv = self._sm.baseQ_to_topoQ(motorQ_state)
-            theta_pv = np.array(q_to_theta(motorQ_pv, self._pid._lp))   # Beware: theta_pv only has [MAC] -> [SGC] => [PGC] corrections
+            theta_pv = np.array(q_to_theta(motorQ_pv, self._pid._lp, theta2_min=THETA2_MIN_MEAS))   # Beware: theta_pv only has [MAC] -> [SGC] => [PGC] corrections
 
             # update cache of equatorial axes, used by pulse guiding and MAC corrections
             # use the cameraQ_ref as a more steady reference, falling back to cameraQ_pv when not set
@@ -976,7 +977,7 @@ class Polaris:
         p_az = float(arg_dict['compass'])   # from Polaris direct
         p_alt = -float(arg_dict['alt'])     # from Polaris direct
 
-        theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp))
+        theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp, theta2_min=THETA2_MIN_MEAS))
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
         omega_raw = omega_ref                          # commanded rate echoed back -- not an independent measurement, kept for status/UI only
         self._history.append([dt_now, float(theta_raw[0]), float(theta_raw[1]), float(theta_raw[2])])          # deque collection, so it automatically throws away stuff older than 6 samples ago

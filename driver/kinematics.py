@@ -569,9 +569,13 @@ class LastPosition:
         N3 = round((self.last_theta3 - t3) / 360)
         return t1 + N1 * 360, t2, t3 + N3 * 360
 
-def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
+THETA2_MIN_MEAS = -12.0     # measurements: below the physical M2 limit (~-10), so they never re-express mid-move
+
+
+def q_to_theta(motorQ_C2B, lastPos=LastPosition(), theta2_min=-8.0):
     """Convert a motor quaternion (C2B frame) into joint angles (θ), using the previous
-       position as a reference to resolve ambiguity and ensure continuity."""
+       position as a reference to resolve ambiguity and ensure continuity. theta2_min: the lowest valid
+       theta2 (-8 for references; THETA2_MIN_MEAS for measurements, which must stay on the motors' side)."""
     q1 = motorQ_C2B
     
     # tUp invariant under theta3
@@ -609,7 +613,7 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition()):
     thetaB = lastPos.unwrap(theta1_B, theta2_B, theta3_B)
 
     # Validity
-    theta2_min, theta2_max = -8, 83
+    theta2_max = 83
     validA = theta2_min <= theta2_A <= theta2_max
     validB = theta2_min <= theta2_B <= theta2_max
 

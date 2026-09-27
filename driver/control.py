@@ -818,6 +818,19 @@ class GotoTrajectory:
         return np.array([az, alt, a[2] + frac * wrap180(b[2] - a[2])])
 
 
+class MotorTrajectory(GotoTrajectory):
+    """A GotoTrajectory along a straight line in motor angles (its 'alpha' is theta): for a move that must go
+    straight to the target's motor angles, e.g. a flip past gimbal lock, with the same speed/acceleration
+    profile (no PID overshoot at the end)."""
+    def __init__(self, max_rate, max_accel):
+        super().__init__(lambda theta, theta_near: np.asarray(theta, dtype=float), max_rate, max_accel)
+        self.space = 'THETA'
+
+    @staticmethod
+    def _interp(a, b, frac):
+        return np.asarray(a, dtype=float) + frac * (np.asarray(b, dtype=float) - np.asarray(a, dtype=float))
+
+
 class PID_Controller():
     def __init__(self, logger, polaris, dt=0.2, loop=None):
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
@@ -843,6 +856,7 @@ class PID_Controller():
         self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (coordinated_speed_control)
         self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (coordinated_speed_control)
         self.move_planned = None                       # per goto: planned, or left to the PID (large move while tracking, unwind/flip)
+        self.lock_checked = False                      # per goto: path checked for passing near gimbal lock (theta2 ~ 0)
         self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, pa   - user set target equatorial co-ordinates
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll - user set target topocentric co-ordinates
@@ -1289,12 +1303,14 @@ class PID_Controller():
     
     def set_goto_complete_callback(self, fn):
         self.move_planned = None                     # plan_goto decides once per goto whether to plan it
+        self.lock_checked = False
         self.is_deviating = True
         self.time_goto = ephem.now()
         self.goto_complete_callback = fn
               
     def set_rotate_complete_callback(self, fn):
         self.move_planned = None
+        self.lock_checked = False
         self.is_deviating = True
         self.rotate_complete_callback = fn
               
@@ -1312,7 +1328,7 @@ class PID_Controller():
         self.ack_limit_timestamp = datetime.datetime.now()
         self.set_pid_mode('IDLE')
 
-    def set_theta_ref_cache(self, cause, theta):
+    def set_theta_ref_cache(self, cause, theta, settle_all=False):
         # an unwind/flip is driven by the PID to the end of this goto: the planner must not take over
         # from it mid-move (it would plan from rest while the mount runs at full speed, and overshoot)
         self.goto_traj = None
@@ -1321,6 +1337,7 @@ class PID_Controller():
         self.theta_ref = theta
         self.theta_ref_cache = theta
         self.theta_ref_cache_cause = cause
+        self.theta_ref_cache_settle_all = settle_all   # the cache is the goal itself: hold it until all axes are close
 
     def clear_theta_ref_cache(self):
         self.theta_ref_cache = None
@@ -1464,6 +1481,14 @@ class PID_Controller():
         feed-forward - for a goto when not tracking (planned in Az/Alt/Roll, holding Az/Alt through roll
         changes), and for a goto/rotate while tracking (planned in RA/Dec/PA, holding RA/Dec through PA
         changes, converted to motor angles at the current time). Returns True when it set theta_ref."""
+        if self.goto_traj is not None and self.goto_traj.space == 'THETA':
+            # a straight move in motor angles (set by prevent_windup, e.g. a flip past gimbal lock)
+            if (self.theta_ref_cache is None and self.mode in ('AUTO', 'TRACK') and not self._has_active_jog()
+                    and not self.goto_traj.done and self.dt > 0):
+                self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+                return True
+            self.goto_traj = None                         # finished (or interrupted): the PID finishes the goto
+            return False
         tracking_move = self.mode == 'TRACK' and self.move_pending()
         active = (Config.coordinated_speed_control and (self.mode == 'AUTO' or tracking_move)
                   and self.theta_ref_cache is None and not self._has_active_jog() and self.dt > 0)
@@ -1652,6 +1677,8 @@ class PID_Controller():
     def prevent_windup(self):
         if self.theta_ref_cache is not None or self.zeta_meas is None or self.mode == 'LIMIT':
             return
+        if self.goto_traj is not None and self.goto_traj.space == 'THETA':
+            return                                        # a straight motor-angle move is already under way
         zeta = np.array(self.zeta_meas)
         d1 = max(angular_difference(self.alpha_pv[0],self.alpha_ref[0]), angular_difference(self.theta_pv[0],self.theta_ref[0]), key=abs)
         d3 = max(angular_difference(self.alpha_pv[2],self.alpha_ref[2]), angular_difference(self.theta_pv[2],self.theta_ref[2]), key=abs)
@@ -1672,6 +1699,26 @@ class PID_Controller():
             if t3_fix!=0: msg+= f' | Implied z3 {z3_implied:+.1f} Remap t3 {theta_final[2]-t3_fix:+.1f} to {theta_final[2]:+.1f}'
             self.logger.info(msg)
             self.set_theta_ref_cache(cause, theta_final)
+        elif self.move_pending() and not self.lock_checked and self._path_passes_gimbal_lock(self.alpha_pv, self.alpha_ref):
+            # At the start of the goto: the pointing path passes near theta2 ~ 0 (M1/M3 aligned), where M1/M3 must
+            # swing ~180 deg. Stepping along it flipped late (M2 already running into the lock), cached a point
+            # near the lock (M1/M3 counter-rotating there with the pointing stuck) and flipped again. Instead go
+            # straight to the target's motor angles: the IK picks the valid solution nearest the mount, so a target
+            # within the |theta2| <= 8 overlap stays on this side (M2 just passes 0), one beyond it flips.
+            theta_final = self._flip_motor_angles(self._alpha_to_theta(self.alpha_ref, self.theta_pv), zeta, safety)
+            d1 = theta_final[0] - self.theta_pv[0]
+            cause = ('FLIP CW' if d1 > 0 else 'FLIP CCW') if abs(d1) > 90 else 'LOCK'
+            if Config.coordinated_speed_control and self.dt > 0:
+                # planned straight to the target's motor angles, with the planner's speed profile
+                self.set_Ka_array(Config.pid_Ka)
+                self.set_Kv_array(Config.pid_Kv)
+                traj = MotorTrajectory(float(np.min(self.Kv)) * self.GOTO_RATE_SHARE, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
+                traj.start(np.array(self.theta_pv, dtype=float), np.array(self.theta_pv, dtype=float), theta_final)
+                self.goto_traj, self.move_planned = traj, False
+                self.logger.info(f'{cause} Transition (gimbal lock on path) | planned in motor angles to: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
+            else:
+                self.logger.info(f'{cause} Transition (gimbal lock on path) | theta_ref_cache: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
+                self.set_theta_ref_cache(cause, theta_final, settle_all=True)
         else:
             # FLIP: if far away from target (in M1 or M3) then cache the target
             distance = self.theta_ref - self.theta_pv
@@ -1680,6 +1727,70 @@ class PID_Controller():
                 self.logger.info(f'{cause} Transition | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
                 self.set_theta_ref_cache(cause, self.theta_ref.copy())
                 self._lp.flipCW = not self._lp.flipCW
+
+    def _flip_motor_angles(self, theta_goal, zeta, safety):
+        """Pick the M1/M3 turns (theta_goal +-360 on each) for a move straight to the goal's motor angles: within
+        the zeta limits, and for a flip (M1 turning > 90 deg) with M1 and M3 turning in opposite directions (else
+        the cables wrap) - the least travel. If no opposite pair fits the limits (z1, z3 both ~+-180), the least
+        travel within them, with a warning (an unwind first would take ~1.5 min)."""
+        lo = np.array([Config.z1_min_limit, Config.z3_min_limit]) + safety
+        hi = np.array([Config.z1_max_limit, Config.z3_max_limit]) - safety
+        pv = np.array(self.theta_pv, dtype=float)
+        zeta = np.array(zeta, dtype=float)
+
+        def fits(z):
+            return bool(np.all(z >= lo) and np.all(z <= hi))
+
+        def options(start, z_start):
+            out = []
+            for k1 in (-1, 0, 1):
+                for k3 in (-1, 0, 1):
+                    cand = np.array(theta_goal, dtype=float) + np.array([360.0 * k1, 0.0, 360.0 * k3])
+                    d = cand - start
+                    if fits(np.array([z_start[0] + d[0], z_start[2] + d[2]])):
+                        out.append((abs(d[0]) + abs(d[2]), d[0] * d[2] < 0, cand))
+            return out
+
+        direct = options(pv, zeta)
+        if not direct:
+            return np.array(theta_goal, dtype=float)
+        best = min(direct, key=lambda o: o[0])
+        if abs(best[2][0] - pv[0]) <= 90:
+            return best[2]                                # not a flip: least travel
+        opposite = [o for o in direct if o[1]]
+        if opposite:
+            return min(opposite, key=lambda o: o[0])[2]
+        self.logger.warning(f'FLIP turns M1 and M3 in the same direction: no opposite turn fits the motor limits '
+                            f'(z1 {zeta[0]:+.0f}, z3 {zeta[2]:+.0f})')
+        return best[2]
+
+    GIMBAL_LOCK_NEAR_DEG = 8.0                           # |theta2| below this: M1/M3 near aligned (overlap of the two sides)
+
+    def _path_passes_gimbal_lock(self, start, goal, samples=90):
+        """Once per goto: the pointing path from start to goal (as alpha_limit_step steps it) comes within
+        GIMBAL_LOCK_NEAR_DEG of theta2 = 0 (the goal may be in there too), starting clear of it. |theta2| is the
+        tilt of the M3 axis from vertical, so unambiguous."""
+        self.lock_checked = True
+        ups = np.array([self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*GotoTrajectory._interp(start, goal, f))).rotate(np.array([1.0, 0.0, 0.0]))
+                        for f in np.linspace(0.0, 1.0, samples + 1)])
+        tilt = np.degrees(np.arctan2(np.hypot(ups[:, 0], ups[:, 1]), ups[:, 2]))
+        return bool(tilt[0] >= self.GIMBAL_LOCK_NEAR_DEG and np.min(tilt[1:]) < self.GIMBAL_LOCK_NEAR_DEG)
+
+    def _theta_pv_held(self):
+        """theta_pv for the error against a held motor-angle target (theta_ref_cache, or a motor-angle
+        trajectory): near theta2 ~ 0 (gimbal lock) only theta1+theta3 is defined, and the measured M1/M3 can
+        re-express by +-360 between ticks - the held target isn't, so such jumps are unwrapped while it's held."""
+        pv = np.array(self.theta_pv, dtype=float)
+        last = getattr(self, '_theta_pv_last', None)
+        held = self.theta_ref_cache is not None or (self.goto_traj is not None and self.goto_traj.space == 'THETA')
+        if not held or last is None:
+            self._theta_pv_unwrap = np.zeros(3)
+        else:
+            jump = pv - last
+            jump[1] = 0.0
+            self._theta_pv_unwrap = self._theta_pv_unwrap - 360.0 * np.round(jump / 360.0)
+        self._theta_pv_last = pv
+        return pv + self._theta_pv_unwrap
 
     def errsignal(self):
         # calc the error signal off theta (aligned motor angles) or zeta (raw motor angles)
@@ -1690,16 +1801,18 @@ class PID_Controller():
             # theta_ref (and theta_ref_cache) reflect the target's position as of now -- diff
             # against a backdated copy so a stale measurement isn't compared against a target
             # that's since moved on, without touching theta_ref itself (used elsewhere as-is).
+            theta_pv = self._theta_pv_held()
             if self.theta_ref_cache is None:
                 self.prevent_windup()
                 theta_ref_backdated = self.theta_ref - self.omega_ff * self.measurement_lag_s
-                self.error_signal = theta_ref_backdated - self.theta_pv
+                self.error_signal = theta_ref_backdated - theta_pv
             else:
                 self.theta_ref = self.theta_ref_cache
                 theta_ref_backdated = self.theta_ref_cache - self.omega_ff * self.measurement_lag_s
-                self.error_signal = theta_ref_backdated - self.theta_pv
+                self.error_signal = theta_ref_backdated - theta_pv
                 # if close to cached target then reset the cache
-                if abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10:
+                settle_all = getattr(self, 'theta_ref_cache_settle_all', False)
+                if (np.max(np.abs(self.error_signal)) < 1.0 and np.max(np.abs(self.omega_op)) < 0.5) if settle_all else (abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10):
                     self.clear_theta_ref_cache()
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60

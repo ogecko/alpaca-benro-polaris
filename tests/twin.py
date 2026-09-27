@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import control                                                           # noqa: E402
 from config import Config, CONFIG_TOML_PATH                             # noqa: E402
 from control import PID_Controller, SyncManager, KalmanFilter           # noqa: E402
-from kinematics import theta_to_q, q_to_theta, q_to_azaltroll, calc_parallactic_angle, wrap360  # noqa: E402
+from kinematics import theta_to_q, q_to_theta, q_to_azaltroll, calc_parallactic_angle, wrap360, THETA2_MIN_MEAS  # noqa: E402
 from speed_controller import RateUnits, SpeedCoordinator                # noqa: E402
 from mcu_model import McuModel                                          # noqa: E402
 from shr import deg2rad, rad2deg, rad2hr                                # noqa: E402
@@ -235,7 +235,7 @@ class Twin:
         theta_state, _ = self.kf.get_state()
         motorQ_state = theta_to_q(*theta_state)
         cameraQ_pv, motorQ_pv = p._sm.baseQ_to_topoQ(motorQ_state)
-        theta_pv = np.array(q_to_theta(motorQ_pv, self.pid._lp))
+        theta_pv = np.array(q_to_theta(motorQ_pv, self.pid._lp, theta2_min=THETA2_MIN_MEAS))
         p._sm.cache_axes_B(cameraQ_pv if self.pid.cameraQ_ref is None else self.pid.cameraQ_ref)
         p._motorQ_state = motorQ_state
         az, alt, roll = q_to_azaltroll(cameraQ_pv)
