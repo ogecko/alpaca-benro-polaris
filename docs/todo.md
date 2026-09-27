@@ -40,17 +40,6 @@
 # Alpaca Driver v2.2 Development Todo List
 - [X] RPi - Update setup.sh for Raspberry Pi to use UV rather than pip and refresh to latset trixy distro
 - [ ] Win - Create setup.bat for Windows and move to UV
-- [ ] CCDCiel - Confirm Rotator Sync works correctly on CCDCiel
-- [ ] Close candidate enhancement list
-    - [ ] Manual Align - Direct Control and List of targets
-    - [ ] Goto - Determine ideal settle time for Benro Polaris and v2.2
-    - [ ] CCDCiel - Auto install Alpaca Driver scripts for CCDCiel
-    - [ ] CCDCiel - Test session using CCDCiel and document Pano, Sync Guiding
-- [ ] Close open questions
-    - [ ] Flip - Can we improve horizon flip/windup prevention at Az 30 or Az 0?
-    - [ ] PEC - Can we identify Guiding Application Calibration pulses so PEC can ignore them?
-    - [ ] Sync Guiding - Check whether immediate pulse guide return is cause of bad subexposure. ie detail till converged.
-    - [ ] Connection - why does changing IP address allow connection to proceed?
 - [ ] Create youtube videos for v2.2 content
     - [X] Create video on Win11 install and connect
     - [X] Create video on dashboard and motion changes
