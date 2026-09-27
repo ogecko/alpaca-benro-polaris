@@ -7,6 +7,7 @@
 [Safety](#equipment-safety) | 
 [Filtering](#kalman-filter) | 
 [Calibration](#motor-speed-calibration) | 
+[Coordinated Speed](#coordinated-speed-control) | 
 [PID Controller](#pid-controller-and-performance-tuning) | 
 [Orbitals](#orbitals-and-non-sidereal-tracking) | 
 [Dev: API Testing](#developer-automated-pidpec-testing-via-alpaca-api) | 
@@ -31,6 +32,7 @@ This guide provides an overview of the **Advanced Control Features** of the Alpa
 - **Slewing:** Lets the driver's own motion controller handle manual slews, moving the set point by Az/Alt/Roll or RA/Dec/PA.
 - **Advanced Goto:** Moves to targets along a shortest-path trajectory with optimised acceleration and deceleration, and preserves roll and tracking state.
 - **PID Tracking:** Uses a closed-loop, three-axis PID controller with feed-forward to hold the mount on its target during tracking.
+- **Coordinated Speed Control:** Drives all three motors together within the Polaris's shared slow-speed setting, and plans gotos, roll changes and jogs as smooth motor speed profiles, for steadier tracking and less drift and overshoot.
 - **Orbitals Tracking:** Enables non-sidereal tracking of the Sun, Moon, planets, satellites, comets and asteroids.
 - **Multi-Point Alignment:** Uses the QUEST algorithm to build a correction model from three or more plate-solve syncs, compensating for tripod tilt, polar misalignment and cone error.
 - **Mechanical Alignment Correction:** Corrects for the mount's own axis tilts (M2 and M3), which vary with altitude and roll and can otherwise reach hundreds of arcminutes, so alignment syncs are consistent.
@@ -547,7 +549,35 @@ Calibrating your motor speed controller ensures:
 - Better guiding performance
 - Potentially improved deep-sky imaging results
 
+> **NOTE:** With [Coordinated Speed Control](#coordinated-speed-control) on, motor speed calibration is not used.
 
+
+
+<br>
+<br>
+
+
+---
+# Coordinated Speed Control
+
+**Coordinated Speed Control** changes how the driver commands the Polaris motors. The Polaris's slow speeds use one speed level shared by all three axes, so setting a speed on one motor changes the others. Coordinated Speed Control chooses that shared level for all three motors together, then fine-tunes each motor's speed by switching it between neighbouring speeds. It also plans every move as a smooth speed profile the motors can actually follow.
+
+## A. What It Changes
+
+- **Tracking:** Holds all three axes at their required speeds at the same time, which markedly improves tracking at low altitudes and near zero roll. It also responds faster to guiding corrections.
+- **Gotos and Roll Changes:** Moves along a planned path, slowing on tight curves in motor space. During a roll change the mount keeps pointing at the same Az/Alt (not tracking) or the same RA/Dec (tracking), instead of drifting.
+- **Flips:** Some gotos, for example from a negative to a positive altitude, need the mount to flip: M1 and M3 each turn about 180°. The driver decides this at the start of the goto and moves straight to the target along a planned motor path, with M1 and M3 turning in opposite directions to avoid wrapping the cables. The two flip positions overlap by about 8°, so from positive altitudes you can go down to about −8° without flipping, and from negative altitudes up to about +8°.
+- **Jogging:** Ramps up to and down from jog speeds, which reduces overshoot when you release a jog.
+- **Goto Settling:** Holds the PID integral during a goto, so it doesn't wind up and disturb tracking afterwards. A goto is only marked complete once the mount is on target.
+- **Faster Motions:** Speeds above the slow range (about 0.24°/s) use the Polaris's fast mode, with each motor running up to its own maximum.
+
+## B. Turning It On or Off
+
+In Alpaca Pilot, open the **Settings** page and use the **Coordinated Speed Control** toggle under **Advanced Control Features**. The change takes effect immediately, with no restart. It is on by default; turn it off to return to the previous speed controller and motion planning.
+
+## C. Motor Speed Calibration
+
+With Coordinated Speed Control on, [Motor Speed Calibration](#motor-speed-calibration) is not used. Slow speeds come from the Polaris firmware's own speed table, and fast speeds from the built-in baseline.
 
 <br>
 <br>
