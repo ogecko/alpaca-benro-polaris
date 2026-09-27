@@ -37,6 +37,7 @@ from shr import deg2rad, rad2deg, rad2hr                                # noqa: 
 
 LAT, LON = -33.654651, 151.12
 MEASURE_DT = 0.2
+M3_HOLD_S = 0.6            # hardware: 518 messages arrive every 0.2 s but M3's value only changes every ~0.55-0.6 s
 SIM_DT = 0.01
 NOISE_DEG = 1e-4
 START_UTC = _dt.datetime(2026, 9, 27, 11, 0, 0)
@@ -166,7 +167,7 @@ class TwinPolaris:
 
 
 class Twin:
-    def __init__(self, monkeypatch, config=None, fast_lag_s=0.35, seed=0):
+    def __init__(self, monkeypatch, config=None, fast_lag_s=0.35, seed=0, m3_hold_s=M3_HOLD_S):
         Config.load(tomlpath=CONFIG_TOML_PATH, pilotpath="/nonexistent")
         for key, value in {**TWIN_CONFIG, **(config or {})}.items():
             monkeypatch.setattr(Config, key, value, raising=False)
@@ -197,6 +198,8 @@ class Twin:
         self.loop = asyncio.new_event_loop()
         self._next_meas = self.clock.t
         self._last_raw = None
+        self.m3_hold_s = m3_hold_s
+        self._m3_held, self._m3_next = None, self.clock.t
         self.pid.check_latlon_configured()
 
     # ---- mount state -----------------------------------------------------------------
@@ -205,6 +208,7 @@ class Twin:
         self.mcu.position = np.array(theta, dtype=float)
         self.kf = KalmanFilter(self.logger, np.concatenate([self.mcu.position, np.zeros(3)]))
         self._last_raw = None
+        self._m3_held = None
         self.run(2.0)
         self.pid.reset_sp()
 
@@ -216,6 +220,10 @@ class Twin:
     def _measure_and_control(self):
         p = self.polaris
         theta_raw = self.mcu.position + self.rng.normal(0, NOISE_DEG, 3)
+        if self.m3_hold_s:                                  # M3 in 518 is sample-and-hold, refreshed every m3_hold_s
+            if self._m3_held is None or self.clock.t >= self._m3_next - 1e-9:
+                self._m3_held, self._m3_next = theta_raw[2], self.clock.t + self.m3_hold_s
+            theta_raw[2] = self._m3_held + self.rng.normal(0, NOISE_DEG)
         omega_ref = np.array([p._motors[a].rate_dps for a in range(3)])
         omega_meas = omega_ref if self._last_raw is None else (theta_raw - self._last_raw) / MEASURE_DT
         self._last_raw = theta_raw
