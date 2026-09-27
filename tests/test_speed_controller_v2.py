@@ -268,6 +268,25 @@ def test_rate_change_takes_effect_within_one_slow_period(ctrl):
         f"M1 still at {mcu.dps(0):.5f} dps one slow period after being commanded 0.0119 dps")
 
 
+@pytest.mark.parametrize("burst_dps,burst_s", [(0.2, 0.2), (0.05, 0.4), (-0.1, 0.2)])
+def test_short_burst_is_delivered_promptly(ctrl, burst_dps, burst_s):
+    """A short high-rate command (a planned corrective move: the PID asks for one or two ticks of speed,
+    then returns to tracking) must actually move the motor that far soon after, not trickle the
+    undelivered distance out at the slow level the later, smaller command selects."""
+    mcu = McuModel()
+    ctrl.set_speed(1, 0.0, now=0.0, hold=True)
+    t = run(ctrl, mcu, 0.0, 2.0)
+    p0 = mcu.position[1]
+    ctrl.set_speed(1, burst_dps, now=t, hold=True)
+    t = run(ctrl, mcu, t, burst_s)
+    ctrl.set_speed(1, 0.0, now=t, hold=True)
+    run(ctrl, mcu, t, 0.8)
+    moved, expected = mcu.position[1] - p0, burst_dps * burst_s
+    assert abs(moved - expected) <= 0.1 * abs(expected), (
+        f"a {burst_dps} dps x {burst_s} s burst moved M2 {moved * 3600:.1f}\" within 0.8 s of ending, "
+        f"expected {expected * 3600:.1f}\" (±10%)")
+
+
 def test_reported_rate_is_the_commanded_rate(ctrl):
     ctrl.set_speed(0, 0.0073, now=0.0, hold=True)
     ctrl.set_speed(1, 1.5, now=0.0)

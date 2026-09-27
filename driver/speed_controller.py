@@ -59,6 +59,7 @@ FAST_CMD = ('513', '514', '521')
 FAST_UNITS_MIN, FAST_UNITS_MAX = 100, 2500
 CYCLE_S = 0.25                        # shortest modulation cycle between same-direction speeds...
 REVERSING_CYCLE_S = 0.4               # ...and between opposite directions (reversals cost more; legacy 0.5)
+BACKLOG_DEADZONE_DEG = 0.005          # accumulated error beyond this (several modulation bands) raises the speed used
 MIN_SLOW_DWELL = 0.075                # shortest time any SLOW command may run: the MCU only picks up
                                       # SLOW changes on its scheduler tick; on hardware 0.045-0.055 s
                                       # dwells aliased (0.28x-0.48x) while >= 0.067 s were accurate
@@ -279,20 +280,28 @@ class SpeedCoordinator:
         a.acc += (a.target - a.active_dps) * (now - a.t_acc)
         a.t_acc = now
 
+    def _demand(self, a: _Axis):
+        """Speed this axis needs: its target plus any backlog (accumulated error beyond the dead zone)
+        paid back over one period - so a short burst the MCU could not follow at once is delivered
+        promptly at a higher level, not trickled out at the level the later, smaller target selects."""
+        backlog = math.copysign(max(abs(a.acc) - BACKLOG_DEADZONE_DEG, 0.0), a.acc)
+        return float(np.clip(a.target + backlog / self.period, -MAX_SLOW_DPS, MAX_SLOW_DPS))
+
     def _level_due(self, slow_axes, now):
         """Re-choose the level each period, or at once if the fastest axis now needs a higher one."""
         if self._period_start is None or self._pacer not in slow_axes or now >= self._period_start + self.period - 1e-9:
             return True
-        return max(abs(self._axes[axis].target) for axis in slow_axes) > SLOW_DPS[(self.level, 2)] + 1e-12
+        return max(abs(self._demand(self._axes[axis])) for axis in slow_axes) > SLOW_DPS[(self.level, 2)] + 1e-12
 
     def _choose_level(self, slow_axes, now):
         """The pacer (fastest SLOW axis) sets the one level for all axes for the next period."""
         self._period_start = now
-        fastest = max(abs(self._axes[axis].target) for axis in slow_axes)
-        if self._pacer not in slow_axes or abs(self._axes[self._pacer].target) < fastest - 1e-12:
-            self._pacer = max(slow_axes, key=lambda axis: abs(self._axes[axis].target))
+        demand = {axis: self._demand(self._axes[axis]) for axis in slow_axes}
+        fastest = max(abs(v) for v in demand.values())
+        if self._pacer not in slow_axes or abs(demand[self._pacer]) < fastest - 1e-12:
+            self._pacer = max(slow_axes, key=lambda axis: abs(demand[axis]))
         pacer = self._axes[self._pacer]
-        lo, hi = self._bracket(pacer.target, LADDER)
+        lo, hi = self._bracket(demand[self._pacer], LADDER)
         if lo[3] != hi[3]:
             # between two levels: run this period on the one that leaves the smaller position error
             self.level = min((lo, hi), key=lambda s: abs(pacer.acc + (pacer.target - s[0]) * self.period))[3]
@@ -306,7 +315,7 @@ class SpeedCoordinator:
         a = self._axes[axis]
         a.dirty = False
         speeds = _speeds_at(self.level)
-        lo, hi = self._bracket(a.target, speeds)
+        lo, hi = self._bracket(self._demand(a), speeds)
         if not a.allow_pwm:
             lo = hi = min(speeds, key=lambda s: abs(s[0] - a.target))
         a.pair = (lo, hi)
