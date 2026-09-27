@@ -728,6 +728,7 @@ class GotoTrajectory:
         self.max_rate = float(max_rate)
         self.max_accel = float(max_accel)
         self.done = True
+        self._at_goal = True
 
     def start(self, alpha, theta, goal):
         self._alpha = np.asarray(alpha, dtype=float)
@@ -763,13 +764,15 @@ class GotoTrajectory:
             v[i] = min(v[i], math.sqrt(v[i + 1] ** 2 + 2 * spare(i + 1, v[i + 1]) * ds[i]))
         self._start_alpha, self._fracs, self._s, self._v = self._alpha.copy(), fracs, s, v
         self._pos = 0.0
-        self.done = s[-1] < 1e-9
+        self._at_goal = s[-1] < 1e-9
+        self.done = False
 
     def step(self, dt):
         """Returns (theta_ref, omega_ff): the reference now, and the velocity that takes it to where
         it will be one dt later (where it then advances to)."""
         now = self._theta.copy()
-        if self.done:
+        if self._at_goal:                                       # the reference is at the goal: done once it
+            self.done = True                                    # has been handed out as theta_ref
             self._speed = 0.0
             return now, np.zeros(3)
         a_dt = self.max_accel * dt
@@ -794,7 +797,7 @@ class GotoTrajectory:
         self._alpha, self._theta, self._pos = alpha, theta, pos
         self._speed = float(np.max(np.abs(rate)))
         if pos >= self._s[-1]:
-            self.done = True
+            self._at_goal = True
         return now, rate
 
     @staticmethod
@@ -829,6 +832,7 @@ class PID_Controller():
         self.omega_ff_shaped = np.zeros(3, dtype=float)  # jog/goto feed-forward already within motor limits, added after smoothing
         self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (advanced_motion_planning)
         self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (advanced_motion_planning)
+        self.track_move_planned = None                 # per goto while tracking: planned (small/roll move) or not
         self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, pa   - user set target equatorial co-ordinates
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll - user set target topocentric co-ordinates
@@ -997,6 +1001,7 @@ class PID_Controller():
 
     def ramp_jog_rates(self):
         """Move the applied jog rates toward the requested ones by at most Ka*dt per control step."""
+        self.set_Ka_array(Config.pid_Ka)          # constrain() sets these later in the step; needed now
         max_step = min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL) * self.dt if self.dt > 0 else 0.0
         keys = list(AXIS_MAP)
         ramped = ramp_rates([self.axis_v_act[k] for k in keys], [self.axis_v_sp[k] for k in keys], max_step)
@@ -1273,11 +1278,13 @@ class PID_Controller():
         return self.time_goto and (ephem.now() - self.time_goto) * 24 * 3600 > 45
     
     def set_goto_complete_callback(self, fn):
+        self.track_move_planned = None               # plan_goto decides once per goto whether to plan it
         self.is_deviating = True
         self.time_goto = ephem.now()
         self.goto_complete_callback = fn
               
     def set_rotate_complete_callback(self, fn):
+        self.track_move_planned = None
         self.is_deviating = True
         self.rotate_complete_callback = fn
               
@@ -1434,25 +1441,78 @@ class PID_Controller():
     GOTO_RATE_SHARE = 0.8                            # planner speed as a share of Kv (headroom for feedback)
     GOTO_MAX_ACCEL = 5.0                             # planner/jog acceleration, deg/s^2 (FAST motion follows the MCU's own slow ramp)
 
+    SMALL_MOVE_DEG = 0.25                            # moves shorter than this (motor travel) stay at SLOW speeds...
+    SMALL_MOVE_RATE = 0.21                           # ...where the motors run accurately in position mode (deg/s)
+
     def plan_goto(self):
-        """advanced_motion_planning: drive theta_ref along a GotoTrajectory during an AUTO goto, with
-        its velocity as shaped feed-forward. Returns True when it set theta_ref this step."""
-        active = (Config.advanced_motion_planning and self.mode == 'AUTO' and self.theta_ref_cache is None
-                  and not self._has_active_jog() and self.dt > 0)
-        if not active:
+        """advanced_motion_planning: drive theta_ref along a GotoTrajectory with its velocity as shaped
+        feed-forward - for a goto when not tracking (planned in Az/Alt/Roll, holding Az/Alt through roll
+        changes), and for a goto/rotate while tracking (planned in RA/Dec/PA, holding RA/Dec through PA
+        changes, converted to motor angles at the current time). Returns True when it set theta_ref."""
+        tracking_move = self.mode == 'TRACK' and self.move_pending()
+        active = (Config.advanced_motion_planning and (self.mode == 'AUTO' or tracking_move)
+                  and self.theta_ref_cache is None and not self._has_active_jog() and self.dt > 0)
+        if self.goto_traj is not None and (not active or self.goto_traj.space != self.mode):
             self.goto_traj = None
+        if not active:
             return False
-        goal = np.array(self.alpha_ref, dtype=float)
+        if self.mode == 'TRACK':
+            goal, start, to_theta = np.array(self.delta_ref, dtype=float), np.array(self.delta_pv, dtype=float), self._delta_to_theta
+        else:
+            goal, start, to_theta = np.array(self.alpha_ref, dtype=float), np.array(self.alpha_pv, dtype=float), self._alpha_to_theta
+        self.set_Ka_array(Config.pid_Ka)
+        self.set_Kv_array(Config.pid_Kv)
         if self.goto_traj is None:
-            if self._alpha_distance(self.alpha_pv, goal) <= self.GOTO_RETARGET_DEG:
-                return False                              # already there: hold as before
-            self.goto_traj = GotoTrajectory(self._alpha_to_theta, float(np.min(self.Kv)) * self.GOTO_RATE_SHARE,
-                                            min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
-            self.goto_traj.start(np.array(self.alpha_pv, dtype=float), np.array(self.theta_pv, dtype=float), goal)
+            if self.mode == 'TRACK' and self.track_move_planned is False:
+                return False                              # decided at the start of this goto: not planned
+            if self._alpha_distance(start, goal) <= self.GOTO_RETARGET_DEG:
+                return False                              # already there: hold/track as before
+            theta_pv = np.array(self.theta_pv, dtype=float)
+            travel = float(np.max(np.abs(to_theta(goal, theta_pv) - theta_pv)))
+            if self.mode == 'TRACK':
+                # decide once per goto: plan small corrections and roll/PA changes; a large move while
+                # tracking is closed directly by the PID (planning it would end in FAST-lag overshoot)
+                self.track_move_planned = bool(travel <= self.SMALL_MOVE_DEG or self._is_roll_move(start, goal))
+                if not self.track_move_planned:
+                    return False
+            rate = self.SMALL_MOVE_RATE if travel <= self.SMALL_MOVE_DEG else float(np.min(self.Kv)) * self.GOTO_RATE_SHARE
+            self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
+            self.goto_traj.space = self.mode
+            self.goto_traj.start(start, theta_pv, goal)
         elif self._alpha_distance(self.goto_traj.goal, goal) > self.GOTO_RETARGET_DEG:
             self.goto_traj.retarget(goal)
+        if self.mode == 'TRACK' and self.goto_traj.done:
+            self.goto_traj = None                         # arrived: normal tracking takes over from here,
+            self.track_move_planned = False               # and the PID finishes this goto (no re-planning)
+            return False
         self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
         return True
+
+    def _is_roll_move(self, start, goal):
+        """The move is (almost) only a roll/PA change: pointing moves less than GOTO_RETARGET_DEG."""
+        q_a, q_b = azaltroll_to_q(start[0], start[1], 0.0), azaltroll_to_q(goal[0], goal[1], 0.0)
+        return bool(quaternion_difference(q_a, q_b)[0] <= self.GOTO_RETARGET_DEG)
+
+    def _delta_to_theta(self, delta, theta_near):
+        """RA(deg)/Dec/PA -> motor angles at the current time, on the branch nearest theta_near."""
+        return self._alpha_to_theta(self._delta_to_alpha(delta), theta_near)
+
+    def _delta_to_alpha(self, delta):
+        """RA(deg)/Dec/PA -> Az/Alt/Roll now, as delta2body/body2alpha do, without touching self.body."""
+        self.observer.date = ephem.Date(datetime.datetime.utcnow())
+        self.observer.epoch = ephem.now()
+        body = ephem.FixedBody()
+        body._epoch = self.body._epoch
+        body._ra, body._dec = deg2rad(delta[0]), deg2rad(delta[1])
+        body.compute(self.observer)
+        az, alt = rad2deg(body.az), rad2deg(body.alt)
+        roll = wrap180(delta[2] - calc_parallactic_angle(az, alt, self.polaris._sitelatitude))
+        return np.array(reachable_azaltroll(az, alt, roll, roll_adj=self.polaris._sm.roll_adj), dtype=float)
+
+    def move_pending(self):
+        """A goto or rotate has been requested and has not yet completed."""
+        return (self.goto_complete_callback is not None or self.rotate_complete_callback is not None
+                or self.goto_in_progress())
 
     def goto_in_progress(self):
         return self.goto_traj is not None and not self.goto_traj.done
@@ -1652,6 +1712,8 @@ class PID_Controller():
         if self.mode=='TRACK':
             now = time.monotonic()
             no_recent_disturbance = now > self.ki_inhibit_until   # set/extended by SP changes, sync guide, pulse guide
+            if Config.advanced_motion_planning and self.move_pending():
+                no_recent_disturbance = False                     # freeze (don't reset) the integral during a goto/rotate
             not_jogging = not self._has_active_jog()
             # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
             can_integrate = np.logical_or(
@@ -1780,11 +1842,13 @@ class PID_Controller():
             await asyncio.sleep(delay)
 
     def notify(self):
-        if ((not self.is_deviating) or self.goto_timeout()) and self.goto_complete_callback:
+        # a planned move (advanced_motion_planning) completes only once its trajectory has finished too
+        arrived = not self.is_deviating and not self.goto_in_progress()
+        if (arrived or self.goto_timeout()) and self.goto_complete_callback:
             self.goto_complete_callback()
             self.goto_complete_callback = None
             self.time_goto = None
-        if not self.is_deviating and self.rotate_complete_callback:
+        if arrived and self.rotate_complete_callback:
             self.rotate_complete_callback()
             self.rotate_complete_callback = None
         if not self.is_deviating and self.parking_complete_callback:
