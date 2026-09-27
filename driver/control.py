@@ -762,7 +762,7 @@ class GotoTrajectory:
             v[i] = min(v[i], math.sqrt(v[i - 1] ** 2 + 2 * spare(i - 1, v[i - 1]) * ds[i - 1]))
         for i in range(len(s) - 2, -1, -1):                     # backward: be able to stop at the goal
             v[i] = min(v[i], math.sqrt(v[i + 1] ** 2 + 2 * spare(i + 1, v[i + 1]) * ds[i]))
-        self._start_alpha, self._fracs, self._s, self._v = self._alpha.copy(), fracs, s, v
+        self._start_alpha, self._fracs, self._s, self._v, self._k = self._alpha.copy(), fracs, s, v, k
         self._pos = 0.0
         self._at_goal = s[-1] < 1e-9
         self.done = False
@@ -777,9 +777,14 @@ class GotoTrajectory:
             return now, np.zeros(3)
         a_dt = self.max_accel * dt
         remaining = self._s[-1] - self._pos
-        probe = self._pos + self._speed * dt / 2
-        target = float(np.interp(probe, self._s, self._v))
-        speed = min(max(target, self._speed - a_dt), self._speed + a_dt, self.max_rate)
+        k = float(np.interp(self._pos, self._s, self._k))      # speed up only within what turning leaves over
+        up_dt = max(self.max_accel - self._speed ** 2 * k, 0.1 * self.max_accel) * dt
+        # read the profile where the reference would be after speeding up for this step, interpolating v^2
+        # (exact under constant acceleration): reading v at the current position, near a sqrt(2as) start,
+        # made the speed grow exponentially from ~0 - the reference crept for ~1.6 s before moving
+        probe = self._pos + (self._speed + up_dt) * dt
+        target = math.sqrt(float(np.interp(probe, self._s, self._v ** 2)))
+        speed = min(max(target, self._speed - a_dt), self._speed + up_dt, self.max_rate)
         if remaining <= max(speed, a_dt) * dt:
             pos = self._s[-1]                                   # last step lands on the goal
         else:

@@ -149,6 +149,23 @@ def test_reference_stays_within_motor_limits(start, goal):
     assert np.max(np.abs(accel)) <= 1.1 * KA, f"reference accelerated at {np.max(np.abs(accel)):.2f} deg/s^2 on one axis (limit {KA})"
 
 
+@pytest.mark.parametrize("move,rate", [("az_only", PLAN_RATE), ("az_only", 0.21), ("az_alt_roll_all_change", PLAN_RATE)],
+                         ids=["az_only_fast", "az_only_small_move_rate", "az_alt_roll_all_change"])
+def test_reference_starts_moving_at_once(move, rate):
+    """From rest the reference speeds up at max_accel from the first step (no dead time before it moves).
+    Was: the speed profile read near its sqrt(2as) start grew the speed exponentially from ~0, so the
+    reference crept for ~1.6 s before moving (3-4 s on the mount with FAST lag)."""
+    start, goal = GOTOS[move]
+    theta = to_theta(start, np.array([180.0, 45.0, 0.0]))
+    traj = GotoTrajectory(to_theta, max_rate=rate, max_accel=KA)
+    traj.start(np.asarray(start, float), theta, np.asarray(goal, float))
+    speeds = [float(np.max(np.abs(traj.step(DT)[1]))) for _ in range(5)]
+    expected = [min(KA * DT * (k + 1), rate) for k in range(5)]
+    assert all(s >= 0.9 * e for s, e in zip(speeds, expected)), (
+        f"{move} at up to {rate:.2f} deg/s: reference speed over the first 1 s was {np.round(speeds, 3).tolist()} deg/s, "
+        f"expected to follow max_accel {KA} deg/s^2: {np.round(expected, 3).tolist()}")
+
+
 def test_feed_forward_is_the_reference_velocity():
     r = goto(*ROLL_MOVES["alt45_roll_0_to_45"])
     assert np.allclose(r["ffs"][:-1], np.diff(r["refs"], axis=0) / DT, atol=1e-9), (
