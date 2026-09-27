@@ -248,3 +248,18 @@ def test_guard_unwind_goto_does_not_overshoot(monkeypatch, config):
         tw.close()
     assert all(t is not None for t in times), f"unwind goto did not complete within 120 s: {fmt(times)} s"
     assert max(overs) <= 5.0, f"unwind goto: M1 overshot its final angle by {fmt(overs)} deg (limit 5 deg)"
+
+
+def test_guard_goto_needing_a_flip_is_left_to_the_pid(monkeypatch):
+    """A goto to a negative altitude needs the other IK branch (theta2 < -8 is invalid): the planner can't
+    walk the reference across the 180 deg jump, so it must leave the goto to the PID and its FLIP handling
+    (as legacy). Was: the planned reference stalled at the jump - on the mount the goto fought near alt 0
+    for ~20 s before flipping."""
+    tw = Twin(monkeypatch, config=CANDIDATE, seed=0)
+    tw.place(azaltroll_to_theta_ik(130.8, 30.0, 0.0))
+    tw.goto_altaz(130.8, -30.0)
+    tw.run(0.4)
+    planned = tw.pid.goto_traj is not None
+    tw.close()
+    assert not planned, "a goto across an IK branch change (to alt -30) was planned instead of left to the PID/FLIP"
+

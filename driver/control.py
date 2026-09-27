@@ -722,6 +722,7 @@ class GotoTrajectory:
     """
     SAMPLES = 200
     TURN_SHARE = 0.5
+    BRANCH_JUMP_DEG = 30.0                                   # one sample step this large is an IK branch change
 
     def __init__(self, to_theta, max_rate, max_accel):
         self.to_theta = to_theta
@@ -729,6 +730,7 @@ class GotoTrajectory:
         self.max_accel = float(max_accel)
         self.done = True
         self._at_goal = True
+        self.branch_change = False
 
     def start(self, alpha, theta, goal):
         self._alpha = np.asarray(alpha, dtype=float)
@@ -746,6 +748,9 @@ class GotoTrajectory:
         thetas = np.array(thetas)
         seg = np.diff(thetas, axis=0)
         ds = np.max(np.abs(seg), axis=1)                       # path length in fastest-axis degrees
+        # the path switches IK branch (M1/M3 +-180, M2 mirrored, e.g. to reach a negative altitude): the
+        # reference can't be walked across the jump - the caller leaves such a goto to the PID/FLIP
+        self.branch_change = bool(np.max(ds, initial=0.0) > self.BRANCH_JUMP_DEG)
         s = np.concatenate([[0.0], np.cumsum(ds)])
         u = seg / np.maximum(ds, 1e-12)[:, None]              # per-axis rate per unit path speed
         v = np.full(len(s), self.max_rate)
@@ -1491,6 +1496,10 @@ class PID_Controller():
             self.goto_traj.start(start, theta_pv, goal)
         elif self._alpha_distance(self.goto_traj.goal, goal) > self.GOTO_RETARGET_DEG:
             self.goto_traj.retarget(goal)
+        if self.goto_traj.branch_change:
+            self.goto_traj = None                         # needs an IK branch change: the PID and its FLIP
+            self.move_planned = False                     # handling take this goto (not walkable by the planner)
+            return False
         if self.mode == 'TRACK' and self.goto_traj.done:
             self.goto_traj = None                         # arrived: normal tracking takes over from here,
             self.move_planned = False                     # and the PID finishes this goto (no re-planning)

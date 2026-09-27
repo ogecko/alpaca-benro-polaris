@@ -166,6 +166,26 @@ def test_reference_starts_moving_at_once(move, rate):
         f"expected to follow max_accel {KA} deg/s^2: {np.round(expected, 3).tolist()}")
 
 
+def test_branch_change_on_the_path_is_flagged():
+    """A path the motors can only follow by switching IK branch (M1/M3 +-180, M2 mirrored - e.g. below
+    theta2 -8 on the way to a negative altitude) can't be walked by the reference: it is flagged so the
+    goto is left to the PID and its FLIP handling. Was: the reference stalled at the jump (near alt 0 on
+    the mount) for ~20 s, then leapt 180 deg."""
+    def to_theta_with_branch(alpha, theta_near):
+        t = to_theta(alpha, theta_near)
+        if alpha[1] < -8:                                          # only the other branch is valid down here
+            t = np.array([t[0] + 180.0, -t[1], t[2] - 180.0])
+        return t
+    start, goal = (130.0, 30.0, 0.0), (130.0, -30.0, 0.0)
+    theta = to_theta(start, np.array([180.0, 45.0, 0.0]))
+    traj = GotoTrajectory(to_theta_with_branch, max_rate=PLAN_RATE, max_accel=KA)
+    traj.start(np.asarray(start, float), theta, np.asarray(goal, float))
+    assert traj.branch_change, "a 180 deg IK branch change on the planned path must be flagged"
+    traj = GotoTrajectory(to_theta, max_rate=PLAN_RATE, max_accel=KA)
+    traj.start(np.asarray(start, float), theta, np.asarray((200.0, 60.0, 30.0), float))
+    assert not traj.branch_change, "a continuous path must not be flagged as a branch change"
+
+
 def test_feed_forward_is_the_reference_velocity():
     r = goto(*ROLL_MOVES["alt45_roll_0_to_45"])
     assert np.allclose(r["ffs"][:-1], np.diff(r["refs"], axis=0) / DT, atol=1e-9), (
