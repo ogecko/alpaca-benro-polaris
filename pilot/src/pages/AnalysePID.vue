@@ -219,7 +219,7 @@ import MoveButton from 'src/components/MoveButton.vue'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, PIDMessage }from 'src/stores/stream'
-import { wrapTo360, wrapTo90 } from 'src/utils/angles'
+import { wrapTo90 } from 'src/utils/angles'
 
 const $q = useQuasar()
 const socket = useStreamStore()
@@ -338,20 +338,27 @@ async function runTestCase(payload: { isPressed: boolean }, sign:number) {
       return
     }
 
-    // Goto Test Case
+    // Goto Test Case: step the chosen axis of the chosen co-ordinate system (Mot/Top/Equ)
     if (testcase.value?.case=='goto' && payload.isPressed) {
       await dev.alpacaResetSP()
-      if (axis.value==0) {
-        const az = wrapTo360(p.azimuth + sign * testVal)
-        const alt = p.altitude 
-        await dev.alpacaSlewToAltAz(alt, az)
-      } else if (axis.value==1) {
-        const az = p.azimuth 
-        const alt = wrapTo90(p.altitude + sign * testVal)
-        await dev.alpacaSlewToAltAz(alt, az)
+      const step = sign * testVal
+      if (coord.value === 0) {
+        const key = (['m1', 'm2', 'm3'] as const)[axis.value] ?? 'm1'
+        await dev.alpacaSlewRelative({ [key]: step })
+      } else if (coord.value === 1) {
+        if (axis.value == 1) {
+          await dev.alpacaSlewAbsolute({ alt: wrapTo90(p.altitude + step) })   // fold back past the zenith
+        } else {
+          await dev.alpacaSlewRelative(axis.value == 0 ? { az: step } : { roll: step })
+        }
       } else {
-        const roll = p.roll + sign * testVal
-        await dev.alpacaMoveMechanical(roll)
+        if (axis.value == 0) {
+          await dev.alpacaSlewRelative({ ra: step / 15 })                      // ra in hours
+        } else if (axis.value == 1) {
+          await dev.alpacaSlewAbsolute({ dec: wrapTo90(p.declination + step) }) // fold back past the pole
+        } else {
+          await dev.alpacaSlewRelative({ pa: step })
+        }
       }
 
     // Slew Test Case
