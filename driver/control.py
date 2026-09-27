@@ -1915,7 +1915,7 @@ class PID_Controller():
         }
         pidlogger = logging.getLogger('pid')
         pidlogger.info(payload)
-        if Config.log_position and self.mode=="TRACK":
+        if Config.log_position and self.mode in ("TRACK", "AUTO"):     # AUTO: gotos with tracking off
             self.logger.info(f"PIDLOG {payload}")
 
     async def stop_control_loop_task(self):
