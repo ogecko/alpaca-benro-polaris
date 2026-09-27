@@ -222,3 +222,29 @@ def test_goal_roll_goto_not_tracking_holds_azalt(monkeypatch):
         drifts.append(worst[0])
         tw.close()
     assert max(drifts) <= 30.0, f"a 45 deg roll goto at alt 20 moved Az/Alt by {fmt(drifts)}' (goal <= 30')"
+
+
+@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["legacy", "coordinated"])
+def test_guard_unwind_goto_does_not_overshoot(monkeypatch, config):
+    """A goto that must unwind M1 (the short way would pass its motor limit) goes the long way round and
+    stops at the target: M1 overshoots its final angle by at most 5 deg and the goto completes.
+    Was (coordinated): the planner took over from the unwind at full speed with a trajectory planned
+    from rest - 93 deg past, back, past again (seen on the mount going Altair -> Alnair)."""
+    overs, times = [], []
+    for seed in SEEDS:
+        tw = Twin(monkeypatch, config=config, seed=seed)
+        theta = np.array(azaltroll_to_theta_ik(50.0, 40.0, 0.0), dtype=float)
+        theta[0] += 360.0                                   # M1 wound to zeta1 ~ +230 (limit 270, margin 10)
+        tw.place(theta)
+        t0, path = tw.clock.t, []
+        tw.goto_altaz(120.0, 40.0)                          # short way would take zeta1 to ~ +300
+        while tw.clock.t - t0 < 120 and tw.polaris.goto_complete_at is None:
+            tw.run(0.2, on_measure=lambda t: path.append(t.theta[0]))
+        tw.run(5, on_measure=lambda t: path.append(t.theta[0]))
+        path = np.array(path)
+        direction = np.sign(path[-1] - path[0])
+        overs.append(float(max(0.0, np.max((path - path[-1]) * direction))))
+        times.append(None if tw.polaris.goto_complete_at is None else tw.polaris.goto_complete_at - t0)
+        tw.close()
+    assert all(t is not None for t in times), f"unwind goto did not complete within 120 s: {fmt(times)} s"
+    assert max(overs) <= 5.0, f"unwind goto: M1 overshot its final angle by {fmt(overs)} deg (limit 5 deg)"

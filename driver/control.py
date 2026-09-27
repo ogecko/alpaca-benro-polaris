@@ -837,7 +837,7 @@ class PID_Controller():
         self.omega_ff_shaped = np.zeros(3, dtype=float)  # jog/goto feed-forward already within motor limits, added after smoothing
         self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (coordinated_speed_control)
         self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (coordinated_speed_control)
-        self.track_move_planned = None                 # per goto while tracking: planned (small/roll move) or not
+        self.move_planned = None                       # per goto: planned, or left to the PID (large move while tracking, unwind/flip)
         self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, pa   - user set target equatorial co-ordinates
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll - user set target topocentric co-ordinates
@@ -1283,13 +1283,13 @@ class PID_Controller():
         return self.time_goto and (ephem.now() - self.time_goto) * 24 * 3600 > 45
     
     def set_goto_complete_callback(self, fn):
-        self.track_move_planned = None               # plan_goto decides once per goto whether to plan it
+        self.move_planned = None                     # plan_goto decides once per goto whether to plan it
         self.is_deviating = True
         self.time_goto = ephem.now()
         self.goto_complete_callback = fn
               
     def set_rotate_complete_callback(self, fn):
-        self.track_move_planned = None
+        self.move_planned = None
         self.is_deviating = True
         self.rotate_complete_callback = fn
               
@@ -1308,6 +1308,11 @@ class PID_Controller():
         self.set_pid_mode('IDLE')
 
     def set_theta_ref_cache(self, cause, theta):
+        # an unwind/flip is driven by the PID to the end of this goto: the planner must not take over
+        # from it mid-move (it would plan from rest while the mount runs at full speed, and overshoot)
+        self.goto_traj = None
+        self.move_planned = False
+        self.omega_ff_shaped = np.zeros(3, dtype=float)
         self.theta_ref = theta
         self.theta_ref_cache = theta
         self.theta_ref_cache_cause = cause
@@ -1468,8 +1473,8 @@ class PID_Controller():
         self.set_Ka_array(Config.pid_Ka)
         self.set_Kv_array(Config.pid_Kv)
         if self.goto_traj is None:
-            if self.mode == 'TRACK' and self.track_move_planned is False:
-                return False                              # decided at the start of this goto: not planned
+            if self.move_planned is False:
+                return False                              # decided for this goto: not planned
             if self._alpha_distance(start, goal) <= self.GOTO_RETARGET_DEG:
                 return False                              # already there: hold/track as before
             theta_pv = np.array(self.theta_pv, dtype=float)
@@ -1477,8 +1482,8 @@ class PID_Controller():
             if self.mode == 'TRACK':
                 # decide once per goto: plan small corrections and roll/PA changes; a large move while
                 # tracking is closed directly by the PID (planning it would end in FAST-lag overshoot)
-                self.track_move_planned = bool(travel <= self.SMALL_MOVE_DEG or self._is_roll_move(start, goal))
-                if not self.track_move_planned:
+                self.move_planned = bool(travel <= self.SMALL_MOVE_DEG or self._is_roll_move(start, goal))
+                if not self.move_planned:
                     return False
             rate = self.SMALL_MOVE_RATE if travel <= self.SMALL_MOVE_DEG else float(np.min(self.Kv)) * self.GOTO_RATE_SHARE
             self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
@@ -1488,7 +1493,7 @@ class PID_Controller():
             self.goto_traj.retarget(goal)
         if self.mode == 'TRACK' and self.goto_traj.done:
             self.goto_traj = None                         # arrived: normal tracking takes over from here,
-            self.track_move_planned = False               # and the PID finishes this goto (no re-planning)
+            self.move_planned = False                     # and the PID finishes this goto (no re-planning)
             return False
         self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
         return True
