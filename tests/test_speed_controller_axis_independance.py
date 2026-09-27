@@ -6,7 +6,7 @@ For each ordered pair (running motor A, disturbing motor B): run A alone at RAW 
 +2<->+3), and check A's speed is unchanged. Motors are driven with Polaris:MoveMotor
 and velocity is a linear fit of `traw` polled from Polaris:StatusFetch.
 
-Runs only against a live driver whose Polaris is connected and idle (tracking off,
+Runs only when the driver allows hardware unit tests (config log_hardware_unit_tests) and against a live driver whose Polaris is connected and idle (tracking off,
 PID idle, not slewing); otherwise the whole module is skipped. All motors are stopped
 after each test. Takes ~6 minutes.
 
@@ -16,7 +16,7 @@ import time
 
 import pytest
 
-from polaris_hw import MOTOR_NAMES, direction, idle_reason, measure_velocity, move_motor, speed_controller, stop_all
+from polaris_hw import hardware_tests_disabled_reason, MOTOR_NAMES, direction, idle_reason, measure_velocity, move_motor, speed_controller, stop_all
 
 RATE_A = 0.8            # RAW rate of the running motor
 RATE_B = 2.5            # RAW rate of the disturbing motor
@@ -28,7 +28,7 @@ REL_TOLERANCE = 0.20    # allowed change in A's speed when B starts
 
 @pytest.fixture(scope="module", autouse=True)
 def polaris_idle():
-    reason = idle_reason()
+    reason = hardware_tests_disabled_reason() or idle_reason()
     if reason:
         pytest.skip(f"Hardware test skipped: {reason}")
     print(f"\nspeed controller under test: {speed_controller()}")

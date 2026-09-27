@@ -86,6 +86,7 @@ export const useConfigStore = defineStore('config', {
     advanced_orbitals: false,
     advanced_pec: false,
     speed_controller_v2: false,
+    advanced_motion_planning: false,
     // Motion and Tuning Constants
     tracking_settle_time: 16,
     kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
@@ -156,6 +157,7 @@ export const useConfigStore = defineStore('config', {
     log_pec: false,
     log_heartbeat: false,
     log_position: false,
+    log_hardware_unit_tests: false,
 
     // Log Rotation
     max_size_mb: 5,

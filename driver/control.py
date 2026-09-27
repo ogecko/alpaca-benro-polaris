@@ -694,6 +694,117 @@ FAMILY_AXES = {
 # vector returned by calc_pole_axes_B (proven in tests/test_pole_axes.py).
 AXIS_NEGATE = {'az', 'roll', 'pa', 'gpa'}
 
+def ramp_rates(current, target, max_step):
+    """Move each axis rate toward its target by at most max_step (max_accel * dt): jog shaping, so a
+    jog's reference motion and feed-forward never ask the motors for more than their acceleration."""
+    current = np.asarray(current, dtype=float)
+    return current + np.clip(np.asarray(target, dtype=float) - current, -max_step, max_step)
+
+
+class GotoTrajectory:
+    """Reference trajectory for a goto, with velocity feed-forward.
+
+    The PID reaches a far-away reference by chasing it from wherever the mount is, which moves the
+    motors in near-straight lines in motor space. Paths that hold Az/Alt while roll changes are
+    strongly curved in motor space (at low alt/low roll M1 and M3 counter-rotate), so chasing cuts
+    across them (50'-750' off in simulation). Instead, this moves the reference itself along the
+    planned path - Az/Alt on a great circle and roll linearly, as alpha_limit_step plans it - no
+    faster than the motors can follow, and gives the reference velocity as feed-forward, so the PID
+    only corrects small errors.
+
+    On start/retarget the path is sampled in motor space and given a speed profile: the path speed
+    (fastest axis) stays within max_rate, slows where the path curves so that per-axis acceleration
+    from turning stays within half of max_accel, and speeds up / slows down within the acceleration
+    that turning leaves over, from the
+    current speed to a stop at the goal. step() then walks the profile.
+
+    to_theta(alpha, theta_near) converts Az/Alt/Roll to motor angles on the branch nearest theta_near.
+    """
+    SAMPLES = 200
+    TURN_SHARE = 0.5
+
+    def __init__(self, to_theta, max_rate, max_accel):
+        self.to_theta = to_theta
+        self.max_rate = float(max_rate)
+        self.max_accel = float(max_accel)
+        self.done = True
+
+    def start(self, alpha, theta, goal):
+        self._alpha = np.asarray(alpha, dtype=float)
+        self._theta = np.asarray(theta, dtype=float)
+        self._speed = 0.0
+        self.retarget(goal)
+
+    def retarget(self, goal):
+        """New goal: re-plan from the current reference position and speed."""
+        self.goal = np.asarray(goal, dtype=float)
+        fracs = np.linspace(0.0, 1.0, self.SAMPLES + 1)
+        thetas = [self._theta]
+        for f in fracs[1:]:
+            thetas.append(self.to_theta(self._interp(self._alpha, self.goal, f), thetas[-1]))
+        thetas = np.array(thetas)
+        seg = np.diff(thetas, axis=0)
+        ds = np.max(np.abs(seg), axis=1)                       # path length in fastest-axis degrees
+        s = np.concatenate([[0.0], np.cumsum(ds)])
+        u = seg / np.maximum(ds, 1e-12)[:, None]              # per-axis rate per unit path speed
+        v = np.full(len(s), self.max_rate)
+        kappa = np.max(np.abs(np.diff(u, axis=0)), axis=1) / np.maximum((ds[:-1] + ds[1:]) / 2, 1e-12)
+        # turning takes at most half of max_accel, leaving the rest for speeding up / slowing down
+        v[1:-1] = np.minimum(v[1:-1], np.sqrt(self.TURN_SHARE * self.max_accel / np.maximum(kappa, 1e-12)))
+        v[0], v[-1] = min(self._speed, self.max_rate), 0.0
+        k = np.concatenate([[0.0], kappa, [0.0]])               # curvature at every sample
+
+        def spare(i, vi):                                       # acceleration left once turning takes its share
+            return max(self.max_accel - vi * vi * k[i], 0.1 * self.max_accel)
+
+        for i in range(1, len(s)):                              # forward: speed up within what's left
+            v[i] = min(v[i], math.sqrt(v[i - 1] ** 2 + 2 * spare(i - 1, v[i - 1]) * ds[i - 1]))
+        for i in range(len(s) - 2, -1, -1):                     # backward: be able to stop at the goal
+            v[i] = min(v[i], math.sqrt(v[i + 1] ** 2 + 2 * spare(i + 1, v[i + 1]) * ds[i]))
+        self._start_alpha, self._fracs, self._s, self._v = self._alpha.copy(), fracs, s, v
+        self._pos = 0.0
+        self.done = s[-1] < 1e-9
+
+    def step(self, dt):
+        """Returns (theta_ref, omega_ff): the reference now, and the velocity that takes it to where
+        it will be one dt later (where it then advances to)."""
+        now = self._theta.copy()
+        if self.done:
+            self._speed = 0.0
+            return now, np.zeros(3)
+        a_dt = self.max_accel * dt
+        remaining = self._s[-1] - self._pos
+        probe = self._pos + self._speed * dt / 2
+        target = float(np.interp(probe, self._s, self._v))
+        speed = min(max(target, self._speed - a_dt), self._speed + a_dt, self.max_rate)
+        if remaining <= max(speed, a_dt) * dt:
+            pos = self._s[-1]                                   # last step lands on the goal
+        else:
+            pos = self._pos + max(speed, 1e-6) * dt
+        cap = min(max(speed, a_dt), self.max_rate) * dt
+        for _ in range(4):                                      # the exact step may be a little longer than
+            frac = float(np.interp(pos, self._s, self._fracs))  # the sampled profile says: shorten it to cap
+            alpha = self._interp(self._start_alpha, self.goal, frac)
+            theta = self.to_theta(alpha, now)
+            moved = float(np.max(np.abs(theta - now)))
+            if moved <= cap * (1 + 1e-9):
+                break
+            pos = self._pos + (pos - self._pos) * cap / moved * 0.999
+        rate = (theta - now) / dt
+        self._alpha, self._theta, self._pos = alpha, theta, pos
+        self._speed = float(np.max(np.abs(rate)))
+        if pos >= self._s[-1]:
+            self.done = True
+        return now, rate
+
+    @staticmethod
+    def _interp(a, b, frac):
+        """Az/Alt along the great circle (slerp at roll 0) and roll linearly, like alpha_limit_step."""
+        q_a, q_b = azaltroll_to_q(a[0], a[1], 0.0), azaltroll_to_q(b[0], b[1], 0.0)
+        az, alt, _ = q_to_azaltroll(Quaternion.slerp(q_a, q_b, frac))
+        return np.array([az, alt, a[2] + frac * wrap180(b[2] - a[2])])
+
+
 class PID_Controller():
     def __init__(self, logger, polaris, dt=0.2, loop=None):
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
@@ -714,6 +825,10 @@ class PID_Controller():
         self.orbital_sp_fetchmsg  = None               # result msg from last http fetch of orbital parameters
         self.orbital_sp_status = [0, 0, 0]             # status of orbital tracking [is_orb_trackable (0=N/A, 1=toolow, 2=ok), orb_az, orb_alt]
         self.axis_v_sp = {k: 0.0 for k in AXIS_MAP}    # deg/sec jog rate per named axis in AXIS_MAP
+        self.axis_v_act = {k: 0.0 for k in AXIS_MAP}   # jog rate actually applied: ramped toward axis_v_sp (advanced_motion_planning)
+        self.omega_ff_shaped = np.zeros(3, dtype=float)  # jog/goto feed-forward already within motor limits, added after smoothing
+        self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (advanced_motion_planning)
+        self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (advanced_motion_planning)
         self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, pa   - user set target equatorial co-ordinates
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll - user set target topocentric co-ordinates
@@ -849,6 +964,20 @@ class PID_Controller():
         self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
 
 
+    def _jog_omega(self, rates):
+        """Motor rates (deg/s) for a set of jog rates: Base-frame angular velocity via the Jacobian,
+        as the legacy jog feed-forward computes it."""
+        omega_base = np.zeros(3, dtype=float)
+        for axis_name, rate_dps in rates.items():
+            if rate_dps == 0.0:
+                continue
+            contrib = self._axis_omega_B(axis_name, rate_dps)
+            if contrib is not None:
+                omega_base += contrib
+        if not np.any(omega_base):
+            return np.zeros(3, dtype=float)
+        return np.degrees(np.linalg.solve(theta_to_jacobian(*self.theta_pv), omega_base))
+
     def _axis_omega_B(self, axis_name, rate_dps):
         """rate_dps of angular velocity about axis_name, in Base-frame rad/sec,
         with AXIS_NEGATE sign applied. Pure vector output for FF."""
@@ -861,21 +990,37 @@ class PID_Controller():
         sign = -1.0 if axis_name in AXIS_NEGATE else 1.0
         return sign * np.radians(rate_dps) * np.array(triad[idx])
 
+    def _jog_rates(self):
+        """Jog rates that move the mount: with advanced_motion_planning, the rates ramped toward
+        axis_v_sp within the motor acceleration (see ramp_jog_rates); else axis_v_sp itself."""
+        return self.axis_v_act if Config.advanced_motion_planning else self.axis_v_sp
+
+    def ramp_jog_rates(self):
+        """Move the applied jog rates toward the requested ones by at most Ka*dt per control step."""
+        max_step = min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL) * self.dt if self.dt > 0 else 0.0
+        keys = list(AXIS_MAP)
+        ramped = ramp_rates([self.axis_v_act[k] for k in keys], [self.axis_v_sp[k] for k in keys], max_step)
+        self.axis_v_act = {k: float(v) for k, v in zip(keys, ramped)}
+
     def _native_alpha_v_sp(self):
         """az/alt/roll jog rates -- straight passthrough. No AXIS_NEGATE here:
         that sign only applies when converting into/out of the Base-frame VECTOR
         representation (see _axis_omega_B). Here axis_v_sp and alpha_offst are
         both already in native az/alt/roll value-space, so no conversion needed."""
-        return np.array([self.axis_v_sp['az'], self.axis_v_sp['alt'], self.axis_v_sp['roll']])
+        jog = self._jog_rates()
+        return np.array([jog['az'], jog['alt'], jog['roll']])
 
     def _native_delta_v_sp(self):
-        return np.array([self.axis_v_sp['ra'], self.axis_v_sp['dec'], self.axis_v_sp['pa']])
+        jog = self._jog_rates()
+        return np.array([jog['ra'], jog['dec'], jog['pa']])
 
     def _native_gamma_v_sp(self):
-        return np.array([self.axis_v_sp['l'], self.axis_v_sp['b'], self.axis_v_sp['gpa']])
+        jog = self._jog_rates()
+        return np.array([jog['l'], jog['b'], jog['gpa']])
 
     def _has_active_jog(self):
         return (any(v != 0.0 for v in self.axis_v_sp.values())
+                or any(v != 0.0 for v in self._jog_rates().values())
                 or np.any(self.alpha_v_sp)
                 or np.any(self.delta_v_sp))
 
@@ -1256,6 +1401,10 @@ class PID_Controller():
             self.cameraQ_ref_last = self.cameraQ_ref
             self.cameraQ_ref = cameraQ_ref
 
+        # With advanced_motion_planning an AUTO goto follows a planned trajectory instead
+        if self.plan_goto():
+            return
+
         # Step in alpha space with az/alt locked during roll changes
         alpha_step = self.alpha_limit_step(self.alpha_pv, self.alpha_ref)
         cameraQ_step = azaltroll_to_q(*alpha_step)  
@@ -1264,9 +1413,9 @@ class PID_Controller():
         motorQ_ref   = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
 
         # Apply any jog contributions (in Base frame) to the motorQ_ref
-        if self.dt > 0 and any(v != 0.0 for v in self.axis_v_sp.values()):
+        if self.dt > 0 and any(v != 0.0 for v in self._jog_rates().values()):
             q_jog = Quaternion(1, 0, 0, 0)
-            for axis_name, rate_dps in self.axis_v_sp.items():
+            for axis_name, rate_dps in self._jog_rates().items():
                 if rate_dps == 0.0:
                     continue
                 triad_attr, idx = AXIS_MAP[axis_name]
@@ -1280,6 +1429,47 @@ class PID_Controller():
             motorQ_ref = (q_jog * motorQ_ref).normalised
 
         self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
+
+    GOTO_RETARGET_DEG = 0.5 / 60                     # re-plan when the goto target moves more than this
+    GOTO_RATE_SHARE = 0.8                            # planner speed as a share of Kv (headroom for feedback)
+    GOTO_MAX_ACCEL = 5.0                             # planner/jog acceleration, deg/s^2 (FAST motion follows the MCU's own slow ramp)
+
+    def plan_goto(self):
+        """advanced_motion_planning: drive theta_ref along a GotoTrajectory during an AUTO goto, with
+        its velocity as shaped feed-forward. Returns True when it set theta_ref this step."""
+        active = (Config.advanced_motion_planning and self.mode == 'AUTO' and self.theta_ref_cache is None
+                  and not self._has_active_jog() and self.dt > 0)
+        if not active:
+            self.goto_traj = None
+            return False
+        goal = np.array(self.alpha_ref, dtype=float)
+        if self.goto_traj is None:
+            if self._alpha_distance(self.alpha_pv, goal) <= self.GOTO_RETARGET_DEG:
+                return False                              # already there: hold as before
+            self.goto_traj = GotoTrajectory(self._alpha_to_theta, float(np.min(self.Kv)) * self.GOTO_RATE_SHARE,
+                                            min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
+            self.goto_traj.start(np.array(self.alpha_pv, dtype=float), np.array(self.theta_pv, dtype=float), goal)
+        elif self._alpha_distance(self.goto_traj.goal, goal) > self.GOTO_RETARGET_DEG:
+            self.goto_traj.retarget(goal)
+        self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+        return True
+
+    def goto_in_progress(self):
+        return self.goto_traj is not None and not self.goto_traj.done
+
+    def _alpha_to_theta(self, alpha, theta_near):
+        """Az/Alt/Roll -> motor angles (Base frame) on the branch nearest theta_near, without touching
+        the live LastPosition."""
+        lp = LastPosition(*theta_near, z3=self._lp.last_zeta3)
+        lp.flipCW = self._lp.flipCW
+        motorQ = self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*alpha))
+        return np.array(q_to_theta(motorQ, lp), dtype=float)
+
+    @staticmethod
+    def _alpha_distance(a, b):
+        """Largest of the pointing (great circle) and roll differences between two Az/Alt/Roll poses, deg."""
+        q_a, q_b = azaltroll_to_q(a[0], a[1], 0.0), azaltroll_to_q(b[0], b[1], 0.0)
+        return max(quaternion_difference(q_a, q_b)[0], abs(wrap180(b[2] - a[2])))
 
 
     def measure(self, delta_pv, alpha_pv, theta_pv, zeta_meas, measurement_lag_s=0.0):
@@ -1302,11 +1492,20 @@ class PID_Controller():
         self.time_meas = self.time_meas + self.dt
 
     def feed_forward(self):
+        if Config.advanced_motion_planning:
+            # jog feed-forward from the ramped jog rates, added after smoothing (see constrain);
+            # a goto's shaped feed-forward was already set by plan_goto
+            if not self.goto_in_progress():
+                self.omega_ff_shaped = self._jog_omega(self._jog_rates())
+            legacy_jog = {}
+        else:
+            self.omega_ff_shaped = np.zeros(3, dtype=float)
+            legacy_jog = self.axis_v_sp
         if self.ff_inhibit_ticks > 0:
             self.ff_inhibit_ticks -= 1
             return
         self.omega_ff = np.zeros(3, dtype=float)
-        have_jog = any(v != 0.0 for v in self.axis_v_sp.values())
+        have_jog = any(v != 0.0 for v in legacy_jog.values())
 
         if self.mode == "TRACK" and self.dt > 0:
             # Sidereal or orbital tracking
@@ -1328,7 +1527,7 @@ class PID_Controller():
                     omega_base += calculate_angular_velocity_vector(motorQ_last, motorQ_now, self.dt)
 
             # Add any jog contributions (in Base frame) to the feedforward
-            for axis_name, rate_dps in self.axis_v_sp.items():
+            for axis_name, rate_dps in legacy_jog.items():
                 if rate_dps == 0.0:
                     continue
                 contrib = self._axis_omega_B(axis_name, rate_dps)
@@ -1346,7 +1545,7 @@ class PID_Controller():
         elif self.mode == "AUTO":
             if have_jog:
                 omega_base = np.zeros(3, dtype=float)
-                for axis_name, rate_dps in self.axis_v_sp.items():
+                for axis_name, rate_dps in legacy_jog.items():
                     if rate_dps == 0.0:
                         continue
                     contrib = self._axis_omega_B(axis_name, rate_dps)
@@ -1430,7 +1629,9 @@ class PID_Controller():
         self.is_deviating = np.any(self.is_axis_deviating)
         self.cost_signal = np.sum(self.error_signal ** 2)
         self.is_slewing = (np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
-                           or any(v != 0.0 for v in self.axis_v_sp.values()))
+                           or any(v != 0.0 for v in self.axis_v_sp.values())
+                           or any(v != 0.0 for v in self._jog_rates().values())
+                           or self.goto_in_progress())
         self.was_moving = self.is_moving
         self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
 
@@ -1469,21 +1670,30 @@ class PID_Controller():
     def pid(self):
         self.omega_kp = np.array(Config.pid_Kp, dtype=float) * self.error_signal    # increase control proportional to error
         self.omega_ki = np.array(Config.pid_Ki, dtype=float) * self.error_integral  # increase control when integral error is high
-        self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * (self.omega_op - self.omega_ff)      # dampen control when velocity error is high
+        # damping acts on the output less its feed-forward; with advanced_motion_planning the smoothed
+        # state is the feedback part only (omega_fb) and the shaped feed-forward is added in constrain()
+        smoothed = self.omega_fb if Config.advanced_motion_planning else self.omega_op
+        self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * (smoothed - self.omega_ff)      # dampen control when velocity error is high
         self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff - self.omega_pec
 
     def constrain(self):
         self.set_Ka_array(Config.pid_Ka) 
         self.set_Kv_array(Config.pid_Kv) 
         # Compute constrained acceleration
+        smoothed = self.omega_fb if Config.advanced_motion_planning else self.omega_op
         accel_clipped = np.array([0, 0, 0], dtype=float)
         if self.dt > 0:
-            delta_omega = self.omega_tgt - self.omega_op
+            delta_omega = self.omega_tgt - smoothed
             accel = delta_omega / self.dt
             accel_clipped = np.clip(accel, -self.Ka, self.Ka)
         # Apply clipped acceleration, expotential smoothing, and clip velocity
-        self.omega_ctl = self.omega_op + accel_clipped * self.dt
-        self.omega_ctl = self.omega_ctl * (1.0 - Config.pid_Ke) + Config.pid_Ke * self.omega_op
+        self.omega_ctl = smoothed + accel_clipped * self.dt
+        self.omega_ctl = self.omega_ctl * (1.0 - Config.pid_Ke) + Config.pid_Ke * smoothed
+        if Config.advanced_motion_planning:
+            # jog/goto feed-forward is already shaped within the motor limits: add it after the
+            # smoothing and acceleration clamp so it isn't delayed (see GotoTrajectory)
+            self.omega_fb = self.omega_ctl.copy()
+            self.omega_ctl = self.omega_ctl + self.omega_ff_shaped
         # Check zeta motor limits and constrain omega further if past limits
         if self.polaris._zeta_meas is None:
             self.omega_min = -self.Kv
@@ -1539,6 +1749,8 @@ class PID_Controller():
         if Config.advanced_pec:
             self.polaris._sm.apply_pec_drift_correction()
         if self.time_meas:      # Only process if we have a measurement
+            if Config.advanced_motion_planning:
+                self.ramp_jog_rates()
             self.track_target() # Update theta_ref with target's new position
             self.feed_forward() # Feed forward tracking velocities when in TRACK mode
             self.errsignal()    # Update error_signal with deviation from theta_ref
@@ -1597,7 +1809,7 @@ class PID_Controller():
             "ω_kp": self.omega_kp.tolist(),
             "ω_ki": self.omega_ki.tolist(),
             "ω_kd": self.omega_kd.tolist(),
-            "ω_ff": (self.omega_ff - self.omega_pec).tolist(),
+            "ω_ff": (self.omega_ff + self.omega_ff_shaped - self.omega_pec).tolist(),
             "ω_pec": self.omega_pec.tolist(),  # PEC's own per-tick contribution, recomputed every tick in feed_forward() --
                                                 # currently only visible indirectly via ω_ff above (which has it subtracted out);
                                                 # this is the continuously-evolving signal, unlike PECLOG's fit_rate/applied_rate,

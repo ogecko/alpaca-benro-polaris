@@ -2,14 +2,14 @@
 Hardware test: each motor's measured velocity matches the commanded rate (Polaris:MoveMotor, DPS).
 
 Covers the tracking band (sidereal .. 0.012 deg/s, all level 1), the level 2-4 SLOW range and one
-FAST rate. Runs only against a live driver whose Polaris is connected and idle; otherwise the whole
+FAST rate. Runs only when the driver allows hardware unit tests (config log_hardware_unit_tests) and against a live driver whose Polaris is connected and idle; otherwise the whole
 module is skipped. All motors are stopped after each test. Takes ~4 minutes.
 """
 import time
 
 import pytest
 
-from polaris_hw import MOTOR_NAMES, direction, idle_reason, measure_velocity, move_motor, speed_controller, stop_all
+from polaris_hw import hardware_tests_disabled_reason, MOTOR_NAMES, direction, idle_reason, measure_velocity, move_motor, speed_controller, stop_all
 
 SIDEREAL_DPS = 360 / 86164.1
 SLOW_RATES = [SIDEREAL_DPS, 0.008, 0.0119, 0.02, 0.05, 0.1]
@@ -20,7 +20,7 @@ REL_TOLERANCE = 0.05
 
 @pytest.fixture(scope="module", autouse=True)
 def polaris_idle():
-    reason = idle_reason()
+    reason = hardware_tests_disabled_reason() or idle_reason()
     if reason:
         pytest.skip(f"Hardware test skipped: {reason}")
     print(f"\nspeed controller under test: {speed_controller()}")

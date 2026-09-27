@@ -77,6 +77,7 @@ advanced_align_mac = false                  # Enable Mechanical Alignment Correc
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 advanced_pec = false                        # Perform Periodic Error Correction Modelling
 speed_controller_v2 = true                  # BETA: shared-level motor speed controller (driver/speed_controller.py), switchable live
+advanced_motion_planning = false            # BETA: planned goto trajectories (hold Az/Alt through roll changes) and acceleration-shaped jogs
 pec_T_sec = 2040                            # PEC model worm period T (seconds, 34 min default) -- the basis every fitted harmonic is relative to
 pec_n_harmonics = 2                         # PEC model harmonics fitted per axis (0 = pure linear/RLS mode, no harmonics)
 pec_tau_sec = 1260                          # PEC model smoothing time constant (seconds), used by both RLS and EMA modes
@@ -151,6 +152,7 @@ log_orbital_queries = true                  # log information related to JPL and
 log_pec = true                              # log information related to Predictive Error Correction
 log_heartbeat = false                       # log the stack track whenever there is a heartbeat skip
 log_position = false                        # log full KF (KFLOG) and PID (PIDLOG) telemetry to file every control tick (~200ms while tracking)
+log_hardware_unit_tests = false             # allow unit tests that send real protocol commands to the Polaris (they move the mount) to run
 
 max_size_mb = 20                            # maximum log file size.
 num_keep_logs = 20                          # maximum number of log files to rotate through.

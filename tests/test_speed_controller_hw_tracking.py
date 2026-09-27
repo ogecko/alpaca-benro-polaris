@@ -6,7 +6,7 @@ turn (legacy, then v2, switched live): slew there with Polaris:SlewAbsolute, ena
 for it to settle, then sample the PID error signal (StatusFetch `errsig`, theta_ref - theta_pv) at
 4 Hz and compute its RMS per motor and in total.
 
-Runs only against a live driver whose Polaris is connected and aligned; stops any tracking in
+Runs only when the driver allows hardware unit tests (config log_hardware_unit_tests) and against a live driver whose Polaris is connected and aligned; stops any tracking in
 progress, restores the original speed controller setting and leaves tracking off. ~18 minutes.
 """
 import time
@@ -14,7 +14,7 @@ import time
 import numpy as np
 import pytest
 
-from polaris_hw import (get, sample_tracking_error, set_speed_controller, set_tracking, slew_absolute,
+from polaris_hw import (hardware_tests_disabled_reason, get, sample_tracking_error, set_speed_controller, set_tracking, slew_absolute,
                         speed_controller, status, stop_all)
 
 ORIENTATIONS = {                        # az, alt, roll (deg); motor rates at lat -33.7 in comments
@@ -46,7 +46,7 @@ def not_ready_reason():
 
 @pytest.fixture(scope="module", autouse=True)
 def mount():
-    reason = not_ready_reason()
+    reason = hardware_tests_disabled_reason() or not_ready_reason()
     if reason:
         pytest.skip(f"Hardware test skipped: {reason}")
     original = speed_controller()

@@ -68,6 +68,19 @@ def measure_velocity(duration):
     return np.array([np.polyfit(t, theta[:, axis], 1)[0] for axis in range(3)])
 
 
+def hardware_tests_disabled_reason():
+    """None if the driver allows hardware unit tests (config log_hardware_unit_tests, the 'Allow Hardware
+    Unit Tests' toggle in Pilot's Log Settings), else why not. Tests that send real protocol commands to the
+    Polaris - they move the mount - must skip unless this is None."""
+    try:
+        cfg = action("Polaris:ConfigFetch", {"configNames": ["log_hardware_unit_tests"]}, timeout=2)
+    except Exception as e:
+        return f"driver not reachable at {HOST}:{PORT} ({e.__class__.__name__})"
+    if not cfg.get("log_hardware_unit_tests", False):
+        return "hardware unit tests are disabled (config log_hardware_unit_tests / Pilot Log Settings)"
+    return None
+
+
 def idle_reason():
     """None if the Polaris is connected and idle, else why not."""
     try:

@@ -60,6 +60,9 @@
             <q-toggle class='col-6' v-bind="bindField('log_heartbeat', 'Log Heartbeat Stack Traces')"/>
             <q-toggle class='col-6' v-bind="bindField('log_position', 'Log Kinematics Position')"/>
             </div>
+            <div class="row">
+            <q-toggle class='col-6' v-bind="bindField('log_hardware_unit_tests', 'Allow Hardware Unit Tests')"/>
+            </div>
         </div>
     </q-card>
 </template>
