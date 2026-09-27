@@ -27,6 +27,13 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
+## What's new in v2.2 Beta 7
+- **[Speed Controller v2]** Improve tracking at low alt/zero roll. Improve response to guiding corrections. Add motor speed control v2 based on new SLOW (532/533/534) protocol understanding.
+- **[Motion Planner v2]** Reduce drifting while rolling. Add improved motion planning v2 (plans motor speed profiles, slowing on tight "curves")
+- **[Ramped Jogging]** Reduce jogging overshoot by ramping "up to" and "down from" jogging speed changes.
+- **[Goto Settle Time]** Reduce goto settle time by preventing Ki windup and false marking of completion.
+
+
 ## What's new in v2.2 Beta 6
 - **[Windows Install]** Major simplification of Windows installation with setup.bat. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also adds firewall rules, starts the driver at boot via Task Scheduler, and creates a desktop shortcut.
 - **[Raspberry Pi Install]** major refresh of Raspberry Pi installation with setup.sh. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also performs network setup (join Wifi, no driver build, Bluetooth auto-enabled) and setups up auto startup.
