@@ -12,7 +12,7 @@ What a Polaris motor speed controller is for:
   7. The message rate to the mount is bounded; unchanged commands are not resent.
   8. Rate units (DPS / RAW / ASCOM) keep their existing meaning for clients.
 
-Behaviour is checked through tests/mcu_model.py, a model of the MCU verified on hardware.
+Behaviour is checked through tests/sim_polaris_mcu.py, a model of the MCU verified on hardware.
 """
 import asyncio
 import math
@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from speed_controller import (RateUnits, SpeedCoordinator, SpeedControllerRuntime, SwitchableMotor,
                               SLOW_DPS, MAX_SLOW_DPS, BAND_DPS, MIN_SLOW_DWELL, REVERSING_CYCLE_S)
 from control import CalibrationManager
-from mcu_model import McuModel
+from sim_polaris_mcu import McuModel
 
 SIDEREAL_DPS = 360 / 86164.1
 TICK = 0.05

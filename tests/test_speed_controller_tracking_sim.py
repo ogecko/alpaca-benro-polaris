@@ -3,12 +3,12 @@ Offline closed-loop tracking test: with the PID tracking a sidereal reference, t
 controller's RMS tracking error must be no worse than the legacy controller's, at orientations
 that exercise different M1/M3 motor rates (same poses as tests/test_speed_controller_hw_tracking.py).
 
-Uses tests/pid_loop_sim.py (PID TRACK law mirror -> speed controller -> MCU model -> 518 cadence).
+Uses tests/sim_pid_loop.py (PID TRACK law mirror -> speed controller -> MCU model -> 518 cadence).
 """
 import numpy as np
 import pytest
 
-import pid_loop_sim as sim
+import sim_pid_loop as sim
 from test_speed_controller_hw_tracking import ORIENTATIONS
 
 

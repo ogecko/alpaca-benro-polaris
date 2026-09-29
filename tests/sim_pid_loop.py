@@ -1,6 +1,6 @@
 """
 Offline closed-loop simulation of PID sidereal tracking: PID (mirror of PID_Controller's TRACK
-law) -> motor speed controller (legacy or v2) -> MCU model (tests/mcu_model.py) -> position
+law) -> motor speed controller (legacy or v2) -> MCU model (tests/sim_polaris_mcu.py) -> position
 measured at the 518 cadence -> PID.
 
 Used by tests/test_speed_controller_tracking_sim.py to compare tracking RMS error between the
@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from control import CalibrationManager, MotorSpeedController, MoveAxisMessenger    # noqa: E402
 from speed_controller import RateUnits, SpeedCoordinator                           # noqa: E402
-from mcu_model import McuModel                                                     # noqa: E402
+from sim_polaris_mcu import McuModel                                                     # noqa: E402
 
 # PID gains as in driver/config.toml
 KP, KI, KD, KE, KA = 1.0, 0.07, 0.5, 0.4, 5.0

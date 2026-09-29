@@ -2,7 +2,7 @@
 Digital twin of the driver's motion control loop, for outcome-based regression tests.
 
 Runs the driver's REAL control code - PID_Controller, SyncManager, KalmanFilter and the v2
-SpeedCoordinator - against a model of the mount (tests/mcu_model.py: shared SLOW level, per-axis
+SpeedCoordinator - against a model of the mount (tests/sim_polaris_mcu.py: shared SLOW level, per-axis
 state, SLOW sampled on the MCU tick, FAST lag), on a simulated clock. Every 0.2 s a 518-style
 measurement goes through the same pipeline as polaris.py (KF -> theta_to_q -> baseQ_to_topoQ ->
 sky positions -> pid.measure -> control_step_calculate -> control()).
@@ -10,7 +10,7 @@ sky positions -> pid.measure -> control_step_calculate -> control()).
 Only the small Polaris facade below is written for the twin (site, observer, flags, sky position
 extraction, goto completion). Alignment is single-point (identity), no MAC/LGA/PEC/sync guiding.
 Config coordinated_speed_control selects the motors as in the driver: on = v2 SpeedCoordinator,
-off = the legacy MotorSpeedController (synchronous mirror, tests/pid_loop_sim.py).
+off = the legacy MotorSpeedController (synchronous mirror, tests/sim_pid_loop.py).
 """
 import asyncio
 import datetime as _dt
@@ -32,7 +32,7 @@ from config import Config, CONFIG_TOML_PATH                             # noqa: 
 from control import PID_Controller, SyncManager, KalmanFilter           # noqa: E402
 from kinematics import theta_to_q, q_to_theta, q_to_azaltroll, calc_parallactic_angle, wrap360, THETA2_MIN_MEAS  # noqa: E402
 from speed_controller import RateUnits, SpeedCoordinator                # noqa: E402
-from mcu_model import McuModel                                          # noqa: E402
+from sim_polaris_mcu import McuModel                                          # noqa: E402
 from shr import deg2rad, rad2deg, rad2hr                                # noqa: E402
 
 LAT, LON = -33.654651, 151.12
@@ -106,7 +106,7 @@ class MotorShim:
 
 class LegacyMotorShim:
     """Legacy per-axis MotorSpeedController, via the synchronous mirror of its dispatch loop in
-    tests/pid_loop_sim.py (LegacyDriver), on the simulated clock."""
+    tests/sim_pid_loop.py (LegacyDriver), on the simulated clock."""
     def __init__(self, legacy, axis, clock):
         self.m, self.legacy, self.axis, self.clock = legacy.motors[axis], legacy, axis, clock
 
@@ -186,8 +186,8 @@ class Twin:
             self.polaris._motors = {a: MotorShim(self.core, units, a, self.clock) for a in range(3)}
             self._motor_tick = lambda t: [msg for _a, msg in self.core.tick(t)]
         else:
-            import pid_loop_sim
-            self.core = pid_loop_sim.LegacyDriver(pid_loop_sim.calibration())
+            import sim_pid_loop
+            self.core = sim_pid_loop.LegacyDriver(sim_pid_loop.calibration())
             self.polaris._motors = {a: LegacyMotorShim(self.core, a, self.clock) for a in range(3)}
             self._motor_tick = self.core.tick
         self.polaris._sm = SyncManager(self.logger, self.polaris)

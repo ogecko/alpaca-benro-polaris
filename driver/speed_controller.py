@@ -27,7 +27,7 @@
 #     optionally ramped. The FAST speed-unit interpolator is the only use of calibration data.
 #
 # SpeedCoordinator is a pure, deterministic core (tick(now) -> messages) so it can be tested
-# against tests/mcu_model.py; SpeedControllerRuntime runs it on asyncio, and
+# against tests/sim_polaris_mcu.py; SpeedControllerRuntime runs it on asyncio, and
 # AxisSpeedController / SwitchableMotor present the legacy per-axis interface so the new
 # controller can be swapped in live via Config.coordinated_speed_control.
 # -----------------------------------------------------------------------------

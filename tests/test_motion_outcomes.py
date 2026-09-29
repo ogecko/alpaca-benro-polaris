@@ -1,5 +1,5 @@
 """
-Outcome tests for motion control, run on the digital twin (tests/twin.py: the driver's real
+Outcome tests for motion control, run on the digital twin (tests/sim_digital_twin.py: the driver's real
 PID_Controller, SyncManager, KalmanFilter and v2 speed controller against a hardware-matched model of
 the mount, on a simulated clock). Twin baselines match the mount closely (tracking RMS within ~25%,
 goto-while-tracking settle times and roll-step drift in the hardware range).
@@ -22,7 +22,7 @@ import math
 import numpy as np
 import pytest
 
-from twin import Twin
+from sim_digital_twin import Twin
 from kinematics import azaltroll_to_theta_ik
 from test_speed_controller_hw_tracking import ORIENTATIONS
 
