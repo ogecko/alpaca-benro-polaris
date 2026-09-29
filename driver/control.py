@@ -536,7 +536,8 @@ class MotorSpeedController:
             self.ramp_target = new_raw
             self.ramp_duration = ramp_duration
             self.ramp_start_time = time.monotonic()
-            # work out command on the fly with FAST_RAMP
+            self.command = prior_raw        # the ramp's first value; the dispatch loop works it out on the fly
+                                            # (else get_cmdstr sees the prior mode's command, e.g. SLOW_PWM's tuple)
 
         elif interp > 5:
             self.mode = "FAST"

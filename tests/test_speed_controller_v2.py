@@ -505,3 +505,36 @@ def test_switchable_motor_provides_the_driver_interface(use_new):
 
     asyncio.run(scenario())
     assert any("&532&" in msg for msg in sent), "no SLOW message was sent for a RAW 3 command"
+
+
+def test_legacy_cmdstr_right_after_a_switch_to_fast_ramp():
+    """The legacy controller's get_cmdstr() must work straight after it switches from SLOW_PWM to FAST_RAMP,
+    before its dispatch loop has run. Was: FAST_RAMP left self.command as SLOW_PWM's (base, next) tuple until
+    the next dispatch (up to 50 ms), so formatting it raised TypeError in status/telemetry."""
+    import logging
+    import time
+    from control import MotorSpeedController
+    cm = CalibrationManager(liveInstance=False)
+    cm.createTestDataFromBaseline()
+    cm.generateCalibrationFromBaselineAndTestData()
+    cm.generateInterpolatorsFromCalibrationData()
+
+    async def send(msg):
+        pass
+
+    async def scenario():
+        m = MotorSpeedController(logging.getLogger("t"), cm, 0, send)
+        m.pending_update = (2.5, 0.2, True, False, time.monotonic())        # between SLOW levels: PWM
+        m._apply_pending_update(time.monotonic())
+        assert m.mode == "SLOW_PWM", f"setup: expected SLOW_PWM, got {m.mode}"
+        m.next_dispatch_time = 0.0                                       # let the next update apply now
+        m.pending_update = (1000.0, 0.2, True, False, time.monotonic())     # FAST, ramped
+        m._apply_pending_update(time.monotonic())
+        assert m.mode == "FAST_RAMP", f"setup: expected FAST_RAMP, got {m.mode}"
+        try:
+            text = m.get_cmdstr()
+        finally:
+            await m.stop_disspatch_loop_task()
+        assert isinstance(text, str) and "RAMP" in text, f"get_cmdstr() gave {text!r}"
+
+    asyncio.run(scenario())
