@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 sys.path.insert(0, os.path.dirname(__file__))
 
 from speed_controller import (RateUnits, SpeedCoordinator, SpeedControllerRuntime, SwitchableMotor,
-                              SLOW_DPS, MAX_SLOW_DPS, BAND_DPS, MIN_SLOW_DWELL, REVERSING_CYCLE_S)
+                              SLOW_DPS, MAX_SLOW_DPS, BAND_DPS, MIN_SLOW_DWELL, REVERSING_CYCLE_S, CYCLE_S)
 from control import CalibrationManager
 from sim_polaris_mcu import McuModel
 
@@ -362,7 +362,9 @@ def test_message_rate_is_bounded(ctrl):
         ctrl.set_speed(axis, dps, now=0.0, hold=True)
     run(ctrl, mcu, 0.0, 30.0)
     per_s = len(mcu.log) / 30.0
-    limit = 3 * 2 / REVERSING_CYCLE_S          # two switches per reversing cycle per axis (legacy: 12/s)
+    # two switches per cycle per axis: M1 (0.0073, above level 1) mixes same-direction speeds over CYCLE_S, the
+    # others (below level 1) reverse over REVERSING_CYCLE_S (legacy: 0.5 s cycles on every axis, 12/s)
+    limit = 2 / CYCLE_S + 2 * 2 / REVERSING_CYCLE_S
     assert per_s <= limit, f"{per_s:.1f} SLOW messages/s exceeds {limit:.1f}/s for three modulating axes"
 
 
@@ -538,3 +540,74 @@ def test_legacy_cmdstr_right_after_a_switch_to_fast_ramp():
         assert isinstance(text, str) and "RAMP" in text, f"get_cmdstr() gave {text!r}"
 
     asyncio.run(scenario())
+
+
+# ---------------------------------------------------------------------------------------
+# slow_modulation / slow_reversing_cycle_s: how an axis runs below the level-1 speed (experiment)
+# ---------------------------------------------------------------------------------------
+NORMAL_POSE_RATES = [(-0.00432, 0.0, 0.00402), (-0.00231, 0.00348, 0.0)]   # south alt 60, east alt 45
+VARIANTS = [("delta", 0.4), ("delta", 0.2), ("delta", 0.15), ("pwm", 0.4), ("pwm", 0.2), ("pwm", 0.15)]
+
+
+def ripple(ctrl, rates, duration=60.0):
+    """Per-axis peak-to-peak position error (deg) against the ideal constant-rate path, after warm-up."""
+    mcu = McuModel()
+    for axis, dps in enumerate(rates):
+        ctrl.set_speed(axis, dps, now=0.0, hold=True)
+    t = run(ctrl, mcu, 0.0, 2.0)
+    p0, t0, errs = mcu.position.copy(), t, []
+    while t < t0 + duration - 1e-9:
+        t = run(ctrl, mcu, t, TICK)
+        errs.append(mcu.position - p0 - np.array(rates) * (t - t0))
+    e = np.array(errs)
+    return e.max(axis=0) - e.min(axis=0), mcu
+
+
+@pytest.mark.parametrize("modulation,cycle", VARIANTS, ids=[f"{m}_{c}" for m, c in VARIANTS])
+@pytest.mark.parametrize("rates", NORMAL_POSE_RATES, ids=["south_alt60", "east_alt45"])
+def test_slow_modulation_variants_keep_the_average_exact(units, modulation, cycle, rates):
+    ctrl = SpeedCoordinator(units, modulation=modulation, reversing_cycle_s=cycle)
+    v = mean_velocity(ctrl, McuModel(), rates, hold=True)
+    for axis in range(3):
+        assert_rate(axis, v[axis], rates[axis], window_bound(ctrl))
+
+
+@pytest.mark.parametrize("modulation,cycle", VARIANTS, ids=[f"{m}_{c}" for m, c in VARIANTS])
+def test_slow_modulation_variants_respect_the_dwell_and_never_send_state_0(units, modulation, cycle):
+    """No SLOW command runs shorter than MIN_SLOW_DWELL (the MCU aliases shorter ones), and state 0 is never
+    used (the mount sags when an axis is at state 0)."""
+    _, mcu = ripple(SpeedCoordinator(units, modulation=modulation, reversing_cycle_s=cycle), NORMAL_POSE_RATES[1])
+    for axis in range(3):
+        times = [t for t, ax, kind, _f in mcu.log if ax == axis and kind == "SLOW"]
+        short = [round(b - a, 3) for a, b in zip(times, times[1:]) if b - a < MIN_SLOW_DWELL - 1e-6]
+        assert not short, f"{modulation} {cycle}s: M{axis + 1} ran SLOW commands for only {short[:5]} s"
+    assert not any(kind == "SLOW" and f[1] == 0 for _t, _ax, kind, f in mcu.log), "state 0 was sent"
+
+
+@pytest.mark.parametrize("rates", NORMAL_POSE_RATES, ids=["south_alt60", "east_alt45"])
+def test_a_shorter_delta_reversing_cycle_does_not_add_ripple(units, rates):
+    base, _ = ripple(SpeedCoordinator(units, modulation='delta', reversing_cycle_s=0.4), rates)
+    fast, _ = ripple(SpeedCoordinator(units, modulation='delta', reversing_cycle_s=0.2), rates)
+    assert np.all(fast <= base * 1.001 + 1e-6) and np.any(fast < base * 0.95), (
+        f"0.2 s cycle ripple {np.round(fast * 3600, 2)}\" vs 0.4 s {np.round(base * 3600, 2)}\"")
+
+
+@pytest.mark.parametrize("modulation", ["pwm", "delta"])
+def test_scheduled_wakeups_drive_the_same_average(units, modulation):
+    """The asyncio runtime ticks only at next_wakeup() times (not every 50 ms): driven that way, every axis
+    must still average its target (this is the path the driver uses on the mount)."""
+    ctrl, mcu = SpeedCoordinator(units, modulation=modulation), McuModel()
+    rates = NORMAL_POSE_RATES[0]
+    for axis, dps in enumerate(rates):
+        ctrl.set_speed(axis, dps, now=0.0, hold=True)
+    t, p0 = 0.0, None
+    while t < 62.0:
+        for _axis, msg in ctrl.tick(t):
+            mcu.feed(t, msg)
+        if p0 is None and t >= 2.0:
+            p0, t0 = mcu.position.copy(), t
+        t = max(ctrl.next_wakeup(t), t + 1e-3)
+        mcu.advance(t)
+    v = (mcu.position - p0) / (t - t0)
+    for axis in range(3):
+        assert_rate(axis, v[axis], rates[axis], window_bound(ctrl, t - t0))

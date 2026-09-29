@@ -13,13 +13,14 @@
 #     (the pacer) from the full 10-speed ladder (levels 1-5 x states 1-2); when its rate lies
 #     between two levels it alternates whole periods between them, so the level only rises as
 #     far, and as often, as the pacer needs;
-#   * every axis delta-modulates between the two speeds either side of its target at the current
-#     level (-s2, -s1, +s1, +s2; never level/state 0 while moving, which releases torque): it keeps
-#     one speed until its accumulated position error crosses a band, then switches. The band is
-#     the ripple of a PWM at that duty over the shortest allowed cycle (0.25 s, 0.4 s when the pair
-#     reverses direction, longer if the minority speed would run under MIN_SLOW_DWELL), so ripple
-#     is below legacy at every duty; the average is exact, and PID target updates just change the slope. (Slot-per-period sigma-delta and fixed-period PWM both had
-#     more ripple than legacy and made PID tracking worse at low rates.)
+#   * every axis mixes the two speeds either side of its target at the current level (-s2, -s1,
+#     +s1, +s2; never state 0, which lets the axis sag) by fixed-period PWM, like legacy: 0.5 s
+#     cycles when the pair reverses direction (below the level-1 speed), 0.25 s otherwise. The duty
+#     is set each cycle from the target plus the accumulated position error paid back over the
+#     cycle, so the average is exact; a phase shorter than MIN_SLOW_DWELL is dropped and carried
+#     into the next cycle. On hardware a regular pattern tracked best (level with or better than
+#     legacy at normal poses); error-band delta modulation (still available, modulation='delta')
+#     had less raw ripple but 10-30% worse PID tracking, and slot-per-period sigma-delta was worse still;
 #   * no axis changes direction/state sooner than MIN_SLOW_DWELL, because the MCU only samples
 #     SLOW changes on its scheduler tick;
 #   * motorcmd shows the pair and time share like legacy, with A/B for state 1/2: '-1A 79:21 +1A';
@@ -58,11 +59,24 @@ SLOW_CMD = ('532', '533', '534')
 FAST_CMD = ('513', '514', '521')
 FAST_UNITS_MIN, FAST_UNITS_MAX = 100, 2500
 CYCLE_S = 0.25                        # shortest modulation cycle between same-direction speeds...
-REVERSING_CYCLE_S = 0.4               # ...and between opposite directions (reversals cost more; legacy 0.5)
+REVERSING_CYCLE_S = 0.5               # ...and between opposite directions (as legacy; see MODULATIONS)
+MODULATIONS = ('pwm', 'delta')        # how an axis mixes its two speeds (SpeedCoordinator(modulation=...)):
+                                      #   pwm   - default: fixed-period PWM like legacy (REVERSING_CYCLE_S / CYCLE_S),
+                                      #           duty = target + accumulated error paid back over the cycle, so the
+                                      #           average stays exact. Hardware 2026-09-29, normal poses: level with or
+                                      #           better than legacy; delta (0.2-0.4 s) was 10-30% worse - a regular
+                                      #           pattern is easier for the KF/PID to average than error-driven switching.
+                                      #   delta - switch when the accumulated position error crosses a band (fallback)
+                                      # Never state 0: on hardware an axis at state 0 sags (holding is lost) even
+                                      # while other axes keep stepping - tried 2026-09-29, 3-7x worse RMS.
 BACKLOG_DEADZONE_DEG = 0.005          # accumulated error beyond this (several modulation bands) raises the speed used
 MIN_SLOW_DWELL = 0.075                # shortest time any SLOW command may run: the MCU only picks up
                                       # SLOW changes on its scheduler tick; on hardware 0.045-0.055 s
                                       # dwells aliased (0.28x-0.48x) while >= 0.067 s were accurate
+MCU_TICK_S = 0.05                     # MCU scheduler tick: SLOW changes take effect on the next tick. PWM phases are
+                                      # whole ticks from the cycle start, so both edges wait equally long and the
+                                      # phase the MCU runs is the phase planned (else a 9-12% speed bias when the
+                                      # cycle starts line up with the tick)
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +159,9 @@ class _Axis:
     ramp_s: float = 0.0
     fast_now: float = 0.0        # last FAST speed sent
     next_fast: float = 0.0
+    pwm_start: float = -1e9      # 'pwm' modulation: current cycle start, its length and time on the higher speed
+    pwm_cycle: float = 0.0
+    pwm_on_s: float = 0.0
 
     @property
     def active_dps(self):
@@ -160,8 +177,11 @@ class SpeedCoordinator:
     a fixed band, so the error stays bounded and the average is exact however often targets change.
     """
 
-    def __init__(self, units: dict, slow_period: float = 0.25, fast_period: float = 0.05):
+    def __init__(self, units: dict, slow_period: float = 0.25, fast_period: float = 0.05,
+                 modulation: str = 'pwm', reversing_cycle_s: float = REVERSING_CYCLE_S):
         self.units = units
+        self.modulation = modulation
+        self.reversing_cycle_s = reversing_cycle_s
         self.slow_period = slow_period
         self.fast_period = fast_period
         self.level: Optional[int] = None
@@ -325,6 +345,8 @@ class SpeedCoordinator:
             if abs(a.target - hi[0]) < 1e-12 or not a.allow_pwm:
                 a.acc = 0.0                                      # on a speed: nothing to correct
             return self._run(axis, hi, now)
+        if self._uses_pwm(lo, hi):
+            return self._pwm(axis, a, lo, hi, now)     # -1A/+1A (below the level-1 speed)
         dwelling = now < a.changed_at + MIN_SLOW_DWELL - 1e-9
         if a.active not in (lo, hi):
             if dwelling and a.active:
@@ -342,14 +364,44 @@ class SpeedCoordinator:
             return self._run(axis, hi, now)
         return []
 
-    @staticmethod
-    def _band(lo, hi, target):
+    def _uses_pwm(self, lo, hi):
+        """Fixed-period PWM only for the level-1 reversing pair (-1A/+1A: an axis below the level-1 speed), the
+        case measured on hardware; everything else (higher levels, same-direction pairs) uses delta modulation,
+        whose band scales with the speeds (PWM between e.g. -5A/+5A would swing ~+-40")."""
+        return self.modulation == 'pwm' and lo[0] < 0 < hi[0] and lo[3] == 1 and hi[3] == 1 and lo[2] == hi[2] == 1
+
+    def _pwm(self, axis, a: _Axis, lo, hi, now):
+        """Fixed-period PWM: each cycle runs hi then lo, with the time on hi set at the cycle start from the
+        target plus the accumulated error paid back over the cycle (so the average stays exact). A phase
+        shorter than MIN_SLOW_DWELL is dropped for that cycle; the error carries it into the next."""
+        dwelling = now < a.changed_at + MIN_SLOW_DWELL - 1e-9
+        if a.active not in (lo, hi) and dwelling and a.active:
+            # the level or pair changed under this axis mid-dwell: carry the shared level, keep its direction/state
+            same = next((s for s in _speeds_at(self.level) if s[1:3] == a.active[1:3]), None)
+            if same:
+                return self._run(axis, same, now, restart_dwell=False)
+        if a.active not in (lo, hi) or now >= a.pwm_start + a.pwm_cycle - 1e-9:
+            cycle = self.reversing_cycle_s if lo[0] < 0 < hi[0] else CYCLE_S
+            duty = float(np.clip((a.target + a.acc / cycle - lo[0]) / (hi[0] - lo[0]), 0.0, 1.0))
+            on = round(duty * cycle / MCU_TICK_S) * MCU_TICK_S   # whole MCU ticks (rounding carried in acc)
+            if on < MIN_SLOW_DWELL:
+                on = 0.0
+            elif cycle - on < MIN_SLOW_DWELL:
+                on = cycle
+            a.pwm_start, a.pwm_cycle, a.pwm_on_s = now, cycle, on
+        want = hi if now < a.pwm_start + a.pwm_on_s - 1e-9 else lo
+        if want != a.active and a.active in (lo, hi) and now < a.changed_at + MIN_SLOW_DWELL - 1e-9:
+            return []
+        return self._run(axis, want, now)
+
+    def _band(self, lo, hi, target):
         """Peak-to-peak position error band: the ripple of a PWM mixing lo and hi at this duty over the
         shortest cycle allowed - no faster than CYCLE_S / REVERSING_CYCLE_S, and long enough that the
         minority speed still runs MIN_SLOW_DWELL. Ripple scales with duty*(1-duty), like a PWM."""
         gap = hi[0] - lo[0]
         duty = min(max((target - lo[0]) / gap, 1e-3), 1 - 1e-3)
-        cycle = max(REVERSING_CYCLE_S if lo[1] != hi[1] else CYCLE_S, MIN_SLOW_DWELL / min(duty, 1 - duty))
+        reversing = lo[0] < 0 < hi[0]
+        cycle = max(self.reversing_cycle_s if reversing else CYCLE_S, MIN_SLOW_DWELL / min(duty, 1 - duty))
         return gap * duty * (1 - duty) * cycle
 
     def _switch_time(self, a: _Axis, now):
@@ -357,6 +409,12 @@ class SpeedCoordinator:
         if not a.pair or a.pair[0] is a.pair[1] or a.active not in a.pair:
             return now + self.period
         lo, hi = a.pair
+        if self._uses_pwm(lo, hi):
+            edge, end = a.pwm_start + a.pwm_on_s, a.pwm_start + a.pwm_cycle
+            want = hi if now < edge - 1e-9 else lo
+            if want != a.active:                     # a switch is due, held back only by the dwell
+                return max(now, a.changed_at + MIN_SLOW_DWELL)
+            return edge if now < edge - 1e-9 else end
         half, slope = self._band(lo, hi, a.target) / 2, a.target - a.active_dps
         edge = -half if a.active == hi else half
         t = now + (edge - a.acc) / slope if slope * (edge - a.acc) > 0 else now

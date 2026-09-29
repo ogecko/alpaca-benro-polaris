@@ -31,12 +31,13 @@ TOL_DEG = 0.75 / 60 / 20
 ARCSEC = 3600.0
 
 # twin tracking RMS baselines (arcsec, mean of SEEDS), 2026-09-29, per coordinated_speed_control setting,
-# with the hardware M3 sample-and-hold (0.6 s) in the twin and KF M3 velocity measurement noise x64
+# with the hardware M3 sample-and-hold (0.6 s) in the twin and KF M3 velocity measurement noise x64;
+# coordinated with fixed-period PWM (0.5 s) for the -1A/+1A pair (axes below the level-1 speed)
 BASELINE_TRACKING_RMS = {
     "legacy": {"pole_alt15_roll0": 106.2, "pole_alt20_roll0": 34.44, "pole_alt20_roll45": 1.94,
                "north_alt15_roll0": 10.99, "mid_alt_meridian": 1.95},
-    "coordinated": {"pole_alt15_roll0": 6.06, "pole_alt20_roll0": 2.08, "pole_alt20_roll45": 1.53,
-                    "north_alt15_roll0": 4.41, "mid_alt_meridian": 1.9},
+    "coordinated": {"pole_alt15_roll0": 5.93, "pole_alt20_roll0": 1.97, "pole_alt20_roll45": 1.57,
+                    "north_alt15_roll0": 4.48, "mid_alt_meridian": 1.35},
 }
 GUARD = 1.10
 TRACK_POSE = (135.0, 45.0, 0.0)
