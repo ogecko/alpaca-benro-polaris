@@ -104,8 +104,8 @@ if [ -z "$AP_PASSWORD" ] || [ "${#AP_PASSWORD}" -lt 8 ]; then
     AP_PASSWORD="$DEFAULT_AP_PASSWORD"
 fi
 
-echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git and uv."
-for pkg in git curl; do
+echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git, uv, and GPS."
+for pkg in git curl gpsd gpsd-clients; do
     if ! dpkg -s "$pkg" >/dev/null 2>&1; then
         echo "Installing $pkg..."
         sudo apt-get update -qq   # run update only if a package is missing
