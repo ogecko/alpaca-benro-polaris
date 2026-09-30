@@ -180,10 +180,9 @@ Galactic mode is available through Stellarium's script console.
 
 1. Press **F12** to open the **Script Console**.
 2. Enter and execute the following command:
-
-```text
-core.clear("galactic")
-```
+    ```text
+    core.clear("galactic")
+    ```
 
 This switches Stellarium to the **Galactic reference frame**, removes the normal horizon-based view, changes the orientation, and displays the Galactic grid. For better visual comparison with the Milky Way, the **Milky Way brightness** can be increased under **F4 → Sky**.
 
@@ -191,10 +190,9 @@ To restore Stellarium to its normal default state:
 
 1. Press **F12**.
 2. Enter and execute the following command:
-
-```text
-core.clear("natural")
-```
+    ```text
+    core.clear("natural")
+    ```
 5. Press **G** to toggle the ground
 6. Press **A** to toggle the atmosphere
 3. Press **Q** to toggle Cardinal Points
