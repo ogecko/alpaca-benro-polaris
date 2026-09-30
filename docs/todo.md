@@ -59,7 +59,23 @@
 
 # Future Development Exploration
 
-## 1. Plate-Solving on the Raspberry Pi Zero 2W
+## 1. Extend Client App support beyond Nina, CCDCiel and Stellarium
+Consider supporting
+* LX200 Protocol - for non Alpaca Clients eg all three Apps below suppport LX200.
+* PINS: Pi N Stars - a modular astrophotography suite for Linux, designed to simplify and streamline image acquisition. It is based on the N.I.N.A. project, with modifications and improvements for Linux compatibility.
+* ASIAir -  the smart WiFi controller that fits in your pocket. Use your smartphone for infinite possibilities. Perfect for beginners and experts alike.
+* StellaVita - an intelligent astrophotography controller that seamlessly manages cameras, mounts, focusers, filter wheels, and more
+
+## 2. Extend Driver support neyond Polaris mounts (eg OnStepX, LX200)
+
+**Goal:** Refactor the driver architecture to support multi-protocol mount communication, moving beyond the current Polaris-only implementation.
+
+The initial phase will focus on implementing the extended Meade LX200 protocol over USB, Bluetooth, and Wi-Fi. This will establish native support for the SAL-33 (an OnStepX-based harmonic mount). As part of this refactor, the closed-source OnStepX ASCOM driver will be replaced with a pure, cross-platform Alpaca driver.
+
+**Benefits:** Universal Mount Compatibility. Enables Alpaca Pilot to control a broad range of mounts that support the extended LX200-compatible harmonic mounts (e.g., SAL-33, WD-20E, FG-17, AM5N, and others). 
+
+
+## 3. Plate-Solving on the Raspberry Pi Zero 2W
 
 **Goal:** Retrieve an image directly from the Benro Polaris's own camera (over the existing BLE/Wifi protocol already used for FILE/STORAGE queries in `polaris.py`), plate-solve it locally on the Pi Zero 2W, and feed the result into the Driver's existing "Plate Solved/ASCOM" sync/correction pipeline in `control.py` (see `driver/control.py:1873`). End state: on-demand and periodic plate-solve/sync entirely on-Pi, no laptop, NINA, or ASTAP required for basic pointing refinement.
 
@@ -84,7 +100,7 @@ Replace the manual "Solve and Sync every 2–5 minutes" NINA workflow (see `docs
 ### Phase 4 — Hardening & Docs
 Field-test across a full session, handle solve failures (clouds, filters, poor focus) gracefully without disturbing tracking/PEC, then document setup and expected performance in `docs/`.
 
-## 2. Alpaca Camera Support for the Driver
+## 4. Alpaca Camera Support for the Driver
 
 **Goal:** Expose the Benro Polaris's own onboard camera as a standard ASCOM Alpaca `ICameraV3` device within the Driver, alongside the existing Telescope/Rotator devices — driven by the currently-unused camera protocol already visible in `polaris.py` (the `_polaris_mode` mode switch — Photo/Pano/Timelapse/HDR/Astro/Video — and the FILE (`771`)/STORAGE (`775`) responses). This gives any Alpaca-aware client (NINA, CCDciel) a standard way to capture/download images straight from the Polaris without its native app, and gives the Plate-Solving goal above a real image source instead of ad-hoc retrieval.
 
@@ -111,7 +127,7 @@ Investigate whether the protocol's video-streaming mode can back a lightweight l
 ### Phase 5 — Docs & ConformU Validation
 Add Camera ConformU checks alongside the existing Telescope/Rotator checks already run in the `# General Final Release Checklist`, and document supported features/limitations.
 
-## 3. PHD2 on the Raspberry Pi Zero 2W
+## 5. PHD2 on the Raspberry Pi Zero 2W
 
 **Goal:** Run PHD2 itself on the Pi Zero 2W, using a USB-attached guide scope/camera for pulse-guiding, and have it drive the Driver's existing ASCOM Alpaca `ITelescopeV3.PulseGuide` interface — eliminating the Windows/Mac Mini-PC currently required for the "Pulse Guiding" workflow in `docs/guiding.md`. The main imaging camera stays on the existing Polaris/Alpaca path; only the guiding loop moves onto the Pi.
 
@@ -139,43 +155,61 @@ Package the bridge (and Xvfb) as systemd services alongside `polaris-driver.serv
 ### Phase 5 — Docs & Hardware Guidance
 Document the required powered USB hub, tested guide camera models, and setup workflow in `docs/hardware.md` / `docs/guiding.md` / `docs/raspberrypi.md`.
 
-## 4. INDI Support for the Driver
 
-**Goal:** Expose the Driver's existing Telescope/Rotator (and, once far enough along, Camera) control as a proper INDI device, so the broader Linux astronomy ecosystem (KStars/Ekos, INDI-based CCDciel, PHD2-on-Linux) can drive the Benro Polaris the same way Windows users do today via ASCOM/Alpaca — one reusable driver instead of a bespoke bridge per INDI client. This generalizes (and can share prototype work with) the narrow guide-pulse-only INDI bridge sketched under the PHD2 goal above.
+## 6. UX Rationalisation
+### Connect
+### Dashboard
+* Multiple Views of sky map     - Main Camera, Guide Camera, Whole Sky Camera, Mount Camera, Target
+* Layers in a View
+  * Atlas (catalog)             - Oriented on sky map (Overlay Labels | Stars | Constellations | Horizon line/pano | DSO | Reticle | Grids)
+  * Live (current boresight)    - Oriented on sky map (Overlay Outline | mount stats | Camera preview )
+  * Replay (captured image(s))  - Oriented on sky map (Overlay Outline | image stats | Captured image )
+  * Background                  - Space Background
+* UX
+  * Clicking on a target selects and provides more info and actions (center/zoom on target, goto target, sync target, add to sequence/pano)
+  * Can pan/zoom freely based on current Reference framework for up/down and left/right and rotate; may be limited based on View Context
+  * Mobile first (capable in very limited screen real estate, but uses wider screen if avail)
 
-**Benefits:** Opens the Benro Polaris up to the whole Linux/KStars-Ekos astronomy community, not just Windows/NINA users, with no per-app bridge required.
-
-### Phase 0 — Risk Reduction Prototypes
-- Survey INDI driver implementation options (native C++ vs a Python INDI framework) and pick one that sits naturally alongside the Driver's existing asyncio Python codebase, confirming it's mature/performant enough for real-time pulse-guide timing.
-- Prototype the narrowest possible INDI device — telescope, slew + guide-pulse only — forwarding to the Driver's existing Alpaca endpoints, and validate it against a real INDI client (`indi_getprops`, a minimal Ekos profile). This prototype can double directly as the PHD2 goal's Phase 0 mount bridge rather than being built twice.
-- Check how cleanly INDI's coordinate/site-location property model maps onto the Driver's existing topocentric/QUEST model in `control.py`, particularly around the Alt/Az-vs-RA/Dec rotation limitation already noted in `docs/nina.md`.
-- Confirm licensing/packaging implications of depending on INDI's core libraries.
-
-### Phase 1 — Minimal INDI Telescope Device
-Connect/Disconnect, GOTO (RA/Dec), Sync, Abort, Tracking on/off, Pulse-Guide — enough for PHD2-on-Linux and basic Ekos slewing end-to-end.
-
-### Phase 2 — Rotator & Richer Telescope Properties
-Add the Rotator device plus park/unpark, site location, and slew-rate properties to match today's Alpaca feature set.
-
-### Phase 3 — Camera Device
-Once the Alpaca Camera Support goal above is far enough along, expose the same capability as an INDI Camera device so KStars/Ekos can capture, not just point.
-
-### Phase 4 — Packaging & Docs
-Package as a systemd service alongside `polaris-driver.service`, and write INDI/Ekos setup docs mirroring today's `docs/nina.md` / `docs/ccdciel.md`.
-
-### Phase 5 — Compliance Validation
-Validate against INDI's own driver compliance/test tooling (the INDI analogue of ConformU) and add to the release checklist.
+* Modes ? 
+  * Preview (quick capture, not saved) 
+  * Focus (manual or auto) 
+  * Alignment (manual, auto MPA seq) 
+  * Atlas (move target red, blue current, search, goto,sync,stop) 
+  * Guiding (focus, align w/main, exposure/gain, capture, select guide star, calib, guide start, aggr)
+  * Folders (navigate, open, delete, goto solved image RA/Dec/PA)
+  * Autorun config (target name, Light|D|B|F, meridian flip, Interval, Repeat, Filter, end sequ, estimated duration, start/pause/stop)
+  * Live 
+  * Plan 
+  * Video 
 
 
-## 5. Extend Driver to support non-Polaris mounts
+* Timeline - Guiding History | Star Detection History | Image History | Catalog Search | Focus Run | Alignment Run
+* Mount Status - Radial Dials, Control Status
+* Capture Status - Progress
 
-**Goal:** Refactor the driver architecture to support multi-protocol mount communication, moving beyond the current Polaris-only implementation.
+* Unified Omnibar - Search, Filters, Coordinates, Natural Language, Predictive Typeahead
+* Split-Pane-Results - Hover (pointer to object), Selection Transition (gently pans/scales map)
 
-The initial phase will focus on implementing the extended Meade LX200 protocol over USB, Bluetooth, and Wi-Fi. This will establish native support for the SAL-33 (an OnStepX-based harmonic mount). As part of this refactor, the closed-source OnStepX ASCOM driver will be replaced with a pure, cross-platform Alpaca driver.
+* Exposure Control - Shutter, F-stop, ISO/Gain, WB, EV, Bin, Cooler, Filter
+* Capture Control- Capture/Sequence, Start, Stop, Loop, Progress 
+* Target Control - Catalog, Search, Panel | Sync | Goto | Target
+* Mount Control - N | S | W | E | Speed | Track | Home | Park | Stop
+* Focus Control - Calibrate | In | Out 
+* Guide Control - Calibrate | RA Aggr | Dec Aggr | PEC | MAC 
 
-**Benefits:** Universal Mount Compatibility. Enables Alpaca Pilot to control a broad range of mounts that support the extended LX200-compatible harmonic mounts (e.g., SAL-33, WD-20E, FG-17, AM5N, and others). 
+* UX Principles
+  * Prioritize Essential Information — Show the most critical data upfront; everything else is secondary.
+  * Design for Consistency — Predictable layouts help users act quickly under stress.
+  * Reduce Cognitive Load — Simple commands, chunked tasks, and progressive disclosure keep interfaces usable.
+  * Test Under Stress — Simulations with real users in realistic conditions are essential.
+  * Error Prevention Over Error Recovery — Safeguards, confirmation prompts, and redundancy prevent catastrophic mistakes.
+  * Design for Context — Interfaces must fit their environment and the task trying to be achieved.
 
-## 6. Sky Map
+### Setup
+* filename - camera, filter, data, 
+
+
+## 7. Sky Map
 
 **Goal:** A GPU-rendered, star-accurate sky map inside Alpaca Pilot that serves as the common visual backdrop for the Atlas / Live / Replay views sketched in item 7. It shows the sky exactly as the mount and camera see it: current pointing, target pointing, the camera frame rolled to its true orientation, and live or captured images laid on top of a real star field. The view moves smoothly and with momentum in whichever Pilot reference frame is active (Topocentric, Equatorial or Galactic).
 
@@ -332,54 +366,30 @@ Embed as the Atlas / Live / Replay backdrop from item 7. Replay renders the sky 
 - Is hinted-only solving enough, or is blind solving needed from day one? This decides whether the pattern database is needed early.
 
 
-## 7. UX Rationalisation
-### Connect
-### Dashboard
-* Multiple Views of sky map     - Main Camera, Guide Camera, Whole Sky Camera, Mount Camera, Target
-* Layers in a View
-  * Atlas (catalog)             - Oriented on sky map (Overlay Labels | Stars | Constellations | Horizon line/pano | DSO | Reticle | Grids)
-  * Live (current boresight)    - Oriented on sky map (Overlay Outline | mount stats | Camera preview )
-  * Replay (captured image(s))  - Oriented on sky map (Overlay Outline | image stats | Captured image )
-  * Background                  - Space Background
-* UX
-  * Clicking on a target selects and provides more info and actions (center/zoom on target, goto target, sync target, add to sequence/pano)
-  * Can pan/zoom freely based on current Reference framework for up/down and left/right and rotate; may be limited based on View Context
-  * Mobile first (capable in very limited screen real estate, but uses wider screen if avail)
 
-* Modes ? 
-  * Preview (quick capture, not saved) 
-  * Focus (manual or auto) 
-  * Alignment (manual, auto MPA seq) 
-  * Atlas (move target red, blue current, search, goto,sync,stop) 
-  * Guiding (focus, align w/main, exposure/gain, capture, select guide star, calib, guide start, aggr)
-  * Folders (navigate, open, delete, goto solved image RA/Dec/PA)
-  * Autorun config (target name, Light|D|B|F, meridian flip, Interval, Repeat, Filter, end sequ, estimated duration, start/pause/stop)
-  * Live 
-  * Plan 
-  * Video 
+## 8. INDI Support for the Driver
 
+**Goal:** Expose the Driver's existing Telescope/Rotator (and, once far enough along, Camera) control as a proper INDI device, so the broader Linux astronomy ecosystem (KStars/Ekos, INDI-based CCDciel, PHD2-on-Linux) can drive the Benro Polaris the same way Windows users do today via ASCOM/Alpaca — one reusable driver instead of a bespoke bridge per INDI client. This generalizes (and can share prototype work with) the narrow guide-pulse-only INDI bridge sketched under the PHD2 goal above.
 
-* Timeline - Guiding History | Star Detection History | Image History | Catalog Search | Focus Run | Alignment Run
-* Mount Status - Radial Dials, Control Status
-* Capture Status - Progress
+**Benefits:** Opens the Benro Polaris up to the whole Linux/KStars-Ekos astronomy community, not just Windows/NINA users, with no per-app bridge required.
 
-* Unified Omnibar - Search, Filters, Coordinates, Natural Language, Predictive Typeahead
-* Split-Pane-Results - Hover (pointer to object), Selection Transition (gently pans/scales map)
+### Phase 0 — Risk Reduction Prototypes
+- Survey INDI driver implementation options (native C++ vs a Python INDI framework) and pick one that sits naturally alongside the Driver's existing asyncio Python codebase, confirming it's mature/performant enough for real-time pulse-guide timing.
+- Prototype the narrowest possible INDI device — telescope, slew + guide-pulse only — forwarding to the Driver's existing Alpaca endpoints, and validate it against a real INDI client (`indi_getprops`, a minimal Ekos profile). This prototype can double directly as the PHD2 goal's Phase 0 mount bridge rather than being built twice.
+- Check how cleanly INDI's coordinate/site-location property model maps onto the Driver's existing topocentric/QUEST model in `control.py`, particularly around the Alt/Az-vs-RA/Dec rotation limitation already noted in `docs/nina.md`.
+- Confirm licensing/packaging implications of depending on INDI's core libraries.
 
-* Exposure Control - Shutter, F-stop, ISO/Gain, WB, EV, Bin, Cooler, Filter
-* Capture Control- Capture/Sequence, Start, Stop, Loop, Progress 
-* Target Control - Catalog, Search, Panel | Sync | Goto | Target
-* Mount Control - N | S | W | E | Speed | Track | Home | Park | Stop
-* Focus Control - Calibrate | In | Out 
-* Guide Control - Calibrate | RA Aggr | Dec Aggr | PEC | MAC 
+### Phase 1 — Minimal INDI Telescope Device
+Connect/Disconnect, GOTO (RA/Dec), Sync, Abort, Tracking on/off, Pulse-Guide — enough for PHD2-on-Linux and basic Ekos slewing end-to-end.
 
-* UX Principles
-  * Prioritize Essential Information — Show the most critical data upfront; everything else is secondary.
-  * Design for Consistency — Predictable layouts help users act quickly under stress.
-  * Reduce Cognitive Load — Simple commands, chunked tasks, and progressive disclosure keep interfaces usable.
-  * Test Under Stress — Simulations with real users in realistic conditions are essential.
-  * Error Prevention Over Error Recovery — Safeguards, confirmation prompts, and redundancy prevent catastrophic mistakes.
-  * Design for Context — Interfaces must fit their environment and the task trying to be achieved.
+### Phase 2 — Rotator & Richer Telescope Properties
+Add the Rotator device plus park/unpark, site location, and slew-rate properties to match today's Alpaca feature set.
 
-### Setup
-* filename - camera, filter, data, 
+### Phase 3 — Camera Device
+Once the Alpaca Camera Support goal above is far enough along, expose the same capability as an INDI Camera device so KStars/Ekos can capture, not just point.
+
+### Phase 4 — Packaging & Docs
+Package as a systemd service alongside `polaris-driver.service`, and write INDI/Ekos setup docs mirroring today's `docs/nina.md` / `docs/ccdciel.md`.
+
+### Phase 5 — Compliance Validation
+Validate against INDI's own driver compliance/test tooling (the INDI analogue of ConformU) and add to the release checklist.
