@@ -150,9 +150,58 @@ You can also bring up the `Slew Telescope To` dialog by pressing `Ctrl+0` (Windo
 * Initiate the Slew of the Benro Polaris.
 
 ### Changing Field of View
-On Windows, as the telescope sweeps across the sky, you will see a reticule marking its path. You can tailor the size of the reticule to match your camera and lens setup, allowing you to visualize your framing easily.
+Stellarium Desktop can be used to display the sky in **Alt/Az (topocentric)**, **RA/Dec (equatorial)**, or with the **Galactic longitude/latitude grid** overlaid. This allows the Stellarium view to be compared with the corresponding reference-frame modes of the Alpaca Pilot. If you lose site of your selected target, press `SPACE`, and the window will immediately pan to your selected object.
 
-If you lose site of your selected target, press `SPACE`, and the window will immediately pan to your selected object.
+#### 1. **Alt/Az — Topocentric view**
+
+By default, Stellarium uses an **azimuthal (Alt/Az) mount mode**, which corresponds to the local, topocentric view of the sky.
+
+To display the Alt/Az grid:
+
+1. Open the **Sky and Viewing Options** window with **F4**.
+2. Select the **Markings** tab.
+3. Enable **Azimuthal Grid**.
+4. Disable the Equatorial Grid if it is enabled.
+
+#### 2. **RA/Dec — Equatorial view**
+
+To switch Stellarium to an equatorial mount orientation:
+
+1. Press **Ctrl+M**, or use the **Coordinate System** button on the toolbar.
+2. Stellarium switches between **horizontal (Alt/Az)** and **equatorial (RA/Dec)** coordinate systems.
+3. In **F4 → Markings**, enable **Equatorial Grid** if required.
+4. Disable the Azimuthal Grid to avoid a cluttered display.
+
+The equatorial grid is aligned with right ascension and declination, with the celestial poles fixed in the view.
+
+#### 3. **Galactic longitude/latitude view**
+
+Galactic mode is available through Stellarium's script console. 
+
+1. Press **F12** to open the **Script Console**.
+2. Enter and execute the following command:
+
+```text
+core.clear("galactic")
+```
+
+This switches Stellarium to the **Galactic reference frame**, removes the normal horizon-based view, changes the orientation, and displays the Galactic grid. For better visual comparison with the Milky Way, the **Milky Way brightness** can be increased under **F4 → Sky**.
+
+To restore Stellarium to its normal default state:
+
+1. Press **F12**.
+2. Enter and execute the following command:
+
+```text
+core.clear("natural")
+```
+5. Press **G** to toggle the ground
+6. Press **A** to toggle the atmosphere
+3. Press **Q** to toggle Cardinal Points
+4. Press **Shift + Q** to toggle Compass Marks
+   
+This restores the standard **natural** view, including the Alt/Az orientation, horizon, landscape and normal display settings.
+
 
 ### Using a Custom Landscape and Horizon Image
 Stellarium Desktop allows you to create a custom Landscape to match your own observation site, including the image of the horizon overlaid into Stellarium.
