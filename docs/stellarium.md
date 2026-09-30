@@ -154,25 +154,20 @@ Stellarium Desktop can be used to display the sky in **Alt/Az (topocentric)**, *
 
 #### 1. **Alt/Az — Topocentric view**
 
-By default, Stellarium uses an **azimuthal (Alt/Az) mount mode**, which corresponds to the local, topocentric view of the sky.
+By default, Stellarium uses an **azimuthal (Alt/Az) mount mode**, which corresponds to the local, topocentric view of the sky. Dragging the screen horizontally adjusts Azimuth, while dragging it vertically adjusts Altitude.
 
 To display the Alt/Az grid:
 
-1. Open the **Sky and Viewing Options** window with **F4**.
-2. Select the **Markings** tab.
-3. Enable **Azimuthal Grid**.
-4. Disable the Equatorial Grid if it is enabled.
+1. Press **Z** to switch the **Azimuthal Grid** on and off.
 
 #### 2. **RA/Dec — Equatorial view**
 
-To switch Stellarium to an equatorial mount orientation:
+To change Stellarium to an **equatorial (RA/Dec) mount mode**.
 
-1. Press **Ctrl+M**, or use the **Coordinate System** button on the toolbar.
-2. Stellarium switches between **horizontal (Alt/Az)** and **equatorial (RA/Dec)** coordinate systems.
-3. In **F4 → Markings**, enable **Equatorial Grid** if required.
-4. Disable the Azimuthal Grid to avoid a cluttered display.
+1. Press **Ctrl+M** to switch between **horizontal (Alt/Az)** and **equatorial (RA/Dec)** mount modes.
+2. Press **E** to switch the **Equatorial Grid** on and off 
 
-The equatorial grid is aligned with right ascension and declination, with the celestial poles fixed in the view.
+The equatorial grid is aligned with Right Ascension and Declination, with the celestial poles fixed in the view. When in **equatorial (RA/Dec) mount mode** dragging the screen horizontally adjusts Right Ascension, while dragging it vertically adjusts Declination.
 
 #### 3. **Galactic longitude/latitude view**
 
@@ -184,7 +179,7 @@ Galactic mode is available through Stellarium's script console.
     core.clear("galactic")
     ```
 
-This switches Stellarium to the **Galactic reference frame**, removes the normal horizon-based view, changes the orientation, and displays the Galactic grid. For better visual comparison with the Milky Way, the **Milky Way brightness** can be increased under **F4 → Sky**.
+This switches Stellarium to the **Galactic (Glat/Glon) mount mode**, removes the normal horizon-based view, changes the orientation, and displays the Galactic grid. While in this mode, dragging the screen horizontally adjusts galactic longitude, while dragging it vertically adjusts the galactic latitude. For better visual comparison with the Milky Way, the **Milky Way brightness** can be increased under **F4 → Sky**.
 
 To restore Stellarium to its normal default state:
 
@@ -193,10 +188,10 @@ To restore Stellarium to its normal default state:
     ```text
     core.clear("natural")
     ```
-5. Press **G** to toggle the ground
-6. Press **A** to toggle the atmosphere
-3. Press **Q** to toggle Cardinal Points
-4. Press **Shift + Q** to toggle Compass Marks
+5. Press **G** to switch the ground on and off
+6. Press **A** to switch the atmosphere on and off
+3. Press **Q** to switch Cardinal Points on and off
+4. Press **Shift + Q** to switch Compass Marks on and off
    
 This restores the standard **natural** view, including the Alt/Az orientation, horizon, landscape and normal display settings.
 
