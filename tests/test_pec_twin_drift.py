@@ -60,7 +60,7 @@ def test_pulses_move_the_mount_opposite_to_the_ascom_direction(monkeypatch):
 
 @pytest.mark.slow
 def test_pulse_guiding_pec_learns_a_constant_drift_and_relieves_the_guider(monkeypatch):
-    tw = tracking_twin(monkeypatch, {"pec_n_harmonics": 0})
+    tw = tracking_twin(monkeypatch, {"pec_mode": "rls", "pec_n_harmonics": 0})
     g = SimGuider(tw, drift=constant_drift)
     g.start()
     g.guide(30 * 60)
@@ -88,7 +88,7 @@ def sync_guided_rms(monkeypatch, config, minutes=30, since_min=10):
 @pytest.mark.slow
 def test_sync_guiding_pec_cuts_the_error_between_solves(monkeypatch):
     (off_ra, off_dec), _ = sync_guided_rms(monkeypatch, {"advanced_pec": False})
-    (on_ra, on_dec), _ = sync_guided_rms(monkeypatch, {"pec_n_harmonics": 0})
+    (on_ra, on_dec), _ = sync_guided_rms(monkeypatch, {"pec_mode": "rls", "pec_n_harmonics": 0})
     assert on_ra < 0.4 * off_ra, f"RA {on_ra:.1f}\" with PEC vs {off_ra:.1f}\" without"
     assert on_dec < 0.5 * off_dec, f"Dec {on_dec:.1f}\" with PEC vs {off_dec:.1f}\" without"
 
@@ -96,7 +96,7 @@ def test_sync_guiding_pec_cuts_the_error_between_solves(monkeypatch):
 @pytest.mark.slow
 @pytest.mark.xfail(strict=False, reason="goal: worm-period harmonics fit the sync sawtooth and PEC overshoots")
 def test_goal_sync_guiding_pec_with_harmonics_does_not_degrade(monkeypatch):
-    tw = tracking_twin(monkeypatch, {"pec_n_harmonics": 2})
+    tw = tracking_twin(monkeypatch, {"pec_mode": "rls", "pec_n_harmonics": 2, "pec_tau_sec": 1260})
     s = SimPlateSolver(tw, drift=constant_drift, interval_s=120)
     s.start()
     s.guide(30 * 60)

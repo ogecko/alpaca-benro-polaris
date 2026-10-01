@@ -109,7 +109,12 @@ def test_calibration_leaves_no_trace_in_the_pec_model(cfg, clock):
     assert_same_pec(guarded, reference)
 
 
-def test_without_the_guard_the_calibration_steps_are_learnt_as_drift(cfg, clock):
+@pytest.mark.parametrize("model, min_shift", [({'pec_mode': 'rls', 'pec_n_harmonics': 2, 'pec_tau_sec': 1260}, 50),
+                                              ({'pec_mode': 'ema', 'pec_n_harmonics': 0, 'pec_tau_sec': 450}, 5)],
+                         ids=['rls_h2_as_on_2026-09-29', 'ema_default'])
+def test_without_the_guard_the_calibration_steps_are_learnt_as_drift(cfg, clock, model, min_shift):
+    for k, v in model.items():
+        setattr(cfg, k, v)
     # documents the 2026-09-29 18:55 failure: by the end of PHD2's West steps PEC had fitted
     # them as RA drift (-785 arcmin/hr) and was applying it while guiding resumed.
     # PEC is reset by the goto, so calibration usually follows only a short guiding history.
@@ -123,7 +128,7 @@ def test_without_the_guard_the_calibration_steps_are_learnt_as_drift(cfg, clock)
 
     ARCMIN_PER_HOUR = 3600 * 60
     shift = (unguarded._pec_ra.dc_rate() - reference._pec_ra.dc_rate()) * ARCMIN_PER_HOUR
-    assert shift < -50                       # West steps pull the RA fit strongly negative (~-100)
+    assert shift < -min_shift                # West steps pull the RA rate negative (RLS+H2 ~-100, EMA ~-14 arcmin/hr)
     assert guarded._pec_ra.dc_rate() == reference._pec_ra.dc_rate()
 
 

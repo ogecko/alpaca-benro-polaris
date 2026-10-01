@@ -102,8 +102,8 @@ class PecMixin:
         self._pec_guide_last_time  = None
 
         # Config-driven thresholds (read once so update/apply don't need getattr)
-        self._pec_mode        = PecMode(getattr(Config, 'pec_mode', 'rls'))               # 'rls' or 'ema'
-        self._pec_tau         = getattr(Config, 'pec_tau_sec',            7*60)           # single smoothing time constant (sec), both modes
+        self._pec_mode        = PecMode(getattr(Config, 'pec_mode', 'ema'))               # 'ema' (default) or 'rls'
+        self._pec_tau         = getattr(Config, 'pec_tau_sec',            7.5*60)           # single smoothing time constant (sec), both modes
         self._pec_min_dt      = getattr(Config, 'pec_min_dt_sec',         0.05)           # ignore an axis update if it arrives sooner than this since that axis's own last update
         self._pec_min_obs     = getattr(Config, 'pec_min_observations',   3)              # inhibit until n > min_obs
         self._pec_max_resid   = getattr(Config, 'pec_max_resid_arcmin',   10.0)  / 60.0   # ignore guide update if resid > max_resid degrees
@@ -111,7 +111,7 @@ class PecMixin:
         self._pec_max_rmse    = getattr(Config, 'pec_max_rmse_arcmin',    6.0)   / 60.0   # inhibit if rmse > max_rmse degrees
         self._pec_min_r2      = getattr(Config, 'pec_min_r2',             0.5)            # inhibit if bad R2 < 0.5
         self._pec_T_sec       = getattr(Config, 'pec_T_sec',              34*60)          # T: worm period in seconds (default 34 min = 2040s)
-        self._pec_n_harmonics = getattr(Config, 'pec_n_harmonics',        2)              # n_harmonics: 0, 1, or 2 (0 = pure linear, RLS mode only)
+        self._pec_n_harmonics = getattr(Config, 'pec_n_harmonics',        0)              # n_harmonics: 0, 1, or 2 (0 = pure linear, RLS mode only)
 
         self._pec_ra  = PecAxis(T=self._pec_T_sec, n_harmonics=self._pec_n_harmonics,
                                  mode=self._pec_mode, tau=self._pec_tau, min_dt=self._pec_min_dt)
