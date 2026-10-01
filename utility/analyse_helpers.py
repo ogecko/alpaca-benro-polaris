@@ -1656,3 +1656,101 @@ def load_phd2_guidelog(path):
                                            'ra_ms', 'dec_ms', 'ra_pulse_arcsec', 'dec_pulse_arcsec'])
     events = pd.DataFrame(events, columns=['timestamp', 'kind', 'detail'])
     return frames, events
+
+
+def frame_shift_components(kf_df, sync_times, step_before_s=(25, 2), step_after_s=(10, 35), ripple_window_s=60.0,
+                           break_arcsec=600.0, settle_s=60.0):
+    """
+    KFLOG's per-motor frame shift, theta_meas_raw - theta_ref_raw (arcsec): the raw motor angle minus the PID's
+    target in corrected motor space, i.e. minus every correction applied so far (MAC + sync guide + pulse guide +
+    PEC) expressed as motor angles, plus the PID's own tracking error. Split into:
+      staircase -- the step at each sync (median shift 10-35 s after minus 2-25 s before), accumulated
+      smooth    -- what's left after removing the staircase, smoothed over ripple_window_s (change between syncs:
+                   PEC's continuous correction, MAC changing with pose, slow tracking error)
+      ripple    -- shift minus its ripple_window_s rolling median (PID error, speed-controller dither, M3 hold)
+    Gotos/slews while tracking make the shift jump by degrees between consecutive samples (> break_arcsec on any
+    motor): each jump is removed from the series (the offset is subtracted from what follows) and the settle_s
+    after it is left out of the ripple, so they don't count as divergence; summary.attrs['breaks'] counts them.
+    Returns (components DataFrame, per-motor summary DataFrame). summary.attrs['m1_m3_amplification'] is
+    1 / sin(median theta2): when M2 is near 0 the M1 and M3 axes line up, and a small correction on the sky
+    needs large, opposite M1/M3 rotations -- mirror-image M1/M3 shifts there are geometry, not mount error.
+    """
+    kf = kf_df.sort_values('timestamp').reset_index(drop=True)
+    t = (kf['timestamp'] - kf['timestamp'].iloc[0]).dt.total_seconds().values
+    dt = float(np.median(np.diff(t))) if len(t) > 1 else 1.0
+    win = max(3, int(round(ripple_window_s / dt)) | 1)
+    syncs = [(pd.Timestamp(s) - kf['timestamp'].iloc[0]).total_seconds() for s in sync_times]
+    syncs = [s for s in syncs if t[0] <= s <= t[-1]]
+    comp = pd.DataFrame({'timestamp': kf['timestamp'], 't_min': t / 60})
+    raw = {i: (((kf[f'θ_meas_raw_{i}'] - kf[f'θ_ref_raw_{i}'] + 180) % 360) - 180).values * 3600 for i in (1, 2, 3)}
+    jumps = np.zeros(len(t), bool)
+    for i in (1, 2, 3):
+        jumps[1:] |= np.abs(np.diff(raw[i])) > break_arcsec
+    brk = np.where(jumps)[0]
+    settling = np.zeros(len(t), bool)
+    for b in brk:
+        settling |= (t >= t[b]) & (t < t[b] + settle_s)
+    rows = {}
+    for i in (1, 2, 3):
+        m = f'M{i}'
+        shift = raw[i].copy()
+        for b in brk:                                       # remove each goto jump from what follows
+            shift[b:] -= shift[b] - shift[b - 1]
+        stair = np.zeros(len(t))
+        steps = []
+        for s in syncs:
+            a = shift[(t > s - step_before_s[0]) & (t < s - step_before_s[1])]
+            b = shift[(t > s + step_after_s[0]) & (t < s + step_after_s[1])]
+            if len(a) > 3 and len(b) > 3:
+                step = float(np.median(b) - np.median(a))
+                steps.append(step)
+                stair += np.where(t >= s, step, 0.0)
+        rolling = pd.Series(shift).rolling(win, center=True, min_periods=max(3, win // 5)).median().values
+        smooth = pd.Series(shift - stair).rolling(win, center=True, min_periods=max(3, win // 5)).median().values
+        ripple = np.where(settling, np.nan, shift - rolling)
+        comp[f'{m} shift'], comp[f'{m} staircase'], comp[f'{m} smooth'], comp[f'{m} ripple'] = shift, stair, smooth, ripple
+        k = max(1, min(len(t) // 20, int(round(30 / dt))))
+        net = float(np.mean(shift[-k:]) - np.mean(shift[:k]))
+        rows[m] = {'net change "': net, 'range "': float(np.ptp(shift)), 'syncs': len(steps),
+                   'sync steps sum "': float(np.sum(steps)) if steps else 0.0,
+                   'median |step| "': float(np.median(np.abs(steps))) if steps else 0.0,
+                   'between syncs "': net - (float(np.sum(steps)) if steps else 0.0),
+                   'ripple rms "': float(np.nanstd(ripple))}
+    summary = pd.DataFrame(rows).T
+    theta2 = float(np.median(np.abs(kf['θ_ref_raw_2'])))
+    summary.attrs['m1_m3_amplification'] = 1.0 / max(np.sin(np.radians(theta2)), 1e-3)
+    summary.attrs['breaks'] = int(len(brk))
+    summary.attrs['theta2_deg'] = theta2
+    return comp, summary
+
+
+def ramp_vs_next_step(comp, sync_times, before_s=(25, 2), after_s=(10, 35)):
+    """
+    For each interval between syncs: the frame shift's change over the interval (the "ramp": PEC's continuous
+    correction, MAC changing with pose) vs the step at the next sync (the plate-solve correction). Per motor:
+    ramp/step RMS, their correlation, and the share of the ramp the next sync undoes (-sum(ramp*step)/sum(ramp^2)).
+    A working PEC ramps WITH the drift, so the next step is small and not opposed (share ~0). Correlation near -1
+    with share ~1 means each sync reverses what PEC applied in between: PEC and the sync guiding are fighting.
+    """
+    t = comp['t_min'].values * 60
+    t0 = comp['timestamp'].iloc[0]
+    st = [(pd.Timestamp(s) - t0).total_seconds() for s in sync_times]
+    st = [s for s in st if t[0] <= s <= t[-1]]
+    rows = {}
+    for i in (1, 2, 3):
+        sh = comp[f'M{i} shift'].values
+        R, S = [], []
+        for a, b in zip(st[:-1], st[1:]):
+            p = sh[(t > a + after_s[0]) & (t < a + after_s[1])]
+            q = sh[(t > b - before_s[0]) & (t < b - before_s[1])]
+            r = sh[(t > b + after_s[0]) & (t < b + after_s[1])]
+            if len(p) > 3 and len(q) > 3 and len(r) > 3:
+                R.append(np.median(q) - np.median(p))
+                S.append(np.median(r) - np.median(q))
+        R, S = np.array(R), np.array(S)
+        ok = len(R) >= 5 and np.sum(R * R) > 0
+        rows[f'M{i}'] = {'intervals': len(R), 'ramp rms "': float(np.sqrt(np.mean(R ** 2))) if len(R) else np.nan,
+                         'step rms "': float(np.sqrt(np.mean(S ** 2))) if len(S) else np.nan,
+                         'corr': float(np.corrcoef(R, S)[0, 1]) if ok and np.std(S) > 0 else np.nan,
+                         'share undone': float(-np.sum(R * S) / np.sum(R * R)) if ok else np.nan}
+    return pd.DataFrame(rows).T
