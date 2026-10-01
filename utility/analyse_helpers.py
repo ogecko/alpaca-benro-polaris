@@ -265,7 +265,7 @@ def load_pec(log_filenames, log_dir='.'):
     Transparently handles both the modern 'PECLOG {dict}' format and the legacy
     comma-separated format used by older driver versions (see parse_peclog_legacy()) -- a
     session can even mix both if its rotated logs span a driver upgrade. The legacy format
-    predates a logged 'resid' field, so for any row that comes back without one, resid_1/2 is
+    predates a logged 'resid' field, so for every legacy-format row resid_1/2 is
     backfilled from the separate, always-present 'SYNC GUIDING ... Residuals' line by
     nearest-timestamp match (within 2s; see parse_sync_guiding_residual_line()).
 
@@ -310,6 +310,7 @@ def load_pec(log_filenames, log_dir='.'):
                 if ' PECLOG ' in line:
                     rec = parse_peclog_legacy(line)
                     if rec is not None:
+                        rec['_legacy'] = True
                         rows.append(rec)
                     continue
                 if 'SYNC GUIDING' in line:
@@ -321,8 +322,11 @@ def load_pec(log_filenames, log_dir='.'):
         raise ValueError(f"No PECLOG lines found in {paths!r}")
 
     df = _finalize_log_df(rows)
+    legacy = df.pop('_legacy').fillna(False).astype(bool) if '_legacy' in df.columns else None
 
-    if sync_resid_rows:
+    # Only legacy rows lack a logged resid; on a modern row a None resid means the pulse was on
+    # the other axis, and filling it from a nearby sync would count that sync again.
+    if sync_resid_rows and legacy is not None and legacy.any():
         resid_df = pd.DataFrame(sync_resid_rows)
         resid_df['timestamp'] = pd.to_datetime(resid_df['timestamp'])
         resid_df = resid_df.sort_values('timestamp', kind='stable').reset_index(drop=True)
@@ -332,11 +336,11 @@ def load_pec(log_filenames, log_dir='.'):
         legacy_resid_1 = merged['ra_resid_deg'] * 60
         legacy_resid_2 = merged['dec_resid_deg'] * 60
         if 'resid_1' in df.columns:
-            df['resid_1'] = df['resid_1'].fillna(legacy_resid_1)
-            df['resid_2'] = df['resid_2'].fillna(legacy_resid_2)
+            df.loc[legacy, 'resid_1'] = df.loc[legacy, 'resid_1'].fillna(legacy_resid_1[legacy])
+            df.loc[legacy, 'resid_2'] = df.loc[legacy, 'resid_2'].fillna(legacy_resid_2[legacy])
         else:
-            df['resid_1'] = legacy_resid_1
-            df['resid_2'] = legacy_resid_2
+            df['resid_1'] = legacy_resid_1.where(legacy)
+            df['resid_2'] = legacy_resid_2.where(legacy)
 
     return df, pec_config
 
@@ -1547,3 +1551,108 @@ def reconstruct_outages(connection_events_df):
     if len(out):
         out['duration_min'] = (out['outage_end'] - out['outage_start']).dt.total_seconds() / 60
     return out
+
+
+def window_df(df, t_from=None, t_to=None):
+    """
+    Rows of df whose 'timestamp' lies in [t_from, t_to] (either may be None for open-ended,
+    both None returns df unchanged). If df has a t_sec column it is restarted from 0 at the
+    first kept row, so plots of a windowed multi-target night start at the window. Lets a
+    notebook cut a session to one PEC run (e.g. between gotos).
+    """
+    if df is None or df.empty or (t_from is None and t_to is None):
+        return df
+    keep = pd.Series(True, index=df.index)
+    if t_from is not None:
+        keep &= df['timestamp'] >= pd.Timestamp(t_from)
+    if t_to is not None:
+        keep &= df['timestamp'] <= pd.Timestamp(t_to)
+    out = df[keep].reset_index(drop=True)
+    if 't_sec' in out.columns and len(out):
+        out['t_sec'] = (out['timestamp'] - out['timestamp'].iloc[0]).dt.total_seconds()
+    return out
+
+
+_PHD2_GUIDING_BEGINS_RE = re.compile(r"^Guiding Begins at (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")
+_PHD2_GUIDING_ENDS_RE   = re.compile(r"^Guiding Ends at (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")
+_PHD2_CAL_BEGINS_RE     = re.compile(r"^Calibration Begins at (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")
+_PHD2_PIXEL_SCALE_RE    = re.compile(r"^Pixel scale = ([\d.]+) arc-sec/px")
+_PHD2_GUIDE_SPEED_RE    = re.compile(r"^RA Guide Speed = ([\d.]+) a-s/s, Dec Guide Speed = ([\d.]+) a-s/s")
+_PHD2_FRAME_RE          = re.compile(r"^\d+,[\d.]+,\"")
+
+
+def load_phd2_guidelog(path):
+    """
+    Parse a PHD2 guide log (PHD2_GuideLog_*.txt) into (frames, events) DataFrames, so a
+    notebook can compare PEC with what the guider actually saw and did.
+
+    frames: one row per guided frame ("Mount" rows; DROP/star-lost frames are events instead)
+        timestamp, segment (0-based guiding segment), frame,
+        ra_arcsec / dec_arcsec   raw guide error, using that segment's pixel scale
+        ra_ms / dec_ms           pulse duration, signed like the driver's pulse residuals:
+                                 East/North positive, West/South negative
+        ra_pulse_arcsec / dec_pulse_arcsec   ms x that segment's RA/Dec guide speed
+    events: timestamp, kind, detail -- kind is calibration, guiding_start, guiding_end,
+        dither or star_lost. INFO lines carry no time of their own, so a dither is stamped
+        with the frame before it.
+
+    PHD2 writes local times, the same clock as the driver log, so the two line up directly.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"PHD2 guide log does not exist: {path!r}")
+
+    frames, events = [], []
+    seg, seg_start = -1, None
+    pixel_scale, ra_speed, dec_speed = 1.0, 15.0, 15.0
+    last_ts = None
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.rstrip('\n')
+            m = _PHD2_CAL_BEGINS_RE.match(line)
+            if m:
+                last_ts = pd.Timestamp(m.group(1))
+                events.append(dict(timestamp=last_ts, kind='calibration', detail=''))
+                continue
+            m = _PHD2_GUIDING_BEGINS_RE.match(line)
+            if m:
+                seg += 1
+                seg_start = last_ts = pd.Timestamp(m.group(1))
+                events.append(dict(timestamp=seg_start, kind='guiding_start', detail=''))
+                continue
+            m = _PHD2_GUIDING_ENDS_RE.match(line)
+            if m:
+                events.append(dict(timestamp=pd.Timestamp(m.group(1)), kind='guiding_end', detail=''))
+                seg_start = None
+                continue
+            m = _PHD2_PIXEL_SCALE_RE.match(line)
+            if m:
+                pixel_scale = float(m.group(1))
+                continue
+            m = _PHD2_GUIDE_SPEED_RE.match(line)
+            if m:
+                ra_speed, dec_speed = float(m.group(1)), float(m.group(2))
+                continue
+            if line.startswith('INFO: DITHER') and seg_start is not None:
+                events.append(dict(timestamp=last_ts, kind='dither', detail=line[6:]))
+                continue
+            if seg_start is None or not _PHD2_FRAME_RE.match(line):
+                continue
+            p = line.split(',')
+            ts = seg_start + pd.Timedelta(seconds=float(p[1]))
+            last_ts = ts
+            if p[2] != '"Mount"':
+                events.append(dict(timestamp=ts, kind='star_lost', detail=p[-1].strip('"')))
+                continue
+            ra_ms  = int(float(p[9] or 0))  * {'E': 1, 'W': -1}.get(p[10], 0)
+            dec_ms = int(float(p[11] or 0)) * {'N': 1, 'S': -1}.get(p[12], 0)
+            frames.append(dict(
+                timestamp=ts, segment=seg, frame=int(p[0]),
+                ra_arcsec=float(p[5] or 0) * pixel_scale, dec_arcsec=float(p[6] or 0) * pixel_scale,
+                ra_ms=ra_ms, dec_ms=dec_ms,
+                ra_pulse_arcsec=ra_ms / 1000 * ra_speed, dec_pulse_arcsec=dec_ms / 1000 * dec_speed,
+            ))
+
+    frames = pd.DataFrame(frames, columns=['timestamp', 'segment', 'frame', 'ra_arcsec', 'dec_arcsec',
+                                           'ra_ms', 'dec_ms', 'ra_pulse_arcsec', 'dec_pulse_arcsec'])
+    events = pd.DataFrame(events, columns=['timestamp', 'kind', 'detail'])
+    return frames, events
