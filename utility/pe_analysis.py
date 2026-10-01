@@ -186,3 +186,97 @@ def rolling_forecast(seg, thetas, window_s=40 * 60, horizon_s=10 * 60, step_s=10
         out[kind] = float(np.sqrt(np.mean(np.concatenate(e)))) if e else np.nan
     out['n_windows'] = n
     return out
+
+
+# ── PEC rate benchmark ───────────────────────────────────────────────────────────────────
+# PEC applies a RATE continuously and the guider removes what is left at each correction. So a PEC model
+# is scored on (1) how well its causal rate estimate tracks the actual drift rate (a centred local slope
+# of the drift, only computable afterwards) and (2) the drift left for the guider per correction interval,
+# y(t + dt) - y(t) - rate(t) * dt, for realistic guide intervals. The model is the driver's own PecAxis
+# replayed causally on the drift series (total_accum: the mount's drift with PEC's effect removed).
+
+@dataclass
+class PecModel:
+    name: str
+    mode: str = 'ema'            # 'ema' or 'rls'
+    n_harmonics: int = 0
+    tau_s: float = 1260.0
+    T: float = 2040.0
+
+
+def true_rate(t, y, half_window_s=300.0):
+    """Actual drift rate (arcsec/min): slope of a local line over t +/- half_window_s; NaN near the ends."""
+    out = np.full(len(t), np.nan)
+    lo = np.searchsorted(t, t - half_window_s, side='left')
+    hi = np.searchsorted(t, t + half_window_s, side='right')
+    for k in range(len(t)):
+        if t[k] - half_window_s < t[0] or t[k] + half_window_s > t[-1] or hi[k] - lo[k] < 3:
+            continue
+        tt, yy = t[lo[k]:hi[k]], y[lo[k]:hi[k]]
+        out[k] = np.polyfit(tt - t[k], yy, 1)[0] * 60
+    return out
+
+
+def replay_pec_rate(t, y, model, var_alpha=0.05, sse_alpha=0.15):
+    """Rate (arcsec/min) the driver's PecAxis would apply after ingesting each sample of drift y (arcsec)."""
+    from control_pec import PecAxis, PecMode
+    ax = PecAxis(T=model.T, n_harmonics=model.n_harmonics, mode=PecMode(model.mode), tau=model.tau_s, min_dt=0.05)
+    ax.reset_seed(y[0] / 3600)
+    out = np.zeros(len(t))
+    for k in range(1, len(t)):
+        ax.ingest_accum(y[k] / 3600, t[k], var_alpha, sse_alpha)
+        out[k] = ax.predicted_rate(t[k]) * 3600 * 60
+    return out
+
+
+def rate_scores(t, y, rates, guide_intervals_s=(30, 120, 300), ref_half_window_s=300.0, warmup_s=600.0):
+    """{'rate_rms': {name: arcsec/min}, 'guide_rms': {dt: {name: arcsec}}}, each with a 'no_pec' baseline."""
+    t = np.asarray(t, float) - t[0]
+    rt = true_rate(t, y, ref_half_window_s)
+    m = (t >= warmup_s) & ~np.isnan(rt)
+    out = {'rate_rms': {'no_pec': float(np.sqrt(np.mean(rt[m] ** 2)))}, 'guide_rms': {}}
+    for name, r in rates.items():
+        out['rate_rms'][name] = float(np.sqrt(np.mean((r[m] - rt[m]) ** 2)))
+    for dt in guide_intervals_s:
+        g = (t >= warmup_s) & (t + dt <= t[-1])
+        step = np.interp(t[g] + dt, t, y) - y[g]
+        res = {'no_pec': float(np.sqrt(np.mean(step ** 2)))}
+        for name, r in rates.items():
+            res[name] = float(np.sqrt(np.mean((step - r[g] * dt / 60) ** 2)))
+        out['guide_rms'][dt] = res
+    return out
+
+
+def benchmark_segments(segs, models, guide_intervals_s=(30, 120, 300), ref_half_windows_s=(150, 300),
+                       thin_s=5.0, pulse_dt_s=10.0):
+    """Long DataFrame (seg, kind, axis, metric, model, value) of rate_scores for every segment, axis and model.
+    kind: 'pulse' if the drift is sampled faster than pulse_dt_s (pulse-guided PECLOG/PHD2), else 'sync'.
+    Dense segments are thinned to one sample per thin_s (PecAxis uses each sample's own dt)."""
+    rows = []
+    for s in segs:
+        t = s.t - s.t[0]
+        keep = np.r_[True, np.diff(np.floor(t / thin_s)) > 0] if thin_s else np.ones(len(t), bool)
+        t = t[keep]
+        kind = 'pulse' if np.median(np.diff(t)) < pulse_dt_s else 'sync'
+        for axis, y in (('ra', s.ra[keep]), ('dec', s.dec[keep])):
+            rates = {m.name: replay_pec_rate(t, y, m) for m in models}
+            for i, hw in enumerate(ref_half_windows_s):
+                sc = rate_scores(t, y, rates, guide_intervals_s=guide_intervals_s, ref_half_window_s=hw)
+                for name, v in sc['rate_rms'].items():
+                    rows.append(dict(seg=s.name, kind=kind, axis=axis, metric=f'rate (ref +-{hw / 60:.1f} min)', model=name, value=v))
+                if i == len(ref_half_windows_s) - 1:
+                    for dt, d in sc['guide_rms'].items():
+                        for name, v in d.items():
+                            rows.append(dict(seg=s.name, kind=kind, axis=axis, metric=f'guide residual {dt}s', model=name, value=v))
+    return pd.DataFrame(rows)
+
+
+def pooled_relative(df):
+    """Pooled RMS of each model relative to no PEC, per metric (rows: model, columns: metric)."""
+    out = {}
+    for metric, g in df.groupby('metric'):
+        base = g[g['model'] == 'no_pec'].set_index(['seg', 'axis'])['value']
+        out[metric] = {m: float(np.sqrt((gg.set_index(['seg', 'axis'])['value'] ** 2).sum() /
+                                        (base.loc[gg.set_index(['seg', 'axis']).index] ** 2).sum()))
+                       for m, gg in g.groupby('model')}
+    return pd.DataFrame(out)
