@@ -358,7 +358,14 @@ wondering if this is impacting on the success of the MPA etc
 * Not sure if this is an issue, but noticed it on both imaging nights. Seems to occur during the solve sync ASTAP plate solves … this is only intermittent and certainly doesn’t happen all the time.
 * C. Summary….PEC Autotune with x60 interations now takes only 12 minutes and for 30s exposures, solve sync works exceedingly well at 2 minute intervals (every x4 exposues) 
 
-
+#### releases-2_2_beta7.1- 31 September 2026
+* Despite the forecast, the conditions were reasonable last night, so I managed to test Beta 7.1
+* There was no wind but large passing clouds at one point.
+* Carina was too low in the sky and clipping the tree line, so I used SMC for the target
+* Out 211 images (30sec exp synced every 2 mins), PixInsight was able to integrate 198 frames - a credible 94% success rate and comparable to the results on 04 and 05 Sept.
+* Some images had the dreaded tadpoles, squiggles, double stars etc …… which seemed to have been virtually eliminated previously (09 Sept with dev2_2 had a fantastic 99% with 240 images)
+* This may be attributable to the clouds?
+* "Coordinated Speed Control"  - GoTo is now much smoother and doesn’t ‘hesitate’ or move back and forth, when compared to being disabled.
 
 ### Summary
 
