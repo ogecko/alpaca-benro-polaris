@@ -25,11 +25,33 @@ def wrap180(d):
     return (d + 180.0) % 360.0 - 180.0
 
 
+class Worm:
+    """
+    Periodic error of each motor's gear train after the motor: the true output angle = the angle the MCU reports +
+    A_i [sin(2 pi theta_i / THETA + phi_i) + h2 sin(4 pi theta_i / THETA + psi_i)] (deg). THETA defaults to a
+    54-tooth worm (6.67 deg, 972:1 = 18 x 54 in the design doc). The MCU only measures its motor's rotor, so the
+    driver never sees this; its period in time is THETA / motor rate and so changes with pose.
+    """
+    def __init__(self, amplitude_arcsec=(40.0, 40.0, 40.0), theta_deg=360 / 54, h2=0.35, seed=0):
+        rng = np.random.default_rng(seed)
+        self.amp = np.asarray(amplitude_arcsec, dtype=float) / ARCSEC
+        self.theta = theta_deg
+        self.h2 = h2
+        self.phi = rng.uniform(0, 2 * np.pi, 3)
+        self.psi = rng.uniform(0, 2 * np.pi, 3)
+
+    def error_deg(self, theta):
+        a = 2 * np.pi * np.asarray(theta, dtype=float) / self.theta
+        return self.amp * (np.sin(a + self.phi) + self.h2 * np.sin(2 * a + self.psi))
+
+
 class SimGuider:
     def __init__(self, twin, drift=None, guide_rate_deg_s=15.0 / ARCSEC, frame_s=2.0, aggression=0.7,
-                 min_move_arcsec=0.3, max_pulse_ms=2500, seeing_arcsec=0.0, seed=0):
-        """drift(t_sec) -> (ra_deg, dec_deg): extra pointing error the driver cannot see, t from guider start."""
+                 min_move_arcsec=0.3, max_pulse_ms=2500, seeing_arcsec=0.0, seed=0, worm=None):
+        """drift(t_sec) -> (ra_deg, dec_deg): extra pointing error the driver cannot see, t from guider start.
+        worm: a Worm -- gear periodic error on each motor's angle, also invisible to the driver."""
         self.tw = twin
+        self.worm = worm
         self.drift = drift or (lambda t: (0.0, 0.0))
         self.rate = guide_rate_deg_s
         self.frame_s, self.aggression = frame_s, aggression
@@ -48,7 +70,10 @@ class SimGuider:
     # ── where the mount really points ──────────────────────────────────────────────────
     def encoder_radec(self):
         sm, p = self.tw.polaris._sm, self.tw.polaris
-        cameraQ = sm.alignQ_B2T * theta_to_q(*self.tw.mcu.position)
+        theta = self.tw.mcu.position
+        if self.worm is not None:
+            theta = theta + self.worm.error_deg(theta)      # true output angle = MCU angle + gear error
+        cameraQ = sm.alignQ_B2T * theta_to_q(*theta)
         az, alt, _ = q_to_azaltroll(cameraQ)
         ra_h, dec = p.altaz2radec(alt, az)
         return ra_h * 15.0, dec
@@ -128,8 +153,8 @@ class SimPlateSolver(SimGuider):
     real SyncManager.process_guide_sync(), which corrects by the whole residual and trains PEC on it.
     The error measured is the true pointing against the target held when start() was called.
     """
-    def __init__(self, twin, drift=None, interval_s=120.0, solve_noise_arcsec=0.0, seed=0):
-        super().__init__(twin, drift=drift, frame_s=interval_s, seeing_arcsec=solve_noise_arcsec, seed=seed)
+    def __init__(self, twin, drift=None, interval_s=120.0, solve_noise_arcsec=0.0, seed=0, worm=None):
+        super().__init__(twin, drift=drift, frame_s=interval_s, seeing_arcsec=solve_noise_arcsec, seed=seed, worm=worm)
         self.samples = []                           # (t, ra_err_deg, dec_err_deg) every control tick
 
     def start(self):
