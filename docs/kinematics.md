@@ -719,9 +719,13 @@ dec_resid = clamp_error(a_dec,    Dec_pv)
           _pec_log()  → PECLOG entry
 ```
 
-Pulse guides train the same `PecAxis` models via the identical `update_pec_model()` call, from
-`process_pulse_guide_axis()`, whenever `Config.advanced_pulse_pec_tuning` is enabled — that's the
+Pulse guides train the same `PecAxis` models via `ingest_pulse_for_pec()` → `update_pec_model()`,
+from `process_pulse_guide_axis()`, whenever `Config.advanced_pulse_pec_tuning` is enabled — that's the
 "dual guiding support" in §2.6.II: one model, fed by whichever guide source is active.
+With `Config.pec_ignore_guider_calibration`, `GuiderCalibrationDetector` recognises a guider's
+calibration (PHD2, CCDciel) as 3+ identical same-axis, same-direction pulses: PEC is rolled back to
+its state before that run and learns nothing more until no repeated pulse has been seen for 20 s.
+The PEC code lives in `driver/control_pec.py` (`PecMixin`, mixed into `SyncManager`).
 
 ---
 

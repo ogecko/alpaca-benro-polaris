@@ -56,7 +56,7 @@ def mock_config():
     }
     config_obj = SimpleNamespace(**defaults)
 
-    with patch('control.Config', config_obj):
+    with patch('control.Config', config_obj), patch('control_pec.Config', config_obj):
         yield config_obj
 
 class PID_Controller:
