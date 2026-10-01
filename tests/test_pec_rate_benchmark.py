@@ -90,3 +90,32 @@ def test_benchmark_segments_and_pooled_relative():
     rel = pooled_relative(df)
     assert rel.loc['no_pec', 'guide residual 120s'] == pytest.approx(1.0)
     assert rel.loc['ema 2m', 'guide residual 120s'] < rel.loc['ema 60m', 'guide residual 120s'] < 1.0
+
+
+def test_dema_removes_the_lag_on_a_steadily_changing_rate():
+    t = np.arange(0, 2 * 3600, 20.0)
+    rate = 10.0 + 20.0 * t / 3600                          # arcsec/min, rising 20"/min per hour
+    y = np.cumsum(np.r_[0, rate[:-1] / 60 * np.diff(t)])
+    ema = replay_pec_rate(t, y, PecModel('ema', 'ema', 0, 600))
+    dema = replay_pec_rate(t, y, PecModel('dema', 'dema', 0, 600, k=1.0))
+    late = t > 3600
+    # EMA lags a ramp by ~tau: 20"/min/h x 600 s = 3.3"/min behind; DEMA ~cancels it
+    assert np.mean(rate[late] - ema[late]) == pytest.approx(20.0 * 600 / 3600, rel=0.15)
+    assert abs(np.mean(rate[late] - dema[late])) < 0.5
+
+
+def test_dema_with_k0_is_plain_ema():
+    y, _ = reversing_drift(T)
+    a = replay_pec_rate(T, y, PecModel('ema', 'ema', 0, 600))
+    b = replay_pec_rate(T, y, PecModel('dema0', 'dema', 0, 600, k=0.0))
+    assert np.allclose(a, b, atol=1e-9)
+
+
+def test_dema_tracks_a_reversing_rate_better_than_ema():
+    y, _ = reversing_drift(T)
+    rng = np.random.default_rng(3)
+    y = y + rng.normal(0, 1.0, len(T))
+    ema = replay_pec_rate(T, y, PecModel('ema', 'ema', 0, 600))
+    dema = replay_pec_rate(T, y, PecModel('dema', 'dema', 0, 600, k=1.0))
+    s = rate_scores(T, y, {'ema': ema, 'dema': dema}, guide_intervals_s=(120,), ref_half_window_s=300)
+    assert s['rate_rms']['dema'] < 0.7 * s['rate_rms']['ema']

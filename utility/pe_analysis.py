@@ -198,10 +198,11 @@ def rolling_forecast(seg, thetas, window_s=40 * 60, horizon_s=10 * 60, step_s=10
 @dataclass
 class PecModel:
     name: str
-    mode: str = 'ema'            # 'ema' or 'rls'
+    mode: str = 'ema'            # 'ema' or 'rls' (the driver's PecAxis), or 'dema' (benchmark only, see below)
     n_harmonics: int = 0
     tau_s: float = 1260.0
     T: float = 2040.0
+    k: float = 1.0               # 'dema' lag compensation: rate = e1 + k * (e1 - e2); 0 = plain EMA, 1 = DEMA
 
 
 def true_rate(t, y, half_window_s=300.0):
@@ -217,8 +218,29 @@ def true_rate(t, y, half_window_s=300.0):
     return out
 
 
+def _replay_dema(t, y, tau_s, k):
+    """Lag-compensated EMA of the observed rate: e1 = EMA(rate), e2 = EMA(e1), rate = e1 + k (e1 - e2).
+    Same per-sample smoothing as PecAxis's EMA mode (alpha = 1 - exp(-dt / tau)); with a steadily changing
+    rate e1 lags by ~tau and e2 by ~2 tau, so k = 1 cancels the lag (at the cost of more noise and overshoot)."""
+    out = np.zeros(len(t))
+    e1 = e2 = 0.0
+    for i in range(2, len(t)):                  # like PecAxis: the first ingest only sets the reference point
+        dt = t[i] - t[i - 1]
+        if dt <= 0:
+            out[i] = out[i - 1]
+            continue
+        alpha = 1.0 - np.exp(-dt / tau_s)
+        obs = (y[i] - y[i - 1]) / dt * 60
+        e1 += alpha * (obs - e1)
+        e2 += alpha * (e1 - e2)
+        out[i] = e1 + k * (e1 - e2)
+    return out
+
+
 def replay_pec_rate(t, y, model, var_alpha=0.05, sse_alpha=0.15):
     """Rate (arcsec/min) the driver's PecAxis would apply after ingesting each sample of drift y (arcsec)."""
+    if model.mode == 'dema':
+        return _replay_dema(np.asarray(t, float), np.asarray(y, float), model.tau_s, model.k)
     from control_pec import PecAxis, PecMode
     ax = PecAxis(T=model.T, n_harmonics=model.n_harmonics, mode=PecMode(model.mode), tau=model.tau_s, min_dt=0.05)
     ax.reset_seed(y[0] / 3600)
