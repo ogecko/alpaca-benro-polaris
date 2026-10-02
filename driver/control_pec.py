@@ -303,6 +303,7 @@ class PecMixin:
             return
         ra, dec = self._pec_ra, self._pec_dec
         pv_deg = self.polaris._pid.alpha_pv
+        theta_raw = getattr(self.polaris, '_theta_raw', None)
         pec_accum_ra, pec_accum_dec = pec_accum_snapshot
         # float(): several values below (pv_deg elements, dc_rate()) are numpy scalars, whose
         # numpy-2.x repr (e.g. np.float64(1.23)) breaks ast.literal_eval() on readback.
@@ -349,6 +350,10 @@ class PecMixin:
 
             # degrees, current topocentric position
             "az": round(float(pv_deg[0]), 3), "alt": round(float(pv_deg[1]), 3), "roll": round(float(pv_deg[2]), 3),
+
+            # degrees, raw MCU motor angles [M1, M2, M3] as of the last 518 message (as SGLOG) -- per-motor
+            # worm analysis needs these, not the pose (which includes the session's alignment)
+            "theta_raw": [round(float(v), 5) for v in theta_raw] if theta_raw is not None else [None, None, None],
 
             # RLS forgetting factor, dimensionless
             "lambda": [round(float(ra.lam), 5), round(float(dec.lam), 5)],

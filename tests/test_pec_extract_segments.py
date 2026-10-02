@@ -134,3 +134,25 @@ def test_drift_from_sync_guiding_lines_when_there_are_no_drift_records(tmp_path)
     assert d['drift_source'].iloc[0] == 'sync_lines'
     assert d['drift_ra_arcsec'].iloc[-1] == pytest.approx(2.0 * 40)
     assert d['drift_dec_arcsec'].iloc[-1] == pytest.approx(-1.0 * 40)
+
+
+def test_raw_motor_angles_logged_in_peclog_are_used_when_there_is_no_kflog(tmp_path):
+    body = []
+    for i, k in enumerate(range(0, 3600, 60)):
+        line = peclog(k, 2 + i, (0.0, 0.0), az=150 + k / 360)
+        body.append(line.replace("'roll': 10.0}", f"'roll': 10.0, 'theta_raw': [{200 + k / 100}, 45.0, {-30 - k / 200}]}}"))
+    paths = write_session(tmp_path, body)
+    d = extract_segment(paths, catalog_session(paths)[0])
+    assert d['theta_source'].iloc[0] == 'peclog_raw'
+    row = d.iloc[20]
+    k = (row['timestamp'] - T0).total_seconds() - 60
+    assert row['theta1'] == pytest.approx(200 + k / 100, abs=1e-6)
+    assert row['theta3'] == pytest.approx(-30 - k / 200, abs=1e-6)
+
+
+def test_peclog_rows_logged_before_the_first_518_have_no_raw_angles(tmp_path):
+    body = [peclog(k, 2 + i, (0.0, 0.0)).replace("'roll': 10.0}", "'roll': 10.0, 'theta_raw': [None, None, None]}")
+            for i, k in enumerate(range(0, 3600, 60))]
+    paths = write_session(tmp_path, body)
+    d = extract_segment(paths, catalog_session(paths)[0])
+    assert d['theta_source'].iloc[0] == 'peclog'                 # falls back to the pose through the IK

@@ -7,8 +7,8 @@ theta1-3 (motor angles, deg, unwrapped), theta_source, az, alt, roll.
 
 Drift is the driver's own `total_accum` (guide corrections + PEC applied: the mount's drift with PEC's
 effect removed), in the driver's correction convention, joined across PEC model resets; or, for a
-segment with no PECLOG (PEC off), a PHD2 guide log's pulses where one is given, or the SYNC GUIDING residual lines. Motor angles come from KFLOG theta, SGLOG theta, PECLOG/SGLOG
-az/alt/roll through the inverse kinematics, or the target rebuilt from time, site and roll (tracking
+segment with no PECLOG (PEC off), a PHD2 guide log's pulses where one is given, or the SYNC GUIDING residual lines. Motor angles come from KFLOG theta, PECLOG theta_raw, SGLOG theta,
+PECLOG/SGLOG az/alt/roll through the inverse kinematics, or the target rebuilt from time, site and roll (tracking
 holds roll + parallactic angle), interpolated onto the drift samples.
 
     uv run python utility/extract_segments.py      # all usable segments -> logs/archive/segments/
@@ -155,9 +155,13 @@ def extract_segment(paths, seg, phd2_frames=None, site=DEFAULT_SITE, utc_offset_
             else:
                 out[name] = np.interp(tsec, pt, vals)
     kf = [(t, d['θ_meas_raw']) for t, d in rec['kflog'] if isinstance(d.get('θ_meas_raw'), list)]
-    sg = [(t, d['theta_raw']) for t, d in rec['sglog'] if isinstance(d.get('theta_raw'), list)]
+    raw = lambda d: isinstance(d.get('theta_raw'), list) and all(isinstance(v, (int, float)) for v in d['theta_raw'])
+    pr = [(t, d['theta_raw']) for t, d in rec['peclog'] if raw(d)]
+    sg = [(t, d['theta_raw']) for t, d in rec['sglog'] if raw(d)]
     if kf:
         th, tsrc = kf, 'kflog'
+    elif pr:
+        th, tsrc = pr, 'peclog_raw'
     elif sg:
         th, tsrc = sg, 'sglog'
     elif pose:

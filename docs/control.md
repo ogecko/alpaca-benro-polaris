@@ -959,6 +959,11 @@ tick) or `apply_pec_drift_correction()`'s own `dt > 5s` guard skipping a tick af
 check `age_518` on the same line first, since a large value there means this PECLOG entry itself
 landed amid a telemetry gap.
 
+`theta_raw` is the raw MCU motor angles [M1, M2, M3] (degrees) at the time of the entry, as SGLOG logs at each
+sync. A worm error belongs to one motor and repeats with that motor's angle, so per-motor analysis
+(`utility/analyse_pec_theta.ipynb`) needs these rather than `az`/`alt`/`roll`, which include the session's
+alignment.
+
 `resid` is the raw residual reported by each sync -- this is the one that should shrink as PEC
 gets better. `total_accum` is *not* "remaining error": it's `resid` + `pec_accum` accumulated
 across every sync since the PEC model was last reset, i.e. what the total drift would have
