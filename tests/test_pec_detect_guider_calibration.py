@@ -4,8 +4,9 @@ from the pulse stream alone, so PEC can ignore calibration pulses instead of lea
 as drift.
 
 Signature: calibration moves ONE axis at a time in ONE direction with IDENTICAL pulse
-durations. Guiding sends RA and Dec pulses in the same frame with durations computed from
-the measured error, so a run of 3 identical same-axis/same-direction pulses does not occur.
+durations (PHD2), or with each pulse exactly 1.5x the previous one (CCDciel's internal guider
+ramps its East pulse until the star moves). Guiding sends RA and Dec pulses in the same frame
+with durations computed from the measured error, so neither run occurs while guiding.
 """
 import sys
 import os
@@ -18,6 +19,7 @@ from control_pec import GuiderCalibrationDetector
 
 RA, DEC = 0, 1
 FIXTURE = os.path.join(os.path.dirname(__file__), 'fixtures', 'phd2_pulse_stream_2026-09-29.csv.gz')
+CCDCIEL_FIXTURE = os.path.join(os.path.dirname(__file__), 'fixtures', 'ccdciel_pulse_stream_2026-09-12.csv.gz')
 DIRECTION = {'E': (RA, +1), 'W': (RA, -1), 'N': (DEC, +1), 'S': (DEC, -1)}
 
 
@@ -40,6 +42,31 @@ def phd2_calibration(t0, step_ms=500, n_ra=14, n_backlash=3, n_dec=10, dt=1.4):
     for d, ms in seq:
         t += ms / 1000 + 0.9 if ms > step_ms else dt
         out.append((t, d, ms))
+    return out
+
+
+def ccdciel_calibration(t0, initial_ms=100, longest_ms=500, east_steps=6, n_backlash=3, dec_ms=1000,
+                        n_measure=2, gap=4.0):
+    """Synthetic CCDciel internal guider calibration, as cu_autoguider_internal.InternalCalibration:
+    East pulses from initial_ms, each round(1.5x) the last, until the star moves (east_steps); one West
+    pulse of the last East length; North backlash clearing (min(longest, max(300, 3 x initial)), growing
+    1.5x from the 3rd pulse, capped at longest); North measure (n_measure identical); the same South."""
+    seq, d = [], round(initial_ms / 1.5)
+    for _ in range(east_steps):
+        d = round(d * 1.5)
+        seq.append(('E', d))
+    seq.append(('W', d))
+    for dirn in ('N', 'S'):
+        b = min(longest_ms, max(300, 3 * initial_ms))
+        for k in range(1, n_backlash + 1):
+            if k >= 3:
+                b = round(min(longest_ms, 1.5 * b))
+            seq.append((dirn, b))
+        seq += [(dirn, dec_ms)] * n_measure
+    t, out = t0, []
+    for dirn, ms in seq:
+        t += ms / 1000 + gap
+        out.append((t, dirn, ms))
     return out
 
 
@@ -190,3 +217,84 @@ def test_session_ingests_nearly_all_guide_pulses(session):
     guide = [v.ingest for r, v in zip(rows, verdicts) if r[3] == 'guide']
     # only the quiet period after each of the 5 calibrations is skipped
     assert sum(guide) / len(guide) > 0.995
+
+
+# ── CCDciel: East pulse ramp of 1.5x steps ───────────────────────────────
+
+@pytest.mark.parametrize("initial_ms, longest_ms, east_steps, n_before", [
+    (100, 500, 7, 3),          # CCDciel defaults: 100 150 225 338 ... -> triggers on 338, the first >= 300 ms
+    (1000, 2500, 5, 2),        # 2026-09-12 session settings: 1000 1500 2250 ... -> triggers on 2250
+    (1500, 2500, 3, 2),        # 2026-09-12 23:55: 1500 2250 3375
+])
+def test_ccdciel_calibration_is_detected_once_and_nothing_after_the_trigger_is_ingested(
+        initial_ms, longest_ms, east_steps, n_before):
+    det = GuiderCalibrationDetector()
+    verdicts = feed(det, ccdciel_calibration(0.0, initial_ms, longest_ms, east_steps))
+    assert sum(v.rollback for v in verdicts) == 1
+    assert verdicts[n_before].rollback
+    assert [v.ingest for v in verdicts[:n_before]] == [True] * n_before   # undone by the rollback
+    assert verdicts[0].run_start                                          # rollback point = start of the ramp
+    assert not any(v.ingest for v in verdicts[n_before:])
+    assert det.active
+
+
+def test_ccdciel_rounding_of_half_milliseconds_still_continues_the_ramp():
+    # round(3375 * 1.5) = 5062 (half-to-even, as Free Pascal's Round)
+    det = GuiderCalibrationDetector(ramp_min_ms=10000)
+    verdicts = feed(det, [(1.0, 'E', 3375), (5.0, 'E', 5062)])
+    assert not verdicts[1].run_start
+
+
+@pytest.mark.parametrize("pulses", [
+    [('E', 79), ('E', 118), ('E', 176)],      # 2026-09-29 PHD2 guiding: 1.5x within 1 ms, but short and not exact
+    [('E', 80), ('E', 120), ('E', 180)],      # exact 1.5x ramp of guiding-sized pulses
+    [('W', 120), ('W', 180), ('W', 270)],
+])
+def test_a_ramp_of_short_guiding_pulses_does_not_trigger(pulses):
+    det = GuiderCalibrationDetector()
+    verdicts = feed(det, [(1.0 + 1.6 * i, d, ms) for i, (d, ms) in enumerate(pulses)])
+    assert all(v.ingest for v in verdicts)
+    assert not det.active
+
+
+@pytest.mark.parametrize("third", [('E', 2260), ('E', 2251), ('W', 2250), ('N', 2250)])
+def test_ramp_is_broken_by_a_different_ratio_axis_or_direction(third):
+    det = GuiderCalibrationDetector()
+    verdicts = feed(det, [(1.0, 'E', 1000), (6.0, 'E', 1500), (12.0, *third)])
+    assert all(v.ingest for v in verdicts)
+    assert verdicts[2].run_start
+    assert not det.active
+
+
+# ── replay of a real session (CCDciel internal guider, 2026-09-12) ───────
+
+@pytest.fixture(scope='module')
+def ccdciel_session():
+    rows = []
+    with gzip.open(CCDCIEL_FIXTURE, 'rt') as f:
+        for r in csv.reader(line for line in f if not line.startswith('#')):
+            if r and r[0] != 't_sec':
+                rows.append((float(r[0]), r[1], int(r[2]), r[3]))
+    det = GuiderCalibrationDetector()
+    return rows, feed(det, [(t, d, ms) for t, d, ms, _ in rows])
+
+
+def test_ccdciel_session_never_triggers_during_guiding(ccdciel_session):
+    rows, verdicts = ccdciel_session
+    assert [r for r, v in zip(rows, verdicts) if v.rollback and r[3] == 'guide'] == []
+
+
+def test_ccdciel_session_detects_both_calibrations_and_ingests_at_most_two_of_their_pulses(ccdciel_session):
+    rows, verdicts = ccdciel_session
+    for cal in ('cal1', 'cal2'):
+        cv = [v for r, v in zip(rows, verdicts) if r[3] == cal]
+        assert sum(v.rollback for v in cv) == 1, cal
+        assert sum(v.ingest for v in cv) == 2, cal           # the 2 before the trigger, undone by rollback
+    # CCDciel's separate backlash calibration follows within the quiet period of cal1
+    assert not any(v.ingest for r, v in zip(rows, verdicts) if r[3] == 'backlash1')
+
+
+def test_ccdciel_session_ingests_nearly_all_guide_pulses(ccdciel_session):
+    rows, verdicts = ccdciel_session
+    guide = [v.ingest for r, v in zip(rows, verdicts) if r[3] == 'guide']
+    assert sum(guide) / len(guide) > 0.99

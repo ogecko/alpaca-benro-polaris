@@ -15,17 +15,23 @@
 # to fight at +363"/min).
 #
 # The driver only sees PulseGuide(direction, duration), so GuiderCalibrationDetector recognises
-# calibration by its signature: ONE axis at a time, ONE direction, IDENTICAL durations. Guiding
-# sends RA and Dec pulses in the same frame with durations computed from the measured error,
-# so a run of `run_length` (3) identical same-axis/same-direction pulses does not occur while
-# guiding: replaying 43,199 guide pulses from that session gave 0 runs of 3 (but 59 runs of 2).
+# calibration by its signature: ONE axis at a time, ONE direction, and either IDENTICAL durations
+# (PHD2's steps, backlash clearing and recenters) or a RAMP where each pulse is exactly 1.5x the
+# previous one (CCDciel's internal guider grows its East pulse from its "initial calibration step"
+# until the star moves; cu_autoguider_internal.pas, durations rounded to whole ms). Guiding sends
+# RA and Dec pulses in the same frame with durations computed from the measured error, so neither
+# run of `run_length` (3) occurs while guiding: replaying 43,199 PHD2 guide pulses (2026-09-29)
+# gave 0 identical runs of 3 (but 59 runs of 2) and one 1.5x ramp of short pulses (79, 118, 176 ms),
+# so a ramp only triggers once its pulse reaches `ramp_min_ms` (300); CCDciel's 2,079 guide pulses
+# (2026-09-12) gave none.
 #
 # Because the first run_length-1 calibration pulses are only recognised in hindsight, the
 # verdict for the triggering pulse asks the caller to roll back what it learnt since the
 # start of the run (run_start marks where to snapshot). Once active, nothing is learnt until
-# no repeated pulse has been seen for `quiet_sec`. Recenter pulses, backlash clearing and the
-# Dec steps all repeat, so the whole calibration stays suppressed; afterwards only the first
-# `quiet_sec` of guiding is skipped.
+# no repeated (identical or ramp) pulse has been seen for `quiet_sec`. Recenter pulses, backlash
+# clearing and the Dec steps all repeat, so the whole calibration stays suppressed (CCDciel's single
+# West return pulse arrives a guide frame after the ramp); afterwards only the first `quiet_sec` of
+# guiding is skipped.
 #
 # The detector only ever withholds learning: a missed calibration behaves as before, and a
 # false trigger costs `quiet_sec` of PEC observations. Config.pec_ignore_guider_calibration.
@@ -50,21 +56,38 @@ class PulseVerdict:
 
 
 class GuiderCalibrationDetector:
-    def __init__(self, run_length=3, quiet_sec=20.0):
-        self.run_length = run_length
-        self.quiet_sec  = quiet_sec
+    RAMP_FACTOR = 1.5            # CCDciel: CalibrationDuration := round(CalibrationDuration * 1.5)
+
+    def __init__(self, run_length=3, quiet_sec=20.0, ramp_min_ms=300):
+        self.run_length  = run_length
+        self.quiet_sec   = quiet_sec
+        self.ramp_min_ms = ramp_min_ms
         self.reset()
 
     def reset(self):
         self.active       = False
         self._last_pulse  = None     # (axis, sign, duration_ms) of the previous pulse
         self._run         = 0        # length of the current run of identical pulses
+        self._ramp        = 0        # length of the current run of 1.5x pulses
         self._last_repeat = None     # time of the last repeated pulse while active
+
+    def _step(self, pulse):
+        """'same' or 'ramp' if this pulse continues the previous one's run, else None."""
+        last = self._last_pulse
+        if last is None or last[:2] != pulse[:2]:
+            return None
+        if pulse[2] == last[2]:
+            return 'same'
+        if abs(pulse[2] - self.RAMP_FACTOR * last[2]) <= 0.5:   # whole-ms rounding of the 1.5x step
+            return 'ramp'
+        return None
 
     def observe(self, axis, sign, duration_ms, now):
         pulse = (axis, sign, int(duration_ms))
-        repeat = pulse == self._last_pulse
-        self._run = self._run + 1 if repeat else 1
+        step = self._step(pulse)
+        repeat = step is not None
+        self._run  = self._run + 1 if step == 'same' else 1
+        self._ramp = self._ramp + 1 if step == 'ramp' else 1
         self._last_pulse = pulse
 
         if self.active:
@@ -75,7 +98,7 @@ class GuiderCalibrationDetector:
                 return PulseVerdict(ingest=False, run_start=True, rollback=False)
             self.active = False
 
-        if self._run >= self.run_length:
+        if self._run >= self.run_length or (self._ramp >= self.run_length and pulse[2] >= self.ramp_min_ms):
             self.active = True
             self._last_repeat = now
             return PulseVerdict(ingest=False, run_start=False, rollback=True)

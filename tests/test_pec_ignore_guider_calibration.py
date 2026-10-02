@@ -20,7 +20,7 @@ import pytest
 
 from control import SyncManager
 from test_sync_manager import Polaris, mock_config          # noqa: F401  (fixture)
-from test_pec_detect_guider_calibration import phd2_calibration, guiding, DIRECTION
+from test_pec_detect_guider_calibration import phd2_calibration, ccdciel_calibration, guiding, DIRECTION
 
 GUIDE_RATE_DEG_S = 15.0 / 3600                              # 1x sidereal, as PHD2 is set up
 
@@ -98,14 +98,18 @@ def test_guard_is_transparent_while_guiding(cfg, clock):
 
 # ── calibration leaves no trace ──────────────────────────────────────────
 
-def test_calibration_leaves_no_trace_in_the_pec_model(cfg, clock):
+@pytest.mark.parametrize("calibration, last_repeat", [(phd2_calibration, -2),       # ends S2500 S2500 S1500
+                                                     (ccdciel_calibration, -1)],   # ends with 2 identical S measures
+                         ids=['phd2', 'ccdciel'])
+def test_calibration_leaves_no_trace_in_the_pec_model(cfg, clock, calibration, last_repeat):
     before = guiding(1000.0, 150)
-    cal = phd2_calibration(before[-1][0] + 3.0)
+    cal = calibration(before[-1][0] + 3.0)
     after = guiding(cal[-1][0] + 2.0, 150)
 
     guarded, reference = new_sm(), new_sm()
     feed(guarded, clock, before + cal + after)
-    feed(reference, clock, before + after_quiet(cal, after))
+    t_last_repeat = cal[last_repeat][0]
+    feed(reference, clock, before + [p for p in after if p[0] - t_last_repeat > 20.0])
     assert_same_pec(guarded, reference)
 
 
