@@ -1754,3 +1754,55 @@ def ramp_vs_next_step(comp, sync_times, before_s=(25, 2), after_s=(10, 35)):
                          'corr': float(np.corrcoef(R, S)[0, 1]) if ok and np.std(S) > 0 else np.nan,
                          'share undone': float(-np.sum(R * S) / np.sum(R * R)) if ok else np.nan}
     return pd.DataFrame(rows).T
+
+
+def _centred_slope_per_min(t_sec, y, half_window_s):
+    out = np.full(len(t_sec), np.nan)
+    lo = np.searchsorted(t_sec, t_sec - half_window_s, side='left')
+    hi = np.searchsorted(t_sec, t_sec + half_window_s, side='right')
+    for k in range(len(t_sec)):
+        if t_sec[k] - half_window_s < t_sec[0] or t_sec[k] + half_window_s > t_sec[-1] or hi[k] - lo[k] < 3:
+            continue
+        out[k] = np.polyfit(t_sec[lo[k]:hi[k]] - t_sec[k], y[lo[k]:hi[k]], 1)[0] * 60
+    return out
+
+
+def correction_breakdown(df, rate_half_window_s=300.0):
+    """
+    Who corrected the mount's drift, per axis, from PECLOG (one PEC run or a windowed session):
+      mount_drift  = pulse_guide + sync_guide + pec_applied   running totals in arcsec (driver correction convention),
+                     joined across PEC model resets (total_accum restarts at each reset; these don't)
+      *_rate       = centred slope of each over +-rate_half_window_s, arcsec/min; drift_rate = sum of the others
+      pec_model_rate   = the rate the driver's PEC model gave (fit_rate), arcsec/min (= arcmin/hr)
+      pec_steady_term  = its steady-drift (DC) part (ra_model[0] / dec_model[0])
+      pec_harmonic_term = pec_model_rate - pec_steady_term: the signed contribution of the harmonics at that moment
+                          (0 for EMA, which has no harmonics)
+      pec_applied_logged_rate = the rate PEC actually applied (0 while inhibited); pec_active = inhibit == VALID
+    A sync-guide row carries both axes' residuals, a pulse-guide row only one; pec_accum is counted only on that
+    axis's own rows (it is logged on every row but folded into the model only when that axis is ingested).
+    Returns {'ra': DataFrame, 'dec': DataFrame, 'resets': Series of reset timestamps}.
+    """
+    d = df.sort_values('timestamp').reset_index(drop=True)
+    is_sync = d['resid_1'].notna() & d['resid_2'].notna()
+    resets = d.loc[np.r_[False, np.diff(d['n'].values) < 0], 'timestamp'].reset_index(drop=True)
+    out = {'resets': resets}
+    for ax, i, model_col in (('ra', 1, 'ra_model_1'), ('dec', 2, 'dec_model_1')):
+        own = d[f'resid_{i}'].notna()
+        x = d.loc[own, ['timestamp', 't_sec']].copy()
+        resid = d.loc[own, f'resid_{i}'] * 60
+        sync = is_sync[own]
+        x['pulse_guide'] = resid.where(~sync, 0.0).cumsum().values
+        x['sync_guide'] = resid.where(sync, 0.0).cumsum().values
+        x['pec_applied'] = (d.loc[own, f'pec_accum_{i}'].fillna(0) * 60).cumsum().values
+        x['mount_drift'] = x['pulse_guide'] + x['sync_guide'] + x['pec_applied']
+        t = x['t_sec'].values
+        for col in ('mount_drift', 'pulse_guide', 'sync_guide', 'pec_applied'):
+            name = 'drift_rate' if col == 'mount_drift' else f'{col}_rate'
+            x[name] = _centred_slope_per_min(t, x[col].values, rate_half_window_s)
+        x['pec_model_rate'] = d.loc[own, f'fit_rate_{i}'].values if f'fit_rate_{i}' in d else np.nan
+        x['pec_steady_term'] = d.loc[own, model_col].values if model_col in d else x['pec_model_rate']
+        x['pec_harmonic_term'] = x['pec_model_rate'] - x['pec_steady_term']
+        x['pec_applied_logged_rate'] = d.loc[own, f'applied_rate_{i}'].values if f'applied_rate_{i}' in d else np.nan
+        x['pec_active'] = (d.loc[own, f'inhibit_{i}'] == 'VALID').values if f'inhibit_{i}' in d else True
+        out[ax] = x.reset_index(drop=True)
+    return out
