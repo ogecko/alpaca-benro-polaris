@@ -48,6 +48,15 @@ import numpy as np
 from config import Config
 
 
+def zeta_raw_offset(theta_raw, zeta):
+    """theta_raw (518: the firmware's box attitude x the MCU motor angles, so M1 carries the session's compass / SPA
+    heading) minus zeta (517: the MCU's own motor angles), per motor, wrapped to [-180, 180). Cached on each 517 so
+    PECLOG can carry it: theta_raw - offset gives the motor angles at the 518 rate, the same every session."""
+    if theta_raw is None or zeta is None:
+        return None
+    return [float((t - z + 180.0) % 360.0 - 180.0) for t, z in zip(theta_raw, zeta)]
+
+
 @dataclass(frozen=True)
 class PulseVerdict:
     ingest: bool       # learn from this pulse
@@ -304,6 +313,9 @@ class PecMixin:
         ra, dec = self._pec_ra, self._pec_dec
         pv_deg = self.polaris._pid.alpha_pv
         theta_raw = getattr(self.polaris, '_theta_raw', None)
+        zeta = getattr(self.polaris, '_zeta_meas', None)
+        zeta_off = getattr(self.polaris, '_zeta_raw_offset', None)
+        t517 = getattr(self.polaris, '_last_517_timesec', None)
         pec_accum_ra, pec_accum_dec = pec_accum_snapshot
         # float(): several values below (pv_deg elements, dc_rate()) are numpy scalars, whose
         # numpy-2.x repr (e.g. np.float64(1.23)) breaks ast.literal_eval() on readback.
@@ -354,6 +366,13 @@ class PecMixin:
             # degrees, raw MCU motor angles [M1, M2, M3] as of the last 518 message (as SGLOG) -- per-motor
             # worm analysis needs these, not the pose (which includes the session's alignment)
             "theta_raw": [round(float(v), 5) for v in theta_raw] if theta_raw is not None else [None, None, None],
+
+            # degrees, the MCU's own motor angles from the last 517 (polled about once a minute; no compass / SPA
+            # heading), theta_raw - zeta at that 517, and its age in seconds -- theta_raw - zeta_offset is the motor
+            # angle at every entry, comparable across sessions (per-motor worm phase)
+            "zeta": [round(float(v), 5) for v in zeta] if zeta is not None else [None, None, None],
+            "zeta_offset": [round(float(v), 5) for v in zeta_off] if zeta_off is not None else [None, None, None],
+            "zeta_age": round(time.monotonic() - t517, 1) if (zeta is not None and t517 is not None) else None,
 
             # RLS forgetting factor, dimensionless
             "lambda": [round(float(ra.lam), 5), round(float(dec.lam), 5)],

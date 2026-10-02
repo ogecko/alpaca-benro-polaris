@@ -156,3 +156,20 @@ def test_peclog_rows_logged_before_the_first_518_have_no_raw_angles(tmp_path):
     paths = write_session(tmp_path, body)
     d = extract_segment(paths, catalog_session(paths)[0])
     assert d['theta_source'].iloc[0] == 'peclog'                 # falls back to the pose through the IK
+
+
+def test_motor_angles_from_theta_raw_minus_the_517_offset_are_preferred(tmp_path):
+    body = []
+    for i, k in enumerate(range(0, 3600, 60)):
+        off = "[None, None, None]" if i < 3 else "[175.5, 45.0, 0.25]"           # no 517 yet for the first rows
+        line = peclog(k, 2 + i, (0.0, 0.0), az=150 + k / 360)
+        body.append(line.replace("'roll': 10.0}", f"'roll': 10.0, 'theta_raw': [{200 + k / 100}, 45.0, {-30 - k / 200}], "
+                                                  f"'zeta_offset': {off}}}"))
+    paths = write_session(tmp_path, body)
+    d = extract_segment(paths, catalog_session(paths)[0])
+    assert d['theta_source'].iloc[0] == 'peclog_zeta'
+    row = d.iloc[20]
+    k = (row['timestamp'] - T0).total_seconds() - 60
+    assert row['theta1'] == pytest.approx(200 + k / 100 - 175.5, abs=1e-6)
+    assert row['theta2'] == pytest.approx(0.0, abs=1e-6)
+    assert row['theta3'] == pytest.approx(-30 - k / 200 - 0.25, abs=1e-6)
