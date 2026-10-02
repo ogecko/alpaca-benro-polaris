@@ -29,7 +29,7 @@ This innovative approach finally solves the drift problem without requiring a se
 *   **How it Works:** When you perform a **plate-solve sync without slewing**, the driver no longer treats it as a simple Multi-Point-Alignment update. Instead, it interprets the residual error as a **guiding correction**. 
 *   **The Recommended Workflow:**
     1.  **Initialise:** Perform your standard Multi-Point Alignment (MPA) and slew to your target.
-    2.  **Automate:** Configure your capture software (like NINA) to perform a **"Solve and Sync" every 2 to 5 minutes** as part of your imaging sequence.
+    2.  **Automate:** Configure your capture software (like NINA) to perform a **"Solve and Sync" every 1 to 3 minutes** as part of your imaging sequence.
     3.  **Result:** The driver will automatically refine the alignment and PEC model with every sync, keeping the target perfectly centered.
 *   **Primary Benefits:**
     *   **No Extra Hardware:** Eliminates the cost, weight, and cable management of a guide scope and camera.
@@ -46,6 +46,7 @@ Pulse Guiding is a high-speed feedback mechanism that uses a dedicated camera to
     *   **Sub-Exposure Correction:** Corrects tracking errors immediately as they happen, preventing stars from turning into "footballs" during a long frame.
     *   **Long Exposures:** Ideal for very deep-sky imaging where exposures may exceed 2 or 5 minutes.
     *   **Improved Control:** Version 2.2 incorporates improvements to the accuracy of **Pulse Guiding*, improving the reliability of calibration and corections.
+*   **Don't Combine the Two Approaches:** Running Sync Guiding alongside Pulse Guiding makes them fight: the guider pulls each sync correction straight back to its lock position. To keep the target centered during a long Pulse Guided session, use Nina's **Center After Drift** trigger instead (see the note in section 2.4 of `kinematics.md`).
     
 ## Proactive Auto-Guiding Refinement
 
