@@ -206,9 +206,9 @@ def extract_all(catalog_csv, log_dir, out_dir, phd2=None):
 
 
 if __name__ == '__main__':
+    from sessions import catalog_phd2
     here = os.path.dirname(os.path.abspath(__file__))
     log_dir = os.path.join(here, '..', 'logs', 'archive')
-    phd2 = {'alpaca.jdm_Beta7.1_09_29_pulseguide':
-            os.path.join(log_dir, 'alpaca.jdm_Beta7.1_09_29_pulseguide_a1_PHD2_GuideLog_2026-09-29_185315.txt')}
+    phd2 = catalog_phd2()                               # PHD2 guide logs registered in sessions.toml
     idx = extract_all(os.path.join(log_dir, 'catalog_segments.csv'), log_dir, os.path.join(log_dir, 'segments'), phd2)
     print(f"{len(idx)} segments with a drift signal -> {os.path.join(log_dir, 'segments')}")

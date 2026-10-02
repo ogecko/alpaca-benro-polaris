@@ -12,7 +12,7 @@ import math
 import pandas as pd
 import pytest
 
-from catalog_logs import session_key, catalog_session, notebook_notes, MIN_SEGMENT_MIN
+from catalog_logs import session_key, catalog_session, MIN_SEGMENT_MIN
 from kinematics import azaltroll_to_theta_ik
 
 
@@ -107,19 +107,6 @@ def test_segment_without_pose_records_is_flagged(tmp_path):
     assert s['pose_source'] == 'none'
     assert math.isnan(s['m1_dps_hr'])
     assert s['usable'] is False
-
-
-def test_notebook_notes_are_picked_up_by_filename(tmp_path):
-    nb = {"cells": [{"cell_type": "code", "source": [
-        "log_filenames = ['alpaca.soak_Beta4.4_09_01_sg_sglog_Dec10_a*.log']   # sync guiding, with logs(sg), Eagle Nebula\n",
-        "#log_filenames = 'alpaca.pec_rls_Beta2.0_07_20_h2.log'  # PEC h2 test\n",
-        "log_filenames = 'alpaca.log'\n"]}], "metadata": {}, "nbformat": 4, "nbformat_minor": 5}
-    p = tmp_path / 'a.ipynb'
-    p.write_text(json.dumps(nb), encoding='utf-8')
-    notes = notebook_notes([str(p)])
-    assert notes['alpaca.soak_Beta4.4_09_01_sg_sglog_Dec10'] == 'sync guiding, with logs(sg), Eagle Nebula'
-    assert notes['alpaca.pec_rls_Beta2.0_07_20_h2'] == 'PEC h2 test'
-    assert 'alpaca' not in notes and 'alpaca.log' not in notes
 
 
 def test_legacy_peclog_pose_is_used(tmp_path):

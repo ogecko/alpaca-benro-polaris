@@ -13,12 +13,11 @@ Per segment: start/end/duration, driver version, why it started/ended, target RA
 pose (az/alt/roll start/end/mean) and its source (KFLOG theta, SGLOG theta, or PECLOG az/alt/roll
 through the inverse kinematics), each motor's rate and travel, record counts (PECLOG/SGLOG/KFLOG),
 PEC state, sync-guide count and median interval, pulse-guiding evidence, battery, and the session's
-notes from the analysis notebooks' log lists.
+notes from the session registry (sessions.toml).
 """
 import argparse
 import ast
 import glob
-import json
 import os
 import re
 import sys
@@ -279,34 +278,13 @@ def catalog_session(paths, notes=None):
     return segs
 
 
-def notebook_notes(notebook_paths):
-    """{session key: comment} from the 'log_filenames = ...  # comment' lists in the analysis notebooks."""
-    notes = {}
-    for nbp in notebook_paths:
-        try:
-            nb = json.load(open(nbp, encoding='utf-8'))
-        except (OSError, ValueError):
-            continue
-        for cell in nb.get('cells', []):
-            if cell.get('cell_type') != 'code':
-                continue
-            for line in ''.join(cell['source']).splitlines():
-                m = re.match(r"\s*#?\s*log_filenames\s*=\s*(.+?)\s*#\s*(.+)$", line)
-                if not m:
-                    continue
-                for name in re.findall(r"alpaca\.[^'\"\]\s,]+", m[1]):
-                    key = session_key(name)
-                    if key not in ('alpaca', 'alpaca.log'):
-                        notes.setdefault(key, m[2].strip())
-    return notes
-
-
-def catalog(log_dir, notebook_paths=()):
+def catalog(log_dir, notes=None):
+    """Every session in log_dir split into segments. notes: {session: text}, e.g. sessions.catalog_notes()."""
     files = [p for p in glob.glob(os.path.join(log_dir, 'alpaca.*.log')) if os.path.basename(p) != 'alpaca.log']
     by_session = {}
     for p in sorted(files):
         by_session.setdefault(session_key(p), []).append(p)
-    notes = notebook_notes(notebook_paths)
+    notes = notes or {}
     rows = []
     for key, paths in sorted(by_session.items()):
         rows += catalog_session(paths, notes)
@@ -326,13 +304,14 @@ def to_markdown(df):
 
 
 if __name__ == '__main__':
+    from sessions import catalog_notes
     here = os.path.dirname(os.path.abspath(__file__))
     ap = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     ap.add_argument('--log-dir', default=os.path.join(here, '..', 'logs', 'archive'))
     ap.add_argument('--csv', default=None, help='default: <log-dir>/catalog_segments.csv')
     ap.add_argument('--md', default=None, help='also write a markdown summary of the usable segments')
     a = ap.parse_args()
-    df = catalog(a.log_dir, sorted(glob.glob(os.path.join(here, '*.ipynb'))))
+    df = catalog(a.log_dir, catalog_notes())
     csv = a.csv or os.path.join(a.log_dir, 'catalog_segments.csv')
     df.to_csv(csv, index=False)
     print(f"{len(df)} segments in {df['session'].nunique()} sessions, {int(df['usable'].sum())} usable -> {csv}")
