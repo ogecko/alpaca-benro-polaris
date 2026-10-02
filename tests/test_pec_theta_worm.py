@@ -222,3 +222,25 @@ def test_partial_errors_separate_the_motors_where_the_least_error_split_mixes_th
     part_e = partial_motor_errors(t, ra, dec, th, lat, prof)
     assert np.nanstd(part_e[:, 0]) < 0.4 * np.nanstd(mixed[:, 0])
     assert np.corrcoef(part_e[:, 1], true[:, 1])[0, 1] > 0.9
+
+
+# ── does the worm phase repeat night to night? ───────────────────────────
+
+def test_worm_phase_table_finds_the_same_phase_in_every_session_with_a_consistent_worm():
+    from pe_analysis import worm_phase_table, phase_consistency
+    segs = [seg(f'{k}#0', str(k), 50 + k, start=(30.0 + 40 * k, 30.0 + 8 * k, None)) for k in range(4)]
+    tab = worm_phase_table(segs, lat_of=lambda session: LAT, harmonics=H)
+    m3 = tab[tab['motor'] == 'M3']
+    assert len(m3) == 4 and (m3['turns'] >= 2).all()
+    assert set(tab['motor']) == {'M1', 'M3'}                       # M2 turns < 2 worm turns here
+    true_phase = np.degrees(np.arctan2(TRUE[9], TRUE[8])) % 360
+    assert all(abs((p - true_phase + 180) % 360 - 180) < 15 for p in m3['phase'])
+    c = phase_consistency(m3['phase'])
+    assert c['R'] > 0.95 and c['p'] < 0.05
+
+
+def test_phase_consistency_of_random_phases_is_low():
+    from pe_analysis import phase_consistency
+    rng = np.random.default_rng(1)
+    c = phase_consistency(rng.uniform(0, 360, 12))
+    assert c['R'] < 0.5 and c['p'] > 0.05

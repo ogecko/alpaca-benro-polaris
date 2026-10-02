@@ -545,3 +545,45 @@ def worm_angle_control(segs, thetas, model, lat_of, dt=120, thin_s=5.0, warmup_s
             for W in thetas:
                 num[W] += sc[W] ** 2
     return pd.Series({W: float(np.sqrt(num[W] / den)) for W in thetas}, name=f'hindsight worm / {model.name}')
+
+
+def worm_phase_table(segs, lat_of, worm_theta=WORM_THETA, min_turns=2.0, **fit_kw):
+    """One row per segment and motor turning at least min_turns worm turns: the 1st-harmonic amplitude (arcsec) and
+    phase (deg, of e = A sin(worm phase + phase)) from a joint fit of that segment, and the phase difference
+    between fits of its first and second halves (each needing a full worm turn) as a noise check."""
+    harmonics = fit_kw.pop('harmonics', (1, 2))
+    per_motor = 2 * len(harmonics)
+
+    def h1(prof, m):
+        a, b = prof.coef[m * per_motor], prof.coef[m * per_motor + 1]
+        return float(np.hypot(a, b)), float(np.degrees(np.arctan2(b, a)) % 360)
+
+    rows = []
+    for s in segs:
+        lat = lat_of(s.session)
+        prof = fit_worm([(s.t, s.ra, s.dec, s.theta, lat)], worm_theta=worm_theta, harmonics=harmonics, **fit_kw)
+        first = s.t <= s.t[0] + (s.t[-1] - s.t[0]) / 2
+        halves = [fit_worm([(s.t[k], s.ra[k], s.dec[k], s.theta[k], lat)], worm_theta=worm_theta, harmonics=harmonics,
+                           **fit_kw) if k.sum() > 20 else None for k in (first, ~first)]
+        for m in range(3):
+            turns = np.ptp(s.theta[:, m]) / worm_theta
+            if turns < min_turns:
+                continue
+            amp, phase = h1(prof, m)
+            ok = [h is not None and np.ptp(s.theta[k, m]) >= worm_theta for h, k in zip(halves, (first, ~first))]
+            dh = ((h1(halves[0], m)[1] - h1(halves[1], m)[1] + 180) % 360 - 180) if all(ok) else np.nan
+            rows.append(dict(seg=s.name, session=s.session, motor=f'M{m + 1}', turns=turns, amp=amp, phase=phase,
+                             halves_diff=dh))
+    return pd.DataFrame(rows, columns=['seg', 'session', 'motor', 'turns', 'amp', 'phase', 'halves_diff'])
+
+
+def phase_consistency(phases_deg):
+    """Circular clustering of phases: n, mean phase (deg), mean resultant length R (1 = identical, ~0 = random) and
+    the Rayleigh test p-value (approx. exp(-n R^2): the chance of R this large from random phases)."""
+    ph = np.radians(np.asarray(phases_deg, float))
+    n = len(ph)
+    if n == 0:
+        return {'n': 0, 'mean': np.nan, 'R': np.nan, 'p': np.nan}
+    z = np.exp(1j * ph).mean()
+    R = float(abs(z))
+    return {'n': n, 'mean': float(np.degrees(np.angle(z)) % 360), 'R': R, 'p': float(np.exp(-n * R ** 2))}
