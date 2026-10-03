@@ -11,6 +11,7 @@ import { formatAngle } from 'src/utils/scale'
 import { throttle } from 'quasar'
 import { deg2fulldms } from 'src/utils/angles'
 import { onFrame } from 'src/utils/chartClock'
+import { MAX_RECORDS } from 'src/stores/stream'
 // import { deg2fulldms } from 'src/utils/angles'
 export type DataPoint = Record<string, number | Date | undefined>
 
@@ -245,7 +246,17 @@ function updateChart() {
     // a gap there (measured at 6x CPU throttle)
     if (clockOffset === null || Math.abs(offset - clockOffset) > 3000) clockOffset = offset
     else clockOffset += 0.05 * (offset - clockOffset)
-    const full = Math.max(0, newest - (times[0] ?? newest) - SCROLL_DELAY_MS - LEFT_MARGIN_MS)
+    // While the topic's buffer is still filling (after a driver restart its backlog is empty) the window is sized for
+    // a full buffer, from the records' typical spacing, so the data enters from the right: sized to the data instead,
+    // it widened every couple of records and each widening squeezed the plot back to the right of where the steady
+    // scroll had taken it (a left-right jitter for the first ~30 s)
+    const n = times.length
+    let dataSpan = newest - (times[0] ?? newest)
+    if (n >= 3 && n < MAX_RECORDS) {
+      const gaps = times.slice(1).map((t, i) => t - times[i]!).sort((a, b) => a - b)
+      dataSpan = Math.max(dataSpan, gaps[Math.floor(gaps.length / 2)]! * (MAX_RECORDS - 1))
+    }
+    const full = Math.max(0, dataSpan - SCROLL_DELAY_MS - LEFT_MARGIN_MS)
     // the window's width follows the data's span, but only when that has moved by more than 2%: it jitters with
     // every record, and each change of width re-lays out the time axis
     const target = Math.max(full, MIN_SPAN_MS)
