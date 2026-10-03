@@ -360,7 +360,9 @@ model, guiding and PEC all work from the true pointing. PEC (EMA or RLS) keeps w
 1.  **Learn the profile** for your mount from logs with raw motor angles (PECLOG `theta_raw`, KFLOG or SGLOG), after
     registering them and building the segment datasets (`utility/analyse_pec_theta.ipynb`):
     `uv run python utility/learn_worm.py` (`--exclude` other people's mounts, `--dry-run` to only report). It writes
-    `data/worm_profile.json` and reports each motor's amplitude and how consistently its phase repeats.
+    `data/worm_profile.json` and reports the amplitude, each motor's phase and how consistently it repeats. The model
+    is a pure 6 deg sine with **one amplitude for all motors and a phase per motor** (on the archive ~64" and phases
+    M2 ~102 deg, M3 ~267 deg; a second mount's one raw-angle night agrees); `--per-motor` fits independent profiles.
 2.  **Turn it on** with `pec_worm_ff = true` in `config.toml` (`pec_worm_profile` names the file). Do this before
     aligning and slewing: switching it while guiding shifts the pointing by up to the profile's amplitude once.
 3.  **Check it:** PECLOG logs the correction applied (`wff`, RA/Dec arcmin); the analysis adds it back to the drift, so

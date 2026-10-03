@@ -44,3 +44,14 @@ def test_the_saved_profile_loads_back_with_its_coefficients(segs, tmp_path):
     ff.save(tmp_path / 'worm_profile.json')
     back = WormFeedForward.load(tmp_path / 'worm_profile.json')
     assert back is not None and np.allclose(back.coef, ff.coef, atol=1e-4)
+
+
+def test_shared_profile_has_one_amplitude_and_a_phase_per_motor(segs, tmp_path):
+    from control_pec import WormFeedForward
+    ff = learn_profile(segs, lat_of=lambda s: LAT, motors=('M1', 'M3'), shared=True)
+    assert ff.harmonics == (1,) and ff.meta['model'] == 'shared amplitude, phase per motor'
+    amp = np.hypot(ff.coef[:, 0], ff.coef[:, 1])
+    assert amp[1] == 0.0 and amp[0] == pytest.approx(amp[2])
+    assert set(ff.meta['phase_deg']) == {'M1', 'M3'}
+    ff.save(tmp_path / 'p.json')
+    assert np.allclose(WormFeedForward.load(tmp_path / 'p.json').coef, ff.coef, atol=1e-4)
