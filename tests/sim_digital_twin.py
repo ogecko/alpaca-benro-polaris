@@ -234,7 +234,7 @@ class Twin:
         self.kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self.pid.theta_ref if is_tracking else None))
         theta_state, _ = self.kf.get_state()
         motorQ_state = theta_to_q(*theta_state)
-        cameraQ_pv, motorQ_pv = p._sm.baseQ_to_topoQ(motorQ_state)
+        cameraQ_pv, motorQ_pv = p._sm.baseQ_to_topoQ(motorQ_state, theta=theta_state)
         theta_pv = np.array(q_to_theta(motorQ_pv, self.pid._lp, theta2_min=THETA2_MIN_MEAS))
         p._sm.cache_axes_B(cameraQ_pv if self.pid.cameraQ_ref is None else self.pid.cameraQ_ref)
         p._motorQ_state = motorQ_state

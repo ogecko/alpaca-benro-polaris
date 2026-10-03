@@ -33,6 +33,7 @@
 - **[Ramped Jogging]** Reduce jogging overshoot by ramping "up to" and "down from" jogging speed changes.
 - **[Goto Settle Time]** Reduce goto settle time by preventing Ki windup and false marking of completion.
 - **[PEC Guider Calibration]** PEC no longer learns PHD2/CCDciel calibration pulses as drift, so PEC can stay on while calibrating.
+- **[Worm Feed-Forward]** Experimental, off by default (`pec_worm_ff`): corrects each motor's 6 deg worm gear error from a profile learnt from your own logs (`utility/learn_worm.py`), with no lag. See kinematics.md, Periodic Error Correction.
 
 
 ## What's new in v2.2 Beta 6

@@ -38,14 +38,70 @@
 # -----------------------------------------------------------------------------
 
 import copy
+import json
 import math
+import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, Enum
 
 import numpy as np
 
-from config import Config
+from config import Config, DATA_DIR
+from kinematics import theta_to_q
+from quaternion import Q as Quaternion
+
+
+# ── Worm feed-forward ─────────────────────────────────────────────────────────────────────────
+# Each motor's gear train after the motor has a periodic error: the true output angle = the MCU's motor angle + e_i,
+# where e_i(theta_i) = sum over harmonics h of a sin(h phi_i) + b cos(h phi_i), phi_i = 360 deg x theta_i / worm_theta.
+# The MCU only measures the motor shaft, so it never sees e. With a profile learnt offline from guide corrections on
+# raw motor angles (utility/learn_worm.py, utility/analyse_pec_theta.ipynb: the M2/M3 6.0 deg worm repeats night to
+# night), the driver builds its present value from theta + e instead of theta -- the true pointing -- and the PID,
+# alignment, guiding and PEC all work from that.
+
+@dataclass
+class WormFeedForward:
+    worm_theta: float = 6.0                   # deg of motor (output) rotation per worm turn (60-tooth: 960 = 16 x 60)
+    harmonics: tuple = (1, 2)
+    coef: np.ndarray = None                   # (3, 2 x len(harmonics)) arcsec: per motor, per harmonic, sin then cos
+    meta: dict = field(default_factory=dict)  # provenance: sessions learnt from, angle reference, date, ...
+
+    def __post_init__(self):
+        n = 2 * len(self.harmonics)
+        self.coef = np.zeros((3, n)) if self.coef is None else np.asarray(self.coef, float).reshape(3, n)
+
+    def error_deg(self, theta):
+        """(3,) deg: each motor's gear error at motor angles theta (deg) -- true output angle = theta + error."""
+        phi = 2 * np.pi * np.asarray(theta, float) / self.worm_theta
+        basis = np.stack([f(h * phi) for h in self.harmonics for f in (np.sin, np.cos)], axis=-1)   # (3, n)
+        return np.sum(basis * self.coef, axis=-1) / 3600.0
+
+    def correction_q(self, theta):
+        """Base-frame rotation taking the pose at the measured motor angles to the true pose: q(theta + e) q(theta)^-1."""
+        theta = np.asarray(theta, float)
+        return (theta_to_q(*(theta + self.error_deg(theta))) * theta_to_q(*theta).inverse).normalised
+
+    def save(self, path):
+        core = {'worm_theta': float(self.worm_theta), 'harmonics': [int(h) for h in self.harmonics],
+                'motors': {f'M{m + 1}': [round(float(v), 4) for v in self.coef[m]] for m in range(3)},
+                'units': 'arcsec of motor angle; per harmonic: sin, cos; true angle = MCU angle + error'}
+        d = {**{k: v for k, v in self.meta.items() if k not in core}, **core}        # provenance never overrides
+        with open(path, 'w') as f:
+            json.dump(d, f, indent=2)
+
+    @classmethod
+    def load(cls, path):
+        """The profile in `path`, or None if it is missing or malformed."""
+        try:
+            with open(path) as f:
+                d = json.load(f)
+            harmonics = tuple(int(h) for h in d['harmonics'])
+            coef = np.array([d['motors'][f'M{m + 1}'] for m in range(3)], float)
+            meta = {k: v for k, v in d.items() if k not in ('worm_theta', 'harmonics', 'motors', 'units')}
+            return cls(worm_theta=float(d['worm_theta']), harmonics=harmonics, coef=coef, meta=meta)
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
 
 
 def zeta_raw_offset(theta_raw, zeta):
@@ -120,11 +176,45 @@ class PecMixin:
 
     def init_pec(self):
         """Create the PEC state; called once from SyncManager.__init__."""
+        self.corrQ_WFF = Quaternion()           # worm feed-forward: measured -> true pose, base frame (identity when off)
+        self._worm_ff = None                    # WormFeedForward profile, loaded on first use
+        self._worm_ff_path = None               # path it was loaded from (reloads if Config.pec_worm_profile changes)
         self._guider_cal = GuiderCalibrationDetector()   # recognises PHD2/CCDciel calibration so PEC ignores it
         self._pec_run_snapshot = None           # PEC state before the current run of identical pulses (rollback point)
         self._pec_generation = 0                # bumped by reset_pec_model(), invalidates a snapshot across resets
         self._pec_ingest_seq = 0                # bumped on every PEC seed/ingest, invalidates a snapshot if anything else ingests
         self.init_pec_model()
+
+    # ── worm feed-forward ────────────────────────────────────────────────────────────────────
+    def _worm_ff_profile(self):
+        path = getattr(Config, 'pec_worm_profile', 'worm_profile.json')
+        full = path if os.path.isabs(path) else os.path.join(DATA_DIR, path)
+        if full != self._worm_ff_path:
+            self._worm_ff_path = full
+            self._worm_ff = WormFeedForward.load(full)
+            if self._worm_ff is None:
+                self.logger.warning(f"Worm feed-forward is on but there is no valid profile at {full} -- not applied "
+                                    f"(learn one with utility/learn_worm.py)")
+            else:
+                self.logger.info(f"Worm feed-forward profile loaded from {full}: worm {self._worm_ff.worm_theta:g} deg, "
+                                 f"harmonics {list(self._worm_ff.harmonics)}, {self._worm_ff.meta.get('learnt_from', '')}")
+        return self._worm_ff
+
+    def update_worm_ff(self, theta):
+        """Refresh the worm feed-forward rotation for the current motor angles (deg); identity when off."""
+        prof = self._worm_ff_profile() if getattr(Config, 'pec_worm_ff', False) else None
+        self.corrQ_WFF = prof.correction_q(theta) if prof is not None else Quaternion()
+
+    def _wff_radec_arcmin(self):
+        """The feed-forward rotation split along the RA and Dec axes (arcmin, the guide-correction convention)."""
+        axes = getattr(self, 'equatorial_axes_B', (None, None, None))
+        if any(a is None for a in axes):
+            return [None, None]
+        q = getattr(self, 'corrQ_WFF', Quaternion())
+        if q.degrees < 1e-12:
+            return [0.0, 0.0]
+        c = np.linalg.solve(np.column_stack(axes), np.asarray(q.axis) * q.degrees)
+        return [round(float(c[0] * 60), 5), round(float(c[1] * 60), 5)]
 
     def init_pec_model(self):
         """Initialise (or reset) the recursive drift model. Safe to call after slew."""
@@ -373,6 +463,10 @@ class PecMixin:
             "zeta": [round(float(v), 5) for v in zeta] if zeta is not None else [None, None, None],
             "zeta_offset": [round(float(v), 5) for v in zeta_off] if zeta_off is not None else [None, None, None],
             "zeta_age": round(time.monotonic() - t517, 1) if (zeta is not None and t517 is not None) else None,
+
+            # arcmin, the worm feed-forward currently applied (Config.pec_worm_ff), split along the RA and Dec axes.
+            # Guide corrections (and so total_accum) no longer include what it corrects: add it back for the drift.
+            "wff": self._wff_radec_arcmin(),
 
             # RLS forgetting factor, dimensionless
             "lambda": [round(float(ra.lam), 5), round(float(dec.lam), 5)],

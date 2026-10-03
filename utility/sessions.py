@@ -123,6 +123,24 @@ def catalog_phd2(registry=DEFAULT_REGISTRY):
     return _catalog_map(lambda s: s.phd2 if s.phd2 and os.path.exists(s.phd2) else None, registry)
 
 
+_LATITUDE = re.compile(r"'SiteLatitude': '(-?[\d.]+)'")
+
+
+def site_latitude(key, registry=DEFAULT_REGISTRY, default=None):
+    """Site latitude (deg) a client set during the session (its last SiteLatitude in the logs), else `default`.
+    key: registry key, with or without the 'alpaca.' prefix of catalog session names."""
+    key = key[len('alpaca.'):] if key.startswith('alpaca.') else key
+    try:
+        paths = get_session(key, registry).paths
+    except KeyError:
+        return default
+    found = []
+    for p in paths:
+        with open(p, encoding='utf-8', errors='replace') as f:
+            found += _LATITUDE.findall(f.read())
+    return float(found[-1]) if found else default
+
+
 def _session_key(path):
     name = re.sub(r"\.log(\.\d+)?$", "", os.path.basename(path))
     name = _ROTATED.sub('', name)

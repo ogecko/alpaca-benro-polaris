@@ -173,3 +173,50 @@ def test_motor_angles_from_theta_raw_minus_the_517_offset_are_preferred(tmp_path
     assert row['theta1'] == pytest.approx(200 + k / 100 - 175.5, abs=1e-6)
     assert row['theta2'] == pytest.approx(0.0, abs=1e-6)
     assert row['theta3'] == pytest.approx(-30 - k / 200 - 0.25, abs=1e-6)
+
+
+def test_on_a_worm_feed_forward_night_the_drift_adds_back_what_it_corrected(tmp_path):
+    # the feed-forward took the worm out of the guide corrections; PECLOG logs it as wff (arcmin), drift = total_accum + wff
+    body = []
+    for i, k in enumerate(range(0, 3600, 60)):
+        wff = (0.2 * np.sin(k / 600), -0.1 * np.cos(k / 600))
+        line = peclog(k, 2 + i, (0.01 * i, 0.0))
+        body.append(line.replace("'roll': 10.0}", f"'roll': 10.0, 'wff': [{wff[0]:.6f}, {wff[1]:.6f}]}}"))
+    paths = write_session(tmp_path, body)
+    d = extract_segment(paths, catalog_session(paths)[0])
+    k = 20 * 60
+    assert d['drift_ra_arcsec'].iloc[20] == pytest.approx((0.01 * 20 + 0.2 * np.sin(k / 600)) * 60, abs=1e-3)
+    assert d['drift_dec_arcsec'].iloc[20] == pytest.approx(-0.1 * np.cos(k / 600) * 60, abs=1e-3)
+
+
+def test_a_rapid_solve_burst_counts_the_residuals_but_not_pecs_phantom_correction(tmp_path):
+    """Syncs seconds apart re-anchor the model before the mount has carried out PEC's correction, so PECLOG's
+    pec_accum over those short intervals never happened: the drift there is the residuals alone (2026-08-30: the
+    solved position stayed on target while total_accum climbed 340" on pec_accum)."""
+    body, total = [], [0.0, 0.0]
+    times = [6 * i for i in range(25)] + [150 + 180 * i for i in range(20)]
+    for i, k in enumerate(times):
+        fast = 0 < i < 25
+        resid, pec = (0.02, 0.01), ((0.25, 0.1) if fast else (0.05, 0.02))       # arcmin
+        total = [total[0] + resid[0] + pec[0], total[1] + resid[1] + pec[1]]
+        body.append(f"{ts(T0, 60 + k)} INFO PECLOG {{'n': {2 + i}, 'inhibit': ['VALID', 'VALID'], "
+                    f"'resid': [{resid[0]}, {resid[1]}], 'pec_accum': [{pec[0]}, {pec[1]}], "
+                    f"'total_accum': [{total[0]:.4f}, {total[1]:.4f}], 'az': 150.0, 'alt': 40.0, 'roll': 10.0}}\n")
+    paths = write_session(tmp_path, body)
+    d = extract_segment(paths, catalog_session(paths)[0])
+    ra = d['drift_ra_arcsec'].values
+    assert ra[24] - ra[0] == pytest.approx(24 * 0.02 * 60, abs=1e-6)               # burst: residuals only
+    assert ra[30] - ra[29] == pytest.approx((0.02 + 0.05) * 60, abs=1e-6)          # normal cadence: resid + PEC
+
+
+def test_pose_derived_motor_angles_have_the_accumulated_corrections_taken_out(tmp_path):
+    from pe_analysis import remove_corrections
+    body = [peclog(k, 2 + i, (0.0, 30.0 * i / 59), az=150 + k / 360) for i, k in enumerate(range(0, 3600, 60))]  # Dec 30'
+    paths = write_session(tmp_path, body)
+    d = extract_segment(paths, catalog_session(paths)[0], site=(-33.65, 151.1))
+    assert d['theta_source'].iloc[0] == 'peclog'
+    pose = np.array([azaltroll_to_theta_ik(a, 40.0, 10.0) for a in d['az']])
+    want = remove_corrections(pose, d['drift_ra_arcsec'].values, d['drift_dec_arcsec'].values, -33.65)
+    got = d[['theta1', 'theta2', 'theta3']].values
+    assert np.abs(got - want).max() < 1e-6
+    assert np.abs(got - pose)[-1].max() > 0.1                       # the 30' of Dec corrections moved them

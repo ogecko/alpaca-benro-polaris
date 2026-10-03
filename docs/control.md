@@ -967,6 +967,10 @@ is the motor angle at every entry, the same reference every session. A worm erro
 with that angle, so per-motor analysis (`utility/analyse_pec_theta.ipynb`) uses these rather than `az`/`alt`/`roll`,
 which include the session's alignment.
 
+`wff` is the worm feed-forward currently applied (`pec_worm_ff`), split along the RA and Dec axes (arcmin, the
+guide-correction convention). With it on, the guide corrections -- and so `total_accum` -- no longer contain what it
+corrects, so the mount's drift is `total_accum + wff` (`utility/extract_segments.py` adds it back).
+
 `resid` is the raw residual reported by each sync -- this is the one that should shrink as PEC
 gets better. `total_accum` is *not* "remaining error": it's `resid` + `pec_accum` accumulated
 across every sync since the PEC model was last reset, i.e. what the total drift would have

@@ -344,7 +344,33 @@ While software like PHD2 offers its own "Predictive PEC," the Alpaca Driver's im
 4. **PEC Analysis:** The utilities folder includes a Jupyter Notebook to analyse a log file's PEC data. This can show the accumulated drift error and how well the PEC fitted it. It also shows the Instantaneous PEC Rate and its various components, the R2 quality and rmse plots.
 ![Software Layers](images/abp-pec-analysis.png)
 
-#### **VI. Important Considerations**
+#### **VI. Worm Feed-Forward (experimental, off by default)**
+Each motor's gear train after the motor has a periodic error: the true output angle is the MCU's motor angle plus an
+error that repeats every turn of that motor's worm. The MCU only measures the motor shaft, so neither it nor the
+driver ever sees this error directly; it shows up as drift that the guider or PEC must chase. On the archived logs a
+**6.0 deg worm** (a 60-tooth wheel, as 960:1 = 16 x 60) is clear on **M2 and M3**, about +/-60-70" of motor angle, and
+its phase repeats from night to night (`utility/analyse_pec_theta.ipynb`). M1's phase changes with each session's
+compass / Single Point Alignment, so it is left out for now.
+
+Unlike PEC, which learns a rate from the guide corrections as they arrive, the worm feed-forward uses a fixed profile
+learnt beforehand and corrects the gear error as each motor turns, with no lag: the driver builds its present value
+from the true motor angles (`[WFF]`, the first step of the correction chain, see §4.6), so the PID, the alignment
+model, guiding and PEC all work from the true pointing. PEC (EMA or RLS) keeps working as before on whatever is left.
+
+1.  **Learn the profile** for your mount from logs with raw motor angles (PECLOG `theta_raw`, KFLOG or SGLOG), after
+    registering them and building the segment datasets (`utility/analyse_pec_theta.ipynb`):
+    `uv run python utility/learn_worm.py` (`--exclude` other people's mounts, `--dry-run` to only report). It writes
+    `data/worm_profile.json` and reports each motor's amplitude and how consistently its phase repeats.
+2.  **Turn it on** with `pec_worm_ff = true` in `config.toml` (`pec_worm_profile` names the file). Do this before
+    aligning and slewing: switching it while guiding shifts the pointing by up to the profile's amplitude once.
+3.  **Check it:** PECLOG logs the correction applied (`wff`, RA/Dec arcmin); the analysis adds it back to the drift, so
+    feed-forward nights still feed the notebooks and the next profile. Compare blocks with it on and off on the same
+    target (PHD2 RMS and guider effort in `analyse_pec_delta.ipynb`'s Guider Outcome).
+
+On the digital twin (`tests/test_pec_twin_worm_ff.py`) it removes a worm's error from sync guiding entirely (the error
+drops to the plate-solve noise) and reduces pulse-guiding error and guider effort by about 15%.
+
+#### **VII. Important Considerations**
 PEC is designed exclusively for **sidereal tracking** of Deep Sky Objects (DSOs) and stars. It is not suitable for tracking Lunar, Solar, or custom orbital targets. Additionally, while PEC is a powerful tool for fine mechanical correction, it cannot compensate for gross mechanical failures such as cable drag, tripod instability, or wind effects.
 
 > For exactly how a sync guide residual reaches `q_syncguide_B`, how a PID tick evaluates the PEC rate, and how the next `518` message folds that correction into `theta_pv`, see [§4. Kinemtaics Flows](#4-kinemtaics-flows), sections 4.4–4.6.
@@ -789,8 +815,9 @@ Polaris._msg_handler("518", args)
 theta_state        KF-smoothed motor angles
 motorQ_state       = theta_to_q(*theta_state)                  raw C→B quaternion, uncorrected
     │
-    ▼  SyncManager.baseQ_to_topoQ(motorQ_state)
-    │     motorQ_C2B_pv = corrQ_RBC · motorQ_state                     [MAC]
+    ▼  SyncManager.baseQ_to_topoQ(motorQ_state, theta=theta_state)
+    │     motorQ_C2B_pv = corrQ_WFF · motorQ_state                     [WFF]  ← worm feed-forward (pec_worm_ff)
+    │     motorQ_C2B_pv = corrQ_RBC · motorQ_C2B_pv                    [MAC]
     │     motorQ_C2B_pv = q_syncguide_B · motorQ_C2B_pv                [SGC]  ← sync guide + PEC land here
     │     motorQ_C2B_pv = q_pulseguide_B · motorQ_C2B_pv               [PGC]
     │     cameraQ_C2T_pv = alignQ_B2T · motorQ_C2B_pv  → [LGA] → [roll_adj]

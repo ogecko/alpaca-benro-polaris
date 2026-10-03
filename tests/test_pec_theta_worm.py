@@ -244,3 +244,98 @@ def test_phase_consistency_of_random_phases_is_low():
     rng = np.random.default_rng(1)
     c = phase_consistency(rng.uniform(0, 360, 12))
     assert c['R'] < 0.5 and c['p'] > 0.05
+
+
+def test_partial_errors_do_not_depend_on_how_densely_the_drift_was_sampled():
+    """The trend removed is fitted per minute, not per sample: a burst of samples must not pull it."""
+    from pe_analysis import partial_motor_errors
+    t, ra, dec, th, lat = part(70, dt=60.0, noise=0.0)
+    ra = ra + 40 * np.sin(2 * np.pi * t / (4 * 3600))                  # slow drift no quadratic removes exactly
+    dense = np.r_[np.arange(0, 600, 5.0), t[t >= 600]]                 # 10 min of 5 s samples, then 1 per minute
+    interp = lambda y: np.interp(dense, t, y)
+    th_d = np.column_stack([interp(th[:, i]) for i in range(3)])
+    prof = fit_worm([(t, ra, dec, th, lat)], harmonics=H)
+    sparse_e = partial_motor_errors(t, ra, dec, th, lat, prof)
+    dense_e = partial_motor_errors(dense, interp(ra), interp(dec), th_d, lat, prof)
+    k = dense >= 600
+    assert np.allclose(dense_e[k], sparse_e[t >= 600], atol=0.5)
+
+
+# ── pose-derived motor angles include every correction applied so far ──
+
+def test_removing_the_accumulated_corrections_recovers_the_motor_angles():
+    """PECLOG/SGLOG az/alt/roll is the driver's present value: the motor pose rotated by every guide and PEC
+    correction (total_accum, about the RA and Dec axes). Through the inverse kinematics that shifts the motor angles by
+    up to ~1 deg over a night -- tens of degrees of worm phase -- unless the corrections are taken back out."""
+    from pe_analysis import remove_corrections
+    from kinematics import theta_to_q, q_to_azaltroll, azaltroll_to_theta_ik, calc_equatorial_axes_B
+    from quaternion import Q
+    rng = np.random.default_rng(3)
+    n = 30
+    raw = np.column_stack([150 - 12 * np.linspace(0, 1.5, n), 69 + 6 * np.linspace(0, 1.5, n), 14 + 11 * np.linspace(0, 1.5, n)])
+    ra = np.r_[0.0, np.cumsum(rng.normal(-20, 30, n - 1))]                     # arcsec, accumulated corrections
+    dec = np.r_[0.0, np.cumsum(rng.normal(120, 30, n - 1))]                    # ~1 deg by the end
+    pv = []
+    for th, r, d in zip(raw, ra, dec):
+        p, dax, _ = calc_equatorial_axes_B(theta_to_q(*th), Q(), LAT)
+        q = (Q(axis=p, degrees=r / 3600) * Q(axis=dax, degrees=d / 3600) * theta_to_q(*th)).normalised
+        pv.append(azaltroll_to_theta_ik(*q_to_azaltroll(q)))
+    pv = np.array(pv)
+    assert np.abs(pv - raw).max() > 0.5                                         # what the pose-derived angles look like
+    got = remove_corrections(pv, ra, dec, LAT)
+    assert np.abs(got - raw).max() < 0.01
+
+
+# ── multi-turn cleanup: direction of travel, stationary motors, turns-based trend ──
+
+def test_motor_direction_is_signed_and_zero_while_a_motor_is_nearly_stationary():
+    from pe_analysis import motor_direction
+    t = np.arange(0, 6 * 3600, 30.0)
+    th2 = 50 + 0.5 * ((t - 3 * 3600) / 3600) ** 2 * 10                         # down to 50 deg at 3 h, then back up
+    theta = np.column_stack([100 - 15 * t / 3600, th2, 10 + 12 * t / 3600])
+    d = motor_direction(t, theta, min_rate=1.0)
+    assert (d[t < 2 * 3600, 1] == -1).all() and (d[t > 4 * 3600, 1] == 1).all()
+    assert (d[np.abs(t - 3 * 3600) < 0.05 * 3600, 1] == 0).all()               # turning round: about stationary
+    assert (d[:, 0] == -1).all() and (d[:, 2] == 1).all()
+
+
+def test_a_motor_needs_two_worm_turns_to_be_fitted():
+    p = part(16, rates=(12.0, 4.0, 14.0))                                       # M2 moves 10 deg = 1.7 turns
+    prof = fit_worm([p], harmonics=H)
+    assert np.allclose(prof.coef[4:8], 0.0) and np.abs(prof.coef[8:]).max() > 1.0
+
+
+def test_with_many_turns_a_more_flexible_trend_removes_slow_drift_the_charts_would_show_as_motor_error():
+    """A slow, non-quadratic drift (a rate that wanders over the night) doesn't bias the fit -- it works on increments
+    -- but a quadratic trend leaves it in the partial residuals, spread over the motors. With many worm turns the trend
+    can be loosened (trend_degree='auto') without the worm being taken."""
+    from pe_analysis import partial_motor_errors
+    t, ra, dec, th, lat = part(17, hours=5.0, rates=(14.0, 1.0, 16.0))
+    slow = 300 * np.sin(2 * np.pi * t / (5 * 3600))
+    ra, dec = ra + slow, dec - slow
+    prof = fit_worm([(t, ra, dec, th, lat)], harmonics=H, trend_degree='auto')
+    assert np.abs(prof.coef[8:] - TRUE[8:]).max() < 0.15 * np.abs(TRUE[8:]).max()
+    true = WormProfile(TRUE, WORM_THETA, H).motor_error(th)
+    left = lambda deg: np.nanstd(partial_motor_errors(t, ra, dec, th, lat, prof, trend_degree=deg)[:, 2] - true[:, 2])
+    assert left('auto') < 0.5 * left(2)
+
+
+def test_auto_trend_stays_quadratic_with_two_turns():
+    from pe_analysis import auto_trend_degree
+    th = np.column_stack([np.linspace(0, 13, 50), np.linspace(0, 1, 50), np.linspace(0, 12.5, 50)])
+    assert auto_trend_degree(th, 6.0) == 2
+    th[:, 2] = np.linspace(0, 40, 50)                                           # M3 6.7 turns, M1 2.2
+    assert auto_trend_degree(th, 6.0) == 2                                      # limited by the slowest fitted motor
+    th[:, 0] = np.linspace(0, 30, 50)
+    assert auto_trend_degree(th, 6.0) == 4
+
+
+def test_each_sample_knows_how_many_worm_turns_its_same_direction_pass_covers():
+    from pe_analysis import pass_turns
+    t = np.arange(0, 6 * 3600, 30.0)
+    th2 = 50 + 0.5 * ((t - 4 * 3600) / 3600) ** 2 * 10                         # down 80 deg in 4 h, then up 20 deg in 2 h
+    theta = np.column_stack([100 - 15 * t / 3600, th2, 10 + 12 * t / 3600])
+    p = pass_turns(t, theta, worm_theta=6.0)
+    assert p[t < 3 * 3600, 1].min() > 10                                        # the long descending pass
+    assert 2.5 < p[t > 5 * 3600, 1].max() < 3.6                                 # the short ascending one (~3.3 turns)
+    assert np.all(p[:, 0] == p[0, 0]) and p[0, 0] == pytest.approx(15 * 6 / 6.0, rel=0.02)

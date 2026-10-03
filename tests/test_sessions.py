@@ -116,3 +116,15 @@ def test_a_multi_file_entry_maps_every_file(tmp_path):
     reg.write_text('[defaults]\nlog_dir = "logs"\n[sessions."soak_08_28k"]\n'
                    'logs = ["alpaca.soak_08_28k1.log", "alpaca.soak_08_28k2.log"]\nnotes = "soak"\n', encoding='utf-8')
     assert catalog_notes(registry=reg) == {'alpaca.soak_08_28k1': 'soak', 'alpaca.soak_08_28k2': 'soak'}
+
+
+def test_site_latitude_comes_from_the_session_log_or_the_default(archive):
+    from sessions import site_latitude
+    root, reg = archive
+    add_new(registry=reg)
+    with open(root / 'logs' / 'alpaca.jdm_Beta7.1_09_29_pulseguide_a2.log', 'a', encoding='utf-8') as f:
+        f.write("2026-09-29T20:01:00.000 INFO 127.0.0.1 -> PUT /api/v1/telescope/0/sitelatitude "
+                "{'SiteLatitude': '43.6163888888889', 'ClientID': '1', 'ClientTransactionID': '2'}\n")
+    assert site_latitude('jdm_Beta7.1_09_29_pulseguide', registry=reg) == pytest.approx(43.6163888888889)
+    assert site_latitude('alpaca.jdm_Beta7.1_09_29_pulseguide', registry=reg) == pytest.approx(43.6163888888889)
+    assert site_latitude('rpi_Beta5.0_09_13_kfpidlog', registry=reg, default=-33.65) == -33.65
