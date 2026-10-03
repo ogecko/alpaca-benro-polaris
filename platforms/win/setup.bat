@@ -337,6 +337,7 @@ if defined HAVE_TASK (
     start "Alpaca Benro Polaris Driver" /min /D "%REPO%\driver" "%REPO%\.venv\Scripts\python.exe" "%REPO%\driver\main.py"
 )
 call :helper wait_for_driver
+if errorlevel 1 goto driver_failed
 
 rem Windows 11 24H2 (build 26100) and later refuse the Wi-Fi commands the driver uses to join the
 rem Polaris network unless Location is turned on for the signed-in user, and a new account has it
@@ -362,6 +363,15 @@ if not defined HAVE_TASK echo The driver is running in a minimized window named 
 %V% * View the logs in:             %REPO%\logs\alpaca.log
 echo -------------------------------------------------------------------
 goto end
+
+:driver_failed
+rem Installed, but the driver did not come up: the helper has shown why (the end of the driver's log).
+popd
+echo.
+echo The Alpaca Driver was installed but did not start. Once the problem above is fixed, run setup.bat
+echo again, or start the driver from the "Alpaca Benro Polaris Driver" desktop shortcut.
+if defined ABP_DBLCLICK if not defined ABP_NOPAUSE pause
+exit /b 1
 
 :fail_pop
 popd

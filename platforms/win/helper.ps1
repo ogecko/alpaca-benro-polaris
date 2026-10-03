@@ -15,6 +15,7 @@ param(
     [string]$Repo,
     [string]$TaskName = 'StartupAlpacaDriver',
     [switch]$Detail,
+    [int]$WaitSec = 180,    # wait_for_driver: longest wait for the driver to answer
     # Internal to elevated_setup, which starts a hidden elevated copy of itself:
     [switch]$Elevated,
     [string]$PwEnc,         # the account password, encrypted for this Windows account only (DPAPI)
@@ -171,19 +172,65 @@ switch ($Action) {
     # start of a fresh install is slow (cold Python imports, virus scanning of the new files, and
     # generating the TLS certificates), so say what we are waiting for and show progress.
     'wait_for_driver' {
-        Say 'Waiting for the driver to start...' -NoNewline
-        for ($i = 0; $i -lt 90; $i++) {
+        # Wait until the driver answers, but stop as soon as it has clearly failed: a fatal error in its
+        # log, or its process gone (it exits after a fatal error). Exit 1 so setup.bat does not report
+        # success, and show the end of the driver's log, where the reason is.
+        $log = Join-Path $Repo 'logs\alpaca.log'
+        $logFrom = if (Test-Path -LiteralPath $log) { (Get-Item -LiteralPath $log).Length } else { 0 }
+        function Get-NewLog {
+            # What the driver has written to its log since we started waiting (it keeps the file open).
+            if (-not (Test-Path -LiteralPath $log)) { return @() }
+            $from = $logFrom
+            if ((Get-Item -LiteralPath $log).Length -lt $from) { $from = 0 }     # the log was rotated
+            $fs = [IO.File]::Open($log, 'Open', 'Read', 'ReadWrite')
             try {
-                Invoke-RestMethod 'http://localhost:5555/management/apiversions' -TimeoutSec 2 | Out-Null
+                [void]$fs.Seek($from, 'Begin')
+                $text = (New-Object IO.StreamReader($fs)).ReadToEnd()
+            } finally { $fs.Dispose() }
+            return @($text -split "`r?`n" | Where-Object { $_ })
+        }
+        $clock = [Diagnostics.Stopwatch]::StartNew()
+        $seen = $false
+        $problem = $null
+        Say 'Waiting for the driver to start...' -NoNewline
+        while ($true) {
+            try {
+                # 127.0.0.1, not localhost: Windows PowerShell spends ~2 s looking for a proxy for localhost
+                Invoke-RestMethod 'http://127.0.0.1:5555/management/apiversions' -TimeoutSec 5 | Out-Null
                 Say ''
                 Say 'The Alpaca Driver is running.'
                 return
-            } catch {
-                Say '.' -NoNewline
-                Start-Sleep -Seconds 2
+            } catch { }
+            if (Get-NewLog | Where-Object { $_ -match '==MAIN== Fatal error' }) {
+                $problem = 'The Alpaca Driver failed to start.'
+                break
             }
+            if (Get-DriverProcesses) {
+                $seen = $true
+            } elseif ($seen) {
+                $problem = 'The Alpaca Driver stopped while starting.'
+                break
+            } elseif ($clock.Elapsed.TotalSeconds -ge 30) {
+                $problem = 'The Alpaca Driver did not start.'
+                break
+            }
+            if ($clock.Elapsed.TotalSeconds -ge $WaitSec) {
+                $wait = if ($WaitSec -ge 120) { "$([int]($WaitSec / 60)) minutes" } else { "$WaitSec seconds" }
+                $problem = "The Alpaca Driver has not answered on port 5555 after $wait. It may still be starting, or it may have failed."
+                break
+            }
+            Say '.' -NoNewline
+            Start-Sleep -Seconds 2
         }
         Write-Host ''
-        Write-Host "The driver has not answered on port 5555 after 3 minutes. It may still be starting, or it may have failed: check $Repo\logs\alpaca.log."
+        Write-Host $problem
+        $tail = Get-NewLog | Select-Object -Last 15
+        if ($tail) {
+            Write-Host "The end of its log ($log):"
+            $tail | ForEach-Object { Write-Host "    $_" }
+        } else {
+            Write-Host "See its log: $log"
+        }
+        exit 1
     }
 }
