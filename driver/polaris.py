@@ -48,6 +48,7 @@ from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, byte
 from kinematics import THETA2_MIN_MEAS
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
+from control_pec import zeta_raw_offset
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache
@@ -233,6 +234,7 @@ class Polaris:
         self._motorQ_state = None                   # The KF corrected C2B quaternion in B Frame
         self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
+        self._zeta_raw_offset = None                 # theta_raw (518) - zeta (517) per motor at the last "517" -- see control_pec.zeta_raw_offset
         self._zeta_theta_offset = None               # [theta1,theta2,theta3] - [zeta1,zeta2,zeta3], refreshed on each "517". The Benro
                                                       # Polaris firmware performs its own Single Point Alignment (Compass/Single Star),
                                                       # which shifts its "517" zeta reporting independently of our theta_state (518/KF)
@@ -826,6 +828,8 @@ class Polaris:
                 # theta_pv under whatever alignment model is active at that later time -- see motor_to_azaltroll().
                 if self._theta_state is not None:
                     self._zeta_theta_offset = [tp - z for tp, z in zip(self._pid.theta_pv, new_zeta)]
+                # theta_raw (518, includes the firmware's compass / SPA heading) - zeta, for PECLOG (per-motor worm analysis)
+                self._zeta_raw_offset = zeta_raw_offset(self._theta_raw, new_zeta)
 
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")

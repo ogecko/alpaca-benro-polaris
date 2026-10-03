@@ -1,0 +1,457 @@
+# Captured log sessions for the analysis notebooks (analyse_pec_delta, analyse_kf_pid, analyse_comms,
+# analyse_pec_theta / analyse_pec_catalog via the catalog). Each notebook picks one with SESSION = "<key>".
+#
+# Add new logs: copy them into log_dir, then  uv run python utility/sessions.py --add-new  (appends stubs below
+# without touching existing entries), and edit the notes. List them:  uv run python utility/sessions.py --list
+#
+# Fields: logs (names/globs in log_dir; rotated parts as "alpaca.x_a*.log"), phd2 (PHD2 guide log, optional),
+# t_from / t_to (default analysis window, local time as in the log), date, driver, guiding, records
+# (pec = PECLOG, sg = SGLOG, kf = KFLOG, pid = PIDLOG, sync = sync-guide residuals), notes.
+
+[defaults]
+log_dir = "../logs/archive"
+
+[sessions."greg_Beta3.1_08_02_comms_problems"]
+logs = ["alpaca.greg_Beta3.1_08_02_comms_problems.log"]
+date = "2026-08-02"
+driver = "v2.2.0 Beta 3"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = "comms problems with lots of lag"
+
+[sessions."jdm_Beta3.1_08_02_sg_peclog"]
+logs = ["alpaca.jdm_Beta3.1_08_02_sg_peclog.log"]
+date = "2026-08-02"
+driver = "v2.2.0 Beta 3.1"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = "sync guiding with logs(pec)"
+
+[sessions."jdm_Beta3.1_08_03_sg_peclog"]
+logs = ["alpaca.jdm_Beta3.1_08_03_sg_peclog.log"]
+date = "2026-08-03"
+driver = "v2.2.0 Beta 3.1"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = "sync guiding with logs(pec)"
+
+[sessions."jdm_Beta4.3_08_30_kfposlog"]
+logs = ["alpaca.jdm_Beta4.3_08_30_kfposlog_d*.log"]
+date = "2026-08-30"
+driver = "v2.2.0 Beta 4.3"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sync"]
+notes = "tracking with logs(kf,pos) and socket force closed from Polaris"
+
+[sessions."jdm_Beta7.1_09_29_pulseguide"]
+logs = ["alpaca.jdm_Beta7.1_09_29_pulseguide_a*.log"]
+phd2 = "alpaca.jdm_Beta7.1_09_29_pulseguide_a1_PHD2_GuideLog_2026-09-29_185315.txt"
+t_from = "2026-09-30 00:50"
+date = "2026-09-29"
+driver = "v2.2.0 Beta 7.1"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = "pulse guiding (PHD2), pec + sync guiding, 3.4 hr on one target from 01:24"
+
+[sessions."mark_Beta2.9_07_26_a"]
+logs = ["alpaca.mark_Beta2.9_07_26_a.log"]
+date = "2026-07-26"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta2.9_07_26_b"]
+logs = ["alpaca.mark_Beta2.9_07_26_b.log"]
+date = "2026-07-26"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta3.0_07_28"]
+logs = ["alpaca.mark_Beta3.0_07_28.log"]
+date = "2026-07-28"
+driver = "v2.2.0 Beta 3"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta3.0_07_29"]
+logs = ["alpaca.mark_Beta3.0_07_29.log"]
+date = "2026-07-29"
+driver = "v2.2.0 Beta 3"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta3.0_08_01"]
+logs = ["alpaca.mark_Beta3.0_08_01_c*.log"]
+date = "2026-08-01"
+driver = "v2.2.0 Beta 3"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta3.0_08_02"]
+logs = ["alpaca.mark_Beta3.0_08_02.log"]
+date = "2026-08-01"
+driver = "v2.2.0 Beta 3"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta3.1_08_06"]
+logs = ["alpaca.mark_Beta3.1_08_06.log"]
+date = "2026-08-06"
+driver = "v2.2.0 Beta 3.1"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta4.0_08_17"]
+logs = ["alpaca.mark_Beta4.0_08_17.log"]
+date = "2026-08-18"
+driver = "v2.2.0 Beta 4"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta4.0_08_18"]
+logs = ["alpaca.mark_Beta4.0_08_18.log"]
+date = "2026-08-19"
+driver = "v2.2.0 Beta 4"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta4.2_08_24"]
+logs = ["alpaca.mark_Beta4.2_08_24.log"]
+date = "2026-08-24"
+driver = "v2.2.0 Beta 4.2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."mark_Beta4.3_09_04"]
+logs = ["alpaca.mark_Beta4.3_09_04_a*.log"]
+date = "2026-09-04"
+driver = "v2.2.0 Beta 4.3"
+guiding = "sync"
+records = ["kf", "pid", "sync"]
+notes = "sync guiding with logs(sg,kf,pos), 47 Tuc Marks log 2hr 47m session"
+
+[sessions."mark_Beta4.4_09_05"]
+logs = ["alpaca.mark_Beta4.4_09_05_a*.log"]
+date = "2026-09-05"
+driver = "v2.2.0 Beta 4.4"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sg", "sync"]
+notes = "sync guiding, pec with logs(sg,kf,pos), 47 Tuc Marks log 2hr 30m session"
+
+[sessions."pec_ema_Beta2_07_20_ema"]
+logs = ["alpaca.pec_ema_Beta2_07_20_ema.log"]
+date = "2026-07-20"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Alpha_06_01_Sin.chicken"]
+logs = ["alpaca.pec_rls_Alpha_06_01_Sin.chicken.log"]
+date = "2026-06-01"
+driver = "v2.2.0"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Alpha_06_03_pulseguide_pec"]
+logs = ["alpaca.pec_rls_Alpha_06_03_pulseguide_pec.log"]
+date = "2026-06-03"
+driver = "v2.2.0"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Alpha_06_03_pulseguide_pec2"]
+logs = ["alpaca.pec_rls_Alpha_06_03_pulseguide_pec2.log"]
+date = "2026-06-03"
+driver = "v2.2.0"
+guiding = "none"
+records = ["pec"]
+notes = ""
+
+[sessions."pec_rls_Beta2.0_07_02"]
+logs = ["alpaca.pec_rls_Beta2.0_07_02.log"]
+date = "2026-07-02"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta2.0_07_20_h2"]
+logs = ["alpaca.pec_rls_Beta2.0_07_20_h2.log"]
+date = "2026-07-20"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta2.0_07_20_master"]
+logs = ["alpaca.pec_rls_Beta2.0_07_20_master.log"]
+date = "2026-07-20"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta2.0_07_22_syncguide1"]
+logs = ["alpaca.pec_rls_Beta2.0_07_22_syncguide1.log"]
+date = "2026-07-22"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta2.0_07_22_syncguide2"]
+logs = ["alpaca.pec_rls_Beta2.0_07_22_syncguide2.log"]
+date = "2026-07-22"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta2.0_07_23_pulseguide_pec"]
+logs = ["alpaca.pec_rls_Beta2.0_07_23_pulseguide_pec.log"]
+date = "2026-07-23"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta2.0_07_25_tarantula0"]
+logs = ["alpaca.pec_rls_Beta2.0_07_25_tarantula0.log"]
+date = "2026-07-25"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta2.0_07_25_tarantula1"]
+logs = ["alpaca.pec_rls_Beta2.0_07_25_tarantula1.log"]
+date = "2026-07-25"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta2.0_07_25_tarantula1b"]
+logs = ["alpaca.pec_rls_Beta2.0_07_25_tarantula1b.log"]
+date = "2026-07-25"
+driver = "v2.2.0 Beta 2"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta3,9_07_29_7hrs"]
+logs = ["alpaca.pec_rls_Beta3,9_07_29_7hrs.log"]
+date = "2026-07-29"
+driver = "v2.2.0 Beta 3"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta3.0_07_28_6hrs"]
+logs = ["alpaca.pec_rls_Beta3.0_07_28_6hrs.log"]
+date = "2026-07-28"
+driver = "v2.2.0 Beta 3"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."pec_rls_Beta3.0_07_30_rates_logged"]
+logs = ["alpaca.pec_rls_Beta3.0_07_30_rates_logged.log"]
+date = "2026-07-30"
+driver = "v2.2.0 Beta 3"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."rpi_Beta5.0_09_13_kfpidlog"]
+logs = ["alpaca.rpi_Beta5.0_09_13_kfpidlog_a*.log"]
+date = "2026-09-13"
+driver = "v2.2.0 Beta 5.0"
+guiding = "none"
+records = ["kf", "pid"]
+notes = "tracking, with logs(pos), Raspberry Pi 1hr 30m session"
+
+[sessions."soak_Beta4.3_08_30_sg_Dec23N_120min_b"]
+logs = ["alpaca.soak_Beta4.3_08_30_sg_Dec23N_120min_b.log"]
+date = "2026-08-30"
+driver = "v2.2.0 Beta 4.3"
+guiding = "sync"
+records = ["pec", "sync"]
+notes = ""
+
+[sessions."soak_Beta4.3_08_30_sg_peckfposlog_72min"]
+logs = ["alpaca.soak_Beta4.3_08_30_sg_peckfposlog_72min_a*.log"]
+date = "2026-08-30"
+driver = "v2.2.0 Beta 4.3"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sync"]
+notes = "sync guiding, pec with logs(pec,kf,pos), northern hemishphere NGC6823"
+
+[sessions."soak_Beta4.3_08_31_sg_kfposlog_Dec72_504m"]
+logs = ["alpaca.soak_Beta4.3_08_31_sg_kfposlog_Dec72_504m_a*.log"]
+date = "2026-09-01"
+driver = "v2.2.0 Beta 4.3"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sync"]
+notes = "sync guiding with logs(kf,pos) on 47 Tuc, socket force closed from Polaris at 00:47 am"
+
+[sessions."soak_Beta4.4_09_01_sg_sglog_Dec10"]
+logs = ["alpaca.soak_Beta4.4_09_01_sg_sglog_Dec10_a*.log"]
+date = "2026-09-02"
+driver = "v2.2.0 Beta 4.4"
+guiding = "sync"
+records = ["sg", "sync"]
+notes = "sync guiding, with logs(sg), Eagle Nebula"
+
+[sessions."soak_Beta4.4_09_03_sgpec_sgkfposlog_m83"]
+logs = ["alpaca.soak_Beta4.4_09_03_sgpec_sgkfposlog_m83_a*.log"]
+date = "2026-09-03"
+driver = "v2.2.0 Beta 4.4"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sg", "sync"]
+notes = "sync guiding, with logs(sg), M83 Southern Pinwheel Galaxy 06:00PM - 09:30PM"
+
+[sessions."soak_Beta4.4_09_03_sgpec_sgkfposlog_ngc2070"]
+logs = ["alpaca.soak_Beta4.4_09_03_sgpec_sgkfposlog_ngc2070_c*.log"]
+date = "2026-09-03"
+driver = "v2.2.0 Beta 4.4"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sg", "sync"]
+notes = "sync guiding, pec with logs(sg,kf,pos), NGC2070 Tarantula Nebula 11:46PM - 02:30AM"
+
+[sessions."soak_Beta4.4_09_03_sgpec_sglog_NGC55"]
+logs = ["alpaca.soak_Beta4.4_09_03_sgpec_sglog_NGC55_b*.log"]
+date = "2026-09-03"
+driver = "v2.2.0 Beta 4.4"
+guiding = "sync"
+records = ["pec", "sg", "sync"]
+notes = "sync guiding, pec with logs(sg), NGC55 String of Pearls Galaxy 09:45PM - 11:45PM"
+
+[sessions."soak_Beta4.4_09_04_sgpec_sgkfposlog_ngc4945"]
+logs = ["alpaca.soak_Beta4.4_09_04_sgpec_sgkfposlog_ngc4945_a*.log"]
+date = "2026-09-04"
+driver = "v2.2.0 Beta 4.4"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sg", "sync"]
+notes = "sync guiding, pec with logs(sg,kf,pos), NGC4945 Tweezers Galaxy 06:30PM - 08:00PM pec_tau_sec=420"
+
+[sessions."soak_Beta4.4_09_06_sg_sglog"]
+logs = ["alpaca.soak_Beta4.4_09_06_sg_sglog_a*.log"]
+date = "2026-09-06"
+driver = "v2.2.0 Beta 4.4"
+guiding = "sync"
+records = ["pec", "sg", "sync"]
+notes = "sync guiding, pec with logs(sg,pec), 2hr Helix Nebula, then 37m Caldwell 101 session"
+
+[sessions."soak_Beta4.4_09_08_sg_sglog"]
+logs = ["alpaca.soak_Beta4.4_09_08_sg_sglog_a*.log"]
+date = "2026-09-08"
+driver = "v2.2.0 Beta 4.4"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = "sync guiding, with logs(sg), a lot of 518 lags session"
+
+[sessions."soak_nopec_Beta4.3_08_27"]
+logs = ["alpaca.soak_nopec_Beta4.3_08_27a.log", "alpaca.soak_nopec_Beta4.3_08_27b.log"]
+date = "2026-08-27"
+driver = "v2.2.0 Beta 4.3"
+guiding = "none"
+records = ["kf", "pid"]
+notes = "run captured in several files (analysed together in analyse_kf_pid)"
+
+[sessions."soak_nopec_Beta4.3_08_28a"]
+logs = ["alpaca.soak_nopec_Beta4.3_08_28a.log"]
+date = "2026-08-28"
+driver = "v2.2.0 Beta 4.3"
+guiding = "none"
+records = ["kf", "pid"]
+notes = ""
+
+[sessions."soak_nopec_Beta4.3_08_28k"]
+logs = ["alpaca.soak_nopec_Beta4.3_08_28k1.log", "alpaca.soak_nopec_Beta4.3_08_28k2.log", "alpaca.soak_nopec_Beta4.3_08_28k3.log", "alpaca.soak_nopec_Beta4.3_08_28k4.log"]
+date = "2026-08-28"
+guiding = "none"
+records = ["kf", "pid"]
+notes = "run captured in several files (analysed together in analyse_kf_pid)"
+
+[sessions."soak_nopec_Beta4.3_08_29a"]
+logs = ["alpaca.soak_nopec_Beta4.3_08_29a.log"]
+date = "2026-08-29"
+driver = "v2.2.0 Beta 4.3"
+guiding = "none"
+records = ["kf", "pid"]
+notes = ""
+
+[sessions."soak_nopec_Beta4.3_08_29b"]
+logs = ["alpaca.soak_nopec_Beta4.3_08_29b1.log", "alpaca.soak_nopec_Beta4.3_08_29b2.log"]
+date = "2026-08-29"
+driver = "v2.2.0 Beta 4.3"
+guiding = "none"
+records = ["kf", "pid"]
+notes = "run captured in several files (analysed together in analyse_kf_pid)"
+
+[sessions."soak_pec_Beta4.3_08_27a"]
+logs = ["alpaca.soak_pec_Beta4.3_08_27a.log"]
+date = "2026-08-27"
+driver = "v2.2.0 Beta 4.3"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sync"]
+notes = ""
+
+[sessions."soak_pec_Beta4.3_08_27b"]
+logs = ["alpaca.soak_pec_Beta4.3_08_27b.log"]
+date = "2026-08-27"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sync"]
+notes = ""
+
+[sessions."soak_pec_Beta4.3_08_29m"]
+logs = ["alpaca.soak_pec_Beta4.3_08_29m.log"]
+date = "2026-08-29"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sync"]
+notes = "sync guiding, pec with log(kf,pos), half PEC on, half PEC off 66min"
+
+[sessions."soak_pec_Beta4.3_08_29n1"]
+logs = ["alpaca.soak_pec_Beta4.3_08_29n1.log"]
+date = "2026-08-29"
+driver = "v2.2.0 Beta 4.3"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sync"]
+notes = ""
+
+[sessions."soak_pec_Beta4.3_08_29n2"]
+logs = ["alpaca.soak_pec_Beta4.3_08_29n2.log"]
+date = "2026-08-29"
+guiding = "pulse (PHD2) + sync"
+records = ["kf", "pec", "pid", "sync"]
+notes = ""
+
+[sessions."soak_pec_Beta4.3_08_29n3"]
+logs = ["alpaca.soak_pec_Beta4.3_08_29n3.log"]
+date = "2026-08-29"
+guiding = "sync"
+records = ["kf", "pec", "pid", "sync"]
+notes = ""
+
+[sessions."vyskocil_Beta5.0_09_12"]
+logs = ["alpaca.vyskocil_Beta5.0_09_12_a*.log"]
+date = "2026-09-12"
+driver = "v2.2.0 Beta 5.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = "pulse guiding, pec with logs(pec)"

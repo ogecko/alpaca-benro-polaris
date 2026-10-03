@@ -267,8 +267,9 @@ To get the best results and maintain perfect centering without manual interventi
 2.  **Perform Multi-Point-Alignment** - Slew and capture at least three sync-points. Ideally, at your celestial pole and along the future path of your DSO Target.
 3.  **Slew and Center on your target** - Use Nina to Slew and Center on your target.
 4.  **Initialise Sync Guiding Model** - On the Nina Image tab, use the Plate Solving Tool to manually perform several plate-solves, 30s apart. This is optional, but it can help initialise the PEC model faster.
-5.  **Configure your capture session** - Use Nina's Advanced Scheduler to perform "Smart Exposures", then a "Solve and Sync" every **2 to 5 minutes**.
-6.  **Monitor the Kinematics page** - use Alpaca Pilot's kinematics page to monitor the PEC Rate correction and the models R² quality.
+5.  **Configure your capture session** - Use Nina's Advanced Scheduler to perform "Smart Exposures", then a "Solve and Sync" every **1 to 3 minutes**.
+
+> **Note:** Don't use Sync Guiding at the same time as Pulse Guiding. The guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back, and the target drifts off center anyway (e.g. from flexure between guide scope and main scope). To keep the target centered during a long Pulse Guided session, use Nina's **Center After Drift** trigger instead. When the plate solve drifts past the threshold (about 0.3–0.5 arcmin), Nina stops guiding, re-centers the target, and restarts guiding with a new lock position. Each re-center is a slew, which resets the driver's PEC model, so avoid setting the threshold too tight.
 
 #### **V. Primary Benefits**
 *   **No Additional Hardware:** Eliminates the cost and weight of a dedicated guide scope and camera.
@@ -298,6 +299,7 @@ For a comprehensive guide on hardware selection and software configuration, plea
 *   **Set the Guide Rate:** A guide rate of **0.75x to 1.0x sidereal** is recommended. If the mount appears to "hunt" or oscillate, lowering this rate in the Alpaca Pilot settings can smooth the response.
 *   **Multi-Star Guiding:** Always enable "Use Multiple Stars" in your guiding software. This averages out atmospheric turbulence (seeing), providing the PID controller with a cleaner signal that represents true mechanical drift rather than "chasing the wind".
 *   **Monitor the PID Loop:** You can visualize pulse commands in real-time on the **PID Tuning page** in Alpaca Pilot, where they appear as dynamic shifts in the RA and Dec setpoints.
+*   **Don't Combine with Sync Guiding:** The guider pulls each sync correction straight back to its lock position. To keep the target centered during a long session, use Nina's **Center After Drift** trigger instead (see the note in section 2.4, Recommended Workflow).
 
 #### **V. Primary Benefits**
 *   **Sub-Exposure Correction:** The main benefit of pulse guiding is the ability to correct tracking errors **within a single exposure**. This prevents small drifts from turning stars into "footballs" or trails before the frame is completed.
@@ -334,7 +336,7 @@ While software like PHD2 offers its own "Predictive PEC," the Alpaca Driver's im
 
 #### **V. How to Use and Monitor PEC**
 1.  **Enabling:** Ensure "Predictive Error Correction (PEC)" is toggled **ON** in the Alpaca Pilot Settings page.
-2.  **Guiding Strategy:** Choose either **Sync Guiding** (performing a "Solve and Sync" every 2 to 5 minutes in NINA) or **Pulse Guiding** (using a dedicated guide camera).
+2.  **Guiding Strategy:** Choose either **Sync Guiding** (performing a "Solve and Sync" every 1 to 3 minutes in NINA) or **Pulse Guiding** (using a dedicated guide camera).
 3.  **Monitoring Status:** Use the **Kinematics Page** in Alpaca Pilot to view real-time RA/Dec drift rates and model quality. The **R² value** will provide status messages if the model is inhibited:
     *   **Warmup/Adapt:** Insufficient or high-variance data.
     *   **RMSE/Poor:** High model error or low quality.
@@ -719,9 +721,13 @@ dec_resid = clamp_error(a_dec,    Dec_pv)
           _pec_log()  → PECLOG entry
 ```
 
-Pulse guides train the same `PecAxis` models via the identical `update_pec_model()` call, from
-`process_pulse_guide_axis()`, whenever `Config.advanced_pulse_pec_tuning` is enabled — that's the
+Pulse guides train the same `PecAxis` models via `ingest_pulse_for_pec()` → `update_pec_model()`,
+from `process_pulse_guide_axis()`, whenever `Config.advanced_pulse_pec_tuning` is enabled — that's the
 "dual guiding support" in §2.6.II: one model, fed by whichever guide source is active.
+With `Config.pec_ignore_guider_calibration`, `GuiderCalibrationDetector` recognises a guider's
+calibration (PHD2, CCDciel) as 3+ identical same-axis, same-direction pulses: PEC is rolled back to
+its state before that run and learns nothing more until no repeated pulse has been seen for 20 s.
+The PEC code lives in `driver/control_pec.py` (`PecMixin`, mixed into `SyncManager`).
 
 ---
 

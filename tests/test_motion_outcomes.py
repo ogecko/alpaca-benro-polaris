@@ -114,8 +114,7 @@ def test_guard_tracking_rms_not_worse_than_baseline(monkeypatch, setting, pose):
         f"its baseline {baseline:.2f}\" + 10% = {GUARD * baseline:.2f}\"")
 
 
-@goal
-@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["legacy", "coordinated"])
+@pytest.mark.parametrize("config", [pytest.param({}, marks=goal), CANDIDATE], ids=["legacy", "coordinated"])
 def test_goal_tracking_after_goto_is_no_worse_than_before(monkeypatch, config):
     before, after = [], []
     for seed in SEEDS:

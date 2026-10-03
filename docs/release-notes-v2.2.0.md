@@ -32,6 +32,7 @@
 - **[Motion Planner v2]** Reduce drifting while rolling. Add improved motion planning v2 (plans motor speed profiles, slowing on tight "curves")
 - **[Ramped Jogging]** Reduce jogging overshoot by ramping "up to" and "down from" jogging speed changes.
 - **[Goto Settle Time]** Reduce goto settle time by preventing Ki windup and false marking of completion.
+- **[PEC Guider Calibration]** PEC no longer learns PHD2/CCDciel calibration pulses as drift, so PEC can stay on while calibrating.
 
 
 ## What's new in v2.2 Beta 6

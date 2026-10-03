@@ -265,7 +265,7 @@ def load_pec(log_filenames, log_dir='.'):
     Transparently handles both the modern 'PECLOG {dict}' format and the legacy
     comma-separated format used by older driver versions (see parse_peclog_legacy()) -- a
     session can even mix both if its rotated logs span a driver upgrade. The legacy format
-    predates a logged 'resid' field, so for any row that comes back without one, resid_1/2 is
+    predates a logged 'resid' field, so for every legacy-format row resid_1/2 is
     backfilled from the separate, always-present 'SYNC GUIDING ... Residuals' line by
     nearest-timestamp match (within 2s; see parse_sync_guiding_residual_line()).
 
@@ -310,6 +310,7 @@ def load_pec(log_filenames, log_dir='.'):
                 if ' PECLOG ' in line:
                     rec = parse_peclog_legacy(line)
                     if rec is not None:
+                        rec['_legacy'] = True
                         rows.append(rec)
                     continue
                 if 'SYNC GUIDING' in line:
@@ -321,8 +322,11 @@ def load_pec(log_filenames, log_dir='.'):
         raise ValueError(f"No PECLOG lines found in {paths!r}")
 
     df = _finalize_log_df(rows)
+    legacy = df.pop('_legacy').fillna(False).astype(bool) if '_legacy' in df.columns else None
 
-    if sync_resid_rows:
+    # Only legacy rows lack a logged resid; on a modern row a None resid means the pulse was on
+    # the other axis, and filling it from a nearby sync would count that sync again.
+    if sync_resid_rows and legacy is not None and legacy.any():
         resid_df = pd.DataFrame(sync_resid_rows)
         resid_df['timestamp'] = pd.to_datetime(resid_df['timestamp'])
         resid_df = resid_df.sort_values('timestamp', kind='stable').reset_index(drop=True)
@@ -332,11 +336,11 @@ def load_pec(log_filenames, log_dir='.'):
         legacy_resid_1 = merged['ra_resid_deg'] * 60
         legacy_resid_2 = merged['dec_resid_deg'] * 60
         if 'resid_1' in df.columns:
-            df['resid_1'] = df['resid_1'].fillna(legacy_resid_1)
-            df['resid_2'] = df['resid_2'].fillna(legacy_resid_2)
+            df.loc[legacy, 'resid_1'] = df.loc[legacy, 'resid_1'].fillna(legacy_resid_1[legacy])
+            df.loc[legacy, 'resid_2'] = df.loc[legacy, 'resid_2'].fillna(legacy_resid_2[legacy])
         else:
-            df['resid_1'] = legacy_resid_1
-            df['resid_2'] = legacy_resid_2
+            df['resid_1'] = legacy_resid_1.where(legacy)
+            df['resid_2'] = legacy_resid_2.where(legacy)
 
     return df, pec_config
 
@@ -1546,4 +1550,259 @@ def reconstruct_outages(connection_events_df):
     out = pd.DataFrame(outages)
     if len(out):
         out['duration_min'] = (out['outage_end'] - out['outage_start']).dt.total_seconds() / 60
+    return out
+
+
+def window_df(df, t_from=None, t_to=None):
+    """
+    Rows of df whose 'timestamp' lies in [t_from, t_to] (either may be None for open-ended,
+    both None returns df unchanged). If df has a t_sec column it is restarted from 0 at the
+    first kept row, so plots of a windowed multi-target night start at the window. Lets a
+    notebook cut a session to one PEC run (e.g. between gotos).
+    """
+    if df is None or df.empty or (t_from is None and t_to is None):
+        return df
+    keep = pd.Series(True, index=df.index)
+    if t_from is not None:
+        keep &= df['timestamp'] >= pd.Timestamp(t_from)
+    if t_to is not None:
+        keep &= df['timestamp'] <= pd.Timestamp(t_to)
+    out = df[keep].reset_index(drop=True)
+    if 't_sec' in out.columns and len(out):
+        out['t_sec'] = (out['timestamp'] - out['timestamp'].iloc[0]).dt.total_seconds()
+    return out
+
+
+_PHD2_GUIDING_BEGINS_RE = re.compile(r"^Guiding Begins at (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")
+_PHD2_GUIDING_ENDS_RE   = re.compile(r"^Guiding Ends at (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")
+_PHD2_CAL_BEGINS_RE     = re.compile(r"^Calibration Begins at (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")
+_PHD2_PIXEL_SCALE_RE    = re.compile(r"^Pixel scale = ([\d.]+) arc-sec/px")
+_PHD2_GUIDE_SPEED_RE    = re.compile(r"^RA Guide Speed = ([\d.]+) a-s/s, Dec Guide Speed = ([\d.]+) a-s/s")
+_PHD2_FRAME_RE          = re.compile(r"^\d+,[\d.]+,\"")
+
+
+def load_phd2_guidelog(path):
+    """
+    Parse a PHD2 guide log (PHD2_GuideLog_*.txt) into (frames, events) DataFrames, so a
+    notebook can compare PEC with what the guider actually saw and did.
+
+    frames: one row per guided frame ("Mount" rows; DROP/star-lost frames are events instead)
+        timestamp, segment (0-based guiding segment), frame,
+        ra_arcsec / dec_arcsec   raw guide error, using that segment's pixel scale
+        ra_ms / dec_ms           pulse duration, signed like the driver's pulse residuals:
+                                 East/North positive, West/South negative
+        ra_pulse_arcsec / dec_pulse_arcsec   ms x that segment's RA/Dec guide speed
+    events: timestamp, kind, detail -- kind is calibration, guiding_start, guiding_end,
+        dither or star_lost. INFO lines carry no time of their own, so a dither is stamped
+        with the frame before it.
+
+    PHD2 writes local times, the same clock as the driver log, so the two line up directly.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"PHD2 guide log does not exist: {path!r}")
+
+    frames, events = [], []
+    seg, seg_start = -1, None
+    pixel_scale, ra_speed, dec_speed = 1.0, 15.0, 15.0
+    last_ts = None
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.rstrip('\n')
+            m = _PHD2_CAL_BEGINS_RE.match(line)
+            if m:
+                last_ts = pd.Timestamp(m.group(1))
+                events.append(dict(timestamp=last_ts, kind='calibration', detail=''))
+                continue
+            m = _PHD2_GUIDING_BEGINS_RE.match(line)
+            if m:
+                seg += 1
+                seg_start = last_ts = pd.Timestamp(m.group(1))
+                events.append(dict(timestamp=seg_start, kind='guiding_start', detail=''))
+                continue
+            m = _PHD2_GUIDING_ENDS_RE.match(line)
+            if m:
+                events.append(dict(timestamp=pd.Timestamp(m.group(1)), kind='guiding_end', detail=''))
+                seg_start = None
+                continue
+            m = _PHD2_PIXEL_SCALE_RE.match(line)
+            if m:
+                pixel_scale = float(m.group(1))
+                continue
+            m = _PHD2_GUIDE_SPEED_RE.match(line)
+            if m:
+                ra_speed, dec_speed = float(m.group(1)), float(m.group(2))
+                continue
+            if line.startswith('INFO: DITHER') and seg_start is not None:
+                events.append(dict(timestamp=last_ts, kind='dither', detail=line[6:]))
+                continue
+            if seg_start is None or not _PHD2_FRAME_RE.match(line):
+                continue
+            p = line.split(',')
+            ts = seg_start + pd.Timedelta(seconds=float(p[1]))
+            last_ts = ts
+            if p[2] != '"Mount"':
+                events.append(dict(timestamp=ts, kind='star_lost', detail=p[-1].strip('"')))
+                continue
+            ra_ms  = int(float(p[9] or 0))  * {'E': 1, 'W': -1}.get(p[10], 0)
+            dec_ms = int(float(p[11] or 0)) * {'N': 1, 'S': -1}.get(p[12], 0)
+            frames.append(dict(
+                timestamp=ts, segment=seg, frame=int(p[0]),
+                ra_arcsec=float(p[5] or 0) * pixel_scale, dec_arcsec=float(p[6] or 0) * pixel_scale,
+                ra_ms=ra_ms, dec_ms=dec_ms,
+                ra_pulse_arcsec=ra_ms / 1000 * ra_speed, dec_pulse_arcsec=dec_ms / 1000 * dec_speed,
+            ))
+
+    frames = pd.DataFrame(frames, columns=['timestamp', 'segment', 'frame', 'ra_arcsec', 'dec_arcsec',
+                                           'ra_ms', 'dec_ms', 'ra_pulse_arcsec', 'dec_pulse_arcsec'])
+    events = pd.DataFrame(events, columns=['timestamp', 'kind', 'detail'])
+    return frames, events
+
+
+def frame_shift_components(kf_df, sync_times, step_before_s=(25, 2), step_after_s=(10, 35), ripple_window_s=60.0,
+                           break_arcsec=600.0, settle_s=60.0):
+    """
+    KFLOG's per-motor frame shift, theta_meas_raw - theta_ref_raw (arcsec): the raw motor angle minus the PID's
+    target in corrected motor space, i.e. minus every correction applied so far (MAC + sync guide + pulse guide +
+    PEC) expressed as motor angles, plus the PID's own tracking error. Split into:
+      staircase -- the step at each sync (median shift 10-35 s after minus 2-25 s before), accumulated
+      smooth    -- what's left after removing the staircase, smoothed over ripple_window_s (change between syncs:
+                   PEC's continuous correction, MAC changing with pose, slow tracking error)
+      ripple    -- shift minus its ripple_window_s rolling median (PID error, speed-controller dither, M3 hold)
+    Gotos/slews while tracking make the shift jump by degrees between consecutive samples (> break_arcsec on any
+    motor): each jump is removed from the series (the offset is subtracted from what follows) and the settle_s
+    after it is left out of the ripple, so they don't count as divergence; summary.attrs['breaks'] counts them.
+    Returns (components DataFrame, per-motor summary DataFrame). summary.attrs['m1_m3_amplification'] is
+    1 / sin(median theta2): when M2 is near 0 the M1 and M3 axes line up, and a small correction on the sky
+    needs large, opposite M1/M3 rotations -- mirror-image M1/M3 shifts there are geometry, not mount error.
+    """
+    kf = kf_df.sort_values('timestamp').reset_index(drop=True)
+    t = (kf['timestamp'] - kf['timestamp'].iloc[0]).dt.total_seconds().values
+    dt = float(np.median(np.diff(t))) if len(t) > 1 else 1.0
+    win = max(3, int(round(ripple_window_s / dt)) | 1)
+    syncs = [(pd.Timestamp(s) - kf['timestamp'].iloc[0]).total_seconds() for s in sync_times]
+    syncs = [s for s in syncs if t[0] <= s <= t[-1]]
+    comp = pd.DataFrame({'timestamp': kf['timestamp'], 't_min': t / 60})
+    raw = {i: (((kf[f'θ_meas_raw_{i}'] - kf[f'θ_ref_raw_{i}'] + 180) % 360) - 180).values * 3600 for i in (1, 2, 3)}
+    jumps = np.zeros(len(t), bool)
+    for i in (1, 2, 3):
+        jumps[1:] |= np.abs(np.diff(raw[i])) > break_arcsec
+    brk = np.where(jumps)[0]
+    settling = np.zeros(len(t), bool)
+    for b in brk:
+        settling |= (t >= t[b]) & (t < t[b] + settle_s)
+    rows = {}
+    for i in (1, 2, 3):
+        m = f'M{i}'
+        shift = raw[i].copy()
+        for b in brk:                                       # remove each goto jump from what follows
+            shift[b:] -= shift[b] - shift[b - 1]
+        stair = np.zeros(len(t))
+        steps = []
+        for s in syncs:
+            a = shift[(t > s - step_before_s[0]) & (t < s - step_before_s[1])]
+            b = shift[(t > s + step_after_s[0]) & (t < s + step_after_s[1])]
+            if len(a) > 3 and len(b) > 3:
+                step = float(np.median(b) - np.median(a))
+                steps.append(step)
+                stair += np.where(t >= s, step, 0.0)
+        rolling = pd.Series(shift).rolling(win, center=True, min_periods=max(3, win // 5)).median().values
+        smooth = pd.Series(shift - stair).rolling(win, center=True, min_periods=max(3, win // 5)).median().values
+        ripple = np.where(settling, np.nan, shift - rolling)
+        comp[f'{m} shift'], comp[f'{m} staircase'], comp[f'{m} smooth'], comp[f'{m} ripple'] = shift, stair, smooth, ripple
+        k = max(1, min(len(t) // 20, int(round(30 / dt))))
+        net = float(np.mean(shift[-k:]) - np.mean(shift[:k]))
+        rows[m] = {'net change "': net, 'range "': float(np.ptp(shift)), 'syncs': len(steps),
+                   'sync steps sum "': float(np.sum(steps)) if steps else 0.0,
+                   'median |step| "': float(np.median(np.abs(steps))) if steps else 0.0,
+                   'between syncs "': net - (float(np.sum(steps)) if steps else 0.0),
+                   'ripple rms "': float(np.nanstd(ripple))}
+    summary = pd.DataFrame(rows).T
+    theta2 = float(np.median(np.abs(kf['θ_ref_raw_2'])))
+    summary.attrs['m1_m3_amplification'] = 1.0 / max(np.sin(np.radians(theta2)), 1e-3)
+    summary.attrs['breaks'] = int(len(brk))
+    summary.attrs['theta2_deg'] = theta2
+    return comp, summary
+
+
+def ramp_vs_next_step(comp, sync_times, before_s=(25, 2), after_s=(10, 35)):
+    """
+    For each interval between syncs: the frame shift's change over the interval (the "ramp": PEC's continuous
+    correction, MAC changing with pose) vs the step at the next sync (the plate-solve correction). Per motor:
+    ramp/step RMS, their correlation, and the share of the ramp the next sync undoes (-sum(ramp*step)/sum(ramp^2)).
+    A working PEC ramps WITH the drift, so the next step is small and not opposed (share ~0). Correlation near -1
+    with share ~1 means each sync reverses what PEC applied in between: PEC and the sync guiding are fighting.
+    """
+    t = comp['t_min'].values * 60
+    t0 = comp['timestamp'].iloc[0]
+    st = [(pd.Timestamp(s) - t0).total_seconds() for s in sync_times]
+    st = [s for s in st if t[0] <= s <= t[-1]]
+    rows = {}
+    for i in (1, 2, 3):
+        sh = comp[f'M{i} shift'].values
+        R, S = [], []
+        for a, b in zip(st[:-1], st[1:]):
+            p = sh[(t > a + after_s[0]) & (t < a + after_s[1])]
+            q = sh[(t > b - before_s[0]) & (t < b - before_s[1])]
+            r = sh[(t > b + after_s[0]) & (t < b + after_s[1])]
+            if len(p) > 3 and len(q) > 3 and len(r) > 3:
+                R.append(np.median(q) - np.median(p))
+                S.append(np.median(r) - np.median(q))
+        R, S = np.array(R), np.array(S)
+        ok = len(R) >= 5 and np.sum(R * R) > 0
+        rows[f'M{i}'] = {'intervals': len(R), 'ramp rms "': float(np.sqrt(np.mean(R ** 2))) if len(R) else np.nan,
+                         'step rms "': float(np.sqrt(np.mean(S ** 2))) if len(S) else np.nan,
+                         'corr': float(np.corrcoef(R, S)[0, 1]) if ok and np.std(S) > 0 else np.nan,
+                         'share undone': float(-np.sum(R * S) / np.sum(R * R)) if ok else np.nan}
+    return pd.DataFrame(rows).T
+
+
+def _centred_slope_per_min(t_sec, y, half_window_s):
+    out = np.full(len(t_sec), np.nan)
+    lo = np.searchsorted(t_sec, t_sec - half_window_s, side='left')
+    hi = np.searchsorted(t_sec, t_sec + half_window_s, side='right')
+    for k in range(len(t_sec)):
+        if t_sec[k] - half_window_s < t_sec[0] or t_sec[k] + half_window_s > t_sec[-1] or hi[k] - lo[k] < 3:
+            continue
+        out[k] = np.polyfit(t_sec[lo[k]:hi[k]] - t_sec[k], y[lo[k]:hi[k]], 1)[0] * 60
+    return out
+
+
+def correction_breakdown(df, rate_half_window_s=300.0):
+    """
+    Who corrected the mount's drift, per axis, from PECLOG (one PEC run or a windowed session):
+      mount_drift  = pulse_guide + sync_guide + pec_applied   running totals in arcsec (driver correction convention),
+                     joined across PEC model resets (total_accum restarts at each reset; these don't)
+      *_rate       = centred slope of each over +-rate_half_window_s, arcsec/min; drift_rate = sum of the others
+      pec_model_rate   = the rate the driver's PEC model gave (fit_rate), arcsec/min (= arcmin/hr)
+      pec_steady_term  = its steady-drift (DC) part (ra_model[0] / dec_model[0])
+      pec_harmonic_term = pec_model_rate - pec_steady_term: the signed contribution of the harmonics at that moment
+                          (0 for EMA, which has no harmonics)
+      pec_applied_logged_rate = the rate PEC actually applied (0 while inhibited); pec_active = inhibit == VALID
+    A sync-guide row carries both axes' residuals, a pulse-guide row only one; pec_accum is counted only on that
+    axis's own rows (it is logged on every row but folded into the model only when that axis is ingested).
+    Returns {'ra': DataFrame, 'dec': DataFrame, 'resets': Series of reset timestamps}.
+    """
+    d = df.sort_values('timestamp').reset_index(drop=True)
+    is_sync = d['resid_1'].notna() & d['resid_2'].notna()
+    resets = d.loc[np.r_[False, np.diff(d['n'].values) < 0], 'timestamp'].reset_index(drop=True)
+    out = {'resets': resets}
+    for ax, i, model_col in (('ra', 1, 'ra_model_1'), ('dec', 2, 'dec_model_1')):
+        own = d[f'resid_{i}'].notna()
+        x = d.loc[own, ['timestamp', 't_sec']].copy()
+        resid = d.loc[own, f'resid_{i}'] * 60
+        sync = is_sync[own]
+        x['pulse_guide'] = resid.where(~sync, 0.0).cumsum().values
+        x['sync_guide'] = resid.where(sync, 0.0).cumsum().values
+        x['pec_applied'] = (d.loc[own, f'pec_accum_{i}'].fillna(0) * 60).cumsum().values
+        x['mount_drift'] = x['pulse_guide'] + x['sync_guide'] + x['pec_applied']
+        t = x['t_sec'].values
+        for col in ('mount_drift', 'pulse_guide', 'sync_guide', 'pec_applied'):
+            name = 'drift_rate' if col == 'mount_drift' else f'{col}_rate'
+            x[name] = _centred_slope_per_min(t, x[col].values, rate_half_window_s)
+        x['pec_model_rate'] = d.loc[own, f'fit_rate_{i}'].values if f'fit_rate_{i}' in d else np.nan
+        x['pec_steady_term'] = d.loc[own, model_col].values if model_col in d else x['pec_model_rate']
+        x['pec_harmonic_term'] = x['pec_model_rate'] - x['pec_steady_term']
+        x['pec_applied_logged_rate'] = d.loc[own, f'applied_rate_{i}'].values if f'applied_rate_{i}' in d else np.nan
+        x['pec_active'] = (d.loc[own, f'inhibit_{i}'] == 'VALID').values if f'inhibit_{i}' in d else True
+        out[ax] = x.reset_index(drop=True)
     return out
