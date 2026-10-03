@@ -1,5 +1,5 @@
 """
-Learn the worm feed-forward profile (driver/control_pec.WormFeedForward) from archived drift segments.
+Learn the worm feed-forward profile (driver/control_worm.WormFeedForward) from archived drift segments.
 
 Each motor's gear train after the motor has a periodic error the MCU can't see: the true output angle = the motor
 angle + e_i(theta_i), a 6.0 deg worm (60 teeth, 960:1 = 16 x 60). utility/analyse_pec_theta.ipynb shows the M2 and
@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.join(HERE, '..', 'driver'))
 sys.path.insert(0, HERE)
 
 from pe_analysis import load_segments, fit_worm, fit_shared_worm, worm_phase_table, phase_consistency   # noqa: E402
-from control_pec import WormFeedForward                                                # noqa: E402
+from control_worm import WormFeedForward                                                # noqa: E402
 
 MOTORS = ('M1', 'M2', 'M3')
 RAW_SOURCES = ('kflog', 'sglog', 'peclog_raw')       # segments whose motor angles are 518 theta_raw

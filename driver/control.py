@@ -19,9 +19,10 @@ from kinematics import get_mechanical_correction_q, apply_mechanical_corrections
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll
-from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma
+from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecMode, PecInhibit   # PecAxis/PecMode/PecInhibit re-exported for notebooks
+from control_worm import WormMixin
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -227,13 +228,63 @@ class CalibrationManager:
         self.test_data = {}
         self.calibration_data = {}
         self.interpolator_data = {0:{}, 1:{}, 2:{}}
+        self.on_worm_gear_approval = None   # fn(axis, approved) -> bool: apply/revert an M#-WORM-GEAR result (Polaris)
         if self.liveInstance:
             self.initialiseCalibrationData()
 
     def initialiseCalibrationData(self):
         if not self.loadTestDataFromFile():
             self.createTestDataFromBaseline()
+        self.ensureWormGearRows()
         self.updateCalibrationAndInterpolators()
+
+    # ── M#-WORM-GEAR rows: worm gear calibration tests (control_worm), not speeds ──────────────
+    @staticmethod
+    def wormGearName(axis):
+        return f'M{axis+1}-WORM-GEAR'
+
+    @staticmethod
+    def isWormGear(testName):
+        return str(testName).endswith('-WORM-GEAR')
+
+    def ensureWormGearRows(self):
+        """Add the M#-WORM-GEAR rows if missing, and put them first (top of the Speed Calibration table)."""
+        gear = {}
+        for axis in range(3):
+            name = self.wormGearName(axis)
+            gear[name] = self.test_data.get(name) or dict(
+                name=name, axis=axis, raw=0, ascom=0.0, dps=0.0,
+                test_result='', test_change='', test_stdev='', test_status='UNTESTED')
+        self.test_data = {**gear, **{k: v for k, v in self.test_data.items() if k not in gear}}
+
+    def pendingWormGearTest(self, axis, testNameList):
+        """True (and the row PENDING) if this axis's worm gear row is among the selected tests -- never for 'all'."""
+        name = self.wormGearName(axis)
+        if not testNameList or name not in testNameList or name not in self.test_data:
+            return False
+        self.test_data[name].update(test_status='PENDING', test_result='', test_change='', test_stdev='')
+        if self.liveInstance:
+            self.logTestData([name])
+        return True
+
+    def setWormGearProgress(self, axis, done, total):
+        name = self.wormGearName(axis)
+        self.test_data[name]['test_status'] = f'PENDING {done}/{total}'
+        if self.liveInstance:
+            self.logTestData([name])
+
+    def addWormGearResult(self, axis, fields, status):
+        name = self.wormGearName(axis)
+        self.test_data[name].update(fields, test_status=status)
+        if self.liveInstance:
+            self.logTestData([name])
+            self.saveTestDataToFile()
+
+    def _wormGearApproval(self, testName, approved):
+        """Apply (approved) or revert a worm gear result through on_worm_gear_approval. False: leave the status."""
+        if self.on_worm_gear_approval is None:
+            return True
+        return bool(self.on_worm_gear_approval(self.test_data[testName]['axis'], approved))
 
     def createTestDataFromBaseline(self):
         self.test_data = {}
@@ -248,6 +299,7 @@ class CalibrationManager:
                     self.test_data[name] = dict(
                         name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
                         test_result= '', test_change= '', test_stdev= '', test_status= 'UNTESTED')
+        self.ensureWormGearRows()
 
     def addTestResult(self, axis, raw, result, stdev, status):
         cmd = 'SLOW' if raw<=5 else 'FAST'
@@ -277,7 +329,7 @@ class CalibrationManager:
         testNameList = self.test_data.keys()
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
-            if testData and testData.get('test_status')=='PENDING':
+            if testData and str(testData.get('test_status','')).startswith('PENDING'):
                 self.test_data[testName]['test_status'] = 'STOPPED'
                 self.test_data[testName]['test_result'] = ''
                 self.test_data[testName]['test_change'] = ''
@@ -292,7 +344,7 @@ class CalibrationManager:
         tests=[]
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
-            if testData and testData.get('axis')==axis:
+            if testData and testData.get('axis')==axis and not self.isWormGear(testName):
                 self.test_data[testName]['test_status'] = 'PENDING'
                 self.test_data[testName]['test_result'] = ''
                 self.test_data[testName]['test_change'] = ''
@@ -310,6 +362,8 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             status = testData.get('test_status','')
             if status in ['COMPLETED', 'REJECTED']:
+                if self.isWormGear(testName) and not self._wormGearApproval(testName, True):
+                    continue
                 self.test_data[testName]['test_status'] = 'APPROVED'
         if self.liveInstance:
             self.logTestData(testNameList)
@@ -322,6 +376,8 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             status = testData.get('test_status','')
             if status in ['COMPLETED', 'APPROVED']:
+                if self.isWormGear(testName) and status == 'APPROVED' and not self._wormGearApproval(testName, False):
+                    continue
                 self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
             self.logTestData(testNameList)
@@ -335,8 +391,12 @@ class CalibrationManager:
             if testData and testData.get('axis')==axis:
                 status = testData.get('test_status','')
                 if status in ['COMPLETED', 'REJECTED']:
+                    if self.isWormGear(testName) and not self._wormGearApproval(testName, True):
+                        continue
                     self.test_data[testName]['test_status'] = 'APPROVED'
                 elif status in ['APPROVED']:
+                    if self.isWormGear(testName) and not self._wormGearApproval(testName, False):
+                        continue
                     self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
             self.logTestData(testNameList)
@@ -359,7 +419,7 @@ class CalibrationManager:
     def generateCalibrationFromBaselineAndTestData(self):
         self.calibration_data = copy.deepcopy(self.baseline_data)
         for testName in self.test_data.keys():
-            if self.test_data[testName].get('test_status','')=='APPROVED':
+            if self.test_data[testName].get('test_status','')=='APPROVED' and not self.isWormGear(testName):
                 axis = self.test_data[testName].get('axis',0)
                 raw = self.test_data[testName].get('raw',0)
                 dps = float(self.test_data[testName].get('test_result',0))
@@ -1167,6 +1227,30 @@ class PID_Controller():
         self.delta_sp = self.body2delta()
         self.set_pid_mode('TRACK')
     
+    def worm_test_active(self):
+        """An M#-WORM-GEAR calibration test is running (control_worm): PEC paused, syncs recorded not applied."""
+        return getattr(self.polaris._sm, 'worm_test', None) is not None
+
+    def interrupt_worm_test(self, reason):
+        """Anything but the worm gear test's own steps moving the mount ends that test (control_worm)."""
+        test = getattr(self.polaris._sm, 'worm_test', None)
+        if test is not None and not test.aborted:
+            test.abort(reason)
+            self.logger.warning(f"WORM GEAR TEST M{test.axis+1}: stopped by {reason}")
+
+    def step_motor_target(self, axis, step_deg):
+        """Move the tracked target so one motor turns step_deg and the others stay put (M#-WORM-GEAR calibration): the
+        target's RA/Dec/PA is replaced by the pose of the current motor target with that motor stepped -- as orbital
+        tracking replaces delta_sp -- and sidereal tracking then holds it."""
+        theta = np.array(self.theta_ref, dtype=float)
+        theta[axis] += step_deg
+        alpha = np.array(q_to_azaltroll(self.polaris._sm.pvQ_to_topoQ(theta_to_q(*theta))), dtype=float)
+        self.reset_offsets()                       # theta_ref already includes any offsets
+        self.alpha_sp = alpha
+        self.alpha2body(alpha)
+        self.delta_sp = self.body2delta()
+        self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)
+
     def set_tracking_off(self):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
@@ -1174,6 +1258,8 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
 
     def set_pid_mode(self, newMode):
+        if newMode != 'TRACK':
+            self.interrupt_worm_test(f'PID mode {newMode}')
         if newMode in ['PRESETUP', 'HOMING', 'PARKING', 'PARK', 'IDLE', 'AUTO', 'TRACK', 'LIMIT', ]:
             self.mode = newMode
             self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
@@ -1186,6 +1272,7 @@ class PID_Controller():
         self.reset_offsets()
 
     def set_alpha_target(self, sp: dict[str, float]):
+        self.interrupt_worm_test('goto')
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.reset_offsets()      
@@ -1214,6 +1301,7 @@ class PID_Controller():
 
     def set_delta_target(self, sp: dict[str, float]):
         """" Beware ra parameter is in hours, ra/dec changes keep pa constant """
+        self.interrupt_worm_test('goto')
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         self.reset_offsets()
@@ -1240,6 +1328,7 @@ class PID_Controller():
             self.set_pid_mode('TRACK')
     
     def set_pano_offset(self, offsets):
+        self.interrupt_worm_test('pano offset')
         dictmap = {
             'ra': (self.delta_offst, 0),
             'dec': (self.delta_offst, 1),
@@ -1296,6 +1385,7 @@ class PID_Controller():
             self.orbital_sp_fetchmsg = f'Cannot find orbital with name "{name}"'
 
     def rotator_move_relative(self, sp=0.0):
+        self.interrupt_worm_test('rotator move')
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         axis=2
@@ -1413,6 +1503,8 @@ class PID_Controller():
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
             
         elif self.mode == 'TRACK':
+            if self._has_active_jog():
+                self.interrupt_worm_test('jog')
             self.orbital2delta()
 
             # Glat/Glon/GPA jog
@@ -1672,7 +1764,7 @@ class PID_Controller():
         # PEC contribution — independent of ff_inhibit gating (that's for setpoint-
         # change transients, unrelated to PEC), added as its own velocity term.
         self.omega_pec = np.zeros(3, dtype=float)
-        if Config.advanced_pec and self.mode == "TRACK":
+        if Config.advanced_pec and self.mode == "TRACK" and not self.worm_test_active():
             omega_pec_B = getattr(self.polaris._sm, 'omega_pec_B', None)
             if omega_pec_B is not None and np.any(omega_pec_B):
                 J = theta_to_jacobian(*self.theta_pv)
@@ -1934,7 +2026,8 @@ class PID_Controller():
         # If we have goto timeout or stopped moving; while  in AUTO, HOMING or PARKING, go to IDLE
         is_goto_finished = (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']
         # If in PID TRACK mode but polaris is not tracking (ie promoted by jog), demote to IDLE when jog stops
-        is_jog_finished = self.mode == 'TRACK' and not self.polaris._tracking and not self._has_active_jog()
+        is_jog_finished = (self.mode == 'TRACK' and not self.polaris._tracking and not self._has_active_jog()
+                           and not self.worm_test_active())
         if is_goto_finished or is_jog_finished:
             self.set_pid_mode('IDLE')
             self.was_moving = True
@@ -1952,7 +2045,7 @@ class PID_Controller():
             if self.dt < 0.05:
                 return
         self.time_step = now
-        if Config.advanced_pec:
+        if Config.advanced_pec and not self.worm_test_active():
             self.polaris._sm.apply_pec_drift_correction()
         if self.time_meas:      # Only process if we have a measurement
             if Config.coordinated_speed_control:
@@ -2048,7 +2141,7 @@ class PID_Controller():
 #  SYNC MANAGER          #
 ########################## 
 
-class SyncManager(PecMixin):
+class SyncManager(PecMixin, WormMixin):
     def __init__(self, logger, polaris):
         self.logger = logger
         self.polaris = polaris
@@ -2086,6 +2179,7 @@ class SyncManager(PecMixin):
         self._pulse_guide_last_step_sec = 0     # last pulse guide request's duration in seconds
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncDataReset()
+        self.init_worm()
         self.init_pec()
 
     def standard_entry(self):
@@ -2144,6 +2238,13 @@ class SyncManager(PecMixin):
         # Apply Pulse Guide Corrections (PGC)
         motorQ_C2B_pv = self.q_pulseguide_B * motorQ_C2B_pv
 
+        return self.pvQ_to_topoQ(motorQ_C2B_pv), motorQ_C2B_pv
+
+    def pvQ_to_topoQ(self, motorQ_C2B_pv):
+        """
+        Forward kinematics from the corrected motor pose (theta_pv / theta_ref space, after WFF/MAC/SGC/PGC):
+        motorQ_pv → QUEST → [LGA] → [roll_adj] → cameraQ. The inverse of topoQ_to_baseQ.
+        """
         # Apply alignQ_B2T model (QUEST)
         cameraQ_C2T_pv = self.alignQ_B2T * motorQ_C2B_pv
 
@@ -2158,7 +2259,7 @@ class SyncManager(PecMixin):
             corrQ_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
             cameraQ_C2T_pv = corrQ_roll * cameraQ_C2T_pv
 
-        return cameraQ_C2T_pv, motorQ_C2B_pv
+        return cameraQ_C2T_pv
 
 
 

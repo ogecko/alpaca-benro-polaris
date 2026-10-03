@@ -39,7 +39,7 @@ def test_peclog_theta_raw_is_none_before_the_first_518(mock_config, caplog):
 # ── 517 motor angles (zeta): the MCU's own angles, free of the compass / SPA heading in 518 ──
 
 def test_zeta_raw_offset_is_theta_raw_minus_zeta_wrapped_to_180():
-    from control_pec import zeta_raw_offset
+    from control_worm import zeta_raw_offset
     assert zeta_raw_offset([190.0, 50.0, -5.0], [5.0, 4.5, -5.25]) == [-175.0, 45.5, 0.25]
     assert zeta_raw_offset(None, [1.0, 2.0, 3.0]) is None
     assert zeta_raw_offset([1.0, 2.0, 3.0], None) is None

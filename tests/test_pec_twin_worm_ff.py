@@ -20,7 +20,7 @@ import pytest
 from sim_digital_twin import Twin, LAT
 from sim_guider import SimGuider, SimPlateSolver, Worm, ARCSEC
 from kinematics import azaltroll_to_theta_ik
-from control_pec import WormFeedForward
+from control_worm import WormFeedForward
 
 POSE = (180.0, 50.0, 0.0)                 # M3 turns ~15 deg/hr: the 6 deg worm repeats every ~24 min
 WORM = Worm(amplitude_arcsec=(0.0, 30.0, 50.0), theta_deg=6.0, h2=0.35, seed=1)

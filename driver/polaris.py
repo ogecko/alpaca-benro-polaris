@@ -48,7 +48,8 @@ from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, byte
 from kinematics import THETA2_MIN_MEAS
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
-from control_pec import zeta_raw_offset
+from control_worm import zeta_raw_offset, WormCalibration, WormFeedForward, fit_worm_samples, gear_row_fields
+from control_worm import store_calibration, apply_calibration, revert_calibration
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache
@@ -234,7 +235,7 @@ class Polaris:
         self._motorQ_state = None                   # The KF corrected C2B quaternion in B Frame
         self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
-        self._zeta_raw_offset = None                 # theta_raw (518) - zeta (517) per motor at the last "517" -- see control_pec.zeta_raw_offset
+        self._zeta_raw_offset = None                 # theta_raw (518) - zeta (517) per motor at the last "517" -- see control_worm.zeta_raw_offset
         self._zeta_theta_offset = None               # [theta1,theta2,theta3] - [zeta1,zeta2,zeta3], refreshed on each "517". The Benro
                                                       # Polaris firmware performs its own Single Point Alignment (Compass/Single Star),
                                                       # which shifts its "517" zeta reporting independently of our theta_state (518/KF)
@@ -246,6 +247,7 @@ class Polaris:
         self._omega_raw = None                      # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._omega_meas = None                     # The latest calculated Polaris motor axis angular velocity [omega1, omega2, omega3] measured from 6 sample history
         self._cm = CalibrationManager()
+        self._cm.on_worm_gear_approval = self.worm_gear_approval
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         # Legacy per-axis controllers and the shared-level v2 controller (BETA) run side by side;
         # each self._motors[axis] routes to one of them, chosen by Config.coordinated_speed_control
@@ -611,6 +613,66 @@ class Polaris:
             status = "HIGH STDEV"
             self.logger.info(f'== TEST == **UNSTABLE** on Axis {axis} |  RAW {rate_raw} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}')
         return abs(measured_dps), abs(rate_raw), stdev, status
+
+
+    async def worm_gear_test(self, axis):
+        """M#-WORM-GEAR calibration test (control_worm): step motor `axis` through 2 worm turns each way around the
+        current pointing while sidereal tracking holds the sky, recording each plate-solve sync (every ~10-15 s) as that
+        motor's angle error. The fit, its checks and the samples go into the worm profile file for review."""
+        self.lifecycle.start()
+        sm = self._sm
+        if not (Config.advanced_control and Config.advanced_tracking):
+            self.logger.warning("WORM GEAR TEST: needs advanced control and advanced tracking")
+            self._cm.addWormGearResult(axis, {}, 'NO DATA')
+            self.lifecycle.reset()
+            return
+        was_tracking = self._tracking
+        if not was_tracking:
+            await self.start_tracking()
+        test = WormCalibration(axis)
+        self.logger.info(f"WORM GEAR TEST M{axis+1}: {len(test.positions)} positions, {test.step_deg} deg steps, "
+                         f"{test.syncs_per_step} plate solves each (the first after a step is discarded)")
+        sm.worm_test = test
+        try:
+            shown = None
+            while not test.done and not test.aborted and not self.lifecycle.should_stop():
+                if test.index != shown:
+                    shown = test.index
+                    self._cm.setWormGearProgress(axis, shown, len(test.positions))
+                if test.timed_out(time.monotonic()):
+                    test.abort('no syncs')
+                    self.logger.warning(f"WORM GEAR TEST M{axis+1}: no plate-solve sync for {test.no_sync_timeout_s:.0f} s "
+                                        f"-- run solve and sync about every 10-15 s while the test runs")
+                await asyncio.sleep(0.5)
+        finally:
+            sm.worm_test = None
+            if not was_tracking:
+                await self.stop_tracking()
+        result = fit_worm_samples(test.samples, worm_theta=test.worm_theta)
+        path = sm.worm_profile_path()
+        current = WormFeedForward.load(path)
+        if result['status'] != 'NO DATA':
+            store_calibration(path, axis, result)        # too little data: keep whatever was there for review
+        if result['status'] != 'NO DATA' or test.abort_reason == 'no syncs':
+            status = result['status']
+        else:
+            status = 'STOPPED'
+        self.logger.info(f"WORM GEAR TEST M{axis+1}: {status} {result.get('amplitude_arcsec')}\" @ "
+                         f"{result.get('phase_deg')} deg, checks {result['checks']} -> {path}")
+        self._cm.addWormGearResult(axis, gear_row_fields(result, current, axis, worm_theta=test.worm_theta), status)
+        self.lifecycle.reset()
+
+    def worm_gear_approval(self, axis, approved):
+        """Approve: put the stored M#-WORM-GEAR result into the worm profile; reject: restore the previous one."""
+        path = self._sm.worm_profile_path()
+        done = apply_calibration(path, axis) if approved else revert_calibration(path, axis)
+        if done:
+            self._sm.reload_worm_ff()
+            self.logger.info(f"WORM GEAR M{axis+1}: {'applied to' if approved else 'reverted in'} {path}"
+                             + ('' if Config.pec_worm_ff else ' (pec_worm_ff is off: not used until it is on)'))
+        else:
+            self.logger.warning(f"WORM GEAR M{axis+1}: nothing to {'apply' if approved else 'revert'} in {path}")
+        return done
 
 
 # ── Polaris Angle Helpers ─────────────────────────────────────────────────────────────
@@ -2253,6 +2315,11 @@ class Polaris:
             self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
             return
 
+        if self._sm.worm_test is not None:
+            # M#-WORM-GEAR test: a measurement of the motor's gear error, not applied to any model
+            self._sm.record_worm_sync(a_ra, a_dec, a_az, a_alt)
+            return
+
         syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
         self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
 
@@ -2521,6 +2588,11 @@ class Polaris:
                 await self.send_cmd_change_tracking_state(True)
 
     def pulse_guide(self, direction: int, duration: int):
+        if self._sm.worm_test is not None:
+            # a guider moving the mount would corrupt the worm gear test: end it, and drop this pulse
+            self._sm.worm_test.abort('pulse guide')
+            self.logger.warning(f"WORM GEAR TEST: stopped by a pulse guide (dropped: direction {direction}, {duration}ms)")
+            return
         if Config.advanced_pulse_guiding and Config.advanced_control:
             if Config.log_pulse_guiding:
                 self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")

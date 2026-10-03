@@ -1,5 +1,5 @@
 """
-Tests for the worm feed-forward (control_pec.WormFeedForward): each motor's gear periodic error e_i(theta_i) -- the
+Tests for the worm feed-forward (control_worm.WormFeedForward): each motor's gear periodic error e_i(theta_i) -- the
 true output angle is the MCU's motor angle + e_i, which the MCU can't see -- from a profile learnt offline
 (utility/learn_worm.py), applied as a base-frame rotation so the driver's present value is the true pointing.
 """
@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 import numpy as np
 import pytest
 
-from control_pec import WormFeedForward
+from control_worm import WormFeedForward
 from kinematics import theta_to_q
 
 ARCSEC = 3600.0

@@ -342,40 +342,58 @@ While software like PHD2 offers its own "Predictive PEC," the Alpaca Driver's im
     *   **RMSE/Poor:** High model error or low quality.
     *   **Active (Numeric Value):** When the model is being applied, it displays a value between 0 and 1, where values closer to 1 indicate a near-perfect fit.
 4. **PEC Analysis:** The utilities folder includes a Jupyter Notebook to analyse a log file's PEC data. This can show the accumulated drift error and how well the PEC fitted it. It also shows the Instantaneous PEC Rate and its various components, the R2 quality and rmse plots.
-![Software Layers](images/abp-pec-analysis.png)
+![PEC Corrections](images/abp-pec-analysis.png)
 
-#### **VI. Worm Feed-Forward (experimental, off by default)**
-Each motor's gear train after the motor has a periodic error: the true output angle is the MCU's motor angle plus an
-error that repeats every turn of that motor's worm. The MCU only measures the motor shaft, so neither it nor the
-driver ever sees this error directly; it shows up as drift that the guider or PEC must chase. On the archived logs a
-**6.0 deg worm** (a 60-tooth wheel, as 960:1 = 16 x 60) is clear on **M2 and M3**, about +/-60-70" of motor angle, and
-its phase repeats from night to night (`utility/analyse_pec_theta.ipynb`). M1's phase changes with each session's
-compass / Single Point Alignment, so it is left out for now.
+#### **VI. Worm Gear Correction (experimental, off by default)**
+Each of the Polaris's three motors drives its axis through a worm gear. Small irregularities in that gear make the
+pointing wobble slightly as the motor turns, by about +/-50-65 arc seconds, and the wobble repeats every **6 degrees**
+of that axis' rotation. The mount measures its position at the motor, before the gear, so it cannot see this wobble
+itself. Without correction it shows up as drift that your guider (or PEC) has to keep chasing.
 
-Unlike PEC, which learns a rate from the guide corrections as they arrive, the worm feed-forward uses a fixed profile
-learnt beforehand and corrects the gear error as each motor turns, with no lag: the driver builds its present value
-from the true motor angles (`[WFF]`, the first step of the correction chain, see §4.6), so the PID, the alignment
-model, guiding and PEC all work from the true pointing. PEC (EMA or RLS) keeps working as before on whatever is left.
+The wobble belongs to the gears, so it is the same every night. Once it has been measured for each motor's gear, the driver
+corrects it as the motors turn, with no delay and no guiding needed. PEC keeps working on whatever drift is left.
 
-1.  **Learn the profile** for your mount from logs with raw motor angles (PECLOG `theta_raw`, KFLOG or SGLOG), after
-    registering them and building the segment datasets (`utility/analyse_pec_theta.ipynb`):
-    `uv run python utility/learn_worm.py` (`--exclude` other people's mounts, `--dry-run` to only report). It writes
-    `data/worm_profile.json` and reports the amplitude, each motor's phase and how consistently it repeats. The model
-    is a pure 6 deg sine with **one amplitude for all motors and a phase per motor** (on the archive ~64" and phases
-    M2 ~102 deg, M3 ~267 deg; a second mount's one raw-angle night agrees); `--per-motor` fits independent profiles.
-2.  **Turn it on** with `pec_worm_ff = true` in `config.toml` (`pec_worm_profile` names the file). Do this before
-    aligning and slewing: switching it while guiding shifts the pointing by up to the profile's amplitude once.
-3.  **Check it:** PECLOG logs the correction applied (`wff`, RA/Dec arcmin); the analysis adds it back to the drift, so
-    feed-forward nights still feed the notebooks and the next profile. Compare blocks with it on and off on the same
-    target (PHD2 RMS and guider effort in `analyse_pec_delta.ipynb`'s Guider Outcome).
+**1. Measure each motor with a Worm Gear test.** On the Alpaca Pilot **Speed Calibration** page, the top row for each
+motor is its worm gear test: **M1-WORM-GEAR**, **M2-WORM-GEAR** and **M3-WORM-GEAR**. Run one test per motor, on a
+clear night, about 16 minutes each:
 
-On the digital twin (`tests/test_pec_twin_worm_ff.py`) it removes a worm's error from sync guiding entirely (the error
-drops to the plate-solve noise) and reduces pulse-guiding error and guider effort by about 15%.
+1.  Point the mount at a clear patch of sky, at least 30 degrees above the horizon, with about +/-6 degrees of clear sky
+    all around it. 
+2.  In NINA (or similar), run a repeating **Solve and Sync** about every 10-15 seconds, with short exposures and no delay. Keep it going until the test finishes.
+3.  On the Speed Calibration Page, select the motor's **WORM-GEAR** row and press **Test**. Tracking is turned on automatically if it is off.
+4.  The mount moves the motor in small steps up to 6 degrees either side of where you pointed, then back, while tracking holds the stars still. The status shows progress (for example `PENDING 12/49`).
+
+While a test runs:
+-   Your syncs are used only as measurements. They don't change the pointing model.
+-   PEC and any existing worm gear correction pause.
+-   **Don't guide, slew, park or jog the mount.** Any of these stops the test.
+-   If no Solve and Sync arrives for 2 minutes, the test stops with **NO DATA**.
+-   You can press **Stop** at any time. A test stopped part way still shows a result if it has enough data.
+
+**2. Review the result.** The row shows:
+-   **Test Result:** the size and phase of the motor's gear wobble, for example `61.8" @ 101.7°`.
+-   **Baseline:** the size of the correction currently stored for that motor (0 if none).
+-   **Change:** the difference from the stored correction, or `new`. A ⚠ warns that the measurement does not look like a clean worm gear wobble: a strong extra wobble (`2nd harm`), a repeat other than 6 degrees (`period`), different results moving each way (`fwd/rev`), or a pointing where this motor barely moves the view (`sensitivity`). In that case, repeat the test somewhere else in the sky.
+-   **Test Stdev:** how closely the measurements fit, and how many plate solves were used.
+-   **Status:** `COMPLETED` when the wobble was measured clearly; `POOR FIT` when the wobble couldn't be told apart from noise; `NO DATA` or `STOPPED` when there were too few plate solves.
+
+The full details of each test are kept in `worm_profile.json` in the driver's data folder.
+
+**3. Approve it.** Press **Approve** on the row to store that motor's correction. Pressing it again rejects the test
+and restores the previous correction.
+
+**4. Turn the correction on** with `pec_worm_ff = true` in `config.toml`, before aligning and slewing for the night.
+Turning it on or off while guiding shifts the pointing once, by up to the wobble's size.
+
+**5. Check it.** Compare guiding (PHD2 RMS, or the size of the sync guide corrections) on the same target with the
+correction on and off. With it on, the slow, regular wave in the guide corrections should be gone.
 
 #### **VII. Important Considerations**
 PEC is designed exclusively for **sidereal tracking** of Deep Sky Objects (DSOs) and stars. It is not suitable for tracking Lunar, Solar, or custom orbital targets. Additionally, while PEC is a powerful tool for fine mechanical correction, it cannot compensate for gross mechanical failures such as cable drag, tripod instability, or wind effects.
 
 > For exactly how a sync guide residual reaches `q_syncguide_B`, how a PID tick evaluates the PEC rate, and how the next `518` message folds that correction into `theta_pv`, see [§4. Kinemtaics Flows](#4-kinemtaics-flows), sections 4.4–4.6.
+
+![Worm Gear Corrections](images/abp-pec-worm.png)
 
 ### **2.7 Reachable Altitude and Roll Envelope**
 #### I. What it is and What it Solves
@@ -755,7 +773,8 @@ from `process_pulse_guide_axis()`, whenever `Config.advanced_pulse_pec_tuning` i
 With `Config.pec_ignore_guider_calibration`, `GuiderCalibrationDetector` recognises a guider's
 calibration (PHD2, CCDciel) as 3+ identical same-axis, same-direction pulses: PEC is rolled back to
 its state before that run and learns nothing more until no repeated pulse has been seen for 20 s.
-The PEC code lives in `driver/control_pec.py` (`PecMixin`, mixed into `SyncManager`).
+The PEC code lives in `driver/control_pec.py` (`PecMixin`, mixed into `SyncManager`); the worm feed-forward and the
+M#-WORM-GEAR tests in `driver/control_worm.py` (`WormMixin`).
 
 ---
 

@@ -1,5 +1,5 @@
 """
-Tests for utility/learn_worm.py: learn the worm feed-forward profile (driver/control_pec.WormFeedForward) from
+Tests for utility/learn_worm.py: learn the worm feed-forward profile (driver/control_worm.WormFeedForward) from
 archived segments with raw motor angles, for the motors asked for, with its provenance.
 """
 import os
@@ -39,7 +39,7 @@ def test_no_segments_gives_no_profile():
 
 
 def test_the_saved_profile_loads_back_with_its_coefficients(segs, tmp_path):
-    from control_pec import WormFeedForward
+    from control_worm import WormFeedForward
     ff = learn_profile(segs, lat_of=lambda s: LAT, motors=('M2', 'M3'), harmonics=H)
     ff.save(tmp_path / 'worm_profile.json')
     back = WormFeedForward.load(tmp_path / 'worm_profile.json')
@@ -47,7 +47,7 @@ def test_the_saved_profile_loads_back_with_its_coefficients(segs, tmp_path):
 
 
 def test_shared_profile_has_one_amplitude_and_a_phase_per_motor(segs, tmp_path):
-    from control_pec import WormFeedForward
+    from control_worm import WormFeedForward
     ff = learn_profile(segs, lat_of=lambda s: LAT, motors=('M1', 'M3'), shared=True)
     assert ff.harmonics == (1,) and ff.meta['model'] == 'shared amplitude, phase per motor'
     amp = np.hypot(ff.coef[:, 0], ff.coef[:, 1])
