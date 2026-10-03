@@ -1,5 +1,5 @@
 <template>
-  <div ref="chart" style="height: 300px; width: 100%;">
+  <div ref="chart" style="height: 300px; width: 100%; position: relative;">
     <q-resize-observer @resize="onResize" />
   </div>
 </template>
@@ -63,7 +63,13 @@ let zoom: d3.ZoomBehavior<SVGSVGElement, unknown>
 let currentTransform: d3.ZoomTransform | null = null
 let gridX: d3.Selection<SVGGElement, unknown, null, undefined>
 let gridY: d3.Selection<SVGGElement, unknown, null, undefined>
-const paths: Record<string, d3.Selection<SVGPathElement, unknown, null, undefined>> = {}
+// The lines are drawn on a canvas under the SVG (axes, gridlines, legend, statistics stay in the SVG on top). As
+// SVG paths they made every redraw restyle each path and re-read all its points (a path's shape is a style
+// property): 6 charts x 10 lines x 150 points, more expensive as the data buffers filled, until an N5105 slowed
+// to a few redraws a second for good. Canvas drawing involves no styling at all.
+let canvas: HTMLCanvasElement | null = null
+let plotWidth = 0
+let plotHeight = 0
 
 
 // Live time charts scroll on a steady clock, not one step per record: records arrive about every 200 ms
@@ -74,6 +80,7 @@ const paths: Record<string, d3.Selection<SVGPathElement, unknown, null, undefine
 // The y range changes rarely and in one step (yRange): new y tick labels are the costliest thing a redraw can
 // do on a small PC, and easing the range redrew them every frame for a second whenever the data's extent moved.
 const SCROLL_DELAY_MS = 1000      // how far the right edge trails the newest record (covers the arrival jitter)
+const LEFT_MARGIN_MS = 1000       // how far the left edge stays inside the oldest record (so it never shows a gap)
 const Y_MARGIN = 0.05             // room above and below the data, as a share of its extent
 const Y_SHRINK = 0.6              // shrink the range only once the data fills less than this share of it
 let stopTicking: (() => void) | null = null   // leaves the shared redraw clock
@@ -84,6 +91,17 @@ let legendKey = ''
 let statsText = ''
 let clockOffset: number | null = null   // data time (ms) minus performance.now() at the newest record
 let spanMs = 0                          // width of the visible window (ms)
+const MIN_SPAN_MS = 10000               // at least this wide: with the first records only, a zero-width window
+                                        // would draw everything at the middle of the chart
+// The time axis and its gridlines: ticks laid out once against a fixed reference (an "epoch" value at x = 0)
+// inside an inner group, and each redraw only moves that group. Moving every tick each redraw made the browser
+// restyle them all (the charts' whole style cost on an N5105); now a tick is only touched when it scrolls in or
+// out, and all of them only when the scale itself changes (zoom, or the window width settling at startup).
+type AxisLayout = { epoch: number, pxPerUnit: number }
+let gXTicks: d3.Selection<SVGGElement, unknown, null, undefined>
+let gridXTicks: d3.Selection<SVGGElement, unknown, null, undefined>
+let xAxisLayout: AxisLayout = { epoch: 0, pxPerUnit: 0 }
+let xGridLayout: AxisLayout = { epoch: 0, pxPerUnit: 0 }
 let yDomain: [number, number] | null = null    // the y range shown
 // The chart's width, read only when it is built or resized: reading clientWidth while drawing forces the
 // browser to lay the page out again right away (a forced reflow), once per chart per frame.
@@ -98,53 +116,61 @@ function initChart() {
   chartWidth = Math.max(chart.value?.clientWidth ?? 500, margin.left + margin.right + 10)
   yAxisKey = ''
   const width = chartWidth
-  const clipId = `plot-clip-${Math.random().toString(36).slice(2, 9)}`
-  
   xScale = props.x1Type === 'time'
     ? d3.scaleTime().range([0, width - margin.left - margin.right])
     : d3.scaleLinear().range([0, width - margin.left - margin.right])
   yScale = d3.scaleLinear().range([height - margin.top - margin.bottom, 0])
 
   d3.select(chart.value).select('svg').remove()
+  d3.select(chart.value).select('canvas').remove()
+  plotWidth = width - margin.left - margin.right
+  plotHeight = height - margin.top - margin.bottom
+  const dpr = window.devicePixelRatio || 1
+  canvas = d3.select(chart.value)
+    .append('canvas')
+    .attr('width', Math.round(plotWidth * dpr))
+    .attr('height', Math.round(plotHeight * dpr))
+    .style('position', 'absolute')
+    .style('left', `${margin.left}px`)
+    .style('top', `${margin.top}px`)
+    .style('width', `${plotWidth}px`)
+    .style('height', `${plotHeight}px`)
+    .style('pointer-events', 'none')
+    .style('background-color', '#1e1e1e')        // the plot area's background (the margins show the card)
+    .node()
   svg = d3.select(chart.value)
     .append('svg')
     .attr('width', width)
     .attr('height', height)
     .attr('viewBox', `0 0 ${width} ${height}`)
+    .style('position', 'absolute')
+    .style('left', '0')
+    .style('top', '0')
 
   const g = svg.append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`)
 
-  // lines are clipped to the plot area (a live chart's newest second lies just past the right edge)
-  g.append('defs').append('clipPath').attr('id', clipId)
-    .append('rect')
-    .attr('width', width - margin.left - margin.right)
-    .attr('height', height - margin.top - margin.bottom)
-
-  g.append('rect')
-    .attr('width', width - margin.left - margin.right)
-    .attr('height', height - margin.top - margin.bottom)
-    .attr('fill', '#1e1e1e')
-    .lower()
-
-  gridX = g.append('g').attr('color', '#444')
-    .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
+  const plotW = width - margin.left - margin.right
+  const plotH = height - margin.top - margin.bottom
+  // The time axis and its gridlines move every redraw, so they are drawn by drawXAxis (below), not d3.axis:
+  // d3.axis re-sets the group's font attributes on every call, which makes the browser restyle -- and re-resolve
+  // the font of -- every tick label each redraw (on an N5105 that was 2/3 of all the browser's time). Their
+  // fonts, colours and baseline are set once, here.
+  gridX = g.append('g').attr('color', '#444').attr('transform', `translate(0,${plotH})`)
+  gridX.append('path').attr('class', 'domain').attr('fill', 'none').attr('stroke', 'currentColor')
+    .attr('d', `M0.5,${-plotH}V0.5H${plotW + 0.5}V${-plotH}`)
+  gridXTicks = gridX.append('g')
   gridY = g.append('g').attr('color', '#444')
 
-  gX = g.append('g').attr('transform', `translate(0,${height - margin.top - margin.bottom})`).style('color', '#aaa')
+  gX = g.append('g').attr('transform', `translate(0,${plotH})`).style('color', '#aaa')
+    .attr('fill', 'none').attr('font-size', 10).attr('font-family', 'sans-serif').attr('text-anchor', 'middle')
+  gX.append('path').attr('class', 'domain').attr('stroke', 'currentColor').attr('d', `M0.5,6V0.5H${plotW + 0.5}V6`)
+  gXTicks = gX.append('g')
+  xAxisLayout = { epoch: 0, pxPerUnit: 0 }
+  xGridLayout = { epoch: 0, pxPerUnit: 0 }
   gY = g.append('g').style('color', '#aaa')
   legendKey = ''
   statsText = ''
-
-  // Create paths dynamically for each line definition
-  lineDefs.forEach(def => {
-    paths[def.key] = g.append('path')
-      .attr('class', `line ${def.key}`)
-      .attr('fill', 'none')
-      .attr('stroke', def.color)
-      .attr('stroke-width', 2)
-      .attr('clip-path', `url(#${clipId})`)
-  })
 
   svg.append('text')
     .attr('class', 'stdev-label')
@@ -214,11 +240,16 @@ function updateChart() {
     const newest = times[times.length - 1] ?? 0
     const now = performance.now()
     const offset = newest - now
-    // follow the data clock; jump only when far off (first data, a pause, a reconnect)
+    // follow the data clock; jump only when far off (first data, a pause, a reconnect). Averaged evenly: tracking
+    // the least-delayed messages instead put the right edge so close to the newest data that ordinary delays showed
+    // a gap there (measured at 6x CPU throttle)
     if (clockOffset === null || Math.abs(offset - clockOffset) > 3000) clockOffset = offset
     else clockOffset += 0.05 * (offset - clockOffset)
-    const full = Math.max(0, newest - (times[0] ?? newest) - SCROLL_DELAY_MS)
-    spanMs = spanMs === 0 ? full : spanMs + 0.05 * (full - spanMs)
+    const full = Math.max(0, newest - (times[0] ?? newest) - SCROLL_DELAY_MS - LEFT_MARGIN_MS)
+    // the window's width follows the data's span, but only when that has moved by more than 2%: it jitters with
+    // every record, and each change of width re-lays out the time axis
+    const target = Math.max(full, MIN_SPAN_MS)
+    if (spanMs === 0 || Math.abs(target - spanMs) > 0.02 * spanMs) spanMs = target
     ensureAnimating()
   } else {
     const x1 = props.data.map(d => d.x1 as number)
@@ -237,12 +268,8 @@ function render() {
   const zx = currentTransform ? currentTransform.rescaleX(xScale) : xScale
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
 
-  gX.call(d3.axisBottom(zx))
-  gridX.call(
-    d3.axisBottom(zx)
-      .tickSize(-(height - margin.top - margin.bottom))
-      .tickFormat(() => '')
-  )
+  drawXAxis(gXTicks, xAxisLayout, zx, 6, true)
+  drawXAxis(gridXTicks, xGridLayout, zx, -(height - margin.top - margin.bottom), false)
 
   const [y0, y1] = zy.domain() as [number, number]
   const tol = Math.abs(y1 - y0) * 1e-3                  // well under a pixel
@@ -261,6 +288,41 @@ function render() {
   }
 
   drawLines(zx, zy)
+}
+
+function drawXAxis(
+  inner: d3.Selection<SVGGElement, unknown, null, undefined>,
+  layout: AxisLayout,
+  zx: d3.ScaleLinear<number, number> | d3.ScaleTime<number, number>,
+  tickLength: number,
+  labels: boolean,
+) {
+  const asValue = (d: number) => props.x1Type === 'time' ? new Date(d) : d
+  const x = (d: number) => (zx as (v: number | Date) => number)(asValue(d))
+  const [d0, d1] = (zx.domain() as (number | Date)[]).map(d => +d) as [number, number]
+  const pxPerUnit = (x(d1) - x(d0)) / ((d1 - d0) || 1)
+  // re-lay out every tick only when the scale changes (or the group has moved very far)
+  const relayout = Math.abs(pxPerUnit - layout.pxPerUnit) > 1e-3 * Math.abs(pxPerUnit)
+                   || Math.abs((d0 - layout.epoch) * pxPerUnit) > 1e6
+  if (relayout) {
+    layout.epoch = d0
+    layout.pxPerUnit = pxPerUnit
+  }
+  const place = (d: number) => `translate(${(d - layout.epoch) * layout.pxPerUnit + 0.5},0)`
+
+  // Ticks keyed by value: created (with its label) when it scrolls into view, removed when it leaves.
+  const ticks = (zx.ticks() as (number | Date)[]).map(d => +d)
+  const format = zx.tickFormat() as (d: number | Date) => string
+  const tick = inner.selectAll<SVGGElement, number>('g.tick').data(ticks, d => d)
+  tick.exit().remove()
+  const added = tick.enter().append('g').attr('class', 'tick').attr('transform', place)
+  added.append('line').attr('stroke', 'currentColor').attr('y2', tickLength)
+  if (labels) {
+    added.append('text').attr('fill', 'currentColor').attr('y', 9).attr('dy', '0.71em')
+      .text(d => format(asValue(d)))
+  }
+  if (relayout) tick.attr('transform', place)
+  inner.attr('transform', `translate(${x(layout.epoch)},0)`)          // the one change on every redraw
 }
 
 function yRange(lo: number, hi: number, current: [number, number] | null): [number, number] {
@@ -377,15 +439,31 @@ function drawLines(
     zx: d3.ScaleLinear<number, number> | d3.ScaleTime<number, number> = xScale,
     zy = yScale,
 ) {
+  // On the canvas, in plot coordinates; it covers only the plot area, so lines past the edges are cut off.
+  const ctx = canvas?.getContext('2d')
+  if (!ctx || !canvas) return
+  const dpr = canvas.width / Math.max(1, plotWidth)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, plotWidth, plotHeight)
+  ctx.lineWidth = 2
+  ctx.lineJoin = 'round'
+  const x = (d: DataPoint) => (zx as (v: number | Date) => number)(d.x1 as number | Date)
   lineDefs.forEach(def => {
-    const line = d3.line<DataPoint>()
-      .defined(d => typeof d[def.key] === 'number')
-      .x(d => zx(props.x1Type === 'time' ? d.x1 as Date : d.x1 as number))
-      .y(d => zy(d[def.key] as number))
-    paths[def.key]?.attr('d', line(props.data))
+    let drawing = false
+    ctx.beginPath()
+    for (const d of props.data) {
+      const v = d[def.key]
+      if (typeof v !== 'number') { drawing = false; continue }
+      const px = x(d)
+      const py = zy(v)
+      if (drawing) ctx.lineTo(px, py)
+      else ctx.moveTo(px, py)
+      drawing = true
+    }
+    ctx.strokeStyle = def.color
+    ctx.stroke()
   })
 }
-
 
 
 function drawGridY(
@@ -434,15 +512,8 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 svg {
-  background-color: #1e1e1e;
-
-  // Intentionally no `transition: d` here -- the chart redraws every ~170ms (see the
-  // throttled watch below), faster than a d-attribute transition could ever complete,
-  // so it would perpetually restart and keep these paths pinned to their own GPU
-  // compositor layer indefinitely. That's a real, session-duration-scaling GPU/compositor
-  // leak (was previously bad enough to freeze mouse/keyboard input system-wide on long
-  // sessions). The intended scroll animation is already handled correctly in JS via
-  // drawLines()'s explicit transform transition below -- this CSS rule was redundant.
+  // no background here: the lines are drawn on a canvas under this SVG, which must show through it (the canvas
+  // also paints the plot area's background)
 
   // Axis lines
   .x-axis path,
