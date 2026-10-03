@@ -161,3 +161,21 @@ def test_pulse_guiding_during_a_test_aborts_it_and_is_not_applied(tmp_path, cfg,
     p._lock = __import__('threading').Lock()
     Polaris.pulse_guide(p, 0, 500)
     assert p._sm.worm_test.aborted and 'pulse guide' in p._sm.worm_test.abort_reason
+
+
+def test_start_and_end_log_lines_mark_the_test_for_the_log_catalog(tmp_path, cfg, caplog):
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utility')))
+    from catalog_logs import _classify
+    p = fake_polaris(tmp_path)
+    p._tracking = True
+
+    async def run():
+        task = asyncio.create_task(Polaris.worm_gear_test(p, 2))
+        while p._sm.worm_test is None:
+            await asyncio.sleep(0.01)
+        p.lifecycle.stopped = True
+        await asyncio.wait_for(task, 5)
+    with caplog.at_level(logging.INFO, logger='test'):
+        asyncio.run(run())
+    kinds = [(_classify(f"2026-10-04T20:00:00.000 INFO {r.getMessage()}") or (None,))[0] for r in caplog.records]
+    assert [k for k in kinds if k and k.startswith('worm_test')] == ['worm_test_start', 'worm_test_end']

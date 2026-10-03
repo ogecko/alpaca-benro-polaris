@@ -1770,8 +1770,10 @@ def _centred_slope_per_min(t_sec, y, half_window_s):
 def correction_breakdown(df, rate_half_window_s=300.0):
     """
     Who corrected the mount's drift, per axis, from PECLOG (one PEC run or a windowed session):
-      mount_drift  = pulse_guide + sync_guide + pec_applied   running totals in arcsec (driver correction convention),
-                     joined across PEC model resets (total_accum restarts at each reset; these don't)
+      mount_drift  = pulse_guide + sync_guide + pec_applied + worm_ff   running totals in arcsec (driver correction
+                     convention), joined across PEC model resets (total_accum restarts at each reset; these don't)
+      worm_ff      = the worm feed-forward's correction (PECLOG wff, Config.pec_worm_ff) since the first row: on those
+                     nights the guide corrections lack what it corrected, so mount drift adds it back (0 when off)
       *_rate       = centred slope of each over +-rate_half_window_s, arcsec/min; drift_rate = sum of the others
       pec_model_rate   = the rate the driver's PEC model gave (fit_rate), arcsec/min (= arcmin/hr)
       pec_steady_term  = its steady-drift (DC) part (ra_model[0] / dec_model[0])
@@ -1794,9 +1796,14 @@ def correction_breakdown(df, rate_half_window_s=300.0):
         x['pulse_guide'] = resid.where(~sync, 0.0).cumsum().values
         x['sync_guide'] = resid.where(sync, 0.0).cumsum().values
         x['pec_applied'] = (d.loc[own, f'pec_accum_{i}'].fillna(0) * 60).cumsum().values
-        x['mount_drift'] = x['pulse_guide'] + x['sync_guide'] + x['pec_applied']
+        if f'wff_{i}' in d:
+            w = (pd.to_numeric(d[f'wff_{i}'], errors='coerce').ffill().fillna(0.0) * 60)[own].values  # level, arcsec
+            x['worm_ff'] = w - w[0] if len(w) else w
+        else:
+            x['worm_ff'] = 0.0
+        x['mount_drift'] = x['pulse_guide'] + x['sync_guide'] + x['pec_applied'] + x['worm_ff']
         t = x['t_sec'].values
-        for col in ('mount_drift', 'pulse_guide', 'sync_guide', 'pec_applied'):
+        for col in ('mount_drift', 'pulse_guide', 'sync_guide', 'pec_applied', 'worm_ff'):
             name = 'drift_rate' if col == 'mount_drift' else f'{col}_rate'
             x[name] = _centred_slope_per_min(t, x[col].values, rate_half_window_s)
         x['pec_model_rate'] = d.loc[own, f'fit_rate_{i}'].values if f'fit_rate_{i}' in d else np.nan

@@ -12,8 +12,9 @@ picked out (e.g. long, PEC off, one or two fast motors, records that give the mo
 Per segment: start/end/duration, driver version, why it started/ended, target RA/Dec (last goto),
 pose (az/alt/roll start/end/mean) and its source (KFLOG theta, SGLOG theta, or PECLOG az/alt/roll
 through the inverse kinematics), each motor's rate and travel, record counts (PECLOG/SGLOG/KFLOG),
-PEC state, sync-guide count and median interval, pulse-guiding evidence, battery, and the session's
-notes from the session registry (sessions.toml).
+PEC state, worm gear correction (feed-forward) state, sync-guide count and median interval, pulse-guiding evidence,
+battery, and the session's notes from the session registry (sessions.toml). The span of a worm gear test (Speed
+Calibration M#-WORM-GEAR, which steps a motor back and forth) is left out.
 """
 import argparse
 import ast
@@ -40,6 +41,7 @@ _GOTO_RADEC_RE = re.compile(r"GOTO Observed\s+RA (\d+)h(\d+)m([\d.]+)s\s+Dec ([+
 _CONFIG_RE = re.compile(r"'Action': 'Polaris:ConfigUpdate', 'Parameters': (\{[^}]*\})")
 _BATTERY_RE = re.compile(r"BATTERY status changed: 778 \{'capacity': '(\d+)'")
 _ROTATE_RE = re.compile(r"Rotate Absolute Observed\s+RollAngle ([+-])(\d+)d(\d+)'([\d.]+)\"")
+_WORM_TEST_RE = re.compile(r"WORM GEAR TEST M\d: (START|END)")
 _SLEWABS_ROLL_RE = re.compile(r"Polaris:SlewAbsolute \{[^}]*'roll': (-?[\d.]+)")
 
 _MOVES = ('slewtocoordinatesasync', 'slewtoaltazasync', 'Polaris:SlewAbsolute', 'Polaris:SlewRelative',
@@ -73,6 +75,9 @@ def _classify(line):
         ra = int(m[1]) + int(m[2]) / 60 + float(m[3]) / 3600
         dec = (1 if m[4] == '+' else -1) * (int(m[5]) + int(m[6]) / 60 + float(m[7]) / 3600)
         return 'goto', (ra, dec)
+    m = _WORM_TEST_RE.search(line)
+    if m:                                               # a worm gear test steps a motor: not steady tracking
+        return ('worm_test_start' if m[1] == 'START' else 'worm_test_end'), None
     if 'Advanced Control: START tracking' in line:
         return 'tracking_on', None
     if 'Advanced Control: STOP' in line or ("/telescope/0/tracking {" in line and "'Tracking': 'false'" in line):
@@ -173,7 +178,8 @@ def catalog_session(paths, notes=None):
     events = _read_session(paths)
     key = session_key(paths[0])
     segs, cur = [], None
-    state = dict(version=None, target=(np.nan, np.nan), pec=None, tracking=False, last_move=None, roll=np.nan)
+    state = dict(version=None, target=(np.nan, np.nan), pec=None, tracking=False, last_move=None, roll=np.nan,
+                 worm_test=False)
     seg_idx = 0
 
     def open_seg(t, reason):
@@ -199,11 +205,13 @@ def catalog_session(paths, notes=None):
                           and sum(v is not None for v in d['resid']) == 1)
         pec_known = [p for p in cur['pec_events'] if p is not None]
         pec = 'on' if pec_rows else ('off' if pec_known and not any(pec_known) else ('unknown' if not pec_known else 'off'))
+        wff_on = any(isinstance(d.get('wff'), list) and any(isinstance(v, (int, float)) and v != 0 for v in d['wff'])
+                     for _, d in pec_rows)
         rec = dict(session=key, segment=seg_idx, start=cur['start'], end=end, duration_min=round(dur, 1),
                    start_reason=cur['start_reason'], end_reason=reason, driver_version=cur['version'],
                    target_ra_h=cur['target'][0], target_dec=cur['target'][1], roll_set=cur['roll'], pose_source=src,
                    n_peclog=len(pec_rows), n_sglog=len(cur['samples']['sglog']), n_kflog=len(cur['samples']['kflog']),
-                   pec=pec, n_sync_guide=len(syncs),
+                   pec=pec, worm_ff='on' if wff_on else 'off', n_sync_guide=len(syncs),
                    sync_interval_s=float(np.median(intervals)) if len(intervals) else np.nan,
                    pulse_guiding=single_axis > 0,
                    battery_start=cur['battery'][0] if cur['battery'] else np.nan,
@@ -236,17 +244,26 @@ def catalog_session(paths, notes=None):
             state['target'] = payload
             state['last_move'] = (t, 'goto')
             close_seg(t, 'goto')
-            cur = open_seg(t, 'goto') if state['tracking'] else None
+            cur = open_seg(t, 'goto') if state['tracking'] and not state['worm_test'] else None
         elif kind == 'move':
             if payload is not None:
                 state['roll'] = payload
             state['last_move'] = (t, 'move')
             close_seg(t, 'move')
-            cur = open_seg(t, 'move') if state['tracking'] else None
+            cur = open_seg(t, 'move') if state['tracking'] and not state['worm_test'] else None
+        elif kind == 'worm_test_start':
+            close_seg(t, 'worm_gear_test')
+            cur = None
+            state['worm_test'] = True
+            state['tracking'] = True                    # the test turns tracking on
+        elif kind == 'worm_test_end':
+            state['worm_test'] = False
+            close_seg(t, 'worm_gear_test')
+            cur = open_seg(t, 'worm_gear_test') if state['tracking'] else None
         elif kind == 'tracking_on':
             if not state['tracking']:
                 state['tracking'] = True
-                if cur is None:
+                if cur is None and not state['worm_test']:
                     lm = state['last_move']             # goto/move then START tracking: credit the move
                     if lm is not None and (t - lm[0]).total_seconds() <= 30:
                         cur = open_seg(lm[0], lm[1])
@@ -266,7 +283,7 @@ def catalog_session(paths, notes=None):
                     cur['samples'][kind].append((t, d))
                     if kind in ('peclog', 'sglog'):
                         state['tracking'] = True
-            elif cur is None and kind == 'peclog':
+            elif cur is None and kind == 'peclog' and not state['worm_test']:
                 # PECLOG only exists while tracking: a log that starts mid-session is tracking already
                 state['tracking'] = True
                 cur = open_seg(t - pd.Timedelta(seconds=SETTLE_S), 'log_start')
@@ -293,7 +310,7 @@ def catalog(log_dir, notes=None):
 
 def to_markdown(df):
     use = df[df['usable']].copy()
-    cols = ['session', 'segment', 'start', 'duration_min', 'pec', 'n_sync_guide', 'sync_interval_s', 'pulse_guiding',
+    cols = ['session', 'segment', 'start', 'duration_min', 'pec', 'worm_ff', 'n_sync_guide', 'sync_interval_s', 'pulse_guiding',
             'pose_source', 'alt_mean', 'roll_mean', 'm1_dps_hr', 'm2_dps_hr', 'm3_dps_hr', 'notes']
     use['start'] = use['start'].dt.strftime('%Y-%m-%d %H:%M')
     out = [f"# Usable tracking segments ({len(use)} of {len(df)}, >= {MIN_SEGMENT_MIN:.0f} min with a pose source)\n",

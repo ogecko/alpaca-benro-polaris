@@ -630,7 +630,7 @@ class Polaris:
         if not was_tracking:
             await self.start_tracking()
         test = WormCalibration(axis)
-        self.logger.info(f"WORM GEAR TEST M{axis+1}: {len(test.positions)} positions, {test.step_deg} deg steps, "
+        self.logger.info(f"WORM GEAR TEST M{axis+1}: START, {len(test.positions)} positions, {test.step_deg} deg steps, "
                          f"{test.syncs_per_step} plate solves each (the first after a step is discarded)")
         sm.worm_test = test
         try:
@@ -657,7 +657,7 @@ class Polaris:
             status = result['status']
         else:
             status = 'STOPPED'
-        self.logger.info(f"WORM GEAR TEST M{axis+1}: {status} {result.get('amplitude_arcsec')}\" @ "
+        self.logger.info(f"WORM GEAR TEST M{axis+1}: END {status} {result.get('amplitude_arcsec')}\" @ "
                          f"{result.get('phase_deg')} deg, checks {result['checks']} -> {path}")
         self._cm.addWormGearResult(axis, gear_row_fields(result, current, axis, worm_theta=test.worm_theta), status)
         self.lifecycle.reset()
