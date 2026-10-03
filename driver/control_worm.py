@@ -19,8 +19,13 @@
 #
 # Stop and go, driven by the syncs: plate solving while the motor turns would smear the stars and turn the solve's
 # latency (unknown, 1-3 s jitter) into error at the motor's rate. So the motor steps step_deg, tracking holds, and the
-# test steps again only after a kept sync. The first sync after a step is discarded -- its exposure may have started
-# during the move or settling -- so every position costs syncs_per_step (2) solves. The positions sweep `turns` worm
+# test steps again at the next kept sync. The driver can't know when the solve's exposure started (Nina's exposure,
+# solve time and wait are its own), so it watches the step settle instead: once the motor has held within
+# SETTLE_ARCSEC of its target for SETTLE_HOLD_S, a sync is kept and the motor steps at once. A sync before that is
+# discarded ('moving'); so is a kept-looking one whose error jumps more than JUMP_ARCSEC from the last kept sample
+# (an exposure that caught the move: a Nina retry, a slow reversal) -- the sync after it was exposed after a settled
+# sync, so it is kept. Set Nina's wait between solves to at least the settle time the log shows (~10 s) and every
+# solve is kept: one solve per position. The positions sweep `turns` worm
 # turns forward and back, centred on where the mount was pointed (0 -> +half -> -half -> 0, so the field stays within
 # +/- 3 deg x turns of the chosen patch of sky): a slow drift in time (the other motors' worms as tracking turns them,
 # the alignment model) separates from the worm in angle, and the two directions show the backlash.
@@ -216,11 +221,18 @@ class WormMixin:
                   'pv_dec': getattr(p, '_declination', None)}
         step = test.on_sync(sample)
         if self.logger:
-            kept = 'kept' if test.syncs_here == 0 else 'settling'
             fmt = lambda v: '[' + ', '.join(f'{x:.5f}' for x in v) + ']'
             zeta = fmt(theta_raw - np.asarray(offset, float)) if offset is not None else 'None'
-            self.logger.info(f"WORM TEST M{axis + 1}: sync {kept} at {angle:.3f} deg, error {err_deg * 3600:.1f}\" "
-                             f"(sensitivity {sens:.2f}), position {test.index}/{len(test.positions)}, "
+            if test.last_outcome == 'kept':
+                k = test.samples[-1]
+                timing = (f"settled {k['settle_s']} s after the step, " if k['settle_s'] is not None else '') + \
+                         f"{k['since_settle_s']} s before this sync"
+            elif test.last_outcome == 'moving':
+                timing = 'motor not settled: discarded'
+            else:
+                timing = f'error jumped > {JUMP_ARCSEC:.0f}" from the last sample: discarded'
+            self.logger.info(f"WORM TEST M{axis + 1}: sync {test.last_outcome} at {angle:.3f} deg, error {err_deg * 3600:.1f}\" "
+                             f"(sensitivity {sens:.2f}), position {test.index}/{len(test.positions)}, {timing}, "
                              f"solved ra {a_ra:.6f} h dec {a_dec:.5f} az {a_az:.5f} alt {a_alt:.5f}, "
                              f"theta_raw {fmt(theta_raw)}, zeta {zeta}, theta_pv {fmt(theta_pv)}")
         if step:
@@ -232,29 +244,36 @@ MOTORS = ('M1', 'M2', 'M3')
 MIN_SAMPLES = 12              # fewer kept syncs: NO DATA
 MIN_TURNS = 1.5               # worm turns covered for a fit to count
 MIN_SIGNIFICANCE = 4.0        # amplitude / its standard error
+SETTLE_ARCSEC = 10.0          # a step has settled when the motor holds within this of its target ...
+SETTLE_HOLD_S = 1.0           # ... for this long
+JUMP_ARCSEC = 300.0           # error change from the last kept sample that means the exposure caught the 0.5 deg move
 CALIBRATION_HISTORY = 15      # test results kept in the profile's calibration_history (~5 per motor)
 
 
 class WormCalibration:
-    """One M#-WORM-GEAR test: the step schedule and the syncs it keeps."""
+    """One M#-WORM-GEAR test: the step schedule, the step settling and the syncs it keeps."""
 
-    def __init__(self, axis, step_deg=0.5, turns=2.0, worm_theta=6.0, syncs_per_step=2, no_sync_timeout_s=60.0,
-                 now=None):
+    def __init__(self, axis, step_deg=0.5, turns=2.0, worm_theta=6.0, no_sync_timeout_s=60.0, now=None):
         self.axis = axis
         self.no_sync_timeout_s = no_sync_timeout_s
-        self.last_sync = time.monotonic() if now is None else now   # start, then the last sync (kept or settling)
+        self.last_sync = time.monotonic() if now is None else now   # start, then the last sync (kept or discarded)
         self.abort_reason = None                   # why the test was cut short (goto, jog, pulse guide, no syncs ...)
         self.step_deg = step_deg
         self.worm_theta = worm_theta
-        self.syncs_per_step = syncs_per_step
         n = int(round(turns * worm_theta / 2 / step_deg))
         k = range(1, n + 1)
         # motor offsets (deg) from the start, centred on it: 0 -> +half -> -half -> 0 (turns worm turns each way)
         self.positions = ([0.0] + [i * step_deg for i in k] + [(n - i) * step_deg for i in range(1, 2 * n + 1)]
                           + [(i - n) * step_deg for i in k])
         self.index = 0                             # position the mount is at (or moving to)
-        self.syncs_here = 0                        # syncs seen at this position
         self.samples = []
+        self.step_at = None                        # when the motor was told to step to this position (None: the start)
+        self.settled_at = None                     # when it settled there (None: still moving)
+        self._within_since = None                  # since when it has been within SETTLE_ARCSEC (not yet held long enough)
+        self.clean_next = False                    # a sync arrived after settling: the next one's exposure is clean
+        self.last_outcome = None                   # the last sync: 'kept', 'moving' or 'jump'
+        self.discarded = {'moving': 0, 'jump': 0}
+        self.settle_times = []                     # s from each step to settled
 
     @property
     def done(self):
@@ -275,21 +294,55 @@ class WormCalibration:
     def direction(self, i):
         return 0 if i == 0 else int(np.sign(self.positions[i] - self.positions[i - 1]))
 
+    def track_settle(self, err_arcsec, now=None):
+        """The test motor's PID error (arcsec) each control tick: marks the position settled once it has held within
+        SETTLE_ARCSEC for SETTLE_HOLD_S (settled_at = when it got there)."""
+        if self.settled_at is not None or self.done or self.aborted:
+            return
+        now = time.monotonic() if now is None else now
+        if abs(err_arcsec) >= SETTLE_ARCSEC:
+            self._within_since = None
+            return
+        if self._within_since is None:
+            self._within_since = now
+        if now - self._within_since >= SETTLE_HOLD_S:
+            self.settled_at = self._within_since
+            if self.step_at is not None:
+                self.settle_times.append(round(self.settled_at - self.step_at, 2))
+
     def on_sync(self, sample, now=None):
         """Record a sync (dict) at the current position. Returns the step (deg) to make now, or None (sync discarded
-        while settling, or the test is finished or aborted)."""
+        -- see last_outcome -- or the test is finished or aborted)."""
         if self.done or self.aborted:
             return None
-        self.last_sync = time.monotonic() if now is None else now
-        self.syncs_here += 1
-        if self.syncs_here < self.syncs_per_step:
-            return None
-        self.samples.append({**sample, 'position': self.positions[self.index], 'direction': self.direction(self.index)})
+        now = time.monotonic() if now is None else now
+        self.last_sync = now
+        if self.settled_at is None:
+            return self._discard('moving')
+        err, last = sample.get('err_arcsec'), (self.samples[-1].get('err_arcsec') if self.samples else None)
+        if not self.clean_next and err is not None and last is not None and abs(err - last) > JUMP_ARCSEC:
+            self.clean_next = True
+            return self._discard('jump')
+        settle_s = None if self.step_at is None else round(self.settled_at - self.step_at, 2)
+        self.samples.append({**sample, 'position': self.positions[self.index], 'direction': self.direction(self.index),
+                             'settle_s': settle_s, 'since_settle_s': round(now - self.settled_at, 2)})
+        self.last_outcome = 'kept'
         self.index += 1
-        self.syncs_here = 0
+        self.step_at, self.settled_at, self._within_since, self.clean_next = now, None, None, False
         if self.done:
             return None
         return self.positions[self.index] - self.positions[self.index - 1]
+
+    def _discard(self, why):
+        self.discarded[why] += 1
+        self.last_outcome = why
+        return None
+
+    def timing(self):
+        """Settle times (s) and discarded syncs, for the result and the log."""
+        st = self.settle_times
+        return {'settle_median_s': round(float(np.median(st)), 1) if st else None,
+                'settle_max_s': round(float(np.max(st)), 1) if st else None, 'discarded': dict(self.discarded)}
 
 
 # ── calibration fit ───────────────────────────────────────────────────────────────────────────

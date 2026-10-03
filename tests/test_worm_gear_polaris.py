@@ -68,7 +68,10 @@ def sweep_syncs(test, rng):
         pos = test.positions[test.index]
         angle = 40.0 + pos
         err = 60.0 * np.sin(2 * np.pi * angle / 6.0 + np.radians(120.0)) + rng.normal(0, 2.0)
-        test.on_sync({'t': float(len(test.samples)), 'angle': angle, 'err_arcsec': err, 'sensitivity': 0.9})
+        now = 20.0 * len(test.samples)
+        test.track_settle(0.0, now)                             # the step settles at once
+        test.track_settle(0.0, now + 2.0)
+        test.on_sync({'t': now, 'angle': angle, 'err_arcsec': err, 'sensitivity': 0.9}, now=now + 10.0)
 
 
 def test_sync_during_a_test_is_recorded_not_applied(tmp_path, cfg):

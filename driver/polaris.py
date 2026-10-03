@@ -617,8 +617,8 @@ class Polaris:
 
     async def worm_gear_test(self, axis):
         """M#-WORM-GEAR calibration test (control_worm): step motor `axis` through 2 worm turns each way around the
-        current pointing while sidereal tracking holds the sky, recording each plate-solve sync (every ~10-15 s) as that
-        motor's angle error. The fit, its checks and the samples go into the worm profile file for review."""
+        current pointing while sidereal tracking holds the sky, recording each plate-solve sync after a step has settled
+        as that motor's angle error and stepping again at once. The fit, its checks and the samples go into the worm profile file for review."""
         self.lifecycle.start()
         sm = self._sm
         if not (Config.advanced_control and Config.advanced_tracking):
@@ -631,7 +631,8 @@ class Polaris:
             await self.start_tracking()
         test = WormCalibration(axis)
         self.logger.info(f"WORM GEAR TEST M{axis+1}: START, {len(test.positions)} positions, {test.step_deg} deg steps, "
-                         f"Test requires plate-solve syncs every 10-15 s, stops after {test.no_sync_timeout_s:.0f} s without one")
+                         f"requires plate-solve syncs, one per position after the step settles (~10 s: set the wait between "
+                         f"solves to the settle time logged), stops after {test.no_sync_timeout_s:.0f} s without a sync")
         sm.worm_test = test
         try:
             shown = None
@@ -649,6 +650,7 @@ class Polaris:
             if not was_tracking:
                 await self.stop_tracking()
         result = fit_worm_samples(test.samples, worm_theta=test.worm_theta)
+        result['timing'] = test.timing()
         path = sm.worm_profile_path()
         current = WormFeedForward.load(path)
         if result['status'] != 'NO DATA':
@@ -662,7 +664,7 @@ class Polaris:
             self.logger.info(f"WORM GEAR TEST M{axis+1}: END {status}, {why} -- nothing saved")
         else:
             self.logger.info(f"WORM GEAR TEST M{axis+1}: END {status} {result['amplitude_arcsec']}\" @ "
-                             f"{result['phase_deg']} deg, checks {result['checks']} -> {path}")
+                             f"{result['phase_deg']} deg, checks {result['checks']}, timing {result['timing']} -> {path}")
         self._cm.addWormGearResult(axis, gear_row_fields(result, current, axis, worm_theta=test.worm_theta), status)
         self.lifecycle.reset()
 

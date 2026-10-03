@@ -1917,6 +1917,9 @@ class PID_Controller():
                 settle_all = getattr(self, 'theta_ref_cache_settle_all', False)
                 if (np.max(np.abs(self.error_signal)) < 1.0 and np.max(np.abs(self.omega_op)) < 0.5) if settle_all else (abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10):
                     self.clear_theta_ref_cache()
+        test = self._worm_test()
+        if test is not None:                               # M#-WORM-GEAR test: has the step settled?
+            test.track_settle(self.error_signal[test.axis] * 3600.0)
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
         self.is_axis_deviating = np.abs(self.error_signal) > tollerance

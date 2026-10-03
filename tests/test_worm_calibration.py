@@ -3,8 +3,8 @@ Tests for the M1-WORM / M2-WORM / M3-WORM calibration (driver/control_worm.py): 
 while sidereal tracking holds the sky, record each plate-solve sync as that motor's angle error, and fit the worm.
 
   * the schedule: 0.5 deg steps over 2 worm turns forward and back, centred on the starting pointing (+/- 6 deg),
-    one step per kept sync, and the sync after a
-    step discarded (its exposure may overlap the move)
+    one step per kept sync: a sync is kept once the step has settled (and its error didn't jump from the last sample:
+    an exposure that caught the move), and the motor steps at once
   * the fit recovers amplitude and phase (the shared model: a pure 6 deg sine) next to a slow trend, a per-direction
     offset (backlash) and noise, and reports the checks: 2nd harmonic, best period, phase per direction, backlash
   * the result goes into worm_profile.json for review; approval puts that motor's coefficients into the profile (on
@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 
 from control_worm import (WormCalibration, fit_worm_calibration, store_calibration, apply_calibration,
-                              revert_calibration, CALIBRATION_HISTORY)
+                              revert_calibration, CALIBRATION_HISTORY, SETTLE_HOLD_S, JUMP_ARCSEC)
 from control_worm import WormFeedForward
 
 ARCSEC = 3600.0
@@ -36,30 +36,62 @@ def test_schedule_steps_two_worm_turns_each_way_centred_on_the_start():
     assert (d > 0).sum() * 0.5 == pytest.approx(12.0) and (d < 0).sum() * 0.5 == pytest.approx(12.0)
 
 
-def test_first_sync_after_a_step_is_discarded_and_the_next_is_kept_then_steps():
-    wc = WormCalibration(axis=2, step_deg=0.5, turns=1 / 3)     # 0, .5, 1, .5, 0, -.5, -1, -.5, 0
-    assert wc.on_sync({'k': 0}) is None                          # settling: discarded
-    assert wc.samples == []
-    assert wc.on_sync({'k': 1}) == pytest.approx(0.5)           # kept, step +0.5
-    assert wc.samples[-1]['k'] == 1 and wc.samples[-1]['position'] == 0.0
-    assert wc.on_sync({'k': 2}) is None
-    assert wc.on_sync({'k': 3}) == pytest.approx(0.5)
-    assert wc.samples[-1]['position'] == 0.5 and wc.samples[-1]['direction'] == 1
+def settle(wc, now):
+    """The control ticks of a step that settles: within SETTLE_ARCSEC from `now`, held for SETTLE_HOLD_S."""
+    wc.track_settle(50.0, now)
+    wc.track_settle(5.0, now + 1.0)
+    wc.track_settle(4.0, now + 1.0 + SETTLE_HOLD_S)
+
+
+def test_a_sync_after_the_step_settles_is_kept_and_steps_at_once():
+    wc = WormCalibration(axis=2, step_deg=0.5, turns=1 / 3, now=0.0)     # 0, .5, 1, .5, 0, -.5, -1, -.5, 0
+    settle(wc, 0.0)
+    assert wc.on_sync({'k': 0}, now=5.0) == pytest.approx(0.5)            # kept, step +0.5
+    assert wc.samples[-1]['k'] == 0 and wc.samples[-1]['position'] == 0.0
+    assert wc.samples[-1]['settle_s'] is None and wc.samples[-1]['since_settle_s'] == pytest.approx(4.0)
+    t = 5.0
     steps = []
     while not wc.done:
-        wc.on_sync({})
-        steps.append(wc.on_sync({}))
-    assert len(wc.samples) == len(wc.positions)
-    assert steps[-1] is None                                    # no step after the last position
+        settle(wc, t + 1.0)                                               # settled 2 s after the step
+        t += 10.0
+        steps.append(wc.on_sync({}, now=t))
+        assert wc.last_outcome == 'kept'
+    assert len(wc.samples) == len(wc.positions)                          # one sync per position
+    assert steps[-1] is None                                             # no step after the last position
     assert [s['direction'] for s in wc.samples] == [0, 1, 1, -1, -1, -1, -1, 1, 1]
-    assert wc.on_sync({}) is None                               # finished: nothing more recorded
+    assert wc.samples[1]['settle_s'] == pytest.approx(2.0) and wc.samples[1]['since_settle_s'] == pytest.approx(8.0)
+    assert wc.on_sync({}, now=t + 10.0) is None                          # finished: nothing more recorded
     assert len(wc.samples) == len(wc.positions)
+    assert wc.timing() == {'settle_median_s': 2.0, 'settle_max_s': 2.0, 'discarded': {'moving': 0, 'jump': 0}}
 
 
-def test_syncs_per_step_one_keeps_every_sync():
-    wc = WormCalibration(axis=0, turns=1 / 3, syncs_per_step=1)
-    assert wc.on_sync({}) == pytest.approx(0.5)
-    assert len(wc.samples) == 1
+def test_a_sync_before_the_step_settles_is_discarded():
+    wc = WormCalibration(axis=1, now=0.0)
+    settle(wc, 0.0)
+    assert wc.on_sync({}, now=5.0) == pytest.approx(0.5)
+    assert wc.on_sync({}, now=8.0) is None and wc.last_outcome == 'moving'     # still moving: no settle yet
+    wc.track_settle(5.0, 9.0)
+    assert wc.on_sync({}, now=9.5) is None and wc.last_outcome == 'moving'     # within, but not held long enough
+    wc.track_settle(30.0, 9.6)                                           # overshoot: start again
+    wc.track_settle(5.0, 10.0)
+    wc.track_settle(5.0, 10.0 + SETTLE_HOLD_S)
+    assert wc.on_sync({}, now=15.0) == pytest.approx(0.5) and wc.last_outcome == 'kept'
+    assert wc.samples[-1]['settle_s'] == pytest.approx(5.0)              # settled at 10.0, stepped at 5.0
+    assert wc.discarded == {'moving': 2, 'jump': 0}
+    assert len(wc.samples) == 2
+
+
+def test_a_jump_from_the_last_sample_is_discarded_once_then_the_next_sync_is_kept():
+    wc = WormCalibration(axis=1, now=0.0)
+    settle(wc, 0.0)
+    wc.on_sync({'err_arcsec': 40.0}, now=5.0)
+    settle(wc, 6.0)
+    assert wc.on_sync({'err_arcsec': 40.0 + JUMP_ARCSEC + 1}, now=12.0) is None and wc.last_outcome == 'jump'
+    assert wc.on_sync({'err_arcsec': 40.0 + JUMP_ARCSEC + 1}, now=22.0) == pytest.approx(0.5)   # exposed after a
+    assert wc.last_outcome == 'kept' and len(wc.samples) == 2                                    # settled sync: real
+    settle(wc, 23.0)
+    assert wc.on_sync({'err_arcsec': 380.0}, now=30.0) == pytest.approx(0.5)     # within JUMP_ARCSEC: kept
+    assert wc.discarded == {'moving': 0, 'jump': 1}
 
 
 # ── fit ───────────────────────────────────────────────────────────────────────────────────────
@@ -334,15 +366,17 @@ def test_times_out_without_syncs():
     wc = WormCalibration(1, now=0.0)
     assert wc.no_sync_timeout_s == 60.0                         # solves every 10-15 s: a minute without one is none
     assert not wc.timed_out(59.0) and wc.timed_out(61.0)
-    wc.on_sync({}, now=100.0)                                   # any sync, kept or settling, counts as activity
+    wc.on_sync({}, now=100.0)                                   # any sync, kept or discarded, counts as activity
     assert not wc.timed_out(159.0) and wc.timed_out(161.0)
 
 
 def test_an_aborted_test_records_and_steps_no_more():
-    wc = WormCalibration(1, syncs_per_step=1)
-    assert wc.on_sync({}) == pytest.approx(0.5)
+    wc = WormCalibration(1, now=0.0)
+    settle(wc, 0.0)
+    assert wc.on_sync({}, now=5.0) == pytest.approx(0.5)
     wc.abort('goto')
     assert wc.aborted and wc.abort_reason == 'goto'
-    assert wc.on_sync({}) is None and len(wc.samples) == 1
+    settle(wc, 6.0)
+    assert wc.on_sync({}, now=10.0) is None and len(wc.samples) == 1
     wc.abort('jog')
     assert wc.abort_reason == 'goto'                            # the first reason is kept

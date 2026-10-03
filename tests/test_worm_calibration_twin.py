@@ -3,6 +3,7 @@ The M#-WORM calibration test on the digital twin (tests/sim_digital_twin.py), wi
 (tests/sim_guider.Worm). Plate solves of the true pointing arrive every 10 s through SyncManager.record_worm_sync (what
 Polaris.sync_telescope calls while a test runs):
 
+  * a sync is kept once the PID has settled the step; with syncs slower than the settle time every one is kept
   * each kept sync steps the test motor 0.5 deg by moving the tracked target (PID_Controller.step_motor_target), and
     sidereal tracking holds it in between: TRACK throughout, the other motors only track
   * syncs are recorded, not applied: no sync-guide correction, no QUEST point; PEC and the worm feed-forward pause
@@ -52,9 +53,10 @@ def run_calibration(monkeypatch, axis, worm, interval_s=10.0, noise_arcsec=2.0, 
 @pytest.mark.slow
 def test_worm_calibration_recovers_the_m2_worm(monkeypatch):
     worm = Worm(amplitude_arcsec=(30.0, 60.0, 30.0), theta_deg=6.0, h2=0.0, seed=3)     # M1, M3 worms: tracking drift
-    tw, test, start, trace = run_calibration(monkeypatch, 1, worm)
+    tw, test, start, trace = run_calibration(monkeypatch, 1, worm, interval_s=15.0)    # wait > settle (~8 s)
     s = test.samples
     assert len(s) == len(test.positions)
+    assert sum(test.timing()['discarded'].values()) <= 2         # one solve per position
 
     # TRACK throughout, the test motor swept +/-6 deg around the start and back, the others only tracking
     modes = {m for m, *_ in trace}
